@@ -1456,6 +1456,13 @@ export async function getSalesInventoryOverview(
 		inventoryApplicability: resolveSalesInventoryApplicability({
 			lifecycleStatus: lifecycle.status,
 			projection: sale.inventoryProjection,
+			existingInventoryNeedCount: rows.filter(
+				(row) =>
+					row.requirementStatus === "required" &&
+					row.trackingPolicy === "tracked" &&
+					row.inventoryProductKind !== "component" &&
+					row.inventoryCategoryProductKind !== "component",
+			).length,
 		}),
 		setupMode,
 		operationMode: operationPolicy.mode,

@@ -4,6 +4,20 @@ export type InventoryInboundCountState =
 	| "covered"
 	| "empty";
 
+export function isInventoryNeedRow(input: {
+	requirementStatus?: string | null;
+	trackingPolicy?: string | null;
+	inventoryProductKind?: string | null;
+	inventoryCategoryProductKind?: string | null;
+}) {
+	return (
+		input.requirementStatus === "required" &&
+		input.trackingPolicy === "tracked" &&
+		input.inventoryProductKind !== "component" &&
+		input.inventoryCategoryProductKind !== "component"
+	);
+}
+
 export function getInboundOrderableQty(input: {
 	qtyPending?: number | null;
 	qtyInboundLinkedOpen?: number | null;
@@ -44,6 +58,13 @@ export function canFulfillAllInventoryNeeds(input: {
 		!input.isReadOnly &&
 		Number(input.pendingQty || 0) > 0
 	);
+}
+
+export function shouldShowInventoryNeedsActions(input: {
+	segment: "stock" | "inbounds" | "non_stock";
+	needCount: number;
+}) {
+	return input.segment === "stock" && Number(input.needCount || 0) > 0;
 }
 
 export function resolveInventoryInboundCountState(input: {

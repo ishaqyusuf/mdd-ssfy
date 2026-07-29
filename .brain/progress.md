@@ -7585,3 +7585,34 @@
   Orders fallback query to filtered relation counts instead of component detail
   rows, and extracted inventory refresh/manual-fulfillment mutation
   orchestration from the large Inventory tab.
+- 2026-07-29: fixed Sales Overview Production readiness disagreeing with the
+  Inventory tab after manual need fulfillment. The shared production planner
+  now uses the canonical inventory tracking policy, excludes untracked and
+  component-kind `Not Needed` rows from blockers, and treats an explicit
+  component `fulfilled` status as resolved without inventing stock movement.
+  The Production tab now loads and renders readiness only when at least one
+  production-capable line exists. Focused readiness, override, fulfillment, and
+  UI coverage passes 45 tests / 117 assertions, `@gnd/sales` typecheck passes,
+  and authenticated browser verification on order `00003DPP` shows only `No
+  production items found` in Production while Inventory remains `Needs 1`,
+  `Inbounds 0`, `Not Needed 1`, with all needed items covered.
+- 2026-07-29: made the Sales Orders Inbound `N/A` state explain itself on
+  click. It is now a keyboard-accessible button that stops row navigation and
+  shows the row's canonical inventory-applicability description in an
+  informational toast. Corrected the Dashboard root to mount the legacy and
+  Sonner toast providers as distinct implementations instead of mounting the
+  legacy provider twice, so one click produces one notification. Focused
+  applicability and interaction coverage passes 12 tests / 18 assertions, and
+  authenticated browser verification on order `09078VC` confirmed exactly one
+  title and one legacy-completion explanation.
+- 2026-07-29: aligned zero-need Sales Inventory UI and inbound applicability.
+  The Needs segment now hides Create inbound, Mark all needs fulfilled, the
+  inbound form, and readiness status when no tracked need rows exist. Projection
+  sync, Sales Orders list fallback, and ready-projection applicability now count
+  only rows accepted by the canonical inventory tracking policy, so untracked
+  or component-kind `Not Needed` rows resolve the Inbound column to `N/A`
+  instead of `Set status`. Focused coverage passes 45 tests / 81 assertions and
+  `@gnd/sales` typecheck passes. The API-wide typecheck remains blocked by the
+  existing unrelated Sentry event typing errors in `apps/api/src/instrument.ts`;
+  authenticated browser revalidation was temporarily blocked because the shared
+  local Next.js route returned 502 after the typecheck run.

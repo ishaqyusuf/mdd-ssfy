@@ -110,7 +110,14 @@ export function resolveSalesInventoryApplicability(input: {
 		};
 	}
 
-	const needCount = Math.max(0, Number(projection.needCount || 0));
+	const needCount = Math.max(
+		0,
+		Number(
+			input.existingInventoryNeedCount == null
+				? projection.needCount
+				: input.existingInventoryNeedCount,
+		),
+	);
 	if (needCount === 0) {
 		return {
 			state: "not_applicable",
@@ -118,7 +125,8 @@ export function resolveSalesInventoryApplicability(input: {
 			isInboundApplicable: false,
 			canManualSync: false,
 			label: "N/A",
-			description: "No inventory requirements were found for this sale.",
+			description:
+				"No tracked inventory requirements were found for this sale.",
 			lastSyncedAt: projection.completedAt ?? null,
 		};
 	}

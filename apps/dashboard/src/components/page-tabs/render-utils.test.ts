@@ -2,8 +2,10 @@ import { describe, expect, it } from "bun:test";
 import {
 	getPageTabSelection,
 	getPageTabViewState,
+	getResponsivePageTabLimit,
 	isResolvedPageTabActive,
 	shouldRenderPageTabsShell,
+	shouldStackPageTabs,
 	splitPageTabs,
 } from "./render-utils";
 
@@ -176,6 +178,54 @@ describe("page tab render utils", () => {
 			visibleTabs: ["All", "Pending", "Approved", "Paid", "Draft"],
 			overflowTabs: ["Closed"],
 		});
+	});
+
+	it("keeps two resolved tabs inline and stacks three or more", () => {
+		expect(shouldStackPageTabs(2)).toBe(false);
+		expect(shouldStackPageTabs(3)).toBe(true);
+		expect(shouldStackPageTabs(8)).toBe(true);
+	});
+
+	it("resolves adaptive tab limits for mobile, desktop, and 2xl", () => {
+		const adaptiveLimits = {
+			base: 3,
+			lg: 5,
+			"2xl": 8,
+		};
+
+		expect(
+			getResponsivePageTabLimit(adaptiveLimits, {
+				isLg: false,
+				is2xl: false,
+			}),
+		).toBe(3);
+		expect(
+			getResponsivePageTabLimit(adaptiveLimits, {
+				isLg: true,
+				is2xl: false,
+			}),
+		).toBe(5);
+		expect(
+			getResponsivePageTabLimit(adaptiveLimits, {
+				isLg: true,
+				is2xl: true,
+			}),
+		).toBe(8);
+	});
+
+	it("preserves the shared default tab limits", () => {
+		expect(
+			getResponsivePageTabLimit(undefined, {
+				isLg: true,
+				is2xl: false,
+			}),
+		).toBe(3);
+		expect(
+			getResponsivePageTabLimit(undefined, {
+				isLg: true,
+				is2xl: true,
+			}),
+		).toBe(5);
 	});
 
 	it("selects a named tab while unrelated query values coexist", () => {

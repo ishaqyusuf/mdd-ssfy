@@ -1,6 +1,7 @@
 import type { Db } from "@gnd/db";
 
 import { SALES_INVENTORY_PROJECTION_VERSION } from "./sales-inventory-applicability";
+import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 import {
 	type SyncSalesInventoryLineItemsInput,
 	syncSalesInventoryLineItems,
@@ -69,7 +70,7 @@ export async function runSalesInventoryProjectionSync(
 				tx,
 				input,
 			);
-			const requirements = await tx.lineItemComponents.aggregate({
+			const requirements = await tx.lineItemComponents.findMany({
 				where: {
 					required: true,
 					qty: {
@@ -83,15 +84,57 @@ export async function runSalesInventoryProjectionSync(
 						},
 					},
 				},
-				_count: {
-					_all: true,
-				},
-				_sum: {
+				select: {
 					qty: true,
+					inventoryId: true,
+					inventoryVariantId: true,
+					inventory: {
+						select: {
+							id: true,
+							productKind: true,
+							stockMode: true,
+						},
+					},
+					inventoryVariant: {
+						select: {
+							id: true,
+						},
+					},
+					inventoryCategory: {
+						select: {
+							productKind: true,
+							stockMode: true,
+						},
+					},
+					subComponent: {
+						select: {
+							defaultInventory: {
+								select: {
+									id: true,
+									productKind: true,
+									stockMode: true,
+								},
+							},
+							inventoryCategory: {
+								select: {
+									productKind: true,
+									stockMode: true,
+								},
+							},
+						},
+					},
 				},
 			});
-			const needCount = requirements._count._all;
-			const requiredQty = Number(requirements._sum.qty || 0);
+			const trackedRequirements = requirements.filter(
+				(requirement) =>
+					resolveSalesInventoryTrackingPolicy(requirement) === "tracked",
+			);
+			const needCount = trackedRequirements.length;
+			const requiredQty = trackedRequirements.reduce(
+				(total, requirement) =>
+					total + Math.max(0, Number(requirement.qty || 0)),
+				0,
+			);
 			const status = result.warnings.length ? "failed" : "ready";
 			const lastError = result.warnings.length
 				? result.warnings.join("\n").slice(0, 65_535)

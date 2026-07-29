@@ -3,6 +3,7 @@ import { formatDateRange } from "little-date";
 
 import type { PageFilterData } from "@api/type";
 import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { getDatePresetLabel } from "./date-filter-selection";
@@ -25,6 +26,7 @@ interface Props {
 	onRemove?;
 	onClearAll?;
 	excludedKeys?: Iterable<string>;
+	className?: string;
 }
 
 export function FilterList({
@@ -36,6 +38,7 @@ export function FilterList({
 	onRemove,
 	onClearAll,
 	excludedKeys,
+	className,
 }: Props) {
 	const definitions =
 		definitionsProp || normalizeFilterDefinitions(filterList ?? []);
@@ -96,7 +99,7 @@ export function FilterList({
 	};
 
 	return (
-		<div className="w-full min-w-0 overflow-x-auto pb-1">
+		<div className={cn("w-full min-w-0 overflow-x-auto pb-1", className)}>
 			<ul className="flex w-max min-w-full gap-2 lg:min-w-0 lg:flex-wrap">
 				{loading && (
 					<>

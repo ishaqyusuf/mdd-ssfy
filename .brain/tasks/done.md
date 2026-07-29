@@ -1,5 +1,19 @@
 # Done
 
+### Sales Production And Inventory Readiness Parity
+- Status: Done
+- Description: Aligned Production material readiness with Inventory's
+  canonical tracking policy and explicit manual-fulfillment state. Not Needed
+  rows no longer become production blockers, and fulfilled monitored needs are
+  resolved without fabricating stock, allocation, inbound, or receipt values.
+  Readiness is not loaded or displayed when the tab has no production-capable
+  lines.
+- Feature File: `.brain/features/production-readiness-override.md`
+- Validation: 45 focused tests / 117 assertions, passing `@gnd/sales`
+  typecheck, clean scoped diff checks, and authenticated browser proof on order
+  `00003DPP` across Production and Inventory.
+- Completed Date: 2026-07-29
+
 ### Vercel Monorepo Web-App Upload Boundary Fix
 - Status: Done
 - Description: Restored dashboard, dealership, and storefront workspace

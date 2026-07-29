@@ -19,7 +19,8 @@ describe("resolveSalesInventoryApplicability", () => {
 			isInboundApplicable: false,
 			canManualSync: false,
 			label: "N/A",
-			description: "No inventory requirements were found for this sale.",
+			description:
+				"No tracked inventory requirements were found for this sale.",
 			lastSyncedAt: new Date("2026-07-28T10:00:00.000Z"),
 		});
 	});
@@ -39,6 +40,25 @@ describe("resolveSalesInventoryApplicability", () => {
 			needCount: 3,
 			isInboundApplicable: true,
 			canManualSync: false,
+		});
+	});
+
+	test("uses the current actionable need count over a stale ready projection", () => {
+		expect(
+			resolveSalesInventoryApplicability({
+				lifecycleStatus: "awaiting_production",
+				projection: {
+					status: "ready",
+					needCount: 3,
+					completedAt: new Date("2026-07-28T10:00:00.000Z"),
+				},
+				existingInventoryNeedCount: 0,
+			}),
+		).toMatchObject({
+			state: "not_applicable",
+			needCount: 0,
+			isInboundApplicable: false,
+			label: "N/A",
 		});
 	});
 

@@ -19,6 +19,7 @@ import {
   repairSalesInvoiceCccDisplay,
 } from "@gnd/sales/payment-system";
 import { resolveSalesInventoryApplicability } from "@gnd/sales/sales-inventory-applicability";
+import { resolveSalesInventoryTrackingPolicy } from "@gnd/sales/sales-inventory-tracking-policy";
 import {
   INVOICE_FILTER_OPTIONS,
   PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
@@ -601,13 +602,48 @@ async function normalizeOrders(
         },
         select: {
           saleId: true,
-          _count: {
+          components: {
+            where: {
+              required: true,
+              qty: {
+                gt: 0,
+              },
+            },
             select: {
-              components: {
-                where: {
-                  required: true,
-                  qty: {
-                    gt: 0,
+              inventoryId: true,
+              inventoryVariantId: true,
+              inventory: {
+                select: {
+                  id: true,
+                  productKind: true,
+                  stockMode: true,
+                },
+              },
+              inventoryVariant: {
+                select: {
+                  id: true,
+                },
+              },
+              inventoryCategory: {
+                select: {
+                  productKind: true,
+                  stockMode: true,
+                },
+              },
+              subComponent: {
+                select: {
+                  defaultInventory: {
+                    select: {
+                      id: true,
+                      productKind: true,
+                      stockMode: true,
+                    },
+                  },
+                  inventoryCategory: {
+                    select: {
+                      productKind: true,
+                      stockMode: true,
+                    },
                   },
                 },
               },
@@ -626,10 +662,14 @@ async function normalizeOrders(
   for (const row of existingInventoryRequirementRows) {
     if (!row.saleId) continue;
 
+    const trackedRequirementCount = row.components.filter(
+      (component) =>
+        resolveSalesInventoryTrackingPolicy(component) === "tracked",
+    ).length;
     existingInventoryNeedCountMap.set(
       row.saleId,
       (existingInventoryNeedCountMap.get(row.saleId) ?? 0) +
-        row._count.components,
+        trackedRequirementCount,
     );
   }
   const normalizedRows = rows.map((row) => ({

@@ -1,8 +1,18 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import {
 	getSalesInboundActionIntent,
 	resolveSalesInboundColumnState,
 } from "./sales-inbound-status-badge";
+
+const salesOrderColumnsSource = readFileSync(
+	new URL("./tables-2/sales-orders/columns.tsx", import.meta.url),
+	"utf8",
+);
+const dashboardLayoutSource = readFileSync(
+	new URL("../app/layout.tsx", import.meta.url),
+	"utf8",
+);
 
 describe("sales inbound action intent", () => {
 	test("opens the create-inbound workbench when no inventory shipment exists", () => {
@@ -52,5 +62,33 @@ describe("sales inbound action intent", () => {
 				},
 			}),
 		).toBe("inventory_inbound");
+	});
+
+	test("explains the N/A state when it is clicked", () => {
+		const notApplicableBranch = salesOrderColumnsSource.slice(
+			salesOrderColumnsSource.indexOf(
+				'if (columnState === "not_applicable")',
+			),
+			salesOrderColumnsSource.indexOf('if (columnState === "syncing")'),
+		);
+
+		expect(notApplicableBranch).toContain("<button");
+		expect(notApplicableBranch).toContain("onClick");
+		expect(notApplicableBranch).toContain('title: "Inbound not applicable"');
+		expect(notApplicableBranch).toContain(
+			"description: inventoryApplicability.description",
+		);
+	});
+
+	test("mounts distinct legacy and Sonner toast providers", () => {
+		expect(dashboardLayoutSource).toContain(
+			'import { Toaster as MiddayToast } from "sonner";',
+		);
+		expect(dashboardLayoutSource).toContain(
+			'import { Toaster } from "@gnd/ui/toaster";',
+		);
+		expect(dashboardLayoutSource).not.toContain(
+			"Toaster as MiddayToast, Toaster",
+		);
 	});
 });

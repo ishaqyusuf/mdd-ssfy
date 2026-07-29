@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 import {
 	applyHoldUntilCompleteToShipmentPlan,
-	buildSalesPartialShipmentQueue,
 	buildSalesBackorderQueue,
+	buildSalesPartialShipmentQueue,
 	buildSalesProductionPlan,
 	isLineHeldUntilComplete,
 	planAvailableShipmentForLine,
@@ -434,6 +434,7 @@ describe("buildSalesProductionPlan", () => {
 						inventory: {
 							id: 500,
 							name: "Door slab",
+							stockMode: "monitored",
 							defaultSupplier: {
 								id: 700,
 								name: "Door Co",
@@ -452,6 +453,7 @@ describe("buildSalesProductionPlan", () => {
 						inventory: {
 							id: 510,
 							name: "Hinge set",
+							stockMode: "monitored",
 							defaultSupplier: {
 								id: 701,
 								name: "Hardware Co",
@@ -489,6 +491,7 @@ describe("buildSalesProductionPlan", () => {
 						inventory: {
 							id: 520,
 							name: "Casing",
+							stockMode: "monitored",
 							defaultSupplier: {
 								id: 700,
 								name: "Door Co",
@@ -549,6 +552,55 @@ describe("buildSalesProductionPlan", () => {
 		);
 	});
 
+	test("uses inventory tracking policy and explicit fulfillment for readiness", () => {
+		const plan = buildSalesProductionPlan([
+			{
+				id: 1,
+				title: "Door package",
+				qty: 1,
+				components: [
+					{
+						id: 10,
+						required: true,
+						qty: 1,
+						status: "fulfilled",
+						inventory: {
+							id: 500,
+							name: "Door slab",
+							stockMode: "monitored",
+						},
+					},
+					{
+						id: 11,
+						required: true,
+						qty: 1,
+						inventoryCategory: {
+							id: 501,
+							title: "Shelf Items",
+							productKind: "component",
+							stockMode: "monitored",
+						},
+					},
+				],
+			},
+		]);
+
+		expect(plan.summary).toMatchObject({
+			lineCount: 1,
+			componentCount: 1,
+			readyLineCount: 1,
+			blockedLineCount: 0,
+			readiness: "fulfilled",
+		});
+		expect(plan.components).toEqual([
+			expect.objectContaining({
+				componentId: 10,
+				stockStatus: "fulfilled",
+				readiness: "fulfilled",
+			}),
+		]);
+	});
+
 	test("can filter components by production readiness", () => {
 		const plan = buildSalesProductionPlan(
 			[
@@ -560,16 +612,22 @@ describe("buildSalesProductionPlan", () => {
 							id: 10,
 							required: true,
 							qty: 2,
+							inventory: {
+								id: 500,
+								stockMode: "monitored",
+							},
 							stockAllocations: [{ qty: 2, status: "reserved" }],
 						},
 						{
 							id: 11,
 							required: true,
 							qty: 2,
+							inventory: {
+								id: 501,
+								stockMode: "monitored",
+							},
 							stockAllocations: [{ qty: 1, status: "reserved" }],
-							inboundDemands: [
-								{ qty: 1, qtyReceived: 0, status: "ordered" },
-							],
+							inboundDemands: [{ qty: 1, qtyReceived: 0, status: "ordered" }],
 						},
 					],
 				},
@@ -604,6 +662,10 @@ describe("buildSalesProductionPlan", () => {
 						id: 10,
 						required: true,
 						qty: 1,
+						inventory: {
+							id: 500,
+							stockMode: "monitored",
+						},
 						stockAllocations: [],
 						inboundDemands: [{ qty: 1, qtyReceived: 0, status: "pending" }],
 					},
@@ -623,6 +685,10 @@ describe("buildSalesProductionPlan", () => {
 						id: 11,
 						required: true,
 						qty: 1,
+						inventory: {
+							id: 501,
+							stockMode: "monitored",
+						},
 						stockAllocations: [{ qty: 1, status: "approved" }],
 					},
 				],

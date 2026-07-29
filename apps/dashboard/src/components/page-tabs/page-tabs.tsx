@@ -39,7 +39,9 @@ import {
 	queryContainsTabQuery,
 } from "./query-utils";
 import {
+	type ResponsivePageTabLimit,
 	getPageTabViewState,
+	getResponsivePageTabLimit,
 	isResolvedPageTabActive,
 	shouldRenderPageTabsShell,
 	splitPageTabs,
@@ -54,6 +56,7 @@ interface PageTabsProps {
 	page?: string;
 	action?: ReactNode;
 	currentQuery?: string;
+	maxVisible?: ResponsivePageTabLimit;
 }
 
 type ResolvedPageTab = PageTabItem & {
@@ -129,9 +132,11 @@ export function PageTabs({
 	page,
 	action,
 	currentQuery,
+	maxVisible,
 }: PageTabsProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
+	const isLg = useMediaQuery(screens.lg);
 	const is2xl = useMediaQuery(screens["2xl"]);
 	const trpc = useTRPC();
 	const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
@@ -196,9 +201,13 @@ export function PageTabs({
 		selectedState.matchingTabIndex,
 	]);
 	const selectedResolvedTabIndex = resolvedTabs.findIndex((tab) => tab.active);
+	const visibleTabLimit = getResponsivePageTabLimit(maxVisible, {
+		isLg,
+		is2xl,
+	});
 	const { visibleTabs, overflowTabs } = splitPageTabs(
 		resolvedTabs,
-		is2xl ? 5 : 3,
+		visibleTabLimit,
 		selectedResolvedTabIndex,
 	);
 	const hasActiveOverflowTab = overflowTabs.some((tab) => tab.active);

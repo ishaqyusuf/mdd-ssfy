@@ -32,6 +32,10 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { PageTabs } from "../page-tabs";
 import { queryFromActiveFilters } from "../page-tabs/query-utils";
+import {
+	type ResponsivePageTabLimit,
+	shouldStackPageTabs,
+} from "../page-tabs/render-utils";
 import { SavePageTabButton } from "../page-tabs/save-page-tab-button";
 import { usePageTabSelection } from "../page-tabs/use-page-tab-selection";
 import { SelectTag } from "../select-tag";
@@ -59,6 +63,11 @@ const CALENDAR_SKELETON_DAYS = Array.from({ length: 35 }, (_, index) => ({
 const FILTER_MENU_SKELETON_ROWS = Array.from({ length: 5 }, (_, index) => ({
 	id: `filter-menu-row-${index}`,
 }));
+const ADAPTIVE_PAGE_TAB_LIMITS = {
+	base: 3,
+	lg: 5,
+	"2xl": 8,
+} satisfies ResponsivePageTabLimit;
 
 const Calendar = dynamic(
 	() => import("@gnd/ui/calendar").then((mod) => mod.Calendar),
@@ -77,6 +86,8 @@ interface Props {
 	debounceMs?: number;
 	afterSearch?: ReactNode;
 	pageTabs?: ReactNode;
+	pageTabsLayout?: "default" | "adaptive";
+	toolbarActions?: ReactNode;
 }
 
 function CalendarSkeleton() {
@@ -104,6 +115,8 @@ export function SearchFilterTRPC({
 	debounceMs = 400,
 	afterSearch,
 	pageTabs,
+	pageTabsLayout = "default",
+	toolbarActions,
 }: Props) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const searchParams = useSearchParams();
@@ -136,7 +149,11 @@ export function SearchFilterTRPC({
 		typeof searchValue === "string" ? searchValue : "",
 	);
 	const debouncedPrompt = useDebounce(prompt, debounceMs);
-	const { lockedKeys } = usePageTabSelection();
+	const {
+		isReady: pageTabsReady,
+		lockedKeys,
+		pageTabs: savedPageTabs,
+	} = usePageTabSelection();
 	const hasMounted = useRef(false);
 	const hasPendingDebouncedSearch = useRef(false);
 	const nonSearchDefinitions = definitions.filter(
@@ -153,6 +170,12 @@ export function SearchFilterTRPC({
 	const hasSearchValue = hasActiveSearchValue(prompt, searchValue);
 	const canSaveCurrentView = Boolean(saveTabQuery && !hasSearchValue);
 	const hasLockedSort = lockedKeys.has("sort");
+	const usesAdaptivePageTabs =
+		pageTabsLayout === "adaptive" && pageTabs === undefined;
+	const resolvedPageTabCount =
+		savedPageTabs.length > 0 ? savedPageTabs.length + 1 : 0;
+	const stackPageTabs =
+		usesAdaptivePageTabs && shouldStackPageTabs(resolvedPageTabCount);
 
 	const clearEditableFilters = () => {
 		if (lockedKeys.size === 0) {
@@ -241,29 +264,40 @@ export function SearchFilterTRPC({
 		setSearch(prompt.length > 0 ? prompt : null);
 	};
 
+	const defaultPageTabs =
+		usesAdaptivePageTabs && !pageTabsReady ? null : (
+			<PageTabs
+				portal={false}
+				currentQuery={saveTabQuery}
+				tabs={usesAdaptivePageTabs ? savedPageTabs : undefined}
+				maxVisible={usesAdaptivePageTabs ? ADAPTIVE_PAGE_TAB_LIMITS : undefined}
+				className={cn(stackPageTabs && "w-full lg:basis-full")}
+				action={
+					canSaveCurrentView ? (
+						<SavePageTabButton
+							definitions={definitions}
+							filters={filters}
+							optionLookup={optionLookup}
+							buttonClassName="rounded-sm border-0"
+							query={saveTabQuery}
+							searchKey={searchKey}
+						/>
+					) : undefined
+				}
+			/>
+		);
+	const pageTabsContent = pageTabs === undefined ? defaultPageTabs : pageTabs;
+
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-			<div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
-				{pageTabs === undefined ? (
-					<PageTabs
-						portal={false}
-						currentQuery={saveTabQuery}
-						action={
-							canSaveCurrentView ? (
-								<SavePageTabButton
-									definitions={definitions}
-									filters={filters}
-									optionLookup={optionLookup}
-									buttonClassName="rounded-sm border-0"
-									query={saveTabQuery}
-									searchKey={searchKey}
-								/>
-							) : undefined
-						}
-					/>
-				) : (
-					pageTabs
+			<div
+				className={cn(
+					"flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:gap-4",
+					usesAdaptivePageTabs && "lg:flex-wrap",
 				)}
+			>
+				{usesAdaptivePageTabs && stackPageTabs ? pageTabsContent : null}
+				{usesAdaptivePageTabs ? null : pageTabsContent}
 				<form className="relative w-full lg:w-auto" onSubmit={handleSubmit}>
 					<Icons.Search className="pointer-events-none absolute left-3 top-[11px] size-4" />
 					<Input
@@ -299,6 +333,7 @@ export function SearchFilterTRPC({
 						</Button>
 					</DropdownMenuTrigger>
 				</form>
+				{usesAdaptivePageTabs && !stackPageTabs ? pageTabsContent : null}
 				{afterSearch}
 				<FilterList
 					onRemove={(obj) => {
@@ -318,6 +353,7 @@ export function SearchFilterTRPC({
 					definitions={definitions}
 					optionLookup={optionLookup}
 					excludedKeys={lockedKeys}
+					className={cn(usesAdaptivePageTabs && "lg:w-auto lg:flex-1 lg:pb-0")}
 				/>
 				{activeSortLabel && !hasLockedSort ? (
 					<Badge
@@ -327,6 +363,11 @@ export function SearchFilterTRPC({
 						<Icons.Sort className="size-3.5" />
 						{activeSortLabel}
 					</Badge>
+				) : null}
+				{toolbarActions ? (
+					<div className="flex shrink-0 flex-wrap items-center gap-2 lg:ml-auto">
+						{toolbarActions}
+					</div>
 				) : null}
 			</div>
 			<DropdownMenuContent

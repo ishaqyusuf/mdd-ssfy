@@ -56,7 +56,7 @@ function Content() {
 			}
 		>
 			<div className="mt-0 space-y-6">
-				<ProductionReadinessBanner />
+				{itemCount > 0 ? <ProductionReadinessBanner /> : null}
 				<Accordion
 					type="multiple"
 					value={[query.params["prod-item-view"]]}

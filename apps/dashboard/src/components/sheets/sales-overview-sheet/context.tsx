@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
+import { getProductionTabItemCount } from "@/components/sales-overview-system/lib/production-items";
 
 import {
 	createSalesDispatchItemsSchema,
@@ -114,13 +115,14 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
 				},
 			),
 		);
+		const hasProductionItems = getProductionTabItemCount(data?.items) > 0;
 		const readinessQuery = useQuery(
 			trpc.sales.productionReadiness.queryOptions(
 				{
 					salesOrderId: data?.orderId || 0,
 				},
 				{
-					enabled: Boolean(data?.orderId),
+					enabled: Boolean(data?.orderId && hasProductionItems),
 				},
 			),
 		);
@@ -134,8 +136,10 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
 			users,
 			refetch,
 			readiness: readinessQuery.data,
-			readinessLoading: Boolean(data?.orderId && readinessQuery.isPending),
-			readinessUnavailable: readinessQuery.isError,
+			readinessLoading: Boolean(
+				data?.orderId && hasProductionItems && readinessQuery.isPending,
+			),
+			readinessUnavailable: hasProductionItems && readinessQuery.isError,
 			refetchReadiness: readinessQuery.refetch,
 		};
 	});

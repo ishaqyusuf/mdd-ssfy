@@ -11,16 +11,17 @@ import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
+import { Toaster } from "@gnd/ui/toaster";
+import { Toaster as MiddayToast } from "sonner";
 
-import { Providers } from "./providers";
 import { getServerAuthSession } from "@/lib/auth/session";
 import { headers } from "next/headers";
 import { Suspense } from "react";
+import { Providers } from "./providers";
 
-export async function generateMetadata({}) {
+export async function generateMetadata() {
     return constructMetadata({
-        title: `GND Millwork - gndprodesk.com`,
+        title: "GND Millwork - gndprodesk.com",
     });
 }
 // const inter = Inter({ subsets: ["latin"] });

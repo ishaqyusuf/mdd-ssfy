@@ -5,7 +5,9 @@ import {
 	getInboundOrderableQty,
 	getInventoryInboundEmptyStateCopy,
 	getPendingInventoryQty,
+	isInventoryNeedRow,
 	resolveInventoryInboundCountState,
+	shouldShowInventoryNeedsActions,
 } from "./inventory-inbounds-utils";
 
 describe("sales overview inventory inbound helpers", () => {
@@ -32,6 +34,28 @@ describe("sales overview inventory inbound helpers", () => {
 		).toBe(3);
 	});
 
+	it("classifies only positive tracked requirements as Needs rows", () => {
+		expect(
+			isInventoryNeedRow({
+				requirementStatus: "required",
+				trackingPolicy: "tracked",
+			}),
+		).toBe(true);
+		expect(
+			isInventoryNeedRow({
+				requirementStatus: "not_applicable",
+				trackingPolicy: "tracked",
+			}),
+		).toBe(false);
+		expect(
+			isInventoryNeedRow({
+				requirementStatus: "required",
+				trackingPolicy: "tracked",
+				inventoryProductKind: "component",
+			}),
+		).toBe(false);
+	});
+
 	it("gates Mark all needs fulfilled on capability, lifecycle, and pending qty", () => {
 		expect(
 			canFulfillAllInventoryNeeds({
@@ -50,6 +74,27 @@ describe("sales overview inventory inbound helpers", () => {
 				canMarkAvailable: true,
 				pendingQty: 2,
 				isReadOnly: true,
+			}),
+		).toBe(false);
+	});
+
+	it("hides the needs action area when the active Needs segment has no rows", () => {
+		expect(
+			shouldShowInventoryNeedsActions({
+				segment: "stock",
+				needCount: 0,
+			}),
+		).toBe(false);
+		expect(
+			shouldShowInventoryNeedsActions({
+				segment: "stock",
+				needCount: 2,
+			}),
+		).toBe(true);
+		expect(
+			shouldShowInventoryNeedsActions({
+				segment: "non_stock",
+				needCount: 2,
 			}),
 		).toBe(false);
 	});

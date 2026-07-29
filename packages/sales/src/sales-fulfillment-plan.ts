@@ -1,5 +1,7 @@
 import type { Db, TransactionClient } from "@gnd/db";
 
+import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
+
 const COMMITTED_ALLOCATION_STATUSES = new Set([
 	"approved",
 	"reserved",
@@ -77,6 +79,7 @@ export type FulfillmentComponentLike = {
 		id?: number | null;
 		name?: string | null;
 		productKind?: string | null;
+		stockMode?: string | null;
 		defaultSupplier?: {
 			id?: number | null;
 			name?: string | null;
@@ -91,16 +94,21 @@ export type FulfillmentComponentLike = {
 		id?: number | null;
 		title?: string | null;
 		productKind?: string | null;
+		stockMode?: string | null;
 	} | null;
 	subComponent?: {
 		id?: number | null;
 		inventoryCategory?: {
 			id?: number | null;
 			title?: string | null;
+			productKind?: string | null;
+			stockMode?: string | null;
 		} | null;
 		defaultInventory?: {
 			id?: number | null;
 			name?: string | null;
+			productKind?: string | null;
+			stockMode?: string | null;
 		} | null;
 	} | null;
 	stockAllocations?: FulfillmentAllocationLike[] | null;
@@ -1404,6 +1412,9 @@ export function buildSalesPartialShipmentQueue(
 function getProductionStockStatus(
 	component: SalesFulfillmentComponentProjection,
 ): SalesProductionStockStatus {
+	if (component.inventoryStatus?.toLowerCase() === "fulfilled") {
+		return "fulfilled";
+	}
 	if (
 		component.orderedQty > 0 &&
 		component.shippedQty >= component.orderedQty
@@ -1467,11 +1478,17 @@ function deriveProductionReadiness(
 
 function getProductionComponents(
 	line: SalesFulfillmentLineProjection,
+	sourceComponents: FulfillmentComponentLike[],
 ): SalesFulfillmentComponentProjection[] {
-	const requiredComponents = line.components.filter(
+	const trackedComponents = line.components.filter(
+		(_component, index) =>
+			resolveSalesInventoryTrackingPolicy(sourceComponents[index] || {}) ===
+			"tracked",
+	);
+	const requiredComponents = trackedComponents.filter(
 		(component) => component.required,
 	);
-	return requiredComponents.length ? requiredComponents : line.components;
+	return requiredComponents.length ? requiredComponents : trackedComponents;
 }
 
 function buildProductionGroup(
@@ -1585,7 +1602,10 @@ export function buildSalesProductionPlan(
 		const line = summarizeSalesFulfillmentPlan([sourceLine]).lines[0];
 		if (!line) continue;
 
-		const productionComponents = getProductionComponents(line);
+		const productionComponents = getProductionComponents(
+			line,
+			sourceLine.components || [],
+		);
 		const componentReadinesses = productionComponents.map((component) =>
 			getComponentProductionReadiness(getProductionStockStatus(component)),
 		);
@@ -2310,6 +2330,7 @@ export async function getSalesProductionPlan(
 							id: true,
 							name: true,
 							productKind: true,
+							stockMode: true,
 							defaultSupplier: {
 								select: {
 									id: true,
@@ -2330,6 +2351,7 @@ export async function getSalesProductionPlan(
 							id: true,
 							title: true,
 							productKind: true,
+							stockMode: true,
 						},
 					},
 					subComponent: {
@@ -2339,12 +2361,16 @@ export async function getSalesProductionPlan(
 								select: {
 									id: true,
 									title: true,
+									productKind: true,
+									stockMode: true,
 								},
 							},
 							defaultInventory: {
 								select: {
 									id: true,
 									name: true,
+									productKind: true,
+									stockMode: true,
 								},
 							},
 						},

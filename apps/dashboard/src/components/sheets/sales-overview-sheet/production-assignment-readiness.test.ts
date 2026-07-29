@@ -10,6 +10,14 @@ const readinessBannerSource = readFileSync(
 	new URL("./production-readiness-banner.tsx", import.meta.url),
 	"utf8",
 );
+const productionTabSource = readFileSync(
+	new URL("./production-tab.tsx", import.meta.url),
+	"utf8",
+);
+const productionContextSource = readFileSync(
+	new URL("./context.tsx", import.meta.url),
+	"utf8",
+);
 const productionDetailSource = readFileSync(
 	new URL("../../production-v2/shared.tsx", import.meta.url),
 	"utf8",
@@ -33,5 +41,20 @@ describe("production assignment inventory readiness", () => {
 		assert.match(materialsStatusSource, /Expected/);
 		assert.match(productionColumnsSource, /Materials pending/);
 		assert.match(productionColumnsSource, /Expected/);
+	});
+
+	it("shows and loads readiness only when actual production lines exist", () => {
+		assert.match(
+			productionTabSource,
+			/itemCount > 0 \? <ProductionReadinessBanner \/> : null/,
+		);
+		assert.match(
+			productionContextSource,
+			/getProductionTabItemCount\(data\?\.items\) > 0/,
+		);
+		assert.match(
+			productionContextSource,
+			/enabled: Boolean\(data\?\.orderId && hasProductionItems\)/,
+		);
 	});
 });

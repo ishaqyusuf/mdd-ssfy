@@ -23,23 +23,16 @@ import { SalesTabs } from "./sales-tabs";
 
 export function SalesOrdersV2Header() {
 	return (
-		<div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-			<div className="min-w-0 flex-1">
-				<SearchFilterProvider
-					args={[
-						{
-							filterSchema: salesOrdersV2FilterParams,
-						},
-					]}
-				>
-					<SalesOrdersV2SearchFilterContent />
-				</SearchFilterProvider>
-			</div>
-			<div className="flex flex-wrap items-center gap-2">
-				<SalesOrdersV2ColumnVisibility />
-				<SalesOrdersV2Export />
-				<CreateSalesBtn />
-			</div>
+		<div className="min-w-0">
+			<SearchFilterProvider
+				args={[
+					{
+						filterSchema: salesOrdersV2FilterParams,
+					},
+				]}
+			>
+				<SalesOrdersV2SearchFilterContent />
+			</SearchFilterProvider>
 		</div>
 	);
 }
@@ -159,7 +152,19 @@ function SalesOrdersV2SearchFilterContent() {
 			filterList={trpcFilterData}
 			loading={shouldFetch && isFetching}
 			afterSearch={<SalesOrdersV2InlineTabs visible={isTableScrolled} />}
+			pageTabsLayout="adaptive"
+			toolbarActions={<SalesOrdersV2ToolbarActions />}
 		/>
+	);
+}
+
+function SalesOrdersV2ToolbarActions() {
+	return (
+		<>
+			<SalesOrdersV2ColumnVisibility />
+			<SalesOrdersV2Export />
+			<CreateSalesBtn />
+		</>
 	);
 }
 

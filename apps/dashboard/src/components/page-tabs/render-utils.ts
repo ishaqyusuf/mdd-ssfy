@@ -8,6 +8,32 @@ type PageTabQueryItem = {
 	query?: string;
 };
 
+export type ResponsivePageTabLimit = {
+	base: number;
+	lg: number;
+	"2xl": number;
+};
+
+export function shouldStackPageTabs(resolvedTabCount: number) {
+	return resolvedTabCount >= 3;
+}
+
+export function getResponsivePageTabLimit(
+	limits: ResponsivePageTabLimit | undefined,
+	{
+		isLg,
+		is2xl,
+	}: {
+		isLg: boolean;
+		is2xl: boolean;
+	},
+) {
+	if (!limits) return is2xl ? 5 : 3;
+	if (is2xl) return limits["2xl"];
+	if (isLg) return limits.lg;
+	return limits.base;
+}
+
 export function getPageTabViewState({
 	currentQuery,
 	isReady,

@@ -8,12 +8,21 @@ retained only for compatibility and historical audit.
 ## Operator Behavior
 
 - The Sales Overview Production tab shows an order-level readiness notice above
-  the production list.
+  the production list only when at least one production-capable line exists.
+  Orders with no production items show only the production empty state and do
+  not load material readiness.
 - Production can be assigned whether materials are ready, awaiting allocation,
   awaiting inbound, or not yet configured.
 - Configured orders with unresolved stock, allocation, or inbound evidence show
   blocker counts, pending/open inbound quantities, a bounded component sample,
   and a direct link to the Inventory tab.
+- Material blockers use the same canonical inventory tracking policy as the
+  Inventory tab. Only monitored `Needs` components participate; untracked and
+  component-kind `Not Needed` rows do not block production readiness.
+- A monitored component explicitly resolved as `fulfilled` is ready even when
+  its physical stock, allocation, inbound, and receipt quantities remain zero.
+  This preserves the audited manual-fulfillment decision without fabricating
+  inventory movement.
 - Assigned production order detail shows pending material names, quantities,
   and the linked inbound expected date when available.
 - Orders without inventory component configuration can still be assigned and
@@ -32,6 +41,10 @@ retained only for compatibility and historical audit.
 
 - `@gnd/sales` owns readiness projection and the command policy that excludes
   `createAssignments` from readiness enforcement.
+- The production planner reads inventory/category product kind and stock mode,
+  applies `resolveSalesInventoryTrackingPolicy`, and derives material status
+  from both physical quantity evidence and the component's explicit resolution
+  status.
 - The Trigger task enforces readiness only for `submitAll`.
 - The active Production tab loads the core production overview first, then
   starts readiness from the resolved order identity. Readiness never participates

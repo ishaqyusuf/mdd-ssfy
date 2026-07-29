@@ -28,6 +28,10 @@ function awaitingInboundPlan(
 					id: 10,
 					required: true,
 					qty: 2,
+					inventory: {
+						id: 100,
+						stockMode: "monitored",
+					},
 					stockAllocations: [{ qty: 1, status: "reserved" }],
 					inboundDemands: [
 						{

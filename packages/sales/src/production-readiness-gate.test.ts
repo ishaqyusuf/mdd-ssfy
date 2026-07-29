@@ -13,6 +13,15 @@ function requireRevision(revision: string | null) {
   return revision;
 }
 
+function trackedInventory(id: number) {
+  return {
+    inventory: {
+      id,
+      stockMode: "monitored",
+    },
+  };
+}
+
 describe("evaluateProductionReadinessGate", () => {
   it("does not enforce inventory readiness for production assignment", () => {
     expect(
@@ -38,12 +47,14 @@ describe("evaluateProductionReadinessGate", () => {
             id: 10,
             required: true,
             qty: 2,
+            ...trackedInventory(100),
             stockAllocations: [{ qty: 2, status: "reserved" }],
           },
           {
             id: 11,
             required: true,
             qty: 1,
+            ...trackedInventory(101),
             stockAllocations: [{ qty: 1, status: "consumed" }],
           },
         ],
@@ -69,6 +80,7 @@ describe("evaluateProductionReadinessGate", () => {
             id: 10,
             required: true,
             qty: 2,
+            ...trackedInventory(100),
             stockAllocations: [{ qty: 1, status: "reserved" }],
             inboundDemands: [{ qty: 1, qtyReceived: 0, status: "ordered" }],
           },
@@ -99,6 +111,7 @@ describe("evaluateProductionReadinessGate", () => {
             id: 10,
             required: true,
             qty: 1,
+            ...trackedInventory(100),
             stockAllocations: [{ qty: 1, status: "pending_review" }],
           },
         ],
@@ -132,6 +145,7 @@ describe("evaluateProductionReadinessGate", () => {
             id: 10,
             required: true,
             qty: 1,
+            ...trackedInventory(100),
             inboundDemands: [{ qty: 1, qtyReceived: 0, status: "ordered" }],
           },
         ],
@@ -162,6 +176,7 @@ describe("evaluateProductionReadinessGate", () => {
             id: 10,
             required: true,
             qty: 1,
+            ...trackedInventory(100),
             inboundDemands: [{ qty: 1, qtyReceived: 0, status: "ordered" }],
           },
         ],
@@ -175,6 +190,7 @@ describe("evaluateProductionReadinessGate", () => {
             id: 20,
             required: true,
             qty: 1,
+            ...trackedInventory(200),
             inboundDemands: [{ qty: 1, qtyReceived: 0, status: "ordered" }],
           },
         ],
@@ -190,6 +206,7 @@ describe("evaluateProductionReadinessGate", () => {
             id: 10,
             required: true,
             qty: 1,
+            ...trackedInventory(100),
             inboundDemands: [{ qty: 1, qtyReceived: 0, status: "ordered" }],
           },
         ],
@@ -226,6 +243,7 @@ describe("evaluateProductionReadinessGate", () => {
             id: 10,
             required: true,
             qty: 1,
+            ...trackedInventory(100),
             inboundDemands: [{ qty: 1, qtyReceived: 0, status: "ordered" }],
           },
         ],
@@ -241,6 +259,7 @@ describe("evaluateProductionReadinessGate", () => {
             id: 10,
             required: true,
             qty: 1,
+            ...trackedInventory(100),
             inboundDemands: [{ qty: 1, qtyReceived: 0.5, status: "ordered" }],
           },
         ],
@@ -264,6 +283,7 @@ describe("evaluateProductionReadinessGate", () => {
       id: index + 1,
       required: true,
       qty: 1,
+      ...trackedInventory(index + 1000),
       inboundDemands: [
         {
           id: index + 1,

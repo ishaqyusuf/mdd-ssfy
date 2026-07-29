@@ -393,12 +393,28 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 
 	if (columnState === "not_applicable") {
 		return (
-			<span
-				className="inline-flex h-7 max-w-full items-center rounded-md px-2 font-medium text-muted-foreground"
+			<button
+				type="button"
+				aria-label={`Explain inbound status for ${item.orderId}`}
+				className={cn(
+					buttonVariants({ variant: "ghost", size: "sm" }),
+					inboundStatusClassName,
+					"text-muted-foreground",
+				)}
 				title={inventoryApplicability.description}
+				onClick={(event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					toast({
+						duration: 4000,
+						title: "Inbound not applicable",
+						description: inventoryApplicability.description,
+					});
+				}}
+				onPointerDown={(event) => event.stopPropagation()}
 			>
 				N/A
-			</span>
+			</button>
 		);
 	}
 

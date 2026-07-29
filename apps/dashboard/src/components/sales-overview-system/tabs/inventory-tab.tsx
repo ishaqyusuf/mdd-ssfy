@@ -75,7 +75,9 @@ import {
 	canFulfillAllInventoryNeeds,
 	getInventoryInboundEmptyStateCopy,
 	getPendingInventoryQty,
+	isInventoryNeedRow,
 	resolveInventoryInboundCountState,
+	shouldShowInventoryNeedsActions,
 } from "../lib/inventory-inbounds-utils";
 import { OrderInventoryRepairPanel } from "../order-inventory-repair-panel";
 import { OverviewEmptyState } from "../section-primitives";
@@ -177,14 +179,6 @@ function normalizedStockMode(
 	return value === "monitored" ? "monitored" : "unmonitored";
 }
 
-function isStockInventoryLine(row: InventoryLine) {
-	return (
-		row.trackingPolicy === "tracked" &&
-		row.inventoryProductKind !== "component" &&
-		row.inventoryCategoryProductKind !== "component"
-	);
-}
-
 function isShortageInventoryLine(row: InventoryLine) {
 	return row.status === "shortage" || row.status === "needs_allocation";
 }
@@ -229,7 +223,7 @@ function inventoryLineKindTags(row: InventoryLine) {
 	}> = [];
 
 	tags.push(
-		isStockInventoryLine(row)
+		isInventoryNeedRow(row)
 			? {
 					label: "Needed",
 					className: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -656,14 +650,14 @@ function InventoryActionBar({
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const rows = overview.rows || [];
 	const capabilities = overview.capabilities;
-	const stockActionRows = rows.filter(isStockInventoryLine);
+	const stockActionRows = rows.filter(isInventoryNeedRow);
 	const pendingQty = getPendingInventoryQty(stockActionRows);
 	const inboundRows = useMemo(
 		() =>
 			rows.filter(
 				(row) =>
 					row.actions.includes("create_inbound") &&
-					isStockInventoryLine(row) &&
+					isInventoryNeedRow(row) &&
 					inboundOrderableQty(row) > 0 &&
 					((row.pendingInboundDemandIds?.length || 0) > 0 ||
 						(row.componentIds?.length || 0) > 0),
@@ -1271,7 +1265,7 @@ function InventoryStockFilterGroup({
 			<Button
 				type="button"
 				size="sm"
-				variant={value === "non_stock" ? "default" : "ghost"}
+				variant={value === "non_stock" ? "destructive" : "ghost"}
 				aria-pressed={value === "non_stock"}
 				className="h-8 gap-2 rounded-sm px-3"
 				onClick={() => onChange("non_stock")}
@@ -1989,7 +1983,7 @@ function InventoryLineActions({
 	const canAllocateFromStock =
 		capabilities.canAllocateStock &&
 		!isReadOnly &&
-		isStockInventoryLine(row) &&
+		isInventoryNeedRow(row) &&
 		(row.pendingStockAllocationIds?.length || 0) > 0;
 	const refreshOverview = async () => {
 		await queryClient.invalidateQueries({
@@ -2309,8 +2303,8 @@ function SalesOverviewInventoryContentBody({
 	const overview = inventoryQuery.data;
 	const groups = overview?.groups ?? [];
 	const rows = overview?.rows ?? [];
-	const stockRows = rows.filter(isStockInventoryLine);
-	const nonStockRows = rows.filter((row) => !isStockInventoryLine(row));
+	const stockRows = rows.filter(isInventoryNeedRow);
+	const nonStockRows = rows.filter((row) => !isInventoryNeedRow(row));
 	const orderInboundShipments = orderInboundsQuery.data ?? [];
 	const overviewLinkedInboundRowCount = rows.filter(
 		(row) => Number(row.qtyInboundLinkedOpen || 0) > 0,
@@ -2338,6 +2332,10 @@ function SalesOverviewInventoryContentBody({
 	const filteredShortageCount = filteredRows.filter(
 		isShortageInventoryLine,
 	).length;
+	const showNeedsActions = shouldShowInventoryNeedsActions({
+		segment: stockFilter,
+		needCount: stockRows.length,
+	});
 	if (!normalizedSalesOrderId) {
 		return (
 			<OverviewEmptyState>
@@ -2351,7 +2349,7 @@ function SalesOverviewInventoryContentBody({
 	if (syncInventory.isPending) {
 		return (
 			<div className="space-y-4">
-				{overview ? (
+				{overview && showNeedsActions ? (
 					<InventoryActionBar
 						overview={overview}
 						salesOrderId={normalizedSalesOrderId}
@@ -2385,10 +2383,6 @@ function SalesOverviewInventoryContentBody({
 	if (!rows.length) {
 		return (
 			<div className="space-y-4">
-				<InventoryActionBar
-					overview={overview}
-					salesOrderId={normalizedSalesOrderId}
-				/>
 				{syncInventory.isError ? (
 					<InventorySyncState message="Inventory sync could not finish." />
 				) : null}
@@ -2423,9 +2417,11 @@ function SalesOverviewInventoryContentBody({
 					inboundCount={inboundCountState === "loading" ? -1 : inboundCount}
 				/>
 				<div className="flex flex-wrap items-center gap-2">
-					<Badge variant="outline" className="capitalize">
-						{readinessLabel(overview.summary.readiness)}
-					</Badge>
+					{stockRows.length ? (
+						<Badge variant="outline" className="capitalize">
+							{readinessLabel(overview.summary.readiness)}
+						</Badge>
+					) : null}
 					{stockFilter === "inbounds" ? (
 						<Badge variant="outline">
 							{inboundCountState === "loading" ? "…" : formatQty(inboundCount)}{" "}
@@ -2454,15 +2450,17 @@ function SalesOverviewInventoryContentBody({
 					)}
 				</div>
 			</div>
-			<InventoryActionBar
-				overview={overview}
-				salesOrderId={normalizedSalesOrderId}
-				openInboundForm={openInboundForm || openInboundCreator}
-				onInboundFormOpened={() => {
-					setOpenInboundForm(false);
-					setOpenInboundCreator(false);
-				}}
-			/>
+			{showNeedsActions ? (
+				<InventoryActionBar
+					overview={overview}
+					salesOrderId={normalizedSalesOrderId}
+					openInboundForm={openInboundForm || openInboundCreator}
+					onInboundFormOpened={() => {
+						setOpenInboundForm(false);
+						setOpenInboundCreator(false);
+					}}
+				/>
+			) : null}
 			{stockFilter === "inbounds" ? (
 				<InventoryInboundsPanel
 					salesOrderId={normalizedSalesOrderId}
