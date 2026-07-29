@@ -2227,7 +2227,7 @@ describe("assignInboundDemandsToShipment", () => {
 });
 
 describe("createInboundShipmentFromDemands", () => {
-	test("plans new shipment items only from unlinked active demand", async () => {
+	test("plans an unassigned shipment from unlinked active demand", async () => {
 		const shipmentCreates: unknown[] = [];
 		const itemCreates: unknown[] = [];
 		const itemUpdates: unknown[] = [];
@@ -2274,7 +2274,7 @@ describe("createInboundShipmentFromDemands", () => {
 				},
 			} as any,
 			{
-				supplierId: 301,
+				supplierId: null,
 				demandIds: [801, 802],
 				reference: "PO-1",
 				status: "in_progress",
@@ -2290,7 +2290,7 @@ describe("createInboundShipmentFromDemands", () => {
 		expect(shipmentCreates).toEqual([
 			{
 				data: {
-					supplierId: 301,
+					supplierId: null,
 					reference: "PO-1",
 					expectedAt: null,
 					status: "in_progress",

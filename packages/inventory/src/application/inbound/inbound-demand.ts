@@ -31,7 +31,7 @@ export type NewInboundShipmentStatus =
   (typeof NEW_INBOUND_SHIPMENT_STATUSES)[number];
 
 export type CreateInboundShipmentFromDemandsInput = {
-  supplierId: number;
+  supplierId?: number | null;
   demandIds: number[];
   reference?: string | null;
   expectedAt?: Date | null;
@@ -39,7 +39,7 @@ export type CreateInboundShipmentFromDemandsInput = {
 };
 
 export type CreateInboundShipmentInput = {
-  supplierId: number;
+  supplierId?: number | null;
   reference?: string | null;
   expectedAt?: Date | null;
   status?: NewInboundShipmentStatus;
@@ -1048,7 +1048,7 @@ export async function createInboundShipment(
 ) {
   return db.inboundShipment.create({
     data: {
-      supplierId: input.supplierId,
+      supplierId: input.supplierId ?? null,
       reference: input.reference ?? null,
       expectedAt: input.expectedAt ?? null,
       status: input.status ?? "pending",
@@ -1694,7 +1694,7 @@ export async function createInboundShipmentFromDemands(
 
   const shipment = await db.inboundShipment.create({
     data: {
-      supplierId: input.supplierId,
+      supplierId: input.supplierId ?? null,
       reference: input.reference ?? null,
       expectedAt: input.expectedAt ?? null,
       status: input.status ?? "pending",

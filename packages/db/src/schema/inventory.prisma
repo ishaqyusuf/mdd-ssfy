@@ -561,9 +561,9 @@ enum StockMovementStatus {
 }
 
 model InboundShipment {
-    id         Int      @id @default(autoincrement())
-    supplierId Int
-    supplier   Supplier @relation(fields: [supplierId], references: [id])
+    id         Int       @id @default(autoincrement())
+    supplierId Int?
+    supplier   Supplier? @relation(fields: [supplierId], references: [id])
 
     status     InboundStatus // pending, in_progress, completed, cancelled
     expectedAt DateTime?

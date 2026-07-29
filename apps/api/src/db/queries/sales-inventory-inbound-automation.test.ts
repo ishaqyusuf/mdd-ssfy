@@ -79,7 +79,7 @@ describe("planOrderedInboundAutomation", () => {
 		});
 	});
 
-	test("leaves supplier-ambiguous demand for manual review", () => {
+	test("groups supplier-ambiguous demand into an unassigned inbound", () => {
 		expect(
 			planOrderedInboundAutomation([
 				{
@@ -96,7 +96,7 @@ describe("planOrderedInboundAutomation", () => {
 			]),
 		).toEqual({
 			inboundIdsToStart: [],
-			createGroups: [],
+			createGroups: [{ supplierId: null, demandIds: [6] }],
 			skippedDemandIds: [6],
 		});
 	});

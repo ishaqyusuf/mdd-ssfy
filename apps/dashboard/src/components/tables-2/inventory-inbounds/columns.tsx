@@ -107,7 +107,7 @@ const inboundColumn: Column = {
 				</div>
 				<TextWithTooltip
 					className="max-w-full truncate text-xs text-muted-foreground"
-					text={shipment.supplier.name}
+					text={shipment.supplier?.name || "No supplier"}
 				/>
 				<p className="truncate text-xs text-muted-foreground">
 					Ref {shipment.reference || "None"}

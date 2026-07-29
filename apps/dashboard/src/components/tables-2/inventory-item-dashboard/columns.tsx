@@ -572,7 +572,7 @@ export const inboundDemandColumns: ColumnDef<InventoryItemInboundDemandRow>[] =
 					className="max-w-full truncate text-sm text-muted-foreground"
 					text={
 						row.original.inboundShipmentItem?.inbound.reference ||
-						row.original.inboundShipmentItem?.inbound.supplier.name ||
+						row.original.inboundShipmentItem?.inbound.supplier?.name ||
 						"Unassigned"
 					}
 				/>

@@ -6,6 +6,7 @@ import {
 } from "./order-status";
 import { roundMoney } from "./payment-system/domain/money";
 import { resolveSalesInventoryApplicability } from "./sales-inventory-applicability";
+import { resolveSalesInventoryLegacyCompatibility } from "./sales-inventory-legacy-compatibility";
 import {
 	type SalesInventoryRequirementDisplayStatus,
 	hasPassedInventoryTrackingRepairBoundary,
@@ -1446,6 +1447,18 @@ export async function getSalesInventoryOverview(
 		lifecycleStatus: lifecycle.status,
 		setupMode,
 	});
+	const existingInventoryNeedCount = rows.filter(
+		(row) =>
+			row.requirementStatus === "required" &&
+			row.trackingPolicy === "tracked" &&
+			row.inventoryProductKind !== "component" &&
+			row.inventoryCategoryProductKind !== "component",
+	).length;
+	const activeLinkedInboundCount = rows.some(
+		(row) => Number(row.qtyInboundLinkedOpen || 0) > 0,
+	)
+		? 1
+		: 0;
 
 	return {
 		...saleSnapshot,
@@ -1456,14 +1469,16 @@ export async function getSalesInventoryOverview(
 		inventoryApplicability: resolveSalesInventoryApplicability({
 			lifecycleStatus: lifecycle.status,
 			projection: sale.inventoryProjection,
-			existingInventoryNeedCount: rows.filter(
-				(row) =>
-					row.requirementStatus === "required" &&
-					row.trackingPolicy === "tracked" &&
-					row.inventoryProductKind !== "component" &&
-					row.inventoryCategoryProductKind !== "component",
-			).length,
+			existingInventoryNeedCount,
 		}),
+		inventoryLegacyCompatibility:
+			resolveSalesInventoryLegacyCompatibility({
+				legacyStatus: sale.inventoryStatus,
+				lifecycleStatus: lifecycle.status,
+				inventoryRowCount: existingInventoryNeedCount,
+				projectionStatus: sale.inventoryProjection?.status,
+				activeLinkedInboundCount,
+			}),
 		setupMode,
 		operationMode: operationPolicy.mode,
 		capabilities: operationPolicy.capabilities,

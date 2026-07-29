@@ -1131,27 +1131,29 @@ export async function updateInboundShipmentStatusQuery(
 export async function createInboundShipmentQuery(
 	ctx: TRPCContext,
 	input: {
-		supplierId: number;
+		supplierId?: number | null;
 		reference?: string | null;
 		expectedAt?: Date | null;
 	},
 ) {
 	const actor = await getInboundActor(ctx);
-	const supplier = await ctx.db.supplier.findFirst({
-		where: {
-			id: input.supplierId,
-			deletedAt: null,
-		},
-		select: {
-			id: true,
-			name: true,
-		},
-	});
+	const supplier = input.supplierId
+		? await ctx.db.supplier.findFirst({
+				where: {
+					id: input.supplierId,
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+					name: true,
+				},
+			})
+		: null;
 
 	const inbound = await createInboundShipment(ctx.db, input);
 	await createInboundActivity(ctx, {
 		inboundId: inbound.id,
-		supplierId: supplier?.id ?? input.supplierId,
+		supplierId: supplier?.id ?? input.supplierId ?? null,
 		supplierName: supplier?.name ?? null,
 		reference: inbound.reference,
 		activityType: "created",
@@ -1165,7 +1167,7 @@ export async function createInboundShipmentQuery(
 export async function createInboundShipmentFromDemandsQuery(
 	ctx: TRPCContext,
 	input: {
-		supplierId: number;
+		supplierId?: number | null;
 		demandIds?: number[];
 		lineItemComponentIds?: number[];
 		componentSelections?: Array<{
@@ -1179,16 +1181,18 @@ export async function createInboundShipmentFromDemandsQuery(
 	},
 ) {
 	const actor = await getInboundActor(ctx);
-	const supplier = await ctx.db.supplier.findFirst({
-		where: {
-			id: input.supplierId,
-			deletedAt: null,
-		},
-		select: {
-			id: true,
-			name: true,
-		},
-	});
+	const supplier = input.supplierId
+		? await ctx.db.supplier.findFirst({
+				where: {
+					id: input.supplierId,
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+					name: true,
+				},
+			})
+		: null;
 
 	const { result, linkedSales, updatedSalesOrderCount } =
 		await ctx.db.$transaction(async (tx) => {
@@ -1292,7 +1296,7 @@ export async function createInboundShipmentFromDemandsQuery(
 
 	await createInboundActivity(ctx, {
 		inboundId: result.inboundId,
-		supplierId: supplier?.id ?? input.supplierId,
+		supplierId: supplier?.id ?? input.supplierId ?? null,
 		supplierName: supplier?.name ?? null,
 		reference: inbound?.reference ?? input.reference ?? null,
 		activityType: "created",
@@ -1700,7 +1704,7 @@ export async function uploadInboundDocumentsQuery(
 				description: input.note?.trim() || null,
 				meta: {
 					inboundId: inbound.id,
-					supplierName: inbound.supplier.name,
+					supplierName: inbound.supplier?.name ?? null,
 					uploadedAt: new Date().toISOString(),
 					originalContentType: input.files[index]?.contentType || null,
 					originalSize: input.files[index]?.size ?? null,
@@ -1711,8 +1715,8 @@ export async function uploadInboundDocumentsQuery(
 
 	await createInboundActivity(ctx, {
 		inboundId: inbound.id,
-		supplierId: inbound.supplier.id,
-		supplierName: inbound.supplier.name,
+		supplierId: inbound.supplier?.id ?? null,
+		supplierName: inbound.supplier?.name ?? null,
 		reference: inbound.reference ?? null,
 		activityType: "documents_uploaded",
 		subject: "Inbound receipt uploaded",
@@ -1845,8 +1849,8 @@ export async function extractInboundDocumentsQuery(
 
 		await createInboundActivity(ctx, {
 			inboundId: inbound.id,
-			supplierId: inbound.supplier.id,
-			supplierName: inbound.supplier.name,
+			supplierId: inbound.supplier?.id ?? null,
+			supplierName: inbound.supplier?.name ?? null,
 			reference: inbound.reference ?? null,
 			activityType: "extraction_started",
 			subject: "Inbound extraction started",
@@ -1908,8 +1912,8 @@ export async function extractInboundDocumentsQuery(
 
 			await createInboundActivity(ctx, {
 				inboundId: inbound.id,
-				supplierId: inbound.supplier.id,
-				supplierName: inbound.supplier.name,
+			supplierId: inbound.supplier?.id ?? null,
+			supplierName: inbound.supplier?.name ?? null,
 				reference: inbound.reference ?? null,
 				activityType: "extraction_completed",
 				subject: "Inbound extraction completed",
@@ -1933,8 +1937,8 @@ export async function extractInboundDocumentsQuery(
 
 			await createInboundActivity(ctx, {
 				inboundId: inbound.id,
-				supplierId: inbound.supplier.id,
-				supplierName: inbound.supplier.name,
+				supplierId: inbound.supplier?.id ?? null,
+				supplierName: inbound.supplier?.name ?? null,
 				reference: inbound.reference ?? null,
 				activityType: "extraction_failed",
 				subject: "Inbound extraction failed",
@@ -2147,8 +2151,8 @@ export async function applyInboundExtractionQuery(
 
 	await createInboundActivity(ctx, {
 		inboundId: input.inboundId,
-		supplierId: extraction.inbound.supplier.id,
-		supplierName: extraction.inbound.supplier.name,
+		supplierId: extraction.inbound.supplier?.id ?? null,
+		supplierName: extraction.inbound.supplier?.name ?? null,
 		reference: extraction.inbound.reference ?? extraction.invoiceNumber ?? null,
 		activityType: "extraction_applied",
 		subject: "Inbound extraction applied",

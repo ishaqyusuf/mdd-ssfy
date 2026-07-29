@@ -24,21 +24,41 @@ export type SalesInboundColumnState =
 	| "inventory_inbound"
 	| "not_applicable"
 	| "syncing"
+	| "legacy_status_locked"
+	| "unsupported_status"
 	| "projection_attention"
 	| "manual_status";
 
 export function resolveSalesInboundColumnState(input: {
 	ownership?: InventoryInboundOwnershipLike | null;
 	inventoryApplicabilityState?: string | null;
+	legacyCompatibilityState?: string | null;
+	legacyStatus?: string | null;
 }): SalesInboundColumnState {
 	if (input.ownership?.hasInventoryInbound) return "inventory_inbound";
+
+	if (input.inventoryApplicabilityState === "syncing") return "syncing";
+
+	if (input.legacyCompatibilityState === "unsupported") {
+		return "unsupported_status";
+	}
+
+	if (input.legacyCompatibilityState === "legacy_locked") {
+		return "legacy_status_locked";
+	}
+
+	if (
+		(input.inventoryApplicabilityState === "not_synced" ||
+			input.inventoryApplicabilityState === "failed") &&
+		normalizeSalesInboundStatus(input.legacyStatus)
+	) {
+		return "legacy_status_locked";
+	}
 
 	switch (input.inventoryApplicabilityState) {
 		case "not_applicable":
 		case "legacy_not_applicable":
 			return "not_applicable";
-		case "syncing":
-			return "syncing";
 		case "not_synced":
 		case "failed":
 			return "projection_attention";

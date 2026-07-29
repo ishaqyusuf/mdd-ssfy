@@ -102,6 +102,9 @@ type InboundShipmentStatus =
 	| "issue_open"
 	| "closed"
 	| "cancelled";
+
+const legacyMigrationAttempts = new Map<string, string | null>();
+
 function formatQty(value: number | null | undefined) {
 	return Number(value || 0).toLocaleString(undefined, {
 		maximumFractionDigits: 2,
@@ -457,13 +460,31 @@ function LegacyInventoryStatusLockedState({
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const inventoryStatusLabel = overview.inventoryStatus
 		? titleCaseLabel(overview.inventoryStatus)
 		: "Manual status";
+	const legacyCompatibility = overview.inventoryLegacyCompatibility;
+	const legacyStatus = overview.inventoryStatus || "";
 	const salesOrderId = overview.id;
+	const migrationKey = `${salesOrderId}:${legacyStatus}`;
+	const operationDescription =
+		legacyStatus === "AVAILABLE"
+			? "Synchronizing inventory requirements, then marking eligible needs fulfilled without changing physical stock."
+			: legacyStatus === "PENDING ORDER"
+				? "Synchronizing inventory requirements and creating pending supplier inbounds where supplier configuration is unambiguous."
+				: "Synchronizing inventory requirements and creating in-progress supplier inbounds where supplier configuration is unambiguous.";
 	const resolveLegacyStatus = useMutation(
 		trpc.inventories.resolveSalesInventoryLegacyStatusSetup.mutationOptions({
 			onSuccess: async (data) => {
+				legacyMigrationAttempts.set(migrationKey, null);
+				setInventorySegment(data.nextSegment, {
+					inboundId:
+						data.linkedInboundIds.length === 1
+							? data.linkedInboundIds[0]
+							: null,
+					openCreate: data.unresolvedSupplierDemandIds.length > 0,
+				});
 				await Promise.all([
 					queryClient.invalidateQueries({
 						queryKey: trpc.inventories.salesInventoryOverview.queryKey({
@@ -472,6 +493,16 @@ function LegacyInventoryStatusLockedState({
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.inventories.inboundDemandQueue.queryKey({}),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.inventories.orderInboundShipments.queryKey({
+							salesOrderId,
+						}),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.inventories.orderInboundShipmentCount.queryKey({
+							salesOrderId,
+						}),
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.sales.getSaleOverview.pathKey(),
@@ -483,18 +514,35 @@ function LegacyInventoryStatusLockedState({
 						queryKey: trpc.sales.getOrdersSummary.pathKey(),
 					}),
 				]);
+				const migrationDescription =
+					data.action === "clear"
+						? "The historical prompt was cleared and inventory requirements were synchronized."
+						: data.legacyStatus === "AVAILABLE"
+							? `${data.fulfilledComponentCount} need${
+									data.fulfilledComponentCount === 1 ? "" : "s"
+								} marked fulfilled. No physical stock movement was recorded.`
+							: `${data.createdInbounds.length} inbound shipment${
+									data.createdInbounds.length === 1 ? "" : "s"
+								} created${
+									data.unresolvedSupplierDemandIds.length
+										? `; ${data.unresolvedSupplierDemandIds.length} demand row${
+												data.unresolvedSupplierDemandIds.length === 1 ? "" : "s"
+											} still need supplier review`
+										: ""
+								}.`;
 				toast({
 					title:
-						data.action === "reset"
-							? "Inbound status reset"
-							: "Inventory setup overridden",
-					description: `${data.createdCount + data.updatedCount} inventory row${
-						data.createdCount + data.updatedCount === 1 ? "" : "s"
-					} synced.`,
+						data.result === "already_migrated"
+							? "Inventory already adapted"
+							: data.action === "clear"
+								? "Legacy status cleared"
+								: "Legacy status adapted",
+					description: migrationDescription,
 					variant: "success",
 				});
 			},
 			onError: (error) => {
+				legacyMigrationAttempts.set(migrationKey, error.message);
 				toast({
 					title: "Unable to configure inventory",
 					description: error.message,
@@ -504,6 +552,58 @@ function LegacyInventoryStatusLockedState({
 		}),
 	);
 	const isResolving = resolveLegacyStatus.isPending;
+	const isUnsupported = legacyCompatibility.state === "unsupported";
+	const previousFailure = legacyMigrationAttempts.get(migrationKey);
+	const hasFailed =
+		resolveLegacyStatus.isError ||
+		typeof previousFailure === "string" ||
+		isUnsupported;
+
+	useEffect(() => {
+		if (
+			!legacyStatus ||
+			!legacyCompatibility.canContinue ||
+			legacyMigrationAttempts.has(migrationKey)
+		) {
+			return;
+		}
+
+		legacyMigrationAttempts.set(migrationKey, null);
+		resolveLegacyStatus.mutate({
+			salesOrderId,
+			action: "continue",
+			legacyStatus,
+		});
+	}, [
+		legacyCompatibility.canContinue,
+		legacyStatus,
+		migrationKey,
+		resolveLegacyStatus,
+		salesOrderId,
+	]);
+
+	const retryMigration = () => {
+		legacyMigrationAttempts.set(migrationKey, null);
+		resolveLegacyStatus.mutate({
+			salesOrderId,
+			action: "continue",
+			legacyStatus,
+		});
+	};
+
+	const clearLegacyStatus = () => {
+		const confirmed = window.confirm(
+			"Clear this historical inbound status and configure inventory from scratch? This removes only the saved prompt; it does not create stock, receipts, or supplier inbounds.",
+		);
+		if (!confirmed) return;
+
+		legacyMigrationAttempts.set(migrationKey, null);
+		resolveLegacyStatus.mutate({
+			salesOrderId,
+			action: "clear",
+			legacyStatus,
+		});
+	};
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -515,13 +615,13 @@ function LegacyInventoryStatusLockedState({
 				/>
 				<InventoryReadonlyMetric
 					label="Inventory setup"
-					value="Paused"
-					description="Inventory setup is held until the manual status is reset or intentionally overridden."
+					value={hasFailed ? "Needs review" : "Adapting"}
+					description="The saved status is being converted into the current inventory-backed workflow."
 				/>
 				<InventoryReadonlyMetric
 					label="Order lifecycle"
 					value={overview.lifecycleLabel || "Active"}
-					description="The order can continue normal sales work, but inventory setup will not auto-run."
+					description="The order remains active while the compatibility migration runs."
 				/>
 			</div>
 
@@ -533,14 +633,28 @@ function LegacyInventoryStatusLockedState({
 								variant="icon"
 								className="border border-amber-200 bg-amber-50 text-amber-700"
 							>
-								<Icons.LockKeyhole />
+								{hasFailed ? (
+									<Icons.AlertTriangle />
+								) : (
+									<Icons.Loader2 className="animate-spin" />
+								)}
 							</EmptyMedia>
 							<EmptyHeader className="max-w-none items-start text-left">
-								<EmptyTitle>Manual inbound status needs review</EmptyTitle>
+								<EmptyTitle>
+									{isUnsupported
+										? "Historical inbound status needs review"
+										: hasFailed
+											? "Automatic adaptation needs attention"
+											: `Adapting legacy ${legacyStatus} status…`}
+								</EmptyTitle>
 								<EmptyDescription>
-									This order has a legacy inbound status but no inventory-backed
-									line items yet. Inventory setup is paused so that status does
-									not get converted into stock demand by accident.
+									{isUnsupported
+										? legacyCompatibility.description
+										: hasFailed
+											? (resolveLegacyStatus.error?.message ??
+												previousFailure ??
+												"Automatic adaptation could not finish.")
+											: operationDescription}
 								</EmptyDescription>
 							</EmptyHeader>
 						</div>
@@ -548,54 +662,50 @@ function LegacyInventoryStatusLockedState({
 							variant="outline"
 							className="w-fit border-amber-200 bg-amber-50 text-amber-700"
 						>
-							Setup locked
+							{hasFailed ? "Review required" : "Migration in progress"}
 						</Badge>
 					</div>
 
 					<EmptyContent className="max-w-none items-stretch">
 						<Alert className="border-dashed bg-muted/20 text-left">
 							<Icons.Info />
-							<AlertTitle>Inventory sync is waiting for intent</AlertTitle>
+							<AlertTitle>Historical intent is preserved</AlertTitle>
 							<AlertDescription>
-								Reset the manual inbound status or run an explicit override
-								workflow before configuring inventory for this order.
+								The saved {legacyStatus} value remains on the order. The
+								migration will not fabricate stock, receipts, or supplier
+								assignments.
 							</AlertDescription>
 						</Alert>
 
-						<div className="flex flex-col gap-2 sm:flex-row">
-							<Button
-								type="button"
-								size="sm"
-								variant="default"
-								disabled={isResolving}
-								onClick={() =>
-									resolveLegacyStatus.mutate({
-										salesOrderId,
-										action: "reset",
-									})
-								}
-							>
-								Reset status and configure
-							</Button>
-							<Button
-								type="button"
-								size="sm"
-								variant="outline"
-								disabled={isResolving}
-								onClick={() =>
-									resolveLegacyStatus.mutate({
-										salesOrderId,
-										action: "override",
-									})
-								}
-							>
-								Override and configure
-							</Button>
-						</div>
+						{hasFailed ? (
+							<div className="flex flex-col gap-2 sm:flex-row">
+								{legacyCompatibility.canContinue ? (
+									<Button
+										type="button"
+										size="sm"
+										variant="default"
+										disabled={isResolving}
+										onClick={retryMigration}
+									>
+										Retry migration
+									</Button>
+								) : null}
+								<Button
+									type="button"
+									size="sm"
+									variant="outline"
+									className="text-destructive hover:text-destructive"
+									disabled={isResolving}
+									onClick={clearLegacyStatus}
+								>
+									Clear legacy status and configure from scratch
+								</Button>
+							</div>
+						) : null}
 
 						<ItemGroup
 							className="gap-2"
-							aria-label="Manual inbound status lock notes"
+							aria-label="Legacy inbound status adaptation notes"
 						>
 							<Item
 								variant="outline"
@@ -604,11 +714,11 @@ function LegacyInventoryStatusLockedState({
 							>
 								<ItemContent>
 									<ItemHeader>
-										<ItemTitle>Manual prompt preserved</ItemTitle>
+										<ItemTitle>Saved status preserved</ItemTitle>
 									</ItemHeader>
 									<ItemDescription>
-										The saved status remains on the order for review and sales
-										list visibility.
+										The migration uses the exact {legacyStatus} baseline and
+										stops if that value changes.
 									</ItemDescription>
 								</ItemContent>
 								<ItemActions>
@@ -622,15 +732,17 @@ function LegacyInventoryStatusLockedState({
 							>
 								<ItemContent>
 									<ItemHeader>
-										<ItemTitle>No stock demand created</ItemTitle>
+										<ItemTitle>Inventory-owned result</ItemTitle>
 									</ItemHeader>
 									<ItemDescription>
-										The Inventory tab will not create allocations, inbound
-										demand, or stock tasks until the legacy prompt is handled.
+										After adaptation, normal inventory requirements, demand, and
+										inbound shipment status become the operational source.
 									</ItemDescription>
 								</ItemContent>
 								<ItemActions>
-									<Badge variant="outline">Read-only</Badge>
+									<Badge variant="outline">
+										{isResolving ? "Working" : "Queued"}
+									</Badge>
 								</ItemActions>
 							</Item>
 						</ItemGroup>
@@ -886,13 +998,6 @@ function InventoryActionBar({
 			});
 			return;
 		}
-		if (!supplierId) {
-			toast({
-				title: "Select a supplier",
-				variant: "destructive",
-			});
-			return;
-		}
 		if (!selectedInboundRows.length) {
 			toast({
 				title: "Select at least one missing needed item",
@@ -902,7 +1007,7 @@ function InventoryActionBar({
 		}
 
 		createInbound.mutate({
-			supplierId: Number(supplierId),
+			supplierId: supplierId ? Number(supplierId) : null,
 			demandIds: selectedDemandIds,
 			componentSelections: selectedComponentSelections,
 			reference: reference.trim() || null,
@@ -985,7 +1090,9 @@ function InventoryActionBar({
 								items={supplierItems}
 								selectedItem={selectedSupplier}
 								placeholder={
-									suppliersQuery.isLoading ? "Loading suppliers" : "Supplier"
+									suppliersQuery.isLoading
+										? "Loading suppliers"
+										: "Supplier (optional)"
 								}
 								searchPlaceholder="Search or create supplier"
 								isLoading={suppliersQuery.isLoading}
@@ -1188,9 +1295,7 @@ function InventoryActionBar({
 								type="button"
 								size="sm"
 								disabled={
-									createInbound.isPending ||
-									!supplierId ||
-									!selectedInboundRows.length
+									createInbound.isPending || !selectedInboundRows.length
 								}
 								onClick={submitInbound}
 							>
@@ -2414,7 +2519,10 @@ function SalesOverviewInventoryContentBody({
 		return <InventoryNotApplicableState overview={overview} />;
 	}
 
-	if (overview.setupMode === "legacy_status_locked") {
+	if (
+		overview.setupMode === "legacy_status_locked" ||
+		overview.inventoryLegacyCompatibility.state === "legacy_locked"
+	) {
 		return <LegacyInventoryStatusLockedState overview={overview} />;
 	}
 

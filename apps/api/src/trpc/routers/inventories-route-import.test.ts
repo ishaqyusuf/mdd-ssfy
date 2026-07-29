@@ -190,7 +190,6 @@ describe("inventoriesRouter", () => {
 
     expect(
       mod.createInboundShipmentFromDemandsSchema.safeParse({
-        supplierId: 1,
         demandIds: [2],
         lineItemComponentIds: [3],
         status: "in_progress",
@@ -201,6 +200,13 @@ describe("inventoriesRouter", () => {
             qty: 1.5,
           },
         ],
+      }).success,
+    ).toBe(true);
+    expect(
+      mod.createInboundShipmentFromDemandsSchema.safeParse({
+        supplierId: null,
+        demandIds: [2],
+        status: "pending",
       }).success,
     ).toBe(true);
 

@@ -64,11 +64,24 @@ describe("sales inbound action intent", () => {
 		).toBe("inventory_inbound");
 	});
 
+	test("preserves a recognized legacy status over not-synced projection attention", () => {
+		expect(
+			resolveSalesInboundColumnState({
+				inventoryApplicabilityState: "not_synced",
+				legacyStatus: "ORDERED",
+			}),
+		).toBe("legacy_status_locked");
+		expect(salesOrderColumnsSource).toContain(
+			"legacyStatus: item.inboundStatus",
+		);
+		expect(salesOrderColumnsSource).toContain(
+			'if (columnState === "legacy_status_locked")',
+		);
+	});
+
 	test("explains the N/A state when it is clicked", () => {
 		const notApplicableBranch = salesOrderColumnsSource.slice(
-			salesOrderColumnsSource.indexOf(
-				'if (columnState === "not_applicable")',
-			),
+			salesOrderColumnsSource.indexOf('if (columnState === "not_applicable")'),
 			salesOrderColumnsSource.indexOf('if (columnState === "syncing")'),
 		);
 

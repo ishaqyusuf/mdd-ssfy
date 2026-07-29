@@ -313,10 +313,13 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const inventoryInboundOwnership = item.inventoryInboundOwnership;
 	const inventoryApplicability = item.inventoryApplicability;
+	const inventoryLegacyCompatibility = item.inventoryLegacyCompatibility;
 	const hasInventoryInbound = !!inventoryInboundOwnership?.hasInventoryInbound;
 	const columnState = resolveSalesInboundColumnState({
 		ownership: inventoryInboundOwnership,
 		inventoryApplicabilityState: inventoryApplicability?.state,
+		legacyCompatibilityState: inventoryLegacyCompatibility?.state,
+		legacyStatus: item.inboundStatus,
 	});
 	const actionIntent = getSalesInboundActionIntent(inventoryInboundOwnership);
 	const inboundStatusClassName =
@@ -426,6 +429,76 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 			>
 				<Icons.Loader2 className="size-3 animate-spin" />
 				{inventoryApplicability.label}
+			</span>
+		);
+	}
+
+	if (columnState === "legacy_status_locked") {
+		const legacyStatus =
+			inventoryLegacyCompatibility?.normalizedLegacyStatus ??
+			normalizeSalesInboundStatus(item.inboundStatus);
+
+		return (
+			<span
+				aria-label={`Review legacy inbound status for ${item.orderId}`}
+				// biome-ignore lint/a11y/useSemanticElements: Product design requires status cells to use button styling without rendering a button.
+				role="button"
+				tabIndex={0}
+				className={cn(
+					buttonVariants({ variant: "ghost", size: "sm" }),
+					inboundStatusClassName,
+					"border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:text-amber-900",
+				)}
+				title={`Legacy ${legacyStatus} status — inventory setup is required to continue.`}
+				onClick={(event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					openInventoryReview();
+				}}
+				onKeyDown={(event) => {
+					event.stopPropagation();
+					if (event.key === "Enter" || event.key === " ") {
+						event.preventDefault();
+						openInventoryReview();
+					}
+				}}
+				onPointerDown={(event) => event.stopPropagation()}
+			>
+				<Icons.LockKeyhole className="size-3 shrink-0" />
+				<span className="truncate">{legacyStatus}</span>
+			</span>
+		);
+	}
+
+	if (columnState === "unsupported_status") {
+		return (
+			<span
+				aria-label={`Review unsupported inbound status for ${item.orderId}`}
+				// biome-ignore lint/a11y/useSemanticElements: Product design requires status cells to use button styling without rendering a button.
+				role="button"
+				tabIndex={0}
+				className={cn(
+					buttonVariants({ variant: "ghost", size: "sm" }),
+					inboundStatusClassName,
+					"border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800",
+				)}
+				title={inventoryLegacyCompatibility?.description}
+				onClick={(event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					openInventoryReview();
+				}}
+				onKeyDown={(event) => {
+					event.stopPropagation();
+					if (event.key === "Enter" || event.key === " ") {
+						event.preventDefault();
+						openInventoryReview();
+					}
+				}}
+				onPointerDown={(event) => event.stopPropagation()}
+			>
+				<Icons.AlertTriangle className="size-3 shrink-0" />
+				<span className="truncate">Status needs review</span>
 			</span>
 		);
 	}

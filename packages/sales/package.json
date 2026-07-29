@@ -39,6 +39,8 @@
 		"./sales-inventory-policy": "./src/sales-inventory-policy.ts",
 		"./sales-inventory-tracking-policy": "./src/sales-inventory-tracking-policy.ts",
 		"./sales-inventory-applicability": "./src/sales-inventory-applicability.ts",
+		"./sales-inventory-inbound-automation": "./src/sales-inventory-inbound-automation.ts",
+		"./sales-inventory-legacy-compatibility": "./src/sales-inventory-legacy-compatibility.ts",
 		"./sales-inventory-overview": "./src/sales-inventory-overview.ts",
 		"./sales-overview-production-preflight": "./src/sales-overview-production-preflight.ts",
 		"./sales-inventory-legacy-status-setup": "./src/sales-inventory-legacy-status-setup.ts",

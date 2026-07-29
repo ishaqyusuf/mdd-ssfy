@@ -481,7 +481,7 @@ export function InboundReceivingPage({ initialSettings }: Props) {
 												</Badge>
 											</div>
 											<p className="mt-1 text-sm font-medium text-slate-700">
-												{selectedShipment.supplier.name}
+												{selectedShipment.supplier?.name || "No supplier"}
 											</p>
 											<p className="text-sm text-slate-500">
 												Reference {selectedShipment.reference || "None on file"}
@@ -662,7 +662,7 @@ export function InboundReceivingPage({ initialSettings }: Props) {
 							onValueChange={setSelectedSupplierId}
 						>
 							<SelectTrigger>
-								<SelectValue placeholder="Select supplier" />
+								<SelectValue placeholder="Supplier (optional)" />
 							</SelectTrigger>
 							<SelectContent>
 								{suppliers.map((supplier) => (
@@ -677,12 +677,10 @@ export function InboundReceivingPage({ initialSettings }: Props) {
 							<Button
 								className="flex-1"
 								onClick={() => {
-									if (!selectedSupplierId) {
-										toast.error("Select a supplier first");
-										return;
-									}
 									createInboundMutation.mutate({
-										supplierId: Number(selectedSupplierId),
+										supplierId: selectedSupplierId
+											? Number(selectedSupplierId)
+											: null,
 									});
 								}}
 								disabled={createInboundMutation.isPending}
@@ -693,16 +691,14 @@ export function InboundReceivingPage({ initialSettings }: Props) {
 								variant="outline"
 								className="flex-1"
 								onClick={() => {
-									if (!selectedSupplierId) {
-										toast.error("Select a supplier first");
-										return;
-									}
 									if (!selectedDemandIds.length) {
 										toast.error("Select demand rows to create inbound from");
 										return;
 									}
 									createFromDemandsMutation.mutate({
-										supplierId: Number(selectedSupplierId),
+										supplierId: selectedSupplierId
+											? Number(selectedSupplierId)
+											: null,
 										demandIds: selectedDemandIds,
 									});
 								}}

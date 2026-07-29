@@ -6,7 +6,8 @@ Backward-compatibility feature and migration UX
 
 ## Status
 
-Ready for implementation
+Implemented for the per-order automatic adaptation path; rollout audit and the
+full disposable-fixture browser matrix remain release verification work.
 
 ## Created Date
 

@@ -341,7 +341,7 @@ export const assignInboundDemandsSchema = z.object({
 });
 
 export const createInboundShipmentFromDemandsSchema = z.object({
-	supplierId: inventoryPositiveIdSchema,
+	supplierId: inventoryPositiveIdSchema.optional().nullable(),
 	demandIds: inventoryPositiveIdsSchema.optional(),
 	lineItemComponentIds: inventoryPositiveIdsSchema.optional(),
 	status: z.enum(NEW_INBOUND_SHIPMENT_STATUSES).optional(),
@@ -399,6 +399,8 @@ const salesInventoryOrderRepairApplySchema = z.object({
 		.default([]),
 });
 const salesInventoryLegacyStatusSetupActionSchema = z.enum([
+	"continue",
+	"clear",
 	"reset",
 	"override",
 ]);
@@ -503,7 +505,7 @@ export const inventoriesRouter = createTRPCRouter({
 	createInboundShipment: protectedProcedure
 		.input(
 			z.object({
-				supplierId: z.number(),
+				supplierId: inventoryPositiveIdSchema.optional().nullable(),
 				reference: z.string().optional().nullable(),
 				expectedAt: z.date().optional().nullable(),
 			}),
@@ -1093,6 +1095,7 @@ export const inventoriesRouter = createTRPCRouter({
 			z.object({
 				salesOrderId: salesInventoryOrderIdSchema,
 				action: salesInventoryLegacyStatusSetupActionSchema,
+				legacyStatus: z.string().trim().min(1).optional(),
 			}),
 		)
 		.mutation(async (props) => {

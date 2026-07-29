@@ -1,5 +1,24 @@
 # Progress
 
+- 2026-07-29: implemented automatic per-order adaptation for recognized legacy
+  sales inbound statuses. The Orders list and Inventory overview now share a
+  typed compatibility policy; recognized locked values display as amber
+  historical statuses, unsupported values display a destructive review state,
+  and active inventory-owned inbounds remain authoritative. Opening Inventory
+  automatically runs canonical `continue` once for the exact saved baseline.
+  `ORDERED` creates/advances `in_progress` supplier inbounds, `PENDING ORDER`
+  creates `pending` supplier inbounds, and `AVAILABLE` reuses the guarded
+  transaction-capable manual-fulfillment core with
+  `noPhysicalStockChange=true`. Missing/ambiguous suppliers return partial
+  success and route to the stock/create-inbound workflow; automatic failures
+  require operator Retry, with confirmed Clear as recovery. Deprecated
+  reset/override inputs remain aliases for clear/continue. Focused coverage
+  passes 72 tests / 197 assertions before the additional unresolved-supplier
+  and linked-pending service cases. Authenticated local browser validation on
+  `09068PC` synchronized its two inventory needs, preserved `ORDERED`, correctly
+  created no placeholder inbound because supplier configuration was unresolved,
+  and removed the legacy locked-state CTAs.
+
 - 2026-07-28: Fixed the global navigation loading bar updating React state
   while the Next.js App Router was rendering. Native same-origin click and
   form-submit signals now defer the loading start until the active event stack
@@ -7641,3 +7660,13 @@
   original first-open URL on order `09071PC` and confirmed the form and disabled
   CTAs stay absent while both fulfilled item statuses render. The dashboard-wide
   typecheck remains blocked by existing unrelated repository diagnostics.
+- 2026-07-29: fixed the Sales Orders Inbound column masking recognized legacy
+  manual statuses behind `Not synced`. Order `09068PC` reproduced the issue
+  with persisted `ORDERED`, no inventory projection, and
+  `setupMode=legacy_status_locked`. The column-state resolver now receives the
+  saved manual status and gives recognized legacy compatibility state
+  precedence over `not_synced`/failed projection attention while retaining
+  active linked inbound ownership and syncing as higher-priority states. The
+  row renders an amber locked `ORDERED` badge and opens the Inventory review
+  state. Focused sales/inventory coverage passes 42 tests / 71 assertions, and
+  authenticated browser QA confirms the corrected row and review navigation.

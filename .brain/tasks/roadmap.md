@@ -525,3 +525,14 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Plan File: .brain/plans/2026-07-23-feature-dealer-next-step-guidance.md
 - Created Date: 2026-07-23
 - Completed Date: 2026-07-23
+
+### Production Worker Inventory Update Requests And Resume Notifications
+- Priority: High
+- Description: Track the audited worker request, sales/admin notification, and
+  worker-scoped readiness-resume flow in
+  `.brain/plans/2026-07-29-feature-production-worker-inventory-update-requests.md`.
+- Related Feature: Sales production workspace and inventory-backed sales fulfillment
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: .brain/plans/2026-07-29-feature-production-worker-inventory-update-requests.md
+- Created Date: 2026-07-29
