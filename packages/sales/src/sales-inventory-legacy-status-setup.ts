@@ -160,7 +160,10 @@ export async function resolveSalesInventoryLegacyStatusMigration(
 		throw new Error("Inventory inbound status changed before setup could run.");
 	}
 
-	if (overview.setupMode !== "legacy_status_locked") {
+	const needsMigration =
+		overview.setupMode === "legacy_status_locked" ||
+		overview.inventoryLegacyCompatibility?.state === "legacy_locked";
+	if (!needsMigration) {
 		if (action === "continue" && overview.hasInventoryIntegration) {
 			return {
 				...emptyMigrationResult({
@@ -394,9 +397,7 @@ export async function resolveSalesInventoryLegacyStatusMigration(
 			.toLowerCase()
 			.replaceAll(" ", "-")}`;
 		const nextSegment =
-			legacyStatus === "AVAILABLE"
-				? ("stock" as const)
-				: ("inbounds" as const);
+			legacyStatus === "AVAILABLE" ? ("stock" as const) : ("inbounds" as const);
 		const messages =
 			legacyStatus === "AVAILABLE"
 				? [

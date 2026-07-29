@@ -18,4 +18,14 @@ describe("legacy sales inventory adaptation UI", () => {
 		expect(inventoryTabSource).not.toContain("Override and configure");
 		expect(inventoryTabSource).not.toContain("Reset status and configure");
 	});
+
+	test("allows inbound creation with status alone", () => {
+		expect(inventoryTabSource).toContain("Supplier (optional)");
+		expect(inventoryTabSource).toContain(
+			"supplierId: supplierId ? Number(supplierId) : null",
+		);
+		expect(inventoryTabSource).toContain("reference: reference.trim() || null");
+		expect(inventoryTabSource).toContain("expectedAt: expectedAt ? new Date");
+		expect(inventoryTabSource).not.toContain('title: "Select a supplier"');
+	});
 });

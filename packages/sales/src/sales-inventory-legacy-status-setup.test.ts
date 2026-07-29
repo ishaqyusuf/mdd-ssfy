@@ -175,7 +175,14 @@ describe("resolveSalesInventoryLegacyStatusSetup", () => {
 				triggeredByUserId: 7,
 			},
 			{
-				getOverview: async () => lockedOverview("ORDERED"),
+				getOverview: async () => ({
+					setupMode: "configured",
+					inventoryStatus: "ORDERED",
+					hasInventoryIntegration: true,
+					inventoryLegacyCompatibility: {
+						state: "legacy_locked",
+					},
+				}),
 				syncLineItems: async () => {
 					calls.push("syncSalesInventoryLineItems");
 					return { syncedLineItemCount: 1 };
@@ -239,7 +246,14 @@ describe("resolveSalesInventoryLegacyStatusSetup", () => {
 				legacyStatus: "ORDERED",
 			},
 			{
-				getOverview: async () => lockedOverview("ORDERED"),
+				getOverview: async () => ({
+					setupMode: "configured",
+					inventoryStatus: "ORDERED",
+					hasInventoryIntegration: true,
+					inventoryLegacyCompatibility: {
+						state: "legacy_locked",
+					},
+				}),
 				syncLineItems: async () => ({
 					salesOrderId: 5,
 					createdCount: 2,
@@ -373,7 +387,14 @@ describe("resolveSalesInventoryLegacyStatusSetup", () => {
 				legacyStatus: "ORDERED",
 			},
 			{
-				getOverview: async () => lockedOverview("ORDERED"),
+				getOverview: async () => ({
+					setupMode: "configured",
+					inventoryStatus: "ORDERED",
+					hasInventoryIntegration: true,
+					inventoryLegacyCompatibility: {
+						state: "legacy_locked",
+					},
+				}),
 				syncLineItems: async () => ({
 					salesOrderId: 8,
 					createdCount: 1,
@@ -405,9 +426,7 @@ describe("resolveSalesInventoryLegacyStatusSetup", () => {
 		expect(result).toMatchObject({
 			result: "migrated",
 			unresolvedSupplierDemandIds: [43],
-			createdInbounds: [
-				{ id: 82, supplierId: null, status: "in_progress" },
-			],
+			createdInbounds: [{ id: 82, supplierId: null, status: "in_progress" }],
 			nextSegment: "inbounds",
 		});
 	});

@@ -6,18 +6,22 @@
   historical statuses, unsupported values display a destructive review state,
   and active inventory-owned inbounds remain authoritative. Opening Inventory
   automatically runs canonical `continue` once for the exact saved baseline.
-  `ORDERED` creates/advances `in_progress` supplier inbounds, `PENDING ORDER`
-  creates `pending` supplier inbounds, and `AVAILABLE` reuses the guarded
+  `ORDERED` creates/advances `in_progress` inbounds, `PENDING ORDER`
+  creates `pending` inbounds, and `AVAILABLE` reuses the guarded
   transaction-capable manual-fulfillment core with
-  `noPhysicalStockChange=true`. Missing/ambiguous suppliers return partial
-  success and route to the stock/create-inbound workflow; automatic failures
-  require operator Retry, with confirmed Clear as recovery. Deprecated
+  `noPhysicalStockChange=true`. A follow-up product clarification made inbound
+  supplier, expected date, and PO/reference optional: unresolved supplier demand
+  now creates a supplier-less inbound instead of partial success, and partially
+  synchronized `ORDERED` rows with needs but no linked inbound remain eligible
+  for automatic continuation. Automatic failures require operator Retry, with
+  confirmed Clear as recovery. Deprecated
   reset/override inputs remain aliases for clear/continue. Focused coverage
-  passes 72 tests / 197 assertions before the additional unresolved-supplier
-  and linked-pending service cases. Authenticated local browser validation on
-  `09068PC` synchronized its two inventory needs, preserved `ORDERED`, correctly
-  created no placeholder inbound because supplier configuration was unresolved,
-  and removed the legacy locked-state CTAs.
+  covers the shared compatibility policy, migration service, route schema,
+  status-only UI submission, and nullable domain create input. Authenticated
+  local browser validation on `09068PC` synchronized its two inventory needs
+  and created inbound `#109` with status `in_progress`, two linked items, no
+  supplier, and no expected date; the Sales Orders Inbound column now shows
+  canonical `In progress`.
 
 - 2026-07-28: Fixed the global navigation loading bar updating React state
   while the Next.js App Router was rendering. Native same-origin click and

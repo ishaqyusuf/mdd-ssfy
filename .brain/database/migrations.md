@@ -10,6 +10,19 @@ Tracks notable migrations and migration strategy.
 - If the configured database is unavailable or drift blocks migration, record the exact limitation here rather than forcing a reset or data-destructive action.
 
 ## Current Notes
+- 2026-07-29 optional inbound supplier:
+  - `packages/db/src/migrations/20260729153000_optional_inbound_supplier/migration.sql`
+    changes only `InboundShipment.supplierId` from required to nullable.
+  - Prisma Client generation passed.
+  - The repository migration deploy was blocked by pre-existing local history
+    drift at `20260720130000_storefront_ecommerce_replacement` because
+    `salesChannel` already existed. The failed marker was returned to
+    rolled-back state; no unrelated migration was forced or marked applied.
+  - The single nullable-column SQL was applied directly to local `gnd-prisma2`
+    for browser verification. The normal migration remains unapplied in local
+    Prisma history and is the source of truth for clean environments.
+  - After restarting the existing dashboard proxy, order `09068PC` created
+    supplier-less inbound `#109` as `in_progress` with two linked demand rows.
 - 2026-07-22 Sales Customer direct dealership invitations:
   - Prisma-generated additive SQL lives at
     `packages/db/src/migrations/20260722150000_dealer_customer_direct_partnership_invitations/migration.sql`.

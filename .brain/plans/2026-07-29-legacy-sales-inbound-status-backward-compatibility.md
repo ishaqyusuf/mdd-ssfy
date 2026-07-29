@@ -1,5 +1,15 @@
 # Plan: Legacy Sales Inbound Status Backward Compatibility
 
+## Product clarification implemented 2026-07-29
+
+Inbound status is sufficient to create a shipment. Supplier, expected date, and
+PO/reference are optional. The implementation still resolves a deterministic
+supplier when one exists, but missing or ambiguous supplier configuration now
+creates one supplier-less inbound instead of blocking or returning partial
+success. `ORDERED` produces `in_progress`; `PENDING ORDER` produces `pending`.
+Partially synchronized orders with canonical needs but no linked inbound remain
+eligible for automatic continuation.
+
 ## Type
 
 Backward-compatibility feature and migration UX

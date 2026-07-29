@@ -49,6 +49,10 @@ Tracks important schema-level entities and ownership boundaries.
   - `InboundShipmentExtractionLine`
   These hold extraction status, invoice metadata, parsed lines, and inventory match state before the user applies results to inbound items.
 - Receiving work should extend the existing inventory schema (`InboundShipment`, `InboundShipmentItem`, `InventoryStock`, `StockMovement`) instead of creating a separate supplier-receipt system outside inventory.
+- `InboundShipment.supplierId` is nullable. A shipment can begin from its
+  `pending` or `in_progress` status and linked demand alone; supplier,
+  `expectedAt`, and PO/reference may be assigned later. Receiving continues to
+  write nullable supplier provenance into `InventoryStock`.
 - Legacy Dyke authoring is now starting to move behind the inventory domain/API boundary:
   - `@gnd/inventory` now owns the active custom-component save/update and pricing-update services
   - inventories tRPC now exposes Dyke authoring mutations (`saveDykeStepComponent`, `updateDykeComponentPricing`) instead of relying on `apps/dashboard` server actions for the active custom-component flow

@@ -4,6 +4,9 @@
 Tracks important cross-model relationships and ownership patterns.
 
 ## Current Notes
+- `InboundShipment` optionally belongs to `Supplier`. Its shipment items and
+  linked `InboundDemand` rows remain valid when `supplierId=null`; assigning a
+  supplier later enriches the inbound header without changing demand ownership.
 - `Customers.dealerOwnerId` identifies a dealer-owned downstream customer.
   `officeVisibility = SHARED` permits read-only office discovery without
   transferring ownership or allowing unrelated office-origin sales.

@@ -472,8 +472,8 @@ function LegacyInventoryStatusLockedState({
 		legacyStatus === "AVAILABLE"
 			? "Synchronizing inventory requirements, then marking eligible needs fulfilled without changing physical stock."
 			: legacyStatus === "PENDING ORDER"
-				? "Synchronizing inventory requirements and creating pending supplier inbounds where supplier configuration is unambiguous."
-				: "Synchronizing inventory requirements and creating in-progress supplier inbounds where supplier configuration is unambiguous.";
+				? "Synchronizing inventory requirements and creating a pending inbound. Supplier, date, and PO reference can be added later."
+				: "Synchronizing inventory requirements and creating an in-progress inbound. Supplier, date, and PO reference can be added later.";
 	const resolveLegacyStatus = useMutation(
 		trpc.inventories.resolveSalesInventoryLegacyStatusSetup.mutationOptions({
 			onSuccess: async (data) => {
@@ -483,7 +483,7 @@ function LegacyInventoryStatusLockedState({
 						data.linkedInboundIds.length === 1
 							? data.linkedInboundIds[0]
 							: null,
-					openCreate: data.unresolvedSupplierDemandIds.length > 0,
+					openCreate: false,
 				});
 				await Promise.all([
 					queryClient.invalidateQueries({
@@ -525,9 +525,7 @@ function LegacyInventoryStatusLockedState({
 									data.createdInbounds.length === 1 ? "" : "s"
 								} created${
 									data.unresolvedSupplierDemandIds.length
-										? `; ${data.unresolvedSupplierDemandIds.length} demand row${
-												data.unresolvedSupplierDemandIds.length === 1 ? "" : "s"
-											} still need supplier review`
+										? " without a supplier; one can be assigned later"
 										: ""
 								}.`;
 				toast({
