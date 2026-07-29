@@ -1,5 +1,12 @@
 # Progress
 
+- 2026-07-29: pushed the optional inbound-supplier Prisma schema to production
+  with `bun run --cwd packages/db push:prod`. Prisma reported production
+  `gndprodesk` in sync and regenerated Prisma Client successfully. Local
+  `gnd-prisma2` had already received the same nullable-column SQL for browser
+  validation; its pre-existing unrelated migration-history drift remains
+  documented in `.brain/database/migrations.md`.
+
 - 2026-07-29: implemented automatic per-order adaptation for recognized legacy
   sales inbound statuses. The Orders list and Inventory overview now share a
   typed compatibility policy; recognized locked values display as amber

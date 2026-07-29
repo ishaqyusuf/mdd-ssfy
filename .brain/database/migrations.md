@@ -21,6 +21,9 @@ Tracks notable migrations and migration strategy.
   - The single nullable-column SQL was applied directly to local `gnd-prisma2`
     for browser verification. The normal migration remains unapplied in local
     Prisma history and is the source of truth for clean environments.
+  - `bun run --cwd packages/db push:prod` completed against production
+    `gndprodesk` on 2026-07-29. Prisma reported the database in sync with the
+    schema and regenerated Prisma Client successfully.
   - After restarting the existing dashboard proxy, order `09068PC` created
     supplier-less inbound `#109` as `in_progress` with two linked demand rows.
 - 2026-07-22 Sales Customer direct dealership invitations:
