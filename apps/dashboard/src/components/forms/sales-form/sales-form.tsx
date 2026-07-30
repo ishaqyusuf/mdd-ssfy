@@ -24,13 +24,13 @@ import {
 } from "@gnd/ui/tooltip";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { FormWatcher } from "./form-watcher";
-import { SalesFormSave } from "./sales-form-save";
 import { LegacySalesCustomerSelectorDialog } from "./sales-customer-input";
+import { SalesFormSave } from "./sales-form-save";
 import { SalesFormSidebar } from "./sales-form-sidebar";
 import TakeOff from "./take-off";
 import { TakeoffSwitch } from "./take-off/takeoff-switch";
 
-export function SalesFormClient({ data }) {
+export function SalesFormClient({ data, versionSwitcher }) {
 	const currentTab = useFormDataStore((state) => state.currentTab);
 	const formStatus = useFormDataStore((state) => state.formStatus);
 	const setCurrentTab = useFormDataStore((state) => state.dotUpdate);
@@ -42,10 +42,10 @@ export function SalesFormClient({ data }) {
 
 	if (!formStatus || currentTab !== "invoice") return null;
 
-	return <Content data={data} />;
+	return <Content data={data} versionSwitcher={versionSwitcher} />;
 }
 
-function Content({ data }) {
+function Content({ data, versionSwitcher }) {
 	const sPreview = useSalesPreview();
 	const zus = useFormDataStore();
 	const [showMobileSalesPanel, setShowMobileSalesPanel] = useState(false);
@@ -101,6 +101,7 @@ function Content({ data }) {
 						</div>
 						<div className="flex-1" />
 						<div className="flex items-center gap-2">
+							{versionSwitcher}
 							<TakeoffSwitch
 								takeOff={takeOff}
 								takeOffChanged={setTakeOff}

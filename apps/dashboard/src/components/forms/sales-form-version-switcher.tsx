@@ -1,16 +1,25 @@
 "use client";
 
 import { updateMySalesFormPreference } from "@/actions/update-sales-form-preference";
-import Portal from "@/components/_v1/portal";
 import {
 	type SalesFormDocumentMode,
 	type SalesFormDocumentType,
 	buildSalesFormHref,
 } from "@gnd/sales/sales-form";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@gnd/ui/alert-dialog";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { toast } from "@gnd/ui/use-toast";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
@@ -47,7 +56,12 @@ export function SalesFormVersionSwitcher({
 		<Icons.RefreshCw className="size-4" />
 	);
 
-	const useNewForm = () => {
+	const confirmSwitch = () => {
+		if (targetForm === "legacy") {
+			router.push(href);
+			return;
+		}
+
 		startTransition(async () => {
 			try {
 				await updateMySalesFormPreference({
@@ -66,27 +80,61 @@ export function SalesFormVersionSwitcher({
 	};
 
 	return (
-		<Portal nodeId="navRightSlot" noDelay>
-			{targetForm === "new" ? (
-				<Button
-					type="button"
-					size="sm"
-					variant="outline"
-					className="gap-2"
-					disabled={isPending}
-					onClick={useNewForm}
-				>
-					{icon}
-					<span>{label}</span>
-				</Button>
-			) : (
-				<Button asChild size="sm" variant="outline" className="gap-2">
-					<Link href={href} prefetch={false}>
+		<AlertDialog>
+			<AlertDialogTrigger asChild>
+				{targetForm === "legacy" ? (
+					<Button
+						type="button"
+						size="sm"
+						variant="destructive"
+						className="gap-2"
+						disabled={isPending}
+					>
 						{icon}
 						<span>{label}</span>
-					</Link>
-				</Button>
-			)}
-		</Portal>
+					</Button>
+				) : (
+					<Button
+						type="button"
+						size="sm"
+						className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+						disabled={isPending}
+					>
+						{icon}
+						<span>{label}</span>
+					</Button>
+				)}
+			</AlertDialogTrigger>
+			<AlertDialogContent size="sm" className="gap-6 p-6 sm:max-w-md">
+				<AlertDialogHeader>
+					<AlertDialogTitle>Save before switching forms</AlertDialogTitle>
+					<AlertDialogDescription>
+						Make sure you have saved any new or changed sale data before
+						continuing. Unsaved changes do not transfer to the{" "}
+						{targetForm === "legacy" ? "legacy" : "new"} sales form.
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+				<AlertDialogFooter className="gap-2 sm:gap-3">
+					<AlertDialogCancel className="px-4" disabled={isPending}>
+						Go back
+					</AlertDialogCancel>
+					<AlertDialogAction
+						variant={targetForm === "legacy" ? "destructive" : "default"}
+						className={
+							targetForm === "new"
+								? "bg-emerald-600 px-4 text-white hover:bg-emerald-700"
+								: "px-4"
+						}
+						disabled={isPending}
+						onClick={confirmSwitch}
+					>
+						{isPending ? (
+							<Icons.Loader2 className="size-4 animate-spin" />
+						) : null}
+						Switch anyway
+					</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
 	);
 }

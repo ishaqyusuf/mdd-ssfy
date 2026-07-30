@@ -145,4 +145,24 @@ describe("customer form selection reconciliation", () => {
 		expect(formSource.includes("dealerProfileCard")).toBe(true);
 		expect(permissionsSource.includes("editSalesCustomers")).toBe(true);
 	});
+
+	it("allows the initial customer prompt to be dismissed without a selection", () => {
+		const dialogSource = readFileSync(
+			new URL("./customer-selector-dialog.tsx", import.meta.url),
+			"utf8",
+		);
+		const formSource = readFileSync(
+			new URL("../new-sales-form.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(dialogSource.includes("onInteractOutside")).toBe(false);
+		expect(dialogSource.includes("onEscapeKeyDown")).toBe(false);
+		expect(dialogSource.includes("initialPrompt?: boolean")).toBe(true);
+		expect(dialogSource.includes("Skip for now")).toBe(true);
+		expect(formSource.includes("customerPromptDismissed")).toBe(true);
+		expect(
+			formSource.includes("onOpenChange={handleCustomerPromptOpenChange}"),
+		).toBe(true);
+	});
 });

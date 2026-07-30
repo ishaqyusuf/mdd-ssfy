@@ -1,10 +1,5 @@
-import { SalesNav } from "@/components/sales-nav";
+import type { ReactNode } from "react";
 
-export default async function Layout({ children }) {
-    return (
-        <>
-            {children}
-            <SalesNav />
-        </>
-    );
+export default function SalesBookLayout({ children }: { children: ReactNode }) {
+	return children;
 }

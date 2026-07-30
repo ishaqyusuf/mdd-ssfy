@@ -9,36 +9,24 @@ import type {
 	SalesPerformanceReportType,
 	SalesPerformanceWorkbookReport,
 } from "@gnd/sales/performance-reports";
-import { Button } from "@gnd/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@gnd/ui/dropdown-menu";
+import { DropdownMenuItem } from "@gnd/ui/dropdown-menu";
 import { useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import {
 	Boxes,
 	Building2,
-	ChevronDown,
 	ClipboardList,
 	FileSpreadsheet,
 	FileText,
-	Loader2,
 	Users,
-	WalletCards,
 } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 
 export const salesPerformanceReportItems = [
 	{
 		type: "performance-summary",
 		title: "Sales performance summary",
-		description: "KPIs, trend, channels, reps, and source orders.",
+		description: "KPIs, trend, channels, reps, source orders, and quotes.",
 		Icon: FileSpreadsheet,
 	},
 	{
@@ -152,7 +140,7 @@ export function SalesPerformanceReportMenuItems({
 	return salesPerformanceReportItems.map(
 		({ type, title, description, Icon }) => (
 			<DropdownMenuItem
-				className="items-start gap-3 py-2.5"
+				className="h-full items-start gap-3 rounded-md p-3"
 				disabled={state.pendingType !== null}
 				key={type}
 				onSelect={() => void state.downloadReport(type)}
@@ -166,62 +154,5 @@ export function SalesPerformanceReportMenuItems({
 				</span>
 			</DropdownMenuItem>
 		),
-	);
-}
-
-export function SalesPerformanceReports() {
-	const state = useSalesPerformanceReportMenuState();
-
-	if (!state.canGenerate) return null;
-
-	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button
-					aria-label={
-						state.pendingType ? "Preparing sales report" : "Sales reports"
-					}
-					className="h-9 gap-2"
-					disabled={state.pendingType !== null}
-					type="button"
-					variant="outline"
-				>
-					{state.pendingType ? (
-						<Loader2 className="size-4 animate-spin" />
-					) : (
-						<FileSpreadsheet className="size-4" />
-					)}
-					<span className="hidden sm:inline">
-						{state.pendingType ? "Preparing" : "Reports"}
-					</span>
-					<ChevronDown className="size-3.5" />
-				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent
-				align="end"
-				className="w-[min(20rem,calc(100vw-2rem))]"
-			>
-				<DropdownMenuLabel>
-					<p>Sales Excel reports</p>
-					<p className="mt-1 text-xs font-normal text-muted-foreground">
-						Each workbook uses the active reporting period and filters.
-					</p>
-				</DropdownMenuLabel>
-				<DropdownMenuSeparator />
-				<SalesPerformanceReportMenuItems state={state} />
-				<DropdownMenuSeparator />
-				<DropdownMenuItem asChild>
-					<Link className="gap-3" href="/sales-book/finance">
-						<WalletCards className="size-4 shrink-0" />
-						<span>
-							<span className="block font-medium">Sales Finance reports</span>
-							<span className="mt-0.5 block text-xs text-muted-foreground">
-								Payments, applications, refunds, and receivables.
-							</span>
-						</span>
-					</Link>
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
 	);
 }

@@ -1,5 +1,4 @@
 import PageShell from "@/components/page-shell";
-import { SalesNav } from "@/components/sales-nav";
 import { SalesRepDashboardWorkspace } from "@/components/sales-rep-dashboard/workspace";
 import { ScrollableContent } from "@/components/scrollable-content";
 import { resolveSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
@@ -34,7 +33,6 @@ export default async function SalesRepProfilePage(props: {
 				<ScrollableContent>
 					<PageTitle>Sales</PageTitle>
 					<SalesRepDashboardWorkspace />
-					<SalesNav />
 				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>

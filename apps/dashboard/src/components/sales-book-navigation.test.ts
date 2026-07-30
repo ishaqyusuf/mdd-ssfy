@@ -12,6 +12,9 @@ function readSource(path: string) {
 
 describe("Sales Book navigation", () => {
 	it("keeps the shared sales section tabs unmounted", () => {
+		const salesEnvironmentLayoutSource = readSource(
+			"app/(sidebar)/(sales)/layout.tsx",
+		);
 		const layoutSource = readSource(
 			"app/(sidebar)/(sales)/sales-book/layout.tsx",
 		);
@@ -19,14 +22,12 @@ describe("Sales Book navigation", () => {
 			"components/sales-orders-v2-header.tsx",
 		);
 
-		assert.ok(layoutSource.includes("<SalesNav />"));
+		assert.ok(salesEnvironmentLayoutSource.includes("<SalesNav />"));
+		assert.ok(!layoutSource.includes("<SalesNav />"));
 		assert.ok(!layoutSource.includes("SalesTabs"));
 		assert.ok(!ordersHeaderSource.includes("SalesTabs"));
 		assert.ok(!ordersHeaderSource.includes("afterSearch="));
-		assert.equal(
-			existsSync(resolve(root, "components/sales-tabs.tsx")),
-			false,
-		);
+		assert.equal(existsSync(resolve(root, "components/sales-tabs.tsx")), false);
 	});
 
 	it("keeps saved filter tabs while removing the obsolete scroll state", () => {

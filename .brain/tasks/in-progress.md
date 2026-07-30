@@ -1,5 +1,15 @@
 # In Progress
 
+- [ ] Sales Customers and Customer Overview monitored modernization: the
+  program direction and first page plan are documented in
+  `.brain/plans/sales-system-page-by-page-modernization/map.md` and
+  `.brain/plans/sales-system-page-by-page-modernization/01-customers-and-customer-overview-plan.md`.
+  The active slice is C0 baseline and acceptance mapping. No implementation
+  code is authorized by this task entry; the next step is to review the
+  baseline and select one narrow C1 page-shell/mobile-header change. Every
+  user-visible slice must be tested, browser-validated, documented, and paused
+  for operator inspection before continuing. (Planning + UI + Validation)
+
 - [ ] Sales Finance parallel replacement: the first `/sales-book/finance`
   milestone now has canonical money/customer projection, protected
   list/summary/detail contracts, overview metrics, All/Review ledger, URL

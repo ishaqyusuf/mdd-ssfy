@@ -38,17 +38,19 @@ describe("Sales Accounting Sales Orders table migration parity", () => {
 		expect(pageSource.includes("PageStickyHeader")).toBe(false);
 	});
 
-	it("keeps accounting actions aligned in the Midday search toolbar", () => {
+	it("keeps accounting actions aligned without duplicating the global report menu", () => {
 		const headerSource = readSource("components/sales-accounting-header.tsx");
 		const adapterSource = readSource(
 			"components/midday-search-filter/search-filter-adapter.tsx",
 		);
+		const salesLayoutSource = readSource("app/(sidebar)/(sales)/layout.tsx");
 
 		expect(headerSource.includes("toolbarActions={")).toBe(true);
 		expect(headerSource.includes("<SalesAccountingColumnVisibility />")).toBe(
 			true,
 		);
-		expect(headerSource.includes("<SalesReportMenu />")).toBe(true);
+		expect(headerSource.includes("<SalesReportMenu")).toBe(false);
+		expect(salesLayoutSource.includes("<SalesNav />")).toBe(true);
 		expect(headerSource.includes("md:flex-row")).toBe(false);
 		expect(adapterSource.includes("toolbarActions?: ReactNode")).toBe(true);
 		expect(adapterSource.includes("toolbarActions={toolbarActions}")).toBe(

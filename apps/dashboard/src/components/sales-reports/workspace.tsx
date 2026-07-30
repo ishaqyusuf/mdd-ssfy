@@ -11,7 +11,6 @@ import {
 import { SalesDashboardSummary } from "@/components/sales-dashboard/summary";
 import { SalesBookedTrendCard } from "@/components/sales-dashboard/trend-card";
 import { SalesReportCatalog } from "@/components/sales-reports/report-catalog";
-import { SalesPerformanceReports } from "@/components/sales-reports/reports";
 import {
 	DEFAULT_SALES_REPORT_LAYOUT,
 	type SalesReportCardId,
@@ -141,7 +140,6 @@ export function SalesReportsWorkspace({
 				title="Sales reports"
 				description="A customizable performance workspace backed by the same governed sales metrics as the operational dashboard."
 				showReportsLink={false}
-				actions={<SalesPerformanceReports />}
 			/>
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div>

@@ -139,7 +139,12 @@ import {
 import { Icon } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@gnd/ui/tooltip";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	useArchiveDykeCustomStepComponentMutation,
@@ -160,6 +165,7 @@ import type { NewSalesFormLineItem } from "../schema";
 import { useNewSalesFormStore } from "../store";
 import { useWorkflowComponentAdmin } from "./use-workflow-component-admin";
 import { createWwwWorkflowAdminCapabilities } from "./workflow-capabilities";
+import { hasVisibleWorkflowComponentPrice } from "./workflow-pricing-visibility";
 
 type WorkflowStep = WorkflowStepRecord;
 type WorkflowComponent = WorkflowComponentRecord;
@@ -547,6 +553,8 @@ export function ItemWorkflowPanel() {
 		activeProfileCoefficient,
 		activeStepComponentOverrides,
 	]);
+	const showActiveStepComponentPrices =
+		hasVisibleWorkflowComponentPrice(visibleComponents);
 	const customComponentOptions = useMemo(
 		() => buildCustomComponentOptions(stepComponentsQuery.data || []),
 		[stepComponentsQuery.data],
@@ -679,6 +687,8 @@ export function ItemWorkflowPanel() {
 		activeStepComponentOverrides,
 		activeStep,
 	]);
+	const showRootComponentPrices =
+		hasVisibleWorkflowComponentPrice(activeRootComponents);
 	const {
 		mouldingSelectionPopover,
 		mouldingQtyInputRef,
@@ -1561,7 +1571,11 @@ export function ItemWorkflowPanel() {
 								imageSrc={resolveComponentImageSrc(component.img)}
 								alt={component.title || component.uid}
 								title={componentLabel(component.title || component.uid)}
-								priceSlot={renderCalculatedComponentPrice(component)}
+								priceSlot={
+									showRootComponentPrices
+										? renderCalculatedComponentPrice(component)
+										: undefined
+								}
 							/>
 						</button>
 					)}
@@ -2480,7 +2494,11 @@ export function ItemWorkflowPanel() {
 									}),
 								)}
 								formatPrice={moneyIfPositive}
-								priceSlot={renderCalculatedComponentPrice}
+								priceSlot={
+									showActiveStepComponentPrices
+										? renderCalculatedComponentPrice
+										: undefined
+								}
 								componentLabel={componentLabel}
 								resolveImageSrc={resolveComponentImageSrc}
 								calculatorSlot={(component) => (
@@ -2683,7 +2701,7 @@ export function ItemWorkflowPanel() {
 	}
 
 	return (
-		<>
+		<TooltipProvider delayDuration={120}>
 			<WorkflowLineList
 				items={visibleLineItems}
 				activeLineUid={activeLine?.uid || null}
@@ -3011,6 +3029,6 @@ export function ItemWorkflowPanel() {
 			) : null}
 
 			{componentAdmin.dialogs}
-		</>
+		</TooltipProvider>
 	);
 }

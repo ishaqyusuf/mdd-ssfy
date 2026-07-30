@@ -53,7 +53,7 @@
     "dot-object": "^2.1.5",
     "downshift": "^8.5.0",
     "eslint": "8.57.0",
-    "eslint-config-next": "^16.2.10",
+    "eslint-config-next": "^16.2.12",
     "framer-motion": "^12.23.24",
     "html-to-image": "^1.11.13",
     "libphonenumber-js": "^1.12.24",

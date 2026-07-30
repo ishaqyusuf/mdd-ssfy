@@ -2,6 +2,11 @@
 
 ## Status
 - 2026-06-16: `/sales-book/customers` is migrated to the `tables-2` table standard.
+- 2026-07-30: Sales Customers and Customer Overview entered a monitored,
+  page-by-page modernization planning phase. Current routes and behavior remain
+  unchanged. Each implementation phase requires focused validation and
+  operator inspection before the next phase begins. See
+  `.brain/plans/sales-system-page-by-page-modernization/01-customers-and-customer-overview-plan.md`.
 
 ## Routes
 - Canonical route: `/sales-book/customers`

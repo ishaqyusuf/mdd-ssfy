@@ -13,23 +13,64 @@
   replay remains blocked by the pre-existing master-password audit migration
   ordering issue documented in `.brain/database/migrations.md`.
 
-- 2026-07-30: added governed Excel exports to `/sales-book/reports` using the
-  compact Sales Finance Reports interaction without duplicating Finance-owned
-  workbooks. The active sales period and optional rep/channel filters now feed
-  Performance Summary, Orders Ledger, Sales by Rep, Product Performance, Quote
-  Activity, and Sales by Customer workbooks. Every workbook includes context
-  and summary evidence, preserves numeric/date cell types, retains auditable
-  source sheets where aggregation is used, and fails above 10,000 relevant
-  source records. `salesDashboard.report` repeats the sales-read boundary and
-  adds `generateSalesPerformanceReport`; payments, refunds, applications,
-  collections, and receivables remain linked to Sales Finance. Focused
-  workbook/schema/permission/export/UI coverage passes 27 tests / 316
-  assertions, Sales package typecheck and targeted Biome pass, and API
-  diagnostics remain limited to the existing inbound-query depth and Sentry
-  baselines. Dashboard typecheck remains blocked by its existing 4 GB heap
-  exhaustion. The route compiled, but authenticated download QA could not
-  complete because the local MySQL service was unavailable while Docker Engine
-  was down.
+- 2026-07-30: planned a privacy-bounded System Product Analytics capability for
+  authenticated page and feature adoption. The proposed source of truth is a
+  dedicated MySQL daily aggregate ledger with one row per
+  user/day/surface/stable key and an atomic counter, not the existing
+  append-only `PageView` or mixed-purpose `Event` tables. The plan incorporates
+  the requested local persistence as an IndexedDB buffer with same-day batching,
+  idempotent retries, day-rollover and next-launch recovery; successful business
+  actions are tracked at their server success boundary. It also defines a typed
+  event catalog, permission and privacy controls, page/feature/user reports,
+  declining-feature signals, a Sales batch/report pilot, legacy telemetry
+  comparison, validation gates, retention, and estimated delivery. OpenPanel
+  remains optional rather than the internal source of truth. See
+  `.brain/plans/2026-07-30-system-product-analytics.md` and companion primary
+  source research under `.brain/research/`.
+
+- 2026-07-30: upgraded every first-party Next.js app to stable `16.2.12`.
+  The root catalog now supplies dashboard, dealership, storefront, events, and
+  UI with the same Next.js patch; dashboard/storefront `eslint-config-next` and
+  storefront `@next/mdx` are aligned, and `bun.lock` resolves the matching
+  Next.js environment, ESLint plugin, and SWC packages. A frozen-lock install
+  passes and each app reports `Next.js v16.2.12`. Dealership typecheck passes.
+  Dashboard and storefront typechecks reach their documented unrelated
+  repository baselines without a Next.js-family diagnostic. The dealership
+  production build starts under `16.2.12` but the sandbox blocks Turbopack from
+  binding its internal worker port; the required unsandboxed retry could not be
+  authorized because the approval service was usage-limited. The workspace
+  dependency-consistency command still reports its pre-existing 59 unrelated
+  version mismatches.
+
+- 2026-07-30: compacted the unified Sales Reports dropdown into a responsive
+  shadcn two-column menu grid with grouped Performance Excel and Report
+  workspaces sections. A bounded 30rem `ScrollArea` keeps the heading fixed and
+  prevents long catalogs from escaping the viewport; narrow screens collapse
+  to one column while retaining the same scrolling. Focused report/navigation
+  coverage passes 12 tests / 95 assertions, targeted Biome and
+  `git diff --check` pass, and authenticated browser QA verified two 337px
+  columns with functional scrolling at 1339x994 plus a contained 358px
+  single-column menu at 390x844 with no console errors.
+
+- 2026-07-30: replaced the old page-local Sales report dropdowns with one
+  descriptive Reports catalog mounted from the shared Sales route-group layout.
+  The top-right menu is available across the Sales dashboard, sales-rep
+  dashboard, Sales Book, and create/edit routes; responsive Quick access renders
+  the same catalog. It combines six governed, filter-aware performance
+  workbooks with the existing Sales Reports, Sales Finance, receivables,
+  customer statements, detailed product, and scheduled payment workflows,
+  without duplicating Finance-owned calculations. Every workbook includes
+  context and summary evidence, preserves numeric/date cell types, retains
+  auditable source sheets where aggregation is used, and fails above 10,000
+  relevant source records. `salesDashboard.report` repeats the sales-read
+  boundary and adds `generateSalesPerformanceReport`. Focused
+  workbook/schema/query/permission/export/navigation/UI coverage passes 42
+  tests / 450 assertions; Sales package typecheck, targeted Biome, and
+  `git diff --check` pass; API diagnostics remain limited to the existing
+  inbound-query depth and Sentry baselines. Dashboard typecheck remains blocked
+  by its existing 4 GB heap exhaustion. Authenticated browser QA verified the
+  complete titled-and-described catalog on `/sales-book/reports` and
+  `/sales-rep`; a browser-triggered workbook download was not submitted.
 
 - 2026-07-30: expanded Contractor Accounting into four URL-owned workspaces
   under the Sales Orders/Midday page-shell standard. Tabs now occupy a separate

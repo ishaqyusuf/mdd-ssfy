@@ -34,19 +34,24 @@ export function FormClient({
 				type={data?.order?.type === "quote" ? "quote" : "order"}
 				mode={mode}
 			/>
-			<SalesFormVersionSwitcher
-				currentForm="legacy"
-				type={data?.order?.type === "quote" ? "quote" : "order"}
-				mode={mode}
-				slug={data?.order?.slug}
-			/>
 			{shouldPromptLegacyPreference ? (
 				<LegacySalesFormPreferenceDialog
 					type={data?.order?.type === "quote" ? "quote" : "order"}
 					mode={mode}
 				/>
 			) : null}
-			<SalesFormClient key={formKey} data={data} />
+			<SalesFormClient
+				key={formKey}
+				data={data}
+				versionSwitcher={
+					<SalesFormVersionSwitcher
+						currentForm="legacy"
+						type={data?.order?.type === "quote" ? "quote" : "order"}
+						mode={mode}
+						slug={data?.order?.slug}
+					/>
+				}
+			/>
 		</>
 	);
 }

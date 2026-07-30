@@ -13,6 +13,11 @@ Sales reporting is split into three deliberately distinct surfaces:
 The dashboard and reports workspace share one metric contract. They do not
 recalculate or duplicate Sales Finance projections.
 
+One unified Reports menu is mounted from the shared Sales route-group layout,
+so it remains available in the top-right application header across the Sales
+dashboard, sales-rep dashboard, Sales Book, and sales create/edit routes. The
+previous page-local report dropdowns are not rendered.
+
 The shared Sales sidebar labels both Sales Finance and Sales Reports with a
 `New` badge during rollout so operators can discover the parallel surfaces
 without removing legacy Accounting.
@@ -62,7 +67,7 @@ The reports workspace reuses the same API queries and date state. Users can:
 - hide or restore cards;
 - reset to the default layout;
 - retain the preference in the `gnd-sales-report-layout` cookie.
-- generate filter-aware Excel workbooks from a compact Reports menu.
+- generate filter-aware Excel workbooks from the unified header Reports menu.
 
 The governed workbook catalog is sales-performance specific:
 
@@ -91,6 +96,28 @@ catalog entries appear, and the target API repeats authorization.
 Payments, refunds, applications, collections, and receivables remain owned by
 Sales Finance. The Reports menu links operators to that workspace rather than
 duplicating those contracts.
+
+## Unified Reports Menu
+
+The shared menu replaces the previous link-only dropdown. It is divided into:
+
+- Performance Excel: six direct, filter-aware workbook actions;
+- Report workspaces: Sales Reports, Sales Finance exports, receivables,
+  detailed product reporting, scheduled payment reporting, and customer
+  statements.
+
+Every option has an icon, title, and plain-language description. Desktop shows
+the Reports button directly in the top-right Sales header; smaller breakpoints
+place the same content inside Quick access. The catalog uses a two-column
+shadcn menu grid from the `sm` breakpoint upward, collapses to one column on
+narrow screens, and keeps the fixed heading outside a bounded `ScrollArea` so
+large permission sets remain navigable without extending beyond the viewport.
+Create/edit forms suppress the New Sales and New Quote shortcuts but retain
+report access.
+
+The menu is a discovery and action surface, not a new source of financial
+truth. Existing report implementations remain in their governed workspaces and
+retain their API permission boundaries.
 
 ## API And Permissions
 

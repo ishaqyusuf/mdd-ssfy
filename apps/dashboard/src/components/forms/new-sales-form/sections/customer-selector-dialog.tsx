@@ -12,7 +12,6 @@ import {
 	DialogTitle,
 } from "@gnd/ui/dialog";
 import { Icons } from "@gnd/ui/icons";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNewSalesFormCustomerPickerQuery } from "../api";
 import { useNewSalesFormStore } from "../store";
@@ -23,12 +22,11 @@ interface Props {
 	mode: "create" | "edit";
 	type: "order" | "quote";
 	open: boolean;
-	required?: boolean;
+	initialPrompt?: boolean;
 	onOpenChange?: (open: boolean) => void;
 }
 
 export function CustomerSelectorDialog(props: Props) {
-	const router = useRouter();
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const setMeta = useNewSalesFormStore((s) => s.setMeta);
 	const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
@@ -137,10 +135,6 @@ export function CustomerSelectorDialog(props: Props) {
 		setParams,
 	]);
 
-	function handleBack() {
-		router.push(`/sales-book/${props.type === "order" ? "orders" : "quotes"}`);
-	}
-
 	function handleCreateCustomer() {
 		setCreateCustomerParams({
 			customerForm: true,
@@ -176,25 +170,13 @@ export function CustomerSelectorDialog(props: Props) {
 	}
 
 	return (
-		<Dialog
-			open={props.open}
-			onOpenChange={(open) => {
-				if (props.required && !open) return;
-				props.onOpenChange?.(open);
-			}}
-		>
-			<DialogContent
-				className="max-w-2xl gap-0 overflow-hidden p-0"
-				onEscapeKeyDown={(event) => {
-					if (props.required) event.preventDefault();
-				}}
-				onInteractOutside={(event) => {
-					if (props.required) event.preventDefault();
-				}}
-			>
+		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
+			<DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
 				<DialogHeader className="border-b bg-gradient-to-r from-slate-50 to-white px-6 py-5">
 					<DialogTitle>
-						{props.required ? `${heading}: Select Customer` : "Select Customer"}
+						{props.initialPrompt
+							? `${heading}: Select Customer`
+							: "Select Customer"}
 					</DialogTitle>
 					<DialogDescription>
 						Search by customer name, phone, profile, or shipping address. When
@@ -246,7 +228,7 @@ export function CustomerSelectorDialog(props: Props) {
 								{hasSearchText ? `${results.length} Results` : "Recent 5"}
 							</span>
 							<span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-								{props.required ? "Required" : "Select"}
+								{props.initialPrompt ? "Optional" : "Select"}
 							</span>
 						</div>
 
@@ -330,19 +312,13 @@ export function CustomerSelectorDialog(props: Props) {
 							You can change the customer later from the invoice summary panel
 							before the form is saved.
 						</p>
-						{props.required ? (
-							<Button type="button" variant="outline" onClick={handleBack}>
-								Back
-							</Button>
-						) : (
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => props.onOpenChange?.(false)}
-							>
-								Cancel
-							</Button>
-						)}
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => props.onOpenChange?.(false)}
+						>
+							{props.initialPrompt ? "Skip for now" : "Cancel"}
+						</Button>
 					</div>
 				</div>
 			</DialogContent>

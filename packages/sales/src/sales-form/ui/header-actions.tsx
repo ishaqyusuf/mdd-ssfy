@@ -31,6 +31,7 @@ export type SalesFormHeaderActionsProps = {
 	dirty?: boolean;
 	lastSavedAt?: string | null;
 	statusMessage?: string | null;
+	versionSwitcherSlot?: ReactNode;
 	autosaveEnabled?: boolean;
 	stepDisplayMode?: "compact" | "extended";
 	onAddItem?: () => void;
@@ -140,6 +141,7 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 					</div>
 				</div>
 				<div className="ml-auto hidden items-center justify-end gap-2 lg:flex">
+					{props.versionSwitcherSlot}
 					{canOpenOverview ? (
 						<Button
 							size="sm"

@@ -629,3 +629,50 @@ Status: In Progress
 - Do not run EAS, native, Next.js, or Turbo builds.
 - Do not start development servers.
 - Do not stage unrelated existing worktree changes.
+
+---
+
+# Next.js 16.2.12 Workspace Upgrade
+
+Date: 2026-07-30
+Status: Complete
+
+## Goal
+
+- Upgrade every first-party Next.js app to the latest verified stable patch.
+- Keep the shared catalog, Next.js ESLint config, and storefront MDX adapter
+  aligned on `16.2.12`.
+- Regenerate the Bun lockfile and validate each affected app.
+
+## Checklist
+
+- [x] Inventory runnable Next.js apps and shared catalog consumers.
+- [x] Verify `next`, `@next/mdx`, and `eslint-config-next` latest stable
+  versions.
+- [x] Update root and app-local dependency constraints.
+- [x] Regenerate `bun.lock` and confirm a consistent first-party resolution.
+- [x] Run dependency consistency checks; Next.js is aligned and the command
+  retains 59 pre-existing unrelated mismatches.
+- [x] Typecheck all three apps: dealership passes, while dashboard and
+  storefront retain their unrelated documented baselines with no Next.js-family
+  diagnostic.
+- [x] Attempt a production build: dealership reports Next.js `16.2.12`, then
+  the sandbox blocks Turbopack's internal worker port. The required unsandboxed
+  retry could not be authorized because the approval service was usage-limited.
+- [x] Record validation results and Brain documentation impact.
+
+## Scope
+
+- First-party Next.js apps: `apps/dashboard`, `apps/dealership`, and
+  `apps/storefront`.
+- Shared catalog consumers: `packages/events` and `packages/ui`.
+- `apps/api`, `apps/mobile`, and `apps/web` are not Next.js applications and
+  require no framework dependency change.
+
+## Result
+
+- Upgrade implementation is complete.
+- No application code, API contract, permission, database schema, migration, or
+  user-visible behavior changed.
+- Full production-build proof remains an environment limitation, not an
+  implementation follow-up.

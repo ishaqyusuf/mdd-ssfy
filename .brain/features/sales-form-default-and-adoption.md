@@ -20,7 +20,13 @@ available as a reversible per-user fallback.
 
 ## User Choice
 
-- The top form switcher is available on both form versions.
+- The form switcher is available inside both form workspaces: before Overview
+  in the new-form action row and before Take off in the legacy builder.
+- `Use legacy sales form` uses the destructive treatment; `Use new sales form`
+  uses the green treatment.
+- Both directions show a save reminder before navigation. The user must either
+  go back or explicitly choose `Switch anyway`; unsaved changes are not
+  transferred between form implementations.
 - New to legacy navigation adds `salesFormMode=legacy`.
 - If the user has no saved preference, the legacy form asks whether to use it
   only this time or keep using it.
@@ -30,6 +36,16 @@ available as a reversible per-user fallback.
   the user-bound HTTP-only cookie.
 - `Use new sales form` stores `NEW`, refreshes the cookie, and immediately
   returns to the new form.
+
+## New Form Entry And Pricing
+
+- Create order and create quote still open the initial customer picker, but the
+  picker is optional. Outside click, Escape, the close control, and `Skip for
+  now` dismiss it without assigning a customer.
+- A dismissed picker can be reopened with `Change` in the invoice summary.
+- Component cards omit their price row when every component in the current step
+  has no positive sales or base price. If at least one component in that step is
+  priced, the calculated sales-cost display remains available for the step.
 
 ## Adoption Analytics
 
@@ -63,3 +79,9 @@ available as a reversible per-user fallback.
 - Authenticated browser proof covers query preservation, one-time legacy use,
   persisted legacy override, switching back to new, and the Super Admin
   adoption dashboard.
+- The 2026-07-30 create-order tooltip-context runtime error is covered by a
+  focused provider regression test and authenticated browser proof; see
+  `.brain/bugs/2026-07-30-new-sales-form-tooltip-provider-runtime-error.md`.
+- Focused regressions cover customer-picker dismissal, guarded form switching,
+  in-form switch placement, and step-level price visibility. Authenticated
+  browser proof covers both switch directions and the all-unpriced root grid.

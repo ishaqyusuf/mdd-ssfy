@@ -76,15 +76,26 @@ describe("Dashboard sales form workflow capabilities", () => {
 			"utf8",
 		);
 
-		expect(source).toMatch(
-			/priceSlot=\{renderCalculatedComponentPrice\(component\)\}/,
-		);
-		expect(source).toContain("priceSlot={renderCalculatedComponentPrice}");
+		expect(source).toContain("showRootComponentPrices");
+		expect(source).toContain("showActiveStepComponentPrices");
+		expect(source).toContain("renderCalculatedComponentPrice(component)");
+		expect(source).toContain("? renderCalculatedComponentPrice");
 		expect(source).toContain("Calculated sales cost:");
 		expect(source).toContain("Base cost:");
 		expect(source).toContain(
 			"aria-label={`Calculated sales cost ${salesPrice}`}",
 		);
+	});
+
+	test("provides tooltip context for every item workflow panel", () => {
+		const source = readFileSync(
+			new URL("./item-workflow-panel.tsx", import.meta.url),
+			"utf8",
+		);
+		const panelReturn = source.slice(source.lastIndexOf("\n\treturn ("));
+
+		expect(panelReturn).toContain("<TooltipProvider");
+		expect(panelReturn).toContain("</TooltipProvider>");
 	});
 
 	test("returns from HPT to the Door step for an additional door", () => {

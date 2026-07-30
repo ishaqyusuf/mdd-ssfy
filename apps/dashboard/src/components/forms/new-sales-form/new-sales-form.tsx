@@ -444,6 +444,8 @@ export function NewSalesForm(props: Props) {
     const [recoverySnapshot, setRecoverySnapshot] =
         useState<NewSalesFormRecoverySnapshot | null>(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const [customerPromptDismissed, setCustomerPromptDismissed] =
+        useState(false);
     const [bootstrapCustomerId] = useState<number | null>(() =>
         normalizeSalesFormInitialCustomerId(draftParams.selectedCustomerId),
     );
@@ -471,14 +473,21 @@ export function NewSalesForm(props: Props) {
         props.mode === "create" ? bootstrapQuery.isPending : getQuery.isPending;
     const loadError =
         props.mode === "create" ? bootstrapQuery.error : getQuery.error;
-    const customerSelectionRequired =
-        props.mode === "create" && !!record && !record.form.customerId;
+    const customerPromptOpen =
+        props.mode === "create" &&
+        !!record &&
+        !record.form.customerId &&
+        !customerPromptDismissed;
     const isSaved = Boolean(record?.salesId && record?.orderId);
     const isOrder = props.type === "order";
     const salesFormCapabilities = useSalesFormCapabilities(props.type);
     const salesFormPermissions = useSalesFormPermissions(props.type);
     const actorId = Number(auth.id || 0) > 0 ? Number(auth.id) : 1;
     const actorName = auth.name || "System";
+
+    function handleCustomerPromptOpenChange(open: boolean) {
+        setCustomerPromptDismissed(!open);
+    }
 
     const dispatchOverview = useQuery(
         trpc.dispatch.orderDispatchOverview.queryOptions(
@@ -1614,12 +1623,6 @@ export function NewSalesForm(props: Props) {
                 type={props.type}
                 mode={props.mode}
             />
-            <SalesFormVersionSwitcher
-                currentForm="new"
-                type={props.type}
-                mode={props.mode}
-                slug={record.slug || props.slug}
-            />
             <PackageWorkflowPanelDevToggle
                 enabled={usePackageWorkflowPanel}
                 onChange={setUsePackageWorkflowPanel}
@@ -1667,11 +1670,9 @@ export function NewSalesForm(props: Props) {
                 onSaveNew={saveNew}
                 onSaveFinal={saveFinal}
                 onOpenSummary={() =>
-                    customerSelectionRequired
-                        ? undefined
-                        : setEditor({
-                              showMobileSummary: true,
-                          })
+                    setEditor({
+                        showMobileSummary: true,
+                    })
                 }
                 onCloseSummary={() =>
                     setEditor({
@@ -1681,9 +1682,10 @@ export function NewSalesForm(props: Props) {
                 slots={{
                     CustomerSelectorDialog: (
                         <CustomerSelectorDialog
+                            initialPrompt
                             mode={props.mode}
-                            open={customerSelectionRequired}
-                            required
+                            open={customerPromptOpen}
+                            onOpenChange={handleCustomerPromptOpenChange}
                             type={props.type}
                         />
                     ),
@@ -1881,6 +1883,14 @@ export function NewSalesForm(props: Props) {
                     lastSavedAt={lastSavedAt}
                     statusMessage={lastSaveError}
                     isSaving={isSaveBusy}
+                    versionSwitcherSlot={
+                        <SalesFormVersionSwitcher
+                            currentForm="new"
+                            type={props.type}
+                            mode={props.mode}
+                            slug={record.slug || props.slug}
+                        />
+                    }
                     autosaveEnabled={editor.autosaveEnabled}
                     stepDisplayMode={editor.stepDisplayMode}
                     onAddItem={handleAddItem}
@@ -1893,11 +1903,9 @@ export function NewSalesForm(props: Props) {
                         })
                     }
                     onOpenMobileSummary={() =>
-                        customerSelectionRequired
-                            ? undefined
-                            : setEditor({
-                                  showMobileSummary: !editor.showMobileSummary,
-                              })
+                        setEditor({
+                            showMobileSummary: !editor.showMobileSummary,
+                        })
                     }
                     onToggleAutosave={() =>
                         setEditor({

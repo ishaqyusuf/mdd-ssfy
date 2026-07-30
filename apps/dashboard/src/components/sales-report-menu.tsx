@@ -1,5 +1,9 @@
 "use client";
 
+import {
+	SalesPerformanceReportMenuItems,
+	useSalesPerformanceReportMenuState,
+} from "@/components/sales-reports/reports";
 import { DataTable as CustomerStatementLinesDataTable } from "@/components/tables-2/customer-statement-lines/data-table";
 import { DataTable as CustomerStatementReportDataTable } from "@/components/tables-2/customer-statement-report/data-table";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,7 +25,10 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import {
@@ -34,9 +41,20 @@ import {
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	Boxes,
+	CalendarClock,
+	LayoutDashboard,
+	Loader2,
+	type LucideIcon,
+	ReceiptText,
+	Users,
+	WalletCards,
+} from "lucide-react";
 import Link from "next/link";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -50,22 +68,66 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 type CustomerStatementDetail =
 	RouterOutputs["customers"]["getCustomerStatementDetail"];
 
-const reportMenuItems = [
+type ReportMenuItem = {
+	title: string;
+	description: string;
+	href: string;
+	Icon: LucideIcon;
+	permissions?: PermissionScope[];
+	requiredPermission?: PermissionScope;
+	roles?: string[];
+};
+
+const reportMenuItems: ReportMenuItem[] = [
 	{
-		label: "Sales Reports",
+		title: "Sales reports workspace",
+		description:
+			"Open the customizable performance board, report catalog, and shared sales metrics.",
 		href: "/sales-book/reports",
-		permissions: ["viewOrders", "editOrders", "viewSales"],
+		Icon: LayoutDashboard,
+		permissions: [
+			"viewOrders",
+			"editOrders",
+			"viewSales",
+			"viewEstimates",
+			"editEstimates",
+		],
 	},
 	{
-		label: "Payment Report",
+		title: "Sales Finance exports",
+		description:
+			"Payments, payment methods, applications, exceptions, refunds, and customer totals.",
+		href: "/sales-book/finance",
+		Icon: WalletCards,
+		permissions: ["viewOrderPayment", "editOrderPayment", "viewSales"],
+		requiredPermission: "generateSalesPaymentReport",
+	},
+	{
+		title: "Receivables reports",
+		description:
+			"Open-invoice aging and customer receivables workbooks from the canonical Finance ledger.",
+		href: "/sales-book/finance?tab=receivables",
+		Icon: ReceiptText,
+		permissions: ["viewOrderPayment", "editOrderPayment", "viewSales"],
+		requiredPermission: "generateSalesPaymentReport",
+	},
+	{
+		title: "Detailed product report",
+		description:
+			"Inspect the full product-volume and sales-statistics table with drill-down.",
+		href: "/product-report",
+		Icon: Boxes,
+		roles: ["Super Admin"],
+	},
+	{
+		title: "Scheduled payment report",
+		description:
+			"Manage the existing daily payment-report schedule and delivery recipients.",
 		href: "/task-events/sales-daily-payment-report-schedule",
+		Icon: CalendarClock,
 		permissions: ["generateSalesPaymentReport"],
 	},
-] satisfies {
-	label: string;
-	href: string;
-	permissions: PermissionScope[];
-}[];
+];
 
 type Props = {
 	variant?: "nav" | "header";
@@ -73,17 +135,24 @@ type Props = {
 
 export function useSalesReportMenuState() {
 	const auth = useAuth();
+	const performance = useSalesPerformanceReportMenuState();
 	const [reportParams, setReportParams] = useQueryStates({
 		report: parseAsString,
 		statementCustomerId: parseAsInteger,
 		statementStatus: parseAsString,
 	});
-	const allowedReportMenuItems = reportMenuItems.filter((item) =>
-		item.permissions.some((permission) => auth.can?.[permission]),
-	);
+	const allowedReportMenuItems = reportMenuItems.filter((item) => {
+		if (item.roles?.includes(auth.roleTitle || "")) return true;
+		if (item.requiredPermission && !auth.can?.[item.requiredPermission]) {
+			return false;
+		}
+		return item.permissions?.some((permission) => auth.can?.[permission]);
+	});
 	const canViewCustomerStatements = !!auth.can?.generateSalesStatementReport;
 	const canViewReports =
-		allowedReportMenuItems.length > 0 || canViewCustomerStatements;
+		performance.canGenerate ||
+		allowedReportMenuItems.length > 0 ||
+		canViewCustomerStatements;
 	const customerStatementsOpen =
 		canViewCustomerStatements && reportParams.report === "customer-statements";
 
@@ -108,6 +177,7 @@ export function useSalesReportMenuState() {
 		canViewCustomerStatements,
 		canViewReports,
 		customerStatementsOpen,
+		performance,
 		reportParams,
 		setCustomerStatementsReportOpen,
 		setReportParams,
@@ -121,27 +191,94 @@ export function SalesReportMenuContent({
 }: {
 	state: SalesReportMenuState;
 }) {
+	const hasPerformanceReports = state.performance.canGenerate;
+	const hasWorkspaceReports =
+		state.allowedReportMenuItems.length > 0 || state.canViewCustomerStatements;
+
 	return (
 		<>
-			{state.allowedReportMenuItems.map((item) => (
-				<DropdownMenuItem key={item.href} asChild>
-					<Link href={item.href} className="gap-2">
-						<Icons.ChartSpline className="size-4 shrink-0" />
-						<span className="flex-1">{item.label}</span>
-						<Icons.ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-					</Link>
-				</DropdownMenuItem>
-			))}
-			{state.canViewCustomerStatements ? (
-				<DropdownMenuItem
-					className="gap-2"
-					onSelect={() => state.setCustomerStatementsReportOpen(true)}
-				>
-					<Icons.FileText className="size-4 shrink-0" />
-					<span className="flex-1">Customer Statements</span>
-					<Icons.ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-				</DropdownMenuItem>
-			) : null}
+			<DropdownMenuLabel className="px-3 py-2.5">
+				<p>Sales reports</p>
+				<p className="mt-1 text-xs font-normal text-muted-foreground">
+					Download performance workbooks or open a governed report workspace.
+				</p>
+			</DropdownMenuLabel>
+			<DropdownMenuSeparator />
+			<ScrollArea className="h-[min(30rem,calc(100vh-10rem))]">
+				<div className="grid grid-cols-1 gap-3 p-1 sm:grid-cols-2">
+					{hasPerformanceReports ? (
+						<DropdownMenuGroup
+							className={cn(
+								"grid min-w-0 content-start gap-1",
+								!hasWorkspaceReports && "sm:col-span-2 sm:grid-cols-2",
+							)}
+						>
+							<DropdownMenuLabel
+								className={cn(
+									"pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground",
+									!hasWorkspaceReports && "sm:col-span-2",
+								)}
+							>
+								Performance Excel
+							</DropdownMenuLabel>
+							<SalesPerformanceReportMenuItems state={state.performance} />
+						</DropdownMenuGroup>
+					) : null}
+					{hasWorkspaceReports ? (
+						<DropdownMenuGroup
+							className={cn(
+								"grid min-w-0 content-start gap-1",
+								!hasPerformanceReports && "sm:col-span-2 sm:grid-cols-2",
+							)}
+						>
+							<DropdownMenuLabel
+								className={cn(
+									"pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground",
+									!hasPerformanceReports && "sm:col-span-2",
+								)}
+							>
+								Report workspaces
+							</DropdownMenuLabel>
+							{state.allowedReportMenuItems.map(
+								({ href, Icon, title, description }) => (
+									<DropdownMenuItem
+										key={href}
+										asChild
+										className="h-full items-start gap-3 rounded-md p-3"
+									>
+										<Link href={href}>
+											<Icon className="mt-0.5 size-4 shrink-0" />
+											<span className="min-w-0 flex-1">
+												<span className="block font-medium">{title}</span>
+												<span className="mt-0.5 block text-xs text-muted-foreground">
+													{description}
+												</span>
+											</span>
+										</Link>
+									</DropdownMenuItem>
+								),
+							)}
+							{state.canViewCustomerStatements ? (
+								<DropdownMenuItem
+									className="h-full items-start gap-3 rounded-md p-3"
+									onSelect={() => state.setCustomerStatementsReportOpen(true)}
+								>
+									<Users className="mt-0.5 size-4 shrink-0" />
+									<span className="min-w-0 flex-1">
+										<span className="block font-medium">
+											Customer statements
+										</span>
+										<span className="mt-0.5 block text-xs text-muted-foreground">
+											Review balances and create statement PDFs or email
+											delivery runs.
+										</span>
+									</span>
+								</DropdownMenuItem>
+							) : null}
+						</DropdownMenuGroup>
+					) : null}
+				</div>
+			</ScrollArea>
 		</>
 	);
 }
@@ -184,19 +321,32 @@ export function SalesReportMenuDropdown({
 							"gap-1.5",
 						)}
 					>
-						<Icons.ChartSpline className="size-4" />
-						Reports
+						{state.performance.pendingType ? (
+							<Loader2 className="size-4 animate-spin" />
+						) : (
+							<Icons.ChartSpline className="size-4" />
+						)}
+						{state.performance.pendingType ? "Preparing" : "Reports"}
 						<Icons.ChevronDown className="size-3.5" />
 					</button>
 				) : (
 					<Button type="button" variant="outline" size="sm" className="gap-2">
-						<Icons.ChartSpline className="size-4" />
-						<span className="hidden lg:inline">Reports</span>
+						{state.performance.pendingType ? (
+							<Loader2 className="size-4 animate-spin" />
+						) : (
+							<Icons.ChartSpline className="size-4" />
+						)}
+						<span className="hidden lg:inline">
+							{state.performance.pendingType ? "Preparing" : "Reports"}
+						</span>
 						<Icons.ChevronDown className="size-3.5" />
 					</Button>
 				)}
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end">
+			<DropdownMenuContent
+				align="end"
+				className="w-[min(44rem,calc(100vw-2rem))]"
+			>
 				<SalesReportMenuContent state={state} />
 			</DropdownMenuContent>
 		</DropdownMenu>

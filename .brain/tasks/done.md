@@ -4,21 +4,38 @@
   order/quote routes, preserve the legacy fallback with per-user preference,
   remove experimental links, and add Super Admin adoption reporting.
 
+### Next.js 16.2.12 Workspace Upgrade
+- Status: Done
+- Description: Upgraded the shared Next.js catalog from `16.2.10` to
+  `16.2.12` for dashboard, dealership, storefront, and shared framework
+  consumers. Aligned dashboard/storefront `eslint-config-next` and storefront
+  `@next/mdx`, then regenerated the Bun lockfile.
+- Validation: Frozen-lock install and all three app runtime version checks
+  pass. Dealership typecheck passes. Dashboard and storefront typechecks reach
+  their documented unrelated repository baselines with no Next.js-family
+  diagnostic. The dealership production build reports Next.js `16.2.12` before
+  Turbopack is blocked from binding an internal worker port by the sandbox; the
+  required unsandboxed retry could not be authorized because the approval
+  service was usage-limited.
+- Completed Date: 2026-07-30
+
 ### Sales Performance Excel Reports
 - Status: Done
-- Description: Added a Finance-style Reports dropdown to the customizable Sales
-  Reports workspace with six sales-performance workbooks, active period/filter
-  inheritance, auditable workbook sheets, a 10,000-source-record guard, a
-  dedicated export permission, and a direct Finance handoff for payment,
-  refund, collection, and receivables reporting.
+- Description: Replaced the old page-local report dropdowns with one descriptive
+  Reports catalog in the top-right header throughout the Sales environment. The
+  unified menu contains six filter-aware sales-performance workbooks plus the
+  existing Sales Reports, Sales Finance, receivables, customer statements,
+  detailed product, and scheduled payment report workflows. Workbooks retain
+  auditable sheets, a 10,000-source-record guard, and a dedicated export
+  permission.
 - Feature File: `.brain/features/sales-dashboard-reporting.md`
 - Decision File:
   `.brain/decisions/ADR-038-sales-reporting-surface-boundaries.md`
-- Validation: 27 focused workbook/schema/permission/export/UI tests / 316
-  assertions, Sales package typecheck, targeted Biome, and successful route
-  compilation.
-  Authenticated workbook download remains environment-blocked by the unavailable
-  local MySQL service.
+- Validation: 42 focused workbook/schema/query/permission/export/navigation/UI
+  tests / 450 assertions, Sales package typecheck, targeted Biome, and
+  successful route compilation. Authenticated browser QA verified the same
+  complete descriptive menu on `/sales-book/reports` and `/sales-rep`.
+  A browser-triggered workbook download was not submitted during this pass.
 - Completed Date: 2026-07-30
 
 ### Production Worker Submission Material Verification And Admin Approval

@@ -4,6 +4,8 @@
 Tracks durable workstreams that span multiple sessions and often multiple implementation phases.
 
 ## Current Workstreams
+- Sales system page-by-page modernization; only Sales Customers and Customer
+  Overview are active, and all later sales pages remain deferred
 - Sales form hardening
 - New sales form parity closure
 - Sales overview system redesign
@@ -15,6 +17,26 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Inventory-backed sales fulfillment cutover (`brain/features/inventory-backed-sales-fulfillment.md`)
 
 ## Planned Tasks
+
+### Sales System Page-by-Page Modernization
+- Priority: High
+- Description: Modernize the sales system one monitored page group at a time,
+  with explicit review boundaries and Brain evidence after every accepted
+  slice. Sales Customers and Customer Overview are the first and only active
+  page group; Orders, Quotes, Production, Packing, Dispatch, Finance, and
+  supporting pages remain deferred.
+- Related Feature: Sales Customers, Customer Overview, broader sales system
+- Status: In Progress
+- Plan Status: Active - Documentation And Baseline
+- Program Plan:
+  `.brain/plans/sales-system-page-by-page-modernization/map.md`
+- Active Page Plan:
+  `.brain/plans/sales-system-page-by-page-modernization/01-customers-and-customer-overview-plan.md`
+- Child Plan Set: Sequences `01` through `09` are documented and indexed by
+  the program map; `02` through `09` remain deferred until explicitly activated.
+- Created Date: 2026-07-30
+- Change Control: Pause after every user-visible slice for operator inspection
+  before proceeding.
 
 ### Storefront Product-Aware Shipping Quotes
 - Priority: High

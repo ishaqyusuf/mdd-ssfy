@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import type { PermissionScope } from "@/types/auth";
 import { buttonVariants } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import Portal from "@gnd/ui/custom/portal";
@@ -24,7 +25,6 @@ import {
 	useSalesReportMenuState,
 } from "./sales-report-menu";
 import { _perm } from "./sidebar-links";
-import type { PermissionScope } from "@/types/auth";
 
 const salesNavItems = [
 	{
@@ -64,17 +64,21 @@ export function SalesNav() {
 	const allowedSalesNavItems = salesNavItems.filter(
 		(item) => auth.can?.[item.permission],
 	);
-
-	if (isSalesFormPath) {
-		return null;
-	}
+	const visibleSalesNavItems = isSalesFormPath ? [] : allowedSalesNavItems;
 
 	return (
 		<AuthGuard
 			rules={[
 				_perm.in(
 					"editOrders",
+					"viewOrders",
+					"viewSales",
+					"viewEstimates",
+					"editEstimates",
+					"viewOrderPayment",
+					"editOrderPayment",
 					"generateSalesPaymentReport",
+					"generateSalesPerformanceReport",
 					"generateSalesStatementReport",
 				),
 			]}
@@ -84,14 +88,14 @@ export function SalesNav() {
 					<NavigationMenu.List className="gap-1.5">
 						<NavigationMenu.Item className="xl:hidden">
 							<SalesQuickAccessMenu
-								items={allowedSalesNavItems}
+								items={visibleSalesNavItems}
 								pathname={pathname}
 								reportMenu={reportMenu}
 							/>
 						</NavigationMenu.Item>
-						{allowedSalesNavItems.length ? (
+						{visibleSalesNavItems.length ? (
 							<>
-								{allowedSalesNavItems.map((item) => {
+								{visibleSalesNavItems.map((item) => {
 									const isActive = pathname.startsWith(item.href);
 
 									return (
@@ -159,7 +163,10 @@ function SalesQuickAccessMenu({
 					<Icons.OptionIcon className="size-4" />
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-56">
+			<DropdownMenuContent
+				align="end"
+				className="w-[min(44rem,calc(100vw-2rem))]"
+			>
 				{hasCreateActions ? (
 					<>
 						<DropdownMenuLabel>Quick access</DropdownMenuLabel>
@@ -168,7 +175,10 @@ function SalesQuickAccessMenu({
 
 							return (
 								<DropdownMenuItem key={item.href} asChild>
-									<Link href={item.href} aria-current={isActive ? "page" : undefined}>
+									<Link
+										href={item.href}
+										aria-current={isActive ? "page" : undefined}
+									>
 										<Icons.PlusIcon className="size-4 shrink-0" />
 										<span className="flex-1">{item.label}</span>
 										{isActive ? <Icons.CheckIcon className="size-3.5" /> : null}
@@ -182,10 +192,7 @@ function SalesQuickAccessMenu({
 					<DropdownMenuSeparator />
 				) : null}
 				{reportMenu.canViewReports ? (
-					<>
-						<DropdownMenuLabel>Reports</DropdownMenuLabel>
-						<SalesReportMenuContent state={reportMenu} />
-					</>
+					<SalesReportMenuContent state={reportMenu} />
 				) : null}
 			</DropdownMenuContent>
 		</DropdownMenu>

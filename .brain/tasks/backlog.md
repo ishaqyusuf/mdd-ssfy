@@ -88,6 +88,12 @@ Tracks queued work that is important but not currently in the top execution slic
 - [ ] Inventory dashboard expansion: build item-level dashboard, variants workspace, related sales/quotes tabs, top-sales analytics, stock movement timeline, and operational drilldowns on top of the inventory-backed fulfillment model (`brain/features/inventory-backed-sales-fulfillment.md`) (API + UI + Validation)
 
 ## Later
+- [ ] Implement the approved System Product Analytics plan: typed page/feature
+  catalog, privacy-bounded per-user daily counters, idempotent local persistence
+  and batch ingestion, server-success feature tracking, protected analytics
+  workspace, and staged Sales pilot
+  (`.brain/plans/2026-07-30-system-product-analytics.md`) (Schema + API + Web +
+  Mobile + Jobs + Validation + Privacy)
 - [ ] Expand integration/e2e coverage for jobs lifecycle and notification-driven navigation
 - [ ] Improve monitoring and alerting quality for jobs + notifications
 - [ ] Add customer self-service depth around payment/dashboard surfaces, including saved preferences, wallet-led payment options, and post-checkout account history (API + UI + Validation)
