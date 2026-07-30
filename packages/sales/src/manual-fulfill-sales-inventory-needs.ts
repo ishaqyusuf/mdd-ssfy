@@ -43,6 +43,59 @@ type ManualFulfillmentComponent = {
 	}>;
 };
 
+const manualFulfillmentComponentSelect = {
+	id: true,
+	qty: true,
+	qtyAllocated: true,
+	qtyInbound: true,
+	qtyReceived: true,
+	status: true,
+	inventoryId: true,
+	inventoryVariantId: true,
+	inventory: {
+		select: {
+			productKind: true,
+			stockMode: true,
+		},
+	},
+	inventoryCategory: {
+		select: {
+			productKind: true,
+			stockMode: true,
+		},
+	},
+	subComponent: {
+		select: {
+			defaultInventory: {
+				select: {
+					productKind: true,
+					stockMode: true,
+				},
+			},
+			inventoryCategory: {
+				select: {
+					productKind: true,
+					stockMode: true,
+				},
+			},
+		},
+	},
+	inboundDemands: {
+		where: {
+			deletedAt: null,
+			status: {
+				not: "cancelled",
+			},
+		},
+		select: {
+			id: true,
+			status: true,
+			qtyReceived: true,
+			inboundShipmentItemId: true,
+		},
+	},
+} as const;
+
 function positiveNumber(value?: number | null) {
 	return Math.max(0, Number(value || 0));
 }
@@ -73,6 +126,7 @@ function isProtectedDemand(
 
 export type FulfillSalesInventoryNeedsManuallyInput = {
 	salesOrderId: number;
+	lineItemComponentIds?: number[] | null;
 	authorName?: string | null;
 	triggeredByUserId?: number | string | null;
 };
@@ -139,6 +193,11 @@ export async function fulfillSalesInventoryNeedsManuallyInTransaction(
 
 	const components = (await tx.lineItemComponents.findMany({
 		where: {
+			id: input.lineItemComponentIds?.length
+				? {
+						in: input.lineItemComponentIds,
+					}
+				: undefined,
 			required: true,
 			status: {
 				not: "cancelled",
@@ -149,59 +208,17 @@ export async function fulfillSalesInventoryNeedsManuallyInTransaction(
 				saleId: sale.id,
 			},
 		},
-		select: {
-			id: true,
-			qty: true,
-			qtyAllocated: true,
-			qtyInbound: true,
-			qtyReceived: true,
-			status: true,
-			inventoryId: true,
-			inventoryVariantId: true,
-			inventory: {
-				select: {
-					productKind: true,
-					stockMode: true,
-				},
-			},
-			inventoryCategory: {
-				select: {
-					productKind: true,
-					stockMode: true,
-				},
-			},
-			subComponent: {
-				select: {
-					defaultInventory: {
-						select: {
-							productKind: true,
-							stockMode: true,
-						},
-					},
-					inventoryCategory: {
-						select: {
-							productKind: true,
-							stockMode: true,
-						},
-					},
-				},
-			},
-			inboundDemands: {
-				where: {
-					deletedAt: null,
-					status: {
-						not: "cancelled",
-					},
-				},
-				select: {
-					id: true,
-					status: true,
-					qtyReceived: true,
-					inboundShipmentItemId: true,
-				},
-			},
-		},
+		select: manualFulfillmentComponentSelect,
 	})) as ManualFulfillmentComponent[];
+	if (
+		input.lineItemComponentIds?.length &&
+		new Set(components.map((component) => component.id)).size !==
+			new Set(input.lineItemComponentIds).size
+	) {
+		throw new Error(
+			"One or more inventory needs do not belong to this sales order.",
+		);
+	}
 
 	const fulfillmentStatus = resolveSalesInventoryFulfillmentStatus({
 		deliveries: sale.deliveries,
@@ -332,8 +349,33 @@ export async function fulfillSalesInventoryNeedsManuallyInTransaction(
 		fulfilledComponentIds.push(component.id);
 	}
 
+	const remainingPendingTrackedComponents =
+		fulfilledComponentIds.length > 0
+			? (
+					(await tx.lineItemComponents.findMany({
+						where: {
+							required: true,
+							status: {
+								notIn: ["fulfilled", "cancelled"],
+							},
+							parent: {
+								deletedAt: null,
+								lineItemType: "SALE",
+								saleId: sale.id,
+							},
+						},
+						select: manualFulfillmentComponentSelect,
+					})) as ManualFulfillmentComponent[]
+				).filter(
+					(component) =>
+						resolveSalesInventoryTrackingPolicy(component) === "tracked" &&
+						hasPendingNeed(component),
+				)
+			: [null];
 	const inventoryStatus =
-		protectedComponents.length === 0 && fulfilledComponentIds.length > 0
+		protectedComponents.length === 0 &&
+		fulfilledComponentIds.length > 0 &&
+		remainingPendingTrackedComponents.length === 0
 			? "AVAILABLE"
 			: sale.inventoryStatus;
 	if (inventoryStatus === "AVAILABLE") {

@@ -296,3 +296,21 @@ Tracks notable migrations and migration strategy.
 - The additive schema was synchronized only to local development with
   `prisma db push`; no production database was changed and no migration file
   was fabricated.
+
+## 20260730113000_production_submission_material_review
+
+- Adds the review status/reason enums,
+  `SalesProductionSubmissionMaterialReview`, its bounded queue/idempotency
+  indexes, nullable `OrderProductionSubmissions.materialReviewId`, and a unique
+  `(materialReviewId, assignmentId)` retry fence.
+- Existing submission rows require no backfill and retain finalized legacy
+  behavior.
+- `bun run db:generate` passed. The initial additive local schema push passed;
+  after adding the retry-fence unique index, Prisma correctly required an
+  explicit `--accept-data-loss` acknowledgement for a development `db push`.
+  That acknowledgement was not supplied and no existing local data was changed
+  by the follow-up command.
+- Normal `bun run db:migrate` remains blocked by the pre-existing shadow replay
+  failure in `20260722180000_master_password_usage_audit`, which references
+  `MasterPasswordLoginAudit` before its creation. The new migration was
+  generated as an additive schema diff; no reset or production push was run.

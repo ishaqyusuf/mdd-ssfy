@@ -53,8 +53,9 @@ export function ProductionMaterialsNotice({
 					<div>
 						<p className="font-medium">Material status unavailable</p>
 						<p className="mt-1 text-sm text-amber-900">
-							This assignment remains active. Verify materials before beginning
-							production.
+							This assignment remains active. You can submit completed work; the
+							submission will wait for admin approval until materials are
+							verified.
 						</p>
 					</div>
 				</div>
@@ -76,8 +77,9 @@ export function ProductionMaterialsNotice({
 					<div>
 						<p className="font-medium">Materials are not configured</p>
 						<p className="mt-1 text-sm text-amber-900">
-							This assignment is active. Verify the required materials before
-							beginning production.
+							This assignment is active. You can submit completed work; the
+							submission will wait for admin approval until materials are
+							verified.
 						</p>
 					</div>
 				</div>
@@ -108,8 +110,8 @@ export function ProductionMaterialsNotice({
 				<div className="min-w-0 flex-1">
 					<p className="font-medium">Materials pending</p>
 					<p className="mt-1 text-sm text-amber-900">
-						This assignment is active. Begin work when the materials below are
-						available.
+						This assignment is active. You can submit completed work while these
+						needs are pending. The submission will be held for admin approval.
 					</p>
 					<ul className="mt-3 grid gap-2 md:grid-cols-2">
 						{pendingMaterials.map((material, index) => (

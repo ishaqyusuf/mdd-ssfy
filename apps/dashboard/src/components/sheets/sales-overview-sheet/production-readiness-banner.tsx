@@ -10,12 +10,12 @@ const bannerCopy = {
 	blocked: {
 		title: "Materials pending",
 		description:
-			"Production assignment is available. Required inventory is still awaiting inbound or allocation, so work should begin when the materials are available.",
+			"Production assignment and submission remain available. If completed work is submitted before this is resolved, it will be saved for admin material verification.",
 	},
 	not_configured: {
 		title: "Inventory setup incomplete",
 		description:
-			"Production assignment is available. Configure the required materials in Inventory so production can see what is needed before work begins.",
+			"Production assignment and submission remain available. A submitted job will be saved for admin verification until the required material records are configured.",
 	},
 } as const;
 
@@ -47,9 +47,9 @@ export function ProductionReadinessBanner() {
 								Inventory status is temporarily unavailable
 							</h3>
 							<p className="mt-1 text-sm text-amber-900">
-								Production assignment is available. Review Inventory before
-								work begins so the production team has the latest materials
-								status.
+								Production assignment and submission remain available. A
+								submitted job will be saved for admin verification while the
+								material status is unavailable.
 							</p>
 						</div>
 					</div>

@@ -232,3 +232,16 @@ Tracks authentication and authorization patterns across API surfaces.
   trust client-supplied author identity.
 - UI visibility is not an authorization boundary; the assignment task repeats
   the revision-bound readiness check before writing.
+
+## Production submission material review permissions (2026-07-30)
+
+- Review queue/detail reads and approve/reject commands require
+  `editProduction`.
+- A decision that receives linked inbound additionally requires
+  `editInboundOrder`.
+- A decision that marks scoped needs fulfilled without inbound additionally
+  requires `editOrders`.
+- Background and direct worker submissions replace client-supplied author
+  identity with the authenticated employee. Without `editProduction`, the
+  server restricts submission scope to assignments owned by that employee.
+- UI visibility is not an authorization boundary; assignment/order/inbound

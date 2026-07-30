@@ -53,6 +53,9 @@ export const channelNames = [
 	"sales_back_order",
 	"sales_dispatch_late",
 	"sales_production_assigned",
+	"sales_production_submission_material_review",
+	"sales_production_submission_material_approved",
+	"sales_production_submission_material_rejected",
 	"sales_production_unassigned",
 	"sales_production_started",
 	"sales_production_submitted",
@@ -466,6 +469,27 @@ export const channelsConfig: Partial<{
 		name: "Production Assigned",
 		description: "Send when production work is assigned.",
 		priority: 5,
+		category: "Sales",
+	},
+	sales_production_submission_material_review: {
+		name: "Production Material Review",
+		description:
+			"Send when production is submitted while material needs still require admin verification.",
+		priority: 7,
+		category: "Sales",
+	},
+	sales_production_submission_material_approved: {
+		name: "Production Material Review Approved",
+		description:
+			"Send to the production worker when a pending material review is approved.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_production_submission_material_rejected: {
+		name: "Production Material Review Rejected",
+		description:
+			"Send to the production worker when a pending material review is rejected.",
+		priority: 7,
 		category: "Sales",
 	},
 	sales_production_unassigned: {

@@ -3,13 +3,13 @@
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import {
-    Qty,
+    type Qty,
     qtyMatrixDifference,
     transformQtyHandle,
 } from "@/utils/sales-control-util";
 import { productionStatus } from "@/utils/sales-utils";
 import { formatDate } from "@gnd/utils/dayjs";
-import { DispatchItemPackingStatus } from "@sales/types";
+import type { DispatchItemPackingStatus } from "@sales/types";
 
 export async function getSalesItemAssignments(
     salesItemControlUid,
@@ -51,6 +51,13 @@ export async function getSalesItemAssignments(
                         select: {
                             id: true,
                             name: true,
+                        },
+                    },
+                    materialReview: {
+                        select: {
+                            id: true,
+                            status: true,
+                            classificationReason: true,
                         },
                     },
                 },
@@ -96,6 +103,7 @@ export async function getSalesItemAssignments(
                         createdAt,
                         meta,
                         submittedBy,
+                        materialReview,
                         ...sub
                     }) => {
                         return {
@@ -108,6 +116,7 @@ export async function getSalesItemAssignments(
                             }),
                             note,
                             submittedBy: submittedBy?.name,
+                            materialReview,
                             delivered: sum(sub.itemDeliveries, "qty"),
                         };
                     },

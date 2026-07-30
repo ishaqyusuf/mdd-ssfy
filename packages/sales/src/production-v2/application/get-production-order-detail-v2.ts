@@ -3,6 +3,7 @@ import type { Db } from "@gnd/db";
 import { getSaleInformation } from "../../sales-control/get-sale-information";
 import type { ProductionV2DetailQuery } from "../contracts";
 import { loadProductionMaterialStatuses } from "./production-materials";
+import { isActiveReportedSubmission } from "../../production-submission-review/policy";
 
 export async function getProductionOrderDetailV2(
 	db: Db,
@@ -63,11 +64,20 @@ export async function getProductionOrderDetailV2(
 						lh: assignment.lhQty,
 						rh: assignment.rhQty,
 					},
-					submissions: assignment.submissions.map((submission) => ({
+					submissions: assignment.submissions
+						.filter(isActiveReportedSubmission)
+						.map((submission) => ({
 						id: submission.id,
 						createdAt: submission.createdAt,
 						note: submission.note,
 						submittedBy: submission.submittedBy?.name || null,
+							materialReview: submission.materialReview
+								? {
+										id: submission.materialReview.id,
+										status: submission.materialReview.status,
+										reason: submission.materialReview.classificationReason,
+									}
+								: null,
 						qty: {
 							qty: submission.qty,
 							lh: submission.lhQty,

@@ -2,7 +2,6 @@ import { type Db, db } from "@gnd/db";
 import {
 	type LegacyUpdateSalesControlAction,
 	type UpdateSalesControl,
-	assertProductionReadinessForSale,
 	cancelDispatchTask,
 	clearPackingTask,
 	createAssignmentsTask,
@@ -12,7 +11,6 @@ import {
 	markAsCompletedTask,
 	packDispatchItemTask,
 	resolveLegacyUpdateSalesControlAction,
-	shouldEnforceProductionReadinessGate,
 	shouldSyncInventoryProductionLifecycleForSalesControl,
 	startDispatchTask,
 	submitAllTask,
@@ -78,20 +76,6 @@ function resolveActionHandler(input: UpdateSalesControl) {
 	}
 	const legacyAction = resolveLegacyActionCompat(input);
 	return legacyAction ? actionMaps[legacyAction] : null;
-}
-
-function getProductionReadinessGateLineUids(input: UpdateSalesControl) {
-	if (input.createAssignments?.selections?.length) {
-		return input.createAssignments.selections
-			.map((selection) => selection.uid)
-			.filter((uid): uid is string => Boolean(uid));
-	}
-	if (input.submitAll?.itemUids?.length) {
-		return input.submitAll.itemUids.filter((uid): uid is string =>
-			Boolean(uid),
-		);
-	}
-	return null;
 }
 
 async function sendDispatchPackedNotification(input: UpdateSalesControl) {
@@ -316,6 +300,83 @@ async function sendProductionAssignedNotification(input: UpdateSalesControl) {
 	await notification.send("sales_production_assigned", payload);
 }
 
+async function sendProductionMaterialReviewNotification(
+	input: UpdateSalesControl,
+	response: unknown,
+) {
+	if (
+		!input.submitAll ||
+		!response ||
+		typeof response !== "object" ||
+		(response as any).state !== "pending_material_review" ||
+		(response as any).idempotentReplay === true ||
+		!Number.isInteger((response as any).reviewId)
+	) {
+		return;
+	}
+	const review = await db.salesProductionSubmissionMaterialReview.findUnique({
+		where: { id: (response as any).reviewId },
+		select: {
+			id: true,
+			classificationReason: true,
+			materialSnapshot: true,
+			order: {
+				select: { id: true, orderId: true },
+			},
+			submittedBy: {
+				select: { id: true, name: true },
+			},
+			submissions: {
+				where: { deletedAt: null },
+				select: { qty: true },
+			},
+		},
+	});
+	if (!review) return;
+	const materialSnapshot = Array.isArray(review.materialSnapshot)
+		? review.materialSnapshot
+		: [];
+	const unresolvedMaterials = materialSnapshot.filter((material) => {
+		if (!material || typeof material !== "object") return false;
+		const readiness = String((material as any).readiness || "");
+		return readiness !== "ready_for_production" && readiness !== "fulfilled";
+	});
+	const expectedAt =
+		unresolvedMaterials
+			.map((material) =>
+				typeof (material as any).expectedAt === "string"
+					? (material as any).expectedAt
+					: null,
+			)
+			.filter((value): value is string => Boolean(value))
+			.sort()
+			.at(-1) ?? null;
+	const notification = new NotificationService(tasks, {
+		db,
+		userId: input.meta.authorId,
+	});
+	await notification.send("sales_production_submission_material_review", {
+		author: {
+			id: input.meta.authorId,
+			role: "employee",
+		},
+		payload: {
+			reviewId: review.id,
+			salesId: review.order.id,
+			orderNo: review.order.orderId || undefined,
+			workerId: review.submittedBy.id,
+			workerName: review.submittedBy.name || undefined,
+			submittedQty: review.submissions.reduce(
+				(total, submission) => total + submission.qty,
+				0,
+			),
+			reason: review.classificationReason,
+			pendingMaterialCount: unresolvedMaterials.length,
+			expectedAt,
+		},
+	} as any);
+}
+
 export const updateSalesControl = schemaTask({
 	id: "update-sales-control" as TaskName,
 	schema: updateSalesControlSchema,
@@ -326,17 +387,6 @@ export const updateSalesControl = schemaTask({
 	run: async (input) => {
 		const action = resolveActionHandler(input as UpdateSalesControl);
 		if (action) {
-			if (
-				shouldEnforceProductionReadinessGate(input as UpdateSalesControl)
-			) {
-				await assertProductionReadinessForSale(db as any, {
-					salesOrderId: input.meta.salesId,
-					lineItemUids: getProductionReadinessGateLineUids(
-						input as UpdateSalesControl,
-					),
-					triggeredByUserId: input.meta.authorId,
-				});
-			}
 			const response = await action(db, input);
 			if (
 				shouldSyncInventoryProductionLifecycleForSalesControl(
@@ -369,6 +419,22 @@ export const updateSalesControl = schemaTask({
 			}
 			if (input.createAssignments) {
 				await sendProductionAssignedNotification(input as UpdateSalesControl);
+			}
+			if (input.submitAll) {
+				try {
+					await sendProductionMaterialReviewNotification(
+						input as UpdateSalesControl,
+						response,
+					);
+				} catch (error) {
+					logger.error(
+						"Production submission committed, but its material review notification failed.",
+						{
+							error,
+							salesId: input.meta.salesId,
+						},
+					);
+				}
 			}
 			return response;
 		}

@@ -1,70 +1,13 @@
 "use server";
 
 import { prisma } from "@/db";
-import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
-import { resetSalesAction } from "@sales/sales-control/actions";
-import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
-import z from "zod";
+import { submitProductionAssignment } from "@sales/production-submission-review";
 
-import { createPayrollAction } from "./create-payroll";
+import { getLoggedInProfile } from "./cache/get-loggedin-profile";
 import { actionClient } from "./safe-action";
 import { createSubmissionSchema } from "./schema";
 
-async function submitSalesAssignment(
-    data: z.infer<typeof createSubmissionSchema>,
-    tx: typeof prisma = prisma,
-) {
-    const submission = await tx.orderProductionSubmissions.create({
-        data: {
-            qty: data.qty.qty,
-            lhQty: data.qty.lh,
-            rhQty: data.qty.rh,
-            submittedBy: {
-                connect: {
-                    id: data.submittedById,
-                },
-            },
-            assignment: {
-                connect: {
-                    id: data.assignmentId,
-                },
-            },
-            note: data.note,
-            meta: {},
-            order: {
-                connect: {
-                    id: data.salesId,
-                },
-            },
-            item: {
-                connect: {
-                    id: data.itemId,
-                },
-            },
-        },
-        select: {
-            id: true,
-            assignment: {
-                select: {
-                    laborCost: true,
-                    assignedToId: true,
-                    itemControl: {
-                        // select: {},
-                    },
-                },
-            },
-        },
-    });
-    if (submission.assignment.laborCost && submission.assignment.assignedToId) {
-        await createPayrollAction({
-            wage: formatMoney(submission.assignment.laborCost * data.qty.qty),
-            orderId: data.salesId,
-            userId: submission.assignment.assignedToId,
-        });
-    }
-    return submission;
-}
 export const submitSalesAssignmentAction = actionClient
     .schema(createSubmissionSchema)
     .metadata({
@@ -72,17 +15,21 @@ export const submitSalesAssignmentAction = actionClient
         track: {},
     })
     .action(async ({ parsedInput: input }) => {
+		const actor = await getLoggedInProfile();
+		if (!actor.userId) throw new Error("Authentication is required.");
         if (!input.qty.qty) input.qty.qty = sum([input.qty.lh, input.qty.rh]);
-        const resp = await prisma.$transaction(async (tx: typeof prisma) => {
-            const submission = await submitSalesAssignment(input, tx);
-            await resetSalesAction(tx as any, input.salesId);
-            return {
-                submissionId: submission.id,
-            };
+		return submitProductionAssignment(prisma as any, {
+			salesOrderId: input.salesId,
+			salesOrderItemId: input.itemId,
+			assignmentId: input.assignmentId,
+			submittedById: actor.userId,
+			idempotencyKey:
+				input.idempotencyKey ||
+				`production:${input.salesId}:${input.assignmentId}:${actor.userId}`,
+			qty: input.qty.qty,
+			lhQty: input.qty.lh,
+			rhQty: input.qty.rh,
+			note: input.note,
+			allowSubmitForOthers: Boolean(actor.can?.editProduction),
         });
-        await syncInventoryProductionLifecycleForSale(
-            prisma as any,
-            input.salesId,
-        );
-        return resp;
     });

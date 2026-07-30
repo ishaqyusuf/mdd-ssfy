@@ -101,6 +101,7 @@ import {
 	rejectDealerOrderRequest,
 } from "@gnd/db/queries";
 import { EmailService } from "@gnd/notifications/services/email-service";
+import { NotificationService } from "@notifications/services/triggers";
 import { getSaleInformation } from "@gnd/sales/get-sale-information";
 import {
 	SALES_PAYMENT_REVIEW_ACTIONS,
@@ -127,6 +128,15 @@ import {
 } from "@sales/exports";
 import { salesPrioritySchema } from "@sales/priority";
 import {
+	type DecideProductionSubmissionMaterialReviewInput,
+	decideProductionSubmissionMaterialReview,
+	decideProductionSubmissionMaterialReviewSchema,
+	getProductionSubmissionMaterialReviewDetail,
+	getProductionSubmissionMaterialReviewQueue,
+	productionSubmissionMaterialReviewDetailSchema,
+	productionSubmissionMaterialReviewQueueSchema,
+} from "@sales/production-submission-review";
+import {
 	getProductionDashboardV2,
 	getProductionListV2,
 	getProductionOrderDetailV2,
@@ -137,6 +147,7 @@ import {
 } from "@sales/sales-production";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { z } from "zod";
+import { tasks } from "@trigger.dev/sdk/v3";
 import {
 	type TRPCContext,
 	createTRPCRouter,
@@ -245,6 +256,32 @@ async function requireProductionEditor(ctx: TRPCContext) {
 		["editProduction"],
 		"You do not have permission to override production readiness.",
 	);
+}
+
+async function requireProductionReviewResolutionPermissions(
+	ctx: TRPCContext,
+	input: DecideProductionSubmissionMaterialReviewInput,
+) {
+	const receivesInbound =
+		input.action === "RECEIVE_INBOUND_AND_APPROVE" ||
+		Boolean(input.resolutions?.receipts.length);
+	const marksNeedsAvailable =
+		input.action === "MARK_AVAILABLE_AND_APPROVE" ||
+		Boolean(input.resolutions?.markAvailableComponentIds.length);
+	if (receivesInbound) {
+		await requireAnyOperationalPermission(
+			ctx,
+			["editInboundOrder"],
+			"You do not have permission to receive inbound materials.",
+		);
+	}
+	if (marksNeedsAvailable) {
+		await requireAnyOperationalPermission(
+			ctx,
+			["editOrders"],
+			"You do not have permission to manually fulfill inventory needs.",
+		);
+	}
 }
 
 function getDealershipUrl() {
@@ -566,6 +603,106 @@ export const salesRouter = createTRPCRouter({
 						}
 					: props.input;
 			return getProductionOrderDetailV2(props.ctx.db, input);
+		}),
+	productionSubmissionMaterialReviews: protectedProcedure
+		.input(productionSubmissionMaterialReviewQueueSchema)
+		.query(async (props) => {
+			await requireProductionEditor(props.ctx);
+			return getProductionSubmissionMaterialReviewQueue(
+				props.ctx.db,
+				props.input,
+			);
+		}),
+	productionSubmissionMaterialReviewDetail: protectedProcedure
+		.input(productionSubmissionMaterialReviewDetailSchema)
+		.query(async (props) => {
+			await requireProductionEditor(props.ctx);
+			return getProductionSubmissionMaterialReviewDetail(
+				props.ctx.db,
+				props.input.reviewId,
+			);
+		}),
+	reviewProductionSubmission: protectedProcedure
+		.input(decideProductionSubmissionMaterialReviewSchema)
+		.mutation(async (props) => {
+			await requireProductionEditor(props.ctx);
+			await requireProductionReviewResolutionPermissions(
+				props.ctx,
+				props.input,
+			);
+			if (!props.ctx.userId) {
+				throw new Error("Authentication is required.");
+			}
+			const actor = await props.ctx.db.users.findUnique({
+				where: { id: props.ctx.userId },
+				select: { id: true, name: true },
+			});
+			if (!actor) {
+				throw new Error("Authenticated employee was not found.");
+			}
+			const result = await decideProductionSubmissionMaterialReview(
+				props.ctx.db,
+				props.input,
+				{
+					id: actor.id,
+					name: actor.name || "Production administrator",
+				},
+			);
+			if (result.status !== "PENDING")
+				try {
+					const review =
+						await props.ctx.db.salesProductionSubmissionMaterialReview.findUnique(
+							{
+								where: { id: result.reviewId },
+								select: {
+									decisionNote: true,
+									order: {
+										select: { id: true, orderId: true },
+									},
+									submittedBy: {
+										select: { id: true },
+									},
+								},
+							},
+						);
+					if (review) {
+						const notification = new NotificationService(tasks, {
+							db: props.ctx.db,
+							userId: actor.id,
+						});
+						await notification.send(
+							result.status === "APPROVED"
+								? "sales_production_submission_material_approved"
+								: "sales_production_submission_material_rejected",
+							{
+								author: {
+									id: actor.id,
+									role: "employee",
+								},
+								recipients: [
+									{
+										ids: [review.submittedBy.id],
+										role: "employee",
+									},
+								],
+								payload: {
+									reviewId: result.reviewId,
+									salesId: review.order.id,
+									orderNo: review.order.orderId || undefined,
+									workerId: review.submittedBy.id,
+									status: result.status,
+									note: review.decisionNote || undefined,
+								},
+							} as any,
+						);
+					}
+				} catch (error) {
+					console.warn(
+						"Production material review was decided, but worker notification failed.",
+						{ error, reviewId: result.reviewId },
+					);
+				}
+			return result;
 		}),
 	getSalesHx: publicProcedure.input(getSalesHxSchema).query(async (props) => {
 		return getSalesHx(props.ctx, props.input);

@@ -23,7 +23,7 @@ function trackedInventory(id: number) {
 }
 
 describe("evaluateProductionReadinessGate", () => {
-  it("does not enforce inventory readiness for production assignment", () => {
+	it("does not enforce inventory readiness for assignment or submission", () => {
     expect(
       shouldEnforceProductionReadinessGate({
         createAssignments: {},
@@ -33,7 +33,7 @@ describe("evaluateProductionReadinessGate", () => {
       shouldEnforceProductionReadinessGate({
         submitAll: {},
       }),
-    ).toBe(true);
+		).toBe(false);
   });
 
   it("allows production when all required components are allocated or fulfilled", () => {

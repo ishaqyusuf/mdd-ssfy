@@ -29,8 +29,9 @@ Inventory readiness remains visible:
 - assignment does not run inventory lifecycle synchronization and does not
   receive, allocate, cancel, or otherwise rewrite inventory records.
 
-`submitAll` continues to enforce readiness so production completion cannot claim
-work against unresolved required materials.
+ADR-039 supersedes the former strict `submitAll` gate. Submission is now
+nonblocking: unresolved work is saved as reported quantity under an admin
+material review and does not become finalized production until approved.
 
 The revision-bound override from ADR-030 is no longer consulted by assignment.
 Its persisted data and API remain for compatibility and historical audit

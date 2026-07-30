@@ -3,6 +3,7 @@
 import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
+import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 import { updateQtyControlAction } from "../item-control.action";
 import {
     resetSalesStatAction,
@@ -10,7 +11,8 @@ import {
 } from "../sales-stat-control.action";
 import { itemControlUidObject } from "../../utils/item-control-utils";
 import { _notify } from "@/app-deps/(v1)/_actions/notifications";
-import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
+import { submitProductionAssignment } from "@sales/production-submission-review";
+import { getLoggedInProfile } from "@/actions/cache/get-loggedin-profile";
 
 export async function createItemAssignmentAction({
     salesItemId,
@@ -27,7 +29,9 @@ export async function createItemAssignmentAction({
 }) {
     const obj = itemControlUidObject(uid);
     doorId = obj.doorId;
-    const assignmentId = (await prisma.$transaction((async (tx: typeof prisma) => {
+	const assignmentId = (await prisma.$transaction((async (
+		tx: typeof prisma,
+	) => {
         const assignment = await tx.orderItemProductionAssignments.create({
             data: {
                 salesDoor: doorId
@@ -78,8 +82,8 @@ export async function createItemAssignmentAction({
     return assignmentId;
 }
 export async function deleteItemAssignmentAction({ id }) {
-    const salesId = await prisma.$transaction((async (tx: typeof prisma) => {
-        const a = await prisma.orderItemProductionAssignments.update({
+	const salesId = await prisma.$transaction(async (tx) => {
+		const a = await tx.orderItemProductionAssignments.update({
             where: {
                 id,
             },
@@ -95,7 +99,7 @@ export async function deleteItemAssignmentAction({ id }) {
                 },
             },
         });
-        await prisma.orderItemDelivery?.updateMany({
+		await tx.orderItemDelivery.updateMany({
             where: {
                 submission: {
                     assignment: {
@@ -109,7 +113,7 @@ export async function deleteItemAssignmentAction({ id }) {
         });
         await resetSalesStatAction(a.orderId);
         return a.orderId;
-    }) as any);
+	});
     await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
 }
 export async function submitItemAssignmentAction({
@@ -122,41 +126,23 @@ export async function submitItemAssignmentAction({
     assignmentId,
     salesItemId,
     produceable,
+	idempotencyKey,
 }) {
-    await prisma.$transaction((async (tx: typeof prisma) => {
-        await tx.orderProductionSubmissions.create({
-            data: {
+	const actor = await getLoggedInProfile();
+	if (!actor.userId) throw new Error("Authentication is required.");
+	return submitProductionAssignment(prisma as any, {
+		salesOrderId: salesId,
+		salesOrderItemId: salesItemId,
+		assignmentId,
+		submittedById: actor.userId,
+		idempotencyKey:
+			idempotencyKey ||
+			`legacy-production:${salesId}:${assignmentId}:${actor.userId}`,
+		qty,
                 lhQty: lh,
                 rhQty: rh,
-                qty,
-                assignment: {
-                    connect: {
-                        id: assignmentId,
-                    },
-                },
-                order: {
-                    connect: {
-                        id: salesId,
-                    },
-                },
-                item: {
-                    connect: {
-                        id: salesItemId,
-                    },
-                },
-            },
-        });
-        if (produceable) {
-            await updateQtyControlAction(uid, "prodCompleted", {
-                totalQty,
-                qty,
-                rh,
-                lh,
+		allowSubmitForOthers: Boolean(actor.can?.editProduction),
             });
-            await updateSalesStatControlAction(salesId);
-        }
-    }) as any);
-    await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
 }
 export async function updateAssignmentDueDateAction(assignmentId, dueDate) {
     await prisma.orderItemProductionAssignments.update({
@@ -170,7 +156,7 @@ export async function updateAssignmentDueDateAction(assignmentId, dueDate) {
 }
 export async function updateAssignmentAssignedToAction(
     assignmentId,
-    assignedToId
+	assignedToId,
 ) {
     await prisma.orderItemProductionAssignments.update({
         where: {
@@ -182,7 +168,7 @@ export async function updateAssignmentAssignedToAction(
     });
 }
 export async function deleteSubmissionAction({ id }) {
-    const salesId = await prisma.$transaction((async (tx: typeof prisma) => {
+	const salesId = await prisma.$transaction(async (tx) => {
         const resp = await tx.orderProductionSubmissions.update({
             where: { id },
             data: {
@@ -191,6 +177,6 @@ export async function deleteSubmissionAction({ id }) {
         });
         await resetSalesStatAction(resp.salesOrderId);
         return resp.salesOrderId;
-    }) as any);
+	});
     await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
 }

@@ -70,6 +70,7 @@ export const updateSalesControlSchema = z.object({
 		salesId: z.number(),
 		authorId: z.number(),
 		authorName: z.string(),
+		allowProductionSubmissionForOthers: z.boolean().optional(),
 	}),
 	cancelDispatch: z
 		.object({
@@ -145,6 +146,7 @@ export const updateSalesControlSchema = z.object({
 	submitAll: z
 		.object({
 			assignedToId: z.number().nullable().optional(),
+			idempotencyKey: z.string().min(1).max(128).optional().nullable(),
 			itemUids: z.array(z.string()).optional().nullable(),
 			submissionSource: z
 				.enum(["sales_mark_as_completed"])

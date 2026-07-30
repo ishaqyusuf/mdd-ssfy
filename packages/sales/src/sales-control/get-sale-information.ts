@@ -23,6 +23,7 @@ import {
 import { formatCurrency, RenturnTypeAsync, sum } from "@gnd/utils";
 import { hasQty } from "@gnd/utils/sales";
 import { deriveOrderProductionGateState } from "../production-gate";
+import { isFinalizedProductionSubmission } from "../production-submission-review/policy";
 
 export type SalesInfoData = RenturnTypeAsync<typeof salesInformationData>;
 type SalesInfoDataItem = SalesInfoData["order"]["items"][number];
@@ -92,7 +93,7 @@ export async function salesInformationData(
 export function composeSalesItemControl(
   data: SalesInfoData,
   item: SalesInfoDataItem,
-  door?
+	door?,
 ) {
   const { order, setting, assignedToId } = data;
   const itemIndex = (item.meta as any as SalesItemMeta)?.lineIndex;
@@ -101,7 +102,7 @@ export function composeSalesItemControl(
   let title, hidden, unitLabor;
   let { configs, sectionTitle } = composeStepFormDisplay(
     item.formSteps,
-    item.dykeDescription
+		item.dykeDescription,
   );
   const doorMeta = door?.meta as DykeSalesDoorMeta;
   const doorImageKey =
@@ -109,8 +110,7 @@ export function composeSalesItemControl(
     door?.stepProduct?.product?.img ||
     door?.stepProduct?.door?.img ||
     null;
-  const mouldingImageKey =
-    hpt?.stepProduct?.img || hpt?.molding?.img || null;
+	const mouldingImageKey = hpt?.stepProduct?.img || hpt?.molding?.img || null;
   const img = door ? doorImageKey : mouldingImageKey;
   // const meta = item.meta as any as SalesItemMeta;
   if (door) {
@@ -140,7 +140,7 @@ export function composeSalesItemControl(
   let baseItem =
     !multiDyke && multiDykeUid
       ? order.items.find(
-          (a) => a.multiDyke && multiDykeUid == a.multiDykeUid
+					(a) => a.multiDyke && multiDykeUid == a.multiDykeUid,
         ) || item
       : item;
   // item.deliverables = [];
@@ -152,6 +152,7 @@ export function composeSalesItemControl(
   const deliverables = order.assignments
     .map((a) =>
       a.submissions
+				.filter(isFinalizedProductionSubmission)
         .map((s) => {
           const submissionQty = transformQtyHandle(s);
           const dispatchQty = qtyMatrixSum(
@@ -159,9 +160,9 @@ export function composeSalesItemControl(
               .map((d) =>
                 d.items
                   .filter((di) => di.orderProductionSubmissionId === s.id)
-                  .map((b) => transformQtyHandle(b))
+									.map((b) => transformQtyHandle(b)),
               )
-              .flat()
+							.flat(),
           );
           const pendingQty = qtyMatrixDifference(submissionQty, dispatchQty);
           if (hasQty(pendingQty) && a.salesItemControlUid === itemControlUid)
@@ -173,7 +174,7 @@ export function composeSalesItemControl(
         })
         .filter((a) => a?.submissionId)
         .map((a) => a!)
-        .flat()
+				.flat(),
     )
     .flat()!;
   const prodOverride = doorMeta?.prodOverride;
@@ -266,7 +267,7 @@ export async function getSaleInformation(
       let baseItem =
         !multiDyke && multiDykeUid
           ? order.items.find(
-              (a) => a.multiDyke && multiDykeUid == a.multiDykeUid
+							(a) => a.multiDyke && multiDykeUid == a.multiDykeUid,
             ) || item
           : item;
 
@@ -276,7 +277,7 @@ export async function getSaleInformation(
       let controlUid;
       let { configs, sectionTitle } = composeStepFormDisplay(
         item.formSteps,
-        item.dykeDescription
+				item.dykeDescription,
       );
       if (!order.isDyke || (!doors?.length && !hpt?.door)) {
         return [composeSalesItemControl(data, item)];
@@ -304,7 +305,7 @@ export async function getSaleInformation(
               salesItemControlUid: item.controlUid,
             },
           });
-      })
+			}),
     );
   }
   // let orderRequiresUpdate = //= {};

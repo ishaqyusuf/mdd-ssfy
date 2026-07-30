@@ -18,6 +18,7 @@ function makeActiveSale() {
 describe("fulfillSalesInventoryNeedsManually", () => {
 	test("fulfills only tracked Needs rows without fabricating stock quantities", async () => {
 		const calls: Array<{ name: string; payload: unknown }> = [];
+		let componentReadCount = 0;
 		const tx = {
 			salesOrders: {
 				findFirst: async () => makeActiveSale(),
@@ -27,7 +28,10 @@ describe("fulfillSalesInventoryNeedsManually", () => {
 				},
 			},
 			lineItemComponents: {
-				findMany: async () => [
+				findMany: async () => {
+					componentReadCount += 1;
+					if (componentReadCount > 1) return [];
+					return [
 					{
 						id: 501,
 						qty: 1,
@@ -68,7 +72,8 @@ describe("fulfillSalesInventoryNeedsManually", () => {
 						subComponent: null,
 						inboundDemands: [],
 					},
-				],
+					];
+				},
 				updateMany: async (payload: unknown) => {
 					calls.push({ name: "lineItemComponents.updateMany", payload });
 					return { count: 1 };

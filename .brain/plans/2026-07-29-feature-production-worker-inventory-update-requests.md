@@ -1,464 +1,752 @@
-# Plan: Production Worker Inventory Update Requests And Resume Notifications
+# Plan: Production Worker Submission Material Verification And Admin Approval
 
 ## Type
 Feature
 
 ## Status
-Proposed
+Implemented
 
 ## Created Date
 2026-07-29
 
 ## Last Updated
-2026-07-29
+2026-07-30
+
+## Implementation Outcome
+
+Implemented on 2026-07-30. Assignment and submission are nonblocking, worker
+identity is server-derived, unresolved submissions enter an admin material
+review, mixed canonical inventory resolutions are supported, and pending work
+is separated from finalized production/payroll/packing/dispatch truth.
+Authenticated browser QA on order `09068PC` confirms the pending-material
+warning is visible and the submission control remains enabled. Focused
+production coverage passes 65 tests / 234 assertions.
 
 ## Goal Or Problem
-Let an assigned production worker request an inventory/inbound correction from
-the canonical Sales Overview when the worker's assigned production submission
-is blocked by unresolved material readiness. Notify the order's sales rep and
-configured operations administrators, preserve inventory truth, and
-automatically notify the requesting worker when the same worker-scoped strict
-submission gate becomes ready so the worker can return directly to the order
-and continue submission.
+Allow an assigned production worker to submit completed work even when the
+inventory-backed material projection still reports pending inbound, unavailable
+stock, allocation review, missing configuration, or a temporary projection
+failure. The submission must be accepted rather than blocked. When material
+evidence is unresolved, the system must clearly warn the worker, record the
+submission as awaiting material verification, notify authorized production
+administrators, and provide an audited approval workflow that repairs the
+underlying inventory state through canonical inbound receiving or manual
+need-fulfillment operations.
+
+The workflow must handle the common operational lag where material physically
+arrived or was used, but the sales rep or administrator forgot to update the
+inbound or inventory-need status. It must also preserve inventory truth,
+prevent duplicate worker submissions, and prevent unverified production from
+silently becoming payroll-, dispatch-, or order-completion truth.
 
 ## Current Context
-- Production assignment is intentionally independent of material readiness
-  under ADR-035, while `submitAll` still enforces the strict inventory-backed
-  readiness gate.
-- Worker production rows already open the canonical Sales Overview in
-  `production-tasks` mode and server-side production reads scope data to the
-  authenticated worker.
-- The Production tab already shows readiness and material blocker evidence.
-  It currently offers only informational copy and, for administrative viewers,
-  a link to the Inventory tab.
-- Existing inventory correction paths include allocation approval, inbound
-  creation/receiving, order inventory repair, projection sync, and the audited
-  `Mark all needs fulfilled` action from ADR-036. A worker request must not
-  perform any of those mutations.
-- The notification platform already supports explicit employee recipients,
-  role/channel subscribers, unread activity, and typed notification actions.
-  New notification types must be added to the typed action map before their
-  rows are clickable.
-- `sales_production_assigned` is already emitted to assigned workers, but it is
-  not currently registered as a notification-center action. This plan does not
-  require changing that unrelated notification.
-- The worktree contains active inventory compatibility changes. Implementation
-  must preserve and rebase around those changes rather than overwrite them.
+- ADR-035 already makes production assignment independent of inventory
+  readiness. Workers and administrators can see material status, open inbound
+  quantity, expected dates, and unavailable projection states on the production
+  board and expanded order detail.
+- `submitAll` remains a strict readiness gate today through
+  `shouldEnforceProductionReadinessGate` and
+  `assertProductionReadinessForSale` in the `update-sales-control` Trigger task.
+  This is the boundary this plan changes.
+- The main worker UI submits through `update-sales-control`, but legacy direct
+  submission paths still exist in:
+  - `apps/dashboard/src/actions/submit-sales-assignment.ts`;
+  - `submitItemAssignmentAction`;
+  - both legacy `submitAssignmentDta` copies.
+  The implementation must prevent those paths from bypassing review semantics.
+- `OrderProductionSubmissions` currently has no approval lifecycle. All active,
+  non-deleted rows are treated as submitted production by sales-control,
+  production list totals, assignment progress, and downstream delivery logic.
+- The worker detail projection in
+  `packages/sales/src/production-v2/application/get-production-order-detail-v2.ts`
+  already returns assignment submissions and fail-open material evidence.
+- The existing assignment-progress UI subtracts every active submission from
+  remaining assignment quantity. That behavior is useful for preventing a
+  duplicate submission while an admin review is pending.
+- One legacy direct submission action creates payroll immediately. Pending
+  review must not create payroll; the existing unique
+  `Payroll.productionSubmissionId` relation can provide idempotent approval-time
+  finalization.
+- Existing canonical inventory correction paths already cover both scenarios
+  required by the product:
+  - `receiveInboundShipment` records item receipt, stock movement, demand
+    receipt, component recomputation, and shipment progress;
+  - `fulfillSalesInventoryNeedsManuallyInTransaction` marks eligible needs
+    fulfilled without fabricating physical stock, while protecting linked or
+    partially received inbound demand under ADR-036.
+- Updating an inbound header to `completed` is not sufficient evidence because
+  the header-only status path does not perform item receipt, stock movement, or
+  demand allocation. Approval must call the canonical receipt operation.
+- Notification infrastructure supports typed channels, explicit recipients,
+  channel subscribers, in-app activity, and clickable deep-link actions.
+- Production read routes are protected. Administrative review writes need a
+  stricter mutation boundary than general production viewing.
+- The repository worktree contains active unrelated changes. Implementation
+  must preserve and rebase around them rather than overwrite them.
+
+## Assumptions
+- “Submission is subject to approval” means the worker's work record is saved
+  immediately, but final production completion and its downstream effects wait
+  for approval.
+- A pending-review submission consumes the assignment's remaining submittable
+  quantity so the worker cannot submit the same quantity twice.
+- Pending-review quantity is shown separately from approved/finalized quantity.
+  It does not create payroll, complete the production item/order, or become
+  dispatchable.
+- Material verification is scoped to the assignments and item quantities in
+  the submission action, not unrelated production lines on the same order.
+- Material state `pending`, `not_configured`, or `unavailable` routes the
+  submission to review. A confirmed ready/fulfilled state finalizes normally.
+- An administrator must make an explicit, audited resolution choice. The system
+  never guesses that an inbound arrived and never invents physical stock.
+- V1 supports partial and mixed material evidence by letting the admin resolve
+  each blocker using the appropriate canonical operation before approving.
+- Rejection remains available for incorrect work or incorrect quantities. It
+  releases the submitted quantity so the worker can correct and resubmit.
+- Existing submissions with no review relation remain finalized for backward
+  compatibility; no historical backfill is required.
 
 ## Proposed Approach
-Add a dedicated, durable production-material request lifecycle owned by
-`@gnd/sales`. A worker can open or remind one request for their active,
-incomplete assignments on an order. The server derives the worker, order,
-assigned control UIDs, blockers, sales rep, and recipients; the client supplies
-none of those authorization-sensitive identities.
+Replace the hard submission gate with a fail-open classification and durable
+review lifecycle owned by `@gnd/sales`.
 
-The request records a snapshot of the worker-scoped strict gate and writes
-Sales History evidence, then emits a typed
-`sales_production_material_update_requested` notification to the order sales
-rep plus configured operations subscribers. Clicking the request notification
-opens the canonical Sales Overview on the Inventory tab, where the admin sees
-the requesting worker and scoped blocker summary and uses existing inventory
-or inbound actions.
+At submission time, the server derives the authenticated worker's selected
+assignments, snapshots their current material evidence, and classifies the
+submission:
 
-After readiness-affecting inventory mutations, a bounded reconciliation job
-re-evaluates open requests with the same strict gate used by `submitAll`.
-Event-driven reconciliation provides the normal fast path; a small scheduled
-sweep covers legacy, repair, or external update paths during the inventory
-migration. Only an atomic `OPEN -> READY` transition may emit
-`sales_production_materials_ready`. Clicking that notification opens the
-canonical order overview in worker-scoped Production mode.
+- `finalized`: all relevant material components are ready or fulfilled;
+- `pending_material_review`: material is pending, not configured, or the
+  projection cannot be loaded.
 
-This is not a production-readiness override, approval, stock adjustment, or
-inbound mutation. Historical readiness overrides remain compatibility-only,
-and a request never fabricates stock or bypasses `submitAll`.
+Both outcomes save the worker's submission. A pending outcome creates one
+review batch and links every submission row created by the action to that
+batch. The batch owns the material snapshot, revision, reviewer decision, and
+resolution evidence. Pending rows count as reported work for duplicate
+prevention, but not as finalized production for stats, payroll, packing,
+dispatch, or order completion.
 
-Recommended V1 defaults:
-- one current request row per order and requesting worker;
-- an optional worker note capped at 500 characters;
-- reminder notifications no more than once every 15 minutes;
-- a bounded five-minute safety reconciliation for still-open requests;
-- explicit sales-rep delivery plus configured Sales/Inventory administration
-  channel subscribers, with no silent fallback to user `1`.
+The admin production workspace gains a bounded `Material Review` queue and a
+review panel. The panel shows the worker, submitted quantities, exact material
+blockers, linked inbounds, and current evidence. The admin chooses one or more
+canonical resolutions:
+
+1. `Recheck current status`: approve without inventory mutation only when a
+   fresh server evaluation is already ready.
+2. `Record linked inbound receipt`: receive the selected linked inbound items
+   through `receiveInboundShipment`, including the confirmed good/issue
+   quantities.
+3. `Mark needs fulfilled without inbound`: use a component-scoped version of
+   the ADR-036 manual fulfillment service for eligible needs with no protected
+   shipment or receipt evidence.
+4. `Reject submission`: record a required reason, exclude/void the linked
+   submission rows, recompute progress, and let the worker resubmit.
+
+Approval revalidates the material snapshot, applies the selected correction
+inside the appropriate transaction boundary, recalculates readiness, finalizes
+the linked submissions, recomputes sales-control stats, creates any deferred
+payroll idempotently, and writes Sales History evidence. Notification delivery
+and query invalidation occur after commit and cannot turn a committed
+submission or decision into a failure.
+
+This approach supersedes the ADR-035 statement that `submitAll` remains strict.
+Assignment and worker submission are both non-blocking; unresolved submission
+evidence is controlled by a durable admin review rather than a pre-write gate.
 
 ## Visual Plan
 ```mermaid
 sequenceDiagram
-  actor Worker as "Assigned production worker"
-  participant UI as "Sales Overview / Production"
-  participant API as "Sales request API"
-  participant DB as "Request + Sales History"
-  participant Notify as "Notification system"
-  actor Admin as "Sales rep / inventory admin"
-  participant Inventory as "Existing inventory and inbound workflows"
-  participant Reconcile as "Readiness reconciler"
+  actor Worker as "Production worker"
+  participant UI as "Worker production order"
+  participant Submit as "Sales submission command"
+  participant Material as "Material projection"
+  participant DB as "Submission + review batch"
+  participant Notify as "Notifications"
+  actor Admin as "Production administrator"
+  participant Review as "Admin material review"
+  participant Inventory as "Canonical inventory/inbound services"
+  participant Finalize as "Production finalizer"
 
   Worker->>UI: Open assigned order
-  UI->>API: Request inventory update
-  API->>API: Verify active worker assignments
-  API->>API: Evaluate worker-scoped strict submit gate
-  alt Assigned work is already ready
-    API-->>UI: Already ready; refresh submission controls
-  else Assigned work is blocked or not configured
-    API->>DB: Upsert OPEN request and audit snapshot
-    API->>Notify: Notify sales rep + configured admins
-    Notify-->>Admin: "Production material update requested"
-    Admin->>UI: Click notification
-    UI-->>Admin: Open order Inventory tab
-    Admin->>Inventory: Allocate, receive, repair, or attest fulfillment
-    Inventory->>Reconcile: Queue affected order/component reconciliation
-    Reconcile->>API: Re-evaluate the original worker assignment scope
-    alt Strict gate is now ready
-      Reconcile->>DB: Atomically mark request READY and audit
-      Reconcile->>Notify: Notify requesting worker
-      Notify-->>Worker: "Materials ready — resume production"
-      Worker->>UI: Click notification
-      UI-->>Worker: Open assigned order Production tab
-    else Still blocked
-      Reconcile-->>DB: Keep request OPEN with latest check time
+  UI-->>Worker: Show pending material warning
+  Worker->>UI: Submit completed quantity
+  UI->>Submit: Authenticated assignment submission
+  Submit->>Material: Classify selected assignment materials
+
+  alt Materials ready or fulfilled
+    Submit->>DB: Save finalized submission
+    Submit->>Finalize: Recompute production and payroll effects
+    Submit-->>UI: Submitted
+  else Pending, not configured, or projection unavailable
+    Submit->>DB: Save submission and PENDING review batch atomically
+    Submit-->>UI: Submitted — awaiting material verification
+    Submit->>Notify: Notify authorized admins after commit
+    Notify-->>Admin: Material verification required
+    Admin->>Review: Open review with current evidence
+
+    alt Linked inbound physically arrived
+      Review->>Inventory: Receive selected inbound items canonically
+    else No linked/protected inbound
+      Review->>Inventory: Mark selected needs fulfilled without stock movement
+    else Status was already corrected
+      Review->>Material: Recheck current readiness
+    end
+
+    Review->>Material: Re-evaluate selected assignment scope
+    alt Resolved and approved
+      Review->>DB: PENDING to APPROVED with audit evidence
+      Review->>Finalize: Finalize stats, payroll, and downstream eligibility
+      Review->>Notify: Notify worker after commit
+      Notify-->>Worker: Submission approved
+    else Rejected
+      Review->>DB: PENDING to REJECTED and void linked submissions
+      Review->>Notify: Notify worker with reason
+      Notify-->>Worker: Correct and resubmit
+    else Still unresolved
+      Review-->>Admin: Keep pending with exact remaining blockers
     end
   end
 ```
 
 ## Implementation Steps
 
-### Phase 0 - Confirm Product And Role Routing Defaults
-1. Confirm the live role names that should subscribe as operations
-   administrators. Recommended policy is the order's active sales rep plus the
-   configured Sales Manager/Inventory Manager or Super Admin channel roles.
-2. Confirm that V1 uses an optional note, a 15-minute reminder cooldown, and a
-   five-minute safety sweep. These are non-blocking defaults unless product
-   chooses different values.
-3. Confirm that admins do not need an explicit acknowledge/dismiss workflow in
-   V1. The recommended lifecycle is request, automatic ready, or automatic
-   close when the order/assignment is no longer actionable.
-4. Record any changed durable product decision in an ADR before implementation.
+### Phase 0 - Lock Product Semantics And Supersede The Strict-Gate Decision
+1. Add a new ADR that supersedes the `submitAll` clause in ADR-035 while
+   preserving the assignment decision:
+   - assignment never depends on material readiness;
+   - worker submission is always accepted when assignment/quantity validation
+     passes;
+   - unresolved material evidence creates admin review;
+   - only approved/finalized submission quantity affects final production,
+     payroll, packing, dispatch, and order completion.
+2. Define the review lifecycle:
+   - `PENDING`;
+   - `APPROVED`;
+   - `REJECTED`;
+   - `CANCELLED` for administrative deletion, assignment deletion, or terminal
+     order cleanup.
+3. Define material-classification reasons:
+   - `AWAITING_INBOUND`;
+   - `ALLOCATION_REVIEW`;
+   - `BLOCKED`;
+   - `NOT_CONFIGURED`;
+   - `PROJECTION_UNAVAILABLE`.
+4. Confirm the quantity semantics:
+   - reported quantity = approved + pending review;
+   - finalized quantity = approved + legacy/no-review submissions;
+   - rejected/cancelled quantity is excluded from both active totals.
+5. Confirm the authorization matrix:
+   - worker submit: authenticated ownership of the active assignment;
+   - review read: `viewProduction` or `editProduction`;
+   - approve/reject: `editProduction`;
+   - inbound receipt or manual fulfillment: `editProduction` plus the
+     permission required by the underlying inventory operation.
+6. Confirm notification recipients:
+   - active employees with configured admin channel membership;
+   - optionally the active order sales rep;
+   - no client-supplied recipient and no hard-coded fallback user.
 
 Dependencies:
-- Live role mapping must be known before production channel configuration.
-
-Validation:
-- Document the final recipient matrix for an order with an active sales rep,
-  no sales rep, inactive sales rep, and multiple configured admin subscribers.
-
-### Phase 1 - Add The Durable Request Model
-1. Add a modern Prisma model such as
-   `SalesProductionMaterialRequest` under the sales schema with:
-   - `id`;
-   - `salesOrderId`;
-   - `requestedByUserId`;
-   - nullable `routedSalesRepId`;
-   - lifecycle status `OPEN`, `READY`, or `CLOSED`;
-   - `requestCount`, `requestedAt`, and `lastReminderAt`;
-   - optional worker `note`;
-   - JSON assignment-scope snapshot containing assignment ids and server-derived
-     control UIDs;
-   - JSON readiness/blocker snapshot and nullable readiness revision;
-   - `lastCheckedAt`, `readyAt`, `closedAt`, and nullable close reason;
-   - request/ready notification queue timestamps for support diagnostics;
-   - standard `createdAt`, `updatedAt`, and nullable `deletedAt`.
-2. Add one unique key for `(salesOrderId, requestedByUserId)` so later shortages
-   reopen the same current-lifecycle row while Sales History preserves every
-   transition.
-3. Add indexes for `(status, lastCheckedAt)`, `salesOrderId`, requester, and
-   routed sales rep.
-4. Add relations from `SalesOrders` and `Users` using distinct requester and
-   routed-recipient relation names.
-5. Generate and apply the additive migration only through
-   `bun run db:migrate` and `bun run db:push`, per repository rules.
-6. Update `.brain/database/schema.md`, `.brain/database/relationships.md`, and
-   `.brain/database/migrations.md`.
-
-Dependencies:
-- Phase 0 lifecycle and recipient decisions.
+- None.
 
 Decision point:
-- Keep assignment scope as an audited JSON snapshot in V1 rather than creating
-  request-item join rows. Add a join table only if operations later need
-  item-level request assignment, filtering, or partial manual resolution.
+- Recommended: pending review blocks only downstream finalization, never the
+  worker submission or the rest of the worker's queue.
 
 Validation:
-- Prisma generation succeeds.
-- The migration is additive and preserves existing production, inventory,
-  override, notification, and Sales History rows.
+- ADR, lifecycle table, quantity table, and permission matrix agree before
+  schema work starts.
 
-### Phase 2 - Build The Sales-Domain Request And Reconciliation Service
-1. Add a shared `@gnd/sales` module, for example
-   `packages/sales/src/production-material-requests.ts`, and export it from
-   `packages/sales/package.json`.
-2. Implement a server-only request command that:
-   - loads the active, non-terminal order;
-   - derives active incomplete assignments owned by the authenticated worker;
-   - rejects a caller with no assignment on that order;
-   - derives the worker's assigned control UIDs from the database;
-   - refreshes the sales inventory projection using the existing repair-safe
-     sync before evaluating readiness;
-   - evaluates `getSalesProductionPlan` /
-     `evaluateProductionReadinessGate` for only that assigned scope;
-   - returns `already_ready` without writing when the strict gate allows
-     submission;
-   - otherwise upserts `OPEN`, snapshots the blockers, increments request count,
-     and writes a `production_material_update_requested` Sales History event.
-3. Make re-request behavior idempotent:
-   - a repeated click inside the cooldown returns the existing open state
-     without another notification;
-   - a click after the cooldown updates the snapshot and creates one reminder
-     audit event;
-   - a previous `READY` or `CLOSED` row may reopen for a genuinely new blocked
-     assignment state.
-4. Implement a scope-aware read projection:
-   - workers see only their own request state;
-   - administrative viewers see bounded open requester summaries for the order;
-   - blocker detail is limited to the same safe material fields already exposed
-     by production readiness.
-5. Implement reconciliation for explicit order ids:
-   - load all current open requests;
-   - re-resolve each requester's live incomplete assignment scope;
-   - close requests without a live assignment or for fulfilled/cancelled orders;
-   - evaluate the strict gate without consulting the compatibility override;
-   - keep blocked rows open and update `lastCheckedAt`;
-   - atomically claim `OPEN -> READY` before returning a ready-notification
-     work item;
-   - write `production_material_update_ready` or
-     `production_material_update_closed` Sales History evidence.
-6. Ensure no request or reconciliation method changes InventoryStock,
-   StockAllocation, InboundDemand, InboundShipment, component quantity, or
-   legacy order inventory status.
+### Phase 1 - Add The Durable Submission Review Schema
+1. Add a Prisma enum such as `ProductionSubmissionReviewStatus` with
+   `PENDING`, `APPROVED`, `REJECTED`, and `CANCELLED`.
+2. Add `SalesProductionSubmissionReview` under
+   `packages/db/src/schema/sales.prisma` with:
+   - `id`;
+   - `salesOrderId`;
+   - `submittedById`;
+   - `status`;
+   - `classificationReason`;
+   - server-generated `idempotencyKey`;
+   - JSON assignment scope containing assignment ids, item ids, control UIDs,
+     and submitted quantity matrix;
+   - JSON material snapshot containing only safe component, quantity, inbound,
+     readiness, and expected-date evidence;
+   - `materialRevision`;
+   - nullable reviewer id, decision note, and resolution JSON;
+   - `submittedAt`, `reviewedAt`, `cancelledAt`, `createdAt`, and `updatedAt`;
+   - post-commit notification diagnostic timestamps/errors if the existing
+     notification outbox does not already provide equivalent evidence.
+3. Add nullable `materialReviewId` to `OrderProductionSubmissions` and a
+   one-to-many relation from one review batch to all rows created by one worker
+   submission action.
+4. Add indexes:
+   - `(status, submittedAt)`;
+   - `(salesOrderId, status)`;
+   - `(submittedById, status)`;
+   - `materialReviewId` on submissions;
+   - unique `idempotencyKey`;
+   - unique `(materialReviewId, assignmentId)` submission membership to fence
+     concurrent retries.
+5. Keep legacy/current finalized submissions compatible:
+   - `materialReviewId = null` means no material approval was required;
+   - linked `APPROVED` reviews are finalized;
+   - linked `PENDING`, `REJECTED`, or `CANCELLED` reviews are not finalized.
+6. Generate and apply the additive migration only with `bun run db:migrate`
+   and `bun run db:push`; do not hand-author migration SQL.
+7. Update `.brain/database/schema.md`,
+   `.brain/database/relationships.md`, and `.brain/database/migrations.md`.
+
+Dependencies:
+- Phase 0 lifecycle decision.
+
+Validation:
+- Prisma validation and generation pass.
+- Migration diff is additive.
+- Existing rows require no backfill and retain current behavior.
+
+### Phase 2 - Create One Canonical Submission Classification Service
+1. Add an `@gnd/sales` module such as
+   `packages/sales/src/production-submission-review/` with separate commands
+   for classification, submission persistence, review projection, decision,
+   and finalization.
+2. Implement `classifyProductionSubmissionMaterials`:
+   - accept the database handle, sales order id, authenticated worker id, and
+     server-derived assignment selections;
+   - verify active assignment ownership and non-terminal order state;
+   - verify requested quantities do not exceed remaining reported quantity;
+   - derive selected control UIDs and sales item ids from the database;
+   - load only material evidence relevant to those selections;
+   - return `finalized` when every relevant component is ready/fulfilled;
+   - return `pending_material_review` for every unresolved state;
+   - treat projection/sync failure as `PROJECTION_UNAVAILABLE`, not a worker
+     submission failure.
+3. Do not call the current throwing `assertProductionReadinessForSale` from the
+   submission path. Retain it only for callers that explicitly need strict
+   preflight behavior, or replace it with a non-throwing classifier.
+4. Build a deterministic material revision from:
+   - order and selected assignment identity;
+   - component ids and current quantities;
+   - demand/shipment ids, statuses, and received quantities;
+   - allocation evidence;
+   - assignment/submission baseline quantities.
+5. Bound and sanitize JSON snapshots so no secrets, unrestricted notes, or
+   customer contact data are persisted.
+6. Add unit tests for ready, awaiting inbound, partial inbound, allocation
+   review, missing components, projection failure, mixed items, unrelated
+   blocked lines, stale assignments, and excessive quantities.
 
 Dependencies:
 - Phase 1 schema.
 
-Decision points:
-- Strict readiness must be scoped to the worker's assigned control UIDs, not
-  the whole order, because unrelated assignments must not delay that worker.
-- A manually fulfilled component from ADR-036 counts as ready because the
-  existing strict gate already treats `fulfilled` as ready; the request service
-  must not introduce a second interpretation.
+Decision point:
+- The server must classify only the submitted assignment scope. Unrelated
+  materials on the same order may remain pending without forcing this
+  submission into review.
 
 Validation:
-- Domain tests cover blocked, not-configured, ready, fulfilled, read-only,
-  assignment removed, multiple workers, reopened requests, cooldown, and
-  concurrent reconciliation.
+- Classification never mutates inventory.
+- Every unresolved or unreadable material state returns a review classification
+  instead of throwing a readiness error.
 
-### Phase 3 - Add Protected API Contracts
-1. Add a protected mutation such as
-   `sales.requestProductionMaterialUpdate({ salesOrderId, note? })`.
-2. Require a production-viewing capability and enforce the active assignment
-   check server-side. Do not accept worker id, sales rep id, recipients,
-   assignment ids, or control UIDs from the client.
-3. Add a protected, scope-aware query such as
-   `sales.productionMaterialRequestStatus({ salesOrderId })`.
-4. Keep admin visibility behind existing Sales Overview/production operational
-   viewing permissions; inventory mutation permissions remain on their
-   existing endpoints.
-5. Return explicit mutation outcomes:
-   `created`, `reminded`, `cooldown`, and `already_ready`, plus
-   `notificationQueued` so a committed request is not misrepresented when
-   notification dispatch fails.
-6. On commit, derive the active order sales rep and queue the request
-   notification. Preserve the request if notification queuing fails, log the
-   failure, and allow a safe retry.
-7. Document the route, payload, outcomes, authorization, and failure semantics
-   in `.brain/api/endpoints.md`, `.brain/api/contracts.md`, and
-   `.brain/api/permissions.md`.
+### Phase 3 - Persist Worker Submissions Without Blocking
+1. Refactor `submitAllTask` and `submitAssignmentsAction` so one canonical
+   command:
+   - validates assignment ownership and quantities;
+   - classifies material evidence;
+   - creates a review batch when required;
+   - creates every submission row with the review id in one transaction;
+   - returns a typed result with `state`, `reviewId`, submitted quantity, and
+     blocker summary.
+2. Ensure generated assignment-and-submit rows created inside `submitAll` use
+   the same review batch and cannot bypass classification.
+3. Replace the hard gate in
+   `packages/jobs/src/tasks/sales/update-sales-control.ts`:
+   - remove submission-time `assertProductionReadinessForSale`;
+   - let the canonical command classify and persist;
+   - keep assignment behavior unchanged.
+4. Consolidate or adapt every legacy direct write:
+   - `apps/dashboard/src/actions/submit-sales-assignment.ts`;
+   - `submitItemAssignmentAction`;
+   - both `submitAssignmentDta` copies.
+   No production submission may call
+   `orderProductionSubmissions.create/createMany` directly outside the
+   canonical domain command, except controlled tests/migrations.
+5. Make Trigger retries idempotent using the command idempotency key and
+   assignment/quantity baseline. A retry returns the existing submission
+   result rather than creating duplicates.
+6. Return worker-facing outcomes:
+   - `submitted`;
+   - `submitted_pending_material_review`;
+   - `already_submitted`;
+   - ordinary validation errors unrelated to inventory.
+7. Commit notification work after the transaction. Notification failure is
+   logged/retryable and never rolls back the saved submission.
 
 Dependencies:
-- Phase 2 command/read services.
+- Phase 2 classification.
 
 Validation:
-- API tests prove worker scoping, recipient spoof prevention, terminal-order
-  denial, no-assignment denial, admin visibility, and persisted-request behavior
-  when notification dispatch fails.
+- Regression tests inspect all current submission paths.
+- Pending material, not-configured material, and projection failure all save the
+  correct submission and review batch.
+- Concurrent/double-click tests create one logical submission.
 
-### Phase 4 - Add Typed Request And Ready Notifications
-1. Add two notification channels and typed handlers:
-   - `sales_production_material_update_requested`;
-   - `sales_production_materials_ready`.
-2. Request tags should contain only navigation and display evidence:
-   `requestId`, `salesId`, `orderNo`, requester id/name, blocker count, and
-   request status. Ready tags should include `requestId`, `salesId`, `orderNo`,
-   and requester id.
-3. Route the request to:
-   - the active `SalesOrders.salesRepId` as an explicit employee recipient;
-   - configured operations role/channel subscribers;
-   - never a client-supplied recipient and never a silent fallback account.
-4. Route ready only to the worker who owns the request.
-5. Configure both channels for in-app delivery by default and sync the channels
-   before enabling the UI. Assign the confirmed admin roles in the Notification
-   Channels workspace.
-6. Extend `packages/notifications/src/notification-center.ts` so both types
-   parse into clickable actions.
-7. Add dashboard handlers:
-   - request action: open the canonical order Sales Overview with
-     `mode=sales` and `salesTab=inventory`;
-   - ready action: open the canonical order with
-     `mode=production-tasks` and `salesTab=production`, allowing
-     `useSalesOverviewQuery` to apply the authenticated worker id.
-8. Invalidate the relevant production/readiness/request queries on navigation
-   so a ready notification cannot reopen stale blocker UI.
+### Phase 4 - Separate Reported Work From Finalized Production
+1. Introduce shared predicates in `@gnd/sales`:
+   - `isActiveReportedSubmission`;
+   - `isFinalizedProductionSubmission`;
+   - `isPendingMaterialReviewSubmission`.
+2. Update `getSaleInformation`, sales-control analytics, assignment-progress
+   calculations, production list summaries, dashboards, and order detail:
+   - reported quantity includes pending + finalized submissions;
+   - finalized quantity excludes pending/rejected/cancelled review batches;
+   - remaining worker quantity subtracts active reported quantity;
+   - worker/admin UI exposes pending-review quantity separately.
+3. Update `resetSalesAction` and `prodCompleted` projection so pending reviews
+   cannot mark a line or order complete.
+4. Audit every query that currently filters only `deletedAt: null` on
+   `OrderProductionSubmissions`; update completion-sensitive consumers to join
+   review status.
+5. Prevent packing, delivery, and dispatch creation from consuming a pending
+   review submission. Add server-side guards in addition to UI filtering.
+6. Defer automatic payment review that currently runs after production
+   completion until the submission is finalized.
+7. Defer payroll creation for pending reviews. On normal ready submissions,
+   preserve current timing. On approval, create payroll once using the unique
+   `productionSubmissionId`.
+8. Decide deletion behavior:
+   - deleting a pending submission cancels its review batch when no active
+     linked rows remain;
+   - deleting an approved submission uses existing reversal/delete behavior and
+     records review-aware history.
 
 Dependencies:
-- Phase 0 recipient policy.
-- Phase 3 API request flow.
+- Phase 3 canonical persistence.
 
 Validation:
-- Schema/handler tests cover both channels.
-- Notification transformation tests prove the actions are clickable.
-- Dashboard handler tests prove exact canonical URL/query state for admin and
-  worker actions.
+- Quantity matrix tests cover qty/LH/RH submissions.
+- Pending work cannot be duplicated, completed, paid, packed, or dispatched.
+- Approval makes the same quantity finalized exactly once.
+- Rejection releases the quantity for resubmission.
 
-### Phase 5 - Add Reconciliation Triggering And Eventual-Safety Sweep
-1. Add a typed Trigger task such as
-   `reconcile-production-material-requests` accepting:
-   - deduplicated positive `salesOrderIds`, capped at 200;
-   - a source label;
-   - optional cursor/batch inputs for the safety sweep.
-2. The task calls the Phase 2 reconciler, queues ready notifications only for
-   atomically claimed transitions, and logs counts for checked, still blocked,
-   ready, closed, and failed requests.
-3. Queue targeted reconciliation after every existing path that can make a
-   requested assignment ready:
-   - manual `Mark all needs fulfilled`;
-   - single and bulk allocation approval;
-   - inbound receive completion;
-   - completion of `allocate-received-inbound-to-backorders`;
-   - order inventory repair that recomputes component demand;
-   - targeted sales-inventory projection sync/repair.
-4. Prefer post-commit order ids returned by each mutation. Where an operation
-   returns component ids, resolve the distinct affected sales order ids after
-   commit rather than accepting ids from the browser.
-5. Run reconciliation both after inbound receipt and after the downstream
-   allocation job. The first catches receipt-based readiness; the second catches
-   readiness that requires allocation.
-6. Add a bounded five-minute sweep over `OPEN` requests as a migration safety
-   net for legacy or external update paths. It is read/reconciliation-only and
-   must not repair or mutate inventory.
-7. Prevent notification storms:
-   - only the winning `OPEN -> READY` update emits ready;
-   - repeated event hooks are safe;
-   - failed orders remain open for the next targeted event or sweep;
-   - task retries reuse request ids and transition guards.
+### Phase 5 - Add Protected Review Queries And Commands
+1. Add protected, bounded API contracts:
+   - `sales.productionSubmissionReviews` for the admin queue;
+   - `sales.productionSubmissionReviewDetail` for one review;
+   - `sales.reviewProductionSubmission` for approve/reject.
+2. Queue query filters:
+   - status;
+   - date range;
+   - worker;
+   - sales order/order number;
+   - material reason;
+   - pagination/cursor with a conservative page cap.
+3. Review detail must return:
+   - order and worker display identity;
+   - submitted assignment/item quantities;
+   - original material snapshot;
+   - fresh current material evidence;
+   - material revision comparison/staleness;
+   - linked inbound shipment/item candidates;
+   - eligible manual-fulfillment component ids;
+   - allowed admin actions derived by the server.
+4. Decision input must include:
+   - review id;
+   - expected review status/revision;
+   - `approve` or `reject`;
+   - required decision note for rejection;
+   - explicit resolution selections for approval.
+5. Never accept sales order id, worker id, assignment ownership, recipients, or
+   arbitrary component/inbound ids without resolving and constraining them from
+   the review on the server.
+6. Enforce:
+   - authenticated review reads;
+   - `editProduction` for approve/reject;
+   - the canonical inventory mutation permission for each selected resolution.
+7. Use optimistic concurrency. A stale review returns refreshed evidence and
+   requires the admin to confirm the new baseline.
+8. Document contracts and permissions in `.brain/api/endpoints.md`,
+   `.brain/api/contracts.md`, and `.brain/api/permissions.md`.
 
 Dependencies:
-- Phase 2 reconciliation.
-- Phase 4 notification types.
+- Phases 1-4.
 
 Validation:
-- Integration tests cover each event hook.
-- Concurrent task tests prove one ready transition/notification work item.
-- A failed notification does not revert inventory work or lose the persisted
-  request state.
+- API tests prove permission denial, assignment/order spoof prevention, stale
+  revision handling, bounded pagination, and safe error payloads.
 
-### Phase 6 - Add Worker And Admin Sales Overview UI
-1. Extend the existing Production readiness banner; do not create a parallel
-   production overview.
-2. In worker-assigned mode, show `Request inventory update` only when:
-   - the worker has active incomplete assignments;
-   - the server says the worker-scoped strict gate is blocked or not configured;
-   - the order is not fulfilled/cancelled.
-3. Use a compact confirmation dialog that explains:
-   - the request tells Sales/Inventory that physical materials appear available
-     but the system is not ready;
-   - it does not change stock or bypass submission checks;
-   - the optional note is visible to the sales rep/admin.
-4. After success, replace the CTA with an `Update requested` state, timestamp,
-   and cooldown-aware `Send reminder` action. Handle `already_ready` by
-   refreshing readiness and exposing normal submission controls.
-5. Keep projection-query failures distinct from confirmed blockers. If the
-   server cannot verify readiness, show retry guidance and do not create an
-   ungrounded request.
-6. In the admin Inventory tab, add a bounded request callout showing requester,
-   requested time, optional note, and scoped blocker summary. Reuse existing
-   Inventory tab actions for allocation, inbound, repair, or manual
-   fulfillment; do not add a second inventory mutation path.
-7. Ensure the UI is responsive, mounts only on the active tab, and follows the
-   existing Sales Overview sheet architecture.
-8. Refresh request/readiness state after task feedback, inventory actions, and
-   notification navigation.
+### Phase 6 - Implement Canonical Admin Resolution And Approval
+1. Build `resolveAndApproveProductionSubmissionReview` in `@gnd/sales`.
+2. Re-read the review, linked submissions, assignments, and current material
+   evidence before applying any resolution.
+3. Support `recheck_current_status`:
+   - perform no inventory mutation;
+   - approve only if the fresh scoped projection is ready/fulfilled.
+4. Support `receive_linked_inbound`:
+   - constrain inbound shipment/item ids to the review's current blockers;
+   - require admin-confirmed good/issue quantities;
+   - call `receiveInboundShipment`, not header-only status update;
+   - retain stock movement, demand receipt, issue, shipment progress, and
+     component recomputation behavior from the inventory domain.
+5. Support `mark_needs_fulfilled_without_inbound`:
+   - extend ADR-036 manual fulfillment with an optional, validated component-id
+     scope;
+   - allow only components belonging to the review/order;
+   - preserve protected linked/partially received inbound rules;
+   - record `noPhysicalStockChange=true`;
+   - never increment stock, allocation, or received quantity.
+6. Allow a mixed review to apply multiple resolution entries when some
+   components have linked inbound and others do not.
+7. After resolution, re-evaluate the exact submission scope:
+   - if ready/fulfilled, atomically transition `PENDING -> APPROVED`;
+   - if blockers remain, keep `PENDING` and return the exact unresolved list;
+   - if the projection fails after mutation, keep `PENDING` for retry.
+8. Finalize approval:
+   - recompute sales-control item/order stats;
+   - create deferred payroll idempotently;
+   - run completion-dependent payment review only now;
+   - expose the production quantity to packing/dispatch;
+   - write one Sales History event with before/after revisions, resolution
+     details, reviewer, affected inbound/component ids, and
+     `noPhysicalStockChange` evidence where applicable.
+9. Implement rejection:
+   - require a note;
+   - atomically transition `PENDING -> REJECTED`;
+   - soft-delete or otherwise void linked submissions using the canonical
+     submission cancellation path;
+   - recompute assignment and sales stats;
+   - do not mutate inventory.
+10. Make repeated approve/reject calls idempotent and return the existing final
+    decision.
 
 Dependencies:
-- Phases 3 and 4.
+- Phase 5 API boundary.
+- Existing inventory receipt and manual fulfillment services.
+
+Decision point:
+- Recommended: approval is not allowed while scoped blockers remain. The admin
+  must either record the receipt, mark eligible needs fulfilled, or leave the
+  review pending.
 
 Validation:
-- Component tests cover worker/admin modes, ready/read-only states, cooldown,
-  query failure, and mutation failure.
-- 375px/mobile-width browser validation proves the CTA, request state, admin
-  callout, and submission controls remain usable.
+- Transaction tests prove no partial review decision when a resolution fails.
+- Receipt tests prove stock/demand movement occurs once.
+- Manual fulfillment tests prove no physical stock movement.
+- Approval/rejection/finalization are idempotent.
 
-### Phase 7 - End-To-End Validation And Rollout
-1. Create a deterministic fixture with:
-   - one order;
-   - two production workers assigned to different production control UIDs;
-   - one blocked tracked component;
-   - an active sales rep;
-   - a configured admin channel subscriber.
-2. Validate the primary path:
-   - worker A requests;
-   - sales rep/admin receive one in-app notification;
-   - click opens the correct order Inventory tab;
-   - admin uses an existing valid correction path;
-   - worker A receives one ready notification;
-   - click opens the same order Production tab in worker scope;
-   - worker A submits successfully.
-3. Validate isolation:
-   - worker B cannot see or mutate worker A's request;
-   - unrelated blocked order lines do not delay worker A;
-   - an unassigned employee cannot create a request;
-   - no physical stock or inbound records change merely from requesting.
-4. Validate alternate correction paths: allocation approval, inbound receive
-   plus allocation, manual fulfillment, and repair sync.
-5. Validate failures: no sales rep, no subscribers, notification queue failure,
-   stale assignment, terminal order, duplicate click, concurrent resolver,
-   and inventory status temporarily unavailable.
-6. Run focused tests, then:
-   - `bun run typecheck`;
-   - narrow package checks for `@gnd/db`, `@gnd/sales`, `@gnd/notifications`,
-     `@gnd/jobs`, `@gnd/api`, and `@gnd/dashboard`;
-   - targeted Biome checks and `git diff --check`;
-   - the narrowest relevant dashboard build if the broad baseline permits.
+### Phase 7 - Add Typed Admin And Worker Notifications
+1. Add typed channels:
+   - `sales_production_submission_material_review`;
+   - `sales_production_submission_approved`;
+   - `sales_production_submission_rejected`.
+2. Admin-review payload contains only safe navigation/display fields:
+   `reviewId`, `salesId`, `orderNo`, worker id/name, submitted quantity, material
+   reason, blocker count, and submitted time.
+3. Route admin review to deduplicated active configured production
+   administrators and, if confirmed in Phase 0, the order sales rep.
+4. Approval/rejection routes only to the submitting worker. Rejection includes
+   a short safe decision message, not internal inventory metadata.
+5. Register all channels in notification schemas, channel configuration,
+   services/templates, and `notification-center.ts`.
+6. Deep links:
+   - admin: `/sales-book/productions/v2` with the order expanded and
+     `materialReviewId`;
+   - worker: `/production/dashboard/v2` with the assigned order expanded.
+7. Queue notifications after commit. Persist or log delivery diagnostics so
+   retrying notification work never repeats the domain decision.
+8. Add a pending-review age reminder/escalation task only if operations needs
+   it after V1 metrics. Do not add recurring noise in the first slice.
+
+Dependencies:
+- Phase 5 review identity and Phase 6 decision results.
+
+Validation:
+- Notification schema, recipient, transformation, deep-link, and duplicate
+  delivery tests pass.
+- No client can choose an admin recipient.
+
+### Phase 8 - Update The Worker Production Experience
+1. Reuse `ProductionMaterialsNotice` and the existing expanded production item
+   detail; do not add a parallel worker page.
+2. Before submission:
+   - ready material: keep the normal submission control;
+   - unresolved material: show an amber notice that submission is allowed but
+     will require admin verification;
+   - material projection unavailable: show the same non-blocking review warning
+     without claiming a specific shortage.
+3. The confirmation dialog must state:
+   - the work will be submitted now;
+   - it will be marked `Awaiting material verification`;
+   - the admin will verify inbound/availability;
+   - the worker should not submit the same work again.
+4. After submission:
+   - display `Submitted — awaiting material verification`;
+   - show submitted quantity and time;
+   - disable duplicate quantity submission because reported quantity is already
+     consumed;
+   - keep other assigned items/orders usable.
+5. After approval:
+   - display normal submitted/completed state;
+   - refresh assignment, production queue, material, and dashboard queries.
+6. After rejection:
+   - display the admin reason;
+   - restore the rejected quantity to the submission controls;
+   - provide a clear `Correct and resubmit` action.
+7. Handle Trigger and notification delay honestly. The immediate task result is
+   authoritative; notifications are supplementary.
+8. Ensure mobile/375px layouts keep warning, quantities, status, and submission
+   controls usable without document-level horizontal overflow.
+
+Dependencies:
+- Phases 3, 4, and 7.
+
+Validation:
+- Component tests cover ready, pending, not configured, unavailable, awaiting
+  review, approved, rejected, duplicate click, and task failure.
+- Authenticated browser QA proves the worker is never blocked by material state.
+
+### Phase 9 - Add The Admin Material Review Workspace
+1. Extend the existing `/sales-book/productions/v2` workspace:
+   - add a `Material Review` summary count;
+   - add a pending-review filter/tab;
+   - add a compact row badge/column for review status and age.
+2. Lazy-load review detail only when the admin opens the order/review.
+3. Review panel sections:
+   - worker and submission summary;
+   - original material evidence at submission;
+   - current material evidence and revision change;
+   - linked inbound shipment/item receipt form;
+   - eligible no-inbound need-fulfillment selections;
+   - remaining blockers;
+   - decision note and approve/reject controls;
+   - audit timeline.
+4. Resolution UX rules:
+   - preselect nothing that mutates inventory;
+   - show outstanding quantities but require admin confirmation;
+   - never equate a header `completed` status with received stock;
+   - disable protected manual-fulfillment components and explain why;
+   - show partial/mixed evidence per component.
+5. Keep the primary production queue available if review/material enrichment
+   fails. Render the review surface as an independent loading/error boundary.
+6. Invalidate production queue/detail/dashboard, review queue/detail, sales
+   overview, inbound, inventory, allocation, and notification queries after a
+   successful decision through the typed query-event registry.
+7. Preserve the live Tables-2 sales-production shell, compact density, table
+   ownership of scroll, and existing worker/admin route behavior.
+
+Dependencies:
+- Phases 5-7.
+
+Validation:
+- Admin component tests cover each resolution type, mixed blockers, stale
+  revisions, unauthorized users, mutation failure, and success.
+- Desktop and mobile browser QA prove review navigation and decision usability.
+
+### Phase 10 - Observability, Reconciliation, And Recovery
+1. Add structured logs/metrics for:
+   - submissions finalized immediately;
+   - submissions routed to review by reason;
+   - projection failures;
+   - pending-review age;
+   - approvals by resolution type;
+   - rejections;
+   - stale revision retries;
+   - notification failures;
+   - duplicate/idempotent command hits.
+2. Add a bounded reconciliation task for pending reviews:
+   - re-evaluate current material evidence;
+   - never auto-approve solely because readiness became ready;
+   - mark `ready_for_admin_approval` in the projection or notify admins that
+     the review can now be approved;
+   - cancel reviews whose order/assignment/submission was legitimately removed.
+3. Add a repair command for administrators/Super Admin that:
+   - detects pending reviews with missing links or inconsistent quantities;
+   - defaults to dry-run;
+   - uses expected baselines for any repair;
+   - writes Sales History evidence.
+4. Add alerting for reviews pending longer than the agreed service target.
+5. Preserve review and resolution snapshots as audit evidence even if later
+   inventory records change.
+
+Dependencies:
+- Core lifecycle implemented.
+
+Validation:
+- Sweep and repair tests are bounded, idempotent, and cannot mutate inventory
+  or approve work without explicit authority.
+
+### Phase 11 - End-To-End Validation And Rollout
+1. Build fixtures for:
+   - ready materials;
+   - linked inbound fully arrived but not recorded;
+   - partial linked inbound;
+   - no inbound and eligible manual fulfillment;
+   - protected linked demand;
+   - missing material configuration;
+   - projection failure;
+   - two workers on separate assignment scopes;
+   - handled LH/RH and ordinary quantity assignments.
+2. Primary scenario:
+   - worker opens an assigned pending-material order;
+   - warning says submission remains available;
+   - worker submits once;
+   - UI reports awaiting material verification;
+   - admin receives one notification and opens the review;
+   - admin records canonical inbound receipt;
+   - readiness recomputes;
+   - admin approves;
+   - worker receives approval;
+   - production completion/payroll/downstream eligibility happen once.
+3. No-inbound scenario:
+   - worker submits;
+   - admin chooses scoped manual fulfillment;
+   - no stock movement is written;
+   - eligible needs become fulfilled;
+   - approval finalizes production.
+4. Rejection scenario:
+   - admin rejects with reason;
+   - inventory is unchanged;
+   - pending quantity is released;
+   - worker corrects and resubmits.
+5. Isolation/security:
+   - worker B cannot see worker A's review details;
+   - unrelated order materials do not route worker A's submission to review;
+   - view-only admins cannot approve;
+   - ids and recipients cannot be spoofed;
+   - pending submissions cannot be packed/dispatched.
+6. Run:
+   - focused domain, DB-query, API, notification, job, and UI tests;
+   - `bun run db:generate`;
+   - `bun run db:migrate`;
+   - `bun run db:push`;
+   - package typechecks for DB, Sales, Inventory, Notifications, Jobs, API, and
+     Dashboard;
+   - targeted Biome and `git diff --check`;
+   - the narrowest relevant builds.
 7. Roll out additively:
-   - deploy schema and server contracts;
-   - sync/configure the two notification channels and verify recipients;
-   - deploy the dashboard UI;
-   - monitor open request age, reconcile failures, notification queue failures,
-     and ready-to-submit conversion for the first release window.
-8. Update the feature docs, API docs, database docs, task status, progress log,
-   and add an ADR only if implementation changes the durable decisions in this
-   plan.
+   - deploy schema and read compatibility first;
+   - deploy canonical submission classification and review APIs behind a
+     server-side feature flag;
+   - deploy admin queue and notification configuration;
+   - enable worker non-blocking submission for a controlled cohort;
+   - verify pending/approval/payroll/dispatch metrics;
+   - enable globally and remove the old strict `submitAll` gate.
+8. Update Brain feature/API/database docs, task state, progress, and the new ADR
+   as each rollout phase advances.
 
 Dependencies:
 - All prior phases.
 
 Validation:
-- Production-like authenticated browser evidence for both roles.
-- No unresolved high-severity findings from final code/permission review.
+- Production-like authenticated browser evidence for worker and admin roles.
+- No unresolved high-severity findings from domain, permission, inventory, or
+  code review.
+- Rollback disables new routing without deleting review or submission evidence.
 
 ## Affected Files Or Areas
-- `packages/db/src/schema/sales.prisma`
-- `packages/db/src/schema/users.prisma`
-- generated Prisma migration/schema artifacts
-- `packages/sales/src/production-material-requests.ts` (new)
-- `packages/sales/package.json`
-- `packages/sales/src/production-readiness-gate.ts`
-- `apps/api/src/trpc/routers/sales.route.ts`
-- `apps/api/src/trpc/routers/inventories.route.ts`
-- allocation/inbound/order-repair orchestration that returns affected order ids
-- `packages/jobs/src/schema.ts`
-- `packages/jobs/src/tasks/sales/reconcile-production-material-requests.ts`
-  (new)
-- `packages/jobs/src/tasks/sales/allocate-received-inbound-to-backorders.ts`
-- `packages/notifications/src/channels.ts`
-- `packages/notifications/src/schemas.ts`
-- `packages/notifications/src/index.ts`
-- `packages/notifications/src/notification-center.ts`
-- two new notification handler files under
-  `packages/notifications/src/types/`
-- `apps/dashboard/src/components/notification-center/notification-center.tsx`
-- `apps/dashboard/src/components/sheets/sales-overview-sheet/production-readiness-banner.tsx`
-- `apps/dashboard/src/components/sheets/sales-overview-sheet/context.tsx`
-- `apps/dashboard/src/components/sales-overview-system/tabs/inventory-tab.tsx`
-- focused package/API/dashboard tests
-- `.brain/features/sales-production-workspace.md`
+- `.brain/decisions/` for the new submission-review ADR
 - `.brain/features/production-readiness-override.md`
+- `.brain/features/sales-production-workspace.md`
 - `.brain/features/inventory-backed-sales-fulfillment.md`
 - `.brain/api/endpoints.md`
 - `.brain/api/contracts.md`
@@ -466,94 +754,137 @@ Validation:
 - `.brain/database/schema.md`
 - `.brain/database/relationships.md`
 - `.brain/database/migrations.md`
-- `.brain/progress.md`
+- `packages/db/src/schema/sales.prisma`
+- generated Prisma migration/schema artifacts
+- `packages/sales/src/production-submission-review/` (new)
+- `packages/sales/src/production-readiness-gate.ts`
+- `packages/sales/src/sales-control/actions.ts`
+- `packages/sales/src/sales-control/tasks.ts`
+- `packages/sales/src/sales-control/get-sale-information.ts`
+- `packages/sales/src/sales-production.ts`
+- `packages/sales/src/production-v2/application/get-production-order-detail-v2.ts`
+- `packages/sales/src/manual-fulfill-sales-inventory-needs.ts`
+- `packages/inventory/src/application/inbound/inbound-demand.ts`
+- `packages/jobs/src/tasks/sales/update-sales-control.ts`
+- `packages/jobs/src/schema.ts`
+- `packages/notifications/src/channels.ts`
+- `packages/notifications/src/schemas.ts`
+- `packages/notifications/src/notification-center.ts`
+- notification services/templates for the three new channels
+- `apps/api/src/trpc/routers/sales.route.ts`
+- `apps/api/src/trpc/routers/inventories.route.ts`
+- `apps/dashboard/src/components/production-v2/materials-status.tsx`
+- `apps/dashboard/src/components/production-v2/shared.tsx`
+- `apps/dashboard/src/components/tables-2/sales-production/*`
+- `apps/dashboard/src/lib/query-events/registry.ts`
+- legacy dashboard submission actions/data access pending consolidation
 
 ## Acceptance Criteria
-- An authenticated worker can request an inventory update only for their own
-  active, incomplete production assignments on the selected order.
-- The request is available from the canonical Sales Overview Production tab
-  when that worker's strict submission scope is unresolved.
-- Creating or reminding a request does not change stock, allocation, inbound,
-  component fulfillment, order status, or readiness override state.
-- The order sales rep and configured administration subscribers receive a typed
-  in-app request notification; its click opens the correct order Inventory tab.
-- The admin can see who requested the update and the bounded blocker snapshot
-  while using existing inventory/inbound actions.
-- One current request lifecycle exists per worker/order, with audited reopen and
-  reminder history and server-enforced cooldown.
-- Readiness resolves against the same worker-scoped strict gate used by
-  `submitAll`, without consulting the historical compatibility override.
-- Only an atomic transition from open to ready queues the worker-ready
-  notification.
-- Clicking the worker-ready notification opens the correct order Production tab
-  in authenticated worker scope, and a valid submission can continue.
-- Removed assignments and fulfilled/cancelled orders close open requests without
-  sending a misleading ready notification.
-- Multiple workers on one order remain isolated by assignment scope and request
-  ownership.
-- Notification or reconciliation failures are logged, retryable, and do not
-  roll back committed inventory work or fabricate readiness.
+- A production worker can submit assigned work when materials are ready,
+  pending inbound, unavailable, not configured, or temporarily unreadable.
+- Inventory state never causes the worker submission command to fail after
+  ordinary assignment/quantity validation succeeds.
+- The worker sees a clear warning before submitting unresolved work and a clear
+  awaiting-review state afterward.
+- Pending-review quantity cannot be submitted twice.
+- Pending-review quantity does not finalize production, payroll, packing,
+  dispatch, or order completion.
+- Authorized admins see a bounded review queue and receive a typed notification.
+- Admin review shows original and current material evidence plus staleness.
+- Linked inbound arrival is corrected only through canonical inbound receipt.
+- No-inbound availability is corrected through audited ADR-036 manual
+  fulfillment without physical stock movement.
+- Mixed material blockers can be resolved safely in one review.
+- Approval finalizes the submissions and downstream effects exactly once.
+- Rejection records a reason, leaves inventory unchanged, and permits
+  correction/resubmission.
+- View-only or unrelated users cannot approve, reject, or mutate inventory.
+- Notification failure never reverts a committed submission or decision.
+- Existing historical submissions remain finalized without backfill.
+- Assignment remains independent of inventory readiness.
 
 ## Test Plan
-- Unit tests for request eligibility, scope derivation, strict readiness,
-  idempotency, cooldown, reopen, close, and atomic ready transitions.
-- Unit tests for both notification schemas, handlers, recipient routing, and
-  action parsing.
-- API permission tests for assigned worker, unassigned worker, admin viewer,
-  spoofed identity fields, terminal order, and notification-queue failure.
-- Integration tests for manual fulfillment, allocation approval, inbound
-  receipt/downstream allocation, order repair, and projection sync hooks.
-- Dashboard component tests for worker CTA/state, admin callout, query failure,
-  and ready/read-only states.
-- Notification-center navigation tests for the exact Inventory and Production
-  overview targets.
-- Authenticated browser test for the complete worker -> admin -> worker loop,
-  including 375px layout coverage.
-- Package/API/dashboard typechecks, focused Biome, whitespace validation, and
-  the narrowest relevant build.
+- Domain tests:
+  classification, revisioning, quantity semantics, idempotency, state
+  transitions, stale evidence, approval, rejection, and cancellation.
+- Database tests:
+  additive schema compatibility, indexes, review/submission relations, unique
+  idempotency, and transaction rollback.
+- Inventory tests:
+  canonical receipt once, partial receipt, issues, protected demand, scoped
+  manual fulfillment, and no-physical-stock-change evidence.
+- Sales-control tests:
+  reported versus finalized quantity, stats, order completion, automatic
+  payment review, deletion, and legacy compatibility.
+- Payroll/dispatch tests:
+  no pending payroll, idempotent approval payroll, no pending packing/delivery,
+  and approved downstream eligibility.
+- API/permission tests:
+  worker ownership, admin role boundaries, underlying inventory permission,
+  spoof prevention, bounded queries, and stale expected revision.
+- Trigger/job tests:
+  retry idempotency, notification failure isolation, reconciliation bounds, and
+  feature-flag rollout.
+- Notification tests:
+  typed schemas, recipient derivation, templates, notification-center actions,
+  deep links, and duplicate suppression.
+- Dashboard tests:
+  warning copy, confirmation, pending/approved/rejected states, admin queue,
+  resolution forms, query invalidation, and responsive behavior.
+- Browser tests:
+  authenticated worker/admin primary, no-inbound, rejection, partial/mixed,
+  and mobile-width flows.
 
 ## Risks / Edge Cases
-- **Wrong readiness scope:** Whole-order evaluation could block one worker on
-  another worker's materials. Mitigate by deriving live assigned control UIDs
-  server-side and reusing them for request and reconciliation.
-- **Notification spam:** Multiple clicks or mutation hooks could create repeated
-  alerts. Mitigate with one worker/order row, a reminder cooldown, and atomic
-  lifecycle transitions.
-- **Missed legacy update path:** Some inventory changes may bypass a new event
-  hook during migration. Mitigate with explicit hook coverage plus a bounded
-  five-minute open-request sweep.
-- **False ready after receipt:** Receipt may still require allocation. Mitigate
-  by using the strict gate and reconciling after both receipt and downstream
-  allocation.
-- **Manual fulfillment semantics:** ADR-036 permits audited fulfillment without
-  fabricating stock. Mitigate by preserving that existing gate meaning and
-  showing the request note/audit to the admin.
-- **No sales rep or admin subscriber:** A persisted request could have no
-  notification recipient. Mitigate by requiring channel-role configuration
-  before UI rollout, returning `notificationQueued`, showing the durable request
-  in Sales Overview, and monitoring unrouted open requests.
-- **Assignment changes while open:** A request may refer to removed or completed
-  work. Mitigate by re-resolving live assignments on every reconciliation and
-  closing obsolete requests without a ready alert.
-- **Notification succeeds but status bookkeeping fails:** At-least-once task
-  delivery can produce rare duplicates. Mitigate with atomic request transition
-  guards, deterministic request ids in tags, retry-safe task inputs, and
-  notification timestamp diagnostics.
-- **Projection temporarily unavailable:** The client could otherwise create an
-  ungrounded request. Mitigate by requiring server-side readiness evaluation
-  and returning retry guidance on projection failure.
-- **Active overlapping worktree changes:** Current inventory compatibility work
-  touches some planned files. Mitigate by re-reading current diffs before
-  implementation and keeping edits narrow.
+- Pending submissions currently look completed everywhere that counts all
+  non-deleted rows.
+  - Mitigation: central finalized/reported predicates and an audit of every
+    production-submission consumer before rollout.
+- A worker may double-click or a Trigger task may retry.
+  - Mitigation: server idempotency key plus baseline-guarded transaction.
+- An admin may approve stale evidence after another inventory update.
+  - Mitigation: expected revision, fresh projection, and explicit reconfirmation.
+- Marking only an inbound header completed can create false readiness.
+  - Mitigation: approval uses `receiveInboundShipment` item receipt exclusively.
+- Manual availability can corrupt physical stock truth.
+  - Mitigation: reuse ADR-036, scope it to validated components, protect linked
+    receipt evidence, and record `noPhysicalStockChange=true`.
+- Approval may create payroll or stats twice.
+  - Mitigation: state transition guard, unique production-submission payroll
+    relation, and idempotent finalizer.
+- Material projection failure could create an unreviewable queue item.
+  - Mitigation: persist a `PROJECTION_UNAVAILABLE` review, keep the production
+    queue available, and let admins retry/recheck without blocking the worker.
+- One order can contain multiple workers and unrelated material blockers.
+  - Mitigation: snapshot and re-evaluate only the submitted assignment scope.
+- A pending submission might leak into packing/dispatch through legacy reads.
+  - Mitigation: server-side downstream guards plus static regression scans for
+    direct submission consumers.
+- Rejection may conflict with already delivered or paid work.
+  - Mitigation: pending rows are never dispatchable or payable; reject is
+    disabled if an invariant violation is detected and routed to repair.
+- Notification configuration may leave no admin recipient.
+  - Mitigation: recipient diagnostics, visible queue independent of
+    notifications, and an operational alert for unassigned reviews.
+- The repository has duplicate legacy app/app-deps implementations.
+  - Mitigation: consolidate to the shared command and add a no-direct-write
+    regression test.
 
 ## Open Questions
-- TODO: Confirm the exact live role names to subscribe as inventory/operations
-  admins in addition to the order sales rep.
-- TODO: Confirm or change the recommended optional 500-character note,
-  15-minute reminder cooldown, and five-minute safety sweep.
-- TODO: Confirm that an explicit admin acknowledge/dismiss state is not needed
-  for V1; recommended default is automatic ready/close only.
+- Confirm whether the order sales rep should receive the admin-review
+  notification in addition to configured production administrators.
+- Confirm the exact existing inventory permission to require for inbound
+  receipt; if none is explicit today, add one before exposing receipt through
+  production review.
+- Confirm the pending-review service target for escalation, recommended:
+  four business hours.
+- Confirm whether approval should support an optional admin attachment/photo in
+  V1 or defer it.
+- Confirm whether a rejected submission should be soft-deleted immediately or
+  retained active with an explicit rejected status. Recommended: retain the
+  review audit and void/soft-delete the linked submission rows through the
+  canonical cancellation path.
 
 ## Linked Task
-- Task Title: Production Worker Inventory Update Requests And Resume Notifications
+- Task Title: Production Worker Submission Material Verification And Admin Approval
 - Task File: .brain/tasks/roadmap.md

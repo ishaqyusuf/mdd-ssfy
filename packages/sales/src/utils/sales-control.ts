@@ -12,6 +12,10 @@ import { isEqual } from "lodash";
 import { getItemStatConfig, qtyControlsByType } from "./utils";
 import { GetSalesItemControllables } from "../sales-control";
 import { SalesInfoData } from "../exports";
+import {
+	isActiveReportedSubmission,
+	isFinalizedProductionSubmission,
+} from "../production-submission-review/policy";
 
 function isControlDebugEnabled() {
   const flag = String(process.env.CONTROL_DEBUG ?? "")
@@ -175,7 +179,11 @@ export function composeSalesItemControlStat({
   order,
   ...props
 }: ComposeSalesItemControlStatProps) {
-  const { controlUid: uid, qty, itemConfig: { production } = {} } = props;
+	const {
+		controlUid: uid,
+		qty,
+		itemConfig: { production } = {},
+	} = props;
   // const order = _order as Prisma.SalesOrdersGetPayload<{
   //   select: {
   //     deliveries: {
@@ -234,20 +242,31 @@ export function composeSalesItemControlStat({
       qty,
     })),
   );
+	const reportedSubmissions = assignments.flatMap((assignment) =>
+		assignment.submissions.filter(isActiveReportedSubmission),
+	);
+	const finalizedSubmissions = assignments.flatMap((assignment) =>
+		assignment.submissions.filter(isFinalizedProductionSubmission),
+	);
+	const reportedSubmitted = qtyMatrixSum(
+		...reportedSubmissions.map(({ lhQty: lh, rhQty: rh, qty }) => ({
+			lh,
+			rh,
+			qty,
+		})),
+	);
   const submitted = qtyMatrixSum(
-    ...assignments
-      .map((a) =>
-        a.submissions.map(({ lhQty: lh, rhQty: rh, qty }) => ({
+		...finalizedSubmissions.map(({ lhQty: lh, rhQty: rh, qty }) => ({
           lh,
           rh,
           qty,
         })),
-      )
-      .flat(),
   );
   const deliverables = assignments
     .map((assignment) => {
-      return assignment.submissions.map((s) => {
+			return assignment.submissions
+				.filter(isFinalizedProductionSubmission)
+				.map((s) => {
         let submitted = transformQtyHandle(s);
         const delivered = qtyMatrixSum(
           ...order.deliveries
@@ -271,10 +290,8 @@ export function composeSalesItemControlStat({
     })
     .flat();
   const pendingAssignment = qtyMatrixDifference(qty, assigned);
-  const pendingProduction = qtyMatrixDifference(assigned, submitted);
-  const submissionIds = assignments
-    .map((a) => a.submissions.map((s) => s.id))
-    .flat();
+	const pendingProduction = qtyMatrixDifference(assigned, reportedSubmitted);
+	const submissionIds = finalizedSubmissions.map((submission) => submission.id);
   const deliveries = order.deliveries
     .map((d) =>
       d.items
@@ -290,11 +307,9 @@ export function composeSalesItemControlStat({
     .flat();
   const dispatch = {
     queued: qtyMatrixSum(
-      ...(
-        deliveries.filter(
+			...(deliveries.filter(
           (a) => a.status == "queue" || a.status == "packing queue",
-        ) as any
-      ),
+			) as any),
     ),
     inProgress: qtyMatrixSum(
       ...(deliveries.filter((a) => a.status == "in progress") as any),
@@ -324,7 +339,9 @@ export function composeSalesItemControlStat({
           qty: assignment.qtyAssigned,
         },
         qtyMatrixSum(
-          ...assignment.submissions.map((s) => ({
+					...assignment.submissions
+						.filter(isActiveReportedSubmission)
+						.map((s) => ({
             lh: s.lhQty,
             rh: s.rhQty,
             qty: s.qty,
@@ -358,6 +375,7 @@ export function composeSalesItemControlStat({
     qty,
     assigned,
     submitted,
+		reportedSubmitted,
     submissionIds,
     dispatch,
     pendingAssignment,
@@ -381,6 +399,8 @@ export function composeSalesItemControlStat({
       stats.dispatchInProgress,
     )?.qty,
     submitQty: submitted.qty,
+		reportedSubmitQty: reportedSubmitted.qty,
+		pendingMaterialReview: qtyMatrixDifference(reportedSubmitted, submitted),
     pendingSubmissions,
     assignment: {
       pending: pendingAssignment,
@@ -754,8 +774,7 @@ export function composeControls(order: GetSalesItemControllables) {
           },
         },
       });
-    } else
-      {
+		} else {
       const qtyControlData = dedupeQtyControlsByType(control.qtyControls).map(
         (cont) => {
           const { itemControlUid, ...rest } = cont;

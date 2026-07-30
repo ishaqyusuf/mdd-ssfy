@@ -50,7 +50,6 @@ export const UPDATE_SALES_CONTROL_COMMAND_MAP: Record<
 };
 
 export const INVENTORY_PRODUCTION_LIFECYCLE_SYNC_ACTIONS = [
-	"submitAll",
 	"updateSubmissions",
 	"deleteSubmissions",
 	"deleteAssignments",

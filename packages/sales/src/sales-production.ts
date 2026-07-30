@@ -14,6 +14,7 @@ import {
 	unavailableProductionMaterialSummary,
 } from "./production-v2/application/production-materials";
 import { getSalesProductionPlan } from "./sales-fulfillment-plan";
+import { isFinalizedProductionSubmission } from "./production-submission-review/policy";
 import type {
 	SalesProductionQueryParams,
 	SalesQueryParamsSchema,
@@ -426,6 +427,11 @@ const select = (whereAssignments?) =>
 						lhQty: true,
 						qty: true,
 						rhQty: true,
+						materialReview: {
+							select: {
+								status: true,
+							},
+						},
 					},
 				},
 				lhQty: true,
@@ -462,7 +468,11 @@ function transformProductionList(
 
 	const totalCompleted = sum(
 		item.assignments.map((a) =>
-			sum(a.submissions.map((s) => s.qty || sum([s.lhQty, s.rhQty]))),
+			sum(
+				a.submissions
+					.filter(isFinalizedProductionSubmission)
+					.map((s) => s.qty || sum([s.lhQty, s.rhQty])),
+			),
 		),
 	);
 	const totalProductionQty = sum(

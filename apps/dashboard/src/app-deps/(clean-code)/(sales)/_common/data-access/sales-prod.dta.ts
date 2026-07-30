@@ -7,6 +7,7 @@ import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 import { excludeDeleted } from "../utils/db-utils";
 import { Qty } from "./dto/sales-item-dto";
 import { DispatchItemPackingStatus } from "@sales/types";
+import { submitProductionAssignment } from "@sales/production-submission-review";
 
 export async function createItemAssignmentDta(
     data: Prisma.OrderItemProductionAssignmentsCreateInput,
@@ -51,8 +52,7 @@ export async function deleteAssignmentDta(
                     itemDeliveries: {
                         where: {
                             ...excludeDeleted.where,
-                            packingStatus:
-                                "packed" as DispatchItemPackingStatus,
+							packingStatus: "packed" as DispatchItemPackingStatus,
                         },
                         select: {
                             id: true,
@@ -92,6 +92,36 @@ export async function submitAssignmentDta(
     data: Prisma.OrderProductionSubmissionsCreateInput,
     produceable,
 ) {
+	if (produceable) {
+		const input = data as any;
+		const assignmentId = input.assignmentId || input.assignment?.connect?.id;
+		const salesOrderId = input.salesOrderId || input.order?.connect?.id;
+		const salesOrderItemId = input.salesOrderItemId || input.item?.connect?.id;
+		const submittedById =
+			input.submittedById || input.submittedBy?.connect?.id || (await userId());
+		if (!assignmentId || !salesOrderId || !salesOrderItemId || !submittedById) {
+			throw new Error(
+				"Production submission requires an assignment, order item, and authenticated worker.",
+			);
+		}
+		const result = await submitProductionAssignment(prisma as any, {
+			salesOrderId,
+			salesOrderItemId,
+			assignmentId,
+			submittedById,
+			idempotencyKey:
+				input.idempotencyKey ||
+				`legacy-production:${salesOrderId}:${assignmentId}:${submittedById}`,
+			qty: Number(input.qty || 0),
+			lhQty: input.lhQty,
+			rhQty: input.rhQty,
+			note: input.note,
+			meta: input.meta,
+		});
+		return prisma.orderProductionSubmissions.findUniqueOrThrow({
+			where: { id: result.submissionId },
+		});
+	}
     const c = await prisma.orderProductionSubmissions.create({
         data,
     });

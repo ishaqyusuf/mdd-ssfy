@@ -65,6 +65,8 @@ model Users {
     definedProductionGates      OrderProductionGate[]
     confirmedProductionReadinessOverrides SalesProductionReadinessOverride[] @relation(name: "confirmedProductionReadinessOverrides")
     revokedProductionReadinessOverrides SalesProductionReadinessOverride[] @relation(name: "revokedProductionReadinessOverrides")
+    submittedProductionMaterialReviews SalesProductionSubmissionMaterialReview[] @relation(name: "productionSubmissionMaterialReviewsSubmitted")
+    reviewedProductionMaterialReviews SalesProductionSubmissionMaterialReview[] @relation(name: "productionSubmissionMaterialReviewsReviewed")
     sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
     taskRunDiagnosticsStarted   TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticActor")

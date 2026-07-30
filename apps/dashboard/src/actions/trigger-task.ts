@@ -3,6 +3,7 @@
 import { taskNames } from "@jobs/schema";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { actionClient } from "./safe-action";
+import { getLoggedInProfile } from "./cache/get-loggedin-profile";
 
 import {
 	logTaskRunStartFailure,
@@ -31,12 +32,36 @@ export const triggerTask = actionClient
 	})
 	.action(async ({ parsedInput: params }) => {
 		try {
-			const event = await tasks.trigger(params.taskName, {
-				...(params?.payload || {}),
-			});
+			let payload = params?.payload || {};
+			if (params.taskName === "update-sales-control") {
+				const actor = await getLoggedInProfile();
+				if (!actor.userId) {
+					throw new Error("Authentication is required.");
+				}
+				const input =
+					payload && typeof payload === "object"
+						? (payload as Record<string, unknown>)
+						: {};
+				const inputMeta =
+					input.meta && typeof input.meta === "object"
+						? (input.meta as Record<string, unknown>)
+						: {};
+				payload = {
+					...input,
+					meta: {
+						...inputMeta,
+						authorId: actor.userId,
+						authorName: actor.name || "Employee",
+						allowProductionSubmissionForOthers: Boolean(
+							actor.can?.editProduction,
+						),
+					},
+				};
+			}
+			const event = await tasks.trigger(params.taskName, payload);
 			await logTriggeredTaskRun({
 				taskName: params.taskName,
-				payload: params.payload,
+				payload,
 				event,
 			});
 

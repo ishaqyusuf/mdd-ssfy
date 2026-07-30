@@ -57,7 +57,7 @@ describe("sales production overview query boundary", () => {
 		);
 		expect(providerSource).toContain("readiness: readinessQuery.data");
 		expect(providerSource).toContain(
-			"readinessUnavailable: readinessQuery.isError",
+			"readinessUnavailable: hasProductionItems && readinessQuery.isError",
 		);
 	});
 

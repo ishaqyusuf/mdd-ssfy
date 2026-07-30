@@ -18,7 +18,6 @@ const baseInput = {
 describe("update sales control command map", () => {
 	it("keeps assignment independent from inventory lifecycle sync", () => {
 		expect(INVENTORY_PRODUCTION_LIFECYCLE_SYNC_ACTIONS).toEqual([
-			"submitAll",
 			"updateSubmissions",
 			"deleteSubmissions",
 			"deleteAssignments",
@@ -28,6 +27,12 @@ describe("update sales control command map", () => {
 			shouldSyncInventoryProductionLifecycleForSalesControl({
 				...baseInput,
 				createAssignments: {},
+			}),
+		).toBe(false);
+		expect(
+			shouldSyncInventoryProductionLifecycleForSalesControl({
+				...baseInput,
+				submitAll: {},
 			}),
 		).toBe(false);
 

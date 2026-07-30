@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { packDispatchItemsAction } from "./actions";
 
-function createDbStub(existingPacked: any[] = []) {
+function createDbStub(existingPacked: any[] = [], eligibleSubmissions?: any[]) {
   const createdRows: any[] = [];
 
   return {
@@ -13,6 +13,10 @@ function createDbStub(existingPacked: any[] = []) {
           return { count: data.length };
         },
       },
+			orderProductionSubmissions: {
+				findMany: async ({ where }: any) =>
+					eligibleSubmissions || where.id.in.map((id: number) => ({ id })),
+			},
     },
     createdRows,
   };
@@ -129,4 +133,24 @@ describe("packDispatchItemsAction", () => {
     expect(createdRows[0].orderProductionSubmissionId).toBe(4001);
     expect(createdRows[0].qty).toBe(2);
   });
+
+	it("refuses to pack a submission that is awaiting material review", async () => {
+		const { db } = createDbStub([], []);
+
+		await expect(
+			packDispatchItemsAction(db as any, {
+				data: { order: { id: 105 } } as any,
+				authorId: 1,
+				authorName: "Tester",
+				update: false,
+				packItems: {
+					dispatchId: 5005,
+					dispatchStatus: "queue" as any,
+					packingLines: [
+						{ salesItemId: 51, submissionId: 5001, qty: { qty: 1 } as any },
+					],
+				} as any,
+			}),
+		).rejects.toThrow("awaiting material review");
+	});
 });

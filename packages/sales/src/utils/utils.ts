@@ -432,6 +432,13 @@ export const FullSalesSelect = {
           qty: true,
           rhQty: true,
           lhQty: true,
+          materialReview: {
+            select: {
+              id: true,
+              status: true,
+              classificationReason: true,
+            },
+          },
           submittedBy: {
             select: {
               id: true,

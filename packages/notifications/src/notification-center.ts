@@ -18,6 +18,7 @@ import {
 	type SalesMarkedAsProductionCompletedTags,
 	type SalesPaymentRecordedTags,
 	type SalesProductionAllCompletedTags,
+	type SalesProductionSubmissionMaterialReviewTags,
 	communityDocumentsTags,
 	communityUnitProductionBatchUpdatedTags,
 	communityUnitProductionCompletedTags,
@@ -37,6 +38,7 @@ import {
 	salesMarkedAsProductionCompletedTags,
 	salesPaymentRecordedTags,
 	salesProductionAllCompletedTags,
+	salesProductionSubmissionMaterialReviewTags,
 } from "./schemas";
 
 export type RawNotificationItem = {
@@ -82,6 +84,10 @@ type NotificationActionPayloadMap = {
 		"type"
 	>;
 	sales_production_all_completed: Omit<SalesProductionAllCompletedTags, "type">;
+	sales_production_submission_material_review: Omit<
+		SalesProductionSubmissionMaterialReviewTags,
+		"type"
+	>;
 	sales_dispatch_assigned: Omit<SalesDispatchAssignedTags, "type">;
 	community_unit_production_started: Omit<
 		CommunityUnitProductionStartedTags,
@@ -218,6 +224,16 @@ function parseAction(
 		return {
 			type: "inventory_inbound_activity",
 			label: "Open Inbound",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "sales_production_submission_material_review") {
+		const parsed = salesProductionSubmissionMaterialReviewTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "sales_production_submission_material_review",
+			label: "Review",
 			data: parsed.data,
 		};
 	}

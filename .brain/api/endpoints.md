@@ -397,5 +397,19 @@ Tracks notable API surfaces and where they are implemented.
   override using an expected revision. Confirm requires the literal
   `all_required_inventory_physically_available` affirmation; this compatibility
   endpoint no longer controls production assignment.
-- `update-sales-control` allows `createAssignments` without inventory readiness
-  or inventory lifecycle sync and keeps the readiness gate for `submitAll`.
+- `update-sales-control` allows both `createAssignments` and `submitAll`
+  without an inventory readiness authorization gate. `submitAll` persists
+  unresolved work under material review instead of finalizing it.
+
+## Production submission material review (2026-07-30)
+
+- `sales.productionSubmissionMaterialReviews`: protected, cursor-bounded admin
+  queue by review status.
+- `sales.productionSubmissionMaterialReviewDetail`: protected review detail
+  with original/fresh material evidence, revision staleness, scoped
+  submissions, and linked inbound receipt candidates.
+- `sales.reviewProductionSubmission`: protected optimistic decision command for
+  recheck, mixed confirmed inbound/manual resolution, approval, or rejection.
+- `update-sales-control.submitAll` derives worker authority from server-bound
+  task metadata, persists an idempotent review batch, and notifies configured
+  production administrators only for pending reviews.

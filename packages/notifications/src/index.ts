@@ -87,6 +87,11 @@ import { salesPaymentRecorded } from "./types/sales-payment-recorded";
 import { salesPaymentRefunded } from "./types/sales-payment-refunded";
 import { salesProductionAllCompleted } from "./types/sales-production-all-completed";
 import { salesProductionAssigned } from "./types/sales-production-assigned";
+import {
+	salesProductionSubmissionMaterialApproved,
+	salesProductionSubmissionMaterialRejected,
+} from "./types/sales-production-submission-material-decision";
+import { salesProductionSubmissionMaterialReview } from "./types/sales-production-submission-material-review";
 import { salesReminderScheduleAdminNotification } from "./types/sales-reminder-schedule-admin-notification";
 import { salesRequestPacking } from "./types/sales-request-packing";
 import { simpleSalesDocumentEmail } from "./types/simple-sales-document-email";
@@ -171,6 +176,12 @@ const handlers = {
 	sales_payment_recorded: salesPaymentRecorded,
 	sales_payment_refunded: salesPaymentRefunded,
 	sales_production_assigned: salesProductionAssigned,
+	sales_production_submission_material_review:
+		salesProductionSubmissionMaterialReview,
+	sales_production_submission_material_approved:
+		salesProductionSubmissionMaterialApproved,
+	sales_production_submission_material_rejected:
+		salesProductionSubmissionMaterialRejected,
 } as const;
 import { generateEmailMeta } from "./utils";
 

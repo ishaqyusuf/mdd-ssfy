@@ -85,6 +85,16 @@ const SalesProductionSearchFilter = dynamic(
 	},
 );
 
+const ProductionMaterialReviewPanel = dynamic(
+	() =>
+		import("./production-v2/shared").then(
+			(mod) => mod.ProductionMaterialReviewPanel,
+		),
+	{
+		loading: () => <Skeleton className="h-56 rounded-3xl" />,
+	},
+);
+
 function FilterCardSkeleton() {
 	return (
 		<div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur sm:min-w-[320px]">
@@ -228,6 +238,8 @@ export function ProductionWorkspace({
 					<SalesProductionSearchFilter workerMode={workerMode} />
 				</div>
 			</section>
+
+			{workerMode ? null : <ProductionMaterialReviewPanel />}
 
 			<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 				{dashboardQuery.isPending || !dashboard ? (

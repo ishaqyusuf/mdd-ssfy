@@ -95,8 +95,31 @@ Provide a cleaner production operations surface for both admins and production w
   - worker mode treats an order as completed only when that worker's related assignments are fully submitted
   - admin mode treats an order as completed only when total submitted production qty meets the full production qty for the order
 - Production assignment mutations emitted through `update-sales-control` now trigger a targeted `sales_production_assigned` notification to the assigned worker from the Trigger jobs layer.
-- Inventory readiness never blocks `createAssignments`; `submitAll` retains the
-  strict readiness gate.
+- Inventory readiness never blocks `createAssignments` or production
+  submission. Unresolved submissions are saved under material review and remain
+  excluded from finalized production until an admin resolves and approves
+  them.
+
+## Submission Material Verification (2026-07-30)
+
+- The live Sales Overview production form warns workers when material evidence
+  is pending, missing, or unavailable, but keeps Submit enabled.
+- A pending submission immediately consumes the assignment's reported
+  remainder so repeat submission is prevented. It displays `Awaiting material
+  approval` to the worker.
+- The live admin `ProductionWorkspace` includes a bounded material verification
+  queue with fresh evidence, staleness indication, decision notes, confirmed
+  good/issue inbound quantities, and scoped manual-fulfillment choices.
+- Admins may recheck without mutation, combine multiple linked inbound receipts
+  with no-inbound manual fulfillment, approve only after fresh readiness, or
+  reject and void the submitted rows.
+- Pending work never creates payroll or becomes packable/dispatchable. Approval
+  creates deferred payroll idempotently, refreshes production stats, runs
+  completion-dependent payment review, and unlocks downstream fulfillment.
+- Worker and admin notifications use typed production material-review channels.
+- All produceable legacy submission writers route through the shared
+  `@gnd/sales` submission authority; non-production dispatch compatibility rows
+  remain outside this review workflow.
 
 ## V2 Notes
 - Order-level notes now use the newer inbox/chat note flow on the `sales_info` notification channel.

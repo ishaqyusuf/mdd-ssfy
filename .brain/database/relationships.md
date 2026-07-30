@@ -135,3 +135,13 @@ Tracks important cross-model relationships and ownership patterns.
   `productionReadinessOverridesRevoked` relation.
 - `SalesHistory.salesId` stores append-only confirmation, successful-use, and
   revocation evidence for the same order.
+
+## Production submission material review links (2026-07-30)
+
+- `SalesOrders` 1:N `SalesProductionSubmissionMaterialReview`.
+- `SalesProductionSubmissionMaterialReview` 1:N
+  `OrderProductionSubmissions`; one review owns the submitted batch.
+- `submittedById -> Users.id` records the authenticated worker and
+  `reviewedById -> Users.id` records the deciding administrator.
+- Approval payroll remains one-to-one through the existing unique
+  `Payroll.productionSubmissionId` relation.

@@ -859,6 +859,9 @@ export type NotificationTypes = {
 	dispatch_packing_delay: DispatchPackingDelayInput;
 	sales_dispatch_duplicate_alert: SalesDispatchDuplicateAlertInput;
 	sales_production_assigned: SalesProductionAssignedInput;
+	sales_production_submission_material_review: SalesProductionSubmissionMaterialReviewInput;
+	sales_production_submission_material_approved: SalesProductionSubmissionMaterialDecisionInput;
+	sales_production_submission_material_rejected: SalesProductionSubmissionMaterialDecisionInput;
 };
 
 export const getNotificationChannelsSchema = z
@@ -913,6 +916,43 @@ export const salesProductionAssignedTags = actityTagsSchema.extend({
 });
 export type SalesProductionAssignedTags = z.infer<
 	typeof salesProductionAssignedTags
+>;
+export const salesProductionSubmissionMaterialReviewSchema = z.object({
+	reviewId: z.number(),
+	salesId: z.number(),
+	orderNo: z.string().optional(),
+	workerId: z.number(),
+	workerName: z.string().optional(),
+	submittedQty: z.number(),
+	reason: z.string(),
+	pendingMaterialCount: z.number().optional(),
+	expectedAt: z.string().optional().nullable(),
+});
+export type SalesProductionSubmissionMaterialReviewInput = z.infer<
+	typeof salesProductionSubmissionMaterialReviewSchema
+>;
+export const salesProductionSubmissionMaterialReviewTags =
+	actityTagsSchema.extend(salesProductionSubmissionMaterialReviewSchema.shape);
+export type SalesProductionSubmissionMaterialReviewTags = z.infer<
+	typeof salesProductionSubmissionMaterialReviewTags
+>;
+export const salesProductionSubmissionMaterialDecisionSchema = z.object({
+	reviewId: z.number(),
+	salesId: z.number(),
+	orderNo: z.string().optional(),
+	workerId: z.number(),
+	status: z.enum(["APPROVED", "REJECTED"]),
+	note: z.string().optional(),
+});
+export type SalesProductionSubmissionMaterialDecisionInput = z.infer<
+	typeof salesProductionSubmissionMaterialDecisionSchema
+>;
+export const salesProductionSubmissionMaterialDecisionTags =
+	actityTagsSchema.extend(
+		salesProductionSubmissionMaterialDecisionSchema.shape,
+	);
+export type SalesProductionSubmissionMaterialDecisionTags = z.infer<
+	typeof salesProductionSubmissionMaterialDecisionTags
 >;
 export const salesDispatchQueuedSchema = z.object({
 	orderNo: z.string().optional(),
@@ -1637,6 +1677,18 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_production_assigned"),
 		payload: salesProductionAssignedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_production_submission_material_review"),
+		payload: salesProductionSubmissionMaterialReviewSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_production_submission_material_approved"),
+		payload: salesProductionSubmissionMaterialDecisionSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_production_submission_material_rejected"),
+		payload: salesProductionSubmissionMaterialDecisionSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_dispatch_queued"),

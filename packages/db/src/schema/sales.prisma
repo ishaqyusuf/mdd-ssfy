@@ -98,6 +98,7 @@ model SalesOrders {
     inventoryProjection SalesInventoryProjectionState?
     productionGate    OrderProductionGate?
     productionReadinessOverride SalesProductionReadinessOverride?
+    productionSubmissionMaterialReviews SalesProductionSubmissionMaterialReview[]
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -211,6 +212,50 @@ model SalesProductionReadinessOverride {
     @@index([status])
     @@index([confirmedByUserId])
     @@index([revokedByUserId])
+}
+
+enum ProductionSubmissionMaterialReviewStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    CANCELLED
+}
+
+enum ProductionSubmissionMaterialReviewReason {
+    AWAITING_INBOUND
+    ALLOCATION_REVIEW
+    BLOCKED
+    NOT_CONFIGURED
+    PROJECTION_UNAVAILABLE
+}
+
+model SalesProductionSubmissionMaterialReview {
+    id                   Int                                      @id @default(autoincrement())
+    salesOrderId         Int
+    submittedById        Int
+    reviewedById         Int?
+    status               ProductionSubmissionMaterialReviewStatus @default(PENDING)
+    classificationReason ProductionSubmissionMaterialReviewReason?
+    idempotencyKey       String                                   @unique @db.VarChar(128)
+    assignmentScope      Json                                     @db.Json
+    materialSnapshot     Json                                     @db.Json
+    materialRevision     String?                                  @db.VarChar(64)
+    resolution           Json?                                    @db.Json
+    decisionNote         String?                                  @db.Text
+    submittedAt          DateTime                                 @default(now()) @db.Timestamp(0)
+    reviewedAt           DateTime?                                @db.Timestamp(0)
+    cancelledAt          DateTime?                                @db.Timestamp(0)
+    createdAt            DateTime                                 @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime                                 @updatedAt
+    order                SalesOrders                              @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    submittedBy          Users                                    @relation(name: "productionSubmissionMaterialReviewsSubmitted", fields: [submittedById], references: [id])
+    reviewedBy           Users?                                   @relation(name: "productionSubmissionMaterialReviewsReviewed", fields: [reviewedById], references: [id])
+    submissions          OrderProductionSubmissions[]
+
+    @@index([status, submittedAt])
+    @@index([salesOrderId, status])
+    @@index([submittedById, status])
+    @@index([reviewedById])
 }
 
 model SalesHistory {
@@ -801,10 +846,12 @@ model OrderProductionSubmissions {
     updatedAt        DateTime?                       @updatedAt
     assignmentId     Int?
     submittedById    Int?
+    materialReviewId Int?
     meta             Json?                           @db.Json
     order            SalesOrders?                    @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
     item             SalesOrderItems?                @relation(fields: [salesOrderItemId], references: [id], onDelete: Cascade)
     assignment       OrderItemProductionAssignments? @relation(fields: [assignmentId], references: [id])
+    materialReview   SalesProductionSubmissionMaterialReview? @relation(fields: [materialReviewId], references: [id])
     itemDeliveries   OrderItemDelivery[]
 
     payroll     Payroll?
@@ -814,6 +861,8 @@ model OrderProductionSubmissions {
     @@index([salesOrderId])
     @@index([salesOrderItemId])
     @@index([assignmentId])
+    @@index([materialReviewId])
+    @@unique([materialReviewId, assignmentId])
 }
 
 enum OrderProductionGateStatus {

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { Prisma } from "@gnd/db";
 import type { RenturnTypeAsync } from "@gnd/utils";
 import type { NoteTagTypes } from "@gnd/utils/constants";
@@ -13,6 +15,7 @@ import type {
 } from "../types";
 import { pickQtyFrom, recomposeQty } from "../utils/sales-control";
 import {
+	buildProductionSubmissionPlan,
 	type CreateSalesAssignmentProps,
 	createSalesAssignmentAction,
 	packDispatchItemsAction,
@@ -20,6 +23,8 @@ import {
 	submitAssignmentsAction,
 	submitNonProductionsAction,
 } from "./actions";
+import { prepareProductionSubmissionMaterialReview } from "../production-submission-review/service";
+import { createProductionPayrollForSubmissions } from "../production-submission-review/decision";
 import { resolveDispatchCompletionAttempt } from "./dispatch-completion";
 import { getSaleInformation } from "./get-sale-information";
 import { getSalesSetting } from "./settings";
@@ -29,33 +34,129 @@ async function getPaymentReviewSettings(db: Db) {
 	return setting.data?.paymentReview ?? null;
 }
 
-export async function submitAllTask(db: Db, data: UpdateSalesControl) {
+export async function submitAllTask(
+	db: Db,
+	data: UpdateSalesControl,
+	dependencies: {
+		prepareMaterialReview?: typeof prepareProductionSubmissionMaterialReview;
+	} = {},
+) {
 	const submitArgs = data.submitAll;
+	if (!submitArgs)
+		throw new Error("Production submission details are required.");
+	const effectiveSubmitArgs = {
+		...submitArgs,
+		assignedToId: data.meta.allowProductionSubmissionForOthers
+			? submitArgs.assignedToId
+			: data.meta.authorId,
+	};
 	const paymentReviewSettings = await getPaymentReviewSettings(db);
 	const info = await getSaleInformation(
 		db,
 		{
 			salesId: data.meta.salesId,
-			assignedToId: submitArgs?.assignedToId ?? undefined,
+			assignedToId: effectiveSubmitArgs.assignedToId ?? undefined,
 		},
 		{ persistDerivedState: true },
 	);
+	const submissionPlan = buildProductionSubmissionPlan({
+		authorId: data.meta.authorId,
+		data: info,
+		...effectiveSubmitArgs,
+	});
+	if (!submissionPlan.itemScope.length) {
+		throw new Error("Unable to complete, nothing to submit!");
+	}
+	const idempotencyKey =
+		submitArgs.idempotencyKey ||
+		`production:${createHash("sha256")
+			.update(
+				JSON.stringify({
+					salesOrderId: data.meta.salesId,
+					submittedById: data.meta.authorId,
+					itemScope: submissionPlan.itemScope,
+				}),
+			)
+			.digest("hex")}`;
 	const resp = await db.$transaction(
 		async (tx) => {
-			const resp = await submitAssignmentsAction(tx as any, {
+			const review = await (
+				dependencies.prepareMaterialReview ??
+				prepareProductionSubmissionMaterialReview
+			)(tx as any, {
+				salesOrderId: data.meta.salesId,
+				submittedById: data.meta.authorId,
+				idempotencyKey,
+				itemScope: submissionPlan.itemScope,
+			});
+			if (review.reviewId) {
+				const submittedCount = await tx.orderProductionSubmissions.count({
+					where: {
+						materialReviewId: review.reviewId,
+						deletedAt: null,
+					},
+				});
+				if (submittedCount > 0) {
+					return {
+						state: review.state,
+						reason: review.reason,
+						reviewId: review.reviewId,
+						materialRevision: review.materialRevision,
+						submittedCount,
+						idempotentReplay: true,
+					};
+				}
+			}
+			const submittedCount = await submitAssignmentsAction(tx as any, {
 				authorId: data.meta.authorId,
 				data: info,
-				...submitArgs,
+				materialReviewId: review.reviewId,
+				...effectiveSubmitArgs,
 			});
+			if (!submittedCount) {
+				throw new Error("Unable to complete, nothing to submit!");
+			}
 			await resetSalesAction(tx as any, data.meta.salesId!);
-			await autoReviewSalesPaymentsForOrderAction(tx as any, {
-				salesId: data.meta.salesId!,
-				action: "production",
-				settings: paymentReviewSettings,
-				reviewedById: data.meta.authorId,
-				reviewNote: "Auto-reviewed after production completion.",
-			});
-			return resp;
+			if (review.state === "finalized") {
+				const submissions = review.reviewId
+					? await tx.orderProductionSubmissions.findMany({
+							where: {
+								materialReviewId: review.reviewId,
+								deletedAt: null,
+							},
+							select: {
+								id: true,
+								qty: true,
+								assignment: {
+									select: {
+										assignedToId: true,
+										laborCost: true,
+										salesItemControlUid: true,
+									},
+								},
+							},
+						})
+					: [];
+				await createProductionPayrollForSubmissions(tx as any, {
+					salesOrderId: data.meta.salesId,
+					submissions,
+				});
+				await autoReviewSalesPaymentsForOrderAction(tx as any, {
+					salesId: data.meta.salesId!,
+					action: "production",
+					settings: paymentReviewSettings,
+					reviewedById: data.meta.authorId,
+					reviewNote: "Auto-reviewed after production completion.",
+				});
+			}
+			return {
+				state: review.state,
+				reason: review.reason,
+				reviewId: review.reviewId,
+				materialRevision: review.materialRevision,
+				submittedCount,
+				idempotentReplay: false,
+			};
 		},
 		{
 			maxWait: 30 * 1000,
@@ -778,6 +879,11 @@ export async function updateSubmissionsTask(db: Db, data: UpdateSalesControl) {
 					qty: true,
 					lhQty: true,
 					rhQty: true,
+					materialReview: {
+						select: {
+							status: true,
+						},
+					},
 					assignment: {
 						select: {
 							id: true,
@@ -817,6 +923,11 @@ export async function updateSubmissionsTask(db: Db, data: UpdateSalesControl) {
 
 			if (!submission) {
 				throw new Error(`Submission #${update.submissionId} not found.`);
+			}
+			if (submission.materialReview?.status === "PENDING") {
+				throw new Error(
+					`Submission #${update.submissionId} is awaiting material review and cannot be edited.`,
+				);
 			}
 
 			const assignmentQty = normalizeSubmissionQty({

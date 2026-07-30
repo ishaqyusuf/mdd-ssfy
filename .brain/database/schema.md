@@ -234,3 +234,17 @@ Tracks important schema-level entities and ownership boundaries.
   reviewed summary and blockers.
 - Confirm/revoke actor and timestamp fields retain durable audit context. The
   record never changes inbound demand, allocation, receipt, or stock truth.
+
+## Production submission material review (2026-07-30)
+
+- `SalesProductionSubmissionMaterialReview` stores one idempotent production
+  submission batch with order, submitting worker, optional reviewer, status,
+  nullable unresolved-material reason, assignment scope, material snapshot and
+  revision, decision note, resolution evidence, and decision timestamps.
+- `OrderProductionSubmissions.materialReviewId` links every new produceable
+  submission to its automatically approved or pending batch. Legacy null links
+  remain finalized for backward compatibility.
+- `idempotencyKey` is unique, and each
+  `(materialReviewId, assignmentId)` submission membership is unique to fence
+  concurrent retries. Status, order/time, submitter/time, and review-material
+  linkage are indexed for bounded queue and projection reads.

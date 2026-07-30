@@ -765,3 +765,23 @@ Tracks important request/response contracts and shared schema boundaries.
   requires the `contractor-accounting` audience and fixes the period, timezone,
   and optional contractor IDs. `jobs.contractorAccountingPrintToken` is the
   protected mint path; the generic token action refuses this audience.
+
+## Production submission material review contract (2026-07-30)
+
+- A production submission returns `finalized` or `pending_material_review`,
+  review id, material revision, submitted count, and idempotent-replay state.
+- Every new produceable submission has a server-validated batch key and scoped
+  assignment/material snapshot. Reuse with another order, worker, or assignment
+  scope is rejected.
+- Pending review quantity is reported but not finalized. Only approved or
+  legacy no-review submissions contribute to production completion, packing,
+  dispatch, payroll, or completion-dependent payment review.
+- Decision input includes review id, expected `updatedAt`, action, note, and
+  optional explicit resolution selections. Each inbound item requires
+  admin-entered good and issue quantities; no quantity is preselected.
+- `RESOLVE_AND_APPROVE` accepts up to 20 linked receipts plus up to 200 scoped
+  no-inbound component ids, enabling mixed resolution. Server ownership checks
+  reject arbitrary inbound/component ids.
+- If blockers remain after a valid resolution, inventory changes commit, the
+  review stays pending with refreshed evidence, and the exact unresolved
+  snapshot is returned. Final decisions are idempotent.

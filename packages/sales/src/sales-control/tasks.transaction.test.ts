@@ -9,6 +9,12 @@ const packDispatchItemsActionMock = mock(async () => ({
 const resetSalesActionMock = mock(async () => ({}));
 const createSalesAssignmentActionMock = mock(async () => ({}));
 const autoReviewSalesPaymentsForOrderActionMock = mock(async () => ({}));
+const prepareProductionSubmissionMaterialReviewMock = mock(async () => ({
+	state: "finalized",
+	reason: null,
+	reviewId: null,
+	materialRevision: "ready-revision",
+}));
 const getSalesSettingMock = mock(async () => ({ data: {} }));
 const getSaleInformationMock = mock(async () => ({
   order: { id: 9001 },
@@ -28,7 +34,8 @@ mock.module("./get-sale-information", () => ({
 }));
 
 mock.module("../payment-system/application/payment-review", () => ({
-  autoReviewSalesPaymentsForOrderAction: autoReviewSalesPaymentsForOrderActionMock,
+	autoReviewSalesPaymentsForOrderAction:
+		autoReviewSalesPaymentsForOrderActionMock,
 }));
 
 mock.module("./settings", () => ({
@@ -45,9 +52,241 @@ describe("sales-control task transactions", () => {
     resetSalesActionMock.mockClear();
     createSalesAssignmentActionMock.mockClear();
     autoReviewSalesPaymentsForOrderActionMock.mockClear();
+		prepareProductionSubmissionMaterialReviewMock.mockClear();
     getSalesSettingMock.mockClear();
     getSaleInformationMock.mockClear();
   });
+
+	it("submits pending-material work atomically and defers completion side effects", async () => {
+		getSaleInformationMock.mockResolvedValueOnce({
+			order: { id: 9001 },
+			items: [
+				{
+					controlUid: "door-1",
+					itemId: 10,
+					analytics: {
+						assignment: { pending: { qty: 0, lh: 0, rh: 0 } },
+						pendingSubmissions: [
+							{
+								assignmentId: 77,
+								qty: { qty: 1, lh: 0, rh: 1 },
+							},
+						],
+					},
+				},
+			],
+		});
+		prepareProductionSubmissionMaterialReviewMock.mockResolvedValueOnce({
+			state: "pending_material_review",
+			reason: "AWAITING_INBOUND",
+			reviewId: 55,
+			materialRevision: "pending-revision",
+		});
+		submitAssignmentsActionMock.mockResolvedValueOnce(1);
+		const tx = {
+			orderProductionSubmissions: {
+				count: mock(async () => 0),
+			},
+		};
+		const db = {
+			$transaction: async (fn: any) => fn(tx),
+		};
+
+		const result = await tasksModule.submitAllTask(
+			db as any,
+			{
+				meta: { salesId: 9001, authorId: 12 },
+				submitAll: {
+					assignedToId: 12,
+					idempotencyKey: "submit-9001-77",
+					selections: [{ assignmentId: 77 }],
+				},
+			} as any,
+			{
+				prepareMaterialReview: prepareProductionSubmissionMaterialReviewMock,
+			},
+		);
+
+		expect(prepareProductionSubmissionMaterialReviewMock).toHaveBeenCalledWith(
+			tx,
+			{
+				salesOrderId: 9001,
+				submittedById: 12,
+				idempotencyKey: "submit-9001-77",
+				itemScope: [
+					{
+						assignmentId: 77,
+						controlUid: "door-1",
+						salesItemId: 10,
+					},
+				],
+			},
+		);
+		expect(submitAssignmentsActionMock).toHaveBeenCalledWith(
+			tx,
+			expect.objectContaining({ materialReviewId: 55 }),
+		);
+		expect(autoReviewSalesPaymentsForOrderActionMock).not.toHaveBeenCalled();
+		expect(result).toEqual({
+			state: "pending_material_review",
+			reason: "AWAITING_INBOUND",
+			reviewId: 55,
+			materialRevision: "pending-revision",
+			submittedCount: 1,
+			idempotentReplay: false,
+		});
+	});
+
+	it("finalizes ready-material work and creates payroll in the same transaction", async () => {
+		getSaleInformationMock.mockResolvedValueOnce({
+			order: { id: 9001 },
+			items: [
+				{
+					controlUid: "door-1",
+					itemId: 10,
+					analytics: {
+						assignment: { pending: { qty: 0, lh: 0, rh: 0 } },
+						pendingSubmissions: [
+							{
+								assignmentId: 77,
+								qty: { qty: 1, lh: 0, rh: 1 },
+							},
+						],
+					},
+				},
+			],
+		});
+		prepareProductionSubmissionMaterialReviewMock.mockResolvedValueOnce({
+			state: "finalized",
+			reason: null,
+			reviewId: 56,
+			materialRevision: "ready-revision",
+		});
+		submitAssignmentsActionMock.mockResolvedValueOnce(1);
+		const payrollUpsert = mock(async () => ({}));
+		const tx = {
+			orderProductionSubmissions: {
+				count: mock(async () => 0),
+				findMany: mock(async () => [
+					{
+						id: 501,
+						qty: 1,
+						assignment: {
+							assignedToId: 12,
+							laborCost: 25,
+							salesItemControlUid: "door-1",
+						},
+					},
+				]),
+			},
+			payroll: {
+				upsert: payrollUpsert,
+			},
+		};
+		const db = {
+			$transaction: async (fn: any) => fn(tx),
+		};
+
+		const result = await tasksModule.submitAllTask(
+			db as any,
+			{
+				meta: { salesId: 9001, authorId: 12 },
+				submitAll: {
+					assignedToId: 12,
+					idempotencyKey: "submit-ready-9001-77",
+					selections: [{ assignmentId: 77 }],
+				},
+			} as any,
+			{
+				prepareMaterialReview: prepareProductionSubmissionMaterialReviewMock,
+			},
+		);
+
+		expect(submitAssignmentsActionMock).toHaveBeenCalledWith(
+			tx,
+			expect.objectContaining({ materialReviewId: 56 }),
+		);
+		expect(payrollUpsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { productionSubmissionId: 501 },
+				create: expect.objectContaining({
+					amount: 25,
+					productionSubmissionId: 501,
+					userId: 12,
+				}),
+			}),
+		);
+		expect(autoReviewSalesPaymentsForOrderActionMock).toHaveBeenCalledTimes(1);
+		expect(result).toEqual({
+			state: "finalized",
+			reason: null,
+			reviewId: 56,
+			materialRevision: "ready-revision",
+			submittedCount: 1,
+			idempotentReplay: false,
+		});
+	});
+
+	it("returns an existing pending batch without duplicating submissions", async () => {
+		getSaleInformationMock.mockResolvedValueOnce({
+			order: { id: 9001 },
+			items: [
+				{
+					controlUid: "door-1",
+					itemId: 10,
+					analytics: {
+						assignment: { pending: { qty: 0, lh: 0, rh: 0 } },
+						pendingSubmissions: [
+							{
+								assignmentId: 77,
+								qty: { qty: 1, lh: 0, rh: 1 },
+							},
+						],
+					},
+				},
+			],
+		});
+		prepareProductionSubmissionMaterialReviewMock.mockResolvedValueOnce({
+			state: "pending_material_review",
+			reason: "AWAITING_INBOUND",
+			reviewId: 55,
+			materialRevision: "pending-revision",
+		});
+		const tx = {
+			orderProductionSubmissions: {
+				count: mock(async () => 1),
+			},
+		};
+		const db = {
+			$transaction: async (fn: any) => fn(tx),
+		};
+
+		const result = await tasksModule.submitAllTask(
+			db as any,
+			{
+				meta: { salesId: 9001, authorId: 12 },
+				submitAll: {
+					assignedToId: 12,
+					idempotencyKey: "submit-9001-77",
+					selections: [{ assignmentId: 77 }],
+				},
+			} as any,
+			{
+				prepareMaterialReview: prepareProductionSubmissionMaterialReviewMock,
+			},
+		);
+
+		expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
+		expect(resetSalesActionMock).not.toHaveBeenCalled();
+		expect(result).toEqual({
+			state: "pending_material_review",
+			reason: "AWAITING_INBOUND",
+			reviewId: 55,
+			materialRevision: "pending-revision",
+			submittedCount: 1,
+			idempotentReplay: true,
+		});
+	});
 
   it("creates assignment and override-use audit in the same transaction", async () => {
     getSaleInformationMock.mockResolvedValueOnce({
@@ -188,7 +427,9 @@ describe("sales-control task transactions", () => {
           cancelDispatch: { dispatchIds: [55, 56] },
         } as any,
       ),
-    ).rejects.toThrow("One or more fulfillment dispatches do not belong to this sales order.");
+		).rejects.toThrow(
+			"One or more fulfillment dispatches do not belong to this sales order.",
+		);
     expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
   });
 
@@ -316,10 +557,12 @@ describe("sales-control task transactions", () => {
     );
 
     expect(tx.orderProductionSubmissions.updateMany).toHaveBeenCalledTimes(1);
-    expect(tx.orderProductionSubmissions.updateMany.mock.calls[0]?.[0]).toEqual({
+		expect(tx.orderProductionSubmissions.updateMany.mock.calls[0]?.[0]).toEqual(
+			{
       where: { id: { in: [10] } },
       data: { deletedAt: expect.any(Date) },
-    });
+			},
+		);
     expect(resetSalesActionMock).toHaveBeenCalledWith(tx, 777);
   });
 
@@ -342,7 +585,9 @@ describe("sales-control task transactions", () => {
           deleteSubmissions: { automaticCompletionSalesId: 777 },
         } as any,
       ),
-    ).rejects.toThrow("No automatic production completion is available to cancel.");
+		).rejects.toThrow(
+			"No automatic production completion is available to cancel.",
+		);
     expect(tx.orderProductionSubmissions.updateMany).toHaveBeenCalledTimes(0);
     expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
   });
@@ -365,7 +610,9 @@ describe("sales-control task transactions", () => {
           deleteSubmissions: { automaticCompletionSalesId: 778 },
         } as any,
       ),
-    ).rejects.toThrow("Production cancellation does not match this sales order.");
+		).rejects.toThrow(
+			"Production cancellation does not match this sales order.",
+		);
     expect(tx.orderProductionSubmissions.findMany).toHaveBeenCalledTimes(0);
     expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
   });

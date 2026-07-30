@@ -27,11 +27,7 @@ export function ProductionItemMenu({}) {
     return (
         <Menu
             Trigger={
-                <Button
-                    disabled={queryCtx.dispatchMode}
-                    variant="ghost"
-                    size="icon"
-                >
+				<Button disabled={queryCtx.dispatchMode} variant="ghost" size="icon">
                     <Icons.MoreVertical className="h-4 w-4" />
                 </Button>
             }
@@ -45,11 +41,7 @@ export function ProductionItemMenu({}) {
     return (
         <DropdownMenu.Root open={opened} onOpenChange={setOpened}>
             <DropdownMenu.Trigger asChild>
-                <Button
-                    disabled={queryCtx.dispatchMode}
-                    variant="ghost"
-                    size="icon"
-                >
+				<Button disabled={queryCtx.dispatchMode} variant="ghost" size="icon">
                     <Icons.MoreVertical className="h-4 w-4" />
                 </Button>
             </DropdownMenu.Trigger>
@@ -123,13 +115,10 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                 })
                 .filter(
                     (a) =>
-                        a.createAssignmentMeta?.qty?.qty ||
-                        a.submitAssignments?.length,
+						a.createAssignmentMeta?.qty?.qty || a.submitAssignments?.length,
                 );
             const pendingSubmissions = sum(
-                _items.map((a) =>
-                    sum(a.submitAssignments.map((b) => b.qty.qty)),
-                ),
+				_items.map((a) => sum(a.submitAssignments.map((b) => b.qty.qty))),
             );
             const pendingAssignments = sum(
                 _items.map((a) => a.createAssignmentMeta?.qty?.qty),
@@ -214,6 +203,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                 case "submit":
                     pl.submitAll = {
                         assignedToId,
+						idempotencyKey: crypto.randomUUID(),
                         itemUids: submitItems.map((a) => a.uid),
                     };
                     break;
@@ -229,10 +219,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     };
                     break;
                 case "delete.assign":
-                    const deliveredQty = sum(
-                        deleteAssignmentItems,
-                        "deliveredQty",
-                    );
+					const deliveredQty = sum(deleteAssignmentItems, "deliveredQty");
                     const submitQty = sum(deleteAssignmentItems, "submitQty");
                     if (deliveredQty) {
                         toast({
@@ -246,8 +233,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     if (submitQty) {
                         toast({
                             title: "Unable to complete",
-                            description:
-                                "Some assignments have been submitted.",
+							description: "Some assignments have been submitted.",
                         });
                         throw new Error();
                     }
@@ -256,15 +242,11 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     };
                     break;
                 case "delete.submit":
-                    const _deliveredQty = sum(
-                        deleteSubmitItems,
-                        "deliveredQty",
-                    );
+					const _deliveredQty = sum(deleteSubmitItems, "deliveredQty");
                     if (_deliveredQty) {
                         toast({
                             title: "Unable to complete",
-                            description:
-                                "Some submissions have been registered to dispatch.",
+							description: "Some submissions have been registered to dispatch.",
                         });
                         throw new Error();
                     }
@@ -282,9 +264,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
             toast({
                 title: "Could not start production assignment",
                 description:
-                    error instanceof Error
-                        ? error.message
-                        : "Please try again.",
+					error instanceof Error ? error.message : "Please try again.",
                 variant: "destructive",
             });
         }

@@ -8,6 +8,7 @@ import { useAssignmentRow } from "./production-assignment-row";
 import { useProductionItem } from "./production-tab";
 import { QtyStatus } from "./qty-label";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { Badge } from "@gnd/ui/badge";
 
 export function ProductionSubmissions({}) {
     const ctx = useAssignmentRow();
@@ -42,8 +43,7 @@ export function ProductionSubmissions({}) {
                         <div>
                             <div className="flex items-center">
                                 <p className="font-medium">
-                                    {submission.submittedBy ||
-                                        assignment.assignedTo}
+									{submission.submittedBy || assignment.assignedTo}
                                 </p>
                                 <p className="ml-2 text-muted-foreground">
                                     {submission.submitDate
@@ -51,30 +51,34 @@ export function ProductionSubmissions({}) {
                                         : "No date"}
                                 </p>
                             </div>
-                            <div className="mt-1 flex gap-2">
-                                <QtyStatus
-                                    as="badge"
-                                    qty={submission.qty}
-                                    label="qty"
-                                />
+							<div className="mt-1 flex flex-wrap gap-2">
+								<QtyStatus as="badge" qty={submission.qty} label="qty" />
 
-                                <QtyStatus
-                                    as="badge"
-                                    qty={submission.qty}
-                                    label="rh"
-                                />
+								<QtyStatus as="badge" qty={submission.qty} label="rh" />
 
-                                <QtyStatus
-                                    as="badge"
-                                    qty={submission.qty}
-                                    label="lh"
-                                />
+								<QtyStatus as="badge" qty={submission.qty} label="lh" />
+								{submission.materialReview?.status === "PENDING" ? (
+									<Badge
+										variant="outline"
+										className="border-amber-200 bg-amber-50 text-amber-800"
+									>
+										Awaiting material approval
+									</Badge>
+								) : submission.materialReview?.status === "APPROVED" ? (
+									<Badge
+										variant="outline"
+										className="border-emerald-200 bg-emerald-50 text-emerald-700"
+									>
+										Materials approved
+									</Badge>
+								) : null}
                             </div>
                         </div>
                         <ConfirmBtn
                             disabled={
                                 deleteSubmission.isExecuting ||
-                                query.dispatchMode
+								query.dispatchMode ||
+								submission.materialReview?.status === "PENDING"
                             }
                             onClick={(e) => {
                                 if (submission.delivered) {
@@ -99,9 +103,7 @@ export function ProductionSubmissions({}) {
                             size="icon"
                         />
                     </div>
-                    {submission.note && (
-                        <p className="mt-1">{submission.note}</p>
-                    )}
+					{submission.note && <p className="mt-1">{submission.note}</p>}
                 </div>
             ))}
         </div>

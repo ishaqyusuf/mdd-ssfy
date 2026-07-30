@@ -47,7 +47,7 @@ export function shouldEnforceProductionReadinessGate(input: {
   createAssignments?: unknown;
   submitAll?: unknown;
 }) {
-  return Boolean(input.submitAll);
+	return false;
 }
 
 export class ProductionReadinessGateError extends Error {

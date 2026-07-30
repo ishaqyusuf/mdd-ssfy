@@ -13,6 +13,7 @@ describe("production submission metadata", () => {
 		await createSalesAssignmentSubmissionAction(db as never, {
 			authorId: 7,
 			salesId: 42,
+			materialReviewId: 55,
 			submissionMeta: { source: "sales_mark_as_completed" },
 			items: [
 				{
@@ -34,8 +35,10 @@ describe("production submission metadata", () => {
 					salesOrderId: 42,
 					salesOrderItemId: 10,
 					submittedById: 7,
+					materialReviewId: 55,
 				},
 			],
+			skipDuplicates: true,
 		});
 	});
 });

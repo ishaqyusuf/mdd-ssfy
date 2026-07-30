@@ -1,6 +1,7 @@
 import type { AddressBookMeta } from "@/app-deps/(clean-code)/(sales)/types";
 import type { DeliveryOption } from "@/types/sales";
 import { salesPaymentProcessorApplyPaymentSchema } from "@gnd/sales/payment-system/contracts";
+import type { SalesDispatchStatus } from "@sales/types";
 import {
 	US_PHONE_FORMAT_PATTERN,
 	normalizeUSPhoneNumber,
@@ -144,10 +145,13 @@ export const createSubmissionSchema = z
 			qty: z.number().nullable().optional(),
 		}),
 		assignmentId: z.number(),
+		idempotencyKey: z.string().min(1).max(128).optional(),
 		note: z.string().optional(),
 		salesId: z.number(),
 		itemId: z.number(),
-		submittedById: z.number(),
+		// Retained for legacy clients only. The server always binds the actor from
+		// the authenticated session and never trusts this field.
+		submittedById: z.number().optional(),
 		itemUid: z.string(),
 		// unitWage: z.number().optional(),
 	})
