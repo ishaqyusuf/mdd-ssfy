@@ -1,5 +1,12 @@
 # Progress
 
+- 2026-07-30: Applied the additive `SalesFormPreference` schema to production
+  after a read-only preflight confirmed it was the only production drift. The
+  package-level production Prisma push completed successfully and regenerated
+  Prisma Client. The previously failing `salesFormPreference.findUnique()`
+  lookup now passes, and the post-push production schema diff is empty. See
+  `.brain/database/migrations.md`.
+
 - 2026-07-30: Made the new sales form the default for every authenticated
   create/edit order and quote flow while retaining a reversible top-level legacy
   switch. Added query/cookie/database resolution, a one-time-versus-persisted

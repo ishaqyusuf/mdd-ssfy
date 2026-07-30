@@ -13,8 +13,11 @@
   `MasterPasswordLoginAudit` before a prior migration creates that table
   (`P3006/P3018`, MySQL 1146). This predates the sales-form migration and must be
   repaired or baselined before relying on full replay for production.
-- Production must apply the additive sales-form migration before application
-  code that reads `SalesFormPreference`.
+- On 2026-07-30, the production preflight diff contained only the additive
+  `SalesFormPreference` table. `bun run --cwd packages/db push:prod` synchronized
+  production and regenerated Prisma Client successfully; the exact
+  `salesFormPreference.findUnique()` lookup passes and the post-push production
+  schema diff is empty.
 
 ## Purpose
 Tracks notable migrations and migration strategy.
