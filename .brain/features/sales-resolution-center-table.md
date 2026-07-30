@@ -6,6 +6,12 @@
   - reuses the existing `sales.getSalesResolutions` infinite query
   - reuses the existing `sales.getSalesResolutionsSummary` count query
   - reuses the existing `filters.salesResolutions` metadata route and `SalesResolutionHeader`
+- `/sales-book/finance?tab=resolution`
+  - renders the same table in `financeMode`
+  - uses protected `salesFinance.resolutions` and
+    `salesFinance.resolutionsSummary` queries
+  - uses the standard Finance Midday filter/header composition and a stable
+    Resolution Center product tab
 
 ## Migration Notes
 - This is a table UI migration only; no new `*V2` route or query was added.
@@ -20,7 +26,13 @@
 - Compact table settings use 56px rows, 45px headers, sticky select/order columns, draggable headers, resize handles, column visibility, column dividers, persisted sizing/order/visibility, and table-owned horizontal/vertical scroll.
 - Content-tailored widths are registered for order/customer/amount/due/payment/action columns so the table follows the Sales Orders compact standard without wide unused columns.
 - The header action group shows column visibility plus the unresolved conflict count.
-- `Sync due amount` still calls the existing `salesResolveUpdatePaymentAction`, then invalidates resolution list/summary queries and refreshes detail panel state.
+- Legacy `Sync due amount` retains its existing behavior. Finance mode calls
+  `salesFinance.resolutionSyncBalance`, requires `editOrderPayment`, captures
+  authenticated before/after evidence, and refreshes both Finance and legacy
+  resolution projections.
+- Payment review dialogs opened from Finance use the protected
+  `salesFinance.resolutionPayment` mutation and require a minimum 10-character
+  audit-evidence note.
 
 ## Density And Widths
 - Table config: `TABLE_CONFIGS["sales-resolution"]` uses `style: "compact"` and `rowHeight: 56`.
@@ -39,6 +51,15 @@
 - The resolution filter URL schema now includes `customer.name` and `status`, matching the existing filter metadata.
 
 ## Validation
+- 2026-07-30 Finance integration proof:
+  - focused API/dashboard coverage passed with 34 tests / 441 assertions
+  - permission boundaries cover Finance list/summary and all resolution
+    correction mutations
+  - authenticated desktop and `390x844` browser proof confirmed stable tabs,
+    live cases, persistent column controls, and contained table scrolling
+    (`scrollWidth 1248`, `clientWidth 325`) without document overflow
+  - payment `11665` exposed the permission-aware Payment resolution section and
+    a non-submitted dialog with Apply disabled until audit evidence is entered
 - 2026-07-17 density proof:
   - Focused Sales Resolution parity test passed with 3 tests / 43 assertions.
   - Full `apps/dashboard/src/components/tables-2` suite passed with 301 tests / 2478 assertions.

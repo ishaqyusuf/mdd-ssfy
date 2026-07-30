@@ -52,14 +52,19 @@ type CustomerStatementDetail =
 
 const reportMenuItems = [
 	{
+		label: "Sales Reports",
+		href: "/sales-book/reports",
+		permissions: ["viewOrders", "editOrders", "viewSales"],
+	},
+	{
 		label: "Payment Report",
 		href: "/task-events/sales-daily-payment-report-schedule",
-		permission: "generateSalesPaymentReport",
+		permissions: ["generateSalesPaymentReport"],
 	},
 ] satisfies {
 	label: string;
 	href: string;
-	permission: PermissionScope;
+	permissions: PermissionScope[];
 }[];
 
 type Props = {
@@ -73,8 +78,8 @@ export function useSalesReportMenuState() {
 		statementCustomerId: parseAsInteger,
 		statementStatus: parseAsString,
 	});
-	const allowedReportMenuItems = reportMenuItems.filter(
-		(item) => auth.can?.[item.permission],
+	const allowedReportMenuItems = reportMenuItems.filter((item) =>
+		item.permissions.some((permission) => auth.can?.[permission]),
 	);
 	const canViewCustomerStatements = !!auth.can?.generateSalesStatementReport;
 	const canViewReports =

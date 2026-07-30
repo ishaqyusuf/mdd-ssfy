@@ -1,5 +1,30 @@
 # API Permissions
 
+## Sales Finance
+
+- Every `salesFinance` endpoint uses `protectedProcedure`.
+- Read access requires any of `viewOrderPayment`, `editOrderPayment`, or
+  `viewSales`, matching the existing Sales Accounting navigation audience
+  during parallel adoption.
+- `salesFinance.analytics`, receivables list/summary, and receivable detail are
+  read-only projections and use the same Finance read boundary as payment list,
+  summary, and detail.
+- `salesFinance.report` and `salesFinance.receivablesReport` additionally require
+  `generateSalesPaymentReport`; the dashboard hides its Reports control without
+  that permission, while the server remains the authorization boundary.
+- `salesFinance.reconciliationStart` and
+  `salesFinance.reconciliationResolve` additionally require
+  `editOrderPayment`. They write append-only `Event` evidence only and do not
+  grant or perform receipt, refund, application, invoice, or customer mutation.
+- `salesFinance.resolutionSyncBalance` and
+  `salesFinance.resolutionPayment` additionally require `editOrderPayment`.
+  The dashboard hides Sync and Resolve payment controls without that
+  permission, while the protected API remains authoritative. Resolution
+  list/summary reads use the normal Finance read boundary.
+- Adoption pings use the Finance read boundary. The readiness popover is shown
+  only to `editOrderPayment` users, while the server response never grants
+  legacy-record deletion or redirect authority.
+
 ## Purpose
 Tracks authentication and authorization patterns across API surfaces.
 
@@ -211,14 +236,27 @@ Tracks authentication and authorization patterns across API surfaces.
   `jobs.contractorPayoutOverview`, `jobs.getContractorPayoutPrintData`,
   `jobs.contractorPeriodReport`, and `filters.contractorPayout` are protected
   reads requiring `viewJobPayment` or `editJobPayment`.
-- Creating, cancelling, and reversing contractor payouts still requires
-  `editJobPayment`; read authority does not imply mutation authority.
-- `print.contractorAccounting` is public only at the transport layer. It returns
-  data solely for a valid signed, expiring server-generated token whose payload
-  fixes the report period and optional contractor scope.
-- `jobs.contractorAccountingPrintToken` requires the same payment-viewer guard
-  and adds the required `contractor-accounting` audience. The generic dashboard
-  token action rejects that audience, so it cannot bypass finance permission.
+- `contractorAccounting.summary`, `periodReport`, `entries`, `entry`,
+  `filterOptions`, `periods`, `reconciliationIssues`, `reportRuns`,
+  `reportSchedules`, `taxProfiles`, `payables`, `insights`,
+  `resolutionIssues`, `resolutionIssue`, `closeReadiness`,
+  `contractorProfile`, `payoutRuns`, `alertRules`, and `alertEvents` require the
+  same `viewJobPayment | editJobPayment` viewer boundary.
+- `createAdjustment`, `reverseEntry`, `closePeriod`, `runReconciliation`,
+  `reviewReconciliationIssue`, `generateReport`, `createReportSchedule`, and
+  `updateTaxProfile`, `startResolution`, `resolveIssue`, `createPayoutRun`,
+  `updatePayoutRun`, `createAlertRule`, `updateAlertRule`, and
+  `updateAlertEvent` require `editJobPayment`.
+- `reopenPeriod` and `backfillLedger` require the authenticated actor to have an
+  active `Super Admin` role. Backfill defaults to dry-run even after that check.
+- `myStatement` requires authentication and derives contractor scope from
+  `ctx.userId`; the input schema cannot select another contractor.
+- Creating, cancelling, and reversing legacy contractor payouts also continue
+  to require `editJobPayment`; ledger read authority does not imply mutation
+  authority.
+- Generated report artifacts are created only after a protected report-run
+  mutation. Stored filter/actor evidence remains the audit boundary for
+  downloads and scheduled delivery.
 - Sidebar visibility is not the authorization boundary; every interactive read
   repeats permission enforcement on the server.
 
@@ -233,6 +271,22 @@ Tracks authentication and authorization patterns across API surfaces.
 - UI visibility is not an authorization boundary; the assignment task repeats
   the revision-bound readiness check before writing.
 
+## Sales dashboard and reporting permissions (2026-07-30)
+
+- Every `salesDashboard` endpoint is a protected procedure.
+- Read access requires at least one of `viewOrders`, `editOrders`, `viewSales`,
+  `viewEstimates`, or `editEstimates`.
+- `salesDashboard.report` additionally requires the dedicated
+  `generateSalesPerformanceReport` scope. Super Admin receives the scope
+  through role behavior; other roles must be assigned it explicitly.
+- The Sales Reports UI hides the workbook menu without the export scope, while
+  the protected endpoint repeats both the sales-read and export checks.
+- Net collections and payment review counts remain behind the separate Sales
+  Finance read boundary (`viewOrderPayment`, `editOrderPayment`, or
+  `viewSales`).
+- Report-card layout cookies are presentation preferences only. They grant no
+  data access, and every linked report repeats its own API authorization.
+
 ## Production submission material review permissions (2026-07-30)
 
 - Review queue/detail reads and approve/reject commands require
@@ -245,3 +299,4 @@ Tracks authentication and authorization patterns across API surfaces.
   identity with the authenticated employee. Without `editProduction`, the
   server restricts submission scope to assignments owned by that employee.
 - UI visibility is not an authorization boundary; assignment/order/inbound
+  ownership and optimistic review state are revalidated inside the transaction.

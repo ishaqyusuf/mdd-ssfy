@@ -202,11 +202,6 @@ export const deleteSalesByOrderIdsSchema = z.object({
 export type DeleteSalesByOrderIdsSchema = z.infer<
 	typeof deleteSalesByOrderIdsSchema
 >;
-export const salesDashboardFilterSchema = z.object({
-	from: z.string().optional(),
-	to: z.string().optional(),
-});
-
 export const getFullSalesDataSchema = z.object({
 	salesId: z.number().optional().nullable(),
 	salesNo: z.string().optional().nullable(),

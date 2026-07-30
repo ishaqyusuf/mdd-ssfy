@@ -136,6 +136,8 @@ export type SalesFinanceTransaction = {
 	applications: SalesFinanceApplication[];
 };
 
+const MONEY_EPSILON = 0.009;
+
 function asRecord(value: unknown): Record<string, unknown> {
 	return value && typeof value === "object"
 		? (value as Record<string, unknown>)
@@ -288,7 +290,9 @@ export function projectSalesFinanceTransaction(
 	);
 	const explicitPrincipal = firstMoney(meta.salesAmount, meta.principalAmount);
 	const principalAmount = Math.abs(
-		explicitPrincipal ?? subtractMoney(receivedAmount, feeAmount),
+		explicitPrincipal != null && Math.abs(explicitPrincipal) > MONEY_EPSILON
+			? explicitPrincipal
+			: subtractMoney(receivedAmount, feeAmount),
 	);
 	const refundedAmount = sumMoney(
 		(source.refundTx || []).map((item) =>
@@ -324,11 +328,11 @@ export function projectSalesFinanceTransaction(
 		subtractMoney(appliedAmount, principalAmount),
 	);
 	const applicationStatus: SalesFinanceApplicationStatus =
-		overappliedAmount > 0.01
+		overappliedAmount > MONEY_EPSILON
 			? "overapplied"
-			: appliedAmount <= 0.01
+			: appliedAmount <= MONEY_EPSILON
 				? "unapplied"
-				: unappliedAmount > 0.01
+				: unappliedAmount > MONEY_EPSILON
 					? "partial"
 					: "applied";
 	const exceptionCodes: SalesFinanceExceptionCode[] = [];
@@ -340,7 +344,7 @@ export function projectSalesFinanceTransaction(
 	if (["check", "wire"].includes(paymentMethod) && !reference) {
 		exceptionCodes.push("missing_reference");
 	}
-	if (unappliedAmount > 0.01 || overappliedAmount > 0.01) {
+	if (unappliedAmount > MONEY_EPSILON || overappliedAmount > MONEY_EPSILON) {
 		exceptionCodes.push("application_mismatch");
 	}
 	if (isFailedStatus(source.status || source.squarePayment?.status)) {

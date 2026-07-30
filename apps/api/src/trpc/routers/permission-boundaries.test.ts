@@ -180,6 +180,49 @@ describe("high-risk tRPC permission boundaries", () => {
 		expect(inventories.slice(start, start + 1400)).toContain('"editOrders"');
 	});
 
+	test("Sales Finance corrective resolution requires order-payment editing permission", () => {
+		const finance = source("sales-finance.route.ts");
+		for (const mutation of [
+			"resolutionSyncBalance",
+			"resolutionPayment",
+			"reconciliationStart",
+			"reconciliationResolve",
+		]) {
+			expectProtectedMutation(finance, mutation, '["editOrderPayment"]');
+		}
+	});
+
+	test("sales dashboard reporting reads require an authenticated sales viewer", () => {
+		const dashboard = source("sales-dashboard.route.ts");
+		for (const procedure of [
+			"getKpis",
+			"getRevenueOverTime",
+			"getRecentSales",
+			"getTopProducts",
+			"getSalesRepLeaderboard",
+			"getSalesChannelBreakdown",
+		]) {
+			const start = dashboard.indexOf(`${procedure}: protectedProcedure`);
+			expect(start).toBeGreaterThanOrEqual(0);
+			expect(dashboard.slice(start, start + 700)).toContain(
+				"await requireSalesReportingAccess(ctx)",
+			);
+		}
+		expect(dashboard).not.toContain("publicProcedure");
+	});
+
+	test("sales performance exports require their dedicated permission", () => {
+		const dashboard = source("sales-dashboard.route.ts");
+		const start = dashboard.indexOf("report: protectedProcedure");
+		expect(start).toBeGreaterThanOrEqual(0);
+		expect(dashboard.slice(start, start + 900)).toContain(
+			'["generateSalesPerformanceReport"]',
+		);
+		expect(dashboard.slice(start, start + 900)).toContain(
+			"await requireSalesReportingAccess(ctx)",
+		);
+	});
+
 	test("job assignment, review, payment, and creation writes are permission-shaped", () => {
 		const jobs = source("jobs.route.ts");
 		for (const mutation of [

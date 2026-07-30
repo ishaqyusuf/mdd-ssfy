@@ -157,4 +157,27 @@ describe("projectSalesFinanceTransaction", () => {
 			reviewCount: 1,
 		});
 	});
+
+	test("treats one-cent applications as real money", () => {
+		const result = projectSalesFinanceTransaction(
+			transaction({
+				amount: 0.01,
+				meta: { salesAmount: 0.01, customerChargeAmount: 0.01 },
+				salesPayments: [
+					{
+						id: 1,
+						amount: 0.01,
+						order: {
+							id: 10,
+							orderId: "SO-CENT",
+							customer: { name: "Ada Customer" },
+						},
+					},
+				],
+			}),
+		);
+
+		expect(result.applicationStatus).toBe("applied");
+		expect(result.exceptionCodes).toEqual([]);
+	});
 });

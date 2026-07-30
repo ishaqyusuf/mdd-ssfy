@@ -1,7 +1,48 @@
 # API Endpoints
 
+## Sales dashboard and reporting
+
+- Protected performance reads:
+  `salesDashboard.getKpis`, `getRevenueOverTime`, `getRecentSales`,
+  `getTopProducts`, `getSalesRepLeaderboard`, and
+  `getSalesChannelBreakdown`.
+- Protected workbook read: `salesDashboard.report`.
+- All reads share date-only `from`/`to`, optional `salesRepIds`, and optional
+  `salesChannels` filter semantics.
+- `salesDashboard.report` accepts one of `performance-summary`,
+  `orders-ledger`, `sales-reps`, `products`, `quote-activity`, or `customers`.
+  It returns typed workbook metadata and sheets for client-side `.xlsx`
+  generation and rejects more than 10,000 relevant source records.
+- The dashboard consumes `salesFinance.summary` separately for canonical net
+  collections and review counts when the viewer has Finance access.
+
 ## Purpose
 Tracks notable API surfaces and where they are implemented.
+
+## Contractor accounting
+
+- Read routes:
+  `contractorAccounting.summary`, `periodReport`, `entries`, `entry`,
+  `filterOptions`, `periods`, `reconciliationIssues`, `reportRuns`,
+  `reportSchedules`, `taxProfiles`, `myStatement`, `payables`, `insights`,
+  `resolutionIssues`, `resolutionIssue`, `closeReadiness`,
+  `contractorProfile`, `payoutRuns`, `alertRules`, and `alertEvents`.
+- Manager mutations:
+  `contractorAccounting.createAdjustment`, `reverseEntry`, `closePeriod`,
+  `runReconciliation`, `reviewReconciliationIssue`, `generateReport`,
+  `createReportSchedule`, `updateTaxProfile`, `startResolution`,
+  `resolveIssue`, `createPayoutRun`, `updatePayoutRun`, `createAlertRule`,
+  `updateAlertRule`, and `updateAlertEvent`.
+- Super Admin mutations:
+  `contractorAccounting.reopenPeriod` and `backfillLedger`.
+- Compatibility reads `jobs.contractorPeriodReport` and
+  `print.contractorAccounting` are retained but now use the ledger query.
+- Trigger task `generate-contractor-accounting-report` creates XLSX/CSV/PDF
+  artifacts and updates report-run state. The hourly contractor accounting
+  schedule task resolves due dynamic schedules and queues the same generator.
+- Hourly task `contractor-accounting-alert-schedule` evaluates enabled rules,
+  records fingerprint-deduplicated events, and delivers recipient email with
+  per-address retry evidence.
 
 ## Current Notes
 - Standalone API health:

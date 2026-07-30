@@ -71,6 +71,9 @@ export type TableId =
 	| "inbound-management"
 	| "sales-inbounds"
 	| "sales-accounting"
+	| "sales-finance"
+	| "sales-finance-receivables"
+	| "contractor-accounting"
 	| "sales-resolution"
 	| "sales-production"
 	| "sales-statistics"
@@ -187,6 +190,9 @@ const defaultHiddenColumns: Record<TableId, string[]> = {
 	"inbound-management": [],
 	"sales-inbounds": [],
 	"sales-accounting": [],
+	"sales-finance": ["feeAmount", "recordedBy"],
+	"sales-finance-receivables": ["reconciliation", "salesRep"],
+	"contractor-accounting": ["source"],
 	"sales-resolution": [],
 	"sales-production": [],
 	"sales-statistics": [],

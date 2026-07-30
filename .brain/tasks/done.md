@@ -1,5 +1,85 @@
 # Done
 
+### Sales Performance Excel Reports
+- Status: Done
+- Description: Added a Finance-style Reports dropdown to the customizable Sales
+  Reports workspace with six sales-performance workbooks, active period/filter
+  inheritance, auditable workbook sheets, a 10,000-source-record guard, a
+  dedicated export permission, and a direct Finance handoff for payment,
+  refund, collection, and receivables reporting.
+- Feature File: `.brain/features/sales-dashboard-reporting.md`
+- Decision File:
+  `.brain/decisions/ADR-038-sales-reporting-surface-boundaries.md`
+- Validation: 27 focused workbook/schema/permission/export/UI tests / 316
+  assertions, Sales package typecheck, targeted Biome, and successful route
+  compilation.
+  Authenticated workbook download remains environment-blocked by the unavailable
+  local MySQL service.
+- Completed Date: 2026-07-30
+
+### Production Worker Submission Material Verification And Admin Approval
+- Status: Done
+- Description: Made production assignment and submission independent of
+  inventory readiness; unresolved work is saved under an admin material review
+  with mixed canonical inbound/manual resolution, worker/admin notification,
+  reported-versus-finalized quantity separation, rejection voiding, and
+  approval-time payroll/payment finalization.
+- Feature File: `.brain/features/sales-production-workspace.md`
+- Decision File:
+  `.brain/decisions/ADR-039-nonblocking-production-submission-material-review.md`
+- Migration:
+  `20260730113000_production_submission_material_review`
+- Validation: 65 focused domain, transaction, permission, authority, inventory,
+  and production-readiness tests / 234 assertions; Sales, DB, Jobs, and
+  Notifications typechecks; touched-dashboard type scan; Prisma generation and
+  local schema push; authenticated browser proof on order `09068PC`.
+- Completed Date: 2026-07-30
+
+### Sales Dashboard And Reporting Redesign
+- Status: Done
+- Description: Replaced the legacy dashboard with a fixed, period-aware
+  operational overview; added protected, office-scoped reporting projections;
+  created a customizable Sales Reports workspace and governed report catalog;
+  preserved Sales Finance as the canonical collections/receivables surface;
+  and marked the Sales Finance and Sales Reports sidebar links with `New`
+  badges.
+- Feature File: `.brain/features/sales-dashboard-reporting.md`
+- Decision File:
+  `.brain/decisions/ADR-038-sales-reporting-surface-boundaries.md`
+- Validation: 42 focused domain/query/permission/layout/navigation tests,
+  Sales and Site Nav package typechecks, targeted Biome, whitespace checks, and
+  authenticated browser proof at desktop and `390x844`, including live
+  period changes, report customization, and zero document-level mobile
+  overflow.
+- Completed Date: 2026-07-30
+
+### Contractor Accounting Ledger and Reporting
+- Status: Done
+- Description: Replaced mutable-source contractor reporting with an immutable,
+  Decimal, idempotent ledger; dual-write and batched backfill; reversal and
+  close/reopen controls; reconciliation issues; six filter-aware report kinds;
+  durable report runs/schedules; tax readiness; and a Sales Orders/Midday-style
+  filtered virtual ledger and control center.
+- Feature File: `.brain/features/contractor-accounting.md`
+- Decision Files:
+  `.brain/decisions/2026-07-29-contractor-accounting-period-reports.md` and
+  `.brain/decisions/2026-07-30-contractor-accounting-immutable-ledger-cutover.md`
+  and
+  `.brain/decisions/2026-07-30-contractor-accounting-workspaces.md`
+- Migrations:
+  `20260729213535_contractor_accounting_decimal_money` and
+  `20260729230000_contractor_accounting_ledger`,
+  `20260730090000_contractor_accounting_workspace`, and
+  `20260730104500_contractor_accounting_alert_delivery`
+- Validation: exact local and production January-August legacy/ledger parity;
+  16,940 production rows after an idempotent backfill rerun; report artifact
+  exercises for all six kinds; focused domain/API/job/PDF/dashboard coverage;
+  package typechecks and Biome; authenticated browser proof; 110 applied local
+  migrations; and an empty local schema diff. The immutable-ledger production
+  schema remains verified; workspace migrations await an explicit production
+  deployment.
+- Completed Date: 2026-07-30
+
 ### Automatic Sales Inventory Synchronization Fallback
 - Status: Done
 - Description: Automatically synchronizes repairable not-synced/failed orders

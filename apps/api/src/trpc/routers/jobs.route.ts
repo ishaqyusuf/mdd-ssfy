@@ -1,8 +1,8 @@
+import { getContractorLedgerPeriodReport } from "@api/db/queries/contractor-accounting-ledger";
 import {
 	contractorAccountingPrintTokenSchema,
-	getContractorPeriodReport,
 	getContractorPeriodReportSchema,
-} from "@api/db/queries/contractor-accounting";
+} from "@api/schemas/contractor-accounting";
 import {
 	adminAnalytics,
 	adminAnalyticsSchema,
@@ -43,6 +43,10 @@ import {
 import type { JobStatus } from "@community/types";
 import { generateJobId } from "@community/utils/job";
 import { addDays } from "date-fns";
+import {
+	postContractorLedgerEntry,
+	reverseContractorLedgerEntry,
+} from "@gnd/db/queries";
 import { sum } from "@gnd/utils";
 import { saveNote } from "@gnd/utils/note";
 import {
@@ -209,14 +213,87 @@ export async function reviewJobStatus(
 	} = {},
 ) {
 	const db = ctx.db;
-	const job = await db.jobs.update({
-		where: {
-			id: input.jobId,
-		},
-		data: {
-			status: getJobReviewStatus(input.action),
-			statusDate: new Date(),
-		},
+	const statusDate = new Date();
+	const job = await db.$transaction(async (tx) => {
+		const current = await tx.jobs.findUnique({
+			where: { id: input.jobId },
+			select: {
+				id: true,
+				userId: true,
+				amount: true,
+				title: true,
+				description: true,
+				projectId: true,
+			},
+		});
+		if (!current) {
+			throw new TRPCError({ code: "NOT_FOUND", message: "Job not found" });
+		}
+		const updated = await tx.jobs.update({
+			where: { id: input.jobId },
+			data: {
+				status: getJobReviewStatus(input.action),
+				statusDate,
+				...(input.action === "approve"
+					? { approvedAt: statusDate, rejectedAt: null }
+					: input.action === "reject"
+						? { rejectedAt: statusDate }
+						: { rejectedAt: null }),
+			},
+		});
+		const earnedEntry = await tx.contractorLedgerEntry.findUnique({
+			where: { sourceKey: `JOB:${current.id}` },
+			include: {
+				reversedBy: {
+					select: { id: true, reversedBy: { select: { id: true } } },
+				},
+			},
+		});
+		if (input.action === "approve") {
+			if (earnedEntry?.reversedBy && !earnedEntry.reversedBy.reversedBy) {
+				await reverseContractorLedgerEntry(tx, {
+					entryId: earnedEntry.reversedBy.id,
+					effectiveAt: statusDate,
+					reason: `Job #${current.id} re-approved`,
+					actorId: ctx.userId,
+					sourceType: "JOB",
+					sourceId: `reapproval:${current.id}`,
+					sourceKey: `JOB:reapproval:${earnedEntry.reversedBy.id}`,
+				});
+			} else if (!earnedEntry) {
+				await postContractorLedgerEntry(tx, {
+					contractorId: current.userId,
+					type: "JOB_EARNED",
+					amount: current.amount,
+					liabilityDelta: current.amount,
+					effectiveAt: statusDate,
+					sourceType: "JOB",
+					sourceId: String(current.id),
+					sourceKey: `JOB:${current.id}`,
+					description:
+						current.description || current.title || `Job #${current.id}`,
+					jobId: current.id,
+					createdById: ctx.userId,
+					meta: current.projectId ? { projectId: current.projectId } : undefined,
+				});
+			}
+		}
+		if (
+			input.action === "reject" &&
+			earnedEntry &&
+			!earnedEntry.reversedBy
+		) {
+			await reverseContractorLedgerEntry(tx, {
+				entryId: earnedEntry.id,
+				effectiveAt: statusDate,
+				reason: input.note?.trim() || `Job #${current.id} rejected`,
+				actorId: ctx.userId,
+				sourceType: "JOB",
+				sourceId: `rejection:${current.id}`,
+				sourceKey: `JOB:rejection:${earnedEntry.id}`,
+			});
+		}
+		return updated;
 	});
 
 	try {
@@ -564,7 +641,7 @@ export const jobRoutes = createTRPCRouter({
 		.input(getContractorPeriodReportSchema)
 		.query(async (props) => {
 			await requireJobPaymentViewer(props.ctx);
-			return getContractorPeriodReport(props.ctx, props.input);
+			return getContractorLedgerPeriodReport(props.ctx, props.input);
 		}),
 	contractorAccountingPrintToken: protectedProcedure
 		.input(contractorAccountingPrintTokenSchema)

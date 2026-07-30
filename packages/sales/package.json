@@ -80,7 +80,9 @@
 		"./print/customer-name-lines": "./src/print/compose/customer-name-lines.ts",
 		"./print": "./src/print/index.ts",
 		"./priority": "./src/priority.ts",
-		"./production-submission-review": "./src/production-submission-review/index.ts"
+		"./production-submission-review": "./src/production-submission-review/index.ts",
+		"./reporting": "./src/reporting.ts",
+		"./performance-reports": "./src/sales-performance-reports.ts"
 	},
 	"dependencies": {
 		"@gnd/db": "workspace:*",

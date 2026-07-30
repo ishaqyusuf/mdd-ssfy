@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { getContractorPeriodReport } from "@api/db/queries/contractor-accounting";
+import { getContractorLedgerPeriodReport } from "@api/db/queries/contractor-accounting-ledger";
 import {
 	getContractorPayoutPrintData,
 	getJobsPrintData,
@@ -255,7 +255,7 @@ export const printRouter = createTRPCRouter({
 
 			if (!payload) return null;
 
-			return getContractorPeriodReport(props.ctx, {
+			return getContractorLedgerPeriodReport(props.ctx, {
 				from: payload.from,
 				to: payload.to,
 				timezone: payload.timezone,

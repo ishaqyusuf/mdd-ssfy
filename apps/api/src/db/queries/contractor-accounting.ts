@@ -1,3 +1,4 @@
+import type { GetContractorPeriodReportSchema } from "@api/schemas/contractor-accounting";
 import type { TRPCContext } from "@api/trpc/init";
 import {
 	type ContractorAccountingEntry,
@@ -6,27 +7,6 @@ import {
 	createDateOnlyReportPeriod,
 } from "@gnd/contractor-accounting";
 import type { Prisma } from "@gnd/db";
-import z from "zod";
-
-const dateOnlySchema = z
-	.string()
-	.regex(/^\d{4}-\d{2}-\d{2}$/, "Date must use YYYY-MM-DD");
-
-export const getContractorPeriodReportSchema = z.object({
-	from: dateOnlySchema,
-	to: dateOnlySchema,
-	timezone: z.string().trim().min(1).default("America/New_York"),
-	contractorIds: z.array(z.number().int().positive()).max(100).optional(),
-	includeEntries: z.boolean().default(false),
-});
-export const contractorAccountingPrintTokenSchema =
-	getContractorPeriodReportSchema.omit({
-		includeEntries: true,
-	});
-
-export type GetContractorPeriodReportSchema = z.infer<
-	typeof getContractorPeriodReportSchema
->;
 
 const earnedJobStatuses = [
 	"Approved",

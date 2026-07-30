@@ -60,12 +60,14 @@ type Props = {
 	initialSettings?: Partial<TableSettings>;
 	defaultFilters?: SalesResolutionInput;
 	singlePage?: boolean;
+	financeMode?: boolean;
 };
 
 export function DataTable({
 	initialSettings,
 	defaultFilters,
 	singlePage,
+	financeMode = false,
 }: Props) {
 	const trpc = useTRPC();
 	const { filters, hasFilters } = useResolutionCenterFilterParams();
@@ -122,18 +124,27 @@ export function DataTable({
 		sort: sortParams.sort?.[0] ?? null,
 	} as SalesResolutionInput;
 
-	const infiniteQueryOptions =
-		trpc.sales.getSalesResolutions.infiniteQueryOptions(queryInput, {
-			getNextPageParam: ({ meta }) =>
-				(meta as { cursor?: string | number | null } | undefined)?.cursor,
-		});
+	const getNextPageParam = ({
+		meta,
+	}: {
+		meta?: { cursor?: string | number | null };
+	}) => meta?.cursor;
+	const infiniteQueryOptions = financeMode
+		? trpc.salesFinance.resolutions.infiniteQueryOptions(queryInput, {
+				getNextPageParam,
+			})
+		: trpc.sales.getSalesResolutions.infiniteQueryOptions(queryInput, {
+				getNextPageParam,
+			});
 
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
 		useSuspenseInfiniteQuery<SalesResolutionPage>(
 			infiniteQueryOptions as never,
 		);
 	const { data: summary } = useQuery(
-		trpc.sales.getSalesResolutionsSummary.queryOptions(queryInput),
+		financeMode
+			? trpc.salesFinance.resolutionsSummary.queryOptions(queryInput)
+			: trpc.sales.getSalesResolutionsSummary.queryOptions(queryInput),
 	);
 
 	const tableData = useMemo(() => {

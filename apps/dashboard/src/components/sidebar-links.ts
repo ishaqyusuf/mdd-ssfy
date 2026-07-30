@@ -33,6 +33,7 @@ export type LinkItem = {
 	show?: boolean;
 	meta?: boolean;
 	wip?: boolean;
+	badge?: string;
 	globalIndex?;
 	index?;
 	access?;
@@ -76,6 +77,7 @@ const _link = (
 		skipDefaultHref: false,
 		meta: false,
 		wip: false,
+		badge: undefined as string | undefined,
 		subLinks,
 		access,
 		index: -1,
@@ -108,6 +110,10 @@ const _link = (
 		},
 		wip() {
 			res.wip = true;
+			return ctx;
+		},
+		badge(label: string) {
+			res.badge = label;
 			return ctx;
 		},
 		subLinks(...subLinks: LinkItem[]) {
@@ -300,8 +306,7 @@ export const linkModules = [
 	_module("Sales", "salesDashboard", "GND Sales", [
 		_section(null, null, [
 			_link("Sales Dashboard", "salesDashboard", "/sales-dashboard").access(
-				// _role.is("Super Admin")
-				_perm.is("editOrders"),
+				_perm.in("viewOrders", "editOrders", "viewSales"),
 			).data,
 			_link("Storefront", "products", "/storefront")
 				.access(_perm.in("viewStorefront", "editStorefront"))
@@ -318,6 +323,19 @@ export const linkModules = [
 			_link("Accounting", "accounting", "/sales-book/accounting").access(
 				_perm.in("viewOrderPayment", "editOrderPayment", "editSales"),
 			).data,
+			_link("Sales Finance", "accounting", "/sales-book/finance")
+				.access(
+					_perm.in(
+						"viewOrderPayment",
+						"editOrderPayment",
+						"viewSales",
+						"editSales",
+					),
+				)
+				.badge("New").data,
+			_link("Sales Reports", "report", "/sales-book/reports")
+				.access(_perm.in("viewOrders", "editOrders", "viewSales"))
+				.badge("New").data,
 			_link("Product Report", "report", "/product-report").access(
 				_role.in("Super Admin"),
 			).data,

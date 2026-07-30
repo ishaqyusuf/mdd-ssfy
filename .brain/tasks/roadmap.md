@@ -526,13 +526,26 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Created Date: 2026-07-23
 - Completed Date: 2026-07-23
 
-### Production Worker Inventory Update Requests And Resume Notifications
+### Production Worker Submission Material Verification And Admin Approval
 - Priority: High
-- Description: Track the audited worker request, sales/admin notification, and
-  worker-scoped readiness-resume flow in
+- Description: Track non-blocking worker submission, conditional material
+  verification, canonical inventory reconciliation, admin approval, and
+  worker/admin notifications in
   `.brain/plans/2026-07-29-feature-production-worker-inventory-update-requests.md`.
 - Related Feature: Sales production workspace and inventory-backed sales fulfillment
+- Status: Done
+- Plan Status: Implemented
+- Plan File: .brain/plans/2026-07-29-feature-production-worker-inventory-update-requests.md
+- Created Date: 2026-07-29
+- Completed Date: 2026-07-30
+
+### Office Organization Management And Operational Scoping
+- Priority: High
+- Description: Track the secure office administration, employee membership,
+  active-office session, historical ownership migration, and phased
+  operational data-scoping plan.
+- Related Feature: Office organization management and operational scoping
 - Status: Roadmap
 - Plan Status: Proposed
-- Plan File: .brain/plans/2026-07-29-feature-production-worker-inventory-update-requests.md
+- Plan File: .brain/plans/2026-07-29-feature-office-organization-management-and-scoping.md
 - Created Date: 2026-07-29

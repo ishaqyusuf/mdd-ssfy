@@ -12,7 +12,12 @@ import {
     subDays,
     subMonths,
 } from "date-fns";
-import { parseAsString, useQueryStates } from "nuqs";
+import {
+    parseAsArrayOf,
+    parseAsInteger,
+    parseAsString,
+    useQueryStates,
+} from "nuqs";
 
 const salesDashboardDateParamFormat = "yyyy-MM-dd";
 
@@ -106,7 +111,14 @@ export type SalesDashboardParamsState = {
     to: string;
     period: string;
     chart: string;
+    salesRepIds: number[];
+    salesChannels: string[];
 };
+
+function resolveArrayParam(value: string | string[] | undefined) {
+    if (Array.isArray(value)) return value;
+    return value?.split(",").filter(Boolean) ?? [];
+}
 
 export function resolveSalesDashboardParams(
     raw?: Record<string, string | string[] | undefined> | null,
@@ -115,6 +127,10 @@ export function resolveSalesDashboardParams(
     const to = raw?.to;
     const period = raw?.period;
     const chart = raw?.chart;
+    const salesRepIds = resolveArrayParam(raw?.salesRepIds)
+        .map(Number)
+        .filter((value) => Number.isInteger(value) && value > 0);
+    const salesChannels = resolveArrayParam(raw?.salesChannels);
     const defaults = getDefaultSalesDashboardParams();
 
     return {
@@ -122,6 +138,8 @@ export function resolveSalesDashboardParams(
         to: (typeof to === "string" && to) || defaults.to,
         period: (typeof period === "string" && period) || defaults.period,
         chart: (typeof chart === "string" && chart) || defaults.chart,
+        salesRepIds,
+        salesChannels,
     };
 }
 
@@ -132,6 +150,8 @@ export const useSalesDashboardParams = () => {
         to: parseAsString.withDefault(defaults.to),
         period: parseAsString.withDefault(defaults.period),
         chart: parseAsString.withDefault(defaults.chart),
+        salesRepIds: parseAsArrayOf(parseAsInteger).withDefault([]),
+        salesChannels: parseAsArrayOf(parseAsString).withDefault([]),
     });
 
     return { params, setParams };

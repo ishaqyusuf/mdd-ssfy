@@ -1,6 +1,7 @@
 "use client";
 
 import type { GetSalesResolutionData } from "@/actions/get-sales-resolution-data";
+import { useAuth } from "@/hooks/use-auth";
 import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
@@ -70,6 +71,7 @@ export function ResolutionDialog({
 	recommendedAction,
 	// onResolve,
 }: ResolutionDialogProps) {
+	const auth = useAuth();
 	const [open, setOpen] = useState(false);
 
 	const form = useZodForm(resolvePaymentSchema, {
@@ -92,7 +94,7 @@ export function ResolutionDialog({
 	const trpc = useTRPC();
 	const qc = useQueryClient();
 	const resolveAction = useMutation(
-		trpc.sales.resolvePayment.mutationOptions({
+		trpc.salesFinance.resolutionPayment.mutationOptions({
 			onSuccess(data, variables, context) {
 				toast({
 					title: "Success",
@@ -105,6 +107,18 @@ export function ResolutionDialog({
 				});
 				qc.invalidateQueries({
 					queryKey: trpc.sales.getSalesResolutionsSummary.queryKey(),
+				});
+				qc.invalidateQueries({
+					queryKey: trpc.salesFinance.resolutions.queryKey(),
+				});
+				qc.invalidateQueries({
+					queryKey: trpc.salesFinance.resolutionsSummary.queryKey(),
+				});
+				qc.invalidateQueries({
+					queryKey: trpc.salesFinance.transactions.queryKey(),
+				});
+				qc.invalidateQueries({
+					queryKey: trpc.salesFinance.receivables.queryKey(),
 				});
 				qc.invalidateQueries({
 					queryKey: trpc.customers.getCustomerOverviewV2.queryKey(),
@@ -123,8 +137,15 @@ export function ResolutionDialog({
 		}),
 	);
 	const onSubmit = (data: ResolvePayment) => {
+		if ((data.note?.trim().length || 0) < 10) {
+			form.setError("note", {
+				message: "Add at least 10 characters of audit evidence.",
+			});
+			return;
+		}
 		resolveAction.mutate({
 			...data,
+			note: data.note?.trim() || "",
 			// paymentMethod: payment.paymentMethod,
 		});
 	};
@@ -157,6 +178,10 @@ export function ResolutionDialog({
 				? Number(currentDue || 0) + Number(refundAmount || 0)
 				: currentDue;
 	const refundMethods = SALES_REFUND_METHODS_OPTIONS;
+
+	if (!auth.can?.editOrderPayment) {
+		return null;
+	}
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>

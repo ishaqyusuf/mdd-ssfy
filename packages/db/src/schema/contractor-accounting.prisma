@@ -1,0 +1,359 @@
+enum ContractorLedgerEntryType {
+    OPENING_BALANCE
+    JOB_EARNED
+    BONUS
+    EXPENSE
+    DEDUCTION
+    PAYOUT
+    REVERSAL
+}
+
+enum ContractorLedgerSourceType {
+    JOB
+    PAYMENT
+    PAYMENT_ADJUSTMENT
+    MANUAL_ADJUSTMENT
+    OPENING_BALANCE
+    MIGRATION
+}
+
+enum ContractorAccountingPeriodStatus {
+    OPEN
+    CLOSED
+}
+
+enum ContractorAccountingPeriodEventType {
+    CLOSED
+    REOPENED
+}
+
+enum ContractorReconciliationRunStatus {
+    PENDING
+    RUNNING
+    MATCHED
+    ISSUES_FOUND
+    FAILED
+}
+
+enum ContractorReconciliationIssueCode {
+    SUMMARY_MISMATCH
+    CONTRACTOR_MISMATCH
+    MISSING_SOURCE
+    DUPLICATE_SOURCE
+    LEGACY_DATE_FALLBACK
+    MISSING_EFFECTIVE_DATE
+}
+
+enum ContractorReconciliationIssueStatus {
+    OPEN
+    REVIEWED
+    RESOLVED
+}
+
+enum ContractorAccountingReportKind {
+    CONSOLIDATED
+    CONTRACTOR_STATEMENT
+    AGING
+    RECONCILIATION
+    ADJUSTMENT_REGISTER
+    TAX_READINESS
+}
+
+enum ContractorAccountingReportFormat {
+    PDF
+    XLSX
+    CSV
+}
+
+enum ContractorAccountingRunStatus {
+    PENDING
+    RUNNING
+    COMPLETED
+    FAILED
+}
+
+enum ContractorW9Status {
+    NOT_REQUESTED
+    REQUESTED
+    RECEIVED
+    VERIFIED
+    EXPIRED
+}
+
+enum ContractorPayoutRunStatus {
+    DRAFT
+    READY
+    HANDED_OFF
+    COMPLETED
+    CANCELLED
+}
+
+enum ContractorAccountingAlertKind {
+    BALANCE_THRESHOLD
+    LIABILITY_AGE
+    RECONCILIATION_STALE
+    W9_BLOCKER
+    PERIOD_CLOSE
+}
+
+enum ContractorAccountingAlertEventStatus {
+    OPEN
+    ACKNOWLEDGED
+    RESOLVED
+}
+
+model ContractorLedgerEntry {
+    id                  String                     @id @default(cuid())
+    contractorId        Int
+    type                ContractorLedgerEntryType
+    amount              Decimal                    @db.Decimal(18, 2)
+    liabilityDelta      Decimal                    @db.Decimal(18, 2)
+    effectiveAt         DateTime                   @db.DateTime(3)
+    postedAt            DateTime                   @default(now()) @db.DateTime(3)
+    sourceType          ContractorLedgerSourceType
+    sourceId            String                     @db.VarChar(191)
+    sourceKey           String                     @unique @db.VarChar(191)
+    description         String?                    @db.Text
+    jobId               Int?
+    paymentId           Int?
+    paymentAdjustmentId Int?
+    createdById         Int?
+    reversalOfId        String?                    @unique
+    reversalOf          ContractorLedgerEntry?     @relation("ContractorLedgerReversal", fields: [reversalOfId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    reversedBy          ContractorLedgerEntry?     @relation("ContractorLedgerReversal")
+    evidence            Json?                      @db.Json
+    meta                Json?                      @db.Json
+    createdAt           DateTime                   @default(now()) @db.DateTime(3)
+
+    @@index([contractorId, effectiveAt, id])
+    @@index([effectiveAt, id])
+    @@index([type, effectiveAt])
+    @@index([sourceType, sourceId])
+    @@index([jobId])
+    @@index([paymentId])
+    @@index([paymentAdjustmentId])
+}
+
+model ContractorAccountingPeriod {
+    id                String                           @id @default(cuid())
+    from              DateTime                         @db.DateTime(3)
+    toExclusive       DateTime                         @db.DateTime(3)
+    timezone          String                           @db.VarChar(64)
+    status            ContractorAccountingPeriodStatus @default(OPEN)
+    closingBalance    Decimal?                         @db.Decimal(18, 2)
+    snapshot          Json?                            @db.Json
+    snapshotHash      String?                          @db.VarChar(64)
+    closedAt          DateTime?                        @db.DateTime(3)
+    closedById        Int?
+    reopenedAt        DateTime?                        @db.DateTime(3)
+    reopenedById      Int?
+    reopenReason      String?                          @db.Text
+    createdAt         DateTime                         @default(now()) @db.DateTime(3)
+    updatedAt         DateTime                         @updatedAt
+    events            ContractorAccountingPeriodEvent[]
+    reconciliationRuns ContractorReconciliationRun[]
+
+    @@unique([from, toExclusive, timezone])
+    @@index([status, from, toExclusive])
+}
+
+model ContractorAccountingPeriodEvent {
+    id          String                              @id @default(cuid())
+    periodId    String
+    period      ContractorAccountingPeriod          @relation(fields: [periodId], references: [id])
+    type        ContractorAccountingPeriodEventType
+    actorId     Int
+    reason      String?                             @db.Text
+    snapshot    Json?                               @db.Json
+    snapshotHash String?                            @db.VarChar(64)
+    createdAt   DateTime                            @default(now()) @db.DateTime(3)
+
+    @@index([periodId, createdAt])
+    @@index([actorId])
+}
+
+model ContractorReconciliationRun {
+    id           String                            @id @default(cuid())
+    periodId     String?
+    period       ContractorAccountingPeriod?       @relation(fields: [periodId], references: [id])
+    from         DateTime                          @db.DateTime(3)
+    toExclusive  DateTime                          @db.DateTime(3)
+    timezone     String                            @db.VarChar(64)
+    status       ContractorReconciliationRunStatus @default(PENDING)
+    sourceTotals Json?                             @db.Json
+    ledgerTotals Json?                             @db.Json
+    startedAt    DateTime?                         @db.DateTime(3)
+    completedAt  DateTime?                         @db.DateTime(3)
+    requestedById Int?
+    error        String?                           @db.Text
+    createdAt    DateTime                          @default(now()) @db.DateTime(3)
+    issues       ContractorReconciliationIssue[]
+
+    @@index([from, toExclusive, createdAt])
+    @@index([status, createdAt])
+}
+
+model ContractorReconciliationIssue {
+    id              String                              @id @default(cuid())
+    runId           String
+    run             ContractorReconciliationRun         @relation(fields: [runId], references: [id])
+    contractorId    Int?
+    ledgerEntryId   String?
+    code            ContractorReconciliationIssueCode
+    status          ContractorReconciliationIssueStatus @default(OPEN)
+    message         String                              @db.Text
+    expectedAmount  Decimal?                            @db.Decimal(18, 2)
+    actualAmount    Decimal?                            @db.Decimal(18, 2)
+    differenceAmount Decimal?                           @db.Decimal(18, 2)
+    evidence        Json?                               @db.Json
+    reviewedAt      DateTime?                           @db.DateTime(3)
+    reviewedById    Int?
+    resolutionNote  String?                             @db.Text
+    createdAt       DateTime                            @default(now()) @db.DateTime(3)
+    updatedAt       DateTime                            @updatedAt
+
+    @@index([runId, status])
+    @@index([contractorId, status])
+    @@index([ledgerEntryId])
+    @@index([code, status])
+}
+
+model ContractorAccountingReportSchedule {
+    id             String                         @id @default(cuid())
+    name           String                         @db.VarChar(191)
+    kind           ContractorAccountingReportKind
+    format         ContractorAccountingReportFormat
+    cron           String                         @db.VarChar(191)
+    timezone       String                         @db.VarChar(64)
+    filters        Json                           @db.Json
+    recipients     Json                           @db.Json
+    enabled        Boolean                        @default(true)
+    createdById    Int
+    lastRunAt      DateTime?                      @db.DateTime(3)
+    nextRunAt      DateTime?                      @db.DateTime(3)
+    createdAt      DateTime                       @default(now()) @db.DateTime(3)
+    updatedAt      DateTime                       @updatedAt
+    reportRuns     ContractorAccountingReportRun[]
+
+    @@index([enabled, nextRunAt])
+    @@index([createdById])
+}
+
+model ContractorAccountingReportRun {
+    id             String                         @id @default(cuid())
+    scheduleId     String?
+    schedule       ContractorAccountingReportSchedule? @relation(fields: [scheduleId], references: [id])
+    kind           ContractorAccountingReportKind
+    format         ContractorAccountingReportFormat
+    status         ContractorAccountingRunStatus  @default(PENDING)
+    contractorId   Int?
+    filters        Json                           @db.Json
+    totals         Json?                          @db.Json
+    outputUrl      String?                        @db.Text
+    contentHash    String?                        @db.VarChar(64)
+    requestedById  Int
+    startedAt      DateTime?                      @db.DateTime(3)
+    completedAt    DateTime?                      @db.DateTime(3)
+    error          String?                        @db.Text
+    createdAt      DateTime                       @default(now()) @db.DateTime(3)
+
+    @@index([requestedById, createdAt])
+    @@index([contractorId, createdAt])
+    @@index([status, createdAt])
+    @@index([scheduleId, createdAt])
+}
+
+model ContractorTaxProfile {
+    id                String              @id @default(cuid())
+    contractorId      Int                 @unique
+    legalName         String?             @db.VarChar(191)
+    taxClassification String?             @db.VarChar(64)
+    w9Status          ContractorW9Status  @default(NOT_REQUESTED)
+    w9RequestedAt     DateTime?           @db.DateTime(3)
+    w9ReceivedAt      DateTime?           @db.DateTime(3)
+    w9VerifiedAt      DateTime?           @db.DateTime(3)
+    w9VerifiedById    Int?
+    tinLastFour       String?             @db.VarChar(4)
+    documentId        String?             @db.VarChar(191)
+    notes             String?             @db.Text
+    createdAt         DateTime             @default(now()) @db.DateTime(3)
+    updatedAt         DateTime             @updatedAt
+
+    @@index([w9Status, contractorId])
+}
+
+model ContractorPayoutRun {
+    id                    String                    @id @default(cuid())
+    status                ContractorPayoutRunStatus @default(DRAFT)
+    contractorId          Int
+    jobIds                Json                      @db.Json
+    filters               Json?                     @db.Json
+    proposedAmount        Decimal                   @db.Decimal(18, 2)
+    snapshot              Json                      @db.Json
+    snapshotHash          String                    @db.VarChar(64)
+    note                  String?                   @db.Text
+    createdById           Int
+    reviewedById          Int?
+    reviewedAt            DateTime?                 @db.DateTime(3)
+    handedOffAt           DateTime?                 @db.DateTime(3)
+    paymentId             Int?
+    completedAt           DateTime?                 @db.DateTime(3)
+    cancelledAt           DateTime?                 @db.DateTime(3)
+    cancelledById         Int?
+    cancellationReason    String?                   @db.Text
+    createdAt             DateTime                  @default(now()) @db.DateTime(3)
+    updatedAt             DateTime                  @updatedAt
+
+    @@index([status, createdAt])
+    @@index([contractorId, status, createdAt])
+    @@index([createdById, createdAt])
+    @@index([paymentId])
+}
+
+model ContractorAccountingAlertRule {
+    id             String                          @id @default(cuid())
+    name           String                          @db.VarChar(191)
+    kind           ContractorAccountingAlertKind
+    enabled        Boolean                         @default(true)
+    contractorId   Int?
+    thresholdAmount Decimal?                       @db.Decimal(18, 2)
+    thresholdDays  Int?
+    timezone       String                          @db.VarChar(64)
+    recipients     Json                            @db.Json
+    filters        Json?                           @db.Json
+    createdById    Int
+    lastEvaluatedAt DateTime?                      @db.DateTime(3)
+    createdAt      DateTime                        @default(now()) @db.DateTime(3)
+    updatedAt      DateTime                        @updatedAt
+    events         ContractorAccountingAlertEvent[]
+
+    @@index([enabled, kind])
+    @@index([contractorId, enabled])
+    @@index([createdById, createdAt])
+}
+
+model ContractorAccountingAlertEvent {
+    id             String                               @id @default(cuid())
+    ruleId         String
+    rule           ContractorAccountingAlertRule        @relation(fields: [ruleId], references: [id])
+    status         ContractorAccountingAlertEventStatus @default(OPEN)
+    contractorId   Int?
+    fingerprint    String                               @db.VarChar(64)
+    title          String                               @db.VarChar(191)
+    message        String                               @db.Text
+    evidence       Json                                 @db.Json
+    triggeredAt    DateTime                             @default(now()) @db.DateTime(3)
+    emailDelivery  Json?                                @db.Json
+    emailDeliveryAttemptedAt DateTime?                  @db.DateTime(3)
+    emailDeliveredAt DateTime?                          @db.DateTime(3)
+    emailDeliveryError String?                          @db.Text
+    acknowledgedAt DateTime?                            @db.DateTime(3)
+    acknowledgedById Int?
+    resolvedAt     DateTime?                            @db.DateTime(3)
+    createdAt      DateTime                             @default(now()) @db.DateTime(3)
+    updatedAt      DateTime                             @updatedAt
+
+    @@unique([ruleId, fingerprint])
+    @@index([status, triggeredAt])
+    @@index([contractorId, status])
+}

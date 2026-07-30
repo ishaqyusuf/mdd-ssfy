@@ -72,8 +72,16 @@ describe("reviewJobStatus", () => {
 		const updates: any[] = [];
 		const errorSpy = spyOn(console, "error").mockImplementation(() => {});
 		const logSpy = spyOn(console, "log").mockImplementation(() => {});
-		const db = {
+		const db: any = {
 			jobs: {
+				findUnique: async () => ({
+					id: 42,
+					userId: 25,
+					amount: 125,
+					title: "Install",
+					description: null,
+					projectId: null,
+				}),
 				update: async (args: any) => {
 					updates.push(args);
 					return {
@@ -85,12 +93,23 @@ describe("reviewJobStatus", () => {
 					};
 				},
 			},
+			contractorAccountingPeriod: {
+				findFirst: async () => null,
+			},
+			contractorLedgerEntry: {
+				findUnique: async () => null,
+				create: async (args: any) => ({
+					id: "ledger-1",
+					...args.data,
+				}),
+			},
 			users: {
 				findMany: async () => {
 					throw new Error("activity lookup unavailable");
 				},
 				findFirst: async () => ({ id: 7 }),
 			},
+			$transaction: async (callback: (tx: any) => unknown) => callback(db),
 		};
 
 		try {

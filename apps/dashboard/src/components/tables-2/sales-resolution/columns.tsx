@@ -1,7 +1,7 @@
 "use client";
 
-import { salesResolveUpdatePaymentAction } from "@/actions/sales-resolve-update-payment";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
+import { useAuth } from "@/hooks/use-auth";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -14,9 +14,8 @@ import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
-import { useQueryClient } from "@gnd/ui/tanstack";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useAction } from "next-safe-action/hooks";
 import Money from "../../_v1/money";
 
 export type SalesResolutionRow =
@@ -192,25 +191,39 @@ function DueCell({ row }: { row: SalesResolutionRow }) {
 }
 
 function SyncDueButton({ row }: { row: SalesResolutionRow }) {
+	const auth = useAuth();
 	const rcp = useResolutionCenterParams();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const dueMismatch = hasDueMismatch(row);
-	const updatePayment = useAction(salesResolveUpdatePaymentAction, {
-		onSuccess() {
-			rcp.setParams({
-				refreshToken: generateRandomString(),
-			});
-			void queryClient.invalidateQueries({
-				queryKey: trpc.sales.getSalesResolutions.queryKey(),
-			});
-			void queryClient.invalidateQueries({
-				queryKey: trpc.sales.getSalesResolutionsSummary.queryKey(),
-			});
-		},
-	});
+	const updatePayment = useMutation(
+		trpc.salesFinance.resolutionSyncBalance.mutationOptions({
+			async onSuccess() {
+				rcp.setParams({
+					refreshToken: generateRandomString(),
+				});
+				await Promise.all([
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getSalesResolutions.queryKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getSalesResolutionsSummary.queryKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.salesFinance.resolutions.queryKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.salesFinance.resolutionsSummary.queryKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.salesFinance.receivables.queryKey(),
+					}),
+				]);
+			},
+		}),
+	);
 
-	if (!dueMismatch) {
+	if (!dueMismatch || !auth.can?.editOrderPayment) {
 		return null;
 	}
 
@@ -218,12 +231,13 @@ function SyncDueButton({ row }: { row: SalesResolutionRow }) {
 		<Button
 			size="xs"
 			variant="outline"
-			disabled={updatePayment.isExecuting}
+			disabled={updatePayment.isPending}
 			onClick={(event) => {
 				event.preventDefault();
 				event.stopPropagation();
-				updatePayment.execute({
+				updatePayment.mutate({
 					salesId: row.id,
+					note: "Repaired stored due from the canonical successful-payment projection.",
 				});
 			}}
 		>

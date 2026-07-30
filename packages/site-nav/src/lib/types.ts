@@ -16,6 +16,7 @@ export type LinkItem = {
 	level?;
 	meta?: boolean;
 	wip?: boolean;
+	badge?: string;
 	show?: boolean;
 	globalIndex?;
 	index?;
@@ -77,6 +78,7 @@ export const createNavLink = (
 		skipDefaultHref: false,
 		meta: false,
 		wip: false,
+		badge: undefined as string | undefined,
 		subLinks,
 		access,
 		index: -1,
@@ -109,6 +111,10 @@ export const createNavLink = (
 		},
 		wip() {
 			res.wip = true;
+			return ctx;
+		},
+		badge(label: string) {
+			res.badge = label;
 			return ctx;
 		},
 	};

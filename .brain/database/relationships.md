@@ -51,6 +51,31 @@ Tracks important cross-model relationships and ownership patterns.
   - `TaskRunDiagnostic.reviewedById` points to `Users.id` through `Users.taskRunDiagnosticsReviewed` for the Super Admin who marks a diagnostic reviewed
   - task context uses snapshots (`actorName`, `actorEmail`, `entityType`, `entityId`, `entityLabel`) so diagnostics remain readable even if related domain records change later
   - generic task diagnostics do not introduce joins to sales, inventory, notification, or email domain tables in v1; use `entityType`/`entityId` plus domain-specific ledgers such as `SalesEmailAttempt` for deeper investigation
+- Contractor accounting relationships:
+  - `ContractorLedgerEntry.reversalOfId` is a unique self-relation. One original
+    entry can have at most one reversal, and the reversal remains a new
+    immutable row.
+  - Ledger `contractorId`, `jobId`, `paymentId`, `paymentAdjustmentId`, and
+    `createdById` are indexed logical references to legacy operational records.
+    Source deletion is not allowed to erase journal evidence.
+  - `ContractorAccountingPeriod` owns many
+    `ContractorAccountingPeriodEvent` rows and optional
+    `ContractorReconciliationRun` rows.
+  - `ContractorReconciliationRun` owns its typed
+    `ContractorReconciliationIssue` evidence.
+  - `ContractorAccountingReportSchedule` owns generated
+    `ContractorAccountingReportRun` rows; unscheduled report runs retain a null
+    schedule reference.
+  - `ContractorTaxProfile.contractorId` is unique and logically references the
+    contractor user. Optional W-9 `documentId` is a logical document-platform
+    reference and is permission-checked by the application.
+  - `ContractorPayoutRun.contractorId` logically references the contractor user;
+    `paymentId` is populated only after the run is handed to the existing
+    Payment Portal and completed.
+  - `ContractorAccountingAlertRule` owns many deduplicated
+    `ContractorAccountingAlertEvent` rows. Optional contractor scope is a
+    logical user reference; event evidence remains durable if operational data
+    later changes.
 
 ## TODO
 - Document major relationships for sales, payments, resolution, documents, customers, and dispatch flows.

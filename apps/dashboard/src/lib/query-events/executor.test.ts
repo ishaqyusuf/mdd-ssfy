@@ -58,6 +58,9 @@ function createTRPCProxy() {
 			getKpis: procedure("salesDashboard.getKpis"),
 			getRecentSales: procedure("salesDashboard.getRecentSales"),
 			getRevenueOverTime: procedure("salesDashboard.getRevenueOverTime"),
+			getSalesChannelBreakdown: procedure(
+				"salesDashboard.getSalesChannelBreakdown",
+			),
 			getSalesRepLeaderboard: procedure(
 				"salesDashboard.getSalesRepLeaderboard",
 			),

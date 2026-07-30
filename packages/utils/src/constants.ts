@@ -156,6 +156,7 @@ export const PERMISSIONS = [
 	"viewSalesResolution",
 	"editSalesResolution",
 	"generateSalesPaymentReport",
+	"generateSalesPerformanceReport",
 	"generateSalesStatementReport",
 	"viewStorefront",
 	"editStorefront",
@@ -259,11 +260,14 @@ export const EXTRA_PERMISSION_SCOPES = [
 	"submitCustomJob",
 	"submitBugReport",
 	"generateSalesPaymentReport",
+	"generateSalesPerformanceReport",
 	"generateSalesStatementReport",
 	"publishStorefront",
 ] as const;
 export type ExtraPermissionScope = (typeof EXTRA_PERMISSION_SCOPES)[number];
-export type PermissionScope = `${Action}${PascalResource}` | ExtraPermissionScope;
+export type PermissionScope =
+	| `${Action}${PascalResource}`
+	| ExtraPermissionScope;
 
 export type ICan = { [permission in PermissionScope]: boolean };
 export const allPermissions = () => [...PERMISSIONS];
@@ -296,6 +300,9 @@ function normalizePermissionName(permission: string) {
 	}
 	if (normalized === "generateSalesPaymentReport") {
 		return ["generateSalesPaymentReport"];
+	}
+	if (normalized === "generateSalesPerformanceReport") {
+		return ["generateSalesPerformanceReport"];
 	}
 	if (normalized === "generateSalesStatementReport") {
 		return ["generateSalesStatementReport"];

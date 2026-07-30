@@ -1,12 +1,14 @@
 import Decimal from "decimal.js-light";
 
 export const CONTRACTOR_ACCOUNTING_ENTRY_TYPES = [
+	"OPENING_BALANCE",
 	"JOB_EARNED",
 	"BONUS",
 	"EXPENSE",
 	"DEDUCTION",
 	"PAYOUT",
 	"PAYOUT_REVERSAL",
+	"REVERSAL",
 ] as const;
 
 export type ContractorAccountingEntryType =
@@ -24,6 +26,7 @@ export type ContractorAccountingEntry = {
 	contractorName: string;
 	type: ContractorAccountingEntryType;
 	amount: ContractorMoneyInput;
+	liabilityDelta?: ContractorMoneyInput;
 	effectiveAt: Date | string;
 	description?: string | null;
 	jobId?: number | null;
@@ -52,7 +55,7 @@ export type ContractorPeriodReportInput = {
 
 export type ContractorPeriodReportEntry = Omit<
 	ContractorAccountingEntry,
-	"amount" | "effectiveAt"
+	"amount" | "liabilityDelta" | "effectiveAt"
 > & {
 	amountCents: number;
 	signedAmountCents: number;
@@ -131,12 +134,14 @@ export function getContractorAccountingEntryLabel(
 	type: ContractorAccountingEntryType,
 ) {
 	return {
+		OPENING_BALANCE: "Opening balance",
 		JOB_EARNED: "Job earned",
 		BONUS: "Bonus",
 		EXPENSE: "Expense",
 		DEDUCTION: "Deduction",
 		PAYOUT: "Payout",
 		PAYOUT_REVERSAL: "Payout reversal",
+		REVERSAL: "Reversal",
 	}[type];
 }
 
@@ -275,10 +280,12 @@ function createTotals(): ContractorPeriodTotals {
 
 function getSignedEffect(type: ContractorAccountingEntryType, cents: number) {
 	switch (type) {
+		case "OPENING_BALANCE":
 		case "JOB_EARNED":
 		case "BONUS":
 		case "EXPENSE":
 		case "PAYOUT_REVERSAL":
+		case "REVERSAL":
 			return cents;
 		case "DEDUCTION":
 		case "PAYOUT":
@@ -308,6 +315,11 @@ function applyPeriodEntry(
 			break;
 		case "PAYOUT_REVERSAL":
 			totals.reversalCents += entry.amountCents;
+			break;
+		case "REVERSAL":
+			totals.reversalCents += entry.signedAmountCents;
+			break;
+		case "OPENING_BALANCE":
 			break;
 	}
 	totals.netActivityCents += entry.signedAmountCents;
@@ -369,7 +381,10 @@ export function buildContractorPeriodReport({
 		if (effectiveAt.getTime() >= toExclusive.getTime()) continue;
 
 		const amountCents = Math.abs(moneyToCents(sourceEntry.amount));
-		const signedAmountCents = getSignedEffect(sourceEntry.type, amountCents);
+		const signedAmountCents =
+			sourceEntry.liabilityDelta === undefined
+				? getSignedEffect(sourceEntry.type, amountCents)
+				: moneyToCents(sourceEntry.liabilityDelta);
 		const normalizedEntry: ContractorPeriodReportEntry = {
 			...sourceEntry,
 			amountCents,

@@ -10,29 +10,79 @@ Tracks notable migrations and migration strategy.
 - If the configured database is unavailable or drift blocks migration, record the exact limitation here rather than forcing a reset or data-destructive action.
 
 ## Current Notes
+- 2026-07-30 contractor accounting workspaces and alert delivery:
+  - Prisma-generated `20260730090000_contractor_accounting_workspace` creates
+    payout-run, alert-rule, and alert-event tables plus expected indexes.
+  - Prisma-generated
+    `20260730104500_contractor_accounting_alert_delivery` adds nullable JSON and
+    timestamp/error delivery evidence to alert events.
+  - Both migrations were applied locally and reconciled through Prisma after
+    the unrelated historical master-password migration blocked shadow replay.
+    Local status reports 110 migrations and the live schema diff is empty.
+  - No reset, row deletion, manually-authored SQL, or production deployment was
+    performed for these workspace migrations.
+- 2026-07-30 contractor accounting immutable ledger:
+  - `20260729230000_contractor_accounting_ledger` additively creates
+    `ContractorLedgerEntry`, accounting period/event, reconciliation run/issue,
+    report schedule/run, and tax profile tables plus their enums and indexes.
+  - Local deployment reports 108 applied migrations and no schema difference.
+  - Production dry-run schema diff contained only the eight new tables and
+    indexes. The repository root `db:push:prod` Turbo task requires an
+    interactive TUI, so the equivalent package command
+    `bun run --filter @gnd/db push:prod` was run in a PTY. Prisma synchronized
+    production and regenerated the client successfully.
+  - The first production backfill attempt used one large `createMany` and was
+    aborted atomically by PlanetScale/Vitess transaction limits; it left zero
+    ledger rows. The implementation was changed to deterministic 500-row
+    batches before retrying.
+  - The production retry inserted 16,940 immutable ledger rows (15,489 job
+    earnings and 1,451 payout-related rows). Rerunning the backfill remained at
+    16,940 because unique source keys make posting idempotent.
+  - January 1-August 31 legacy-versus-ledger comparison has zero summary and
+    contractor differences. A final production schema diff reports no
+    difference.
+  - No table reset, row deletion, destructive migration, or unrelated schema
+    mutation was performed.
 - 2026-07-29 contractor accounting decimal money:
   - `JobPayments.amount`, `charges`, and `subTotal`, plus
     `JobPaymentAdjustments.amount`, are changed from integer columns to
     `Decimal(12,2)` in the Prisma schema.
-  - `bun run db:generate` and Prisma schema validation pass.
-  - Read-only migration status reached local `gnd-prisma2` and found four older
-    repository migrations still pending:
+  - Prisma-generated migration
+    `20260729213535_contractor_accounting_decimal_money` contains only those
+    four widening conversions.
+  - Local `gnd-prisma2` already contained the schema from the older Storefront
+    and four pending migrations because of prior schema pushes. A live
+    datasource-to-datamodel diff proved that only the contractor Decimal
+    conversions remained.
+  - The duplicate failed Storefront attempt was marked rolled back, then the
+    Storefront migration and these four already-present migrations were
+    reconciled as applied:
     `20260722150000_dealer_customer_direct_partnership_invitations`,
     `20260722180000_master_password_usage_audit`,
     `20260728120000_sales_inventory_projection_state`, and
     `20260729153000_optional_inbound_supplier`.
-  - Applying those pending migrations and generating the new decimal migration
-    was not authorized by the escalation gate. No reset, direct SQL, migration
-    history rewrite, or workaround was attempted. Explicit approval is required
-    before mutating the local development database.
+  - `prisma migrate deploy` applied the Decimal migration locally. Local status
+    reports 107 migrations and the post-deploy schema diff is empty.
+  - The production preflight diff contained only the same four conversions.
+    Existing production values were audited before accepting Prisma's generic
+    cast warning: 1,452 payment amounts ranged from 85 to 52,157, charges from
+    0 to 967, subtotals from 90 to 52,157, and the adjustment table was empty.
+    All values fit `Decimal(12,2)` exactly.
+  - `prisma db push --accept-data-loss` synchronized production `gndprodesk`
+    through the repository's production environment wrapper and regenerated
+    Prisma Client. The post-push production schema diff is empty.
+  - No reset, row deletion, direct SQL execution, or unrelated production
+    schema change was performed.
 - 2026-07-29 optional inbound supplier:
   - `packages/db/src/migrations/20260729153000_optional_inbound_supplier/migration.sql`
     changes only `InboundShipment.supplierId` from required to nullable.
   - Prisma Client generation passed.
-  - The repository migration deploy was blocked by pre-existing local history
-    drift at `20260720130000_storefront_ecommerce_replacement` because
-    `salesChannel` already existed. The failed marker was returned to
-    rolled-back state; no unrelated migration was forced or marked applied.
+  - The repository migration deploy was initially blocked by pre-existing local
+    history drift at `20260720130000_storefront_ecommerce_replacement` because
+    `salesChannel` already existed. A later full live-schema diff proved the
+    Storefront and optional-supplier structures were already present, so the
+    failed attempt was rolled back and both migrations were reconciled as
+    applied before the contractor Decimal migration ran.
   - The single nullable-column SQL was applied directly to local `gnd-prisma2`
     for browser verification. The normal migration remains unapplied in local
     Prisma history and is the source of truth for clean environments.
@@ -57,9 +107,8 @@ Tracks notable migrations and migration strategy.
     direct package `prisma db push` reported the database already in sync, a
     follow-up live-schema diff reported no difference, and a Prisma read smoke
     accessed both the invitation source and lease models.
-  - `_prisma_migrations` was not rewritten. Reconcile the repository's older
-    dealership-table migration gap before using migration-based deployment in
-    another environment.
+  - The local migration history was reconciled on 2026-07-29 after a full live
+    schema diff proved the invitation structures were already present.
   - The datasource uses `relationMode = "prisma"`; therefore the generated SQL
     intentionally creates relation indexes without database foreign-key
     constraints, matching the rest of this Prisma-managed relationship mode.

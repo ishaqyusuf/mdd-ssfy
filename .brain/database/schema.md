@@ -122,9 +122,40 @@ Tracks important schema-level entities and ownership boundaries.
   - `JobPaymentAdjustments.amount` is `Decimal(12,2)`.
   - `Jobs.amount` remains the legacy `Float`; contractor accounting converts it
     to integer cents before arithmetic.
-  - No new contractor-ledger or report-snapshot tables are introduced in this
-    slice. The schema change remains deployment-pending until the normal
-    migration workflow is approved and completed.
+  - `ContractorLedgerEntry` is the immutable accounting journal. It stores
+    source magnitude and signed `liabilityDelta` as `Decimal(18,2)`, effective
+    and posting timestamps, unique idempotency `sourceKey`, logical source
+    references, optional evidence/meta, and a unique self-linked reversal.
+  - `ContractorAccountingPeriod` stores an inclusive-business-period boundary
+    as `[from, toExclusive)`, timezone, open/closed state, closing balance,
+    canonical JSON snapshot, SHA-256 hash, and close/reopen audit fields.
+    `ContractorAccountingPeriodEvent` preserves append-only close/reopen events.
+  - `ContractorReconciliationRun` stores legacy-versus-ledger totals and
+    execution state. `ContractorReconciliationIssue` stores typed discrepancies,
+    amounts, evidence, review state, reviewer, and resolution note.
+  - `ContractorAccountingReportSchedule` stores report kind/format, validated
+    cron/timezone, filter and recipient snapshots, next/last run state, and
+    creator. `ContractorAccountingReportRun` stores every requested artifact,
+    status, filters/totals, URL, content hash, requester, and timestamps.
+  - `ContractorTaxProfile` stores one contractor's legal/tax classification,
+    W-9 lifecycle, verification evidence, TIN last four, optional document
+    reference, and notes. Full tax identifiers are not stored.
+  - `ContractorPayoutRun` stores a contractor, eligible job IDs, active filter
+    snapshot, proposed Decimal amount, canonical accounting snapshot/hash,
+    reviewed/handoff/completion/cancellation audit fields, and an optional
+    reference to the payment ultimately created in Payment Portal.
+  - `ContractorAccountingAlertRule` stores enabled alert criteria for balance,
+    liability age, reconciliation, W-9, or period close plus scope, timezone,
+    recipients, and last evaluation.
+  - `ContractorAccountingAlertEvent` stores one fingerprint-deduplicated alert
+    occurrence, evidence, lifecycle state, acknowledgement/resolution evidence,
+    and durable per-recipient email delivery/attempt/error state.
+  - Decimal payout columns and all eight contractor-accounting tables are
+    synchronized to local development and production; both final schema diffs
+    are empty.
+  - The three workspace tables and alert-delivery columns are applied locally.
+    Production deployment is intentionally tracked separately from the verified
+    immutable-ledger cutover.
 
 ## TODO
 - Document the canonical schema modules and the most important tables/models.

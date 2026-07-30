@@ -30,6 +30,7 @@ interface Props<TData> {
 	loading?: boolean;
 	tableScroll?: TableScrollState;
 	showColumnDividers?: boolean;
+	tableId?: TableId;
 }
 
 const HEADER_BACKGROUND_CLASS = "!bg-sidebar-accent";
@@ -39,15 +40,15 @@ const HEADER_CELL_BACKGROUND_STYLE = {
 	backgroundColor:
 		"color-mix(in oklab, var(--sidebar-accent) 88%, var(--foreground))",
 };
-const TABLE_ID = "sales-accounting" satisfies TableId;
-const tableConfig = TABLE_CONFIGS[TABLE_ID];
-
 export function DataTableHeader<TData>({
 	table,
 	loading,
 	tableScroll,
 	showColumnDividers = false,
+	tableId = "sales-accounting",
 }: Props<TData>) {
+	const tableConfig = TABLE_CONFIGS[tableId];
+	const nonReorderableColumns = tableConfig.nonReorderableColumns;
 	const { getStickyStyle, getStickyClassName, isVisible } = useStickyColumns({
 		table,
 		loading,
@@ -58,9 +59,9 @@ export function DataTableHeader<TData>({
 
 		return table
 			.getAllLeafColumns()
-			.filter((column) => !tableConfig.nonReorderableColumns.has(column.id))
+			.filter((column) => !nonReorderableColumns.has(column.id))
 			.map((column) => column.id);
-	}, [table]);
+	}, [nonReorderableColumns, table]);
 
 	if (!table) return null;
 
@@ -146,7 +147,15 @@ export function DataTableHeader<TData>({
 										className={finalClassName}
 										style={headerStyle}
 									>
-										{renderHeaderContent(header, columnId, table, tableScroll)}
+										{renderHeaderContent(
+											header,
+											columnId,
+											table,
+											tableScroll,
+											tableConfig.stickyColumns.find(
+												(column) => column.id !== "select",
+											)?.id,
+										)}
 										<ResizeHandle header={header} />
 									</TableHead>
 								);
@@ -164,7 +173,15 @@ export function DataTableHeader<TData>({
 									tableStyle={tableConfig.style}
 								>
 									<div className="flex min-w-0 flex-1 items-center overflow-hidden">
-										{renderHeaderContent(header, columnId, table, tableScroll)}
+										{renderHeaderContent(
+											header,
+											columnId,
+											table,
+											tableScroll,
+											tableConfig.stickyColumns.find(
+												(column) => column.id !== "select",
+											)?.id,
+										)}
 									</div>
 									<ResizeHandle header={header} />
 								</DraggableHeader>
@@ -182,6 +199,7 @@ function renderHeaderContent<TData>(
 	columnId: string,
 	table: Table<TData>,
 	tableScroll?: TableScrollState,
+	scrollControlColumnId?: string,
 ) {
 	const label = getAccountingHeaderLabel(header);
 
@@ -208,7 +226,7 @@ function renderHeaderContent<TData>(
 		);
 	}
 
-	if (columnId === "createdAt") {
+	if (columnId === scrollControlColumnId) {
 		return (
 			<div className="flex w-full items-center justify-between gap-2">
 				<HeaderLabel label={label} />

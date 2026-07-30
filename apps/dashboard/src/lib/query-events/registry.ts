@@ -28,6 +28,7 @@ const salesDashboardTargets = [
 	pathTarget("salesDashboard.getRevenueOverTime"),
 	pathTarget("salesDashboard.getTopProducts"),
 	pathTarget("salesDashboard.getSalesRepLeaderboard"),
+	pathTarget("salesDashboard.getSalesChannelBreakdown"),
 	pathTarget("sales.mobileDashboardOverview"),
 ] as const;
 

@@ -86,7 +86,9 @@ export const {
 		) {
 			const parser = filterSchema?.[qk];
 			const isArray = isArrayParser(parser) || isArrayParserBySample(parser);
-			const normalizedValue = normalizeFilterValue(parser, value);
+			const parsedValue = normalizeFilterValue(parser, value);
+			const normalizedValue =
+				isArray && Array.isArray(parsedValue) ? parsedValue[0] : parsedValue;
 			const currentValue = filters?.[qk];
 
 			setFilter({
@@ -106,7 +108,10 @@ export const {
 
 		function isOptionSelected(qk: string, value: unknown) {
 			const parser = filterSchema?.[qk];
-			const normalizedValue = normalizeFilterValue(parser, value);
+			const isArray = isArrayParser(parser) || isArrayParserBySample(parser);
+			const parsedValue = normalizeFilterValue(parser, value);
+			const normalizedValue =
+				isArray && Array.isArray(parsedValue) ? parsedValue[0] : parsedValue;
 			const currentValue = filters?.[qk];
 
 			if (Array.isArray(currentValue)) {

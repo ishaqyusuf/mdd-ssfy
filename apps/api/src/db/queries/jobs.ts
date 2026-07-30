@@ -11,6 +11,10 @@ import {
 	moneyToCents,
 } from "@gnd/contractor-accounting";
 import type { Prisma } from "@gnd/db";
+import {
+	postContractorLedgerEntry,
+	reverseContractorLedgerEntry,
+} from "@gnd/db/queries";
 import { Notifications } from "@gnd/notifications";
 import { resolveSalesCompanyAddress } from "@gnd/sales/print";
 import {
@@ -550,6 +554,8 @@ const contractorPaymentSelect = {
 			amount: true,
 			status: true,
 			createdAt: true,
+			approvedAt: true,
+			statusDate: true,
 			project: {
 				select: {
 					title: true,
@@ -1776,6 +1782,8 @@ export async function createPaymentPortal(
 			description: true,
 			isCustom: true,
 			createdAt: true,
+			approvedAt: true,
+			statusDate: true,
 			project: {
 				select: {
 					title: true,
@@ -1851,6 +1859,7 @@ export async function createPaymentPortal(
 	}
 
 	const payment = await ctx.db.$transaction(async (db) => {
+		const accountingDate = new Date();
 		const createdPayment = await db.jobPayments.create({
 			data: {
 				amount: roundPaymentAmount(totalPayout),
@@ -1894,6 +1903,17 @@ export async function createPaymentPortal(
 			},
 			select: {
 				id: true,
+				amount: true,
+				createdAt: true,
+				adjustments: {
+					select: {
+						id: true,
+						type: true,
+						amount: true,
+						description: true,
+						createdAt: true,
+					},
+				},
 			},
 		});
 
@@ -1906,8 +1926,76 @@ export async function createPaymentPortal(
 			data: {
 				paymentId: createdPayment.id,
 				status: "Paid",
-				statusDate: new Date(),
+				statusDate: accountingDate,
 			},
+		});
+		if (autoApprovedJobs.length) {
+			await db.jobs.updateMany({
+				where: {
+					id: { in: autoApprovedJobs.map((job) => job.id) },
+					approvedAt: null,
+				},
+				data: { approvedAt: accountingDate },
+			});
+		}
+
+		const autoApprovedJobIds = new Set(
+			autoApprovedJobs.map((job) => job.id),
+		);
+		for (const job of jobs) {
+			const effectiveAt = autoApprovedJobIds.has(job.id)
+				? accountingDate
+				: job.approvedAt ?? job.statusDate ?? job.createdAt ?? accountingDate;
+			await postContractorLedgerEntry(db, {
+				contractorId: input.userId,
+				type: "JOB_EARNED",
+				amount: job.amount,
+				liabilityDelta: job.amount,
+				effectiveAt,
+				sourceType: "JOB",
+				sourceId: String(job.id),
+				sourceKey: `JOB:${job.id}`,
+				description: job.description || job.title || `Job #${job.id}`,
+				jobId: job.id,
+				createdById: payerId,
+				meta: {
+					legacyDateFallback: !job.approvedAt && !autoApprovedJobIds.has(job.id),
+				},
+			});
+		}
+		for (const adjustmentEntry of createdPayment.adjustments) {
+			const liabilityDelta =
+				adjustmentEntry.type === "DEDUCTION"
+					? adjustmentEntry.amount.negated()
+					: adjustmentEntry.amount;
+			await postContractorLedgerEntry(db, {
+				contractorId: input.userId,
+				type: adjustmentEntry.type,
+				amount: adjustmentEntry.amount,
+				liabilityDelta,
+				effectiveAt:
+					adjustmentEntry.createdAt ?? createdPayment.createdAt ?? accountingDate,
+				sourceType: "PAYMENT_ADJUSTMENT",
+				sourceId: String(adjustmentEntry.id),
+				sourceKey: `PAYMENT_ADJUSTMENT:${adjustmentEntry.id}`,
+				description: adjustmentEntry.description,
+				paymentId: createdPayment.id,
+				paymentAdjustmentId: adjustmentEntry.id,
+				createdById: payerId,
+			});
+		}
+		await postContractorLedgerEntry(db, {
+			contractorId: input.userId,
+			type: "PAYOUT",
+			amount: createdPayment.amount,
+			liabilityDelta: createdPayment.amount.negated(),
+			effectiveAt: createdPayment.createdAt ?? accountingDate,
+			sourceType: "PAYMENT",
+			sourceId: String(createdPayment.id),
+			sourceKey: `PAYMENT:${createdPayment.id}`,
+			description: `Contractor payout #${createdPayment.id}`,
+			paymentId: createdPayment.id,
+			createdById: payerId,
 		});
 
 		return createdPayment;
@@ -1987,6 +2075,9 @@ export async function cancelContractorPayment(
 		select: {
 			id: true,
 			userId: true,
+			amount: true,
+			subTotal: true,
+			createdAt: true,
 			meta: true,
 			jobs: {
 				where: {
@@ -2109,6 +2200,70 @@ export async function cancelContractorPayment(
 				},
 			},
 		});
+		let activePaymentEntry = await db.contractorLedgerEntry.findFirst({
+			where: {
+				paymentId: payment.id,
+				sourceType: "PAYMENT",
+				type: { in: ["PAYOUT", "REVERSAL"] },
+			},
+			orderBy: [{ effectiveAt: "desc" }, { id: "desc" }],
+			include: { reversedBy: { select: { id: true } } },
+		});
+		if (!activePaymentEntry) {
+			const createdPaymentEntry = await postContractorLedgerEntry(db, {
+				contractorId: payment.userId,
+				type: "PAYOUT",
+				amount: payment.amount,
+				liabilityDelta: payment.amount.negated(),
+				effectiveAt: payment.createdAt ?? cancellationDate,
+				sourceType: "PAYMENT",
+				sourceId: String(payment.id),
+				sourceKey: `PAYMENT:${payment.id}`,
+				description: `Contractor payout #${payment.id}`,
+				paymentId: payment.id,
+				createdById: actorId,
+			});
+			activePaymentEntry = {
+				...createdPaymentEntry,
+				reversedBy: null,
+			};
+		}
+		if (!activePaymentEntry) {
+			throw new Error("Contractor payout ledger entry could not be created.");
+		}
+		if (!activePaymentEntry.reversedBy) {
+			if (activePaymentEntry.type === "PAYOUT") {
+				const reversalAmount = payment.subTotal ?? payment.amount;
+				await postContractorLedgerEntry(db, {
+					contractorId: payment.userId,
+					type: "REVERSAL",
+					amount: reversalAmount,
+					liabilityDelta: reversalAmount,
+					effectiveAt: cancellationDate,
+					sourceType: "PAYMENT",
+					sourceId: `cancel:${payment.id}:${cancellationDate.getTime()}`,
+					sourceKey: `PAYMENT:cancel:${payment.id}:${cancellationDate.getTime()}`,
+					description:
+						input.note?.trim() ||
+						`Cancelled contractor payout #${payment.id}`,
+					paymentId: payment.id,
+					createdById: actorId,
+					reversalOfId: activePaymentEntry.id,
+				});
+			} else if (activePaymentEntry.liabilityDelta.isNegative()) {
+				await reverseContractorLedgerEntry(db, {
+					entryId: activePaymentEntry.id,
+					effectiveAt: cancellationDate,
+					reason:
+						input.note?.trim() ||
+						`Cancelled contractor payout #${payment.id}`,
+					actorId,
+					sourceType: "PAYMENT",
+					sourceId: `cancel:${payment.id}:${cancellationDate.getTime()}`,
+					sourceKey: `PAYMENT:cancel:${payment.id}:${cancellationDate.getTime()}`,
+				});
+			}
+		}
 	});
 
 	await saveNote(
@@ -2330,6 +2485,29 @@ export async function reverseCancelledContractorPayment(
 				},
 			},
 		});
+		const activePaymentEntry = await db.contractorLedgerEntry.findFirst({
+			where: {
+				paymentId: payment.id,
+				sourceType: "PAYMENT",
+				type: "REVERSAL",
+				liabilityDelta: { gt: 0 },
+			},
+			orderBy: [{ effectiveAt: "desc" }, { id: "desc" }],
+			include: { reversedBy: { select: { id: true } } },
+		});
+		if (activePaymentEntry && !activePaymentEntry.reversedBy) {
+			await reverseContractorLedgerEntry(db, {
+				entryId: activePaymentEntry.id,
+				effectiveAt: reversalDate,
+				reason:
+					input.note?.trim() ||
+					`Restored contractor payout #${payment.id}`,
+				actorId,
+				sourceType: "PAYMENT",
+				sourceId: `restore:${payment.id}:${reversalDate.getTime()}`,
+				sourceKey: `PAYMENT:restore:${payment.id}:${reversalDate.getTime()}`,
+			});
+		}
 	});
 
 	await saveNote(

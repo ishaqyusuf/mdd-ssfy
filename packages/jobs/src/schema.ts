@@ -56,6 +56,7 @@ export const taskNames = [
 	"allocate-received-inbound-to-backorders",
 	"backfill-sales-inventory-line-items",
 	"run-inventory-reconciliation-report",
+	"generate-contractor-accounting-report",
 	"sync-sales-inventory-line-items",
 	"warm-sales-document-snapshot",
 	"sync-dyke-step-to-inventory",
@@ -228,6 +229,13 @@ export const inventoryReconciliationReportSchemaTask = z.object({
 });
 export type InventoryReconciliationReportSchemaTask = z.infer<
 	typeof inventoryReconciliationReportSchemaTask
+>;
+
+export const generateContractorAccountingReportSchemaTask = z.object({
+	runId: z.string().min(1),
+});
+export type GenerateContractorAccountingReportTaskPayload = z.infer<
+	typeof generateContractorAccountingReportSchemaTask
 >;
 
 export const allocateReceivedInboundToBackordersSchemaTask = z.object({

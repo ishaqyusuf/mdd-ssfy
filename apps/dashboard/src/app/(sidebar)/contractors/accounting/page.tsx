@@ -1,16 +1,10 @@
-import { ContractorAccountingPage } from "@/components/contractor-accounting-page";
-import { ScrollableContent } from "@/components/scrollable-content";
-import {
-	getDefaultContractorAccountingReportPeriod,
-	loadContractorAccountingReportParams,
-} from "@/hooks/use-contractor-accounting-report-params";
-import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
-import type { RouterInputs } from "@api/trpc/routers/_app";
-import { PageTitle } from "@gnd/ui/custom/page-title";
-import { constructMetadata } from "@gnd/utils/construct-metadata";
-import type { SearchParams } from "nuqs";
-
 import PageShell from "@/components/page-shell";
+import { ContractorAccountingPage } from "@/components/contractor-accounting-page";
+import { ContractorAccountingTitle } from "@/components/contractor-accounting/header";
+import { ScrollableContent } from "@/components/scrollable-content";
+import { HydrateClient } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import { constructMetadata } from "@gnd/utils/construct-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -20,37 +14,16 @@ export async function generateMetadata() {
 	});
 }
 
-type Props = {
-	searchParams: Promise<SearchParams>;
-};
-
-export default async function ContractorAccountingRoute({
-	searchParams,
-}: Props) {
-	const loaded = loadContractorAccountingReportParams(await searchParams);
-	const defaults = getDefaultContractorAccountingReportPeriod();
-	const period = {
-		from: loaded.from || defaults.from,
-		to: loaded.to || defaults.to,
-		timezone: loaded.timezone || defaults.timezone,
-	} satisfies Pick<
-		RouterInputs["jobs"]["contractorPeriodReport"],
-		"from" | "to" | "timezone"
-	>;
-
-	batchPrefetch([
-		trpc.jobs.contractorPeriodReport.queryOptions({
-			...period,
-			includeEntries: false,
-		}),
-	]);
-
+export default async function ContractorAccountingRoute() {
+	const initialSettings = await getInitialTableSettings("contractor-accounting");
 	return (
-		<PageShell>
+		<PageShell className="pt-4">
 			<HydrateClient>
 				<ScrollableContent>
-					<PageTitle>Contractor Accounting</PageTitle>
-					<ContractorAccountingPage initialPeriod={period} />
+					<div className="flex flex-col gap-4">
+						<ContractorAccountingTitle />
+						<ContractorAccountingPage initialSettings={initialSettings} />
+					</div>
 				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>

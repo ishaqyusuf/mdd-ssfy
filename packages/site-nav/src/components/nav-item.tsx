@@ -229,6 +229,11 @@ export const NavItem = ({
 									WIP
 								</span>
 							) : null}
+							{item.badge ? (
+								<span className="ml-2 rounded-full border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-sky-700 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300">
+									{item.badge}
+								</span>
+							) : null}
 							{hasChildren && (
 								<button
 									type="button"

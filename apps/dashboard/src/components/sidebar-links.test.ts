@@ -110,6 +110,26 @@ describe("sidebar role access", () => {
 		expect(storefrontLink?.wip).toBe(true);
 	});
 
+	test("marks the new sales reporting surfaces for rollout discovery", () => {
+		const links = getLinkModules(
+			validateLinks({
+				role: { name: "Admin" },
+				can: permissions({ viewOrders: true, viewSales: true }),
+				userId: "admin-1",
+			}),
+		);
+		const salesLinks = links.modules
+			.flatMap((module) => module.sections)
+			.flatMap((section) => section.links);
+
+		expect(
+			salesLinks.find((link) => link?.href === "/sales-book/finance")?.badge,
+		).toBe("New");
+		expect(
+			salesLinks.find((link) => link?.href === "/sales-book/reports")?.badge,
+		).toBe("New");
+	});
+
 	test("keeps create and edit order routes limited to editOrders", () => {
 		const links = getLinkModules(
 			validateLinks({

@@ -1,6 +1,7 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
 import { SalesAccountingHeader } from "@/components/sales-accounting-header";
+import { SalesFinanceAdoptionTracker } from "@/components/sales-finance/adoption";
 import { DataTable } from "@/components/tables-2/sales-accounting/data-table";
 import { SalesAccountingSkeleton } from "@/components/tables-2/sales-accounting/skeleton";
 import { loadSalesAccountingFilterParams } from "@/hooks/use-sales-accounting-filter-params";
@@ -40,6 +41,7 @@ export async function SalesBookAccountingPage({
 		<PageShell>
 			<HydrateClient>
 				<div className="flex flex-col gap-6">
+					<SalesFinanceAdoptionTracker surface="legacy-accounting" />
 					<PageTitle>{title}</PageTitle>
 					<SalesAccountingHeader />
 					<ErrorBoundary errorComponent={ErrorFallback}>

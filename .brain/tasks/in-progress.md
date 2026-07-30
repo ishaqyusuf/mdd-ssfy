@@ -1,10 +1,30 @@
 # In Progress
 
-- [ ] Contractor accounting period reporting: application/reporting slice is
-  implemented with protected custom-period API, Jan–Aug inclusive semantics,
-  reconciliation, Excel, PDF, and data-quality evidence. Remaining deployment
-  gate: explicitly approve and complete the local Decimal payout-money
-  migration, then run database-backed smoke validation.
+- [ ] Sales Finance parallel replacement: the first `/sales-book/finance`
+  milestone now has canonical money/customer projection, protected
+  list/summary/detail contracts, overview metrics, All/Review ledger, URL
+  filters using the standard Sales Orders Midday bar and semantic filter icons,
+  persistent table controls, selection, responsive scrolling, and transaction
+  details. The Receivables tab adds canonical/stored balance reconciliation,
+  five aging buckets, summary cards, standard search/due-date/aging filters,
+  persistent table controls, and invoice/payment drill-down. Seven
+  permission-aware Excel reports now reuse active filters and canonical
+  projections: five payment reports plus Receivables Aging and Receivables by
+  Customer, with context/summary/audit sheets and a 10,000-row safety bound. A
+  deferred reporting snapshot adds continuous collections trend,
+  payment-method mix, and review aging/reason insight from the same active view
+  and filters. Review exceptions now support append-only fingerprinted
+  reconciliation sessions with audited resolution and automatic stale
+  detection. A stable Resolution Center now exposes duplicate-payment,
+  overpayment, and stale-balance cases, with `editOrderPayment`-guarded sync,
+  cancel, and refund actions plus required audit evidence. Every Finance payment
+  sheet includes the same permission-aware resolution control. Privacy-bounded
+  PageView telemetry compares rolling 30-day Finance and legacy usage, while a
+  hard retirement gate preserves Accounting until responsive operator
+  acceptance and explicit approval. Automated responsive browser proof is
+  complete; remaining work is operator adoption feedback, the explicit
+  retirement decision, and later PDF design. See
+  `.brain/features/sales-finance.md`.
 
 - 2026-07-22 execution note: the responsive full-width Tables-2 core contract
   was tracked here during implementation and moved to

@@ -1,5 +1,92 @@
 # API Contracts
 
+## Sales dashboard and performance reports
+
+- `salesDashboard.report` is an additive protected query that accepts the
+  shared inclusive sales dashboard period, optional representative/channel
+  filters, and one governed report type:
+  `performance-summary | orders-ledger | sales-reps | products |
+  quote-activity | customers`.
+- The response is a typed workbook contract with title, slug, relevant row
+  count, columns, typed cells, and ordered sheets. Every report includes
+  `Report Context` and `Summary`.
+- Grouped representative/customer workbooks include source orders; performance
+  summary includes trend, channel, representative, and source-order sheets;
+  product performance includes source line items.
+- Money, count, percentage, and date cell types remain explicit so the browser
+  can create numeric and date-aware Excel cells.
+- Quote activity does not expose an inferred conversion metric.
+- More than 10,000 relevant source records returns `BAD_REQUEST`; the API never
+  labels a truncated workbook as complete.
+- Payment, refund, application, collection, and receivables workbooks remain
+  owned by the separate Sales Finance contracts.
+
+## Sales Finance
+
+- `salesFinance.transactions`, `salesFinance.summary`,
+  `salesFinance.analytics`, `salesFinance.report`, and
+  `salesFinance.transactionDetail` are protected, additive contracts for the
+  parallel `/sales-book/finance` workspace.
+- The list defaults to the last 30 calendar days and accepts search, inclusive
+  `YYYY-MM-DD` bounds, canonical payment methods, raw statuses, exception codes,
+  application statuses, sales-rep/customer ids, `all | review` tab, bounded
+  20-100 page size, offset cursor, and typed sort tuple.
+- List and detail rows use the shared `@gnd/sales/payment-system` projection.
+  They expose received, principal, fee, refunded, net, applied, unapplied, and
+  overapplied amounts plus application status, review exceptions, customer,
+  invoices, sales reps, payment reference, and recorder.
+- Customer names prefer wallet `businessName`, then wallet personal `name`, then
+  deduplicated associated order customer/billing names.
+- The summary uses the same projected rows and money helpers as the ledger; it
+  returns canonical totals, counts, period bounds, and method totals.
+- `salesFinance.analytics` accepts the shared filters plus the active
+  `all | review` tab and returns continuous daily/weekly/monthly collections
+  buckets, gross-receipt method mix, and review age/reason distributions.
+  Analytics periods are bounded to ten years.
+- `salesFinance.report` accepts the shared filters plus
+  `payments | payment-methods | applications | exceptions | customers`. It
+  returns typed workbook metadata and sheets for client-side `.xlsx`
+  generation. Every workbook includes Report Context and Summary; grouped
+  method/customer reports include Source Payments. More than 10,000 matching
+  payments fails with `BAD_REQUEST` rather than returning a partial report.
+- Detail reads are restricted to non-deleted transactions linked to sales
+  payments, Square payments, or refunds.
+- `salesFinance.receivables` and `salesFinance.receivablesSummary` are
+  additive, read-only contracts over open Sales Orders. They accept search,
+  optional inclusive `YYYY-MM-DD` due-date bounds, and
+  `current | 1_30 | 31_60 | 61_90 | 90_plus` aging filters. The list adds
+  bounded 20-100 page size, offset cursor, and typed sort.
+- Receivable rows expose invoice/customer/sales-rep identity, invoice and due
+  dates, payment term, canonical invoice/paid/outstanding money, stored balance,
+  reconciliation difference, aging, status, and payment applications.
+- `salesFinance.receivableDetail` returns the same canonical row for one visible
+  order. `salesFinance.receivablesReport` accepts the shared receivables filters
+  plus `receivables-aging | receivables-customers`, returns typed workbook
+  sheets, and rejects more than 10,000 matching invoices.
+- `salesFinance.transactionDetail` includes raw/effective review state,
+  reconciliation status, and append-only history. `reconciliationStart` records
+  the current exception fingerprint and evidence; `reconciliationResolve`
+  requires an open matching session, a typed resolution, and a 10-character
+  evidence note. A matching resolution suppresses Review, while changed source
+  evidence makes it stale and reviewable again.
+- `salesFinance.resolutions` and `salesFinance.resolutionsSummary` expose the
+  existing Sales Resolution candidate projection behind the Finance read
+  boundary. The list accepts the existing resolution filters, pagination, and
+  direct-field sort contract.
+- `salesFinance.resolutionSyncBalance` accepts a positive sale id plus a
+  minimum 10-character audit note, invokes the canonical balance repair, and
+  records authenticated before/after evidence.
+- `salesFinance.resolutionPayment` accepts the canonical payment-resolution
+  input plus a minimum 10-character audit note. It supports guarded cancel and
+  refund actions through the existing wallet resolution domain operation.
+- `salesFinance.adoptionPing` records authenticated surface-level `PageView`
+  evidence for Payments, Review, Receivables, Resolution, or legacy Accounting
+  without storing filters or customer/payment identifiers.
+  `adoptionReadiness` returns rolling 30-day activity and explicit readiness
+  gates. It never authorizes an automatic legacy redirect or deletion.
+- No database schema or legacy `sales.getSalesAccountings` response was changed
+  for this contract. See `.brain/features/sales-finance.md`.
+
 ## Sales Customer Dealership Partnership Summary
 
 - `DealerPartnershipState` is `ELIGIBLE | INELIGIBLE | INVITE_PENDING |
@@ -741,30 +828,82 @@ Tracks important request/response contracts and shared schema boundaries.
 - The database schema, URL filters, pagination, selection, row opening, and
   Excel export contracts are unchanged.
 
-## Contractor accounting period report contract (2026-07-29)
+## Contractor accounting ledger contract (updated 2026-07-30)
 
-- `jobs.contractorPeriodReport` accepts `from` and `to` as `YYYY-MM-DD`,
-  `timezone` (default `America/New_York`), optional `contractorIds` (maximum
-  100), and `includeEntries`.
-- Both input dates are inclusive business dates. The response exposes their UTC
-  `[from, toExclusive)` boundary and the timezone used.
-- Summary and contractor rows expose integer-cent fields for opening, earned,
-  bonus, expense, deduction, payout, reversal, net activity, and closing
-  balances plus job/payout counts.
-- `includeEntries=false` returns the same reviewed summary and contractor
-  balances with an empty `entries` array. Excel and PDF request
-  `includeEntries=true` only when transaction detail is needed.
-- `dataQuality` identifies the legacy transaction source, approval-date fallback
-  count, missing-contractor count, missing-payout-date quarantine count,
-  cancelled-payout count, and summary-to-contractor cross-foot difference in
-  cents.
-- Source loading fails closed above 50,000 jobs, 25,000 payouts, or 100
-  adjustments on one payout. No screen or document receives silently truncated
-  financial totals.
-- `print.contractorAccounting` accepts only a signed expiring token. The token
-  requires the `contractor-accounting` audience and fixes the period, timezone,
-  and optional contractor IDs. `jobs.contractorAccountingPrintToken` is the
-  protected mint path; the generic token action refuses this audience.
+- Every period input uses inclusive `YYYY-MM-DD` business dates plus an IANA
+  timezone and is normalized to `[from, toExclusive)` UTC boundaries. Invalid
+  calendar dates, reversed periods, unknown timezones, and reversed amount
+  bounds fail at the Zod boundary.
+- Shared filter snapshots support free-text search, up to 100 contractor IDs,
+  entry/source types, minimum/maximum absolute amount, and exception-only mode.
+  List routes add opaque cursor, 1-100 page size, and ascending/descending
+  effective-date order.
+- `contractorAccounting.summary` and
+  `contractorAccounting.periodReport` return canonical ledger-derived opening,
+  earned, adjustment, payout, reversal, net, closing, contractor, count, and
+  data-quality fields in integer cents.
+- `contractorAccounting.entries` returns cursor-paginated serialized immutable
+  journal rows, including Decimal magnitude/effect normalized to cents and
+  per-contractor balance after the entry. `entry` returns one detail row.
+- `filterOptions`, `periods`, `reconciliationIssues`, `reportRuns`,
+  `reportSchedules`, and `taxProfiles` are bounded control-center reads.
+- `payables` returns per-contractor ledger balance, FIFO aging, oldest unpaid
+  date, blockers, W-9 state, readiness, and only currently eligible unpaid job
+  IDs. `contractorProfile` returns the same accounting authority plus recent
+  payout-run history for Contractor 360.
+- `insights` returns bounded continuous daily/weekly/monthly earned, payout,
+  net, and closing-liability periods plus aging.
+- `resolutionIssues` and `resolutionIssue` combine stored reconciliation
+  evidence with append-only resolution events. Canonical evidence fingerprints
+  distinguish active, resolved, and stale resolution state.
+- `closeReadiness` returns hard blockers and warnings for the exact requested
+  period. `closePeriod` repeats this server-side gate and rejects unresolved or
+  stale reconciliation evidence.
+- Payout runs use immutable proposal snapshots and constrained transitions:
+  draft, ready, handed off, completed, or cancelled. The API does not create a
+  payment; Payment Portal remains the execution boundary.
+- Alert rules validate kind-specific thresholds and 1-50 recipients. Alert
+  events expose open/acknowledged/resolved lifecycle and durable delivery
+  evidence.
+- `createAdjustment` accepts bonus/expense/deduction money with two-decimal
+  precision, effective date/timezone, description, optional job, and bounded
+  evidence. `reverseEntry` accepts an entry, effective date/timezone, and
+  reason; it creates a new reversal instead of editing the original.
+- `closePeriod` accepts only a global date period, stores the canonical snapshot
+  and hash, and creates a close event. `reopenPeriod` requires period ID and a
+  reason. `runReconciliation` stores legacy/ledger totals plus typed issues;
+  `reviewReconciliationIssue` stores reviewed/resolved state and note.
+- `generateReport` requires one of six kinds and `PDF | XLSX | CSV`. Contractor
+  statements require one contractor; PDF is limited to consolidated and
+  contractor statement output. The route snapshots filters, creates a report
+  run, and queues the report job.
+- `createReportSchedule` validates a five-part cron, timezone, report
+  kind/format, full filter snapshot, and 1-50 email recipients. Scheduled
+  contractor statements require exactly one contractor.
+- `updateTaxProfile` stores W-9 state and bounded tax-readiness evidence.
+  `backfillLedger` accepts only `dryRun` (default true).
+- `myStatement` deliberately has a separate pre-refinement schema without
+  caller-controlled contractor IDs. The server derives scope from the
+  authenticated user.
+- Compatibility `jobs.contractorPeriodReport` and
+  `print.contractorAccounting` now consume the immutable ledger. The legacy
+  calculation remains only for reconciliation comparison.
+
+## Sales dashboard and reporting contract (2026-07-30)
+
+- `salesDashboard.getKpis` returns booked sales, order count, quote count,
+  average order value, active production count, equal-length previous-period
+  percentage changes, and resolved current/previous period bounds.
+- `getRevenueOverTime` returns continuous day/week/month buckets with
+  `rawDate`, inclusive `bucketTo`, booked sales, order count, AOV, and
+  granularity.
+- `getRecentSales` returns five selected-period order projections suitable for
+  canonical Sales Overview drill-down.
+- `getTopProducts`, `getSalesRepLeaderboard`, and
+  `getSalesChannelBreakdown` use the same selected-period and visibility
+  contract; none replaces Sales Finance reporting.
+- Every sales order projection excludes `deletedAt` rows and applies the
+  office/dealer-customer visibility predicate.
 
 ## Production submission material review contract (2026-07-30)
 

@@ -5,6 +5,7 @@ import { backlogRouters } from "./backlogs.routes";
 import { bugReportsRouter } from "./bug-reports.route";
 import { checkoutRouter } from "./checkout.route";
 import { communityRouters } from "./community.route";
+import { contractorAccountingRouter } from "./contractor-accounting.route";
 import { customerServiceRouter } from "./customer-service.route";
 import { customerRouter } from "./customer.route";
 import { dealerPortalRouter } from "./dealer-portal.route";
@@ -26,6 +27,7 @@ import { printRouter } from "./print.route";
 import { salesDashboardRouter } from "./sales-dashboard.route";
 import { salesFinanceRouter } from "./sales-finance.route";
 import { salesPaymentProcessorRouter } from "./sales-payment-processor.route";
+import { salesRepDashboardRouter } from "./sales-rep-dashboard.route";
 import { salesShelfItems } from "./sales-shelf-item";
 import { salesRouter } from "./sales.route";
 import { searchRouter } from "./search.route";
@@ -52,6 +54,7 @@ export const appRouter = createTRPCRouter({
 	bugReports: bugReportsRouter,
 	checkout: checkoutRouter,
 	community: communityRouters,
+	contractorAccounting: contractorAccountingRouter,
 	customerService: customerServiceRouter,
 	customers: customerRouter,
 	dealer: dealerRouter,
@@ -74,6 +77,7 @@ export const appRouter = createTRPCRouter({
 	salesFinance: salesFinanceRouter,
 	salesShelfItems,
 	salesPaymentProcessor: salesPaymentProcessorRouter,
+	salesRepDashboard: salesRepDashboardRouter,
 	salesDashboard: salesDashboardRouter,
 	search: searchRouter,
 	settings: settingsRouter,

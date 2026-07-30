@@ -1,5 +1,178 @@
 # Progress
 
+- 2026-07-30: added governed Excel exports to `/sales-book/reports` using the
+  compact Sales Finance Reports interaction without duplicating Finance-owned
+  workbooks. The active sales period and optional rep/channel filters now feed
+  Performance Summary, Orders Ledger, Sales by Rep, Product Performance, Quote
+  Activity, and Sales by Customer workbooks. Every workbook includes context
+  and summary evidence, preserves numeric/date cell types, retains auditable
+  source sheets where aggregation is used, and fails above 10,000 relevant
+  source records. `salesDashboard.report` repeats the sales-read boundary and
+  adds `generateSalesPerformanceReport`; payments, refunds, applications,
+  collections, and receivables remain linked to Sales Finance. Focused
+  workbook/schema/permission/export/UI coverage passes 27 tests / 316
+  assertions, Sales package typecheck and targeted Biome pass, and API
+  diagnostics remain limited to the existing inbound-query depth and Sentry
+  baselines. Dashboard typecheck remains blocked by its existing 4 GB heap
+  exhaustion. The route compiled, but authenticated download QA could not
+  complete because the local MySQL service was unavailable while Docker Engine
+  was down.
+
+- 2026-07-30: expanded Contractor Accounting into four URL-owned workspaces
+  under the Sales Orders/Midday page-shell standard. Tabs now occupy a separate
+  top block above the standard search/filter/report/action row. Payables adds
+  FIFO aging, W-9 and reconciliation readiness, Contractor 360, immutable payout
+  proposals, and an explicit Payment Portal handoff. Review queue and Resolution
+  Center add fingerprinted append-only resolution with stale-evidence detection;
+  period close repeats the readiness gate server-side. Deferred insights add
+  continuous liability trends and aging. Hourly alert rules persist deduplicated
+  events, acknowledge/resolve state, and retryable per-recipient email evidence.
+  The two Prisma-generated workspace migrations are locally applied; status
+  reports 110 migrations and no schema difference. Focused coverage passes 22
+  tests / 55 assertions; DB and Jobs typechecks pass, and API diagnostics remain
+  limited to the pre-existing Sentry instrumentation baseline. The broad
+  Dashboard check completes with its existing repository-wide baseline; focused
+  parity and authenticated in-app browser QA confirm the two-tier tab/search
+  shell, all workspaces, management sheets, and a real Contractor 360 profile.
+
+- 2026-07-30: implemented the Sales Dashboard and Sales Reports redesign under
+  the Midday migration contract. Sales performance now uses protected,
+  soft-delete-aware, period-consistent queries with explicit booked-sales,
+  order, quote, AOV, production, previous-period, rep, product, channel, and
+  adaptive trend contracts. The fixed `/sales-dashboard` is action-oriented
+  and reuses the canonical Sales Overview drill-down. The new
+  `/sales-book/reports` workspace supports persisted card ordering and
+  visibility plus a permission-aware catalog for Sales Finance, receivables,
+  customer statements, product detail, and scheduled payment reports.
+  Collections and review counts continue to come from the canonical Sales
+  Finance projection rather than a duplicate calculation. Sales Finance and
+  Sales Reports are marked as new in the shared sidebar. Authenticated desktop
+  and `390x844` browser QA confirms live data, period changes, report
+  customization, and no document-level mobile overflow. Focused validation
+  passes 42 tests / 348 assertions, Sales and Site Nav package typechecks,
+  targeted Biome, and `git diff --check`; the broad API/Dashboard typechecks
+  retain only their documented unrelated baselines. See
+  `.brain/features/sales-dashboard-reporting.md` and ADR-038.
+
+- 2026-07-30: restored semantic Contractor Accounting filter icons in the
+  shared Midday/Sales Orders search-filter contract. Effective Date,
+  Contractor, Entry Type, Source, Amount, and Reconciliation now render
+  calendar, user, receipt, document, currency, and warning icons instead of
+  generic search fallbacks. Added focused shared-icon regression coverage.
+
+- 2026-07-30: completed the contractor accounting immutable-ledger cutover
+  under the Midday migration contract. The application now dual-writes
+  approved earnings and payout lifecycle events into idempotent Decimal journal
+  entries, corrects history with linked reversals, closes/reopens hashed period
+  snapshots, persists reconciliation issues, generates six report kinds through
+  durable async runs, schedules recurring delivery, and tracks W-9/tax
+  readiness. The workspace now matches the local Sales Orders search/filter and
+  Tables-2 standard: contextual Report visibility, complete filter inheritance,
+  virtualized/persistent ledger, entry and adjustment sheets, and an accounting
+  control center. The old Report period card is removed. Date and contractor
+  identity cells are single-line and use the Sales Orders 40px row height.
+  Local backfill/parity is exact. Production schema push, 16,940-row batched
+  backfill, idempotent rerun, and January-August parity are complete with zero
+  summary or contractor differences; the final production schema diff is
+  empty. All six report kinds produced nonempty local artifacts. Focused
+  domain/API/job/PDF/dashboard tests and package typechecks pass for the changed
+  slice. Authenticated in-app browser QA proved the real January-August
+  summary/ledger, hidden unfiltered and visible filtered Report CTA, six report
+  menu items, URL search narrowed to one row, no Report period card, and
+  accounting operations. A Zod v4 post-refinement `.omit()` runtime failure
+  discovered during QA was removed by defining the self-service base period
+  schema before refinement and covered by regression tests.
+
+- 2026-07-30: added the audited Sales Finance reconciliation and
+  parallel-adoption safeguards. Reviewable transaction details now support an
+  append-only open/resolve workflow in the existing `Event` model. Each action
+  records actor, note, exception evidence, and a deterministic transaction
+  fingerprint; a matching resolution suppresses the row from Review without
+  editing finance data, while any material source change marks it stale and
+  restores Review visibility. Reconciliation writes require
+  `editOrderPayment`. Finance Payments/Review/Receivables and legacy Accounting
+  now record privacy-bounded `PageView` adoption evidence, and authorized users
+  can inspect rolling 30-day usage plus readiness gates. Legacy retirement is
+  deliberately never automatic: responsive operator acceptance and explicit
+  approval remain pending, so the route and sidebar entry stay intact. The
+  combined Finance suite passes 46 tests / 265 assertions, Sales typecheck and
+  focused Biome pass, API typecheck reaches only the existing Sentry
+  instrumentation baseline, and the higher-memory Dashboard typecheck reaches
+  the existing broad repository baseline with no Sales Finance diagnostics.
+  The legacy Accounting customer/header parity suite adds 6 tests / 65
+  assertions, and shared Midday filter/icon coverage adds 8 tests / 33
+  assertions. Authenticated browser QA at `1440x900` and `390x844` confirms
+  stable tabs, three Review rows, reconciliation detail, 2,373 Receivables
+  invoices, summary/filter/column/detail controls, two-axis table scrolling, a
+  working `90_plus` filter, a successful 492,651-byte Receivables Aging
+  workbook download, adoption safeguards, no document-level overflow, and no
+  console errors.
+
+- 2026-07-30: extended the parallel Sales Finance workspace with a Midday
+  Invoices-guided Receivables tab. Open Sales Orders now project canonical
+  balances from successful payment applications while retaining stored
+  `amountDue` as reconciliation evidence. The UI adds Current, 1-30, 31-60,
+  61-90, and 90+ aging summaries; standard search/due-date/aging filters with
+  semantic calendar icons; a virtualized/resizable/reorderable persistent table;
+  and URL-addressable invoice/payment detail. Protected list, summary, detail,
+  and report APIs enforce the existing Finance read boundary. Receivables Aging
+  and Receivables by Customer Excel workbooks follow active filters, preserve
+  numeric money/date cells, include context/summary/source-invoice evidence,
+  require `generateSalesPaymentReport`, and reject more than 10,000 invoices.
+  Focused package/API/dashboard tests, Biome, and Sales/API/Dashboard typechecks
+  pass. Browser proof remains open because no in-app browser backend was
+  available and the local HTTPS route probe timed out; no visual pass is
+  claimed.
+
+- 2026-07-29: shipped the first parallel Sales Finance milestone at
+  `/sales-book/finance`, guided by the Midday Transactions migration contract.
+  The slice adds a shared canonical receipt/application/refund projection,
+  protected `salesFinance` list/summary/detail APIs, five overview metrics,
+  URL-backed All/Review tabs and filters, a virtualized/resizable/reorderable
+  persistent ledger, explicit exception evidence, selection bottom bar, and a
+  URL-addressable transaction detail sheet. Legacy Accounting remains intact.
+  The first reporting slice adds five filter-aware Excel reports: Payments
+  Ledger, Collections by Payment Method, Payment Applications, Finance Review
+  Exceptions, and Collections by Customer. Each workbook includes report
+  context and canonical summaries, grouped reports retain source-payment audit
+  rows, money/date cells remain typed for Excel, and reports above 10,000
+  matching payments fail with a narrowing prompt. The API and toolbar enforce
+  `generateSalesPaymentReport` in addition to Finance read access.
+  The on-page reporting snapshot is independently and lazily loaded from the
+  same canonical filtered dataset. It adds continuous daily/weekly/monthly
+  collections trend, payment-method receipt share, review aging, and
+  review-reason distribution with responsive loading, empty, error, and retry
+  states; analytics periods are bounded to ten years.
+  The filter bar now reuses the standard Sales Orders Midday search/filter,
+  page-tab, active-chip, and toolbar composition. Shared semantic filter icons
+  replace generic Search fallbacks, and the shared state layer now flattens
+  multi-select parser values before writing URL/API filters. Focused projection,
+  analytics-builder, report-builder, API query, Excel-rendering, and dashboard
+  parity coverage passes 23 tests / 132 assertions;
+  Sales typecheck and focused Biome pass. API has no Sales Finance diagnostic
+  but remains blocked by pre-existing Sentry typing errors, while Dashboard
+  remains on its unrelated broad baseline. Authenticated large-screen and
+  `390x844` browser QA confirmed real-data totals, three review rows, `$63.74`
+  unapplied money, detail reconciliation, semantic filter icons, successful
+  Cash filtering, column controls, internal scrolling, and no mobile document
+  overflow. The Review Exceptions report also returned HTTP 200 from the Review
+  queue and confirmed a three-payment Excel download. Reporting-snapshot
+  browser rendering remains blocked by the unrelated active
+  contractor-accounting Zod `.omit()` runtime error. PDF report design,
+  receivables, reconciliation, and adoption safeguards remain planned in
+  `.brain/features/sales-finance.md`.
+
+- 2026-07-29: created the Proposed Office Organization Management And
+  Operational Scoping feature plan. The plan treats offices as operational
+  partitions inside one GND company, subject to an explicit Phase 0 ADR and
+  baseline-data decision gate. It phases immediate public-API containment,
+  additive schema/session foundations, complete office and membership APIs,
+  Midday-style dashboard administration and switching, employee membership
+  integration, reviewed Sales/Community/Work Order ownership migration and
+  scoping waves, transfer/archive controls, security and browser/mobile
+  validation, and reversible production rollout. No application behavior,
+  API contract, permission, or database schema changed in this planning pass.
+
 - 2026-07-29: pushed the optional inbound-supplier Prisma schema to production
   with `bun run --cwd packages/db push:prod`. Prisma reported production
   `gndprodesk` in sync and regenerated Prisma Client successfully. Local
@@ -7740,9 +7913,49 @@
   workbook, and signed-token PDF use one cent-safe, timezone-aware report
   dataset. Contractor finance reads now require `viewJobPayment` or
   `editJobPayment`, while payout mutations retain `editJobPayment`. Focused
-  domain/API/permission/export/PDF coverage passes 24 tests / 275 assertions;
-  dashboard, PDF, and contractor-accounting package typechecks pass. API
-  typecheck is blocked only by the existing Sentry event typing errors. Prisma
-  generation and schema validation pass, but the local Decimal payout-money
-  migration remains gated on explicit approval because four older repository
-  migrations are pending; no database reset or workaround was used.
+  Midday Transactions conformance now adds a compositional hydrated route,
+  Suspense/error handling, a dedicated report skeleton, and API-owned
+  date/timezone validation while intentionally omitting edit sheets and bulk
+  controls from this read-only statement. Focused
+  domain/API/permission/export/PDF coverage passes 41 tests / 332 assertions;
+  API, Dashboard, PDF, DB, and contractor-accounting package typechecks,
+  focused Biome, and `git diff --check` pass. Prisma generation and schema
+  validation pass. After a live-schema diff proved older pending structures
+  were already present, local migration history was reconciled and
+  `20260729213535_contractor_accounting_decimal_money` was applied as migration
+  107. Production value ranges were audited, the same four widening conversions
+  were synchronized with the approved production push, and final local and
+  production diffs both report no schema difference.
+- 2026-07-30: added guarded Account Resolution to Sales Finance. The stable
+  Resolution Center reuses the canonical Sales Resolution projection while
+  protected Finance routes provide list/summary reads, audited due-balance
+  synchronization, and cancel/refund payment correction. Every Finance payment
+  overview sheet now includes a permission-aware resolution panel; correction
+  actions require `editOrderPayment` in both UI and API and require at least 10
+  characters of audit evidence. Balance synchronization records authenticated
+  before/after evidence in `SalesResolution` and `Event`, while payment
+  correction preserves the existing wallet/payment history. Focused API and
+  dashboard coverage passes 34 tests / 441 assertions. Authenticated desktop
+  and `390x844` QA confirmed all four stable tabs, live resolution cases,
+  contained table/tab scrolling without document overflow, and the payment
+  `11665` resolution dialog disabled until evidence is supplied; no financial
+  mutation was submitted. No database schema or migration changed, and legacy
+  Accounting remains available during adoption.
+- 2026-07-30: completed nonblocking production submission material review.
+  Inventory/inbound readiness no longer blocks assignment or submission.
+  Unresolved work saves immediately as reported quantity, notifies production
+  administrators, and remains excluded from payroll, finalized completion,
+  packing, dispatch, and completion-dependent payment review. The live worker
+  form warns without disabling Submit; the live admin workspace supports fresh
+  recheck, confirmed multi-inbound receipt, scoped no-stock manual fulfillment,
+  mixed resolution, approval, and rejection. Worker identity and action-specific
+  permissions are server-enforced, legacy produceable writers use the shared
+  command, and ready/pending batches are idempotent. Focused coverage passes 65
+  tests / 234 assertions; Sales, DB, Jobs, and Notifications typechecks pass;
+  the touched-dashboard type scan is clean; Prisma generation and local
+  additive schema push pass; and authenticated browser QA on order `09068PC`
+  confirms the warning with an enabled Submit control. The full workspace suite
+  reaches 2,587 passes with 39 pre-existing unrelated failures. The API typecheck
+  remains blocked only by the documented unrelated inbound-query depth and
+  Sentry event typing baseline; normal migration replay remains blocked by the
+  pre-existing master-password shadow-history ordering defect.
