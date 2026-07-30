@@ -497,7 +497,7 @@ function ActionCell({ item }: { item: SalesQuote }) {
 				className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
 			>
 				<Link
-					href={`/sales-book/edit-quote/${item.slug}`}
+					href={`/sales-form/edit-quote/${item.slug}`}
 					target="_blank"
 					rel="noopener noreferrer"
 					title="Edit"

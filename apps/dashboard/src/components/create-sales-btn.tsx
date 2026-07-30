@@ -18,7 +18,7 @@ export function CreateSalesBtn({ quote = false }) {
     return (
         <ButtonGroup>
             <Button asChild>
-                <Link href={`/sales-book/create-${title}`}>
+                <Link href={`/sales-form/create-${title}`}>
                     <Icons.Add className="mr-2 size-4" />
                     <span className="hidden lg:inline">New</span>
                 </Link>
@@ -35,7 +35,7 @@ export function CreateSalesBtn({ quote = false }) {
                     {hrefs.map((href) => (
                         <DropdownMenuItem key={href} asChild>
                             <Link
-                                href={`/sales-book/create-${href}`}
+                                href={`/sales-form/create-${href}`}
                                 className="capitalize"
                             >
                                 New {href}

@@ -1,5 +1,21 @@
 # Database Migrations
 
+## 2026-07-30: Sales Form Preference
+
+- Added `20260730160000_sales_form_preference`, an additive migration that
+  creates `SalesFormPreference` and the `(mode, updatedAt)` index. The schema
+  uses Prisma relation mode, so no physical user foreign key is emitted.
+- Prisma Client generation succeeds and the migration was applied to the local
+  development database with `prisma db execute`.
+- `bun run db:migrate` cannot currently replay the full migration history in a
+  shadow database: existing migration
+  `20260722180000_master_password_usage_audit` alters
+  `MasterPasswordLoginAudit` before a prior migration creates that table
+  (`P3006/P3018`, MySQL 1146). This predates the sales-form migration and must be
+  repaired or baselined before relying on full replay for production.
+- Production must apply the additive sales-form migration before application
+  code that reads `SalesFormPreference`.
+
 ## Purpose
 Tracks notable migrations and migration strategy.
 

@@ -265,13 +265,13 @@ function CustomerHero({
 						{!data?.customer.isReadOnly ? (
 							<>
 								<Button asChild variant="outline">
-									<Link href="/sales-book/create-quote">
+									<Link href="/sales-form/create-quote">
 										<Icons.FileText className="mr-2 size-4" />
 										New quote
 									</Link>
 								</Button>
 								<Button asChild>
-									<Link href="/sales-book/create-order">
+									<Link href="/sales-form/create-order">
 										<Icons.ShoppingCart className="mr-2 size-4" />
 										New sales
 									</Link>

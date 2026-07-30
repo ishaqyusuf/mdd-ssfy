@@ -49,6 +49,7 @@ model Users {
     orderItemAssignedByMe       OrderItemProductionAssignments[] @relation(name: "orderItemAssignedByMe")
     events                      Event[]
     pageView                    PageView[]
+    salesFormPreference         SalesFormPreference?
     notes                       Progress[]
     approvedDealerStatusHistory DealerStatusHistory[]
     sentDealerRecruitmentInvitations DealerRecruitmentInvitation[]

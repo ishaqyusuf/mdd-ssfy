@@ -29,7 +29,7 @@ import type { PermissionScope } from "@/types/auth";
 const salesNavItems = [
 	{
 		label: "New Sales",
-		href: "/sales-book/create-order",
+		href: "/sales-form/create-order",
 		permission: "editOrders",
 		className:
 			"border-sky-200 bg-sky-50 text-sky-700 shadow-sm hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800",
@@ -38,7 +38,7 @@ const salesNavItems = [
 	},
 	{
 		label: "New Quote",
-		href: "/sales-book/create-quote",
+		href: "/sales-form/create-quote",
 		permission: "editOrders",
 		className:
 			"border-amber-200 bg-amber-50 text-amber-700 shadow-sm hover:border-amber-300 hover:bg-amber-100 hover:text-amber-800",

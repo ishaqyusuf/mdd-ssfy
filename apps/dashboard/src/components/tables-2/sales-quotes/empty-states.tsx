@@ -15,7 +15,7 @@ export function EmptyState() {
 			title="No quotes"
 			description="Create a quote to start an estimate for a customer."
 			actionLabel="Create quote"
-			onAction={() => router.push("/sales-book/create-quote")}
+			onAction={() => router.push("/sales-form/create-quote")}
 		/>
 	);
 }

@@ -18,7 +18,7 @@ export function ProductReportHeader({ initialFilterList }: Props) {
 				<SalesStatisticsColumnVisibility />
 			</div>
 			{/* <Button asChild size="sm">
-                <Link href="/sales-book/create-order">
+                <Link href="/sales-form/create-order">
                     <Icons.Add className="mr-2 size-4" />
                     <span>New</span>
                 </Link>

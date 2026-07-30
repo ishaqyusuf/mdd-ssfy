@@ -5,24 +5,36 @@ import { Metadata } from "next";
 import { FormClient } from "../_components/form-client";
 
 import PageShell from "@/components/page-shell";
+import { resolveSalesFormRequest } from "@/lib/sales-form-routing.server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { unstable_noStore } from "next/cache";
 export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }) {
 	return constructMetadata({
-		title: `Create Order - gndprodesk.com`,
+		title: "Create Order - gndprodesk.com",
 	});
 }
 
-export default async function CreateOrderPage({}) {
+export default async function CreateOrderPage(props) {
 	unstable_noStore();
+	const searchParams = await props.searchParams;
+	const routing = await resolveSalesFormRequest({
+		currentSurface: "legacy",
+		mode: "create",
+		type: "order",
+		searchParams,
+	});
 	const data = await createSalesBookFormUseCase({
 		type: "order",
 	});
 	return (
 		<PageShell className="">
 			<PageTitle>Create Order</PageTitle>
-			<FormClient data={data} />
+			<FormClient
+				data={data}
+				mode="create"
+				shouldPromptLegacyPreference={routing.shouldPromptLegacyPreference}
+			/>
 		</PageShell>
 	);
 }

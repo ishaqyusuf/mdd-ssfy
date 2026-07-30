@@ -3,6 +3,18 @@
 ## Purpose
 Tracks important schema-level entities and ownership boundaries.
 
+## Sales Form Preference (2026-07-30)
+
+- `SalesFormPreference` is a one-row-per-user choice for the default sales form.
+- `SalesFormPreferenceMode` is `NEW | LEGACY`.
+- The row stores `source`, optional `promptedAt`, and created/updated timestamps;
+  `userId` is both the primary key and the Prisma relation key to `Users.id`.
+  This schema uses `relationMode = "prisma"`, so the database migration does not
+  create a physical foreign key.
+- Form-open analytics reuse `PageView`; preference decisions reuse `Event`.
+  Neither ledger receives customer or sales-document identifiers from this
+  feature.
+
 ## Current Notes
 - Dealership program expansion adds `Customers.officeVisibility` with
   `DealerCustomerOfficeVisibility.PRIVATE | SHARED`; the database default is

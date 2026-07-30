@@ -154,7 +154,7 @@ export function SalesFormSave({
 					} else router.refresh();
 					break;
 				case "new":
-					router.push(`/sales-book/create-${metaData.type}`);
+					router.push(`/sales-form/create-${metaData.type}`);
 			}
 		} finally {
 			saveLockRef.current = false;

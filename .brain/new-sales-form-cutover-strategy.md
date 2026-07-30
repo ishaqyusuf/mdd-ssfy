@@ -1,5 +1,18 @@
 # New Sales Form Cutover Strategy
 
+## 2026-07-30 Default Cutover
+
+The new form is now the application default for create/edit order and quote
+flows. Canonical links target `/sales-form/*`; legacy routes redirect through
+the shared resolver unless `salesFormMode=legacy` or the authenticated user has
+saved a legacy preference. The top switcher remains available in both versions.
+First-time legacy use prompts for one-time access or a persisted preference, and
+Super Admin adoption statistics are available at
+`/settings/sales-form-adoption`.
+
+See `.brain/features/sales-form-default-and-adoption.md` and
+`.brain/decisions/ADR-040-new-sales-form-default-with-reversible-user-preference.md`.
+
 Date: 2026-05-23
 Status: Active
 Owner: Sales Form Rebuild Team

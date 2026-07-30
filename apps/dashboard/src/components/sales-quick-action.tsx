@@ -21,8 +21,8 @@ export function SalesQuickAction() {
 		<Portal nodeId={"navRightSlot"}>
 			<AuthGuard noRedirect can={["editOrders"]} className="hidden xl:block">
 				<Menu label={"Quick Action"}>
-					<Menu.Item href="/sales-book/create-order">New Sales</Menu.Item>
-					<Menu.Item href="/sales-book/create-quote">New Quote</Menu.Item>
+					<Menu.Item href="/sales-form/create-order">New Sales</Menu.Item>
+					<Menu.Item href="/sales-form/create-quote">New Quote</Menu.Item>
 				</Menu>
 			</AuthGuard>
 		</Portal>

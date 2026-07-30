@@ -1,0 +1,16 @@
+enum SalesFormPreferenceMode {
+    NEW
+    LEGACY
+}
+
+model SalesFormPreference {
+    userId     Int                     @id
+    mode       SalesFormPreferenceMode
+    source     String                  @db.VarChar(64)
+    promptedAt DateTime?               @db.Timestamp(0)
+    createdAt  DateTime                @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime                @updatedAt
+    user       Users                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([mode, updatedAt])
+}

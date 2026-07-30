@@ -15,7 +15,7 @@ export function EmptyState() {
 			title="No dispatches"
 			description="Dispatches appear here once sales orders are ready for fulfillment."
 			actionLabel="Create order"
-			onAction={() => router.push("/sales-book/create-order")}
+			onAction={() => router.push("/sales-form/create-order")}
 		/>
 	);
 }

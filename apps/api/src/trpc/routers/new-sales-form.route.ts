@@ -19,6 +19,10 @@ import {
 	updateNewSalesFormShelfProduct,
 } from "@api/db/queries/new-sales-form";
 import {
+	getSalesFormAdoption,
+	recordSalesFormUsage,
+} from "@api/db/queries/sales-form-adoption";
+import {
 	bootstrapNewSalesFormSchema,
 	deleteNewSalesFormLineItemSchema,
 	deleteNewSalesFormShelfProductSchema,
@@ -38,9 +42,23 @@ import {
 	searchNewSalesFormShelfProductsSchema,
 	updateNewSalesFormShelfProductSchema,
 } from "@api/schemas/new-sales-form";
+import {
+	salesFormAdoptionSchema,
+	salesFormUsageSchema,
+} from "@api/schemas/sales-form-adoption";
 import { createTRPCRouter, protectedProcedure } from "../init";
 
 export const newSalesFormRouter = createTRPCRouter({
+	adoptionPing: protectedProcedure
+		.input(salesFormUsageSchema)
+		.mutation(async ({ ctx, input }) => {
+			return recordSalesFormUsage(ctx, input);
+		}),
+	adoption: protectedProcedure
+		.input(salesFormAdoptionSchema.optional())
+		.query(async ({ ctx, input }) => {
+			return getSalesFormAdoption(ctx, input ?? {});
+		}),
 	bootstrap: protectedProcedure
 		.input(bootstrapNewSalesFormSchema)
 		.query(async (props) => {

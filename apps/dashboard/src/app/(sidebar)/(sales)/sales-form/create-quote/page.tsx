@@ -4,41 +4,48 @@ import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { unstable_noStore } from "next/cache";
 
 import PageShell from "@/components/page-shell";
+import { resolveSalesFormRequest } from "@/lib/sales-form-routing.server";
 import { normalizeSalesFormInitialCustomerId } from "@gnd/sales/sales-form";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import type { SearchParams } from "nuqs";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-    return constructMetadata({
-        title: "Create Quote - gndprodesk.com",
-    });
+	return constructMetadata({
+		title: "Create Quote - gndprodesk.com",
+	});
 }
 
 type Props = {
-    searchParams: Promise<SearchParams>;
+	searchParams: Promise<SearchParams>;
 };
 
 export default async function Page(props: Props) {
-    unstable_noStore();
-    const searchParams = await props.searchParams;
-    const customerId = normalizeSalesFormInitialCustomerId(
-        searchParams.selectedCustomerId,
-    );
-    const queryClient = getQueryClient();
-    await queryClient.fetchQuery(
-        trpc.newSalesForm.bootstrap.queryOptions({
-            type: "quote",
-            customerId,
-        }),
-    );
+	unstable_noStore();
+	const searchParams = await props.searchParams;
+	await resolveSalesFormRequest({
+		currentSurface: "new",
+		mode: "create",
+		type: "quote",
+		searchParams,
+	});
+	const customerId = normalizeSalesFormInitialCustomerId(
+		searchParams.selectedCustomerId,
+	);
+	const queryClient = getQueryClient();
+	await queryClient.fetchQuery(
+		trpc.newSalesForm.bootstrap.queryOptions({
+			type: "quote",
+			customerId,
+		}),
+	);
 
-    return (
-        <PageShell>
-            <HydrateClient>
-                <PageTitle>Create Quote</PageTitle>
-                <LazyNewSalesForm mode="create" type="quote" />
-            </HydrateClient>
-        </PageShell>
-    );
+	return (
+		<PageShell>
+			<HydrateClient>
+				<PageTitle>Create Quote</PageTitle>
+				<LazyNewSalesForm mode="create" type="quote" />
+			</HydrateClient>
+		</PageShell>
+	);
 }

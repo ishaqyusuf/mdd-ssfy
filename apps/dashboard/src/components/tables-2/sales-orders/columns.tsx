@@ -940,7 +940,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
 							className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
 						>
 							<Link
-								href={`/sales-book/edit-order/${item.slug}`}
+								href={`/sales-form/edit-order/${item.slug}`}
 								target="_blank"
 								rel="noopener noreferrer"
 								title="Edit"

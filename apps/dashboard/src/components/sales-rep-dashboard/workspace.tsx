@@ -121,13 +121,13 @@ export function SalesRepDashboardWorkspace() {
 					<SalesReportingPeriodControl />
 					<div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
 						<Button asChild className="h-9 gap-2">
-							<Link href="/sales-book/create-order">
+							<Link href="/sales-form/create-order">
 								<Plus className="size-4" />
 								New order
 							</Link>
 						</Button>
 						<Button asChild className="h-9 gap-2" variant="outline">
-							<Link href="/sales-book/create-quote">
+							<Link href="/sales-form/create-quote">
 								<FileText className="size-4" />
 								New quote
 							</Link>

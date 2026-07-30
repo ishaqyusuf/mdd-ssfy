@@ -3,6 +3,7 @@ import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { FormClient } from "../../_components/form-client";
 
 import PageShell from "@/components/page-shell";
+import { resolveSalesFormRequest } from "@/lib/sales-form-routing.server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 export async function generateMetadata(props) {
 	const params = await props.params;
@@ -11,8 +12,18 @@ export async function generateMetadata(props) {
 	});
 }
 export default async function Page(props) {
-	const params = await props.params;
+	const [params, searchParams] = await Promise.all([
+		props.params,
+		props.searchParams,
+	]);
 	const slug = params.slug;
+	const routing = await resolveSalesFormRequest({
+		currentSurface: "legacy",
+		mode: "edit",
+		type: "order",
+		slug,
+		searchParams,
+	});
 	// await fixUndefinedOrderIdAction(slug, "order");
 	const data = await getSalesBookFormUseCase({
 		type: "order",
@@ -21,7 +32,11 @@ export default async function Page(props) {
 	return (
 		<PageShell className="">
 			<PageTitle>{`Edit Order | ${data.order.orderId?.toUpperCase()}`}</PageTitle>
-			<FormClient data={data} />
+			<FormClient
+				data={data}
+				mode="edit"
+				shouldPromptLegacyPreference={routing.shouldPromptLegacyPreference}
+			/>
 		</PageShell>
 	);
 }

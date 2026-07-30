@@ -117,7 +117,7 @@ export function RecentSalesList({ orders, onOpen }: Props) {
 							buttonVariants({ size: "sm", variant: "outline" }),
 							"mt-4",
 						)}
-						href="/sales-book/create-order"
+						href="/sales-form/create-order"
 					>
 						Create sale
 					</NextLink>

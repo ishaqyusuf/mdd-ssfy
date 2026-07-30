@@ -41,6 +41,6 @@ describe("Recent Sales dashboard list", () => {
 		expect(source.includes("SalesMenu")).toBe(false);
 		expect(source.includes("useMutation")).toBe(false);
 		expect(source.includes("/sales-book/orders")).toBe(true);
-		expect(source.includes("/sales-book/create-order")).toBe(true);
+		expect(source.includes("/sales-form/create-order")).toBe(true);
 	});
 });

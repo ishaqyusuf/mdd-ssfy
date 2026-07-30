@@ -37,7 +37,8 @@ import {
     useRef,
     useState,
 } from "react";
-import { SalesFormDevSwitcher } from "../sales-form-dev-switcher";
+import { SalesFormAdoptionTracker } from "../sales-form-adoption-tracker";
+import { SalesFormVersionSwitcher } from "../sales-form-version-switcher";
 import { useSalesInventoryConfiguratorPrompt } from "../sales-form/inventory-configurator-dialog";
 import { PaymentMethodReviewDialog } from "../sales-form/payment-method-review-dialog";
 import { useSalesFormCapabilities } from "./adapters/use-sales-form-capabilities";
@@ -1608,11 +1609,16 @@ export function NewSalesForm(props: Props) {
 
     return (
         <>
-            <SalesFormDevSwitcher
+            <SalesFormAdoptionTracker
+                surface="new"
+                type={props.type}
+                mode={props.mode}
+            />
+            <SalesFormVersionSwitcher
                 currentForm="new"
                 type={props.type}
+                mode={props.mode}
                 slug={record.slug || props.slug}
-                orderId={record.orderId}
             />
             <PackageWorkflowPanelDevToggle
                 enabled={usePackageWorkflowPanel}

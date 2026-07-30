@@ -269,6 +269,11 @@ const profileSection = _section("settings", null, [
 	_link("Sales Settings", "Printer", "/settings/sales").access(
 		_role.is("Super Admin"),
 	).data,
+	_link(
+		"Sales Form Adoption",
+		"Activity",
+		"/settings/sales-form-adoption",
+	).access(_role.is("Super Admin")).data,
 	_link("Task Events", "tasks", "/task-events")
 		.access(_role.is("Super Admin"))
 		.childPaths("/task-events/").data,
@@ -352,10 +357,10 @@ export const linkModules = [
 				_subLink("Bin", "/sales-book/orders/bin").access(
 					_role.is("Super Admin"),
 				).data,
-				_subLink("Create Order", "/sales-book/create-order").access(
+				_subLink("Create Order", "/sales-form/create-order").access(
 					_perm.is("editOrders"),
 				).data,
-				_subLink("Create Quote", "/sales-book/create-quote").access(
+				_subLink("Create Quote", "/sales-form/create-quote").access(
 					_perm.is("editOrders"),
 				).data,
 				_subLink("Shelf Items", "/sales-book/shelf-items").access(
@@ -368,14 +373,6 @@ export const linkModules = [
 					.access(_perm.is("editOrders"))
 					.childPaths("sales-book/edit-order", "sales-form/edit-order")
 					.meta().data,
-				_subLink(
-					"Create Order (Experimental)",
-					"/sales-form/create-order",
-				).access(_role.is("Super Admin")).data,
-				_subLink(
-					"Create Quote  (Experimental)",
-					"/sales-form/create-quote",
-				).access(_role.is("Super Admin")).data,
 			])
 				.access(_perm.in("editOrders", "viewOrders"))
 				.childPaths(

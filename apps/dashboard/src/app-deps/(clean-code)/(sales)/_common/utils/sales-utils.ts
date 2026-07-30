@@ -79,7 +79,7 @@ export function sortSalesItems(a, b) {
 
 export const composeSalesUrl = (props) =>
     props.isDyke || props.dyke
-        ? `/sales-book/edit-${props.type}/${props.orderId || props.slug}`
+        ? `/sales-form/edit-${props.type}/${props.orderId || props.slug}`
         : `/sales/edit/${props.type}/${props.orderId || props.slug}`;
 
 export function calculatePaymentDueDate(paymentTerm, createdAt) {

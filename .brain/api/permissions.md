@@ -1,5 +1,16 @@
 # API Permissions
 
+## Sales Form Adoption (2026-07-30)
+
+- Any authenticated user may record their own bounded form-open telemetry and
+  update only their own sales-form preference.
+- User identity is taken from the authenticated server context and is never
+  accepted from client input.
+- Adoption aggregation requires the exact `Super Admin` role in the query
+  implementation. The settings-sidebar visibility check is convenience only.
+- Preference cookies do not grant access and are validated against the current
+  authenticated user id and cookie version.
+
 ## Sales Finance
 
 - Every `salesFinance` endpoint uses `protectedProcedure`.

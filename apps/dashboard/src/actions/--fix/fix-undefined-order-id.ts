@@ -34,7 +34,7 @@ export async function fixUndefinedOrderIdAction(slug, type) {
                     orderId,
                 },
             });
-            redirect(`/sales-book/edit-${rep.type}/${orderId}`);
+            redirect(`/sales-form/edit-${rep.type}/${orderId}`);
         }
         // redirect()
     }

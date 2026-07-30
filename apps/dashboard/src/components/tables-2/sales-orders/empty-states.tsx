@@ -15,7 +15,7 @@ export function EmptyState() {
 			title="No orders"
 			description="Create an order to start tracking sales, production, and fulfillment."
 			actionLabel="Create order"
-			onAction={() => router.push("/sales-book/create-order")}
+			onAction={() => router.push("/sales-form/create-order")}
 		/>
 	);
 }

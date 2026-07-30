@@ -5,9 +5,15 @@ import { useLayoutEffect, useMemo, useState } from "react";
 
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { zhInitializeState } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper";
-import { SalesFormDevSwitcher } from "@/components/forms/sales-form-dev-switcher";
+import { LegacySalesFormPreferenceDialog } from "@/components/forms/legacy-sales-form-preference-dialog";
+import { SalesFormAdoptionTracker } from "@/components/forms/sales-form-adoption-tracker";
+import { SalesFormVersionSwitcher } from "@/components/forms/sales-form-version-switcher";
 
-export function FormClient({ data }) {
+export function FormClient({
+	data,
+	mode,
+	shouldPromptLegacyPreference = false,
+}) {
 	const init = useFormDataStore((state) => state.init);
 	const initialState = useMemo(() => zhInitializeState(data), [data]);
 	const [isReady, setIsReady] = useState(false);
@@ -23,12 +29,23 @@ export function FormClient({ data }) {
 
 	return (
 		<>
-			<SalesFormDevSwitcher
-				currentForm="old"
+			<SalesFormAdoptionTracker
+				surface="legacy"
 				type={data?.order?.type === "quote" ? "quote" : "order"}
-				slug={data?.order?.slug}
-				orderId={data?.order?.orderId}
+				mode={mode}
 			/>
+			<SalesFormVersionSwitcher
+				currentForm="legacy"
+				type={data?.order?.type === "quote" ? "quote" : "order"}
+				mode={mode}
+				slug={data?.order?.slug}
+			/>
+			{shouldPromptLegacyPreference ? (
+				<LegacySalesFormPreferenceDialog
+					type={data?.order?.type === "quote" ? "quote" : "order"}
+					mode={mode}
+				/>
+			) : null}
 			<SalesFormClient key={formKey} data={data} />
 		</>
 	);

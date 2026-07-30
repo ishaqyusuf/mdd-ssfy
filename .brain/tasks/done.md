@@ -1,5 +1,9 @@
 # Done
 
+- [x] 2026-07-30 — Make the new sales form the default for create/edit
+  order/quote routes, preserve the legacy fallback with per-user preference,
+  remove experimental links, and add Super Admin adoption reporting.
+
 ### Sales Performance Excel Reports
 - Status: Done
 - Description: Added a Finance-style Reports dropdown to the customizable Sales

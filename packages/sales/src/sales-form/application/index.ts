@@ -1,5 +1,16 @@
 export { computeSalesFormSummary } from "./compute-summary";
 export {
+	buildSalesFormHref,
+	normalizeSalesFormPreferenceMode,
+	resolveSalesFormSurface,
+	SALES_FORM_MODE_PARAM,
+	type SalesFormDocumentMode,
+	type SalesFormDocumentType,
+	type SalesFormPreferenceMode,
+	type SalesFormPreferenceSource,
+	type SalesFormSurface,
+} from "./form-routing";
+export {
 	calculateLegacyPaymentDueDate,
 	projectSalesFormMetaToLegacyMeta,
 	readLegacySalesFormMeta,

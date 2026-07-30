@@ -3,6 +3,16 @@
 ## Purpose
 Tracks important cross-model relationships and ownership patterns.
 
+## Sales Form Preference (2026-07-30)
+
+- `Users.salesFormPreference` is an optional one-to-one relation keyed by
+  `SalesFormPreference.userId`.
+- Prisma models the relation with cascading delete semantics; this repository's
+  `relationMode = "prisma"` means the database does not enforce a physical
+  foreign key.
+- Preference analytics join the user-owned setting with existing `PageView` and
+  `Event` ledgers; those ledgers remain independent append-only evidence.
+
 ## Current Notes
 - `InboundShipment` optionally belongs to `Supplier`. Its shipment items and
   linked `InboundDemand` rows remain valid when `supplierId=null`; assigning a

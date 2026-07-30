@@ -278,13 +278,13 @@ export function GeneralTab({ setCustomerName }: Props) {
 						View transactions
 					</Button>
 					<Button asChild className="w-full justify-start" variant="outline">
-						<Link href="/sales-book/create-quote">
+						<Link href="/sales-form/create-quote">
 							<Icons.Plus className="mr-2 size-4" />
 							Create new quote
 						</Link>
 					</Button>
 					<Button asChild className="w-full justify-start">
-						<Link href="/sales-book/create-order">
+						<Link href="/sales-form/create-order">
 							<Icons.Plus className="mr-2 size-4" />
 							Create new sales
 						</Link>

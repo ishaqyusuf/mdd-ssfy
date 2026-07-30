@@ -1,5 +1,18 @@
 # Progress
 
+- 2026-07-30: Made the new sales form the default for every authenticated
+  create/edit order and quote flow while retaining a reversible top-level legacy
+  switch. Added query/cookie/database resolution, a one-time-versus-persisted
+  legacy prompt, user-owned `SalesFormPreference`, privacy-bounded open and
+  decision analytics, and the Super Admin `/settings/sales-form-adoption`
+  dashboard. Removed experimental navigation and normalized live create/edit
+  links to `/sales-form/*`. Validation: focused route/cookie/API/permission/
+  sidebar tests passed, the complete `test:new-sales-form-migration` gate passed,
+  and authenticated browser QA verified redirects, preserved queries, both
+  legacy choices, reset to new, and live adoption statistics. Full migration
+  replay remains blocked by the pre-existing master-password audit migration
+  ordering issue documented in `.brain/database/migrations.md`.
+
 - 2026-07-30: added governed Excel exports to `/sales-book/reports` using the
   compact Sales Finance Reports interaction without duplicating Finance-owned
   workbooks. The active sales period and optional rep/channel filters now feed

@@ -1,5 +1,20 @@
 # API Contracts
 
+## New Sales Form Adoption (2026-07-30)
+
+- `newSalesForm.adoptionPing` is an authenticated mutation accepting only
+  `surface: new|legacy`, `type: order|quote`, and `mode: create|edit`.
+- The mutation records a bounded `PageView.group` and does not accept a slug,
+  order id, quote id, customer id, URL, or arbitrary metadata.
+- `newSalesForm.adoption` accepts `days: 7..90` and returns preference totals,
+  new/legacy view totals and unique-user totals, observed unconfigured users,
+  per-user activity, and recent preference decisions.
+- `updateMySalesFormPreference` is a dashboard server action for the current
+  authenticated user. It persists `NEW|LEGACY`, appends an event, and refreshes
+  the versioned user-bound cookie.
+- `recordLegacySalesFormOnceAction` appends one-time legacy-use evidence without
+  creating a preference row or cookie.
+
 ## Sales dashboard and performance reports
 
 - `salesDashboard.report` is an additive protected query that accepts the

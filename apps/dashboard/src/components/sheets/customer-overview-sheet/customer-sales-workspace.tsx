@@ -195,13 +195,13 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
 						<div className="flex gap-2">
 							<CustomerSalesWorkspaceColumnVisibility />
 							<Button asChild size="sm">
-								<Link href="/sales-book/create-order">
+								<Link href="/sales-form/create-order">
 									<Icons.Plus className="mr-2 size-4" />
 									New sales
 								</Link>
 							</Button>
 							<Button asChild size="sm" variant="outline">
-								<Link href="/sales-book/create-quote">
+								<Link href="/sales-form/create-quote">
 									<Icons.Plus className="mr-2 size-4" />
 									New quote
 								</Link>

@@ -139,10 +139,25 @@ describe("sidebar role access", () => {
 			}),
 		);
 
-		expect(links.linksNameMap["/sales-book/create-order"]?.hasAccess).toBe(
+		expect(links.linksNameMap["/sales-form/create-order"]?.hasAccess).toBe(
 			false,
 		);
 		expect(links.linksNameMap["/sales-book/edit-order"]?.hasAccess).toBe(false);
+	});
+
+	test("uses the new sales form for canonical create links", () => {
+		const links = getLinkModules(
+			validateLinks({
+				role: { name: "Admin" },
+				can: permissions({ editOrders: true, viewOrders: true }),
+				userId: "admin-1",
+			}),
+		);
+
+		expect(links.linksNameMap["/sales-form/create-order"]?.hasAccess).toBe(true);
+		expect(links.linksNameMap["/sales-form/create-quote"]?.hasAccess).toBe(true);
+		expect(links.linksNameMap["/sales-book/create-order"]).toBeUndefined();
+		expect(links.linksNameMap["/sales-book/create-quote"]?.hasAccess).toBe(false);
 	});
 
 	test("shows contractor accounting to payment viewers or editors", () => {
@@ -228,6 +243,36 @@ describe("sidebar role access", () => {
 		expect(existsSync(join(appRoot, "(sidebar)/settings/sales/page.tsx"))).toBe(
 			true,
 		);
+	});
+
+	test("exposes sales form adoption to super admins only", () => {
+		const superAdminLinks = getLinkModules(
+			validateLinks({
+				role: { name: "Super Admin" },
+				can: permissions(),
+				userId: "super-admin-1",
+			}),
+		);
+		const adminLinks = getLinkModules(
+			validateLinks({
+				role: { name: "Admin" },
+				can: permissions(),
+				userId: "admin-1",
+			}),
+		);
+
+		expect(
+			superAdminLinks.linksNameMap["/settings/sales-form-adoption"]
+				?.hasAccess,
+		).toBe(true);
+		expect(
+			adminLinks.linksNameMap["/settings/sales-form-adoption"]?.hasAccess,
+		).toBe(false);
+		expect(
+			existsSync(
+				join(appRoot, "(sidebar)/settings/sales-form-adoption/page.tsx"),
+			),
+		).toBe(true);
 	});
 
 	test("keeps inventory validation route files in place", () => {
