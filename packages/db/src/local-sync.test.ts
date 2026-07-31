@@ -168,6 +168,20 @@ describe("local db sync helpers", () => {
 				{ targetMode: "remote-dev", allowRemoteDevTarget: true },
 			),
 		).toThrow("same database");
+		expect(() =>
+			assertSafeConnections(
+				"mysql://prod-user@aws.connect.psdb.cloud/gndprodesk",
+				"mysql://prod-user@aws.connect.psdb.cloud:3306/gndprodesk",
+				{ targetMode: "remote-dev", allowRemoteDevTarget: true },
+			),
+		).toThrow("same database");
+		expect(() =>
+			assertSafeConnections(
+				"mysql://prod-user@evilpsdb.cloud/gndprodesk",
+				"mysql://dev-user@evilpsdb.cloud/gndprodesk",
+				{ targetMode: "remote-dev", allowRemoteDevTarget: true },
+			),
+		).toThrow("same database");
 	});
 
 	test("parses cli args and env files", () => {

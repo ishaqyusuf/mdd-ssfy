@@ -113,7 +113,6 @@ const DEFAULT_STATE: SyncState = {
 const DEFAULT_DOCKER_DATABASE_URL = "mysql://root@127.0.0.1:3307/gnd-prisma2";
 const DEFAULT_INITIAL_CURSOR_VALUE = "2026-05-04 23:59:59.999";
 
-const PROD_HOST_PATTERNS = [/psdb\.cloud$/i, /connect\.psdb\.cloud$/i];
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "mysql"]);
 const DUPLICATE_POLICIES = new Set<DuplicateConflictPolicy>(["prompt", "ignore", "reset", "cancel"]);
 const TARGET_MODES = new Set<SyncTargetMode>(["local", "remote-dev"]);
@@ -298,8 +297,10 @@ export function assertSafeConnections(
 	const targetDatabase = target.pathname.replace(/^\//, "");
 	const targetMode = options.targetMode ?? "local";
 	const sameHostDatabase =
-		source.hostname === target.hostname && source.port === target.port && sourceDatabase === targetDatabase;
-	const isPlanetScaleEndpoint = PROD_HOST_PATTERNS.some((pattern) => pattern.test(source.hostname));
+		source.hostname === target.hostname &&
+		effectiveMysqlPort(source) === effectiveMysqlPort(target) &&
+		sourceDatabase === targetDatabase;
+	const isPlanetScaleEndpoint = isPlanetScaleHostname(source.hostname);
 	const distinctBranchUsernames =
 		targetMode === "remote-dev" &&
 		isPlanetScaleEndpoint &&
@@ -322,7 +323,7 @@ export function assertSafeConnections(
 		return;
 	}
 
-	if (PROD_HOST_PATTERNS.some((pattern) => pattern.test(target.hostname))) {
+	if (isPlanetScaleHostname(target.hostname)) {
 		throw new Error(`Refusing to write to production-looking target host: ${target.hostname}`);
 	}
 
@@ -331,6 +332,15 @@ export function assertSafeConnections(
 			`Refusing to write to non-local target host: ${target.hostname}. Set DATABASE_URL in .env.local to a local MySQL database or pass --target-url.`,
 		);
 	}
+}
+
+function effectiveMysqlPort(url: URL): string {
+	return url.port || "3306";
+}
+
+function isPlanetScaleHostname(hostname: string): boolean {
+	const normalized = hostname.toLowerCase();
+	return normalized === "psdb.cloud" || normalized.endsWith(".psdb.cloud");
 }
 
 export function redactDatabaseUrl(databaseUrl: string): string {
