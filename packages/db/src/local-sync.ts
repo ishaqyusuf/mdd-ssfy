@@ -297,8 +297,21 @@ export function assertSafeConnections(
 	const sourceDatabase = source.pathname.replace(/^\//, "");
 	const targetDatabase = target.pathname.replace(/^\//, "");
 	const targetMode = options.targetMode ?? "local";
+	const sameHostDatabase =
+		source.hostname === target.hostname && source.port === target.port && sourceDatabase === targetDatabase;
+	const isPlanetScaleEndpoint = PROD_HOST_PATTERNS.some((pattern) => pattern.test(source.hostname));
+	const distinctBranchUsernames =
+		targetMode === "remote-dev" &&
+		isPlanetScaleEndpoint &&
+		Boolean(source.username) &&
+		Boolean(target.username) &&
+		source.username !== target.username;
 
-	if (source.hostname === target.hostname && source.port === target.port && sourceDatabase === targetDatabase) {
+	// PlanetScale branch endpoints share a host and database path; branch-scoped
+	// usernames distinguish the production and remote-development branches.
+	// Passwords authenticate access but never identify a distinct database.
+	// Keep the stricter host/database identity check for local-mode targets.
+	if (sameHostDatabase && !distinctBranchUsernames) {
 		throw new Error("Refusing to sync because source and target point at the same database.");
 	}
 

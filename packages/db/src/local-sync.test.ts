@@ -145,14 +145,29 @@ describe("local db sync helpers", () => {
 	});
 
 	test("guards remote-dev sync targets behind the explicit write flag", () => {
-		const source = "mysql://user:pass@aws.connect.psdb.cloud/gndprod";
-		const target = "mysql://user:pass@aws.connect.psdb.cloud/gnddev";
+		const source = "mysql://prod-user:prod-pass@aws.connect.psdb.cloud/gndprodesk";
+		const target = "mysql://dev-user:dev-pass@aws.connect.psdb.cloud/gndprodesk";
 
 		expect(() => assertSafeConnections(source, target, { targetMode: "remote-dev" })).toThrow("GND_ALLOW_REMOTE_DEV_DB_SYNC=1");
 		expect(() => assertSafeConnections(source, target, { targetMode: "remote-dev", allowRemoteDevTarget: true })).not.toThrow();
+		expect(() => assertSafeConnections(source, target, { targetMode: "remote-dev", dryRun: true })).not.toThrow();
 		expect(() => assertSafeConnections(source, source, { targetMode: "remote-dev", allowRemoteDevTarget: true })).toThrow(
 			"same database",
 		);
+		expect(() =>
+			assertSafeConnections(
+				source,
+				"mysql://prod-user:rotated-pass@aws.connect.psdb.cloud/gndprodesk",
+				{ targetMode: "remote-dev", allowRemoteDevTarget: true },
+			),
+		).toThrow("same database");
+		expect(() =>
+			assertSafeConnections(
+				"mysql://prod-user:prod-pass@generic.example.com/gndprodesk",
+				"mysql://dev-user:dev-pass@generic.example.com/gndprodesk",
+				{ targetMode: "remote-dev", allowRemoteDevTarget: true },
+			),
+		).toThrow("same database");
 	});
 
 	test("parses cli args and env files", () => {
