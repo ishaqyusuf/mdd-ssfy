@@ -88,15 +88,15 @@ const local_sync_1 = require("./local-sync");
         (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://user:pass@aws.connect.psdb.cloud/gndprodesk", "mysql://root@example.com/gndprodesk")).toThrow("non-local target");
         (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://user:pass@aws.connect.psdb.cloud/gndprodesk", "mysql://root@127.0.0.1:3307/gnd-prisma2")).not.toThrow();
     });
-    (0, bun_test_1.test)("accepts explicit remote-dev targets while preserving identity guards", () => {
+    (0, bun_test_1.test)("accepts explicit preview targets while preserving identity guards", () => {
         const source = "mysql://prod-user:prod-pass@aws.connect.psdb.cloud/gndprodesk";
         const target = "mysql://dev-user:dev-pass@aws.connect.psdb.cloud/gndprodesk";
-        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, target, { targetMode: "remote-dev" })).not.toThrow();
-        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, source, { targetMode: "remote-dev" })).toThrow("same database");
-        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, "mysql://prod-user:rotated-pass@aws.connect.psdb.cloud/gndprodesk", { targetMode: "remote-dev" })).toThrow("same database");
-        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://prod-user:prod-pass@generic.example.com/gndprodesk", "mysql://dev-user:dev-pass@generic.example.com/gndprodesk", { targetMode: "remote-dev" })).toThrow("same database");
-        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://prod-user@aws.connect.psdb.cloud/gndprodesk", "mysql://prod-user@aws.connect.psdb.cloud:3306/gndprodesk", { targetMode: "remote-dev" })).toThrow("same database");
-        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://prod-user@evilpsdb.cloud/gndprodesk", "mysql://dev-user@evilpsdb.cloud/gndprodesk", { targetMode: "remote-dev" })).toThrow("same database");
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, target, { targetMode: "preview" })).not.toThrow();
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, source, { targetMode: "preview" })).toThrow("same database");
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, "mysql://prod-user:rotated-pass@aws.connect.psdb.cloud/gndprodesk", { targetMode: "preview" })).toThrow("same database");
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://prod-user:prod-pass@generic.example.com/gndprodesk", "mysql://dev-user:dev-pass@generic.example.com/gndprodesk", { targetMode: "preview" })).toThrow("same database");
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://prod-user@aws.connect.psdb.cloud/gndprodesk", "mysql://prod-user@aws.connect.psdb.cloud:3306/gndprodesk", { targetMode: "preview" })).toThrow("same database");
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://prod-user@evilpsdb.cloud/gndprodesk", "mysql://dev-user@evilpsdb.cloud/gndprodesk", { targetMode: "preview" })).toThrow("same database");
     });
     (0, bun_test_1.test)("parses cli args and env files", () => {
         (0, bun_test_1.expect)((0, local_sync_1.parseArgs)(["--dry-run", "--table", "Users", "--read-batch-size", "250"])).toMatchObject({
@@ -113,8 +113,8 @@ const local_sync_1 = require("./local-sync");
         (0, bun_test_1.expect)((0, local_sync_1.parseArgs)(["--on-duplicate", "ignore"])).toMatchObject({
             onDuplicate: "ignore",
         });
-        (0, bun_test_1.expect)((0, local_sync_1.parseArgs)(["--target-mode", "remote-dev"])).toMatchObject({
-            targetMode: "remote-dev",
+        (0, bun_test_1.expect)((0, local_sync_1.parseArgs)(["--target-mode", "preview"])).toMatchObject({
+            targetMode: "preview",
         });
         (0, bun_test_1.expect)(() => (0, local_sync_1.parseArgs)(["--on-duplicate", "merge"])).toThrow("Invalid value for --on-duplicate");
         (0, bun_test_1.expect)(() => (0, local_sync_1.parseArgs)(["--target-mode", "prod"])).toThrow("Invalid value for --target-mode");
@@ -135,12 +135,12 @@ const local_sync_1 = require("./local-sync");
             await (0, promises_1.rm)(cwd, { recursive: true, force: true });
         }
     });
-    (0, bun_test_1.test)("uses remote mode DATABASE_URL from .env.remote.local", async () => {
+    (0, bun_test_1.test)("uses preview mode DATABASE_URL from .env.preview", async () => {
         const cwd = await (0, promises_1.mkdtemp)((0, node_path_1.join)((0, node_os_1.tmpdir)(), "gnd-local-sync-"));
         try {
             await (0, promises_1.writeFile)(`${cwd}/.env.local`, "DATABASE_URL='mysql://root@localhost/app-db'\n", "utf8");
-            await (0, promises_1.writeFile)(`${cwd}/.env.remote.local`, "DATABASE_URL='mysql://dev.example.com/gnd-dev'\n", "utf8");
-            const options = await (0, local_sync_1.resolveOptions)(["--source-url", "mysql://prod.example.com/prod", "--target-mode", "remote-dev"], cwd);
+            await (0, promises_1.writeFile)(`${cwd}/.env.preview`, "DATABASE_URL='mysql://dev.example.com/gnd-dev'\n", "utf8");
+            const options = await (0, local_sync_1.resolveOptions)(["--source-url", "mysql://prod.example.com/prod", "--target-mode", "preview"], cwd);
             (0, bun_test_1.expect)(options.targetUrl).toBe("mysql://dev.example.com/gnd-dev");
         }
         finally {
@@ -158,17 +158,17 @@ const local_sync_1 = require("./local-sync");
                 "--target-mode",
                 "local",
             ], cwd);
-            const remoteOptions = await (0, local_sync_1.resolveOptions)([
+            const previewOptions = await (0, local_sync_1.resolveOptions)([
                 "--source-url",
                 "mysql://prod.example.com/prod",
                 "--target-url",
                 "mysql://dev.example.com/gnd-dev",
                 "--target-mode",
-                "remote-dev",
+                "preview",
             ], cwd);
             (0, bun_test_1.expect)(localOptions.stateFile).toContain(".local-db-sync/local/state.json");
-            (0, bun_test_1.expect)(remoteOptions.stateFile).toContain(".local-db-sync/remote-dev/state.json");
-            (0, bun_test_1.expect)(localOptions.stateFile).not.toBe(remoteOptions.stateFile);
+            (0, bun_test_1.expect)(previewOptions.stateFile).toContain(".local-db-sync/preview/state.json");
+            (0, bun_test_1.expect)(localOptions.stateFile).not.toBe(previewOptions.stateFile);
         }
         finally {
             await (0, promises_1.rm)(cwd, { recursive: true, force: true });

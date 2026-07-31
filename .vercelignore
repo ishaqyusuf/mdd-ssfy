@@ -20,10 +20,12 @@ tmp
 .env.local
 .env.production
 .env.remote.local
+.env.preview
 **/.env
 **/.env.local
 **/.env.production
 **/.env.remote.local
+**/.env.preview
 
 # Keep workspace sources in the upload. This file is shared by every Vercel
 # project in the monorepo, and Turbo needs app manifests to discover builds.

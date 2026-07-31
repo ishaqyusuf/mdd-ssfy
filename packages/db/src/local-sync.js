@@ -42,7 +42,7 @@ const DEFAULT_DOCKER_DATABASE_URL = "mysql://root@127.0.0.1:3307/gnd-prisma2";
 const DEFAULT_INITIAL_CURSOR_VALUE = "2026-05-04 23:59:59.999";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "mysql"]);
 const DUPLICATE_POLICIES = new Set(["prompt", "ignore", "reset", "cancel"]);
-const TARGET_MODES = new Set(["local", "remote-dev"]);
+const TARGET_MODES = new Set(["local", "preview"]);
 function quoteIdent(identifier) {
     return `\`${identifier.replaceAll("`", "``")}\``;
 }
@@ -183,15 +183,19 @@ function assertSafeConnections(sourceUrl, targetUrl, options = {}) {
         effectiveMysqlPort(source) === effectiveMysqlPort(target) &&
         sourceDatabase === targetDatabase;
     const isPlanetScaleEndpoint = isPlanetScaleHostname(source.hostname);
-    const distinctBranchUsernames = targetMode === "remote-dev" &&
+    const distinctBranchUsernames = targetMode === "preview" &&
         isPlanetScaleEndpoint &&
         Boolean(source.username) &&
         Boolean(target.username) &&
         source.username !== target.username;
+    // PlanetScale branch endpoints share a host and database path; branch-scoped
+    // usernames distinguish the production and preview branches.
+    // Passwords authenticate access but never identify a distinct database.
+    // Keep the stricter host/database identity check for local-mode targets.
     if (sameHostDatabase && !distinctBranchUsernames) {
         throw new Error("Refusing to sync because source and target point at the same database.");
     }
-    if (targetMode === "remote-dev") {
+    if (targetMode === "preview") {
         return;
     }
     if (isPlanetScaleHostname(target.hostname)) {
@@ -276,7 +280,7 @@ function parseArgs(argv) {
             case "--target-mode": {
                 const value = next();
                 if (!TARGET_MODES.has(value)) {
-                    throw new Error(`Invalid value for --target-mode: ${value}. Expected local or remote-dev.`);
+                    throw new Error(`Invalid value for --target-mode: ${value}. Expected local or preview.`);
                 }
                 parsed.targetMode = value;
                 break;
@@ -380,7 +384,7 @@ async function resolveOptions(argv, cwd = process.cwd()) {
         throw new Error("Missing production database URL. Set DATABASE_URL in .env.production or pass --source-url.");
     }
     if (!targetUrl) {
-        throw new Error("Missing target database URL. Set DATABASE_URL in .env.local or .env.remote.local, or pass --target-url.");
+        throw new Error("Missing target database URL. Set DATABASE_URL in .env.local or .env.preview, or pass --target-url.");
     }
     return {
         sourceUrl,
@@ -402,9 +406,8 @@ async function resolveTargetUrl(parsedTargetUrl, targetMode, cwd, repoRoot) {
     if (parsedTargetUrl) {
         return parsedTargetUrl;
     }
-    if (targetMode === "remote-dev") {
-        return ((await readFirstEnvValue([(0, node_path_1.resolve)(cwd, ".env.remote.local"), (0, node_path_1.resolve)(repoRoot, ".env.remote.local")], ["DATABASE_URL"])) ??
-            process.env.DATABASE_URL);
+    if (targetMode === "preview") {
+        return readFirstEnvValue([(0, node_path_1.resolve)(cwd, ".env.preview"), (0, node_path_1.resolve)(repoRoot, ".env.preview")], ["DATABASE_URL"]);
     }
     return ((await readFirstEnvValue([(0, node_path_1.resolve)(cwd, ".env.local"), (0, node_path_1.resolve)(cwd, ".env"), (0, node_path_1.resolve)(repoRoot, ".env.local"), (0, node_path_1.resolve)(repoRoot, ".env")], [
         "DATABASE_URL",
@@ -416,7 +419,7 @@ function normalizeTargetMode(value) {
     if (TARGET_MODES.has(value)) {
         return value;
     }
-    throw new Error(`Invalid target mode: ${value}. Expected local or remote-dev.`);
+    throw new Error(`Invalid target mode: ${value}. Expected local or preview.`);
 }
 async function getTableManifest(db, refreshStatic, tableFilter) {
     const tables = await db.$queryRaw `

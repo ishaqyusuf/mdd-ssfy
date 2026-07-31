@@ -144,40 +144,40 @@ describe("local db sync helpers", () => {
 		).not.toThrow();
 	});
 
-	test("accepts explicit remote-dev targets while preserving identity guards", () => {
+	test("accepts explicit preview targets while preserving identity guards", () => {
 		const source = "mysql://prod-user:prod-pass@aws.connect.psdb.cloud/gndprodesk";
 		const target = "mysql://dev-user:dev-pass@aws.connect.psdb.cloud/gndprodesk";
 
-		expect(() => assertSafeConnections(source, target, { targetMode: "remote-dev" })).not.toThrow();
-		expect(() => assertSafeConnections(source, source, { targetMode: "remote-dev" })).toThrow(
+		expect(() => assertSafeConnections(source, target, { targetMode: "preview" })).not.toThrow();
+		expect(() => assertSafeConnections(source, source, { targetMode: "preview" })).toThrow(
 			"same database",
 		);
 		expect(() =>
 			assertSafeConnections(
 				source,
 				"mysql://prod-user:rotated-pass@aws.connect.psdb.cloud/gndprodesk",
-				{ targetMode: "remote-dev" },
+				{ targetMode: "preview" },
 			),
 		).toThrow("same database");
 		expect(() =>
 			assertSafeConnections(
 				"mysql://prod-user:prod-pass@generic.example.com/gndprodesk",
 				"mysql://dev-user:dev-pass@generic.example.com/gndprodesk",
-				{ targetMode: "remote-dev" },
+				{ targetMode: "preview" },
 			),
 		).toThrow("same database");
 		expect(() =>
 			assertSafeConnections(
 				"mysql://prod-user@aws.connect.psdb.cloud/gndprodesk",
 				"mysql://prod-user@aws.connect.psdb.cloud:3306/gndprodesk",
-				{ targetMode: "remote-dev" },
+				{ targetMode: "preview" },
 			),
 		).toThrow("same database");
 		expect(() =>
 			assertSafeConnections(
 				"mysql://prod-user@evilpsdb.cloud/gndprodesk",
 				"mysql://dev-user@evilpsdb.cloud/gndprodesk",
-				{ targetMode: "remote-dev" },
+				{ targetMode: "preview" },
 			),
 		).toThrow("same database");
 	});
@@ -197,9 +197,12 @@ describe("local db sync helpers", () => {
 		expect(parseArgs(["--on-duplicate", "ignore"])).toMatchObject({
 			onDuplicate: "ignore",
 		});
-		expect(parseArgs(["--target-mode", "remote-dev"])).toMatchObject({
-			targetMode: "remote-dev",
+		expect(parseArgs(["--target-mode", "preview"])).toMatchObject({
+			targetMode: "preview",
 		});
+		expect(() => parseArgs(["--target-mode", "remote-dev"])).toThrow(
+			"Expected local or preview",
+		);
 		expect(() => parseArgs(["--on-duplicate", "merge"])).toThrow("Invalid value for --on-duplicate");
 		expect(() => parseArgs(["--target-mode", "prod"])).toThrow("Invalid value for --target-mode");
 		expect(parseEnvFile("DATABASE_URL='mysql://root@localhost/db'\n# ignored\nOTHER=value")).toEqual({
@@ -223,14 +226,14 @@ describe("local db sync helpers", () => {
 		}
 	});
 
-	test("uses remote mode DATABASE_URL from .env.remote.local", async () => {
+	test("uses preview mode DATABASE_URL from .env.preview", async () => {
 		const cwd = await mkdtemp(join(tmpdir(), "gnd-local-sync-"));
 
 		try {
 			await writeFile(`${cwd}/.env.local`, "DATABASE_URL='mysql://root@localhost/app-db'\n", "utf8");
-			await writeFile(`${cwd}/.env.remote.local`, "DATABASE_URL='mysql://dev.example.com/gnd-dev'\n", "utf8");
+			await writeFile(`${cwd}/.env.preview`, "DATABASE_URL='mysql://dev.example.com/gnd-dev'\n", "utf8");
 
-			const options = await resolveOptions(["--source-url", "mysql://prod.example.com/prod", "--target-mode", "remote-dev"], cwd);
+			const options = await resolveOptions(["--source-url", "mysql://prod.example.com/prod", "--target-mode", "preview"], cwd);
 
 			expect(options.targetUrl).toBe("mysql://dev.example.com/gnd-dev");
 		} finally {
@@ -253,21 +256,21 @@ describe("local db sync helpers", () => {
 				],
 				cwd,
 			);
-			const remoteOptions = await resolveOptions(
+			const previewOptions = await resolveOptions(
 				[
 					"--source-url",
 					"mysql://prod.example.com/prod",
 					"--target-url",
 					"mysql://dev.example.com/gnd-dev",
 					"--target-mode",
-					"remote-dev",
+					"preview",
 				],
 				cwd,
 			);
 
 			expect(localOptions.stateFile).toContain(".local-db-sync/local/state.json");
-			expect(remoteOptions.stateFile).toContain(".local-db-sync/remote-dev/state.json");
-			expect(localOptions.stateFile).not.toBe(remoteOptions.stateFile);
+			expect(previewOptions.stateFile).toContain(".local-db-sync/preview/state.json");
+			expect(localOptions.stateFile).not.toBe(previewOptions.stateFile);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
 		}

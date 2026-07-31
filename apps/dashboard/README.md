@@ -34,14 +34,14 @@ Supported profiles:
 bun run dev                         # local Docker MySQL only
 bun run dev --local                 # local Docker MySQL only
 bun run dev --local --redis-local   # local Docker MySQL + local Docker Redis
-bun run dev --local --redis-remote  # local Docker MySQL + remote-dev Redis
-bun run dev --remote-dev            # remote-dev DB only
-bun run dev --remote-dev --redis-local # remote-dev DB + local Docker Redis
-bun run dev --remote-dev --redis-remote # remote-dev DB + remote-dev Redis
+bun run dev --local --redis-preview # local Docker MySQL + preview Redis
+bun run dev --preview               # preview DB only
+bun run dev --preview --redis-local # preview DB + local Docker Redis
+bun run dev --preview --redis-preview # preview DB + preview Redis
 bun run dev --prod                  # production-env www smoke on port 3015
 ```
 
-Redis is only enabled when `--redis-local`, `--redis-remote`, or `--redis-remote-dev` is passed. Redis flags are only supported for local and remote-dev profiles.
+Redis is only enabled when `--redis-local` or `--redis-preview` is passed. Redis flags are supported for local and preview profiles.
 
 Dev commands can also be narrowed to selected Turbo targets:
 
@@ -59,10 +59,10 @@ The underlying env contract is:
 ```bash
 .env.local         DATABASE_URL=mysql://root@127.0.0.1:3307/gnd-prisma2
 .env.local         REDIS_URL=<optional-local-redis-url>
-.env.remote.local  DATABASE_URL=<hosted-dev-mysql-url>
-.env.remote.local  REDIS_URL=<hosted-dev-redis-url>
-.env.remote.local  UPSTASH_REDIS_REST_URL=<optional-hosted-dev-rest-url>
-.env.remote.local  UPSTASH_REDIS_REST_TOKEN=<optional-hosted-dev-rest-token>
+.env.preview  DATABASE_URL=<hosted-preview-mysql-url>
+.env.preview  REDIS_URL=<hosted-preview-redis-url>
+.env.preview  UPSTASH_REDIS_REST_URL=<optional-hosted-preview-rest-url>
+.env.preview  UPSTASH_REDIS_REST_TOKEN=<optional-hosted-preview-rest-token>
 .env.production    DATABASE_URL=<production-mysql-url>
 ```
 
@@ -90,13 +90,13 @@ Production-to-dev sync commands are explicit by target:
 
 ```bash
 bun run db:sync --help
-bun run db:sync --to-remote -- --dry-run
-bun run db:sync --to-remote
+bun run db:sync --to-preview -- --dry-run
+bun run db:sync --to-preview
 bun run db:sync --to-local -- --dry-run
 bun run db:sync
 ```
 
-`db:sync` defaults to `--from-prod --to-local`. The explicit `--to-remote` flag authorizes a remote-development write. Source-equals-target is always refused, cursor state is separate by destination, and production is source-only; `--to-prod` is rejected.
+`db:sync` defaults to `--from-prod --to-local`. The explicit `--to-preview` flag authorizes a preview write. Source-equals-target is always refused, cursor state is separate by destination, and production is source-only; `--to-prod` is rejected.
 
 Development cache keys use a non-production namespace automatically:
 

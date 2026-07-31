@@ -30,7 +30,7 @@ Options:
   --table <name>                    Sync one table only
   --source-url <url>                Override production MySQL URL
   --target-url <url>                Override target MySQL URL
-  --target-mode <mode>              Target profile: local or remote-dev
+  --target-mode <mode>              Target profile: local or preview
   --state-file <path>               Override cursor state file
   --initial-cursor-value <value>     Floor for fresh/stale cursors (default: 2026-05-04 23:59:59.999)
   --reset-cursor                    Ignore saved cursor for the selected table(s)
@@ -44,7 +44,7 @@ Options:
 Environment:
   DATABASE_URL in .env.production for production source.
   DATABASE_URL in .env.local for local targets.
-  DATABASE_URL in .env.remote.local for hosted dev targets.
+  DATABASE_URL in .env.preview for hosted dev targets.
 
 If env vars are not set, the script reads packages/db/.env.production for source
 and the selected mode file for target. Local mode falls back to
