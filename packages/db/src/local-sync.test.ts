@@ -144,42 +144,40 @@ describe("local db sync helpers", () => {
 		).not.toThrow();
 	});
 
-	test("guards remote-dev sync targets behind the explicit write flag", () => {
+	test("accepts explicit remote-dev targets while preserving identity guards", () => {
 		const source = "mysql://prod-user:prod-pass@aws.connect.psdb.cloud/gndprodesk";
 		const target = "mysql://dev-user:dev-pass@aws.connect.psdb.cloud/gndprodesk";
 
-		expect(() => assertSafeConnections(source, target, { targetMode: "remote-dev" })).toThrow("GND_ALLOW_REMOTE_DEV_DB_SYNC=1");
-		expect(() => assertSafeConnections(source, target, { targetMode: "remote-dev", allowRemoteDevTarget: true })).not.toThrow();
-		expect(() => assertSafeConnections(source, target, { targetMode: "remote-dev", dryRun: true })).not.toThrow();
-		expect(() => assertSafeConnections(source, source, { targetMode: "remote-dev", allowRemoteDevTarget: true })).toThrow(
+		expect(() => assertSafeConnections(source, target, { targetMode: "remote-dev" })).not.toThrow();
+		expect(() => assertSafeConnections(source, source, { targetMode: "remote-dev" })).toThrow(
 			"same database",
 		);
 		expect(() =>
 			assertSafeConnections(
 				source,
 				"mysql://prod-user:rotated-pass@aws.connect.psdb.cloud/gndprodesk",
-				{ targetMode: "remote-dev", allowRemoteDevTarget: true },
+				{ targetMode: "remote-dev" },
 			),
 		).toThrow("same database");
 		expect(() =>
 			assertSafeConnections(
 				"mysql://prod-user:prod-pass@generic.example.com/gndprodesk",
 				"mysql://dev-user:dev-pass@generic.example.com/gndprodesk",
-				{ targetMode: "remote-dev", allowRemoteDevTarget: true },
+				{ targetMode: "remote-dev" },
 			),
 		).toThrow("same database");
 		expect(() =>
 			assertSafeConnections(
 				"mysql://prod-user@aws.connect.psdb.cloud/gndprodesk",
 				"mysql://prod-user@aws.connect.psdb.cloud:3306/gndprodesk",
-				{ targetMode: "remote-dev", allowRemoteDevTarget: true },
+				{ targetMode: "remote-dev" },
 			),
 		).toThrow("same database");
 		expect(() =>
 			assertSafeConnections(
 				"mysql://prod-user@evilpsdb.cloud/gndprodesk",
 				"mysql://dev-user@evilpsdb.cloud/gndprodesk",
-				{ targetMode: "remote-dev", allowRemoteDevTarget: true },
+				{ targetMode: "remote-dev" },
 			),
 		).toThrow("same database");
 	});
@@ -453,7 +451,6 @@ function createOptions(onDuplicate: SyncOptions["onDuplicate"]): SyncOptions {
 		sourceUrl: "mysql://prod.example.com/gnd",
 		targetUrl: "mysql://root@localhost:3306/gnd-prisma2",
 		targetMode: "local",
-		allowRemoteDevTarget: false,
 		stateFile: "/tmp/local-sync-state.json",
 		initialCursorValue: "2026-05-04 23:59:59.999",
 		dryRun: false,

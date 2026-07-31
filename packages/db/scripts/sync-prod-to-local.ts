@@ -45,7 +45,6 @@ Environment:
   DATABASE_URL in .env.production for production source.
   DATABASE_URL in .env.local for local targets.
   DATABASE_URL in .env.remote.local for hosted dev targets.
-  GND_ALLOW_REMOTE_DEV_DB_SYNC=1 is required before writing to remote-dev.
 
 If env vars are not set, the script reads packages/db/.env.production for source
 and the selected mode file for target. Local mode falls back to

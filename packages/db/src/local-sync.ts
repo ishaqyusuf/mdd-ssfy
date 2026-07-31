@@ -41,7 +41,6 @@ export type SyncOptions = {
 	sourceUrl: string;
 	targetUrl: string;
 	targetMode: SyncTargetMode;
-	allowRemoteDevTarget: boolean;
 	stateFile: string;
 	table?: string;
 	initialCursorValue: string | null;
@@ -289,7 +288,7 @@ export function classifyTable(input: {
 export function assertSafeConnections(
 	sourceUrl: string,
 	targetUrl: string,
-	options: { targetMode?: SyncTargetMode; allowRemoteDevTarget?: boolean; dryRun?: boolean } = {},
+	options: { targetMode?: SyncTargetMode } = {},
 ): void {
 	const source = new URL(sourceUrl);
 	const target = new URL(targetUrl);
@@ -317,9 +316,6 @@ export function assertSafeConnections(
 	}
 
 	if (targetMode === "remote-dev") {
-		if (!options.dryRun && !options.allowRemoteDevTarget) {
-			throw new Error("Refusing to write to remote-dev target without GND_ALLOW_REMOTE_DEV_DB_SYNC=1.");
-		}
 		return;
 	}
 
@@ -503,10 +499,6 @@ export async function readFirstEnvValue(files: string[], keys: string[]): Promis
 	return undefined;
 }
 
-function isTruthy(value: string | undefined): boolean {
-	return value === "1" || value === "true" || value === "yes" || value === "on";
-}
-
 export async function resolveOptions(argv: string[], cwd = process.cwd()): Promise<SyncOptions & { help?: boolean }> {
 	const parsed = parseArgs(argv);
 	const repoRoot = cwd.endsWith("packages/db") ? resolve(cwd, "../..") : cwd;
@@ -516,14 +508,12 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 		(await readFirstEnvValue([resolve(cwd, ".env.production"), resolve(repoRoot, ".env.production")], ["DATABASE_URL"]));
 	const targetUrl = await resolveTargetUrl(parsed.targetUrl, targetMode, cwd, repoRoot);
 	const stateFile = parsed.stateFile ?? resolve(repoRoot, ".local-db-sync", targetMode, "state.json");
-	const allowRemoteDevTarget = isTruthy(process.env.GND_ALLOW_REMOTE_DEV_DB_SYNC);
 
 	if (parsed.help) {
 		return {
 			sourceUrl: sourceUrl ?? "",
 			targetUrl: targetUrl ?? "",
 			targetMode,
-			allowRemoteDevTarget,
 			stateFile,
 			table: parsed.table,
 			initialCursorValue: parsed.initialCursorValue ?? process.env.LOCAL_SYNC_INITIAL_CURSOR_VALUE ?? DEFAULT_INITIAL_CURSOR_VALUE,
@@ -550,7 +540,6 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 		sourceUrl,
 		targetUrl,
 		targetMode,
-		allowRemoteDevTarget,
 		stateFile,
 		table: parsed.table,
 		initialCursorValue: parsed.initialCursorValue ?? process.env.LOCAL_SYNC_INITIAL_CURSOR_VALUE ?? DEFAULT_INITIAL_CURSOR_VALUE,
@@ -783,8 +772,6 @@ async function getBestKeyColumns(db: PrismaClient, table: string): Promise<strin
 export async function syncDatabases(options: SyncOptions): Promise<SyncReport[]> {
 	assertSafeConnections(options.sourceUrl, options.targetUrl, {
 		targetMode: options.targetMode,
-		allowRemoteDevTarget: options.allowRemoteDevTarget,
-		dryRun: options.dryRun,
 	});
 
 	const source = new PrismaClient({ datasources: { db: { url: options.sourceUrl } } });

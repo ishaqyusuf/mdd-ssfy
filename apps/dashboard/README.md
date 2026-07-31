@@ -90,12 +90,12 @@ Production-to-dev sync commands are explicit by target:
 
 ```bash
 bun run db:sync --to-remote -- --dry-run
-GND_ALLOW_REMOTE_DEV_DB_SYNC=1 bun run db:sync --to-remote
+bun run db:sync --to-remote
 bun run db:sync --to-local -- --dry-run
 bun run db:sync
 ```
 
-`db:sync` defaults to `--from-prod --to-local`. Remote-dev sync writes require `GND_ALLOW_REMOTE_DEV_DB_SYNC=1`, refuse source-equals-target, and use a separate cursor state file from local sync. Production is source-only; `--to-prod` is rejected.
+`db:sync` defaults to `--from-prod --to-local`. The explicit `--to-remote` flag authorizes a remote-development write. Source-equals-target is always refused, cursor state is separate by destination, and production is source-only; `--to-prod` is rejected.
 
 Development cache keys use a non-production namespace automatically:
 

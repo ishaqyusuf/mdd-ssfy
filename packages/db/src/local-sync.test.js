@@ -88,12 +88,15 @@ const local_sync_1 = require("./local-sync");
         (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://user:pass@aws.connect.psdb.cloud/gndprodesk", "mysql://root@example.com/gndprodesk")).toThrow("non-local target");
         (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://user:pass@aws.connect.psdb.cloud/gndprodesk", "mysql://root@127.0.0.1:3307/gnd-prisma2")).not.toThrow();
     });
-    (0, bun_test_1.test)("guards remote-dev sync targets behind the explicit write flag", () => {
-        const source = "mysql://user:pass@aws.connect.psdb.cloud/gndprod";
-        const target = "mysql://user:pass@aws.connect.psdb.cloud/gnddev";
-        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, target, { targetMode: "remote-dev" })).toThrow("GND_ALLOW_REMOTE_DEV_DB_SYNC=1");
-        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, target, { targetMode: "remote-dev", allowRemoteDevTarget: true })).not.toThrow();
-        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, source, { targetMode: "remote-dev", allowRemoteDevTarget: true })).toThrow("same database");
+    (0, bun_test_1.test)("accepts explicit remote-dev targets while preserving identity guards", () => {
+        const source = "mysql://prod-user:prod-pass@aws.connect.psdb.cloud/gndprodesk";
+        const target = "mysql://dev-user:dev-pass@aws.connect.psdb.cloud/gndprodesk";
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, target, { targetMode: "remote-dev" })).not.toThrow();
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, source, { targetMode: "remote-dev" })).toThrow("same database");
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)(source, "mysql://prod-user:rotated-pass@aws.connect.psdb.cloud/gndprodesk", { targetMode: "remote-dev" })).toThrow("same database");
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://prod-user:prod-pass@generic.example.com/gndprodesk", "mysql://dev-user:dev-pass@generic.example.com/gndprodesk", { targetMode: "remote-dev" })).toThrow("same database");
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://prod-user@aws.connect.psdb.cloud/gndprodesk", "mysql://prod-user@aws.connect.psdb.cloud:3306/gndprodesk", { targetMode: "remote-dev" })).toThrow("same database");
+        (0, bun_test_1.expect)(() => (0, local_sync_1.assertSafeConnections)("mysql://prod-user@evilpsdb.cloud/gndprodesk", "mysql://dev-user@evilpsdb.cloud/gndprodesk", { targetMode: "remote-dev" })).toThrow("same database");
     });
     (0, bun_test_1.test)("parses cli args and env files", () => {
         (0, bun_test_1.expect)((0, local_sync_1.parseArgs)(["--dry-run", "--table", "Users", "--read-batch-size", "250"])).toMatchObject({
@@ -323,7 +326,6 @@ function createOptions(onDuplicate) {
         sourceUrl: "mysql://prod.example.com/gnd",
         targetUrl: "mysql://root@localhost:3306/gnd-prisma2",
         targetMode: "local",
-        allowRemoteDevTarget: false,
         stateFile: "/tmp/local-sync-state.json",
         initialCursorValue: "2026-05-04 23:59:59.999",
         dryRun: false,

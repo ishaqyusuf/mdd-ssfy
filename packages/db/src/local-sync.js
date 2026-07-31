@@ -40,7 +40,6 @@ const DEFAULT_STATE = {
 };
 const DEFAULT_DOCKER_DATABASE_URL = "mysql://root@127.0.0.1:3307/gnd-prisma2";
 const DEFAULT_INITIAL_CURSOR_VALUE = "2026-05-04 23:59:59.999";
-const PROD_HOST_PATTERNS = [/psdb\.cloud$/i, /connect\.psdb\.cloud$/i];
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "mysql"]);
 const DUPLICATE_POLICIES = new Set(["prompt", "ignore", "reset", "cancel"]);
 const TARGET_MODES = new Set(["local", "remote-dev"]);
@@ -180,21 +179,34 @@ function assertSafeConnections(sourceUrl, targetUrl, options = {}) {
     const sourceDatabase = source.pathname.replace(/^\//, "");
     const targetDatabase = target.pathname.replace(/^\//, "");
     const targetMode = options.targetMode ?? "local";
-    if (source.hostname === target.hostname && source.port === target.port && sourceDatabase === targetDatabase) {
+    const sameHostDatabase = source.hostname === target.hostname &&
+        effectiveMysqlPort(source) === effectiveMysqlPort(target) &&
+        sourceDatabase === targetDatabase;
+    const isPlanetScaleEndpoint = isPlanetScaleHostname(source.hostname);
+    const distinctBranchUsernames = targetMode === "remote-dev" &&
+        isPlanetScaleEndpoint &&
+        Boolean(source.username) &&
+        Boolean(target.username) &&
+        source.username !== target.username;
+    if (sameHostDatabase && !distinctBranchUsernames) {
         throw new Error("Refusing to sync because source and target point at the same database.");
     }
     if (targetMode === "remote-dev") {
-        if (!options.dryRun && !options.allowRemoteDevTarget) {
-            throw new Error("Refusing to write to remote-dev target without GND_ALLOW_REMOTE_DEV_DB_SYNC=1.");
-        }
         return;
     }
-    if (PROD_HOST_PATTERNS.some((pattern) => pattern.test(target.hostname))) {
+    if (isPlanetScaleHostname(target.hostname)) {
         throw new Error(`Refusing to write to production-looking target host: ${target.hostname}`);
     }
     if (!LOCAL_HOSTS.has(target.hostname) && !target.hostname.endsWith(".local")) {
         throw new Error(`Refusing to write to non-local target host: ${target.hostname}. Set DATABASE_URL in .env.local to a local MySQL database or pass --target-url.`);
     }
+}
+function effectiveMysqlPort(url) {
+    return url.port || "3306";
+}
+function isPlanetScaleHostname(hostname) {
+    const normalized = hostname.toLowerCase();
+    return normalized === "psdb.cloud" || normalized.endsWith(".psdb.cloud");
 }
 function redactDatabaseUrl(databaseUrl) {
     try {
@@ -338,9 +350,6 @@ async function readFirstEnvValue(files, keys) {
     }
     return undefined;
 }
-function isTruthy(value) {
-    return value === "1" || value === "true" || value === "yes" || value === "on";
-}
 async function resolveOptions(argv, cwd = process.cwd()) {
     const parsed = parseArgs(argv);
     const repoRoot = cwd.endsWith("packages/db") ? (0, node_path_1.resolve)(cwd, "../..") : cwd;
@@ -349,13 +358,11 @@ async function resolveOptions(argv, cwd = process.cwd()) {
         (await readFirstEnvValue([(0, node_path_1.resolve)(cwd, ".env.production"), (0, node_path_1.resolve)(repoRoot, ".env.production")], ["DATABASE_URL"]));
     const targetUrl = await resolveTargetUrl(parsed.targetUrl, targetMode, cwd, repoRoot);
     const stateFile = parsed.stateFile ?? (0, node_path_1.resolve)(repoRoot, ".local-db-sync", targetMode, "state.json");
-    const allowRemoteDevTarget = isTruthy(process.env.GND_ALLOW_REMOTE_DEV_DB_SYNC);
     if (parsed.help) {
         return {
             sourceUrl: sourceUrl ?? "",
             targetUrl: targetUrl ?? "",
             targetMode,
-            allowRemoteDevTarget,
             stateFile,
             table: parsed.table,
             initialCursorValue: parsed.initialCursorValue ?? process.env.LOCAL_SYNC_INITIAL_CURSOR_VALUE ?? DEFAULT_INITIAL_CURSOR_VALUE,
@@ -379,7 +386,6 @@ async function resolveOptions(argv, cwd = process.cwd()) {
         sourceUrl,
         targetUrl,
         targetMode,
-        allowRemoteDevTarget,
         stateFile,
         table: parsed.table,
         initialCursorValue: parsed.initialCursorValue ?? process.env.LOCAL_SYNC_INITIAL_CURSOR_VALUE ?? DEFAULT_INITIAL_CURSOR_VALUE,
@@ -544,8 +550,6 @@ async function getBestKeyColumns(db, table) {
 async function syncDatabases(options) {
     assertSafeConnections(options.sourceUrl, options.targetUrl, {
         targetMode: options.targetMode,
-        allowRemoteDevTarget: options.allowRemoteDevTarget,
-        dryRun: options.dryRun,
     });
     const source = new client_1.PrismaClient({ datasources: { db: { url: options.sourceUrl } } });
     const target = options.dryRun ? undefined : new client_1.PrismaClient({ datasources: { db: { url: options.targetUrl } } });
