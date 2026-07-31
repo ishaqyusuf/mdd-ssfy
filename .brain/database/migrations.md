@@ -4,7 +4,7 @@
 
 - `db:generate`, `db:migrate`, `db:pull`, `db:push`, and `db:studio` now use `local-infra-kit/bin/db.ts` with the `gnd` profile. Local development is the default; each accepts only `--local`, `--remote`, or `--prod`, with tool arguments after `--`.
 - The shared router pins the selected `DATABASE_URL`, rejects mismatched local/external targets, starts local MySQL for connected actions, prints a credential-free target fingerprint, and requires production confirmation. Production migration maps to Prisma migrate deploy; generation does not start services.
-- `db:sync` now uses `local-infra-kit/bin/db-sync.ts`. It defaults to `--from-prod --to-local`; `--to-remote` selects remote development, and `--to-prod` is always rejected. Options such as `--dry-run`, `--table`, and `--reset-cursor` follow `--`.
+- `db:sync` now uses `local-infra-kit/bin/db-sync.ts`. It defaults to `--from-prod --to-local`; `--to-remote` selects remote development, and `--to-prod` is always rejected. `db:sync --help` prints the public contract without resolving database endpoints or starting services. Options such as `--dry-run`, `--table`, and `--reset-cursor` follow `--`.
 - Mode-suffixed root/package aliases and repository-local database routers were removed. Historical command names below describe earlier completed work and are not current interfaces.
 
 ## 2026-07-30: Sales Form Preference

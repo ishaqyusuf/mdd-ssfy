@@ -89,6 +89,7 @@ bun run db:migrate
 Production-to-dev sync commands are explicit by target:
 
 ```bash
+bun run db:sync --help
 bun run db:sync --to-remote -- --dry-run
 bun run db:sync --to-remote
 bun run db:sync --to-local -- --dry-run
