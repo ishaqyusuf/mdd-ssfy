@@ -62,4 +62,15 @@ describe("shared database command contract", () => {
     expect(existsSync(resolve(root, "scripts/db-command.ts"))).toBe(false);
     expect(existsSync(resolve(root, "scripts/db-push.ts"))).toBe(false);
   });
+
+  test("Turbo has no tasks for removed database aliases", () => {
+    const tasks = (
+      JSON.parse(readFileSync(resolve(root, "turbo.json"), "utf8")) as {
+        tasks?: Record<string, unknown>;
+      }
+    ).tasks ?? {};
+
+    expect(tasks["prisma-generate"]).toBeUndefined();
+    expect(tasks["db-migrate"]).toBeUndefined();
+  });
 });
