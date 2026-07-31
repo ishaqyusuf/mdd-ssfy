@@ -30,8 +30,9 @@ An explicit `bun run db:sync --to-preview` is the authorization signal for a
 preview write. GND no longer reads or requires
 `GND_ALLOW_REMOTE_DEV_DB_SYNC`.
 
-No destination flag continues to mean `--from-prod --to-local`. Production is
-source-only, and `--to-prod` remains invalid. Operational options such as
+No destination flag continues to mean `--from-prod --to-local`. An explicit
+`--from-local --to-preview` publishes the local database to preview. Production
+may only be a source, and `--to-prod` remains invalid. Operational options such as
 `--dry-run` and `--table` must remain after `--` and cannot override the shared
 router's source or destination.
 
