@@ -32,9 +32,8 @@ Final responses must include the Brain files updated, or `No Brain documentation
 - Start mobile work with `bun run dev --filter mobile dashboard`.
 - Use the HTTPS URLs reported by the active shared Portless proxy; workspace dev scripts must not set `PORTLESS_PORT` or `PORTLESS_HTTPS`.
 - Reuse the active shared proxy configuration. Do not stop or reconfigure it merely to change how a local URL is displayed unless the user explicitly approves that machine-wide action.
-- Run database generation with `bun run db:generate`.
-- Run database migrations with `bun run db:migrate`.
-- Sync production data locally only when asked, using the dry run first: `bun run db:sync:dry-run`.
+- Run `bun run db:generate`, `db:migrate`, `db:pull`, `db:push`, or `db:studio`; local development is the default, while `--remote` and `--prod` select hosted targets. Put Prisma arguments after `--`. Connected production commands require confirming the printed target fingerprint.
+- Sync production data only when asked. Start with `bun run db:sync --to-local -- --dry-run`; `db:sync` defaults to `--from-prod --to-local`, `--to-remote` changes the destination, and production is never a valid destination.
 - Validate broad changes with `bun run typecheck` and the narrowest relevant build, lint, or script-level test.
 
 ## Engineering Rules
