@@ -1,3 +1,5 @@
+/** @jsxImportSource react */
+
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { Icon } from "@gnd/ui/icons";
@@ -160,7 +162,7 @@ export const NavItem = ({
 	return (
 		<div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
 			<NavLink
-				prefetch
+				prefetch={false}
 				href={item.targetHref || item.href || ""}
 				onClick={() => {
 					if (item.href) onSelect?.();

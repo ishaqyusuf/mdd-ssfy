@@ -4,6 +4,12 @@
 Tracks shared sidebar and navigation behavior used by web surfaces.
 
 ## Current Behavior
+- Primary and child links in the shared desktop/mobile sidebar disable Next.js
+  viewport prefetch. Navigation remains client-side when a user selects a link,
+  but merely rendering the permission-aware sidebar must not execute protected
+  route trees, their server queries, or the dashboard proxy's auth-session
+  lookup. Focused links outside the high-cardinality sidebar may still choose
+  their own prefetch policy.
 - The expanded desktop sidebar header shows the compact GND mark with visible `GND` / `Millwork Corp` brand text; it does not render the faint wide wordmark asset or append a separate "Workspace / Control Panel" label.
 - Desktop sidebar hover expansion remains owned by the sidebar shell and the shared `SiteNav.Header` used by other surfaces. The custom `apps/dashboard` header behaves like page content: hovering it does not expand the sidebar, and entering it from an expanded sidebar starts the normal collapse delay.
 - Desktop sidebar parent links with child links expand on hover after a 1 second delay.
@@ -21,6 +27,11 @@ Tracks shared sidebar and navigation behavior used by web surfaces.
 - Active `apps/dashboard` sidebar links should resolve to current App Router routes. The 2026-06-17 cleanup removed the no-route sales commission item, retargeted unit production to `/community/unit-productions`, and kept edit-order as a meta matcher instead of a clickable `/sales-book/edit-order` URL. Mobile app support now resolves to `/support/mobile-app`; the former Settings > App Download page is removed.
 
 ## Implementation Notes
+- The protected-route cost boundary is enforced in
+  `packages/site-nav/src/components/nav-item.tsx` and
+  `packages/site-nav/src/components/nav-child-item.tsx`, with a source-level
+  regression in `scripts/site-nav-prefetch-boundary.test.ts`. See
+  `.brain/decisions/ADR-042-protected-sidebar-prefetch-cost-boundary.md`.
 - Shared sidebar logo rendering lives in `packages/site-nav/src/components/logo.tsx`; `apps/dashboard/src/components/sidebar-content.tsx` passes the compact icon asset plus explicit brand title/subtitle text for the expanded sidebar state.
 - The global route loading indicator is mounted once from `apps/dashboard/src/app/providers.tsx` through `apps/dashboard/src/components/navigation-loading-bar.tsx`.
 - Shared desktop nav behavior lives in `packages/site-nav/src/components/nav-item.tsx`.

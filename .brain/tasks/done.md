@@ -1,5 +1,10 @@
 # Done
 
+- [x] 2026-08-03 — Stop the shared protected sidebar from viewport-prefetching
+  every rendered route, eliminating speculative page/server-query execution and
+  its `/api/auth-session` function amplification. See
+  `.brain/decisions/ADR-042-protected-sidebar-prefetch-cost-boundary.md`.
+
 - [x] 2026-07-31 — Prevent duplicate orders from stale new-form autosaves,
   preserve newer dirty edits across older save completions, and keep configured
   door/material totals nonzero when customer-profile repricing encounters zero

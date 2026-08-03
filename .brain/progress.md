@@ -1,5 +1,16 @@
 # Progress
 
+- 2026-08-03: diagnosed the current Vercel usage burn as protected sidebar
+  speculation amplified by the dashboard auth proxy. The billing-cycle view
+  showed approximately 972,000 function invocations and 64.92 GB-hours, with
+  99.9% of invocations owned by the dashboard; the last-24-hour route view
+  showed 26,000 `/api/auth-session` calls plus uniform traffic across many
+  normally low-visit protected pages. Shared primary and child sidebar links
+  now disable viewport prefetch, so protected route/data work starts on user
+  navigation instead of sidebar render. A focused regression, Site Nav
+  typecheck, Biome, and authenticated Orders-to-Quotes browser navigation pass.
+  See `.brain/decisions/ADR-042-protected-sidebar-prefetch-cost-boundary.md`.
+
 - 2026-07-31: upgraded the Trigger.dev jobs runtime from `4.0.1` to `4.5.9`
   across `@trigger.dev/build`, `@trigger.dev/core`, `@trigger.dev/sdk`, and the
   `trigger.dev` CLI. The upgraded local worker registered as version

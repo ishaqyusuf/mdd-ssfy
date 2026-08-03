@@ -1,3 +1,5 @@
+/** @jsxImportSource react */
+
 import { cn } from "@gnd/ui/cn";
 import type { LinkItem } from "../lib/types";
 import { NavLink } from "./nav-link";
@@ -28,7 +30,7 @@ export const NavChildItem = ({
 
 	return (
 		<NavLink
-			prefetch
+			prefetch={false}
 			href={child.targetHref || child.href}
 			onClick={() => onSelect?.()}
 			className="group block"
