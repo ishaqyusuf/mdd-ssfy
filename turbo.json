@@ -1,6 +1,12 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "globalDependencies": ["**/.env.local", "**/.env.production"],
+  "globalDependencies": [
+    ".env",
+    ".env.local",
+    ".env.dev",
+    ".env.preview",
+    ".env.production"
+  ],
   "ui": "tui",
   "tasks": {
     "topo": {

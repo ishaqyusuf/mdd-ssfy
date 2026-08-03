@@ -135,6 +135,20 @@ const local_sync_1 = require("./local-sync");
             await (0, promises_1.rm)(cwd, { recursive: true, force: true });
         }
     });
+    (0, bun_test_1.test)("ignores package-level profile files", async () => {
+        const repoRoot = await (0, promises_1.mkdtemp)((0, node_path_1.join)((0, node_os_1.tmpdir)(), "gnd-local-sync-"));
+        const packageRoot = (0, node_path_1.join)(repoRoot, "packages/db");
+        try {
+            await (0, promises_1.mkdir)(packageRoot, { recursive: true });
+            await (0, promises_1.writeFile)(`${repoRoot}/.env.local`, "DATABASE_URL='mysql://root.example.com/gnd-dev'\n", "utf8");
+            await (0, promises_1.writeFile)(`${packageRoot}/.env.local`, "DATABASE_URL='mysql://package.example.com/gnd-dev'\n", "utf8");
+            const options = await (0, local_sync_1.resolveOptions)(["--source-url", "mysql://prod.example.com/prod"], packageRoot);
+            (0, bun_test_1.expect)(options.targetUrl).toBe("mysql://root.example.com/gnd-dev");
+        }
+        finally {
+            await (0, promises_1.rm)(repoRoot, { recursive: true, force: true });
+        }
+    });
     (0, bun_test_1.test)("uses preview mode DATABASE_URL from .env.preview", async () => {
         const cwd = await (0, promises_1.mkdtemp)((0, node_path_1.join)((0, node_os_1.tmpdir)(), "gnd-local-sync-"));
         try {
@@ -142,6 +156,16 @@ const local_sync_1 = require("./local-sync");
             await (0, promises_1.writeFile)(`${cwd}/.env.preview`, "DATABASE_URL='mysql://dev.example.com/gnd-dev'\n", "utf8");
             const options = await (0, local_sync_1.resolveOptions)(["--source-url", "mysql://prod.example.com/prod", "--target-mode", "preview"], cwd);
             (0, bun_test_1.expect)(options.targetUrl).toBe("mysql://dev.example.com/gnd-dev");
+        }
+        finally {
+            await (0, promises_1.rm)(cwd, { recursive: true, force: true });
+        }
+    });
+    (0, bun_test_1.test)("does not inherit a database URL from the base env", async () => {
+        const cwd = await (0, promises_1.mkdtemp)((0, node_path_1.join)((0, node_os_1.tmpdir)(), "gnd-local-sync-"));
+        try {
+            await (0, promises_1.writeFile)(`${cwd}/.env`, "DATABASE_URL='mysql://base.example.com/gnd'\n", "utf8");
+            await (0, bun_test_1.expect)((0, local_sync_1.resolveOptions)(["--source-url", "mysql://prod.example.com/prod"], cwd)).rejects.toThrow("Missing target database URL");
         }
         finally {
             await (0, promises_1.rm)(cwd, { recursive: true, force: true });

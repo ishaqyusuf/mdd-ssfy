@@ -1,6 +1,6 @@
 // @ts-expect-error packages/db typecheck does not include Bun test types.
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -226,6 +226,23 @@ describe("local db sync helpers", () => {
 		}
 	});
 
+	test("ignores package-level profile files", async () => {
+		const repoRoot = await mkdtemp(join(tmpdir(), "gnd-local-sync-"));
+		const packageRoot = join(repoRoot, "packages/db");
+
+		try {
+			await mkdir(packageRoot, { recursive: true });
+			await writeFile(`${repoRoot}/.env.local`, "DATABASE_URL='mysql://root.example.com/gnd-dev'\n", "utf8");
+			await writeFile(`${packageRoot}/.env.local`, "DATABASE_URL='mysql://package.example.com/gnd-dev'\n", "utf8");
+
+			const options = await resolveOptions(["--source-url", "mysql://prod.example.com/prod"], packageRoot);
+
+			expect(options.targetUrl).toBe("mysql://root.example.com/gnd-dev");
+		} finally {
+			await rm(repoRoot, { recursive: true, force: true });
+		}
+	});
+
 	test("uses preview mode DATABASE_URL from .env.preview", async () => {
 		const cwd = await mkdtemp(join(tmpdir(), "gnd-local-sync-"));
 
@@ -236,6 +253,20 @@ describe("local db sync helpers", () => {
 			const options = await resolveOptions(["--source-url", "mysql://prod.example.com/prod", "--target-mode", "preview"], cwd);
 
 			expect(options.targetUrl).toBe("mysql://dev.example.com/gnd-dev");
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
+	});
+
+	test("does not inherit a database URL from the base env", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "gnd-local-sync-"));
+
+		try {
+			await writeFile(`${cwd}/.env`, "DATABASE_URL='mysql://base.example.com/gnd'\n", "utf8");
+
+			await expect(
+				resolveOptions(["--source-url", "mysql://prod.example.com/prod"], cwd),
+			).rejects.toThrow("Missing target database URL");
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
 		}

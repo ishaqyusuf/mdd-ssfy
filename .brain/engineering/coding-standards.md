@@ -17,6 +17,8 @@ Repository-level implementation rules that recur across active workstreams.
 - Expo app components must not mix NativeWind `className` and React Native `style` on the same element. Use `className` only when it fully covers the design; when custom style is needed, convert that element to `style` only instead of combining both.
 - `bun run kill:ports` discovers numeric env variables ending in `_PORT` and ignores names containing `PORTLESS`. Keep every project-owned dev port declared as an individual `*_PORT` env variable instead of adding aggregate kill lists.
 - Treat the Portless proxy port and TLS mode as machine-wide shared infrastructure. Workspace scripts may declare `PORTLESS_APP_PORT`, route names, and wildcard behavior, but must not declare `PORTLESS_PORT` or `PORTLESS_HTTPS`.
+- Root environment tooling loads `.env` plus exactly one of `.env.local`, `.env.dev`, `.env.preview`, or `.env.production`. The selected profile owns `DATABASE_URL`; do not scan package-local paths, accept legacy aliases, or inherit another profile.
+- Root database structure actions default to local and accept only `--local`, `--dev`, `--preview`, or `--prod`. Non-production structure actions may target local or hosted databases but must refuse the production database identity. Data synchronization retains its stricter destination-specific safeguards.
 - Prefer Midday-style page architecture wherever possible:
   - before introducing a new workspace layout, dashboard shell, or page-level data pattern, inspect the local Midday reference and reuse its structural approach when it fits
   - route components should stay thin and avoid blocking navigation on expensive setup work

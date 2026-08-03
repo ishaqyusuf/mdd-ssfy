@@ -38,7 +38,6 @@ const DEFAULT_STATE = {
     updatedAt: new Date(0).toISOString(),
     tables: {},
 };
-const DEFAULT_DOCKER_DATABASE_URL = "mysql://root@127.0.0.1:3307/gnd-prisma2";
 const DEFAULT_INITIAL_CURSOR_VALUE = "2026-05-04 23:59:59.999";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "mysql"]);
 const DUPLICATE_POLICIES = new Set(["prompt", "ignore", "reset", "cancel"]);
@@ -359,8 +358,8 @@ async function resolveOptions(argv, cwd = process.cwd()) {
     const repoRoot = cwd.endsWith("packages/db") ? (0, node_path_1.resolve)(cwd, "../..") : cwd;
     const targetMode = parsed.targetMode ?? normalizeTargetMode(process.env.GND_DB_SYNC_TARGET_MODE ?? "local");
     const sourceUrl = parsed.sourceUrl ??
-        (await readFirstEnvValue([(0, node_path_1.resolve)(cwd, ".env.production"), (0, node_path_1.resolve)(repoRoot, ".env.production")], ["DATABASE_URL"]));
-    const targetUrl = await resolveTargetUrl(parsed.targetUrl, targetMode, cwd, repoRoot);
+        (await readFirstEnvValue([(0, node_path_1.resolve)(repoRoot, ".env.production")], ["DATABASE_URL"]));
+    const targetUrl = await resolveTargetUrl(parsed.targetUrl, targetMode, repoRoot);
     const stateFile = parsed.stateFile ?? (0, node_path_1.resolve)(repoRoot, ".local-db-sync", targetMode, "state.json");
     if (parsed.help) {
         return {
@@ -402,18 +401,14 @@ async function resolveOptions(argv, cwd = process.cwd()) {
         onDuplicate: parsed.onDuplicate ?? "prompt",
     };
 }
-async function resolveTargetUrl(parsedTargetUrl, targetMode, cwd, repoRoot) {
+async function resolveTargetUrl(parsedTargetUrl, targetMode, repoRoot) {
     if (parsedTargetUrl) {
         return parsedTargetUrl;
     }
     if (targetMode === "preview") {
-        return readFirstEnvValue([(0, node_path_1.resolve)(cwd, ".env.preview"), (0, node_path_1.resolve)(repoRoot, ".env.preview")], ["DATABASE_URL"]);
+        return readFirstEnvValue([(0, node_path_1.resolve)(repoRoot, ".env.preview")], ["DATABASE_URL"]);
     }
-    return ((await readFirstEnvValue([(0, node_path_1.resolve)(cwd, ".env.local"), (0, node_path_1.resolve)(cwd, ".env"), (0, node_path_1.resolve)(repoRoot, ".env.local"), (0, node_path_1.resolve)(repoRoot, ".env")], [
-        "DATABASE_URL",
-    ])) ??
-        process.env.DATABASE_URL ??
-        DEFAULT_DOCKER_DATABASE_URL);
+    return readFirstEnvValue([(0, node_path_1.resolve)(repoRoot, ".env.local")], ["DATABASE_URL"]);
 }
 function normalizeTargetMode(value) {
     if (TARGET_MODES.has(value)) {

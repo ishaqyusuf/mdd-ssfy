@@ -33,6 +33,7 @@ Supported profiles:
 ```bash
 bun run dev                         # local Docker MySQL only
 bun run dev --local                 # local Docker MySQL only
+bun run dev --dev                   # hosted development DB only
 bun run dev --local --redis-local   # local Docker MySQL + local Docker Redis
 bun run dev --local --redis-preview # local Docker MySQL + preview Redis
 bun run dev --preview               # preview DB only
@@ -57,14 +58,16 @@ Filter flags can be written as `--filter`, `--f`, `-f`, or `-filter`. Filter val
 The underlying env contract is:
 
 ```bash
+.env               shared non-database defaults
 .env.local         DATABASE_URL=mysql://root@127.0.0.1:3307/gnd-prisma2
-.env.local         REDIS_URL=<optional-local-redis-url>
-.env.preview  DATABASE_URL=<hosted-preview-mysql-url>
-.env.preview  REDIS_URL=<hosted-preview-redis-url>
-.env.preview  UPSTASH_REDIS_REST_URL=<optional-hosted-preview-rest-url>
-.env.preview  UPSTASH_REDIS_REST_TOKEN=<optional-hosted-preview-rest-token>
+.env.dev           DATABASE_URL=<hosted-development-mysql-url>
+.env.preview       DATABASE_URL=<hosted-preview-mysql-url>
 .env.production    DATABASE_URL=<production-mysql-url>
 ```
+
+Root tooling loads `.env` plus exactly one selected profile. The selected
+profile owns `DATABASE_URL`; package-local env files and cross-profile fallback
+are not part of the contract.
 
 Local Docker services remain available as explicit commands:
 

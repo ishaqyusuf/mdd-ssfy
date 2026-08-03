@@ -109,7 +109,6 @@ const DEFAULT_STATE: SyncState = {
 	updatedAt: new Date(0).toISOString(),
 	tables: {},
 };
-const DEFAULT_DOCKER_DATABASE_URL = "mysql://root@127.0.0.1:3307/gnd-prisma2";
 const DEFAULT_INITIAL_CURSOR_VALUE = "2026-05-04 23:59:59.999";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "mysql"]);
@@ -505,8 +504,8 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 	const targetMode = parsed.targetMode ?? normalizeTargetMode(process.env.GND_DB_SYNC_TARGET_MODE ?? "local");
 	const sourceUrl =
 		parsed.sourceUrl ??
-		(await readFirstEnvValue([resolve(cwd, ".env.production"), resolve(repoRoot, ".env.production")], ["DATABASE_URL"]));
-	const targetUrl = await resolveTargetUrl(parsed.targetUrl, targetMode, cwd, repoRoot);
+		(await readFirstEnvValue([resolve(repoRoot, ".env.production")], ["DATABASE_URL"]));
+	const targetUrl = await resolveTargetUrl(parsed.targetUrl, targetMode, repoRoot);
 	const stateFile = parsed.stateFile ?? resolve(repoRoot, ".local-db-sync", targetMode, "state.json");
 
 	if (parsed.help) {
@@ -556,7 +555,6 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 async function resolveTargetUrl(
 	parsedTargetUrl: string | undefined,
 	targetMode: SyncTargetMode,
-	cwd: string,
 	repoRoot: string,
 ): Promise<string | undefined> {
 	if (parsedTargetUrl) {
@@ -564,19 +562,10 @@ async function resolveTargetUrl(
 	}
 
 	if (targetMode === "preview") {
-		return readFirstEnvValue(
-			[resolve(cwd, ".env.preview"), resolve(repoRoot, ".env.preview")],
-			["DATABASE_URL"],
-		);
+		return readFirstEnvValue([resolve(repoRoot, ".env.preview")], ["DATABASE_URL"]);
 	}
 
-	return (
-		(await readFirstEnvValue([resolve(cwd, ".env.local"), resolve(cwd, ".env"), resolve(repoRoot, ".env.local"), resolve(repoRoot, ".env")], [
-			"DATABASE_URL",
-		])) ??
-		process.env.DATABASE_URL ??
-		DEFAULT_DOCKER_DATABASE_URL
-	);
+	return readFirstEnvValue([resolve(repoRoot, ".env.local")], ["DATABASE_URL"]);
 }
 
 function normalizeTargetMode(value: string): SyncTargetMode {

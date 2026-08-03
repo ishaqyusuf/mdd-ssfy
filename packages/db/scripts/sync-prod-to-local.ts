@@ -46,9 +46,8 @@ Environment:
   DATABASE_URL in .env.local for local targets.
   DATABASE_URL in .env.preview for hosted dev targets.
 
-If env vars are not set, the script reads packages/db/.env.production for source
-and the selected mode file for target. Local mode falls back to
-mysql://root@127.0.0.1:3307/gnd-prisma2, the Docker MySQL database.`);
+If URLs are not passed explicitly, the script reads the selected root profile:
+.env.production for source and .env.local or .env.preview for target.`);
 }
 
 function printReport(reports: Awaited<ReturnType<typeof syncDatabases>>, dryRun: boolean, startedAt: number) {
