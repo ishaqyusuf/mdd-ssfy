@@ -1,0 +1,81 @@
+{
+  "capturedAt": "2026-07-31T11:08:30.693Z",
+  "action": "save-draft",
+  "nodeEnv": "development",
+  "userId": 1,
+  "requestId": "dbd28b76-f377-40e5-a83c-08e465d51ea2",
+  "summary": {
+    "clientRequestId": null,
+    "type": "order",
+    "salesId": null,
+    "slug": null,
+    "autosave": true,
+    "lineItemCount": 1,
+    "extraCostCount": 1
+  },
+  "payload": {
+    "type": "order",
+    "slug": null,
+    "salesId": null,
+    "inventoryStatus": null,
+    "version": "new-1785496107431-KnW56I",
+    "autosave": true,
+    "meta": {
+      "customerId": null,
+      "customerProfileId": 5,
+      "billingAddressId": null,
+      "shippingAddressId": null,
+      "paymentTerm": "None",
+      "createdAt": "2026-07-31T11:08:27.431Z",
+      "paymentDueDate": null,
+      "goodUntil": null,
+      "prodDueDate": null,
+      "po": "CODEX-AUTOSAVE-REPRO-A",
+      "notes": "",
+      "deliveryOption": "pickup",
+      "paymentMethod": "Credit Card",
+      "taxCode": null
+    },
+    "lineItems": [
+      {
+        "id": null,
+        "uid": "line-1-ms8ua68z-cone71",
+        "title": "Item 1",
+        "description": "",
+        "qty": 1,
+        "unitPrice": 0,
+        "lineTotal": 0,
+        "taxxable": null,
+        "meta": {},
+        "formSteps": [],
+        "shelfItems": [],
+        "housePackageTool": null
+      }
+    ],
+    "extraCosts": [
+      {
+        "id": null,
+        "label": "Labor",
+        "type": "Labor",
+        "amount": 0,
+        "taxxable": false
+      }
+    ],
+    "summary": {
+      "subTotal": 0,
+      "adjustedSubTotal": 0,
+      "taxRate": 0,
+      "taxTotal": 0,
+      "grandTotal": 0,
+      "totalWithCcc": 0,
+      "discount": 0,
+      "discountPct": 0,
+      "percentDiscountValue": 0,
+      "labor": 0,
+      "delivery": 0,
+      "otherCosts": 0,
+      "taxableSubTotal": 0,
+      "ccc": 0
+    }
+  }
+}

@@ -1,5 +1,11 @@
 # Done
 
+- [x] 2026-07-31 — Prevent duplicate orders from stale new-form autosaves,
+  preserve newer dirty edits across older save completions, and keep configured
+  door/material totals nonzero when customer-profile repricing encounters zero
+  base-price placeholders. See
+  `.brain/bugs/2026-07-31-new-sales-form-autosave-duplicates-profile-zero-totals.md`.
+
 - [x] 2026-07-30 — Make the new sales form the default for create/edit
   order/quote routes, preserve the legacy fallback with per-user preference,
   remove experimental links, and add Super Admin adoption reporting.

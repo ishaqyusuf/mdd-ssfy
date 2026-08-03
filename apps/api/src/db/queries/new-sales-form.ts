@@ -82,6 +82,7 @@ const DEFAULT_PAYMENT_TERM = "None";
 
 type NewSalesFormPersistedMeta = {
 	version: string;
+	draftKey?: string;
 	updatedAt: string;
 	autosave: boolean;
 	lineItems: NewSalesFormLineItem[];
@@ -2532,6 +2533,39 @@ async function saveNewSalesFormInternal(
 		storefrontInquiryReference?: string;
 	},
 ) {
+	const newDraftKey =
+		!payload.salesId &&
+		!payload.slug &&
+		String(payload.version || "").startsWith("new-")
+			? String(payload.version)
+			: null;
+	if (newDraftKey) {
+		const existingDraft = await ctx.db.salesOrders.findFirst({
+			where: {
+				type: payload.type,
+				deletedAt: null,
+				dealerAuthId: null,
+				meta: {
+					path: "$.newSalesForm.draftKey",
+					equals: newDraftKey,
+				},
+			},
+			select: {
+				id: true,
+				slug: true,
+				meta: true,
+			},
+		});
+		if (existingDraft) {
+			payload = {
+				...payload,
+				salesId: existingDraft.id,
+				slug: existingDraft.slug,
+				version:
+					safeMeta(existingDraft.meta).newSalesForm?.version ?? payload.version,
+			};
+		}
+	}
 	if (payload.salesId || payload.slug) {
 		const dealerSale = await ctx.db.salesOrders.findFirst({
 			where: {
@@ -2762,6 +2796,8 @@ async function saveNewSalesFormInternal(
 			...originMeta,
 			newSalesForm: {
 				version: nextVersion,
+				draftKey:
+					currentMeta.newSalesForm?.draftKey || newDraftKey || undefined,
 				updatedAt: new Date().toISOString(),
 				autosave: payload.autosave,
 				lineItems: normalizedLines,

@@ -704,7 +704,7 @@ export function NewSalesForm(props: Props) {
         onSaving: () => {
             markSaving();
         },
-        onSaved: (resp) => {
+        onSaved: (resp, _savedPayload, hasPendingChanges) => {
             patchRecord({
                 salesId: resp?.salesId,
                 slug: resp?.slug,
@@ -714,6 +714,7 @@ export function NewSalesForm(props: Props) {
             markSaved({
                 version: resp?.version,
                 updatedAt: resp?.updatedAt || new Date().toISOString(),
+                preserveDirty: hasPendingChanges,
             });
             setRestoredHistoryEntry(null);
             clearRecoveryKeys({

@@ -21,6 +21,11 @@ function toFinite(value: unknown): number | null {
 	return Number.isFinite(num) ? num : null;
 }
 
+function toPositiveFinite(value: unknown): number | null {
+	const num = toFinite(value);
+	return num != null && num > 0 ? num : null;
+}
+
 function toProfileMultiplier(coefficient?: number | null) {
 	const coeff = Number(coefficient);
 	if (!Number.isFinite(coeff) || coeff === 0) return 1;
@@ -48,6 +53,14 @@ function firstFinite(source: unknown, paths: string[][]) {
 	return null;
 }
 
+function firstPositiveFinite(source: unknown, paths: string[][]) {
+	for (const path of paths) {
+		const value = toPositiveFinite(valueFromPath(source, path));
+		if (value != null) return value;
+	}
+	return null;
+}
+
 function repriceMouldingRows(
 	rows: Array<Record<string, unknown>>,
 	nextMultiplier: number,
@@ -62,7 +75,7 @@ function repriceMouldingRows(
 			["customPrice"],
 			["meta", "customPrice"],
 		]);
-		const basePrice = firstFinite(row, [
+		const basePrice = firstPositiveFinite(row, [
 			["basePrice"],
 			["baseUnitPrice"],
 			["meta", "basePrice"],
@@ -162,7 +175,7 @@ export function repriceSalesFormLineItemsByProfile<
 			const stepMeta = readSalesFormObjectMetadata(step?.meta) || {};
 			const selectedComponents = Array.isArray(stepMeta.selectedComponents)
 				? stepMeta.selectedComponents.map((component: any) => {
-						const componentBase = toFinite(component?.basePrice);
+						const componentBase = toPositiveFinite(component?.basePrice);
 						const currentSales = toFinite(component?.salesPrice);
 						return {
 							...component,
@@ -191,7 +204,7 @@ export function repriceSalesFormLineItemsByProfile<
 					Number.isFinite(Number(component?.salesPrice)),
 				);
 
-			const basePrice = toFinite(step?.basePrice);
+			const basePrice = toPositiveFinite(step?.basePrice);
 			const currentPrice = toFinite(step?.price);
 			const nextPrice = hasSelectedComponentsPrice
 				? roundCurrency(Number(selectedComponentsPrice || 0))
@@ -222,7 +235,7 @@ export function repriceSalesFormLineItemsByProfile<
 				["customPrice"],
 				["meta", "customPrice"],
 			]);
-			const baseUnitPrice = firstFinite(row, [
+			const baseUnitPrice = firstPositiveFinite(row, [
 				["basePrice"],
 				["baseUnitPrice"],
 				["meta", "basePrice"],
@@ -275,7 +288,7 @@ export function repriceSalesFormLineItemsByProfile<
 		const doors = existingDoors.map((door) => {
 			const doorMeta = readSalesFormObjectMetadata(door?.meta) || {};
 			const currentUnit = toFinite(door?.unitPrice) ?? 0;
-			const baseUnitPrice = firstFinite(door, [
+			const baseUnitPrice = firstPositiveFinite(door, [
 				["basePrice"],
 				["baseUnitPrice"],
 				["meta", "basePrice"],

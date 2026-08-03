@@ -1,5 +1,17 @@
 # API Contracts
 
+## New Sales Form Autosave Identity (2026-07-31)
+
+- The bootstrap `new-*` version is the stable identity of an unsaved office
+  order/quote draft until the first persistence response assigns a sales id and
+  slug.
+- `newSalesForm.saveDraft` persists that value as
+  `meta.newSalesForm.draftKey`. A later payload with no sales id/slug and the
+  same draft key reuses the existing non-dealer record and its current version
+  instead of creating another order.
+- The response shape is unchanged. Clients still replace the draft identity
+  with the returned `salesId`, `slug`, and `version` immediately.
+
 ## New Sales Form Adoption (2026-07-30)
 
 - `newSalesForm.adoptionPing` is an authenticated mutation accepting only

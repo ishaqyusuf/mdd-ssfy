@@ -218,6 +218,24 @@ describe("sales form state save/recovery actions", () => {
 		expect(saved.lastSavedAt).toBe("2026-05-20T10:00:00.000Z");
 	});
 
+	it("keeps a newer edit dirty when an older autosave finishes", () => {
+		const saving = markSalesFormSaving({
+			...createInitialSalesFormState(),
+			record: createRecord(),
+			dirty: true,
+		});
+
+		const saved = markSalesFormSaved(saving, {
+			version: "v2",
+			updatedAt: "2026-05-20T10:00:00.000Z",
+			preserveDirty: true,
+		});
+
+		expect(saved.dirty).toBe(true);
+		expect(saved.saveStatus).toBe("idle");
+		expect(saved.record?.version).toBe("v2");
+	});
+
 	it("restores local drafts as dirty without replacing editor preferences", () => {
 		const state = {
 			...createInitialSalesFormState(),

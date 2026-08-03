@@ -63,7 +63,11 @@ type NewSalesFormActions = {
 	setSummary: (summary: NewSalesFormSummary) => void;
 	patchRecord: (patch: Partial<NewSalesFormRecord>) => void;
 	markSaving: () => void;
-	markSaved: (payload: { version?: string; updatedAt?: string | null }) => void;
+	markSaved: (payload: {
+		version?: string;
+		updatedAt?: string | null;
+		preserveDirty?: boolean;
+	}) => void;
 	markError: (message: string) => void;
 	markStale: (message?: string) => void;
 	clearDirty: () => void;

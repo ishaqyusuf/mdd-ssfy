@@ -2,6 +2,60 @@ import { describe, expect, it } from "bun:test";
 import { repriceSalesFormLineItemsByProfile } from "./profile-repricing";
 
 describe("profile-repricing domain", () => {
+	it("falls back to current configured prices when zero base prices are placeholders", () => {
+		const lineItems = [
+			{
+				qty: 1,
+				unitPrice: 100,
+				lineTotal: 100,
+				formSteps: [
+					{
+						price: 100,
+						basePrice: 0,
+						meta: {
+							selectedComponents: [
+								{ salesPrice: 100, basePrice: 0 },
+							],
+						},
+					},
+				],
+			},
+			{
+				qty: 2,
+				unitPrice: 80,
+				lineTotal: 160,
+				housePackageTool: {
+					totalDoors: 2,
+					totalPrice: 160,
+					doors: [
+						{
+							totalQty: 2,
+							unitPrice: 80,
+							lineTotal: 160,
+							meta: {
+								baseUnitPrice: 0,
+								doorSalesUnitPrice: 80,
+							},
+						},
+					],
+				},
+			},
+		];
+
+		const result = repriceSalesFormLineItemsByProfile(lineItems, 2, 4);
+		const configuredLine = result[0] as any;
+		const doorLine = result[1] as any;
+
+		expect(configuredLine.formSteps[0].meta.selectedComponents[0].salesPrice).toBe(
+			50,
+		);
+		expect(configuredLine.unitPrice).toBe(50);
+		expect(configuredLine.lineTotal).toBe(50);
+		expect(doorLine.housePackageTool.doors[0].unitPrice).toBe(40);
+		expect(doorLine.housePackageTool.doors[0].lineTotal).toBe(80);
+		expect(doorLine.lineTotal).toBe(80);
+	});
+
 	it("uses base prices when available for steps and selected components", () => {
 		const lineItems = [
 			{

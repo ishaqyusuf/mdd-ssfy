@@ -141,6 +141,13 @@ function createMockContext() {
       if (where?.id && o.id !== where.id) return false;
       if (where?.slug && o.slug !== where.slug) return false;
       if (where?.type && o.type !== where.type) return false;
+      if (where?.dealerAuthId === null && o.dealerAuthId != null) return false;
+      if (
+        where?.meta?.path === "$.newSalesForm.draftKey" &&
+        o.meta?.newSalesForm?.draftKey !== where.meta.equals
+      ) {
+        return false;
+      }
       if (where?.deletedAt === null && o.deletedAt != null) return false;
       return true;
     });
@@ -1459,6 +1466,57 @@ describe("new-sales-form relational parity", () => {
       "2026-03-03T00:00:00.000Z",
     );
     expect((loaded.form as any).prodDueDate).toBe("2026-02-20T00:00:00.000Z");
+  });
+
+  it("reuses one order for repeated autosaves from the same new draft", async () => {
+    const { ctx, state } = createMockContext();
+    const payload = {
+      type: "order" as const,
+      slug: null,
+      salesId: null,
+      version: "new-autosave-session-1",
+      autosave: true,
+      meta: {
+        customerId: null,
+        customerProfileId: 7,
+        billingAddressId: null,
+        shippingAddressId: null,
+        paymentTerm: "None",
+        paymentMethod: "Credit Card",
+        goodUntil: null,
+        po: "AUTOSAVE-A",
+        notes: null,
+        deliveryOption: "pickup" as const,
+        taxCode: null,
+      },
+      summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+      extraCosts: [],
+      lineItems: [
+        {
+          id: null,
+          uid: "line-autosave",
+          title: "Item 1",
+          description: "",
+          qty: 1,
+          unitPrice: 0,
+          lineTotal: 0,
+          meta: {},
+          formSteps: [],
+          shelfItems: [],
+          housePackageTool: null,
+        },
+      ],
+    };
+
+    const first = await saveDraftNewSalesForm(ctx, payload);
+    const second = await saveDraftNewSalesForm(ctx, {
+      ...payload,
+      meta: { ...payload.meta, po: "AUTOSAVE-B" },
+    });
+
+    expect(second.salesId).toBe(first.salesId);
+    expect(state.orders).toHaveLength(1);
+    expect(state.orders[0]?.meta?.po).toBe("AUTOSAVE-B");
   });
 
   it("saves and hydrates formSteps/shelfItems/housePackageTool/doors/molding", async () => {

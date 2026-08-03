@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSaveDraftNewSalesFormMutation } from "./api";
+import {
+    hasNewerSalesFormPayload,
+    rebaseQueuedSalesFormPayload,
+} from "./auto-save-payload";
 import type { NewSalesFormSaveDraftInput } from "./schema";
 
 type AutoSaveReason = "debounced-change" | "manual-flush";
@@ -13,7 +17,11 @@ type UseNewSalesFormAutoSaveOptions = {
     dirty: boolean;
     payload: NewSalesFormSaveDraftInput | null;
     onSaving?: (payload: NewSalesFormSaveDraftInput, reason: AutoSaveReason) => void;
-    onSaved?: (response: any, payload: NewSalesFormSaveDraftInput) => void;
+    onSaved?: (
+        response: any,
+        payload: NewSalesFormSaveDraftInput,
+        hasPendingChanges: boolean,
+    ) => void;
     onError?: (error: unknown, payload: NewSalesFormSaveDraftInput) => void;
     onStale?: (error: unknown, payload: NewSalesFormSaveDraftInput) => void;
 };
@@ -93,7 +101,16 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
                     try {
                         const response = await saveDraft.mutateAsync(next);
                         latestResponse = response;
-                        onSaved?.(response, next);
+                        queuedPayloadRef.current = rebaseQueuedSalesFormPayload(
+                            queuedPayloadRef.current,
+                            response,
+                        );
+                        onSaved?.(
+                            response,
+                            next,
+                            queuedPayloadRef.current != null ||
+                                hasNewerSalesFormPayload(payloadRef.current, next),
+                        );
                     } catch (error) {
                         if (isStaleError(error)) onStale?.(error, next);
                         else onError?.(error, next);
@@ -160,7 +177,11 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
 
             try {
                 const response = await saveDraft.mutateAsync(next);
-                onSaved?.(response, next);
+                onSaved?.(
+                    response,
+                    next,
+                    hasNewerSalesFormPayload(payloadRef.current, next),
+                );
                 return response;
             } catch (error) {
                 if (isStaleError(error)) onStale?.(error, next);

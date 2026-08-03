@@ -15,7 +15,11 @@ export function markSalesFormSaved<
 	TState extends SalesFormState<TRecord>,
 >(
 	state: TState,
-	payload: { version?: string; updatedAt?: string | null },
+	payload: {
+		version?: string;
+		updatedAt?: string | null;
+		preserveDirty?: boolean;
+	},
 	now = new Date().toISOString(),
 ): TState {
 	return {
@@ -27,8 +31,8 @@ export function markSalesFormSaved<
 					version: payload.version ?? state.record.version,
 					updatedAt: payload.updatedAt ?? state.record.updatedAt,
 				} as TRecord),
-		saveStatus: "saved",
-		dirty: false,
+		saveStatus: payload.preserveDirty ? "idle" : "saved",
+		dirty: payload.preserveDirty ? state.dirty : false,
 		lastSaveError: null,
 		lastSavedAt: payload.updatedAt ?? state.lastSavedAt ?? now,
 	};
@@ -64,4 +68,3 @@ export function clearSalesFormDirty<TState extends SalesFormState>(
 		dirty: false,
 	};
 }
-

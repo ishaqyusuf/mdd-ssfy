@@ -32,9 +32,13 @@
   PageView telemetry compares rolling 30-day Finance and legacy usage, while a
   hard retirement gate preserves Accounting until responsive operator
   acceptance and explicit approval. Automated responsive browser proof is
-  complete; remaining work is operator adoption feedback, the explicit
-  retirement decision, and later PDF design. See
-  `.brain/features/sales-finance.md`.
+  complete. A tab-aware search-hardening plan now maps missing payment-reference,
+  receivable contact, and Resolution sales-rep coverage while preserving URL,
+  report, permission, privacy, and performance contracts; implementation is not
+  yet authorized. Remaining work is search-plan approval/execution, operator
+  adoption feedback, the explicit retirement decision, and later PDF design.
+  See `.brain/features/sales-finance.md` and
+  `.brain/plans/2026-07-30-feature-sales-finance-search.md`.
 
 - 2026-07-22 execution note: the responsive full-width Tables-2 core contract
   was tracked here during implementation and moved to

@@ -1,5 +1,35 @@
 # Progress
 
+- 2026-07-31: upgraded the Trigger.dev jobs runtime from `4.0.1` to `4.5.9`
+  across `@trigger.dev/build`, `@trigger.dev/core`, `@trigger.dev/sdk`, and the
+  `trigger.dev` CLI. The upgraded local worker registered as version
+  `20260731.7`; an end-to-end replay of
+  `contractor-accounting-alert-schedule` completed successfully with zero
+  alerts. A read-only audit of all 105 failed development runs from the prior
+  24 hours found no failures on `20260731.7`: 104 were historical failures
+  from `20260730.*` workers, and one was the already-diagnosed `20260731.6`
+  local-MySQL-offline failure. Trigger `4.5.9` emits a non-blocking Node
+  `--localstorage-file` warning during worker startup.
+
+- 2026-07-31: fixed new-sales-form autosave duplicate creation, newer-edit
+  loss, and customer-profile zero-total repricing. Queued saves now inherit the
+  first created order identity, stale new-draft retries reuse a persisted draft
+  key, older save completions preserve newer dirty edits, and zero base-price
+  placeholders fall back to current configured sales prices. Focused coverage
+  passes 47 tests; Sales, API, and Dashboard typechecks pass. Pre-fix browser
+  reproduction completed, but the shared Next server became unresponsive
+  before post-fix browser replay. See
+  `.brain/bugs/2026-07-31-new-sales-form-autosave-duplicates-profile-zero-totals.md`.
+
+- 2026-07-30: planned Sales Finance search hardening for the existing
+  tab-aware, URL-backed toolbar. The plan closes advertised-field gaps for
+  payment/reference identifiers, receivable customer contacts, and Resolution
+  sales reps while keeping list/summary/analytics/report parity, protected
+  access, privacy-bounded telemetry, no-migration-first performance gates,
+  focused regressions, responsive browser proof, and operator acceptance. No
+  implementation code was changed. See
+  `.brain/plans/2026-07-30-feature-sales-finance-search.md`.
+
 - 2026-07-30: Applied the additive `SalesFormPreference` schema to production
   after a read-only preflight confirmed it was the only production drift. The
   package-level production Prisma push completed successfully and regenerated

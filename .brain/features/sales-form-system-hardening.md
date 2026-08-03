@@ -1,6 +1,6 @@
 # Sales Form System Hardening
 
-## Current behavior (2026-07-24)
+## Current behavior (2026-07-31)
 
 - Shared sales-form state enables debounced autosave by default for newly
   created and hydrated records; the editor toggle still supports deliberate
@@ -11,6 +11,15 @@
 - Debounced work reads the latest payload through a ref and keeps one semantic
   timer per payload. Manual saves that arrive during an active autosave retain
   their manual-save reason when queued.
+- Queued create-form saves are rebased onto the first successful order id,
+  slug, and version. The initial `new-*` version is also persisted as a draft
+  key so a repeated stale new-draft autosave reuses the same office order.
+- Save completion only clears dirty state when the completed payload is still
+  current; a newer edit remains dirty and gets its own debounce cycle.
+- Profile repricing treats zero base-price placeholders as missing pricing
+  authority. Configured workflow components and grouped door, shelf, and
+  moulding rows fall back to their current sales price ratio instead of
+  collapsing invoice summaries to zero.
 - P.O. metadata is projected to both the legacy root field and an existing
   nested new-form document. Legacy saves preserve the nested document instead
   of replacing unknown metadata, and both editors hydrate the same canonical
@@ -56,6 +65,10 @@
   zero new console errors.
 - Remaining release gate: authenticated browser proof for autosave, recovery,
   leave warning, and full pricing permutations against a real database.
+- 2026-07-31 focused duplicate-draft, queued-payload, dirty-preservation, and
+  zero-base repricing coverage passes 47 tests. Pre-fix authenticated browser
+  reproduction completed; the shared local Next server became unresponsive
+  before the post-fix replay and was left untouched.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

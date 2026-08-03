@@ -1,0 +1,551 @@
+{
+  "capturedAt": "2026-07-31T11:14:19.678Z",
+  "action": "save-draft",
+  "nodeEnv": "development",
+  "userId": 1,
+  "requestId": "097fd045-7b0b-4207-83f6-f54ebb5224aa",
+  "summary": {
+    "clientRequestId": null,
+    "type": "order",
+    "salesId": 25158,
+    "slug": "order-09096pc",
+    "autosave": true,
+    "lineItemCount": 1,
+    "extraCostCount": 1
+  },
+  "payload": {
+    "type": "order",
+    "slug": "order-09096pc",
+    "salesId": 25158,
+    "inventoryStatus": null,
+    "version": "1785496440916-WiDJhKyy",
+    "autosave": true,
+    "meta": {
+      "customerId": null,
+      "customerProfileId": 5,
+      "billingAddressId": null,
+      "shippingAddressId": null,
+      "paymentTerm": "None",
+      "createdAt": "2026-07-31T11:08:27.000Z",
+      "paymentDueDate": null,
+      "goodUntil": null,
+      "prodDueDate": null,
+      "po": "CODEX-AUTOSAVE-REPRO-A",
+      "notes": "",
+      "deliveryOption": "pickup",
+      "paymentMethod": "Credit Card",
+      "taxCode": null
+    },
+    "lineItems": [
+      {
+        "id": 168081,
+        "uid": "line-1-ms8ua68z-cone71",
+        "title": "Item 1",
+        "description": "",
+        "qty": 1,
+        "unitPrice": 0,
+        "lineTotal": 0,
+        "taxxable": null,
+        "meta": {},
+        "formSteps": [
+          {
+            "id": null,
+            "stepId": 1,
+            "componentId": 1,
+            "prodUid": "KmUMM",
+            "value": "Interior pre-hung",
+            "meta": {
+              "allowAdd": true,
+              "allowCustom": false,
+              "img": "j3umtheflkbskg4tmdns.png"
+            },
+            "step": {
+              "id": 1,
+              "uid": "MtJgR",
+              "title": "Item Type"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 2,
+            "componentId": 4,
+            "prodUid": "xZTAn",
+            "value": "PH - Single",
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "allowAdd": true,
+              "stateDeps": {
+                "MtJgR": true
+              },
+              "allowCustom": true,
+              "priceDepencies": {
+                "MtJgR": true
+              },
+              "img": "djfaelukglrp9h4hylns.png",
+              "redirectUid": null,
+              "sectionOverride": null,
+              "custom": false,
+              "selectedComponents": [
+                {
+                  "id": 4,
+                  "uid": "xZTAn",
+                  "title": "PH - Single",
+                  "img": "djfaelukglrp9h4hylns.png",
+                  "inventoryId": null,
+                  "inventoryVariantId": null,
+                  "salesPrice": 0,
+                  "basePrice": 0,
+                  "pricing": {},
+                  "supplierVariants": [],
+                  "redirectUid": null,
+                  "sectionOverride": null,
+                  "custom": false,
+                  "_metaData": {
+                    "sorts": [
+                      {
+                        "sortIndex": 0,
+                        "stepComponentId": 4,
+                        "uid": "KmUMM"
+                      }
+                    ],
+                    "custom": false,
+                    "deletedAt": null,
+                    "visible": false,
+                    "priceId": null,
+                    "sortId": null,
+                    "sortIndex": null,
+                    "sortUid": null
+                  }
+                }
+              ],
+              "selectedProdUids": [
+                "xZTAn"
+              ],
+              "redirectDisabled": false,
+              "redirectTargetUid": null
+            },
+            "step": {
+              "id": 2,
+              "uid": "lzjs2",
+              "title": "Door Configuration"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 13,
+            "componentId": 146,
+            "prodUid": "D2Vup",
+            "value": "6-8",
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "redirectDisabled": false,
+              "redirectTargetUid": null,
+              "img": "ubqrx58h7m3ahjoho2fq.png",
+              "redirectUid": null,
+              "sectionOverride": null,
+              "custom": false,
+              "selectedComponents": [
+                {
+                  "id": 146,
+                  "uid": "D2Vup",
+                  "title": "6-8",
+                  "img": "ubqrx58h7m3ahjoho2fq.png",
+                  "inventoryId": null,
+                  "inventoryVariantId": null,
+                  "salesPrice": 0,
+                  "basePrice": 0,
+                  "pricing": {},
+                  "supplierVariants": [],
+                  "redirectUid": null,
+                  "sectionOverride": null,
+                  "custom": false,
+                  "_metaData": {
+                    "sorts": [],
+                    "custom": false,
+                    "deletedAt": null,
+                    "visible": false,
+                    "priceId": null,
+                    "sortId": null,
+                    "sortIndex": null,
+                    "sortUid": null
+                  }
+                }
+              ],
+              "selectedProdUids": [
+                "D2Vup"
+              ]
+            },
+            "step": {
+              "id": 13,
+              "uid": "YmWG7",
+              "title": "Height"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 31,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {
+              "stateDeps": {
+                "lzjs2": true
+              },
+              "allowCustom": false,
+              "priceDepencies": {},
+              "redirectDisabled": false,
+              "redirectTargetUid": null
+            },
+            "step": {
+              "id": 31,
+              "uid": "hM1sD",
+              "title": "Bore"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 41,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {
+              "allowAdd": true,
+              "stateDeps": {
+                "MtJgR": true
+              },
+              "priceDepencies": {
+                "MtJgR": true
+              },
+              "redirectDisabled": false,
+              "redirectTargetUid": null
+            },
+            "step": {
+              "id": 41,
+              "uid": "wUGhI",
+              "title": "Door Type"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 51,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {
+              "allowAdd": true,
+              "stateDeps": {
+                "MtJgR": true,
+                "YmWG7": true,
+                "lzjs2": true,
+                "wUGhI": false
+              },
+              "priceStepDeps": [
+                "MtJgR",
+                "YmWG7",
+                "lzjs2",
+                "wUGhI"
+              ],
+              "priceDepencies": {
+                "MtJgR": true,
+                "YmWG7": true,
+                "lzjs2": true,
+                "wUGhI": true
+              },
+              "doorSizeVariation": [
+                {
+                  "rules": [
+                    {
+                      "stepUid": "lzjs2",
+                      "operator": "is",
+                      "componentsUid": [
+                        "pAnWw",
+                        "qncY2",
+                        "iQGaF",
+                        "jz0I3"
+                      ]
+                    }
+                  ],
+                  "widthList": [
+                    "3-0",
+                    "4-8",
+                    "4-0",
+                    "5-0",
+                    "5-4",
+                    "6-0",
+                    "5-8"
+                  ]
+                },
+                {
+                  "rules": [
+                    {
+                      "stepUid": "MtJgR",
+                      "operator": "is",
+                      "componentsUid": [
+                        "Yl94q"
+                      ]
+                    }
+                  ],
+                  "widthList": [
+                    "2-6",
+                    "2-8",
+                    "3-0",
+                    "2-10"
+                  ]
+                },
+                {
+                  "rules": [
+                    {
+                      "stepUid": "MtJgR",
+                      "operator": "is",
+                      "componentsUid": [
+                        "LDjny"
+                      ]
+                    }
+                  ],
+                  "widthList": [
+                    "1-6",
+                    "2-0",
+                    "2-4",
+                    "2-6",
+                    "2-8",
+                    "3-0",
+                    "4-0",
+                    "4-8",
+                    "5-0",
+                    "5-4",
+                    "6-0"
+                  ]
+                },
+                {
+                  "rules": [],
+                  "widthList": []
+                },
+                {
+                  "rules": [
+                    {
+                      "stepUid": "lzjs2",
+                      "operator": "is",
+                      "componentsUid": [
+                        "xZTAn",
+                        "OEITw",
+                        "1bEpK"
+                      ]
+                    }
+                  ],
+                  "widthList": [
+                    "1-6",
+                    "1-8",
+                    "2-0",
+                    "1-10",
+                    "2-4",
+                    "2-6",
+                    "2-8",
+                    "2-10",
+                    "3-0"
+                  ]
+                },
+                {
+                  "rules": [
+                    {
+                      "stepUid": "MtJgR",
+                      "operator": "is",
+                      "componentsUid": [
+                        "2oWEo"
+                      ]
+                    }
+                  ],
+                  "widthList": [
+                    "1-6",
+                    "1-8",
+                    "1-10",
+                    "2-0",
+                    "2-4",
+                    "2-6",
+                    "2-8",
+                    "2-10",
+                    "3-0"
+                  ]
+                }
+              ],
+              "redirectDisabled": false,
+              "redirectTargetUid": null
+            },
+            "step": {
+              "id": 51,
+              "uid": "jdd5q",
+              "title": "Door"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 61,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {
+              "custom": true,
+              "stateDeps": {
+                "MtJgR": false,
+                "YmWG7": true,
+                "lzjs2": true
+              },
+              "allowCustom": true,
+              "priceStepDeps": [
+                "MtJgR",
+                "YmWG7",
+                "lzjs2"
+              ],
+              "priceDepencies": {
+                "MtJgR": true,
+                "YmWG7": true,
+                "lzjs2": true,
+                "wUGhI": false
+              },
+              "redirectDisabled": false,
+              "redirectTargetUid": null
+            },
+            "step": {
+              "id": 61,
+              "uid": "mwK1t",
+              "title": "Jamb Size"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 115,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {
+              "allowAdd": false,
+              "stateDeps": {
+                "MtJgR": true,
+                "YmWG7": true,
+                "lzjs2": true
+              },
+              "priceStepDeps": [
+                "YmWG7",
+                "lzjs2"
+              ],
+              "priceDepencies": {
+                "MtJgR": true,
+                "YmWG7": true,
+                "lzjs2": true
+              },
+              "redirectDisabled": false,
+              "redirectTargetUid": null
+            },
+            "step": {
+              "id": 115,
+              "uid": "kLDii",
+              "title": "Hinge Finish"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 137,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {
+              "redirectDisabled": false,
+              "redirectTargetUid": null
+            },
+            "step": {
+              "id": 137,
+              "uid": "OBikk",
+              "title": "Cutdown Height"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 126,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {
+              "redirectDisabled": false,
+              "redirectTargetUid": null
+            },
+            "step": {
+              "id": 126,
+              "uid": "cnJLu",
+              "title": "Casing Y/N"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 141,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {
+              "priceStepDeps": [
+                "YmWG7",
+                "lzjs2"
+              ],
+              "priceDepencies": {
+                "MtJgR": true,
+                "YmWG7": true,
+                "lzjs2": true
+              },
+              "redirectDisabled": false,
+              "redirectTargetUid": null
+            },
+            "step": {
+              "id": 141,
+              "uid": "EiD2J",
+              "title": "Casing"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 212,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {
+              "allowAdd": true,
+              "redirectDisabled": false,
+              "redirectTargetUid": null
+            },
+            "step": {
+              "id": 212,
+              "uid": "VFInm",
+              "title": "House Package Tool"
+            }
+          }
+        ],
+        "shelfItems": [],
+        "housePackageTool": null
+      }
+    ],
+    "extraCosts": [
+      {
+        "id": 6108,
+        "label": "Labor",
+        "type": "Labor",
+        "amount": 0,
+        "taxxable": false
+      }
+    ],
+    "summary": {
+      "subTotal": 0,
+      "adjustedSubTotal": 0,
+      "taxRate": 0,
+      "taxTotal": 0,
+      "grandTotal": 0,
+      "totalWithCcc": 0,
+      "discount": 0,
+      "discountPct": 0,
+      "percentDiscountValue": 0,
+      "labor": 0,
+      "delivery": 0,
+      "otherCosts": 0,
+      "taxableSubTotal": 0,
+      "ccc": 0
+    }
+  }
+}
