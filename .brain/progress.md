@@ -8069,3 +8069,11 @@
   remains blocked only by the documented unrelated inbound-query depth and
   Sentry event typing baseline; normal migration replay remains blocked by the
   pre-existing master-password shadow-history ordering defect.
+- 2026-08-03: fixed new sales-form edit routes returning `Sales form not found`
+  when the route segment was a visible order number instead of the canonical
+  slug. The loader now prefers exact slug matches and falls back to active,
+  same-type `orderId` matches. A production read confirmed `09158PC` maps to
+  `order-09158pc`; the original production-backed loader replay now passes.
+  Focused API coverage passes 24 tests / 166 assertions, the API typecheck
+  passes, and `git diff --check` is clean. No schema, migration, permission, or
+  authentication behavior changed.

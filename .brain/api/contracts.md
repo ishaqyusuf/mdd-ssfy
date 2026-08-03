@@ -1,5 +1,15 @@
 # API Contracts
 
+## New Sales Form Edit Identifier Compatibility (2026-08-03)
+
+- `newSalesForm.get({ type, slug })` treats the `slug` input as an edit-route
+  identifier. It first resolves an active document by canonical `slug`, then
+  falls back to the visible `orderId` for legacy bookmarks and form-surface
+  redirects that preserve an order or quote number.
+- Canonical slug resolution retains priority if a slug could collide with a
+  different document's visible number. The requested document type and
+  non-deleted guard apply to both lookup paths.
+
 ## New Sales Form Autosave Identity (2026-07-31)
 
 - The bootstrap `new-*` version is the stable identity of an unsaved office

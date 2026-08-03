@@ -1165,10 +1165,10 @@ export async function getNewSalesForm(
 	sourceType: string = input.type,
 ) {
 	getNewSalesFormSchema.parse(input);
-	const [order, setting] = await Promise.all([
+	const loadOrder = (identifier: { slug: string } | { orderId: string }) =>
 		ctx.db.salesOrders.findFirst({
 			where: {
-				slug: input.slug,
+				...identifier,
 				type: sourceType,
 				deletedAt: null,
 			},
@@ -1380,7 +1380,9 @@ export async function getNewSalesForm(
 					},
 				},
 			},
-		}),
+		});
+	const [orderBySlug, setting] = await Promise.all([
+		loadOrder({ slug: input.slug }),
 		ctx.db.settings.findFirst({
 			where: {
 				type: "sales-settings",
@@ -1390,6 +1392,7 @@ export async function getNewSalesForm(
 			},
 		}),
 	]);
+	const order = orderBySlug ?? (await loadOrder({ orderId: input.slug }));
 	if (order?.dealerAuthId) {
 		if (!ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 		await assertDealerSaleOfficeAccess(ctx.db, ctx.userId, order.id);

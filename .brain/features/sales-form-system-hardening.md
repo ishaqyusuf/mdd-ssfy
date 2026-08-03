@@ -46,6 +46,10 @@
 - Shelf combobox content nodes use stable object refs, and the shelf costing
   helper is memoized per item step. Shelf product effects can update costing
   without creating a render feedback loop.
+- Edit routes can resolve an active order or quote by canonical slug or visible
+  document number. Slug lookup runs first, while the order-number fallback
+  preserves legacy bookmarks and cross-surface redirects such as
+  `/sales-form/edit-order/09158PC`.
 
 ## Validation
 
@@ -70,6 +74,10 @@
   zero-base repricing coverage passes 47 tests. Pre-fix authenticated browser
   reproduction completed; the shared local Next server became unresponsive
   before the post-fix replay and was left untouched.
+- 2026-08-03 production-backed loader replay changed order `09158PC` from
+  `Sales form not found` to `PASS:09158PC:order-09158pc`. The focused
+  new-sales-form API file passes 24 tests / 166 assertions, and the API
+  typecheck passes.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

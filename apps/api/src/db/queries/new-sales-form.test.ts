@@ -140,6 +140,7 @@ function createMockContext() {
     return state.orders.find((o) => {
       if (where?.id && o.id !== where.id) return false;
       if (where?.slug && o.slug !== where.slug) return false;
+      if (where?.orderId && o.orderId !== where.orderId) return false;
       if (where?.type && o.type !== where.type) return false;
       if (where?.dealerAuthId === null && o.dealerAuthId != null) return false;
       if (
@@ -1222,6 +1223,44 @@ describe("new-sales-form relational parity", () => {
       "2026-02-28T12:00:00.000Z",
     );
     expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
+  });
+
+  it("loads an existing sales form by its visible order number", async () => {
+    const { ctx, state } = createMockContext();
+
+    state.orders.push({
+      id: state.ids.order++,
+      orderId: "09158PC",
+      slug: "order-09158pc",
+      type: "order",
+      status: "Draft",
+      deletedAt: null,
+      createdAt: new Date("2026-08-03T12:00:00.000Z"),
+      updatedAt: new Date("2026-08-03T12:00:00.000Z"),
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      paymentDueDate: null,
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 100,
+      tax: 0,
+      grandTotal: 100,
+      payments: [],
+      meta: {},
+    });
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "09158PC",
+    });
+
+    expect(loaded.orderId).toBe("09158PC");
+    expect(loaded.slug).toBe("order-09158pc");
   });
 
   it("returns no dealer profile card for non-dealer sales documents", async () => {

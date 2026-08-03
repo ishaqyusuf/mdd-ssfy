@@ -1021,3 +1021,6 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   navigation, explicit physical-availability confirmation, stale-revision
   protection, assignment-only gate use, and revocation. A 2-unit local
   assignment smoke passed and its assignment/override state was cleaned up.
+- [x] 2026-08-03: restored new sales-form edit compatibility for visible order
+  and quote numbers by adding a slug-first, order-number fallback lookup with a
+  focused regression test and production-backed proof on order `09158PC`.
