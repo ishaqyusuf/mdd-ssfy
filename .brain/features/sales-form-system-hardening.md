@@ -1,10 +1,11 @@
 # Sales Form System Hardening
 
-## Current behavior (2026-07-31)
+## Current behavior (2026-08-03)
 
-- Shared sales-form state enables debounced autosave by default for newly
-  created and hydrated records; the editor toggle still supports deliberate
-  manual-save mode.
+- Shared sales-form state disables debounced autosave by default for newly
+  created and hydrated records. Forms start in deliberate manual-save mode;
+  the editor toggle still lets a user enable autosave for the current form
+  session.
 - Autosave timer cleanup is limited to cancelling pending work. Component
   rerenders and unmount cleanup do not invoke another save, so saving-state
   updates cannot recursively create a save storm.

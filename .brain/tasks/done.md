@@ -1,5 +1,10 @@
 # Done
 
+- [x] 2026-08-03 — Make autosave opt-in for the shared new sales form: newly
+  created and hydrated orders and quotes now begin with autosave off while the
+  existing session toggle and manual saves remain available. See
+  `.brain/decisions/ADR-043-new-sales-form-manual-save-default.md`.
+
 - [x] 2026-08-03 — Stop the shared protected sidebar from viewport-prefetching
   every rendered route, eliminating speculative page/server-query execution and
   its `/api/auth-session` function amplification. See

@@ -1,5 +1,13 @@
 # Progress
 
+- 2026-08-03: changed the shared new-sales-form editor default from autosave on
+  to autosave off. Newly created and hydrated orders and quotes now start in
+  manual-save mode while retaining the existing opt-in autosave toggle, local
+  recovery, leave warnings, and explicit draft/final save actions. The matching
+  state expectation was updated but no validation was run, per the user's
+  instruction. See
+  `.brain/decisions/ADR-043-new-sales-form-manual-save-default.md`.
+
 - 2026-08-03: diagnosed the current Vercel usage burn as protected sidebar
   speculation amplified by the dashboard auth proxy. The billing-cycle view
   showed approximately 972,000 function invocations and 64.92 GB-hours, with

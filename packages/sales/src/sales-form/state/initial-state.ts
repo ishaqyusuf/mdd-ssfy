@@ -8,9 +8,9 @@ export const initialSalesFormEditorState: SalesFormEditorState = {
 	mouldingViewMode: "selection",
 	isOverviewOpen: false,
 	showMobileSummary: false,
-	// Keep draft protection enabled by default; users can still opt out from
-	// the editor actions when they need manual-save behavior.
-	autosaveEnabled: true,
+	// Start in deliberate manual-save mode; users can still enable autosave
+	// from the editor actions when they want it for the current form session.
+	autosaveEnabled: false,
 };
 
 export function createInitialSalesFormState(): SalesFormState {

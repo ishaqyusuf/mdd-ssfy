@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Superseded by
+`.brain/decisions/ADR-043-new-sales-form-manual-save-default.md` on 2026-08-03.
 
 ## Context
 
