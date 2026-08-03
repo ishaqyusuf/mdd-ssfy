@@ -1,5 +1,6 @@
 import { whereCustomer, whereSales } from "@api/prisma-where";
 import type {
+	AssignSalesAddressSchema,
 	GetCustomerDirectoryV2SummarySchema,
 	GetCustomerOverviewV2Schema,
 	GetCustomerStatementDetailSchema,
@@ -10,7 +11,7 @@ import type {
 	UpsertCustomerSchema,
 } from "@api/schemas/customer";
 import type { TRPCContext } from "@api/trpc/init";
-import type { Prisma } from "@gnd/db";
+import type { AddressBooks, Prisma } from "@gnd/db";
 import {
 	buildOfficeCustomerVisibilityWhere,
 	getDealerPartnershipSummaries,
@@ -473,6 +474,36 @@ export async function getCustomersCount(ctx: TRPCContext, query: GetCustomers) {
 	});
 }
 
+type CustomerAddressInput = NonNullable<UpsertCustomerSchema["billingAddress"]>;
+
+function buildCustomerAddressData({
+	address,
+	input,
+	isPrimary,
+}: {
+	address: CustomerAddressInput;
+	input: UpsertCustomerSchema;
+	isPrimary: boolean;
+}) {
+	return {
+		address1: address.address1,
+		address2: address.address2,
+		phoneNo2: input.phoneNo2,
+		phoneNo: input.phoneNo,
+		country: address.country,
+		state: address.state,
+		city: address.city,
+		isPrimary,
+		meta: {
+			zip_code: address.zip_code,
+			lat: address.lat,
+			lng: address.lng,
+			placeSearchText: address.formattedAddress,
+			placeId: address.placeId,
+		} as AddressBookMeta,
+	};
+}
+
 export async function createOrUpdateCustomer(
 	ctx: TRPCContext,
 	input: UpsertCustomerSchema,
@@ -498,7 +529,7 @@ export async function createOrUpdateCustomer(
 			phoneNo: input.phoneNo,
 			phoneNo2: input.phoneNo2,
 			email: input.email,
-			address: input.address1,
+			address: input.billingAddress?.address1 ?? input.address1,
 			meta: {
 				netTerm: input.netTerm,
 			} as CustomerMeta,
@@ -579,7 +610,48 @@ export async function createOrUpdateCustomer(
 		};
 
 		let addressId = input.addressId;
-		if (addressId) {
+		let billingAddressId: number | undefined;
+		let shippingAddressId: number | undefined;
+		if (input.salesType && input.billingAddress) {
+			await tx.addressBooks.updateMany({
+				where: {
+					customerId,
+					isPrimary: true,
+					deletedAt: null,
+				},
+				data: { isPrimary: false },
+			});
+			const billingAddress = await tx.addressBooks.create({
+				data: {
+					...buildCustomerAddressData({
+						address: input.billingAddress,
+						input,
+						isPrimary: true,
+					}),
+					customerId,
+				},
+			});
+			billingAddressId = billingAddress.id;
+			addressId = billingAddress.id;
+
+			if (input.shippingSameAsBilling !== false) {
+				shippingAddressId = billingAddress.id;
+			} else if (input.shippingAddress) {
+				const shippingAddress = await tx.addressBooks.create({
+					data: {
+						...buildCustomerAddressData({
+							address: input.shippingAddress,
+							input,
+							isPrimary: false,
+						}),
+						customerId,
+					},
+				});
+				shippingAddressId = shippingAddress.id;
+			} else {
+				shippingAddressId = billingAddress.id;
+			}
+		} else if (addressId) {
 			const existingPrimary = await tx.addressBooks.findFirst({
 				where: {
 					id: addressId,
@@ -618,9 +690,37 @@ export async function createOrUpdateCustomer(
 			addressId = created.id;
 		}
 
+		if (input.salesId && billingAddressId && shippingAddressId) {
+			const sale = await tx.salesOrders.findFirst({
+				where: {
+					id: input.salesId,
+					customerId,
+					dealerAuthId: null,
+					deletedAt: null,
+				},
+				select: { id: true },
+			});
+			if (!sale) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Office sale not found for this customer.",
+				});
+			}
+			await tx.salesOrders.update({
+				where: { id: sale.id },
+				data: { billingAddressId, shippingAddressId },
+			});
+		}
+
 		return {
 			customerId,
 			addressId,
+			...(billingAddressId
+				? {
+						billingAddressId,
+						shippingAddressId: shippingAddressId ?? billingAddressId,
+					}
+				: {}),
 		};
 	});
 }
@@ -720,6 +820,132 @@ export async function createOrUpdateCustomerAddress(
 		return {
 			customerId,
 			addressId,
+		};
+	});
+}
+
+export async function assignSalesAddress(
+	ctx: TRPCContext,
+	input: AssignSalesAddressSchema,
+) {
+	return ctx.db.$transaction(async (tx) => {
+		const sale = await tx.salesOrders.findFirst({
+			where: {
+				id: input.salesId,
+				customerId: input.customerId,
+				dealerAuthId: null,
+				deletedAt: null,
+			},
+			select: {
+				id: true,
+				billingAddressId: true,
+				shippingAddressId: true,
+			},
+		});
+		if (!sale) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Office sale not found for this customer.",
+			});
+		}
+
+		const customer = await tx.customers.findUnique({
+			where: { id: input.customerId },
+			select: { dealerOwnerId: true },
+		});
+		if (!customer || customer.dealerOwnerId) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Dealer-owned customers are read-only in office mode.",
+			});
+		}
+
+		const currentAddressId =
+			input.addressType === "billing"
+				? sale.billingAddressId
+				: sale.shippingAddressId;
+		const requestedAddressId = input.addressId ?? currentAddressId;
+		const addressData = {
+			address1: input.address1,
+			address2: input.address2,
+			country: input.country,
+			state: input.state,
+			city: input.city,
+			isPrimary: input.addressType === "billing",
+			meta: {
+				zip_code: input.zip_code,
+				lat: input.lat,
+				lng: input.lng,
+				placeSearchText: input.formattedAddress,
+				placeId: input.placeId,
+			} as AddressBookMeta,
+		};
+
+		let addressId: number | undefined;
+		if (requestedAddressId) {
+			const ownedAddress = await tx.addressBooks.findFirst({
+				where: {
+					id: requestedAddressId,
+					customerId: input.customerId,
+					deletedAt: null,
+				},
+				select: { id: true },
+			});
+			if (ownedAddress) {
+				const salesReferenceCount = await tx.salesOrders.count({
+					where: {
+						deletedAt: null,
+						OR: [
+							{ billingAddressId: ownedAddress.id },
+							{ shippingAddressId: ownedAddress.id },
+						],
+					},
+				});
+				if (salesReferenceCount > 0) {
+					const created = await tx.addressBooks.create({
+						data: {
+							...addressData,
+							customerId: input.customerId,
+						},
+					});
+					addressId = created.id;
+				} else {
+					const updated = await tx.addressBooks.update({
+						where: { id: ownedAddress.id },
+						data: addressData,
+					});
+					addressId = updated.id;
+				}
+			}
+		}
+		if (!addressId) {
+			const created = await tx.addressBooks.create({
+				data: {
+					...addressData,
+					customerId: input.customerId,
+				},
+			});
+			addressId = created.id;
+		}
+
+		const relationKey =
+			input.addressType === "billing"
+				? "billingAddressId"
+				: "shippingAddressId";
+		await tx.salesOrders.update({
+			where: { id: sale.id },
+			data: { [relationKey]: addressId },
+		});
+
+		return {
+			addressId,
+			addressType: input.addressType,
+			billingAddressId:
+				input.addressType === "billing" ? addressId : sale.billingAddressId,
+			customerId: input.customerId,
+			salesId: sale.id,
+			shippingAddressId:
+				input.addressType === "shipping" ? addressId : sale.shippingAddressId,
 		};
 	});
 }
@@ -1540,6 +1766,26 @@ export const getSalesCustomerSchema = z.object({
 });
 export type GetSalesCustomerSchema = z.infer<typeof getSalesCustomerSchema>;
 
+function salesAddressFormData(address?: AddressBooks | null) {
+	if (!address) return null;
+	const meta = address.meta as any as
+		| (AddressBookMeta & { lat?: number; lng?: number })
+		| null;
+	return {
+		addressId: address.id,
+		address1: address.address1 ?? "",
+		address2: address.address2 ?? "",
+		city: address.city ?? "",
+		country: address.country ?? "",
+		formattedAddress: meta?.placeSearchText ?? "",
+		lat: meta?.lat,
+		lng: meta?.lng,
+		placeId: meta?.placeId ?? "",
+		state: address.state ?? "",
+		zip_code: meta?.zip_code ?? "",
+	};
+}
+
 export async function getSalesCustomer(
 	ctx: TRPCContext,
 	query: GetSalesCustomerSchema,
@@ -1576,12 +1822,14 @@ export async function getSalesCustomer(
 			},
 		},
 	});
-	const billing = customer?.addressBooks?.find(
-		(a) => a.id == billingId || a.isPrimary,
-	);
+	const billing =
+		customer?.addressBooks?.find((address) => address.id === billingId) ??
+		customer?.addressBooks?.find((address) => address.isPrimary);
 	const shipping = customer?.addressBooks?.find((a) => a.id == shippingId);
 	const customerMeta = customer?.meta as any as CustomerMeta;
 	const [taxProfile] = customer?.taxProfiles;
+	const billingAddress = salesAddressFormData(billing);
+	const shippingAddress = salesAddressFormData(shipping);
 	return {
 		customerId: customer?.id,
 		profileId: customer?.customerTypeId,
@@ -1607,12 +1855,36 @@ export async function getSalesCustomer(
 					? ["same as billing"]
 					: salesAddressLines(shipping),
 		},
+		shippingAddress,
 		billing: {
 			lines: salesAddressLines(billing!, customer),
 			id: billing?.id,
 		},
+		billingAddress,
 		taxCode: taxProfile?.taxCode,
 		taxProfileId: taxProfile?.id,
+		customerForm: {
+			id: customer.id,
+			customerId: customer.id,
+			customerType: customer.businessName ? "Business" : "Personal",
+			businessName: customer.businessName,
+			name: customer.name,
+			phoneNo: customer.phoneNo,
+			email: customer.email,
+			profileId: customer.customerTypeId
+				? String(customer.customerTypeId)
+				: undefined,
+			netTerm: customerMeta?.netTerm,
+			taxCode: taxProfile?.taxCode,
+			taxProfileId: taxProfile?.id,
+			billingAddress,
+			shippingAddress:
+				shippingId != null && shippingId === billingId
+					? billingAddress
+					: shippingAddress,
+			shippingSameAsBilling:
+				billingId != null && shippingId != null && billingId === shippingId,
+		},
 	};
 }
 

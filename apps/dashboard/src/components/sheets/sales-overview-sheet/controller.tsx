@@ -50,12 +50,16 @@ export function createLegacySalesOverviewTabs({
 	prodQty,
 	saleId,
 	orderId,
+	onEditAddress,
+	onEditCustomer,
 }: {
 	mode: LegacySalesOverviewMode;
 	isQuote: boolean;
 	prodQty: number;
 	saleId?: number | null;
 	orderId?: string | null;
+	onEditAddress?: Parameters<typeof GeneralTab>[0]["onEditAddress"];
+	onEditCustomer?: Parameters<typeof GeneralTab>[0]["onEditCustomer"];
 }): LegacySalesOverviewTabDefinition[] {
 	const prodBadge = prodQty > 0 ? prodQty : 0;
 
@@ -103,7 +107,12 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "general",
 					label: "General",
-					content: <GeneralTab />,
+					content: (
+						<GeneralTab
+							onEditAddress={onEditAddress}
+							onEditCustomer={onEditCustomer}
+						/>
+					),
 				},
 				{
 					value: "production",

@@ -8,7 +8,7 @@ import {
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(80);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(81);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(15);
 	});
 
@@ -34,7 +34,11 @@ describe("query event mutation registry", () => {
 	});
 
 	it("publishes customer changes after customer and address saves", () => {
-		for (const mutation of ["createCustomer", "createCustomerAddress"]) {
+		for (const mutation of [
+			"createCustomer",
+			"createCustomerAddress",
+			"assignSalesAddress",
+		]) {
 			expect(
 				resolveMutationQueryEvents({
 					mutationKey: [["customers", mutation]],

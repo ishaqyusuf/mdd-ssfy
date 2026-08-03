@@ -8,7 +8,13 @@ import { useEffect, useRef } from "react";
 
 export function getSalesCustomerEditParams(
 	customerId?: number | null,
-): { customerForm: true; customerId: number } | null {
+	context: {
+		billingAddressId?: number | null;
+		salesId?: number | null;
+		salesType?: "order" | "quote" | null;
+		shippingAddressId?: number | null;
+	} = {},
+) {
 	if (!customerId || !Number.isFinite(customerId) || customerId <= 0) {
 		return null;
 	}
@@ -16,6 +22,14 @@ export function getSalesCustomerEditParams(
 	return {
 		customerForm: true,
 		customerId,
+		...(context.salesType ? { salesType: context.salesType } : {}),
+		...(context.salesId != null ? { salesId: context.salesId } : {}),
+		...(context.billingAddressId != null
+			? { billingAddressId: context.billingAddressId }
+			: {}),
+		...(context.shippingAddressId != null
+			? { shippingAddressId: context.shippingAddressId }
+			: {}),
 	};
 }
 
@@ -81,15 +95,30 @@ export function isCompletedSalesAddressEdit({
 
 export function SalesCustomerEditButton({
 	customerId,
+	billingAddressId,
+	salesId,
+	shippingAddressId,
+	salesType,
+	onEdit,
 	readOnly = false,
 }: {
 	customerId?: number | null;
+	billingAddressId?: number | null;
+	salesId?: number | null;
+	shippingAddressId?: number | null;
+	salesType?: "order" | "quote" | null;
+	onEdit?: () => void;
 	readOnly?: boolean;
 }) {
 	const auth = useAuth();
 	const { params, setParams } = useCreateCustomerParams();
 	const requestedCustomerIdRef = useRef<number | null>(null);
-	const editParams = getSalesCustomerEditParams(customerId);
+	const editParams = getSalesCustomerEditParams(customerId, {
+		billingAddressId,
+		salesId,
+		salesType,
+		shippingAddressId,
+	});
 	const payloadCustomerId = params.payload?.customerId;
 
 	useEffect(() => {
@@ -124,6 +153,10 @@ export function SalesCustomerEditButton({
 			size="xs"
 			variant="outline"
 			onClick={() => {
+				if (onEdit) {
+					onEdit();
+					return;
+				}
 				requestedCustomerIdRef.current = editParams.customerId;
 				void setParams(editParams);
 			}}
@@ -139,12 +172,14 @@ export function SalesAddressEditButton({
 	addressId,
 	address,
 	label,
+	onEdit,
 	readOnly = false,
 }: {
 	customerId?: number | null;
 	addressId?: number | null;
 	address: SalesAddressType;
 	label: string;
+	onEdit?: () => void;
 	readOnly?: boolean;
 }) {
 	const auth = useAuth();
@@ -193,6 +228,10 @@ export function SalesAddressEditButton({
 			size="xs"
 			variant="outline"
 			onClick={() => {
+				if (onEdit) {
+					onEdit();
+					return;
+				}
 				requestedEditRef.current = {
 					customerId: editParams.customerId,
 					address: editParams.address,

@@ -11,6 +11,8 @@ type SavedCustomerSelection = {
 	customerId: number;
 	profileId?: number | null;
 	addressId?: number | null;
+	billingAddressId?: number | null;
+	shippingAddressId?: number | null;
 	netTerm?: string | null;
 	taxCode?: string | null;
 };
@@ -25,6 +27,10 @@ export function resolveCustomerFormSelection({
 	savedCustomer: SavedCustomerSelection;
 }) {
 	const savedAddressId = savedCustomer.addressId ?? null;
+	const savedBillingAddressId =
+		savedCustomer.billingAddressId ?? savedAddressId;
+	const savedShippingAddressId =
+		savedCustomer.shippingAddressId ?? savedBillingAddressId;
 	const editedCurrentCustomer =
 		editedCustomerId === current.customerId &&
 		savedCustomer.customerId === current.customerId;
@@ -33,10 +39,26 @@ export function resolveCustomerFormSelection({
 		return {
 			customerId: savedCustomer.customerId,
 			customerProfileId: savedCustomer.profileId ?? null,
-			billingAddressId: savedAddressId,
-			shippingAddressId: savedAddressId,
+			billingAddressId: savedBillingAddressId,
+			shippingAddressId: savedShippingAddressId,
 			paymentTerm: savedCustomer.netTerm ?? null,
 			taxCode: savedCustomer.taxCode ?? null,
+		};
+	}
+
+	const hasExplicitSaleAddresses =
+		savedCustomer.billingAddressId !== undefined ||
+		savedCustomer.shippingAddressId !== undefined;
+	if (hasExplicitSaleAddresses) {
+		return {
+			customerId: savedCustomer.customerId,
+			customerProfileId: current.customerProfileId,
+			billingAddressId:
+				savedCustomer.billingAddressId ?? current.billingAddressId,
+			shippingAddressId:
+				savedCustomer.shippingAddressId ?? current.shippingAddressId,
+			paymentTerm: current.paymentTerm,
+			taxCode: current.taxCode,
 		};
 	}
 

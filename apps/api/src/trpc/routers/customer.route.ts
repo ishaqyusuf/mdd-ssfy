@@ -1,4 +1,5 @@
 import {
+	assignSalesAddress,
 	createOrUpdateCustomer,
 	createOrUpdateCustomerAddress,
 	customerInfoSearch,
@@ -15,6 +16,7 @@ import {
 	updateCustomerEmail,
 } from "@api/db/queries/customer";
 import {
+	assignSalesAddressSchema,
 	getCustomerDirectoryV2SummarySchema,
 	getCustomerOverviewV2Schema,
 	getCustomerStatementDetailSchema,
@@ -113,6 +115,12 @@ export const customerRouter = createTRPCRouter({
 		.mutation(async (props) => {
 			await requireCustomerEditor(props.ctx);
 			return createOrUpdateCustomerAddress(props.ctx, props.input);
+		}),
+	assignSalesAddress: protectedProcedure
+		.input(assignSalesAddressSchema)
+		.mutation(async (props) => {
+			await requireCustomerEditor(props.ctx);
+			return assignSalesAddress(props.ctx, props.input);
 		}),
 	updateCustomerEmail: protectedProcedure
 		.input(updateCustomerEmailSchema)

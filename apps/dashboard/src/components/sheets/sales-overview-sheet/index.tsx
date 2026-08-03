@@ -1,12 +1,11 @@
 "use client";
 
-import { DataSkeleton } from "@/components/data-skeleton";
-import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import Sheet from "@gnd/ui/custom/sheet";
 import { Tabs } from "@gnd/ui/tabs";
+import { useEffect, useState } from "react";
 
-import { CustomSheet, CustomSheetContent } from "../custom-sheet-content";
 import { SalesOverviewProvider, useSaleOverview } from "./context";
 import {
 	createLegacySalesOverviewTabs,
@@ -14,7 +13,16 @@ import {
 	resolveLegacySalesOverviewMode,
 } from "./controller";
 import { LegacySalesOverviewHeader, LegacySalesOverviewPanels } from "./layout";
+import {
+	SalesAddressPane,
+	type SalesAddressPaneSelection,
+} from "./sales-address-pane";
+import { CustomerEditPane } from "./customer-edit-pane";
 import type { LegacySalesOverviewTabId } from "./types";
+
+type SalesOverviewPane =
+	| { kind: "customer" }
+	| ({ kind: "address" } & SalesAddressPaneSelection);
 
 export default function SalesOverviewSheet() {
 	const query = useSalesOverviewQuery();
@@ -32,6 +40,24 @@ function Content() {
 	usePageTitle();
 	const query = useSalesOverviewQuery();
 	const { data } = useSaleOverview();
+	const [pane, setPane] = useState<SalesOverviewPane | null>(null);
+	const [paneOpened, setPaneOpened] = useState(false);
+	useEffect(() => {
+		setPane(null);
+		setPaneOpened(false);
+	}, [data?.id]);
+	const openAddressPane = (selection: SalesAddressPaneSelection) => {
+		setPane({ kind: "address", ...selection });
+		setPaneOpened(true);
+	};
+	const openCustomerPane = () => {
+		setPane({ kind: "customer" });
+		setPaneOpened(true);
+	};
+	const discardPane = () => {
+		setPane(null);
+		setPaneOpened(false);
+	};
 	const isQuote =
 		data?.type === "quote" || query.params["sales-type"] === "quote";
 	const mode = resolveLegacySalesOverviewMode({
@@ -45,6 +71,8 @@ function Content() {
 		prodQty: 0,
 		saleId: data?.id,
 		orderId: data?.orderId,
+		onEditAddress: openAddressPane,
+		onEditCustomer: openCustomerPane,
 	});
 	const activeTab = resolveLegacySalesOverviewActiveTab({
 		currentTab: query?.params?.salesTab,
@@ -60,31 +88,58 @@ function Content() {
 	};
 
 	return (
-		<CustomSheet
+		<Sheet
 			sheetName="sales-overview-sheet"
 			open
 			onOpenChange={query.close}
 			floating
 			rounded
-			size="2xl"
+			primarySize="2xl"
+			secondarySize="5xl"
+			secondaryOpened={paneOpened}
+			onCloseSecondary={() => setPaneOpened(false)}
 		>
-			<Tabs
-				value={activeTab}
-				onValueChange={(e) => {
-					setActiveTab(e as LegacySalesOverviewTabId);
-				}}
-			>
-				<LegacySalesOverviewHeader
-					tabs={tabs}
-					activeTab={activeTab as LegacySalesOverviewTabId}
-					onTabChange={setActiveTab}
-				/>
-			</Tabs>
-			<CustomSheetContent className="-mt-4">
-				<Tabs value={activeTab}>
-					<LegacySalesOverviewPanels activeTab={activeTab} tabs={tabs} />
-				</Tabs>
-			</CustomSheetContent>
-		</CustomSheet>
+			<Sheet.MultiContent>
+				<Sheet.PrimaryContent>
+					<Tabs
+						value={activeTab}
+						onValueChange={(e) => {
+							setActiveTab(e as LegacySalesOverviewTabId);
+						}}
+					>
+						<LegacySalesOverviewHeader
+							tabs={tabs}
+							activeTab={activeTab as LegacySalesOverviewTabId}
+							onTabChange={setActiveTab}
+						/>
+					</Tabs>
+					<Sheet.Content className="-mt-4">
+						<Tabs value={activeTab}>
+							<LegacySalesOverviewPanels activeTab={activeTab} tabs={tabs} />
+						</Tabs>
+					</Sheet.Content>
+				</Sheet.PrimaryContent>
+				{pane?.kind === "address" && data?.id && data.customerId ? (
+					<SalesAddressPane
+						key={`${pane.addressType}-${pane.addressId ?? "new"}`}
+						selection={pane}
+						customerId={data.customerId}
+						salesId={data.id}
+						onClose={discardPane}
+					/>
+				) : null}
+				{pane?.kind === "customer" && data?.id && data.customerId ? (
+					<CustomerEditPane
+						key={`customer-${data.id}`}
+						billingAddressId={data.addressData?.billing?.id}
+						customerId={data.customerId}
+						onClose={discardPane}
+						salesId={data.id}
+						salesType={isQuote ? "quote" : "order"}
+						shippingAddressId={data.addressData?.shipping?.id}
+					/>
+				) : null}
+			</Sheet.MultiContent>
+		</Sheet>
 	);
 }

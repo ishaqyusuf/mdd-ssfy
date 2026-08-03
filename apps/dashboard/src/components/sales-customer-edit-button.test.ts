@@ -15,6 +15,21 @@ describe("sales customer edit button", () => {
 		});
 		expect(getSalesCustomerEditParams(null)).toBe(null);
 		expect(getSalesCustomerEditParams(0)).toBe(null);
+		expect(
+			getSalesCustomerEditParams(42, {
+				billingAddressId: 7,
+				salesId: 77,
+				salesType: "order",
+				shippingAddressId: 8,
+			}),
+		).toEqual({
+			billingAddressId: 7,
+			customerForm: true,
+			customerId: 42,
+			salesId: 77,
+			salesType: "order",
+			shippingAddressId: 8,
+		});
 	});
 
 	it("consumes only the matching completed customer edit payload", () => {
@@ -98,6 +113,50 @@ describe("sales customer edit button", () => {
 
 		expect(source.includes("SalesCustomerEditButton")).toBe(true);
 		expect(source.includes("SalesAddressEditButton")).toBe(true);
+	});
+
+	it("opens sales addresses in the Sales Overview secondary pane", () => {
+		const sheetSource = readFileSync(
+			new URL("./sheets/sales-overview-sheet/index.tsx", import.meta.url),
+			"utf8",
+		);
+		const generalSource = readFileSync(
+			new URL("./sheets/sales-overview-sheet/general-tab.tsx", import.meta.url),
+			"utf8",
+		);
+		const sharedSheetSource = readFileSync(
+			new URL(
+				"../../../../packages/ui/src/components/custom/sheet.tsx",
+				import.meta.url,
+			),
+			"utf8",
+		);
+
+		expect(sheetSource.includes("SalesAddressPane")).toBe(true);
+		expect(sheetSource.includes("CustomerEditPane")).toBe(true);
+		expect(sheetSource.includes("secondaryOpened")).toBe(true);
+		expect(generalSource.includes("onEditAddress")).toBe(true);
+		expect(generalSource.includes("onEditCustomer")).toBe(true);
+		expect(sheetSource.includes("paneOpened")).toBe(true);
+		expect(sharedSheetSource.includes("Back to sales overview")).toBe(true);
+		expect(sharedSheetSource.includes('!secondaryOpened && "hidden"')).toBe(
+			true,
+		);
+	});
+
+	it("keeps Sales Overview footers inside the shared sheet provider", () => {
+		for (const file of [
+			"general-footer.tsx",
+			"production-tab-footer.tsx",
+			"dispatch-footer.tsx",
+		]) {
+			const source = readFileSync(
+				new URL(`./sheets/sales-overview-sheet/${file}`, import.meta.url),
+				"utf8",
+			);
+			expect(source.includes("<Sheet.Portal hideWhenSecondary>")).toBe(true);
+			expect(source.includes("../custom-sheet-content")).toBe(false);
+		}
 	});
 
 	it("uses the customer-edit permission rather than the order-edit permission", () => {

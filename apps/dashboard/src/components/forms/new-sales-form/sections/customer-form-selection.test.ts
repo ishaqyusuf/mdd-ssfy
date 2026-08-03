@@ -33,6 +33,38 @@ describe("customer form selection reconciliation", () => {
 		});
 	});
 
+	it("adopts explicit billing and shipping ids returned by a sale-origin edit", () => {
+		expect(
+			resolveCustomerFormSelection({
+				current: {
+					billingAddressId: 201,
+					customerId: 42,
+					customerProfileId: 1,
+					paymentTerm: "Net 15",
+					shippingAddressId: 909,
+					taxCode: "FL-6",
+				},
+				editedCustomerId: 42,
+				savedCustomer: {
+					addressId: 301,
+					billingAddressId: 301,
+					customerId: 42,
+					netTerm: "Net 30",
+					profileId: 3,
+					shippingAddressId: 808,
+					taxCode: "FL-7",
+				},
+			}),
+		).toEqual({
+			billingAddressId: 301,
+			customerId: 42,
+			customerProfileId: 1,
+			paymentTerm: "Net 15",
+			shippingAddressId: 808,
+			taxCode: "FL-6",
+		});
+	});
+
 	it("uses the saved primary address for a newly created customer", () => {
 		expect(
 			resolveCustomerFormSelection({
@@ -59,6 +91,38 @@ describe("customer form selection reconciliation", () => {
 			customerProfileId: 5,
 			paymentTerm: null,
 			shippingAddressId: 302,
+			taxCode: null,
+		});
+	});
+
+	it("uses distinct billing and shipping addresses returned by customer creation", () => {
+		expect(
+			resolveCustomerFormSelection({
+				current: {
+					billingAddressId: null,
+					customerId: null,
+					customerProfileId: null,
+					paymentTerm: null,
+					shippingAddressId: null,
+					taxCode: null,
+				},
+				editedCustomerId: null,
+				savedCustomer: {
+					addressId: 302,
+					billingAddressId: 302,
+					customerId: 84,
+					netTerm: null,
+					profileId: 5,
+					shippingAddressId: 909,
+					taxCode: null,
+				},
+			}),
+		).toEqual({
+			billingAddressId: 302,
+			customerId: 84,
+			customerProfileId: 5,
+			paymentTerm: null,
+			shippingAddressId: 909,
 			taxCode: null,
 		});
 	});

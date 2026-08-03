@@ -7,8 +7,8 @@ import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
 import { SheetFooter } from "@gnd/ui/sheet";
+import Sheet from "@gnd/ui/custom/sheet";
 
-import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { useSaleOverview } from "./context";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
@@ -45,7 +45,7 @@ export function GeneralFooter({}) {
 	const [menuOpen, setMenuOpen] = useState(false);
 
 	return (
-		<CustomSheetContentPortal>
+		<Sheet.Portal hideWhenSecondary>
 			<SheetFooter className="sm:-m-4 sm:-mb-2 sm:border-t p-4  max-md:flex-row max-md:gap-4 max-md:justify-end max-md:fixed max-md:bottom-0 max-md:bg-accent max-md:w-full">
 				<Button
 					size="sm"
@@ -102,6 +102,6 @@ export function GeneralFooter({}) {
 					</AuthGuard>
 				</SalesMenu>
 			</SheetFooter>
-		</CustomSheetContentPortal>
+		</Sheet.Portal>
 	);
 }

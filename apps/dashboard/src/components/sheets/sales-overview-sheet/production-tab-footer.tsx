@@ -1,5 +1,6 @@
 import { getProductionTabItems } from "@/components/sales-overview-system/lib/production-items";
 import { Menu } from "@gnd/ui/custom/menu";
+import Sheet from "@gnd/ui/custom/sheet";
 import { Icons } from "@gnd/ui/icons";
 import NumberFlow from "@number-flow/react";
 import { useMemo, useState } from "react";
@@ -11,7 +12,6 @@ import { Label } from "@gnd/ui/label";
 import { SheetFooter } from "@gnd/ui/sheet";
 
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { useProduction } from "./context";
 import { ProductionItemMenuActions } from "./production-item-menu";
 
@@ -45,7 +45,7 @@ export function ProductionTabFooter() {
 	const [opened, setOpened] = useState(false);
 	if (query.dispatchMode) return null;
 	return (
-		<CustomSheetContentPortal>
+		<Sheet.Portal hideWhenSecondary>
 			<SheetFooter className="-m-4 -mb-2 border-t p-4 shadow-xl">
 				<div className="flex flex-1 items-center gap-4">
 					<div className="inline-flex items-center gap-2">
@@ -81,6 +81,6 @@ export function ProductionTabFooter() {
 					</Menu>
 				</div>
 			</SheetFooter>
-		</CustomSheetContentPortal>
+		</Sheet.Portal>
 	);
 }

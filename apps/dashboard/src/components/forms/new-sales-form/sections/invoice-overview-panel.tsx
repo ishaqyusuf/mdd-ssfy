@@ -489,8 +489,11 @@ export function InvoiceOverviewPanel(props: Props) {
 					props.canEditCustomer && customerId
 						? () =>
 								setCreateCustomerParams({
+									billingAddressId,
 									customerForm: true,
 									customerId,
+									salesType: props.type,
+									shippingAddressId,
 								})
 						: undefined
 				}

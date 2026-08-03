@@ -920,6 +920,24 @@ Tracks important request/response contracts and shared schema boundaries.
 - Every sales order projection excludes `deletedAt` rows and applies the
   office/dealer-customer visibility predicate.
 
+## Sales customer dual-address contract (2026-08-03)
+
+- `customers.createCustomer` accepts optional `salesType`,
+  `salesId`, `shippingSameAsBilling`, `billingAddress`, and `shippingAddress`
+  fields while preserving the existing flat customer/address input. With a
+  sale id, customer and both sale address assignments update atomically.
+- Sales-context responses retain `addressId` as the billing alias and add
+  `billingAddressId` plus `shippingAddressId` for direct sales-form assignment.
+- `customers.assignSalesAddress` accepts a positive `salesId`, positive
+  `customerId`, `billing | shipping` address kind, optional owned address id,
+  and address fields. It requires customer-edit permission, rejects dealer-owned
+  customers and mismatched/non-office sales, copy-on-writes shared addresses,
+  and updates only the requested relation on the initiating sale.
+- `customers.getSalesCustomer` exposes a normalized `customerForm` projection
+  containing the exact requested billing/shipping assignments and strict
+  non-null id equality for `shippingSameAsBilling`; Sales Overview uses this
+  projection to hydrate its inline full-customer editor.
+
 ## Production submission material review contract (2026-07-30)
 
 - A production submission returns `finalized` or `pending_material_review`,

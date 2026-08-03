@@ -93,6 +93,10 @@ export function CustomerSelectorDialog(props: Props) {
 							? Number(savedCustomer.profileId)
 							: null,
 						addressId: savedCustomer.addressId ?? null,
+						billingAddressId:
+							createCustomerParams.payload?.billingAddressId ?? null,
+						shippingAddressId:
+							createCustomerParams.payload?.shippingAddressId ?? null,
 						netTerm: savedCustomer.netTerm || null,
 						taxCode: savedCustomer.taxCode || null,
 					},
@@ -127,6 +131,8 @@ export function CustomerSelectorDialog(props: Props) {
 	}, [
 		createCustomerParams.customerId,
 		createCustomerParams?.payload?.customerId,
+		createCustomerParams?.payload?.billingAddressId,
+		createCustomerParams?.payload?.shippingAddressId,
 		patchRecord,
 		props.mode,
 		props.onOpenChange,
@@ -140,6 +146,7 @@ export function CustomerSelectorDialog(props: Props) {
 			customerForm: true,
 			customerId: null,
 			search: searchQuery.trim() || null,
+			salesType: props.type,
 		});
 	}
 

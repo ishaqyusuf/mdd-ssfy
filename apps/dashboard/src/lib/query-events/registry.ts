@@ -195,6 +195,7 @@ export type QueryEvent = {
 export const MUTATION_QUERY_EVENTS = {
 	"customers.createCustomer": ["customer.changed"],
 	"customers.createCustomerAddress": ["customer.changed"],
+	"customers.assignSalesAddress": ["customer.changed"],
 	"dispatch.bulkAssignDriver": ["sales.dispatch.changed"],
 	"dispatch.bulkCancel": ["sales.dispatch.changed"],
 	"dispatch.cancelDispatch": ["sales.dispatch.changed"],

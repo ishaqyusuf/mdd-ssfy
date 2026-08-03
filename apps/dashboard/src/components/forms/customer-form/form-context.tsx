@@ -10,33 +10,73 @@ import { formatUSPhoneNumber, isPhoneLikeSearch } from "@gnd/utils/format";
 interface FormContextProps {
 	children?;
 	data?;
+	formParams?: CustomerFormParams;
 }
-export function FormContext({ children, data }: FormContextProps) {
-	const { params, setParams } = useCreateCustomerParams();
-	const defaultValues: Partial<z.input<typeof createCustomerSchema>> = {
-		address1: undefined,
-		formattedAddress: undefined,
-		address2: undefined,
+export type CustomerFormParams = {
+	address?: "sad" | "bad" | null;
+	addressId?: number | null;
+	billingAddressId?: number | null;
+	customerForm?: boolean | null;
+	customerId?: number | null;
+	formSectionsTrigger?: string[];
+	salesId?: number | null;
+	salesType?: "order" | "quote" | null;
+	search?: string | null;
+	shippingAddressId?: number | null;
+};
+
+export function FormContext({ children, data, formParams }: FormContextProps) {
+	const customerParams = useCreateCustomerParams();
+	const params = formParams ?? (customerParams.params as CustomerFormParams);
+	const setParams = customerParams.setParams;
+	const defaultValues: Partial<z.infer<typeof createCustomerSchema>> = {
+		salesId: params.salesId ?? undefined,
+		salesType: params.salesType ?? undefined,
+		shippingSameAsBilling: true,
+		billingAddress: {
+			address1: "",
+			address2: "",
+			city: "",
+			country: "",
+			formattedAddress: "",
+			placeId: "",
+			state: "",
+			zip_code: "",
+		},
+		shippingAddress: {
+			address1: "",
+			address2: "",
+			city: "",
+			country: "",
+			formattedAddress: "",
+			placeId: "",
+			state: "",
+			zip_code: "",
+		},
+		address1: "",
+		formattedAddress: "",
+		address2: "",
 		addressId: undefined,
-		businessName: undefined,
-		city: undefined,
-		country: undefined,
-		email: undefined,
+		businessName: "",
+		city: "",
+		country: "",
+		email: "",
 		id: undefined,
-		name: undefined,
-		route: undefined,
+		name: "",
+		route: "",
 		netTerm: undefined,
-		phoneNo: undefined,
-		phoneNo2: undefined,
+		phoneNo: "",
+		phoneNo2: "",
 		profileId: undefined,
-		state: undefined,
-		zip_code: undefined,
+		state: "",
+		zip_code: "",
 		lat: undefined,
 		placeId: undefined,
 		lng: undefined,
 		customerType: "Personal",
 		addressOnly: !!params.address,
 		addressMeta: {},
+		existingCustomers: [],
 		// resolutionRequired: false,
 	};
 
@@ -45,20 +85,24 @@ export function FormContext({ children, data }: FormContextProps) {
 	});
 	useEffect(() => {
 		if (data) {
-			setParams({
-				formSectionsTrigger: params?.address
-					? ["address"]
-					: ["general", "address"],
-			});
+			if (!formParams) {
+				setParams({
+					formSectionsTrigger: params?.address
+						? ["address"]
+						: ["general", "address"],
+				});
+			}
 			const formData = Object.fromEntries(
-				Object.entries(data).map(([key, value]) => [key, value || undefined]),
-			) as Partial<z.input<typeof createCustomerSchema>>;
+				Object.entries(data).map(([key, value]) => [key, value ?? undefined]),
+			) as Partial<z.infer<typeof createCustomerSchema>>;
 
 			form.reset({
 				...formData,
 				phoneNo: formatUSPhoneNumber(formData.phoneNo),
 				phoneNo2: formatUSPhoneNumber(formData.phoneNo2),
 				addressOnly: !!params.address,
+				salesId: params.salesId ?? undefined,
+				salesType: params.salesType ?? undefined,
 			});
 		} else if (params.search) {
 			const search = params.search.trim();
@@ -68,7 +112,16 @@ export function FormContext({ children, data }: FormContextProps) {
 					: { name: search }),
 			});
 		}
-	}, [data, params?.address, params.search, form, setParams]);
+	}, [
+		data,
+		formParams,
+		params?.address,
+		params.salesId,
+		params.salesType,
+		params.search,
+		form,
+		setParams,
+	]);
 
 	return <FormProvider {...form}>{children}</FormProvider>;
 }

@@ -54,7 +54,17 @@ function sumCostLineAmounts(costLines: CostLine[], targetLabel: string) {
     }, 0);
 }
 
-export function GeneralTab({}) {
+export function GeneralTab({
+    onEditAddress,
+    onEditCustomer,
+}: {
+    onEditAddress?: (input: {
+        addressId?: number | null;
+        addressType: "billing" | "shipping";
+        label: string;
+    }) => void;
+    onEditCustomer?: () => void;
+}) {
     const { data } = useSaleOverview();
     const query = useSalesOverviewQuery();
     const { setInventorySegment } = useSalesInventorySegmentQuery();
@@ -180,6 +190,15 @@ export function GeneralTab({}) {
                                 </h3>
                                 <SalesCustomerEditButton
                                     customerId={saleData?.customerId}
+                                    billingAddressId={
+                                        saleData?.addressData?.billing?.id
+                                    }
+                                    salesId={saleData?.id}
+                                    shippingAddressId={
+                                        saleData?.addressData?.shipping?.id
+                                    }
+                                    salesType={isQuote ? "quote" : "order"}
+                                    onEdit={onEditCustomer}
                                     readOnly={Boolean(saleData?.isDealerSale)}
                                 />
                             </div>
@@ -628,6 +647,20 @@ export function GeneralTab({}) {
                                                 (addressType === "bad"
                                                     ? "billing address"
                                                     : "shipping address")
+                                            }
+                                            onEdit={() =>
+                                                onEditAddress?.({
+                                                    addressId: address?.id,
+                                                    addressType:
+                                                        addressType === "bad"
+                                                            ? "billing"
+                                                            : "shipping",
+                                                    label:
+                                                        address?.title ||
+                                                        (addressType === "bad"
+                                                            ? "Billing address"
+                                                            : "Shipping address"),
+                                                })
                                             }
                                             readOnly={Boolean(
                                                 saleData?.isDealerSale,

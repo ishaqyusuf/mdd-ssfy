@@ -6,14 +6,34 @@ import { useMutation } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 
 import { useCustomerForm } from "./form-context";
+import type { CustomerFormParams } from "./form-context";
 
-export function FormAction({ onCancel }) {
-	const { setParams, params } = useCreateCustomerParams();
+type CustomerSaveResult = {
+	addressId?: number;
+	billingAddressId?: number;
+	customerId: number;
+	shippingAddressId?: number;
+};
+
+export function FormAction({
+	disabled = false,
+	formParams,
+	onCancel,
+	onSaved,
+}: {
+	disabled?: boolean;
+	formParams?: CustomerFormParams;
+	onCancel: () => void;
+	onSaved?: (result: CustomerSaveResult) => void;
+}) {
+	const customerParams = useCreateCustomerParams();
+	const setParams = customerParams.setParams;
+	const params = formParams ?? (customerParams.params as CustomerFormParams);
 	const form = useCustomerForm();
 	const id = form.watch("id");
 	const isEditing = params.address
 		? Boolean(params.addressId)
-		: params.customerId > 0;
+		: (params.customerId ?? 0) > 0;
 	const trpc = useTRPC();
 	const { mutate: mutateAddress, isPending: isAddressSubmitting } = useMutation(
 		trpc.customers.createCustomerAddress.mutationOptions({
@@ -44,14 +64,20 @@ export function FormAction({ onCancel }) {
 				toast({
 					title: id ? "Updated" : "Created",
 				});
-				setParams({
-					customerForm: false,
-					payload: {
-						customerId: resp.customerId,
-						addressId: resp.addressId,
-						address: params.address ?? undefined,
-					},
-				});
+				if (onSaved) {
+					onSaved(resp);
+				} else {
+					setParams({
+						customerForm: false,
+						payload: {
+							customerId: resp.customerId,
+							addressId: resp.addressId,
+							billingAddressId: resp.billingAddressId,
+							shippingAddressId: resp.shippingAddressId,
+							address: params.address ?? undefined,
+						},
+					});
+				}
 			},
 		}),
 	);
@@ -72,7 +98,7 @@ export function FormAction({ onCancel }) {
 					type="button"
 					variant="outline"
 					onClick={onCancel}
-					disabled={isSubmitting}
+					disabled={disabled || isSubmitting}
 				>
 					Cancel
 				</Button>
@@ -83,7 +109,11 @@ export function FormAction({ onCancel }) {
 							: (values) => mutate(values),
 					)}
 				>
-					<SubmitButton isSubmitting={isSubmitting} className="min-w-[120px]">
+					<SubmitButton
+						isSubmitting={isSubmitting}
+						disabled={disabled}
+						className="min-w-[120px]"
+					>
 						{isEditing ? "Update" : "Create"}
 					</SubmitButton>
 				</form>

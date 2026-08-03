@@ -11,6 +11,6 @@ describe("customer mutation permission boundary", () => {
 		expect(source.includes('"editSalesCustomers"')).toBe(true);
 		expect(
 			source.match(/await requireCustomerEditor\(props\.ctx\);/g)?.length,
-		).toBe(2);
+		).toBe(3);
 	});
 });

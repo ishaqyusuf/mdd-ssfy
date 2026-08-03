@@ -79,7 +79,9 @@ export function SalesCustomerInput() {
 
         if (!data?.address) {
             metaData.customer.id = data.customerId;
-            metaData.billing.id = data.addressId;
+            metaData.billing.id = data.billingAddressId || data.addressId;
+            metaData.shipping.id =
+                data.shippingAddressId || data.billingAddressId || data.addressId;
         } else {
             metaData.customer.id = data.customerId;
             if (data.address === "bad") metaData.billing.id = data.addressId;
@@ -168,8 +170,11 @@ export function SalesCustomerInput() {
                             <Button
                                 onClick={() => {
                                     setParams({
+                                        billingAddressId: md.billing.id,
                                         customerId: md.customer.id,
                                         customerForm: true,
+                                        salesType: md.type,
+                                        shippingAddressId: md.shipping.id,
                                     });
                                 }}
                                 className="size-8 p-0"
@@ -459,6 +464,7 @@ function SearchCustomer() {
                     onClick={() => {
                         setParams({
                             customerForm: true,
+                            salesType: md.type,
                         });
                     }}
                     size="sm"
@@ -491,6 +497,7 @@ function SearchCustomer() {
                                         setParams({
                                             customerForm: true,
                                             search: q,
+                                            salesType: md.type,
                                         });
                                     }}
                                     size="sm"

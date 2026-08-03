@@ -1,11 +1,11 @@
 import type { AddressBookMeta } from "@/app-deps/(clean-code)/(sales)/types";
 import type { DeliveryOption } from "@/types/sales";
 import { salesPaymentProcessorApplyPaymentSchema } from "@gnd/sales/payment-system/contracts";
-import type { SalesDispatchStatus } from "@sales/types";
 import {
 	US_PHONE_FORMAT_PATTERN,
 	normalizeUSPhoneNumber,
 } from "@gnd/utils/format";
+import type { SalesDispatchStatus } from "@sales/types";
 import { z } from "zod";
 
 function hasText(value?: string | null) {
@@ -20,6 +20,21 @@ const phoneNumberSchema = z.preprocess(
 		.optional(),
 );
 
+export const customerAddressInputSchema = z.object({
+	addressId: z.number().optional().nullable(),
+	route: z.string().optional().nullable(),
+	address1: z.string().optional().nullable(),
+	formattedAddress: z.string().optional().nullable(),
+	address2: z.string().optional().nullable(),
+	zip_code: z.string().optional().nullable(),
+	lat: z.number().optional().nullable(),
+	lng: z.number().optional().nullable(),
+	placeId: z.string().optional().nullable(),
+	country: z.string().optional().nullable(),
+	state: z.string().optional().nullable(),
+	city: z.string().optional().nullable(),
+});
+
 export const changeSalesChartTypeSchema = z.enum(["sales"]);
 
 export const saveSalesLaborCostSchema = z.object({
@@ -27,6 +42,11 @@ export const saveSalesLaborCostSchema = z.object({
 });
 export const createCustomerSchema = z
 	.object({
+		salesType: z.enum(["order", "quote"]).optional().nullable(),
+		salesId: z.number().positive().optional().nullable(),
+		shippingSameAsBilling: z.boolean().optional(),
+		billingAddress: customerAddressInputSchema.optional(),
+		shippingAddress: customerAddressInputSchema.optional(),
 		profileId: z.string().optional().nullable(),
 		id: z.number().optional(),
 		customerId: z.number().optional(),
@@ -64,6 +84,24 @@ export const createCustomerSchema = z
 	})
 	.superRefine((data, ctx) => {
 		if (data.addressOnly) return;
+		if (data.salesType && !hasText(data.billingAddress?.address1)) {
+			ctx.addIssue({
+				path: ["billingAddress", "address1"],
+				message: "Billing address is required!",
+				code: "custom",
+			});
+		}
+		if (
+			data.salesType &&
+			data.shippingSameAsBilling === false &&
+			!hasText(data.shippingAddress?.address1)
+		) {
+			ctx.addIssue({
+				path: ["shippingAddress", "address1"],
+				message: "Shipping address is required!",
+				code: "custom",
+			});
+		}
 		if (!data.profileId)
 			ctx.addIssue({
 				path: ["profileId"],
@@ -92,6 +130,17 @@ export const createCustomerSchema = z
 			});
 		}
 	});
+export const salesAddressPaneSchema = createCustomerSchema.superRefine(
+	(data, ctx) => {
+		if (!hasText(data.address1)) {
+			ctx.addIssue({
+				path: ["address1"],
+				message: "Address is required!",
+				code: "custom",
+			});
+		}
+	},
+);
 export const createPaymentSchema = salesPaymentProcessorApplyPaymentSchema;
 export const createSalesDispatchItemsSchema = z.object({
 	// deliveryMode: z.string(),

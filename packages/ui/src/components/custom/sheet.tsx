@@ -110,6 +110,10 @@ function CustomSheetBase({
   rounded,
   floating,
   sheetName,
+  primarySize,
+  secondarySize,
+  secondaryOpened: _secondaryOpened,
+  onCloseSecondary: _onCloseSecondary,
   ...props
 }: Props) {
   const sheet = useSheet();
@@ -128,8 +132,8 @@ function CustomSheetBase({
             rounded,
             size:
               isDesktop && secondaryOpened
-                ? props.secondarySize || "5xl"
-                : props.primarySize || "xl",
+                ? secondarySize || "5xl"
+                : primarySize || "xl",
           }),
         )}
       >
@@ -138,11 +142,13 @@ function CustomSheetBase({
     </BaseSheet>
   );
 }
-function CustomSheetContentPortal({ children }) {
+function CustomSheetContentPortal({ children, hideWhenSecondary = false }) {
   // [`customSheetContent`,sheetId]
   const sheet = useSheet();
   const isDesktop = useMediaQuery(screens.xl);
   const nodeId = !isDesktop ? sheet.scrollContentId : sheet.nodeId;
+
+  if (hideWhenSecondary && sheet.secondaryOpened) return null;
 
   return (
     <>
@@ -199,13 +205,20 @@ export function MultiSheetContent({ children = null, className = "" }) {
 function PrimaryContent({ children }) {
   const { secondaryOpened, isDesktop } = useSheet();
   if (!isDesktop && secondaryOpened) return null;
-  return children;
+  return (
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      {children}
+    </div>
+  );
 }
 
-function CloseSecondary({}) {
+function CloseSecondary() {
   const sheet = useSheet();
   return (
     <Button
+      aria-label="Back to sales overview"
+      title="Back to sales overview"
+      type="button"
       onClick={(e) => {
         sheet?.onCloseSecondary();
       }}
@@ -223,47 +236,48 @@ interface SecondaryHeaderProps {
 }
 function SecondaryHeader(props: SecondaryHeaderProps) {
   return (
-    <Portal nodeId={"secondary-header"} noDelay>
-      {/* {props.children} */}
-      <Sheet.Header className="bg-background flex-row items-start gap-4 space-y-0">
-        <Sheet.CloseSecondary />
-        <div className="grid gap-2">
-          {props.children ? (
-            props.children
-          ) : (
-            <>
-              <Sheet.Title>{props.title}</Sheet.Title>
-              <Sheet.Description>{props.description}</Sheet.Description>
-            </>
-          )}
-        </div>
-      </Sheet.Header>
-    </Portal>
+    <Sheet.Header className="bg-background flex-row items-start gap-4 space-y-0">
+      <Sheet.CloseSecondary />
+      <div className="grid gap-2">
+        {props.children ? (
+          props.children
+        ) : (
+          <>
+            <Sheet.Title>{props.title}</Sheet.Title>
+            <Sheet.Description>{props.description}</Sheet.Description>
+          </>
+        )}
+      </div>
+    </Sheet.Header>
   );
 }
 function SecondaryFooter({ children, className = "" }) {
   return (
-    <Portal nodeId={"secondary-footer"} noDelay>
-      <Sheet.Footer className={cn(className)}>{children}</Sheet.Footer>
-    </Portal>
+    <Sheet.Footer className={cn(className)}>{children}</Sheet.Footer>
   );
 }
 export function SecondarySheetContent({
   children = null,
   className = null,
   Header = null,
+  Footer = null,
 }) {
+  const { secondaryOpened } = useSheet();
   return (
     <Portal nodeId={"multi-sheet-content"} noDelay>
-      <div className="flex flex-col flex-1 bg-background">
-        <div id="secondary-header"></div>
+      <div
+        className={cn(
+          "flex flex-col flex-1 bg-background",
+          !secondaryOpened && "hidden",
+        )}
+      >
         <CustomSheetContent
           Header={Header}
           className={cn("flex flex-col", className)}
         >
           {children}
         </CustomSheetContent>
-        <div id="secondary-footer"></div>
+        {Footer}
       </div>
     </Portal>
   );

@@ -16,6 +16,7 @@ export type CustomerFormQuickFillArgs = {
 	defaultProfileId?: string;
 	defaultTaxCode?: string;
 	addressOnly?: boolean;
+	salesType?: "order" | "quote" | null;
 };
 
 type QuickFillRegistry = {
@@ -44,6 +45,20 @@ function applyCustomerFormQuickFill(
 		(args.addressOnly ? "Personal" : "Business");
 	const contactName = `Dev ${seed.label}`;
 	const businessName = `Dev ${seed.label} Millwork`;
+	const address = {
+		formattedAddress: `${buildDevAddress(seed)}, Austin, TX 78701, USA`,
+		address1: buildDevAddress(seed),
+		address2: `Suite ${seed.numeric.slice(-3)}`,
+		route: `Route ${seed.numeric.slice(-2)}`,
+		city: "Austin",
+		state: "TX",
+		zip_code: `78${seed.numeric.slice(-3)}`,
+		country: "USA",
+		lat: 30.2672,
+		lng: -97.7431,
+		placeId: seed.id,
+	};
+	const salesType = args.salesType ?? current.salesType;
 
 	form.reset({
 		...current,
@@ -60,17 +75,13 @@ function applyCustomerFormQuickFill(
 		),
 		phoneNo: buildDevPhone(seed),
 		phoneNo2: buildDevPhone(createDevFormFillSeed("customer-alt")),
-		formattedAddress: `${buildDevAddress(seed)}, Austin, TX 78701, USA`,
-		address1: buildDevAddress(seed),
-		address2: `Suite ${seed.numeric.slice(-3)}`,
-		route: `Route ${seed.numeric.slice(-2)}`,
-		city: "Austin",
-		state: "TX",
-		zip_code: `78${seed.numeric.slice(-3)}`,
-		country: "USA",
-		lat: 30.2672,
-		lng: -97.7431,
-		placeId: seed.id,
+		...address,
+		salesType,
+		shippingSameAsBilling: salesType ? true : current.shippingSameAsBilling,
+		billingAddress: salesType ? address : current.billingAddress,
+		shippingAddress: salesType
+			? { ...address, addressId: null }
+			: current.shippingAddress,
 		existingCustomers: undefined,
 	});
 }

@@ -29,6 +29,10 @@ export function CustomerCreateSheet() {
         const data = await getCustomerFormAction(
             params.customerId,
             params.addressId,
+			{
+				billingAddressId: params.billingAddressId,
+				shippingAddressId: params.shippingAddressId,
+			},
         );
 
         if (params.address) {
@@ -46,7 +50,14 @@ export function CustomerCreateSheet() {
             }
         }
         return data;
-    }, [opened, params.address, params.addressId, params.customerId]);
+    }, [
+		opened,
+		params.address,
+		params.addressId,
+		params.billingAddressId,
+		params.customerId,
+		params.shippingAddressId,
+	]);
     if (!opened) return;
     return (
         <CustomSheet
