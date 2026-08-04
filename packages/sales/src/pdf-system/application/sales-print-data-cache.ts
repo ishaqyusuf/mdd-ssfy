@@ -333,8 +333,16 @@ export async function createOrRefreshSalesPrintData(
 					where: { id: current.id },
 					data,
 				})
-			: await db.salesPrintData.create({
-					data,
+			: await db.salesPrintData.upsert({
+					where: {
+						salesOrderId_documentType_templateId: {
+							salesOrderId: input.salesOrderId,
+							documentType,
+							templateId,
+						},
+					},
+					create: data,
+					update: data,
 				});
 
 		logSalesPrintCache("refreshed", {

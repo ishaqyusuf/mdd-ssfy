@@ -5,7 +5,7 @@ High-level description of the runtime surfaces and operating model of the GND mo
 
 ## Current State
 - The repository is a Turborepo + Bun monorepo.
-- Dashboard, dealership, and storefront use the shared Next.js `16.2.12`
+- Dashboard, dealership, and storefront use the shared Next.js `16.3.0`
   framework baseline; storefront's MDX adapter and app-local Next.js ESLint
   configurations are aligned to the same patch release.
 - Core delivery surfaces include a web app, API service, Expo mobile app, and supporting web/backlog apps.

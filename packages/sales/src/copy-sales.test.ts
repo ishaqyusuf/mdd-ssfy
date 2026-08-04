@@ -80,6 +80,7 @@ function createTransactionLikeDb() {
       },
       count: async (args: { where?: { orderId?: string } }) =>
         args.where?.orderId ? 0 : 12,
+      findMany: async () => [],
       create: async ({ data }: { data: Record<string, unknown> }) => {
         calls.createdSales.push(data);
         return {
@@ -145,5 +146,92 @@ describe("copySalesInTransaction", () => {
       salesOrderId: 900,
       total: 400,
     });
+  });
+
+  it("allocates distinct history slugs when two snapshots start concurrently", async () => {
+    const historyKeys = new Set<string>();
+    let historyReadCalls = 0;
+    let releaseInitialReads: (() => void) | undefined;
+    const initialReadsReady = new Promise<void>((resolve) => {
+      releaseInitialReads = resolve;
+    });
+    let nextId = 900;
+    const sourceSale = {
+      id: 100,
+      orderId: "00010PC",
+      type: "order",
+      meta: null,
+      shippingAddressId: null,
+      billingAddressId: null,
+      customerId: null,
+      customerProfileId: null,
+      salesRepId: 7,
+      salesRep: { id: 7, name: "Pablo Cruz" },
+      grandTotal: 425,
+      deliveryOption: "pickup",
+      title: "Front door order",
+      tax: 25,
+      subTotal: 400,
+      isDyke: true,
+      taxPercentage: 6.25,
+      extraCosts: [],
+      taxes: [],
+      items: [],
+    };
+    const db = {
+      salesOrders: {
+        findFirstOrThrow: async () => sourceSale,
+        findMany: async () => {
+          const snapshot = Array.from(historyKeys, (key) => ({
+            orderId: key.slice(0, key.lastIndexOf(":")),
+          }));
+          historyReadCalls += 1;
+          if (historyReadCalls === 2) releaseInitialReads?.();
+          await initialReadsReady;
+          return snapshot;
+        },
+        create: async ({ data }: { data: Record<string, unknown> }) => {
+          const key = `${data.orderId}:${data.type}`;
+          if (historyKeys.has(key)) {
+            throw Object.assign(
+              new Error(
+                "Unique constraint failed on the fields: (`orderId`,`type`)",
+              ),
+              {
+                code: "P2002",
+                meta: { target: ["orderId", "type"] },
+              },
+            );
+          }
+          historyKeys.add(key);
+          nextId += 1;
+          return {
+            id: nextId,
+            slug: data.slug,
+            isDyke: data.isDyke,
+          };
+        },
+      },
+      salesOrderItems: {
+        create: async () => ({ id: 1 }),
+      },
+    };
+    const props = {
+      db: db as unknown as CopySalesInTransactionProps["db"],
+      salesUid: "00010PC",
+      as: "order-hx" as const,
+      type: "order" as const,
+      author: { id: 7, name: "Pablo Cruz" },
+    };
+
+    const results = await Promise.all([
+      copySalesInTransaction(props),
+      copySalesInTransaction(props),
+    ]);
+
+    expect(results.map((result) => result.slug).sort()).toEqual([
+      "00010PC-hx01",
+      "00010PC-hx02",
+    ]);
   });
 });

@@ -197,6 +197,15 @@ Batch cache resolution also deduplicates repeated sales IDs while preserving
 first-seen order, avoiding duplicate pages and duplicate generation work when a
 selection source accidentally repeats an order.
 
+2026-08-04 cache-write hardening: concurrent preview/download requests that
+observe the same missing `SalesPrintData` row now persist through a compound-key
+upsert on `(salesOrderId, documentType, templateId)`. The database uniqueness
+rule therefore resolves the race instead of surfacing a Prisma unique-constraint
+error after both callers finish print-data generation. The same write revives a
+matching soft-deleted cache row. Focused regression coverage synchronizes two
+same-document cache misses and verifies that both callers receive ready data
+while only one cache row remains.
+
 ---
 
 ## Type contract

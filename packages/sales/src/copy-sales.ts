@@ -16,6 +16,7 @@ interface Props {
 
 type CopySalesWriteClient = Db | TransactionClient;
 type SalesOrdersDelegate = CopySalesWriteClient["salesOrders"];
+const MAX_HISTORY_SLUG_COLLISION_RETRIES = 20;
 
 export type CopySalesResult = {
   error?: string;
@@ -28,19 +29,44 @@ export type CopySalesInTransactionProps = Omit<Props, "db"> & {
   db: CopySalesWriteClient;
 };
 
-async function generateHistorySlugForSalesOrders(
+async function getNextHistorySlugSequence(
   salesOrders: SalesOrdersDelegate,
   slug: string,
 ) {
-  const count = await salesOrders.count({
+  const prefix = `${slug}-hx`;
+  const histories = await salesOrders.findMany({
     where: {
       deletedAt: {},
       orderId: {
-        startsWith: `${slug}-hx`,
+        startsWith: prefix,
       },
     },
+    select: {
+      orderId: true,
+    },
   });
-  return `${slug}-hx${(count + 1)?.toString()?.padStart(2, "0")}`;
+
+  return histories.reduce((highest, history) => {
+    const suffix = history.orderId.slice(prefix.length);
+    if (!/^\d+$/.test(suffix)) return highest;
+    return Math.max(highest, Number(suffix));
+  }, 0) + 1;
+}
+
+function formatHistorySlug(slug: string, sequence: number) {
+  return `${slug}-hx${sequence.toString().padStart(2, "0")}`;
+}
+
+function isSalesOrderIdentityCollision(error: unknown) {
+  if (!error || typeof error !== "object" || !("code" in error)) return false;
+  if (error.code !== "P2002") return false;
+
+  const meta = "meta" in error ? error.meta : undefined;
+  const target =
+    meta && typeof meta === "object" && "target" in meta ? meta.target : "";
+  const targetText = Array.isArray(target) ? target.join(",") : String(target);
+
+  return targetText.includes("orderId") && targetText.includes("type");
 }
 
 export async function copySalesInTransaction(
@@ -70,14 +96,17 @@ export async function copySalesInTransaction(
         };
   }
 
-  const orderId = isHx
-    ? await generateHistorySlugForSalesOrders(db.salesOrders, props.salesUid)
-    : await generateSalesSlug(as, db.salesOrders, salesRep.name);
+  let historySequence = isHx
+    ? await getNextHistorySlugSequence(db.salesOrders, props.salesUid)
+    : null;
+  let orderId = historySequence === null
+    ? await generateSalesSlug(as, db.salesOrders, salesRep.name)
+    : formatHistorySlug(props.salesUid, historySequence);
 
-  const newSales = await db.salesOrders.create({
+  const createSalesOrder = (newOrderId: string) => db.salesOrders.create({
     data: {
-      orderId,
-      slug: orderId,
+      orderId: newOrderId,
+      slug: newOrderId,
       type: as,
       meta: sale.meta as never,
       shippingAddress: connectOr(sale.shippingAddressId),
@@ -127,6 +156,25 @@ export async function copySalesInTransaction(
       },
     },
   });
+
+  let newSales: Awaited<ReturnType<typeof createSalesOrder>>;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      newSales = await createSalesOrder(orderId);
+      break;
+    } catch (error) {
+      if (
+        historySequence === null ||
+        !isSalesOrderIdentityCollision(error) ||
+        attempt >= MAX_HISTORY_SLUG_COLLISION_RETRIES
+      ) {
+        throw error;
+      }
+
+      historySequence += 1;
+      orderId = formatHistorySlug(props.salesUid, historySequence);
+    }
+  }
 
   await Promise.all(
     sale.items.map(

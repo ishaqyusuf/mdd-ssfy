@@ -8090,3 +8090,30 @@
   zero-target state plus the confirmation layout at desktop and `390x844`
   without submitting the reset or changing preference data; the fresh mobile
   pass had no console errors.
+- 2026-08-04: fixed `/sales-book/orders` print preparation failing after long
+  concurrent cache misses with `SalesPrintData` unique-constraint errors. Two
+  preview/download callers could both observe no cache row, independently
+  generate the same document, and race through plain creates on the existing
+  `(salesOrderId, documentType, templateId)` unique key. Missing-row persistence
+  now uses the compound-key upsert, which also revives matching soft-deleted
+  rows. The deterministic two-caller regression failed with the reported
+  constraint message before the fix and now passes with two ready results and
+  one stored row; the full focused cache suite passes 12 tests / 34 assertions,
+  the Sales package typecheck passes, and touched files are formatted.
+- 2026-08-04: fixed `create-sales-history` failures caused by concurrent
+  count-based `-hxNN` allocation. History copies now allocate after the highest
+  existing suffix and advance on `(orderId, type)` collisions, while the Trigger
+  task preserves the copy layer's real error instead of replacing it with
+  `Sales history copy did not produce a slug`. The deterministic two-caller and
+  task-error regressions pass 3 tests / 9 assertions; Sales typecheck and focused
+  Biome checks pass. Jobs typecheck has no touched-file diagnostic and remains
+  blocked by existing Trigger Sentry fixture and Prisma extension baselines.
+- 2026-08-04: synchronized the production database incrementally into the
+  preserved local Docker MySQL database after a guarded dry run. The verified
+  source was the hosted production database and the target was local
+  `127.0.0.1:3307/gnd-prisma2`; 271 tables were inspected, 30 timestamp-less
+  tables were intentionally skipped by the existing synchronizer policy, and
+  36,869 rows were read and written with exit code 0. Post-sync local checks
+  found 57 users, including 54 active users with email addresses available for
+  development quick login, plus 20 roles and 84 permissions. No schema,
+  migration, API, permission, or application-code change was made.

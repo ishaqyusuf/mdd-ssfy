@@ -11,6 +11,7 @@ import {
 function createMockDb(input?: {
 	sourceUpdatedAt?: Date | null;
 	printData?: any[];
+	enforceUniquePrintData?: boolean;
 }) {
 	const state = {
 		sourceUpdatedAt: input?.sourceUpdatedAt ?? new Date("2026-05-12T10:00:00Z"),
@@ -42,6 +43,17 @@ function createMockDb(input?: {
 					return true;
 				}),
 			create: async ({ data }: any) => {
+				if (
+					input?.enforceUniquePrintData &&
+					state.printData.some(
+						(row) =>
+							row.salesOrderId === data.salesOrderId &&
+							row.documentType === data.documentType &&
+							row.templateId === data.templateId,
+					)
+				) {
+					throw new Error("Unique constraint failed on the (not available)");
+				}
 				const row = {
 					id: `spd-${state.nextId++}`,
 					createdAt: new Date("2026-05-12T10:00:00Z"),
@@ -50,6 +62,29 @@ function createMockDb(input?: {
 				};
 				state.printData.push(row);
 				return row;
+			},
+			upsert: async ({ where, create, update }: any) => {
+				const key = where.salesOrderId_documentType_templateId;
+				const row = state.printData.find(
+					(item) =>
+						item.salesOrderId === key.salesOrderId &&
+						item.documentType === key.documentType &&
+						item.templateId === key.templateId,
+				);
+				if (row) {
+					Object.assign(row, update, {
+						updatedAt: new Date("2026-05-12T10:01:00Z"),
+					});
+					return row;
+				}
+				const created = {
+					id: `spd-${state.nextId++}`,
+					createdAt: new Date("2026-05-12T10:00:00Z"),
+					updatedAt: new Date("2026-05-12T10:00:00Z"),
+					...create,
+				};
+				state.printData.push(created);
+				return created;
 			},
 			update: async ({ where, data }: any) => {
 				const row = state.printData.find((item) => item.id === where.id);
@@ -163,6 +198,40 @@ describe("sales print data cache", () => {
 		expect(state.printData).toHaveLength(1);
 	});
 
+	it("persists concurrent cache misses for the same print document", async () => {
+		const { db, state } = createMockDb({ enforceUniquePrintData: true });
+		let loadersStarted = 0;
+		let releaseLoaders: (() => void) | undefined;
+		const bothLoadersStarted = new Promise<void>((resolve) => {
+			releaseLoaders = resolve;
+		});
+		const concurrentLoader = async () => {
+			loadersStarted += 1;
+			if (loadersStarted === 2) releaseLoaders?.();
+			await bothLoadersStarted;
+			return loadPrintDocumentData();
+		};
+
+		const results = await Promise.all([
+			createOrRefreshSalesPrintData(db, {
+				salesOrderId: 10,
+				mode: "invoice",
+				loadPrintDocumentData: concurrentLoader as any,
+			}),
+			createOrRefreshSalesPrintData(db, {
+				salesOrderId: 10,
+				mode: "invoice",
+				loadPrintDocumentData: concurrentLoader as any,
+			}),
+		]);
+
+		expect(results).toHaveLength(2);
+		expect(results.every((result) => result.record.status === "ready")).toBe(
+			true,
+		);
+		expect(state.printData).toHaveLength(1);
+	});
+
 	it("force-refreshes existing print data", async () => {
 		const { db, state } = createMockDb({ printData: [readyRow()] });
 
@@ -249,7 +318,9 @@ describe("sales print data cache", () => {
 		});
 
 		expect(generatedIds).toEqual([11]);
-		expect(result.records.map((record) => record.salesOrderId)).toEqual([10, 11]);
+		expect(result.records.map((record) => record.salesOrderId)).toEqual([
+			10, 11,
+		]);
 		expect(result.pages.map((page) => page.meta.salesNo)).toEqual([
 			"INV-10",
 			"INV-11",
