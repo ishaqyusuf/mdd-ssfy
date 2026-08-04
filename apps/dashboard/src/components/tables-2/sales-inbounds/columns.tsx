@@ -1,5 +1,6 @@
 "use client";
 
+import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
@@ -27,12 +28,6 @@ const statusToneClassName: Record<string, string> = {
 	closed: "border-emerald-200 bg-emerald-50 text-emerald-700",
 	cancelled: "border-red-200 bg-red-50 text-red-700",
 };
-
-function titleCase(value: string | null | undefined) {
-	return (value || "unknown")
-		.replaceAll("_", " ")
-		.replace(/\b[a-z]/g, (char) => char.toUpperCase());
-}
 
 function formatDate(value: Date | string | null | undefined) {
 	if (!value) return "No date";
@@ -138,7 +133,9 @@ const statusColumn: Column = {
 				statusClassName(row.original.status),
 			)}
 		>
-			<span className="truncate">{titleCase(row.original.status)}</span>
+			<span className="truncate">
+				{formatInventoryInboundStatusLabel(row.original.status)}
+			</span>
 		</Badge>
 	),
 };

@@ -111,7 +111,7 @@ export function formatInventoryInboundStatusLabel(status?: string | null) {
 
 	switch (value) {
 		case "in_progress":
-			return "In progress";
+			return "Ordered";
 		case "issue_open":
 			return "Issue open";
 		case "completed":

@@ -1,6 +1,7 @@
 "use client";
 
 import { DocumentUploader } from "@/components/common/document-uploader";
+import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { InventoryInboundsColumnVisibility } from "@/components/tables-2/inventory-inbounds/column-visibility";
 import { DataTable } from "@/components/tables-2/inventory-inbounds/data-table";
 import { useTRPC } from "@/trpc/client";
@@ -477,7 +478,9 @@ export function InboundReceivingPage({ initialSettings }: Props) {
 													variant="outline"
 													className={`border capitalize ${getStatusTone(selectedShipment.status)}`}
 												>
-													{formatLabel(selectedShipment.status)}
+													{formatInventoryInboundStatusLabel(
+														selectedShipment.status,
+													)}
 												</Badge>
 											</div>
 											<p className="mt-1 text-sm font-medium text-slate-700">

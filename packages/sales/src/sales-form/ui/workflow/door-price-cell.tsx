@@ -210,7 +210,7 @@ export function DoorPriceCell({
 						}}
 						context={priceBreakdown}
 					>
-						<span className="text-sm font-semibold text-foreground">
+						<span className="text-sm font-semibold">
 							{isMissingPrice && !readOnly
 								? "Add Price"
 								: currency(displayDoorPrice)}

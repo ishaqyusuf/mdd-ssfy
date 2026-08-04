@@ -34,6 +34,10 @@ Track whether a sales order has vendor-order work outstanding while keeping item
 ## UI
 - The sales orders table exposes an `Inbound` badge column.
 - `AVAILABLE` is green, `ORDERED` is blue, and `PENDING ORDER` is amber with row emphasis.
+- Inventory inbound shipment status `in_progress` is presented to operators as
+  `Ordered` across Sales Orders, Sales Inbounds, Inventory Inbounds/Receiving,
+  and the Sales Overview create-inbound selector. The stored/API lifecycle value
+  remains `in_progress` for compatibility.
 - The canonical Sales Orders `Inbound` cell is now an inventory workflow entry point. Orders without active linked inventory inbound work open the Sales Overview Inventory `Needs` segment with the Create inbound form expanded; orders with one active linked shipment open that exact inbound, and orders with several active linked shipments open the full `Inbounds` list.
 - Inventory row-level `N/A` appears only in the Inventory tab requirement display for stock-not-required rows; it is not editable through the manual order inbound status modal.
 - The order action menu opens the existing inbound status modal for later manual updates.

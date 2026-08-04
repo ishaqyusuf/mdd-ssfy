@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
+	formatInventoryInboundStatusLabel,
 	getSalesInboundActionIntent,
 	resolveSalesInboundColumnState,
 } from "./sales-inbound-status-badge";
@@ -15,6 +16,10 @@ const dashboardLayoutSource = readFileSync(
 );
 
 describe("sales inbound action intent", () => {
+	test("presents an in-progress inventory shipment as ordered", () => {
+		expect(formatInventoryInboundStatusLabel("in_progress")).toBe("Ordered");
+	});
+
 	test("opens the create-inbound workbench when no inventory shipment exists", () => {
 		expect(getSalesInboundActionIntent(null)).toEqual({
 			inboundId: null,

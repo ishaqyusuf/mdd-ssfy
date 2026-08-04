@@ -3,6 +3,7 @@
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { ActivityHistory as ChatActivityHistory } from "@/components/chat";
+import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { SalesInboundsColumnVisibility } from "@/components/tables-2/sales-inbounds/column-visibility";
 import { DataTable as SalesInboundsTable } from "@/components/tables-2/sales-inbounds/data-table";
 import { SearchFilterProvider } from "@/hooks/use-search-filter";
@@ -346,7 +347,7 @@ export function SalesInboundsWorkspace({
 				await refreshInbound(data.id);
 				toast({
 					title: "Inbound status updated",
-					description: `Inbound #${data.id} is now ${titleCase(data.status)}.`,
+					description: `Inbound #${data.id} is now ${formatInventoryInboundStatusLabel(data.status)}.`,
 					variant: "success",
 				});
 			},
@@ -428,7 +429,7 @@ export function SalesInboundsWorkspace({
 							<SelectItem value="all">All statuses</SelectItem>
 							{inboundStatuses.map((status) => (
 								<SelectItem key={status} value={status}>
-									{titleCase(status)}
+									{formatInventoryInboundStatusLabel(status)}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -504,7 +505,7 @@ export function SalesInboundsWorkspace({
 									<SelectContent>
 										{inboundStatuses.map((status) => (
 											<SelectItem key={status} value={status}>
-												{titleCase(status)}
+												{formatInventoryInboundStatusLabel(status)}
 											</SelectItem>
 										))}
 									</SelectContent>

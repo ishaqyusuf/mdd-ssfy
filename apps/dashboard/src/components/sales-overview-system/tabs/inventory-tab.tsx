@@ -2,6 +2,7 @@
 
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 
+import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { useTRPC } from "@/trpc/client";
 import type { NewInboundShipmentStatus } from "@gnd/inventory";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
@@ -1194,7 +1195,7 @@ function InventoryActionBar({
 									variant="outline"
 									className="w-full justify-between bg-background font-normal"
 								>
-									{inboundStatus === "in_progress" ? "In progress" : "Pending"}
+									{formatInventoryInboundStatusLabel(inboundStatus)}
 									<Icons.ChevronDown className="size-4 opacity-50" />
 								</Button>
 							</DropdownMenuTrigger>
@@ -1211,7 +1212,7 @@ function InventoryActionBar({
 										Pending
 									</DropdownMenuRadioItem>
 									<DropdownMenuRadioItem value="in_progress">
-										In progress
+										Ordered
 									</DropdownMenuRadioItem>
 								</DropdownMenuRadioGroup>
 							</DropdownMenuContent>

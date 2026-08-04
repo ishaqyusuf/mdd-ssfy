@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { roundMoney } from "../../../payment-system/domain/money";
 import {
 	deriveMouldingRows,
 	getSelectedMouldingComponentsForLine,
 	sharedMouldingComponentPrice,
 	summarizeMouldingPersistRows,
 } from "../../domain";
-import { roundMoney } from "../../../payment-system/domain/money";
 import { saveWorkflowMouldingSelectionWithQty as buildMouldingSelectionPatch } from "./workflow-moulding-actions";
 
 import type { SalesFormLineItemRecord } from "../../application";
@@ -46,6 +46,7 @@ function normalizeMouldingStoredRows(rows: WorkflowComponent[]) {
 		uid: String(row?.uid || ""),
 		title: String(row?.title || ""),
 		description: String(row?.description || ""),
+		img: row?.img == null ? null : String(row.img),
 		qty: Number(row?.qty || 0),
 		addon: Number(row?.addon || 0),
 		customPrice:
@@ -54,7 +55,20 @@ function normalizeMouldingStoredRows(rows: WorkflowComponent[]) {
 				: Number(row.customPrice || 0),
 		salesPrice: Number(row?.salesPrice || 0),
 		basePrice: Number(row?.basePrice || 0),
+		estimateUnit: roundMoney(Number(row?.estimateUnit || 0)),
+		unit: roundMoney(Number(row?.unit || 0)),
+		lineTotal: roundMoney(Number(row?.lineTotal || 0)),
 	}));
+}
+
+export function mouldingRowsNeedSync(
+	existingRows: WorkflowComponent[],
+	nextRows: WorkflowComponent[],
+) {
+	return (
+		JSON.stringify(normalizeMouldingStoredRows(existingRows)) !==
+		JSON.stringify(normalizeMouldingStoredRows(nextRows))
+	);
 }
 
 function closePopoverState(): MouldingSelectionPopoverState {
@@ -107,10 +121,7 @@ export function useMouldingWorkflow(args: {
 			derivedRows,
 			sharedComponentPrice,
 		);
-		const normalizedExistingRows = normalizeMouldingStoredRows(existingRows);
-		const rowsChanged =
-			JSON.stringify(normalizedExistingRows) !==
-			JSON.stringify(summary.storedRows);
+		const rowsChanged = mouldingRowsNeedSync(existingRows, summary.storedRows);
 		const qtyChanged = Number(activeLine.qty || 0) !== summary.qtyTotal;
 		const totalChanged = roundMoney(activeLine.lineTotal) !== summary.total;
 		const unitPriceChanged =
