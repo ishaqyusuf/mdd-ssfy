@@ -240,6 +240,7 @@ export type SalesCustomerPaymentFailedTags = z.infer<
 const customerStatementLineSchema = z.object({
 	salesId: z.number(),
 	orderNo: z.string(),
+	poNo: z.string().optional().nullable(),
 	date: z.string(),
 	invoice: z.number(),
 	paid: z.number(),

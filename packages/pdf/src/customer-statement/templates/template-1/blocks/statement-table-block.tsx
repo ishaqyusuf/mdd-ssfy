@@ -38,8 +38,9 @@ export function StatementTableBlock({
 				}}
 			>
 				<HeaderCell flex={0.8}>Order #</HeaderCell>
+				<HeaderCell flex={0.8}>P.O.</HeaderCell>
 				<HeaderCell flex={0.75}>Date</HeaderCell>
-				<HeaderCell flex={2.1}>Address</HeaderCell>
+				<HeaderCell flex={1.6}>Address</HeaderCell>
 				<HeaderCell flex={0.85} align="right">
 					Invoice
 				</HeaderCell>
@@ -66,8 +67,9 @@ export function StatementTableBlock({
 					<BodyCell flex={0.8} bold>
 						{line.orderNo}
 					</BodyCell>
+					<BodyCell flex={0.8}>{line.poNo || "-"}</BodyCell>
 					<BodyCell flex={0.75}>{line.date}</BodyCell>
-					<BodyCell flex={2.1} muted>
+					<BodyCell flex={1.6} muted>
 						{line.address || "-"}
 					</BodyCell>
 					<BodyCell flex={0.85} align="right">
@@ -90,7 +92,7 @@ export function StatementTableBlock({
 					paddingHorizontal: 8,
 				}}
 			>
-				<Text style={{ flex: 5.25, fontSize: 9, fontWeight: 700, color: NAVY }}>
+				<Text style={{ flex: 5.55, fontSize: 9, fontWeight: 700, color: NAVY }}>
 					Total Open Balance
 				</Text>
 				<Text

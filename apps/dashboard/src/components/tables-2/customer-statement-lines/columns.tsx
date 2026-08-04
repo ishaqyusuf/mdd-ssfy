@@ -100,6 +100,25 @@ const orderColumn: Column = {
 	),
 };
 
+const poColumn: Column = {
+	id: "po",
+	header: "P.O.",
+	accessorKey: "poNo",
+	...sizes.custom(104, 160, 120),
+	enableResizing: true,
+	meta: {
+		skeleton: { type: "text", width: "w-24" },
+		headerLabel: "P.O.",
+		className: sizeClass(sizes.custom(104, 160, 120)),
+	},
+	cell: ({ row }) => (
+		<TextWithTooltip
+			className="max-w-full truncate font-mono text-sm uppercase"
+			text={row.original.poNo || "-"}
+		/>
+	),
+};
+
 const dateColumn: Column = {
 	id: "date",
 	header: "Date",
@@ -239,6 +258,7 @@ const actionsColumn: Column = {
 export const columns: Column[] = [
 	selectColumn,
 	orderColumn,
+	poColumn,
 	dateColumn,
 	statusColumn,
 	addressColumn,

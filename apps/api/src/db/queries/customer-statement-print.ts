@@ -2,13 +2,14 @@ import type { Db } from "@gnd/db";
 import { buildShortUrl, findOrCreateShortLinkForTarget } from "@gnd/db/queries";
 import type { CustomerStatementPdfData } from "@gnd/pdf/customer-statement";
 import { resolveSalesCompanyAddress } from "@gnd/sales/print";
+import { readSalesFormPo } from "@gnd/sales/sales-form/application/legacy-metadata";
+import { getCustomerWallet } from "@gnd/sales/wallet";
+import { getAppUrl } from "@gnd/utils/envs";
 import {
 	type CustomerStatementPdfToken,
 	type SalesPaymentTokenSchema,
 	tryTokenize,
 } from "@gnd/utils/tokenizer";
-import { getAppUrl } from "@gnd/utils/envs";
-import { getCustomerWallet } from "@gnd/sales/wallet";
 import { TRPCError } from "@trpc/server";
 import { addDays, format } from "date-fns";
 
@@ -94,6 +95,7 @@ export async function getCustomerStatementPrintData(
 		select: {
 			id: true,
 			orderId: true,
+			meta: true,
 			createdAt: true,
 			grandTotal: true,
 			amountDue: true,
@@ -158,6 +160,7 @@ export async function getCustomerStatementPrintData(
 		return {
 			salesId: order.id,
 			orderNo: order.orderId || `#${order.id}`,
+			poNo: readSalesFormPo(order.meta as Record<string, unknown>),
 			date: formatStatementDate(order.createdAt),
 			address:
 				order.billingAddress?.address1 ||

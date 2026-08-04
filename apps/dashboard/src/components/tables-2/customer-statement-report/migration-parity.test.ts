@@ -76,6 +76,8 @@ describe("Customer statement report table migration parity", () => {
 		expect(headerSource.includes("toggleAllLines")).toBe(true);
 		expect(columnsSource.includes("toggleLine")).toBe(true);
 		expect(columnsSource.includes("selectedLineSet")).toBe(true);
+		expect(columnsSource.includes('header: "P.O."')).toBe(true);
+		expect(columnsSource.includes('accessorKey: "poNo"')).toBe(true);
 	});
 
 	it("registers compact tailored customer statement widths", () => {

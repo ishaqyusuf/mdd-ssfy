@@ -17,6 +17,7 @@ import {
 	getDealerPartnershipSummaries,
 } from "@gnd/db/queries";
 import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
+import { readSalesFormPo } from "@gnd/sales/sales-form/application/legacy-metadata";
 import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
 import { nextId, sum } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
@@ -1300,6 +1301,7 @@ export async function getCustomerStatementDetail(
 		select: {
 			id: true,
 			orderId: true,
+			meta: true,
 			createdAt: true,
 			status: true,
 			prodStatus: true,
@@ -1365,6 +1367,7 @@ export async function getCustomerStatementDetail(
 		return {
 			salesId: order.id,
 			orderNo: order.orderId,
+			poNo: readSalesFormPo(order.meta as Record<string, unknown>),
 			date: formatStatementDate(order.createdAt),
 			status: lifecycleStatus.status,
 			statusLabel: lifecycleStatus.label,

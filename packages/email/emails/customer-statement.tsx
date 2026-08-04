@@ -27,6 +27,7 @@ interface Props {
 	lines: {
 		salesId: number;
 		orderNo: string;
+		poNo?: string | null;
 		date: string;
 		invoice: number;
 		paid: number;
@@ -211,6 +212,7 @@ export function CustomerStatementEmail({
 									"Sn",
 									"Date",
 									"Order #",
+									"P.O.",
 									"Invoice",
 									"Paid",
 									"Pending",
@@ -256,6 +258,11 @@ export function CustomerStatementEmail({
 									<td style={{ padding: "10px 6px", verticalAlign: "top" }}>
 										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
 											{line.orderNo}
+										</Text>
+									</td>
+									<td style={{ padding: "10px 6px", verticalAlign: "top" }}>
+										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
+											{line.poNo || "-"}
 										</Text>
 									</td>
 									<td

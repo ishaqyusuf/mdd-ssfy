@@ -3,6 +3,7 @@ import type { CompanyAddress } from "@gnd/sales/print/types";
 export interface CustomerStatementPdfLine {
 	salesId: number;
 	orderNo: string;
+	poNo?: string | null;
 	date: string;
 	address?: string | null;
 	invoice: number;
