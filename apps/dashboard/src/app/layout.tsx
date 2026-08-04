@@ -22,6 +22,8 @@ import { Providers } from "./providers";
 export async function generateMetadata() {
     return constructMetadata({
         title: "GND Millwork - gndprodesk.com",
+        description:
+            "Manage quotes, sales, production, inventory, and customer workflows in one connected GND Millwork workspace.",
     });
 }
 // const inter = Inter({ subsets: ["latin"] });

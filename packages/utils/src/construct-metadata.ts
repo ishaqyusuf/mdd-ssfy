@@ -1,11 +1,13 @@
 // @ts-ignore
 const prod = process.env.NODE_ENV == "production";
+export const GND_SOCIAL_IMAGE_URL = "https://gndprodesk.com/opengraph-image";
+
 export function constructMetadata({
   // @ts-ignore
   title = `${process.env.NEXT_PUBLIC_APP_NAME} - Enterprice Management System`,
   // @ts-ignore
   description = `${process.env.NEXT_PUBLIC_APP_NAME}`,
-  image = "https://assets.gndprodesk.com/thumbnail.png",
+  image = GND_SOCIAL_IMAGE_URL,
   icons = [
     {
       rel: "apple-touch-icon",

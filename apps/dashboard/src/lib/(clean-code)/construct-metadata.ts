@@ -1,11 +1,12 @@
 import { Metadata } from "next";
+import { GND_SOCIAL_IMAGE_URL } from "@gnd/utils/construct-metadata";
 import { HOME_DOMAIN } from "./constants";
 
 const prod = process.env.NODE_ENV === "production";
 export function constructMetadata({
     title = `${process.env.NEXT_PUBLIC_APP_NAME} - Enterprice Management System`,
     description = `${process.env.NEXT_PUBLIC_APP_NAME}`,
-    image = "https://assets.gndprodesk.com/thumbnail.png",
+    image = GND_SOCIAL_IMAGE_URL,
     icons = [
         {
             rel: "apple-touch-icon",
