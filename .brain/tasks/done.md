@@ -1,5 +1,12 @@
 # Done
 
+- [x] 2026-08-04 — Implement customer-approved quantity increases/reductions
+  for existing sale items inside the new sales form, including commitment
+  warnings, immutable comparison, guarded saves, manual approval link,
+  due-first wallet settlement, idempotent application, inventory reconciliation,
+  and sales-history follow-up. See
+  `.brain/features/in-form-sales-order-adjustments.md` and ADR-045.
+
 - [x] 2026-08-03 — Make autosave opt-in for the shared new sales form: newly
   created and hydrated orders and quotes now begin with autosave off while the
   existing session toggle and manual saves remain available. See

@@ -19,15 +19,25 @@ import {
 	updateNewSalesFormShelfProduct,
 } from "@api/db/queries/new-sales-form";
 import {
+	createNewSalesFormAdjustment,
+	getNewSalesFormAdjustmentApproval,
+	getNewSalesFormAdjustmentStatus,
+	getNewSalesFormCommitmentSnapshot,
+	previewNewSalesFormAdjustment,
+	respondNewSalesFormAdjustmentApproval,
+} from "@api/db/queries/new-sales-form-adjustments";
+import {
 	getSalesFormAdoption,
 	recordSalesFormUsage,
 	resetLegacySalesFormPreferences,
 } from "@api/db/queries/sales-form-adoption";
 import {
 	bootstrapNewSalesFormSchema,
+	createNewSalesFormAdjustmentSchema,
 	deleteNewSalesFormLineItemSchema,
 	deleteNewSalesFormShelfProductSchema,
 	getNewSalesFormHistorySnapshotSchema,
+	getNewSalesFormAdjustmentApprovalSchema,
 	getNewSalesFormSchema,
 	getNewSalesFormShelfCategoriesSchema,
 	getNewSalesFormShelfProductDetailsSchema,
@@ -35,6 +45,8 @@ import {
 	getNewSalesFormShelfProductsSchema,
 	getNewSalesFormStepRoutingSchema,
 	recalculateNewSalesFormSchema,
+	previewNewSalesFormAdjustmentSchema,
+	respondNewSalesFormAdjustmentApprovalSchema,
 	resolveNewSalesCustomerSchema,
 	saveDraftNewSalesFormSchema,
 	saveFinalNewSalesFormSchema,
@@ -47,7 +59,7 @@ import {
 	salesFormAdoptionSchema,
 	salesFormUsageSchema,
 } from "@api/schemas/sales-form-adoption";
-import { createTRPCRouter, protectedProcedure } from "../init";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 
 export const newSalesFormRouter = createTRPCRouter({
 	adoptionPing: protectedProcedure
@@ -69,8 +81,36 @@ export const newSalesFormRouter = createTRPCRouter({
 			return bootstrapNewSalesForm(props.ctx, props.input);
 		}),
 	get: protectedProcedure.input(getNewSalesFormSchema).query(async (props) => {
-		return getNewSalesForm(props.ctx, props.input);
+		const form = await getNewSalesForm(props.ctx, props.input);
+		if (!form.salesId || form.type !== "order") {
+			return { ...form, changeProtection: null, activeAdjustment: null };
+		}
+		const [changeProtection, activeAdjustment] = await Promise.all([
+			getNewSalesFormCommitmentSnapshot(props.ctx.db, form.salesId),
+			getNewSalesFormAdjustmentStatus(props.ctx.db, form.salesId),
+		]);
+		return { ...form, changeProtection, activeAdjustment };
 	}),
+	previewAdjustment: protectedProcedure
+		.input(previewNewSalesFormAdjustmentSchema)
+		.mutation(async ({ ctx, input }) =>
+			previewNewSalesFormAdjustment(ctx, input),
+		),
+	createAdjustment: protectedProcedure
+		.input(createNewSalesFormAdjustmentSchema)
+		.mutation(async ({ ctx, input }) =>
+			createNewSalesFormAdjustment(ctx, input),
+		),
+	getAdjustmentApproval: publicProcedure
+		.input(getNewSalesFormAdjustmentApprovalSchema)
+		.query(async ({ ctx, input }) =>
+			getNewSalesFormAdjustmentApproval(ctx, input),
+		),
+	respondAdjustmentApproval: publicProcedure
+		.input(respondNewSalesFormAdjustmentApprovalSchema)
+		.mutation(async ({ ctx, input }) =>
+			respondNewSalesFormAdjustmentApproval(ctx, input),
+		),
 	getHistorySnapshot: protectedProcedure
 		.input(getNewSalesFormHistorySnapshotSchema)
 		.query(async (props) => {

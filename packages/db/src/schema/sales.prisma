@@ -99,6 +99,7 @@ model SalesOrders {
     productionGate    OrderProductionGate?
     productionReadinessOverride SalesProductionReadinessOverride?
     productionSubmissionMaterialReviews SalesProductionSubmissionMaterialReview[]
+    adjustments       SalesOrderAdjustment[]
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?

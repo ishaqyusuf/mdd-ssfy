@@ -1,4 +1,4 @@
-# Plan: Customer-Approved Sales Quantity Reduction And Wallet Credit
+# Plan: In-Form Customer-Approved Sales Quantity Changes And Wallet Credit
 
 ## Type
 
@@ -6,7 +6,7 @@ Feature
 
 ## Status
 
-Proposed - Implementation Not Started
+Implemented - Release One
 
 ## Created Date
 
@@ -16,16 +16,29 @@ Proposed - Implementation Not Started
 
 2026-08-04
 
+## Implementation Result
+
+Release one is embedded in the new sales form and implements the commitment
+banner, immutable change preview, guarded saves, manual customer approval link,
+idempotent apply job, due-first wallet settlement, inventory/history follow-up,
+and public approve/reject page. Quantity changes are limited to existing
+persisted lines; automated approval-link delivery, new configured-line
+creation, external refunds, and returns remain follow-up boundaries. See
+`.brain/features/in-form-sales-order-adjustments.md` and
+`.brain/decisions/ADR-045-in-form-customer-approved-sales-adjustments.md`.
+
 ## Objective
 
-Add a governed post-sale adjustment workflow that lets an authorized employee
-propose lower quantities for selected items on an existing order, obtain and
-retain customer approval, apply the exact approved revision, show that an item
-changed from its original quantity to its approved quantity in Sales Overview,
-sales history, and the current invoice, and credit only the resulting customer
-overpayment to the customer's wallet. The workflow must preserve payment,
-inventory, production, dispatch, document, and audit correctness under retries
-and concurrent edits.
+Embed a governed post-sale change workflow directly inside the new sales form.
+When an existing order has applied payments, inventory demand/inbounds, or
+downstream production/fulfillment work, the form must show the commitments
+before editing, detect quantity increases and reductions against the loaded
+baseline, replace direct saving with an in-form Change Review experience, obtain
+and retain customer approval, and apply the exact approved revision. The same
+flow must show previous versus proposed lines/totals/payment/inventory impact,
+record the applied change in Sales Overview, sales history, and the revised
+invoice, and credit only a resulting customer overpayment to the wallet. No
+separate employee adjustment portal is introduced.
 
 ## Assumptions
 
@@ -37,9 +50,17 @@ and concurrent edits.
 - This is a post-sale commercial adjustment, not a product-return/RMA flow.
   Quantity already shipped or fulfilled is out of scope and must use a future
   return workflow.
-- The first release supports quantity decreases only. It does not increase a
-  quantity, swap products, reprice unrelated lines, issue cash/card refunds, or
-  change the customer.
+- The workflow supports quantity increases, reductions, and a mixed change in
+  one proposal. It does not swap products, reprice unrelated lines, issue
+  cash/card refunds, or change the customer in its first release.
+- The employee stays in the new sales form. "Change Review" is a sheet/drawer
+  owned by that form, not a new Sales Book page or separate internal portal.
+  A customer may still need a secure, token-scoped approval page because the
+  customer cannot be given access to the internal sales form.
+- The loaded, persisted sale remains effective while a proposal is pending.
+  Unsaved edits or a pending proposal must never leak into current invoices,
+  production, inventory, payment collection, or reporting before approval and
+  successful application.
 - The revised order total is calculated by the canonical sales-form costing
   engine. The implementation must not estimate the credit as only
   `quantity reduced * displayed unit price`, because discounts, tax, delivery,
@@ -68,15 +89,17 @@ and concurrent edits.
 
 ```mermaid
 flowchart LR
-    A["Employee creates quantity-reduction draft"] --> B["Server calculates before/after lines, totals, due, and estimated wallet credit"]
-    B --> C["Customer receives immutable approval revision"]
-    C -->|Rejects or expires| D["Keep order unchanged and retain evidence"]
-    C -->|Approves| E["Idempotent adjustment application job"]
-    E --> F["Recheck order, payment, and fulfillment revision"]
-    F -->|Changed| G["Mark stale and require a new proposal"]
-    F -->|Matches| H["Atomically update approved quantities, totals, payment allocation, wallet credit, and audit rows"]
-    H --> I["Queue inventory reconciliation, document refresh, notifications, and history snapshot"]
-    I --> J["Show before/after change and wallet result in Sales Overview, invoice, Finance, and customer wallet history"]
+    A["Employee opens the new sales form and sees payment, inbound, and fulfillment commitments"] --> B["Employee edits quantities in the normal item workflow"]
+    B --> C["Save becomes Review changes and opens the in-form comparison sheet"]
+    C --> D["Server calculates before/after lines, totals, due, wallet, and operational impact"]
+    D --> E["Customer receives immutable approval revision"]
+    E -->|Rejects or expires| F["Keep live order unchanged and retain evidence"]
+    E -->|Approves| G["Idempotent change-application job"]
+    G --> H["Recheck order, payment, inbound, production, and fulfillment revision"]
+    H -->|Changed| I["Mark stale and reopen a new in-form proposal"]
+    H -->|Matches| J["Atomically update approved quantities, totals, payment allocation, wallet credit, and audit rows"]
+    J --> K["Queue inventory reconciliation, document refresh, notifications, and history snapshot"]
+    K --> L["Reopen the form on the applied version and show the audit result everywhere"]
 ```
 
 ### Financial Settlement Policy
@@ -87,7 +110,9 @@ Use the payment-system projection and decimal-safe helpers for all money. Let:
 - `afterTotal` = canonical recalculated principal after approved quantities;
 - `netAppliedBefore` = successful order payment applications less prior
   refunds/voids/deallocations;
-- `orderValueReduction = beforeTotal - afterTotal`;
+- `orderValueDelta = afterTotal - beforeTotal`;
+- `orderValueReduction = max(beforeTotal - afterTotal, 0)`;
+- `additionalOrderValue = max(afterTotal - beforeTotal, 0)`;
 - `afterDueBeforeCredit = max(afterTotal - netAppliedBefore, 0)`;
 - `walletCredit = max(netAppliedBefore - afterTotal, 0)`;
 - `netAppliedAfter = netAppliedBefore - walletCredit`;
@@ -102,6 +127,13 @@ they are not always the same.
 | Partially paid below revised total | Total falls to $800; paid $600 | Due falls to $200; wallet credit $0 |
 | Partially paid above revised total | Total falls to $800; paid $900 | Due becomes $0; wallet credit $100 |
 | Fully paid | Total falls from $1,000 to $800; paid $1,000 | Due remains $0; wallet credit $200 |
+| Quantity increase | Total rises from $1,000 to $1,250; paid $1,000 | Due becomes $250; wallet credit $0 |
+| Mixed increase and reduction | One line adds $300 and another removes $150 | Recalculate the complete order; net principal rises $150 before payment projection |
+
+For an increase, the form must show `Additional order value` and the resulting
+`Additional amount due`. The existing payment remains applied; no wallet debit
+or automatic charge occurs. Payment collection is a separate explicit action
+after the approved change is applied.
 
 ### Phase M0 - Product Rules, Baseline, And Acceptance Matrix
 
@@ -113,10 +145,14 @@ they are not always the same.
    - whether a line may be reduced to zero or must be removed explicitly;
    - whether produced-but-unshipped goods are blocked or sent to an internal
      disposition review;
+   - whether increases, reductions, and mixed proposals use the same customer
+     approval policy;
    - whether customer approval is link-only, employee-recorded, or both;
    - whether an approval should auto-apply or wait for a final employee action.
 2. Recommend the following first-release rules:
    - orders only;
+   - increases and reductions use the same immutable comparison/approval
+     workflow whenever an order has a payment or operational commitment;
    - active, non-cancelled, non-fulfilled orders;
    - no new quantity below delivered, packed, consumed, completed-production,
      or otherwise irreversible operational quantity;
@@ -124,6 +160,8 @@ they are not always the same.
    - block unsupported grouped line families with an exact explanation;
    - auto-apply after customer approval only when the original employee still
      has both order-edit and payment-edit authority;
+   - reductions may create wallet credit; increases create additional amount
+     due but never auto-charge the customer;
    - wallet credit only; external-provider refunds remain a separate action.
 3. Build a line-family matrix from live application shapes:
    - ordinary `SalesOrderItems.qty`;
@@ -155,7 +193,8 @@ they are not always the same.
 2. Add `SalesOrderAdjustment` as the workflow aggregate. Recommended fields:
    - stable id and human-facing adjustment number;
    - `salesOrderId`, customer/wallet snapshot identifiers, currency;
-   - type `QUANTITY_REDUCTION`;
+   - type `QUANTITY_CHANGE` plus derived direction `INCREASE`, `REDUCTION`, or
+     `MIXED`;
    - status: `DRAFT`, `PENDING_CUSTOMER`, `APPROVED`, `APPLYING`, `APPLIED`,
      `APPLIED_WITH_REVIEW`, `REJECTED`, `EXPIRED`, `CANCELLED`, `STALE`, or
      `FAILED`;
@@ -172,8 +211,8 @@ they are not always the same.
    - adjustment id;
    - stable sales item id plus canonical line-family/target identity;
    - description/SKU/configuration snapshot;
-   - original quantity, approved quantity, and reduction quantity using a
-     quantity-safe decimal scale;
+   - original quantity, approved quantity, signed quantity delta, and derived
+     increase/reduction direction using a quantity-safe decimal scale;
    - original/new unit display values, authoritative line totals, tax, and
      total delta using money-safe decimals;
    - reversible operational quantity snapshot and validation result.
@@ -216,10 +255,11 @@ they are not always the same.
    produce and apply a server-owned next aggregate. Do not call a tRPC route
    from another route and do not duplicate the costing engine inside the
    adjustment package.
-4. Implement `previewQuantityReduction(...)`:
+4. Implement `previewQuantityChange(...)`:
    - load the complete current order aggregate server-side;
    - accept only sales item identities and requested lower quantities;
-   - reject negative, equal, increased, unknown, deleted, or unsupported lines;
+   - reject negative, equal, unknown, deleted, or unsupported lines while
+     allowing both valid increases and valid reductions;
    - calculate operational minimums from production, packing, dispatch,
      allocation, inbound, receipt, and consumption evidence;
    - apply supported quantity adapters to an in-memory aggregate;
@@ -232,14 +272,14 @@ they are not always the same.
    inputs, net payment application, and irreversible operational floors. A
    payment, order, or fulfillment change after submission must make the
    approval stale.
-6. Implement `submitQuantityReduction(...)` to persist the exact preview and
+6. Implement `submitQuantityChange(...)` to persist the exact preview and
    lines transactionally, issue one approval revision, and prevent multiple
    active proposals for the same order unless product owners explicitly allow
    parallel non-overlapping adjustments.
 7. Implement `recordAdjustmentDecision(...)` as an append-only, idempotent
    decision. Duplicate link clicks return the existing decision; a second,
    conflicting decision is rejected.
-8. Implement `applyApprovedQuantityReduction(...)` as the only write path for
+8. Implement `applyApprovedQuantityChange(...)` as the only write path for
    the feature. It must use a guarded transaction and never trust totals,
    customer ids, wallet ids, or line descriptions from the browser.
 
@@ -388,45 +428,127 @@ they are not always the same.
 
 ### Phase M7 - Staff Experience Using Midday Structure
 
-1. Add `Adjust quantities` from Sales Overview/order actions rather than
-   encouraging employees to use the normal edit form after payment.
-2. Use a URL-addressable, on-demand sheet or focused modal registered through
-   the existing global-sheet pattern. Keep the Sales Overview route and opening
-   query thin.
-3. Compose the staff flow from smaller sections:
+1. Keep the normal new sales form as the single employee editing surface. Do
+   not add a `/sales-book/adjustments` workspace or a separate quantity editor.
+2. Extend the new-sales-form load contract with a small, server-owned
+   `changeProtection` summary. It should return:
+   - successful payment count, net amount applied, current due, and whether the
+     payment projection needs review;
+   - inventory line/need count and active allocation count;
+   - inbound demand/shipment counts grouped as pending, ordered, partially
+     received, and received/protected;
+   - production assigned/completed quantity;
+   - packed, dispatched, delivered, and fulfilled quantity;
+   - current protection level (`NONE`, `CAUTION`, `REVIEW_REQUIRED`, or
+     `LOCKED`) and concise reason codes;
+   - active pending/stale/applied change-request summary.
+3. Show one persistent commitment banner directly below the form header and
+   above the item workflow. Avoid a stack of repetitive alerts. Recommended
+   presentation:
+   - neutral when no commitment exists;
+   - amber `Changes require review` when payment or mutable inbound work exists;
+   - red `Some quantities cannot be reduced` when received, produced, packed,
+     dispatched, or fulfilled floors exist;
+   - compact chips such as `Paid $1,000`, `2 inbounds`, `6 allocated`,
+     `3 produced`, and `1 dispatched`;
+   - `View impact` opens the same in-form Change Review sheet.
+4. Add line-level context without overwhelming the editor:
+   - a compact payment/inbound/production status marker beside affected items;
+   - a minimum reducible quantity where irreversible work exists;
+   - after an edit, an inline `10 → 6` or `10 → 12` badge and impact tone;
+   - disable only values below the operational floor, not the entire form.
+5. Preserve the loaded server record as an immutable `editBaseline` in the form
+   store. Add a pure package-owned diff selector that classifies changes as:
+   - non-consequential metadata;
+   - quantity increase;
+   - quantity reduction;
+   - mixed quantity change;
+   - other financial/configuration change requiring a separately defined rule.
+   The local diff provides immediate UX only; server analysis remains
+   authoritative.
+6. Introduce one guarded save coordinator used by every dirty persistence path.
+   It must cover:
+   - autosave/manual draft save;
+   - Save Final;
+   - Save & Close and Save & New;
+   - dirty Print, Preview, and PDF flows that currently flush before rendering;
+   - deletion or other direct line mutations;
+   - any future keyboard shortcut that invokes save.
+7. When the order has no payment or operational commitment, preserve the
+   current save behavior. When commitments exist:
+   - force autosave off and disable its toggle with an explanation;
+   - allow local editing and recovery snapshots, but do not mutate the live
+     order automatically;
+   - run server impact analysis before persistence;
+   - allow a normal save only when the server classifies the diff as explicitly
+     non-consequential;
+   - change the primary action from `Save` to `Review changes` for consequential
+     diffs;
+   - never let print/preview/PDF implicitly save an unapproved consequential
+     change; offer `View current document` or `Review changes` instead.
+8. Repeat the guard in `newSalesForm.saveDraft` and `saveFinal`. UI interception
+   is not sufficient. If a protected consequential payload reaches the legacy
+   save path without an applied change-request context, return a typed
+   `CHANGE_REVIEW_REQUIRED` result before any order, line, total, inventory, or
+   document write.
+9. Use a URL-addressable sheet/drawer rendered by the new sales form. On mobile
+   it may become a full-height drawer, but it remains the same form-owned flow.
+   Compose it from smaller sections:
    - eligibility and blocker banner;
-   - selectable current item list;
-   - new-quantity inputs showing operational minimums;
+   - changed items only, with unchanged items collapsed;
+   - original and proposed quantities showing operational minimums;
    - customer-facing reason;
    - before/after line comparison;
-   - total, paid, revised due, and wallet-credit preview;
+   - subtotal, discount, tax, total, paid, revised due, additional amount due,
+     and wallet-credit comparison;
+   - inbound/allocation/production/dispatch impact;
    - approval method and recipient;
    - final confirmation.
-4. Clearly label the two financial outcomes:
+10. Clearly label the financial outcomes:
    - `Order value reduced by ...`;
    - `Refunded to wallet ...` or `No wallet refund; the unpaid balance was
-     reduced`.
-5. Add a lazy `Adjustments` section/detail sheet to Sales Overview. Load a small
-   summary on open and fetch line, approval, payment, and job detail only when
-   the adjustment is opened.
-6. Render statuses and next actions for pending approval, rejected, expired,
+     reduced`;
+   - `Additional order value ...` and `Additional amount due ...` for an
+     increase;
+   - `No automatic charge will be made` whenever the revision increases due.
+11. Submitting the sheet persists a proposed after-snapshot in the adjustment
+   aggregate, not in the live `SalesOrders`/line rows. The form then returns to
+   the current live version with a `Pending customer approval` banner.
+12. While approval is pending:
+   - current live values remain the default form view;
+   - `View proposed changes` loads the proposal in read-only comparison mode;
+   - `Revise proposal` explicitly supersedes the pending revision and hydrates
+     a new editable local proposal;
+   - ordinary editing must not silently mutate or merge into the pending
+     proposal;
+   - current invoice/print/payment actions use only the live approved version.
+13. Render statuses and next actions for pending approval, rejected, expired,
    stale, applying, applied, applied with review, and failed. Provide Copy
    approval link, resend, cancel, supersede, retry, and inspect-resolution
    actions only where authorized.
-7. Add specific empty, loading, conflict, and retry states. Mobile must have no
+14. After apply, refetch the form and set the newly applied version as the new
+    baseline. Show a dismissible result banner with item changes, total/due
+    delta, wallet credit, and operational follow-up status.
+15. Add a lazy `Changes` section to the existing form history/version area and
+    Sales Overview. Load summary first; fetch line, approval, payment, and job
+    detail only when an entry opens.
+16. Add specific empty, loading, conflict, and retry states. Mobile must have no
    document-level horizontal overflow; comparison rows may scroll inside their
    own container.
-8. Add the mutation to the central query-event registry. A successful apply
+17. Add the mutation to the central query-event registry. A successful apply
    emits order, payment, customer-wallet, inventory, document, Sales Finance,
    and Sales Overview invalidations with the affected sale scope.
 
 ### Phase M8 - Customer Approval Experience
 
-1. Add a minimal public approval page using the existing secure public document
+1. The customer approval surface is the only separate page, because external
+   customers cannot safely enter the employee sales form. It is not a second
+   employee change portal and cannot edit the proposal.
+2. Add a minimal public approval page using the existing secure public document
    patterns. It loads only the token-scoped adjustment and does not expose
    internal order ids, costs, margins, employee notes, payment sources, or
    unrelated customer data.
-2. Show:
+3. Show:
    - order and adjustment number;
    - current versus proposed quantity for each affected line;
    - before/after order total;
@@ -434,15 +556,15 @@ they are not always the same.
    - exact projected wallet credit;
    - customer-facing reason and effective policy;
    - approval expiry.
-3. Require an explicit checkbox/statement confirming the customer authorizes
+4. Require an explicit checkbox/statement confirming the customer authorizes
    the listed quantity changes and wallet-credit treatment. Provide Approve and
    Reject actions with clear irreversible wording.
-4. After decision, show a durable decision receipt. Refresh/repeat visits return
+5. After decision, show a durable decision receipt. Refresh/repeat visits return
    the existing decision rather than resubmitting it.
-5. If the revision is stale or expired, disable decision controls and tell the
+6. If the revision is stale or expired, disable decision controls and tell the
    customer that a new proposal is required. Never show recalculated terms
    under an already-issued approval revision.
-6. Validate desktop and mobile accessibility: keyboard flow, screen-reader
+7. Validate desktop and mobile accessibility: keyboard flow, screen-reader
    labels, focus after decision, contrast, and no horizontal document overflow.
 
 ### Phase M9 - Insight, History, Invoice, Finance, And Wallet Visibility
@@ -511,6 +633,13 @@ they are not always the same.
    - no private approval evidence in public API, invoice, notifications, logs,
      or telemetry.
 5. UI tests:
+   - commitment banner states for payment, allocation, inbound, production,
+     packing, dispatch, and fulfilled orders;
+   - immutable edit baseline and increase/reduction/mixed diff classification;
+   - autosave is forced off for protected orders;
+   - every dirty save/print/preview/PDF path invokes the guarded coordinator;
+   - protected API saves fail closed without an applied change-request context;
+   - current-versus-proposed form modes and pending-approval supersession;
    - URL-owned sheet state and deep-link restoration;
    - preview labels distinguish order reduction from wallet credit;
    - blockers, stale, expired, rejected, applying, review, and retry states;
@@ -580,6 +709,8 @@ they are not always the same.
 
 - `packages/db/src/schema/sales.adjustment.prisma` (new)
 - `packages/sales/src/adjustment-system/*` (new domain boundary)
+- `packages/sales/src/sales-form/state/*` for immutable baseline/diff state
+- `packages/sales/src/sales-form/contracts/form-capabilities.ts`
 - `packages/sales/src/payment-system/application/*`
 - `packages/sales/src/payment-system/infrastructure/canonical-mirror.ts`
 - `packages/jobs/src/schema.ts`
@@ -588,9 +719,13 @@ they are not always the same.
 - `apps/api/src/schemas/sales-adjustments.ts` (new)
 - `apps/api/src/trpc/routers/sales-adjustments.route.ts` (new)
 - `apps/api/src/trpc/routers/_app.ts`
+- `apps/api/src/db/queries/new-sales-form.ts`
+- `apps/api/src/schemas/new-sales-form.ts`
 - focused API query/orchestration module under `apps/api/src/db/queries/`
-- Sales Overview adjustment sheet/activity components under
-  `apps/dashboard/src/components/`
+- `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx`
+- in-form commitment banner and Change Review sheet under
+  `apps/dashboard/src/components/forms/new-sales-form/`
+- Sales Overview adjustment activity components under `apps/dashboard/src/components/`
 - public approval route under `apps/dashboard/src/app/`
 - invoice/print composition under `packages/sales/src/print/`
 - `apps/dashboard/src/lib/query-events/registry.ts`
@@ -636,6 +771,13 @@ they are not always the same.
 - **Order updated while approval is pending:** compare deterministic revisions
   inside the apply transaction; never merge the customer-approved snapshot with
   newer edits.
+- **Autosave or print bypasses review:** force autosave off for protected
+  orders, route every dirty persistence/render action through one save
+  coordinator, and repeat the consequential-diff guard in both API save
+  mutations.
+- **Pending proposal is mistaken for the live sale:** keep the approved sale as
+  the default form state, label proposal mode read-only, and ensure all current
+  documents/payments use the live version until application succeeds.
 - **Inventory or document jobs fail after commercial commit:** keep commercial
   and wallet writes atomic, persist side-effect status, expose retries, and
   never duplicate the applied adjustment.

@@ -1,4 +1,4 @@
-import { RouterInputs, RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterInputs, RouterOutputs } from "@api/trpc/routers/_app";
 import { z } from "zod";
 
 export type NewSalesFormBootstrapInput = Exclude<
@@ -55,6 +55,8 @@ export type NewSalesFormDeleteLineItemInput = Exclude<
 >;
 
 export type NewSalesFormRecord = RouterOutputs["newSalesForm"]["get"];
+export type NewSalesFormAdjustmentPreview =
+	RouterOutputs["newSalesForm"]["previewAdjustment"];
 export type NewSalesFormStepRouting =
 	RouterOutputs["newSalesForm"]["getStepRouting"];
 export type NewSalesFormSummary = NewSalesFormRecord["summary"];
@@ -62,13 +64,7 @@ export type NewSalesFormLineItem = NewSalesFormRecord["lineItems"][number];
 export type NewSalesFormExtraCost = NewSalesFormRecord["extraCosts"][number];
 export type NewSalesFormMeta = NewSalesFormRecord["form"];
 
-const saveStatusSchema = z.enum([
-	"idle",
-	"saving",
-	"saved",
-	"error",
-	"stale",
-]);
+const saveStatusSchema = z.enum(["idle", "saving", "saved", "error", "stale"]);
 export type SaveStatus = z.infer<typeof saveStatusSchema>;
 
 const newSalesFormUiStateSchema = z.object({

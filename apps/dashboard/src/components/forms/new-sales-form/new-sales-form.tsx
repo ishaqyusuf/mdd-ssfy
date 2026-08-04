@@ -15,12 +15,14 @@ import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
+import { analyzeSalesFormChange } from "@gnd/sales/adjustment-system";
 import {
     SalesFormFloatingActions,
     SalesFormHeaderActions,
     SalesFormShell,
     normalizeSalesFormInitialCustomerId,
 } from "@gnd/sales/sales-form";
+import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { DropdownMenuItem } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
@@ -48,6 +50,7 @@ import {
     useNewSalesFormGetQuery,
     useSaveFinalNewSalesFormMutation,
 } from "./api";
+import { createSalesHistoryRestoreRecord } from "./history-restore";
 import {
     type NewSalesFormRecoverySnapshot,
     clearRecoverySnapshot,
@@ -56,10 +59,13 @@ import {
     readRecoverySnapshot,
     writeRecoverySnapshot,
 } from "./local-recovery";
-import { createSalesHistoryRestoreRecord } from "./history-restore";
 import { toSaveDraftInput } from "./mappers";
-import type { NewSalesFormRecord } from "./schema";
+import type {
+	NewSalesFormAdjustmentPreview,
+	NewSalesFormRecord,
+} from "./schema";
 import { CustomerSelectorDialog } from "./sections/customer-selector-dialog";
+import { SalesChangeReviewSheet } from "./sections/sales-change-review-sheet";
 import { useNewSalesFormStore } from "./store";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { useCreateFormQueryParams } from "./use-create-form-query-params";
@@ -217,10 +223,7 @@ function getLineTitlePlaceholder(line: {
                 .toLowerCase() === "item type",
     );
     const itemTypeLabel = String(
-        itemTypeStep?.value ||
-            itemTypeStep?.title ||
-            itemTypeStep?.prodUid ||
-            "",
+		itemTypeStep?.value || itemTypeStep?.title || itemTypeStep?.prodUid || "",
     ).trim();
     return itemTypeLabel || "";
 }
@@ -407,6 +410,10 @@ export function NewSalesForm(props: Props) {
     const [draftParams, setDraftParams] = useCreateFormQueryParams();
     const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
     const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
+	const [changeReviewOpen, setChangeReviewOpen] = useState(false);
+	const [changeReview, setChangeReview] =
+		useState<NewSalesFormAdjustmentPreview | null>(null);
+	const [approvalUrl, setApprovalUrl] = useState<string | null>(null);
     const [manualSaveLock, setManualSaveLock] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [historyPreview, setHistoryPreview] = useState<{
@@ -444,8 +451,7 @@ export function NewSalesForm(props: Props) {
     const [recoverySnapshot, setRecoverySnapshot] =
         useState<NewSalesFormRecoverySnapshot | null>(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
-    const [customerPromptDismissed, setCustomerPromptDismissed] =
-        useState(false);
+	const [customerPromptDismissed, setCustomerPromptDismissed] = useState(false);
     const [bootstrapCustomerId] = useState<number | null>(() =>
         normalizeSalesFormInitialCustomerId(draftParams.selectedCustomerId),
     );
@@ -502,15 +508,13 @@ export function NewSalesForm(props: Props) {
     const packingDispatches = useMemo(
         () =>
             (
-                ((dispatchOverview.data?.deliveries as
-                    | PackingDispatch[]
-                    | undefined) || []) as PackingDispatch[]
+				((dispatchOverview.data?.deliveries as PackingDispatch[] | undefined) ||
+					[]) as PackingDispatch[]
             )
                 .filter(
                     (dispatch) =>
                         !dispatch.deliveryMode ||
-                        String(dispatch.deliveryMode).toLowerCase() ===
-                            "pickup",
+						String(dispatch.deliveryMode).toLowerCase() === "pickup",
                 )
                 .sort((left, right) => right.id - left.id),
         [dispatchOverview.data?.deliveries],
@@ -519,8 +523,7 @@ export function NewSalesForm(props: Props) {
         () =>
             packingDispatches.find(
                 (dispatch) =>
-                    dispatch.status !== "completed" &&
-                    dispatch.status !== "cancelled",
+					dispatch.status !== "completed" && dispatch.status !== "cancelled",
             ) || null,
         [packingDispatches],
     );
@@ -579,8 +582,7 @@ export function NewSalesForm(props: Props) {
                 ...(salesId
                     ? [
                           queryClient.invalidateQueries({
-                              queryKey:
-                                  trpc.dispatch.orderDispatchOverview.queryKey({
+								queryKey: trpc.dispatch.orderDispatchOverview.queryKey({
                                       salesId,
                                   }),
                           }),
@@ -615,8 +617,7 @@ export function NewSalesForm(props: Props) {
     useEffect(() => {
         if (!loadData) return;
         const loadKey = `${props.mode}:${props.type}:${String(loadData.salesId ?? "new")}:${String(loadData.slug ?? "draft")}:${String(loadData.version ?? "v0")}`;
-        const shouldHydrate =
-            !record || lastHydratedLoadKeyRef.current !== loadKey;
+		const shouldHydrate = !record || lastHydratedLoadKeyRef.current !== loadKey;
         if (!shouldHydrate) return;
         lastHydratedLoadKeyRef.current = loadKey;
         hydrate(loadData as NewSalesFormRecord);
@@ -626,6 +627,66 @@ export function NewSalesForm(props: Props) {
         if (!record) return null;
         return toSaveDraftInput(record, true);
     }, [record]);
+	const loadedChangeProtection = (
+		loadData as
+			| {
+					changeProtection?: {
+						paymentTotal: number;
+						paymentCount: number;
+						refundablePaymentCount: number;
+						allocatedQty: number;
+						inboundQty: number;
+						productionQty: number;
+						fulfilledQty: number;
+					};
+					activeAdjustment?: {
+						id: string;
+						status: string;
+						direction: string;
+					} | null;
+			  }
+			| null
+			| undefined
+	)?.changeProtection;
+	const activeAdjustment = (
+		loadData as
+			| {
+					activeAdjustment?: {
+						id: string;
+						status: string;
+						direction: string;
+					} | null;
+			  }
+			| null
+			| undefined
+	)?.activeAdjustment;
+	const hasSaleCommitments = Boolean(
+		loadedChangeProtection &&
+			(loadedChangeProtection.paymentTotal > 0 ||
+				loadedChangeProtection.allocatedQty > 0 ||
+				loadedChangeProtection.inboundQty > 0 ||
+				loadedChangeProtection.productionQty > 0 ||
+				loadedChangeProtection.fulfilledQty > 0),
+	);
+	const localChangeAnalysis = useMemo(() => {
+		if (
+			props.mode !== "edit" ||
+			props.type !== "order" ||
+			!record ||
+			!loadData ||
+			!loadedChangeProtection
+		) {
+			return null;
+		}
+		return analyzeSalesFormChange({
+			before: loadData,
+			after: record,
+			commitments: loadedChangeProtection,
+		});
+	}, [loadData, loadedChangeProtection, props.mode, props.type, record]);
+	const hasProtectedQuantityChange = Boolean(
+		localChangeAnalysis?.requiresApproval,
+	);
     const recordPaymentMeta = record as {
         paymentMethodReviewDismissed?: unknown;
         paymentTotal?: unknown;
@@ -698,7 +759,7 @@ export function NewSalesForm(props: Props) {
     );
 
     const autosave = useNewSalesFormAutoSave({
-        enabled: !!record && editor.autosaveEnabled,
+		enabled: !!record && editor.autosaveEnabled && !hasProtectedQuantityChange,
         dirty,
         payload,
         onSaving: () => {
@@ -736,6 +797,12 @@ export function NewSalesForm(props: Props) {
     });
 
     const finalSave = useSaveFinalNewSalesFormMutation();
+	const previewAdjustmentMutation = useMutation(
+		trpc.newSalesForm.previewAdjustment.mutationOptions(),
+	);
+	const createAdjustmentMutation = useMutation(
+		trpc.newSalesForm.createAdjustment.mutationOptions(),
+	);
     const taskTrigger = useTaskTrigger({
         silent: true,
         monitor: true,
@@ -746,7 +813,11 @@ export function NewSalesForm(props: Props) {
         },
     });
     const isSaveBusy =
-        manualSaveLock || autosave.isSaving || finalSave.isPending;
+		manualSaveLock ||
+		autosave.isSaving ||
+		finalSave.isPending ||
+		previewAdjustmentMutation.isPending ||
+		createAdjustmentMutation.isPending;
     const ensurePackingDispatch = useCallback(async () => {
         if (activePackingDispatch?.id) {
             return {
@@ -808,9 +879,7 @@ export function NewSalesForm(props: Props) {
         try {
             await updateDispatchStatusMutation.mutateAsync({
                 dispatchId: currentPackingDispatch.id,
-                oldStatus: normalizeDispatchStatus(
-                    currentPackingDispatch.status,
-                ),
+				oldStatus: normalizeDispatchStatus(currentPackingDispatch.status),
                 newStatus: "cancelled",
             });
             await invalidatePackingQueries(record?.salesId);
@@ -1010,21 +1079,14 @@ export function NewSalesForm(props: Props) {
             if (leaveWarningBypassedRef.current) return;
             if (event.defaultPrevented) return;
             if (event.button !== 0) return;
-            if (
-                event.metaKey ||
-                event.ctrlKey ||
-                event.shiftKey ||
-                event.altKey
-            ) {
+			if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
                 return;
             }
 
             const target = event.target;
             if (!(target instanceof Element)) return;
 
-            const anchor = target.closest(
-                "a[href]",
-            ) as HTMLAnchorElement | null;
+			const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
             if (!anchor) return;
             if (anchor.target && anchor.target !== "_self") return;
             if (anchor.hasAttribute("download")) return;
@@ -1107,10 +1169,7 @@ export function NewSalesForm(props: Props) {
         } catch (error) {
             toast({
                 title: "Unable to preview this version",
-                description: getErrorMessage(
-                    error,
-                    "Refresh the form and try again.",
-                ),
+				description: getErrorMessage(error, "Refresh the form and try again."),
                 variant: "destructive",
             });
         } finally {
@@ -1149,10 +1208,7 @@ export function NewSalesForm(props: Props) {
         } catch (error) {
             toast({
                 title: "Unable to restore this version",
-                description: getErrorMessage(
-                    error,
-                    "Refresh the form and try again.",
-                ),
+				description: getErrorMessage(error, "Refresh the form and try again."),
                 variant: "destructive",
             });
         } finally {
@@ -1189,6 +1245,74 @@ export function NewSalesForm(props: Props) {
         return true;
     }
 
+	async function openCommittedChangeReview() {
+		if (!record?.salesId || !record.slug || !record.version) return;
+		setChangeReviewOpen(true);
+		setApprovalUrl(null);
+		try {
+			const review = await previewAdjustmentMutation.mutateAsync({
+				...toSaveDraftInput(record, false),
+				type: "order",
+				salesId: record.salesId,
+				slug: record.slug,
+				version: record.version,
+				autosave: false,
+			});
+			setChangeReview(review);
+		} catch (error) {
+			toast({
+				title: "Unable to review this change",
+				description: getErrorMessage(error, "Reload the sale and try again."),
+				variant: "destructive",
+			});
+		}
+	}
+
+	async function submitCommittedChange(input: {
+		reason: string;
+		recipient: string | null;
+	}) {
+		if (!record?.salesId || !record.slug || !record.version) return;
+		try {
+			const result = await createAdjustmentMutation.mutateAsync({
+				...toSaveDraftInput(record, false),
+				type: "order",
+				salesId: record.salesId,
+				slug: record.slug,
+				version: record.version,
+				autosave: false,
+				reason: input.reason,
+				approvalChannel: "MANUAL",
+				approvalRecipient: input.recipient || undefined,
+			});
+			setApprovalUrl(
+				result.approvalToken
+					? `${window.location.origin}/sales/change-approval/${result.approvalToken}`
+					: null,
+			);
+			await getQuery.refetch();
+			toast({
+				title: "Approval request created",
+				description: result.approvalToken
+					? "The live sale is unchanged. Share the approval link with the customer."
+					: "This exact change already has an approval request.",
+				variant: "success",
+			});
+		} catch (error) {
+			toast({
+				title: "Unable to request approval",
+				description: getErrorMessage(error, "Please try again."),
+				variant: "destructive",
+			});
+		}
+	}
+
+	async function stopForCommittedChangeReview() {
+		if (!hasProtectedQuantityChange) return false;
+		await openCommittedChangeReview();
+		return true;
+	}
+
     async function runWithManualSaveLock(action: () => Promise<void>) {
         if (isSaveBusy) return;
         setManualSaveLock(true);
@@ -1203,6 +1327,7 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
+			if (await stopForCommittedChangeReview()) return;
             markSaving();
             const resp = await autosave.flush("manual-flush", {
                 force: true,
@@ -1232,6 +1357,7 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
+			if (await stopForCommittedChangeReview()) return;
             markSaving();
             const payload = {
                 ...toSaveDraftInput(record, false),
@@ -1278,6 +1404,7 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
+			if (await stopForCommittedChangeReview()) return;
             if (dirty) {
                 const resp = await autosave.flush("manual-flush");
                 if (!resp) return;
@@ -1297,6 +1424,7 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
+			if (await stopForCommittedChangeReview()) return;
             if (dirty) {
                 const resp = await autosave.flush("manual-flush");
                 if (!resp) return;
@@ -1317,11 +1445,11 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
+			if (await stopForCommittedChangeReview()) return;
             if (saveStatus === "stale") {
                 toast({
                     title: "Print unavailable",
-                    description:
-                        "Reload latest data before printing this form.",
+					description: "Reload latest data before printing this form.",
                     variant: "destructive",
                 });
                 return;
@@ -1368,11 +1496,11 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
+			if (await stopForCommittedChangeReview()) return;
             if (saveStatus === "stale") {
                 toast({
                     title: "PDF unavailable",
-                    description:
-                        "Reload latest data before downloading this form.",
+					description: "Reload latest data before downloading this form.",
                     variant: "destructive",
                 });
                 return;
@@ -1419,11 +1547,11 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
+			if (await stopForCommittedChangeReview()) return;
             if (saveStatus === "stale") {
                 toast({
                     title: "Preview unavailable",
-                    description:
-                        "Reload latest data before previewing this form.",
+					description: "Reload latest data before previewing this form.",
                     variant: "destructive",
                 });
                 return;
@@ -1440,8 +1568,7 @@ export function NewSalesForm(props: Props) {
                     if (!resp?.salesId) {
                         toast({
                             title: "Unable to prepare preview",
-                            description:
-                                "Save the latest changes before previewing.",
+							description: "Save the latest changes before previewing.",
                             variant: "destructive",
                         });
                         return;
@@ -1462,9 +1589,7 @@ export function NewSalesForm(props: Props) {
                 await salesPreview.preview(salesId, props.type, {
                     customerEmail: record.customer?.email ?? null,
                     customerName:
-                        record.customer?.businessName ||
-                        record.customer?.name ||
-                        null,
+						record.customer?.businessName || record.customer?.name || null,
                 });
             } finally {
                 setIsPreviewing(false);
@@ -1493,6 +1618,13 @@ export function NewSalesForm(props: Props) {
         addLineItem();
     }
 
+	const refreshAfterPayment = useCallback(async () => {
+		const refreshed = await getQuery.refetch();
+		if (refreshed.data) {
+			patchRecord({ paymentTotal: refreshed.data.paymentTotal });
+		}
+	}, [getQuery, patchRecord]);
+
     if (loadError) {
         return (
             <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
@@ -1520,8 +1652,7 @@ export function NewSalesForm(props: Props) {
     const customerId = Number(customer?.id || record.form.customerId || 0);
     const amountDue = Math.max(
         0,
-        Number(record.summary.grandTotal || 0) -
-            Number(record.paymentTotal || 0),
+		Number(record.summary.grandTotal || 0) - Number(record.paymentTotal || 0),
     );
     const canPay = isOrder && isSaved && amountDue > 0 && customerId > 0;
     const salesIds = salesId ? [salesId] : [];
@@ -1533,6 +1664,7 @@ export function NewSalesForm(props: Props) {
                 selectedIds={salesIds}
                 customerId={customerId}
                 disabled={!canPay}
+				onPaymentApplied={refreshAfterPayment}
             >
                 <Button
                     type="button"
@@ -1554,6 +1686,7 @@ export function NewSalesForm(props: Props) {
                 selectedIds={salesIds}
                 customerId={customerId}
                 disabled={!canPay}
+				onPaymentApplied={refreshAfterPayment}
             >
                 <DropdownMenuItem
                     disabled={!canPay}
@@ -1629,6 +1762,15 @@ export function NewSalesForm(props: Props) {
                 onChange={setUsePackageWorkflowPanel}
             />
             {inventoryConfiguratorDialog}
+			<SalesChangeReviewSheet
+				open={changeReviewOpen}
+				onOpenChange={setChangeReviewOpen}
+				review={changeReview}
+				isLoading={previewAdjustmentMutation.isPending}
+				isSubmitting={createAdjustmentMutation.isPending}
+				approvalUrl={approvalUrl}
+				onSubmit={submitCommittedChange}
+			/>
             {settingsOpen ? (
                 <NewSalesFormSettingsModal
                     open={settingsOpen}
@@ -1710,13 +1852,79 @@ export function NewSalesForm(props: Props) {
                     RecoveryBanner:
                         historyPreview ||
                         restoredHistoryEntry ||
-                        recoverySnapshot ? (
+						recoverySnapshot ||
+						hasSaleCommitments ||
+						activeAdjustment ? (
                             <div className="m-4 space-y-2 sm:m-6 lg:m-8">
-                                {historyPreview ? (
-                                    <div
-                                        className="flex flex-col gap-3 rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950 shadow-sm md:flex-row md:items-center md:justify-between"
-                                        role="status"
+								{loadedChangeProtection && hasSaleCommitments ? (
+									<output
+										className={`flex flex-col gap-3 rounded-lg border p-3 text-sm shadow-sm md:flex-row md:items-center md:justify-between ${
+											hasProtectedQuantityChange
+												? "border-amber-400 bg-amber-50 text-amber-950"
+												: "border-blue-200 bg-blue-50 text-blue-950"
+										}`}
                                     >
+										<div className="min-w-0">
+											<div className="flex flex-wrap items-center gap-2">
+												<p className="font-semibold">
+													{hasProtectedQuantityChange
+														? "Review required before saving"
+														: "This sale has committed activity"}
+												</p>
+												{loadedChangeProtection.paymentTotal > 0 ? (
+													<Badge variant="outline">
+														${loadedChangeProtection.paymentTotal.toFixed(2)}{" "}
+														paid
+													</Badge>
+												) : null}
+												{loadedChangeProtection.inboundQty > 0 ? (
+													<Badge variant="outline">
+														Inbound {loadedChangeProtection.inboundQty}
+													</Badge>
+												) : null}
+												{loadedChangeProtection.allocatedQty > 0 ? (
+													<Badge variant="outline">
+														Allocated {loadedChangeProtection.allocatedQty}
+													</Badge>
+												) : null}
+												{loadedChangeProtection.productionQty > 0 ? (
+													<Badge variant="outline">
+														Production {loadedChangeProtection.productionQty}
+													</Badge>
+												) : null}
+												{loadedChangeProtection.fulfilledQty > 0 ? (
+													<Badge variant="outline">
+														Fulfilled {loadedChangeProtection.fulfilledQty}
+													</Badge>
+												) : null}
+											</div>
+											<p className="mt-1 text-xs opacity-80">
+												Quantity changes use a before/after snapshot and
+												customer approval. The live sale is not overwritten
+												while approval is pending.
+											</p>
+											{activeAdjustment ? (
+												<p className="mt-1 text-xs font-medium">
+													Adjustment {activeAdjustment.direction.toLowerCase()}{" "}
+													·{" "}
+													{activeAdjustment.status
+														.replaceAll("_", " ")
+														.toLowerCase()}
+												</p>
+											) : null}
+										</div>
+										{hasProtectedQuantityChange ? (
+											<Button
+												size="sm"
+												onClick={() => void openCommittedChangeReview()}
+											>
+												Review changes
+											</Button>
+										) : null}
+									</output>
+								) : null}
+								{historyPreview ? (
+									<output className="flex flex-col gap-3 rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950 shadow-sm md:flex-row md:items-center md:justify-between">
                                         <div className="flex items-start gap-2">
                                             <Icons.History className="mt-0.5 size-4 shrink-0" />
                                             <div>
@@ -1738,56 +1946,43 @@ export function NewSalesForm(props: Props) {
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                onClick={() =>
-                                                    setHistoryPreview(null)
-                                                }
+												onClick={() => setHistoryPreview(null)}
                                             >
                                                 Return to current
                                             </Button>
                                             <Button
                                                 size="sm"
                                                 onClick={() =>
-                                                    void handleRestoreHistoryEntry(
-                                                        historyPreview.entry,
-                                                    )
+													void handleRestoreHistoryEntry(historyPreview.entry)
                                                 }
                                             >
                                                 Restore this version
                                             </Button>
                                         </div>
-                                    </div>
+									</output>
                                 ) : null}
                                 {restoredHistoryEntry ? (
-                                    <div
-                                        className="flex flex-col gap-3 rounded-lg border border-blue-300 bg-blue-50 p-3 text-sm text-blue-950 md:flex-row md:items-center md:justify-between"
-                                        role="status"
-                                    >
+									<output className="flex flex-col gap-3 rounded-lg border border-blue-300 bg-blue-50 p-3 text-sm text-blue-950 md:flex-row md:items-center md:justify-between">
                                         <div className="flex items-start gap-2">
                                             <Icons.History className="mt-0.5 size-4 shrink-0" />
                                             <div>
-                                                <p className="font-semibold">
-                                                    Restored from history
-                                                </p>
+												<p className="font-semibold">Restored from history</p>
                                                 <p className="text-xs text-blue-800">
                                                     Version from{" "}
                                                     {new Date(
                                                         restoredHistoryEntry.createdAt,
                                                     ).toLocaleString()}{" "}
-                                                    is loaded as unsaved changes.
-                                                    Save to make it current.
+													is loaded as unsaved changes. Save to make it current.
                                                 </p>
                                             </div>
                                         </div>
-                                    </div>
+									</output>
                                 ) : null}
                                 {recoverySnapshot ? (
                                     <div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
                                         <p>
                                             Unsaved local edits were found from{" "}
-                                            {new Date(
-                                                recoverySnapshot.savedAt,
-                                            ).toLocaleString()}
-                                            .
+											{new Date(recoverySnapshot.savedAt).toLocaleString()}.
                                         </p>
                                         <div className="flex items-center gap-2">
                                             <Button
@@ -1805,10 +2000,7 @@ export function NewSalesForm(props: Props) {
                                             >
                                                 Dismiss
                                             </Button>
-                                            <Button
-                                                size="sm"
-                                                onClick={applyRecoverySnapshot}
-                                            >
+											<Button size="sm" onClick={applyRecoverySnapshot}>
                                                 Restore
                                             </Button>
                                         </div>
@@ -1817,9 +2009,7 @@ export function NewSalesForm(props: Props) {
                             </div>
                         ) : null,
                     MainPanel: historyPreview ? (
-                        <SalesHistorySnapshotPreview
-                            record={historyPreview.record}
-                        />
+						<SalesHistorySnapshotPreview record={historyPreview.record} />
                     ) : usePackageWorkflowPanel ? (
                         <DashboardSalesFormWorkflowPanel />
                     ) : (
@@ -1853,8 +2043,7 @@ export function NewSalesForm(props: Props) {
                         <InvoiceOverviewPanel
                             canEditCustomer={
                                 salesFormPermissions.canEditCustomer &&
-                                !(record as { dealerProfileCard?: unknown })
-                                    .dealerProfileCard
+								!(record as { dealerProfileCard?: unknown }).dealerProfileCard
                             }
                             historyRestoreActive={Boolean(restoredHistoryEntry)}
                             mode={props.mode}
@@ -1866,12 +2055,8 @@ export function NewSalesForm(props: Props) {
                             salesNo={record.orderId}
                             activeHistoryId={historyPreview?.entry.id}
                             busyHistoryId={busyHistoryId}
-                            onPreview={(entry) =>
-                                void handlePreviewHistoryEntry(entry)
-                            }
-                            onRestore={(entry) =>
-                                void handleRestoreHistoryEntry(entry)
-                            }
+							onPreview={(entry) => void handlePreviewHistoryEntry(entry)}
+							onRestore={(entry) => void handleRestoreHistoryEntry(entry)}
                         />
                     ) : undefined,
                 }}
@@ -1898,9 +2083,7 @@ export function NewSalesForm(props: Props) {
                     onToggleStepDisplay={() =>
                         setEditor({
                             stepDisplayMode:
-                                editor.stepDisplayMode === "extended"
-                                    ? "compact"
-                                    : "extended",
+								editor.stepDisplayMode === "extended" ? "compact" : "extended",
                         })
                     }
                     onOpenMobileSummary={() =>
@@ -1927,9 +2110,7 @@ export function NewSalesForm(props: Props) {
                     capabilities={salesFormCapabilities}
                     permissions={salesFormPermissions}
                     packingButtonLabel={
-                        activePackingDispatch
-                            ? "Packing sent"
-                            : "Packing"
+						activePackingDispatch ? "Packing sent" : "Packing"
                     }
                     packingBusy={isPackingBusy}
                     onSendForPacking={handleSendForPacking}
@@ -1947,9 +2128,7 @@ export function NewSalesForm(props: Props) {
                     onOpenPacking={handleOpenPacking}
                     openPackingDisabled={!record.orderId}
                     onOpenSettings={() => setSettingsOpen(true)}
-                    activeItem={
-                        editor.activeItem || record.lineItems[0]?.uid || null
-                    }
+					activeItem={editor.activeItem || record.lineItems[0]?.uid || null}
                     itemOptions={itemOptions}
                     onActiveItemChange={(value) =>
                         setEditor({

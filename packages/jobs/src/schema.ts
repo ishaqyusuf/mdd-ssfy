@@ -15,6 +15,7 @@ export {
 export const taskNames = [
 	"create-sales-dispatch",
 	"create-sales-history",
+	"apply-sales-order-adjustment",
 	"mark-sales-as-completed",
 	"run-inventory-full-import-now",
 	"run-inventory-full-import-test",
@@ -68,6 +69,13 @@ export const taskNames = [
 	"notification",
 ] as const;
 export type TaskName = (typeof taskNames)[number];
+
+export const applySalesOrderAdjustmentSchema = z.object({
+	adjustmentId: z.string().cuid(),
+});
+export type ApplySalesOrderAdjustmentPayload = z.infer<
+	typeof applySalesOrderAdjustmentSchema
+>;
 
 export const attachSignedDispatchPdfSchema = z.object({
 	dispatchId: z.number(),
@@ -199,7 +207,14 @@ const positiveIntegerId = z.number().int().positive();
 export const syncSalesInventoryLineItemsSchemaTask = z.object({
 	salesOrderId: positiveIntegerId,
 	source: z
-		.enum(["old-form", "new-form", "copy-sales", "manual", "repair"])
+		.enum([
+			"old-form",
+			"new-form",
+			"copy-sales",
+			"adjustment",
+			"manual",
+			"repair",
+		])
 		.default("manual"),
 	triggeredByUserId: z.number().optional().nullable(),
 });
@@ -213,7 +228,14 @@ export const backfillSalesInventoryLineItemsSchemaTask = z.object({
 	batchSize: z.number().int().min(1).max(200).optional().default(50),
 	includeAlreadySynced: z.boolean().optional().default(false),
 	source: z
-		.enum(["old-form", "new-form", "copy-sales", "manual", "repair"])
+		.enum([
+			"old-form",
+			"new-form",
+			"copy-sales",
+			"adjustment",
+			"manual",
+			"repair",
+		])
 		.default("repair"),
 	triggeredByUserId: z.number().optional().nullable(),
 });

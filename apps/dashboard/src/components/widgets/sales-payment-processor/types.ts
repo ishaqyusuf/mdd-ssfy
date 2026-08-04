@@ -8,6 +8,7 @@ export interface SalesPaymentProcessorProps {
 	children?: ReactNode;
 	buttonProps?: ButtonProps;
 	disabled?: boolean;
+	onPaymentApplied?: () => void | Promise<void>;
 }
 
 export type PendingAppliedPaymentCheck = {

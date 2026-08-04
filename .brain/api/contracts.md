@@ -1,5 +1,23 @@
 # API Contracts
 
+## New Sales Form Adjustment Contract (2026-08-04)
+
+- Adjustment preview/proposal inputs reuse the complete typed new-sales-form
+  snapshot plus `reason`, manual approval channel/recipient metadata, and the
+  current persisted `version`.
+- The server reloads the baseline and commitment projection; client-supplied
+  before values, payment totals, wallet results, and operational floors are
+  never authoritative.
+- A commitment-protected direct save that changes quantity fails with
+  `PRECONDITION_FAILED` and message code `SALES_CHANGE_REVIEW_REQUIRED` unless
+  `approvedAdjustmentId` matches the exact approved source/proposal.
+- Settlement returns `amountDue`, `walletCredit`, and effective payment after
+  credit. Increases never include an automatic charge.
+- Existing sale items have stable fallback UIDs of `sales-item-<id>`; new
+  unsaved lines retain session-generated UIDs.
+- Approval tokens are returned only when the proposal is first created and are
+  accepted only by the token-scoped public approval procedures.
+
 ## New Sales Form Edit Identifier Compatibility (2026-08-03)
 
 - `newSalesForm.get({ type, slug })` treats the `slug` input as an edit-route

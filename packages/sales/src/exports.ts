@@ -1,4 +1,5 @@
 export * from "./sales-control";
+export * from "./adjustment-system";
 export * from "./sales-control/dispatch";
 export * from "./sales-control/get-dispatch-information";
 export * from "./sales-control/get-sale-information";

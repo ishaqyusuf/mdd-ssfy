@@ -6,7 +6,6 @@ import {
 import type {
 	NewSalesFormExtraCost,
 	NewSalesFormLineItem,
-	NewSalesFormRecord,
 	NewSalesFormSaveDraftInput,
 	NewSalesFormSummary,
 } from "./schema";
@@ -40,22 +39,21 @@ export function computeSummary(
 }
 
 export function toSaveDraftInput(
-	source: Pick<
-		NewSalesFormRecord,
-		| "type"
-		| "salesId"
-		| "slug"
-		| "inventoryStatus"
-		| "version"
-		| "form"
-		| "lineItems"
-		| "extraCosts"
-		| "summary"
-	>,
+	source: {
+		type: NewSalesFormSaveDraftInput["type"];
+		salesId?: number | null;
+		slug?: string | null;
+		inventoryStatus?: unknown;
+		version?: string | null;
+		form: unknown;
+		lineItems: unknown[];
+		extraCosts: unknown[];
+		summary: unknown;
+	},
 	autosave = true,
 ): NewSalesFormSaveDraftInput {
 	return composeSalesFormSavePayload(
-		source,
+		source as Parameters<typeof composeSalesFormSavePayload>[0],
 		{
 			surface: "www",
 			autosave,

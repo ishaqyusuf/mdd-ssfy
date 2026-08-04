@@ -1,5 +1,18 @@
 # Database Migrations
 
+## 2026-08-04: Sales Order Adjustments
+
+- Added `20260804150000_sales_order_adjustments`, an additive migration for the
+  adjustment, line snapshot, and approval tables plus lifecycle enums and
+  indexes.
+- Prisma Client generation succeeds. The generated migration SQL was produced
+  from a clean schema-to-schema Prisma diff, executed against the local schema,
+  and the three new model counts were queried successfully.
+- Normal `db:migrate` shadow replay remains blocked by the older unrelated
+  `20260722180000_master_password_usage_audit` migration referencing
+  `MasterPasswordLoginAudit` before that table exists. No reset,
+  `--accept-data-loss`, or unrelated schema mutation was used.
+
 ## 2026-07-31: Shared DB Commands And Sync
 
 - `db:generate`, `db:migrate`, `db:pull`, `db:push`, and `db:studio` use `local-infra-kit/bin/db.ts` with the `gnd` profile. Local development is the default; each accepts only `--local`, `--dev`, `--preview`, or `--prod`, with tool arguments after `--`.

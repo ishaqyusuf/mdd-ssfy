@@ -139,6 +139,7 @@ export const saveDraftNewSalesFormSchema = z.object({
 	type: newSalesFormTypeSchema,
   slug: z.string().optional().nullable(),
   salesId: z.number().optional().nullable(),
+	approvedAdjustmentId: z.string().cuid().optional().nullable(),
   inventoryStatus: z.enum(orderInboundStatuses).optional().nullable(),
   version: z.string().optional().nullable(),
   autosave: z.boolean().default(true),
@@ -156,6 +157,45 @@ export const saveFinalNewSalesFormSchema = saveDraftNewSalesFormSchema.extend({
 });
 export type SaveFinalNewSalesFormSchema = z.infer<
   typeof saveFinalNewSalesFormSchema
+>;
+
+export const previewNewSalesFormAdjustmentSchema =
+	saveDraftNewSalesFormSchema.extend({
+		type: z.literal("order"),
+		salesId: z.number().int().positive(),
+		slug: z.string().trim().min(1),
+		version: z.string().trim().min(1),
+		autosave: z.literal(false),
+	});
+export type PreviewNewSalesFormAdjustmentSchema = z.infer<
+	typeof previewNewSalesFormAdjustmentSchema
+>;
+
+export const createNewSalesFormAdjustmentSchema =
+	previewNewSalesFormAdjustmentSchema.extend({
+		reason: z.string().trim().min(3).max(2_000),
+		approvalChannel: z.enum(["EMAIL", "SMS", "MANUAL"]).default("MANUAL"),
+		approvalRecipient: z.string().trim().max(255).optional().nullable(),
+	});
+export type CreateNewSalesFormAdjustmentSchema = z.infer<
+	typeof createNewSalesFormAdjustmentSchema
+>;
+
+export const getNewSalesFormAdjustmentApprovalSchema = z.object({
+	token: z.string().trim().min(20).max(255),
+});
+export type GetNewSalesFormAdjustmentApprovalSchema = z.infer<
+	typeof getNewSalesFormAdjustmentApprovalSchema
+>;
+
+export const respondNewSalesFormAdjustmentApprovalSchema =
+	getNewSalesFormAdjustmentApprovalSchema.extend({
+		decision: z.enum(["APPROVE", "REJECT"]),
+		note: z.string().trim().max(2_000).optional().nullable(),
+		userAgent: z.string().trim().max(500).optional().nullable(),
+	});
+export type RespondNewSalesFormAdjustmentApprovalSchema = z.infer<
+	typeof respondNewSalesFormAdjustmentApprovalSchema
 >;
 
 export const deleteNewSalesFormLineItemSchema = z.object({

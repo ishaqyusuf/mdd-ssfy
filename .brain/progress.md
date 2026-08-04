@@ -1,14 +1,32 @@
 # Progress
 
-- 2026-08-04: planned a governed customer-approved post-sale quantity-reduction
-  workflow with immutable line-level before/after evidence, secure approval
-  revisions, stale order/payment/fulfillment guards, canonical repricing,
-  due-first settlement, idempotent overpayment transfer to the customer wallet,
+- 2026-08-04: implemented customer-approved quantity increases/reductions for
+  existing items directly inside the new sales form. Committed orders now show
+  payment/inbound/production/fulfillment warnings; consequential saves open a
+  before/after Change Review and persist an immutable pending proposal instead
+  of changing the live sale. An expiring token page records customer approval,
+  then an idempotent job rechecks the sale version, applies exact line/order
+  totals, reduces due first, credits only overpayment to the customer wallet,
+  and queues inventory reconciliation plus sales history. Added Prisma models,
+  migration, guarded API contracts, public approval UI, focused domain tests,
+  and stable legacy line identities. Release one uses manually shared links and
+  persisted lines only. See
+  `.brain/features/in-form-sales-order-adjustments.md` and ADR-045.
+
+- 2026-08-04: planned a governed customer-approved post-sale quantity-change
+  workflow embedded in the new sales form. The revised plan adds payment,
+  inbound, production, and fulfillment commitment labels; an immutable edit
+  baseline; increase/reduction/mixed diff detection; guarded autosave, save,
+  print, preview, and PDF paths; and an in-form Change Review sheet. Proposed
+  changes remain separate from the live sale until approval and idempotent
+  application. The plan retains immutable line-level before/after evidence,
+  secure approval revisions, stale order/payment/fulfillment guards, canonical
+  repricing, due-first settlement, exact wallet-credit treatment,
   inventory/document follow-up, and consistent Sales Overview, invoice,
-  Finance, history, and wallet visibility. The plan follows Midday's thin-route,
+  Finance, history, and wallet visibility. It follows Midday's thin-route,
   package-owned domain, on-demand UI, and background-job structure while
   preserving GND's legacy/canonical payment compatibility boundary. No
-  implementation code or database schema changed. See
+  implementation was subsequently completed in release one. See
   `.brain/plans/2026-08-04-sales-quantity-reduction-wallet-credit.md`.
 
 - 2026-08-03: changed the shared new-sales-form editor default from autosave on
@@ -8138,3 +8156,17 @@
   broad Dashboard typecheck remains red on its existing unrelated baseline
   diagnostics with no diagnostic observed in the touched invoice overview
   integration.
+- 2026-08-04: fixed the reported background-task failures for order `09168PC`.
+  New office sales persist the authenticated creator as sales rep; history
+  snapshots fall back to the task author for legacy source orders without a
+  rep; grouped moulding inventory projection selects its single moulding step
+  from multi-step line metadata; and invalid realtime public tokens are
+  reconciled server-side instead of replacing the authoritative run error in
+  the client monitor. Focused coverage passes 39 tests / 106 assertions,
+  Sales typecheck and touched Dashboard Biome checks pass. Exact Trigger
+  retries completed: inventory run `run_06fssvs9oretm3jdbju32tqs01` updated one
+  line with zero skips/warnings and projection `ready`, and history run
+  `run_06fst001pjiusgfk89drjfth01` completed. Full in-app order-page QA remains
+  blocked by a separate in-progress sales-adjustment workspace change whose
+  new Prisma read crashes the edit-order route; Prisma client generation alone
+  did not resolve that unfinished feature.

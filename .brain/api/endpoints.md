@@ -1,5 +1,22 @@
 # API Endpoints
 
+## New Sales Form Adjustments
+
+- `newSalesForm.get` now includes current payment/inbound/production/fulfillment
+  protection and the latest active adjustment status for existing orders.
+- `newSalesForm.previewAdjustment` returns authoritative before/after line and
+  total changes, due/wallet settlement, commitments, and irreversible floor
+  blockers without mutating the sale.
+- `newSalesForm.createAdjustment` stores an immutable pending revision and
+  returns an expiring customer approval token once. Duplicate idempotency keys
+  return the existing proposal without disclosing the token again.
+- `newSalesForm.getAdjustmentApproval` is the token-scoped public approval read.
+- `newSalesForm.respondAdjustmentApproval` records approve/reject once;
+  approval queues `apply-sales-order-adjustment`.
+- `newSalesForm.saveDraft` and `saveFinal` accept `approvedAdjustmentId` only as
+  a server-verified bypass for the exact approved source version, total, and
+  proposed quantity snapshot. Direct committed-line deletion is also guarded.
+
 ## Sales dashboard and reporting
 
 - Protected performance reads:

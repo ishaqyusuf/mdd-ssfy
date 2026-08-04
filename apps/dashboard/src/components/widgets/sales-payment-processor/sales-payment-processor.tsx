@@ -530,6 +530,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 						});
 					}
 					form.setValue("paymentStatus", "completed");
+					void props.onPaymentApplied?.();
 					if (terminalState === "recording") {
 						setTerminalState("success");
 						setTerminalError(null);

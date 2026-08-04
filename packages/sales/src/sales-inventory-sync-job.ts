@@ -4,6 +4,7 @@ export type SalesInventorySyncSource =
   | "new-form"
   | "old-form"
   | "copy-sales"
+  | "adjustment"
   | "manual"
   | "repair";
 

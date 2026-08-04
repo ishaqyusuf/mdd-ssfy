@@ -48,6 +48,7 @@ import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-war
 import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
 import { assertDealerSaleOfficeAccess } from "@gnd/db/queries";
 import { projectLegacyOrderPayments } from "@gnd/sales";
+import { analyzeSalesFormChange } from "@gnd/sales/adjustment-system";
 import {
 	addMoney,
 	resolveSalesDisplayCcc,
@@ -72,6 +73,7 @@ import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-syn
 import { generateSalesSlug } from "@gnd/sales/utils";
 import { generateRandomString } from "@gnd/utils";
 import { TRPCError } from "@trpc/server";
+import { getNewSalesFormCommitmentSnapshot } from "./new-sales-form-adjustments";
 import {
 	captureNewSalesFormSavePayload,
 	logNewSalesFormSaveDiagnostic,
@@ -819,7 +821,7 @@ function toBootstrapPayload(
 				sourceMeta: itemMeta,
 				uid:
 					(typeof itemMeta.uid === "string" && itemMeta.uid) ||
-					`line-${index + 1}-${generateRandomString(6)}`,
+					`sales-item-${item.id}`,
 				title:
 					item.dykeDescription ||
 					(typeof itemMeta.title === "string" ? itemMeta.title : "") ||
@@ -1009,7 +1011,7 @@ function toBootstrapPayload(
 		status: order.status || "Draft",
 		version:
 			persisted?.version ||
-			`${order.updatedAt?.getTime() || Date.now()}-${generateRandomString(6)}`,
+			`${order.updatedAt?.getTime() || order.createdAt?.getTime() || 0}-legacy`,
 		updatedAt:
 			persisted?.updatedAt ||
 			order.updatedAt?.toISOString() ||
@@ -2614,7 +2616,6 @@ async function saveNewSalesFormInternal(
 		paymentMethod: payload.meta.paymentMethod || null,
 		cccPercentage: settings.cccPercentage,
 	});
-
 	return ctx.db.$transaction(async (tx) => {
 		const isNew = !(payload.salesId || payload.slug);
 		let currentId = payload.salesId || null;
@@ -2636,6 +2637,16 @@ async function saveNewSalesFormInternal(
 			dealerAuthId: number | null;
 			salesChannel: string | null;
 			payments: { amount: number | null; status: string | null }[];
+			grandTotal: number | null;
+			items: Array<{
+				id: number;
+				multiDykeUid: string | null;
+				description: string | null;
+				dykeDescription: string | null;
+				qty: number | null;
+				total: number | null;
+				meta: unknown;
+			}>;
 		};
 
 		if (payload.salesId || payload.slug) {
@@ -2668,6 +2679,20 @@ async function saveNewSalesFormInternal(
 						select: {
 							amount: true,
 							status: true,
+						},
+					},
+					grandTotal: true,
+					items: {
+						where: { deletedAt: null },
+						orderBy: { id: "asc" },
+						select: {
+							id: true,
+							multiDykeUid: true,
+							description: true,
+							dykeDescription: true,
+							qty: true,
+							total: true,
+							meta: true,
 						},
 					},
 				},
@@ -2711,7 +2736,10 @@ async function saveNewSalesFormInternal(
 		}
 
 		const currentMeta = safeMeta(order?.meta);
-		const currentVersion = currentMeta.newSalesForm?.version;
+		const currentVersion = order
+			? currentMeta.newSalesForm?.version ||
+				`${order.updatedAt?.getTime() || order.createdAt?.getTime() || 0}-legacy`
+			: null;
 		if (
 			currentVersion &&
 			payload.version &&
@@ -2722,6 +2750,97 @@ async function saveNewSalesFormInternal(
 				message:
 					"This form changed elsewhere. Reload the latest version before saving.",
 			});
+		}
+		const saveCommitments =
+			order && payload.type === "order"
+				? await getNewSalesFormCommitmentSnapshot(
+							tx as unknown as TRPCContext["db"],
+							order.id,
+						)
+				: null;
+		if (order && payload.type === "order" && saveCommitments) {
+			const persistedLines = currentMeta.newSalesForm?.lineItems || [];
+			const beforeLines = persistedLines.length
+				? persistedLines
+				: order.items.map((item) => ({
+						id: item.id,
+						uid:
+							(typeof safeRecord(item.meta).uid === "string" &&
+								String(safeRecord(item.meta).uid)) ||
+							item.multiDykeUid ||
+							`sales-item-${item.id}`,
+						title: item.dykeDescription || item.description || "Line item",
+						qty: Number(item.qty || 0),
+						lineTotal: Number(item.total || 0),
+					}));
+			const analysis = analyzeSalesFormChange({
+				before: {
+					lineItems: beforeLines,
+					summary: {
+						grandTotal:
+							currentMeta.newSalesForm?.summary?.grandTotal ??
+							order.grandTotal ??
+							0,
+					},
+				},
+				after: { lineItems: normalizedLines, summary: persistedSummary },
+				commitments: saveCommitments,
+			});
+			if (analysis.requiresApproval) {
+				const approved = payload.approvedAdjustmentId
+					? await tx.salesOrderAdjustment.findFirst({
+							where: {
+								id: payload.approvedAdjustmentId,
+								salesOrderId: order.id,
+								status: { in: ["APPROVED", "APPLYING"] },
+								sourceVersion: currentVersion || null,
+							},
+							select: {
+								id: true,
+								proposedGrandTotal: true,
+								proposedSnapshot: true,
+							},
+						})
+					: null;
+				const approvedSnapshot = safeRecord(approved?.proposedSnapshot);
+				const approvedLines = Array.isArray(approvedSnapshot.lineItems)
+					? approvedSnapshot.lineItems.map((line) => safeRecord(line))
+					: [];
+				const approvedSummary = safeRecord(approvedSnapshot.summary);
+				const approvedPayloadDiff = approved
+					? analyzeSalesFormChange({
+							before: {
+								lineItems: approvedLines.map((line) => ({
+									id: Number(line.id || 0) || null,
+									uid: String(line.uid || ""),
+									title: String(line.title || line.description || "Line item"),
+									qty: Number(line.qty || 0),
+									lineTotal: Number(line.lineTotal || 0),
+								})),
+								summary: {
+									grandTotal: Number(approvedSummary.grandTotal || 0),
+								},
+							},
+							after: {
+								lineItems: normalizedLines,
+								summary: persistedSummary,
+							},
+							commitments: {},
+						})
+					: null;
+				if (
+					!approved ||
+					Number(approved.proposedGrandTotal) !==
+						Number(persistedSummary.grandTotal) ||
+					approvedPayloadDiff?.direction !== "NONE"
+				) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message:
+							"SALES_CHANGE_REVIEW_REQUIRED: This sale has payments or operational commitments. Review the before/after change and obtain customer approval before saving.",
+					});
+				}
+			}
 		}
 		const salesProfile = payload.meta.customerProfileId
 			? await tx.customerTypes.findFirst({
@@ -2827,6 +2946,7 @@ async function saveNewSalesFormInternal(
 					type: payload.type,
 					status,
 					isDyke: true,
+					salesRepId: origin ? null : ctx.userId,
 					customerId: payload.meta.customerId || null,
 					customerProfileId: payload.meta.customerProfileId || null,
 					billingAddressId: payload.meta.billingAddressId || null,
@@ -2870,6 +2990,8 @@ async function saveNewSalesFormInternal(
 				dealerAuthId: null,
 				salesChannel: origin?.salesChannel || null,
 				payments: [],
+				grandTotal: persistedSummary.grandTotal,
+				items: [],
 			};
 		} else {
 			await tx.salesOrders.update({
@@ -3357,11 +3479,11 @@ async function saveNewSalesFormInternal(
 
 		return {
 			salesId: currentId,
-			slug: order.slug,
-			orderId: order.orderId,
+			slug: order!.slug,
+			orderId: order!.orderId,
 			inventoryStatus:
 				payload.type === "order"
-					? payload.inventoryStatus || order.inventoryStatus || null
+					? payload.inventoryStatus || order!.inventoryStatus || null
 					: null,
 			type: payload.type,
 			isNew,
@@ -3722,6 +3844,23 @@ export async function deleteNewSalesFormLineItem(
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Line item not found.",
+		});
+	}
+	const commitments = await getNewSalesFormCommitmentSnapshot(
+		ctx.db,
+		line.salesOrderId,
+	);
+	if (
+		commitments.paymentTotal > 0 ||
+		commitments.allocatedQty > 0 ||
+		commitments.inboundQty > 0 ||
+		commitments.productionQty > 0 ||
+		commitments.fulfilledQty > 0
+	) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"SALES_CHANGE_REVIEW_REQUIRED: This committed line must be removed through the in-form change review and customer approval flow.",
 		});
 	}
 	const result = await ctx.db.$transaction(async (tx) => {

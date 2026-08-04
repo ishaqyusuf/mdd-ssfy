@@ -3,6 +3,20 @@
 ## Purpose
 Tracks important schema-level entities and ownership boundaries.
 
+## Sales Order Adjustments (2026-08-04)
+
+- `SalesOrderAdjustment` stores the immutable before/proposed sales snapshots,
+  commitment and settlement snapshots, source version/hash, direction,
+  lifecycle, actor/timestamp evidence, exact money outcomes, idempotency key,
+  wallet/payment result references, and failure diagnostics.
+- `SalesOrderAdjustmentLine` stores stable sale-item identity and immutable
+  previous/proposed quantities and line totals for each changed persisted line.
+- `SalesOrderAdjustmentApproval` stores one expiring decision attempt. Only the
+  SHA-256 token hash is persisted; response evidence and timestamps are
+  append-only decision evidence.
+- Money snapshots use `Decimal(12,2)`. Quantity snapshots use `Decimal(12,3)`.
+  Enums make adjustment, approval, and direction lifecycle values explicit.
+
 ## Sales Form Preference (2026-07-30)
 
 - `SalesFormPreference` is a one-row-per-user choice for the default sales form.

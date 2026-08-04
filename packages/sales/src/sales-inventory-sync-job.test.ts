@@ -42,7 +42,14 @@ describe("queueSalesInventoryLineItemsSync", () => {
   });
 
   it("preserves each sales inventory sync source in the task payload", async () => {
-    const sources = ["new-form", "old-form", "copy-sales", "manual", "repair"] as const;
+    const sources = [
+      "new-form",
+      "old-form",
+      "copy-sales",
+      "adjustment",
+      "manual",
+      "repair",
+    ] as const;
 
     for (const [index, source] of sources.entries()) {
       await queueSalesInventoryLineItemsSync({

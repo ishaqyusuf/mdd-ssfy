@@ -3,6 +3,21 @@
 ## Purpose
 Tracks important cross-model relationships and ownership patterns.
 
+## Sales Order Adjustments (2026-08-04)
+
+- `SalesOrders.adjustments` owns many `SalesOrderAdjustment` revisions.
+- An adjustment owns its immutable `lines` and one or more approval attempts;
+  cascade behavior is represented in Prisma while the project continues to use
+  `relationMode = "prisma"`.
+- `SalesOrderAdjustmentLine.salesOrderItemId` optionally identifies the
+  original `SalesOrderItems` row. Release-one proposal creation requires this
+  identity for every changed line.
+- `walletTransactionId` and `refundSalesPaymentId` point to the compatibility
+  wallet/payment records created by application. They remain nullable until a
+  reduction produces an actual overpayment.
+- Requested/submitted/applied actor IDs preserve employee evidence without
+  making the customer approval token an authenticated employee identity.
+
 ## Sales Form Preference (2026-07-30)
 
 - `Users.salesFormPreference` is an optional one-to-one relation keyed by

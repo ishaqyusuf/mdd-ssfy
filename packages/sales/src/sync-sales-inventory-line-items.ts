@@ -22,7 +22,13 @@ export const resolveProjectedInboundDemandStatus =
 
 export type SyncSalesInventoryLineItemsInput = {
 	salesOrderId: number;
-	source?: "new-form" | "old-form" | "copy-sales" | "manual" | "repair";
+	source?:
+		| "new-form"
+		| "old-form"
+		| "copy-sales"
+		| "adjustment"
+		| "manual"
+		| "repair";
 	triggeredByUserId?: number | null;
 };
 

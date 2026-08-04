@@ -1,5 +1,20 @@
 # API Permissions
 
+## New Sales Form Adjustments (2026-08-04)
+
+- Preview and proposal creation use protected procedures and the existing new
+  sales form/order access boundary. `requestedById` and `submittedById` come
+  from authenticated context.
+- Customer approval read/respond procedures are public only through a random,
+  expiring token. The database stores its SHA-256 hash, never the raw token.
+- The public response may change only its pending approval/adjustment decision;
+  it cannot edit order fields, choose money values, or identify an employee.
+- Save bypass is not granted by the client-provided adjustment ID alone. The
+  server verifies approved status, order identity, source version, proposed
+  total, and exact quantity snapshot inside the save transaction.
+- The asynchronous apply task reloads all durable evidence and atomically claims
+  `APPROVED` before any sale or wallet mutation.
+
 ## Sales Form Adoption (2026-07-30)
 
 - Any authenticated user may record their own bounded form-open telemetry and

@@ -69,6 +69,7 @@
 		"./sales-form/domain/step-engine": "./src/sales-form/domain/step-engine.ts",
 		"./sales-form/domain/workflow-calculators": "./src/sales-form/domain/workflow-calculators.ts",
 		"./payment-system": "./src/payment-system/index.ts",
+		"./adjustment-system": "./src/adjustment-system/index.ts",
 		"./payment-system/money": "./src/payment-system/domain/money.ts",
 		"./payment-system/payment-channel-charge": "./src/payment-system/domain/payment-channel-charge.ts",
 		"./payment-system/contracts": "./src/payment-system/contracts/index.ts",
