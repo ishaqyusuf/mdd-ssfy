@@ -2,7 +2,18 @@
 
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@gnd/ui/alert-dialog";
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import {
 	Card,
 	CardContent,
@@ -25,7 +36,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@gnd/ui/table";
-import { useQuery } from "@gnd/ui/tanstack";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { toast } from "@gnd/ui/use-toast";
+import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 
 type AdoptionData = RouterOutputs["newSalesForm"]["adoption"];
@@ -33,9 +46,35 @@ type AdoptionUser = AdoptionData["users"][number];
 
 export function SalesFormAdoptionPage() {
 	const [days, setDays] = useState<7 | 30 | 90>(30);
+	const [resetOpen, setResetOpen] = useState(false);
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const query = useQuery(
 		trpc.newSalesForm.adoption.queryOptions({ days }, { staleTime: 60_000 }),
+	);
+	const resetLegacyPreferences = useMutation(
+		trpc.newSalesForm.resetLegacyPreferences.mutationOptions({
+			onSuccess: async (result) => {
+				await queryClient.invalidateQueries({
+					queryKey: trpc.newSalesForm.adoption.pathKey(),
+				});
+				setResetOpen(false);
+				toast({
+					title:
+						result.updatedCount === 1
+							? "1 user moved to the new sales form."
+							: `${result.updatedCount} users moved to the new sales form.`,
+					variant: "success",
+				});
+			},
+			onError: (error) => {
+				toast({
+					title: "Unable to reset legacy preferences.",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
 	);
 
 	if (query.isPending) {
@@ -58,7 +97,16 @@ export function SalesFormAdoptionPage() {
 
 	return (
 		<div className="flex min-w-0 flex-col gap-4">
-			<div className="flex justify-end">
+			<div className="flex flex-wrap items-center justify-end gap-2">
+				<Button
+					type="button"
+					variant="outline"
+					disabled={!data.summary.explicitLegacy}
+					onClick={() => setResetOpen(true)}
+				>
+					<RefreshCw aria-hidden="true" className="size-4" />
+					Move legacy users to new form
+				</Button>
 				<Select
 					value={String(days)}
 					onValueChange={(value) => setDays(Number(value) as 7 | 30 | 90)}
@@ -73,6 +121,44 @@ export function SalesFormAdoptionPage() {
 					</SelectContent>
 				</Select>
 			</div>
+
+			<AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+				<AlertDialogContent size="sm" className="gap-6 p-6 sm:max-w-md">
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							Move legacy users to the new sales form?
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							This resets {data.summary.explicitLegacy.toLocaleString()} saved
+							legacy{" "}
+							{data.summary.explicitLegacy === 1 ? "preference" : "preferences"}
+							. Their normal create and edit links will open the new form.
+							One-time legacy links and choosing legacy again remain available.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="gap-2 sm:gap-3">
+						<AlertDialogCancel
+							className="px-4"
+							disabled={resetLegacyPreferences.isPending}
+						>
+							Cancel
+						</AlertDialogCancel>
+						<AlertDialogAction
+							className="bg-emerald-600 px-4 text-white hover:bg-emerald-700"
+							disabled={resetLegacyPreferences.isPending}
+							onClick={(event) => {
+								event.preventDefault();
+								resetLegacyPreferences.mutate();
+							}}
+						>
+							{resetLegacyPreferences.isPending ? (
+								<RefreshCw aria-hidden="true" className="size-4 animate-spin" />
+							) : null}
+							Move to new form
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 
 			<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 				<MetricCard

@@ -1024,3 +1024,7 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - [x] 2026-08-03: restored new sales-form edit compatibility for visible order
   and quote numbers by adding a slug-first, order-number fallback lookup with a
   focused regression test and production-backed proof on order `09158PC`.
+- [x] 2026-08-04: added a confirmed Super Admin CTA on Sales Form Adoption that
+  moves all current legacy preferences to the new sales form, records
+  actor-attributed evidence, and invalidates stale legacy-cookie behavior on
+  the affected user's next normal form request.

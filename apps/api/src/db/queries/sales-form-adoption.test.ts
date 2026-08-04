@@ -4,6 +4,7 @@ import type { TRPCContext } from "@api/trpc/init";
 import {
 	getSalesFormAdoption,
 	recordSalesFormUsage,
+	resetLegacySalesFormPreferences,
 	setSalesFormPreference,
 } from "./sales-form-adoption";
 
@@ -136,6 +137,108 @@ describe("sales form preference and adoption", () => {
 		} as unknown as TRPCContext;
 
 		expect(getSalesFormAdoption(ctx)).rejects.toMatchObject({
+			code: "FORBIDDEN",
+		});
+	});
+
+	it("resets each saved legacy preference with actor-attributed evidence", async () => {
+		const writes: Array<{ kind: string; input: unknown }> = [];
+		const transaction = {
+			salesFormPreference: {
+				findMany: async () => [{ userId: 12 }, { userId: 18 }],
+				updateMany: async (input: unknown) => {
+					writes.push({ kind: "preference", input });
+					return { count: 1 };
+				},
+			},
+			event: {
+				create: async (input: unknown) => {
+					writes.push({ kind: "event", input });
+					return { id: writes.length };
+				},
+			},
+		};
+		const ctx = {
+			userId: 7,
+			db: {
+				users: {
+					findFirst: async () => ({
+						id: 7,
+						roles: [{ role: { name: "Super Admin" } }],
+					}),
+				},
+				$transaction: async (callback: (tx: typeof transaction) => unknown) =>
+					callback(transaction),
+			},
+		} as unknown as TRPCContext;
+
+		await expect(resetLegacySalesFormPreferences(ctx)).resolves.toEqual({
+			updatedCount: 2,
+		});
+		expect(writes).toEqual([
+			{
+				kind: "preference",
+				input: {
+					where: { userId: 12, mode: "LEGACY" },
+					data: { mode: "NEW", source: "admin" },
+				},
+			},
+			{
+				kind: "event",
+				input: {
+					data: {
+						type: "sales.form.preference",
+						userId: 12,
+						data: {
+							action: "preference_reset",
+							previousMode: "LEGACY",
+							nextMode: "NEW",
+							source: "admin",
+							actorUserId: 7,
+						},
+					},
+				},
+			},
+			{
+				kind: "preference",
+				input: {
+					where: { userId: 18, mode: "LEGACY" },
+					data: { mode: "NEW", source: "admin" },
+				},
+			},
+			{
+				kind: "event",
+				input: {
+					data: {
+						type: "sales.form.preference",
+						userId: 18,
+						data: {
+							action: "preference_reset",
+							previousMode: "LEGACY",
+							nextMode: "NEW",
+							source: "admin",
+							actorUserId: 7,
+						},
+					},
+				},
+			},
+		]);
+	});
+
+	it("keeps the bulk reset behind the Super Admin role", async () => {
+		const ctx = {
+			userId: 9,
+			db: {
+				users: {
+					findFirst: async () => ({
+						id: 9,
+						roles: [{ role: { name: "Sales Rep" } }],
+					}),
+				},
+			},
+		} as unknown as TRPCContext;
+
+		expect(resetLegacySalesFormPreferences(ctx)).rejects.toMatchObject({
 			code: "FORBIDDEN",
 		});
 	});

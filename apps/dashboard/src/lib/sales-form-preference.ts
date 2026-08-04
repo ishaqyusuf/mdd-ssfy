@@ -4,12 +4,30 @@ export const SALES_FORM_PREFERENCE_COOKIE = "gnd-sales-form-preference";
 export const SALES_FORM_PREFERENCE_COOKIE_VERSION = 1;
 export const SALES_FORM_PREFERENCE_COOKIE_MAX_AGE = 60 * 60 * 24 * 90;
 
-type SalesFormPreferenceCookie = {
+export type SalesFormPreferenceCookie = {
 	version: typeof SALES_FORM_PREFERENCE_COOKIE_VERSION;
 	userId: number;
 	mode: SalesFormPreferenceMode;
 	updatedAt: string;
 };
+
+export function resolveCurrentSalesFormCookieMode(
+	preferenceCookie: SalesFormPreferenceCookie | null,
+	databasePreference: {
+		mode: "NEW" | "LEGACY";
+		updatedAt: Date;
+	} | null,
+): SalesFormPreferenceMode | null {
+	if (!preferenceCookie) return null;
+	if (preferenceCookie.mode === "new") return "new";
+	if (
+		databasePreference?.mode !== "LEGACY" ||
+		databasePreference.updatedAt.toISOString() !== preferenceCookie.updatedAt
+	) {
+		return null;
+	}
+	return "legacy";
+}
 
 export function serializeSalesFormPreferenceCookie(input: {
 	userId: number;

@@ -8,6 +8,11 @@
   accepted from client input.
 - Adoption aggregation requires the exact `Super Admin` role in the query
   implementation. The settings-sidebar visibility check is convenience only.
+- Bulk legacy-preference reset requires the exact `Super Admin` role at the
+  mutation boundary. Target user ids are selected server-side from current
+  `LEGACY` preferences; the client cannot provide or broaden the target set.
+- Each changed preference records the authenticated Super Admin actor id in the
+  bounded audit event without customer or sales-document data.
 - Preference cookies do not grant access and are validated against the current
   authenticated user id and cookie version.
 

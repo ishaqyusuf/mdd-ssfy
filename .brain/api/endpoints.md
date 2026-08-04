@@ -187,6 +187,8 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.createPaymentLink`: protected mutation that returns a checkout URL/token for an order with outstanding balance
   - `filters.salesOrders`: filter metadata query used by `SalesOrdersV2Header`
 - New sales form routes now include:
+  - `newSalesForm.adoption`: Super Admin query for bounded saved-preference and form-open adoption reporting
+  - `newSalesForm.resetLegacyPreferences`: Super Admin mutation that changes every still-legacy saved preference to `NEW` and appends actor-attributed preference evidence for each changed user
   - `sales.getSalesHx`: returns persisted `order-hx` / `quote-hx` snapshots for a sales number with activity author/date when available, totals, profile, and item count
   - `newSalesForm.getHistorySnapshot`: protected lazy detail query that verifies a requested history copy belongs to the current order/quote before hydrating it through the new-form loader
   - `newSalesForm.searchShelfProducts`: mobile and web shelf picker search; blank query returns up to 10 visible recently used shelf products ordered by latest saved shelf line usage, skipping archived/hidden recent products without filling from unused active products; unused active shelf products are only shown through typed search or selected-product hydration

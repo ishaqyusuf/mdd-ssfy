@@ -8077,3 +8077,16 @@
   Focused API coverage passes 24 tests / 166 assertions, the API typecheck
   passes, and `git diff --check` is clean. No schema, migration, permission, or
   authentication behavior changed.
+- 2026-08-04: added a Super Admin `Move legacy users to new form` CTA to the
+  Sales Form Adoption workspace. The confirmed bulk mutation changes each
+  still-legacy preference to `NEW`, records one actor-attributed bounded event,
+  refreshes adoption data, and makes stale legacy cookies defer to the updated
+  database preference on the user's next normal sales-form request. Focused API,
+  cookie, and CTA coverage passes 11 tests / 20 assertions; Dashboard typecheck
+  passes, while API typecheck reaches only the existing inbound-query-depth and
+  Sentry baselines with no touched-file diagnostic. The broader new-sales-form
+  gate passes its 255 tests before reaching the existing Dealership
+  `ErrorComponent` type baseline. Authenticated local QA verified the disabled
+  zero-target state plus the confirmation layout at desktop and `390x844`
+  without submitting the reset or changing preference data; the fresh mobile
+  pass had no console errors.

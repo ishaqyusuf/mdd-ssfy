@@ -14,6 +14,9 @@ available as a reversible per-user fallback.
 - `salesFormMode=new|legacy` is the explicit, one-navigation override.
 - Resolution order is explicit query mode, authenticated user's versioned
   preference cookie, `SalesFormPreference`, then the default `new` mode.
+- A cached legacy cookie is accepted only while it still matches the persisted
+  `LEGACY` preference and its `updatedAt` value. This makes administrative or
+  cross-session preference changes effective on the user's next form request.
 - Redirects preserve unrelated query parameters and repeated parameters.
 - The resolver runs before form data loading on create order, create quote, edit
   order, and edit quote pages for both form surfaces.
@@ -36,6 +39,21 @@ available as a reversible per-user fallback.
   the user-bound HTTP-only cookie.
 - `Use new sales form` stores `NEW`, refreshes the cookie, and immediately
   returns to the new form.
+
+## Administrative Reset
+
+- The Super Admin `/settings/sales-form-adoption` workspace includes a
+  `Move legacy users to new form` CTA whenever saved legacy preferences exist.
+- A confirmation dialog states the affected count, next-request behavior, and
+  that users may choose legacy again later.
+- The reset atomically changes every still-`LEGACY` preference to `NEW`, marks
+  its source as `admin`, and appends actor-attributed
+  `sales.form.preference` evidence for each changed user.
+- Existing legacy cookies become stale against the updated database record, so
+  affected users resolve to the new form on their next create/edit request that
+  does not carry the explicit one-navigation legacy override.
+- The mutation does not remove the one-navigation `salesFormMode=legacy`
+  override or permanently disable the legacy choice.
 
 ## New Form Entry And Pricing
 
@@ -60,6 +78,8 @@ available as a reversible per-user fallback.
   per-user activity for 7, 30, or 90 days.
 - The aggregation query enforces the Super Admin role server-side; the sidebar
   link is not the authorization boundary.
+- The bulk legacy-preference reset enforces the same Super Admin role on the
+  mutation boundary.
 
 ## Release Notes
 

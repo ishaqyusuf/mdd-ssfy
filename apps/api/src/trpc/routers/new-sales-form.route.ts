@@ -21,6 +21,7 @@ import {
 import {
 	getSalesFormAdoption,
 	recordSalesFormUsage,
+	resetLegacySalesFormPreferences,
 } from "@api/db/queries/sales-form-adoption";
 import {
 	bootstrapNewSalesFormSchema,
@@ -59,6 +60,9 @@ export const newSalesFormRouter = createTRPCRouter({
 		.query(async ({ ctx, input }) => {
 			return getSalesFormAdoption(ctx, input ?? {});
 		}),
+	resetLegacyPreferences: protectedProcedure.mutation(async ({ ctx }) => {
+		return resetLegacySalesFormPreferences(ctx);
+	}),
 	bootstrap: protectedProcedure
 		.input(bootstrapNewSalesFormSchema)
 		.query(async (props) => {

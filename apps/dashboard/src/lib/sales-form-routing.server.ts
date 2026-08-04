@@ -5,6 +5,7 @@ import { getServerAuthSession } from "@/lib/auth/session";
 import {
 	SALES_FORM_PREFERENCE_COOKIE,
 	parseSalesFormPreferenceCookie,
+	resolveCurrentSalesFormCookieMode,
 } from "@/lib/sales-form-preference";
 import {
 	SALES_FORM_MODE_PARAM,
@@ -42,24 +43,34 @@ export async function resolveSalesFormRequest(input: {
 		cookieStore.get(SALES_FORM_PREFERENCE_COOKIE)?.value,
 		userId,
 	);
-	let databaseMode: SalesFormPreferenceMode | null = null;
+	let databasePreference: {
+		mode: "NEW" | "LEGACY";
+		updatedAt: Date;
+	} | null = null;
 
-	if (!preferenceCookie && queryMode !== "new") {
-		const preference = await prisma.salesFormPreference.findUnique({
+	if (
+		queryMode !== "new" &&
+		(!preferenceCookie || preferenceCookie.mode === "legacy")
+	) {
+		databasePreference = await prisma.salesFormPreference.findUnique({
 			where: { userId },
-			select: { mode: true },
+			select: { mode: true, updatedAt: true },
 		});
-		databaseMode =
-			preference?.mode === "LEGACY"
-				? "legacy"
-				: preference?.mode === "NEW"
-					? "new"
-					: null;
 	}
+	const databaseMode: SalesFormPreferenceMode | null =
+		databasePreference?.mode === "LEGACY"
+			? "legacy"
+			: databasePreference?.mode === "NEW"
+				? "new"
+				: null;
+	const cookieMode = resolveCurrentSalesFormCookieMode(
+		preferenceCookie,
+		databasePreference,
+	);
 
 	const resolved = resolveSalesFormSurface({
 		queryMode,
-		cookieMode: preferenceCookie?.mode ?? null,
+		cookieMode,
 		databaseMode,
 	});
 
@@ -82,7 +93,7 @@ export async function resolveSalesFormRequest(input: {
 		shouldPromptLegacyPreference:
 			input.currentSurface === "legacy" &&
 			queryMode === "legacy" &&
-			!preferenceCookie &&
+			!cookieMode &&
 			!databaseMode,
 	};
 }

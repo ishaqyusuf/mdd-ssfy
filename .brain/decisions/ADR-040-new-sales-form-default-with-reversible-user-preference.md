@@ -29,6 +29,14 @@ Record privacy-bounded form-open dimensions in `PageView` and append-only
 preference decisions in `Event`. Enforce Super Admin authorization in the
 adoption aggregation query.
 
+Allow Super Admin to reset all currently saved `LEGACY` preferences to `NEW`
+from the adoption workspace. Record one actor-attributed preference event per
+changed user. Validate cached legacy cookies against the persisted mode and
+timestamp so an administrative reset takes effect on the user's next form
+request without an explicit one-navigation legacy override instead of waiting
+for the cookie to expire. The reset is a one-time preference override, not a
+permanent ban on choosing legacy again.
+
 ## Consequences
 
 - Existing bookmarks and links to legacy form routes automatically converge on
@@ -37,6 +45,8 @@ adoption aggregation query.
   entitlement.
 - The cookie is a cache and user-experience override, not an authorization
   mechanism.
+- Persisted administrative changes supersede stale legacy cookies without
+  requiring remote cookie deletion.
 - Production deployment must apply the additive preference migration before the
   application release.
 - Adoption data intentionally cannot answer document-specific questions because

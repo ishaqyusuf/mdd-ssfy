@@ -166,9 +166,54 @@ async function requireSuperAdmin(ctx: TRPCContext) {
 	if (!isSuperAdmin) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Only Super Admin can view sales form adoption.",
+			message: "Only Super Admin can manage sales form adoption.",
 		});
 	}
+	return userId;
+}
+
+export async function resetLegacySalesFormPreferences(ctx: TRPCContext) {
+	const actorUserId = await requireSuperAdmin(ctx);
+
+	return ctx.db.$transaction(async (tx) => {
+		const legacyPreferences = await tx.salesFormPreference.findMany({
+			where: { mode: "LEGACY" },
+			orderBy: { userId: "asc" },
+			select: { userId: true },
+		});
+		let updatedCount = 0;
+
+		for (const preference of legacyPreferences) {
+			const updated = await tx.salesFormPreference.updateMany({
+				where: {
+					userId: preference.userId,
+					mode: "LEGACY",
+				},
+				data: {
+					mode: "NEW",
+					source: "admin",
+				},
+			});
+			if (!updated.count) continue;
+
+			updatedCount += updated.count;
+			await tx.event.create({
+				data: {
+					type: SALES_FORM_PREFERENCE_EVENT_TYPE,
+					userId: preference.userId,
+					data: {
+						action: "preference_reset",
+						previousMode: "LEGACY",
+						nextMode: "NEW",
+						source: "admin",
+						actorUserId,
+					},
+				},
+			});
+		}
+
+		return { updatedCount };
+	});
 }
 
 const adoptionUserSelect = {
