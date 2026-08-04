@@ -550,14 +550,24 @@ export function InvoiceOverviewPanel(props: Props) {
 				cccPercentage={cccPercentage}
 				grandTotal={liveSummary.grandTotal}
 				laborCost={laborCost}
-				onAddGlobalCost={() =>
-					upsertExtraCost({
-						label: "Custom Add-on",
-						type: "CustomNonTaxxable",
-						amount: 0,
-						taxxable: false,
-					})
-				}
+				onAddGlobalCost={(input) => {
+					const reusablePlaceholderIndex = record.extraCosts.findIndex(
+						(cost) =>
+							cost.type === "CustomNonTaxxable" &&
+							Number(cost.amount || 0) === 0,
+					);
+					upsertExtraCost(
+						{
+							label: input.label,
+							type: "CustomNonTaxxable",
+							amount: input.amount,
+							taxxable: false,
+						},
+						reusablePlaceholderIndex >= 0
+							? reusablePlaceholderIndex
+							: undefined,
+					);
+				}}
 				onLaborCostChange={(amount) => {
 					if (laborIndex >= 0)
 						upsertExtraCost(

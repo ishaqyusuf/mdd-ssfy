@@ -4,6 +4,7 @@
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import { Label } from "@gnd/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -11,9 +12,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
+import { useId, useState } from "react";
 import {
-	CostPriceBreakdownHover,
 	type CostPriceBreakdownContext,
+	CostPriceBreakdownHover,
 	type CostPriceBreakdownInput,
 } from "../workflow/cost-price-breakdown-hover";
 import { formatSalesFormCurrency } from "./format";
@@ -22,6 +24,30 @@ export type SalesFormSelectOption = {
 	value: string;
 	label: string;
 };
+
+export type SalesFormGlobalAddOnInput = {
+	label: string;
+	amount: number;
+};
+
+export function normalizeSalesFormGlobalAddOnDraft(
+	label: string,
+	amount: string,
+): SalesFormGlobalAddOnInput | null {
+	const normalizedLabel = label.trim();
+	const normalizedAmount = Number(amount);
+	if (
+		!normalizedLabel ||
+		!Number.isFinite(normalizedAmount) ||
+		normalizedAmount <= 0
+	) {
+		return null;
+	}
+	return {
+		label: normalizedLabel,
+		amount: normalizedAmount,
+	};
+}
 
 export type SalesFormPricingOverviewProps = {
 	subTotal?: number | null;
@@ -49,15 +75,34 @@ export type SalesFormPricingOverviewProps = {
 	onPaymentMethodChange?: (value: string) => void;
 	onTaxCodeChange?: (value: string) => void;
 	onLaborCostChange?: (value: number) => void;
-	onAddGlobalCost?: () => void;
+	onAddGlobalCost?: (input: SalesFormGlobalAddOnInput) => void;
 };
 
 export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
+	const globalAddOnLabelId = useId();
+	const globalAddOnAmountId = useId();
+	const [globalAddOnLabel, setGlobalAddOnLabel] = useState("Custom Add-on");
+	const [globalAddOnAmount, setGlobalAddOnAmount] = useState("");
 	const showPaymentMethod = props.showPaymentMethod ?? true;
 	const showTaxGroup = props.showTaxGroup ?? true;
 	const showLaborCost = props.showLaborCost ?? true;
 	const showAddOnCost = props.showAddOnCost ?? true;
 	const showGrandTotal = props.showGrandTotal ?? true;
+	const globalAddOnDraft = normalizeSalesFormGlobalAddOnDraft(
+		globalAddOnLabel,
+		globalAddOnAmount,
+	);
+
+	function closeGlobalAddOn() {
+		setGlobalAddOnLabel("Custom Add-on");
+		setGlobalAddOnAmount("");
+	}
+
+	function addGlobalAddOn() {
+		if (!globalAddOnDraft || !props.onAddGlobalCost) return;
+		props.onAddGlobalCost(globalAddOnDraft);
+		closeGlobalAddOn();
+	}
 
 	return (
 		<div className="flex flex-col gap-3">
@@ -173,21 +218,61 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 					</div>
 				) : null}
 
-				{showAddOnCost ? (
-					<div className="mt-2 flex items-center justify-between gap-4 border-t border-dashed border-border pt-1">
-						<Button
-							className="gap-1 px-2 text-xs font-bold"
-							onClick={props.onAddGlobalCost}
-							size="sm"
-							type="button"
-							variant="ghost"
+				{showAddOnCost && props.onAddGlobalCost ? (
+					<div className="mt-2 space-y-2 border-t border-dashed border-border pt-1">
+						<div className="flex items-center justify-between gap-4">
+							<span className="flex items-center gap-1 px-2 text-xs font-bold">
+								<Icons.Plus size={14} />
+								Global Add-on Cost
+							</span>
+							<span className="text-xs font-bold text-muted-foreground">
+								+{formatSalesFormCurrency(props.addOnTotal)}
+							</span>
+						</div>
+						<form
+							className="space-y-4 rounded-lg border bg-muted/30 p-4"
+							onReset={closeGlobalAddOn}
+							onSubmit={(event) => {
+								event.preventDefault();
+								addGlobalAddOn();
+							}}
 						>
-							<Icons.Plus size={14} />
-							Global Add-on Cost
-						</Button>
-						<span className="text-xs font-bold text-muted-foreground">
-							+{formatSalesFormCurrency(props.addOnTotal)}
-						</span>
+							<div className="space-y-1">
+								<p className="text-sm font-semibold">Global Add-on Cost</p>
+								<p className="text-xs text-muted-foreground">
+									Add a non-taxable invoice-level charge.
+								</p>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor={globalAddOnLabelId}>Label</Label>
+								<Input
+									id={globalAddOnLabelId}
+									value={globalAddOnLabel}
+									onChange={(event) => setGlobalAddOnLabel(event.target.value)}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor={globalAddOnAmountId}>Amount</Label>
+								<Input
+									id={globalAddOnAmountId}
+									aria-label="Global add-on amount"
+									type="number"
+									min="0.01"
+									step="0.01"
+									placeholder="0.00"
+									value={globalAddOnAmount}
+									onChange={(event) => setGlobalAddOnAmount(event.target.value)}
+								/>
+							</div>
+							<div className="flex justify-end gap-2">
+								<Button type="reset" variant="outline">
+									Cancel
+								</Button>
+								<Button type="submit" disabled={!globalAddOnDraft}>
+									Add Cost
+								</Button>
+							</div>
+						</form>
 					</div>
 				) : null}
 

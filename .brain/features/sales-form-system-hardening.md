@@ -50,6 +50,10 @@
   document number. Slug lookup runs first, while the order-number fallback
   preserves legacy bookmarks and cross-surface redirects such as
   `/sales-form/edit-order/09158PC`.
+- Global invoice add-ons now use an explicit label-and-amount form. Submission
+  rejects blank labels and non-positive amounts, persists the result as a
+  non-taxable custom extra cost, and reuses any zero-value placeholder left by
+  the former button-only flow.
 
 ## Validation
 
@@ -78,6 +82,10 @@
   `Sales form not found` to `PASS:09158PC:order-09158pc`. The focused
   new-sales-form API file passes 24 tests / 166 assertions, and the API
   typecheck passes.
+- 2026-08-04 authenticated create-order browser QA submitted a `$5.00` global
+  add-on and confirmed the invoice summary updated to `+$5.00` with recalculated
+  CCC and grand total. Focused normalization tests pass 2 tests / 4 assertions,
+  and the Sales package typecheck passes.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

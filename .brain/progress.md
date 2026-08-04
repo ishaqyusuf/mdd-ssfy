@@ -1,5 +1,16 @@
 # Progress
 
+- 2026-08-04: planned a governed customer-approved post-sale quantity-reduction
+  workflow with immutable line-level before/after evidence, secure approval
+  revisions, stale order/payment/fulfillment guards, canonical repricing,
+  due-first settlement, idempotent overpayment transfer to the customer wallet,
+  inventory/document follow-up, and consistent Sales Overview, invoice,
+  Finance, history, and wallet visibility. The plan follows Midday's thin-route,
+  package-owned domain, on-demand UI, and background-job structure while
+  preserving GND's legacy/canonical payment compatibility boundary. No
+  implementation code or database schema changed. See
+  `.brain/plans/2026-08-04-sales-quantity-reduction-wallet-credit.md`.
+
 - 2026-08-03: changed the shared new-sales-form editor default from autosave on
   to autosave off. Newly created and hydrated orders and quotes now start in
   manual-save mode while retaining the existing opt-in autosave toggle, local
@@ -8117,3 +8128,13 @@
   found 57 users, including 54 active users with email addresses available for
   development quick login, plus 20 roles and 84 permissions. No schema,
   migration, API, permission, or application-code change was made.
+- 2026-08-04: repaired the new sales form's Global Add-on Cost control. The
+  invoice summary now presents a validated label/amount form, submits positive
+  charges as non-taxable `CustomNonTaxxable` extra costs, and reuses legacy
+  zero-value placeholders instead of adding another invisible `$0.00` row.
+  Authenticated create-order QA submitted `$5.00` and confirmed `+$5.00`, CCC,
+  and grand-total recalculation. Focused tests pass 2 tests / 4 assertions, the
+  Sales package typecheck and scoped formatting/whitespace checks pass, and the
+  broad Dashboard typecheck remains red on its existing unrelated baseline
+  diagnostics with no diagnostic observed in the touched invoice overview
+  integration.
