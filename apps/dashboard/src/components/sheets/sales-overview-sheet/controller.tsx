@@ -20,10 +20,22 @@ import type {
 } from "./types";
 export { resolveLegacySalesOverviewMode } from "./mode";
 
-function LegacySalesOverviewInventoryTab() {
+function LegacySalesOverviewInventoryTab({
+	onCreateInbound,
+	onViewInbound,
+}: {
+	onCreateInbound?: () => void;
+	onViewInbound?: (inboundId: number) => void;
+}) {
 	const { data } = useSaleOverview();
 
-	return <SalesOverviewInventoryContent salesOrderId={data?.id} />;
+	return (
+		<SalesOverviewInventoryContent
+			salesOrderId={data?.id}
+			onCreateInbound={onCreateInbound}
+			onViewInbound={onViewInbound}
+		/>
+	);
 }
 
 export function resolveLegacySalesOverviewActiveTab({
@@ -52,6 +64,8 @@ export function createLegacySalesOverviewTabs({
 	orderId,
 	onEditAddress,
 	onEditCustomer,
+	onCreateInbound,
+	onViewInbound,
 }: {
 	mode: LegacySalesOverviewMode;
 	isQuote: boolean;
@@ -60,6 +74,8 @@ export function createLegacySalesOverviewTabs({
 	orderId?: string | null;
 	onEditAddress?: Parameters<typeof GeneralTab>[0]["onEditAddress"];
 	onEditCustomer?: Parameters<typeof GeneralTab>[0]["onEditCustomer"];
+	onCreateInbound?: () => void;
+	onViewInbound?: (inboundId: number) => void;
 }): LegacySalesOverviewTabDefinition[] {
 	const prodBadge = prodQty > 0 ? prodQty : 0;
 
@@ -138,6 +154,7 @@ export function createLegacySalesOverviewTabs({
 									orderId,
 								}}
 								variant="activity"
+								onOpenInbound={onViewInbound}
 							/>
 						</div>
 					),
@@ -147,7 +164,12 @@ export function createLegacySalesOverviewTabs({
 					label: "Inventory",
 					hidden: isQuote,
 					badge: "New",
-					content: <LegacySalesOverviewInventoryTab />,
+					content: (
+						<LegacySalesOverviewInventoryTab
+							onCreateInbound={onCreateInbound}
+							onViewInbound={onViewInbound}
+						/>
+					),
 				},
 				{
 					value: "dispatch",

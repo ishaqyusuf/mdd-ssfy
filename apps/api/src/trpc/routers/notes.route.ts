@@ -1,4 +1,8 @@
 import {
+	deleteManualActivityNoteQuery,
+	updateManualActivityNoteQuery,
+} from "@api/db/queries/manual-activity-notes";
+import {
 	addNotificationChannelSubscriber,
 	deleteNotification,
 	getNotificationChannels,
@@ -36,6 +40,7 @@ import {
 	type NotificationTypes,
 	getNotificationChannelsSchema,
 } from "@notifications/schemas";
+import { TRPCError } from "@trpc/server";
 import z from "zod";
 import {
 	type TRPCContext,
@@ -399,6 +404,17 @@ export const notesRouter = createTRPCRouter({
 				noContact: recipientCount === 0,
 			};
 		}),
+	updateManualActivityNote: protectedProcedure
+		.input(
+			z.object({
+				activityId: z.number().int().positive(),
+				note: z.string().trim().min(1).max(5000),
+			}),
+		)
+		.mutation(({ ctx, input }) => updateManualActivityNoteQuery(ctx, input)),
+	deleteManualActivityNote: protectedProcedure
+		.input(z.object({ activityId: z.number().int().positive() }))
+		.mutation(({ ctx, input }) => deleteManualActivityNoteQuery(ctx, input)),
 	deleteNotification: protectedProcedure
 		.input(
 			z.object({
@@ -570,9 +586,32 @@ export const notesRouter = createTRPCRouter({
 				pageSize: z.number().int().min(1).max(200).optional(),
 				includeChildren: z.boolean().optional(),
 				maxDepth: z.number().int().min(1).max(10).optional(),
+				includeDeleted: z.boolean().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			if (input.includeDeleted) {
+				if (!ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+				const user = await ctx.db.users.findFirst({
+					where: { id: ctx.userId, deletedAt: null, accessRevokedAt: null },
+					select: {
+						roles: {
+							where: { deletedAt: null, role: { deletedAt: null } },
+							select: { role: { select: { name: true } } },
+						},
+					},
+				});
+				if (
+					!user?.roles.some(
+						(entry) => entry.role?.name?.toLowerCase() === "super admin",
+					)
+				) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only Super Admin can view deleted activity notes.",
+					});
+				}
+			}
 			return getActivityTree(ctx.db, input as GetActivityTreeQuery);
 		}),
 	activityTagSuggestions: publicProcedure

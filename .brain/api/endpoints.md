@@ -456,3 +456,9 @@ Tracks notable API surfaces and where they are implemented.
 - `update-sales-control.submitAll` derives worker authority from server-bound
   task metadata, persists an idempotent review batch, and notifies configured
   production administrators only for pending reviews.
+
+## Activity note audit endpoints (2026-08-04)
+
+- `notes.updateManualActivityNote`: protected author/Super Admin mutation that records a linked prior-version revision before updating the root.
+- `notes.deleteManualActivityNote`: protected author/Super Admin mutation that records a deletion snapshot and soft-deletes the root.
+- `notes.activityTree`: accepts `includeDeleted`; only Super Admin may enable it.

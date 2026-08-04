@@ -1028,3 +1028,9 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   moves all current legacy preferences to the new sales form, records
   actor-attributed evidence, and invalidates stale legacy-cookie behavior on
   the affected user's next normal form request.
+- [x] 2026-08-04: moved inbound creation/detail into Sales Overview secondary
+  sheets, locked PO/reference to the order number, added exact inbound activity
+  and notification deep-links, corrected actor-attributed status transition
+  copy, improved Inventory readability, and added author/Super Admin audited
+  manual-note edit and soft delete. Focused tests and authenticated in-app
+  browser proof passed on local inbound `#118` for order `09086PC`.

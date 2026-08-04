@@ -1,43 +1,32 @@
+"use client";
+
 import { useInboundView } from "@/hooks/use-inbound-filter-params";
-import { CustomSheet, CustomSheetContent } from "./custom-sheet-content";
-import { SheetDescription, SheetHeader, SheetTitle } from "@gnd/ui/sheet";
-import Note from "@/modules/notes";
-import { noteTagFilter } from "@/modules/notes/utils";
+import Sheet from "@gnd/ui/custom/sheet";
+import { InboundOverviewContent } from "./inbound-overview-content";
 
 export function InboundOverviewSheet() {
-    const { params, setParams } = useInboundView();
+	const { params, setParams } = useInboundView();
+	const inboundId = params.viewInboundId;
+	if (!inboundId) return null;
 
-    return (
-        <CustomSheet
-            size="lg"
-            sheetName="inbound-view"
-            open={!!params.viewInboundId}
-            onOpenChange={(e) => {
-                setParams(null);
-            }}
-        >
-            <SheetHeader>
-                <SheetTitle>{params?.payload?.orderId}</SheetTitle>
-                <SheetDescription>
-                    {params?.payload?.displayName}
-                </SheetDescription>
-            </SheetHeader>
-            <CustomSheetContent>
-                <Note
-                    admin
-                    readonOnly
-                    tagFilters={[
-                        noteTagFilter("salesId", String(params.viewInboundId)),
-                        // noteTagFilter("type", "sales inbound"),
-                    ]}
-                    headline={"Sales Inbound"}
-                    typeFilters={["inbound"]}
-                    statusFilters={["public", "private"]}
-                    subject={`Sales Note`}
-                    // headline={`${params?.payload?.orderId}`}
-                />
-            </CustomSheetContent>
-        </CustomSheet>
-    );
+	return (
+		<Sheet
+			sheetName="inbound-overview"
+			open
+			floating
+			rounded
+			primarySize="3xl"
+			onOpenChange={() => setParams(null)}
+		>
+			<Sheet.Header>
+				<Sheet.Title>Inbound #{inboundId}</Sheet.Title>
+				<Sheet.Description>
+					Shipment details, lifecycle controls, linked demand, and activity.
+				</Sheet.Description>
+			</Sheet.Header>
+			<Sheet.Content>
+				<InboundOverviewContent inboundId={inboundId} />
+			</Sheet.Content>
+		</Sheet>
+	);
 }
-

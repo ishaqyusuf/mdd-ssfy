@@ -979,3 +979,11 @@ Tracks important request/response contracts and shared schema boundaries.
 - If blockers remain after a valid resolution, inventory changes commit, the
   review stays pending with refreshed evidence, and the exact unresolved
   snapshot is returned. Final decisions are idempotent.
+
+## Manual activity note audit contract (2026-08-04)
+
+- Mutable activity channels are limited to `sales_info` and `inventory_inbound`.
+- Edit returns root id, updated note, and revision id; delete returns root id, `deleted: true`, and revision id.
+- Revision children carry `type=activity_note_revision`, `revisionAction=edited|deleted`, `revisionOf=<root id>`, original-author contact, and changing-user tags; their sender is the actor who made the change.
+- Activity-tree nodes expose `senderProfileId` and `deletedAt`; deleted roots require an authorized `includeDeleted` read.
+- Inbound status updates return `previousStatus` and `actorName` with committed shipment fields.

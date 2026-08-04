@@ -641,4 +641,13 @@ Status: Partially done; dry-run reconciliation and receive/allocation retry guar
 - Inventory dispatch mode UI: `apps/dashboard/src/components/inventory/inventory-dispatch-mode-page.tsx`, `inventories.assignInventoryDispatchAllocations`, `inventories.packInventoryDispatchAllocations`, `inventories.fulfillInventoryDispatch`, `inventories.releaseInventoryDispatchAllocations`, `/inventory/dispatch-mode`
 - Inventory pages: `/inventory`, `/inventory/[id]`, `/inventory/variants`, `/inventory/stocks`, `/inventory/allocations`, `/inventory/inbounds`, `/inventory/backorders`, `/inventory/partial-shipments`, `/inventory/dispatch-mode`, `/inventory/production-plan`, `/inventory/suppliers`, `/inventory/review`
 
-Last updated: 2026-07-29
+## 2026-08-04 Inbound secondary-sheet lifecycle
+
+- Sales Overview creates inbound shipments in its established secondary sheet instead of expanding an inline form inside Inventory.
+- The inbound PO/reference is always the sales order number and is rendered disabled; the mutation receives that immutable value.
+- Inventory inbound summaries and inbound lifecycle activities open the exact shipment in a shared, readable secondary-sheet detail experience.
+- Notification deep-links reuse `viewInboundId` and the same detail content, including status, quantities, linked demand, receiving controls, and activity.
+- Inventory Needs and inbound badges use larger type, padding, spacing, and click targets for operational readability.
+- Browser proof created local inbound `#118` for order `09086PC`, transitioned Ordered to Pending, and opened the shipment from the list, activity timeline, and global deep-link without inbound/activity console errors.
+
+Last updated: 2026-08-04

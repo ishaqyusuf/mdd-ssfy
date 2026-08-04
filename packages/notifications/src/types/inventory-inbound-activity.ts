@@ -4,6 +4,14 @@ import {
 	inventoryInboundActivitySchema,
 } from "../schemas";
 
+function statusLabel(value: unknown) {
+	if (value === "in_progress") return "Ordered";
+	if (typeof value !== "string" || !value) return "Unknown";
+	return value
+		.replaceAll("_", " ")
+		.replace(/\b[a-z]/g, (character) => character.toUpperCase());
+}
+
 export const inventoryInboundActivity: NotificationHandler = {
 	schema: inventoryInboundActivitySchema,
 	createActivityWithoutContact: true,
@@ -40,6 +48,9 @@ export const inventoryInboundActivity: NotificationHandler = {
 		} as const;
 
 		const supplierSuffix = data.supplierName ? ` for ${data.supplierName}` : "";
+		const previousStatus = statusLabel(data.meta?.previousStatus);
+		const nextStatus = statusLabel(data.meta?.status);
+		const actorName = author.name?.trim() || "Unknown";
 
 		return {
 			type: "inventory_inbound_activity",
@@ -61,7 +72,7 @@ export const inventoryInboundActivity: NotificationHandler = {
 										: data.activityType === "demands_assigned"
 											? `Open order demand was assigned to inbound #${data.inboundId}.`
 											: data.activityType === "status_updated"
-												? `Inbound #${data.inboundId} status was updated.`
+												? `Inbound #${data.inboundId} status changed from ${previousStatus} to ${nextStatus} by ${actorName}.`
 												: `Inbound #${data.inboundId} was received.`,
 			note: data.note?.trim() || undefined,
 			authorId: author.id,

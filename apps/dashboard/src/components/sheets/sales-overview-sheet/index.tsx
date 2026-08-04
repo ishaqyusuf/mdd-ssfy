@@ -12,17 +12,21 @@ import {
 	resolveLegacySalesOverviewActiveTab,
 	resolveLegacySalesOverviewMode,
 } from "./controller";
+import { CustomerEditPane } from "./customer-edit-pane";
+import { InboundCreatePane } from "./inbound-create-pane";
+import { InboundDetailPane } from "./inbound-detail-pane";
 import { LegacySalesOverviewHeader, LegacySalesOverviewPanels } from "./layout";
 import {
 	SalesAddressPane,
 	type SalesAddressPaneSelection,
 } from "./sales-address-pane";
-import { CustomerEditPane } from "./customer-edit-pane";
 import type { LegacySalesOverviewTabId } from "./types";
 
 type SalesOverviewPane =
 	| { kind: "customer" }
-	| ({ kind: "address" } & SalesAddressPaneSelection);
+	| ({ kind: "address" } & SalesAddressPaneSelection)
+	| { kind: "inbound-create" }
+	| { kind: "inbound-detail"; inboundId: number };
 
 export default function SalesOverviewSheet() {
 	const query = useSalesOverviewQuery();
@@ -42,6 +46,7 @@ function Content() {
 	const { data } = useSaleOverview();
 	const [pane, setPane] = useState<SalesOverviewPane | null>(null);
 	const [paneOpened, setPaneOpened] = useState(false);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: changing sales must discard any open secondary pane
 	useEffect(() => {
 		setPane(null);
 		setPaneOpened(false);
@@ -52,6 +57,14 @@ function Content() {
 	};
 	const openCustomerPane = () => {
 		setPane({ kind: "customer" });
+		setPaneOpened(true);
+	};
+	const openInboundCreatePane = () => {
+		setPane({ kind: "inbound-create" });
+		setPaneOpened(true);
+	};
+	const openInboundDetailPane = (inboundId: number) => {
+		setPane({ kind: "inbound-detail", inboundId });
 		setPaneOpened(true);
 	};
 	const discardPane = () => {
@@ -73,6 +86,8 @@ function Content() {
 		orderId: data?.orderId,
 		onEditAddress: openAddressPane,
 		onEditCustomer: openCustomerPane,
+		onCreateInbound: openInboundCreatePane,
+		onViewInbound: openInboundDetailPane,
 	});
 	const activeTab = resolveLegacySalesOverviewActiveTab({
 		currentTab: query?.params?.salesTab,
@@ -137,6 +152,21 @@ function Content() {
 						salesId={data.id}
 						salesType={isQuote ? "quote" : "order"}
 						shippingAddressId={data.addressData?.shipping?.id}
+					/>
+				) : null}
+				{pane?.kind === "inbound-create" && data?.id && data.orderId ? (
+					<InboundCreatePane
+						key={`inbound-create-${data.id}`}
+						salesOrderId={data.id}
+						orderNumber={data.orderId}
+						onClose={discardPane}
+						onCreated={openInboundDetailPane}
+					/>
+				) : null}
+				{pane?.kind === "inbound-detail" ? (
+					<InboundDetailPane
+						key={`inbound-${pane.inboundId}`}
+						inboundId={pane.inboundId}
 					/>
 				) : null}
 			</Sheet.MultiContent>

@@ -1,9 +1,39 @@
 "use client";
 
 import { env } from "@/env.mjs";
+import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@gnd/ui/alert-dialog";
+import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@gnd/ui/dialog";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
+import { Textarea } from "@gnd/ui/textarea";
+import { toast } from "@gnd/ui/use-toast";
 import {
 	type ActivityTagFilterNode,
 	type ActivityTagFilter as SharedActivityTagFilter,
@@ -12,7 +42,7 @@ import {
 } from "@notifications/activity-tree";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 
 export type ActivityTagFilter = SharedActivityTagFilter;
 
@@ -24,6 +54,8 @@ type ActivityNode = {
 	description: string | null;
 	note: string | null;
 	senderContactName?: string | null;
+	senderProfileId?: number | null;
+	deletedAt?: Date | string | null;
 	tags: Record<string, unknown>;
 	children: ActivityNode[];
 };
@@ -45,6 +77,8 @@ export interface ActivityHistoryProps {
 	isError?: boolean;
 	title?: ReactNode;
 	headerAction?: ReactNode;
+	onOpenActivity?: (node: ActivityNode) => void;
+	canManageManualNotes?: boolean;
 }
 
 function formatActivityDate(value: Date | string | null | undefined) {
@@ -95,10 +129,18 @@ function ActivityTreeItem({
 	node,
 	depth = 0,
 	isLatest = false,
+	onOpenActivity,
+	onEditNote,
+	onDeleteNote,
+	canManageNote,
 }: {
 	node: ActivityNode;
 	depth?: number;
 	isLatest?: boolean;
+	onOpenActivity?: (node: ActivityNode) => void;
+	onEditNote?: (node: ActivityNode) => void;
+	onDeleteNote?: (node: ActivityNode) => void;
+	canManageNote?: (node: ActivityNode) => boolean;
 }) {
 	const attachments = activityAttachments(node);
 
@@ -117,9 +159,57 @@ function ActivityTreeItem({
 			<p className="text-xs font-bold text-muted-foreground">
 				{formatActivityDate(node.createdAt)}
 			</p>
-			<p className="text-sm font-semibold text-foreground">
-				{activityHeadline(node)}
-			</p>
+			<div className="flex items-start justify-between gap-3">
+				<p className="text-sm font-semibold text-foreground">
+					{activityHeadline(node)}
+				</p>
+				{onOpenActivity && node.tags?.type === "inventory_inbound_activity" ? (
+					<button
+						type="button"
+						className="inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						onClick={() => onOpenActivity(node)}
+					>
+						Open inbound
+						<Icons.ExternalLink className="size-3.5" />
+					</button>
+				) : null}
+				{canManageNote?.(node) ? (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								className="size-8"
+								aria-label="Manage note"
+							>
+								<Icons.MoreHorizontal className="size-4" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onSelect={() => onEditNote?.(node)}>
+								<Icons.Edit className="mr-2 size-4" />
+								Edit note
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								className="text-destructive focus:text-destructive"
+								onSelect={() => onDeleteNote?.(node)}
+							>
+								<Icons.Trash className="mr-2 size-4" />
+								Delete note
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				) : null}
+			</div>
+			{node.deletedAt ? (
+				<Badge
+					variant="outline"
+					className="mt-2 border-destructive/30 text-destructive"
+				>
+					Deleted · audit only
+				</Badge>
+			) : null}
 			{activityDescription(node) ? (
 				<p className="mt-1 text-sm text-muted-foreground">
 					{activityDescription(node)}
@@ -133,7 +223,14 @@ function ActivityTreeItem({
 			</p>
 			{node.note ? (
 				<div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
-					<p className="text-sm leading-6 text-foreground/90">{node.note}</p>
+					<p
+						className={cn(
+							"text-sm leading-6 text-foreground/90",
+							node.deletedAt && "line-through opacity-70",
+						)}
+					>
+						{node.note}
+					</p>
 				</div>
 			) : null}
 			{attachments.length ? (
@@ -180,6 +277,10 @@ function ActivityTreeItem({
 							node={child}
 							depth={depth + 1}
 							isLatest={false}
+							onOpenActivity={onOpenActivity}
+							onEditNote={onEditNote}
+							onDeleteNote={onDeleteNote}
+							canManageNote={canManageNote}
 						/>
 					))}
 				</div>
@@ -203,8 +304,69 @@ export function ActivityHistory({
 	isError: isErrorOverride,
 	title = "Activity Timeline",
 	headerAction,
+	onOpenActivity,
+	canManageManualNotes = true,
 }: ActivityHistoryProps) {
 	const trpc = useTRPC();
+	const auth = useAuth();
+	const queryClient = useQueryClient();
+	const [editingNode, setEditingNode] = useState<ActivityNode | null>(null);
+	const [deletingNode, setDeletingNode] = useState<ActivityNode | null>(null);
+	const [draftNote, setDraftNote] = useState("");
+	const invalidateActivity = () =>
+		queryClient.invalidateQueries({
+			queryKey: trpc.notes.activityTree.pathKey(),
+		});
+	const updateNote = useMutation(
+		trpc.notes.updateManualActivityNote.mutationOptions({
+			onSuccess: async () => {
+				await invalidateActivity();
+				setEditingNode(null);
+				toast({
+					title: "Activity note updated",
+					description:
+						"The previous version was retained in its audit history.",
+					variant: "success",
+				});
+			},
+			onError: (error) =>
+				toast({
+					title: "Unable to update note",
+					description: error.message,
+					variant: "destructive",
+				}),
+		}),
+	);
+	const deleteNote = useMutation(
+		trpc.notes.deleteManualActivityNote.mutationOptions({
+			onSuccess: async () => {
+				await invalidateActivity();
+				setDeletingNode(null);
+				toast({
+					title: "Activity note deleted",
+					description: "The note remains available to Super Admin for audit.",
+					variant: "success",
+				});
+			},
+			onError: (error) =>
+				toast({
+					title: "Unable to delete note",
+					description: error.message,
+					variant: "destructive",
+				}),
+		}),
+	);
+	const canManageNote = (node: ActivityNode) => {
+		if (!canManageManualNotes || node.deletedAt || !node.note) return false;
+		if (node.tags?.type === "activity_note_revision") return false;
+		const channel = node.tags?.channel ?? node.tags?.type;
+		if (channel !== "sales_info" && channel !== "inventory_inbound")
+			return false;
+		return (
+			auth.roleTitle === "Super Admin" ||
+			String(node.senderProfileId ?? "") === String(auth.id ?? "")
+		);
+	};
 
 	const activityFilter = useMemo(() => {
 		const baseFilters: ActivityTagFilterNode[] = [
@@ -230,6 +392,7 @@ export function ActivityHistory({
 			includeChildren: true,
 			pageSize,
 			maxDepth,
+			includeDeleted: auth.roleTitle === "Super Admin",
 		}),
 	);
 	const rows = data ?? ((query.data?.data || []) as ActivityNode[]);
@@ -292,9 +455,88 @@ export function ActivityHistory({
 			{header}
 			<div className="relative space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-0.5 before:bg-border">
 				{rows.map((item, index) => (
-					<ActivityTreeItem key={item.id} node={item} isLatest={index === 0} />
+					<ActivityTreeItem
+						key={item.id}
+						node={item}
+						isLatest={index === 0}
+						onOpenActivity={onOpenActivity}
+						onEditNote={(node) => {
+							setEditingNode(node);
+							setDraftNote(node.note ?? "");
+						}}
+						onDeleteNote={setDeletingNode}
+						canManageNote={canManageNote}
+					/>
 				))}
 			</div>
+			<Dialog
+				open={!!editingNode}
+				onOpenChange={(open) => !open && setEditingNode(null)}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Edit activity note</DialogTitle>
+						<DialogDescription>
+							The current text will become a visible previous version in the
+							audit history.
+						</DialogDescription>
+					</DialogHeader>
+					<Textarea
+						value={draftNote}
+						onChange={(event) => setDraftNote(event.target.value)}
+						maxLength={5000}
+						rows={6}
+					/>
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setEditingNode(null)}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							disabled={!draftNote.trim() || updateNote.isPending}
+							onClick={() =>
+								editingNode &&
+								updateNote.mutate({
+									activityId: editingNode.id,
+									note: draftNote.trim(),
+								})
+							}
+						>
+							Save changes
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			<AlertDialog
+				open={!!deletingNode}
+				onOpenChange={(open) => !open && setDeletingNode(null)}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete this activity note?</AlertDialogTitle>
+						<AlertDialogDescription>
+							The note will disappear for normal users. Super Admin will retain
+							the original note and its deletion snapshot for audit.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							disabled={deleteNote.isPending}
+							onClick={() =>
+								deletingNode &&
+								deleteNote.mutate({ activityId: deletingNode.id })
+							}
+						>
+							Delete note
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

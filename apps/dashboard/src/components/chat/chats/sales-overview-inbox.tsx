@@ -1,12 +1,13 @@
 "use client";
 
+import { resolveInboundActivityId } from "@/components/sales-overview-system/lib/inbound-activity-actions";
+import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu as Dropdown } from "@gnd/ui/namespace";
 import {
-	type ActivityHistoryNode,
 	activityAnd,
 	activityOr,
 	activityTag,
@@ -14,7 +15,7 @@ import {
 import { getChannelsOptionList, isChannelName } from "@notifications/channels";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityHistory } from "../activity-history";
+import { ActivityHistory, type ActivityHistoryNode } from "../activity-history";
 import { Chat, useChat } from "../chat";
 import { buildSalesOverviewActivityFilter } from "./sales-overview-activity-filter";
 
@@ -102,6 +103,7 @@ type SalesOverviewInboxProps = {
 		orderId?: number | string | null;
 	} | null;
 	variant?: "all" | "inbound" | "activity";
+	onOpenInbound?: (inboundId: number) => void;
 };
 
 function flattenActivityChannels(nodes: ActivityHistoryNode[]): string[] {
@@ -204,10 +206,12 @@ function ActivityChannelFilter({
 export function SalesOverviewInbox({
 	saleData,
 	variant = "all",
+	onOpenInbound,
 }: SalesOverviewInboxProps) {
 	if (!saleData?.id) return null;
 
 	const trpc = useTRPC();
+	const auth = useAuth();
 	const salesFilter = buildSalesOverviewActivityFilter({
 		id: saleData.id,
 		orderId: saleData.orderId,
@@ -231,6 +235,7 @@ export function SalesOverviewInbox({
 			includeChildren: true,
 			pageSize: 40,
 			maxDepth: 4,
+			includeDeleted: auth.roleTitle === "Super Admin",
 		}),
 	);
 	const activityRows = useMemo(
@@ -300,11 +305,6 @@ export function SalesOverviewInbox({
 							attachInvoice: invoiceDownload === "yes",
 						};
 					}}
-					placeholder={
-						isInboundOnly
-							? "Add an inbound update, receipt note, or receiving context..."
-							: "Write a sales activity note..."
-					}
 					className={cn(!isActivityView && "mb-3")}
 				>
 					<SalesInboxComposer />
@@ -328,6 +328,10 @@ export function SalesOverviewInbox({
 						) : null
 					}
 					title={isActivityView ? "Activity History" : "Activity Timeline"}
+					onOpenActivity={(node) => {
+						const inboundId = resolveInboundActivityId(node.tags);
+						if (inboundId) onOpenInbound?.(inboundId);
+					}}
 					className={cn("min-h-[180px]")}
 				/>
 			</div>

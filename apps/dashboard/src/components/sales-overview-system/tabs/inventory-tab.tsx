@@ -801,11 +801,13 @@ function InventoryActionBar({
 	salesOrderId,
 	openInboundForm = false,
 	onInboundFormOpened,
+	onCreateInbound,
 }: {
 	overview: NonNullable<InventoryOverview>;
 	salesOrderId: number;
 	openInboundForm?: boolean;
 	onInboundFormOpened?: () => void;
+	onCreateInbound?: () => void;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -901,6 +903,11 @@ function InventoryActionBar({
 	const [createdInboundId, setCreatedInboundId] = useState<number | null>(null);
 	useEffect(() => {
 		if (!openInboundForm) return;
+		if (onCreateInbound) {
+			onCreateInbound();
+			onInboundFormOpened?.();
+			return;
+		}
 		setIsInboundFormOpen(
 			shouldShowInventoryInboundForm({
 				isOpen: true,
@@ -914,6 +921,7 @@ function InventoryActionBar({
 		capabilities.canCreateInbound,
 		inboundRows.length,
 		onInboundFormOpened,
+		onCreateInbound,
 		openInboundForm,
 		pendingQty,
 	]);
@@ -1100,7 +1108,11 @@ function InventoryActionBar({
 						size="sm"
 						variant="outline"
 						disabled={!capabilities.canCreateInbound || !inboundRows.length}
-						onClick={() => setIsInboundFormOpen((value) => !value)}
+						onClick={() =>
+							onCreateInbound
+								? onCreateInbound()
+								: setIsInboundFormOpen((value) => !value)
+						}
 					>
 						Create inbound
 					</Button>
@@ -1419,7 +1431,7 @@ function InventoryStockFilterGroup({
 				Needs
 				<Badge
 					variant={value === "stock" ? "secondary" : "outline"}
-					className="h-5 px-1.5 text-[10px]"
+					className="min-h-7 px-2.5 text-xs"
 				>
 					{stockCount}
 				</Badge>
@@ -1523,14 +1535,14 @@ function InventoryInboundShipmentRow({
 							<Badge
 								variant="outline"
 								className={cn(
-									"h-5 shrink-0 px-1.5 text-[10px]",
+									"min-h-7 shrink-0 px-2.5 text-xs",
 									inboundStatusClassName(shipment.status),
 								)}
 							>
 								{titleCaseLabel(shipment.status)}
 							</Badge>
 						</div>
-						<div className="mt-3 flex flex-wrap gap-1.5 pl-6">
+						<div className="mt-3 flex flex-wrap gap-2 pl-6">
 							<InventoryMetric label="ITEMS" value={shipment.itemCount} />
 							<InventoryMetric
 								label="QTY"
@@ -1695,6 +1707,7 @@ function InventoryInboundsPanel({
 	onCreateInbound,
 	isReadOnly,
 	readOnlyReason,
+	onViewInbound,
 }: {
 	salesOrderId: number;
 	shipments: OrderInboundShipment[];
@@ -1704,6 +1717,7 @@ function InventoryInboundsPanel({
 	onCreateInbound: () => void;
 	isReadOnly: boolean;
 	readOnlyReason: string | null;
+	onViewInbound?: (inboundId: number) => void;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -1856,9 +1870,13 @@ function InventoryInboundsPanel({
 				<InventoryInboundShipmentRow
 					key={shipment.id}
 					shipment={shipment}
-					open={selectedInboundId === shipment.id}
+					open={!onViewInbound && selectedInboundId === shipment.id}
 					onOpenChange={(open) => {
 						if (open) {
+							if (onViewInbound) {
+								onViewInbound(shipment.id);
+								return;
+							}
 							setSelectedInboundId(shipment.id);
 							setSelectedInventoryInboundId(shipment.id);
 						} else if (selectedInboundId === shipment.id) {
@@ -1923,13 +1941,13 @@ function InventoryLineRow({
 		<Item
 			variant="outline"
 			size="sm"
-			className="items-start rounded-md bg-background/80 px-3 py-2.5 hover:bg-muted/30"
+			className="items-start rounded-lg bg-background/80 px-4 py-3.5 hover:bg-muted/30"
 		>
 			<ItemContent className="min-w-0 gap-2">
 				<ItemHeader className="items-start gap-3">
 					<div className="min-w-0 space-y-1">
 						<ItemTitle className="min-w-0 flex-wrap gap-1.5">
-							<span className="truncate text-[13px] tracking-normal">
+							<span className="truncate text-sm tracking-normal">
 								{row.componentName.toUpperCase()}
 							</span>
 							{kindTags.map((tag) => (
@@ -1937,7 +1955,7 @@ function InventoryLineRow({
 									key={tag.label}
 									variant="outline"
 									className={cn(
-										"h-4 px-1 text-[9px] leading-none",
+										"min-h-6 px-2 text-xs leading-none",
 										tag.className,
 									)}
 								>
@@ -1948,7 +1966,7 @@ function InventoryLineRow({
 								</Badge>
 							))}
 						</ItemTitle>
-						<ItemDescription className="line-clamp-none text-[11px]">
+						<ItemDescription className="line-clamp-none text-xs leading-5">
 							{[
 								categoryStepLabel,
 								variantLabel ? variantLabel.toUpperCase() : null,
@@ -1967,7 +1985,7 @@ function InventoryLineRow({
 						/>
 					</ItemActions>
 				</ItemHeader>
-				<div className="flex flex-wrap gap-1.5">
+				<div className="flex flex-wrap gap-2">
 					<InventoryMetric
 						label="INBOUND"
 						value={
@@ -2012,7 +2030,7 @@ function InventoryMetric({
 		<Badge
 			variant="outline"
 			className={cn(
-				"h-6 gap-1 rounded-full border bg-muted/20 px-2 text-[10px] font-medium uppercase tabular-nums",
+				"min-h-7 gap-1.5 rounded-full border bg-muted/20 px-2.5 text-xs font-medium uppercase tabular-nums",
 				tone === "success" && "border-emerald-200 bg-emerald-50/80",
 				tone === "warning" && "border-amber-200 bg-amber-50/80",
 				className,
@@ -2417,8 +2435,12 @@ function InventoryLineActions({
 
 function SalesOverviewInventoryContentBody({
 	salesOrderId,
+	onCreateInbound,
+	onViewInbound,
 }: {
 	salesOrderId?: number | null;
+	onCreateInbound?: () => void;
+	onViewInbound?: (inboundId: number) => void;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -2582,6 +2604,7 @@ function SalesOverviewInventoryContentBody({
 					<InventoryActionBar
 						overview={overview}
 						salesOrderId={normalizedSalesOrderId}
+						onCreateInbound={onCreateInbound}
 					/>
 				) : null}
 				<InventorySyncState />
@@ -2701,6 +2724,7 @@ function SalesOverviewInventoryContentBody({
 						setOpenInboundForm(false);
 						setOpenInboundCreator(false);
 					}}
+					onCreateInbound={onCreateInbound}
 				/>
 			) : null}
 			{stockFilter === "inbounds" ? (
@@ -2711,9 +2735,13 @@ function SalesOverviewInventoryContentBody({
 					pendingQty={getPendingInventoryQty(stockRows)}
 					onCheckStock={() => setStockFilter("stock")}
 					onCreateInbound={() => {
-						setStockFilter("stock");
-						setOpenInboundForm(true);
+						if (onCreateInbound) onCreateInbound();
+						else {
+							setStockFilter("stock");
+							setOpenInboundForm(true);
+						}
 					}}
+					onViewInbound={onViewInbound}
 					isReadOnly={overview.isInventoryReadOnly}
 					readOnlyReason={overview.inventoryActionBlockReason}
 				/>
@@ -2732,8 +2760,12 @@ function SalesOverviewInventoryContentBody({
 
 export function SalesOverviewInventoryContent({
 	salesOrderId,
+	onCreateInbound,
+	onViewInbound,
 }: {
 	salesOrderId?: number | null;
+	onCreateInbound?: () => void;
+	onViewInbound?: (inboundId: number) => void;
 }) {
 	const normalizedSalesOrderId = salesOrderId ? Number(salesOrderId) : 0;
 
@@ -2742,7 +2774,11 @@ export function SalesOverviewInventoryContent({
 			{normalizedSalesOrderId ? (
 				<OrderInventoryRepairPanel salesOrderId={normalizedSalesOrderId} />
 			) : null}
-			<SalesOverviewInventoryContentBody salesOrderId={salesOrderId} />
+			<SalesOverviewInventoryContentBody
+				salesOrderId={salesOrderId}
+				onCreateInbound={onCreateInbound}
+				onViewInbound={onViewInbound}
+			/>
 		</>
 	);
 }

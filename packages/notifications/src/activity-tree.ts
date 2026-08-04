@@ -119,6 +119,7 @@ export type GetActivityTreeQuery = {
 	pageSize?: number;
 	includeChildren?: boolean;
 	maxDepth?: number;
+	includeDeleted?: boolean;
 };
 
 export type ActivityTreeNode = {
@@ -129,7 +130,9 @@ export type ActivityTreeNode = {
 	description: string | null;
 	note: string | null;
 	senderContactId: number | null;
+	senderProfileId: number | null;
 	senderContactName: string | null;
+	deletedAt: Date | null;
 	receipt?: {
 		status?: NoteStatus | null;
 		notePadContactId?: number | null;
@@ -164,10 +167,7 @@ export function activityTagIn(tagName: ActivityTagName, tagValues: unknown[]) {
 	return { tagName, tagValues } as const;
 }
 
-export function activityAnyTag(
-	tagNames: ActivityTagName[],
-	tagValue: unknown,
-) {
+export function activityAnyTag(tagNames: ActivityTagName[], tagValue: unknown) {
 	return { tagNames, tagValue } as const;
 }
 
@@ -192,6 +192,7 @@ function mapActivity(row: {
 	subject: string | null;
 	headline: string | null;
 	note: string | null;
+	deletedAt: Date | null;
 	senderContact: {
 		id: number;
 		name: string | null;
@@ -223,7 +224,9 @@ function mapActivity(row: {
 		headline: row.headline ?? null,
 		description: descriptionFromTag,
 		note: row.note ?? null,
+		deletedAt: row.deletedAt ?? null,
 		senderContactId: row.senderContact?.id ?? null,
+		senderProfileId: row.senderContact?.profileId ?? null,
 		senderContactName:
 			row.senderContactName ?? row.senderContact?.name ?? tagAuthorName,
 		receipt: row.recipients?.[0] ?? null,
@@ -238,6 +241,7 @@ type ActivityRow = {
 	subject: string | null;
 	headline: string | null;
 	note: string | null;
+	deletedAt: Date | null;
 	senderContact: {
 		id: number;
 		name: string | null;
@@ -288,17 +292,16 @@ async function attachSenderNames(db: Db, rows: ActivityRow[]) {
 	]);
 
 	const employeeNameMap = new Map<number, string | null>(
-		employees.map(
-			(employee): [number, string | null] => [employee.id, employee.name],
-		),
+		employees.map((employee): [number, string | null] => [
+			employee.id,
+			employee.name,
+		]),
 	);
 	const customerNameMap = new Map<number, string | null>(
-		customers.map(
-			(customer): [number, string | null] => [
-				customer.id,
-				customer.businessName || customer.name,
-			],
-		),
+		customers.map((customer): [number, string | null] => [
+			customer.id,
+			customer.businessName || customer.name,
+		]),
 	);
 
 	return rows.map((row) => {
@@ -472,7 +475,7 @@ async function fetchActivitiesByIds(
 	const rows = await db.notePad.findMany({
 		where: {
 			id: { in: ids },
-			deletedAt: null,
+			...(query.includeDeleted ? {} : { deletedAt: null }),
 		},
 		select: {
 			id: true,
@@ -480,6 +483,7 @@ async function fetchActivitiesByIds(
 			subject: true,
 			headline: true,
 			note: true,
+			deletedAt: true,
 			senderContact: {
 				select: {
 					id: true,
@@ -526,7 +530,7 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 
 	const rootRows = await db.notePad.findMany({
 		where: {
-			deletedAt: null,
+			...(query.includeDeleted ? {} : { deletedAt: null }),
 			...channelWhere,
 			...(recipientsWhere ? { recipients: recipientsWhere } : {}),
 			...(tagWhere || {}),
@@ -541,6 +545,7 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 			subject: true,
 			headline: true,
 			note: true,
+			deletedAt: true,
 			senderContact: {
 				select: {
 					id: true,
@@ -565,15 +570,11 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 							notePadContactId: {
 								in: query.contactIds,
 							},
-							...(query.status?.length
-								? { status: { in: query.status } }
-								: {}),
+							...(query.status?.length ? { status: { in: query.status } } : {}),
 						}
 					: {
 							deletedAt: null,
-							...(query.status?.length
-								? { status: { in: query.status } }
-								: {}),
+							...(query.status?.length ? { status: { in: query.status } } : {}),
 						},
 				select: {
 					status: true,
@@ -591,7 +592,9 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 
 	if (!includeChildren || !rootIds.length) {
 		return {
-			data: rootIds.map((id) => nodes.get(id)!).filter(Boolean),
+			data: rootIds
+				.map((id) => nodes.get(id))
+				.filter((node): node is ActivityTreeNode => Boolean(node)),
 		};
 	}
 
@@ -653,7 +656,9 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 	}
 
 	return {
-		data: rootIds.map((id) => nodes.get(id)!).filter(Boolean),
+		data: rootIds
+			.map((id) => nodes.get(id))
+			.filter((node): node is ActivityTreeNode => Boolean(node)),
 	};
 }
 

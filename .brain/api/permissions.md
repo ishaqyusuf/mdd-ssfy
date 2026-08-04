@@ -316,3 +316,10 @@ Tracks authentication and authorization patterns across API surfaces.
   server restricts submission scope to assignments owned by that employee.
 - UI visibility is not an authorization boundary; assignment/order/inbound
   ownership and optimistic review state are revalidated inside the transaction.
+
+## Manual activity note permissions (2026-08-04)
+
+- An authenticated author may edit or soft-delete their own manual Sales Info or Inventory Inbound note.
+- Super Admin may manage any manual note and request deleted activity history.
+- Other users are rejected server-side.
+- `inventory_inbound_activity`, other system channels, and `activity_note_revision` entries are immutable.

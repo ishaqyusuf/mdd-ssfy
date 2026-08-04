@@ -54,3 +54,10 @@ Track whether a sales order has vendor-order work outstanding while keeping item
 ## Future Improvements
 - Generate purchase orders from pending inbound statuses.
 - Browser-validate the selected-demand modal flow with mapped demand fixtures.
+
+## Inbound shipment activity update (2026-08-04)
+
+- `inventory_inbound_activity.status_updated` now renders previous and next friendly labels plus the authenticated actor name; `in_progress` is presented as `Ordered`.
+- Sales Overview activities expose `Open inbound`, mapped by `tags.inboundId` to the exact secondary-sheet shipment.
+- The notification center maps the same channel to `viewInboundId`, opening the reusable global inbound sheet.
+- Manual Sales Info and Inventory Inbound notes support author/Super Admin edit and soft delete with immutable child revisions. Lifecycle and revision activity remain immutable.

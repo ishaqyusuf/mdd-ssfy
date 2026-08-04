@@ -4,6 +4,7 @@ import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cos
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useDocumentReviewParams } from "@/hooks/use-document-review-params";
 import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
+import { useInboundView } from "@/hooks/use-inbound-filter-params";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -105,9 +106,17 @@ export function NotificationCenter() {
 		useCommunityInstallCostParams();
 	const { setParams: setJobParams } = useJobParams();
 	const { setParams: setDocumentReviewParams } = useDocumentReviewParams();
+	const { setParams: setInboundViewParams } = useInboundView();
 	const salesOverview = useSalesOverviewOpen();
 	const legacySalesOverview = useSalesOverviewQuery();
 	const handlers = createNotificationHandlers<{ close: () => void }>({
+		inventory_inbound_activity: (data, _notification, context) => {
+			context.close();
+			setInboundViewParams({
+				viewInboundId: Number(data.inboundId),
+				payload: null,
+			});
+		},
 		job_submitted: (data, _notification, context) => {
 			context.close();
 			setJobParams({ openJobId: Number(data.jobId) });
@@ -305,7 +314,9 @@ export function NotificationCenter() {
 										</Button>
 									</DropdownMenu.Trigger>
 									<DropdownMenu.Content align="end" className="w-64">
-										<DropdownMenu.Label>Filter notifications</DropdownMenu.Label>
+										<DropdownMenu.Label>
+											Filter notifications
+										</DropdownMenu.Label>
 										<DropdownMenu.Item
 											onSelect={() => setSelectedFilter(null)}
 											className="flex items-center justify-between gap-3"
@@ -349,7 +360,9 @@ export function NotificationCenter() {
 												</DropdownMenu.Item>
 											))
 										) : (
-											<DropdownMenu.Item disabled>No filters yet</DropdownMenu.Item>
+											<DropdownMenu.Item disabled>
+												No filters yet
+											</DropdownMenu.Item>
 										)}
 									</DropdownMenu.Content>
 								</DropdownMenu.Root>
@@ -361,10 +374,7 @@ export function NotificationCenter() {
 							{isLoading && !unreadNotifications.length && (
 								<div className="divide-y">
 									{SKELETON_ROW_KEYS.map((key) => (
-										<div
-											key={key}
-											className="flex items-start gap-4 px-3 py-3"
-										>
+										<div key={key} className="flex items-start gap-4 px-3 py-3">
 											<div className="h-9 w-9 rounded-full bg-accent" />
 											<div className="min-w-0 flex-1 space-y-2">
 												<div className="h-3 w-2/3 rounded bg-accent" />
@@ -430,10 +440,7 @@ export function NotificationCenter() {
 							{isLoading && !archivedNotifications.length && (
 								<div className="divide-y">
 									{SKELETON_ROW_KEYS.map((key) => (
-										<div
-											key={key}
-											className="flex items-start gap-4 px-3 py-3"
-										>
+										<div key={key} className="flex items-start gap-4 px-3 py-3">
 											<div className="h-9 w-9 rounded-full bg-accent" />
 											<div className="min-w-0 flex-1 space-y-2">
 												<div className="h-3 w-2/3 rounded bg-accent" />

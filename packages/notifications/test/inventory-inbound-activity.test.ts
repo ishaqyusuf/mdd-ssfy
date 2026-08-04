@@ -3,6 +3,25 @@ import { explodeTagEntries } from "../src/tag-values";
 import { inventoryInboundActivity } from "../src/types/inventory-inbound-activity";
 
 describe("inventory inbound activity notifications", () => {
+	it("describes a status transition with friendly labels and the actor", () => {
+		const activity = inventoryInboundActivity.createActivity(
+			{
+				inboundId: 48,
+				activityType: "status_updated",
+				meta: {
+					previousStatus: "pending",
+					status: "in_progress",
+				},
+			},
+			{ id: 7, profileId: 7, name: "Ops User" },
+			{ id: 7, profileId: 7, name: "Ops User" },
+		);
+
+		expect(activity.headline).toBe(
+			"Inbound #48 status changed from Pending to Ordered by Ops User.",
+		);
+	});
+
 	it("creates standard channel activity without requiring recipients", () => {
 		const activity = inventoryInboundActivity.createActivity(
 			{

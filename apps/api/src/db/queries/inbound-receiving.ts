@@ -1123,6 +1123,8 @@ export async function updateInboundShipmentStatusQuery(
 
 	return {
 		...updated,
+		previousStatus: previous.status,
+		actorName: actor.name || "Unknown",
 		releasedDemandCount: releasedDemand?.releasedDemandCount ?? 0,
 		recomputedComponentCount: releasedDemand?.recomputedComponentCount ?? 0,
 	};
