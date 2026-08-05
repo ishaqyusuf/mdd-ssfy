@@ -28,14 +28,23 @@ describe("inventory backorders tables-2 migration", () => {
 	});
 
 	it("keeps the workspace controls while replacing the card queue with a table", () => {
-		const source = readSource(
-			"components/inventory/inventory-backorder-queue-page.tsx",
+		const routeSource = readSource(
+			"app/(sidebar)/inventory/backorders/page.tsx",
+		);
+		const headerSource = readSource(
+			"components/inventory/inventory-backorders-header.tsx",
 		);
 
 		expect(
-			source.includes("components/tables-2/inventory-backorders/data-table"),
+			routeSource.includes(
+				"components/tables-2/inventory-backorders/data-table",
+			),
 		).toBe(true);
-		expect(source.includes("blockerComponents.map")).toBe(false);
+		expect(routeSource.includes("salesBackorderQueueSummary")).toBe(true);
+		expect(headerSource.includes("SearchFilterTRPC")).toBe(true);
+		expect(headerSource.includes("salesBackorderQueuePrintSelection")).toBe(
+			true,
+		);
 	});
 
 	it("uses core table behaviors with compact custom columns", () => {
@@ -58,13 +67,17 @@ describe("inventory backorders tables-2 migration", () => {
 		expect(tableSource.includes("useTableDnd")).toBe(true);
 		expect(tableSource.includes("useStickyColumns")).toBe(true);
 		expect(tableSource.includes("useTableScroll")).toBe(true);
+		expect(tableSource.includes("useSuspenseInfiniteQuery")).toBe(true);
+		expect(tableSource.includes("useInfiniteScroll")).toBe(true);
+		expect(tableSource.includes("InventoryShipAvailableDialog")).toBe(true);
+		expect(tableSource.includes("<BottomBar data={tableData} />")).toBe(true);
 		expect(headerSource.includes("DraggableHeader")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(160, 280, 190)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(104, 150, 118)")).toBe(true);
 		expect(columnsSource.includes("blockers.slice(0, 1)")).toBe(true);
-		expect(columnsSource.includes('className="h-8 px-2 text-xs"')).toBe(
-			true,
-		);
+		expect(columnsSource.includes('id: "delivery"')).toBe(true);
+		expect(columnsSource.includes('id: "select"')).toBe(true);
+		expect(columnsSource.includes('className="h-8 px-2 text-xs"')).toBe(true);
 		expect(
 			/"inventory-backorders": \{[\s\S]*sizes\.custom\(160, 280, 190\)[\s\S]*rowHeight: 56/.test(
 				configSource,

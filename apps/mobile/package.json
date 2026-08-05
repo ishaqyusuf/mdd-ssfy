@@ -17,6 +17,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@gnd/dev-logger": "workspace:*",
+    "@gnd/errors": "workspace:*",
     "@gnd/sales": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@gorhom/bottom-sheet": "^5.0.5",

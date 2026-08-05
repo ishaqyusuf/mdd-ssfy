@@ -25,7 +25,9 @@ describe("sales form overview options", () => {
 			{ taxCode: "TX", title: "Texas", percentage: "8.25" },
 		]);
 
-		expect(buildSalesFormProfileSelectOptions([{ id: 4, title: "Pro" }])).toEqual([
+		expect(
+			buildSalesFormProfileSelectOptions([{ id: 4, title: "Pro" }]),
+		).toEqual([
 			{ value: "none", label: "None" },
 			{ value: "4", label: "Pro" },
 		]);
@@ -40,10 +42,12 @@ describe("sales form overview options", () => {
 		expect(normalizeSalesFormPaymentTerm("Due on receipt")).toBe(
 			"Due on Receipt",
 		);
-		expect(resolveSalesFormProfilePaymentTerm({ netTerm: "net 30" }, "None")).toBe(
-			"Net 30",
-		);
+		expect(
+			resolveSalesFormProfilePaymentTerm({ netTerm: "net 30" }, "None"),
+		).toBe("Net 30");
 		expect(resolveSalesFormProfilePaymentTerm({}, "net 15")).toBe("Net 15");
+		expect(normalizeSalesFormPaymentTerm("Net30")).toBe("Net 30");
+		expect(normalizeSalesFormPaymentTerm("NET20")).toBe("Net 20");
 	});
 });
 

@@ -72,9 +72,29 @@ export function CustomerSelectorDialog(props: Props) {
 		let cancelled = false;
 
 		(async () => {
-			const savedCustomer = await getCustomerFormAction(createdCustomerId);
 			const currentRecord = useNewSalesFormStore.getState().record;
-			if (cancelled || !savedCustomer?.customerId || !currentRecord) return;
+			if (cancelled || !currentRecord) return;
+			const savedAddressId = createCustomerParams.payload?.addressId;
+			const savedAddressType = createCustomerParams.payload?.address;
+			if (savedAddressId && savedAddressType) {
+				const currentBillingAddressId = currentRecord.form.billingAddressId;
+				setMeta(
+					savedAddressType === "bad"
+						? {
+								billingAddressId: savedAddressId,
+								...(currentRecord.form.shippingAddressId == null ||
+								currentRecord.form.shippingAddressId === currentBillingAddressId
+									? { shippingAddressId: savedAddressId }
+									: {}),
+							}
+						: { shippingAddressId: savedAddressId },
+				);
+				setCreateCustomerParams(null);
+				return;
+			}
+
+			const savedCustomer = await getCustomerFormAction(createdCustomerId);
+			if (cancelled || !savedCustomer?.customerId) return;
 
 			setMeta(
 				resolveCustomerFormSelection({
@@ -130,6 +150,8 @@ export function CustomerSelectorDialog(props: Props) {
 		};
 	}, [
 		createCustomerParams.customerId,
+		createCustomerParams?.payload?.address,
+		createCustomerParams?.payload?.addressId,
 		createCustomerParams?.payload?.customerId,
 		createCustomerParams?.payload?.billingAddressId,
 		createCustomerParams?.payload?.shippingAddressId,

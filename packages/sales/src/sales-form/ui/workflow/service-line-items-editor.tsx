@@ -6,6 +6,7 @@ import { Checkbox } from "@gnd/ui/checkbox";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { InputGroup } from "@gnd/ui/namespace";
+import { SalesFormQuantityStepper } from "./sales-form-quantity-stepper";
 
 export type ServiceLineItemEditorRow = {
 	uid?: string | null;
@@ -51,7 +52,7 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 				<table className="w-full min-w-[760px] table-fixed text-sm">
 					<colgroup>
 						<col />
-						<col style={{ width: "6rem" }} />
+						<col style={{ width: "8rem" }} />
 						<col style={{ width: "7rem" }} />
 						{canEditPricing ? (
 							<>
@@ -101,16 +102,16 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 									</InputGroup>
 								</td>
 								<td className="px-3 py-2">
-									<Input
-										aria-label={`Service line ${index + 1} quantity`}
-										type="number"
-										value={row.qty || 0}
-										onChange={(e) =>
+									<SalesFormQuantityStepper
+										label={`Service line ${index + 1} quantity`}
+										value={row.qty}
+										min={0}
+										onChange={(value) =>
 											patchRow(index, {
-												qty: Number(e.target.value || 0),
+												qty: value,
 											} as Partial<TRow>)
 										}
-										className="h-8 text-right"
+										className="w-28"
 									/>
 								</td>
 								<td className="px-3 py-2">

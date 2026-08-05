@@ -220,6 +220,15 @@ export function getRunTerminalState(run: unknown) {
 	return null;
 }
 
+export function isTaskRealtimeAccessError(error: unknown) {
+	const message = normalizeErrorMessage(error)?.toLowerCase() ?? "";
+	return (
+		message.includes("public access token") ||
+		message.includes("unauthorized (401)") ||
+		(message.includes("401") && message.includes("realtime"))
+	);
+}
+
 function isSalesEmailNotificationChannel(channel: unknown) {
 	return (
 		channel === "simple_sales_document_email" ||

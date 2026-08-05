@@ -1,8 +1,12 @@
 /** @jsxImportSource react */
 
 import { describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SalesFormCustomerOverviewCard } from "./customer-overview-card";
+import {
+	SalesFormCustomerOverviewCard,
+	shouldShowSameAsBillingAction,
+} from "./customer-overview-card";
 
 describe("sales form customer overview card", () => {
 	it("renders distinct edit and change customer actions", () => {
@@ -35,5 +39,33 @@ describe("sales form customer overview card", () => {
 
 		expect(html).not.toContain('aria-label="Edit customer"');
 		expect(html).not.toContain('aria-label="Change customer"');
+	});
+
+	it("renders interactive address edits and the distinct-shipping action", () => {
+		const source = readFileSync(
+			new URL("./customer-overview-card.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source).toContain("onEdit={props.onEditBillingAddress}");
+		expect(source).toContain("onEdit={props.onEditShippingAddress}");
+		expect(source).toContain("cursor-pointer");
+		expect(source).toContain("hover:bg-muted/60");
+		expect(source).toContain("Use billing address for shipping?");
+	});
+
+	it("hides the same-as-billing action when both addresses already match", () => {
+		expect(
+			shouldShowSameAsBillingAction({
+				hasAction: true,
+				shippingMatchesBilling: true,
+			}),
+		).toBe(false);
+		expect(
+			shouldShowSameAsBillingAction({
+				hasAction: true,
+				shippingMatchesBilling: false,
+			}),
+		).toBe(true);
 	});
 });

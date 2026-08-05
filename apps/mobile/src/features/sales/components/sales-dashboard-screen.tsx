@@ -2,6 +2,7 @@ import { GeneralHomeHeader } from "@/components/home/general-home-header";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { Pressable } from "@/components/ui/pressable";
+import { InventoryFulfillmentDashboardLinks } from "@/features/inventory-fulfillment/components/inventory-fulfillment-dashboard-links";
 import { useSalesDashboardOverview } from "@/features/sales/api/use-sales-dashboard-overview";
 import { useRouter } from "expo-router";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
@@ -122,6 +123,7 @@ export function SalesDashboardScreen() {
 									</View>
 								</Pressable>
 							</View>
+							<InventoryFulfillmentDashboardLinks />
 							<View className="mt-6">
 								<View className="mb-3 flex-row items-center justify-between">
 									<Text className="text-base font-bold text-foreground">

@@ -1,22 +1,28 @@
 import { describe, expect, test } from "bun:test";
 
-import { normalizeSalesFormGlobalAddOnDraft } from "./invoice-pricing-overview";
+import {
+	createSalesFormAdditionalCost,
+	salesFormAdditionalCostOptions,
+} from "./invoice-pricing-overview";
 
-describe("global add-on draft", () => {
-	test("normalizes a visible label and positive amount", () => {
-		expect(
-			normalizeSalesFormGlobalAddOnDraft("  Rush handling  ", "25.50"),
-		).toEqual({
-			label: "Rush handling",
-			amount: 25.5,
-		});
+describe("additional cost lines", () => {
+	test("matches the legacy cost menu", () => {
+		expect(salesFormAdditionalCostOptions).toEqual([
+			{ label: "Discount", type: "Discount" },
+			{ label: "Delivery", type: "Delivery" },
+			{ label: "Flat Labor Cost", type: "FlatLabor" },
+			{ label: "Custom", type: "CustomNonTaxxable" },
+		]);
 	});
 
-	test("rejects empty labels and non-positive amounts", () => {
-		expect(normalizeSalesFormGlobalAddOnDraft("", "10")).toBeNull();
-		expect(normalizeSalesFormGlobalAddOnDraft("Custom Add-on", "0")).toBeNull();
+	test("creates an editable zero-value line immediately", () => {
 		expect(
-			normalizeSalesFormGlobalAddOnDraft("Custom Add-on", "not-a-number"),
-		).toBeNull();
+			createSalesFormAdditionalCost(salesFormAdditionalCostOptions[1]),
+		).toEqual({
+			label: "Delivery",
+			type: "Delivery",
+			amount: 0,
+			taxxable: false,
+		});
 	});
 });

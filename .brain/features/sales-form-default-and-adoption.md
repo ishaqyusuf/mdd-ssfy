@@ -20,6 +20,11 @@ available as a reversible per-user fallback.
 - Redirects preserve unrelated query parameters and repeated parameters.
 - The resolver runs before form data loading on create order, create quote, edit
   order, and edit quote pages for both form surfaces.
+- `selectedCustomerId` deep links initialize the selected customer on both the
+  new and legacy create-order/create-quote surfaces. The legacy loader accepts
+  only a normalized positive ID for an active office customer, then hydrates
+  its primary address, pricing profile, payment term, and tax defaults. Missing
+  or unavailable customers retain the normal optional customer-picker flow.
 
 ## User Choice
 
@@ -105,3 +110,8 @@ available as a reversible per-user fallback.
 - Focused regressions cover customer-picker dismissal, guarded form switching,
   in-form switch placement, and step-level price visibility. Authenticated
   browser proof covers both switch directions and the all-unpriced root grid.
+- The 2026-08-05 legacy deep-link regression covers query normalization and
+  forwarding on both create routes plus office-customer hydration. Authenticated
+  browser proof with customer `2302` confirmed the legacy order form renders
+  the selected customer and suppresses the initial picker, while the same route
+  without the parameter still opens the picker.

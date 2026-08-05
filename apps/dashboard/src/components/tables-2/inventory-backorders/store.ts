@@ -1,12 +1,14 @@
 "use client";
 
-import type { Column, Updater } from "@tanstack/react-table";
+import type { Column, RowSelectionState, Updater } from "@tanstack/react-table";
 import type { Dispatch, SetStateAction } from "react";
 import { create } from "zustand";
 
 import type { InventoryBackorderRow } from "./columns";
 
 interface InventoryBackordersTableState {
+	rowSelection: RowSelectionState;
+	setRowSelection: (updater: Updater<RowSelectionState>) => void;
 	columns: Column<InventoryBackorderRow, unknown>[];
 	setColumns: (columns: Column<InventoryBackorderRow, unknown>[]) => void;
 	showColumnDividers: boolean;
@@ -21,6 +23,12 @@ interface InventoryBackordersTableState {
 export const useInventoryBackordersTableStore =
 	create<InventoryBackordersTableState>((set) => ({
 		columns: [],
+		rowSelection: {},
+		setRowSelection: (updater) =>
+			set((state) => ({
+				rowSelection:
+					typeof updater === "function" ? updater(state.rowSelection) : updater,
+			})),
 		showColumnDividers: false,
 		setColumns: (columns) => set({ columns }),
 		setShowColumnDividers: (updater) =>

@@ -2,9 +2,14 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import { Label } from "@gnd/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -12,40 +17,44 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
-import { useId, useState } from "react";
 import {
 	type CostPriceBreakdownContext,
 	CostPriceBreakdownHover,
 	type CostPriceBreakdownInput,
 } from "../workflow/cost-price-breakdown-hover";
 import { formatSalesFormCurrency } from "./format";
+import { SalesFormSummarySectionHeader } from "./summary-section-header";
 
 export type SalesFormSelectOption = {
 	value: string;
 	label: string;
 };
 
-export type SalesFormGlobalAddOnInput = {
+export const salesFormAdditionalCostOptions = [
+	{ label: "Discount", type: "Discount" },
+	{ label: "Delivery", type: "Delivery" },
+	{ label: "Flat Labor Cost", type: "FlatLabor" },
+	{ label: "Custom", type: "CustomNonTaxxable" },
+] as const;
+
+export type SalesFormAdditionalCostOption =
+	(typeof salesFormAdditionalCostOptions)[number];
+
+export type SalesFormAdditionalCostLine = {
+	index: number;
 	label: string;
+	type: string;
 	amount: number;
 };
 
-export function normalizeSalesFormGlobalAddOnDraft(
-	label: string,
-	amount: string,
-): SalesFormGlobalAddOnInput | null {
-	const normalizedLabel = label.trim();
-	const normalizedAmount = Number(amount);
-	if (
-		!normalizedLabel ||
-		!Number.isFinite(normalizedAmount) ||
-		normalizedAmount <= 0
-	) {
-		return null;
-	}
+export function createSalesFormAdditionalCost(
+	option: SalesFormAdditionalCostOption,
+) {
 	return {
-		label: normalizedLabel,
-		amount: normalizedAmount,
+		label: option.label,
+		type: option.type,
+		amount: 0,
+		taxxable: false,
 	};
 }
 
@@ -67,6 +76,7 @@ export type SalesFormPricingOverviewProps = {
 	showLaborCost?: boolean;
 	showAddOnCost?: boolean;
 	showGrandTotal?: boolean;
+	additionalCosts?: SalesFormAdditionalCostLine[];
 	totalBreakdown?: {
 		context?: CostPriceBreakdownContext | null;
 		subTotal?: CostPriceBreakdownInput;
@@ -75,45 +85,31 @@ export type SalesFormPricingOverviewProps = {
 	onPaymentMethodChange?: (value: string) => void;
 	onTaxCodeChange?: (value: string) => void;
 	onLaborCostChange?: (value: number) => void;
-	onAddGlobalCost?: (input: SalesFormGlobalAddOnInput) => void;
+	onAddAdditionalCost?: (
+		input: ReturnType<typeof createSalesFormAdditionalCost>,
+	) => void;
+	onUpdateAdditionalCost?: (
+		index: number,
+		patch: Partial<Pick<SalesFormAdditionalCostLine, "label" | "amount">>,
+	) => void;
+	onRemoveAdditionalCost?: (index: number) => void;
 };
 
 export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
-	const globalAddOnLabelId = useId();
-	const globalAddOnAmountId = useId();
-	const [globalAddOnLabel, setGlobalAddOnLabel] = useState("Custom Add-on");
-	const [globalAddOnAmount, setGlobalAddOnAmount] = useState("");
 	const showPaymentMethod = props.showPaymentMethod ?? true;
 	const showTaxGroup = props.showTaxGroup ?? true;
 	const showLaborCost = props.showLaborCost ?? true;
 	const showAddOnCost = props.showAddOnCost ?? true;
 	const showGrandTotal = props.showGrandTotal ?? true;
-	const globalAddOnDraft = normalizeSalesFormGlobalAddOnDraft(
-		globalAddOnLabel,
-		globalAddOnAmount,
-	);
-
-	function closeGlobalAddOn() {
-		setGlobalAddOnLabel("Custom Add-on");
-		setGlobalAddOnAmount("");
-	}
-
-	function addGlobalAddOn() {
-		if (!globalAddOnDraft || !props.onAddGlobalCost) return;
-		props.onAddGlobalCost(globalAddOnDraft);
-		closeGlobalAddOn();
-	}
-
 	return (
-		<div className="flex flex-col gap-3">
-			<div className="flex items-center gap-2 text-foreground">
-				<Icons.CreditCard size={18} className="text-primary" />
-				<h3 className="text-sm font-bold text-primary">
-					Totals & Pricing (Entire Invoice)
-				</h3>
-			</div>
-			<div className="flex flex-col gap-4 rounded-xl border border-primary/20 bg-card p-4 shadow-sm">
-				<div className="flex items-center justify-between gap-4">
+		<section className="border-b border-border/70 pb-6">
+			<SalesFormSummarySectionHeader
+				description="Invoice-wide charges, tax, and payment settings."
+				icon={<Icons.CreditCard size={18} />}
+				title="Totals & Pricing"
+			/>
+			<div className="divide-y divide-border/70">
+				<div className="flex items-center justify-between gap-4 pb-3">
 					<span className="text-sm font-medium text-muted-foreground">
 						Subtotal (All Items)
 					</span>
@@ -133,7 +129,7 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 				</div>
 
 				{showPaymentMethod ? (
-					<div className="flex items-center justify-between gap-4">
+					<div className="flex items-center justify-between gap-4 py-3">
 						<span className="text-sm font-medium text-muted-foreground">
 							Payment Method
 						</span>
@@ -142,7 +138,7 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 								value={props.paymentMethod}
 								onValueChange={props.onPaymentMethodChange}
 							>
-								<SelectTrigger className="h-9 rounded-lg bg-muted text-xs font-bold">
+								<SelectTrigger className="h-9 rounded-md bg-background text-xs font-bold">
 									<SelectValue placeholder="Select Payment Method" />
 								</SelectTrigger>
 								<SelectContent>
@@ -158,7 +154,7 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 				) : null}
 
 				{showTaxGroup ? (
-					<div className="flex items-center justify-between gap-4">
+					<div className="flex items-center justify-between gap-4 py-3">
 						<span className="text-sm font-medium text-muted-foreground">
 							Tax Group
 						</span>
@@ -167,7 +163,7 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 								value={props.taxCode}
 								onValueChange={props.onTaxCodeChange}
 							>
-								<SelectTrigger className="h-9 rounded-lg bg-muted text-xs font-bold">
+								<SelectTrigger className="h-9 rounded-md bg-background text-xs font-bold">
 									<SelectValue placeholder="Select Tax Group" />
 								</SelectTrigger>
 								<SelectContent>
@@ -182,7 +178,7 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 					</div>
 				) : null}
 
-				<div className="flex items-center justify-between gap-4">
+				<div className="flex items-center justify-between gap-4 py-3">
 					<span className="text-sm font-medium text-muted-foreground">
 						Tax Amount
 					</span>
@@ -192,7 +188,7 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 				</div>
 
 				{showLaborCost ? (
-					<div className="flex items-center justify-between gap-4">
+					<div className="flex items-center justify-between gap-4 py-3">
 						<div className="flex flex-col">
 							<span className="text-sm font-medium text-muted-foreground">
 								Total Labor Cost
@@ -206,7 +202,7 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 								$
 							</span>
 							<Input
-								className="h-9 rounded-lg bg-muted pl-6 pr-3 text-right text-xs font-bold"
+								className="h-9 rounded-md bg-background pl-6 pr-3 text-right text-xs font-bold"
 								type="number"
 								step="0.01"
 								value={Number(props.laborCost || 0)}
@@ -218,66 +214,114 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 					</div>
 				) : null}
 
-				{showAddOnCost && props.onAddGlobalCost ? (
-					<div className="mt-2 space-y-2 border-t border-dashed border-border pt-1">
-						<div className="flex items-center justify-between gap-4">
-							<span className="flex items-center gap-1 px-2 text-xs font-bold">
-								<Icons.Plus size={14} />
-								Global Add-on Cost
-							</span>
+				{showAddOnCost && props.onAddAdditionalCost ? (
+					<section className="space-y-4 py-5">
+						<div className="flex items-start justify-between gap-4">
+							<div className="space-y-1">
+								<div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+									<Icons.Plus size={15} className="text-primary" />
+									Additional Costs
+								</div>
+								<p className="text-xs leading-5 text-muted-foreground">
+									Select a cost type, then edit its label and amount.
+								</p>
+							</div>
 							<span className="text-xs font-bold text-muted-foreground">
 								+{formatSalesFormCurrency(props.addOnTotal)}
 							</span>
 						</div>
-						<form
-							className="space-y-4 rounded-lg border bg-muted/30 p-4"
-							onReset={closeGlobalAddOn}
-							onSubmit={(event) => {
-								event.preventDefault();
-								addGlobalAddOn();
-							}}
-						>
-							<div className="space-y-1">
-								<p className="text-sm font-semibold">Global Add-on Cost</p>
-								<p className="text-xs text-muted-foreground">
-									Add a non-taxable invoice-level charge.
-								</p>
-							</div>
+						{props.additionalCosts?.length ? (
 							<div className="space-y-2">
-								<Label htmlFor={globalAddOnLabelId}>Label</Label>
-								<Input
-									id={globalAddOnLabelId}
-									value={globalAddOnLabel}
-									onChange={(event) => setGlobalAddOnLabel(event.target.value)}
-								/>
+								<div className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+									<span className="min-w-0 flex-1">Label</span>
+									<span className="w-28 shrink-0">Amount</span>
+									<span className="w-9 shrink-0 sr-only">Actions</span>
+								</div>
+								{props.additionalCosts.map((cost, rowIndex) => (
+									<div
+										key={`${cost.type}-${cost.index}`}
+										className="flex items-center gap-2"
+									>
+										<Input
+											aria-label={`Additional cost ${rowIndex + 1} label`}
+											className="h-9 min-w-0 flex-1 bg-background text-xs font-medium"
+											value={cost.label}
+											onChange={(event) =>
+												props.onUpdateAdditionalCost?.(cost.index, {
+													label: event.target.value,
+												})
+											}
+										/>
+										<div className="relative w-28 shrink-0">
+											<span className="pointer-events-none absolute left-3 top-2.5 text-xs font-bold text-muted-foreground">
+												$
+											</span>
+											<Input
+												aria-label={`Additional cost ${rowIndex + 1} amount`}
+												className="h-9 bg-background pl-6 pr-2 text-right text-xs font-bold"
+												type="number"
+												min="0"
+												step="0.01"
+												placeholder="0.00"
+												value={cost.amount || ""}
+												onChange={(event) =>
+													props.onUpdateAdditionalCost?.(cost.index, {
+														amount: Number(event.target.value || 0),
+													})
+												}
+											/>
+										</div>
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											aria-label={`Delete ${cost.label} additional cost`}
+											className="size-9 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+											onClick={() => props.onRemoveAdditionalCost?.(cost.index)}
+										>
+											<Icons.Trash2 className="size-4" />
+										</Button>
+									</div>
+								))}
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor={globalAddOnAmountId}>Amount</Label>
-								<Input
-									id={globalAddOnAmountId}
-									aria-label="Global add-on amount"
-									type="number"
-									min="0.01"
-									step="0.01"
-									placeholder="0.00"
-									value={globalAddOnAmount}
-									onChange={(event) => setGlobalAddOnAmount(event.target.value)}
-								/>
-							</div>
-							<div className="flex justify-end gap-2">
-								<Button type="reset" variant="outline">
-									Cancel
-								</Button>
-								<Button type="submit" disabled={!globalAddOnDraft}>
+						) : (
+							<p className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
+								No additional costs added.
+							</p>
+						)}
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="h-9"
+								>
+									<Icons.Plus className="size-3.5" />
 									Add Cost
+									<Icons.ChevronDown className="size-3.5 text-muted-foreground" />
 								</Button>
-							</div>
-						</form>
-					</div>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="start" className="w-48">
+								{salesFormAdditionalCostOptions.map((option) => (
+									<DropdownMenuItem
+										key={option.type}
+										onSelect={() =>
+											props.onAddAdditionalCost?.(
+												createSalesFormAdditionalCost(option),
+											)
+										}
+									>
+										{option.label}
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</section>
 				) : null}
 
 				{props.showCcc ? (
-					<div className="flex items-center justify-between gap-4">
+					<div className="flex items-center justify-between gap-4 py-3">
 						<div className="flex flex-col">
 							<span className="text-sm font-medium text-muted-foreground">
 								CCC ({Number(props.cccPercentage || 0)}%)
@@ -293,7 +337,7 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 				) : null}
 
 				{showGrandTotal ? (
-					<div className="mt-2 flex items-center justify-between gap-4 rounded-lg border border-primary/10 bg-primary/5 p-4">
+					<div className="flex items-center justify-between gap-4 pt-5">
 						<div className="flex flex-col">
 							<span className="text-xs font-bold uppercase tracking-tighter text-primary">
 								Grand Total Due
@@ -318,6 +362,6 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 					</div>
 				) : null}
 			</div>
-		</div>
+		</section>
 	);
 }

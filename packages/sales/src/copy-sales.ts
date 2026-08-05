@@ -81,7 +81,7 @@ export async function copySalesInTransaction(
     include: SalesIncludeAll,
   });
   const isHx = props.as?.endsWith("-hx");
-  const salesRep = isHx ? sale.salesRep : props.author;
+  const salesRep = isHx ? (sale.salesRep ?? props.author) : props.author;
   if (!salesRep) {
     throw new Error("Sales rep is required to copy this sales document.");
   }

@@ -4,6 +4,7 @@ import {
 	planComponentDemandState,
 	resolveProjectedInboundDemandStatus,
 	resolveSalesItemProductionEligibility,
+	selectInventoryParentFormStep,
 	syncSalesInventoryLineItems,
 } from "./sync-sales-inventory-line-items";
 
@@ -188,6 +189,40 @@ describe("sync sales inventory line items", () => {
 		expect(candidates.map((candidate) => candidate.qty)).toEqual([2, 4, 3, 2]);
 		expect(candidates[2]?.inventoryName).toBe("Shelf board");
 		expect(candidates[3]?.inventoryCategoryTitle).toBe("Door");
+	});
+
+	it("selects the moulding step as the parent mapping from a grouped line", () => {
+		const item = {
+			...emptyItem,
+			description: "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6",
+			meta: {
+				mouldingRows: [{ uid: "flat-board", title: "Flat Board", qty: 9 }],
+			},
+			formSteps: [
+				{
+					prodUid: "moulding-item-type",
+					value: "Moulding",
+					qty: 1,
+					price: null,
+					basePrice: null,
+					meta: {},
+					step: { uid: "item-type", title: "Item Type" },
+					component: { uid: "moulding-item-type", name: "Moulding" },
+				},
+				{
+					prodUid: "flat-board",
+					value: "Flat Board",
+					qty: 9,
+					price: 13.36,
+					basePrice: 10.02,
+					meta: {},
+					step: { uid: "moulding-step", title: "Moulding" },
+					component: { uid: "flat-board", name: "Flat Board" },
+				},
+			],
+		};
+
+		expect(selectInventoryParentFormStep(item)?.prodUid).toBe("flat-board");
 	});
 
 	it("uses selected Dyke dependency pricing keys as inventory variant UIDs", () => {

@@ -21,7 +21,6 @@ import {
 import { Field, FieldGroup, FieldTitle } from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import { multiplyMoney } from "../../../payment-system/domain/money";
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -36,6 +35,7 @@ import {
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
 import type { ReactNode } from "react";
+import { multiplyMoney } from "../../../payment-system/domain/money";
 import {
 	getHptDoorSalesUnitPrice,
 	resolveHptDoorUnitPriceBreakdown,
@@ -48,6 +48,7 @@ import {
 	updateDoorRowBasePrice,
 } from "./door-price-cell";
 import { clearUnpricedDoorRowQty, isDoorRowPriceMissing } from "./door-utils";
+import { SalesFormQuantityStepper } from "./sales-form-quantity-stepper";
 import type {
 	DoorStoredRow,
 	WorkflowComponentRecord,
@@ -355,11 +356,11 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											<th className="w-20 px-2 py-2">Swing</th>
 										) : null}
 										{props.noHandle ? (
-											<th className="w-16 px-2 py-2 text-right">Qty</th>
+											<th className="w-32 px-2 py-2 text-center">Qty</th>
 										) : (
 											<>
-												<th className="w-16 px-2 py-2 text-right">LH</th>
-												<th className="w-16 px-2 py-2 text-right">RH</th>
+												<th className="w-32 px-2 py-2 text-center">LH</th>
+												<th className="w-32 px-2 py-2 text-center">RH</th>
 												<th className="w-14 px-2 py-2 text-right">Total</th>
 											</>
 										)}
@@ -413,58 +414,49 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 												) : null}
 												{props.noHandle ? (
 													<td className="px-2 py-2">
-														<Input
-															type="number"
-															value={
-																Number(row.totalQty || 0) > 0
-																	? String(Number(row.totalQty || 0))
-																	: ""
-															}
-															onChange={(event) =>
+														<SalesFormQuantityStepper
+															label={`Quantity for ${row.dimension || "door size"}`}
+															value={row.totalQty}
+															onChange={(value) =>
 																props.onPatchRow(row, {
-																	totalQty: Number(event.target.value || 0),
+																	totalQty: value,
 																	lhQty: 0,
 																	rhQty: 0,
 																})
 															}
 															disabled={isDoorRowPriceMissing(row)}
-															className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
+															className="w-28"
+															min={0}
 														/>
 													</td>
 												) : (
 													<>
 														<td className="px-2 py-2">
-															<Input
-																type="number"
-																value={
-																	Number(row.lhQty || 0) > 0
-																		? String(Number(row.lhQty || 0))
-																		: ""
-																}
-																onChange={(event) =>
+															<SalesFormQuantityStepper
+																label={`LH quantity for ${row.dimension || "door size"}`}
+																value={row.lhQty}
+																onChange={(value) =>
 																	props.onPatchRow(row, {
-																		lhQty: Number(event.target.value || 0),
+																		lhQty: value,
 																	})
 																}
 																disabled={isDoorRowPriceMissing(row)}
-																className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
+																className="w-28"
+																min={0}
 															/>
 														</td>
 														<td className="px-2 py-2">
-															<Input
-																type="number"
-																value={
-																	Number(row.rhQty || 0) > 0
-																		? String(Number(row.rhQty || 0))
-																		: ""
-																}
-																onChange={(event) =>
+															<SalesFormQuantityStepper
+																label={`RH quantity for ${row.dimension || "door size"}`}
+																value={row.rhQty}
+																onChange={(value) =>
 																	props.onPatchRow(row, {
-																		rhQty: Number(event.target.value || 0),
+																		rhQty: value,
 																	})
 																}
 																disabled={isDoorRowPriceMissing(row)}
-																className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
+																className="w-28"
+																min={0}
 															/>
 														</td>
 														<td className="px-2 py-2 text-right text-xs font-semibold text-slate-700">

@@ -549,6 +549,33 @@ Status: Partially done; dry-run reconciliation and receive/allocation retry guar
 6. Create migration gates and runbooks for switching overview, print, production, deployment, fulfillment, and reporting to inventory projections.
 7. Item-level dashboard, related sales/quotes sections, variants workspace, top-sales analytics, and operations dashboard now exist; remaining UI work is validation plus later analytics polish.
 
+## 2026-08-04 Backorder And Partial-Delivery Gap Closure
+
+- Fulfillment writes now enforce authenticated operational permissions, derive the
+  audit actor on the server, reject terminal sales and cross-sale line selections,
+  and accept only `pickup`, `delivery`, or `ship`.
+- Allocation, hold, shipment, dispatch, and received-backorder mutation flows run
+  through serializable transactions with bounded `P2034` retry. Cancelled
+  components cannot be recomputed or released back into an active state.
+- Mixed-BOM backorder quantity is expressed in finished sale-line units instead of
+  summing incompatible component units. Partial shipment no longer writes line
+  fulfillment labels into `SalesOrders.inventoryStatus`.
+- Backorder and partial-shipment queues now use stable cursor scanning beyond the
+  former bounded candidate window. Filtered summaries and print selections cover
+  the full result set.
+- `/inventory/backorders` and `/inventory/partial-shipments` use URL-owned Midday
+  search/status/delivery/hold filters, infinite queries, global summary cards,
+  delivery/lifecycle columns, selection bars, permission-aware actions, and a
+  confirmation form requiring delivery mode before shipment.
+- The dry-run-first `inventory:fulfillment-repair` command reports invalid legacy
+  modes, invalid order-level fulfillment statuses, and active components under
+  terminal sales. Apply mode is limited to explicitly reviewed sale ids.
+- Focused domain/API/dashboard/repair tests and Sales/DB typechecks pass. The API
+  typecheck has only the pre-existing inbound-receiving excessive-stack diagnostic.
+  Live browser rendering is currently blocked before this feature loads by the
+  unrelated `@gnd/errors` `./app-error.js` resolution failure, and local repair-data
+  proof is blocked while MySQL on `127.0.0.1:3307` is stopped.
+
 ## 2026-06-22 Sales Overview Inventory Tab Start
 - `inventories.salesInventoryOverview` now returns grouped sales-overview inventory rows in addition to the existing summary and line-item payload.
 - Groups are keyed to invoice items and use the invoice item description when present, falling back to line descriptions or `Invoice Item N`.
@@ -557,6 +584,7 @@ Status: Partially done; dry-run reconciliation and receive/allocation retry guar
 - The first UI slice is read-oriented: stock links open the inventory item dashboard, while allocation, category-policy, and inbound actions are visible as disabled affordances pending the dedicated approved mutation plans.
 - If the Inventory tab opens on an order with no inventory-backed rows yet, the tab now shows a synchronizing state, runs the single-order sales inventory sync, and refreshes the overview automatically. If sync still cannot produce rows, the tab leaves a manual `Sync with inventory` retry action.
 - Follow-up repair: sales inventory sync now uses valid stock-allocation statuses when reconciling suggested allocation rows, aggregates repeated HPT door rows for the same Dyke product, multiplies selected Dyke form-step components by total door quantity, uses HPT/product quantity for moulding rows without door children, and repairs placeholder inventory names when a later Dyke value is more descriptive.
+- Grouped moulding parent lines may persist both an `Item Type` step and one `Moulding`/`Molding` step. Parent inventory mapping now selects the single moulding step deterministically instead of skipping the sales item merely because the line contains multiple form steps.
 - Legacy sales overview cold reload now renders the Inventory tab from the live sale overview context so the numeric sale id is available after `getSaleOverview` finishes.
 - The Inventory tab now renders a merged component table from top-level overview `rows[]` instead of invoice-item sections. Matching components are merged across the order, demand quantities are summed, and physical stock is shown once for the inventory item/variant.
 - The merged component workbench now defaults to `Needs` and uses `Needs | Inbounds | Not Needed` segmented navigation. `Needs` means the row is tracked and neither the step/category nor actual inventory item is marked `component`; `Not Needed` means tracking is off or the product kind is not inventory; `Inbounds` is reserved for order-linked inbound shipment/demand history. Component/item names remain uppercase for scanability.
@@ -650,4 +678,27 @@ Status: Partially done; dry-run reconciliation and receive/allocation retry guar
 - Inventory Needs and inbound badges use larger type, padding, spacing, and click targets for operational readability.
 - Browser proof created local inbound `#118` for order `09086PC`, transitioned Ordered to Pending, and opened the shipment from the list, activity timeline, and global deep-link without inbound/activity console errors.
 
-Last updated: 2026-08-04
+## 2026-08-05 Mobile backorder and partial-delivery parity
+
+- The protected mobile Sales stack now exposes `/inventory/backorders` and
+  `/inventory/partial-shipments`, with permission-aware dashboard links and
+  global queue counts.
+- Both workspaces use typed infinite tRPC queries, URL-owned search/status/
+  delivery/hold filters, global summary cards, pull-to-refresh, recycled
+  `LegendList` rows, explicit loading/error/empty states, and stable row
+  selection across pagination.
+- Mobile actions preserve the server-owned operational permission and actor
+  model. Eligible same-sale lines can be held, released, or shipped in bulk;
+  shipment confirmation requires one canonical `pickup`, `delivery`, or `ship`
+  mode and supports delivered-to and note metadata.
+- Mutation success invalidates both mobile queue/summary surfaces and the
+  existing backorder print selection so web and mobile do not retain stale
+  fulfillment projections.
+- Focused mobile model/parity tests and the existing native-boundary test pass
+  with 10 tests and 30 assertions. Scoped Biome and diff checks pass, and a
+  filtered mobile typecheck reports no diagnostics in the new runtime source.
+  A full Android export reaches Metro's 10,303-module graph but remains blocked
+  by the pre-existing `@gnd/errors` `./app-error.js` resolution failure in
+  `packages/errors/src/index.ts`, before device/runtime proof can begin.
+
+Last updated: 2026-08-05

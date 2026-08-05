@@ -1,15 +1,16 @@
 /** @jsxImportSource react */
 "use client";
 
-import type { ReactNode } from "react";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import {
-	CostPriceBreakdownHover,
-	type CostPriceBreakdownContext,
-} from "./cost-price-breakdown-hover";
+import type { ReactNode } from "react";
 import { multiplyMoney } from "../../../payment-system/domain/money";
+import {
+	type CostPriceBreakdownContext,
+	CostPriceBreakdownHover,
+} from "./cost-price-breakdown-hover";
+import { SalesFormQuantityStepper } from "./sales-form-quantity-stepper";
 
 export type MouldingLineItemEditorRow = {
 	uid?: string | null;
@@ -130,16 +131,16 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 													qty: Number(qty || 0),
 												} as Partial<TRow>),
 										})}
-										<Input
-											aria-label={`Moulding line ${index + 1} quantity`}
-											type="number"
-											value={row.qty || 0}
-											onChange={(e) =>
+										<SalesFormQuantityStepper
+											label={`Moulding line ${index + 1} quantity`}
+											value={row.qty}
+											min={1}
+											onChange={(value) =>
 												patchRow(index, {
-													qty: Number(e.target.value || 0),
+													qty: value,
 												} as Partial<TRow>)
 											}
-											className="h-8 w-20 text-right"
+											className="w-28"
 										/>
 									</div>
 								</td>

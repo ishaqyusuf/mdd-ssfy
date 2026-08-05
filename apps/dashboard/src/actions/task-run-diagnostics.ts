@@ -27,8 +27,10 @@ export const finalizeTaskRunDiagnosticAction = actionClient
 		name: "finalize-task-run-diagnostic",
 	})
 	.action(async ({ parsedInput }) => {
-		await finalizeTaskRunDiagnostic(parsedInput);
+		const diagnostic = await finalizeTaskRunDiagnostic(parsedInput);
 		return {
-			ok: true,
+			ok: Boolean(diagnostic),
+			status: diagnostic?.status ?? null,
+			errorMessage: diagnostic?.internalError ?? null,
 		};
 	});

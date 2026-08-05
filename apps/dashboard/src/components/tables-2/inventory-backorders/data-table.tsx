@@ -1,41 +1,48 @@
 "use client";
 
+import { InventoryShipAvailableDialog } from "@/components/inventory/inventory-ship-available-dialog";
 import { VirtualRow } from "@/components/tables-2/core";
 import { buildSalesOverviewUrl } from "@/hooks/sales-overview-open-params";
+import { useAuth } from "@/hooks/use-auth";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useInventoryBackorderFilterParams } from "@/hooks/use-inventory-backorder-filter-params";
 import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
 import { openLink } from "@/lib/open-link";
+import { useTRPC } from "@/trpc/client";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { Table, TableBody } from "@gnd/ui/table";
-import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import {
+	type RowSelectionState,
+	getCoreRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
 import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { BottomBar } from "./bottom-bar";
 import {
 	type InventoryBackorderRow,
 	type InventoryBackorderTableActions,
 	getInventoryBackorderColumns,
 	getInventoryBackorderRowId,
 } from "./columns";
-import { EmptyState } from "./empty-states";
-import { InventoryBackordersSkeleton } from "./skeleton";
+import { EmptyState, NoResults } from "./empty-states";
 import { useInventoryBackordersTableStore } from "./store";
 import { DataTableHeader } from "./table-header";
 
-const NON_CLICKABLE_COLUMNS = new Set(["actions"]);
+const NON_CLICKABLE_COLUMNS = new Set(["select", "actions"]);
 const TABLE_ID = "inventory-backorders";
 const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
 type Props = {
-	data: InventoryBackorderRow[];
 	initialSettings?: Partial<TableSettings>;
-	isLoading?: boolean;
-	actions: InventoryBackorderTableActions;
 };
 
 function getSalesOverviewUrl(orderId: string | null) {
@@ -45,15 +52,28 @@ function getSalesOverviewUrl(orderId: string | null) {
 	});
 }
 
-export function DataTable({
-	data,
-	initialSettings,
-	isLoading,
-	actions,
-}: Props) {
+export function DataTable({ initialSettings }: Props) {
+	const trpc = useTRPC();
+	const auth = useAuth();
+	const { filters, hasFilters } = useInventoryBackorderFilterParams();
 	const parentRef = useRef<HTMLDivElement>(null);
-	const { setColumns, bindShowColumnDividers } =
+	const [shipmentItem, setShipmentItem] =
+		useState<InventoryBackorderRow | null>(null);
+	const { rowSelection, setRowSelection, setColumns, bindShowColumnDividers } =
 		useInventoryBackordersTableStore();
+	const canManageFulfillment = Boolean(
+		auth.can?.editOrders ||
+			auth.can?.editPickup ||
+			auth.can?.editDelivery ||
+			auth.can?.viewPacking,
+	);
+	const actions = useMemo<InventoryBackorderTableActions>(
+		() => ({
+			onShipAvailable: setShipmentItem,
+			canManageFulfillment,
+		}),
+		[canManageFulfillment],
+	);
 	const columns = useMemo(
 		() => getInventoryBackorderColumns(actions),
 		[actions],
@@ -78,7 +98,24 @@ export function DataTable({
 		showColumnDividers: true,
 	});
 
-	const tableData = useMemo<InventoryBackorderRow[]>(() => data, [data]);
+	const infiniteQueryOptions =
+		trpc.inventories.salesBackorderQueue.infiniteQueryOptions(
+			{ ...filters, limit: 50 },
+			{
+				getNextPageParam: (page) => page.nextCursorId ?? undefined,
+			},
+		);
+	const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
+		useSuspenseInfiniteQuery(infiniteQueryOptions);
+	const tableData = useMemo<InventoryBackorderRow[]>(() => {
+		const byId = new Map<string, InventoryBackorderRow>();
+		for (const page of data.pages) {
+			for (const item of page.items) {
+				byId.set(getInventoryBackorderRowId(item), item);
+			}
+		}
+		return Array.from(byId.values());
+	}, [data.pages]);
 	const table = useReactTable({
 		data: tableData,
 		getRowId: getInventoryBackorderRowId,
@@ -89,10 +126,12 @@ export function DataTable({
 		columnResizeMode: "onChange",
 		onColumnSizingChange: setColumnSizing,
 		onColumnOrderChange: setColumnOrder,
+		onRowSelectionChange: setRowSelection,
 		state: {
 			columnVisibility,
 			columnSizing,
 			columnOrder,
+			rowSelection: rowSelection as RowSelectionState,
 		},
 	});
 
@@ -104,7 +143,7 @@ export function DataTable({
 	const { sensors, handleDragEnd } = useTableDnd(table);
 	const tableScroll = useTableScroll({
 		useColumnWidths: true,
-		startFromColumn: 1,
+		startFromColumn: 2,
 	});
 	const rows = table.getRowModel().rows;
 	const rowVirtualizer = useVirtualizer({
@@ -112,6 +151,14 @@ export function DataTable({
 		getScrollElement: () => parentRef.current,
 		estimateSize: () => tableConfig.rowHeight,
 		overscan: 10,
+	});
+	useInfiniteScroll<HTMLDivElement>({
+		scrollRef: parentRef,
+		rowVirtualizer,
+		rowCount: rows.length,
+		hasNextPage,
+		isFetchingNextPage,
+		fetchNextPage,
 	});
 
 	useEffect(() => {
@@ -129,85 +176,92 @@ export function DataTable({
 		}
 	}, []);
 
-	if (isLoading) {
-		return <InventoryBackordersSkeleton initialSettings={initialSettings} />;
-	}
-
 	if (tableData.length === 0) {
-		return <EmptyState />;
+		return hasFilters ? <NoResults /> : <EmptyState />;
 	}
 
 	const virtualItems = rowVirtualizer.getVirtualItems();
 
 	return (
-		<div className="relative">
-			<div className="w-full">
-				<div
-					ref={(element) => {
-						parentRef.current = element;
-						tableScroll.containerRef.current = element;
-					}}
-					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
-					style={{
-						height:
-							"max(360px, calc(100vh - 430px + var(--header-offset, 0px)))",
-					}}
-				>
-					<DndContext
-						id="inventory-backorders-table-dnd"
-						sensors={sensors}
-						collisionDetection={closestCenter}
-						onDragEnd={handleDragEnd}
-					>
-						<Table className="w-full min-w-full">
-							<DataTableHeader
-								table={table}
-								tableScroll={tableScroll}
-								showColumnDividers={showColumnDividers}
-							/>
-
-							<TableBody
-								className="block border-l-0 border-r-0"
-								style={{
-									height: `${rowVirtualizer.getTotalSize()}px`,
-									position: "relative",
-								}}
-							>
-								{virtualItems.map((virtualRow: VirtualItem) => {
-									const row = rows[virtualRow.index];
-									if (!row) return null;
-
-									return (
-										<VirtualRow
-											key={row.id}
-											row={row}
-											virtualStart={virtualRow.start}
-											rowHeight={tableConfig.rowHeight}
-											fillColumnId={tableConfig.fillColumnId}
-											tableStyle={tableConfig.style}
-											getStickyStyle={getStickyStyle}
-											getStickyClassName={getStickyClassName}
-											nonClickableColumns={NON_CLICKABLE_COLUMNS}
-											onCellClick={() => handleCellClick(row.original)}
-											columnSizing={columnSizing}
-											columnOrder={columnOrder}
-											columnVisibility={columnVisibility}
-											showColumnDividers={showColumnDividers}
-										/>
-									);
-								})}
-							</TableBody>
-						</Table>
-					</DndContext>
+		<>
+			<div className="relative">
+				<div className="w-full">
 					<div
-						style={{
-							height: "var(--header-offset, 0px)",
-							flexShrink: 0,
+						ref={(element) => {
+							parentRef.current = element;
+							tableScroll.containerRef.current = element;
 						}}
-						aria-hidden
-					/>
+						className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
+						style={{
+							height:
+								"max(360px, calc(100vh - 430px + var(--header-offset, 0px)))",
+						}}
+					>
+						<DndContext
+							id="inventory-backorders-table-dnd"
+							sensors={sensors}
+							collisionDetection={closestCenter}
+							onDragEnd={handleDragEnd}
+						>
+							<Table className="w-full min-w-full">
+								<DataTableHeader
+									table={table}
+									tableScroll={tableScroll}
+									showColumnDividers={showColumnDividers}
+								/>
+
+								<TableBody
+									className="block border-l-0 border-r-0"
+									style={{
+										height: `${rowVirtualizer.getTotalSize()}px`,
+										position: "relative",
+									}}
+								>
+									{virtualItems.map((virtualRow: VirtualItem) => {
+										const row = rows[virtualRow.index];
+										if (!row) return null;
+
+										return (
+											<VirtualRow
+												key={row.id}
+												row={row}
+												virtualStart={virtualRow.start}
+												rowHeight={tableConfig.rowHeight}
+												fillColumnId={tableConfig.fillColumnId}
+												tableStyle={tableConfig.style}
+												getStickyStyle={getStickyStyle}
+												getStickyClassName={getStickyClassName}
+												nonClickableColumns={NON_CLICKABLE_COLUMNS}
+												onCellClick={() => handleCellClick(row.original)}
+												columnSizing={columnSizing}
+												columnOrder={columnOrder}
+												columnVisibility={columnVisibility}
+												showColumnDividers={showColumnDividers}
+												isSelected={rowSelection[row.id] ?? false}
+											/>
+										);
+									})}
+								</TableBody>
+							</Table>
+						</DndContext>
+						<div
+							style={{
+								height: "var(--header-offset, 0px)",
+								flexShrink: 0,
+							}}
+							aria-hidden
+						/>
+					</div>
 				</div>
 			</div>
-		</div>
+			<InventoryShipAvailableDialog
+				item={shipmentItem}
+				open={Boolean(shipmentItem)}
+				onOpenChange={(open) => {
+					if (!open) setShipmentItem(null);
+				}}
+			/>
+			<BottomBar data={tableData} />
+		</>
 	);
 }

@@ -217,6 +217,12 @@ describe("legacy sales form metadata", () => {
 		expect(
 			calculateLegacyPaymentDueDate("Net 30", "2026-02-01T00:00:00.000Z"),
 		).toBe("2026-03-03T00:00:00.000Z");
+		expect(
+			calculateLegacyPaymentDueDate(
+				"Due on Receipt",
+				"2026-02-01T00:00:00.000Z",
+			),
+		).toBe("2026-02-01T00:00:00.000Z");
 		expect(calculateLegacyPaymentDueDate("None", "2026-02-01")).toBeNull();
 	});
 });

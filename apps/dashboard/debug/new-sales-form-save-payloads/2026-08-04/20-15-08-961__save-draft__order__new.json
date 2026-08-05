@@ -1,0 +1,193 @@
+{
+  "capturedAt": "2026-08-04T20:15:08.961Z",
+  "action": "save-draft",
+  "nodeEnv": "development",
+  "userId": 1,
+  "requestId": "01ba1ed8-7c46-4581-885a-ca109e5c695d",
+  "summary": {
+    "clientRequestId": null,
+    "type": "order",
+    "salesId": null,
+    "slug": null,
+    "autosave": false,
+    "lineItemCount": 1,
+    "extraCostCount": 1
+  },
+  "payload": {
+    "type": "order",
+    "slug": null,
+    "salesId": null,
+    "inventoryStatus": null,
+    "version": "new-1785874488741-PYWuBY",
+    "autosave": false,
+    "meta": {
+      "customerId": 2302,
+      "customerProfileId": 2,
+      "billingAddressId": 4279,
+      "shippingAddressId": 4279,
+      "paymentTerm": "None",
+      "createdAt": "2026-08-04T20:14:48.741Z",
+      "paymentDueDate": null,
+      "goodUntil": null,
+      "prodDueDate": null,
+      "po": "",
+      "notes": "",
+      "deliveryOption": "pickup",
+      "paymentMethod": "Credit Card",
+      "taxCode": "ZSCK"
+    },
+    "lineItems": [
+      {
+        "id": null,
+        "uid": "line-1-msf3k6wq-lf6rr0",
+        "title": "Mouldings",
+        "description": "",
+        "qty": 9,
+        "unitPrice": 13.36,
+        "lineTotal": 120.24,
+        "taxxable": null,
+        "meta": {
+          "mouldingRows": [
+            {
+              "uid": "Oj2ZE",
+              "title": "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6",
+              "description": "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6",
+              "qty": 9,
+              "addon": 0,
+              "customPrice": null,
+              "salesPrice": 13.36,
+              "basePrice": 9.35,
+              "img": "zj36u05t81eepctnwhbj.png",
+              "estimateUnit": 13.36,
+              "unit": 13.36,
+              "lineTotal": 120.24
+            }
+          ]
+        },
+        "formSteps": [
+          {
+            "id": null,
+            "stepId": 1,
+            "componentId": 883,
+            "prodUid": "5DcsP",
+            "value": "Mouldings",
+            "meta": {
+              "allowAdd": true,
+              "allowCustom": false,
+              "img": "gghdjlxprue2fhl1hqut.png"
+            },
+            "step": {
+              "id": 1,
+              "uid": "MtJgR",
+              "title": "Item Type"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 215,
+            "componentId": 889,
+            "prodUid": "Oj2ZE",
+            "value": "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6",
+            "price": 13.36,
+            "basePrice": 9.35,
+            "meta": {
+              "allowAdd": true,
+              "stateDeps": {},
+              "allowCustom": false,
+              "priceDepencies": {},
+              "img": "zj36u05t81eepctnwhbj.png",
+              "redirectUid": null,
+              "sectionOverride": null,
+              "selectedProdUids": [
+                "Oj2ZE"
+              ],
+              "selectedComponents": [
+                {
+                  "id": 889,
+                  "uid": "Oj2ZE",
+                  "title": "FLAT BOARD (5-1/4 X 9/16 X 16) PRIMED FJ S4S 1 X 6",
+                  "img": "zj36u05t81eepctnwhbj.png",
+                  "inventoryId": null,
+                  "inventoryVariantId": null,
+                  "salesPrice": 13.36,
+                  "basePrice": 9.35,
+                  "pricing": {
+                    "Oj2ZE": {
+                      "id": 115,
+                      "price": 9.35
+                    }
+                  },
+                  "supplierVariants": [],
+                  "redirectUid": null,
+                  "sectionOverride": null,
+                  "custom": false,
+                  "_metaData": {
+                    "sorts": [
+                      {
+                        "sortIndex": 1,
+                        "stepComponentId": 889,
+                        "uid": "default"
+                      }
+                    ],
+                    "custom": false,
+                    "deletedAt": null,
+                    "visible": false,
+                    "priceId": null,
+                    "sortId": null,
+                    "sortIndex": null,
+                    "sortUid": null
+                  }
+                }
+              ]
+            },
+            "step": {
+              "id": 215,
+              "uid": "8iDAw",
+              "title": "Moulding"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 217,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {},
+            "step": {
+              "id": 217,
+              "uid": "Jpys8",
+              "title": "Line Item"
+            }
+          }
+        ],
+        "shelfItems": [],
+        "housePackageTool": null
+      }
+    ],
+    "extraCosts": [
+      {
+        "id": null,
+        "label": "Labor",
+        "type": "Labor",
+        "amount": 0,
+        "taxxable": false
+      }
+    ],
+    "summary": {
+      "subTotal": 120.24,
+      "adjustedSubTotal": 120.24,
+      "taxRate": 7,
+      "taxTotal": 8.42,
+      "grandTotal": 128.66,
+      "totalWithCcc": 132.52,
+      "discount": 0,
+      "discountPct": 0,
+      "percentDiscountValue": 0,
+      "labor": 0,
+      "delivery": 0,
+      "otherCosts": 0,
+      "taxableSubTotal": 120.24,
+      "ccc": 3.86
+    }
+  }
+}

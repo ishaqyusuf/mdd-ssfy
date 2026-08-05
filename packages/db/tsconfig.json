@@ -1,11 +1,13 @@
 {
-  "extends": "@gnd/tsconfig/base.json",
-  "include": ["src"],
-  "exclude": ["node_modules"],
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@db/*": ["./src/*"]
-    }
-  }
+	"extends": "@gnd/tsconfig/base.json",
+	"include": ["src"],
+	"exclude": ["node_modules"],
+	"compilerOptions": {
+		"baseUrl": ".",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"paths": {
+			"@db/*": ["./src/*"]
+		}
+	}
 }

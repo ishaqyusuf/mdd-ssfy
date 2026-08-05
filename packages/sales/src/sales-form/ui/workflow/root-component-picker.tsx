@@ -20,7 +20,10 @@ export function RootComponentPicker<TComponent>(
 	props: RootComponentPickerProps<TComponent>,
 ) {
 	return (
-		<div className="w-full space-y-3">
+		<div
+			className="relative w-full space-y-3"
+			data-workflow-component-boundary="true"
+		>
 			<p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 				Root Step Components
 			</p>

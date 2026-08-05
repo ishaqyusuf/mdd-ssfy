@@ -1,24 +1,16 @@
 "use server";
 
+import { getUserErrorMessage } from "@gnd/errors";
 import { taskNames } from "@jobs/schema";
 import { tasks } from "@trigger.dev/sdk/v3";
-import { actionClient } from "./safe-action";
 import { getLoggedInProfile } from "./cache/get-loggedin-profile";
+import { actionClient } from "./safe-action";
 
 import {
 	logTaskRunStartFailure,
 	logTriggeredTaskRun,
 } from "@/lib/task-run-diagnostics.server";
 import { z } from "zod";
-
-function getErrorMessage(error: unknown) {
-	if (error instanceof Error) return error.message;
-	if (typeof error === "string") return error;
-	if (error && typeof error === "object" && "message" in error) {
-		return String((error as { message?: unknown }).message || "");
-	}
-	return "Unable to start the background task.";
-}
 
 export const triggerTask = actionClient
 	.schema(
@@ -74,7 +66,7 @@ export const triggerTask = actionClient
 			});
 
 			return {
-				errorMessage: getErrorMessage(error),
+				errorMessage: getUserErrorMessage(error),
 				id: null,
 				publicAccessToken: null,
 			};

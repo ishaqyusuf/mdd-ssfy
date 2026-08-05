@@ -1,21 +1,45 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
+import { classifyError, getErrorPresentation } from "@gnd/errors";
+import { buildErrorReport } from "@gnd/observability";
 import { Button } from "@gnd/ui/button";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 
-export function ErrorFallback() {
-    const router = useRouter();
+export function ErrorFallback({ error }: { error?: unknown }) {
+	const router = useRouter();
+	const classified = useMemo(
+		() => classifyError(error ?? new Error("Page failed to load")),
+		[error],
+	);
+	const presentation = getErrorPresentation(classified);
 
-    return (
-        <div className="flex h-full flex-col items-center justify-center space-y-4">
-            <div>
-                <h2 className="text-md">Something went wrong</h2>
-            </div>
-            <Button onClick={() => router.refresh()} variant="outline">
-                Try again
-            </Button>
-        </div>
-    );
+	useEffect(() => {
+		if (!error || process.env.NODE_ENV !== "production") return;
+		const report = buildErrorReport(classified, {
+			runtime: "dashboard",
+			source: "react-error-boundary",
+		});
+		if (!report.classified.reportable) return;
+		void import("@sentry/nextjs").then((Sentry) => {
+			Sentry.captureException(report.reportableError, report.captureContext);
+		});
+	}, [classified, error]);
+
+	return (
+		<div className="flex h-full flex-col items-center justify-center space-y-4 text-center">
+			<div>
+				<h2 className="text-md font-medium">{presentation.title}</h2>
+				<p className="mt-1 text-sm text-muted-foreground">
+					{presentation.description}
+				</p>
+				<p className="mt-2 text-xs text-muted-foreground">
+					{presentation.reference}
+				</p>
+			</div>
+			<Button onClick={() => router.refresh()} variant="outline">
+				Try again
+			</Button>
+		</div>
+	);
 }
-

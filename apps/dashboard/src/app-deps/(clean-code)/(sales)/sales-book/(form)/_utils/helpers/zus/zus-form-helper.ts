@@ -26,7 +26,7 @@ function normalizeOrderInboundStatus(
 export function zhInitializeState(data: GetSalesBookForm, copy = false) {
     const profile = data.order?.id
         ? data.salesProfile
-        : data.data?.defaultProfile;
+        : data.salesProfile || data.data?.defaultProfile;
     const salesMultiplier = profile?.coefficient
         ? formatMoney(1 / profile.coefficient)
         : 1;

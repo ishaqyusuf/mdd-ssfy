@@ -203,6 +203,11 @@ describe("customer form selection reconciliation", () => {
 		expect(panelSource.includes("onEditCustomer=")).toBe(true);
 		expect(panelSource.includes("customerForm: true")).toBe(true);
 		expect(panelSource.includes("customerId,")).toBe(true);
+		expect(panelSource.includes("onEditBillingAddress=")).toBe(true);
+		expect(panelSource.includes("onEditShippingAddress=")).toBe(true);
+		expect(panelSource.includes('address: "bad"')).toBe(true);
+		expect(panelSource.includes('address: "sad"')).toBe(true);
+		expect(panelSource.includes("onUseBillingAddressForShipping=")).toBe(true);
 		expect(formSource.includes("salesFormPermissions.canEditCustomer")).toBe(
 			true,
 		);

@@ -12,6 +12,7 @@ import {
 	buildSalesFormProfileSelectOptions,
 	buildSalesFormSelectOptions,
 	buildSalesFormTaxSelectOptions,
+	calculateLegacyPaymentDueDate,
 	getDefaultSalesFormCustomerProfile,
 	hasSalesFormSummaryDrift,
 	normalizeSalesFormPaymentTerm,
@@ -31,6 +32,7 @@ import {
 import { computeSummary, repriceLineItemsByProfile } from "../mappers";
 import { useNewSalesFormStore } from "../store";
 import {
+	shouldApplyResolvedCustomerDefaults,
 	shouldPreserveEditCustomerPricingMeta,
 	shouldPreserveInitialEditCustomerResolution,
 	shouldPreserveInitialEditTaxRate,
@@ -58,6 +60,7 @@ export function InvoiceOverviewPanel(props: Props) {
 	const setTaxRate = useNewSalesFormStore((s) => s.setTaxRate);
 	const setSummary = useNewSalesFormStore((s) => s.setSummary);
 	const upsertExtraCost = useNewSalesFormStore((s) => s.upsertExtraCost);
+	const removeExtraCost = useNewSalesFormStore((s) => s.removeExtraCost);
 	const lastProfileCoefficientRef = useRef<number | null | undefined>(
 		undefined,
 	);
@@ -66,6 +69,7 @@ export function InvoiceOverviewPanel(props: Props) {
 	const initialEditCustomerIdRef = useRef<number | null | undefined>(undefined);
 	const initialEditTaxCodeRef = useRef<string | null | undefined>(undefined);
 	const initialCustomerResolutionHandledRef = useRef(false);
+	const lastResolvedCustomerDefaultsIdRef = useRef<number | null>(null);
 
 	const [isCustomerSelectorOpen, setIsCustomerSelectorOpen] = useState(false);
 	const customerProfiles = useCustomerProfilesQuery(true);
@@ -97,6 +101,16 @@ export function InvoiceOverviewPanel(props: Props) {
 		[]) as string[];
 	const shippingLines = ((resolvedCustomer.data as any)?.shipping?.lines ||
 		[]) as string[];
+	const resolvedBillingAddressId =
+		(resolvedCustomer.data as any)?.billing?.id ?? billingAddressId;
+	const resolvedShippingAddressId =
+		(resolvedCustomer.data as any)?.shipping?.id ?? shippingAddressId;
+	const hasDistinctShippingAddress =
+		resolvedBillingAddressId != null &&
+		resolvedBillingAddressId > 0 &&
+		resolvedShippingAddressId != null &&
+		resolvedShippingAddressId > 0 &&
+		resolvedShippingAddressId !== resolvedBillingAddressId;
 
 	useEffect(() => {
 		if (props.mode !== "edit" || !record) return;
@@ -155,6 +169,14 @@ export function InvoiceOverviewPanel(props: Props) {
 			Number(data.customerId || 0) > 0 ? Number(data.customerId) : null;
 		if (resolvedCustomerId !== customerId) return;
 		if (
+			!shouldApplyResolvedCustomerDefaults({
+				lastAppliedCustomerId: lastResolvedCustomerDefaultsIdRef.current,
+				resolvedCustomerId,
+			})
+		) {
+			return;
+		}
+		if (
 			shouldPreserveInitialEditCustomerResolution({
 				mode: props.mode,
 				initialCustomerId: initialEditCustomerIdRef.current,
@@ -164,6 +186,7 @@ export function InvoiceOverviewPanel(props: Props) {
 			})
 		) {
 			initialCustomerResolutionHandledRef.current = true;
+			lastResolvedCustomerDefaultsIdRef.current = resolvedCustomerId;
 			return;
 		}
 		if (props.mode === "edit") {
@@ -196,6 +219,7 @@ export function InvoiceOverviewPanel(props: Props) {
 			nextMeta.shippingAddressId !== shippingAddressId ||
 			nextMeta.paymentTerm !== paymentTerm ||
 			nextMeta.taxCode !== taxCode;
+		lastResolvedCustomerDefaultsIdRef.current = resolvedCustomerId;
 		if (!changed) return;
 		if (nextMeta.customerProfileId !== customerProfileId) {
 			applyCustomerProfileMeta(nextMeta, nextMeta.customerProfileId);
@@ -235,6 +259,14 @@ export function InvoiceOverviewPanel(props: Props) {
 				!["Labor", "Discount", "DiscountPercentage"].includes(cost.type),
 		)
 		.reduce((sum, cost) => sum + Number(cost.amount || 0), 0);
+	const additionalCosts = (record?.extraCosts || [])
+		.map((cost, index) => ({
+			index,
+			label: cost.label,
+			type: cost.type,
+			amount: Number(cost.amount || 0),
+		}))
+		.filter((cost) => cost.type !== "Labor");
 	const cccPercentage = Number((record as any)?.settings?.cccPercentage ?? 3.5);
 	const showCcc =
 		String(record?.form.paymentMethod || "")
@@ -497,7 +529,36 @@ export function InvoiceOverviewPanel(props: Props) {
 								})
 						: undefined
 				}
+				onEditBillingAddress={
+					props.canEditCustomer && customerId
+						? () =>
+								setCreateCustomerParams({
+									address: "bad",
+									addressId: resolvedBillingAddressId,
+									customerForm: true,
+									customerId,
+									salesType: props.type,
+								})
+						: undefined
+				}
+				onEditShippingAddress={
+					props.canEditCustomer && customerId
+						? () =>
+								setCreateCustomerParams({
+									address: "sad",
+									addressId: resolvedShippingAddressId,
+									customerForm: true,
+									customerId,
+									salesType: props.type,
+								})
+						: undefined
+				}
 				onProfileChange={applyCustomerProfile}
+				onUseBillingAddressForShipping={
+					hasDistinctShippingAddress
+						? () => setMeta({ shippingAddressId: resolvedBillingAddressId })
+						: undefined
+				}
 				profileOptions={profileSelectOptions}
 				profileValue={
 					record.form.customerProfileId
@@ -506,6 +567,7 @@ export function InvoiceOverviewPanel(props: Props) {
 				}
 				shippingFallback={`Shipping Address ID: ${record.form.shippingAddressId ?? "N/A"}`}
 				shippingLines={shippingLines}
+				shippingMatchesBilling={!hasDistinctShippingAddress}
 			/>
 
 			<SalesFormInvoiceDetailsPanel
@@ -516,11 +578,23 @@ export function InvoiceOverviewPanel(props: Props) {
 				goodUntil={record.form.goodUntil}
 				paymentDueDate={record.form.paymentDueDate}
 				prodDueDate={record.form.prodDueDate}
-				onCreatedAtChange={(value) =>
+				onCreatedAtChange={(value) => {
+					const createdAt = formDateValue(value);
+					const normalizedPaymentTerm = normalizeSalesFormPaymentTerm(
+						record.form.paymentTerm,
+					);
 					setMeta({
-						createdAt: formDateValue(value),
-					})
-				}
+						createdAt,
+						...(props.type === "order" && normalizedPaymentTerm !== "None"
+							? {
+									paymentDueDate: calculateLegacyPaymentDueDate(
+										normalizedPaymentTerm,
+										createdAt,
+									),
+								}
+							: {}),
+					});
+				}}
 				onDeliveryOptionChange={(value) => setMeta({ deliveryOption: value })}
 				onGoodUntilChange={(value) =>
 					setMeta({
@@ -532,7 +606,19 @@ export function InvoiceOverviewPanel(props: Props) {
 						paymentDueDate: formDateValue(value),
 					})
 				}
-				onPaymentTermChange={(value) => setMeta({ paymentTerm: value })}
+				onPaymentTermChange={(value) => {
+					const paymentTerm = normalizeSalesFormPaymentTerm(value);
+					setMeta({
+						paymentTerm,
+						paymentDueDate:
+							paymentTerm === "None"
+								? record.form.paymentDueDate
+								: calculateLegacyPaymentDueDate(
+										paymentTerm,
+										record.form.createdAt,
+									),
+					});
+				}}
 				onPoChange={(value) => setMeta({ po: value })}
 				onProdDueDateChange={(value) =>
 					setMeta({
@@ -546,28 +632,22 @@ export function InvoiceOverviewPanel(props: Props) {
 
 			<SalesFormPricingOverview
 				addOnTotal={addOnTotal}
+				additionalCosts={additionalCosts}
 				ccc={liveSummary.ccc}
 				cccPercentage={cccPercentage}
 				grandTotal={liveSummary.grandTotal}
 				laborCost={laborCost}
-				onAddGlobalCost={(input) => {
-					const reusablePlaceholderIndex = record.extraCosts.findIndex(
-						(cost) =>
-							cost.type === "CustomNonTaxxable" &&
-							Number(cost.amount || 0) === 0,
-					);
+				onAddAdditionalCost={(input) => upsertExtraCost(input)}
+				onRemoveAdditionalCost={removeExtraCost}
+				onUpdateAdditionalCost={(index, patch) =>
 					upsertExtraCost(
 						{
-							label: input.label,
-							type: "CustomNonTaxxable",
-							amount: input.amount,
-							taxxable: false,
+							...record.extraCosts[index],
+							...patch,
 						},
-						reusablePlaceholderIndex >= 0
-							? reusablePlaceholderIndex
-							: undefined,
-					);
-				}}
+						index,
+					)
+				}
 				onLaborCostChange={(amount) => {
 					if (laborIndex >= 0)
 						upsertExtraCost(

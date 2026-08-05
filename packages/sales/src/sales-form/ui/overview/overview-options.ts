@@ -20,12 +20,21 @@ export const salesFormPaymentTerms = [
 	"None",
 	"Due on Receipt",
 	"Net 7",
+	"Net 10",
 	"Net 15",
+	"Net 20",
 	"Net 30",
 	"Net 60",
 ];
 
-export const salesFormDeliveryOptions = ["pickup", "delivery", "ship"];
+function paymentTermKey(value?: string | null) {
+	return String(value ?? "")
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]/g, "");
+}
+
+export const salesFormDeliveryOptions = [...SALES_DELIVERY_OPTIONS];
 
 export const salesFormPaymentMethods = [
 	"None",
@@ -44,7 +53,7 @@ export function normalizeSalesFormPaymentTerm(
 	const rawValue = String(value ?? "").trim();
 	if (rawValue) {
 		const canonical = salesFormPaymentTerms.find(
-			(term) => term.toLowerCase() === rawValue.toLowerCase(),
+			(term) => paymentTermKey(term) === paymentTermKey(rawValue),
 		);
 		return canonical || rawValue;
 	}
@@ -53,7 +62,7 @@ export function normalizeSalesFormPaymentTerm(
 	if (!rawFallback) return "None";
 	return (
 		salesFormPaymentTerms.find(
-			(term) => term.toLowerCase() === rawFallback.toLowerCase(),
+			(term) => paymentTermKey(term) === paymentTermKey(rawFallback),
 		) || rawFallback
 	);
 }
@@ -147,3 +156,4 @@ export function getDefaultSalesFormCustomerProfile<
 		null
 	);
 }
+import { SALES_DELIVERY_OPTIONS } from "@gnd/utils/sales";

@@ -59,13 +59,13 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 			) : null}
 
 			<aside
-				className={`fixed inset-y-0 right-0 z-40 w-full max-w-[420px] border-l bg-card shadow-2xl transition-transform duration-300 xl:static xl:z-auto xl:flex xl:h-full xl:w-[420px] xl:max-w-none xl:translate-x-0 xl:border-l xl:shadow-none ${
+				className={`fixed bottom-0 right-0 top-[var(--header-height)] z-40 w-full max-w-[420px] overflow-hidden border-l bg-card shadow-2xl transition-transform duration-300 xl:static xl:z-auto xl:flex xl:h-full xl:w-[420px] xl:max-w-none xl:shrink-0 xl:translate-x-0 xl:border-l xl:shadow-none ${
 					props.mobileOpen
 						? "translate-x-0"
 						: "translate-x-full xl:translate-x-0"
 				}`}
 			>
-				<div className="flex h-full flex-col">
+				<div className="flex h-full w-full min-w-0 flex-col">
 					<div className="flex items-center border-b px-4 py-3">
 						<div className="flex items-center gap-2">
 							<Icons.Building2 className="size-5 text-primary" />
@@ -105,7 +105,7 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 						</div>
 					</div>
 
-					<div className="flex-1 overflow-auto p-4 pb-28">
+					<div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 pb-28">
 						{tab === "history" && canShowHistory
 							? props.historyPanel
 							: props.summaryPanel}

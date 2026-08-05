@@ -403,3 +403,12 @@ Tracks notable migrations and migration strategy.
   failure in `20260722180000_master_password_usage_audit`, which references
   `MasterPasswordLoginAudit` before its creation. The new migration was
   generated as an additive schema diff; no reset or production push was run.
+
+## 20260804180000_inventory_fulfillment_queue_indexes
+
+- Adds six non-destructive compound indexes for sales lifecycle/delivery queues,
+  inventory sale-line cursor scans, component fulfillment state, stock allocation,
+  and inbound demand lookups.
+- `bun run db:generate` passed against the composed Prisma schema.
+- The migration was not applied to local or hosted data in this task. Local MySQL at
+  `127.0.0.1:3307` was not running during the read-only repair proof attempt.

@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/node";
 import { tasks } from "@trigger.dev/sdk/v3";
 import {
-	getSentryTaskFailureContext,
+	getSentryTaskFailureReport,
 	isSentryEnabled,
 	shouldCaptureSentryTaskFailure,
 } from "../observability/sentry";
@@ -41,7 +41,9 @@ tasks.onFailure(async ({ error, ctx, task }) => {
 		return;
 	}
 
-	Sentry.captureException(error, getSentryTaskFailureContext(ctx, task));
+	const report = getSentryTaskFailureReport(error, ctx, task);
+	if (!report.classified.reportable) return;
+	Sentry.captureException(report.reportableError, report.captureContext);
 
 	await Sentry.flush(2_000);
 });

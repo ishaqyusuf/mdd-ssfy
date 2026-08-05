@@ -915,6 +915,34 @@ describe("planAvailableShipmentForLine", () => {
 });
 
 describe("summarizeSalesFulfillmentPlan", () => {
+	test("reports backorder quantity in finished-line units for mixed BOM ratios", () => {
+		const plan = summarizeSalesFulfillmentPlan([
+			{
+				id: 1,
+				qty: 10,
+				components: [
+					{
+						id: 11,
+						required: true,
+						qty: 20,
+						stockAllocations: [{ qty: 16, status: "reserved" }],
+					},
+					{
+						id: 12,
+						required: true,
+						qty: 10,
+						stockAllocations: [{ qty: 9, status: "reserved" }],
+					},
+				],
+			},
+		]);
+
+		expect(plan.lines[0]).toMatchObject({
+			availableToShipQty: 8,
+			backorderedQty: 2,
+		});
+	});
+
 	test("marks open inbound shortages as awaiting inbound", () => {
 		const plan = summarizeSalesFulfillmentPlan([
 			{

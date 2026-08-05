@@ -84,6 +84,35 @@ export async function createSalesBookFormDataDta(
         salesFormData(true),
         getLoggedInDealerAccountDta(),
     ]);
+    const selectedCustomer =
+        props.customerId && !dealer?.id
+            ? await prisma.customers.findFirst({
+                  where: {
+                      id: props.customerId,
+                      dealerOwnerId: null,
+                      deletedAt: null,
+                  },
+                  include: {
+                      profile: true,
+                      taxProfiles: {
+                          where: { deletedAt: null },
+                          orderBy: { id: "asc" },
+                          take: 1,
+                      },
+                      addressBooks: {
+                          where: { deletedAt: null },
+                          orderBy: [{ isPrimary: "desc" }, { id: "asc" }],
+                          take: 1,
+                      },
+                  },
+              })
+            : null;
+    const selectedAddress = selectedCustomer?.addressBooks[0];
+    const selectedProfile = selectedCustomer?.profile ?? ctx.defaultProfile;
+    const selectedTaxCode = selectedCustomer?.taxProfiles[0]?.taxCode;
+    const selectedCustomerMeta = selectedCustomer?.meta as
+        | { netTerm?: string | null }
+        | null;
     let goodUntil = ctx.defaultProfile?.goodUntil;
     if (goodUntil && typeof goodUntil != "string")
         goodUntil = dayjs(goodUntil).toISOString();
@@ -99,15 +128,23 @@ export async function createSalesBookFormDataDta(
             type: props.type,
             salesRepId: salesRep?.id,
             isDyke: true,
-            customerId: dealer?.dealerId,
-            customerProfileId: ctx.defaultProfile?.id,
+            customerId: selectedCustomer?.id ?? dealer?.dealerId,
+            customerProfileId: selectedProfile?.id,
+            customer: selectedCustomer,
+            salesProfile: selectedProfile,
+            billingAddressId: selectedAddress?.id,
+            shippingAddressId: selectedAddress?.id,
+            billingAddress: selectedAddress,
+            shippingAddress: selectedAddress,
             status: dealer?.id ? "Evaluating" : "Active",
             taxPercentage: +ctx.settings?.tax_percentage,
-            paymentTerm: ctx.defaultProfile?.meta?.net,
+            paymentTerm:
+                selectedCustomerMeta?.netTerm ??
+                (selectedProfile?.meta as { net?: string | null } | null)?.net,
             goodUntil,
             deliveryOption: "pickup" as DeliveryOption,
             meta: {
-                salesCoefficient: ctx.defaultProfile?.coefficient,
+                salesCoefficient: selectedProfile?.coefficient,
                 ccc_percentage: +(ctx?.settings?.ccc || 3.5),
                 payment_option: "Credit Card",
                 tax: true,
@@ -134,12 +171,14 @@ export async function createSalesBookFormDataDta(
     };
     return await formatForm(data as any, {
         ctx,
+        initialTaxCode: selectedTaxCode,
     });
 }
 async function formatForm(
     data: GetSalesBookFormDataDta,
     options?: {
         ctx?: Awaited<ReturnType<typeof salesFormData>>;
+        initialTaxCode?: string | null;
     },
 ) {
     const result = transformSalesBookForm(data);
@@ -160,7 +199,7 @@ async function formatForm(
     const _taxFormPromise = salesTaxForm(
         data.order.taxes as any,
         data.order?.id,
-        ctx?.defaultProfile?.meta?.taxCode,
+        options?.initialTaxCode ?? ctx?.defaultProfile?.meta?.taxCode,
     );
     const [, dealerMode, superAdmin, _taxForm] = await Promise.all([
         deleteDoorsPromise,

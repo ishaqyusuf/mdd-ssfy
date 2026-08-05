@@ -1,5 +1,13 @@
 # Progress
 
+- 2026-08-05: fixed Turbopack resolution for the new source-exported error and
+  observability packages. Internal relative imports now follow the packages'
+  Bundler resolution contract instead of referencing nonexistent emitted `.js`
+  files; the database package resolver is aligned, and an adoption regression
+  prevents recurrence. The restarted dashboard `/login/v2` route returns HTTP
+  200, 26 focused tests pass, and affected package typechecks pass. See
+  `.brain/bugs/2026-08-05-source-export-package-js-import-resolution.md`.
+
 - 2026-08-04: implemented customer-approved quantity increases/reductions for
   existing items directly inside the new sales form. Committed orders now show
   payment/inbound/production/fulfillment warnings; consequential saves open a
@@ -8170,6 +8178,95 @@
   blocked by a separate in-progress sales-adjustment workspace change whose
   new Prisma read crashes the edit-order route; Prisma client generation alone
   did not resolve that unfinished feature.
+- 2026-08-04: deployed the verified background-task repair to the production
+  Trigger worker as version `20260804.2` with 40 detected tasks. The release
+  was assembled from an isolated clean worktree containing only the sales
+  history author fallback and grouped-moulding inventory projection fixes plus
+  their tests, so the unfinished sales-adjustment and observability work in the
+  shared worktree was not published. Release gates passed 28 focused tests / 67
+  assertions, Sales typecheck, 5 Jobs observability tests / 16 assertions, and
+  `git diff --check`. Trigger reported a successful deployment at
+  `https://cloud.trigger.dev/projects/v3/proj_caklyqpkhwrtmdbtjhjs/deployments/s1y92358`;
+  the Node `--localstorage-file` warning and skipped optional skill bundling
+  were non-blocking.
+- 2026-08-04: completed the backorder and partial-delivery gap-closure checklist.
+  Domain commands now enforce lifecycle/line ownership, canonical delivery modes,
+  cancelled-component safety, server actor identity, operational permissions, and
+  serializable retry. Queue reads now paginate beyond the former candidate ceiling
+  with complete summaries/print selections. Backorder and partial-shipment routes
+  now use Midday URL filters, infinite tables, global summaries, selection actions,
+  and shipment confirmation. Added a bounded repair CLI, six compound indexes, and
+  ADR-046. Validation passed 85 focused tests with 584 assertions across 12 files,
+  Sales typecheck, DB typecheck, Prisma generation, and diff checks. API typecheck
+  retains only the pre-existing inbound-receiving excessive-stack diagnostic.
+  Browser proof is blocked by the unrelated `@gnd/errors` `./app-error.js` module
+  resolution failure, and the read-only repair scan is blocked by stopped local
+  MySQL on port 3307; neither blocker originates in the fulfillment changes.
+- 2026-08-05: completed the mobile backorder and partial-delivery parity slice.
+  Added protected Sales routes for backorders and partial shipments, permission-
+  aware dashboard entry points with global counts, typed infinite queue loaders,
+  URL-owned filters, global summaries, pull-to-refresh/recycled list behavior,
+  stable same-sale bulk selection, hold/release actions, and shipment confirmation
+  for canonical pickup/delivery/ship modes. Focused mobile and native-boundary
+  validation passed with 10 tests / 30 assertions, scoped Biome and diff checks
+  passed, and filtered typecheck output contains no new runtime-source diagnostics.
+  Android export processed 10,303 modules before the pre-existing `@gnd/errors`
+  `./app-error.js` resolution failure blocked device/runtime proof.
+- 2026-08-05: fixed the dashboard-wide tRPC HTTP 500 caused by the inventory
+  router deriving summary inputs with Zod `.omit()` during Next 16 Turbopack
+  module initialization. Backorder and partial-shipment filters now use explicit
+  pagination-free schemas backed by shared field shapes. The focused router
+  suite passes 13 tests / 103 assertions, scoped Biome checks pass, and a clean
+  dashboard request now reaches the user-safe `VALIDATION_FAILED` contract
+  instead of crashing router initialization. API typecheck retains only the
+  pre-existing inbound-receiving excessive-stack diagnostic.
+- 2026-08-05: repaired the new sales form invoice summary clipping regression.
+  The desktop summary's flex child now shrinks to the 420px rail instead of
+  expanding to a 482px minimum-content width, horizontal content is contained,
+  and the rail keeps its desktop allocation. The mobile sheet now starts below
+  the shared dashboard header so its title and close control remain accessible.
+  Authenticated browser geometry checks found zero document overflow at 1476px,
+  the 1280px desktop breakpoint, and 390x844 mobile; the focused regression,
+  Sales typecheck, scoped Biome check, and whitespace check pass.
+- 2026-08-05: redesigned the new sales form's global invoice details, totals and
+  pricing, and global add-on areas as flat summary sections. A shared section
+  header supplies consistent title/helper hierarchy; major sections use 24px
+  rhythm and bottom dividers; pricing rows use subtle separators; and the add-on
+  fields now sit inline without a nested card, tint, or shadow. Authenticated
+  desktop and 390x844 browser QA confirmed the responsive layout, dividers, and
+  add-on controls with zero document overflow and zero console errors. Five
+  focused tests / 17 assertions, Sales typecheck, scoped Biome, and whitespace
+  validation pass.
+- 2026-08-05: added `selectedCustomerId` parity to the legacy create-order and
+  create-quote routes. The legacy loader now resolves active office customers
+  with their primary address, pricing profile, payment term, and tax defaults,
+  while missing parameters retain the existing optional picker. Authenticated
+  browser QA confirmed customer `2302` is hydrated on the legacy order form and
+  the picker remains closed; the no-parameter control still opens it. The
+  focused regression passes 2 tests / 13 assertions, route/test Biome and
+  whitespace validation pass. The broad Dashboard typecheck did not finish in
+  the bounded validation window against the heavily modified shared worktree;
+  scoped Biome remains noisy only from existing diagnostics in the touched
+  legacy loader and state initializer.
+- 2026-08-05: replaced the new sales form's explicit global add-on form with the
+  legacy-compatible inline Additional Costs flow. Add Cost now offers Discount,
+  Delivery, Flat Labor Cost, and Custom, immediately creates the selected row,
+  and lets users edit its label and amount or delete it. Authenticated browser
+  QA added Delivery, renamed it to `Freight & Handling`, entered `$125.50`,
+  verified the recalculated `$138.32` grand total, then deleted the row and
+  confirmed the empty state and zero add-on total. The focused slice passes 19
+  tests / 82 assertions; Sales typecheck and scoped formatting checks pass.
+- 2026-08-05: completed the new sales form quantity, component-search, and
+  invoice-date parity pass. Door size titles are uppercase, the supplier area
+  no longer repeats or wraps the selected supplier, and door, HPT, moulding,
+  and service quantities share an accessible segmented minus/value/plus
+  control. Long component-list search bars now float above the editor actions,
+  anchor to their picker boundary at the list end, and hide outside it. Order
+  terms normalize legacy spellings such as `Net30`, update and lock calculated
+  Due dates, and retain manual Due for `None`; quotes expose Good Until without
+  order-only Net/Due/Production Due fields. Authenticated browser QA covered
+  door, service, moulding, 72-item scrolling, `Net 30`, and quote controls; the
+  focused regression slice and Sales typecheck pass.
 - 2026-08-05: consolidated the dashboard mobile main header into one avatar
   trigger and bottom navigation drawer. The drawer reuses the selected-module
   SiteNav list, exposes permission-aware header utilities as labeled rows, and
@@ -8183,3 +8280,27 @@
   expectations plus scoped Biome and whitespace checks. Dashboard typecheck
   retains its existing broad baseline failures, with no touched runtime-file
   diagnostics in the filtered output.
+- 2026-08-05: prevented line breaks in the new sales form's desktop door-size
+  column. Both the Size header and size-value cells now use non-wrapping table
+  layout, while horizontal overflow remains contained by the existing dialog
+  scroller. The focused regression passes, Sales typecheck and formatting pass,
+  and authenticated browser inspection confirms the rendered header computes
+  to `white-space: nowrap`.
+- 2026-08-05: made the new sales form Invoice Date read-only for orders and
+  quotes while preserving its displayed value and the existing behavior of Due,
+  Production Due, and Good Until. Four focused tests, the Sales typecheck,
+  scoped formatting, and whitespace validation pass. Authenticated browser QA
+  confirmed the Date control is disabled, visually muted, and cannot open its
+  calendar.
+- 2026-08-05: upgraded the new sales form customer summary address interactions.
+  Billing and Shipping are now full-row accessible Edit targets with pointer and
+  subtle hover treatment; resolved address ids open the populated address-only
+  customer sheet, and newly created address ids reconcile into the current sale.
+  Distinct shipping selections expose a confirmation-gated `Same as billing`
+  action that leaves the saved shipping record intact. Authenticated browser QA
+  confirmed the expanded rows and populated Billing Address editor for customer
+  `2302` / address `4279`; Shipping correctly used create mode for that fixture's
+  missing separate shipping record. Twelve focused tests / 36 assertions, the
+  Sales typecheck, scoped Biome, and whitespace checks pass. The broad Dashboard
+  typecheck retains its existing baseline diagnostics with no touched-file error
+  in the focused compile.

@@ -60,6 +60,7 @@
 		"inventory:seed-stock-fixtures": "bun ./scripts/inventory-validation-seed-stock-fixtures.ts",
 		"inventory:reconciliation-evidence": "bun ./scripts/inventory-reconciliation-evidence.ts",
 		"inventory:reconciliation-repair": "bun ./scripts/inventory-reconciliation-repair.ts",
+		"inventory:fulfillment-repair": "bun ./scripts/inventory-fulfillment-repair.ts",
 		"inventory:validation-fixtures": "bun ./scripts/inventory-validation-fixture-report.ts",
 		"jobs:deploy": "bun run --filter @gnd/jobs deploy",
 		"kill:ports": "bun ../../local-infra-kit/bin/kill-ports.ts --profile gnd",

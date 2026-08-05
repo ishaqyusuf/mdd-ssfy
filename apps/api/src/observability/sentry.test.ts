@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { AppError } from "@gnd/errors";
+import { TRPCError } from "@trpc/server";
 import {
 	getApiErrorContext,
 	isSentryEnabled,
@@ -31,25 +33,50 @@ describe("API Sentry capture policy", () => {
 		).toBe(true);
 	});
 
-	it("captures unexpected internal failures", () => {
-		expect(shouldCaptureTrpcError("INTERNAL_SERVER_ERROR")).toBe(true);
+	it("captures reportable database failures based on their cause", () => {
+		const prismaTimeout = Object.assign(new Error("Transaction timed out"), {
+			code: "P2028",
+			name: "PrismaClientKnownRequestError",
+		});
+		const error = new TRPCError({
+			cause: new AppError({
+				cause: prismaTimeout,
+				code: "DATABASE_TRANSACTION_TIMEOUT",
+			}),
+			code: "INTERNAL_SERVER_ERROR",
+		});
+
+		expect(shouldCaptureTrpcError(error)).toBe(true);
 	});
 
 	it("does not report expected client or authorization errors", () => {
-		expect(shouldCaptureTrpcError("BAD_REQUEST")).toBe(false);
-		expect(shouldCaptureTrpcError("UNAUTHORIZED")).toBe(false);
-		expect(shouldCaptureTrpcError("FORBIDDEN")).toBe(false);
-		expect(shouldCaptureTrpcError("NOT_FOUND")).toBe(false);
+		expect(shouldCaptureTrpcError(new TRPCError({ code: "BAD_REQUEST" }))).toBe(
+			false,
+		);
+		expect(
+			shouldCaptureTrpcError(new TRPCError({ code: "UNAUTHORIZED" })),
+		).toBe(false);
+		expect(shouldCaptureTrpcError(new TRPCError({ code: "FORBIDDEN" }))).toBe(
+			false,
+		);
+		expect(shouldCaptureTrpcError(new TRPCError({ code: "NOT_FOUND" }))).toBe(
+			false,
+		);
 	});
 
 	it("does not attach a raw request path to unexpected REST failures", () => {
-		expect(getApiErrorContext({ method: "POST" })).toEqual({
-			tags: {
-				method: "POST",
-				runtime: "api",
-				source: "hono",
-			},
+		const context = getApiErrorContext({
+			method: "POST",
+			requestId: "request-1",
 		});
+
+		expect(context.tags).toMatchObject({
+			method: "POST",
+			request_id: "request-1",
+			runtime: "api",
+			source: "hono",
+		});
+		expect(context.tags).not.toHaveProperty("path");
 	});
 
 	it("removes request contents and user identity from SDK-generated events", () => {

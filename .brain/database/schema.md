@@ -305,3 +305,16 @@ Tracks important schema-level entities and ownership boundaries.
   `(materialReviewId, assignmentId)` submission membership is unique to fence
   concurrent retries. Status, order/time, submitter/time, and review-material
   linkage are indexed for bounded queue and projection reads.
+
+## Inventory fulfillment queue indexes (2026-08-04)
+
+- `SalesOrders` has compound queue indexes over
+  `(deletedAt, status, prodStatus, id)` and `(deletedAt, deliveryOption, id)`.
+- `LineItem` has a fulfillment scan index over
+  `(saleId, deletedAt, lineItemType, id)`.
+- `LineItemComponents` has a fulfillment-state index over
+  `(status, lineItemId, inventoryVariantId)`.
+- `StockAllocation` and `InboundDemand` have component/status/deletion compound
+  indexes for fulfillment reconciliation scans.
+- No relationship or canonical ownership changed; these are additive read-path
+  indexes supporting cursor queues and serializable command lookups.

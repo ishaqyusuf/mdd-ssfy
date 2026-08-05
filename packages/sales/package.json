@@ -34,6 +34,7 @@
 		"./storefront-product": "./src/storefront-product.ts",
 		"./schema": "./src/schema.ts",
 		"./sales-fulfillment-plan": "./src/sales-fulfillment-plan.ts",
+		"./inventory-fulfillment-policy": "./src/inventory-fulfillment-policy.ts",
 		"./sales-inventory-mark-as-preflight": "./src/sales-inventory-mark-as-preflight.ts",
 		"./sales-inventory-repair-policy": "./src/sales-inventory-repair-policy.ts",
 		"./sales-inventory-policy": "./src/sales-inventory-policy.ts",

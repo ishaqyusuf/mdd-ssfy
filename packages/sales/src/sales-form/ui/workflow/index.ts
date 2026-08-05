@@ -93,6 +93,12 @@ export {
   type ServiceLineItemsEditorProps,
 } from "./service-line-items-editor";
 export {
+  normalizeSalesFormQuantity,
+  SalesFormQuantityStepper,
+  type SalesFormQuantityStepperProps,
+  stepSalesFormQuantity,
+} from "./sales-form-quantity-stepper";
+export {
   StepComponentPicker,
   type StepComponentPickerProps,
 } from "./step-component-picker";

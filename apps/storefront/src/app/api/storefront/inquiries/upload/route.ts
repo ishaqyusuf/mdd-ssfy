@@ -4,6 +4,9 @@ import {
 	getStorefrontInquiryBlobToken,
 } from "@api/db/queries/storefront-inquiries";
 import { db } from "@gnd/db";
+import { getUserErrorMessage } from "@gnd/errors";
+import { buildErrorReport } from "@gnd/observability";
+import * as Sentry from "@sentry/nextjs";
 import { type HandleUploadBody, handleUpload } from "@vercel/blob/client";
 import { z } from "zod";
 
@@ -23,12 +26,6 @@ const allowedContentTypes = [
 
 function cleanPathname(value: string) {
 	return value.replace(/^\/+/, "");
-}
-
-function errorMessage(error: unknown) {
-	return error instanceof Error
-		? error.message
-		: "Unable to authorize project attachment upload.";
 }
 
 export async function POST(request: Request) {
@@ -74,6 +71,17 @@ export async function POST(request: Request) {
 		});
 		return Response.json(response);
 	} catch (error) {
-		return Response.json({ error: errorMessage(error) }, { status: 400 });
+		const report = buildErrorReport(error, {
+			requestId: request.headers.get("x-request-id") ?? undefined,
+			runtime: "storefront",
+			source: "inquiry-upload",
+		});
+		if (report.classified.reportable) {
+			Sentry.captureException(report.reportableError, report.captureContext);
+		}
+		return Response.json(
+			{ error: getUserErrorMessage(error) },
+			{ status: 400 },
+		);
 	}
 }

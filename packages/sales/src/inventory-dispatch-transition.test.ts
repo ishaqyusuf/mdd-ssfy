@@ -38,7 +38,8 @@ describe("transitionInventoryDispatchAllocations", () => {
 			},
 		};
 		const db = {
-			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
 		};
 
 		const result = await transitionInventoryDispatchAllocations(
@@ -80,10 +81,10 @@ describe("transitionInventoryDispatchAllocations", () => {
 		});
 		expect(calls[1]).toMatchObject({
 			name: "lineItemComponents.updateMany",
-				payload: {
-					where: {
-						id: 101,
-					},
+			payload: {
+				where: {
+					id: 101,
+				},
 				data: {
 					qtyAllocated: 1,
 					status: "allocated",
@@ -121,7 +122,8 @@ describe("transitionInventoryDispatchAllocations", () => {
 			},
 		};
 		const db = {
-			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
 		};
 
 		const result = await transitionInventoryDispatchAllocations(
@@ -186,7 +188,8 @@ describe("transitionInventoryDispatchAllocations", () => {
 			},
 		};
 		const db = {
-			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
 		};
 
 		const result = await transitionInventoryDispatchAllocations(
@@ -237,10 +240,13 @@ describe("transitionInventoryDispatchAllocations", () => {
 			},
 			{
 				name: "lineItemComponents.updateMany",
-					payload: {
-						where: {
-							id: 102,
+				payload: {
+					where: {
+						id: 102,
+						status: {
+							not: "cancelled",
 						},
+					},
 					data: {
 						qtyAllocated: 0,
 						qtyInbound: 0,
@@ -283,6 +289,33 @@ describe("shipAvailableSalesInventory", () => {
 			],
 		};
 	}
+
+	test("rejects a terminal sale before consuming inventory", async () => {
+		const calls: string[] = [];
+		const tx = {
+			salesOrders: {
+				findFirst: async () => ({
+					...saleWithAvailableAllocation(),
+					status: "cancelled",
+				}),
+			},
+			stockAllocation: {
+				findMany: async () => {
+					calls.push("stockAllocation.findMany");
+					return [];
+				},
+			},
+		};
+		const db = {
+			$transaction: async (callback: (transaction: any) => Promise<unknown>) =>
+				callback(tx),
+		};
+
+		await expect(
+			shipAvailableSalesInventory(db as any, { salesOrderId: 600 }),
+		).rejects.toThrow("read-only for cancelled sales");
+		expect(calls).toEqual([]);
+	});
 
 	test("consumes available allocations before writing partial shipment delivery rows", async () => {
 		const calls: string[] = [];
@@ -352,7 +385,8 @@ describe("shipAvailableSalesInventory", () => {
 			},
 		};
 		const db = {
-			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
 		};
 
 		const result = await shipAvailableSalesInventory(db as any, {
@@ -371,7 +405,6 @@ describe("shipAvailableSalesInventory", () => {
 			"lineItemComponents.updateMany",
 			"orderDelivery.create",
 			"orderItemDelivery.createMany",
-			"salesOrders.update",
 		]);
 		expect(updatePayloads[0]).toMatchObject({
 			where: {
@@ -468,7 +501,8 @@ describe("shipAvailableSalesInventory", () => {
 			},
 		};
 		const db = {
-			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
 		};
 
 		await expect(
@@ -567,7 +601,8 @@ describe("fulfillInventoryDispatch", () => {
 			},
 		};
 		const db = {
-			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
 		};
 
 		const result = await fulfillInventoryDispatch(db as any, {
@@ -663,7 +698,8 @@ describe("fulfillInventoryDispatch", () => {
 			},
 		};
 		const db = {
-			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
 		};
 
 		const result = await fulfillInventoryDispatch(db as any, {
@@ -757,7 +793,8 @@ describe("fulfillInventoryDispatch", () => {
 			},
 		};
 		const db = {
-			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
 		};
 
 		await expect(

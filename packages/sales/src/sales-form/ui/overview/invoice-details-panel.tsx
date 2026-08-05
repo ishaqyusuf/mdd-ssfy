@@ -15,6 +15,8 @@ import {
 	SelectValue,
 } from "@gnd/ui/select";
 import type { SalesFormSelectOption } from "./invoice-pricing-overview";
+import { normalizeSalesFormPaymentTerm } from "./overview-options";
+import { SalesFormSummarySectionHeader } from "./summary-section-header";
 
 export type SalesFormInvoiceDetailsPanelProps = {
 	type?: "order" | "quote";
@@ -91,6 +93,7 @@ function DateInputField(props: {
 	label: string;
 	value?: string | null;
 	onChange?: (value: string | null) => void;
+	disabled?: boolean;
 }) {
 	const selectedDate = datePickerValue(props.value);
 	return (
@@ -102,8 +105,9 @@ function DateInputField(props: {
 						id={props.id}
 						type="button"
 						variant="outline"
+						disabled={props.disabled}
 						className={cn(
-							"h-10 justify-start bg-card text-left text-xs font-bold",
+							"h-10 justify-start bg-background text-left text-xs font-bold",
 							!selectedDate && "text-muted-foreground",
 						)}
 					>
@@ -130,41 +134,43 @@ export function SalesFormInvoiceDetailsPanel(
 	props: SalesFormInvoiceDetailsPanelProps,
 ) {
 	const isQuote = props.type === "quote";
+	const hasAutomaticOrderDueDate =
+		!isQuote && normalizeSalesFormPaymentTerm(props.paymentTerm) !== "None";
 	return (
-		<div className="flex flex-col gap-3">
-			<div className="flex items-center gap-2 text-foreground">
-				<Icons.Info size={18} className="text-primary" />
-				<h3 className="text-sm font-bold">Global Invoice Details</h3>
-			</div>
-			<div className="grid gap-4 rounded-xl border border-border bg-muted/30 p-4 shadow-sm">
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<div className="grid gap-1.5">
-						<FieldLabel htmlFor="invoice-po">PO</FieldLabel>
-						<Input
-							id="invoice-po"
-							value={props.po || ""}
-							onChange={(event) => props.onPoChange?.(event.target.value)}
-							className="h-10 bg-card text-xs font-bold"
-							placeholder="Number"
-						/>
-					</div>
-					<DateInputField
-						id="invoice-order-date"
-						label="Date"
-						value={props.createdAt}
-						onChange={props.onCreatedAtChange}
+		<section className="border-b border-border/70 pb-6">
+			<SalesFormSummarySectionHeader
+				description="Order references, payment terms, dates, and fulfillment."
+				icon={<Icons.Info size={18} />}
+				title="Global Invoice Details"
+			/>
+			<div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
+				<div className="grid gap-1.5">
+					<FieldLabel htmlFor="invoice-po">PO</FieldLabel>
+					<Input
+						id="invoice-po"
+						value={props.po || ""}
+						onChange={(event) => props.onPoChange?.(event.target.value)}
+						className="h-10 bg-background text-xs font-bold"
+						placeholder="Number"
 					/>
 				</div>
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+				<DateInputField
+					id="invoice-order-date"
+					label="Date"
+					value={props.createdAt}
+					onChange={props.onCreatedAtChange}
+					disabled
+				/>
+				{isQuote ? null : (
 					<div className="grid gap-1.5">
 						<FieldLabel htmlFor="invoice-payment-term">Net</FieldLabel>
 						<Select
-							value={props.paymentTerm}
+							value={normalizeSalesFormPaymentTerm(props.paymentTerm)}
 							onValueChange={props.onPaymentTermChange}
 						>
 							<SelectTrigger
 								id="invoice-payment-term"
-								className="h-10 bg-card text-xs font-bold"
+								className="h-10 bg-background text-xs font-bold"
 							>
 								<SelectValue />
 							</SelectTrigger>
@@ -177,49 +183,46 @@ export function SalesFormInvoiceDetailsPanel(
 							</SelectContent>
 						</Select>
 					</div>
+				)}
+				<DateInputField
+					id="invoice-payment-due-date"
+					label={isQuote ? "Good Until" : "Due"}
+					value={isQuote ? props.goodUntil : props.paymentDueDate}
+					onChange={
+						isQuote ? props.onGoodUntilChange : props.onPaymentDueDateChange
+					}
+					disabled={hasAutomaticOrderDueDate}
+				/>
+				{isQuote ? null : (
 					<DateInputField
-						id="invoice-payment-due-date"
-						label={isQuote ? "Good Until" : "Due"}
-						value={isQuote ? props.goodUntil : props.paymentDueDate}
-						onChange={
-							isQuote ? props.onGoodUntilChange : props.onPaymentDueDateChange
-						}
+						id="invoice-production-due-date"
+						label="Prod"
+						value={props.prodDueDate}
+						onChange={props.onProdDueDateChange}
 					/>
-				</div>
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					{isQuote ? (
-						<div className="hidden md:block" />
-					) : (
-						<DateInputField
-							id="invoice-production-due-date"
-							label="Prod"
-							value={props.prodDueDate}
-							onChange={props.onProdDueDateChange}
-						/>
-					)}
-					<div className="grid gap-1.5">
-						<FieldLabel htmlFor="invoice-fulfillment">Fulfillment</FieldLabel>
-						<Select
-							value={props.deliveryOption}
-							onValueChange={props.onDeliveryOptionChange}
+				)}
+				<div className="grid gap-1.5">
+					<FieldLabel htmlFor="invoice-fulfillment">Fulfillment</FieldLabel>
+					<Select
+						value={props.deliveryOption}
+						onValueChange={props.onDeliveryOptionChange}
+					>
+						<SelectTrigger
+							id="invoice-fulfillment"
+							className="h-10 bg-background text-xs font-bold"
 						>
-							<SelectTrigger
-								id="invoice-fulfillment"
-								className="h-10 bg-card text-xs font-bold"
-							>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{props.deliveryOptions.map((mode) => (
-									<SelectItem key={mode.value} value={mode.value}>
-										{mode.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{props.deliveryOptions.map((mode) => (
+								<SelectItem key={mode.value} value={mode.value}>
+									{mode.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 			</div>
-		</div>
+		</section>
 	);
 }

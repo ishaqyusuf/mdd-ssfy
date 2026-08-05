@@ -8,7 +8,10 @@ export function resolveSentryEnvironment({
 	deploymentEnvironment,
 	nodeEnvironment,
 }: Omit<SentryEnvironmentInput, "dsn">) {
-	return deploymentEnvironment ?? nodeEnvironment ?? "development";
+	return resolveObservabilityEnvironment({
+		deploymentEnvironment,
+		nodeEnvironment,
+	});
 }
 
 export function shouldEnableSentry({
@@ -16,10 +19,13 @@ export function shouldEnableSentry({
 	dsn,
 	nodeEnvironment,
 }: SentryEnvironmentInput) {
-	return (
-		resolveSentryEnvironment({
-			deploymentEnvironment,
-			nodeEnvironment,
-		}) === "production" && Boolean(dsn)
-	);
+	return isObservabilityEnabled({
+		deploymentEnvironment,
+		dsn,
+		nodeEnvironment,
+	});
 }
+import {
+	isObservabilityEnabled,
+	resolveObservabilityEnvironment,
+} from "@gnd/observability";

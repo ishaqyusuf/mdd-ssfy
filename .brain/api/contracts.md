@@ -1005,3 +1005,22 @@ Tracks important request/response contracts and shared schema boundaries.
 - Revision children carry `type=activity_note_revision`, `revisionAction=edited|deleted`, `revisionOf=<root id>`, original-author contact, and changing-user tags; their sender is the actor who made the change.
 - Activity-tree nodes expose `senderProfileId` and `deletedAt`; deleted roots require an authorized `includeDeleted` read.
 - Inbound status updates return `previousStatus` and `actorName` with committed shipment fields.
+
+## Inventory fulfillment contract closure (2026-08-04)
+
+- Delivery mode is the shared enum `pickup | delivery | ship`. Inventory sentinel
+  values are metadata sources, not delivery modes, and are rejected at the API.
+- Fulfillment mutation inputs are strict and do not accept `authorName`; actor id and
+  display name are resolved from the authenticated session.
+- Fulfilled and cancelled sales reject shipment, hold, and dispatch mutations with a
+  conflict response. Requested line ids outside the selected sale are rejected as a
+  bad request.
+- Backorder and partial-shipment responses expose `deliveryMode`, order lifecycle,
+  a stable `nextCursorId`, and page summary. Dedicated summary endpoints return
+  complete filtered totals rather than page totals.
+- Multi-component shortage totals are reported at finished-line grain. Allocation
+  consumption remains component grain and is separately reconciled in mutation
+  results.
+- Inventory fulfillment mutation transactions use Serializable isolation, 30-second
+  timeout, 5-second max wait, and at most three attempts for Prisma `P2034` write
+  conflicts.

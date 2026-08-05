@@ -1,3 +1,8 @@
+import {
+	buildErrorReport,
+	isObservabilityEnabled,
+	resolveObservabilityEnvironment,
+} from "@gnd/observability";
 import * as Sentry from "@sentry/bun";
 import type { TRPCError } from "@trpc/server";
 
@@ -6,6 +11,7 @@ type TrpcErrorDetails = {
 	path?: string;
 	type: "query" | "mutation" | "subscription" | "unknown";
 	router: "app" | "storefront";
+	requestId?: string;
 };
 
 type SentryEnvironmentInput = {
@@ -18,7 +24,10 @@ export function resolveSentryEnvironment({
 	deploymentEnvironment,
 	nodeEnvironment,
 }: Omit<SentryEnvironmentInput, "dsn">) {
-	return deploymentEnvironment ?? nodeEnvironment ?? "development";
+	return resolveObservabilityEnvironment({
+		deploymentEnvironment,
+		nodeEnvironment,
+	});
 }
 
 export function isSentryEnabled({
@@ -26,16 +35,17 @@ export function isSentryEnabled({
 	dsn,
 	nodeEnvironment,
 }: SentryEnvironmentInput) {
-	return (
-		resolveSentryEnvironment({
-			deploymentEnvironment,
-			nodeEnvironment,
-		}) === "production" && Boolean(dsn)
-	);
+	return isObservabilityEnabled({
+		deploymentEnvironment,
+		dsn,
+		nodeEnvironment,
+	});
 }
 
-export function sanitizeApiSentryEvent(event: Sentry.Event) {
-	const sanitizedEvent = { ...event, user: undefined };
+export function sanitizeApiSentryEvent<TEvent extends Sentry.Event>(
+	event: TEvent,
+): TEvent {
+	const sanitizedEvent: TEvent = { ...event, user: undefined };
 
 	if (sanitizedEvent.request) {
 		sanitizedEvent.request = sanitizedEvent.request.method
@@ -51,39 +61,55 @@ export function captureTrpcError({
 	path,
 	type,
 	router,
+	requestId,
 }: TrpcErrorDetails) {
-	if (!shouldCaptureTrpcError(error.code)) {
+	const report = buildErrorReport(error, {
+		operation: path,
+		requestId,
+		runtime: "api",
+		source: "trpc",
+		tags: {
+			procedure_type: type,
+			router,
+		},
+	});
+	if (!report.classified.reportable) {
 		return;
 	}
 
-	Sentry.captureException(error, {
-		tags: {
-			runtime: "api",
-			source: "trpc",
-			router,
-			procedure: path ?? "unknown",
-			procedure_type: type,
-		},
-	});
+	Sentry.captureException(report.reportableError, report.captureContext);
 }
 
-export function shouldCaptureTrpcError(code: TRPCError["code"]) {
-	return code === "INTERNAL_SERVER_ERROR";
+export function shouldCaptureTrpcError(error: TRPCError) {
+	return buildErrorReport(error, {
+		runtime: "api",
+		source: "trpc",
+	}).classified.reportable;
 }
 
 export function captureApiError(
-	error: Error,
-	request: { method: string },
+	error: unknown,
+	request: { method: string; requestId?: string },
 ) {
-	Sentry.captureException(error, getApiErrorContext(request));
+	const report = buildErrorReport(error, {
+		requestId: request.requestId,
+		runtime: "api",
+		source: "hono",
+		tags: { method: request.method },
+	});
+	if (!report.classified.reportable) return;
+
+	Sentry.captureException(report.reportableError, report.captureContext);
 }
 
-export function getApiErrorContext(request: { method: string }) {
-	return {
-		tags: {
-			runtime: "api",
-			source: "hono",
-			method: request.method,
-		},
-	};
+export function getApiErrorContext(request: {
+	method: string;
+	requestId?: string;
+}) {
+	return buildErrorReport(new Error("API request failed"), {
+		requestId: request.requestId,
+		runtime: "api",
+		source: "hono",
+		tags: { method: request.method },
+	}).captureContext;
 }

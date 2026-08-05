@@ -1,5 +1,13 @@
-import type { Db, TransactionClient } from "@gnd/db";
+import { type Db, Prisma, type TransactionClient } from "@gnd/db";
+import type { DeliveryOption } from "@gnd/utils/sales";
 
+import {
+	assertInventoryFulfillmentLineSelection,
+	assertInventoryFulfillmentMutableSale,
+	isInventoryFulfillmentTerminalSale,
+	normalizeInventoryFulfillmentDeliveryMode,
+	resolveInventoryFulfillmentDeliveryMode,
+} from "./inventory-fulfillment-policy";
 import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 
 const COMMITTED_ALLOCATION_STATUSES = new Set([
@@ -211,6 +219,7 @@ export type SalesBackorderQueueLineLike = FulfillmentLineLike & {
 		status?: string | null;
 		inventoryStatus?: string | null;
 		prodStatus?: string | null;
+		deliveryOption?: string | null;
 		customer?: {
 			name?: string | null;
 			businessName?: string | null;
@@ -224,6 +233,7 @@ export type SalesBackorderQueueItem = SalesFulfillmentQuantitySnapshot & {
 	orderStatus: string | null;
 	inventoryStatus: string | null;
 	prodStatus: string | null;
+	deliveryMode: DeliveryOption | null;
 	customerName: string | null;
 	lineItemId: number | null;
 	salesItemId: number | null;
@@ -263,6 +273,10 @@ export type GetSalesBackorderQueueInput = {
 	salesOrderId?: number | null;
 	inventoryVariantId?: number | null;
 	statuses?: SalesBackorderQueueStatus[] | null;
+	q?: string | null;
+	deliveryModes?: DeliveryOption[] | null;
+	holdUntilComplete?: boolean | null;
+	cursor?: number | null;
 	cursorId?: number | null;
 	limit?: number;
 };
@@ -295,6 +309,10 @@ export type SalesPartialShipmentQueue = {
 export type GetSalesPartialShipmentQueueInput = {
 	salesOrderId?: number | null;
 	statuses?: SalesPartialShipmentQueueStatus[] | null;
+	q?: string | null;
+	deliveryModes?: DeliveryOption[] | null;
+	holdUntilComplete?: boolean | null;
+	cursor?: number | null;
 	cursorId?: number | null;
 	limit?: number;
 };
@@ -437,7 +455,7 @@ export type PlannedAvailableShipmentHoldDecision = {
 export type ShipAvailableSalesInventoryInput = {
 	salesOrderId: number;
 	lineItemIds?: number[];
-	deliveryMode?: string | null;
+	deliveryMode?: DeliveryOption | null;
 	deliveredTo?: string | null;
 	createdByUserId?: number | null;
 	authorName?: string | null;
@@ -535,7 +553,7 @@ export type FulfillInventoryDispatchInput = {
 	salesOrderId: number;
 	lineItemIds?: number[];
 	allocationIds?: number[];
-	deliveryMode?: string | null;
+	deliveryMode?: DeliveryOption | null;
 	deliveredTo?: string | null;
 	createdByUserId?: number | null;
 	authorName?: string | null;
@@ -594,6 +612,31 @@ function sumBy<T>(items: T[] | null | undefined, read: (item: T) => number) {
 
 function roundQuantity(value: number) {
 	return Math.round(value * 1000) / 1000;
+}
+
+async function runSerializableInventoryTransaction<T>(
+	db: Db,
+	callback: (transaction: TransactionClient) => Promise<T>,
+) {
+	const maxAttempts = 3;
+	for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+		try {
+			return await db.$transaction(callback, {
+				isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+				maxWait: 5_000,
+				timeout: 30_000,
+			});
+		} catch (error) {
+			const isWriteConflict =
+				typeof error === "object" &&
+				error !== null &&
+				"code" in error &&
+				(error as { code?: unknown }).code === "P2034";
+			if (!isWriteConflict || attempt === maxAttempts) throw error;
+		}
+	}
+
+	throw new Error("Inventory transaction retry budget exhausted.");
 }
 
 function readObject(value: unknown): Record<string, unknown> {
@@ -1054,14 +1097,6 @@ function summarizeLine(
 		isCompletedDelivery(delivery) ? numberValue(delivery.qty) : 0,
 	);
 	const remainingQty = Math.max(0, orderedQty - shippedQty);
-	const componentBackorderedQty = sumBy(
-		components.filter((component) => component.required),
-		(component) => component.backorderedQty,
-	);
-	const backorderedQty =
-		componentBackorderedQty > 0
-			? Math.min(remainingQty, componentBackorderedQty)
-			: 0;
 	const allocatedQty = sumBy(components, (component) => component.allocatedQty);
 	const pendingReviewQty = sumBy(
 		components,
@@ -1075,6 +1110,12 @@ function summarizeLine(
 		remainingQty,
 		components,
 	});
+	const hasRequiredComponentShortage = components.some(
+		(component) => component.required && component.backorderedQty > 0,
+	);
+	const backorderedQty = hasRequiredComponentShortage
+		? Math.max(0, remainingQty - availableToShipQty)
+		: 0;
 	const canShipNow =
 		availableToShipQty > 0 &&
 		(!holdUntilComplete || availableToShipQty >= remainingQty);
@@ -1237,7 +1278,10 @@ function getAllocationIdsByStatus(line: SalesBackorderQueueLineLike) {
 
 export function buildSalesBackorderQueue(
 	lineItems: SalesBackorderQueueLineLike[],
-	input: Pick<GetSalesBackorderQueueInput, "statuses" | "limit"> = {},
+	input: Pick<
+		GetSalesBackorderQueueInput,
+		"statuses" | "limit" | "holdUntilComplete"
+	> = {},
 ): SalesBackorderQueue {
 	const requestedStatuses = input.statuses?.length
 		? input.statuses
@@ -1247,9 +1291,24 @@ export function buildSalesBackorderQueue(
 	const items: SalesBackorderQueueItem[] = [];
 
 	for (const sourceLine of lineItems) {
+		if (
+			isInventoryFulfillmentTerminalSale({
+				orderStatus: sourceLine.sale?.status,
+				productionStatus: sourceLine.sale?.prodStatus,
+			})
+		) {
+			continue;
+		}
 		const line = summarizeSalesFulfillmentPlan([sourceLine]).lines[0];
 		if (!line || !isBackorderQueueStatus(line.status)) continue;
 		if (!allowedStatuses.has(line.status)) continue;
+		if (
+			input.holdUntilComplete !== null &&
+			input.holdUntilComplete !== undefined &&
+			line.holdUntilComplete !== input.holdUntilComplete
+		) {
+			continue;
+		}
 
 		items.push({
 			salesOrderId: sourceLine.sale?.id ?? sourceLine.saleId ?? null,
@@ -1257,6 +1316,9 @@ export function buildSalesBackorderQueue(
 			orderStatus: sourceLine.sale?.status ?? null,
 			inventoryStatus: sourceLine.sale?.inventoryStatus ?? null,
 			prodStatus: sourceLine.sale?.prodStatus ?? null,
+			deliveryMode: normalizeInventoryFulfillmentDeliveryMode(
+				sourceLine.sale?.deliveryOption,
+			),
 			customerName: getCustomerName(sourceLine),
 			lineItemId: line.id,
 			salesItemId: sourceLine.salesItem?.id ?? null,
@@ -1320,7 +1382,10 @@ function getPartialShipmentStatus(
 
 export function buildSalesPartialShipmentQueue(
 	lineItems: SalesBackorderQueueLineLike[],
-	input: Pick<GetSalesPartialShipmentQueueInput, "statuses" | "limit"> = {},
+	input: Pick<
+		GetSalesPartialShipmentQueueInput,
+		"statuses" | "limit" | "holdUntilComplete"
+	> = {},
 ): SalesPartialShipmentQueue {
 	const requestedStatuses = input.statuses?.length
 		? new Set<SalesPartialShipmentQueueStatus>(input.statuses)
@@ -1329,8 +1394,23 @@ export function buildSalesPartialShipmentQueue(
 	const items: SalesPartialShipmentQueueItem[] = [];
 
 	for (const sourceLine of lineItems) {
+		if (
+			isInventoryFulfillmentTerminalSale({
+				orderStatus: sourceLine.sale?.status,
+				productionStatus: sourceLine.sale?.prodStatus,
+			})
+		) {
+			continue;
+		}
 		const line = summarizeSalesFulfillmentPlan([sourceLine]).lines[0];
 		if (!line || line.remainingQty <= 0) continue;
+		if (
+			input.holdUntilComplete !== null &&
+			input.holdUntilComplete !== undefined &&
+			line.holdUntilComplete !== input.holdUntilComplete
+		) {
+			continue;
+		}
 
 		const partialStatus = getPartialShipmentStatus(line);
 		if (requestedStatuses && !requestedStatuses.has(partialStatus)) continue;
@@ -1349,6 +1429,9 @@ export function buildSalesPartialShipmentQueue(
 			orderStatus: sourceLine.sale?.status ?? null,
 			inventoryStatus: sourceLine.sale?.inventoryStatus ?? null,
 			prodStatus: sourceLine.sale?.prodStatus ?? null,
+			deliveryMode: normalizeInventoryFulfillmentDeliveryMode(
+				sourceLine.sale?.deliveryOption,
+			),
 			customerName: getCustomerName(sourceLine),
 			lineItemId: line.id,
 			salesItemId: sourceLine.salesItem?.id ?? null,
@@ -1771,25 +1854,58 @@ export function buildSalesProductionPlan(
 	};
 }
 
-export async function getSalesBackorderQueue(
+async function getSalesBackorderQueueBatch(
 	db: Db,
-	input: GetSalesBackorderQueueInput = {},
-): Promise<SalesBackorderQueue> {
-	const limit = Math.min(Math.max(input.limit || 50, 1), 200);
-	const candidateTake = Math.min(limit * 3, 300);
+	input: GetSalesBackorderQueueInput,
+	cursorId: number | null,
+	take: number,
+) {
 	const lineItems = await db.lineItem.findMany({
 		where: {
 			deletedAt: null,
 			lineItemType: "SALE",
-			id: input.cursorId
+			id: cursorId
 				? {
-						gt: input.cursorId,
+						gt: cursorId,
 					}
 				: undefined,
 			saleId: input.salesOrderId || undefined,
 			sale: {
 				deletedAt: null,
+				deliveryOption: input.deliveryModes?.length
+					? { in: input.deliveryModes }
+					: undefined,
 			},
+			AND: input.q?.trim()
+				? [
+						{
+							OR: [
+								{ uid: { contains: input.q.trim() } },
+								{ title: { contains: input.q.trim() } },
+								{ sale: { orderId: { contains: input.q.trim() } } },
+								{
+									sale: {
+										customer: {
+											OR: [
+												{ name: { contains: input.q.trim() } },
+												{ businessName: { contains: input.q.trim() } },
+											],
+										},
+									},
+								},
+								{
+									components: {
+										some: {
+											inventoryVariant: {
+												sku: { contains: input.q.trim() },
+											},
+										},
+									},
+								},
+							],
+						},
+					]
+				: undefined,
 			...(input.inventoryVariantId
 				? {
 						components: {
@@ -1843,7 +1959,7 @@ export async function getSalesBackorderQueue(
 		orderBy: {
 			id: "asc",
 		},
-		take: candidateTake,
+		take,
 		select: {
 			id: true,
 			uid: true,
@@ -1858,6 +1974,7 @@ export async function getSalesBackorderQueue(
 					status: true,
 					inventoryStatus: true,
 					prodStatus: true,
+					deliveryOption: true,
 					customer: {
 						select: {
 							name: true,
@@ -1983,31 +2100,201 @@ export async function getSalesBackorderQueue(
 		},
 	});
 
-	return buildSalesBackorderQueue(lineItems, {
+	return lineItems;
+}
+
+export async function getSalesBackorderQueue(
+	db: Db,
+	input: GetSalesBackorderQueueInput = {},
+): Promise<SalesBackorderQueue> {
+	const limit = Math.min(Math.max(input.limit || 50, 1), 200);
+	const batchSize = 200;
+	let cursorId = input.cursor ?? input.cursorId ?? null;
+	const matchedLines: SalesBackorderQueueLineLike[] = [];
+
+	while (matchedLines.length < limit) {
+		const lineItems = await getSalesBackorderQueueBatch(
+			db,
+			input,
+			cursorId,
+			batchSize,
+		);
+		if (lineItems.length === 0) break;
+
+		for (const lineItem of lineItems) {
+			cursorId = lineItem.id;
+			const match = buildSalesBackorderQueue([lineItem], {
+				statuses: input.statuses,
+				holdUntilComplete: input.holdUntilComplete,
+				limit: 1,
+			});
+			if (match.items.length > 0) matchedLines.push(lineItem);
+			if (matchedLines.length === limit) {
+				const page = buildSalesBackorderQueue(matchedLines, {
+					statuses: input.statuses,
+					holdUntilComplete: input.holdUntilComplete,
+					limit,
+				});
+				return {
+					...page,
+					nextCursorId: cursorId,
+				};
+			}
+		}
+
+		if (lineItems.length < batchSize) break;
+	}
+
+	return buildSalesBackorderQueue(matchedLines, {
 		statuses: input.statuses,
+		holdUntilComplete: input.holdUntilComplete,
 		limit,
 	});
 }
 
-export async function getSalesPartialShipmentQueue(
+export async function getSalesBackorderQueueSummary(
 	db: Db,
-	input: GetSalesPartialShipmentQueueInput = {},
-): Promise<SalesPartialShipmentQueue> {
-	const limit = Math.min(Math.max(input.limit || 50, 1), 200);
-	const candidateTake = Math.min(limit * 3, 300);
+	input: Omit<
+		GetSalesBackorderQueueInput,
+		"cursor" | "cursorId" | "limit"
+	> = {},
+): Promise<SalesBackorderQueueSummary> {
+	const summary: SalesBackorderQueueSummary = {
+		totalCount: 0,
+		statusCounts: {
+			awaiting_inbound: 0,
+			backordered: 0,
+			ready_to_ship_remaining: 0,
+		},
+		orderedQty: 0,
+		shippedQty: 0,
+		remainingQty: 0,
+		backorderedQty: 0,
+		inboundQty: 0,
+		receivedQty: 0,
+	};
+	const batchSize = 200;
+	let cursorId: number | null = null;
+
+	while (true) {
+		const lineItems = await getSalesBackorderQueueBatch(
+			db,
+			input,
+			cursorId,
+			batchSize,
+		);
+		if (lineItems.length === 0) break;
+		const batch = buildSalesBackorderQueue(lineItems, {
+			statuses: input.statuses,
+			holdUntilComplete: input.holdUntilComplete,
+			limit: batchSize,
+		}).summary;
+		summary.totalCount += batch.totalCount;
+		summary.orderedQty += batch.orderedQty;
+		summary.shippedQty += batch.shippedQty;
+		summary.remainingQty += batch.remainingQty;
+		summary.backorderedQty += batch.backorderedQty;
+		summary.inboundQty += batch.inboundQty;
+		summary.receivedQty += batch.receivedQty;
+		for (const status of DEFAULT_BACKORDER_QUEUE_STATUSES) {
+			summary.statusCounts[status] += batch.statusCounts[status];
+		}
+		cursorId = lineItems.at(-1)?.id ?? null;
+		if (lineItems.length < batchSize || cursorId === null) break;
+	}
+
+	return summary;
+}
+
+export async function getSalesBackorderQueueSalesOrderIds(
+	db: Db,
+	input: Omit<
+		GetSalesBackorderQueueInput,
+		"cursor" | "cursorId" | "limit"
+	> = {},
+) {
+	const salesOrderIds = new Set<number>();
+	const batchSize = 200;
+	let cursorId: number | null = null;
+
+	while (salesOrderIds.size < 10_000) {
+		const lineItems = await getSalesBackorderQueueBatch(
+			db,
+			input,
+			cursorId,
+			batchSize,
+		);
+		if (lineItems.length === 0) break;
+		const batch = buildSalesBackorderQueue(lineItems, {
+			statuses: input.statuses,
+			holdUntilComplete: input.holdUntilComplete,
+			limit: batchSize,
+		});
+		for (const item of batch.items) {
+			if (item.salesOrderId) salesOrderIds.add(item.salesOrderId);
+		}
+		cursorId = lineItems.at(-1)?.id ?? null;
+		if (lineItems.length < batchSize || cursorId === null) break;
+	}
+
+	return {
+		salesOrderIds: Array.from(salesOrderIds),
+		truncated: salesOrderIds.size >= 10_000,
+	};
+}
+
+async function getSalesPartialShipmentQueueBatch(
+	db: Db,
+	input: GetSalesPartialShipmentQueueInput,
+	cursorId: number | null,
+	take: number,
+) {
 	const lineItems = await db.lineItem.findMany({
 		where: {
 			deletedAt: null,
 			lineItemType: "SALE",
-			id: input.cursorId
+			id: cursorId
 				? {
-						gt: input.cursorId,
+						gt: cursorId,
 					}
 				: undefined,
 			saleId: input.salesOrderId || undefined,
 			sale: {
 				deletedAt: null,
+				deliveryOption: input.deliveryModes?.length
+					? { in: input.deliveryModes }
+					: undefined,
 			},
+			AND: input.q?.trim()
+				? [
+						{
+							OR: [
+								{ uid: { contains: input.q.trim() } },
+								{ title: { contains: input.q.trim() } },
+								{ sale: { orderId: { contains: input.q.trim() } } },
+								{
+									sale: {
+										customer: {
+											OR: [
+												{ name: { contains: input.q.trim() } },
+												{ businessName: { contains: input.q.trim() } },
+											],
+										},
+									},
+								},
+								{
+									components: {
+										some: {
+											inventoryVariant: {
+												sku: { contains: input.q.trim() },
+											},
+										},
+									},
+								},
+							],
+						},
+					]
+				: undefined,
 			OR: [
 				{
 					components: {
@@ -2055,7 +2342,7 @@ export async function getSalesPartialShipmentQueue(
 		orderBy: {
 			id: "asc",
 		},
-		take: candidateTake,
+		take,
 		select: {
 			id: true,
 			uid: true,
@@ -2070,6 +2357,7 @@ export async function getSalesPartialShipmentQueue(
 					status: true,
 					inventoryStatus: true,
 					prodStatus: true,
+					deliveryOption: true,
 					customer: {
 						select: {
 							name: true,
@@ -2195,10 +2483,125 @@ export async function getSalesPartialShipmentQueue(
 		},
 	});
 
-	return buildSalesPartialShipmentQueue(lineItems, {
+	return lineItems;
+}
+
+export async function getSalesPartialShipmentQueue(
+	db: Db,
+	input: GetSalesPartialShipmentQueueInput = {},
+): Promise<SalesPartialShipmentQueue> {
+	const limit = Math.min(Math.max(input.limit || 50, 1), 200);
+	const batchSize = 200;
+	let cursorId = input.cursor ?? input.cursorId ?? null;
+	const matchedLines: SalesBackorderQueueLineLike[] = [];
+
+	while (matchedLines.length < limit) {
+		const lineItems = await getSalesPartialShipmentQueueBatch(
+			db,
+			input,
+			cursorId,
+			batchSize,
+		);
+		if (lineItems.length === 0) break;
+
+		for (const lineItem of lineItems) {
+			cursorId = lineItem.id;
+			const match = buildSalesPartialShipmentQueue([lineItem], {
+				statuses: input.statuses,
+				holdUntilComplete: input.holdUntilComplete,
+				limit: 1,
+			});
+			if (match.items.length > 0) matchedLines.push(lineItem);
+			if (matchedLines.length === limit) {
+				const page = buildSalesPartialShipmentQueue(matchedLines, {
+					statuses: input.statuses,
+					holdUntilComplete: input.holdUntilComplete,
+					limit,
+				});
+				return {
+					...page,
+					nextCursorId: cursorId,
+				};
+			}
+		}
+
+		if (lineItems.length < batchSize) break;
+	}
+
+	return buildSalesPartialShipmentQueue(matchedLines, {
 		statuses: input.statuses,
+		holdUntilComplete: input.holdUntilComplete,
 		limit,
 	});
+}
+
+export async function getSalesPartialShipmentQueueSummary(
+	db: Db,
+	input: Omit<
+		GetSalesPartialShipmentQueueInput,
+		"cursor" | "cursorId" | "limit"
+	> = {},
+): Promise<SalesPartialShipmentQueueSummary> {
+	const statuses: SalesPartialShipmentQueueStatus[] = [
+		"available_now",
+		"held_until_complete",
+		"awaiting_inbound",
+		"backordered",
+		"ready_to_ship_remaining",
+	];
+	const summary: SalesPartialShipmentQueueSummary = {
+		totalCount: 0,
+		statusCounts: {
+			available_now: 0,
+			held_until_complete: 0,
+			awaiting_inbound: 0,
+			backordered: 0,
+			ready_to_ship_remaining: 0,
+		},
+		orderedQty: 0,
+		shippedQty: 0,
+		remainingQty: 0,
+		backorderedQty: 0,
+		inboundQty: 0,
+		receivedQty: 0,
+		availableToShipQty: 0,
+		heldLineCount: 0,
+		shippableLineCount: 0,
+	};
+	const batchSize = 200;
+	let cursorId: number | null = null;
+
+	while (true) {
+		const lineItems = await getSalesPartialShipmentQueueBatch(
+			db,
+			input,
+			cursorId,
+			batchSize,
+		);
+		if (lineItems.length === 0) break;
+		const batch = buildSalesPartialShipmentQueue(lineItems, {
+			statuses: input.statuses,
+			holdUntilComplete: input.holdUntilComplete,
+			limit: batchSize,
+		}).summary;
+		summary.totalCount += batch.totalCount;
+		summary.orderedQty += batch.orderedQty;
+		summary.shippedQty += batch.shippedQty;
+		summary.remainingQty += batch.remainingQty;
+		summary.backorderedQty += batch.backorderedQty;
+		summary.inboundQty += batch.inboundQty;
+		summary.receivedQty += batch.receivedQty;
+		summary.availableToShipQty += batch.availableToShipQty;
+		summary.heldLineCount += batch.heldLineCount;
+		summary.shippableLineCount += batch.shippableLineCount;
+		for (const status of statuses) {
+			summary.statusCounts[status] += batch.statusCounts[status];
+		}
+		cursorId = lineItems.at(-1)?.id ?? null;
+		if (lineItems.length < batchSize || cursorId === null) break;
+	}
+
+	return summary;
 }
 
 export async function getSalesProductionPlan(
@@ -2745,6 +3148,9 @@ async function recomputeLineItemComponentFulfillment(
 	const component = await db.lineItemComponents.findFirst({
 		where: {
 			id: lineItemComponentId,
+			status: {
+				not: "cancelled",
+			},
 		},
 		select: {
 			id: true,
@@ -2809,6 +3215,9 @@ async function recomputeLineItemComponentFulfillment(
 	const updatedComponent = await db.lineItemComponents.updateMany({
 		where: {
 			id: component.id,
+			status: {
+				not: "cancelled",
+			},
 		},
 		data: {
 			qtyAllocated,
@@ -2935,7 +3344,7 @@ export async function allocateReceivedInboundToBackorders(
 ): Promise<AllocateReceivedInboundToBackordersResult> {
 	const limit = Math.min(Math.max(input.limit || 50, 1), 200);
 
-	return db.$transaction(async (tx) => {
+	return runSerializableInventoryTransaction(db, async (tx) => {
 		const demands = await tx.inboundDemand.findMany({
 			where: {
 				deletedAt: null,
@@ -2951,13 +3360,19 @@ export async function allocateReceivedInboundToBackorders(
 							in: input.lineItemComponentIds,
 						}
 					: undefined,
-				lineItemComponent: input.salesOrderId
-					? {
-							parent: {
-								saleId: input.salesOrderId,
-							},
-						}
-					: undefined,
+				lineItemComponent: {
+					status: {
+						not: "cancelled",
+					},
+					parent: {
+						deletedAt: null,
+						lineItemType: "SALE",
+						saleId: input.salesOrderId || undefined,
+						sale: {
+							deletedAt: null,
+						},
+					},
+				},
 			},
 			orderBy: {
 				updatedAt: "asc",
@@ -2984,9 +3399,22 @@ export async function allocateReceivedInboundToBackorders(
 			const component = await tx.lineItemComponents.findFirst({
 				where: {
 					id: demand.lineItemComponentId,
+					status: {
+						not: "cancelled",
+					},
 				},
 				select: {
 					qty: true,
+					parent: {
+						select: {
+							sale: {
+								select: {
+									status: true,
+									prodStatus: true,
+								},
+							},
+						},
+					},
 					stockAllocations: {
 						where: {
 							deletedAt: null,
@@ -3001,6 +3429,15 @@ export async function allocateReceivedInboundToBackorders(
 				},
 			});
 			if (!component) {
+				skippedDemandCount += 1;
+				continue;
+			}
+			if (
+				isInventoryFulfillmentTerminalSale({
+					orderStatus: component.parent?.sale?.status,
+					productionStatus: component.parent?.sale?.prodStatus,
+				})
+			) {
 				skippedDemandCount += 1;
 				continue;
 			}
@@ -3074,45 +3511,57 @@ export async function setSalesInventoryLineFulfillmentHold(
 	db: Db,
 	input: SetSalesInventoryLineFulfillmentHoldInput,
 ) {
-	const lineItem = await db.lineItem.findFirst({
-		where: {
-			id: input.lineItemId,
-			deletedAt: null,
-			lineItemType: "SALE",
-		},
-		select: {
-			id: true,
-			saleId: true,
-			salesItemId: true,
-			meta: true,
-		},
+	return runSerializableInventoryTransaction(db, async (tx) => {
+		const lineItem = await tx.lineItem.findFirst({
+			where: {
+				id: input.lineItemId,
+				deletedAt: null,
+				lineItemType: "SALE",
+			},
+			select: {
+				id: true,
+				saleId: true,
+				salesItemId: true,
+				meta: true,
+				sale: {
+					select: {
+						status: true,
+						prodStatus: true,
+					},
+				},
+			},
+		});
+
+		if (!lineItem) {
+			throw new Error("INVENTORY_LINE_ITEM_NOT_FOUND");
+		}
+		assertInventoryFulfillmentMutableSale({
+			orderStatus: lineItem.sale?.status,
+			productionStatus: lineItem.sale?.prodStatus,
+		});
+
+		await tx.lineItem.update({
+			where: {
+				id: lineItem.id,
+			},
+			data: {
+				meta: mergeMetaWithFulfillmentHold(lineItem.meta, {
+					holdUntilComplete: input.holdUntilComplete,
+					note: input.note,
+					authorName: input.authorName,
+					updatedAt: new Date(),
+				}),
+			},
+		});
+
+		return {
+			ok: true,
+			lineItemId: lineItem.id,
+			salesOrderId: lineItem.saleId,
+			salesItemId: lineItem.salesItemId,
+			holdUntilComplete: input.holdUntilComplete,
+		};
 	});
-
-	if (!lineItem) {
-		throw new Error("INVENTORY_LINE_ITEM_NOT_FOUND");
-	}
-
-	await db.lineItem.update({
-		where: {
-			id: lineItem.id,
-		},
-		data: {
-			meta: mergeMetaWithFulfillmentHold(lineItem.meta, {
-				holdUntilComplete: input.holdUntilComplete,
-				note: input.note,
-				authorName: input.authorName,
-				updatedAt: new Date(),
-			}),
-		},
-	});
-
-	return {
-		ok: true,
-		lineItemId: lineItem.id,
-		salesOrderId: lineItem.saleId,
-		salesItemId: lineItem.salesItemId,
-		holdUntilComplete: input.holdUntilComplete,
-	};
 }
 
 export async function shipAvailableSalesInventory(
@@ -3127,7 +3576,7 @@ export async function shipAvailableSalesInventory(
 			}
 		: {};
 
-	return db.$transaction(async (tx) => {
+	return runSerializableInventoryTransaction(db, async (tx) => {
 		const sale = await tx.salesOrders.findFirst({
 			where: {
 				id: input.salesOrderId,
@@ -3136,6 +3585,8 @@ export async function shipAvailableSalesInventory(
 			select: {
 				id: true,
 				orderId: true,
+				status: true,
+				prodStatus: true,
 				deliveryOption: true,
 				lineItems: {
 					where: {
@@ -3212,6 +3663,18 @@ export async function shipAvailableSalesInventory(
 		if (!sale) {
 			throw new Error("SALES_ORDER_NOT_FOUND");
 		}
+		assertInventoryFulfillmentMutableSale({
+			orderStatus: sale.status,
+			productionStatus: sale.prodStatus,
+		});
+		assertInventoryFulfillmentLineSelection({
+			requestedLineItemIds: input.lineItemIds,
+			selectedLineItemIds: sale.lineItems.map((line) => line.id),
+		});
+		const deliveryMode = resolveInventoryFulfillmentDeliveryMode({
+			requested: input.deliveryMode,
+			orderDefault: sale.deliveryOption,
+		});
 
 		const plannedLines = sale.lineItems
 			.filter((line) => line.salesItemId && line.salesItem)
@@ -3328,8 +3791,7 @@ export async function shipAvailableSalesInventory(
 			const delivery = await tx.orderDelivery.create({
 				data: {
 					salesOrderId: sale.id,
-					deliveryMode:
-						input.deliveryMode || sale.deliveryOption || "inventory_partial",
+					deliveryMode,
 					deliveredTo: input.deliveredTo || null,
 					createdById: input.createdByUserId || null,
 					status: "completed",
@@ -3374,18 +3836,6 @@ export async function shipAvailableSalesInventory(
 			({ decision }) => decision.backorderedQty,
 		);
 
-		if (shippedQty > 0 || backorderedQty > 0) {
-			await tx.salesOrders.update({
-				where: {
-					id: sale.id,
-				},
-				data: {
-					inventoryStatus:
-						backorderedQty > 0 ? "backordered" : "partially_fulfilled",
-				},
-			});
-		}
-
 		return {
 			ok: shippedQty > 0,
 			salesOrderId: sale.id,
@@ -3418,7 +3868,7 @@ export async function transitionInventoryDispatchAllocations(
 		);
 	}
 
-	return db.$transaction(async (tx) => {
+	return runSerializableInventoryTransaction(db, async (tx) => {
 		const allocations = await tx.stockAllocation.findMany({
 			where: {
 				deletedAt: null,
@@ -3448,6 +3898,20 @@ export async function transitionInventoryDispatchAllocations(
 				status: true,
 				lineItemComponentId: true,
 				notes: true,
+				lineItemComponent: {
+					select: {
+						parent: {
+							select: {
+								sale: {
+									select: {
+										status: true,
+										prodStatus: true,
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		});
 
@@ -3456,6 +3920,11 @@ export async function transitionInventoryDispatchAllocations(
 		const touchedComponentIds = new Set<number>();
 
 		for (const allocation of allocations) {
+			assertInventoryFulfillmentMutableSale({
+				orderStatus: allocation.lineItemComponent?.parent?.sale?.status,
+				productionStatus:
+					allocation.lineItemComponent?.parent?.sale?.prodStatus,
+			});
 			const fromStatus = allocation.status as InventoryDispatchAllocationStatus;
 			const plan = planInventoryDispatchAllocationTransition({
 				action,
@@ -3558,7 +4027,7 @@ export async function fulfillInventoryDispatch(
 			}
 		: {};
 
-	return db.$transaction(async (tx) => {
+	return runSerializableInventoryTransaction(db, async (tx) => {
 		const sale = await tx.salesOrders.findFirst({
 			where: {
 				id: input.salesOrderId,
@@ -3567,6 +4036,8 @@ export async function fulfillInventoryDispatch(
 			select: {
 				id: true,
 				orderId: true,
+				status: true,
+				prodStatus: true,
 				deliveryOption: true,
 				lineItems: {
 					where: {
@@ -3630,6 +4101,18 @@ export async function fulfillInventoryDispatch(
 		if (!sale) {
 			throw new Error("Sales order not found.");
 		}
+		assertInventoryFulfillmentMutableSale({
+			orderStatus: sale.status,
+			productionStatus: sale.prodStatus,
+		});
+		assertInventoryFulfillmentLineSelection({
+			requestedLineItemIds: input.lineItemIds,
+			selectedLineItemIds: sale.lineItems.map((line) => line.id),
+		});
+		const deliveryMode = resolveInventoryFulfillmentDeliveryMode({
+			requested: input.deliveryMode,
+			orderDefault: sale.deliveryOption,
+		});
 
 		const plannedLines = sale.lineItems
 			.filter((line) => line.salesItemId && line.salesItem)
@@ -3697,8 +4180,7 @@ export async function fulfillInventoryDispatch(
 			const delivery = await tx.orderDelivery.create({
 				data: {
 					salesOrderId: sale.id,
-					deliveryMode:
-						input.deliveryMode || sale.deliveryOption || "inventory_dispatch",
+					deliveryMode,
 					deliveredTo: input.deliveredTo || null,
 					createdById: input.createdByUserId || null,
 					status: "completed",

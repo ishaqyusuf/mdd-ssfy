@@ -40,7 +40,7 @@ export function StepComponentPicker<TComponent>(
 	}
 
 	return (
-		<>
+		<div className="relative" data-workflow-component-boundary="true">
 			{props.noticeSlot}
 			<WorkflowComponentGrid
 				components={props.filteredComponents}
@@ -49,6 +49,6 @@ export function StepComponentPicker<TComponent>(
 				renderComponent={props.renderComponent}
 			/>
 			{props.toolbarSlot}
-		</>
+		</div>
 	);
 }

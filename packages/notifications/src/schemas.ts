@@ -878,7 +878,7 @@ export const salesDispatchAssignedSchema = z.object({
 	// salesId: z.number(),
 	orderNo: z.string().optional(),
 	dispatchId: z.number(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+	deliveryMode: z.enum(["pickup", "delivery", "ship"]).optional(),
 	dueDate: z.date().optional(),
 	driverId: z.number().optional(),
 	// status: z.enum(["queue", "assigned", "en_route", "delivered"]).optional(),
@@ -889,7 +889,7 @@ export type SalesDispatchAssignedInput = z.infer<
 export const salesDispatchAssignedTags = actityTagsSchema.extend({
 	dispatchId: z.number(),
 	orderNo: z.string().optional(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+	deliveryMode: z.enum(["pickup", "delivery", "ship"]).optional(),
 	dueDate: z.date().optional(),
 	driverId: z.number().optional(),
 });

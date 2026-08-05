@@ -4,7 +4,9 @@ import {
   copySalesInTransaction,
 } from "./copy-sales";
 
-function createTransactionLikeDb() {
+function createTransactionLikeDb(
+  sourceOverrides: Record<string, unknown> = {},
+) {
   const calls = {
     createdSales: [] as Record<string, unknown>[],
     createdItems: [] as Record<string, unknown>[],
@@ -70,6 +72,7 @@ function createTransactionLikeDb() {
         tax: 25,
       },
     ],
+    ...sourceOverrides,
   };
 
   const db = {
@@ -145,6 +148,31 @@ describe("copySalesInTransaction", () => {
       description: "Door slab",
       salesOrderId: 900,
       total: 400,
+    });
+  });
+
+  it("uses the author when a legacy source sale has no rep for a history snapshot", async () => {
+    const { db, calls } = createTransactionLikeDb({
+      salesRepId: null,
+      salesRep: null,
+      type: "order",
+    });
+
+    const result = await copySalesInTransaction({
+      db: db as unknown as CopySalesInTransactionProps["db"],
+      salesUid: "00010PC",
+      as: "order-hx",
+      type: "order",
+      author: {
+        id: 7,
+        name: "Pablo Cruz",
+      },
+    });
+
+    expect(result.slug).toBe("00010PC-hx01");
+    expect(calls.createdSales[0]).toMatchObject({
+      orderId: "00010PC-hx01",
+      salesRep: { connect: { id: 7 } },
     });
   });
 

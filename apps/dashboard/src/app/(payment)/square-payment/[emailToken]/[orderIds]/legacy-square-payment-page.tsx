@@ -44,6 +44,12 @@ export default function LegacySquarePaymentPage(props) {
 				orderIds,
 			});
 
+			if (resp.error) {
+				toast.error(resp.error.message, {
+					description: `Reference: ${resp.error.referenceId}`,
+				});
+				return;
+			}
 			if (resp.paymentLink) {
 				openLink(resp.paymentLink);
 			}

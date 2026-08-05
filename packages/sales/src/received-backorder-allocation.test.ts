@@ -10,6 +10,36 @@ function makeDb(tx: Record<string, unknown>) {
 }
 
 describe("allocateReceivedInboundToBackorders", () => {
+	test("retries write conflicts inside a serializable transaction", async () => {
+		let attempts = 0;
+		const transactionOptions: unknown[] = [];
+		const tx = {
+			inboundDemand: {
+				findMany: async () => [],
+			},
+		};
+		const db = {
+			$transaction: async <T>(
+				callback: (transaction: typeof tx) => Promise<T>,
+				options: unknown,
+			) => {
+				attempts += 1;
+				transactionOptions.push(options);
+				if (attempts === 1) throw { code: "P2034" };
+				return callback(tx);
+			},
+		};
+
+		const result = await allocateReceivedInboundToBackorders(db as any);
+
+		expect(attempts).toBe(2);
+		expect(transactionOptions).toEqual([
+			{ isolationLevel: "Serializable", maxWait: 5_000, timeout: 30_000 },
+			{ isolationLevel: "Serializable", maxWait: 5_000, timeout: 30_000 },
+		]);
+		expect(result).toMatchObject({ ok: false, processedDemandCount: 0 });
+	});
+
 	test("skips received demand that is already covered by active allocations", async () => {
 		const calls: string[] = [];
 		const tx = {
@@ -176,7 +206,9 @@ describe("allocateReceivedInboundToBackorders", () => {
 			payload: {
 				where: {
 					id: 101,
-					deletedAt: null,
+					status: {
+						not: "cancelled",
+					},
 				},
 				data: {
 					qtyAllocated: 5,

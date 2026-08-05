@@ -5,6 +5,7 @@ import { buildSalesOverviewUrl } from "@/hooks/sales-overview-open-params";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Checkbox } from "@gnd/ui/checkbox";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -15,10 +16,46 @@ export type InventoryBackorderRow =
 
 export type InventoryBackorderTableActions = {
 	onShipAvailable: (item: InventoryBackorderRow) => void;
-	isShipping?: boolean;
+	canManageFulfillment?: boolean;
 };
 
 type Column = ColumnDef<InventoryBackorderRow>;
+
+const selectColumn: Column = {
+	id: "select",
+	header: ({ table }) => (
+		<Checkbox
+			checked={
+				table.getIsAllPageRowsSelected()
+					? true
+					: table.getIsSomePageRowsSelected()
+						? "indeterminate"
+						: false
+			}
+			onCheckedChange={(value) =>
+				table.toggleAllPageRowsSelected(Boolean(value))
+			}
+			aria-label="Select all loaded backorders"
+		/>
+	),
+	cell: ({ row }) => (
+		<Checkbox
+			checked={row.getIsSelected()}
+			onCheckedChange={(value) => row.toggleSelected(Boolean(value))}
+			onClick={(event) => event.stopPropagation()}
+			aria-label="Select backorder"
+		/>
+	),
+	...sizes.custom(40, 40, 40),
+	enableSorting: false,
+	enableHiding: false,
+	meta: {
+		preventDefault: true,
+		headerLabel: "Select",
+		className: sizeClass(sizes.custom(40, 40, 40)),
+		contentClassName: "flex items-center justify-center",
+	},
+};
 
 const statusToneClassName: Record<InventoryBackorderRow["status"], string> = {
 	awaiting_inbound: "border-amber-200 bg-amber-50 text-amber-700",
@@ -162,6 +199,34 @@ const statusColumn: Column = {
 		>
 			<span className="truncate">{formatLabel(row.original.status)}</span>
 		</Badge>
+	),
+};
+
+const deliveryColumn: Column = {
+	id: "delivery",
+	header: "Delivery",
+	accessorKey: "deliveryMode",
+	...sizes.custom(112, 170, 128),
+	enableResizing: true,
+	meta: {
+		skeleton: { type: "badge", width: "w-24" },
+		headerLabel: "Delivery",
+		className: sizeClass(sizes.custom(112, 170, 128)),
+	},
+	cell: ({ row }) => (
+		<div className="flex min-w-0 flex-col items-start gap-1">
+			<Badge
+				variant="secondary"
+				className="h-5 max-w-full text-[10px] capitalize"
+			>
+				<span className="truncate">
+					{formatLabel(row.original.deliveryMode)}
+				</span>
+			</Badge>
+			<span className="max-w-full truncate text-[10px] capitalize text-muted-foreground">
+				{formatLabel(row.original.orderStatus)}
+			</span>
+		</div>
 	),
 };
 
@@ -368,7 +433,7 @@ function BackorderActions({
 					event.stopPropagation();
 					actions.onShipAvailable(item);
 				}}
-				disabled={actions.isShipping || !canShip}
+				disabled={!actions.canManageFulfillment || !canShip}
 			>
 				<Icons.Truck className="mr-1.5 size-3.5" />
 				Ship
@@ -381,9 +446,11 @@ export function getInventoryBackorderColumns(
 	actions: InventoryBackorderTableActions,
 ): Column[] {
 	return [
+		selectColumn,
 		orderColumn,
 		lineColumn,
 		statusColumn,
+		deliveryColumn,
 		fulfillmentColumn,
 		availableColumn,
 		backorderColumn,
@@ -395,4 +462,5 @@ export function getInventoryBackorderColumns(
 
 export const columns = getInventoryBackorderColumns({
 	onShipAvailable: () => undefined,
+	canManageFulfillment: false,
 });

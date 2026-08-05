@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { Prisma } from "@gnd/db";
+import { runDbTransaction } from "@gnd/db/transactions";
 import type { RenturnTypeAsync } from "@gnd/utils";
 import type { NoteTagTypes } from "@gnd/utils/constants";
 import { type SaveNoteSchema, noteTag, saveNote } from "@gnd/utils/note";
@@ -78,7 +79,12 @@ export async function submitAllTask(
 				}),
 			)
 			.digest("hex")}`;
-	const resp = await db.$transaction(
+	const resp = await runDbTransaction(
+		{
+			client: db,
+			operation: "sales-control.submit-all",
+			profile: "workflow",
+		},
 		async (tx) => {
 			const review = await (
 				dependencies.prepareMaterialReview ??
@@ -158,9 +164,6 @@ export async function submitAllTask(
 				idempotentReplay: false,
 			};
 		},
-		{
-			maxWait: 30 * 1000,
-		},
 	);
 	return resp;
 }
@@ -221,7 +224,12 @@ export async function createAssignmentsTask(
 	if (!createAssignments.length) {
 		throw new Error("Unable to complete, nothing to submit!");
 	}
-	await db.$transaction(
+	await runDbTransaction(
+		{
+			client: db,
+			operation: "sales-control.create-assignments",
+			profile: "workflow",
+		},
 		async (tx) => {
 			await createSalesAssignmentAction(tx as any, {
 				items: createAssignments,
@@ -255,9 +263,6 @@ export async function createAssignmentsTask(
 				});
 			}
 		},
-		{
-			maxWait: 30 * 1000,
-		},
 	);
 }
 export async function submitNonProductionsTask(
@@ -271,7 +276,12 @@ export async function submitNonProductionsTask(
 		},
 		{ persistDerivedState: true },
 	);
-	const response = await db.$transaction(
+	const response = await runDbTransaction(
+		{
+			client: db,
+			operation: "sales-control.submit-non-production",
+			profile: "workflow",
+		},
 		async (tx) => {
 			const resp = await submitNonProductionsAction(tx as any, {
 				data: info,
@@ -279,9 +289,6 @@ export async function submitNonProductionsTask(
 			});
 			await resetSalesAction(tx as any, data.meta.salesId);
 			return resp;
-		},
-		{
-			maxWait: 30 * 1000,
 		},
 	);
 	return {
@@ -387,7 +394,12 @@ export async function submitDispatchTask(
 	const attachmentTags = (task?.attachments ?? [])
 		.filter((a) => a.pathname)
 		.map((a) => noteTag("attachment", a.pathname));
-	const response = await db.$transaction(
+	const response = await runDbTransaction(
+		{
+			client: db,
+			operation: "sales-control.submit-dispatch",
+			profile: "workflow",
+		},
 		async (tx) => {
 			const currentDispatch = await tx.orderDelivery.findFirst({
 				where: {
@@ -521,9 +533,6 @@ export async function submitDispatchTask(
 				idempotent: false,
 			};
 		},
-		{
-			maxWait: 30 * 1000,
-		},
 	);
 	return response;
 }
@@ -644,7 +653,12 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 				}));
 
 		if (createAssignments.length) {
-			await db.$transaction(
+			await runDbTransaction(
+				{
+					client: db,
+					operation: "sales-control.pack-auto-assign",
+					profile: "workflow",
+				},
 				async (tx) => {
 					await createSalesAssignmentAction(tx as any, {
 						items: createAssignments,
@@ -652,9 +666,6 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 						authorId: data.meta.authorId,
 						updateStats: true,
 					});
-				},
-				{
-					maxWait: 30 * 1000,
 				},
 			);
 		}
@@ -708,7 +719,12 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 	if (data.packItems?.packMode !== "selection") {
 		data.packItems!.packingLines = buildAutoPackingLines(info);
 	}
-	const response = await db.$transaction(
+	const response = await runDbTransaction(
+		{
+			client: db,
+			operation: "sales-control.pack-dispatch",
+			profile: "workflow",
+		},
 		async (tx) => {
 			if (data.packItems?.replaceExisting) {
 				await tx.orderItemDelivery.updateMany({
@@ -751,19 +767,18 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 			await resetSalesAction(tx as any, data.meta.salesId);
 			return resp;
 		},
-		{
-			maxWait: 30 * 1000,
-		},
 	);
 	return response;
 }
 export async function resetSalesTask(db: Db, salesId) {
-	const response = await db.$transaction(
+	const response = await runDbTransaction(
+		{
+			client: db,
+			operation: "sales-control.reset-sales",
+			profile: "workflow",
+		},
 		async (tx) => {
 			await resetSalesAction(tx as any, salesId);
-		},
-		{
-			maxWait: 30 * 1000,
 		},
 	);
 }

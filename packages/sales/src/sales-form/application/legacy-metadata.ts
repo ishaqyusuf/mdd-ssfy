@@ -110,8 +110,14 @@ export function calculateLegacyPaymentDueDate(
 	paymentTerm?: string | null,
 	createdAt?: Date | string | null,
 ) {
-	if (!paymentTerm || paymentTerm === "None") return null;
-	const days = Number(paymentTerm.toLowerCase().replace("net", "").trim());
+	const normalizedTerm = String(paymentTerm || "")
+		.trim()
+		.toLowerCase();
+	if (!normalizedTerm || normalizedTerm === "none") return null;
+	const days =
+		normalizedTerm.replace(/[^a-z]/g, "") === "dueonreceipt"
+			? 0
+			: Number(normalizedTerm.replace("net", "").trim());
 	if (!Number.isFinite(days)) return null;
 	const date = createdAt ? new Date(createdAt) : new Date();
 	if (Number.isNaN(date.getTime())) return null;

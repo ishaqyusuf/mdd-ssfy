@@ -1,9 +1,36 @@
 import { describe, expect, it } from "bun:test";
 import {
+	shouldApplyResolvedCustomerDefaults,
 	shouldPreserveEditCustomerPricingMeta,
 	shouldPreserveInitialEditCustomerResolution,
 	shouldPreserveInitialEditTaxRate,
 } from "./customer-resolution";
+
+describe("shouldApplyResolvedCustomerDefaults", () => {
+	it("applies defaults once per selected customer", () => {
+		expect(
+			shouldApplyResolvedCustomerDefaults({
+				lastAppliedCustomerId: null,
+				resolvedCustomerId: 42,
+			}),
+		).toBe(true);
+		expect(
+			shouldApplyResolvedCustomerDefaults({
+				lastAppliedCustomerId: 42,
+				resolvedCustomerId: 42,
+			}),
+		).toBe(false);
+	});
+
+	it("allows defaults again after the selected customer changes", () => {
+		expect(
+			shouldApplyResolvedCustomerDefaults({
+				lastAppliedCustomerId: 42,
+				resolvedCustomerId: 84,
+			}),
+		).toBe(true);
+	});
+});
 
 describe("shouldPreserveInitialEditCustomerResolution", () => {
 	it("preserves the saved profile and addresses on the first edit resolution", () => {

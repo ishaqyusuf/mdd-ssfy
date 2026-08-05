@@ -33,18 +33,23 @@ describe("inventory partial shipments tables-2 migration", () => {
 	});
 
 	it("keeps filters and actions while replacing partial-shipment cards", () => {
-		const source = readSource(
-			"components/inventory/inventory-partial-shipment-page.tsx",
+		const routeSource = readSource(
+			"app/(sidebar)/inventory/partial-shipments/page.tsx",
+		);
+		const tableSource = readSource(
+			"components/tables-2/inventory-partial-shipments/data-table.tsx",
 		);
 
 		expect(
-			source.includes(
+			routeSource.includes(
 				"components/tables-2/inventory-partial-shipments/data-table",
 			),
 		).toBe(true);
-		expect(source.includes("items.map((item)")).toBe(false);
-		expect(source.includes("setSalesInventoryLineFulfillmentHold")).toBe(true);
-		expect(source.includes("shipAvailableSalesInventory")).toBe(true);
+		expect(routeSource.includes("salesPartialShipmentQueueSummary")).toBe(true);
+		expect(tableSource.includes("setSalesInventoryLineFulfillmentHold")).toBe(
+			true,
+		);
+		expect(tableSource.includes("InventoryShipAvailableDialog")).toBe(true);
 	});
 
 	it("uses core table behaviors with compact custom columns", () => {
@@ -66,12 +71,17 @@ describe("inventory partial shipments tables-2 migration", () => {
 		expect(tableSource.includes("useTableDnd")).toBe(true);
 		expect(tableSource.includes("useStickyColumns")).toBe(true);
 		expect(tableSource.includes("useTableScroll")).toBe(true);
+		expect(tableSource.includes("useSuspenseInfiniteQuery")).toBe(true);
+		expect(tableSource.includes("useInfiniteScroll")).toBe(true);
+		expect(tableSource.includes("<BottomBar")).toBe(true);
 		expect(headerSource.includes("DraggableHeader")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(160, 280, 190)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(200, 360, 240)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(124, 190, 140)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(82, 120, 94)")).toBe(true);
 		expect(columnsSource.includes("blockers.slice(0, 1)")).toBe(true);
+		expect(columnsSource.includes('id: "delivery"')).toBe(true);
+		expect(columnsSource.includes('id: "select"')).toBe(true);
 		expect(columnsSource.includes('className="h-8 px-2 text-xs"')).toBe(true);
 	});
 

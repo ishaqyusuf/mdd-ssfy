@@ -1,4 +1,5 @@
 import { triggerMutationQueryEvents } from "@/lib/query-events/mutation-trigger";
+import { getErrorPresentation } from "@gnd/errors";
 import {
 	MutationCache,
 	QueryClient,
@@ -7,10 +8,22 @@ import {
 } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { consoleLog } from "@gnd/utils";
+import { QueryCache } from "@tanstack/react-query";
 import superjson from "superjson";
 
 export function makeQueryClient() {
 	return new QueryClient({
+		queryCache: new QueryCache({
+			onError: (error, query) => {
+				if (isServer || query.state.data !== undefined) return;
+				const presentation = getErrorPresentation(error);
+				toast({
+					description: `${presentation.description} ${presentation.reference}`,
+					title: presentation.title,
+					variant: "error",
+				});
+			},
+		}),
 		defaultOptions: {
 			queries: {
 				staleTime: 60 * 1000,
@@ -58,11 +71,13 @@ export function makeQueryClient() {
 				if (process.env.NODE_ENV === "development" && mutation?.meta?.debug) {
 					consoleLog("Mutation error", { data, variables, mutation });
 				}
+				if (mutation.options.onError) return;
 
-				const title = mutation?.meta?.toastTitle?.error;
-				if (!title) return;
+				const presentation = getErrorPresentation(data);
+				const title = mutation?.meta?.toastTitle?.error ?? presentation.title;
 
 				toast({
+					description: `${presentation.description} ${presentation.reference}`,
 					title,
 					variant: "error",
 				});

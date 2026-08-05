@@ -764,6 +764,7 @@ model LineItem {
     @@index([inventoryCategoryId])
     @@index([saleId])
     @@index([inventoryId])
+    @@index([saleId, deletedAt, lineItemType, id], name: "idx_line_item_fulfillment_queue")
 }
 
 model LinePricing {
@@ -819,6 +820,7 @@ model LineItemComponents {
     @@index([inventoryId])
     @@index([subComponentId])
     @@index([inventoryCategoryId])
+    @@index([status, lineItemId, inventoryVariantId], name: "idx_line_component_fulfillment")
 }
 
 model StockAllocation {
@@ -844,6 +846,7 @@ model StockAllocation {
     @@index([lineItemComponentId])
     @@index([inventoryStockId])
     @@index([inventoryVariantId])
+    @@index([lineItemComponentId, status, deletedAt], name: "idx_stock_allocation_fulfillment")
 }
 
 model InboundDemand {
@@ -871,6 +874,7 @@ model InboundDemand {
     @@index([lineItemComponentId])
     @@index([inventoryVariantId])
     @@index([inboundShipmentItemId])
+    @@index([lineItemComponentId, status, deletedAt], name: "idx_inbound_demand_fulfillment")
 }
 
 enum LineItemComponentStatus {

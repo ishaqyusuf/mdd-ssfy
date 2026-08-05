@@ -1,13 +1,16 @@
 import "./instrument";
 
+import { randomUUID } from "node:crypto";
 import { db } from "@gnd/db";
+import type { DevLogEntry } from "@gnd/dev-logger";
 import { appendDevLogEntryToFile } from "@gnd/dev-logger/file-sink";
+import { classifyError } from "@gnd/errors";
 import { trpcServer } from "@hono/trpc-server";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
-import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import { captureApiError, captureTrpcError } from "./observability/sentry";
+import { getRestErrorResponse } from "./rest/error-response";
 import type { Context } from "./rest/types";
 import { createTRPCContext } from "./trpc/init";
 import { appRouter } from "./trpc/routers/_app";
@@ -16,6 +19,12 @@ import { storefrontAppRouter } from "./trpc/routers/storefront-app";
 const app = new OpenAPIHono<Context>(); //.basePath("/api");
 
 app.use(secureHeaders());
+app.use("*", async (c, next) => {
+  const requestId = c.req.header("x-request-id") || randomUUID();
+  c.set("requestId", requestId);
+  c.header("x-request-id", requestId);
+  await next();
+});
 if (process.env.NODE_ENV === "development")
   app.use(
     "/api/trpc/*",
@@ -29,12 +38,13 @@ if (process.env.NODE_ENV === "development")
         "x-guest-id",
         "x-trpc-source",
         "x-app-authorization",
+        "x-request-id",
         "x-tenant-domain",
         "x-tenant-session-term-id",
         "x-user-timezone",
         "x-user-country",
       ],
-      exposeHeaders: ["Content-Length"],
+      exposeHeaders: ["Content-Length", "x-request-id"],
       maxAge: 86400,
     }),
   );
@@ -50,7 +60,7 @@ if (process.env.NODE_ENV === "development")
         "x-request-id",
         "x-trpc-source",
       ],
-      exposeHeaders: ["Content-Length"],
+      exposeHeaders: ["Content-Length", "x-request-id"],
       credentials: true,
       maxAge: 86400,
     }),
@@ -61,8 +71,13 @@ if (process.env.NODE_ENV === "development")
     cors({
       origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
       allowMethods: ["POST", "OPTIONS"],
-      allowHeaders: ["Authorization", "Content-Type", "x-app-authorization"],
-      exposeHeaders: ["Content-Length"],
+      allowHeaders: [
+        "Authorization",
+        "Content-Type",
+        "x-app-authorization",
+        "x-request-id",
+      ],
+      exposeHeaders: ["Content-Length", "x-request-id"],
       maxAge: 86400,
     }),
   );
@@ -79,7 +94,7 @@ app.post("/api/dev-logger", async (c) => {
     if (!body?.entry || typeof body.entry !== "object") {
       return c.json({ ok: false, error: "INVALID_ENTRY" }, 400);
     }
-    await appendDevLogEntryToFile(body.entry as any);
+    await appendDevLogEntryToFile(body.entry as DevLogEntry);
     return c.json({ ok: true, skipped: false });
   } catch {
     return c.json({ ok: false, error: "WRITE_FAILED" }, 500);
@@ -91,10 +106,11 @@ app.use(
     router: storefrontAppRouter,
     createContext: createTRPCContext,
     endpoint: "/api/storefront/trpc",
-    onError({ error, path, type }) {
+    onError({ ctx, error, path, type }) {
       captureTrpcError({
         error,
         path,
+        requestId: ctx?.requestId,
         type,
         router: "storefront",
       });
@@ -107,10 +123,11 @@ app.use(
     router: appRouter,
     createContext: createTRPCContext,
     endpoint: "/api/trpc",
-    onError({ error, path, type }) {
+    onError({ ctx, error, path, type }) {
       captureTrpcError({
         error,
         path,
+        requestId: ctx?.requestId,
         type,
         router: "app",
       });
@@ -136,6 +153,7 @@ app.get("/health", async (c) => {
         : new Error("Database health check failed"),
       {
         method: c.req.method,
+        requestId: c.get("requestId"),
       },
     );
 
@@ -155,15 +173,14 @@ app.get("/", (c) => {
 });
 
 app.onError((error, c) => {
-  if (error instanceof HTTPException) {
-    return error.getResponse();
-  }
-
-  captureApiError(error, {
+  const classified = classifyError(error);
+  captureApiError(classified, {
     method: c.req.method,
+    requestId: c.get("requestId"),
   });
 
-  return c.json({ error: "Internal Server Error" }, 500);
+  const response = getRestErrorResponse(classified);
+  return c.json(response.body, response.status);
 });
 
 export { app };

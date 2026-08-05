@@ -187,7 +187,7 @@ export function InventoryDispatchModePage({ initialSettings }: Props) {
 			onFulfillLine: (item: DispatchQueueItem) => {
 				fulfill.mutate({
 					...getLineInput(item),
-					deliveryMode: "inventory_dispatch",
+					deliveryMode: item.deliveryMode ?? undefined,
 					note: "Fulfilled from inventory dispatch mode.",
 				});
 			},
@@ -212,7 +212,7 @@ export function InventoryDispatchModePage({ initialSettings }: Props) {
 			onFulfillAllocation: (item: DispatchQueueItem, allocationId: number) => {
 				fulfill.mutate({
 					...getAllocationInput(item, allocationId),
-					deliveryMode: "inventory_dispatch",
+					deliveryMode: item.deliveryMode ?? undefined,
 					note: "Fulfilled from inventory dispatch mode.",
 				});
 			},

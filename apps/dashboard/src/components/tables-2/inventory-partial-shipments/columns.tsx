@@ -5,6 +5,7 @@ import { buildSalesOverviewUrl } from "@/hooks/sales-overview-open-params";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Checkbox } from "@gnd/ui/checkbox";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
 import { Switch } from "@gnd/ui/switch";
@@ -20,11 +21,47 @@ export type InventoryPartialShipmentTableActions = {
 		holdUntilComplete: boolean,
 	) => void;
 	onShipAvailable: (item: InventoryPartialShipmentRow) => void;
-	isHolding?: boolean;
-	isShipping?: boolean;
+	canManageFulfillment?: boolean;
+	holdingLineItemId?: number | null;
 };
 
 type Column = ColumnDef<InventoryPartialShipmentRow>;
+
+const selectColumn: Column = {
+	id: "select",
+	header: ({ table }) => (
+		<Checkbox
+			checked={
+				table.getIsAllPageRowsSelected()
+					? true
+					: table.getIsSomePageRowsSelected()
+						? "indeterminate"
+						: false
+			}
+			onCheckedChange={(value) =>
+				table.toggleAllPageRowsSelected(Boolean(value))
+			}
+			aria-label="Select all loaded partial shipments"
+		/>
+	),
+	cell: ({ row }) => (
+		<Checkbox
+			checked={row.getIsSelected()}
+			onCheckedChange={(value) => row.toggleSelected(Boolean(value))}
+			onClick={(event) => event.stopPropagation()}
+			aria-label="Select partial shipment"
+		/>
+	),
+	...sizes.custom(40, 40, 40),
+	enableSorting: false,
+	enableHiding: false,
+	meta: {
+		preventDefault: true,
+		headerLabel: "Select",
+		className: sizeClass(sizes.custom(40, 40, 40)),
+		contentClassName: "flex items-center justify-center",
+	},
+};
 
 const statusToneClassName: Record<
 	InventoryPartialShipmentRow["partialStatus"],
@@ -180,6 +217,34 @@ const statusColumn: Column = {
 	),
 };
 
+const deliveryColumn: Column = {
+	id: "delivery",
+	header: "Delivery",
+	accessorKey: "deliveryMode",
+	...sizes.custom(112, 170, 128),
+	enableResizing: true,
+	meta: {
+		skeleton: { type: "badge", width: "w-24" },
+		headerLabel: "Delivery",
+		className: sizeClass(sizes.custom(112, 170, 128)),
+	},
+	cell: ({ row }) => (
+		<div className="flex min-w-0 flex-col items-start gap-1">
+			<Badge
+				variant="secondary"
+				className="h-5 max-w-full text-[10px] capitalize"
+			>
+				<span className="truncate">
+					{formatLabel(row.original.deliveryMode)}
+				</span>
+			</Badge>
+			<span className="max-w-full truncate text-[10px] capitalize text-muted-foreground">
+				{formatLabel(row.original.orderStatus)}
+			</span>
+		</div>
+	),
+};
+
 const fulfillmentColumn: Column = {
 	id: "fulfillment",
 	header: "Fulfillment",
@@ -276,9 +341,7 @@ const blockersColumn: Column = {
 		const extraCount = blockers.length - visibleBlockers.length;
 
 		if (!blockers.length) {
-			return (
-				<span className="text-xs text-muted-foreground">No blockers</span>
-			);
+			return <span className="text-xs text-muted-foreground">No blockers</span>;
 		}
 
 		return (
@@ -324,7 +387,11 @@ function getHoldColumn(actions: InventoryPartialShipmentTableActions): Column {
 		cell: ({ row }) => (
 			<Switch
 				checked={row.original.holdUntilComplete}
-				disabled={!row.original.lineItemId || actions.isHolding}
+				disabled={
+					!actions.canManageFulfillment ||
+					!row.original.lineItemId ||
+					actions.holdingLineItemId === row.original.lineItemId
+				}
 				aria-label="Hold until complete"
 				onClick={(event) => event.stopPropagation()}
 				onCheckedChange={(checked) => {
@@ -391,13 +458,13 @@ function PartialShipmentActions({
 			) : null}
 			<Button
 				type="button"
-			size="sm"
-			className="h-8 px-2 text-xs"
-			onClick={(event) => {
-				event.stopPropagation();
-				actions.onShipAvailable(item);
+				size="sm"
+				className="h-8 px-2 text-xs"
+				onClick={(event) => {
+					event.stopPropagation();
+					actions.onShipAvailable(item);
 				}}
-				disabled={actions.isShipping || !canShip}
+				disabled={!actions.canManageFulfillment || !canShip}
 			>
 				Ship
 			</Button>
@@ -406,9 +473,11 @@ function PartialShipmentActions({
 }
 
 export const columns: Column[] = [
+	selectColumn,
 	orderColumn,
 	lineColumn,
 	statusColumn,
+	deliveryColumn,
 	fulfillmentColumn,
 	availabilityColumn,
 	holdbackColumn,
@@ -416,10 +485,12 @@ export const columns: Column[] = [
 	getHoldColumn({
 		onToggleHold: () => {},
 		onShipAvailable: () => {},
+		canManageFulfillment: false,
 	}),
 	getActionsColumn({
 		onToggleHold: () => {},
 		onShipAvailable: () => {},
+		canManageFulfillment: false,
 	}),
 ];
 
@@ -427,9 +498,11 @@ export function getInventoryPartialShipmentColumns(
 	actions: InventoryPartialShipmentTableActions,
 ): Column[] {
 	return [
+		selectColumn,
 		orderColumn,
 		lineColumn,
 		statusColumn,
+		deliveryColumn,
 		fulfillmentColumn,
 		availabilityColumn,
 		holdbackColumn,

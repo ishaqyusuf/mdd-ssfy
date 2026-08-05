@@ -4,6 +4,7 @@ import { FormClient } from "../_components/form-client";
 
 import PageShell from "@/components/page-shell";
 import { resolveSalesFormRequest } from "@/lib/sales-form-routing.server";
+import { normalizeSalesFormInitialCustomerId } from "@gnd/sales/sales-form";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { unstable_noStore } from "next/cache";
 export const dynamic = "force-dynamic";
@@ -23,6 +24,9 @@ export default async function CreateOrderPage(props) {
 	});
 	const data = await createSalesBookFormUseCase({
 		type: "quote",
+		customerId:
+			normalizeSalesFormInitialCustomerId(searchParams.selectedCustomerId) ??
+			undefined,
 	});
 
 	return (

@@ -10,6 +10,7 @@ import type { Context } from "hono";
 import { getSignedCookie, setSignedCookie } from "hono/cookie";
 import { type JwtPayload, verify } from "jsonwebtoken";
 import superjson from "superjson";
+import { getTrpcPublicError, normalizeTrpcError } from "./error-contract";
 import { withAuthPermission } from "./middleware/auth-permission";
 export type TRPCContext = {
 	//   session: Session | null;
@@ -93,9 +94,7 @@ export const createTRPCContext = async (
 					path: "/",
 				});
 			}
-			guestTokenHash = createHash("sha256")
-				.update(guestToken)
-				.digest("hex");
+			guestTokenHash = createHash("sha256").update(guestToken).digest("hex");
 		}
 	}
 
@@ -103,7 +102,10 @@ export const createTRPCContext = async (
 		db,
 		userId: Number.isFinite(parsedUserId) ? parsedUserId : undefined,
 		guestTokenHash,
-		requestId: c.req.header("x-request-id") || randomUUID(),
+		requestId:
+			c.req.header("x-request-id") ||
+			(c.var as { requestId?: string }).requestId ||
+			randomUUID(),
 		userAgent: c.req.header("user-agent"),
 		ipAddress:
 			c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -113,6 +115,18 @@ export const createTRPCContext = async (
 };
 
 const t = initTRPC.context<TRPCContext>().create({
+	errorFormatter({ error, shape }) {
+		const appError = getTrpcPublicError(error);
+
+		return {
+			...shape,
+			message: appError.message,
+			data: {
+				...shape.data,
+				appError,
+			},
+		};
+	},
 	transformer: superjson,
 });
 
@@ -125,6 +139,13 @@ const withPrimaryDbMiddleware = t.middleware(async (opts) => {
 		next: opts.next,
 	});
 });
+const withErrorContractMiddleware = t.middleware(async (opts) => {
+	const result = await opts.next();
+	if ("error" in result) {
+		throw normalizeTrpcError(result.error, opts.path);
+	}
+	return result;
+});
 // const withTeamPermissionMiddleware = t.middleware(async (opts) => {
 //   return withTeamPermission({
 //     ctx: opts.ctx,
@@ -132,9 +153,12 @@ const withPrimaryDbMiddleware = t.middleware(async (opts) => {
 //   });
 // });
 
-export const publicProcedure = t.procedure.use(withPrimaryDbMiddleware);
+export const publicProcedure = t.procedure
+	.use(withErrorContractMiddleware)
+	.use(withPrimaryDbMiddleware);
 
 export const protectedProcedure = t.procedure
+	.use(withErrorContractMiddleware)
 	.use(withPrimaryDbMiddleware)
 	.use(async (opts) => {
 		if (!opts?.ctx?.userId)
@@ -181,6 +205,7 @@ export const customerProcedure = protectedProcedure.use(async (opts) => {
 // export const protectedProcedure = t.procedure.use();
 
 export const dealerProtectedProcedure = t.procedure
+	.use(withErrorContractMiddleware)
 	.use(withPrimaryDbMiddleware)
 	.use(async (opts) => {
 		if (!opts.ctx.dealerAuthUserId || !opts.ctx.dealer) {

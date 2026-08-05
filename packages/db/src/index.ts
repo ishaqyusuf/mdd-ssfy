@@ -16,6 +16,7 @@ import {
 	// } from "../node_modules/.prisma/client/client.js";
 } from "@prisma/client";
 import { applyDefaultSoftDeleteFilter } from "./soft-delete";
+import { DEFAULT_DB_TRANSACTION_OPTIONS } from "./transactions";
 // export {
 //   Prisma,
 //   PrismaClient,
@@ -99,6 +100,7 @@ const prismaClientSingleton = () => {
 						"warn",
 					]
 				: ["error"],
+		transactionOptions: DEFAULT_DB_TRANSACTION_OPTIONS,
 	});
 
 	return client.$extends({

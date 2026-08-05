@@ -40,3 +40,13 @@ export function shouldPreserveInitialEditTaxRate(input: {
 		input.currentTaxCode === input.initialTaxCode
 	);
 }
+
+export function shouldApplyResolvedCustomerDefaults(input: {
+	lastAppliedCustomerId?: number | null;
+	resolvedCustomerId?: number | null;
+}) {
+	return (
+		input.resolvedCustomerId != null &&
+		input.lastAppliedCustomerId !== input.resolvedCustomerId
+	);
+}

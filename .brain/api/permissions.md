@@ -338,3 +338,16 @@ Tracks authentication and authorization patterns across API surfaces.
 - Super Admin may manage any manual note and request deleted activity history.
 - Other users are rejected server-side.
 - `inventory_inbound_activity`, other system channels, and `activity_note_revision` entries are immutable.
+
+## Inventory fulfillment permissions (2026-08-04)
+
+- Backorder and partial-shipment queue reads require one of `viewOrders`,
+  `viewPacking`, `viewInboundOrder`, `viewPickup`, or `viewDelivery`.
+- Shipment, hold, and inventory-dispatch writes require one of `editOrders`,
+  `editPickup`, `editDelivery`, or the operational packing capability
+  `viewPacking`.
+- Received-stock allocation to backorders requires `editInboundOrder` or
+  `editOrders`.
+- Client-supplied audit authors are rejected. Mutation audit identity is derived
+  from the authenticated user, and direct route tests prove unauthorized users are
+  denied before domain writes are reached.

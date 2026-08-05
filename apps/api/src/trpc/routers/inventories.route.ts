@@ -168,6 +168,7 @@ import {
 	backfillSalesInventoryLineItemsSchemaTask,
 	inventoryReconciliationReportSchemaTask,
 } from "@gnd/jobs/schema";
+import { InventoryFulfillmentPolicyError } from "@gnd/sales/inventory-fulfillment-policy";
 import { getInventoryReconciliationReport } from "@gnd/sales/inventory-reconciliation-report";
 import { fulfillSalesInventoryNeedsManually as fulfillSalesInventoryNeedsManuallyMutation } from "@gnd/sales/manual-fulfill-sales-inventory-needs";
 import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
@@ -176,8 +177,11 @@ import {
 	assignInventoryDispatchAllocations,
 	fulfillInventoryDispatch,
 	getSalesBackorderQueue,
+	getSalesBackorderQueueSalesOrderIds,
+	getSalesBackorderQueueSummary,
 	getSalesFulfillmentPlan,
 	getSalesPartialShipmentQueue,
+	getSalesPartialShipmentQueueSummary,
 	getSalesProductionPlan,
 	packInventoryDispatchAllocations,
 	releaseInventoryDispatchAllocations,
@@ -200,8 +204,10 @@ import {
 	getSalesInventorySyncMonitor,
 } from "@gnd/sales/sales-inventory-sync-monitor";
 import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
+import { salesDeliveryOptionSchema } from "@gnd/utils/sales";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { tasks } from "@trigger.dev/sdk/v3";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 // import { upsertInventoriesForDykeShelfProductsSchema } from "@api/db/queries/inventory";
 import {
@@ -228,6 +234,54 @@ import {
 export const inventoryPositiveIdSchema = z.number().int().positive();
 const inventoryPositiveIdsSchema = z.array(inventoryPositiveIdSchema);
 
+async function requireInventoryFulfillmentOperator(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editOrders", "editPickup", "editDelivery", "viewPacking"],
+		"You do not have permission to manage inventory fulfillment.",
+	);
+}
+
+async function requireInventoryFulfillmentViewer(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		[
+			"viewOrders",
+			"viewPacking",
+			"viewInboundOrder",
+			"viewPickup",
+			"viewDelivery",
+		],
+		"You do not have permission to view inventory fulfillment.",
+	);
+}
+
+async function requireReceivedBackorderOperator(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editInboundOrder", "editOrders"],
+		"You do not have permission to allocate received inventory to backorders.",
+	);
+}
+
+function inventoryOperatorName(session: { id: number; name?: string | null }) {
+	return session.name?.trim() || `User ${session.id}`;
+}
+
+function throwInventoryFulfillmentApiError(error: unknown): never {
+	if (error instanceof InventoryFulfillmentPolicyError) {
+		throw new TRPCError({
+			code:
+				error.code === "INVENTORY_FULFILLMENT_TERMINAL_ORDER"
+					? "CONFLICT"
+					: "BAD_REQUEST",
+			message: error.message,
+			cause: error,
+		});
+	}
+	throw error;
+}
+
 export const inventoryDispatchTransitionSchema = z.object({
 	salesOrderId: inventoryPositiveIdSchema.optional().nullable(),
 	lineItemIds: inventoryPositiveIdsSchema.optional(),
@@ -235,29 +289,85 @@ export const inventoryDispatchTransitionSchema = z.object({
 	note: z.string().optional().nullable(),
 });
 
-export const inventoryDispatchFulfillSchema = z.object({
-	salesOrderId: inventoryPositiveIdSchema,
-	lineItemIds: inventoryPositiveIdsSchema.optional(),
-	allocationIds: inventoryPositiveIdsSchema.optional(),
-	deliveryMode: z.string().optional().nullable(),
-	deliveredTo: z.string().optional().nullable(),
-	authorName: z.string().optional().nullable(),
-	note: z.string().optional().nullable(),
+export const inventoryDispatchFulfillSchema = z
+	.object({
+		salesOrderId: inventoryPositiveIdSchema,
+		lineItemIds: inventoryPositiveIdsSchema.optional(),
+		allocationIds: inventoryPositiveIdsSchema.optional(),
+		deliveryMode: salesDeliveryOptionSchema.optional().nullable(),
+		deliveredTo: z.string().trim().max(500).optional().nullable(),
+		note: z.string().trim().max(2_000).optional().nullable(),
+	})
+	.strict();
+
+export const inventoryLineFulfillmentHoldSchema = z
+	.object({
+		lineItemId: inventoryPositiveIdSchema,
+		holdUntilComplete: z.boolean(),
+		note: z.string().trim().max(2_000).optional().nullable(),
+	})
+	.strict();
+
+export const shipAvailableSalesInventorySchema = z
+	.object({
+		salesOrderId: inventoryPositiveIdSchema,
+		lineItemIds: inventoryPositiveIdsSchema.optional(),
+		deliveryMode: salesDeliveryOptionSchema.optional().nullable(),
+		deliveredTo: z.string().trim().max(500).optional().nullable(),
+		note: z.string().trim().max(2_000).optional().nullable(),
+	})
+	.strict();
+
+const salesBackorderStatusSchema = z.enum([
+	"awaiting_inbound",
+	"backordered",
+	"ready_to_ship_remaining",
+]);
+const salesPartialShipmentStatusSchema = z.enum([
+	"available_now",
+	"held_until_complete",
+	"awaiting_inbound",
+	"backordered",
+	"ready_to_ship_remaining",
+]);
+
+const salesBackorderQueueFilterShape = {
+	salesOrderId: inventoryPositiveIdSchema.optional().nullable(),
+	inventoryVariantId: inventoryPositiveIdSchema.optional().nullable(),
+	q: z.string().trim().max(100).optional().nullable(),
+	statuses: z.array(salesBackorderStatusSchema).optional().nullable(),
+	deliveryModes: z.array(salesDeliveryOptionSchema).optional().nullable(),
+	holdUntilComplete: z.boolean().optional().nullable(),
+};
+
+export const salesBackorderQueueFilterSchema = z.object(
+	salesBackorderQueueFilterShape,
+);
+
+export const salesBackorderQueueSchema = z.object({
+	...salesBackorderQueueFilterShape,
+	cursor: inventoryPositiveIdSchema.optional().nullable(),
+	cursorId: inventoryPositiveIdSchema.optional().nullable(),
+	limit: z.number().int().min(1).max(200).optional(),
 });
 
-export const inventoryLineFulfillmentHoldSchema = z.object({
-	lineItemId: inventoryPositiveIdSchema,
-	holdUntilComplete: z.boolean(),
-	note: z.string().optional().nullable(),
-});
+const salesPartialShipmentQueueFilterShape = {
+	salesOrderId: inventoryPositiveIdSchema.optional().nullable(),
+	q: z.string().trim().max(100).optional().nullable(),
+	statuses: z.array(salesPartialShipmentStatusSchema).optional().nullable(),
+	deliveryModes: z.array(salesDeliveryOptionSchema).optional().nullable(),
+	holdUntilComplete: z.boolean().optional().nullable(),
+};
 
-export const shipAvailableSalesInventorySchema = z.object({
-	salesOrderId: inventoryPositiveIdSchema,
-	lineItemIds: inventoryPositiveIdsSchema.optional(),
-	deliveryMode: z.string().optional().nullable(),
-	deliveredTo: z.string().optional().nullable(),
-	authorName: z.string().optional().nullable(),
-	note: z.string().optional().nullable(),
+export const salesPartialShipmentQueueFilterSchema = z.object(
+	salesPartialShipmentQueueFilterShape,
+);
+
+export const salesPartialShipmentQueueSchema = z.object({
+	...salesPartialShipmentQueueFilterShape,
+	cursor: inventoryPositiveIdSchema.optional().nullable(),
+	cursorId: inventoryPositiveIdSchema.optional().nullable(),
+	limit: z.number().int().min(1).max(200).optional(),
 });
 
 async function attachSalesQueryRef<Result extends object>(
@@ -1175,49 +1285,34 @@ export const inventoriesRouter = createTRPCRouter({
 			return getSalesFulfillmentPlan(props.ctx.db, props.input);
 		}),
 	salesBackorderQueue: protectedProcedure
-		.input(
-			z.object({
-				salesOrderId: z.number().optional().nullable(),
-				inventoryVariantId: z.number().optional().nullable(),
-				statuses: z
-					.array(
-						z.enum([
-							"awaiting_inbound",
-							"backordered",
-							"ready_to_ship_remaining",
-						]),
-					)
-					.optional()
-					.nullable(),
-				cursorId: z.number().optional().nullable(),
-				limit: z.number().min(1).max(200).optional(),
-			}),
-		)
+		.input(salesBackorderQueueSchema)
 		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
 			return getSalesBackorderQueue(props.ctx.db, props.input);
 		}),
-	salesPartialShipmentQueue: protectedProcedure
-		.input(
-			z.object({
-				salesOrderId: z.number().optional().nullable(),
-				statuses: z
-					.array(
-						z.enum([
-							"available_now",
-							"held_until_complete",
-							"awaiting_inbound",
-							"backordered",
-							"ready_to_ship_remaining",
-						]),
-					)
-					.optional()
-					.nullable(),
-				cursorId: z.number().optional().nullable(),
-				limit: z.number().min(1).max(200).optional(),
-			}),
-		)
+	salesBackorderQueueSummary: protectedProcedure
+		.input(salesBackorderQueueFilterSchema)
 		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
+			return getSalesBackorderQueueSummary(props.ctx.db, props.input);
+		}),
+	salesBackorderQueuePrintSelection: protectedProcedure
+		.input(salesBackorderQueueFilterSchema)
+		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
+			return getSalesBackorderQueueSalesOrderIds(props.ctx.db, props.input);
+		}),
+	salesPartialShipmentQueue: protectedProcedure
+		.input(salesPartialShipmentQueueSchema)
+		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
 			return getSalesPartialShipmentQueue(props.ctx.db, props.input);
+		}),
+	salesPartialShipmentQueueSummary: protectedProcedure
+		.input(salesPartialShipmentQueueFilterSchema)
+		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
+			return getSalesPartialShipmentQueueSummary(props.ctx.db, props.input);
 		}),
 	salesProductionPlan: protectedProcedure
 		.input(
@@ -1246,26 +1341,39 @@ export const inventoriesRouter = createTRPCRouter({
 	shipAvailableSalesInventory: protectedProcedure
 		.input(shipAvailableSalesInventorySchema)
 		.mutation(async (props) => {
-			const result = await shipAvailableSalesInventory(props.ctx.db, {
-				...props.input,
-				createdByUserId: props.ctx.userId ?? null,
-				authorName:
-					props.input.authorName || String(props.ctx.userId ?? "Inventory"),
-			});
-			return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
+			const session = await requireInventoryFulfillmentOperator(props.ctx);
+			try {
+				const result = await shipAvailableSalesInventory(props.ctx.db, {
+					...props.input,
+					createdByUserId: session.id,
+					authorName: inventoryOperatorName(session),
+				});
+				return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
+			} catch (error) {
+				throwInventoryFulfillmentApiError(error);
+			}
 		}),
 	setSalesInventoryLineFulfillmentHold: protectedProcedure
 		.input(inventoryLineFulfillmentHoldSchema)
 		.mutation(async (props) => {
-			const result = await setSalesInventoryLineFulfillmentHold(props.ctx.db, {
-				...props.input,
-				authorName: String(props.ctx.userId ?? "Inventory"),
-			});
-			return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
+			const session = await requireInventoryFulfillmentOperator(props.ctx);
+			try {
+				const result = await setSalesInventoryLineFulfillmentHold(
+					props.ctx.db,
+					{
+						...props.input,
+						authorName: inventoryOperatorName(session),
+					},
+				);
+				return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
+			} catch (error) {
+				throwInventoryFulfillmentApiError(error);
+			}
 		}),
 	assignInventoryDispatchAllocations: protectedProcedure
 		.input(inventoryDispatchTransitionSchema)
 		.mutation(async (props) => {
+			await requireInventoryFulfillmentOperator(props.ctx);
 			const result = await assignInventoryDispatchAllocations(props.ctx.db, {
 				...props.input,
 				note: props.input.note || "Assigned by inventory dispatch mode.",
@@ -1279,6 +1387,7 @@ export const inventoriesRouter = createTRPCRouter({
 	packInventoryDispatchAllocations: protectedProcedure
 		.input(inventoryDispatchTransitionSchema)
 		.mutation(async (props) => {
+			await requireInventoryFulfillmentOperator(props.ctx);
 			const result = await packInventoryDispatchAllocations(props.ctx.db, {
 				...props.input,
 				note: props.input.note || "Picked by inventory dispatch mode.",
@@ -1292,18 +1401,23 @@ export const inventoriesRouter = createTRPCRouter({
 	fulfillInventoryDispatch: protectedProcedure
 		.input(inventoryDispatchFulfillSchema)
 		.mutation(async (props) => {
-			const result = await fulfillInventoryDispatch(props.ctx.db, {
-				...props.input,
-				createdByUserId: props.ctx.userId ?? null,
-				authorName:
-					props.input.authorName || String(props.ctx.userId ?? "Inventory"),
-				note: props.input.note || "Fulfilled by inventory dispatch mode.",
-			});
-			return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
+			const session = await requireInventoryFulfillmentOperator(props.ctx);
+			try {
+				const result = await fulfillInventoryDispatch(props.ctx.db, {
+					...props.input,
+					createdByUserId: session.id,
+					authorName: inventoryOperatorName(session),
+					note: props.input.note || "Fulfilled by inventory dispatch mode.",
+				});
+				return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
+			} catch (error) {
+				throwInventoryFulfillmentApiError(error);
+			}
 		}),
 	releaseInventoryDispatchAllocations: protectedProcedure
 		.input(inventoryDispatchTransitionSchema)
 		.mutation(async (props) => {
+			await requireInventoryFulfillmentOperator(props.ctx);
 			const result = await releaseInventoryDispatchAllocations(props.ctx.db, {
 				...props.input,
 				note: props.input.note || "Released by inventory dispatch mode.",
@@ -1317,9 +1431,10 @@ export const inventoriesRouter = createTRPCRouter({
 	allocateReceivedInboundToBackorders: protectedProcedure
 		.input(allocateReceivedInboundToBackordersSchemaTask)
 		.mutation(async (props) => {
+			const session = await requireReceivedBackorderOperator(props.ctx);
 			return allocateReceivedInboundToBackorders(props.ctx.db, {
 				...props.input,
-				authorName: String(props.ctx.userId ?? "Inventory"),
+				authorName: inventoryOperatorName(session),
 			});
 		}),
 	repairSalesInventorySync: protectedProcedure

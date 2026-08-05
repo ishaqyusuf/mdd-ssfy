@@ -14,6 +14,7 @@ import {
 	getTaskFailureTitle,
 	getTaskFailureToastMessage,
 	isSalesEmailTaskMetadata,
+	isTaskRealtimeAccessError,
 } from "@/lib/task-feedback";
 import { cn } from "@/lib/utils";
 import {
@@ -201,8 +202,10 @@ function TaskNotificationWatcher({
 	const updateTask = useTaskMonitorStore((state) => state.updateTask);
 	const removeTask = useTaskMonitorStore((state) => state.removeTask);
 	const { runTaskEffect } = useTaskMonitorEffects();
-	const finalizeDiagnostic = useAction(finalizeTaskRunDiagnosticAction);
+	const { execute: finalizeDiagnostic, executeAsync: reconcileDiagnostic } =
+		useAction(finalizeTaskRunDiagnosticAction);
 	const finalizedRef = useRef(new Set<string>());
+	const reconcilingRef = useRef(new Set<string>());
 	const { run, error, stop } = useRealtimeRun(task.runId, {
 		enabled: task.status === "SYNCING" && !!task.runId && !!task.accessToken,
 		accessToken: task.accessToken,
@@ -217,7 +220,7 @@ function TaskNotificationWatcher({
 			if (finalizedRef.current.has(key)) return;
 			finalizedRef.current.add(key);
 
-			finalizeDiagnostic.execute({
+			finalizeDiagnostic({
 				runId: task.runId,
 				observedStatus,
 				errorMessage,
@@ -231,7 +234,7 @@ function TaskNotificationWatcher({
 	useEffect(() => {
 		if (task.status !== "SYNCING") return;
 
-		const failTask = (message: string) => {
+		const failTask = (message: string, shouldFinalize = true) => {
 			const completedAt = Date.now();
 			const currentTask =
 				useTaskMonitorStore
@@ -251,7 +254,7 @@ function TaskNotificationWatcher({
 				handledEffects,
 				completedAt,
 			});
-			finalizeRun("FAILED", message);
+			if (shouldFinalize) finalizeRun("FAILED", message);
 
 			if (!alreadyHandledError) {
 				toast({
@@ -276,7 +279,116 @@ function TaskNotificationWatcher({
 			stop?.();
 		};
 
+		const completeTask = async (shouldFinalize = true) => {
+			const currentTask =
+				useTaskMonitorStore
+					.getState()
+					.tasks.find((storedTask) => storedTask.runId === task.runId) ?? task;
+			const alreadyHandledSuccess = Boolean(
+				currentTask.handledEffects?.success,
+			);
+			const completedAt = Date.now();
+			const handledEffects = alreadyHandledSuccess
+				? currentTask.handledEffects
+				: {
+						...currentTask.handledEffects,
+						success: completedAt,
+					};
+
+			updateTask(task.runId, {
+				status: "COMPLETED",
+				handledEffects,
+				completedAt,
+			});
+			if (shouldFinalize) finalizeRun("COMPLETED");
+
+			if (!alreadyHandledSuccess) {
+				try {
+					await runTaskEffect(
+						{
+							...currentTask,
+							status: "COMPLETED",
+							handledEffects,
+							completedAt,
+						},
+						"success",
+					);
+				} catch (effectError) {
+					console.error("Unable to run task success effect", {
+						effectError,
+						runId: task.runId,
+					});
+				}
+
+				if (IS_PRODUCTION_TASK_FEEDBACK) {
+					toast({
+						duration: 3500,
+						variant: "success",
+						title: "Task completed",
+						description: task.title
+							? `${task.title} completed successfully.`
+							: undefined,
+					});
+				}
+			}
+
+			window.setTimeout(() => removeTask(task.runId), 2500);
+			stop?.();
+		};
+
 		if (error) {
+			if (isTaskRealtimeAccessError(error)) {
+				if (reconcilingRef.current.has(task.runId)) return;
+				reconcilingRef.current.add(task.runId);
+
+				const reconcileRun = async () => {
+					try {
+						const result = await reconcileDiagnostic({
+							runId: task.runId,
+							metadata: task.metadata,
+						});
+						const diagnostic = result?.data;
+
+						if (diagnostic?.status === "SUCCEEDED") {
+							await completeTask(false);
+							return;
+						}
+
+						if (diagnostic?.status === "CANCELED") {
+							updateTask(task.runId, {
+								status: "CANCELED",
+								completedAt: Date.now(),
+							});
+							stop?.();
+							return;
+						}
+
+						if (
+							diagnostic?.status === "FAILED" ||
+							diagnostic?.status === "STALE" ||
+							diagnostic?.status === "START_FAILED"
+						) {
+							failTask(
+								getTaskFailureMessage({
+									metadata: task.metadata,
+									errorMessage: diagnostic.errorMessage,
+								}),
+								false,
+							);
+							return;
+						}
+
+						removeTask(task.runId);
+						stop?.();
+					} finally {
+						reconcilingRef.current.delete(task.runId);
+					}
+				};
+
+				void reconcileRun();
+				return;
+			}
+
 			failTask(
 				getTaskFailureMessage({
 					metadata: task.metadata,
@@ -298,57 +410,6 @@ function TaskNotificationWatcher({
 				failTask(taskOutputFailure);
 				return;
 			}
-
-			const completeTask = async () => {
-				const alreadyHandledSuccess = Boolean(task.handledEffects?.success);
-				const completedAt = Date.now();
-				const handledEffects = alreadyHandledSuccess
-					? task.handledEffects
-					: {
-							...task.handledEffects,
-							success: completedAt,
-						};
-
-				updateTask(task.runId, {
-					status: "COMPLETED",
-					handledEffects,
-					completedAt,
-				});
-				finalizeRun("COMPLETED");
-
-				if (!alreadyHandledSuccess) {
-					try {
-						await runTaskEffect(
-							{
-								...task,
-								status: "COMPLETED",
-								handledEffects,
-								completedAt,
-							},
-							"success",
-						);
-					} catch (effectError) {
-						console.error("Unable to run task success effect", {
-							effectError,
-							runId: task.runId,
-						});
-					}
-
-					if (IS_PRODUCTION_TASK_FEEDBACK) {
-						toast({
-							duration: 3500,
-							variant: "success",
-							title: "Task completed",
-							description: task.title
-								? `${task.title} completed successfully.`
-								: undefined,
-						});
-					}
-				}
-
-				window.setTimeout(() => removeTask(task.runId), 2500);
-				stop?.();
-			};
 
 			void completeTask();
 			return;
@@ -377,6 +438,7 @@ function TaskNotificationWatcher({
 		finalizeRun,
 		onTaskFailed,
 		removeTask,
+		reconcileDiagnostic,
 		run,
 		runTaskEffect,
 		stop,

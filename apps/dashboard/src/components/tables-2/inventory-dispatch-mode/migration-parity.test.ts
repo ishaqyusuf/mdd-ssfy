@@ -45,6 +45,10 @@ describe("inventory dispatch mode tables-2 migration", () => {
 		expect(source.includes("packInventoryDispatchAllocations")).toBe(true);
 		expect(source.includes("fulfillInventoryDispatch")).toBe(true);
 		expect(source.includes("releaseInventoryDispatchAllocations")).toBe(true);
+		expect(source.includes('deliveryMode: "inventory_dispatch"')).toBe(false);
+		expect(source.includes("deliveryMode: item.deliveryMode ?? undefined")).toBe(
+			true,
+		);
 	});
 
 	it("uses core table behaviors with compact custom columns", () => {

@@ -80,7 +80,7 @@ type SyncComponentCandidate = {
 	unitSalesPrice?: number | null;
 };
 
-type SyncItemLike = {
+export type SyncItemLike = {
 	id: number;
 	description: string | null;
 	qty?: number | null;
@@ -821,6 +821,22 @@ async function ensureInventoryMappingFromCandidate(
 	} satisfies ResolvedInventoryMapping;
 }
 
+export function selectInventoryParentFormStep(item: SyncItemLike) {
+	const formSteps = item.formSteps.length
+		? item.formSteps
+		: metadataFormSteps(item);
+
+	if (formSteps.length === 1) return formSteps[0] ?? null;
+	if (!isMouldingSalesItem(item)) return null;
+
+	const mouldingSteps = formSteps.filter((formStep) => {
+		const title = formStep.step?.title?.trim().toLowerCase() ?? "";
+		return title.includes("moulding") || title.includes("molding");
+	});
+
+	return mouldingSteps.length === 1 ? mouldingSteps[0] ?? null : null;
+}
+
 async function resolveInventoryMappingForItem(
 	db: DbLike,
 	item: SyncItemLike,
@@ -893,25 +909,23 @@ async function resolveInventoryMappingForItem(
 	const formSteps = item.formSteps.length
 		? item.formSteps
 		: metadataFormSteps(item);
-	if (formSteps.length === 1) {
-		const step = formSteps[0];
-		if (step) {
-			const stepCandidate = buildStepFormCandidate(
-				step,
-				1,
-				buildStepSelectionContext(formSteps),
-			);
-			if (stepCandidate) {
-				return ensureInventoryMappingFromCandidate(db, {
-					...stepCandidate,
-					title:
-						stepCandidate.title || item.description || `Sales Item ${item.id}`,
-					inventoryName:
-						stepCandidate.inventoryName ||
-						item.description ||
-						`Sales Item ${item.id}`,
-				});
-			}
+	const step = selectInventoryParentFormStep(item);
+	if (step) {
+		const stepCandidate = buildStepFormCandidate(
+			step,
+			1,
+			buildStepSelectionContext(formSteps),
+		);
+		if (stepCandidate) {
+			return ensureInventoryMappingFromCandidate(db, {
+				...stepCandidate,
+				title:
+					stepCandidate.title || item.description || `Sales Item ${item.id}`,
+				inventoryName:
+					stepCandidate.inventoryName ||
+					item.description ||
+					`Sales Item ${item.id}`,
+			});
 		}
 	}
 

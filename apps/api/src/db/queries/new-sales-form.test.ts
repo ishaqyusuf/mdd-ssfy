@@ -1481,6 +1481,7 @@ describe("new-sales-form relational parity", () => {
     });
 
     const row = state.orders[0];
+    expect(row?.salesRepId).toBe(77);
     expect(row?.meta).toMatchObject({
       po: "PO-NEW",
       payment_option: "Check",

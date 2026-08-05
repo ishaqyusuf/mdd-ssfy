@@ -1041,3 +1041,16 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   copy, improved Inventory readability, and added author/Super Admin audited
   manual-note edit and soft delete. Focused tests and authenticated in-app
   browser proof passed on local inbound `#118` for order `09086PC`.
+- [x] 2026-08-04: closed the backorder and partial-delivery implementation gaps:
+  terminal and cross-sale mutation guards, server actor/permission enforcement,
+  canonical pickup/delivery/ship modes, serializable retries, cancelled-component
+  safety, line-grain BOM math, unbounded cursor queues/global summaries, Midday UI
+  filters/infinite tables/selection/confirmation controls, repair CLI, and query
+  indexes. Focused tests and Sales/DB typechecks pass; live browser and local-data
+  proof retain explicit environment blockers documented in the feature record.
+- [x] 2026-08-05: implemented mobile parity for the backorder and partial-delivery
+  workspaces with protected Sales routes, permission-aware dashboard counts,
+  URL-owned filters, typed infinite queues, recycled lists, global summaries,
+  stable bulk selection, hold/release, and canonical-mode shipment confirmation.
+  Focused tests pass with 10 tests / 30 assertions; device/runtime proof remains
+  blocked by the existing shared `@gnd/errors` module-resolution failure.

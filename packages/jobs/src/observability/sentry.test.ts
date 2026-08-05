@@ -77,10 +77,7 @@ describe("job Sentry capture policy", () => {
 	});
 
 	it("autoloads the global failure hook from the configured trigger directory", () => {
-		const config = readFileSync(
-			resolve(jobsRoot, "trigger.config.ts"),
-			"utf8",
-		);
+		const config = readFileSync(resolve(jobsRoot, "trigger.config.ts"), "utf8");
 		const initPath = resolve(jobsRoot, "src/tasks/init.ts");
 		const init = readFileSync(initPath, "utf8");
 
@@ -93,6 +90,7 @@ describe("job Sentry capture policy", () => {
 
 	it("includes operational identifiers without task payload data", () => {
 		const context = getSentryTaskFailureContext(
+			Object.assign(new Error("Transaction expired"), { code: "P2028" }),
 			{
 				attempt: {
 					number: 2,
@@ -114,6 +112,7 @@ describe("job Sentry capture policy", () => {
 					id: "run-id",
 					tags: [],
 					isTest: false,
+					isReplay: false,
 					createdAt: new Date("2026-07-28T00:00:00.000Z"),
 					startedAt: new Date("2026-07-28T00:00:01.000Z"),
 				},
@@ -121,18 +120,18 @@ describe("job Sentry capture policy", () => {
 			"sales-report",
 		);
 
-		expect(context).toEqual({
-			tags: {
-				runtime: "jobs",
-				task: "sales-report",
-				trigger_environment: "prod",
-				trigger_environment_type: "PRODUCTION",
-			},
-			extra: {
-				attempt: 2,
-				runId: "run-id",
-				deploymentVersion: "20260728.1",
-			},
+		expect(context.tags).toMatchObject({
+			error_code: "DATABASE_TRANSACTION_TIMEOUT",
+			runtime: "jobs",
+			source: "trigger-task",
+			task: "sales-report",
+			trigger_environment: "prod",
+			trigger_environment_type: "PRODUCTION",
+		});
+		expect(context.extra).toEqual({
+			attempt: 2,
+			deploymentVersion: "20260728.1",
+			runId: "run-id",
 		});
 		expect("payload" in context.extra).toBe(false);
 	});

@@ -112,6 +112,8 @@ model SalesOrders {
     @@index([dealerSalesProfileId])
     @@index([customerId])
     @@index([salesChannel, createdAt])
+    @@index([deletedAt, status, prodStatus, id], name: "idx_sales_fulfillment_queue")
+    @@index([deletedAt, deliveryOption, id], name: "idx_sales_delivery_queue")
     @@index([shippingAddressId])
     @@index([billingAddressId])
     @@index([prodId])

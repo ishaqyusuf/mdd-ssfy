@@ -20,6 +20,7 @@ Give users persistent visibility into long-running background jobs after a job i
 - Tasks carry lightweight metadata only: task name, type, entity id, and entity label. Full payloads are not persisted.
 - Server-side task start logging lives in `apps/dashboard/src/lib/task-run-diagnostics.server.ts` and records starts/start failures from `apps/dashboard/src/actions/trigger-task.ts`.
 - Terminal watcher finalization calls `apps/dashboard/src/actions/task-run-diagnostics.ts`, which retrieves Trigger.dev run status server-side and upserts a database diagnostic row.
+- A persisted realtime public-access token can expire or become invalid independently of the underlying run. The client watcher treats those authorization errors as monitoring transport failures, reconciles the run through the authenticated server-side finalizer, and applies the authoritative Trigger status instead of overwriting the task as failed with `Public Access Token is invalid`.
 - Generic task diagnostics are stored in `TaskRunDiagnostic`; sales email delivery still uses `SalesEmailAttempt` as the email-specific delivery ledger.
 
 ## User Experience

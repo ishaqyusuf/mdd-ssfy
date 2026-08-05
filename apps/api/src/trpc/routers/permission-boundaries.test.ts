@@ -180,6 +180,29 @@ describe("high-risk tRPC permission boundaries", () => {
 		expect(inventories.slice(start, start + 1400)).toContain('"editOrders"');
 	});
 
+	test("inventory fulfillment mutations repeat an operational capability check", () => {
+		const inventories = source("inventories.route.ts");
+		for (const mutation of [
+			"shipAvailableSalesInventory",
+			"setSalesInventoryLineFulfillmentHold",
+			"assignInventoryDispatchAllocations",
+			"packInventoryDispatchAllocations",
+			"fulfillInventoryDispatch",
+			"releaseInventoryDispatchAllocations",
+		]) {
+			expectProtectedMutation(
+				inventories,
+				mutation,
+				"requireInventoryFulfillmentOperator",
+			);
+		}
+		expectProtectedMutation(
+			inventories,
+			"allocateReceivedInboundToBackorders",
+			"requireReceivedBackorderOperator",
+		);
+	});
+
 	test("Sales Finance corrective resolution requires order-payment editing permission", () => {
 		const finance = source("sales-finance.route.ts");
 		for (const mutation of [

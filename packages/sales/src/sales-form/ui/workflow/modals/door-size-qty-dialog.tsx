@@ -36,6 +36,7 @@ import {
 	isDoorRowPriceMissing,
 	rowsForDoorComponent,
 } from "../door-utils";
+import { SalesFormQuantityStepper } from "../sales-form-quantity-stepper";
 
 type DoorLine = NonNullable<
 	NonNullable<SalesFormLineItemRecord["housePackageTool"]>["doors"]
@@ -193,10 +194,6 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 		return true;
 	}
 
-	function qtyInputValue(value?: number | null) {
-		return Number(value || 0) > 0 ? String(Number(value || 0)) : "";
-	}
-
 	return (
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
 			<DialogContent
@@ -204,8 +201,8 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 				className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0"
 			>
 				<DialogHeader className="shrink-0 border-b bg-gradient-to-r from-slate-50 to-white px-4 py-4 sm:px-5">
-					<DialogTitle>
-						{props.component.title || "Door"} Size Select
+					<DialogTitle className="uppercase">
+						{props.component.title || "Door"} SIZE SELECT
 					</DialogTitle>
 					<DialogDescription>
 						Select size, price, and quantity for this door option.
@@ -213,12 +210,9 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 				</DialogHeader>
 				<div className="flex min-h-0 flex-1 flex-col gap-4 px-4 py-4 sm:px-5">
 					<div className="flex shrink-0 flex-col gap-3 rounded-xl border bg-slate-50/70 p-3 sm:flex-row sm:items-end sm:justify-between">
-						<div className="space-y-1">
+						<div className="shrink-0">
 							<p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
 								Door Supplier
-							</p>
-							<p className="text-sm font-semibold text-foreground">
-								{props.supplierName || "GND MILLWORK"}
 							</p>
 						</div>
 						<div className="w-full sm:w-[260px]">
@@ -311,17 +305,17 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 									{props.routeConfig?.noHandle ? (
 										<div className="space-y-2">
 											<Label>Qty</Label>
-											<Input
-												type="number"
-												aria-label={`Quantity for ${formatDoorSizeTitle(row.dimension)}`}
-												value={qtyInputValue(row.totalQty)}
-												onChange={(e) =>
+											<SalesFormQuantityStepper
+												label={`Quantity for ${formatDoorSizeTitle(row.dimension)}`}
+												value={row.totalQty}
+												className="w-full"
+												onChange={(value) =>
 													setRows((prev) =>
 														prev.map((item, ri) =>
 															ri === index
 																? calcWorkflowDoorRow({
 																		...item,
-																		totalQty: toNumber(e.target.value, 0),
+																		totalQty: value,
 																		lhQty: 0,
 																		rhQty: 0,
 																	})
@@ -330,50 +324,53 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 													)
 												}
 												disabled={isDoorRowPriceMissing(row)}
+												min={0}
 											/>
 										</div>
 									) : (
 										<div className="grid grid-cols-2 gap-3">
 											<div className="space-y-2">
 												<Label>LH</Label>
-												<Input
-													type="number"
-													aria-label={`LH quantity for ${formatDoorSizeTitle(row.dimension)}`}
-													value={qtyInputValue(row.lhQty)}
-													onChange={(e) =>
+												<SalesFormQuantityStepper
+													label={`LH quantity for ${formatDoorSizeTitle(row.dimension)}`}
+													value={row.lhQty}
+													className="w-full"
+													onChange={(value) =>
 														setRows((prev) =>
 															prev.map((item, ri) =>
 																ri === index
 																	? calcWorkflowDoorRow({
 																			...item,
-																			lhQty: toNumber(e.target.value, 0),
+																			lhQty: value,
 																		})
 																	: item,
 															),
 														)
 													}
 													disabled={isDoorRowPriceMissing(row)}
+													min={0}
 												/>
 											</div>
 											<div className="space-y-2">
 												<Label>RH</Label>
-												<Input
-													type="number"
-													aria-label={`RH quantity for ${formatDoorSizeTitle(row.dimension)}`}
-													value={qtyInputValue(row.rhQty)}
-													onChange={(e) =>
+												<SalesFormQuantityStepper
+													label={`RH quantity for ${formatDoorSizeTitle(row.dimension)}`}
+													value={row.rhQty}
+													className="w-full"
+													onChange={(value) =>
 														setRows((prev) =>
 															prev.map((item, ri) =>
 																ri === index
 																	? calcWorkflowDoorRow({
 																			...item,
-																			rhQty: toNumber(e.target.value, 0),
+																			rhQty: value,
 																		})
 																	: item,
 															),
 														)
 													}
 													disabled={isDoorRowPriceMissing(row)}
+													min={0}
 												/>
 											</div>
 										</div>
@@ -386,7 +383,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 							<table className="min-w-full text-sm">
 								<thead className="bg-slate-50">
 									<tr className="text-left text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-										<th className="sticky top-0 z-10 bg-slate-50 px-4 py-3 shadow-sm">
+										<th className="sticky top-0 z-10 whitespace-nowrap bg-slate-50 px-4 py-3 shadow-sm">
 											Size
 										</th>
 										<th className="sticky top-0 z-10 bg-slate-50 px-4 py-3 shadow-sm">
@@ -419,7 +416,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 								<tbody>
 									{rows.map((row, index) => (
 										<tr key={`door-size-row-${index}`} className="border-t">
-											<td className="px-4 py-3">
+											<td className="whitespace-nowrap px-4 py-3">
 												<div className="space-y-1">
 													<p className="font-semibold text-foreground">
 														{formatDoorSizeTitle(row.dimension)}
@@ -474,17 +471,16 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 											) : null}
 											{props.routeConfig?.noHandle ? (
 												<td className="px-4 py-3">
-													<Input
-														type="number"
-														aria-label={`Quantity for ${formatDoorSizeTitle(row.dimension)}`}
-														value={qtyInputValue(row.totalQty)}
-														onChange={(e) =>
+													<SalesFormQuantityStepper
+														label={`Quantity for ${formatDoorSizeTitle(row.dimension)}`}
+														value={row.totalQty}
+														onChange={(value) =>
 															setRows((prev) =>
 																prev.map((item, ri) =>
 																	ri === index
 																		? calcWorkflowDoorRow({
 																				...item,
-																				totalQty: toNumber(e.target.value, 0),
+																				totalQty: value,
 																				lhQty: 0,
 																				rhQty: 0,
 																			})
@@ -492,52 +488,53 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 																),
 															)
 														}
-														className="h-10 w-24 rounded-xl text-right"
+														className="w-28"
 														disabled={isDoorRowPriceMissing(row)}
+														min={0}
 													/>
 												</td>
 											) : (
 												<>
 													<td className="px-4 py-3">
-														<Input
-															type="number"
-															aria-label={`LH quantity for ${formatDoorSizeTitle(row.dimension)}`}
-															value={qtyInputValue(row.lhQty)}
-															onChange={(e) =>
+														<SalesFormQuantityStepper
+															label={`LH quantity for ${formatDoorSizeTitle(row.dimension)}`}
+															value={row.lhQty}
+															onChange={(value) =>
 																setRows((prev) =>
 																	prev.map((item, ri) =>
 																		ri === index
 																			? calcWorkflowDoorRow({
 																					...item,
-																					lhQty: toNumber(e.target.value, 0),
+																					lhQty: value,
 																				})
 																			: item,
 																	),
 																)
 															}
-															className="h-10 w-24 rounded-xl text-right"
+															className="w-28"
 															disabled={isDoorRowPriceMissing(row)}
+															min={0}
 														/>
 													</td>
 													<td className="px-4 py-3">
-														<Input
-															type="number"
-															aria-label={`RH quantity for ${formatDoorSizeTitle(row.dimension)}`}
-															value={qtyInputValue(row.rhQty)}
-															onChange={(e) =>
+														<SalesFormQuantityStepper
+															label={`RH quantity for ${formatDoorSizeTitle(row.dimension)}`}
+															value={row.rhQty}
+															onChange={(value) =>
 																setRows((prev) =>
 																	prev.map((item, ri) =>
 																		ri === index
 																			? calcWorkflowDoorRow({
 																					...item,
-																					rhQty: toNumber(e.target.value, 0),
+																					rhQty: value,
 																				})
 																			: item,
 																	),
 																)
 															}
-															className="h-10 w-24 rounded-xl text-right"
+															className="w-28"
 															disabled={isDoorRowPriceMissing(row)}
+															min={0}
 														/>
 													</td>
 												</>

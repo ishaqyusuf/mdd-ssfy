@@ -20,7 +20,9 @@ export function composePaymentOrderIdsParam(orderIds: string[]) {
     .join("-");
 }
 
-export type DeliveryOption = "delivery" | "pickup";
+export const SALES_DELIVERY_OPTIONS = ["pickup", "delivery", "ship"] as const;
+export type DeliveryOption = (typeof SALES_DELIVERY_OPTIONS)[number];
+export const salesDeliveryOptionSchema = z.enum(SALES_DELIVERY_OPTIONS);
 export type Qty = {
   lh?: any;
   rh?: any;
@@ -35,7 +37,7 @@ export type SalesDispatchStatus =
   | "cancelled";
 export const createSalesDispatchSchema = z.object({
   id: z.number().optional(),
-  deliveryMode: z.string() as z.ZodType<DeliveryOption>,
+  deliveryMode: salesDeliveryOptionSchema,
   status: z.string() as z.ZodType<SalesDispatchStatus>,
   orderId: z.number(),
   driverId: z.number().optional(),

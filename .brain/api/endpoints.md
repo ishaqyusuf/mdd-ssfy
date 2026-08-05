@@ -479,3 +479,19 @@ Tracks notable API surfaces and where they are implemented.
 - `notes.updateManualActivityNote`: protected author/Super Admin mutation that records a linked prior-version revision before updating the root.
 - `notes.deleteManualActivityNote`: protected author/Super Admin mutation that records a deletion snapshot and soft-deletes the root.
 - `notes.activityTree`: accepts `includeDeleted`; only Super Admin may enable it.
+
+## Inventory fulfillment queue and command closure (2026-08-04)
+
+- `inventories.salesBackorderQueue`: stable cursor-paginated filtered queue with
+  search, status, delivery-mode, and hold filters.
+- `inventories.salesBackorderQueueSummary`: complete filtered totals independent of
+  the visible page.
+- `inventories.salesBackorderQueuePrintSelection`: complete filtered sale-id
+  selection for packing-slip output, with explicit truncation evidence at 10,000
+  distinct sales.
+- `inventories.salesPartialShipmentQueue`: stable cursor-paginated partial-delivery
+  queue with the same URL filter dimensions.
+- `inventories.salesPartialShipmentQueueSummary`: complete filtered partial-shipment
+  totals.
+- Shipment, line-hold, dispatch assign/pack/fulfill/release, and received-backorder
+  allocation routes repeat server-side operational permission checks.

@@ -11,6 +11,7 @@ import {
 	getTaskOutputFailureMessage,
 	isSalesEmailTaskInput,
 	isSalesEmailTaskMetadata,
+	isTaskRealtimeAccessError,
 } from "./task-feedback";
 
 describe("task feedback", () => {
@@ -158,6 +159,20 @@ describe("task feedback", () => {
 		expect(getRunTerminalState({ status: "COMPLETED" })).toBe("COMPLETED");
 		expect(getRunTerminalState({ status: "CANCELED" })).toBe("CANCELED");
 		expect(getRunTerminalState({ status: "EXECUTING" })).toBe(null);
+	});
+
+	test("distinguishes realtime access failures from task failures", () => {
+		expect(
+			isTaskRealtimeAccessError(
+				new Error("Public Access Token is invalid for /realtime/v1/runs"),
+			),
+		).toBe(true);
+		expect(isTaskRealtimeAccessError(new Error("Unauthorized (401)"))).toBe(
+			true,
+		);
+		expect(
+			isTaskRealtimeAccessError(new Error("Run expired because TTL reached")),
+		).toBe(false);
 	});
 
 	test("reads output failures from Trigger run snapshots", () => {

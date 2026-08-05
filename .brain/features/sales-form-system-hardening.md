@@ -50,10 +50,43 @@
   document number. Slug lookup runs first, while the order-number fallback
   preserves legacy bookmarks and cross-surface redirects such as
   `/sales-form/edit-order/09158PC`.
-- Global invoice add-ons now use an explicit label-and-amount form. Submission
-  rejects blank labels and non-positive amounts, persists the result as a
-  non-taxable custom extra cost, and reuses any zero-value placeholder left by
-  the former button-only flow.
+- New-form invoice additional costs now mirror the legacy Add Cost interaction.
+  The dropdown offers Discount, Delivery, Flat Labor Cost, and Custom; choosing
+  an option immediately creates a zero-value line whose label and dollar amount
+  remain editable. Each line also exposes a delete action and writes through the
+  canonical extra-cost state so pricing recalculates as the values change.
+- The invoice summary rail now fixes its desktop flex child to the rail width,
+  prevents horizontal content escape, and keeps its 420px desktop allocation.
+  On smaller screens the summary sheet begins below the shared dashboard header,
+  leaving its title and close control visible.
+- Global invoice details and invoice-wide pricing now use a shared flat-section
+  header with concise helper text, consistent spacing, and bottom dividers.
+  Pricing rows use subtle separators, while the additional-cost rows remain an
+  inline subsection without a nested card, tinted panel, or shadow. Form
+  controls keep their standard outlined treatment for clear affordance.
+- Door size selection uses an all-caps title, a single non-wrapping Door
+  Supplier label beside the supplier dropdown, and no duplicate selected-
+  supplier caption. Door LH/RH/Qty, HPT size rows, moulding rows, and service
+  rows share one segmented minus/value/plus quantity control with explicit
+  bounds and accessible action labels. The desktop door-size table also keeps
+  its Size header and values on one line, allowing the table scroller to absorb
+  longer dimensions instead of wrapping them inside the column.
+- Component search/action bars now use the component picker itself as their
+  boundary. They float above the editor footer while a long component list is
+  active, anchor at the end of that list, and disappear when the picker leaves
+  the scroll viewport instead of escaping into the next section.
+- Invoice payment dates match legacy form ownership. Invoice Date remains
+  visible but is read-only in both order and quote editors. Orders expose Net,
+  Due, and Production Due; legacy values such as `Net30` normalize to `Net 30`,
+  a selected automatic term recalculates and disables Due, and `None` leaves
+  Due editable. Quotes omit Net, Due, and Production Due and expose Good Until.
+- Expanded customer summaries expose Billing Address and Shipping Address as
+  full-width keyboard-accessible edit targets with right-aligned Edit text,
+  pointer cursors, and subtle hover feedback. Address-only saves reconcile a
+  newly created address back into the current sale. When both selected address
+  ids exist and differ, Shipping also exposes a confirmation-gated `Same as
+  billing` action that changes only the sale's shipping selection and preserves
+  the saved shipping-address record.
 
 ## Validation
 
@@ -86,6 +119,37 @@
   add-on and confirmed the invoice summary updated to `+$5.00` with recalculated
   CCC and grand total. Focused normalization tests pass 2 tests / 4 assertions,
   and the Sales package typecheck passes.
+- 2026-08-05 authenticated create-order browser QA confirmed the invoice summary
+  child stays within its rail with zero document overflow at 1476px, the 1280px
+  desktop breakpoint, and 390x844 mobile. The mobile title and close control are
+  visible below the dashboard header. The focused layout regression, Sales
+  typecheck, scoped Biome check, and whitespace check pass.
+- 2026-08-05 authenticated create-order browser QA confirmed the flat invoice
+  details, pricing rows, global add-on subsection, helper copy, and section
+  dividers at desktop and 390x844 mobile with zero document overflow and zero
+  console errors. Five focused tests / 17 assertions, Sales typecheck, scoped
+  Biome, and whitespace validation pass.
+- 2026-08-05 authenticated create-order browser QA selected Delivery from Add
+  Cost, renamed it to `Freight & Handling`, entered `$125.50`, and confirmed the
+  live add-on, tax, CCC, and grand totals updated to `$125.50`, `$8.79`, `$4.03`,
+  and `$138.32`. Deleting the line restored the empty state and zero add-on
+  total. The focused additional-cost and normalization slice passes 19 tests /
+  82 assertions, and the Sales typecheck and scoped formatting checks pass.
+- 2026-08-05 authenticated browser QA confirmed the all-caps door-size title,
+  single-line supplier selector, service and moulding quantity steppers, and the
+  long-list component search bar fixed above footer actions before anchoring at
+  the list boundary. Order `Net 30` persisted, calculated Sep 4 from an Aug 5
+  order date, and disabled Due; quote mode exposed only Good Until. Focused
+  quantity, toolbar, customer-default, payment-term, metadata, summary, and HPT
+  regressions plus the Sales typecheck pass.
+- 2026-08-05 authenticated create-order browser QA expanded customer `2302`,
+  confirmed both address rows expose full-width Edit targets with a computed
+  pointer cursor, and opened the populated Billing Address editor for resolved
+  address `4279`. Shipping correctly opened a new Shipping Address form because
+  this fixture has no separate shipping record. Twelve focused tests / 36
+  assertions, the Sales typecheck, scoped Biome, and whitespace checks pass;
+  the Dashboard typecheck remains on its existing broad baseline diagnostics
+  with no touched-file diagnostic in a focused compile.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

@@ -1,5 +1,8 @@
 import { getServerAuthSession } from "@/lib/auth/session";
 import { BUG_REPORT_MAX_UPLOAD_SIZE_BYTES } from "@api/schemas/bug-reports";
+import { getUserErrorMessage } from "@gnd/errors";
+import { buildErrorReport } from "@gnd/observability";
+import * as Sentry from "@sentry/nextjs";
 import { type HandleUploadBody, handleUpload } from "@vercel/blob/client";
 
 const BUG_REPORT_UPLOAD_PREFIX = "bug-reports/";
@@ -19,19 +22,13 @@ function getBlobToken() {
 	return process.env.BLOB_READ_WRITE_TOKEN || "";
 }
 
-function getErrorMessage(error: unknown) {
-	return error instanceof Error
-		? error.message
-		: "Unable to authorize bug report upload.";
-}
-
 export async function POST(request: Request) {
 	const body = (await request.json()) as HandleUploadBody;
 	const token = getBlobToken();
 
 	if (!token) {
 		return Response.json(
-			{ error: "Vercel Blob upload token is not configured." },
+			{ error: "File upload is temporarily unavailable." },
 			{ status: 500 },
 		);
 	}
@@ -98,6 +95,17 @@ export async function POST(request: Request) {
 
 		return Response.json(jsonResponse);
 	} catch (error) {
-		return Response.json({ error: getErrorMessage(error) }, { status: 400 });
+		const report = buildErrorReport(error, {
+			requestId: request.headers.get("x-request-id") ?? undefined,
+			runtime: "dashboard",
+			source: "bug-report-upload",
+		});
+		if (report.classified.reportable) {
+			Sentry.captureException(report.reportableError, report.captureContext);
+		}
+		return Response.json(
+			{ error: getUserErrorMessage(error) },
+			{ status: 400 },
+		);
 	}
 }

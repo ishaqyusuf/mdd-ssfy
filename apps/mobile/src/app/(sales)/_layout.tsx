@@ -51,6 +51,14 @@ export default function SalesLayout() {
 				options={{ headerShown: false }}
 			/>
 			<Stack.Screen name="dispatch/new" options={{ headerShown: false }} />
+			<Stack.Screen
+				name="inventory/backorders"
+				options={{ headerShown: false }}
+			/>
+			<Stack.Screen
+				name="inventory/partial-shipments"
+				options={{ headerShown: false }}
+			/>
 		</Stack>
 	);
 }

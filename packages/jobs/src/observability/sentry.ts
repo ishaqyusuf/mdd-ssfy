@@ -1,3 +1,4 @@
+import { buildErrorReport, isObservabilityEnabled } from "@gnd/observability";
 import type { TaskRunContext } from "@trigger.dev/core/v3";
 
 type TaskFailureContext = Pick<
@@ -14,7 +15,11 @@ export function isSentryEnabled({
 	nodeEnv?: string;
 	dsn?: string;
 }) {
-	return (environment ?? nodeEnv) === "production" && Boolean(dsn);
+	return isObservabilityEnabled({
+		deploymentEnvironment: environment,
+		dsn,
+		nodeEnvironment: nodeEnv,
+	});
 }
 
 export function getSentrySourceMapUploadConfig({
@@ -53,20 +58,31 @@ export function shouldCaptureSentryTaskFailure({
 }
 
 export function getSentryTaskFailureContext(
+	error: unknown,
 	ctx: TaskFailureContext,
 	task: string,
 ) {
-	return {
+	return getSentryTaskFailureReport(error, ctx, task).captureContext;
+}
+
+export function getSentryTaskFailureReport(
+	error: unknown,
+	ctx: TaskFailureContext,
+	task: string,
+) {
+	return buildErrorReport(error, {
+		extra: {
+			attempt: ctx.attempt.number,
+			deploymentVersion: ctx.deployment?.version,
+			runId: ctx.run.id,
+		},
+		operation: task,
+		runtime: "jobs",
+		source: "trigger-task",
 		tags: {
-			runtime: "jobs",
 			task,
 			trigger_environment: ctx.environment.slug,
 			trigger_environment_type: ctx.environment.type,
 		},
-		extra: {
-			attempt: ctx.attempt.number,
-			runId: ctx.run.id,
-			deploymentVersion: ctx.deployment?.version,
-		},
-	};
+	});
 }
