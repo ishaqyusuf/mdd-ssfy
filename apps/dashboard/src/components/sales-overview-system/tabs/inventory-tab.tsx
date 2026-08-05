@@ -78,6 +78,7 @@ import {
 	getInventoryInboundEmptyStateCopy,
 	getPendingInventoryQty,
 	isInventoryNeedRow,
+	resolveInventoryAvailabilityState,
 	resolveInventoryInboundCountState,
 	shouldAutoSyncSalesInventory,
 	shouldShowInventoryInboundForm,
@@ -191,16 +192,6 @@ function isShortageInventoryLine(row: InventoryLine) {
 	return row.status === "shortage" || row.status === "needs_allocation";
 }
 
-function requirementStatusClassName(row: InventoryLine) {
-	if (row.requirementStatus === "not_applicable") {
-		return "border-slate-200 bg-slate-50 text-slate-600";
-	}
-	if (isShortageInventoryLine(row)) {
-		return "border-amber-200 bg-amber-50 text-amber-700";
-	}
-	return "border-emerald-200 bg-emerald-50 text-emerald-700";
-}
-
 function inboundStatusClassName(status: string | null | undefined) {
 	switch (status) {
 		case "completed":
@@ -222,34 +213,6 @@ function inboundOrderableQty(row: InventoryLine) {
 		0,
 		Number(row.qtyPending || 0) - Number(row.qtyInboundLinkedOpen || 0),
 	);
-}
-
-function inventoryLineKindTags(row: InventoryLine) {
-	const tags: Array<{
-		label: string;
-		className: string;
-	}> = [];
-
-	tags.push(
-		isInventoryNeedRow(row)
-			? {
-					label: "Needed",
-					className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-				}
-			: {
-					label: "Not needed",
-					className: "border-zinc-200 bg-zinc-50 text-zinc-600",
-				},
-	);
-	if (row.status === "fulfilled") {
-		tags.push({
-			label: "Fulfilled",
-			className:
-				"border-emerald-300 bg-emerald-100 text-emerald-800 font-semibold",
-		});
-	}
-
-	return tags;
 }
 
 function InventoryTabSkeleton() {
@@ -1380,7 +1343,10 @@ function InventoryMergedTable({
 	return (
 		<div className="min-w-0 w-full max-w-full overflow-hidden [contain:inline-size]">
 			{rows.length ? (
-				<ItemGroup className="gap-2" aria-label="Inventory component items">
+				<ItemGroup
+					className="gap-0 divide-y"
+					aria-label="Inventory component items"
+				>
 					{rows.map((row) => (
 						<InventoryLineRow
 							key={row.id}
@@ -1923,48 +1889,25 @@ function InventoryLineRow({
 }) {
 	const variantLabel = inventoryVariantLabel(row);
 	const categoryStepLabel = formatInventoryCategoryStepLabel(row.stepName);
-	const kindTags = inventoryLineKindTags(row);
-	const pendingTone = row.qtyPending > 0 ? "warning" : "default";
-	const allocatedTone = row.qtyAllocated > 0 ? "success" : "default";
-	const stockCell = row.inventoryId ? (
-		<a
-			className="font-medium text-primary underline-offset-4 hover:underline"
-			href={`/inventory/${row.inventoryId}`}
-		>
-			{formatQty(row.qtyInStock)}
-		</a>
-	) : (
-		formatQty(row.qtyInStock)
+	const isNeed = isInventoryNeedRow(row);
+	const availabilityState = resolveInventoryAvailabilityState({
+		qtyAllocated: row.qtyAllocated,
+		qtyRequired: row.qtyRequired,
+	});
+	const allocatedQty = Math.min(
+		Math.max(0, Number(row.qtyAllocated || 0)),
+		Math.max(0, Number(row.qtyRequired || 0)),
 	);
 
 	return (
-		<Item
-			variant="outline"
-			size="sm"
-			className="items-start rounded-lg bg-background/80 px-4 py-3.5 hover:bg-muted/30"
-		>
+		<Item size="sm" className="items-start rounded-none border-0 px-4 py-3.5">
 			<ItemContent className="min-w-0 gap-2">
 				<ItemHeader className="items-start gap-3">
 					<div className="min-w-0 space-y-1">
-						<ItemTitle className="min-w-0 flex-wrap gap-1.5">
+						<ItemTitle className="min-w-0">
 							<span className="truncate text-sm tracking-normal">
 								{row.componentName.toUpperCase()}
 							</span>
-							{kindTags.map((tag) => (
-								<Badge
-									key={tag.label}
-									variant="outline"
-									className={cn(
-										"min-h-6 px-2 text-xs leading-none",
-										tag.className,
-									)}
-								>
-									{tag.label === "Fulfilled" ? (
-										<Icons.CheckCircle2 className="mr-0.5 size-2.5" />
-									) : null}
-									{tag.label}
-								</Badge>
-							))}
 						</ItemTitle>
 						<ItemDescription className="line-clamp-none text-xs leading-5">
 							{[
@@ -1985,33 +1928,38 @@ function InventoryLineRow({
 						/>
 					</ItemActions>
 				</ItemHeader>
-				<div className="flex flex-wrap gap-2">
-					<InventoryMetric
-						label="INBOUND"
-						value={
-							row.status === "fulfilled"
-								? "Fulfilled"
-								: row.requirementShortLabel
-						}
-						className={requirementStatusClassName(row)}
-					/>
-					<InventoryMetric label="QTY" value={formatQty(row.qtyRequired)} />
-					<InventoryMetric label="ON HAND" value={stockCell} />
-					<InventoryMetric
-						label="ALLOCATED"
-						value={formatQty(row.qtyAllocated)}
-						tone={allocatedTone}
-					/>
-					<InventoryMetric
-						label="PENDING"
-						value={formatQty(row.qtyPending)}
-						tone={pendingTone}
-					/>
-					<InventoryMetric label="COST" value={formatMoney(row.cost)} />
-					<InventoryMetric label="SALES" value={formatMoney(row.salesPrice)} />
+				<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+					{isNeed ? (
+						<Badge
+							variant="outline"
+							className={cn(
+								"min-h-7 shrink-0 rounded-full px-2.5 text-xs font-semibold tabular-nums",
+								availabilityState === "empty" &&
+									"border-red-200 bg-red-50 text-red-700",
+								availabilityState === "partial" &&
+									"border-amber-200 bg-amber-50 text-amber-700",
+								availabilityState === "complete" &&
+									"border-emerald-200 bg-emerald-50 text-emerald-700",
+							)}
+						>
+							AVAILABLE {formatQty(allocatedQty)} OF{" "}
+							{formatQty(row.qtyRequired)}
+						</Badge>
+					) : null}
+					<InventoryFact label="COST" value={formatMoney(row.cost)} />
+					<InventoryFact label="SALES" value={formatMoney(row.salesPrice)} />
 				</div>
 			</ItemContent>
 		</Item>
+	);
+}
+
+function InventoryFact({ label, value }: { label: string; value: ReactNode }) {
+	return (
+		<div className="shrink-0 text-xs tabular-nums">
+			<span className="text-muted-foreground">{label}: </span>
+			<span className="font-medium text-foreground">{value}</span>
+		</div>
 	);
 }
 

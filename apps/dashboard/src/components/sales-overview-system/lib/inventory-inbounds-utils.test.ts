@@ -7,6 +7,7 @@ import {
 	getInventoryInboundEmptyStateCopy,
 	getPendingInventoryQty,
 	isInventoryNeedRow,
+	resolveInventoryAvailabilityState,
 	resolveInventoryInboundCountState,
 	shouldAutoSyncSalesInventory,
 	shouldShowInventoryInboundForm,
@@ -14,6 +15,18 @@ import {
 } from "./inventory-inbounds-utils";
 
 describe("sales overview inventory inbound helpers", () => {
+	it("uses availability as the single stock coverage signal", () => {
+		expect(
+			resolveInventoryAvailabilityState({ qtyAllocated: 0, qtyRequired: 4 }),
+		).toBe("empty");
+		expect(
+			resolveInventoryAvailabilityState({ qtyAllocated: 2, qtyRequired: 4 }),
+		).toBe("partial");
+		expect(
+			resolveInventoryAvailabilityState({ qtyAllocated: 4, qtyRequired: 4 }),
+		).toBe("complete");
+	});
+
 	it("clamps orderable inbound quantity after open linked demand", () => {
 		expect(
 			getInboundOrderableQty({ qtyPending: 8, qtyInboundLinkedOpen: 3 }),

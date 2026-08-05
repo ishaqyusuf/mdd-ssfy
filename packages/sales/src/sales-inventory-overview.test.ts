@@ -300,6 +300,35 @@ describe("summarizeSalesInventoryOverview", () => {
 
 		expect(summary.readiness).toBe("ready_for_production");
 	});
+
+	test("ignores optional component demand when computing readiness", () => {
+		const summary = summarizeSalesInventoryOverview([
+			{
+				components: [
+					{
+						required: true,
+						qty: 1,
+						qtyAllocated: 1,
+						status: "allocated",
+					},
+					{
+						required: false,
+						qty: 6,
+						qtyInbound: 6,
+						status: "inbound_required",
+					},
+				],
+			},
+		]);
+
+		expect(summary).toMatchObject({
+			requiredComponentCount: 1,
+			qtyRequired: 1,
+			qtyAllocated: 1,
+			qtyInbound: 0,
+			readiness: "ready_for_production",
+		});
+	});
 });
 
 describe("buildSalesOverviewInventoryMergedRows", () => {
@@ -826,5 +855,48 @@ describe("buildSalesOverviewInventoryGroups", () => {
 			canEditInboundStatus: false,
 			trackingPolicy: "tracked",
 		});
+	});
+
+	test("keeps optional tracked snapshots out of inventory requirements", () => {
+		const groups = buildSalesOverviewInventoryGroups([
+			{
+				id: 31,
+				components: [
+					{
+						id: 4,
+						required: false,
+						qty: 6,
+						qtyInbound: 6,
+						status: "inbound_required",
+						inventoryId: 500,
+						inventoryVariantId: 501,
+						inventoryCategoryId: 502,
+						inventory: {
+							id: 500,
+							name: "Generic Door",
+							stockMode: "monitored",
+						},
+						inventoryVariant: {
+							id: 501,
+							uid: "generic-door",
+						},
+						inventoryCategory: {
+							id: 502,
+							title: "Door",
+							stockMode: "monitored",
+						},
+					},
+				],
+			},
+		]);
+
+		expect(groups[0]?.rows[0]).toMatchObject({
+			qtyRequired: 0,
+			qtyPending: 0,
+			status: "allocated",
+			requirementStatus: "not_applicable",
+			canEditInboundStatus: false,
+		});
+		expect(groups[0]?.rows[0]?.actions).not.toContain("create_inbound");
 	});
 });

@@ -676,8 +676,11 @@ model SalesOrders {
     payrolls          Payroll[]
     history           SalesHistory[]
     lineItems         LineItem[]
+    inventoryProjection SalesInventoryProjectionState?
     productionGate    OrderProductionGate?
     productionReadinessOverride SalesProductionReadinessOverride?
+    productionSubmissionMaterialReviews SalesProductionSubmissionMaterialReview[]
+    adjustments       SalesOrderAdjustment[]
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -690,11 +693,31 @@ model SalesOrders {
     @@index([dealerSalesProfileId])
     @@index([customerId])
     @@index([salesChannel, createdAt])
+    @@index([deletedAt, status, prodStatus, id], name: "idx_sales_fulfillment_queue")
+    @@index([deletedAt, deliveryOption, id], name: "idx_sales_delivery_queue")
     @@index([shippingAddressId])
     @@index([billingAddressId])
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+model SalesInventoryProjectionState {
+    id           Int          @id @default(autoincrement())
+    salesOrderId Int          @unique
+    status       String       @default("syncing") @db.VarChar(32)
+    version      Int          @default(1)
+    needCount    Int          @default(0)
+    requiredQty  Float        @default(0)
+    source       String?      @db.VarChar(32)
+    lastError    String?      @db.Text
+    startedAt    DateTime?    @db.Timestamp(0)
+    completedAt  DateTime?    @db.Timestamp(0)
+    createdAt    DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime?    @updatedAt
+    salesOrder   SalesOrders  @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+    @@index([status, updatedAt])
 }
 
 enum DealerSellerOfRecord {
@@ -773,6 +796,50 @@ model SalesProductionReadinessOverride {
     @@index([status])
     @@index([confirmedByUserId])
     @@index([revokedByUserId])
+}
+
+enum ProductionSubmissionMaterialReviewStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    CANCELLED
+}
+
+enum ProductionSubmissionMaterialReviewReason {
+    AWAITING_INBOUND
+    ALLOCATION_REVIEW
+    BLOCKED
+    NOT_CONFIGURED
+    PROJECTION_UNAVAILABLE
+}
+
+model SalesProductionSubmissionMaterialReview {
+    id                   Int                                      @id @default(autoincrement())
+    salesOrderId         Int
+    submittedById        Int
+    reviewedById         Int?
+    status               ProductionSubmissionMaterialReviewStatus @default(PENDING)
+    classificationReason ProductionSubmissionMaterialReviewReason?
+    idempotencyKey       String                                   @unique @db.VarChar(128)
+    assignmentScope      Json                                     @db.Json
+    materialSnapshot     Json                                     @db.Json
+    materialRevision     String?                                  @db.VarChar(64)
+    resolution           Json?                                    @db.Json
+    decisionNote         String?                                  @db.Text
+    submittedAt          DateTime                                 @default(now()) @db.Timestamp(0)
+    reviewedAt           DateTime?                                @db.Timestamp(0)
+    cancelledAt          DateTime?                                @db.Timestamp(0)
+    createdAt            DateTime                                 @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime                                 @updatedAt
+    order                SalesOrders                              @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    submittedBy          Users                                    @relation(name: "productionSubmissionMaterialReviewsSubmitted", fields: [submittedById], references: [id])
+    reviewedBy           Users?                                   @relation(name: "productionSubmissionMaterialReviewsReviewed", fields: [reviewedById], references: [id])
+    submissions          OrderProductionSubmissions[]
+
+    @@index([status, submittedAt])
+    @@index([salesOrderId, status])
+    @@index([submittedById, status])
+    @@index([reviewedById])
 }
 
 model SalesHistory {
@@ -1363,10 +1430,12 @@ model OrderProductionSubmissions {
     updatedAt        DateTime?                       @updatedAt
     assignmentId     Int?
     submittedById    Int?
+    materialReviewId Int?
     meta             Json?                           @db.Json
     order            SalesOrders?                    @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
     item             SalesOrderItems?                @relation(fields: [salesOrderItemId], references: [id], onDelete: Cascade)
     assignment       OrderItemProductionAssignments? @relation(fields: [assignmentId], references: [id])
+    materialReview   SalesProductionSubmissionMaterialReview? @relation(fields: [materialReviewId], references: [id])
     itemDeliveries   OrderItemDelivery[]
 
     payroll     Payroll?
@@ -1376,6 +1445,8 @@ model OrderProductionSubmissions {
     @@index([salesOrderId])
     @@index([salesOrderItemId])
     @@index([assignmentId])
+    @@index([materialReviewId])
+    @@unique([materialReviewId, assignmentId])
 }
 
 enum OrderProductionGateStatus {
@@ -2616,9 +2687,9 @@ model JobInstallTasks {
 
 model JobPayments {
     id            Int                     @unique @default(autoincrement())
-    amount        Int
-    charges       Int?
-    subTotal      Int?
+    amount        Decimal                 @db.Decimal(12, 2)
+    charges       Decimal?                @db.Decimal(12, 2)
+    subTotal      Decimal?                @db.Decimal(12, 2)
     userId        Int
     paidBy        Int
     checkNo       String?
@@ -2638,7 +2709,7 @@ model JobPayments {
 
 model JobPaymentAdjustments {
     id          Int             @unique @default(autoincrement())
-    amount      Int
+    amount      Decimal         @db.Decimal(12, 2)
     type        AdjustmentTypes
     description String?
 
@@ -2664,6 +2735,24 @@ model SquarePaymentLink {
     createdAt     DateTime? @default(now()) @db.Timestamp(0)
     updatedAt     DateTime? @updatedAt
     deletedAt     DateTime? @db.Timestamp(0)
+}
+
+// ---- sales-form-preference.prisma ----
+enum SalesFormPreferenceMode {
+    NEW
+    LEGACY
+}
+
+model SalesFormPreference {
+    userId     Int                     @id
+    mode       SalesFormPreferenceMode
+    source     String                  @db.VarChar(64)
+    promptedAt DateTime?               @db.Timestamp(0)
+    createdAt  DateTime                @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime                @updatedAt
+    user       Users                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([mode, updatedAt])
 }
 
 // ---- inventory.prisma ----
@@ -3230,9 +3319,9 @@ enum StockMovementStatus {
 }
 
 model InboundShipment {
-    id         Int      @id @default(autoincrement())
-    supplierId Int
-    supplier   Supplier @relation(fields: [supplierId], references: [id])
+    id         Int       @id @default(autoincrement())
+    supplierId Int?
+    supplier   Supplier? @relation(fields: [supplierId], references: [id])
 
     status     InboundStatus // pending, in_progress, completed, cancelled
     expectedAt DateTime?
@@ -3433,6 +3522,7 @@ model LineItem {
     @@index([inventoryCategoryId])
     @@index([saleId])
     @@index([inventoryId])
+    @@index([saleId, deletedAt, lineItemType, id], name: "idx_line_item_fulfillment_queue")
 }
 
 model LinePricing {
@@ -3488,6 +3578,7 @@ model LineItemComponents {
     @@index([inventoryId])
     @@index([subComponentId])
     @@index([inventoryCategoryId])
+    @@index([status, lineItemId, inventoryVariantId], name: "idx_line_component_fulfillment")
 }
 
 model StockAllocation {
@@ -3513,6 +3604,7 @@ model StockAllocation {
     @@index([lineItemComponentId])
     @@index([inventoryStockId])
     @@index([inventoryVariantId])
+    @@index([lineItemComponentId, status, deletedAt], name: "idx_stock_allocation_fulfillment")
 }
 
 model InboundDemand {
@@ -3540,6 +3632,7 @@ model InboundDemand {
     @@index([lineItemComponentId])
     @@index([inventoryVariantId])
     @@index([inboundShipmentItemId])
+    @@index([lineItemComponentId, status, deletedAt], name: "idx_inbound_demand_fulfillment")
 }
 
 enum LineItemComponentStatus {
@@ -4437,6 +4530,7 @@ model Users {
     orderItemAssignedByMe       OrderItemProductionAssignments[] @relation(name: "orderItemAssignedByMe")
     events                      Event[]
     pageView                    PageView[]
+    salesFormPreference         SalesFormPreference?
     notes                       Progress[]
     approvedDealerStatusHistory DealerStatusHistory[]
     sentDealerRecruitmentInvitations DealerRecruitmentInvitation[]
@@ -4453,6 +4547,8 @@ model Users {
     definedProductionGates      OrderProductionGate[]
     confirmedProductionReadinessOverrides SalesProductionReadinessOverride[] @relation(name: "confirmedProductionReadinessOverrides")
     revokedProductionReadinessOverrides SalesProductionReadinessOverride[] @relation(name: "revokedProductionReadinessOverrides")
+    submittedProductionMaterialReviews SalesProductionSubmissionMaterialReview[] @relation(name: "productionSubmissionMaterialReviewsSubmitted")
+    reviewedProductionMaterialReviews SalesProductionSubmissionMaterialReview[] @relation(name: "productionSubmissionMaterialReviewsReviewed")
     sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
     taskRunDiagnosticsStarted   TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticActor")
@@ -4571,6 +4667,367 @@ model WebAuthVerification {
     expiresAt  DateTime
     createdAt  DateTime?
     updatedAt  DateTime?
+}
+
+// ---- contractor-accounting.prisma ----
+enum ContractorLedgerEntryType {
+    OPENING_BALANCE
+    JOB_EARNED
+    BONUS
+    EXPENSE
+    DEDUCTION
+    PAYOUT
+    REVERSAL
+}
+
+enum ContractorLedgerSourceType {
+    JOB
+    PAYMENT
+    PAYMENT_ADJUSTMENT
+    MANUAL_ADJUSTMENT
+    OPENING_BALANCE
+    MIGRATION
+}
+
+enum ContractorAccountingPeriodStatus {
+    OPEN
+    CLOSED
+}
+
+enum ContractorAccountingPeriodEventType {
+    CLOSED
+    REOPENED
+}
+
+enum ContractorReconciliationRunStatus {
+    PENDING
+    RUNNING
+    MATCHED
+    ISSUES_FOUND
+    FAILED
+}
+
+enum ContractorReconciliationIssueCode {
+    SUMMARY_MISMATCH
+    CONTRACTOR_MISMATCH
+    MISSING_SOURCE
+    DUPLICATE_SOURCE
+    LEGACY_DATE_FALLBACK
+    MISSING_EFFECTIVE_DATE
+}
+
+enum ContractorReconciliationIssueStatus {
+    OPEN
+    REVIEWED
+    RESOLVED
+}
+
+enum ContractorAccountingReportKind {
+    CONSOLIDATED
+    CONTRACTOR_STATEMENT
+    AGING
+    RECONCILIATION
+    ADJUSTMENT_REGISTER
+    TAX_READINESS
+}
+
+enum ContractorAccountingReportFormat {
+    PDF
+    XLSX
+    CSV
+}
+
+enum ContractorAccountingRunStatus {
+    PENDING
+    RUNNING
+    COMPLETED
+    FAILED
+}
+
+enum ContractorW9Status {
+    NOT_REQUESTED
+    REQUESTED
+    RECEIVED
+    VERIFIED
+    EXPIRED
+}
+
+enum ContractorPayoutRunStatus {
+    DRAFT
+    READY
+    HANDED_OFF
+    COMPLETED
+    CANCELLED
+}
+
+enum ContractorAccountingAlertKind {
+    BALANCE_THRESHOLD
+    LIABILITY_AGE
+    RECONCILIATION_STALE
+    W9_BLOCKER
+    PERIOD_CLOSE
+}
+
+enum ContractorAccountingAlertEventStatus {
+    OPEN
+    ACKNOWLEDGED
+    RESOLVED
+}
+
+model ContractorLedgerEntry {
+    id                  String                     @id @default(cuid())
+    contractorId        Int
+    type                ContractorLedgerEntryType
+    amount              Decimal                    @db.Decimal(18, 2)
+    liabilityDelta      Decimal                    @db.Decimal(18, 2)
+    effectiveAt         DateTime                   @db.DateTime(3)
+    postedAt            DateTime                   @default(now()) @db.DateTime(3)
+    sourceType          ContractorLedgerSourceType
+    sourceId            String                     @db.VarChar(191)
+    sourceKey           String                     @unique @db.VarChar(191)
+    description         String?                    @db.Text
+    jobId               Int?
+    paymentId           Int?
+    paymentAdjustmentId Int?
+    createdById         Int?
+    reversalOfId        String?                    @unique
+    reversalOf          ContractorLedgerEntry?     @relation("ContractorLedgerReversal", fields: [reversalOfId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    reversedBy          ContractorLedgerEntry?     @relation("ContractorLedgerReversal")
+    evidence            Json?                      @db.Json
+    meta                Json?                      @db.Json
+    createdAt           DateTime                   @default(now()) @db.DateTime(3)
+
+    @@index([contractorId, effectiveAt, id])
+    @@index([effectiveAt, id])
+    @@index([type, effectiveAt])
+    @@index([sourceType, sourceId])
+    @@index([jobId])
+    @@index([paymentId])
+    @@index([paymentAdjustmentId])
+}
+
+model ContractorAccountingPeriod {
+    id                String                           @id @default(cuid())
+    from              DateTime                         @db.DateTime(3)
+    toExclusive       DateTime                         @db.DateTime(3)
+    timezone          String                           @db.VarChar(64)
+    status            ContractorAccountingPeriodStatus @default(OPEN)
+    closingBalance    Decimal?                         @db.Decimal(18, 2)
+    snapshot          Json?                            @db.Json
+    snapshotHash      String?                          @db.VarChar(64)
+    closedAt          DateTime?                        @db.DateTime(3)
+    closedById        Int?
+    reopenedAt        DateTime?                        @db.DateTime(3)
+    reopenedById      Int?
+    reopenReason      String?                          @db.Text
+    createdAt         DateTime                         @default(now()) @db.DateTime(3)
+    updatedAt         DateTime                         @updatedAt
+    events            ContractorAccountingPeriodEvent[]
+    reconciliationRuns ContractorReconciliationRun[]
+
+    @@unique([from, toExclusive, timezone])
+    @@index([status, from, toExclusive])
+}
+
+model ContractorAccountingPeriodEvent {
+    id          String                              @id @default(cuid())
+    periodId    String
+    period      ContractorAccountingPeriod          @relation(fields: [periodId], references: [id])
+    type        ContractorAccountingPeriodEventType
+    actorId     Int
+    reason      String?                             @db.Text
+    snapshot    Json?                               @db.Json
+    snapshotHash String?                            @db.VarChar(64)
+    createdAt   DateTime                            @default(now()) @db.DateTime(3)
+
+    @@index([periodId, createdAt])
+    @@index([actorId])
+}
+
+model ContractorReconciliationRun {
+    id           String                            @id @default(cuid())
+    periodId     String?
+    period       ContractorAccountingPeriod?       @relation(fields: [periodId], references: [id])
+    from         DateTime                          @db.DateTime(3)
+    toExclusive  DateTime                          @db.DateTime(3)
+    timezone     String                            @db.VarChar(64)
+    status       ContractorReconciliationRunStatus @default(PENDING)
+    sourceTotals Json?                             @db.Json
+    ledgerTotals Json?                             @db.Json
+    startedAt    DateTime?                         @db.DateTime(3)
+    completedAt  DateTime?                         @db.DateTime(3)
+    requestedById Int?
+    error        String?                           @db.Text
+    createdAt    DateTime                          @default(now()) @db.DateTime(3)
+    issues       ContractorReconciliationIssue[]
+
+    @@index([from, toExclusive, createdAt])
+    @@index([status, createdAt])
+}
+
+model ContractorReconciliationIssue {
+    id              String                              @id @default(cuid())
+    runId           String
+    run             ContractorReconciliationRun         @relation(fields: [runId], references: [id])
+    contractorId    Int?
+    ledgerEntryId   String?
+    code            ContractorReconciliationIssueCode
+    status          ContractorReconciliationIssueStatus @default(OPEN)
+    message         String                              @db.Text
+    expectedAmount  Decimal?                            @db.Decimal(18, 2)
+    actualAmount    Decimal?                            @db.Decimal(18, 2)
+    differenceAmount Decimal?                           @db.Decimal(18, 2)
+    evidence        Json?                               @db.Json
+    reviewedAt      DateTime?                           @db.DateTime(3)
+    reviewedById    Int?
+    resolutionNote  String?                             @db.Text
+    createdAt       DateTime                            @default(now()) @db.DateTime(3)
+    updatedAt       DateTime                            @updatedAt
+
+    @@index([runId, status])
+    @@index([contractorId, status])
+    @@index([ledgerEntryId])
+    @@index([code, status])
+}
+
+model ContractorAccountingReportSchedule {
+    id             String                         @id @default(cuid())
+    name           String                         @db.VarChar(191)
+    kind           ContractorAccountingReportKind
+    format         ContractorAccountingReportFormat
+    cron           String                         @db.VarChar(191)
+    timezone       String                         @db.VarChar(64)
+    filters        Json                           @db.Json
+    recipients     Json                           @db.Json
+    enabled        Boolean                        @default(true)
+    createdById    Int
+    lastRunAt      DateTime?                      @db.DateTime(3)
+    nextRunAt      DateTime?                      @db.DateTime(3)
+    createdAt      DateTime                       @default(now()) @db.DateTime(3)
+    updatedAt      DateTime                       @updatedAt
+    reportRuns     ContractorAccountingReportRun[]
+
+    @@index([enabled, nextRunAt])
+    @@index([createdById])
+}
+
+model ContractorAccountingReportRun {
+    id             String                         @id @default(cuid())
+    scheduleId     String?
+    schedule       ContractorAccountingReportSchedule? @relation(fields: [scheduleId], references: [id])
+    kind           ContractorAccountingReportKind
+    format         ContractorAccountingReportFormat
+    status         ContractorAccountingRunStatus  @default(PENDING)
+    contractorId   Int?
+    filters        Json                           @db.Json
+    totals         Json?                          @db.Json
+    outputUrl      String?                        @db.Text
+    contentHash    String?                        @db.VarChar(64)
+    requestedById  Int
+    startedAt      DateTime?                      @db.DateTime(3)
+    completedAt    DateTime?                      @db.DateTime(3)
+    error          String?                        @db.Text
+    createdAt      DateTime                       @default(now()) @db.DateTime(3)
+
+    @@index([requestedById, createdAt])
+    @@index([contractorId, createdAt])
+    @@index([status, createdAt])
+    @@index([scheduleId, createdAt])
+}
+
+model ContractorTaxProfile {
+    id                String              @id @default(cuid())
+    contractorId      Int                 @unique
+    legalName         String?             @db.VarChar(191)
+    taxClassification String?             @db.VarChar(64)
+    w9Status          ContractorW9Status  @default(NOT_REQUESTED)
+    w9RequestedAt     DateTime?           @db.DateTime(3)
+    w9ReceivedAt      DateTime?           @db.DateTime(3)
+    w9VerifiedAt      DateTime?           @db.DateTime(3)
+    w9VerifiedById    Int?
+    tinLastFour       String?             @db.VarChar(4)
+    documentId        String?             @db.VarChar(191)
+    notes             String?             @db.Text
+    createdAt         DateTime             @default(now()) @db.DateTime(3)
+    updatedAt         DateTime             @updatedAt
+
+    @@index([w9Status, contractorId])
+}
+
+model ContractorPayoutRun {
+    id                    String                    @id @default(cuid())
+    status                ContractorPayoutRunStatus @default(DRAFT)
+    contractorId          Int
+    jobIds                Json                      @db.Json
+    filters               Json?                     @db.Json
+    proposedAmount        Decimal                   @db.Decimal(18, 2)
+    snapshot              Json                      @db.Json
+    snapshotHash          String                    @db.VarChar(64)
+    note                  String?                   @db.Text
+    createdById           Int
+    reviewedById          Int?
+    reviewedAt            DateTime?                 @db.DateTime(3)
+    handedOffAt           DateTime?                 @db.DateTime(3)
+    paymentId             Int?
+    completedAt           DateTime?                 @db.DateTime(3)
+    cancelledAt           DateTime?                 @db.DateTime(3)
+    cancelledById         Int?
+    cancellationReason    String?                   @db.Text
+    createdAt             DateTime                  @default(now()) @db.DateTime(3)
+    updatedAt             DateTime                  @updatedAt
+
+    @@index([status, createdAt])
+    @@index([contractorId, status, createdAt])
+    @@index([createdById, createdAt])
+    @@index([paymentId])
+}
+
+model ContractorAccountingAlertRule {
+    id             String                          @id @default(cuid())
+    name           String                          @db.VarChar(191)
+    kind           ContractorAccountingAlertKind
+    enabled        Boolean                         @default(true)
+    contractorId   Int?
+    thresholdAmount Decimal?                       @db.Decimal(18, 2)
+    thresholdDays  Int?
+    timezone       String                          @db.VarChar(64)
+    recipients     Json                            @db.Json
+    filters        Json?                           @db.Json
+    createdById    Int
+    lastEvaluatedAt DateTime?                      @db.DateTime(3)
+    createdAt      DateTime                        @default(now()) @db.DateTime(3)
+    updatedAt      DateTime                        @updatedAt
+    events         ContractorAccountingAlertEvent[]
+
+    @@index([enabled, kind])
+    @@index([contractorId, enabled])
+    @@index([createdById, createdAt])
+}
+
+model ContractorAccountingAlertEvent {
+    id             String                               @id @default(cuid())
+    ruleId         String
+    rule           ContractorAccountingAlertRule        @relation(fields: [ruleId], references: [id])
+    status         ContractorAccountingAlertEventStatus @default(OPEN)
+    contractorId   Int?
+    fingerprint    String                               @db.VarChar(64)
+    title          String                               @db.VarChar(191)
+    message        String                               @db.Text
+    evidence       Json                                 @db.Json
+    triggeredAt    DateTime                             @default(now()) @db.DateTime(3)
+    emailDelivery  Json?                                @db.Json
+    emailDeliveryAttemptedAt DateTime?                  @db.DateTime(3)
+    emailDeliveredAt DateTime?                          @db.DateTime(3)
+    emailDeliveryError String?                          @db.Text
+    acknowledgedAt DateTime?                            @db.DateTime(3)
+    acknowledgedById Int?
+    resolvedAt     DateTime?                            @db.DateTime(3)
+    createdAt      DateTime                             @default(now()) @db.DateTime(3)
+    updatedAt      DateTime                             @updatedAt
+
+    @@unique([ruleId, fingerprint])
+    @@index([status, triggeredAt])
+    @@index([contractorId, status])
 }
 
 // ---- dealer-program.prisma ----
@@ -5119,6 +5576,119 @@ model CheckoutTenders {
     checkout        SalesCheckout @relation(fields: [salesCheckoutId], references: [id])
 
     @@index([salesCheckoutId])
+}
+
+// ---- sales.adjustment.prisma ----
+enum SalesOrderAdjustmentDirection {
+    INCREASE
+    REDUCTION
+    MIXED
+}
+
+enum SalesOrderAdjustmentStatus {
+    DRAFT
+    PENDING_CUSTOMER
+    APPROVED
+    APPLYING
+    APPLIED
+    APPLIED_WITH_REVIEW
+    REJECTED
+    EXPIRED
+    CANCELLED
+    STALE
+    FAILED
+}
+
+enum SalesOrderAdjustmentApprovalStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    EXPIRED
+    REVOKED
+}
+
+model SalesOrderAdjustment {
+    id                    String                         @id @default(cuid())
+    salesOrderId          Int
+    direction             SalesOrderAdjustmentDirection
+    status                SalesOrderAdjustmentStatus   @default(DRAFT)
+    sourceVersion         String?                       @db.VarChar(191)
+    sourceHash            String                        @db.VarChar(191)
+    idempotencyKey        String                        @unique @db.VarChar(191)
+    reason                String?                       @db.Text
+    beforeSnapshot        Json                          @db.Json
+    proposedSnapshot      Json                          @db.Json
+    commitmentSnapshot    Json                          @db.Json
+    settlementSnapshot    Json?                         @db.Json
+    beforeGrandTotal      Decimal                       @db.Decimal(12, 2)
+    proposedGrandTotal    Decimal                       @db.Decimal(12, 2)
+    paymentTotal          Decimal                       @db.Decimal(12, 2)
+    amountDueAfter        Decimal                       @db.Decimal(12, 2)
+    walletCreditAmount    Decimal                       @default(0) @db.Decimal(12, 2)
+    requestedById         Int
+    submittedById         Int?
+    appliedById           Int?
+    walletTransactionId   Int?
+    refundSalesPaymentId  Int?
+    paymentLedgerEntryId  String?                       @db.VarChar(191)
+    failureCode           String?                       @db.VarChar(100)
+    failureMessage        String?                       @db.Text
+    submittedAt           DateTime?                     @db.Timestamp(0)
+    approvedAt            DateTime?                     @db.Timestamp(0)
+    appliedAt             DateTime?                     @db.Timestamp(0)
+    cancelledAt           DateTime?                     @db.Timestamp(0)
+    failedAt              DateTime?                     @db.Timestamp(0)
+    createdAt             DateTime                       @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime                       @updatedAt
+    order                 SalesOrders                    @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    lines                 SalesOrderAdjustmentLine[]
+    approvals             SalesOrderAdjustmentApproval[]
+
+    @@index([salesOrderId, status, createdAt])
+    @@index([status, submittedAt])
+    @@index([requestedById, createdAt])
+    @@index([walletTransactionId])
+    @@index([refundSalesPaymentId])
+}
+
+model SalesOrderAdjustmentLine {
+    id                 String               @id @default(cuid())
+    adjustmentId       String
+    lineUid            String               @db.VarChar(191)
+    salesOrderItemId   Int?
+    title              String               @db.VarChar(300)
+    beforeQty          Decimal              @db.Decimal(12, 3)
+    proposedQty        Decimal              @db.Decimal(12, 3)
+    quantityDelta      Decimal              @db.Decimal(12, 3)
+    beforeLineTotal    Decimal              @db.Decimal(12, 2)
+    proposedLineTotal  Decimal              @db.Decimal(12, 2)
+    lineTotalDelta     Decimal              @db.Decimal(12, 2)
+    commitmentSnapshot Json?                @db.Json
+    createdAt          DateTime             @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime             @updatedAt
+    adjustment         SalesOrderAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+
+    @@unique([adjustmentId, lineUid])
+    @@index([salesOrderItemId])
+}
+
+model SalesOrderAdjustmentApproval {
+    id             String                             @id @default(cuid())
+    adjustmentId   String
+    status         SalesOrderAdjustmentApprovalStatus @default(PENDING)
+    tokenHash      String                             @unique @db.VarChar(191)
+    channel        String?                            @db.VarChar(50)
+    recipient      String?                            @db.VarChar(255)
+    responseNote   String?                            @db.Text
+    evidence       Json?                              @db.Json
+    expiresAt      DateTime                           @db.Timestamp(0)
+    respondedAt    DateTime?                          @db.Timestamp(0)
+    createdAt      DateTime                           @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime                           @updatedAt
+    adjustment     SalesOrderAdjustment               @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+
+    @@index([adjustmentId, status])
+    @@index([status, expiresAt])
 }
 
 // ---- organization.prisma ----

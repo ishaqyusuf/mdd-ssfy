@@ -827,14 +827,28 @@ export function selectInventoryParentFormStep(item: SyncItemLike) {
 		: metadataFormSteps(item);
 
 	if (formSteps.length === 1) return formSteps[0] ?? null;
-	if (!isMouldingSalesItem(item)) return null;
+	if (isMouldingSalesItem(item)) {
+		const mouldingSteps = formSteps.filter((formStep) => {
+			const title = formStep.step?.title?.trim().toLowerCase() ?? "";
+			return title.includes("moulding") || title.includes("molding");
+		});
 
-	const mouldingSteps = formSteps.filter((formStep) => {
-		const title = formStep.step?.title?.trim().toLowerCase() ?? "";
-		return title.includes("moulding") || title.includes("molding");
-	});
+		return mouldingSteps.length === 1 ? (mouldingSteps[0] ?? null) : null;
+	}
 
-	return mouldingSteps.length === 1 ? mouldingSteps[0] ?? null : null;
+	const housePackageTool =
+		item.housePackageTool && !item.housePackageTool.deletedAt
+			? item.housePackageTool
+			: metadataHousePackageTool(item);
+	if (!housePackageTool) return null;
+
+	const itemTypeSteps = formSteps.filter(
+		(formStep) =>
+			formStep.step?.title?.trim().toLowerCase() === "item type" &&
+			Boolean(formStep.prodUid || formStep.component?.uid),
+	);
+
+	return itemTypeSteps.length === 1 ? (itemTypeSteps[0] ?? null) : null;
 }
 
 async function resolveInventoryMappingForItem(
@@ -1191,6 +1205,14 @@ export function buildInventorySyncComponentCandidatesForItem(
 			: metadataHousePackageTool(item);
 	const doorQty = housePackageDoorQty(housePackageTool);
 	const stepSelectionContext = buildStepSelectionContext(formSteps);
+	const hptDoorCandidates = (housePackageTool?.doors || [])
+		.map((door) => buildDoorCandidate(door, housePackageTool?.stepProduct))
+		.filter((candidate): candidate is SyncComponentCandidate =>
+			Boolean(candidate),
+		);
+	const hptDoorCategoryUids = new Set(
+		hptDoorCandidates.map((candidate) => candidate.inventoryCategoryUid),
+	);
 
 	const addCandidate = (candidate: SyncComponentCandidate | null) => {
 		if (!candidate) return;
@@ -1210,8 +1232,15 @@ export function buildInventorySyncComponentCandidatesForItem(
 	};
 
 	for (const step of formSteps) {
+		const candidate = buildStepFormCandidate(
+			step,
+			doorQty || 1,
+			stepSelectionContext,
+		);
 		addCandidate(
-			buildStepFormCandidate(step, doorQty || 1, stepSelectionContext),
+			candidate && step.step?.uid && hptDoorCategoryUids.has(step.step.uid)
+				? { ...candidate, required: false }
+				: candidate,
 		);
 	}
 
@@ -1220,8 +1249,7 @@ export function buildInventorySyncComponentCandidatesForItem(
 	}
 
 	if (housePackageTool && !housePackageTool.deletedAt) {
-		const doors = housePackageTool.doors || [];
-		if (!doors.length) {
+		if (!hptDoorCandidates.length) {
 			addCandidate(
 				buildHousePackageCandidate(
 					housePackageTool,
@@ -1231,8 +1259,8 @@ export function buildInventorySyncComponentCandidatesForItem(
 				),
 			);
 		}
-		for (const door of doors) {
-			addCandidate(buildDoorCandidate(door, housePackageTool.stepProduct));
+		for (const candidate of hptDoorCandidates) {
+			addCandidate(candidate);
 		}
 	}
 
@@ -1582,6 +1610,13 @@ type ComponentDemandState = {
 		| "fulfilled"
 		| "cancelled";
 };
+
+export function resolveComponentDemandQty(input: {
+	qty: number;
+	required: boolean;
+}) {
+	return input.required ? Math.max(1, Math.round(input.qty)) : 0;
+}
 
 export function planComponentDemandState(input: {
 	qtyRequired: number;
@@ -2260,6 +2295,7 @@ export async function syncSalesInventoryLineItems(
 				candidate,
 			);
 			const componentQty = Math.max(1, Math.round(candidate.qty));
+			const componentDemandQty = resolveComponentDemandQty(candidate);
 			const componentPricingInput = {
 				...componentMapping,
 				qty: componentQty,
@@ -2347,7 +2383,7 @@ export async function syncSalesInventoryLineItems(
 			const fulfillment = await syncComponentFulfillment(db, {
 				lineItemComponentId,
 				inventoryVariantId: componentMapping.inventoryVariantId,
-				qtyRequired: componentQty,
+				qtyRequired: componentDemandQty,
 				orderInventoryStatus: sale.inventoryStatus,
 			});
 

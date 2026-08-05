@@ -4,6 +4,19 @@ export type InventoryInboundCountState =
 	| "covered"
 	| "empty";
 
+export type InventoryAvailabilityState = "empty" | "partial" | "complete";
+
+export function resolveInventoryAvailabilityState(input: {
+	qtyAllocated?: number | null;
+	qtyRequired?: number | null;
+}): InventoryAvailabilityState {
+	const required = Math.max(0, Number(input.qtyRequired || 0));
+	const allocated = Math.max(0, Number(input.qtyAllocated || 0));
+	if (required > 0 && allocated >= required) return "complete";
+	if (allocated > 0) return "partial";
+	return "empty";
+}
+
 export function isInventoryNeedRow(input: {
 	requirementStatus?: string | null;
 	trackingPolicy?: string | null;

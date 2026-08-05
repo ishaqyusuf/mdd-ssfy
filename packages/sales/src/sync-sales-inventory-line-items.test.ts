@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildInventorySyncComponentCandidatesForItem,
 	planComponentDemandState,
+	resolveComponentDemandQty,
 	resolveProjectedInboundDemandStatus,
 	resolveSalesItemProductionEligibility,
 	selectInventoryParentFormStep,
@@ -18,6 +19,11 @@ const emptyItem = {
 };
 
 describe("sync sales inventory line items", () => {
+	it("does not create demand for a non-required component snapshot", () => {
+		expect(resolveComponentDemandQty({ qty: 6, required: false })).toBe(0);
+		expect(resolveComponentDemandQty({ qty: 6, required: true })).toBe(6);
+	});
+
 	it("queues inbound demand only for unavailable quantity after suggested allocations", () => {
 		expect(
 			planComponentDemandState({
@@ -223,6 +229,84 @@ describe("sync sales inventory line items", () => {
 		};
 
 		expect(selectInventoryParentFormStep(item)?.prodUid).toBe("flat-board");
+	});
+
+	it("selects the item type as the parent mapping for HPT lines without a root product", () => {
+		const item = {
+			...emptyItem,
+			description: "Bifold",
+			formSteps: [
+				{
+					prodUid: "bifold-root",
+					value: "Bifold",
+					qty: 1,
+					price: 0,
+					basePrice: 0,
+					meta: {},
+					step: { uid: "item-type", title: "Item Type" },
+					component: { uid: "bifold-root", name: "Bifold" },
+				},
+				{
+					prodUid: "bifold-door",
+					value: "Bifold Door",
+					qty: 1,
+					price: 100,
+					basePrice: 80,
+					meta: {},
+					step: { uid: "door", title: "Door" },
+					component: { uid: "bifold-door", name: "Bifold Door" },
+				},
+			],
+			housePackageTool: {
+				deletedAt: null,
+				totalDoors: 2,
+				stepProduct: null,
+				doors: [
+					{
+						totalQty: 2,
+						dimension: "2-0 x 6-8",
+						stepProduct: {
+							uid: "bifold-door",
+							name: "Bifold Door",
+							step: { uid: "door", title: "Door" },
+						},
+					},
+				],
+			},
+		};
+
+		expect(selectInventoryParentFormStep(item)?.prodUid).toBe("bifold-root");
+		expect(
+			buildInventorySyncComponentCandidatesForItem(item).map((candidate) => ({
+				sourceType: candidate.sourceType,
+				sourceUid: candidate.sourceUid,
+				variantUid: candidate.variantUid,
+				qty: candidate.qty,
+				required: candidate.required,
+			})),
+		).toEqual([
+			{
+				sourceType: "dyke-step-product",
+				sourceUid: "bifold-root",
+				variantUid: "bifold-root",
+				qty: 2,
+				required: true,
+			},
+			{
+				sourceType: "dyke-step-product",
+				sourceUid: "bifold-door",
+				variantUid: "bifold-door",
+				qty: 2,
+				required: false,
+			},
+			{
+				sourceType: "dyke-door-product",
+				sourceUid: "bifold-door",
+				variantUid: "w2_0-h6_8",
+				qty: 2,
+				required: true,
+			},
+		]);
 	});
 
 	it("uses selected Dyke dependency pricing keys as inventory variant UIDs", () => {

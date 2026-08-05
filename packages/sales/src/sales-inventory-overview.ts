@@ -524,10 +524,17 @@ export function buildSalesOverviewInventoryGroups(
 	return lineItems.map((lineItem, index) => {
 		const rows = (lineItem.components || []).map(
 			(component, componentIndex) => {
-				const qtyRequired = positiveNumberValue(component.qty);
-				const qtyAllocated = positiveNumberValue(component.qtyAllocated);
-				const qtyReceived = positiveNumberValue(component.qtyReceived);
-				const qtyInbound = positiveNumberValue(component.qtyInbound);
+				const isRequired = component.required !== false;
+				const qtyRequired = isRequired ? positiveNumberValue(component.qty) : 0;
+				const qtyAllocated = isRequired
+					? positiveNumberValue(component.qtyAllocated)
+					: 0;
+				const qtyReceived = isRequired
+					? positiveNumberValue(component.qtyReceived)
+					: 0;
+				const qtyInbound = isRequired
+					? positiveNumberValue(component.qtyInbound)
+					: 0;
 				const qtyInboundOpen = Math.max(0, qtyInbound - qtyReceived);
 				const qtyPending =
 					component.status === "fulfilled"
@@ -893,18 +900,21 @@ export function summarizeSalesInventoryOverview(
 	for (const lineItem of lineItems) {
 		for (const component of lineItem.components || []) {
 			const status = component.status || "pending";
+			const isRequired = component.required !== false;
 			const componentQtyRequired = numberValue(component.qty);
 			const componentQtyAllocated = numberValue(component.qtyAllocated);
 			const componentQtyInbound = numberValue(component.qtyInbound);
 			const componentQtyReceived = numberValue(component.qtyReceived);
 
 			componentCount += 1;
-			if (component.required) requiredComponentCount += 1;
+			if (isRequired) requiredComponentCount += 1;
+			addStatusCount(statusCounts, status);
+			if (!isRequired) continue;
+
 			qtyRequired += componentQtyRequired;
 			qtyAllocated += componentQtyAllocated;
 			qtyInbound += componentQtyInbound;
 			qtyReceived += componentQtyReceived;
-			addStatusCount(statusCounts, status);
 
 			const stillAwaitingInbound =
 				componentQtyInbound > 0 && componentQtyReceived < componentQtyInbound;
@@ -920,7 +930,7 @@ export function summarizeSalesInventoryOverview(
 	}
 
 	let readiness: SalesInventoryOverviewReadiness = "not_synced";
-	if (componentCount > 0) {
+	if (requiredComponentCount > 0) {
 		if (hasInbound) {
 			readiness = "awaiting_inbound";
 		} else if (hasReview) {
@@ -1471,14 +1481,13 @@ export async function getSalesInventoryOverview(
 			projection: sale.inventoryProjection,
 			existingInventoryNeedCount,
 		}),
-		inventoryLegacyCompatibility:
-			resolveSalesInventoryLegacyCompatibility({
-				legacyStatus: sale.inventoryStatus,
-				lifecycleStatus: lifecycle.status,
-				inventoryRowCount: existingInventoryNeedCount,
-				projectionStatus: sale.inventoryProjection?.status,
-				activeLinkedInboundCount,
-			}),
+		inventoryLegacyCompatibility: resolveSalesInventoryLegacyCompatibility({
+			legacyStatus: sale.inventoryStatus,
+			lifecycleStatus: lifecycle.status,
+			inventoryRowCount: existingInventoryNeedCount,
+			projectionStatus: sale.inventoryProjection?.status,
+			activeLinkedInboundCount,
+		}),
 		setupMode,
 		operationMode: operationPolicy.mode,
 		capabilities: operationPolicy.capabilities,
