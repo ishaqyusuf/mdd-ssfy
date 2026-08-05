@@ -133,6 +133,7 @@ const Info = hugeIcon("Info");
 const Timer = hugeIcon("Timer01Icon");
 const Receipt = hugeIcon("Receipt");
 const Calendar = hugeIcon("Calendar");
+const Columns = hugeIcon("Columns3");
 const ChevronDown = hugeIcon("ArrowDown01Icon");
 const ChevronUp = hugeIcon("ArrowUp01Icon");
 const DollarSign = hugeIcon("DollarSign");
@@ -277,7 +278,9 @@ const MdOutlineStyle = Flag;
 const MdOutlineSubject = FileText;
 const MdOutlineTask = CheckCircle;
 const MdOutlineTimer = Timer;
-const MdOutlineTune = Settings2;
+// Table column selectors historically consume Icons.Tune. Keep that compatibility
+// alias aligned with the semantic ColumnsIcon glyph.
+const MdOutlineTune = Columns;
 const MdOutlineUploadFile = hugeIcon("Upload01Icon");
 const MdOutlineVisibility = Eye;
 const MdOutlineVolumeOff = hugeIcon("VolumeOffIcon");
@@ -1152,7 +1155,7 @@ const dynamicHugeIconAliases = {
   Clock3: "Clock03Icon",
   ClockIcon: "Clock",
   Cloud: "Cloud",
-  ColumnsIcon: "Columns03Icon",
+  ColumnsIcon: "Columns3",
   CreditCardIcon: "CreditCard",
   Database: "Database",
   DoorOpen: "Door01Icon",
