@@ -60,6 +60,12 @@
 Tracks authentication and authorization patterns across API surfaces.
 
 ## Current Notes
+- Dispatch web navigation separates delivery execution from administration:
+  delivery-only users (`editDelivery` without `editOrders`) are authorized for
+  `/sales-book/dispatch-task` and use it as their default Dispatch link, while
+  `/sales-book/dispatch-admin` requires `editOrders`. The authenticated proxy
+  applies the same link map to direct route attempts, so a delivery-only user
+  opening the admin URL is redirected to the task workspace.
 - Sales Overview reads are authenticated and capability-aware.
   `sales.getSaleOverview` accepts order, estimate, production, delivery, pickup,
   or packing viewers; `sales.productionOverview` accepts order, production,

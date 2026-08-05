@@ -419,26 +419,15 @@ export const linkModules = [
 				_perm.is("viewPacking"),
 				// _role.is("Super Admin"),
 			).data,
-			_link("Dispatch", "dispatch", "/sales-book/dispatch-admin", [
-				_subLink("Dispatch Task", "/sales-book/dispatch-task").access(
-					_perm.is("editDelivery"),
-					_perm.isNot("viewOrders"),
-					_role.isNot("Super Admin"),
-				).data,
-				// _subLink("Delivery", "/sales-book/dispatch").access(
-				//     _perm.is("editDelivery"),
-				//     _perm.is("editOrders"),
-				// ).data,
-				// _subLink("Pickup", "/sales-book/pickups").access(
-				//     _perm.is("editPickup"),
-				// ).data,
+			_link("Dispatch", "dispatch", "/sales-book/dispatch-task").access(
+				_perm.is("editDelivery"),
+				_perm.isNot("editOrders"),
+			).data,
+			_link("Dispatch Admin", "dispatch", "/sales-book/dispatch-admin", [
 				_subLink("Delivery", "/sales-book/dispatch").access(
 					_role.is("Super Admin"),
 				).data,
-				_subLink("Admin Dashboard", "/sales-book/dispatch-admin").access(
-					_perm.some("editOrders", "editDelivery"),
-				).data,
-			]).access(_perm.some("editOrders", "editDelivery")).data,
+			]).access(_perm.is("editOrders")).data,
 		]),
 		_section("", "", [
 			_link("Customers", "customers", "/sales-book/customers")

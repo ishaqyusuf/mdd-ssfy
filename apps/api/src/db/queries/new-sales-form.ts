@@ -2786,7 +2786,7 @@ async function saveNewSalesFormInternal(
 				after: { lineItems: normalizedLines, summary: persistedSummary },
 				commitments: saveCommitments,
 			});
-			if (analysis.requiresApproval) {
+			if (analysis.requiresSalesRepApproval) {
 				const approved = payload.approvedAdjustmentId
 					? await tx.salesOrderAdjustment.findFirst({
 							where: {
@@ -2837,7 +2837,7 @@ async function saveNewSalesFormInternal(
 					throw new TRPCError({
 						code: "PRECONDITION_FAILED",
 						message:
-							"SALES_CHANGE_REVIEW_REQUIRED: This sale has payments or operational commitments. Review the before/after change and obtain customer approval before saving.",
+							"SALES_CHANGE_REVIEW_REQUIRED: This change creates a refund or affects inbound/allocated material. Review and approve it before saving.",
 					});
 				}
 			}
@@ -3860,7 +3860,7 @@ export async function deleteNewSalesFormLineItem(
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message:
-				"SALES_CHANGE_REVIEW_REQUIRED: This committed line must be removed through the in-form change review and customer approval flow.",
+				"SALES_CHANGE_REVIEW_REQUIRED: This committed line must be removed through the in-form sales-representative review flow.",
 		});
 	}
 	const result = await ctx.db.$transaction(async (tx) => {

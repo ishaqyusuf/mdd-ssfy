@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import type {
 	CreateNewSalesFormAdjustmentSchema,
 	GetNewSalesFormAdjustmentApprovalSchema,
@@ -329,7 +329,7 @@ export async function createNewSalesFormAdjustment(
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message:
-				"Customer-approved changes currently support quantity edits to existing sale items only.",
+				"Sales-rep-approved changes currently support quantity edits to existing sale items only.",
 		});
 	}
 	if (
@@ -357,8 +357,49 @@ export async function createNewSalesFormAdjustment(
 		select: { id: true, status: true },
 	});
 	if (existing) {
+		let status = existing.status;
+		if (status === "PENDING_CUSTOMER") {
+			const approvedAt = new Date();
+			const approved = await ctx.db.$transaction(async (tx) => {
+				const changed = await tx.salesOrderAdjustment.updateMany({
+					where: { id: existing.id, status: "PENDING_CUSTOMER" },
+					data: {
+						status: "APPROVED",
+						approvedAt,
+						appliedById: ctx.userId,
+					},
+				});
+				if (changed.count) {
+					await tx.salesOrderAdjustmentApproval.updateMany({
+						where: { adjustmentId: existing.id, status: "PENDING" },
+						data: {
+							status: "REVOKED",
+							respondedAt: approvedAt,
+							responseNote:
+								"Superseded by authenticated sales-representative approval.",
+						},
+					});
+				}
+				return changed.count > 0;
+			});
+			if (approved) {
+				status = "APPROVED";
+			} else {
+				const current = await ctx.db.salesOrderAdjustment.findUnique({
+					where: { id: existing.id },
+					select: { status: true },
+				});
+				status = current?.status || status;
+			}
+		}
+		if (status === "APPROVED") {
+			await tasks.trigger("apply-sales-order-adjustment", {
+				adjustmentId: existing.id,
+			});
+		}
 		return {
-			...existing,
+			id: existing.id,
+			status,
 			approvalToken: null,
 			approvalExpiresAt: null,
 			preview: {
@@ -369,9 +410,7 @@ export async function createNewSalesFormAdjustment(
 			},
 		};
 	}
-	const token = randomBytes(32).toString("base64url");
-	const tokenHash = hash(token);
-	const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+	const approvedAt = new Date();
 	const adjustment = await ctx.db.salesOrderAdjustment.create({
 		data: {
 			salesOrderId: input.salesId,
@@ -379,7 +418,7 @@ export async function createNewSalesFormAdjustment(
 				| "INCREASE"
 				| "REDUCTION"
 				| "MIXED",
-			status: "PENDING_CUSTOMER",
+			status: "APPROVED",
 			sourceVersion: input.version,
 			sourceHash,
 			idempotencyKey,
@@ -395,7 +434,9 @@ export async function createNewSalesFormAdjustment(
 			walletCreditAmount: preview.settlement.walletCredit,
 			requestedById: ctx.userId,
 			submittedById: ctx.userId,
-			submittedAt: new Date(),
+			appliedById: ctx.userId,
+			submittedAt: approvedAt,
+			approvedAt,
 			lines: {
 				create: preview.analysis.lines.map((line) => ({
 					lineUid: line.uid,
@@ -416,21 +457,16 @@ export async function createNewSalesFormAdjustment(
 					),
 				})),
 			},
-			approvals: {
-				create: {
-					tokenHash,
-					channel: input.approvalChannel,
-					recipient: input.approvalRecipient,
-					expiresAt,
-				},
-			},
 		},
 		select: { id: true, status: true },
 	});
+	await tasks.trigger("apply-sales-order-adjustment", {
+		adjustmentId: adjustment.id,
+	});
 	return {
 		...adjustment,
-		approvalToken: token,
-		approvalExpiresAt: expiresAt.toISOString(),
+		approvalToken: null,
+		approvalExpiresAt: null,
 		preview: {
 			commitments: preview.commitments,
 			analysis: preview.analysis,

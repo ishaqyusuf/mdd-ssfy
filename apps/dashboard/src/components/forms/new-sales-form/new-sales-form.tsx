@@ -413,7 +413,7 @@ export function NewSalesForm(props: Props) {
 	const [changeReviewOpen, setChangeReviewOpen] = useState(false);
 	const [changeReview, setChangeReview] =
 		useState<NewSalesFormAdjustmentPreview | null>(null);
-	const [approvalUrl, setApprovalUrl] = useState<string | null>(null);
+	const [isApplyingAdjustment, setIsApplyingAdjustment] = useState(false);
     const [manualSaveLock, setManualSaveLock] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [historyPreview, setHistoryPreview] = useState<{
@@ -638,6 +638,12 @@ export function NewSalesForm(props: Props) {
 						inboundQty: number;
 						productionQty: number;
 						fulfilledQty: number;
+						lines: Array<{
+							uid: string;
+							salesOrderItemId: number;
+							allocatedQty: number;
+							inboundQty: number;
+						}>;
 					};
 					activeAdjustment?: {
 						id: string;
@@ -660,14 +666,6 @@ export function NewSalesForm(props: Props) {
 			| null
 			| undefined
 	)?.activeAdjustment;
-	const hasSaleCommitments = Boolean(
-		loadedChangeProtection &&
-			(loadedChangeProtection.paymentTotal > 0 ||
-				loadedChangeProtection.allocatedQty > 0 ||
-				loadedChangeProtection.inboundQty > 0 ||
-				loadedChangeProtection.productionQty > 0 ||
-				loadedChangeProtection.fulfilledQty > 0),
-	);
 	const localChangeAnalysis = useMemo(() => {
 		if (
 			props.mode !== "edit" ||
@@ -684,8 +682,8 @@ export function NewSalesForm(props: Props) {
 			commitments: loadedChangeProtection,
 		});
 	}, [loadData, loadedChangeProtection, props.mode, props.type, record]);
-	const hasProtectedQuantityChange = Boolean(
-		localChangeAnalysis?.requiresApproval,
+	const hasSalesRepApprovalChange = Boolean(
+		localChangeAnalysis?.requiresSalesRepApproval,
 	);
     const recordPaymentMeta = record as {
         paymentMethodReviewDismissed?: unknown;
@@ -759,7 +757,7 @@ export function NewSalesForm(props: Props) {
     );
 
     const autosave = useNewSalesFormAutoSave({
-		enabled: !!record && editor.autosaveEnabled && !hasProtectedQuantityChange,
+		enabled: !!record && editor.autosaveEnabled && !hasSalesRepApprovalChange,
         dirty,
         payload,
         onSaving: () => {
@@ -817,7 +815,8 @@ export function NewSalesForm(props: Props) {
 		autosave.isSaving ||
 		finalSave.isPending ||
 		previewAdjustmentMutation.isPending ||
-		createAdjustmentMutation.isPending;
+		createAdjustmentMutation.isPending ||
+		isApplyingAdjustment;
     const ensurePackingDispatch = useCallback(async () => {
         if (activePackingDispatch?.id) {
             return {
@@ -1248,7 +1247,6 @@ export function NewSalesForm(props: Props) {
 	async function openCommittedChangeReview() {
 		if (!record?.salesId || !record.slug || !record.version) return;
 		setChangeReviewOpen(true);
-		setApprovalUrl(null);
 		try {
 			const review = await previewAdjustmentMutation.mutateAsync({
 				...toSaveDraftInput(record, false),
@@ -1268,47 +1266,58 @@ export function NewSalesForm(props: Props) {
 		}
 	}
 
-	async function submitCommittedChange(input: {
-		reason: string;
-		recipient: string | null;
-	}) {
+	async function waitForAdjustmentApplication(sourceVersion: string) {
+		for (let attempt = 0; attempt < 16; attempt += 1) {
+			await new Promise((resolve) => setTimeout(resolve, 750));
+			const refreshed = await getQuery.refetch();
+			if (refreshed.data?.version !== sourceVersion) return true;
+		}
+		return false;
+	}
+
+	async function submitCommittedChange() {
 		if (!record?.salesId || !record.slug || !record.version) return;
+		const sourceVersion = record.version;
+		const reasons = changeReview?.analysis.reviewReasons || [];
+		const reason = reasons.length
+			? `Sales representative approved ${reasons
+					.map((value) => value.toLowerCase())
+					.join(" and ")} adjustment.`
+			: "Sales representative approved the sale adjustment.";
+		setIsApplyingAdjustment(true);
 		try {
-			const result = await createAdjustmentMutation.mutateAsync({
+			await createAdjustmentMutation.mutateAsync({
 				...toSaveDraftInput(record, false),
 				type: "order",
 				salesId: record.salesId,
 				slug: record.slug,
 				version: record.version,
 				autosave: false,
-				reason: input.reason,
-				approvalChannel: "MANUAL",
-				approvalRecipient: input.recipient || undefined,
+				reason,
 			});
-			setApprovalUrl(
-				result.approvalToken
-					? `${window.location.origin}/sales/change-approval/${result.approvalToken}`
-					: null,
-			);
-			await getQuery.refetch();
+			const applied = await waitForAdjustmentApplication(sourceVersion);
+			setChangeReviewOpen(false);
+			setChangeReview(null);
 			toast({
-				title: "Approval request created",
-				description: result.approvalToken
-					? "The live sale is unchanged. Share the approval link with the customer."
-					: "This exact change already has an approval request.",
+				title: applied ? "Changes committed" : "Changes approved",
+				description: applied
+					? "The sale and affected inventory were updated."
+					: "The approved changes are being committed automatically in the background.",
 				variant: "success",
 			});
 		} catch (error) {
 			toast({
-				title: "Unable to request approval",
+				title: "Unable to approve changes",
 				description: getErrorMessage(error, "Please try again."),
 				variant: "destructive",
 			});
+		} finally {
+			setIsApplyingAdjustment(false);
 		}
 	}
 
 	async function stopForCommittedChangeReview() {
-		if (!hasProtectedQuantityChange) return false;
+		if (!hasSalesRepApprovalChange) return false;
 		await openCommittedChangeReview();
 		return true;
 	}
@@ -1767,8 +1776,9 @@ export function NewSalesForm(props: Props) {
 				onOpenChange={setChangeReviewOpen}
 				review={changeReview}
 				isLoading={previewAdjustmentMutation.isPending}
-				isSubmitting={createAdjustmentMutation.isPending}
-				approvalUrl={approvalUrl}
+				isSubmitting={
+					createAdjustmentMutation.isPending || isApplyingAdjustment
+				}
 				onSubmit={submitCommittedChange}
 			/>
             {settingsOpen ? (
@@ -1853,55 +1863,39 @@ export function NewSalesForm(props: Props) {
                         historyPreview ||
                         restoredHistoryEntry ||
 						recoverySnapshot ||
-						hasSaleCommitments ||
+						hasSalesRepApprovalChange ||
 						activeAdjustment ? (
                             <div className="m-4 space-y-2 sm:m-6 lg:m-8">
-								{loadedChangeProtection && hasSaleCommitments ? (
-									<output
-										className={`flex flex-col gap-3 rounded-lg border p-3 text-sm shadow-sm md:flex-row md:items-center md:justify-between ${
-											hasProtectedQuantityChange
-												? "border-amber-400 bg-amber-50 text-amber-950"
-												: "border-blue-200 bg-blue-50 text-blue-950"
-										}`}
-                                    >
+								{loadedChangeProtection && hasSalesRepApprovalChange ? (
+									<output className="flex flex-col gap-3 rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950 shadow-sm md:flex-row md:items-center md:justify-between">
 										<div className="min-w-0">
 											<div className="flex flex-wrap items-center gap-2">
 												<p className="font-semibold">
-													{hasProtectedQuantityChange
-														? "Review required before saving"
-														: "This sale has committed activity"}
+													Review required before saving
 												</p>
-												{loadedChangeProtection.paymentTotal > 0 ? (
-													<Badge variant="outline">
-														${loadedChangeProtection.paymentTotal.toFixed(2)}{" "}
-														paid
-													</Badge>
+												{localChangeAnalysis?.reviewReasons.includes(
+													"REFUND",
+												) ? (
+													<Badge variant="outline">Wallet refund</Badge>
 												) : null}
-												{loadedChangeProtection.inboundQty > 0 ? (
+												{localChangeAnalysis?.reviewReasons.includes(
+													"INBOUND",
+												) ? (
 													<Badge variant="outline">
 														Inbound {loadedChangeProtection.inboundQty}
 													</Badge>
 												) : null}
-												{loadedChangeProtection.allocatedQty > 0 ? (
+												{localChangeAnalysis?.reviewReasons.includes(
+													"INVENTORY",
+												) ? (
 													<Badge variant="outline">
 														Allocated {loadedChangeProtection.allocatedQty}
 													</Badge>
 												) : null}
-												{loadedChangeProtection.productionQty > 0 ? (
-													<Badge variant="outline">
-														Production {loadedChangeProtection.productionQty}
-													</Badge>
-												) : null}
-												{loadedChangeProtection.fulfilledQty > 0 ? (
-													<Badge variant="outline">
-														Fulfilled {loadedChangeProtection.fulfilledQty}
-													</Badge>
-												) : null}
 											</div>
 											<p className="mt-1 text-xs opacity-80">
-												Quantity changes use a before/after snapshot and
-												customer approval. The live sale is not overwritten
-												while approval is pending.
+												This change creates a refund or affects material already
+												inbound/allocated. Approving commits it automatically.
 											</p>
 											{activeAdjustment ? (
 												<p className="mt-1 text-xs font-medium">
@@ -1913,14 +1907,13 @@ export function NewSalesForm(props: Props) {
 												</p>
 											) : null}
 										</div>
-										{hasProtectedQuantityChange ? (
-											<Button
-												size="sm"
-												onClick={() => void openCommittedChangeReview()}
-											>
-												Review changes
-											</Button>
-										) : null}
+										<Button
+											size="sm"
+											disabled={Boolean(activeAdjustment)}
+											onClick={() => void openCommittedChangeReview()}
+										>
+											Review changes
+										</Button>
 									</output>
 								) : null}
 								{historyPreview ? (

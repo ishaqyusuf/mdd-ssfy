@@ -17,6 +17,8 @@ export type SalesAdjustmentCommitmentKind =
 	| "PRODUCTION"
 	| "FULFILLMENT";
 
+export type SalesAdjustmentReviewReason = "REFUND" | "INBOUND" | "INVENTORY";
+
 export type SalesAdjustmentLineInput = {
 	uid: string;
 	id?: number | null;
@@ -37,6 +39,12 @@ export type SalesAdjustmentCommitments = {
 	allocatedQty?: number | null;
 	productionQty?: number | null;
 	fulfilledQty?: number | null;
+	lines?: Array<{
+		uid: string;
+		salesOrderItemId?: number | null;
+		allocatedQty?: number | null;
+		inboundQty?: number | null;
+	}>;
 };
 
 export type SalesAdjustmentLineChange = {
@@ -77,6 +85,41 @@ function resolveDirection(changes: SalesAdjustmentLineChange[]) {
 	if (hasIncrease) return "INCREASE" as const;
 	if (hasReduction) return "REDUCTION" as const;
 	return "NONE" as const;
+}
+
+function getSalesAdjustmentReviewReasons(input: {
+	lines: SalesAdjustmentLineChange[];
+	commitments: SalesAdjustmentCommitments;
+	afterGrandTotal: number;
+}) {
+	const reasons: SalesAdjustmentReviewReason[] = [];
+	if (
+		roundMoney(input.commitments.paymentTotal) >
+		roundMoney(input.afterGrandTotal)
+	) {
+		reasons.push("REFUND");
+	}
+
+	const changedUids = new Set(input.lines.map((line) => line.uid));
+	const changedIds = new Set(
+		input.lines.flatMap((line) => (line.id ? [line.id] : [])),
+	);
+	const affectedCommitmentLines = input.commitments.lines?.filter(
+		(line) =>
+			changedUids.has(line.uid) ||
+			(Boolean(line.salesOrderItemId) &&
+				changedIds.has(Number(line.salesOrderItemId))),
+	);
+	const usesLineCommitments = input.commitments.lines != null;
+	const hasInbound = usesLineCommitments
+		? affectedCommitmentLines?.some((line) => finite(line.inboundQty) > 0)
+		: finite(input.commitments.inboundQty) > 0;
+	const hasAllocatedInventory = usesLineCommitments
+		? affectedCommitmentLines?.some((line) => finite(line.allocatedQty) > 0)
+		: finite(input.commitments.allocatedQty) > 0;
+	if (hasInbound) reasons.push("INBOUND");
+	if (hasAllocatedInventory) reasons.push("INVENTORY");
+	return reasons;
 }
 
 export function getSalesAdjustmentCommitmentKinds(
@@ -130,13 +173,22 @@ export function analyzeSalesFormChange(input: {
 	const commitmentKinds = getSalesAdjustmentCommitmentKinds(input.commitments);
 	const beforeGrandTotal = roundMoney(input.before.summary.grandTotal);
 	const afterGrandTotal = roundMoney(input.after.summary.grandTotal);
+	const reviewReasons = getSalesAdjustmentReviewReasons({
+		lines,
+		commitments: input.commitments,
+		afterGrandTotal,
+	});
+	const requiresSalesRepApproval =
+		direction !== "NONE" && reviewReasons.length > 0;
 
 	return {
 		direction,
 		lines,
 		commitmentKinds,
 		hasCommitments: commitmentKinds.length > 0,
-		requiresApproval: direction !== "NONE" && commitmentKinds.length > 0,
+		reviewReasons,
+		requiresSalesRepApproval,
+		requiresApproval: requiresSalesRepApproval,
 		beforeGrandTotal,
 		afterGrandTotal,
 		totalDelta: subtractMoney(afterGrandTotal, beforeGrandTotal),

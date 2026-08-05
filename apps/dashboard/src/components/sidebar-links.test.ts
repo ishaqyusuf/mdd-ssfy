@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -93,6 +93,63 @@ describe("sidebar role access", () => {
 		);
 
 		expect(links.linksNameMap["/sales-book/orders"]?.hasAccess).toBe(true);
+	});
+
+	test("routes delivery-only users to dispatch tasks instead of dispatch admin", () => {
+		const links = getLinkModules(
+			validateLinks({
+				role: { name: "Dispatch" },
+				can: permissions({ editDelivery: true }),
+				userId: "dispatch-1",
+			}),
+		);
+		const visibleDispatchLinks = links.modules
+			.flatMap((module) => module.sections)
+			.flatMap((section) => section.links)
+			.filter((link) => link?.show && link.name === "Dispatch");
+
+		expect(links.linksNameMap["/sales-book/dispatch-task"]?.hasAccess).toBe(
+			true,
+		);
+		expect(links.linksNameMap["/sales-book/dispatch-admin"]?.hasAccess).toBe(
+			false,
+		);
+		expect(visibleDispatchLinks.map((link) => link.href)).toEqual([
+			"/sales-book/dispatch-task",
+		]);
+		expect(links.defaultLink).toBe("/sales-book/dispatch-task");
+	});
+
+	test("routes order editors to dispatch admin instead of dispatch tasks", () => {
+		const links = getLinkModules(
+			validateLinks({
+				role: { name: "Admin" },
+				can: permissions({ editOrders: true }),
+				userId: "admin-1",
+			}),
+		);
+
+		expect(links.linksNameMap["/sales-book/dispatch-task"]?.hasAccess).toBe(
+			false,
+		);
+		expect(links.linksNameMap["/sales-book/dispatch-admin"]?.hasAccess).toBe(
+			true,
+		);
+	});
+
+	test("keeps the dispatch admin page guard aligned with navigation", () => {
+		const source = readFileSync(
+			join(
+				appRoot,
+				"(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx",
+			),
+			"utf8",
+		);
+
+		expect(source).toContain('rules={[_perm.is("editOrders")]}');
+		expect(source).not.toContain(
+			'rules={[_perm.some("editOrders", "editDelivery")]}',
+		);
 	});
 
 	test("marks the storefront workspace as work in progress", () => {

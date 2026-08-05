@@ -12,7 +12,23 @@ import { Checkbox } from "@gnd/ui/checkbox";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import Sheet from "@gnd/ui/custom/sheet";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@gnd/ui/field";
+import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupButton,
+	InputGroupInput,
+	InputGroupText,
+} from "@gnd/ui/input-group";
+import {
+	Item,
+	ItemActions,
+	ItemContent,
+	ItemDescription,
+	ItemGroup,
+	ItemTitle,
+} from "@gnd/ui/item";
 import {
 	Select,
 	SelectContent,
@@ -315,65 +331,113 @@ export function InboundCreatePane({
 								{selectedRows.length} selected
 							</Badge>
 						</div>
-						<div className="space-y-2">
+						<ItemGroup className="gap-0" aria-label="Items to order">
 							{rows.map((row) => {
 								const checked = selected.includes(row.id);
 								const max = orderableQty(row);
+								const quantity = Math.min(
+									max,
+									Math.max(0, Number(quantities[row.id] ?? max)),
+								);
 								const checkboxId = `create-inbound-${row.id.replace(/[^a-z0-9_-]/gi, "-")}`;
 								return (
-									<div
+									<Item
 										key={row.id}
-										className="flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/30"
+										size="sm"
+										className="items-start rounded-none border-x-0 border-t-0 border-b border-border px-3 py-3 hover:bg-muted/50"
 									>
-										<Checkbox
-											id={checkboxId}
-											aria-label={`Select ${row.componentName}`}
-											checked={checked}
-											onCheckedChange={(value) =>
-												setSelected((current) =>
-													value === true
-														? Array.from(new Set([...current, row.id])).sort()
-														: current.filter((id) => id !== row.id),
-												)
-											}
-										/>
 										<label
 											htmlFor={checkboxId}
-											className="min-w-0 flex-1 cursor-pointer"
+											className="flex cursor-pointer items-center pt-1"
 										>
-											<p className="truncate text-sm font-medium">
-												{row.componentName}
-											</p>
-											<p className="mt-1 text-xs text-muted-foreground">
-												{row.stepName || "Inventory item"}
-											</p>
-										</label>
-										<div className="flex items-center gap-2">
-											<Input
-												aria-label={`Quantity for ${row.componentName}`}
-												type="number"
-												min={0}
-												max={max}
-												value={quantities[row.id] ?? max}
-												onChange={(event) =>
-													setQuantities((current) => ({
-														...current,
-														[row.id]: Math.min(
-															max,
-															Math.max(0, Number(event.target.value)),
-														),
-													}))
+											<Checkbox
+												id={checkboxId}
+												aria-label={`Select ${row.componentName} for inbound`}
+												checked={checked}
+												onCheckedChange={(value) =>
+													setSelected((current) =>
+														value === true
+															? Array.from(new Set([...current, row.id])).sort()
+															: current.filter((id) => id !== row.id),
+													)
 												}
-												className="h-10 w-24 text-right tabular-nums"
 											/>
-											<span className="text-xs text-muted-foreground">
-												/ {formatQty(max)}
-											</span>
-										</div>
-									</div>
+										</label>
+										<ItemContent className="min-w-0">
+											<ItemTitle className="truncate text-sm font-medium">
+												{row.componentName}
+											</ItemTitle>
+											<ItemDescription className="mt-1 text-xs">
+												{row.stepName || "Inventory item"}
+											</ItemDescription>
+										</ItemContent>
+										<ItemActions className="shrink-0">
+											<InputGroup
+												className="h-8 w-36 bg-background"
+												aria-label={`Order quantity controls for ${row.componentName}`}
+											>
+												<InputGroupAddon className="pl-1.5">
+													<InputGroupButton
+														type="button"
+														size="icon-xs"
+														disabled={quantity <= 0}
+														onClick={() =>
+															setQuantities((current) => ({
+																...current,
+																[row.id]: quantity - 1,
+															}))
+														}
+														aria-label={`Decrease inbound quantity for ${row.componentName}`}
+													>
+														<Icons.Minus className="size-3.5" />
+													</InputGroupButton>
+												</InputGroupAddon>
+												<InputGroupInput
+													aria-label={`Quantity for ${row.componentName}`}
+													type="number"
+													min={0}
+													max={max}
+													step={1}
+													value={quantity}
+													onChange={(event) =>
+														setQuantities((current) => ({
+															...current,
+															[row.id]: Math.min(
+																max,
+																Math.max(0, Number(event.target.value)),
+															),
+														}))
+													}
+													className="h-7 min-w-0 px-1 text-center text-xs tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+												/>
+												<InputGroupAddon
+													align="inline-end"
+													className="gap-1 pr-1.5"
+												>
+													<InputGroupText className="text-xs tabular-nums">
+														/{formatQty(max)}
+													</InputGroupText>
+													<InputGroupButton
+														type="button"
+														size="icon-xs"
+														disabled={quantity >= max}
+														onClick={() =>
+															setQuantities((current) => ({
+																...current,
+																[row.id]: quantity + 1,
+															}))
+														}
+														aria-label={`Increase inbound quantity for ${row.componentName}`}
+													>
+														<Icons.Plus className="size-3.5" />
+													</InputGroupButton>
+												</InputGroupAddon>
+											</InputGroup>
+										</ItemActions>
+									</Item>
 								);
 							})}
-						</div>
+						</ItemGroup>
 						{!rows.length ? (
 							<p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
 								No missing inventory items are available for a new inbound.

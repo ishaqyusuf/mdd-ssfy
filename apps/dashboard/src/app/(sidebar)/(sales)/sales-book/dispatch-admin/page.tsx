@@ -78,7 +78,7 @@ export default async function Page(props: Props) {
 		<PageShell>
 			<HydrateClient>
 				<AuthGuard
-					rules={[_perm.some("editOrders", "editDelivery")]}
+					rules={[_perm.is("editOrders")]}
 					Fallback={
 						<div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
 							You do not have permission to access dispatch admin.

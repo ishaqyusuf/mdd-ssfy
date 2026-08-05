@@ -1,5 +1,31 @@
 # Progress
 
+- 2026-08-05: restored the dedicated Dispatch Task workspace for the Dispatch
+  role. The sidebar no longer points delivery-only users at Dispatch Admin:
+  `editDelivery` without `editOrders` now resolves directly to
+  `/sales-book/dispatch-task`, while `/sales-book/dispatch-admin` requires
+  `editOrders`. Focused role-navigation tests pass, and authenticated browser
+  QA with the live Dispatch account confirmed both the visible Dispatch link
+  target and direct-admin redirect. The broad Dashboard typecheck reached its
+  documented 4 GB heap ceiling; the unrelated Sales Dispatch migration parity
+  suite still has its existing stale bottom-bar source assertion.
+
+- 2026-08-05: aligned both Sales Overview Create inbound item lists with the
+  Inventory Needs flat-row treatment. Items to order now have per-row bottom
+  dividers and muted hover feedback while retaining checkbox, identity, and
+  quantity placement. Quantity uses a bounded grouped minus/input/`/required`/
+  plus control. Focused UI/helper tests pass (16 tests), and authenticated
+  browser QA on `09158PC` confirmed two divided rows, `/4` and `/6` suffixes,
+  and working decrement/increment behavior without creating an inbound.
+
+- 2026-08-05: planned independent natural-width sizing for the shared
+  multi-pane sheet. The plan replaces sibling `flex-1` allocation with explicit
+  non-growing/non-shrinking primary and secondary pane bases, computes the
+  expanded shell from their sum, adds a dedicated 1px divider, and switches to
+  one-pane replacement when the viewport cannot fit both preferred widths.
+  Sales Overview remains the first and only migration target. See
+  `.brain/plans/2026-08-05-multipane-sheet-independent-pane-widths.md`.
+
 - 2026-08-05: refined Sales Overview Inventory Needs rows to separate current
   available allocation from linked ordered inbound. Mixed coverage renders
   `AVAILABLE: 1 OF 12` plus `ORDERED: 5 OF 11`; inbound-only coverage renders

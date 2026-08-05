@@ -151,7 +151,7 @@ export async function runApplySalesOrderAdjustment(
 						status: "STALE",
 						failureCode: staleReason,
 						failureMessage:
-							"The live sale, payment projection, or irreversible quantity changed after customer approval.",
+							"The live sale, payment projection, or irreversible quantity changed after sales-representative approval.",
 					},
 				});
 				return {
@@ -274,8 +274,8 @@ export async function runApplySalesOrderAdjustment(
 					{
 						walletId,
 						amount: walletCredit,
-						reason: "customer-approved-sales-quantity-adjustment",
-						note: `Wallet credit for approved adjustment to sale ${adjustment.order.orderId}`,
+						reason: "sales-rep-approved-sales-quantity-adjustment",
+						note: `Wallet credit for sales-representative-approved adjustment to sale ${adjustment.order.orderId}`,
 						authorId: adjustment.appliedById || adjustment.requestedById,
 						meta: {
 							adjustmentId: adjustment.id,
@@ -312,7 +312,7 @@ export async function runApplySalesOrderAdjustment(
 						userId: adjustment.order.salesRepId,
 						message: needsOperationalReview
 							? `Sale ${adjustment.order.orderId} was adjusted and needs operational review.`
-							: `Sale ${adjustment.order.orderId} was adjusted with customer approval.`,
+							: `Sale ${adjustment.order.orderId} was adjusted with sales-representative approval.`,
 						alert: true,
 						link: `/sales/${adjustment.order.slug}`,
 						meta: { adjustmentId: adjustment.id },
@@ -341,7 +341,7 @@ export async function runApplySalesOrderAdjustment(
 				salesType: "order",
 				author: {
 					id: result.adjustment.requestedById,
-					name: "Customer-approved adjustment",
+					name: "Sales-representative-approved adjustment",
 				},
 			}),
 			...(

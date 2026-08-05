@@ -5,6 +5,13 @@ const inventoryTabSource = readFileSync(
 	new URL("./sales-overview-system/tabs/inventory-tab.tsx", import.meta.url),
 	"utf8",
 );
+const inboundCreatePaneSource = readFileSync(
+	new URL(
+		"./sheets/sales-overview-sheet/inbound-create-pane.tsx",
+		import.meta.url,
+	),
+	"utf8",
+);
 
 describe("sales inventory automatic synchronization UI", () => {
 	test("runs a guarded background sync and keeps a manual retry", () => {
@@ -37,17 +44,23 @@ describe("sales inventory automatic synchronization UI", () => {
 	});
 
 	test("uses flat item-to-order rows with grouped bounded quantity controls", () => {
-		expect(inventoryTabSource).toContain('aria-label="Items to order"');
-		expect(inventoryTabSource).toContain(
-			"Order quantity controls for ${row.componentName}",
-		);
-		expect(inventoryTabSource).toContain("<InputGroupInput");
-		expect(inventoryTabSource).toContain("<InputGroupText");
+		for (const source of [inventoryTabSource, inboundCreatePaneSource]) {
+			expect(source).toContain('aria-label="Items to order"');
+			expect(source).toContain(
+				"Order quantity controls for ${row.componentName}",
+			);
+			expect(source).toContain("<InputGroupInput");
+			expect(source).toContain("<InputGroupText");
+			expect(source).toContain("border-b border-border");
+			expect(source).toContain("hover:bg-muted/50");
+		}
 		expect(inventoryTabSource).toContain("/{formatQty(maxQty)}");
-		expect(inventoryTabSource).toContain("border-b border-border");
-		expect(inventoryTabSource).toContain("hover:bg-muted/50");
+		expect(inboundCreatePaneSource).toContain("/{formatQty(max)}");
 		expect(inventoryTabSource).not.toContain(
 			'className="flex items-start gap-3 rounded-md border p-2 hover:bg-muted/40"',
+		);
+		expect(inboundCreatePaneSource).not.toContain(
+			'className="flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/30"',
 		);
 	});
 });

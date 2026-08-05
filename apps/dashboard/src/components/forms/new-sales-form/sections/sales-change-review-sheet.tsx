@@ -2,7 +2,6 @@
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import { Input } from "@gnd/ui/input";
 import {
 	Sheet,
 	SheetContent,
@@ -10,8 +9,6 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@gnd/ui/sheet";
-import { Textarea } from "@gnd/ui/textarea";
-import { useState } from "react";
 
 type ChangeLine = {
 	uid: string;
@@ -26,6 +23,7 @@ type ChangeLine = {
 type ChangeReview = {
 	analysis: {
 		direction: string;
+		reviewReasons: Array<"REFUND" | "INBOUND" | "INVENTORY">;
 		lines: ChangeLine[];
 		beforeGrandTotal: number;
 		afterGrandTotal: number;
@@ -66,24 +64,17 @@ export function SalesChangeReviewSheet(props: {
 	review: ChangeReview | null;
 	isLoading: boolean;
 	isSubmitting: boolean;
-	approvalUrl: string | null;
-	onSubmit: (input: {
-		reason: string;
-		recipient: string | null;
-	}) => Promise<void>;
+	onSubmit: () => Promise<void>;
 }) {
-	const [reason, setReason] = useState("");
-	const [recipient, setRecipient] = useState("");
 	const review = props.review;
 
 	return (
 		<Sheet open={props.open} onOpenChange={props.onOpenChange}>
 			<SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
 				<SheetHeader>
-					<SheetTitle>Review committed sale changes</SheetTitle>
+					<SheetTitle>Review sale changes</SheetTitle>
 					<SheetDescription>
-						The live sale remains unchanged until the customer approves this
-						snapshot.
+						Approve this snapshot to commit the changes automatically.
 					</SheetDescription>
 				</SheetHeader>
 
@@ -104,6 +95,11 @@ export function SalesChangeReviewSheet(props: {
 							{review.commitments.inboundQty > 0 ? (
 								<Badge variant="secondary">
 									Inbound {review.commitments.inboundQty}
+								</Badge>
+							) : null}
+							{review.commitments.allocatedQty > 0 ? (
+								<Badge variant="secondary">
+									Allocated {review.commitments.allocatedQty}
 								</Badge>
 							) : null}
 							{review.commitments.productionQty > 0 ? (
@@ -163,12 +159,14 @@ export function SalesChangeReviewSheet(props: {
 									{money(review.settlement.amountDue)}
 								</p>
 							</div>
-							<div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-								<p className="text-xs text-emerald-700">Wallet refund</p>
-								<p className="mt-1 font-semibold text-emerald-900">
-									{money(review.settlement.walletCredit)}
-								</p>
-							</div>
+							{review.settlement.walletCredit > 0 ? (
+								<div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+									<p className="text-xs text-emerald-700">Wallet refund</p>
+									<p className="mt-1 font-semibold text-emerald-900">
+										{money(review.settlement.walletCredit)}
+									</p>
+								</div>
+							) : null}
 						</div>
 
 						{review.blockedLines.length ? (
@@ -185,71 +183,13 @@ export function SalesChangeReviewSheet(props: {
 							</div>
 						) : null}
 
-						{props.approvalUrl ? (
-							<div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-950">
-								<p className="font-semibold">Approval request created</p>
-								<p className="mt-1 break-all text-xs">{props.approvalUrl}</p>
-								<Button
-									className="mt-3"
-									size="sm"
-									variant="outline"
-									onClick={() =>
-										navigator.clipboard.writeText(props.approvalUrl || "")
-									}
-								>
-									Copy approval link
-								</Button>
-							</div>
-						) : (
-							<div className="space-y-3">
-								<div>
-									<label
-										className="text-sm font-medium"
-										htmlFor="sales-change-reason"
-									>
-										Reason for change
-									</label>
-									<Textarea
-										id="sales-change-reason"
-										value={reason}
-										onChange={(event) => setReason(event.target.value)}
-										placeholder="Customer requested a lower quantity…"
-									/>
-								</div>
-								<div>
-									<label
-										className="text-sm font-medium"
-										htmlFor="sales-change-recipient"
-									>
-										Customer contact reference (optional)
-									</label>
-									<Input
-										id="sales-change-recipient"
-										value={recipient}
-										onChange={(event) => setRecipient(event.target.value)}
-										placeholder="customer@example.com"
-									/>
-								</div>
-								<Button
-									className="w-full"
-									disabled={
-										reason.trim().length < 3 ||
-										props.isSubmitting ||
-										review.blockedLines.length > 0
-									}
-									onClick={() =>
-										props.onSubmit({
-											reason: reason.trim(),
-											recipient: recipient.trim() || null,
-										})
-									}
-								>
-									{props.isSubmitting
-										? "Creating approval request…"
-										: "Create customer approval link"}
-								</Button>
-							</div>
-						)}
+						<Button
+							className="w-full"
+							disabled={props.isSubmitting || review.blockedLines.length > 0}
+							onClick={() => void props.onSubmit()}
+						>
+							{props.isSubmitting ? "Committing changes…" : "Approve"}
+						</Button>
 					</div>
 				) : (
 					<p className="mt-6 text-sm text-muted-foreground">

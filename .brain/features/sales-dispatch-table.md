@@ -1,6 +1,11 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-05: Dispatch workspace access was split by operational capability.
+  Delivery-only users now receive the dedicated `/sales-book/dispatch-task`
+  route as their visible/default Dispatch link. `/sales-book/dispatch-admin`
+  now requires `editOrders`, and direct navigation by a delivery-only user is
+  redirected to the task workspace by the authenticated navigation proxy.
 - 2026-06-16: Dispatch list routes are migrated to the `tables-2` table standard.
 - 2026-07-17: Dispatch density and content-fit widths were tightened against the Sales Orders/Midday invoices standard while keeping the interactive dispatch controls readable.
 - 2026-07-27: Admin dispatch single-row and batch menus now reuse the canonical Sales Orders `Mark as` workflow for production completion and fulfillment.
@@ -8,8 +13,9 @@
 ## Routes
 - Canonical dispatch route: `/sales-book/dispatch`
 - Compatibility redirect: `/sales-book/dispatch/v2` redirects to `/sales-book/dispatch` and preserves query params.
-- Admin table route: `/sales-book/dispatch-admin?view=table`
-- Driver task route: `/sales-book/dispatch-task`
+- Admin table route: `/sales-book/dispatch-admin?view=table` (`editOrders`)
+- Driver task route: `/sales-book/dispatch-task` (`editDelivery` without
+  `editOrders`)
 
 ## Frontend Implementation
 - Dispatch route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch/page.tsx`

@@ -7,7 +7,7 @@ import {
 } from "./change-analysis";
 
 describe("analyzeSalesFormChange", () => {
-	it("classifies a paid quantity reduction and preserves the before/after snapshot", () => {
+	it("requires sales-rep approval when a paid reduction creates a refund", () => {
 		const result = analyzeSalesFormChange({
 			before: {
 				lineItems: [
@@ -25,7 +25,8 @@ describe("analyzeSalesFormChange", () => {
 		});
 
 		expect(result.direction).toBe("REDUCTION");
-		expect(result.requiresApproval).toBe(true);
+		expect(result.requiresSalesRepApproval).toBe(true);
+		expect(result.reviewReasons).toEqual(["REFUND"]);
 		expect(result.lines).toEqual([
 			expect.objectContaining({
 				uid: "door-1",
@@ -39,7 +40,7 @@ describe("analyzeSalesFormChange", () => {
 		expect(result.totalDelta).toBe(-220);
 	});
 
-	it("classifies mixed line changes and flags operational commitments", () => {
+	it("requires sales-rep approval when a changed line has inbound material", () => {
 		const result = analyzeSalesFormChange({
 			before: {
 				lineItems: [
@@ -55,12 +56,90 @@ describe("analyzeSalesFormChange", () => {
 				],
 				summary: { grandTotal: 550 },
 			},
-			commitments: { productionQty: 2, inboundQty: 1 },
+			commitments: {
+				productionQty: 2,
+				inboundQty: 1,
+				lines: [
+					{
+						uid: "a",
+						salesOrderItemId: 1,
+						inboundQty: 1,
+					},
+				],
+			},
 		});
 
 		expect(result.direction).toBe("MIXED");
 		expect(result.commitmentKinds).toEqual(["INBOUND", "PRODUCTION"]);
-		expect(result.requiresApproval).toBe(true);
+		expect(result.reviewReasons).toEqual(["INBOUND"]);
+		expect(result.requiresSalesRepApproval).toBe(true);
+	});
+
+	it("accepts a paid reduction automatically when it only lowers the balance due", () => {
+		const result = analyzeSalesFormChange({
+			before: {
+				lineItems: [{ uid: "a", qty: 5, lineTotal: 500 }],
+				summary: { grandTotal: 550 },
+			},
+			after: {
+				lineItems: [{ uid: "a", qty: 3, lineTotal: 300 }],
+				summary: { grandTotal: 330 },
+			},
+			commitments: { paymentTotal: 200 },
+		});
+
+		expect(result.reviewReasons).toEqual([]);
+		expect(result.requiresSalesRepApproval).toBe(false);
+	});
+
+	it("accepts changes automatically when inventory belongs to another line", () => {
+		const result = analyzeSalesFormChange({
+			before: {
+				lineItems: [
+					{ uid: "changed", id: 1, qty: 1, lineTotal: 100 },
+					{ uid: "committed", id: 2, qty: 2, lineTotal: 200 },
+				],
+				summary: { grandTotal: 300 },
+			},
+			after: {
+				lineItems: [
+					{ uid: "changed", id: 1, qty: 2, lineTotal: 200 },
+					{ uid: "committed", id: 2, qty: 2, lineTotal: 200 },
+				],
+				summary: { grandTotal: 400 },
+			},
+			commitments: {
+				allocatedQty: 4,
+				lines: [
+					{
+						uid: "committed",
+						salesOrderItemId: 2,
+						allocatedQty: 4,
+					},
+				],
+			},
+		});
+
+		expect(result.commitmentKinds).toEqual(["INVENTORY"]);
+		expect(result.reviewReasons).toEqual([]);
+		expect(result.requiresSalesRepApproval).toBe(false);
+	});
+
+	it("accepts production-only changes automatically", () => {
+		const result = analyzeSalesFormChange({
+			before: {
+				lineItems: [{ uid: "a", qty: 3, lineTotal: 300 }],
+				summary: { grandTotal: 300 },
+			},
+			after: {
+				lineItems: [{ uid: "a", qty: 4, lineTotal: 400 }],
+				summary: { grandTotal: 400 },
+			},
+			commitments: { productionQty: 2, fulfilledQty: 1, lines: [] },
+		});
+
+		expect(result.reviewReasons).toEqual([]);
+		expect(result.requiresSalesRepApproval).toBe(false);
 	});
 
 	it("does not require approval for an uncommitted draft quantity edit", () => {
@@ -77,7 +156,7 @@ describe("analyzeSalesFormChange", () => {
 		});
 
 		expect(result.direction).toBe("INCREASE");
-		expect(result.requiresApproval).toBe(false);
+		expect(result.requiresSalesRepApproval).toBe(false);
 	});
 });
 
