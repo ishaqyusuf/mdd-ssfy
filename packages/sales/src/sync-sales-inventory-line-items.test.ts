@@ -6,6 +6,7 @@ import {
 	resolveProjectedInboundDemandStatus,
 	resolveSalesItemProductionEligibility,
 	selectInventoryParentFormStep,
+	shouldWarnForMissingInventoryMapping,
 	syncSalesInventoryLineItems,
 } from "./sync-sales-inventory-line-items";
 
@@ -307,6 +308,86 @@ describe("sync sales inventory line items", () => {
 				required: true,
 			},
 		]);
+	});
+
+	it("selects the unique item type as the parent for generic grouped lines", () => {
+		const groupedService = {
+			...emptyItem,
+			description: "Install customer glass",
+			formSteps: [
+				{
+					prodUid: "services-root",
+					value: "Services",
+					qty: 1,
+					meta: {},
+					step: { uid: "item-type", title: "Item Type" },
+					component: { uid: "services-root", name: "Services" },
+				},
+				{
+					prodUid: null,
+					value: "",
+					qty: 1,
+					meta: {},
+					step: { uid: "line-item", title: "Line Item" },
+					component: null,
+				},
+			],
+		};
+		const groupedShelf = {
+			...emptyItem,
+			description: "Shelf Items",
+			formSteps: [
+				{
+					prodUid: "shelf-root",
+					value: "Shelf Items",
+					qty: 1,
+					meta: {},
+					step: { uid: "item-type", title: "Item Type" },
+					component: { uid: "shelf-root", name: "Shelf Items" },
+				},
+				{
+					prodUid: null,
+					value: "",
+					qty: 1,
+					meta: {},
+					step: { uid: "shelf-items", title: "Shelf Items" },
+					component: null,
+				},
+			],
+		};
+
+		expect(selectInventoryParentFormStep(groupedService)?.prodUid).toBe(
+			"services-root",
+		);
+		expect(selectInventoryParentFormStep(groupedShelf)?.prodUid).toBe(
+			"shelf-root",
+		);
+	});
+
+	it("rejects ambiguous grouped item type mappings", () => {
+		const item = {
+			...emptyItem,
+			formSteps: [
+				{
+					prodUid: "root-a",
+					value: "A",
+					qty: 1,
+					meta: {},
+					step: { uid: "item-type-a", title: "Item Type" },
+					component: { uid: "root-a", name: "A" },
+				},
+				{
+					prodUid: "root-b",
+					value: "B",
+					qty: 1,
+					meta: {},
+					step: { uid: "item-type-b", title: "Item Type" },
+					component: { uid: "root-b", name: "B" },
+				},
+			],
+		};
+
+		expect(selectInventoryParentFormStep(item)).toBeNull();
 	});
 
 	it("uses selected Dyke dependency pricing keys as inventory variant UIDs", () => {
@@ -968,6 +1049,42 @@ describe("sync sales inventory line items", () => {
 				],
 			}),
 		).toBe(false);
+	});
+
+	it("recognizes legacy metadata-only service rows as non-actionable when unmapped", () => {
+		const item = {
+			...emptyItem,
+			description: "Build labor",
+			dykeProduction: false,
+			meta: {
+				doorType: "Services",
+			},
+		};
+
+		expect(resolveSalesItemProductionEligibility(item)).toBe(false);
+		expect(shouldWarnForMissingInventoryMapping(item)).toBe(false);
+		expect(shouldWarnForMissingInventoryMapping(emptyItem)).toBe(true);
+	});
+
+	it("keeps non-produceable service snapshots out of inventory demand", () => {
+		const candidates = buildInventorySyncComponentCandidatesForItem({
+			...emptyItem,
+			description: "Customer-provided mirror",
+			dykeProduction: false,
+			formSteps: [
+				{
+					prodUid: "services-root",
+					value: "Services",
+					qty: 1,
+					meta: {},
+					step: { uid: "item-type", title: "Item Type" },
+					component: { uid: "services-root", name: "Services" },
+				},
+			],
+		});
+
+		expect(candidates).toHaveLength(1);
+		expect(candidates[0]?.required).toBe(false);
 	});
 
 	it("treats moulding rows as production ineligible even when they carry HPT metadata", () => {

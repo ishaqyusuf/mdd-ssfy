@@ -84,7 +84,7 @@ describe("sales inbound action intent", () => {
 		);
 	});
 
-	test("explains the N/A state when it is clicked", () => {
+	test("verifies an active N/A state and preserves the legacy explanation", () => {
 		const notApplicableBranch = salesOrderColumnsSource.slice(
 			salesOrderColumnsSource.indexOf('if (columnState === "not_applicable")'),
 			salesOrderColumnsSource.indexOf('if (columnState === "syncing")'),
@@ -92,6 +92,10 @@ describe("sales inbound action intent", () => {
 
 		expect(notApplicableBranch).toContain("<button");
 		expect(notApplicableBranch).toContain("onClick");
+		expect(notApplicableBranch).toContain(
+			"verifyInventoryApplicability.mutate",
+		);
+		expect(notApplicableBranch).toContain("Checking…");
 		expect(notApplicableBranch).toContain('title: "Inbound not applicable"');
 		expect(notApplicableBranch).toContain(
 			"description: inventoryApplicability.description",

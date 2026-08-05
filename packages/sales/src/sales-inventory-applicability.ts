@@ -24,6 +24,7 @@ export type SalesInventoryApplicability = {
 	needCount: number | null;
 	isInboundApplicable: boolean | null;
 	canManualSync: boolean;
+	canVerify: boolean;
 	label: string;
 	description: string;
 	lastSyncedAt: Date | null;
@@ -51,6 +52,7 @@ export function resolveSalesInventoryApplicability(input: {
 				needCount: existingInventoryNeedCount,
 				isInboundApplicable: true,
 				canManualSync: false,
+				canVerify: false,
 				label: "Inventory required",
 				description: `${existingInventoryNeedCount} inventory requirement${
 					existingInventoryNeedCount === 1 ? "" : "s"
@@ -65,6 +67,7 @@ export function resolveSalesInventoryApplicability(input: {
 				needCount: null,
 				isInboundApplicable: false,
 				canManualSync: false,
+				canVerify: false,
 				label: "N/A",
 				description:
 					"Inventory is not applicable because this sale reached production completion before inventory synchronization was available.",
@@ -77,6 +80,7 @@ export function resolveSalesInventoryApplicability(input: {
 			needCount: null,
 			isInboundApplicable: null,
 			canManualSync: true,
+			canVerify: false,
 			label: "Not synced",
 			description:
 				"Open the Inventory tab to synchronize this legacy sale manually.",
@@ -90,6 +94,7 @@ export function resolveSalesInventoryApplicability(input: {
 			needCount: null,
 			isInboundApplicable: null,
 			canManualSync: false,
+			canVerify: false,
 			label: "Syncing…",
 			description: "Inventory requirements are being synchronized.",
 			lastSyncedAt: projection.completedAt ?? null,
@@ -102,10 +107,34 @@ export function resolveSalesInventoryApplicability(input: {
 			needCount: null,
 			isInboundApplicable: null,
 			canManualSync: !passedRepairBoundary,
+			canVerify: false,
 			label: "Review",
 			description: passedRepairBoundary
 				? "Inventory synchronization did not finish before this sale passed the repair boundary."
 				: "Inventory synchronization needs review. Open the Inventory tab to retry.",
+			lastSyncedAt: projection.completedAt ?? null,
+		};
+	}
+
+	const projectedNeedCount = Math.max(0, Number(projection.needCount || 0));
+	const currentNeedCount =
+		input.existingInventoryNeedCount == null
+			? null
+			: Math.max(0, Number(input.existingInventoryNeedCount || 0));
+	if (
+		projectedNeedCount > 0 &&
+		currentNeedCount === 0 &&
+		!passedRepairBoundary
+	) {
+		return {
+			state: "not_synced",
+			needCount: null,
+			isInboundApplicable: null,
+			canManualSync: true,
+			canVerify: false,
+			label: "Not synced",
+			description:
+				"Saved inventory requirements are incomplete and need to be synchronized again.",
 			lastSyncedAt: projection.completedAt ?? null,
 		};
 	}
@@ -124,6 +153,7 @@ export function resolveSalesInventoryApplicability(input: {
 			needCount: 0,
 			isInboundApplicable: false,
 			canManualSync: false,
+			canVerify: !passedRepairBoundary,
 			label: "N/A",
 			description:
 				"No tracked inventory requirements were found for this sale.",
@@ -136,6 +166,7 @@ export function resolveSalesInventoryApplicability(input: {
 		needCount,
 		isInboundApplicable: true,
 		canManualSync: false,
+		canVerify: false,
 		label: "Inventory required",
 		description: `${needCount} inventory requirement${
 			needCount === 1 ? "" : "s"

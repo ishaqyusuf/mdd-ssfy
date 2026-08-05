@@ -836,12 +836,6 @@ export function selectInventoryParentFormStep(item: SyncItemLike) {
 		return mouldingSteps.length === 1 ? (mouldingSteps[0] ?? null) : null;
 	}
 
-	const housePackageTool =
-		item.housePackageTool && !item.housePackageTool.deletedAt
-			? item.housePackageTool
-			: metadataHousePackageTool(item);
-	if (!housePackageTool) return null;
-
 	const itemTypeSteps = formSteps.filter(
 		(formStep) =>
 			formStep.step?.title?.trim().toLowerCase() === "item type" &&
@@ -1128,9 +1122,25 @@ function isServiceSalesItem(item: SyncItemLike) {
 	const formSteps = item.formSteps.length
 		? item.formSteps
 		: metadataFormSteps(item);
-	return formSteps.some((step) => {
-		const value = readString(step.value)?.toLowerCase();
-		return value === "services" || value === "service";
+	if (
+		formSteps.some((step) => {
+			const value = readString(step.value)?.toLowerCase();
+			return value === "services" || value === "service";
+		})
+	) {
+		return true;
+	}
+
+	const itemMeta = asRecord(item.meta);
+	const nestedMeta = asRecord(itemMeta.meta);
+	return [
+		readString(itemMeta.doorType),
+		readString(itemMeta.itemType),
+		readString(nestedMeta.doorType),
+		readString(nestedMeta.itemType),
+	].some((value) => {
+		const normalized = value?.toLowerCase();
+		return normalized === "services" || normalized === "service";
 	});
 }
 
@@ -1188,6 +1198,12 @@ export function resolveSalesItemProductionEligibility(item: SyncItemLike) {
 	return true;
 }
 
+export function shouldWarnForMissingInventoryMapping(item: SyncItemLike) {
+	return (
+		!isServiceSalesItem(item) || resolveSalesItemProductionEligibility(item)
+	);
+}
+
 export function buildInventorySyncComponentCandidatesForItem(
 	item: SyncItemLike,
 	options: { profileCoefficient?: number | null } = {},
@@ -1213,21 +1229,27 @@ export function buildInventorySyncComponentCandidatesForItem(
 	const hptDoorCategoryUids = new Set(
 		hptDoorCandidates.map((candidate) => candidate.inventoryCategoryUid),
 	);
+	const componentRequirementsAreActionable =
+		shouldWarnForMissingInventoryMapping(item);
 
 	const addCandidate = (candidate: SyncComponentCandidate | null) => {
 		if (!candidate) return;
+		const normalizedCandidate =
+			!componentRequirementsAreActionable && candidate.required
+				? { ...candidate, required: false }
+				: candidate;
 
-		const key = makeCandidateKey(candidate);
+		const key = makeCandidateKey(normalizedCandidate);
 		const existing = candidates.get(key);
 		if (!existing) {
-			candidates.set(key, candidate);
+			candidates.set(key, normalizedCandidate);
 			return;
 		}
 
 		candidates.set(key, {
 			...existing,
-			qty: existing.qty + candidate.qty,
-			required: existing.required || candidate.required,
+			qty: existing.qty + normalizedCandidate.qty,
+			required: existing.required || normalizedCandidate.required,
 		});
 	};
 
@@ -2197,9 +2219,11 @@ export async function syncSalesInventoryLineItems(
 
 		if (!mapping) {
 			skippedCount += 1;
-			warnings.push(
-				`salesItem:${item.id}: missing deterministic inventory mapping for parent line item`,
-			);
+			if (shouldWarnForMissingInventoryMapping(item)) {
+				warnings.push(
+					`salesItem:${item.id}: missing deterministic inventory mapping for parent line item`,
+				);
+			}
 			continue;
 		}
 

@@ -39,6 +39,13 @@ The long-term source of truth for overview, print, production, deployment, fulfi
   needs and the Inbound column refresh without tab switching or a page reload.
   Active orders with older inventory rows may be resynchronized; fulfilled,
   cancelled, not-applicable, and other read-only orders remain blocked.
+- Active projections that were saved with positive needs but have lost every
+  current tracked requirement now resolve to `not_synced` instead of `N/A`, so
+  the same one-attempt Inventory-tab repair path rebuilds them. Active orders
+  whose fresh projection still has zero needs expose a verifiable `N/A` in the
+  Sales Orders Inbound column: clicking it shows `Checking…`, performs a direct
+  repair-source projection rebuild, and refreshes the row. Historical orders
+  past the tracking-repair boundary remain explanation-only.
 - Projection synchronization now embeds the safe order-repair cleanup pass.
   Mutable pending/ordered demand and pending-review/approved/reserved
   allocations are automatically cancelled or released only when attached to a
@@ -53,8 +60,24 @@ The long-term source of truth for overview, print, production, deployment, fulfi
 - When tracked Needs rows exist but every need is fulfilled, the tab consumes any first-open Create inbound intent without rendering the empty inbound form or disabled action buttons. The summary shows `All needs fulfilled`; each completed row keeps its `Needed` tracking-classification badge, adds a distinct `Fulfilled` lifecycle badge, and reports `INBOUND: FULFILLED`.
 - The Inventory tab segment order is `Needs | Inbounds | Not Needed`, keeping required production inventory first, linked inbound shipments second, and unneeded/untracked/component rows last. The active `Not Needed` segment uses the destructive button treatment to signal that these rows are excluded from inventory needs. The URL segment values remain `stock`, `inbounds`, and `non_stock` for compatibility.
 - The merged component list uses shadcn `Item` primitives instead of a table. Each item shows the uppercase component name and category/step subtitle plus the human-readable variant name when available in a vertically scroll-friendly layout. Door width/height variants normalize to the standard Dyke size display, such as `2-8 x 8-0`, even when the stored inventory variant UID is the imported `w2_8-h8_0` shape. Raw variant UIDs remain internal identity data and are not used as item subtitle text.
-- Needs items now use a flat, borderless row with an explicit bottom divider. The metric strip remains below the item title but is reduced to one availability badge plus plain cost and sales facts. `AVAILABLE x OF y` compares allocated quantity with required quantity and is red at zero coverage, amber for partial coverage, and green when fully covered. Inbound, quantity, on-hand, allocated, pending, and tracking/lifecycle pills are omitted from the row because they duplicated the availability signal or the active segment context.
+- Needs items now use a flat row with an explicit `border-border` bottom divider
+  and a muted hover background. The metric strip keeps plain cost and sales
+  facts and separates current stock coverage from linked ordered inbound.
+  `AVAILABLE: x OF y` compares allocated quantity with total required quantity
+  and is red at zero coverage, amber for partial coverage, and green when fully
+  covered. `ORDERED: x OF y` is blue and compares linked open inbound with the
+  remaining requirement after available stock. When ordered inbound exists but
+  available quantity is zero, the redundant zero-available badge is hidden and
+  Ordered uses the full required quantity as its denominator. When neither
+  source covers the need, the zero-available badge remains visible. Quantity,
+  on-hand, allocated, pending, and tracking/lifecycle pills remain omitted
+  because they duplicate these coverage signals or the active segment context.
 - Rootless house-package-tool lines use their unique `Item Type` form step as the parent inventory mapping when the persisted HPT relation has no `stepProduct`. Detailed HPT door-size candidates remain required; an overlapping generic Door form-step candidate is retained only as an optional pricing/identity snapshot. Optional snapshots create no mutable inventory demand, do not affect readiness or requirement counts, and remain outside the Needs segment.
+- Generic grouped Service and Shelf sales lines also use a unique valid
+  `Item Type` form step as their deterministic parent. Multiple valid Item Type
+  mappings remain an error. Legacy non-produceable Service rows, including
+  metadata-only rows, are optional snapshots: an absent mapping does not fail
+  the order projection and no mutable inventory demand is created.
 - Row configuration is exposed through a compact dot-icon dropdown on each item, titled by component name, with a single category-level Needed/Not needed setting and an Open inventory item footer link when an inventory record exists. `Needed` maps the category to inventory plus monitored tracking so all items from that category enter the Needs workflow; `Not needed` maps the category to component/unmonitored behavior so those rows stay out of stock workflows. The previous horizontal table grid and wheel-bridge behavior are no longer part of this surface.
 - Non-stock, not-inventory, untracked, and zero-required rows expose a derived inbound requirement display of `Not Applicable` / `N/A`. This is not persisted to `SalesOrders.inventoryStatus`, does not create or cancel `InboundDemand`, and disables direct inbound-status editing for that row because `AVAILABLE` is reserved for physically available or explicitly resolved stock.
 - When a category stock mode changes from untracked to tracked, `inventories.updateCategoryStockMode` returns `becameTracked` metadata and the sales overview Inventory row action runs a bounded read-only repair preview. The preview lists not-yet-production/in-production orders with pending quantity for the category and skips orders at `ready_to_fulfill`, fulfillment-stage, fulfilled, or cancelled lifecycle states. The modal gives review actions for the current order's Stock/Inbounds segments but does not silently apply repair writes.

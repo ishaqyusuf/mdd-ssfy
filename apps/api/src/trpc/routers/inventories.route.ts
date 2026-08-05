@@ -1200,6 +1200,39 @@ export const inventoriesRouter = createTRPCRouter({
 				triggeredByUserId: props.ctx.userId,
 			});
 		}),
+	verifySalesInventoryApplicability: protectedProcedure
+		.input(
+			z.object({
+				salesOrderId: salesInventoryOrderIdSchema,
+			}),
+		)
+		.mutation(async (props) => {
+			const overview = await getSalesInventoryOverview(props.ctx.db, {
+				salesOrderId: props.input.salesOrderId,
+			});
+
+			if (!overview) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Sales order not found.",
+				});
+			}
+
+			if (!overview.inventoryApplicability.canVerify) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						overview.inventoryActionBlockReason ||
+						"This inventory status does not need verification.",
+				});
+			}
+
+			return runSalesInventoryProjectionSync(props.ctx.db, {
+				salesOrderId: props.input.salesOrderId,
+				source: "repair",
+				triggeredByUserId: props.ctx.userId,
+			});
+		}),
 	resolveSalesInventoryLegacyStatusSetup: protectedProcedure
 		.input(
 			z.object({

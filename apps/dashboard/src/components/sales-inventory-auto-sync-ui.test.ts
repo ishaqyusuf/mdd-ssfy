@@ -25,4 +25,29 @@ describe("sales inventory automatic synchronization UI", () => {
 			"trpc.inventories.salesInventoryOrderRepairPreview.queryKey",
 		);
 	});
+
+	test("shows separate available and ordered coverage on flat divided rows", () => {
+		expect(inventoryTabSource).toContain("resolveInventoryCoverageDisplay");
+		expect(inventoryTabSource).toContain("coverage.showAvailable");
+		expect(inventoryTabSource).toContain("coverage.showOrdered");
+		expect(inventoryTabSource).toContain("AVAILABLE:");
+		expect(inventoryTabSource).toContain("ORDERED:");
+		expect(inventoryTabSource).toContain("border-b border-border");
+		expect(inventoryTabSource).toContain("hover:bg-muted/50");
+	});
+
+	test("uses flat item-to-order rows with grouped bounded quantity controls", () => {
+		expect(inventoryTabSource).toContain('aria-label="Items to order"');
+		expect(inventoryTabSource).toContain(
+			"Order quantity controls for ${row.componentName}",
+		);
+		expect(inventoryTabSource).toContain("<InputGroupInput");
+		expect(inventoryTabSource).toContain("<InputGroupText");
+		expect(inventoryTabSource).toContain("/{formatQty(maxQty)}");
+		expect(inventoryTabSource).toContain("border-b border-border");
+		expect(inventoryTabSource).toContain("hover:bg-muted/50");
+		expect(inventoryTabSource).not.toContain(
+			'className="flex items-start gap-3 rounded-md border p-2 hover:bg-muted/40"',
+		);
+	});
 });

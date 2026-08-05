@@ -6,6 +6,41 @@ export type InventoryInboundCountState =
 
 export type InventoryAvailabilityState = "empty" | "partial" | "complete";
 
+export type InventoryCoverageDisplay = {
+	requiredQty: number;
+	availableQty: number;
+	orderedQty: number;
+	orderedOfQty: number;
+	showAvailable: boolean;
+	showOrdered: boolean;
+};
+
+export function resolveInventoryCoverageDisplay(input: {
+	qtyRequired?: number | null;
+	qtyAllocated?: number | null;
+	qtyInboundLinkedOpen?: number | null;
+}): InventoryCoverageDisplay {
+	const requiredQty = Math.max(0, Number(input.qtyRequired || 0));
+	const availableQty = Math.min(
+		requiredQty,
+		Math.max(0, Number(input.qtyAllocated || 0)),
+	);
+	const orderedOfQty = Math.max(0, requiredQty - availableQty);
+	const orderedQty = Math.min(
+		orderedOfQty,
+		Math.max(0, Number(input.qtyInboundLinkedOpen || 0)),
+	);
+
+	return {
+		requiredQty,
+		availableQty,
+		orderedQty,
+		orderedOfQty,
+		showAvailable: availableQty > 0 || orderedQty === 0,
+		showOrdered: orderedQty > 0,
+	};
+}
+
 export function resolveInventoryAvailabilityState(input: {
 	qtyAllocated?: number | null;
 	qtyRequired?: number | null;

@@ -1,5 +1,31 @@
 # Progress
 
+- 2026-08-05: refined Sales Overview Inventory Needs rows to separate current
+  available allocation from linked ordered inbound. Mixed coverage renders
+  `AVAILABLE: 1 OF 12` plus `ORDERED: 5 OF 11`; inbound-only coverage renders
+  `ORDERED: 5 OF 12`. Coverage is clamped to the remaining requirement, zero
+  availability is hidden only when ordered inbound exists, and empty needs keep
+  their red availability signal. Flat items now have an explicit visible
+  bottom divider and muted hover background. Browser QA on `09086PC` confirmed
+  ordered-only badges and visible dividers; 45 focused overview/UI tests and
+  targeted Biome checks pass.
+
+- 2026-08-05: completed the systemic sales inventory projection repair. Generic
+  grouped Service/Shelf lines now accept a unique Item Type parent, legacy
+  non-produceable services remain optional and non-failing, and active stale
+  positive projections self-repair instead of being labeled `N/A`. Active
+  zero-need rows now expose a spinner-backed `N/A` verification action that
+  performs a guarded repair-source rebuild; historical orders stay read-only.
+  `09166LRG` now shows 5 needs and 162 pending units. All remaining local failed
+  projections, including `09096LM`, `09113PC`, and `09164PC`, replayed to ready,
+  leaving zero failed projections. Browser QA confirmed the repaired 09166 UI
+  and the `Checking…`/fresh-zero verification flow on `09168PC`. Focused
+  coverage passes 102 tests, Sales typecheck passes, and targeted Biome passes;
+  broad API/Dashboard typechecks retain their unrelated Prisma-depth and 4 GB
+  heap baselines. See
+  `.brain/bugs/2026-08-05-systemic-sales-inventory-projection-repair.md` and
+  ADR-047.
+
 - 2026-08-05: repaired automatic inventory synchronization for rootless HPT
   sales lines. Order `09161PC` failed because its active HPT relation had no
   root `stepProduct`, while the deterministic parent selector rejected the

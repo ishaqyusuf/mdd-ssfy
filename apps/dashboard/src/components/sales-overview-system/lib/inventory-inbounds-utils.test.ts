@@ -8,6 +8,7 @@ import {
 	getPendingInventoryQty,
 	isInventoryNeedRow,
 	resolveInventoryAvailabilityState,
+	resolveInventoryCoverageDisplay,
 	resolveInventoryInboundCountState,
 	shouldAutoSyncSalesInventory,
 	shouldShowInventoryInboundForm,
@@ -15,6 +16,68 @@ import {
 } from "./inventory-inbounds-utils";
 
 describe("sales overview inventory inbound helpers", () => {
+	it("separates available stock from ordered inbound coverage", () => {
+		expect(
+			resolveInventoryCoverageDisplay({
+				qtyRequired: 12,
+				qtyAllocated: 1,
+				qtyInboundLinkedOpen: 5,
+			}),
+		).toEqual({
+			requiredQty: 12,
+			availableQty: 1,
+			orderedQty: 5,
+			orderedOfQty: 11,
+			showAvailable: true,
+			showOrdered: true,
+		});
+
+		expect(
+			resolveInventoryCoverageDisplay({
+				qtyRequired: 12,
+				qtyAllocated: 0,
+				qtyInboundLinkedOpen: 5,
+			}),
+		).toEqual({
+			requiredQty: 12,
+			availableQty: 0,
+			orderedQty: 5,
+			orderedOfQty: 12,
+			showAvailable: false,
+			showOrdered: true,
+		});
+	});
+
+	it("clamps coverage and keeps an empty availability signal without inbound", () => {
+		expect(
+			resolveInventoryCoverageDisplay({
+				qtyRequired: 12,
+				qtyAllocated: 20,
+				qtyInboundLinkedOpen: 5,
+			}),
+		).toEqual({
+			requiredQty: 12,
+			availableQty: 12,
+			orderedQty: 0,
+			orderedOfQty: 0,
+			showAvailable: true,
+			showOrdered: false,
+		});
+
+		expect(
+			resolveInventoryCoverageDisplay({
+				qtyRequired: 12,
+				qtyAllocated: 0,
+				qtyInboundLinkedOpen: 0,
+			}),
+		).toMatchObject({
+			availableQty: 0,
+			orderedQty: 0,
+			showAvailable: true,
+			showOrdered: false,
+		});
+	});
+
 	it("uses availability as the single stock coverage signal", () => {
 		expect(
 			resolveInventoryAvailabilityState({ qtyAllocated: 0, qtyRequired: 4 }),

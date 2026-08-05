@@ -47,6 +47,13 @@ import {
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupButton,
+	InputGroupInput,
+	InputGroupText,
+} from "@gnd/ui/input-group";
+import {
 	Item,
 	ItemActions,
 	ItemContent,
@@ -79,6 +86,7 @@ import {
 	getPendingInventoryQty,
 	isInventoryNeedRow,
 	resolveInventoryAvailabilityState,
+	resolveInventoryCoverageDisplay,
 	resolveInventoryInboundCountState,
 	shouldAutoSyncSalesInventory,
 	shouldShowInventoryInboundForm,
@@ -1200,7 +1208,10 @@ function InventoryActionBar({
 						placeholder="Inbound note (appears in Sales Overview activity)"
 						aria-label="Inbound note"
 					/>
-					<div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+					<ItemGroup
+						className="max-h-72 gap-0 overflow-y-auto pr-1"
+						aria-label="Items to order"
+					>
 						{inboundRows.map((row) => {
 							const isChecked = selectedInboundRowIds.includes(row.id);
 							const maxQty = inboundOrderableQty(row);
@@ -1214,9 +1225,10 @@ function InventoryActionBar({
 							)}`;
 
 							return (
-								<div
+								<Item
 									key={row.id}
-									className="flex items-start gap-3 rounded-md border p-2 hover:bg-muted/40"
+									size="sm"
+									className="items-start rounded-none border-x-0 border-t-0 border-b border-border px-3 py-3 hover:bg-muted/50"
 								>
 									<label
 										htmlFor={checkboxId}
@@ -1224,68 +1236,78 @@ function InventoryActionBar({
 									>
 										<Checkbox
 											id={checkboxId}
+											aria-label={`Select ${row.componentName} for inbound`}
 											checked={isChecked}
 											onCheckedChange={(checked) =>
 												toggleInboundRow(row, checked === true)
 											}
 										/>
 									</label>
-									<div className="min-w-0 flex-1">
-										<div className="truncate text-xs font-semibold uppercase">
+									<ItemContent className="min-w-0">
+										<ItemTitle className="truncate text-xs font-semibold uppercase">
 											{row.componentName}
-										</div>
-										<div className="mt-0.5 text-[11px] text-muted-foreground">
+										</ItemTitle>
+										<ItemDescription className="mt-0.5 line-clamp-none text-[11px]">
 											{[
 												formatInventoryCategoryStepLabel(row.stepName),
 												row.variantName,
 											]
 												.filter(Boolean)
 												.join(" • ")}
-										</div>
-									</div>
-									<div className="flex shrink-0 items-center gap-1">
-										<Button
-											type="button"
-											size="icon"
-											variant="outline"
-											className="size-7"
-											disabled={qtyValue <= 0}
-											onClick={() => setInboundRowQty(row, qtyValue - 1)}
-											aria-label={`Decrease inbound quantity for ${row.componentName}`}
+										</ItemDescription>
+									</ItemContent>
+									<ItemActions className="shrink-0">
+										<InputGroup
+											className="h-8 w-36 bg-background"
+											aria-label={`Order quantity controls for ${row.componentName}`}
 										>
-											<Icons.Minus className="size-3.5" />
-										</Button>
-										<Input
-											type="number"
-											min={0}
-											max={maxQty}
-											step={1}
-											value={qtyValue}
-											onChange={(event) =>
-												setInboundRowQty(row, parseQtyInput(event.target.value))
-											}
-											className="h-7 w-16 px-2 text-center text-xs tabular-nums"
-											aria-label={`Inbound quantity for ${row.componentName}`}
-										/>
-										<Button
-											type="button"
-											size="icon"
-											variant="outline"
-											className="size-7"
-											disabled={qtyValue >= maxQty}
-											onClick={() => setInboundRowQty(row, qtyValue + 1)}
-											aria-label={`Increase inbound quantity for ${row.componentName}`}
-										>
-											<Icons.Plus className="size-3.5" />
-										</Button>
-										<Badge variant="outline" className="ml-1">
-											/{formatQty(maxQty)}
-										</Badge>
-									</div>
-								</div>
+											<InputGroupAddon className="pl-1.5">
+												<InputGroupButton
+													size="icon-xs"
+													disabled={qtyValue <= 0}
+													onClick={() => setInboundRowQty(row, qtyValue - 1)}
+													aria-label={`Decrease inbound quantity for ${row.componentName}`}
+												>
+													<Icons.Minus className="size-3.5" />
+												</InputGroupButton>
+											</InputGroupAddon>
+											<InputGroupInput
+												type="number"
+												min={0}
+												max={maxQty}
+												step={1}
+												value={qtyValue}
+												onChange={(event) =>
+													setInboundRowQty(
+														row,
+														parseQtyInput(event.target.value),
+													)
+												}
+												className="h-7 min-w-0 px-1 text-center text-xs tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+												aria-label={`Inbound quantity for ${row.componentName}`}
+											/>
+											<InputGroupAddon
+												align="inline-end"
+												className="gap-1 pr-1.5"
+											>
+												<InputGroupText className="text-xs tabular-nums">
+													/{formatQty(maxQty)}
+												</InputGroupText>
+												<InputGroupButton
+													size="icon-xs"
+													disabled={qtyValue >= maxQty}
+													onClick={() => setInboundRowQty(row, qtyValue + 1)}
+													aria-label={`Increase inbound quantity for ${row.componentName}`}
+												>
+													<Icons.Plus className="size-3.5" />
+												</InputGroupButton>
+											</InputGroupAddon>
+										</InputGroup>
+									</ItemActions>
+								</Item>
 							);
 						})}
-					</div>
+					</ItemGroup>
 					<div className="flex flex-wrap items-center justify-between gap-2">
 						<div className="text-xs text-muted-foreground">
 							{formatQty(selectedInboundRows.length)} needed item
@@ -1343,10 +1365,7 @@ function InventoryMergedTable({
 	return (
 		<div className="min-w-0 w-full max-w-full overflow-hidden [contain:inline-size]">
 			{rows.length ? (
-				<ItemGroup
-					className="gap-0 divide-y"
-					aria-label="Inventory component items"
-				>
+				<ItemGroup className="gap-0" aria-label="Inventory component items">
 					{rows.map((row) => (
 						<InventoryLineRow
 							key={row.id}
@@ -1890,19 +1909,20 @@ function InventoryLineRow({
 	const variantLabel = inventoryVariantLabel(row);
 	const categoryStepLabel = formatInventoryCategoryStepLabel(row.stepName);
 	const isNeed = isInventoryNeedRow(row);
-	const availabilityState = resolveInventoryAvailabilityState({
-		qtyAllocated: row.qtyAllocated,
+	const coverage = resolveInventoryCoverageDisplay({
 		qtyRequired: row.qtyRequired,
+		qtyAllocated: row.qtyAllocated,
+		qtyInboundLinkedOpen: row.qtyInboundLinkedOpen,
 	});
-	const allocatedQty = Math.min(
-		Math.max(0, Number(row.qtyAllocated || 0)),
-		Math.max(0, Number(row.qtyRequired || 0)),
-	);
+	const availabilityState = resolveInventoryAvailabilityState({
+		qtyAllocated: coverage.availableQty,
+		qtyRequired: coverage.requiredQty,
+	});
 
 	return (
 		<Item
 			size="sm"
-			className="items-start rounded-none border-x-0 border-t-0 border-b px-4 py-3.5 last:border-b-0"
+			className="items-start rounded-none border-x-0 border-t-0 border-b border-border px-4 py-3.5 hover:bg-muted/50"
 		>
 			<ItemContent className="min-w-0 gap-2">
 				<ItemHeader className="items-start gap-3">
@@ -1932,7 +1952,7 @@ function InventoryLineRow({
 					</ItemActions>
 				</ItemHeader>
 				<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-					{isNeed ? (
+					{isNeed && coverage.showAvailable ? (
 						<Badge
 							variant="outline"
 							className={cn(
@@ -1945,8 +1965,17 @@ function InventoryLineRow({
 									"border-emerald-200 bg-emerald-50 text-emerald-700",
 							)}
 						>
-							AVAILABLE {formatQty(allocatedQty)} OF{" "}
-							{formatQty(row.qtyRequired)}
+							AVAILABLE: {formatQty(coverage.availableQty)} OF{" "}
+							{formatQty(coverage.requiredQty)}
+						</Badge>
+					) : null}
+					{isNeed && coverage.showOrdered ? (
+						<Badge
+							variant="outline"
+							className="min-h-7 shrink-0 rounded-full border-blue-200 bg-blue-50 px-2.5 text-xs font-semibold text-blue-700 tabular-nums"
+						>
+							ORDERED: {formatQty(coverage.orderedQty)} OF{" "}
+							{formatQty(coverage.orderedOfQty)}
 						</Badge>
 					) : null}
 					<InventoryFact label="COST" value={formatMoney(row.cost)} />

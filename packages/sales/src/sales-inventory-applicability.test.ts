@@ -18,6 +18,7 @@ describe("resolveSalesInventoryApplicability", () => {
 			needCount: 0,
 			isInboundApplicable: false,
 			canManualSync: false,
+			canVerify: true,
 			label: "N/A",
 			description:
 				"No tracked inventory requirements were found for this sale.",
@@ -43,7 +44,7 @@ describe("resolveSalesInventoryApplicability", () => {
 		});
 	});
 
-	test("uses the current actionable need count over a stale ready projection", () => {
+	test("repairs an active ready projection that lost all projected needs", () => {
 		expect(
 			resolveSalesInventoryApplicability({
 				lifecycleStatus: "awaiting_production",
@@ -55,10 +56,11 @@ describe("resolveSalesInventoryApplicability", () => {
 				existingInventoryNeedCount: 0,
 			}),
 		).toMatchObject({
-			state: "not_applicable",
-			needCount: 0,
-			isInboundApplicable: false,
-			label: "N/A",
+			state: "not_synced",
+			needCount: null,
+			isInboundApplicable: null,
+			canManualSync: true,
+			label: "Not synced",
 		});
 	});
 
@@ -104,6 +106,7 @@ describe("resolveSalesInventoryApplicability", () => {
 			needCount: null,
 			isInboundApplicable: false,
 			canManualSync: false,
+			canVerify: false,
 			label: "N/A",
 		});
 	});

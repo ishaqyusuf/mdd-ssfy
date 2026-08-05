@@ -309,6 +309,8 @@ const inboundColumn: Column = {
 };
 
 function InboundStatusCell({ item }: { item: SalesOrder }) {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const overviewQuery = useSalesOverviewQuery();
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const inventoryInboundOwnership = item.inventoryInboundOwnership;
@@ -324,6 +326,40 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 	const actionIntent = getSalesInboundActionIntent(inventoryInboundOwnership);
 	const inboundStatusClassName =
 		"h-7 max-w-full cursor-pointer justify-start gap-1.5 whitespace-nowrap px-2 font-medium shadow-none";
+	const verifyInventoryApplicability = useMutation(
+		trpc.inventories.verifySalesInventoryApplicability.mutationOptions({
+			onSuccess: async (result) => {
+				await Promise.all([
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getOrders.infiniteQueryKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getOrdersSummary.queryKey(),
+					}),
+				]);
+				const needCount = Number(result.projection.needCount || 0);
+				toast({
+					duration: 4000,
+					title:
+						needCount > 0
+							? "Inventory requirements repaired"
+							: "Inventory status verified",
+					description:
+						needCount > 0
+							? `${needCount} inventory requirement${needCount === 1 ? "" : "s"} found.`
+							: "A fresh synchronization confirmed that inventory is not applicable.",
+				});
+			},
+			onError: (error) => {
+				toast({
+					duration: 5000,
+					variant: "destructive",
+					title: "Inventory verification failed",
+					description: error.message,
+				});
+			},
+		}),
+	);
 	const openInventoryInbound = () => {
 		setInventorySegment(actionIntent.segment, {
 			inboundId: actionIntent.inboundId,
@@ -395,10 +431,16 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 	}
 
 	if (columnState === "not_applicable") {
+		const canVerify = inventoryApplicability.state === "not_applicable";
 		return (
 			<button
 				type="button"
-				aria-label={`Explain inbound status for ${item.orderId}`}
+				aria-label={
+					canVerify
+						? `Verify inbound status for ${item.orderId}`
+						: `Explain inbound status for ${item.orderId}`
+				}
+				disabled={verifyInventoryApplicability.isPending}
 				className={cn(
 					buttonVariants({ variant: "ghost", size: "sm" }),
 					inboundStatusClassName,
@@ -408,6 +450,12 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 				onClick={(event) => {
 					event.preventDefault();
 					event.stopPropagation();
+					if (canVerify) {
+						verifyInventoryApplicability.mutate({
+							salesOrderId: item.id,
+						});
+						return;
+					}
 					toast({
 						duration: 4000,
 						title: "Inbound not applicable",
@@ -416,7 +464,14 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 				}}
 				onPointerDown={(event) => event.stopPropagation()}
 			>
-				N/A
+				{verifyInventoryApplicability.isPending ? (
+					<>
+						<Icons.Loader2 className="size-3 animate-spin" />
+						Checking…
+					</>
+				) : (
+					"N/A"
+				)}
 			</button>
 		);
 	}

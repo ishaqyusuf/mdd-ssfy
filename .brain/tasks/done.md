@@ -1,5 +1,14 @@
 # Done
 
+- [x] 2026-08-05 — Repair systemic sales inventory projection failures and
+  false `N/A` states across grouped Service/Shelf lines, stale positive
+  projections, and legacy non-produceable service rows; add guarded,
+  spinner-backed `N/A` verification for active orders. The same Inventory
+  polish pass separates Available and Ordered coverage and restores flat-row
+  dividers and hover feedback. See
+  `.brain/bugs/2026-08-05-systemic-sales-inventory-projection-repair.md` and
+  ADR-047.
+
 - [x] 2026-08-04 — Implement customer-approved quantity increases/reductions
   for existing sale items inside the new sales form, including commitment
   warnings, immutable comparison, guarded saves, manual approval link,
