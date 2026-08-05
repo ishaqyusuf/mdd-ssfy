@@ -107,10 +107,11 @@ The shared menu replaces the previous link-only dropdown. It is divided into:
   statements.
 
 Every option has an icon, title, and plain-language description. Desktop shows
-the Reports button directly in the top-right Sales header; smaller breakpoints
-place the same content inside Quick access. The catalog uses a two-column
-shadcn menu grid from the `sm` breakpoint upward, collapses to one column on
-narrow screens, and keeps the fixed heading outside a bounded `ScrollArea` so
+the Reports button with the secondary variant directly in the top-right Sales
+header; smaller breakpoints place the same content inside Quick access. The
+catalog uses a two-column shadcn menu grid from the `sm` breakpoint upward,
+collapses to one column on narrow screens, and keeps the fixed heading outside
+a bounded `ScrollArea` so
 large permission sets remain navigable without extending beyond the viewport.
 Create/edit forms suppress the New Sales and New Quote shortcuts but retain
 report access.

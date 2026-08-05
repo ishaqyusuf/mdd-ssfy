@@ -21,7 +21,7 @@ import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { upload } from "@vercel/blob/client";
 import Link from "next/link";
-import { type ComponentProps, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	TAB_RECORDING_FRAME_INTERVAL_MS,
 	TAB_RECORDING_FRAME_RATE,
@@ -101,7 +101,6 @@ function stopStream(stream: MediaStream | null) {
 
 type BugReportButtonProps = {
 	presentation?: "header" | "menu-item";
-	variant?: ComponentProps<typeof Button>["variant"];
 	hideTrigger?: boolean;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
@@ -109,13 +108,11 @@ type BugReportButtonProps = {
 
 type BugReportTriggerProps = {
 	presentation?: "header" | "menu-item";
-	variant?: ComponentProps<typeof Button>["variant"];
 	onOpen: () => void;
 };
 
 export function BugReportTrigger({
 	presentation = "header",
-	variant,
 	onOpen,
 }: BugReportTriggerProps) {
 	const auth = useAuth();
@@ -126,7 +123,7 @@ export function BugReportTrigger({
 	return (
 		<Button
 			type="button"
-			variant={variant ?? (isMenuItem ? "ghost" : "secondary")}
+			variant={isMenuItem ? "ghost" : "secondary"}
 			size={isMenuItem ? "sm" : "icon"}
 			className={
 				isMenuItem
@@ -145,7 +142,6 @@ export function BugReportTrigger({
 
 export function BugReportButton({
 	presentation = "header",
-	variant,
 	hideTrigger = false,
 	open: controlledOpen,
 	onOpenChange,
@@ -604,7 +600,6 @@ export function BugReportButton({
 			{hideTrigger ? null : (
 				<BugReportTrigger
 					presentation={presentation}
-					variant={variant}
 					onOpen={() => setOpen(true)}
 				/>
 			)}

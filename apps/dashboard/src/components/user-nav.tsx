@@ -169,7 +169,7 @@ function DesktopHeaderActions() {
 	return (
 		<div className="hidden items-center gap-2 md:flex">
 			<SalesRepRequestBadge />
-			<BugReportButton variant="secondary" />
+			<BugReportButton />
 			<TestEmailModeAction />
 			<NotificationCenter />
 		</div>

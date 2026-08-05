@@ -316,7 +316,7 @@ export function SalesReportMenuDropdown({
 						type="button"
 						className={cn(
 							buttonVariants({
-								variant: "ghost",
+								variant: "secondary",
 							}),
 							"gap-1.5",
 						)}

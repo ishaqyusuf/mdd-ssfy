@@ -70,4 +70,10 @@ describe("Sales Reports export menu", () => {
 		expect(accountingHeader).not.toContain("<SalesReportMenu");
 		expect(workspace).not.toContain("actions={<SalesPerformanceReports />}");
 	});
+
+	it("uses the secondary variant for the Reports trigger mounted in the header", () => {
+		expect(unifiedMenu).toMatch(
+			/variant === "nav"[\s\S]{0,260}variant: "secondary"/,
+		);
+	});
 });
