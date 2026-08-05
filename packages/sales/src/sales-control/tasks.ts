@@ -35,12 +35,14 @@ async function getPaymentReviewSettings(db: Db) {
 	return setting.data?.paymentReview ?? null;
 }
 
+type SubmitAllTaskDependencies = {
+	prepareMaterialReview?: typeof prepareProductionSubmissionMaterialReview;
+};
+
 export async function submitAllTask(
 	db: Db,
 	data: UpdateSalesControl,
-	dependencies: {
-		prepareMaterialReview?: typeof prepareProductionSubmissionMaterialReview;
-	} = {},
+	dependencies: SubmitAllTaskDependencies = {},
 ) {
 	const submitArgs = data.submitAll;
 	if (!submitArgs)
@@ -383,6 +385,7 @@ export async function submitDispatchTask(
 	data: UpdateSalesControl,
 	internal?: {
 		allowCompletedResign?: boolean;
+		saveNoteAction?: typeof saveNote;
 		packingSignoff?: {
 			requestId: string;
 			documentId: string;
@@ -527,7 +530,11 @@ export async function submitDispatchTask(
 					...attachmentTags,
 				],
 			};
-			await saveNote(tx, note, data.meta.authorId);
+			await (internal?.saveNoteAction ?? saveNote)(
+				tx,
+				note,
+				data.meta.authorId,
+			);
 			return {
 				status: "completed" as const,
 				idempotent: false,
@@ -630,7 +637,11 @@ function buildSelectionPackingLinesFromRequestedItems(
 	};
 }
 
-export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
+export async function packDispatchItemTask(
+	db: Db,
+	data: UpdateSalesControl,
+	dependencies: SubmitAllTaskDependencies = {},
+) {
 	const packMode = data.packItems?.packMode!;
 	const requestedDispatchStatus = data.packItems?.dispatchStatus;
 	if (packMode == "all") {
@@ -671,10 +682,14 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 		}
 	}
 	if (packMode == "all" || packMode == "available")
-		await submitAllTask(db, {
-			meta: data.meta,
-			submitAll: {},
-		});
+		await submitAllTask(
+			db,
+			{
+				meta: data.meta,
+				submitAll: {},
+			},
+			dependencies,
+		);
 	const info = await getSaleInformation(
 		db,
 		{
@@ -1096,22 +1111,34 @@ function normalizeSubmissionQty(qty?: {
 	};
 }
 
-export async function markAsCompletedTask(db: Db, args: UpdateSalesControl) {
-	await submitAllTask(db, {
-		meta: args.meta,
-		submitAll: {},
-	});
-	await packDispatchItemTask(db, {
-		meta: args.meta,
-		packItems: {
-			dispatchId: args.markAsCompleted?.dispatchId!,
-			packMode: "all",
-			dispatchStatus: "completed",
-			replaceExisting: true,
+export async function markAsCompletedTask(
+	db: Db,
+	args: UpdateSalesControl,
+	dependencies: SubmitAllTaskDependencies & {
+		saveNoteAction?: typeof saveNote;
+	} = {},
+) {
+	await packDispatchItemTask(
+		db,
+		{
+			meta: args.meta,
+			packItems: {
+				dispatchId: args.markAsCompleted?.dispatchId!,
+				packMode: "all",
+				dispatchStatus: "completed",
+				replaceExisting: true,
+			},
 		},
-	});
-	await submitDispatchTask(db, {
-		meta: args.meta,
-		submitDispatch: args.markAsCompleted,
-	});
+		dependencies,
+	);
+	await submitDispatchTask(
+		db,
+		{
+			meta: args.meta,
+			submitDispatch: args.markAsCompleted,
+		},
+		{
+			saveNoteAction: dependencies.saveNoteAction,
+		},
+	);
 }

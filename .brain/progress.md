@@ -1,5 +1,29 @@
 # Progress
 
+- 2026-08-05: fixed `update-sales-control` Mark As Completed failures with
+  `Unable to complete, nothing to submit!`. A deterministic regression test
+  reproduced the reported stack twice and confirmed that
+  `markAsCompletedTask` submitted production before calling pack-all, which
+  owns the same submission step. The redundant outer submission was removed;
+  pack-all now performs the single auto-assign -> submit -> pack sequence before
+  dispatch completion, while direct empty production submissions remain errors.
+  Focused sales-control coverage passed with 28 tests / 99 assertions and the
+  `@gnd/sales` typecheck passed. See
+  `.brain/bugs/2026-08-05-mark-as-completed-double-production-submit.md`.
+
+- 2026-08-05: added durable Sales Activity evidence for new-form updates and
+  quantity reviews. Every successful save of an existing order or quote now
+  writes one actor-attributed, sale-tagged timeline entry in the same transaction
+  as the update, with distinct manual/autosave language and quantity/total
+  details when available. Creating a new quantity adjustment writes the review
+  entry transactionally, while idempotent replays do not duplicate it. Focused
+  activity, relational-save, and grouped-line coverage passes with 35 tests /
+  261 assertions. The API typecheck has no touched-file diagnostics and remains
+  blocked only by the existing excessive-stack-depth diagnostic in
+  `inbound-receiving.ts`. Authenticated browser QA confirmed the selected sale's
+  Activity tab consumes the canonical sale-tagged timeline; no live sale was
+  changed during verification.
+
 - 2026-08-05: separated shared-header and page-level sales creation behavior.
   The Sales layout header's `New Sales` / `New Quote` actions continue to open
   Find Anything with sales-creation coaching, while the `/sales-rep` page's

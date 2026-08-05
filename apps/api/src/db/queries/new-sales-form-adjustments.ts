@@ -15,6 +15,11 @@ import { projectLegacyOrderPayments } from "@gnd/sales/payment-system";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
 import { getNewSalesForm } from "./new-sales-form";
+import {
+	buildSalesFormAdjustmentActivity,
+	createSalesFormTimelineActivity,
+	getSalesActivitySenderContactId,
+} from "./sales-form-activity";
 
 const ACTIVE_ADJUSTMENT_STATUSES = [
 	"DRAFT",
@@ -311,6 +316,7 @@ export async function createNewSalesFormAdjustment(
 	input: CreateNewSalesFormAdjustmentSchema,
 ) {
 	if (!ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+	const userId = ctx.userId;
 	const preview = await buildNewSalesFormAdjustmentPreview(ctx, input);
 	if (preview.analysis.direction === "NONE") {
 		throw new TRPCError({
@@ -411,54 +417,71 @@ export async function createNewSalesFormAdjustment(
 		};
 	}
 	const approvedAt = new Date();
-	const adjustment = await ctx.db.salesOrderAdjustment.create({
-		data: {
-			salesOrderId: input.salesId,
-			direction: preview.analysis.direction as
-				| "INCREASE"
-				| "REDUCTION"
-				| "MIXED",
-			status: "APPROVED",
-			sourceVersion: input.version,
-			sourceHash,
-			idempotencyKey,
-			reason: input.reason,
-			beforeSnapshot: json(preview.baseline),
-			proposedSnapshot: json(input),
-			commitmentSnapshot: json(preview.commitments),
-			settlementSnapshot: json(preview.settlement),
-			beforeGrandTotal: preview.analysis.beforeGrandTotal,
-			proposedGrandTotal: preview.analysis.afterGrandTotal,
-			paymentTotal: preview.commitments.paymentTotal,
-			amountDueAfter: preview.settlement.amountDue,
-			walletCreditAmount: preview.settlement.walletCredit,
-			requestedById: ctx.userId,
-			submittedById: ctx.userId,
-			appliedById: ctx.userId,
-			submittedAt: approvedAt,
-			approvedAt,
-			lines: {
-				create: preview.analysis.lines.map((line) => ({
-					lineUid: line.uid,
-					salesOrderItemId: line.id,
-					title: line.title,
-					beforeQty: line.beforeQty,
-					proposedQty: line.afterQty,
-					quantityDelta: line.quantityDelta,
-					beforeLineTotal: line.beforeLineTotal,
-					proposedLineTotal: line.afterLineTotal,
-					lineTotalDelta: line.lineTotalDelta,
-					commitmentSnapshot: json(
-						preview.commitments.lines.find(
-							(row) =>
-								row.uid === line.uid ||
-								(Boolean(line.id) && row.salesOrderItemId === line.id),
-						) || {},
-					),
-				})),
+	const senderContactId = await getSalesActivitySenderContactId(ctx.db, userId);
+	const orderId = String(preview.baseline.orderId || input.salesId);
+	const adjustment = await ctx.db.$transaction(async (tx) => {
+		const created = await tx.salesOrderAdjustment.create({
+			data: {
+				salesOrderId: input.salesId,
+				direction: preview.analysis.direction as
+					| "INCREASE"
+					| "REDUCTION"
+					| "MIXED",
+				status: "APPROVED",
+				sourceVersion: input.version,
+				sourceHash,
+				idempotencyKey,
+				reason: input.reason,
+				beforeSnapshot: json(preview.baseline),
+				proposedSnapshot: json(input),
+				commitmentSnapshot: json(preview.commitments),
+				settlementSnapshot: json(preview.settlement),
+				beforeGrandTotal: preview.analysis.beforeGrandTotal,
+				proposedGrandTotal: preview.analysis.afterGrandTotal,
+				paymentTotal: preview.commitments.paymentTotal,
+				amountDueAfter: preview.settlement.amountDue,
+				walletCreditAmount: preview.settlement.walletCredit,
+				requestedById: userId,
+				submittedById: userId,
+				appliedById: userId,
+				submittedAt: approvedAt,
+				approvedAt,
+				lines: {
+					create: preview.analysis.lines.map((line) => ({
+						lineUid: line.uid,
+						salesOrderItemId: Number(line.id),
+						title: line.title,
+						beforeQty: line.beforeQty,
+						proposedQty: line.afterQty,
+						quantityDelta: line.quantityDelta,
+						beforeLineTotal: line.beforeLineTotal,
+						proposedLineTotal: line.afterLineTotal,
+						lineTotalDelta: line.lineTotalDelta,
+						commitmentSnapshot: json(
+							preview.commitments.lines.find(
+								(row) =>
+									row.uid === line.uid ||
+									(Boolean(line.id) && row.salesOrderItemId === line.id),
+							) || {},
+						),
+					})),
+				},
 			},
-		},
-		select: { id: true, status: true },
+			select: { id: true, status: true },
+		});
+		await createSalesFormTimelineActivity(tx as unknown as TRPCContext["db"], {
+			salesId: input.salesId,
+			orderId,
+			senderContactId,
+			copy: buildSalesFormAdjustmentActivity({
+				orderId,
+				direction: preview.analysis.direction,
+				beforeGrandTotal: preview.analysis.beforeGrandTotal,
+				afterGrandTotal: preview.analysis.afterGrandTotal,
+				lines: preview.analysis.lines,
+			}),
+		});
+		return created;
 	});
 	await tasks.trigger("apply-sales-order-adjustment", {
 		adjustmentId: adjustment.id,

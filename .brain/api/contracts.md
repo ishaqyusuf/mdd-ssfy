@@ -486,6 +486,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - `newSalesForm.getHistorySnapshot({ type, salesId, historyId })` accepts `type: "order" | "quote"`, verifies the current document and history copy share the same base order number, and hydrates the history copy without exposing its `*-hx` type to the editor
   - history preview is read-only and cannot save, print, export, or add items
   - restoring a snapshot is client-local until the operator explicitly saves; current sales identity, status, inventory status, settings, payment totals/count, and version are preserved while copied line/step/shelf/HPT/door/extra-cost persistence IDs are removed
+- New sales form Activity contract:
+  - a successful save of an existing order or quote creates exactly one canonical `NotePad` Activity entry in the sale-update transaction, tagged with both `salesId` and visible `salesNo`; initial creation does not create an update entry
+  - manual saves use `activity=sales_form_updated`, autosaves use `activity=sales_form_autosaved`, and the entry records the authenticated employee plus quantity/total changes when present
+  - creating a new quantity adjustment writes its review Activity in the same transaction as `SalesOrderAdjustment`; reductions use `activity=sales_quantity_reduction_review` and include affected line quantities plus before/after total
+  - adjustment idempotency is also Activity idempotency: an existing adjustment response does not append another review entry
 - Sales orders list C.C.C display contract:
   - `sales.getOrders` keeps `amountDue` and stored `grandTotal` principal/base-only
   - order rows expose `baseInvoiceTotal`, `displayCcc`, C.C.C-inclusive `invoiceTotal`, principal `amountPaid`, and display-only `displayAmountPaid` / `displayAmountDue` for mobile card adapters

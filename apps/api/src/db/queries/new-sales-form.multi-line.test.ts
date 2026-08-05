@@ -20,6 +20,8 @@ function createMockContext() {
     salesTaxes: [] as any[],
     salesDocumentSnapshots: [] as any[],
     salesPrintData: [] as any[],
+    notePadContacts: [] as any[],
+    activities: [] as any[],
     users: [
       {
         id: 77,
@@ -62,6 +64,8 @@ function createMockContext() {
       hpt: 1,
       door: 1,
       extra: 1,
+      contact: 1,
+      note: 1,
     },
   };
 
@@ -141,14 +145,16 @@ function createMockContext() {
       findFirst: async ({ where }: any) => {
         const order = findOrder(where);
         if (!order) return null;
+        const graph = getOrderGraph(order);
         return {
-          id: order.id,
-          slug: order.slug,
-          orderId: order.orderId,
-          meta: order.meta,
-          updatedAt: order.updatedAt,
-          paymentTerm: order.paymentTerm,
-          goodUntil: order.goodUntil,
+          ...graph,
+          payments: order.payments || [],
+          items: graph.items.map((item) => ({
+            ...item,
+            assignments: item.assignments || [],
+            itemDeliveries: item.itemDeliveries || [],
+            lineItem: item.lineItem || null,
+          })),
         };
       },
       create: async ({ data }: any) => {
@@ -340,6 +346,13 @@ function createMockContext() {
         return row;
       },
     },
+    notePad: {
+      create: async ({ data }: any) => {
+        const row = { id: state.ids.note++, ...data };
+        state.activities.push(row);
+        return row;
+      },
+    },
   };
 
   const db = {
@@ -380,6 +393,20 @@ function createMockContext() {
             .filter((key) => select[key])
             .map((key) => [key, (user as any)[key]]),
         );
+      },
+    },
+    notePadContacts: {
+      findFirst: async ({ where }: any) =>
+        state.notePadContacts.find(
+          (row) =>
+            row.profileId === where?.profileId &&
+            row.role === where?.role &&
+            row.deletedAt == null,
+        ) || null,
+      create: async ({ data }: any) => {
+        const row = { id: state.ids.contact++, deletedAt: null, ...data };
+        state.notePadContacts.push(row);
+        return row;
       },
     },
     dealerSalesRequest: {

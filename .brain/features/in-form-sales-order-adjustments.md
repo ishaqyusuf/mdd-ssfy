@@ -57,6 +57,16 @@ orders in the new sales form.
   the live order.
 - Application updates the order and line totals in one database transaction,
   then queues inventory-line reconciliation and a sales-history snapshot.
+- Creating a new approved adjustment also writes one actor-attributed Sales
+  Activity entry in the same transaction. Quantity reductions show the affected
+  item titles, previous/new quantities, and previous/new order total. Replaying
+  the same idempotency key returns the existing adjustment without duplicating
+  the Activity entry.
+- Every successful save of an existing order or quote in the new sales form
+  writes an actor-attributed Activity entry in the same transaction as the sale
+  update. Manual saves and autosaves are labeled separately; quantity and total
+  changes are summarized when present. Initial creation is not mislabeled as an
+  update.
 - Persisted legacy lines use `sales-item-<database id>` as their stable form UID
   when no UID is present in metadata.
 
@@ -67,6 +77,8 @@ orders in the new sales form.
 - API/query workflow:
   `apps/api/src/db/queries/new-sales-form-adjustments.ts`
 - Guarded save integration: `apps/api/src/db/queries/new-sales-form.ts`
+- Sales Activity copy and persistence:
+  `apps/api/src/db/queries/sales-form-activity.ts`
 - Apply job: `packages/jobs/src/tasks/sales/apply-sales-order-adjustment.ts`
 - In-form review:
   `apps/dashboard/src/components/forms/new-sales-form/sections/sales-change-review-sheet.tsx`

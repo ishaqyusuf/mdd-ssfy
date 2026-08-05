@@ -78,6 +78,11 @@ import {
 	captureNewSalesFormSavePayload,
 	logNewSalesFormSaveDiagnostic,
 } from "./new-sales-form-debug";
+import {
+	buildSalesFormUpdateActivity,
+	createSalesFormTimelineActivity,
+	getSalesActivitySenderContactId,
+} from "./sales-form-activity";
 
 const DEFAULT_DELIVERY_OPTION = "pickup";
 const DEFAULT_PAYMENT_TERM = "None";
@@ -2586,6 +2591,12 @@ async function saveNewSalesFormInternal(
 			await assertDealerSaleOfficeAccess(ctx.db, ctx.userId, dealerSale.id);
 		}
 	}
+	const activitySenderContactId =
+		payload.salesId || payload.slug
+			? ctx.userId
+				? await getSalesActivitySenderContactId(ctx.db, ctx.userId)
+				: null
+			: null;
 	const normalizedLines = normalizeLineItems(payload.lineItems);
 	const legacySaveLines = normalizedLines.flatMap((line) =>
 		expandGroupedLineForLegacySave(line),
@@ -3475,6 +3486,40 @@ async function saveNewSalesFormInternal(
 					tax: summary.taxTotal,
 				},
 			});
+		}
+
+		if (!isNew && activitySenderContactId) {
+			const beforeLines = currentMeta.newSalesForm?.lineItems?.length
+				? currentMeta.newSalesForm.lineItems
+				: order!.items.map((item) => ({
+						id: item.id,
+						uid:
+							(typeof safeRecord(item.meta).uid === "string" &&
+								String(safeRecord(item.meta).uid)) ||
+							item.multiDykeUid ||
+							`sales-item-${item.id}`,
+						title: item.dykeDescription || item.description || "Line item",
+						description: item.description,
+						qty: Number(item.qty || 0),
+					}));
+			await createSalesFormTimelineActivity(
+				tx as unknown as TRPCContext["db"],
+				{
+					salesId: currentId,
+					orderId: order!.orderId,
+					senderContactId: activitySenderContactId,
+					copy: buildSalesFormUpdateActivity({
+						salesType: payload.type,
+						orderId: order!.orderId,
+						status,
+						autosave: payload.autosave,
+						beforeGrandTotal: Number(order!.grandTotal || 0),
+						afterGrandTotal: persistedSummary.grandTotal,
+						beforeLines,
+						afterLines: hydratedLineItems,
+					}),
+				},
+			);
 		}
 
 		return {

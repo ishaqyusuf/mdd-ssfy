@@ -16,12 +16,15 @@ const prepareProductionSubmissionMaterialReviewMock = mock(async () => ({
 	materialRevision: "ready-revision",
 }));
 const getSalesSettingMock = mock(async () => ({ data: {} }));
+const saveNoteMock = mock(async () => ({}));
 const getSaleInformationMock = mock(async () => ({
   order: { id: 9001 },
   items: [],
 }));
+const actualActions = await import("./actions");
 
 mock.module("./actions", () => ({
+  ...actualActions,
   submitNonProductionsAction: submitNonProductionsActionMock,
   submitAssignmentsAction: submitAssignmentsActionMock,
   packDispatchItemsAction: packDispatchItemsActionMock,
@@ -54,6 +57,7 @@ describe("sales-control task transactions", () => {
     autoReviewSalesPaymentsForOrderActionMock.mockClear();
 		prepareProductionSubmissionMaterialReviewMock.mockClear();
     getSalesSettingMock.mockClear();
+    saveNoteMock.mockClear();
     getSaleInformationMock.mockClear();
   });
 
@@ -463,6 +467,88 @@ describe("sales-control task transactions", () => {
     expect(resetSalesActionMock).toHaveBeenCalledTimes(1);
     expect(resetSalesActionMock).toHaveBeenCalledWith(tx, 909);
     expect(response).toEqual({ created: 1, skipped: 0 });
+  });
+
+  it("marks a dispatch complete without submitting the same production scope twice", async () => {
+    const productionInfo = {
+      order: { id: 9001 },
+      items: [
+        {
+          controlUid: "door-1",
+          itemId: 10,
+          analytics: {
+            assignment: { pending: { qty: 0, lh: 0, rh: 0 } },
+            pendingSubmissions: [
+              {
+                assignmentId: 77,
+                qty: { qty: 1, lh: 0, rh: 0 },
+              },
+            ],
+          },
+        },
+      ],
+    };
+    getSaleInformationMock
+      .mockResolvedValueOnce(productionInfo)
+      .mockResolvedValueOnce(productionInfo)
+      .mockResolvedValueOnce({
+        order: { id: 9001 },
+        items: [
+          {
+            controlUid: "door-1",
+            itemId: 10,
+            analytics: {
+              assignment: { pending: { qty: 0, lh: 0, rh: 0 } },
+              pendingSubmissions: [],
+            },
+            deliverables: [
+              { submissionId: 501, qty: { qty: 1, lh: 0, rh: 0 } },
+            ],
+          },
+        ],
+      });
+    submitAssignmentsActionMock.mockResolvedValue(1);
+    const tx = {
+      orderProductionSubmissions: {
+        count: mock(async () => 0),
+      },
+      orderItemDelivery: {
+        updateMany: mock(async () => ({ count: 0 })),
+      },
+      orderDelivery: {
+        findFirst: mock(async () => ({
+          status: "packed",
+          deliveredAt: null,
+          salesOrderId: 9001,
+          meta: {},
+        })),
+        update: mock(async () => ({})),
+      },
+    };
+    const db = {
+      $transaction: async (fn: (client: typeof tx) => Promise<unknown>) =>
+        fn(tx),
+    };
+
+    await tasksModule.markAsCompletedTask(
+      db as any,
+      {
+        meta: { salesId: 9001, authorId: 12, authorName: "Operator" },
+        markAsCompleted: {
+          dispatchId: 90,
+          receivedBy: "Customer",
+          note: "Delivered",
+        },
+      } as any,
+      {
+        prepareMaterialReview: prepareProductionSubmissionMaterialReviewMock,
+        saveNoteAction: saveNoteMock,
+      },
+    );
+
+    expect(submitAssignmentsActionMock).toHaveBeenCalledTimes(1);
+    expect(packDispatchItemsActionMock).toHaveBeenCalledTimes(1);
+    expect(saveNoteMock).toHaveBeenCalledTimes(1);
   });
 
   it("packDispatchItemTask can replace existing dispatch packings atomically", async () => {

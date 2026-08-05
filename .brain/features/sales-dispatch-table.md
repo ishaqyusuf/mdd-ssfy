@@ -1,6 +1,11 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-05: Fixed the legacy `Mark as completed` orchestration so pack-all is
+  the single owner of auto-assignment, production submission, and packing. The
+  command no longer pre-submits production and then fails when pack-all sees an
+  empty second submission scope. Direct production submission remains strict
+  and still rejects a genuine empty request.
 - 2026-08-05: Dispatch workspace access was split by operational capability.
   Delivery-only users now receive the dedicated `/sales-book/dispatch-task`
   route as their visible/default Dispatch link. `/sales-book/dispatch-admin`

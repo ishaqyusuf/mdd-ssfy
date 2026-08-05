@@ -29,6 +29,8 @@ function createMockContext() {
     documentSnapshots: [] as any[],
     printData: [] as any[],
     salesTaxes: [] as any[],
+    notePadContacts: [] as any[],
+    activities: [] as any[],
     dealerAuth: [] as any[],
     dealerSales: [] as any[],
     users: [
@@ -133,6 +135,8 @@ function createMockContext() {
       hpt: 1,
       door: 1,
       extra: 1,
+      contact: 1,
+      note: 1,
     },
   };
 
@@ -276,18 +280,16 @@ function createMockContext() {
       findFirst: async ({ where }: any) => {
         const order = findOrder(where);
         if (!order) return null;
+        const graph = getOrderGraph(order);
         return {
-          id: order.id,
-          slug: order.slug,
-          orderId: order.orderId,
-          meta: order.meta,
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
-          paymentTerm: order.paymentTerm,
-          paymentDueDate: order.paymentDueDate,
-          goodUntil: order.goodUntil,
-          prodDueDate: order.prodDueDate,
-          deliveryOption: order.deliveryOption,
+          ...graph,
+          payments: order.payments || [],
+          items: graph.items.map((item) => ({
+            ...item,
+            assignments: item.assignments || [],
+            itemDeliveries: item.itemDeliveries || [],
+            lineItem: item.lineItem || null,
+          })),
         };
       },
       create: async ({ data }: any) => {
@@ -490,6 +492,13 @@ function createMockContext() {
         );
       },
     },
+    notePad: {
+      create: async ({ data }: any) => {
+        const row = { id: state.ids.note++, ...data };
+        state.activities.push(row);
+        return row;
+      },
+    },
   };
 
   const db = {
@@ -644,6 +653,20 @@ function createMockContext() {
               roles: [{ role: { name: "Sales Admin" } }],
             }
           : null;
+      },
+    },
+    notePadContacts: {
+      findFirst: async ({ where }: any) =>
+        state.notePadContacts.find(
+          (row) =>
+            row.profileId === where?.profileId &&
+            row.role === where?.role &&
+            row.deletedAt == null,
+        ) || null,
+      create: async ({ data }: any) => {
+        const row = { id: state.ids.contact++, deletedAt: null, ...data };
+        state.notePadContacts.push(row);
+        return row;
       },
     },
     dealerSalesRequest: {
@@ -2851,5 +2874,20 @@ describe("new-sales-form relational parity", () => {
     } as any);
     expect(finalized.orderId).toBe(saved.orderId);
     expect(state.orders[0]?.orderId).toBe(saved.orderId);
+    expect(state.activities).toHaveLength(2);
+    expect(state.activities[0]).toMatchObject({
+      subject: "Sale autosaved",
+      headline: `Sale ${saved.orderId} was autosaved in the sales form.`,
+      senderContactId: 1,
+    });
+    expect(state.activities[1]).toMatchObject({
+      subject: "Sale updated",
+      headline: `Sale ${saved.orderId} was updated in the sales form.`,
+      senderContactId: 1,
+    });
+    expect(state.activities[1]?.tags.createMany.data).toContainEqual({
+      tagName: "salesId",
+      tagValue: String(saved.salesId),
+    });
   });
 });
