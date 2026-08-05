@@ -5,7 +5,6 @@ import { SalesReportingPeriodControl } from "@/components/sales-dashboard/period
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatCurrency } from "@/lib/utils";
-import { useSearchStore } from "@/store/search";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -92,7 +91,6 @@ export function SalesRepDashboardWorkspace() {
 	const trpc = useTRPC();
 	const { params } = useSalesDashboardParams();
 	const salesOverview = useSalesOverviewQuery();
-	const openSearch = useSearchStore((state) => state.openSearch);
 	const input = { from: params.from, to: params.to };
 	const overview = useQuery(
 		trpc.salesRepDashboard.overview.queryOptions(input),
@@ -122,20 +120,17 @@ export function SalesRepDashboardWorkspace() {
 				<div className="flex flex-col gap-2">
 					<SalesReportingPeriodControl />
 					<div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-						<Button
-							className="h-9 gap-2"
-							onClick={() => openSearch("sales-create")}
-						>
-							<Plus className="size-4" />
-							New order
+						<Button asChild className="h-9 gap-2">
+							<Link href="/sales-form/create-order">
+								<Plus className="size-4" />
+								New order
+							</Link>
 						</Button>
-						<Button
-							className="h-9 gap-2"
-							onClick={() => openSearch("sales-create")}
-							variant="outline"
-						>
-							<FileText className="size-4" />
-							New quote
+						<Button asChild className="h-9 gap-2" variant="outline">
+							<Link href="/sales-form/create-quote">
+								<FileText className="size-4" />
+								New quote
+							</Link>
 						</Button>
 					</div>
 				</div>

@@ -139,10 +139,7 @@ describe("sidebar role access", () => {
 
 	test("keeps the dispatch admin page guard aligned with navigation", () => {
 		const source = readFileSync(
-			join(
-				appRoot,
-				"(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx",
-			),
+			join(appRoot, "(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx"),
 			"utf8",
 		);
 
@@ -188,8 +185,11 @@ describe("sidebar role access", () => {
 		).toBe("New");
 	});
 
-	test("moves Accounting out of navigation while preserving direct route access", () => {
-		const can = permissions({ viewOrderPayment: true });
+	test("moves legacy Accounting pages out of navigation while preserving direct route access", () => {
+		const can = permissions({
+			viewOrderPayment: true,
+			editSalesResolution: true,
+		});
 		const migratedModules = getSalesFinanceMigrationLinkModules({ can });
 		const visibleSalesLinks = migratedModules
 			.flatMap((module) => module.sections)
@@ -206,10 +206,19 @@ describe("sidebar role access", () => {
 			visibleSalesLinks.find((link) => link?.href === "/sales-book/accounting"),
 		).toBeUndefined();
 		expect(
+			visibleSalesLinks.find(
+				(link) => link?.href === "/sales-book/accounting/resolution-center",
+			),
+		).toBeUndefined();
+		expect(
 			visibleSalesLinks.find((link) => link?.href === "/sales-book/finance"),
 		).toBeDefined();
 		expect(
 			authorizedLinks.linksNameMap["/sales-book/accounting"]?.hasAccess,
+		).toBe(true);
+		expect(
+			authorizedLinks.linksNameMap["/sales-book/accounting/resolution-center"]
+				?.hasAccess,
 		).toBe(true);
 	});
 
@@ -237,10 +246,16 @@ describe("sidebar role access", () => {
 			}),
 		);
 
-		expect(links.linksNameMap["/sales-form/create-order"]?.hasAccess).toBe(true);
-		expect(links.linksNameMap["/sales-form/create-quote"]?.hasAccess).toBe(true);
+		expect(links.linksNameMap["/sales-form/create-order"]?.hasAccess).toBe(
+			true,
+		);
+		expect(links.linksNameMap["/sales-form/create-quote"]?.hasAccess).toBe(
+			true,
+		);
 		expect(links.linksNameMap["/sales-book/create-order"]).toBeUndefined();
-		expect(links.linksNameMap["/sales-book/create-quote"]?.hasAccess).toBe(false);
+		expect(links.linksNameMap["/sales-book/create-quote"]?.hasAccess).toBe(
+			false,
+		);
 	});
 
 	test("shows contractor accounting to payment viewers or editors", () => {
@@ -345,8 +360,7 @@ describe("sidebar role access", () => {
 		);
 
 		expect(
-			superAdminLinks.linksNameMap["/settings/sales-form-adoption"]
-				?.hasAccess,
+			superAdminLinks.linksNameMap["/settings/sales-form-adoption"]?.hasAccess,
 		).toBe(true);
 		expect(
 			adminLinks.linksNameMap["/settings/sales-form-adoption"]?.hasAccess,

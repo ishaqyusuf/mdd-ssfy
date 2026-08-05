@@ -350,6 +350,11 @@ describe("Sales Finance Midday migration parity", () => {
 		).toBe(true);
 		expect(migrationDialogSource.includes("Open legacy Accounting")).toBe(true);
 		expect(headerSource.includes("Open legacy Accounting")).toBe(true);
+		expect(
+			headerSource.includes("/sales-book/accounting/resolution-center"),
+		).toBe(true);
+		expect(headerSource.includes("Open legacy Resolution Center")).toBe(true);
+		expect(headerSource.includes("editSalesResolution")).toBe(true);
 		expect(headerSource.includes("Sales Reports")).toBe(true);
 		expect(headerSource.includes("<Icons.salesDashboard")).toBe(true);
 		expect(workspaceSource.includes("<SalesFinanceAdoptionTracker")).toBe(true);

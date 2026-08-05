@@ -15,14 +15,14 @@ const salesRepWorkspaceSource = readFileSync(
 );
 
 describe("Find Anything sales creation handoff", () => {
-	it("opens Find Anything from the existing sales creation buttons", () => {
+	it("opens Find Anything from the shared sales header only", () => {
 		expect(salesNavSource).toContain('openSearch("sales-create")');
-		expect(salesRepWorkspaceSource).toContain('openSearch("sales-create")');
+		expect(salesRepWorkspaceSource).not.toContain('openSearch("sales-create")');
 		expect(salesNavSource).not.toContain("href={item.href}");
-		expect(salesRepWorkspaceSource).not.toContain(
+		expect(salesRepWorkspaceSource).toContain(
 			'href="/sales-form/create-order"',
 		);
-		expect(salesRepWorkspaceSource).not.toContain(
+		expect(salesRepWorkspaceSource).toContain(
 			'href="/sales-form/create-quote"',
 		);
 	});

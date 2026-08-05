@@ -2,13 +2,20 @@
 
 import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { resolveInboundReference } from "@/components/sales-overview-system/lib/inbound-activity-actions";
+import {
+	formatInventoryDateInputValue,
+	formatInventoryExpectedDateLabel,
+	formatInventoryItemSubtitle,
+} from "@/components/sales-overview-system/lib/inventory-display";
 import { isInventoryNeedRow } from "@/components/sales-overview-system/lib/inventory-inbounds-utils";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import type { NewInboundShipmentStatus } from "@gnd/inventory";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Calendar } from "@gnd/ui/calendar";
 import { Checkbox } from "@gnd/ui/checkbox";
+import { cn } from "@gnd/ui/cn";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import Sheet from "@gnd/ui/custom/sheet";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@gnd/ui/field";
@@ -29,6 +36,7 @@ import {
 	ItemGroup,
 	ItemTitle,
 } from "@gnd/ui/item";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import {
 	Select,
 	SelectContent,
@@ -283,12 +291,38 @@ export function InboundCreatePane({
 								<FieldLabel htmlFor="inbound-expected">
 									Expected date
 								</FieldLabel>
-								<Input
-									id="inbound-expected"
-									type="date"
-									value={expectedAt}
-									onChange={(event) => setExpectedAt(event.target.value)}
-								/>
+								<Popover>
+									<PopoverTrigger asChild>
+										<Button
+											id="inbound-expected"
+											type="button"
+											variant="outline"
+											className={cn(
+												"w-full justify-start bg-background text-left font-normal",
+												!expectedAt && "text-muted-foreground",
+											)}
+										>
+											{formatInventoryExpectedDateLabel(expectedAt)}
+											<Icons.CalendarIcon className="ml-auto size-4 opacity-50" />
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="w-auto p-0" align="start">
+										<Calendar
+											mode="single"
+											selected={
+												expectedAt
+													? new Date(`${expectedAt}T00:00:00`)
+													: undefined
+											}
+											onSelect={(value) =>
+												setExpectedAt(
+													value ? formatInventoryDateInputValue(value) : "",
+												)
+											}
+											initialFocus
+										/>
+									</PopoverContent>
+								</Popover>
 							</Field>
 							<Field>
 								<FieldLabel htmlFor="inbound-status">Initial status</FieldLabel>
@@ -367,13 +401,16 @@ export function InboundCreatePane({
 											<ItemTitle className="truncate text-sm font-medium">
 												{row.componentName}
 											</ItemTitle>
-											<ItemDescription className="mt-1 text-xs">
-												{row.stepName || "Inventory item"}
+											<ItemDescription className="mt-1 line-clamp-none text-xs">
+												{formatInventoryItemSubtitle({
+													stepName: row.stepName,
+													variantName: row.variantName,
+												})}
 											</ItemDescription>
 										</ItemContent>
 										<ItemActions className="shrink-0">
 											<InputGroup
-												className="h-8 w-36 bg-background"
+												className="h-8 w-28 bg-background"
 												aria-label={`Order quantity controls for ${row.componentName}`}
 											>
 												<InputGroupAddon className="pl-1.5">

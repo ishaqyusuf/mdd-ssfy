@@ -85,10 +85,13 @@ The long-term source of truth for overview, print, production, deployment, fulfi
 - The shared Sales Overview Create inbound pane and its legacy inline fallback
   present `Items to order` as flat rows with a bottom divider and muted hover
   feedback. Item selection, identity, and quantity retain their existing row
-  positions. Quantity is a bounded grouped control with accessible decrement
-  and increment actions plus an inline `/required` suffix (for example,
-  `4 /4`) so operators can see the requested quantity and its maximum as one
-  unit.
+  positions. Each row uses the same title/subtitle contract as Inventory Needs:
+  component title plus formatted category/step and variant details such as door
+  size. Quantity is a bounded grouped control with accessible decrement and
+  increment actions plus an inline `/required` suffix (for example, `4 /4`) so
+  operators can see the requested quantity and its maximum as one compact
+  7rem-wide unit. Both inbound entry surfaces use the shared shadcn popover
+  Calendar for Expected date and the same local-date formatting helpers.
 - The Inventory tab `INBOUNDS` segment lists inbound shipments linked to the opened sale through stock demand rows. Selecting an inbound shows its stock lines, ordered/received demand progress, status controls, and receive-stock action without leaving the sales overview. The linked-inbound shipment query is loaded only when the `Inbounds` segment is active, while inactive segment badges use the already-loaded overview row signal as a lightweight hint. The segment also supports query-backed `inventoryInboundId` selection so single-linked inbound clicks and newly created inbound shipments land directly on the relevant inbound while multi-inbound links still show the full linked list.
 - Fulfilled orders with no previous inventory-backed rows now render a read-only informational Inventory tab instead of self-syncing. `inventories.salesInventoryOverview` returns `setupMode=completed_readonly` from order lifecycle plus delivery/stat completion signals, and the shared tab shows compact status metrics, an explanatory alert, and read-only history notes while hiding Create inbound, Mark all needs fulfilled, and manual Sync actions.
 - Fulfilled or cancelled orders now resolve read-only inventory operation capabilities even when inventory rows already exist. Existing rows remain inspectable, but Create inbound, manual inventory sync, allocation, mark-available, and tracking configuration are blocked by the shared sales inventory operation policy and reinforced server-side before inbound demand can be created. The Sales Overview Inventory tab also applies that read-only policy to linked inbound history: receive-stock and inbound status controls are disabled with a lock alert, and stock/non-stock row menus show the lock reason while disabling configuration and allocation actions.

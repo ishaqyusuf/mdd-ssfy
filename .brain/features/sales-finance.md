@@ -12,6 +12,8 @@
   2026-07-30.
 - Progressive Accounting-to-Finance navigation migration implemented on
   2026-08-05.
+- Progressive Accounting Resolution-to-Finance navigation migration implemented
+  on 2026-08-05.
 - Canonical route: `/sales-book/finance`.
 - Legacy `/sales-book/accounting` remains available during adoption.
 - No legacy redirect or deletion is authorized yet.
@@ -151,12 +153,14 @@ Legacy Accounting cannot retire automatically. `retirementEligible` remains
 false until responsive operator acceptance and explicit approval are recorded;
 the route, sidebar link, and data contract remain intact in the meantime.
 
-For users who can access legacy Accounting, the primary Sales navigation now
-uses Sales Finance as the entry point and omits the Accounting link. This is a
-navigation-only migration: `/sales-book/accounting` remains authorized and is
-available from a permission-aware action in the Finance header. The first
-recorded Finance visit shows a one-time transition dialog, and the legacy page
-shows a persistent path back to Sales Finance. No redirect, data mutation, or
+For users who can access legacy Accounting or Accounting Resolution, the
+primary Sales navigation now uses Sales Finance as the entry point and omits
+both legacy links. This is a navigation-only migration:
+`/sales-book/accounting` and
+`/sales-book/accounting/resolution-center` remain authorized and are available
+from permission-aware actions in the Finance header. The first recorded Finance
+visit shows a one-time transition dialog, and the legacy Accounting page shows
+a persistent path back to Sales Finance. No redirect, data mutation, or
 automatic retirement is introduced.
 
 ## API
@@ -246,11 +250,12 @@ require `editOrderPayment`.
 
 ## UI Contract
 
-- For users with legacy Accounting access, the Sales sidebar makes
-  `Sales Finance` the primary entry and omits the legacy `Accounting` link.
+- For users with legacy Accounting or Accounting Resolution access, the Sales
+  sidebar makes `Sales Finance` the primary entry and omits both legacy links.
   Direct legacy route authorization remains unchanged.
 - The Finance title exposes permission-aware `Sales Reports` and
-  `Open legacy Accounting` actions.
+  `Open legacy Accounting` actions, plus `Open legacy Resolution Center` for
+  users with `editSalesResolution`.
 - A user’s first recorded Finance visit opens a transition dialog that explains
   the new workspace and preserves an explicit legacy Accounting path.
 - Legacy Accounting displays a transition banner with a direct return to Sales

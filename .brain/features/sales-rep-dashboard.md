@@ -9,6 +9,9 @@
 
 ## UI Behavior
 
+- The page-level `New order` and `New quote` actions navigate directly to the
+  canonical sales form routes. Find Anything interception is reserved for the
+  shared Sales layout header actions.
 - The dashboard sections are ordered as Recent Orders, Recent Quotes, Dealership Requests, and Commissions.
 - At `md` and wider, the dashboard tab selector uses the shared `ButtonGroup` pattern from the sales overview/sales-book navigation. Below `md`, it falls back to a full-width dropdown selector.
 - Tab controls link to `?tab=recent-sales`, `?tab=recent-quotes`, `?tab=requests`, or `?tab=commission` so refreshes and notification deep links preserve the active panel.

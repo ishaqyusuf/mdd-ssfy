@@ -36,13 +36,18 @@ Tracks shared sidebar and navigation behavior used by web surfaces.
 - The footer account dropdown includes a labeled `Modules` group. The selected module is highlighted, and choosing another module closes the dropdown and updates the nav list.
 - A thin fixed loading bar appears at the top of the web viewport on initial page load, same-origin link navigation, and form navigation. Native click and submit signals defer starting the bar until the active event stack has completed so they cannot update the loading-bar component while the App Router is rendering. The bar changes color as progress advances, finishes in light green, completes when the App Router pathname/search state settles, and includes an 8 second safety completion for client-handled submits or cancelled navigations. The bar does not update React state from `beforeunload`, where the document is already leaving and no meaningful progress frame can be painted.
 - Shared saved page tabs render the current page/query tab with the default primary button variant; inactive tabs use the ghost variant.
-- Sales-header `New Sales` / `New Quote` actions, their responsive Quick access
-  equivalents, and the sales-rep dashboard creation CTAs now open Find Anything
-  instead of navigating directly. Those CTA-driven opens show a short coaching
-  message above the existing `New sale` and `New quote` quick links. Header,
-  mobile-menu, and keyboard Find Anything opens remain message-free, and closing
-  search clears the launch context.
+- Sales-header `New Sales` / `New Quote` actions and their responsive Quick
+  access equivalents open Find Anything. Those header-driven opens show a short
+  coaching message above the existing `New sale` and `New quote` quick links.
+  The sales-rep dashboard's page-level `New order` / `New quote` actions remain
+  direct canonical links to `/sales-form/create-order` and
+  `/sales-form/create-quote`. Header, mobile-menu, and keyboard Find Anything
+  opens remain message-free, and closing search clears the launch context.
 - Active `apps/dashboard` sidebar links should resolve to current App Router routes. The 2026-06-17 cleanup removed the no-route sales commission item, retargeted unit production to `/community/unit-productions`, and kept edit-order as a meta matcher instead of a clickable `/sales-book/edit-order` URL. Mobile app support now resolves to `/support/mobile-app`; the former Settings > App Download page is removed.
+- Sales Finance owns discovery for the two legacy sales-money workspaces. Users
+  with the matching permissions no longer see standalone `Accounting` or
+  `Accounting Resolution` sidebar links; the direct routes remain authorized
+  and are exposed as permission-aware actions in the Sales Finance title.
 
 ## Implementation Notes
 - The protected-route cost boundary is enforced in

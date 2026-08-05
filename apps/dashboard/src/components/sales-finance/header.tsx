@@ -84,6 +84,7 @@ export function SalesFinanceTitle() {
 			auth.can?.editOrderPayment ||
 			auth.can?.editSales,
 	);
+	const canOpenLegacyResolution = Boolean(auth.can?.editSalesResolution);
 	const canOpenSalesReports = Boolean(
 		auth.can?.viewOrders || auth.can?.editOrders || auth.can?.viewSales,
 	);
@@ -127,6 +128,18 @@ export function SalesFinanceTitle() {
 					>
 						<Icons.accounting className="size-4" aria-hidden="true" />
 						Open legacy Accounting
+					</Link>
+				) : null}
+				{canOpenLegacyResolution ? (
+					<Link
+						href="/sales-book/accounting/resolution-center"
+						className={cn(
+							buttonVariants({ variant: "outline", size: "sm" }),
+							"gap-2",
+						)}
+					>
+						<Icons.resolutionCenter className="size-4" aria-hidden="true" />
+						Open legacy Resolution Center
 					</Link>
 				) : null}
 				<p className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">

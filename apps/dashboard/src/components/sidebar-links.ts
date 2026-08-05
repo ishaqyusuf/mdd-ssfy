@@ -673,6 +673,7 @@ export const linkModules = [
 ];
 
 const LEGACY_SALES_ACCOUNTING_HREF = "/sales-book/accounting";
+const LEGACY_SALES_RESOLUTION_HREF = "/sales-book/accounting/resolution-center";
 
 export function getSalesFinanceMigrationLinkModules({
 	can,
@@ -684,16 +685,31 @@ export function getSalesFinanceMigrationLinkModules({
 	const hasLegacyAccountingAccess = Boolean(
 		can?.viewOrderPayment || can?.editOrderPayment || can?.editSales,
 	);
+	const hasLegacyResolutionAccess = Boolean(can?.editSalesResolution);
 
-	if (!hasLegacyAccountingAccess) return modules;
+	if (!hasLegacyAccountingAccess && !hasLegacyResolutionAccess) return modules;
 
 	return modules.map((module) => ({
 		...module,
 		sections: module.sections.map((section) => ({
 			...section,
-			links: section.links.filter(
-				(link) => link?.href !== LEGACY_SALES_ACCOUNTING_HREF,
-			),
+			links: section.links.filter((link) => {
+				if (
+					hasLegacyAccountingAccess &&
+					link?.href === LEGACY_SALES_ACCOUNTING_HREF
+				) {
+					return false;
+				}
+
+				if (
+					hasLegacyResolutionAccess &&
+					link?.href === LEGACY_SALES_RESOLUTION_HREF
+				) {
+					return false;
+				}
+
+				return true;
+			}),
 		})),
 	}));
 }

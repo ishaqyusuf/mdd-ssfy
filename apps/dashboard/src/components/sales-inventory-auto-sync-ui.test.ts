@@ -53,6 +53,8 @@ describe("sales inventory automatic synchronization UI", () => {
 			expect(source).toContain("<InputGroupText");
 			expect(source).toContain("border-b border-border");
 			expect(source).toContain("hover:bg-muted/50");
+			expect(source).toContain('className="h-8 w-28 bg-background"');
+			expect(source).not.toContain('className="h-8 w-36 bg-background"');
 		}
 		expect(inventoryTabSource).toContain("/{formatQty(maxQty)}");
 		expect(inboundCreatePaneSource).toContain("/{formatQty(max)}");
@@ -62,5 +64,27 @@ describe("sales inventory automatic synchronization UI", () => {
 		expect(inboundCreatePaneSource).not.toContain(
 			'className="flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/30"',
 		);
+	});
+
+	test("keeps create-inbound item subtitles aligned with Inventory Needs", () => {
+		expect(inboundCreatePaneSource).toContain("formatInventoryItemSubtitle({");
+		expect(inboundCreatePaneSource).toContain("stepName: row.stepName");
+		expect(inboundCreatePaneSource).toContain("variantName: row.variantName");
+		expect(inboundCreatePaneSource).not.toContain(
+			'{row.stepName || "Inventory item"}',
+		);
+	});
+
+	test("uses the shadcn calendar for the shared inbound expected date", () => {
+		expect(inboundCreatePaneSource).toContain(
+			'import { Calendar } from "@gnd/ui/calendar"',
+		);
+		expect(inboundCreatePaneSource).toContain("<Popover>");
+		expect(inboundCreatePaneSource).toContain("<PopoverTrigger asChild>");
+		expect(inboundCreatePaneSource).toContain("<Calendar");
+		expect(inboundCreatePaneSource).toContain(
+			"formatInventoryExpectedDateLabel(expectedAt)",
+		);
+		expect(inboundCreatePaneSource).not.toContain('type="date"');
 	});
 });

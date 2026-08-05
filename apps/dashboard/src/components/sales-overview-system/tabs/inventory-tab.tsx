@@ -78,7 +78,12 @@ import {
 	type SalesInventorySegment,
 	useSalesInventorySegmentQuery,
 } from "../hooks/use-sales-inventory-segment-query";
-import { formatInventoryCategoryStepLabel } from "../lib/inventory-display";
+import {
+	formatInventoryCategoryStepLabel,
+	formatInventoryDateInputValue,
+	formatInventoryExpectedDateLabel,
+	formatInventoryItemSubtitle,
+} from "../lib/inventory-display";
 import {
 	areAllInventoryNeedsFulfilled,
 	canFulfillAllInventoryNeeds,
@@ -141,17 +146,6 @@ function formatMoney(value: number | null | undefined) {
 	}).format(Number(value || 0));
 }
 
-function formatDateButtonLabel(value: string) {
-	if (!value) return "Expected date";
-	const date = new Date(`${value}T00:00:00`);
-	if (Number.isNaN(date.getTime())) return "Expected date";
-	return new Intl.DateTimeFormat(undefined, {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	}).format(date);
-}
-
 function formatDateValue(value: Date | string | null | undefined) {
 	if (!value) return "No date";
 	const date = new Date(value);
@@ -161,13 +155,6 @@ function formatDateValue(value: Date | string | null | undefined) {
 		day: "numeric",
 		year: "numeric",
 	}).format(date);
-}
-
-function formatDateInputValue(value: Date) {
-	const year = value.getFullYear();
-	const month = String(value.getMonth() + 1).padStart(2, "0");
-	const day = String(value.getDate()).padStart(2, "0");
-	return `${year}-${month}-${day}`;
 }
 
 function uniqueNumbers(values: number[]) {
@@ -1149,7 +1136,7 @@ function InventoryActionBar({
 										!expectedAt && "text-muted-foreground",
 									)}
 								>
-									{formatDateButtonLabel(expectedAt)}
+									{formatInventoryExpectedDateLabel(expectedAt)}
 									<Icons.CalendarIcon className="ml-auto size-4 opacity-50" />
 								</Button>
 							</PopoverTrigger>
@@ -1160,7 +1147,9 @@ function InventoryActionBar({
 										expectedAt ? new Date(`${expectedAt}T00:00:00`) : undefined
 									}
 									onSelect={(value) =>
-										setExpectedAt(value ? formatDateInputValue(value) : "")
+										setExpectedAt(
+											value ? formatInventoryDateInputValue(value) : "",
+										)
 									}
 									initialFocus
 								/>
@@ -1248,17 +1237,15 @@ function InventoryActionBar({
 											{row.componentName}
 										</ItemTitle>
 										<ItemDescription className="mt-0.5 line-clamp-none text-[11px]">
-											{[
-												formatInventoryCategoryStepLabel(row.stepName),
-												row.variantName,
-											]
-												.filter(Boolean)
-												.join(" • ")}
+											{formatInventoryItemSubtitle({
+												stepName: row.stepName,
+												variantName: row.variantName,
+											})}
 										</ItemDescription>
 									</ItemContent>
 									<ItemActions className="shrink-0">
 										<InputGroup
-											className="h-8 w-36 bg-background"
+											className="h-8 w-28 bg-background"
 											aria-label={`Order quantity controls for ${row.componentName}`}
 										>
 											<InputGroupAddon className="pl-1.5">
@@ -1384,10 +1371,6 @@ function InventoryMergedTable({
 			)}
 		</div>
 	);
-}
-
-function inventoryVariantLabel(row: InventoryLine) {
-	return row.variantName || null;
 }
 
 function InventoryStockFilterGroup({
@@ -1906,8 +1889,6 @@ function InventoryLineRow({
 	isReadOnly: boolean;
 	readOnlyReason: string | null;
 }) {
-	const variantLabel = inventoryVariantLabel(row);
-	const categoryStepLabel = formatInventoryCategoryStepLabel(row.stepName);
 	const isNeed = isInventoryNeedRow(row);
 	const coverage = resolveInventoryCoverageDisplay({
 		qtyRequired: row.qtyRequired,
@@ -1933,12 +1914,11 @@ function InventoryLineRow({
 							</span>
 						</ItemTitle>
 						<ItemDescription className="line-clamp-none text-xs leading-5">
-							{[
-								categoryStepLabel,
-								variantLabel ? variantLabel.toUpperCase() : null,
-							]
-								.filter(Boolean)
-								.join(" • ") || "No step assigned"}
+							{formatInventoryItemSubtitle({
+								stepName: row.stepName,
+								variantName: row.variantName,
+								fallback: "No step assigned",
+							})}
 						</ItemDescription>
 					</div>
 					<ItemActions className="shrink-0">

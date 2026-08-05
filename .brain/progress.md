@@ -1,5 +1,13 @@
 # Progress
 
+- 2026-08-05: separated shared-header and page-level sales creation behavior.
+  The Sales layout header's `New Sales` / `New Quote` actions continue to open
+  Find Anything with sales-creation coaching, while the `/sales-rep` page's
+  `New order` / `New quote` buttons once again navigate directly to the
+  canonical create-order/create-quote routes. Focused search-launch coverage
+  passes, and authenticated browser QA confirmed both rendered page actions are
+  links with the expected destinations rather than modal-launch buttons.
+
 - 2026-08-05: restored the dedicated Dispatch Task workspace for the Dispatch
   role. The sidebar no longer points delivery-only users at Dispatch Admin:
   `editDelivery` without `editOrders` now resolves directly to
@@ -8371,3 +8379,25 @@
   Sales typecheck, scoped Biome, and whitespace checks pass. The broad Dashboard
   typecheck retains its existing baseline diagnostics with no touched-file error
   in the focused compile.
+- 2026-08-05: moved the legacy Sales Accounting Resolution Center out of the
+  shared Sales navigation and into Sales Finance discovery. Users with
+  `editSalesResolution` now see `Open legacy Resolution Center` beside the
+  existing legacy Accounting action, while the direct
+  `/sales-book/accounting/resolution-center` route and permission contract stay
+  unchanged. Focused navigation and Finance parity tests pass with 26 tests /
+  196 assertions; authenticated browser QA confirmed the sidebar link is absent,
+  the Finance action is the only matching link, and it opens the legacy
+  Resolution Center.
+- 2026-08-05: restored Inventory Needs information parity in both Sales
+  Overview Create inbound item lists. Inbound rows now share the Needs
+  step/category plus variant subtitle, preserving door sizes such as
+  `Door • 2-6 X 6-8`, and the shared secondary form now uses the standard
+  shadcn popover Calendar for Expected date instead of a native date input.
+  Nine focused tests / 44 assertions and targeted Biome/whitespace checks pass;
+  authenticated browser QA on `09161PC` confirmed all four item sizes, the
+  calendar grid, and local date selection without creating an inbound.
+- 2026-08-05: reduced both Sales Overview Create inbound quantity groups from
+  9rem to 7rem while preserving decrement, editable quantity, `/required`, and
+  increment controls. Six focused tests / 44 assertions, targeted Biome, and
+  whitespace checks pass; authenticated browser QA on `09161PC` confirmed the
+  rendered `w-28` control retains its spinbutton and `/1` maximum suffix.
