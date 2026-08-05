@@ -10,29 +10,28 @@ function readSource(path: string) {
 }
 
 describe("Bug Reports Sales Orders table migration parity", () => {
-	it("keeps the permission-gated header entry point in the right-side header controls", () => {
+	it("keeps the permission-gated entry point in desktop and mobile account controls", () => {
 		const headerSource = readSource("components/header.tsx");
+		const userNavSource = readSource("components/user-nav.tsx");
 		const buttonSource = readSource(
 			"components/bug-reports/bug-report-button.tsx",
 		);
 
+		expect(userNavSource.includes("BugReportButton")).toBe(true);
+		expect(userNavSource.includes("BugReportTrigger")).toBe(true);
+		expect(headerSource.includes("<UserNav links={linkModules} />")).toBe(true);
+		expect(userNavSource.includes("<BugReportButton />")).toBe(true);
 		expect(
-			headerSource.includes(
-				'import { BugReportButton } from "./bug-reports/bug-report-button";',
-			),
-		).toBe(true);
-		expect(headerSource.includes("<BugReportButton />")).toBe(true);
-		expect(
-			headerSource.indexOf("<SalesRepRequestBadge />") <
-				headerSource.indexOf("<BugReportButton />"),
+			userNavSource.includes("<BugReportTrigger") &&
+				userNavSource.includes('presentation="menu-item"'),
 		).toBe(true);
 		expect(
-			headerSource.indexOf("<BugReportButton />") <
-				headerSource.indexOf("<NotificationCenter />"),
+			userNavSource.indexOf("<SalesRepRequestBadge />") <
+				userNavSource.indexOf("<BugReportButton />"),
 		).toBe(true);
 		expect(
-			headerSource.indexOf("<BugReportButton />") <
-				headerSource.indexOf("<UserNav links={linkModules} />"),
+			userNavSource.indexOf("<BugReportButton />") <
+				userNavSource.indexOf("<NotificationCenter />"),
 		).toBe(true);
 		expect(buttonSource.includes("auth.can?.submitBugReport")).toBe(true);
 		expect(buttonSource.includes("if (!canReport) return null")).toBe(true);

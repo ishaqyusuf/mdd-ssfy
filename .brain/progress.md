@@ -8170,3 +8170,16 @@
   blocked by a separate in-progress sales-adjustment workspace change whose
   new Prisma read crashes the edit-order route; Prisma client generation alone
   did not resolve that unfinished feature.
+- 2026-08-05: consolidated the dashboard mobile main header into one avatar
+  trigger and bottom navigation drawer. The drawer reuses the selected-module
+  SiteNav list, exposes permission-aware header utilities as labeled rows, and
+  keeps account destinations in a safe-area footer; the desktop sidebar,
+  utility row, and account dropdown remain unchanged. Search now closes the
+  drawer before opening and has an accessible dialog title. Authenticated
+  browser QA passed at 390x640, 390x844, the 768px boundary, and 1440x900 with
+  working drawer/dropdown controls, navigation/Search handoffs, bounded sheet
+  scrolling, and a back-navigable short-screen notification view. Focused
+  validation passes 20 tests / 200
+  expectations plus scoped Biome and whitespace checks. Dashboard typecheck
+  retains its existing broad baseline failures, with no touched runtime-file
+  diagnostics in the filtered output.

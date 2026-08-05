@@ -99,11 +99,57 @@ function stopStream(stream: MediaStream | null) {
 	}
 }
 
-export function BugReportButton() {
+type BugReportButtonProps = {
+	presentation?: "header" | "menu-item";
+	hideTrigger?: boolean;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
+};
+
+type BugReportTriggerProps = {
+	presentation?: "header" | "menu-item";
+	onOpen: () => void;
+};
+
+export function BugReportTrigger({
+	presentation = "header",
+	onOpen,
+}: BugReportTriggerProps) {
+	const auth = useAuth();
+	const isMenuItem = presentation === "menu-item";
+
+	if (!auth.can?.submitBugReport) return null;
+
+	return (
+		<Button
+			type="button"
+			variant={isMenuItem ? "ghost" : "secondary"}
+			size={isMenuItem ? "sm" : "icon"}
+			className={
+				isMenuItem
+					? "h-11 w-full justify-start gap-3 rounded-lg px-3 text-sm font-medium"
+					: "h-8 w-8 rounded-full"
+			}
+			aria-label="Report a bug"
+			title="Report a bug"
+			onClick={onOpen}
+		>
+			<Icons.AlertCircle className="size-4" />
+			{isMenuItem ? <span>Report a bug</span> : null}
+		</Button>
+	);
+}
+
+export function BugReportButton({
+	presentation = "header",
+	hideTrigger = false,
+	open: controlledOpen,
+	onOpenChange,
+}: BugReportButtonProps = {}) {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const [open, setOpen] = useState(false);
+	const [internalOpen, setInternalOpen] = useState(false);
 	const [captureType, setCaptureType] = useState<CaptureType>("SCREENSHOT");
 	const [state, setState] = useState<CaptureState>("idle");
 	const [voiceState, setVoiceState] = useState<VoiceState>("idle");
@@ -132,6 +178,14 @@ export function BugReportButton() {
 	const microphoneRecordedRef = useRef(false);
 	const recordingCanceledRef = useRef(false);
 	const canReport = Boolean(auth.can?.submitBugReport);
+	const open = controlledOpen ?? internalOpen;
+
+	function setOpen(nextOpen: boolean) {
+		if (controlledOpen === undefined) {
+			setInternalOpen(nextOpen);
+		}
+		onOpenChange?.(nextOpen);
+	}
 
 	const createReport = useMutation(
 		trpc.bugReports.create.mutationOptions({
@@ -541,20 +595,14 @@ export function BugReportButton() {
 
 	const actionDisabled =
 		state === "requesting" || state === "capturing" || state === "uploading";
-
 	return (
 		<>
-			<Button
-				type="button"
-				variant="secondary"
-				size="icon"
-				className="h-8 w-8 rounded-full"
-				aria-label="Report a bug"
-				title="Report a bug"
-				onClick={() => setOpen(true)}
-			>
-				<Icons.AlertCircle className="size-4" />
-			</Button>
+			{hideTrigger ? null : (
+				<BugReportTrigger
+					presentation={presentation}
+					onOpen={() => setOpen(true)}
+				/>
+			)}
 			<Dialog
 				open={open}
 				onOpenChange={(nextOpen) => {

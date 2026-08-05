@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "@/components/link";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useDocumentReviewParams } from "@/hooks/use-document-review-params";
@@ -22,7 +23,14 @@ import {
 } from "@notifications/notification-center";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import {
+	type ComponentProps,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { ErrorFallback } from "../error-fallback";
 import { EmptyState } from "./empty-state";
@@ -50,13 +58,49 @@ const NOTIFICATION_TABS = [
 	},
 ] as const;
 
-export function NotificationCenter() {
-	const [isOpen, setOpen] = useState(false);
+function NotificationDrawerSurface({
+	children,
+	className,
+}: ComponentProps<typeof Popover.Content>) {
+	return (
+		<section aria-label="Notifications" className={className}>
+			{children}
+		</section>
+	);
+}
+
+type NotificationCenterProps = {
+	presentation?: "header" | "menu-item";
+	onNavigate?: () => void;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
+	triggerContainer?: Element | null;
+};
+
+export function NotificationCenter({
+	presentation = "header",
+	onNavigate,
+	open: controlledOpen,
+	onOpenChange,
+	triggerContainer,
+}: NotificationCenterProps = {}) {
+	const [internalOpen, setInternalOpen] = useState(false);
 	const [activeTab, setActiveTab] = useState("inbox");
 	const [selectedFilter, setSelectedFilter] = useState<{
 		type: string;
 		title: string;
 	} | null>(null);
+	const notificationTriggerRef = useRef<HTMLButtonElement>(null);
+	const notificationBackRef = useRef<HTMLButtonElement>(null);
+	const isOpen = controlledOpen ?? internalOpen;
+	const isMenuItem = presentation === "menu-item";
+
+	function setOpen(nextOpen: boolean) {
+		if (controlledOpen === undefined) {
+			setInternalOpen(nextOpen);
+		}
+		onOpenChange?.(nextOpen);
+	}
 	const router = useRouter();
 	const pathname = usePathname();
 	const idleQueryEnabled = useIdleQueryEnabled(1500);
@@ -102,6 +146,11 @@ export function NotificationCenter() {
 			markAllMessagesAsSeen();
 		}
 	}, [hasUnseenNotifications, isOpen, isUpdating, markAllMessagesAsSeen]);
+	useEffect(() => {
+		if (isMenuItem && isOpen) {
+			notificationBackRef.current?.focus();
+		}
+	}, [isMenuItem, isOpen]);
 	const { setParams: setCommunityInstallCostParams } =
 		useCommunityInstallCostParams();
 	const { setParams: setJobParams } = useJobParams();
@@ -236,39 +285,102 @@ export function NotificationCenter() {
 		},
 	});
 
+	const closeForAction = () => {
+		setOpen(false);
+		if (isMenuItem) onNavigate?.();
+	};
+	const returnToAccountMenu = () => {
+		setOpen(false);
+		requestAnimationFrame(() => notificationTriggerRef.current?.focus());
+	};
 	const onAction = async (notification: TransformedNotification) => {
+		let didClose = false;
 		await runNotificationAction(notification, handlers, {
-			close: () => setOpen(false),
+			close: () => {
+				didClose = true;
+				closeForAction();
+			},
 		});
+		if (isMenuItem && !didClose) closeForAction();
 	};
 	const unreadBadge =
 		unreadCount > 9 ? "9+" : unreadCount > 0 ? String(unreadCount) : null;
+	const NotificationSurface = isMenuItem
+		? NotificationDrawerSurface
+		: Popover.Content;
+	const notificationTrigger = (
+		<Popover.Trigger asChild>
+			<Button
+				ref={notificationTriggerRef}
+				variant={isMenuItem ? "ghost" : "outline"}
+				size={isMenuItem ? "sm" : "icon"}
+				className={cn(
+					"relative flex items-center",
+					isMenuItem
+						? "h-11 w-full justify-start gap-3 rounded-lg px-3 text-sm font-medium"
+						: "h-8 w-8 rounded-full",
+				)}
+				aria-label="Notifications"
+				aria-hidden={isMenuItem && isOpen ? true : undefined}
+				tabIndex={isMenuItem && isOpen ? -1 : undefined}
+			>
+				<Icons.Bell className="size-4 shrink-0" />
+				{isMenuItem ? (
+					<span className="flex-1 text-left">Notifications</span>
+				) : null}
+				{unreadBadge ? (
+					<span
+						className={cn(
+							"flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium leading-none text-primary-foreground",
+							isMenuItem ? "ml-auto h-5" : "-right-1 -top-1 absolute h-4",
+						)}
+					>
+						{unreadBadge}
+					</span>
+				) : null}
+			</Button>
+		</Popover.Trigger>
+	);
 
 	return (
 		<Popover open={isOpen} onOpenChange={setOpen}>
-			<Popover.Trigger asChild>
-				<Button
-					variant="outline"
-					size="icon"
-					className="rounded-full w-8 h-8 flex items-center relative"
-					aria-label="Notifications"
-				>
-					{unreadBadge && (
-						<span className="-right-1 -top-1 absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
-							{unreadBadge}
-						</span>
-					)}
-					<Icons.Bell />
-				</Button>
-			</Popover.Trigger>
-			<Popover.Content
-				className="h-[535px] w-screen md:w-[400px] p-0 overflow-hidden relative"
+			{isMenuItem
+				? triggerContainer
+					? createPortal(notificationTrigger, triggerContainer)
+					: null
+				: notificationTrigger}
+			<NotificationSurface
+				className={cn(
+					"overflow-hidden bg-background p-0",
+					isMenuItem
+						? "flex min-h-0 w-full flex-1 flex-col rounded-t-2xl border-0 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-14 shadow-none"
+						: "relative h-[535px] w-screen md:w-[400px]",
+					isMenuItem && !isOpen && "hidden",
+				)}
 				align="end"
 				sideOffset={10}
 			>
+				{isMenuItem ? <h2 className="sr-only">Notifications</h2> : null}
 				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Tabs value={activeTab} onValueChange={setActiveTab}>
-						<div className="flex w-full items-center justify-between gap-2 border-b bg-background px-2 py-2">
+					<Tabs
+						value={activeTab}
+						onValueChange={setActiveTab}
+						className={cn(isMenuItem && "flex min-h-0 flex-1 flex-col")}
+					>
+						<div className="sticky top-0 z-10 flex w-full shrink-0 items-center justify-between gap-2 border-b bg-background px-2 py-2">
+							{isMenuItem ? (
+								<Button
+									ref={notificationBackRef}
+									type="button"
+									variant="ghost"
+									size="icon"
+									className="size-11 shrink-0 rounded-full"
+									aria-label="Back to account and navigation"
+									onClick={returnToAccountMenu}
+								>
+									<Icons.ChevronLeft className="size-5" />
+								</Button>
+							) : null}
 							<ButtonGroup className="shrink-0" role="tablist">
 								{NOTIFICATION_TABS.map((tab) => {
 									const Icon = tab.icon;
@@ -301,12 +413,17 @@ export function NotificationCenter() {
 									<DropdownMenu.Trigger asChild>
 										<Button
 											variant="ghost"
-											size={selectedTypeLabel ? "sm" : "icon"}
-											className="h-8 max-w-[155px] rounded-full px-2"
+											size={
+												isMenuItem ? "icon" : selectedTypeLabel ? "sm" : "icon"
+											}
+											className={cn(
+												"h-8 rounded-full",
+												isMenuItem ? "w-8 px-0" : "max-w-[155px] px-2",
+											)}
 											aria-label="Filter notifications"
 										>
 											<Icons.Filter size={16} />
-											{selectedTypeLabel ? (
+											{selectedTypeLabel && !isMenuItem ? (
 												<span className="ml-1 truncate text-xs font-normal">
 													{selectedTypeLabel}
 												</span>
@@ -366,11 +483,35 @@ export function NotificationCenter() {
 										)}
 									</DropdownMenu.Content>
 								</DropdownMenu.Root>
-								<NotificationSettingsSheet />
+								{isMenuItem ? (
+									<Button
+										asChild
+										variant="ghost"
+										size="icon"
+										className="size-8 rounded-full"
+									>
+										<Link
+											href="/settings/notification-channels/v2"
+											aria-label="Notification settings"
+											onClick={closeForAction}
+										>
+											<Icons.Settings className="size-4" />
+										</Link>
+									</Button>
+								) : (
+									<NotificationSettingsSheet />
+								)}
 							</div>
 						</div>
 
-						<Tabs.Content value="inbox" className="relative mt-0">
+						<Tabs.Content
+							value="inbox"
+							className={cn(
+								"relative mt-0",
+								isMenuItem &&
+									"min-h-0 flex-1 data-[state=active]:flex data-[state=active]:flex-col",
+							)}
+						>
 							{isLoading && !unreadNotifications.length && (
 								<div className="divide-y">
 									{SKELETON_ROW_KEYS.map((key) => (
@@ -391,7 +532,12 @@ export function NotificationCenter() {
 							)}
 
 							{!isLoading && unreadNotifications.length > 0 && (
-								<ScrollArea className="pb-12 h-[485px]">
+								<ScrollArea
+									className={cn(
+										"pb-12",
+										isMenuItem ? "min-h-0 flex-1" : "h-[485px]",
+									)}
+								>
 									<div className="divide-y">
 										{unreadNotifications.map((notification) => {
 											return (
@@ -436,7 +582,14 @@ export function NotificationCenter() {
 							)}
 						</Tabs.Content>
 
-						<TabsContent value="archive" className="mt-0">
+						<TabsContent
+							value="archive"
+							className={cn(
+								"mt-0",
+								isMenuItem &&
+									"min-h-0 flex-1 data-[state=active]:flex data-[state=active]:flex-col",
+							)}
+						>
 							{isLoading && !archivedNotifications.length && (
 								<div className="divide-y">
 									{SKELETON_ROW_KEYS.map((key) => (
@@ -457,7 +610,9 @@ export function NotificationCenter() {
 							)}
 
 							{!isLoading && archivedNotifications.length > 0 && (
-								<ScrollArea className="h-[490px]">
+								<ScrollArea
+									className={cn(isMenuItem ? "min-h-0 flex-1" : "h-[490px]")}
+								>
 									<div className="divide-y">
 										{archivedNotifications.map((notification) => {
 											return (
@@ -491,7 +646,7 @@ export function NotificationCenter() {
 						</TabsContent>
 					</Tabs>
 				</ErrorBoundary>
-			</Popover.Content>
+			</NotificationSurface>
 		</Popover>
 	);
 }
