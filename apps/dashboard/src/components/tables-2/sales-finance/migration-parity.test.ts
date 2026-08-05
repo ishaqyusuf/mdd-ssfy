@@ -313,6 +313,9 @@ describe("Sales Finance Midday migration parity", () => {
 
 	it("tracks parallel adoption without auto-retiring legacy Accounting", () => {
 		const adoptionSource = readSource("components/sales-finance/adoption.tsx");
+		const migrationDialogSource = readSource(
+			"components/onboarding/sales-finance-migration-dialog.tsx",
+		);
 		const workspaceSource = readSource(
 			"components/sales-finance/workspace-client.tsx",
 		);
@@ -331,12 +334,27 @@ describe("Sales Finance Midday migration parity", () => {
 		expect(adoptionSource.includes("adoptionPing")).toBe(true);
 		expect(adoptionSource.includes("adoptionReadiness")).toBe(true);
 		expect(adoptionSource.includes("Legacy retained")).toBe(true);
+		expect(adoptionSource.includes("SalesFinanceMigrationDialog")).toBe(true);
+		expect(
+			migrationDialogSource.includes(
+				"Sales Finance is your new starting point",
+			),
+		).toBe(true);
+		expect(migrationDialogSource.includes("Open legacy Accounting")).toBe(true);
+		expect(headerSource.includes("Open legacy Accounting")).toBe(true);
+		expect(headerSource.includes("Sales Reports")).toBe(true);
+		expect(headerSource.includes("<Icons.salesDashboard")).toBe(true);
 		expect(workspaceSource.includes("<SalesFinanceAdoptionTracker")).toBe(true);
 		expect(
 			legacySource.includes(
 				'<SalesFinanceAdoptionTracker surface="legacy-accounting" />',
 			),
 		).toBe(true);
+		expect(legacySource.includes("<LegacyAccountingMigrationBanner />")).toBe(
+			true,
+		);
+		expect(legacySource.includes("You’re using legacy Accounting")).toBe(true);
+		expect(legacySource.includes("Go to Sales Finance")).toBe(true);
 		expect(headerSource.includes("<SalesFinanceAdoptionStatus />")).toBe(true);
 		expect(
 			receivablesHeaderSource.includes("<SalesFinanceAdoptionStatus />"),

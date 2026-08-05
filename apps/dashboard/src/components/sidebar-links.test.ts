@@ -7,6 +7,7 @@ import type { ICan } from "@/types/auth";
 import {
 	_role,
 	getLinkModules,
+	getSalesFinanceMigrationLinkModules,
 	validateLinks,
 	validateRules,
 } from "./sidebar-links";
@@ -128,6 +129,31 @@ describe("sidebar role access", () => {
 		expect(
 			salesLinks.find((link) => link?.href === "/sales-book/reports")?.badge,
 		).toBe("New");
+	});
+
+	test("moves Accounting out of navigation while preserving direct route access", () => {
+		const can = permissions({ viewOrderPayment: true });
+		const migratedModules = getSalesFinanceMigrationLinkModules({ can });
+		const visibleSalesLinks = migratedModules
+			.flatMap((module) => module.sections)
+			.flatMap((section) => section.links);
+		const authorizedLinks = getLinkModules(
+			validateLinks({
+				role: { name: "Admin" },
+				can,
+				userId: "admin-1",
+			}),
+		);
+
+		expect(
+			visibleSalesLinks.find((link) => link?.href === "/sales-book/accounting"),
+		).toBeUndefined();
+		expect(
+			visibleSalesLinks.find((link) => link?.href === "/sales-book/finance"),
+		).toBeDefined();
+		expect(
+			authorizedLinks.linksNameMap["/sales-book/accounting"]?.hasAccess,
+		).toBe(true);
 	});
 
 	test("keeps create and edit order routes limited to editOrders", () => {

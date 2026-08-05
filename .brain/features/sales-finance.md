@@ -10,6 +10,8 @@
   2026-07-30.
 - Guarded Account Resolution and payment-sheet resolution implemented on
   2026-07-30.
+- Progressive Accounting-to-Finance navigation migration implemented on
+  2026-08-05.
 - Canonical route: `/sales-book/finance`.
 - Legacy `/sales-book/accounting` remains available during adoption.
 - No legacy redirect or deletion is authorized yet.
@@ -149,6 +151,14 @@ Legacy Accounting cannot retire automatically. `retirementEligible` remains
 false until responsive operator acceptance and explicit approval are recorded;
 the route, sidebar link, and data contract remain intact in the meantime.
 
+For users who can access legacy Accounting, the primary Sales navigation now
+uses Sales Finance as the entry point and omits the Accounting link. This is a
+navigation-only migration: `/sales-book/accounting` remains authorized and is
+available from a permission-aware action in the Finance header. The first
+recorded Finance visit shows a one-time transition dialog, and the legacy page
+shows a persistent path back to Sales Finance. No redirect, data mutation, or
+automatic retirement is introduced.
+
 ## API
 
 The `salesFinance` tRPC router is protected and exposes:
@@ -222,6 +232,8 @@ The `salesFinance` tRPC router is protected and exposes:
     invoking the canonical payment resolution operation
 - `salesFinance.adoptionPing`
   - records one authenticated surface-level PageView per mounted client surface
+  - returns `isFirstFinanceVisit` when the current user has no earlier,
+    non-deleted Finance PageView; legacy Accounting pings never set it
 - `salesFinance.adoptionReadiness`
   - returns rolling 30-day Finance/legacy activity and explicit non-automatic
     retirement gates
@@ -234,7 +246,15 @@ require `editOrderPayment`. Account-resolution mutations also require
 
 ## UI Contract
 
-- The Sales sidebar exposes `Sales Finance` beside legacy `Accounting`.
+- For users with legacy Accounting access, the Sales sidebar makes
+  `Sales Finance` the primary entry and omits the legacy `Accounting` link.
+  Direct legacy route authorization remains unchanged.
+- The Finance title exposes permission-aware `Sales Reports` and
+  `Open legacy Accounting` actions.
+- A user’s first recorded Finance visit opens a transition dialog that explains
+  the new workspace and preserves an explicit legacy Accounting path.
+- Legacy Accounting displays a transition banner with a direct return to Sales
+  Finance.
 - The page uses a compact title block with a Beta badge and reduced top padding.
 - Five responsive summary cards show received, net, refunds, unapplied, and
   review count.
@@ -361,6 +381,9 @@ Intentional GND deviations:
   - Finance/legacy PageView recording, rolling 30-day aggregation, per-surface
     counts, stable product tabs, permission-aware status UI, and a hard
     `retirementEligible: false` gate
+  - first-Finance-visit detection, migration dialog copy, permission-aware
+    Finance header links, hidden legacy navigation, preserved direct-route
+    authorization, and the legacy return banner
 - Current combined Finance suite: 46 tests and 265 assertions passed across
   package projections/builders, API queries, Excel rendering, and dashboard
   parity.
@@ -409,6 +432,10 @@ Intentional GND deviations:
     document itself remained overflow-free
 - Responsive automated proof is complete, but the readiness gate deliberately
   remains pending until an operator accepts the workflow.
+- Authenticated 2026-08-05 browser proof confirmed the progressive migration on
+  desktop and mobile: Accounting is absent from primary navigation, the Finance
+  header opens legacy Accounting, the legacy banner returns to Finance, and no
+  new console errors were emitted.
 
 ## Next Slices
 

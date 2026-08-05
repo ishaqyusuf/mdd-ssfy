@@ -13,6 +13,7 @@ describe("Sales Finance adoption evidence", () => {
 			userId: 7,
 			db: {
 				pageView: {
+					count: async () => 0,
 					create: async (input: unknown) => {
 						creates.push(input);
 						return { id: creates.length, createdAt: new Date() };
@@ -42,6 +43,36 @@ describe("Sales Finance adoption evidence", () => {
 				select: { id: true, createdAt: true },
 			},
 		]);
+	});
+
+	it("identifies only the first recorded Finance visit for onboarding", async () => {
+		let financeViews = 0;
+		const ctx = {
+			userId: 7,
+			db: {
+				pageView: {
+					count: async () => financeViews,
+					create: async ({ data }: { data: { url: string } }) => {
+						if (data.url === "/sales-book/finance") financeViews += 1;
+						return { id: financeViews, createdAt: new Date() };
+					},
+				},
+			},
+		} as unknown as TRPCContext;
+
+		const first = await recordSalesFinanceAdoption(ctx, {
+			surface: "payments",
+		});
+		const repeat = await recordSalesFinanceAdoption(ctx, {
+			surface: "review",
+		});
+		const legacy = await recordSalesFinanceAdoption(ctx, {
+			surface: "legacy-accounting",
+		});
+
+		expect(first.isFirstFinanceVisit).toBe(true);
+		expect(repeat.isFirstFinanceVisit).toBe(false);
+		expect(legacy.isFirstFinanceVisit).toBe(false);
 	});
 
 	it("reports rolling usage while keeping retirement explicitly gated", async () => {
@@ -88,7 +119,7 @@ describe("Sales Finance adoption evidence", () => {
 			uniqueUsers: 1,
 		});
 		expect(result.gates.filter((gate) => gate.status === "ready")).toHaveLength(
-			3,
+			4,
 		);
 		expect(result.retirementEligible).toBe(false);
 	});

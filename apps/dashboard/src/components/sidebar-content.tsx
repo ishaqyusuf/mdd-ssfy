@@ -12,7 +12,10 @@ import { useQuery } from "@gnd/ui/tanstack";
 import { usePathname } from "next/dist/client/components/navigation";
 import Link from "next/link";
 import { Header } from "./header";
-import { linkModules } from "./sidebar-links";
+import {
+	getSalesFinanceMigrationLinkModules,
+	linkModules,
+} from "./sidebar-links";
 export function SidebarContent({
 	children,
 	initialAuth = null,
@@ -51,12 +54,16 @@ function NavLayoutClient({ children, pageTabDefaults }) {
 		staleTime: Number.POSITIVE_INFINITY,
 	});
 	const navDefaults = defaults;
+	const navigationLinkModules = getSalesFinanceMigrationLinkModules({
+		can: auth.can,
+		modules: linkModules,
+	});
 
 	return (
 		<SiteNav.Provider
 			value={createSiteNavContext({
 				pathName,
-				linkModules,
+				linkModules: navigationLinkModules,
 				Link,
 				role: auth.role,
 				userId: auth.id,

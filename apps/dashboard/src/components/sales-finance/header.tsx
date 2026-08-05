@@ -5,9 +5,14 @@ import { SalesFinanceAdoptionStatus } from "@/components/sales-finance/adoption"
 import { SalesFinanceReports } from "@/components/sales-finance/reports";
 import { salesFinancePageTabs } from "@/components/sales-finance/tabs";
 import { SalesFinanceColumnVisibility } from "@/components/tables-2/sales-finance/column-visibility";
+import { useAuth } from "@/hooks/use-auth";
 import { salesFinanceSearchFilterParams } from "@/hooks/use-sales-finance-filter-params";
 import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { Badge } from "@gnd/ui/badge";
+import { buttonVariants } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
+import { Icons } from "@gnd/ui/icons";
+import Link from "next/link";
 
 import type { FilterDefinition } from "../midday-search-filter/filter-definitions";
 import { SearchFilterTRPC } from "../midday-search-filter/search-filter-trpc";
@@ -73,6 +78,16 @@ const financeFilterDefinitions = [
 ] satisfies FilterDefinition[];
 
 export function SalesFinanceTitle() {
+	const auth = useAuth();
+	const canOpenLegacyAccounting = Boolean(
+		auth.can?.viewOrderPayment ||
+			auth.can?.editOrderPayment ||
+			auth.can?.editSales,
+	);
+	const canOpenSalesReports = Boolean(
+		auth.can?.viewOrders || auth.can?.editOrders || auth.can?.viewSales,
+	);
+
 	return (
 		<div className="flex flex-wrap items-start justify-between gap-3">
 			<div className="space-y-1">
@@ -89,9 +104,35 @@ export function SalesFinanceTitle() {
 					workspace.
 				</p>
 			</div>
-			<p className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
-				Default period: last 30 days
-			</p>
+			<div className="flex flex-wrap items-center justify-end gap-2">
+				{canOpenSalesReports ? (
+					<Link
+						href="/sales-book/reports"
+						className={cn(
+							buttonVariants({ variant: "outline", size: "sm" }),
+							"gap-2",
+						)}
+					>
+						<Icons.salesDashboard className="size-4" aria-hidden="true" />
+						Sales Reports
+					</Link>
+				) : null}
+				{canOpenLegacyAccounting ? (
+					<Link
+						href="/sales-book/accounting"
+						className={cn(
+							buttonVariants({ variant: "outline", size: "sm" }),
+							"gap-2",
+						)}
+					>
+						<Icons.accounting className="size-4" aria-hidden="true" />
+						Open legacy Accounting
+					</Link>
+				) : null}
+				<p className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+					Default period: last 30 days
+				</p>
+			</div>
 		</div>
 	);
 }

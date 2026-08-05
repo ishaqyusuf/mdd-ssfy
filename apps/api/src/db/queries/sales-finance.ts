@@ -844,8 +844,17 @@ export async function recordSalesFinanceAdoption(
 	input: SalesFinanceAdoptionPingInput,
 ) {
 	const legacy = input.surface === "legacy-accounting";
+	const existingFinanceViews = legacy
+		? 0
+		: await ctx.db.pageView.count({
+				where: {
+					deletedAt: null,
+					url: "/sales-book/finance",
+					userId: ctx.userId,
+				},
+			});
 
-	return ctx.db.pageView.create({
+	const pageView = await ctx.db.pageView.create({
 		data: {
 			url: legacy ? "/sales-book/accounting" : "/sales-book/finance",
 			group: `sales-finance:${input.surface}`,
@@ -856,6 +865,11 @@ export async function recordSalesFinanceAdoption(
 			createdAt: true,
 		},
 	});
+
+	return {
+		...pageView,
+		isFirstFinanceVisit: !legacy && existingFinanceViews === 0,
+	};
 }
 
 export async function getSalesFinanceAdoptionReadiness(ctx: TRPCContext) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { SalesFinanceMigrationDialog } from "@/components/onboarding/sales-finance-migration-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
 import type { RouterInputs } from "@api/trpc/routers/_app";
@@ -9,7 +10,7 @@ import { Icons } from "@gnd/ui/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { CheckCircle2, CircleDashed } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 type AdoptionPingInput = Extract<
 	RouterInputs["salesFinance"]["adoptionPing"],
@@ -37,7 +38,14 @@ export function SalesFinanceAdoptionTracker({
 }: {
 	surface: AdoptionSurface;
 }) {
+	const auth = useAuth();
 	const trpc = useTRPC();
+	const [showMigrationDialog, setShowMigrationDialog] = useState(false);
+	const canUseLegacyAccounting = Boolean(
+		auth.can?.viewOrderPayment ||
+			auth.can?.editOrderPayment ||
+			auth.can?.editSales,
+	);
 	const ping = useMutation(
 		trpc.salesFinance.adoptionPing.mutationOptions({
 			retry: false,
@@ -47,10 +55,24 @@ export function SalesFinanceAdoptionTracker({
 	useEffect(() => {
 		if (recordedSurfaces.has(surface)) return;
 		recordedSurfaces.add(surface);
-		ping.mutate({ surface });
-	}, [ping.mutate, surface]);
+		ping.mutate(
+			{ surface },
+			{
+				onSuccess: (data) => {
+					if (data.isFirstFinanceVisit && canUseLegacyAccounting) {
+						setShowMigrationDialog(true);
+					}
+				},
+			},
+		);
+	}, [canUseLegacyAccounting, ping.mutate, surface]);
 
-	return null;
+	return (
+		<SalesFinanceMigrationDialog
+			open={showMigrationDialog}
+			onOpenChange={setShowMigrationDialog}
+		/>
+	);
 }
 
 export function SalesFinanceAdoptionStatus() {

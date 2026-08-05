@@ -682,6 +682,33 @@ export const linkModules = [
 		]),
 	]),
 ];
+
+const LEGACY_SALES_ACCOUNTING_HREF = "/sales-book/accounting";
+
+export function getSalesFinanceMigrationLinkModules({
+	can,
+	modules = linkModules,
+}: {
+	can?: Partial<ICan> | null;
+	modules?: typeof linkModules;
+}) {
+	const hasLegacyAccountingAccess = Boolean(
+		can?.viewOrderPayment || can?.editOrderPayment || can?.editSales,
+	);
+
+	if (!hasLegacyAccountingAccess) return modules;
+
+	return modules.map((module) => ({
+		...module,
+		sections: module.sections.map((section) => ({
+			...section,
+			links: section.links.filter(
+				(link) => link?.href !== LEGACY_SALES_ACCOUNTING_HREF,
+			),
+		})),
+	}));
+}
+
 export function getLinkModules(_linkModules = linkModules) {
 	const i = {
 		section: 0,
