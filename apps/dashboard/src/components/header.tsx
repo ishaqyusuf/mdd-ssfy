@@ -2,6 +2,7 @@
 
 import { useSiteNav } from "@gnd/site-nav";
 import type { CSSProperties } from "react";
+import { OpenSearchButton } from "./search/open-search-button";
 import { UserNav } from "./user-nav";
 
 export function Header() {
@@ -38,6 +39,9 @@ export function Header() {
 					id="breadCrumb"
 					className="hidden md:flex items-center space-x-1"
 				/>
+				<div className="hidden md:contents">
+					<OpenSearchButton />
+				</div>
 				<div className="flex-1" />
 				<div className="hidden md:flex mx-4  gap-4 " id="navRightSlot" />
 				<div className="hidden md:inline-flex gap-4" id="actionNav" />

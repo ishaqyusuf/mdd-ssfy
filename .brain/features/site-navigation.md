@@ -25,9 +25,12 @@ Tracks shared sidebar and navigation behavior used by web surfaces.
   opens a bottom drawer that reuses the same selected-module navigation,
   exposes permission-aware utility rows, and keeps profile, notification
   settings, and logout in a safe-area footer. At `768px` and above, the desktop
-  sidebar, utility controls, and account dropdown remain unchanged. Mobile
-  notifications replace the drawer body with a back-navigable in-sheet view;
-  bug reporting closes the drawer before its separately owned dialog opens.
+  sidebar, utility controls, and account dropdown remain unchanged; the
+  `Find anything...` search control keeps its original position before the
+  flexible header spacer instead of joining the right-side account actions.
+  Mobile notifications replace the drawer body with a back-navigable in-sheet
+  view; bug reporting closes the drawer before its separately owned dialog
+  opens.
 - The nav list always renders the selected named module's permitted sections and links, followed by every permitted unnamed module. One divider separates the named module links from the unnamed shared/profile/support links. Module headings, module accordions, and module collapse state are removed; existing section labels and child-link expansion behavior remain unchanged.
 - The sidebar footer user row is flat to the footer border with no inset card or outer padding. Its hover/open background is carried by the full-width footer row. The account dropdown opens upward inside the expanded sidebar. Clicking the footer user control expands the sidebar and opens the account menu. Moving from the dropdown to other sidebar areas keeps the open menu stable. Hovering out of the sidebar still collapses the sidebar and hides the dropdown, but if the account menu was open its requested-open state is preserved while hidden; hovering back over the sidebar expands it and restores the open menu.
 - The footer account dropdown includes a labeled `Modules` group. The selected module is highlighted, and choosing another module closes the dropdown and updates the nav list.

@@ -25,9 +25,20 @@ const searchModalSource = readFileSync(
 describe("Dashboard mobile header navigation", () => {
 	test("uses the avatar as the single mobile navigation trigger", () => {
 		expect(headerSource).not.toContain("<SiteNav.MobileSidebar />");
-		expect(headerSource).not.toContain("<OpenSearchButton />");
+		expect(headerSource).toContain('className="hidden md:contents"');
+		expect(headerSource).toContain("<OpenSearchButton />");
 		expect(headerSource).not.toContain("<NotificationCenter />");
 		expect(headerSource).toContain("<UserNav links={linkModules} />");
+	});
+
+	test("keeps desktop search in its original position before the header spacer", () => {
+		expect(headerSource.indexOf("<OpenSearchButton />")).toBeGreaterThan(-1);
+		expect(headerSource.indexOf("<OpenSearchButton />")).toBeLessThan(
+			headerSource.indexOf('<div className="flex-1" />'),
+		);
+		expect(userNavSource).not.toMatch(
+			/function DesktopHeaderActions[\s\S]{0,220}<OpenSearchButton \/>/,
+		);
 	});
 
 	test("opens mobile account navigation in the shared bottom drawer", () => {
