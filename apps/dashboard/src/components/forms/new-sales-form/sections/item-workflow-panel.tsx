@@ -2487,7 +2487,10 @@ export function ItemWorkflowPanel() {
 									isMouldingItem(line) &&
 									normalizeTitle(activeItemStep?.step?.title) === "moulding"
 								}
-								redirectOptions={getRedirectableRoutes(routeData).map(
+								redirectOptions={getRedirectableRoutes(
+									routeData,
+									activeLineSteps,
+								).map(
 									(step) => ({
 										uid: step.uid,
 										title: step.title,

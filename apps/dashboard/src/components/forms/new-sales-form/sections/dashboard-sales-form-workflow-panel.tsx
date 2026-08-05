@@ -95,8 +95,11 @@ export function DashboardSalesFormWorkflowPanel() {
 
 	if (!record) return null;
 
-	function getRouteOptions(routeData: Record<string, any> | null) {
-		return getRedirectableRoutes(routeData).map((route) => ({
+	function getRouteOptions(
+		routeData: Record<string, any> | null,
+		steps: Array<Record<string, any>>,
+	) {
+		return getRedirectableRoutes(routeData, steps).map((route) => ({
 			uid: route.uid,
 			title: route.title,
 		}));
@@ -198,8 +201,8 @@ export function DashboardSalesFormWorkflowPanel() {
 						}),
 				}}
 				slots={{
-					getComponentRedirectOptions: ({ routeData }) =>
-						getRouteOptions(routeData),
+					getComponentRedirectOptions: ({ routeData, steps }) =>
+						getRouteOptions(routeData, steps),
 					renderDoorSupplierPanel:
 						workflowAdminCapabilities.canManageDoorSuppliers
 							? ({ supplierUid, updateSupplier, refetchSuppliers }) => {

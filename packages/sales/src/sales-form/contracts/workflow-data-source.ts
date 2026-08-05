@@ -132,6 +132,7 @@ export type SalesFormWorkflowSurfaceSlots<
 	getComponentRedirectOptions?: (input: {
 		routeData: WorkflowRouteData | null;
 		line: TLine;
+		steps: WorkflowStepRecord[];
 		step: WorkflowStepRecord;
 		stepIndex: number;
 	}) => Array<{ uid: string; title: string }>;

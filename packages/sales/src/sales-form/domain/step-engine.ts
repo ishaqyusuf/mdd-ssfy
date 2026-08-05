@@ -79,13 +79,23 @@ export function buildSelectedByStepUid(steps: any[]) {
 	return selected;
 }
 
-export function getRedirectableRoutes(routeData: any) {
+export function getRedirectableRoutes(routeData: any, scopedSteps?: any[]) {
 	const configuredSteps = Array.isArray(routeData?.steps)
 		? routeData.steps
 		: null;
-	const orderedSteps = configuredSteps
-		? configuredSteps
-		: Object.keys(routeData?.stepsById || {})
+	const orderedSteps = Array.isArray(scopedSteps)
+		? scopedSteps.map((step) => {
+				const stepUid = String(
+					step?.step?.uid ||
+						step?.uid ||
+						routeData?.stepsById?.[step?.stepId || step?.step?.id || -1] ||
+						"",
+				);
+				return routeData?.stepsByUid?.[stepUid] || step?.step || step;
+			})
+		: configuredSteps
+			? configuredSteps
+			: Object.keys(routeData?.stepsById || {})
 				.map((id) => Number(id))
 				.filter((id) => Number.isFinite(id))
 				.sort((a, b) => a - b)
@@ -108,9 +118,9 @@ export function getRedirectableRoutes(routeData: any) {
 		).values(),
 	);
 
-	// Legacy settings expose every configured step, including distinct steps
-	// that happen to share a title. Keep only duplicate UIDs out of the menu so
-	// redirect targets retain their configured order and identity.
+	// The legacy form derives redirect targets from the active item's step
+	// sequence. Preserve that scope when it is available, while keeping the
+	// catalog fallback for settings surfaces without an active line.
 	return uniqueByUid;
 }
 

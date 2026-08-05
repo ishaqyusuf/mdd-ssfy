@@ -1081,10 +1081,11 @@ export function SalesFormWorkflowPanel<
 			props.slots?.getComponentRedirectOptions?.({
 				routeData,
 				line,
+				steps,
 				step: activeItemStep,
 				stepIndex: activeIndex,
 			}) ||
-			getRedirectableRoutes(routeData).map((step) => ({
+			getRedirectableRoutes(routeData, steps).map((step) => ({
 				uid: step.uid,
 				title: step.title,
 			}));

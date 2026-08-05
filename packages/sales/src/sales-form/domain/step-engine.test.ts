@@ -121,6 +121,42 @@ describe("step-engine domain", () => {
 		]);
 	});
 
+	it("scopes redirect routes to the active item's configured steps", () => {
+		const routes = getRedirectableRoutes(
+			{
+				steps: [
+					{ uid: "item-type", title: "Item Type" },
+					{ uid: "door", title: "Door" },
+					{ uid: "shelf-items", title: "Shelf Items" },
+					{ uid: "line-item", title: "Line Item" },
+				],
+				stepsById: {
+					10: "item-type",
+					20: "door",
+					30: "shelf-items",
+					40: "line-item",
+				},
+				stepsByUid: {
+					"item-type": { uid: "item-type", title: "Item Type" },
+					door: { uid: "door", title: "Door" },
+					"shelf-items": { uid: "shelf-items", title: "Shelf Items" },
+					"line-item": { uid: "line-item", title: "Line Item" },
+				},
+			},
+			[
+				{ stepId: 10, step: { uid: "item-type", title: "Item Type" } },
+				{ stepId: 20, step: { uid: "door", title: "Door" } },
+				{ stepId: 40, step: { uid: "line-item", title: "Line Item" } },
+			],
+		);
+
+		expect(routes).toEqual([
+			{ uid: "item-type", title: "Item Type" },
+			{ uid: "door", title: "Door" },
+			{ uid: "line-item", title: "Line Item" },
+		]);
+	});
+
 	it("keeps distinct redirect steps that share a title", () => {
 		const routes = getRedirectableRoutes({
 			stepsById: {
