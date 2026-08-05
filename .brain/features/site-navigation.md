@@ -27,7 +27,9 @@ Tracks shared sidebar and navigation behavior used by web surfaces.
   settings, and logout in a safe-area footer. At `768px` and above, the desktop
   sidebar, utility controls, and account dropdown remain unchanged; the
   `Find anything...` search control keeps its original position before the
-  flexible header spacer instead of joining the right-side account actions.
+  flexible header spacer instead of joining the right-side account actions,
+  and the desktop bug-report action explicitly uses the secondary button
+  variant.
   Mobile notifications replace the drawer body with a back-navigable in-sheet
   view; bug reporting closes the drawer before its separately owned dialog
   opens.

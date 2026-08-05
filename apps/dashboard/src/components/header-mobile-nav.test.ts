@@ -41,6 +41,13 @@ describe("Dashboard mobile header navigation", () => {
 		);
 	});
 
+	test("uses the secondary report action in the desktop header", () => {
+		expect(userNavSource).toContain('<BugReportButton variant="secondary" />');
+		expect(utilitySources).toContain(
+			'variant={variant ?? (isMenuItem ? "ghost" : "secondary")}',
+		);
+	});
+
 	test("opens mobile account navigation in the shared bottom drawer", () => {
 		expect(userNavSource).toMatch(/<Drawer[\s\S]{0,120}open=\{isOpen\}/);
 		expect(userNavSource).toContain("<SiteNav.ModuleSelector");
