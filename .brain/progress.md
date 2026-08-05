@@ -1,5 +1,20 @@
 # Progress
 
+- 2026-08-05: repaired automatic inventory synchronization for rootless HPT
+  sales lines. Order `09161PC` failed because its active HPT relation had no
+  root `stepProduct`, while the deterministic parent selector rejected the
+  otherwise unique Item Type mapping. Sync now uses that mapping, keeps exact
+  door-size requirements authoritative, and treats the overlapping generic
+  Door snapshot as optional with zero demand. The repaired local projection
+  resolves to 4 needs and 6 pending units with no optional active demand. The
+  Sales Overview Needs list was also simplified to borderless divided rows with
+  one color-coded `AVAILABLE x OF y` badge plus plain COST and SALES facts.
+  Focused inventory/UI coverage passes 70 tests; `@gnd/sales` typecheck and
+  Biome pass, and live browser verification passed for orders `09161PC` and
+  `09158PC`. The full dashboard typecheck still reports its existing broad
+  baseline errors unrelated to these files. See
+  `.brain/bugs/2026-08-05-rootless-hpt-inventory-sync.md`.
+
 - 2026-08-05: fixed Turbopack resolution for the new source-exported error and
   observability packages. Internal relative imports now follow the packages'
   Bundler resolution contract instead of referencing nonexistent emitted `.js`

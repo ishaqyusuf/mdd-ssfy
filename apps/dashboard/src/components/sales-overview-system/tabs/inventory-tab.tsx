@@ -1900,7 +1900,10 @@ function InventoryLineRow({
 	);
 
 	return (
-		<Item size="sm" className="items-start rounded-none border-0 px-4 py-3.5">
+		<Item
+			size="sm"
+			className="items-start rounded-none border-x-0 border-t-0 border-b px-4 py-3.5 last:border-b-0"
+		>
 			<ItemContent className="min-w-0 gap-2">
 				<ItemHeader className="items-start gap-3">
 					<div className="min-w-0 space-y-1">
