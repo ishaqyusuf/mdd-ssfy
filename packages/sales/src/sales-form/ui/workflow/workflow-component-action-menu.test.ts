@@ -34,6 +34,8 @@ describe("workflow component catalog menu parity", () => {
 		expect(source).toContain("showPricing");
 		expect(source).toContain("props.pricingDisabled || !props.onEditPricing");
 		expect(source).toContain('aria-label="Component actions"');
+		expect(source).toContain("Icon={Icons.Route}");
+		expect(source).not.toContain("Icons.ExternalLink");
 	});
 
 	test("isolates catalog selection from the sales selection callback", () => {

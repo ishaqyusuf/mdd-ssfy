@@ -1227,6 +1227,7 @@ const dynamicHugeIconAliases = {
   RefreshCcw: "Refresh",
   RefreshCw: "Refresh",
   RotateCcw: "Refresh",
+  Route: "Route01Icon",
   Ruler: "Ruler",
   SearchX: "SearchRemoveIcon",
   Share2: "Share08Icon",

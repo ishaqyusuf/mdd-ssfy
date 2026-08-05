@@ -92,6 +92,7 @@ export function WorkflowComponentActionMenu(
 			) : null}
 			{props.onSetRedirect || props.onClearRedirect ? (
 				<Menu.Item
+					Icon={Icons.Route}
 					disabled={!props.redirectOptions.length && !props.onClearRedirect}
 					SubMenu={[
 						props.onClearRedirect ? (
@@ -111,7 +112,7 @@ export function WorkflowComponentActionMenu(
 							: []),
 					].filter(Boolean)}
 				>
-					<Icons.ExternalLink className="size-3.5" /> Redirect
+					Redirect
 				</Menu.Item>
 			) : null}
 			{props.onArchive ? (

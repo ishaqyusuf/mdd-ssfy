@@ -18,7 +18,10 @@ form without changing ordinary sales selection or the wider step toolbar.
   roles and Door components; Super Admin edits non-Door catalog prices here,
   while Door pricing continues through the existing size/supplier surface.
 - Section override persists activation, handle, and swing behavior.
-- Redirect persists a validated canonical step target; cancel clears it.
+- Redirect persists a validated canonical step target; cancel clears it. Its
+  submenu is scoped to the active item's configured step sequence instead of
+  the global step catalog, and the menu uses a route glyph to distinguish the
+  action from opening an external page.
 - Delete is a confirmed soft archive from future pickers. It does not delete
   component snapshots already stored on draft or saved sales.
 
