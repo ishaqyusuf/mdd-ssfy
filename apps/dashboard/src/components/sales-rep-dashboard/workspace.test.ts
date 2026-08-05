@@ -10,6 +10,14 @@ const routeSource = readFileSync(
 	resolve(import.meta.dir, "../../app/(sidebar)/(sales)/sales-rep/page.tsx"),
 	"utf8",
 );
+const performanceCardSource = readFileSync(
+	resolve(import.meta.dir, "performance-card.tsx"),
+	"utf8",
+);
+const salesTrendCardSource = readFileSync(
+	resolve(import.meta.dir, "../sales-dashboard/trend-card.tsx"),
+	"utf8",
+);
 
 describe("sales rep dashboard migration", () => {
 	it("uses the dedicated rep dashboard contract", () => {
@@ -30,5 +38,15 @@ describe("sales rep dashboard migration", () => {
 		expect(workspaceSource).toContain("w-full");
 		expect(workspaceSource).toContain("sm:");
 		expect(workspaceSource).toContain("min-w-0");
+	});
+
+	it("uses valid theme colors for SVG bars and hover cursors", () => {
+		for (const source of [performanceCardSource, salesTrendCardSource]) {
+			expect(source).toContain('fill: "var(--muted)"');
+			expect(source).toContain("fillOpacity:");
+			expect(source).toContain('fill="var(--primary)"');
+			expect(source).not.toContain("hsl(var(--muted)");
+			expect(source).not.toContain("hsl(var(--primary)");
+		}
 	});
 });

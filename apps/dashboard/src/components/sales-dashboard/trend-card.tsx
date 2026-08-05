@@ -70,7 +70,7 @@ export function SalesBookedTrendCard({ className }: { className?: string }) {
 									}
 								/>
 								<Tooltip
-									cursor={{ fill: "hsl(var(--muted) / 0.5)" }}
+									cursor={{ fill: "var(--muted)", fillOpacity: 0.5 }}
 									formatter={(value, name) => [
 										name === "revenue"
 											? formatCurrency.format(Number(value))
@@ -80,7 +80,7 @@ export function SalesBookedTrendCard({ className }: { className?: string }) {
 								/>
 								<Bar
 									dataKey="revenue"
-									fill="hsl(var(--primary))"
+									fill="var(--primary)"
 									radius={[4, 4, 0, 0]}
 									className="cursor-pointer"
 									onClick={(point) => {

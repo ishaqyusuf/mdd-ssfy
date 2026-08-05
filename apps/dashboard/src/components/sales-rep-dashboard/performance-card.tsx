@@ -62,7 +62,7 @@ export function SalesRepPerformanceCard({ data }: { data: Trend }) {
 									width={54}
 								/>
 								<Tooltip
-									cursor={{ fill: "hsl(var(--muted) / 0.55)" }}
+									cursor={{ fill: "var(--muted)", fillOpacity: 0.55 }}
 									formatter={(value) => [
 										formatCurrency.format(Number(value)),
 										"Booked sales",
@@ -71,7 +71,7 @@ export function SalesRepPerformanceCard({ data }: { data: Trend }) {
 								<Bar
 									className="cursor-pointer"
 									dataKey="revenue"
-									fill="hsl(var(--primary))"
+									fill="var(--primary)"
 									maxBarSize={44}
 									onClick={(point) => {
 										const row = point?.payload;

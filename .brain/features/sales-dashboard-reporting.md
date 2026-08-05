@@ -53,6 +53,8 @@ The fixed dashboard provides:
 - summary metrics and previous-period comparisons;
 - adaptive booked-sales trend (day up to 45 days, week up to 180 days, month
   beyond 180 days);
+- theme-native primary bars and a translucent muted hover cursor across the
+  Sales and sales-rep booked-sales charts;
 - recent-order drill-down into the canonical Sales Overview sheet;
 - sales-rep, product, and sales-channel performance cards;
 - direct navigation to Sales Finance and Sales Reports.
@@ -111,8 +113,8 @@ the Reports button with the secondary variant directly in the top-right Sales
 header; smaller breakpoints place the same content inside Quick access. The
 catalog uses a two-column shadcn menu grid from the `sm` breakpoint upward,
 collapses to one column on narrow screens, and keeps the fixed heading outside
-a bounded `ScrollArea` so
-large permission sets remain navigable without extending beyond the viewport.
+a bounded `ScrollArea` so large permission sets remain navigable without
+extending beyond the viewport.
 Create/edit forms suppress the New Sales and New Quote shortcuts but retain
 report access.
 
