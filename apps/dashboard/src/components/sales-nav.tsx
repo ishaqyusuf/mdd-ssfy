@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useSearchStore } from "@/store/search";
 import type { PermissionScope } from "@/types/auth";
 import { buttonVariants } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
@@ -15,7 +16,6 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { NavigationMenu } from "@gnd/ui/namespace";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthGuard } from "./auth-guard";
 import {
@@ -29,33 +29,26 @@ import { _perm } from "./sidebar-links";
 const salesNavItems = [
 	{
 		label: "New Sales",
-		href: "/sales-form/create-order",
 		permission: "editOrders",
 		className:
 			"border-sky-200 bg-sky-50 text-sky-700 shadow-sm hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800",
-		activeClassName:
-			"border-sky-600 bg-sky-600 text-white shadow-md shadow-sky-200 hover:bg-sky-600 hover:text-white",
 	},
 	{
 		label: "New Quote",
-		href: "/sales-form/create-quote",
 		permission: "editOrders",
 		className:
 			"border-amber-200 bg-amber-50 text-amber-700 shadow-sm hover:border-amber-300 hover:bg-amber-100 hover:text-amber-800",
-		activeClassName:
-			"border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-200 hover:bg-amber-500 hover:text-white",
 	},
 ] satisfies {
 	label: string;
-	href: string;
 	permission: PermissionScope;
 	className: string;
-	activeClassName: string;
 }[];
 
 export function SalesNav() {
 	const pathname = usePathname();
 	const auth = useAuth();
+	const openSearch = useSearchStore((state) => state.openSearch);
 	const reportMenu = useSalesReportMenuState();
 	const isSalesFormPath =
 		pathname.startsWith("/sales-form/") ||
@@ -89,35 +82,27 @@ export function SalesNav() {
 						<NavigationMenu.Item className="xl:hidden">
 							<SalesQuickAccessMenu
 								items={visibleSalesNavItems}
-								pathname={pathname}
+								onCreate={() => openSearch("sales-create")}
 								reportMenu={reportMenu}
 							/>
 						</NavigationMenu.Item>
 						{visibleSalesNavItems.length ? (
 							<>
-								{visibleSalesNavItems.map((item) => {
-									const isActive = pathname.startsWith(item.href);
-
-									return (
-										<NavigationMenu.Item key={item.href}>
-											<NavigationMenu.Link asChild>
-												<Link
-													className={cn(
-														buttonVariants({
-															variant: "ghost",
-														}),
-														"hidden h-8 rounded-md border px-3 transition-all xl:inline-flex",
-														isActive ? item.activeClassName : item.className,
-													)}
-													href={item.href}
-													aria-current={isActive ? "page" : undefined}
-												>
-													<span>{item.label}</span>
-												</Link>
-											</NavigationMenu.Link>
-										</NavigationMenu.Item>
-									);
-								})}
+								{visibleSalesNavItems.map((item) => (
+									<NavigationMenu.Item key={item.label}>
+										<button
+											type="button"
+											className={cn(
+												buttonVariants({ variant: "ghost" }),
+												"hidden h-8 rounded-md border px-3 transition-all xl:inline-flex",
+												item.className,
+											)}
+											onClick={() => openSearch("sales-create")}
+										>
+											<span>{item.label}</span>
+										</button>
+									</NavigationMenu.Item>
+								))}
 							</>
 						) : null}
 						<NavigationMenu.Item className="hidden xl:block">
@@ -133,11 +118,11 @@ export function SalesNav() {
 
 function SalesQuickAccessMenu({
 	items,
-	pathname,
+	onCreate,
 	reportMenu,
 }: {
 	items: typeof salesNavItems;
-	pathname: string;
+	onCreate: () => void;
 	reportMenu: ReturnType<typeof useSalesReportMenuState>;
 }) {
 	const hasCreateActions = items.length > 0;
@@ -170,22 +155,12 @@ function SalesQuickAccessMenu({
 				{hasCreateActions ? (
 					<>
 						<DropdownMenuLabel>Quick access</DropdownMenuLabel>
-						{items.map((item) => {
-							const isActive = pathname.startsWith(item.href);
-
-							return (
-								<DropdownMenuItem key={item.href} asChild>
-									<Link
-										href={item.href}
-										aria-current={isActive ? "page" : undefined}
-									>
-										<Icons.PlusIcon className="size-4 shrink-0" />
-										<span className="flex-1">{item.label}</span>
-										{isActive ? <Icons.CheckIcon className="size-3.5" /> : null}
-									</Link>
-								</DropdownMenuItem>
-							);
-						})}
+						{items.map((item) => (
+							<DropdownMenuItem key={item.label} onSelect={onCreate}>
+								<Icons.PlusIcon className="size-4 shrink-0" />
+								<span className="flex-1">{item.label}</span>
+							</DropdownMenuItem>
+						))}
 					</>
 				) : null}
 				{hasCreateActions && reportMenu.canViewReports ? (

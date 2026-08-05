@@ -216,7 +216,7 @@ function QuickLinkItemDisplay({
 
 export function Search() {
 	const router = useRouter();
-	const { setOpen } = useSearchStore();
+	const { launchSource, setOpen } = useSearchStore();
 	const trpc = useTRPC();
 	const auth = useAuth();
 
@@ -254,7 +254,7 @@ export function Search() {
 			...item,
 			action: () => {
 				if (!item.href) return;
-				setOpen();
+				setOpen(false);
 				router.push(item.href);
 			},
 		}));
@@ -305,7 +305,7 @@ export function Search() {
 	}, [quickLinks, searchValue]);
 
 	const openHref = (href: string) => {
-		setOpen();
+		setOpen(false);
 		router.push(href);
 	};
 
@@ -334,7 +334,7 @@ export function Search() {
 					<button
 						type="button"
 						aria-label="Close search"
-						onClick={() => setOpen()}
+						onClick={() => setOpen(false)}
 						className="mr-2 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
 					>
 						<Icons.X className="size-4" />
@@ -346,6 +346,22 @@ export function Search() {
 					</div>
 				) : null}
 			</div>
+
+			{launchSource === "sales-create" ? (
+				<output className="flex gap-3 border-b bg-muted/40 px-4 py-3">
+					<span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-muted-foreground shadow-sm">
+						<Icons.Search className="size-4" />
+					</span>
+					<div className="min-w-0">
+						<p className="text-sm font-medium">
+							Use Find Anything to start a new sale or quote.
+						</p>
+						<p className="mt-0.5 text-xs text-muted-foreground">
+							Choose New sale or New quote below, or type what you need.
+						</p>
+					</div>
+				</output>
+			) : null}
 
 			<div className="global-search-list min-h-0 flex-1 px-2" ref={listRef}>
 				<CommandList

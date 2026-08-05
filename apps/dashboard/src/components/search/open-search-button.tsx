@@ -14,7 +14,7 @@ export function OpenSearchButton({
 	presentation = "header",
 	onOpen,
 }: OpenSearchButtonProps = {}) {
-	const { setOpen } = useSearchStore();
+	const openSearch = useSearchStore((state) => state.openSearch);
 	const isMenuItem = presentation === "menu-item";
 
 	return (
@@ -29,7 +29,7 @@ export function OpenSearchButton({
 				}
 				onClick={() => {
 					onOpen?.();
-					setOpen();
+					openSearch();
 				}}
 			>
 				<Icons.Search
