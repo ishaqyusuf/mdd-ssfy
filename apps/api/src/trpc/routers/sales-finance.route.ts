@@ -41,6 +41,7 @@ const SALES_FINANCE_READ_PERMISSIONS = [
 	"viewOrderPayment",
 	"editOrderPayment",
 	"viewSales",
+	"editSales",
 ] as const;
 
 async function requireSalesFinanceReadAccess(

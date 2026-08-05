@@ -239,10 +239,10 @@ The `salesFinance` tRPC router is protected and exposes:
     retirement gates
 
 Every endpoint requires an authenticated user plus one of
-`viewOrderPayment`, `editOrderPayment`, or `viewSales`. Report generation also
-requires `generateSalesPaymentReport`; reconciliation mutations additionally
-require `editOrderPayment`. Account-resolution mutations also require
-`editOrderPayment`.
+`viewOrderPayment`, `editOrderPayment`, `viewSales`, or `editSales`. Report
+generation also requires `generateSalesPaymentReport`; reconciliation mutations
+additionally require `editOrderPayment`. Account-resolution mutations also
+require `editOrderPayment`.
 
 ## UI Contract
 

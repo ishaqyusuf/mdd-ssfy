@@ -844,15 +844,6 @@ export async function recordSalesFinanceAdoption(
 	input: SalesFinanceAdoptionPingInput,
 ) {
 	const legacy = input.surface === "legacy-accounting";
-	const existingFinanceViews = legacy
-		? 0
-		: await ctx.db.pageView.count({
-				where: {
-					deletedAt: null,
-					url: "/sales-book/finance",
-					userId: ctx.userId,
-				},
-			});
 
 	const pageView = await ctx.db.pageView.create({
 		data: {
@@ -865,10 +856,21 @@ export async function recordSalesFinanceAdoption(
 			createdAt: true,
 		},
 	});
+	const firstFinanceView = legacy
+		? null
+		: await ctx.db.pageView.findFirst({
+				where: {
+					deletedAt: null,
+					url: "/sales-book/finance",
+					userId: ctx.userId,
+				},
+				orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+				select: { id: true },
+			});
 
 	return {
 		...pageView,
-		isFirstFinanceVisit: !legacy && existingFinanceViews === 0,
+		isFirstFinanceVisit: firstFinanceView?.id === pageView.id,
 	};
 }
 

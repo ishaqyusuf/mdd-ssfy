@@ -329,9 +329,17 @@ describe("Sales Finance Midday migration parity", () => {
 		const routerSource = readSource(
 			"../../api/src/trpc/routers/sales-finance.route.ts",
 		);
+		const readPermissionsStart = routerSource.indexOf(
+			"const SALES_FINANCE_READ_PERMISSIONS",
+		);
 		const querySource = readSource("../../api/src/db/queries/sales-finance.ts");
 
 		expect(adoptionSource.includes("adoptionPing")).toBe(true);
+		expect(
+			routerSource
+				.slice(readPermissionsStart, readPermissionsStart + 220)
+				.includes('"editSales"'),
+		).toBe(true);
 		expect(adoptionSource.includes("adoptionReadiness")).toBe(true);
 		expect(adoptionSource.includes("Legacy retained")).toBe(true);
 		expect(adoptionSource.includes("SalesFinanceMigrationDialog")).toBe(true);

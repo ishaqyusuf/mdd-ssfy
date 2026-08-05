@@ -11,6 +11,7 @@ import { Icons } from "@gnd/ui/icons";
 import { useQuery } from "@gnd/ui/tanstack";
 import { usePathname } from "next/dist/client/components/navigation";
 import Link from "next/link";
+import { useMemo } from "react";
 import { Header } from "./header";
 import {
 	getSalesFinanceMigrationLinkModules,
@@ -54,10 +55,14 @@ function NavLayoutClient({ children, pageTabDefaults }) {
 		staleTime: Number.POSITIVE_INFINITY,
 	});
 	const navDefaults = defaults;
-	const navigationLinkModules = getSalesFinanceMigrationLinkModules({
-		can: auth.can,
-		modules: linkModules,
-	});
+	const navigationLinkModules = useMemo(
+		() =>
+			getSalesFinanceMigrationLinkModules({
+				can: auth.can,
+				modules: linkModules,
+			}),
+		[auth.can],
+	);
 
 	return (
 		<SiteNav.Provider

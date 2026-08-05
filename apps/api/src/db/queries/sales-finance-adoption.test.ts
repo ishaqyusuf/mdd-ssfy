@@ -13,11 +13,11 @@ describe("Sales Finance adoption evidence", () => {
 			userId: 7,
 			db: {
 				pageView: {
-					count: async () => 0,
 					create: async (input: unknown) => {
 						creates.push(input);
 						return { id: creates.length, createdAt: new Date() };
 					},
+					findFirst: async () => ({ id: 1 }),
 				},
 			},
 		} as unknown as TRPCContext;
@@ -51,11 +51,11 @@ describe("Sales Finance adoption evidence", () => {
 			userId: 7,
 			db: {
 				pageView: {
-					count: async () => financeViews,
 					create: async ({ data }: { data: { url: string } }) => {
 						if (data.url === "/sales-book/finance") financeViews += 1;
 						return { id: financeViews, createdAt: new Date() };
 					},
+					findFirst: async () => ({ id: 1 }),
 				},
 			},
 		} as unknown as TRPCContext;
@@ -73,6 +73,29 @@ describe("Sales Finance adoption evidence", () => {
 		expect(first.isFirstFinanceVisit).toBe(true);
 		expect(repeat.isFirstFinanceVisit).toBe(false);
 		expect(legacy.isFirstFinanceVisit).toBe(false);
+	});
+
+	it("claims one first Finance visit when requests overlap", async () => {
+		let nextId = 0;
+		const ctx = {
+			userId: 7,
+			db: {
+				pageView: {
+					create: async () => ({ id: ++nextId, createdAt: new Date() }),
+					findFirst: async () => ({ id: 1 }),
+				},
+			},
+		} as unknown as TRPCContext;
+
+		const visits = await Promise.all([
+			recordSalesFinanceAdoption(ctx, { surface: "payments" }),
+			recordSalesFinanceAdoption(ctx, { surface: "review" }),
+		]);
+
+		expect(visits.map((visit) => visit.isFirstFinanceVisit)).toEqual([
+			true,
+			false,
+		]);
 	});
 
 	it("reports rolling usage while keeping retirement explicitly gated", async () => {
