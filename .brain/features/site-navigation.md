@@ -19,18 +19,13 @@ Tracks shared sidebar and navigation behavior used by web surfaces.
 - Desktop navigation has one selected module shared by the fixed top module selector, the footer account menu, and the nav list. The active route initializes and resynchronizes the selection when navigation crosses module boundaries; selecting a different module switches the visible nav list in place until a module link is chosen.
 - The top module selector sits below the logo and outside the scrollable nav container. Expanded sidebars show the module name and subtitle; collapsed sidebars show only its icon. A fixed divider separates the selector from the module links.
 - The mobile navigation drawer uses the same selected-module model as desktop. Its branded header and full-width module selector remain fixed while one bounded nav region scrolls beneath them; selecting a module closes only the module menu and updates the drawer links, while selecting a nav link closes the drawer. The drawer has no viewport overflow and uses 44px minimum touch targets for its trigger, close action, module selector, primary links, child links, and child toggles.
-- In `apps/dashboard`, screens below `768px` consolidate the main header into
-  one avatar trigger instead of rendering the separate hamburger, Search,
-  request, bug-report, test-email, and notification icon cluster. The avatar
-  opens a bottom drawer that reuses the same selected-module navigation,
-  exposes permission-aware utility rows, and keeps profile, notification
-  settings, and logout in a safe-area footer. At `768px` and above, the desktop
-  sidebar, utility controls, and account dropdown remain unchanged; the
-  `Find anything...` search control keeps its original position before the
-  flexible header spacer instead of joining the right-side account actions.
-  Mobile notifications replace the drawer body with a back-navigable in-sheet
-  view; bug reporting closes the drawer before its separately owned dialog
-  opens.
+- In `apps/dashboard`, screens below `768px` keep the hamburger as the dedicated
+  trigger for the shared mobile sidebar. Search, sales requests, bug reporting,
+  test-email mode, and notifications remain independent header actions rather
+  than moving into the avatar surface. The avatar opens a bottom account drawer
+  on mobile; that drawer mirrors the normal desktop account dropdown only:
+  account identity, dropdown-only links for no-sidebar users, and logout. At
+  `768px` and above, the avatar continues to open the existing desktop dropdown.
 - The nav list always renders the selected named module's permitted sections and links, followed by every permitted unnamed module. One divider separates the named module links from the unnamed shared/profile/support links. Module headings, module accordions, and module collapse state are removed; existing section labels and child-link expansion behavior remain unchanged.
 - The sidebar footer user row is flat to the footer border with no inset card or outer padding. Its hover/open background is carried by the full-width footer row. The account dropdown opens upward inside the expanded sidebar. Clicking the footer user control expands the sidebar and opens the account menu. Moving from the dropdown to other sidebar areas keeps the open menu stable. Hovering out of the sidebar still collapses the sidebar and hides the dropdown, but if the account menu was open its requested-open state is preserved while hidden; hovering back over the sidebar expands it and restores the open menu.
 - The footer account dropdown includes a labeled `Modules` group. The selected module is highlighted, and choosing another module closes the dropdown and updates the nav list.
@@ -62,7 +57,8 @@ Tracks shared sidebar and navigation behavior used by web surfaces.
 - `packages/site-nav/src/components/mobile-sidebar.tsx` owns the responsive drawer shell. It reuses `ModuleSelector` in forced-expanded mode and keeps `NavsList` as the only scrollable drawer region.
 - `apps/dashboard/src/components/user-nav.tsx` owns the dashboard-specific
   avatar/account presentation: Radix dropdown on desktop and the shared Vaul
-  drawer on mobile. It consumes `SiteNav.ModuleSelector` and `SiteNav.NavsList`
-  rather than copying permission or module-selection logic.
+  drawer on mobile. Both presentations derive dropdown-only links from the same
+  account-link helper. Mobile site navigation remains owned by
+  `packages/site-nav/src/components/mobile-sidebar.tsx`.
 - The scroll-preservation path uses the sidebar menu scroll container from `useSiteNav().mainMenuRef`.
 - The footer account dropdown uses non-portal dropdown content rendered from the sidebar footer tree instead of a separate floating hover surface. The menu's requested-open state is separate from its visible state, so sidebar collapse hides the menu without resetting it. The footer row allows visible overflow only while the menu is open so the upward dropdown is not clipped by the trigger wrapper.

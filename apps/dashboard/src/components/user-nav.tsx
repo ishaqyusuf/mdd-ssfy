@@ -4,7 +4,6 @@ import { Avatar } from "@/components/avatar";
 import Link from "@/components/link";
 import { useAuth } from "@/hooks/use-auth";
 import { useTestEmailMode } from "@/store/test-email-mode";
-import { SiteNav } from "@gnd/site-nav";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import {
@@ -12,7 +11,6 @@ import {
 	DrawerClose,
 	DrawerContent,
 	DrawerDescription,
-	DrawerFooter,
 	DrawerHeader,
 	DrawerTitle,
 	DrawerTrigger,
@@ -35,13 +33,9 @@ import {
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
 import { type ComponentProps, Fragment, forwardRef, useState } from "react";
-import {
-	BugReportButton,
-	BugReportTrigger,
-} from "./bug-reports/bug-report-button";
+import { BugReportButton } from "./bug-reports/bug-report-button";
 import { NotificationCenter } from "./notification-center";
 import { SalesRepRequestBadge } from "./sales-rep-request-badge";
-import { OpenSearchButton } from "./search/open-search-button";
 
 type UserNavLink = {
 	href?: string;
@@ -70,47 +64,40 @@ function isVisibleUserNavLink(
 	return Boolean(link.show && link.href);
 }
 
-type TestEmailModeActionProps = {
-	presentation?: "header" | "menu-item";
-};
+function getAccountLinkGroups(links: UserNavLinks) {
+	if (!links.noSidebar) return [];
 
-function TestEmailModeAction({
-	presentation = "header",
-}: TestEmailModeActionProps = {}) {
+	return (links.modules ?? [])
+		.filter((module) => Boolean(module.activeLinkCount))
+		.map((module) => ({
+			key: module.title ?? module.name ?? "account-links",
+			links: (module.sections ?? [])
+				.flatMap((section) => section.links ?? [])
+				.filter(isVisibleUserNavLink),
+		}))
+		.filter((module) => module.links.length > 0);
+}
+
+function TestEmailModeButton() {
 	const auth = useAuth();
 	const testEmailMode = useTestEmailMode((state) => state.enabled);
 	const toggleTestEmailMode = useTestEmailMode((state) => state.toggle);
 	const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
-	const isMenuItem = presentation === "menu-item";
 
 	if (!isSuperAdmin) return null;
 
 	return (
 		<Button
 			type="button"
-			variant={
-				testEmailMode ? "destructive" : isMenuItem ? "ghost" : "secondary"
-			}
-			size={isMenuItem ? "sm" : "icon"}
-			className={
-				isMenuItem
-					? "h-11 w-full justify-start gap-3 rounded-lg px-3 text-sm font-medium"
-					: "h-8 w-8 rounded-full"
-			}
+			variant={testEmailMode ? "destructive" : "secondary"}
+			size="icon"
+			className="h-8 w-8 rounded-full"
 			aria-label="Toggle test email mode"
 			aria-pressed={testEmailMode}
 			title="Toggle test email mode"
 			onClick={toggleTestEmailMode}
 		>
 			<Icons.Mail className="size-4" />
-			{isMenuItem ? (
-				<>
-					<span className="flex-1 text-left">Test email mode</span>
-					<span className="text-xs font-normal opacity-70">
-						{testEmailMode ? "On" : "Off"}
-					</span>
-				</>
-			) : null}
 		</Button>
 	);
 }
@@ -128,7 +115,7 @@ const AvatarTrigger = forwardRef<HTMLButtonElement, AvatarTriggerProps>(
 				ref={ref}
 				variant="outline"
 				size="icon"
-				aria-label="Open account and navigation menu"
+				aria-label="Open account menu"
 				className={cn(
 					"relative size-11 shrink-0 rounded-full",
 					!mobile && "md:size-8",
@@ -151,33 +138,28 @@ function AccountIdentity() {
 	const auth = useAuth();
 
 	return (
-		<div className="flex min-w-0 items-center gap-3">
-			<Avatar
-				name={auth?.name}
-				email={auth?.email}
-				className="size-11 shrink-0"
-			/>
-			<div className="min-w-0 flex-1 text-left">
-				<p className="truncate text-sm font-semibold">{auth?.name}</p>
-				<p className="truncate text-xs text-muted-foreground">{auth?.email}</p>
-			</div>
+		<div className="flex min-w-0 flex-col space-y-1 text-left">
+			<p className="truncate text-sm font-medium leading-none">{auth?.name}</p>
+			<p className="truncate text-xs leading-none text-muted-foreground">
+				{auth?.email}
+			</p>
 		</div>
 	);
 }
 
-function DesktopHeaderActions() {
+export function HeaderActions() {
 	return (
-		<div className="hidden items-center gap-2 md:flex">
+		<>
 			<SalesRepRequestBadge />
 			<BugReportButton />
-			<TestEmailModeAction />
+			<TestEmailModeButton />
 			<NotificationCenter />
-		</div>
+		</>
 	);
 }
 
 function DesktopAccountMenu({ links }: UserNavProps) {
-	const auth = useAuth();
+	const accountLinkGroups = getAccountLinkGroups(links);
 
 	return (
 		<DropdownMenu>
@@ -194,40 +176,26 @@ function DesktopAccountMenu({ links }: UserNavProps) {
 
 			<DropdownMenuContent className="w-56" align="end">
 				<DropdownMenuLabel className="font-normal">
-					<div className="flex flex-col space-y-1">
-						<p className="truncate text-sm font-medium leading-none">
-							{auth?.name}
-						</p>
-						<p className="truncate text-xs leading-none text-muted-foreground">
-							{auth?.email}
-						</p>
-					</div>
+					<AccountIdentity />
 				</DropdownMenuLabel>
-				{links.noSidebar
-					? (links.modules ?? [])
-							.filter((module) => Boolean(module.activeLinkCount))
-							.map((module) => (
-								<Fragment key={module.title ?? module.name}>
-									<DropdownMenuSeparator />
-									{(module.sections ?? [])
-										.flatMap((section) => section.links ?? [])
-										.filter(isVisibleUserNavLink)
-										.map((link) => (
-											<DropdownMenuItem key={link.href} asChild>
-												<Link href={link.href}>
-													{link.icon ? (
-														<Icon
-															name={link.icon}
-															className="mr-3 size-4 text-muted-foreground"
-														/>
-													) : null}
-													{link.name}
-												</Link>
-											</DropdownMenuItem>
-										))}
-								</Fragment>
-							))
-					: null}
+				{accountLinkGroups.map((module) => (
+					<Fragment key={module.key}>
+						<DropdownMenuSeparator />
+						{module.links.map((link) => (
+							<DropdownMenuItem key={link.href} asChild>
+								<Link href={link.href}>
+									{link.icon ? (
+										<Icon
+											name={link.icon}
+											className="mr-3 size-4 text-muted-foreground"
+										/>
+									) : null}
+									{link.name}
+								</Link>
+							</DropdownMenuItem>
+						))}
+					</Fragment>
+				))}
 				<DropdownMenuSeparator />
 				<DropdownMenuItem asChild>
 					<Link href="/signout">
@@ -241,191 +209,75 @@ function DesktopAccountMenu({ links }: UserNavProps) {
 	);
 }
 
-function MobileAccountDrawer() {
+function MobileAccountDrawer({ links }: UserNavProps) {
 	const [isOpen, setOpen] = useState(false);
-	const [bugReportOpen, setBugReportOpen] = useState(false);
-	const [notificationsOpen, setNotificationsOpen] = useState(false);
-	const [notificationTriggerContainer, setNotificationTriggerContainer] =
-		useState<HTMLDivElement | null>(null);
-	const coveredByNotifications = notificationsOpen ? true : undefined;
+	const accountLinkGroups = getAccountLinkGroups(links);
 
 	return (
-		<>
-			<Drawer
-				open={isOpen}
-				onOpenChange={(nextOpen) => {
-					setOpen(nextOpen);
-					if (!nextOpen) setNotificationsOpen(false);
-				}}
-				shouldScaleBackground={false}
-			>
-				<DrawerTrigger asChild>
-					<AvatarTrigger mobile onClick={() => setOpen(true)} />
-				</DrawerTrigger>
-				<DrawerContent className="h-[92dvh] max-h-[92dvh] overflow-hidden rounded-t-2xl">
-					<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-						<DrawerHeader
-							className={cn(
-								"relative border-b px-4 pb-4 pr-16 pt-3 text-left",
-								notificationsOpen && "hidden",
-							)}
-							aria-hidden={coveredByNotifications}
-							inert={coveredByNotifications}
-						>
-							<DrawerTitle>Account and navigation</DrawerTitle>
-							<DrawerDescription>
-								Choose a workspace page or account action.
-							</DrawerDescription>
-							<DrawerClose asChild>
-								<Button
-									type="button"
-									variant="ghost"
-									size="icon"
-									aria-label="Close account and navigation menu"
-									className="absolute right-3 top-2 size-11 rounded-full"
-								>
-									<Icons.X className="size-5" />
-								</Button>
-							</DrawerClose>
-						</DrawerHeader>
-
-						<div
-							className={cn(
-								"min-h-0 flex-1 overflow-y-auto overscroll-contain",
-								notificationsOpen && "hidden",
-							)}
-						>
-							<div
-								className="border-b p-4"
-								aria-hidden={coveredByNotifications}
-								inert={coveredByNotifications}
+		<Drawer open={isOpen} onOpenChange={setOpen} shouldScaleBackground={false}>
+			<DrawerTrigger asChild>
+				<AvatarTrigger mobile onClick={() => setOpen(true)} />
+			</DrawerTrigger>
+			<DrawerContent className="max-h-[85dvh] overflow-hidden rounded-t-2xl">
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<DrawerHeader className="relative border-b px-4 pb-4 pr-16 pt-3 text-left">
+						<DrawerTitle>Account</DrawerTitle>
+						<DrawerDescription>View your account options.</DrawerDescription>
+						<DrawerClose asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								aria-label="Close account menu"
+								className="absolute right-3 top-2 size-11 rounded-full"
 							>
-								<AccountIdentity />
-							</div>
+								<Icons.X className="size-5" />
+							</Button>
+						</DrawerClose>
+					</DrawerHeader>
 
-							<section
-								aria-labelledby="mobile-navigation-heading"
-								className="border-b bg-sidebar pb-4 text-sidebar-foreground"
-								aria-hidden={coveredByNotifications}
-								inert={coveredByNotifications}
-							>
-								<h2 id="mobile-navigation-heading" className="sr-only">
-									Navigation
-								</h2>
-								<div className="border-b border-sidebar-border/80 p-3">
-									<SiteNav.ModuleSelector
-										forceExpanded
-										expandNavOnOpen={false}
-									/>
-								</div>
-								<SiteNav.NavsList mobile onSelect={() => setOpen(false)} />
-							</section>
-
-							<section
-								aria-labelledby="mobile-quick-actions-heading"
-								className="p-3"
-							>
-								<div
-									className="contents"
-									aria-hidden={coveredByNotifications}
-									inert={coveredByNotifications}
-								>
-									<h2
-										id="mobile-quick-actions-heading"
-										className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
-									>
-										Quick actions
-									</h2>
-								</div>
-								<div className="space-y-1">
-									<div
-										className="contents"
-										aria-hidden={coveredByNotifications}
-										inert={coveredByNotifications}
-									>
-										<OpenSearchButton
-											presentation="menu-item"
-											onOpen={() => setOpen(false)}
-										/>
-										<SalesRepRequestBadge
-											presentation="menu-item"
-											onNavigate={() => setOpen(false)}
-										/>
-										<BugReportTrigger
-											presentation="menu-item"
-											onOpen={() => {
-												setOpen(false);
-												setBugReportOpen(true);
-											}}
-										/>
-										<TestEmailModeAction presentation="menu-item" />
-									</div>
-									<div
-										ref={setNotificationTriggerContainer}
-										className="contents"
-									/>
-								</div>
-							</section>
+					<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))]">
+						<div className="border-b p-4">
+							<AccountIdentity />
 						</div>
-
-						<DrawerFooter
-							className={cn(
-								"gap-1 border-t pb-[max(1rem,env(safe-area-inset-bottom))]",
-								notificationsOpen && "hidden",
-							)}
-							aria-hidden={coveredByNotifications}
-							inert={coveredByNotifications}
-						>
+						{accountLinkGroups.map((module) => (
+							<div key={module.key} className="space-y-1 border-b p-3">
+								{module.links.map((link) => (
+									<Button
+										key={link.href}
+										asChild
+										variant="ghost"
+										className="h-11 w-full justify-start gap-3 px-3"
+									>
+										<Link href={link.href} onClick={() => setOpen(false)}>
+											{link.icon ? (
+												<Icon
+													name={link.icon}
+													className="size-4 text-muted-foreground"
+												/>
+											) : null}
+											{link.name}
+										</Link>
+									</Button>
+								))}
+							</div>
+						))}
+						<div className="p-3">
 							<Button
 								asChild
 								variant="ghost"
-								className="h-11 justify-start gap-3"
-							>
-								<Link href="/settings/profile" onClick={() => setOpen(false)}>
-									<Icons.AccountCircle className="size-4" />
-									Profile
-								</Link>
-							</Button>
-							<Button
-								asChild
-								variant="ghost"
-								className="h-11 justify-start gap-3"
-							>
-								<Link
-									href="/settings/notification-channels/v2"
-									onClick={() => setOpen(false)}
-								>
-									<Icons.Settings className="size-4" />
-									Notification settings
-								</Link>
-							</Button>
-							<Button
-								asChild
-								variant="ghost"
-								className="h-11 justify-start gap-3"
+								className="h-11 w-full justify-start gap-3 px-3"
 							>
 								<Link href="/signout" onClick={() => setOpen(false)}>
 									<Icons.LogOut className="size-4" />
 									Log out
 								</Link>
 							</Button>
-						</DrawerFooter>
-						<NotificationCenter
-							presentation="menu-item"
-							onNavigate={() => setOpen(false)}
-							open={notificationsOpen}
-							onOpenChange={setNotificationsOpen}
-							triggerContainer={notificationTriggerContainer}
-						/>
+						</div>
 					</div>
-				</DrawerContent>
-			</Drawer>
-			<BugReportButton
-				hideTrigger
-				open={bugReportOpen}
-				onOpenChange={setBugReportOpen}
-			/>
-		</>
+				</div>
+			</DrawerContent>
+		</Drawer>
 	);
 }
 
@@ -433,13 +285,8 @@ export function UserNav({ links }: UserNavProps) {
 	const isMobile = useIsMobile();
 
 	if (isMobile) {
-		return <MobileAccountDrawer />;
+		return <MobileAccountDrawer links={links} />;
 	}
 
-	return (
-		<>
-			<DesktopHeaderActions />
-			<DesktopAccountMenu links={links} />
-		</>
-	);
+	return <DesktopAccountMenu links={links} />;
 }

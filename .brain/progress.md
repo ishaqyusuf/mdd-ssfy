@@ -1,5 +1,14 @@
 # Progress
 
+- 2026-08-05: corrected the mobile dashboard avatar-sheet interpretation. The
+  dedicated hamburger/mobile sidebar trigger and the independent Search,
+  request, bug-report, test-email, and notification header actions are restored.
+  The mobile avatar now opens an account-only bottom sheet that mirrors the
+  desktop account dropdown (identity, dropdown-only no-sidebar links, and
+  logout) and no longer owns site navigation. The focused mobile-header source
+  contract passes 4 tests / 25 expectations, and scoped Biome and whitespace
+  checks pass.
+
 - 2026-08-05: fixed `update-sales-control` Mark As Completed failures with
   `Unable to complete, nothing to submit!`. A deterministic regression test
   reproduced the reported stack twice and confirmed that

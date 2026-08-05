@@ -1,9 +1,9 @@
 "use client";
 
-import { useSiteNav } from "@gnd/site-nav";
+import { SiteNav, useSiteNav } from "@gnd/site-nav";
 import type { CSSProperties } from "react";
 import { OpenSearchButton } from "./search/open-search-button";
-import { UserNav } from "./user-nav";
+import { HeaderActions, UserNav } from "./user-nav";
 
 export function Header() {
 	const { isExpanded, linkModules } = useSiteNav();
@@ -24,6 +24,7 @@ export function Header() {
 					} as CSSProperties
 				}
 			>
+				<SiteNav.MobileSidebar />
 				<div id="goBackSlot" />
 				<div className="flex min-w-0 items-center space-x-4 whitespace-nowrap lg:space-x-0">
 					<h1 className="font-bold whitespace-nowrap" id="pageTitle">
@@ -39,12 +40,16 @@ export function Header() {
 					id="breadCrumb"
 					className="hidden md:flex items-center space-x-1"
 				/>
-				<div className="hidden md:contents">
+				<div className="hidden sm:contents">
 					<OpenSearchButton />
 				</div>
 				<div className="flex-1" />
 				<div className="hidden md:flex mx-4  gap-4 " id="navRightSlot" />
 				<div className="hidden md:inline-flex gap-4" id="actionNav" />
+				<div className="contents sm:hidden">
+					<OpenSearchButton />
+				</div>
+				<HeaderActions />
 				<UserNav links={linkModules} />
 			</header>
 			<div className="h-[70px] md:hidden" />

@@ -9,87 +9,53 @@ const userNavSource = readFileSync(
 	new URL("./user-nav.tsx", import.meta.url),
 	"utf8",
 );
-const utilitySources = [
-	"./search/open-search-button.tsx",
-	"./sales-rep-request-badge.tsx",
-	"./bug-reports/bug-report-button.tsx",
-	"./notification-center/notification-center.tsx",
-]
-	.map((path) => readFileSync(new URL(path, import.meta.url), "utf8"))
-	.join("\n");
-const searchModalSource = readFileSync(
-	new URL("./search/search-modal.tsx", import.meta.url),
-	"utf8",
-);
 
 describe("Dashboard mobile header navigation", () => {
-	test("uses the avatar as the single mobile navigation trigger", () => {
-		expect(headerSource).not.toContain("<SiteNav.MobileSidebar />");
-		expect(headerSource).toContain('className="hidden md:contents"');
-		expect(headerSource).toContain("<OpenSearchButton />");
-		expect(headerSource).not.toContain("<NotificationCenter />");
+	test("keeps the mobile sidebar separate from the account trigger", () => {
+		expect(headerSource).toContain("<SiteNav.MobileSidebar />");
+		expect(headerSource).toContain("<HeaderActions />");
 		expect(headerSource).toContain("<UserNav links={linkModules} />");
 	});
 
-	test("keeps desktop search in its original position before the header spacer", () => {
-		expect(headerSource.indexOf("<OpenSearchButton />")).toBeGreaterThan(-1);
-		expect(headerSource.indexOf("<OpenSearchButton />")).toBeLessThan(
-			headerSource.indexOf('<div className="flex-1" />'),
-		);
-		expect(userNavSource).not.toMatch(
-			/function DesktopHeaderActions[\s\S]{0,220}<OpenSearchButton \/>/,
-		);
-	});
+	test("keeps Search and the existing utility actions in the header", () => {
+		expect(headerSource).toContain('className="hidden sm:contents"');
+		expect(headerSource).toContain('className="contents sm:hidden"');
+		expect(headerSource.match(/<OpenSearchButton \/>/g)).toHaveLength(2);
 
-	test("opens mobile account navigation in the shared bottom drawer", () => {
-		expect(userNavSource).toMatch(/<Drawer[\s\S]{0,120}open=\{isOpen\}/);
-		expect(userNavSource).toContain("<SiteNav.ModuleSelector");
-		expect(userNavSource).toContain("<SiteNav.NavsList");
-		expect(userNavSource).toContain("onSelect={() => setOpen(false)}");
-	});
-
-	test("keeps header utilities available through labeled mobile actions", () => {
 		for (const component of [
-			"OpenSearchButton",
 			"SalesRepRequestBadge",
-			"BugReportTrigger",
-			"TestEmailModeAction",
+			"BugReportButton",
+			"TestEmailModeButton",
 			"NotificationCenter",
 		]) {
 			expect(userNavSource).toMatch(
-				new RegExp(`<${component}[\\s\\S]{0,180}presentation="menu-item"`),
+				new RegExp(`function HeaderActions[\\s\\S]{0,240}<${component}`),
 			);
 		}
-
-		for (const label of [
-			"Search",
-			"Sales requests",
-			"Report a bug",
-			"Test email mode",
-			"Notifications",
-			"Log out",
-		]) {
-			expect(`${userNavSource}\n${utilitySources}`).toContain(label);
-		}
 	});
 
-	test("keeps mobile overlay handoffs owned outside or inside the drawer", () => {
-		expect(userNavSource).toContain("setBugReportOpen(true)");
-		expect(userNavSource).toContain("<BugReportButton");
-		expect(userNavSource).toContain("hideTrigger");
-		expect(userNavSource).toContain("onNavigate={() => setOpen(false)}");
-		expect(utilitySources).toContain("NotificationDrawerSurface");
-		expect(utilitySources).toContain("Back to account and navigation");
-		expect(userNavSource).toContain("inert={coveredByNotifications}");
-		expect(utilitySources).toContain('isMenuItem ? "min-h-0 flex-1"');
-		expect(utilitySources).toContain("if (isMenuItem && !didClose)");
-		expect(utilitySources).toContain("notificationBackRef.current?.focus()");
-		expect(utilitySources).toContain("notificationTriggerRef.current?.focus()");
-		expect(utilitySources).toContain("env(safe-area-inset-bottom)");
+	test("opens only the account dropdown content in the mobile bottom drawer", () => {
+		expect(userNavSource).toMatch(/<Drawer[\s\S]{0,120}open=\{isOpen\}/);
+		expect(userNavSource).toContain("<DrawerTitle>Account</DrawerTitle>");
+		expect(userNavSource).toContain("<AccountIdentity />");
+		expect(userNavSource).toContain("getAccountLinkGroups(links)");
+		expect(userNavSource).toContain('href="/signout"');
+		expect(userNavSource).not.toContain("SiteNav.ModuleSelector");
+		expect(userNavSource).not.toContain("SiteNav.NavsList");
+		expect(userNavSource).not.toContain('presentation="menu-item"');
+		expect(userNavSource).not.toContain('href="/settings/profile"');
+		expect(userNavSource).not.toContain(
+			'href="/settings/notification-channels/v2"',
+		);
 	});
 
-	test("gives the mobile search handoff an accessible dialog title", () => {
-		expect(searchModalSource).toContain("<DialogTitle");
-		expect(searchModalSource).toContain("Search the workspace");
+	test("shares the desktop dropdown link selection with the mobile drawer", () => {
+		expect(userNavSource.match(/getAccountLinkGroups\(links\)/g)).toHaveLength(
+			2,
+		);
+		expect(userNavSource.match(/href="\/signout"/g)).toHaveLength(2);
+		expect(userNavSource).toContain('aria-label="Open account menu"');
+		expect(userNavSource).toContain('aria-label="Close account menu"');
+		expect(userNavSource).toContain("env(safe-area-inset-bottom)");
 	});
 });
