@@ -873,6 +873,7 @@ export function DealerQuoteComposer({
 			</div>
 			<SalesFormHeaderActions
 				orderId={record.orderId}
+				createdAt={record.form.createdAt}
 				dirty={form.state.dirty}
 				isSaved={Boolean(editingQuoteId)}
 				isSaving={saveQuote.isPending || quoteQuery.isFetching}

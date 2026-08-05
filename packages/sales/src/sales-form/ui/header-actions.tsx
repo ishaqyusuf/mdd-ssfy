@@ -19,12 +19,14 @@ import {
 } from "@gnd/ui/tooltip";
 import type { MouseEvent, ReactNode } from "react";
 import type { SalesFormCapabilities, SalesFormPermissions } from "../contracts";
+import { buildSalesFormHeaderTitle } from "./header-title";
 import { salesFormStatusClass, salesFormStatusLabel } from "./status-utils";
 import type { SalesFormHeaderItemOption, SalesFormSaveStatus } from "./types";
 
 export type SalesFormHeaderActionsProps = {
 	type: "order" | "quote";
 	orderId?: string | null;
+	createdAt?: string | null;
 	isSaved?: boolean;
 	isSaving?: boolean;
 	saveStatus?: SalesFormSaveStatus;
@@ -108,6 +110,12 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 		props.permissions?.canOpenSettings !== false &&
 		!!props.onOpenSettings;
 	const packingTooltip = props.packingButtonLabel || "Packing";
+	const title = buildSalesFormHeaderTitle({
+		type: props.type,
+		orderId: props.orderId,
+		isSaved: props.isSaved,
+		createdAt: props.createdAt,
+	});
 
 	return (
 		<header className="border-b bg-card px-4 py-3 sm:px-6">
@@ -118,9 +126,7 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						Sales Invoice Editor
 					</p>
 					<h2 className="truncate text-lg font-semibold capitalize">
-						{props.orderId
-							? `Editing ${props.type} ${props.orderId}`
-							: `New ${props.type}`}
+						{title}
 					</h2>
 					<div className="mt-1 hidden flex-wrap items-center gap-2 lg:flex">
 						<span

@@ -64,6 +64,11 @@
   Pricing rows use subtle separators, while the additional-cost rows remain an
   inline subsection without a nested card, tinted panel, or shadow. Form
   controls keep their standard outlined treatment for clear affordance.
+- Global invoice details no longer render separate P.O. or invoice-date
+  controls. The underlying metadata remains available to persistence and
+  compatibility paths. Once a sale is saved, the editor header combines the
+  visible document number and persisted invoice date as `#09158PC 08/03/26`;
+  unsaved create forms keep the date out of the title.
 - Door size selection uses an all-caps title, a single non-wrapping Door
   Supplier label beside the supplier dropdown, and no duplicate selected-
   supplier caption. Door LH/RH/Qty, HPT size rows, moulding rows, and service
@@ -150,6 +155,11 @@
   assertions, the Sales typecheck, scoped Biome, and whitespace checks pass;
   the Dashboard typecheck remains on its existing broad baseline diagnostics
   with no touched-file diagnostic in a focused compile.
+- 2026-08-05 authenticated browser QA confirmed create-order hides the P.O. and
+  Date controls and retains the `New order` title, while saved order `09158PC`
+  renders `#09158PC 08/03/26` from its persisted date with the same controls
+  hidden. Seven focused tests / 20 assertions, the Sales package typecheck,
+  scoped Biome checks, and browser console-error check pass.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

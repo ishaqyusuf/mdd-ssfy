@@ -22,7 +22,7 @@ describe("sales summary flat layout", () => {
 
 	it("keeps each summary section self-explanatory", () => {
 		expect(detailsSource).toContain(
-			"Order references, payment terms, dates, and fulfillment.",
+			"Payment terms, due dates, and fulfillment.",
 		);
 		expect(pricingSource).toContain(
 			"Invoice-wide charges, tax, and payment settings.",
@@ -40,9 +40,8 @@ describe("sales summary flat layout", () => {
 		expect(detailsSource).toContain('label={isQuote ? "Good Until" : "Due"}');
 	});
 
-	it("keeps the invoice date visible but read-only", () => {
-		expect(detailsSource).toMatch(
-			/id="invoice-order-date"[\s\S]*?label="Date"[\s\S]*?disabled/,
-		);
+	it("hides the P.O. and invoice date controls", () => {
+		expect(detailsSource).not.toContain('id="invoice-po"');
+		expect(detailsSource).not.toContain('id="invoice-order-date"');
 	});
 });

@@ -2064,6 +2064,7 @@ export function NewSalesForm(props: Props) {
                 <SalesFormHeaderActions
                     type={props.type}
                     orderId={record.orderId}
+					createdAt={record.form.createdAt}
                     saveStatus={saveStatus}
                     dirty={dirty}
                     lastSavedAt={lastSavedAt}
