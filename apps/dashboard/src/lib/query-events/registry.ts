@@ -193,6 +193,10 @@ export type QueryEvent = {
 };
 
 export const MUTATION_QUERY_EVENTS = {
+	"sales.cancelWorkflowLayer": [
+		"sales.production.changed",
+		"sales.dispatch.changed",
+	],
 	"customers.createCustomer": ["customer.changed"],
 	"customers.createCustomerAddress": ["customer.changed"],
 	"customers.assignSalesAddress": ["customer.changed"],

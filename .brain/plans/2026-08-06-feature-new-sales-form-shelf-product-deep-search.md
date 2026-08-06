@@ -4,7 +4,7 @@
 Feature
 
 ## Status
-Proposed
+Done
 
 ## Created Date
 2026-08-06
@@ -322,17 +322,30 @@ lag, no result-list page growth, and no accessibility regression.
 - Existing uncommitted shelf picker work can be overwritten. Implement on top
   of the bounded scroller and preserve the current focused regression.
 
-## Open Questions
-- TODO: Measure the real active product count and serialized index payload
-  before implementation; this decides whether the no-migration path remains
-  appropriate at current scale.
-- TODO: Confirm whether operators also expect explicit unit-price queries such
-  as `$145`; this plan intentionally keeps prices display-only to avoid numeric
-  collision with dimensions.
-- TODO: Collect two or three additional real shelf-title/query pairs containing
-  quote marks, Unicode multiplication signs, or alternate fraction formatting
-  to extend the acceptance fixture set.
+## Implementation Outcome
+- The package-owned matcher now compiles product titles and compact category
+  paths once, separates lexical terms from structured dimensions/fractions,
+  ranks exact/prefix/contiguous-title matches before unordered/category matches,
+  and preserves selected products after the normal result limit.
+- Shelf V1, the shared V2 dashboard/dealership workflow, and the typed API
+  fallback use the same matcher. V2 defers result computation while keeping the
+  controlled input urgent; stale rows are hidden during the deferred handoff.
+- The cached API index and details projection include active parent/child
+  breadcrumbs. Dealer data is allowlisted before it is returned. The typed API
+  fallback applies active visibility, merges exact, contiguous phrase,
+  structured measurement-anchor, and general term/category stages bounded to
+  at most 601 unique candidates, then uses the shared structural ranker. A
+  1,000-collision regression proves structural anchors retain the intended
+  product without a bulk catalog load.
+- Unit price remains display-only search context. Typo/edit-distance fuzzy
+  matching remains deliberately excluded.
+- Focused validation passes 47 tests / 231 assertions. A synthetic 5,000-row
+  package benchmark compiled in about 18ms and searched in about 2ms locally,
+  below the 100ms budget. Real-catalog payload timing, authenticated browser
+  QA, and broad typechecks remain recommended release verification; they were
+  not run under the fast Bun monorepo command discipline.
+- No database migration or persisted search index was required.
 
 ## Linked Task
 - Task Title: New Sales Form Shelf Product Deep Search
-- Task File: .brain/tasks/roadmap.md
+- Task File: .brain/tasks/done.md

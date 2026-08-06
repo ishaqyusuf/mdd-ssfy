@@ -3,10 +3,8 @@ import { generateToken } from "@/actions/token-action";
 import Link from "@/components/link";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
-import {
-	getCancellableFulfillmentDispatchIds,
-	getSalesOrderStatusMenuActions,
-} from "@/components/sales-status-menu-actions";
+import { getSalesOrderStatusMenuActions } from "@/components/sales-status-menu-actions";
+import { SalesWorkflowCancellationDialog } from "@/components/sales-workflow-cancellation-dialog";
 import { reviewSelectedPayments } from "@/components/tables-2/sales-orders/review-selected-payments";
 import { useAuth } from "@/hooks/use-auth";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
@@ -27,6 +25,7 @@ import type {
 	SalesInventoryMarkAsPreflightResult,
 } from "@gnd/sales/sales-inventory-mark-as-preflight";
 import type { SalesStatusMarkAsPreflightResult } from "@gnd/sales/sales-status-mark-as-resolution";
+import type { SalesWorkflowCancellationAction } from "@gnd/sales/sales-workflow-cancellation";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { AlertDialog, DropdownMenu } from "@gnd/ui/namespace";
@@ -76,6 +75,7 @@ type SalesMenuEmailController = {
 type SalesMenuActions = {
 	closeMenu: () => void;
 	openComposeEmail: () => void;
+	openWorkflowCancellation: (action: SalesWorkflowCancellationAction) => void;
 	copyAs: (as: SalesType) => Promise<void>;
 	move: () => Promise<void>;
 };
@@ -142,6 +142,8 @@ function SalesMenuRoot({
 }: SalesMenuProps) {
 	const [internalOpen, setInternalOpen] = useState(false);
 	const [composeOpen, setComposeOpen] = useState(false);
+	const [workflowCancellationAction, setWorkflowCancellationAction] =
+		useState<SalesWorkflowCancellationAction | null>(null);
 	const isControlled = typeof open === "boolean";
 	const isOpen = isControlled ? (open as boolean) : internalOpen;
 	const setOpen = onOpenChange || setInternalOpen;
@@ -200,6 +202,10 @@ function SalesMenuRoot({
 			openComposeEmail() {
 				setOpen(false);
 				setComposeOpen(true);
+			},
+			openWorkflowCancellation(action) {
+				setOpen(false);
+				setWorkflowCancellationAction(action);
 			},
 			async copyAs(as) {
 				if (!state.slug || !state.type) return;
@@ -354,6 +360,18 @@ function SalesMenuRoot({
 				open={composeOpen}
 				onOpenChange={setComposeOpen}
 			/>
+			{composeSalesOrderId && workflowCancellationAction ? (
+				<SalesWorkflowCancellationDialog
+					open
+					onOpenChange={(nextOpen) => {
+						if (!nextOpen) setWorkflowCancellationAction(null);
+					}}
+					salesOrderId={composeSalesOrderId}
+					orderNo={state.orderNo}
+					action={workflowCancellationAction}
+					salesRefs={state.salesRefs}
+				/>
+			) : null}
 		</SalesMenuContext.Provider>
 	);
 }
@@ -927,15 +945,6 @@ function SalesMenuMarkAs({
 			},
 		}),
 	);
-	const cancelDispatchMutation = useMutation(
-		trpc.dispatch.cancelDispatch.mutationOptions({
-			meta: {
-				queryEventScope: {
-					sales: state.salesRefs,
-				},
-			},
-		}),
-	);
 	const resolveInventoryMarkAsMutation = useMutation(
 		trpc.inventories.overrideSalesInventoryMarkAsAvailabilityForContinue.mutationOptions(),
 	);
@@ -1067,21 +1076,6 @@ function SalesMenuMarkAs({
 		return createdDispatch.id;
 	};
 
-	const resolveCancellableDispatchIds = async (salesId: number) => {
-		const deliveryInfo = await sq.qc.fetchQuery(
-			trpc.dispatch.salesDeliveryInfo.queryOptions({ salesId }),
-		);
-		const dispatchIds = getCancellableFulfillmentDispatchIds(
-			deliveryInfo?.deliveries || [],
-		);
-
-		if (!dispatchIds.length) {
-			throw new Error("No active fulfillment was found for this order.");
-		}
-
-		return dispatchIds;
-	};
-
 	const startMarkProductionCompletedTask = async () => {
 		try {
 			expectedTaskStartsRef.current = salesIds.length;
@@ -1159,70 +1153,6 @@ function SalesMenuMarkAs({
 		} catch {
 			toast({
 				title: "Unable to mark fulfilled",
-				variant: "destructive",
-			});
-		}
-	};
-
-	const startCancelProductionTask = async () => {
-		try {
-			expectedTaskStartsRef.current = salesIds.length;
-			completedTaskStartsRef.current = 0;
-			taskStartedToastShownRef.current = false;
-			for (const salesId of salesIds) {
-				salesControlTask.trigger(
-					{
-						taskName: "update-sales-control",
-						payload: {
-							meta: getTaskMeta(salesId),
-							deleteSubmissions: {
-								automaticCompletionSalesId: salesId,
-							},
-						} as UpdateSalesControl,
-					},
-					{
-						intent: {
-							name: "sales.cancel-production-completion",
-							version: 1,
-							args: {
-								salesIds: [salesId],
-								sales: state.salesRefs.filter(
-									(sale) => sale.salesId === salesId,
-								),
-							},
-						},
-					},
-				);
-			}
-		} catch {
-			toast({
-				title: "Unable to cancel production",
-				variant: "destructive",
-			});
-		}
-	};
-
-	const cancelFulfillment = async () => {
-		try {
-			for (const salesId of salesIds) {
-				const dispatchIds = await resolveCancellableDispatchIds(salesId);
-				await cancelDispatchMutation.mutateAsync({
-					meta: getTaskMeta(salesId),
-					cancelDispatch: {
-						dispatchIds,
-					},
-				});
-			}
-			actions.closeMenu();
-			toast({
-				title: "Fulfillment cancelled",
-				variant: "success",
-			});
-		} catch (error) {
-			toast({
-				title: "Unable to cancel fulfillment",
-				description:
-					error instanceof Error ? error.message : "Please try again.",
 				variant: "destructive",
 			});
 		}
@@ -1330,21 +1260,28 @@ function SalesMenuMarkAs({
 		}
 	};
 
-	const statusMenuActions = currentStatus
-		? getSalesOrderStatusMenuActions({
-				status: currentStatus,
-				productionStatus,
-			})
-		: [
-				{
-					action: "production_completed" as const,
-					label: "Production completed",
-				},
-				{
-					action: "fulfilled" as const,
-					label: "Fulfilled",
-				},
-			];
+	const statusMenuActions = (
+		currentStatus
+			? getSalesOrderStatusMenuActions({
+					status: currentStatus,
+					productionStatus,
+				})
+			: [
+					{
+						action: "production_completed" as const,
+						label: "Production completed",
+					},
+					{
+						action: "fulfilled" as const,
+						label: "Fulfilled",
+					},
+				]
+	).filter(
+		(item) =>
+			salesIds.length === 1 ||
+			(item.action !== "cancel_production" &&
+				item.action !== "cancel_fulfillment"),
+	);
 	const items = (
 		<>
 			{statusMenuActions.map((item) => (
@@ -1354,7 +1291,7 @@ function SalesMenuMarkAs({
 						isDisabled ||
 						item.disabled ||
 						preflightLoadingAction !== null ||
-						cancelDispatchMutation.isPending
+						salesIds.length === 0
 					}
 					onSelect={(event) => {
 						event.preventDefault();
@@ -1367,10 +1304,10 @@ function SalesMenuMarkAs({
 							return;
 						}
 						if (item.action === "cancel_production") {
-							void startCancelProductionTask();
+							actions.openWorkflowCancellation("production");
 							return;
 						}
-						void cancelFulfillment();
+						actions.openWorkflowCancellation("fulfillment");
 					}}
 				>
 					{item.label}

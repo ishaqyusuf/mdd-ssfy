@@ -16,6 +16,10 @@ import {
 } from "@gnd/ui/combobox";
 import { Icons } from "@gnd/ui/icons";
 import {
+	compileShelfProductSearchIndex,
+	searchCompiledShelfProductIndex,
+} from "../../domain/shelf-product-search";
+import {
 	buildShelfProductsById,
 	getShelfChildCategories,
 	getShelfLeafCategoryIds,
@@ -171,15 +175,16 @@ export function ShelfProductCombobox(props: {
 		setInputValue(selectedProduct?.title || "");
 	}, [selectedProduct?.title]);
 
+	const compiledProducts = useMemo(
+		() => compileShelfProductSearchIndex(props.products),
+		[props.products],
+	);
+
 	const filteredProducts = useMemo(() => {
-		const normalized = inputValue.trim().toLowerCase();
-		if (!normalized) return props.products;
-		return props.products.filter((product) =>
-			String(product?.title || "")
-				.toLowerCase()
-				.includes(normalized),
-		);
-	}, [inputValue, props.products]);
+		return searchCompiledShelfProductIndex(compiledProducts, inputValue, {
+			limit: Math.max(1, props.products.length),
+		});
+	}, [compiledProducts, inputValue, props.products.length]);
 
 	return (
 		<Combobox

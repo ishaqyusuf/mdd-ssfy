@@ -1,4 +1,4 @@
-import { useAssignedDispatchList } from "../api/use-assigned-dispatch-list";
+import { useDriverWorkQueue } from "../api/use-driver-work-queue";
 import type { DispatchListItem } from "../types/dispatch.types";
 import { DriverDashboardDispatchItem } from "./driver-dashboard-dispatch-item";
 import { useRouter } from "expo-router";
@@ -40,8 +40,10 @@ function openDispatch(
 
 export function DispatchListScreen() {
   const router = useRouter();
+  const [filter, setFilter] = useState<FilterKey>("all");
   const {
     items,
+		summary,
     refetch,
     isPending,
     isRefetching,
@@ -49,45 +51,42 @@ export function DispatchListScreen() {
     hasNextPage,
     isFetchingNextPage,
     error,
-  } = useAssignedDispatchList({});
+  } = useDriverWorkQueue(
+		filter === "all" ? { tab: "all" } : { statuses: [filter] },
+		{ summaryFilter: { tab: "all" } },
+	);
   const canTriggerEndReached = useRef(true);
-  const [filter, setFilter] = useState<FilterKey>("all");
-
-  const filteredItems = useMemo(() => {
-    if (filter === "all") return items;
-    return items.filter((item) => (item?.status || "").toLowerCase() === filter);
-  }, [items, filter]);
 
   const filterOptions = useMemo(
     () => [
-      { key: "all" as const, label: "All", count: items.length },
+			{ key: "all" as const, label: "All", count: summary?.total ?? items.length },
       {
         key: "queue" as const,
         label: "Queued",
-        count: items.filter((item) => (item?.status || "").toLowerCase() === "queue").length,
+				count: summary?.byStatus.queue ?? 0,
       },
       {
         key: "packed" as const,
         label: "Packed",
-        count: items.filter((item) => (item?.status || "").toLowerCase() === "packed").length,
+				count: summary?.byStatus.packed ?? 0,
       },
       {
         key: "in progress" as const,
         label: "In Progress",
-        count: items.filter((item) => (item?.status || "").toLowerCase() === "in progress").length,
+				count: summary?.byStatus["in progress"] ?? 0,
       },
       {
         key: "completed" as const,
         label: "Completed",
-        count: items.filter((item) => (item?.status || "").toLowerCase() === "completed").length,
+				count: summary?.byStatus.completed ?? 0,
       },
       {
         key: "cancelled" as const,
         label: "Cancelled",
-        count: items.filter((item) => (item?.status || "").toLowerCase() === "cancelled").length,
+				count: summary?.byStatus.cancelled ?? 0,
       },
     ],
-    [items],
+		[items.length, summary],
   );
 
   return (
@@ -119,7 +118,9 @@ export function DispatchListScreen() {
 
         <View className="mt-3 flex-row items-center justify-between rounded-xl border border-border bg-background px-3 py-2">
           <Text className="text-xs text-muted-foreground">Total Assigned</Text>
-          <Text className="text-sm font-semibold text-foreground">{items.length}</Text>
+			<Text className="text-sm font-semibold text-foreground">
+				{summary?.total ?? items.length}
+			</Text>
         </View>
 
         <ScrollView
@@ -168,7 +169,7 @@ export function DispatchListScreen() {
         </View>
         <View className="mt-3 flex-row items-center justify-between rounded-xl border border-border bg-background px-3 py-2">
           <Text className="text-xs text-muted-foreground">Showing</Text>
-          <Text className="text-sm font-semibold text-foreground">{filteredItems.length}</Text>
+			<Text className="text-sm font-semibold text-foreground">{items.length}</Text>
         </View>
       </View>
 
@@ -190,7 +191,7 @@ export function DispatchListScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredItems}
+			data={items}
           keyExtractor={(item) => String(item.id)}
           initialNumToRender={8}
           windowSize={8}

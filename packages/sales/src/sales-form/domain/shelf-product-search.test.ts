@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
+	compileShelfProductSearchIndex,
 	normalizeShelfProductSearchQuery,
+	searchCompiledShelfProductIndex,
 	searchShelfProductIndex,
+	shelfProductSearchCandidateTerms,
+	shelfProductSearchCandidateTitleAnchorGroups,
 } from "./shelf-product-search";
 
 const products = [
@@ -18,6 +22,29 @@ describe("shelf product search", () => {
 		expect(normalizeShelfProductSearchQuery("  Flush--BOLT  ")).toBe(
 			"flush bolt",
 		);
+	});
+
+	it("builds bounded database candidate terms without the x connector", () => {
+		expect(
+			shelfProductSearchCandidateTerms("frame door 4-9 3 0 x 8 0"),
+		).toEqual(["frame", "door", "4", "9", "3", "0", "8"]);
+	});
+
+	it("builds grouped database anchors for each structured measurement", () => {
+		const groups = shelfProductSearchCandidateTitleAnchorGroups(
+			"frame 3 0 x 8 0 4-9",
+		);
+		expect(groups).toHaveLength(2);
+		expect(groups[0]).toContain("3 0x8 0");
+		expect(groups[1]).toContain("4-9");
+	});
+
+	it("does not treat standalone connectors or one-letter text as fuzzy terms", () => {
+		for (const query of ["x", "X", "×", "a"]) {
+			expect(
+				searchShelfProductIndex([{ id: 1, title: "Alpha Exterior Door" }], query),
+			).toEqual([]);
+		}
 	});
 
 	it("returns deterministic alphabetical defaults", () => {
@@ -50,6 +77,18 @@ describe("shelf product search", () => {
 		expect(result).toEqual([2, 1, 3, 4]);
 	});
 
+	it("ranks a contiguous mid-title phrase above unordered title words", () => {
+		expect(
+			searchShelfProductIndex(
+				[
+					{ id: 1, title: "Alpha Door Bracket Frame" },
+					{ id: 2, title: "Zulu Door Frame Kit" },
+				],
+				"door frame",
+			).map((product) => product.id),
+		).toEqual([2, 1]);
+	});
+
 	it("keeps selected products available even outside the result limit", () => {
 		expect(
 			searchShelfProductIndex(products, "", {
@@ -57,5 +96,81 @@ describe("shelf product search", () => {
 				selectedIds: [5],
 			}).map((product) => product.id),
 		).toEqual([6, 1, 5]);
+	});
+
+	it("matches reordered product words and structured door measurements", () => {
+		const pocketDoorFrame = {
+			id: 10,
+			title: "3 0X8 0 POCKET DOOR FRAME BUILT UP 4-9/16",
+			unitPrice: 145,
+			categoryPath: [{ id: 4, name: "Pocket Door Frames" }],
+		};
+
+		for (const query of [
+			"frame door 4-9 3 0 x 8 0",
+			"DOOR frame 3-0 X 8-0 4 9/16",
+			"pocket frame 4-9 3'0\" × 8'0\"",
+		]) {
+			expect(searchShelfProductIndex([pocketDoorFrame], query)).toEqual([
+				pocketDoorFrame,
+			]);
+		}
+	});
+
+	it("does not satisfy structured measurements with unrelated digits", () => {
+		const intended = {
+			id: 10,
+			title: "3-0 X 8-0 POCKET DOOR FRAME BUILT UP 4-9/16",
+		};
+		const collisions = [
+			{
+				id: 11,
+				title: "3 EXTERIOR DOOR FRAME 8 SERIES 0 GAUGE 4 BY 9",
+			},
+			{ id: 12, title: "3-0 X 7-0 POCKET DOOR FRAME BUILT UP 4-9/16" },
+			{ id: 13, title: "3-0 X 8-0 POCKET DOOR FRAME BUILT UP 4-7/16" },
+		];
+
+		expect(
+			searchShelfProductIndex(
+				[intended, ...collisions],
+				"frame door 4-9 3 0 x 8 0",
+			).map((product) => product.id),
+		).toEqual([10]);
+	});
+
+	it("uses category words as secondary searchable context", () => {
+		const titleMatch = {
+			id: 20,
+			title: "Pocket Door Frame Kit",
+			categoryPath: [{ name: "Hardware" }],
+		};
+		const categoryAssisted = {
+			id: 21,
+			title: "Built Up Frame Kit",
+			categoryPath: [{ name: "Pocket Door Frames" }],
+		};
+
+		expect(
+			searchShelfProductIndex(
+				[categoryAssisted, titleMatch],
+				"pocket door frame",
+			).map((product) => product.id),
+		).toEqual([20, 21]);
+	});
+
+	it("can compile the product index once and reuse it across queries", () => {
+		const compiled = compileShelfProductSearchIndex(products);
+
+		expect(
+			searchCompiledShelfProductIndex(compiled, "hinge bearing").map(
+				(product) => product.id,
+			),
+		).toEqual([1]);
+		expect(
+			searchCompiledShelfProductIndex(compiled, "lock").map(
+				(product) => product.id,
+			),
+		).toEqual([2]);
 	});
 });

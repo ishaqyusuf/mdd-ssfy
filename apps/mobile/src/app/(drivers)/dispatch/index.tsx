@@ -1,15 +1,16 @@
 import { Icon } from "@/components/ui/icon";
 import { GeneralHomeHeader } from "@/components/home/general-home-header";
 import { useNotifications } from "@/hooks/use-notifications";
-import { useAssignedDispatchList } from "@/features/dispatch/api/use-assigned-dispatch-list";
+import { useDriverWorkQueue } from "@/features/dispatch/api/use-driver-work-queue";
 import { DriverDashboardDispatchItem } from "@/features/dispatch/components/driver-dashboard-dispatch-item";
+import { buildDriverWorkQueueSections } from "@/features/dispatch/lib/driver-work-queue-model";
 import type { DispatchListItem } from "@/features/dispatch/types/dispatch.types";
 import { useRouter } from "expo-router";
 import { useMemo, useRef } from "react";
 import {
 	ActivityIndicator,
-	FlatList,
 	Pressable,
+	SectionList,
 	Text,
 	View,
 } from "react-native";
@@ -49,30 +50,19 @@ export default function DriverDispatchListRoute() {
 		hasNextPage,
 		isFetchingNextPage,
 		error,
-	} = useAssignedDispatchList({});
+		summary,
+	} = useDriverWorkQueue({});
 
 	const stats = useMemo(() => {
-		const inProgress = items.filter(
-			(item) => item?.status === "in progress",
-		).length;
 		return {
-			assigned: items.length,
-			inProgress,
+			assigned: summary?.total ?? items.length,
+			inProgress:
+				summary?.inProgress ??
+				items.filter((item) => item?.status === "in progress").length,
 		};
-	}, [items]);
+	}, [items, summary]);
 
-	const urgentItems = useMemo(
-		() =>
-			items
-				.filter(
-					(item) =>
-						item?.status === "queue" ||
-						item?.status === "packed" ||
-						item?.status === "in progress",
-				)
-				.slice(0, 5),
-		[items],
-	);
+	const sections = useMemo(() => buildDriverWorkQueueSections(items), [items]);
 
 	return (
 		<SafeArea>
@@ -102,8 +92,8 @@ export default function DriverDispatchListRoute() {
 						</Pressable>
 					</View>
 				) : (
-					<FlatList
-						data={urgentItems}
+					<SectionList
+						sections={sections}
 						keyExtractor={(item) => String(item.id)}
 						initialNumToRender={10}
 						windowSize={10}
@@ -150,15 +140,15 @@ export default function DriverDispatchListRoute() {
 								</View>
 
 								<View className="px-4 pb-3 pt-1">
-									<View className="mb-4 flex-row items-center justify-between">
+									<View className="mb-2 flex-row items-center justify-between">
 										<View className="flex-row items-center gap-2">
 											<Icon
-												name="TriangleAlert"
-												className="text-destructive"
+												name="Calendar"
+												className="text-primary"
 												size={18}
 											/>
 											<Text className="text-base font-bold text-foreground">
-												Urgent / Due Today
+												Delivery Schedule
 											</Text>
 										</View>
 										<Pressable
@@ -169,9 +159,34 @@ export default function DriverDispatchListRoute() {
 											</Text>
 										</Pressable>
 									</View>
+									<View className="flex-row gap-2">
+										<View className="rounded-full bg-destructive/10 px-3 py-1.5">
+											<Text className="text-xs font-bold text-destructive">
+												{summary?.byDueBucket.overdue ?? 0} overdue
+											</Text>
+										</View>
+										<View className="rounded-full bg-primary/10 px-3 py-1.5">
+											<Text className="text-xs font-bold text-primary">
+												{summary?.byDueBucket.today ?? 0} due today
+											</Text>
+										</View>
+									</View>
 								</View>
 							</View>
 						}
+						renderSectionHeader={({ section }) => (
+							<View className="bg-background px-4 pb-3 pt-4">
+								<Text
+									className={`text-sm font-black uppercase tracking-[1px] ${
+										section.title === "Overdue"
+											? "text-destructive"
+											: "text-foreground"
+									}`}
+								>
+									{section.title} ({section.data.length})
+								</Text>
+							</View>
+						)}
 						renderItem={({ item, index }) => {
 							const onOpen = () => openDispatch(router, item);
 							const onComplete = () =>
@@ -188,10 +203,10 @@ export default function DriverDispatchListRoute() {
 						ListEmptyComponent={
 							<View className="mx-4 mt-4 items-center rounded-xl border border-dashed border-border p-8">
 								<Text className="text-base font-semibold text-foreground">
-									No urgent dispatch
+									No active deliveries
 								</Text>
 								<Text className="mt-1 text-center text-sm text-muted-foreground">
-									Pull to refresh or switch to View All.
+									Pull to refresh or open View All for completed work.
 								</Text>
 							</View>
 						}

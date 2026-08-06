@@ -13,4 +13,32 @@ describe("shelf product picker", () => {
 			'className="max-h-72 overflow-y-auto overflow-x-hidden overscroll-contain p-1"',
 		);
 	});
+
+	it("uses the shared deep-search authority in both shelf picker versions", () => {
+		const v1Source = readFileSync(
+			new URL("./shelf-inputs.tsx", import.meta.url),
+			"utf8",
+		);
+		const workflowSource = readFileSync(
+			new URL("./sales-form-workflow-panel.tsx", import.meta.url),
+			"utf8",
+		);
+		const inlineEditorSource = readFileSync(
+			new URL("./shelf-inline-items-editor.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(v1Source).toContain(
+			"compileShelfProductSearchIndex(props.products)",
+		);
+		expect(v1Source).toContain("searchCompiledShelfProductIndex(");
+		expect(workflowSource).toContain("compileShelfProductSearchIndex(");
+		expect(workflowSource).toContain("searchCompiledShelfProductIndex(");
+		expect(workflowSource).toContain(
+			"useDeferredValue(shelfProductSearch)",
+		);
+		expect(inlineEditorSource).toContain(
+			"if (props.isSearchingProducts) return [];",
+		);
+	});
 });

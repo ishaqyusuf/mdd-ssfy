@@ -1,5 +1,50 @@
 # API Contracts
 
+## Sales Workflow Cancellation Contract (2026-08-06)
+
+- `sales.workflowCancellationPreview({ salesOrderId, action })` lazily returns
+  `allowed`, a deterministic revision, current/resulting lifecycle, typed
+  blockers with resource ids, exact reversible effects, and preserved
+  inbound/stock/manual-production evidence.
+- `sales.cancelWorkflowLayer({ salesOrderId, action, expectedRevision,
+  requestId, reason })` requires a non-empty reason, treats UUID `requestId` as
+  idempotent, rejects stale revisions, and rechecks the preview inside a
+  serializable transaction.
+- Production cancellation requires `editProduction`. Fulfillment cancellation
+  uses the existing dispatch-management permission set: `editPickup`,
+  `editOrders`, or `viewPacking`. Actor id/name come only from the authenticated
+  user.
+- In-transit, completed, delivered, proof-bearing, locked-payroll, manual-only,
+  and ambiguous legacy ownership return typed precondition blockers. Those
+  states require a return, delivery correction, payroll correction, or manual
+  production correction workflow instead of evidence deletion.
+
+## New Sales Form Shelf Product Search Contract (2026-08-06)
+
+- `newSalesForm.getShelfProductIndex` returns visible shelf products with
+  `id`, `title`, `unitPrice`, category ids, and a compact active parent/child
+  `categoryPath`. Full image/detail hydration remains on
+  `newSalesForm.getShelfProductDetails` after selection.
+- Shelf visibility resolves each category's effective ancestry. A child-linked
+  product is hidden when an ancestor is archived even if the product's
+  denormalized `parentCategoryId` is null; dealer allowlists evaluate the
+  derived breadcrumb as well as raw category ids.
+- Dashboard and dealership clients compile this cached projection once and use
+  the package-owned matcher locally. The dealer route filters products through
+  its category allowlist before returning any searchable title/category data.
+- `newSalesForm.searchShelfProducts` uses the same matcher for typed fallback
+  search. It applies active product/category visibility, builds per-term title
+  or category predicates, and merges exact-title (1), contiguous-phrase (100),
+  structured measurement-anchor (250), and general coarse (up to 250) stages
+  before structural matching and deterministic in-memory ranking. The merged
+  pool is capped at 601 unique candidates; selected visible ids are hydrated
+  and appended even when the typed query itself produces no candidates.
+- Search is case/diacritic insensitive, ordinary word order is irrelevant, and
+  dimensions/fractions are structured groups. `x`, `X`, and `×` are connectors
+  only inside a dimension; fraction prefix `4-9` can match `4-9/16` without
+  accepting unrelated digits. Price and edit-distance fuzzy matching are not
+  part of this contract.
+
 ## New Sales Form Adjustment Contract (2026-08-04)
 
 - Adjustment preview/proposal inputs reuse the complete typed new-sales-form

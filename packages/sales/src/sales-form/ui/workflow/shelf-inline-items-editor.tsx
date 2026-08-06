@@ -317,8 +317,9 @@ function ShelfInlineProductCell(props: {
 		? productBreadcrumb(selectedProduct, props.categories)
 		: categoryBreadcrumb(categoryIds, props.categories);
 	const filteredProducts = useMemo(() => {
+		if (props.isSearchingProducts) return [];
 		return props.products.slice(0, 50);
-	}, [props.products]);
+	}, [props.isSearchingProducts, props.products]);
 
 	return (
 		<div className="space-y-1">

@@ -99,8 +99,13 @@ export {
 	type SalesFormPricingProfile,
 } from "./dual-pricing";
 export {
+	compileShelfProductSearchIndex,
 	normalizeShelfProductSearchQuery,
+	searchCompiledShelfProductIndex,
 	searchShelfProductIndex,
+	shelfProductSearchCandidateTerms,
+	shelfProductSearchCandidateTitleAnchorGroups,
+	type CompiledShelfProductSearchIndex,
 	type ShelfProductSearchIndexItem,
 	type ShelfProductSearchOptions,
 } from "./shelf-product-search";

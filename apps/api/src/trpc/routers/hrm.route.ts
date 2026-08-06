@@ -21,7 +21,37 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import { z } from "zod";
 
 export const hrmRoutes = createTRPCRouter({
-  getQuickLoginEmployees: publicProcedure.query(() => []),
+  getQuickLoginEmployees: publicProcedure.query(async (props) => {
+    if (process.env.NODE_ENV !== "development") return [];
+
+    const employees = await props.ctx.db.users.findMany({
+      where: {
+        deletedAt: null,
+        accessRevokedAt: null,
+      },
+      orderBy: { name: "asc" },
+      take: 100,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        roles: {
+          where: { deletedAt: null },
+          take: 1,
+          select: { role: { select: { name: true } } },
+        },
+      },
+    });
+
+    return employees
+      .filter((employee) => employee.email?.trim())
+      .map((employee) => ({
+        id: employee.id,
+        name: employee.name,
+        email: employee.email,
+        role: employee.roles[0]?.role?.name || null,
+      }));
+  }),
   getEmployees: publicProcedure
     .input(employeesQueryParamsSchema)
     .query(async (props) => {

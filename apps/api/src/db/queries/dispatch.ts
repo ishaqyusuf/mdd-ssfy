@@ -1,10 +1,12 @@
 import { whereDispatch } from "@api/prisma-where";
+import { getDispatchInventoryManifest } from "@api/db/queries/dispatch-inventory";
 import type {
 	BulkAssignDriverSchema,
 	BulkCancelDispatchSchema,
 	CompletionModeSchema,
 	DispatchQueryParamsSchema,
 	DispatchStatusSchema,
+	DriverWorkQueueQuerySchema,
 	ExportDispatchesSchema,
 	PackingListQuerySchema,
 	ResolveDuplicateDispatchGroupSchema,
@@ -31,6 +33,11 @@ import {
 	withSalesControl,
 	withSalesListControl,
 } from "@gnd/sales";
+import {
+	getDispatchDuePresentation,
+	summarizeDriverWorkQueue,
+} from "@gnd/sales/dispatch-manifest/driver-work-queue";
+import { normalizeLegacyDispatchManifestItem } from "@gnd/sales/dispatch-manifest/normalize-legacy-item";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import { noteTag } from "@gnd/utils/note";
 import { composeQueryData } from "@gnd/utils/query-response";
@@ -99,6 +106,19 @@ function normalizeShippingAddress(
 			lat: rawMeta.lat ?? null,
 			lng: rawMeta.lng ?? null,
 		},
+	};
+}
+
+function withDriverDuePresentation<T extends { dueDate?: Date | null }>(row: T) {
+	const due = getDispatchDuePresentation(row.dueDate, {
+		timeZone:
+			process.env.BUSINESS_TIME_ZONE || process.env.TZ || "America/New_York",
+	});
+	return {
+		...row,
+		dueBucket: due.bucket,
+		dueDateLabel: due.dateLabel,
+		dueStatusLabel: due.statusLabel,
 	};
 }
 
@@ -539,7 +559,7 @@ export async function getDispatches(
 				};
 				const control = (a as any).control || null;
 				const effectiveStatus = control?.dispatchStatus || (rest as any).status;
-				return {
+				return withDriverDuePresentation({
 					...rest,
 					status: effectiveStatus,
 					order: {
@@ -551,7 +571,7 @@ export async function getDispatches(
 					},
 					statistic: toLegacyDispatchStatistic(control),
 					uid: String(a.id),
-				};
+				});
 			}),
 		);
 	}
@@ -567,7 +587,7 @@ export async function getDispatches(
 		rowsWithStatistic.map((a) => {
 			const effectiveStatus =
 				(a as any)?.statistic?.dispatchStatus || (a as any)?.status;
-			return {
+			return withDriverDuePresentation({
 				...a,
 				status: effectiveStatus,
 				order: {
@@ -578,9 +598,30 @@ export async function getDispatches(
 					control: orderControlById.get((a as any).order?.id) || null,
 				},
 				uid: String(a.id),
-			};
+			});
 		}),
 	);
+}
+
+export async function getDriverWorkQueueSummary(
+	ctx: TRPCContext,
+	query: DriverWorkQueueQuerySchema,
+) {
+	const where = whereDispatch(query);
+	const rows = await ctx.db.orderDelivery.findMany({
+		where: {
+			...(where || {}),
+			deletedAt: null,
+		},
+		select: {
+			dueDate: true,
+			status: true,
+		},
+	});
+	return summarizeDriverWorkQueue(rows, {
+		timeZone:
+			process.env.BUSINESS_TIME_ZONE || process.env.TZ || "America/New_York",
+	});
 }
 
 export async function findDuplicateDispatchGroups(ctx: TRPCContext) {
@@ -1983,7 +2024,7 @@ export async function getDispatchOverviewV2(
 	const order = result.order;
 	const address = normalizeShippingAddress(order.shippingAddress as any);
 
-	const dispatchItems = result.order.itemControls.map((item) => {
+	const legacyDispatchItems = result.order.itemControls.map((item) => {
 		const dispatchable = result.dispatchables.find((d) => d.uid === item.uid);
 		const listedItems = dispatch?.items.filter(
 			(a) => a.item?.controlUid === item.uid,
@@ -2099,6 +2140,16 @@ export async function getDispatchOverviewV2(
 			);
 		});
 
+		const manifestItem = normalizeLegacyDispatchManifestItem({
+			title: item.title,
+			sectionTitle: item.sectionTitle,
+			size: dispatchable?.size,
+			swing: dispatchable?.swing,
+			doorId: dispatchable?.doorId,
+			orderedQty: toQtyMatrix(dispatchable?.totalQty as any),
+			packedQty: toQtyMatrix(packedQty as any),
+		});
+
 		return {
 			uid: item.uid,
 			title: item.title,
@@ -2113,7 +2164,6 @@ export async function getDispatchOverviewV2(
 			availableQty: toQtyMatrix(availableQty as any),
 			deliverableQty: toQtyMatrix(deliverableQty as any),
 			listedQty: toQtyMatrix(listedQty as any),
-			packedQty: toQtyMatrix(packedQty as any),
 			nonDeliverableQty: toQtyMatrix(nonDeliverableQty as any),
 			deliverables: Array.from(deliverableBySubmission.entries()).map(
 				([submissionId, qty]) => ({
@@ -2122,6 +2172,26 @@ export async function getDispatchOverviewV2(
 				}),
 			),
 			packingHistory,
+			...manifestItem,
+		};
+	});
+	const inventoryManifest = await getDispatchInventoryManifest(ctx.db, {
+		salesOrderId: order.id,
+		orderDeliveryId: dispatch?.id,
+	});
+	const inventoryLineBySalesItemId = new Map(
+		inventoryManifest.lines.map((line) => [line.salesItemId, line]),
+	);
+	const dispatchItems = legacyDispatchItems.map((item) => {
+		const inventory = item.salesItemId
+			? inventoryLineBySalesItemId.get(item.salesItemId)
+			: null;
+		return {
+			...item,
+			manifestRevision: inventoryManifest.revision,
+			executionMode: inventory ? ("inventory" as const) : ("legacy" as const),
+			inventoryReadiness: inventory?.readiness || ("legacy_item" as const),
+			inventory: inventory || null,
 		};
 	});
 
@@ -2250,7 +2320,32 @@ export async function getDispatchOverviewV2(
 		})),
 	});
 
-	const dispatchReadiness = detectDispatchReadiness(dispatchItems as any);
+	const legacyDispatchReadiness = detectDispatchReadiness(dispatchItems as any);
+	const inventoryBlockingItems = dispatchItems
+		.filter(
+			(item) =>
+				item.executionMode === "inventory" &&
+				item.inventoryReadiness !== "ready_to_load",
+		)
+		.map((item) => ({
+			uid: item.uid,
+			title: item.title,
+			readiness: item.inventoryReadiness,
+		}));
+	const dispatchReadiness = {
+		...legacyDispatchReadiness,
+		canDispatch:
+			legacyDispatchReadiness.canDispatch && inventoryBlockingItems.length === 0,
+		state:
+			inventoryBlockingItems.length > 0
+				? ("inventory review" as const)
+				: legacyDispatchReadiness.state,
+		reason:
+			inventoryBlockingItems.length > 0
+				? "Inventory-backed items must be reserved and picked before this trip can start."
+				: legacyDispatchReadiness.reason,
+		inventoryBlockingItems,
+	};
 
 	controlDebugLog("getDispatchOverviewV2.dispatchReadiness", {
 		salesId: order.id,
@@ -2270,7 +2365,7 @@ export async function getDispatchOverviewV2(
 
 	return {
 		dispatch: dispatch
-			? {
+			? withDriverDuePresentation({
 					id: dispatch.id,
 					status: dispatch.status,
 					deliveryMode: dispatch.deliveryMode,
@@ -2283,7 +2378,7 @@ export async function getDispatchOverviewV2(
 								name: dispatch.driver.name,
 							}
 						: null,
-				}
+				})
 			: null,
 		order: {
 			id: order.id,
@@ -2300,6 +2395,7 @@ export async function getDispatchOverviewV2(
 				: null,
 		},
 		address,
+		manifestRevision: inventoryManifest.revision,
 		summary,
 		dispatchItems,
 		duplicateInsight,

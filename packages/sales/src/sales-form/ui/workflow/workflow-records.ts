@@ -134,6 +134,12 @@ export type ShelfProductSearchIndexRecord = {
 	id?: number | null;
 	title?: string | null;
 	unitPrice?: number | null;
+	categoryId?: number | null;
+	parentCategoryId?: number | null;
+	categoryPath?: Array<{
+		id?: number | null;
+		name?: string | null;
+	}>;
 	[key: string]: unknown;
 };
 

@@ -1,6 +1,5 @@
 import { Icon } from "@/components/ui/icon";
 import { Pressable } from "@/components/ui/pressable";
-import { formatDate } from "@gnd/utils/dayjs";
 import { Image, Text, View } from "react-native";
 import type { DispatchListItem } from "../types/dispatch.types";
 
@@ -43,7 +42,11 @@ function getLocation(item: DispatchListItem) {
 }
 
 function dueText(item: DispatchListItem) {
-  return item?.dueDate ? formatDate(item.dueDate) : "No due date";
+  return item?.dueDateLabel || "Delivery date not scheduled";
+}
+
+function dueStatusText(item: DispatchListItem) {
+  return item?.dueStatusLabel || "Schedule required";
 }
 
 function getStatus(item: DispatchListItem) {
@@ -121,9 +124,12 @@ export function DriverDashboardDispatchItem({
                 className="h-full w-full"
                 resizeMode="cover"
               />
-              <View className="absolute right-2 top-2 rounded bg-card/95 px-2 py-1">
-                <Text className="text-[10px] font-bold text-destructive">
+              <View className="absolute right-2 top-2 items-end rounded bg-card/95 px-2 py-1.5">
+                <Text className="text-[10px] font-bold text-foreground">
                   {dueText(item)}
+                </Text>
+                <Text className="mt-0.5 text-[9px] font-bold text-destructive">
+                  {dueStatusText(item)}
                 </Text>
               </View>
               <View className="absolute bottom-2 left-2 rounded bg-primary px-2 py-1">
@@ -158,9 +164,18 @@ export function DriverDashboardDispatchItem({
                   {getShipTo(item)}
                 </Text>
               </View>
-              <View className="rounded-lg bg-muted px-2 py-1.5">
-                <Text className="text-[10px] font-bold text-muted-foreground">
+              <View className="items-end rounded-lg bg-muted px-2 py-1.5">
+                <Text className="text-[10px] font-bold text-foreground">
                   {dueText(item)}
+                </Text>
+                <Text
+                  className={`mt-0.5 text-[9px] font-bold ${
+                    item.dueBucket === "overdue"
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {dueStatusText(item)}
                 </Text>
               </View>
             </View>

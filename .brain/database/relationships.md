@@ -3,6 +3,19 @@
 ## Purpose
 Tracks important cross-model relationships and ownership patterns.
 
+## Sales Workflow Cancellation (2026-08-06)
+
+- `SalesOrders.workflowCancellations` owns the immutable cancellation attempts
+  for that sale; `SalesWorkflowCancellation.salesOrderId` identifies the
+  affected order.
+- `Users.performedSalesWorkflowCancellations` identifies the authenticated
+  employee actor through `performedByUserId`.
+- The schema uses `relationMode = "prisma"`, so the generated migration creates
+  indexed relation columns without physical foreign keys.
+- Related dispatch, packing, production, review, payroll, payment-review, and
+  readiness-override ids are captured in the result JSON and Sales History
+  event rather than mutable foreign-key collections.
+
 ## Sales Order Adjustments (2026-08-04)
 
 - `SalesOrders.adjustments` owns many `SalesOrderAdjustment` revisions.

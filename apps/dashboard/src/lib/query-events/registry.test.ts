@@ -8,8 +8,19 @@ import {
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(81);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(82);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(15);
+	});
+
+	it("refreshes production and dispatch projections after layered cancellation", () => {
+		expect(
+			resolveMutationQueryEvents({
+				mutationKey: [["sales", "cancelWorkflowLayer"]],
+			}),
+		).toEqual([
+			{ name: "sales.production.changed" },
+			{ name: "sales.dispatch.changed" },
+		]);
 	});
 
 	it("reads the tRPC mutation route from its typed mutation key", () => {

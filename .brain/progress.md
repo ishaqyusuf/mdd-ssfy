@@ -1,5 +1,26 @@
 # Progress
 
+- 2026-08-06: implemented safe layered Sales workflow cancellation. The Sales
+  Orders menu now opens a lazy server-authoritative review instead of directly
+  deleting production or cancelling dispatches. Fulfillment cancellation is
+  limited to reversible pre-transit work and unpacks rows without erasing
+  evidence; production cancellation is limited to tagged Mark-as submissions
+  with guarded pending payroll, shared-review, payment-review, and readiness
+  override handling. All effects plus Sales History and the new immutable
+  cancellation ledger commit serializably with revision/idempotency guards.
+  Cancelled dispatches no longer make the parent order terminal. Fifty-three
+  focused tests / 115 assertions and targeted Biome pass. `@gnd/sales` and
+  `@gnd/api` typechecks passed for the cancellation slice, then a final shared
+  worktree rerun was blocked by concurrent unrelated `sales-fulfillment-plan`
+  stock-allocation typing changes. The broad dashboard typecheck remains red
+  on its existing repository baseline, with no changed cancellation runtime
+  file in the filtered diagnostics. Authenticated local browser QA passed blockers
+  and allowed previews on `09166LRG`, `09163DB`, and `09160LM` with no submit
+  or console error. Prisma Client generation and local `db:push` passed; normal
+  migration replay remains blocked by the existing master-password shadow
+  migration ordering defect. No build, deployment, or jobs deployment ran. See
+  ADR-049 and `.brain/features/sales-order-status-actions.md`.
+
 - 2026-08-06: implemented the complete one-click Sales Orders dependency
   resolver. `Inventory needs attention` now previews and then receives every
   linked active inbound shipment, resolves tracked inventory, approves all
@@ -8518,3 +8539,16 @@
   behavior becomes authoritative. No application, API, database, or permission
   behavior changed. See
   `.brain/plans/2026-08-06-feature-new-sales-form-shelf-product-deep-search.md`.
+- 2026-08-06: implemented deep Shelf Items product search across the shared new
+  sales form. One package-owned compiled matcher now supports reordered words,
+  structured door dimensions and fraction prefixes, contiguous-title ranking,
+  secondary parent/child category context, selected hydration, and deterministic
+  limits. Dashboard/dealership V2 defers result work without per-keystroke
+  requests, Shelf V1 uses the same matcher, and the typed API fallback preserves
+  visibility while merging bounded exact, phrase, structural-anchor, and
+  general candidate stages capped at 601 unique rows. Dealer
+  allowlisting remains ahead of searchable data, including child-only product
+  rows resolved through their category breadcrumb. Validation passes 47 focused
+  tests / 231 assertions, including the reported fixture and recall through
+  1,000 numeric collisions; a synthetic 5,000-row matcher benchmark compiled in
+  about 18ms and searched in about 2ms. No database migration was required.

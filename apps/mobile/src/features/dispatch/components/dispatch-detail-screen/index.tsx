@@ -184,6 +184,7 @@ function DispatchDetailScreenInner({
 
 	const statusText = dispatch?.status || "queue";
 	const canStart = actions.canStart(dispatch?.status);
+	const canStartReady = canStart && data?.dispatchReadiness?.canDispatch !== false;
 	const canCancel = actions.canCancel(dispatch?.status);
 	const canComplete = actions.canComplete(dispatch?.status);
 	const primaryStatusActionLabel = canStart
@@ -357,7 +358,7 @@ function DispatchDetailScreenInner({
 
 	const onPrimaryStatusAction = async () => {
 		if (!order?.id || !dispatch?.id) return;
-		if (canStart) {
+		if (canStartReady) {
 			try {
 				await actions.onStartDispatch({
 					salesId: order.id,
@@ -367,6 +368,14 @@ function DispatchDetailScreenInner({
 			} catch {
 				Toast.show("Unable to start dispatch", { type: "error" });
 			}
+			return;
+		}
+		if (canStart && !canStartReady) {
+			Toast.show(
+				data?.dispatchReadiness?.reason ||
+					"Inventory must be reserved and picked before this trip can start.",
+				{ type: "warning" },
+			);
 			return;
 		}
 		if (canComplete) {
@@ -390,8 +399,8 @@ function DispatchDetailScreenInner({
 			onMarkDelivered();
 			return;
 		}
-		if (!canStart) {
-			Toast.show("Trip cannot be started at this dispatch stage.", {
+		if (!canStartReady) {
+			Toast.show(data?.dispatchReadiness?.reason || "Trip cannot be started yet.", {
 				type: "warning",
 			});
 			return;
@@ -413,7 +422,7 @@ function DispatchDetailScreenInner({
 		actions.startDispatch.isPending ||
 		actions.submitDispatch.isPending ||
 		dispatch?.status === "queue" ||
-		(dispatch?.status === "in progress" ? !canComplete : !canStart);
+		(dispatch?.status === "in progress" ? !canComplete : !canStartReady);
 
 	const onIssue = async () => {
 		if (!order?.id || !dispatch?.id || !canCancel) {
@@ -954,6 +963,12 @@ function DispatchDetailScreenInner({
 					dispatchId: dispatch.id,
 				});
 			}
+			if (entryMode === "warehouse-packing") {
+				await actions.onPrepareInventory({
+					salesId: order.id,
+					dispatchId: dispatch.id,
+				});
+			}
 			await overview.refetch();
 			logStage(flow, {
 				eventType: "response.received",
@@ -990,10 +1005,14 @@ function DispatchDetailScreenInner({
 		insetsBottom: insets.bottom,
 		entryMode,
 		statusText,
+		dueDateLabel: dispatch?.dueDateLabel,
+		dueStatusLabel: dispatch?.dueStatusLabel,
+		dueBucket: dispatch?.dueBucket,
+		dispatchReadiness: data?.dispatchReadiness,
 		packingWorkspaceStats,
 		isPrimaryActionDisabled:
 			actions.startDispatch.isPending ||
-			!canStart ||
+			!canStartReady ||
 			dispatch?.status === "queue",
 		isPrimaryActionPending: actions.startDispatch.isPending,
 		primaryStatusActionLabel,

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { Prisma } from "@gnd/db";
+import type { Prisma, TransactionClient } from "@gnd/db";
 import { runDbTransaction } from "@gnd/db/transactions";
 import type { RenturnTypeAsync } from "@gnd/utils";
 import type { NoteTagTypes } from "@gnd/utils/constants";
@@ -340,7 +340,16 @@ export async function deletePackingItem(db: Db, data: DeletePackingSchema) {
 		await resetSalesAction(tx as any, data.salesId);
 	});
 }
-export async function cancelDispatchTask(db: Db, data: UpdateSalesControl) {
+export async function cancelDispatchTask(
+	db: Db,
+	data: UpdateSalesControl,
+	internal?: {
+		releaseDispatchInventory?: (
+			tx: TransactionClient,
+			input: { orderDeliveryId: number; note?: string | null },
+		) => Promise<unknown>;
+	},
+) {
 	await db.$transaction(async (tx) => {
 		const dispatchIds = data.cancelDispatch?.dispatchIds?.length
 			? data.cancelDispatch.dispatchIds
@@ -351,6 +360,14 @@ export async function cancelDispatchTask(db: Db, data: UpdateSalesControl) {
 			throw new Error("Unable to cancel fulfillment without a dispatch.");
 		}
 		const uniqueDispatchIds = [...new Set(dispatchIds)];
+		if (internal?.releaseDispatchInventory) {
+			for (const orderDeliveryId of uniqueDispatchIds) {
+				await internal.releaseDispatchInventory(tx as TransactionClient, {
+					orderDeliveryId,
+					note: "Released because the dispatch was cancelled.",
+				});
+			}
+		}
 		const result = await tx.orderDelivery.updateMany({
 			where: {
 				id: {
@@ -372,17 +389,40 @@ export async function cancelDispatchTask(db: Db, data: UpdateSalesControl) {
 		await resetSalesAction(tx as any, data.meta.salesId);
 	});
 }
-export async function startDispatchTask(db: Db, data: UpdateSalesControl) {
+export async function startDispatchTask(
+	db: Db,
+	data: UpdateSalesControl,
+	internal?: {
+		assertInventoryReady?: (
+			tx: TransactionClient,
+			input: { orderDeliveryId: number; salesOrderId: number },
+		) => Promise<unknown>;
+	},
+) {
 	await db.$transaction(async (tx) => {
-		await tx.orderDelivery.update({
+		const orderDeliveryId = data.startDispatch?.dispatchId;
+		if (!orderDeliveryId) {
+			throw new Error("Unable to start fulfillment without a dispatch.");
+		}
+		await internal?.assertInventoryReady?.(tx as TransactionClient, {
+			orderDeliveryId,
+			salesOrderId: data.meta.salesId,
+		});
+		const started = await tx.orderDelivery.updateMany({
 			where: {
-				id: data.startDispatch?.dispatchId!,
+				id: orderDeliveryId,
+				salesOrderId: data.meta.salesId,
+				deletedAt: null,
+				status: { in: ["queue", "packed", "cancelled"] },
 			},
 			data: {
 				status: "in progress" as SalesDispatchStatus,
 				deliveredAt: null,
 			},
 		});
+		if (started.count !== 1) {
+			throw new Error("Dispatch is not available to start.");
+		}
 		await resetSalesAction(tx as any, data.meta.salesId);
 	});
 }
@@ -396,6 +436,14 @@ export async function submitDispatchTask(
 			requestId: string;
 			documentId: string;
 		};
+		completeInventoryDispatch?: (
+			tx: TransactionClient,
+			input: { orderDeliveryId: number; salesOrderId: number; note?: string | null },
+		) => Promise<{
+			executionMode: "inventory" | "legacy";
+			allocationIds: number[];
+			consumedQty: number;
+		}>;
 	},
 ) {
 	const task = data.submitDispatch!;
@@ -486,6 +534,24 @@ export async function submitDispatchTask(
 							domainCompletedAt: new Date().toISOString(),
 						}
 					: null;
+			const inventoryCompletion = internal?.completeInventoryDispatch
+				? await internal.completeInventoryDispatch(tx as TransactionClient, {
+						orderDeliveryId: task.dispatchId!,
+						salesOrderId: currentDispatch.salesOrderId,
+						note: task.note,
+					})
+				: null;
+			const inventoryDispatch =
+				inventoryCompletion?.executionMode === "inventory"
+					? {
+							...asJsonRecord(currentMeta.inventoryDispatch),
+							status: "consumed",
+							allocationIds: inventoryCompletion.allocationIds,
+							consumedQty: inventoryCompletion.consumedQty,
+							completionRequestId: completionRequestId || null,
+							completedAt: new Date().toISOString(),
+						}
+					: null;
 			await tx.orderDelivery.update({
 				where: {
 					id: task?.dispatchId!,
@@ -499,7 +565,7 @@ export async function submitDispatchTask(
 								task?.receivedDate ??
 								new Date())
 							: (task?.receivedDate ?? new Date()),
-					...(completionMeta || packingSignoff
+					...(completionMeta || packingSignoff || inventoryDispatch
 						? {
 								meta: toInputJson({
 									...currentMeta,
@@ -507,6 +573,7 @@ export async function submitDispatchTask(
 										? { dispatchCompletion: completionMeta }
 										: {}),
 									...(packingSignoff ? { packingSignoff } : {}),
+									...(inventoryDispatch ? { inventoryDispatch } : {}),
 								}),
 							}
 						: {}),

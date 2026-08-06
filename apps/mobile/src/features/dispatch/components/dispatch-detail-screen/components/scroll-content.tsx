@@ -9,6 +9,7 @@ import {
 	View,
 } from "react-native";
 import { useDispatchDetailScreen } from "./screen-context";
+import { ManifestItemFacts } from "./manifest-item-facts";
 
 function formatDispatchStatusLabel(status?: string | null) {
 	if (!status) return "Queue";
@@ -49,7 +50,7 @@ export function DispatchDetailScrollContent() {
 							</Text>
 						</View>
 						<View className="rounded-full bg-primary/10 p-3">
-							<Icon name="Package" className="text-primary" size={18} />
+							<Icon name="Warehouse" className="text-primary" size={18} />
 						</View>
 					</View>
 
@@ -105,6 +106,18 @@ export function DispatchDetailScrollContent() {
 								{vm.statusText}
 							</Text>
 						</View>
+						<Text className="mt-3 text-sm font-semibold text-foreground">
+							{vm.dueDateLabel || "Delivery date not scheduled"}
+						</Text>
+						<Text
+							className={`mt-0.5 text-xs font-semibold ${
+								vm.dueBucket === "overdue"
+									? "text-destructive"
+									: "text-muted-foreground"
+							}`}
+						>
+							{vm.dueStatusLabel || "Schedule required"}
+						</Text>
 					</View>
 					<Pressable
 						disabled={vm.isPrimaryActionDisabled}
@@ -119,6 +132,23 @@ export function DispatchDetailScrollContent() {
 					</Pressable>
 				</View>
 			</View>
+			{vm.dispatchReadiness?.canDispatch === false ? (
+				<View className="mb-6 flex-row items-start gap-3 rounded-xl border border-amber-400/50 bg-amber-50 p-4 dark:bg-amber-950/25">
+					<Icon
+						name="TriangleAlert"
+						className="mt-0.5 text-amber-700 dark:text-amber-300"
+						size={18}
+					/>
+					<View className="flex-1">
+						<Text className="text-sm font-bold text-amber-900 dark:text-amber-100">
+							Trip not ready to start
+						</Text>
+						<Text className="mt-1 text-xs leading-5 text-amber-800 dark:text-amber-200">
+							{vm.dispatchReadiness.reason}
+						</Text>
+					</View>
+				</View>
+			) : null}
 
 			{vm.showDriverDuplicateAlert ? (
 				<View className="mb-6 rounded-xl border border-amber-400/50 bg-amber-50 px-4 py-4 dark:bg-amber-950/25">
@@ -360,11 +390,7 @@ export function DispatchDetailScrollContent() {
 										<Text className="text-sm font-medium text-foreground">
 											{item.title}
 										</Text>
-										<Text className="mt-0.5 text-xs uppercase text-muted-foreground">
-											{item.subtitle ||
-												item.sectionTitle ||
-												"No size/type details"}
-										</Text>
+									<ManifestItemFacts item={item} compact />
 									</View>
 								</View>
 								<View className="items-end gap-1">

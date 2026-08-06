@@ -690,9 +690,39 @@ function createMockContext() {
     dykeShelfCategories: {
       findMany: async ({ where, select, orderBy }: any) => {
         const inIds = where?.id?.in || null;
+        const nameTerms = (where?.OR || [])
+          .map((entry: any) =>
+            String(entry?.name?.contains || "")
+              .trim()
+              .toLowerCase(),
+          )
+          .filter(Boolean);
+        const childOfCategoryIds = (where?.OR || [])
+          .flatMap((entry: any) => [
+            ...(entry?.parentCategoryId?.in || []),
+            ...(entry?.categoryId?.in || []),
+          ])
+          .filter((id: unknown) => typeof id === "number");
         const rows = state.shelfCategories.filter((row) => {
           if (where?.deletedAt === null && row.deletedAt != null) return false;
           if (inIds && !inIds.includes(row.id)) return false;
+          if (
+            nameTerms.length &&
+            !nameTerms.some((term: string) =>
+              String(row.name || "")
+                .toLowerCase()
+                .includes(term),
+            )
+          ) {
+            return false;
+          }
+          if (
+            childOfCategoryIds.length &&
+            !childOfCategoryIds.includes(row.parentCategoryId) &&
+            !childOfCategoryIds.includes(row.categoryId)
+          ) {
+            return false;
+          }
           return true;
         });
         const sorted = [...rows].sort((a, b) => {
@@ -724,10 +754,18 @@ function createMockContext() {
         const titleContains = String(where?.title?.contains || "")
           .trim()
           .toLowerCase();
+        const titleEquals = String(where?.title?.equals || "")
+          .trim()
+          .toLowerCase();
         const matchesClause = (row: any, clause: any): boolean => {
           if (!clause) return true;
           if (clause.OR) {
             return clause.OR.some((entry: any) => matchesClause(row, entry));
+          }
+          if ("title" in clause && clause.title?.contains) {
+            return String(row.title || "")
+              .toLowerCase()
+              .includes(String(clause.title.contains).toLowerCase());
           }
           if ("categoryId" in clause) {
             if (clause.categoryId === null) return row.categoryId == null;
@@ -767,6 +805,12 @@ function createMockContext() {
             !String(row.title || "")
               .toLowerCase()
               .includes(titleContains)
+          ) {
+            return false;
+          }
+          if (
+            titleEquals &&
+            String(row.title || "").trim().toLowerCase() !== titleEquals
           ) {
             return false;
           }
@@ -926,8 +970,28 @@ describe("new-sales-form relational parity", () => {
 
     const index = await getNewSalesFormShelfProductIndex(ctx, {});
     expect(index).toEqual([
-      { id: 1001, title: "Ball Bearing Hinge", unitPrice: 24.5 },
-      { id: 1002, title: "Mortise Lock", unitPrice: 42 },
+      {
+        id: 1001,
+        title: "Ball Bearing Hinge",
+        unitPrice: 24.5,
+        categoryId: 11,
+        parentCategoryId: 10,
+        categoryPath: [
+          { id: 10, name: "Door Hardware" },
+          { id: 11, name: "Hinges" },
+        ],
+      },
+      {
+        id: 1002,
+        title: "Mortise Lock",
+        unitPrice: 42,
+        categoryId: 12,
+        parentCategoryId: 10,
+        categoryPath: [
+          { id: 10, name: "Door Hardware" },
+          { id: 12, name: "Locks" },
+        ],
+      },
     ]);
 
     const details = await getNewSalesFormShelfProductDetails(ctx, {
@@ -947,6 +1011,43 @@ describe("new-sales-form relational parity", () => {
         ],
       },
     ]);
+  });
+
+  it("derives the parent category path when the product only stores a child category", async () => {
+    const { ctx, state } = createMockContext();
+    const product = state.shelfProducts.find((row) => row.id === 1001);
+    if (product) product.parentCategoryId = null;
+
+    const index = await getNewSalesFormShelfProductIndex(ctx, {});
+
+    expect(index.find((row) => row.id === 1001)?.categoryPath).toEqual([
+      { id: 10, name: "Door Hardware" },
+      { id: 11, name: "Hinges" },
+    ]);
+
+    const searched = await searchNewSalesFormShelfProducts(ctx, {
+      query: "door hardware hinge",
+      selectedIds: [],
+      limit: 20,
+    });
+    expect(searched.map((row) => row.id)).toEqual([1001]);
+  });
+
+  it("hides child-linked products when their effective parent category is archived", async () => {
+    const { ctx, state } = createMockContext();
+    const parent = state.shelfCategories.find((row) => row.id === 10);
+    const childLinkedProduct = state.shelfProducts.find((row) => row.id === 1001);
+    if (parent) parent.deletedAt = new Date("2026-08-06T00:00:00.000Z");
+    if (childLinkedProduct) childLinkedProduct.parentCategoryId = null;
+
+    expect(await getNewSalesFormShelfProductIndex(ctx, {})).toEqual([]);
+    expect(
+      await searchNewSalesFormShelfProducts(ctx, {
+        query: "hinge",
+        selectedIds: [1001],
+        limit: 20,
+      }),
+    ).toEqual([]);
   });
 
   it("hides shelf products under disabled categories", async () => {
@@ -1061,6 +1162,111 @@ describe("new-sales-form relational parity", () => {
       limit: 20,
     });
     expect(searched.map((product) => product.id)).toEqual([1009]);
+
+    const withTypedSelected = await searchNewSalesFormShelfProducts(ctx, {
+      query: "flush",
+      selectedIds: [1002],
+      limit: 20,
+    });
+    expect(withTypedSelected.map((product) => product.id)).toEqual([
+      1009, 1002,
+    ]);
+
+    for (const query of ["x", "X", "×", "a"]) {
+      const nonSubstantiveWithSelected = await searchNewSalesFormShelfProducts(
+        ctx,
+        {
+          query,
+          selectedIds: [1002],
+          limit: 20,
+        },
+      );
+      expect(nonSubstantiveWithSelected.map((product) => product.id)).toEqual([
+        1002,
+      ]);
+    }
+
+    const categoryAssisted = await searchNewSalesFormShelfProducts(ctx, {
+      query: "hardware hinge",
+      selectedIds: [],
+      limit: 20,
+    });
+    expect(categoryAssisted[0]?.id).toBe(1001);
+    expect(categoryAssisted.map((product) => product.id)).toEqual([
+      1001, 1004, 1005,
+    ]);
+  });
+
+  it("deep-searches shelf products across reordered words and measurements", async () => {
+    const { ctx, state } = createMockContext();
+    state.shelfCategories.push({
+      id: 13,
+      name: "Pocket Door Frames",
+      type: "child",
+      categoryId: 10,
+      parentCategoryId: 10,
+      deletedAt: null,
+    });
+    state.shelfProducts.push(
+      {
+        id: 1010,
+        title: "3 0X8 0 POCKET DOOR FRAME BUILT UP 4-9/16",
+        unitPrice: 145,
+        categoryId: 13,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+      {
+        id: 1011,
+        title: "3-0 X 7-0 POCKET DOOR FRAME BUILT UP 4-9/16",
+        unitPrice: 135,
+        categoryId: 13,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+    );
+
+    const searched = await searchNewSalesFormShelfProducts(ctx, {
+      query: "frame door 4-9 3 0 x 8 0",
+      selectedIds: [],
+      limit: 20,
+    });
+
+    expect(searched.map((product) => product.id)).toEqual([1010]);
+    expect(searched[0]?.categoryPath).toEqual([
+      { id: 10, name: "Door Hardware" },
+      { id: 13, name: "Pocket Door Frames" },
+    ]);
+  });
+
+  it("preserves structured-search recall across a thousand coarse numeric collisions", async () => {
+    const { ctx, state } = createMockContext();
+    state.shelfProducts.push(
+      ...Array.from({ length: 1000 }, (_, index) => ({
+        id: 2000 + index,
+        title: `A${String(index).padStart(4, "0")} 3 EXTERIOR DOOR FRAME 8 SERIES 0 GAUGE 4 BY 9`,
+        unitPrice: 1,
+        categoryId: 11,
+        parentCategoryId: 10,
+        deletedAt: null,
+      })),
+      {
+        id: 4000,
+        title: "ZZZ 3-0 X 8-0 POCKET DOOR FRAME BUILT UP 4-9/16",
+        unitPrice: 145,
+        categoryId: 11,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+    );
+
+    const searched = await searchNewSalesFormShelfProducts(ctx, {
+      query: "frame door 4-9 3 0 x 8 0",
+      selectedIds: [],
+      limit: 20,
+    });
+
+    expect(searched.map((product) => product.id)).toEqual([4000]);
   });
 
   it("returns recent shelf products and supports mobile shelf product edits", async () => {

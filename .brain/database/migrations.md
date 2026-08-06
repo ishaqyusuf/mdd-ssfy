@@ -1,5 +1,22 @@
 # Database Migrations
 
+## 2026-08-06: Safe Layered Sales Workflow Cancellation
+
+- Added Prisma-generated migration
+  `20260806170000_safe_layered_sales_workflow_cancellation`, which creates the
+  additive `SalesWorkflowCancellation` ledger and its unique/id lookup indexes.
+- Prisma Client generation passed. The local schema was synchronized with
+  `db:push` after a read-only duplicate check found zero conflicting
+  `OrderProductionSubmissions(materialReviewId, assignmentId)` groups.
+- Normal `db:migrate` remains blocked by the pre-existing clean-shadow replay
+  failure in `20260722180000_master_password_usage_audit`, which references
+  `MasterPasswordLoginAudit` before its creation migration in the configured
+  migration directory. No historical migration or application row was changed
+  to bypass that blocker.
+- The migration SQL was generated with `prisma migrate diff` from a disposable
+  local schema clone containing the current schema minus only the new ledger;
+  that schema-only clone was removed after generation.
+
 ## 2026-08-04: Sales Order Adjustments
 
 - Added `20260804150000_sales_order_adjustments`, an additive migration for the

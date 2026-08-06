@@ -1,8 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-	getCancellableFulfillmentDispatchIds,
-	getSalesOrderStatusMenuActions,
-} from "../../sales-status-menu-actions";
+import { getSalesOrderStatusMenuActions } from "../../sales-status-menu-actions";
 
 describe("sales order status menu actions", () => {
 	it("keeps completion and fulfillment as the first two actions", () => {
@@ -31,7 +28,26 @@ describe("sales order status menu actions", () => {
 			},
 			{ action: "fulfilled", label: "Fulfilled" },
 			{ action: "cancel_production", label: "Cancel Production" },
+			{ action: "cancel_fulfillment", label: "Cancel Fulfillment" },
 		]);
+	});
+
+	it("offers guarded fulfillment cancellation when legacy projections lag", () => {
+		const actions = getSalesOrderStatusMenuActions({
+			status: "ready_to_fulfill",
+			productionStatus: "completed",
+		});
+
+		expect(actions.map(({ action }) => action)).toContain("cancel_fulfillment");
+	});
+
+	it("lets the server review automatic production when legacy production metadata lags", () => {
+		const actions = getSalesOrderStatusMenuActions({
+			status: "ready_to_fulfill",
+			productionStatus: "unknown",
+		});
+
+		expect(actions.map(({ action }) => action)).toContain("cancel_production");
 	});
 
 	it("offers fulfillment rollback after fulfillment begins", () => {
@@ -53,15 +69,5 @@ describe("sales order status menu actions", () => {
 			},
 			{ action: "cancel_fulfillment", label: "Cancel Fulfillment" },
 		]);
-	});
-
-	it("cancels every dispatch contributing to fulfillment state", () => {
-		expect(
-			getCancellableFulfillmentDispatchIds([
-				{ id: 11, status: "completed" },
-				{ id: 12, status: "queue" },
-				{ id: 13, status: "cancelled" },
-			]),
-		).toEqual([11, 12]);
 	});
 });

@@ -8,6 +8,7 @@ import {
 	getDispatchOverviewV2,
 	getDispatchSummary,
 	getDispatches,
+	getDriverWorkQueueSummary,
 	getPackingList,
 	getPackingQueue,
 	getSalesDeliveryInfo,
@@ -33,11 +34,17 @@ import {
 	isDispatchCompletionProofStale,
 	mergeDispatchCompletionProof,
 } from "@api/db/queries/dispatch-proof-completion";
+import { prepareAndPickDispatchInventory } from "@api/db/queries/dispatch-inventory-actions";
+import {
+	backfillDispatchInventoryBindings,
+	getDispatchInventoryReconciliation,
+} from "@api/db/queries/dispatch-inventory-reconciliation";
 import { auth } from "@api/db/queries/user";
 import {
 	bulkAssignDriverSchema,
 	bulkCancelDispatchSchema,
 	dispatchQueryParamsSchema,
+	driverWorkQueueQuerySchema,
 	exportDispatchesSchema,
 	packingListQuerySchema,
 	resolveDuplicateDispatchGroupSchema,
@@ -73,11 +80,16 @@ import {
 } from "@sales/exports";
 import type { UpdateSalesControl } from "@sales/exports";
 import type { SalesDispatchStatus } from "@sales/types";
+import {
+	assertDispatchInventoryReadyToStart,
+	consumeDispatchBoundInventory,
+	releaseDispatchBoundInventory,
+} from "@gnd/sales/sales-fulfillment-plan";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
 import { del, put } from "@vercel/blob";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
+import { createTRPCRouter, protectedProcedure } from "../init";
 import type { TRPCContext } from "../init";
 
 function getDispatchNotificationService(ctx: TRPCContext) {
@@ -165,19 +177,38 @@ async function requireAssignedDispatchOrManager(
 }
 
 export const dispatchRouters = createTRPCRouter({
-	index: publicProcedure
+	index: protectedProcedure
 		.input(dispatchQueryParamsSchema)
 		.query(async (props) => {
+			await requireDispatchManager(props.ctx);
 			return getDispatches(props.ctx, props.input);
 		}),
-	assignedDispatch: publicProcedure
+	assignedDispatch: protectedProcedure
 		.input(dispatchQueryParamsSchema)
 		.query(async (props) => {
-			if (!props.ctx.userId) {
-				return getDispatches(props.ctx, props.input);
-			}
-			props.input.driversId = [props.ctx.userId];
-			return getDispatches(props.ctx, props.input);
+			await requireDispatchWorker(props.ctx);
+			return getDispatches(props.ctx, {
+				...props.input,
+				driversId: [props.ctx.userId],
+			});
+		}),
+	driverWorkQueue: protectedProcedure
+		.input(driverWorkQueueQuerySchema)
+		.query(async (props) => {
+			await requireDispatchWorker(props.ctx);
+			return getDispatches(props.ctx, {
+				...props.input,
+				driversId: [props.ctx.userId],
+			});
+		}),
+	driverWorkQueueSummary: protectedProcedure
+		.input(driverWorkQueueQuerySchema)
+		.query(async (props) => {
+			await requireDispatchWorker(props.ctx);
+			return getDriverWorkQueueSummary(props.ctx, {
+				...props.input,
+				driversId: [props.ctx.userId],
+			});
 		}),
 	deletePackingItem: protectedProcedure
 		.input(deletePackingSchema)
@@ -189,7 +220,10 @@ export const dispatchRouters = createTRPCRouter({
 		.input(updateSalesControlSchema)
 		.mutation(async (props) => {
 			await requireDispatchManager(props.ctx);
-			const response = await cancelDispatchTask(props.ctx.db, props.input);
+			const response = await cancelDispatchTask(props.ctx.db, props.input, {
+				releaseDispatchInventory: (tx, input) =>
+					releaseDispatchBoundInventory(tx, input),
+			});
 			const dispatchIds = props.input.cancelDispatch?.dispatchIds?.length
 				? props.input.cancelDispatch.dispatchIds
 				: props.input.cancelDispatch?.dispatchId
@@ -262,7 +296,9 @@ export const dispatchRouters = createTRPCRouter({
 				props.ctx,
 				props.input.startDispatch?.dispatchId,
 			);
-			const response = await startDispatchTask(props.ctx.db, props.input);
+			const response = await startDispatchTask(props.ctx.db, props.input, {
+				assertInventoryReady: assertDispatchInventoryReadyToStart,
+			});
 			const dispatchId = props.input.startDispatch?.dispatchId;
 			if (dispatchId) {
 				const dispatch = await props.ctx.db.orderDelivery.findFirst({
@@ -748,9 +784,11 @@ export const dispatchRouters = createTRPCRouter({
 				} as UpdateSalesControl);
 			}
 
-			const response = await submitDispatchTask(props.ctx.db, {
-				meta,
-				submitDispatch: {
+			const response = await submitDispatchTask(
+				props.ctx.db,
+				{
+					meta,
+					submitDispatch: {
 					dispatchId: dispatch.id,
 					receivedBy: props.input.receivedBy,
 					receivedDate: props.input.receivedDate || new Date(),
@@ -763,8 +801,13 @@ export const dispatchRouters = createTRPCRouter({
 						pathname: attachment.pathname,
 					})),
 					completionRequestId: props.input.requestId,
+					},
+				} as UpdateSalesControl,
+				{
+					completeInventoryDispatch: (tx, input) =>
+						consumeDispatchBoundInventory(tx, input),
 				},
-			} as UpdateSalesControl);
+			);
 
 			let notificationQueued = response.idempotent;
 			if (!response.idempotent) {
@@ -832,39 +875,114 @@ export const dispatchRouters = createTRPCRouter({
 			await requireDispatchManager(props.ctx);
 			return updateDispatchStatus(props.ctx, props.input);
 		}),
-	salesDeliveryInfo: publicProcedure
+	salesDeliveryInfo: protectedProcedure
 		.input(
 			z.object({
 				salesId: z.number().nullable().optional(),
 			}),
 		)
 		.query(async (props) => {
+			await requireDispatchManager(props.ctx);
 			return getSalesDeliveryInfo(props.ctx, props.input.salesId);
 		}),
-	orderDispatchOverview: publicProcedure
+	orderDispatchOverview: protectedProcedure
 		.input(salesDispatchOverviewSchema)
 		.query(async (props) => {
+			if (props.input.dispatchId) {
+				await requireAssignedDispatchOrManager(
+					props.ctx,
+					props.input.dispatchId,
+				);
+			} else {
+				await requireDispatchManager(props.ctx);
+			}
 			return getSalesDispatchOverview(props.ctx.db, {
 				salesId: props.input.salesId,
 				salesNo: props.input.salesNo,
 			});
 		}),
-	dispatchOverview: publicProcedure
+	dispatchOverview: protectedProcedure
 		.input(salesDispatchOverviewSchema)
 		.query(async (props) => {
+			await requireAssignedDispatchOrManager(
+				props.ctx,
+				props.input.dispatchId,
+			);
 			return getDispatchOverview(props.ctx, props.input);
 		}),
-	dispatchOverviewV2: publicProcedure
+	dispatchOverviewV2: protectedProcedure
 		.input(salesDispatchOverviewSchema)
 		.query(async (props) => {
+			await requireAssignedDispatchOrManager(
+				props.ctx,
+				props.input.dispatchId,
+			);
 			return getDispatchOverviewV2(props.ctx, props.input);
 		}),
-	packingQueue: publicProcedure.query(async (props) => {
+	manifest: protectedProcedure
+		.input(salesDispatchOverviewSchema)
+		.query(async (props) => {
+			await requireAssignedDispatchOrManager(
+				props.ctx,
+				props.input.dispatchId,
+			);
+			return getDispatchOverviewV2(props.ctx, props.input);
+		}),
+	prepareInventoryForDispatch: protectedProcedure
+		.input(
+			z
+				.object({
+					salesOrderId: z.number().int().positive(),
+					orderDeliveryId: z.number().int().positive(),
+				})
+				.strict(),
+		)
+		.mutation(async (props) => {
+			await requirePackingOperator(props.ctx);
+			try {
+				return await prepareAndPickDispatchInventory(props.ctx.db, props.input);
+			} catch (error) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						error instanceof Error
+							? error.message
+							: "Inventory could not be prepared for this dispatch.",
+					cause: error,
+				});
+			}
+		}),
+	inventoryReconciliation: protectedProcedure
+		.input(
+			z.object({
+				orderDeliveryId: z.number().int().positive().optional(),
+				salesOrderId: z.number().int().positive().optional(),
+				limit: z.number().int().min(1).max(2_000).default(500),
+			}),
+		)
+		.query(async (props) => {
+			await requireDispatchManager(props.ctx);
+			return getDispatchInventoryReconciliation(props.ctx.db, props.input);
+		}),
+	backfillInventoryBindings: protectedProcedure
+		.input(
+			z.object({
+				dryRun: z.boolean().default(true),
+				limit: z.number().int().min(1).max(2_000).default(500),
+			}),
+		)
+		.mutation(async (props) => {
+			await requireDispatchManager(props.ctx);
+			return backfillDispatchInventoryBindings(props.ctx.db, props.input);
+		}),
+	packingQueue: protectedProcedure.query(async (props) => {
+		await requirePackingOperator(props.ctx);
 		return getPackingQueue(props.ctx);
 	}),
-	packingList: publicProcedure
+	packingList: protectedProcedure
 		.input(packingListQuerySchema)
 		.query(async (props) => {
+			await requirePackingOperator(props.ctx);
 			return getPackingList(props.ctx, props.input);
 		}),
 	sendSaleForPickup: protectedProcedure
@@ -1222,7 +1340,8 @@ export const dispatchRouters = createTRPCRouter({
 			}
 			return result;
 		}),
-	findDuplicateGroups: publicProcedure.query(async (props) => {
+	findDuplicateGroups: protectedProcedure.query(async (props) => {
+		await requireDispatchManager(props.ctx);
 		return findDuplicateDispatchGroups(props.ctx);
 	}),
 	resolveDuplicateGroup: protectedProcedure
@@ -1397,7 +1516,8 @@ export const dispatchRouters = createTRPCRouter({
 			await appendDevLogEntryToFile(props.input.entry as DevLogEntry);
 			return { ok: true, skipped: false };
 		}),
-	dispatchSummary: publicProcedure.query(async (props) => {
+	dispatchSummary: protectedProcedure.query(async (props) => {
+		await requireDispatchManager(props.ctx);
 		return getDispatchSummary(props.ctx);
 	}),
 	bulkAssignDriver: protectedProcedure
@@ -1412,12 +1532,14 @@ export const dispatchRouters = createTRPCRouter({
 			await requireDispatchManager(props.ctx);
 			return bulkCancelDispatches(props.ctx, props.input);
 		}),
-	exportDispatches: publicProcedure
+	exportDispatches: protectedProcedure
 		.input(exportDispatchesSchema)
 		.query(async (props) => {
+			await requireDispatchManager(props.ctx);
 			return exportDispatches(props.ctx, props.input);
 		}),
-	getDeleted: publicProcedure.query(async (props) => {
+	getDeleted: protectedProcedure.query(async (props) => {
+		await requireDispatchManager(props.ctx);
 		return getDeletedDispatches(props.ctx);
 	}),
 	restore: protectedProcedure

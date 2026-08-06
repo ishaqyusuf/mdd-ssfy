@@ -286,8 +286,18 @@ function throwInventoryFulfillmentApiError(error: unknown): never {
 
 export const inventoryDispatchTransitionSchema = z.object({
 	salesOrderId: inventoryPositiveIdSchema.optional().nullable(),
+	orderDeliveryId: inventoryPositiveIdSchema.optional().nullable(),
 	lineItemIds: inventoryPositiveIdsSchema.optional(),
 	allocationIds: inventoryPositiveIdsSchema.optional(),
+	allocationSelections: z
+		.array(
+			z.object({
+				allocationId: inventoryPositiveIdSchema,
+				qty: z.number().positive(),
+			}),
+		)
+		.min(1)
+		.optional(),
 	note: z.string().optional().nullable(),
 });
 

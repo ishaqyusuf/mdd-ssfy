@@ -3,6 +3,19 @@
 ## Purpose
 Tracks important schema-level entities and ownership boundaries.
 
+## Sales Workflow Cancellation Ledger (2026-08-06)
+
+- `SalesWorkflowCancellation` is the immutable, idempotent evidence row for a
+  production- or fulfillment-layer cancellation.
+- `requestId` is unique. Each row stores the sale, action, mandatory reason,
+  preview revision, actor, before-state snapshot, exact result snapshot, and
+  creation time.
+- The ledger does not replace `SalesHistory`; both rows are written in the same
+  serializable transaction as the reversible domain changes and sales-control
+  rebuild.
+- Physical inbound, stock, payroll payout, delivery proof, and manual
+  production evidence are never copied into mutable rollback tables.
+
 ## Sales Order Adjustments (2026-08-04)
 
 - `SalesOrderAdjustment` stores the immutable before/proposed sales snapshots,

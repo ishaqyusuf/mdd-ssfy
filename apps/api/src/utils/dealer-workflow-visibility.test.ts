@@ -107,6 +107,13 @@ describe("dealer workflow visibility", () => {
 				parentCategoryId: 10,
 			}),
 		).toBe(true);
+		expect(
+			isDealerShelfProductAllowed(visibility, {
+				categoryId: 20,
+				parentCategoryId: null,
+				categoryPath: [{ id: 10 }, { id: 20 }],
+			}),
+		).toBe(true);
 	});
 
 	it("defaults missing shelf visibility to all categories", () => {

@@ -1,10 +1,161 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+	assertDispatchInventoryReadyToStart,
+	consumeDispatchBoundInventory,
 	fulfillInventoryDispatch,
+	releaseDispatchBoundInventory,
 	shipAvailableSalesInventory,
 	transitionInventoryDispatchAllocations,
 } from "./sales-fulfillment-plan";
+
+describe("assertDispatchInventoryReadyToStart", () => {
+	test("blocks an inventory-backed trip until every required component is picked", async () => {
+		const db = {
+			lineItemComponents: {
+				findMany: async () => [
+					{
+						id: 101,
+						qty: 2,
+						stockAllocations: [{ qty: 1, status: "picked" }],
+					},
+				],
+			},
+		};
+
+		await expect(
+			assertDispatchInventoryReadyToStart(db as any, {
+				orderDeliveryId: 77,
+				salesOrderId: 500,
+			}),
+		).rejects.toThrow("INVENTORY_DISPATCH_NOT_READY");
+	});
+
+	test("allows legacy trips and fully picked inventory trips", async () => {
+		const legacyDb = {
+			lineItemComponents: { findMany: async () => [] },
+		};
+		await expect(
+			assertDispatchInventoryReadyToStart(legacyDb as any, {
+				orderDeliveryId: 77,
+				salesOrderId: 500,
+			}),
+		).resolves.toMatchObject({ executionMode: "legacy" });
+
+		const inventoryDb = {
+			lineItemComponents: {
+				findMany: async () => [
+					{
+						id: 101,
+						qty: 2,
+						stockAllocations: [{ qty: 2, status: "picked" }],
+					},
+				],
+			},
+		};
+		await expect(
+			assertDispatchInventoryReadyToStart(inventoryDb as any, {
+				orderDeliveryId: 77,
+				salesOrderId: 500,
+			}),
+		).resolves.toMatchObject({ executionMode: "inventory", componentCount: 1 });
+	});
+});
+
+describe("consumeDispatchBoundInventory", () => {
+	test("consumes only picked allocations bound to the completing dispatch", async () => {
+		const updates: any[] = [];
+		const tx = {
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 7,
+						qty: 2,
+						status: "picked",
+						orderDeliveryId: 77,
+						lineItemComponentId: 101,
+						lineItemComponent: { parent: { saleId: 500 } },
+					},
+				],
+				updateMany: async (payload: any) => {
+					updates.push(payload);
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 101,
+					qty: 2,
+					inboundDemands: [],
+					stockAllocations: [{ qty: 2 }],
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+		};
+
+		const result = await consumeDispatchBoundInventory(tx as any, {
+			orderDeliveryId: 77,
+			salesOrderId: 500,
+		});
+
+		expect(result).toEqual({
+			executionMode: "inventory",
+			allocationIds: [7],
+			consumedQty: 2,
+		});
+		expect(updates[0]).toMatchObject({
+			where: { id: 7, orderDeliveryId: 77, status: "picked" },
+			data: { status: "consumed" },
+		});
+	});
+
+	test("blocks completion when a bound allocation is not picked", async () => {
+		const tx = {
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 7,
+						qty: 1,
+						status: "reserved",
+						orderDeliveryId: 77,
+						lineItemComponentId: 101,
+						lineItemComponent: { parent: { saleId: 500 } },
+					},
+				],
+				updateMany: async () => ({ count: 1 }),
+			},
+		};
+
+		await expect(
+			consumeDispatchBoundInventory(tx as any, {
+				orderDeliveryId: 77,
+				salesOrderId: 500,
+			}),
+		).rejects.toThrow("INVENTORY_DISPATCH_NOT_PICKED");
+	});
+});
+
+describe("releaseDispatchBoundInventory", () => {
+	test("releases reserved inventory but requires confirmation for picked stock", async () => {
+		const tx = {
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 7,
+						qty: 1,
+						status: "picked",
+						orderDeliveryId: 77,
+						lineItemComponentId: 101,
+					},
+				],
+			},
+		};
+
+		await expect(
+			releaseDispatchBoundInventory(tx as any, { orderDeliveryId: 77 }),
+		).rejects.toThrow("INVENTORY_DISPATCH_PICKED_RELEASE_REQUIRES_CONFIRMATION");
+	});
+});
 
 describe("transitionInventoryDispatchAllocations", () => {
 	test("uses a guarded status update before reporting a dispatch transition", async () => {
@@ -149,6 +300,171 @@ describe("transitionInventoryDispatchAllocations", () => {
 			],
 		});
 		expect(calls).toEqual(["stockAllocation.updateMany"]);
+	});
+
+	test("binds assigned allocations to the existing dispatch", async () => {
+		const updates: any[] = [];
+		const tx = {
+			orderDelivery: {
+				findFirst: async () => ({
+					id: 77,
+					salesOrderId: 500,
+					status: "queue",
+				}),
+			},
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 7,
+						qty: 1,
+						status: "approved",
+						orderDeliveryId: null,
+						lineItemComponentId: 101,
+						inventoryStockId: 9,
+						inventoryVariantId: 44,
+						notes: "Ready",
+						lineItemComponent: { parent: { sale: {} } },
+					},
+				],
+				updateMany: async (payload: any) => {
+					updates.push(payload);
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 101,
+					qty: 1,
+					inboundDemands: [],
+					stockAllocations: [{ qty: 1 }],
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+		};
+		const db = {
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
+		};
+
+		await transitionInventoryDispatchAllocations(db as any, "assign", {
+			salesOrderId: 500,
+			allocationIds: [7],
+			orderDeliveryId: 77,
+		} as any);
+
+		expect(updates[0]).toMatchObject({
+			where: { id: 7, orderDeliveryId: null },
+			data: { status: "reserved", orderDeliveryId: 77 },
+		});
+	});
+
+	test("rejects a cross-dispatch allocation before picking", async () => {
+		const tx = {
+			orderDelivery: {
+				findFirst: async () => ({
+					id: 77,
+					salesOrderId: 500,
+					status: "queue",
+				}),
+			},
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 7,
+						qty: 1,
+						status: "reserved",
+						orderDeliveryId: 88,
+						lineItemComponentId: 101,
+						lineItemComponent: { parent: { sale: {} } },
+					},
+				],
+				updateMany: async () => ({ count: 1 }),
+			},
+		};
+		const db = {
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
+		};
+
+		await expect(
+			transitionInventoryDispatchAllocations(db as any, "pack", {
+				salesOrderId: 500,
+				allocationIds: [7],
+				orderDeliveryId: 77,
+			} as any),
+		).rejects.toThrow("INVENTORY_ALLOCATION_DISPATCH_MISMATCH");
+	});
+
+	test("splits an oversized approved allocation to the exact dispatch quantity", async () => {
+		const updates: any[] = [];
+		const creates: any[] = [];
+		const tx = {
+			orderDelivery: {
+				findFirst: async () => ({ id: 77, salesOrderId: 500, status: "queue" }),
+			},
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 7,
+						qty: 3,
+						status: "approved",
+						orderDeliveryId: null,
+						lineItemComponentId: 101,
+						inventoryStockId: 9,
+						inventoryVariantId: 44,
+						notes: "Ready",
+						lineItemComponent: { parent: { sale: {} } },
+					},
+				],
+				updateMany: async (payload: any) => {
+					updates.push(payload);
+					return { count: 1 };
+				},
+				create: async (payload: any) => {
+					creates.push(payload);
+					return { id: 70 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 101,
+					qty: 3,
+					inboundDemands: [],
+					stockAllocations: [{ qty: 3 }],
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+		};
+		const db = {
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
+		};
+
+		const result = await transitionInventoryDispatchAllocations(
+			db as any,
+			"assign",
+			{
+				salesOrderId: 500,
+				orderDeliveryId: 77,
+				allocationSelections: [{ allocationId: 7, qty: 1 }],
+			} as any,
+		);
+
+		expect(updates[0]).toMatchObject({
+			where: { id: 7, qty: 3, status: "approved", orderDeliveryId: null },
+			data: { qty: 2 },
+		});
+		expect(creates[0]).toMatchObject({
+			data: {
+				lineItemComponentId: 101,
+				inventoryStockId: 9,
+				inventoryVariantId: 44,
+				orderDeliveryId: 77,
+				qty: 1,
+				status: "reserved",
+			},
+		});
+		expect(result.transitions[0]?.allocationId).toBe(70);
 	});
 
 	test("does not release consumed allocations while releasing eligible picked rows", async () => {

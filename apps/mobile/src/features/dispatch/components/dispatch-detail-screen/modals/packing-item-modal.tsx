@@ -4,6 +4,7 @@ import { BottomSheetKeyboardAwareScrollView } from "@/components/ui/bottom-sheet
 import { Modal as SheetModal } from "@/components/ui/modal";
 import { Toast } from "@/components/ui/toast";
 import { Text } from "react-native";
+import { ManifestItemFacts } from "../components/manifest-item-facts";
 
 const PACKING_ITEM_KEYBOARD_BOTTOM_OFFSET = 96;
 
@@ -49,8 +50,9 @@ export function PackingItemModal({
       >
         {!!selectedItem && (
           <>
-            <Text className="mb-2 text-sm text-muted-foreground">
-              Add packing qty and review history
+            <ManifestItemFacts item={selectedItem} />
+            <Text className="mb-2 text-sm font-semibold text-foreground">
+              Packing quantity
             </Text>
             <DispatchPackingForm
               item={selectedItem as any}

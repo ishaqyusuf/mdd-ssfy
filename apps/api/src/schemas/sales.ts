@@ -24,11 +24,27 @@ const dispatchQueryParamsShape = {
 	scheduleDate: z.array(z.string().optional().nullable()).optional().nullable(),
 };
 
+export const dispatchDueBucketSchema = z.enum([
+	"overdue",
+	"today",
+	"tomorrow",
+	"upcoming",
+	"unscheduled",
+]);
+
 export const dispatchQueryParamsSchema = z
 	.object(dispatchQueryParamsShape)
 	.extend(paginationSchema.shape);
 export type DispatchQueryParamsSchema = z.infer<
 	typeof dispatchQueryParamsSchema
+>;
+
+export const driverWorkQueueQuerySchema = dispatchQueryParamsSchema.extend({
+	dueBuckets: z.array(dispatchDueBucketSchema).optional().nullable(),
+	statuses: z.array(z.enum(salesDispatchStatus)).optional().nullable(),
+});
+export type DriverWorkQueueQuerySchema = z.infer<
+	typeof driverWorkQueueQuerySchema
 >;
 
 export const updateSalesDeliveryOptionSchema = z.object({

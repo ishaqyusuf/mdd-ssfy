@@ -149,15 +149,19 @@ export function isDealerShelfCategoryAllowed(
 
 export function isDealerShelfProductAllowed(
 	visibility: DealerWorkflowVisibility,
-	product: { categoryId?: number | null; parentCategoryId?: number | null },
+	product: {
+		categoryId?: number | null;
+		parentCategoryId?: number | null;
+		categoryPath?: Array<{ id?: number | null }> | null;
+	},
 ) {
 	const shelfVisibility = visibility.shelfCategoryVisibility;
 	if (shelfVisibility.mode !== "allowlist") return true;
 	const allowedIds = new Set(shelfVisibility.categoryIds);
-	return (
-		(typeof product.categoryId === "number" &&
-			allowedIds.has(product.categoryId)) ||
-		(typeof product.parentCategoryId === "number" &&
-			allowedIds.has(product.parentCategoryId))
-	);
+	const effectiveCategoryIds = [
+		product.categoryId,
+		product.parentCategoryId,
+		...(product.categoryPath || []).map((category) => category.id),
+	].filter((id): id is number => typeof id === "number");
+	return effectiveCategoryIds.some((id) => allowedIds.has(id));
 }

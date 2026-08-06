@@ -1,18 +1,18 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type { Prisma, TransactionClient } from "@gnd/db";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
 import {
 	createStoredDocumentRegistry,
 	normalizeStoredDocument,
 } from "@api/utils/stored-documents";
+import type { Prisma, TransactionClient } from "@gnd/db";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
 import {
+	type NewInboundShipmentStatus,
 	assignInboundDemandsToShipment,
 	createInboundShipment,
 	createInboundShipmentFromDemands,
 	getInboundShipmentDetail,
 	listInboundShipments,
-	type NewInboundShipmentStatus,
 	releaseCancelledInboundShipmentDemand,
 } from "@gnd/inventory";
 import { Notifications } from "@gnd/notifications";
@@ -190,7 +190,7 @@ async function assertInboundRequestCanCreateDemand(
 				parent: {
 					select: {
 						sale: {
-							select: inboundGuardSaleSelect,
+							select: inboundGuardSaleSelect as never,
 						},
 					},
 				},
@@ -198,8 +198,8 @@ async function assertInboundRequestCanCreateDemand(
 		});
 
 		for (const component of components) {
-			const sale = component.parent.sale;
-			if (sale) salesById.set(sale.id, sale as unknown as InboundGuardSale);
+			const sale = component.parent.sale as unknown as InboundGuardSale | null;
+			if (sale) salesById.set(sale.id, sale);
 		}
 	}
 
@@ -217,7 +217,7 @@ async function assertInboundRequestCanCreateDemand(
 						parent: {
 							select: {
 								sale: {
-									select: inboundGuardSaleSelect,
+									select: inboundGuardSaleSelect as never,
 								},
 							},
 						},
@@ -227,8 +227,9 @@ async function assertInboundRequestCanCreateDemand(
 		});
 
 		for (const demand of demands) {
-			const sale = demand.lineItemComponent.parent.sale;
-			if (sale) salesById.set(sale.id, sale as unknown as InboundGuardSale);
+			const sale = demand.lineItemComponent.parent
+				.sale as unknown as InboundGuardSale | null;
+			if (sale) salesById.set(sale.id, sale);
 		}
 	}
 

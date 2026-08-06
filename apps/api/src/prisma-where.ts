@@ -5,9 +5,10 @@ import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import { composeQuery } from "@gnd/utils/query-response";
 import type { EmployeesQueryParams } from "./schemas/hrm";
 import type { DispatchQueryParamsSchema } from "./schemas/sales";
+import type { DriverWorkQueueQuerySchema } from "./schemas/sales";
 
-import { env } from "node:process";
 import { whereSales } from "@sales/utils/where-queries";
+import { getDispatchDateBoundaries } from "@gnd/sales/dispatch-manifest/driver-work-queue";
 export function whereCustomer(query: DispatchQueryParamsSchema) {
 	const whereStack: Prisma.CustomersWhereInput[] = [];
 
@@ -30,10 +31,17 @@ export function whereCustomer(query: DispatchQueryParamsSchema) {
 
 	return composeQuery(whereStack);
 }
-export function whereDispatch(query: DispatchQueryParamsSchema) {
+export function whereDispatch(
+	query: DispatchQueryParamsSchema &
+		Partial<DriverWorkQueueQuerySchema> & { now?: Date },
+) {
 	const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
 
-	if (query?.tab === "all") {
+	if (query.statuses?.length) {
+		whereStack.push({
+			status: { in: query.statuses },
+		});
+	} else if (query?.tab === "all") {
 		// Keep all statuses.
 	} else if (query?.tab === "completed") {
 		whereStack.push({
@@ -99,12 +107,41 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
 				break;
 		}
 	}
-	if (query.driversId?.length && env.NODE_ENV === "production")
+	if (query.driversId?.length)
 		whereStack.push({
 			driverId: {
 				in: query.driversId,
 			},
 		});
+	if (query.dueBuckets?.length) {
+		const { startToday, startTomorrow, startAfterTomorrow } =
+			getDispatchDateBoundaries({
+				now: query.now,
+				timeZone:
+					process.env.BUSINESS_TIME_ZONE ||
+					process.env.TZ ||
+					"America/New_York",
+			});
+		const dueRanges: Prisma.OrderDeliveryWhereInput[] = [];
+		for (const bucket of query.dueBuckets) {
+			if (bucket === "overdue") {
+				dueRanges.push({ dueDate: { lt: startToday } });
+			} else if (bucket === "today") {
+				dueRanges.push({
+					dueDate: { gte: startToday, lt: startTomorrow },
+				});
+			} else if (bucket === "tomorrow") {
+				dueRanges.push({
+					dueDate: { gte: startTomorrow, lt: startAfterTomorrow },
+				});
+			} else if (bucket === "upcoming") {
+				dueRanges.push({ dueDate: { gte: startAfterTomorrow } });
+			} else if (bucket === "unscheduled") {
+				dueRanges.push({ dueDate: null });
+			}
+		}
+		if (dueRanges.length) whereStack.push({ OR: dueRanges });
+	}
 	if (query.q) {
 		const contains = { contains: query.q };
 		const addressContains = {

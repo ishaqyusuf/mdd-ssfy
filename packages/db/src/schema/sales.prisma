@@ -100,6 +100,7 @@ model SalesOrders {
     productionReadinessOverride SalesProductionReadinessOverride?
     productionSubmissionMaterialReviews SalesProductionSubmissionMaterialReview[]
     adjustments       SalesOrderAdjustment[]
+    workflowCancellations SalesWorkflowCancellation[]
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -119,6 +120,25 @@ model SalesOrders {
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+model SalesWorkflowCancellation {
+    id                Int         @id @default(autoincrement())
+    requestId         String      @unique @db.VarChar(64)
+    salesOrderId      Int
+    action            String      @db.VarChar(32)
+    reason            String      @db.Text
+    revision          String      @db.VarChar(64)
+    beforeState       Json        @db.Json
+    result            Json        @db.Json
+    performedByUserId Int
+    createdAt         DateTime    @default(now()) @db.Timestamp(0)
+    order             SalesOrders @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+    performedBy       Users       @relation(name: "salesWorkflowCancellationsPerformed", fields: [performedByUserId], references: [id], onDelete: Restrict)
+
+    @@index([salesOrderId, createdAt])
+    @@index([performedByUserId, createdAt])
+    @@index([action, createdAt])
 }
 
 model SalesInventoryProjectionState {

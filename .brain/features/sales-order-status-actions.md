@@ -6,6 +6,36 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 
 ## Behavior
 
+### Safe layered cancellation (2026-08-06)
+
+- Status-menu cancellation opens a single-order, lazy-loaded review dialog. It
+  no longer calls the legacy dispatch cancellation mutation or Trigger
+  submission-deletion task directly.
+- `Cancel Fulfillment` permits only queued, packing, missing-item, or packed
+  dispatches without completion evidence. It cancels all reversible active
+  dispatches, changes packed rows to `unpacked`, preserves packing history and
+  delivery timestamps, and blocks unknown, in-progress, in-transit, completed,
+  delivered, or proof-bearing dispatches.
+- `Cancel Production` removes only active submissions tagged
+  `sales_mark_as_completed`, before fulfillment begins. Manual/legacy
+  submissions and shared reviews remain; pending unpaid payroll is soft
+  deleted, later payroll blocks, exclusively automatic approved reviews become
+  `CANCELLED`, and active readiness overrides are revoked.
+- Automatic payment review is reverted only while its review method/action is
+  still untouched and the cancelled layer is no longer justified.
+- Inbound status, received quantities, stock, stock movements, inventory logs,
+  and manual availability evidence are always preserved and displayed in the
+  preview.
+- The command requires a reason, revision, and idempotent request id; it
+  rechecks eligibility inside a serializable transaction and atomically writes
+  domain changes, rebuilt sales control, Sales History, and the cancellation
+  ledger.
+- Cancelled dispatch controls no longer project the parent order as terminal
+  `Cancelled`. An explicitly cancelled sales order remains terminal.
+- Ready-to-fulfill rows expose guarded production and fulfillment reviews even
+  when legacy production/dispatch projections lag; the server preview is the
+  eligibility authority.
+
 - The Sales Orders `Status` cell is a keyboard-accessible dropdown trigger styled with the shared ghost button variant while retaining the lifecycle status tone.
 - The inline Status dropdown has no redundant `Mark as` label. Its first two
   actions are `Production completed` and `Fulfilled`.
@@ -45,6 +75,18 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 - Saved page-tab list/default queries refetch inactive cache entries as well as active ones. A saved filter such as production complete plus fulfillment pending therefore updates its count after an order is fulfilled without a page reload.
 
 ## Validation
+
+- 2026-08-06 layered-cancellation coverage passed 53 focused tests / 115
+  assertions, targeted Biome, and whitespace validation. `@gnd/sales` and
+  `@gnd/api` typechecks passed for the cancellation slice, then a final shared
+  worktree rerun was blocked by concurrent unrelated `sales-fulfillment-plan`
+  stock-allocation typing changes. The broad dashboard typecheck remains red
+  on its existing repository baseline; no changed cancellation runtime file is
+  reported by the filtered diagnostic pass.
+- Authenticated local browser QA verified delivered blocker evidence on
+  `09166LRG`, queued fulfillment review/reason gating on `09163DB`, and
+  automatic production review/reason gating on `09160LM`. No cancellation was
+  submitted during browser QA and no console errors were recorded.
 
 - 2026-08-06 focused dependency, inventory preflight, production decision,
   manual fulfillment, and sales-control coverage passed 40 tests / 126

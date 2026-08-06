@@ -188,7 +188,10 @@ function deriveDispatchStatusFromControls(
     return "completed";
   if (inProgress > 0) return "in progress";
   if (queued > 0) return "queue";
-  if (cancelled > 0) return "cancelled";
+  // Cancellation is a dispatch-layer fact, not a terminal order lifecycle.
+  // Individual dispatch rows keep their cancelled status while the parent order
+  // falls back to its production/inventory-derived state.
+  if (cancelled > 0) return "unknown";
   return "unknown";
 }
 

@@ -16,6 +16,7 @@ model OrderDelivery {
     order        SalesOrders         @relation(fields: [salesOrderId], references: [id])
     driver       Users?              @relation(name: "driver", fields: [driverId], references: [id])
     createdBy    Users?              @relation(name: "createdBy", fields: [createdById], references: [id])
+	stockAllocations StockAllocation[]
 
     @@index([salesOrderId])
     @@index([driverId])

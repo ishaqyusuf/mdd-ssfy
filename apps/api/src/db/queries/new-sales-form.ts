@@ -50,6 +50,12 @@ import { assertDealerSaleOfficeAccess } from "@gnd/db/queries";
 import { projectLegacyOrderPayments } from "@gnd/sales";
 import { analyzeSalesFormChange } from "@gnd/sales/adjustment-system";
 import {
+	normalizeShelfProductSearchQuery,
+	searchShelfProductIndex,
+	shelfProductSearchCandidateTerms,
+	shelfProductSearchCandidateTitleAnchorGroups,
+} from "@gnd/sales/sales-form";
+import {
 	addMoney,
 	resolveSalesDisplayCcc,
 	roundMoney,
@@ -1909,9 +1915,37 @@ async function activeShelfCategoryIds(ctx: TRPCContext) {
 		},
 		select: {
 			id: true,
+			categoryId: true,
+			parentCategoryId: true,
 		},
 	});
-	return categories.map((category) => Number(category.id || 0)).filter(Boolean);
+	const byId = new Map(
+		categories
+			.map((category) => [Number(category.id || 0), category] as const)
+			.filter(([id]) => id > 0),
+	);
+	const memo = new Map<number, boolean>();
+	const hasActiveAncestors = (
+		id: number,
+		visiting = new Set<number>(),
+	): boolean => {
+		const cached = memo.get(id);
+		if (cached != null) return cached;
+		const category = byId.get(id);
+		if (!category || visiting.has(id)) return false;
+		const parentId =
+			Number(category.parentCategoryId || 0) ||
+			Number(category.categoryId || 0);
+		if (!parentId || parentId === id) {
+			memo.set(id, true);
+			return true;
+		}
+		const nextVisiting = new Set(visiting).add(id);
+		const active = hasActiveAncestors(parentId, nextVisiting);
+		memo.set(id, active);
+		return active;
+	};
+	return Array.from(byId.keys()).filter((id) => hasActiveAncestors(id));
 }
 
 async function activeShelfProductWhere(ctx: TRPCContext) {
@@ -1954,7 +1988,7 @@ export async function getNewSalesFormShelfProducts(
 	const payload = getNewSalesFormShelfProductsSchema.parse(input);
 	if (!payload.categoryIds.length) return [];
 	const visibilityWhere = await activeShelfProductWhere(ctx);
-	return ctx.db.dykeShelfProducts.findMany({
+	const products = await ctx.db.dykeShelfProducts.findMany({
 		where: {
 			...visibilityWhere,
 			OR: [
@@ -1980,6 +2014,11 @@ export async function getNewSalesFormShelfProducts(
 		},
 		orderBy: [{ title: "asc" }],
 	});
+	const categories = await shelfCategoryRowsForProducts(ctx, products);
+	return products.map((product) => ({
+		...product,
+		categoryPath: shelfCategoryPathForProduct(product, categories),
+	}));
 }
 
 export async function getNewSalesFormShelfProductIndex(
@@ -1988,15 +2027,87 @@ export async function getNewSalesFormShelfProductIndex(
 ) {
 	getNewSalesFormShelfProductIndexSchema.parse(input);
 	const visibilityWhere = await activeShelfProductWhere(ctx);
-	return ctx.db.dykeShelfProducts.findMany({
+	const products = await ctx.db.dykeShelfProducts.findMany({
 		where: visibilityWhere,
 		select: {
 			id: true,
 			title: true,
 			unitPrice: true,
+			categoryId: true,
+			parentCategoryId: true,
 		},
 		orderBy: [{ title: "asc" }],
 	});
+	const categories = await shelfCategoryRowsForProducts(ctx, products);
+	return products.map((product) => ({
+		...product,
+		categoryPath: shelfCategoryPathForProduct(product, categories),
+	}));
+}
+
+async function shelfCategoryRowsForProducts(
+	ctx: TRPCContext,
+	products: Array<{
+		categoryId?: number | null;
+		parentCategoryId?: number | null;
+	}>,
+) {
+	const categoryIds = Array.from(
+		new Set(
+			products
+				.flatMap((product) => [
+					Number(product?.parentCategoryId || 0),
+					Number(product?.categoryId || 0),
+				])
+				.filter((id) => id > 0),
+		),
+	);
+	if (!categoryIds.length) return [];
+	const categories = await ctx.db.dykeShelfCategories.findMany({
+		where: {
+			deletedAt: null,
+			id: {
+				in: categoryIds,
+			},
+		},
+		select: {
+			id: true,
+			name: true,
+			type: true,
+			categoryId: true,
+			parentCategoryId: true,
+		},
+	});
+	const loadedIds = new Set(
+		categories.map((category) => Number(category?.id || 0)),
+	);
+	const parentIds = Array.from(
+		new Set(
+			categories
+				.flatMap((category) => [
+					Number(category?.parentCategoryId || 0),
+					Number(category?.categoryId || 0),
+				])
+				.filter((id) => id > 0 && !loadedIds.has(id)),
+		),
+	);
+	if (!parentIds.length) return categories;
+	const parents = await ctx.db.dykeShelfCategories.findMany({
+		where: {
+			deletedAt: null,
+			id: {
+				in: parentIds,
+			},
+		},
+		select: {
+			id: true,
+			name: true,
+			type: true,
+			categoryId: true,
+			parentCategoryId: true,
+		},
+	});
+	return [...categories, ...parents];
 }
 
 function shelfCategoryPathForProduct(
@@ -2064,33 +2175,7 @@ export async function getNewSalesFormShelfProductDetails(
 		},
 		orderBy: [{ title: "asc" }],
 	});
-	const categoryIds = Array.from(
-		new Set(
-			products
-				.flatMap((product) => [
-					Number(product?.parentCategoryId || 0),
-					Number(product?.categoryId || 0),
-				])
-				.filter((id) => id > 0),
-		),
-	);
-	const categories = categoryIds.length
-		? await ctx.db.dykeShelfCategories.findMany({
-				where: {
-					deletedAt: null,
-					id: {
-						in: categoryIds,
-					},
-				},
-				select: {
-					id: true,
-					name: true,
-					type: true,
-					categoryId: true,
-					parentCategoryId: true,
-				},
-			})
-		: [];
+	const categories = await shelfCategoryRowsForProducts(ctx, products);
 	return products.map((product) => ({
 		...product,
 		categoryPath: shelfCategoryPathForProduct(product, categories),
@@ -2240,19 +2325,201 @@ export async function searchNewSalesFormShelfProducts(
 		categoryId: true,
 		parentCategoryId: true,
 	} as const;
-	const rows = query
-		? await ctx.db.dykeShelfProducts.findMany({
-				where: {
-					...visibilityWhere,
-					title: {
-						contains: query,
+	if (query) {
+		const candidateTerms = shelfProductSearchCandidateTerms(query);
+		const exactCandidatesPromise = candidateTerms.length
+			? ctx.db.dykeShelfProducts.findMany({
+					where: {
+						...visibilityWhere,
+						title: {
+							equals: query,
+						},
 					},
-				},
-				select: productSelect,
-				orderBy: [{ title: "asc" }],
-				take: limit,
-			})
-		: await getRecentShelfProducts(ctx, visibilityWhere, productSelect, limit);
+					select: productSelect,
+					take: 1,
+				})
+			: Promise.resolve([]);
+		const phraseCandidatesPromise =
+			candidateTerms.length > 1
+				? ctx.db.dykeShelfProducts.findMany({
+						where: {
+							...visibilityWhere,
+							title: {
+								contains: query,
+							},
+						},
+						select: productSelect,
+						orderBy: [{ title: "asc" }],
+						take: 100,
+					})
+				: Promise.resolve([]);
+		const matchingCategories = candidateTerms.length
+			? await ctx.db.dykeShelfCategories.findMany({
+					where: {
+						deletedAt: null,
+						OR: candidateTerms.map((term) => ({
+							name: {
+								contains: term,
+							},
+						})),
+					},
+					select: {
+						id: true,
+						name: true,
+					},
+				})
+			: [];
+		const matchingCategoryIds = matchingCategories
+			.map((category) => Number(category.id || 0))
+			.filter((id) => id > 0);
+		const descendantCategories = matchingCategoryIds.length
+			? await ctx.db.dykeShelfCategories.findMany({
+					where: {
+						deletedAt: null,
+						OR: [
+							{ parentCategoryId: { in: matchingCategoryIds } },
+							{ categoryId: { in: matchingCategoryIds } },
+						],
+					},
+					select: {
+						id: true,
+						categoryId: true,
+						parentCategoryId: true,
+					},
+				})
+			: [];
+		const categoryIdsByTerm = new Map(
+			candidateTerms.map((term) => {
+				const directIds = matchingCategories
+					.filter((category) =>
+						normalizeShelfProductSearchQuery(category.name).includes(term),
+					)
+					.map((category) => Number(category.id || 0))
+					.filter((id) => id > 0);
+				const directIdSet = new Set(directIds);
+				const descendantIds = descendantCategories
+					.filter(
+						(category) =>
+							directIdSet.has(Number(category.parentCategoryId || 0)) ||
+							directIdSet.has(Number(category.categoryId || 0)),
+					)
+					.map((category) => Number(category.id || 0))
+					.filter((id) => id > 0);
+				return [term, Array.from(new Set([...directIds, ...descendantIds]))] as const;
+			}),
+		);
+		const activeAnd = Array.isArray(visibilityWhere.AND)
+			? visibilityWhere.AND
+			: [];
+		const termClauses = candidateTerms.map((term) => {
+			const categoryIds = categoryIdsByTerm.get(term) || [];
+			return {
+				OR: [
+					{
+						title: {
+							contains: term,
+						},
+					},
+					...(categoryIds.length
+						? [
+								{ categoryId: { in: categoryIds } },
+								{ parentCategoryId: { in: categoryIds } },
+							]
+						: []),
+				],
+			};
+		});
+		const titleAnchorGroups =
+			shelfProductSearchCandidateTitleAnchorGroups(query);
+		const lexicalTermClauses = termClauses.filter(
+			(_clause, index) => !/^\d+$/.test(candidateTerms[index] || ""),
+		);
+		const [
+			exactCandidates,
+			phraseCandidates,
+			structuredCandidates,
+			coarseCandidates,
+		] = await Promise.all([
+			exactCandidatesPromise,
+			phraseCandidatesPromise,
+			titleAnchorGroups.length
+				? ctx.db.dykeShelfProducts.findMany({
+					where: {
+						...visibilityWhere,
+						AND: [
+							...activeAnd,
+							...lexicalTermClauses,
+							...titleAnchorGroups.map((anchors) => ({
+								OR: anchors.map((anchor) => ({
+									title: {
+										contains: anchor,
+									},
+								})),
+							})),
+						],
+					},
+					select: productSelect,
+					orderBy: [{ title: "asc" }],
+					take: 250,
+				})
+				: Promise.resolve([]),
+			candidateTerms.length
+				? ctx.db.dykeShelfProducts.findMany({
+					where: {
+						...visibilityWhere,
+						AND: [...activeAnd, ...termClauses],
+					},
+					select: productSelect,
+					orderBy: [{ title: "asc" }],
+					take: Math.min(250, Math.max(100, limit * 8)),
+				})
+				: Promise.resolve([]),
+		]);
+		const candidates = Array.from(
+			new Map(
+				[
+					...exactCandidates,
+					...phraseCandidates,
+					...structuredCandidates,
+					...coarseCandidates,
+				].map((product) => [Number(product.id || 0), product] as const),
+			).values(),
+		);
+		const candidateIds = new Set(
+			candidates.map((product) => Number(product.id || 0)),
+		);
+		const missingSelectedIds = payload.selectedIds.filter(
+			(id, index, list) =>
+				id > 0 && list.indexOf(id) === index && !candidateIds.has(id),
+		);
+		const selectedProducts = missingSelectedIds.length
+			? await ctx.db.dykeShelfProducts.findMany({
+					where: {
+						...visibilityWhere,
+						id: {
+							in: missingSelectedIds,
+						},
+					},
+					select: productSelect,
+				})
+			: [];
+		const products = [...candidates, ...selectedProducts];
+		const categories = await shelfCategoryRowsForProducts(ctx, products);
+		const productIndex = products.map((product) => ({
+			...product,
+			categoryPath: shelfCategoryPathForProduct(product, categories),
+		}));
+		return searchShelfProductIndex(productIndex, query, {
+			limit,
+			selectedIds: payload.selectedIds,
+		});
+	}
+	const rows = await getRecentShelfProducts(
+		ctx,
+		visibilityWhere,
+		productSelect,
+		limit,
+	);
 	const rowIds = new Set(rows.map((row) => Number(row?.id || 0)));
 	const selectedIds = payload.selectedIds.filter(
 		(id, index, list) =>
@@ -2277,33 +2544,7 @@ export async function searchNewSalesFormShelfProducts(
 				(entry) => Number(entry?.id || 0) === Number(product?.id || 0),
 			) === index,
 	);
-	const categoryIds = Array.from(
-		new Set(
-			products
-				.flatMap((product) => [
-					Number(product?.parentCategoryId || 0),
-					Number(product?.categoryId || 0),
-				])
-				.filter((id) => id > 0),
-		),
-	);
-	const categories = categoryIds.length
-		? await ctx.db.dykeShelfCategories.findMany({
-				where: {
-					deletedAt: null,
-					id: {
-						in: categoryIds,
-					},
-				},
-				select: {
-					id: true,
-					name: true,
-					type: true,
-					categoryId: true,
-					parentCategoryId: true,
-				},
-			})
-		: [];
+	const categories = await shelfCategoryRowsForProducts(ctx, products);
 	return products.map((product) => ({
 		...product,
 		categoryPath: shelfCategoryPathForProduct(product, categories),

@@ -120,7 +120,7 @@ export async function assertStockAllocationRequestCanAllocate(
 					parent: {
 						select: {
 							sale: {
-								select: allocationGuardSaleSelect,
+								select: allocationGuardSaleSelect as never,
 							},
 						},
 					},
@@ -131,8 +131,9 @@ export async function assertStockAllocationRequestCanAllocate(
 	const salesById = new Map<number, AllocationGuardSale>();
 
 	for (const allocation of allocations) {
-		const sale = allocation.lineItemComponent.parent.sale;
-		if (sale) salesById.set(sale.id, sale as unknown as AllocationGuardSale);
+		const sale = allocation.lineItemComponent.parent
+			.sale as unknown as AllocationGuardSale | null;
+		if (sale) salesById.set(sale.id, sale);
 	}
 
 	for (const sale of salesById.values()) {

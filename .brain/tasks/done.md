@@ -1,5 +1,14 @@
 # Done
 
+- [x] 2026-08-06 — Implement safe, auditable, single-order layer cancellation
+  for Sales production and fulfillment: lazy preview/reason dialog, typed
+  blockers, serializable stale-revision checks, idempotent ledger, automatic
+  production/payment/payroll cleanup, reversible dispatch unpacking, preserved
+  physical/manual evidence, lifecycle projection correction, permissions,
+  query events, focused tests, and authenticated local browser QA. No build or
+  deployment ran. See ADR-049 and
+  `.brain/features/sales-order-status-actions.md`.
+
 - [x] 2026-08-05 — Repair systemic sales inventory projection failures and
   false `N/A` states across grouped Service/Shelf lines, stale positive
   projections, and legacy non-produceable service rows; add guarded,
@@ -1065,3 +1074,15 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   stable bulk selection, hold/release, and canonical-mode shipment confirmation.
   Focused tests pass with 10 tests / 30 assertions; device/runtime proof remains
   blocked by the existing shared `@gnd/errors` module-resolution failure.
+
+### New Sales Form Shelf Product Deep Search
+- Priority: Medium
+- Description: Implemented one measurement-aware, unordered-token shelf
+  product search authority across cached web/dealer pickers, Shelf V1, and the
+  typed API fallback.
+- Related Feature: New sales form Shelf Items product picker
+- Status: Done
+- Plan Status: Done
+- Plan File: .brain/plans/2026-08-06-feature-new-sales-form-shelf-product-deep-search.md
+- Created Date: 2026-08-06
+- Completed Date: 2026-08-06

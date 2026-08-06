@@ -61,6 +61,72 @@ describe("sales-control task transactions", () => {
     getSaleInformationMock.mockClear();
   });
 
+	it("consumes dispatch-bound inventory in the completion transaction", async () => {
+		const calls: string[] = [];
+		const completeInventoryDispatch = mock(async () => {
+			calls.push("inventory.complete");
+			return {
+				executionMode: "inventory" as const,
+				allocationIds: [7],
+				consumedQty: 1,
+			};
+		});
+		const tx = {
+			orderDelivery: {
+				findFirst: mock(async () => ({
+					status: "in progress",
+					deliveredAt: null,
+					salesOrderId: 500,
+					meta: {
+						dispatchCompletion: {
+							requestId: "request-1",
+							status: "uploading",
+						},
+					},
+				})),
+				update: mock(async (payload: any) => {
+					calls.push("dispatch.update");
+					return payload;
+				}),
+			},
+		};
+		const db = {
+			$transaction: async (fn: any) => fn(tx),
+		};
+
+		await tasksModule.submitDispatchTask(
+			db as any,
+			{
+				meta: { salesId: 500, authorId: 12, authorName: "Driver" },
+				submitDispatch: {
+					dispatchId: 77,
+					completionRequestId: "request-1",
+				},
+			} as any,
+			{
+				saveNoteAction: saveNoteMock,
+				completeInventoryDispatch,
+			} as any,
+		);
+
+		expect(calls.slice(0, 2)).toEqual([
+			"inventory.complete",
+			"dispatch.update",
+		]);
+		expect(tx.orderDelivery.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					meta: expect.objectContaining({
+						inventoryDispatch: expect.objectContaining({
+							status: "consumed",
+							consumedQty: 1,
+						}),
+					}),
+				}),
+			}),
+		);
+	});
+
 	it("submits pending-material work atomically and defers completion side effects", async () => {
 		getSaleInformationMock.mockResolvedValueOnce({
 			order: { id: 9001 },
@@ -412,6 +478,37 @@ describe("sales-control task transactions", () => {
     expect(resetSalesActionMock).toHaveBeenCalledTimes(1);
     expect(resetSalesActionMock).toHaveBeenCalledWith(tx, 777);
   });
+
+	it("checks inventory readiness before starting a dispatch in the same transaction", async () => {
+		const calls: string[] = [];
+		const assertInventoryReady = mock(async () => {
+			calls.push("inventory.ready");
+		});
+		const tx = {
+			orderDelivery: {
+				updateMany: mock(async () => {
+					calls.push("dispatch.start");
+					return { count: 1 };
+				}),
+			},
+		};
+		const db = { $transaction: async (fn: any) => fn(tx) };
+
+		await tasksModule.startDispatchTask(
+			db as any,
+			{
+				meta: { salesId: 777 },
+				startDispatch: { dispatchId: 55 },
+			} as any,
+			{ assertInventoryReady },
+		);
+
+		expect(calls).toEqual(["inventory.ready", "dispatch.start"]);
+		expect(assertInventoryReady).toHaveBeenCalledWith(tx, {
+			orderDeliveryId: 55,
+			salesOrderId: 777,
+		});
+	});
 
   it("rejects dispatch ids outside the parent sales order", async () => {
     const tx = {

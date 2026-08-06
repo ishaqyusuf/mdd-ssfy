@@ -78,6 +78,11 @@ export function useDispatchActions() {
 			onSuccess: invalidateDispatchQueries,
 		}),
 	);
+	const prepareInventoryMutation = useMutation(
+		_trpc.dispatch.prepareInventoryForDispatch.mutationOptions({
+			onSuccess: invalidateDispatchQueries,
+		}),
+	);
 
 	const startDispatch = {
 		...startDispatchTask,
@@ -105,6 +110,7 @@ export function useDispatchActions() {
 		cancelDispatch,
 		submitDispatch,
 		updateDispatchStatus: updateDispatchStatusMutation,
+		prepareInventory: prepareInventoryMutation,
 		invalidateDispatchQueries,
 		onStartDispatch(input: DispatchMeta) {
 			const author = getAuthor(auth.profile);
@@ -153,6 +159,12 @@ export function useDispatchActions() {
 				dispatchId: input.dispatchId,
 				oldStatus: (input.oldStatus || "queue") as DispatchStatus,
 				newStatus: input.newStatus as DispatchStatus,
+			});
+		},
+		onPrepareInventory(input: DispatchMeta) {
+			return prepareInventoryMutation.mutateAsync({
+				salesOrderId: input.salesId,
+				orderDeliveryId: input.dispatchId,
 			});
 		},
 		canStart(status?: DispatchStatus | null) {

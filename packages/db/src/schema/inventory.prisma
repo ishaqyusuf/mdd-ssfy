@@ -835,6 +835,9 @@ model StockAllocation {
     inventoryVariantId Int
     inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
 
+	orderDeliveryId Int?
+	orderDelivery   OrderDelivery? @relation(fields: [orderDeliveryId], references: [id])
+
     qty    Float
     status StockAllocationStatus @default(reserved)
     notes  String?
@@ -846,6 +849,8 @@ model StockAllocation {
     @@index([lineItemComponentId])
     @@index([inventoryStockId])
     @@index([inventoryVariantId])
+	@@index([orderDeliveryId])
+	@@index([orderDeliveryId, status, deletedAt], name: "idx_stock_allocation_dispatch")
     @@index([lineItemComponentId, status, deletedAt], name: "idx_stock_allocation_fulfillment")
 }
 

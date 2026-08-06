@@ -101,7 +101,6 @@ import {
 	rejectDealerOrderRequest,
 } from "@gnd/db/queries";
 import { EmailService } from "@gnd/notifications/services/email-service";
-import { NotificationService } from "@notifications/services/triggers";
 import { getSaleInformation } from "@gnd/sales/get-sale-information";
 import {
 	SALES_PAYMENT_REVIEW_ACTIONS,
@@ -111,6 +110,13 @@ import {
 	normalizeSalesPaymentReviewSettings,
 } from "@gnd/sales/payment-system";
 import {
+	SalesWorkflowCancellationError,
+	cancelSalesWorkflowLayer,
+	cancelSalesWorkflowLayerSchema,
+	getSalesWorkflowCancellationPreview,
+	salesWorkflowCancellationPreviewSchema,
+} from "@gnd/sales/sales-workflow-cancellation";
+import {
 	getSettingAction,
 	normalizeSalesPrintSettings,
 	salesPrintSettingsSchema,
@@ -119,6 +125,7 @@ import {
 import { generateRandomString, timeLog } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
 import { createNoteAction } from "@notifications/note";
+import { NotificationService } from "@notifications/services/triggers";
 import {
 	getProductionReadiness,
 	productionV2DetailQuerySchema,
@@ -146,8 +153,9 @@ import {
 	getSalesProductions,
 } from "@sales/sales-production";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
-import { z } from "zod";
 import { tasks } from "@trigger.dev/sdk/v3";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import {
 	type TRPCContext,
 	createTRPCRouter,
@@ -256,6 +264,29 @@ async function requireProductionEditor(ctx: TRPCContext) {
 		["editProduction"],
 		"You do not have permission to override production readiness.",
 	);
+}
+
+async function requireWorkflowCancellationPermission(
+	ctx: TRPCContext,
+	action: "production" | "fulfillment",
+) {
+	if (action === "production") return requireProductionEditor(ctx);
+	return requireAnyOperationalPermission(
+		ctx,
+		["editPickup", "editOrders", "viewPacking"],
+		"You do not have permission to manage fulfillment.",
+	);
+}
+
+function toWorkflowCancellationTrpcError(error: unknown): never {
+	if (!(error instanceof SalesWorkflowCancellationError)) throw error;
+	const code =
+		error.code === "NOT_FOUND"
+			? "NOT_FOUND"
+			: error.code === "STALE_PREVIEW" || error.code === "IDEMPOTENCY_CONFLICT"
+				? "CONFLICT"
+				: "PRECONDITION_FAILED";
+	throw new TRPCError({ code, message: error.message, cause: error });
 }
 
 async function requireProductionReviewResolutionPermissions(
@@ -434,6 +465,48 @@ function resolveCccPercentageFromMeta(meta: Record<string, unknown> | null) {
 }
 
 export const salesRouter = createTRPCRouter({
+	workflowCancellationPreview: protectedProcedure
+		.input(salesWorkflowCancellationPreviewSchema)
+		.query(async (props) => {
+			await requireWorkflowCancellationPermission(
+				props.ctx,
+				props.input.action,
+			);
+			try {
+				return await getSalesWorkflowCancellationPreview(
+					props.ctx.db,
+					props.input,
+				);
+			} catch (error) {
+				return toWorkflowCancellationTrpcError(error);
+			}
+		}),
+	cancelWorkflowLayer: protectedProcedure
+		.input(cancelSalesWorkflowLayerSchema)
+		.mutation(async (props) => {
+			await requireWorkflowCancellationPermission(
+				props.ctx,
+				props.input.action,
+			);
+			const actor = await props.ctx.db.users.findUnique({
+				where: { id: props.ctx.userId },
+				select: { id: true, name: true },
+			});
+			if (!actor) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "An authenticated employee is required.",
+				});
+			}
+			try {
+				return await cancelSalesWorkflowLayer(props.ctx.db, props.input, {
+					id: actor.id,
+					name: actor.name || `User ${actor.id}`,
+				});
+			} catch (error) {
+				return toWorkflowCancellationTrpcError(error);
+			}
+		}),
 	dealerOrderRequestCount: protectedProcedure.query(async (props) => {
 		return getDealerOrderRequestCount(props.ctx.db, props.ctx.userId);
 	}),

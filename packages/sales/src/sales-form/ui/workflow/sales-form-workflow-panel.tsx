@@ -18,7 +18,7 @@ import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Textarea } from "@gnd/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@gnd/ui/tooltip";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import {
 	addMoney,
 	moneyRatio,
@@ -52,9 +52,12 @@ import {
 	resolveComponentPriceByDeps,
 	resolveConfiguredRouteStepsForLine,
 	resolveDoorTierPricing,
-	searchShelfProductIndex,
 	summarizeDoors,
 } from "../../domain";
+import {
+	compileShelfProductSearchIndex,
+	searchCompiledShelfProductIndex,
+} from "../../domain/shelf-product-search";
 import {
 	applyMultiSelectStepMutation,
 	applySingleSelectStepMutation,
@@ -172,6 +175,7 @@ export function SalesFormWorkflowPanel<
 	const [includeCustomComponents, setIncludeCustomComponents] = useState(false);
 	const [shelfUiVersion, setShelfUiVersion] = useState<"v1" | "v2">("v2");
 	const [shelfProductSearch, setShelfProductSearch] = useState("");
+	const deferredShelfProductSearch = useDeferredValue(shelfProductSearch);
 	const [doorSectionTabByLine, setDoorSectionTabByLine] = useState<
 		Record<string, DoorStepPanelTab>
 	>({});
@@ -269,6 +273,13 @@ export function SalesFormWorkflowPanel<
 		enabled: shelfUiVersion === "v2" && !hasShelfProductIndex,
 		limit: shelfProductSearch.trim() ? 20 : 5,
 	});
+	const compiledShelfProductIndex = useMemo(
+		() =>
+			compileShelfProductSearchIndex(
+				(shelfProductIndexQuery?.data || []) as ShelfProductOption[],
+			),
+		[shelfProductIndexQuery?.data],
+	);
 	const resolveShelfProductDetails = useCallback(
 		async (product: ShelfProductOption) => {
 			const productId = Number(product?.id || 0);
@@ -301,20 +312,21 @@ export function SalesFormWorkflowPanel<
 	}, [shelfProductsQuery?.data]);
 	const shelfProducts = useMemo(() => {
 		if (shelfProductIndexQuery?.data) {
-			return searchShelfProductIndex(
-				shelfProductIndexQuery.data as ShelfProductOption[],
-				shelfProductSearch,
+			return searchCompiledShelfProductIndex(
+				compiledShelfProductIndex,
+				deferredShelfProductSearch,
 				{
-					limit: shelfProductSearch.trim() ? 20 : 5,
+					limit: deferredShelfProductSearch.trim() ? 20 : 5,
 					selectedIds: selectedShelfProductIds,
 				},
 			) as ShelfProductOption[];
 		}
 		return (shelfProductSearchQuery?.data || []) as ShelfProductOption[];
 	}, [
+		compiledShelfProductIndex,
+		deferredShelfProductSearch,
 		selectedShelfProductIds,
 		shelfProductIndexQuery?.data,
-		shelfProductSearch,
 		shelfProductSearchQuery?.data,
 	]);
 	const activeProfileCoefficient = useMemo(() => {
@@ -1515,6 +1527,7 @@ export function SalesFormWorkflowPanel<
 								headerSlot={versionToggle}
 								onProductSearchChange={setShelfProductSearch}
 								isSearchingProducts={Boolean(
+									shelfProductSearch !== deferredShelfProductSearch ||
 									shelfProductIndexQuery?.isPending ||
 										shelfProductIndexQuery?.isFetching ||
 										shelfProductSearchQuery?.isPending ||

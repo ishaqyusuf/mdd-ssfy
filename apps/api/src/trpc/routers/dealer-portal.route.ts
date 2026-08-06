@@ -208,19 +208,10 @@ export const dealerPortalRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const routeData = await getNewSalesFormStepRouting(ctx, {});
       const visibility = deriveDealerWorkflowVisibility(routeData);
-      if (visibility.shelfCategoryVisibility.mode !== "allowlist") {
-        return getNewSalesFormShelfProductIndex(ctx, input);
-      }
-      const products = await getNewSalesFormShelfProducts(ctx, {
-        categoryIds: visibility.shelfCategoryVisibility.categoryIds,
-      });
-      return products
-        .filter((product) => isDealerShelfProductAllowed(visibility, product))
-        .map((product) => ({
-          id: product.id,
-          title: product.title,
-          unitPrice: product.unitPrice,
-        }));
+      const products = await getNewSalesFormShelfProductIndex(ctx, input);
+      return products.filter((product) =>
+        isDealerShelfProductAllowed(visibility, product),
+      );
     }),
   workflowShelfProductDetails: dealerProtectedProcedure
     .input(getNewSalesFormShelfProductDetailsSchema)

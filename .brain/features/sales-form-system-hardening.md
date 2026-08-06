@@ -48,6 +48,16 @@
   without creating a render feedback loop.
 - Shelf product search results render inside a dedicated bounded scroll region,
   so long product matches no longer grow the new-sales-form popup and page.
+- Shelf product discovery uses one package-owned compiled deep-search grammar
+  across the shared dashboard/dealership picker, Shelf V1, and the typed API
+  fallback. Product words can be reordered; door dimensions such as
+  `3 0X8 0`, `3-0 X 8-0`, and `3'0" × 8'0"` are equivalent; `4-9` can match
+  `4-9/16`; and parent/child category names provide secondary context. A lone
+  `x`, `X`, or `×` is only a measurement connector, one-letter lexical input
+  is non-substantive, and typo/edit-distance matching is intentionally
+  excluded. Cached indexes compile once, V2 defers
+  only result work, selected products remain available, and dealer visibility
+  is applied before searchable category data is returned.
 - Edit routes can resolve an active order or quote by canonical slug or visible
   document number. Slug lookup runs first, while the order-number fallback
   preserves legacy bookmarks and cross-surface redirects such as
@@ -165,6 +175,17 @@
 - 2026-08-06 the focused shelf product picker UI regression passes 1 test / 2
   assertions and confirms the results container has a fixed maximum height with
   vertical scrolling and contained overscroll.
+- 2026-08-06 deep shelf product search passes 47 focused tests / 231 assertions
+  across the shared domain matcher, new-sales-form API, shelf picker source
+  contract, and dealer visibility. Coverage includes the reported product/query,
+  alternate measurement syntax, negative numeric collisions, category-assisted
+  ranking, selected hydration, effective active-ancestor enforcement, parent
+  derivation from child-only product rows, dealer path allowlisting,
+  grouped database measurement anchors, stale-result suppression, and recall
+  across 1,000 coarse numeric collisions without bulk catalog retrieval.
+  A synthetic 5,000-row package benchmark compiled in about 18ms and searched
+  in about 2ms. No database migration was required; authenticated browser and
+  real-catalog payload checks remain release verification.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

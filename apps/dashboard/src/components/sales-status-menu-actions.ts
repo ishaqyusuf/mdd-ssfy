@@ -12,11 +12,6 @@ export type SalesOrderStatusMenuItem = {
 	disabled?: boolean;
 };
 
-type FulfillmentDispatch = {
-	id: number;
-	status?: string | null;
-};
-
 const PRODUCTION_COMPLETED_LIFECYCLE_STATUSES =
 	new Set<SalesOrderLifecycleStatus>([
 		"ready_to_fulfill",
@@ -46,14 +41,6 @@ function normalizeStatus(status?: string | null) {
 	return status?.trim().toLowerCase() || "";
 }
 
-export function getCancellableFulfillmentDispatchIds(
-	deliveries: readonly FulfillmentDispatch[],
-) {
-	return deliveries
-		.filter((delivery) => normalizeStatus(delivery.status) !== "cancelled")
-		.map((delivery) => delivery.id);
-}
-
 export function getSalesOrderStatusMenuActions({
 	status,
 	productionStatus,
@@ -77,17 +64,18 @@ export function getSalesOrderStatusMenuActions({
 		},
 	];
 
-	if (
-		status === "ready_to_fulfill" &&
-		COMPLETED_PRODUCTION_STATUSES.has(normalizeStatus(productionStatus))
-	) {
+	if (status === "ready_to_fulfill") {
 		actions.push({
 			action: "cancel_production",
 			label: "Cancel Production",
 		});
 	}
 
-	if (fulfillmentStarted) {
+	if (
+		fulfillmentStarted ||
+		(status === "ready_to_fulfill" &&
+			COMPLETED_PRODUCTION_STATUSES.has(normalizeStatus(productionStatus)))
+	) {
 		actions.push({
 			action: "cancel_fulfillment",
 			label: "Cancel Fulfillment",

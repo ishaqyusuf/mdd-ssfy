@@ -53,7 +53,7 @@ describe("with-sales-control status and statistic helpers", () => {
         dispatchCompleted: { total: 0, lhQty: 0, rhQty: 0, qty: 0 },
         dispatchCancelled: { total: 2, lhQty: 0, rhQty: 0, qty: 2 },
       }),
-    ).toBe("cancelled");
+    ).toBe("unknown");
 
     expect(
       __withSalesControlTestUtils.deriveDispatchStatusFromControls({
