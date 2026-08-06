@@ -2,6 +2,9 @@
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Checkbox } from "@gnd/ui/checkbox";
+import { Label } from "@gnd/ui/label";
+import { RadioGroup, RadioGroupItem } from "@gnd/ui/radio-group";
 import {
 	Sheet,
 	SheetContent,
@@ -9,6 +12,9 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@gnd/ui/sheet";
+import { useEffect, useState } from "react";
+
+type InboundDisposition = "CANCEL_OPEN_INBOUND" | "KEEP_IN_WAREHOUSE";
 
 type ChangeLine = {
 	uid: string;
@@ -49,6 +55,8 @@ type ChangeReview = {
 		proposedQty: number;
 		minimumAllowedQty: number;
 	}>;
+	requiresInboundDisposition: boolean;
+	requiresOperationalAcknowledgement: boolean;
 };
 
 function money(value: number) {
@@ -64,9 +72,28 @@ export function SalesChangeReviewSheet(props: {
 	review: ChangeReview | null;
 	isLoading: boolean;
 	isSubmitting: boolean;
-	onSubmit: () => Promise<void>;
+	onSubmit: (input: {
+		inboundDisposition: InboundDisposition | null;
+		acknowledgeOperationalImpact: boolean;
+	}) => Promise<void>;
 }) {
 	const review = props.review;
+	const [inboundDisposition, setInboundDisposition] =
+		useState<InboundDisposition | null>(null);
+	const [acknowledged, setAcknowledged] = useState(false);
+
+	useEffect(() => {
+		if (!props.open) {
+			setInboundDisposition(null);
+			setAcknowledged(false);
+		}
+	}, [props.open]);
+
+	const canSubmit = Boolean(
+		review &&
+			(!review.requiresInboundDisposition || inboundDisposition) &&
+			(!review.requiresOperationalAcknowledgement || acknowledged),
+	);
 
 	return (
 		<Sheet open={props.open} onOpenChange={props.onOpenChange}>
@@ -170,23 +197,90 @@ export function SalesChangeReviewSheet(props: {
 						</div>
 
 						{review.blockedLines.length ? (
-							<div className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+							<div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
 								<p className="font-semibold">
-									This change cannot be submitted.
+									Completed work will remain in the audit history.
 								</p>
 								{review.blockedLines.map((line) => (
 									<p key={line.uid} className="mt-1 text-xs">
 										{line.title}: proposed {line.proposedQty}, minimum{" "}
-										{line.minimumAllowedQty} already completed or fulfilled.
+										{line.minimumAllowedQty} already completed or fulfilled. The
+										sale quantity can change, but this evidence will not be
+										erased.
 									</p>
 								))}
 							</div>
 						) : null}
 
+						{review.requiresInboundDisposition ? (
+							<div className="space-y-3 rounded-xl border p-4">
+								<div>
+									<p className="text-sm font-semibold">Open inbound handling</p>
+									<p className="mt-1 text-xs text-muted-foreground">
+										Choose what happens to quantity already placed on inbound
+										shipments.
+									</p>
+								</div>
+								<RadioGroup
+									value={inboundDisposition || undefined}
+									onValueChange={(value) =>
+										setInboundDisposition(value as InboundDisposition)
+									}
+									className="gap-3"
+								>
+									<Label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 font-normal">
+										<RadioGroupItem value="CANCEL_OPEN_INBOUND" />
+										<span>
+											<span className="block text-sm font-medium">
+												Cancel open inbound quantity
+											</span>
+											<span className="mt-1 block text-xs text-muted-foreground">
+												Reduce the linked shipment quantity. Already received
+												stock remains recorded.
+											</span>
+										</span>
+									</Label>
+									<Label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 font-normal">
+										<RadioGroupItem value="KEEP_IN_WAREHOUSE" />
+										<span>
+											<span className="block text-sm font-medium">
+												Keep for warehouse stock
+											</span>
+											<span className="mt-1 block text-xs text-muted-foreground">
+												Remove the reduced amount from this sale, but retain the
+												supplier shipment quantity for general stock.
+											</span>
+										</span>
+									</Label>
+								</RadioGroup>
+							</div>
+						) : null}
+
+						{review.requiresOperationalAcknowledgement ? (
+							<Label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 font-normal text-amber-950">
+								<Checkbox
+									checked={acknowledged}
+									onCheckedChange={(checked) =>
+										setAcknowledged(checked === true)
+									}
+								/>
+								<span className="text-sm">
+									I understand this sale already has inventory, inbound,
+									production, or fulfillment activity. Preserve that evidence
+									and apply this correction under my account.
+								</span>
+							</Label>
+						) : null}
+
 						<Button
 							className="w-full"
-							disabled={props.isSubmitting || review.blockedLines.length > 0}
-							onClick={() => void props.onSubmit()}
+							disabled={props.isSubmitting || !canSubmit}
+							onClick={() =>
+								void props.onSubmit({
+									inboundDisposition,
+									acknowledgeOperationalImpact: acknowledged,
+								})
+							}
 						>
 							{props.isSubmitting ? "Committing changes…" : "Approve"}
 						</Button>

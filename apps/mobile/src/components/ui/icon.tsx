@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { HugeiconsIcon, type HugeiconsProps } from "@hugeicons/react-native";
-import * as HugeIcons from "@hugeicons/core-free-icons";
+import { hugeIconData } from "./huge-icon-data";
 import { useColorScheme } from "@/hooks/use-color";
 import { camel } from "@gnd/utils";
 import { THEME } from "@/lib/theme";
@@ -16,17 +16,17 @@ export type IconProps = LucideProps & {
   theme?: IconThemeOverride;
 };
 type LucideIcon = ComponentType<LucideProps>;
-type HugeIconName = keyof typeof HugeIcons;
+type HugeIconName = keyof typeof hugeIconData;
 
 function hugeIcon(name: HugeIconName): LucideIcon {
-  const icon = HugeIcons[name] as any;
+  const icon = hugeIconData[name] as any;
 
   return function HugeIconComponent({
     strokeWidth = 1.8,
     size = 24,
     ...props
   }: LucideProps) {
-    const resolvedIcon = icon ?? (HugeIcons.X as any);
+    const resolvedIcon = icon ?? (hugeIconData.X as any);
 
     if (__DEV__ && !icon) {
       console.warn(

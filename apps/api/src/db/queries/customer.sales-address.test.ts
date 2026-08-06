@@ -225,6 +225,7 @@ describe("sales address assignment", () => {
 	it("allows customer-only edits without touching fulfilled addresses", async () => {
 		let saleLookups = 0;
 		let addressWrites = 0;
+		let customerUpdateData: Record<string, unknown> | undefined;
 		const tx = {
 			addressBooks: {
 				create: async () => {
@@ -234,7 +235,10 @@ describe("sales address assignment", () => {
 			},
 			customers: {
 				findUnique: async () => ({ dealerOwnerId: null }),
-				update: async () => ({ id: 42 }),
+				update: async (args: { data: Record<string, unknown> }) => {
+					customerUpdateData = args.data;
+					return { id: 42 };
+				},
 			},
 			salesOrders: {
 				findFirst: async () => {
@@ -262,6 +266,7 @@ describe("sales address assignment", () => {
 		expect(result.customerId).toBe(42);
 		expect(addressWrites).toBe(0);
 		expect(saleLookups).toBe(0);
+		expect("address" in (customerUpdateData || {})).toBe(false);
 	});
 
 	it("creates and assigns a shipping address when the sale has none", async () => {
@@ -280,6 +285,151 @@ describe("sales address assignment", () => {
 });
 
 describe("sales address recipient hydration", () => {
+	it("uses the primary customer address when sale addresses are not assigned", async () => {
+		const customer = {
+			address: "Legacy Customer Address",
+			addressBooks: [
+				{
+					address1: "400 Primary Address Blvd",
+					id: 201,
+					isPrimary: true,
+					meta: {},
+					name: "Primary Recipient",
+				},
+			],
+			businessName: null,
+			customerTypeId: 1,
+			email: null,
+			id: 42,
+			meta: {},
+			name: "Customer Name",
+			phoneNo: null,
+			profile: { id: 1, title: "Retail" },
+			taxProfiles: [],
+		};
+		const ctx = {
+			db: {
+				customers: {
+					findFirstOrThrow: async () => customer,
+				},
+			},
+		} as unknown as Parameters<typeof getSalesCustomer>[0];
+
+		const result = await getSalesCustomer(ctx, {
+			billingId: null,
+			customerId: 42,
+			shippingId: null,
+		});
+
+		expect(result.billing.lines).toContain("400 Primary Address Blvd");
+		expect(result.shipping.lines).toContain("400 Primary Address Blvd");
+		expect(result.billing.lines).not.toContain("Legacy Customer Address");
+		expect(result.shipping.lines).not.toContain("same as billing");
+	});
+
+	it("falls back to the customer address when sale addresses are not assigned", async () => {
+		const customer = {
+			address: "300 Customer Ave",
+			addressBooks: [],
+			businessName: null,
+			customerTypeId: 1,
+			email: "customer@example.com",
+			id: 42,
+			meta: {},
+			name: "Customer Name",
+			phoneNo: "555-0100",
+			profile: { id: 1, title: "Retail" },
+			taxProfiles: [],
+		};
+		const ctx = {
+			db: {
+				customers: {
+					findFirstOrThrow: async () => customer,
+				},
+			},
+		} as unknown as Parameters<typeof getSalesCustomer>[0];
+
+		const result = await getSalesCustomer(ctx, {
+			billingId: null,
+			customerId: 42,
+			shippingId: null,
+		});
+
+		expect(result.billing.lines).toContain("300 Customer Ave");
+		expect(result.shipping.lines).toContain("300 Customer Ave");
+		expect(result.shipping.lines).not.toContain("same as billing");
+	});
+
+	it("handles independently missing and explicitly shared sale addresses", async () => {
+		const customer = {
+			addressBooks: [
+				{
+					address1: "100 Primary Ave",
+					id: 201,
+					isPrimary: true,
+					meta: {},
+					name: "Primary Recipient",
+				},
+				{
+					address1: "200 Explicit Rd",
+					id: 202,
+					isPrimary: false,
+					meta: {},
+					name: "Explicit Recipient",
+				},
+			],
+			businessName: null,
+			customerTypeId: 1,
+			email: null,
+			id: 42,
+			meta: {},
+			name: "Customer Name",
+			phoneNo: null,
+			profile: { id: 1, title: "Retail" },
+			taxProfiles: [],
+		};
+		const ctx = {
+			db: {
+				customers: {
+					findFirstOrThrow: async () => customer,
+				},
+			},
+		} as unknown as Parameters<typeof getSalesCustomer>[0];
+
+		const missingBilling = await getSalesCustomer(ctx, {
+			billingId: null,
+			customerId: 42,
+			shippingId: 202,
+		});
+		const missingShipping = await getSalesCustomer(ctx, {
+			billingId: 202,
+			customerId: 42,
+			shippingId: null,
+		});
+		const missingBillingWithPrimaryShipping = await getSalesCustomer(ctx, {
+			billingId: null,
+			customerId: 42,
+			shippingId: 201,
+		});
+		const explicitlyShared = await getSalesCustomer(ctx, {
+			billingId: 201,
+			customerId: 42,
+			shippingId: 201,
+		});
+
+		expect(missingBilling.billing.lines).toContain("100 Primary Ave");
+		expect(missingBilling.shipping.lines).toContain("200 Explicit Rd");
+		expect(missingShipping.billing.lines).toContain("200 Explicit Rd");
+		expect(missingShipping.shipping.lines).toContain("100 Primary Ave");
+		expect(missingBillingWithPrimaryShipping.shipping.lines).toContain(
+			"100 Primary Ave",
+		);
+		expect(missingBillingWithPrimaryShipping.shipping.lines).not.toContain(
+			"same as billing",
+		);
+		expect(explicitlyShared.shipping.lines).toEqual(["same as billing"]);
+	});
+
 	it("hydrates each assigned recipient and falls back only for legacy unnamed rows", async () => {
 		const customer = {
 			addressBooks: [

@@ -5,6 +5,7 @@
   "scripts": {
     "android": "bun run with-env node ./scripts/run-expo-cli.cjs run:android",
     "dev": "bun run with-env node ./scripts/run-expo-cli.cjs start --port ${GND_MOBILE_PORT:-3012}",
+    "dev:driver": "bun run with-env env APP_VARIANT=development EXPO_PUBLIC_DRIVER_PLATFORM_MODE=true EXPO_PUBLIC_SENTRY_ENABLED=false node ./scripts/run-expo-cli.cjs start --go --port ${GND_DRIVER_MOBILE_PORT:-3013}",
     "eas-build:dev": "BUN_AUTO_INSTALL=0 bun run with-env env EXPO_PUBLIC_SENTRY_ENABLED=false EXPO_PUBLIC_SENTRY_DEBUG=false EXPO_PUBLIC_SENTRY_SMOKE_TEST=false SENTRY_DISABLE_AUTO_UPLOAD=true eas build --profile development --platform android",
     "eas-build:preview": "BUN_AUTO_INSTALL=0 bun run with-env:prod env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK EXPO_PUBLIC_SENTRY_ENABLED=false EXPO_PUBLIC_SENTRY_DEBUG=false EXPO_PUBLIC_SENTRY_SMOKE_TEST=false SENTRY_DISABLE_AUTO_UPLOAD=true EXPO_NO_DOTENV=1 eas build -p android --profile preview",
     "ios": "bun run with-env node ./scripts/run-expo-cli.cjs run:ios",
@@ -67,7 +68,9 @@
     "pressto": "^0.6.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-dom-mobile": "npm:react-dom@19.1.0",
     "react-hook-form": "^7.66.0",
+    "react-mobile": "npm:react@19.1.0",
     "react-native": "0.81.5",
     "react-native-css": "^3.0.1",
     "react-native-css-interop": "^0.2.1",

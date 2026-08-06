@@ -1,6 +1,9 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { assignInventoryDispatchAllocations } from "@gnd/sales/sales-fulfillment-plan";
 
+import { getDispatchInventoryManifest } from "./dispatch-inventory";
+import { buildDispatchInventoryAllocationSelections } from "./dispatch-inventory-actions";
+
 type AllocationIssueInput = {
 	allocationStatus: string;
 	allocationSaleId: number | null;
@@ -10,7 +13,8 @@ type AllocationIssueInput = {
 };
 
 export function classifyDispatchAllocationIssue(input: AllocationIssueInput) {
-	if (input.allocationSaleId !== input.dispatchSaleId) return "cross_sale_binding";
+	if (input.allocationSaleId !== input.dispatchSaleId)
+		return "cross_sale_binding";
 	if (input.dispatchDeleted) return "deleted_dispatch_holds_stock";
 	if (
 		input.dispatchStatus === "cancelled" &&
@@ -31,6 +35,16 @@ export function classifyDispatchAllocationIssue(input: AllocationIssueInput) {
 		return "inventory_consumed_before_completion";
 	}
 	return null;
+}
+
+export function shouldApplyDispatchInventoryBackfillCandidate(input: {
+	allocationSelections: unknown[];
+	blockingComponents: unknown[];
+}) {
+	return (
+		input.blockingComponents.length === 0 &&
+		input.allocationSelections.length > 0
+	);
 }
 
 export async function getDispatchInventoryReconciliation(
@@ -67,15 +81,21 @@ export async function getDispatchInventoryReconciliation(
 			dispatchDeleted: Boolean(allocation.orderDelivery?.deletedAt),
 		});
 		return issue
-			? [{
-					issue,
-					allocationId: allocation.id,
-					orderDeliveryId: allocation.orderDeliveryId,
-					qty: Number(allocation.qty || 0),
-				}]
+			? [
+					{
+						issue,
+						allocationId: allocation.id,
+						orderDeliveryId: allocation.orderDeliveryId,
+						qty: Number(allocation.qty || 0),
+					},
+				]
 			: [];
 	});
-	return { scannedCount: allocations.length, issueCount: issues.length, issues };
+	return {
+		scannedCount: allocations.length,
+		issueCount: issues.length,
+		issues,
+	};
 }
 
 export async function backfillDispatchInventoryBindings(
@@ -86,9 +106,13 @@ export async function backfillDispatchInventoryBindings(
 		where: {
 			deletedAt: null,
 			orderDeliveryId: null,
-			status: "approved",
+			status: { in: ["approved", "reserved"] },
 			lineItemComponent: {
-				parent: { deletedAt: null, lineItemType: "SALE", saleId: { not: null } },
+				parent: {
+					deletedAt: null,
+					lineItemType: "SALE",
+					saleId: { not: null },
+				},
 			},
 		},
 		orderBy: { id: "asc" },
@@ -121,28 +145,62 @@ export async function backfillDispatchInventoryBindings(
 			dispatch.id,
 		]);
 	}
-	const candidates = saleIds.flatMap((salesOrderId) => {
+	const candidateDispatches = saleIds.flatMap((salesOrderId) => {
 		const dispatchIds = dispatchesBySale.get(salesOrderId) || [];
-		if (dispatchIds.length !== 1) return [];
-		return [{
-			salesOrderId,
-			orderDeliveryId: dispatchIds[0]!,
-			allocationIds: allocations
+		const orderDeliveryId = dispatchIds[0];
+		if (dispatchIds.length !== 1 || !orderDeliveryId) return [];
+		return [
+			{
+				salesOrderId,
+				orderDeliveryId,
+			},
+		];
+	});
+	const candidates = [] as Array<{
+		salesOrderId: number;
+		orderDeliveryId: number;
+		allocationSelections: Array<{ allocationId: number; qty: number }>;
+		blockingComponents: Array<{ componentId: number; missingQty: number }>;
+	}>;
+	for (const candidate of candidateDispatches) {
+		const manifest = await getDispatchInventoryManifest(db, candidate);
+		const eligibleAllocationIds = new Set(
+			allocations
 				.filter(
 					(allocation) =>
-						allocation.lineItemComponent.parent.saleId === salesOrderId,
+						allocation.lineItemComponent.parent.saleId ===
+						candidate.salesOrderId,
 				)
 				.map((allocation) => allocation.id),
-		}];
-	});
+		);
+		const plan = buildDispatchInventoryAllocationSelections(
+			manifest.lines.map((line) => ({
+				...line,
+				components: line.components.map((component) => ({
+					...component,
+					availableAllocations: component.availableAllocations.filter(
+						(allocation) => eligibleAllocationIds.has(allocation.id),
+					),
+				})),
+			})),
+		);
+		candidates.push({
+			...candidate,
+			allocationSelections: plan.selections,
+			blockingComponents: plan.blockingComponents,
+		});
+	}
 	const ambiguousSalesOrderIds = saleIds.filter(
 		(salesOrderId) => (dispatchesBySale.get(salesOrderId) || []).length !== 1,
 	);
 
 	if (!input.dryRun) {
 		for (const candidate of candidates) {
+			if (!shouldApplyDispatchInventoryBackfillCandidate(candidate)) continue;
 			await assignInventoryDispatchAllocations(db, {
-				...candidate,
+				salesOrderId: candidate.salesOrderId,
+				orderDeliveryId: candidate.orderDeliveryId,
+				allocationSelections: candidate.allocationSelections,
 				note: "Bound by dispatch inventory migration backfill.",
 			});
 		}
@@ -151,7 +209,7 @@ export async function backfillDispatchInventoryBindings(
 		dryRun: input.dryRun,
 		candidateCount: candidates.length,
 		allocationCount: candidates.reduce(
-			(total, candidate) => total + candidate.allocationIds.length,
+			(total, candidate) => total + candidate.allocationSelections.length,
 			0,
 		),
 		ambiguousSalesOrderIds,

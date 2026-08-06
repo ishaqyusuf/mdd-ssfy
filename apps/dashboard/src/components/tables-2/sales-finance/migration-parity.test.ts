@@ -278,6 +278,11 @@ describe("Sales Finance Midday migration parity", () => {
 		).toBe(true);
 		expect(tableSource.includes("overflow-auto overscroll-contain")).toBe(true);
 		expect(sheetSource.includes("receivableDetail")).toBe(true);
+		expect(sheetSource.includes("auth.can?.editOrders")).toBe(true);
+		expect(
+			sheetSource.includes("buildSalesOverviewUrl(receivable.orderNo)"),
+		).toBe(true);
+		expect(sheetSource.includes("Open sales overview")).toBe(true);
 		expect(
 			settingsSource.includes(
 				'"sales-finance-receivables": ["reconciliation", "salesRep"]',

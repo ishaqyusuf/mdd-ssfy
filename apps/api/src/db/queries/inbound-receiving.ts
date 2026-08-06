@@ -13,6 +13,7 @@ import {
 	createInboundShipmentFromDemands,
 	getInboundShipmentDetail,
 	listInboundShipments,
+	reduceInboundShipmentDemand,
 	releaseCancelledInboundShipmentDemand,
 } from "@gnd/inventory";
 import { Notifications } from "@gnd/notifications";
@@ -21,6 +22,7 @@ import {
 	autoReviewSalesPaymentsForOrderAction,
 	normalizeSalesPaymentReviewSettings,
 } from "@gnd/sales/payment-system";
+import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
 import {
 	resolveSalesInventoryFulfillmentStatus,
 	resolveSalesInventoryOperationPolicy,
@@ -32,6 +34,12 @@ import { getSubscribersAccount } from "@notifications/channel-subscribers";
 import { syncChannels } from "@notifications/channels-query";
 import { mergeTagRows } from "@notifications/tag-values";
 import { put } from "@vercel/blob";
+
+import {
+	buildInboundDemandAdjustmentActivity,
+	createSalesFormTimelineActivity,
+	getSalesActivitySenderContactId,
+} from "./sales-form-activity";
 
 const INBOUND_OWNER_TYPE = "inventory_inbound_shipment";
 const INBOUND_DOCUMENT_KIND = "inbound_receipt";
@@ -253,6 +261,7 @@ async function createInboundActivity(
 			| "extraction_failed"
 			| "extraction_applied"
 			| "demands_assigned"
+			| "demand_adjusted"
 			| "status_updated"
 			| "received";
 		subject: string;
@@ -996,6 +1005,10 @@ export async function updateInboundShipmentStatusQuery(
 			| "cancelled";
 		note?: string | null;
 	},
+	deps: {
+		syncSalesInventoryProjection?: typeof runSalesInventoryProjectionSync;
+		createActivity?: typeof createInboundActivity;
+	} = {},
 ) {
 	const actor = await getInboundActor(ctx);
 	const previous = await ctx.db.inboundShipment.findFirstOrThrow({
@@ -1032,15 +1045,31 @@ export async function updateInboundShipmentStatusQuery(
 		data.progress = 0;
 	}
 
-	const { updated, releasedDemand, orderNos } = await ctx.db.$transaction(
-		async (tx) => {
+	const { updated, releasedDemand, orderNos, salesOrderIds } =
+		await ctx.db.$transaction(async (tx) => {
 			const linkedOrderRows = await tx.inboundDemand.findMany({
 				where: {
 					deletedAt: null,
-					inboundShipmentItem: {
-						inboundId: input.inboundId,
-						deletedAt: null,
-					},
+					...(input.status === "cancelled"
+						? {
+								OR: [
+									{
+										inboundShipmentItem: {
+											inboundId: input.inboundId,
+											deletedAt: null,
+										},
+									},
+									{
+										notes: `Released from cancelled inbound shipment #${input.inboundId}`,
+									},
+								],
+							}
+						: {
+								inboundShipmentItem: {
+									inboundId: input.inboundId,
+									deletedAt: null,
+								},
+							}),
 				},
 				select: {
 					lineItemComponent: {
@@ -1049,6 +1078,7 @@ export async function updateInboundShipmentStatusQuery(
 								select: {
 									sale: {
 										select: {
+											id: true,
 											orderId: true,
 										},
 									},
@@ -1063,6 +1093,13 @@ export async function updateInboundShipmentStatusQuery(
 					linkedOrderRows
 						.map((row) => row.lineItemComponent.parent.sale?.orderId)
 						.filter((value): value is string => Boolean(value)),
+				),
+			);
+			const salesOrderIds = Array.from(
+				new Set(
+					linkedOrderRows
+						.map((row) => row.lineItemComponent.parent.sale?.id)
+						.filter((value): value is number => Number.isInteger(value)),
 				),
 			);
 			const committedStatus = await tx.inboundShipment.updateMany({
@@ -1100,11 +1137,26 @@ export async function updateInboundShipmentStatusQuery(
 				updated,
 				releasedDemand,
 				orderNos,
+				salesOrderIds,
 			};
-		},
-	);
+		});
 
-	await createInboundActivity(ctx, {
+	if (input.status === "cancelled") {
+		await Promise.all(
+			salesOrderIds.map((salesOrderId) =>
+				(deps.syncSalesInventoryProjection ?? runSalesInventoryProjectionSync)(
+					ctx.db,
+					{
+						salesOrderId,
+						source: "repair",
+						triggeredByUserId: ctx.userId ?? null,
+					},
+				),
+			),
+		);
+	}
+
+	await (deps.createActivity ?? createInboundActivity)(ctx, {
 		inboundId: input.inboundId,
 		supplierId: previous.supplierId,
 		supplierName: previous.supplier?.name ?? null,
@@ -1119,6 +1171,7 @@ export async function updateInboundShipmentStatusQuery(
 			status: input.status,
 			releasedDemandCount: releasedDemand?.releasedDemandCount ?? 0,
 			recomputedComponentCount: releasedDemand?.recomputedComponentCount ?? 0,
+			repairedSalesOrderCount: salesOrderIds.length,
 		},
 	});
 
@@ -1128,6 +1181,156 @@ export async function updateInboundShipmentStatusQuery(
 		actorName: actor.name || "Unknown",
 		releasedDemandCount: releasedDemand?.releasedDemandCount ?? 0,
 		recomputedComponentCount: releasedDemand?.recomputedComponentCount ?? 0,
+		repairedSalesOrderCount: salesOrderIds.length,
+	};
+}
+
+export async function reduceInboundShipmentDemandQuery(
+	ctx: TRPCContext,
+	input: {
+		inboundId: number;
+		demandId: number;
+		targetQty: number;
+		note: string;
+	},
+	deps: {
+		syncSalesInventoryProjection?: typeof runSalesInventoryProjectionSync;
+	} = {},
+) {
+	const actor = await getInboundActor(ctx);
+	const senderContactId = await getSalesActivitySenderContactId(
+		ctx.db,
+		actor.id,
+	);
+	if (input.targetQty === 0) {
+		const released = await ctx.db.inboundDemand.findFirst({
+			where: {
+				id: input.demandId,
+				deletedAt: null,
+				inboundShipmentItemId: null,
+				status: "pending",
+				notes: `Removed from inbound shipment #${input.inboundId}`,
+			},
+			select: {
+				id: true,
+				qty: true,
+				qtyReceived: true,
+				lineItemComponentId: true,
+				lineItemComponent: {
+					select: {
+						parent: {
+							select: {
+								title: true,
+								sale: { select: { id: true, orderId: true } },
+							},
+						},
+					},
+				},
+			},
+		});
+		const sale = released?.lineItemComponent.parent.sale;
+		if (released && sale) {
+			await (
+				deps.syncSalesInventoryProjection ?? runSalesInventoryProjectionSync
+			)(ctx.db, {
+				salesOrderId: sale.id,
+				source: "repair",
+				triggeredByUserId: actor.id,
+			});
+			return {
+				inboundId: input.inboundId,
+				demandId: released.id,
+				inboundShipmentItemId: null,
+				lineItemComponentId: released.lineItemComponentId,
+				salesOrderId: sale.id,
+				orderId: sale.orderId,
+				lineTitle: released.lineItemComponent.parent.title || "Line item",
+				previousQty: 0,
+				targetQty: 0,
+				receivedQty: Number(released.qtyReceived || 0),
+				previousItemQty: 0,
+				targetItemQty: 0,
+				removed: true,
+				changed: false,
+				actorName: actor.name || "Unknown",
+			};
+		}
+	}
+	const result = await ctx.db.$transaction(async (tx) => {
+		const adjusted = await reduceInboundShipmentDemand(tx, input);
+		if (adjusted.changed && adjusted.salesOrderId && adjusted.orderId) {
+			const copy = buildInboundDemandAdjustmentActivity({
+				orderId: adjusted.orderId,
+				inboundId: adjusted.inboundId,
+				lineTitle: adjusted.lineTitle,
+				previousQty: adjusted.previousQty,
+				targetQty: adjusted.targetQty,
+				receivedQty: adjusted.receivedQty,
+			});
+			await createSalesFormTimelineActivity(
+				tx as unknown as TRPCContext["db"],
+				{
+					salesId: adjusted.salesOrderId,
+					orderId: adjusted.orderId,
+					senderContactId,
+					copy: input.note?.trim()
+						? { ...copy, note: `${copy.note}\nReason: ${input.note.trim()}` }
+						: copy,
+				},
+			);
+		}
+		if (adjusted.changed) {
+			await tx.notePad.create({
+				data: {
+					subject: adjusted.removed
+						? "Item removed from inbound"
+						: "Inbound quantity reduced",
+					headline: `${actor.name || "Unknown"} changed ${adjusted.lineTitle} from ${adjusted.previousQty} to ${adjusted.targetQty} on inbound #${adjusted.inboundId}.`,
+					note: input.note,
+					senderContactId,
+					tags: {
+						createMany: {
+							data: [
+								{
+									tagName: "channel",
+									tagValue: "inventory_inbound_activity",
+								},
+								{
+									tagName: "inboundId",
+									tagValue: String(adjusted.inboundId),
+								},
+								{
+									tagName: "demandId",
+									tagValue: String(adjusted.demandId),
+								},
+								{
+									tagName: "activityType",
+									tagValue: "demand_adjusted",
+								},
+								{ tagName: "type", tagValue: "system" },
+								{ tagName: "status", tagValue: "public" },
+							],
+						},
+					},
+				},
+			});
+		}
+		return adjusted;
+	});
+
+	if (result.salesOrderId) {
+		await (
+			deps.syncSalesInventoryProjection ?? runSalesInventoryProjectionSync
+		)(ctx.db, {
+			salesOrderId: result.salesOrderId,
+			source: "repair",
+			triggeredByUserId: actor.id,
+		});
+	}
+
+	return {
+		...result,
+		actorName: actor.name || "Unknown",
 	};
 }
 
@@ -1915,8 +2118,8 @@ export async function extractInboundDocumentsQuery(
 
 			await createInboundActivity(ctx, {
 				inboundId: inbound.id,
-			supplierId: inbound.supplier?.id ?? null,
-			supplierName: inbound.supplier?.name ?? null,
+				supplierId: inbound.supplier?.id ?? null,
+				supplierName: inbound.supplier?.name ?? null,
 				reference: inbound.reference ?? null,
 				activityType: "extraction_completed",
 				subject: "Inbound extraction completed",

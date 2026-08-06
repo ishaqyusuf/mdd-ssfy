@@ -9,10 +9,23 @@ children. Add a stable visual divider between the panes on side-by-side
 layouts, while retaining the existing single-pane replacement behavior when
 the viewport cannot fit both panes at their natural widths.
 
+## Implementation Status
+
+Completed on 2026-08-06. The opt-in Custom Sheet V2 uses typed additive pane
+sizing, fixed-basis slots, a 1px divider, deterministic one-pane fallback,
+shadcn/Radix chassis, Midday frame and motion timing, layered dismissal without
+click-through, delayed pane cleanup with focus restoration, and pane-owned
+footer slots. The legacy custom sheet remains unchanged. Sales Overview is the
+first and only V2 consumer, is configured as `2xl + 2xl`, and all current
+secondary entry points were verified in the authenticated in-app browser. See
+ADR-051.
+
 ## Assumptions
 
-- This plan targets `packages/ui/src/components/custom/sheet.tsx` and its only
-  current multi-pane consumer, the canonical Sales Overview sheet.
+- This plan targets the opt-in
+  `packages/ui/src/components/custom/sheet-v2.tsx` implementation and its only
+  current consumer, the canonical Sales Overview sheet. The legacy
+  `sheet.tsx` contract stays unchanged.
 - "Natural width" means a deliberate preferred width supplied by the sheet
   consumer, not CSS `fit-content` derived from whichever child happens to be
   widest. Form controls, tables, and loading states make content-measured widths
@@ -20,10 +33,13 @@ the viewport cannot fit both panes at their natural widths.
 - The divider is visual and non-resizable in this slice. If operator resizing
   is requested later, it should be added as an explicit resizable mode with
   persisted defaults and minimum/maximum widths.
-- The primary Sales Overview pane should retain its current `2xl` width
-  (approximately 42rem). The secondary pane's final preferred width must be
-  selected from browser measurements of the customer, address, inbound-create,
-  and inbound-detail content; 34-36rem is the initial candidate range.
+- `primarySize` and `secondarySize` describe the preferred width of their
+  respective pane. For example, `primarySize="2xl"` and
+  `secondarySize="2xl"` produce two independently sized `2xl` panes.
+- The combined shell is the arithmetic sum of the two resolved pane widths and
+  the divider. It must not apply Tailwind's `max-w-4xl` class: Tailwind width
+  labels are ordinal tokens, not additive units (`2xl + 2xl` is wider than the
+  framework's predefined `4xl` max width).
 - If the two preferred widths plus sheet padding, divider, and viewport gutter
   do not fit, preserving both widths and showing them side by side is
   impossible. The correct fallback is one pane at a time, not proportional
@@ -54,8 +70,7 @@ Dependencies: none.
 
    ```text
    side-by-side shell width
-     = outer horizontal chrome
-     + primary preferred width
+     = primary preferred width
      + 1px divider
      + secondary preferred width
 
@@ -63,10 +78,9 @@ Dependencies: none.
      = primary width after opening secondary
    ```
 
-4. Choose the secondary preferred width from the measurements, using the
-   widest legitimate pane layout rather than an unusually long text value.
-   Start with 34-36rem and increase only if the inbound form or customer form
-   has a repeatable layout failure.
+4. Validate the clarified `2xl + 2xl` example first. Each pane should resolve to
+   the same width it has when rendered alone, and the combined shell should
+   resolve to exactly twice that width plus the divider.
 
 Validation gate:
 - The test demonstrates that changing the expanded shell width currently
@@ -79,16 +93,14 @@ Validation gate:
 Dependencies: Phase 1.
 
 1. Introduce one typed width resolver in
-   `packages/ui/src/components/custom/sheet.tsx` (or a small adjacent module)
+   `packages/ui/src/components/custom/sheet-v2.tsx` (or a small adjacent module)
    that maps supported sheet size tokens to stable CSS lengths. Do not try to
    reverse-engineer values from Tailwind class strings at runtime.
-2. Clarify the public props:
+2. Correct the semantics of the existing public props:
    - `primarySize` remains the preferred width of a single sheet and the
      primary pane;
-   - add `secondaryPaneSize` (or the more explicit
-     `secondaryPaneWidth`) for the secondary pane's own width;
-   - retire the ambiguous `secondarySize` outer-shell behavior after migrating
-     the Sales Overview caller in the same change;
+   - `secondarySize` becomes the secondary pane's own preferred width instead
+     of selecting an expanded outer-shell max width;
    - add an explicit side-by-side threshold prop only if the default cannot
      safely fit the supported width pair.
 3. Put the resolved values on the sheet root as CSS custom properties, for
@@ -98,8 +110,10 @@ Dependencies: Phase 1.
 4. When only the primary pane is visible, keep the outer sheet width equal to
    the primary preferred width.
 5. When both panes are visible, calculate the outer width from the sum of the
-   two pane widths, the separator, and the sheet's horizontal padding. Remove
-   the expanded max-width token as an input to pane proportions.
+   two pane widths and the separator. Move horizontal chrome into the pane
+   slots so each configured pane width is its complete border-box width and the
+   root does not add hidden width outside the sizing equation. Remove the
+   expanded max-width token as an input to pane proportions.
 6. Cap the shell against the dynamic viewport only as a safety guard. The
    side-by-side eligibility rule must prevent this cap from silently shrinking
    the configured panes during normal operation.
@@ -147,9 +161,9 @@ Dependencies: Phase 3.
 2. Use a vertical, decorative, 1px separator with `bg-border`, full available
    height, and `shrink-0`. The divider owns its width; neither pane should fake
    it with a border that changes that pane's box calculation.
-3. Replace the current primary-only `pr-4` gap with balanced pane-side padding
-   around the separator. Verify that the width formula includes this chrome
-   exactly once.
+3. Replace the current primary-only `pr-4` gap with balanced pane-local padding
+   around the separator. Keep that padding inside each pane's border-box so a
+   `2xl` pane remains `2xl`; the divider is the only extra shell width.
 4. Hide/unmount the divider when the secondary pane is closed or when the
    layout is in one-pane mode.
 5. Add stable data slots such as `data-sheet-pane="primary"`,
@@ -169,7 +183,7 @@ Dependencies: Phases 2-4.
    `isSideBySide` decision. Its threshold must be high enough for:
 
    ```text
-   primary width + secondary width + divider + sheet chrome + safe gutter
+   primary width + secondary width + divider + safe viewport gutter
    ```
 
 2. Use the same side-by-side decision for all four behaviors: shell width,
@@ -197,8 +211,8 @@ Dependencies: Phases 2-5.
 1. Update
    `apps/dashboard/src/components/sheets/sales-overview-sheet/index.tsx`:
    - retain `primarySize="2xl"`;
-   - replace `secondarySize="5xl"` with the selected independent secondary
-     pane size;
+   - change `secondarySize="5xl"` to `secondarySize="2xl"` for the clarified
+     equal-pane example;
    - set the side-by-side threshold only if the shared default does not match
      the measured width sum.
 2. Audit the four secondary pane implementations:
@@ -207,7 +221,7 @@ Dependencies: Phases 2-5.
    - `inbound-create-pane.tsx`;
    - `inbound-detail-pane.tsx`.
 3. Adjust only genuine container-width problems. In particular, verify that
-   viewport-based `sm:grid-cols-2` rules inside a 34-36rem pane do not create
+   viewport-based `sm:grid-cols-2` rules inside a `2xl` pane do not create
    cramped fields; prefer pane/container-aware layout if the browser evidence
    shows a problem.
 4. Preserve the current one-root/one-overlay behavior, active-tab-only loading,

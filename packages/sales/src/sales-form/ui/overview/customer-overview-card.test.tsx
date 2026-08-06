@@ -9,6 +9,22 @@ import {
 } from "./customer-overview-card";
 
 describe("sales form customer overview card", () => {
+	it("starts expanded so customer addresses are visible", () => {
+		const html = renderToStaticMarkup(
+			<SalesFormCustomerOverviewCard
+				billingLines={["100 Billing Way"]}
+				customerName="Ada Lovelace"
+				profileOptions={[]}
+				profileValue="none"
+				shippingLines={["200 Shipping Way"]}
+			/>,
+		);
+
+		expect(html).toContain('aria-expanded="true"');
+		expect(html).toContain("100 Billing Way");
+		expect(html).toContain("200 Shipping Way");
+	});
+
 	it("renders distinct edit and change customer actions", () => {
 		const html = renderToStaticMarkup(
 			<SalesFormCustomerOverviewCard

@@ -4,6 +4,7 @@ import {
 	assignInboundDemandsQuery,
 	countOrderInboundShipmentsQuery,
 	createInboundShipmentFromDemandsQuery,
+	reduceInboundShipmentDemandQuery,
 	updateInboundShipmentStatusQuery,
 } from "./inbound-receiving";
 
@@ -274,6 +275,96 @@ describe("countOrderInboundShipmentsQuery", () => {
 });
 
 describe("updateInboundShipmentStatusQuery", () => {
+	test("repairs each affected sales projection and rediscovers released targets on retry", async () => {
+		const repairedSalesOrderIds: number[] = [];
+		const transaction = {
+			inboundDemand: {
+				findMany: async ({ where }: { where?: { OR?: unknown[] } }) => {
+					return where?.OR
+						? [
+								{
+									lineItemComponent: {
+										parent: {
+											sale: { id: 100, orderId: "09159PC" },
+										},
+									},
+								},
+							]
+						: [];
+				},
+				updateMany: async () => ({ count: 0 }),
+			},
+			inboundShipment: {
+				updateMany: async () => ({ count: 1 }),
+				findFirstOrThrow: async () => ({
+					id: 70,
+					status: "cancelled",
+					progress: 0,
+					receivedAt: null,
+				}),
+			},
+			lineItemComponents: {
+				findFirst: async () => null,
+				updateMany: async () => ({ count: 0 }),
+			},
+		};
+		const ctx = {
+			userId: 1,
+			db: {
+				users: {
+					findFirstOrThrow: async () => ({ id: 1, name: "Sales rep" }),
+					findMany: async () => [],
+				},
+				inboundShipment: {
+					findFirstOrThrow: async () => ({
+						id: 70,
+						status: "in_progress",
+						supplierId: null,
+						reference: "09159PC",
+						supplier: null,
+					}),
+				},
+				noteChannels: {
+					findMany: async () => [],
+					createMany: async () => ({ count: 0 }),
+					updateMany: async () => ({ count: 0 }),
+					findUnique: async () => null,
+				},
+				notePadContacts: { findMany: async () => [] },
+				notePad: { create: async () => ({ id: 901 }) },
+				$transaction: async <T>(
+					callback: (tx: typeof transaction) => Promise<T>,
+				) => callback(transaction),
+			},
+		} as any;
+
+		let projectionAttempt = 0;
+		const run = () =>
+			updateInboundShipmentStatusQuery(
+				ctx,
+				{
+					inboundId: 70,
+					status: "cancelled",
+					note: "Supplier order cancelled.",
+				},
+				{
+					createActivity: async () => undefined,
+					syncSalesInventoryProjection: async (_db, input) => {
+						projectionAttempt += 1;
+						repairedSalesOrderIds.push(input.salesOrderId);
+						if (projectionAttempt === 1) throw new Error("projection failed");
+						return { projection: { status: "ready" } } as never;
+					},
+				},
+			);
+
+		await expect(run()).rejects.toThrow("projection failed");
+		const result = await run();
+
+		expect(repairedSalesOrderIds).toEqual([100, 100]);
+		expect(result.repairedSalesOrderCount).toBe(1);
+	});
+
 	test("captures linked sales activity context inside the status transaction", async () => {
 		const transactionEvents: string[] = [];
 		let activityData: any;
@@ -394,6 +485,164 @@ describe("updateInboundShipmentStatusQuery", () => {
 			tagName: "orderNos",
 			tagValue: '"08661LM"',
 		});
+	});
+});
+
+describe("reduceInboundShipmentDemandQuery", () => {
+	test("commits Sales and inbound activities with the quantity change before projection", async () => {
+		const events: string[] = [];
+		const transaction = {
+			inboundDemand: {
+				findFirstOrThrow: async () => ({
+					id: 41,
+					qty: 10,
+					qtyReceived: 2,
+					status: "partially_received",
+					lineItemComponentId: 51,
+					inboundShipmentItemId: 61,
+					inboundShipmentItem: {
+						id: 61,
+						qty: 10,
+						qtyGood: 2,
+						qtyIssue: 0,
+						inbound: { id: 71, status: "in_progress" },
+					},
+					lineItemComponent: {
+						parent: {
+							title: "Oak door",
+							sale: { id: 81, orderId: "09159PC" },
+						},
+					},
+				}),
+				updateMany: async () => {
+					events.push("demand");
+					return { count: 1 };
+				},
+			},
+			inboundShipmentItem: {
+				updateMany: async () => {
+					events.push("item");
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 51,
+					qty: 6,
+					stockAllocations: [],
+					inboundDemands: [{ qty: 6, qtyReceived: 2 }],
+				}),
+				updateMany: async () => {
+					events.push("component");
+					return { count: 1 };
+				},
+			},
+			notePad: {
+				create: async ({ data }: { data: any }) => {
+					const channel = data.tags.createMany.data.find(
+						(tag: { tagName: string }) => tag.tagName === "channel",
+					)?.tagValue;
+					events.push(`activity:${channel}`);
+					return { id: events.length };
+				},
+			},
+		};
+		const ctx = {
+			userId: 1,
+			db: {
+				users: {
+					findFirstOrThrow: async () => ({ id: 1, name: "Sales rep" }),
+				},
+				notePadContacts: {
+					findFirst: async () => ({ id: 9 }),
+				},
+				$transaction: async <T>(
+					callback: (tx: typeof transaction) => Promise<T>,
+				) => {
+					const result = await callback(transaction);
+					events.push("commit");
+					return result;
+				},
+			},
+		} as any;
+
+		const result = await reduceInboundShipmentDemandQuery(
+			ctx,
+			{
+				inboundId: 71,
+				demandId: 41,
+				targetQty: 6,
+				note: "Customer reduced quantity.",
+			},
+			{
+				syncSalesInventoryProjection: async () => {
+					events.push("projection");
+					return { projection: { status: "ready" } } as never;
+				},
+			},
+		);
+
+		expect(result.changed).toBe(true);
+		expect(events).toEqual([
+			"demand",
+			"item",
+			"component",
+			"activity:Sales",
+			"activity:inventory_inbound_activity",
+			"commit",
+			"projection",
+		]);
+	});
+
+	test("retries projection for an already committed removal without duplicating activities", async () => {
+		let transactionCalled = false;
+		let projectionCount = 0;
+		const ctx = {
+			userId: 1,
+			db: {
+				users: {
+					findFirstOrThrow: async () => ({ id: 1, name: "Sales rep" }),
+				},
+				notePadContacts: { findFirst: async () => ({ id: 9 }) },
+				inboundDemand: {
+					findFirst: async () => ({
+						id: 41,
+						qty: 4,
+						qtyReceived: 0,
+						lineItemComponentId: 51,
+						lineItemComponent: {
+							parent: {
+								title: "Oak door",
+								sale: { id: 81, orderId: "09159PC" },
+							},
+						},
+					}),
+				},
+				$transaction: async () => {
+					transactionCalled = true;
+				},
+			},
+		} as any;
+
+		const result = await reduceInboundShipmentDemandQuery(
+			ctx,
+			{
+				inboundId: 71,
+				demandId: 41,
+				targetQty: 0,
+				note: "Customer removed item.",
+			},
+			{
+				syncSalesInventoryProjection: async () => {
+					projectionCount += 1;
+					return { projection: { status: "ready" } } as never;
+				},
+			},
+		);
+
+		expect(result.changed).toBe(false);
+		expect(transactionCalled).toBe(false);
+		expect(projectionCount).toBe(1);
 	});
 });
 

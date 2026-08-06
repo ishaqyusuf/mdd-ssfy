@@ -1,10 +1,8 @@
-import { LogOut } from "lucide-react-native";
+import { Icon } from "@/components/ui/icon";
 import { TouchableOpacity } from "react-native";
-import { useColorScheme } from "@/hooks/use-color";
 import { useAuthContext } from "@/hooks/use-auth";
 
 export function Logout() {
-  const { colorScheme } = useColorScheme();
   const auth = useAuthContext();
   return (
     <TouchableOpacity
@@ -13,11 +11,7 @@ export function Logout() {
       }}
       className="p-2.5 rounded-full active:bg-gray-200 dark:active:bg-gray-700"
     >
-      <LogOut
-        // name="menu"
-        size={20}
-        color={colorScheme === "dark" ? "#F9FAFB" : "#1F2937"}
-      />
+      <Icon name="LogOut" size={20} />
     </TouchableOpacity>
   );
 }

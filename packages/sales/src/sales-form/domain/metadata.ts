@@ -13,3 +13,9 @@ export function readSalesFormObjectMetadata(
 		? (value as Record<string, any>)
 		: null;
 }
+
+export function isCustomSalesFormComponent(value: unknown) {
+	const component = readSalesFormObjectMetadata(value);
+	const metadata = readSalesFormObjectMetadata(component?._metaData);
+	return component?.custom === true || metadata?.custom === true;
+}

@@ -6,8 +6,8 @@ import type {
 	SalesFormWorkflowStepComponentInput,
 } from "@gnd/sales/sales-form";
 import { createWorkflowComponentImageResolver } from "@gnd/sales/sales-form";
-import { useQueryClient } from "@gnd/ui/tanstack";
-import { useMemo } from "react";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
+import { useCallback, useMemo } from "react";
 import {
 	useCustomerProfilesQuery,
 	useNewSalesFormShelfCategoriesQuery,
@@ -22,12 +22,36 @@ import {
 export function useDashboardSalesFormWorkflowData(): SalesFormWorkflowDataSource {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const { mutateAsync: mutateShelfProduct } = useMutation(
+		trpc.newSalesForm.updateShelfProduct.mutationOptions(),
+	);
 	const resolveImageSrc = useMemo(
 		() =>
 			createWorkflowComponentImageResolver(
 				process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL,
 			),
 		[],
+	);
+	const updateShelfProduct = useCallback(
+		async (input: { id: number; title: string; unitPrice: number | null }) => {
+			const updated = await mutateShelfProduct(input);
+			await Promise.all([
+				queryClient.invalidateQueries({
+					queryKey: trpc.newSalesForm.getShelfProducts.pathKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.newSalesForm.getShelfProductIndex.pathKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.newSalesForm.getShelfProductDetails.pathKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.newSalesForm.searchShelfProducts.pathKey(),
+				}),
+			]);
+			return updated;
+		},
+		[mutateShelfProduct, queryClient, trpc],
 	);
 
 	return useMemo(
@@ -69,6 +93,7 @@ export function useDashboardSalesFormWorkflowData(): SalesFormWorkflowDataSource
 						},
 					),
 				),
+			updateShelfProduct,
 			useShelfProductSearch: (input) =>
 				useNewSalesFormShelfProductSearchQuery(
 					{
@@ -82,6 +107,6 @@ export function useDashboardSalesFormWorkflowData(): SalesFormWorkflowDataSource
 				useSalesSuppliersQuery(input?.enabled !== false),
 			resolveImageSrc,
 		}),
-		[queryClient, resolveImageSrc, trpc],
+		[queryClient, resolveImageSrc, trpc, updateShelfProduct],
 	);
 }

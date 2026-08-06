@@ -1239,6 +1239,50 @@ describe("new-sales-form relational parity", () => {
     ]);
   });
 
+  it("deep-searches shelf products by one exact dimension side", async () => {
+    const { ctx, state } = createMockContext();
+    state.shelfProducts.push(
+      {
+        id: 1012,
+        title: "BFLD, 4DR 5-0X6-8 HC Carrara SM, Carton Pack",
+        unitPrice: 145,
+        categoryId: 11,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+      {
+        id: 1013,
+        title: "BFLD, 4DR 5 0X6 8 HC Smooth SM, Carton Pack",
+        unitPrice: 140,
+        categoryId: 11,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+      {
+        id: 1014,
+        title: "Carrara HC 5 Series 0 Gauge Carton Pack",
+        unitPrice: 10,
+        categoryId: 11,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+    );
+
+    const carrara = await searchNewSalesFormShelfProducts(ctx, {
+      query: "Carrara hc 5-0",
+      selectedIds: [],
+      limit: 20,
+    });
+    expect(carrara.map((product) => product.id)).toEqual([1012]);
+
+    const spaced = await searchNewSalesFormShelfProducts(ctx, {
+      query: "Smooth hc 5-0",
+      selectedIds: [],
+      limit: 20,
+    });
+    expect(spaced.map((product) => product.id)).toEqual([1013]);
+  });
+
   it("preserves structured-search recall across a thousand coarse numeric collisions", async () => {
     const { ctx, state } = createMockContext();
     state.shelfProducts.push(

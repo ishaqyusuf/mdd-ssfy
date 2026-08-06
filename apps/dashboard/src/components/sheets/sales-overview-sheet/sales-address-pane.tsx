@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
-import Sheet from "@gnd/ui/custom/sheet";
+import Sheet from "@gnd/ui/custom/sheet-v2";
 import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { useEffect } from "react";

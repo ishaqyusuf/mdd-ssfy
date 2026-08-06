@@ -17,7 +17,7 @@ import { Calendar } from "@gnd/ui/calendar";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
-import Sheet from "@gnd/ui/custom/sheet";
+import Sheet from "@gnd/ui/custom/sheet-v2";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";

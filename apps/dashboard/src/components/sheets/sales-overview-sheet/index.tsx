@@ -3,9 +3,9 @@
 import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import Sheet from "@gnd/ui/custom/sheet";
+import Sheet from "@gnd/ui/custom/sheet-v2";
 import { Tabs } from "@gnd/ui/tabs";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { SalesOverviewProvider, useSaleOverview } from "./context";
 import {
@@ -47,30 +47,47 @@ function Content() {
 	const { data } = useSaleOverview();
 	const [pane, setPane] = useState<SalesOverviewPane | null>(null);
 	const [paneOpened, setPaneOpened] = useState(false);
+	const paneTriggerRef = useRef<HTMLElement | null>(null);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: changing sales must discard any open secondary pane
 	useEffect(() => {
 		setPane(null);
 		setPaneOpened(false);
+		paneTriggerRef.current = null;
 	}, [data?.id]);
+	const rememberPaneTrigger = () => {
+		paneTriggerRef.current =
+			document.activeElement instanceof HTMLElement
+				? document.activeElement
+				: null;
+	};
 	const openAddressPane = (selection: SalesAddressPaneSelection) => {
+		rememberPaneTrigger();
 		setPane({ kind: "address", ...selection });
 		setPaneOpened(true);
 	};
 	const openCustomerPane = () => {
+		rememberPaneTrigger();
 		setPane({ kind: "customer" });
 		setPaneOpened(true);
 	};
 	const openInboundCreatePane = () => {
+		rememberPaneTrigger();
 		setPane({ kind: "inbound-create" });
 		setPaneOpened(true);
 	};
 	const openInboundDetailPane = (inboundId: number) => {
+		if (!paneOpened) rememberPaneTrigger();
 		setPane({ kind: "inbound-detail", inboundId });
 		setPaneOpened(true);
 	};
-	const discardPane = () => {
-		setPane(null);
+	const closePane = () => {
 		setPaneOpened(false);
+	};
+	const handlePaneExited = () => {
+		setPane(null);
+		const trigger = paneTriggerRef.current;
+		paneTriggerRef.current = null;
+		requestAnimationFrame(() => trigger?.focus());
 	};
 	const isQuote =
 		data?.type === "quote" || query.params["sales-type"] === "quote";
@@ -110,12 +127,11 @@ function Content() {
 			sheetName="sales-overview-sheet"
 			open
 			onOpenChange={query.close}
-			floating
-			rounded
 			primarySize="2xl"
-			secondarySize="5xl"
+			secondarySize="2xl"
 			secondaryOpened={paneOpened}
-			onCloseSecondary={() => setPaneOpened(false)}
+			onCloseSecondary={closePane}
+			onSecondaryExited={handlePaneExited}
 		>
 			<Sheet.MultiContent>
 				<Sheet.PrimaryContent>
@@ -144,7 +160,7 @@ function Content() {
 						billingAddressId={data.addressData?.billing?.id}
 						customerId={data.customerId}
 						salesId={data.id}
-						onClose={discardPane}
+						onClose={closePane}
 					/>
 				) : null}
 				{pane?.kind === "customer" && data?.id && data.customerId ? (
@@ -153,7 +169,7 @@ function Content() {
 						addressEditingLocked={addressEditingLocked}
 						billingAddressId={data.addressData?.billing?.id}
 						customerId={data.customerId}
-						onClose={discardPane}
+						onClose={closePane}
 						salesId={data.id}
 						salesType={isQuote ? "quote" : "order"}
 						shippingAddressId={data.addressData?.shipping?.id}
@@ -164,7 +180,7 @@ function Content() {
 						key={`inbound-create-${data.id}`}
 						salesOrderId={data.id}
 						orderNumber={data.orderId}
-						onClose={discardPane}
+						onClose={closePane}
 						onCreated={openInboundDetailPane}
 					/>
 				) : null}

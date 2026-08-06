@@ -98,6 +98,7 @@ describe("sales form engine panel gating", () => {
 			useStepComponents: (() => ({ data: [] })) as any,
 			renderMouldingCalculator: (() => null) as any,
 			useDoorSuppliers: (() => ({ data: null })) as any,
+			updateShelfProduct: noop as any,
 		};
 
 		const dealerSafeDataSource = filterSalesFormWorkflowDataSource(
@@ -106,12 +107,14 @@ describe("sales form engine panel gating", () => {
 		);
 		expect(dealerSafeDataSource.renderMouldingCalculator).toBeUndefined();
 		expect(dealerSafeDataSource.useDoorSuppliers).toBeUndefined();
+		expect(dealerSafeDataSource.updateShelfProduct).toBeUndefined();
 
 		const internalDataSource = filterSalesFormWorkflowDataSource(
 			dataSource,
 			createSalesFormWorkflowCapabilities({
 				canUseMouldingCalculator: true,
 				canManageDoorSuppliers: true,
+				canEditLinePricing: true,
 			}),
 		);
 		expect(internalDataSource.renderMouldingCalculator).toBe(
@@ -119,6 +122,9 @@ describe("sales form engine panel gating", () => {
 		);
 		expect(internalDataSource.useDoorSuppliers).toBe(
 			dataSource.useDoorSuppliers,
+		);
+		expect(internalDataSource.updateShelfProduct).toBe(
+			dataSource.updateShelfProduct,
 		);
 	});
 });

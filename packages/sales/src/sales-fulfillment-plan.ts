@@ -2,6 +2,10 @@ import { type Db, Prisma, type TransactionClient } from "@gnd/db";
 import type { DeliveryOption } from "@gnd/utils/sales";
 
 import {
+	dispatchItemQuantity,
+	scaleDispatchComponentQuantity,
+} from "./dispatch-manifest/inventory-quantities";
+import {
 	assertInventoryFulfillmentLineSelection,
 	assertInventoryFulfillmentMutableSale,
 	isInventoryFulfillmentTerminalSale,
@@ -3976,8 +3980,19 @@ export async function transitionInventoryDispatchAllocations(
 				action,
 				status: fromStatus,
 			});
+			const bindsUnboundReservedAllocation =
+				action === "assign" &&
+				fromStatus === "reserved" &&
+				Boolean(input.orderDeliveryId) &&
+				allocation.orderDeliveryId === null;
+			const targetStatus = bindsUnboundReservedAllocation
+				? ("reserved" as const)
+				: plan.toStatus;
 
-			if (!plan.transition || !plan.toStatus) {
+			if (
+				(!plan.transition && !bindsUnboundReservedAllocation) ||
+				!targetStatus
+			) {
 				skipped.push({
 					allocationId: allocation.id,
 					lineItemComponentId: allocation.lineItemComponentId,
@@ -4027,7 +4042,7 @@ export async function transitionInventoryDispatchAllocations(
 						inventoryVariantId: allocation.inventoryVariantId,
 						orderDeliveryId: input.orderDeliveryId,
 						qty: selectedQty,
-						status: plan.toStatus,
+						status: targetStatus,
 						notes: input.note || allocation.notes,
 					},
 					select: { id: true },
@@ -4036,7 +4051,7 @@ export async function transitionInventoryDispatchAllocations(
 					allocationId: bound.id,
 					lineItemComponentId: allocation.lineItemComponentId,
 					fromStatus,
-					toStatus: plan.toStatus,
+					toStatus: targetStatus,
 				});
 				touchedComponentIds.add(allocation.lineItemComponentId);
 				continue;
@@ -4052,7 +4067,7 @@ export async function transitionInventoryDispatchAllocations(
 						: {}),
 				},
 				data: {
-					status: plan.toStatus,
+					status: targetStatus,
 					notes: input.note || allocation.notes,
 					...(input.orderDeliveryId && action === "assign"
 						? { orderDeliveryId: input.orderDeliveryId }
@@ -4073,7 +4088,7 @@ export async function transitionInventoryDispatchAllocations(
 				allocationId: allocation.id,
 				lineItemComponentId: allocation.lineItemComponentId,
 				fromStatus,
-				toStatus: plan.toStatus,
+				toStatus: targetStatus,
 			});
 			touchedComponentIds.add(allocation.lineItemComponentId);
 		}
@@ -4105,6 +4120,23 @@ export async function assertDispatchInventoryReadyToStart(
 	db: DbLike,
 	input: { orderDeliveryId: number; salesOrderId: number },
 ) {
+	const deliveryItems = await db.orderItemDelivery.findMany({
+		where: {
+			orderDeliveryId: input.orderDeliveryId,
+			orderId: input.salesOrderId,
+			deletedAt: null,
+			packingStatus: { not: "unpacked" },
+		},
+		select: { orderItemId: true, qty: true, lhQty: true, rhQty: true },
+	});
+	const dispatchQtyBySalesItemId = new Map<number, number>();
+	for (const item of deliveryItems) {
+		dispatchQtyBySalesItemId.set(
+			item.orderItemId,
+			(dispatchQtyBySalesItemId.get(item.orderItemId) || 0) +
+				dispatchItemQuantity(item),
+		);
+	}
 	const components = await db.lineItemComponents.findMany({
 		where: {
 			required: true,
@@ -4113,12 +4145,14 @@ export async function assertDispatchInventoryReadyToStart(
 				saleId: input.salesOrderId,
 				deletedAt: null,
 				lineItemType: "SALE",
+				salesItemId: { in: [...dispatchQtyBySalesItemId.keys()] },
 			},
 		},
 		orderBy: { id: "asc" },
 		select: {
 			id: true,
 			qty: true,
+			parent: { select: { qty: true, salesItemId: true } },
 			stockAllocations: {
 				where: {
 					orderDeliveryId: input.orderDeliveryId,
@@ -4129,16 +4163,40 @@ export async function assertDispatchInventoryReadyToStart(
 		},
 	});
 	if (!components.length) {
+		const inventoryLine = await db.lineItem.findFirst({
+			where: {
+				saleId: input.salesOrderId,
+				deletedAt: null,
+				lineItemType: "SALE",
+				components: {
+					some: { required: true, status: { not: "cancelled" } },
+				},
+			},
+			select: { id: true },
+		});
+		if (inventoryLine) {
+			throw new Error("INVENTORY_DISPATCH_SCOPE_REQUIRED");
+		}
 		return { executionMode: "legacy" as const, componentCount: 0 };
 	}
 
 	const blockingComponents = components
 		.map((component) => {
-			const requiredQty = roundQuantity(numberValue(component.qty));
+			const dispatchItemQty = component.parent.salesItemId
+				? dispatchQtyBySalesItemId.get(component.parent.salesItemId) || 0
+				: 0;
+			const requiredQty = scaleDispatchComponentQuantity({
+				componentQty: component.qty,
+				orderedItemQty: component.parent.qty,
+				dispatchItemQty,
+			});
 			const pickedQty = roundQuantity(
 				component.stockAllocations
 					.filter((allocation) => allocation.status === "picked")
-					.reduce((total, allocation) => total + numberValue(allocation.qty), 0),
+					.reduce(
+						(total, allocation) => total + numberValue(allocation.qty),
+						0,
+					),
 			);
 			return { componentId: component.id, requiredQty, pickedQty };
 		})
@@ -4184,8 +4242,12 @@ export async function consumeDispatchBoundInventory(
 		},
 	});
 	if (!allocations.length) {
+		const readiness = await assertDispatchInventoryReadyToStart(db, {
+			orderDeliveryId: input.orderDeliveryId,
+			salesOrderId: input.salesOrderId,
+		});
 		return {
-			executionMode: "legacy" as const,
+			executionMode: readiness.executionMode,
 			allocationIds: [] as number[],
 			consumedQty: 0,
 		};
@@ -4236,7 +4298,11 @@ export async function consumeDispatchBoundInventory(
 
 export async function releaseDispatchBoundInventory(
 	db: DbLike,
-	input: { orderDeliveryId: number; note?: string | null },
+	input: {
+		orderDeliveryId: number;
+		note?: string | null;
+		allowPickedRelease?: boolean;
+	},
 ) {
 	const allocations = await db.stockAllocation.findMany({
 		where: {
@@ -4253,10 +4319,11 @@ export async function releaseDispatchBoundInventory(
 			notes: true,
 		},
 	});
-	if (allocations.some((allocation) => allocation.status === "picked")) {
-		throw new Error(
-			"INVENTORY_DISPATCH_PICKED_RELEASE_REQUIRES_CONFIRMATION",
-		);
+	if (
+		!input.allowPickedRelease &&
+		allocations.some((allocation) => allocation.status === "picked")
+	) {
+		throw new Error("INVENTORY_DISPATCH_PICKED_RELEASE_REQUIRES_CONFIRMATION");
 	}
 	const touchedComponentIds = new Set<number>();
 	for (const allocation of allocations) {
@@ -4281,7 +4348,9 @@ export async function releaseDispatchBoundInventory(
 		await recomputeLineItemComponentFulfillment(db, componentId);
 	}
 	return {
-		executionMode: allocations.length ? ("inventory" as const) : ("legacy" as const),
+		executionMode: allocations.length
+			? ("inventory" as const)
+			: ("legacy" as const),
 		releasedAllocationIds: allocations.map((allocation) => allocation.id),
 	};
 }

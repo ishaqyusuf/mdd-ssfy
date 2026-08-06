@@ -72,6 +72,45 @@ describe("item workflow step family", () => {
 		expect(family).toBe("moulding-line-item");
 	});
 
+	it("keeps the moulding catalog open after confirming a selected quantity", () => {
+		const family = getItemWorkflowStepFamily(
+			{
+				title: "Moulding",
+				formSteps: [
+					{
+						step: {
+							title: "Item Type",
+						},
+						value: "Moulding",
+					},
+					{
+						step: {
+							title: "Moulding",
+						},
+						value: "Casing",
+					},
+				],
+				meta: {
+					mouldingRows: [
+						{
+							uid: "m-1",
+							title: "Casing",
+							qty: 2,
+						},
+					],
+				},
+			} as any,
+			{
+				step: {
+					title: "Moulding",
+				},
+			} as any,
+			{ retainMouldingComponentGrid: true },
+		);
+
+		expect(family).toBe("component-grid");
+	});
+
 	it("renders persisted service rows on edit reopen from the item type step", () => {
 		const family = getItemWorkflowStepFamily(
 			{

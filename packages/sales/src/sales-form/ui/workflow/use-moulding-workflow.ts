@@ -34,6 +34,11 @@ type MouldingSelectionPopoverState = {
 	qty: string;
 };
 
+type RetainedMouldingSelectionStep = {
+	lineUid: string;
+	stepIndex: number;
+};
+
 function getMouldingRows(line: SalesFormLineItemRecord): WorkflowComponent[] {
 	const lineMeta = line.meta as SalesFormLineItemRecord["meta"] & {
 		mouldingRows?: WorkflowComponent[];
@@ -91,6 +96,7 @@ export function useMouldingWorkflow(args: {
 		uid: string,
 		patch: Partial<SalesFormLineItemRecord>,
 	) => void;
+	setActiveStep: (lineUid: string, stepIndex: number) => void;
 }) {
 	const {
 		activeLine,
@@ -99,9 +105,12 @@ export function useMouldingWorkflow(args: {
 		normalizeTitle,
 		visibleComponents,
 		updateLineItem,
+		setActiveStep,
 	} = args;
 	const [mouldingSelectionPopover, setMouldingSelectionPopover] =
 		useState<MouldingSelectionPopoverState>(closePopoverState);
+	const [retainedMouldingSelectionStep, setRetainedMouldingSelectionStep] =
+		useState<RetainedMouldingSelectionStep | null>(null);
 	const mouldingQtyInputRef = useRef<HTMLInputElement | null>(null);
 
 	const activeMouldingSync = (() => {
@@ -218,7 +227,15 @@ export function useMouldingWorkflow(args: {
 			qty: qtyInput,
 			activeStepTitle,
 		});
-		if (nextPatch) updateLineItem(String(line.uid || ""), nextPatch);
+		if (nextPatch) {
+			const lineUid = String(line.uid || "");
+			updateLineItem(lineUid, nextPatch);
+			setRetainedMouldingSelectionStep({
+				lineUid,
+				stepIndex: currentStepIndex,
+			});
+			setActiveStep(lineUid, currentStepIndex);
+		}
 		setMouldingSelectionPopover(closePopoverState());
 	}
 
@@ -234,5 +251,8 @@ export function useMouldingWorkflow(args: {
 			})),
 		closeMouldingSelectionPopover: () =>
 			setMouldingSelectionPopover(closePopoverState()),
+		shouldRetainMouldingComponentGrid: (lineUid: string, stepIndex: number) =>
+			retainedMouldingSelectionStep?.lineUid === lineUid &&
+			retainedMouldingSelectionStep.stepIndex === stepIndex,
 	};
 }

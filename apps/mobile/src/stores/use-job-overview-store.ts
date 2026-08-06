@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 
 type JobOverviewState = {
   isModalOpen: boolean;

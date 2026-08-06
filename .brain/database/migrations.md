@@ -1,5 +1,20 @@
 # Database Migrations
 
+## 2026-08-06: Bind Stock Allocations to Dispatch
+
+- Added migration `20260806120000_bind_stock_allocations_to_dispatch`, which
+  adds nullable `StockAllocation.orderDeliveryId` and the dispatch/reconciliation
+  indexes required by the Prisma relationship.
+- Prisma Client generation passes and the local development schema was
+  synchronized successfully with `prisma db push` through the package's loaded
+  environment.
+- The normal root migration wrapper could not reach its Docker dependency from
+  the managed sandbox, so no reset or destructive migration workaround was
+  used. The additive migration file remains the deployable production artifact.
+- Historical allocation binding is a separate dry-run-first application
+  operation; the schema migration does not guess dispatch ownership.
+
+
 ## 2026-08-06: Safe Layered Sales Workflow Cancellation
 
 - Added Prisma-generated migration

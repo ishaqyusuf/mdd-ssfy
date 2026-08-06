@@ -1,5 +1,21 @@
 # API Endpoints
 
+## Driver Platform Revival
+
+- Protected reads: `dispatch.driverWorkQueue`,
+  `dispatch.driverWorkQueueSummary`, `dispatch.manifest`,
+  `dispatch.dispatchOverviewV2`, `dispatch.orderDispatchOverview`,
+  `dispatch.packingQueue`, and `dispatch.packingList`.
+- Inventory mutation: `dispatch.prepareInventoryForDispatch` for packing
+  operators.
+- Manager operations: `dispatch.inventoryReconciliation` and
+  `dispatch.backfillInventoryBindings` (dry-run by default).
+- Dispatch lifecycle routes reuse package-owned start, complete, and cancel
+  commands so inventory and legacy delivery changes share a transaction.
+- `hrm.getQuickLoginEmployees` returns a minimal active employee projection in
+  `NODE_ENV=development` and an empty list in every other environment.
+
+
 ## New Sales Form Adjustments
 
 - `newSalesForm.get` now includes current payment/inbound/production/fulfillment
@@ -210,7 +226,7 @@ Tracks notable API surfaces and where they are implemented.
   - `newSalesForm.getHistorySnapshot`: protected lazy detail query that verifies a requested history copy belongs to the current order/quote before hydrating it through the new-form loader
   - `newSalesForm.getShelfProductIndex`: cached visible shelf-product search projection with compact active parent/child category breadcrumbs for the shared dashboard and dealership picker; dealer callers receive only allowlisted products
   - `newSalesForm.getShelfProductDetails`: selected-id detail hydration with image, price, category ids, and compact active category breadcrumbs
-  - `newSalesForm.searchShelfProducts`: mobile and adapter shelf picker search; blank queries return bounded visible recent products with active fallback, while typed queries merge bounded exact-title, contiguous-phrase, structured measurement-anchor, and general term/category candidate stages (at most 601 unique rows) before shared unordered-word and structured dimension/fraction ranking; selected visible products remain hydrated after the normal result limit
+  - `newSalesForm.searchShelfProducts`: mobile and adapter shelf picker search; blank queries return bounded visible recent products with active fallback, while typed queries merge bounded exact-title, contiguous-phrase, structured measurement-anchor, and general term/category candidate stages (at most 601 unique rows) before shared unordered-word and structured dimension/fraction ranking; standalone hyphenated partials can match either exact dimension side or a mixed-fraction prefix without loose numeric matching, and selected visible products remain hydrated after the normal result limit
   - `newSalesForm.searchServiceSuggestions`: mobile Service line suggestion search; blank query returns unique recent service names derived from saved grouped service rows, while typed query filters by normalized service name and returns the latest observed unit price for each service
   - `newSalesForm.updateShelfProduct`: updates a shelf product title and unit price for the mobile shelf search edit action
   - `newSalesForm.deleteShelfProduct`: soft-deletes a shelf product for the mobile shelf search delete action
@@ -497,3 +513,15 @@ Tracks notable API surfaces and where they are implemented.
   totals.
 - Shipment, line-hold, dispatch assign/pack/fulfill/release, and received-backorder
   allocation routes repeat server-side operational permission checks.
+
+## Inbound quantity and sales adjustment reconciliation (2026-08-06)
+
+- `inventories.reduceInboundShipmentDemand`: protected mutation that reduces or
+  removes one demand from an open inbound shipment, requires a reason, preserves
+  received quantity, writes Sales/inbound activity, and repairs the affected
+  Sales inventory projection.
+- `inventories.updateInboundShipmentStatus` cancellation now synchronously
+  repairs every affected Sales projection and rediscovers released repair
+  targets on retry.
+- New-sales-form adjustment preview/create expose explicit operational
+  acknowledgement plus `CANCEL_OPEN_INBOUND | KEEP_IN_WAREHOUSE` disposition.

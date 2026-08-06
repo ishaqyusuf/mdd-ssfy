@@ -1,0 +1,93 @@
+# Driver Platform Revival
+
+## Status
+
+Implemented on 2026-08-06. Automated contract, domain, and focused mobile
+validation is green. The dedicated development router now renders in SDK 54
+Expo Go and has completed login, assigned-queue, and dispatch-detail device
+proof. The remaining journey gate is a startable local fixture: the assigned
+legacy dispatch used for proof has no packed or assigned items, so the inventory
+safety rule correctly keeps `Start Trip` disabled.
+
+## Behavior
+
+- Authenticated drivers receive a server-owned work queue grouped into
+  `overdue`, `today`, `tomorrow`, `upcoming`, and `unscheduled` sections.
+- Queue totals are authoritative and independent of loaded pages. Cards and
+  detail views label the delivery date explicitly instead of mixing overdue
+  work into a generic urgent list.
+- Dispatch detail uses a typed manifest. Legacy lines preserve their existing
+  source fields and expose size, item type, LH/RH/total quantities, and an
+  explicit missing-data warning instead of inventing handing information.
+- Inventory-backed lines expose SKU/variant, required components, bound and
+  available allocations, inbound shortage, readiness, and a stable revision.
+- A split delivery scopes component demand proportionally to the item quantity
+  on that `OrderDelivery`; one trip cannot reserve the whole sales line.
+- Warehouse confirmation binds exact approved allocation quantities to the
+  dispatch and transitions them to picked. Starting a trip requires its scoped
+  required components to be picked. Completion consumes only picked allocations
+  bound to that dispatch. Cancellation releases active allocations; picked
+  stock requires an explicit manager confirmation that it was physically
+  returned.
+- Legacy-only dispatches continue through the existing fulfillment path and
+  are labeled `legacy_item`; missing inventory identity is never treated as
+  available inventory.
+- Development quick-login employees are returned only when the API process is
+  in `NODE_ENV=development`, and the mobile selector is compiled only under
+  `__DEV__`. Preview and production do not expose the account list.
+- Dark mode shares the Al-Ghurobaa podcast app's semantic identity: near-black
+  background, layered charcoal card/popover surfaces, high-contrast neutral
+  text, and green primary/accent/ring tokens. The palette is applied through
+  the shared navigation and NativeWind semantic variables rather than
+  screen-specific colors; the existing light palette is unchanged.
+
+## Interfaces
+
+- Mobile: `apps/mobile/src/app/(drivers)/dispatch`, the shared dispatch detail
+  surface, and the warehouse packing surface.
+- API: protected `dispatch.driverWorkQueue`,
+  `dispatch.driverWorkQueueSummary`, `dispatch.manifest`,
+  `dispatch.prepareInventoryForDispatch`,
+  `dispatch.inventoryReconciliation`, and
+  `dispatch.backfillInventoryBindings`.
+- Domain: `packages/sales/src/dispatch-manifest/*`, inventory dispatch
+  transitions in `sales-fulfillment-plan.ts`, and atomic dispatch lifecycle
+  orchestration in `sales-control/tasks.ts`.
+
+## Rollout and Operations
+
+- Run inventory reconciliation before binding historical allocations.
+- Backfill defaults to dry-run and automatically selects only a sale with one
+  active dispatch. Exact quantities are planned from that dispatch's scoped
+  manifest; ambiguous sales remain untouched.
+- Pilot with assigned drivers and warehouse operators before broad enablement.
+  Compare legacy packing quantities, inventory readiness, and post-completion
+  consumed allocations for every pilot trip.
+- Do not claim mobile cutover complete until a valid packed/assigned local
+  dispatch completes the final start journey in Expo Go. Login, development
+  accounts, assigned queue, detail, and dark-theme rendering are already proven.
+
+## Validation Evidence
+
+- Sales and API TypeScript checks pass.
+- Focused work-queue, manifest normalization, permissions, quick-login,
+  inventory transitions, reconciliation, and transaction tests pass.
+- Prisma Client generation and local schema synchronization pass.
+- Android debug assembly/install passes.
+- The dedicated driver development router, direct icon imports, and Expo Go
+  native-module compatibility boundary reduce the active bundle from roughly
+  10,418 modules to roughly 3,100 and avoid the prior Hermes `hades` crash.
+- Expo Go 54.0.8 device proof passes login, the development-only employee
+  selector, authenticated assigned queue, dispatch detail, and the Al-Ghurobaa
+  dark palette. The tested dispatch (`#08980DB`) has zero manifest items, so
+  `Start Trip` remains intentionally disabled by readiness rules.
+- Theme/runtime/security regression coverage passes 12 tests with 51
+  assertions, including exact dark identity tokens and development-only
+  account/router boundaries.
+
+## Related Records
+
+- `.brain/plans/driver-platform-revival/map.md`
+- `.brain/decisions/ADR-050-dispatch-bound-inventory-execution.md`
+- `.brain/features/inventory-backed-sales-fulfillment.md`
+- `.brain/features/mobile-dispatch-proof-completion.md`

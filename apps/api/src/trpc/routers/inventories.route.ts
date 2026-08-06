@@ -11,6 +11,7 @@ import {
 	listInboundShipmentsQuery,
 	listInboundSuppliers,
 	listOrderInboundShipmentsQuery,
+	reduceInboundShipmentDemandQuery,
 	updateInboundShipmentStatusQuery,
 	uploadInboundDocumentsQuery,
 } from "@api/db/queries/inbound-receiving";
@@ -437,6 +438,13 @@ export const updateInboundShipmentStatusSchema = z.object({
 	note: z.string().trim().max(2000).optional().nullable(),
 });
 
+export const reduceInboundShipmentDemandSchema = z.object({
+	inboundId: inventoryPositiveIdSchema,
+	demandId: inventoryPositiveIdSchema,
+	targetQty: z.number().nonnegative(),
+	note: z.string().trim().min(3).max(2000),
+});
+
 export const receiveInboundShipmentSchema = z.object({
 	inboundId: inventoryPositiveIdSchema,
 	receivedAt: z.date().optional().nullable(),
@@ -762,6 +770,16 @@ export const inventoriesRouter = createTRPCRouter({
 		.input(updateInboundShipmentStatusSchema)
 		.mutation(async (props) => {
 			return updateInboundShipmentStatusQuery(props.ctx, props.input);
+		}),
+	reduceInboundShipmentDemand: protectedProcedure
+		.input(reduceInboundShipmentDemandSchema)
+		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to adjust inbound orders.",
+			);
+			return reduceInboundShipmentDemandQuery(props.ctx, props.input);
 		}),
 	receiveInboundShipment: protectedProcedure
 		.input(receiveInboundShipmentSchema)

@@ -1,5 +1,8 @@
 export { calculateSalesFormSummary } from "./costing";
-export { readSalesFormObjectMetadata } from "./metadata";
+export {
+	isCustomSalesFormComponent,
+	readSalesFormObjectMetadata,
+} from "./metadata";
 export {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,

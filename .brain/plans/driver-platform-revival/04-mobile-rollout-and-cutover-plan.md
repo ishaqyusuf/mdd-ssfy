@@ -1,6 +1,6 @@
 # Phase 3: Driver Mobile Rollout and Cutover
 
-Status: Proposed
+Status: Implemented in source; rollout waits on the Expo Go device gate
 Dependency: Canonical manifest and inventory-bound commands
 
 ## Objective

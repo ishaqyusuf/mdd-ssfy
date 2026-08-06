@@ -58,4 +58,41 @@ describe("mobile preview build security", () => {
 			/"env",\s*"-u",\s*"EXPO_PUBLIC_EMAIL",\s*"-u",\s*"EXPO_PUBLIC_TOK",\s*"EXPO_PUBLIC_SENTRY_ENABLED=false",\s*"EXPO_PUBLIC_SENTRY_DEBUG=false",\s*"EXPO_PUBLIC_SENTRY_SMOKE_TEST=false",\s*"SENTRY_DISABLE_AUTO_UPLOAD=true",\s*"EXPO_NO_DOTENV=1",\s*"eas"/,
 		);
 	});
+
+	it("keeps the smaller driver router root explicit and development-only", () => {
+		const appConfig = readAppFile("app.config.ts");
+		const authHook = readAppFile("src/hooks/use-auth.tsx");
+		const packageJson = JSON.parse(readAppFile("package.json")) as {
+			scripts: Record<string, string>;
+		};
+		const driverRoutes = [
+			"src/driver-app/(auth)/sign-in.tsx",
+			"src/driver-app/(drivers)/dispatch/index.tsx",
+			"src/driver-app/(drivers)/dispatch/[dispatchId].tsx",
+			"src/driver-app/(drivers)/warehouse-packing/index.tsx",
+			"src/driver-app/(drivers)/warehouse-packing/[dispatchId].tsx",
+		];
+
+		expect(appConfig).toContain(
+			'isDevelopmentBuild && process.env.EXPO_PUBLIC_DRIVER_PLATFORM_MODE === "true"',
+		);
+		expect(appConfig).toContain(
+			'? ["expo-router", { root: "src/driver-app" }]\n      : "expo-router"',
+		);
+		expect(packageJson.scripts["dev:driver"]).toContain(
+			"APP_VARIANT=development EXPO_PUBLIC_DRIVER_PLATFORM_MODE=true",
+		);
+		expect(packageJson.scripts["dev:driver"]).toContain("start --go");
+		expect(authHook).toContain(
+			'__DEV__ && process.env.EXPO_PUBLIC_DRIVER_PLATFORM_MODE === "true"',
+		);
+		expect(authHook).toContain(
+			"shouldStartDriverModeSignedOut ? null : getToken()",
+		);
+		expect(authHook).toContain("if (shouldStartDriverModeSignedOut) return;");
+
+		for (const route of driverRoutes) {
+			expect(readAppFile(route)).toContain('export { default } from "@/app/');
+		}
+	});
 });

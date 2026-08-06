@@ -1,5 +1,20 @@
 # API Permissions
 
+## Driver Platform Revival (2026-08-06)
+
+- Dispatch operational/customer reads use `protectedProcedure`; no public
+  dispatch manifest, packing, or queue read remains.
+- Driver detail reads require the authenticated user to be the assigned driver
+  unless the user has a dispatch-management capability.
+- Driver work-queue routes ignore caller-provided driver ids and force the
+  authenticated user id. Packing operators and managers use their explicit
+  capability boundaries.
+- Inventory preparation requires packing access. Reconciliation/backfill and
+  cancellation require dispatch-manager access.
+- Development quick-login data is guarded twice: the API returns rows only in
+  `NODE_ENV=development`, and the mobile selector exists only under `__DEV__`.
+
+
 ## New Sales Form Adjustments (2026-08-04)
 
 - Preview and proposal creation use protected procedures and the existing new
@@ -357,3 +372,11 @@ Tracks authentication and authorization patterns across API surfaces.
 - Client-supplied audit authors are rejected. Mutation audit identity is derived
   from the authenticated user, and direct route tests prove unauthorized users are
   denied before domain writes are reached.
+
+## Inbound quantity adjustment permissions (2026-08-06)
+
+- `inventories.reduceInboundShipmentDemand` requires authentication and the
+  existing `editInboundOrder` operational permission.
+- Actor identity is derived from the authenticated session. The supplied note is
+  a reason, not an author field; Sales and inbound activity use the server-resolved
+  employee contact.

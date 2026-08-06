@@ -25,6 +25,9 @@ function hasPersistedGroupedRows(
 export function getItemWorkflowStepFamily(
   line: SalesFormLineItemRecord,
   activeStep?: WorkflowStep | null,
+  options?: {
+    retainMouldingComponentGrid?: boolean;
+  },
 ) {
   const title = normalizeTitle(activeStep?.step?.title);
   const itemType = normalizeTitle(
@@ -38,6 +41,9 @@ export function getItemWorkflowStepFamily(
     hasMouldingRows && (!itemType || isMouldingItem(line));
   const serviceRowsMatchType =
     hasServiceRows && (!itemType || isServiceItem(line));
+  if (options?.retainMouldingComponentGrid && title === "moulding") {
+    return "component-grid";
+  }
   if (
     mouldingRowsMatchType ||
     (isMouldingItem(line) && title.includes("line item"))

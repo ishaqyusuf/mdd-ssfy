@@ -1,6 +1,6 @@
 # Phase 2: Inventory-Bound Driver Execution
 
-Status: Proposed
+Status: Implemented in source; final Expo Go device gate remains open
 Dependency: Canonical manifest identity and revision contract
 
 ## Objective

@@ -55,7 +55,7 @@ export function shouldShowSameAsBillingAction({
 export function SalesFormCustomerOverviewCard(
 	props: SalesFormCustomerOverviewCardProps,
 ) {
-	const [isExpanded, setIsExpanded] = useState(false);
+	const [isExpanded, setIsExpanded] = useState(true);
 	const initials = useMemo(() => {
 		if (props.customerInitials) return props.customerInitials;
 		const base = props.customerName || "Customer";

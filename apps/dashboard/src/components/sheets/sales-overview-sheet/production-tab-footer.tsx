@@ -1,6 +1,6 @@
 import { getProductionTabItems } from "@/components/sales-overview-system/lib/production-items";
 import { Menu } from "@gnd/ui/custom/menu";
-import Sheet from "@gnd/ui/custom/sheet";
+import Sheet from "@gnd/ui/custom/sheet-v2";
 import { Icons } from "@gnd/ui/icons";
 import NumberFlow from "@number-flow/react";
 import { useMemo, useState } from "react";
@@ -45,8 +45,8 @@ export function ProductionTabFooter() {
 	const [opened, setOpened] = useState(false);
 	if (query.dispatchMode) return null;
 	return (
-		<Sheet.Portal hideWhenSecondary>
-			<SheetFooter className="-m-4 -mb-2 border-t p-4 shadow-xl">
+		<Sheet.Portal>
+			<SheetFooter className="border-t bg-background p-4 md:p-6">
 				<div className="flex flex-1 items-center gap-4">
 					<div className="inline-flex items-center gap-2">
 						<Checkbox

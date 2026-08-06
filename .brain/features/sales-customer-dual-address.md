@@ -22,6 +22,9 @@
   Billing is primary; distinct shipping is a second customer-owned row.
 - New and legacy sales forms prefer the explicit pair and fall back to the
   legacy primary id so existing callers remain compatible.
+- When either relation is unassigned, the sales form displays the customer's
+  primary address (or legacy customer address) for that billing or shipping
+  slot. Explicitly shared ids retain the `Same as billing` presentation.
 - `customers.assignSalesAddress` verifies the office sale/customer pair and
   customer-edit permission, applies copy-on-write when an address is shared,
   and changes only the initiating sale's requested address relation.
@@ -31,13 +34,20 @@
 - Edit Customer opens in the same Sales Overview secondary pane and reuses the
   complete General, Billing Address, Shipping Address, and same-address form.
 - Edit/Add Billing Address and Edit/Add Shipping Address open in the existing
-  `@gnd/ui/custom/sheet` secondary pane, not in another sheet overlay.
+  `@gnd/ui/custom/sheet-v2` secondary pane, not in another sheet overlay.
 - Desktop keeps the Sales Overview primary pane visible while the sheet widens.
   Narrow screens replace the primary content with the secondary pane and expose
   the shared Back control.
-- Every secondary pane owns its header and action footer. The Sales Overview
-  primary footer is hidden while a secondary pane is active and restored on
-  Back or Cancel; Back keeps the mounted draft while Cancel discards it.
+- Every secondary pane owns its header and action footer. On wide layouts, the
+  Sales Overview primary footer remains visible in its pane while the secondary
+  footer renders beside it. Narrow layouts hide the primary pane and footer
+  together. Back keeps the mounted draft while Cancel discards it. The primary
+  footer stays fixed in its pane-owned bottom slot and does not move to the
+  expanded sheet edge.
+- Wide layouts preserve independent `2xl` primary and secondary widths with a
+  1px divider. Narrow layouts show one pane at a time. Reveal/hide motion uses
+  the shared 300ms/200ms Midday timing, and outside clicks close the secondary
+  before the primary.
 - Successful saves publish `customer.changed`, refresh dependent sale data, and
   close only the address pane.
 - Existing address ids hydrate the secondary form before editing, and its
@@ -66,3 +76,7 @@
   footer replacement, cancel/discard behavior, and the narrow mobile layout
   without submitting customer changes.
 - No Prisma schema or migration is required.
+- Authenticated in-app browser QA on order `09158PC` reverified full customer,
+  billing-only, and shipping-only panes with fixed widths, divider, animated
+  open/close, layered dismissal, focus restoration, and the pane-owned primary
+  footer without submitting customer changes.

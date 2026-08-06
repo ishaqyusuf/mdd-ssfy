@@ -45,6 +45,18 @@ export type NewSalesFormChangeProtection = {
 		completedProductionQty: number;
 		fulfilledQty: number;
 		minimumAllowedQty: number;
+		inboundDemands: Array<{
+			id: number;
+			lineItemComponentId: number;
+			qty: number;
+			qtyReceived: number;
+			status: string;
+			inboundShipmentItemId: number | null;
+			inboundId: number | null;
+			inboundStatus: string | null;
+			inboundShipmentItemQty: number;
+			inboundShipmentItemReceivedQty: number;
+		}>;
 	}>;
 };
 
@@ -107,6 +119,7 @@ export async function getNewSalesFormCommitmentSnapshot(
 						select: {
 							components: {
 								select: {
+									id: true,
 									qtyAllocated: true,
 									qtyInbound: true,
 									qtyReceived: true,
@@ -116,7 +129,23 @@ export async function getNewSalesFormCommitmentSnapshot(
 									},
 									inboundDemands: {
 										where: { deletedAt: null, status: { not: "cancelled" } },
-										select: { qty: true, qtyReceived: true, status: true },
+										select: {
+											id: true,
+											lineItemComponentId: true,
+											qty: true,
+											qtyReceived: true,
+											status: true,
+											inboundShipmentItemId: true,
+											inboundShipmentItem: {
+												select: {
+													qty: true,
+													qtyGood: true,
+													qtyIssue: true,
+													inboundId: true,
+													inbound: { select: { status: true } },
+												},
+											},
+										},
 									},
 								},
 							},
@@ -180,6 +209,22 @@ export async function getNewSalesFormCommitmentSnapshot(
 				),
 			0,
 		);
+		const inboundDemands = components.flatMap((component) =>
+			component.inboundDemands.map((demand) => ({
+				id: demand.id,
+				lineItemComponentId: demand.lineItemComponentId,
+				qty: Number(demand.qty || 0),
+				qtyReceived: Number(demand.qtyReceived || 0),
+				status: demand.status,
+				inboundShipmentItemId: demand.inboundShipmentItemId,
+				inboundId: demand.inboundShipmentItem?.inboundId ?? null,
+				inboundStatus: demand.inboundShipmentItem?.inbound.status ?? null,
+				inboundShipmentItemQty: Number(demand.inboundShipmentItem?.qty || 0),
+				inboundShipmentItemReceivedQty:
+					Number(demand.inboundShipmentItem?.qtyGood || 0) +
+					Number(demand.inboundShipmentItem?.qtyIssue || 0),
+			})),
+		);
 		return {
 			uid: lineUid(item),
 			salesOrderItemId: item.id,
@@ -189,6 +234,7 @@ export async function getNewSalesFormCommitmentSnapshot(
 			completedProductionQty,
 			fulfilledQty,
 			minimumAllowedQty: Math.max(completedProductionQty, fulfilledQty),
+			inboundDemands,
 		};
 	});
 
@@ -292,6 +338,24 @@ async function buildNewSalesFormAdjustmentPreview(
 				]
 			: [];
 	});
+	const changedCommitments = analysis.lines.flatMap((line) => {
+		const commitment =
+			commitmentByUid.get(line.uid) ||
+			(line.id ? commitmentByItemId.get(line.id) : undefined);
+		return commitment ? [commitment] : [];
+	});
+	const requiresInboundDisposition =
+		analysis.lines.some((line) => line.quantityDelta < 0) &&
+		changedCommitments.some((line) => line.inboundQty > 0);
+	const requiresOperationalAcknowledgement = changedCommitments.some((line) =>
+		[
+			line.allocatedQty,
+			line.inboundQty,
+			line.productionQty,
+			line.completedProductionQty,
+			line.fulfilledQty,
+		].some((value) => Number(value || 0) > 0),
+	);
 	return {
 		baseline,
 		proposed: input,
@@ -299,6 +363,8 @@ async function buildNewSalesFormAdjustmentPreview(
 		analysis,
 		settlement,
 		blockedLines,
+		requiresInboundDisposition,
+		requiresOperationalAcknowledgement,
 	};
 }
 
@@ -306,9 +372,22 @@ export async function previewNewSalesFormAdjustment(
 	ctx: TRPCContext,
 	input: PreviewNewSalesFormAdjustmentSchema,
 ) {
-	const { commitments, analysis, settlement, blockedLines } =
-		await buildNewSalesFormAdjustmentPreview(ctx, input);
-	return { commitments, analysis, settlement, blockedLines };
+	const {
+		commitments,
+		analysis,
+		settlement,
+		blockedLines,
+		requiresInboundDisposition,
+		requiresOperationalAcknowledgement,
+	} = await buildNewSalesFormAdjustmentPreview(ctx, input);
+	return {
+		commitments,
+		analysis,
+		settlement,
+		blockedLines,
+		requiresInboundDisposition,
+		requiresOperationalAcknowledgement,
+	};
 }
 
 export async function createNewSalesFormAdjustment(
@@ -324,11 +403,21 @@ export async function createNewSalesFormAdjustment(
 			message: "No quantity changes were found.",
 		});
 	}
-	if (preview.blockedLines.length) {
+	if (
+		preview.requiresOperationalAcknowledgement &&
+		!input.acknowledgeOperationalImpact
+	) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message:
-				"A proposed quantity is below an already completed or fulfilled quantity.",
+				"Explicit acknowledgement is required for committed inventory, inbound, production, or fulfillment work.",
+		});
+	}
+	if (preview.requiresInboundDisposition && !input.inboundDisposition) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"Choose whether open inbound quantity should be cancelled or kept for warehouse stock.",
 		});
 	}
 	if (preview.analysis.lines.some((line) => !line.id)) {
@@ -355,6 +444,8 @@ export async function createNewSalesFormAdjustment(
 			lineItems: input.lineItems,
 			extraCosts: input.extraCosts,
 			summary: input.summary,
+			inboundDisposition: input.inboundDisposition,
+			acknowledgeOperationalImpact: input.acknowledgeOperationalImpact,
 		}),
 	);
 	const idempotencyKey = `new-sales-form:${input.salesId}:${input.version}:${proposalHash}`;
@@ -433,7 +524,11 @@ export async function createNewSalesFormAdjustment(
 				idempotencyKey,
 				reason: input.reason,
 				beforeSnapshot: json(preview.baseline),
-				proposedSnapshot: json(input),
+				proposedSnapshot: json({
+					...input,
+					requiresOperationalAcknowledgement:
+						preview.requiresOperationalAcknowledgement,
+				}),
 				commitmentSnapshot: json(preview.commitments),
 				settlementSnapshot: json(preview.settlement),
 				beforeGrandTotal: preview.analysis.beforeGrandTotal,

@@ -20,7 +20,6 @@ function quantityLabel(value?: {
 	].filter(Boolean);
 	return parts.join(" · ") || `Total ${Number(value?.total || 0)}`;
 }
-
 function FactRow({ label, value }: { label: string; value: string }) {
 	return (
 		<View className="flex-row items-start justify-between gap-4 border-b border-border/60 py-2.5 last:border-b-0">

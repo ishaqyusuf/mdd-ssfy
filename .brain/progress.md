@@ -1,5 +1,68 @@
 # Progress
 
+- 2026-08-06: isolated the independent multi-pane contract behind the opt-in
+  `@gnd/ui/custom/sheet-v2` export and restored the legacy custom sheet exactly,
+  preventing any behavior or visual change in existing sheet consumers. Sales
+  Overview and its pane/footer collaborators are the first and only V2 users.
+  V2 keeps the shadcn/Radix chassis and standardizes its width tokens, desktop
+  16px outer gutter, 24px surface padding, bordered stone surface, 10px radius,
+  and 300ms/200ms motion on the Midday sheet scale.
+
+- 2026-08-06: implemented the independent multi-pane Custom Sheet V2 contract
+  and standardized it around the Midday frame and motion scale.
+  `primarySize` and `secondarySize` now own fixed natural widths; Sales Overview
+  renders two unchanged 42rem `2xl` panes plus a 1px divider, uses one-pane
+  replacement below the computed fit threshold, animates reveal/hide at
+  300ms/200ms, restores trigger focus after exit, and closes secondary before
+  primary on outside interaction without click-through. The primary footer is
+  fixed in its own pane slot. Focused coverage passes 20 tests / 74 assertions,
+  `@gnd/ui` typecheck and targeted Biome pass, and authenticated in-app browser
+  QA covered customer, billing, shipping, inbound-create, inbound-detail, wide,
+  1200px, 1024px, 768px, and 390px states plus outside and Escape dismissal.
+  The broad Dashboard typecheck remains red on its existing
+  repository baseline with no changed sheet-file diagnostic. See ADR-051 and
+  `.brain/plans/2026-08-05-multipane-sheet-independent-pane-widths.md`.
+
+- 2026-08-06: refined the multi-pane sheet sizing plan around the clarified
+  additive contract: `primarySize` and `secondarySize` each size their own
+  pane. A `2xl` primary plus `2xl` secondary produces two unchanged `2xl`
+  panes, while the shell width is their resolved numeric sum plus the 1px
+  divider. The implementation must not substitute Tailwind `max-w-4xl`, whose
+  predefined value is not the sum of two `2xl` widths. See
+  `.brain/plans/2026-08-05-multipane-sheet-independent-pane-widths.md`.
+
+- 2026-08-06: implemented all source phases of the driver platform revival.
+  Dispatch reads are protected/assignment-scoped; the server owns due buckets,
+  filters, and global counts; structured manifests expose door handing and
+  inventory readiness; exact proportional allocations bind to each dispatch
+  and transition through reserve, pick, consume, and confirmed release; mobile
+  uses sectioned summary-first work queues and detail-on-demand; quick accounts
+  are development-only at API and UI boundaries. Sales/API typechecks, focused
+  tests, Prisma generation/local push, and Android debug assembly/install pass.
+  The dedicated development router, direct icon imports, and Expo Go native
+  compatibility boundary reduced the active graph to roughly 3,100 modules and
+  removed the prior Hermes `hades` crash. Expo Go 54.0.8 now passes login,
+  dev-only employee selection, assigned queue, and dispatch detail. The final
+  start proof awaits a valid packed/assigned local fixture because the tested
+  legacy dispatch has zero items and is correctly readiness-blocked. Dark mode
+  now uses the Al-Ghurobaa podcast app's near-black/charcoal/green semantic
+  palette across navigation and NativeWind; focused theme/runtime/security
+  validation passes 12 tests / 51 assertions and emulator rendering is visually
+  verified. See `.brain/features/driver-platform-revival.md`, ADR-050, and
+  `.brain/plans/driver-platform-revival/map.md`.
+
+
+- 2026-08-06: fixed the first dashboard Vercel build regression exposed by the
+  new filtered Bun install. `bcrypt-ts` had been declared only by the root
+  workspace even though `@gnd/api`, `@gnd/auth`, and `@gnd/utils` import it, so
+  `bun install --filter @gnd/dashboard --frozen-lockfile` omitted the package
+  and Turbopack reported four module-resolution errors. Each importing
+  workspace now owns the dependency and the lockfile records it in all three
+  workspace graphs. The deterministic manifest-ownership repro changed from
+  red to green and scoped whitespace validation passes; a fresh Vercel build is
+  the remaining deployment proof. See
+  `.brain/bugs/2026-08-06-dashboard-vercel-build-cache-thrashing.md`.
+
 - 2026-08-06: implemented safe layered Sales workflow cancellation. The Sales
   Orders menu now opens a lazy server-authoritative review instead of directly
   deleting production or cancelling dispatches. Fulfillment cancellation is
@@ -8552,6 +8615,21 @@
   tests / 231 assertions, including the reported fixture and recall through
   1,000 numeric collisions; a synthetic 5,000-row matcher benchmark compiled in
   about 18ms and searched in about 2ms. No database migration was required.
+- 2026-08-06: fixed the live Shelf V2 product dropdown scroll regression found
+  with the `carrara` query. The package-owned arbitrary `max-h-[320px]` class
+  was not emitted by the consuming app, so the 19-result list computed to
+  `max-height: none` and grew to 916px. The listbox now uses a reliable inline
+  20rem cap plus contained vertical overflow. Authenticated in-app browser proof
+  measured a 318px client height, 914px scroll height, `max-height: 320px`, and
+  `overflow-y: auto`; the focused picker test passes 2 tests / 10 assertions.
+- 2026-08-06: simplified Shelf V2 to one product table by removing the separate
+  section-category cards. Selected rows now show the same parent/child category
+  breadcrumb used by suggestion subtitles directly below the product input;
+  category ids remain derived from the chosen product and preserved in the
+  existing row/section persistence shape. Authenticated in-app browser proof
+  selected `BFLD, 4DR 5-0X6-8 HC CARRARA SM, CARTON PACK`, showed
+  `Bifolds > Hollow Core Molded Bifold`, and confirmed one table with zero
+  category cards. Focused shelf UI coverage passes 4 tests / 15 assertions.
 - 2026-08-06: hardened Sales Overview customer/address editing. Assigned
   addresses retain the existing prefilled secondary-pane behavior, the address
   action reads `Save`, billing and shipping persist independent recipient
@@ -8569,7 +8647,95 @@
   billing address data on order `09128DB`, updated
   customer/shipping context on quote `03329LRG`, confirmed immediate pane close
   and overview refresh without reload, and verified all three edit paths are
-  absent on fulfilled order `09168PC`. Fifty-seven focused tests / 130 assertions,
+  absent on fulfilled order `09168PC`. Fifty-seven focused tests / 131 assertions,
   Sales/API typechecks, scoped Biome, and whitespace checks pass; the broad
   Dashboard typecheck remains red on unrelated baseline diagnostics with no
   touched-file diagnostic.
+- 2026-08-06: moved the new sales form Shelf Items quantity column onto the
+  shared segmented minus/value/plus control already used by Door, HPT,
+  Moulding, and Service. Shelf keeps its existing zero minimum and row repricing
+  path, while its quantity column now reserves the same control width as
+  Service. The shared-control regression now covers Shelf alongside every
+  requested sales quantity surface; 13 focused tests / 49 assertions pass.
+- 2026-08-06: added a dedicated narrow `SN` column before Product in the new
+  sales form Shelf Items table. The 2.5rem column keeps row numbering separate
+  from the product label, while each number uses the product input's 2rem
+  alignment height so the category-tree subtitle does not pull it toward the
+  full row center. Added focused source regression coverage; scoped whitespace
+  and exact-symbol checks pass.
+- 2026-08-06: added selected-product editing to the new sales form Shelf V2
+  table. Price-capable internal users now get an Edit button immediately after
+  the product input; the dialog updates catalog name and cost price through the
+  existing `newSalesForm.updateShelfProduct` mutation. Successful saves
+  invalidate all Shelf product query surfaces and reprice every selected row
+  using that product through the active profile, while dealer/non-pricing
+  surfaces have the mutation removed from their filtered data source. Added
+  focused UI, capability-filter, and row-repricing regression coverage; scoped
+  whitespace validation passes.
+- 2026-08-06: diagnosed and planned the Shelf deep-search partial-dimension
+  fix. `Carrara hc` and `Carrara hc 5-0 x 6-8` match the reported Carrara
+  product, while `Carrara hc 5-0` fails because standalone `5-0` is parsed only
+  as a fraction prefix and cannot match the compiled `dimension:5-0x6-8`.
+  The proposed no-migration fix treats a hyphenated partial measurement as an
+  exact dimension-side or mixed-fraction-prefix constraint, expands bounded API
+  candidate anchors, and adds client/API parity plus numeric-collision tests.
+  See `.brain/plans/2026-08-06-fix-shelf-deep-search-partial-dimensions.md`.
+- 2026-08-06: implemented the Shelf deep-search partial-dimension fix.
+  Standalone hyphenated values now match either exact side of a structured
+  dimension or a mixed-fraction prefix, so `Carrara hc 5-0` finds
+  `BFLD, 4DR 5-0X6-8 HC Carrara SM, Carton Pack` without allowing unrelated
+  `5`/`0` digits. Bounded API anchors now cover hyphenated, spaced, and supported
+  quote-mark dimension storage; the stale removed category-patch export found
+  while loading the API suite was also deleted. Domain, shared Shelf picker,
+  and new-sales-form API validation passes 46 tests / 228 assertions, including
+  spaced sizes and the existing 1,000-collision recall case. No database schema,
+  search payload, visibility, or UI contract changed.
+- 2026-08-06: fixed the new sales form Shelf V2 suggestion popup reopening
+  immediately after product selection. The combobox already closed and restored
+  focus to its input, but the Shelf cell's unconditional input-focus handler
+  reopened it. Shelf now uses the primitive's focus-aware `openOnFocus`
+  behavior and retains empty-query refresh when the picker genuinely opens.
+  Authenticated in-app browser QA searched `Carrara hc 5-0`, selected the
+  matching Carrara bifold, and confirmed `aria-expanded="false"` with no visible
+  listbox; the focused editor test passes 5 tests / 18 assertions.
+- 2026-08-06: inspected the legacy and new sales form Custom component flows and
+  planned entry-only parity for the new form. Existing code already provides the
+  shared autocomplete, step-scoped custom upsert/archive mutations, hidden-by-
+  default filtering, and selected-snapshot fallback. The remaining plan removes
+  the sales-picker `Enable Custom` reveal, makes custom selection exclusive even
+  on multi-select steps, adds canonical deselection/downstream cleanup, shows
+  cost only where applicable, separates use/manage capabilities, and fixes
+  `undefined` versus `null` price semantics. No application, API, database, or
+  permission behavior changed. See
+  `.brain/plans/2026-08-06-feature-new-sales-form-custom-component-parity.md`.
+- 2026-08-06: implemented new sales form Custom component parity. Eligible
+  steps now keep custom catalog rows hidden until chosen through the bottom
+  Custom action, the global `Enable Custom` reveal is removed, selected custom
+  components are exclusive and canonically clearable, standard replacement
+  removes custom state, and Cost Price is shown only for pricing-capable steps.
+  The inventory upsert now rejects standard/cross-step identities and treats
+  omitted, numeric, and null prices as leave/set/clear. Extracted the inline
+  custom presentation from the large dashboard workflow panel. Focused tests
+  pass 43 tests / 117 assertions; authenticated browser QA reached the priced
+  Interior pre-hung `Jamb Size` fixture and confirmed hidden defaults, eligible
+  Custom entry, price input, and existing-value autocomplete without submitting
+  a custom or saving the order. No database migration was required.
+- 2026-08-06: implemented guarded inbound and existing-sale quantity
+  reconciliation. Open inbound demands can be reduced or removed with a reason,
+  received-quantity floor, actor-attributed inbound/Sales activity, and
+  synchronous sales projection repair. Inbound cancellation now repairs every
+  affected sale before returning. Sales Change Review now explains downstream
+  commitments, requires explicit acknowledgement, and offers cancel-open-inbound
+  versus keep-for-warehouse dispositions while preserving completed production,
+  receipt, stock, and fulfillment evidence. Approved-snapshot drift now becomes
+  stale, and post-commercial retries resume without duplicating wallet, refund,
+  quantity, or activity writes. Cancellation and direct removal retries preserve
+  their projection targets after detaching inbound links, direct data and both
+  activity streams commit together, committed reconciliation results are
+  checkpointed, and live worker claims explicitly schedule delayed stale-lease
+  recovery with exact compare-and-swap takeover. Focused coverage passes 26
+  tests / 73 assertions; API and Jobs typechecks pass.
+  The selected broader run has 74
+  passing tests with eight
+  existing inbound receipt/component-guard fixture failures and one cold-import
+  timeout documented in the feature note. No database migration was required.

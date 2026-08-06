@@ -23,9 +23,10 @@ orders in the new sales form.
 - Release one applies quantity changes only to existing persisted sale items.
   Adding a new line through an approved adjustment is rejected because its
   nested configuration cannot yet be recreated safely by the apply job.
-- A proposed quantity cannot fall below completed-production or fulfilled
-  quantity. Other operational commitments permit the commercial change but
-  finish as `APPLIED_WITH_REVIEW` and notify the sales representative.
+- A proposed quantity may fall below completed-production or fulfilled quantity
+  only after explicit employee acknowledgement. That operational evidence is
+  preserved, the change finishes as `APPLIED_WITH_REVIEW`, and the sales
+  representative is notified.
 
 ## Settlement Contract
 
@@ -51,12 +52,21 @@ orders in the new sales form.
   and `FAILED`.
 - Approval tokens are random, expiring, and stored only as SHA-256 hashes.
 - The apply job claims `APPROVED -> APPLYING` atomically. Retries of an already
-  applied adjustment are successful no-ops.
+  applied adjustment are successful no-ops; failures after the commercial
+  transaction return to `APPROVED` and resume from the sale's adjustment marker
+  without duplicating wallet/refund or quantity writes. A replacement worker may
+  take over an `APPLYING` claim after its three-minute lease becomes stale; a
+  retry that arrives before expiry schedules that delayed recovery explicitly.
+  The durable adjustment commitment snapshot carries the inbound reconciliation
+  checkpoint so a later form save cannot erase it and resume does not revalidate
+  later-mutated demand notes.
 - Both metadata-backed versions and stable legacy `updatedAt` versions are
   checked before applying. A mismatch marks the proposal `STALE` and preserves
   the live order.
-- Application updates the order and line totals in one database transaction,
-  then queues inventory-line reconciliation and a sales-history snapshot.
+- Application updates the order, line totals, wallet/refund outcome, and approved
+  inbound disposition in one database transaction, synchronously repairs the
+  Sales inventory projection, and only then marks the adjustment applied.
+  History and document warming remain non-critical follow-up work.
 - Creating a new approved adjustment also writes one actor-attributed Sales
   Activity entry in the same transaction. Quantity reductions show the affected
   item titles, previous/new quantities, and previous/new order total. Replaying

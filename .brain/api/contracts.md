@@ -1,5 +1,27 @@
 # API Contracts
 
+## Driver Work Queue and Manifest Contract (2026-08-06)
+
+- `dispatch.driverWorkQueue` returns paginated, authenticated driver work with
+  server-owned date/status/search filters and normalized overdue/today/tomorrow/
+  upcoming/unscheduled presentation.
+- `dispatch.driverWorkQueueSummary` returns global counts independently of the
+  loaded page. Driver routes always replace a requested driver scope with the
+  authenticated user id.
+- `dispatch.manifest` returns the canonical dispatch detail projection with a
+  stable revision, structured legacy configuration facts, per-line execution
+  mode, and inventory component readiness. Inventory component demand is
+  proportional to the quantity listed on the current dispatch.
+- `dispatch.prepareInventoryForDispatch` chooses exact approved allocation
+  quantities, splits oversized rows, binds them to the dispatch, and picks them
+  before returning the refreshed manifest revision.
+- `dispatch.inventoryReconciliation` is a read-only drift report.
+  `dispatch.backfillInventoryBindings` defaults to `dryRun=true`, skips
+  ambiguous multi-dispatch sales, and applies only exact, shortage-free plans.
+- Cancellation accepts `confirmPickedInventoryReturned=true` only as an
+  explicit manager assertion permitting picked allocations to be released.
+
+
 ## Sales Workflow Cancellation Contract (2026-08-06)
 
 - `sales.workflowCancellationPreview({ salesOrderId, action })` lazily returns
@@ -41,9 +63,10 @@
   and appended even when the typed query itself produces no candidates.
 - Search is case/diacritic insensitive, ordinary word order is irrelevant, and
   dimensions/fractions are structured groups. `x`, `X`, and `×` are connectors
-  only inside a dimension; fraction prefix `4-9` can match `4-9/16` without
-  accepting unrelated digits. Price and edit-distance fuzzy matching are not
-  part of this contract.
+  only inside a dimension. A standalone hyphenated partial such as `5-0`
+  matches either exact side of a compiled dimension or a mixed-fraction prefix,
+  so it can find `5-0X6-8` and `4-9/16` without accepting unrelated independent
+  digits. Price and edit-distance fuzzy matching are not part of this contract.
 
 ## New Sales Form Adjustment Contract (2026-08-04)
 
@@ -159,6 +182,11 @@
 - Receivable rows expose invoice/customer/sales-rep identity, invoice and due
   dates, payment term, canonical invoice/paid/outstanding money, stored balance,
   reconciliation difference, aging, status, and payment applications.
+- Receivable payment applications treat legacy `success`, `completed`, and
+  `paid` statuses as successful. A positive-total legacy order with no payment
+  rows and an explicit stored zero balance is treated as paid and excluded from
+  receivables; partial or positive stored balances do not override the payment
+  projection.
 - `salesFinance.receivableDetail` returns the same canonical row for one visible
   order. `salesFinance.receivablesReport` accepts the shared receivables filters
   plus `receivables-aging | receivables-customers`, returns typed workbook
@@ -1105,3 +1133,32 @@ Tracks important request/response contracts and shared schema boundaries.
 - Inventory fulfillment mutation transactions use Serializable isolation, 30-second
   timeout, 5-second max wait, and at most three attempts for Prisma `P2034` write
   conflicts.
+
+## Dyke custom step component contract (2026-08-06)
+
+- `inventories.upsertDykeCustomStepComponent` reuses normalized titles within
+  the requested Dyke step. An explicit `id` or `uid` must identify a non-archived
+  custom component on that same step; standard and cross-step targets are
+  rejected.
+- Optional price semantics are intentional: omitted `price` leaves pricing
+  untouched because pricing is not applicable, a finite number creates or
+  updates the selected pricing row, and `price: null` soft-deletes the supplied
+  pricing row.
+- `inventories.archiveDykeCustomStepComponent` remains a soft archive. Archived
+  options leave future autocomplete results but saved sales keep rendering their
+  embedded selected-component snapshots.
+
+## Guarded inbound and existing-sale quantity contract (2026-08-06)
+
+- Direct inbound reduction input is `{ inboundId, demandId, targetQty, note }`;
+  IDs must be positive, target quantity nonnegative, and the trimmed reason must
+  contain 3–2000 characters.
+- Target quantity may not increase or fall below received quantity. Zero removes
+  an unreceived demand from the shipment while leaving it open for reassignment.
+- Existing-sale reductions with downstream evidence require explicit
+  acknowledgement. Open inbound also requires a cancel-open or keep-for-
+  warehouse disposition.
+- Snapshot drift makes the adjustment stale. Sale/payment/inbound mutation is
+  atomic; the durable adjustment snapshot holds reconciliation checkpoints, and
+  bounded delayed lease recovery uses exact compare-and-swap takeover to make
+  projection/activity retry idempotent.

@@ -133,8 +133,13 @@ const normalizeCurrentSection = (
 const isLegacyJwtToken = (value?: string | null) =>
   value?.split(".").length === 3;
 
+const shouldStartDriverModeSignedOut =
+  __DEV__ && process.env.EXPO_PUBLIC_DRIVER_PLATFORM_MODE === "true";
+
 export const useCreateAuthContext = () => {
-  const [profile, setProfile] = useState(getSessionProfile());
+  const [profile, setProfile] = useState(() =>
+    shouldStartDriverModeSignedOut ? null : getSessionProfile(),
+  );
   const initialSectionState = normalizeCurrentSection(profile);
   const [sections, setSections] = useState<SectionKey[]>(
     initialSectionState.sections,
@@ -144,7 +149,9 @@ export const useCreateAuthContext = () => {
   );
   const [currentSectionKey, setCurrentSectionKey] =
     useState<CurrentSectionKey | null>(initialSectionState.currentSectionKey);
-  const [token, _setToken] = useState(getToken());
+  const [token, _setToken] = useState(() =>
+    shouldStartDriverModeSignedOut ? null : getToken(),
+  );
   const router = useRouter();
   const isInstaller = inferIsInstaller(profile);
   const isDriver = inferIsDriver(profile);
@@ -208,6 +215,8 @@ export const useCreateAuthContext = () => {
   };
 
   useEffect(() => {
+    if (shouldStartDriverModeSignedOut) return;
+
     const storedToken = getToken();
     if (!storedToken) return;
     if (isLegacyJwtToken(storedToken)) return;
@@ -258,7 +267,9 @@ export const useCreateAuthContext = () => {
       applySectionSelection(nextSectionKey);
     },
     onLogin(data) {
-      applyAuthenticatedProfile(data, { navigate: true });
+      applyAuthenticatedProfile(data, {
+        navigate: !shouldStartDriverModeSignedOut,
+      });
     },
     onLogout() {
       void mobileSignOut(token);

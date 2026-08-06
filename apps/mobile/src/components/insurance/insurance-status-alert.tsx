@@ -3,7 +3,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import type { InsuranceRequirement } from "@gnd/utils/insurance-documents";
-import { ShieldCheck, TriangleAlert } from "lucide-react-native";
 import { Text, View } from "react-native";
 
 function formatExpiry(expiresAt?: string | null) {
@@ -23,21 +22,21 @@ function getAlertTone(status: InsuranceRequirement["state"]) {
 		case "valid":
 			return {
 				title: "Insurance approved",
-				icon: ShieldCheck,
+				icon: Icon.ShieldCheck,
 				className: "border-emerald-200 bg-emerald-50",
 				iconClassName: "text-emerald-600",
 			};
 		case "expiring_soon":
 			return {
 				title: "Insurance expiring soon",
-				icon: TriangleAlert,
+				icon: Icon.TriangleAlert,
 				className: "border-amber-200 bg-amber-50",
 				iconClassName: "text-amber-600",
 			};
 		default:
 			return {
 				title: "Insurance required",
-				icon: TriangleAlert,
+				icon: Icon.TriangleAlert,
 				className: "border-destructive/25 bg-destructive/10",
 				iconClassName: "text-destructive",
 			};

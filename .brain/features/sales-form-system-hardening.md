@@ -2,6 +2,13 @@
 
 ## Current behavior (2026-08-03)
 
+- Existing-order quantity edits with allocation, inbound, production, receipt,
+  or fulfillment evidence now enter a guarded Sales Change Review instead of
+  being blocked. The representative explicitly acknowledges preserved evidence
+  and, when open inbound exists, chooses whether to cancel that supplier
+  quantity or retain it for warehouse stock. See
+  [`inbound-sales-adjustment-reconciliation.md`](./inbound-sales-adjustment-reconciliation.md).
+
 - Shared sales-form state disables debounced autosave by default for newly
   created and hydrated records. Forms start in deliberate manual-save mode;
   the editor toggle still lets a user enable autosave for the current form
@@ -28,6 +35,10 @@
 - Dirty form payloads are persisted to versioned local-recovery storage on
   change and page-leave. Risky navigation warns when autosave is disabled,
   stale, or errored.
+- The web new-form local-recovery alert is temporarily hidden while snapshot
+  capture and restore handling remain available for a later UI re-enable.
+- The invoice-summary customer card starts expanded so billing and shipping
+  address details are visible without an extra click.
 - Legacy pricing writeback always persists `metaData.pricing`, even when the
   optional Labor extra-cost row is absent. Derived Labor is written to that
   row only when present.
@@ -48,14 +59,37 @@
   without creating a render feedback loop.
 - Shelf product search results render inside a dedicated bounded scroll region,
   so long product matches no longer grow the new-sales-form popup and page.
+- Shelf V2 applies its 20rem result cap as an inline listbox style instead of a
+  Tailwind arbitrary-value class. This guarantees the runtime CSS includes the
+  height boundary even when the consuming app does not generate package-owned
+  arbitrary utilities; overflowing results retain contained vertical scroll.
+- Shelf V2 uses one product table without separate section-category cards.
+  A dedicated 2.5rem `SN` column appears before Product, and each serial number
+  is vertically centered against the product input's 2rem control height rather
+  than the full row height created by the category subtitle. Product selection
+  derives and persists the row's category ids, while the visible parent/child
+  category tree is rendered directly below that row's product input using the
+  same breadcrumb formatter as suggestion subtitles. Internal users with line-
+  pricing capability see an Edit button immediately after a selected product
+  input. Its dialog updates the catalog product name and stored cost price
+  through the existing new-sales-form mutation, refreshes all Shelf product
+  caches, and reprices every selected row using that product against the active
+  customer profile; the row-level Price column remains the sales/custom-price
+  override.
+- Shelf V2 product selection closes the suggestion popup immediately while
+  keeping focus in the selected product input. The picker uses the combobox's
+  focus-aware opening contract, so the library's post-selection focus restore
+  cannot reopen the popup; focusing a closed picker directly still opens it.
 - Shelf product discovery uses one package-owned compiled deep-search grammar
   across the shared dashboard/dealership picker, Shelf V1, and the typed API
   fallback. Product words can be reordered; door dimensions such as
   `3 0X8 0`, `3-0 X 8-0`, and `3'0" × 8'0"` are equivalent; `4-9` can match
-  `4-9/16`; and parent/child category names provide secondary context. A lone
-  `x`, `X`, or `×` is only a measurement connector, one-letter lexical input
-  is non-substantive, and typo/edit-distance matching is intentionally
-  excluded. Cached indexes compile once, V2 defers
+  `4-9/16`; standalone hyphenated partials such as `5-0` can match either exact
+  side of `5-0X6-8` or a mixed-fraction prefix without accepting unrelated
+  independent digits; and parent/child category names provide secondary
+  context. A lone `x`, `X`, or `×` is only a measurement connector, one-letter
+  lexical input is non-substantive, and typo/edit-distance matching is
+  intentionally excluded. Cached indexes compile once, V2 defers
   only result work, selected products remain available, and dealer visibility
   is applied before searchable category data is returned.
 - Edit routes can resolve an active order or quote by canonical slug or visible
@@ -83,11 +117,11 @@
   unsaved create forms keep the date out of the title.
 - Door size selection uses an all-caps title, a single non-wrapping Door
   Supplier label beside the supplier dropdown, and no duplicate selected-
-  supplier caption. Door LH/RH/Qty, HPT size rows, moulding rows, and service
-  rows share one segmented minus/value/plus quantity control with explicit
-  bounds and accessible action labels. The desktop door-size table also keeps
-  its Size header and values on one line, allowing the table scroller to absorb
-  longer dimensions instead of wrapping them inside the column.
+  supplier caption. Door LH/RH/Qty, HPT size rows, shelf rows, moulding rows,
+  and service rows share one segmented minus/value/plus quantity control with
+  explicit bounds and accessible action labels. The desktop door-size table
+  also keeps its Size header and values on one line, allowing the table scroller
+  to absorb longer dimensions instead of wrapping them inside the column.
 - Component search/action bars now use the component picker itself as their
   boundary. They float above the editor footer while a long component list is
   active, anchor at the end of that list, and disappear when the picker leaves
@@ -104,6 +138,16 @@
   ids exist and differ, Shipping also exposes a confirmation-gated `Same as
   billing` action that changes only the sale's shipping selection and preserves
   the saved shipping-address record.
+- Eligible workflow steps now expose Custom only through the bottom action bar.
+  Custom catalog entries stay out of ordinary grids, while an actively selected
+  or historical snapshot remains visible. Custom is mutually exclusive with
+  standard selections even on multi-select steps; clicking the selected custom
+  clears it and truncates downstream route state, while choosing a standard
+  component removes custom metadata and cost before totals recalculate.
+- The Custom editor reuses the legacy autocomplete for step-scoped existing
+  values and new uppercase titles. Cost Price renders only when the active step
+  has component pricing support. The sales picker no longer has an `Enable
+  Custom` catalog reveal.
 
 ## Validation
 
@@ -186,6 +230,43 @@
   A synthetic 5,000-row package benchmark compiled in about 18ms and searched
   in about 2ms. No database migration was required; authenticated browser and
   real-catalog payload checks remain release verification.
+- 2026-08-06 authenticated in-app browser reproduction with query `carrara`
+  showed the former Shelf V2 arbitrary `max-h-[320px]` utility computed to
+  `max-height: none`, producing a 916px dropdown. After the fix, 19 results
+  render in a 318px client area with 914px scroll height, computed
+  `max-height: 320px`, and `overflow-y: auto`. The focused picker regression
+  passes 2 tests / 10 assertions.
+- 2026-08-06 authenticated in-app browser proof selected
+  `BFLD, 4DR 5-0X6-8 HC CARRARA SM, CARTON PACK` and confirmed one rendered
+  Shelf Items table, zero `Section N category` cards, and the visible
+  `Bifolds > Hollow Core Molded Bifold` category tree directly below the
+  selected product input. Focused shelf UI coverage passes 4 tests / 15
+  assertions.
+- 2026-08-06 partial-dimension search coverage confirms `Carrara hc 5-0`
+  matches `BFLD, 4DR 5-0X6-8 HC Carrara SM, Carton Pack`, while near sizes and
+  unrelated `5`/`0` digits remain excluded. Spaced size storage, width/height
+  sides, fraction-prefix preservation, and shared V1/V2 authority are covered;
+  the domain, picker parity, and API suites pass 46 tests / 228 assertions.
+- 2026-08-06 authenticated in-app browser QA searched `Carrara hc 5-0`,
+  selected `BFLD, 4DR 5-0X6-8 HC CARRARA SM, CARTON PACK`, and confirmed the
+  selected input retained the product with `aria-expanded="false"` while the
+  listbox was no longer visible. The focused Shelf editor regression passes
+  5 tests / 18 assertions.
+- 2026-08-06 authenticated in-app browser QA navigated an Interior pre-hung
+  configuration to the priced `Jamb Size` step and confirmed standard-only
+  default cards, no `Enable Custom` menu item, the eligible bottom Custom action,
+  inline title/cost entry, and existing custom autocomplete results. No custom
+  record or order was submitted. The focused custom selection, visibility,
+  pricing-support, dashboard wiring, and inventory API slice passes 43 tests /
+  117 assertions.
+- 2026-08-06 moulding quantity confirmation now persists the selected row while
+  retaining the multi-select Moulding catalogue and its footer. Authenticated
+  in-app browser QA added two mouldings with quantities `3` and `2`, confirmed
+  the catalogue stayed available after each Add, and verified only the footer
+  Proceed action advanced to the grouped line-item summary. The focused
+  moulding, step-family, and multi-select suites pass 30 tests / 80 assertions,
+  the Sales package typecheck passes, and the verified flow emitted no browser
+  console errors.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

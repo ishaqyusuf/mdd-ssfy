@@ -1,6 +1,6 @@
 # Phase 1: Canonical Driver Work Queue and Manifest
 
-Status: Proposed
+Status: Implemented in source; final Expo Go device gate remains open
 Dependency: Phase 0 security and detail contract
 
 ## Objective

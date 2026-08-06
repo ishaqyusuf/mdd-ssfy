@@ -544,7 +544,7 @@ async function prepareFixture(
 		where: {
 			salesOrderId: saleId > 0 ? saleId : undefined,
 			meta: {
-				path: ["seedFixtureId"],
+				path: "$.seedFixtureId",
 				equals: SEED_FIXTURE_ID,
 			},
 		},

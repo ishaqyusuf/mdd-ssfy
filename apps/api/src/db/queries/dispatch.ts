@@ -109,7 +109,9 @@ function normalizeShippingAddress(
 	};
 }
 
-function withDriverDuePresentation<T extends { dueDate?: Date | null }>(row: T) {
+function withDriverDuePresentation<T extends { dueDate?: Date | null }>(
+	row: T,
+) {
 	const due = getDispatchDuePresentation(row.dueDate, {
 		timeZone:
 			process.env.BUSINESS_TIME_ZONE || process.env.TZ || "America/New_York",
@@ -1846,14 +1848,14 @@ export async function getDispatchOverview(
 					qtyMatrixSum(deliverableQty, totalListedQty),
 				),
 			);
-			let packingHistory = listedItems?.map((a) => ({
+			let packingHistory = (listedItems || []).map((a) => ({
 				qty: transformQtyHandle(a),
 				date: a.createdAt,
 				note: "",
 				packedBy: a.packedBy,
 				id: a.id,
 				packingUid: a.packingUid,
-			}))!;
+			}));
 			packingHistory = packingHistory
 				.filter(
 					(p, o) =>
@@ -2015,12 +2017,28 @@ export async function getDispatchOverviewV2(
 	ctx: TRPCContext,
 	query: SalesDispatchOverviewSchema,
 ) {
+	const dispatchOrder =
+		!query.salesId && !query.salesNo && query.dispatchId
+			? await ctx.db.orderDelivery.findFirst({
+					where: {
+						id: query.dispatchId,
+						deletedAt: null,
+					},
+					select: { salesOrderId: true },
+				})
+			: null;
 	const result = await getSalesDispatchOverview(ctx.db, {
-		salesId: query.salesId,
+		salesId: query.salesId ?? dispatchOrder?.salesOrderId,
 		salesNo: query.salesNo,
 	});
 
 	const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
+	if (!dispatch) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Dispatch not found for this sales order.",
+		});
+	}
 	const order = result.order;
 	const address = normalizeShippingAddress(order.shippingAddress as any);
 
@@ -2060,14 +2078,14 @@ export async function getDispatchOverviewV2(
 			),
 		);
 
-		let packingHistory = listedItems?.map((a) => ({
+		let packingHistory = (listedItems || []).map((a) => ({
 			qty: toQtyMatrix(transformQtyHandle(a)),
 			date: a.createdAt,
 			note: "",
 			packedBy: a.packedBy,
 			id: a.id,
 			packingUid: a.packingUid,
-		}))!;
+		}));
 		packingHistory = packingHistory
 			.filter(
 				(p, o) =>
@@ -2182,7 +2200,7 @@ export async function getDispatchOverviewV2(
 	const inventoryLineBySalesItemId = new Map(
 		inventoryManifest.lines.map((line) => [line.salesItemId, line]),
 	);
-	const dispatchItems = legacyDispatchItems.map((item) => {
+	const mergedLegacyDispatchItems = legacyDispatchItems.map((item) => {
 		const inventory = item.salesItemId
 			? inventoryLineBySalesItemId.get(item.salesItemId)
 			: null;
@@ -2194,6 +2212,75 @@ export async function getDispatchOverviewV2(
 			inventory: inventory || null,
 		};
 	});
+	const legacySalesItemIds = new Set(
+		legacyDispatchItems.flatMap((item) =>
+			item.salesItemId ? [item.salesItemId] : [],
+		),
+	);
+	const inventoryOnlyDispatchItems = inventoryManifest.lines.flatMap(
+		(inventory) => {
+			if (
+				!inventory.salesItemId ||
+				legacySalesItemIds.has(inventory.salesItemId)
+			) {
+				return [];
+			}
+			const totalQty = toQtyMatrix({ qty: inventory.dispatchItemQty } as any);
+			const listedQty =
+				inventoryManifest.scope.source === "delivery_items"
+					? totalQty
+					: toQtyMatrix({ qty: 0 } as any);
+			const packedQty = toQtyMatrix({
+				qty:
+					inventory.readiness === "ready_to_load"
+						? inventory.dispatchItemQty
+						: 0,
+			} as any);
+			const title =
+				inventory.lineTitle ||
+				inventory.variantDescription ||
+				inventory.inventoryTitle ||
+				"Inventory item";
+			const manifestItem = normalizeLegacyDispatchManifestItem({
+				title,
+				sectionTitle: "Inventory",
+				orderedQty: totalQty,
+				packedQty,
+			});
+			return [
+				{
+					uid: inventory.lineUid || `inventory-line-${inventory.lineItemId}`,
+					title,
+					subtitle:
+						[inventory.inventoryTitle, inventory.variantDescription]
+							.filter(Boolean)
+							.join(" · ") || "Inventory-backed item",
+					sectionTitle: "Inventory",
+					img: null,
+					dispatchable: true,
+					itemConfig: null,
+					shippable: true,
+					salesItemId: inventory.salesItemId,
+					totalQty,
+					availableQty: totalQty,
+					deliverableQty: totalQty,
+					listedQty,
+					nonDeliverableQty: toQtyMatrix({ qty: 0 } as any),
+					deliverables: [],
+					packingHistory: [],
+					...manifestItem,
+					manifestRevision: inventoryManifest.revision,
+					executionMode: "inventory" as const,
+					inventoryReadiness: inventory.readiness,
+					inventory,
+				},
+			];
+		},
+	);
+	const dispatchItems = [
+		...mergedLegacyDispatchItems,
+		...inventoryOnlyDispatchItems,
+	];
 
 	controlDebugLog("getDispatchOverviewV2.dispatchItems", {
 		salesId: order.id,
@@ -2332,19 +2419,31 @@ export async function getDispatchOverviewV2(
 			title: item.title,
 			readiness: item.inventoryReadiness,
 		}));
+	const hasNoDispatchItems = dispatchItems.length === 0;
+	const hasUnresolvedInventoryScope =
+		inventoryManifest.scope.inventoryLineCount > 0 &&
+		!inventoryManifest.scope.resolved;
 	const dispatchReadiness = {
 		...legacyDispatchReadiness,
 		canDispatch:
-			legacyDispatchReadiness.canDispatch && inventoryBlockingItems.length === 0,
-		state:
-			inventoryBlockingItems.length > 0
+			legacyDispatchReadiness.canDispatch &&
+			!hasNoDispatchItems &&
+			!hasUnresolvedInventoryScope &&
+			inventoryBlockingItems.length === 0,
+		state: hasNoDispatchItems
+			? ("missing items" as const)
+			: hasUnresolvedInventoryScope || inventoryBlockingItems.length > 0
 				? ("inventory review" as const)
 				: legacyDispatchReadiness.state,
-		reason:
-			inventoryBlockingItems.length > 0
-				? "Inventory-backed items must be reserved and picked before this trip can start."
-				: legacyDispatchReadiness.reason,
+		reason: hasNoDispatchItems
+			? "This dispatch has no active manifest items. Add or restore its item scope before starting the trip."
+			: hasUnresolvedInventoryScope
+				? "Inventory scope is ambiguous because this sale has multiple active dispatches. Assign exact items before packing."
+				: inventoryBlockingItems.length > 0
+					? "Inventory-backed items must be reserved and picked before this trip can start."
+					: legacyDispatchReadiness.reason,
 		inventoryBlockingItems,
+		inventoryScope: inventoryManifest.scope,
 	};
 
 	controlDebugLog("getDispatchOverviewV2.dispatchReadiness", {

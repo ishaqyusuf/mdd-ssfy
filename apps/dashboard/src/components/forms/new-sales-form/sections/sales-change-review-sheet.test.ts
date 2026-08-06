@@ -27,4 +27,15 @@ describe("sales change review", () => {
 			"The approved changes are being committed automatically in the background.",
 		);
 	});
+
+	it("requires a downstream acknowledgement and an explicit inbound disposition", () => {
+		expect(sheetSource).toContain("Cancel open inbound quantity");
+		expect(sheetSource).toContain("Keep for warehouse stock");
+		expect(sheetSource).toContain("acknowledgeOperationalImpact");
+		expect(sheetSource).toContain("Preserve that evidence");
+		expect(sheetSource).not.toContain("This change cannot be submitted.");
+		expect(formSource).toContain(
+			"acknowledgeOperationalImpact: input.acknowledgeOperationalImpact",
+		);
+	});
 });

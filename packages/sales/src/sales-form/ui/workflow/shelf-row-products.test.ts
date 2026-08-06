@@ -1,10 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
 	buildShelfProductRowPatch,
-	clearShelfRowProduct,
 	clearShelfRowCustomPrice,
+	clearShelfRowProduct,
 	patchShelfRowPrice,
 	patchShelfRowQty,
+	updateShelfProductInSections,
 } from "./shelf-row-products";
 
 describe("shelf row product pricing", () => {
@@ -173,5 +174,44 @@ describe("shelf row product pricing", () => {
 		expect(patch.meta.preserved).toBe("yes");
 		expect(patch.meta.categoryIds).toEqual([3, 7]);
 		expect(Object.keys(patch.meta || {})).not.toContain("0");
+	});
+
+	it("reprices every selected row after a catalog product update", () => {
+		const sections = updateShelfProductInSections({
+			sections: [
+				{
+					uid: "section-1",
+					categoryIds: [],
+					parentCategoryId: null,
+					categoryId: null,
+					rows: [
+						{ uid: "row-1", productId: 11, qty: 2, description: "Old" },
+						{ uid: "row-2", productId: 12, qty: 3, description: "Other" },
+					],
+					subTotal: 0,
+				},
+			],
+			product: {
+				id: 11,
+				title: "Updated shelf product",
+				unitPrice: 25,
+				categoryId: 2,
+				parentCategoryId: 1,
+			},
+			profileCoefficient: 1,
+		});
+
+		expect(sections[0]?.rows[0]).toMatchObject({
+			description: "Updated shelf product",
+			basePrice: 25,
+			salesPrice: 25,
+			unitPrice: 25,
+			totalPrice: 50,
+		});
+		expect(sections[0]?.rows[1]).toMatchObject({
+			productId: 12,
+			description: "Other",
+		});
+		expect(sections[0]?.subTotal).toBe(50);
 	});
 });

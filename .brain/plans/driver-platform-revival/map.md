@@ -1,9 +1,28 @@
 # Driver Platform Revival and Inventory Cutover
 
 Date: 2026-08-05
-Status: Proposed; planning complete, implementation not started
+Status: Implemented; final Expo Go device gate blocked by SDK 54 Hermes crash
 Owner: Mobile / Sales Fulfillment / Inventory
 Scope: Revive the Expo driver and warehouse delivery platform, close the client-reported manifest gaps, and cut driver execution over to inventory-backed fulfillment without breaking legacy dispatch compatibility.
+
+## Implementation Update — 2026-08-06
+
+Phases 0-3 are implemented in source: dispatch reads are protected and
+assignment-scoped; the work queue and summary are server-authoritative; the
+typed manifest exposes explicit due dates, handing evidence, configuration, and
+inventory readiness; exact stock allocations bind to a dispatch and transition
+through reserve/pick/consume/release; split-trip quantities are scoped; mobile
+uses sectioned summary-first lists and detail-on-demand; and development quick
+accounts are dev-only at both API and UI boundaries.
+
+Automated tests, sales/API typechecks, Prisma generation/local push, and Android
+debug assembly/install pass. Expo Go 54.0.8 loads the SDK 54 development bundle
+after the React singleton fix, but its Hermes `hades` thread segfaults before
+the first route renders. A minimal React Native entry stays alive on the same
+emulator; the complete 10,418-module graph still crashes with Sentry wrapping
+disabled and with development async routes. Pilot/cutover remains gated on
+resolving that application-scale runtime failure and completing the interactive
+driver journey.
 
 ## Objective
 

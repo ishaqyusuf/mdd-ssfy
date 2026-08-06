@@ -136,6 +136,33 @@ export function buildSalesFormAdjustmentActivity(input: {
 	};
 }
 
+export function buildInboundDemandAdjustmentActivity(input: {
+	orderId: string;
+	inboundId: number;
+	lineTitle: string;
+	previousQty: number;
+	targetQty: number;
+	receivedQty: number;
+}): SalesActivityCopy {
+	const removed = input.targetQty === 0;
+	return {
+		subject: removed ? "Item removed from inbound" : "Inbound quantity reduced",
+		headline: removed
+			? `${input.lineTitle} was removed from inbound #${input.inboundId} for sale ${input.orderId}.`
+			: `${input.lineTitle} was reduced on inbound #${input.inboundId} for sale ${input.orderId}.`,
+		note: [
+			`Inbound quantity: ${input.previousQty} → ${input.targetQty}`,
+			`Already received: ${input.receivedQty}`,
+			removed
+				? "The sales demand remains open and may be assigned to another inbound."
+				: "Only this sale's linked inbound demand was changed.",
+		].join("\n"),
+		activityType: removed
+			? "sales_inbound_item_removed"
+			: "sales_inbound_quantity_reduced",
+	};
+}
+
 export async function getSalesActivitySenderContactId(
 	db: SalesActivityDb,
 	userId: number,

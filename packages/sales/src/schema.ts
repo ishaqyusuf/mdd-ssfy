@@ -76,6 +76,7 @@ export const updateSalesControlSchema = z.object({
 		.object({
 			dispatchId: z.number().nullable().optional(), //if null, it clears all packing for every dispatch
 			dispatchIds: z.array(z.number()).optional().nullable(),
+			confirmPickedInventoryReturned: z.boolean().optional().default(false),
 		})
 		.nullable()
 		.optional(),

@@ -39,6 +39,19 @@ describe("shelf product search", () => {
 		expect(groups[1]).toContain("4-9");
 	});
 
+	it("builds width, height, and fraction anchors for partial measurements", () => {
+		const groups = shelfProductSearchCandidateTitleAnchorGroups(
+			"carrara hc 5-0",
+		);
+
+		expect(groups).toHaveLength(1);
+		expect(groups[0]).toContain("5-0");
+		expect(groups[0]).toContain("5 0/");
+		expect(groups[0]).toContain("5 0x");
+		expect(groups[0]).toContain("x5 0");
+		expect(groups[0]).toContain("5’0”");
+	});
+
 	it("does not treat standalone connectors or one-letter text as fuzzy terms", () => {
 		for (const query of ["x", "X", "×", "a"]) {
 			expect(
@@ -137,6 +150,37 @@ describe("shelf product search", () => {
 				"frame door 4-9 3 0 x 8 0",
 			).map((product) => product.id),
 		).toEqual([10]);
+	});
+
+	it("matches exact partial dimension sides without loose numeric matches", () => {
+		const carrara = {
+			id: 30,
+			title: "BFLD, 4DR 5-0X6-8 HC Carrara SM, Carton Pack",
+		};
+		const heightMatch = {
+			id: 31,
+			title: "BFLD, 4DR 3-0X5-0 HC Carrara SM, Carton Pack",
+		};
+		const numericCollision = {
+			id: 32,
+			title: "Carrara HC 5 Series 0 Gauge Carton Pack",
+		};
+
+		expect(
+			searchShelfProductIndex(
+				[carrara, heightMatch, numericCollision],
+				"Carrara hc 5-0",
+			).map((product) => product.id),
+		).toEqual([31, 30]);
+		expect(searchShelfProductIndex([carrara], "Carrara hc 6-8")).toEqual([
+			carrara,
+		]);
+		expect(searchShelfProductIndex([carrara], "Carrara hc 5-1")).toEqual(
+			[],
+		);
+		expect(searchShelfProductIndex([carrara], "Carrara hc 6-7")).toEqual(
+			[],
+		);
 	});
 
 	it("uses category words as secondary searchable context", () => {

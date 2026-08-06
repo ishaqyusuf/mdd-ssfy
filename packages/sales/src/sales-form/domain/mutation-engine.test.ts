@@ -176,6 +176,64 @@ describe("mutation-engine domain", () => {
     );
   });
 
+  it("replaces standard multi-select choices when custom is selected", () => {
+    const result = applyMultiSelectStepMutation({
+      steps: [
+        {
+          stepId: 2,
+          step: { title: "Door" },
+          prodUid: "standard-1",
+          meta: {
+            selectedProdUids: ["standard-1", "standard-2"],
+            selectedComponents: [
+              { uid: "standard-1", title: "Standard 1" },
+              { uid: "standard-2", title: "Standard 2" },
+            ],
+          },
+        },
+      ],
+      currentStepIndex: 0,
+      component: {
+        uid: "custom-1",
+        title: "CUSTOM PART",
+        custom: true,
+      },
+      visibleComponents: [],
+      selectedOverride: true,
+    });
+
+    expect(result.steps[0].meta.selectedProdUids).toEqual(["custom-1"]);
+    expect(result.steps[0].meta.custom).toBe(true);
+    expect(result.steps[0].value).toBe("CUSTOM PART");
+  });
+
+  it("removes a selected custom before adding a standard multi-select choice", () => {
+    const result = applyMultiSelectStepMutation({
+      steps: [
+        {
+          stepId: 2,
+          step: { title: "Door" },
+          prodUid: "custom-1",
+          meta: {
+            custom: true,
+            selectedProdUids: ["custom-1"],
+            selectedComponents: [
+              { uid: "custom-1", title: "CUSTOM PART", custom: true },
+            ],
+          },
+        },
+      ],
+      currentStepIndex: 0,
+      component: { uid: "standard-1", title: "Standard 1" },
+      visibleComponents: [],
+      selectedOverride: true,
+    });
+
+    expect(result.steps[0].meta.selectedProdUids).toEqual(["standard-1"]);
+    expect(result.steps[0].meta.custom).toBe(false);
+    expect(result.steps[0].value).toBe("Standard 1");
+  });
+
   it("preserves custom metadata from string component metadata", () => {
     const steps = [
       {

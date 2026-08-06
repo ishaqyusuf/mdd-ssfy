@@ -98,6 +98,10 @@ export function filterSalesFormWorkflowDataSource(
 		const { useDoorSuppliers: _useDoorSuppliers, ...rest } = next;
 		next = rest;
 	}
+	if (!capabilities.canEditLinePricing) {
+		const { updateShelfProduct: _updateShelfProduct, ...rest } = next;
+		next = rest;
+	}
 	return next;
 }
 

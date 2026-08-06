@@ -13,6 +13,8 @@ const normalizedEasBuildProfile =
   process.env.EAS_BUILD_PROFILE?.toLowerCase() ?? "";
 const isDevelopmentBuild =
   normalizedAppVariant === "development" || normalizedAppVariant === "dev";
+const isDriverPlatformMode =
+  isDevelopmentBuild && process.env.EXPO_PUBLIC_DRIVER_PLATFORM_MODE === "true";
 const isExplicitReleaseBuild =
   (["preview", "production"].includes(normalizedAppVariant) &&
     appVariant !== undefined) ||
@@ -65,7 +67,7 @@ const variantConfig = isDevelopmentBuild
     };
 
 const config: ExpoConfig = {
-  name: variantConfig.name,
+  name: isDriverPlatformMode ? "GND Driver Dev" : variantConfig.name,
   slug: "gnd-prodesk",
   // slug: "prodesk",
   version: "1.0.305",
@@ -103,7 +105,9 @@ const config: ExpoConfig = {
   },
 
   plugins: [
-    "expo-router",
+    isDriverPlatformMode
+      ? ["expo-router", { root: "src/driver-app" }]
+      : "expo-router",
     [
       "@sentry/react-native/expo",
       {
@@ -143,6 +147,7 @@ const config: ExpoConfig = {
 
   extra: {
     appVariant: normalizedAppVariant,
+    driverPlatformMode: isDriverPlatformMode,
     autoUpdateForegroundCooldownMs:
       process.env.EXPO_PUBLIC_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS ??
       DEFAULT_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS,

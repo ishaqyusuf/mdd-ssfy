@@ -55,6 +55,11 @@ export type SalesFormWorkflowDataSource = {
 	getShelfProductDetails?: (input: {
 		ids: number[];
 	}) => Promise<ShelfProductRecord[]>;
+	updateShelfProduct?: (input: {
+		id: number;
+		title: string;
+		unitPrice: number | null;
+	}) => Promise<ShelfProductRecord>;
 	useShelfProductSearch?: (input: {
 		query?: string | null;
 		selectedIds?: number[];

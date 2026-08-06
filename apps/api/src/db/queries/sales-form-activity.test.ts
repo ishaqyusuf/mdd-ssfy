@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { TRPCContext } from "@api/trpc/init";
 import {
+	buildInboundDemandAdjustmentActivity,
 	buildSalesFormAdjustmentActivity,
 	buildSalesFormUpdateActivity,
 	createSalesFormTimelineActivity,
@@ -70,6 +71,25 @@ describe("sales form activity copy", () => {
 		});
 		expect(activity.note).toContain("Interior door: 5 → 3");
 		expect(activity.note).toContain("Order total: $850.00 → $650.00");
+	});
+
+	it("records an actor-attributed inbound removal without cancelling the sale demand", () => {
+		const activity = buildInboundDemandAdjustmentActivity({
+			orderId: "09159PC",
+			inboundId: 71,
+			lineTitle: "Oak door",
+			previousQty: 4,
+			targetQty: 0,
+			receivedQty: 0,
+		});
+
+		expect(activity).toMatchObject({
+			subject: "Item removed from inbound",
+			activityType: "sales_inbound_item_removed",
+		});
+		expect(activity.note).toContain(
+			"sales demand remains open and may be assigned to another inbound",
+		);
 	});
 
 	it("persists canonical sale identity and activity tags", async () => {

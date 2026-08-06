@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react-native";
 import * as Updates from "expo-updates";
+import type { ComponentType } from "react";
 
 const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 const enabled = process.env.EXPO_PUBLIC_SENTRY_ENABLED === "true";
@@ -34,6 +35,12 @@ export function initSentry() {
 	if (smokeTestEnabled) {
 		captureSentryStartupSmokeTest();
 	}
+}
+
+export function wrapRootLayoutWithSentry<Props extends object>(
+	component: ComponentType<Props>,
+) {
+	return enabled ? Sentry.wrap(component) : component;
 }
 
 function captureSentryStartupSmokeTest() {

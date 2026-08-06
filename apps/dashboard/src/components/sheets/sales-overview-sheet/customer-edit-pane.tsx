@@ -7,7 +7,7 @@ import {
 	FormContext,
 } from "@/components/forms/customer-form/form-context";
 import { useTRPC } from "@/trpc/client";
-import Sheet from "@gnd/ui/custom/sheet";
+import Sheet from "@gnd/ui/custom/sheet-v2";
 import { useQuery } from "@gnd/ui/tanstack";
 import { useMemo } from "react";
 

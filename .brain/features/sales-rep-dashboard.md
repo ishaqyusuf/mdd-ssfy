@@ -18,6 +18,10 @@
 - Dealership Requests and Commissions remain WIP: they are enabled outside production, disabled in production controls, and direct production URLs for either panel redirect to Recent Orders.
 - The Requests tab keeps the existing pending request count badge inside the grouped button.
 - The route still server-hydrates only the active tab's first visible data; no API contract or database behavior changed.
+- Receivables and overdue attention reuse the Sales Finance projection. Legacy
+  paid orders with a positive invoice total, no payment rows, and an explicit
+  stored zero balance are excluded; successful legacy payment statuses include
+  `success`, `completed`, and `paid`.
 - Recent Sales is a bounded dashboard list rather than a table workspace. It requests exactly five latest orders with `showing: null` and `createdAt.desc`, preserving the existing sales-rep scope without filters, table settings, selection, virtualization, drag-and-drop, row menus, or an internal scroll container.
 - Each Recent Sales row keeps the existing Sales Overview URL-driven opener, shows the order number, priority, customer, invoice total, date, and lifecycle status, and the panel offers a `View all` link to `/sales-book/orders`.
 - Recent Quotes continues to use the shared `components/tables-2/sales-quotes` compact table module.

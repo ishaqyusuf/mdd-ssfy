@@ -1,9 +1,12 @@
 "use client";
 
+import { buildSalesOverviewUrl } from "@/hooks/sales-overview-open-params";
+import { useAuth } from "@/hooks/use-auth";
 import { useSalesFinanceFilterParams } from "@/hooks/use-sales-finance-filter-params";
 import { formatCurrency } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
 	Sheet,
@@ -13,7 +16,8 @@ import {
 	SheetTitle,
 } from "@gnd/ui/sheet";
 import { useQuery } from "@tanstack/react-query";
-import { CircleAlert, CircleCheck } from "lucide-react";
+import { ArrowUpRight, CircleAlert, CircleCheck } from "lucide-react";
+import Link from "next/link";
 
 const RECEIVABLE_SHEET_SKELETON_IDS = [
 	"balance",
@@ -47,6 +51,7 @@ function agingLabel(bucket: string) {
 }
 
 export function SalesFinanceReceivableSheet() {
+	const auth = useAuth();
 	const trpc = useTRPC();
 	const { params, setParams } = useSalesFinanceFilterParams();
 	const id = params.receivableId;
@@ -70,14 +75,24 @@ export function SalesFinanceReceivableSheet() {
 				className="flex w-full flex-col p-0 sm:max-w-xl lg:max-w-2xl"
 			>
 				<SheetHeader className="border-b px-5 py-4 text-left">
-					<div className="flex items-center gap-2">
-						<SheetTitle>
-							Invoice {receivable ? receivable.orderNo : ""}
-						</SheetTitle>
-						{receivable ? (
-							<Badge variant={receivable.isOverdue ? "outline" : "secondary"}>
-								{agingLabel(receivable.agingBucket)}
-							</Badge>
+					<div className="flex flex-wrap items-center justify-between gap-3">
+						<div className="flex items-center gap-2">
+							<SheetTitle>
+								Invoice {receivable ? receivable.orderNo : ""}
+							</SheetTitle>
+							{receivable ? (
+								<Badge variant={receivable.isOverdue ? "outline" : "secondary"}>
+									{agingLabel(receivable.agingBucket)}
+								</Badge>
+							) : null}
+						</div>
+						{receivable && auth.can?.editOrders ? (
+							<Button asChild variant="outline" size="sm">
+								<Link href={buildSalesOverviewUrl(receivable.orderNo)}>
+									Open sales overview
+									<ArrowUpRight className="size-4" aria-hidden="true" />
+								</Link>
+							</Button>
 						) : null}
 					</div>
 					<SheetDescription>

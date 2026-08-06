@@ -7,7 +7,7 @@ import { useJobsContext } from "@/context/jobs-context";
 import { Icon } from "./ui/icon";
 import { cn } from "@/lib/utils";
 import { generateJobId } from "@community/utils/job";
-import { RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 export type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
 export function JobsItem({
   item,

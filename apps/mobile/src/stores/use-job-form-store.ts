@@ -1,4 +1,4 @@
-import { RouterInputs } from "@api/trpc/routers/_app";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { dotObject } from "@gnd/utils";
 import { FieldPath, FieldPathValue } from "react-hook-form";
 import { create } from "zustand";

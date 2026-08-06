@@ -64,6 +64,74 @@ export type ReleaseCancelledInboundShipmentDemandResult = {
   recomputedComponentCount: number;
 };
 
+export type ReduceInboundShipmentDemandInput = {
+	inboundId: number;
+	demandId: number;
+	targetQty: number;
+};
+
+export type ReduceInboundShipmentDemandResult = {
+	inboundId: number;
+	demandId: number;
+	inboundShipmentItemId: number | null;
+	lineItemComponentId: number;
+	salesOrderId: number | null;
+	orderId: string | null;
+	lineTitle: string;
+	previousQty: number;
+	targetQty: number;
+	receivedQty: number;
+	previousItemQty: number;
+	targetItemQty: number;
+	removed: boolean;
+	changed: boolean;
+};
+
+export type SalesAdjustmentInboundDisposition =
+	| "CANCEL_OPEN_INBOUND"
+	| "KEEP_IN_WAREHOUSE";
+
+export class SalesAdjustmentInboundSnapshotConflictError extends Error {
+	constructor(demandId: number) {
+		super(
+			`Inbound demand #${demandId} changed after approval. Review the sales adjustment again.`,
+		);
+		this.name = "SalesAdjustmentInboundSnapshotConflictError";
+	}
+}
+
+export type ReconcileSalesAdjustmentInboundDemandsInput = {
+	adjustmentId: string;
+	disposition: SalesAdjustmentInboundDisposition;
+	lines: Array<{
+		beforeQty: number;
+		proposedQty: number;
+		inboundDemands: Array<{
+			id: number;
+			qty: number;
+			qtyReceived: number;
+			status: string;
+			inboundShipmentItemId: number | null;
+			inboundId: number | null;
+			inboundStatus: string | null;
+			inboundShipmentItemQty: number;
+			inboundShipmentItemReceivedQty: number;
+		}>;
+	}>;
+};
+
+export type ReconcileSalesAdjustmentInboundDemandsResult = {
+	adjustedDemandCount: number;
+	affectedInboundIds: number[];
+	cancelledOpenQty: number;
+	keptWarehouseQty: number;
+	inboundEffects: Array<{
+		inboundId: number;
+		cancelledOpenQty: number;
+		keptWarehouseQty: number;
+	}>;
+};
+
 export type InboundDemandQueueInput = {
   status?: InboundDemandQueueStatus[];
   supplierId?: number | null;
@@ -1556,6 +1624,382 @@ async function recomputeLineItemComponentDemandState(
   if (updatedComponent.count <= 0) return null;
 
   return nextState;
+}
+
+export async function reduceInboundShipmentDemand(
+	db: DbLike,
+	input: ReduceInboundShipmentDemandInput,
+): Promise<ReduceInboundShipmentDemandResult> {
+	const targetQty = Number(input.targetQty);
+	if (!Number.isFinite(targetQty) || targetQty < 0) {
+		throw new Error("Inbound demand quantity must be zero or greater.");
+	}
+
+	const demand = await db.inboundDemand.findFirstOrThrow({
+		where: {
+			id: input.demandId,
+			deletedAt: null,
+			inboundShipmentItem: {
+				inboundId: input.inboundId,
+				deletedAt: null,
+			},
+		},
+		select: {
+			id: true,
+			qty: true,
+			qtyReceived: true,
+			status: true,
+			lineItemComponentId: true,
+			inboundShipmentItemId: true,
+			inboundShipmentItem: {
+				select: {
+					id: true,
+					qty: true,
+					qtyGood: true,
+					qtyIssue: true,
+					inbound: {
+						select: {
+							id: true,
+							status: true,
+						},
+					},
+				},
+			},
+			lineItemComponent: {
+				select: {
+					parent: {
+						select: {
+							title: true,
+							sale: {
+								select: {
+									id: true,
+									orderId: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	});
+	const inboundItem = demand.inboundShipmentItem;
+	if (!inboundItem) {
+		throw new Error("Inbound demand is no longer assigned to this shipment.");
+	}
+
+	if (
+		["completed", "closed", "cancelled"].includes(inboundItem.inbound.status)
+	) {
+		throw new Error(
+			"Completed, closed, or cancelled inbound shipments cannot be edited.",
+		);
+	}
+
+	const previousQty = Number(demand.qty || 0);
+	const receivedQty = Number(demand.qtyReceived || 0);
+	if (targetQty > previousQty) {
+		throw new Error(
+			"Use inbound assignment to increase an inbound demand quantity.",
+		);
+	}
+	if (targetQty < receivedQty) {
+		throw new Error(
+			`Inbound demand cannot be reduced below ${receivedQty}; that quantity is already received.`,
+		);
+	}
+
+	const removed = targetQty === 0;
+	if (targetQty === previousQty) {
+		return {
+			inboundId: input.inboundId,
+			demandId: demand.id,
+			inboundShipmentItemId: inboundItem.id,
+			lineItemComponentId: demand.lineItemComponentId,
+			salesOrderId: demand.lineItemComponent.parent.sale?.id ?? null,
+			orderId: demand.lineItemComponent.parent.sale?.orderId ?? null,
+			lineTitle: demand.lineItemComponent.parent.title || "Line item",
+			previousQty,
+			targetQty,
+			receivedQty,
+			previousItemQty: Number(inboundItem.qty || 0),
+			targetItemQty: Number(inboundItem.qty || 0),
+			removed,
+			changed: false,
+		};
+	}
+	const demandStatus = removed
+		? "pending"
+		: receivedQty >= targetQty
+			? "received"
+			: receivedQty > 0
+				? "partially_received"
+				: "ordered";
+	const updatedDemand = await db.inboundDemand.updateMany({
+		where: {
+			id: demand.id,
+			deletedAt: null,
+			qty: demand.qty,
+			qtyReceived: demand.qtyReceived,
+			inboundShipmentItemId: demand.inboundShipmentItemId,
+		},
+		data: removed
+			? {
+					inboundShipmentItemId: null,
+					status: demandStatus,
+					notes: `Removed from inbound shipment #${input.inboundId}`,
+				}
+			: {
+					qty: targetQty,
+					status: demandStatus,
+				},
+	});
+	if (updatedDemand.count <= 0) {
+		throw new Error(
+			"Inbound demand changed before the reduction could be applied.",
+		);
+	}
+
+	const previousItemQty = Number(inboundItem.qty || 0);
+	const receivedItemQty =
+		Number(inboundItem.qtyGood || 0) + Number(inboundItem.qtyIssue || 0);
+	const targetItemQty = Math.max(
+		receivedItemQty,
+		previousItemQty - (previousQty - targetQty),
+	);
+	const updatedItem = await db.inboundShipmentItem.updateMany({
+		where: {
+			id: inboundItem.id,
+			inboundId: input.inboundId,
+			deletedAt: null,
+			qty: inboundItem.qty,
+		},
+		data:
+			targetItemQty <= 0
+				? { qty: 0, deletedAt: new Date() }
+				: { qty: targetItemQty },
+	});
+	if (updatedItem.count <= 0) {
+		throw new Error(
+			"Inbound item changed before the reduction could be applied.",
+		);
+	}
+
+	await recomputeLineItemComponentDemandState(db, demand.lineItemComponentId);
+
+	return {
+		inboundId: input.inboundId,
+		demandId: demand.id,
+		inboundShipmentItemId: inboundItem.id,
+		lineItemComponentId: demand.lineItemComponentId,
+		salesOrderId: demand.lineItemComponent.parent.sale?.id ?? null,
+		orderId: demand.lineItemComponent.parent.sale?.orderId ?? null,
+		lineTitle: demand.lineItemComponent.parent.title || "Line item",
+		previousQty,
+		targetQty,
+		receivedQty,
+		previousItemQty,
+		targetItemQty,
+		removed,
+		changed: true,
+	};
+}
+
+export async function reconcileSalesAdjustmentInboundDemands(
+	db: DbLike,
+	input: ReconcileSalesAdjustmentInboundDemandsInput,
+): Promise<ReconcileSalesAdjustmentInboundDemandsResult> {
+	let adjustedDemandCount = 0;
+	let cancelledOpenQty = 0;
+	let keptWarehouseQty = 0;
+	const affectedInboundIds = new Set<number>();
+	const inboundEffects = new Map<
+		number,
+		{ cancelledOpenQty: number; keptWarehouseQty: number }
+	>();
+	const componentIds = new Set<number>();
+	const itemQtyAfterAdjustment = new Map<number, number>();
+	const reconciliationNote = `Reconciled by sales adjustment ${input.adjustmentId}`;
+	const recordEffect = (
+		inboundId: number | null,
+		openReductionQty: number,
+	) => {
+		if (inboundId == null) return;
+		affectedInboundIds.add(inboundId);
+		if (!inboundEffects.has(inboundId)) {
+			inboundEffects.set(inboundId, {
+				cancelledOpenQty: 0,
+				keptWarehouseQty: 0,
+			});
+		}
+		const effect = inboundEffects.get(inboundId);
+		if (!effect) return;
+		if (input.disposition === "KEEP_IN_WAREHOUSE") {
+			keptWarehouseQty += openReductionQty;
+			effect.keptWarehouseQty += openReductionQty;
+			return;
+		}
+		cancelledOpenQty += openReductionQty;
+		effect.cancelledOpenQty += openReductionQty;
+	};
+
+	for (const line of input.lines) {
+		const beforeQty = Math.max(0, Number(line.beforeQty || 0));
+		const proposedQty = Math.max(0, Number(line.proposedQty || 0));
+		if (beforeQty <= 0 || proposedQty >= beforeQty) continue;
+		const retainedRatio = proposedQty / beforeQty;
+
+		for (const snapshot of line.inboundDemands) {
+			const snapshotQty = Math.max(0, Number(snapshot.qty || 0));
+			const receivedQty = Math.max(0, Number(snapshot.qtyReceived || 0));
+			const targetQty = Math.max(receivedQty, snapshotQty * retainedRatio);
+			const openReductionQty = Math.max(0, snapshotQty - targetQty);
+			if (openReductionQty <= 0) continue;
+
+			const live = await db.inboundDemand.findFirst({
+				where: { id: snapshot.id },
+				select: {
+					id: true,
+					qty: true,
+					qtyReceived: true,
+					status: true,
+					notes: true,
+					deletedAt: true,
+					lineItemComponentId: true,
+					inboundShipmentItemId: true,
+					inboundShipmentItem: {
+						select: {
+							id: true,
+							qty: true,
+							qtyGood: true,
+							qtyIssue: true,
+							inboundId: true,
+							inbound: { select: { status: true } },
+						},
+					},
+				},
+			});
+			if (!live) {
+				throw new SalesAdjustmentInboundSnapshotConflictError(snapshot.id);
+			}
+			if (live.notes === reconciliationNote) {
+				adjustedDemandCount += 1;
+				recordEffect(snapshot.inboundId, openReductionQty);
+				continue;
+			}
+			const item = live.inboundShipmentItem;
+			const expectedItemQty =
+				snapshot.inboundShipmentItemId == null
+					? null
+					: itemQtyAfterAdjustment.get(snapshot.inboundShipmentItemId) ??
+						snapshot.inboundShipmentItemQty;
+			if (
+				live.deletedAt != null ||
+				Number(live.qty || 0) !== Number(snapshot.qty || 0) ||
+				Number(live.qtyReceived || 0) !==
+					Number(snapshot.qtyReceived || 0) ||
+				live.status !== snapshot.status ||
+				live.inboundShipmentItemId !== snapshot.inboundShipmentItemId ||
+				(item?.inboundId ?? null) !== snapshot.inboundId ||
+				(item?.inbound.status ?? null) !== snapshot.inboundStatus ||
+				(item == null ? null : Number(item.qty || 0)) !== expectedItemQty ||
+				(item == null
+					? 0
+					: Number(item.qtyGood || 0) + Number(item.qtyIssue || 0)) !==
+					snapshot.inboundShipmentItemReceivedQty
+			) {
+				throw new SalesAdjustmentInboundSnapshotConflictError(snapshot.id);
+			}
+
+			const removed = targetQty <= 0;
+			const nextStatus = removed
+				? "cancelled"
+				: receivedQty >= targetQty
+					? "received"
+					: receivedQty > 0
+						? "partially_received"
+						: live.inboundShipmentItemId
+							? "ordered"
+							: "pending";
+			const changed = await db.inboundDemand.updateMany({
+				where: {
+					id: live.id,
+					deletedAt: null,
+					qty: live.qty,
+					qtyReceived: live.qtyReceived,
+					inboundShipmentItemId: live.inboundShipmentItemId,
+				},
+				data: {
+					qty: targetQty,
+					status: nextStatus,
+					notes: reconciliationNote,
+					...(removed
+						? {
+								inboundShipmentItemId: null,
+								deletedAt: new Date(),
+							}
+						: {}),
+				},
+			});
+			if (changed.count <= 0) {
+				throw new Error(
+					`Inbound demand #${live.id} changed before sales adjustment reconciliation could be applied.`,
+				);
+			}
+
+			adjustedDemandCount += changed.count;
+			componentIds.add(live.lineItemComponentId);
+			recordEffect(snapshot.inboundId, openReductionQty);
+
+			if (input.disposition === "KEEP_IN_WAREHOUSE") {
+				continue;
+			}
+
+			if (
+				!item ||
+				["completed", "closed", "cancelled"].includes(item.inbound.status)
+			) {
+				continue;
+			}
+			const previousItemQty = Number(item.qty || 0);
+			const receivedItemQty =
+				Number(item.qtyGood || 0) + Number(item.qtyIssue || 0);
+			const targetItemQty = Math.max(
+				receivedItemQty,
+				previousItemQty - openReductionQty,
+			);
+			const itemChanged = await db.inboundShipmentItem.updateMany({
+				where: {
+					id: item.id,
+					deletedAt: null,
+					qty: item.qty,
+				},
+				data:
+					targetItemQty <= 0
+						? { qty: 0, deletedAt: new Date() }
+						: { qty: targetItemQty },
+			});
+			if (itemChanged.count <= 0) {
+				throw new Error(
+					`Inbound item #${item.id} changed before sales adjustment reconciliation could be applied.`,
+				);
+			}
+			itemQtyAfterAdjustment.set(item.id, targetItemQty);
+		}
+	}
+
+	for (const componentId of componentIds) {
+		await recomputeLineItemComponentDemandState(db, componentId);
+	}
+
+	return {
+		adjustedDemandCount,
+		affectedInboundIds: Array.from(affectedInboundIds).sort((a, b) => a - b),
+		cancelledOpenQty,
+		keptWarehouseQty,
+		inboundEffects: Array.from(inboundEffects.entries())
+			.map(([inboundId, effect]) => ({ inboundId, ...effect }))
+			.sort((a, b) => a.inboundId - b.inboundId),
+	};
 }
 
 export async function releaseCancelledInboundShipmentDemand(

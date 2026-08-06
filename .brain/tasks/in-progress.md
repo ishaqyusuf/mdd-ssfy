@@ -1,5 +1,19 @@
 # In Progress
 
+- [ ] Driver platform revival: phases 0-3 are implemented, including protected
+  work-queue/manifest contracts, explicit due and door facts, dispatch-bound
+  proportional inventory, reserve/pick/consume/release orchestration,
+  reconciliation/backfill, sectioned mobile UX, and dev-only quick accounts.
+  Automated checks, local schema sync, and Android assembly/install pass. The
+  smaller development router now runs in SDK 54 Expo Go 54.0.8 and device proof
+  covers dark-theme login, the dev-only account selector, assigned queue, and
+  dispatch detail. Final gate: use a valid packed/assigned dispatch fixture to
+  prove `Start Trip`; the tested zero-item legacy dispatch is correctly blocked
+  by readiness rules. See
+  `.brain/features/driver-platform-revival.md` and ADR-050. (Mobile + API +
+  Inventory + Runtime Validation)
+
+
 - [ ] Sales Customers and Customer Overview monitored modernization: the
   program direction and first page plan are documented in
   `.brain/plans/sales-system-page-by-page-modernization/map.md` and
@@ -209,3 +223,8 @@ Tracks the active work queue. Keep this focused and execution-ready.
   `20260720081100_sales_shelf_decimal_prices` remains an operator step because
   the ordinary development database has unrelated migration drift and was not
   reset.
+- [ ] Guarded inbound/sales quantity reconciliation: implementation and focused
+  automated coverage are complete. Remaining release gate is authenticated
+  browser proof for direct inbound removal/reduction, both Sales Change Review
+  dispositions, activity attribution, and Sales-list recovery after inbound
+  cancellation (`.brain/features/inbound-sales-adjustment-reconciliation.md`).

@@ -1,5 +1,18 @@
 # Database Schema
 
+## Dispatch-Bound Stock Allocation (2026-08-06)
+
+- `StockAllocation.orderDeliveryId` is the nullable canonical binding from an
+  exact stock allocation quantity to one physical dispatch.
+- The binding is additive so existing unbound approved allocations and legacy
+  dispatches remain valid during migration.
+- Indexes support dispatch reconciliation and allocation selection by delivery,
+  component, status, and active/deleted state.
+- A dispatch requirement is derived from its `OrderItemDelivery` quantity and
+  the inventory line/component BOM; split deliveries therefore own a
+  proportional component quantity rather than the complete sales-line demand.
+
+
 ## Purpose
 Tracks important schema-level entities and ownership boundaries.
 

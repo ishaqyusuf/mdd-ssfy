@@ -29,6 +29,7 @@
 		"@gnd/utils": "workspace:*",
 		"@next-auth/prisma-adapter": "^1.0.7",
 		"better-auth": "^1.4.0",
+		"bcrypt-ts": "^5.0.3",
 		"cookie": "^0.7.2",
 		"next-auth": "^4.24.11",
 		"zod": "catalog:"

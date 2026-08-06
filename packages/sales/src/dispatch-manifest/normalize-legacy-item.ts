@@ -27,7 +27,6 @@ function quantity(value: DispatchQuantity | null | undefined): NormalizedQuantit
 	const rh = Number(value?.rh || 0);
 	return { qty, lh, rh, total: qty + lh + rh };
 }
-
 function remaining(ordered: NormalizedQuantity, packed: NormalizedQuantity) {
 	const qty = Math.max(0, ordered.qty - packed.qty);
 	const lh = Math.max(0, ordered.lh - packed.lh);

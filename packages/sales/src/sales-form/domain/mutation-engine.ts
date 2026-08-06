@@ -1,4 +1,7 @@
-import { readSalesFormObjectMetadata } from "./metadata";
+import {
+  isCustomSalesFormComponent,
+  readSalesFormObjectMetadata,
+} from "./metadata";
 
 export function getSelectedProdUids(step: any) {
   const metaRecords = [
@@ -81,17 +84,36 @@ export function applyMultiSelectStepMutation({
 
   const currentMeta = readSalesFormObjectMetadata(current?.meta) || {};
   const selectedSet = new Set(getSelectedProdUids(current));
-  const nextSelected =
-    typeof selectedOverride === "boolean"
-      ? selectedOverride
-      : !selectedSet.has(component.uid);
-  if (nextSelected) selectedSet.add(component.uid);
-  else selectedSet.delete(component.uid);
-
-  const selectedUids = Array.from(selectedSet);
   const existingSelectedComponents = Array.isArray(currentMeta.selectedComponents)
     ? currentMeta.selectedComponents
     : [];
+  const componentForUid = (uid: string) =>
+    visibleComponents.find((candidate: any) => candidate.uid === uid) ||
+    existingSelectedComponents.find(
+      (candidate: any) => String(candidate?.uid || "") === String(uid || ""),
+    );
+  const incomingUid = String(component?.uid || "");
+  const incomingIsCustom = isCustomSalesFormComponent(component);
+  const nextSelected =
+    typeof selectedOverride === "boolean"
+      ? selectedOverride
+      : !selectedSet.has(incomingUid);
+  if (nextSelected) {
+    if (incomingIsCustom) {
+      selectedSet.clear();
+    } else {
+      for (const selectedUid of selectedSet) {
+        if (isCustomSalesFormComponent(componentForUid(selectedUid))) {
+          selectedSet.delete(selectedUid);
+        }
+      }
+    }
+    if (incomingUid) selectedSet.add(incomingUid);
+  } else {
+    selectedSet.delete(incomingUid);
+  }
+
+  const selectedUids = Array.from(selectedSet);
   const selectedComponents = selectedUids
     .map((uid) => {
       const visible = visibleComponents.find((candidate: any) => candidate.uid === uid);
@@ -130,6 +152,7 @@ export function applyMultiSelectStepMutation({
       img: primary?.img || null,
       redirectUid: primary?.redirectUid || null,
       sectionOverride: primary?.sectionOverride || null,
+      custom: isCustomSalesFormComponent(primary),
       selectedProdUids: selectedUids,
       selectedComponents: selectedComponents.map((c: any) =>
         snapshotSelectedComponent(c),

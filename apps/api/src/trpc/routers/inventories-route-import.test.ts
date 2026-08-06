@@ -180,6 +180,36 @@ describe("inventoriesRouter", () => {
 		}
 	});
 
+	test("guards inbound demand reductions", async () => {
+		const mod = await import("./inventories.route");
+
+		expect(
+			mod.reduceInboundShipmentDemandSchema.safeParse({
+				inboundId: 1,
+				demandId: 2,
+				targetQty: 0,
+				note: "Remove this order demand from the shipment.",
+			}).success,
+		).toBe(true);
+
+		for (const input of [
+			{ inboundId: 0, demandId: 2, targetQty: 0 },
+			{ inboundId: 1, demandId: 0, targetQty: 0 },
+			{ inboundId: 1, demandId: 2, targetQty: -1 },
+			{ inboundId: 1, demandId: 2, targetQty: 0, note: "" },
+			{
+				inboundId: 1,
+				demandId: 2,
+				targetQty: 1,
+				note: "x".repeat(2001),
+			},
+		]) {
+			expect(
+				mod.reduceInboundShipmentDemandSchema.safeParse(input).success,
+			).toBe(false);
+		}
+	});
+
 	test("guards inbound assignment ids as positive integers", async () => {
 		const mod = await import("./inventories.route");
 

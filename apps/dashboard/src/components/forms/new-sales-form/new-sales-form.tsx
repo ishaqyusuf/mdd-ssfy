@@ -149,6 +149,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 const PACKAGE_WORKFLOW_PANEL_STORAGE_KEY =
     "gnd:new-sales-form:package-workflow-panel";
+const SHOW_LOCAL_RECOVERY_ALERT = false;
 
 function resolveInitialPackageWorkflowPanelEnabled() {
     const envDefault =
@@ -1275,7 +1276,10 @@ export function NewSalesForm(props: Props) {
 		return false;
 	}
 
-	async function submitCommittedChange() {
+	async function submitCommittedChange(input: {
+		inboundDisposition: "CANCEL_OPEN_INBOUND" | "KEEP_IN_WAREHOUSE" | null;
+		acknowledgeOperationalImpact: boolean;
+	}) {
 		if (!record?.salesId || !record.slug || !record.version) return;
 		const sourceVersion = record.version;
 		const reasons = changeReview?.analysis.reviewReasons || [];
@@ -1294,6 +1298,8 @@ export function NewSalesForm(props: Props) {
 				version: record.version,
 				autosave: false,
 				reason,
+				inboundDisposition: input.inboundDisposition,
+				acknowledgeOperationalImpact: input.acknowledgeOperationalImpact,
 			});
 			const applied = await waitForAdjustmentApplication(sourceVersion);
 			setChangeReviewOpen(false);
@@ -1862,7 +1868,7 @@ export function NewSalesForm(props: Props) {
                     RecoveryBanner:
                         historyPreview ||
                         restoredHistoryEntry ||
-						recoverySnapshot ||
+						(SHOW_LOCAL_RECOVERY_ALERT && recoverySnapshot) ||
 						hasSalesRepApprovalChange ||
 						activeAdjustment ? (
                             <div className="m-4 space-y-2 sm:m-6 lg:m-8">
@@ -1971,7 +1977,7 @@ export function NewSalesForm(props: Props) {
                                         </div>
 									</output>
                                 ) : null}
-                                {recoverySnapshot ? (
+								{SHOW_LOCAL_RECOVERY_ALERT && recoverySnapshot ? (
                                     <div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
                                         <p>
                                             Unsaved local edits were found from{" "}

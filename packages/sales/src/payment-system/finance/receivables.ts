@@ -141,8 +141,13 @@ export function projectSalesFinanceReceivable(
 		payments: source.payments,
 	});
 	const grandTotal = roundMoney(source.grandTotal);
-	const amountDue = projection.amountDue;
 	const storedAmountDue = roundMoney(source.amountDue);
+	const usesLegacyStoredPaidBalance =
+		grandTotal > 0 &&
+		source.amountDue != null &&
+		storedAmountDue <= 0 &&
+		(source.payments?.length || 0) === 0;
+	const amountDue = usesLegacyStoredPaidBalance ? 0 : projection.amountDue;
 	const balanceDifference = roundMoney(storedAmountDue - amountDue);
 	const aging = getSalesFinanceAgingBucket(source.paymentDueDate, asOf);
 

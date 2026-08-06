@@ -28,7 +28,8 @@ export function DispatchDetailScrollContent() {
 			contentContainerStyle={{
 				paddingHorizontal: 16,
 				paddingTop: 16,
-				paddingBottom: 24,
+				// Keep the final controls clear of the persistent footer action bar.
+				paddingBottom: 120,
 			}}
 			refreshControl={
 				<RefreshControl refreshing={vm.isRefetching} onRefresh={vm.onRefresh} />
@@ -390,7 +391,7 @@ export function DispatchDetailScrollContent() {
 										<Text className="text-sm font-medium text-foreground">
 											{item.title}
 										</Text>
-									<ManifestItemFacts item={item} compact />
+										<ManifestItemFacts item={item} compact />
 									</View>
 								</View>
 								<View className="items-end gap-1">

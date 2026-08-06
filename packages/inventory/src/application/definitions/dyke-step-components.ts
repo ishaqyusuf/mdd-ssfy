@@ -150,32 +150,29 @@ async function findExistingCustomComponent(
   db: Db,
   input: UpsertDykeCustomStepComponent,
 ) {
-  if (input.id) {
+  if (input.id || input.uid) {
     const component = await db.dykeStepProducts.findFirst({
       where: {
-        id: input.id,
+        ...(input.id ? { id: input.id } : { uid: input.uid || "" }),
         deletedAt: null,
       },
       select: {
         id: true,
+        custom: true,
+        dykeStepId: true,
         meta: true,
       },
     });
-    return isMetaArchived(component?.meta) ? null : component;
-  }
-
-  if (input.uid) {
-    const component = await db.dykeStepProducts.findFirst({
-      where: {
-        uid: input.uid,
-        deletedAt: null,
-      },
-      select: {
-        id: true,
-        meta: true,
-      },
-    });
-    return isMetaArchived(component?.meta) ? null : component;
+    if (!component || isMetaArchived(component.meta)) {
+      throw new Error("Custom component not found");
+    }
+    if (!component.custom) {
+      throw new Error("Selected component is not a custom component");
+    }
+    if (component.dykeStepId !== input.stepId) {
+      throw new Error("Custom component does not belong to this step");
+    }
+    return component;
   }
 
   const normalizedTitle = normalizeCustomComponentTitle(input.title);
@@ -292,7 +289,7 @@ export async function upsertDykeCustomStepComponent(
     stepId: input.stepId,
   });
 
-  if (input.price != null) {
+  if (input.price !== undefined) {
     await updateDykeComponentPricing(db, {
       stepId: saved.stepId,
       stepProductUid: saved.componentUid,

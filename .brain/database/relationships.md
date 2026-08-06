@@ -1,5 +1,21 @@
 # Database Relationships
 
+## Dispatch-Bound Inventory (2026-08-06)
+
+- `OrderDelivery.stockAllocations` contains the exact stock rows reserved,
+  picked, consumed, or released for that trip.
+- `StockAllocation.orderDeliveryId` belongs to `OrderDelivery.id`; the project
+  uses Prisma relation mode, so migration SQL adds indexed identity without a
+  physical foreign key.
+- Allocation ownership must agree across
+  `StockAllocation -> LineItemComponents -> LineItem.saleId` and
+  `StockAllocation -> OrderDelivery.salesOrderId`; reconciliation reports any
+  cross-sale binding.
+- `OrderItemDelivery.orderItemId` provides the dispatch quantity used to scope
+  its inventory component requirement. Multiple active dispatches never share
+  the same bound allocation row.
+
+
 ## Purpose
 Tracks important cross-model relationships and ownership patterns.
 

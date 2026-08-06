@@ -594,7 +594,9 @@ export async function createOrUpdateCustomer(
 			phoneNo: input.phoneNo,
 			phoneNo2: input.phoneNo2,
 			email: input.email,
-			address: input.billingAddress?.address1 ?? input.address1,
+			...(input.customerOnly
+				? {}
+				: { address: input.billingAddress?.address1 ?? input.address1 }),
 			meta: {
 				netTerm: input.netTerm,
 			} as CustomerMeta,
@@ -1878,10 +1880,13 @@ export async function getSalesCustomer(
 			},
 		},
 	});
+	const customerAddress = customer?.addressBooks?.find(
+		(address) => address.isPrimary,
+	);
 	const billing =
 		customer?.addressBooks?.find((address) => address.id === billingId) ??
-		customer?.addressBooks?.find((address) => address.isPrimary);
-	const shipping = customer?.addressBooks?.find((a) => a.id == shippingId);
+		customerAddress;
+	const shipping = customer?.addressBooks?.find((a) => a.id === shippingId);
 	const customerMeta = customer?.meta as any as CustomerMeta;
 	const [taxProfile] = customer?.taxProfiles;
 	const fallbackName = customer.businessName || customer.name;
@@ -1908,9 +1913,11 @@ export async function getSalesCustomer(
 		shipping: {
 			id: shipping?.id,
 			lines:
-				shipping?.id == billing?.id || !shipping?.id
+				shippingId != null && billingId != null && shippingId === billingId
 					? ["same as billing"]
-					: salesAddressLines(shipping),
+					: shipping
+						? salesAddressLines(shipping)
+						: salesAddressLines(customerAddress, customer),
 		},
 		shippingAddress,
 		billing: {

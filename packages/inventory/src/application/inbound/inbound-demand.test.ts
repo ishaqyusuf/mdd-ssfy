@@ -8,7 +8,484 @@ import {
 	planInboundReceiptDelta,
 	releaseCancelledInboundShipmentDemand,
 	receiveInboundShipment,
+	reconcileSalesAdjustmentInboundDemands,
+	reduceInboundShipmentDemand,
 } from "./inbound-demand";
+
+describe("reconcileSalesAdjustmentInboundDemands", () => {
+	test("reduces the supplier shipment when open inbound is cancelled", async () => {
+		let demandData: Record<string, unknown> | undefined;
+		let itemData: Record<string, unknown> | undefined;
+		const db = {
+			inboundDemand: {
+				findFirst: async () => ({
+					id: 41,
+					qty: 10,
+					qtyReceived: 2,
+					status: "partially_received",
+					lineItemComponentId: 51,
+					inboundShipmentItemId: 61,
+					inboundShipmentItem: {
+						id: 61,
+						qty: 10,
+						qtyGood: 2,
+						qtyIssue: 0,
+						inboundId: 71,
+						inbound: { status: "in_progress" },
+					},
+				}),
+				updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+					demandData = data;
+					return { count: 1 };
+				},
+			},
+			inboundShipmentItem: {
+				updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+					itemData = data;
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 51,
+					qty: 5,
+					stockAllocations: [],
+					inboundDemands: [{ qty: 5, qtyReceived: 2 }],
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+		} as any;
+
+		const result = await reconcileSalesAdjustmentInboundDemands(db, {
+			adjustmentId: "adjustment-1",
+			disposition: "CANCEL_OPEN_INBOUND",
+			lines: [
+				{
+					beforeQty: 10,
+					proposedQty: 5,
+					inboundDemands: [
+						{
+							id: 41,
+							qty: 10,
+							qtyReceived: 2,
+							status: "partially_received",
+							inboundShipmentItemId: 61,
+							inboundId: 71,
+							inboundStatus: "in_progress",
+							inboundShipmentItemQty: 10,
+							inboundShipmentItemReceivedQty: 2,
+						},
+					],
+				},
+			],
+		});
+
+		expect(demandData).toMatchObject({ qty: 5, status: "partially_received" });
+		expect(itemData).toEqual({ qty: 5 });
+		expect(result).toMatchObject({
+			adjustedDemandCount: 1,
+			affectedInboundIds: [71],
+			cancelledOpenQty: 5,
+			keptWarehouseQty: 0,
+			inboundEffects: [
+				{ inboundId: 71, cancelledOpenQty: 5, keptWarehouseQty: 0 },
+			],
+		});
+	});
+
+	test("keeps the supplier shipment quantity for warehouse stock", async () => {
+		let itemUpdated = false;
+		const db = {
+			inboundDemand: {
+				findFirst: async () => ({
+					id: 41,
+					qty: 4,
+					qtyReceived: 0,
+					status: "ordered",
+					lineItemComponentId: 51,
+					inboundShipmentItemId: 61,
+					inboundShipmentItem: {
+						id: 61,
+						qty: 4,
+						qtyGood: 0,
+						qtyIssue: 0,
+						inboundId: 71,
+						inbound: { status: "in_progress" },
+					},
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+			inboundShipmentItem: {
+				updateMany: async () => {
+					itemUpdated = true;
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 51,
+					qty: 0,
+					stockAllocations: [],
+					inboundDemands: [],
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+		} as any;
+
+		const result = await reconcileSalesAdjustmentInboundDemands(db, {
+			adjustmentId: "adjustment-2",
+			disposition: "KEEP_IN_WAREHOUSE",
+			lines: [
+				{
+					beforeQty: 4,
+					proposedQty: 0,
+					inboundDemands: [
+						{
+							id: 41,
+							qty: 4,
+							qtyReceived: 0,
+							status: "ordered",
+							inboundShipmentItemId: 61,
+							inboundId: 71,
+							inboundStatus: "in_progress",
+							inboundShipmentItemQty: 4,
+							inboundShipmentItemReceivedQty: 0,
+						},
+					],
+				},
+			],
+		});
+
+		expect(itemUpdated).toBe(false);
+		expect(result.keptWarehouseQty).toBe(4);
+	});
+
+	test("rejects a demand that changed after the approved snapshot", async () => {
+		const db = {
+			inboundDemand: {
+				findFirst: async () => ({
+					id: 41,
+					qty: 12,
+					qtyReceived: 0,
+					status: "ordered",
+					notes: null,
+					lineItemComponentId: 51,
+					inboundShipmentItemId: 61,
+					inboundShipmentItem: {
+						id: 61,
+						qty: 12,
+						qtyGood: 0,
+						qtyIssue: 0,
+						inboundId: 71,
+						inbound: { status: "in_progress" },
+					},
+				}),
+			},
+		} as any;
+
+		expect(
+			reconcileSalesAdjustmentInboundDemands(db, {
+				adjustmentId: "adjustment-3",
+				disposition: "CANCEL_OPEN_INBOUND",
+				lines: [
+					{
+						beforeQty: 10,
+						proposedQty: 5,
+						inboundDemands: [
+							{
+								id: 41,
+								qty: 10,
+								qtyReceived: 0,
+								status: "ordered",
+								inboundShipmentItemId: 61,
+								inboundId: 71,
+								inboundStatus: "in_progress",
+								inboundShipmentItemQty: 10,
+								inboundShipmentItemReceivedQty: 0,
+							},
+						],
+					},
+				],
+			}),
+		).rejects.toThrow("changed after approval");
+	});
+
+	test("replays a completed reconciliation for retry activity without changing quantity twice", async () => {
+		let demandUpdated = false;
+		let itemUpdated = false;
+		const db = {
+			inboundDemand: {
+				findFirst: async () => ({
+					id: 41,
+					qty: 0,
+					qtyReceived: 0,
+					status: "cancelled",
+					notes: "Reconciled by sales adjustment adjustment-4",
+					deletedAt: new Date(),
+					lineItemComponentId: 51,
+					inboundShipmentItemId: null,
+					inboundShipmentItem: null,
+				}),
+				updateMany: async () => {
+					demandUpdated = true;
+					return { count: 1 };
+				},
+			},
+			inboundShipmentItem: {
+				updateMany: async () => {
+					itemUpdated = true;
+					return { count: 1 };
+				},
+			},
+		} as any;
+
+		const result = await reconcileSalesAdjustmentInboundDemands(db, {
+			adjustmentId: "adjustment-4",
+			disposition: "CANCEL_OPEN_INBOUND",
+			lines: [
+				{
+					beforeQty: 4,
+					proposedQty: 0,
+					inboundDemands: [
+						{
+							id: 41,
+							qty: 4,
+							qtyReceived: 0,
+							status: "ordered",
+							inboundShipmentItemId: 61,
+							inboundId: 71,
+							inboundStatus: "in_progress",
+							inboundShipmentItemQty: 4,
+							inboundShipmentItemReceivedQty: 0,
+						},
+					],
+				},
+			],
+		});
+
+		expect(demandUpdated).toBe(false);
+		expect(itemUpdated).toBe(false);
+		expect(result).toMatchObject({
+			adjustedDemandCount: 1,
+			cancelledOpenQty: 4,
+			inboundEffects: [
+				{ inboundId: 71, cancelledOpenQty: 4, keptWarehouseQty: 0 },
+			],
+		});
+	});
+});
+
+describe("reduceInboundShipmentDemand", () => {
+	test("reduces only the selected sales demand and preserves received quantity", async () => {
+		const updates: Array<{ table: string; data: unknown }> = [];
+		const db = {
+			inboundDemand: {
+				findFirstOrThrow: async () => ({
+					id: 41,
+					qty: 10,
+					qtyReceived: 3,
+					status: "partially_received",
+					lineItemComponentId: 51,
+					inboundShipmentItemId: 61,
+					inboundShipmentItem: {
+						id: 61,
+						qty: 14,
+						qtyGood: 3,
+						qtyIssue: 0,
+						inbound: { id: 71, status: "in_progress" },
+					},
+					lineItemComponent: {
+						parent: {
+							title: "Oak door",
+							sale: { id: 81, orderId: "09159PC" },
+						},
+					},
+				}),
+				updateMany: async ({ data }: { data: unknown }) => {
+					updates.push({ table: "demand", data });
+					return { count: 1 };
+				},
+			},
+			inboundShipmentItem: {
+				updateMany: async ({ data }: { data: unknown }) => {
+					updates.push({ table: "item", data });
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 51,
+					qty: 8,
+					stockAllocations: [],
+					inboundDemands: [{ qty: 6, qtyReceived: 3 }],
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+		} as any;
+
+		const result = await reduceInboundShipmentDemand(db, {
+			inboundId: 71,
+			demandId: 41,
+			targetQty: 6,
+		});
+
+		expect(updates).toContainEqual({
+			table: "demand",
+			data: { qty: 6, status: "partially_received" },
+		});
+		expect(updates).toContainEqual({
+			table: "item",
+			data: { qty: 10 },
+		});
+		expect(result).toMatchObject({
+			previousQty: 10,
+			targetQty: 6,
+			removed: false,
+			salesOrderId: 81,
+			orderId: "09159PC",
+		});
+	});
+
+	test("removes an unreceived demand from the shipment without cancelling the sale demand", async () => {
+		let demandUpdate: unknown;
+		const db = {
+			inboundDemand: {
+				findFirstOrThrow: async () => ({
+					id: 41,
+					qty: 4,
+					qtyReceived: 0,
+					status: "ordered",
+					lineItemComponentId: 51,
+					inboundShipmentItemId: 61,
+					inboundShipmentItem: {
+						id: 61,
+						qty: 4,
+						qtyGood: 0,
+						qtyIssue: 0,
+						inbound: { id: 71, status: "pending" },
+					},
+					lineItemComponent: {
+						parent: {
+							title: "Oak door",
+							sale: { id: 81, orderId: "09159PC" },
+						},
+					},
+				}),
+				updateMany: async ({ data }: { data: unknown }) => {
+					demandUpdate = data;
+					return { count: 1 };
+				},
+			},
+			inboundShipmentItem: {
+				updateMany: async () => ({ count: 1 }),
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 51,
+					qty: 4,
+					stockAllocations: [],
+					inboundDemands: [{ qty: 4, qtyReceived: 0 }],
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+		} as any;
+
+		const result = await reduceInboundShipmentDemand(db, {
+			inboundId: 71,
+			demandId: 41,
+			targetQty: 0,
+		});
+
+		expect(demandUpdate).toMatchObject({
+			inboundShipmentItemId: null,
+			status: "pending",
+		});
+		expect(result.removed).toBe(true);
+	});
+
+	test("rejects reductions below quantity already received", async () => {
+		const db = {
+			inboundDemand: {
+				findFirstOrThrow: async () => ({
+					id: 41,
+					qty: 10,
+					qtyReceived: 3,
+					status: "partially_received",
+					lineItemComponentId: 51,
+					inboundShipmentItemId: 61,
+					inboundShipmentItem: {
+						id: 61,
+						qty: 10,
+						qtyGood: 3,
+						qtyIssue: 0,
+						inbound: { id: 71, status: "in_progress" },
+					},
+					lineItemComponent: {
+						parent: { title: "Oak door", sale: null },
+					},
+				}),
+			},
+		} as any;
+
+		expect(
+			reduceInboundShipmentDemand(db, {
+				inboundId: 71,
+				demandId: 41,
+				targetQty: 2,
+			}),
+		).rejects.toThrow("already received");
+	});
+
+	test("treats a repeated reduction target as an idempotent no-op", async () => {
+		let demandUpdated = false;
+		let itemUpdated = false;
+		const db = {
+			inboundDemand: {
+				findFirstOrThrow: async () => ({
+					id: 41,
+					qty: 3,
+					qtyReceived: 1,
+					status: "partially_received",
+					lineItemComponentId: 51,
+					inboundShipmentItemId: 61,
+					inboundShipmentItem: {
+						id: 61,
+						qty: 3,
+						qtyGood: 1,
+						qtyIssue: 0,
+						inbound: { id: 71, status: "in_progress" },
+					},
+					lineItemComponent: {
+						parent: {
+							title: "Oak door",
+							sale: { id: 81, orderId: "09159PC" },
+						},
+					},
+				}),
+				updateMany: async () => {
+					demandUpdated = true;
+					return { count: 1 };
+				},
+			},
+			inboundShipmentItem: {
+				updateMany: async () => {
+					itemUpdated = true;
+					return { count: 1 };
+				},
+			},
+		} as any;
+
+		const result = await reduceInboundShipmentDemand(db, {
+			inboundId: 71,
+			demandId: 41,
+			targetQty: 3,
+		});
+
+		expect(result.changed).toBe(false);
+		expect(demandUpdated).toBe(false);
+		expect(itemUpdated).toBe(false);
+	});
+});
 
 describe("planInboundReceiptDelta", () => {
 	test("treats an identical receive retry as a duplicate no-op", () => {
@@ -1207,9 +1684,7 @@ describe("receiveInboundShipment", () => {
 					],
 				},
 			),
-		).rejects.toThrow(
-			"Inbound shipment item 504 was provided more than once.",
-		);
+		).rejects.toThrow("Inbound shipment item 504 was provided more than once.");
 
 		expect(shipmentUpdated).toBe(false);
 	});

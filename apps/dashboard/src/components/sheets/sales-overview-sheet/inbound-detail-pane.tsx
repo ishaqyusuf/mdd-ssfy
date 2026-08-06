@@ -1,7 +1,7 @@
 "use client";
 
 import { InboundOverviewContent } from "@/components/sheets/inbound-overview-content";
-import Sheet from "@gnd/ui/custom/sheet";
+import Sheet from "@gnd/ui/custom/sheet-v2";
 
 export function InboundDetailPane({ inboundId }: { inboundId: number }) {
 	return (

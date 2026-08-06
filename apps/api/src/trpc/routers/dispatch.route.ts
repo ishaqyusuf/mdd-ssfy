@@ -789,18 +789,18 @@ export const dispatchRouters = createTRPCRouter({
 				{
 					meta,
 					submitDispatch: {
-					dispatchId: dispatch.id,
-					receivedBy: props.input.receivedBy,
-					receivedDate: props.input.receivedDate || new Date(),
-					note: props.input.note,
-					noteType:
-						props.input.noteType ||
-						(dispatch.deliveryMode === "pickup" ? "pickup" : "dispatch"),
-					signature: completion.signaturePathname,
-					attachments: completion.attachments.map((attachment) => ({
-						pathname: attachment.pathname,
-					})),
-					completionRequestId: props.input.requestId,
+						dispatchId: dispatch.id,
+						receivedBy: props.input.receivedBy,
+						receivedDate: props.input.receivedDate || new Date(),
+						note: props.input.note,
+						noteType:
+							props.input.noteType ||
+							(dispatch.deliveryMode === "pickup" ? "pickup" : "dispatch"),
+						signature: completion.signaturePathname,
+						attachments: completion.attachments.map((attachment) => ({
+							pathname: attachment.pathname,
+						})),
+						completionRequestId: props.input.requestId,
 					},
 				} as UpdateSalesControl,
 				{
@@ -904,28 +904,19 @@ export const dispatchRouters = createTRPCRouter({
 	dispatchOverview: protectedProcedure
 		.input(salesDispatchOverviewSchema)
 		.query(async (props) => {
-			await requireAssignedDispatchOrManager(
-				props.ctx,
-				props.input.dispatchId,
-			);
+			await requireAssignedDispatchOrManager(props.ctx, props.input.dispatchId);
 			return getDispatchOverview(props.ctx, props.input);
 		}),
 	dispatchOverviewV2: protectedProcedure
 		.input(salesDispatchOverviewSchema)
 		.query(async (props) => {
-			await requireAssignedDispatchOrManager(
-				props.ctx,
-				props.input.dispatchId,
-			);
+			await requireAssignedDispatchOrManager(props.ctx, props.input.dispatchId);
 			return getDispatchOverviewV2(props.ctx, props.input);
 		}),
 	manifest: protectedProcedure
 		.input(salesDispatchOverviewSchema)
 		.query(async (props) => {
-			await requireAssignedDispatchOrManager(
-				props.ctx,
-				props.input.dispatchId,
-			);
+			await requireAssignedDispatchOrManager(props.ctx, props.input.dispatchId);
 			return getDispatchOverviewV2(props.ctx, props.input);
 		}),
 	prepareInventoryForDispatch: protectedProcedure
@@ -934,6 +925,19 @@ export const dispatchRouters = createTRPCRouter({
 				.object({
 					salesOrderId: z.number().int().positive(),
 					orderDeliveryId: z.number().int().positive(),
+					items: z
+						.array(
+							z
+								.object({
+									salesItemId: z.number().int().positive(),
+									qty: z.number().int().nonnegative().optional(),
+									lhQty: z.number().int().nonnegative().optional(),
+									rhQty: z.number().int().nonnegative().optional(),
+								})
+								.strict(),
+						)
+						.max(250)
+						.optional(),
 				})
 				.strict(),
 		)

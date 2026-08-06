@@ -67,6 +67,29 @@ const rows = [
 		salesRep: null,
 		payments: [],
 	},
+	{
+		id: 351,
+		orderId: "23-0810-351",
+		slug: "23-0810-351",
+		createdAt: new Date("2026-01-03T12:00:00.000Z"),
+		paymentDueDate: new Date("2000-01-01T12:00:00.000Z"),
+		paymentTerm: "Due on receipt",
+		grandTotal: 4_367.76,
+		amountDue: 0,
+		invoiceStatus: null,
+		status: "fulfilled",
+		customer: {
+			id: 9,
+			businessName: "Fulfilled Customer",
+			name: null,
+		},
+		billingAddress: null,
+		salesRep: {
+			name: "Sales Rep",
+			email: "sales@example.com",
+		},
+		payments: [],
+	},
 ];
 
 function context() {
@@ -107,6 +130,19 @@ describe("Sales Finance receivables queries", () => {
 			cursor: null,
 			hasMore: false,
 		});
+	});
+
+	it("excludes legacy fulfilled orders with a stored zero balance and no payment rows", async () => {
+		const result = await getSalesFinanceReceivables(context(), {
+			...filters,
+			cursor: 0,
+			size: 20,
+			sort: ["amountDue", "desc"],
+		});
+
+		expect(result.data.map((receivable) => receivable.orderNo)).not.toContain(
+			"23-0810-351",
+		);
 	});
 
 	it("applies aging filters and summarizes the filtered dataset", async () => {

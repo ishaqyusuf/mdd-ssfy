@@ -58,6 +58,7 @@
 		"inventory:seed-partial-fixture": "bun ./scripts/inventory-validation-seed-partial-fixture.ts",
 		"inventory:seed-received-fixture": "bun ./scripts/inventory-validation-seed-received-fixture.ts",
 		"inventory:seed-stock-fixtures": "bun ./scripts/inventory-validation-seed-stock-fixtures.ts",
+		"driver-platform:fixture": "bun ./scripts/driver-platform-validation-fixture.ts",
 		"inventory:reconciliation-evidence": "bun ./scripts/inventory-reconciliation-evidence.ts",
 		"inventory:reconciliation-repair": "bun ./scripts/inventory-reconciliation-repair.ts",
 		"inventory:fulfillment-repair": "bun ./scripts/inventory-fulfillment-repair.ts",
@@ -67,23 +68,23 @@
 		"knip": "knip",
 		"lint": "turbo lint && manypkg check",
 		"lint:fix": "turbo lint --continue -- --fix --cache --cache-location 'node_modules/.cache/.eslintcache' ",
-    "payment:reconciliation-report": "bun ./scripts/payment-system-reconciliation-report.mjs",
-    "postinstall": "if [ \"$VERCEL\" = \"1\" ]; then bun run --filter @gnd/db prisma:generate:ci; fi",
-    "terminal": "bash ./scripts/open-bun-script-terminal.sh",
+		"payment:reconciliation-report": "bun ./scripts/payment-system-reconciliation-report.mjs",
+		"postinstall": "if [ \"$VERCEL\" = \"1\" ]; then bun run --filter @gnd/db prisma:generate:ci; fi",
+		"terminal": "bash ./scripts/open-bun-script-terminal.sh",
 		"test:new-sales-form-migration": "node ./scripts/new-sales-form-migration-tests.mjs",
 		"test:dealership-sales-form-browser": "node ./scripts/dealership-sales-form-browser-qa.mjs",
 		"test:dealership-recruitment-browser": "bun ../../local-infra-kit/bin/with-env.ts --profile gnd -- bun ./scripts/dealership-recruitment-browser-qa.ts",
 		"typecheck": "turbo typecheck"
 	},
-  "overrides": {
-    "@types/react": "19.2.17",
-    "@types/react-dom": "19.2.3",
-    "@prisma/client": "6.19.2",
-    "lightningcss": "1.30.1",
-    "prisma": "6.19.2",
-    "react": "19.2.7",
-    "react-dom": "19.2.7"
-  },
+	"overrides": {
+		"@types/react": "19.2.17",
+		"@types/react-dom": "19.2.3",
+		"@prisma/client": "6.19.2",
+		"lightningcss": "1.30.1",
+		"prisma": "6.19.2",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
+	},
 	"workspaces": ["apps/*", "packages/*", "tooling/*"],
 	"dependencies": {
 		"@biomejs/biome": "1.9.4",

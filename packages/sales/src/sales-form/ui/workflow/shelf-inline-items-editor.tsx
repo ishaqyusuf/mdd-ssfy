@@ -1,7 +1,6 @@
 /** @jsxImportSource react */
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@gnd/ui/button";
 import {
 	Combobox,
@@ -15,34 +14,39 @@ import {
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
-	createShelfProductDraft,
-	createShelfSectionDraft,
-	type ShelfCategoryRecord,
-	type ShelfProductOption,
-	type ShelfRowDraft,
-	type ShelfSectionDraft,
-} from "./workflow-records";
-import { ShelfCategoryPathInput } from "./shelf-inputs";
+	multiplyMoney,
+	roundMoney,
+} from "../../../payment-system/domain/money";
 import {
+	type CostPriceBreakdownContext,
+	CostPriceBreakdownHover,
+} from "./cost-price-breakdown-hover";
+import { SalesFormQuantityStepper } from "./sales-form-quantity-stepper";
+import {
+	getShelfRowBasePrice,
 	getShelfRowDisplayTotal,
 	getShelfRowDisplayUnitPrice,
-	getShelfRowBasePrice,
 } from "./shelf-inputs";
+import {
+	ShelfProductEditDialog,
+	type ShelfProductEditInput,
+} from "./shelf-product-edit-dialog";
 import {
 	buildShelfProductRowPatch,
 	clearShelfRowProduct,
 	patchShelfRowPrice,
 	patchShelfRowQty,
+	updateShelfProductInSections,
 } from "./shelf-row-products";
 import {
-	CostPriceBreakdownHover,
-	type CostPriceBreakdownContext,
-} from "./cost-price-breakdown-hover";
-import {
-	multiplyMoney,
-	roundMoney,
-} from "../../../payment-system/domain/money";
+	type ShelfCategoryRecord,
+	type ShelfProductOption,
+	type ShelfRowDraft,
+	type ShelfSectionDraft,
+	createShelfSectionDraft,
+} from "./workflow-records";
 
 type InlineRowEntry = {
 	section: ShelfSectionDraft;
@@ -50,40 +54,6 @@ type InlineRowEntry = {
 	row: ShelfRowDraft;
 	rowIndex: number;
 };
-
-function resetSectionRowsForCategory(
-	section: ShelfSectionDraft,
-	nextCategoryIds: number[],
-) {
-	const parentCategoryId = nextCategoryIds[0] ?? null;
-	const categoryId = nextCategoryIds.at(-1) ?? null;
-	return {
-		...section,
-		categoryIds: nextCategoryIds,
-		parentCategoryId,
-		categoryId,
-		rows: (section.rows || []).map((row) => {
-			const cleared = clearShelfRowProduct(row);
-			return {
-				...cleared,
-				categoryId,
-				meta: {
-					...(cleared.meta || {}),
-					categoryIds: nextCategoryIds,
-					shelfParentCategoryId: parentCategoryId,
-				},
-			};
-		}),
-		subTotal: 0,
-	};
-}
-
-export function patchShelfSectionCategories(
-	section: ShelfSectionDraft,
-	nextCategoryIds: number[],
-) {
-	return resetSectionRowsForCategory(section, nextCategoryIds);
-}
 
 export type ShelfInlineItemsEditorProps = {
 	sections: ShelfSectionDraft[];
@@ -100,6 +70,9 @@ export type ShelfInlineItemsEditorProps = {
 	onResolveProductDetails?: (
 		product: ShelfProductOption,
 	) => Promise<ShelfProductOption | null>;
+	onUpdateProduct?: (
+		input: ShelfProductEditInput,
+	) => Promise<ShelfProductOption>;
 };
 
 function roundCurrency(value: unknown) {
@@ -164,7 +137,7 @@ function categoryBreadcrumb(
 		.join(" > ");
 }
 
-function productBreadcrumb(
+export function productBreadcrumb(
 	product: ShelfProductOption | null | undefined,
 	categories: ShelfCategoryRecord[],
 ) {
@@ -299,6 +272,7 @@ function ShelfInlineProductCell(props: {
 	isSearchingProducts?: boolean;
 	isLoadingProduct?: boolean;
 	productLoadError?: string | null;
+	onEditProduct?: (product: ShelfProductOption) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const selectedProduct = props.products.find(
@@ -320,89 +294,124 @@ function ShelfInlineProductCell(props: {
 		if (props.isSearchingProducts) return [];
 		return props.products.slice(0, 50);
 	}, [props.isSearchingProducts, props.products]);
+	const editableProduct =
+		selectedProduct ||
+		(props.row.productId
+			? ({
+					id: props.row.productId,
+					title: props.row.description || "",
+					unitPrice: getShelfRowBasePrice(props.row),
+					categoryId: props.row.categoryId,
+				} satisfies ShelfProductOption)
+			: null);
 
 	return (
 		<div className="space-y-1">
-			<Combobox
-				open={open}
-				onOpenChange={setOpen}
-				value={props.row.productId ? String(props.row.productId) : ""}
-				onValueChange={(next) => {
-					const productId = Number(next || 0);
-					const product =
-						props.products.find(
-							(entry) => Number(entry?.id || 0) === productId,
-						) || null;
-					props.onSelectProduct(product);
-					setOpen(false);
-				}}
-				inputValue={inputValue}
-				onInputValueChange={(value) => {
-					setInputValue(value);
-					props.onProductSearchChange?.(value);
-				}}
-				manualFiltering
-				className="w-full"
-				autoHighlight
-			>
-				<ComboboxAnchor className="relative h-8 px-3">
-					<ComboboxInput
-						className="h-8 min-w-20 pr-7"
-						placeholder="Search product..."
-						onFocus={() => {
-							setOpen(true);
-							if (!inputValue.trim()) props.onProductSearchChange?.("");
-						}}
-					/>
-					{props.row.productId ? (
-						<ComboboxTrigger
-							onClick={(event) => {
-								event.preventDefault();
-								props.onSelectProduct(null);
-								setInputValue("");
-								props.onProductSearchChange?.("");
-								setOpen(true);
-							}}
-							className="absolute right-2 top-2"
-						>
-							<Icons.X className="size-4" />
-						</ComboboxTrigger>
-					) : (
-						<ComboboxTrigger className="absolute right-2 top-2">
-							<Icons.ChevronDown className="size-4" />
-						</ComboboxTrigger>
-					)}
-				</ComboboxAnchor>
-				<ComboboxContent className="relative max-h-[320px] overflow-y-auto overflow-x-hidden">
-					<ComboboxEmpty>
-						{props.isSearchingProducts ? "Searching..." : "No product found"}
-					</ComboboxEmpty>
-					{filteredProducts.map((product) => {
-						const breadcrumbText = productBreadcrumb(product, props.categories);
-						return (
-							<ComboboxItem
-								key={`shelf-inline-product-${product.id}`}
-								value={String(product.id)}
-								outset
+			<div className="flex items-start gap-2">
+				<Combobox
+					open={open}
+					onOpenChange={(nextOpen) => {
+						setOpen(nextOpen);
+						if (nextOpen && !inputValue.trim()) {
+							props.onProductSearchChange?.("");
+						}
+					}}
+					value={props.row.productId ? String(props.row.productId) : ""}
+					onValueChange={(next) => {
+						const productId = Number(next || 0);
+						const product =
+							props.products.find(
+								(entry) => Number(entry?.id || 0) === productId,
+							) || null;
+						props.onSelectProduct(product);
+						setOpen(false);
+					}}
+					inputValue={inputValue}
+					onInputValueChange={(value) => {
+						setInputValue(value);
+						props.onProductSearchChange?.(value);
+					}}
+					manualFiltering
+					className="min-w-0 flex-1"
+					autoHighlight
+					openOnFocus
+				>
+					<ComboboxAnchor className="relative h-8 px-3">
+						<ComboboxInput
+							className="h-8 min-w-20 pr-7"
+							placeholder="Search product..."
+						/>
+						{props.row.productId ? (
+							<ComboboxTrigger
+								onClick={(event) => {
+									event.preventDefault();
+									props.onSelectProduct(null);
+									setInputValue("");
+									props.onProductSearchChange?.("");
+									setOpen(true);
+								}}
+								className="absolute right-2 top-2"
 							>
-								<div className="min-w-0">
-									<p className="truncate text-sm font-medium">
-										{product.title}
-									</p>
-									<div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-										<span>
-											{props.formatMoney(product.unitPrice) || "$0.00"}
-										</span>
-										{breadcrumbText ? <span>{breadcrumbText}</span> : null}
+								<Icons.X className="size-4" />
+							</ComboboxTrigger>
+						) : (
+							<ComboboxTrigger className="absolute right-2 top-2">
+								<Icons.ChevronDown className="size-4" />
+							</ComboboxTrigger>
+						)}
+					</ComboboxAnchor>
+					<ComboboxContent
+						className="relative overflow-y-auto overflow-x-hidden overscroll-contain"
+						style={{ maxHeight: "20rem" }}
+					>
+						<ComboboxEmpty>
+							{props.isSearchingProducts ? "Searching..." : "No product found"}
+						</ComboboxEmpty>
+						{filteredProducts.map((product) => {
+							const breadcrumbText = productBreadcrumb(
+								product,
+								props.categories,
+							);
+							return (
+								<ComboboxItem
+									key={`shelf-inline-product-${product.id}`}
+									value={String(product.id)}
+									outset
+								>
+									<div className="min-w-0">
+										<p className="truncate text-sm font-medium">
+											{product.title}
+										</p>
+										<div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+											<span>
+												{props.formatMoney(product.unitPrice) || "$0.00"}
+											</span>
+											{breadcrumbText ? <span>{breadcrumbText}</span> : null}
+										</div>
 									</div>
-								</div>
-							</ComboboxItem>
-						);
-					})}
-				</ComboboxContent>
-			</Combobox>
+								</ComboboxItem>
+							);
+						})}
+					</ComboboxContent>
+				</Combobox>
+				{props.onEditProduct && editableProduct ? (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="h-8 shrink-0 px-2"
+						onClick={() => props.onEditProduct?.(editableProduct)}
+					>
+						<Icons.Pencil className="mr-1 size-3.5" />
+						Edit
+					</Button>
+				) : null}
+			</div>
 			{breadcrumb ? (
-				<p className="truncate px-1 text-[11px] text-muted-foreground">
+				<p
+					className="truncate px-1 text-[11px] text-muted-foreground"
+					data-shelf-product-category-tree="true"
+				>
 					{breadcrumb}
 				</p>
 			) : null}
@@ -422,6 +431,10 @@ function ShelfInlineProductCell(props: {
 
 export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 	const canEditPricing = props.canEditPricing !== false;
+	const [editingProduct, setEditingProduct] =
+		useState<ShelfProductOption | null>(null);
+	const [isSavingProduct, setIsSavingProduct] = useState(false);
+	const [productEditError, setProductEditError] = useState<string | null>(null);
 	const [loadingProductRowUid, setLoadingProductRowUid] = useState<
 		string | null
 	>(null);
@@ -436,6 +449,34 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 			rowIndex,
 		})),
 	);
+
+	async function saveProductEdit(input: ShelfProductEditInput) {
+		if (!props.onUpdateProduct || !editingProduct) return;
+		setIsSavingProduct(true);
+		setProductEditError(null);
+		try {
+			const updated = await props.onUpdateProduct(input);
+			const mergedProduct = {
+				...editingProduct,
+				...updated,
+			} satisfies ShelfProductOption;
+			props.onSectionsChange(
+				updateShelfProductInSections({
+					sections: props.sections,
+					product: mergedProduct,
+					categories: props.categories,
+					profileCoefficient: props.profileCoefficient,
+				}),
+			);
+			setEditingProduct(null);
+		} catch (error) {
+			setProductEditError(
+				error instanceof Error ? error.message : "Could not update product.",
+			);
+		} finally {
+			setIsSavingProduct(false);
+		}
+	}
 
 	function patchEntry(entry: InlineRowEntry, row: ShelfRowDraft) {
 		props.onSectionsChange(replaceSectionRow(props.sections, entry, row));
@@ -493,51 +534,25 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 				</p>
 				{props.headerSlot}
 			</div>
-			<div className="grid gap-2">
-				{props.sections.map((section, sectionIndex) => (
-					<div
-						key={`shelf-inline-section-category-${section.uid}`}
-						className="grid gap-1 rounded-lg border bg-muted/10 p-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center"
-					>
-						<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-							Section {sectionIndex + 1} category
-						</p>
-						<ShelfCategoryPathInput
-							categories={props.categories}
-							categoryIds={section.categoryIds || []}
-							onChange={(nextCategoryIds) =>
-								props.onSectionsChange(
-									props.sections.map((candidate, candidateIndex) =>
-										candidateIndex === sectionIndex
-											? patchShelfSectionCategories(candidate, nextCategoryIds)
-											: candidate,
-									),
-								)
-							}
-							onClearRequest={() =>
-								props.onSectionsChange(
-									props.sections.map((candidate, candidateIndex) =>
-										candidateIndex === sectionIndex
-											? patchShelfSectionCategories(candidate, [])
-											: candidate,
-									),
-								)
-							}
-						/>
-					</div>
-				))}
-			</div>
 			<div className="overflow-x-auto rounded-lg border">
 				<table className="w-full min-w-[780px] table-fixed text-sm">
 					<colgroup>
+						<col style={{ width: "2.5rem" }} />
 						<col />
 						<col style={{ width: "8rem" }} />
-						<col style={{ width: "6rem" }} />
+						<col style={{ width: "8rem" }} />
 						<col style={{ width: "8rem" }} />
 						<col style={{ width: "5rem" }} />
 					</colgroup>
 					<thead>
 						<tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+							<th
+								scope="col"
+								aria-label="Serial number"
+								className="px-1 py-2 text-center"
+							>
+								SN
+							</th>
 							<th className="px-3 py-2">Product</th>
 							<th className="px-3 py-2 text-right">Price</th>
 							<th className="px-3 py-2 text-right">Qty</th>
@@ -567,6 +582,11 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 									key={`shelf-inline-row-${entry.section.uid}-${entry.row.uid}-${index}`}
 									className="border-t align-top"
 								>
+									<td className="px-1 py-2 text-center">
+										<span className="flex h-8 items-center justify-center text-xs font-semibold text-muted-foreground">
+											{index + 1}
+										</span>
+									</td>
 									<td className="min-w-0 px-3 py-2">
 										<ShelfInlineProductCell
 											row={entry.row}
@@ -581,6 +601,14 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 											isLoadingProduct={loadingProductRowUid === entry.row.uid}
 											productLoadError={
 												productErrorsByRowUid[entry.row.uid] || null
+											}
+											onEditProduct={
+												canEditPricing && props.onUpdateProduct
+													? (product) => {
+															setProductEditError(null);
+															setEditingProduct(product);
+														}
+													: undefined
 											}
 										/>
 									</td>
@@ -619,20 +647,14 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 										)}
 									</td>
 									<td className="px-3 py-2">
-										<Input
-											aria-label={`Shelf line ${index + 1} quantity`}
-											type="number"
+										<SalesFormQuantityStepper
+											label={`Shelf line ${index + 1} quantity`}
 											value={entry.row.qty || 0}
-											onChange={(event) =>
-												patchEntry(
-													entry,
-													patchShelfRowQty(
-														entry.row,
-														Number(event.target.value || 0),
-													),
-												)
+											min={0}
+											onChange={(value) =>
+												patchEntry(entry, patchShelfRowQty(entry.row, value))
 											}
-											className="h-8 text-right"
+											className="w-28"
 										/>
 									</td>
 									<td className="px-3 py-2 text-right text-xs font-bold">
@@ -663,6 +685,18 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 					</tbody>
 				</table>
 			</div>
+			{editingProduct ? (
+				<ShelfProductEditDialog
+					key={Number(editingProduct.id || 0)}
+					product={editingProduct}
+					isSaving={isSavingProduct}
+					error={productEditError}
+					onCancel={() => {
+						if (!isSavingProduct) setEditingProduct(null);
+					}}
+					onSave={(input) => void saveProductEdit(input)}
+				/>
+			) : null}
 			<Button
 				type="button"
 				variant="secondary"

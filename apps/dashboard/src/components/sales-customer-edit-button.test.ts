@@ -126,7 +126,7 @@ describe("sales customer edit button", () => {
 		);
 		const sharedSheetSource = readFileSync(
 			new URL(
-				"../../../../packages/ui/src/components/custom/sheet.tsx",
+				"../../../../packages/ui/src/components/custom/sheet-v2.tsx",
 				import.meta.url,
 			),
 			"utf8",
@@ -138,10 +138,56 @@ describe("sales customer edit button", () => {
 		expect(generalSource.includes("onEditAddress")).toBe(true);
 		expect(generalSource.includes("onEditCustomer")).toBe(true);
 		expect(sheetSource.includes("paneOpened")).toBe(true);
+		expect(
+			sheetSource.includes('from "@gnd/ui/custom/sheet-v2"'),
+		).toBe(true);
 		expect(sharedSheetSource.includes("Back to sales overview")).toBe(true);
-		expect(sharedSheetSource.includes('!secondaryOpened && "hidden"')).toBe(
+		expect(sharedSheetSource.includes("resolveCustomSheetDismissLayer")).toBe(
 			true,
 		);
+		expect(sharedSheetSource.includes("data-sheet-divider")).toBe(true);
+		expect(sharedSheetSource.includes("sm:max-w-none")).toBe(true);
+		expect(sharedSheetSource.includes("custom-sheet-primary-footer")).toBe(
+			true,
+		);
+		expect(sharedSheetSource.includes("sheet.primaryPortalId")).toBe(true);
+		expect(sharedSheetSource.includes("onPointerDownOutside")).toBe(true);
+		expect(sharedSheetSource.includes("event.preventDefault()")).toBe(true);
+		expect(sharedSheetSource.includes('"pointerup"')).toBe(true);
+		expect(sharedSheetSource.includes("onSecondaryExited")).toBe(true);
+		expect(sheetSource.includes('primarySize="2xl"')).toBe(true);
+		expect(sheetSource.includes('secondarySize="2xl"')).toBe(true);
+		expect(sheetSource.includes("onSecondaryExited={handlePaneExited}")).toBe(
+			true,
+		);
+	});
+
+	it("keeps every Sales Overview secondary workflow on the animated shared contract", () => {
+		const paneFiles = [
+			"customer-edit-pane.tsx",
+			"sales-address-pane.tsx",
+			"inbound-create-pane.tsx",
+			"inbound-detail-pane.tsx",
+		];
+
+		for (const file of paneFiles) {
+			const source = readFileSync(
+				new URL(`./sheets/sales-overview-sheet/${file}`, import.meta.url),
+				"utf8",
+			);
+
+			expect(source.includes("<Sheet.SecondaryContent")).toBe(true);
+			expect(source.includes("<Sheet.SecondaryHeader")).toBe(true);
+			expect(source.includes('from "@gnd/ui/custom/sheet-v2"')).toBe(true);
+		}
+
+		const overviewSource = readFileSync(
+			new URL("./sheets/sales-overview-sheet/index.tsx", import.meta.url),
+			"utf8",
+		);
+		expect(overviewSource.includes("onClose={closePane}")).toBe(true);
+		expect(overviewSource.includes("paneTriggerRef")).toBe(true);
+		expect(overviewSource.includes("requestAnimationFrame")).toBe(true);
 	});
 
 	it("uses Save in the address pane and locks fulfilled sales", () => {
@@ -221,7 +267,7 @@ describe("sales customer edit button", () => {
 		);
 	});
 
-	it("keeps Sales Overview footers inside the shared sheet provider", () => {
+	it("keeps Sales Overview primary footers visible beside secondary panes", () => {
 		for (const file of [
 			"general-footer.tsx",
 			"production-tab-footer.tsx",
@@ -231,7 +277,11 @@ describe("sales customer edit button", () => {
 				new URL(`./sheets/sales-overview-sheet/${file}`, import.meta.url),
 				"utf8",
 			);
-			expect(source.includes("<Sheet.Portal hideWhenSecondary>")).toBe(true);
+			expect(source.includes("<Sheet.Portal>")).toBe(true);
+			expect(source.includes("hideWhenSecondary")).toBe(false);
+			expect(source.includes('from "@gnd/ui/custom/sheet-v2"')).toBe(
+				true,
+			);
 			expect(source.includes("../custom-sheet-content")).toBe(false);
 		}
 	});

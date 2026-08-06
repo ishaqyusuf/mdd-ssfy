@@ -184,7 +184,8 @@ function DispatchDetailScreenInner({
 
 	const statusText = dispatch?.status || "queue";
 	const canStart = actions.canStart(dispatch?.status);
-	const canStartReady = canStart && data?.dispatchReadiness?.canDispatch !== false;
+	const canStartReady =
+		canStart && data?.dispatchReadiness?.canDispatch !== false;
 	const canCancel = actions.canCancel(dispatch?.status);
 	const canComplete = actions.canComplete(dispatch?.status);
 	const primaryStatusActionLabel = canStart
@@ -400,9 +401,12 @@ function DispatchDetailScreenInner({
 			return;
 		}
 		if (!canStartReady) {
-			Toast.show(data?.dispatchReadiness?.reason || "Trip cannot be started yet.", {
-				type: "warning",
-			});
+			Toast.show(
+				data?.dispatchReadiness?.reason || "Trip cannot be started yet.",
+				{
+					type: "warning",
+				},
+			);
 			return;
 		}
 		try {
@@ -818,52 +822,74 @@ function DispatchDetailScreenInner({
 				},
 			];
 		});
-
-		const packingLines = packableItems.flatMap((item) => {
-			if (!item.salesItemId) return [];
-			const draft = packingDrafts[item.uid] || {
-				qty: 0,
-				lh: 0,
-				rh: 0,
-			};
-			const hasSingle = itemHasSingleQty(item);
-			const enteredQty = hasSingle
-				? { qty: Math.max(0, asNumber(draft.qty)) }
-				: {
-						lh: Math.max(0, asNumber(draft.lh)),
-						rh: Math.max(0, asNumber(draft.rh)),
-					};
-			const built = buildPackingPayload({
+		const inventoryItemUids = new Set(
+			packableItems
+				.filter((item) => item.executionMode === "inventory")
+				.map((item) => item.uid),
+		);
+		const legacyRequestedItems = requestedItems.filter(
+			(item) => !item.itemUid || !inventoryItemUids.has(item.itemUid),
+		);
+		const inventoryItems = requestedItems
+			.filter(
+				(item) => Boolean(item.itemUid) && inventoryItemUids.has(item.itemUid!),
+			)
+			.map((item) => ({
 				salesItemId: item.salesItemId,
-				enteredQty: enteredQty as any,
-				deliverables: (item.deliverables || []) as any,
-				note,
-			});
-			logStage(flow || null, {
-				eventType: "payload.transformed",
-				stage: "allocation_compare",
-				inputs: {
-					uid: item.uid,
-					title: item.title,
+				qty: Math.max(0, asNumber((item.qty as any)?.qty)),
+				lhQty: Math.max(0, asNumber((item.qty as any)?.lh)),
+				rhQty: Math.max(0, asNumber((item.qty as any)?.rh)),
+			}));
+
+		const packingLines = packableItems
+			.filter((item) => item.executionMode !== "inventory")
+			.flatMap((item) => {
+				if (!item.salesItemId) return [];
+				const draft = packingDrafts[item.uid] || {
+					qty: 0,
+					lh: 0,
+					rh: 0,
+				};
+				const hasSingle = itemHasSingleQty(item);
+				const enteredQty = hasSingle
+					? { qty: Math.max(0, asNumber(draft.qty)) }
+					: {
+							lh: Math.max(0, asNumber(draft.lh)),
+							rh: Math.max(0, asNumber(draft.rh)),
+						};
+				const built = buildPackingPayload({
 					salesItemId: item.salesItemId,
-					mode: hasSingle ? "single" : "handled",
-					enteredQty,
-					deliverables: (item.deliverables || []).map((d: any) => ({
-						submissionId: d.submissionId,
-						qty: d.qty,
-					})),
-				},
-				outputs: {
-					pickedLines: built.packingLines,
-					remainder: built.remainder,
-					insufficient: hasQty(built.remainder),
-				},
+					enteredQty: enteredQty as any,
+					deliverables: (item.deliverables || []) as any,
+					note,
+				});
+				logStage(flow || null, {
+					eventType: "payload.transformed",
+					stage: "allocation_compare",
+					inputs: {
+						uid: item.uid,
+						title: item.title,
+						salesItemId: item.salesItemId,
+						mode: hasSingle ? "single" : "handled",
+						enteredQty,
+						deliverables: (item.deliverables || []).map((d: any) => ({
+							submissionId: d.submissionId,
+							qty: d.qty,
+						})),
+					},
+					outputs: {
+						pickedLines: built.packingLines,
+						remainder: built.remainder,
+						insufficient: hasQty(built.remainder),
+					},
+				});
+				return built.packingLines;
 			});
-			return built.packingLines;
-		});
 		return {
 			packingLines,
 			requestedItems,
+			legacyRequestedItems,
+			inventoryItems,
 		};
 	};
 
@@ -874,16 +900,16 @@ function DispatchDetailScreenInner({
 			const selection = buildPackingSelectionFromDrafts(
 				"Packed via packing slip",
 			);
-			if ((selection.requestedItems || []).length > 0) {
+			if (selection.legacyRequestedItems.length > 0) {
 				await packing.onPackItemsSelection({
 					salesId: order.id,
 					dispatchId: dispatch.id,
 					dispatchStatus: (dispatch.status as any) || "queue",
 					replaceExisting: true,
-					requestedItems: selection.requestedItems as any,
+					requestedItems: selection.legacyRequestedItems as any,
 					packingLines: selection.packingLines,
 				});
-			} else {
+			} else if (selection.inventoryItems.length === 0) {
 				await packing.onClearPackings({
 					salesId: order.id,
 					dispatchId: dispatch.id,
@@ -948,16 +974,24 @@ function DispatchDetailScreenInner({
 					requestedItemsCount: selection.requestedItems.length,
 				},
 			});
-			if ((selection.requestedItems || []).length > 0) {
+			if (
+				selection.inventoryItems.length > 0 &&
+				entryMode !== "warehouse-packing"
+			) {
+				throw new Error(
+					"Inventory-backed items must be confirmed from Warehouse Packing.",
+				);
+			}
+			if (selection.legacyRequestedItems.length > 0) {
 				await packing.onPackItemsSelection({
 					salesId: order.id,
 					dispatchId: dispatch.id,
 					dispatchStatus: (dispatch.status as any) || "queue",
 					replaceExisting: true,
-					requestedItems: selection.requestedItems as any,
+					requestedItems: selection.legacyRequestedItems as any,
 					packingLines: selection.packingLines,
 				});
-			} else {
+			} else if (selection.inventoryItems.length === 0) {
 				await packing.onClearPackings({
 					salesId: order.id,
 					dispatchId: dispatch.id,
@@ -967,6 +1001,7 @@ function DispatchDetailScreenInner({
 				await actions.onPrepareInventory({
 					salesId: order.id,
 					dispatchId: dispatch.id,
+					items: selection.inventoryItems,
 				});
 			}
 			await overview.refetch();
@@ -1187,8 +1222,7 @@ function DispatchDetailScreenInner({
 						}
 						defaultReceivedBy={customerName || ""}
 						isSubmitting={
-							actions.submitDispatch.isPending ||
-							packing.taskTrigger.isPending
+							actions.submitDispatch.isPending || packing.taskTrigger.isPending
 						}
 						onClose={() => ui.setCompleteSheetOpen(false)}
 						onSubmit={async (input) => {
@@ -1220,7 +1254,7 @@ function DispatchDetailScreenInner({
 								Toast.show(
 									"Completion paused. Your proof is still here—tap Complete Dispatch to retry.",
 									{
-									type: "error",
+										type: "error",
 									},
 								);
 							}

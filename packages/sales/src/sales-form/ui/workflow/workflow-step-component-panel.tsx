@@ -55,7 +55,6 @@ export type WorkflowStepComponentPanelProps<
 	search: string;
 	noticeSlot?: ReactNode;
 	customComponentSlot?: ReactNode;
-	includeCustomComponents: boolean;
 	isDealershipMode: boolean;
 	mouldingSelection?: WorkflowMouldingSelectionState;
 	isMouldingSelectionStep?: boolean;
@@ -72,7 +71,6 @@ export type WorkflowStepComponentPanelProps<
 	onOpenDoorSizeVariant?: () => void;
 	onEnableCustomComponent?: () => void;
 	onRefresh: () => void;
-	onToggleCustomComponents: () => void;
 	onProceedMultiSelect: () => void;
 	onEditDetails?: (component: TComponent) => void;
 	onEditVisibility?: (components: TComponent[]) => void;
@@ -400,10 +398,6 @@ export function WorkflowStepComponentPanel<
 										</Menu.Item>
 									) : null}
 									<Menu.Item onClick={props.onRefresh}>Refresh</Menu.Item>
-									<Menu.Item onClick={props.onToggleCustomComponents}>
-										Enable Custom:{" "}
-										{props.includeCustomComponents ? "On" : "Off"}
-									</Menu.Item>
 								</>
 							) : null
 						}

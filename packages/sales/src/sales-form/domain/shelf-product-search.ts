@@ -147,11 +147,24 @@ function extractSearchMeasurements(
 	residual = residual.replace(
 		mixedFractionPrefix,
 		(_match, whole, numerator) => {
-			measurements.push(`fraction-prefix:${whole}-${numerator}`);
+			measurements.push(`partial-measurement:${whole}-${numerator}`);
 			if (includeTitleAnchors) {
 				titleAnchorGroups.push([
 					`${whole}-${numerator}`,
 					`${whole} ${numerator}/`,
+					`${whole}-${numerator}x`,
+					`${whole}-${numerator} x`,
+					`${whole} ${numerator}x`,
+					`${whole} ${numerator} x`,
+					`x${whole}-${numerator}`,
+					`x ${whole}-${numerator}`,
+					`x${whole} ${numerator}`,
+					`x ${whole} ${numerator}`,
+					`${whole}'${numerator}"`,
+					`${whole}' ${numerator}"`,
+					`${whole}’${numerator}”`,
+					`${whole}’ ${numerator}”`,
+					`${whole}’${numerator}″`,
 				]);
 			}
 			return " ";
@@ -234,14 +247,26 @@ export function compileShelfProductSearchIndex<
 	return { entries, byId };
 }
 
+function dimensionSides(measurement: string) {
+	if (!measurement.startsWith("dimension:")) return [];
+	const dimension = measurement.slice("dimension:".length);
+	const separatorIndex = dimension.indexOf("x");
+	if (separatorIndex < 0) return [];
+	return [
+		dimension.slice(0, separatorIndex),
+		dimension.slice(separatorIndex + 1),
+	].filter(Boolean);
+}
+
 function measurementMatches(productMeasurements: string[], query: string) {
-	if (query.startsWith("fraction-prefix:")) {
-		const prefix = query.slice("fraction-prefix:".length);
+	if (query.startsWith("partial-measurement:")) {
+		const prefix = query.slice("partial-measurement:".length);
 		return productMeasurements.some(
 			(measurement) =>
 				measurement === query ||
 				measurement === `fraction:${prefix}` ||
-				measurement.startsWith(`fraction:${prefix}/`),
+				measurement.startsWith(`fraction:${prefix}/`) ||
+				dimensionSides(measurement).includes(prefix),
 		);
 	}
 	return productMeasurements.includes(query);
@@ -274,7 +299,7 @@ function scoreEntry<TProduct extends ShelfProductSearchIndexItem>(
 	}
 
 	let penalty = query.measurements.filter((measurement) =>
-		measurement.startsWith("fraction-prefix:"),
+		measurement.startsWith("partial-measurement:"),
 	).length;
 	let categoryMatches = 0;
 	let containsMatches = 0;

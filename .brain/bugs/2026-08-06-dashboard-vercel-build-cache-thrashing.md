@@ -25,6 +25,9 @@ and the DB prerequisite build.
 
 - Configure the dashboard Vercel project to install only the
   `@gnd/dashboard` workspace dependency graph with a frozen lockfile.
+- Declare `bcrypt-ts` in each workspace that imports it (`@gnd/api`,
+  `@gnd/auth`, and `@gnd/utils`) so the filtered install includes the runtime
+  package instead of relying on the root workspace declaration.
 - Load the development file sink only after development guards pass and mark
   its dynamic reads as intentionally excluded from Turbopack tracing.
 - Treat the root Vercel postinstall as the single Prisma generation step and
@@ -38,14 +41,20 @@ Inspect two consecutive preview or production deployment logs after changes to
 the workspace graph. The first build must produce a cache below the platform
 limit, and the second must restore it. Treat Turbopack whole-project tracing
 warnings as release blockers for production imports, and keep development-only
-filesystem adapters behind conditional imports.
+filesystem adapters behind conditional imports. Any workspace that directly
+imports a runtime package must declare that package itself; a root-only
+declaration is not available reliably to filtered workspace installs.
 
 ## Related Files
 
 - `apps/dashboard/vercel.json`
 - `apps/dashboard/next.config.mjs`
 - `apps/api/src/index.ts`
+- `apps/api/package.json`
 - `apps/api/src/trpc/routers/dispatch.route.ts`
+- `packages/auth/package.json`
 - `packages/dev-logger/src/file-sink.ts`
 - `packages/db/package.json`
+- `packages/utils/package.json`
+- `bun.lock`
 - `.brain/features/sentry-observability.md`

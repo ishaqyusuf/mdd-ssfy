@@ -172,6 +172,7 @@ export function CustomComponentCombobox({
 	options,
 	selectedOption,
 	disabled,
+	showPrice = true,
 	onTitleChange,
 	onPriceChange,
 	onSelect,
@@ -182,6 +183,7 @@ export function CustomComponentCombobox({
 	options: CustomComponentOption[];
 	selectedOption?: CustomComponentOption | null;
 	disabled?: boolean;
+	showPrice?: boolean;
 	onTitleChange: (value: string) => void;
 	onPriceChange: (value: number | null) => void;
 	onSelect?: (option: CustomComponentOption | null) => void;
@@ -294,19 +296,21 @@ export function CustomComponentCombobox({
 					}}
 				/>
 			</div>
-			<div className="grid justify-items-end gap-2">
-				<Label className="text-right">Cost Price</Label>
-				<NumberInput
-					prefix="$"
-					value={price ?? undefined}
-					placeholder="$0.00"
-					className="h-10 w-40 rounded-md text-right"
-					disabled={disabled}
-					onValueChange={(values) => {
-						onPriceChange(values.floatValue ?? null);
-					}}
-				/>
-			</div>
+			{showPrice ? (
+				<div className="grid justify-items-end gap-2">
+					<Label className="text-right">Cost Price</Label>
+					<NumberInput
+						prefix="$"
+						value={price ?? undefined}
+						placeholder="$0.00"
+						className="h-10 w-40 rounded-md text-right"
+						disabled={disabled}
+						onValueChange={(values) => {
+							onPriceChange(values.floatValue ?? null);
+						}}
+					/>
+				</div>
+			) : null}
 		</div>
 	);
 }

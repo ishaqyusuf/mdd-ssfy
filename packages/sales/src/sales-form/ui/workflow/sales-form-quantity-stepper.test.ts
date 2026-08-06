@@ -20,6 +20,7 @@ describe("sales form quantity stepper", () => {
 			"./house-package-tool-panel.tsx",
 			"./moulding-line-items-editor.tsx",
 			"./service-line-items-editor.tsx",
+			"./shelf-inline-items-editor.tsx",
 		]) {
 			const source = readFileSync(new URL(file, import.meta.url), "utf8");
 			expect(source).toContain("SalesFormQuantityStepper");

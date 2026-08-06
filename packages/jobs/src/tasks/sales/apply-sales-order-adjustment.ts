@@ -1,5 +1,10 @@
 import { db } from "@gnd/db";
 import {
+	type SalesAdjustmentInboundDisposition,
+	SalesAdjustmentInboundSnapshotConflictError,
+	reconcileSalesAdjustmentInboundDemands,
+} from "@gnd/inventory";
+import {
 	resolveSalesAdjustmentApplyClaim,
 	resolveSalesAdjustmentStaleReason,
 } from "@gnd/sales/adjustment-system";
@@ -8,12 +13,18 @@ import {
 	mirrorLegacyRefundSalesPayment,
 	projectLegacyOrderPayments,
 } from "@gnd/sales/payment-system";
+import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
 import { schemaTask, tasks } from "@trigger.dev/sdk/v3";
 import {
 	type ApplySalesOrderAdjustmentPayload,
 	type TaskName,
 	applySalesOrderAdjustmentSchema,
 } from "../../schema";
+import {
+	claimExpiredSalesAdjustmentApply,
+	getCommittedSalesAdjustmentCheckpoint,
+	resolveSalesAdjustmentApplyRecovery,
+} from "./sales-adjustment-apply-recovery";
 
 function record(value: unknown): Record<string, unknown> {
 	return value && typeof value === "object" && !Array.isArray(value)
@@ -21,10 +32,158 @@ function record(value: unknown): Record<string, unknown> {
 		: {};
 }
 
+function adjustmentCompletionStatus(proposal: Record<string, unknown>) {
+	return proposal.requiresOperationalAcknowledgement === true
+		? ("APPLIED_WITH_REVIEW" as const)
+		: ("APPLIED" as const);
+}
+
+function inboundDemandSnapshot(value: unknown) {
+	return Array.isArray(value)
+		? value.map(record).flatMap((row) => {
+				const id = Number(row.id);
+				return Number.isInteger(id)
+					? [
+							{
+								id,
+								qty: Number(row.qty || 0),
+								qtyReceived: Number(row.qtyReceived || 0),
+								status: String(row.status || "pending"),
+								inboundShipmentItemId:
+									row.inboundShipmentItemId == null
+										? null
+										: Number(row.inboundShipmentItemId),
+								inboundId: row.inboundId == null ? null : Number(row.inboundId),
+								inboundStatus:
+									row.inboundStatus == null ? null : String(row.inboundStatus),
+								inboundShipmentItemQty: Number(row.inboundShipmentItemQty || 0),
+								inboundShipmentItemReceivedQty: Number(
+									row.inboundShipmentItemReceivedQty || 0,
+								),
+							},
+						]
+					: [];
+			})
+		: [];
+}
+
+type InboundReconciliationResult = Awaited<
+	ReturnType<typeof reconcileSalesAdjustmentInboundDemands>
+>;
+
+function storedInboundReconciliation(
+	value: unknown,
+): InboundReconciliationResult | null {
+	const stored = record(value);
+	if (!Array.isArray(stored.inboundEffects)) return null;
+	return {
+		adjustedDemandCount: Number(stored.adjustedDemandCount || 0),
+		affectedInboundIds: Array.isArray(stored.affectedInboundIds)
+			? stored.affectedInboundIds.map(Number).filter(Number.isInteger)
+			: [],
+		cancelledOpenQty: Number(stored.cancelledOpenQty || 0),
+		keptWarehouseQty: Number(stored.keptWarehouseQty || 0),
+		inboundEffects: stored.inboundEffects.map(record).flatMap((effect) => {
+			const inboundId = Number(effect.inboundId);
+			return Number.isInteger(inboundId)
+				? [
+						{
+							inboundId,
+							cancelledOpenQty: Number(effect.cancelledOpenQty || 0),
+							keptWarehouseQty: Number(effect.keptWarehouseQty || 0),
+						},
+					]
+				: [];
+		}),
+	};
+}
+
+async function recordInboundReconciliationActivities(input: {
+	inboundEffects: Array<{
+		inboundId: number;
+		cancelledOpenQty: number;
+		keptWarehouseQty: number;
+	}>;
+	adjustmentId: string;
+	orderId: string;
+	actorId: number;
+	disposition: SalesAdjustmentInboundDisposition;
+}) {
+	if (!input.inboundEffects.length) return;
+	let contact = await db.notePadContacts.findFirst({
+		where: { profileId: input.actorId, role: "employee", deletedAt: null },
+		select: { id: true },
+	});
+	if (!contact) {
+		const actor = await db.users.findFirstOrThrow({
+			where: { id: input.actorId, deletedAt: null },
+			select: { id: true, name: true },
+		});
+		contact = await db.notePadContacts.create({
+			data: { profileId: actor.id, role: "employee", name: actor.name },
+			select: { id: true },
+		});
+	}
+
+	for (const effect of input.inboundEffects) {
+		const existing = await db.notePad.findFirst({
+			where: {
+				deletedAt: null,
+				AND: [
+					{
+						tags: {
+							some: {
+								tagName: "adjustmentId",
+								tagValue: input.adjustmentId,
+							},
+						},
+					},
+					{
+						tags: {
+							some: {
+								tagName: "inboundId",
+								tagValue: String(effect.inboundId),
+							},
+						},
+					},
+				],
+			},
+			select: { id: true },
+		});
+		if (existing) continue;
+		await db.notePad.create({
+			data: {
+				subject:
+					input.disposition === "CANCEL_OPEN_INBOUND"
+						? "Inbound quantity cancelled by sale change"
+						: "Inbound quantity retained for warehouse",
+				headline: `Sale ${input.orderId} adjustment reconciled inbound #${effect.inboundId}.`,
+				note:
+					input.disposition === "CANCEL_OPEN_INBOUND"
+						? `${effect.cancelledOpenQty} open inbound quantity was removed. Received evidence was preserved.`
+						: `${effect.keptWarehouseQty} inbound quantity was retained for general warehouse stock.`,
+				senderContactId: contact.id,
+				tags: {
+					createMany: {
+						data: [
+							{ tagName: "channel", tagValue: "inventory_inbound_activity" },
+							{ tagName: "inboundId", tagValue: String(effect.inboundId) },
+							{ tagName: "salesNo", tagValue: input.orderId },
+							{ tagName: "type", tagValue: "system" },
+							{ tagName: "status", tagValue: "public" },
+							{ tagName: "adjustmentId", tagValue: input.adjustmentId },
+						],
+					},
+				},
+			},
+		});
+	}
+}
+
 export async function runApplySalesOrderAdjustment(
 	payload: ApplySalesOrderAdjustmentPayload,
 ) {
-	const claim = await db.salesOrderAdjustment.updateMany({
+	let claim = await db.salesOrderAdjustment.updateMany({
 		where: { id: payload.adjustmentId, status: "APPROVED" },
 		data: {
 			status: "APPLYING",
@@ -36,23 +195,48 @@ export async function runApplySalesOrderAdjustment(
 	if (!claim.count) {
 		const existing = await db.salesOrderAdjustment.findUnique({
 			where: { id: payload.adjustmentId },
-			select: { status: true },
+			select: { status: true, updatedAt: true },
 		});
-		const existingStatus = existing?.status;
-		const claimResult = resolveSalesAdjustmentApplyClaim({
-			claimCount: claim.count,
-			currentStatus: existingStatus,
-		});
-		if (claimResult === "ALREADY_APPLIED") {
+		const recovery = resolveSalesAdjustmentApplyRecovery(existing ?? {});
+		if (
+			recovery.action === "takeover" &&
+			recovery.recoverAt &&
+			existing?.updatedAt
+		) {
+			claim = await claimExpiredSalesAdjustmentApply(db.salesOrderAdjustment, {
+				adjustmentId: payload.adjustmentId,
+				observedUpdatedAt: existing.updatedAt,
+			});
+		}
+		if (recovery.action === "schedule" && recovery.recoverAt && !claim.count) {
+			await tasks.trigger("apply-sales-order-adjustment", payload, {
+				delay: recovery.recoverAt,
+			});
 			return {
 				adjustmentId: payload.adjustmentId,
-				status: existingStatus || "APPLIED",
-				idempotent: true,
+				status: "APPLYING" as const,
+				recoveryScheduled: true,
 			};
 		}
-		throw new Error(
-			`Adjustment ${payload.adjustmentId} is not ready to apply.`,
-		);
+		if (claim.count) {
+			// Continue below with an exclusive recovery lease.
+		} else {
+			const existingStatus = existing?.status;
+			const claimResult = resolveSalesAdjustmentApplyClaim({
+				claimCount: claim.count,
+				currentStatus: existingStatus,
+			});
+			if (claimResult === "ALREADY_APPLIED") {
+				return {
+					adjustmentId: payload.adjustmentId,
+					status: existingStatus || "APPLIED",
+					idempotent: true,
+				};
+			}
+			throw new Error(
+				`Adjustment ${payload.adjustmentId} is not ready to apply.`,
+			);
+		}
 	}
 
 	try {
@@ -108,6 +292,50 @@ export async function runApplySalesOrderAdjustment(
 			}
 			const currentMeta = record(adjustment.order.meta);
 			const currentForm = record(currentMeta.newSalesForm);
+			const approvedProposal = record(adjustment.proposedSnapshot);
+			const committedCheckpoint = getCommittedSalesAdjustmentCheckpoint(
+				adjustment.commitmentSnapshot,
+			);
+			const status = adjustmentCompletionStatus(approvedProposal);
+			const disposition = approvedProposal.inboundDisposition as
+				| SalesAdjustmentInboundDisposition
+				| undefined;
+			const reconcileInbound = () =>
+				disposition
+					? reconcileSalesAdjustmentInboundDemands(tx, {
+							adjustmentId: adjustment.id,
+							disposition,
+							lines: adjustment.lines.map((line) => {
+								const commitment = record(line.commitmentSnapshot);
+								return {
+									beforeQty: Number(line.beforeQty),
+									proposedQty: Number(line.proposedQty),
+									inboundDemands: inboundDemandSnapshot(
+										commitment.inboundDemands,
+									),
+								};
+							}),
+						})
+					: Promise.resolve(null);
+			if (committedCheckpoint) {
+				const inboundReconciliation = storedInboundReconciliation(
+					committedCheckpoint.inboundReconciliation,
+				);
+				if (disposition && !inboundReconciliation) {
+					throw new Error(
+						"Committed sales adjustment is missing its inbound reconciliation checkpoint.",
+					);
+				}
+				return {
+					stale: false,
+					adjustment,
+					status,
+					disposition,
+					inboundReconciliation,
+					walletTransactionId: adjustment.walletTransactionId,
+					refundSalesPaymentId: adjustment.refundSalesPaymentId,
+				};
+			}
 			const liveVersion =
 				typeof currentForm.version === "string" && currentForm.version
 					? currentForm.version
@@ -117,7 +345,10 @@ export async function runApplySalesOrderAdjustment(
 				grandTotal: adjustment.order.grandTotal,
 				payments: adjustment.order.payments,
 			}).totalAllocated;
-			const quantityFloorChanged = adjustment.lines.some((line) => {
+			const approvedCommitmentLines = adjustment.lines.map((line) =>
+				record(line.commitmentSnapshot),
+			);
+			const quantityFloorChanged = adjustment.lines.some((line, index) => {
 				if (!line.salesOrderItemId) return false;
 				const liveItem = adjustment.order.items.find(
 					(item) => item.id === line.salesOrderItemId,
@@ -132,10 +363,10 @@ export async function runApplySalesOrderAdjustment(
 						(row) => String(row.status || "").toLowerCase() !== "cancelled",
 					)
 					.reduce((total, row) => total + Number(row.qty || 0), 0);
-				return (
-					Number(line.proposedQty) <
-					Math.max(completedProductionQty, fulfilledQty)
+				const approvedMinimum = Number(
+					approvedCommitmentLines[index]?.minimumAllowedQty || 0,
 				);
+				return Math.max(completedProductionQty, fulfilledQty) > approvedMinimum;
 			});
 			const staleReason = resolveSalesAdjustmentStaleReason({
 				sourceVersion: adjustment.sourceVersion,
@@ -157,6 +388,8 @@ export async function runApplySalesOrderAdjustment(
 				return {
 					stale: true,
 					adjustment,
+					disposition,
+					inboundReconciliation: null,
 					walletTransactionId: null,
 					refundSalesPaymentId: null,
 				};
@@ -197,6 +430,7 @@ export async function runApplySalesOrderAdjustment(
 				});
 			}
 
+			const inboundReconciliation = await reconcileInbound();
 			const nextVersion = `${Date.now()}-adjustment-${adjustment.id.slice(-8)}`;
 			const nextMeta = {
 				...currentMeta,
@@ -207,6 +441,7 @@ export async function runApplySalesOrderAdjustment(
 					updatedAt: new Date().toISOString(),
 					autosave: false,
 					approvedAdjustmentId: adjustment.id,
+					approvedAdjustmentInboundReconciliation: inboundReconciliation,
 				},
 			};
 			await tx.salesOrders.update({
@@ -287,42 +522,26 @@ export async function runApplySalesOrderAdjustment(
 				refundSalesPaymentId = refundPayment.id;
 			}
 
-			const commitments = record(adjustment.commitmentSnapshot);
-			const needsOperationalReview = [
-				commitments.allocatedQty,
-				commitments.inboundQty,
-				commitments.productionQty,
-				commitments.fulfilledQty,
-			].some((value) => Number(value || 0) > 0);
-			const status = needsOperationalReview ? "APPLIED_WITH_REVIEW" : "APPLIED";
 			await tx.salesOrderAdjustment.update({
 				where: { id: adjustment.id },
 				data: {
-					status,
-					appliedAt: new Date(),
 					walletTransactionId,
 					refundSalesPaymentId,
+					commitmentSnapshot: {
+						...record(adjustment.commitmentSnapshot),
+						applyCheckpoint: {
+							stage: "COMMERCIAL_COMMITTED",
+							inboundReconciliation,
+						},
+					},
 				},
 			});
-			if (adjustment.order.salesRepId) {
-				await tx.notifications.create({
-					data: {
-						type: "sales-order-adjustment",
-						fromUserId: adjustment.requestedById,
-						userId: adjustment.order.salesRepId,
-						message: needsOperationalReview
-							? `Sale ${adjustment.order.orderId} was adjusted and needs operational review.`
-							: `Sale ${adjustment.order.orderId} was adjusted with sales-representative approval.`,
-						alert: true,
-						link: `/sales/${adjustment.order.slug}`,
-						meta: { adjustmentId: adjustment.id },
-					},
-				});
-			}
 			return {
 				stale: false,
 				adjustment,
 				status,
+				disposition,
+				inboundReconciliation,
 				walletTransactionId,
 				refundSalesPaymentId,
 			};
@@ -330,12 +549,57 @@ export async function runApplySalesOrderAdjustment(
 
 		if (result.stale)
 			return { adjustmentId: payload.adjustmentId, status: "STALE" as const };
-		await Promise.all([
-			tasks.trigger("sync-sales-inventory-line-items", {
-				salesOrderId: result.adjustment.salesOrderId,
-				source: "adjustment",
-				triggeredByUserId: result.adjustment.requestedById,
-			}),
+
+		await runSalesInventoryProjectionSync(db, {
+			salesOrderId: result.adjustment.salesOrderId,
+			source: "adjustment",
+			triggeredByUserId: result.adjustment.requestedById,
+		});
+		if (result.disposition && result.inboundReconciliation) {
+			await recordInboundReconciliationActivities({
+				inboundEffects: result.inboundReconciliation.inboundEffects,
+				adjustmentId: result.adjustment.id,
+				orderId: result.adjustment.order.orderId,
+				actorId: result.adjustment.requestedById,
+				disposition: result.disposition,
+			});
+		}
+		await db.salesOrderAdjustment.update({
+			where: { id: result.adjustment.id },
+			data: {
+				status: result.status,
+				appliedAt: new Date(),
+				walletTransactionId: result.walletTransactionId,
+				refundSalesPaymentId: result.refundSalesPaymentId,
+			},
+		});
+		if (result.adjustment.order.salesRepId) {
+			await db.notifications
+				.create({
+					data: {
+						type: "sales-order-adjustment",
+						fromUserId: result.adjustment.requestedById,
+						userId: result.adjustment.order.salesRepId,
+						message:
+							result.status === "APPLIED_WITH_REVIEW"
+								? `Sale ${result.adjustment.order.orderId} was adjusted and needs operational review.`
+								: `Sale ${result.adjustment.order.orderId} was adjusted with sales-representative approval.`,
+						alert: true,
+						link: `/sales/${result.adjustment.order.slug}`,
+						meta: {
+							adjustmentId: result.adjustment.id,
+							inboundReconciliation: result.inboundReconciliation,
+						},
+					},
+				})
+				.catch((error) => {
+					console.warn(
+						"Failed to notify sales representative after adjustment",
+						error,
+					);
+				});
+		}
+		await Promise.allSettled([
 			tasks.trigger("create-sales-history", {
 				salesNo: result.adjustment.order.orderId,
 				salesType: "order",
@@ -361,11 +625,18 @@ export async function runApplySalesOrderAdjustment(
 			refundSalesPaymentId: result.refundSalesPaymentId,
 		};
 	} catch (error) {
+		const snapshotConflict =
+			error instanceof SalesAdjustmentInboundSnapshotConflictError;
 		await db.salesOrderAdjustment.updateMany({
-			where: { id: payload.adjustmentId, status: "APPLYING" },
+			where: {
+				id: payload.adjustmentId,
+				status: "APPLYING",
+			},
 			data: {
-				status: "FAILED",
-				failureCode: "APPLY_FAILED",
+				status: snapshotConflict ? "STALE" : "APPROVED",
+				failureCode: snapshotConflict
+					? "INBOUND_SNAPSHOT_CHANGED"
+					: "APPLY_RETRY_REQUIRED",
 				failureMessage: error instanceof Error ? error.message : String(error),
 				failedAt: new Date(),
 			},

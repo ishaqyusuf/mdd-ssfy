@@ -12,11 +12,15 @@ import {
 describe("assertDispatchInventoryReadyToStart", () => {
 	test("blocks an inventory-backed trip until every required component is picked", async () => {
 		const db = {
+			orderItemDelivery: {
+				findMany: async () => [{ orderItemId: 44, qty: 2, lhQty: 0, rhQty: 0 }],
+			},
 			lineItemComponents: {
 				findMany: async () => [
 					{
 						id: 101,
 						qty: 2,
+						parent: { qty: 2, salesItemId: 44 },
 						stockAllocations: [{ qty: 1, status: "picked" }],
 					},
 				],
@@ -33,7 +37,9 @@ describe("assertDispatchInventoryReadyToStart", () => {
 
 	test("allows legacy trips and fully picked inventory trips", async () => {
 		const legacyDb = {
+			orderItemDelivery: { findMany: async () => [] },
 			lineItemComponents: { findMany: async () => [] },
+			lineItem: { findFirst: async () => null },
 		};
 		await expect(
 			assertDispatchInventoryReadyToStart(legacyDb as any, {
@@ -43,11 +49,15 @@ describe("assertDispatchInventoryReadyToStart", () => {
 		).resolves.toMatchObject({ executionMode: "legacy" });
 
 		const inventoryDb = {
+			orderItemDelivery: {
+				findMany: async () => [{ orderItemId: 44, qty: 2, lhQty: 0, rhQty: 0 }],
+			},
 			lineItemComponents: {
 				findMany: async () => [
 					{
 						id: 101,
 						qty: 2,
+						parent: { qty: 2, salesItemId: 44 },
 						stockAllocations: [{ qty: 2, status: "picked" }],
 					},
 				],
@@ -60,9 +70,76 @@ describe("assertDispatchInventoryReadyToStart", () => {
 			}),
 		).resolves.toMatchObject({ executionMode: "inventory", componentCount: 1 });
 	});
+
+	test("blocks an inventory-backed trip whose exact item scope has not been created", async () => {
+		const db = {
+			orderItemDelivery: { findMany: async () => [] },
+			lineItemComponents: { findMany: async () => [] },
+			lineItem: { findFirst: async () => ({ id: 9 }) },
+		};
+
+		await expect(
+			assertDispatchInventoryReadyToStart(db as any, {
+				orderDeliveryId: 77,
+				salesOrderId: 500,
+			}),
+		).rejects.toThrow("INVENTORY_DISPATCH_SCOPE_REQUIRED");
+	});
+
+	test("requires only this trip's proportional component quantity", async () => {
+		const db = {
+			orderItemDelivery: {
+				findMany: async () => [{ orderItemId: 44, qty: 1, lhQty: 0, rhQty: 0 }],
+			},
+			lineItemComponents: {
+				findMany: async () => [
+					{
+						id: 101,
+						qty: 8,
+						parent: { qty: 4, salesItemId: 44 },
+						stockAllocations: [{ qty: 2, status: "picked" }],
+					},
+				],
+			},
+		};
+
+		await expect(
+			assertDispatchInventoryReadyToStart(db as any, {
+				orderDeliveryId: 77,
+				salesOrderId: 500,
+			}),
+		).resolves.toMatchObject({ executionMode: "inventory", componentCount: 1 });
+	});
 });
 
 describe("consumeDispatchBoundInventory", () => {
+	test("does not downgrade an inventory-backed trip with no bound stock to legacy", async () => {
+		const tx = {
+			stockAllocation: { findMany: async () => [] },
+			orderItemDelivery: {
+				findMany: async () => [{ orderItemId: 44, qty: 1, lhQty: 0, rhQty: 0 }],
+			},
+			lineItemComponents: {
+				findMany: async () => [
+					{
+						id: 101,
+						qty: 1,
+						parent: { qty: 1, salesItemId: 44 },
+						stockAllocations: [],
+					},
+				],
+			},
+			lineItem: { findFirst: async () => ({ id: 9 }) },
+		};
+
+		await expect(
+			consumeDispatchBoundInventory(tx as any, {
+				orderDeliveryId: 77,
+				salesOrderId: 500,
+			}),
+		).rejects.toThrow("INVENTORY_DISPATCH_NOT_READY");
+	});
+
 	test("consumes only picked allocations bound to the completing dispatch", async () => {
 		const updates: any[] = [];
 		const tx = {
@@ -153,7 +230,47 @@ describe("releaseDispatchBoundInventory", () => {
 
 		await expect(
 			releaseDispatchBoundInventory(tx as any, { orderDeliveryId: 77 }),
-		).rejects.toThrow("INVENTORY_DISPATCH_PICKED_RELEASE_REQUIRES_CONFIRMATION");
+		).rejects.toThrow(
+			"INVENTORY_DISPATCH_PICKED_RELEASE_REQUIRES_CONFIRMATION",
+		);
+	});
+
+	test("releases picked inventory after a manager confirms its physical return", async () => {
+		const updates: any[] = [];
+		const tx = {
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 7,
+						qty: 1,
+						status: "picked",
+						orderDeliveryId: 77,
+						lineItemComponentId: 101,
+					},
+				],
+				updateMany: async (payload: any) => {
+					updates.push(payload);
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 101,
+					qty: 1,
+					inboundDemands: [],
+					stockAllocations: [],
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+		};
+
+		await expect(
+			releaseDispatchBoundInventory(tx as any, {
+				orderDeliveryId: 77,
+				allowPickedRelease: true,
+			}),
+		).resolves.toMatchObject({ releasedAllocationIds: [7] });
+		expect(updates[0]).toMatchObject({ data: { status: "released" } });
 	});
 });
 
@@ -356,6 +473,70 @@ describe("transitionInventoryDispatchAllocations", () => {
 			where: { id: 7, orderDeliveryId: null },
 			data: { status: "reserved", orderDeliveryId: 77 },
 		});
+	});
+
+	test("binds a legacy unbound reserved allocation without changing its status", async () => {
+		const updates: any[] = [];
+		const tx = {
+			orderDelivery: {
+				findFirst: async () => ({ id: 77, salesOrderId: 500, status: "queue" }),
+			},
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 7,
+						qty: 1,
+						status: "reserved",
+						orderDeliveryId: null,
+						lineItemComponentId: 101,
+						inventoryStockId: 9,
+						inventoryVariantId: 44,
+						notes: "Legacy reservation",
+						lineItemComponent: { parent: { sale: {} } },
+					},
+				],
+				updateMany: async (payload: any) => {
+					updates.push(payload);
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 101,
+					qty: 1,
+					inboundDemands: [],
+					stockAllocations: [{ qty: 1 }],
+				}),
+				updateMany: async () => ({ count: 1 }),
+			},
+		};
+		const db = {
+			$transaction: async (callback: (tx: any) => Promise<unknown>) =>
+				callback(tx),
+		};
+
+		const result = await transitionInventoryDispatchAllocations(
+			db as any,
+			"assign",
+			{
+				salesOrderId: 500,
+				orderDeliveryId: 77,
+				allocationSelections: [{ allocationId: 7, qty: 1 }],
+			},
+		);
+
+		expect(updates[0]).toMatchObject({
+			where: { id: 7, status: "reserved", orderDeliveryId: null },
+			data: { status: "reserved", orderDeliveryId: 77 },
+		});
+		expect(result.transitions).toEqual([
+			{
+				allocationId: 7,
+				lineItemComponentId: 101,
+				fromStatus: "reserved",
+				toStatus: "reserved",
+			},
+		]);
 	});
 
 	test("rejects a cross-dispatch allocation before picking", async () => {

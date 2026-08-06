@@ -53,13 +53,21 @@ export interface LegacyPaymentRecord {
 	status?: string | null;
 }
 
+const LEGACY_SUCCESSFUL_PAYMENT_STATUSES = new Set([
+	"success",
+	"completed",
+	"paid",
+]);
+
 export function buildLegacyOrderPaymentProjection(input: {
 	salesOrderId?: number | null;
 	grandTotal: number | null | undefined;
 	payments?: LegacyPaymentRecord[] | null;
 }) {
-	const successfulPayments = (input.payments || []).filter(
-		(payment) => String(payment.status || "").toLowerCase() === "success",
+	const successfulPayments = (input.payments || []).filter((payment) =>
+		LEGACY_SUCCESSFUL_PAYMENT_STATUSES.has(
+			String(payment.status || "").toLowerCase(),
+		),
 	);
 
 	return buildOrderPaymentProjection({

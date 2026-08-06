@@ -1,7 +1,6 @@
 "use client";
 
 import {
-	CustomComponentCombobox,
 	buildCustomComponentOptions,
 	customComponentPriceChanged,
 	findCustomComponentOption,
@@ -124,7 +123,6 @@ import {
 	useItemWorkflowController,
 	useMouldingWorkflow,
 } from "@gnd/sales/sales-form";
-import { Alert, AlertTitle } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { Menu } from "@gnd/ui/custom/menu";
@@ -165,7 +163,11 @@ import type { NewSalesFormLineItem } from "../schema";
 import { useNewSalesFormStore } from "../store";
 import { useWorkflowComponentAdmin } from "./use-workflow-component-admin";
 import { createWwwWorkflowAdminCapabilities } from "./workflow-capabilities";
-import { hasVisibleWorkflowComponentPrice } from "./workflow-pricing-visibility";
+import { WorkflowCustomComponentPanel } from "./workflow-custom-component-panel";
+import {
+	hasVisibleWorkflowComponentPrice,
+	supportsWorkflowComponentPrice,
+} from "./workflow-pricing-visibility";
 
 type WorkflowStep = WorkflowStepRecord;
 type WorkflowComponent = WorkflowComponentRecord;
@@ -272,7 +274,6 @@ export function ItemWorkflowPanel() {
 		id: number;
 		name: string;
 	} | null>(null);
-	const [includeCustomComponents, setIncludeCustomComponents] = useState(false);
 	const [shelfUiVersion, setShelfUiVersion] = useState<"v1" | "v2">("v2");
 	const [shelfProductSearch, setShelfProductSearch] = useState("");
 	const [doorSizeVariantModal, setDoorSizeVariantModal] = useState<{
@@ -542,19 +543,21 @@ export function ItemWorkflowPanel() {
 			steps: activeLineSteps,
 			activeStep: activeStep || null,
 			overrides: activeStepComponentOverrides,
-			includeCustomComponents,
+			includeCustomComponents: false,
 			profileCoefficient: activeProfileCoefficient,
 		});
 	}, [
 		stepComponentsQuery.data,
 		activeStep,
 		activeLineSteps,
-		includeCustomComponents,
 		activeProfileCoefficient,
 		activeStepComponentOverrides,
 	]);
 	const showActiveStepComponentPrices =
 		hasVisibleWorkflowComponentPrice(visibleComponents);
+	const activeStepSupportsComponentPrice = supportsWorkflowComponentPrice(
+		stepComponentsQuery.data || [],
+	);
 	const customComponentOptions = useMemo(
 		() => buildCustomComponentOptions(stepComponentsQuery.data || []),
 		[stepComponentsQuery.data],
@@ -580,13 +583,12 @@ export function ItemWorkflowPanel() {
 			steps: activeLineSteps,
 			activeStep: activeDoorStep || null,
 			overrides: activeDoorStepComponentOverrides,
-			includeCustomComponents,
+			includeCustomComponents: false,
 			profileCoefficient: activeProfileCoefficient,
 		});
 	}, [
 		doorStepComponentsQuery.data,
 		activeLineSteps,
-		includeCustomComponents,
 		activeProfileCoefficient,
 		activeDoorStepComponentOverrides,
 		activeDoorStep,
@@ -629,7 +631,7 @@ export function ItemWorkflowPanel() {
 			.filter((component: StepComponentLike) =>
 				isComponentEnabledForView(
 					component,
-					includeCustomComponents,
+					false,
 					activeSelectedComponentUids,
 				),
 			)
@@ -682,7 +684,6 @@ export function ItemWorkflowPanel() {
 		rootComponentsQuery.data,
 		activeLineSteps,
 		activeSelectedComponentUids,
-		includeCustomComponents,
 		activeProfileCoefficient,
 		activeStepComponentOverrides,
 		activeStep,
@@ -696,6 +697,7 @@ export function ItemWorkflowPanel() {
 		saveMouldingSelectionWithQty,
 		setMouldingSelectionQty,
 		closeMouldingSelectionPopover,
+		shouldRetainMouldingComponentGrid,
 	} = useMouldingWorkflow({
 		activeLine,
 		activeStep,
@@ -703,6 +705,11 @@ export function ItemWorkflowPanel() {
 		normalizeTitle,
 		visibleComponents,
 		updateLineItem,
+		setActiveStep: (lineUid, stepIndex) =>
+			setActiveStepByLine((prev) => ({
+				...prev,
+				[lineUid]: stepIndex,
+			})),
 	});
 	const activeDoorSupplier = getDoorSupplierMeta(activeDoorStep || activeStep);
 	const componentSearchResetKey = `${activeLine?.uid || ""}:${activeStep?.stepId || ""}:${activeStep?.step?.title || ""}`;
@@ -920,7 +927,9 @@ export function ItemWorkflowPanel() {
 			uid: selectedOption?.uid || undefined,
 			stepId,
 			title,
-			price: customComponentDialog.price,
+			price: activeStepSupportsComponentPrice
+				? customComponentDialog.price
+				: undefined,
 			pricingId: selectedOption?.pricingId,
 			dependenciesUid: selectedOption?.dependenciesUid,
 			img: CUSTOM_IMG_ID,
@@ -978,68 +987,46 @@ export function ItemWorkflowPanel() {
 		}
 
 		return (
-			<Alert className="rounded-md bg-background p-3 text-foreground shadow-sm">
-				<AlertTitle className="mb-3">Custom Component</AlertTitle>
-				<CustomComponentCombobox
-					title={customComponentDialog.title}
-					price={customComponentDialog.price}
-					options={customComponentOptions}
-					selectedOption={selectedCustomComponentOption}
-					disabled={
-						upsertCustomComponentMutation.isPending ||
-						archiveCustomComponentMutation.isPending
-					}
-					onTitleChange={(title) =>
-						setCustomComponentDialog((prev) => ({
-							...prev,
-							title,
-							selectedOption:
-								prev.selectedOption &&
-								prev.selectedOption.title.trim().toLowerCase() ===
-									title.trim().toLowerCase()
-									? prev.selectedOption
-									: null,
-						}))
-					}
-					onPriceChange={(price) =>
-						setCustomComponentDialog((prev) => ({
-							...prev,
-							price,
-						}))
-					}
-					onSelect={(option) =>
-						setCustomComponentDialog((prev) => ({
-							...prev,
-							selectedOption: option,
-						}))
-					}
-					onDeleteOption={(option) => {
-						void archiveCustomComponent(option);
-					}}
-				/>
-				<div className="mt-3 flex flex-wrap justify-end gap-2">
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						onClick={resetCustomComponentDialog}
-					>
-						Cancel
-					</Button>
-					<Button
-						type="button"
-						size="sm"
-						disabled={
-							upsertCustomComponentMutation.isPending ||
-							archiveCustomComponentMutation.isPending ||
-							!customComponentDialog.title.trim()
-						}
-						onClick={() => void submitCustomComponentDialog()}
-					>
-						Proceed
-					</Button>
-				</div>
-			</Alert>
+			<WorkflowCustomComponentPanel
+				title={customComponentDialog.title}
+				price={customComponentDialog.price}
+				options={customComponentOptions}
+				selectedOption={selectedCustomComponentOption}
+				showPrice={activeStepSupportsComponentPrice}
+				disabled={
+					upsertCustomComponentMutation.isPending ||
+					archiveCustomComponentMutation.isPending
+				}
+				onTitleChange={(title) =>
+					setCustomComponentDialog((prev) => ({
+						...prev,
+						title,
+						selectedOption:
+							prev.selectedOption &&
+							prev.selectedOption.title.trim().toLowerCase() ===
+								title.trim().toLowerCase()
+								? prev.selectedOption
+								: null,
+					}))
+				}
+				onPriceChange={(price) =>
+					setCustomComponentDialog((prev) => ({
+						...prev,
+						price,
+					}))
+				}
+				onSelect={(option) =>
+					setCustomComponentDialog((prev) => ({
+						...prev,
+						selectedOption: option,
+					}))
+				}
+				onDeleteOption={(option) => {
+					void archiveCustomComponent(option);
+				}}
+				onCancel={resetCustomComponentDialog}
+				onProceed={() => void submitCustomComponentDialog()}
+			/>
 		);
 	}
 	function proceedMultiSelectStep(
@@ -1520,7 +1507,13 @@ export function ItemWorkflowPanel() {
 		activeIndex: number,
 		activeItemStep: WorkflowStep,
 	) {
-		const stepFamily = getItemWorkflowStepFamily(line, activeItemStep);
+		const stepFamily = getItemWorkflowStepFamily(line, activeItemStep, {
+			retainMouldingComponentGrid:
+				shouldRetainMouldingComponentGrid(
+					String(line.uid || ""),
+					activeIndex,
+				),
+		});
 		const isHptStep = isHousePackageToolStepTitle(activeItemStep?.step?.title);
 		const isRedirectDisabled = isRedirectDisabledStep(activeItemStep);
 		const selectedUids = new Set(
@@ -1587,21 +1580,14 @@ export function ItemWorkflowPanel() {
 							maxWidthClassName="max-w-2xl"
 							onSearchChange={setComponentSearch}
 							menuSlot={
-								<>
-									<Menu.Item
-										onClick={() => {
-											void stepComponentsQuery.refetch();
-											void rootComponentsQuery.refetch();
-										}}
-									>
-										Refresh
-									</Menu.Item>
-									<Menu.Item
-										onClick={() => setIncludeCustomComponents((prev) => !prev)}
-									>
-										Enable Custom: {includeCustomComponents ? "On" : "Off"}
-									</Menu.Item>
-								</>
+								<Menu.Item
+									onClick={() => {
+										void stepComponentsQuery.refetch();
+										void rootComponentsQuery.refetch();
+									}}
+								>
+									Refresh
+								</Menu.Item>
 							}
 						/>
 					}
@@ -2473,7 +2459,6 @@ export function ItemWorkflowPanel() {
 								filteredComponents={filteredVisibleComponents}
 								selectedUids={selectedUids}
 								search={componentSearch}
-								includeCustomComponents={includeCustomComponents}
 								isDealershipMode={false}
 								mouldingSelection={{
 									open: mouldingSelectionPopover.open,
@@ -2567,9 +2552,6 @@ export function ItemWorkflowPanel() {
 									void stepComponentsQuery.refetch();
 									void rootComponentsQuery.refetch();
 								}}
-								onToggleCustomComponents={() =>
-									setIncludeCustomComponents((prev) => !prev)
-								}
 								onProceedMultiSelect={() =>
 									proceedMultiSelectStep(line, activeIndex)
 								}

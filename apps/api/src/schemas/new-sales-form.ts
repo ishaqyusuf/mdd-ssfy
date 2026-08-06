@@ -174,6 +174,11 @@ export type PreviewNewSalesFormAdjustmentSchema = z.infer<
 export const createNewSalesFormAdjustmentSchema =
 	previewNewSalesFormAdjustmentSchema.extend({
 		reason: z.string().trim().min(3).max(2_000),
+		inboundDisposition: z
+			.enum(["CANCEL_OPEN_INBOUND", "KEEP_IN_WAREHOUSE"])
+			.optional()
+			.nullable(),
+		acknowledgeOperationalImpact: z.boolean().default(false),
 		approvalChannel: z.enum(["EMAIL", "SMS", "MANUAL"]).default("MANUAL"),
 		approvalRecipient: z.string().trim().max(255).optional().nullable(),
 	});

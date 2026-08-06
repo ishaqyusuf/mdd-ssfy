@@ -1,6 +1,6 @@
 # Phase 0: Immediate Driver Recovery and Security
 
-Status: Proposed
+Status: Implemented in source; final Expo Go device gate remains open
 Dependency: None
 Target: Client-visible correction without waiting for the inventory cutover
 

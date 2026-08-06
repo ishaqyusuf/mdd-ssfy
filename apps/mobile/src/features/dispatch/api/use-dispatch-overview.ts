@@ -1,5 +1,5 @@
 import { _trpc } from "@/components/static-trpc";
-import { RouterInputs } from "@api/trpc/routers/_app";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { useQuery } from "@tanstack/react-query";
 
 type DispatchOverviewInput = RouterInputs["dispatch"]["manifest"];

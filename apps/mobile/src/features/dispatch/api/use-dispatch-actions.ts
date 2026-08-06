@@ -12,6 +12,14 @@ type DispatchMeta = {
 	salesId: number;
 	dispatchId: number;
 };
+type PrepareInventoryInput = DispatchMeta & {
+	items?: Array<{
+		salesItemId: number;
+		qty?: number;
+		lhQty?: number;
+		rhQty?: number;
+	}>;
+};
 type SubmitDispatchInput = DispatchMeta & {
 	requestId: string;
 	receivedBy?: string | null;
@@ -161,10 +169,11 @@ export function useDispatchActions() {
 				newStatus: input.newStatus as DispatchStatus,
 			});
 		},
-		onPrepareInventory(input: DispatchMeta) {
+		onPrepareInventory(input: PrepareInventoryInput) {
 			return prepareInventoryMutation.mutateAsync({
 				salesOrderId: input.salesId,
 				orderDeliveryId: input.dispatchId,
+				items: input.items,
 			});
 		},
 		canStart(status?: DispatchStatus | null) {

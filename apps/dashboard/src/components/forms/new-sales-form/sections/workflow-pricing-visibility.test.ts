@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { hasVisibleWorkflowComponentPrice } from "./workflow-pricing-visibility";
+import {
+	hasVisibleWorkflowComponentPrice,
+	supportsWorkflowComponentPrice,
+} from "./workflow-pricing-visibility";
 
 describe("workflow component price visibility", () => {
 	it("hides prices when every component in the step is unpriced", () => {
@@ -22,6 +25,16 @@ describe("workflow component price visibility", () => {
 		expect(
 			hasVisibleWorkflowComponentPrice([{ basePrice: 8, salesPrice: 0 }]),
 		).toBe(true);
+	});
+
+	it("keeps custom price entry available for zero-priced pricing steps", () => {
+		expect(
+			supportsWorkflowComponentPrice([{ basePrice: 0, salesPrice: 0 }]),
+		).toBe(true);
+		expect(supportsWorkflowComponentPrice([{ pricing: { default: {} } }])).toBe(
+			true,
+		);
+		expect(supportsWorkflowComponentPrice([{}])).toBe(false);
 	});
 
 	it("applies the all-step price check to root and routed component grids", () => {

@@ -32,8 +32,13 @@ Receivables are projected from non-deleted Sales Orders of type `order` with a
 positive invoice total. The package projection in
 `packages/sales/src/payment-system/finance/receivables.ts` calculates the open
 balance from successful sales-payment applications via the canonical legacy
-order-payment projection; stored `amountDue` is retained as reconciliation
-evidence rather than silently replacing calculated truth.
+order-payment projection. Legacy `success`, `completed`, and `paid` statuses all
+count as successful applications. Stored `amountDue` remains reconciliation
+evidence except for one bounded compatibility case: a positive-total legacy
+order with no payment rows and an explicit stored zero balance remains paid
+instead of having Finance manufacture a new receivable. Partial or positive
+stored balances without payment evidence continue through canonical
+reconciliation rather than silently replacing calculated truth.
 
 - Customer resolution is `businessName`, personal `name`, then billing name.
 - `paymentDueDate` is the aging date. An invoice without one remains explicit
@@ -310,6 +315,8 @@ require `editOrderPayment`.
 - Receivables has six responsive aging cards, the standard search/due-date/
   aging filter bar, a virtualized persistent table, semantic calendar icons,
   and URL-addressable invoice detail.
+- The receivable detail sheet shows `Open sales overview` only to users with
+  `editOrders`; the link uses the receivable's canonical order number.
 - The receivables Reports menu generates Receivables Aging or Receivables by
   Customer `.xlsx` workbooks from the active search, due-date, and aging
   filters.

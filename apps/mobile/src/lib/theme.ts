@@ -46,17 +46,17 @@ export const THEME = {
   },
 
   dark: {
-    background: "rgb(15, 23, 42)",
-    foreground: "rgb(226, 232, 240)",
+    background: "rgb(10, 10, 10)",
+    foreground: "rgb(245, 245, 245)",
 
-    card: "rgb(30, 41, 59)",
-    cardForeground: "rgb(226, 232, 240)",
+    card: "rgb(24, 24, 24)",
+    cardForeground: "rgb(245, 245, 245)",
 
-    popover: "rgb(30, 41, 59)",
-    popoverForeground: "rgb(226, 232, 240)",
+    popover: "rgb(32, 32, 32)",
+    popoverForeground: "rgb(245, 245, 245)",
 
-    primary: "rgb(96, 165, 250)",
-    primaryForeground: "rgb(15, 23, 42)",
+    primary: "rgb(34, 197, 94)",
+    primaryForeground: "rgb(5, 10, 6)",
 
     success: "rgb(22, 163, 74)",
     successForeground: "rgb(236, 253, 245)",
@@ -64,21 +64,21 @@ export const THEME = {
     warn: "rgb(245, 158, 11)",
     warnForeground: "rgb(255, 251, 235)",
 
-    secondary: "rgb(51, 65, 85)",
-    secondaryForeground: "rgb(226, 232, 240)",
+    secondary: "rgb(39, 39, 42)",
+    secondaryForeground: "rgb(245, 245, 245)",
 
-    muted: "rgb(30, 41, 59)",
-    mutedForeground: "rgb(148, 163, 184)",
+    muted: "rgb(31, 31, 31)",
+    mutedForeground: "rgb(176, 176, 176)",
 
-    accent: "rgb(30, 58, 138)",
-    accentForeground: "rgb(219, 234, 254)",
+    accent: "rgb(26, 79, 44)",
+    accentForeground: "rgb(220, 252, 231)",
 
     destructive: "rgb(220, 38, 38)",
     destructiveForeground: "rgb(254, 242, 242)",
 
-    border: "rgb(51, 65, 85)",
-    input: "rgb(71, 85, 105)",
-    ring: "rgb(125, 211, 252)",
+    border: "rgb(42, 42, 42)",
+    input: "rgb(38, 38, 38)",
+    ring: "rgb(74, 222, 128)",
 
     radius: "0.65rem",
 

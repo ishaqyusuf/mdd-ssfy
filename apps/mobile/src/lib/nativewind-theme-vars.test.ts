@@ -30,4 +30,18 @@ describe("NativeWind theme variables", () => {
 		expect(variables["--border"]).toBe(THEME.dark.border);
 		expect(variables["--chart-5"]).toBe(THEME.dark.chart5);
 	});
+
+	test("keeps the dark identity aligned with the Al-Ghurobaa palette", () => {
+		expect(THEME.dark).toMatchObject({
+			background: "rgb(10, 10, 10)",
+			card: "rgb(24, 24, 24)",
+			popover: "rgb(32, 32, 32)",
+			primary: "rgb(34, 197, 94)",
+			primaryForeground: "rgb(5, 10, 6)",
+			muted: "rgb(31, 31, 31)",
+			mutedForeground: "rgb(176, 176, 176)",
+			border: "rgb(42, 42, 42)",
+			ring: "rgb(74, 222, 128)",
+		});
+	});
 });

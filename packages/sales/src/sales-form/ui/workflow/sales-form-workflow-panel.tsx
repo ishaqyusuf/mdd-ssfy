@@ -172,7 +172,6 @@ export function SalesFormWorkflowPanel<
 		record.lineItems[0]?.uid ? String(record.lineItems[0].uid) : null,
 	);
 	const [componentSearch, setComponentSearch] = useState("");
-	const [includeCustomComponents, setIncludeCustomComponents] = useState(false);
 	const [shelfUiVersion, setShelfUiVersion] = useState<"v1" | "v2">("v2");
 	const [shelfProductSearch, setShelfProductSearch] = useState("");
 	const deferredShelfProductSearch = useDeferredValue(shelfProductSearch);
@@ -453,7 +452,7 @@ export function SalesFormWorkflowPanel<
 			.filter((component) =>
 				isComponentEnabledForView(
 					component,
-					includeCustomComponents,
+					false,
 					activeSelectedComponentUids,
 				),
 			)
@@ -485,7 +484,6 @@ export function SalesFormWorkflowPanel<
 		activeStep,
 		activeStepComponentOverrides,
 		configuredRootComponentUids,
-		includeCustomComponents,
 		rootComponentsQuery.data,
 	]);
 	const visibleComponents = useMemo(() => {
@@ -493,7 +491,7 @@ export function SalesFormWorkflowPanel<
 			.filter((component) =>
 				isComponentEnabledForView(
 					component,
-					includeCustomComponents,
+					false,
 					activeSelectedComponentUids,
 				),
 			)
@@ -524,7 +522,6 @@ export function SalesFormWorkflowPanel<
 		activeSelectedComponentUids,
 		activeStep,
 		activeStepComponentOverrides,
-		includeCustomComponents,
 		stepComponentsQuery.data,
 	]);
 	const visibleDoorComponents = useMemo(() => {
@@ -532,7 +529,7 @@ export function SalesFormWorkflowPanel<
 			.filter((component) =>
 				isComponentEnabledForView(
 					component,
-					includeCustomComponents,
+					false,
 					activeSelectedComponentUids,
 				),
 			)
@@ -564,7 +561,6 @@ export function SalesFormWorkflowPanel<
 		activeSelectedComponentUids,
 		activeStep,
 		doorComponentsQuery.data,
-		includeCustomComponents,
 	]);
 	const {
 		mouldingSelectionPopover,
@@ -573,6 +569,7 @@ export function SalesFormWorkflowPanel<
 		saveMouldingSelectionWithQty,
 		setMouldingSelectionQty,
 		closeMouldingSelectionPopover,
+		shouldRetainMouldingComponentGrid,
 	} = useMouldingWorkflow({
 		activeLine,
 		activeStep,
@@ -581,6 +578,7 @@ export function SalesFormWorkflowPanel<
 		visibleComponents,
 		updateLineItem: (uid, patch) =>
 			actions.updateLineItem(uid, patch as Partial<TLine>),
+		setActiveStep,
 	});
 
 	function setActiveItem(uid: string | null) {
@@ -1048,16 +1046,7 @@ export function SalesFormWorkflowPanel<
 								onSearchChange={setComponentSearch}
 								menuSlot={
 									!workflowCapabilities.isDealershipMode ? (
-										<>
-											<Menu.Item onClick={refreshRootData}>Refresh</Menu.Item>
-											<Menu.Item
-												onClick={() =>
-													setIncludeCustomComponents((prev) => !prev)
-												}
-											>
-												Enable Custom: {includeCustomComponents ? "On" : "Off"}
-											</Menu.Item>
-										</>
+										<Menu.Item onClick={refreshRootData}>Refresh</Menu.Item>
 									) : null
 								}
 							/>
@@ -1075,7 +1064,13 @@ export function SalesFormWorkflowPanel<
 			);
 		}
 
-		const stepFamily = getItemWorkflowStepFamily(line, activeItemStep);
+		const stepFamily = getItemWorkflowStepFamily(line, activeItemStep, {
+			retainMouldingComponentGrid:
+				shouldRetainMouldingComponentGrid(
+					String(line.uid || ""),
+					activeIndex,
+				),
+		});
 		const isDoorStep = isDoorStepTitle(activeItemStep?.step?.title);
 		const selectedUids = new Set(
 			getSelectedProdUids(activeItemStep).map((uid) => String(uid || "")),
@@ -1153,7 +1148,6 @@ export function SalesFormWorkflowPanel<
 						/>
 					) : null
 				}
-				includeCustomComponents={includeCustomComponents}
 				isDealershipMode={workflowCapabilities.isDealershipMode}
 				mouldingSelection={{
 					open: mouldingSelectionPopover.open,
@@ -1235,9 +1229,6 @@ export function SalesFormWorkflowPanel<
 						: undefined
 				}
 				onRefresh={() => void stepComponentsQuery.refetch?.()}
-				onToggleCustomComponents={() =>
-					setIncludeCustomComponents((prev) => !prev)
-				}
 				onEnableCustomComponent={
 					props.slots?.componentActions?.onEnableCustomComponent
 						? () =>
@@ -1534,6 +1525,7 @@ export function SalesFormWorkflowPanel<
 										shelfProductSearchQuery?.isFetching,
 								)}
 								onResolveProductDetails={resolveShelfProductDetails}
+								onUpdateProduct={dataSource.updateShelfProduct}
 								onSectionsChange={updateShelfSections}
 							/>
 						);

@@ -346,7 +346,11 @@ export async function cancelDispatchTask(
 	internal?: {
 		releaseDispatchInventory?: (
 			tx: TransactionClient,
-			input: { orderDeliveryId: number; note?: string | null },
+			input: {
+				orderDeliveryId: number;
+				note?: string | null;
+				allowPickedRelease?: boolean;
+			},
 		) => Promise<unknown>;
 	},
 ) {
@@ -365,6 +369,8 @@ export async function cancelDispatchTask(
 				await internal.releaseDispatchInventory(tx as TransactionClient, {
 					orderDeliveryId,
 					note: "Released because the dispatch was cancelled.",
+					allowPickedRelease:
+						data.cancelDispatch?.confirmPickedInventoryReturned === true,
 				});
 			}
 		}

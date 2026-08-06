@@ -1,34 +1,22 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import "react-native-reanimated";
 import "@/styles/global.css";
-import {
-  AuthProvider,
-  useAuthContext,
-  useCreateAuthContext,
-} from "@/hooks/use-auth";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useAuthContext } from "@/hooks/use-auth";
 
 import { AppAutoUpdateModal } from "@/components/app-auto-update-modal";
+import { AppRootProviders } from "@/components/app-root-providers";
 import { StaticRouter } from "@/components/static-router";
 import { StaticTrpc } from "@/components/static-trpc";
-import { ToastProviderWithViewport } from "@/components/ui/toast";
 import { applyThemeOverride, useColorScheme } from "@/hooks/use-color";
-import { nativewindThemeVars } from "@/lib/nativewind-theme-vars";
-import { Sentry } from "@/lib/sentry";
+import { wrapRootLayoutWithSentry } from "@/lib/sentry";
 import { NAV_THEME } from "@/lib/theme";
 import { getThemeOverride } from "@/lib/theme-preference";
 import { TRPCReactProvider } from "@/trpc/client";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { StatusBar } from "expo-status-bar";
-import { VariableContextProvider } from "nativewind";
-import { View } from "react-native";
-import FlashMessage from "react-native-flash-message";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import Toast from "react-native-toast-message";
 
 export {
@@ -195,33 +183,11 @@ const InitialLayout = () => {
   );
 };
 function RootLayoutNav() {
-  const { colorScheme } = useColorScheme();
-  const navigationTheme =
-    colorScheme === "dark" ? NAV_THEME.dark : NAV_THEME.light;
-  const themeVariables = useMemo(
-    () => nativewindThemeVars(colorScheme),
-    [colorScheme],
-  );
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <KeyboardProvider>
-        <VariableContextProvider value={themeVariables}>
-          <View className="flex-1 bg-background">
-            <ThemeProvider value={navigationTheme}>
-              <AuthProvider value={useCreateAuthContext()}>
-                <ToastProviderWithViewport>
-                  <BottomSheetModalProvider>
-                    <FlashMessage position="top" />
-                    <InitialLayout />
-                  </BottomSheetModalProvider>
-                </ToastProviderWithViewport>
-              </AuthProvider>
-            </ThemeProvider>
-          </View>
-        </VariableContextProvider>
-      </KeyboardProvider>
-    </GestureHandlerRootView>
+    <AppRootProviders>
+      <InitialLayout />
+    </AppRootProviders>
   );
 }
 
-export default Sentry.wrap(RootLayout);
+export default wrapRootLayoutWithSentry(RootLayout);

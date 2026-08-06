@@ -4,6 +4,7 @@ import {
 	getSelectedProdUids,
 	buildConfiguredRouteSteps,
 	compactStepValue,
+	isCustomSalesFormComponent,
 	mergeConfiguredSeriesWithExisting,
 	normalizeSalesFormTitle as normalizeTitle,
 	readSalesFormObjectMetadata,
@@ -51,12 +52,64 @@ function readSelectedComponents(step?: WorkflowStepRecord | null) {
 		: [];
 }
 
+function clearWorkflowStepSelection(
+	steps: WorkflowStepRecord[],
+	currentStepIndex: number,
+) {
+	const nextSteps = [...steps];
+	const current = nextSteps[currentStepIndex];
+	if (!current) return nextSteps;
+	const currentMeta = readStepMeta(current);
+	nextSteps[currentStepIndex] = {
+		...current,
+		componentId: null,
+		prodUid: "",
+		value: "",
+		price: 0,
+		basePrice: 0,
+		meta: {
+			...currentMeta,
+			img: null,
+			redirectUid: null,
+			sectionOverride: null,
+			custom: false,
+			selectedProdUids: [],
+			selectedComponents: [],
+		},
+	};
+	return nextSteps;
+}
+
 export function saveWorkflowSelectedComponent(
 	input: SaveWorkflowSelectedComponentInput,
 ): WorkflowSelectionActionResult | null {
 	const nextSteps = [...input.steps];
 	const current = nextSteps[input.currentStepIndex];
 	if (!current) return null;
+	const incomingUid = String(input.component?.uid || "");
+	const selectedSnapshot = readSelectedComponents(current).find(
+		(component) => String(component?.uid || "") === incomingUid,
+	);
+	const selectedCustom =
+		isCustomSalesFormComponent(input.component) ||
+		isCustomSalesFormComponent(selectedSnapshot) ||
+		(readStepMeta(current).custom === true &&
+			getSelectedProdUids(current).includes(incomingUid));
+	if (
+		input.selectedOverride !== true &&
+		selectedCustom &&
+		getSelectedProdUids(current).includes(incomingUid)
+	) {
+		return {
+			linePatch: {
+				formSteps: clearWorkflowStepSelection(
+					nextSteps,
+					input.currentStepIndex,
+				).slice(0, input.currentStepIndex + 1),
+			},
+			activeStepIndex: input.currentStepIndex,
+		};
+	}
 
 	if (isMultiSelectStepTitle(current?.step?.title)) {
 		const multiMutation = applyMultiSelectStepMutation({

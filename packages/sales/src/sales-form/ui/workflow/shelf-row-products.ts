@@ -8,6 +8,7 @@ import type {
 	ShelfCategoryRecord,
 	ShelfProductOption,
 	ShelfRowDraft,
+	ShelfSectionDraft,
 } from "./workflow-records";
 
 function roundCurrency(value: unknown) {
@@ -193,4 +194,36 @@ export function buildShelfProductRowPatch(input: {
 			unitPrice,
 		},
 	};
+}
+
+export function updateShelfProductInSections(input: {
+	sections: ShelfSectionDraft[];
+	product: ShelfProductOption;
+	categories?: ShelfCategoryRecord[];
+	profileCoefficient: number;
+}) {
+	const productId = Number(input.product.id || 0);
+	if (!productId) return input.sections;
+
+	return input.sections.map((section) => {
+		let changed = false;
+		const rows = (section.rows || []).map((row) => {
+			if (Number(row.productId || 0) !== productId) return row;
+			changed = true;
+			return buildShelfProductRowPatch({
+				row,
+				product: input.product,
+				categories: input.categories,
+				profileCoefficient: input.profileCoefficient,
+			});
+		});
+		if (!changed) return section;
+		return {
+			...section,
+			rows,
+			subTotal: roundCurrency(
+				rows.reduce((total, row) => total + Number(row.totalPrice || 0), 0),
+			),
+		};
+	});
 }

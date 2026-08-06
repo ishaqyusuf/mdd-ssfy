@@ -1,6 +1,6 @@
 import { _trpc } from "@/components/static-trpc";
 import { useAuthContext } from "@/hooks/use-auth";
-import { RouterInputs } from "@api/trpc/routers/_app";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 

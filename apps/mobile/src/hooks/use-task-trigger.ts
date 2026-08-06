@@ -1,5 +1,5 @@
 import { _trpc } from "@/components/static-trpc";
-import { RouterInputs, RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterInputs, RouterOutputs } from "@api/trpc/routers/_app";
 import {
   useMutation,
   useQuery,

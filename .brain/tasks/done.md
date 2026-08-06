@@ -1,5 +1,13 @@
 # Done
 
+- [x] 2026-08-06 — Standardize the shared custom sheet on the Midday frame and
+  motion scale; add independent additive pane widths, a 1px divider,
+  deterministic narrow fallback, delayed animated cleanup, pane-owned primary
+  footer, focus restoration, and secondary-first outside dismissal without
+  click-through. Sales Overview now uses `2xl + 2xl`; all current secondary
+  flows passed focused tests and authenticated in-app browser QA. See ADR-051
+  and `.brain/features/sales-overview.md`.
+
 - [x] 2026-08-06 — Implement safe, auditable, single-order layer cancellation
   for Sales production and fulfillment: lazy preview/reason dialog, typed
   blockers, serializable stale-revision checks, idempotent ledger, automatic
@@ -1084,5 +1092,18 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Status: Done
 - Plan Status: Done
 - Plan File: .brain/plans/2026-08-06-feature-new-sales-form-shelf-product-deep-search.md
+- Created Date: 2026-08-06
+- Completed Date: 2026-08-06
+
+### New Sales Form Custom Component Parity
+- Priority: Medium
+- Description: Implemented entry-only legacy-style Custom selection on eligible
+  workflow steps, with hidden catalog cards, existing-value autocomplete,
+  standard/custom exclusivity, canonical deselection, applicable pricing, and
+  guarded step-scoped updates.
+- Related Feature: New sales form workflow component picker
+- Status: Done
+- Plan Status: Done
+- Plan File: .brain/plans/2026-08-06-feature-new-sales-form-custom-component-parity.md
 - Created Date: 2026-08-06
 - Completed Date: 2026-08-06

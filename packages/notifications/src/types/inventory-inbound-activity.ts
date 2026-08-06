@@ -43,6 +43,7 @@ export const inventoryInboundActivity: NotificationHandler = {
 			extraction_failed: "Inbound extraction failed",
 			extraction_applied: "Inbound extraction applied",
 			demands_assigned: "Inbound orders assigned",
+			demand_adjusted: "Inbound quantity adjusted",
 			status_updated: "Inbound status updated",
 			received: "Inbound received",
 		} as const;
@@ -71,9 +72,11 @@ export const inventoryInboundActivity: NotificationHandler = {
 										? `Extracted invoice lines were applied to inbound #${data.inboundId}.`
 										: data.activityType === "demands_assigned"
 											? `Open order demand was assigned to inbound #${data.inboundId}.`
-											: data.activityType === "status_updated"
-												? `Inbound #${data.inboundId} status changed from ${previousStatus} to ${nextStatus} by ${actorName}.`
-												: `Inbound #${data.inboundId} was received.`,
+											: data.activityType === "demand_adjusted"
+												? `${actorName} adjusted an order demand on inbound #${data.inboundId}.`
+												: data.activityType === "status_updated"
+													? `Inbound #${data.inboundId} status changed from ${previousStatus} to ${nextStatus} by ${actorName}.`
+													: `Inbound #${data.inboundId} was received.`,
 			note: data.note?.trim() || undefined,
 			authorId: author.id,
 			tags: payload,

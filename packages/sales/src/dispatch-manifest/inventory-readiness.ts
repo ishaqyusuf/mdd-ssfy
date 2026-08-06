@@ -24,7 +24,6 @@ function sumStatus(
 		0,
 	);
 }
-
 export function getDispatchInventoryReadiness(
 	components: readonly ComponentReadinessInput[],
 ): DispatchInventoryReadiness {

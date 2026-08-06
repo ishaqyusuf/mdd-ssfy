@@ -48,18 +48,19 @@ describe("payment-system order projection", () => {
 		expect(projection.overpaidAmount).toBe(30);
 	});
 
-	it("derives a projection from legacy successful payments only", () => {
+	it("derives a projection from legacy successful payment statuses only", () => {
 		const projection = buildLegacyOrderPaymentProjection({
 			salesOrderId: 7,
-			grandTotal: 250,
+			grandTotal: 350,
 			payments: [
 				{ amount: 100, status: "success" },
 				{ amount: 100, status: "pending" },
-				{ amount: 50, status: "success" },
+				{ amount: 50, status: "completed" },
+				{ amount: 100, status: "paid" },
 			],
 		});
 
-		expect(projection.totalAllocated).toBe(150);
+		expect(projection.totalAllocated).toBe(250);
 		expect(projection.amountDue).toBe(100);
 	});
 });

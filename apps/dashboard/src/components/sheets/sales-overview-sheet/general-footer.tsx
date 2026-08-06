@@ -1,23 +1,23 @@
-import { Icons } from "@gnd/ui/icons";
-import { useState } from "react";
-import { useTransition } from "@/utils/use-safe-transistion";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useTransition } from "@/utils/use-safe-transistion";
+import { Icons } from "@gnd/ui/icons";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
+import Sheet from "@gnd/ui/custom/sheet-v2";
 import { SheetFooter } from "@gnd/ui/sheet";
-import Sheet from "@gnd/ui/custom/sheet";
 
-import { useSaleOverview } from "./context";
+import { AuthGuard } from "@/components/auth-guard";
+import { SalesMenu } from "@/components/sales-menu";
+import { _perm } from "@/components/sidebar-links";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
-import { AuthGuard } from "@/components/auth-guard";
-import { _perm } from "@/components/sidebar-links";
-import { SalesMenu } from "@/components/sales-menu";
+import { useSaleOverview } from "./context";
 
-export function GeneralFooter({}) {
-	const { data } = useSaleOverview() as { data?: any };
+export function GeneralFooter() {
+	const { data } = useSaleOverview();
 	const [loading, startTransition] = useTransition();
 	const qs = useSalesOverviewQuery();
 	const sPreview = useSalesPreview();
@@ -45,8 +45,8 @@ export function GeneralFooter({}) {
 	const [menuOpen, setMenuOpen] = useState(false);
 
 	return (
-		<Sheet.Portal hideWhenSecondary>
-			<SheetFooter className="sm:-m-4 sm:-mb-2 sm:border-t p-4  max-md:flex-row max-md:gap-4 max-md:justify-end max-md:fixed max-md:bottom-0 max-md:bg-accent max-md:w-full">
+		<Sheet.Portal>
+			<SheetFooter className="flex-row justify-end gap-2 border-t bg-background p-4 md:p-6">
 				<Button
 					size="sm"
 					onClick={(e) => {
@@ -87,7 +87,7 @@ export function GeneralFooter({}) {
 							onSelect={(e) => {
 								e.preventDefault();
 								openLink(
-									`/sales-book/accounting/resolution-center`,
+									"/sales-book/accounting/resolution-center",
 									{
 										salesNo: data.orderId,
 									},

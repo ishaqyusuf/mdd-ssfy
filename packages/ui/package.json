@@ -38,6 +38,7 @@
     "./hooks/theme": "./src/hooks/theme.tsx",
     "./controls/*": "./src/components/controls/*.tsx",
     "./custom/sheet": "./src/components/custom/sheet.tsx",
+    "./custom/sheet-v2": "./src/components/custom/sheet-v2.tsx",
     "./cn": "./src/utils/cn.ts",
     "./truncate": "./src/utils/truncate.ts",
     "./hooks": "./src/hooks/index.ts",

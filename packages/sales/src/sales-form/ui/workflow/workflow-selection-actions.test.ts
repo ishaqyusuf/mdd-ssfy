@@ -95,6 +95,68 @@ describe("workflow selection actions", () => {
 		expect(result?.activeStepIndex).toBe(1);
 	});
 
+	it("clears a selected single-select custom component when it is clicked again", () => {
+		const result = saveWorkflowSelectedComponent({
+			routeData,
+			line: { uid: "line-1", formSteps: [] },
+			steps: [
+				{
+					stepId: 2,
+					step: { id: 2, uid: "stepB", title: "Height" },
+					componentId: 21,
+					prodUid: "custom-1",
+					value: "CUSTOM HEIGHT",
+					price: 25,
+					basePrice: 20,
+					meta: {
+						custom: true,
+						selectedProdUids: ["custom-1"],
+						selectedComponents: [
+							{ uid: "custom-1", title: "CUSTOM HEIGHT", custom: true },
+						],
+					},
+				},
+				{
+					stepId: 3,
+					step: { id: 3, uid: "stepC", title: "Line Item" },
+					prodUid: "downstream",
+				},
+			],
+			currentStepIndex: 0,
+			component: { uid: "custom-1", title: "CUSTOM HEIGHT", custom: true },
+			visibleComponents: [],
+			activeStepTitle: "Height",
+		});
+
+		expect(result?.linePatch.formSteps).toHaveLength(1);
+		expect(result?.linePatch.formSteps[0]?.prodUid).toBe("");
+		expect(result?.linePatch.formSteps[0]?.meta?.custom).toBe(false);
+		expect(result?.activeStepIndex).toBe(0);
+	});
+
+	it("keeps a custom selection when submit explicitly selects it", () => {
+		const result = saveWorkflowSelectedComponent({
+			routeData: {},
+			line: { uid: "line-1", formSteps: [] },
+			steps: [
+				{
+					stepId: 2,
+					step: { id: 2, uid: "stepB", title: "Height" },
+					prodUid: "custom-1",
+					meta: { custom: true, selectedProdUids: ["custom-1"] },
+				},
+			],
+			currentStepIndex: 0,
+			component: { uid: "custom-1", title: "CUSTOM HEIGHT", custom: true },
+			visibleComponents: [],
+			activeStepTitle: "Height",
+			selectedOverride: true,
+		});
+
+		expect(result?.linePatch.formSteps[0]?.prodUid).toBe("custom-1");
+		expect(result?.linePatch.formSteps[0]?.meta?.custom).toBe(true);
+	});
+
 	it("keeps all configured step pills after selecting the next component", () => {
 		const fullRouteData = {
 			composedRouter: {
