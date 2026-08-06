@@ -1,5 +1,6 @@
 "use client";
 
+import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import Sheet from "@gnd/ui/custom/sheet";
@@ -73,6 +74,8 @@ function Content() {
 	};
 	const isQuote =
 		data?.type === "quote" || query.params["sales-type"] === "quote";
+	const addressEditingLocked =
+		data != null && getSalesOverviewDocumentStatus(data).status === "fulfilled";
 	const mode = resolveLegacySalesOverviewMode({
 		assignedTo: query.assignedTo,
 		requestedMode: query.params.mode,
@@ -147,6 +150,7 @@ function Content() {
 				{pane?.kind === "customer" && data?.id && data.customerId ? (
 					<CustomerEditPane
 						key={`customer-${data.id}`}
+						addressEditingLocked={addressEditingLocked}
 						billingAddressId={data.addressData?.billing?.id}
 						customerId={data.customerId}
 						onClose={discardPane}

@@ -59,7 +59,6 @@ export function formatGooglePlaceAddress(
 		componentValue("postal_town") ||
 		componentValue("sublocality_level_1") ||
 		componentValue("sublocality") ||
-		componentValue("administrative_area_level_2") ||
 		adrValue("locality");
 	const region =
 		componentValue("administrative_area_level_1", "shortText") ||

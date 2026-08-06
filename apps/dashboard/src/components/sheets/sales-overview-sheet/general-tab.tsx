@@ -200,10 +200,7 @@ export function GeneralTab({
                                     }
                                     salesType={isQuote ? "quote" : "order"}
                                     onEdit={onEditCustomer}
-                                    readOnly={Boolean(
-                                        saleData?.isDealerSale ||
-                                            addressEditingLocked,
-                                    )}
+                                    readOnly={Boolean(saleData?.isDealerSale)}
                                 />
                             </div>
                             <div className="space-y-3">

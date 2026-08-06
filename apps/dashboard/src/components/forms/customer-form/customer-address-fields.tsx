@@ -42,6 +42,9 @@ export function CustomerAddressFields({
 				setSearchInput={setSearchInput}
 				dialogTitle="Search Address"
 				setAddress={(address) => {
+					const selectedAddress = address as typeof address & {
+						placeId?: string;
+					};
 					setAddressValue("formattedAddress", address.formattedAddress);
 					setAddressValue("address1", address.address1);
 					setAddressValue("address2", address.address2);
@@ -51,6 +54,7 @@ export function CustomerAddressFields({
 					setAddressValue("country", address.country);
 					setAddressValue("lat", address.lat);
 					setAddressValue("lng", address.lng);
+					setAddressValue("placeId", selectedAddress.placeId);
 				}}
 			/>
 			<FormInput

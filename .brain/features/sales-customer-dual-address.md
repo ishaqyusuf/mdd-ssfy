@@ -52,8 +52,9 @@
   Autocomplete filters use supported primary place types only so Google does
   not reject the entire request for an address-component-only type.
 - Canonically fulfilled orders are immutable from every Sales Overview
-  address-capable entry point. The direct address mutation and the full
-  sales-context customer mutation enforce the same lifecycle guard server-side.
+  address-capable entry point. The direct address mutation and address-capable
+  sales-context customer mutation enforce the same lifecycle guard server-side;
+  customer-only identity/contact updates remain available without address writes.
 
 ## Validation
 

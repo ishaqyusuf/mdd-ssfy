@@ -222,6 +222,48 @@ describe("sales address assignment", () => {
 		).rejects.toMatchObject({ code: "CONFLICT" });
 	});
 
+	it("allows customer-only edits without touching fulfilled addresses", async () => {
+		let saleLookups = 0;
+		let addressWrites = 0;
+		const tx = {
+			addressBooks: {
+				create: async () => {
+					addressWrites += 1;
+					return { id: 909 };
+				},
+			},
+			customers: {
+				findUnique: async () => ({ dealerOwnerId: null }),
+				update: async () => ({ id: 42 }),
+			},
+			salesOrders: {
+				findFirst: async () => {
+					saleLookups += 1;
+					return null;
+				},
+			},
+		};
+		const ctx = {
+			db: {
+				$transaction: async (run: (client: typeof tx) => unknown) => run(tx),
+			},
+		} as unknown as Parameters<typeof createOrUpdateCustomer>[0];
+
+		const result = await createOrUpdateCustomer(ctx, {
+			customerOnly: true,
+			customerType: "Personal",
+			id: 42,
+			name: "Updated Customer",
+			profileId: "1",
+			salesId: 77,
+			salesType: "order",
+		});
+
+		expect(result.customerId).toBe(42);
+		expect(addressWrites).toBe(0);
+		expect(saleLookups).toBe(0);
+	});
+
 	it("creates and assigns a shipping address when the sale has none", async () => {
 		const { calls, result } = await runAssignment({
 			billingAddressId: 201,

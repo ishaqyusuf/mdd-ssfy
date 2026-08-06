@@ -8557,9 +8557,10 @@
   action reads `Save`, billing and shipping persist independent recipient
   names, and successful customer/address updates close only the
   secondary pane after centralized `customer.changed` refresh makes the mounted
-  overview current. Canonically fulfilled sales hide billing, shipping, and the
-  address-capable customer editor; direct address and sales-context customer
-  mutations reject raw-status or completed-delivery fulfillment server-side.
+  overview current. Canonically fulfilled sales hide billing and shipping
+  actions while retaining general-only customer edits; direct address and
+  address-capable sales-context customer mutations reject raw-status or
+  completed-delivery fulfillment server-side.
   Google Place resolution now derives city, state, ZIP, and country from
   structured address components instead of depending on optional ADR HTML, and
   autocomplete no longer sends Google's invalid `street_number` primary-type
@@ -8568,7 +8569,7 @@
   billing address data on order `09128DB`, updated
   customer/shipping context on quote `03329LRG`, confirmed immediate pane close
   and overview refresh without reload, and verified all three edit paths are
-  absent on fulfilled order `09168PC`. Fifty-five focused tests / 122 assertions,
+  absent on fulfilled order `09168PC`. Fifty-seven focused tests / 130 assertions,
   Sales/API typechecks, scoped Biome, and whitespace checks pass; the broad
   Dashboard typecheck remains red on unrelated baseline diagnostics with no
   touched-file diagnostic.

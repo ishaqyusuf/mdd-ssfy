@@ -546,8 +546,7 @@ async function assertSalesAddressMutable(
 	}
 
 	const hasCompletedDelivery = sale.deliveries.some(
-		(delivery) =>
-			delivery.status === "completed" && delivery._count.items > 0,
+		(delivery) => delivery.status === "completed" && delivery._count.items > 0,
 	);
 	if (
 		isSalesOrderFulfilled({
@@ -582,7 +581,7 @@ export async function createOrUpdateCustomer(
 				});
 			}
 		}
-		if (input.salesId && input.salesType && customerId) {
+		if (!input.customerOnly && input.salesId && input.salesType && customerId) {
 			await assertSalesAddressMutable(tx, {
 				customerId,
 				salesId: input.salesId,
@@ -678,7 +677,9 @@ export async function createOrUpdateCustomer(
 		let addressId = input.addressId;
 		let billingAddressId: number | undefined;
 		let shippingAddressId: number | undefined;
-		if (input.salesType && input.billingAddress) {
+		if (input.customerOnly) {
+			addressId = undefined;
+		} else if (input.salesType && input.billingAddress) {
 			await tx.addressBooks.updateMany({
 				where: {
 					customerId,

@@ -14,6 +14,7 @@ interface FormContextProps {
 }
 export type CustomerFormParams = {
 	address?: "sad" | "bad" | null;
+	addressReadOnly?: boolean;
 	addressId?: number | null;
 	billingAddressId?: number | null;
 	customerForm?: boolean | null;

@@ -3,8 +3,8 @@
 import { CustomerForm } from "@/components/forms/customer-form/customer-form";
 import { FormAction } from "@/components/forms/customer-form/form-action";
 import {
-	FormContext,
 	type CustomerFormParams,
+	FormContext,
 } from "@/components/forms/customer-form/form-context";
 import { useTRPC } from "@/trpc/client";
 import Sheet from "@gnd/ui/custom/sheet";
@@ -13,12 +13,14 @@ import { useMemo } from "react";
 
 export function CustomerEditPane({
 	billingAddressId,
+	addressEditingLocked,
 	customerId,
 	onClose,
 	salesId,
 	salesType,
 	shippingAddressId,
 }: {
+	addressEditingLocked?: boolean;
 	billingAddressId?: number | null;
 	customerId: number;
 	onClose: () => void;
@@ -36,6 +38,7 @@ export function CustomerEditPane({
 	);
 	const formParams = useMemo<CustomerFormParams>(
 		() => ({
+			addressReadOnly: addressEditingLocked,
 			billingAddressId,
 			customerForm: true,
 			customerId,
@@ -45,6 +48,7 @@ export function CustomerEditPane({
 			shippingAddressId,
 		}),
 		[
+			addressEditingLocked,
 			billingAddressId,
 			customerId,
 			salesId,
@@ -54,13 +58,20 @@ export function CustomerEditPane({
 	);
 
 	return (
-		<FormContext data={customerQuery.data?.customerForm} formParams={formParams}>
+		<FormContext
+			data={customerQuery.data?.customerForm}
+			formParams={formParams}
+		>
 			<Sheet.SecondaryContent
 				className="px-1"
 				Header={
 					<Sheet.SecondaryHeader
 						title="Edit Customer"
-						description="Update customer, billing, and shipping information for this sale."
+						description={
+							addressEditingLocked
+								? "Update customer information. Fulfilled-sale addresses are read-only."
+								: "Update customer, billing, and shipping information for this sale."
+						}
 					/>
 				}
 				Footer={

@@ -253,70 +253,72 @@ export function CustomerForm({
 						)}
 
 						{isSalesCustomerForm ? (
-							<>
-								<AccordionItem value="billing-address">
-									<AccordionTrigger>Billing Address</AccordionTrigger>
-									<AccordionContent>
-										<CustomerAddressFields prefix="billingAddress" />
-									</AccordionContent>
-								</AccordionItem>
-								<AccordionItem value="shipping-address">
-									<AccordionTrigger>Shipping Address</AccordionTrigger>
-									<AccordionContent>
-										<div className="space-y-4">
-											<Controller
-												control={form.control}
-												name="shippingSameAsBilling"
-												render={({ field }) => (
-													<div className="flex items-start gap-3 rounded-lg border bg-muted/20 p-3">
-														<Checkbox
-															id="shipping-same-as-billing"
-															checked={field.value ?? false}
-															onCheckedChange={(checked) => {
-																const nextChecked = checked === true;
-																if (!nextChecked) {
-																	const billing =
-																		form.getValues("billingAddress");
-																	const shipping =
-																		form.getValues("shippingAddress");
-																	if (
-																		!shipping ||
-																		isShippingSameAsBilling(
-																			billing?.addressId,
-																			shipping.addressId,
-																		)
-																	) {
-																		form.setValue(
-																			"shippingAddress",
-																			createShippingDraft(billing),
-																			{ shouldDirty: true },
-																		);
+							params.addressReadOnly ? null : (
+								<>
+									<AccordionItem value="billing-address">
+										<AccordionTrigger>Billing Address</AccordionTrigger>
+										<AccordionContent>
+											<CustomerAddressFields prefix="billingAddress" />
+										</AccordionContent>
+									</AccordionItem>
+									<AccordionItem value="shipping-address">
+										<AccordionTrigger>Shipping Address</AccordionTrigger>
+										<AccordionContent>
+											<div className="space-y-4">
+												<Controller
+													control={form.control}
+													name="shippingSameAsBilling"
+													render={({ field }) => (
+														<div className="flex items-start gap-3 rounded-lg border bg-muted/20 p-3">
+															<Checkbox
+																id="shipping-same-as-billing"
+																checked={field.value ?? false}
+																onCheckedChange={(checked) => {
+																	const nextChecked = checked === true;
+																	if (!nextChecked) {
+																		const billing =
+																			form.getValues("billingAddress");
+																		const shipping =
+																			form.getValues("shippingAddress");
+																		if (
+																			!shipping ||
+																			isShippingSameAsBilling(
+																				billing?.addressId,
+																				shipping.addressId,
+																			)
+																		) {
+																			form.setValue(
+																				"shippingAddress",
+																				createShippingDraft(billing),
+																				{ shouldDirty: true },
+																			);
+																		}
 																	}
-																}
-																field.onChange(nextChecked);
-															}}
-														/>
-														<div className="space-y-1">
-															<label
-																htmlFor="shipping-same-as-billing"
-																className="text-sm font-medium"
-															>
-																Same as billing
-															</label>
-															<p className="text-xs text-muted-foreground">
-																Use the billing address for shipping.
-															</p>
+																	field.onChange(nextChecked);
+																}}
+															/>
+															<div className="space-y-1">
+																<label
+																	htmlFor="shipping-same-as-billing"
+																	className="text-sm font-medium"
+																>
+																	Same as billing
+																</label>
+																<p className="text-xs text-muted-foreground">
+																	Use the billing address for shipping.
+																</p>
+															</div>
 														</div>
-													</div>
+													)}
+												/>
+												{shippingSameAsBilling ? null : (
+													<CustomerAddressFields prefix="shippingAddress" />
 												)}
-											/>
-											{shippingSameAsBilling ? null : (
-												<CustomerAddressFields prefix="shippingAddress" />
-											)}
-										</div>
-									</AccordionContent>
-								</AccordionItem>
-							</>
+											</div>
+										</AccordionContent>
+									</AccordionItem>
+								</>
+							)
 						) : (
 							<AccordionItem value="address">
 								<AccordionTrigger>Address</AccordionTrigger>

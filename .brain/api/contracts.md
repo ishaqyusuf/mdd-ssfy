@@ -1042,11 +1042,15 @@ Tracks important request/response contracts and shared schema boundaries.
   reject `CONFLICT` once the sale's canonical lifecycle is fulfilled, including
   fulfillment derived from a completed delivery with delivered items. This
   server guard is authoritative even if a stale client still exposes an editor.
+- Sales-context `customers.createCustomer({ customerOnly: true })` updates
+  customer identity/contact/profile data without reading or writing address
+  relations. This is the permitted customer-edit path for fulfilled sales.
 - Customer address inputs include an optional address-specific `name`; billing
   and shipping recipients persist independently of the owning customer name.
 - `google.place` normalizes Google `addressComponents` into the customer form
   address contract. Locality/postal-town fallbacks supply city, state uses the
-  administrative-area short code, and ZIP suffixes are preserved.
+  administrative-area short code, and ZIP suffixes are preserved. County-level
+  administrative areas are never substituted for a missing city.
 - `google.places` restricts US suggestions with supported primary types
   (`street_address`, `subpremise`, `route`, `premise`, and `landmark`);
   component-only `street_number` is not sent as a primary-type filter.

@@ -43,6 +43,7 @@ export const saveSalesLaborCostSchema = z.object({
 });
 export const createCustomerSchema = z
 	.object({
+		customerOnly: z.boolean().optional(),
 		salesType: z.enum(["order", "quote"]).optional().nullable(),
 		salesId: z.number().positive().optional().nullable(),
 		shippingSameAsBilling: z.boolean().optional(),
@@ -85,7 +86,11 @@ export const createCustomerSchema = z
 	})
 	.superRefine((data, ctx) => {
 		if (data.addressOnly) return;
-		if (data.salesType && !hasText(data.billingAddress?.address1)) {
+		if (
+			!data.customerOnly &&
+			data.salesType &&
+			!hasText(data.billingAddress?.address1)
+		) {
 			ctx.addIssue({
 				path: ["billingAddress", "address1"],
 				message: "Billing address is required!",
@@ -93,6 +98,7 @@ export const createCustomerSchema = z
 			});
 		}
 		if (
+			!data.customerOnly &&
 			data.salesType &&
 			data.shippingSameAsBilling === false &&
 			!hasText(data.shippingAddress?.address1)

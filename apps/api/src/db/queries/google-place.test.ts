@@ -65,12 +65,30 @@ describe("Google Place address formatting", () => {
 			state: "FL",
 		});
 	});
+
+	it("does not substitute a US county for a missing city", () => {
+		expect(
+			formatGooglePlaceAddress(
+				{
+					addressComponents: [
+						{
+							longText: "Miami-Dade County",
+							types: ["administrative_area_level_2"],
+						},
+					],
+				},
+				"place-789",
+			).city,
+		).toBe("");
+	});
 });
 
 describe("Google Place autocomplete request", () => {
 	it("filters with supported primary place types", async () => {
 		const originalFetch = globalThis.fetch;
+		const originalApiKey = process.env.PLACE_API;
 		let requestBody: { includedPrimaryTypes?: string[] } | undefined;
+		process.env.PLACE_API = "test-key";
 		globalThis.fetch = (async (_url, init) => {
 			requestBody = JSON.parse(String(init?.body));
 			return new Response(JSON.stringify({ suggestions: [] }), { status: 200 });
@@ -80,6 +98,11 @@ describe("Google Place autocomplete request", () => {
 			await searchGooglePlace(null, { q: "11211 SW 138th Terrace" });
 		} finally {
 			globalThis.fetch = originalFetch;
+			if (originalApiKey === undefined) {
+				process.env.PLACE_API = undefined;
+			} else {
+				process.env.PLACE_API = originalApiKey;
+			}
 		}
 
 		expect(requestBody?.includedPrimaryTypes).toEqual([

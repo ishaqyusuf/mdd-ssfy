@@ -174,6 +174,17 @@ describe("sales customer edit button", () => {
 			),
 			"utf8",
 		);
+		const customerPaneSource = readFileSync(
+			new URL(
+				"./sheets/sales-overview-sheet/customer-edit-pane.tsx",
+				import.meta.url,
+			),
+			"utf8",
+		);
+		const formActionSource = readFileSync(
+			new URL("./forms/customer-form/form-action.tsx", import.meta.url),
+			"utf8",
+		);
 
 		expect(
 			/<SubmitButton[\s\S]*?>\s*Save\s*<\/SubmitButton>/.test(paneSource),
@@ -189,7 +200,7 @@ describe("sales customer edit button", () => {
 			generalSource
 				.slice(customerButtonStart, customerButtonEnd)
 				.includes("addressEditingLocked"),
-		).toBe(true);
+		).toBe(false);
 		expect(addressFieldsSource.includes('fieldName(prefix, "name")')).toBe(
 			true,
 		);
@@ -202,6 +213,12 @@ describe("sales customer edit button", () => {
 		expect(
 			/billingId:[\s\S]*?: billingAddressId,/.test(addressPaneSource),
 		).toBe(true);
+		expect(overviewSource.includes("addressEditingLocked=")).toBe(true);
+		expect(customerPaneSource.includes("addressReadOnly")).toBe(true);
+		expect(formActionSource.includes("customerOnly: true")).toBe(true);
+		expect(addressFieldsSource.includes('setAddressValue("placeId"')).toBe(
+			true,
+		);
 	});
 
 	it("keeps Sales Overview footers inside the shared sheet provider", () => {

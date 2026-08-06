@@ -46,8 +46,8 @@ opening production, dispatch, packing, or inventory workflows.
   awaited `customer.changed` refresh, and immediately show the new projection.
   Recipient names are address-specific, and shipping creation hydrates from the
   billing address id assigned to the mounted sale.
-  Fulfilled lifecycle status removes billing, shipping, and the address-capable
-  customer editor; the API independently rejects those writes.
+  Fulfilled lifecycle status removes billing and shipping actions while keeping
+  a general-only customer editor; the API independently rejects address writes.
 - Only the active tab content renders; inactive production, dispatch,
   transaction, inventory, and activity providers do not mount.
 - Explicit dispatch mode is honored for users with broader order access.

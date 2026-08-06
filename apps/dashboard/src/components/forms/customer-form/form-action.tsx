@@ -106,7 +106,18 @@ export function FormAction({
 					onSubmit={form.handleSubmit(
 						params?.address
 							? (values) => mutateAddress(values)
-							: (values) => mutate(values),
+							: (values) =>
+									mutate(
+										params.addressReadOnly
+											? {
+													...values,
+													billingAddress: undefined,
+													customerOnly: true,
+													shippingAddress: undefined,
+													shippingSameAsBilling: undefined,
+												}
+											: values,
+									),
 					)}
 				>
 					<SubmitButton
