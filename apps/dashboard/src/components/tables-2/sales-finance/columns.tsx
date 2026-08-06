@@ -309,7 +309,7 @@ export const columns: Column[] = [
 	moneyColumn("receivedAmount", "Received"),
 	moneyColumn("feeAmount", "Fees"),
 	moneyColumn("refundedAmount", "Refunded"),
-	moneyColumn("netAmount", "Net", { emphasized: true }),
+	moneyColumn("netAmount", "Invoice Total", { emphasized: true }),
 	moneyColumn("appliedAmount", "Applied"),
 	moneyColumn("unappliedAmount", "Unapplied", { warning: true }),
 	reviewColumn,

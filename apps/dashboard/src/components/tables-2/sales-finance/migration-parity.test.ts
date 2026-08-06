@@ -43,6 +43,21 @@ describe("Sales Finance Midday migration parity", () => {
 		expect(configSource.includes('"sales-finance": "customer"')).toBe(true);
 	});
 
+	it("labels the net amount column as Invoice Total", () => {
+		const columnsSource = readSource(
+			"components/tables-2/sales-finance/columns.tsx",
+		);
+
+		expect(
+			columnsSource.includes(
+				'moneyColumn("netAmount", "Invoice Total", { emphasized: true })',
+			),
+		).toBe(true);
+		expect(columnsSource.includes('moneyColumn("netAmount", "Net"')).toBe(
+			false,
+		);
+	});
+
 	it("keeps the table resizable, reorderable, virtualized, and internally scrollable", () => {
 		const tableSource = readSource(
 			"components/tables-2/sales-finance/data-table.tsx",

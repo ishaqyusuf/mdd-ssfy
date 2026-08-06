@@ -70,6 +70,10 @@ names are the fallback, with duplicate multi-invoice names removed.
 Canonical payment methods are `card`, `check`, `zelle`, `cash`, `wire`, and
 `unclassified`. Card includes credit-card, terminal, and payment-link aliases.
 
+The Payments ledger presents the canonical `netAmount` column with the
+operator-facing label `Invoice Total`. This is a presentation-only label; the
+underlying projection and calculation remain unchanged.
+
 ## Review Contract
 
 A transaction enters the Review queue when its package projection emits one or
