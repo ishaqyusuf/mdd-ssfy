@@ -619,8 +619,161 @@ describe("sales-control task transactions", () => {
         }),
       }),
     );
+    expect(
+      "replaceExisting" in
+        packDispatchItemsActionMock.mock.calls[0]?.[1].packItems,
+    ).toBe(false);
     expect(saveNoteMock).toHaveBeenCalledTimes(1);
   });
+
+	it("releases automatic non-production work from material review before fulfillment", async () => {
+		const nonProductionInfo = {
+			order: { id: 9001 },
+			items: [
+				{
+					controlUid: "moulding-1",
+					itemId: 10,
+					itemConfig: { shipping: true },
+					analytics: {
+						assignment: { pending: { qty: 0, lh: 0, rh: 0 } },
+						pendingSubmissions: [],
+					},
+					deliverables: [],
+				},
+			],
+		};
+		getSaleInformationMock
+			.mockResolvedValueOnce(nonProductionInfo)
+			.mockResolvedValueOnce(nonProductionInfo)
+			.mockResolvedValueOnce({
+				...nonProductionInfo,
+				items: [
+					{
+						...nonProductionInfo.items[0],
+						deliverables: [
+							{ submissionId: 501, qty: { qty: 1, lh: 0, rh: 0 } },
+						],
+					},
+				],
+			});
+		const tx = {
+			orderProductionSubmissions: {
+				findMany: mock(async () => [
+					{
+						id: 501,
+						meta: { source: "sales_mark_as_completed" },
+					},
+				]),
+				updateMany: mock(async () => ({ count: 1 })),
+			},
+			salesHistory: {
+				create: mock(async () => ({})),
+			},
+			orderDelivery: {
+				findFirst: mock(async () => ({
+					status: "packed",
+					deliveredAt: null,
+					salesOrderId: 9001,
+					meta: {},
+				})),
+				update: mock(async () => ({})),
+			},
+		};
+		const db = {
+			...tx,
+			$transaction: async (fn: (client: typeof tx) => Promise<unknown>) =>
+				fn(tx),
+		};
+
+		await tasksModule.markAsCompletedTask(
+			db as any,
+			{
+				meta: { salesId: 9001, authorId: 12, authorName: "Operator" },
+				markAsCompleted: {
+					dispatchId: 90,
+					receivedBy: "Customer",
+				},
+			} as any,
+			{ saveNoteAction: saveNoteMock },
+		);
+
+		expect(tx.orderProductionSubmissions.updateMany).toHaveBeenCalledWith(
+			expect.objectContaining({ data: { materialReviewId: null } }),
+		);
+		expect(tx.salesHistory.create).toHaveBeenCalledTimes(1);
+		expect(packDispatchItemsActionMock).toHaveBeenCalledWith(
+			tx,
+			expect.objectContaining({
+				packItems: expect.objectContaining({
+					packingLines: [
+						{
+							salesItemId: 10,
+							submissionId: 501,
+							qty: { qty: 1, lh: 0, rh: 0 },
+						},
+					],
+				}),
+			}),
+		);
+		expect(saveNoteMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not complete an empty dispatch while material review is pending", async () => {
+		const producedInfo = {
+			order: { id: 9001 },
+			items: [
+				{
+					controlUid: "door-1",
+					itemId: 10,
+					analytics: {
+						assignment: { pending: { qty: 0, lh: 0, rh: 0 } },
+						pendingSubmissions: [],
+					},
+					deliverables: [],
+				},
+			],
+		};
+		getSaleInformationMock
+			.mockResolvedValueOnce(producedInfo)
+			.mockResolvedValueOnce(producedInfo)
+			.mockResolvedValueOnce(producedInfo);
+		packDispatchItemsActionMock.mockResolvedValueOnce({ created: 0, skipped: 0 });
+		const tx = {
+			orderItemDelivery: {
+				count: mock(async () => 0),
+			},
+			orderProductionSubmissions: {
+				count: mock(async () => 1),
+			},
+			orderDelivery: {
+				update: mock(async () => ({})),
+			},
+		};
+		const db = {
+			...tx,
+			$transaction: async (fn: (client: typeof tx) => Promise<unknown>) =>
+				fn(tx),
+		};
+
+		await expect(
+			tasksModule.markAsCompletedTask(
+				db as any,
+				{
+					meta: { salesId: 9001, authorId: 12, authorName: "Operator" },
+					markAsCompleted: {
+						dispatchId: 90,
+						receivedBy: "Customer",
+					},
+				} as any,
+				{ saveNoteAction: saveNoteMock },
+			),
+		).rejects.toThrow(
+			"Unable to fulfill while production submissions are awaiting material review.",
+		);
+
+		expect(tx.orderDelivery.update).not.toHaveBeenCalled();
+		expect(saveNoteMock).not.toHaveBeenCalled();
+	});
 
   it("rejects a direct production submission when there is nothing to submit", async () => {
     getSaleInformationMock.mockResolvedValueOnce({

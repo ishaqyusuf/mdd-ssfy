@@ -38,6 +38,12 @@ rejection require `editProduction`; inbound receipt additionally requires
 `editInboundOrder`, and manual need fulfillment additionally requires
 `editOrders`.
 
+ADR-048 adds one explicit exception to the separate admin-decision workflow:
+the permission-checked Sales Orders `Receive, approve and continue` confirmation
+may perform canonical inbound receipt/material resolution and approve every
+pending review before starting packing or fulfillment. Direct completion tasks
+remain blocked while a review is pending.
+
 ## Consequences
 
 - Production planning and reporting continue even when inventory administration

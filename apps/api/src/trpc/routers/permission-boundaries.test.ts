@@ -154,7 +154,7 @@ describe("high-risk tRPC permission boundaries", () => {
 		}
 	});
 
-	test("sales inventory availability override requires order editing permission", () => {
+	test("sales status dependency resolution requires order, inbound, and production permissions", () => {
 		const inventories = source("inventories.route.ts");
 		expectProtectedMutation(
 			inventories,
@@ -164,7 +164,10 @@ describe("high-risk tRPC permission boundaries", () => {
 		const start = inventories.indexOf(
 			"overrideSalesInventoryMarkAsAvailabilityForContinue: protectedProcedure",
 		);
-		expect(inventories.slice(start, start + 1800)).toContain('"editOrders"');
+		const mutationSource = inventories.slice(start, start + 2200);
+		expect(mutationSource).toContain('"editOrders"');
+		expect(mutationSource).toContain('"editInboundOrder"');
+		expect(mutationSource).toContain('"editProduction"');
 	});
 
 	test("manual inventory need fulfillment requires order editing permission", () => {

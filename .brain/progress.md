@@ -1,5 +1,54 @@
 # Progress
 
+- 2026-08-06: implemented the complete one-click Sales Orders dependency
+  resolver. `Inventory needs attention` now previews and then receives every
+  linked active inbound shipment, resolves tracked inventory, approves all
+  pending material reviews including genuine production, runs existing
+  approval-side payroll/payment review, audits residual non-stock availability
+  checks, and only then starts production or dispatch completion. Authenticated
+  local proof on `09166LRG` completed inbound `119` at 100% (four items / 162
+  good), approved review `#4` covering five submissions, completed dispatch
+  `4399` with five packed items, and rendered `Received` / `Fulfilled` after
+  reload. Focused coverage passed 40 tests / 126 assertions; targeted Biome and
+  `@gnd/sales` typecheck passed. No build or deployment ran. See ADR-048 and
+  `.brain/features/sales-order-status-actions.md`.
+
+- 2026-08-06: reproduced the follow-up `Ready to fulfill` symptom on order
+  `09168PC`. Its fulfillment task completed zero-item dispatches while the
+  underlying production submission remained protected by pending material
+  review, so the canonical order list correctly ignored those dispatches.
+  Mark-as-fulfilled now preserves existing packing and refuses dispatch
+  completion unless the selected dispatch contains an active packed item,
+  returning a specific material-review blocker when applicable. Automatic
+  non-production submissions incorrectly attached to a pending
+  `NOT_CONFIGURED` review are released with audit evidence before packing;
+  produceable pending reviews remain protected. Local dev proof changed
+  `09168PC` to `Fulfilled` with one real packed item and fulfilled three more of
+  the first ten, while six genuine pending-review orders correctly remained
+  blocked. The focused sales-control suite passes 20 tests / 71 assertions.
+  No follow-up deployment completed: one remote builder connection reset and
+  the retry was stopped for local-first validation. See
+  `.brain/bugs/2026-08-05-mark-as-completed-double-production-submit.md`.
+
+- 2026-08-06: bounded new-sales-form shelf product search results inside a
+  dedicated 18rem vertical scroll region, preventing long match lists from
+  growing the popup and page. The focused UI source regression passes 1 test /
+  2 assertions, and whitespace validation passes. See
+  `.brain/features/sales-form-system-hardening.md`.
+
+- 2026-08-06: optimized the dashboard Vercel build after two consecutive
+  deployments proved a repeating cold-build cycle: each generated a 1.69 GB
+  cache above the project's 1.50 GB effective limit, invalidated it, then paid
+  for a full 2,926-package install and 3.7-4.5 minute Turbopack compile on the
+  next deployment. The dashboard now filters Bun installation to its workspace
+  dependency graph, DB build skips redundant Vercel Prisma generation after the
+  install hook, production code conditionally loads the development file sink,
+  dynamic file reads opt out of whole-project Turbopack tracing, and Sentry no
+  longer widens its client upload set. Static source/config and whitespace
+  checks pass; the next two Vercel deployments must confirm the cache remains
+  below the platform limit and the second build restores it. See
+  `.brain/bugs/2026-08-06-dashboard-vercel-build-cache-thrashing.md`.
+
 - 2026-08-06: completed the follow-up repair for `update-sales-control` Mark As
   Completed failures with `Unable to complete, nothing to submit!`. The earlier
   duplicate outer submit was only one failure state: pack-all also reaches a
@@ -10,7 +59,8 @@
   suite passes 18 tests / 63 assertions, both Sales and Jobs typechecks pass,
   and whitespace validation passes. Authenticated dev browser proof marked the
   first ten visible orders production-complete; all ten reached `Ready to
-  fulfill` without the reported failure. See
+  fulfill` without the reported failure. Trigger production jobs version
+  `20260806.5` deployed successfully with 41 detected tasks. See
   `.brain/bugs/2026-08-05-mark-as-completed-double-production-submit.md`.
 
 - 2026-08-05: corrected the mobile dashboard avatar-sheet interpretation. The
@@ -8447,3 +8497,24 @@
   increment controls. Six focused tests / 44 assertions, targeted Biome, and
   whitespace checks pass; authenticated browser QA on `09161PC` confirmed the
   rendered `w-28` control retains its spinbutton and `/1` maximum suffix.
+- 2026-08-06: planned opt-in table-row processing and exit feedback with Sales
+  Orders as the pilot. The design keeps server filters, TanStack Query cache,
+  centralized query events, summaries, and saved-tab counts authoritative while
+  a table-local snapshot briefly shows amber processing, green committed
+  success, red failure, and a short success dwell when refetch removes the row.
+  Direct mutations use typed mutation metadata, background production and
+  fulfillment reuse task-monitor intents, and virtualized row retention avoids
+  animated height or persisted ghost data. Added the deferred implementation
+  plan and backlog entry; no application, API, database, or permission behavior
+  changed.
+- 2026-08-06: planned deep Shelf Items product search for the shared new sales
+  form. The proposed no-migration-first design replaces incidental substring
+  matching with one package-owned, measurement-aware search grammar for
+  reordered words, door dimensions, and fraction prefixes; enriches the cached
+  index with compact category context; preserves dealer visibility and selected
+  hydration; and keeps input urgent while result ranking is deferred. The exact
+  `frame door 4-9 3 0 x 8 0` example already passes the current helper, but the
+  plan adds negative numeric-collision tests and cross-surface parity before the
+  behavior becomes authoritative. No application, API, database, or permission
+  behavior changed. See
+  `.brain/plans/2026-08-06-feature-new-sales-form-shelf-product-deep-search.md`.

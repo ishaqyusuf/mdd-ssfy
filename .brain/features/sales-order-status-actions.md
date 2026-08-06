@@ -15,14 +15,28 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 - Production completion and cancellation run as monitored sales-control tasks. A visible toast confirms that the background update started; terminal task effects publish `sales.production.changed`, refresh the affected queries, and show a visible success toast.
 - Fulfillment completion publishes the existing fulfillment event; fulfillment cancellation uses the registered dispatch mutation event.
 - Automatic production completion tags only the submissions it creates; `Cancel Production` soft-deletes those tagged submissions and preserves earlier manual production records. Orders with only legacy/manual completion records return an explicit unavailable error instead of reporting a no-op success.
+- Fulfillment never completes a zero-item dispatch. Existing packed rows are
+  preserved, and a dispatch must contain an active packed item before it can be
+  marked complete. Automatic completion submissions attached to a pending
+  `NOT_CONFIGURED` review are released only when their current sales control is
+  explicitly non-production; genuine produceable pending reviews continue to
+  block direct fulfillment tasks until the one-click dependency resolver has
+  approved them.
 - `Cancel Fulfillment` cancels every non-cancelled dispatch attached to the order in one transaction and resets the sale once. Every dispatch is constrained to that parent sale and the transaction rejects if the requested set does not match, preventing cross-order or partial cancellation.
 - Dispatch cancellation notifications are emitted after commit and are non-fatal: notification delivery failures are logged without turning a committed status change into a false UI error.
 - Sales menu portal interactions stop at the menu content boundary so selecting an inline status action does not open the underlying order row.
-- When either action is blocked by configured inventory, `Inventory needs
-  attention` presents blocker rows in uppercase and keeps `Mark available and
-  continue` enabled. Confirming it records an explicit order-level availability
-  override without rewriting canonical inventory or inbound state, and then
-  starts the selected production-completion or fulfillment task.
+- When either action has configured inventory or a pending production material
+  review, `Inventory needs attention` presents blocker rows in uppercase plus a
+  complete automation summary. `Receive, approve and continue` receives every
+  remaining item on linked active inbound shipments through the canonical stock
+  service, resolves tracked needs, approves every pending review including
+  genuine production, applies payment-review/payroll approval effects, records
+  an audited override for residual non-stock checks, and only then starts the
+  selected production-completion or fulfillment task.
+- Preflight displays affected orders, inbound shipment and remaining quantity,
+  production-review count, residual component checks, and the final production
+  or dispatch action. The one-click resolver requires `editOrders`,
+  `editInboundOrder`, and `editProduction` together.
 - The `Inbound` status cell uses the same non-button, button-variant visual treatment and retains the inbound status tone. Existing manual-inbound and inventory-inbound click behavior remains unchanged.
 
 ## Saved Query Counts
@@ -31,6 +45,16 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 - Saved page-tab list/default queries refetch inactive cache entries as well as active ones. A saved filter such as production complete plus fulfillment pending therefore updates its count after an order is fulfilled without a page reload.
 
 ## Validation
+
+- 2026-08-06 focused dependency, inventory preflight, production decision,
+  manual fulfillment, and sales-control coverage passed 40 tests / 126
+  assertions; `@gnd/sales` typecheck and targeted Biome passed.
+- Authenticated local browser validation on `09166LRG` showed the exact preview:
+  inbound `119` with 162 remaining, one review covering five submissions, 32
+  residual checks, then packing/dispatch completion. Confirmation completed
+  inbound `119` at 100% with four received items, approved review `#4`, completed
+  dispatch `4399` with five packed items, and refreshed the list to `Received` /
+  `Fulfilled`.
 
 - Focused status-action, inventory-preflight, override rollback, and permission
   coverage passed 25 tests / 252 assertions. Focused Biome, `@gnd/sales` and

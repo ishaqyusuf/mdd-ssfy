@@ -3,7 +3,6 @@ import "./instrument";
 import { randomUUID } from "node:crypto";
 import { db } from "@gnd/db";
 import type { DevLogEntry } from "@gnd/dev-logger";
-import { appendDevLogEntryToFile } from "@gnd/dev-logger/file-sink";
 import { classifyError } from "@gnd/errors";
 import { trpcServer } from "@hono/trpc-server";
 import { OpenAPIHono } from "@hono/zod-openapi";
@@ -94,6 +93,9 @@ app.post("/api/dev-logger", async (c) => {
     if (!body?.entry || typeof body.entry !== "object") {
       return c.json({ ok: false, error: "INVALID_ENTRY" }, 400);
     }
+    const { appendDevLogEntryToFile } = await import(
+      "@gnd/dev-logger/file-sink"
+    );
     await appendDevLogEntryToFile(body.entry as DevLogEntry);
     return c.json({ ok: true, skipped: false });
   } catch {

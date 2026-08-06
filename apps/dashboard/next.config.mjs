@@ -151,8 +151,9 @@ export default isProduction
           // Only print logs for uploading source maps in CI
           silent: !process.env.CI,
 
-          // Upload source maps for better stack traces
-          widenClientFileUpload: true,
+          // Keep uploads to the files Sentry needs for stack traces. Widening
+          // this set added roughly 30 seconds to dashboard production builds.
+          widenClientFileUpload: false,
 
           webpack: {
               treeshake: {

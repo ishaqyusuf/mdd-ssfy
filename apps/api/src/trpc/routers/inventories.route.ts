@@ -190,8 +190,6 @@ import {
 } from "@gnd/sales/sales-fulfillment-plan";
 import { resolveSalesInventoryLegacyStatusSetup as resolveSalesInventoryLegacyStatusSetupMutation } from "@gnd/sales/sales-inventory-legacy-status-setup";
 import {
-	getSalesInventoryMarkAsPreflight,
-	overrideSalesInventoryMarkAsAvailabilityForContinue,
 	resolveSalesInventoryMarkAsAutoForContinue,
 	resolveSalesInventoryMarkAsAvailabilityForContinue,
 } from "@gnd/sales/sales-inventory-mark-as-preflight";
@@ -203,6 +201,10 @@ import {
 	cleanupStaleSalesInventoryLineItems,
 	getSalesInventorySyncMonitor,
 } from "@gnd/sales/sales-inventory-sync-monitor";
+import {
+	getSalesStatusMarkAsPreflight,
+	resolveSalesStatusMarkAsDependenciesForContinue,
+} from "@gnd/sales/sales-status-mark-as-resolution";
 import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
 import { salesDeliveryOptionSchema } from "@gnd/utils/sales";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
@@ -1109,7 +1111,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.query(async (props) => {
-			return getSalesInventoryMarkAsPreflight(props.ctx.db, props.input);
+			return getSalesStatusMarkAsPreflight(props.ctx.db, props.input);
 		}),
 	resolveSalesInventoryMarkAsAvailabilityForContinue: protectedProcedure
 		.input(
@@ -1154,9 +1156,19 @@ export const inventoriesRouter = createTRPCRouter({
 			await requireAnyOperationalPermission(
 				props.ctx,
 				["editOrders"],
-				"You do not have permission to override inventory availability for sales status changes.",
+				"You do not have permission to resolve inventory for sales status changes.",
 			);
-			return overrideSalesInventoryMarkAsAvailabilityForContinue(props.ctx.db, {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to receive inbound materials.",
+			);
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editProduction"],
+				"You do not have permission to approve production material reviews.",
+			);
+			return resolveSalesStatusMarkAsDependenciesForContinue(props.ctx.db, {
 				...props.input,
 				authorName: String(props.ctx.userId ?? "System"),
 				triggeredByUserId: props.ctx.userId ?? null,

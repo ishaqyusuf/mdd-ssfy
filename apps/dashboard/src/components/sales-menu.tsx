@@ -26,6 +26,7 @@ import type {
 	SalesInventoryMarkAsAction,
 	SalesInventoryMarkAsPreflightResult,
 } from "@gnd/sales/sales-inventory-mark-as-preflight";
+import type { SalesStatusMarkAsPreflightResult } from "@gnd/sales/sales-status-mark-as-resolution";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { AlertDialog, DropdownMenu } from "@gnd/ui/namespace";
@@ -910,7 +911,7 @@ function SalesMenuMarkAs({
 	const sq = useSalesQueryClient(state.salesRefs);
 	const salesIds = state.salesIds;
 	const [inventoryPreflight, setInventoryPreflight] =
-		useState<SalesInventoryMarkAsPreflightResult | null>(null);
+		useState<SalesStatusMarkAsPreflightResult | null>(null);
 	const [preflightLoadingAction, setPreflightLoadingAction] =
 		useState<SalesInventoryMarkAsAction | null>(null);
 	const isDisabled = disabled || !salesIds.length;
@@ -1306,9 +1307,9 @@ function SalesMenuMarkAs({
 
 			setInventoryPreflight(null);
 			toast({
-				title: "Availability override recorded",
+				title: "Inventory and production resolved",
 				description:
-					"The status update can continue. Canonical inventory and inbound evidence were preserved.",
+					"Inbound receipts and production approvals are complete. The status update is continuing.",
 				variant: "success",
 			});
 
@@ -1317,10 +1318,13 @@ function SalesMenuMarkAs({
 			} else {
 				await startMarkFulfilledTask();
 			}
-		} catch {
+		} catch (error) {
 			toast({
 				title: "Unable to resolve inventory",
-				description: "The availability override could not be saved.",
+				description:
+					error instanceof Error
+						? error.message
+						: "The inventory and production dependencies could not be resolved.",
 				variant: "destructive",
 			});
 		}
@@ -1389,7 +1393,7 @@ function SalesMenuMarkAs({
 	const isResolvingInventory = resolveInventoryMarkAsMutation.isPending;
 	const primaryInventoryActionLabel = isResolvingInventory
 		? "Resolving..."
-		: "Mark available and continue";
+		: "Receive, approve and continue";
 	const dialog = (
 		<AlertDialog
 			open={Boolean(inventoryPreflight)}
@@ -1402,8 +1406,8 @@ function SalesMenuMarkAs({
 					<AlertDialog.Title>Inventory needs attention</AlertDialog.Title>
 					<AlertDialog.Description>
 						{inventoryPreflight
-							? `${markAsActionLabels[inventoryPreflight.action]} is paused because configured inventory still has unresolved stock work.`
-							: "Configured inventory still has unresolved stock work."}
+							? `${markAsActionLabels[inventoryPreflight.action]} is paused while inventory and production dependencies are resolved.`
+							: "Inventory and production dependencies still need resolution."}
 					</AlertDialog.Description>
 				</AlertDialog.Header>
 				{inventoryPreflight ? (
@@ -1411,33 +1415,82 @@ function SalesMenuMarkAs({
 						<div className="grid gap-2 sm:grid-cols-3">
 							<div className="rounded-md border bg-muted/30 px-3 py-2">
 								<div className="text-[11px] uppercase text-muted-foreground">
-									Orders blocked
+									Orders affected
 								</div>
 								<div className="text-base font-semibold">
-									{inventoryPreflight.blockedSaleCount}
+									{inventoryPreflight.automation.affectedSalesOrderCount}
 								</div>
 							</div>
 							<div className="rounded-md border bg-muted/30 px-3 py-2">
 								<div className="text-[11px] uppercase text-muted-foreground">
-									Pending qty
+									Inbound to receive
 								</div>
 								<div className="text-base font-semibold">
-									{formatInventoryQty(inventoryPreflight.totals.pendingQty)}
+									{inventoryPreflight.automation.inboundShipmentCount}
 								</div>
 							</div>
 							<div className="rounded-md border bg-muted/30 px-3 py-2">
 								<div className="text-[11px] uppercase text-muted-foreground">
-									Open inbound
+									Reviews to approve
 								</div>
 								<div className="text-base font-semibold">
-									{formatInventoryQty(inventoryPreflight.totals.openInboundQty)}
+									{inventoryPreflight.automation.pendingProductionReviewCount}
 								</div>
 							</div>
 						</div>
 						<div className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-							Marking available records an explicit status override and
-							continues this action. Existing linked receiving and allocation
-							evidence is preserved for later review.
+							<div className="font-medium text-foreground">
+								One click will complete these steps:
+							</div>
+							<ul className="mt-1 list-disc space-y-1 pl-4">
+								{inventoryPreflight.automation.inboundShipmentCount > 0 ? (
+									<li>
+										Receive {inventoryPreflight.automation.inboundShipmentCount}{" "}
+										inbound shipment
+										{inventoryPreflight.automation.inboundShipmentCount === 1
+											? ""
+											: "s"}{" "}
+										(
+										{formatInventoryQty(
+											inventoryPreflight.automation.inboundQtyToReceive,
+										)}{" "}
+										remaining)
+									</li>
+								) : null}
+								{inventoryPreflight.automation.pendingProductionReviewCount >
+								0 ? (
+									<li>
+										Approve all{" "}
+										{inventoryPreflight.automation.pendingProductionReviewCount}{" "}
+										production material review
+										{inventoryPreflight.automation
+											.pendingProductionReviewCount === 1
+											? ""
+											: "s"}
+									</li>
+								) : null}
+								{inventoryPreflight.automation
+									.manualAvailabilityComponentCount > 0 ? (
+									<li>
+										Resolve or override{" "}
+										{
+											inventoryPreflight.automation
+												.manualAvailabilityComponentCount
+										}{" "}
+										remaining component
+										{inventoryPreflight.automation
+											.manualAvailabilityComponentCount === 1
+											? ""
+											: "s"}{" "}
+										availability checks with an audit record
+									</li>
+								) : null}
+								<li>
+									{inventoryPreflight.automation.willCompleteDispatch
+										? "Pack the order and complete its dispatch"
+										: "Submit and complete production"}
+								</li>
+							</ul>
 						</div>
 						<div className="max-h-64 overflow-y-auto rounded-md border uppercase">
 							{blockerPreview.map((blocker) => (

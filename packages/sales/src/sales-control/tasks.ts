@@ -585,6 +585,80 @@ export function buildAutoPackingLines(
 	return packingLines;
 }
 
+async function releaseAutomaticNonProductionMaterialReviews(
+	db: Db,
+	data: UpdateSalesControl,
+	info: RenturnTypeAsync<typeof getSaleInformation>,
+) {
+	const nonProductionControlUids = info.items
+		.filter((item) => item.itemConfig && !item.itemConfig.production)
+		.map((item) => item.controlUid)
+		.filter((uid): uid is string => Boolean(uid));
+	if (!nonProductionControlUids.length) return 0;
+
+	const candidates = await db.orderProductionSubmissions.findMany({
+		where: {
+			salesOrderId: data.meta.salesId,
+			deletedAt: null,
+			assignment: {
+				salesItemControlUid: { in: nonProductionControlUids },
+			},
+			materialReview: {
+				status: "PENDING",
+				classificationReason: "NOT_CONFIGURED",
+			},
+		},
+		select: {
+			id: true,
+			meta: true,
+		},
+	});
+	const submissionIds = candidates
+		.filter(
+			(submission) =>
+				asJsonRecord(submission.meta).source === "sales_mark_as_completed",
+		)
+		.map((submission) => submission.id);
+	if (!submissionIds.length) return 0;
+
+	return runDbTransaction(
+		{
+			client: db,
+			operation: "sales-control.release-non-production-material-review",
+			profile: "workflow",
+		},
+		async (tx) => {
+			const released = await tx.orderProductionSubmissions.updateMany({
+				where: {
+					id: { in: submissionIds },
+					deletedAt: null,
+					materialReview: {
+						status: "PENDING",
+						classificationReason: "NOT_CONFIGURED",
+					},
+				},
+				data: { materialReviewId: null },
+			});
+			if (!released.count) return 0;
+
+			await tx.salesHistory.create({
+				data: {
+					salesId: data.meta.salesId,
+					name: "Non-production material review released for fulfillment",
+					authorName: data.meta.authorName,
+					data: {
+						type: "non_production_material_review_released",
+						submissionIds,
+						triggeredByUserId: data.meta.authorId,
+					},
+				},
+			});
+			await resetSalesAction(tx as any, data.meta.salesId);
+			return released.count;
+		},
+	);
+}
+
 function buildSelectionPackingLinesFromRequestedItems(
 	info: RenturnTypeAsync<typeof getSaleInformation>,
 	requestedItems: NonNullable<
@@ -650,8 +724,9 @@ export async function packDispatchItemTask(
 ) {
 	const packMode = data.packItems?.packMode!;
 	const requestedDispatchStatus = data.packItems?.dispatchStatus;
+	let assignmentInfo: RenturnTypeAsync<typeof getSaleInformation> | null = null;
 	if (packMode == "all") {
-		const assignmentInfo = await getSaleInformation(
+		assignmentInfo = await getSaleInformation(
 			db,
 			{
 				salesId: data.meta.salesId,
@@ -696,6 +771,12 @@ export async function packDispatchItemTask(
 			},
 			dependencies,
 			{ emptySubmissionBehavior: "skip" },
+		);
+	if (packMode == "all" && assignmentInfo)
+		await releaseAutomaticNonProductionMaterialReviews(
+			db,
+			data,
+			assignmentInfo,
 		);
 	const info = await getSaleInformation(
 		db,
@@ -1125,7 +1206,7 @@ export async function markAsCompletedTask(
 		saveNoteAction?: typeof saveNote;
 	} = {},
 ) {
-	await packDispatchItemTask(
+	const packing = await packDispatchItemTask(
 		db,
 		{
 			meta: args.meta,
@@ -1133,11 +1214,39 @@ export async function markAsCompletedTask(
 				dispatchId: args.markAsCompleted?.dispatchId!,
 				packMode: "all",
 				dispatchStatus: "completed",
-				replaceExisting: true,
 			},
 		},
 		dependencies,
 	);
+	if (packing.created === 0) {
+		const packedItemCount = await db.orderItemDelivery.count({
+			where: {
+				orderDeliveryId: args.markAsCompleted?.dispatchId!,
+				deletedAt: null,
+				packingStatus: "packed",
+			},
+		});
+		if (packedItemCount === 0) {
+			const pendingMaterialReviewCount =
+				await db.orderProductionSubmissions.count({
+				where: {
+					salesOrderId: args.meta.salesId,
+					deletedAt: null,
+					materialReview: {
+						status: "PENDING",
+					},
+				},
+			});
+			if (pendingMaterialReviewCount > 0) {
+				throw new Error(
+					"Unable to fulfill while production submissions are awaiting material review.",
+				);
+			}
+			throw new Error(
+				"Unable to fulfill because no approved items are available to pack.",
+			);
+		}
+	}
 	await submitDispatchTask(
 		db,
 		{

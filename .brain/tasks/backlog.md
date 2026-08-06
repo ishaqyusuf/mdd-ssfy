@@ -38,6 +38,13 @@ Tracks queued work that is important but not currently in the top execution slic
 - Created Date: 2026-06-22
 
 ## Next Up
+- [ ] Review and, when approved, implement the proposed Table Row Processing
+  And Exit Feedback pilot on
+  canonical Sales Orders: preserve immediate query invalidation while showing
+  amber processing, green committed success, red failure, and a short-lived
+  presentation-only retained row when the refreshed active view excludes it
+  (`brain/plans/2026-08-06-ux-ui-table-row-processing-exit-feedback.md`) (UI +
+  Query Lifecycle + Task Monitor + Validation)
 - [ ] 2026-06-09 mobile sales invoice form feature: add a sales invoice form flow to the mobile app, covering invoice creation/editing, customer/order context, line-item entry, save/submit behavior, and parity with the web sales invoice workflow where applicable (Expo + API + UI + Validation)
 - [ ] June 5, 2026 sales backlog: promote Sales Orders V2 from super-admin/default-route gating to the general Sales orders experience, including navigation/default tab behavior and legacy fallback review (UI + Validation)
 - [ ] June 5, 2026 sales backlog: make the Sales Payment Link checkout orders list independently scrollable when many orders are attached, so the right-side summary/payment card remains visible while reviewing orders (UI + Validation)

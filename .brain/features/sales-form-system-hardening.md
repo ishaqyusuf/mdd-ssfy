@@ -46,6 +46,8 @@
 - Shelf combobox content nodes use stable object refs, and the shelf costing
   helper is memoized per item step. Shelf product effects can update costing
   without creating a render feedback loop.
+- Shelf product search results render inside a dedicated bounded scroll region,
+  so long product matches no longer grow the new-sales-form popup and page.
 - Edit routes can resolve an active order or quote by canonical slug or visible
   document number. Slug lookup runs first, while the order-number fallback
   preserves legacy bookmarks and cross-surface redirects such as
@@ -160,6 +162,9 @@
   renders `#09158PC 08/03/26` from its persisted date with the same controls
   hidden. Seven focused tests / 20 assertions, the Sales package typecheck,
   scoped Biome checks, and browser console-error check pass.
+- 2026-08-06 the focused shelf product picker UI regression passes 1 test / 2
+  assertions and confirms the results container has a fixed maximum height with
+  vertical scrolling and contained overscroll.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

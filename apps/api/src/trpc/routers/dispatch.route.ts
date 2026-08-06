@@ -56,7 +56,6 @@ import { finalizeUploadedDocument } from "@api/utils/upload-finalization";
 import { decodeValidatedDocumentBase64 } from "@api/utils/upload-validation";
 import type { Db, TransactionClient } from "@gnd/db";
 import type { DevLogEntry } from "@gnd/dev-logger";
-import { appendDevLogEntryToFile } from "@gnd/dev-logger/file-sink";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
 import type { DeliveryOption } from "@gnd/utils/sales";
 import { NotificationService } from "@notifications/services/triggers";
@@ -1392,6 +1391,9 @@ export const dispatchRouters = createTRPCRouter({
 			if (!isDev || !enabled) {
 				return { ok: true, skipped: true };
 			}
+			const { appendDevLogEntryToFile } = await import(
+				"@gnd/dev-logger/file-sink"
+			);
 			await appendDevLogEntryToFile(props.input.entry as DevLogEntry);
 			return { ok: true, skipped: false };
 		}),

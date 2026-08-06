@@ -11,8 +11,11 @@ function randomSuffix() {
 function isWorkspaceRoot(dir: string) {
   try {
     const packageJsonPath = path.join(dir, "package.json");
-    if (!existsSync(packageJsonPath)) return false;
-    const raw = readFileSync(packageJsonPath, "utf8");
+    if (!existsSync(/* turbopackIgnore: true */ packageJsonPath)) return false;
+    const raw = readFileSync(
+      /* turbopackIgnore: true */ packageJsonPath,
+      "utf8",
+    );
     const parsed = JSON.parse(raw) as { workspaces?: unknown };
     return Array.isArray(parsed.workspaces);
   } catch {
@@ -43,8 +46,11 @@ export async function appendDevLogEntryToFile(
   await mkdir(dir, { recursive: true });
 
   let existingRaw = "{}";
-  if (existsSync(filePath)) {
-    existingRaw = await readFile(filePath, "utf8");
+  if (existsSync(/* turbopackIgnore: true */ filePath)) {
+    existingRaw = await readFile(
+      /* turbopackIgnore: true */ filePath,
+      "utf8",
+    );
   }
 
   let parsed: Record<string, unknown> = {};

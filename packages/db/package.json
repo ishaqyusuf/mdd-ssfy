@@ -12,7 +12,7 @@
 	},
 	"scripts": {
 		"--postinstall": "bunx prisma generate",
-		"build": "prisma generate && tsc",
+		"build": "if [ \"$VERCEL\" = \"1\" ]; then echo \"Prisma Client generated during Vercel install\"; else prisma generate && tsc; fi",
 		"clean": "rm -rf .turbo node_modules",
 		"db:generate": "prisma generate",
 		"db:migrate": "prisma migrate dev",

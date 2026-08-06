@@ -229,37 +229,42 @@ export function ShelfProductCombobox(props: {
 					</ComboboxTrigger>
 				)}
 			</ComboboxAnchor>
-			<ComboboxContent className="relative max-h-[300px] overflow-y-auto overflow-x-hidden">
+			<ComboboxContent className="relative overflow-hidden p-0">
 				<ComboboxEmpty>No product found</ComboboxEmpty>
-				{filteredProducts.map((product) => (
-					<ComboboxItem
-						key={`shelf-product-option-${product.id}`}
-						value={String(product.id)}
-						outset
-					>
-						<div className="flex w-full items-center gap-3">
-							{product?.img ? (
-								<img
-									src={String(product.img)}
-									alt={String(product?.title || "Product")}
-									className="size-8 rounded-md border border-slate-200 object-cover"
-								/>
-							) : (
-								<div className="flex size-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500">
-									<Icons.Package2 className="size-4" />
+				<div
+					data-shelf-product-results="true"
+					className="max-h-72 overflow-y-auto overflow-x-hidden overscroll-contain p-1"
+				>
+					{filteredProducts.map((product) => (
+						<ComboboxItem
+							key={`shelf-product-option-${product.id}`}
+							value={String(product.id)}
+							outset
+						>
+							<div className="flex w-full items-center gap-3">
+								{product?.img ? (
+									<img
+										src={String(product.img)}
+										alt={String(product?.title || "Product")}
+										className="size-8 rounded-md border border-slate-200 object-cover"
+									/>
+								) : (
+									<div className="flex size-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500">
+										<Icons.Package2 className="size-4" />
+									</div>
+								)}
+								<div className="min-w-0 flex-1">
+									<p className="truncate text-sm font-medium text-slate-900">
+										{product.title}
+									</p>
+									<p className="text-[11px] text-muted-foreground">
+										{props.formatMoney(Number(product?.unitPrice || 0))}
+									</p>
 								</div>
-							)}
-							<div className="min-w-0 flex-1">
-								<p className="truncate text-sm font-medium text-slate-900">
-									{product.title}
-								</p>
-								<p className="text-[11px] text-muted-foreground">
-									{props.formatMoney(Number(product?.unitPrice || 0))}
-								</p>
 							</div>
-						</div>
-					</ComboboxItem>
-				))}
+						</ComboboxItem>
+					))}
+				</div>
 			</ComboboxContent>
 		</Combobox>
 	);

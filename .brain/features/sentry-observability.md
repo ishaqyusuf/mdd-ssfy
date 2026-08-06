@@ -25,7 +25,7 @@ filtering without duplicating backend project administration.
 - Trace sampling is `0.1`; client replay keeps `0.1` session sampling and `1.0` error sampling.
 - `withSentryConfig` runs only for production builds.
 - Release order is `SENTRY_RELEASE`, `VERCEL_GIT_COMMIT_SHA`, then `GIT_COMMIT_SHA`.
-- Source maps upload with `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`, then are deleted from the deployment artifact.
+- Source maps upload with `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`, then are deleted from the deployment artifact. Dashboard builds keep `widenClientFileUpload` disabled so Sentry uploads the required mapping set without widening the artifact scan to thousands of additional files.
 - Route-level and root-level error boundaries capture production render failures.
 - The legacy public `/api/sentry-example-api` always-throwing route is removed;
   controlled failures must not remain exposed in production.
