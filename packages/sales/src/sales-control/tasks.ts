@@ -39,10 +39,15 @@ type SubmitAllTaskDependencies = {
 	prepareMaterialReview?: typeof prepareProductionSubmissionMaterialReview;
 };
 
+type SubmitAllTaskOptions = {
+	emptySubmissionBehavior?: "error" | "skip";
+};
+
 export async function submitAllTask(
 	db: Db,
 	data: UpdateSalesControl,
 	dependencies: SubmitAllTaskDependencies = {},
+	options: SubmitAllTaskOptions = {},
 ) {
 	const submitArgs = data.submitAll;
 	if (!submitArgs)
@@ -68,6 +73,7 @@ export async function submitAllTask(
 		...effectiveSubmitArgs,
 	});
 	if (!submissionPlan.itemScope.length) {
+		if (options.emptySubmissionBehavior === "skip") return null;
 		throw new Error("Unable to complete, nothing to submit!");
 	}
 	const idempotencyKey =
@@ -689,6 +695,7 @@ export async function packDispatchItemTask(
 				submitAll: {},
 			},
 			dependencies,
+			{ emptySubmissionBehavior: "skip" },
 		);
 	const info = await getSaleInformation(
 		db,

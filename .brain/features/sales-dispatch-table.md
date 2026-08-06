@@ -1,6 +1,13 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-06: Hardened legacy `Mark as completed` for already-produced orders.
+  Pack-all and pack-available now treat an empty production plan as a workflow
+  no-op and continue packing existing deliverables; the direct production
+  submission command still rejects an empty plan. This covers both fresh
+  completion and production-submitted-before-packing states. Authenticated dev
+  browser verification completed the first ten visible orders and confirmed
+  all ten reached `Ready to fulfill` without the empty-submission error.
 - 2026-08-05: Fixed the legacy `Mark as completed` orchestration so pack-all is
   the single owner of auto-assignment, production submission, and packing. The
   command no longer pre-submits production and then fails when pack-all sees an

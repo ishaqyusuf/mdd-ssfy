@@ -551,6 +551,105 @@ describe("sales-control task transactions", () => {
     expect(saveNoteMock).toHaveBeenCalledTimes(1);
   });
 
+  it("marks an already-produced dispatch complete without requiring another submission", async () => {
+    const producedInfo = {
+      order: { id: 9001 },
+      items: [
+        {
+          controlUid: "door-1",
+          itemId: 10,
+          analytics: {
+            assignment: { pending: { qty: 0, lh: 0, rh: 0 } },
+            pendingSubmissions: [],
+          },
+          deliverables: [
+            { submissionId: 501, qty: { qty: 1, lh: 0, rh: 0 } },
+          ],
+        },
+      ],
+    };
+    getSaleInformationMock
+      .mockResolvedValueOnce(producedInfo)
+      .mockResolvedValueOnce(producedInfo)
+      .mockResolvedValueOnce(producedInfo);
+    const tx = {
+      orderItemDelivery: {
+        updateMany: mock(async () => ({ count: 0 })),
+      },
+      orderDelivery: {
+        findFirst: mock(async () => ({
+          status: "packed",
+          deliveredAt: null,
+          salesOrderId: 9001,
+          meta: {},
+        })),
+        update: mock(async () => ({})),
+      },
+    };
+    const db = {
+      $transaction: async (fn: (client: typeof tx) => Promise<unknown>) =>
+        fn(tx),
+    };
+
+    await tasksModule.markAsCompletedTask(
+      db as any,
+      {
+        meta: { salesId: 9001, authorId: 12, authorName: "Operator" },
+        markAsCompleted: {
+          dispatchId: 90,
+          receivedBy: "Customer",
+          note: "Delivered",
+        },
+      } as any,
+      { saveNoteAction: saveNoteMock },
+    );
+
+    expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
+    expect(packDispatchItemsActionMock).toHaveBeenCalledTimes(1);
+    expect(packDispatchItemsActionMock.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        packItems: expect.objectContaining({
+          packingLines: [
+            {
+              salesItemId: 10,
+              submissionId: 501,
+              qty: { qty: 1, lh: 0, rh: 0 },
+            },
+          ],
+        }),
+      }),
+    );
+    expect(saveNoteMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a direct production submission when there is nothing to submit", async () => {
+    getSaleInformationMock.mockResolvedValueOnce({
+      order: { id: 9001 },
+      items: [
+        {
+          controlUid: "door-1",
+          itemId: 10,
+          analytics: {
+            assignment: { pending: { qty: 0, lh: 0, rh: 0 } },
+            pendingSubmissions: [],
+          },
+        },
+      ],
+    });
+
+    await expect(
+      tasksModule.submitAllTask(
+        {} as any,
+        {
+          meta: { salesId: 9001, authorId: 12 },
+          submitAll: {},
+        } as any,
+      ),
+    ).rejects.toThrow("Unable to complete, nothing to submit!");
+
+    expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
+  });
+
   it("packDispatchItemTask can replace existing dispatch packings atomically", async () => {
     const tx = {
       orderItemDelivery: {

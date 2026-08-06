@@ -1,5 +1,18 @@
 # Progress
 
+- 2026-08-06: completed the follow-up repair for `update-sales-control` Mark As
+  Completed failures with `Unable to complete, nothing to submit!`. The earlier
+  duplicate outer submit was only one failure state: pack-all also reaches a
+  valid already-produced state with no pending production and existing
+  deliverables. Pack workflows now skip that empty production no-op and continue
+  packing, while direct production submit commands remain strict. The exact
+  reported stack was reproduced twice before the fix; the focused transaction
+  suite passes 18 tests / 63 assertions, both Sales and Jobs typechecks pass,
+  and whitespace validation passes. Authenticated dev browser proof marked the
+  first ten visible orders production-complete; all ten reached `Ready to
+  fulfill` without the reported failure. See
+  `.brain/bugs/2026-08-05-mark-as-completed-double-production-submit.md`.
+
 - 2026-08-05: corrected the mobile dashboard avatar-sheet interpretation. The
   dedicated hamburger/mobile sidebar trigger and the independent Search,
   request, bug-report, test-email, and notification header actions are restored.

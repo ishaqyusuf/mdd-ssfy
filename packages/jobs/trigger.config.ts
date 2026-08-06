@@ -55,6 +55,7 @@ export default defineConfig({
       //   vercelAccessToken: process.env.VERCEL_TRIGGER_ACCESS_TOKEN!,
       // }),
       prismaExtension({
+        mode: "legacy",
         // version: "5.20.0", // optional, we'll automatically detect the version if not provided
         // update this to the path of your Prisma schema file
         version: "^6.5.0",
