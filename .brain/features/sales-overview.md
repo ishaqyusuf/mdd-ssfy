@@ -42,6 +42,12 @@ opening production, dispatch, packing, or inventory workflows.
   list projections through `customer.changed`.
 - A billing address displayed as the shipping fallback is not reused as the
   editable shipping row; the shipping action creates a distinct address.
+- Address panes prefill assigned address data, use `Save`, close after the
+  awaited `customer.changed` refresh, and immediately show the new projection.
+  Recipient names are address-specific, and shipping creation hydrates from the
+  billing address id assigned to the mounted sale.
+  Fulfilled lifecycle status removes billing, shipping, and the address-capable
+  customer editor; the API independently rejects those writes.
 - Only the active tab content renders; inactive production, dispatch,
   transaction, inventory, and activity providers do not mount.
 - Explicit dispatch mode is honored for users with broader order access.

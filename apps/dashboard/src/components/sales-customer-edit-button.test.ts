@@ -83,7 +83,7 @@ describe("sales customer edit button", () => {
 				addressId: 7,
 				address: "bad",
 			}),
-		).toBeNull();
+		).toBe(null);
 	});
 
 	it("consumes only the matching completed address edit payload", () => {
@@ -142,6 +142,66 @@ describe("sales customer edit button", () => {
 		expect(sharedSheetSource.includes('!secondaryOpened && "hidden"')).toBe(
 			true,
 		);
+	});
+
+	it("uses Save in the address pane and locks fulfilled sales", () => {
+		const paneSource = readFileSync(
+			new URL(
+				"./sheets/sales-overview-sheet/sales-address-pane.tsx",
+				import.meta.url,
+			),
+			"utf8",
+		);
+		const generalSource = readFileSync(
+			new URL("./sheets/sales-overview-sheet/general-tab.tsx", import.meta.url),
+			"utf8",
+		);
+		const addressFieldsSource = readFileSync(
+			new URL(
+				"./forms/customer-form/customer-address-fields.tsx",
+				import.meta.url,
+			),
+			"utf8",
+		);
+		const overviewSource = readFileSync(
+			new URL("./sheets/sales-overview-sheet/index.tsx", import.meta.url),
+			"utf8",
+		);
+		const addressPaneSource = readFileSync(
+			new URL(
+				"./sheets/sales-overview-sheet/sales-address-pane.tsx",
+				import.meta.url,
+			),
+			"utf8",
+		);
+
+		expect(
+			/<SubmitButton[\s\S]*?>\s*Save\s*<\/SubmitButton>/.test(paneSource),
+		).toBe(true);
+		expect(
+			generalSource.includes('documentStatus.status === "fulfilled"'),
+		).toBe(true);
+		const customerButtonStart = generalSource.indexOf(
+			"<SalesCustomerEditButton",
+		);
+		const customerButtonEnd = generalSource.indexOf("/>", customerButtonStart);
+		expect(
+			generalSource
+				.slice(customerButtonStart, customerButtonEnd)
+				.includes("addressEditingLocked"),
+		).toBe(true);
+		expect(addressFieldsSource.includes('fieldName(prefix, "name")')).toBe(
+			true,
+		);
+		expect(addressFieldsSource.includes('label="Recipient Name"')).toBe(true);
+		expect(
+			overviewSource.includes(
+				"billingAddressId={data.addressData?.billing?.id}",
+			),
+		).toBe(true);
+		expect(
+			/billingId:[\s\S]*?: billingAddressId,/.test(addressPaneSource),
+		).toBe(true);
 	});
 
 	it("keeps Sales Overview footers inside the shared sheet provider", () => {

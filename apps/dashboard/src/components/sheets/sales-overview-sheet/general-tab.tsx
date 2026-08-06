@@ -114,6 +114,7 @@ export function GeneralTab({
     const dispatchCount = saleData?.dispatchList?.length ?? 0;
     const customerEmail = saleData?.email;
     const documentStatus = getSalesOverviewDocumentStatus(saleData);
+    const addressEditingLocked = documentStatus.status === "fulfilled";
     const hasInventoryInbound =
         !!saleData?.inventoryInboundOwnership?.hasInventoryInbound;
     const selectedInventoryInboundId = getSingleInventoryInboundId(
@@ -199,7 +200,10 @@ export function GeneralTab({
                                     }
                                     salesType={isQuote ? "quote" : "order"}
                                     onEdit={onEditCustomer}
-                                    readOnly={Boolean(saleData?.isDealerSale)}
+                                    readOnly={Boolean(
+                                        saleData?.isDealerSale ||
+                                            addressEditingLocked,
+                                    )}
                                 />
                             </div>
                             <div className="space-y-3">
@@ -663,7 +667,8 @@ export function GeneralTab({
                                                 })
                                             }
                                             readOnly={Boolean(
-                                                saleData?.isDealerSale,
+                                                saleData?.isDealerSale ||
+                                                    addressEditingLocked,
                                             )}
                                         />
                                     </div>

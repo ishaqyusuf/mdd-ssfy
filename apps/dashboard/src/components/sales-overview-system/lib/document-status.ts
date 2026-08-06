@@ -105,6 +105,7 @@ export function getSalesOverviewDocumentStatus(
 		return {
 			label: quoteStatus.label,
 			labelText: "Quote Status",
+			status: quoteStatus.status,
 			className: cn(
 				salesOverviewDocumentStatusVariants({
 					status: quoteStatus.status,
@@ -144,6 +145,7 @@ export function getSalesOverviewDocumentStatus(
 	return {
 		label: lifecycleStatus.label,
 		labelText: "Order Status",
+		status: lifecycleStatus.status,
 		className: cn(
 			salesOverviewDocumentStatusVariants({
 				status: lifecycleStatus.status,

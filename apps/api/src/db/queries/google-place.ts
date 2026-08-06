@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-type GooglePlaceDetails = {
+export type GooglePlaceDetails = {
 	adrFormatAddress?: string;
 	formattedAddress?: string;
 	location?: { latitude?: number; longitude?: number };
@@ -29,6 +29,65 @@ export const placeAutoCompleteSchema = z.object({
 export const placeSchema = z.object({
 	placeId: z.string(),
 });
+
+export function formatGooglePlaceAddress(
+	data: GooglePlaceDetails,
+	placeId: string,
+) {
+	const adrValue = (className: string) => {
+		const pattern = new RegExp(`<span class="${className}">([^<]+)<\\/span>`);
+		return (
+			String(data.adrFormatAddress || "")
+				.match(pattern)?.[1]
+				?.trim() || ""
+		);
+	};
+	const componentValue = (
+		type: string,
+		valueKey: "longText" | "shortText" = "longText",
+	) =>
+		data.addressComponents
+			?.find((component) => component.types?.includes(type))
+			?.[valueKey]?.trim() || "";
+
+	const streetNumber = componentValue("street_number");
+	const route = componentValue("route");
+	const subpremise = componentValue("subpremise");
+	const componentAddress = [streetNumber, route].filter(Boolean).join(" ");
+	const city =
+		componentValue("locality") ||
+		componentValue("postal_town") ||
+		componentValue("sublocality_level_1") ||
+		componentValue("sublocality") ||
+		componentValue("administrative_area_level_2") ||
+		adrValue("locality");
+	const region =
+		componentValue("administrative_area_level_1", "shortText") ||
+		componentValue("administrative_area_level_1") ||
+		adrValue("region");
+	const postalCodeBase =
+		componentValue("postal_code") || adrValue("postal-code");
+	const postalCodeSuffix = componentValue("postal_code_suffix");
+	const postalCode = [postalCodeBase, postalCodeSuffix]
+		.filter(Boolean)
+		.join("-");
+	const country = componentValue("country") || adrValue("country-name");
+
+	return {
+		address1: componentAddress || adrValue("street-address"),
+		address2: subpremise,
+		formattedAddress: data.formattedAddress || "",
+		city,
+		region,
+		state: region,
+		postalCode,
+		country,
+		lat: data.location?.latitude,
+		lng: data.location?.longitude,
+		placeId,
+	};
+}
+
 export async function autocomplete(
 	args: z.infer<typeof placeAutoCompleteSchema>,
 ) {
@@ -60,47 +119,7 @@ export async function place(placeId: string, sessionToken?: string) {
 		}
 
 		const data = (await response.json()) as GooglePlaceDetails;
-		const dataFinderRegx = (c: string) => {
-			const regx = new RegExp(`<span class="${c}">([^<]+)<\/span>`);
-			const match = String(data.adrFormatAddress || "").match(regx);
-			return match ? match[1] : "";
-		};
-		const dataFinderAddressComponent = (
-			type: "administrative_area_level_1",
-			valueKey: "longText" | "shortText" = "longText",
-		) => {
-			// [].includes
-			return data.addressComponents?.find((a) => a.types?.includes(type))?.[
-				valueKey
-			];
-		};
-		const address1 = dataFinderRegx("street-address");
-		const address2 = "";
-		const city = dataFinderRegx("locality");
-		const region = dataFinderAddressComponent(
-			"administrative_area_level_1",
-			"longText",
-		); //dataFinderRegx("region");
-		const postalCode = dataFinderRegx("postal-code");
-		const country = dataFinderRegx("country-name");
-		const lat = Number(data.location?.latitude);
-		const lng = Number(data.location?.longitude);
-
-		const formattedAddress = data.formattedAddress;
-
-		const formattedData = {
-			address1,
-			address2,
-			formattedAddress,
-			city,
-			region,
-			state: region,
-			postalCode,
-			country,
-			lat,
-			lng,
-			placeId,
-		};
+		const formattedData = formatGooglePlaceAddress(data, placeId);
 
 		return {
 			data: {
@@ -144,7 +163,7 @@ export async function searchGooglePlace(
 		"street_address",
 		"subpremise",
 		"route",
-		"street_number",
+		"premise",
 		"landmark",
 	];
 	//   try {

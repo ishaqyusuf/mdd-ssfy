@@ -1038,6 +1038,18 @@ Tracks important request/response contracts and shared schema boundaries.
   and address fields. It requires customer-edit permission, rejects dealer-owned
   customers and mismatched/non-office sales, copy-on-writes shared addresses,
   and updates only the requested relation on the initiating sale.
+- `customers.assignSalesAddress` and sales-context `customers.createCustomer`
+  reject `CONFLICT` once the sale's canonical lifecycle is fulfilled, including
+  fulfillment derived from a completed delivery with delivered items. This
+  server guard is authoritative even if a stale client still exposes an editor.
+- Customer address inputs include an optional address-specific `name`; billing
+  and shipping recipients persist independently of the owning customer name.
+- `google.place` normalizes Google `addressComponents` into the customer form
+  address contract. Locality/postal-town fallbacks supply city, state uses the
+  administrative-area short code, and ZIP suffixes are preserved.
+- `google.places` restricts US suggestions with supported primary types
+  (`street_address`, `subpremise`, `route`, `premise`, and `landmark`);
+  component-only `street_number` is not sent as a primary-type filter.
 - `customers.getSalesCustomer` exposes a normalized `customerForm` projection
   containing the exact requested billing/shipping assignments and strict
   non-null id equality for `shippingSameAsBilling`; Sales Overview uses this

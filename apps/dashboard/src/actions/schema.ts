@@ -22,6 +22,7 @@ const phoneNumberSchema = z.preprocess(
 
 export const customerAddressInputSchema = z.object({
 	addressId: z.number().optional().nullable(),
+	name: z.string().optional().nullable(),
 	route: z.string().optional().nullable(),
 	address1: z.string().optional().nullable(),
 	formattedAddress: z.string().optional().nullable(),

@@ -138,6 +138,7 @@ function Content() {
 					<SalesAddressPane
 						key={`${pane.addressType}-${pane.addressId ?? "new"}`}
 						selection={pane}
+						billingAddressId={data.addressData?.billing?.id}
 						customerId={data.customerId}
 						salesId={data.id}
 						onClose={discardPane}

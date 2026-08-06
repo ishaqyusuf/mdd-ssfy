@@ -8552,3 +8552,23 @@
   tests / 231 assertions, including the reported fixture and recall through
   1,000 numeric collisions; a synthetic 5,000-row matcher benchmark compiled in
   about 18ms and searched in about 2ms. No database migration was required.
+- 2026-08-06: hardened Sales Overview customer/address editing. Assigned
+  addresses retain the existing prefilled secondary-pane behavior, the address
+  action reads `Save`, billing and shipping persist independent recipient
+  names, and successful customer/address updates close only the
+  secondary pane after centralized `customer.changed` refresh makes the mounted
+  overview current. Canonically fulfilled sales hide billing, shipping, and the
+  address-capable customer editor; direct address and sales-context customer
+  mutations reject raw-status or completed-delivery fulfillment server-side.
+  Google Place resolution now derives city, state, ZIP, and country from
+  structured address components instead of depending on optional ADR HTML, and
+  autocomplete no longer sends Google's invalid `street_number` primary-type
+  filter.
+  Authenticated browser QA updated distinct billing/shipping recipients and
+  billing address data on order `09128DB`, updated
+  customer/shipping context on quote `03329LRG`, confirmed immediate pane close
+  and overview refresh without reload, and verified all three edit paths are
+  absent on fulfilled order `09168PC`. Fifty-five focused tests / 122 assertions,
+  Sales/API typechecks, scoped Biome, and whitespace checks pass; the broad
+  Dashboard typecheck remains red on unrelated baseline diagnostics with no
+  touched-file diagnostic.

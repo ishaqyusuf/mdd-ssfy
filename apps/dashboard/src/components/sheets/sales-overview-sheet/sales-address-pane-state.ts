@@ -10,6 +10,7 @@ export function createSalesAddressPaneDraft({
 	selectedAddress?: CustomerAddressFormValue | null;
 }) {
 	return {
+		name: "",
 		address1: "",
 		address2: "",
 		city: "",

@@ -40,6 +40,20 @@
   Back or Cancel; Back keeps the mounted draft while Cancel discards it.
 - Successful saves publish `customer.changed`, refresh dependent sale data, and
   close only the address pane.
+- Existing address ids hydrate the secondary form before editing, and its
+  submit action is consistently labeled `Save` for both Add and Edit modes.
+- Billing and shipping forms expose an independent recipient name. Legacy
+  unnamed rows hydrate with the customer display name, while explicitly named
+  rows retain their own recipient; new shipping drafts use the billing address
+  assigned to the open sale, not an arbitrary customer primary-address row.
+- Selecting a Google Place populates street, unit, city, state abbreviation,
+  ZIP (including suffix), country, coordinates, and place id from Google's
+  structured address components, with legacy formatted-address fallbacks.
+  Autocomplete filters use supported primary place types only so Google does
+  not reject the entire request for an address-component-only type.
+- Canonically fulfilled orders are immutable from every Sales Overview
+  address-capable entry point. The direct address mutation and the full
+  sales-context customer mutation enforce the same lifecycle guard server-side.
 
 ## Validation
 

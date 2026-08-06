@@ -268,6 +268,10 @@ export function getSalesOrderLifecycleStatusInfo(
 	};
 }
 
+export function isSalesOrderFulfilled(input: SalesOrderLifecycleStatusInput) {
+	return getSalesOrderLifecycleStatus(input) === "fulfilled";
+}
+
 export function getSalesOrderLifecycleStatusLabel(
 	status: SalesOrderLifecycleStatus,
 ) {

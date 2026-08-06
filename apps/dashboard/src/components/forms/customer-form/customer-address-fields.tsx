@@ -31,6 +31,12 @@ export function CustomerAddressFields({
 
 	return (
 		<div className="space-y-4">
+			<FormInput
+				control={form.control}
+				name={fieldName(prefix, "name")}
+				label="Recipient Name"
+				size="sm"
+			/>
 			<AddressAutoComplete
 				searchInput={searchInput}
 				setSearchInput={setSearchInput}

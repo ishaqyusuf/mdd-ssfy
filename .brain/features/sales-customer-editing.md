@@ -46,6 +46,12 @@ directory.
 - Server-side customer and address mutations require `editSalesCustomers` and
   reject dealer-owned customer data; UI gating is not the authorization
   boundary.
+- Fulfilled sales hide the address-capable customer editor as well as the
+  billing and shipping address actions. Both sales-context customer updates
+  and direct sale-address assignments recheck the canonical fulfilled lifecycle
+  server-side and reject stale or forged writes.
+- Billing and shipping address recipients are editable independently from the
+  customer name and persist on their respective address-book records.
 
 ## Freshness
 

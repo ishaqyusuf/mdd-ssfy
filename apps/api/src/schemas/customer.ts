@@ -7,6 +7,7 @@ function hasText(value?: string | null) {
 
 export const customerAddressInputSchema = z.object({
 	addressId: z.number().optional().nullable(),
+	name: z.string().optional().nullable(),
 	address1: z.string().optional().nullable(),
 	formattedAddress: z.string().optional().nullable(),
 	address2: z.string().optional().nullable(),

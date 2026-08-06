@@ -1,17 +1,27 @@
 import { describe, expect, it } from "bun:test";
-import { assignSalesAddress } from "./customer";
+import {
+	assignSalesAddress,
+	createOrUpdateCustomer,
+	getSalesCustomer,
+} from "./customer";
 
 async function runAssignment({
 	billingAddressId,
+	completedDeliveryItems = 0,
 	requestedAddressId,
 	dealerOwnerId = null,
+	orderStatus = "Processing",
+	recipientName = "Shipping Recipient",
 	saleFound = true,
 	shippingAddressId,
 	salesReferenceCount,
 }: {
 	billingAddressId: number;
+	completedDeliveryItems?: number;
 	requestedAddressId?: number | null;
 	dealerOwnerId?: number | null;
+	orderStatus?: string | null;
+	recipientName?: string;
 	saleFound?: boolean;
 	shippingAddressId: number | null;
 	salesReferenceCount: number;
@@ -35,7 +45,17 @@ async function runAssignment({
 				saleFound
 					? {
 							billingAddressId,
+							deliveries:
+								completedDeliveryItems > 0
+									? [
+											{
+												_count: { items: completedDeliveryItems },
+												status: "completed",
+											},
+										]
+									: [],
 							id: 77,
+							status: orderStatus,
 							shippingAddressId,
 						}
 					: null,
@@ -71,6 +91,7 @@ async function runAssignment({
 		addressType: "shipping",
 		city: "Round Rock",
 		customerId: 42,
+		name: recipientName,
 		salesId: 77,
 		state: "TX",
 		zip_code: "78664",
@@ -92,6 +113,7 @@ describe("sales address assignment", () => {
 			address1: "900 Shipping Rd",
 			customerId: 42,
 			isPrimary: false,
+			name: "Shipping Recipient",
 		});
 		expect(calls.saleUpdate).toEqual({
 			where: { id: 77 },
@@ -140,6 +162,66 @@ describe("sales address assignment", () => {
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
 
+	it("rejects address changes for fulfilled sales", async () => {
+		await expect(
+			runAssignment({
+				billingAddressId: 201,
+				orderStatus: "Fulfilled",
+				shippingAddressId: 202,
+				salesReferenceCount: 0,
+			}),
+		).rejects.toMatchObject({
+			code: "CONFLICT",
+			message: "Fulfilled sales addresses cannot be edited.",
+		});
+	});
+
+	it("rejects address changes after delivery fulfillment", async () => {
+		await expect(
+			runAssignment({
+				billingAddressId: 201,
+				completedDeliveryItems: 1,
+				shippingAddressId: 202,
+				salesReferenceCount: 0,
+			}),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+	});
+
+	it("rejects the address-capable customer editor for fulfilled sales", async () => {
+		const tx = {
+			customers: {
+				findUnique: async () => ({ dealerOwnerId: null }),
+			},
+			salesOrders: {
+				findFirst: async () => ({
+					billingAddressId: 201,
+					deliveries: [],
+					id: 77,
+					shippingAddressId: 201,
+					status: "Fulfilled",
+				}),
+			},
+		};
+		const ctx = {
+			db: {
+				$transaction: async (run: (client: typeof tx) => unknown) => run(tx),
+			},
+		} as unknown as Parameters<typeof createOrUpdateCustomer>[0];
+
+		await expect(
+			createOrUpdateCustomer(ctx, {
+				billingAddress: { address1: "100 Billing Ave" },
+				customerType: "Personal",
+				id: 42,
+				name: "Customer",
+				profileId: "1",
+				salesId: 77,
+				salesType: "order",
+				shippingSameAsBilling: true,
+			}),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+	});
+
 	it("creates and assigns a shipping address when the sale has none", async () => {
 		const { calls, result } = await runAssignment({
 			billingAddressId: 201,
@@ -152,5 +234,53 @@ describe("sales address assignment", () => {
 		expect(calls.addressCreate?.data.address1).toBe("900 Shipping Rd");
 		expect(calls.saleUpdate?.data.shippingAddressId).toBe(909);
 		expect(result.shippingAddressId).toBe(909);
+	});
+});
+
+describe("sales address recipient hydration", () => {
+	it("hydrates each assigned recipient and falls back only for legacy unnamed rows", async () => {
+		const customer = {
+			addressBooks: [
+				{
+					id: 201,
+					isPrimary: true,
+					name: null,
+					address1: "100 Billing Ave",
+					meta: {},
+				},
+				{
+					id: 202,
+					isPrimary: false,
+					name: "Warehouse Recipient",
+					address1: "200 Shipping Rd",
+					meta: {},
+				},
+			],
+			businessName: null,
+			customerTypeId: 1,
+			email: null,
+			id: 42,
+			meta: {},
+			name: "Customer Name",
+			phoneNo: null,
+			profile: { id: 1, title: "Retail" },
+			taxProfiles: [],
+		};
+		const ctx = {
+			db: {
+				customers: {
+					findFirstOrThrow: async () => customer,
+				},
+			},
+		} as unknown as Parameters<typeof getSalesCustomer>[0];
+
+		const result = await getSalesCustomer(ctx, {
+			billingId: 201,
+			customerId: 42,
+			shippingId: 202,
+		});
+
+		expect(result.billingAddress?.name).toBe("Customer Name");
+		expect(result.shippingAddress?.name).toBe("Warehouse Recipient");
 	});
 });

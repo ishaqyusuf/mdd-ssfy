@@ -1,5 +1,6 @@
 export type CustomerAddressFormValue = {
 	addressId?: number | null;
+	name?: string | null;
 	address1?: string | null;
 	formattedAddress?: string | null;
 	address2?: string | null;

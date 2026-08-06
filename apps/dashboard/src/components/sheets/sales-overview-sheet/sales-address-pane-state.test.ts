@@ -10,6 +10,7 @@ describe("sales address pane state", () => {
 					addressId: 201,
 					address1: "100 Billing Ave",
 					city: "Austin",
+					name: "Billing Recipient",
 				},
 			}),
 		).toMatchObject({
@@ -17,6 +18,7 @@ describe("sales address pane state", () => {
 			address1: "100 Billing Ave",
 			addressOnly: true,
 			city: "Austin",
+			name: "Billing Recipient",
 		});
 	});
 
@@ -25,8 +27,16 @@ describe("sales address pane state", () => {
 			createSalesAddressPaneDraft({
 				addressId: 909,
 				billingAddress: { addressId: 201, address1: "Billing" },
-				selectedAddress: { addressId: 909, address1: "Shipping" },
+				selectedAddress: {
+					addressId: 909,
+					address1: "Shipping",
+					name: "Shipping Recipient",
+				},
 			}),
-		).toMatchObject({ addressId: 909, address1: "Shipping" });
+		).toMatchObject({
+			addressId: 909,
+			address1: "Shipping",
+			name: "Shipping Recipient",
+		});
 	});
 });

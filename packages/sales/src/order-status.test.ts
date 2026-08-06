@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	getSalesOrderLifecycleStatus,
 	getSalesOrderLifecycleStatusInfo,
+	isSalesOrderFulfilled,
 } from "./order-status";
 
 describe("sales order lifecycle status", () => {
@@ -116,6 +117,17 @@ describe("sales order lifecycle status", () => {
 				fulfillmentStatus: "queue",
 			}),
 		).toBe("fulfilled");
+	});
+
+	it("identifies fulfilled sales that must remain immutable", () => {
+		expect(isSalesOrderFulfilled({ orderStatus: "Fulfilled" })).toBe(true);
+		expect(isSalesOrderFulfilled({ orderStatus: "Delivered" })).toBe(true);
+		expect(
+			isSalesOrderFulfilled({
+				legacyProductionStatus: "Completed",
+				orderStatus: "Processing",
+			}),
+		).toBe(false);
 	});
 
 	it("falls back predictably for unknown state and exposes label metadata", () => {

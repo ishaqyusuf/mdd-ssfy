@@ -22,11 +22,13 @@ export type SalesAddressPaneSelection = {
 
 export function SalesAddressPane({
 	selection,
+	billingAddressId,
 	customerId,
 	salesId,
 	onClose,
 }: {
 	selection: SalesAddressPaneSelection;
+	billingAddressId?: number | null;
 	customerId: number;
 	salesId: number;
 	onClose: () => void;
@@ -36,7 +38,9 @@ export function SalesAddressPane({
 		trpc.customers.getSalesCustomer.queryOptions({
 			customerId,
 			billingId:
-				selection.addressType === "billing" ? selection.addressId : undefined,
+				selection.addressType === "billing"
+					? selection.addressId
+					: billingAddressId,
 			shippingId:
 				selection.addressType === "shipping" ? selection.addressId : undefined,
 		}),
@@ -107,7 +111,7 @@ export function SalesAddressPane({
 							isSubmitting={mutation.isPending}
 							disabled={customerQuery.isPending || !customerQuery.data}
 						>
-							{action} address
+							Save
 						</SubmitButton>
 					</Sheet.SecondaryFooter>
 				}
@@ -121,6 +125,7 @@ export function SalesAddressPane({
 							customerId,
 							salesId,
 							addressId: values.addressId ?? selection.addressId,
+							name: values.name,
 							address1: values.address1,
 							address2: values.address2,
 							city: values.city,
