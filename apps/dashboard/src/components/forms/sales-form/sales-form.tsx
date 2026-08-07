@@ -31,7 +31,11 @@ import { SalesFormSidebar } from "./sales-form-sidebar";
 import TakeOff from "./take-off";
 import { TakeoffSwitch } from "./take-off/takeoff-switch";
 
-export function SalesFormClient({ data, readOnly = false, versionSwitcher }) {
+export function SalesFormClient({
+	data,
+	adjustmentAccess = { readOnly: false },
+	versionSwitcher,
+}) {
 	const currentTab = useFormDataStore((state) => state.currentTab);
 	const formStatus = useFormDataStore((state) => state.formStatus);
 	const setCurrentTab = useFormDataStore((state) => state.dotUpdate);
@@ -46,13 +50,14 @@ export function SalesFormClient({ data, readOnly = false, versionSwitcher }) {
 	return (
 		<Content
 			data={data}
-			readOnly={readOnly}
+			adjustmentAccess={adjustmentAccess}
 			versionSwitcher={versionSwitcher}
 		/>
 	);
 }
 
-function Content({ data, readOnly, versionSwitcher }) {
+function Content({ data, adjustmentAccess, versionSwitcher }) {
+	const readOnly = adjustmentAccess.readOnly;
 	const sPreview = useSalesPreview();
 	const zus = useFormDataStore();
 	const [showMobileSalesPanel, setShowMobileSalesPanel] = useState(false);
@@ -123,24 +128,21 @@ function Content({ data, readOnly, versionSwitcher }) {
 							</Button>
 						</div>
 					</div>
-					{readOnly ? (
+					{adjustmentAccess.readOnly ? (
 						<output className="flex shrink-0 flex-col gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 sm:flex-row sm:items-center sm:justify-between md:px-6">
 							<div className="flex min-w-0 items-start gap-2">
 								<Icons.ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-700" />
 								<div>
 									<p className="text-sm font-medium">
-										Approved change in effect
+										{adjustmentAccess.title}
 									</p>
 									<p className="text-xs text-amber-800">
-										This legacy view is read-only. Continue in the new sales
-										form to make further changes.
+										{adjustmentAccess.description}
 									</p>
 								</div>
 							</div>
 							<Button asChild size="sm" className="shrink-0">
-								<Link
-									href={`/sales-form/edit-${data.order.type}/${data.order.slug}`}
-								>
+								<Link href={adjustmentAccess.newFormHref}>
 									Continue in new sales form
 								</Link>
 							</Button>
@@ -204,6 +206,7 @@ function SalesFormActionToolbar({
 				email?: string | null;
 				businessName?: string | null;
 				name?: string | null;
+				phoneNo?: string | null;
 		  }
 		| undefined;
 

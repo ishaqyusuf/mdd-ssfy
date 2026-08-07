@@ -2,6 +2,17 @@ type UnknownRecord = Record<string, unknown>;
 
 export const LEGACY_ADJUSTMENT_SAVE_BLOCKED =
 	"This order is governed by an approved change. Continue in the new sales form to make further changes.";
+export const LEGACY_ADJUSTMENT_SAVE_BLOCKED_CODE =
+	"LEGACY_ADJUSTMENT_SAVE_BLOCKED";
+
+export class LegacyAdjustmentSaveBlockedError extends Error {
+	readonly code = LEGACY_ADJUSTMENT_SAVE_BLOCKED_CODE;
+
+	constructor() {
+		super(LEGACY_ADJUSTMENT_SAVE_BLOCKED);
+		this.name = "LegacyAdjustmentSaveBlockedError";
+	}
+}
 
 function safeRecord(value: unknown): UnknownRecord {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -73,7 +84,7 @@ export function hasApprovedAdjustmentSnapshot(meta: unknown) {
 
 export function assertLegacySalesFormWritable(meta: unknown) {
 	if (hasApprovedAdjustmentSnapshot(meta)) {
-		throw new Error(LEGACY_ADJUSTMENT_SAVE_BLOCKED);
+		throw new LegacyAdjustmentSaveBlockedError();
 	}
 }
 

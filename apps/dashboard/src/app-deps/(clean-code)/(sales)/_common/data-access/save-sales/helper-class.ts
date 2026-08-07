@@ -1,11 +1,11 @@
-import { Prisma, prisma } from "@/db";
+import { Prisma } from "@/db";
+import { assertLegacySalesOrderWritable } from "@/domains/sales-form/legacy/application/assert-legacy-sales-order-writable";
 import { __isProd } from "@/lib/is-prod-server";
 import { formatMoney } from "@/lib/use-number";
 import dayjs from "dayjs";
 import { isEqual, isNaN } from "lodash";
 
 import { SalesFormFields, SalesMeta } from "../../../types";
-import { assertLegacySalesFormWritable } from "@gnd/sales/sales-form/application/approved-adjustment-projection";
 import { projectSalesFormMetaToLegacyMeta } from "@gnd/sales/sales-form/application/legacy-metadata";
 import { calculatePaymentDueDate } from "../../utils/sales-utils";
 import { generateSalesId } from "./sales-id-dta";
@@ -30,16 +30,10 @@ export class SaveSalesHelper {
     }
     public async composeSalesForm(form: SalesFormFields) {
         const md = form.metaData;
-        const currentOrder = md.id
-            ? await prisma.salesOrders.findUnique({
-                  where: { id: md.id },
-                  select: { meta: true },
-              })
-            : null;
-        assertLegacySalesFormWritable(currentOrder?.meta);
+        const currentMeta = await assertLegacySalesOrderWritable(md.id);
         const meta: Partial<SalesMeta> = {
             ...projectSalesFormMetaToLegacyMeta({
-                existingMeta: currentOrder?.meta as any,
+                existingMeta: currentMeta as any,
                 form: {
                     po: md.po,
                     paymentMethod: md.paymentMethod,

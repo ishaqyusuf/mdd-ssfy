@@ -158,13 +158,6 @@ export function SalesFormSave({
 				case "new":
 					router.push(`/sales-form/create-${metaData.type}`);
 			}
-		} catch (error) {
-			console.error("Unable to save sales form", error);
-			toast({
-				variant: "destructive",
-				title:
-					error instanceof Error ? error.message : "Unable to save sales form.",
-			});
 		} finally {
 			saveLockRef.current = false;
 			setIsSaving(false);

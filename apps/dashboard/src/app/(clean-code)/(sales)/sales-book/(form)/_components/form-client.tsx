@@ -8,6 +8,7 @@ import { zhInitializeState } from "@/app-deps/(clean-code)/(sales)/sales-book/(f
 import { LegacySalesFormPreferenceDialog } from "@/components/forms/legacy-sales-form-preference-dialog";
 import { SalesFormAdoptionTracker } from "@/components/forms/sales-form-adoption-tracker";
 import { SalesFormVersionSwitcher } from "@/components/forms/sales-form-version-switcher";
+import { resolveApprovedAdjustmentLegacyAccess } from "@/domains/sales-form/legacy/application/approved-adjustment-access";
 
 export function FormClient({
 	data,
@@ -17,6 +18,7 @@ export function FormClient({
 	const init = useFormDataStore((state) => state.init);
 	const initialState = useMemo(() => zhInitializeState(data), [data]);
 	const [isReady, setIsReady] = useState(false);
+	const adjustmentAccess = resolveApprovedAdjustmentLegacyAccess(data);
 	const formKey = `${initialState.metaData?.type || "sale"}-${initialState.metaData?.id ?? "new"}-${initialState.metaData?.salesId ?? "draft"}`;
 
 	useLayoutEffect(() => {
@@ -43,7 +45,7 @@ export function FormClient({
 			<SalesFormClient
 				key={formKey}
 				data={data}
-				readOnly={Boolean(data.adjustmentSnapshotAuthority)}
+				adjustmentAccess={adjustmentAccess}
 				versionSwitcher={
 					<SalesFormVersionSwitcher
 						currentForm="legacy"

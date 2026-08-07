@@ -66,6 +66,7 @@ import {
 	projectSalesFormMetaToLegacyMeta,
 	readLegacySalesFormMeta,
 } from "@gnd/sales/sales-form/application/legacy-metadata";
+import { projectApprovedAdjustmentDoorRows } from "@gnd/sales/sales-form/application/approved-adjustment-projection";
 import { calculateSalesFormSummary } from "@gnd/sales/sales-form/domain/costing";
 import {
 	collapseLegacyGroupedLines,
@@ -493,6 +494,9 @@ function mergePersistedDoorRows(
 	const database = (Array.isArray(dbRows) ? dbRows : []) as Array<
 		Record<string, unknown>
 	>;
+	if (preferPersistedSnapshot && hasPersistedRows) {
+		return projectApprovedAdjustmentDoorRows(persisted, database);
+	}
 	const findMatchingDoorRow = (
 		rows: Array<Record<string, unknown>>,
 		row: Record<string, unknown>,
@@ -522,32 +526,14 @@ function mergePersistedDoorRows(
 			(allowPositionalFallback ? rows[index] : undefined)
 		);
 	};
-	if (!preferPersistedSnapshot || !hasPersistedRows) {
-		return database.map((dbRow, index) => {
-			const persistedMatch = findMatchingDoorRow(
-				persisted,
-				dbRow,
-				index,
-				true,
-			);
-			return {
-				...(persistedMatch || {}),
-				...dbRow,
-				meta: {
-					...safeRecord(persistedMatch?.meta),
-					...safeRecord(dbRow?.meta),
-				},
-			};
-		});
-	}
-	return persisted.map((row, index) => {
-		const dbMatch = findMatchingDoorRow(database, row, index, false);
+	return database.map((dbRow, index) => {
+		const persistedMatch = findMatchingDoorRow(persisted, dbRow, index, true);
 		return {
-			...(dbMatch || {}),
-			...row,
+			...(persistedMatch || {}),
+			...dbRow,
 			meta: {
-				...safeRecord(dbMatch?.meta),
-				...safeRecord(row?.meta),
+				...safeRecord(persistedMatch?.meta),
+				...safeRecord(dbRow?.meta),
 			},
 		};
 	});

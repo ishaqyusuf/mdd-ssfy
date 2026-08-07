@@ -21,6 +21,8 @@ export {
 	assertLegacySalesFormWritable,
 	hasApprovedAdjustmentSnapshot,
 	LEGACY_ADJUSTMENT_SAVE_BLOCKED,
+	LEGACY_ADJUSTMENT_SAVE_BLOCKED_CODE,
+	LegacyAdjustmentSaveBlockedError,
 	projectApprovedAdjustmentDoorRows,
 	projectApprovedAdjustmentLegacyOrder,
 } from "./approved-adjustment-projection";

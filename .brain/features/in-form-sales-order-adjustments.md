@@ -93,11 +93,16 @@ orders in the new sales form.
   builds form rows and totals. Retained relational rows remain available for
   audit/presentation enrichment, but cannot restore an approved-removed size or
   overwrite approved quantity, price, or summary values.
+- The new-form edit loader, legacy edit loaders, and print projection now call
+  the same package-owned retained-door matcher for approved snapshots; their
+  compatibility adapters no longer own separate approved-row matching rules.
 - An order governed by an approved snapshot is read-only in the legacy editor.
   Overview, Preview, Print, and PDF remain available, while commercial controls
   and Save variants are disabled with a handoff to the new form. The legacy
   save helper independently rejects a crafted save against the current database
-  marker, so client state is not the integrity boundary.
+  marker with stable code `LEGACY_ADJUSTMENT_SAVE_BLOCKED`, so client state is
+  not the integrity boundary. Access policy and the database-backed write guard
+  live under the accepted `domains/sales-form/legacy/application` boundary.
 
 ## Validation
 
@@ -118,8 +123,8 @@ orders in the new sales form.
   `$228.84`, subtotal `$590.13`, tax `$41.31`, CCC `$18.94`, and displayed total
   `$650.38`. The adjusted legacy editor exposed the notice and disabled all
   mutating controls; ordinary order `09166LRG` remained editable. Shared
-  projector/print tests pass 14 tests / 70 assertions and both legacy DTO paths
-  pass 4 tests / 36 assertions.
+  projector/print, access-policy, and server-boundary tests pass 22 tests / 115
+  assertions; the new edit-loader retained-row regression passes separately.
 
 ## Implementation Map
 

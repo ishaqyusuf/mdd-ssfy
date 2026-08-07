@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	LEGACY_ADJUSTMENT_SAVE_BLOCKED,
+	LEGACY_ADJUSTMENT_SAVE_BLOCKED_CODE,
 	assertLegacySalesFormWritable,
 	hasApprovedAdjustmentSnapshot,
 	projectApprovedAdjustmentLegacyOrder,
@@ -159,9 +160,19 @@ describe("approved adjustment legacy projection", () => {
 
 	it("blocks unguarded legacy saves for adjustment-owned orders", () => {
 		const source = adjustedOrderFixture();
+		let blockedError: unknown;
+		try {
+			assertLegacySalesFormWritable(source.meta);
+		} catch (error) {
+			blockedError = error;
+		}
 
-		expect(() => assertLegacySalesFormWritable(source.meta)).toThrow(
+		expect(blockedError).toBeInstanceOf(Error);
+		expect((blockedError as Error).message).toBe(
 			LEGACY_ADJUSTMENT_SAVE_BLOCKED,
+		);
+		expect((blockedError as { code?: string }).code).toBe(
+			LEGACY_ADJUSTMENT_SAVE_BLOCKED_CODE,
 		);
 		expect(() => assertLegacySalesFormWritable({})).not.toThrow();
 	});

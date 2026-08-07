@@ -8903,7 +8903,11 @@
   current database marker. Authenticated browser QA on `09187PC` confirmed only
   `2-0 x 6-8`, Item 1 `$228.84`, subtotal `$590.13`, tax `$41.31`, CCC `$18.94`,
   and total `$650.38` in both forms; ordinary `09166LRG` remained editable. The
-  focused projector/print and dual-DTO suites pass 18 tests / 106 assertions,
+  focused projector/print, dual-DTO, domain access, and direct server-boundary
+  suites pass 22 tests / 115 assertions; the new edit-loader retained-row test
+  also passes through the same package matcher. Review follow-up moved policy
+  and database guard ownership under `domains/sales-form/legacy/application`
+  and added stable rejection code `LEGACY_ADJUSTMENT_SAVE_BLOCKED`.
   `@gnd/sales` typecheck and focused Biome pass, and `git diff --check` passes.
   The full repository run completed with 2,989 passing, 1 skipped, and 49
   pre-existing unrelated failures; dashboard typecheck likewise remains blocked

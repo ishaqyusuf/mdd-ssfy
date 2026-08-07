@@ -5,12 +5,16 @@ Status: Implemented and browser-validated on 2026-08-07.
 ## Implementation Result
 
 - Added one package-owned approved-adjustment projector and reused its HPT row
-  reconciliation from print and both legacy loader compatibility paths.
+  reconciliation from print, the new editor, and both legacy loader
+  compatibility paths.
 - Propagated explicit snapshot-authority and total-with-CCC fields through both
   legacy DTOs without turning absent relational rows into delete instructions.
 - Made adjustment-owned legacy orders read-only with a direct new-form handoff,
   while retaining Overview, Preview, Print, and PDF.
-- Added a server-side legacy save guard based on the current database marker.
+- Added a server-side legacy save guard based on the current database marker,
+  with stable code `LEGACY_ADJUSTMENT_SAVE_BLOCKED` and a focused direct-boundary
+  test. Legacy access policy and the guard are owned by
+  `domains/sales-form/legacy/application` per ADR-005.
 - Verified exact old/new parity on `09187PC` and ordinary legacy editability on
   unadjusted order `09166LRG`; no order was saved during acceptance.
 
