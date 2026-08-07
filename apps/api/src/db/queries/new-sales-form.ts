@@ -3172,10 +3172,15 @@ async function saveNewSalesFormInternal(
 			? currentMeta.newSalesForm?.version ||
 				`${order.updatedAt?.getTime() || order.createdAt?.getTime() || 0}-legacy`
 			: null;
+		const canOverwriteStaleQuote =
+			payload.type === "quote" &&
+			payload.autosave === false &&
+			payload.allowStaleQuoteOverwrite;
 		if (
 			currentVersion &&
 			payload.version &&
-			currentVersion !== payload.version
+			currentVersion !== payload.version &&
+			!canOverwriteStaleQuote
 		) {
 			throw new TRPCError({
 				code: "CONFLICT",

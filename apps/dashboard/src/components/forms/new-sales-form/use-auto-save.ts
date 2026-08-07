@@ -9,6 +9,7 @@ import type { NewSalesFormSaveDraftInput } from "./schema";
 type AutoSaveReason = "debounced-change" | "manual-flush";
 type AutoSaveFlushOptions = {
     force?: boolean;
+    allowStaleQuoteOverwrite?: boolean;
 };
 
 type UseNewSalesFormAutoSaveOptions = {
@@ -156,6 +157,8 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
             const next = {
                 ...payload,
                 autosave: reason !== "manual-flush",
+                allowStaleQuoteOverwrite:
+                    options.allowStaleQuoteOverwrite === true,
             };
             const isManualFlush = reason === "manual-flush";
 

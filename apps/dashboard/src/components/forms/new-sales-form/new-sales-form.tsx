@@ -1346,6 +1346,7 @@ export function NewSalesForm(props: Props) {
             markSaving();
             const resp = await autosave.flush("manual-flush", {
                 force: true,
+                allowStaleQuoteOverwrite: props.type === "quote",
             });
             if (!resp) {
                 markError("Unable to save draft.");
@@ -1381,6 +1382,7 @@ export function NewSalesForm(props: Props) {
                 const resp = await finalSave.mutateAsync({
                     ...payload,
                     autosave: false,
+                    allowStaleQuoteOverwrite: props.type === "quote",
                 });
                 await handlePostSaveSuccess(resp);
                 await configureInventoryAfterSave(resp);

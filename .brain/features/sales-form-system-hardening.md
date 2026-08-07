@@ -24,6 +24,9 @@
   key so a repeated stale new-draft autosave reuses the same office order.
 - Save completion only clears dirty state when the completed payload is still
   current; a newer edit remains dirty and gets its own debounce cycle.
+- A manual Save on an existing quote may intentionally replace a stale quote
+  revision, preventing the editor from dead-ending on `This form is out of
+  date`. Autosaves and all order saves continue to reject stale versions.
 - Profile repricing treats zero base-price placeholders as missing pricing
   authority. Configured workflow components and grouped door, shelf, and
   moulding rows fall back to their current sales price ratio instead of

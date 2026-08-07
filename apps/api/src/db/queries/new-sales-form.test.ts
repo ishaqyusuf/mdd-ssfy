@@ -1832,6 +1832,114 @@ describe("new-sales-form relational parity", () => {
     expect(state.orders[0]?.meta?.po).toBe("AUTOSAVE-B");
   });
 
+  it("lets an explicit manual quote save overwrite a stale quote revision", async () => {
+    const { ctx, state } = createMockContext();
+    const payload = {
+      type: "quote" as const,
+      slug: null,
+      salesId: null,
+      version: null,
+      autosave: false,
+      meta: {
+        customerId: 100,
+        customerProfileId: 7,
+        billingAddressId: null,
+        shippingAddressId: null,
+        paymentTerm: "None",
+        paymentMethod: null,
+        goodUntil: null,
+        po: "INITIAL",
+        notes: null,
+        deliveryOption: "pickup" as const,
+        taxCode: null,
+      },
+      summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+      extraCosts: [],
+      lineItems: [
+        {
+          id: null,
+          uid: "line-stale-quote",
+          title: "Quote line",
+          description: "",
+          qty: 1,
+          unitPrice: 50,
+          lineTotal: 50,
+          meta: {},
+          formSteps: [],
+          shelfItems: [],
+          housePackageTool: null,
+        },
+      ],
+    };
+
+    const first = await saveDraftNewSalesForm(ctx, payload);
+    const latest = await saveDraftNewSalesForm(ctx, {
+      ...payload,
+      salesId: first.salesId,
+      slug: first.slug,
+      version: first.version,
+      meta: { ...payload.meta, po: "LATEST" },
+    });
+
+    await expect(
+      saveDraftNewSalesForm(ctx, {
+        ...payload,
+        salesId: first.salesId,
+        slug: first.slug,
+        version: first.version,
+        meta: { ...payload.meta, po: "STALE" },
+      }),
+    ).rejects.toThrow("This form changed elsewhere");
+    await expect(
+      saveDraftNewSalesForm(ctx, {
+        ...payload,
+        salesId: first.salesId,
+        slug: first.slug,
+        version: first.version,
+        autosave: true,
+        allowStaleQuoteOverwrite: true,
+        meta: { ...payload.meta, po: "STALE AUTOSAVE" },
+      }),
+    ).rejects.toThrow("This form changed elsewhere");
+
+    const overwritten = await saveDraftNewSalesForm(ctx, {
+      ...payload,
+      salesId: first.salesId,
+      slug: first.slug,
+      version: first.version,
+      allowStaleQuoteOverwrite: true,
+      meta: { ...payload.meta, po: "MANUAL OVERWRITE" },
+    });
+
+    expect(overwritten.version).not.toBe(latest.version);
+    expect(state.orders[0]?.meta?.po).toBe("MANUAL OVERWRITE");
+
+    const firstOrder = await saveDraftNewSalesForm(ctx, {
+      ...payload,
+      type: "order",
+      meta: { ...payload.meta, po: "ORDER INITIAL" },
+    });
+    await saveDraftNewSalesForm(ctx, {
+      ...payload,
+      type: "order",
+      salesId: firstOrder.salesId,
+      slug: firstOrder.slug,
+      version: firstOrder.version,
+      meta: { ...payload.meta, po: "ORDER LATEST" },
+    });
+    await expect(
+      saveDraftNewSalesForm(ctx, {
+        ...payload,
+        type: "order",
+        salesId: firstOrder.salesId,
+        slug: firstOrder.slug,
+        version: firstOrder.version,
+        allowStaleQuoteOverwrite: true,
+        meta: { ...payload.meta, po: "ORDER STALE" },
+      }),
+    ).rejects.toThrow("This form changed elsewhere");
+  });
+
   it("saves and hydrates formSteps/shelfItems/housePackageTool/doors/molding", async () => {
     const { ctx, state } = createMockContext();
 
