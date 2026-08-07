@@ -936,6 +936,18 @@ function SalesMenuMarkAs({
 	const expectedTaskStartsRef = useRef(0);
 	const completedTaskStartsRef = useRef(0);
 	const taskStartedToastShownRef = useRef(false);
+	const statusActionInFlightRef = useRef(false);
+	const [statusActionPending, setStatusActionPending] = useState(false);
+	const beginStatusAction = () => {
+		if (statusActionInFlightRef.current) return false;
+		statusActionInFlightRef.current = true;
+		setStatusActionPending(true);
+		return true;
+	};
+	const releaseStatusAction = () => {
+		statusActionInFlightRef.current = false;
+		setStatusActionPending(false);
+	};
 	const createDispatchMutation = useMutation(
 		trpc.dispatch.createDispatch.mutationOptions({
 			meta: {
@@ -971,6 +983,7 @@ function SalesMenuMarkAs({
 			expectedTaskStartsRef.current = 0;
 			completedTaskStartsRef.current = 0;
 			actions.closeMenu();
+			releaseStatusAction();
 		}
 	};
 	const salesControlTask = useTaskTrigger({
@@ -1000,6 +1013,7 @@ function SalesMenuMarkAs({
 			expectedTaskStartsRef.current = 0;
 			completedTaskStartsRef.current = 0;
 			actions.closeMenu();
+			releaseStatusAction();
 		},
 	});
 
@@ -1019,10 +1033,13 @@ function SalesMenuMarkAs({
 		setPreflightLoadingAction(action);
 		try {
 			const preflight = await sq.qc.fetchQuery(
-				trpc.inventories.salesInventoryMarkAsPreflight.queryOptions({
-					salesOrderIds: salesIds,
-					action,
-				}),
+				trpc.inventories.salesInventoryMarkAsPreflight.queryOptions(
+					{
+						salesOrderIds: salesIds,
+						action,
+					},
+					{ staleTime: 0 },
+				),
 			);
 
 			if (!preflight.ok) {
@@ -1045,7 +1062,10 @@ function SalesMenuMarkAs({
 
 	const resolveDispatchId = async (salesId: number) => {
 		const deliveryInfo = await sq.qc.fetchQuery(
-			trpc.dispatch.salesDeliveryInfo.queryOptions({ salesId }),
+			trpc.dispatch.salesDeliveryInfo.queryOptions(
+				{ salesId },
+				{ staleTime: 0 },
+			),
 		);
 		const existingDispatch = [...(deliveryInfo?.deliveries || [])]
 			.sort((left, right) => {
@@ -1108,6 +1128,7 @@ function SalesMenuMarkAs({
 			}
 			await invalidateOrders();
 		} catch {
+			releaseStatusAction();
 			toast({
 				title: "Unable to mark production completed",
 				variant: "destructive",
@@ -1151,6 +1172,7 @@ function SalesMenuMarkAs({
 			}
 			await invalidateOrders();
 		} catch {
+			releaseStatusAction();
 			toast({
 				title: "Unable to mark fulfilled",
 				variant: "destructive",
@@ -1159,16 +1181,25 @@ function SalesMenuMarkAs({
 	};
 
 	const markProductionCompleted = async () => {
+		if (!beginStatusAction()) return;
 		const inventoryReady = await runInventoryMarkAsPreflight(
 			"production_completed",
 		);
-		if (!inventoryReady) return;
+		if (!inventoryReady) {
+			releaseStatusAction();
+			return;
+		}
 		await startMarkProductionCompletedTask();
 	};
 
 	const markFulfilled = async () => {
+		if (statusActionInFlightRef.current) return;
+		if (!beginStatusAction()) return;
 		const inventoryReady = await runInventoryMarkAsPreflight("fulfilled");
-		if (!inventoryReady) return;
+		if (!inventoryReady) {
+			releaseStatusAction();
+			return;
+		}
 		await startMarkFulfilledTask();
 	};
 
@@ -1244,11 +1275,14 @@ function SalesMenuMarkAs({
 			});
 
 			if (result.action === "production_completed") {
+				if (!beginStatusAction()) return;
 				await startMarkProductionCompletedTask();
 			} else {
+				if (!beginStatusAction()) return;
 				await startMarkFulfilledTask();
 			}
 		} catch (error) {
+			releaseStatusAction();
 			toast({
 				title: "Unable to resolve inventory",
 				description:
@@ -1291,6 +1325,7 @@ function SalesMenuMarkAs({
 						isDisabled ||
 						item.disabled ||
 						preflightLoadingAction !== null ||
+						statusActionPending ||
 						salesIds.length === 0
 					}
 					onSelect={(event) => {
@@ -1340,7 +1375,9 @@ function SalesMenuMarkAs({
 		>
 			<AlertDialog.Content>
 				<AlertDialog.Header>
-					<AlertDialog.Title>Inventory needs attention</AlertDialog.Title>
+					<AlertDialog.Title>
+						Inventory and production need attention
+					</AlertDialog.Title>
 					<AlertDialog.Description>
 						{inventoryPreflight
 							? `${markAsActionLabels[inventoryPreflight.action]} is paused while inventory and production dependencies are resolved.`
@@ -1380,6 +1417,26 @@ function SalesMenuMarkAs({
 								One click will complete these steps:
 							</div>
 							<ul className="mt-1 list-disc space-y-1 pl-4">
+								{inventoryPreflight.automation
+									.productionSubmissionCountToPrepare > 0 ? (
+									<li>
+										Submit{" "}
+										{
+											inventoryPreflight.automation
+												.productionSubmissionCountToPrepare
+										}{" "}
+										production item
+										{inventoryPreflight.automation
+											.productionSubmissionCountToPrepare === 1
+											? ""
+											: "s"}{" "}
+										(
+										{formatInventoryQty(
+											inventoryPreflight.automation.productionQtyToPrepare,
+										)}{" "}
+										units)
+									</li>
+								) : null}
 								{inventoryPreflight.automation.inboundShipmentCount > 0 ? (
 									<li>
 										Receive {inventoryPreflight.automation.inboundShipmentCount}{" "}

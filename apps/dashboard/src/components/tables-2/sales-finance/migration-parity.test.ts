@@ -43,7 +43,7 @@ describe("Sales Finance Midday migration parity", () => {
 		expect(configSource.includes('"sales-finance": "customer"')).toBe(true);
 	});
 
-	it("labels the net amount column as Invoice Total", () => {
+	it("labels the net amount column as Invoice Total and renders Sub Total before it", () => {
 		const columnsSource = readSource(
 			"components/tables-2/sales-finance/columns.tsx",
 		);
@@ -56,6 +56,50 @@ describe("Sales Finance Midday migration parity", () => {
 		expect(columnsSource.includes('moneyColumn("netAmount", "Net"')).toBe(
 			false,
 		);
+		expect(
+			columnsSource.indexOf('moneyColumn("subTotal", "Sub Total")'),
+		).toBeGreaterThan(-1);
+		expect(
+			columnsSource.indexOf('moneyColumn("subTotal", "Sub Total")'),
+		).toBeLessThan(
+			columnsSource.indexOf(
+				'moneyColumn("netAmount", "Invoice Total", { emphasized: true })',
+			),
+		);
+	});
+
+	it("enforces small-column dimensions (120px default, 100px min, 180px max) and persistent visibility controls", () => {
+		const columnsSource = readSource(
+			"components/tables-2/sales-finance/columns.tsx",
+		);
+		const columnVisibilitySource = readSource(
+			"components/tables-2/sales-finance/column-visibility.tsx",
+		);
+		const dataTableSource = readSource(
+			"components/tables-2/sales-finance/data-table.tsx",
+		);
+		const headerSource = readSource("components/sales-finance/header.tsx");
+
+		// Compact column sizing verification
+		expect(columnsSource.includes("...sizes.custom(100, 180, 120)")).toBe(true);
+
+		// Non-hideable column protection
+		expect(columnsSource.includes('id: "select"')).toBe(true);
+		expect(columnsSource.includes('id: "createdAt"')).toBe(true);
+		expect(columnsSource.includes('id: "actions"')).toBe(true);
+
+		// Column visibility control presence
+		expect(headerSource.includes("<SalesFinanceColumnVisibility />")).toBe(true);
+		expect(
+			columnVisibilitySource.includes('aria-label="Configure columns"'),
+		).toBe(true);
+		expect(
+			columnVisibilitySource.includes("column.columnDef.enableHiding !== false"),
+		).toBe(true);
+
+		// Persistent settings hook integration
+		expect(dataTableSource.includes("useTableSettings({")).toBe(true);
+		expect(dataTableSource.includes("tableId: TABLE_ID")).toBe(true);
 	});
 
 	it("keeps the table resizable, reorderable, virtualized, and internally scrollable", () => {

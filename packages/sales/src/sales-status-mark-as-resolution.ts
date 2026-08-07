@@ -1,11 +1,14 @@
 import type { Db } from "@gnd/db";
 import { receiveInboundShipment } from "@gnd/inventory/inbound";
+import { hasQty } from "@gnd/utils/sales";
 
 import { fulfillSalesInventoryNeedsManually } from "./manual-fulfill-sales-inventory-needs";
 import {
 	decideProductionSubmissionMaterialReview,
 	getProductionSubmissionMaterialReviewDetail,
 } from "./production-submission-review";
+import { getSaleInformation } from "./sales-control/get-sale-information";
+import { submitAllTask } from "./sales-control/tasks";
 import {
 	type SalesInventoryMarkAsAction,
 	type SalesInventoryMarkAsPreflightResult,
@@ -52,6 +55,8 @@ export type SalesStatusMarkAsAutomationPreview = {
 	pendingProductionReviewCount: number;
 	pendingProductionSubmissionCount: number;
 	pendingProductionQty: number;
+	productionSubmissionCountToPrepare: number;
+	productionQtyToPrepare: number;
 	inboundShipmentCount: number;
 	inboundItemCount: number;
 	inboundQtyToReceive: number;
@@ -74,6 +79,8 @@ export type ResolveSalesStatusMarkAsDependenciesResult = {
 	manuallyFulfilledComponentCount: number;
 	overriddenSalesOrderCount: number;
 	approvedProductionReviewCount: number;
+	preparedProductionSubmissionCount: number;
+	preparedProductionQty: number;
 	preflight: SalesStatusMarkAsPreflightResult;
 	remainingPreflight: SalesStatusMarkAsPreflightResult;
 };
@@ -87,6 +94,20 @@ type ResolutionDependencies = {
 	manualFulfill?: typeof fulfillSalesInventoryNeedsManually;
 	getReviewDetail?: typeof getProductionSubmissionMaterialReviewDetail;
 	decideReview?: typeof decideProductionSubmissionMaterialReview;
+	prepareProduction?: typeof prepareAutomaticProductionForStatusMark;
+};
+
+type StatusPreflightDependencies = {
+	getInventoryPreflight?: typeof getSalesInventoryMarkAsPreflight;
+	loadContext?: typeof loadAutomationContext;
+	getPendingProductionWork?: typeof getPendingAutomaticProductionWork;
+};
+
+type PendingAutomaticProductionWork = {
+	salesOrderId: number;
+	itemUids: string[];
+	submissionCount: number;
+	qty: number;
 };
 
 const ACTIVE_INBOUND_STATUSES = [
@@ -99,6 +120,101 @@ function normalizeSalesOrderIds(salesOrderIds: number[]) {
 	return Array.from(new Set(salesOrderIds)).filter(
 		(id) => Number.isInteger(id) && id > 0,
 	);
+}
+
+function submissionQty(qty: unknown) {
+	if (!qty || typeof qty !== "object") return 0;
+	const value = qty as {
+		qty?: number | null;
+		lh?: number | null;
+		rh?: number | null;
+	};
+	const total = Number(value.qty || 0);
+	return total > 0 ? total : Number(value.lh || 0) + Number(value.rh || 0);
+}
+
+async function getPendingAutomaticProductionWork(
+	db: Db,
+	salesOrderIds: number[],
+): Promise<PendingAutomaticProductionWork[]> {
+	return Promise.all(
+		salesOrderIds.map(async (salesOrderId) => {
+			const info = await getSaleInformation(
+				db,
+				{ salesId: salesOrderId },
+				{ persistDerivedState: false },
+			);
+			const itemUids = new Set<string>();
+			let submissionCount = 0;
+			let qty = 0;
+
+			for (const item of info.items) {
+				if (!item.itemConfig?.production || !item.controlUid) continue;
+				const pendingQuantities = [
+					item.analytics?.assignment?.pending,
+					...(item.analytics?.pendingSubmissions || []).map(
+						(submission) => submission.qty,
+					),
+				].filter((pending) => hasQty(pending));
+				if (!pendingQuantities.length) continue;
+
+				itemUids.add(item.controlUid);
+				submissionCount += pendingQuantities.length;
+				qty += pendingQuantities.reduce(
+					(total, pending) => total + submissionQty(pending),
+					0,
+				);
+			}
+
+			return {
+				salesOrderId,
+				itemUids: Array.from(itemUids),
+				submissionCount,
+				qty,
+			};
+		}),
+	);
+}
+
+async function prepareAutomaticProductionForStatusMark(
+	db: Db,
+	input: {
+		salesOrderIds: number[];
+		authorId: number;
+		authorName: string;
+	},
+) {
+	const work = await getPendingAutomaticProductionWork(db, input.salesOrderIds);
+	let preparedProductionSubmissionCount = 0;
+	let preparedProductionQty = 0;
+
+	for (const item of work) {
+		if (!item.itemUids.length) continue;
+		await submitAllTask(
+			db,
+			{
+				meta: {
+					salesId: item.salesOrderId,
+					authorId: input.authorId,
+					authorName: input.authorName,
+					allowProductionSubmissionForOthers: true,
+				},
+				submitAll: {
+					itemUids: item.itemUids,
+					submissionSource: "sales_mark_as_completed",
+				},
+			},
+			{},
+			{ emptySubmissionBehavior: "skip" },
+		);
+		preparedProductionSubmissionCount += item.submissionCount;
+		preparedProductionQty += item.qty;
+	}
+
+	return {
+		preparedProductionSubmissionCount,
+		preparedProductionQty,
+	};
 }
 
 function unresolvedReviewComponentIds(materialSnapshot: unknown) {
@@ -207,15 +323,25 @@ export async function getSalesStatusMarkAsPreflight(
 		salesOrderIds: number[];
 		action: SalesInventoryMarkAsAction;
 	},
+	dependencies: StatusPreflightDependencies = {},
 ): Promise<SalesStatusMarkAsPreflightResult> {
 	const salesOrderIds = normalizeSalesOrderIds(input.salesOrderIds);
-	const [inventoryPreflight, context] = await Promise.all([
-		getSalesInventoryMarkAsPreflight(db, {
-			salesOrderIds,
-			action: input.action,
-		}),
-		loadAutomationContext(db, salesOrderIds),
-	]);
+	const getInventoryPreflight =
+		dependencies.getInventoryPreflight ?? getSalesInventoryMarkAsPreflight;
+	const loadContext = dependencies.loadContext ?? loadAutomationContext;
+	const getPendingProductionWork =
+		dependencies.getPendingProductionWork ?? getPendingAutomaticProductionWork;
+	const [inventoryPreflight, context, pendingProductionWork] =
+		await Promise.all([
+			getInventoryPreflight(db, {
+				salesOrderIds,
+				action: input.action,
+			}),
+			loadContext(db, salesOrderIds),
+			input.action === "fulfilled"
+				? getPendingProductionWork(db, salesOrderIds)
+				: Promise.resolve([]),
+		]);
 	const inboundItems = new Map<
 		number,
 		NonNullable<LinkedInboundDemandRow["inboundShipmentItem"]>
@@ -226,6 +352,11 @@ export async function getSalesStatusMarkAsPreflight(
 	);
 	for (const review of context.reviews) {
 		affectedSalesOrderIds.add(review.salesOrderId);
+	}
+	for (const work of pendingProductionWork) {
+		if (work.submissionCount > 0) {
+			affectedSalesOrderIds.add(work.salesOrderId);
+		}
 	}
 	for (const demand of context.inboundDemands) {
 		const item = demand.inboundShipmentItem;
@@ -251,25 +382,43 @@ export async function getSalesStatusMarkAsPreflight(
 		(total, review) => total + review.submissions.length,
 		0,
 	);
+	const productionSubmissionCountToPrepare = pendingProductionWork.reduce(
+		(total, work) => total + work.submissionCount,
+		0,
+	);
+	const productionQtyToPrepare = pendingProductionWork.reduce(
+		(total, work) => total + work.qty,
+		0,
+	);
 
 	return {
 		...inventoryPreflight,
-		ok: inventoryPreflight.ok && context.reviews.length === 0,
-		canResolveAndContinue: !inventoryPreflight.ok || context.reviews.length > 0,
+		ok:
+			inventoryPreflight.ok &&
+			context.reviews.length === 0 &&
+			productionSubmissionCountToPrepare === 0,
+		canResolveAndContinue:
+			!inventoryPreflight.ok ||
+			context.reviews.length > 0 ||
+			productionSubmissionCountToPrepare > 0,
 		automation: {
 			affectedSalesOrderCount: affectedSalesOrderIds.size,
 			pendingProductionReviewCount: context.reviews.length,
-			pendingProductionSubmissionCount,
-			pendingProductionQty: context.reviews.reduce(
-				(total, review) =>
-					total +
-					review.submissions.reduce(
-						(submissionTotal, submission) =>
-							submissionTotal + Number(submission.qty || 0),
-						0,
-					),
-				0,
-			),
+			pendingProductionSubmissionCount:
+				pendingProductionSubmissionCount + productionSubmissionCountToPrepare,
+			pendingProductionQty:
+				context.reviews.reduce(
+					(total, review) =>
+						total +
+						review.submissions.reduce(
+							(submissionTotal, submission) =>
+								submissionTotal + Number(submission.qty || 0),
+							0,
+						),
+					0,
+				) + productionQtyToPrepare,
+			productionSubmissionCountToPrepare,
+			productionQtyToPrepare,
 			inboundShipmentCount: inboundShipmentIds.size,
 			inboundItemCount: inboundItems.size,
 			inboundQtyToReceive,
@@ -278,7 +427,8 @@ export async function getSalesStatusMarkAsPreflight(
 				inventoryPreflight.totals.unresolvedComponentCount -
 					inboundComponentIds.size,
 			),
-			autoPaymentReview: context.reviews.length > 0,
+			autoPaymentReview:
+				context.reviews.length > 0 || productionSubmissionCountToPrepare > 0,
 			willCompleteDispatch: input.action === "fulfilled",
 		},
 	};
@@ -306,6 +456,8 @@ export async function resolveSalesStatusMarkAsDependenciesForContinue(
 		dependencies.getReviewDetail ?? getProductionSubmissionMaterialReviewDetail;
 	const decideReview =
 		dependencies.decideReview ?? decideProductionSubmissionMaterialReview;
+	const prepareProduction =
+		dependencies.prepareProduction ?? prepareAutomaticProductionForStatusMark;
 	const getStatusPreflight =
 		dependencies.getStatusPreflight ?? getSalesStatusMarkAsPreflight;
 	const loadContext = dependencies.loadContext ?? loadAutomationContext;
@@ -353,6 +505,19 @@ export async function resolveSalesStatusMarkAsDependenciesForContinue(
 		manuallyFulfilledComponentCount += result.fulfilledComponentCount;
 	}
 
+	let preparedProductionSubmissionCount = 0;
+	let preparedProductionQty = 0;
+	if (input.action === "fulfilled") {
+		const prepared = await prepareProduction(db, {
+			salesOrderIds,
+			authorId: actor.id,
+			authorName: actor.name,
+		});
+		preparedProductionSubmissionCount =
+			prepared.preparedProductionSubmissionCount;
+		preparedProductionQty = prepared.preparedProductionQty;
+	}
+
 	let approvedProductionReviewCount = 0;
 	const pendingReviews = await findPendingReviews(db, salesOrderIds);
 	for (const review of pendingReviews) {
@@ -363,7 +528,10 @@ export async function resolveSalesStatusMarkAsDependenciesForContinue(
 		const action =
 			detail.currentEvidence.classification.state === "finalized"
 				? ("RECHECK_AND_APPROVE" as const)
-				: ("MARK_AVAILABLE_AND_APPROVE" as const);
+				: detail.currentEvidence.classification.reason === "NOT_CONFIGURED" &&
+						!unresolvedComponentIds.length
+					? ("APPROVE_CONFIGURATION_EXCEPTION" as const)
+					: ("MARK_AVAILABLE_AND_APPROVE" as const);
 		if (
 			action === "MARK_AVAILABLE_AND_APPROVE" &&
 			!unresolvedComponentIds.length
@@ -419,6 +587,8 @@ export async function resolveSalesStatusMarkAsDependenciesForContinue(
 		manuallyFulfilledComponentCount,
 		overriddenSalesOrderCount,
 		approvedProductionReviewCount,
+		preparedProductionSubmissionCount,
+		preparedProductionQty,
 		preflight,
 		remainingPreflight,
 	};

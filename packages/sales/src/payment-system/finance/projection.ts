@@ -86,6 +86,7 @@ export type SalesFinanceTransactionSource = {
 		order: {
 			id: number;
 			orderId: string;
+			subTotal?: number | null;
 			customer?: CustomerIdentity | null;
 			billingAddress?: {
 				name?: string | null;
@@ -126,6 +127,7 @@ export type SalesFinanceTransaction = {
 	principalAmount: number;
 	feeAmount: number;
 	refundedAmount: number;
+	subTotal: number | null;
 	netAmount: number;
 	appliedAmount: number;
 	unappliedAmount: number;
@@ -362,6 +364,17 @@ export function projectSalesFinanceTransaction(
 		source.squarePayment?.status?.trim() ||
 		(isSuccessfulStatus(source.status) ? "Success" : "Unknown");
 
+	const uniqueOrderSubtotals = Array.from(
+		(source.salesPayments || []).reduce((acc, payment) => {
+			if (payment.order?.id != null && payment.order?.subTotal != null) {
+				acc.set(payment.order.id, roundMoney(payment.order.subTotal));
+			}
+			return acc;
+		}, new Map<number, number>()).values(),
+	);
+	const subTotal =
+		uniqueOrderSubtotals.length > 0 ? sumMoney(uniqueOrderSubtotals) : null;
+
 	return {
 		id: source.id,
 		paymentNo: String(source.id).padStart(5, "0"),
@@ -389,6 +402,7 @@ export function projectSalesFinanceTransaction(
 		principalAmount,
 		feeAmount,
 		refundedAmount,
+		subTotal,
 		netAmount: subtractMoney(receivedAmount, refundedAmount),
 		appliedAmount,
 		unappliedAmount,

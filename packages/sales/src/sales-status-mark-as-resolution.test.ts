@@ -3,6 +3,7 @@ import type { Db } from "@gnd/db";
 
 import {
 	type SalesStatusMarkAsPreflightResult,
+	getSalesStatusMarkAsPreflight,
 	resolveSalesStatusMarkAsDependenciesForContinue,
 } from "./sales-status-mark-as-resolution";
 
@@ -52,6 +53,8 @@ function makePreflight(
 			pendingProductionReviewCount: 1,
 			pendingProductionSubmissionCount: 1,
 			pendingProductionQty: 12,
+			productionSubmissionCountToPrepare: 0,
+			productionQtyToPrepare: 0,
 			inboundShipmentCount: 1,
 			inboundItemCount: 1,
 			inboundQtyToReceive: 12,
@@ -64,6 +67,137 @@ function makePreflight(
 }
 
 describe("resolveSalesStatusMarkAsDependenciesForContinue", () => {
+	test("blocks direct fulfillment when production still needs implicit submission", async () => {
+		const { automation: _automation, ...inventoryPreflight } = makePreflight({
+			ok: true,
+			blockedSaleCount: 0,
+			blockers: [],
+		});
+
+		const result = await getSalesStatusMarkAsPreflight(
+			{} as Db,
+			{ salesOrderIds: [25583], action: "fulfilled" },
+			{
+				getInventoryPreflight: mock(async () => inventoryPreflight) as never,
+				loadContext: mock(async () => ({
+					reviews: [],
+					inboundDemands: [],
+				})) as never,
+				getPendingProductionWork: mock(async () => [
+					{
+						salesOrderId: 25583,
+						itemUids: ["door-1", "door-2"],
+						submissionCount: 2,
+						qty: 13,
+					},
+				]) as never,
+			},
+		);
+
+		expect(result).toMatchObject({
+			ok: false,
+			canResolveAndContinue: true,
+			automation: {
+				affectedSalesOrderCount: 1,
+				pendingProductionSubmissionCount: 2,
+				pendingProductionQty: 13,
+				productionSubmissionCountToPrepare: 2,
+				productionQtyToPrepare: 13,
+			},
+		});
+	});
+
+	test("prepares implicit production before approving reviews for fulfillment", async () => {
+		const events: string[] = [];
+		const initialPreflight = makePreflight({
+			blockedSaleCount: 0,
+			blockers: [],
+			automation: {
+				...makePreflight().automation,
+				pendingProductionReviewCount: 0,
+				pendingProductionSubmissionCount: 2,
+				pendingProductionQty: 13,
+			},
+		});
+		const remainingPreflight = makePreflight({
+			ok: true,
+			blockedSaleCount: 0,
+			blockers: [],
+			automation: {
+				...initialPreflight.automation,
+				pendingProductionReviewCount: 0,
+				pendingProductionSubmissionCount: 0,
+				pendingProductionQty: 0,
+				autoPaymentReview: false,
+			},
+		});
+		const prepareProduction = mock(async () => {
+			events.push("prepare-production");
+			return {
+				preparedProductionSubmissionCount: 2,
+				preparedProductionQty: 13,
+			};
+		});
+		const getPendingReviews = mock(async () => [
+			{
+				id: 32,
+				salesOrderId: 25583,
+				updatedAt: new Date("2026-08-07T17:21:45.881Z"),
+				submissions: [
+					{ id: 12523, qty: 9 },
+					{ id: 12524, qty: 4 },
+				],
+			},
+		]);
+		const decideReview = mock(async (_db: Db, input: unknown) => {
+			events.push("approve-production");
+			expect(input).toMatchObject({
+				reviewId: 32,
+				action: "APPROVE_CONFIGURATION_EXCEPTION",
+			});
+			return { reviewId: 32, status: "APPROVED" as const };
+		});
+
+		const result = await resolveSalesStatusMarkAsDependenciesForContinue(
+			{} as Db,
+			{
+				salesOrderIds: [25583],
+				action: "fulfilled",
+				authorName: "Admin",
+				triggeredByUserId: 1,
+			},
+			{
+				getStatusPreflight: mock()
+					.mockResolvedValueOnce(initialPreflight)
+					.mockResolvedValueOnce(remainingPreflight) as never,
+				loadContext: mock(async () => ({
+					reviews: [],
+					inboundDemands: [],
+				})) as never,
+				prepareProduction,
+				getPendingReviews: getPendingReviews as never,
+				getReviewDetail: mock(async () => ({
+					currentEvidence: {
+						classification: {
+							state: "pending_material_review",
+							reason: "NOT_CONFIGURED",
+						},
+						materialSnapshot: [
+							{ componentId: null, readiness: "not_configured" },
+						],
+					},
+				})) as never,
+				decideReview: decideReview as never,
+			} as never,
+		);
+
+		expect(events).toEqual(["prepare-production", "approve-production"]);
+		expect(result).toMatchObject({
+			continueAllowed: true,
+			approvedProductionReviewCount: 1,
+		});
+	});
+
 	test("receives the whole linked inbound before approving production and continuing", async () => {
 		const events: string[] = [];
 		const initialPreflight = makePreflight();
@@ -178,6 +312,10 @@ describe("resolveSalesStatusMarkAsDependenciesForContinue", () => {
 				overrideAvailability: overrideAvailability as never,
 				receiveInbound: receiveInbound as never,
 				manualFulfill: manualFulfill as never,
+				prepareProduction: mock(async () => ({
+					preparedProductionSubmissionCount: 0,
+					preparedProductionQty: 0,
+				})) as never,
 				getReviewDetail: getReviewDetail as never,
 				decideReview: decideReview as never,
 			},

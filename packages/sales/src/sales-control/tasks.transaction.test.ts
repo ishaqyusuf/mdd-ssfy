@@ -644,6 +644,12 @@ describe("sales-control task transactions", () => {
     );
 
     expect(submitAssignmentsActionMock).toHaveBeenCalledTimes(1);
+    expect(submitAssignmentsActionMock).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        submissionSource: "sales_mark_as_completed",
+      }),
+    );
     expect(packDispatchItemsActionMock).toHaveBeenCalledTimes(1);
     expect(saveNoteMock).toHaveBeenCalledTimes(1);
   });

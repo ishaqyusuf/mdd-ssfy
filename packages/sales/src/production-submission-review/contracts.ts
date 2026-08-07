@@ -46,6 +46,7 @@ export const decideProductionSubmissionMaterialReviewSchema = z
 		action: z.enum([
 			"RECHECK_AND_APPROVE",
 			"MARK_AVAILABLE_AND_APPROVE",
+			"APPROVE_CONFIGURATION_EXCEPTION",
 			"RECEIVE_INBOUND_AND_APPROVE",
 			"RESOLVE_AND_APPROVE",
 			"REJECT",

@@ -36,6 +36,7 @@ function transaction(
 				order: {
 					id: 10,
 					orderId: "SO-100",
+					subTotal: 85,
 					customer: {
 						id: 7,
 						businessName: "Acme Doors",
@@ -60,6 +61,7 @@ describe("projectSalesFinanceTransaction", () => {
 		expect(result.receivedAmount).toBe(103);
 		expect(result.principalAmount).toBe(100);
 		expect(result.feeAmount).toBe(3);
+		expect(result.subTotal).toBe(85);
 		expect(result.appliedAmount).toBe(100);
 		expect(result.applicationStatus).toBe("applied");
 		expect(result.exceptionCodes).toEqual([]);

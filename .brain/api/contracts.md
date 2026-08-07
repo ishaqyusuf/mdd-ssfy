@@ -1103,6 +1103,12 @@ Tracks important request/response contracts and shared schema boundaries.
 - `RESOLVE_AND_APPROVE` accepts up to 20 linked receipts plus up to 200 scoped
   no-inbound component ids, enabling mixed resolution. Server ownership checks
   reject arbitrary inbound/component ids.
+- `APPROVE_CONFIGURATION_EXCEPTION` is reserved for the permission-checked
+  one-click fulfillment resolution path. It is accepted only when fresh evidence
+  remains `pending_material_review` with reason `NOT_CONFIGURED`, records
+  `configurationException=true` and `noPhysicalStockChange=true`, and still runs
+  the canonical approval completion effects. It cannot bypass configured stock,
+  inbound, or availability blockers.
 - If blockers remain after a valid resolution, inventory changes commit, the
   review stays pending with refreshed evidence, and the exact unresolved
   snapshot is returned. Final decisions are idempotent.

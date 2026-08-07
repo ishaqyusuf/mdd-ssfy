@@ -254,6 +254,13 @@ export function SalesFinanceTableSearch() {
 					placeholder="Search customer, invoice, payment, or reference..."
 					filterList={financeFilterDefinitions}
 					pageTabs={null}
+					toolbarActions={
+						<>
+							<SalesFinanceAdoptionStatus />
+							<SalesFinanceColumnVisibility />
+							<SalesFinanceReports />
+						</>
+					}
 				/>
 			</SearchFilterProvider>
 		</div>

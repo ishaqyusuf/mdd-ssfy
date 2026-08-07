@@ -8850,3 +8850,12 @@
   0 -> 1861, and the new item top at about 196px in a 720px viewport. The QA tab
   was closed without saving. Focused regressions, Sales typecheck, and scoped
   formatting and whitespace checks pass.
+- 2026-08-07: fixed Fulfilled actions that created production material reviews
+  only after their safety preflight. Fulfillment now previews implicit
+  produceable submissions, requires the existing explicit confirmation,
+  prepares and approves that production before packing, uses fresh preflight and
+  dispatch reads, and locks repeated starts through task acceptance. The direct
+  pending-review guard remains intact. Focused coverage passes 38 tests / 117
+  assertions; Sales and API typechecks pass. Read-only live checks covered
+  existing-review order `09231LM` and pre-submission order `09228DB` without
+  mutating either order.

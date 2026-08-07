@@ -5,6 +5,24 @@ const source = await Bun.file(
 ).text();
 
 describe("sales menu status feedback", () => {
+	it("uses fresh safety reads before starting fulfillment", () => {
+		for (const procedure of [
+			"salesInventoryMarkAsPreflight",
+			"salesDeliveryInfo",
+		]) {
+			const callStart = source.indexOf(`${procedure}.queryOptions(`);
+			expect(callStart).toBeGreaterThan(-1);
+			expect(source.slice(callStart, callStart + 500)).toContain(
+				"staleTime: 0",
+			);
+		}
+	});
+
+	it("keeps a fulfillment start locked until its task is accepted", () => {
+		expect(source).toContain("statusActionInFlightRef.current");
+		expect(source).toContain("if (statusActionInFlightRef.current) return;");
+	});
+
 	it("shows visible feedback as soon as a monitored status task starts", () => {
 		expect(source).toContain('title: "Sales status update started"');
 		expect(source).toContain(
@@ -26,8 +44,8 @@ describe("sales menu status feedback", () => {
 		);
 	});
 
-	it("cancels all fulfillment dispatches in one mutation", () => {
-		expect(source).toContain("cancelDispatch: {\n\t\t\t\t\t\tdispatchIds,");
-		expect(source).not.toContain("for (const dispatchId of dispatchIds)");
+	it("routes fulfillment cancellation through the guarded review dialog", () => {
+		expect(source).toContain("SalesWorkflowCancellationDialog");
+		expect(source).toContain('actions.openWorkflowCancellation("fulfillment")');
 	});
 });

@@ -830,6 +830,7 @@ const TABLE_CONFIG_BASES: Record<TableId, Omit<TableConfig, "fillColumnId">> = {
 			createdAt: "receivedAt",
 			customer: "customerName",
 			receivedAmount: "receivedAmount",
+			subTotal: "subTotal",
 			netAmount: "netAmount",
 			unappliedAmount: "unappliedAmount",
 			paymentMethod: "paymentMethod",

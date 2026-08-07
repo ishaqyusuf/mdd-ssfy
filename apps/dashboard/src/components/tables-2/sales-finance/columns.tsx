@@ -122,12 +122,12 @@ const invoicesColumn: Column = {
 	id: "invoices",
 	header: "Invoices",
 	accessorKey: "orderNos",
-	...sizes.custom(150, 260, 190),
+	...sizes.custom(100, 180, 120),
 	enableResizing: true,
 	meta: {
 		headerLabel: "Invoices",
 		skeleton: { type: "text", width: "w-28" },
-		className: sizeClass(sizes.custom(150, 260, 190)),
+		className: sizeClass(sizes.custom(100, 180, 120)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -191,6 +191,7 @@ function moneyColumn(
 		| "receivedAmount"
 		| "feeAmount"
 		| "refundedAmount"
+		| "subTotal"
 		| "netAmount"
 		| "appliedAmount"
 		| "unappliedAmount",
@@ -201,12 +202,12 @@ function moneyColumn(
 		id,
 		header: label,
 		accessorKey: id,
-		...sizes.custom(126, 190, 146),
+		...sizes.custom(100, 180, 120),
 		enableResizing: true,
 		meta: {
 			headerLabel: label,
 			skeleton: { type: "text", width: "w-20" },
-			className: sizeClass(sizes.custom(126, 190, 146), "text-right"),
+			className: sizeClass(sizes.custom(100, 180, 120), "text-right"),
 			contentClassName: "text-right",
 		},
 		cell: ({ row }) => {
@@ -216,10 +217,13 @@ function moneyColumn(
 					className={cn(
 						"block truncate text-right font-mono text-sm",
 						options?.emphasized && "font-semibold",
-						options?.warning && value > 0 && "font-semibold text-amber-700",
+						options?.warning &&
+							typeof value === "number" &&
+							value > 0 &&
+							"font-semibold text-amber-700",
 					)}
 				>
-					{formatMoney(value)}
+					{formatMoney(value ?? 0)}
 				</span>
 			);
 		},
@@ -230,12 +234,12 @@ const reviewColumn: Column = {
 	id: "review",
 	header: "Review",
 	accessorKey: "needsReview",
-	...sizes.custom(150, 240, 180),
+	...sizes.custom(100, 180, 120),
 	enableResizing: true,
 	meta: {
 		headerLabel: "Review",
 		skeleton: { type: "badge" },
-		className: sizeClass(sizes.custom(150, 240, 180)),
+		className: sizeClass(sizes.custom(100, 180, 120)),
 	},
 	cell: ({ row }) =>
 		row.original.needsReview ? (
@@ -309,6 +313,7 @@ export const columns: Column[] = [
 	moneyColumn("receivedAmount", "Received"),
 	moneyColumn("feeAmount", "Fees"),
 	moneyColumn("refundedAmount", "Refunded"),
+	moneyColumn("subTotal", "Sub Total"),
 	moneyColumn("netAmount", "Invoice Total", { emphasized: true }),
 	moneyColumn("appliedAmount", "Applied"),
 	moneyColumn("unappliedAmount", "Unapplied", { warning: true }),

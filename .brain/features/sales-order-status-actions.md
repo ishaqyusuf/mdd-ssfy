@@ -63,6 +63,19 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
   genuine production, applies payment-review/payroll approval effects, records
   an audited override for residual non-stock checks, and only then starts the
   selected production-completion or fulfillment task.
+- Fulfillment preflight also projects pending produceable work that pack-all
+  would otherwise submit after the preview. The confirmation shows the number
+  and quantity of production submissions it will prepare, creates them with
+  automatic-completion provenance, approves any resulting review, and only then
+  starts dispatch completion. Direct jobs retain the pending-review guard.
+- When the resulting review is `NOT_CONFIGURED` and contains no physical
+  component IDs, the confirmed resolver records a configuration exception with
+  no stock change and runs the normal review approval side effects. Other review
+  reasons cannot use that exception.
+- Status safety reads bypass the dashboard's normal query stale window, and one
+  status action remains locked from preflight through task acceptance. A retry
+  therefore sees newly created reviews and dispatches instead of creating a
+  duplicate empty dispatch from cached data.
 - Preflight displays affected orders, inbound shipment and remaining quantity,
   production-review count, residual component checks, and the final production
   or dispatch action. The one-click resolver requires `editOrders`,
@@ -75,6 +88,14 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 - Saved page-tab list/default queries refetch inactive cache entries as well as active ones. A saved filter such as production complete plus fulfillment pending therefore updates its count after an order is fulfilled without a page reload.
 
 ## Validation
+
+- 2026-08-07 fulfillment-created-review regression coverage passed 38 tests /
+  117 assertions; Sales and API typechecks passed. Read-only live preflight on
+  `09231LM` exposed its existing review and 13 units, while untouched `09228DB`
+  projected four not-yet-created production submissions / five units and
+  stopped before task or dispatch creation. The broad dashboard typecheck
+  completed with its existing repository-wide errors and no captured diagnostic
+  in the changed runtime file; the dev orders page returned HTTP 200.
 
 - 2026-08-06 layered-cancellation coverage passed 53 focused tests / 115
   assertions, targeted Biome, and whitespace validation. `@gnd/sales` and

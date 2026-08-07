@@ -23,8 +23,11 @@ idempotent orchestration owned by the Sales package:
    received timestamps; existing issue quantities are preserved.
 2. Run canonical manual fulfillment for remaining tracked inventory needs.
 3. Re-read and approve every pending production material review, including
-   genuine production submissions. Approval retains material evidence,
-   production payroll, payment-review automation, reviewer, and history effects.
+   genuine production submissions. A `NOT_CONFIGURED` review with no physical
+   component IDs uses an explicit configuration-exception approval that retains
+   its missing-configuration evidence and records that no stock changed.
+   Approval retains production payroll, payment-review automation, reviewer,
+   and history effects.
 4. Record the existing audited availability override only for residual legacy or
    configuration checks that canonical tracked-inventory services cannot mutate.
 5. Start the existing production-completion or dispatch packing/completion task
@@ -56,6 +59,9 @@ appearing between preview and execution cannot cross a permission boundary.
   idempotent or concurrency guarded.
 - Direct fulfillment tasks still reject pending production review. Only this
   permission-checked operator confirmation resolves the evidence first.
+- Configuration-exception approval is valid only for a current
+  `NOT_CONFIGURED` review. If re-evaluation produces any other blocker, the
+  review remains pending and requires its canonical physical resolution.
 - ADR-039 remains the default production-material rule; this ADR supersedes its
   separate-manual-review expectation for the explicit one-click status flow.
 

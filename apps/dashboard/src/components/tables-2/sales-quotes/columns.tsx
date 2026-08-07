@@ -2,7 +2,6 @@
 
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
-import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
@@ -13,12 +12,6 @@ import { Checkbox } from "@gnd/ui/checkbox";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
 import { useQueryClient } from "@gnd/ui/tanstack";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@gnd/ui/tooltip";
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import {
@@ -300,98 +293,19 @@ export const columns: Column[] = [
 ];
 
 function InvoiceCell({ item }: { item: SalesQuote }) {
-	const [opened, setOpened] = useState(false);
-	const buttonRef = useRef<HTMLButtonElement>(null);
 	const pending = item.invoice.pending;
 	const total = item.invoice.total;
-	const paid = Math.max(total - pending, 0);
 	const hasPendingBalance = pending > 0;
 
-	if (!hasPendingBalance) {
-		return (
-			<span className="block truncate text-right font-mono font-medium text-emerald-600">
-				{formatCurrency.format(total)}
-			</span>
-		);
-	}
-
 	return (
-		<div className="relative z-10 text-right">
-			<SalesPaymentProcessor
-				phoneNo={item.accountNo || item.customerPhone}
-				selectedIds={[item.id]}
-				customerId={item.customerId}
-			>
-				<button
-					ref={buttonRef}
-					type="button"
-					className="hidden"
-					onClick={(event) => event.stopPropagation()}
-				/>
-			</SalesPaymentProcessor>
-			<TooltipProvider delayDuration={70}>
-				<Tooltip open={opened} onOpenChange={setOpened}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							className="block w-full truncate text-right font-mono font-medium text-amber-700"
-							onClick={(event) => {
-								event.preventDefault();
-								event.stopPropagation();
-							}}
-						>
-							{formatCurrency.format(total)}
-						</button>
-					</TooltipTrigger>
-					<TooltipContent
-						align="end"
-						side="left"
-						sideOffset={10}
-						className="relative z-[999] w-52 space-y-3 px-3 py-2 text-xs"
-						onClick={(event) => {
-							event.preventDefault();
-							event.stopPropagation();
-						}}
-					>
-						<div className="space-y-2">
-							<InvoiceBreakdownLine label="Pending" value={pending} />
-							<InvoiceBreakdownLine label="Paid" value={paid} />
-							<InvoiceBreakdownLine label="Total" value={total} />
-						</div>
-						<Button
-							className="w-full"
-							disabled={!pending}
-							size="sm"
-							onClick={(event) => {
-								event.preventDefault();
-								event.stopPropagation();
-								setOpened(false);
-								buttonRef.current?.click();
-							}}
-						>
-							Apply Payment
-						</Button>
-					</TooltipContent>
-				</Tooltip>
-			</TooltipProvider>
-		</div>
-	);
-}
-
-function InvoiceBreakdownLine({
-	label,
-	value,
-}: {
-	label: string;
-	value: number;
-}) {
-	return (
-		<div className="flex items-center justify-between gap-4">
-			<span className="font-medium text-muted-foreground">{label}</span>
-			<span className="font-mono font-medium">
-				{formatCurrency.format(value)}
-			</span>
-		</div>
+		<span
+			className={cn(
+				"block truncate text-right font-mono font-medium",
+				hasPendingBalance ? "text-amber-700" : "text-emerald-600",
+			)}
+		>
+			{formatCurrency.format(total)}
+		</span>
 	);
 }
 

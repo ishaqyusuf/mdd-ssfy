@@ -85,4 +85,15 @@ describe("Sales Quotes Sales Orders table migration parity", () => {
 		expect(columnsSource.includes("sizes.custom(104, 150, 116)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(86, 130, 96)")).toBe(true);
 	});
+
+	it("renders quote invoice total without payment processor or apply-payment hover tooltip", () => {
+		const columnsSource = readSource(
+			"components/tables-2/sales-quotes/columns.tsx",
+		);
+
+		expect(columnsSource.includes("SalesPaymentProcessor")).toBe(false);
+		expect(columnsSource.includes("TooltipProvider")).toBe(false);
+		expect(columnsSource.includes("Apply Payment")).toBe(false);
+		expect(columnsSource.includes("function InvoiceCell")).toBe(true);
+	});
 });

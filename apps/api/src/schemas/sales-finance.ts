@@ -20,6 +20,7 @@ export const salesFinanceSortFields = [
 	"receivedAt",
 	"customerName",
 	"receivedAmount",
+	"subTotal",
 	"netAmount",
 	"unappliedAmount",
 	"paymentMethod",

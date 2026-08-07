@@ -61,6 +61,7 @@ All list, detail, review, and summary surfaces consume the package projection in
 - `principalAmount` is the explicit sales/principal amount, with received less
   fees as the safe fallback.
 - `refundedAmount` is the sum of linked non-deleted refund totals.
+- `subTotal` is the total base subtotal from linked sales orders.
 - `netAmount = receivedAmount - refundedAmount`.
 - `appliedAmount` is the sum of positive, non-deleted sales-payment
   applications.
@@ -75,9 +76,7 @@ names are the fallback, with duplicate multi-invoice names removed.
 Canonical payment methods are `card`, `check`, `zelle`, `cash`, `wire`, and
 `unclassified`. Card includes credit-card, terminal, and payment-link aliases.
 
-The Payments ledger presents the canonical `netAmount` column with the
-operator-facing label `Invoice Total`. This is a presentation-only label; the
-underlying projection and calculation remain unchanged.
+The Payments ledger presents `subTotal` with the label `Sub Total` positioned immediately before the `netAmount` column (labeled `Invoice Total`). Invoices, Received, Fee, Refunded, Sub Total, Invoice Total, Applied, Unapplied, and Review use canonical small-column dimensions (120px default, 100px min, 180px max). Selection, Payment, and Actions remain non-hideable while all other ledger columns can be toggled via the accessible column control and persist across reloads and tab navigation.
 
 ## Review Contract
 

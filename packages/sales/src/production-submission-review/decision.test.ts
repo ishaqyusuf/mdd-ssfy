@@ -107,6 +107,105 @@ describe("production submission material review decision", () => {
 		});
 	});
 
+	it("approves an explicit configuration exception without fabricating stock", async () => {
+		const updateMany = mock(async () => ({ count: 1 }));
+		const onApproved = mock(async () => {});
+		const tx = {
+			salesProductionSubmissionMaterialReview: {
+				findUniqueOrThrow: mock(async () => pendingReview()),
+				updateMany,
+			},
+			salesHistory: { create: mock(async () => ({})) },
+		};
+		const evidence = {
+			classification: {
+				state: "pending_material_review" as const,
+				reason: "NOT_CONFIGURED" as const,
+			},
+			materialSnapshot: [{ componentId: null, readiness: "not_configured" }],
+			materialRevision: "configuration-missing",
+		};
+
+		const result = await decideProductionSubmissionMaterialReview(
+			{
+				$transaction: async (
+					callback: (client: typeof tx) => Promise<unknown>,
+				) => callback(tx),
+			} as never,
+			{
+				reviewId: 55,
+				expectedUpdatedAt: new Date("2026-07-30T12:00:00.000Z"),
+				action: "APPROVE_CONFIGURATION_EXCEPTION",
+				note: "Approved by the explicit one-click fulfillment confirmation.",
+			},
+			{ id: 9, name: "Admin" },
+			{
+				evaluateEvidence: mock(async () => evidence) as never,
+				resetSales: mock(async () => {}) as never,
+				onApproved,
+			},
+		);
+
+		expect(result).toEqual({
+			reviewId: 55,
+			status: "APPROVED",
+			materialRevision: "configuration-missing",
+		});
+		expect(updateMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					status: "APPROVED",
+					resolution: expect.objectContaining({
+						action: "APPROVE_CONFIGURATION_EXCEPTION",
+						configurationException: true,
+						noPhysicalStockChange: true,
+					}),
+				}),
+			}),
+		);
+		expect(onApproved).toHaveBeenCalledTimes(1);
+	});
+
+	it("rejects a configuration exception for a configured material blocker", async () => {
+		const updateMany = mock(async () => ({ count: 1 }));
+		const tx = {
+			salesProductionSubmissionMaterialReview: {
+				findUniqueOrThrow: mock(async () => pendingReview()),
+				updateMany,
+			},
+		};
+
+		await expect(
+			decideProductionSubmissionMaterialReview(
+				{
+					$transaction: async (
+						callback: (client: typeof tx) => Promise<unknown>,
+					) => callback(tx),
+				} as never,
+				{
+					reviewId: 55,
+					expectedUpdatedAt: new Date("2026-07-30T12:00:00.000Z"),
+					action: "APPROVE_CONFIGURATION_EXCEPTION",
+					note: "This must not bypass configured inventory.",
+				},
+				{ id: 9, name: "Admin" },
+				{
+					evaluateEvidence: mock(async () => ({
+						classification: {
+							state: "pending_material_review" as const,
+							reason: "BLOCKED" as const,
+						},
+						materialSnapshot: [{ componentId: 101, readiness: "unavailable" }],
+						materialRevision: "configured-blocker",
+					})) as never,
+				},
+			),
+		).rejects.toThrow(
+			"A configuration exception can only approve an unconfigured production review.",
+		);
+		expect(updateMany).not.toHaveBeenCalled();
+	});
+
 	it("rejects a pending review and releases reported work from projections", async () => {
 		const updateMany = mock(async () => ({ count: 1 }));
 		const tx = {

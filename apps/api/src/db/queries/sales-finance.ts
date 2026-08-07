@@ -127,6 +127,7 @@ const salesFinanceTransactionSelect = {
 				select: {
 					id: true,
 					orderId: true,
+					subTotal: true,
 					customer: {
 						select: {
 							id: true,

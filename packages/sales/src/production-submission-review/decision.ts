@@ -127,17 +127,21 @@ function unresolvedComponentIds(materialSnapshot: unknown) {
 	return Array.from(
 		new Set(
 			materialSnapshot.flatMap((material) => {
+				const snapshot = material as {
+					componentId?: unknown;
+					readiness?: unknown;
+				};
 				if (
 					!material ||
 					typeof material !== "object" ||
-					!Number.isInteger((material as any).componentId)
+					!Number.isInteger(snapshot.componentId)
 				) {
 					return [];
 				}
-				const readiness = String((material as any).readiness || "");
+				const readiness = String(snapshot.readiness || "");
 				return readiness === "ready_for_production" || readiness === "fulfilled"
 					? []
-					: [(material as any).componentId as number];
+					: [snapshot.componentId as number];
 			}),
 		),
 	);
@@ -317,6 +321,21 @@ export async function decideProductionSubmissionMaterialReview(
 			action: input.action,
 			componentIds,
 		};
+		if (input.action === "APPROVE_CONFIGURATION_EXCEPTION") {
+			if (
+				before.classification.state !== "pending_material_review" ||
+				before.classification.reason !== "NOT_CONFIGURED"
+			) {
+				throw new Error(
+					"A configuration exception can only approve an unconfigured production review.",
+				);
+			}
+			resolution = {
+				...resolution,
+				configurationException: true,
+				noPhysicalStockChange: true,
+			};
+		}
 
 		if (input.action === "MARK_AVAILABLE_AND_APPROVE") {
 			if (!componentIds.length) {
@@ -402,7 +421,14 @@ export async function decideProductionSubmissionMaterialReview(
 			salesOrderId: review.salesOrderId,
 			itemScope,
 		});
-		if (after.classification.state !== "finalized") {
+		const configurationExceptionApproved =
+			input.action === "APPROVE_CONFIGURATION_EXCEPTION" &&
+			after.classification.state === "pending_material_review" &&
+			after.classification.reason === "NOT_CONFIGURED";
+		if (
+			after.classification.state !== "finalized" &&
+			!configurationExceptionApproved
+		) {
 			const refreshed =
 				await tx.salesProductionSubmissionMaterialReview.updateMany({
 					where: {

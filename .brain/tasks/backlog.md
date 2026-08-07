@@ -38,6 +38,13 @@ Tracks queued work that is important but not currently in the top execution slic
 - Created Date: 2026-06-22
 
 ## Next Up
+- [x] Sales Finance compact ledger columns and persistent visibility: apply the
+  shared Sales Orders small-column sizing to Invoices, Received, Refunded, Sub
+  Total, Invoice Total, Applied, Unapplied, and Review, then verify the
+  accessible show/hide control and persisted visibility behavior across All
+  Payments and Review Queue
+  (`.scratch/sales-finance-compact-columns/issues/01-compact-ledger-columns-and-persistent-visibility.md`)
+  (UI + Validation)
 - [ ] Review and, when approved, implement the proposed Table Row Processing
   And Exit Feedback pilot on
   canonical Sales Orders: preserve immediate query invalidation while showing

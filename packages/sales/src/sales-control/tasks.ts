@@ -840,7 +840,10 @@ export async function packDispatchItemTask(
 			db,
 			{
 				meta: data.meta,
-				submitAll: {},
+				submitAll: {
+					submissionSource:
+						packMode === "all" ? "sales_mark_as_completed" : undefined,
+				},
 			},
 			dependencies,
 			{ emptySubmissionBehavior: "skip" },
