@@ -323,7 +323,7 @@ export function LoginTemplate1() {
           </KeyboardAwareScrollView>
           <LoginQuickAccess
             variant="dark"
-            onSelectEmail={(email) => form.setValue("email", email)}
+            onSelectCredentials={(credentials) => form.reset(credentials)}
           />
         </SafeArea>
       </View>

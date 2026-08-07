@@ -3,8 +3,10 @@ import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input-2";
 import { Modal, useModal } from "@/components/ui/modal";
 import { useColors } from "@/hooks/use-color";
+import type { SignInSchema } from "@/lib/schemas/auth";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
+import Constants from "expo-constants";
 import React, { useMemo, useState } from "react";
 import type { TextStyle } from "react-native";
 import { Pressable, Text, View } from "react-native";
@@ -17,23 +19,31 @@ type LoginEmployee = {
 };
 
 type LoginQuickAccessProps = {
-  onSelectEmail: (email: string) => void;
+  onSelectCredentials: (credentials: SignInSchema) => void;
   variant?: "default" | "dark";
 };
 
+function getDevQuickLoginPassword() {
+  const password = Constants.expoConfig?.extra?.devQuickLoginPassword;
+  return typeof password === "string" ? password : "";
+}
+
 export function LoginQuickAccess({
-  onSelectEmail,
+  onSelectCredentials,
   variant = "default",
 }: LoginQuickAccessProps) {
   if (!__DEV__) return null;
 
   return (
-    <DevLoginQuickAccess onSelectEmail={onSelectEmail} variant={variant} />
+    <DevLoginQuickAccess
+      onSelectCredentials={onSelectCredentials}
+      variant={variant}
+    />
   );
 }
 
 function DevLoginQuickAccess({
-  onSelectEmail,
+  onSelectCredentials,
   variant = "default",
 }: LoginQuickAccessProps) {
   const [employeeSearch, setEmployeeSearch] = useState("");
@@ -68,7 +78,10 @@ function DevLoginQuickAccess({
 
   function selectEmployee(employee: LoginEmployee) {
     if (!employee.email) return;
-    onSelectEmail(employee.email);
+    onSelectCredentials({
+      email: employee.email,
+      password: getDevQuickLoginPassword(),
+    });
     employeesModal.dismiss();
   }
 

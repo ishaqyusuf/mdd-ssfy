@@ -1,5 +1,16 @@
 # Progress
 
+- 2026-08-07: updated the Expo development quick-login picker so selecting an
+  employee fills both their email and the current `EXPO_PUBLIC_TOK` in either
+  login template while preserving explicit Sign in submission and the existing
+  `__DEV__` boundary. The password reaches UI code through development-only
+  Expo config rather than a direct environment read. Focused preview/security
+  coverage passes 4 tests / 30 assertions, the mobile TypeScript check passes,
+  and the full mobile suite passes 204 tests with three unrelated existing
+  dispatch packing-payload expectation failures. Live ADB interaction proof
+  remains pending because the connected Android device disconnected before
+  verification.
+
 - 2026-08-07: converted all remaining driver-platform revival work into an
   approved closeout specification and five dependency-ordered local
   `ready-for-agent` tickets under

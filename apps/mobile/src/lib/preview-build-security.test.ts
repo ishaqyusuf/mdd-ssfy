@@ -9,14 +9,16 @@ const appRoot = join(currentDir, "../..");
 const readAppFile = (relativePath: string) =>
 	readFileSync(join(appRoot, relativePath), "utf8");
 
+const readLoginTemplates = () => [
+	readAppFile("src/components/login-template-0.tsx"),
+	readAppFile("src/components/login-template-1.tsx"),
+];
+
 describe("mobile preview build security", () => {
 	it("keeps quick login and debug controls behind the Expo dev runtime", () => {
 		const quickAccess = readAppFile("src/components/login-quick-access.tsx");
 		const debug = readAppFile("src/components/debug.tsx");
-		const loginTemplates = [
-			readAppFile("src/components/login-template-0.tsx"),
-			readAppFile("src/components/login-template-1.tsx"),
-		];
+		const loginTemplates = readLoginTemplates();
 
 		expect(quickAccess).toContain("if (!__DEV__) return null;");
 		const quickAccessWrapper = quickAccess.slice(
@@ -38,6 +40,29 @@ describe("mobile preview build security", () => {
 			);
 			expect(source).toMatch(
 				/password:\s*__DEV__\s*\?\s*process\.env\.EXPO_PUBLIC_TOK\s*\?\?\s*""\s*:\s*""/,
+			);
+		}
+	});
+
+	it("fills both credential fields when a development quick-login account is selected", () => {
+		const appConfig = readAppFile("app.config.ts");
+		const quickAccess = readAppFile("src/components/login-quick-access.tsx");
+		const loginTemplates = readLoginTemplates();
+
+		expect(quickAccess).toContain(
+			"onSelectCredentials: (credentials: SignInSchema) => void;",
+		);
+		expect(appConfig).toMatch(
+			/devQuickLoginPassword:\s*isDevelopmentBuild\s*\?\s*process\.env\.EXPO_PUBLIC_TOK \?\? ""\s*:\s*""/,
+		);
+		expect(quickAccess).not.toContain("process.env.EXPO_PUBLIC_TOK");
+		expect(quickAccess).toMatch(
+			/onSelectCredentials\(\{\s*email: employee\.email,\s*password: getDevQuickLoginPassword\(\),\s*\}\);/,
+		);
+
+		for (const source of loginTemplates) {
+			expect(source).toContain(
+				"onSelectCredentials={(credentials) => form.reset(credentials)}",
 			);
 		}
 	});

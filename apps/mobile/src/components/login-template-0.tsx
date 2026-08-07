@@ -267,7 +267,7 @@ export function LoginTemplate0() {
           </View>
         </KeyboardAwareScrollView>
         <LoginQuickAccess
-          onSelectEmail={(email) => form.setValue("email", email)}
+          onSelectCredentials={(credentials) => form.reset(credentials)}
         />
       </View>
     </SafeArea>

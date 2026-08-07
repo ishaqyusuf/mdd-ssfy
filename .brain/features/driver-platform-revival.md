@@ -7,11 +7,12 @@ the approved local tickets. Automated contract, domain, and focused mobile
 validation is green. The dedicated development router renders in SDK 54 Expo
 Go, and device proof now includes a reversible inventory-backed dispatch moving
 from `UNPACKED 0/3 · Inventory Review` to `PACKED 3/3 · Ready To Load`.
-Assigned-driver completion remains open because device testing exposed that the
-development employee picker changes the email but does not create a session for
-the selected employee. Mixed inventory/legacy packing atomicity, final driver
-start/proof completion, lifecycle failure evidence, and pilot handoff are
-tracked in `.scratch/driver-platform-revival-closeout/`.
+Assigned-driver completion remains open. The development employee picker now
+fills the selected email plus the shared development master password and waits
+for explicit form submission, but the approved password-free genuine employee
+session operation remains unimplemented. Mixed inventory/legacy packing
+atomicity, final driver start/proof completion, lifecycle failure evidence, and
+pilot handoff are tracked in `.scratch/driver-platform-revival-closeout/`.
 
 ## Behavior
 
@@ -85,9 +86,10 @@ tracked in `.scratch/driver-platform-revival-closeout/`.
 - Expo Go 54.0.8 device proof passes ordinary login, development-only employee
   list rendering, authenticated assigned queue, dispatch detail, the
   Al-Ghurobaa dark palette, and exact warehouse preparation for the reversible
-  inventory fixture. The same proof exposed that selecting a different employee
-  does not authenticate that employee because the picker currently retains the
-  ordinary form password.
+  inventory fixture. The picker now replaces both credential fields when a
+  different employee is selected; device proof of the revised interaction is
+  pending because the connected Android device became unavailable during the
+  implementation session.
 - Theme/runtime/security regression coverage passes 12 tests with 51
   assertions, including exact dark identity tokens and development-only
   account/router boundaries.

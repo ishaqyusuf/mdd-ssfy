@@ -147,6 +147,9 @@ const config: ExpoConfig = {
 
   extra: {
     appVariant: normalizedAppVariant,
+    devQuickLoginPassword: isDevelopmentBuild
+      ? process.env.EXPO_PUBLIC_TOK ?? ""
+      : "",
     driverPlatformMode: isDriverPlatformMode,
     autoUpdateForegroundCooldownMs:
       process.env.EXPO_PUBLIC_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS ??
