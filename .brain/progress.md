@@ -1,5 +1,19 @@
 # Progress
 
+- 2026-08-07: repaired Inventory Needs `Mark as available` after review found
+  that the first implementation widened Prisma shipment status with a
+  non-schema `available` value, wrote a nonexistent
+  `InboundShipmentItem.qtyReceived`, and still persisted the order as
+  `ORDERED`. Availability is now an explicit operation: selected quantities
+  can split demand, a pending inbound is received through the canonical stock,
+  movement, log, demand, component, and backorder-allocation path, and the
+  order becomes `AVAILABLE` only through an atomic guarded write when no open
+  demand remains. Quantity splitting and the availability invariant now live
+  in the inventory package. The action preserves `editOrders`, including an
+  executable unauthorized-caller regression; both form surfaces use correct
+  available-mode copy, and no database migration is required. Focused API,
+  package, permission, schema, and UI coverage passes 67 tests.
+
 - 2026-08-07: fixed quote `03464PC` failing Save with a misleading `This form
   is out of date` message. The underlying Prisma conflict was a duplicate
   `HousePackageTools.orderItemId`: payloads without a tool id now recover and

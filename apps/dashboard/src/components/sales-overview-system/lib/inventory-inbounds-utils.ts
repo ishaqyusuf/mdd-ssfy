@@ -96,7 +96,7 @@ export function getPendingInventoryQty(
 	}, 0);
 }
 
-export function canFulfillAllInventoryNeeds(input: {
+export function canMarkInventoryNeedsAvailable(input: {
 	canMarkAvailable: boolean;
 	pendingQty: number;
 	isReadOnly?: boolean;

@@ -4,15 +4,18 @@ import {
 	createStoredDocumentRegistry,
 	normalizeStoredDocument,
 } from "@api/utils/stored-documents";
-import type { Prisma, TransactionClient } from "@gnd/db";
+import type { Db, Prisma, TransactionClient } from "@gnd/db";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
 import {
 	type NewInboundShipmentStatus,
 	assignInboundDemandsToShipment,
 	createInboundShipment,
 	createInboundShipmentFromDemands,
+	ensureSelectedInboundDemandQuantities,
 	getInboundShipmentDetail,
 	listInboundShipments,
+	markSalesOrdersAvailableWhenInboundDemandResolved,
+	receiveInboundShipment,
 	reduceInboundShipmentDemand,
 	releaseCancelledInboundShipmentDemand,
 } from "@gnd/inventory";
@@ -162,6 +165,10 @@ async function assertInboundRequestCanCreateDemand(
 	ctx: InboundDbContext,
 	input: {
 		demandIds?: number[];
+		demandSelections?: Array<{
+			demandIds: number[];
+			qty: number;
+		}>;
 		lineItemComponentIds?: number[];
 		componentSelections?: Array<{
 			lineItemComponentIds: number[];
@@ -180,7 +187,14 @@ async function assertInboundRequestCanCreateDemand(
 		),
 	);
 	const demandIds = Array.from(
-		new Set((input.demandIds || []).filter((id) => Number.isFinite(id))),
+		new Set(
+			[
+				...(input.demandIds || []),
+				...(input.demandSelections || []).flatMap(
+					(selection) => selection.demandIds || [],
+				),
+			].filter((id) => Number.isFinite(id)),
+		),
 	);
 	const salesById = new Map<number, InboundGuardSale>();
 
@@ -1375,6 +1389,10 @@ export async function createInboundShipmentFromDemandsQuery(
 	input: {
 		supplierId?: number | null;
 		demandIds?: number[];
+		demandSelections?: Array<{
+			demandIds: number[];
+			qty: number;
+		}>;
 		lineItemComponentIds?: number[];
 		componentSelections?: Array<{
 			lineItemComponentIds: number[];
@@ -1383,10 +1401,27 @@ export async function createInboundShipmentFromDemandsQuery(
 		reference?: string | null;
 		expectedAt?: Date | null;
 		status?: NewInboundShipmentStatus;
+		operation?: "create_inbound" | "mark_available";
 		note?: string | null;
 	},
+	deps: {
+		createShipmentFromDemands?: typeof createInboundShipmentFromDemands;
+		receiveShipment?: typeof receiveInboundShipment;
+		getSalesSetting?: typeof getSettingAction;
+		autoReviewPayments?: typeof autoReviewSalesPaymentsForOrderAction;
+		createActivity?: typeof createInboundActivity;
+	} = {},
 ) {
 	const actor = await getInboundActor(ctx);
+	const operation = input.operation ?? "create_inbound";
+	const isMarkAvailable = operation === "mark_available";
+	const createShipmentFromDemands =
+		deps.createShipmentFromDemands ?? createInboundShipmentFromDemands;
+	const receiveShipment = deps.receiveShipment ?? receiveInboundShipment;
+	const getSalesSetting = deps.getSalesSetting ?? getSettingAction;
+	const autoReviewPayments =
+		deps.autoReviewPayments ?? autoReviewSalesPaymentsForOrderAction;
+	const createActivity = deps.createActivity ?? createInboundActivity;
 	const supplier = input.supplierId
 		? await ctx.db.supplier.findFirst({
 				where: {
@@ -1400,12 +1435,12 @@ export async function createInboundShipmentFromDemandsQuery(
 			})
 		: null;
 
-	const { result, linkedSales, updatedSalesOrderCount } =
+	const { result, receipt, linkedSales, updatedSalesOrderCount } =
 		await ctx.db.$transaction(async (tx) => {
 			await assertInboundRequestCanCreateDemand({ db: tx }, input);
-			const setting = await getSettingAction("sales-settings", tx as any);
+			const setting = await getSalesSetting("sales-settings", tx as Db);
 			const paymentReviewSettings = normalizeSalesPaymentReviewSettings(
-				((setting.meta || {}) as Record<string, any>).paymentReview,
+				((setting.meta || {}) as { paymentReview?: unknown }).paymentReview,
 			);
 			const ensuredDemandIds = input.componentSelections?.length
 				? await ensureSelectedInboundDemandsForStockComponents(
@@ -1416,16 +1451,28 @@ export async function createInboundShipmentFromDemandsQuery(
 						{ db: tx },
 						input.lineItemComponentIds || [],
 					);
+			const selectedDemandIds = input.demandSelections?.length
+				? await ensureSelectedInboundDemandQuantities(
+						tx,
+						input.demandSelections,
+					)
+				: input.demandIds || [];
 			const demandIds = Array.from(
-				new Set([...(input.demandIds || []), ...ensuredDemandIds]),
+				new Set([...selectedDemandIds, ...ensuredDemandIds]),
 			);
-			const result = await createInboundShipmentFromDemands(tx, {
+			const result = await createShipmentFromDemands(tx, {
 				supplierId: input.supplierId,
 				demandIds,
 				reference: input.reference,
 				expectedAt: input.expectedAt,
-				status: input.status,
+				status: isMarkAvailable ? "pending" : input.status,
 			});
+			const receipt = isMarkAvailable
+				? await receiveShipment(tx, {
+						inboundId: result.inboundId,
+						authorName: actor.name || String(actor.id),
+					})
+				: null;
 			const linkedDemandSales = await tx.inboundDemand.findMany({
 				where: {
 					id: {
@@ -1458,33 +1505,38 @@ export async function createInboundShipmentFromDemandsQuery(
 				if (sale) linkedSalesById.set(sale.id, sale);
 			}
 			const linkedSales = Array.from(linkedSalesById.values());
-			const updatedSalesOrderCount = linkedSales.length
-				? (
-						await tx.salesOrders.updateMany({
-							where: {
-								id: {
-									in: linkedSales.map((sale) => sale.id),
+			const linkedSalesOrderIds = linkedSales.map((sale) => sale.id);
+			const updatedSalesOrderCount = isMarkAvailable
+				? await markSalesOrdersAvailableWhenInboundDemandResolved(
+						tx,
+						linkedSalesOrderIds,
+					)
+				: linkedSalesOrderIds.length
+					? (
+							await tx.salesOrders.updateMany({
+								where: {
+									id: { in: linkedSalesOrderIds },
+									deletedAt: null,
 								},
-								deletedAt: null,
-							},
-							data: {
-								inventoryStatus: "ORDERED",
-							},
-						})
-					).count
-				: 0;
+								data: { inventoryStatus: "ORDERED" },
+							})
+						).count
+					: 0;
 			for (const sale of linkedSales) {
-				await autoReviewSalesPaymentsForOrderAction(tx as any, {
+				await autoReviewPayments(tx, {
 					salesId: sale.id,
 					action: "inbound",
 					settings: paymentReviewSettings,
 					reviewedById: ctx.userId ?? null,
-					reviewNote: "Auto-reviewed after inbound creation.",
+					reviewNote: isMarkAvailable
+						? "Auto-reviewed after inventory was marked available."
+						: "Auto-reviewed after inbound creation.",
 				});
 			}
 
 			return {
 				result,
+				receipt,
 				linkedSales,
 				updatedSalesOrderCount,
 			};
@@ -1500,28 +1552,41 @@ export async function createInboundShipmentFromDemandsQuery(
 		},
 	});
 
-	await createInboundActivity(ctx, {
+	await createActivity(ctx, {
 		inboundId: result.inboundId,
 		supplierId: supplier?.id ?? input.supplierId ?? null,
 		supplierName: supplier?.name ?? null,
 		reference: inbound?.reference ?? input.reference ?? null,
-		activityType: "created",
-		subject: "Inbound created from demand",
-		headline: `${actor.name || "Unknown"} created inbound #${result.inboundId} from ${result.linkedDemandCount} demand row${result.linkedDemandCount === 1 ? "" : "s"}${supplier?.name ? ` for ${supplier.name}` : ""}.`,
+		activityType: isMarkAvailable ? "received" : "created",
+		subject: isMarkAvailable
+			? "Inventory marked available"
+			: "Inbound created from demand",
+		headline: isMarkAvailable
+			? `${actor.name || "Unknown"} marked ${receipt?.newlyReceivedQty || 0} inventory item${receipt?.newlyReceivedQty === 1 ? "" : "s"} available through inbound #${result.inboundId}.`
+			: `${actor.name || "Unknown"} created inbound #${result.inboundId} from ${result.linkedDemandCount} demand row${result.linkedDemandCount === 1 ? "" : "s"}${supplier?.name ? ` for ${supplier.name}` : ""}.`,
 		note: input.note,
 		orderNos: linkedSales.map((sale) => sale.orderId),
 		meta: {
+			operation,
 			createdItemCount: result.createdItemCount,
 			linkedDemandCount: result.linkedDemandCount,
 			updatedSalesOrderCount,
+			...(receipt
+				? {
+						newlyReceivedQty: receipt.newlyReceivedQty,
+						stockMovementCount: receipt.stockMovementCount,
+					}
+				: {}),
 		},
 	});
 
 	return {
+		operation,
 		inboundId: result.inboundId,
 		createdItemCount: result.createdItemCount,
 		linkedDemandCount: result.linkedDemandCount,
 		updatedSalesOrderCount,
+		receipt,
 	};
 }
 

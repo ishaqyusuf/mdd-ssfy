@@ -20,6 +20,9 @@ function makeCtx(tx: Record<string, unknown>) {
 					name: "Ops",
 				}),
 			},
+			inboundShipment: {
+				findFirst: async () => null,
+			},
 			supplier: {
 				findFirst: async () => ({
 					id: 10,
@@ -50,6 +53,229 @@ function makeSale(overrides: Record<string, unknown> = {}) {
 }
 
 describe("createInboundShipmentFromDemandsQuery", () => {
+	test("marks selected demand available through canonical receipt and persists AVAILABLE", async () => {
+		const shipmentInputs: unknown[] = [];
+		const receiptInputs: unknown[] = [];
+		const salesUpdates: unknown[] = [];
+		const activities: Array<{ activityType: string }> = [];
+		let demandReadCount = 0;
+		const ctx = makeCtx({
+			lineItemComponents: {
+				findMany: async () => [],
+			},
+			inboundDemand: {
+				findMany: async () => {
+					demandReadCount += 1;
+					return [
+						{
+							lineItemComponent: {
+								parent: {
+									sale: makeSale(),
+								},
+							},
+						},
+					];
+				},
+			},
+			salesOrders: {
+				updateMany: async (input: unknown) => {
+					salesUpdates.push(input);
+					return { count: 1 };
+				},
+			},
+		});
+		ctx.db.inboundShipment = {
+			findFirst: async () => ({ id: 501, reference: "08661LM" }),
+		};
+
+		const result = await createInboundShipmentFromDemandsQuery(
+			ctx,
+			{
+				demandIds: [701],
+				operation: "mark_available",
+				reference: "08661LM",
+			},
+			{
+				createShipmentFromDemands: async (_db, input) => {
+					shipmentInputs.push(input);
+					return {
+						inboundId: 501,
+						createdItemCount: 1,
+						linkedDemandCount: 1,
+						linkedDemandIds: [701],
+					};
+				},
+				receiveShipment: async (_db, input) => {
+					receiptInputs.push(input);
+					return {
+						inboundId: 501,
+						shipmentStatus: "completed",
+						receivedItemCount: 1,
+						stockMovementCount: 1,
+						issueCount: 0,
+						skippedItemCount: 0,
+						newlyReceivedQty: 2,
+						alreadyReceivedQty: 0,
+						lineItemComponentIds: [401],
+						inventoryVariantIds: [301],
+					};
+				},
+				getSalesSetting: async () => ({ meta: {} }) as never,
+				autoReviewPayments: async () => ({}) as never,
+				createActivity: async (_ctx, input) => {
+					activities.push(input);
+				},
+			},
+		);
+
+		expect(demandReadCount).toBe(2);
+		expect(shipmentInputs).toEqual([
+			{
+				supplierId: undefined,
+				demandIds: [701],
+				reference: "08661LM",
+				expectedAt: undefined,
+				status: "pending",
+			},
+		]);
+		expect(receiptInputs).toEqual([{ inboundId: 501, authorName: "Ops" }]);
+		expect(salesUpdates).toHaveLength(1);
+		expect(salesUpdates[0]).toMatchObject({
+			where: {
+				id: { in: [100] },
+				deletedAt: null,
+				lineItems: { none: { deletedAt: null } },
+			},
+			data: { inventoryStatus: "AVAILABLE" },
+		});
+		expect(activities).toHaveLength(1);
+		expect(activities[0]?.activityType).toBe("received");
+		expect(result.operation).toBe("mark_available");
+		expect(result.receipt?.newlyReceivedQty).toBe(2);
+	});
+
+	test("splits a partial demand selection and leaves the order status unchanged while needs remain", async () => {
+		const demandUpdates: unknown[] = [];
+		const demandCreates: unknown[] = [];
+		const shipmentInputs: unknown[] = [];
+		const salesUpdates: unknown[] = [];
+		let demandReadCount = 0;
+		const ctx = makeCtx({
+			lineItemComponents: { findMany: async () => [] },
+			inboundDemand: {
+				findMany: async () => {
+					demandReadCount += 1;
+					if (demandReadCount === 2) {
+						return [
+							{
+								id: 701,
+								lineItemComponentId: 401,
+								inventoryVariantId: 301,
+								qty: 5,
+								qtyReceived: 0,
+								status: "pending",
+								inboundShipmentItemId: null,
+							},
+						];
+					}
+					return [
+						{
+							lineItemComponent: { parent: { sale: makeSale() } },
+						},
+					];
+				},
+				updateMany: async (input: unknown) => {
+					demandUpdates.push(input);
+					return { count: 1 };
+				},
+				create: async (input: unknown) => {
+					demandCreates.push(input);
+					return { id: 702 };
+				},
+			},
+			salesOrders: {
+				updateMany: async (input: unknown) => {
+					salesUpdates.push(input);
+					return { count: 0 };
+				},
+			},
+		});
+		ctx.db.inboundShipment = {
+			findFirst: async () => ({ id: 502, reference: "08661LM" }),
+		};
+
+		const result = await createInboundShipmentFromDemandsQuery(
+			ctx,
+			{
+				demandSelections: [{ demandIds: [701], qty: 2 }],
+				operation: "mark_available",
+			},
+			{
+				createShipmentFromDemands: async (_db, input) => {
+					shipmentInputs.push(input);
+					return {
+						inboundId: 502,
+						createdItemCount: 1,
+						linkedDemandCount: 1,
+						linkedDemandIds: [702],
+					};
+				},
+				receiveShipment: async () => ({
+					inboundId: 502,
+					shipmentStatus: "completed",
+					receivedItemCount: 1,
+					stockMovementCount: 1,
+					issueCount: 0,
+					skippedItemCount: 0,
+					newlyReceivedQty: 2,
+					alreadyReceivedQty: 0,
+					lineItemComponentIds: [401],
+					inventoryVariantIds: [301],
+				}),
+				getSalesSetting: async () => ({ meta: {} }) as never,
+				autoReviewPayments: async () => ({}) as never,
+				createActivity: async () => undefined,
+			},
+		);
+
+		expect(demandUpdates).toEqual([
+			{
+				where: {
+					id: 701,
+					deletedAt: null,
+					inboundShipmentItemId: null,
+					qty: 5,
+					qtyReceived: 0,
+					status: "pending",
+				},
+				data: { qty: 3 },
+			},
+		]);
+		expect(demandCreates).toEqual([
+			{
+				data: {
+					lineItemComponentId: 401,
+					inventoryVariantId: 301,
+					qty: 2,
+					status: "pending",
+				},
+				select: { id: true },
+			},
+		]);
+		expect(shipmentInputs).toEqual([
+			{
+				supplierId: undefined,
+				demandIds: [702],
+				reference: undefined,
+				expectedAt: undefined,
+				status: "pending",
+			},
+		]);
+		expect(demandReadCount).toBe(3);
+		expect(salesUpdates).toHaveLength(1);
+		expect(result.updatedSalesOrderCount).toBe(0);
+	});
+
 	test("rejects component-selected inbound creation for fulfilled parent orders before shipment writes", async () => {
 		let shipmentCreated = false;
 		let demandPrepared = false;

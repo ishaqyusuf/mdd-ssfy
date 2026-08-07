@@ -1,8 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 import {
 	areAllInventoryNeedsFulfilled,
-	canFulfillAllInventoryNeeds,
+	canMarkInventoryNeedsAvailable,
 	getInboundOrderableQty,
 	getInventoryInboundEmptyStateCopy,
 	getPendingInventoryQty,
@@ -135,21 +140,21 @@ describe("sales overview inventory inbound helpers", () => {
 		).toBe(false);
 	});
 
-	it("gates Mark all needs fulfilled on capability, lifecycle, and pending qty", () => {
+	it("gates Mark as available on capability, lifecycle, and pending qty", () => {
 		expect(
-			canFulfillAllInventoryNeeds({
+			canMarkInventoryNeedsAvailable({
 				canMarkAvailable: true,
 				pendingQty: 2,
 			}),
 		).toBe(true);
 		expect(
-			canFulfillAllInventoryNeeds({
+			canMarkInventoryNeedsAvailable({
 				canMarkAvailable: true,
 				pendingQty: 0,
 			}),
 		).toBe(false);
 		expect(
-			canFulfillAllInventoryNeeds({
+			canMarkInventoryNeedsAvailable({
 				canMarkAvailable: true,
 				pendingQty: 2,
 				isReadOnly: true,
@@ -280,5 +285,49 @@ describe("sales overview inventory inbound helpers", () => {
 		expect(getInventoryInboundEmptyStateCopy({ pendingQty: 4 }).title).toBe(
 			"4 inventory still needed",
 		);
+	});
+
+	it("configures Mark as available inbound form mode with locked status and unchecked items", () => {
+		const tabSource = readFileSync(
+			resolve(
+				dirname(fileURLToPath(import.meta.url)),
+				"../tabs/inventory-tab.tsx",
+			),
+			"utf8",
+		);
+
+		expect(tabSource.includes("Mark as available")).toBe(true);
+		expect(tabSource.includes('inboundFormMode === "mark_available"')).toBe(
+			true,
+		);
+		expect(tabSource.includes("setSelectedInboundRowIds([])")).toBe(true);
+		expect(tabSource.includes("<span>Available</span>")).toBe(true);
+	});
+
+	it("opens secondary sheet in mark_available mode with reusable InboundCreatePane", () => {
+		const sheetSource = readFileSync(
+			resolve(
+				dirname(fileURLToPath(import.meta.url)),
+				"../../sheets/sales-overview-sheet/index.tsx",
+			),
+			"utf8",
+		);
+		const paneSource = readFileSync(
+			resolve(
+				dirname(fileURLToPath(import.meta.url)),
+				"../../sheets/sales-overview-sheet/inbound-create-pane.tsx",
+			),
+			"utf8",
+		);
+
+		expect(sheetSource.includes("openInboundCreatePane = (")).toBe(true);
+		expect(
+			sheetSource.includes('mode: "create_inbound" | "mark_available"'),
+		).toBe(true);
+		expect(paneSource.includes('mode = "create_inbound"')).toBe(true);
+		expect(paneSource.includes("operation: mode")).toBe(true);
+		expect(
+			paneSource.includes('useState<NewInboundShipmentStatus>("pending")'),
+		).toBe(true);
 	});
 });

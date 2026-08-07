@@ -70,10 +70,7 @@ import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
-import {
-	useFulfillSalesInventoryNeeds,
-	useRefreshSalesInventoryQueries,
-} from "../hooks/use-sales-inventory-actions";
+import { useRefreshSalesInventoryQueries } from "../hooks/use-sales-inventory-actions";
 import {
 	type SalesInventorySegment,
 	useSalesInventorySegmentQuery,
@@ -86,7 +83,7 @@ import {
 } from "../lib/inventory-display";
 import {
 	areAllInventoryNeedsFulfilled,
-	canFulfillAllInventoryNeeds,
+	canMarkInventoryNeedsAvailable,
 	getInventoryInboundEmptyStateCopy,
 	getPendingInventoryQty,
 	isInventoryNeedRow,
@@ -765,7 +762,7 @@ function InventoryActionBar({
 	salesOrderId: number;
 	openInboundForm?: boolean;
 	onInboundFormOpened?: () => void;
-	onCreateInbound?: () => void;
+	onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -820,14 +817,26 @@ function InventoryActionBar({
 			),
 		[inboundQtyByRowId, inboundRows, selectedInboundRowIds],
 	);
+	const selectedDemandSelections = useMemo(
+		() =>
+			selectedInboundRows
+				.filter((row) => !row.componentIds.length)
+				.map((row) => ({
+					demandIds: uniqueNumbers(row.pendingInboundDemandIds ?? []),
+					qty: clampQty(
+						inboundQtyByRowId[row.id] ?? inboundOrderableQty(row),
+						inboundOrderableQty(row),
+					),
+				}))
+				.filter((selection) => selection.demandIds.length && selection.qty > 0),
+		[inboundQtyByRowId, selectedInboundRows],
+	);
 	const selectedDemandIds = useMemo(
 		() =>
 			uniqueNumbers(
-				selectedInboundRows
-					.filter((row) => !row.componentIds.length)
-					.flatMap((row) => row.pendingInboundDemandIds ?? []),
+				selectedDemandSelections.flatMap((selection) => selection.demandIds),
 			),
-		[selectedInboundRows],
+		[selectedDemandSelections],
 	);
 	const selectedComponentSelections = useMemo(
 		() =>
@@ -943,11 +952,16 @@ function InventoryActionBar({
 				await refreshSalesInventoryQueries({
 					includeInboundWorkspace: true,
 				});
+				const markedAvailable = data.operation === "mark_available";
 				toast({
-					title: `Inbound #${data.inboundId} created`,
-					description: `${data.linkedDemandCount} demand row${
-						data.linkedDemandCount === 1 ? "" : "s"
-					} linked.`,
+					title: markedAvailable
+						? "Inventory marked available"
+						: `Inbound #${data.inboundId} created`,
+					description: markedAvailable
+						? `${formatQty(data.receipt?.newlyReceivedQty || 0)} qty received into available stock.`
+						: `${data.linkedDemandCount} demand row${
+								data.linkedDemandCount === 1 ? "" : "s"
+							} linked.`,
 					variant: "success",
 				});
 			},
@@ -960,11 +974,6 @@ function InventoryActionBar({
 			},
 		}),
 	);
-	const fulfillNeeds = useFulfillSalesInventoryNeeds({
-		salesOrderId,
-		onProtectedNeeds: () => setInventorySegment("inbounds"),
-	});
-
 	useEffect(() => {
 		if (!isInboundFormVisible) return;
 		if (inboundFormMode === "create_inbound") {
@@ -1025,26 +1034,20 @@ function InventoryActionBar({
 
 		createInbound.mutate({
 			supplierId: supplierId ? Number(supplierId) : null,
-			demandIds: selectedDemandIds,
+			demandSelections: selectedDemandSelections,
 			componentSelections: selectedComponentSelections,
 			reference: reference.trim() || null,
 			expectedAt: expectedAt ? new Date(`${expectedAt}T00:00:00`) : null,
 			status: inboundStatus,
+			operation: inboundFormMode,
 			note: inboundNote.trim() || null,
 		});
 	};
-	const canFulfillAllNeeds = canFulfillAllInventoryNeeds({
+	const canMarkNeedsAvailable = canMarkInventoryNeedsAvailable({
 		canMarkAvailable: capabilities.canMarkAvailable,
 		pendingQty,
 		isReadOnly: overview.isInventoryReadOnly,
 	});
-	const fulfillAllNeeds = () => {
-		if (!canFulfillAllNeeds || fulfillNeeds.isPending) return;
-		fulfillNeeds.mutate({
-			salesOrderId,
-		});
-	};
-
 	if (overview.isInventoryReadOnly) {
 		return (
 			<Alert className="border-dashed bg-muted/20 text-left">
@@ -1076,7 +1079,7 @@ function InventoryActionBar({
 						disabled={!capabilities.canCreateInbound || !inboundRows.length}
 						onClick={() => {
 							if (onCreateInbound) {
-								onCreateInbound();
+								onCreateInbound("create_inbound");
 							} else if (
 								isInboundFormVisible &&
 								inboundFormMode === "create_inbound"
@@ -1096,7 +1099,7 @@ function InventoryActionBar({
 						type="button"
 						size="sm"
 						variant="outline"
-						disabled={!canFulfillAllNeeds}
+						disabled={!canMarkNeedsAvailable}
 						title={
 							!capabilities.canMarkAvailable
 								? overview.inventoryActionBlockReason ||
@@ -1106,14 +1109,16 @@ function InventoryActionBar({
 									: undefined
 						}
 						onClick={() => {
-							if (
+							if (onCreateInbound) {
+								onCreateInbound("mark_available");
+							} else if (
 								isInboundFormVisible &&
 								inboundFormMode === "mark_available"
 							) {
 								setIsInboundFormOpen(false);
 							} else {
 								setInboundFormMode("mark_available");
-								setInboundStatus("available");
+								setInboundStatus("pending");
 								setSelectedInboundRowIds([]);
 								setIsInboundFormOpen(true);
 							}
@@ -1239,7 +1244,11 @@ function InventoryActionBar({
 					/>
 					<ItemGroup
 						className="max-h-72 gap-0 overflow-y-auto pr-1"
-						aria-label="Items to order"
+						aria-label={
+							inboundFormMode === "mark_available"
+								? "Items to mark available"
+								: "Items to order"
+						}
 					>
 						{inboundRows.map((row) => {
 							const isChecked = selectedInboundRowIds.includes(row.id);
@@ -1265,7 +1274,11 @@ function InventoryActionBar({
 									>
 										<Checkbox
 											id={checkboxId}
-											aria-label={`Select ${row.componentName} for inbound`}
+											aria-label={`Select ${row.componentName} to ${
+												inboundFormMode === "mark_available"
+													? "mark available"
+													: "add to inbound"
+											}`}
 											checked={isChecked}
 											onCheckedChange={(checked) =>
 												toggleInboundRow(row, checked === true)
@@ -1286,7 +1299,11 @@ function InventoryActionBar({
 									<ItemActions className="shrink-0">
 										<InputGroup
 											className="h-8 w-28 bg-background"
-											aria-label={`Order quantity controls for ${row.componentName}`}
+											aria-label={`${
+												inboundFormMode === "mark_available"
+													? "Available"
+													: "Order"
+											} quantity controls for ${row.componentName}`}
 										>
 											<InputGroupAddon className="pl-1.5">
 												<InputGroupButton
@@ -1311,7 +1328,11 @@ function InventoryActionBar({
 													)
 												}
 												className="h-7 min-w-0 px-1 text-center text-xs tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-												aria-label={`Inbound quantity for ${row.componentName}`}
+												aria-label={`${
+													inboundFormMode === "mark_available"
+														? "Available"
+														: "Inbound"
+												} quantity for ${row.componentName}`}
 											/>
 											<InputGroupAddon
 												align="inline-end"
@@ -1344,8 +1365,13 @@ function InventoryActionBar({
 										selectedDemandIds.length === 1 ? "" : "s"
 									}`
 								: ""}
-							{selectedComponentSelections.length
-								? ` • ${formatQty(selectedInboundQty)} qty will be ordered`
+							{selectedComponentSelections.length ||
+							selectedDemandSelections.length
+								? ` • ${formatQty(selectedInboundQty)} qty will be ${
+										inboundFormMode === "mark_available"
+											? "marked available"
+											: "ordered"
+									}`
 								: ""}
 							{createdInboundId ? ` • Last created #${createdInboundId}` : ""}
 						</div>
@@ -2443,7 +2469,7 @@ function SalesOverviewInventoryContentBody({
 	onViewInbound,
 }: {
 	salesOrderId?: number | null;
-	onCreateInbound?: () => void;
+	onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void;
 	onViewInbound?: (inboundId: number) => void;
 }) {
 	const trpc = useTRPC();
@@ -2768,7 +2794,7 @@ export function SalesOverviewInventoryContent({
 	onViewInbound,
 }: {
 	salesOrderId?: number | null;
-	onCreateInbound?: () => void;
+	onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void;
 	onViewInbound?: (inboundId: number) => void;
 }) {
 	const normalizedSalesOrderId = salesOrderId ? Number(salesOrderId) : 0;

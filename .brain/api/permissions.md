@@ -170,6 +170,7 @@ Tracks authentication and authorization patterns across API surfaces.
   variant/cost writes now use the same authenticated Super Admin operator guard.
   A dedicated inventory-edit permission is required before delegating these
   configuration writes to other roles.
+- `inventories.createInboundShipmentFromDemands` retains its existing authenticated create-inbound boundary, but requests with `operation="mark_available"` additionally require `editOrders` before any demand split, shipment, receipt, stock, or activity write runs.
 - Dispatch mutations are protected and capability-shaped. Assigned trip start,
   completion, and signature require the live `driverId` match unless the actor
   has manager authority; manager operations require `editPickup`, `editOrders`,

@@ -183,6 +183,18 @@ describe("high-risk tRPC permission boundaries", () => {
 		expect(inventories.slice(start, start + 1400)).toContain('"editOrders"');
 	});
 
+	test("mark available inbound creation preserves order editing permission", () => {
+		const inventories = source("inventories.route.ts");
+		const start = inventories.indexOf(
+			"createInboundShipmentFromDemands: protectedProcedure",
+		);
+		const mutationSource = inventories.slice(start, start + 1400);
+		expect(mutationSource).toContain(
+			'props.input.operation === "mark_available"',
+		);
+		expect(mutationSource).toContain('"editOrders"');
+	});
+
 	test("inbound demand reduction requires inbound-order editing permission", () => {
 		const inventories = source("inventories.route.ts");
 		expectProtectedMutation(

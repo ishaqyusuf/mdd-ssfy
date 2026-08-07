@@ -73,14 +73,17 @@ function formatQty(value: number) {
 export function InboundCreatePane({
 	salesOrderId,
 	orderNumber,
+	mode = "create_inbound",
 	onClose,
 	onCreated,
 }: {
 	salesOrderId: number;
 	orderNumber: string;
+	mode?: "create_inbound" | "mark_available";
 	onClose: () => void;
 	onCreated: (inboundId: number) => void;
 }) {
+	const isMarkAvailable = mode === "mark_available";
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const reference = resolveInboundReference(orderNumber);
@@ -139,19 +142,26 @@ export function InboundCreatePane({
 		}),
 	);
 	useEffect(() => {
-		setSelected(rows.map((row) => row.id));
+		if (!isMarkAvailable) {
+			setSelected(rows.map((row) => row.id));
+		}
 		setQuantities(
 			Object.fromEntries(rows.map((row) => [row.id, orderableQty(row)])),
 		);
-	}, [rows]);
+	}, [rows, isMarkAvailable]);
 	const selectedRows = rows.filter(
 		(row) => selected.includes(row.id) && Number(quantities[row.id] || 0) > 0,
 	);
-	const demandIds = unique(
-		selectedRows
-			.filter((row) => !row.componentIds.length)
-			.flatMap((row) => row.pendingInboundDemandIds ?? []),
-	);
+	const demandSelections = selectedRows
+		.filter((row) => !row.componentIds.length)
+		.map((row) => ({
+			demandIds: unique(row.pendingInboundDemandIds ?? []),
+			qty: Math.min(
+				orderableQty(row),
+				Math.max(0, Number(quantities[row.id] || 0)),
+			),
+		}))
+		.filter((selection) => selection.demandIds.length && selection.qty > 0);
 	const componentSelections = selectedRows
 		.filter((row) => row.componentIds.length)
 		.map((row) => ({
@@ -180,8 +190,12 @@ export function InboundCreatePane({
 					}),
 				]);
 				toast({
-					title: `Inbound #${data.inboundId} created`,
-					description: `${data.linkedDemandCount} demand row${data.linkedDemandCount === 1 ? "" : "s"} linked to PO ${reference}.`,
+					title: isMarkAvailable
+						? "Inventory marked available"
+						: `Inbound #${data.inboundId} created`,
+					description: isMarkAvailable
+						? `${formatQty(data.receipt?.newlyReceivedQty || 0)} qty received into available stock.`
+						: `${data.linkedDemandCount} demand row${data.linkedDemandCount === 1 ? "" : "s"} linked to PO ${reference}.`,
 					variant: "success",
 				});
 				onCreated(data.inboundId);
@@ -201,8 +215,12 @@ export function InboundCreatePane({
 			className="px-1"
 			Header={
 				<Sheet.SecondaryHeader
-					title="Create inbound"
-					description={`Order ${reference} · Select the missing items being ordered.`}
+					title={isMarkAvailable ? "Mark as available" : "Create inbound"}
+					description={
+						isMarkAvailable
+							? `Order ${reference} · Select available items and quantities.`
+							: `Order ${reference} · Select the missing items being ordered.`
+					}
 				/>
 			}
 			Footer={
@@ -220,7 +238,11 @@ export function InboundCreatePane({
 						form={formId}
 						disabled={createInbound.isPending || !selectedRows.length}
 					>
-						{createInbound.isPending ? "Creating…" : "Create inbound"}
+						{createInbound.isPending
+							? "Saving…"
+							: isMarkAvailable
+								? "Mark as available"
+								: "Create inbound"}
 					</Button>
 				</Sheet.SecondaryFooter>
 			}
@@ -238,13 +260,14 @@ export function InboundCreatePane({
 						event.preventDefault();
 						createInbound.mutate({
 							supplierId: supplierId === "none" ? null : Number(supplierId),
-							demandIds,
+							demandSelections,
 							componentSelections,
 							reference,
 							expectedAt: expectedAt
 								? new Date(`${expectedAt}T00:00:00`)
 								: null,
 							status,
+							operation: mode,
 							note: note.trim() || null,
 						});
 					}}
@@ -326,20 +349,32 @@ export function InboundCreatePane({
 							</Field>
 							<Field>
 								<FieldLabel htmlFor="inbound-status">Initial status</FieldLabel>
-								<Select
-									value={status}
-									onValueChange={(value) =>
-										setStatus(value as NewInboundShipmentStatus)
-									}
-								>
-									<SelectTrigger id="inbound-status" className="min-h-10">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="pending">Pending</SelectItem>
-										<SelectItem value="in_progress">Ordered</SelectItem>
-									</SelectContent>
-								</Select>
+								{isMarkAvailable ? (
+									<Button
+										type="button"
+										variant="outline"
+										disabled
+										className="min-h-10 w-full cursor-not-allowed justify-between bg-muted/50 font-normal text-foreground opacity-100"
+									>
+										<span>Available</span>
+										<Icons.Lock className="size-3.5 text-muted-foreground opacity-70" />
+									</Button>
+								) : (
+									<Select
+										value={status}
+										onValueChange={(value) =>
+											setStatus(value as NewInboundShipmentStatus)
+										}
+									>
+										<SelectTrigger id="inbound-status" className="min-h-10">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="pending">Pending</SelectItem>
+											<SelectItem value="in_progress">Ordered</SelectItem>
+										</SelectContent>
+									</Select>
+								)}
 							</Field>
 						</div>
 						<Field>
@@ -356,16 +391,27 @@ export function InboundCreatePane({
 					<section className="space-y-3">
 						<div className="flex items-end justify-between gap-3">
 							<div>
-								<h3 className="text-sm font-semibold">Items to order</h3>
+								<h3 className="text-sm font-semibold">
+									{isMarkAvailable
+										? "Items to mark available"
+										: "Items to order"}
+								</h3>
 								<p className="mt-1 text-sm text-muted-foreground">
-									All available missing items are selected by default.
+									{isMarkAvailable
+										? "Select each item and quantity that is physically available."
+										: "All available missing items are selected by default."}
 								</p>
 							</div>
 							<Badge variant="secondary" className="min-h-7 px-2.5 text-xs">
 								{selectedRows.length} selected
 							</Badge>
 						</div>
-						<ItemGroup className="gap-0" aria-label="Items to order">
+						<ItemGroup
+							className="gap-0"
+							aria-label={
+								isMarkAvailable ? "Items to mark available" : "Items to order"
+							}
+						>
 							{rows.map((row) => {
 								const checked = selected.includes(row.id);
 								const max = orderableQty(row);
@@ -386,7 +432,9 @@ export function InboundCreatePane({
 										>
 											<Checkbox
 												id={checkboxId}
-												aria-label={`Select ${row.componentName} for inbound`}
+												aria-label={`Select ${row.componentName} to ${
+													isMarkAvailable ? "mark available" : "add to inbound"
+												}`}
 												checked={checked}
 												onCheckedChange={(value) =>
 													setSelected((current) =>
@@ -411,7 +459,9 @@ export function InboundCreatePane({
 										<ItemActions className="shrink-0">
 											<InputGroup
 												className="h-8 w-28 bg-background"
-												aria-label={`Order quantity controls for ${row.componentName}`}
+												aria-label={`${
+													isMarkAvailable ? "Available" : "Order"
+												} quantity controls for ${row.componentName}`}
 											>
 												<InputGroupAddon className="pl-1.5">
 													<InputGroupButton
@@ -477,7 +527,9 @@ export function InboundCreatePane({
 						</ItemGroup>
 						{!rows.length ? (
 							<p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-								No missing inventory items are available for a new inbound.
+								{isMarkAvailable
+									? "No missing inventory items can be marked available."
+									: "No missing inventory items are available for a new inbound."}
 							</p>
 						) : null}
 					</section>

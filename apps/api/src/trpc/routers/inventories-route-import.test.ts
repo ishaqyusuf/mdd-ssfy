@@ -253,7 +253,8 @@ describe("inventoriesRouter", () => {
 		expect(
 			mod.createInboundShipmentFromDemandsSchema.safeParse({
 				supplierId: null,
-				demandIds: [2],
+				operation: "mark_available",
+				demandSelections: [{ demandIds: [2], qty: 1.5 }],
 				status: "pending",
 			}).success,
 		).toBe(true);
@@ -264,8 +265,18 @@ describe("inventoriesRouter", () => {
 			{ supplierId: 1, demandIds: [0] },
 			{ supplierId: 1, demandIds: [2.5] },
 			{ supplierId: 1, lineItemComponentIds: [-1] },
+			{ supplierId: 1, operation: "available" },
+			{ supplierId: 1, status: "available" },
 			{ supplierId: 1, status: "completed" },
 			{ supplierId: 1, note: "x".repeat(2001) },
+			{
+				supplierId: 1,
+				demandSelections: [{ demandIds: [], qty: 1 }],
+			},
+			{
+				supplierId: 1,
+				demandSelections: [{ demandIds: [2], qty: 0 }],
+			},
 			{
 				supplierId: 1,
 				componentSelections: [{ lineItemComponentIds: [], qty: 1 }],

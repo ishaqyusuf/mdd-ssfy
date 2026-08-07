@@ -45,6 +45,11 @@ describe("inventory fulfillment route permissions", () => {
 			() => caller.fulfillInventoryDispatch({ salesOrderId: 1 }),
 			() => caller.releaseInventoryDispatchAllocations({ allocationIds: [1] }),
 			() => caller.allocateReceivedInboundToBackorders({ limit: 1 }),
+			() =>
+				caller.createInboundShipmentFromDemands({
+					operation: "mark_available",
+					demandIds: [1],
+				}),
 		];
 
 		for (const call of calls) {

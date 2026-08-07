@@ -26,7 +26,7 @@ import type { LegacySalesOverviewTabId } from "./types";
 type SalesOverviewPane =
 	| { kind: "customer" }
 	| ({ kind: "address" } & SalesAddressPaneSelection)
-	| { kind: "inbound-create" }
+	| { kind: "inbound-create"; mode?: "create_inbound" | "mark_available" }
 	| { kind: "inbound-detail"; inboundId: number };
 
 export default function SalesOverviewSheet() {
@@ -70,9 +70,11 @@ function Content() {
 		setPane({ kind: "customer" });
 		setPaneOpened(true);
 	};
-	const openInboundCreatePane = () => {
+	const openInboundCreatePane = (
+		mode: "create_inbound" | "mark_available" = "create_inbound",
+	) => {
 		rememberPaneTrigger();
-		setPane({ kind: "inbound-create" });
+		setPane({ kind: "inbound-create", mode });
 		setPaneOpened(true);
 	};
 	const openInboundDetailPane = (inboundId: number) => {
@@ -177,9 +179,10 @@ function Content() {
 				) : null}
 				{pane?.kind === "inbound-create" && data?.id && data.orderId ? (
 					<InboundCreatePane
-						key={`inbound-create-${data.id}`}
+						key={`inbound-create-${data.id}-${pane.mode || "create_inbound"}`}
 						salesOrderId={data.id}
 						orderNumber={data.orderId}
+						mode={pane.mode || "create_inbound"}
 						onClose={closePane}
 						onCreated={openInboundDetailPane}
 					/>

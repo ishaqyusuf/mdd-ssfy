@@ -1,4 +1,4 @@
-import { type Db, type TransactionClient } from "@gnd/db";
+import type { Db, TransactionClient } from "@gnd/db";
 import {
   ACTIVE_INBOUND_DEMAND_STATUSES,
   ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES,
@@ -26,7 +26,6 @@ type InboundDemandQueueStatus =
 export const NEW_INBOUND_SHIPMENT_STATUSES = [
   "pending",
   "in_progress",
-  "available",
 ] as const;
 export type NewInboundShipmentStatus =
   (typeof NEW_INBOUND_SHIPMENT_STATUSES)[number];
@@ -37,6 +36,11 @@ export type CreateInboundShipmentFromDemandsInput = {
   reference?: string | null;
   expectedAt?: Date | null;
   status?: NewInboundShipmentStatus;
+};
+
+export type InboundDemandQuantitySelection = {
+  demandIds: number[];
+  qty: number;
 };
 
 export type CreateInboundShipmentInput = {
@@ -2137,15 +2141,13 @@ export async function createInboundShipmentFromDemands(
     throw new Error("No unassigned inbound demand rows were found.");
   }
 
-  const isAvailableStatus = input.status === "available";
   const shipment = await db.inboundShipment.create({
     data: {
       supplierId: input.supplierId ?? null,
       reference: input.reference ?? null,
       expectedAt: input.expectedAt ?? null,
-      status: isAvailableStatus ? "completed" : (input.status ?? "pending"),
-      progress: isAvailableStatus ? 100 : 0,
-      receivedAt: isAvailableStatus ? new Date() : null,
+      status: input.status ?? "pending",
+      progress: 0,
     },
     select: {
       id: true,
@@ -2176,7 +2178,6 @@ export async function createInboundShipmentFromDemands(
         inboundId: shipment.id,
         inventoryVariantId,
         qty: 0,
-        qtyReceived: isAvailableStatus ? plannedQty : 0,
       },
       select: {
         id: true,
@@ -2185,7 +2186,6 @@ export async function createInboundShipmentFromDemands(
     let confirmedLinkedQty = 0;
 
     for (const demand of variantDemands) {
-      const outstanding = outstandingInboundDemandQty(demand);
       const linked = await db.inboundDemand.updateMany({
         where: {
           id: demand.id,
@@ -2198,8 +2198,7 @@ export async function createInboundShipmentFromDemands(
         },
         data: {
           inboundShipmentItemId: inboundItem.id,
-          status: isAvailableStatus ? "received" : "ordered",
-          qtyReceived: isAvailableStatus ? demand.qty : demand.qtyReceived,
+          status: "ordered",
         },
       });
       if (linked.count > 0) {
@@ -2284,6 +2283,125 @@ export async function createInboundShipmentFromDemands(
     linkedDemandCount,
     linkedDemandIds,
   };
+}
+
+export async function ensureSelectedInboundDemandQuantities(
+  db: DbLike,
+  selections: InboundDemandQuantitySelection[],
+) {
+  const normalizedSelections = selections
+    .map((selection) => ({
+      demandIds: Array.from(
+        new Set(selection.demandIds.filter((id) => Number.isFinite(id))),
+      ),
+      qty: Math.max(0, Number(selection.qty || 0)),
+    }))
+    .filter((selection) => selection.demandIds.length && selection.qty > 0);
+  const demandIds = Array.from(
+    new Set(normalizedSelections.flatMap((selection) => selection.demandIds)),
+  );
+  if (!demandIds.length) return [];
+
+  const demands = await db.inboundDemand.findMany({
+    where: {
+      id: { in: demandIds },
+      deletedAt: null,
+      inboundShipmentItemId: null,
+      status: { in: [...ACTIVE_INBOUND_DEMAND_STATUSES] },
+    },
+    select: {
+      id: true,
+      lineItemComponentId: true,
+      inventoryVariantId: true,
+      qty: true,
+      qtyReceived: true,
+      status: true,
+      inboundShipmentItemId: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  const demandsById = new Map(demands.map((demand) => [demand.id, demand]));
+  const selectedDemandIds: number[] = [];
+
+  for (const selection of normalizedSelections) {
+    let remainingQty = selection.qty;
+    for (const demandId of selection.demandIds) {
+      if (remainingQty <= 0) break;
+      const demand = demandsById.get(demandId);
+      if (!demand) continue;
+      const outstandingQty = outstandingInboundDemandQty(demand);
+      if (outstandingQty <= 0) continue;
+      const selectedQty = Math.min(remainingQty, outstandingQty);
+      if (selectedQty >= outstandingQty) {
+        selectedDemandIds.push(demand.id);
+        remainingQty -= outstandingQty;
+        continue;
+      }
+
+      const reduced = await db.inboundDemand.updateMany({
+        where: {
+          id: demand.id,
+          deletedAt: null,
+          inboundShipmentItemId: null,
+          qty: demand.qty,
+          qtyReceived: demand.qtyReceived,
+          status: demand.status,
+        },
+        data: {
+          qty: Number(demand.qty || 0) - selectedQty,
+        },
+      });
+      if (reduced.count <= 0) continue;
+      const splitDemand = await db.inboundDemand.create({
+        data: {
+          lineItemComponentId: demand.lineItemComponentId,
+          inventoryVariantId: demand.inventoryVariantId,
+          qty: selectedQty,
+          status: "pending",
+        },
+        select: { id: true },
+      });
+      selectedDemandIds.push(splitDemand.id);
+      remainingQty -= selectedQty;
+    }
+  }
+
+  return selectedDemandIds;
+}
+
+export async function markSalesOrdersAvailableWhenInboundDemandResolved(
+  db: DbLike,
+  salesOrderIds: number[],
+) {
+  const ids = Array.from(
+    new Set(salesOrderIds.filter((id) => Number.isFinite(id))),
+  );
+  if (!ids.length) return 0;
+
+  const updated = await db.salesOrders.updateMany({
+    where: {
+      id: { in: ids },
+      deletedAt: null,
+      lineItems: {
+        none: {
+          deletedAt: null,
+          components: {
+            some: {
+              inboundDemands: {
+                some: {
+                  deletedAt: null,
+                  status: { in: [...ACTIVE_INBOUND_DEMAND_STATUSES] },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    data: { inventoryStatus: "AVAILABLE" },
+  });
+
+  return updated.count;
 }
 
 export async function receiveInboundShipment(

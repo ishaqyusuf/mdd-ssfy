@@ -473,8 +473,19 @@ export const assignInboundDemandsSchema = z.object({
 export const createInboundShipmentFromDemandsSchema = z.object({
 	supplierId: inventoryPositiveIdSchema.optional().nullable(),
 	demandIds: inventoryPositiveIdsSchema.optional(),
+	demandSelections: z
+		.array(
+			z.object({
+				demandIds: inventoryPositiveIdsSchema.min(1),
+				qty: inboundRequestedQuantitySchema,
+			}),
+		)
+		.optional(),
 	lineItemComponentIds: inventoryPositiveIdsSchema.optional(),
 	status: z.enum(NEW_INBOUND_SHIPMENT_STATUSES).optional(),
+	operation: z
+		.enum(["create_inbound", "mark_available"])
+		.default("create_inbound"),
 	note: z.string().trim().max(2000).optional().nullable(),
 	componentSelections: z
 		.array(
@@ -487,6 +498,30 @@ export const createInboundShipmentFromDemandsSchema = z.object({
 	reference: z.string().optional().nullable(),
 	expectedAt: z.date().optional().nullable(),
 });
+
+async function queueReceivedInboundAllocation(
+	result: {
+		inboundId: number;
+		lineItemComponentIds: number[];
+	},
+	authorName: string,
+) {
+	if (!result.lineItemComponentIds.length) return null;
+	try {
+		return await tasks.trigger("allocate-received-inbound-to-backorders", {
+			lineItemComponentIds: result.lineItemComponentIds,
+			limit: Math.min(200, result.lineItemComponentIds.length),
+			authorName,
+			note: `Inbound shipment #${result.inboundId} received`,
+		});
+	} catch (error) {
+		console.warn("Failed to queue received inbound backorder allocation", {
+			inboundId: result.inboundId,
+			error,
+		});
+		return null;
+	}
+}
 
 const salesInventoryMarkAsActionSchema = z.enum([
 	"production_completed",
@@ -764,7 +799,24 @@ export const inventoriesRouter = createTRPCRouter({
 	createInboundShipmentFromDemands: protectedProcedure
 		.input(createInboundShipmentFromDemandsSchema)
 		.mutation(async (props) => {
-			return createInboundShipmentFromDemandsQuery(props.ctx, props.input);
+			if (props.input.operation === "mark_available") {
+				await requireAnyOperationalPermission(
+					props.ctx,
+					["editOrders"],
+					"You do not have permission to mark inventory needs available.",
+				);
+			}
+			const result = await createInboundShipmentFromDemandsQuery(
+				props.ctx,
+				props.input,
+			);
+			const allocationJob = result.receipt
+				? await queueReceivedInboundAllocation(
+						result.receipt,
+						String(props.ctx.userId ?? "Inventory"),
+					)
+				: null;
+			return { ...result, allocationJob };
 		}),
 	updateInboundShipmentStatus: protectedProcedure
 		.input(updateInboundShipmentStatusSchema)
@@ -790,29 +842,10 @@ export const inventoriesRouter = createTRPCRouter({
 					authorName: String(props.ctx.userId),
 				}),
 			);
-			let allocationJob: Awaited<ReturnType<typeof tasks.trigger>> | null =
-				null;
-			if (result.lineItemComponentIds.length > 0) {
-				try {
-					allocationJob = await tasks.trigger(
-						"allocate-received-inbound-to-backorders",
-						{
-							lineItemComponentIds: result.lineItemComponentIds,
-							limit: Math.min(200, result.lineItemComponentIds.length),
-							authorName: String(props.ctx.userId ?? "Inventory"),
-							note: `Inbound shipment #${result.inboundId} received`,
-						},
-					);
-				} catch (error) {
-					console.warn(
-						"Failed to queue received inbound backorder allocation",
-						{
-							inboundId: result.inboundId,
-							error,
-						},
-					);
-				}
-			}
+			const allocationJob = await queueReceivedInboundAllocation(
+				result,
+				String(props.ctx.userId ?? "Inventory"),
+			);
 
 			return {
 				...result,

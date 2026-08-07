@@ -5,12 +5,108 @@ import {
 	assignInboundDemandsToShipment,
 	buildInboundStatusDemandReconciliation,
 	createInboundShipmentFromDemands,
+	ensureSelectedInboundDemandQuantities,
+	markSalesOrdersAvailableWhenInboundDemandResolved,
 	planInboundReceiptDelta,
 	releaseCancelledInboundShipmentDemand,
 	receiveInboundShipment,
 	reconcileSalesAdjustmentInboundDemands,
 	reduceInboundShipmentDemand,
 } from "./inbound-demand";
+
+describe("mark available demand persistence", () => {
+	test("splits partial demand quantities inside the inventory package", async () => {
+		const updates: unknown[] = [];
+		const creates: unknown[] = [];
+		const result = await ensureSelectedInboundDemandQuantities(
+			{
+				inboundDemand: {
+					findMany: async () => [
+						{
+							id: 701,
+							lineItemComponentId: 401,
+							inventoryVariantId: 301,
+							qty: 5,
+							qtyReceived: 0,
+							status: "pending",
+							inboundShipmentItemId: null,
+						},
+					],
+					updateMany: async (input: unknown) => {
+						updates.push(input);
+						return { count: 1 };
+					},
+					create: async (input: unknown) => {
+						creates.push(input);
+						return { id: 702 };
+					},
+				},
+			} as any,
+			[{ demandIds: [701], qty: 2 }],
+		);
+
+		expect(result).toEqual([702]);
+		expect(updates).toHaveLength(1);
+		expect(creates).toEqual([
+			{
+				data: {
+					lineItemComponentId: 401,
+					inventoryVariantId: 301,
+					qty: 2,
+					status: "pending",
+				},
+				select: { id: true },
+			},
+		]);
+	});
+
+	test("guards the AVAILABLE write with the absence of active demand", async () => {
+		const updates: unknown[] = [];
+		const count = await markSalesOrdersAvailableWhenInboundDemandResolved(
+			{
+				salesOrders: {
+					updateMany: async (input: unknown) => {
+						updates.push(input);
+						return { count: 1 };
+					},
+				},
+			} as any,
+			[100, 100],
+		);
+
+		expect(count).toBe(1);
+		expect(updates).toEqual([
+			{
+				where: {
+					id: { in: [100] },
+					deletedAt: null,
+					lineItems: {
+						none: {
+							deletedAt: null,
+							components: {
+								some: {
+									inboundDemands: {
+										some: {
+											deletedAt: null,
+											status: {
+												in: [
+													"pending",
+													"ordered",
+													"partially_received",
+												],
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				data: { inventoryStatus: "AVAILABLE" },
+			},
+		]);
+	});
+});
 
 describe("reconcileSalesAdjustmentInboundDemands", () => {
 	test("reduces the supplier shipment when open inbound is cancelled", async () => {
