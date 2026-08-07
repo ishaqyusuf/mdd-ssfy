@@ -221,9 +221,10 @@ export function SalesRepDashboardWorkspace() {
 									href="/sales-book/finance?tab=receivables"
 									icon={CircleAlert}
 									label="Overdue receivables"
+									renderedCount={data.attention.overdueReceivables.length}
 									tone="text-destructive"
 								>
-									{data.attention.overdueReceivables.slice(0, 2).map((item) => (
+									{data.attention.overdueReceivables.map((item) => (
 										<button
 											className="flex w-full min-w-0 items-center justify-between gap-3 rounded-md px-2 py-1.5 text-left hover:bg-muted"
 											key={item.id}
@@ -249,6 +250,7 @@ export function SalesRepDashboardWorkspace() {
 									href="/sales-book/quotes"
 									icon={Clock3}
 									label="Quotes expiring soon"
+									renderedCount={Math.min(data.attention.expiringQuotes.length, 2)}
 								>
 									{data.attention.expiringQuotes.slice(0, 2).map((item) => (
 										<button
@@ -276,6 +278,7 @@ export function SalesRepDashboardWorkspace() {
 									href="/sales-book/orders"
 									icon={BriefcaseBusiness}
 									label="High-priority orders"
+									renderedCount={Math.min(data.attention.urgentOrders.length, 2)}
 								>
 									{data.attention.urgentOrders.slice(0, 2).map((item) => (
 										<button
@@ -464,6 +467,7 @@ export function SalesRepDashboardWorkspace() {
 function AttentionGroup({
 	children,
 	count,
+	renderedCount,
 	href,
 	icon: Icon,
 	label,
@@ -471,12 +475,18 @@ function AttentionGroup({
 }: {
 	children?: ReactNode;
 	count: number;
+	renderedCount?: number;
 	href: string;
 	icon: typeof CircleAlert;
 	label: string;
 	tone?: string;
 }) {
 	if (!count) return null;
+
+	const remainingCount =
+		typeof renderedCount === "number" && count > renderedCount
+			? count - renderedCount
+			: 0;
 
 	return (
 		<div className="border-b pb-3 last:border-b-0 last:pb-0">
@@ -491,6 +501,13 @@ function AttentionGroup({
 				</Button>
 			</div>
 			{children ? <div>{children}</div> : null}
+			{remainingCount > 0 ? (
+				<div className="mt-1.5 px-2 text-xs text-muted-foreground">
+					<Link className="hover:underline hover:text-foreground font-medium" href={href}>
+						+ {remainingCount} more {label.toLowerCase()}
+					</Link>
+				</div>
+			) : null}
 		</div>
 	);
 }

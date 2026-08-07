@@ -1,5 +1,14 @@
 # Progress
 
+- 2026-08-07: repaired the dashboard Vercel frozen-install blocker from commit
+  `506ad6d`. The commit added direct `bcrypt-ts` ownership to `@gnd/api`,
+  `@gnd/auth`, and `@gnd/utils`, plus the mobile `react-mobile` and
+  `react-dom-mobile` aliases, but did not update `bun.lock`. The lockfile now
+  records all five manifest additions. Vercel's exact filtered dependency
+  boundary passes with a frozen lockfile under Bun `1.3.12`; no application
+  build ran, and a fresh Vercel deployment remains the production proof. See
+  `.brain/bugs/2026-08-06-dashboard-vercel-build-cache-thrashing.md`.
+
 - 2026-08-06: isolated the independent multi-pane contract behind the opt-in
   `@gnd/ui/custom/sheet-v2` export and restored the legacy custom sheet exactly,
   preventing any behavior or visual change in existing sheet consumers. Sales

@@ -85,7 +85,7 @@ export function FormInput<
                 <div className="relative font-mono$">
                   <NumericFormat
                     customInput={Input}
-                    value={field.value}
+                    value={field.value ?? ""}
                     {...numericProps}
                     onValueChange={(e) => {
                       field.onChange(e.floatValue);
@@ -139,11 +139,11 @@ export function FormInput<
                       className={cn(fieldState.error && "border-red-400")}
                       {...(list
                         ? {
-                            defaultValue: field.value,
+                            defaultValue: field.value ?? "",
                             onChange: field.onChange,
                           }
                         : field)}
-                      // value={""}
+                      value={list ? undefined : (field.value ?? "")}
                     />
                   ) : (
                     <Input
@@ -152,8 +152,6 @@ export function FormInput<
                         !isPassword ? type : showPassword ? "text" : "password"
                       }
                       placeholder={placeholder}
-                      // {...field}
-                      // value={""}
                       {...inputProps}
                       className={cn(
                         uppercase && "uppercase",
@@ -163,12 +161,10 @@ export function FormInput<
                       )}
                       {...(list
                         ? {
-                            defaultValue: field.value,
-                            //   onChange: field.onChange,
+                            defaultValue: field.value ?? "",
                           }
                         : field)}
-                      // onChange={field.onChange}
-                      // defaultValue={field.value}
+                      value={list ? undefined : (field.value ?? "")}
                       onChange={(e) => {
                         if (type == "number")
                           e.target.value

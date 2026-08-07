@@ -49,4 +49,10 @@ describe("sales rep dashboard migration", () => {
 			expect(source).not.toContain("hsl(var(--primary)");
 		}
 	});
+
+	it("renders remaining count link and does not hardcode slice(0, 2) on overdueReceivables", () => {
+		expect(workspaceSource).not.toContain("data.attention.overdueReceivables.slice(0, 2)");
+		expect(workspaceSource).toContain("renderedCount={data.attention.overdueReceivables.length}");
+		expect(workspaceSource).toContain("remainingCount > 0");
+	});
 });

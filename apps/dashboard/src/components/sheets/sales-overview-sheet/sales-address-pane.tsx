@@ -46,10 +46,9 @@ export function SalesAddressPane({
 		}),
 	);
 	const form = useZodForm(salesAddressPaneSchema, {
-		defaultValues: {
-			addressOnly: true,
-			addressId: selection.addressId ?? undefined,
-		},
+		defaultValues: createSalesAddressPaneDraft({
+			addressId: selection.addressId,
+		}),
 	});
 
 	useEffect(() => {

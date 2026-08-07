@@ -128,7 +128,7 @@ async function receivableSnapshot(ctx: TRPCContext, userId: number) {
 					(b.daysOverdue ?? 0) - (a.daysOverdue ?? 0) ||
 					b.amountDue - a.amountDue,
 			)
-			.slice(0, 4)
+			.slice(0, 5)
 			.map((item) => ({
 				id: item.id,
 				orderNo: item.orderNo,

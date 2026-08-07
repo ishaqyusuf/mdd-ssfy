@@ -9,8 +9,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { salesFinanceSearchFilterParams } from "@/hooks/use-sales-finance-filter-params";
 import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { Badge } from "@gnd/ui/badge";
-import { buttonVariants } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import Link from "next/link";
 
@@ -89,6 +95,35 @@ export function SalesFinanceTitle() {
 		auth.can?.viewOrders || auth.can?.editOrders || auth.can?.viewSales,
 	);
 
+	const actions = [
+		canOpenSalesReports && {
+			key: "sales-reports",
+			label: "Sales Reports",
+			href: "/sales-book/reports",
+			icon: Icons.salesDashboard,
+		},
+		canOpenLegacyAccounting && {
+			key: "legacy-accounting",
+			label: "Open legacy Accounting",
+			href: "/sales-book/accounting",
+			icon: Icons.accounting,
+		},
+		canOpenLegacyResolution && {
+			key: "legacy-resolution",
+			label: "Open legacy Resolution Center",
+			href: "/sales-book/accounting/resolution-center",
+			icon: Icons.resolutionCenter,
+		},
+	].filter(Boolean) as Array<{
+		key: string;
+		label: string;
+		href: string;
+		icon: React.ComponentType<{
+			className?: string;
+			"aria-hidden"?: boolean | "true" | "false";
+		}>;
+	}>;
+
 	return (
 		<div className="flex flex-wrap items-start justify-between gap-3">
 			<div className="space-y-1">
@@ -106,41 +141,71 @@ export function SalesFinanceTitle() {
 				</p>
 			</div>
 			<div className="flex flex-wrap items-center justify-end gap-2">
-				{canOpenSalesReports ? (
-					<Link
-						href="/sales-book/reports"
-						className={cn(
-							buttonVariants({ variant: "outline", size: "sm" }),
-							"gap-2",
-						)}
-					>
-						<Icons.salesDashboard className="size-4" aria-hidden="true" />
-						Sales Reports
-					</Link>
-				) : null}
-				{canOpenLegacyAccounting ? (
-					<Link
-						href="/sales-book/accounting"
-						className={cn(
-							buttonVariants({ variant: "outline", size: "sm" }),
-							"gap-2",
-						)}
-					>
-						<Icons.accounting className="size-4" aria-hidden="true" />
-						Open legacy Accounting
-					</Link>
-				) : null}
-				{canOpenLegacyResolution ? (
-					<Link
-						href="/sales-book/accounting/resolution-center"
-						className={cn(
-							buttonVariants({ variant: "outline", size: "sm" }),
-							"gap-2",
-						)}
-					>
-						<Icons.resolutionCenter className="size-4" aria-hidden="true" />
-						Open legacy Resolution Center
-					</Link>
+				{actions.length > 0 ? (
+					<>
+						{/* Desktop / Tablet: Button Group */}
+						<div className="hidden sm:inline-flex -space-x-px rounded-md shadow-xs">
+							{actions.map((action, index) => {
+								const isFirst = index === 0;
+								const isLast = index === actions.length - 1;
+								return (
+									<Link
+										key={action.key}
+										href={action.href}
+										className={cn(
+											buttonVariants({ variant: "outline", size: "sm" }),
+											"gap-2 focus:z-10",
+											actions.length > 1 && [
+												isFirst && "rounded-r-none",
+												isLast && "rounded-l-none",
+												!isFirst && !isLast && "rounded-none",
+											],
+										)}
+									>
+										{action.key === "sales-reports" ? (
+											<Icons.salesDashboard className="size-4" aria-hidden="true" />
+										) : action.key === "legacy-accounting" ? (
+											<Icons.accounting className="size-4" aria-hidden="true" />
+										) : (
+											<Icons.resolutionCenter className="size-4" aria-hidden="true" />
+										)}
+										{action.label}
+									</Link>
+								);
+							})}
+						</div>
+
+						{/* Small screens: Dropdown Menu Fallback */}
+						<div className="sm:hidden">
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline" size="sm" className="gap-2">
+										<span>Reports & Legacy</span>
+										<Icons.ChevronDown
+											className="size-3.5 opacity-60"
+											aria-hidden="true"
+										/>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-56">
+									{actions.map((action) => {
+										const Icon = action.icon;
+										return (
+											<DropdownMenuItem key={action.key} asChild>
+												<Link
+													href={action.href}
+													className="flex items-center gap-2"
+												>
+													<Icon className="size-4" aria-hidden="true" />
+													<span>{action.label}</span>
+												</Link>
+											</DropdownMenuItem>
+										);
+									})}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					</>
 				) : null}
 				<p className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
 					Default period: last 30 days

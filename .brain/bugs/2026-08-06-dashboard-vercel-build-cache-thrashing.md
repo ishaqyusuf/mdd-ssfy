@@ -28,6 +28,11 @@ and the DB prerequisite build.
 - Declare `bcrypt-ts` in each workspace that imports it (`@gnd/api`,
   `@gnd/auth`, and `@gnd/utils`) so the filtered install includes the runtime
   package instead of relying on the root workspace declaration.
+- Regenerate `bun.lock` after the workspace manifest changes. Commit
+  `506ad6d` added the direct `bcrypt-ts` declarations plus the mobile
+  `react-mobile` and `react-dom-mobile` aliases without updating the lockfile,
+  so Vercel's frozen filtered install failed before the build began. The
+  repaired lockfile records all five manifest additions.
 - Load the development file sink only after development guards pass and mark
   its dynamic reads as intentionally excluded from Turbopack tracing.
 - Treat the root Vercel postinstall as the single Prisma generation step and
@@ -43,7 +48,18 @@ limit, and the second must restore it. Treat Turbopack whole-project tracing
 warnings as release blockers for production imports, and keep development-only
 filesystem adapters behind conditional imports. Any workspace that directly
 imports a runtime package must declare that package itself; a root-only
-declaration is not available reliably to filtered workspace installs.
+declaration is not available reliably to filtered workspace installs. After
+any workspace manifest change, regenerate the lockfile with the repository's
+declared Bun version and run the deployment's exact filtered frozen install
+command before committing.
+
+## Follow-up Validation
+
+On 2026-08-07, the repaired lockfile passed
+`bun install --filter @gnd/dashboard --frozen-lockfile --ignore-scripts` under
+Bun `1.3.12`, matching the Bun release used by the failed Vercel deployment.
+No application build was run locally; a fresh Vercel deployment remains the
+production proof.
 
 ## Related Files
 
