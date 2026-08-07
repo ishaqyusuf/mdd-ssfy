@@ -1,5 +1,18 @@
 # Progress
 
+- 2026-08-07: converted all remaining driver-platform revival work into an
+  approved closeout specification and five dependency-ordered local
+  `ready-for-agent` tickets under
+  `.scratch/driver-platform-revival-closeout/`. The primary acceptance seam is
+  one reversible `INV-FIX-ALLOC` Expo Go journey through development employee
+  login, warehouse packing, assigned-driver queue, Start Trip, proof
+  completion, exact allocation consumption, and reconciliation. The immediate
+  frontier is genuine development employee login plus atomic mixed
+  inventory/legacy packing; the driver journey, lifecycle failure safety, and
+  pilot handoff follow. Brain status now records the latest warehouse proof and
+  the discovered account-selection defect. No implementation resumed during
+  this planning task.
+
 - 2026-08-07: fixed the dashboard Vercel Prisma initialization regression.
   Bun's filtered dashboard install did not execute the root `postinstall`,
   while the Vercel DB build intentionally skipped its duplicate generation
@@ -8768,3 +8781,32 @@
   passing tests with eight
   existing inbound receipt/component-guard fixture failures and one cold-import
   timeout documented in the feature note. No database migration was required.
+- 2026-08-07: fixed applied sales-adjustment door removals reappearing when the
+  new sales form reopened. Persisted house-package door rows are now the edit
+  loader's authority; matching legacy relations enrich identity/metadata only
+  and cannot restore removed sizes or overwrite approved quantities. The exact
+  `09140DB` regression passes, the full new-sales-form multi-line suite passes 8
+  tests / 86 assertions, API typecheck passes, and authenticated browser QA
+  confirmed only `2-0 x 6-8` and `2-6 x 6-8` remain with the door line at
+  `$535.00`. The user's unsaved second attempt was not submitted or modified.
+- 2026-08-07: fixed multi-line edit-order workflow loading on order `09166LRG`.
+  Legacy HPT step-product relations now hydrate missing Door snapshots with real
+  titles and images even when the catalog entry is archived or stale persisted
+  step metadata contains an empty selection. Clicking a standard workflow step
+  activates that line before querying and prevents other lines from rendering
+  the same global component result. HPT, Moulding, Service, and Shelf custom
+  panels keep their existing per-line rendering. Authenticated browser QA confirmed item 3 Door
+  loads its own 16 components, item 3 Height loads 3, item 1 Door loads 17, and
+  items 3-5 no longer show ID-only door cards. The focused suites pass 19 tests
+  / 103 assertions, and Sales/API typechecks pass. No database migration or API
+  contract change was required; the QA order was not saved.
+- 2026-08-07: confirmed the new sales form's single-open-item workflow is
+  intentional and restored the matching active-step reset. Closed items now
+  resolve to their route-default step instead of retaining a hidden active pill,
+  while every explicit step transition keeps only the current line's state.
+  Step panels animate height, opacity, and a small vertical offset over 200ms,
+  with reduced-motion transitions disabled. Authenticated QA on `09166LRG`
+  replayed item 1 Door to item 2 Height and confirmed item 1 reset to House
+  Package Tool while item 2 Height remained current. The focused suites pass 19
+  tests / 106 assertions, and Sales typecheck and scoped package formatting
+  pass. No database, API contract, or persisted order data changed.

@@ -92,6 +92,73 @@ export function patchShelfRowPrice(row: ShelfRowDraft, unitPrice: number) {
 	};
 }
 
+export function patchShelfRowBasePrice(input: {
+	row: ShelfRowDraft;
+	basePrice: number;
+	profileCoefficient: number;
+}) {
+	const nextBase = roundCurrency(input.basePrice);
+	const salesPrice = profileAdjustedDoorSalesPrice(
+		null,
+		nextBase,
+		input.profileCoefficient,
+	);
+	const meta = readShelfRowMeta(input.row);
+	const customPrice =
+		typeof input.row?.customPrice === "number"
+			? input.row.customPrice
+			: typeof meta.customPrice === "number"
+				? meta.customPrice
+				: null;
+	const unitPrice = customPrice != null ? Number(customPrice) : salesPrice;
+	const qty = Number(input.row?.qty ?? 1);
+
+	return {
+		...input.row,
+		basePrice: nextBase,
+		salesPrice,
+		unitPrice,
+		totalPrice: multiplyMoney(qty, unitPrice),
+		meta: {
+			...meta,
+			basePrice: nextBase,
+			salesPrice,
+			unitPrice,
+		},
+	};
+}
+
+export function patchShelfRowCustomPrice(input: {
+	row: ShelfRowDraft;
+	customPrice: number | null;
+}) {
+	const meta = readShelfRowMeta(input.row);
+	const nextCustomPrice =
+		input.customPrice == null ? null : roundCurrency(input.customPrice);
+	const salesPrice = firstFiniteValue(
+		input.row?.salesPrice,
+		meta.salesPrice,
+		input.row?.unitPrice,
+		meta.unitPrice,
+		input.row?.basePrice,
+		meta.basePrice,
+	);
+	const unitPrice = nextCustomPrice != null ? nextCustomPrice : salesPrice;
+	const qty = Number(input.row?.qty ?? 1);
+
+	return {
+		...input.row,
+		customPrice: nextCustomPrice,
+		unitPrice,
+		totalPrice: multiplyMoney(qty, unitPrice),
+		meta: {
+			...meta,
+			customPrice: nextCustomPrice,
+			unitPrice,
+		},
+	};
+}
+
 export function clearShelfRowCustomPrice(row: ShelfRowDraft) {
 	const meta = readShelfRowMeta(row);
 	const nextPrice = firstFiniteValue(

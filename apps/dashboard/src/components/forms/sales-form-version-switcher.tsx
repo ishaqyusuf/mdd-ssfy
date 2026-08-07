@@ -86,8 +86,8 @@ export function SalesFormVersionSwitcher({
 					<Button
 						type="button"
 						size="sm"
-						variant="destructive"
-						className="gap-2"
+						variant="outline"
+						className="gap-2 border-destructive bg-secondary text-destructive hover:bg-destructive hover:text-white hover:border-destructive transition-colors"
 						disabled={isPending}
 					>
 						{icon}

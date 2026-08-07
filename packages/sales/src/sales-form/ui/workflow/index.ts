@@ -75,6 +75,8 @@ export {
   buildShelfProductRowPatch,
   clearShelfRowCustomPrice,
   clearShelfRowProduct,
+  patchShelfRowBasePrice,
+  patchShelfRowCustomPrice,
   patchShelfRowPrice,
   patchShelfRowQty,
 } from "./shelf-row-products";
@@ -108,7 +110,10 @@ export {
   workflowQueryHasError,
   type WorkflowPanelStatus,
 } from "./workflow-query-state";
-export { getItemWorkflowStepFamily } from "./step-family";
+export {
+  getItemWorkflowStepFamily,
+  shouldRenderWorkflowStepPanel,
+} from "./step-family";
 export {
   useItemWorkflowController,
   type ItemWorkflowOption,

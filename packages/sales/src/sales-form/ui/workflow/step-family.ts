@@ -1,12 +1,12 @@
 "use client";
 
+import type { SalesFormLineItemRecord } from "../../application";
 import {
   isMouldingItem,
   isServiceItem,
   isShelfItem,
   normalizeSalesFormTitle as normalizeTitle,
 } from "../../domain";
-import type { SalesFormLineItemRecord } from "../../application";
 
 type WorkflowStep = NonNullable<SalesFormLineItemRecord["formSteps"]>[number];
 
@@ -32,7 +32,7 @@ export function getItemWorkflowStepFamily(
   const title = normalizeTitle(activeStep?.step?.title);
   const itemType = normalizeTitle(
     (line?.formSteps || []).find(
-      (step: any) => normalizeTitle(step?.step?.title) === "item type",
+      (step) => normalizeTitle(step?.step?.title) === "item type",
     )?.value,
   );
   const hasMouldingRows = hasPersistedGroupedRows(line, "mouldingRows");
@@ -67,4 +67,16 @@ export function getItemWorkflowStepFamily(
     return "shelf";
   }
   return "component-grid";
+}
+
+export function shouldRenderWorkflowStepPanel(input: {
+  isActive: boolean;
+  isHousePackageToolStep: boolean;
+  stepFamily: ReturnType<typeof getItemWorkflowStepFamily>;
+}) {
+  return (
+    input.isActive ||
+    input.isHousePackageToolStep ||
+    input.stepFamily !== "component-grid"
+  );
 }

@@ -79,6 +79,22 @@ orders in the new sales form.
   update.
 - Persisted legacy lines use `sales-item-<database id>` as their stable form UID
   when no UID is present in metadata.
+- When an applied adjustment persists a house-package door array, that array is
+  authoritative when the new sales form reopens. Legacy relational door rows may
+  enrich matching rows with database identity and metadata, but may not restore
+  removed sizes or overwrite approved quantities. An explicitly empty persisted
+  array means all configured door rows were removed.
+
+## Validation
+
+- The edit-loader regression covers an applied reduction where stale legacy
+  relations still contain a removed `1-6 x 6-8` row and an obsolete `LH 1` on
+  `2-6 x 6-8`. Reload keeps only the persisted rows and quantities; an explicit
+  empty applied snapshot also stays empty. Unmarked ordinary snapshots retain
+  the existing relational-data precedence for compatibility.
+- Authenticated browser verification on order `09140DB` showed two configured
+  door sizes, no `1-6 x 6-8`, `LH 0 / RH 2` for `2-6 x 6-8`, and the revised
+  door-line total of `$535.00` without saving the user's second attempt.
 
 ## Implementation Map
 

@@ -1,17 +1,17 @@
 # In Progress
 
-- [ ] Driver platform revival: phases 0-3 are implemented, including protected
-  work-queue/manifest contracts, explicit due and door facts, dispatch-bound
-  proportional inventory, reserve/pick/consume/release orchestration,
-  reconciliation/backfill, sectioned mobile UX, and dev-only quick accounts.
-  Automated checks, local schema sync, and Android assembly/install pass. The
-  smaller development router now runs in SDK 54 Expo Go 54.0.8 and device proof
-  covers dark-theme login, the dev-only account selector, assigned queue, and
-  dispatch detail. Final gate: use a valid packed/assigned dispatch fixture to
-  prove `Start Trip`; the tested zero-item legacy dispatch is correctly blocked
-  by readiness rules. See
-  `.brain/features/driver-platform-revival.md` and ADR-050. (Mobile + API +
-  Inventory + Runtime Validation)
+- [ ] Driver platform revival closeout: phases 0-3 remain implemented and the
+  reversible inventory fixture now passes Expo Go warehouse preparation from
+  `UNPACKED 0/3 · Inventory Review` to `PACKED 3/3 · Ready To Load`.
+  Assigned-driver completion exposed a real development-account defect: the
+  employee picker changes the email but does not create a session for that
+  employee. The approved closeout spec and five `ready-for-agent` tickets live
+  under `.scratch/driver-platform-revival-closeout/`. The immediate frontier is
+  Ticket 01 genuine dev employee login and Ticket 02 atomic mixed packing;
+  driver completion, failure/reconciliation proof, and pilot handoff follow by
+  declared blocking edges. Implementation is paused until a ticket is selected.
+  See `.brain/features/driver-platform-revival.md` and ADR-050. (Mobile + Auth +
+  API + Inventory + Runtime Validation)
 
 
 - [ ] Sales Customers and Customer Overview monitored modernization: the

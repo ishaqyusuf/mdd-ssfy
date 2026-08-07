@@ -267,6 +267,28 @@
   moulding, step-family, and multi-select suites pass 30 tests / 80 assertions,
   the Sales package typecheck passes, and the verified flow emitted no browser
   console errors.
+- 2026-08-07 edit-order loading now hydrates historical house-package Door step
+  snapshots from the persisted step-product relations, including the related
+  door title/image fallback used by older or archived rows. A stale persisted
+  empty component array no longer erases relation-backed HPT hydration.
+  Clicking an ordinary workflow step also makes that line the active query
+  owner and renders only its component grid; HPT, Moulding, Service, and Shelf
+  custom panels remain
+  available per line. Authenticated QA on order `09166LRG` confirmed items 3-5
+  restore their real titles/images, item 3 Door loads 16 components, item 3
+  Height loads 3 components, and switching to item 1 replaces that grid with
+  its 17-component list without any `No components returned` state. The focused
+  suites pass 19 tests / 103 assertions, and Sales/API typechecks pass.
+- 2026-08-07 standard workflow panels preserve the intentional single-open-item
+  behavior: opening a step on another item closes the prior standard panel and
+  resets that prior item's active pill to its route-default step. All explicit
+  step navigation now keeps only the current line's step state, including HPT
+  Add Door and programmatic next/jump actions. Step content opens, closes, and
+  changes with a 200ms height/fade/slide transition and disables motion for
+  reduced-motion users. Authenticated QA on order `09166LRG` confirmed item 1
+  Door resets to House Package Tool when item 2 Height opens, leaving only item
+  2 Height explicitly active. The focused suites pass 19 tests / 106
+  assertions, and the Sales typecheck passes.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

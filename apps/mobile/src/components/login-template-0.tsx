@@ -108,12 +108,12 @@ export function LoginTemplate0() {
             <ThemeToggle />
           </View>
 
-          <View className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+          <View className="w-full">
             <View className="mb-6">
               <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
                 <Icon name="Lock" className="text-primary" size={24} />
               </View>
-              <Text className="text-3xl font-black text-card-foreground">
+              <Text className="text-3xl font-black text-foreground">
                 Welcome back
               </Text>
               <Text className="mt-2 text-sm leading-5 text-muted-foreground">
@@ -132,7 +132,7 @@ export function LoginTemplate0() {
                     fieldState: { error },
                   }) => (
                     <View className="mt-2">
-                      <View className="flex-row items-center rounded-2xl border border-border bg-background px-3">
+                      <View className="flex-row items-center rounded-2xl border border-border bg-muted/40 px-3">
                         <Icon
                           name="Mail"
                           className="text-muted-foreground"
@@ -173,7 +173,7 @@ export function LoginTemplate0() {
                     fieldState: { error },
                   }) => (
                     <View className="mt-2">
-                      <View className="flex-row items-center rounded-2xl border border-border bg-background px-3">
+                      <View className="flex-row items-center rounded-2xl border border-border bg-muted/40 px-3">
                         <Icon
                           name="Lock"
                           className="text-muted-foreground"

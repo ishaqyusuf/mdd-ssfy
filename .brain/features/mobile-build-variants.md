@@ -29,10 +29,18 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - Settings > App Updates is the manual update surface for all installed builds, showing OTA status, check/download/restart actions, and build diagnostics including channel, runtime, running source, update id, created time, and `UPDATE_VERSION`.
 - Support > Mobile App opens a download-only web support page whose only action is the `/api/download-app` APK download button; the former Super Admin Settings > App Download page has been removed while the download endpoint remains live.
 - Android edge-to-edge is disabled in native config because the Expo/RN Android edge-to-edge container was crashing during mobile invoice customer selection with `EdgeToEdgeReactViewGroup contains null child`. This requires a fresh Android EAS/dev build to take effect; OTA updates and Metro reloads cannot change the installed native container.
+- Metro singleton resolution keeps bare imports pinned to the app-owned package,
+  honors package export-map subpaths that Node can resolve, and delegates
+  unresolved deep subpaths back to Metro from that same package root. This
+  preserves NativeWind's React Native aliases while allowing TypeScript-only
+  internals such as Keyboard Controller's `react-native-reanimated/src/core`
+  dependency to resolve under the Node-hosted Expo launcher.
 
 ## Key Files
 - `apps/mobile/app.config.ts`
 - `apps/mobile/eas.json`
+- `apps/mobile/metro.config.js`
+- `apps/mobile/metro.config.test.js`
 - `apps/mobile/src/hooks/use-launch-auto-update.ts`
 - `apps/mobile/src/lib/launch-auto-update.ts`
 - `apps/mobile/src/components/app-auto-update-modal.tsx`

@@ -12,8 +12,10 @@ import {
 	ComboboxTrigger,
 } from "@gnd/ui/combobox";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
+import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import { Label } from "@gnd/ui/label";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
 	multiplyMoney,
@@ -28,6 +30,7 @@ import {
 	getShelfRowBasePrice,
 	getShelfRowDisplayTotal,
 	getShelfRowDisplayUnitPrice,
+	getShelfRowSalesPrice,
 } from "./shelf-inputs";
 import {
 	ShelfProductEditDialog,
@@ -36,6 +39,8 @@ import {
 import {
 	buildShelfProductRowPatch,
 	clearShelfRowProduct,
+	patchShelfRowBasePrice,
+	patchShelfRowCustomPrice,
 	patchShelfRowPrice,
 	patchShelfRowQty,
 	updateShelfProductInSections,
@@ -614,27 +619,90 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 									</td>
 									<td className="px-3 py-2">
 										{canEditPricing ? (
-											<CostPriceBreakdownHover
-												breakdown={unitBreakdown}
-												context={props.priceBreakdown}
+											<Menu
+												noSize
+												Icon={null}
+												label={
+													<Button
+														type="button"
+														variant="outline"
+														className="h-8 w-full justify-end px-2 text-xs font-semibold"
+													>
+														<CostPriceBreakdownHover
+															breakdown={unitBreakdown}
+															context={props.priceBreakdown}
+														>
+															<span>
+																{props.formatMoney(unitPrice) || "$0.00"}
+															</span>
+														</CostPriceBreakdownHover>
+													</Button>
+												}
 											>
-												<Input
-													aria-label={`Shelf line ${index + 1} price`}
-													type="number"
-													step="0.01"
-													value={unitPrice}
-													onChange={(event) =>
-														patchEntry(
-															entry,
-															patchShelfRowPrice(
-																entry.row,
-																Number(event.target.value || 0),
-															),
-														)
-													}
-													className="h-8 text-right"
-												/>
-											</CostPriceBreakdownHover>
+												<div className="min-w-[260px] space-y-3 p-2">
+													<div className="space-y-1">
+														<p className="text-xs font-bold uppercase text-muted-foreground">
+															Edit Shelf Price
+														</p>
+														<p className="text-xs text-muted-foreground">
+															Base price recalculates sales price. Custom price
+															overrides the final line price.
+														</p>
+													</div>
+													<div className="space-y-2">
+														<Label className="text-xs">Base Price</Label>
+														<Input
+															type="number"
+															step="0.01"
+															value={getShelfRowBasePrice(entry.row)}
+															onChange={(event) =>
+																patchEntry(
+																	entry,
+																	patchShelfRowBasePrice({
+																		row: entry.row,
+																		basePrice: Number(event.target.value || 0),
+																		profileCoefficient: props.profileCoefficient,
+																	}),
+																)
+															}
+														/>
+													</div>
+													<div className="flex justify-between text-xs">
+														<span className="text-muted-foreground">
+															Calculated Sales
+														</span>
+														<span className="font-semibold">
+															{props.formatMoney(
+																getShelfRowSalesPrice(entry.row),
+															) || "$0.00"}
+														</span>
+													</div>
+													<div className="space-y-2">
+														<Label className="text-xs">Custom Price</Label>
+														<Input
+															type="number"
+															step="0.01"
+															value={
+																entry.row?.customPrice ??
+																entry.row?.meta?.customPrice ??
+																""
+															}
+															onChange={(event) =>
+																patchEntry(
+																	entry,
+																	patchShelfRowCustomPrice({
+																		row: entry.row,
+																		customPrice:
+																			event.target.value === ""
+																				? null
+																				: Number(event.target.value || 0),
+																	}),
+																)
+															}
+														/>
+													</div>
+												</div>
+											</Menu>
 										) : (
 											<p className="text-right text-xs font-semibold">
 												<CostPriceBreakdownHover

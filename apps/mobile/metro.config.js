@@ -1,6 +1,6 @@
 const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 const { withNativewind } = require("nativewind/metro");
-const { join, sep } = require("node:path");
+const { dirname, join, sep } = require("node:path");
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getSentryExpoConfig(__dirname);
@@ -59,13 +59,38 @@ function getSingletonPackage(moduleName) {
   );
 }
 
-function resolveAppSingleton(moduleName) {
+function resolveAppSingleton(context, moduleName, platform) {
   const packageName = getSingletonPackage(moduleName);
   const alias = packageName ? singletonAliases.get(packageName) : null;
-  const resolvedModuleName = alias
-    ? `${alias}${moduleName.slice(packageName.length)}`
-    : moduleName;
-  return require.resolve(resolvedModuleName, { paths: [__dirname] });
+  const resolvedPackageName = alias ?? packageName;
+  const packageSubpath = moduleName.slice(packageName.length);
+  const resolvedModuleName = `${resolvedPackageName}${packageSubpath}`;
+
+  try {
+    return {
+      type: "sourceFile",
+      filePath: require.resolve(resolvedModuleName, { paths: [__dirname] }),
+    };
+  } catch (error) {
+    if (!packageSubpath || error?.code !== "MODULE_NOT_FOUND") {
+      throw error;
+    }
+  }
+
+  const packageRoot = dirname(
+    require.resolve(`${resolvedPackageName}/package.json`, {
+      paths: [__dirname],
+    }),
+  );
+
+  return context.resolveRequest(
+    {
+      ...context,
+      originModulePath: join(packageRoot, "package.json"),
+    },
+    `.${packageSubpath}`,
+    platform,
+  );
 }
 
 nativewindConfig.resolver.resolveRequest = (context, moduleName, platform) => {
@@ -90,22 +115,16 @@ nativewindConfig.resolver.resolveRequest = (context, moduleName, platform) => {
         ? "react-native-css/components"
         : "react-native-css/components/react-native-safe-area-context";
 
-    return {
-      type: "sourceFile",
-      filePath: isReactNativeCssOrigin(originModulePath)
-        ? resolveAppSingleton(moduleName)
-        : resolveAppSingleton(styledModuleName),
-    };
+    return isReactNativeCssOrigin(originModulePath)
+      ? resolveAppSingleton(context, moduleName, platform)
+      : resolveAppSingleton(context, styledModuleName, platform);
   }
 
   const singletonPackage = getSingletonPackage(moduleName);
   const shouldUseAppSingleton = Boolean(singletonPackage);
 
   if (shouldUseAppSingleton) {
-    return {
-      type: "sourceFile",
-      filePath: resolveAppSingleton(moduleName),
-    };
+    return resolveAppSingleton(context, moduleName, platform);
   }
 
   return nativewindResolveRequest(context, moduleName, platform);

@@ -2,7 +2,10 @@
 
 import { ErrorFallback } from "@/components/error-fallback";
 import { SalesFinanceAdoptionTracker } from "@/components/sales-finance/adoption";
-import { SalesFinanceHeader } from "@/components/sales-finance/header";
+import {
+	SalesFinanceHeader,
+	SalesFinanceTableSearch,
+} from "@/components/sales-finance/header";
 import { SalesFinanceInsightsSkeleton } from "@/components/sales-finance/insights-skeleton";
 import { SalesFinanceReceivableSheet } from "@/components/sales-finance/receivable-sheet";
 import { SalesFinanceReceivablesHeader } from "@/components/sales-finance/receivables-header";
@@ -130,6 +133,7 @@ export function SalesFinanceWorkspaceClient({
 				<ErrorBoundary errorComponent={ErrorFallback}>
 					<SalesFinanceInsights />
 				</ErrorBoundary>
+				{params.tab === "all" ? <SalesFinanceTableSearch /> : null}
 				<ErrorBoundary errorComponent={ErrorFallback}>
 					<Suspense fallback={<SalesFinanceTableSkeleton />}>
 						<SalesFinanceDataTable initialSettings={initialSettings} />

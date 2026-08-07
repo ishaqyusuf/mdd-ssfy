@@ -1,5 +1,6 @@
 "use client";
 
+import { env } from "@/env.mjs";
 import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { formatInventoryItemSubtitle } from "@/components/sales-overview-system/lib/inventory-display";
 import { ActivityHistory, type ActivityHistoryNode } from "@/components/chat/activity-history";
@@ -18,6 +19,8 @@ import {
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
+import { Collapsible, CollapsibleContent } from "@gnd/ui/collapsible";
+import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
@@ -32,6 +35,7 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 
 const statuses = [
@@ -42,6 +46,61 @@ const statuses = [
 	"closed",
 	"cancelled",
 ] as const;
+
+type ChatAttachment = {
+	pathname: string;
+	name: string;
+};
+
+function Attachments({
+	attachments,
+	onRemove,
+}: {
+	attachments: ChatAttachment[];
+	onRemove: (pathname: string) => void;
+}) {
+	if (!attachments.length) {
+		return null;
+	}
+
+	return (
+		<div className="flex flex-wrap gap-2 p-1">
+			{attachments.map((file) => {
+				const url = `${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${file.pathname}`;
+				const isImage = Boolean(file.pathname.match(/\.(png|jpe?g|gif|webp|svg)$/i));
+
+				return (
+					<div
+						key={file.pathname}
+						className="group relative flex h-10 w-10 items-center justify-center rounded-lg border bg-muted/30 overflow-hidden"
+					>
+						{isImage ? (
+							<Image
+								src={url}
+								alt={file.name}
+								width={40}
+								height={40}
+								className="h-full w-full object-cover"
+							/>
+						) : (
+							<Icons.File className="size-4 text-muted-foreground" />
+						)}
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							className="absolute inset-0 size-full rounded-lg bg-background/80 opacity-0 transition-opacity group-hover:opacity-100"
+							onClick={() => onRemove(file.pathname)}
+						>
+							<Icons.X className="size-4 text-destructive" />
+							<span className="sr-only">Remove {file.name}</span>
+						</Button>
+					</div>
+				);
+			})}
+		</div>
+	);
+}
 
 function formatQty(value: number | null | undefined) {
 	return Number(value || 0).toLocaleString(undefined, {
@@ -83,6 +142,11 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 	} | null>(null);
 	const [targetQty, setTargetQty] = useState("");
 	const [adjustmentReason, setAdjustmentReason] = useState("");
+	const [isChatOpen, setIsChatOpen] = useState(false);
+	const [commentText, setCommentText] = useState("");
+	const [chatAttachments, setChatAttachments] = useState<ChatAttachment[]>([]);
+	const [isUploading, setIsUploading] = useState(false);
+
 	const detailQuery = useQuery(
 		trpc.inventories.inboundShipmentDetail.queryOptions({ inboundId }),
 	);
@@ -136,6 +200,88 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 				queryKey: trpc.inventories.orderInboundShipments.pathKey(),
 			}),
 		]);
+	};
+	const uploadMutation = useMutation(trpc.storage.upload.mutationOptions());
+	const saveInboundNoteMutation = useMutation(
+		trpc.notes.saveInboundNote.mutationOptions({
+			onSuccess: async () => {
+				setCommentText("");
+				setChatAttachments([]);
+				setIsChatOpen(false);
+				await refresh();
+				toast({
+					title: "Comment added",
+					variant: "success",
+				});
+			},
+			onError: (error) => {
+				toast({
+					title: "Unable to add comment",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+
+	const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(event.target.files || []);
+		if (!files.length) return;
+		setIsUploading(true);
+		try {
+			for (const file of files) {
+				const reader = new FileReader();
+				const contentPromise = new Promise<string>((resolve, reject) => {
+					reader.onload = () => {
+						const result = reader.result as string;
+						resolve(result.split(",")[1] || "");
+					};
+					reader.onerror = reject;
+					reader.readAsDataURL(file);
+				});
+				const content = await contentPromise;
+				const uploaded = await uploadMutation.mutateAsync({
+					path: "inbound-documents",
+					filename: file.name,
+					contentType: file.type || "application/octet-stream",
+					content,
+				});
+				setChatAttachments((prev) => [
+					...prev,
+					{ pathname: uploaded.pathname, name: file.name },
+				]);
+			}
+		} catch (error: any) {
+			toast({
+				title: "Unable to upload file",
+				description: error?.message || "Please try again",
+				variant: "destructive",
+			});
+		} finally {
+			setIsUploading(false);
+			event.target.value = "";
+		}
+	};
+
+	const handleRemoveAttachment = (pathname: string) => {
+		setChatAttachments((prev) => prev.filter((a) => a.pathname !== pathname));
+	};
+
+	const handleSendComment = () => {
+		if (!commentText.trim() && !chatAttachments.length) return;
+		if (!detailQuery.data) return;
+
+		const detail = detailQuery.data;
+		const salesId =
+			detail.items[0]?.inboundDemands[0]?.lineItemComponent?.parent?.saleId ?? 0;
+
+		saveInboundNoteMutation.mutate({
+			salesId,
+			orderNo: detail.reference || `Inbound #${inboundId}`,
+			status: (detail.status as any) || "pending",
+			note: commentText.trim() || null,
+			attachments: chatAttachments.map((a) => ({ pathname: a.pathname })),
+		});
 	};
 	const updateStatus = useMutation(
 		trpc.inventories.updateInboundShipmentStatus.mutationOptions({
@@ -420,12 +566,94 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 						</Card>
 					))}
 				</section>
+				<Collapsible open={isChatOpen} onOpenChange={setIsChatOpen} className="w-full">
+					<CollapsibleContent className="transition-all duration-300 ease-in-out data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down pb-3">
+						<div className="flex flex-col rounded-xl border border-border bg-card p-2 shadow-xs">
+							<Attachments attachments={chatAttachments} onRemove={handleRemoveAttachment} />
+							<div className="flex items-center gap-2">
+								<label htmlFor="inbound-collapsible-chat-upload" className="cursor-pointer">
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										className="size-8 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+										disabled={isUploading}
+										asChild
+									>
+										<span>
+											{isUploading ? (
+												<Icons.Spinner className="size-4 animate-spin" />
+											) : (
+												<Icons.Plus className="size-4" />
+											)}
+											<span className="sr-only">Add attachment</span>
+										</span>
+									</Button>
+								</label>
+								<input
+									id="inbound-collapsible-chat-upload"
+									type="file"
+									multiple
+									className="hidden"
+									onChange={handleFileUpload}
+								/>
+								<Textarea
+									value={commentText}
+									onChange={(e) => setCommentText(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === "Enter" && !e.shiftKey) {
+											e.preventDefault();
+											void handleSendComment();
+										}
+									}}
+									placeholder="Write a comment..."
+									className="min-h-[32px] max-h-32 flex-1 resize-none border-0 bg-transparent p-0 text-sm shadow-none focus:ring-0 focus-visible:border-0 focus-visible:outline-none focus-visible:ring-0"
+								/>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									className="size-8 shrink-0 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+									disabled={
+										saveInboundNoteMutation.isPending ||
+										(!commentText.trim() && !chatAttachments.length)
+									}
+									onClick={handleSendComment}
+								>
+									{saveInboundNoteMutation.isPending ? (
+										<Icons.Spinner className="size-4 animate-spin" />
+									) : (
+										<Icons.Send className="size-4" />
+									)}
+									<span className="sr-only">Send comment</span>
+								</Button>
+							</div>
+						</div>
+					</CollapsibleContent>
+				</Collapsible>
 				<ActivityHistory
 					data={activityRows}
 					isPending={treeActivityQuery.isPending && legacyActivityQuery.isPending}
 					isError={treeActivityQuery.isError && legacyActivityQuery.isError}
 					title="Activity History"
 					emptyText="No activity history yet"
+					headerAction={
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="h-7 gap-1.5 rounded-full px-2.5 text-xs shadow-none"
+							onClick={() => setIsChatOpen((open) => !open)}
+						>
+							<Icons.Plus
+								className={cn(
+									"size-3.5 transition-transform duration-200",
+									isChatOpen && "rotate-45",
+								)}
+							/>
+							<span>{isChatOpen ? "Close" : "Add note"}</span>
+						</Button>
+					}
 					className="min-h-[180px]"
 				/>
 			</div>

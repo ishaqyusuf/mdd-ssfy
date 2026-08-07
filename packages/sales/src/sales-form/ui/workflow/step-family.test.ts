@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
-import { getItemWorkflowStepFamily } from "./step-family";
+import {
+	getItemWorkflowStepFamily,
+	shouldRenderWorkflowStepPanel,
+} from "./step-family";
 
 describe("item workflow step family", () => {
 	it("shows the moulding catalog before the first grouped row is selected", () => {
@@ -283,5 +286,42 @@ describe("item workflow step family", () => {
 		);
 
 		expect(family).toBe("shelf");
+	});
+
+	it("shows one line-scoped component grid while retaining custom line panels", () => {
+		expect(
+			shouldRenderWorkflowStepPanel({
+				isActive: false,
+				isHousePackageToolStep: false,
+				stepFamily: "component-grid",
+			}),
+		).toBe(false);
+		expect(
+			shouldRenderWorkflowStepPanel({
+				isActive: true,
+				isHousePackageToolStep: false,
+				stepFamily: "component-grid",
+			}),
+		).toBe(true);
+		for (const stepFamily of [
+			"moulding-line-item",
+			"service-line-item",
+			"shelf",
+		] as const) {
+			expect(
+				shouldRenderWorkflowStepPanel({
+					isActive: false,
+					isHousePackageToolStep: false,
+					stepFamily,
+				}),
+			).toBe(true);
+		}
+		expect(
+			shouldRenderWorkflowStepPanel({
+				isActive: false,
+				isHousePackageToolStep: true,
+				stepFamily: "component-grid",
+			}),
+		).toBe(true);
 	});
 });

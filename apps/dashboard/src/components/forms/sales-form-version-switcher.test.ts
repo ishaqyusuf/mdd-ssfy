@@ -17,7 +17,7 @@ describe("sales form version switcher", () => {
 
 	it("places and styles each switch action according to its destination", () => {
 		expect(source.includes("<Portal")).toBe(false);
-		expect(source.includes('variant="destructive"')).toBe(true);
+		expect(source.includes("border-destructive")).toBe(true);
 		expect(source.includes("bg-emerald-600")).toBe(true);
 	});
 

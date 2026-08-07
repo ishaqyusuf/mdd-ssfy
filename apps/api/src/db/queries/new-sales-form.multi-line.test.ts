@@ -88,7 +88,7 @@ function createMockContext() {
           .filter((f) => f.salesItemId === item.id && f.deletedAt == null)
           .map((f) => ({
             ...f,
-            step: {
+            step: f.step || {
               id: f.stepId,
               title: `Step ${f.stepId}`,
             },
@@ -652,6 +652,370 @@ describe("new-sales-form multi-line mixed parity", () => {
     expect(mouldingLine?.lineTotal).toBe(150);
     expect(((mouldingLine?.meta as any)?.mouldingRows || []).length).toBe(1);
     expect((mouldingLine?.meta as any)?.mouldingRows?.[0]?.salesPrice).toBe(70);
+  });
+
+  it("keeps applied persisted door reductions authoritative over stale legacy door rows", async () => {
+    const { ctx, state } = createMockContext();
+    state.orders.push({
+      id: 5,
+      slug: "order-09140db",
+      orderId: "09140DB",
+      type: "order",
+      status: "Pending",
+      deletedAt: null,
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 535,
+      tax: 0,
+      grandTotal: 535,
+      updatedAt: new Date("2026-08-07T09:57:03.000Z"),
+      meta: {
+        newSalesForm: {
+          version: "applied-adjustment-v1",
+          approvedAdjustmentId: "adjustment-09140db",
+          updatedAt: "2026-08-07T09:57:03.000Z",
+          form: {
+            paymentTerm: "None",
+            deliveryOption: "pickup",
+          },
+          extraCosts: [],
+          summary: { taxRate: 0 },
+          lineItems: [
+            {
+              id: 50,
+              uid: "line-interior-door",
+              title: "Interior Pre-Hung Door",
+              description: "",
+              qty: 3,
+              unitPrice: 178.33,
+              lineTotal: 535,
+              meta: {},
+              formSteps: [],
+              shelfItems: [],
+              housePackageTool: {
+                id: 500,
+                doorType: "Interior Pre-Hung Door",
+                totalDoors: 3,
+                totalPrice: 535,
+                meta: {},
+                doors: [
+                  {
+                    id: 502,
+                    dimension: "2-0 x 6-8",
+                    stepProductId: 200,
+                    lhQty: 0,
+                    rhQty: 1,
+                    totalQty: 1,
+                    unitPrice: 175,
+                    lineTotal: 175,
+                    meta: {},
+                  },
+                  {
+                    id: 503,
+                    dimension: "2-6 x 6-8",
+                    stepProductId: 260,
+                    lhQty: 0,
+                    rhQty: 2,
+                    totalQty: 2,
+                    unitPrice: 180,
+                    lineTotal: 360,
+                    meta: {},
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+    state.items.push({
+      id: 50,
+      salesOrderId: 5,
+      dykeDescription: "Interior Pre-Hung Door",
+      description: "",
+      qty: 5,
+      rate: 178,
+      total: 890,
+      deletedAt: null,
+      meta: { uid: "line-interior-door", meta: {} },
+    });
+    state.hpts.push({
+      id: 500,
+      salesOrderId: 5,
+      orderItemId: 50,
+      deletedAt: null,
+      doorType: "Interior Pre-Hung Door",
+      totalDoors: 5,
+      totalPrice: 890,
+      meta: {},
+    });
+    state.doors.push(
+      {
+        id: 501,
+        salesOrderId: 5,
+        housePackageToolId: 500,
+        deletedAt: null,
+        dimension: "1-6 x 6-8",
+        stepProductId: 160,
+        lhQty: 0,
+        rhQty: 1,
+        totalQty: 1,
+        unitPrice: 175,
+        lineTotal: 175,
+        meta: {},
+      },
+      {
+        id: 502,
+        salesOrderId: 5,
+        housePackageToolId: 500,
+        deletedAt: null,
+        dimension: "2-0 x 6-8",
+        stepProductId: 200,
+        lhQty: 0,
+        rhQty: 1,
+        totalQty: 1,
+        unitPrice: 175,
+        lineTotal: 175,
+        meta: {},
+      },
+      {
+        id: 503,
+        salesOrderId: 5,
+        housePackageToolId: 500,
+        deletedAt: null,
+        dimension: "2-6 x 6-8",
+        stepProductId: 260,
+        lhQty: 1,
+        rhQty: 2,
+        totalQty: 3,
+        unitPrice: 180,
+        lineTotal: 540,
+        meta: {},
+      },
+    );
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-09140db",
+    });
+
+    const doorLine = loaded.lineItems.find(
+      (line) => line.uid === "line-interior-door",
+    );
+
+    expect(doorLine?.housePackageTool?.doors).toHaveLength(2);
+    expect(
+      doorLine?.housePackageTool?.doors?.some(
+        (door) => door.dimension === "1-6 x 6-8",
+      ),
+    ).toBe(false);
+    expect(
+      doorLine?.housePackageTool?.doors?.find(
+        (door) => door.dimension === "2-6 x 6-8",
+      ),
+    ).toMatchObject({ lhQty: 0, rhQty: 2, totalQty: 2 });
+    expect(doorLine).toMatchObject({ qty: 3, lineTotal: 535 });
+    expect(doorLine?.housePackageTool).toMatchObject({
+      totalDoors: 3,
+      totalPrice: 535,
+    });
+
+    const persistedDoorLine = state.orders[0]?.meta.newSalesForm.lineItems[0];
+    persistedDoorLine.qty = 0;
+    persistedDoorLine.unitPrice = 0;
+    persistedDoorLine.lineTotal = 0;
+    persistedDoorLine.housePackageTool.totalDoors = 0;
+    persistedDoorLine.housePackageTool.totalPrice = 0;
+    persistedDoorLine.housePackageTool.doors = [];
+
+    const loadedAfterRemovingAllDoors = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-09140db",
+    });
+    const emptyDoorLine = loadedAfterRemovingAllDoors.lineItems.find(
+      (line) => line.uid === "line-interior-door",
+    );
+
+    expect(emptyDoorLine?.housePackageTool?.doors).toHaveLength(0);
+    expect(emptyDoorLine).toMatchObject({ qty: 0, lineTotal: 0 });
+    expect(emptyDoorLine?.housePackageTool).toMatchObject({
+      totalDoors: 0,
+      totalPrice: 0,
+    });
+
+    delete state.orders[0]?.meta.newSalesForm.approvedAdjustmentId;
+    const loadedOrdinarySnapshot = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-09140db",
+    });
+    const ordinaryDoorLine = loadedOrdinarySnapshot.lineItems.find(
+      (line) => line.uid === "line-interior-door",
+    );
+
+    expect(ordinaryDoorLine?.housePackageTool?.doors).toHaveLength(3);
+    expect(
+      ordinaryDoorLine?.housePackageTool?.doors?.find(
+        (door) => door.dimension === "2-6 x 6-8",
+      ),
+    ).toMatchObject({ lhQty: 1, rhQty: 2, totalQty: 3 });
+  });
+
+  it("hydrates historical HPT door titles and images from legacy step products", async () => {
+    const { ctx, state } = createMockContext();
+    const legacyDoorComponent = {
+      id: 978,
+      uid: "QSOAe",
+      name: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
+      img: "carrara.png",
+      redirectUid: null,
+      meta: {},
+      deletedAt: new Date("2026-08-06T10:00:00.000Z"),
+      door: {
+        id: 2,
+        title: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
+        img: "carrara-door.png",
+        deletedAt: new Date("2026-08-06T10:00:00.000Z"),
+      },
+    };
+    state.orders.push({
+      id: 6,
+      slug: "order-09166lrg",
+      orderId: "09166LRG",
+      type: "order",
+      status: "Pending",
+      deletedAt: null,
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 1315.8,
+      tax: 0,
+      grandTotal: 1315.8,
+      updatedAt: new Date("2026-08-05T15:40:00.000Z"),
+      meta: {
+        newSalesForm: {
+          version: "legacy-edit-v1",
+          updatedAt: "2026-08-05T15:40:00.000Z",
+          autosave: false,
+          form: {
+            paymentTerm: "None",
+            deliveryOption: "pickup",
+          },
+          extraCosts: [],
+          summary: { taxRate: 0 },
+          lineItems: [
+            {
+              id: 60,
+              uid: "sales-item-60",
+              title: "pre-hung first floor",
+              description: "",
+              qty: 12,
+              unitPrice: 109.65,
+              lineTotal: 1315.8,
+              meta: {},
+              formSteps: [
+                {
+                  id: 601,
+                  stepId: 51,
+                  componentId: null,
+                  prodUid: null,
+                  value: null,
+                  qty: 0,
+                  price: 0,
+                  basePrice: 0,
+                  meta: { selectedComponents: [] },
+                  step: { id: 51, uid: "door", title: "Door" },
+                },
+              ],
+              shelfItems: [],
+              housePackageTool: null,
+            },
+          ],
+        },
+      },
+    });
+    state.items.push({
+      id: 60,
+      salesOrderId: 6,
+      dykeDescription: "pre-hung first floor",
+      description: "",
+      qty: 12,
+      rate: 109.65,
+      total: 1315.8,
+      deletedAt: null,
+      meta: { uid: "sales-item-60", meta: {} },
+    });
+    state.stepForms.push({
+      id: 601,
+      salesId: 6,
+      salesItemId: 60,
+      deletedAt: null,
+      stepId: 51,
+      componentId: null,
+      prodUid: null,
+      value: null,
+      qty: 0,
+      price: 0,
+      basePrice: 0,
+      meta: { flatRate: false },
+      step: { id: 51, uid: "door", title: "Door" },
+    });
+    state.hpts.push({
+      id: 600,
+      salesOrderId: 6,
+      orderItemId: 60,
+      deletedAt: null,
+      doorType: "Interior Pre-Hung Door",
+      stepProductId: 978,
+      totalDoors: 12,
+      totalPrice: 1315.8,
+      meta: {},
+      stepProduct: legacyDoorComponent,
+    });
+    state.doors.push({
+      id: 602,
+      salesOrderId: 6,
+      housePackageToolId: 600,
+      deletedAt: null,
+      dimension: "2-8 x 6-8",
+      stepProductId: 978,
+      lhQty: 4,
+      rhQty: 8,
+      totalQty: 12,
+      unitPrice: 109.65,
+      lineTotal: 1315.8,
+      meta: {},
+      stepProduct: legacyDoorComponent,
+    });
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-09166lrg",
+    });
+    const doorStep = loaded.lineItems[0]?.formSteps?.find(
+      (step) => step.step?.title === "Door",
+    );
+
+    expect((doorStep?.meta as any)?.selectedComponents).toEqual([
+      expect.objectContaining({
+        id: 978,
+        uid: "QSOAe",
+        title: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
+        img: "carrara.png",
+      }),
+    ]);
   });
 
   it("merges db line meta back into stale persisted drafts for moulding edits", async () => {

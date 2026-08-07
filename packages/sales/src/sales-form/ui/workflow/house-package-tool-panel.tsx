@@ -335,13 +335,13 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 										<Button
 											type="button"
 											size="icon"
-											variant="destructive"
-											className="size-8 rounded-full"
+											variant="outline"
+											className="size-8 rounded-full border-destructive bg-secondary text-destructive hover:bg-destructive hover:text-white hover:border-destructive transition-colors"
 											onClick={props.onDeleteDoor}
 											disabled={!props.activeDoorComponent}
 											aria-label="Delete Door"
 										>
-											<Icons.Trash2 className="size-3.5" />
+											<Icons.Trash2 className="size-3.5 text-current" />
 										</Button>
 									</HptHeaderActionTooltip>
 								</TooltipProvider>

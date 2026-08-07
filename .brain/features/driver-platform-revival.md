@@ -2,12 +2,16 @@
 
 ## Status
 
-Implemented on 2026-08-06. Automated contract, domain, and focused mobile
-validation is green. The dedicated development router now renders in SDK 54
-Expo Go and has completed login, assigned-queue, and dispatch-detail device
-proof. The remaining journey gate is a startable local fixture: the assigned
-legacy dispatch used for proof has no packed or assigned items, so the inventory
-safety rule correctly keeps `Start Trip` disabled.
+Closeout specified on 2026-08-07; implementation is paused pending execution of
+the approved local tickets. Automated contract, domain, and focused mobile
+validation is green. The dedicated development router renders in SDK 54 Expo
+Go, and device proof now includes a reversible inventory-backed dispatch moving
+from `UNPACKED 0/3 · Inventory Review` to `PACKED 3/3 · Ready To Load`.
+Assigned-driver completion remains open because device testing exposed that the
+development employee picker changes the email but does not create a session for
+the selected employee. Mixed inventory/legacy packing atomicity, final driver
+start/proof completion, lifecycle failure evidence, and pilot handoff are
+tracked in `.scratch/driver-platform-revival-closeout/`.
 
 ## Behavior
 
@@ -64,8 +68,9 @@ safety rule correctly keeps `Start Trip` disabled.
   Compare legacy packing quantities, inventory readiness, and post-completion
   consumed allocations for every pilot trip.
 - Do not claim mobile cutover complete until a valid packed/assigned local
-  dispatch completes the final start journey in Expo Go. Login, development
-  accounts, assigned queue, detail, and dark-theme rendering are already proven.
+  dispatch completes Start Trip and proof completion in Expo Go, consumes its
+  exact picked allocations once, and passes the approved reconciliation and
+  retry gates.
 
 ## Validation Evidence
 
@@ -77,17 +82,28 @@ safety rule correctly keeps `Start Trip` disabled.
 - The dedicated driver development router, direct icon imports, and Expo Go
   native-module compatibility boundary reduce the active bundle from roughly
   10,418 modules to roughly 3,100 and avoid the prior Hermes `hades` crash.
-- Expo Go 54.0.8 device proof passes login, the development-only employee
-  selector, authenticated assigned queue, dispatch detail, and the Al-Ghurobaa
-  dark palette. The tested dispatch (`#08980DB`) has zero manifest items, so
-  `Start Trip` remains intentionally disabled by readiness rules.
+- Expo Go 54.0.8 device proof passes ordinary login, development-only employee
+  list rendering, authenticated assigned queue, dispatch detail, the
+  Al-Ghurobaa dark palette, and exact warehouse preparation for the reversible
+  inventory fixture. The same proof exposed that selecting a different employee
+  does not authenticate that employee because the picker currently retains the
+  ordinary form password.
 - Theme/runtime/security regression coverage passes 12 tests with 51
   assertions, including exact dark identity tokens and development-only
   account/router boundaries.
 
+## Approved Closeout Work
+
+- Specification: `.scratch/driver-platform-revival-closeout/map.md`
+- Immediate frontier: genuine development employee quick login and atomic mixed
+  inventory/legacy packing.
+- Dependent frontier: inventory-backed driver journey, lifecycle failure safety
+  and reconciliation, then pilot/cutover evidence and handoff.
+
 ## Related Records
 
 - `.brain/plans/driver-platform-revival/map.md`
+- `.scratch/driver-platform-revival-closeout/map.md`
 - `.brain/decisions/ADR-050-dispatch-bound-inventory-execution.md`
 - `.brain/features/inventory-backed-sales-fulfillment.md`
 - `.brain/features/mobile-dispatch-proof-completion.md`

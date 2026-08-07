@@ -9,7 +9,7 @@ const TEMPLATES = [
 	{
 		id: 0,
 		name: "Operator Access",
-		description: "Dark ProDesk card with quick access.",
+		description: "Flat ProDesk design with quick access.",
 		Component: LoginTemplate0,
 	},
 	{

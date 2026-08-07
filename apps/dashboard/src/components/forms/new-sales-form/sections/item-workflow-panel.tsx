@@ -117,6 +117,7 @@ import {
 	saveWorkflowSelectedComponent,
 	selectAllWorkflowComponents,
 	selectWorkflowRootComponent,
+	shouldRenderWorkflowStepPanel,
 	stepKey,
 	swapWorkflowDoorComponent,
 	updateWorkflowDoorSupplier,
@@ -143,7 +144,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	useArchiveDykeCustomStepComponentMutation,
 	useCustomerProfilesQuery,
@@ -231,6 +232,13 @@ export function ItemWorkflowPanel() {
 	const [activeStepByLine, setActiveStepByLine] = useState<
 		Record<string, number>
 	>({});
+	const activateLineStep = useCallback(
+		(lineUid: string, stepIndex: number) => {
+			setEditor({ activeItem: lineUid });
+			setActiveStepByLine({ [lineUid]: stepIndex });
+		},
+		[setEditor],
+	);
 	const [isMouldingDialogOpen, setIsMouldingDialogOpen] = useState(false);
 	const [doorStepModal, setDoorStepModal] = useState<{
 		open: boolean;
@@ -705,11 +713,7 @@ export function ItemWorkflowPanel() {
 		normalizeTitle,
 		visibleComponents,
 		updateLineItem,
-		setActiveStep: (lineUid, stepIndex) =>
-			setActiveStepByLine((prev) => ({
-				...prev,
-				[lineUid]: stepIndex,
-			})),
+		setActiveStep: activateLineStep,
 	});
 	const activeDoorSupplier = getDoorSupplierMeta(activeDoorStep || activeStep);
 	const componentSearchResetKey = `${activeLine?.uid || ""}:${activeStep?.stepId || ""}:${activeStep?.step?.title || ""}`;
@@ -746,10 +750,7 @@ export function ItemWorkflowPanel() {
 		});
 		if (!result) return;
 		updateLineItem(line.uid, result.linePatch as Partial<NewSalesFormLineItem>);
-		setActiveStepByLine((prev) => ({
-			...prev,
-			[line.uid]: result.activeStepIndex,
-		}));
+		activateLineStep(line.uid, result.activeStepIndex);
 	}
 	function openCustomComponentDialog(
 		line: (typeof record.lineItems)[number],
@@ -1041,10 +1042,7 @@ export function ItemWorkflowPanel() {
 		});
 		if (!result) return;
 		updateLineItem(line.uid, result.linePatch as Partial<NewSalesFormLineItem>);
-		setActiveStepByLine((prev) => ({
-			...prev,
-			[line.uid]: result.activeStepIndex,
-		}));
+		activateLineStep(line.uid, result.activeStepIndex);
 	}
 
 	function selectRootComponent(
@@ -1059,13 +1057,7 @@ export function ItemWorkflowPanel() {
 		if (!result) return;
 		updateLineItem(line.uid, result.linePatch as Partial<NewSalesFormLineItem>);
 
-		setEditor({
-			activeItem: line.uid,
-		});
-		setActiveStepByLine((prev) => ({
-			...prev,
-			[line.uid]: result.activeStepIndex,
-		}));
+		activateLineStep(line.uid, result.activeStepIndex);
 	}
 	function updateDoorSupplierAtStep(
 		line: (typeof record.lineItems)[number],
@@ -1285,11 +1277,7 @@ export function ItemWorkflowPanel() {
 				}
 				onAddDoor={
 					doorStepIndex >= 0
-						? () =>
-								setActiveStepByLine((prev) => ({
-									...prev,
-									[line.uid]: doorStepIndex,
-								}))
+						? () => activateLineStep(line.uid, doorStepIndex)
 						: undefined
 				}
 				onAddSize={addSizeRow}
@@ -1506,6 +1494,7 @@ export function ItemWorkflowPanel() {
 		steps: WorkflowStep[],
 		activeIndex: number,
 		activeItemStep: WorkflowStep,
+		isActiveLine: boolean,
 	) {
 		const stepFamily = getItemWorkflowStepFamily(line, activeItemStep, {
 			retainMouldingComponentGrid:
@@ -1515,6 +1504,15 @@ export function ItemWorkflowPanel() {
 				),
 		});
 		const isHptStep = isHousePackageToolStepTitle(activeItemStep?.step?.title);
+		if (
+			!shouldRenderWorkflowStepPanel({
+				isActive: isActiveLine,
+				isHousePackageToolStep: isHptStep,
+				stepFamily,
+			})
+		) {
+			return null;
+		}
 		const isRedirectDisabled = isRedirectDisabledStep(activeItemStep);
 		const selectedUids = new Set(
 			getSelectedProdUids(activeItemStep).map((uid) => String(uid || "")),
@@ -2503,10 +2501,7 @@ export function ItemWorkflowPanel() {
 								)}
 								onSearchChange={setComponentSearch}
 								onJumpStep={(stepIndex) =>
-									setActiveStepByLine((prev) => ({
-										...prev,
-										[line.uid]: stepIndex,
-									}))
+									activateLineStep(line.uid, stepIndex)
 								}
 								onSelectAll={() => {
 									const patch = selectAllWorkflowComponents({
@@ -2698,25 +2693,29 @@ export function ItemWorkflowPanel() {
 				getLineDisplayTotal={(line) =>
 					getWorkflowLineDisplayTotal(line, activeProfileCoefficient)
 				}
-				onActivateLine={(line, isActive) =>
+				onActivateLine={(line, isActive) => {
+					setActiveStepByLine({});
 					setEditor({
 						activeItem: isActive ? null : line.uid,
-					})
-				}
+					});
+				}}
 				onTitleChange={(line, value) =>
 					updateLineItem(line.uid, {
 						title: value,
 					})
 				}
 				onRemoveLine={(line) => removeLineItem(line.uid)}
-				onStepChange={(line, stepIndex) =>
-					setActiveStepByLine((prev) => ({
-						...prev,
-						[line.uid]: stepIndex,
-					}))
-				}
-				renderPanel={(line, steps, activeIndex, activeItemStep) =>
-					renderItemComponentPanel(line, steps, activeIndex, activeItemStep)
+				onStepChange={(line, stepIndex) => {
+					activateLineStep(line.uid, stepIndex);
+				}}
+				renderPanel={(line, steps, activeIndex, activeItemStep, isActive) =>
+					renderItemComponentPanel(
+						line,
+						steps,
+						activeIndex,
+						activeItemStep,
+						isActive,
+					)
 				}
 				isRedirectDisabledStep={isRedirectDisabledStep}
 				stepKey={stepKey}
@@ -2897,13 +2896,13 @@ export function ItemWorkflowPanel() {
 					}}
 					onNextStep={() => {
 						if (activeDoorStepIndex < 0) return;
-						setActiveStepByLine((prev) => ({
-							...prev,
-							[activeLine.uid]: Math.min(
+						activateLineStep(
+							activeLine.uid,
+							Math.min(
 								activeDoorStepIndex + 1,
 								Math.max(0, activeLineSteps.length - 1),
 							),
-						}));
+						);
 					}}
 					onApply={({ rows, selected }) => {
 						if (!doorStepModal.component) return;

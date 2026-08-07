@@ -1,7 +1,7 @@
 # Driver Platform Revival and Inventory Cutover
 
 Date: 2026-08-05
-Status: Implemented; final Expo Go device gate blocked by SDK 54 Hermes crash
+Status: Source phases implemented; approved closeout tickets remain
 Owner: Mobile / Sales Fulfillment / Inventory
 Scope: Revive the Expo driver and warehouse delivery platform, close the client-reported manifest gaps, and cut driver execution over to inventory-backed fulfillment without breaking legacy dispatch compatibility.
 
@@ -11,18 +11,32 @@ Phases 0-3 are implemented in source: dispatch reads are protected and
 assignment-scoped; the work queue and summary are server-authoritative; the
 typed manifest exposes explicit due dates, handing evidence, configuration, and
 inventory readiness; exact stock allocations bind to a dispatch and transition
-through reserve/pick/consume/release; split-trip quantities are scoped; mobile
-uses sectioned summary-first lists and detail-on-demand; and development quick
-accounts are dev-only at both API and UI boundaries.
+through reserve/pick/consume/release; split-trip quantities are scoped; and
+mobile uses sectioned summary-first lists and detail-on-demand.
 
-Automated tests, sales/API typechecks, Prisma generation/local push, and Android
-debug assembly/install pass. Expo Go 54.0.8 loads the SDK 54 development bundle
-after the React singleton fix, but its Hermes `hades` thread segfaults before
-the first route renders. A minimal React Native entry stays alive on the same
-emulator; the complete 10,418-module graph still crashes with Sentry wrapping
-disabled and with development async routes. Pilot/cutover remains gated on
-resolving that application-scale runtime failure and completing the interactive
-driver journey.
+The smaller development router removed the prior Expo Go Hermes crash. Expo Go
+54.0.8 device proof covers ordinary login, the development-only employee list,
+assigned queue/detail, dark-theme rendering, and warehouse preparation of a
+reversible inventory fixture from unpacked/review state to packed/ready state.
+That proof found two remaining product boundaries: selecting an employee does
+not authenticate that selected account, and mixed legacy/inventory packing is
+still sequenced across separate mutation paths. Start/proof completion,
+failure/reconciliation evidence, and pilot handoff remain open.
+
+## Approved Closeout Specification — 2026-08-07
+
+The remaining work is specified in
+`.scratch/driver-platform-revival-closeout/map.md` and published as five local
+`ready-for-agent` tickets with explicit blocking edges:
+
+1. genuine development employee quick login;
+2. atomic mixed inventory and legacy dispatch packing;
+3. complete the inventory-backed driver journey in Expo Go;
+4. prove lifecycle failure safety and reconciliation;
+5. produce pilot, cutover, and handoff evidence.
+
+Tickets 01 and 02 form the immediate execution frontier. Implementation remains
+paused until one of those tickets is selected.
 
 ## Objective
 

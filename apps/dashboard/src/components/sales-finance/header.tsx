@@ -243,3 +243,19 @@ export function SalesFinanceHeader() {
 		</div>
 	);
 }
+
+export function SalesFinanceTableSearch() {
+	return (
+		<div className="min-w-0">
+			<SearchFilterProvider
+				args={[{ filterSchema: salesFinanceSearchFilterParams }]}
+			>
+				<SearchFilterTRPC
+					placeholder="Search customer, invoice, payment, or reference..."
+					filterList={financeFilterDefinitions}
+					pageTabs={null}
+				/>
+			</SearchFilterProvider>
+		</div>
+	);
+}

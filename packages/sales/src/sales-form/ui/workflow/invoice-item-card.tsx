@@ -4,7 +4,7 @@
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { InputGroup } from "@gnd/ui/namespace";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { middleTruncateText } from "./workflow-format";
 
 export type WorkflowStepUiRecord = {
@@ -23,6 +23,85 @@ function currency(value?: number | null) {
 }
 
 const STEP_PILL_COMPONENT_LABEL_MAX_LENGTH = 24;
+const STEP_PANEL_ANIMATION_MS = 200;
+
+function AnimatedStepPanel(props: {
+	children?: ReactNode;
+	panelKey: string;
+}) {
+	const isOpen = props.children != null;
+	const [renderedPanel, setRenderedPanel] = useState({
+		children: props.children,
+		key: props.panelKey,
+	});
+	const [isVisible, setIsVisible] = useState(isOpen);
+	const isSwitchingStep = isOpen && renderedPanel.key !== props.panelKey;
+	const panelIsVisible = isVisible && isOpen && !isSwitchingStep;
+	const displayedChildren =
+		isOpen && !isSwitchingStep ? props.children : renderedPanel.children;
+
+	useEffect(() => {
+		let animationFrame: number | undefined;
+		let timeout: number | undefined;
+
+		if (!isOpen) {
+			setIsVisible(false);
+			timeout = window.setTimeout(
+				() =>
+					setRenderedPanel((current) => ({
+						...current,
+						children: null,
+					})),
+				STEP_PANEL_ANIMATION_MS,
+			);
+		} else if (renderedPanel.key !== props.panelKey) {
+			setIsVisible(false);
+			timeout = window.setTimeout(
+				() =>
+					setRenderedPanel({
+						children: props.children,
+						key: props.panelKey,
+					}),
+				STEP_PANEL_ANIMATION_MS,
+			);
+		} else {
+			setRenderedPanel({
+				children: props.children,
+				key: props.panelKey,
+			});
+			animationFrame = window.requestAnimationFrame(() => setIsVisible(true));
+		}
+
+		return () => {
+			if (animationFrame != null) window.cancelAnimationFrame(animationFrame);
+			if (timeout != null) window.clearTimeout(timeout);
+		};
+	}, [isOpen, props.children, props.panelKey, renderedPanel.key]);
+
+	return (
+		<div
+			data-slot="workflow-step-panel"
+			aria-hidden={panelIsVisible ? undefined : true}
+			inert={!panelIsVisible}
+			className={`grid transition-[grid-template-rows,opacity,transform] duration-200 ease-out motion-reduce:transition-none ${
+				panelIsVisible
+					? "grid-rows-[1fr] translate-y-0 opacity-100"
+					: "pointer-events-none grid-rows-[0fr] -translate-y-1 opacity-0"
+			}`}
+		>
+			<div className="min-h-0 overflow-hidden">
+				{displayedChildren != null ? (
+					<div
+						key={renderedPanel.key}
+						className="mt-4 animate-in fade-in-0 slide-in-from-top-1 duration-200 motion-reduce:animate-none"
+					>
+						{displayedChildren}
+					</div>
+				) : null}
+			</div>
+		</div>
+	);
+}
 
 export type InvoiceItemCardProps = {
 	index: number;
@@ -120,15 +199,15 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 					)}
 					<Button
 						size="icon"
-						variant="destructive"
-						className="size-8"
+						variant="outline"
+						className="size-8 border-destructive bg-secondary text-destructive hover:bg-destructive hover:text-white hover:border-destructive transition-colors"
 						onClick={(event) => {
 							event.stopPropagation();
 							props.onRemove();
 						}}
 						aria-label={`Remove item ${props.index + 1}`}
 					>
-						<Icons.Trash2 className="size-3.5" />
+						<Icons.Trash2 className="size-3.5 text-current" />
 					</Button>
 				</div>
 			</div>
@@ -155,7 +234,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 									props.activeIndex === stepIndex ? "step" : undefined
 								}
 								aria-label={`Open ${stepLabel}`}
-								className={`max-w-full rounded-full border px-3 py-1 text-xs sm:max-w-56 ${
+								className={`max-w-full rounded-full border px-3 py-1 text-xs transition-colors duration-200 motion-reduce:transition-none sm:max-w-56 ${
 									props.activeIndex === stepIndex
 										? "border-primary bg-primary/10 text-primary"
 										: props.isRedirectDisabledStep(step)
@@ -177,7 +256,9 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 					})}
 				</div>
 			) : null}
-			{isExpanded ? <div className="mt-4">{props.children}</div> : null}
+			<AnimatedStepPanel panelKey={`${props.uid}-${props.activeIndex}`}>
+				{isExpanded ? props.children : null}
+			</AnimatedStepPanel>
 		</div>
 	);
 }

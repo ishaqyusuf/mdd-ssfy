@@ -40,6 +40,7 @@ export type WorkflowLineListProps<TLine extends WorkflowLineListItem> = {
 		steps: WorkflowStepUiRecord[],
 		activeIndex: number,
 		activeStep: WorkflowStepUiRecord | undefined,
+		isActive: boolean,
 	) => ReactNode;
 	isRedirectDisabledStep: (step: WorkflowStepUiRecord) => boolean;
 	stepKey: (lineUid: string, stepIndex: number) => string;
@@ -56,10 +57,12 @@ export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 					const lineUid = String(line.uid || `line-${index}`);
 					const isActive = lineUid === props.activeLineUid;
 					const steps = line.formSteps || [];
+					const initialStepIndex = resolveInitialWorkflowStepIndex(steps);
 					const activeIndex = props.resolveActiveStepIndex(
 						steps,
-						props.activeStepByLine[lineUid] ??
-							resolveInitialWorkflowStepIndex(steps),
+						isActive
+							? (props.activeStepByLine[lineUid] ?? initialStepIndex)
+							: initialStepIndex,
 					);
 					const activeStep = steps[activeIndex];
 
@@ -79,14 +82,18 @@ export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 							onActivate={() => props.onActivateLine(line, isActive)}
 							onTitleChange={(value) => props.onTitleChange(line, value)}
 							onRemove={() => props.onRemoveLine(line)}
-							onStepChange={(stepIndex) =>
-								props.onStepChange(line, stepIndex)
-							}
+							onStepChange={(stepIndex) => props.onStepChange(line, stepIndex)}
 							isRedirectDisabledStep={props.isRedirectDisabledStep}
 							stepKey={props.stepKey}
 							componentLabel={props.componentLabel}
 						>
-							{props.renderPanel(line, steps, activeIndex, activeStep)}
+							{props.renderPanel(
+								line,
+								steps,
+								activeIndex,
+								activeStep,
+								isActive,
+							)}
 						</InvoiceItemCard>
 					);
 				})}

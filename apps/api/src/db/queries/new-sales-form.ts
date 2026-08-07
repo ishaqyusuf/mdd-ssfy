@@ -96,6 +96,7 @@ const DEFAULT_PAYMENT_TERM = "None";
 type NewSalesFormPersistedMeta = {
 	version: string;
 	draftKey?: string;
+	approvedAdjustmentId?: string;
 	updatedAt: string;
 	autosave: boolean;
 	lineItems: NewSalesFormLineItem[];
@@ -114,6 +115,59 @@ type NewSalesFormSettings = {
 	taxCode: string | null;
 	customerProfileId: number | null;
 };
+
+type LegacyDoorStepProduct = {
+	id: number;
+	uid: string | null;
+	name: string | null;
+	img: string | null;
+	doorId: number | null;
+	redirectUid: string | null;
+	meta: unknown;
+	deletedAt: Date | null;
+	door: {
+		id: number;
+		title: string;
+		img: string | null;
+		deletedAt: Date | null;
+	} | null;
+};
+
+type LegacyFormStepSnapshot = {
+	id: number;
+	stepId: number;
+	componentId: number | null;
+	prodUid: string | null;
+	value: string | null;
+	qty: number;
+	price: number;
+	basePrice: number;
+	meta: unknown;
+	step: {
+		id: number;
+		uid: string | null;
+		title: string | null;
+	};
+};
+
+const legacyDoorStepProductSelect = {
+	id: true,
+	uid: true,
+	name: true,
+	img: true,
+	doorId: true,
+	redirectUid: true,
+	meta: true,
+	deletedAt: true,
+	door: {
+		select: {
+			id: true,
+			title: true,
+			img: true,
+			deletedAt: true,
+		},
+	},
+} as const;
 
 type DealerProfileCardProfile = {
 	id: number | null;
@@ -352,10 +406,25 @@ function mergePersistedFormSteps(
 		return {
 			...(dbMatch || {}),
 			...step,
-			meta: {
-				...(safeRecord(dbMatch?.meta) || {}),
-				...(safeRecord(step.meta) || {}),
-			},
+			meta: (() => {
+				const dbMeta = safeRecord(dbMatch?.meta);
+				const persistedMeta = safeRecord(step.meta);
+				const persistedComponents = persistedMeta.selectedComponents;
+				const dbComponents = dbMeta.selectedComponents;
+				const selectedComponents =
+					Array.isArray(persistedComponents) && persistedComponents.length
+						? persistedComponents
+						: Array.isArray(dbComponents) && dbComponents.length
+							? dbComponents
+							: persistedComponents;
+				return {
+					...dbMeta,
+					...persistedMeta,
+					...(Array.isArray(selectedComponents)
+						? { selectedComponents }
+						: {}),
+				};
+			})(),
 			step:
 				safeRecord(step.step).id ||
 				safeRecord(step.step).title ||
@@ -412,38 +481,73 @@ function mergeGroupedRowsByIdentity(
 	});
 }
 
-function mergePersistedDoorRows(persistedRows: unknown, dbRows: unknown) {
-	const persisted = Array.isArray(persistedRows) ? persistedRows : [];
-	const database = Array.isArray(dbRows) ? dbRows : [];
-	return database.map((dbRow: Record<string, unknown>, index) => {
-		const dbId = Number(dbRow?.id || 0);
-		const dbDimension = String(dbRow?.dimension || "")
+function mergePersistedDoorRows(
+	persistedRows: unknown,
+	dbRows: unknown,
+	preferPersistedSnapshot: boolean,
+) {
+	const hasPersistedRows = Array.isArray(persistedRows);
+	const persisted = (Array.isArray(persistedRows) ? persistedRows : []) as Array<
+		Record<string, unknown>
+	>;
+	const database = (Array.isArray(dbRows) ? dbRows : []) as Array<
+		Record<string, unknown>
+	>;
+	const findMatchingDoorRow = (
+		rows: Array<Record<string, unknown>>,
+		row: Record<string, unknown>,
+		index: number,
+		allowPositionalFallback: boolean,
+	) => {
+		const rowId = Number(row?.id || 0);
+		const rowDimension = String(row?.dimension || "")
 			.trim()
 			.toLowerCase();
-		const dbStepProductId = Number(dbRow?.stepProductId || 0);
-		const persistedMatch =
-			persisted.find(
-				(row: Record<string, unknown>) =>
-					dbId > 0 && Number(row?.id || 0) === dbId,
+		const rowStepProductId = Number(row?.stepProductId || 0);
+		return (
+			rows.find(
+				(candidate) => rowId > 0 && Number(candidate?.id || 0) === rowId,
 			) ||
-			persisted.find((row: Record<string, unknown>) => {
-				const dimension = String(row?.dimension || "")
+			rows.find((candidate) => {
+				const candidateDimension = String(candidate?.dimension || "")
 					.trim()
 					.toLowerCase();
 				return (
-					dbDimension &&
-					dimension === dbDimension &&
-					(!dbStepProductId ||
-						Number(row?.stepProductId || 0) === dbStepProductId)
+					rowDimension &&
+					candidateDimension === rowDimension &&
+					(!rowStepProductId ||
+						Number(candidate?.stepProductId || 0) === rowStepProductId)
 				);
 			}) ||
-			persisted[index];
+			(allowPositionalFallback ? rows[index] : undefined)
+		);
+	};
+	if (!preferPersistedSnapshot || !hasPersistedRows) {
+		return database.map((dbRow, index) => {
+			const persistedMatch = findMatchingDoorRow(
+				persisted,
+				dbRow,
+				index,
+				true,
+			);
+			return {
+				...(persistedMatch || {}),
+				...dbRow,
+				meta: {
+					...safeRecord(persistedMatch?.meta),
+					...safeRecord(dbRow?.meta),
+				},
+			};
+		});
+	}
+	return persisted.map((row, index) => {
+		const dbMatch = findMatchingDoorRow(database, row, index, false);
 		return {
-			...(persistedMatch || {}),
-			...dbRow,
+			...(dbMatch || {}),
+			...row,
 			meta: {
-				...safeRecord((persistedMatch as any)?.meta),
-				...safeRecord(dbRow?.meta),
+				...safeRecord(dbMatch?.meta),
+				...safeRecord(row?.meta),
 			},
 		};
 	});
@@ -478,6 +582,68 @@ function mergeGroupedLineMeta(
 		);
 	}
 	return merged;
+}
+
+function mergeLegacyDoorComponentSnapshots(
+	formSteps: LegacyFormStepSnapshot[],
+	housePackageTool: {
+		stepProduct?: LegacyDoorStepProduct | null;
+		doors?: Array<{ stepProduct?: LegacyDoorStepProduct | null }> | null;
+	} | null,
+) {
+	const doorStepIndex = formSteps.findIndex(
+		(step) => normalizeSalesFormTitle(step?.step?.title) === "door",
+	);
+	if (doorStepIndex < 0 || !housePackageTool) return formSteps;
+	const doorStep = formSteps[doorStepIndex];
+	if (!doorStep) return formSteps;
+	const stepMeta = safeRecord(doorStep.meta);
+	const selectedComponents = Array.isArray(stepMeta.selectedComponents)
+		? [...stepMeta.selectedComponents]
+		: [];
+	const selectedUids = new Set(
+		selectedComponents
+			.map((component) => String(safeRecord(component).uid || "").trim())
+			.filter(Boolean),
+	);
+	const candidates = [
+		housePackageTool.stepProduct,
+		...(housePackageTool.doors || []).map((door) => door.stepProduct),
+	].filter(
+		(component): component is LegacyDoorStepProduct => Boolean(component),
+	);
+	for (const component of candidates) {
+		const uid = String(component.uid || "").trim();
+		if (!uid || selectedUids.has(uid)) continue;
+		const componentMeta = safeRecord(component.meta);
+		selectedComponents.push({
+			id: component.id,
+			uid,
+			title:
+				String(component.name || component.door?.title || "").trim() ||
+				`Door ${component.id}`,
+			img: component.img || component.door?.img || null,
+			inventoryId: component.doorId || component.door?.id || null,
+			inventoryVariantId: null,
+			salesPrice: null,
+			basePrice: null,
+			pricing: null,
+			supplierVariants: [],
+			redirectUid: component.redirectUid || null,
+			sectionOverride: componentMeta.sectionOverride || null,
+		});
+		selectedUids.add(uid);
+	}
+	if (!selectedComponents.length) return formSteps;
+	const nextSteps = [...formSteps];
+	nextSteps[doorStepIndex] = {
+		...doorStep,
+		meta: {
+			...stepMeta,
+			selectedComponents,
+		},
+	};
+	return nextSteps;
 }
 
 export function deriveNewSalesFormSettings(
@@ -711,6 +877,7 @@ function toBootstrapPayload(
 				totalPrice: number | null;
 				totalDoors: number | null;
 				meta: unknown;
+				stepProduct: LegacyDoorStepProduct | null;
 				molding: {
 					id: number;
 					deletedAt: Date | null;
@@ -733,6 +900,7 @@ function toBootstrapPayload(
 					lineTotal: number | null;
 					stepProductId: number | null;
 					meta: unknown;
+					stepProduct: LegacyDoorStepProduct | null;
 				}>;
 			} | null;
 		}>;
@@ -796,6 +964,7 @@ function toBootstrapPayload(
 							totalPrice: Number(item.housePackageTool.totalPrice || 0),
 							totalDoors: Number(item.housePackageTool.totalDoors || 0),
 							meta: safeRecord(item.housePackageTool.meta),
+							stepProduct: item.housePackageTool.stepProduct,
 							molding:
 								item.housePackageTool.molding &&
 								!item.housePackageTool.molding.deletedAt
@@ -821,6 +990,7 @@ function toBootstrapPayload(
 								lineTotal: Number(door.lineTotal || 0),
 								stepProductId: door.stepProductId,
 								meta: safeRecord(door.meta),
+								stepProduct: door.stepProduct,
 							})),
 						}
 					: null;
@@ -843,22 +1013,25 @@ function toBootstrapPayload(
 				unitPrice: Number(item.rate || 0),
 				lineTotal: Number(item.total || 0),
 				meta: lineMeta,
-				formSteps: item.formSteps.map((step) => ({
-					id: step.id,
-					stepId: step.stepId,
-					componentId: step.componentId,
-					prodUid: step.prodUid,
-					value: step.value,
-					qty: Number(step.qty || 0),
-					price: Number(step.price || 0),
-					basePrice: Number(step.basePrice || 0),
-					meta: safeRecord(step.meta),
-					step: {
-						id: step.step.id,
-						uid: step.step.uid,
-						title: step.step.title,
-					},
-				})),
+				formSteps: mergeLegacyDoorComponentSnapshots(
+					item.formSteps.map((step) => ({
+						id: step.id,
+						stepId: step.stepId,
+						componentId: step.componentId,
+						prodUid: step.prodUid,
+						value: step.value,
+						qty: Number(step.qty || 0),
+						price: Number(step.price || 0),
+						basePrice: Number(step.basePrice || 0),
+						meta: safeRecord(step.meta),
+						step: {
+							id: step.step.id,
+							uid: step.step.uid,
+							title: step.step.title,
+						},
+					})),
+					item.housePackageTool,
+				),
 				shelfItems: item.shelfItems.map((shelf) => ({
 					id: shelf.id,
 					categoryId: shelf.categoryId,
@@ -886,8 +1059,8 @@ function toBootstrapPayload(
 			const mergedHousePackageTool =
 				line.housePackageTool || dbMatch?.housePackageTool
 					? {
-							...(line.housePackageTool || {}),
 							...(dbMatch?.housePackageTool || {}),
+							...(line.housePackageTool || {}),
 							meta: {
 								...safeRecord(dbMatch?.housePackageTool?.meta),
 								...safeRecord(line.housePackageTool?.meta),
@@ -898,6 +1071,7 @@ function toBootstrapPayload(
 									? mergePersistedDoorRows(
 											line.housePackageTool?.doors,
 											dbMatch.housePackageTool.doors,
+											Boolean(persisted?.approvedAdjustmentId),
 										)
 									: line.housePackageTool?.doors || [],
 							molding:
@@ -1355,6 +1529,9 @@ export async function getNewSalesForm(
 								totalPrice: true,
 								totalDoors: true,
 								meta: true,
+								stepProduct: {
+									select: legacyDoorStepProductSelect,
+								},
 								molding: {
 									select: {
 										id: true,
@@ -1383,6 +1560,9 @@ export async function getNewSalesForm(
 										lineTotal: true,
 										stepProductId: true,
 										meta: true,
+										stepProduct: {
+											select: legacyDoorStepProductSelect,
+										},
 									},
 								},
 							},
