@@ -90,6 +90,10 @@ export type ResolveSalesDocumentHtmlPreviewAccessInput = {
 	baseUrl?: string | null;
 };
 
+type ResolveSalesDocumentHtmlPreviewAccessDependencies = {
+	createOrRefreshPrintData?: typeof createOrRefreshSalesPrintData;
+};
+
 export type ResolveSalesDocumentAccessResult = {
 	kind: "snapshot" | "legacy";
 	generated: boolean;
@@ -583,6 +587,7 @@ function buildLegacySalesPrintToken(input: {
 
 export async function resolveSalesDocumentHtmlPreviewAccess(
 	input: ResolveSalesDocumentHtmlPreviewAccessInput,
+	dependencies: ResolveSalesDocumentHtmlPreviewAccessDependencies = {},
 ): Promise<ResolveSalesDocumentAccessResult> {
 	if (!input.salesIds.length) {
 		throw new Error("At least one sales order is required.");
@@ -594,13 +599,16 @@ export async function resolveSalesDocumentHtmlPreviewAccess(
 		if (salesOrderId == null) {
 			throw new Error("At least one sales order is required.");
 		}
-		await createOrRefreshSalesPrintData(input.db, {
+		const createOrRefreshPrintData =
+			dependencies.createOrRefreshPrintData ?? createOrRefreshSalesPrintData;
+		await createOrRefreshPrintData(input.db, {
 			salesOrderId,
 			mode: input.mode,
 			pricingMode: input.pricingMode ?? null,
 			documentType: buildSalesDocumentTypeKey(input),
 			dispatchId: input.dispatchId ?? null,
 			templateId: printConfig.templateId,
+			forceRefresh: true,
 			reason: "html_preview_access",
 		});
 	}

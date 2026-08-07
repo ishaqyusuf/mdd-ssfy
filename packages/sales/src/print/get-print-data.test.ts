@@ -187,6 +187,77 @@ function lineValue(lines: Array<{ label: string; value: string }>, label: string
 }
 
 describe("getPrintData", () => {
+	it("prints only door sizes retained by an applied adjustment snapshot", async () => {
+		const sale: ReturnType<typeof createSale> & {
+			meta: Record<string, unknown>;
+		} = createSale();
+		const firstItem = sale.items[0];
+		if (!firstItem?.housePackageTool) {
+			throw new Error("Expected the print fixture to include an HPT item.");
+		}
+		const retainedDoor = firstItem.housePackageTool.doors[0];
+		if (!retainedDoor) {
+			throw new Error(
+				"Expected the print fixture to include one HPT door row.",
+			);
+		}
+		firstItem.housePackageTool.doors.push({
+			...retainedDoor,
+			id: 202,
+			dimension: "2-6 x 6-8",
+			lhQty: 2,
+			rhQty: 1,
+			totalQty: 3,
+			unitPrice: 120.84,
+			lineTotal: 362.52,
+		});
+		sale.meta = {
+			newSalesForm: {
+				approvedAdjustmentId: "adjustment-1",
+				lineItems: [
+					{
+						id: 101,
+						uid: "sales-item-101",
+						housePackageTool: {
+							doors: [
+								{
+									id: 201,
+									dimension: "2-8 x 7-0",
+									lhQty: 1,
+									rhQty: 0,
+									totalQty: 1,
+									unitPrice: 100,
+									lineTotal: 100,
+								},
+							],
+						},
+					},
+				],
+			},
+		};
+		const db = {
+			salesOrders: {
+				findMany: async () => [sale],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			dispatchId: null,
+		});
+		const doorSection = result.pages[0]?.sections.find(
+			(section) => section.kind === "door",
+		);
+
+		expect(doorSection?.rows).toHaveLength(1);
+		expect(doorSection?.rows[0]?.cells[2]?.value).toBe('32" x 84"');
+		expect(doorSection?.rows[0]?.cells[1]?.value).toContain("Flush Door");
+	});
+
 	it("orders mixed new-form and legacy sections and excludes grouped rows from generic lines", async () => {
 		const db = {
 			salesOrders: {

@@ -8859,3 +8859,13 @@
   assertions; Sales and API typechecks pass. Read-only live checks covered
   existing-review order `09231LM` and pre-submission order `09228DB` without
   mutating either order.
+- 2026-08-07: fixed applied sales-adjustment door sizes remaining in Sales
+  Preview after the editor correctly removed them. The shared print projection
+  now treats approved new-form HPT door rows as authoritative while using
+  matching legacy rows only for presentation enrichment, and employee HTML
+  Preview force-refreshes derived print data to repair an already-cached stale
+  row. The exact regression was red with two rows before the fix and green with
+  one afterward. Focused print/cache/access coverage passes 57 tests / 190
+  assertions, Sales and API typechecks pass, and authenticated browser QA on
+  `09187PC` confirmed `24" x 80"` present and removed `30" x 80"` absent. No
+  persisted order or workflow data changed; only derived preview data refreshed.

@@ -4,6 +4,7 @@ import {
 	getDispatchCompletedActivity,
 	getDispatchCompletetionNotes,
 } from "../sales-control/actions";
+import { applyApprovedAdjustmentPrintSnapshot } from "./approved-adjustment-snapshot";
 import { composeAddresses } from "./compose/addresses";
 import { composeDoorSections } from "./compose/door-sections";
 import { composeFooter } from "./compose/footer";
@@ -48,9 +49,9 @@ export async function getPrintData(
 		getSalesSetting(db),
 	]);
 
-	const jobs: { sale: PrintSalesData; mode: PrintMode }[] = sales.flatMap((s) =>
-		modes.map((mode) => ({ sale: s, mode })),
-	);
+	const currentSales = sales.map(applyApprovedAdjustmentPrintSnapshot);
+	const jobs: { sale: PrintSalesData; mode: PrintMode }[] =
+		currentSales.flatMap((s) => modes.map((mode) => ({ sale: s, mode })));
 
 	const pages = await Promise.all(
 		jobs.map(({ sale, mode }) =>
@@ -70,7 +71,7 @@ export async function getPrintData(
 			? `${first.meta.title} ${first.meta.salesNo}`
 			: `Sales Print (${pages.length})`;
 
-	return { pages, title, firstOrderId: sales[0]?.orderId ?? null };
+	return { pages, title, firstOrderId: currentSales[0]?.orderId ?? null };
 }
 
 async function composePage(

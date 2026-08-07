@@ -640,6 +640,7 @@ Tracks important request/response contracts and shared schema boundaries.
   - `newSalesForm.saveDraft` / `saveFinal` return after the sales form record is persisted
   - both save inputs accept an optional development-only `clientRequestId` (a bounded opaque string); it is used only to correlate mobile diagnostics with the API `requestId` and is not persisted into the order payload
   - follow-up sales-document snapshot expiration, Trigger queue work for sales inventory line-item sync, and document snapshot warmups are best-effort and bounded; timeout/failure must not change the save response payload or leave clients waiting indefinitely
+  - an employee-opened HTML Preview force-refreshes its lightweight print-data projection before issuing preview access, so an already-cached pre-adjustment row cannot survive an applied adjustment; stored/public PDF snapshots retain their existing explicit regeneration semantics
   - in development only, the API captures parsed save payloads for debugging under `debug/new-sales-form-save-payloads/YYYY-MM-DD/*.json` and emits ingress/payload-captured/core-complete/post-save-complete stage timings with both request ids; this capture has no persistence side effect, is not active in production, and file-write failures are logged without failing the save
 - Mobile sales dashboard contract:
   - `sales.mobileDashboardOverview.recentSales[]` returns card-ready recent order rows with `id`, `orderId`, `customerName`, `customerPhone`, `total`, `due`, `paid`, `createdAt`, and `deliveryOption`

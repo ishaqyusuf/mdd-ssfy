@@ -26,6 +26,7 @@ type InboundDemandQueueStatus =
 export const NEW_INBOUND_SHIPMENT_STATUSES = [
   "pending",
   "in_progress",
+  "available",
 ] as const;
 export type NewInboundShipmentStatus =
   (typeof NEW_INBOUND_SHIPMENT_STATUSES)[number];
@@ -2136,13 +2137,15 @@ export async function createInboundShipmentFromDemands(
     throw new Error("No unassigned inbound demand rows were found.");
   }
 
+  const isAvailableStatus = input.status === "available";
   const shipment = await db.inboundShipment.create({
     data: {
       supplierId: input.supplierId ?? null,
       reference: input.reference ?? null,
       expectedAt: input.expectedAt ?? null,
-      status: input.status ?? "pending",
-      progress: 0,
+      status: isAvailableStatus ? "completed" : (input.status ?? "pending"),
+      progress: isAvailableStatus ? 100 : 0,
+      receivedAt: isAvailableStatus ? new Date() : null,
     },
     select: {
       id: true,
@@ -2173,6 +2176,7 @@ export async function createInboundShipmentFromDemands(
         inboundId: shipment.id,
         inventoryVariantId,
         qty: 0,
+        qtyReceived: isAvailableStatus ? plannedQty : 0,
       },
       select: {
         id: true,
@@ -2181,6 +2185,7 @@ export async function createInboundShipmentFromDemands(
     let confirmedLinkedQty = 0;
 
     for (const demand of variantDemands) {
+      const outstanding = outstandingInboundDemandQty(demand);
       const linked = await db.inboundDemand.updateMany({
         where: {
           id: demand.id,
@@ -2193,7 +2198,8 @@ export async function createInboundShipmentFromDemands(
         },
         data: {
           inboundShipmentItemId: inboundItem.id,
-          status: "ordered",
+          status: isAvailableStatus ? "received" : "ordered",
+          qtyReceived: isAvailableStatus ? demand.qty : demand.qtyReceived,
         },
       });
       if (linked.count > 0) {

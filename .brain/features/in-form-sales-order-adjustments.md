@@ -84,6 +84,11 @@ orders in the new sales form.
   enrich matching rows with database identity and metadata, but may not restore
   removed sizes or overwrite approved quantities. An explicitly empty persisted
   array means all configured door rows were removed.
+- The same authority applies at the shared sales print-data boundary used by
+  Preview, PDF, and Print. Legacy HPT rows may enrich surviving approved rows
+  with presentation metadata, but removed sizes cannot reappear in a document.
+  Employee HTML Preview force-refreshes its lightweight projection so a cached
+  pre-adjustment row is corrected when preview is opened.
 
 ## Validation
 
@@ -95,6 +100,10 @@ orders in the new sales form.
 - Authenticated browser verification on order `09140DB` showed two configured
   door sizes, no `1-6 x 6-8`, `LH 0 / RH 2` for `2-6 x 6-8`, and the revised
   door-line total of `$535.00` without saving the user's second attempt.
+- Authenticated browser verification on order `09187PC` reopened Sales Preview
+  after its approved refund adjustment and confirmed retained `24" x 80"` is
+  present while removed `30" x 80"` is absent. Focused document coverage passes
+  57 tests / 190 assertions; Sales and API typechecks pass.
 
 ## Implementation Map
 

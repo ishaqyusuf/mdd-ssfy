@@ -122,6 +122,8 @@ export function formatInventoryInboundStatusLabel(status?: string | null) {
 			return "Cancelled";
 		case "pending":
 			return "Pending";
+		case "available":
+			return "Available";
 		default:
 			return value
 				? value

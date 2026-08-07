@@ -681,6 +681,7 @@ model SalesOrders {
     productionReadinessOverride SalesProductionReadinessOverride?
     productionSubmissionMaterialReviews SalesProductionSubmissionMaterialReview[]
     adjustments       SalesOrderAdjustment[]
+    workflowCancellations SalesWorkflowCancellation[]
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -700,6 +701,25 @@ model SalesOrders {
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+model SalesWorkflowCancellation {
+    id                Int         @id @default(autoincrement())
+    requestId         String      @unique @db.VarChar(64)
+    salesOrderId      Int
+    action            String      @db.VarChar(32)
+    reason            String      @db.Text
+    revision          String      @db.VarChar(64)
+    beforeState       Json        @db.Json
+    result            Json        @db.Json
+    performedByUserId Int
+    createdAt         DateTime    @default(now()) @db.Timestamp(0)
+    order             SalesOrders @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+    performedBy       Users       @relation(name: "salesWorkflowCancellationsPerformed", fields: [performedByUserId], references: [id], onDelete: Restrict)
+
+    @@index([salesOrderId, createdAt])
+    @@index([performedByUserId, createdAt])
+    @@index([action, createdAt])
 }
 
 model SalesInventoryProjectionState {
@@ -3593,6 +3613,9 @@ model StockAllocation {
     inventoryVariantId Int
     inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
 
+	orderDeliveryId Int?
+	orderDelivery   OrderDelivery? @relation(fields: [orderDeliveryId], references: [id])
+
     qty    Float
     status StockAllocationStatus @default(reserved)
     notes  String?
@@ -3604,6 +3627,8 @@ model StockAllocation {
     @@index([lineItemComponentId])
     @@index([inventoryStockId])
     @@index([inventoryVariantId])
+	@@index([orderDeliveryId])
+	@@index([orderDeliveryId, status, deletedAt], name: "idx_stock_allocation_dispatch")
     @@index([lineItemComponentId, status, deletedAt], name: "idx_stock_allocation_fulfillment")
 }
 
@@ -4549,6 +4574,7 @@ model Users {
     revokedProductionReadinessOverrides SalesProductionReadinessOverride[] @relation(name: "revokedProductionReadinessOverrides")
     submittedProductionMaterialReviews SalesProductionSubmissionMaterialReview[] @relation(name: "productionSubmissionMaterialReviewsSubmitted")
     reviewedProductionMaterialReviews SalesProductionSubmissionMaterialReview[] @relation(name: "productionSubmissionMaterialReviewsReviewed")
+    performedSalesWorkflowCancellations SalesWorkflowCancellation[] @relation(name: "salesWorkflowCancellationsPerformed")
     sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
     taskRunDiagnosticsStarted   TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticActor")
@@ -6377,6 +6403,7 @@ model OrderDelivery {
     order        SalesOrders         @relation(fields: [salesOrderId], references: [id])
     driver       Users?              @relation(name: "driver", fields: [driverId], references: [id])
     createdBy    Users?              @relation(name: "createdBy", fields: [createdById], references: [id])
+	stockAllocations StockAllocation[]
 
     @@index([salesOrderId])
     @@index([driverId])

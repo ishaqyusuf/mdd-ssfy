@@ -3,6 +3,7 @@ import {
 	type ResolveSalesDocumentAccessInput,
 	buildSalesDocumentTypeKey,
 	resolveSalesDocumentAccess,
+	resolveSalesDocumentHtmlPreviewAccess,
 } from "./sales-document-access";
 
 const originalNodeEnv = process.env.NODE_ENV;
@@ -72,6 +73,34 @@ function createMockDb(input: {
 }
 
 describe("resolveSalesDocumentAccess", () => {
+	it("force-refreshes print data before issuing employee HTML preview access", async () => {
+		const calls: Array<Record<string, unknown>> = [];
+		await expect(
+			resolveSalesDocumentHtmlPreviewAccess(
+				{
+					db: {} as ResolveSalesDocumentAccessInput["db"],
+					salesIds: [25435],
+					mode: "invoice",
+					baseUrl: "https://example.com",
+				},
+				{
+					createOrRefreshPrintData: async (_db, input) => {
+						calls.push(input);
+						throw new Error("stop-after-refresh");
+					},
+				},
+			),
+		).rejects.toThrow("stop-after-refresh");
+
+		expect(calls).toEqual([
+			expect.objectContaining({
+				salesOrderId: 25435,
+				forceRefresh: true,
+				reason: "html_preview_access",
+			}),
+		]);
+	});
+
 	it("uses the canonical versioned document type for dealer pricing", () => {
 		expect(
 			buildSalesDocumentTypeKey({

@@ -799,6 +799,9 @@ function InventoryActionBar({
 		inboundRowCount: inboundRows.length,
 		pendingQty,
 	});
+	const [inboundFormMode, setInboundFormMode] = useState<
+		"create_inbound" | "mark_available"
+	>("create_inbound");
 	const [selectedInboundRowIds, setSelectedInboundRowIds] = useState<string[]>(
 		[],
 	);
@@ -928,6 +931,7 @@ function InventoryActionBar({
 			onSuccess: async (data) => {
 				setCreatedInboundId(data.inboundId);
 				setIsInboundFormOpen(false);
+				setInboundFormMode("create_inbound");
 				setSelectedInboundRowIds([]);
 				setReference("");
 				setExpectedAt("");
@@ -963,7 +967,11 @@ function InventoryActionBar({
 
 	useEffect(() => {
 		if (!isInboundFormVisible) return;
-		setSelectedInboundRowIds(inboundRowIds);
+		if (inboundFormMode === "create_inbound") {
+			setSelectedInboundRowIds((prev) =>
+				prev.length === 0 ? inboundRowIds : prev,
+			);
+		}
 		setInboundQtyByRowId((current) => {
 			const next: Record<string, number> = {};
 			for (const row of inboundRows) {
@@ -972,7 +980,7 @@ function InventoryActionBar({
 			}
 			return next;
 		});
-	}, [inboundRowIds, inboundRows, isInboundFormVisible]);
+	}, [inboundRowIds, inboundRows, isInboundFormVisible, inboundFormMode]);
 
 	const toggleInboundRow = (row: InventoryLine, checked: boolean) => {
 		setSelectedInboundRowIds((current) => {
@@ -1066,11 +1074,21 @@ function InventoryActionBar({
 						size="sm"
 						variant="outline"
 						disabled={!capabilities.canCreateInbound || !inboundRows.length}
-						onClick={() =>
-							onCreateInbound
-								? onCreateInbound()
-								: setIsInboundFormOpen((value) => !value)
-						}
+						onClick={() => {
+							if (onCreateInbound) {
+								onCreateInbound();
+							} else if (
+								isInboundFormVisible &&
+								inboundFormMode === "create_inbound"
+							) {
+								setIsInboundFormOpen(false);
+							} else {
+								setInboundFormMode("create_inbound");
+								setInboundStatus("pending");
+								setSelectedInboundRowIds(inboundRowIds);
+								setIsInboundFormOpen(true);
+							}
+						}}
 					>
 						Create inbound
 					</Button>
@@ -1078,7 +1096,7 @@ function InventoryActionBar({
 						type="button"
 						size="sm"
 						variant="outline"
-						disabled={!canFulfillAllNeeds || fulfillNeeds.isPending}
+						disabled={!canFulfillAllNeeds}
 						title={
 							!capabilities.canMarkAvailable
 								? overview.inventoryActionBlockReason ||
@@ -1087,11 +1105,21 @@ function InventoryActionBar({
 									? "No pending inventory needs require manual fulfillment."
 									: undefined
 						}
-						onClick={fulfillAllNeeds}
+						onClick={() => {
+							if (
+								isInboundFormVisible &&
+								inboundFormMode === "mark_available"
+							) {
+								setIsInboundFormOpen(false);
+							} else {
+								setInboundFormMode("mark_available");
+								setInboundStatus("available");
+								setSelectedInboundRowIds([]);
+								setIsInboundFormOpen(true);
+							}
+						}}
 					>
-						{fulfillNeeds.isPending
-							? "Fulfilling needs..."
-							: "Mark all needs fulfilled"}
+						Mark as available
 					</Button>
 				</div>
 			</div>
@@ -1160,35 +1188,47 @@ function InventoryActionBar({
 							onChange={(event) => setReference(event.target.value)}
 							placeholder="PO / reference"
 						/>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									type="button"
-									variant="outline"
-									className="w-full justify-between bg-background font-normal"
-								>
-									{formatInventoryInboundStatusLabel(inboundStatus)}
-									<Icons.ChevronDown className="size-4 opacity-50" />
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="start">
-								<DropdownMenuLabel>Initial inbound status</DropdownMenuLabel>
-								<DropdownMenuSeparator />
-								<DropdownMenuRadioGroup
-									value={inboundStatus}
-									onValueChange={(value) =>
-										setInboundStatus(value as NewInboundShipmentStatus)
-									}
-								>
-									<DropdownMenuRadioItem value="pending">
-										Pending
-									</DropdownMenuRadioItem>
-									<DropdownMenuRadioItem value="in_progress">
-										Ordered
-									</DropdownMenuRadioItem>
-								</DropdownMenuRadioGroup>
-							</DropdownMenuContent>
-						</DropdownMenu>
+						{inboundFormMode === "mark_available" ? (
+							<Button
+								type="button"
+								variant="outline"
+								disabled
+								className="w-full cursor-not-allowed justify-between bg-muted/50 font-normal text-foreground opacity-100"
+							>
+								<span>Available</span>
+								<Icons.Lock className="size-3.5 text-muted-foreground opacity-70" />
+							</Button>
+						) : (
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										type="button"
+										variant="outline"
+										className="w-full justify-between bg-background font-normal"
+									>
+										{formatInventoryInboundStatusLabel(inboundStatus)}
+										<Icons.ChevronDown className="size-4 opacity-50" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="start">
+									<DropdownMenuLabel>Initial inbound status</DropdownMenuLabel>
+									<DropdownMenuSeparator />
+									<DropdownMenuRadioGroup
+										value={inboundStatus}
+										onValueChange={(value) =>
+											setInboundStatus(value as NewInboundShipmentStatus)
+										}
+									>
+										<DropdownMenuRadioItem value="pending">
+											Pending
+										</DropdownMenuRadioItem>
+										<DropdownMenuRadioItem value="in_progress">
+											Ordered
+										</DropdownMenuRadioItem>
+									</DropdownMenuRadioGroup>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						)}
 					</div>
 					<Textarea
 						value={inboundNote}
@@ -1326,7 +1366,11 @@ function InventoryActionBar({
 								}
 								onClick={submitInbound}
 							>
-								Create inbound
+								{createInbound.isPending
+									? "Saving..."
+									: inboundFormMode === "mark_available"
+										? "Mark as available"
+										: "Create inbound"}
 							</Button>
 						</div>
 					</div>
