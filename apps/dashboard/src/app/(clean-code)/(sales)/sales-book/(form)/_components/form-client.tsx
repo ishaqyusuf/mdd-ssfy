@@ -43,6 +43,7 @@ export function FormClient({
 			<SalesFormClient
 				key={formKey}
 				data={data}
+				readOnly={Boolean(data.adjustmentSnapshotAuthority)}
 				versionSwitcher={
 					<SalesFormVersionSwitcher
 						currentForm="legacy"

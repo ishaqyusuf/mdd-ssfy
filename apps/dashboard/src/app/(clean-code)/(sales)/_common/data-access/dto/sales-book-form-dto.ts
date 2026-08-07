@@ -61,6 +61,10 @@ export function transformSalesBookForm(data: SalesFormData) {
 		footer,
 		_refresher,
 		batchSetting,
+		adjustmentSnapshotAuthority:
+			data.adjustmentSnapshotAuthority ?? false,
+		approvedSnapshotTotalWithCcc:
+			data.approvedSnapshotTotalWithCcc ?? null,
 	};
 }
 

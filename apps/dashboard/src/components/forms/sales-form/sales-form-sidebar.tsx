@@ -1,20 +1,22 @@
-import { Icons } from "@gnd/ui/icons";
-import { SalesMetaForm, SalesMetaTab } from "./sales-meta-form";
-import { Footer } from "@/components/forms/sales-form/footer";
-import { cn } from "@gnd/ui/cn";
-import { useState } from "react";
-import { Button } from "@gnd/ui/button";
-import { _modal } from "@/components/common/modal/provider";
 import FormSettingsModal from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/form-settings-modal";
+import { _modal } from "@/components/common/modal/provider";
+import { Footer } from "@/components/forms/sales-form/footer";
+import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
+import { Icons } from "@gnd/ui/icons";
+import { useState } from "react";
+import { SalesMetaForm, type SalesMetaTab } from "./sales-meta-form";
 
 interface Props {
 	mobileOpen?: boolean;
 	onClose?: () => void;
+	readOnly?: boolean;
 }
 
 export function SalesFormSidebar({
 	mobileOpen = false,
 	onClose,
+	readOnly = false,
 }: Props) {
 	const [tab, setTab] = useState<SalesMetaTab>("summary");
 
@@ -30,9 +32,12 @@ export function SalesFormSidebar({
 			) : null}
 
 			<aside
+				inert={readOnly ? true : undefined}
+				aria-disabled={readOnly || undefined}
 				className={cn(
 					"fixed inset-y-0 right-0 z-40 flex w-full max-w-[420px] flex-col border-l border-slate-200/80 bg-white shadow-2xl transition-transform duration-300 xl:static xl:z-auto xl:h-full xl:w-[420px] xl:max-w-none xl:translate-x-0 xl:shadow-none",
 					mobileOpen ? "translate-x-0" : "translate-x-full xl:translate-x-0",
+					readOnly && "opacity-80",
 				)}
 			>
 				<div className="flex h-full min-h-0 flex-col">

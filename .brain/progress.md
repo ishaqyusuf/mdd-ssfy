@@ -8869,3 +8869,29 @@
   assertions, Sales and API typechecks pass, and authenticated browser QA on
   `09187PC` confirmed `24" x 80"` present and removed `30" x 80"` absent. No
   persisted order or workflow data changed; only derived preview data refreshed.
+- 2026-08-07: analyzed new/legacy sales-form parity for adjusted order `09187PC`
+  without saving or mutating the order. The new form correctly shows only the
+  approved `2-0 x 6-8` row at `$228.84` and a `$590.13` subtotal; the legacy
+  form also loads the removed `2-6 x 6-8` relational row (LH `2`, RH `1`) and
+  recomputes `$362.52` too much. Items 2 and 3 remain aligned. The implementation
+  plan is recorded at
+  `.brain/plans/2026-08-07-bug-fix-adjusted-order-legacy-form-parity.md`: reuse a
+  shared approved-snapshot projection at the legacy loader boundary, keep audit
+  relations untouched, map CCC totals explicitly, and server-guard legacy saves
+  for adjustment-owned orders pending a full guarded legacy adjustment flow.
+- 2026-08-07: implemented adjusted-order legacy/new sales-form parity. A shared
+  package projector now makes `SalesOrders.meta.newSalesForm` authoritative for
+  approved legacy editor rows, quantities, prices, and summaries while retaining
+  matching relational data only as enrichment; print uses the same row matcher.
+  Both legacy loaders/DTOs carry explicit snapshot authority and preserve an
+  empty deletion list. Adjustment-owned legacy orders render read-only with a
+  new-form handoff, and the legacy save helper rejects crafted writes from the
+  current database marker. Authenticated browser QA on `09187PC` confirmed only
+  `2-0 x 6-8`, Item 1 `$228.84`, subtotal `$590.13`, tax `$41.31`, CCC `$18.94`,
+  and total `$650.38` in both forms; ordinary `09166LRG` remained editable. The
+  focused projector/print and dual-DTO suites pass 18 tests / 106 assertions,
+  `@gnd/sales` typecheck and focused Biome pass, and `git diff --check` passes.
+  The full repository run completed with 2,989 passing, 1 skipped, and 49
+  pre-existing unrelated failures; dashboard typecheck likewise remains blocked
+  by the documented baseline diagnostics. No database migration, API contract,
+  or persisted order data changed.

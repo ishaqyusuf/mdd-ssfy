@@ -70,6 +70,7 @@
 		"./sales-form-core": "./src/sales-form-core.ts",
 		"./sales-form": "./src/sales-form/index.ts",
 		"./sales-form/application/legacy-metadata": "./src/sales-form/application/legacy-metadata.ts",
+		"./sales-form/application/approved-adjustment-projection": "./src/sales-form/application/approved-adjustment-projection.ts",
 		"./sales-form/contracts/schemas": "./src/sales-form/contracts/schemas.ts",
 		"./sales-form/domain/costing": "./src/sales-form/domain/costing.ts",
 		"./sales-form/domain/grouping": "./src/sales-form/domain/grouping.ts",

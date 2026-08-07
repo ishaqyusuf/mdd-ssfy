@@ -18,6 +18,13 @@ export {
 	type LegacySalesOrderDates,
 } from "./legacy-metadata";
 export {
+	assertLegacySalesFormWritable,
+	hasApprovedAdjustmentSnapshot,
+	LEGACY_ADJUSTMENT_SAVE_BLOCKED,
+	projectApprovedAdjustmentDoorRows,
+	projectApprovedAdjustmentLegacyOrder,
+} from "./approved-adjustment-projection";
+export {
 	computeSalesFormSummary as computeNormalizedSalesFormSummary,
 	createEmptySalesFormLineItem,
 	createSalesFormLineItemUid,

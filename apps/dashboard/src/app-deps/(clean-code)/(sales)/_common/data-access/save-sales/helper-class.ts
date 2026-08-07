@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import { isEqual, isNaN } from "lodash";
 
 import { SalesFormFields, SalesMeta } from "../../../types";
+import { assertLegacySalesFormWritable } from "@gnd/sales/sales-form/application/approved-adjustment-projection";
 import { projectSalesFormMetaToLegacyMeta } from "@gnd/sales/sales-form/application/legacy-metadata";
 import { calculatePaymentDueDate } from "../../utils/sales-utils";
 import { generateSalesId } from "./sales-id-dta";
@@ -35,6 +36,7 @@ export class SaveSalesHelper {
                   select: { meta: true },
               })
             : null;
+        assertLegacySalesFormWritable(currentOrder?.meta);
         const meta: Partial<SalesMeta> = {
             ...projectSalesFormMetaToLegacyMeta({
                 existingMeta: currentOrder?.meta as any,

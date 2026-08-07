@@ -45,3 +45,13 @@ pre-fix output.
   confirmed `24" x 80"` is present while removed `30" x 80"` is absent.
 - No order, adjustment, payment, inventory, production, or fulfillment data was
   changed during QA; only the derived preview projection was refreshed.
+
+## Linked Legacy Editor Follow-Up
+
+The same stale relational row also remained visible in the legacy editor after
+the print fix. The follow-up plan at
+`.brain/plans/2026-08-07-bug-fix-adjusted-order-legacy-form-parity.md` is now
+implemented: print and legacy editing share the approved HPT-row projection,
+the adjusted legacy editor is read-only, and its save path checks the current
+database marker before composing a write. Browser QA confirmed parity with the
+new form on `09187PC` without saving or mutating the order.

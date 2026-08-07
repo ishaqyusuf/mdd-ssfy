@@ -89,6 +89,15 @@ orders in the new sales form.
   with presentation metadata, but removed sizes cannot reappear in a document.
   Employee HTML Preview force-refreshes its lightweight projection so a cached
   pre-adjustment row is corrected when preview is opened.
+- The legacy edit loader now applies that same approved snapshot before its DTO
+  builds form rows and totals. Retained relational rows remain available for
+  audit/presentation enrichment, but cannot restore an approved-removed size or
+  overwrite approved quantity, price, or summary values.
+- An order governed by an approved snapshot is read-only in the legacy editor.
+  Overview, Preview, Print, and PDF remain available, while commercial controls
+  and Save variants are disabled with a handoff to the new form. The legacy
+  save helper independently rejects a crafted save against the current database
+  marker, so client state is not the integrity boundary.
 
 ## Validation
 
@@ -104,6 +113,13 @@ orders in the new sales form.
   after its approved refund adjustment and confirmed retained `24" x 80"` is
   present while removed `30" x 80"` is absent. Focused document coverage passes
   57 tests / 190 assertions; Sales and API typechecks pass.
+- Authenticated browser verification on `09187PC` confirmed old/new editor
+  parity after the legacy projection fix: one retained `2-0 x 6-8` row at
+  `$228.84`, subtotal `$590.13`, tax `$41.31`, CCC `$18.94`, and displayed total
+  `$650.38`. The adjusted legacy editor exposed the notice and disabled all
+  mutating controls; ordinary order `09166LRG` remained editable. Shared
+  projector/print tests pass 14 tests / 70 assertions and both legacy DTO paths
+  pass 4 tests / 36 assertions.
 
 ## Implementation Map
 

@@ -3,6 +3,7 @@ import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 import { dealerSession, user, userId } from "@/app-deps/(v1)/_actions/utils";
 import { salesFormData } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/get-sales-form";
 import { ComponentPrice, prisma, Prisma } from "@/db";
+import { projectApprovedAdjustmentLegacyOrder } from "@gnd/sales/sales-form/application/approved-adjustment-projection";
 import dayjs from "dayjs";
 import { SalesMeta, SalesType, StepComponentMeta } from "../../types";
 import { SalesBookFormIncludes } from "../utils/db-utils";
@@ -32,7 +33,7 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
     }
     if (data.restoreMode) where.deletedAt = whereTrashed.where.deletedAt;
 
-    const order = await prisma.salesOrders.findFirst({
+    const rawOrder = await prisma.salesOrders.findFirst({
         where,
         include: SalesBookFormIncludes(
             data.restoreMode
@@ -42,6 +43,10 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
                 : {},
         ),
     });
+    const approvedProjection = rawOrder
+        ? projectApprovedAdjustmentLegacyOrder(rawOrder)
+        : null;
+    const order = approvedProjection?.order ?? rawOrder;
 
     const prodIds = order?.items
         ?.map((item) => item.formSteps.map((fs) => fs.prodUid))
@@ -72,6 +77,10 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
         },
         extraCosts: order?.extraCosts,
         stepComponents,
+        adjustmentSnapshotAuthority:
+            approvedProjection?.adjustmentSnapshotAuthority ?? false,
+        approvedSnapshotTotalWithCcc:
+            approvedProjection?.totalWithCcc ?? null,
     };
     // return typedSalesBookForm(order)
 }

@@ -26,6 +26,7 @@ interface Props {
 	and?: "default" | "close" | "new";
 	className?: string;
 	iconOnly?: boolean;
+	disabled?: boolean;
 }
 
 export function SalesFormSave({
@@ -33,6 +34,7 @@ export function SalesFormSave({
 	and,
 	className,
 	iconOnly,
+	disabled = false,
 }: Props) {
 	const [params] = useQueryStates({
 		restoreMode: parseAsBoolean,
@@ -54,7 +56,7 @@ export function SalesFormSave({
 	const { inventoryConfiguratorDialog, openSalesInventoryConfigurator } =
 		useSalesInventoryConfiguratorPrompt();
 	async function save(action: "new" | "close" | "default" = "default") {
-		if (saveLockRef.current || isSaving) return;
+		if (disabled || saveLockRef.current || isSaving) return;
 		setSaveOptionsOpen(false);
 		saveLockRef.current = true;
 		setIsSaving(true);
@@ -156,6 +158,13 @@ export function SalesFormSave({
 				case "new":
 					router.push(`/sales-form/create-${metaData.type}`);
 			}
+		} catch (error) {
+			console.error("Unable to save sales form", error);
+			toast({
+				variant: "destructive",
+				title:
+					error instanceof Error ? error.message : "Unable to save sales form.",
+			});
 		} finally {
 			saveLockRef.current = false;
 			setIsSaving(false);
@@ -174,7 +183,7 @@ export function SalesFormSave({
 	}, []);
 
 	function showSaveOptions() {
-		if (isSaving) return;
+		if (disabled || isSaving) return;
 		clearSaveOptionTimers();
 		setSaveCountdown(3);
 		setSaveOptionsOpen(true);
@@ -237,7 +246,7 @@ export function SalesFormSave({
 						type="button"
 						action={showSaveOptions}
 						variant="default"
-						disabled={isSaving}
+						disabled={disabled || isSaving}
 						className={className}
 						aria-label={iconOnly ? "Save" : undefined}
 						title={iconOnly ? "Save" : undefined}
@@ -256,7 +265,7 @@ export function SalesFormSave({
 					<UiButton
 						type="button"
 						size="sm"
-						disabled={isSaving}
+						disabled={disabled || isSaving}
 						className="h-8 rounded-full px-3 text-xs"
 						onClick={() => chooseSaveOption("default")}
 					>
@@ -266,7 +275,7 @@ export function SalesFormSave({
 						type="button"
 						size="sm"
 						variant="outline"
-						disabled={isSaving}
+						disabled={disabled || isSaving}
 						className="h-8 rounded-full px-3 text-xs"
 						onClick={() => chooseSaveOption("close")}
 					>
@@ -276,7 +285,7 @@ export function SalesFormSave({
 						type="button"
 						size="sm"
 						variant="outline"
-						disabled={isSaving}
+						disabled={disabled || isSaving}
 						className="h-8 rounded-full px-3 text-xs"
 						onClick={() => chooseSaveOption("new")}
 					>
@@ -286,7 +295,7 @@ export function SalesFormSave({
 						type="button"
 						size="sm"
 						variant="ghost"
-						disabled={isSaving}
+						disabled={disabled || isSaving}
 						className="h-8 rounded-full px-3 text-xs"
 						onClick={cancelSaveOptions}
 					>
@@ -297,8 +306,8 @@ export function SalesFormSave({
 		) : and ? (
 			<Menu.Item
 				Icon={Icons.save}
-				onClick={(e) => save(and)}
-				disabled={isSaving}
+				onClick={() => save(and)}
+				disabled={disabled || isSaving}
 			>
 				Save & {and}
 			</Menu.Item>
@@ -306,26 +315,26 @@ export function SalesFormSave({
 			<>
 				<Menu.Item
 					Icon={Icons.save}
-					onClick={(e) => save()}
-					disabled={isSaving}
+					onClick={() => save()}
+					disabled={disabled || isSaving}
 				>
 					Save
 				</Menu.Item>
 				<Menu.Item
 					Icon={Icons.save}
-					disabled={isSaving}
+					disabled={disabled || isSaving}
 					SubMenu={
 						<>
 							<Menu.Item
 								Icon={Icons.close}
-								disabled={isSaving}
+								disabled={disabled || isSaving}
 								onClick={() => save("close")}
 							>
 								Close
 							</Menu.Item>
 							<Menu.Item
 								Icon={Icons.add}
-								disabled={isSaving}
+								disabled={disabled || isSaving}
 								onClick={() => save("new")}
 							>
 								New

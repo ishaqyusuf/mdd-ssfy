@@ -22,6 +22,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
+import Link from "next/link";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { FormWatcher } from "./form-watcher";
 import { LegacySalesCustomerSelectorDialog } from "./sales-customer-input";
@@ -30,7 +31,7 @@ import { SalesFormSidebar } from "./sales-form-sidebar";
 import TakeOff from "./take-off";
 import { TakeoffSwitch } from "./take-off/takeoff-switch";
 
-export function SalesFormClient({ data, versionSwitcher }) {
+export function SalesFormClient({ data, readOnly = false, versionSwitcher }) {
 	const currentTab = useFormDataStore((state) => state.currentTab);
 	const formStatus = useFormDataStore((state) => state.formStatus);
 	const setCurrentTab = useFormDataStore((state) => state.dotUpdate);
@@ -42,10 +43,16 @@ export function SalesFormClient({ data, versionSwitcher }) {
 
 	if (!formStatus || currentTab !== "invoice") return null;
 
-	return <Content data={data} versionSwitcher={versionSwitcher} />;
+	return (
+		<Content
+			data={data}
+			readOnly={readOnly}
+			versionSwitcher={versionSwitcher}
+		/>
+	);
 }
 
-function Content({ data, versionSwitcher }) {
+function Content({ data, readOnly, versionSwitcher }) {
 	const sPreview = useSalesPreview();
 	const zus = useFormDataStore();
 	const [showMobileSalesPanel, setShowMobileSalesPanel] = useState(false);
@@ -102,10 +109,7 @@ function Content({ data, versionSwitcher }) {
 						<div className="flex-1" />
 						<div className="flex items-center gap-2">
 							{versionSwitcher}
-							<TakeoffSwitch
-								takeOff={takeOff}
-								takeOffChanged={setTakeOff}
-							/>
+							<TakeoffSwitch takeOff={takeOff} takeOffChanged={setTakeOff} />
 							<Button
 								size="sm"
 								variant="outline"
@@ -119,8 +123,38 @@ function Content({ data, versionSwitcher }) {
 							</Button>
 						</div>
 					</div>
+					{readOnly ? (
+						<output className="flex shrink-0 flex-col gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 sm:flex-row sm:items-center sm:justify-between md:px-6">
+							<div className="flex min-w-0 items-start gap-2">
+								<Icons.ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-700" />
+								<div>
+									<p className="text-sm font-medium">
+										Approved change in effect
+									</p>
+									<p className="text-xs text-amber-800">
+										This legacy view is read-only. Continue in the new sales
+										form to make further changes.
+									</p>
+								</div>
+							</div>
+							<Button asChild size="sm" className="shrink-0">
+								<Link
+									href={`/sales-form/edit-${data.order.type}/${data.order.slug}`}
+								>
+									Continue in new sales form
+								</Link>
+							</Button>
+						</output>
+					) : null}
 
-					<div className="flex-1 overflow-y-auto p-3 pb-24 md:p-6 md:pb-24 xl:pb-24">
+					<div
+						inert={readOnly ? true : undefined}
+						aria-disabled={readOnly || undefined}
+						className={cn(
+							"flex-1 overflow-y-auto p-3 pb-24 md:p-6 md:pb-24 xl:pb-24",
+							readOnly && "select-text opacity-80",
+						)}
+					>
 						<div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
 							{takeOff ? (
 								<TakeOff />
@@ -133,12 +167,13 @@ function Content({ data, versionSwitcher }) {
 							)}
 						</div>
 					</div>
-					<SalesFormActionToolbar onPreview={preview} />
+					<SalesFormActionToolbar onPreview={preview} readOnly={readOnly} />
 				</main>
 
 				<SalesFormSidebar
 					mobileOpen={showMobileSalesPanel}
 					onClose={() => setShowMobileSalesPanel(false)}
+					readOnly={readOnly}
 				/>
 			</div>
 
@@ -147,7 +182,13 @@ function Content({ data, versionSwitcher }) {
 	);
 }
 
-function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
+function SalesFormActionToolbar({
+	onPreview,
+	readOnly,
+}: {
+	onPreview: () => void;
+	readOnly: boolean;
+}) {
 	const zus = useFormDataStore();
 	const previewId = zus?.metaData?.id ?? null;
 	const isSaved = !!previewId;
@@ -203,6 +244,7 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 							onClick={() => {
 								zhAddItem();
 							}}
+							disabled={readOnly}
 							className="size-8 rounded-full"
 							aria-label="Add item"
 						>
@@ -212,7 +254,7 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 
 					{isSaved && (
 						<div className="hidden items-center gap-1 lg:flex">
-							{isOrder && (
+							{isOrder && !readOnly && (
 								<SalesPaymentProcessor
 									phoneNo={zus.metaData.primaryPhone}
 									selectedIds={[zus.metaData.id]}
@@ -232,33 +274,35 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 									</Button>
 								</SalesPaymentProcessor>
 							)}
-							<SalesMenu
-								id={zus?.metaData?.id}
-								salesIds={previewId ? [previewId] : []}
-								type={zus?.metaData?.type}
-								orderNo={zus?.metaData?.salesId}
-								customerEmail={customer?.email ?? null}
-								customerPhone={customer?.phoneNo ?? null}
-								customerName={customer?.businessName || customer?.name}
-								trigger={
-									<Button
-										type="button"
-										size="icon"
-										variant="outline"
-										className="size-8 rounded-full"
-										aria-label="Email"
-										title="Email"
-									>
-										<Icons.Mail className="size-3.5" />
-									</Button>
-								}
-							>
-								{isOrder ? (
-									<SalesMenu.SalesEmailMenuItems />
-								) : (
-									<SalesMenu.QuoteEmailMenuItems />
-								)}
-							</SalesMenu>
+							{!readOnly ? (
+								<SalesMenu
+									id={zus?.metaData?.id}
+									salesIds={previewId ? [previewId] : []}
+									type={zus?.metaData?.type}
+									orderNo={zus?.metaData?.salesId}
+									customerEmail={customer?.email ?? null}
+									customerPhone={customer?.phoneNo ?? null}
+									customerName={customer?.businessName || customer?.name}
+									trigger={
+										<Button
+											type="button"
+											size="icon"
+											variant="outline"
+											className="size-8 rounded-full"
+											aria-label="Email"
+											title="Email"
+										>
+											<Icons.Mail className="size-3.5" />
+										</Button>
+									}
+								>
+									{isOrder ? (
+										<SalesMenu.SalesEmailMenuItems />
+									) : (
+										<SalesMenu.QuoteEmailMenuItems />
+									)}
+								</SalesMenu>
+							) : null}
 							<TooltipIcon label="Preview">
 								<Button
 									type="button"
@@ -272,7 +316,9 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 									<Icons.Eye className="size-3.5" />
 								</Button>
 							</TooltipIcon>
-							<TooltipIcon label={salesPrint.isPrinting ? "Preparing print" : "Print"}>
+							<TooltipIcon
+								label={salesPrint.isPrinting ? "Preparing print" : "Print"}
+							>
 								<Button
 									type="button"
 									size="icon"
@@ -280,7 +326,9 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 									onClick={(event) => void print(event)}
 									disabled={salesPrint.isPrinting}
 									className="size-8 rounded-full"
-									aria-label={salesPrint.isPrinting ? "Preparing print" : "Print"}
+									aria-label={
+										salesPrint.isPrinting ? "Preparing print" : "Print"
+									}
 								>
 									{salesPrint.isPrinting ? (
 										<Icons.Loader2 className="size-3.5 animate-spin" />
@@ -289,7 +337,9 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 									)}
 								</Button>
 							</TooltipIcon>
-							<TooltipIcon label={salesPrint.isDownloading ? "Preparing PDF" : "PDF"}>
+							<TooltipIcon
+								label={salesPrint.isDownloading ? "Preparing PDF" : "PDF"}
+							>
 								<Button
 									type="button"
 									size="icon"
@@ -297,7 +347,9 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 									onClick={() => void downloadPdf()}
 									disabled={salesPrint.isDownloading}
 									className="size-8 rounded-full"
-									aria-label={salesPrint.isDownloading ? "Preparing PDF" : "PDF"}
+									aria-label={
+										salesPrint.isDownloading ? "Preparing PDF" : "PDF"
+									}
 								>
 									{salesPrint.isDownloading ? (
 										<Icons.Loader2 className="size-3.5 animate-spin" />
@@ -356,7 +408,7 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 						<DropdownMenuContent align="end" className="w-52">
 							{isSaved && (
 								<>
-									{isOrder && (
+									{isOrder && !readOnly && (
 										<SalesPaymentProcessor
 											phoneNo={zus.metaData.primaryPhone}
 											selectedIds={[zus.metaData.id]}
@@ -372,27 +424,31 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 											</DropdownMenuItem>
 										</SalesPaymentProcessor>
 									)}
-									<SalesMenu
-										id={zus?.metaData?.id}
-										salesIds={previewId ? [previewId] : []}
-										type={zus?.metaData?.type}
-										orderNo={zus?.metaData?.salesId}
-										customerEmail={customer?.email ?? null}
-										customerPhone={customer?.phoneNo ?? null}
-										customerName={customer?.businessName || customer?.name}
-										trigger={
-											<DropdownMenuItem onSelect={(event) => event.preventDefault()}>
-												<Icons.Mail className="mr-2 size-4" />
-												Email
-											</DropdownMenuItem>
-										}
-									>
-										{isOrder ? (
-											<SalesMenu.SalesEmailMenuItems />
-										) : (
-											<SalesMenu.QuoteEmailMenuItems />
-										)}
-									</SalesMenu>
+									{!readOnly ? (
+										<SalesMenu
+											id={zus?.metaData?.id}
+											salesIds={previewId ? [previewId] : []}
+											type={zus?.metaData?.type}
+											orderNo={zus?.metaData?.salesId}
+											customerEmail={customer?.email ?? null}
+											customerPhone={customer?.phoneNo ?? null}
+											customerName={customer?.businessName || customer?.name}
+											trigger={
+												<DropdownMenuItem
+													onSelect={(event) => event.preventDefault()}
+												>
+													<Icons.Mail className="mr-2 size-4" />
+													Email
+												</DropdownMenuItem>
+											}
+										>
+											{isOrder ? (
+												<SalesMenu.SalesEmailMenuItems />
+											) : (
+												<SalesMenu.QuoteEmailMenuItems />
+											)}
+										</SalesMenu>
+									) : null}
 									<DropdownMenuItem
 										disabled={!previewId}
 										onSelect={() => onPreview()}
@@ -450,6 +506,7 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 						<SalesFormSave
 							type="button"
 							iconOnly
+							disabled={readOnly}
 							className="size-8 rounded-full p-0"
 						/>
 					</TooltipIcon>

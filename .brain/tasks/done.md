@@ -1107,3 +1107,17 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Plan File: .brain/plans/2026-08-06-feature-new-sales-form-custom-component-parity.md
 - Created Date: 2026-08-06
 - Completed Date: 2026-08-06
+
+### Adjusted Order Legacy/New Sales Form Parity
+- Priority: High
+- Description: Made the approved adjustment snapshot authoritative in the
+  legacy editor, preserved relational audit enrichment, added a database-backed
+  legacy save guard, and presented adjusted legacy orders as read-only with a
+  handoff to the new form.
+- Related Feature: In-Form Sales Order Adjustments
+- Status: Done
+- Plan Status: Done
+- Plan File: .brain/plans/2026-08-07-bug-fix-adjusted-order-legacy-form-parity.md
+- Validation: Exact browser parity on `09187PC`, ordinary-order compatibility
+  on `09166LRG`, and 18 focused tests / 106 assertions.
+- Completed Date: 2026-08-07
