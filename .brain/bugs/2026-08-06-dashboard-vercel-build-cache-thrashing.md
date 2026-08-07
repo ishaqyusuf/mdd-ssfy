@@ -35,8 +35,8 @@ and the DB prerequisite build.
   repaired lockfile records all five manifest additions.
 - Load the development file sink only after development guards pass and mark
   its dynamic reads as intentionally excluded from Turbopack tracing.
-- Treat the root Vercel postinstall as the single Prisma generation step and
-  skip the redundant DB build command on Vercel.
+- Generate Prisma Client explicitly from the dashboard's filtered Vercel
+  install command and skip the redundant DB build command on Vercel.
 - Keep Sentry source-map upload enabled while disabling the widened client file
   upload set.
 
@@ -60,6 +60,23 @@ On 2026-08-07, the repaired lockfile passed
 Bun `1.3.12`, matching the Bun release used by the failed Vercel deployment.
 No application build was run locally; a fresh Vercel deployment remains the
 production proof.
+
+Later on 2026-08-07, the next deployment exposed a separate lifecycle-script
+gap: Bun's filtered dashboard install completed without running the root
+`postinstall`, so `@prisma/client` remained ungenerated while the Vercel DB
+build deliberately skipped its redundant generation step. Route collection
+then failed when `/api/download/model-template` imported `@gnd/db` and
+constructed `PrismaClient`.
+
+The dashboard Vercel install command now invokes
+`bun run --filter @gnd/db prisma:generate:ci` explicitly after the frozen
+filtered install. A clean-snapshot reproduction confirmed the old install left
+the client missing; the corrected install-plus-generation command generated
+Prisma Client 6.19.2, and a direct `PrismaClient` initialization then passed.
+`scripts/vercel-deployment-boundary.test.ts` locks down the deployment contract.
+A local cold Next.js build was stopped after seven silent minutes under the
+active shared dev stack, so a fresh Vercel deployment remains the complete
+route-collection and production proof.
 
 ## Related Files
 

@@ -46,10 +46,9 @@ export function Header() {
 				<div className="flex-1" />
 				<div className="hidden md:flex mx-4  gap-4 " id="navRightSlot" />
 				<div className="hidden md:inline-flex gap-4" id="actionNav" />
-				<div className="contents sm:hidden">
-					<OpenSearchButton />
+				<div className="hidden sm:flex items-center gap-2">
+					<HeaderActions />
 				</div>
-				<HeaderActions />
 				<UserNav links={linkModules} />
 			</header>
 			<div className="h-[70px] md:hidden" />

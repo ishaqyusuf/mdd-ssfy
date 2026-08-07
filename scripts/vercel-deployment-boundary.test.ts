@@ -19,4 +19,14 @@ describe("Vercel deployment source boundaries", () => {
 	it.each(deployableApps)("%s remains in the shared Vercel upload", (app) => {
 		expect(ignoredPaths).not.toContain(app);
 	});
+
+	it("generates Prisma Client after the dashboard's filtered install", () => {
+		const dashboardConfig = JSON.parse(
+			readFileSync(resolve(root, "apps/dashboard/vercel.json"), "utf8"),
+		) as { installCommand?: string };
+
+		expect(dashboardConfig.installCommand).toBe(
+			"bun install --filter @gnd/dashboard --frozen-lockfile && bun run --filter @gnd/db prisma:generate:ci",
+		);
+	});
 });

@@ -1,5 +1,25 @@
 # Progress
 
+- 2026-08-07: fixed the dashboard Vercel Prisma initialization regression.
+  Bun's filtered dashboard install did not execute the root `postinstall`,
+  while the Vercel DB build intentionally skipped its duplicate generation
+  step, leaving `@prisma/client` ungenerated before route collection. The
+  dashboard install command now explicitly generates Prisma Client after the
+  frozen filtered install. A clean-snapshot repro changed from a missing client
+  to successful `PrismaClient` initialization, and the Vercel deployment
+  boundary suite passes 5 tests. A fresh Vercel deployment remains the full
+  production build proof. See
+  `.brain/bugs/2026-08-06-dashboard-vercel-build-cache-thrashing.md`.
+
+- 2026-08-07: fixed Expo SDK 54 EAS builds failing at
+  `bun install --frozen-lockfile`. The SDK 54 build image defaulted to Bun
+  `1.2.20`, while the repository and committed lockfile use the Bun `1.3.x`
+  lockfile behavior and declare `bun@1.3.9`. Every mobile EAS build profile now
+  pins Bun `1.3.9`, keeping development, preview, and production installs
+  aligned with the repository package-manager contract. The committed lockfile
+  already contains the current mobile manifests, and a local frozen install
+  passes without changes.
+
 - 2026-08-07: repaired the dashboard Vercel frozen-install blocker from commit
   `506ad6d`. The commit added direct `bcrypt-ts` ownership to `@gnd/api`,
   `@gnd/auth`, and `@gnd/utils`, plus the mobile `react-mobile` and

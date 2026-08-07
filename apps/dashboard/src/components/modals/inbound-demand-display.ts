@@ -1,4 +1,4 @@
-import { formatInventoryCategoryStepLabel } from "../sales-overview-system/lib/inventory-display";
+import { formatInventoryItemSubtitle } from "../sales-overview-system/lib/inventory-display";
 
 export type InboundDemandDisplayMetadata = {
 	componentName: string;
@@ -62,12 +62,10 @@ export function resolveInboundDemandDisplay(
 		? displayByDemandId.get(demand.id)
 		: undefined;
 	if (overviewDisplay) {
-		const subtitle = [
-			formatInventoryCategoryStepLabel(overviewDisplay.stepName),
-			overviewDisplay.variantName,
-		]
-			.filter(Boolean)
-			.join(" • ");
+		const subtitle = formatInventoryItemSubtitle({
+			stepName: overviewDisplay.stepName,
+			variantName: overviewDisplay.variantName,
+		});
 
 		return {
 			title: overviewDisplay.componentName.toUpperCase(),
@@ -76,13 +74,17 @@ export function resolveInboundDemandDisplay(
 		};
 	}
 
+	const fallbackSubtitle = formatInventoryItemSubtitle({
+		variantName: demand.inventoryVariant?.sku || demand.inventoryVariant?.uid,
+		fallback: "",
+	});
+
 	return {
 		title:
 			demand.lineItemComponent?.parent?.title ||
 			demand.inventoryVariant?.inventory?.name ||
 			"Inventory demand",
-		subtitle:
-			demand.inventoryVariant?.sku || demand.inventoryVariant?.uid || null,
+		subtitle: fallbackSubtitle || null,
 		source: "inbound_demand_queue",
 	};
 }

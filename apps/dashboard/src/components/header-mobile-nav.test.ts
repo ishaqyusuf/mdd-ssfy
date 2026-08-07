@@ -17,10 +17,11 @@ describe("Dashboard mobile header navigation", () => {
 		expect(headerSource).toContain("<UserNav links={linkModules} />");
 	});
 
-	test("keeps Search and the existing utility actions in the header", () => {
+	test("hides top-bar Search and utility actions on small screens and includes them in the header for desktop", () => {
 		expect(headerSource).toContain('className="hidden sm:contents"');
-		expect(headerSource).toContain('className="contents sm:hidden"');
-		expect(headerSource.match(/<OpenSearchButton \/>/g)).toHaveLength(2);
+		expect(headerSource).toContain('className="hidden sm:flex items-center gap-2"');
+		expect(headerSource).not.toContain('className="contents sm:hidden"');
+		expect(headerSource.match(/<OpenSearchButton \/>/g)).toHaveLength(1);
 
 		for (const component of [
 			"SalesRepRequestBadge",
@@ -34,15 +35,16 @@ describe("Dashboard mobile header navigation", () => {
 		}
 	});
 
-	test("opens only the account dropdown content in the mobile bottom drawer", () => {
+	test("includes Search, HeaderActions, and account options in the mobile bottom drawer", () => {
 		expect(userNavSource).toMatch(/<Drawer[\s\S]{0,120}open=\{isOpen\}/);
 		expect(userNavSource).toContain("<DrawerTitle>Account</DrawerTitle>");
 		expect(userNavSource).toContain("<AccountIdentity />");
+		expect(userNavSource).toContain("<HeaderActions />");
+		expect(userNavSource).toContain('<OpenSearchButton\n\t\t\t\t\t\t\t\tpresentation="menu-item"');
 		expect(userNavSource).toContain("getAccountLinkGroups(links)");
 		expect(userNavSource).toContain('href="/signout"');
 		expect(userNavSource).not.toContain("SiteNav.ModuleSelector");
 		expect(userNavSource).not.toContain("SiteNav.NavsList");
-		expect(userNavSource).not.toContain('presentation="menu-item"');
 		expect(userNavSource).not.toContain('href="/settings/profile"');
 		expect(userNavSource).not.toContain(
 			'href="/settings/notification-channels/v2"',

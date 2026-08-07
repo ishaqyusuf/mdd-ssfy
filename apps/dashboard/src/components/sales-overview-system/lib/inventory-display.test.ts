@@ -26,6 +26,20 @@ describe("inventory display", () => {
 				stepName: "door",
 				variantName: "2-6 x 6-8",
 			}),
-		).toBe("Door • 2-6 X 6-8");
+		).toBe("Door • 2-6 x 6-8");
+	});
+
+	test("normalizes raw imported door variant UIDs like w2_8-h6_8 to standard door dimensions with category", () => {
+		expect(
+			formatInventoryItemSubtitle({
+				stepName: "door",
+				variantName: "w2_8-h6_8",
+			}),
+		).toBe("Door • 2-8 x 6-8");
+		expect(
+			formatInventoryItemSubtitle({
+				variantName: "w1_6-h6_8",
+			}),
+		).toBe("Door • 1-6 x 6-8");
 	});
 });

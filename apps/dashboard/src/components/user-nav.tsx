@@ -36,6 +36,7 @@ import { type ComponentProps, Fragment, forwardRef, useState } from "react";
 import { BugReportButton } from "./bug-reports/bug-report-button";
 import { NotificationCenter } from "./notification-center";
 import { SalesRepRequestBadge } from "./sales-rep-request-badge";
+import { OpenSearchButton } from "./search/open-search-button";
 
 type UserNavLink = {
 	href?: string;
@@ -237,8 +238,17 @@ function MobileAccountDrawer({ links }: UserNavProps) {
 					</DrawerHeader>
 
 					<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))]">
-						<div className="border-b p-4">
+						<div className="flex items-center justify-between gap-3 border-b p-4">
 							<AccountIdentity />
+							<div className="flex items-center gap-2">
+								<HeaderActions />
+							</div>
+						</div>
+						<div className="border-b p-3">
+							<OpenSearchButton
+								presentation="menu-item"
+								onOpen={() => setOpen(false)}
+							/>
 						</div>
 						{accountLinkGroups.map((module) => (
 							<div key={module.key} className="space-y-1 border-b p-3">

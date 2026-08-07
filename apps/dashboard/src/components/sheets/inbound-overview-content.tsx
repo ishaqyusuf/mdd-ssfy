@@ -1,7 +1,10 @@
 "use client";
 
 import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
+import { formatInventoryItemSubtitle } from "@/components/sales-overview-system/lib/inventory-display";
+import { ActivityHistory, type ActivityHistoryNode } from "@/components/chat/activity-history";
 import { useTRPC } from "@/trpc/client";
+import { activityTag } from "@notifications/activity-tree";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -29,7 +32,7 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const statuses = [
 	"pending",
@@ -83,9 +86,36 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 	const detailQuery = useQuery(
 		trpc.inventories.inboundShipmentDetail.queryOptions({ inboundId }),
 	);
-	const activityQuery = useQuery(
+	const treeActivityQuery = useQuery(
+		trpc.notes.activityTree.queryOptions({
+			filter: activityTag("inboundId", String(inboundId)),
+			tagFilterMode: "all",
+			includeChildren: true,
+			pageSize: 40,
+			maxDepth: 4,
+		}),
+	);
+	const legacyActivityQuery = useQuery(
 		trpc.inventories.inboundActivity.queryOptions({ inboundId }),
 	);
+	const activityRows = useMemo(() => {
+		const treeData = (treeActivityQuery.data?.data || []) as ActivityHistoryNode[];
+		if (treeData.length > 0) return treeData;
+
+		const legacyItems = legacyActivityQuery.data ?? [];
+		return [...legacyItems].reverse().map((activity) => ({
+			id: activity.id,
+			createdAt: activity.createdAt,
+			subject: activity.subject,
+			headline: activity.headline,
+			description: null,
+			note: activity.note,
+			senderContactName: activity.senderContact?.name || "System",
+			tags: activity.tags || {},
+			children: [],
+		}));
+	}, [treeActivityQuery.data, legacyActivityQuery.data]);
+
 	const refresh = async () => {
 		await Promise.all([
 			queryClient.invalidateQueries({
@@ -95,6 +125,9 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 			}),
 			queryClient.invalidateQueries({
 				queryKey: trpc.inventories.inboundActivity.queryKey({ inboundId }),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.notes.activityTree.pathKey(),
 			}),
 			queryClient.invalidateQueries({
 				queryKey: trpc.inventories.inboundShipments.queryKey({}),
@@ -313,9 +346,12 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 												`Item #${item.id}`}
 										</p>
 										<p className="mt-1 text-xs text-muted-foreground">
-											{item.inventoryVariant.sku ||
-												item.inventoryVariant.uid ||
-												`Variant #${item.inventoryVariantId}`}
+											{formatInventoryItemSubtitle({
+												variantName:
+													item.inventoryVariant.sku ||
+													item.inventoryVariant.uid,
+												fallback: `Variant #${item.inventoryVariantId}`,
+											})}
 										</p>
 									</div>
 									<div className="flex flex-wrap gap-2">
@@ -384,33 +420,14 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 						</Card>
 					))}
 				</section>
-				<section className="space-y-3">
-					<h3 className="text-sm font-semibold">Activity history</h3>
-					{activityQuery.isLoading ? (
-						<Skeleton className="h-28" />
-					) : (
-						(activityQuery.data ?? []).map((activity) => (
-							<div key={activity.id} className="rounded-lg border px-4 py-3">
-								<div className="flex flex-wrap items-center justify-between gap-2">
-									<p className="text-sm font-medium">
-										{activity.subject || "Inbound activity"}
-									</p>
-									<span className="text-xs text-muted-foreground">
-										{formatDate(activity.createdAt)}
-									</span>
-								</div>
-								<p className="mt-1 text-sm text-muted-foreground">
-									{activity.headline}
-								</p>
-								{activity.note ? (
-									<p className="mt-2 rounded-md bg-muted/40 p-3 text-sm">
-										{activity.note}
-									</p>
-								) : null}
-							</div>
-						))
-					)}
-				</section>
+				<ActivityHistory
+					data={activityRows}
+					isPending={treeActivityQuery.isPending && legacyActivityQuery.isPending}
+					isError={treeActivityQuery.isError && legacyActivityQuery.isError}
+					title="Activity History"
+					emptyText="No activity history yet"
+					className="min-h-[180px]"
+				/>
 			</div>
 			<AlertDialog
 				open={Boolean(demandAdjustment)}

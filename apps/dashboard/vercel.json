@@ -1,4 +1,4 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "bun install --filter @gnd/dashboard --frozen-lockfile"
+	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"installCommand": "bun install --filter @gnd/dashboard --frozen-lockfile && bun run --filter @gnd/db prisma:generate:ci"
 }

@@ -6,17 +6,55 @@ export function formatInventoryCategoryStepLabel(
 		.replace(/\b[a-z]/g, (char) => char.toUpperCase());
 }
 
+export function normalizeInventoryVariantName(
+	value: string | null | undefined,
+) {
+	const raw = value?.trim();
+	if (!raw) return null;
+
+	const match = raw.match(/^w(\d+)_(\d+)-h(\d+)_(\d+)$/i);
+	if (match) {
+		return `${match[1]}-${match[2]} x ${match[3]}-${match[4]}`;
+	}
+
+	const singleMatch = raw.match(/^[wh](\d+)_(\d+)$/i);
+	if (singleMatch) {
+		return `${singleMatch[1]}-${singleMatch[2]}`;
+	}
+
+	const dimMatch = raw.match(/^(\d+-\d+)\s*[xX]\s*(\d+-\d+)$/);
+	if (dimMatch) {
+		return `${dimMatch[1]} x ${dimMatch[2]}`;
+	}
+
+	return raw;
+}
+
+export function isDoorDimensionVariant(value: string | null | undefined) {
+	const raw = value?.trim();
+	if (!raw) return false;
+	return Boolean(
+		raw.match(/^w\d+_\d+-h\d+_\d+$/i) ||
+			raw.match(/^\d+-\d+\s*[xX]\s*\d+-\d+$/i),
+	);
+}
+
 export function formatInventoryItemSubtitle({
 	stepName,
 	variantName,
 	fallback = "Inventory item",
 }: {
-	stepName: string | null | undefined;
-	variantName: string | null | undefined;
+	stepName?: string | null;
+	variantName?: string | null;
 	fallback?: string;
 }) {
+	const normalizedVariant = normalizeInventoryVariantName(variantName);
+	const formattedStep = formatInventoryCategoryStepLabel(stepName);
+	const categoryLabel =
+		formattedStep || (isDoorDimensionVariant(variantName) ? "Door" : null);
+
 	return (
-		[formatInventoryCategoryStepLabel(stepName), variantName?.toUpperCase()]
+		[categoryLabel, normalizedVariant]
 			.filter(Boolean)
 			.join(" • ") || fallback
 	);
