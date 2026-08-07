@@ -8821,3 +8821,20 @@
   Package Tool while item 2 Height remained current. The focused suites pass 19
   tests / 106 assertions, and Sales typecheck and scoped package formatting
   pass. No database, API contract, or persisted order data changed.
+- 2026-08-07: made new sales form item title inputs consistently uppercase.
+  Existing values, in-progress edits, and placeholders render in uppercase;
+  finished edits normalize on blur so future saves retain the same casing without
+  disrupting composition input.
+  Authenticated read-only QA on order `09166LRG` confirmed `BIFOLD CLOSET`,
+  `BIFOLD A/C`, `PRE-HUNG FIRST FLOOR`, `PRE-HUNG SECOND FLOOR`, and
+  `GARAGE DOOR`; no order changes were entered or saved. The focused regression,
+  Sales typecheck, and scoped formatting check pass.
+- 2026-08-07: added smooth new-item reveal behavior to the shared sales-form
+  workflow list. All Add Item entry points now benefit from the list detecting
+  only a newly inserted active line and scrolling its stable item anchor into
+  view; initial load and normal active-item changes remain stationary, and
+  reduced-motion preferences disable smooth animation. Authenticated QA on an
+  unsaved copy of `09166LRG` confirmed item count 5 -> 6, main form scroll position
+  0 -> 1861, and the new item top at about 196px in a 720px viewport. The QA tab
+  was closed without saving. Focused regressions, Sales typecheck, and scoped
+  formatting and whitespace checks pass.

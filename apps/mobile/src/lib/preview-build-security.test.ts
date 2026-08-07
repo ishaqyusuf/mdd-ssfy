@@ -53,7 +53,7 @@ describe("mobile preview build security", () => {
 			"onSelectCredentials: (credentials: SignInSchema) => void;",
 		);
 		expect(appConfig).toMatch(
-			/devQuickLoginPassword:\s*isDevelopmentBuild\s*\?\s*process\.env\.EXPO_PUBLIC_TOK \?\? ""\s*:\s*""/,
+			/devQuickLoginPassword:\s*isExplicitReleaseBuild\s*\?\s*""\s*:\s*process\.env\.EXPO_PUBLIC_TOK \?\? ""/,
 		);
 		expect(quickAccess).not.toContain("process.env.EXPO_PUBLIC_TOK");
 		expect(quickAccess).toMatch(

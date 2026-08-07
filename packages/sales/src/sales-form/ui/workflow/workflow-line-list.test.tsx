@@ -2,9 +2,29 @@
 
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { WorkflowLineList } from "./workflow-line-list";
+import {
+	WorkflowLineList,
+	resolveNewlyAddedActiveLineUid,
+} from "./workflow-line-list";
 
 describe("WorkflowLineList", () => {
+	it("targets only the newly added active item for scrolling", () => {
+		expect(
+			resolveNewlyAddedActiveLineUid(
+				["line-1", "line-2"],
+				["line-1", "line-2", "line-3"],
+				"line-3",
+			),
+		).toBe("line-3");
+		expect(
+			resolveNewlyAddedActiveLineUid(
+				["line-1", "line-2"],
+				["line-1", "line-2", "line-3"],
+				"line-2",
+			),
+		).toBeNull();
+	});
+
 	it("scopes each rendered panel to its own active-line state", () => {
 		const html = renderToStaticMarkup(
 			<WorkflowLineList
@@ -57,6 +77,9 @@ describe("WorkflowLineList", () => {
 		expect(html).toContain('data-line="line-1" data-active="false"');
 		expect(html).toContain('data-step="House Package Tool"');
 		expect(html).toContain('data-line="line-2" data-active="true"');
+		expect(html).toContain('value="First line"');
+		expect(html).toContain("text-sm uppercase");
+		expect(html).toContain('id="sales-form-item-line-2"');
 		expect(html).toContain("transition-[grid-template-rows,opacity,transform]");
 		expect(html).toContain("motion-reduce:transition-none");
 	});

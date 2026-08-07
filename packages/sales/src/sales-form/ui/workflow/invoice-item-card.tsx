@@ -22,6 +22,10 @@ function currency(value?: number | null) {
 	}).format(Number(value || 0));
 }
 
+function uppercaseItemTitle(value?: string | null) {
+	return String(value || "").toUpperCase();
+}
+
 const STEP_PILL_COMPONENT_LABEL_MAX_LENGTH = 24;
 const STEP_PANEL_ANIMATION_MS = 200;
 
@@ -131,6 +135,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 
 	return (
 		<div
+			id={`sales-form-item-${props.uid}`}
 			role={isCollapsed && !collapseTriggerDisabled ? "button" : undefined}
 			tabIndex={isCollapsed && !collapseTriggerDisabled ? 0 : undefined}
 			className={`bg-background p-4 transition-all ${
@@ -171,8 +176,13 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 							aria-label={`Item ${props.index + 1} title`}
 							value={props.title || ""}
 							onChange={(e) => props.onTitleChange(e.target.value)}
-							placeholder={props.titlePlaceholder || "Description"}
-							className="h-10 text-sm"
+							onBlur={(e) =>
+								props.onTitleChange(uppercaseItemTitle(e.currentTarget.value))
+							}
+							placeholder={uppercaseItemTitle(
+								props.titlePlaceholder || "Description",
+							)}
+							className="h-10 text-sm uppercase"
 						/>
 					</InputGroup>
 				</div>

@@ -17,3 +17,4 @@ worker, project, task, and unit before submitting or assigning a job.
   the item title in the compact `Max: … Rate: … Total: …` description.
 - The context is derived from the existing job-form defaults and selected
   options. It does not change the job save payload or persistence behavior.
+

@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 import {
 	InvoiceItemCard,
@@ -47,9 +47,52 @@ export type WorkflowLineListProps<TLine extends WorkflowLineListItem> = {
 	componentLabel: (value?: string | null) => string;
 };
 
+export function resolveNewlyAddedActiveLineUid(
+	previousLineUids: string[],
+	currentLineUids: string[],
+	activeLineUid?: string | null,
+) {
+	if (!activeLineUid || previousLineUids.includes(activeLineUid)) return null;
+	return currentLineUids.includes(activeLineUid) ? activeLineUid : null;
+}
+
 export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 	props: WorkflowLineListProps<TLine>,
 ) {
+	const currentLineUidKey = props.items
+		.map(({ line, index }) => String(line.uid || `line-${index}`))
+		.join("\u001f");
+	const previousLineUidsRef = useRef(
+		props.items.map(({ line, index }) => String(line.uid || `line-${index}`)),
+	);
+
+	useEffect(() => {
+		const nextLineUids = currentLineUidKey
+			? currentLineUidKey.split("\u001f")
+			: [];
+		const newlyAddedActiveLineUid = resolveNewlyAddedActiveLineUid(
+			previousLineUidsRef.current,
+			nextLineUids,
+			props.activeLineUid,
+		);
+		previousLineUidsRef.current = nextLineUids;
+		if (!newlyAddedActiveLineUid) return;
+
+		const animationFrame = window.requestAnimationFrame(() => {
+			const lineElement = document.getElementById(
+				`sales-form-item-${newlyAddedActiveLineUid}`,
+			);
+			lineElement?.scrollIntoView({
+				behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+					? "auto"
+					: "smooth",
+				block: "start",
+			});
+		});
+
+		return () => window.cancelAnimationFrame(animationFrame);
+	}, [currentLineUidKey, props.activeLineUid]);
+
 	return (
 		<section>
 			<div className="divide-y divide-border/40">

@@ -289,6 +289,20 @@
   Door resets to House Package Tool when item 2 Height opens, leaving only item
   2 Height explicitly active. The focused suites pass 19 tests / 106
   assertions, and the Sales typecheck passes.
+- 2026-08-07 item title inputs now use uppercase presentation for loaded values,
+  user edits, and placeholders in the shared invoice item card. Finished edits
+  are normalized to uppercase on blur so the controlled field remains safe for
+  text composition while future saves retain the displayed casing.
+  Authenticated QA on `09166LRG` confirmed all five existing titles render in
+  uppercase without editing or saving the order. The focused workflow regression,
+  Sales typecheck, and scoped formatting check pass.
+- 2026-08-07 adding a sales-form item now smoothly scrolls the shared workflow
+  list to the newly inserted active item section. Initial hydration and ordinary
+  item switching do not trigger the scroll, and reduced-motion users receive an
+  immediate scroll instead. Authenticated QA on `09166LRG` confirmed item 6 was
+  added in an unsaved copy and brought near the top of the form viewport; the QA
+  tab was closed without saving. Focused workflow coverage, Sales typecheck, and
+  scoped formatting and whitespace checks pass.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.
