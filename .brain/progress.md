@@ -1,16 +1,16 @@
 # Progress
 
-- 2026-08-07: fixed new-sales-form quote updates that dead-ended with `This
-  form is out of date`. Explicit manual quote Save/finalize actions now carry a
-  narrow stale-overwrite intent; the server accepts it only for non-autosave
-  quotes, while quote autosaves and every order save retain optimistic
-  concurrency protection. The relational save suite passes 30 tests / 192
-  assertions, the focused autosave payload suite passes 2 tests / 3 assertions,
-  the API typecheck passes, and whitespace validation passes. The broad
-  dashboard typecheck still reaches its documented 4 GB heap ceiling. Live
-  browser requests send the new flag, but the already-running development
-  handler retained its pre-change module instance and needs its normal process
-  reload before live success proof.
+- 2026-08-07: fixed quote `03464PC` failing Save with a misleading `This form
+  is out of date` message. The underlying Prisma conflict was a duplicate
+  `HousePackageTools.orderItemId`: payloads without a tool id now recover and
+  update the existing unique row by sales-item relation instead of inserting a
+  duplicate. A second stale extra-cost id exposed by the same quote is now
+  recreated when its relational row is missing. Genuine stale-version
+  protection remains unchanged, and the manual draft path preserves classified
+  server errors instead of replacing them with a generic save message. The
+  relational save suite passes 30 tests / 190 assertions, API typecheck and
+  whitespace validation pass, and authenticated browser QA saved quote
+  `03464PC`, which reported `All changes saved` at 5:42:02 PM.
 
 - 2026-08-07: updated the Expo development quick-login picker so selecting an
   employee fills both their email and the current `EXPO_PUBLIC_TOK` in either

@@ -1,15 +1,5 @@
 # API Contracts
 
-## New Sales Form Manual Quote Save Contract (2026-08-07)
-
-- `newSalesForm.saveDraft` and `newSalesForm.saveFinal` accept the optional
-  `allowStaleQuoteOverwrite` flag.
-- The flag bypasses the persisted form-version conflict only for an explicit
-  non-autosave quote save. Quote autosaves and every order save retain the
-  existing stale-version rejection.
-- The dashboard sends the flag only from the visible manual quote Save and
-  final-save actions, making that user action the intentional last writer.
-
 ## Driver Work Queue and Manifest Contract (2026-08-06)
 
 - `dispatch.driverWorkQueue` returns paginated, authenticated driver work with

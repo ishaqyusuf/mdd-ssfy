@@ -3172,15 +3172,10 @@ async function saveNewSalesFormInternal(
 			? currentMeta.newSalesForm?.version ||
 				`${order.updatedAt?.getTime() || order.createdAt?.getTime() || 0}-legacy`
 			: null;
-		const canOverwriteStaleQuote =
-			payload.type === "quote" &&
-			payload.autosave === false &&
-			payload.allowStaleQuoteOverwrite;
 		if (
 			currentVersion &&
 			payload.version &&
-			currentVersion !== payload.version &&
-			!canOverwriteStaleQuote
+			currentVersion !== payload.version
 		) {
 			throw new TRPCError({
 				code: "CONFLICT",
@@ -3751,11 +3746,18 @@ async function saveNewSalesFormInternal(
 							(legacyLine.kind && !legacyLine.primaryGroupItem ? 0 : hpt.id) ||
 							0,
 					);
-					const createdHpt =
+					const existingHpt =
 						existingHptId > 0
+							? { id: existingHptId }
+							: await tx.housePackageTools.findUnique({
+									where: { orderItemId: createdItem.id },
+									select: { id: true },
+								});
+					const createdHpt =
+						existingHpt
 							? await tx.housePackageTools.update({
 									where: {
-										id: existingHptId,
+										id: existingHpt.id,
 									},
 									data: hptData,
 									select: {
@@ -3832,23 +3834,22 @@ async function saveNewSalesFormInternal(
 
 			for (const cost of payload.extraCosts) {
 				if (cost.id) {
-					const updatedCost = await tx.salesExtraCosts.update({
-						where: { id: cost.id },
+					const updatedCost = await tx.salesExtraCosts.updateMany({
+						where: {
+							id: cost.id,
+							orderId: currentId,
+						},
 						data: {
 							label: cost.label,
 							amount: Number(cost.amount || 0),
 							type: cost.type as any,
 							taxxable: cost.taxxable ?? false,
 						},
-						select: {
-							id: true,
-						},
 					});
-					persistedExtraCosts.push({
-						...cost,
-						id: updatedCost.id,
-					});
-					continue;
+					if (updatedCost.count > 0) {
+						persistedExtraCosts.push(cost);
+						continue;
+					}
 				}
 				const createdCost = await tx.salesExtraCosts.create({
 					data: {

@@ -378,6 +378,13 @@ function createMockContext() {
       },
     },
     housePackageTools: {
+      findUnique: async ({ where, select }: any) => {
+        const row = state.hpts.find(
+          (h) => h.orderItemId === where.orderItemId,
+        );
+        if (!row) return null;
+        return select?.id ? { id: row.id } : row;
+      },
       updateMany: async ({ where, data }: any) => {
         state.hpts
           .filter((h) => {
@@ -440,9 +447,13 @@ function createMockContext() {
     },
     salesExtraCosts: {
       updateMany: async ({ where, data }: any) => {
-        state.extraCosts
-          .filter((c) => c.orderId === where.orderId)
-          .forEach((c) => Object.assign(c, data));
+        const rows = state.extraCosts.filter((c) => {
+          if (where.orderId && c.orderId !== where.orderId) return false;
+          if (where.id && c.id !== where.id) return false;
+          return true;
+        });
+        rows.forEach((c) => Object.assign(c, data));
+        return { count: rows.length };
       },
       deleteMany: async ({ where }: any) => {
         state.extraCosts = state.extraCosts.filter((c) => {
@@ -1832,8 +1843,8 @@ describe("new-sales-form relational parity", () => {
     expect(state.orders[0]?.meta?.po).toBe("AUTOSAVE-B");
   });
 
-  it("lets an explicit manual quote save overwrite a stale quote revision", async () => {
-    const { ctx, state } = createMockContext();
+  it("rejects a stale manual quote revision", async () => {
+    const { ctx } = createMockContext();
     const payload = {
       type: "quote" as const,
       slug: null,
@@ -1873,7 +1884,7 @@ describe("new-sales-form relational parity", () => {
     };
 
     const first = await saveDraftNewSalesForm(ctx, payload);
-    const latest = await saveDraftNewSalesForm(ctx, {
+    await saveDraftNewSalesForm(ctx, {
       ...payload,
       salesId: first.salesId,
       slug: first.slug,
@@ -1888,54 +1899,6 @@ describe("new-sales-form relational parity", () => {
         slug: first.slug,
         version: first.version,
         meta: { ...payload.meta, po: "STALE" },
-      }),
-    ).rejects.toThrow("This form changed elsewhere");
-    await expect(
-      saveDraftNewSalesForm(ctx, {
-        ...payload,
-        salesId: first.salesId,
-        slug: first.slug,
-        version: first.version,
-        autosave: true,
-        allowStaleQuoteOverwrite: true,
-        meta: { ...payload.meta, po: "STALE AUTOSAVE" },
-      }),
-    ).rejects.toThrow("This form changed elsewhere");
-
-    const overwritten = await saveDraftNewSalesForm(ctx, {
-      ...payload,
-      salesId: first.salesId,
-      slug: first.slug,
-      version: first.version,
-      allowStaleQuoteOverwrite: true,
-      meta: { ...payload.meta, po: "MANUAL OVERWRITE" },
-    });
-
-    expect(overwritten.version).not.toBe(latest.version);
-    expect(state.orders[0]?.meta?.po).toBe("MANUAL OVERWRITE");
-
-    const firstOrder = await saveDraftNewSalesForm(ctx, {
-      ...payload,
-      type: "order",
-      meta: { ...payload.meta, po: "ORDER INITIAL" },
-    });
-    await saveDraftNewSalesForm(ctx, {
-      ...payload,
-      type: "order",
-      salesId: firstOrder.salesId,
-      slug: firstOrder.slug,
-      version: firstOrder.version,
-      meta: { ...payload.meta, po: "ORDER LATEST" },
-    });
-    await expect(
-      saveDraftNewSalesForm(ctx, {
-        ...payload,
-        type: "order",
-        salesId: firstOrder.salesId,
-        slug: firstOrder.slug,
-        version: firstOrder.version,
-        allowStaleQuoteOverwrite: true,
-        meta: { ...payload.meta, po: "ORDER STALE" },
       }),
     ).rejects.toThrow("This form changed elsewhere");
   });
@@ -2308,7 +2271,7 @@ describe("new-sales-form relational parity", () => {
     expect(loaded.lineItems[0]?.lineTotal).toBe(272);
   });
 
-  it("updates existing HPT sales item, tool, and door ids on re-save", async () => {
+  it("reuses the existing HPT row when its id is missing on re-save", async () => {
     const { ctx, state } = createMockContext();
 
     const first = await saveDraftNewSalesForm(ctx, {
@@ -2414,7 +2377,7 @@ describe("new-sales-form relational parity", () => {
           ],
           shelfItems: [],
           housePackageTool: {
-            id: hptId,
+            id: null,
             doorType: "Interior",
             totalPrice: 272,
             totalDoors: 2,
@@ -3039,7 +3002,7 @@ describe("new-sales-form relational parity", () => {
     expect(loaded.summary.grandTotal).toBe(saved.summary.grandTotal);
   });
 
-  it("soft-deletes prior relational rows on update and replaces with current payload", async () => {
+  it("replaces prior relations and recreates a missing extra-cost id", async () => {
     const { ctx, state } = createMockContext();
 
     const first = await saveDraftNewSalesForm(ctx, {
@@ -3104,7 +3067,7 @@ describe("new-sales-form relational parity", () => {
         taxCode: null,
       },
       summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
-      extraCosts: [{ id: null, label: "Labor", type: "Labor", amount: 0 }],
+      extraCosts: [{ id: 999, label: "Labor", type: "Labor", amount: 0 }],
       lineItems: [
         {
           id: null,
@@ -3138,6 +3101,12 @@ describe("new-sales-form relational parity", () => {
     expect(line).toBeTruthy();
     expect(line!.title).toBe("Line B");
     expect(line!.formSteps[0]?.stepId).toBe(2);
+    expect(loaded.extraCosts[0]).toMatchObject({
+      label: "Labor",
+      type: "Labor",
+      amount: 0,
+    });
+    expect(loaded.extraCosts[0]?.id).not.toBe(999);
   });
 
   it("uses legacy-style order id generation and persists relational sales tax rows", async () => {

@@ -140,7 +140,6 @@ export const saveDraftNewSalesFormSchema = z.object({
   slug: z.string().optional().nullable(),
   salesId: z.number().optional().nullable(),
 	approvedAdjustmentId: z.string().cuid().optional().nullable(),
-  allowStaleQuoteOverwrite: z.boolean().optional(),
   inventoryStatus: z.enum(orderInboundStatuses).optional().nullable(),
   version: z.string().optional().nullable(),
   autosave: z.boolean().default(true),
