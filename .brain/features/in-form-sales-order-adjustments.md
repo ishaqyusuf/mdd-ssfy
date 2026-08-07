@@ -123,8 +123,9 @@ orders in the new sales form.
   `$228.84`, subtotal `$590.13`, tax `$41.31`, CCC `$18.94`, and displayed total
   `$650.38`. The adjusted legacy editor exposed the notice and disabled all
   mutating controls; ordinary order `09166LRG` remained editable. Shared
-  projector/print, access-policy, and server-boundary tests pass 22 tests / 115
-  assertions; the new edit-loader retained-row regression passes separately.
+  projector/print, access-policy, client-control contract, and server-boundary
+  tests pass 25 tests / 126 assertions; the new edit-loader retained-row
+  regression passes separately with 1 test / 10 assertions.
 
 ## Implementation Map
 

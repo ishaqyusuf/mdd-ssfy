@@ -1119,6 +1119,6 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Plan Status: Done
 - Plan File: .brain/plans/2026-08-07-bug-fix-adjusted-order-legacy-form-parity.md
 - Validation: Exact browser parity on `09187PC`, ordinary-order compatibility
-  on `09166LRG`, 22 focused tests / 115 assertions, and the new edit-loader
-  retained-row regression.
+  on `09166LRG`, 25 focused tests / 126 assertions, and the new edit-loader
+  retained-row regression (1 test / 10 assertions).
 - Completed Date: 2026-08-07

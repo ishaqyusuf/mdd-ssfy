@@ -25,4 +25,19 @@ describe("approved adjustment legacy access", () => {
 			}),
 		).toEqual({ readOnly: false });
 	});
+
+	it("keeps malformed adjusted payloads protected without emitting a broken link", () => {
+		expect(
+			resolveApprovedAdjustmentLegacyAccess({
+				adjustmentSnapshotAuthority: true,
+				order: null,
+			}),
+		).toEqual({
+			readOnly: true,
+			title: "Customer-approved change in effect",
+			description:
+				"This legacy view is read-only. Continue in the new sales form to make further changes.",
+			newFormHref: null,
+		});
+	});
 });

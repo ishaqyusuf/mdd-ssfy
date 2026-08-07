@@ -141,11 +141,13 @@ function Content({ data, adjustmentAccess, versionSwitcher }) {
 									</p>
 								</div>
 							</div>
-							<Button asChild size="sm" className="shrink-0">
-								<Link href={adjustmentAccess.newFormHref}>
-									Continue in new sales form
-								</Link>
-							</Button>
+							{adjustmentAccess.newFormHref ? (
+								<Button asChild size="sm" className="shrink-0">
+									<Link href={adjustmentAccess.newFormHref}>
+										Continue in new sales form
+									</Link>
+								</Button>
+							) : null}
 						</output>
 					) : null}
 
