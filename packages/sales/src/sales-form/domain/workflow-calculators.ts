@@ -313,7 +313,11 @@ export function sortDoorSizesAsc(a: string, b: string) {
 	return sizeToInches(ah) - sizeToInches(bh);
 }
 
-function getDoorSizeVariationConfig(line: any, routeData?: any) {
+function getDoorSizeVariationConfig(
+	line: any,
+	routeData?: any,
+	options?: { ignorePersistedVariations?: boolean },
+) {
 	const lineSteps = Array.isArray(line?.formSteps) ? line.formSteps : [];
 	for (const step of lineSteps) {
 		const stepUid = String(step?.step?.uid || step?.uid || "").trim();
@@ -322,10 +326,11 @@ function getDoorSizeVariationConfig(line: any, routeData?: any) {
 			stepUid && routeData?.stepsByUid?.[stepUid]?.meta
 				? readSalesFormObjectMetadata(routeData.stepsByUid[stepUid].meta) || {}
 				: null;
-		const variations = Array.isArray(stepMeta.doorSizeVariation)
-			? stepMeta.doorSizeVariation
-			: Array.isArray(routeStepMeta?.doorSizeVariation)
-				? routeStepMeta.doorSizeVariation
+		const variations = Array.isArray(routeStepMeta?.doorSizeVariation)
+			? routeStepMeta.doorSizeVariation
+			: !options?.ignorePersistedVariations &&
+				  Array.isArray(stepMeta.doorSizeVariation)
+				? stepMeta.doorSizeVariation
 				: null;
 		if (variations) {
 			return variations;
@@ -343,6 +348,7 @@ export function deriveDoorSizeCandidates(
 	line: any,
 	pricing: Record<string, any>,
 	routeData?: any,
+	options?: { ignorePersistedVariations?: boolean },
 ) {
 	const heightStep = (line?.formSteps || []).find(
 		(step: any) => normalizeSalesFormTitle(step?.step?.title) === "height",
@@ -358,7 +364,7 @@ export function deriveDoorSizeCandidates(
 		);
 	});
 
-	const variations = getDoorSizeVariationConfig(line, routeData);
+	const variations = getDoorSizeVariationConfig(line, routeData, options);
 	if (Array.isArray(variations)) {
 		if (!currentHeight) return [];
 		const sizes = new Set<string>();

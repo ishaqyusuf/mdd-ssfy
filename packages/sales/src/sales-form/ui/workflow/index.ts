@@ -36,6 +36,7 @@ export {
 	isDoorRowPriceMissing,
 	normalizeStoredDoorRows,
 	repricePersistedDoorRowsForSupplier,
+	resolveWorkflowDoorSizePricing,
 	rowsForDoorComponent,
 } from "./door-utils";
 export { InvoiceItemCard } from "./invoice-item-card";
@@ -46,6 +47,7 @@ export type {
 export {
   HousePackageToolPanel,
   type HousePackageToolPanelProps,
+  type HousePackageToolSizeOption,
 } from "./house-package-tool-panel";
 export {
   MouldingLineItemsEditor,

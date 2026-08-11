@@ -51,7 +51,6 @@ import {
 	normalizeSalesFormTitle as normalizeTitle,
 	resolveComponentPriceByDeps,
 	resolveConfiguredRouteStepsForLine,
-	resolveDoorTierPricing,
 	summarizeDoors,
 } from "../../domain";
 import {
@@ -129,6 +128,7 @@ import {
 	profileAdjustedDoorSalesPrice,
 	profileAdjustedSalesPrice,
 	removeWorkflowHptDoorOption,
+	resolveWorkflowDoorSizePricing,
 	resolveInteractiveStepIndex,
 	saveWorkflowSelectedComponent,
 	selectWorkflowRootComponent,
@@ -716,19 +716,30 @@ export function SalesFormWorkflowPanel<
 			(component) =>
 				String(component?.uid || "") !== String(activeDoorComponent?.uid || ""),
 		);
-		const availableSizes = (() => {
-			if (!activeDoorComponent) return [] as string[];
+		const availableSizeOptions = (() => {
+			if (!activeDoorComponent) return [];
 			const sizes = deriveDoorSizeCandidates(
 				line,
 				activeDoorComponent?.pricing || {},
 				routeData,
+				{ ignorePersistedVariations: true },
 			);
-			return sizes.filter(
-				(size) =>
-					!displayedRows.some(
-						(row) => String(row?.dimension || "").trim() === size,
-					),
-			);
+			return sizes
+				.filter(
+					(size) =>
+						!displayedRows.some(
+							(row) => String(row?.dimension || "").trim() === size,
+						),
+				)
+				.map((size) => {
+					const pricing = resolveSizePricing(size);
+					return {
+						size,
+						doorPrice: pricing.hasPrice
+							? pricing.doorSalesUnitPrice
+							: null,
+					};
+				});
 		})();
 		const pricedSteps = getWorkflowSteps(line).filter((candidate) => {
 			const title = normalizeTitle(candidate?.step?.title);
@@ -770,18 +781,7 @@ export function SalesFormWorkflowPanel<
 		}
 		function addSizeRow(size: string) {
 			if (!activeDoorComponent) return;
-			const tierPricing = resolveDoorTierPricing({
-				pricing: activeDoorComponent?.pricing || {},
-				size,
-				supplierUid: supplier.supplierUid,
-				supplierVariants: Array.isArray(activeDoorComponent?.supplierVariants)
-					? activeDoorComponent.supplierVariants
-					: [],
-				salesMultiplier: activeSalesMultiplier,
-				fallbackSalesPrice: activeDoorComponent?.salesPrice,
-				fallbackBasePrice: activeDoorComponent?.basePrice,
-			});
-			const hasResolvedPrice = Boolean(tierPricing.hasPrice);
+			const pricing = resolveSizePricing(size);
 			applyRows([
 				...summary.rows,
 				{
@@ -790,30 +790,39 @@ export function SalesFormWorkflowPanel<
 					swing: "",
 					doorType: "",
 					doorPrice: 0,
-					jambSizePrice: hasResolvedPrice
-						? roundMoney(tierPricing.salesPrice)
-						: 0,
+					jambSizePrice: pricing.doorSalesUnitPrice,
 					casingPrice: 0,
-					unitPrice: hasResolvedPrice
-						? sumMoney([tierPricing.salesPrice, sharedDoorSurcharge])
-						: 0,
+					unitPrice: pricing.unitPrice,
 					lhQty: 0,
 					rhQty: 0,
 					totalQty: 0,
 					lineTotal: 0,
 					stepProductId: activeDoorComponent.id || null,
 					meta: {
-						baseUnitPrice: hasResolvedPrice
-							? roundMoney(tierPricing.basePrice)
-							: 0,
-						doorSalesUnitPrice: hasResolvedPrice
-							? roundMoney(tierPricing.salesPrice)
-							: 0,
+						baseUnitPrice: pricing.basePrice,
+						doorSalesUnitPrice: pricing.doorSalesUnitPrice,
 						sharedDoorSurcharge,
-						priceMissing: !hasResolvedPrice,
+						priceMissing: !pricing.hasPrice,
 					},
 				},
 			]);
+		}
+		function resolveSizePricing(size: string) {
+			if (!activeDoorComponent) {
+				return {
+					hasPrice: false,
+					basePrice: 0,
+					doorSalesUnitPrice: 0,
+					unitPrice: 0,
+				};
+			}
+			return resolveWorkflowDoorSizePricing({
+				component: activeDoorComponent,
+				size,
+				supplierUid: supplier.supplierUid,
+				salesMultiplier: activeSalesMultiplier,
+				sharedDoorSurcharge,
+			});
 		}
 		function deleteDoorOption() {
 			if (!activeDoorComponent || doorStepIndex < 0) return;
@@ -843,7 +852,7 @@ export function SalesFormWorkflowPanel<
 				activeDoorComponent={activeDoorComponent}
 				focusedRows={displayedRows}
 				summary={summary}
-				availableSizes={availableSizes}
+				availableSizeOptions={availableSizeOptions}
 				pricedSteps={pricedSteps}
 				supplierName={supplier.supplierName}
 				noHandle={noHandle}

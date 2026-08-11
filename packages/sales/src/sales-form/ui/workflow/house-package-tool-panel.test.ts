@@ -29,4 +29,14 @@ describe("HPT add-size parity", () => {
     expect(emptyFocusedBranch).toContain("HptAddSizeMenu");
     expect(emptyFocusedBranch).toContain("Configure Sizes");
   });
+
+  it("describes configured and unconfigured prices in the Add Size menu", () => {
+    const source = readFileSync(
+      new URL("./house-package-tool-panel.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("props.formatMoney(option.doorPrice)");
+    expect(source).toContain('"Price unavailable"');
+  });
 });

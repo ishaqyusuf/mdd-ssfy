@@ -54,6 +54,39 @@ describe("workflow visible components", () => {
 		expect(components[0]?.salesPrice).toBe(6);
 	});
 
+	it("keeps current catalogue pricing when an edit snapshot has null pricing", () => {
+		const components = resolveWorkflowVisibleComponents({
+			components: [
+				{
+					id: 978,
+					uid: "door-edit",
+					title: "Current Door",
+					pricing: { "3-0 x 6-8": { price: 92.56 } },
+				},
+			],
+			steps: [],
+			activeStep: null,
+			overrides: new Map([
+				[
+					"door-edit",
+					{
+						id: 978,
+						uid: "door-edit",
+						title: "Saved Door",
+						pricing: null,
+						supplierVariants: [],
+					},
+				],
+			]),
+			includeCustomComponents: false,
+			profileCoefficient: 1,
+		});
+
+		expect(components[0]?.pricing).toEqual({
+			"3-0 x 6-8": { price: 92.56 },
+		});
+	});
+
 	it("hides unselected custom components while keeping the selected custom component visible", () => {
 		const components = resolveWorkflowVisibleComponents({
 			components: [

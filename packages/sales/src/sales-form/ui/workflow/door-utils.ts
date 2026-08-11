@@ -303,6 +303,51 @@ export function computeSharedDoorSurcharge(line: DoorLine) {
 	return computeHptSharedDoorSurcharge(line);
 }
 
+export function resolveWorkflowDoorSizePricing({
+	component,
+	size,
+	supplierUid,
+	salesMultiplier,
+	profileCoefficient,
+	sharedDoorSurcharge,
+}: {
+	component: DoorSizeComponent;
+	size: string;
+	supplierUid?: string | null;
+	salesMultiplier?: number | null;
+	profileCoefficient?: number | null;
+	sharedDoorSurcharge: number;
+}) {
+	const tierPricing = resolveDoorTierPricing({
+		pricing: component.pricing || {},
+		size,
+		supplierUid,
+		supplierVariants: Array.isArray(component.supplierVariants)
+			? component.supplierVariants
+			: [],
+		salesMultiplier,
+		fallbackSalesPrice: component.salesPrice,
+		fallbackBasePrice: component.basePrice,
+	});
+	const hasPrice = Boolean(tierPricing.hasPrice);
+	const doorSalesUnitPrice = hasPrice
+		? profileAdjustedDoorSalesPrice(
+				tierPricing.salesPrice,
+				tierPricing.basePrice,
+				profileCoefficient,
+			)
+		: 0;
+
+	return {
+		hasPrice,
+		basePrice: hasPrice ? roundMoney(tierPricing.basePrice) : 0,
+		doorSalesUnitPrice,
+		unitPrice: hasPrice
+			? sumMoney([doorSalesUnitPrice, sharedDoorSurcharge])
+			: 0,
+	};
+}
+
 export function applySharedDoorSurcharge(
 	rows: DoorRow[],
 	surcharge: number,

@@ -13,10 +13,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import { CUSTOM_IMG_ID } from "@/utils/constants";
 import {
-	addMoney,
 	moneyRatio,
 	multiplyMoney,
-	roundMoney,
 } from "@gnd/sales/payment-system/money";
 import {
 	buildSelectedByStepUid,
@@ -30,7 +28,6 @@ import {
 	isMouldingItem,
 	normalizeSalesFormTitle as normalizeTitle,
 	resolveComponentPriceByDeps,
-	resolveDoorTierPricing,
 	getRouteConfigForLine as resolveRouteConfigForLine,
 	summarizeDoors,
 } from "@gnd/sales/sales-form";
@@ -110,6 +107,7 @@ import {
 	profileAdjustedDoorSalesPrice,
 	profileAdjustedSalesPrice,
 	removeWorkflowHptDoorOption,
+	resolveWorkflowDoorSizePricing,
 	removeWorkflowMouldingSelection,
 	resolveConfiguredRouteStepsForLine,
 	resolveInteractiveStepIndex,
@@ -1149,8 +1147,20 @@ export function ItemWorkflowPanel() {
 		const rows = (line.housePackageTool?.doors || []).map(
 			clearUnpricedDoorRowQty,
 		);
+		const lineSteps = getWorkflowSteps(line);
+		const lineDoorStep = lineSteps.find((step) =>
+			isDoorStepTitle(step?.step?.title),
+		);
+		const lineVisibleDoorComponents = resolveWorkflowVisibleComponents({
+			components: doorStepComponentsQuery.data || [],
+			steps: lineSteps,
+			activeStep: lineDoorStep || null,
+			overrides: buildStepComponentOverrideMap(lineDoorStep || null),
+			includeCustomComponents: false,
+			profileCoefficient: activeProfileCoefficient,
+		});
 		let selectedDoorComponents = getSelectedDoorComponentsForLine(line, {
-			availableComponents: visibleDoorComponents,
+			availableComponents: lineVisibleDoorComponents,
 		});
 		if (!selectedDoorComponents.length && rows.length) {
 			const recoveredComponentIds = Array.from(
@@ -1160,7 +1170,7 @@ export function ItemWorkflowPanel() {
 				(componentId, index) => {
 					const visibleComponent =
 						componentId > 0
-							? visibleDoorComponents.find(
+							? lineVisibleDoorComponents.find(
 									(component) => Number(component?.id || 0) === componentId,
 								)
 							: null;
@@ -1218,21 +1228,32 @@ export function ItemWorkflowPanel() {
 			summary.rows.length
 				? summary.rows
 				: matchedFocusedRows;
-		const availableSizes = (() => {
-			if (!activeDoorComponent) return [] as string[];
+		const availableSizeOptions = (() => {
+			if (!activeDoorComponent) return [];
 			const sizes = deriveDoorSizeCandidates(
 				line,
 				activeDoorComponent?.pricing || {},
 				routeData,
+				{ ignorePersistedVariations: true },
 			);
-			return sizes.filter((size) => {
-				return !focusedRows.some(
-					(row) => String(row?.dimension || "").trim() === size,
-				);
-			});
+			return sizes
+				.filter((size) => {
+					return !focusedRows.some(
+						(row) => String(row?.dimension || "").trim() === size,
+					);
+				})
+				.map((size) => {
+					const pricing = resolveSizePricing(size);
+					return {
+						size,
+						doorPrice: pricing.hasPrice
+							? pricing.doorSalesUnitPrice
+							: null,
+					};
+				});
 		})();
 		const swapDoorCandidates = (() => {
-			return visibleDoorComponents.filter(
+			return lineVisibleDoorComponents.filter(
 				(component) =>
 					String(component?.uid || "") !==
 					String(activeDoorComponent?.uid || ""),
@@ -1257,7 +1278,7 @@ export function ItemWorkflowPanel() {
 				activeDoorComponent={activeDoorComponent}
 				focusedRows={focusedRows}
 				summary={summary}
-				availableSizes={availableSizes}
+				availableSizeOptions={availableSizeOptions}
 				pricedSteps={pricedSteps}
 				supplierName={supplier.supplierName}
 				noHandle={noHandle}
@@ -1329,21 +1350,7 @@ export function ItemWorkflowPanel() {
 		}
 		function addSizeRow(size: string) {
 			if (!activeDoorComponent) return;
-			const pricing = activeDoorComponent?.pricing || {};
-			const tierPricing = resolveDoorTierPricing({
-				pricing,
-				size,
-				supplierUid: supplier.supplierUid,
-				supplierVariants: activeDoorComponent?.supplierVariants || [],
-				salesMultiplier:
-					Number.isFinite(activeProfileCoefficient) &&
-					activeProfileCoefficient > 0
-						? moneyRatio(1, activeProfileCoefficient)
-						: 1,
-				fallbackSalesPrice: activeDoorComponent?.salesPrice,
-				fallbackBasePrice: activeDoorComponent?.basePrice,
-			});
-			const hasResolvedPrice = Boolean(tierPricing.hasPrice);
+			const pricing = resolveSizePricing(size);
 			const nextRows = [
 				...summary.rows,
 				{
@@ -1352,31 +1359,45 @@ export function ItemWorkflowPanel() {
 					swing: "",
 					doorType: "",
 					doorPrice: 0,
-					jambSizePrice: hasResolvedPrice
-						? roundMoney(tierPricing.salesPrice)
-						: 0,
+					jambSizePrice: pricing.doorSalesUnitPrice,
 					casingPrice: 0,
-					unitPrice: hasResolvedPrice
-						? addMoney(tierPricing.salesPrice, sharedDoorSurcharge)
-						: 0,
+					unitPrice: pricing.unitPrice,
 					lhQty: 0,
 					rhQty: 0,
 					totalQty: 0,
 					lineTotal: 0,
 					stepProductId: activeDoorComponent.id || null,
 					meta: {
-						baseUnitPrice: hasResolvedPrice
-							? roundMoney(tierPricing.basePrice)
-							: 0,
-						doorSalesUnitPrice: hasResolvedPrice
-							? roundMoney(tierPricing.salesPrice)
-							: 0,
+						baseUnitPrice: pricing.basePrice,
+						doorSalesUnitPrice: pricing.doorSalesUnitPrice,
 						sharedDoorSurcharge,
-						priceMissing: !hasResolvedPrice,
+						priceMissing: !pricing.hasPrice,
 					},
 				},
 			];
 			applyRows(nextRows);
+		}
+		function resolveSizePricing(size: string) {
+			if (!activeDoorComponent) {
+				return {
+					hasPrice: false,
+					basePrice: 0,
+					doorSalesUnitPrice: 0,
+					unitPrice: 0,
+				};
+			}
+			return resolveWorkflowDoorSizePricing({
+				component: activeDoorComponent,
+				size,
+				supplierUid: supplier.supplierUid,
+				salesMultiplier:
+					Number.isFinite(activeProfileCoefficient) &&
+					activeProfileCoefficient > 0
+						? moneyRatio(1, activeProfileCoefficient)
+						: 1,
+				profileCoefficient: activeProfileCoefficient,
+				sharedDoorSurcharge,
+			});
 		}
 		function removeSizeRow(sourceRow: DoorStoredRow) {
 			const nextRows = summary.rows.filter((row) => row !== sourceRow);

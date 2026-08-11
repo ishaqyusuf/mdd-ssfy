@@ -224,3 +224,28 @@ Tracks important cross-model relationships and ownership patterns.
   `reviewedById -> Users.id` records the deciding administrator.
 - Approval payroll remains one-to-one through the existing unique
   `Payroll.productionSubmissionId` relation.
+
+## Proposed multi-tenant SaaS relationships (2026-08-08)
+
+Planning only; no schema relationship changed yet.
+
+- `Tenant 1:N Organization`: offices are operational partitions inside the
+  independent customer company.
+- `Users N:M Tenant` through `TenantMembership`; membership owns tenant role,
+  status, and default office.
+- `Tenant 1:N TenantDomain`, `TenantBrandRevision`, `TenantSubscription`,
+  `TenantEntitlement`, `TenantProviderConnection`, and `TenantSupportAccess`.
+- `PlanVersion N:M FeatureDefinition` through `PlanFeature`; the tenant's local
+  entitlement projection is derived from subscription plus audited overrides.
+- `SalesConfigurationTemplate 1:N TemplateRevision`; a
+  `TenantSalesConfiguration` pins one revision and owns tenant overlay revisions.
+- `Tenant 1:N TenantPriceBook`; price entries reference stable shared template
+  UIDs or tenant custom-component IDs. GND price rows are not template parents.
+- `Tenant 1:N` each tenant-owned business root: people/memberships, customers,
+  sales, inventory, production/dispatch, finance/payment, documents/email,
+  dealership/storefront, jobs/events/exports/usage.
+- Children normally inherit tenant through their canonical parent. Direct
+  `tenantId` is added when independent lookup, global provider callbacks,
+  polymorphic ownership, partitioning, RLS, or safe lifecycle requires it.
+- Platform subscription/payment entities and operational Sales/Square payment
+  entities have no cross-ledger ownership relationship.

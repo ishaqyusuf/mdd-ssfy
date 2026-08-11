@@ -67,13 +67,18 @@ type HousePackageToolSummary = {
 	totalPrice: number;
 };
 
+export type HousePackageToolSizeOption = {
+	size: string;
+	doorPrice: number | null;
+};
+
 export type HousePackageToolPanelProps = {
 	selectedDoorComponents: WorkflowComponentRecord[];
 	activeDoorUid: string;
 	activeDoorComponent: WorkflowComponentRecord | null;
 	focusedRows: DoorStoredRow[];
 	summary: HousePackageToolSummary;
-	availableSizes: string[];
+	availableSizeOptions: HousePackageToolSizeOption[];
 	pricedSteps: HousePackageToolPricedStep[];
 	supplierName?: string | null;
 	noHandle: boolean;
@@ -120,7 +125,8 @@ function HptHeaderActionTooltip({
 
 function HptAddSizeMenu(props: {
 	componentId: number;
-	availableSizes: string[];
+	availableSizeOptions: HousePackageToolSizeOption[];
+	formatMoney: (value: unknown) => string;
 	onAddSize: (size: string) => void;
 	disabled?: boolean;
 }) {
@@ -146,16 +152,22 @@ function HptAddSizeMenu(props: {
 						Add Size
 					</TooltipContent>
 				</Tooltip>
-				<DropdownMenuContent align="end" className="w-44">
-					{!props.availableSizes.length ? (
+				<DropdownMenuContent align="end" className="w-56">
+					{!props.availableSizeOptions.length ? (
 						<DropdownMenuItem disabled>No more sizes</DropdownMenuItem>
 					) : (
-						props.availableSizes.map((size) => (
+						props.availableSizeOptions.map((option) => (
 							<DropdownMenuItem
-								key={`add-size-${props.componentId}-${size}`}
-								onClick={() => props.onAddSize(size)}
+								key={`add-size-${props.componentId}-${option.size}`}
+								onClick={() => props.onAddSize(option.size)}
+								className="flex items-center justify-between gap-4"
 							>
-								{size}
+								<span>{option.size}</span>
+								<span className="text-xs tabular-nums text-muted-foreground">
+									{option.doorPrice == null
+										? "Price unavailable"
+										: props.formatMoney(option.doorPrice)}
+								</span>
 							</DropdownMenuItem>
 						))
 					)}
@@ -230,7 +242,8 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 						</p>
 						<HptAddSizeMenu
 							componentId={componentId}
-							availableSizes={props.availableSizes}
+							availableSizeOptions={props.availableSizeOptions}
+							formatMoney={props.formatMoney}
 							onAddSize={props.onAddSize}
 							disabled={!props.activeDoorComponent}
 						/>
@@ -247,7 +260,8 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 						<div className="flex items-center gap-2">
 							<HptAddSizeMenu
 								componentId={componentId}
-								availableSizes={props.availableSizes}
+								availableSizeOptions={props.availableSizeOptions}
+								formatMoney={props.formatMoney}
 								onAddSize={props.onAddSize}
 								disabled={!props.activeDoorComponent}
 							/>
@@ -299,7 +313,8 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 							<div className="ml-auto flex shrink-0 items-center gap-1">
 								<HptAddSizeMenu
 									componentId={componentId}
-									availableSizes={props.availableSizes}
+									availableSizeOptions={props.availableSizeOptions}
+									formatMoney={props.formatMoney}
 									onAddSize={props.onAddSize}
 								/>
 								<TooltipProvider delayDuration={120}>

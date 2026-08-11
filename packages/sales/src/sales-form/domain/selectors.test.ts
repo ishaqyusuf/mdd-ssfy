@@ -163,6 +163,51 @@ describe("selectors domain", () => {
 		expect(doors[0].salesPrice).toBe(260);
 	});
 
+	it("refreshes persisted door snapshots from available components on edit reopen", () => {
+		const reopenedLine = {
+			formSteps: [
+				{
+					step: { title: "Door" },
+					meta: {
+						selectedComponents: [
+							{
+								id: 45,
+								uid: "door-edit",
+								title: "Saved Door",
+								salesPrice: null,
+								basePrice: null,
+								pricing: null,
+							},
+						],
+					},
+				},
+			],
+		};
+
+		const doors = getSelectedDoorComponentsForLine(reopenedLine, {
+			availableComponents: [
+				{
+					id: 45,
+					uid: "door-edit",
+					title: "Current Door",
+					salesPrice: 180,
+					basePrice: 120,
+					pricing: { "2-8 x 7-0": { price: 120 } },
+				},
+			],
+		});
+
+		expect(doors).toHaveLength(1);
+		expect(doors[0]).toMatchObject({
+			id: 45,
+			uid: "door-edit",
+			title: "Current Door",
+			salesPrice: 180,
+			basePrice: 120,
+			pricing: { "2-8 x 7-0": { price: 120 } },
+		});
+	});
+
 	it("uses JSON door step metadata for fallback selected door fields", () => {
 		const fallbackLine = {
 			formSteps: [

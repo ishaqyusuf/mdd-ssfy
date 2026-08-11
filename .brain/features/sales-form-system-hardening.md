@@ -1,6 +1,12 @@
 # Sales Form System Hardening
 
-## Current behavior (2026-08-03)
+## Current behavior (2026-08-11)
+
+- Reopened sales lines refresh persisted Door component snapshots from the
+  current workflow component catalogue when the same component is still
+  available. HPT Add Size therefore resolves the current size/base pricing
+  instead of retaining a historical `null` pricing snapshot; archived or
+  otherwise unavailable doors continue to use their persisted fallback data.
 
 - Existing-order quantity edits with allocation, inbound, production, receipt,
   or fulfillment evidence now enter a guarded Sales Change Review instead of

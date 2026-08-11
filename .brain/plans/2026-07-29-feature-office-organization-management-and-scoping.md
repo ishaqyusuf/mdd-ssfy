@@ -40,6 +40,16 @@ breaking the existing single-office production behavior.
   sessions. Any active-office design must preserve both until legacy auth is
   retired.
 
+### SaaS Commercialization Interaction (2026-08-08)
+
+ADR-052 and the proposed multi-tenant SaaS plan add a new parent boundary:
+`Tenant` is the independent customer company and `Organization` remains an
+office/location within that tenant. If SaaS commercialization is approved, this
+office plan must be revised before implementation so membership, active-office
+selection, operational ownership, global/all-office access, backfill, and
+storefront/dealership fulfillment policy are all tenant-bound. This plan must
+not independently promote Organization into the SaaS tenant authority.
+
 ## Proposed Approach
 Use a staged, additive rollout with two product milestones:
 
@@ -653,4 +663,3 @@ Dependencies: stable Phase 10 observation window.
 ## Linked Task
 - Task Title: Office Organization Management And Operational Scoping
 - Task File: `.brain/tasks/roadmap.md`
-

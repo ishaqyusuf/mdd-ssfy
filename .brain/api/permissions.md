@@ -381,3 +381,30 @@ Tracks authentication and authorization patterns across API surfaces.
 - Actor identity is derived from the authenticated session. The supplied note is
   a reason, not an author field; Sales and inbound activity use the server-resolved
   employee contact.
+
+## Proposed multi-tenant SaaS permission boundary (2026-08-08)
+
+- Platform roles and tenant roles are distinct. A tenant Super Admin is not a
+  platform operator and cannot inspect another tenant or platform billing.
+- Platform support access to tenant data requires an explicit tenant, approved
+  capability, reason, actor, expiry, and append-only access audit. It is never
+  inferred from a global role alone.
+- Tenant membership, tenant status, active office, role/permissions,
+  entitlement, and entity ownership are separate checks. Passing one does not
+  imply the others.
+- Custom hostname resolution selects tenant context but grants no staff or
+  entity permission.
+- Tenant-admin feature selection cannot grant platform-only features or violate
+  feature dependencies. Manual grants are platform-controlled, time bounded,
+  reasoned, and audited.
+- Subscription failure follows approved grace/read-only/export behavior; it
+  cannot delete data or bypass legal hold/retention.
+- Tenant price/configuration administrators may manage their tenant overlay and
+  price books but cannot mutate the platform template, another tenant overlay,
+  or GND confidential pricing.
+- Merchant connections, subscription billing, finance, refunds, exports,
+  domains, sender domains, support access, and destructive lifecycle operations
+  require dedicated capabilities and reauthentication where defined.
+- Every new/converted route requires direct negative tests for anonymous,
+  wrong-tenant, wrong-office, wrong-role, disabled-feature, suspended-tenant,
+  expired-support, and stale/revoked public-token contexts as applicable.

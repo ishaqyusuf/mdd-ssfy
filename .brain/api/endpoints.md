@@ -525,3 +525,28 @@ Tracks notable API surfaces and where they are implemented.
   targets on retry.
 - New-sales-form adjustment preview/create expose explicit operational
   acknowledgement plus `CANCEL_OPEN_INBOUND | KEEP_IN_WAREHOUSE` disposition.
+
+## Proposed multi-tenant SaaS API surfaces (2026-08-08)
+
+Planning only; endpoint names may be refined during approved implementation.
+
+- `platform.tenants`: platform-admin provision, inspect, suspend/reactivate,
+  quota/cost, support-access, export/offboarding status, and audit.
+- `tenant.current`, `tenant.switch`, `tenant.memberships`, and
+  `tenant.invitations`: verified active tenant/office and membership lifecycle.
+- `tenant.plans`, `tenant.subscription`, `tenant.billingPortal`, and
+  `tenant.entitlements`: sellable plan, Checkout/portal, local subscription
+  projection, module access, quota, and override visibility.
+- `tenant.domains`: add, verify, status, make canonical, retry, and remove
+  platform/custom domains.
+- `tenant.brand`, `tenant.emailDomains`, and `tenant.providerConnections`:
+  versioned brand, sender verification, and OAuth/provider connection status.
+- `tenant.salesConfiguration`: template revision, tenant draft/published
+  overlay, diff/upgrade/conflict, custom components, and publish/rollback.
+- `tenant.priceBooks`: import, validate, draft, effective-date, publish, archive,
+  and customer-profile assignment.
+- Platform webhooks: Stripe subscription events, email delivery/bounce/complaint,
+  and future tenant merchant OAuth/webhooks use raw-body signature verification,
+  idempotent inbox persistence, async processing, replay, and reconciliation.
+- Existing domain routers become tenant-context required in migration waves;
+  route visibility or client-supplied tenant fields are never isolation.

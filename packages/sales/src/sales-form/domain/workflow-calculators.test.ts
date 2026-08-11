@@ -872,6 +872,68 @@ describe("workflow-calculators domain", () => {
 		expect(sizes).toEqual(["1-10 x 6-8"]);
 	});
 
+	it("prefers current route size variants over a stale edit snapshot", () => {
+		const sizes = deriveDoorSizeCandidates(
+			{
+				formSteps: [
+					{
+						step: { uid: "height-step", title: "Height" },
+						value: "6-8",
+						prodUid: "h-68",
+					},
+					{
+						step: { uid: "door-step", title: "Door" },
+						meta: {
+							doorSizeVariation: [{ rules: [], widthList: ["2-6"] }],
+						},
+					},
+				],
+			},
+			{},
+			{
+				stepsByUid: {
+					"door-step": {
+						meta: {
+							doorSizeVariation: [
+								{ rules: [], widthList: ["1-6", "2-6", "3-0"] },
+							],
+						},
+					},
+				},
+			},
+		);
+
+		expect(sizes).toEqual(["1-6 x 6-8", "2-6 x 6-8", "3-0 x 6-8"]);
+	});
+
+	it("can ignore a stale edit size snapshot when building current add-size options", () => {
+		const sizes = deriveDoorSizeCandidates(
+			{
+				formSteps: [
+					{
+						step: { uid: "height-step", title: "Height" },
+						value: "6-8",
+					},
+					{
+						step: { uid: "door-step", title: "Door" },
+						meta: {
+							doorSizeVariation: [{ rules: [], widthList: ["2-6"] }],
+						},
+					},
+				],
+			},
+			{
+				"1-6 x 6-8": { price: 50 },
+				"2-6 x 6-8": { price: 60 },
+				"3-0 x 6-8": { price: 70 },
+			},
+			{},
+			{ ignorePersistedVariations: true },
+		);
+
+		expect(sizes).toEqual(["1-6 x 6-8", "2-6 x 6-8", "3-0 x 6-8"]);
+	});
+
 	it("reads door size variants from JSON line and route metadata", () => {
 		const sizesFromLine = deriveDoorSizeCandidates(
 			{

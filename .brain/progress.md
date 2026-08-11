@@ -1,5 +1,27 @@
 # Progress
 
+- 2026-08-11: hardened the shared `local-infra-kit` Portless startup preflight.
+  The dev launcher now resolves filtered Turbo workspaces, or every workspace
+  for an unfiltered run, discovers explicit Portless route names in their
+  `dev` scripts, and removes matching static aliases before ports, services, or
+  Turbo tasks start. Missing aliases are ignored, unexpected removal failures
+  stop startup, and live process conflicts retain the interactive force path.
+  The environment wrapper now unwraps the literal `env` command used by GND's
+  app scripts so Portless conflict handling sees the real executable. Focused
+  coverage passes 41 tests / 78 assertions, and the full local-infra suite
+  passes 128 tests / 329 assertions.
+
+- 2026-08-11: fixed new-sales-form edit HPT Add Size creating a selected size
+  without its price. Reopened lines previously preferred the persisted Door
+  component snapshot even after the current Door catalogue loaded, so older
+  snapshots with `pricing: null` reached the HPT size-row builder. Selected
+  doors now refresh operational component fields from the matching current
+  catalogue record while retaining persisted fallback details when the door is
+  unavailable. The exact edit-reopen/add-size regression changed from red to
+  green; 97 focused Door/HPT tests and the Sales package typecheck pass. Live
+  browser proof remains blocked because the local dashboard returns 502 and the
+  project dev bootstrap could not establish its Docker-backed services.
+
 - 2026-08-07: repaired Inventory Needs `Mark as available` after review found
   that the first implementation widened Prisma shipment status with a
   non-schema `available` value, wrote a nonexistent
@@ -8915,3 +8937,42 @@
   pre-existing unrelated failures; dashboard typecheck likewise remains blocked
   by the documented baseline diagnostics. No database migration, API contract,
   or persisted order data changed.
+- 2026-08-08: proposed the complete GND multi-tenant SaaS commercialization
+  program. The plan distinguishes independent customer `Tenant` identity from
+  internal `Organization` offices and dealer/customer actors; sequences the
+  existing data-platform migration before GA tenant hardening; defines pooled
+  tenant context, membership, isolation waves, entitlements, separate SaaS
+  subscription billing, shared versioned Sales Form templates, tenant overlays
+  and price books, custom domains, branding, sender identity, tenant PDFs/files,
+  guided onboarding, pilots, security/restore gates, and public release. It
+  records a 24-30 week private-pilot and 32-44 week commercial-GA estimate for
+  the recommended team, a $170,000 target build budget with a $150,000-$220,000
+  planning envelope, proposed customer subscription tiers, provider cost
+  assumptions, and open commercial/legal/technical decisions. No application,
+  database, API, permission, billing, provider, or deployment behavior changed.
+  See `.brain/plans/2026-08-08-feature-multi-tenant-saas-commercialization.md`,
+  `.brain/features/multi-tenant-saas-platform.md`, and ADR-052.
+- 2026-08-09: created the branded, client-facing GND Millwork SaaS Launch Brief
+  in editable DOCX and share-ready PDF formats. The concise two-page brief uses
+  the official dashboard logo, omits client identity and budget figures, and
+  summarizes the approved feature direction, overlapping roadmap stages,
+  24-30 week private-pilot target, and 32-44 week public-launch estimate. Both
+  formats are stored under `outputs/client-documents/` and the final PDF was
+  visually verified as a two-page Letter-format document.
+- 2026-08-09: revised the SaaS delivery target and client launch brief to an
+  accelerated 9-11 week private-pilot milestone and 12-15 week guided public
+  launch. The roadmap now uses deliberately overlapping architecture, data,
+  tenant-isolation, subscription, shared Sales Form, branding, onboarding, QA,
+  and launch workstreams. The estimate is conditional on a larger parallel team,
+  rapid decisions, reuse of proven modules, controlled launch scope, and no
+  major unplanned data, compliance, or third-party integration complication.
+- 2026-08-09: finalized the client-facing GND Millwork SaaS Launch Brief as an
+  11-page PDF. The brief now describes the approved AI-accelerated delivery
+  model without specifying workforce size, retains the 9-11 week private-pilot
+  and 12-15 week guided public-launch targets, and documents integrated
+  AI-assisted and automated QA under experienced technical oversight. A client
+  decision appendix adds a 16-module launch/later/not-required matrix, 17 scope
+  and commercialization questions, and recommended module packaging across
+  Core Platform, Operations, Community and Service, Commerce, Workforce, and
+  optional add-ons. The final PDF contains no client name, budget figure, or
+  legacy 24-30/32-44 week estimate and was visually verified page by page.

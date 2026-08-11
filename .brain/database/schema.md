@@ -344,3 +344,43 @@ Tracks important schema-level entities and ownership boundaries.
   indexes for fulfillment reconciliation scans.
 - No relationship or canonical ownership changed; these are additive read-path
   indexes supporting cursor queues and serializable command lookups.
+
+## Proposed multi-tenant SaaS schema direction (2026-08-08)
+
+This is a planning contract only; none of these models/columns are implemented.
+The canonical plan is
+`.brain/plans/2026-08-08-feature-multi-tenant-saas-commercialization.md`.
+
+- `Tenant`: independent customer company, lifecycle, legal/billing identity,
+  locale/currency/time zone, retention, quota, and support state.
+- `Organization.tenantId`: requires every office/location to belong to one
+  tenant; Organization remains an office, not the tenant itself.
+- `TenantMembership` and `TenantInvitation`: global user-to-tenant access,
+  tenant role/status, default office, invitation, revocation, and timestamps.
+- `TenantSupportAccess`: time-bounded platform support access with actor,
+  tenant, reason, approval, expiry, and revocation audit.
+- `TenantBrand` and `TenantDomain`: versioned brand/legal/document identity and
+  verified subdomain/custom-hostname lifecycle.
+- `FeatureDefinition` remains code-owned; `Plan`, `PlanVersion`, `PlanFeature`,
+  `TenantSubscription`, `TenantEntitlement`, and `TenantFeatureOverride` persist
+  commercial access, provider projection, quota, and audited grants.
+- `BillingWebhookEvent`: signature-verified idempotent platform-subscription
+  inbox. It must not share the operational Sales/Square payment ledger.
+- `TenantProviderConnection`: encrypted/reference-only tenant merchant or other
+  provider connection metadata; OAuth is preferred over raw secrets.
+- `SalesConfigurationTemplate` and immutable template revisions own safe shared
+  structure/compatibility identities.
+- `TenantSalesConfiguration`, revisions, component overrides, custom components,
+  price books, price entries, and customer profile/tax links own tenant draft,
+  publication, customization, and pricing.
+- Every tenant-owned root model gains required `tenantId` after additive write
+  stamping and historical backfill. Child rows inherit through a canonical root
+  when duplication is unnecessary, but query paths must still prove ownership.
+- Business identifiers currently globally unique (for example selected emails,
+  phones, slugs, order numbers, UIDs, and provider references) require an audit
+  before changing to tenant-inclusive compound uniqueness.
+- `StoredDocument`, Sales PDF snapshots, email attempts, public links, jobs,
+  events, exports, usage, and audit require explicit tenant ownership or a
+  deterministic tenant-owned parent.
+- If Neon/Postgres is approved, selected high-risk tables gain row-level
+  security after typed application scoping is implemented and verified.

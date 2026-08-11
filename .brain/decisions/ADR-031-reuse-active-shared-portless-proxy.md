@@ -19,6 +19,11 @@ fixed internal app ports, and wildcard routing.
 
 - GND workspace dev scripts do not set `PORTLESS_PORT` or `PORTLESS_HTTPS`.
 - Apps retain their stable `PORTLESS_APP_PORT` values and Portless route names.
+- The shared dev launcher removes matching static aliases for selected
+  Portless-backed workspaces before starting local services. Filtered runs
+  inspect only Turbo-selected workspaces; unfiltered runs inspect all
+  workspaces. A missing alias is a normal no-op, while live process conflicts
+  continue through the interactive force-override path.
 - Developers and agents reuse the active shared HTTPS wildcard proxy and use
   the URLs Portless reports.
 - The machine-wide Portless service normally owns standard HTTPS port `443`.

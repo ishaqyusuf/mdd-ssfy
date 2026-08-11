@@ -61,11 +61,23 @@ export function resolveWorkflowVisibleComponents({
 		)
 		.map((component) => {
 			const override = overrides.get(String(component?.uid || ""));
+			const overridePricing =
+				override?.pricing && Object.keys(override.pricing).length > 0
+					? override.pricing
+					: component?.pricing;
+			const overrideSupplierVariants =
+				Array.isArray(override?.supplierVariants) &&
+				override.supplierVariants.length > 0
+					? override.supplierVariants
+					: component?.supplierVariants;
+			const effectiveComponent = {
+				...component,
+				...(override || {}),
+				pricing: overridePricing,
+				supplierVariants: overrideSupplierVariants,
+			};
 			const price = resolveComponentPriceByDeps(
-				{
-					...component,
-					...(override || {}),
-				},
+				effectiveComponent,
 				selectedByStepUid,
 				{
 					priceStepDeps: getStepPriceDeps(activeStep || null),
@@ -97,8 +109,7 @@ export function resolveWorkflowVisibleComponents({
 					: internalSalesPrice;
 
 			return {
-				...component,
-				...(override || {}),
+				...effectiveComponent,
 				salesPrice,
 				basePrice: Number(resolvedBasePrice ?? 0),
 			};

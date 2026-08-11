@@ -7,7 +7,9 @@ import {
 	getDoorSupplierMeta,
 	isDoorRowPriceMissing,
 	normalizeStoredDoorRows,
+	resolveWorkflowDoorSizePricing,
 } from "./door-utils";
+import { getSelectedDoorComponentsForLine } from "../../domain/selectors";
 
 describe("workflow door price availability", () => {
 	it("clears selectable quantities for missing-price door rows", () => {
@@ -105,6 +107,91 @@ describe("workflow door price availability", () => {
 		expect(rows[0]?.unitPrice).toBe(52.8);
 		expect(rows[0]?.lineTotal).toBe(52.8);
 		expect(rows[0]?.meta?.baseUnitPrice).toBe(0);
+	});
+
+	it("prices a newly added HPT size from the current door component after edit reopen", () => {
+		const line = {
+			uid: "line-edit",
+			formSteps: [
+				{
+					step: { uid: "height-step", title: "Height" },
+					value: "7-0",
+					prodUid: "height-70",
+				},
+				{
+					step: { uid: "door-step", title: "Door" },
+					meta: {
+						selectedComponents: [
+							{
+								id: 45,
+								uid: "door-edit",
+								title: "Saved Door",
+								pricing: null,
+							},
+						],
+					},
+				},
+			],
+		};
+		const [component] = getSelectedDoorComponentsForLine(line, {
+			availableComponents: [
+				{
+					id: 45,
+					uid: "door-edit",
+					title: "Current Door",
+					pricing: { "2-8 x 7-0": { price: 120 } },
+				},
+			],
+		});
+
+		const rows = deriveDoorSizeRows({
+			line: line as Parameters<typeof deriveDoorSizeRows>[0]["line"],
+			existingRows: [],
+			component: component as Parameters<
+				typeof deriveDoorSizeRows
+			>[0]["component"],
+		});
+
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.dimension).toBe("2-8 x 7-0");
+		expect(rows[0]?.unitPrice).toBe(120);
+		expect(rows[0]?.meta?.priceMissing).toBe(false);
+	});
+
+	it("uses the same resolved estimate for an Add Size description and its new row", () => {
+		const pricing = resolveWorkflowDoorSizePricing({
+			component: {
+				id: 978,
+				pricing: { "3-0 x 6-8": { price: 92.56 } },
+			},
+			size: "3-0 x 6-8",
+			salesMultiplier: 1 / 0.7,
+			profileCoefficient: 0.7,
+			sharedDoorSurcharge: 31.94,
+		});
+
+		expect(pricing.hasPrice).toBe(true);
+		expect(pricing.basePrice).toBe(92.56);
+		expect(pricing.doorSalesUnitPrice).toBe(132.23);
+		expect(pricing.unitPrice).toBe(164.17);
+	});
+
+	it("marks an unconfigured Add Size option as unavailable", () => {
+		const pricing = resolveWorkflowDoorSizePricing({
+			component: {
+				id: 978,
+				pricing: { "3-0 x 6-8": { price: 92.56 } },
+			},
+			size: "2-0 x 6-8",
+			sharedDoorSurcharge: 31.94,
+		});
+
+		expect(pricing).toEqual({
+			hasPrice: false,
+			basePrice: 0,
+			doorSalesUnitPrice: 0,
+			unitPrice: 0,
+		});
 	});
 
 	it("clears persisted missing supplier-price rows during door-size derivation", () => {

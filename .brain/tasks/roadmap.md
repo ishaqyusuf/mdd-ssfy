@@ -571,3 +571,15 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Plan Status: Proposed
 - Plan File: .brain/plans/2026-07-29-feature-office-organization-management-and-scoping.md
 - Created Date: 2026-07-29
+
+### Multi-Tenant SaaS Commercialization
+- Priority: High
+- Description: Track the proposed business rollout, tenant/data isolation,
+  shared Sales Form template and tenant pricing, feature entitlements,
+  subscription billing, custom domains, email/PDF, infrastructure, onboarding,
+  timeline, quotation, pilot, and public-GA gates.
+- Related Feature: Multi-tenant SaaS platform
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: .brain/plans/2026-08-08-feature-multi-tenant-saas-commercialization.md
+- Created Date: 2026-08-08

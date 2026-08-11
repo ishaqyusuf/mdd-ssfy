@@ -1169,3 +1169,41 @@ Tracks important request/response contracts and shared schema boundaries.
   atomic; the durable adjustment snapshot holds reconciliation checkpoints, and
   bounded delayed lease recovery uses exact compare-and-swap takeover to make
   projection/activity retry idempotent.
+
+## Proposed multi-tenant SaaS contracts (2026-08-08)
+
+These contracts are Proposed and become authoritative only when the matching
+implementation phase is approved and released.
+
+- `TenantContext` is server resolved and contains tenant id/status, active
+  office, membership/role, entitlement projection, request host/source, and
+  optional audited platform-support access. Raw tenant headers/IDs are hints at
+  most and never authoritative.
+- A signed public token binds tenant, purpose, audience/entity, revision,
+  expiry, and revocation identity. Hostname resolution alone never authorizes a
+  private entity.
+- Tenant-owned create/update inputs omit `tenantId` except privileged import or
+  transfer contracts; the server stamps ownership from context.
+- Entity-by-id operations query by tenant-inclusive identity or run a mandatory
+  ownership assertion before returning whether the entity exists.
+- Jobs/events/idempotency keys include tenant identity and a bounded immutable
+  snapshot/reference. Workers rebuild tenant context and recheck subscription,
+  entitlement, membership, and entity state appropriate to the operation.
+- Entitlements are computed from immutable plan version, current local
+  subscription projection, active trials, and unexpired audited overrides.
+  UI, API, jobs, exports, mobile, and public surfaces consume the same keys.
+- Stripe subscription webhooks verify signatures against raw bytes, store the
+  provider event once, tolerate duplicates/out-of-order delivery, update the
+  local projection transactionally, and support replay/reconciliation.
+- Domain activation requires normalized global uniqueness, DNS proof, provider
+  verification, certificate-ready state, and cache publication. Removal purges
+  routing before the hostname can be reused.
+- Sales configuration resolves `base template revision + published tenant
+  overlay revision + active tenant price book/profile/tax` and snapshots the
+  resolved evidence on every saved quote/order.
+- Starter template DTOs deny GND price, cost, supplier, internal margin, and
+  other tenant-confidential fields.
+- Module disablement follows its declared write-block/read/export/retention
+  state and never implicitly deletes tenant data.
+- Platform subscription billing and tenant operational customer payments expose
+  separate DTOs, provider IDs, reconciliation, permissions, and ledger records.

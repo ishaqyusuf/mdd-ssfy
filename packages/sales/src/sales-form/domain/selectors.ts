@@ -108,7 +108,24 @@ export function getSelectedDoorComponentsForLine(
 			.filter(([id]) => id > 0),
 	);
 
-	const resolved = [...selected];
+	const resolved = selected.map((component) => {
+		const componentUid = String(component?.uid || "").trim();
+		const componentId = Number(component?.id || 0);
+		const available =
+			(componentUid ? availableByUid.get(componentUid) : null) ||
+			(componentId > 0 ? availableById.get(componentId) : null);
+		if (!available) return component;
+
+		const current = snapshotSelectedComponent(available);
+		return {
+			...component,
+			...current,
+			title: current.title || component.title,
+			img: current.img || component.img,
+			redirectUid: current.redirectUid || component.redirectUid,
+			sectionOverride: current.sectionOverride || component.sectionOverride,
+		};
+	});
 	const resolvedUids = new Set(
 		resolved
 			.map((component) => String(component?.uid || "").trim())

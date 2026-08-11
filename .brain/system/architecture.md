@@ -55,3 +55,29 @@ Tracks the current technical topology and major module boundaries.
 - Strong type safety across package boundaries
 - Minimal duplication between web and mobile feature logic
 - Single-authority domain modules for correctness-critical workflows
+
+## Proposed SaaS Target Direction (2026-08-08)
+
+The SaaS commercialization architecture is proposed, not implemented. Its
+canonical plan is
+`.brain/plans/2026-08-08-feature-multi-tenant-saas-commercialization.md` and its
+boundary decision is ADR-052.
+
+- Add `Tenant` as the independent customer-company, billing, retention, and
+  data-isolation authority.
+- Keep `Organization` as an office/location nested inside a tenant. Do not
+  reinterpret dealer ownership or the current office model as SaaS tenancy.
+- Use one maintained application and initially pooled database with trusted
+  server-resolved tenant context, tenant-aware repositories, compound identity,
+  tenant-prefixed caches/jobs/files/events, and two-tenant negative tests.
+- Complete or explicitly defer the proposed Neon/Postgres migration before GA;
+  use PostgreSQL row-level security as defense in depth after application
+  scoping exists.
+- Keep one immutable, versioned platform Sales configuration template and layer
+  tenant draft/published overrides, custom components, and tenant-owned price
+  books over stable component/step identities.
+- Separate platform subscription billing from each tenant's operational
+  customer payments.
+- Resolve custom hostnames, brand, email sender identity, PDF/document config,
+  storage ownership, entitlements, provider connections, quotas, and audit
+  through the same tenant boundary.
