@@ -11,12 +11,10 @@ function normalizeWorkflowRoleTitle(roleTitle?: string | null) {
 		.replace(/\s+/g, " ");
 }
 
-export function createWwwWorkflowAdminCapabilities(
-	input: {
-		roleTitle?: string | null;
-		canEditOrders?: boolean | null;
-	},
-): SalesFormWorkflowCapabilities {
+export function createWwwWorkflowAdminCapabilities(input: {
+	roleTitle?: string | null;
+	canEditOrders?: boolean | null;
+}): SalesFormWorkflowCapabilities {
 	const normalizedRole = normalizeWorkflowRoleTitle(input.roleTitle);
 	const compactRole = normalizedRole.replace(/\s+/g, "");
 	const isSuperAdmin =

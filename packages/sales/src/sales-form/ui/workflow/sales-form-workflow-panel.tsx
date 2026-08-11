@@ -1428,9 +1428,7 @@ export function SalesFormWorkflowPanel<
 						<ServiceLineItemsEditor
 							rows={serviceContext.rows}
 							formatMoney={(value) => moneyIfPositive(value) || null}
-							canEditPricing={
-								workflowCapabilities.canEditServiceLinePricing
-							}
+							canEditPricing={workflowCapabilities.canEditServiceLinePricing}
 							onRowsChange={(rows) =>
 								updateLine(
 									line,

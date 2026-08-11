@@ -1474,9 +1474,7 @@ export function ItemWorkflowPanel() {
 			<ServiceLineItemsEditor
 				rows={rows}
 				formatMoney={money}
-				canEditPricing={
-					workflowAdminCapabilities.canEditServiceLinePricing
-				}
+				canEditPricing={workflowAdminCapabilities.canEditServiceLinePricing}
 				onRowsChange={persistRows}
 				createRow={(nextIndex) => ({
 					uid: `service-${nextIndex}-${Date.now().toString(36)}`,
