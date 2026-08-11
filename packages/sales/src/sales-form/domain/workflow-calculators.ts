@@ -329,7 +329,7 @@ function getDoorSizeVariationConfig(
 		const variations = Array.isArray(routeStepMeta?.doorSizeVariation)
 			? routeStepMeta.doorSizeVariation
 			: !options?.ignorePersistedVariations &&
-				  Array.isArray(stepMeta.doorSizeVariation)
+					Array.isArray(stepMeta.doorSizeVariation)
 				? stepMeta.doorSizeVariation
 				: null;
 		if (variations) {

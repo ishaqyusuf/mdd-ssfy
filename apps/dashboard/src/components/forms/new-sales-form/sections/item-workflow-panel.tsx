@@ -12,10 +12,7 @@ import { env } from "@/env.mjs";
 import { useAuth } from "@/hooks/use-auth";
 import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import { CUSTOM_IMG_ID } from "@/utils/constants";
-import {
-	moneyRatio,
-	multiplyMoney,
-} from "@gnd/sales/payment-system/money";
+import { moneyRatio, multiplyMoney } from "@gnd/sales/payment-system/money";
 import {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,
@@ -1246,9 +1243,7 @@ export function ItemWorkflowPanel() {
 					const pricing = resolveSizePricing(size);
 					return {
 						size,
-						doorPrice: pricing.hasPrice
-							? pricing.doorSalesUnitPrice
-							: null,
+						doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
 					};
 				});
 		})();
@@ -1518,11 +1513,10 @@ export function ItemWorkflowPanel() {
 		isActiveLine: boolean,
 	) {
 		const stepFamily = getItemWorkflowStepFamily(line, activeItemStep, {
-			retainMouldingComponentGrid:
-				shouldRetainMouldingComponentGrid(
-					String(line.uid || ""),
-					activeIndex,
-				),
+			retainMouldingComponentGrid: shouldRetainMouldingComponentGrid(
+				String(line.uid || ""),
+				activeIndex,
+			),
 		});
 		const isHptStep = isHousePackageToolStepTitle(activeItemStep?.step?.title);
 		if (
@@ -2494,12 +2488,10 @@ export function ItemWorkflowPanel() {
 								redirectOptions={getRedirectableRoutes(
 									routeData,
 									activeLineSteps,
-								).map(
-									(step) => ({
-										uid: step.uid,
-										title: step.title,
-									}),
-								)}
+								).map((step) => ({
+									uid: step.uid,
+									title: step.title,
+								}))}
 								formatPrice={moneyIfPositive}
 								priceSlot={
 									showActiveStepComponentPrices

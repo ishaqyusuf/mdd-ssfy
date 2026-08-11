@@ -4,9 +4,13 @@
 
 - Reopened sales lines refresh persisted Door component snapshots from the
   current workflow component catalogue when the same component is still
-  available. HPT Add Size therefore resolves the current size/base pricing
-  instead of retaining a historical `null` pricing snapshot; archived or
-  otherwise unavailable doors continue to use their persisted fallback data.
+  available. Each HPT item resolves Door visibility against its own workflow
+  selections, and Add Size ignores historical one-size variation snapshots in
+  favor of the current route or catalogue size list. Its dropdown shows the
+  same current door price as the size-selection modal, displays `Price
+  unavailable` without inventing a zero price when configuration is missing,
+  and uses the same resolver when creating the row. Archived or otherwise
+  unavailable doors continue to use their persisted fallback data.
 
 - Existing-order quantity edits with allocation, inbound, production, receipt,
   or fulfillment evidence now enter a guarded Sales Change Review instead of

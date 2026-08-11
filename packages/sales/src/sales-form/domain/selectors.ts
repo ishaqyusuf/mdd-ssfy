@@ -262,8 +262,7 @@ export function getSelectedMouldingComponentsForLine(line: any) {
 			img: row?.img || null,
 			inventoryId: null,
 			inventoryVariantId: null,
-			salesPrice:
-				row?.salesPrice == null ? null : Number(row.salesPrice || 0),
+			salesPrice: row?.salesPrice == null ? null : Number(row.salesPrice || 0),
 			basePrice: row?.basePrice == null ? null : Number(row.basePrice || 0),
 			pricing: null,
 			supplierVariants: [],

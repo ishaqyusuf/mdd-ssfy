@@ -661,11 +661,11 @@ export function SalesFormWorkflowPanel<
 						uid: componentId
 							? `persisted-door-${componentId}`
 							: `persisted-door-${index + 1}`,
-							title: componentId ? `Door ${componentId}` : "Saved Door",
-							img: null,
-							inventoryId: null,
-							inventoryVariantId: null,
-							salesPrice: null,
+						title: componentId ? `Door ${componentId}` : "Saved Door",
+						img: null,
+						inventoryId: null,
+						inventoryVariantId: null,
+						salesPrice: null,
 						basePrice: null,
 						pricing: null,
 						supplierVariants: [],
@@ -735,9 +735,7 @@ export function SalesFormWorkflowPanel<
 					const pricing = resolveSizePricing(size);
 					return {
 						size,
-						doorPrice: pricing.hasPrice
-							? pricing.doorSalesUnitPrice
-							: null,
+						doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
 					};
 				});
 		})();
@@ -1074,11 +1072,10 @@ export function SalesFormWorkflowPanel<
 		}
 
 		const stepFamily = getItemWorkflowStepFamily(line, activeItemStep, {
-			retainMouldingComponentGrid:
-				shouldRetainMouldingComponentGrid(
-					String(line.uid || ""),
-					activeIndex,
-				),
+			retainMouldingComponentGrid: shouldRetainMouldingComponentGrid(
+				String(line.uid || ""),
+				activeIndex,
+			),
 		});
 		const isDoorStep = isDoorStepTitle(activeItemStep?.step?.title);
 		const selectedUids = new Set(
@@ -1528,7 +1525,7 @@ export function SalesFormWorkflowPanel<
 								onProductSearchChange={setShelfProductSearch}
 								isSearchingProducts={Boolean(
 									shelfProductSearch !== deferredShelfProductSearch ||
-									shelfProductIndexQuery?.isPending ||
+										shelfProductIndexQuery?.isPending ||
 										shelfProductIndexQuery?.isFetching ||
 										shelfProductSearchQuery?.isPending ||
 										shelfProductSearchQuery?.isFetching,
@@ -1603,11 +1600,12 @@ export function SalesFormWorkflowPanel<
 	const doorSwapModalDoorStepIndex = doorSwapModalSteps.findIndex((step) =>
 		isDoorStepTitle(step?.step?.title),
 	);
-	const doorSwapSelectedComponents: WorkflowComponentRecord[] = doorSwapModalLine
-		? (getSelectedDoorComponentsForLine(doorSwapModalLine, {
-				availableComponents: visibleDoorComponents,
-			}) as WorkflowComponentRecord[])
-		: [];
+	const doorSwapSelectedComponents: WorkflowComponentRecord[] =
+		doorSwapModalLine
+			? (getSelectedDoorComponentsForLine(doorSwapModalLine, {
+					availableComponents: visibleDoorComponents,
+				}) as WorkflowComponentRecord[])
+			: [];
 	const doorSwapSourceComponent =
 		doorSwapSelectedComponents.find(
 			(component) =>

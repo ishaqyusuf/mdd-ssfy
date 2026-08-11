@@ -11,16 +11,20 @@
   coverage passes 41 tests / 78 assertions, and the full local-infra suite
   passes 128 tests / 329 assertions.
 
-- 2026-08-11: fixed new-sales-form edit HPT Add Size creating a selected size
-  without its price. Reopened lines previously preferred the persisted Door
-  component snapshot even after the current Door catalogue loaded, so older
-  snapshots with `pricing: null` reached the HPT size-row builder. Selected
-  doors now refresh operational component fields from the matching current
-  catalogue record while retaining persisted fallback details when the door is
-  unavailable. The exact edit-reopen/add-size regression changed from red to
-  green; 97 focused Door/HPT tests and the Sales package typecheck pass. Live
-  browser proof remains blocked because the local dashboard returns 502 and the
-  project dev bootstrap could not establish its Docker-backed services.
+- 2026-08-11: fixed new-sales-form edit HPT Add Size using stale size and price
+  data. Reopened lines now refresh selected Door component pricing from the
+  matching current catalogue record, ignore historical one-size variation
+  snapshots when building Add Size choices, and resolve each item against its
+  own Door visibility context instead of the currently active item's context.
+  The Add Size dropdown shows the same current door price as the size-selection
+  modal and labels unconfigured entries `Price unavailable`; selecting a priced
+  size builds the row through the same centralized price resolver. Focused
+  Door/HPT coverage passes 81 tests / 228 assertions, Sales and Dashboard
+  typechecks pass, and authenticated browser QA on order `09166LRG` proved the
+  new-item modal's 11 size/price pairs matched Item 1's refreshed dropdown after
+  excluding its already-selected size. Adding `3-0 x 6-8` produced an `$80.67`
+  estimate. The temporary item and row were discarded by refresh; the order
+  finished with five items, no dirty state, and no browser console errors.
 
 - 2026-08-07: repaired Inventory Needs `Mark as available` after review found
   that the first implementation widened Prisma shipment status with a
