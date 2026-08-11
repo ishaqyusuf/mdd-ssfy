@@ -35,7 +35,7 @@ filtering without duplicating backend project administration.
 - Runtime DSN: `EXPO_PUBLIC_SENTRY_DSN`.
 - Initialization requires `EXPO_PUBLIC_SENTRY_ENABLED=true` and a DSN.
 - Development/local env uses `EXPO_PUBLIC_SENTRY_ENABLED=false`.
-- Production EAS builds explicitly select the `production` EAS environment and `APP_VARIANT=production`.
+- Production EAS builds and OTA updates explicitly select the `production` EAS environment and `APP_VARIANT=production`; preview releases continue forcing Sentry off.
 - `@sentry/react-native/expo` receives `SENTRY_ORG` and `SENTRY_PROJECT_MOBILE`.
 - Metro starts from `getSentryExpoConfig` and then composes NativeWind plus the existing singleton resolver.
 - The custom app entry initializes Sentry before loading Expo Router so startup
@@ -97,7 +97,7 @@ filtering without duplicating backend project administration.
 ## Operational Notes
 
 - Vercel environment changes apply on the next deployment.
-- Expo environment changes apply on the next production EAS build/update that consumes the production environment.
+- Expo environment changes apply on the next `eas:build --prod` or `eas:update --prod` release that consumes the production environment.
 - Preview monitoring is intentionally disabled. Add a separate preview Sentry policy instead of reusing production DSNs if preview telemetry becomes necessary.
 - The authenticated Sentry audit on 2026-07-28 confirmed live web ingestion and
   releases. A controlled Android development-client run using production

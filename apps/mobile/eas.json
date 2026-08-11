@@ -27,7 +27,8 @@
 			"env": {
 				"APP_VARIANT": "production"
 			},
-			"autoIncrement": true
+			"autoIncrement": true,
+			"channel": "production"
 		}
 	},
 	"submit": {

@@ -16,12 +16,21 @@ function parseArgs(argv) {
 		current: null,
 		date: null,
 		dryRun: false,
+		skipPublish: false,
+		target: null,
 	};
 
 	for (let index = 0; index < argv.length; index += 1) {
 		const arg = argv[index];
 		if (arg === "--dry-run") {
 			args.dryRun = true;
+		} else if (arg === "--skip-publish") {
+			args.skipPublish = true;
+		} else if (arg === "--preview" || arg === "--prod") {
+			if (args.target) {
+				throw new Error("Choose exactly one of --preview or --prod.");
+			}
+			args.target = arg.slice(2);
 		} else if (arg === "--current") {
 			args.current = argv[index + 1];
 			if (!args.current) {
@@ -35,6 +44,10 @@ function parseArgs(argv) {
 			}
 			index += 1;
 		}
+	}
+
+	if (!args.target) {
+		throw new Error("Choose exactly one of --preview or --prod.");
 	}
 
 	return args;
@@ -101,30 +114,38 @@ function updateVersionFile(source, nextVersion) {
 	writeFileSync(versionFile, nextSource);
 }
 
-function publishUpdate(nextVersion) {
+function publishUpdate(nextVersion, target) {
+	const environment = target === "prod" ? "production" : "preview";
+	const releaseEnvArgs = [
+		"env",
+		"-u",
+		"EXPO_PUBLIC_EMAIL",
+		"-u",
+		"EXPO_PUBLIC_TOK",
+		...(target === "preview"
+			? [
+					"EXPO_PUBLIC_SENTRY_ENABLED=false",
+					"EXPO_PUBLIC_SENTRY_DEBUG=false",
+					"EXPO_PUBLIC_SENTRY_SMOKE_TEST=false",
+					"SENTRY_DISABLE_AUTO_UPLOAD=true",
+				]
+			: []),
+		"EXPO_NO_DOTENV=1",
+	];
 	const result = spawnSync(
 		"bun",
 		[
 			"run",
 			"with-env:prod",
-			"env",
-			"-u",
-			"EXPO_PUBLIC_EMAIL",
-			"-u",
-			"EXPO_PUBLIC_TOK",
-			"EXPO_PUBLIC_SENTRY_ENABLED=false",
-			"EXPO_PUBLIC_SENTRY_DEBUG=false",
-			"EXPO_PUBLIC_SENTRY_SMOKE_TEST=false",
-			"SENTRY_DISABLE_AUTO_UPLOAD=true",
-			"EXPO_NO_DOTENV=1",
+			...releaseEnvArgs,
 			"eas",
 			"update",
 			"--channel",
-			"preview",
+			environment,
 			"--platform",
 			"android",
 			"--environment",
-			"preview",
+			environment,
 			"--message",
 			`OTA update ${nextVersion}`,
 		],
@@ -157,7 +178,9 @@ function main() {
 	}
 
 	updateVersionFile(fileState.source, nextVersion);
-	publishUpdate(nextVersion);
+	if (!args.skipPublish) {
+		publishUpdate(nextVersion, args.target);
+	}
 }
 
 try {

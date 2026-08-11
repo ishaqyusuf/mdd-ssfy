@@ -1,5 +1,13 @@
 # Progress
 
+- 2026-08-11: standardized the root mobile release interface around explicit
+  environment flags. `eas:build` now requires `--dev`, `--preview`, or
+  `--prod`; `eas:update` requires `--preview` or `--prod`. Production builds
+  and OTA updates bind to the production channel/environment and retain
+  production Sentry behavior, while preview releases keep credential stripping
+  and Sentry suppression. The account runner preserves named-account selection
+  and forwards update dry-run/version flags without forwarding its own selectors.
+
 - 2026-08-11: hardened the shared `local-infra-kit` Portless startup preflight.
   The dev launcher now resolves filtered Turbo workspaces, or every workspace
   for an unfiltered run, discovers explicit Portless route names in their
@@ -8980,3 +8988,11 @@
   Core Platform, Operations, Community and Service, Commerce, Workforce, and
   optional add-ons. The final PDF contains no client name, budget figure, or
   legacy 24-30/32-44 week estimate and was visually verified page by page.
+- 2026-08-11: split new-sales-form Service row editing from the broader Super
+  Admin line-pricing capability. Internal dashboard users with `editOrders` can
+  now edit grouped Service unit price, tax, and production fields, while
+  Door/HPT, Moulding, Shelf, flat-line, shared component, and catalog pricing
+  remain restricted by their existing Super Admin capabilities. Both dashboard
+  workflow implementations consume the dedicated Service capability; focused
+  capability and wiring tests pass. No database, persistence, or API payload
+  contract changed.

@@ -49,10 +49,11 @@ respond without reopening the sale.
 - Ordinary internal sales users: sales selection only.
 - Dealership/storefront surfaces: no internal catalog-management actions.
 
-Grouped service and shelf editors now consume the same `canEditLinePricing`
-capability as Door/HPT pricing. Non-Super-Admin roles retain text, quantity,
-and selection workflows while unit-price, tax, production, and shelf-price
-controls stay read-only.
+Grouped Service rows use a dedicated `canEditServiceLinePricing` capability.
+Internal users with `editOrders` may edit Service unit price, tax, and production
+flags. Door/HPT, Moulding, Shelf, flat-line, shared component base pricing, and
+other workflow pricing controls remain behind the Super Admin-only
+`canEditLinePricing` or component-pricing capabilities.
 
 Authorization is duplicated intentionally at the capability/UI boundary and
 the protected tRPC mutation boundary. No database migration is required.

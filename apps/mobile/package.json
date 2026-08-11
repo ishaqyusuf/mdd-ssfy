@@ -8,9 +8,10 @@
     "dev:driver": "bun run with-env env APP_VARIANT=development EXPO_PUBLIC_DRIVER_PLATFORM_MODE=true EXPO_PUBLIC_SENTRY_ENABLED=false node ./scripts/run-expo-cli.cjs start --go --port ${GND_DRIVER_MOBILE_PORT:-3013}",
     "eas-build:dev": "BUN_AUTO_INSTALL=0 bun run with-env env EXPO_PUBLIC_SENTRY_ENABLED=false EXPO_PUBLIC_SENTRY_DEBUG=false EXPO_PUBLIC_SENTRY_SMOKE_TEST=false SENTRY_DISABLE_AUTO_UPLOAD=true eas build --profile development --platform android",
     "eas-build:preview": "BUN_AUTO_INSTALL=0 bun run with-env:prod env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK EXPO_PUBLIC_SENTRY_ENABLED=false EXPO_PUBLIC_SENTRY_DEBUG=false EXPO_PUBLIC_SENTRY_SMOKE_TEST=false SENTRY_DISABLE_AUTO_UPLOAD=true EXPO_NO_DOTENV=1 eas build -p android --profile preview",
+    "eas-build:prod": "BUN_AUTO_INSTALL=0 bun run with-env:prod env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK EXPO_NO_DOTENV=1 eas build -p android --profile production",
+    "eas:update": "node ./scripts/eas-update.mjs",
     "ios": "bun run with-env node ./scripts/run-expo-cli.cjs run:ios",
     "start": "bun run with-env node ./scripts/run-expo-cli.cjs start --port ${GND_MOBILE_PORT:-3012}",
-    "update:preview": "node ./scripts/update-preview.mjs",
     "web": "bun run with-env node ./scripts/run-expo-cli.cjs start --web",
     "with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",
     "with-env:prod": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --mode prod --"

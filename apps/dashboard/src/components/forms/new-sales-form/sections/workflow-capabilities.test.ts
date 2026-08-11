@@ -13,21 +13,42 @@ describe("Dashboard sales form workflow capabilities", () => {
 			"super_admin",
 			"SuperAdmin",
 		]) {
-			expect(createWwwWorkflowAdminCapabilities(role).canEditLinePricing).toBe(
-				true,
-			);
+			const capabilities = createWwwWorkflowAdminCapabilities({
+				roleTitle: role,
+			});
+			expect(capabilities.canEditLinePricing).toBe(true);
+			expect(capabilities.canEditServiceLinePricing).toBe(true);
 		}
-		expect(createWwwWorkflowAdminCapabilities("Admin")).toMatchObject({
+		expect(
+			createWwwWorkflowAdminCapabilities({ roleTitle: "Admin" }),
+		).toMatchObject({
 			canEditWorkflowComponents: true,
 			canEditLinePricing: false,
+			canEditServiceLinePricing: false,
 			canEditWorkflowComponentPricing: false,
 			canArchiveWorkflowComponents: true,
 		});
-		expect(createWwwWorkflowAdminCapabilities("Sales")).toMatchObject({
+		expect(
+			createWwwWorkflowAdminCapabilities({ roleTitle: "Sales" }),
+		).toMatchObject({
 			canEditWorkflowComponents: false,
 			canEditLinePricing: false,
+			canEditServiceLinePricing: false,
 			canEditWorkflowComponentPricing: false,
 			canArchiveWorkflowComponents: false,
+		});
+	});
+
+	test("lets editOrders users edit only service line pricing controls", () => {
+		expect(
+			createWwwWorkflowAdminCapabilities({
+				roleTitle: "Sales",
+				canEditOrders: true,
+			}),
+		).toMatchObject({
+			canEditServiceLinePricing: true,
+			canEditLinePricing: false,
+			canEditWorkflowComponentPricing: false,
 		});
 	});
 
@@ -49,7 +70,7 @@ describe("Dashboard sales form workflow capabilities", () => {
 		);
 
 		expect(source).toMatch(
-			/<ServiceLineItemsEditor[\s\S]*canEditPricing=\{workflowAdminCapabilities\.canEditLinePricing\}/,
+			/<ServiceLineItemsEditor[\s\S]*canEditPricing=\{[\s\S]*workflowAdminCapabilities\.canEditServiceLinePricing[\s\S]*\}/,
 		);
 		expect(source).toMatch(
 			/<ShelfInlineItemsEditor[\s\S]*canEditPricing=\{workflowAdminCapabilities\.canEditLinePricing\}/,

@@ -11,6 +11,7 @@ export type SalesFormWorkflowCapabilities = {
 	canUseMouldingCalculator: boolean;
 	canEditFlatLineDetails: boolean;
 	canEditLinePricing: boolean;
+	canEditServiceLinePricing: boolean;
 	canEditDealerVisibleTotals: boolean;
 	isDealershipMode: boolean;
 	isStorefrontMode: boolean;
@@ -32,6 +33,7 @@ export function createSalesFormWorkflowCapabilities(
 		canUseMouldingCalculator: false,
 		canEditFlatLineDetails: false,
 		canEditLinePricing: false,
+		canEditServiceLinePricing: false,
 		canEditDealerVisibleTotals: false,
 		isDealershipMode: false,
 		isStorefrontMode: false,
@@ -42,6 +44,7 @@ export function createSalesFormWorkflowCapabilities(
 export function createInternalSalesFormWorkflowCapabilities(input?: {
 	isWorkflowAdmin?: boolean;
 	canEditLinePricing?: boolean;
+	canEditServiceLinePricing?: boolean;
 	canEditWorkflowComponentPricing?: boolean;
 }): SalesFormWorkflowCapabilities {
 	const isWorkflowAdmin = Boolean(input?.isWorkflowAdmin);
@@ -62,6 +65,7 @@ export function createInternalSalesFormWorkflowCapabilities(input?: {
 		canUseMouldingCalculator: true,
 		canEditFlatLineDetails: true,
 		canEditLinePricing,
+		canEditServiceLinePricing: Boolean(input?.canEditServiceLinePricing),
 		canEditDealerVisibleTotals: false,
 		isDealershipMode: false,
 		isStorefrontMode: false,

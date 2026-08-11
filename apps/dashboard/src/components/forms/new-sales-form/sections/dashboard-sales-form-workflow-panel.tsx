@@ -53,8 +53,12 @@ export function DashboardSalesFormWorkflowPanel() {
 		name?: string | null;
 	} | null>(null);
 	const workflowAdminCapabilities = useMemo(
-		() => createWwwWorkflowAdminCapabilities(auth.roleTitle),
-		[auth.roleTitle],
+		() =>
+			createWwwWorkflowAdminCapabilities({
+				roleTitle: auth.roleTitle,
+				canEditOrders: auth.can?.editOrders,
+			}),
+		[auth.roleTitle, auth.can?.editOrders],
 	);
 	const componentAdmin = useWorkflowComponentAdmin({
 		record: { lineItems: record?.lineItems || [] },

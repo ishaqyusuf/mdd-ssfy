@@ -108,7 +108,7 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 - Legacy: `service-content.tsx` tax/prod `LineSwitch`
 - New: grouped service rows/editor in `item-workflow-panel.tsx`
 - Status: Implemented in code; runtime proof pending
-- Gap: row-level tax and production flags now hydrate/save through grouped service rows, and the new-form editor exposes them behind the Super-Admin line-pricing capability. Remaining work is browser parity proof and full costing/tax scenario coverage.
+- Gap: row-level tax and production flags now hydrate/save through grouped service rows, and the new-form editor exposes Service unit price, tax, and production controls to internal `editOrders` users without granting Door/HPT, Moulding, Shelf, flat-line, or catalog pricing access. Remaining work is browser parity proof and full costing/tax scenario coverage.
 
 11. Tax not getting calculated
 - Legacy: `taxCodeChanged()` always triggers `calculateTotalPrice()`

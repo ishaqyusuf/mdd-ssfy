@@ -67,11 +67,11 @@ describe("mobile preview build security", () => {
 		}
 	});
 
-	it("removes dev credentials and disables Sentry before non-production builds and updates", () => {
+	it("removes dev credentials and applies target-specific Sentry policy to releases", () => {
 		const packageJson = JSON.parse(readAppFile("package.json")) as {
 			scripts: Record<string, string>;
 		};
-		const updateScript = readAppFile("scripts/update-preview.mjs");
+		const updateScript = readAppFile("scripts/eas-update.mjs");
 
 		expect(packageJson.scripts["eas-build:dev"]).toContain(
 			"EXPO_PUBLIC_SENTRY_ENABLED=false EXPO_PUBLIC_SENTRY_DEBUG=false EXPO_PUBLIC_SENTRY_SMOKE_TEST=false SENTRY_DISABLE_AUTO_UPLOAD=true eas build",
@@ -79,9 +79,16 @@ describe("mobile preview build security", () => {
 		expect(packageJson.scripts["eas-build:preview"]).toContain(
 			"with-env:prod env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK EXPO_PUBLIC_SENTRY_ENABLED=false EXPO_PUBLIC_SENTRY_DEBUG=false EXPO_PUBLIC_SENTRY_SMOKE_TEST=false SENTRY_DISABLE_AUTO_UPLOAD=true EXPO_NO_DOTENV=1 eas build",
 		);
-		expect(updateScript).toMatch(
-			/"env",\s*"-u",\s*"EXPO_PUBLIC_EMAIL",\s*"-u",\s*"EXPO_PUBLIC_TOK",\s*"EXPO_PUBLIC_SENTRY_ENABLED=false",\s*"EXPO_PUBLIC_SENTRY_DEBUG=false",\s*"EXPO_PUBLIC_SENTRY_SMOKE_TEST=false",\s*"SENTRY_DISABLE_AUTO_UPLOAD=true",\s*"EXPO_NO_DOTENV=1",\s*"eas"/,
+		expect(packageJson.scripts["eas-build:prod"]).toContain(
+			"with-env:prod env -u EXPO_PUBLIC_EMAIL -u EXPO_PUBLIC_TOK EXPO_NO_DOTENV=1 eas build -p android --profile production",
 		);
+		expect(packageJson.scripts["eas-build:prod"]).not.toContain(
+			"SENTRY_DISABLE_AUTO_UPLOAD=true",
+		);
+		expect(updateScript).toContain('target === "preview"');
+		expect(updateScript).toContain('"EXPO_PUBLIC_SENTRY_ENABLED=false"');
+		expect(updateScript).toContain('"SENTRY_DISABLE_AUTO_UPLOAD=true"');
+		expect(updateScript).toContain('target === "prod" ? "production" : "preview"');
 	});
 
 	it("keeps the smaller driver router root explicit and development-only", () => {

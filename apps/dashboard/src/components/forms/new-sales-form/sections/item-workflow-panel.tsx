@@ -302,8 +302,12 @@ export function ItemWorkflowPanel() {
 	const archiveCustomComponentMutation =
 		useArchiveDykeCustomStepComponentMutation();
 	const workflowAdminCapabilities = useMemo(
-		() => createWwwWorkflowAdminCapabilities(auth.roleTitle),
-		[auth.roleTitle],
+		() =>
+			createWwwWorkflowAdminCapabilities({
+				roleTitle: auth.roleTitle,
+				canEditOrders: auth.can?.editOrders,
+			}),
+		[auth.roleTitle, auth.can?.editOrders],
 	);
 	const componentAdmin = useWorkflowComponentAdmin({
 		record,
@@ -1470,7 +1474,9 @@ export function ItemWorkflowPanel() {
 			<ServiceLineItemsEditor
 				rows={rows}
 				formatMoney={money}
-				canEditPricing={workflowAdminCapabilities.canEditLinePricing}
+				canEditPricing={
+					workflowAdminCapabilities.canEditServiceLinePricing
+				}
 				onRowsChange={persistRows}
 				createRow={(nextIndex) => ({
 					uid: `service-${nextIndex}-${Date.now().toString(36)}`,

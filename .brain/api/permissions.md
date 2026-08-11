@@ -247,6 +247,10 @@ Tracks authentication and authorization patterns across API surfaces.
 - Ordinary internal sales users retain normal sale-component selection only.
 - Dealership and storefront capability sets never expose internal
   catalog-management actions.
+- The dashboard sales-form capability projection grants grouped Service unit
+  price, tax, and production editing to internal users with `editOrders`.
+  Door/HPT, Moulding, Shelf, flat-line, and shared catalog pricing remain on
+  their existing Super Admin-only capabilities.
 
 ## Custom millwork inquiries (2026-07-22)
 

@@ -12,15 +12,19 @@ function normalizeWorkflowRoleTitle(roleTitle?: string | null) {
 }
 
 export function createWwwWorkflowAdminCapabilities(
-	roleTitle?: string | null,
+	input: {
+		roleTitle?: string | null;
+		canEditOrders?: boolean | null;
+	},
 ): SalesFormWorkflowCapabilities {
-	const normalizedRole = normalizeWorkflowRoleTitle(roleTitle);
+	const normalizedRole = normalizeWorkflowRoleTitle(input.roleTitle);
 	const compactRole = normalizedRole.replace(/\s+/g, "");
 	const isSuperAdmin =
 		normalizedRole === "super admin" || compactRole === "superadmin";
 	return createInternalSalesFormWorkflowCapabilities({
 		isWorkflowAdmin: normalizedRole === "admin" || isSuperAdmin,
 		canEditLinePricing: isSuperAdmin,
+		canEditServiceLinePricing: isSuperAdmin || Boolean(input.canEditOrders),
 		canEditWorkflowComponentPricing: isSuperAdmin,
 	});
 }

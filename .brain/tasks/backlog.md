@@ -37,6 +37,13 @@ Tracks queued work that is important but not currently in the top execution slic
 - Intake File: brain/intake/2026-06-22-sales-overview-inventory-workflows.md
 - Created Date: 2026-06-22
 
+### Quantity Input Stepper Redesign
+- Priority: High
+- Description: Redesign applicable quantity inputs as one compact input group with the editable quantity field first and ghost decrement/increment buttons on its right, ordered as `[ qty | - | + ]`; preserve existing quantity constraints and provide accessible button labels.
+- Related Feature: Shared Quantity Input UX
+- Status: Backlog
+- Created Date: 2026-08-11
+
 ## Next Up
 - [x] Sales Finance compact ledger columns and persistent visibility: apply the
   shared Sales Orders small-column sizing to Invoices, Received, Refunded, Sub
