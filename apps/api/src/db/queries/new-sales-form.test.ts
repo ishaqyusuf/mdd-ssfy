@@ -9,6 +9,7 @@ import {
   getNewSalesForm,
   saveDraftNewSalesForm,
   saveFinalNewSalesForm,
+  saveStorefrontInquiryQuote,
   searchNewSalesCustomers,
   searchNewSalesFormShelfProducts,
   updateNewSalesFormShelfProduct,
@@ -2705,7 +2706,7 @@ describe("new-sales-form relational parity", () => {
     expect(new Set(savedQuotes.map((quote) => quote.slug)).size).toBe(3);
     for (const quote of savedQuotes) {
       expect(quote.type).toBe("quote");
-      expect(quote.slug?.startsWith("quote-")).toBe(true);
+      expect(quote.slug).toBe(quote.orderId);
     }
 
     const loadedQuotes = await Promise.all(
@@ -2756,6 +2757,28 @@ describe("new-sales-form relational parity", () => {
         (line) => line.title === "HPT Quote Line",
       ),
     ).toBe(false);
+  });
+
+  it("preserves the typed slug namespace for storefront inquiry quotes", async () => {
+    const { ctx, state } = createMockContext();
+    (ctx.db.customers as any).findFirst = async ({ where }: any) =>
+      state.customers.find((customer) => customer.id === where.id) || null;
+    (ctx.db.salesOrders as any).update = async ({ where, data }: any) => {
+      const order = state.orders.find((candidate) => candidate.id === where.id);
+      Object.assign(order, data);
+      return order;
+    };
+
+    const saved = await saveStorefrontInquiryQuote(ctx, {
+      inquiryId: "inquiry-1",
+      reference: "INQ-1",
+      customerId: 100,
+      salesRepId: 77,
+      notes: "Storefront inquiry",
+    });
+
+    expect(saved.orderId).toBe("00000AL");
+    expect(saved.slug).toBe("quote-00000al");
   });
 
   it("persists quote saves with legacy-compatible relational rows", async () => {
@@ -3153,7 +3176,7 @@ describe("new-sales-form relational parity", () => {
     const saved = await saveDraftNewSalesForm(ctx, createPayload);
 
     expect(saved.orderId).toBe("00000AL");
-    expect(saved.slug).toBe("order-00000al");
+    expect(saved.slug).toBe(saved.orderId);
     expect(saved.orderId.endsWith("DPP")).toBe(false);
     expect(state.salesTaxes).toHaveLength(1);
     expect(state.salesTaxes[0]).toMatchObject({

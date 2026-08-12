@@ -86,8 +86,15 @@
 - Approval tokens are returned only when the proposal is first created and are
   accepted only by the token-scoped public approval procedures.
 
-## New Sales Form Edit Identifier Compatibility (2026-08-03)
+## New Sales Form Edit Identifier Compatibility (2026-08-12)
 
+- New internal dashboard documents returned by `newSalesForm.saveDraft` and
+  `newSalesForm.saveFinal` persist and return the legacy identity contract:
+  `slug === orderId`, preserving the original casing and omitting `order-` or
+  `quote-` prefixes. This applies only when creating a new office order/quote;
+  saves of existing documents preserve their current slug.
+- Storefront checkout/inquiry saves retain type-prefixed slugs, and dealer
+  portal saves retain their separate DPP identity contract.
 - `newSalesForm.get({ type, slug })` treats the `slug` input as an edit-route
   identifier. It first resolves an active document by canonical `slug`, then
   falls back to the visible `orderId` for legacy bookmarks and form-surface
@@ -95,6 +102,7 @@
 - Canonical slug resolution retains priority if a slug could collide with a
   different document's visible number. The requested document type and
   non-deleted guard apply to both lookup paths.
+- Existing type-prefixed new-form slugs remain valid and are not migrated.
 
 ## New Sales Form Autosave Identity (2026-07-31)
 

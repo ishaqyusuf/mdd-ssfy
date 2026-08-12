@@ -1,5 +1,18 @@
 # Progress
 
+- 2026-08-12: aligned new internal dashboard sales identity persistence with
+  the legacy form. Newly created orders and quotes now persist the generated
+  visible number directly as both `orderId` and `slug`, removing the new-form
+  `order-` / `quote-` slug prefix while preserving existing saved slugs and
+  storefront/dealer identity rules. The quote red/green regression, matching
+  order assertion, storefront boundary regression, and full new-sales-form API
+  file pass (31 tests / 192 assertions). The broader migration gate reaches
+  195 passes before its
+  pre-existing `noop is not defined` failure in
+  `sales-form-engine-panel.test.ts`; API typecheck remains blocked by the
+  unrelated existing `inbound-receiving.ts:1443` diagnostic. No database
+  schema, migration, or permission change was required.
+
 - 2026-08-12: added legacy-parity `Make Copy` and `Move To` actions to the
   shared new-sales-form item overflow menu for dashboard and dealership users.
   Copy deep-clones the selected item directly after its source, resets all

@@ -2,6 +2,14 @@
 
 ## Current behavior (2026-08-12)
 
+- New internal dashboard orders and quotes use the legacy sales identity for
+  both `orderId` and `slug`. A generated quote such as `03464PC` now persists
+  `slug: "03464PC"` instead of `slug: "quote-03464pc"`; orders follow the same
+  rule. Existing type-prefixed records are not rewritten and remain editable
+  through the canonical-slug-first loader and visible-number fallback.
+  Storefront checkout and inquiry documents retain their type-prefixed slug
+  namespace, and dealer-portal documents retain their DPP identity contract.
+
 - The shared new-sales-form item card now exposes `Make Copy` and `Move To`
   from its overflow menu on both the internal dashboard and dealership
   composer. Copy inserts a deep-cloned item immediately after its source,

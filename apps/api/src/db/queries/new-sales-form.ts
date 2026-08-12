@@ -3360,7 +3360,7 @@ async function saveNewSalesFormInternal(
 			const created = await tx.salesOrders.create({
 				data: {
 					orderId: identity.orderId,
-					slug: identity.slug,
+					slug: origin ? identity.slug : identity.orderId,
 					type: payload.type,
 					status,
 					isDyke: true,
