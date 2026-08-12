@@ -395,4 +395,49 @@ describe("profile-repricing domain", () => {
 		expect(door.unitPrice).toBe(25);
 		expect(door.lineTotal).toBe(100);
 	});
+
+	it("does not compound HPT shared surcharges across profile switches", () => {
+		const profileOneLines = [
+			{
+				qty: 1,
+				unitPrice: 5_000,
+				lineTotal: 5_000,
+				formSteps: [
+					{
+						step: { title: "Door" },
+						price: 4_500,
+					},
+					{
+						step: { title: "Casing" },
+						price: 500,
+					},
+				],
+				housePackageTool: {
+					totalDoors: 1,
+					totalPrice: 5_000,
+					doors: [
+						{
+							totalQty: 1,
+							unitPrice: 5_000,
+							lineTotal: 5_000,
+						},
+					],
+				},
+			},
+		];
+
+		const profileTwoLines = repriceSalesFormLineItemsByProfile(
+			profileOneLines,
+			1.1,
+			1,
+		);
+		const switchedBackLines = repriceSalesFormLineItemsByProfile(
+			profileTwoLines,
+			1,
+			1.1,
+		);
+
+		expect((profileTwoLines[0] as any).unitPrice).toBe(5_500);
+		expect((switchedBackLines[0] as any).unitPrice).toBe(5_000);
+	});
 });

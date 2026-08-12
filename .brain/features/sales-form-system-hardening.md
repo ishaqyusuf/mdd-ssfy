@@ -55,6 +55,13 @@
   authority. Configured workflow components and grouped door, shelf, and
   moulding rows fall back to their current sales price ratio instead of
   collapsing invoice summaries to zero.
+- Repeated customer-profile switches keep House Package Tool pricing
+  reversible. When a persisted door has no authoritative base price, repricing
+  extracts the prior door-only sales price from the all-in unit before applying
+  the profile ratio, then adds the newly repriced shared surcharge once. Profile
+  multipliers retain ratio precision until the final currency value is rounded,
+  so switching back restores the original price instead of compounding or
+  drifting.
 - P.O. metadata is projected to both the legacy root field and an existing
   nested new-form document. Legacy saves preserve the nested document instead
   of replacing unknown metadata, and both editors hydrate the same canonical

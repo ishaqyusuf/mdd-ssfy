@@ -9011,3 +9011,13 @@
   workflow implementations consume the dedicated Service capability; focused
   capability and wiring tests pass. No database, persistence, or API payload
   contract changed.
+- 2026-08-12: fixed cumulative customer-profile repricing in the new sales form.
+  House Package Tool fallback repricing now separates the prior door-only price
+  from its shared component surcharge before applying the next profile ratio,
+  and coefficient ratios remain unrounded until final money calculation. The
+  regression reproduces the reported `5000 -> 5500 -> 6000` failure and now
+  verifies the reversible `5000 -> 5500 -> 5000` sequence. Focused profile,
+  HPT compatibility, and state-action validation passes 37 tests / 196
+  assertions. No database, API contract, permission, or persisted-data shape
+  changed; authenticated browser proof was not run because the installed gstack
+  browser workflow stopped on a separate upgrade/snooze permission gate.

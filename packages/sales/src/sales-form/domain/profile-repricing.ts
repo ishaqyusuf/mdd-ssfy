@@ -1,10 +1,12 @@
 import {
 	computeHptSharedDoorSurcharge,
+	getHptDoorSalesUnitPrice,
 	normalizeHptDoorRowForLegacy,
 } from "./hpt-compatibility";
 import { sharedMouldingComponentPrice } from "./workflow-calculators";
 import {
 	divideMoney,
+	moneyRatio,
 	multiplyMoney,
 	roundMoney,
 	sumMoney,
@@ -29,7 +31,7 @@ function toPositiveFinite(value: unknown): number | null {
 function toProfileMultiplier(coefficient?: number | null) {
 	const coeff = Number(coefficient);
 	if (!Number.isFinite(coeff) || coeff === 0) return 1;
-	return divideMoney(1, coeff);
+	return moneyRatio(1, coeff);
 }
 
 function valueFromPath(source: unknown, path: string[]): unknown {
@@ -168,7 +170,7 @@ export function repriceSalesFormLineItemsByProfile<
 	const prevMultiplier = toProfileMultiplier(previousProfileCoefficient);
 	const nextMultiplier = toProfileMultiplier(nextProfileCoefficient);
 	const ratio =
-		prevMultiplier === 0 ? 1 : divideMoney(nextMultiplier, prevMultiplier);
+		prevMultiplier === 0 ? 1 : moneyRatio(nextMultiplier, prevMultiplier);
 
 	return (lineItems || []).map((line) => {
 		const formSteps = (line.formSteps || []).map((step) => {
@@ -277,6 +279,7 @@ export function repriceSalesFormLineItemsByProfile<
 			: [];
 
 		const existingDoors = line.housePackageTool?.doors || [];
+		const previousSharedDoorSurcharge = computeHptSharedDoorSurcharge(line);
 		const repricedLineForSurcharge = {
 			...line,
 			formSteps,
@@ -287,7 +290,6 @@ export function repriceSalesFormLineItemsByProfile<
 		const doorRouteConfig = readWorkflowDoorRouteConfig(line);
 		const doors = existingDoors.map((door) => {
 			const doorMeta = readSalesFormObjectMetadata(door?.meta) || {};
-			const currentUnit = toFinite(door?.unitPrice) ?? 0;
 			const baseUnitPrice = firstPositiveFinite(door, [
 				["basePrice"],
 				["baseUnitPrice"],
@@ -296,10 +298,13 @@ export function repriceSalesFormLineItemsByProfile<
 				["meta", "priceData", "baseUnitCost"],
 				["meta", "priceData", "basePrice"],
 			]);
+			const currentDoorSales = getHptDoorSalesUnitPrice(door, {
+				sharedDoorSurcharge: previousSharedDoorSurcharge,
+			});
 			const fallbackDoorSales =
 				baseUnitPrice != null
 					? multiplyMoney(baseUnitPrice, nextMultiplier)
-					: multiplyMoney(currentUnit, ratio);
+					: multiplyMoney(currentDoorSales, ratio);
 			return normalizeHptDoorRowForLegacy(
 				{
 					...door,

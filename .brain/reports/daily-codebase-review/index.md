@@ -1,5 +1,6 @@
 # Daily Codebase Review Index
 
+- [2026-08-12](./2026-08-12.md) - Typecheck still fails in `@gnd/utils`; top risks are public task controls, public checkout/quote-token actions, public organization scoping, terminal pay portal mock paths, and inventory release evidence.
 - [2026-08-11](./2026-08-11.md) - Typecheck still fails in `@gnd/utils`; top risks are public task controls feeding mobile dispatch, public payment context, dispatch cancel payload drift, and adjustment approval contract mismatch.
 - [2026-08-06](./2026-08-06.md) - Typecheck still fails in `@gnd/utils`; top risks are generic public task execution, adjustment approval contract drift, public payment/customer surfaces, and driver read privacy.
 - [2026-08-05](./2026-08-05.md) - Typecheck still fails in `@gnd/utils`; top risks are public task controls, public office management, public payment surfaces, inventory proof blockers, and mock active sessions.
