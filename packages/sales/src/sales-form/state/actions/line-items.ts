@@ -1,15 +1,16 @@
+import { multiplyMoney } from "../../../payment-system/domain/money";
 import {
 	createEmptySalesFormLineItem,
+	duplicateSalesFormLineItemRecord,
 	normalizeSalesFormLineItem,
 	normalizeSalesFormLineItems,
 } from "../../application";
 import {
-	getNextSalesFormActiveItem,
 	getInitialSalesFormActiveStepByLine,
+	getNextSalesFormActiveItem,
 	recomputeSalesFormRecordSummary,
 } from "../selectors";
 import type { SalesFormState, SalesFormStateRecord } from "../types";
-import { multiplyMoney } from "../../../payment-system/domain/money";
 
 export function setSalesFormLineItems<
 	TRecord extends SalesFormStateRecord,
@@ -38,10 +39,7 @@ export function setSalesFormLineItems<
 export function addSalesFormLineItem<
 	TRecord extends SalesFormStateRecord,
 	TState extends SalesFormState<TRecord>,
->(
-	state: TState,
-	line?: Partial<TRecord["lineItems"][number]>,
-): TState {
+>(state: TState, line?: Partial<TRecord["lineItems"][number]>): TState {
 	if (!state.record) return state;
 	const next = normalizeSalesFormLineItem(
 		line || createEmptySalesFormLineItem(state.record.lineItems.length),
@@ -65,6 +63,81 @@ export function addSalesFormLineItem<
 				} as TRecord),
 			},
 		},
+		dirty: true,
+		saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
+	};
+}
+
+export function duplicateSalesFormLineItem<
+	TRecord extends SalesFormStateRecord,
+	TState extends SalesFormState<TRecord>,
+>(state: TState, uid: string): TState {
+	if (!state.record) return state;
+	const sourceIndex = state.record.lineItems.findIndex(
+		(line) => line.uid === uid,
+	);
+	const source = state.record.lineItems[sourceIndex];
+	if (sourceIndex < 0 || !source) return state;
+
+	const copy = duplicateSalesFormLineItemRecord(
+		source,
+		sourceIndex + 1,
+	) as TRecord["lineItems"][number];
+	const lineItems = [...state.record.lineItems];
+	lineItems.splice(sourceIndex + 1, 0, copy);
+
+	return {
+		...state,
+		record: recomputeSalesFormRecordSummary({
+			...state.record,
+			lineItems,
+		} as TRecord),
+		editor: {
+			...state.editor,
+			activeItem: String(copy.uid || ""),
+			activeStepByLine: {
+				...state.editor.activeStepByLine,
+				...getInitialSalesFormActiveStepByLine({
+					...state.record,
+					lineItems: [copy],
+				} as TRecord),
+			},
+		},
+		dirty: true,
+		saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
+	};
+}
+
+export function moveSalesFormLineItem<
+	TRecord extends SalesFormStateRecord,
+	TState extends SalesFormState<TRecord>,
+>(state: TState, uid: string, targetIndex: number): TState {
+	if (!state.record) return state;
+	const sourceIndex = state.record.lineItems.findIndex(
+		(line) => line.uid === uid,
+	);
+	if (
+		sourceIndex < 0 ||
+		targetIndex < 0 ||
+		targetIndex >= state.record.lineItems.length ||
+		targetIndex === sourceIndex
+	) {
+		return state;
+	}
+
+	const lineItems = [...state.record.lineItems];
+	const source = lineItems[sourceIndex];
+	const target = lineItems[targetIndex];
+	if (!source || !target) return state;
+	lineItems[sourceIndex] = target;
+	lineItems[targetIndex] = source;
+
+	return {
+		...state,
+		record: recomputeSalesFormRecordSummary({
+			...state.record,
+			lineItems,
+		} as TRecord),
 		dirty: true,
 		saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
 	};

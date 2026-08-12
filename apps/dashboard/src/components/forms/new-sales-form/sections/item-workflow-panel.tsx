@@ -221,6 +221,8 @@ export function ItemWorkflowPanel() {
 	const record = useNewSalesFormStore((s) => s.record);
 	const updateLineItem = useNewSalesFormStore((s) => s.updateLineItem);
 	const removeLineItem = useNewSalesFormStore((s) => s.removeLineItem);
+	const duplicateLineItem = useNewSalesFormStore((s) => s.duplicateLineItem);
+	const moveLineItem = useNewSalesFormStore((s) => s.moveLineItem);
 	const editor = useNewSalesFormStore((s) => s.editor);
 	const setEditor = useNewSalesFormStore((s) => s.setEditor);
 
@@ -2722,6 +2724,8 @@ export function ItemWorkflowPanel() {
 					})
 				}
 				onRemoveLine={(line) => removeLineItem(line.uid)}
+				onDuplicateLine={(line) => duplicateLineItem(line.uid)}
+				onMoveLine={(line, targetIndex) => moveLineItem(line.uid, targetIndex)}
 				onStepChange={(line, stepIndex) => {
 					activateLineStep(line.uid, stepIndex);
 				}}

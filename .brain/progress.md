@@ -1,5 +1,20 @@
 # Progress
 
+- 2026-08-12: added legacy-parity `Make Copy` and `Move To` actions to the
+  shared new-sales-form item overflow menu for dashboard and dealership users.
+  Copy deep-clones the selected item directly after its source, resets all
+  owned persistence ids and grouped identities, activates the copy, and saves
+  it as an independent record; Move To swaps the selected item with the chosen
+  numbered position to match the legacy form. Focused reducer, UI, history
+  restore, and API persistence coverage passes, along with Sales and Dealership
+  typechecks and scoped package Biome checks. The dashboard-wide typecheck
+  exhausted its 4 GB heap without reporting a TypeScript diagnostic; the new
+  persistence scenario passes independently while the full pre-existing API
+  multi-line test file retains two unrelated House Package Tool mock failures.
+  Live local startup and dev quick-login were verified, but the headless
+  browser's isolated auth profile prevented a stable post-login form session.
+  No database schema, migration, API contract, or permission behavior changed.
+
 - 2026-08-11: standardized the root mobile release interface around explicit
   environment flags. `eas:build` now requires `--dev`, `--preview`, or
   `--prod`; `eas:update` requires `--preview` or `--prod`. Production builds

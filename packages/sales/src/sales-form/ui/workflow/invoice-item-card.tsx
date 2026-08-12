@@ -2,6 +2,15 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
+	DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { InputGroup } from "@gnd/ui/namespace";
 import { type ReactNode, useEffect, useState } from "react";
@@ -28,6 +37,71 @@ function uppercaseItemTitle(value?: string | null) {
 
 const STEP_PILL_COMPONENT_LABEL_MAX_LENGTH = 24;
 const STEP_PANEL_ANIMATION_MS = 200;
+
+export function getInvoiceItemMoveTargets(index: number, itemCount: number) {
+	return Array.from({ length: Math.max(0, itemCount) }, (_, targetIndex) => ({
+		index: targetIndex,
+		label: `Item ${targetIndex + 1}`,
+		disabled: targetIndex === index,
+	}));
+}
+
+function InvoiceItemActionsMenu(props: {
+	index: number;
+	itemCount: number;
+	onDuplicate?: () => void;
+	onMoveTo?: (targetIndex: number) => void;
+}) {
+	if (!props.onDuplicate && !props.onMoveTo) return null;
+	const moveTargets = getInvoiceItemMoveTargets(props.index, props.itemCount);
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Button
+					type="button"
+					size="icon"
+					variant="outline"
+					className="size-8"
+					aria-label={`Item ${props.index + 1} actions`}
+					onClick={(event) => event.stopPropagation()}
+				>
+					<Icons.MoreHorizontal className="size-3.5" />
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent
+				align="end"
+				onClick={(event) => event.stopPropagation()}
+			>
+				{props.onDuplicate ? (
+					<DropdownMenuItem onClick={props.onDuplicate}>
+						<Icons.Copy className="mr-2 size-4" />
+						Make Copy
+					</DropdownMenuItem>
+				) : null}
+				{props.onMoveTo ? (
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger disabled={props.itemCount <= 1}>
+							<Icons.DriveFileMove className="mr-2 size-4" />
+							Move To
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent>
+							{moveTargets.map((target) => (
+								<DropdownMenuItem
+									key={target.index}
+									disabled={target.disabled}
+									onClick={() => props.onMoveTo?.(target.index)}
+								>
+									{target.label}
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
+				) : null}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
 
 function AnimatedStepPanel(props: {
 	children?: ReactNode;
@@ -121,6 +195,9 @@ export type InvoiceItemCardProps = {
 	onActivate: () => void;
 	onTitleChange: (value: string) => void;
 	onRemove: () => void;
+	itemCount?: number;
+	onDuplicate?: () => void;
+	onMoveTo?: (targetIndex: number) => void;
 	onStepChange: (index: number) => void;
 	isRedirectDisabledStep: (step: WorkflowStepUiRecord) => boolean;
 	stepKey: (lineUid: string, stepIndex: number) => string;
@@ -207,6 +284,12 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 							)}
 						</Button>
 					)}
+					<InvoiceItemActionsMenu
+						index={props.index}
+						itemCount={props.itemCount || 0}
+						onDuplicate={props.onDuplicate}
+						onMoveTo={props.onMoveTo}
+					/>
 					<Button
 						size="icon"
 						variant="outline"

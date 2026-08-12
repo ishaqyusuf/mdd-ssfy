@@ -1652,6 +1652,17 @@ export function SalesFormWorkflowPanel<
 					onRemoveLine={(line) =>
 						actions.removeLineItem(String(line.uid || ""))
 					}
+					onDuplicateLine={
+						actions.duplicateLineItem
+							? (line) => actions.duplicateLineItem?.(String(line.uid || ""))
+							: undefined
+					}
+					onMoveLine={
+						actions.moveLineItem
+							? (line, targetIndex) =>
+									actions.moveLineItem?.(String(line.uid || ""), targetIndex)
+							: undefined
+					}
 					onStepChange={(line, stepIndex) =>
 						setActiveStep(String(line.uid || ""), stepIndex)
 					}

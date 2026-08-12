@@ -34,6 +34,8 @@ export type WorkflowLineListProps<TLine extends WorkflowLineListItem> = {
 	onActivateLine: (line: TLine, isActive: boolean) => void;
 	onTitleChange: (line: TLine, value: string) => void;
 	onRemoveLine: (line: TLine) => void;
+	onDuplicateLine?: (line: TLine) => void;
+	onMoveLine?: (line: TLine, targetIndex: number) => void;
 	onStepChange: (line: TLine, stepIndex: number) => void;
 	renderPanel: (
 		line: TLine,
@@ -125,6 +127,17 @@ export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 							onActivate={() => props.onActivateLine(line, isActive)}
 							onTitleChange={(value) => props.onTitleChange(line, value)}
 							onRemove={() => props.onRemoveLine(line)}
+							itemCount={props.items.length}
+							onDuplicate={
+								props.onDuplicateLine
+									? () => props.onDuplicateLine?.(line)
+									: undefined
+							}
+							onMoveTo={
+								props.onMoveLine
+									? (targetIndex) => props.onMoveLine?.(line, targetIndex)
+									: undefined
+							}
 							onStepChange={(stepIndex) => props.onStepChange(line, stepIndex)}
 							isRedirectDisabledStep={props.isRedirectDisabledStep}
 							stepKey={props.stepKey}

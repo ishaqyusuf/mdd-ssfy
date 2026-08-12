@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { createInitialSalesFormState } from "../initial-state";
+import type { SalesFormStateRecord } from "../types";
 import {
 	addSalesFormLineItem,
+	duplicateSalesFormLineItem,
+	moveSalesFormLineItem,
 	removeSalesFormLineItem,
 	updateSalesFormLineItem,
 } from "./line-items";
@@ -16,7 +19,6 @@ import {
 	markSalesFormSaving,
 } from "./save";
 import { setSalesFormTaxRate } from "./summary";
-import type { SalesFormStateRecord } from "../types";
 
 function createRecord(): SalesFormStateRecord {
 	return {
@@ -150,6 +152,119 @@ describe("sales form state line item actions", () => {
 		expect(next.editor.activeItem).toBe("line-2");
 		expect(next.record?.lineItems).toHaveLength(2);
 		expect(next.record?.summary?.subTotal).toBe(45);
+	});
+
+	it("duplicates a configured line after its source with fresh persistence identities", () => {
+		const source = {
+			...createRecord().lineItems[0],
+			id: 41,
+			meta: {
+				serviceRows: [
+					{
+						id: 51,
+						uid: "service-1",
+						salesItemId: 41,
+						hptId: 61,
+						service: "Install",
+					},
+				],
+				mouldingRows: [
+					{
+						id: 52,
+						uid: "moulding-1",
+						salesItemId: 42,
+						hptId: 62,
+						description: "Casing",
+					},
+				],
+			},
+			formSteps: [{ id: 71, stepId: 7, value: "Oak" }],
+			shelfItems: [{ id: 81, categoryId: 8, description: "Shelf" }],
+			housePackageTool: {
+				id: 91,
+				doorType: "Interior",
+				totalDoors: 1,
+				totalPrice: 20,
+				doors: [
+					{
+						id: 101,
+						dimension: "2-6 x 6-8",
+						lhQty: 1,
+						totalQty: 1,
+						unitPrice: 20,
+						lineTotal: 20,
+					},
+				],
+			},
+		};
+		const state = {
+			...createInitialSalesFormState(),
+			record: {
+				...createRecord(),
+				lineItems: [source],
+			},
+		};
+
+		const next = duplicateSalesFormLineItem(state, "line-1");
+		const copy = next.record?.lineItems[1];
+		const copyMeta = copy?.meta as {
+			serviceRows?: Array<Record<string, unknown>>;
+			mouldingRows?: Array<Record<string, unknown>>;
+		};
+
+		expect(next.record?.lineItems).toHaveLength(2);
+		expect(copy?.uid).not.toBe("line-1");
+		expect(copy?.id).toBe(null);
+		expect(copy?.formSteps?.[0]?.id).toBe(null);
+		expect(copy?.shelfItems?.[0]?.id).toBe(null);
+		expect(copy?.housePackageTool?.id).toBe(null);
+		expect(copy?.housePackageTool?.doors?.[0]?.id).toBe(null);
+		expect(copyMeta.serviceRows?.[0]).toMatchObject({
+			id: null,
+			salesItemId: null,
+			hptId: null,
+		});
+		expect(copyMeta.mouldingRows?.[0]).toMatchObject({
+			id: null,
+			salesItemId: null,
+			hptId: null,
+		});
+		expect(copy?.formSteps).not.toBe(source.formSteps);
+		expect(copy?.housePackageTool).not.toBe(source.housePackageTool);
+		expect(next.editor.activeItem).toBe(copy?.uid);
+		expect(next.record?.summary?.subTotal).toBe(40);
+		expect(next.dirty).toBe(true);
+	});
+
+	it("moves a line by swapping it with the selected legacy position", () => {
+		const lineOne = createRecord().lineItems[0];
+		const state = {
+			...createInitialSalesFormState(),
+			record: {
+				...createRecord(),
+				lineItems: [
+					lineOne,
+					{ ...lineOne, id: null, uid: "line-2", title: "Line 2" },
+					{ ...lineOne, id: null, uid: "line-3", title: "Line 3" },
+				],
+			},
+			editor: {
+				...createInitialSalesFormState().editor,
+				activeItem: "line-1",
+				activeStepByLine: { "line-1": 0 },
+			},
+		};
+
+		const next = moveSalesFormLineItem(state, "line-1", 2);
+
+		expect(next.record?.lineItems.map((line) => line.uid)).toEqual([
+			"line-3",
+			"line-2",
+			"line-1",
+		]);
+		expect(next.editor.activeItem).toBe("line-1");
+		expect(next.record?.summary?.subTotal).toBe(60);
+		expect(next.dirty).toBe(true);
 	});
 
 	it("moves active item when removing the active line", () => {

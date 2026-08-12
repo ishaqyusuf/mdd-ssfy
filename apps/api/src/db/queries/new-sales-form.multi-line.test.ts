@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import { duplicateSalesFormLineItemRecord } from "@gnd/sales/sales-form";
 import { tasks } from "@trigger.dev/sdk/v3";
 import {
   getNewSalesForm,
@@ -480,6 +481,109 @@ function createMockContext() {
 }
 
 describe("new-sales-form multi-line mixed parity", () => {
+  it("persists a copied line independently and retains moved metadata order", async () => {
+    const { ctx, state } = createMockContext();
+    const initial = await saveDraftNewSalesForm(ctx, {
+      type: "quote",
+      slug: null,
+      salesId: null,
+      version: null,
+      autosave: false,
+      meta: {
+        customerId: 100,
+        customerProfileId: null,
+        billingAddressId: null,
+        shippingAddressId: null,
+        paymentTerm: "None",
+        goodUntil: null,
+        po: null,
+        notes: null,
+        deliveryOption: "pickup",
+        taxCode: null,
+      },
+      summary: { subTotal: 75, taxRate: 0, taxTotal: 0, grandTotal: 75 },
+      extraCosts: [],
+      lineItems: [
+        {
+          id: null,
+          uid: "line-source",
+          title: "Shelf Line",
+          description: "",
+          qty: 1,
+          unitPrice: 75,
+          lineTotal: 75,
+          meta: {},
+          formSteps: [{ stepId: 9, value: "Shelf Items", prodUid: "shelf-items" }],
+          shelfItems: [
+            {
+              categoryId: 300,
+              productId: 301,
+              description: "Shelf A",
+              qty: 1,
+              unitPrice: 75,
+              totalPrice: 75,
+            },
+          ],
+          housePackageTool: null,
+        } as any,
+      ],
+    });
+    const loadedSource = await getNewSalesForm(ctx, {
+      type: "quote",
+      slug: initial.slug!,
+    });
+    const sourceLine = loadedSource.lineItems[0]!;
+    const copy = duplicateSalesFormLineItemRecord(sourceLine, 1);
+
+    const copied = await saveDraftNewSalesForm(ctx, {
+      type: "quote",
+      slug: loadedSource.slug,
+      salesId: loadedSource.salesId,
+      version: loadedSource.version,
+      autosave: false,
+      meta: loadedSource.form,
+      summary: loadedSource.summary,
+      extraCosts: loadedSource.extraCosts,
+      lineItems: [sourceLine, copy] as any,
+    });
+    const loadedCopy = await getNewSalesForm(ctx, {
+      type: "quote",
+      slug: copied.slug!,
+    });
+
+    expect(loadedCopy.lineItems.map((line) => line.uid)).toEqual([
+      "line-source",
+      copy.uid,
+    ]);
+    expect(loadedCopy.lineItems[0]?.id).not.toBe(loadedCopy.lineItems[1]?.id);
+    expect(loadedCopy.lineItems[0]?.shelfItems?.[0]?.id).not.toBe(
+      loadedCopy.lineItems[1]?.shelfItems?.[0]?.id,
+    );
+    expect(state.items.filter((item) => item.deletedAt == null)).toHaveLength(2);
+    expect(state.shelfItems.filter((item) => item.deletedAt == null)).toHaveLength(2);
+
+    await saveDraftNewSalesForm(ctx, {
+      type: "quote",
+      slug: loadedCopy.slug,
+      salesId: loadedCopy.salesId,
+      version: loadedCopy.version,
+      autosave: false,
+      meta: loadedCopy.form,
+      summary: loadedCopy.summary,
+      extraCosts: loadedCopy.extraCosts,
+      lineItems: [...loadedCopy.lineItems].reverse(),
+    });
+    const loadedMoved = await getNewSalesForm(ctx, {
+      type: "quote",
+      slug: loadedCopy.slug,
+    });
+
+    expect(loadedMoved.lineItems.map((line) => line.uid)).toEqual([
+      copy.uid,
+      "line-source",
+    ]);
+  });
+
   it("preserves relation boundaries across door, shelf-only, and service lines", async () => {
     const { ctx } = createMockContext();
 

@@ -86,6 +86,8 @@ export type SalesFormWorkflowDataSource = {
 
 export type SalesFormWorkflowActions<TLine extends WorkflowLineItemRecord> = {
 	addLineItem?: () => void;
+	duplicateLineItem?: (uid: string) => void;
+	moveLineItem?: (uid: string, targetIndex: number) => void;
 	updateLineItem: (uid: string, patch: Partial<TLine>) => void;
 	removeLineItem: (uid: string) => void;
 	setActiveItem?: (uid: string | null) => void;

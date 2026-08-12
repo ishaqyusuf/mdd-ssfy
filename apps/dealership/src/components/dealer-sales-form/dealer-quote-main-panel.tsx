@@ -16,6 +16,8 @@ type DealerQuoteMainPanelProps = {
 	dealerSalesPercentage?: number | null;
 	dealerProfileLabel?: string | null;
 	onAddLineItem: () => void;
+	onDuplicateLineItem: (uid: string) => void;
+	onMoveLineItem: (uid: string, targetIndex: number) => void;
 	onRemoveLineItem: (uid: string) => void;
 	onUpdateLineItem: (
 		uid: string,
@@ -64,6 +66,8 @@ export function DealerQuoteMainPanel(props: DealerQuoteMainPanelProps) {
 					}}
 					actions={{
 						addLineItem: props.onAddLineItem,
+						duplicateLineItem: props.onDuplicateLineItem,
+						moveLineItem: props.onMoveLineItem,
 						updateLineItem: props.onUpdateLineItem,
 						removeLineItem: props.onRemoveLineItem,
 					}}

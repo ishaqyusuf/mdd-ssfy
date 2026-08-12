@@ -28,6 +28,10 @@ export function DashboardSalesFormWorkflowPanel() {
 	const record = useNewSalesFormStore((state) => state.record);
 	const editor = useNewSalesFormStore((state) => state.editor);
 	const addLineItem = useNewSalesFormStore((state) => state.addLineItem);
+	const duplicateLineItem = useNewSalesFormStore(
+		(state) => state.duplicateLineItem,
+	);
+	const moveLineItem = useNewSalesFormStore((state) => state.moveLineItem);
 	const updateLineItem = useNewSalesFormStore((state) => state.updateLineItem);
 	const removeLineItem = useNewSalesFormStore((state) => state.removeLineItem);
 	const setEditor = useNewSalesFormStore((state) => state.setEditor);
@@ -192,6 +196,8 @@ export function DashboardSalesFormWorkflowPanel() {
 				}}
 				actions={{
 					addLineItem: () => addLineItem(),
+					duplicateLineItem,
+					moveLineItem,
 					updateLineItem: (uid, patch) =>
 						updateLineItem(uid, patch as Partial<NewSalesFormLineItem>),
 					removeLineItem,

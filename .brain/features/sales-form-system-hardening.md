@@ -1,6 +1,16 @@
 # Sales Form System Hardening
 
-## Current behavior (2026-08-11)
+## Current behavior (2026-08-12)
+
+- The shared new-sales-form item card now exposes `Make Copy` and `Move To`
+  from its overflow menu on both the internal dashboard and dealership
+  composer. Copy inserts a deep-cloned item immediately after its source,
+  generates fresh client and grouped-row identities, clears owned persistence
+  ids, makes the copy active, and lets the normal save path create independent
+  line, step, shelf, House Package Tool, door, moulding, and service records.
+  Move To preserves legacy behavior by swapping the selected item with the
+  requested numbered position without changing either item's stable uid.
+  Summaries are recomputed and the form is marked dirty after either action.
 
 - Reopened sales lines refresh persisted Door component snapshots from the
   current workflow component catalogue when the same component is still

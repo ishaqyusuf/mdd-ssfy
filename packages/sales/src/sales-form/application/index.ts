@@ -1,5 +1,9 @@
 export { computeSalesFormSummary } from "./compute-summary";
 export {
+	clearSalesFormLineItemPersistenceIds,
+	duplicateSalesFormLineItemRecord,
+} from "./line-item-copy";
+export {
 	buildSalesFormHref,
 	normalizeSalesFormPreferenceMode,
 	resolveSalesFormSurface,

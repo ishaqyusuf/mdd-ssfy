@@ -1,28 +1,30 @@
 import {
+	type SalesFormEditorState,
+	type SalesFormSaveStatus,
+	type SalesFormState,
 	addSalesFormLineItem,
 	clearSalesFormDirty,
 	createInitialSalesFormState,
+	duplicateSalesFormLineItem,
 	hydrateSalesFormState,
 	markSalesFormError,
 	markSalesFormSaved,
 	markSalesFormSaving,
 	markSalesFormStale,
+	moveSalesFormLineItem,
 	patchSalesFormRecord,
 	removeSalesFormExtraCost,
 	removeSalesFormLineItem,
 	restoreSalesFormLocalDraft,
-	setSalesFormEditorState,
 	setSalesFormCustomerProfileMeta,
+	setSalesFormEditorState,
 	setSalesFormExtraCosts,
 	setSalesFormLineItems,
 	setSalesFormMeta,
 	setSalesFormSummary,
 	setSalesFormTaxRate,
-	type SalesFormEditorState,
-	type SalesFormState,
-	type SalesFormSaveStatus,
-	upsertSalesFormExtraCost,
 	updateSalesFormLineItem,
+	upsertSalesFormExtraCost,
 } from "@gnd/sales/sales-form";
 import { create } from "zustand";
 import type {
@@ -57,6 +59,8 @@ type NewSalesFormActions = {
 	) => void;
 	removeExtraCost: (index: number) => void;
 	addLineItem: (line?: Partial<NewSalesFormLineItem>) => void;
+	duplicateLineItem: (uid: string) => void;
+	moveLineItem: (uid: string, targetIndex: number) => void;
 	updateLineItem: (uid: string, patch: Partial<NewSalesFormLineItem>) => void;
 	removeLineItem: (uid: string) => void;
 	setTaxRate: (taxRate: number) => void;
@@ -138,6 +142,14 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 	addLineItem: (line) =>
 		set(
 			applySalesFormState((state) => addSalesFormLineItem(state, line)),
+		),
+	duplicateLineItem: (uid) =>
+		set(applySalesFormState((state) => duplicateSalesFormLineItem(state, uid))),
+	moveLineItem: (uid, targetIndex) =>
+		set(
+			applySalesFormState((state) =>
+				moveSalesFormLineItem(state, uid, targetIndex),
+			),
 		),
 	updateLineItem: (uid, patch) =>
 		set(

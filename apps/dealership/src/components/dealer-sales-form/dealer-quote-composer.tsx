@@ -2,12 +2,12 @@
 
 import { useTRPC } from "@/trpc/client";
 import {
-	type DealerSalesFormQuoteSource,
+	CostPriceBreakdownHover,
 	type DealerSalesFormQuotePricingContext,
+	type DealerSalesFormQuoteSource,
 	SalesFormFloatingActions,
 	SalesFormHeaderActions,
 	SalesFormShell,
-	CostPriceBreakdownHover,
 	buildSalesFormTaxSelectOptions,
 	composeDealerSalesFormQuotePricing,
 	composeDealerSalesFormQuoteSaveInput,
@@ -727,6 +727,8 @@ export function DealerQuoteComposer({
 					<DealerQuoteMainPanel
 						record={record}
 						onAddLineItem={actions.addLineItem}
+						onDuplicateLineItem={actions.duplicateLineItem}
+						onMoveLineItem={actions.moveLineItem}
 						onRemoveLineItem={actions.removeLineItem}
 						onUpdateLineItem={actions.updateLineItem}
 						lineTotalsByUid={lineTotalsByUid}

@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { getInvoiceItemMoveTargets } from "./invoice-item-card";
 import {
 	WorkflowLineList,
 	resolveNewlyAddedActiveLineUid,
@@ -23,6 +24,14 @@ describe("WorkflowLineList", () => {
 				"line-2",
 			),
 		).toBeNull();
+	});
+
+	it("builds numbered move targets and disables the current position", () => {
+		expect(getInvoiceItemMoveTargets(1, 3)).toEqual([
+			{ index: 0, label: "Item 1", disabled: false },
+			{ index: 1, label: "Item 2", disabled: true },
+			{ index: 2, label: "Item 3", disabled: false },
+		]);
 	});
 
 	it("scopes each rendered panel to its own active-line state", () => {
@@ -60,6 +69,8 @@ describe("WorkflowLineList", () => {
 				onActivateLine={() => undefined}
 				onTitleChange={() => undefined}
 				onRemoveLine={() => undefined}
+				onDuplicateLine={() => undefined}
+				onMoveLine={() => undefined}
 				onStepChange={() => undefined}
 				renderPanel={(line, _steps, _activeIndex, activeStep, isActive) => (
 					<div
@@ -80,6 +91,8 @@ describe("WorkflowLineList", () => {
 		expect(html).toContain('value="First line"');
 		expect(html).toContain("text-sm uppercase");
 		expect(html).toContain('id="sales-form-item-line-2"');
+		expect(html).toContain('aria-label="Item 1 actions"');
+		expect(html).toContain('aria-label="Item 2 actions"');
 		expect(html).toContain("transition-[grid-template-rows,opacity,transform]");
 		expect(html).toContain("motion-reduce:transition-none");
 	});
