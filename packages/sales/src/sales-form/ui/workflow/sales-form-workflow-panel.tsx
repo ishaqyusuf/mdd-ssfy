@@ -724,18 +724,17 @@ export function SalesFormWorkflowPanel<
 				routeData,
 				{ ignorePersistedVariations: true },
 			);
-			return sizes
-				.filter(
-					(size) =>
-						!displayedRows.some(
-							(row) => String(row?.dimension || "").trim() === size,
-						),
-				)
-				.map((size) => {
+			return sizes.map((size) => {
 					const pricing = resolveSizePricing(size);
+					const selected = displayedRows.some(
+						(row) =>
+							String(row?.dimension || "").trim().toLowerCase() ===
+							String(size).trim().toLowerCase(),
+					);
 					return {
 						size,
 						doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
+						selected,
 					};
 				});
 		})();

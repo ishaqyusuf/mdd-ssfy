@@ -70,6 +70,15 @@
   multipliers retain ratio precision until the final currency value is rounded,
   so switching back restores the original price instead of compounding or
   drifting.
+- Existing HPT rows with a positive stored base price compare their stored
+  door-only sales price against the active customer-profile calculation. Users
+  with door-pricing permission see a row-level Repair action only when those
+  values drift. Repair preserves quantities, addon, custom-price, and route
+  semantics, recalculates the row and package totals through the canonical HPT
+  patch path, and disappears once the row is aligned; saving the form persists
+  the correction. The Add Size menu lists every configured size, keeps already
+  selected sizes visible with a `Selected` label, and disables them to prevent
+  duplicate rows.
 - P.O. metadata is projected to both the legacy root field and an existing
   nested new-form document. Legacy saves preserve the nested document instead
   of replacing unknown metadata, and both editors hydrate the same canonical

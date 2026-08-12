@@ -47,7 +47,12 @@ import {
 	patchDoorRowCustomPrice,
 	updateDoorRowBasePrice,
 } from "./door-price-cell";
-import { clearUnpricedDoorRowQty, isDoorRowPriceMissing } from "./door-utils";
+import {
+	clearUnpricedDoorRowQty,
+	getDoorRowProfilePriceDrift,
+	isDoorRowPriceMissing,
+	repairDoorRowProfilePriceDrift,
+} from "./door-utils";
 import { SalesFormQuantityStepper } from "./sales-form-quantity-stepper";
 import type {
 	DoorStoredRow,
@@ -70,6 +75,7 @@ type HousePackageToolSummary = {
 export type HousePackageToolSizeOption = {
 	size: string;
 	doorPrice: number | null;
+	selected: boolean;
 };
 
 export type HousePackageToolPanelProps = {
@@ -159,12 +165,17 @@ function HptAddSizeMenu(props: {
 						props.availableSizeOptions.map((option) => (
 							<DropdownMenuItem
 								key={`add-size-${props.componentId}-${option.size}`}
-								onClick={() => props.onAddSize(option.size)}
+								disabled={option.selected}
+								onClick={() => {
+									if (!option.selected) props.onAddSize(option.size);
+								}}
 								className="flex items-center justify-between gap-4"
 							>
 								<span>{option.size}</span>
 								<span className="text-xs tabular-nums text-muted-foreground">
-									{option.doorPrice == null
+									{option.selected
+										? "Selected"
+										: option.doorPrice == null
 										? "Price unavailable"
 										: props.formatMoney(option.doorPrice)}
 								</span>
@@ -381,7 +392,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 										)}
 										<th className="w-24 px-2 py-2 text-right">Estimate</th>
 										<th className="w-24 px-3 py-2 text-right">Line</th>
-										<th className="w-20 px-2 py-2 text-right">Remove</th>
+										<th className="w-24 px-2 py-2 text-right">Actions</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -392,6 +403,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 												sharedDoorSurcharge: props.sharedDoorSurcharge,
 												profileCoefficient: props.profileCoefficient,
 											},
+										);
+										const profilePriceDrift = getDoorRowProfilePriceDrift(
+											row,
+											props.profileCoefficient,
 										);
 										const lineBreakdown = {
 											costPrice: multiplyMoney(
@@ -707,14 +722,49 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 													</Menu>
 												</td>
 												<td className="px-2 py-2 text-right">
-													<Button
-														size="icon"
-														variant="ghost"
-														className="size-6 text-slate-500 hover:text-red-600"
-														onClick={() => props.onRemoveSizeRow(row)}
-													>
-														<Icons.Trash2 className="size-3" />
-													</Button>
+													<TooltipProvider delayDuration={120}>
+														<div className="flex items-center justify-end gap-1">
+															{props.canEditPricing && profilePriceDrift ? (
+																<HptHeaderActionTooltip
+																	label={`Repair price: ${props.formatMoney(profilePriceDrift.actualDoorSalesUnitPrice)} → ${props.formatMoney(profilePriceDrift.expectedDoorSalesUnitPrice)}`}
+																>
+																	<Button
+																		type="button"
+																		size="icon"
+																		variant="ghost"
+																		className="size-6 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+																		onClick={() => {
+																			const repaired = repairDoorRowProfilePriceDrift(
+																				row,
+																				{
+																					profileCoefficient:
+																						props.profileCoefficient,
+																					sharedDoorSurcharge:
+																						props.sharedDoorSurcharge,
+																					noHandle: props.noHandle,
+																					hasSwing: props.hasSwing,
+																				},
+																			);
+																			if (repaired) props.onPatchRow(row, repaired);
+																		}}
+																		aria-label={`Repair price for ${row.dimension || "door size"}`}
+																	>
+																		<Icons.Wrench className="size-3" />
+																	</Button>
+																</HptHeaderActionTooltip>
+															) : null}
+															<Button
+																type="button"
+																size="icon"
+																variant="ghost"
+																className="size-6 text-slate-500 hover:text-red-600"
+																onClick={() => props.onRemoveSizeRow(row)}
+																aria-label={`Remove ${row.dimension || "door size"}`}
+															>
+																<Icons.Trash2 className="size-3" />
+															</Button>
+														</div>
+													</TooltipProvider>
 												</td>
 											</tr>
 										);

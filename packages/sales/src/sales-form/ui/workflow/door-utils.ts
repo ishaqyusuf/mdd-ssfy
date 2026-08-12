@@ -119,6 +119,75 @@ function hasConfiguredDoorRowPrice(row?: DoorRow | null) {
 	return readDoorRowMeta(row).baseUnitPrice != null;
 }
 
+export type DoorRowProfilePriceDrift = {
+	actualDoorSalesUnitPrice: number;
+	expectedDoorSalesUnitPrice: number;
+	delta: number;
+};
+
+export function getDoorRowProfilePriceDrift(
+	row?: DoorRow | null,
+	profileCoefficient?: number | null,
+): DoorRowProfilePriceDrift | null {
+	if (!row || isDoorRowPriceMissing(row)) return null;
+	const meta = readDoorRowMeta(row);
+	const baseUnitPrice = firstFiniteDoorNumber(
+		meta.baseUnitPrice as number | null | undefined,
+	);
+	if (baseUnitPrice == null || baseUnitPrice <= 0) return null;
+	const actualDoorSalesUnitPrice = firstFiniteDoorNumber(
+		meta.doorSalesUnitPrice as number | null | undefined,
+		row.jambSizePrice as number | null | undefined,
+	);
+	if (actualDoorSalesUnitPrice == null) return null;
+	const expectedDoorSalesUnitPrice = profileAdjustedDoorSalesPrice(
+		null,
+		baseUnitPrice,
+		profileCoefficient,
+	);
+	const delta = roundMoney(
+		actualDoorSalesUnitPrice - expectedDoorSalesUnitPrice,
+	);
+	if (Math.abs(delta) <= 0.01) return null;
+	return {
+		actualDoorSalesUnitPrice: roundMoney(actualDoorSalesUnitPrice),
+		expectedDoorSalesUnitPrice,
+		delta,
+	};
+}
+
+export function repairDoorRowProfilePriceDrift<T extends DoorRow>(
+	row: T,
+	context: {
+		profileCoefficient?: number | null;
+		sharedDoorSurcharge?: number | null;
+		noHandle?: boolean;
+		hasSwing?: boolean;
+	},
+): T | null {
+	const drift = getDoorRowProfilePriceDrift(
+		row,
+		context.profileCoefficient,
+	);
+	if (!drift) return null;
+	return normalizeHptDoorRowForLegacy(
+		{
+			...row,
+			jambSizePrice: drift.expectedDoorSalesUnitPrice,
+			meta: {
+				...readDoorRowMeta(row),
+				doorSalesUnitPrice: drift.expectedDoorSalesUnitPrice,
+			},
+		},
+		{
+			profileCoefficient: context.profileCoefficient,
+			sharedDoorSurcharge: context.sharedDoorSurcharge,
+			noHandle: context.noHandle,
+			hasSwing: context.hasSwing,
+		},
+	) as T;
+}
+
 export function calcWorkflowDoorRow<T extends DoorRow>(row: T): T {
 	const lhQty = toDoorNumber(row.lhQty, 0);
 	const rhQty = toDoorNumber(row.rhQty, 0);

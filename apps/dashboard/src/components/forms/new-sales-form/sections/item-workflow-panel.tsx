@@ -1239,17 +1239,17 @@ export function ItemWorkflowPanel() {
 				routeData,
 				{ ignorePersistedVariations: true },
 			);
-			return sizes
-				.filter((size) => {
-					return !focusedRows.some(
-						(row) => String(row?.dimension || "").trim() === size,
-					);
-				})
-				.map((size) => {
+			return sizes.map((size) => {
 					const pricing = resolveSizePricing(size);
+					const selected = focusedRows.some(
+						(row) =>
+							String(row?.dimension || "").trim().toLowerCase() ===
+							String(size).trim().toLowerCase(),
+					);
 					return {
 						size,
 						doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
+						selected,
 					};
 				});
 		})();

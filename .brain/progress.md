@@ -9034,3 +9034,14 @@
   assertions. No database, API contract, permission, or persisted-data shape
   changed; authenticated browser proof was not run because the installed gstack
   browser workflow stopped on a separate upgrade/snooze permission gate.
+- 2026-08-12: added explicit repair and duplicate-size protection to the shared
+  new-sales-form HPT section. A row-level Repair action now appears in the right
+  Actions column when a positive stored `baseUnitPrice`, adjusted by the active
+  customer-profile coefficient, disagrees with the stored door sales unit. The
+  action is permission-gated, preserves custom/addon semantics, recomputes HPT
+  totals through the existing shared patch path, and becomes unavailable after
+  repair. Add Size now retains configured sizes already present on the active
+  door, labels them Selected, and disables them in both dashboard and shared
+  dealership hosts. Focused pricing, HPT row-patch, sync, profile-repricing, UI
+  contract, and server-rendered component tests pass 62 tests / 260 assertions.
+  No database, API contract, permission model, or persistence shape changed.

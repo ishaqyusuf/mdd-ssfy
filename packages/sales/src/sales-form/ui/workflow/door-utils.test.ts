@@ -5,8 +5,10 @@ import {
 	clearUnpricedDoorRowQty,
 	deriveDoorSizeRows,
 	getDoorSupplierMeta,
+	getDoorRowProfilePriceDrift,
 	isDoorRowPriceMissing,
 	normalizeStoredDoorRows,
+	repairDoorRowProfilePriceDrift,
 	resolveWorkflowDoorSizePricing,
 } from "./door-utils";
 import { getSelectedDoorComponentsForLine } from "../../domain/selectors";
@@ -107,6 +109,50 @@ describe("workflow door price availability", () => {
 		expect(rows[0]?.unitPrice).toBe(52.8);
 		expect(rows[0]?.lineTotal).toBe(52.8);
 		expect(rows[0]?.meta?.baseUnitPrice).toBe(0);
+	});
+
+	it("detects and repairs stored HPT profile-price drift from base price", () => {
+		const row = {
+			dimension: "3-0 x 6-8",
+			totalQty: 1,
+			unitPrice: 6_000,
+			lineTotal: 6_000,
+			jambSizePrice: 5_500,
+			meta: {
+				baseUnitPrice: 4_500,
+				doorSalesUnitPrice: 5_500,
+				sharedDoorSurcharge: 500,
+			},
+		};
+
+		expect(getDoorRowProfilePriceDrift(row, 1)).toEqual({
+			actualDoorSalesUnitPrice: 5_500,
+			expectedDoorSalesUnitPrice: 4_500,
+			delta: 1_000,
+		});
+
+		const repaired = repairDoorRowProfilePriceDrift(row, {
+			profileCoefficient: 1,
+			sharedDoorSurcharge: 500,
+		});
+
+		expect(repaired?.jambSizePrice).toBe(4_500);
+		expect(repaired?.meta?.doorSalesUnitPrice).toBe(4_500);
+		expect(repaired?.unitPrice).toBe(5_000);
+		expect(repaired?.lineTotal).toBe(5_000);
+		expect(getDoorRowProfilePriceDrift(repaired, 1)).toBeNull();
+	});
+
+	it("does not report drift without a positive base price", () => {
+		expect(
+			getDoorRowProfilePriceDrift(
+				{
+					unitPrice: 5_500,
+					meta: { baseUnitPrice: 0, doorSalesUnitPrice: 5_000 },
+				},
+				1,
+			),
+		).toBeNull();
 	});
 
 	it("prices a newly added HPT size from the current door component after edit reopen", () => {

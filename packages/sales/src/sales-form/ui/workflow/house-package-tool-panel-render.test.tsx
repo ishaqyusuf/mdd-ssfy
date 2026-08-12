@@ -1,0 +1,78 @@
+/** @jsxImportSource react */
+
+import { describe, expect, it } from "bun:test";
+import { renderToStaticMarkup } from "react-dom/server";
+import { HousePackageToolPanel } from "./house-package-tool-panel";
+
+function renderPanel(options?: {
+	doorSalesUnitPrice?: number;
+	canEditPricing?: boolean;
+}) {
+	const doorSalesUnitPrice = options?.doorSalesUnitPrice ?? 5_500;
+	const row = {
+		id: 1,
+		dimension: "3-0 x 6-8",
+		totalQty: 1,
+		unitPrice: doorSalesUnitPrice + 500,
+		lineTotal: doorSalesUnitPrice + 500,
+		jambSizePrice: doorSalesUnitPrice,
+		stepProductId: 10,
+		meta: {
+			baseUnitPrice: 4_500,
+			doorSalesUnitPrice,
+			sharedDoorSurcharge: 500,
+		},
+	};
+
+	return renderToStaticMarkup(
+		<HousePackageToolPanel
+			selectedDoorComponents={[
+				{ id: 10, uid: "door-a", title: "Door A" } as any,
+			]}
+			activeDoorUid="door-a"
+			activeDoorComponent={
+				{ id: 10, uid: "door-a", title: "Door A" } as any
+			}
+			focusedRows={[row as any]}
+			summary={{ rows: [row as any], totalDoors: 1, totalPrice: row.lineTotal }}
+			availableSizeOptions={[
+				{ size: "3-0 x 6-8", doorPrice: 4_500, selected: true },
+			]}
+			pricedSteps={[]}
+			noHandle
+			hasSwing={false}
+			sharedDoorSurcharge={500}
+			profileCoefficient={1}
+			canSwapDoor={false}
+			canEditPricing={options?.canEditPricing ?? true}
+			formatMoney={(value) => `$${Number(value).toFixed(2)}`}
+			componentLabel={(value) => value || ""}
+			resolveImageSrc={() => null}
+			onActiveDoorChange={() => undefined}
+			onAddSize={() => undefined}
+			onConfigureSizes={() => undefined}
+			onSwapDoor={() => undefined}
+			onDeleteDoor={() => undefined}
+			onPatchRow={() => undefined}
+			onRemoveSizeRow={() => undefined}
+		/>,
+	);
+}
+
+describe("HousePackageToolPanel repair action", () => {
+	it("renders Repair in the right actions when profile pricing drift exists", () => {
+		const html = renderPanel();
+
+		expect(html).toContain("Actions");
+		expect(html).toContain('aria-label="Repair price for 3-0 x 6-8"');
+	});
+
+	it("hides Repair when pricing is aligned or the user cannot edit pricing", () => {
+		expect(renderPanel({ doorSalesUnitPrice: 4_500 })).not.toContain(
+			"Repair price for",
+		);
+		expect(renderPanel({ canEditPricing: false })).not.toContain(
+			"Repair price for",
+		);
+	});
+});
