@@ -127,6 +127,17 @@ export const ERROR_DESCRIPTORS: Record<ErrorCode, ErrorDescriptor> = {
 		title: "Please wait a moment",
 		transportCode: "TOO_MANY_REQUESTS",
 	},
+	SPECIAL_ORDER_APPROVAL_REQUIRED: {
+		category: "conflict",
+		code: "SPECIAL_ORDER_APPROVAL_REQUIRED",
+		publicMessage:
+			"Customer approval is required before this Special Order can continue. Request approval from Sales.",
+		reportable: false,
+		retryable: false,
+		severity: "warning",
+		title: "Special Order approval required",
+		transportCode: "PRECONDITION_FAILED",
+	},
 	UNEXPECTED: {
 		action: "contact_support",
 		category: "unexpected",

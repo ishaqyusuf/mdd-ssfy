@@ -125,6 +125,11 @@ export const customerRouter = createTRPCRouter({
 	updateCustomerEmail: protectedProcedure
 		.input(updateCustomerEmailSchema)
 		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editSalesCustomers", "editOrders"],
+				"You do not have permission to update the customer email.",
+			);
 			return updateCustomerEmail(props.ctx, props.input);
 		}),
 });

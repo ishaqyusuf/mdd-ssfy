@@ -68,6 +68,10 @@ export function SalesHtmlTemplatePage({
 				qrCodeDataUrl={qrCodeDataUrl}
 			/>
 
+			{page.specialOrder ? (
+				<SpecialOrderBlock specialOrder={page.specialOrder} />
+			) : null}
+
 			<div style={{ display: "grid", gap: 12 }}>
 				{page.sections.map((section) => (
 					<SectionBlock
@@ -92,6 +96,82 @@ export function SalesHtmlTemplatePage({
 				</div>
 			) : null}
 		</article>
+	);
+}
+
+function SpecialOrderBlock({
+	specialOrder,
+}: {
+	specialOrder: NonNullable<PrintPage["specialOrder"]>;
+}) {
+	if (specialOrder.compact) {
+		return (
+			<div
+				style={{
+					marginBottom: 12,
+					border: "1px solid #f59e0b",
+					background: "#fffbeb",
+					borderRadius: 8,
+					padding: "8px 12px",
+					fontSize: 12,
+					fontWeight: 700,
+					color: "#92400e",
+				}}
+			>
+				Special Order · {specialOrder.label}
+			</div>
+		);
+	}
+	return (
+		<section
+			style={{
+				marginBottom: 14,
+				border: "1px solid #f59e0b",
+				background: "#fffbeb",
+				borderRadius: 10,
+				padding: 14,
+				color: "#451a03",
+			}}
+		>
+			<div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.8 }}>
+				Special Order · {specialOrder.label}
+			</div>
+			{specialOrder.policyTitle ? (
+				<div style={{ marginTop: 7, fontSize: 15, fontWeight: 700 }}>
+					{specialOrder.policyTitle}
+					{specialOrder.policyVersion
+						? ` · Policy v${specialOrder.policyVersion}`
+						: ""}
+				</div>
+			) : null}
+			{specialOrder.policyText ? (
+				<p style={{ margin: "7px 0 0", fontSize: 12, lineHeight: 1.5 }}>
+					{specialOrder.policyText}
+				</p>
+			) : null}
+			{specialOrder.acknowledgmentText ? (
+				<p style={{ margin: "7px 0 0", fontSize: 12, lineHeight: 1.5, fontWeight: 700 }}>
+					{specialOrder.acknowledgmentText}
+				</p>
+			) : null}
+			{specialOrder.signerName ? (
+				<div style={{ display: "flex", alignItems: "flex-end", gap: 18, marginTop: 10 }}>
+					<div style={{ fontSize: 12 }}>
+						Approved by <strong>{specialOrder.signerName}</strong>
+						{specialOrder.approvedAt
+							? ` on ${new Date(specialOrder.approvedAt).toLocaleString("en-US")}`
+							: ""}
+					</div>
+					{specialOrder.signatureUrl ? (
+						<img
+							src={specialOrder.signatureUrl}
+							alt="Customer Special Order signature"
+							style={{ width: 150, height: 55, objectFit: "contain" }}
+						/>
+					) : null}
+				</div>
+			) : null}
+		</section>
 	);
 }
 

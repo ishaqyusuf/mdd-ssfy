@@ -12,6 +12,7 @@ import { type JwtPayload, verify } from "jsonwebtoken";
 import superjson from "superjson";
 import { getTrpcPublicError, normalizeTrpcError } from "./error-contract";
 import { withAuthPermission } from "./middleware/auth-permission";
+import { withSpecialOrderOperationFeedback } from "../utils/special-order-operation-feedback";
 export type TRPCContext = {
 	//   session: Session | null;
 	//   supabase: SupabaseClient;
@@ -171,7 +172,8 @@ export const protectedProcedure = t.procedure
 				userId: opts.ctx.userId,
 			},
 		});
-	});
+	})
+	.use(async (opts) => withSpecialOrderOperationFeedback(() => opts.next()));
 
 export const customerProcedure = protectedProcedure.use(async (opts) => {
 	const customer = await opts.ctx.db.customers.findFirst({

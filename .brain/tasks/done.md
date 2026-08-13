@@ -1,5 +1,17 @@
 # Done
 
+- [x] 2026-08-13 — Complete the whole-order Special Order acknowledgment and
+  customer-signature workflow: mandatory declaration, canonical-email repair,
+  revision-bound single-use approvals, policy/version history, encrypted
+  signatures, state-aware documents and email, Super Admin enforcement modes,
+  shared operational gates, warning feedback, removal/re-enrollment, rollout
+  telemetry, and durable activity/delivery evidence. All 14 local tickets and
+  140 acceptance criteria are closed. Focused validation passed with 77 tests /
+  290 assertions, API/Sales/Email/PDF typechecks, local schema generation/push,
+  and authenticated/public desktop and mobile browser QA. See ADR-053,
+  `.brain/features/special-order-acknowledgment.md`, and
+  `.scratch/special-order-acknowledgment/map.md`.
+
 - [x] 2026-08-06 — Standardize the shared custom sheet on the Midday frame and
   motion scale; add independent additive pane widths, a 1px divider,
   deterministic narrow fallback, delayed animated cleanup, pane-owned primary

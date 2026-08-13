@@ -906,6 +906,7 @@ export class Notifications {
 				skipped: contacts?.length || 0,
 				failed: 0,
 			};
+			let emailDeliveryResult: EmailSendBulkResult | null = null;
 			let emailAttemptIds: string[] = [];
 
 			// const sendEmail = options?.sendEmail ?? false;
@@ -945,6 +946,16 @@ export class Notifications {
 				emailAttemptIds = salesEmailAttempts.map((attempt) => attempt.id);
 
 				if (!emailInputs.length) {
+					emailDeliveryResult = {
+						sent: 0,
+						skipped: totalEmailCandidates,
+						failed: 0,
+						deliveries: salesEmailAttempts.map((attempt) => ({
+							inputIndex: attempt.inputIndex,
+							status: "skipped",
+							providerStatus: "no_valid_recipient",
+						})),
+					};
 					emails = {
 						sent: 0,
 						skipped: totalEmailCandidates,
@@ -952,16 +963,7 @@ export class Notifications {
 					};
 					await this.#completeSalesEmailAttempts(
 						salesEmailAttempts,
-						{
-							sent: 0,
-							skipped: totalEmailCandidates,
-							failed: 0,
-							deliveries: salesEmailAttempts.map((attempt) => ({
-								inputIndex: attempt.inputIndex,
-								status: "skipped",
-								providerStatus: "no_valid_recipient",
-							})),
-						},
+						emailDeliveryResult,
 						validatedData as SalesEmailResolvedData,
 					);
 				} else {
@@ -971,6 +973,7 @@ export class Notifications {
 						emailInputs,
 						type as string,
 					);
+					emailDeliveryResult = emailResult;
 					emails = {
 						sent: emailResult.sent,
 						skipped: emailResult.skipped + filteredOutCount,
@@ -987,6 +990,13 @@ export class Notifications {
 						skipped: emails.skipped,
 						failed: emails.failed || 0,
 					});
+				}
+				if (emailDeliveryResult && handler.afterEmailDelivery) {
+					await handler.afterEmailDelivery(
+						this.#db,
+						validatedData,
+						emailDeliveryResult,
+					);
 				}
 			}
 

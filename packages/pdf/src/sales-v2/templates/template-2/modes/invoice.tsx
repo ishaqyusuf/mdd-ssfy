@@ -2,6 +2,7 @@
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { View } from "@react-pdf/renderer";
 import type { SalesTemplateConfig } from "../../../registry";
+import { SpecialOrderBlock } from "../../../shared/special-order-block";
 import { FooterBlock, HeaderBlock, SectionListBlock } from "../blocks";
 
 interface InvoiceModeProps {
@@ -39,6 +40,7 @@ export function InvoiceMode({
 					qrCodeDataUrl={qrCodeDataUrl}
 				/>
 			</View>
+			<SpecialOrderBlock specialOrder={page.specialOrder} />
 
 			<View style={{ width: "100%" }}>
 				<SectionListBlock

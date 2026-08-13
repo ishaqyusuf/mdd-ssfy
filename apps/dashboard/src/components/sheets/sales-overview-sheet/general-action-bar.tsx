@@ -23,10 +23,12 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 		data?: {
 			type?: SalesType | null;
 			id?: number | null;
+			customerId?: number | null;
 			orderId?: string | null;
 			uuid?: string | null;
 			isDyke?: boolean | null;
 			email?: string | null;
+			customerPhone?: string | null;
 			displayName?: string | null;
 			inboundStatus?: string | null;
 		};
@@ -119,6 +121,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				slug={data?.uuid}
 				type={data?.type}
 				orderNo={data?.orderId}
+				customerId={data?.customerId}
 				customerEmail={data?.email ?? null}
 				customerPhone={data?.customerPhone}
 				customerName={data?.displayName}

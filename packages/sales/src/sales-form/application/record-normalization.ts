@@ -3,6 +3,11 @@ import {
 	orderInboundStatuses,
 } from "@gnd/utils/constants";
 import {
+	divideMoney,
+	multiplyMoney,
+	roundMoney,
+} from "../../payment-system/domain/money";
+import {
 	calculateSalesFormSummary,
 	normalizeHptLineForLegacy,
 	repriceSalesFormLineItemsByProfile,
@@ -10,11 +15,6 @@ import {
 	summarizeServiceRows,
 	summarizeShelfRows,
 } from "../domain";
-import {
-	divideMoney,
-	multiplyMoney,
-	roundMoney,
-} from "../../payment-system/domain/money";
 
 type SalesFormRecordLike = {
 	type?: string | null;
@@ -22,6 +22,10 @@ type SalesFormRecordLike = {
 	slug?: string | null;
 	inventoryStatus?: string | null;
 	version?: string | null;
+	specialOrder?: {
+		declaration?: "NO" | "YES" | null;
+		changeReason?: string | null;
+	} | null;
 	form?: Record<string, any> | null;
 	lineItems?: SalesFormLineItemRecord[];
 	extraCosts?: SalesFormExtraCostRecord[];
@@ -549,7 +553,13 @@ export function hydrateSalesFormRecord<TRecord extends SalesFormRecordLike>(
 
 export function toSalesFormSaveDraftPayload<
 	TRecord extends SalesFormRecordLike,
->(source: TRecord, autosave = true) {
+>(
+	source: TRecord,
+	autosave = true,
+	commitIntent: "autosave" | "draft" | "close" | "new" | "final" = autosave
+		? "autosave"
+		: "draft",
+) {
 	const lineItems = normalizeSalesFormLineItems(source.lineItems || []).map(
 		(line, index) => ({
 			...line,
@@ -576,6 +586,9 @@ export function toSalesFormSaveDraftPayload<
 				: null,
 		version: source.version,
 		autosave,
+		commitIntent,
+		specialOrderDeclaration: source.specialOrder?.declaration,
+		specialOrderChangeReason: source.specialOrder?.changeReason,
 		meta,
 		lineItems,
 		extraCosts,

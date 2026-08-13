@@ -1,5 +1,6 @@
 import { type Db, db } from "@gnd/db";
 import {
+	assertSpecialOrderOperationAllowed,
 	type LegacyUpdateSalesControlAction,
 	type UpdateSalesControl,
 	cancelDispatchTask,
@@ -76,6 +77,33 @@ function resolveActionHandler(input: UpdateSalesControl) {
 	}
 	const legacyAction = resolveLegacyActionCompat(input);
 	return legacyAction ? actionMaps[legacyAction] : null;
+}
+
+async function enforceSpecialOrderForAction(input: UpdateSalesControl) {
+	const common = {
+		salesOrderId: input.meta.salesId,
+		actorUserId: input.meta.authorId,
+		authorName: input.meta.authorName,
+		source: "jobs.update-sales-control",
+	};
+	if (input.createAssignments || input.submitAll || input.markAsCompleted) {
+		await assertSpecialOrderOperationAllowed(db, {
+			...common,
+			operation: "PRODUCTION",
+		});
+	}
+	if (input.packItems || input.markAsCompleted) {
+		await assertSpecialOrderOperationAllowed(db, {
+			...common,
+			operation: "PACKING",
+		});
+	}
+	if (input.startDispatch || input.submitDispatch) {
+		await assertSpecialOrderOperationAllowed(db, {
+			...common,
+			operation: "DISPATCH",
+		});
+	}
 }
 
 async function sendDispatchPackedNotification(input: UpdateSalesControl) {
@@ -387,6 +415,7 @@ export const updateSalesControl = schemaTask({
 	run: async (input) => {
 		const action = resolveActionHandler(input as UpdateSalesControl);
 		if (action) {
+			await enforceSpecialOrderForAction(input as UpdateSalesControl);
 			const response = await action(db, input);
 			if (
 				shouldSyncInventoryProductionLifecycleForSalesControl(

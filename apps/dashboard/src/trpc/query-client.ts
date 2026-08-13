@@ -1,4 +1,8 @@
 import { triggerMutationQueryEvents } from "@/lib/query-events/mutation-trigger";
+import {
+	formatSpecialOrderOperationWarning,
+	getSpecialOrderOperationWarnings,
+} from "@/lib/special-order-operation-feedback";
 import { getErrorPresentation } from "@gnd/errors";
 import {
 	MutationCache,
@@ -58,6 +62,13 @@ export function makeQueryClient() {
 				}
 
 				if (isServer) return;
+
+				for (const warning of getSpecialOrderOperationWarnings(data)) {
+					toast({
+						...formatSpecialOrderOperationWarning(warning),
+						variant: "default",
+					});
+				}
 
 				await triggerMutationQueryEvents({
 					data,

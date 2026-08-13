@@ -4,6 +4,8 @@ import {
 	buildInboundDemandAdjustmentActivity,
 	buildSalesFormAdjustmentActivity,
 	buildSalesFormUpdateActivity,
+	buildSpecialOrderEnrollmentActivity,
+	buildSpecialOrderRevisionInvalidatedActivity,
 	createSalesFormTimelineActivity,
 } from "./sales-form-activity";
 
@@ -140,5 +142,28 @@ describe("sales form activity copy", () => {
 			tagName: "activity",
 			tagValue: "sales_quantity_reduction_review",
 		});
+	});
+
+	it("records deliberate enrollment and automatic invalidation as distinct actor-attributed activity", async () => {
+		const enrollment = buildSpecialOrderEnrollmentActivity({
+			orderId: "09232PC",
+			reason: "  Custom non-returnable configuration  ",
+		});
+		const invalidation = buildSpecialOrderRevisionInvalidatedActivity({
+			orderId: "09232PC",
+			hadCustomerEvidence: true,
+		});
+
+		expect(enrollment).toEqual({
+			subject: "Special Order enabled",
+			headline: "Sale 09232PC was manually classified as a Special Order.",
+			note: "Reason: Custom non-returnable configuration",
+			activityType: "special_order_enabled",
+		});
+		expect(invalidation).toMatchObject({
+			subject: "Special Order reapproval required",
+			activityType: "special_order_revision_invalidated",
+		});
+		expect(invalidation.note).toContain("No email was sent automatically");
 	});
 });

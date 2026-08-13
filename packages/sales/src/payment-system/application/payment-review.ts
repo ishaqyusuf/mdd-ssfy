@@ -63,14 +63,18 @@ export function defaultSalesPaymentReviewSettings(): Required<SalesPaymentReview
 }
 
 export function normalizeSalesPaymentReviewSettings(
-	value?: SalesPaymentReviewSettings | null,
+	value?: unknown,
 ): Required<SalesPaymentReviewSettings> {
 	const defaults = defaultSalesPaymentReviewSettings();
+	const settings =
+		value && typeof value === "object" && !Array.isArray(value)
+			? (value as SalesPaymentReviewSettings)
+			: null;
 	return {
 		autoReviewActions: {
-			production: value?.autoReviewActions?.production ?? false,
-			fulfillment: value?.autoReviewActions?.fulfillment ?? false,
-			inbound: value?.autoReviewActions?.inbound ?? false,
+			production: settings?.autoReviewActions?.production ?? false,
+			fulfillment: settings?.autoReviewActions?.fulfillment ?? false,
+			inbound: settings?.autoReviewActions?.inbound ?? false,
 		},
 	};
 }

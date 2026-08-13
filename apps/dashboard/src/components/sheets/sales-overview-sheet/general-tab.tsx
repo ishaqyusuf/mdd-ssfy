@@ -37,6 +37,7 @@ import { SalesPrioritySelect } from "@/components/sales-priority-control";
 import { SalesOverviewPaymentMethodSelect } from "@/components/sales-overview-payment-method-select";
 import { SalesRepTransferControl } from "@/components/sales-rep-transfer-control";
 import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
+import { SpecialOrderOverviewCard } from "./special-order-overview-card";
 
 type CostLine = {
     id?: number | string | null;
@@ -181,6 +182,7 @@ export function GeneralTab({
                         </div>
                     ) : null}
                 </div>
+                <SpecialOrderOverviewCard />
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="space-y-6">
                         <div>

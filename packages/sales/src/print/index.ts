@@ -10,6 +10,7 @@ export {
 	getInventoryPrintDocumentData,
 } from "./inventory-print-data";
 export { buildCustomerNameLines } from "./compose/customer-name-lines";
+export { composeSpecialOrderPrintData } from "./compose/special-order";
 export {
 	getPrintModeRequestKey,
 	normalizePrintMode,

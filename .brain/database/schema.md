@@ -384,3 +384,28 @@ The canonical plan is
   deterministic tenant-owned parent.
 - If Neon/Postgres is approved, selected high-risk tables gain row-level
   security after typed application scoping is implemented and verified.
+
+## Special Order acknowledgment (2026-08-13)
+
+- `SalesOrders` adds nullable declaration, lifecycle status, deterministic
+  approval revision, and current request/evidence pointers. Declaration actor,
+  time, and reason remain audit entries in `SalesHistory`; null declaration
+  intentionally means legacy/not evaluated.
+- `SpecialOrderPolicyVersion` stores immutable published policy snapshots plus
+  draft/version metadata.
+- `SpecialOrderApprovalRequest` stores a SHA-256 capability hash, bound order
+  revision/policy version, expiry, delivery, revocation, and single-use
+  consumption state. Raw public tokens are never persisted.
+- `SpecialOrderApprovalEvidence` stores immutable approve/decline outcome,
+  customer identity, acknowledgment and policy snapshots, order snapshot,
+  request/network metadata, optional private signature document, and
+  supersession audit.
+- `SpecialOrderNotificationDelivery` stores one event/channel delivery result,
+  retry count, last error, and payload snapshot without duplicating the domain
+  outcome.
+- `SpecialOrderOperationEvent` stores deduplicated warning/block telemetry by
+  order revision, operation, mode, result, actor, source, and time bucket.
+- Special Order signature `StoredDocument` rows use provider
+  `vercel-blob-encrypted`, keep `url = null`, and record the AES-256-GCM envelope
+  and Blob access mode in metadata. The logical MIME type remains `image/png`.
+- New enums constrain declaration, lifecycle, request, and evidence states.

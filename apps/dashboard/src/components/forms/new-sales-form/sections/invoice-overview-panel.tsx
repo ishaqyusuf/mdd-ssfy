@@ -38,12 +38,16 @@ import {
 	shouldPreserveInitialEditTaxRate,
 } from "./customer-resolution";
 import { CustomerSelectorDialog } from "./customer-selector-dialog";
+import { SpecialOrderDeclarationControl } from "./special-order-declaration-control";
 
 interface Props {
 	mode: "create" | "edit";
 	type: "order" | "quote";
 	historyRestoreActive?: boolean;
 	canEditCustomer: boolean;
+	requiredSpecialOrderPromptOpen?: boolean;
+	onRequiredSpecialOrderPromptOpenChange?: (open: boolean) => void;
+	onRequiredSpecialOrderDecision?: (declaration: "NO" | "YES") => void;
 }
 
 function formDateValue(value: string | null) {
@@ -59,6 +63,8 @@ export function InvoiceOverviewPanel(props: Props) {
 	);
 	const setTaxRate = useNewSalesFormStore((s) => s.setTaxRate);
 	const setSummary = useNewSalesFormStore((s) => s.setSummary);
+	const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
+	const setSpecialOrder = useNewSalesFormStore((s) => s.setSpecialOrder);
 	const upsertExtraCost = useNewSalesFormStore((s) => s.upsertExtraCost);
 	const removeExtraCost = useNewSalesFormStore((s) => s.removeExtraCost);
 	const lastProfileCoefficientRef = useRef<number | null | undefined>(
@@ -505,6 +511,35 @@ export function InvoiceOverviewPanel(props: Props) {
 					dealerEmail={dealerProfileCard.email}
 					dealerName={dealerProfileCard.dealerName}
 					profile={dealerProfileCard.profile}
+				/>
+			) : null}
+			{props.type === "order" ? (
+				<SpecialOrderDeclarationControl
+					salesId={record.salesId}
+					customerId={customerId}
+					customerEmail={record.customer?.email}
+					customerName={
+						record.customer?.businessName || record.customer?.name
+					}
+					declaration={record.specialOrder?.declaration}
+					status={record.specialOrder?.status}
+					requiredPromptOpen={props.requiredSpecialOrderPromptOpen}
+					onRequiredPromptOpenChange={
+						props.onRequiredSpecialOrderPromptOpenChange
+					}
+					onRequiredDecision={props.onRequiredSpecialOrderDecision}
+					onCustomerEmailSaved={(email) => {
+						if (!record.customer) return;
+						patchRecord({
+							customer: { ...record.customer, email },
+						});
+					}}
+					onChange={({ declaration, changeReason }) =>
+						setSpecialOrder({
+							declaration,
+							changeReason: changeReason ?? null,
+						})
+					}
 				/>
 			) : null}
 			<SalesFormCustomerOverviewCard

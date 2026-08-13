@@ -163,6 +163,36 @@ export function buildInboundDemandAdjustmentActivity(input: {
 	};
 }
 
+export function buildSpecialOrderEnrollmentActivity(input: {
+	orderId: string;
+	reason: string;
+}): SalesActivityCopy {
+	return {
+		subject: "Special Order enabled",
+		headline: `Sale ${input.orderId} was manually classified as a Special Order.`,
+		note: `Reason: ${input.reason.trim()}`,
+		activityType: "special_order_enabled",
+	};
+}
+
+export function buildSpecialOrderRevisionInvalidatedActivity(input: {
+	orderId: string;
+	hadCustomerEvidence: boolean;
+}): SalesActivityCopy {
+	return {
+		subject: input.hadCustomerEvidence
+			? "Special Order reapproval required"
+			: "Special Order approval revision updated",
+		headline: input.hadCustomerEvidence
+			? `Customer-visible changes on sale ${input.orderId} superseded the prior approval evidence.`
+			: `Customer-visible changes on sale ${input.orderId} created a new approval revision.`,
+		note: input.hadCustomerEvidence
+			? "The customer must review and sign the current order revision again. No email was sent automatically."
+			: "Any prior approval link was revoked. No email was sent automatically.",
+		activityType: "special_order_revision_invalidated",
+	};
+}
+
 export async function getSalesActivitySenderContactId(
 	db: SalesActivityDb,
 	userId: number,

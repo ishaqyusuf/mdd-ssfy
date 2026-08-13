@@ -48,4 +48,15 @@ describe("batch production assignment", () => {
 			);
 		}
 	});
+
+	it("returns Warning Only metadata to the production UI", () => {
+		assert.match(source, /attachSpecialOrderOperationFeedback/);
+		assert.match(source, /operationalDecisions\.push/);
+		const productionUiSource = readFileSync(
+			new URL("../components/production-v2/shared.tsx", import.meta.url),
+			"utf8",
+		);
+		assert.match(productionUiSource, /getSpecialOrderOperationWarnings/);
+		assert.match(productionUiSource, /formatSpecialOrderOperationWarning/);
+	});
 });

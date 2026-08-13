@@ -1,6 +1,7 @@
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { generateToken } from "@/actions/token-action";
 import Link from "@/components/link";
+import { CustomerEmailRequiredDialog } from "@/components/modals/customer-email-required-dialog";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
 import { getSalesOrderStatusMenuActions } from "@/components/sales-status-menu-actions";
@@ -13,6 +14,7 @@ import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { openLink } from "@/lib/open-link";
 import type { SalesQueryRef } from "@/lib/query-events/types";
+import { createSalesEmailContinuation } from "@/lib/sales-email-continuation";
 import { resolveSalesPrintMode } from "@/modules/sales-print/application/sales-print-service";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTestEmailMode } from "@/store/test-email-mode";
@@ -55,6 +57,7 @@ type SalesMenuState = {
 	salesRefs: SalesQueryRef[];
 	salesIds: number[];
 	orderNo?: string | null;
+	customerId?: number | null;
 	customerEmail?: string | null;
 	customerPhone?: string | null;
 	customerName?: string | null;
@@ -70,6 +73,9 @@ type SalesMenuEmailController = {
 	didSucceed: boolean;
 	isPending: boolean;
 	sendEmail: (options?: EmailOptions) => void;
+	emailRequirementOpen: boolean;
+	dismissEmailRequirement: () => void;
+	continueWithCustomerEmail: (email: string) => void;
 };
 
 type SalesMenuActions = {
@@ -106,6 +112,7 @@ type SalesMenuProps = {
 	salesIds?: number[];
 	salesRefs?: readonly SalesQueryRef[];
 	orderNo?: string | null;
+	customerId?: number | null;
 	customerEmail?: string | null;
 	customerPhone?: string | null;
 	customerName?: string | null;
@@ -127,6 +134,7 @@ function SalesMenuRoot({
 	salesIds,
 	salesRefs,
 	orderNo,
+	customerId,
 	customerEmail,
 	customerPhone,
 	customerName,
@@ -176,6 +184,7 @@ function SalesMenuRoot({
 			salesRefs: resolvedRefs,
 			salesIds: resolvedIds,
 			orderNo,
+			customerId,
 			customerEmail,
 			customerPhone,
 			customerName,
@@ -183,6 +192,7 @@ function SalesMenuRoot({
 		};
 	}, [
 		customerEmail,
+		customerId,
 		customerPhone,
 		customerName,
 		documentTitle,
@@ -360,6 +370,16 @@ function SalesMenuRoot({
 				open={composeOpen}
 				onOpenChange={setComposeOpen}
 			/>
+			<CustomerEmailRequiredDialog
+				open={email.emailRequirementOpen}
+				onOpenChange={(nextOpen) => {
+					if (!nextOpen) email.dismissEmailRequirement();
+				}}
+				customerId={state.customerId}
+				customerName={state.customerName}
+				description="Save it now and the pending Sales email will send automatically."
+				onSaved={(address) => email.continueWithCustomerEmail(address)}
+			/>
 			{composeSalesOrderId && workflowCancellationAction ? (
 				<SalesWorkflowCancellationDialog
 					open
@@ -415,6 +435,10 @@ function useSendSalesEmailAction({
 }): SalesMenuEmailController {
 	const isQuote = state.type === "quote";
 	const [didSucceed, setDidSucceed] = useState(false);
+	const [emailRequirementOpen, setEmailRequirementOpen] = useState(false);
+	const emailContinuation = useRef(
+		createSalesEmailContinuation<EmailOptions>(),
+	);
 	const auth = useAuth();
 	const testEmailMode = useTestEmailMode((store) => store.enabled);
 	const shouldUseTestEmailMode =
@@ -438,18 +462,9 @@ function useSendSalesEmailAction({
 	});
 	const isSending =
 		notification.isActionPending || notification.status === "SYNCING";
-	const sendEmail = useCallback(
-		(options: EmailOptions = {}) => {
+	const dispatchEmail = useCallback(
+		(options: EmailOptions, recipientEmail?: string | null) => {
 			setDidSucceed(false);
-			if (state.customerEmail !== undefined && !state.customerEmail?.trim()) {
-				toast({
-					title: "Customer email not available",
-					description: "Add a customer email before sending this sales email.",
-					variant: "destructive",
-				});
-				closeMenu();
-				return;
-			}
 			notification.simpleSalesDocumentEmail({
 				emailType: options.withPayment
 					? options.partPayment
@@ -458,7 +473,7 @@ function useSendSalesEmailAction({
 					: "with payment",
 				printType: isQuote ? "quote" : "order",
 				salesIds: state.id ? [state.id] : state.salesIds,
-				customerEmail: state.customerEmail?.trim() || undefined,
+				customerEmail: recipientEmail?.trim() || undefined,
 				testEmailMode: shouldUseTestEmailMode,
 			});
 			closeMenu();
@@ -468,19 +483,63 @@ function useSendSalesEmailAction({
 			isQuote,
 			notification,
 			shouldUseTestEmailMode,
-			state.customerEmail,
 			state.id,
 			state.salesIds,
 		],
 	);
+	const sendEmail = useCallback(
+		(options: EmailOptions = {}) => {
+			const customerEmail = state.customerEmail?.trim();
+			if (state.customerEmail !== undefined && !customerEmail) {
+				if (!state.customerId) {
+					toast({
+						title: "Customer email not available",
+						description:
+							"This sale does not have an editable customer record. Open the customer and add an email before sending.",
+						variant: "destructive",
+					});
+					closeMenu();
+					return;
+				}
+				emailContinuation.current.queue(options);
+				setEmailRequirementOpen(true);
+				closeMenu();
+				return;
+			}
+			dispatchEmail(options, customerEmail);
+		},
+		[closeMenu, dispatchEmail, state.customerEmail, state.customerId],
+	);
+	const continueWithCustomerEmail = useCallback(
+		(email: string) => {
+			const options = emailContinuation.current.consume();
+			setEmailRequirementOpen(false);
+			if (options) dispatchEmail(options, email);
+		},
+		[dispatchEmail],
+	);
+	const dismissEmailRequirement = useCallback(() => {
+		emailContinuation.current.cancel();
+		setEmailRequirementOpen(false);
+	}, []);
 
 	return useMemo(
 		() => ({
 			didSucceed,
 			isPending: isSending,
 			sendEmail,
+			emailRequirementOpen,
+			dismissEmailRequirement,
+			continueWithCustomerEmail,
 		}),
-		[didSucceed, isSending, sendEmail],
+		[
+			continueWithCustomerEmail,
+			didSucceed,
+			dismissEmailRequirement,
+			emailRequirementOpen,
+			isSending,
+			sendEmail,
+		],
 	);
 }
 

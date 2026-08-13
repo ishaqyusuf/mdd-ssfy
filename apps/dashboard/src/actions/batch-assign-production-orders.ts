@@ -4,9 +4,14 @@ import { serverSession } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { actionClient } from "./safe-action";
 import {
+	assertSpecialOrderOperationAllowed,
 	createAssignmentsTask,
 	getSaleInformation,
 } from "@sales/exports";
+import {
+	attachSpecialOrderOperationFeedback,
+	type SpecialOrderOperationalDecision,
+} from "@gnd/sales/special-order";
 import { z } from "zod";
 
 const batchAssignProductionOrdersSchema = z.object({
@@ -25,11 +30,25 @@ export const batchAssignProductionOrdersAction = actionClient
 		const session = await serverSession();
 		let ordersUpdated = 0;
 		let assignmentsQueued = 0;
+		const operationalDecisions: SpecialOrderOperationalDecision[] = [];
 
 		for (const salesId of input.salesIds) {
-			const info = await getSaleInformation(prisma as any, {
-				salesId,
-			}, { persistDerivedState: true });
+			operationalDecisions.push(
+				await assertSpecialOrderOperationAllowed(prisma as any, {
+					salesOrderId: salesId,
+					operation: "PRODUCTION",
+					actorUserId: Number(session.user.id),
+					authorName: session.user.name || "Unknown",
+					source: "dashboard.batch-assign-production-orders",
+				}),
+			);
+			const info = await getSaleInformation(
+				prisma as any,
+				{
+					salesId,
+				},
+				{ persistDerivedState: true },
+			);
 
 			const selections = info.items
 				.filter(
@@ -61,8 +80,11 @@ export const batchAssignProductionOrdersAction = actionClient
 			assignmentsQueued += selections.length;
 		}
 
-		return {
-			ordersUpdated,
-			assignmentsQueued,
-		};
+		return attachSpecialOrderOperationFeedback(
+			{
+				ordersUpdated,
+				assignmentsQueued,
+			},
+			operationalDecisions,
+		);
 	});

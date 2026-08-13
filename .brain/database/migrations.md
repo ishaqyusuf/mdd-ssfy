@@ -444,3 +444,31 @@ Tracks notable migrations and migration strategy.
 - `bun run db:generate` passed against the composed Prisma schema.
 - The migration was not applied to local or hosted data in this task. Local MySQL at
   `127.0.0.1:3307` was not running during the read-only repair proof attempt.
+
+## 2026-08-13 Special Order acknowledgment schema
+
+- Added nullable `SalesOrders` Special Order state/current pointers and the
+  policy-version, approval-request, immutable approval-evidence,
+  notification-delivery, and operation-event models.
+- `bun run db:generate` passed.
+- The required `bun run db:migrate` workflow was attempted first but remained
+  blocked by the pre-existing split migration roots and shadow replay failure in
+  `20260722180000_master_password_usage_audit`. The original
+  `20260715133000_add_master_password_login_audits` migration remains unchanged
+  under `packages/db/src/schema/migrations`; an idempotent compatibility copy
+  was added to the active `packages/db/src/migrations` chain. Existing
+  schema-push migrations were verified and resolved as applied in the local
+  ledger only. ADR-053 records this bounded local-only exception.
+- Generated additive migration
+  `20260813193000_special_order_acknowledgment/migration.sql` from a composed
+  pre-feature schema to the current schema. It contains only the Special Order
+  columns, indexes, and new tables.
+- Applied the bounded additive delta to local MySQL and resolved the generated
+  migration as applied. `prisma migrate status` then reported all 117 migrations
+  and the database schema up to date.
+- No reset, destructive migration, preview write, production write, or hosted
+  database synchronization was performed.
+- Final acceptance reran `bun run db:generate` and `bun run db:push`; both
+  passed against local MySQL and reported the composed schema in sync. Three
+  `bun run db:migrate` attempts stopped at the existing Docker/shadow preflight
+  before migration execution; ADR-053 remains the explicit bounded exception.

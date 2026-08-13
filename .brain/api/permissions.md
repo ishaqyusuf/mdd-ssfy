@@ -412,3 +412,24 @@ Tracks authentication and authorization patterns across API surfaces.
 - Every new/converted route requires direct negative tests for anonymous,
   wrong-tenant, wrong-office, wrong-role, disabled-feature, suspended-tenant,
   expired-support, and stale/revoked public-token contexts as applicable.
+
+## Special Order acknowledgment permissions (2026-08-13)
+
+- Classification, approval request/retry, reapproval, and removal require an
+  authenticated user with `editOrders`.
+- Approval history requires `viewOrders` or `editOrders`.
+- Decrypted signature retrieval requires an authenticated user with
+  `viewOrders` or `editOrders`; anonymous access returns `401` and an
+  authenticated user without either permission receives `403`.
+- Enforcement-mode, link-lifetime, policy draft, and policy publication require
+  Super Admin. No salesperson-level override bypasses the active gate.
+- Public review/respond requires no employee login because authority is the
+  valid, unexpired, unrevoked, revision-bound capability. It grants access only
+  to its customer-visible snapshot and one terminal response.
+- Existing purchasing, production, packing, and dispatch permissions remain
+  mandatory in addition to passing Special Order enforcement.
+- The focused `customers.updateCustomerEmail` repair permits
+  `editSalesCustomers` or `editOrders`, derives identity from the authenticated
+  session, and remains forbidden for dealer-owned customers in office mode.
+- Warning Only response metadata grants no additional authority; callers must
+  still satisfy the existing permission for the attempted operation.

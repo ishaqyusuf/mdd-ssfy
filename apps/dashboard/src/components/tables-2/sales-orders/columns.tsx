@@ -174,6 +174,36 @@ const statusColumn: Column = {
 	cell: ({ row }) => <SalesOrderStatusMenu item={row.original} />,
 };
 
+const specialOrderColumn: Column = {
+	id: "specialOrder",
+	header: "Special Order",
+	accessorFn: (row) => row.specialOrder.label,
+	...sizes.custom(120, 190, 145),
+	enableResizing: true,
+	enableSorting: false,
+	meta: {
+		skeleton: { type: "badge", width: "w-28" },
+		headerLabel: "Special Order",
+		className: sizeClass(sizes.custom(120, 190, 145)),
+	},
+	cell: ({ row }) => {
+		const specialOrder = row.original.specialOrder;
+		return (
+			<Badge
+				variant={
+					specialOrder.status === "CUSTOMER_DECLINED"
+						? "destructive"
+						: specialOrder.declaration === "YES"
+							? "default"
+							: "outline"
+				}
+			>
+				{specialOrder.label}
+			</Badge>
+		);
+	},
+};
+
 function SalesOrderStatusMenu({ item }: { item: SalesOrder }) {
 	return (
 		<SalesMenu
@@ -772,6 +802,7 @@ export const columns: Column[] = [
 	invoiceTotalColumn,
 	deliveryColumn,
 	statusColumn,
+	specialOrderColumn,
 	amountDueColumn,
 	productionColumn,
 	fulfillmentColumn,

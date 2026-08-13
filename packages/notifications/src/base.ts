@@ -2,6 +2,7 @@ import type { ContactRole, Db } from "@gnd/db";
 import type { CreateEmailOptions } from "resend";
 import { z } from "zod";
 import type { CreateActivityInput } from "./schemas";
+import type { EmailSendBulkResult } from "./services/email-service";
 
 // biome-ignore lint/suspicious/noExplicitAny: Legacy notification handlers rely on schema-specific inference while defaulting to a loose payload.
 type NotificationPayload = any;
@@ -45,6 +46,11 @@ export interface NotificationHandler<T = NotificationPayload> {
 		data: NotificationPayloadRecord;
 		template?: string;
 	};
+	afterEmailDelivery?: (
+		db: Db,
+		data: T,
+		result: EmailSendBulkResult,
+	) => Promise<void> | void;
 	createWhatsApp?: (
 		data: T,
 		author: UserData,

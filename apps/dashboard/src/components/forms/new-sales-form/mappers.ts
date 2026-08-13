@@ -1,6 +1,6 @@
 import {
-	computeNormalizedSalesFormSummary,
 	composeSalesFormSavePayload,
+	computeNormalizedSalesFormSummary,
 	repriceSalesFormLineItemsForProfile,
 } from "@gnd/sales/sales-form";
 import type {
@@ -45,18 +45,26 @@ export function toSaveDraftInput(
 		slug?: string | null;
 		inventoryStatus?: unknown;
 		version?: string | null;
+		specialOrder?: {
+			declaration?: "NO" | "YES" | null;
+			changeReason?: string | null;
+		} | null;
 		form: unknown;
 		lineItems: unknown[];
 		extraCosts: unknown[];
 		summary: unknown;
 	},
 	autosave = true,
+	commitIntent: "autosave" | "draft" | "close" | "new" | "final" = autosave
+		? "autosave"
+		: "draft",
 ): NewSalesFormSaveDraftInput {
 	return composeSalesFormSavePayload(
 		source as Parameters<typeof composeSalesFormSavePayload>[0],
 		{
 			surface: "www",
 			autosave,
+			commitIntent,
 			pricing: {
 				mode: "coefficient",
 			},

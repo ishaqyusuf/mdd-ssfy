@@ -1,5 +1,9 @@
 import type { Db } from "@gnd/db";
 import { logger } from "@gnd/logger";
+import {
+	ensureSpecialOrderEmailApprovalAction,
+	recordSpecialOrderApprovalDelivery,
+} from "@gnd/sales/special-order";
 import { getCustomerWallet } from "@gnd/sales/wallet";
 import { getAppUrl } from "@gnd/utils/envs";
 import {
@@ -80,6 +84,18 @@ const resolvedSchema = z.object({
 	emailAttemptId: z.string().optional().nullable(),
 	sourceAttemptId: z.string().optional().nullable(),
 	dealerProgramBanner: dealerProgramBannerSchema.optional().nullable(),
+	specialOrderApprovals: z
+		.array(
+			z.object({
+				requestId: z.string(),
+				orderId: z.string(),
+				recipientEmail: z.string().email(),
+				approvalUrl: z.string().url(),
+				expiresAt: z.union([z.date(), z.string()]),
+				newlyIssued: z.boolean(),
+			}),
+		)
+		.default([]),
 });
 
 type ResolvedComposedSalesDocumentEmailInput = z.infer<typeof resolvedSchema>;
@@ -363,6 +379,19 @@ export async function buildComposedSalesDocumentEmailData(
 					customerEmail: customerEmail || "",
 				})
 			: null;
+	const specialOrderApprovals =
+		type === "order" && channels.includes("email") && customerEmail
+			? (
+					await Promise.all(
+						sales.map((sale) =>
+							ensureSpecialOrderEmailApprovalAction(db, {
+								salesId: sale.id,
+								issuedByUserId: author.id,
+							}),
+						),
+					)
+				).filter((action) => action !== null)
+			: [];
 
 	return {
 		type,
@@ -387,6 +416,7 @@ export async function buildComposedSalesDocumentEmailData(
 		emailAttemptId: input.emailAttemptId,
 		sourceAttemptId: input.sourceAttemptId,
 		dealerProgramBanner,
+		specialOrderApprovals,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
 			po: sale.po,
@@ -424,6 +454,18 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 			whatsAppNotification: false,
 			smsNotification: false,
 		};
+	},
+	async afterEmailDelivery(db, data, result) {
+		const delivery =
+			result.deliveries.find((entry) => entry.status === "sent") ||
+			result.deliveries.find((entry) => entry.status === "failed") ||
+			result.deliveries[0] ||
+			null;
+		await recordSpecialOrderApprovalDelivery(
+			db,
+			data.specialOrderApprovals,
+			delivery,
+		);
 	},
 	createDirectWhatsAppContact(
 		data: ResolvedComposedSalesDocumentEmailInput,
@@ -522,6 +564,15 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 				pdfLink: data.pdfLink || undefined,
 				hasPdfAttachment: Boolean(data.pdfAttachment),
 				dealerProgramBanner: data.dealerProgramBanner || undefined,
+				specialOrderApprovals: (data.specialOrderApprovals ?? []).map(
+					(action) => ({
+						...action,
+						expiresAt:
+							action.expiresAt instanceof Date
+								? action.expiresAt
+								: new Date(action.expiresAt),
+					}),
+				),
 				sales: data.sales.map((sale) => ({
 					...sale,
 					date:

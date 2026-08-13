@@ -53,7 +53,9 @@ function componentName(component: SalesFulfillmentComponentProjection) {
 }
 
 function lineTitle(line: SalesFulfillmentLineProjection) {
-	return line.title || (line.id ? `Line item ${line.id}` : "Untitled line item");
+	return (
+		line.title || (line.id ? `Line item ${line.id}` : "Untitled line item")
+	);
 }
 
 function getBlockingComponents(line: SalesFulfillmentLineProjection) {
@@ -252,7 +254,9 @@ function buildProductionRows(
 	return rows;
 }
 
-function buildPackingRows(lines: SalesFulfillmentLineProjection[]): LineItemRow[] {
+function buildPackingRows(
+	lines: SalesFulfillmentLineProjection[],
+): LineItemRow[] {
 	return lines.map((line, index) => {
 		const shippedQty = inventoryShippedQty(line);
 		const backorderedQty = inventoryBackorderedQty(line);
@@ -263,7 +267,12 @@ function buildPackingRows(lines: SalesFulfillmentLineProjection[]): LineItemRow[
 				cell(numberValue(line.orderedQty), 1.5, "center"),
 				cell(inventoryPickedQty(line), 1.5, "center"),
 				cell(shippedQty, 1.5, "center"),
-				cell(Math.max(0, numberValue(line.orderedQty) - shippedQty), 1.5, "center", true),
+				cell(
+					Math.max(0, numberValue(line.orderedQty) - shippedQty),
+					1.5,
+					"center",
+					true,
+				),
 				cell(backorderedQty, 1.5, "center", true),
 				cell(formatStatus(inventoryLineStatus(line)), 2, "center"),
 			],
@@ -292,7 +301,9 @@ function buildPackingRows(lines: SalesFulfillmentLineProjection[]): LineItemRow[
 	});
 }
 
-function buildSummaryRows(lines: SalesFulfillmentLineProjection[]): LineItemRow[] {
+function buildSummaryRows(
+	lines: SalesFulfillmentLineProjection[],
+): LineItemRow[] {
 	return lines.map((line, index) => {
 		const shippedQty = inventoryShippedQty(line);
 		return {
@@ -355,6 +366,7 @@ export function buildInventoryPrintPage(
 		footer: config.showFooter ? composeFooter(sale, mode) : null,
 		config,
 		signing: null,
+		specialOrder: null,
 	};
 }
 

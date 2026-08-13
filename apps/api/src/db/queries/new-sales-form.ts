@@ -50,23 +50,23 @@ import { assertDealerSaleOfficeAccess } from "@gnd/db/queries";
 import { projectLegacyOrderPayments } from "@gnd/sales";
 import { analyzeSalesFormChange } from "@gnd/sales/adjustment-system";
 import {
-	normalizeShelfProductSearchQuery,
-	searchShelfProductIndex,
-	shelfProductSearchCandidateTerms,
-	shelfProductSearchCandidateTitleAnchorGroups,
-} from "@gnd/sales/sales-form";
-import {
 	addMoney,
 	resolveSalesDisplayCcc,
 	roundMoney,
 	sumMoney,
 } from "@gnd/sales/payment-system";
 import {
+	normalizeShelfProductSearchQuery,
+	searchShelfProductIndex,
+	shelfProductSearchCandidateTerms,
+	shelfProductSearchCandidateTitleAnchorGroups,
+} from "@gnd/sales/sales-form";
+import { projectApprovedAdjustmentDoorRows } from "@gnd/sales/sales-form/application/approved-adjustment-projection";
+import {
 	calculateLegacyPaymentDueDate,
 	projectSalesFormMetaToLegacyMeta,
 	readLegacySalesFormMeta,
 } from "@gnd/sales/sales-form/application/legacy-metadata";
-import { projectApprovedAdjustmentDoorRows } from "@gnd/sales/sales-form/application/approved-adjustment-projection";
 import { calculateSalesFormSummary } from "@gnd/sales/sales-form/domain/costing";
 import {
 	collapseLegacyGroupedLines,
@@ -77,6 +77,13 @@ import {
 	normalizeHptLineForLegacy,
 } from "@gnd/sales/sales-form/domain/hpt-compatibility";
 import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
+import {
+	buildSpecialOrderCustomerVisibleRevision,
+	deriveSpecialOrderRevisionTransition,
+	deriveSpecialOrderStatus,
+	requiresSpecialOrderCustomerEmail,
+	validateSpecialOrderDeclaration,
+} from "@gnd/sales/special-order";
 import { generateSalesSlug } from "@gnd/sales/utils";
 import { generateRandomString } from "@gnd/utils";
 import { TRPCError } from "@trpc/server";
@@ -87,6 +94,8 @@ import {
 } from "./new-sales-form-debug";
 import {
 	buildSalesFormUpdateActivity,
+	buildSpecialOrderEnrollmentActivity,
+	buildSpecialOrderRevisionInvalidatedActivity,
 	createSalesFormTimelineActivity,
 	getSalesActivitySenderContactId,
 } from "./sales-form-activity";
@@ -421,9 +430,7 @@ function mergePersistedFormSteps(
 				return {
 					...dbMeta,
 					...persistedMeta,
-					...(Array.isArray(selectedComponents)
-						? { selectedComponents }
-						: {}),
+					...(Array.isArray(selectedComponents) ? { selectedComponents } : {}),
 				};
 			})(),
 			step:
@@ -488,9 +495,9 @@ function mergePersistedDoorRows(
 	preferPersistedSnapshot: boolean,
 ) {
 	const hasPersistedRows = Array.isArray(persistedRows);
-	const persisted = (Array.isArray(persistedRows) ? persistedRows : []) as Array<
-		Record<string, unknown>
-	>;
+	const persisted = (
+		Array.isArray(persistedRows) ? persistedRows : []
+	) as Array<Record<string, unknown>>;
 	const database = (Array.isArray(dbRows) ? dbRows : []) as Array<
 		Record<string, unknown>
 	>;
@@ -595,8 +602,8 @@ function mergeLegacyDoorComponentSnapshots(
 	const candidates = [
 		housePackageTool.stepProduct,
 		...(housePackageTool.doors || []).map((door) => door.stepProduct),
-	].filter(
-		(component): component is LegacyDoorStepProduct => Boolean(component),
+	].filter((component): component is LegacyDoorStepProduct =>
+		Boolean(component),
 	);
 	for (const component of candidates) {
 		const uid = String(component.uid || "").trim();
@@ -781,6 +788,17 @@ function toBootstrapPayload(
 		slug: string;
 		orderId: string;
 		inventoryStatus: string | null;
+		specialOrderDeclaration: "NO" | "YES" | null;
+		specialOrderStatus:
+			| "NOT_REQUIRED"
+			| "SIGNATURE_PENDING"
+			| "CUSTOMER_APPROVED"
+			| "REAPPROVAL_REQUIRED"
+			| "CUSTOMER_DECLINED"
+			| null;
+		specialOrderRevision: string | null;
+		currentSpecialOrderApprovalId: string | null;
+		currentSpecialOrderRequestId: string | null;
 		type: string | null;
 		status: string | null;
 		customerId: number | null;
@@ -1178,6 +1196,14 @@ function toBootstrapPayload(
 		slug: order.slug,
 		orderId: order.orderId,
 		inventoryStatus: order.inventoryStatus,
+		specialOrder: {
+			declaration: order.specialOrderDeclaration,
+			status: order.specialOrderStatus,
+			revision: order.specialOrderRevision,
+			currentApprovalId: order.currentSpecialOrderApprovalId,
+			currentRequestId: order.currentSpecialOrderRequestId,
+			changeReason: null,
+		},
 		type: (order.type || "order") as "order" | "quote",
 		status: order.status || "Draft",
 		version:
@@ -1282,6 +1308,14 @@ export async function bootstrapNewSalesForm(
 		slug: null,
 		orderId: null,
 		inventoryStatus: null,
+		specialOrder: {
+			declaration: null,
+			status: null,
+			revision: null,
+			currentApprovalId: null,
+			currentRequestId: null,
+			changeReason: null,
+		},
 		type: input.type,
 		status: "Draft",
 		version: `new-${Date.now()}-${generateRandomString(6)}`,
@@ -1350,6 +1384,11 @@ export async function getNewSalesForm(
 				slug: true,
 				orderId: true,
 				inventoryStatus: true,
+				specialOrderDeclaration: true,
+				specialOrderStatus: true,
+				specialOrderRevision: true,
+				currentSpecialOrderApprovalId: true,
+				currentSpecialOrderRequestId: true,
 				type: true,
 				status: true,
 				customerId: true,
@@ -2571,7 +2610,10 @@ export async function searchNewSalesFormShelfProducts(
 					)
 					.map((category) => Number(category.id || 0))
 					.filter((id) => id > 0);
-				return [term, Array.from(new Set([...directIds, ...descendantIds]))] as const;
+				return [
+					term,
+					Array.from(new Set([...directIds, ...descendantIds])),
+				] as const;
 			}),
 		);
 		const activeAnd = Array.isArray(visibilityWhere.AND)
@@ -2610,35 +2652,35 @@ export async function searchNewSalesFormShelfProducts(
 			phraseCandidatesPromise,
 			titleAnchorGroups.length
 				? ctx.db.dykeShelfProducts.findMany({
-					where: {
-						...visibilityWhere,
-						AND: [
-							...activeAnd,
-							...lexicalTermClauses,
-							...titleAnchorGroups.map((anchors) => ({
-								OR: anchors.map((anchor) => ({
-									title: {
-										contains: anchor,
-									},
+						where: {
+							...visibilityWhere,
+							AND: [
+								...activeAnd,
+								...lexicalTermClauses,
+								...titleAnchorGroups.map((anchors) => ({
+									OR: anchors.map((anchor) => ({
+										title: {
+											contains: anchor,
+										},
+									})),
 								})),
-							})),
-						],
-					},
-					select: productSelect,
-					orderBy: [{ title: "asc" }],
-					take: 250,
-				})
+							],
+						},
+						select: productSelect,
+						orderBy: [{ title: "asc" }],
+						take: 250,
+					})
 				: Promise.resolve([]),
 			candidateTerms.length
 				? ctx.db.dykeShelfProducts.findMany({
-					where: {
-						...visibilityWhere,
-						AND: [...activeAnd, ...termClauses],
-					},
-					select: productSelect,
-					orderBy: [{ title: "asc" }],
-					take: Math.min(250, Math.max(100, limit * 8)),
-				})
+						where: {
+							...visibilityWhere,
+							AND: [...activeAnd, ...termClauses],
+						},
+						select: productSelect,
+						orderBy: [{ title: "asc" }],
+						take: Math.min(250, Math.max(100, limit * 8)),
+					})
 				: Promise.resolve([]),
 		]);
 		const candidates = Array.from(
@@ -3029,6 +3071,76 @@ async function saveNewSalesFormInternal(
 		cccPercentage: settings.cccPercentage,
 	});
 	const persistedSummary = storedOrderSummary(summary);
+	const [revisionCustomer, revisionProfile, revisionBilling, revisionShipping] =
+		await Promise.all([
+			payload.meta.customerId
+				? ctx.db.customers.findFirst({
+						where: { id: payload.meta.customerId, deletedAt: null },
+						select: {
+							id: true,
+							name: true,
+							businessName: true,
+							email: true,
+							phoneNo: true,
+							phoneNo2: true,
+							address: true,
+						},
+					})
+				: null,
+			payload.meta.customerProfileId
+				? ctx.db.customerTypes.findFirst({
+						where: { id: payload.meta.customerProfileId, deletedAt: null },
+						select: {
+							id: true,
+							title: true,
+							coefficient: true,
+							salesPercentage: true,
+						},
+					})
+				: null,
+			payload.meta.billingAddressId
+				? ctx.db.addressBooks.findFirst({
+						where: { id: payload.meta.billingAddressId, deletedAt: null },
+						select: {
+							id: true,
+							name: true,
+							address1: true,
+							address2: true,
+							city: true,
+							state: true,
+							country: true,
+							email: true,
+							phoneNo: true,
+						},
+					})
+				: null,
+			payload.meta.shippingAddressId
+				? ctx.db.addressBooks.findFirst({
+						where: { id: payload.meta.shippingAddressId, deletedAt: null },
+						select: {
+							id: true,
+							name: true,
+							address1: true,
+							address2: true,
+							city: true,
+							state: true,
+							country: true,
+							email: true,
+							phoneNo: true,
+						},
+					})
+				: null,
+		]);
+	const specialOrderRevision = buildSpecialOrderCustomerVisibleRevision({
+		customer: revisionCustomer,
+		customerProfile: revisionProfile,
+		billingAddress: revisionBilling,
+		shippingAddress: revisionShipping,
+		orderDate: payload.meta.createdAt,
+		lineItems: normalizedLines,
+		extraCosts: payload.extraCosts,
+		summary: persistedSummary,
+	});
 	const displayCcc = resolveSalesDisplayCcc({
 		baseTotal: persistedSummary.grandTotal,
 		paymentMethod: payload.meta.paymentMethod || null,
@@ -3045,6 +3157,17 @@ async function saveNewSalesFormInternal(
 			orderId: string;
 			meta: unknown;
 			inventoryStatus: string | null;
+			specialOrderDeclaration: "NO" | "YES" | null;
+			specialOrderStatus:
+				| "NOT_REQUIRED"
+				| "SIGNATURE_PENDING"
+				| "CUSTOMER_APPROVED"
+				| "REAPPROVAL_REQUIRED"
+				| "CUSTOMER_DECLINED"
+				| null;
+			specialOrderRevision: string | null;
+			currentSpecialOrderApprovalId: string | null;
+			currentSpecialOrderRequestId: string | null;
 			updatedAt: Date | null;
 			createdAt: Date | null;
 			paymentTerm: string | null;
@@ -3081,6 +3204,11 @@ async function saveNewSalesFormInternal(
 					orderId: true,
 					meta: true,
 					inventoryStatus: true,
+					specialOrderDeclaration: true,
+					specialOrderStatus: true,
+					specialOrderRevision: true,
+					currentSpecialOrderApprovalId: true,
+					currentSpecialOrderRequestId: true,
 					updatedAt: true,
 					createdAt: true,
 					paymentTerm: true,
@@ -3130,13 +3258,17 @@ async function saveNewSalesFormInternal(
 				message: "A dealer-origin order's customer cannot be changed.",
 			});
 		}
+		let selectedCustomer: {
+			dealerOwnerId: number | null;
+			email: string | null;
+		} | null = null;
 		if (payload.meta.customerId) {
-			const selectedCustomer = await tx.customers.findFirst({
+			selectedCustomer = await tx.customers.findFirst({
 				where: {
 					id: payload.meta.customerId,
 					deletedAt: null,
 				},
-				select: { dealerOwnerId: true },
+				select: { dealerOwnerId: true, email: true },
 			});
 			const editsMatchingDealerOrder =
 				Boolean(order?.dealerAuthId) &&
@@ -3149,6 +3281,91 @@ async function saveNewSalesFormInternal(
 					code: "FORBIDDEN",
 					message:
 						"Dealer-owned customers cannot be used for office-origin sales.",
+				});
+			}
+		}
+
+		const isInternalDashboardOrder = !origin && !order?.dealerAuthId;
+		const currentSpecialOrderDeclaration =
+			order?.specialOrderDeclaration ?? null;
+		const nextSpecialOrderDeclaration =
+			payload.type !== "order"
+				? null
+				: payload.specialOrderDeclaration === undefined
+					? currentSpecialOrderDeclaration
+					: payload.specialOrderDeclaration;
+		const declarationValidation = validateSpecialOrderDeclaration({
+			type: payload.type,
+			commitIntent: payload.commitIntent,
+			declaration: nextSpecialOrderDeclaration,
+			isInternalDashboardOrder,
+		});
+		if (!declarationValidation.valid) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message:
+					"SPECIAL_ORDER_DECLARATION_REQUIRED: Choose Yes or No for Special Order before completing this sale.",
+			});
+		}
+		if (
+			requiresSpecialOrderCustomerEmail({
+				declaration: nextSpecialOrderDeclaration,
+				customerEmail: selectedCustomer?.email,
+				commitIntent: payload.commitIntent,
+			})
+		) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message:
+					"SPECIAL_ORDER_CUSTOMER_EMAIL_REQUIRED: Add a valid customer email before saving this Special Order.",
+			});
+		}
+		const manuallyEnrolledExistingOrder =
+			Boolean(order) &&
+			isInternalDashboardOrder &&
+			currentSpecialOrderDeclaration !== "YES" &&
+			nextSpecialOrderDeclaration === "YES";
+		if (
+			manuallyEnrolledExistingOrder &&
+			!payload.specialOrderChangeReason?.trim()
+		) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message:
+					"SPECIAL_ORDER_ENROLLMENT_REASON_REQUIRED: Confirm the change and provide a reason for making this existing sale a Special Order.",
+			});
+		}
+		const specialOrderTransition = deriveSpecialOrderRevisionTransition({
+			declaration: nextSpecialOrderDeclaration,
+			currentRevision: order?.specialOrderRevision,
+			nextRevision: specialOrderRevision,
+			currentApprovalId: order?.currentSpecialOrderApprovalId,
+			currentStatus: order?.specialOrderStatus,
+		});
+		const nextCurrentSpecialOrderApprovalId =
+			specialOrderTransition.nextApprovalId;
+		const specialOrderRevisionChanged =
+			specialOrderTransition.revisionChanged;
+		const hadCustomerEvidence =
+			specialOrderTransition.hadCustomerEvidence;
+		const nextSpecialOrderStatus = specialOrderTransition.nextStatus;
+		if (order && specialOrderRevisionChanged) {
+			await tx.specialOrderApprovalRequest.updateMany({
+				where: { salesOrderId: order.id, status: "ACTIVE" },
+				data: {
+					status: "REVOKED",
+					revokedAt: new Date(),
+					revokedReason: "ORDER_REVISION_CHANGED",
+				},
+			});
+			if (order.currentSpecialOrderApprovalId) {
+				await tx.specialOrderApprovalEvidence.updateMany({
+					where: { id: order.currentSpecialOrderApprovalId },
+					data: {
+						supersededAt: new Date(),
+						supersededReason: "Order revision changed",
+						supersededByUserId: ctx.userId ?? null,
+					},
 				});
 			}
 		}
@@ -3172,9 +3389,9 @@ async function saveNewSalesFormInternal(
 		const saveCommitments =
 			order && payload.type === "order"
 				? await getNewSalesFormCommitmentSnapshot(
-							tx as unknown as TRPCContext["db"],
-							order.id,
-						)
+						tx as unknown as TRPCContext["db"],
+						order.id,
+					)
 				: null;
 		if (order && payload.type === "order" && saveCommitments) {
 			const persistedLines = currentMeta.newSalesForm?.lineItems || [];
@@ -3378,6 +3595,12 @@ async function saveNewSalesFormInternal(
 						payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
 					inventoryStatus:
 						payload.type === "order" ? payload.inventoryStatus || null : null,
+					specialOrderDeclaration: nextSpecialOrderDeclaration,
+					specialOrderStatus: nextSpecialOrderStatus,
+					specialOrderRevision:
+						nextSpecialOrderDeclaration === "YES" ? specialOrderRevision : null,
+					currentSpecialOrderApprovalId: nextCurrentSpecialOrderApprovalId,
+					currentSpecialOrderRequestId: null,
 					taxPercentage: persistedSummary.taxRate,
 					subTotal: persistedSummary.subTotal,
 					tax: persistedSummary.taxTotal,
@@ -3398,6 +3621,12 @@ async function saveNewSalesFormInternal(
 				meta: nextMeta,
 				inventoryStatus:
 					payload.type === "order" ? payload.inventoryStatus || null : null,
+				specialOrderDeclaration: nextSpecialOrderDeclaration,
+				specialOrderStatus: nextSpecialOrderStatus,
+				specialOrderRevision:
+					nextSpecialOrderDeclaration === "YES" ? specialOrderRevision : null,
+				currentSpecialOrderApprovalId: nextCurrentSpecialOrderApprovalId,
+				currentSpecialOrderRequestId: null,
 				updatedAt: new Date(),
 				createdAt: nextCreatedAt,
 				paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
@@ -3435,6 +3664,16 @@ async function saveNewSalesFormInternal(
 					inventoryStatus:
 						payload.type === "order"
 							? payload.inventoryStatus || order.inventoryStatus || null
+							: null,
+					specialOrderDeclaration: nextSpecialOrderDeclaration,
+					specialOrderStatus: nextSpecialOrderStatus,
+					specialOrderRevision:
+						nextSpecialOrderDeclaration === "YES" ? specialOrderRevision : null,
+					currentSpecialOrderApprovalId: nextCurrentSpecialOrderApprovalId,
+					currentSpecialOrderRequestId:
+						nextSpecialOrderDeclaration === "YES" &&
+						!specialOrderRevisionChanged
+							? order.currentSpecialOrderRequestId
 							: null,
 					taxPercentage: persistedSummary.taxRate,
 					subTotal: persistedSummary.subTotal,
@@ -3739,23 +3978,22 @@ async function saveNewSalesFormInternal(
 									where: { orderItemId: createdItem.id },
 									select: { id: true },
 								});
-					const createdHpt =
-						existingHpt
-							? await tx.housePackageTools.update({
-									where: {
-										id: existingHpt.id,
-									},
-									data: hptData,
-									select: {
-										id: true,
-									},
-								})
-							: await tx.housePackageTools.create({
-									data: hptData,
-									select: {
-										id: true,
-									},
-								});
+					const createdHpt = existingHpt
+						? await tx.housePackageTools.update({
+								where: {
+									id: existingHpt.id,
+								},
+								data: hptData,
+								select: {
+									id: true,
+								},
+							})
+						: await tx.housePackageTools.create({
+								data: hptData,
+								select: {
+									id: true,
+								},
+							});
 
 					const doors = (hpt.doors || []).filter(
 						(door) =>
@@ -3933,6 +4171,34 @@ async function saveNewSalesFormInternal(
 					}),
 				},
 			);
+			if (manuallyEnrolledExistingOrder) {
+				await createSalesFormTimelineActivity(
+					tx as unknown as TRPCContext["db"],
+					{
+						salesId: currentId,
+						orderId: order!.orderId,
+						senderContactId: activitySenderContactId,
+						copy: buildSpecialOrderEnrollmentActivity({
+							orderId: order!.orderId,
+							reason: payload.specialOrderChangeReason!,
+						}),
+					},
+				);
+			}
+			if (specialOrderRevisionChanged) {
+				await createSalesFormTimelineActivity(
+					tx as unknown as TRPCContext["db"],
+					{
+						salesId: currentId,
+						orderId: order!.orderId,
+						senderContactId: activitySenderContactId,
+						copy: buildSpecialOrderRevisionInvalidatedActivity({
+							orderId: order!.orderId,
+							hadCustomerEvidence,
+						}),
+					},
+				);
+			}
 		}
 
 		return {
@@ -3953,6 +4219,18 @@ async function saveNewSalesFormInternal(
 			summary,
 			settings,
 			status,
+			specialOrder: {
+				declaration: nextSpecialOrderDeclaration,
+				status: nextSpecialOrderStatus,
+				revision:
+					nextSpecialOrderDeclaration === "YES" ? specialOrderRevision : null,
+				currentApprovalId: nextCurrentSpecialOrderApprovalId,
+				currentRequestId:
+					nextSpecialOrderDeclaration === "YES" && !specialOrderRevisionChanged
+						? order!.currentSpecialOrderRequestId
+						: null,
+				changeReason: null,
+			},
 		};
 	});
 }
@@ -4193,6 +4471,7 @@ export async function saveStorefrontSalesOrder(
 		salesId: null,
 		version: null,
 		autosave: false,
+		commitIntent: "final",
 		meta: {
 			customerId: input.customerId,
 			customerProfileId: input.customerProfileId || null,
@@ -4259,6 +4538,7 @@ export async function saveStorefrontInquiryQuote(
 		salesId: null,
 		version: null,
 		autosave: false,
+		commitIntent: "draft",
 		meta: {
 			...bootstrap.form,
 			notes: input.notes,

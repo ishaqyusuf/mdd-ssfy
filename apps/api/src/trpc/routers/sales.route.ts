@@ -68,6 +68,13 @@ import {
 	getSaleTransactions,
 	getSaleTransactionsSchema,
 } from "@api/db/queries/sales-transactions";
+import {
+	getSpecialOrderRolloutMetrics,
+	getSpecialOrderSettingsManagement,
+	publishSpecialOrderPolicy,
+	saveSpecialOrderPolicyDraft,
+	updateSpecialOrderOperationalSettings,
+} from "@api/db/queries/special-order-settings";
 import { resolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
 import { getCustomersSchema } from "@api/schemas/customer";
 import {
@@ -188,6 +195,19 @@ const updatePaymentReviewSettingsSchema = z.object({
 		fulfillment: z.boolean(),
 		inbound: z.boolean(),
 	}),
+});
+const specialOrderPolicyInputSchema = z.object({
+	title: z.string().trim().min(3).max(255),
+	acknowledgmentText: z.string().trim().min(20).max(2_000),
+	policyText: z.string().trim().min(50).max(10_000),
+});
+const updateSpecialOrderSettingsSchema = z.object({
+	enforcementMode: z.enum([
+		"WARNING_ONLY",
+		"BLOCK_PURCHASING_AND_PRODUCTION",
+		"BLOCK_ALL_OPERATIONS",
+	]),
+	approvalLinkLifetimeDays: z.coerce.number().int().min(1).max(30),
 });
 const markPaymentsReviewedSchema = z.object({
 	salesIds: z.array(z.number().int().positive()).min(1).max(100),
@@ -393,9 +413,13 @@ async function isSuperAdmin(ctx: TRPCContext) {
 }
 
 async function requireSuperAdmin(ctx: TRPCContext) {
-	if (!(await isSuperAdmin(ctx))) {
-		throw new Error("Only Super Admin can manage sales settings.");
+	if (!ctx.userId || !(await isSuperAdmin(ctx))) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only Super Admin can manage sales settings.",
+		});
 	}
+	return ctx.userId;
 }
 
 async function requireWorkflowComponentAdmin(ctx: TRPCContext) {
@@ -924,6 +948,40 @@ export const salesRouter = createTRPCRouter({
 			return {
 				settings: nextPaymentReview,
 			};
+		}),
+	getSpecialOrderSettings: protectedProcedure.query(async ({ ctx }) => {
+		await requireSuperAdmin(ctx);
+		return getSpecialOrderSettingsManagement(ctx.db, ctx.userId ?? null);
+	}),
+	getSpecialOrderRolloutMetrics: protectedProcedure.query(async ({ ctx }) => {
+		await requireSuperAdmin(ctx);
+		return getSpecialOrderRolloutMetrics(ctx.db);
+	}),
+	updateSpecialOrderSettings: protectedProcedure
+		.input(updateSpecialOrderSettingsSchema)
+		.mutation(async ({ ctx, input }) => {
+			const userId = await requireSuperAdmin(ctx);
+			return {
+				settings: await updateSpecialOrderOperationalSettings(
+					ctx.db,
+					userId,
+					input,
+				),
+			};
+		}),
+	saveSpecialOrderPolicyDraft: protectedProcedure
+		.input(specialOrderPolicyInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			const userId = await requireSuperAdmin(ctx);
+			return {
+				draft: await saveSpecialOrderPolicyDraft(ctx.db, userId, input),
+			};
+		}),
+	publishSpecialOrderPolicy: protectedProcedure
+		.input(specialOrderPolicyInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			const userId = await requireSuperAdmin(ctx);
+			return publishSpecialOrderPolicy(ctx.db, userId, input);
 		}),
 	getPrintSettings: protectedProcedure.query(async (props) => {
 		const [setting, canManage] = await Promise.all([

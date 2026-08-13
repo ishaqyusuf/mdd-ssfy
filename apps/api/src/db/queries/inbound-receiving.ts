@@ -1,5 +1,6 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
+import { assertSpecialOrderOperationAllowedForApi } from "@api/utils/special-order-enforcement";
 import {
 	createStoredDocumentRegistry,
 	normalizeStoredDocument,
@@ -46,6 +47,33 @@ import {
 
 const INBOUND_OWNER_TYPE = "inventory_inbound_shipment";
 const INBOUND_DOCUMENT_KIND = "inbound_receipt";
+
+async function getInboundDemandSalesOrders(
+	db: Db | TransactionClient,
+	demandIds: number[],
+) {
+	if (!demandIds.length) return [];
+	const rows = await db.inboundDemand.findMany({
+		where: { id: { in: demandIds }, deletedAt: null },
+		select: {
+			lineItemComponent: {
+				select: {
+					parent: {
+						select: {
+							sale: { select: { id: true, orderId: true } },
+						},
+					},
+				},
+			},
+		},
+	});
+	const byId = new Map<number, { id: number; orderId: string }>();
+	for (const row of rows) {
+		const sale = row.lineItemComponent.parent.sale;
+		if (sale) byId.set(sale.id, sale);
+	}
+	return Array.from(byId.values());
+}
 
 type UploadableDocument = {
 	filename: string;
@@ -1460,6 +1488,22 @@ export async function createInboundShipmentFromDemandsQuery(
 			const demandIds = Array.from(
 				new Set([...selectedDemandIds, ...ensuredDemandIds]),
 			);
+			if (!isMarkAvailable) {
+				const governedSales = await getInboundDemandSalesOrders(tx, demandIds);
+				for (const sale of governedSales) {
+					await assertSpecialOrderOperationAllowedForApi(
+						tx,
+						{
+							salesOrderId: sale.id,
+							operation: "PURCHASING",
+							actorUserId: actor.id,
+							authorName: actor.name || String(actor.id),
+							source: "api.inventory.create-inbound-from-demands",
+						},
+						ctx.db,
+					);
+				}
+			}
 			const result = await createShipmentFromDemands(tx, {
 				supplierId: input.supplierId,
 				demandIds,
@@ -1840,6 +1884,23 @@ export async function assignInboundDemandsQuery(
 	const actor = await getInboundActor(ctx);
 	const { result, inbound } = await ctx.db.$transaction(async (tx) => {
 		await assertInboundRequestCanCreateDemand({ db: tx }, input);
+		const governedSales = await getInboundDemandSalesOrders(
+			tx,
+			input.demandIds,
+		);
+		for (const sale of governedSales) {
+			await assertSpecialOrderOperationAllowedForApi(
+				tx,
+				{
+					salesOrderId: sale.id,
+					operation: "PURCHASING",
+					actorUserId: actor.id,
+					authorName: actor.name || String(actor.id),
+					source: "api.inventory.assign-inbound-demands",
+				},
+				ctx.db,
+			);
+		}
 		const result = await assignInboundDemandsToShipment(tx, input);
 		const inbound = await tx.inboundShipment.findFirst({
 			where: {

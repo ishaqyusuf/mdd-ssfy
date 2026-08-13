@@ -62,6 +62,11 @@ model SalesOrders {
     customerProfileId Int?
     dealerSalesProfileId Int?
     salesChannel      String?                          @db.VarChar(64)
+    specialOrderDeclaration SalesSpecialOrderDeclaration?
+    specialOrderStatus SalesSpecialOrderStatus?
+    specialOrderRevision String?                       @db.VarChar(64)
+    currentSpecialOrderRequestId String?               @db.VarChar(191)
+    currentSpecialOrderApprovalId String?              @unique @db.VarChar(191)
     taxes             SalesTaxes[]
     checkouts         SalesCheckout[]
     refunds           Refunds[]                        @relation(name: "salesRefunds")
@@ -101,6 +106,8 @@ model SalesOrders {
     productionSubmissionMaterialReviews SalesProductionSubmissionMaterialReview[]
     adjustments       SalesOrderAdjustment[]
     workflowCancellations SalesWorkflowCancellation[]
+    specialOrderRequests SpecialOrderApprovalRequest[]
+    specialOrderEvidence SpecialOrderApprovalEvidence[] @relation(name: "SpecialOrderEvidence")
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -113,6 +120,7 @@ model SalesOrders {
     @@index([dealerSalesProfileId])
     @@index([customerId])
     @@index([salesChannel, createdAt])
+    @@index([specialOrderDeclaration, specialOrderStatus])
     @@index([deletedAt, status, prodStatus, id], name: "idx_sales_fulfillment_queue")
     @@index([deletedAt, deliveryOption, id], name: "idx_sales_delivery_queue")
     @@index([shippingAddressId])
@@ -120,6 +128,160 @@ model SalesOrders {
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+enum SalesSpecialOrderDeclaration {
+    NO
+    YES
+}
+
+enum SalesSpecialOrderStatus {
+    NOT_REQUIRED
+    SIGNATURE_PENDING
+    CUSTOMER_APPROVED
+    REAPPROVAL_REQUIRED
+    CUSTOMER_DECLINED
+}
+
+enum SpecialOrderPolicyStatus {
+    DRAFT
+    PUBLISHED
+    RETIRED
+}
+
+enum SpecialOrderApprovalRequestStatus {
+    ACTIVE
+    CONSUMED
+    REVOKED
+    EXPIRED
+}
+
+enum SpecialOrderApprovalOutcome {
+    APPROVED
+    DECLINED
+}
+
+model SpecialOrderPolicyVersion {
+    id                 String                         @id @default(cuid())
+    version            Int?                           @unique
+    status             SpecialOrderPolicyStatus       @default(DRAFT)
+    title              String                         @db.VarChar(255)
+    acknowledgmentText String                         @db.Text
+    policyText         String                         @db.Text
+    createdByUserId    Int?
+    publishedByUserId  Int?
+    publishedAt        DateTime?                      @db.Timestamp(0)
+    retiredAt          DateTime?                      @db.Timestamp(0)
+    createdAt          DateTime                       @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime                       @updatedAt
+    requests           SpecialOrderApprovalRequest[]
+    evidence           SpecialOrderApprovalEvidence[]
+
+    @@index([status, version])
+    @@index([publishedAt])
+}
+
+model SpecialOrderApprovalRequest {
+    id                 String                            @id @default(cuid())
+    salesOrderId       Int
+    policyVersionId    String
+    orderRevision      String                            @db.VarChar(64)
+    status             SpecialOrderApprovalRequestStatus @default(ACTIVE)
+    tokenHash          String                            @unique @db.VarChar(191)
+    idempotencyKey     String                            @unique @db.VarChar(191)
+    sentToEmail        String                            @db.VarChar(255)
+    orderSnapshot      Json?                             @db.Json
+    customerSnapshot   Json?                             @db.Json
+    salespersonSnapshot Json?                            @db.Json
+    sentAt             DateTime                          @default(now()) @db.Timestamp(0)
+    deliveredAt        DateTime?                         @db.Timestamp(0)
+    deliveryStatus     String                            @default("PENDING") @db.VarChar(32)
+    lastDeliveryError  String?                           @db.Text
+    expiresAt          DateTime                          @db.Timestamp(0)
+    consumedAt         DateTime?                         @db.Timestamp(0)
+    revokedAt          DateTime?                         @db.Timestamp(0)
+    revokedReason      String?                           @db.VarChar(255)
+    issuedByUserId     Int?
+    createdAt          DateTime                          @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime                          @updatedAt
+    order              SalesOrders                      @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    policyVersion      SpecialOrderPolicyVersion         @relation(fields: [policyVersionId], references: [id], onDelete: Restrict)
+    evidence           SpecialOrderApprovalEvidence?
+
+    @@index([salesOrderId, status, createdAt])
+    @@index([expiresAt, status])
+    @@index([policyVersionId])
+}
+
+model SpecialOrderApprovalEvidence {
+    id                  String                       @id @default(cuid())
+    salesOrderId        Int
+    requestId           String                       @unique
+    policyVersionId     String
+    orderRevision       String                       @db.VarChar(64)
+    outcome             SpecialOrderApprovalOutcome
+    customerName        String                       @db.VarChar(255)
+    customerEmail       String                       @db.VarChar(255)
+    declineReason       String?                      @db.Text
+    signatureDocumentId String?                      @db.VarChar(191)
+    policyTitle         String                       @db.VarChar(255)
+    acknowledgmentText  String                       @db.Text
+    policyText          String                       @db.Text
+    orderSnapshot       Json                         @db.Json
+    customerSnapshot    Json                         @db.Json
+    salespersonSnapshot Json                         @db.Json
+    ipAddress           String?                      @db.VarChar(64)
+    userAgent           String?                      @db.Text
+    acknowledgedAt      DateTime                     @default(now()) @db.Timestamp(0)
+    supersededAt        DateTime?                    @db.Timestamp(0)
+    supersededReason    String?                      @db.Text
+    supersededByUserId  Int?
+    createdAt           DateTime                     @default(now()) @db.Timestamp(0)
+    order               SalesOrders                  @relation(name: "SpecialOrderEvidence", fields: [salesOrderId], references: [id], onDelete: Restrict)
+    request             SpecialOrderApprovalRequest  @relation(fields: [requestId], references: [id], onDelete: Restrict)
+    policyVersion       SpecialOrderPolicyVersion     @relation(fields: [policyVersionId], references: [id], onDelete: Restrict)
+
+    @@index([salesOrderId, acknowledgedAt])
+    @@index([policyVersionId])
+    @@index([signatureDocumentId])
+}
+
+model SpecialOrderNotificationDelivery {
+    id             String   @id @default(cuid())
+    eventKey       String   @unique @db.VarChar(191)
+    salesOrderId   Int
+    eventType      String   @db.VarChar(64)
+    customerStatus String   @default("PENDING") @db.VarChar(32)
+    staffStatus    String   @default("PENDING") @db.VarChar(32)
+    inAppStatus    String   @default("PENDING") @db.VarChar(32)
+    attempts       Int      @default(0)
+    payload        Json     @db.Json
+    lastError      String?  @db.Text
+    lastAttemptAt  DateTime? @db.Timestamp(0)
+    completedAt    DateTime? @db.Timestamp(0)
+    createdAt      DateTime @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime @updatedAt
+
+    @@index([salesOrderId, createdAt])
+    @@index([customerStatus, staffStatus, inAppStatus, updatedAt])
+}
+
+model SpecialOrderOperationEvent {
+    id              Int      @id @default(autoincrement())
+    eventKey        String   @unique @db.VarChar(191)
+    salesOrderId    Int
+    orderRevision   String?  @db.VarChar(64)
+    operation       String   @db.VarChar(32)
+    enforcementMode String   @db.VarChar(64)
+    result          String   @db.VarChar(32)
+    source          String?  @db.VarChar(191)
+    actorUserId     Int?
+    meta            Json?    @db.Json
+    occurredAt      DateTime @default(now()) @db.Timestamp(0)
+
+    @@index([salesOrderId, occurredAt])
+    @@index([result, operation, occurredAt])
+    @@index([enforcementMode, occurredAt])
 }
 
 model SalesWorkflowCancellation {

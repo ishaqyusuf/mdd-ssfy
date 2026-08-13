@@ -416,6 +416,9 @@ export function NewSalesForm(props: Props) {
 		useState<NewSalesFormAdjustmentPreview | null>(null);
 	const [isApplyingAdjustment, setIsApplyingAdjustment] = useState(false);
     const [manualSaveLock, setManualSaveLock] = useState(false);
+    const [pendingSpecialOrderCommit, setPendingSpecialOrderCommit] = useState<
+        "draft" | "close" | "new" | "final" | null
+    >(null);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [historyPreview, setHistoryPreview] = useState<{
         entry: SalesHistoryEntry;
@@ -446,6 +449,7 @@ export function NewSalesForm(props: Props) {
     const markError = useNewSalesFormStore((s) => s.markError);
     const markStale = useNewSalesFormStore((s) => s.markStale);
     const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
+    const setSpecialOrder = useNewSalesFormStore((s) => s.setSpecialOrder);
     const editor = useNewSalesFormStore((s) => s.editor);
     const setEditor = useNewSalesFormStore((s) => s.setEditor);
     const setMeta = useNewSalesFormStore((s) => s.setMeta);
@@ -770,6 +774,7 @@ export function NewSalesForm(props: Props) {
                 slug: resp?.slug,
                 orderId: resp?.orderId,
                 status: resp?.status,
+                specialOrder: resp?.specialOrder,
             });
             markSaved({
                 version: resp?.version,
@@ -974,6 +979,7 @@ export function NewSalesForm(props: Props) {
             updatedAt?: string | null;
             type?: "order" | "quote" | null;
             isNew?: boolean | null;
+            specialOrder?: NewSalesFormRecord["specialOrder"];
         }) => {
             patchRecord({
                 salesId: resp?.salesId,
@@ -981,6 +987,7 @@ export function NewSalesForm(props: Props) {
                 orderId: resp?.orderId,
                 inventoryStatus: resp?.inventoryStatus,
                 status: resp?.status,
+                specialOrder: resp?.specialOrder,
             });
             markSaved({
                 version: resp?.version,
@@ -1338,69 +1345,49 @@ export function NewSalesForm(props: Props) {
         }
     }
 
-    async function saveDraftNow() {
-        await runWithManualSaveLock(async () => {
-            if (!record) return;
-            if (!validateBeforeSave()) return;
-			if (await stopForCommittedChangeReview()) return;
-            markSaving();
-            const resp = await autosave.flush("manual-flush", {
-                force: true,
-            });
-            if (!resp) return;
-            await handlePostSaveSuccess(resp);
-            await configureInventoryAfterSave(resp);
-            await clearSelectedCustomerQuery();
-            if (props.mode === "create") {
-                const editHref = buildEditHref(resp);
-                if (editHref) {
-                    router.push(editHref);
-                    return;
-                }
-            }
-            toast({
-                title: "Draft saved",
-                variant: "success",
-            });
-        });
+    type SaveIntent = "draft" | "close" | "new" | "final";
+
+    function promptForSpecialOrderDeclaration(intent: SaveIntent) {
+        if (props.type !== "order") return false;
+        const declaration = record?.specialOrder?.declaration;
+        const hasCustomerEmail = Boolean(record?.customer?.email?.trim());
+        if (intent === "draft" && declaration !== "YES") return false;
+        if (declaration && (declaration !== "YES" || hasCustomerEmail)) {
+            return false;
+        }
+        setPendingSpecialOrderCommit(intent);
+        return true;
     }
 
-    async function saveFinal() {
-        await runWithManualSaveLock(async () => {
-            if (!record) return;
-            if (!validateBeforeSave()) return;
-			if (await stopForCommittedChangeReview()) return;
+    async function executeSaveIntent(
+        intent: SaveIntent,
+        recordOverride?: NewSalesFormRecord,
+    ) {
+        const currentRecord = recordOverride || record;
+        if (!currentRecord) return;
+        if (intent === "final") {
             markSaving();
-            const payload = {
-                ...toSaveDraftInput(record, false),
-            };
             try {
                 const resp = await finalSave.mutateAsync({
-                    ...payload,
+                    ...toSaveDraftInput(currentRecord, false, "final"),
+                    commitIntent: "final",
                     autosave: false,
                 });
                 await handlePostSaveSuccess(resp);
                 await configureInventoryAfterSave(resp);
+                await clearSelectedCustomerQuery();
                 toast({
                     title: "Saved",
                     description: `${props.type} ${resp?.orderId} has been finalized.`,
                     variant: "success",
                 });
-                await clearSelectedCustomerQuery();
                 if (props.mode === "create") {
                     const editHref = buildEditHref(resp);
-                    if (editHref) {
-                        router.push(editHref);
-                        return;
-                    }
+                    if (editHref) router.push(editHref);
                 }
             } catch (error) {
                 const message = getErrorMessage(error, "Unable to save.");
-                if (
-                    String(message || "")
-                        .toLowerCase()
-                        .includes("out of date")
-                ) {
+                if (message.toLowerCase().includes("out of date")) {
                     markStale(message);
                 } else markError(message);
                 toast({
@@ -1409,47 +1396,92 @@ export function NewSalesForm(props: Props) {
                     variant: "destructive",
                 });
             }
+            return;
+        }
+
+        const mustFlush = intent === "draft" || dirty || Boolean(recordOverride);
+        if (mustFlush) {
+            markSaving();
+            const resp = await autosave.flush("manual-flush", {
+                force: intent === "draft" || Boolean(recordOverride),
+                commitIntent: intent,
+                ...(recordOverride
+                    ? {
+                          payloadOverride: toSaveDraftInput(
+                              recordOverride,
+                              false,
+                              intent,
+                          ),
+                      }
+                    : {}),
+            });
+            if (!resp) return;
+            await handlePostSaveSuccess(resp);
+            await configureInventoryAfterSave(resp);
+            await clearSelectedCustomerQuery();
+            if (intent === "draft") {
+                if (props.mode === "create") {
+                    const editHref = buildEditHref(resp);
+                    if (editHref) {
+                        router.push(editHref);
+                        return;
+                    }
+                }
+                toast({ title: "Draft saved", variant: "success" });
+                return;
+            }
+        } else {
+            await configureInventoryAfterSave(currentRecord);
+        }
+        router.push(
+            intent === "close"
+                ? `/sales-book/${props.type === "order" ? "orders" : "quotes"}`
+                : `/sales-form/${props.type === "order" ? "create-order" : "create-quote"}`,
+        );
+    }
+
+    async function completeRequiredSpecialOrderDeclaration(
+        declaration: "NO" | "YES",
+    ) {
+        const intent = pendingSpecialOrderCommit;
+        const currentRecord = useNewSalesFormStore.getState().record;
+        if (!intent || !currentRecord) return;
+        const nextRecord: NewSalesFormRecord = {
+            ...currentRecord,
+            specialOrder: {
+                ...currentRecord.specialOrder,
+                declaration,
+                changeReason: null,
+            },
+        };
+        setSpecialOrder({ declaration, changeReason: null });
+        setPendingSpecialOrderCommit(null);
+        await runWithManualSaveLock(() => executeSaveIntent(intent, nextRecord));
+    }
+
+    async function runRequestedSave(intent: SaveIntent) {
+        await runWithManualSaveLock(async () => {
+            if (!record || !validateBeforeSave()) return;
+            if (await stopForCommittedChangeReview()) return;
+            if (promptForSpecialOrderDeclaration(intent)) return;
+            await executeSaveIntent(intent);
         });
+    }
+
+    async function saveDraftNow() {
+        await runRequestedSave("draft");
+    }
+
+    async function saveFinal() {
+        await runRequestedSave("final");
     }
 
     async function saveClose() {
-        await runWithManualSaveLock(async () => {
-            if (!record) return;
-            if (!validateBeforeSave()) return;
-			if (await stopForCommittedChangeReview()) return;
-            if (dirty) {
-                const resp = await autosave.flush("manual-flush");
-                if (!resp) return;
-                await handlePostSaveSuccess(resp);
-                await configureInventoryAfterSave(resp);
-                await clearSelectedCustomerQuery();
-            } else {
-                await configureInventoryAfterSave(record);
-            }
-            router.push(
-                `/sales-book/${props.type === "order" ? "orders" : "quotes"}`,
-            );
-        });
+        await runRequestedSave("close");
     }
 
     async function saveNew() {
-        await runWithManualSaveLock(async () => {
-            if (!record) return;
-            if (!validateBeforeSave()) return;
-			if (await stopForCommittedChangeReview()) return;
-            if (dirty) {
-                const resp = await autosave.flush("manual-flush");
-                if (!resp) return;
-                await handlePostSaveSuccess(resp);
-                await configureInventoryAfterSave(resp);
-                await clearSelectedCustomerQuery();
-            } else {
-                await configureInventoryAfterSave(record);
-            }
-            router.push(
-                `/sales-form/${props.type === "order" ? "create-order" : "create-quote"}`,
-            );
-        });
+        await runRequestedSave("new");
     }
 
     async function handlePrint(event?: ReactMouseEvent<HTMLButtonElement>) {
@@ -1712,6 +1744,7 @@ export function NewSalesForm(props: Props) {
     const emailAction = salesId ? (
         <SalesMenu
             id={salesId}
+            customerId={customerId}
             salesIds={salesIds}
             type={props.type}
             orderNo={record.orderId}
@@ -1741,6 +1774,7 @@ export function NewSalesForm(props: Props) {
     const emailMenuAction = salesId ? (
         <SalesMenu
             id={salesId}
+            customerId={customerId}
             salesIds={salesIds}
             type={props.type}
             orderNo={record.orderId}
@@ -2042,6 +2076,17 @@ export function NewSalesForm(props: Props) {
 								!(record as { dealerProfileCard?: unknown }).dealerProfileCard
                             }
                             historyRestoreActive={Boolean(restoredHistoryEntry)}
+                            requiredSpecialOrderPromptOpen={
+                                pendingSpecialOrderCommit !== null
+                            }
+                            onRequiredSpecialOrderPromptOpenChange={(open) => {
+                                if (!open) setPendingSpecialOrderCommit(null);
+                            }}
+                            onRequiredSpecialOrderDecision={(declaration) =>
+                                void completeRequiredSpecialOrderDeclaration(
+                                    declaration,
+                                )
+                            }
                             mode={props.mode}
                             type={props.type}
                         />

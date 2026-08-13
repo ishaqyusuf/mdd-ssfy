@@ -550,3 +550,37 @@ Planning only; endpoint names may be refined during approved implementation.
   idempotent inbox persistence, async processing, replay, and reconciliation.
 - Existing domain routers become tenant-context required in migration waves;
   route visibility or client-supplied tenant fields are never isolation.
+
+## Special Order acknowledgment endpoints (2026-08-13)
+
+- `specialOrder.requestApproval`: protected order-editor mutation that issues or
+  reuses the current revision-bound request and sends the customer action to the
+  order's canonical customer email; it accepts no recipient override.
+- `specialOrder.requestReapproval`: protected order-editor mutation that revokes
+  the prior request/current approval and issues a replacement with a reason.
+- `specialOrder.remove`: protected order-editor mutation that removes current
+  classification with confirmation/reason while preserving evidence history.
+- `specialOrder.history`: protected order-view query for requests, evidence,
+  delivery, revocation, and supersession history.
+- `specialOrder.retryNotifications`: protected order-editor mutation that
+  retries only failed/skipped retryable channels for an already committed event.
+- `specialOrder.publicReview`: public capability query returning only the bound
+  customer-visible order/policy and terminal-link state.
+- `specialOrder.respond`: public single-use approve/decline mutation with
+  acknowledgment, printed name/signature or required decline reason.
+- `sales.getSpecialOrderSettings`, `sales.updateSpecialOrderSettings`,
+  `sales.saveSpecialOrderPolicyDraft`, and `sales.publishSpecialOrderPolicy` are
+  protected Super Admin settings surfaces.
+- `customers.updateCustomerEmail` is reused by the Special Order/Sales-email
+  interruption dialog. It validates the address, updates the canonical customer,
+  and retains the dealer-owned-customer write prohibition.
+- `/api/sales/special-order/evidence/:evidenceId/signature` is an authenticated
+  dashboard route that requires order-view/edit authority, resolves the private
+  `StoredDocument`, decrypts the AES-256-GCM envelope, and returns the PNG with
+  private caching and `nosniff` headers.
+- `sales.getSpecialOrderRolloutMetrics` returns the Super Admin warning-mode
+  dashboard: pending age, response outcomes, stale/expired use, failures,
+  reapproval frequency, and warning/block counts.
+- Existing canonical customer and assigned-address update endpoints invoke the
+  shared Special Order revision-invalidation service when customer-visible
+  identity or address content changes.

@@ -29,6 +29,8 @@ import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-onlin
 import StorefrontCustomInquiryReceived from "@gnd/email/emails/storefront-custom-inquiry-received";
 import StorefrontOrderConfirmation from "@gnd/email/emails/storefront-order-confirmation";
 import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
+import SpecialOrderApprovalRequestEmail from "@gnd/email/emails/special-order-approval-request";
+import SpecialOrderStatusNotificationEmail from "@gnd/email/emails/special-order-status-notification";
 import { render } from "@gnd/email/render";
 import {
 	getRecipient,
@@ -537,6 +539,8 @@ export class EmailService {
 			"password-reset-request": StorefrontPasswordResetRequest,
 			"storefront-order-confirmation": StorefrontOrderConfirmation,
 			"storefront-custom-inquiry-received": StorefrontCustomInquiryReceived,
+			"special-order-approval-request": SpecialOrderApprovalRequestEmail,
+			"special-order-status-notification": SpecialOrderStatusNotificationEmail,
 		};
 
 		const template = templates[templateName as keyof typeof templates];

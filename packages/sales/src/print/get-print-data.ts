@@ -13,6 +13,7 @@ import { composeMeta } from "./compose/meta";
 import { composeMouldingSections } from "./compose/moulding-sections";
 import { composeServiceSections } from "./compose/service-sections";
 import { composeShelfSections } from "./compose/shelf-sections";
+import { composeSpecialOrderPrintData } from "./compose/special-order";
 import { getModeConfig } from "./constants";
 import { resolveDealerPrintPricingSurface } from "./dealer-pricing-surface";
 import { parsePrintModes } from "./modes";
@@ -103,6 +104,7 @@ async function composePage(
 
 	const footer = config.showFooter ? composeFooter(sale, mode) : null;
 	const signing = await composeSigningData(db, sale, mode, dispatchId);
+	const specialOrder = await composeSpecialOrderPrintData(db, sale, mode);
 
 	return {
 		meta,
@@ -112,6 +114,7 @@ async function composePage(
 		footer,
 		config,
 		signing,
+		specialOrder,
 	};
 }
 

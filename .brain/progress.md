@@ -1,5 +1,59 @@
 # Progress
 
+- 2026-08-13: reorganized the Super Admin Sales Settings workspace into
+  route-backed horizontal sections for Documents (`/settings/sales`), Dealer
+  orders (`/settings/sales/dealer-orders`), and Special orders
+  (`/settings/sales/special-orders`). The shared layout now owns the page shell,
+  heading, content width, and persistent navigation; each route owns its
+  heading, metadata, loading/error UI, hydration boundary, and focused settings
+  component. Documents no longer mounts Dealer or Special Order queries, and
+  privileged Special Order queries start only after the access check succeeds.
+  Focused navigation/sidebar tests pass 22 tests, touched-file Biome and diff
+  checks pass, and authenticated browser QA covers direct links, active state,
+  reload/back/forward, mobile width, form availability, and unauthorized child
+  routes. The dashboard-wide typecheck remains red on the existing unrelated
+  repository baseline, with no diagnostics in the touched Sales Settings
+  files. No database, public API, authorization, or persistence shape changed.
+
+- 2026-08-13: converted the approved Special Order acknowledgment specification
+  into thirteen local `ready-for-agent` tracer-bullet implementation tickets.
+  Each ticket delivers a narrow end-to-end behavior and declares its genuine
+  blocking edges; declaration/lifecycle and Super Admin settings form the
+  initial parallel frontier. Preserved the fourteen earlier discovery and
+  decision questions under local decision history, updated the Wayfinder map
+  and backlog to point at the implementation set, and marked the older plan's
+  superseded assumptions so agents follow the canonical specification. This
+  was ticket publication only; no application code, schema, migration, API,
+  permission, or runtime behavior changed.
+
+- 2026-08-12: created the proposed implementation plan for Special Order
+  Acknowledgment and Customer Signature. The plan defines order-level
+  declaration, per-line non-returnable marking, versioned signed evidence,
+  deterministic change invalidation, separate approval status, purchasing /
+  production / packing / dispatch gates, document projection, acceptance
+  criteria, rollout, risks, and a 15.5-21 engineering-day estimate. Added the
+  feature to the backlog. This was planning only; no schema, migration, API,
+  permission, UI, or runtime behavior changed.
+
+- 2026-08-12: charted the local Markdown Wayfinder map for Special Order
+  Acknowledgment and Customer Approval under
+  `.scratch/special-order-acknowledgment/`. The map records the stakeholder
+  constraints and adds fourteen decision/fact-finding tickets with a visible
+  dependency frontier; it remains planning-only and performs no implementation.
+  A mistakenly created GitHub map and tickets were immediately closed with an
+  explanatory comment, and the temporary GitHub Wayfinder labels were removed.
+
+- 2026-08-12: synthesized the settled Special Order conversation and repository
+  analysis into the local `ready-for-agent` implementation specification at
+  `.scratch/special-order-acknowledgment/spec.md`. It defines ninety user
+  stories, order-level declaration and lifecycle semantics, global Super Admin
+  settings, revision-bound single-use approval/decline capabilities, email and
+  document behavior, notifications and Sales Activity, configurable operational
+  enforcement, additive persistence/API decisions, permissions, compatibility,
+  four high-level behavioral test seams, rollout, and explicit exclusions. No
+  application code, schema, migration, API, permission, or runtime behavior was
+  changed.
+
 - 2026-08-12: aligned new internal dashboard sales identity persistence with
   the legacy form. Newly created orders and quotes now persist the generated
   visible number directly as both `orderId` and `slug`, removing the new-form
@@ -9045,3 +9099,92 @@
   dealership hosts. Focused pricing, HPT row-patch, sync, profile-repricing, UI
   contract, and server-rendered component tests pass 62 tests / 260 assertions.
   No database, API contract, permission model, or persistence shape changed.
+- 2026-08-13: implemented the approved Special Order acknowledgment and customer
+  signature workflow locally. Internal Sales Orders now use an explicit
+  whole-order declaration; Super Admin owns versioned policy, link lifetime, and
+  warning/block modes; revision-bound single-use customer approval drives email,
+  document, notification, Sales Activity, and Sales Overview behavior; and a
+  shared fresh-state gate covers purchasing, production, packing, and dispatch.
+  Focused tests pass 16 tests / 34 assertions and authenticated browser QA covers
+  the core staff surfaces. Prisma generation and local schema sync passed, but a
+  deployable migration remains blocked by the established
+  `20260722180000_master_password_usage_audit` shadow replay defect. No hosted
+  database, GitHub issue, branch, commit, or deployment was changed.
+- 2026-08-13: extended Special Order with a canonical customer-email
+  prerequisite using the approved Midday/Shadcn interaction pattern. Selecting
+  Yes or manually saving a governed order now interrupts for a validated
+  `Customers.email` update when missing; Sales Overview preserves and resumes
+  its pending Sales email after repair. The server independently rejects
+  non-autosave governed saves without email, and the focused mutation now
+  requires customer-edit or order-edit authority. Local spec/map/ticket 14 were
+  updated, focused validation passes 19 tests / 43 assertions, and browser QA
+  proved both dialogs, inline invalid state, and cancellation without database
+  changes or email delivery.
+- 2026-08-13: advanced Special Order implementation through the primary live
+  lifecycle and reconciled its execution ledger. Ticket 14 is complete; Tickets
+  1-13 remain explicitly in progress only for unchecked final acceptance work.
+  A real local order completed request, immutable public review, drawn-signature
+  approval, terminal link reuse protection, protected signature retrieval,
+  manual reapproval, decline reason/history, and reasoned removal. The local
+  public-only Blob store exposed an incompatibility with private uploads, so
+  signatures now use authenticated AES-256-GCM envelopes, persist no Blob URL,
+  and decrypt only through the permission-protected route; anonymous retrieval
+  returned `401`. A source contract covers purchasing, production, packing,
+  dispatch, batch, and job gate entry points, and dispatch enforcement now
+  applies only to forward progression so recovery remains available. Validation
+  passes 38 focused tests / 176 assertions plus typechecks for API, dashboard,
+  email, jobs, PDF, and sales. The additive Special Order migration is generated
+  and locally reconciled; no hosted database, deployment, or real customer email
+  changed.
+## 2026-08-13 — Special Order review remediation and ticket reconciliation
+
+- Kept the local `.scratch/special-order-acknowledgment` map as the
+  non-repeating execution ledger; Tickets 04, 05, 07, 08, and 14 are complete,
+  while Tickets 01–03, 06, and 09–13 remain explicitly in progress only on
+  their unchecked acceptance criteria.
+- Consolidated approval/reapproval issuance into the package-owned service,
+  removed caller recipient overrides, and made issuance validate canonical
+  `Customers.email` inside the serializable transaction.
+- Extended immutable request snapshots and public review with customer and
+  address context plus complete subtotal/discount/tax/total presentation.
+- Sales-document email delivery now marks all embedded approval requests with
+  the actual send result, so removal notification decisions are accurate.
+- Production signature Blob access now defaults private; explicitly public
+  local stores remain safe through AES-256-GCM envelopes and protected reads.
+- Restored the original legacy migration unchanged and documented the bounded
+  local-only Prisma migration-chain exception in ADR-053.
+- Focused validation: 43 tests / 187 assertions pass; `@gnd/api` and
+  `@gnd/sales` typechecks pass. Broad dashboard/jobs/notifications typechecks
+  remain blocked by the repository's pre-existing React/Zod/Bun/module-
+  resolution baseline and are not marked complete in Ticket 13.
+- Live browser QA on local order `09232PC` proved issuance, delivered request
+  ledger, complete public review, and desktop/high-zoom responsive rendering.
+
+## 2026-08-13 — Special Order acceptance complete
+
+- Closed all 14 local tickets and all 140 acceptance criteria without creating
+  GitHub issues; `.scratch/special-order-acknowledgment/map.md` remains the
+  non-repeating execution and evidence ledger.
+- Resolved the final spec-review gaps: concurrent responses converge on the
+  completed result; the purchasing preflight uses the shared gate; canonical
+  customer/address edits invalidate approvals; revision hashing excludes
+  internal metadata; public review renders complete nested customer-visible
+  order details; and standalone approval/reapproval delivery is recorded in
+  `SalesEmailAttempt`.
+- Consolidated capability security/JSON boundaries into `@gnd/sales`, reused a
+  single Sales Form save-intent controller, placed the reusable email dialog in
+  `components/modals`, split the Special Order settings surface into focused
+  sections, and removed broad formatting-only churn from touched Sales UI files.
+- Final focused validation passed with 77 tests / 290 assertions plus
+  `@gnd/api`, `@gnd/sales`, `@gnd/email`, and `@gnd/pdf` typechecks. A focused
+  dashboard diagnostic scan reports no Special Order production-code error;
+  broader dashboard/jobs/notifications failures remain unrelated repository
+  baselines.
+- Local `db:generate` and `db:push` passed. `db:migrate` still stops at the
+  documented split-root/shadow preflight before execution; ADR-053 records the
+  bounded local-only exception. No hosted database or deployment changed.
+- Authenticated/public browser QA covered desktop and true mobile review,
+  approval/signature, consumed links, material-change reapproval, resend,
+  removal notification, re-enrollment, missing-email continuation, automatic
+  Sales-email resume, Warning Only, Block All, invalid links, and reload
+  persistence. Test recipients used `.invalid`; no real customer email was sent.

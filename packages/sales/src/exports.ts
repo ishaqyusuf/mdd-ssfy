@@ -26,3 +26,4 @@ export * from "./resolution-system/contracts";
 export * from "./resolution-system/domain";
 export * from "./sales-form";
 export * from "./schema";
+export * from "./special-order";

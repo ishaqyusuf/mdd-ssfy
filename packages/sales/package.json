@@ -13,6 +13,8 @@
 		"./constants": "./src/constants.ts",
 		"./filter-constants": "./src/filter-constants.ts",
 		"./order-status": "./src/order-status.ts",
+		"./special-order": "./src/special-order/index.ts",
+		"./special-order/signature-storage": "./src/special-order/signature-storage.ts",
 		"./sales-data": "./src/sales-data.ts",
 		"./utils": "./src/utils/utils.ts",
 		"./utils/*": "./src/utils/*.ts",

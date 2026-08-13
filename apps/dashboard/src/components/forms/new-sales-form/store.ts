@@ -66,6 +66,7 @@ type NewSalesFormActions = {
 	setTaxRate: (taxRate: number) => void;
 	setSummary: (summary: NewSalesFormSummary) => void;
 	patchRecord: (patch: Partial<NewSalesFormRecord>) => void;
+	setSpecialOrder: (patch: Partial<NewSalesFormRecord["specialOrder"]>) => void;
 	markSaving: () => void;
 	markSaved: (payload: {
 		version?: string;
@@ -126,9 +127,7 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 			applySalesFormState((state) => setSalesFormLineItems(state, lineItems)),
 		),
 	setExtraCosts: (costs) =>
-		set(
-			applySalesFormState((state) => setSalesFormExtraCosts(state, costs)),
-		),
+		set(applySalesFormState((state) => setSalesFormExtraCosts(state, costs))),
 	upsertExtraCost: (cost, index) =>
 		set(
 			applySalesFormState((state) =>
@@ -136,13 +135,9 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 			),
 		),
 	removeExtraCost: (index) =>
-		set(
-			applySalesFormState((state) => removeSalesFormExtraCost(state, index)),
-		),
+		set(applySalesFormState((state) => removeSalesFormExtraCost(state, index))),
 	addLineItem: (line) =>
-		set(
-			applySalesFormState((state) => addSalesFormLineItem(state, line)),
-		),
+		set(applySalesFormState((state) => addSalesFormLineItem(state, line))),
 	duplicateLineItem: (uid) =>
 		set(applySalesFormState((state) => duplicateSalesFormLineItem(state, uid))),
 	moveLineItem: (uid, targetIndex) =>
@@ -158,39 +153,39 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 			),
 		),
 	removeLineItem: (uid) =>
-		set(
-			applySalesFormState((state) => removeSalesFormLineItem(state, uid)),
-		),
+		set(applySalesFormState((state) => removeSalesFormLineItem(state, uid))),
 	setTaxRate: (taxRate) =>
-		set(
-			applySalesFormState((state) => setSalesFormTaxRate(state, taxRate)),
-		),
+		set(applySalesFormState((state) => setSalesFormTaxRate(state, taxRate))),
 	setSummary: (summary) =>
-		set(
-			applySalesFormState((state) => setSalesFormSummary(state, summary)),
-		),
+		set(applySalesFormState((state) => setSalesFormSummary(state, summary))),
 	patchRecord: (patch) =>
-		set(
-			applySalesFormState((state) => patchSalesFormRecord(state, patch)),
-		),
+		set(applySalesFormState((state) => patchSalesFormRecord(state, patch))),
+	setSpecialOrder: (patch) =>
+		set((state) => {
+			if (!state.record) return state;
+			return {
+				...state,
+				record: {
+					...state.record,
+					specialOrder: {
+						...state.record.specialOrder,
+						...patch,
+					},
+				},
+				dirty: true,
+				saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
+			};
+		}),
 	markSaving: () =>
 		set(applySalesFormState((state) => markSalesFormSaving(state))),
 	markSaved: (payload) =>
-		set(
-			applySalesFormState((state) => markSalesFormSaved(state, payload)),
-		),
+		set(applySalesFormState((state) => markSalesFormSaved(state, payload))),
 	markError: (message) =>
-		set(
-			applySalesFormState((state) => markSalesFormError(state, message)),
-		),
+		set(applySalesFormState((state) => markSalesFormError(state, message))),
 	markStale: (message) =>
-		set(
-			applySalesFormState((state) => markSalesFormStale(state, message)),
-		),
+		set(applySalesFormState((state) => markSalesFormStale(state, message))),
 	clearDirty: () =>
 		set(applySalesFormState((state) => clearSalesFormDirty(state))),
 	setEditor: (patch) =>
-		set(
-			applySalesFormState((state) => setSalesFormEditorState(state, patch)),
-		),
+		set(applySalesFormState((state) => setSalesFormEditorState(state, patch))),
 }));

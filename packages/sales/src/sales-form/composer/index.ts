@@ -1,3 +1,4 @@
+import { multiplyMoney, roundMoney } from "../../payment-system/domain/money";
 import {
 	type SalesFormExtraCostRecord,
 	type SalesFormLineItemRecord,
@@ -17,7 +18,6 @@ import {
 	buildDualSalesFormPricingSnapshot,
 	calculateSalesFormSummary,
 } from "../domain";
-import { multiplyMoney, roundMoney } from "../../payment-system/domain/money";
 
 export type SalesFormComposerSurface = "www" | "dealership" | "storefront";
 
@@ -47,6 +47,10 @@ export type SalesFormComposerRecord = Record<string, unknown> & {
 	slug?: string | null;
 	inventoryStatus?: string | null;
 	version?: string | null;
+	specialOrder?: {
+		declaration?: "NO" | "YES" | null;
+		changeReason?: string | null;
+	} | null;
 	form?: Record<string, unknown> | null;
 	lineItems?: SalesFormLineItemRecord[];
 	extraCosts?: SalesFormExtraCostRecord[];
@@ -221,9 +225,14 @@ export function composeSalesFormSavePayload<
 	record: TRecord,
 	config: SalesFormComposerConfig & {
 		autosave?: boolean;
+		commitIntent?: "autosave" | "draft" | "close" | "new" | "final";
 	},
 ) {
-	return toSalesFormSaveDraftPayload(record, config.autosave ?? true);
+	return toSalesFormSaveDraftPayload(
+		record,
+		config.autosave ?? true,
+		config.commitIntent,
+	);
 }
 
 export function composeSalesFormPricingSnapshot(input: {

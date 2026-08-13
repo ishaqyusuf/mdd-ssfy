@@ -16,6 +16,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import {
+    formatSpecialOrderOperationWarning,
+    getSpecialOrderOperationWarnings,
+} from "@/lib/special-order-operation-feedback";
 import { cn } from "@/lib/utils";
 import { printProduction } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
@@ -32,6 +36,7 @@ import {
     CardTitle,
 } from "@gnd/ui/card";
 import { Checkbox } from "@gnd/ui/checkbox";
+import { toast } from "@gnd/ui/use-toast";
 import {
     Collapsible,
     CollapsibleContent,
@@ -848,6 +853,12 @@ function ProductionV2Board({
         },
         onSuccess: async ({ data }) => {
             loadingToast.success("Selected production orders assigned");
+            for (const warning of getSpecialOrderOperationWarnings(data)) {
+                toast({
+                    ...formatSpecialOrderOperationWarning(warning),
+                    variant: "default",
+                });
+            }
             setSelectedIds([]);
             await Promise.all([
                 queryClient.invalidateQueries({

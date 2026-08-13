@@ -16,6 +16,7 @@ import {
 	uploadInboundDocumentsQuery,
 } from "@api/db/queries/inbound-receiving";
 import { requireInventoryImportOperator } from "@api/db/queries/inventory-import-permissions";
+import { assertSpecialOrderOperationAllowedForApi } from "@api/utils/special-order-enforcement";
 import {
 	getInventoryImportProjectionHistory,
 	recordInventoryImportProjectionAttempt,
@@ -269,6 +270,60 @@ async function requireReceivedBackorderOperator(ctx: TRPCContext) {
 
 function inventoryOperatorName(session: { id: number; name?: string | null }) {
 	return session.name?.trim() || `User ${session.id}`;
+}
+
+async function resolveInventoryDispatchSalesOrderIds(
+	db: TRPCContext["db"],
+	input: z.infer<typeof inventoryDispatchTransitionSchema>,
+) {
+	const ids = new Set<number>();
+	if (input.salesOrderId) ids.add(input.salesOrderId);
+	if (input.orderDeliveryId) {
+		const delivery = await db.orderDelivery.findFirst({
+			where: { id: input.orderDeliveryId, deletedAt: null },
+			select: { salesOrderId: true },
+		});
+		if (delivery) ids.add(delivery.salesOrderId);
+	}
+	const allocationIds = Array.from(
+		new Set([
+			...(input.allocationIds || []),
+			...(input.allocationSelections || []).map((row) => row.allocationId),
+		]),
+	);
+	if (allocationIds.length) {
+		const allocations = await db.stockAllocation.findMany({
+			where: { id: { in: allocationIds }, deletedAt: null },
+			select: {
+				lineItemComponent: {
+					select: {
+						parent: { select: { saleId: true } },
+					},
+				},
+			},
+		});
+		for (const allocation of allocations) {
+			if (allocation.lineItemComponent.parent.saleId) {
+				ids.add(allocation.lineItemComponent.parent.saleId);
+			}
+		}
+	}
+	if (input.lineItemIds?.length) {
+		const lineItems = await db.lineItem.findMany({
+			where: { id: { in: input.lineItemIds }, deletedAt: null },
+			select: { saleId: true },
+		});
+		for (const lineItem of lineItems) {
+			if (lineItem.saleId) ids.add(lineItem.saleId);
+		}
+	}
+	if (!ids.size) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "A sales order is required for this inventory dispatch action.",
+		});
+	}
+	return Array.from(ids);
 }
 
 function throwInventoryFulfillmentApiError(error: unknown): never {
@@ -1229,6 +1284,15 @@ export const inventoriesRouter = createTRPCRouter({
 				["editProduction"],
 				"You do not have permission to approve production material reviews.",
 			);
+			for (const salesOrderId of props.input.salesOrderIds) {
+				await assertSpecialOrderOperationAllowedForApi(props.ctx.db, {
+					salesOrderId,
+					operation: "PRODUCTION",
+					actorUserId: props.ctx.userId,
+					authorName: String(props.ctx.userId ?? "System"),
+					source: "api.inventory.resolve-mark-as-production",
+				});
+			}
 			return resolveSalesStatusMarkAsDependenciesForContinue(props.ctx.db, {
 				...props.input,
 				authorName: String(props.ctx.userId ?? "System"),
@@ -1243,6 +1307,15 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			for (const salesOrderId of props.input.salesOrderIds) {
+				await assertSpecialOrderOperationAllowedForApi(props.ctx.db, {
+					salesOrderId,
+					operation: "PURCHASING",
+					actorUserId: props.ctx.userId,
+					authorName: String(props.ctx.userId ?? "System"),
+					source: "api.inventory.resolve-mark-as-auto-purchasing",
+				});
+			}
 			return resolveSalesInventoryMarkAsAutoForContinue(props.ctx.db, {
 				...props.input,
 				authorName: String(props.ctx.userId ?? "System"),
@@ -1448,6 +1521,13 @@ export const inventoriesRouter = createTRPCRouter({
 		.input(shipAvailableSalesInventorySchema)
 		.mutation(async (props) => {
 			const session = await requireInventoryFulfillmentOperator(props.ctx);
+			await assertSpecialOrderOperationAllowedForApi(props.ctx.db, {
+				salesOrderId: props.input.salesOrderId,
+				operation: "DISPATCH",
+				actorUserId: session.id,
+				authorName: inventoryOperatorName(session),
+				source: "api.inventory.ship-available",
+			});
 			try {
 				const result = await shipAvailableSalesInventory(props.ctx.db, {
 					...props.input,
@@ -1479,7 +1559,19 @@ export const inventoriesRouter = createTRPCRouter({
 	assignInventoryDispatchAllocations: protectedProcedure
 		.input(inventoryDispatchTransitionSchema)
 		.mutation(async (props) => {
-			await requireInventoryFulfillmentOperator(props.ctx);
+			const session = await requireInventoryFulfillmentOperator(props.ctx);
+			for (const salesOrderId of await resolveInventoryDispatchSalesOrderIds(
+				props.ctx.db,
+				props.input,
+			)) {
+				await assertSpecialOrderOperationAllowedForApi(props.ctx.db, {
+					salesOrderId,
+					operation: "PACKING",
+					actorUserId: session.id,
+					authorName: inventoryOperatorName(session),
+					source: "api.inventory.assign-dispatch-allocation",
+				});
+			}
 			const result = await assignInventoryDispatchAllocations(props.ctx.db, {
 				...props.input,
 				note: props.input.note || "Assigned by inventory dispatch mode.",
@@ -1493,7 +1585,19 @@ export const inventoriesRouter = createTRPCRouter({
 	packInventoryDispatchAllocations: protectedProcedure
 		.input(inventoryDispatchTransitionSchema)
 		.mutation(async (props) => {
-			await requireInventoryFulfillmentOperator(props.ctx);
+			const session = await requireInventoryFulfillmentOperator(props.ctx);
+			for (const salesOrderId of await resolveInventoryDispatchSalesOrderIds(
+				props.ctx.db,
+				props.input,
+			)) {
+				await assertSpecialOrderOperationAllowedForApi(props.ctx.db, {
+					salesOrderId,
+					operation: "PACKING",
+					actorUserId: session.id,
+					authorName: inventoryOperatorName(session),
+					source: "api.inventory.pack-dispatch-allocation",
+				});
+			}
 			const result = await packInventoryDispatchAllocations(props.ctx.db, {
 				...props.input,
 				note: props.input.note || "Picked by inventory dispatch mode.",
@@ -1508,6 +1612,13 @@ export const inventoriesRouter = createTRPCRouter({
 		.input(inventoryDispatchFulfillSchema)
 		.mutation(async (props) => {
 			const session = await requireInventoryFulfillmentOperator(props.ctx);
+			await assertSpecialOrderOperationAllowedForApi(props.ctx.db, {
+				salesOrderId: props.input.salesOrderId,
+				operation: "DISPATCH",
+				actorUserId: session.id,
+				authorName: inventoryOperatorName(session),
+				source: "api.inventory.fulfill-dispatch",
+			});
 			try {
 				const result = await fulfillInventoryDispatch(props.ctx.db, {
 					...props.input,

@@ -23,10 +23,28 @@ export interface PrintPage {
 	footer: FooterData | null;
 	config: PrintModeConfig;
 	signing: PrintSigningData | null;
+	specialOrder: PrintSpecialOrderData | null;
 	branding?: {
 		companyAddress: CompanyAddress;
 		logoUrl?: string | null;
 	};
+}
+
+export interface PrintSpecialOrderData {
+	status:
+		| "SIGNATURE_PENDING"
+		| "CUSTOMER_APPROVED"
+		| "REAPPROVAL_REQUIRED"
+		| "CUSTOMER_DECLINED";
+	label: string;
+	compact: boolean;
+	policyTitle: string | null;
+	policyText: string | null;
+	acknowledgmentText: string | null;
+	policyVersion: number | null;
+	signerName: string | null;
+	approvedAt: string | null;
+	signatureUrl: string | null;
 }
 
 export interface PageMeta {

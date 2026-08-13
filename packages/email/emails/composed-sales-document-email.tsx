@@ -33,6 +33,11 @@ type Props = {
 				placement: "TOP" | "BOTTOM";
 		  })
 		| null;
+	specialOrderApprovals?: Array<{
+		orderId: string;
+		approvalUrl: string;
+		expiresAt: Date;
+	}>;
 	sales: {
 		orderId: string;
 		po?: string;
@@ -57,6 +62,7 @@ export default function ComposedSalesDocumentEmail({
 	hasPdfAttachment = false,
 	sales,
 	dealerProgramBanner,
+	specialOrderApprovals = [],
 }: Props) {
 	const themeClasses = getEmailThemeClasses();
 	const lightStyles = getEmailInlineStyles("light");
@@ -229,6 +235,38 @@ export default function ComposedSalesDocumentEmail({
 							<Button href={paymentLink}>Make Payment</Button>
 						</Section>
 					) : null}
+
+					{specialOrderApprovals.map((approval) => (
+						<Section
+							key={approval.orderId}
+							className="mb-[22px] p-[18px]"
+							style={{
+								borderStyle: "solid",
+								borderWidth: 1,
+								borderColor: "#f59e0b",
+								borderRadius: 12,
+								backgroundColor: "#fffbeb",
+							}}
+						>
+							<Text
+								className="m-0 text-[12px] uppercase tracking-[0.8px]"
+								style={{ color: "#92400e" }}
+							>
+								Special Order · #{approval.orderId}
+							</Text>
+							<Text
+								className="m-0 mt-[8px] mb-[14px] text-[15px] leading-[24px]"
+								style={{ color: "#451a03" }}
+							>
+								Review the complete order and non-returnable policy, then
+								approve or decline this revision. This secure link expires{" "}
+								{format(approval.expiresAt, "MMM d, yyyy")}.
+							</Text>
+							<Button href={approval.approvalUrl}>
+								Review &amp; Approve Special Order
+							</Button>
+						</Section>
+					))}
 
 					{dealerProgramBanner?.placement === "BOTTOM" ? (
 						<DealerProgramBanner {...dealerProgramBanner} />

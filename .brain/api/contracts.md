@@ -1215,3 +1215,50 @@ implementation phase is approved and released.
   state and never implicitly deletes tenant data.
 - Platform subscription billing and tenant operational customer payments expose
   separate DTOs, provider IDs, reconciliation, permissions, and ledger records.
+
+## Special Order acknowledgment contracts (2026-08-13)
+
+- New internal order completion requires `specialOrderDeclaration: YES | NO`;
+  draft/autosave may omit it. Existing null declarations remain legacy unmanaged.
+- `YES` governs the complete order. Current approval means immutable approved
+  evidence exists for the exact current Approval Revision; a status/pointer alone
+  is not sufficient.
+- Public capabilities are revision- and policy-bound, expire, and are atomically
+  single-use. Completed, expired, revoked, and stale links disclose only their
+  terminal state and cannot submit again.
+- Approve requires acknowledgment, printed name, and PNG signature. Decline
+  requires a reason. Every response snapshots the customer-visible order and
+  policy that were reviewed.
+- The PNG is encrypted before storage. No raw signature data, public Blob URL,
+  or decryption secret appears in public review, Sales DTOs, production/packing
+  projections, notification payloads, or operation telemetry.
+- Governed operational blocks use stable application code
+  `SPECIAL_ORDER_APPROVAL_REQUIRED` with safe order identity, current state,
+  enforcement mode, operation category, and a Sales remediation instruction.
+- Direct Sales Order email actions are resolved from fresh server state per
+  included order. Missing mandatory link generation fails the send; approved and
+  ordinary orders omit the action.
+- Approval request/reapproval inputs accept only the Sales Order id (plus the
+  required reapproval reason). The recipient cannot be overridden by a caller;
+  issuance always re-reads and validates the selected canonical
+  `Customers.email` inside the authoritative transaction.
+- The immutable public review snapshot contains customer/salesperson identity,
+  order date and purchase order, billing/shipping addresses, complete item
+  specifications, additional costs, subtotal, discount, tax, total, and exact
+  published policy.
+- Customer invoice/order output may contain policy/signer evidence; quote and
+  operational document contracts prevent private signature disclosure.
+- Selecting Yes and every non-autosave governed save require a nonblank canonical
+  customer email. Server rejection uses
+  `SPECIAL_ORDER_CUSTOMER_EMAIL_REQUIRED`; autosave remains non-blocking.
+- The missing-email dialog updates `Customers.email` first. Sales Form continues
+  the exact pending declaration/save only after success; Sales Overview consumes
+  and resumes one stored email-send intent. Cancellation performs neither action.
+- Canonical customer identity/email and assigned billing/shipping-address edits
+  invalidate active capabilities and current approval through the shared package
+  revision-invalidation service, including edits made outside the Sales Form.
+- Warning Only operational mutations attach structured Special Order warning and
+  remediation metadata to the tRPC result without changing the domain payload.
+- Standalone approval and reapproval sends create and complete
+  `SalesEmailAttempt` rows, including failed/skipped outcomes, using the same
+  audit ledger as Sales document email.

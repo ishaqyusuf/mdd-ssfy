@@ -21,6 +21,11 @@ import {
 	updateDispatchStatus,
 	updateSalesDeliveryOption,
 } from "@api/db/queries/dispatch";
+import { prepareAndPickDispatchInventory } from "@api/db/queries/dispatch-inventory-actions";
+import {
+	backfillDispatchInventoryBindings,
+	getDispatchInventoryReconciliation,
+} from "@api/db/queries/dispatch-inventory-reconciliation";
 import {
 	type DispatchCompletionProof,
 	buildDispatchSignatureSvg,
@@ -34,11 +39,6 @@ import {
 	isDispatchCompletionProofStale,
 	mergeDispatchCompletionProof,
 } from "@api/db/queries/dispatch-proof-completion";
-import { prepareAndPickDispatchInventory } from "@api/db/queries/dispatch-inventory-actions";
-import {
-	backfillDispatchInventoryBindings,
-	getDispatchInventoryReconciliation,
-} from "@api/db/queries/dispatch-inventory-reconciliation";
 import { auth } from "@api/db/queries/user";
 import {
 	bulkAssignDriverSchema,
@@ -58,12 +58,19 @@ import {
 } from "@api/schemas/sales";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
+import { assertSpecialOrderOperationAllowedForApi } from "@api/utils/special-order-enforcement";
 import { registerStoredDocumentUpload } from "@api/utils/stored-documents";
 import { finalizeUploadedDocument } from "@api/utils/upload-finalization";
 import { decodeValidatedDocumentBase64 } from "@api/utils/upload-validation";
 import type { Db, TransactionClient } from "@gnd/db";
 import type { DevLogEntry } from "@gnd/dev-logger";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
+import {
+	assertDispatchInventoryReadyToStart,
+	consumeDispatchBoundInventory,
+	releaseDispatchBoundInventory,
+} from "@gnd/sales/sales-fulfillment-plan";
+import { isDispatchProgressionTransition } from "@gnd/sales/special-order";
 import type { DeliveryOption } from "@gnd/utils/sales";
 import { NotificationService } from "@notifications/services/triggers";
 import {
@@ -80,11 +87,6 @@ import {
 } from "@sales/exports";
 import type { UpdateSalesControl } from "@sales/exports";
 import type { SalesDispatchStatus } from "@sales/types";
-import {
-	assertDispatchInventoryReadyToStart,
-	consumeDispatchBoundInventory,
-	releaseDispatchBoundInventory,
-} from "@gnd/sales/sales-fulfillment-plan";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
 import { del, put } from "@vercel/blob";
@@ -132,6 +134,53 @@ async function requireDispatchWorker(ctx: TRPCContext) {
 		ctx,
 		["viewDelivery", "editDelivery", "viewPickup", "editPickup", "viewPacking"],
 		"You do not have permission to update dispatch proof.",
+	);
+}
+
+async function enforceSpecialOrderForSale(
+	ctx: TRPCContext,
+	salesOrderId: number,
+	operation: "PRODUCTION" | "PACKING" | "DISPATCH",
+	source: string,
+) {
+	return assertSpecialOrderOperationAllowedForApi(ctx.db, {
+		salesOrderId,
+		operation,
+		actorUserId: ctx.userId,
+		authorName: `User ${ctx.userId}`,
+		source,
+	});
+}
+
+async function enforceSpecialOrderForDispatch(
+	ctx: TRPCContext,
+	dispatchId: number,
+	operation: "PACKING" | "DISPATCH",
+	source: string,
+	nextStatus?: SalesDispatchStatus,
+) {
+	const dispatch = await ctx.db.orderDelivery.findFirst({
+		where: { id: dispatchId, deletedAt: null },
+		select: { salesOrderId: true, status: true },
+	});
+	if (!dispatch) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Dispatch not found." });
+	}
+	if (
+		operation === "DISPATCH" &&
+		nextStatus &&
+		!isDispatchProgressionTransition(
+			dispatch.status as SalesDispatchStatus,
+			nextStatus,
+		)
+	) {
+		return;
+	}
+	return enforceSpecialOrderForSale(
+		ctx,
+		dispatch.salesOrderId,
+		operation,
+		source,
 	);
 }
 
@@ -296,6 +345,12 @@ export const dispatchRouters = createTRPCRouter({
 				props.ctx,
 				props.input.startDispatch?.dispatchId,
 			);
+			await enforceSpecialOrderForSale(
+				props.ctx,
+				props.input.meta.salesId,
+				"DISPATCH",
+				"api.dispatch.start",
+			);
 			const response = await startDispatchTask(props.ctx.db, props.input, {
 				assertInventoryReady: assertDispatchInventoryReadyToStart,
 			});
@@ -345,6 +400,12 @@ export const dispatchRouters = createTRPCRouter({
 				props.ctx,
 				props.input.submitDispatch?.dispatchId,
 			);
+			await enforceSpecialOrderForSale(
+				props.ctx,
+				props.input.meta.salesId,
+				"DISPATCH",
+				"api.dispatch.submit",
+			);
 			return submitDispatchTask(props.ctx.db, props.input);
 		}),
 	completeDispatchWithProof: protectedProcedure
@@ -379,6 +440,20 @@ export const dispatchRouters = createTRPCRouter({
 					code: "NOT_FOUND",
 					message: "Dispatch not found.",
 				});
+			}
+			await enforceSpecialOrderForSale(
+				props.ctx,
+				dispatch.salesOrderId,
+				"DISPATCH",
+				"api.dispatch.complete-with-proof",
+			);
+			if (dispatch.deliveryMode === "pickup") {
+				await enforceSpecialOrderForSale(
+					props.ctx,
+					dispatch.salesOrderId,
+					"PACKING",
+					"api.dispatch.complete-pickup-packing",
+				);
 			}
 
 			const payloadFingerprint = getDispatchCompletionPayloadFingerprint(
@@ -873,6 +948,13 @@ export const dispatchRouters = createTRPCRouter({
 		.input(updateDispatchStatusSchema)
 		.mutation(async (props) => {
 			await requireDispatchManager(props.ctx);
+			await enforceSpecialOrderForDispatch(
+				props.ctx,
+				props.input.dispatchId,
+				"DISPATCH",
+				"api.dispatch.update-status",
+				props.input.newStatus,
+			);
 			return updateDispatchStatus(props.ctx, props.input);
 		}),
 	salesDeliveryInfo: protectedProcedure
@@ -943,6 +1025,12 @@ export const dispatchRouters = createTRPCRouter({
 		)
 		.mutation(async (props) => {
 			await requirePackingOperator(props.ctx);
+			await enforceSpecialOrderForSale(
+				props.ctx,
+				props.input.salesOrderId,
+				"PACKING",
+				"api.dispatch.prepare-inventory",
+			);
 			try {
 				return await prepareAndPickDispatchInventory(props.ctx.db, props.input);
 			} catch (error) {
@@ -993,12 +1081,24 @@ export const dispatchRouters = createTRPCRouter({
 		.input(sendSaleForPickupSchema)
 		.mutation(async (props) => {
 			await requireDispatchManager(props.ctx);
+			await enforceSpecialOrderForSale(
+				props.ctx,
+				props.input.salesId,
+				"DISPATCH",
+				"api.dispatch.send-for-pickup",
+			);
 			return sendSaleForPickup(props.ctx, props.input);
 		}),
 	signPackingSlip: protectedProcedure
 		.input(signPackingSlipSchema)
 		.mutation(async (props) => {
 			await requireAssignedDispatchOrManager(props.ctx, props.input.dispatchId);
+			await enforceSpecialOrderForDispatch(
+				props.ctx,
+				props.input.dispatchId,
+				"PACKING",
+				"api.dispatch.sign-packing-slip",
+			);
 			const packingRequestId = crypto.randomUUID();
 			const owner = {
 				ownerType: "dispatch" as const,
@@ -1362,6 +1462,12 @@ export const dispatchRouters = createTRPCRouter({
 		)
 		.mutation(async (props) => {
 			await requirePackingOperator(props.ctx);
+			await enforceSpecialOrderForSale(
+				props.ctx,
+				props.input.salesId,
+				"PRODUCTION",
+				"api.dispatch.prepare-non-produceable",
+			);
 			const authorId = Number(props.ctx.userId || 0);
 			const submitPayload: UpdateSalesControl = {
 				meta: {
@@ -1384,6 +1490,12 @@ export const dispatchRouters = createTRPCRouter({
 				driverId,
 				status,
 			} = props.input;
+			await enforceSpecialOrderForSale(
+				props.ctx,
+				salesId,
+				"DISPATCH",
+				"api.dispatch.create",
+			);
 			const deliveryMode = (_deliverMode || "delivery") as DeliveryOption;
 			if (driverId) driverId = Number(driverId);
 			const dispatch = await props.ctx.db.orderDelivery.create({

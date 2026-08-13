@@ -1,5 +1,9 @@
 import type { Db } from "@gnd/db";
 import { logger } from "@gnd/logger";
+import {
+	ensureSpecialOrderEmailApprovalAction,
+	recordSpecialOrderApprovalDelivery,
+} from "@gnd/sales/special-order";
 import { getCustomerWallet } from "@gnd/sales/wallet";
 import { getAppUrl } from "@gnd/utils/envs";
 import {
@@ -130,6 +134,7 @@ async function loadSales(db: Db, input: SendSalesEmailPayloadInput) {
 async function buildSalesDocumentEmailData(
 	db: Db,
 	input: SendSalesEmailPayloadInput,
+	author: UserData,
 ) {
 	const sales = await loadSales(db, input);
 
@@ -236,6 +241,19 @@ async function buildSalesDocumentEmailData(
 					normalizeText(input.customerEmail) || primarySale.customerEmail,
 			})
 		: null;
+	const specialOrderApprovals =
+		input.printType === "order"
+			? (
+					await Promise.all(
+						sales.map((sale) =>
+							ensureSpecialOrderEmailApprovalAction(db, {
+								salesId: sale.id,
+								issuedByUserId: author.id,
+							}),
+						),
+					)
+				).filter((action) => action !== null)
+			: [];
 
 	return {
 		type: input.printType,
@@ -256,6 +274,7 @@ async function buildSalesDocumentEmailData(
 		emailAttemptId: input.emailAttemptId,
 		sourceAttemptId: input.sourceAttemptId,
 		dealerProgramBanner,
+		specialOrderApprovals,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
 			po: sale.po,
@@ -269,18 +288,27 @@ async function buildSalesDocumentEmailData(
 const resolvedSchema = salesEmailReminderSchema.extend({
 	acceptQuoteLink: z.string().optional().nullable(),
 	pdfAttachment: salesPdfAttachmentSchema.optional().nullable(),
+	specialOrderApprovals: z
+		.array(
+			z.object({
+				requestId: z.string(),
+				orderId: z.string(),
+				recipientEmail: z.string().email(),
+				approvalUrl: z.string().url(),
+				expiresAt: z.union([z.date(), z.string()]),
+				newlyIssued: z.boolean(),
+			}),
+		)
+		.default([]),
 });
 
-type ResolvedSalesDocumentEmailInput = SalesEmailReminderInput & {
-	acceptQuoteLink?: string | null;
-	pdfAttachment?: z.infer<typeof salesPdfAttachmentSchema> | null;
-};
+type ResolvedSalesDocumentEmailInput = z.infer<typeof resolvedSchema>;
 
 export const simpleSalesDocumentEmail: NotificationHandler = {
 	schema: resolvedSchema,
 	createActivityWithoutContact: true,
-	async extendData(db, data: SendSalesEmailPayloadInput, _author: UserData) {
-		return buildSalesDocumentEmailData(db, data);
+	async extendData(db, data: SendSalesEmailPayloadInput, author: UserData) {
+		return buildSalesDocumentEmailData(db, data, author);
 	},
 	createDirectEmailContact(data: ResolvedSalesDocumentEmailInput): UserData {
 		return {
@@ -293,6 +321,18 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 			inAppNotification: false,
 			whatsAppNotification: false,
 		};
+	},
+	async afterEmailDelivery(db, data, result) {
+		const delivery =
+			result.deliveries.find((entry) => entry.status === "sent") ||
+			result.deliveries.find((entry) => entry.status === "failed") ||
+			result.deliveries[0] ||
+			null;
+		await recordSpecialOrderApprovalDelivery(
+			db,
+			data.specialOrderApprovals,
+			delivery,
+		);
 	},
 	createActivity(data: ResolvedSalesDocumentEmailInput, author) {
 		const docType = data.type === "quote" ? "Quote" : "Invoice";
@@ -342,6 +382,15 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 				...(data.pdfLink ? { pdfLink: data.pdfLink } : {}),
 				hasPdfAttachment: Boolean(data.pdfAttachment),
 				dealerProgramBanner: data.dealerProgramBanner || undefined,
+				specialOrderApprovals: (data.specialOrderApprovals ?? []).map(
+					(action) => ({
+						...action,
+						expiresAt:
+							action.expiresAt instanceof Date
+								? action.expiresAt
+								: new Date(action.expiresAt),
+					}),
+				),
 				sales: data.sales.map((sale) => ({
 					...sale,
 					date:

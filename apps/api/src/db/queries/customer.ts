@@ -21,6 +21,7 @@ import {
 	isSalesOrderFulfilled,
 } from "@gnd/sales/order-status";
 import { readSalesFormPo } from "@gnd/sales/sales-form/application/legacy-metadata";
+import { invalidateSpecialOrderRevisionsForCustomerChange } from "@gnd/sales/special-order";
 import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
 import { nextId, sum } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
@@ -569,11 +570,21 @@ export async function createOrUpdateCustomer(
 ) {
 	return ctx.db.$transaction(async (tx) => {
 		let customerId = input.id;
+		let customerBefore: Record<string, unknown> | null = null;
 		if (input.id) {
 			const target = await tx.customers.findUnique({
 				where: { id: input.id },
-				select: { dealerOwnerId: true },
+				select: {
+					dealerOwnerId: true,
+					name: true,
+					businessName: true,
+					email: true,
+					phoneNo: true,
+					phoneNo2: true,
+					address: true,
+				},
 			});
+			customerBefore = target;
 			if (target?.dealerOwnerId) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -779,6 +790,37 @@ export async function createOrUpdateCustomer(
 				where: { id: sale.id },
 				data: { billingAddressId, shippingAddressId },
 			});
+		}
+
+		if (input.id && customerBefore) {
+			const customerAfter = await tx.customers.findUnique({
+				where: { id: input.id },
+				select: {
+					name: true,
+					businessName: true,
+					email: true,
+					phoneNo: true,
+					phoneNo2: true,
+					address: true,
+				},
+			});
+			const visibleBefore = JSON.stringify({
+				name: customerBefore.name,
+				businessName: customerBefore.businessName,
+				email: customerBefore.email,
+				phoneNo: customerBefore.phoneNo,
+				phoneNo2: customerBefore.phoneNo2,
+				address: customerBefore.address,
+			});
+			if (customerAfter && JSON.stringify(customerAfter) !== visibleBefore) {
+				await invalidateSpecialOrderRevisionsForCustomerChange(tx, {
+					customerId: input.id,
+					reason: "Canonical customer details changed",
+					actorUserId: ctx.userId ?? null,
+					authorName: String(ctx.userId ?? "System"),
+					changeFingerprint: customerAfter,
+				});
+			}
 		}
 
 		return {
@@ -987,6 +1029,13 @@ export async function assignSalesAddress(
 		await tx.salesOrders.update({
 			where: { id: sale.id },
 			data: { [relationKey]: addressId },
+		});
+		await invalidateSpecialOrderRevisionsForCustomerChange(tx, {
+			salesOrderId: sale.id,
+			reason: `${input.addressType === "billing" ? "Billing" : "Shipping"} address changed`,
+			actorUserId: ctx.userId ?? null,
+			authorName: String(ctx.userId ?? "System"),
+			changeFingerprint: { addressId, addressType: input.addressType, ...addressData },
 		});
 
 		return {
@@ -2141,9 +2190,20 @@ export async function updateCustomerEmail(
 			message: "Dealer-owned customers are read-only in office mode.",
 		});
 	}
-	const updated = await ctx.db.customers.update({
-		where: { id: input.customerId },
-		data: { email: input.email },
+	return ctx.db.$transaction(async (tx) => {
+		const updated = await tx.customers.update({
+			where: { id: input.customerId },
+			data: { email: input.email },
+		});
+		if ((customer.email || "").trim() !== input.email.trim()) {
+			await invalidateSpecialOrderRevisionsForCustomerChange(tx, {
+				customerId: input.customerId,
+				reason: "Canonical customer email changed",
+				actorUserId: ctx.userId ?? null,
+				authorName: String(ctx.userId ?? "System"),
+				changeFingerprint: { email: updated.email },
+			});
+		}
+		return updated;
 	});
-	return updated;
 }

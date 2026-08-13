@@ -293,6 +293,7 @@ export function normalizeOrderRow(
 		deliveryOption: dto.deliveryOption || "pickup",
 		priority: normalizeSalesPriority(row.priority),
 		priorityLabel: getSalesPriorityLabel(row.priority),
+		specialOrder: dto.specialOrder,
 		baseInvoiceTotal: repairedInvoiceTotal.baseTotal,
 		displayCcc,
 		invoiceTotal: repairedInvoiceTotal.totalWithCcc,

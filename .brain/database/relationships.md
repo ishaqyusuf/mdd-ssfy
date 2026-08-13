@@ -249,3 +249,22 @@ Planning only; no schema relationship changed yet.
   polymorphic ownership, partitioning, RLS, or safe lifecycle requires it.
 - Platform subscription/payment entities and operational Sales/Square payment
   entities have no cross-ledger ownership relationship.
+
+## Special Order acknowledgment links (2026-08-13)
+
+- `SalesOrders 1:N SpecialOrderApprovalRequest`; every request binds one
+  Approval Revision and one `SpecialOrderPolicyVersion`.
+- `SalesOrders 1:N SpecialOrderApprovalEvidence`; every evidence row belongs to
+  one request and retains its policy/order/acknowledgment snapshots.
+- `SalesOrders.currentSpecialOrderRequestId` and
+  `currentSpecialOrderApprovalId` are nullable current-state pointers. Current
+  approval still requires a matching, non-superseded approved evidence row for
+  the order's current revision.
+- `SpecialOrderApprovalEvidence.signatureDocumentId -> StoredDocument.id`
+  references the encrypted private signature image. Operational documents do
+  not follow or expose this relationship.
+- `SalesOrders 1:N SpecialOrderNotificationDelivery` preserves retryable
+  customer, staff-email, and in-app notification outcomes for each lifecycle
+  event.
+- `SalesOrders 1:N SpecialOrderOperationEvent` preserves warning/block rollout
+  telemetry independently of the bounded Sales Activity presentation.

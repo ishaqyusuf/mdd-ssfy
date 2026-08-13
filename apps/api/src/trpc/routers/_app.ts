@@ -36,6 +36,7 @@ import { shoppingProductsRouter } from "./shopping-products.route";
 import { shortLinksRouter } from "./short-links.route";
 import { siteActionsRoutes } from "./site-action.route";
 import { squareTestRouter } from "./square-test.route";
+import { specialOrderRouter } from "./special-order.route";
 import { storageRouter } from "./storage.route";
 import { storefrontAdminRouter } from "./storefront-admin.route";
 import { storefrontAuthRouter } from "./storefront-auth.route";
@@ -90,6 +91,7 @@ export const appRouter = createTRPCRouter({
 	shoppingProducts: shoppingProductsRouter,
 	siteActions: siteActionsRoutes,
 	squareTest: squareTestRouter,
+	specialOrder: specialOrderRouter,
 	taskTrigger: taskTriggerRouter,
 	taskEvents: taskEventsRouter,
 	taskRunDiagnostics: taskRunDiagnosticsRouter,

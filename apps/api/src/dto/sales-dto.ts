@@ -18,6 +18,7 @@ import { repairSalesInvoiceCccDisplay } from "@gnd/sales/payment-system";
 import { getPrintPaymentFooterState } from "@gnd/sales/print/payment-footer-state";
 import { deriveOrderProductionGateState } from "@gnd/sales/production-gate";
 import { resolvePersistedSalesLineDoorRouteConfig } from "@gnd/sales/sales-form";
+import { getSpecialOrderStatusLabel } from "@gnd/sales/special-order";
 import { readSalesFormPo } from "@gnd/sales/sales-form/application/legacy-metadata";
 import { getNameInitials, sum, toNumber } from "@gnd/utils";
 import { timeAgo } from "@gnd/utils/dayjs";
@@ -432,6 +433,17 @@ function commonListData(data: Item, bin?: boolean) {
 		type: data.type as SalesType,
 		isQuote: (data.type as SalesType) == "quote",
 		orderStatus: data.status,
+		specialOrder: {
+			declaration: data.specialOrderDeclaration,
+			status: data.specialOrderStatus,
+			revision: data.specialOrderRevision,
+			currentRequestId: data.currentSpecialOrderRequestId,
+			currentApprovalId: data.currentSpecialOrderApprovalId,
+			label: getSpecialOrderStatusLabel({
+				declaration: data.specialOrderDeclaration,
+				status: data.specialOrderStatus,
+			}),
+		},
 		prodStatus: data.prodStatus,
 		productionGate: data.productionGate,
 		hasProductionDefinition: gateState.hasProductionDefinition,

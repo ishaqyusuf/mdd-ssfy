@@ -62,6 +62,7 @@ export function GeneralFooter() {
 					id={data?.id}
 					slug={data?.uuid}
 					type={data?.type}
+					customerId={data?.customerId}
 					customerEmail={data?.email ?? null}
 					customerPhone={data?.customerPhone}
 					customerName={data?.displayName}

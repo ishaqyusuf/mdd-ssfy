@@ -63,8 +63,8 @@ opening production, dispatch, packing, or inventory workflows.
   legacy `@gnd/ui/custom/sheet` contract until they are deliberately migrated.
 - V2 keeps the shadcn/Radix dialog chassis and applies the Midday sheet frame:
   a 520px default token, explicit pane-width tokens, a 16px desktop outer
-  gutter, 24px desktop surface padding, a bordered stone surface, and a 10px
-  desktop radius.
+  gutter, 24px desktop surface padding, a bordered semantic `bg-background`
+  surface, and a 10px desktop radius.
 - Sales Overview uses independent `2xl` primary and `2xl` secondary panes. On
   a wide viewport the shell is 42rem + 1px + 42rem; opening the secondary does
   not redistribute or shrink either pane.
