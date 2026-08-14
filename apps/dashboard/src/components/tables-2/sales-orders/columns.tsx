@@ -50,6 +50,7 @@ import {
 	getDealerSaleOrderCellClassName,
 	getDealerSaleOrderNumberClassName,
 } from "./dealer-sale-style";
+import { resolveSalesOrderSpecialOrderIndicator } from "./special-order-indicator";
 
 export type SalesOrder = RouterOutputs["sales"]["getOrders"]["data"][number];
 
@@ -155,9 +156,40 @@ const orderIdColumn: Column = {
 					<span>{row.original.noteCount}</span>
 				</Badge>
 			) : null}
+			<SpecialOrderIndicator specialOrder={row.original.specialOrder} />
 		</div>
 	),
 };
+
+function SpecialOrderIndicator({
+	specialOrder,
+}: {
+	specialOrder: SalesOrder["specialOrder"];
+}) {
+	const indicator = resolveSalesOrderSpecialOrderIndicator(specialOrder);
+	if (!indicator) return null;
+
+	const label = `Special Order: ${indicator.label}`;
+	return (
+		<TooltipProvider delayDuration={100}>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Badge
+						aria-label={label}
+						className={cn(
+							"size-5 shrink-0 justify-center rounded-full p-0",
+							indicator.toneClassName,
+						)}
+						variant="outline"
+					>
+						<Icons.PenTool className="size-3" aria-hidden="true" />
+					</Badge>
+				</TooltipTrigger>
+				<TooltipContent>{label}</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
+	);
+}
 
 const statusColumn: Column = {
 	id: "status",
@@ -172,36 +204,6 @@ const statusColumn: Column = {
 		className: sizeClass(sizes.custom(110, 180, 130)),
 	},
 	cell: ({ row }) => <SalesOrderStatusMenu item={row.original} />,
-};
-
-const specialOrderColumn: Column = {
-	id: "specialOrder",
-	header: "Special Order",
-	accessorFn: (row) => row.specialOrder.label,
-	...sizes.custom(120, 190, 145),
-	enableResizing: true,
-	enableSorting: false,
-	meta: {
-		skeleton: { type: "badge", width: "w-28" },
-		headerLabel: "Special Order",
-		className: sizeClass(sizes.custom(120, 190, 145)),
-	},
-	cell: ({ row }) => {
-		const specialOrder = row.original.specialOrder;
-		return (
-			<Badge
-				variant={
-					specialOrder.status === "CUSTOMER_DECLINED"
-						? "destructive"
-						: specialOrder.declaration === "YES"
-							? "default"
-							: "outline"
-				}
-			>
-				{specialOrder.label}
-			</Badge>
-		);
-	},
 };
 
 function SalesOrderStatusMenu({ item }: { item: SalesOrder }) {
@@ -802,7 +804,6 @@ export const columns: Column[] = [
 	invoiceTotalColumn,
 	deliveryColumn,
 	statusColumn,
-	specialOrderColumn,
 	amountDueColumn,
 	productionColumn,
 	fulfillmentColumn,

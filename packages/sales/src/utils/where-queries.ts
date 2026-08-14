@@ -15,6 +15,9 @@ import { SALES_HAS_FILTER_LABELS } from "../filter-constants";
 
 type SalesHasFilter = NonNullable<SalesQueryParamsSchema["has"]>;
 type SalesInboundFilter = NonNullable<SalesQueryParamsSchema["inbound"]>;
+type SalesSpecialOrderFilter = NonNullable<
+  SalesQueryParamsSchema["specialOrder"]
+>;
 
 const manualSalesInboundStatuses =
   orderInboundStatuses satisfies readonly SalesInboundFilter[];
@@ -92,6 +95,45 @@ function buildSalesInboundWhere(
   }
 
   return inventoryOwnedInboundSalesWhere("some", inbound);
+}
+
+export function buildSalesSpecialOrderWhere(
+  filter: SalesSpecialOrderFilter,
+  now = new Date(),
+): Prisma.SalesOrdersWhereInput {
+  const base: Prisma.SalesOrdersWhereInput = {
+    specialOrderDeclaration: "YES",
+  };
+
+  switch (filter) {
+    case "signed":
+      return { ...base, specialOrderStatus: "CUSTOMER_APPROVED" };
+    case "not_signed":
+      return {
+        ...base,
+        OR: [
+          { specialOrderStatus: null },
+          { specialOrderStatus: { not: "CUSTOMER_APPROVED" } },
+        ],
+      };
+    case "expired":
+      return {
+        ...base,
+        currentSpecialOrderRequestId: { not: null },
+        specialOrderRequests: {
+          some: {
+            status: "ACTIVE",
+            expiresAt: { lte: now },
+          },
+        },
+      };
+    case "signature_pending":
+      return { ...base, specialOrderStatus: "SIGNATURE_PENDING" };
+    case "reapproval_required":
+      return { ...base, specialOrderStatus: "REAPPROVAL_REQUIRED" };
+    case "declined":
+      return { ...base, specialOrderStatus: "CUSTOMER_DECLINED" };
+  }
 }
 
 function salesItemTypeWhere(label: string): Prisma.SalesOrderItemsWhereInput[] {
@@ -568,6 +610,14 @@ export function whereSales(query: SalesQueryParamsSchema) {
         break;
       case "inbound":
         where.push(buildSalesInboundWhere(val));
+        break;
+      case "specialOrderScope":
+        if (val === "special_orders") {
+          where.push({ specialOrderDeclaration: "YES" });
+        }
+        break;
+      case "specialOrder":
+        where.push(buildSalesSpecialOrderWhere(val));
         break;
       case "production.assignedToId":
         where.push({

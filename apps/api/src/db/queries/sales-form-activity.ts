@@ -165,12 +165,13 @@ export function buildInboundDemandAdjustmentActivity(input: {
 
 export function buildSpecialOrderEnrollmentActivity(input: {
 	orderId: string;
-	reason: string;
+	reason?: string | null;
 }): SalesActivityCopy {
+	const reason = input.reason?.trim();
 	return {
 		subject: "Special Order enabled",
 		headline: `Sale ${input.orderId} was manually classified as a Special Order.`,
-		note: `Reason: ${input.reason.trim()}`,
+		note: reason ? `Reason: ${reason}` : "No reason provided.",
 		activityType: "special_order_enabled",
 	};
 }

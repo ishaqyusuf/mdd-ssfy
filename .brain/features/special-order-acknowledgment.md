@@ -13,14 +13,15 @@ lines, components, or catalog rows independently.
 ## Staff workflow
 
 - Draft and autosave may retain an unanswered declaration. Save & Close and
-  final internal-order saves require an explicit Yes or No.
+  Save & New and final internal-order saves require an explicit Yes or No.
 - No produces `NOT_REQUIRED`. Yes starts at `SIGNATURE_PENDING` unless a current
   approval matches the exact order revision.
 - Existing legacy orders remain `Not evaluated` and are not governed until a
-  salesperson deliberately enables Special Order with confirmation and a
-  reason.
+  salesperson deliberately enables Special Order with confirmation. The
+  classification reason is optional.
 - Sales Overview exposes the independent state, approval request actions,
-  `Request Re-Approval`, history, and reasoned removal.
+  `Request Re-Approval`, history, and removal. Removal reasons are optional;
+  reapproval and customer-decline reasons remain required.
 - Enabling, revision invalidation, requests, customer responses, reapproval,
   and removal write Sales Activity. Removal sends a customer notification when
   the policy had already been communicated or answered.
@@ -64,7 +65,7 @@ The same settings section owns the enrollment release audience. It defaults to
 Sales Form declaration and can transition an ordinary order into `YES` / Special
 Order. Other employees may continue saving ordinary orders without answering
 the hidden declaration. This audience is not a feature-disable switch: the
-Sales Orders column and Sales Overview remain visible, and every approval,
+Sales Orders indicator and Sales Overview remain visible, and every approval,
 email, document, notification, revision, and operational-enforcement behavior
 continues normally for orders already marked Special Order. Switching the
 audience to `ALL_STAFF` restores enrollment for all users who otherwise have
@@ -75,6 +76,24 @@ save waits for that decision instead of trusting cached client role data. An
 employee outside the pilot who edits an already marked order keeps the existing
 customer-email repair continuation even though the declaration control remains
 hidden.
+
+## Compact classification and order discovery (2026-08-14)
+
+- The invoice summary uses a compact `Special Order` section with the current
+  status beside its title and equal-width No/Yes controls. Unanswered orders
+  display No as a visual fallback without persisting a declaration.
+- One `Special Order classification` modal owns required-save decisions and
+  saved-order changes. It defaults to No for untouched orders or the persisted
+  choice for saved orders, accepts an optional 3-500 character reason, and
+  resumes the exact pending save after any required customer-email repair.
+- Removing a classification without a reason keeps the full revocation,
+  evidence, history, pointer-clearing, and notification lifecycle. Blank reason
+  values normalize to `null`, and generated copy never renders an empty or
+  undefined reason.
+- Sales Orders exposes URL-backed Special Order scope and lifecycle filters.
+  The former standalone column is replaced by a status-toned PenTool indicator
+  in the Order # cell; current-link expiry takes visual precedence over pending
+  or reapproval state.
 
 | Mode | Purchasing | Production | Packing | Dispatch |
 | --- | --- | --- | --- | --- |
@@ -138,8 +157,13 @@ operational permissions still apply in addition to the approval gate.
 
 The follow-up Wayfinder map at
 `.scratch/special-order-usability-override-addendum/map.md` records the approved
-direction pending its reviewed pipeline comments, published addendum spec, and
-tracer-bullet tickets:
+direction. Its five pipeline comments are approved and posted, and
+`.scratch/special-order-usability-override-addendum/spec.md` is the published
+`ready-for-agent` addendum. Five approved `ready-for-agent` tracer-bullet
+implementation tickets are published under
+`.scratch/special-order-usability-override-implementation/issues/`; Tickets
+01-04 form the initial parallel frontier and Ticket 05 is the blocked integration
+and acceptance gate:
 
 - Sales Overview gains Special Order enrollment with the same release audience,
   customer-email repair, reason, activity, and revision rules as the Sales Form;

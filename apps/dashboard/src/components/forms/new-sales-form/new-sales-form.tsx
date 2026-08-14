@@ -431,6 +431,9 @@ export function NewSalesForm(props: Props) {
 	const canEnrollSpecialOrder =
 		specialOrderEnrollmentState.status === "ready" &&
 		specialOrderEnrollmentState.canEnroll;
+	const removeSpecialOrderClassification = useMutation(
+		trpc.specialOrder.remove.mutationOptions(),
+	);
     const [draftParams, setDraftParams] = useCreateFormQueryParams();
     const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
     const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
@@ -1482,6 +1485,7 @@ export function NewSalesForm(props: Props) {
 
     async function completeRequiredSpecialOrderDeclaration(
         declaration: "NO" | "YES",
+		reason?: string | null,
     ) {
         const intent = pendingSpecialOrderCommit;
         const currentRecord = useNewSalesFormStore.getState().record;
@@ -1491,13 +1495,42 @@ export function NewSalesForm(props: Props) {
             specialOrder: {
                 ...currentRecord.specialOrder,
                 declaration,
-                changeReason: null,
+				changeReason: reason?.trim() || null,
             },
         };
-        setSpecialOrder({ declaration, changeReason: null });
+		setSpecialOrder({
+			declaration,
+			changeReason: reason?.trim() || null,
+		});
         setPendingSpecialOrderCommit(null);
         await runWithManualSaveLock(() => executeSaveIntent(intent, nextRecord));
     }
+
+	async function removeSpecialOrderFromForm(reason?: string | null) {
+		const currentRecord = useNewSalesFormStore.getState().record;
+		if (!currentRecord?.salesId) return;
+		await removeSpecialOrderClassification.mutateAsync({
+			salesId: currentRecord.salesId,
+			reason: reason?.trim() || null,
+		});
+		setSpecialOrder({
+			declaration: "NO",
+			status: "NOT_REQUIRED",
+			revision: null,
+			currentApprovalId: null,
+			currentRequestId: null,
+			changeReason: null,
+		});
+		await salesQueryClient.invalidate.salesList({
+			salesId: currentRecord.salesId,
+			orderNo: currentRecord.orderId,
+			salesType: "order",
+		});
+		toast({
+			title: "Special Order classification removed",
+			variant: "success",
+		});
+	}
 
     async function runRequestedSave(intent: SaveIntent) {
         await runWithManualSaveLock(async () => {
@@ -2123,11 +2156,15 @@ export function NewSalesForm(props: Props) {
                             onRequiredSpecialOrderPromptOpenChange={(open) => {
                                 if (!open) setPendingSpecialOrderCommit(null);
                             }}
-                            onRequiredSpecialOrderDecision={(declaration) =>
+							onRequiredSpecialOrderDecision={(declaration, reason) =>
                                 void completeRequiredSpecialOrderDeclaration(
                                     declaration,
+									reason,
                                 )
                             }
+							onRemoveSpecialOrderClassification={
+								removeSpecialOrderFromForm
+							}
                             mode={props.mode}
                             type={props.type}
                         />

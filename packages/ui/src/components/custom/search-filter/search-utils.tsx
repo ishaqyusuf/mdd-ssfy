@@ -29,6 +29,8 @@ export const searchIcons: Partial<{
 	paymentReview: "payment",
 	salesChannel: "Share",
 	inbound: "inbound",
+	specialOrder: "PenTool",
+	specialOrderScope: "PenTool",
 	"salesRep.id": "user",
 	"dispatch.status": "dispatch",
 	status: "Status",

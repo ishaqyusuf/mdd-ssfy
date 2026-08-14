@@ -34,6 +34,8 @@ import {
 	SALES_CHANNEL_FILTER_OPTIONS,
 	SALES_HAS_FILTER_OPTIONS,
 	SALES_INBOUND_FILTER_OPTIONS,
+	SALES_SPECIAL_ORDER_FILTER_OPTIONS,
+	SALES_SPECIAL_ORDER_SHOW_OPTIONS,
 } from "@sales/filter-constants";
 import {
 	getSalesPriorityLabel,
@@ -83,6 +85,14 @@ const ordersV2FilterShape = {
 	has: z.enum(SALES_HAS_FILTER_OPTIONS).optional().nullable(),
 	salesChannel: z.enum(SALES_CHANNEL_FILTER_OPTIONS).optional().nullable(),
 	inbound: z.enum(SALES_INBOUND_FILTER_OPTIONS).optional().nullable(),
+	specialOrderScope: z
+		.enum(SALES_SPECIAL_ORDER_SHOW_OPTIONS)
+		.optional()
+		.nullable(),
+	specialOrder: z
+		.enum(SALES_SPECIAL_ORDER_FILTER_OPTIONS)
+		.optional()
+		.nullable(),
 	showing: z.enum(["all sales"]).optional().nullable(),
 };
 
@@ -137,6 +147,8 @@ function toLegacyOrdersQuery(
 		has: query.has,
 		salesChannel: query.salesChannel,
 		inbound: query.inbound,
+		specialOrderScope: query.specialOrderScope,
+		specialOrder: query.specialOrder,
 		bin: query.bin,
 		showing: query.showing ?? undefined,
 	};
@@ -326,6 +338,20 @@ export function normalizeOrderRow(
 		statusLabel: lifecycleStatus.label,
 		statusTone: lifecycleStatus.tone,
 	};
+}
+
+export function resolveSpecialOrderLinkState(
+	request?: {
+		status: "ACTIVE" | "CONSUMED" | "REVOKED" | "EXPIRED";
+		expiresAt: Date;
+	} | null,
+	now = Date.now(),
+) {
+	if (!request) return null;
+	if (request.status === "EXPIRED" || request.expiresAt.getTime() <= now) {
+		return "EXPIRED" as const;
+	}
+	return request.status === "ACTIVE" ? ("ACTIVE" as const) : null;
 }
 
 function applyControlAwareLifecycle(row: ControlAwareOrderRow) {
@@ -558,11 +584,19 @@ async function normalizeOrders(
 ) {
 	const { db } = ctx;
 	const salesOrderIds = rows.map((row) => row.id);
+	const currentSpecialOrderRequestIds = [
+		...new Set(
+			rows
+				.map((row) => row.currentSpecialOrderRequestId)
+				.filter((id): id is string => Boolean(id)),
+		),
+	];
 	const [
 		noteCounts,
 		inboundOwnershipMap,
 		inventoryProjectionRows,
 		existingInventoryRequirementRows,
+		currentSpecialOrderRequests,
 	] = await Promise.all([
 		salesNotesCount(
 			rows.map((sale) => ({
@@ -652,7 +686,21 @@ async function normalizeOrders(
 				},
 			},
 		}),
+		db.specialOrderApprovalRequest.findMany({
+			where: { id: { in: currentSpecialOrderRequestIds } },
+			select: {
+				id: true,
+				status: true,
+				expiresAt: true,
+			},
+		}),
 	]);
+	const specialOrderRequestMap = new Map(
+		currentSpecialOrderRequests.map(
+			(request) => [request.id, request] as const,
+		),
+	);
+	const now = Date.now();
 	const inventoryProjectionMap = new Map(
 		inventoryProjectionRows.map((projection) => [
 			projection.salesOrderId,
@@ -673,12 +721,29 @@ async function normalizeOrders(
 				trackedRequirementCount,
 		);
 	}
-	const normalizedRows = rows.map((row) => ({
-		...normalizeOrderRow(row, noteCounts[row.id.toString()]?.noteCount ?? 0),
-		inventoryInboundOwnership:
-			inboundOwnershipMap.get(row.id) ?? emptySalesInventoryInboundOwnership(),
-		inventoryProjection: inventoryProjectionMap.get(row.id) ?? null,
-	}));
+	const normalizedRows = rows.map((row) => {
+		const normalized = normalizeOrderRow(
+			row,
+			noteCounts[row.id.toString()]?.noteCount ?? 0,
+		);
+		const currentRequest = row.currentSpecialOrderRequestId
+			? specialOrderRequestMap.get(row.currentSpecialOrderRequestId)
+			: null;
+		const linkState = resolveSpecialOrderLinkState(currentRequest, now);
+
+		return {
+			...normalized,
+			specialOrder: {
+				...normalized.specialOrder,
+				linkState,
+				currentRequestExpiresAt: currentRequest?.expiresAt ?? null,
+			},
+			inventoryInboundOwnership:
+				inboundOwnershipMap.get(row.id) ??
+				emptySalesInventoryInboundOwnership(),
+			inventoryProjection: inventoryProjectionMap.get(row.id) ?? null,
+		};
+	});
 	const rowsWithControl = isControlReadV2Enabled()
 		? await withSalesListControl(normalizedRows, db)
 		: await withSalesControl(normalizedRows, db);

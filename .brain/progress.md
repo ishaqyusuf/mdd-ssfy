@@ -1,5 +1,22 @@
 # Progress
 
+- 2026-08-14: compacted Special Order classification into a small invoice-summary
+  control and one optional-reason modal, with visual-default No for unanswered
+  orders and exact save/email continuation. Classification and removal now
+  accept absent reasons while reapproval and customer decline remain reasoned;
+  removal still revokes active requests, supersedes evidence, preserves history,
+  clears pointers, and emits clean notifications. Sales Orders now supports
+  URL-backed Special Order scope/status filters across list, summary, count,
+  saved tabs, and export. The standalone column was removed in favor of an
+  accessible status-toned PenTool in Order #, backed by one bounded current-link
+  lookup per page and stale persisted-column pruning. No database migration was
+  required because expiry derives from existing approval-request data. Focused
+  validation passes 64 tests / 249 assertions; `@gnd/sales` and `@gnd/api`
+  typechecks pass, and the dashboard typecheck reports no diagnostics in the
+  touched production files while retaining its unrelated repository baseline.
+  Authenticated browser QA reached the healthy local stack but could not pass
+  the login boundary because Chrome had no usable dashboard session cookie.
+
 - 2026-08-14: charted the Special Order usability and operational-override
   addendum in `.scratch/special-order-usability-override-addendum/` after the
   stakeholder accepted the recommended behavior. The local Wayfinder map has
@@ -7,8 +24,14 @@
   customer naming and mobile full-screen signing, customer policy/C.C.C/footer
   presentation, a role-configured and audited approval override, and the final
   acceptance boundary. Added `Special Order Approval Override` to the canonical
-  glossary and recorded the approved feature direction. Proposed-answer
-  comments remain unposted pending the required review checkpoint; no runtime,
+  glossary and recorded the approved feature direction. All five reviewed
+  proposed-answer comments are posted locally and the `ready-for-agent` addendum
+  spec is published. The separately approved breakdown is now published as five
+  local `ready-for-agent` implementation tickets under
+  `.scratch/special-order-usability-override-implementation/issues/`: four
+  independent feature slices form the initial frontier and one blocked ticket
+  owns integration, browser acceptance, and documentation reconciliation.
+  ADR-053 records the durable Role-configured override exception. No runtime,
   API, database, permission, or deployment behavior changed.
 
 - 2026-08-14: added a Super Admin-controlled Special Order enrollment audience.

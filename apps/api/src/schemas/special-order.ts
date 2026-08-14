@@ -10,7 +10,11 @@ export const specialOrderReapprovalSchema = specialOrderRequestSchema.extend({
 
 export const specialOrderRemovalSchema = z.object({
 	salesId: z.number().int().positive(),
-	reason: z.string().trim().min(3).max(500),
+	reason: z.preprocess(
+		(value) =>
+			typeof value === "string" && value.trim() === "" ? null : value,
+		z.string().trim().min(3).max(500).optional().nullable(),
+	),
 });
 
 export const specialOrderPublicTokenSchema = z.object({

@@ -165,5 +165,8 @@ describe("sales form activity copy", () => {
 			activityType: "special_order_revision_invalidated",
 		});
 		expect(invalidation.note).toContain("No email was sent automatically");
+		expect(
+			buildSpecialOrderEnrollmentActivity({ orderId: "09233PC", reason: null }),
+		).toMatchObject({ note: "No reason provided." });
 	});
 });

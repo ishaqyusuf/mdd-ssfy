@@ -1,5 +1,17 @@
 # In Progress
 
+- [ ] Special Order usability and operational-override addendum: the approved
+  addendum spec and five local `ready-for-agent` implementation tickets are
+  published under `.scratch/special-order-usability-override-addendum/` and
+  `.scratch/special-order-usability-override-implementation/issues/`. The
+  immediate parallel frontier is Ticket 01 Sales Overview enrollment, Ticket 02
+  immutable customer identity and mobile signing, Ticket 03 customer
+  policy/C.C.C/document parity, and Ticket 04 the Role-configured audited
+  approval override. Ticket 05 remains blocked by all four and owns integrated
+  browser acceptance plus durable documentation reconciliation. No
+  implementation is started by ticket publication. (Sales + API + UI + Print +
+  Permissions + Validation)
+
 - [ ] Driver platform revival closeout: phases 0-3 remain implemented and the
   reversible inventory fixture now passes Expo Go warehouse preparation from
   `UNPACKED 0/3 · Inventory Review` to `PACKED 3/3 · Ready To Load`.

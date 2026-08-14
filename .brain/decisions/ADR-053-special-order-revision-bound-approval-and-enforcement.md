@@ -4,6 +4,7 @@
 - Date: 2026-08-13
 - Related plan: `.brain/plans/2026-08-12-feature-special-order-acknowledgment-customer-signature.md`
 - Related feature: `.brain/features/special-order-acknowledgment.md`
+- Related addendum: `.scratch/special-order-usability-override-addendum/spec.md`
 
 ## Context
 
@@ -52,6 +53,14 @@ multiple purchasing, production, packing, and dispatch entry points consistently
     and reconciled in the local migration ledger. This exception does not
     authorize hosted writes or future manual migrations; repair of the split
     chain remains separate prerequisite work.
+11. A Role may grant the additive `Override Special Order Approval` capability.
+    The server resolves it from the authenticated session and still requires
+    the actor's ordinary purchasing, production, packing, or dispatch authority.
+    It may convert a would-block Signature Pending or Reapproval Required
+    forward operation into an explicit `OVERRIDDEN` decision. Customer Declined
+    remains blocked. Every override records actor, effective Role, order,
+    revision, operation, enforcement mode, source, and time; client inputs may
+    never claim override authority.
 11. Capability creation, hashing, JSON coercion, issuance, revision comparison,
     enforcement, and direct customer/address invalidation are package-owned.
     API modules remain integration adapters for authenticated context, Blob,
@@ -87,3 +96,6 @@ multiple purchasing, production, packing, and dispatch entry points consistently
   server encryption secret becomes required in production (with the existing
   Special Order/auth secret chain as the supported fallback), and key rotation
   requires an explicit re-encryption plan for historical envelopes.
+- The override is an auditable exception to approval enforcement, not Current
+  Approval and not a general operations permission. Removing either the Role
+  capability or the underlying operation permission removes the forward bypass.

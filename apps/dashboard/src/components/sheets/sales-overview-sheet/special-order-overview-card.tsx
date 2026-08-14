@@ -155,6 +155,9 @@ export function SpecialOrderOverviewCard() {
 		requestReapproval.isPending ||
 		removeSpecialOrder.isPending ||
 		retryNotifications.isPending;
+	const normalizedReason = reason.trim();
+	const optionalReasonIsTooShort =
+		normalizedReason.length > 0 && normalizedReason.length < 3;
 
 	if (data?.type === "quote") return null;
 
@@ -397,28 +400,47 @@ export function SpecialOrderOverviewCard() {
 						<DialogDescription>
 							{reasonDialog === "reapproval"
 								? "The current approval will be superseded immediately. Explain why the customer must approve again."
-								: "All requests and customer evidence will remain in history. Explain why this classification is being removed."}
+								: "All requests and customer evidence will remain in history. You may add a reason for removing this classification."}
 						</DialogDescription>
 					</DialogHeader>
+					<label className="text-sm font-medium" htmlFor="special-order-action-reason">
+						{reasonDialog === "remove" ? "Reason (optional)" : "Reason"}
+					</label>
 					<Textarea
+						id="special-order-action-reason"
 						aria-label="Reason"
 						placeholder="Enter a reason"
 						maxLength={500}
 						value={reason}
 						onChange={(event) => setReason(event.target.value)}
 					/>
+					{reasonDialog === "remove" && optionalReasonIsTooShort ? (
+						<p className="text-xs text-destructive">
+							Enter at least 3 characters, or leave the reason blank.
+						</p>
+					) : null}
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setReasonDialog(null)}>
 							Cancel
 						</Button>
 						<Button
 							variant={reasonDialog === "remove" ? "destructive" : "default"}
-							disabled={reason.trim().length < 3 || isPending}
+							disabled={
+								isPending ||
+								(reasonDialog === "reapproval" && normalizedReason.length < 3) ||
+								(reasonDialog === "remove" && optionalReasonIsTooShort)
+							}
 							onClick={() => {
 								if (reasonDialog === "reapproval") {
-									requestReapproval.mutate({ salesId, reason: reason.trim() });
+									requestReapproval.mutate({
+										salesId,
+										reason: normalizedReason,
+									});
 								} else if (reasonDialog === "remove") {
-									removeSpecialOrder.mutate({ salesId, reason: reason.trim() });
+									removeSpecialOrder.mutate({
+										salesId,
+										reason: normalizedReason || null,
+									});
 								}
 							}}
 						>

@@ -6,6 +6,7 @@ import {
 	specialOrderRemovalSchema,
 	specialOrderRequestSchema,
 } from "./special-order";
+import { saveDraftNewSalesFormSchema } from "./new-sales-form";
 
 const png = `data:image/png;base64,${Buffer.from(
 	Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]),
@@ -39,7 +40,7 @@ describe("Special Order public command validation", () => {
 		).toBe(true);
 	});
 
-	it("requires a bounded reason to decline, remove, or request reapproval", () => {
+	it("keeps decline and reapproval reasons required while removal is optional", () => {
 		expect(
 			specialOrderApprovalResponseSchema.safeParse({
 				token: "x".repeat(40),
@@ -58,6 +59,18 @@ describe("Special Order public command validation", () => {
 			specialOrderRemovalSchema.safeParse({ salesId: 1, reason: "no" }).success,
 		).toBe(false);
 		expect(
+			specialOrderRemovalSchema.safeParse({
+				salesId: 1,
+				reason: "x".repeat(501),
+			}).success,
+		).toBe(false);
+		expect(specialOrderRemovalSchema.parse({ salesId: 1 })).toEqual({
+			salesId: 1,
+		});
+		expect(
+			specialOrderRemovalSchema.parse({ salesId: 1, reason: "   " }),
+		).toEqual({ salesId: 1, reason: null });
+		expect(
 			specialOrderReapprovalSchema.safeParse({
 				salesId: 1,
 				reason: "Pricing changed",
@@ -72,5 +85,14 @@ describe("Special Order public command validation", () => {
 				email: "attacker@example.com",
 			}),
 		).toEqual({ salesId: 1 });
+	});
+
+	it("normalizes an omitted or blank Sales Form classification reason", () => {
+		const reasonSchema =
+			saveDraftNewSalesFormSchema.shape.specialOrderChangeReason;
+		expect(reasonSchema.parse(undefined)).toBeUndefined();
+		expect(reasonSchema.parse("   ")).toBeNull();
+		expect(() => reasonSchema.parse("no")).toThrow();
+		expect(() => reasonSchema.parse("x".repeat(501))).toThrow();
 	});
 });

@@ -458,6 +458,18 @@ Tracks important request/response contracts and shared schema boundaries.
   - `sales.getOrders.data[].inventoryApplicability` prefers the durable `SalesInventoryProjectionState` marker, but a missing marker no longer means `not_synced` when active inventory sale lines already contain required positive-quantity components. In that legacy/backfill shape, the current component count supplies conservative applicability evidence; rows with neither a marker nor required component evidence remain `not_synced`.
   - The `Invoice` column sort is invoice amount (`grandTotal`) again; payment review filtering is not inferred from `sort=latestPaymentAt.*`.
   - Payment Review defaults to latest clean-payment ordering when no explicit sort is supplied; explicit sorts remain part of the filtered query and are saveable in page tabs.
+  - `specialOrderScope=special_orders` selects orders whose declaration is Yes.
+    `specialOrder` accepts `signed | not_signed | expired | signature_pending |
+    reapproval_required | declined`; every status value independently implies a
+    Yes declaration. `not_signed` is the broad inverse of
+    `CUSTOMER_APPROVED` among declared Special Orders, and `expired` checks the
+    current active request's `expiresAt` boundary.
+  - The Special Order scope/status fields are shared by list, summary, count,
+    saved-tab, and export inputs so those surfaces resolve the same `whereSales`
+    predicate. Invalid values are rejected by the URL/API schemas.
+  - `sales.getOrders.data[].specialOrder` includes derived `linkState` and
+    `currentRequestExpiresAt` for the current request. The list obtains this
+    metadata through one bounded request lookup for the page.
 - Sales Resolution Center contract:
   - `sales.getSalesResolutions` accepts the existing resolution filters plus pagination and `sort`.
   - `status` supports the existing resolution filter metadata values, including `Resolved`, `Resolved Today`, and `Unresolved`.
@@ -1247,6 +1259,11 @@ implementation phase is approved and released.
 - Approve requires acknowledgment, printed name, and PNG signature. Decline
   requires a reason. Every response snapshots the customer-visible order and
   policy that were reviewed.
+- Sales Form classification and `specialOrder.remove` accept an absent or blank
+  reason and normalize it to `null`. When present, the trimmed reason remains
+  limited to 3-500 characters. Reapproval and customer-decline reasons remain
+  required, and reasonless transitions still record actor, transition, prior
+  state, revision, and outcome.
 - The PNG is encrypted before storage. No raw signature data, public Blob URL,
   or decryption secret appears in public review, Sales DTOs, production/packing
   projections, notification payloads, or operation telemetry.

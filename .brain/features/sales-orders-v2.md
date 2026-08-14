@@ -35,6 +35,9 @@
   - returns a slimmer row payload focused on list presentation instead of the legacy table shape
   - honors the existing pagination `bin` input for deleted-order table views
   - treats `paymentReview=needs_review` as the clean-payment review queue: only orders with successful `SalesPayments.reviewStatus = "needs_review"` payments are returned, grouped once per order, ordered by most recently received payment by default, and still respecting explicit saved/user column sorts
+  - enriches Special Order rows with current-link state and expiry through one
+    bounded approval-request lookup per page, avoiding per-row queries and
+    changes to the shared list DTO
 - `sales.getOrdersSummary`
   - returns page-level summary metrics for:
     - total orders
@@ -46,6 +49,10 @@
 - `filters.salesOrders`
   - filter metadata source for the canonical orders page
   - exposes the `Inbound` filter with `No inbound`, the three manual order statuses, and the active inventory shipment lifecycle statuses
+  - exposes `Show: Special orders` and the Special Order lifecycle filters
+    `Signed`, `Not signed`, `Expired`, `Signature pending`, `Reapproval
+    required`, and `Declined`; lifecycle filters independently imply a Yes
+    declaration
 - `sales.salesRepOptions`
   - protected option list used by the sales overview transfer control
   - returns active sales/order-capable internal users with id, display name, email, initials, and role labels
@@ -147,6 +154,13 @@
   - delivery method
   - status
   - actions
+- The former standalone Special Order column and visibility option are removed.
+  Persisted column orders silently prune the stale `specialOrder` id.
+- Orders declared Yes render a compact PenTool beside the note badge in the
+  Order # cell. Tooltips and screen-reader text identify the lifecycle state;
+  amber means signature pending, emerald signed, orange reapproval required,
+  rose declined, and violet an expired current link. Ordinary and legacy
+  not-evaluated orders render no indicator.
 - Invoice total display repairs C.C.C before rendering: `grandTotal` stays base/principal-only, `displayCcc` is recalculated from the selected card/link/terminal method and `ccc_percentage` when cached `meta.ccc` is missing or stale, and non-card rows stay base-only even if old metadata contains C.C.C.
 - Invoice cells show an Office/Online clean-payment badge when the row is in the payment review queue.
 - Row interaction

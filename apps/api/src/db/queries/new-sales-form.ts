@@ -3347,16 +3347,6 @@ async function saveNewSalesFormInternal(
 			isInternalDashboardOrder &&
 			currentSpecialOrderDeclaration !== "YES" &&
 			nextSpecialOrderDeclaration === "YES";
-		if (
-			manuallyEnrolledExistingOrder &&
-			!payload.specialOrderChangeReason?.trim()
-		) {
-			throw new TRPCError({
-				code: "PRECONDITION_FAILED",
-				message:
-					"SPECIAL_ORDER_ENROLLMENT_REASON_REQUIRED: Confirm the change and provide a reason for making this existing sale a Special Order.",
-			});
-		}
 		const specialOrderTransition = deriveSpecialOrderRevisionTransition({
 			declaration: nextSpecialOrderDeclaration,
 			currentRevision: order?.specialOrderRevision,
@@ -4202,7 +4192,7 @@ async function saveNewSalesFormInternal(
 						senderContactId: activitySenderContactId,
 						copy: buildSpecialOrderEnrollmentActivity({
 							orderId: order!.orderId,
-							reason: payload.specialOrderChangeReason!,
+							reason: payload.specialOrderChangeReason,
 						}),
 					},
 				);

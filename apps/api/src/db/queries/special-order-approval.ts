@@ -826,7 +826,7 @@ export async function commitSpecialOrderResponse(
 
 export async function removeSpecialOrderClassification(
 	ctx: TRPCContext,
-	input: { salesId: number; reason: string },
+	input: { salesId: number; reason?: string | null },
 	deps: {
 		sendNotifications?: typeof sendSpecialOrderStatusNotifications;
 		refreshDocuments?: typeof refreshSpecialOrderSalesDocuments;
@@ -836,6 +836,7 @@ export async function removeSpecialOrderClassification(
 		deps.sendNotifications ?? sendSpecialOrderStatusNotifications;
 	const refreshDocuments =
 		deps.refreshDocuments ?? refreshSpecialOrderSalesDocuments;
+	const reason = input.reason?.trim() || null;
 	const actorName = await getActorName(ctx);
 	const result = await ctx.db.$transaction(async (tx) => {
 		const order = await tx.salesOrders.findFirst({
@@ -879,7 +880,7 @@ export async function removeSpecialOrderClassification(
 			where: { salesOrderId: order.id, supersededAt: null },
 			data: {
 				supersededAt: new Date(),
-				supersededReason: input.reason,
+				supersededReason: reason ?? "Special Order classification removed",
 				supersededByUserId: ctx.userId ?? null,
 			},
 		});
@@ -899,7 +900,7 @@ export async function removeSpecialOrderClassification(
 				name: "Special Order classification removed",
 				authorName: actorName,
 				data: json({
-					reason: input.reason,
+					reason,
 					priorState: order.specialOrderStatus,
 					affectedRevision: order.specialOrderRevision,
 					outcome: "NOT_REQUIRED",
@@ -932,14 +933,16 @@ export async function removeSpecialOrderClassification(
 		customerMessage:
 			"This order is no longer classified as a Special Order. Any prior approval record remains preserved in the order history.",
 		staffHeadline: "Special Order classification removed",
-		staffMessage: `The classification was removed for this order. Reason: ${input.reason}`,
+		staffMessage: reason
+			? `The classification was removed for this order. Reason: ${reason}`
+			: "The classification was removed for this order. No reason was provided.",
 		sendCustomer: result.customerNotificationRequired,
 	});
 	await ctx.db.salesHistory.update({
 		where: { id: result.historyId },
 		data: {
 			data: json({
-				reason: input.reason,
+				reason,
 				priorState: result.order.specialOrderStatus,
 				affectedRevision: result.order.specialOrderRevision,
 				outcome: "NOT_REQUIRED",

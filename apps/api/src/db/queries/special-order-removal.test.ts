@@ -151,4 +151,30 @@ describe("Special Order classification removal", () => {
 		});
 		expect(harness.calls.notification).toMatchObject({ sendCustomer: false });
 	});
+
+	test("accepts no reason without weakening removal evidence or notification copy", async () => {
+		const harness = createHarness({
+			status: "CUSTOMER_APPROVED",
+			communicated: 1,
+		});
+		await removeSpecialOrderClassification(
+			{ db: harness.db, userId: 42 } as never,
+			{ salesId: 9232 },
+			{
+				sendNotifications: harness.sendNotifications as never,
+				refreshDocuments: async () => undefined,
+			},
+		);
+
+		expect(harness.calls.evidenceUpdate).toMatchObject({
+			data: { supersededReason: "Special Order classification removed" },
+		});
+		expect(harness.calls.historyCreate).toMatchObject({
+			data: { data: { reason: null } },
+		});
+		expect(harness.calls.notification).toMatchObject({
+			staffMessage:
+				"The classification was removed for this order. No reason was provided.",
+		});
+	});
 });

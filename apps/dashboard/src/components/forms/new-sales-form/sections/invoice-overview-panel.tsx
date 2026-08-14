@@ -48,7 +48,11 @@ interface Props {
 	canEnrollSpecialOrder: boolean;
 	requiredSpecialOrderPromptOpen?: boolean;
 	onRequiredSpecialOrderPromptOpenChange?: (open: boolean) => void;
-	onRequiredSpecialOrderDecision?: (declaration: "NO" | "YES") => void;
+	onRequiredSpecialOrderDecision?: (
+		declaration: "NO" | "YES",
+		reason?: string | null,
+	) => void;
+	onRemoveSpecialOrderClassification?: (reason?: string | null) => Promise<void>;
 }
 
 function formDateValue(value: string | null) {
@@ -530,6 +534,9 @@ export function InvoiceOverviewPanel(props: Props) {
 						props.onRequiredSpecialOrderPromptOpenChange
 					}
 					onRequiredDecision={props.onRequiredSpecialOrderDecision}
+					onRemoveClassification={
+						props.onRemoveSpecialOrderClassification
+					}
 					onCustomerEmailSaved={(email) => {
 						if (!record.customer) return;
 						patchRecord({

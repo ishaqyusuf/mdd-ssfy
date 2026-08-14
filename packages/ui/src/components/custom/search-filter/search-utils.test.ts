@@ -26,6 +26,8 @@ describe("search filter icons", () => {
 		expect(searchIcons["sales.priority"]).toBe("flag");
 		expect(searchIcons.salesChannel).toBe("Share");
 		expect(searchIcons.inbound).toBe("inbound");
+		expect(searchIcons.specialOrderScope).toBe("PenTool");
+		expect(searchIcons.specialOrder).toBe("PenTool");
 	});
 
 	it("maps Sales Finance filters without the generic search fallback", () => {

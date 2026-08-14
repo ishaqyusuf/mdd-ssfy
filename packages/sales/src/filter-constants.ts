@@ -56,6 +56,17 @@ export const SALES_HAS_FILTER_OPTIONS = [
 
 export const SALES_CHANNEL_FILTER_OPTIONS = ["dealership", "office"] as const;
 
+export const SALES_SPECIAL_ORDER_SHOW_OPTIONS = ["special_orders"] as const;
+
+export const SALES_SPECIAL_ORDER_FILTER_OPTIONS = [
+	"signed",
+	"not_signed",
+	"expired",
+	"signature_pending",
+	"reapproval_required",
+	"declined",
+] as const;
+
 export const SALES_INBOUND_FILTER_OPTIONS = [
 	"none",
 	...orderInboundStatuses,
@@ -82,6 +93,19 @@ export const SALES_CHANNEL_FILTER_LABELS = {
 	dealership: "Dealership sales",
 	office: "Office sales",
 } satisfies Record<(typeof SALES_CHANNEL_FILTER_OPTIONS)[number], string>;
+
+export const SALES_SPECIAL_ORDER_SHOW_LABELS = {
+	special_orders: "Special orders",
+} satisfies Record<(typeof SALES_SPECIAL_ORDER_SHOW_OPTIONS)[number], string>;
+
+export const SALES_SPECIAL_ORDER_FILTER_LABELS = {
+	signed: "Signed",
+	not_signed: "Not signed",
+	expired: "Expired",
+	signature_pending: "Signature pending",
+	reapproval_required: "Reapproval required",
+	declined: "Declined",
+} satisfies Record<(typeof SALES_SPECIAL_ORDER_FILTER_OPTIONS)[number], string>;
 
 export const SALES_HAS_FILTER_LABELS = {
 	services: "Services",

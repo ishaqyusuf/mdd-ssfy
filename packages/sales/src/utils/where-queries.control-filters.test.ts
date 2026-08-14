@@ -198,6 +198,58 @@ describe("whereSales stat filters", () => {
 		expect(json).toContain('"lineItems":{"none"');
 	});
 
+	it("supports Special Order scope and status filters", () => {
+		expect(
+			salesQueryParamsSchema.safeParse({
+				specialOrderScope: "special_orders",
+			}).success,
+		).toBe(true);
+		expect(
+			salesQueryParamsSchema.safeParse({ specialOrder: "not_signed" }).success,
+		).toBe(true);
+		expect(
+			salesQueryParamsSchema.safeParse({ specialOrder: "unknown" }).success,
+		).toBe(false);
+		expect(
+			JSON.stringify(
+				toClauses(
+					whereSales({ specialOrderScope: "special_orders" }),
+				),
+			),
+		).toContain('"specialOrderDeclaration":"YES"');
+		expect(
+			JSON.stringify(toClauses(whereSales({ specialOrder: "signed" }))),
+		).toContain('"specialOrderStatus":"CUSTOMER_APPROVED"');
+		expect(
+			JSON.stringify(toClauses(whereSales({ specialOrder: "not_signed" }))),
+		).toContain('"specialOrderStatus":{"not":"CUSTOMER_APPROVED"}');
+	});
+
+	it("derives expired Special Orders from the active request expiry", () => {
+		const json = JSON.stringify(
+			toClauses(whereSales({ specialOrder: "expired" })),
+		);
+
+		expect(json).toContain('"specialOrderDeclaration":"YES"');
+		expect(json).toContain('"specialOrderRequests":{"some"');
+		expect(json).toContain('"status":"ACTIVE"');
+		expect(json).toContain('"expiresAt":{"lte"');
+	});
+
+	it("maps each focused Special Order lifecycle filter", () => {
+		for (const [filter, status] of [
+			["signature_pending", "SIGNATURE_PENDING"],
+			["reapproval_required", "REAPPROVAL_REQUIRED"],
+			["declined", "CUSTOMER_DECLINED"],
+		] as const) {
+			const json = JSON.stringify(
+				toClauses(whereSales({ specialOrder: filter })),
+			);
+			expect(json).toContain(`"specialOrderStatus":"${status}"`);
+			expect(json).toContain('"specialOrderDeclaration":"YES"');
+		}
+	});
+
 	it("builds has services filter from item type signals", () => {
 		const where = whereSales({
 			has: "services",

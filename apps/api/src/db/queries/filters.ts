@@ -31,6 +31,10 @@ import {
   SALES_HAS_FILTER_OPTIONS,
   SALES_INBOUND_FILTER_LABELS,
   SALES_INBOUND_FILTER_OPTIONS,
+	SALES_SPECIAL_ORDER_FILTER_LABELS,
+	SALES_SPECIAL_ORDER_FILTER_OPTIONS,
+	SALES_SPECIAL_ORDER_SHOW_LABELS,
+	SALES_SPECIAL_ORDER_SHOW_OPTIONS,
 } from "@sales/filter-constants";
 import { SALES_PRIORITY_OPTIONS } from "@sales/priority";
 import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
@@ -810,6 +814,22 @@ export async function getSalesOrderFilters(
       "Inbound",
       SALES_INBOUND_FILTER_OPTIONS.map((value) => ({
         label: SALES_INBOUND_FILTER_LABELS[value],
+        value,
+      })),
+    ),
+    optionFilter<T>(
+      "specialOrderScope",
+      "Show",
+      SALES_SPECIAL_ORDER_SHOW_OPTIONS.map((value) => ({
+        label: SALES_SPECIAL_ORDER_SHOW_LABELS[value],
+        value,
+      })),
+    ),
+    optionFilter<T>(
+      "specialOrder",
+      "Special Order",
+      SALES_SPECIAL_ORDER_FILTER_OPTIONS.map((value) => ({
+        label: SALES_SPECIAL_ORDER_FILTER_LABELS[value],
         value,
       })),
     ),

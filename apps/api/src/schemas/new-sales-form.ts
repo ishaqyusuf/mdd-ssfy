@@ -152,13 +152,11 @@ export const saveDraftNewSalesFormSchema = z.object({
 		.enum(SPECIAL_ORDER_DECLARATIONS)
 		.optional()
 		.nullable(),
-	specialOrderChangeReason: z
-		.string()
-		.trim()
-		.min(3)
-		.max(500)
-		.optional()
-		.nullable(),
+	specialOrderChangeReason: z.preprocess(
+		(value) =>
+			typeof value === "string" && value.trim() === "" ? null : value,
+		z.string().trim().min(3).max(500).optional().nullable(),
+	),
 	meta: newSalesFormMetaSchema,
 	lineItems: z.array(newSalesFormLineItemSchema),
 	extraCosts: z.array(newSalesFormExtraCostSchema).default([]),

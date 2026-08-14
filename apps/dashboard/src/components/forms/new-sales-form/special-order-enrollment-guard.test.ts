@@ -12,6 +12,9 @@ const overviewSource = readSource(
 	"../../sheets/sales-overview-sheet/general-tab.tsx",
 );
 const columnsSource = readSource("../../tables-2/sales-orders/columns.tsx");
+const declarationSource = readSource(
+	"./sections/special-order-declaration-control.tsx",
+);
 
 describe("Special Order enrollment pilot guard", () => {
 	test("gates only new enrollment while preserving existing order repair", () => {
@@ -80,9 +83,56 @@ describe("Special Order enrollment pilot guard", () => {
 		).toBe("DECLARATION_REQUIRED");
 	});
 
-	test("keeps the order column and Sales Overview card available", () => {
-		expect(columnsSource).toContain("specialOrderColumn");
-		expect(columnsSource).toContain('header: "Special Order"');
+	test("keeps draft saves interruption-free", () => {
+		expect(
+			resolveSpecialOrderSaveInterruption({
+				type: "order",
+				intent: "draft",
+				declaration: "YES",
+				hasCustomerEmail: false,
+				enrollmentAccess: { status: "pending" },
+			}),
+		).toBe("CONTINUE");
+	});
+
+	for (const intent of ["close", "new", "final"] as const) {
+		test(`requires classification before ${intent} save`, () => {
+			expect(
+				resolveSpecialOrderSaveInterruption({
+					type: "order",
+					intent,
+					declaration: null,
+					hasCustomerEmail: true,
+					enrollmentAccess: { status: "ready", canEnroll: true },
+				}),
+			).toBe("DECLARATION_REQUIRED");
+		});
+	}
+
+	test("keeps governed state available without a standalone order column", () => {
+		expect(columnsSource).not.toContain("specialOrderColumn");
+		expect(columnsSource).toContain("SpecialOrderIndicator");
+		expect(columnsSource).toContain("Icons.PenTool");
 		expect(overviewSource).toContain("<SpecialOrderOverviewCard />");
+	});
+
+	test("renders the compact classification control and one optional-reason modal", () => {
+		expect(declarationSource).not.toContain(
+			"Does this order contain Special Order items?",
+		);
+		expect(declarationSource).not.toContain("Choose Yes or No before");
+		expect(declarationSource).toContain(
+			'value={props.declaration ?? "NO"}',
+		);
+		expect(declarationSource).toContain("Reason (optional)");
+		expect(declarationSource.match(/<Dialog\s/g)?.length).toBe(1);
+		expect(declarationSource).toContain("Proceed");
+		expect(declarationSource).toContain(
+			'pendingDeclaration === props.declaration',
+		);
+		expect(declarationSource).toContain(
+			"props.onRequiredPromptOpenChange?.(false)",
+		);
+		expect(formSource).toContain("setPendingSpecialOrderCommit(null)");
 	});
 });

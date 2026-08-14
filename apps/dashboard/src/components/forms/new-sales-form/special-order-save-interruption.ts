@@ -18,10 +18,11 @@ export function resolveSpecialOrderSaveInterruption(input: {
 	enrollmentAccess: SpecialOrderEnrollmentAccessState;
 }): SpecialOrderSaveInterruption {
 	if (input.type !== "order") return "CONTINUE";
+	if (input.intent === "draft") return "CONTINUE";
 	if (input.declaration === "YES") {
 		return input.hasCustomerEmail ? "CONTINUE" : "CUSTOMER_EMAIL_REQUIRED";
 	}
-	if (input.declaration === "NO" || input.intent === "draft") {
+	if (input.declaration === "NO") {
 		return "CONTINUE";
 	}
 	if (input.enrollmentAccess.status === "pending") {

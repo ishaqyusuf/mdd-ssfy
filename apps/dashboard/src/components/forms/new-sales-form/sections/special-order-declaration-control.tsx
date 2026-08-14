@@ -15,7 +15,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
-import { Field, FieldDescription, FieldLabel } from "@gnd/ui/field";
+import { Field, FieldLabel } from "@gnd/ui/field";
 import { Textarea } from "@gnd/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@gnd/ui/toggle-group";
 import { useEffect, useState } from "react";
@@ -43,36 +43,36 @@ type Props = {
 		declaration: Declaration;
 		changeReason?: string | null;
 	}) => void;
-	onRequiredDecision?: (declaration: Declaration) => void;
+	onRequiredDecision?: (
+		declaration: Declaration,
+		reason?: string | null,
+	) => void;
 	onCustomerEmailSaved?: (email: string) => void;
+	onRemoveClassification?: (reason?: string | null) => Promise<void>;
 };
-
-const NEXT_ACTION = {
-	NOT_REQUIRED: "No customer approval is required.",
-	SIGNATURE_PENDING:
-		"Send the customer an approval request from Sales Overview.",
-	CUSTOMER_APPROVED: "The current order revision has customer approval.",
-	REAPPROVAL_REQUIRED: "The customer must approve the current revision again.",
-	CUSTOMER_DECLINED: "Review the decline before sending a revised request.",
-} as const;
 
 export function SpecialOrderDeclarationControl(props: Props) {
 	const [changeDialogOpen, setChangeDialogOpen] = useState(false);
 	const [pendingDeclaration, setPendingDeclaration] =
 		useState<Declaration | null>(null);
-	const [requiredDeclaration, setRequiredDeclaration] =
-		useState<Declaration | null>(null);
 	const [reason, setReason] = useState("");
+	const [classificationPending, setClassificationPending] = useState(false);
 	const [emailRequirement, setEmailRequirement] = useState<
 		"change" | "required" | null
 	>(null);
 	const hasCustomerEmail = hasSpecialOrderCustomerEmail(props.customerEmail);
+	const normalizedReason = reason.trim();
+	const reasonIsTooShort =
+		normalizedReason.length > 0 && normalizedReason.length < 3;
 
 	useEffect(() => {
 		if (!props.requiredPromptOpen) {
-			setRequiredDeclaration(null);
 			if (emailRequirement === "required") setEmailRequirement(null);
 			return;
+		}
+		if (!changeDialogOpen && emailRequirement !== "required") {
+			setPendingDeclaration(props.declaration ?? "NO");
+			setReason("");
 		}
 		if (
 			props.declaration === "YES" &&
@@ -80,10 +80,11 @@ export function SpecialOrderDeclarationControl(props: Props) {
 			props.customerId &&
 			!emailRequirement
 		) {
-			setRequiredDeclaration("YES");
+			setPendingDeclaration("YES");
 			setEmailRequirement("required");
 		}
 	}, [
+		changeDialogOpen,
 		emailRequirement,
 		hasCustomerEmail,
 		props.customerId,
@@ -95,19 +96,20 @@ export function SpecialOrderDeclarationControl(props: Props) {
 		declaration: props.declaration,
 		status: props.status,
 	});
-	const nextAction = props.declaration
-		? NEXT_ACTION[
-				props.declaration === "NO"
-					? "NOT_REQUIRED"
-					: (props.status ?? "SIGNATURE_PENDING")
-			]
-		: "Choose Yes or No before Save & Close or final save.";
+	const classificationDialogOpen =
+		changeDialogOpen ||
+		Boolean(
+			props.showDeclarationControl !== false &&
+				props.requiredPromptOpen &&
+				emailRequirement !== "required",
+		);
+	const classificationDialogMode = changeDialogOpen ? "change" : "required";
 
 	function requestChange(declaration: string) {
 		if (declaration !== "YES" && declaration !== "NO") return;
 		if (declaration === props.declaration) return;
 		if (props.salesId) {
-			setPendingDeclaration(declaration);
+			setPendingDeclaration(props.declaration ?? "NO");
 			setReason("");
 			setChangeDialogOpen(true);
 			return;
@@ -130,162 +132,177 @@ export function SpecialOrderDeclarationControl(props: Props) {
 		if (!pendingDeclaration) return;
 		props.onChange({
 			declaration: pendingDeclaration,
-			changeReason: props.salesId ? reason.trim() : null,
+			changeReason: props.salesId ? normalizedReason || null : null,
 		});
 		setPendingDeclaration(null);
 		setReason("");
 	}
 
+	async function proceedClassification() {
+		if (!pendingDeclaration || classificationPending) return;
+		if (
+			classificationDialogMode === "change" &&
+			pendingDeclaration === props.declaration
+		) {
+			setChangeDialogOpen(false);
+			setPendingDeclaration(null);
+			setReason("");
+			return;
+		}
+		if (pendingDeclaration === "YES" && !hasCustomerEmail) {
+			if (!props.customerId) {
+				toast.error(
+					"Select a customer before marking this as a Special Order.",
+				);
+				return;
+			}
+			setChangeDialogOpen(false);
+			setEmailRequirement(
+				classificationDialogMode === "change" ? "change" : "required",
+			);
+			return;
+		}
+		if (classificationDialogMode === "required") {
+			props.onRequiredDecision?.(pendingDeclaration, normalizedReason || null);
+			return;
+		}
+		if (
+			props.declaration === "YES" &&
+			pendingDeclaration === "NO" &&
+			props.onRemoveClassification
+		) {
+			setClassificationPending(true);
+			try {
+				await props.onRemoveClassification(normalizedReason || null);
+				setChangeDialogOpen(false);
+				setPendingDeclaration(null);
+				setReason("");
+			} catch (error) {
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Unable to remove Special Order classification.",
+				);
+			} finally {
+				setClassificationPending(false);
+			}
+			return;
+		}
+		setChangeDialogOpen(false);
+		applyPendingChange();
+	}
+
 	return (
 		<>
 			{props.showDeclarationControl !== false ? (
-				<section className="rounded-md border bg-background p-4">
-					<div className="flex flex-wrap items-start justify-between gap-3">
-						<div>
-							<p className="text-sm font-semibold">Special Order</p>
-							<p className="mt-1 text-xs leading-5 text-muted-foreground">
-								This declaration applies to the complete order.
-							</p>
-						</div>
+				<section className="rounded-md border bg-background p-3">
+					<div className="flex items-center justify-between gap-3">
+						<p className="text-sm font-semibold">Special Order</p>
 						<Badge
 							variant={props.declaration === "YES" ? "default" : "outline"}
 						>
 							{statusLabel}
 						</Badge>
 					</div>
-					<Field className="mt-4">
-						<FieldLabel>
-							Does this order contain Special Order items?
-						</FieldLabel>
+					<Field className="mt-2">
 						<ToggleGroup
 							type="single"
 							variant="outline"
 							className="w-full"
-							value={props.declaration ?? ""}
-							onValueChange={requestChange}
+							value={props.declaration ?? "NO"}
+							aria-label="Special Order classification"
 						>
-							<ToggleGroupItem value="NO" aria-label="Not a Special Order">
+							<ToggleGroupItem
+								value="NO"
+								aria-label="Not a Special Order"
+								className="data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground"
+								onClick={() => requestChange("NO")}
+							>
 								No
 							</ToggleGroupItem>
-							<ToggleGroupItem value="YES" aria-label="Special Order">
+							<ToggleGroupItem
+								value="YES"
+								aria-label="Special Order"
+								className="data-[state=on]:bg-success data-[state=on]:text-success-foreground"
+								onClick={() => requestChange("YES")}
+							>
 								Yes
 							</ToggleGroupItem>
 						</ToggleGroup>
-						<FieldDescription>{nextAction}</FieldDescription>
 					</Field>
 				</section>
 			) : null}
 
-			<Dialog open={changeDialogOpen} onOpenChange={setChangeDialogOpen}>
+			<Dialog
+				open={classificationDialogOpen}
+				onOpenChange={(open) => {
+					if (open) return;
+					setPendingDeclaration(null);
+					setReason("");
+					if (classificationDialogMode === "change") {
+						setChangeDialogOpen(false);
+						return;
+					}
+					props.onRequiredPromptOpenChange?.(false);
+				}}
+			>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>
-							{pendingDeclaration === "YES"
-								? "Make this a Special Order?"
-								: "Remove Special Order classification?"}
-						</DialogTitle>
-						<DialogDescription>
-							This change affects customer approval and is recorded in Sales
-							Activity. Historical approval evidence is preserved.
-						</DialogDescription>
-					</DialogHeader>
-					<Field>
-						<FieldLabel htmlFor="special-order-change-reason">
-							Reason
-						</FieldLabel>
-						<Textarea
-							id="special-order-change-reason"
-							value={reason}
-							onChange={(event) => setReason(event.target.value)}
-							placeholder="Explain why the classification is changing"
-							rows={3}
-						/>
-					</Field>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setChangeDialogOpen(false)}
-						>
-							Cancel
-						</Button>
-						<Button
-							disabled={!pendingDeclaration || reason.trim().length < 3}
-							onClick={() => {
-								if (!pendingDeclaration) return;
-								setChangeDialogOpen(false);
-								if (pendingDeclaration === "YES" && !hasCustomerEmail) {
-									if (!props.customerId) {
-										toast.error(
-											"Select a customer before marking this as a Special Order.",
-										);
-										return;
-									}
-									setEmailRequirement("change");
-									return;
-								}
-								applyPendingChange();
-							}}
-						>
-							Confirm change
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-
-			<Dialog
-				open={
-					props.showDeclarationControl !== false &&
-					props.requiredPromptOpen &&
-					emailRequirement !== "required"
-				}
-				onOpenChange={(open) => props.onRequiredPromptOpenChange?.(open)}
-			>
-				<DialogContent hideClose>
-					<DialogHeader>
-						<DialogTitle>Special Order declaration required</DialogTitle>
+						<DialogTitle>Special Order classification</DialogTitle>
 						<DialogDescription>
 							Choose whether the complete order contains special, custom, or
-							non-returnable items. Your work remains saved in this form.
+							non-returnable items. Classification changes are recorded in Sales
+							Activity.
 						</DialogDescription>
 					</DialogHeader>
 					<ToggleGroup
 						type="single"
 						variant="outline"
 						className="w-full"
-						value={requiredDeclaration ?? ""}
+						value={pendingDeclaration ?? "NO"}
 						onValueChange={(value) => {
 							if (value === "YES" || value === "NO")
-								setRequiredDeclaration(value);
+								setPendingDeclaration(value);
 						}}
+						aria-label="Special Order classification confirmation"
 					>
-						<ToggleGroupItem value="NO">No — ordinary order</ToggleGroupItem>
-						<ToggleGroupItem value="YES">Yes — Special Order</ToggleGroupItem>
+						<ToggleGroupItem
+							value="NO"
+							className="data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground"
+						>
+							No
+						</ToggleGroupItem>
+						<ToggleGroupItem
+							value="YES"
+							className="data-[state=on]:bg-success data-[state=on]:text-success-foreground"
+						>
+							Yes
+						</ToggleGroupItem>
 					</ToggleGroup>
+					<Field>
+						<FieldLabel htmlFor="special-order-change-reason">
+							Reason (optional)
+						</FieldLabel>
+						<Textarea
+							id="special-order-change-reason"
+							value={reason}
+							onChange={(event) => setReason(event.target.value)}
+							placeholder="Explain why the classification is changing"
+							maxLength={500}
+							rows={3}
+						/>
+						{reasonIsTooShort ? (
+							<p className="text-xs text-destructive">
+								Enter at least 3 characters, or leave the reason blank.
+							</p>
+						) : null}
+					</Field>
 					<DialogFooter>
 						<Button
-							variant="outline"
-							onClick={() => props.onRequiredPromptOpenChange?.(false)}
+							disabled={classificationPending || reasonIsTooShort}
+							onClick={() => void proceedClassification()}
 						>
-							Return to order
-						</Button>
-						<Button
-							disabled={!requiredDeclaration}
-							onClick={() => {
-								if (!requiredDeclaration) return;
-								if (requiredDeclaration === "YES" && !hasCustomerEmail) {
-									if (!props.customerId) {
-										toast.error(
-											"Select a customer before marking this as a Special Order.",
-										);
-										return;
-									}
-									setEmailRequirement("required");
-									return;
-								}
-								props.onRequiredDecision?.(requiredDeclaration);
-							}}
-						>
-							Continue
+							{classificationPending ? "Removing…" : "Proceed"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -313,7 +330,7 @@ export function SpecialOrderDeclarationControl(props: Props) {
 						return;
 					}
 					if (requirement === "required") {
-						props.onRequiredDecision?.("YES");
+						props.onRequiredDecision?.("YES", normalizedReason || null);
 					}
 				}}
 			/>

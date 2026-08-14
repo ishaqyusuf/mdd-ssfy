@@ -19,6 +19,11 @@ Starting implementation artifact:
 The original 14-ticket implementation is complete; this map covers only the
 approved 2026-08-14 follow-up.
 
+Published implementation addendum:
+[`spec.md`](./spec.md) (`ready-for-agent`). Approved pipeline comments remain on
+the five child decision tickets; the implementation ticket breakdown is pending
+its separate approval checkpoint.
+
 Standing stakeholder constraints:
 
 - Sales Overview must be able to enroll an eligible order as a Special Order

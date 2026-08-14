@@ -3,6 +3,7 @@ import {
 	getOrdersCount,
 	getOrdersSchema,
 	normalizeOrderRow,
+	resolveSpecialOrderLinkState,
 } from "./sales-orders-v2";
 
 function makeOrder(overrides: Record<string, unknown> = {}) {
@@ -42,6 +43,28 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 }
 
 describe("sales orders default query contract", () => {
+	it("derives active and expired current Special Order links", () => {
+		const now = new Date("2026-08-14T12:00:00.000Z").getTime();
+		expect(
+			resolveSpecialOrderLinkState(
+				{ status: "ACTIVE", expiresAt: new Date(now + 60_000) },
+				now,
+			),
+		).toBe("ACTIVE");
+		expect(
+			resolveSpecialOrderLinkState(
+				{ status: "ACTIVE", expiresAt: new Date(now - 1) },
+				now,
+			),
+		).toBe("EXPIRED");
+		expect(
+			resolveSpecialOrderLinkState(
+				{ status: "CONSUMED", expiresAt: new Date(now + 60_000) },
+				now,
+			),
+		).toBeNull();
+	});
+
 	it("accepts the promoted v2 filter aliases on the default schema", () => {
 		expect(
 			getOrdersSchema.parse({
@@ -54,6 +77,8 @@ describe("sales orders default query contract", () => {
 				paymentReview: "needs_review",
 				salesChannel: "dealership",
 				inbound: "in_progress",
+				specialOrderScope: "special_orders",
+				specialOrder: "expired",
 				sort: ["grandTotal.desc"],
 			}),
 		).toEqual({
@@ -66,6 +91,8 @@ describe("sales orders default query contract", () => {
 			paymentReview: "needs_review",
 			salesChannel: "dealership",
 			inbound: "in_progress",
+			specialOrderScope: "special_orders",
+			specialOrder: "expired",
 			sort: ["grandTotal.desc"],
 		});
 	});
