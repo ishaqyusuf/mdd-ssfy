@@ -4,7 +4,7 @@
 
 **Blocked by:** 10 — Enforce Approval At Purchasing Boundaries.
 
-**Status:** in-progress
+**Status:** complete
 
 - [x] Warning Only permits packing and dispatch progression with consistent warning metadata and deduplicated would-block observability.
 - [x] Block Purchasing & Production continues to permit packing and dispatch when all other business rules allow.
@@ -21,4 +21,4 @@
 
 - Packing, inventory fulfillment, dispatch, and background-job progression gates use the shared decision; recovery/release paths remain exempt.
 - Forward-only dispatch transition tests and a passing entry-point source contract protect cancellation, rollback, and recovery behavior.
-- Remaining: complete packing/dispatch UI and direct-bypass acceptance.
+- Final acceptance completed packing/dispatch UI and direct-bypass checks.

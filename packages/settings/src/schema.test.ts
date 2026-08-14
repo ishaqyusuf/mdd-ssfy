@@ -46,11 +46,13 @@ describe("special order settings", () => {
 	test("accepts all approved enforcement modes", () => {
 		expect(
 			normalizeSpecialOrderSettings({
+				releaseAudience: "ALL_STAFF",
 				enforcementMode: "BLOCK_PURCHASING_AND_PRODUCTION",
 				approvalLinkLifetimeDays: 14,
 				activePolicyVersionId: "policy_1",
 			}),
 		).toEqual({
+			releaseAudience: "ALL_STAFF",
 			enforcementMode: "BLOCK_PURCHASING_AND_PRODUCTION",
 			approvalLinkLifetimeDays: 14,
 			activePolicyVersionId: "policy_1",

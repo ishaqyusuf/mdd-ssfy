@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** in-progress
+**Status:** complete
 
 - [x] Draft and autosave accept an unanswered Special Order Declaration without enrolling the order.
 - [x] Save & Close and final save require an explicit Yes or No for newly governed internal Sales Orders and return a focused, stable validation result when unanswered.
@@ -20,4 +20,5 @@
 ## Implementation progress (2026-08-13)
 
 - Implemented and covered by the Special Order domain, save-validation, Sales Form, and Sales Overview code paths.
-- Remaining: consolidate the full declaration/permission/activity matrix into the final acceptance run.
+- Completed acceptance includes the consolidated declaration, permission, and activity matrix.
+- 2026-08-14 addendum: `SUPER_ADMIN_ONLY` hides the declaration and waives the answer for other employees while the authoritative save blocks only a new Yes transition. Existing Yes orders retain their lifecycle.

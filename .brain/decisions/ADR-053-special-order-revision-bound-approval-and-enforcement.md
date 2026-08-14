@@ -59,6 +59,12 @@ multiple purchasing, production, packing, and dispatch entry points consistently
 12. Concurrent or repeated valid responses converge on the already-completed
     terminal result. The transaction loser re-reads committed evidence instead
     of returning a conflict that contradicts the single-use public contract.
+13. Enrollment rollout is independent from Special Order enforcement. A global
+    `SUPER_ADMIN_ONLY | ALL_STAFF` audience controls only who sees the Sales
+    Form declaration and who may newly transition an order into `YES`. It never
+    hides governed state or disables approval, documents, notifications,
+    reapproval, or operational gates for an already marked order. The pilot
+    defaults to `SUPER_ADMIN_ONLY` and the server owns the transition check.
 
 ## Consequences
 
@@ -68,6 +74,9 @@ multiple purchasing, production, packing, and dispatch entry points consistently
   response or after an order revision changes.
 - Stronger enforcement can be enabled centrally without redeploying, while
   Warning Only supports a low-risk launch.
+- Super Admin can pilot new enrollment without creating a second, partial
+  Special Order runtime. Existing marked orders retain one lifecycle for every
+  employee and operational entry point.
 - Every new purchasing or fulfillment command must explicitly declare its
   operation category or remain a recovery-only path.
 - The schema is additive and leaves legacy null declarations unmanaged; no

@@ -30,6 +30,21 @@ const ENFORCEMENT_OPTIONS = [
 	},
 ] as const;
 
+const RELEASE_AUDIENCE_OPTIONS = [
+	{
+		value: "SUPER_ADMIN_ONLY",
+		label: "Super Admin only",
+		description:
+			"Only Super Admin sees the Sales Form prompt and can mark orders as Special Order.",
+	},
+	{
+		value: "ALL_STAFF",
+		label: "All eligible Sales staff",
+		description:
+			"Show the required declaration to every employee who can create or edit orders.",
+	},
+] as const;
+
 export function SpecialOrderOperationsPolicy({
 	settings,
 	isSaving,
@@ -44,6 +59,9 @@ export function SpecialOrderOperationsPolicy({
 	const selected = ENFORCEMENT_OPTIONS.find(
 		(option) => option.value === settings.enforcementMode,
 	);
+	const selectedAudience = RELEASE_AUDIENCE_OPTIONS.find(
+		(option) => option.value === settings.releaseAudience,
+	);
 	return (
 		<Card>
 			<CardHeader>
@@ -51,6 +69,36 @@ export function SpecialOrderOperationsPolicy({
 			</CardHeader>
 			<CardContent>
 				<FieldGroup>
+					<Field>
+						<FieldLabel htmlFor="special-order-release-audience">
+							Who can mark Special Orders
+						</FieldLabel>
+						<Select
+							value={settings.releaseAudience}
+							onValueChange={(releaseAudience) =>
+								onChange({
+									...settings,
+									releaseAudience:
+										releaseAudience as SpecialOrderSettings["releaseAudience"],
+								})
+							}
+						>
+							<SelectTrigger id="special-order-release-audience">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{RELEASE_AUDIENCE_OPTIONS.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<FieldDescription>
+							{selectedAudience?.description} Existing marked orders continue to
+							follow the full approval and operations workflow.
+						</FieldDescription>
+					</Field>
 					<Field>
 						<FieldLabel htmlFor="special-order-enforcement">
 							Enforcement mode

@@ -6,6 +6,7 @@ import {
 	respondToSpecialOrderApproval,
 	retrySpecialOrderStatusNotifications,
 } from "@api/db/queries/special-order-approval";
+import { getSpecialOrderEnrollmentAccess } from "@api/db/queries/special-order-settings";
 import {
 	specialOrderApprovalResponseSchema,
 	specialOrderHistorySchema,
@@ -39,6 +40,9 @@ async function requireSpecialOrderViewer(
 }
 
 export const specialOrderRouter = createTRPCRouter({
+	enrollmentAccess: protectedProcedure.query(({ ctx }) =>
+		getSpecialOrderEnrollmentAccess(ctx.db, ctx.userId ?? null),
+	),
 	requestApproval: protectedProcedure
 		.input(specialOrderRequestSchema)
 		.mutation(async ({ ctx, input }) => {

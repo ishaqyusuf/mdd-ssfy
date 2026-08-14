@@ -1,12 +1,27 @@
 # Special Order Acknowledgment And Customer Approval
 
-Status: implementation-in-progress
+Status: complete
 
 ## Implementation Checkpoint (2026-08-13)
 
-The approved specification is actively implemented. Ticket 14 (customer-email prerequisite and exact-once Sales email continuation) is complete. Tickets 1–9 have their core implementation criteria complete and await consolidated acceptance coverage. Tickets 10–12 have the shared enforcement decision and primary server gates implemented and await final authoritative-entry-point, UI, and bypass audits. Ticket 13 remains the final browser, regression, documentation, and rollout gate.
+The approved specification and all fourteen implementation tickets are complete. The ticket checklists and map preserve the consolidated acceptance evidence; criteria should be repeated only when a regression or changed requirement invalidates that evidence.
 
 The authoritative per-criterion execution state is recorded in [`issues/`](./issues/), with a summary in [`map.md`](./map.md). Resume from unchecked criteria; checked criteria should be repeated only when a regression or changed requirement invalidates their evidence.
+
+### Enrollment Pilot Addendum (2026-08-14)
+
+All tickets remain complete. Super Admin now controls a separate enrollment
+audience that defaults to `SUPER_ADMIN_ONLY`. The audience governs only who sees
+the Sales Form declaration and who may newly change an order to Yes. It does not
+hide the table column or Sales Overview, and it does not disable approval,
+reapproval, email, documents, notifications, revision invalidation, removal, or
+operational enforcement for an order already marked Special Order. Employees
+outside the pilot may save ordinary orders without answering the hidden
+declaration. `ALL_STAFF` restores enrollment under the existing Sales save
+permissions. The server enforces the new-Yes transition independently of the UI
+using current settings and active roles inside the save transaction. Pending or
+failed access resolution cannot race an unanswered final save, and restricted
+employees retain the missing-email repair continuation for an existing Yes order.
 
 ## Problem Statement
 
@@ -222,6 +237,8 @@ A governed Special Order must have a valid email on the selected customer record
 36. **Brain and durable documentation**: Implementation must update the Sales feature documentation, database schema/relationships/migrations, API endpoints/contracts/permissions, task state, progress log, and an ADR for the durable revision-bound approval aggregate and centrally configurable enforcement boundary.
 
 37. **Customer email prerequisite and continuation**: A valid email must exist on the selected canonical customer before Yes is applied or a governed Special Order is manually saved. Missing email opens one reusable Shadcn dialog following the Midday customer-edit pattern: local Zod validation, mutation-owned pending/error state, exact query invalidation, and continuation only after the customer update succeeds. Cancellation leaves classification/save/send incomplete. Sales Overview direct Sales email stores the pending send intent and resumes it exactly once with the newly saved email. The server independently rejects non-autosave governed saves without a customer email. The focused update mutation permits existing customer-edit or order-edit authority and remains dealer-customer read-only.
+
+38. **Enrollment audience is not enforcement**: Sales settings expose `SUPER_ADMIN_ONLY | ALL_STAFF`, defaulting to the Super Admin pilot. The audience hides the declaration and prevents only a new transition into Yes for ineligible users. Existing marked orders retain full visibility and the normal Special Order lifecycle for every employee and authoritative operation. It does not change classification-removal or approval-management permissions.
 
 ## Testing Decisions
 

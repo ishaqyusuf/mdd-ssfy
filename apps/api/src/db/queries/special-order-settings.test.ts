@@ -1,11 +1,19 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+	getSpecialOrderEnrollmentAccess,
 	publishSpecialOrderPolicy,
 	updateSpecialOrderOperationalSettings,
 } from "./special-order-settings";
 
-function createSettingsDb() {
+function createSettingsDb(input?: {
+	accessRevokedAt?: Date | null;
+	actorDeletedAt?: Date | null;
+	actorMissing?: boolean;
+	releaseAudience?: "SUPER_ADMIN_ONLY" | "ALL_STAFF";
+	roleDeletedAt?: Date | null;
+	roleName?: string;
+}) {
 	const calls = {
 		createdPolicy: null as null | Record<string, any>,
 		retiredPolicies: null as null | Record<string, any>,
@@ -26,6 +34,7 @@ function createSettingsDb() {
 			print: { templateId: "template-2" },
 			paymentReview: { enabled: true },
 			specialOrder: {
+				releaseAudience: input?.releaseAudience,
 				enforcementMode: "WARNING_ONLY",
 				approvalLinkLifetimeDays: 7,
 				activePolicyVersionId: currentPolicy.id,
@@ -33,6 +42,21 @@ function createSettingsDb() {
 		},
 	};
 	const db: Record<string, any> = {
+		users: {
+			findFirst: async () =>
+				input?.actorMissing || input?.actorDeletedAt || input?.accessRevokedAt
+					? null
+					: {
+							roles: [
+								{
+									role: {
+										name: input?.roleName ?? "Sales",
+										deletedAt: input?.roleDeletedAt ?? null,
+									},
+								},
+							],
+						},
+		},
 		settings: {
 			findFirst: async () => settings,
 			create: async () => settings,
@@ -61,14 +85,72 @@ function createSettingsDb() {
 }
 
 describe("Special Order settings and immutable policy versions", () => {
+	test("resolves pilot enrollment from active settings and role", async () => {
+		const salesPilot = createSettingsDb();
+		const superAdminPilot = createSettingsDb({ roleName: "Super Admin" });
+		const deletedSuperAdminPilot = createSettingsDb({
+			roleName: "Super Admin",
+			roleDeletedAt: new Date("2026-08-14T00:00:00.000Z"),
+		});
+		const generalRelease = createSettingsDb({ releaseAudience: "ALL_STAFF" });
+		const missingGeneralActor = createSettingsDb({
+			releaseAudience: "ALL_STAFF",
+			actorMissing: true,
+		});
+		const deletedGeneralActor = createSettingsDb({
+			releaseAudience: "ALL_STAFF",
+			actorDeletedAt: new Date("2026-08-14T00:00:00.000Z"),
+		});
+		const revokedGeneralActor = createSettingsDb({
+			releaseAudience: "ALL_STAFF",
+			accessRevokedAt: new Date("2026-08-14T00:00:00.000Z"),
+		});
+
+		expect(
+			await getSpecialOrderEnrollmentAccess(salesPilot.db as never, 9),
+		).toEqual({
+			releaseAudience: "SUPER_ADMIN_ONLY",
+			canEnroll: false,
+		});
+		expect(
+			await getSpecialOrderEnrollmentAccess(superAdminPilot.db as never, 9),
+		).toEqual({
+			releaseAudience: "SUPER_ADMIN_ONLY",
+			canEnroll: true,
+		});
+		expect(
+			await getSpecialOrderEnrollmentAccess(
+				deletedSuperAdminPilot.db as never,
+				9,
+			),
+		).toEqual({
+			releaseAudience: "SUPER_ADMIN_ONLY",
+			canEnroll: false,
+		});
+		expect(
+			await getSpecialOrderEnrollmentAccess(generalRelease.db as never, 9),
+		).toEqual({ releaseAudience: "ALL_STAFF", canEnroll: true });
+		for (const inactiveActor of [
+			missingGeneralActor,
+			deletedGeneralActor,
+			revokedGeneralActor,
+		]) {
+			expect(
+				await getSpecialOrderEnrollmentAccess(inactiveActor.db as never, 9),
+			).toEqual({ releaseAudience: "ALL_STAFF", canEnroll: false });
+		}
+	});
+
 	test("updates enforcement immediately without discarding unrelated Sales settings", async () => {
 		const { calls, db } = createSettingsDb();
 		const result = await updateSpecialOrderOperationalSettings(db as never, 9, {
+			releaseAudience: "ALL_STAFF",
 			enforcementMode: "BLOCK_ALL_OPERATIONS",
 			approvalLinkLifetimeDays: 30,
 		});
 
 		expect(result).toMatchObject({
+			releaseAudience: "ALL_STAFF",
 			enforcementMode: "BLOCK_ALL_OPERATIONS",
 			approvalLinkLifetimeDays: 30,
 			activePolicyVersionId: "policy-current",

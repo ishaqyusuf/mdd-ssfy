@@ -99,6 +99,7 @@
 	"dependencies": {
 		"@gnd/db": "workspace:*",
 		"@gnd/inventory": "workspace:*",
+		"@gnd/settings": "workspace:*",
 		"@gnd/ui": "workspace:*",
 		"@gnd/utils": "workspace:*",
 		"@react-pdf/renderer": "^4.3.0",

@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildSpecialOrderApprovalRevision,
 	buildSpecialOrderCustomerVisibleRevision,
+	canEnrollSpecialOrder,
 	deriveSpecialOrderRevisionTransition,
 	deriveSpecialOrderStatus,
 	evaluateSpecialOrderOperation,
@@ -11,9 +12,80 @@ import {
 	requiresSpecialOrderDeclaration,
 	resolveSpecialOrderDisplayState,
 	validateSpecialOrderDeclaration,
+	validateSpecialOrderEnrollment,
 } from "./domain";
 
 describe("Special Order declaration lifecycle", () => {
+	it("limits enrollment to Super Admin during the pilot and opens it at release", () => {
+		expect(
+			canEnrollSpecialOrder({
+				releaseAudience: "SUPER_ADMIN_ONLY",
+				actorIsActive: true,
+				roleNames: ["Sales", "Super Admin"],
+			}),
+		).toBe(true);
+		expect(
+			canEnrollSpecialOrder({
+				releaseAudience: "SUPER_ADMIN_ONLY",
+				actorIsActive: true,
+				roleNames: ["Sales"],
+			}),
+		).toBe(false);
+		expect(
+			canEnrollSpecialOrder({
+				releaseAudience: "ALL_STAFF",
+				actorIsActive: true,
+				roleNames: ["Sales"],
+			}),
+		).toBe(true);
+		expect(
+			canEnrollSpecialOrder({
+				releaseAudience: "ALL_STAFF",
+				actorIsActive: false,
+				roleNames: [],
+			}),
+		).toBe(false);
+	});
+
+	it("does not require the declaration when enrollment is unavailable", () => {
+		expect(
+			validateSpecialOrderDeclaration({
+				type: "order",
+				commitIntent: "final",
+				declaration: null,
+				canEnroll: false,
+			}),
+		).toEqual({ valid: true, required: false, code: null });
+	});
+
+	it("rejects only a restricted transition into Special Order", () => {
+		expect(
+			validateSpecialOrderEnrollment({
+				currentDeclaration: null,
+				nextDeclaration: "YES",
+				canEnroll: false,
+			}),
+		).toEqual({
+			allowed: false,
+			enrollmentRequested: true,
+			code: "SPECIAL_ORDER_ENROLLMENT_RESTRICTED",
+		});
+		expect(
+			validateSpecialOrderEnrollment({
+				currentDeclaration: "YES",
+				nextDeclaration: "YES",
+				canEnroll: false,
+			}),
+		).toEqual({ allowed: true, enrollmentRequested: false, code: null });
+		expect(
+			validateSpecialOrderEnrollment({
+				currentDeclaration: null,
+				nextDeclaration: "NO",
+				canEnroll: false,
+			}),
+		).toEqual({ allowed: true, enrollmentRequested: false, code: null });
+	});
+
 	it("keeps unanswered orders distinct from an explicit No", () => {
 		expect(resolveSpecialOrderDisplayState(null)).toBe("LEGACY_NOT_EVALUATED");
 		expect(resolveSpecialOrderDisplayState({ declaration: "NO" })).toBe(

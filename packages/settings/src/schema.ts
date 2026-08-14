@@ -49,15 +49,30 @@ export const specialOrderEnforcementModeSchema = z.enum([
 	"BLOCK_ALL_OPERATIONS",
 ]);
 
+export const SPECIAL_ORDER_RELEASE_AUDIENCES = [
+	"SUPER_ADMIN_ONLY",
+	"ALL_STAFF",
+] as const;
+
+export const specialOrderReleaseAudienceSchema = z.enum(
+	SPECIAL_ORDER_RELEASE_AUDIENCES,
+);
+
 export const specialOrderSettingsSchema = z.object({
+	releaseAudience:
+		specialOrderReleaseAudienceSchema.default("SUPER_ADMIN_ONLY"),
 	enforcementMode: specialOrderEnforcementModeSchema.default("WARNING_ONLY"),
 	approvalLinkLifetimeDays: z.coerce.number().int().min(1).max(30).default(7),
 	activePolicyVersionId: z.string().trim().min(1).nullable().default(null),
 });
 
 export type SpecialOrderSettings = z.infer<typeof specialOrderSettingsSchema>;
+export type SpecialOrderReleaseAudience = z.infer<
+	typeof specialOrderReleaseAudienceSchema
+>;
 
 export const DEFAULT_SPECIAL_ORDER_SETTINGS: SpecialOrderSettings = {
+	releaseAudience: "SUPER_ADMIN_ONLY",
 	enforcementMode: "WARNING_ONLY",
 	approvalLinkLifetimeDays: 7,
 	activePolicyVersionId: null,

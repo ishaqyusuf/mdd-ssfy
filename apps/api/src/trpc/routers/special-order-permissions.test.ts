@@ -5,9 +5,42 @@ const approvalRouter = readFileSync(
 	new URL("./special-order.route.ts", import.meta.url),
 	"utf8",
 );
-const salesRouter = readFileSync(new URL("./sales.route.ts", import.meta.url), "utf8");
+const salesRouter = readFileSync(
+	new URL("./sales.route.ts", import.meta.url),
+	"utf8",
+);
+const salesFormQuery = readFileSync(
+	new URL("../../db/queries/new-sales-form.ts", import.meta.url),
+	"utf8",
+);
 
 describe("Special Order authorization boundaries", () => {
+	test("exposes authenticated enrollment access without changing lifecycle permissions", () => {
+		expect(approvalRouter).toContain("enrollmentAccess: protectedProcedure");
+		expect(approvalRouter).toContain("getSpecialOrderEnrollmentAccess");
+	});
+
+	test("enforces the pilot at the authoritative Sales Form save boundary", () => {
+		const recalculateSection = salesFormQuery.slice(
+			salesFormQuery.indexOf("export async function recalculateNewSalesForm"),
+			salesFormQuery.indexOf("async function saveNewSalesFormInternal"),
+		);
+		const saveSection = salesFormQuery.slice(
+			salesFormQuery.indexOf("async function saveNewSalesFormInternal"),
+		);
+		expect(recalculateSection).not.toContain("getSpecialOrderEnrollmentAccess");
+		expect(saveSection).toContain("await getSpecialOrderEnrollmentAccess");
+		expect(saveSection).not.toContain("enrollmentActor");
+		for (const marker of [
+			"validateSpecialOrderEnrollment",
+			"actorCanEnrollSpecialOrder",
+			"SPECIAL_ORDER_ENROLLMENT_RESTRICTED",
+			"canEnroll: actorCanEnrollSpecialOrder",
+		]) {
+			expect(saveSection).toContain(marker);
+		}
+	});
+
 	test("approval lifecycle mutations require existing Sales operational permissions", () => {
 		for (const marker of [
 			"requestApproval: protectedProcedure",

@@ -1,5 +1,8 @@
 import type { Db } from "@gnd/db";
-import { INITIAL_SPECIAL_ORDER_POLICY } from "@gnd/sales/special-order";
+import {
+	INITIAL_SPECIAL_ORDER_POLICY,
+	canEnrollSpecialOrder,
+} from "@gnd/sales/special-order";
 import {
 	type SpecialOrderSettings,
 	normalizeSpecialOrderSettings,
@@ -122,7 +125,7 @@ export async function updateSpecialOrderOperationalSettings(
 	actorUserId: number,
 	input: Pick<
 		SpecialOrderSettings,
-		"enforcementMode" | "approvalLinkLifetimeDays"
+		"releaseAudience" | "enforcementMode" | "approvalLinkLifetimeDays"
 	>,
 ) {
 	const base = await ensureInitialSpecialOrderPolicy(db, actorUserId);
@@ -137,6 +140,53 @@ export async function updateSpecialOrderOperationalSettings(
 		settings,
 	);
 	return settings;
+}
+
+export async function getSpecialOrderEnrollmentAccess(
+	db: Db,
+	actorUserId: number | null,
+) {
+	const [salesSettings, actor] = await Promise.all([
+		db.settings.findFirst({
+			where: { type: "sales-settings" },
+			select: { meta: true },
+		}),
+		actorUserId
+			? db.users.findFirst({
+					where: {
+						id: actorUserId,
+						deletedAt: null,
+						accessRevokedAt: null,
+					},
+					select: {
+						roles: {
+							where: {
+								deletedAt: null,
+								role: { deletedAt: null },
+							},
+							select: {
+								role: { select: { name: true, deletedAt: true } },
+							},
+						},
+					},
+				})
+			: Promise.resolve(null),
+	]);
+	const settings = normalizeSpecialOrderSettings(
+		readMeta(salesSettings?.meta).specialOrder,
+	);
+	const roleNames =
+		actor?.roles
+			.filter((assignment) => !assignment.role?.deletedAt)
+			.map((assignment) => assignment.role?.name) ?? [];
+	return {
+		releaseAudience: settings.releaseAudience,
+		canEnroll: canEnrollSpecialOrder({
+			releaseAudience: settings.releaseAudience,
+			actorIsActive: Boolean(actor),
+			roleNames,
+		}),
+	};
 }
 
 export async function saveSpecialOrderPolicyDraft(

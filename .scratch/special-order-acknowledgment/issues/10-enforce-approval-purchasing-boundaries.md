@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Special Order Declaration And Lifecycle Foundation; 02 — Super Admin Policy And Sales Settings; 04 — Approve With Acknowledgment And Signature.
 
-**Status:** in-progress
+**Status:** complete
 
 - [x] One shared domain decision evaluates declaration, current revision, Current Approval, enforcement mode, and purchasing operation category.
 - [x] Warning Only permits purchasing while returning consistent warning metadata and recording deduplicated would-block observability.
@@ -20,4 +20,4 @@
 ## Implementation progress (2026-08-13)
 
 - The shared server decision and purchasing commitment gates are implemented with mode/state/legacy/exception tests, deduplicated telemetry, and a passing entry-point source contract.
-- Remaining: finish direct-bypass and purchasing UI acceptance checks.
+- Final acceptance completed direct-bypass and purchasing UI checks.

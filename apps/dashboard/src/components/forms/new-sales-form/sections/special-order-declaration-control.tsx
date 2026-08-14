@@ -36,6 +36,7 @@ type Props = {
 		| "REAPPROVAL_REQUIRED"
 		| "CUSTOMER_DECLINED"
 		| null;
+	showDeclarationControl?: boolean;
 	requiredPromptOpen?: boolean;
 	onRequiredPromptOpenChange?: (open: boolean) => void;
 	onChange: (input: {
@@ -137,37 +138,43 @@ export function SpecialOrderDeclarationControl(props: Props) {
 
 	return (
 		<>
-			<section className="rounded-md border bg-background p-4">
-				<div className="flex flex-wrap items-start justify-between gap-3">
-					<div>
-						<p className="text-sm font-semibold">Special Order</p>
-						<p className="mt-1 text-xs leading-5 text-muted-foreground">
-							This declaration applies to the complete order.
-						</p>
+			{props.showDeclarationControl !== false ? (
+				<section className="rounded-md border bg-background p-4">
+					<div className="flex flex-wrap items-start justify-between gap-3">
+						<div>
+							<p className="text-sm font-semibold">Special Order</p>
+							<p className="mt-1 text-xs leading-5 text-muted-foreground">
+								This declaration applies to the complete order.
+							</p>
+						</div>
+						<Badge
+							variant={props.declaration === "YES" ? "default" : "outline"}
+						>
+							{statusLabel}
+						</Badge>
 					</div>
-					<Badge variant={props.declaration === "YES" ? "default" : "outline"}>
-						{statusLabel}
-					</Badge>
-				</div>
-				<Field className="mt-4">
-					<FieldLabel>Does this order contain Special Order items?</FieldLabel>
-					<ToggleGroup
-						type="single"
-						variant="outline"
-						className="w-full"
-						value={props.declaration ?? ""}
-						onValueChange={requestChange}
-					>
-						<ToggleGroupItem value="NO" aria-label="Not a Special Order">
-							No
-						</ToggleGroupItem>
-						<ToggleGroupItem value="YES" aria-label="Special Order">
-							Yes
-						</ToggleGroupItem>
-					</ToggleGroup>
-					<FieldDescription>{nextAction}</FieldDescription>
-				</Field>
-			</section>
+					<Field className="mt-4">
+						<FieldLabel>
+							Does this order contain Special Order items?
+						</FieldLabel>
+						<ToggleGroup
+							type="single"
+							variant="outline"
+							className="w-full"
+							value={props.declaration ?? ""}
+							onValueChange={requestChange}
+						>
+							<ToggleGroupItem value="NO" aria-label="Not a Special Order">
+								No
+							</ToggleGroupItem>
+							<ToggleGroupItem value="YES" aria-label="Special Order">
+								Yes
+							</ToggleGroupItem>
+						</ToggleGroup>
+						<FieldDescription>{nextAction}</FieldDescription>
+					</Field>
+				</section>
+			) : null}
 
 			<Dialog open={changeDialogOpen} onOpenChange={setChangeDialogOpen}>
 				<DialogContent>
@@ -226,7 +233,11 @@ export function SpecialOrderDeclarationControl(props: Props) {
 			</Dialog>
 
 			<Dialog
-				open={props.requiredPromptOpen && emailRequirement !== "required"}
+				open={
+					props.showDeclarationControl !== false &&
+					props.requiredPromptOpen &&
+					emailRequirement !== "required"
+				}
 				onOpenChange={(open) => props.onRequiredPromptOpenChange?.(open)}
 			>
 				<DialogContent hideClose>

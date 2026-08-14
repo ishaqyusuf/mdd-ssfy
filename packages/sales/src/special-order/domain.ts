@@ -1,7 +1,38 @@
+import type { SpecialOrderReleaseAudience } from "@gnd/settings";
+
 export const SPECIAL_ORDER_DECLARATIONS = ["NO", "YES"] as const;
 
 export type SpecialOrderDeclaration =
 	(typeof SPECIAL_ORDER_DECLARATIONS)[number];
+
+export type { SpecialOrderReleaseAudience } from "@gnd/settings";
+
+export function canEnrollSpecialOrder(input: {
+	releaseAudience: SpecialOrderReleaseAudience;
+	actorIsActive: boolean;
+	roleNames?: Array<string | null | undefined>;
+}) {
+	if (!input.actorIsActive) return false;
+	if (input.releaseAudience === "ALL_STAFF") return true;
+	return (input.roleNames ?? []).some(
+		(roleName) => roleName?.trim().toLowerCase() === "super admin",
+	);
+}
+
+export function validateSpecialOrderEnrollment(input: {
+	currentDeclaration?: SpecialOrderDeclaration | null;
+	nextDeclaration?: SpecialOrderDeclaration | null;
+	canEnroll: boolean;
+}) {
+	const enrollmentRequested =
+		input.currentDeclaration !== "YES" && input.nextDeclaration === "YES";
+	const allowed = !enrollmentRequested || input.canEnroll;
+	return {
+		allowed,
+		enrollmentRequested,
+		code: allowed ? null : "SPECIAL_ORDER_ENROLLMENT_RESTRICTED",
+	} as const;
+}
 
 export const SPECIAL_ORDER_STATUSES = [
 	"NOT_REQUIRED",
@@ -144,10 +175,12 @@ export function requiresSpecialOrderDeclaration(input: {
 	type: "order" | "quote";
 	commitIntent: SpecialOrderCommitIntent;
 	isInternalDashboardOrder?: boolean;
+	canEnroll?: boolean;
 }) {
 	return (
 		input.type === "order" &&
 		input.isInternalDashboardOrder !== false &&
+		input.canEnroll !== false &&
 		["close", "new", "final"].includes(input.commitIntent)
 	);
 }
@@ -157,6 +190,7 @@ export function validateSpecialOrderDeclaration(input: {
 	commitIntent: SpecialOrderCommitIntent;
 	declaration?: SpecialOrderDeclaration | null;
 	isInternalDashboardOrder?: boolean;
+	canEnroll?: boolean;
 }) {
 	const required = requiresSpecialOrderDeclaration(input);
 	return {

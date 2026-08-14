@@ -64,6 +64,10 @@ import type {
 	NewSalesFormAdjustmentPreview,
 	NewSalesFormRecord,
 } from "./schema";
+import {
+	type SpecialOrderEnrollmentAccessState,
+	resolveSpecialOrderSaveInterruption,
+} from "./special-order-save-interruption";
 import { CustomerSelectorDialog } from "./sections/customer-selector-dialog";
 import { SalesChangeReviewSheet } from "./sections/sales-change-review-sheet";
 import { useNewSalesFormStore } from "./store";
@@ -408,6 +412,25 @@ export function NewSalesForm(props: Props) {
     const trpc = useTRPC();
     const queryClient = useQueryClient();
     const auth = useAuth();
+	const specialOrderEnrollmentAccess = useQuery(
+		trpc.specialOrder.enrollmentAccess.queryOptions(undefined, {
+			enabled: props.type === "order",
+			staleTime: 0,
+		}),
+	);
+	const specialOrderEnrollmentState: SpecialOrderEnrollmentAccessState =
+		specialOrderEnrollmentAccess.isError
+			? { status: "error" }
+			: specialOrderEnrollmentAccess.isFetching ||
+				!specialOrderEnrollmentAccess.data
+				? { status: "pending" }
+				: {
+						status: "ready",
+						canEnroll: specialOrderEnrollmentAccess.data.canEnroll,
+					};
+	const canEnrollSpecialOrder =
+		specialOrderEnrollmentState.status === "ready" &&
+		specialOrderEnrollmentState.canEnroll;
     const [draftParams, setDraftParams] = useCreateFormQueryParams();
     const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
     const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
@@ -1348,15 +1371,32 @@ export function NewSalesForm(props: Props) {
     type SaveIntent = "draft" | "close" | "new" | "final";
 
     function promptForSpecialOrderDeclaration(intent: SaveIntent) {
-        if (props.type !== "order") return false;
-        const declaration = record?.specialOrder?.declaration;
-        const hasCustomerEmail = Boolean(record?.customer?.email?.trim());
-        if (intent === "draft" && declaration !== "YES") return false;
-        if (declaration && (declaration !== "YES" || hasCustomerEmail)) {
-            return false;
-        }
-        setPendingSpecialOrderCommit(intent);
-        return true;
+		const interruption = resolveSpecialOrderSaveInterruption({
+			type: props.type,
+			intent,
+			declaration: record?.specialOrder?.declaration,
+			hasCustomerEmail: Boolean(record?.customer?.email?.trim()),
+			enrollmentAccess: specialOrderEnrollmentState,
+		});
+		if (interruption === "CONTINUE") return false;
+		if (interruption === "ENROLLMENT_ACCESS_PENDING") {
+			toast({
+				title: "Checking Special Order access",
+				description: "Please wait a moment, then save again.",
+			});
+			return true;
+		}
+		if (interruption === "ENROLLMENT_ACCESS_ERROR") {
+			void specialOrderEnrollmentAccess.refetch();
+			toast({
+				title: "Unable to verify Special Order access",
+				description: "We are retrying. Please save again in a moment.",
+				variant: "destructive",
+			});
+			return true;
+		}
+		setPendingSpecialOrderCommit(intent);
+		return true;
     }
 
     async function executeSaveIntent(
@@ -2071,6 +2111,7 @@ export function NewSalesForm(props: Props) {
                     ),
                     SummaryPanel: (
                         <InvoiceOverviewPanel
+							canEnrollSpecialOrder={canEnrollSpecialOrder}
                             canEditCustomer={
                                 salesFormPermissions.canEditCustomer &&
 								!(record as { dealerProfileCard?: unknown }).dealerProfileCard

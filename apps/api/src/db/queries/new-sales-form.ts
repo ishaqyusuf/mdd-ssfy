@@ -83,6 +83,7 @@ import {
 	deriveSpecialOrderStatus,
 	requiresSpecialOrderCustomerEmail,
 	validateSpecialOrderDeclaration,
+	validateSpecialOrderEnrollment,
 } from "@gnd/sales/special-order";
 import { generateSalesSlug } from "@gnd/sales/utils";
 import { generateRandomString } from "@gnd/utils";
@@ -99,6 +100,7 @@ import {
 	createSalesFormTimelineActivity,
 	getSalesActivitySenderContactId,
 } from "./sales-form-activity";
+import { getSpecialOrderEnrollmentAccess } from "./special-order-settings";
 
 const DEFAULT_DELIVERY_OPTION = "pickup";
 const DEFAULT_PAYMENT_TERM = "None";
@@ -3286,6 +3288,13 @@ async function saveNewSalesFormInternal(
 		}
 
 		const isInternalDashboardOrder = !origin && !order?.dealerAuthId;
+		const enrollmentAccess = isInternalDashboardOrder
+			? await getSpecialOrderEnrollmentAccess(
+					tx as unknown as TRPCContext["db"],
+					ctx.userId ?? null,
+				)
+			: { canEnroll: true };
+		const actorCanEnrollSpecialOrder = enrollmentAccess.canEnroll;
 		const currentSpecialOrderDeclaration =
 			order?.specialOrderDeclaration ?? null;
 		const nextSpecialOrderDeclaration =
@@ -3294,11 +3303,24 @@ async function saveNewSalesFormInternal(
 				: payload.specialOrderDeclaration === undefined
 					? currentSpecialOrderDeclaration
 					: payload.specialOrderDeclaration;
+		const enrollmentValidation = validateSpecialOrderEnrollment({
+			currentDeclaration: currentSpecialOrderDeclaration,
+			nextDeclaration: nextSpecialOrderDeclaration,
+			canEnroll: !isInternalDashboardOrder || actorCanEnrollSpecialOrder,
+		});
+		if (!enrollmentValidation.allowed) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message:
+					"SPECIAL_ORDER_ENROLLMENT_RESTRICTED: Only Super Admin can mark an order as Special Order during the pilot.",
+			});
+		}
 		const declarationValidation = validateSpecialOrderDeclaration({
 			type: payload.type,
 			commitIntent: payload.commitIntent,
 			declaration: nextSpecialOrderDeclaration,
 			isInternalDashboardOrder,
+			canEnroll: actorCanEnrollSpecialOrder,
 		});
 		if (!declarationValidation.valid) {
 			throw new TRPCError({

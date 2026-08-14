@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 — Approve With Acknowledgment And Signature; 05 — Decline And Handle Terminal Approval Links; 06 — Invalidate Approval And Request Reapproval.
 
-**Status:** in-progress
+**Status:** complete
 
 - [x] Removing Special Order requires authorization, confirmation, and a non-empty bounded reason.
 - [x] Removal revokes active capabilities, clears Current Approval, preserves every request/approval/decline as superseded historical evidence, and produces Not Required.
@@ -21,4 +21,4 @@
 
 - Removal/re-enrollment transactions, conditional customer notification, staff notification, retry evidence, and preserved history are implemented.
 - Live browser QA proved removal from Customer Declined, required reason, Not Required state, preserved approved/declined evidence, and removal notification history.
-- Remaining: complete pending/approved removal and post-removal re-enrollment browser cases.
+- Final acceptance completed pending/approved removal and post-removal re-enrollment browser cases.

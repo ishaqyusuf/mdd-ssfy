@@ -38,6 +38,14 @@ function createMockContext() {
       {
         id: 77,
         name: "Ada Lovelace",
+        deletedAt: null,
+        accessRevokedAt: null,
+        roles: [
+          {
+            deletedAt: null,
+            role: { name: "Sales Admin", deletedAt: null },
+          },
+        ],
       },
     ],
     settings: [
@@ -261,6 +269,35 @@ function createMockContext() {
   }
 
   const tx = {
+    settings: {
+      findFirst: async ({ where, select }: any) => {
+        const setting =
+          state.settings.find((row) => row.type === where?.type) || null;
+        if (!setting || !select) return setting;
+        return Object.fromEntries(
+          Object.keys(select)
+            .filter((key) => select[key])
+            .map((key) => [key, (setting as any)[key]]),
+        );
+      },
+    },
+    users: {
+      findFirst: async ({ where, select }: any) => {
+        const user =
+          state.users.find(
+            (row) =>
+              row.id === where?.id &&
+              (where?.deletedAt !== null || row.deletedAt == null) &&
+              (where?.accessRevokedAt !== null || row.accessRevokedAt == null),
+          ) || null;
+        if (!user || !select) return user;
+        return Object.fromEntries(
+          Object.keys(select)
+            .filter((key) => select[key])
+            .map((key) => [key, (user as any)[key]]),
+        );
+      },
+    },
     customers: {
       findFirst: async ({ where, select }: any) => {
         const customer =
@@ -637,6 +674,20 @@ function createMockContext() {
       },
     },
     customers: {
+      findFirst: async ({ where, select }: any) => {
+        const customer =
+          state.customers.find(
+            (row) =>
+              row.id === where?.id &&
+              (where?.deletedAt !== null || row.deletedAt == null),
+          ) || null;
+        if (!customer || !select) return customer;
+        return Object.fromEntries(
+          Object.keys(select)
+            .filter((key) => select[key])
+            .map((key) => [key, (customer as any)[key]]),
+        );
+      },
       findMany: async ({ where }: any = {}) => {
         const inIds = where?.id?.in;
         return state.customers.filter((customer) => {
@@ -646,6 +697,21 @@ function createMockContext() {
           return true;
         });
       },
+    },
+    customerTypes: {
+      findFirst: async ({ where, select }: any) => {
+        const profile =
+          state.customerTypes.find((row) => row.id === where?.id) || null;
+        if (!profile || !select) return profile;
+        return Object.fromEntries(
+          Object.keys(select)
+            .filter((key) => select[key])
+            .map((key) => [key, (profile as any)[key]]),
+        );
+      },
+    },
+    addressBooks: {
+      findFirst: async () => null,
     },
     users: {
       findFirst: async ({ where, select }: any) => {
@@ -3239,5 +3305,103 @@ describe("new-sales-form relational parity", () => {
       tagName: "salesId",
       tagValue: String(saved.salesId),
     });
+  });
+});
+
+function buildSpecialOrderEnrollmentPayload(
+  declaration?: "NO" | "YES" | null,
+) {
+  return {
+    type: "order" as const,
+    slug: null,
+    salesId: null,
+    version: null,
+    autosave: false,
+    commitIntent: "final" as const,
+    specialOrderDeclaration: declaration,
+    meta: {
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      paymentMethod: null,
+      goodUntil: null,
+      po: null,
+      notes: null,
+      deliveryOption: "pickup" as const,
+      taxCode: null,
+    },
+    summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+    extraCosts: [],
+    lineItems: [
+      {
+        id: null,
+        uid: "special-order-enrollment-line",
+        title: "Special Order enrollment test",
+        description: "",
+        qty: 1,
+        unitPrice: 100,
+        lineTotal: 100,
+        meta: {},
+        formSteps: [],
+        shelfItems: [],
+        housePackageTool: null,
+      },
+    ],
+  };
+}
+
+describe("Special Order enrollment save boundary", () => {
+  it("rejects a restricted new Yes transition", async () => {
+    const { ctx } = createMockContext();
+
+    await expect(
+      saveFinalNewSalesForm(ctx, buildSpecialOrderEnrollmentPayload("YES")),
+    ).rejects.toThrow("SPECIAL_ORDER_ENROLLMENT_RESTRICTED");
+  });
+
+  it("allows a restricted employee to finalize an ordinary unanswered order", async () => {
+    const { ctx, state } = createMockContext();
+
+    await saveFinalNewSalesForm(
+      ctx,
+      buildSpecialOrderEnrollmentPayload(undefined),
+    );
+
+    expect(state.orders[0]?.specialOrderDeclaration).toBeNull();
+  });
+
+  it("requires the declaration after release to all active staff", async () => {
+    const { ctx, state } = createMockContext();
+    (state.settings[0]!.meta as any).specialOrder = {
+      releaseAudience: "ALL_STAFF",
+    };
+
+    await expect(
+      saveFinalNewSalesForm(
+        ctx,
+        buildSpecialOrderEnrollmentPayload(undefined),
+      ),
+    ).rejects.toThrow("SPECIAL_ORDER_DECLARATION_REQUIRED");
+  });
+
+  it("preserves an existing Yes order when the editor is outside the pilot", async () => {
+    const { ctx, state } = createMockContext();
+    state.users[0]!.roles[0]!.role.name = "Super Admin";
+    const created = await saveFinalNewSalesForm(
+      ctx,
+      buildSpecialOrderEnrollmentPayload("YES"),
+    );
+    state.users[0]!.roles[0]!.role.name = "Sales Admin";
+
+    await saveFinalNewSalesForm(ctx, {
+      ...buildSpecialOrderEnrollmentPayload("YES"),
+      salesId: created.salesId,
+      slug: created.slug,
+      version: created.version,
+    });
+
+    expect(state.orders[0]?.specialOrderDeclaration).toBe("YES");
   });
 });

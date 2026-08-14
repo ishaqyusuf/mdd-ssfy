@@ -4,7 +4,7 @@
 
 **Blocked by:** 10 — Enforce Approval At Purchasing Boundaries.
 
-**Status:** in-progress
+**Status:** complete
 
 - [x] Warning Only permits governed production progression with consistent warning metadata and deduplicated would-block observability.
 - [x] Block Purchasing & Production and Block All Operations reject new production progression without Current Approval.
@@ -20,4 +20,4 @@
 ## Implementation progress (2026-08-13)
 
 - Manual, batch, jobs, inventory, and dispatch-adjacent production gates use the shared server decision; focused matrix and entry-point source-contract tests pass.
-- Remaining: complete the production UI/direct-bypass acceptance matrix.
+- Final acceptance completed the production UI/direct-bypass matrix.

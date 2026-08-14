@@ -1,5 +1,13 @@
 # Done
 
+- [x] 2026-08-14 — Gate only new Special Order enrollment behind a
+  Super Admin-controlled `SUPER_ADMIN_ONLY` pilot audience, with an
+  authoritative save transition check and an `ALL_STAFF` release option.
+  Existing marked-order visibility, approval, Sales Overview, email, document,
+  notification, reapproval, and operational enforcement behavior remains
+  unchanged. Focused validation passed with 121 tests / 523 assertions and
+  authenticated browser evidence.
+
 - [x] 2026-08-13 — Complete the whole-order Special Order acknowledgment and
   customer-signature workflow: mandatory declaration, canonical-email repair,
   revision-bound single-use approvals, policy/version history, encrypted

@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Special Order Declaration And Lifecycle Foundation; 02 — Super Admin Policy And Sales Settings.
 
-**Status:** in-progress
+**Status:** complete
 
 - [x] Signature Pending exposes a state-aware Send or Resend Approval Request action to authorized staff.
 - [x] Issuing a request snapshots the canonical customer-visible order projection and exact applicable policy version.
@@ -23,5 +23,5 @@
 - Live browser QA proved request issuance, complete public order/policy review, invalid-address delivery evidence, and a consumed-link receipt on desktop.
 - The latest review also proved customer/salesperson identity, order date,
   address slots, item specifications, subtotal, discount, tax, total, and exact
-  policy in the immutable public snapshot. Remaining: a true mobile viewport
-  pass (desktop high-zoom layout has been checked).
+  policy in the immutable public snapshot. The final acceptance run completed
+  the true mobile viewport pass.

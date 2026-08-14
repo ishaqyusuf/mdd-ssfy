@@ -1218,6 +1218,24 @@ implementation phase is approved and released.
 
 ## Special Order acknowledgment contracts (2026-08-13)
 
+- `specialOrder.enrollmentAccess` returns the authenticated actor's effective
+  `releaseAudience` and `canEnroll` decision. The default
+  `SUPER_ADMIN_ONLY` audience permits only an active Super Admin role;
+  `ALL_STAFF` permits users who can otherwise use the existing Sales save flow.
+- The authoritative Sales save rejects only a newly attempted transition into
+  `YES` when `canEnroll` is false, using
+  `SPECIAL_ORDER_ENROLLMENT_RESTRICTED`. Ineligible users are not required to
+  answer the hidden declaration and may preserve an already governed order.
+- The save transaction resolves the same current settings/active-role decision
+  used by `specialOrder.enrollmentAccess`; deleted roles do not qualify. The
+  Sales Form waits or retries when that access query is unresolved rather than
+  submitting an ambiguous final save.
+- A restricted employee saving an existing `YES` order with missing canonical
+  email retains the inline customer-email update and exact save continuation;
+  the declaration control itself stays hidden.
+- Enrollment audience never suppresses existing marked-order state, customer
+  approval, reapproval, email/document output, notification, revision
+  invalidation, Sales Overview actions, or operational enforcement.
 - New internal order completion requires `specialOrderDeclaration: YES | NO`;
   draft/autosave may omit it. Existing null declarations remain legacy unmanaged.
 - `YES` governs the complete order. Current approval means immutable approved

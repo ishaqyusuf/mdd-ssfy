@@ -20,6 +20,7 @@ Standing stakeholder constraints established before charting:
 - Approval links are revision-bound, time-limited, reused while active, single-use after completion, and replaced after expiry or revision change. Default expiry is seven days and Super Admin may configure 1-30 days.
 - Customer-visible changes supersede Current Approval. Sales Overview provides state-aware send/resend and Request Re-Approval actions; manual reapproval requires a reason and records Sales Activity.
 - Super Admin selects one global enforcement mode in Sales settings: Warning Only, Block Purchasing & Production, or Block All Operations. Warning Only is the launch default, and policy changes apply immediately to active Special Orders.
+- Super Admin also selects the enrollment audience. `SUPER_ADMIN_ONLY` is the pilot default and gates only the Sales Form declaration/new Yes transition; `ALL_STAFF` releases enrollment. The table column, Sales Overview, and all lifecycle/enforcement behavior remain active for existing Special Orders regardless of audience.
 - Super Admin may publish versioned policy wording. Existing approvals preserve and remain valid under the wording they accepted.
 - Customer decline requires a reason. Removing Special Order classification requires confirmation and a reason, records Sales Activity, and notifies the customer only after a request was delivered or an approval/decline exists.
 - Customer completion/removal communication uses email; the assigned salesperson receives email and in-app notification; every event is represented in Sales Activity.
@@ -32,7 +33,7 @@ Standing stakeholder constraints established before charting:
 - The approved implementation breakdown contains fourteen vertical slices. Ticket 14 extends the declaration and Sales-email slices with one reusable customer-email prerequisite flow; later tickets declare their direct blockers.
 - Discovery questions remain historical context and are not agent-grabbable implementation work.
 
-## Implementation status (2026-08-13)
+## Implementation status (updated 2026-08-14)
 
 | Ticket | Status | Verified criteria | Remaining acceptance focus |
 | --- | --- | ---: | --- |
@@ -52,6 +53,11 @@ Standing stakeholder constraints established before charting:
 | 14 — Customer email prerequisite | complete | 11/11 | None |
 
 All fourteen tickets are complete. Reopen an acceptance criterion only when a regression invalidates its recorded evidence.
+
+The 2026-08-14 enrollment-pilot addendum is implemented within tickets 01, 02,
+and 13 rather than creating duplicate work. Focused coverage passes 121 tests /
+523 assertions, and authenticated browser QA verifies the Super Admin setting,
+Super Admin declaration control, and unchanged Sales Orders table column.
 
 ### Completion evidence
 

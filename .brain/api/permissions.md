@@ -415,6 +415,15 @@ Tracks authentication and authorization patterns across API surfaces.
 
 ## Special Order acknowledgment permissions (2026-08-13)
 
+- During the `SUPER_ADMIN_ONLY` enrollment pilot, only an authenticated actor
+  with an active Super Admin role may newly mark an order Special Order. The
+  server enforces this transition independently of the hidden Sales Form
+  control. `ALL_STAFF` restores enrollment to users already authorized for the
+  Sales save workflow.
+- Enrollment rollout does not change read, history, approval, removal,
+  reapproval, document, email, or operational permissions. Employees continue
+  to see and operate on previously marked orders under the normal Special Order
+  lifecycle and enforcement rules.
 - Classification, approval request/retry, reapproval, and removal require an
   authenticated user with `editOrders`.
 - Approval history requires `viewOrders` or `editOrders`.

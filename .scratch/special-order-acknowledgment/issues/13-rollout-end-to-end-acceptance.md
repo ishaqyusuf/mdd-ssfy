@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 — Decline And Handle Terminal Approval Links; 06 — Invalidate Approval And Request Reapproval; 07 — Make Sales Emails Approval-Aware; 08 — Render Special Order State In Sales Documents; 09 — Remove And Re-Enable Special Order Classification; 10 — Enforce Approval At Purchasing Boundaries; 11 — Enforce Approval At Production Boundaries; 12 — Enforce Approval At Packing And Dispatch Boundaries.
 
-**Status:** in-progress
+**Status:** complete
 
 - [x] Additive migration validation proves legacy null/unmanaged orders remain operational and no description or product text is used to infer enrollment.
 - [x] Warning Only is the deployed default and stronger modes are not enabled merely by completing implementation.
@@ -20,4 +20,5 @@
 ## Implementation progress (2026-08-13)
 
 - The additive migration is applied and reconciled locally, Warning Only remains the default, rollout telemetry exists, and focused security/failure tests pass.
-- Remaining: close the still-unchecked authenticated/public browser and broad regression acceptance gates.
+- Final acceptance closed authenticated/public browser and regression gates.
+- 2026-08-14 addendum: the Super Admin enrollment pilot is covered without duplicating tickets; only new enrollment is gated, while existing Special Orders continue through the complete workflow for all staff.

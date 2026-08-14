@@ -45,6 +45,7 @@ interface Props {
 	type: "order" | "quote";
 	historyRestoreActive?: boolean;
 	canEditCustomer: boolean;
+	canEnrollSpecialOrder: boolean;
 	requiredSpecialOrderPromptOpen?: boolean;
 	onRequiredSpecialOrderPromptOpenChange?: (open: boolean) => void;
 	onRequiredSpecialOrderDecision?: (declaration: "NO" | "YES") => void;
@@ -513,14 +514,15 @@ export function InvoiceOverviewPanel(props: Props) {
 					profile={dealerProfileCard.profile}
 				/>
 			) : null}
-			{props.type === "order" ? (
+			{props.type === "order" &&
+			(props.canEnrollSpecialOrder ||
+				record.specialOrder?.declaration === "YES") ? (
 				<SpecialOrderDeclarationControl
+					showDeclarationControl={props.canEnrollSpecialOrder}
 					salesId={record.salesId}
 					customerId={customerId}
 					customerEmail={record.customer?.email}
-					customerName={
-						record.customer?.businessName || record.customer?.name
-					}
+					customerName={record.customer?.businessName || record.customer?.name}
 					declaration={record.specialOrder?.declaration}
 					status={record.specialOrder?.status}
 					requiredPromptOpen={props.requiredSpecialOrderPromptOpen}

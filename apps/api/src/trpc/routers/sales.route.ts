@@ -127,6 +127,8 @@ import {
 	getSettingAction,
 	normalizeSalesPrintSettings,
 	salesPrintSettingsSchema,
+	specialOrderEnforcementModeSchema,
+	specialOrderReleaseAudienceSchema,
 	updateSettingsMeta,
 } from "@gnd/settings";
 import { generateRandomString, timeLog } from "@gnd/utils";
@@ -202,11 +204,8 @@ const specialOrderPolicyInputSchema = z.object({
 	policyText: z.string().trim().min(50).max(10_000),
 });
 const updateSpecialOrderSettingsSchema = z.object({
-	enforcementMode: z.enum([
-		"WARNING_ONLY",
-		"BLOCK_PURCHASING_AND_PRODUCTION",
-		"BLOCK_ALL_OPERATIONS",
-	]),
+	releaseAudience: specialOrderReleaseAudienceSchema,
+	enforcementMode: specialOrderEnforcementModeSchema,
 	approvalLinkLifetimeDays: z.coerce.number().int().min(1).max(30),
 });
 const markPaymentsReviewedSchema = z.object({

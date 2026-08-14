@@ -1,5 +1,29 @@
 # Progress
 
+- 2026-08-14: charted the Special Order usability and operational-override
+  addendum in `.scratch/special-order-usability-override-addendum/` after the
+  stakeholder accepted the recommended behavior. The local Wayfinder map has
+  five open decision tickets covering Sales Overview enrollment, immutable
+  customer naming and mobile full-screen signing, customer policy/C.C.C/footer
+  presentation, a role-configured and audited approval override, and the final
+  acceptance boundary. Added `Special Order Approval Override` to the canonical
+  glossary and recorded the approved feature direction. Proposed-answer
+  comments remain unposted pending the required review checkpoint; no runtime,
+  API, database, permission, or deployment behavior changed.
+
+- 2026-08-14: added a Super Admin-controlled Special Order enrollment audience.
+  `SUPER_ADMIN_ONLY` is the default pilot: only Super Admin sees the Sales Form
+  declaration and may newly set `YES`, while other employees can save ordinary
+  orders without the hidden answer. The Sales Orders column, Sales Overview,
+  and the full approval/email/document/notification/enforcement lifecycle remain
+  active for every already marked order. `ALL_STAFF` restores enrollment without
+  a redeploy. The server guards the transition, the client reads effective
+  enrollment access, and focused validation passes 121 tests / 523 assertions
+  across 25 files. Authenticated browser QA confirmed the setting, Super Admin
+  form control, and persistent orders-table column. No database schema or
+  migration changed because the audience is stored in existing Sales settings
+  JSON.
+
 - 2026-08-13: reorganized the Super Admin Sales Settings workspace into
   route-backed horizontal sections for Documents (`/settings/sales`), Dealer
   orders (`/settings/sales/dealer-orders`), and Special orders

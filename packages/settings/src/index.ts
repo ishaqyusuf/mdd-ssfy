@@ -3,13 +3,19 @@ import type { SettingsTypes } from "./schema";
 export {
 	DEFAULT_SPECIAL_ORDER_SETTINGS,
 	DEFAULT_SALES_PRINT_SETTINGS,
+	SPECIAL_ORDER_RELEASE_AUDIENCES,
 	normalizeSpecialOrderSettings,
 	normalizeSalesPrintSettings,
 	salesPrintSettingsSchema,
 	specialOrderEnforcementModeSchema,
+	specialOrderReleaseAudienceSchema,
 	specialOrderSettingsSchema,
 } from "./schema";
-export type { SalesPrintSettings, SpecialOrderSettings } from "./schema";
+export type {
+	SalesPrintSettings,
+	SpecialOrderReleaseAudience,
+	SpecialOrderSettings,
+} from "./schema";
 export const SETTINGS_TYPE = [
 	"sales-settings",
 	"install-price-chart",

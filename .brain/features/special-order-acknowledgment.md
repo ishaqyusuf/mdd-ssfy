@@ -59,6 +59,23 @@ only after the shared Sales settings access check succeeds. It owns the link
 lifetime (1-30 days), versioned policy draft and publication, and one live
 enforcement mode:
 
+The same settings section owns the enrollment release audience. It defaults to
+`SUPER_ADMIN_ONLY` for pilot testing. In that mode, only Super Admin sees the
+Sales Form declaration and can transition an ordinary order into `YES` / Special
+Order. Other employees may continue saving ordinary orders without answering
+the hidden declaration. This audience is not a feature-disable switch: the
+Sales Orders column and Sales Overview remain visible, and every approval,
+email, document, notification, revision, and operational-enforcement behavior
+continues normally for orders already marked Special Order. Switching the
+audience to `ALL_STAFF` restores enrollment for all users who otherwise have
+the existing Sales save authority.
+
+Enrollment access is resolved from active server-side role assignments. Final
+save waits for that decision instead of trusting cached client role data. An
+employee outside the pilot who edits an already marked order keeps the existing
+customer-email repair continuation even though the declaration control remains
+hidden.
+
 | Mode | Purchasing | Production | Packing | Dispatch |
 | --- | --- | --- | --- | --- |
 | Warning Only | Warn/allow | Warn/allow | Warn/allow | Warn/allow |
@@ -117,8 +134,38 @@ request/remove actions require `editOrders`; history requires `viewOrders` or
 `editOrders`; settings and policy publication require Super Admin. Existing
 operational permissions still apply in addition to the approval gate.
 
+## Approved usability and override addendum direction (2026-08-14)
+
+The follow-up Wayfinder map at
+`.scratch/special-order-usability-override-addendum/map.md` records the approved
+direction pending its reviewed pipeline comments, published addendum spec, and
+tracer-bullet tickets:
+
+- Sales Overview gains Special Order enrollment with the same release audience,
+  customer-email repair, reason, activity, and revision rules as the Sales Form;
+  enrollment does not automatically send the request.
+- The public approval Customer name comes from the immutable request snapshot
+  and is displayed as disabled. Mobile signature entry uses a full-screen,
+  landscape-optimized modal with rotate guidance and explicit confirmation.
+- Customer-facing policy labels omit visible version numbers while internal
+  policy evidence remains immutable and versioned. Customer documents place the
+  full policy beside the price footer.
+- Approval review repairs and displays the canonical derived C.C.C and
+  `totalWithCcc` for applicable payment channels while keeping `grandTotal` as
+  the accounting principal.
+- Role configuration gains `Override Special Order Approval`. The capability is
+  additive to existing operation permissions, covers Signature Pending and
+  Reapproval Required purchasing/production/packing/dispatch progression, does
+  not override Customer Declined, and records explicit server-side override
+  evidence.
+
 ## Validation and rollout status
 
+- The enrollment pilot follow-up adds focused domain, settings, permission, and
+  dashboard boundary coverage. The complete focused Special Order suite now
+  passes 121 tests with 523 assertions across 25 files. Authenticated browser QA
+  confirms the Super Admin setting and form control while the Sales Orders
+  Special Order column remains visible.
 - Seventy-seven focused tests pass with 290 assertions across domain lifecycle,
   capability reuse/concurrency, customer/address invalidation, public privacy,
   response transaction, encrypted signature storage, delivery ledger,

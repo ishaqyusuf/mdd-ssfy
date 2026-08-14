@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 — Approve With Acknowledgment And Signature; 05 — Decline And Handle Terminal Approval Links.
 
-**Status:** in-progress
+**Status:** complete
 
 - [x] Saving a governed customer-visible change computes a new Approval Revision, revokes prior active capabilities, preserves prior evidence as Superseded Approval, and produces Reapproval Required when customer evidence existed.
 - [x] Internal notes, operational status, activity, signature metadata, and presentation-only changes do not invalidate approval.
@@ -21,4 +21,4 @@
 
 - Revision canonicalization, automatic invalidation, manual reapproval, retry, and history presentation are implemented with focused domain/API tests.
 - Live browser QA proved the `Request Re-Approval` dropdown action, required reason, immediate supersession, revised request, decline, and preserved approval history.
-- Remaining: complete the customer-visible edit/automatic-invalidation browser sequence.
+- Final acceptance completed the customer-visible edit/automatic-invalidation browser sequence.

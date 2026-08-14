@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** in-progress
+**Status:** complete
 
 - [x] Sales settings expose a dedicated Special Order section only to Super Admin users.
 - [x] Super Admin can edit a draft, preview the customer-facing acknowledgment, and publish an immutable policy version.
@@ -20,4 +20,5 @@
 ## Implementation progress (2026-08-13)
 
 - Implemented in the Super Admin Sales settings UI and protected settings API with immutable policy-version persistence.
-- Remaining: complete the combined settings permission/version-compatibility acceptance suite.
+- Completed acceptance includes settings permission and policy-version compatibility coverage.
+- 2026-08-14 addendum: settings include the `SUPER_ADMIN_ONLY | ALL_STAFF` enrollment audience, defaulting to the Super Admin pilot without changing enforcement on existing marked orders.

@@ -57,9 +57,14 @@ export function SpecialOrderSettingsSection() {
 	}, [draft, managementQuery.data, settings]);
 
 	const invalidate = async () => {
-		await queryClient.invalidateQueries({
-			queryKey: trpc.sales.getSpecialOrderSettings.queryKey(),
-		});
+		await Promise.all([
+			queryClient.invalidateQueries({
+				queryKey: trpc.sales.getSpecialOrderSettings.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.specialOrder.enrollmentAccess.queryKey(),
+			}),
+		]);
 	};
 
 	const updateSettings = useMutation(
@@ -69,7 +74,8 @@ export function SpecialOrderSettingsSection() {
 				await invalidate();
 				toast({
 					title: "Special Order settings saved",
-					description: "The active enforcement policy now applies globally.",
+					description:
+						"Enrollment audience and enforcement settings now apply globally.",
 					variant: "success",
 				});
 			},
@@ -207,6 +213,7 @@ export function SpecialOrderSettingsSection() {
 				onChange={setSettings}
 				onSave={() =>
 					updateSettings.mutate({
+						releaseAudience: settings.releaseAudience,
 						enforcementMode: settings.enforcementMode,
 						approvalLinkLifetimeDays: settings.approvalLinkLifetimeDays,
 					})
