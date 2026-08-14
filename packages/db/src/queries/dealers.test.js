@@ -1,11 +1,9 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // @ts-expect-error packages/db typecheck does not include Bun test types.
-const bun_test_1 = require("bun:test");
-const dealers_1 = require("./dealers");
-(0, bun_test_1.describe)("dealer portal pricing", () => {
-    (0, bun_test_1.it)("rebuilds customer pricing after the office completes a dealer quote", () => {
-        const result = (0, dealers_1.calculateDealerApprovalPricing)({
+import { describe, expect, it } from "bun:test";
+import { calculateDealerApprovalPricing, calculateDealerQuotePricing, convertDealerPortalQuoteToOrder, getDealerPortalSalesDocument, getDealerPortalSalesDocuments, getDealerPortalCustomerOverview, getDealerPortalCustomers, getDealerOrderRequestCount, getDealerRequestSla, getDealerPortalSettings, getDealerPortalSalesProfiles, getDealerPortalSalesList, getDealerQuoteEditLock, mergeDealerApprovalDeliveryMeta, deleteDealerPortalCustomer, saveDealerPortalQuote, saveDealerPortalCustomer, saveDealerPortalSettings, saveDealerPortalSalesProfile, summarizeDealerRequestSla, requestDealerPortalQuoteOrder, updateDealerSalesProfile, updateDealerPortalCustomerPayment, updateDealerPortalCustomerOfficeVisibility, } from "./dealers";
+describe("dealer portal pricing", () => {
+    it("rebuilds customer pricing after the office completes a dealer quote", () => {
+        const result = calculateDealerApprovalPricing({
             lineItems: [
                 {
                     uid: "office-added-shelf-line",
@@ -32,11 +30,11 @@ const dealers_1 = require("./dealers");
             dealerSalesPercentage: 20,
             fallbackDealerGrandTotal: 0,
         });
-        (0, bun_test_1.expect)(result.internalBaseTotal).toBe(380.38);
-        (0, bun_test_1.expect)(result.dealerBaseTotal).toBe(481.46);
+        expect(result.internalBaseTotal).toBe(380.38);
+        expect(result.dealerBaseTotal).toBe(481.46);
     });
-    (0, bun_test_1.it)("keeps the saved dealer total when no structured quote lines exist", () => {
-        const result = (0, dealers_1.calculateDealerApprovalPricing)({
+    it("keeps the saved dealer total when no structured quote lines exist", () => {
+        const result = calculateDealerApprovalPricing({
             lineItems: [],
             taxRate: 0,
             internalGrandTotal: 300,
@@ -44,13 +42,13 @@ const dealers_1 = require("./dealers");
             dealerSalesPercentage: 20,
             fallbackDealerGrandTotal: 360,
         });
-        (0, bun_test_1.expect)(result).toEqual({
+        expect(result).toEqual({
             internalBaseTotal: 300,
             dealerBaseTotal: 360,
         });
     });
-    (0, bun_test_1.it)("keeps internal and dealer customer pricing snapshots separate", () => {
-        const result = (0, dealers_1.calculateDealerQuotePricing)({
+    it("keeps internal and dealer customer pricing snapshots separate", () => {
+        const result = calculateDealerQuotePricing({
             createdAt: "2026-05-18T00:00:00.000Z",
             taxRate: 10,
             internalProfile: {
@@ -73,30 +71,30 @@ const dealers_1 = require("./dealers");
                 },
             ],
         });
-        (0, bun_test_1.expect)(result.source).toBe("dealer_portal_dual_pricing");
-        (0, bun_test_1.expect)(result.createdAt).toBe("2026-05-18T00:00:00.000Z");
-        (0, bun_test_1.expect)(result.profiles.internal).toEqual({
+        expect(result.source).toBe("dealer_portal_dual_pricing");
+        expect(result.createdAt).toBe("2026-05-18T00:00:00.000Z");
+        expect(result.profiles.internal).toEqual({
             id: 1,
             label: "Dealer Standard",
             coefficient: 0.67,
         });
-        (0, bun_test_1.expect)(result.profiles.dealer).toEqual({
+        expect(result.profiles.dealer).toEqual({
             id: 2,
             label: "Retail",
             coefficient: 99,
             salesPercentage: 20,
         });
-        (0, bun_test_1.expect)(result.lines[0]).toMatchObject({
+        expect(result.lines[0]).toMatchObject({
             internalUnitPrice: 149,
             internalLineTotal: 298,
             dealerUnitPrice: 178.8,
             dealerLineTotal: 357.6,
         });
-        (0, bun_test_1.expect)(result.internalPricing.grandTotal).toBe(327.8);
-        (0, bun_test_1.expect)(result.dealerPricing.grandTotal).toBe(393.36);
+        expect(result.internalPricing.grandTotal).toBe(327.8);
+        expect(result.dealerPricing.grandTotal).toBe(393.36);
     });
-    (0, bun_test_1.it)("taxes only taxable lines in both pricing layers", () => {
-        const result = (0, dealers_1.calculateDealerQuotePricing)({
+    it("taxes only taxable lines in both pricing layers", () => {
+        const result = calculateDealerQuotePricing({
             taxRate: 10,
             internalProfile: { coefficient: 1 },
             dealerProfile: { salesPercentage: 20 },
@@ -105,16 +103,16 @@ const dealers_1 = require("./dealers");
                 { uid: "exempt", qty: 1, unitPrice: 50, taxxable: false },
             ],
         });
-        (0, bun_test_1.expect)(result.internalPricing.taxableSubTotal).toBe(100);
-        (0, bun_test_1.expect)(result.internalPricing.taxTotal).toBe(10);
-        (0, bun_test_1.expect)(result.internalPricing.grandTotal).toBe(160);
-        (0, bun_test_1.expect)(result.dealerPricing.taxableSubTotal).toBe(120);
-        (0, bun_test_1.expect)(result.dealerPricing.taxTotal).toBe(12);
-        (0, bun_test_1.expect)(result.dealerPricing.grandTotal).toBe(192);
-        (0, bun_test_1.expect)(result.lines.map((line) => line.taxable)).toEqual([true, false]);
+        expect(result.internalPricing.taxableSubTotal).toBe(100);
+        expect(result.internalPricing.taxTotal).toBe(10);
+        expect(result.internalPricing.grandTotal).toBe(160);
+        expect(result.dealerPricing.taxableSubTotal).toBe(120);
+        expect(result.dealerPricing.taxTotal).toBe(12);
+        expect(result.dealerPricing.grandTotal).toBe(192);
+        expect(result.lines.map((line) => line.taxable)).toEqual([true, false]);
     });
-    (0, bun_test_1.it)("keeps customer tax while exempting a qualified dealer resale layer", () => {
-        const result = (0, dealers_1.calculateDealerQuotePricing)({
+    it("keeps customer tax while exempting a qualified dealer resale layer", () => {
+        const result = calculateDealerQuotePricing({
             taxRate: 8,
             internalProfile: { coefficient: 1 },
             dealerProfile: { salesPercentage: 20 },
@@ -122,15 +120,15 @@ const dealers_1 = require("./dealers");
             resaleCertificateOnFile: true,
             lineItems: [{ uid: "door", qty: 1, unitPrice: 100 }],
         });
-        (0, bun_test_1.expect)(result.internalPricing.taxableSubTotal).toBe(100);
-        (0, bun_test_1.expect)(result.internalPricing.taxTotal).toBe(0);
-        (0, bun_test_1.expect)(result.internalPricing.grandTotal).toBe(100);
-        (0, bun_test_1.expect)(result.dealerPricing.taxableSubTotal).toBe(120);
-        (0, bun_test_1.expect)(result.dealerPricing.taxTotal).toBe(9.6);
-        (0, bun_test_1.expect)(result.dealerPricing.grandTotal).toBe(129.6);
+        expect(result.internalPricing.taxableSubTotal).toBe(100);
+        expect(result.internalPricing.taxTotal).toBe(0);
+        expect(result.internalPricing.grandTotal).toBe(100);
+        expect(result.dealerPricing.taxableSubTotal).toBe(120);
+        expect(result.dealerPricing.taxTotal).toBe(9.6);
+        expect(result.dealerPricing.grandTotal).toBe(129.6);
     });
-    (0, bun_test_1.it)("prices flat, door, shelf, moulding, and service lines from their effective totals", () => {
-        const result = (0, dealers_1.calculateDealerQuotePricing)({
+    it("prices flat, door, shelf, moulding, and service lines from their effective totals", () => {
+        const result = calculateDealerQuotePricing({
             createdAt: "2026-05-18T00:00:00.000Z",
             taxRate: 0,
             internalProfile: {
@@ -194,44 +192,44 @@ const dealers_1 = require("./dealers");
                 },
             ],
         });
-        (0, bun_test_1.expect)(result.lines.map((line) => line.internalLineTotal)).toEqual([
+        expect(result.lines.map((line) => line.internalLineTotal)).toEqual([
             200, 800, 150, 250, 120,
         ]);
-        (0, bun_test_1.expect)(result.lines.map((line) => line.dealerLineTotal)).toEqual([
+        expect(result.lines.map((line) => line.dealerLineTotal)).toEqual([
             220, 880, 165, 275, 132,
         ]);
-        (0, bun_test_1.expect)(result.internalPricing.subTotal).toBe(1520);
-        (0, bun_test_1.expect)(result.dealerPricing.subTotal).toBe(1672);
+        expect(result.internalPricing.subTotal).toBe(1520);
+        expect(result.dealerPricing.subTotal).toBe(1672);
     });
 });
-(0, bun_test_1.describe)("dealer order request visibility", () => {
-    (0, bun_test_1.it)("locks quote edits after every terminal handoff state", () => {
-        (0, bun_test_1.expect)((0, dealers_1.getDealerQuoteEditLock)(null)).toEqual({
+describe("dealer order request visibility", () => {
+    it("locks quote edits after every terminal handoff state", () => {
+        expect(getDealerQuoteEditLock(null)).toEqual({
             locked: false,
             reason: null,
         });
         for (const status of ["pending", "approved", "rejected"]) {
-            (0, bun_test_1.expect)((0, dealers_1.getDealerQuoteEditLock)(status)).toMatchObject({
+            expect(getDealerQuoteEditLock(status)).toMatchObject({
                 locked: true,
             });
-            (0, bun_test_1.expect)((0, dealers_1.getDealerQuoteEditLock)(status).reason?.toLowerCase()).toContain("locked");
+            expect(getDealerQuoteEditLock(status).reason?.toLowerCase()).toContain("locked");
         }
     });
-    (0, bun_test_1.it)("tracks pending request aging against the 24-hour SLA", () => {
+    it("tracks pending request aging against the 24-hour SLA", () => {
         const createdAt = "2026-07-20T00:00:00.000Z";
-        (0, bun_test_1.expect)((0, dealers_1.getDealerRequestSla)({
+        expect(getDealerRequestSla({
             createdAt,
             status: "pending",
             now: new Date("2026-07-20T19:00:00.000Z"),
         })).toMatchObject({ status: "due_soon", ageHours: 19, targetHours: 24 });
-        (0, bun_test_1.expect)((0, dealers_1.getDealerRequestSla)({
+        expect(getDealerRequestSla({
             createdAt,
             status: "pending",
             now: new Date("2026-07-21T01:00:00.000Z"),
         })).toMatchObject({ status: "overdue", ageHours: 25 });
     });
-    (0, bun_test_1.it)("summarizes approval, rejection, and decision-time analytics", () => {
-        const analytics = (0, dealers_1.summarizeDealerRequestSla)([
+    it("summarizes approval, rejection, and decision-time analytics", () => {
+        const analytics = summarizeDealerRequestSla([
             {
                 status: "approved",
                 createdAt: "2026-07-20T00:00:00.000Z",
@@ -247,7 +245,7 @@ const dealers_1 = require("./dealers");
                 createdAt: "2026-07-20T00:00:00.000Z",
             },
         ], new Date("2026-07-21T01:00:00.000Z"));
-        (0, bun_test_1.expect)(analytics).toMatchObject({
+        expect(analytics).toMatchObject({
             total: 3,
             pending: 1,
             overdue: 1,
@@ -257,7 +255,7 @@ const dealers_1 = require("./dealers");
             approvalRate: 50,
         });
     });
-    (0, bun_test_1.it)("lets Sales Team members review unassigned dealer requests", async () => {
+    it("lets Sales Team members review unassigned dealer requests", async () => {
         let capturedWhere;
         const db = {
             users: {
@@ -272,13 +270,13 @@ const dealers_1 = require("./dealers");
                 },
             },
         };
-        (0, bun_test_1.expect)(await (0, dealers_1.getDealerOrderRequestCount)(db, 69)).toBe(1);
-        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+        expect(await getDealerOrderRequestCount(db, 69)).toBe(1);
+        expect(capturedWhere).toMatchObject({
             status: "pending",
             OR: [{ sale: { salesRepId: 69 } }, { sale: { salesRepId: null } }],
         });
     });
-    (0, bun_test_1.it)("captures an immutable direct-ship recipient snapshot on submission", async () => {
+    it("captures an immutable direct-ship recipient snapshot on submission", async () => {
         let addressData;
         const saleUpdates = [];
         const tx = {
@@ -342,8 +340,8 @@ const dealers_1 = require("./dealers");
         const db = {
             $transaction: async (callback) => callback(tx),
         };
-        const result = await (0, dealers_1.requestDealerPortalQuoteOrder)(db, 10, 81);
-        (0, bun_test_1.expect)(addressData).toMatchObject({
+        const result = await requestDealerPortalQuoteOrder(db, 10, 81);
+        expect(addressData).toMatchObject({
             name: "End Customer",
             email: "ship@example.com",
             phoneNo: "555-0100",
@@ -357,7 +355,7 @@ const dealers_1 = require("./dealers");
                 zip_code: "32801",
             },
         });
-        (0, bun_test_1.expect)(saleUpdates[0]).toMatchObject({
+        expect(saleUpdates[0]).toMatchObject({
             billingAddressId: 501,
             shippingAddressId: 501,
             meta: {
@@ -369,15 +367,15 @@ const dealers_1 = require("./dealers");
                 },
             },
         });
-        (0, bun_test_1.expect)(result.notification.fulfillmentRecipient).toMatchObject({
+        expect(result.notification.fulfillmentRecipient).toMatchObject({
             customerId: 44,
             address1: "123 Main St",
         });
     });
 });
-(0, bun_test_1.describe)("dealer approval delivery metadata", () => {
-    (0, bun_test_1.it)("keeps the sales-form snapshot synchronized with the reviewed delivery row", () => {
-        const meta = (0, dealers_1.mergeDealerApprovalDeliveryMeta)({
+describe("dealer approval delivery metadata", () => {
+    it("keeps the sales-form snapshot synchronized with the reviewed delivery row", () => {
+        const meta = mergeDealerApprovalDeliveryMeta({
             meta: {
                 newSalesForm: {
                     extraCosts: [
@@ -389,7 +387,7 @@ const dealers_1 = require("./dealers");
             deliveryCost: 25,
             extraCostId: 12,
         });
-        (0, bun_test_1.expect)(meta).toMatchObject({
+        expect(meta).toMatchObject({
             deliveryCost: 25,
             newSalesForm: {
                 extraCosts: [
@@ -566,21 +564,21 @@ function dealerQuoteInput(overrides = {}) {
         ...overrides,
     };
 }
-(0, bun_test_1.describe)("dealer portal DPP identities", () => {
-    (0, bun_test_1.it)("assigns the first DPP serial to a new dealer quote", async () => {
+describe("dealer portal DPP identities", () => {
+    it("assigns the first DPP serial to a new dealer quote", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
         });
-        const saved = await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput());
-        (0, bun_test_1.expect)(saved.orderId).toBe("00001DPP");
-        (0, bun_test_1.expect)(saved.slug).toBe("quote-00001dpp");
-        (0, bun_test_1.expect)(testDb.getCreatedOrderData()).toMatchObject({
+        const saved = await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput());
+        expect(saved.orderId).toBe("00001DPP");
+        expect(saved.slug).toBe("quote-00001dpp");
+        expect(testDb.getCreatedOrderData()).toMatchObject({
             orderId: "00001DPP",
             slug: "quote-00001dpp",
             type: "quote",
             dealerAuthId: 10,
         });
-        (0, bun_test_1.expect)(testDb.getSequenceCountWhere()).toMatchObject({
+        expect(testDb.getSequenceCountWhere()).toMatchObject({
             dealerAuthId: {
                 not: null,
             },
@@ -590,11 +588,11 @@ function dealerQuoteInput(overrides = {}) {
             },
         });
     });
-    (0, bun_test_1.it)("preserves dealer workflow payload in saved quote metadata", async () => {
+    it("preserves dealer workflow payload in saved quote metadata", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
         });
-        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+        await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput({
             lineItems: [
                 {
                     uid: "line-1",
@@ -613,12 +611,12 @@ function dealerQuoteInput(overrides = {}) {
             ],
         }));
         const meta = testDb.getCreatedOrderData()?.meta;
-        (0, bun_test_1.expect)(meta.newSalesForm.lineItems[0].formSteps).toHaveLength(1);
-        (0, bun_test_1.expect)(meta.newSalesForm.lineItems[0].shelfItems).toHaveLength(1);
-        (0, bun_test_1.expect)(meta.newSalesForm.lineItems[0].housePackageTool.doors).toHaveLength(1);
-        (0, bun_test_1.expect)(meta.newSalesForm.lineItems[0].meta.serviceRows).toHaveLength(1);
+        expect(meta.newSalesForm.lineItems[0].formSteps).toHaveLength(1);
+        expect(meta.newSalesForm.lineItems[0].shelfItems).toHaveLength(1);
+        expect(meta.newSalesForm.lineItems[0].housePackageTool.doors).toHaveLength(1);
+        expect(meta.newSalesForm.lineItems[0].meta.serviceRows).toHaveLength(1);
     });
-    (0, bun_test_1.it)("rejects dealer quote line items for hidden item types", async () => {
+    it("rejects dealer quote line items for hidden item types", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
             salesSettingsMeta: {
@@ -631,7 +629,7 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         });
-        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+        await expect(saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput({
             lineItems: [
                 {
                     uid: "line-1",
@@ -649,7 +647,7 @@ function dealerQuoteInput(overrides = {}) {
             ],
         }))).rejects.toThrow("This item type is not available in the dealer portal.");
     });
-    (0, bun_test_1.it)("rejects dealer quote shelf items outside the dealer allowlist", async () => {
+    it("rejects dealer quote shelf items outside the dealer allowlist", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
             salesSettingsMeta: {
@@ -666,7 +664,7 @@ function dealerQuoteInput(overrides = {}) {
                 },
             ],
         });
-        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+        await expect(saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput({
             lineItems: [
                 {
                     uid: "line-1",
@@ -684,7 +682,7 @@ function dealerQuoteInput(overrides = {}) {
             ],
         }))).rejects.toThrow("This shelf item is not available in the dealer portal.");
     });
-    (0, bun_test_1.it)("allows dealer quote shelf items in an allowed parent category", async () => {
+    it("allows dealer quote shelf items in an allowed parent category", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
             salesSettingsMeta: {
@@ -701,7 +699,7 @@ function dealerQuoteInput(overrides = {}) {
                 },
             ],
         });
-        const saved = await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+        const saved = await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput({
             lineItems: [
                 {
                     uid: "line-1",
@@ -718,13 +716,13 @@ function dealerQuoteInput(overrides = {}) {
                 },
             ],
         }));
-        (0, bun_test_1.expect)(saved.orderId).toBe("00001DPP");
+        expect(saved.orderId).toBe("00001DPP");
     });
-    (0, bun_test_1.it)("persists dealer workflow tax and production flags on sales items", async () => {
+    it("persists dealer workflow tax and production flags on sales items", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
         });
-        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+        await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput({
             lineItems: [
                 {
                     uid: "line-1",
@@ -755,37 +753,37 @@ function dealerQuoteInput(overrides = {}) {
             ],
         }));
         const [serviceItem, flatItem] = testDb.getCreatedItemData();
-        (0, bun_test_1.expect)((serviceItem?.meta).tax).toBe(true);
-        (0, bun_test_1.expect)(serviceItem?.dykeProduction).toBe(true);
-        (0, bun_test_1.expect)((flatItem?.meta).tax).toBe(false);
-        (0, bun_test_1.expect)(flatItem?.dykeProduction).toBe(false);
+        expect((serviceItem?.meta).tax).toBe(true);
+        expect(serviceItem?.dykeProduction).toBe(true);
+        expect((flatItem?.meta).tax).toBe(false);
+        expect(flatItem?.dykeProduction).toBe(false);
     });
-    (0, bun_test_1.it)("uses the next shared DPP serial and skips collisions", async () => {
+    it("uses the next shared DPP serial and skips collisions", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 1,
             collidingOrderIds: ["00002DPP"],
         });
-        const saved = await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput());
-        (0, bun_test_1.expect)(saved.orderId).toBe("00003DPP");
-        (0, bun_test_1.expect)(saved.slug).toBe("quote-00003dpp");
+        const saved = await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput());
+        expect(saved.orderId).toBe("00003DPP");
+        expect(saved.slug).toBe("quote-00003dpp");
     });
-    (0, bun_test_1.it)("ignores deleted DPP documents when calculating the next serial", async () => {
+    it("ignores deleted DPP documents when calculating the next serial", async () => {
         const testDb = createDealerQuoteTestDb({
             dppDocuments: [
                 { orderId: "00001DPP", deletedAt: null },
                 { orderId: "00002DPP", deletedAt: new Date("2026-05-22") },
             ],
         });
-        const saved = await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput());
-        (0, bun_test_1.expect)(saved.orderId).toBe("00003DPP");
-        (0, bun_test_1.expect)(testDb.getSequenceCountWhere()).toMatchObject({
+        const saved = await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput());
+        expect(saved.orderId).toBe("00003DPP");
+        expect(testDb.getSequenceCountWhere()).toMatchObject({
             deletedAt: null,
             orderId: {
                 endsWith: "DPP",
             },
         });
     });
-    (0, bun_test_1.it)("preserves an existing quote order number when editing", async () => {
+    it("preserves an existing quote order number when editing", async () => {
         const testDb = createDealerQuoteTestDb({
             existingQuote: {
                 id: 55,
@@ -793,17 +791,17 @@ function dealerQuoteInput(overrides = {}) {
                 slug: "quote-00007dpp",
             },
         });
-        const saved = await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({ id: 55 }));
-        (0, bun_test_1.expect)(saved.orderId).toBe("00007DPP");
-        (0, bun_test_1.expect)(saved.slug).toBe("quote-00007dpp");
-        (0, bun_test_1.expect)(testDb.getUpdatedOrderData()).toMatchObject({
+        const saved = await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput({ id: 55 }));
+        expect(saved.orderId).toBe("00007DPP");
+        expect(saved.slug).toBe("quote-00007dpp");
+        expect(testDb.getUpdatedOrderData()).toMatchObject({
             orderId: "00007DPP",
             slug: "quote-00007dpp",
             type: "quote",
         });
-        (0, bun_test_1.expect)(testDb.getSequenceCountWhere()).toBeNull();
+        expect(testDb.getSequenceCountWhere()).toBeNull();
     });
-    (0, bun_test_1.it)("assigns a new DPP order number when converting a dealer quote", async () => {
+    it("assigns a new DPP order number when converting a dealer quote", async () => {
         let updateData = null;
         const tx = {
             salesOrders: {
@@ -831,14 +829,14 @@ function dealerQuoteInput(overrides = {}) {
         const db = {
             $transaction: async (callback) => callback(tx),
         };
-        const order = await (0, dealers_1.convertDealerPortalQuoteToOrder)(db, 10, 55);
-        (0, bun_test_1.expect)(order).toMatchObject({
+        const order = await convertDealerPortalQuoteToOrder(db, 10, 55);
+        expect(order).toMatchObject({
             orderId: "00002DPP",
             slug: "order-00002dpp",
             type: "order",
             status: "New",
         });
-        (0, bun_test_1.expect)(updateData).toMatchObject({
+        expect(updateData).toMatchObject({
             orderId: "00002DPP",
             slug: "order-00002dpp",
             type: "order",
@@ -849,8 +847,8 @@ function dealerQuoteInput(overrides = {}) {
         });
     });
 });
-(0, bun_test_1.describe)("dealer portal isolation", () => {
-    (0, bun_test_1.it)("updates the linked customer profile from a dealer account", async () => {
+describe("dealer portal isolation", () => {
+    it("updates the linked customer profile from a dealer account", async () => {
         const updates = [];
         const db = {
             $transaction: async (callback) => callback(db),
@@ -880,11 +878,11 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         };
-        const result = await (0, dealers_1.updateDealerSalesProfile)(db, {
+        const result = await updateDealerSalesProfile(db, {
             dealerId: 10,
             customerProfileId: 30,
         });
-        (0, bun_test_1.expect)(result).toEqual({
+        expect(result).toEqual({
             dealerId: 10,
             customerId: 20,
             customerProfileId: 30,
@@ -894,12 +892,12 @@ function dealerQuoteInput(overrides = {}) {
             newProfileName: "Preferred",
             profileChanged: true,
         });
-        (0, bun_test_1.expect)(updates[0]).toEqual({
+        expect(updates[0]).toEqual({
             where: { id: 20 },
             data: { customerTypeId: 30 },
         });
     });
-    (0, bun_test_1.it)("creates and links a customer when setting a dealer-only sales profile", async () => {
+    it("creates and links a customer when setting a dealer-only sales profile", async () => {
         const dealerUpdates = [];
         const customerCreates = [];
         const db = {
@@ -928,11 +926,11 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         };
-        const result = await (0, dealers_1.updateDealerSalesProfile)(db, {
+        const result = await updateDealerSalesProfile(db, {
             dealerId: 10,
             customerProfileId: 30,
         });
-        (0, bun_test_1.expect)(result).toEqual({
+        expect(result).toEqual({
             dealerId: 10,
             customerId: 40,
             customerProfileId: 30,
@@ -942,7 +940,7 @@ function dealerQuoteInput(overrides = {}) {
             newProfileName: "Preferred",
             profileChanged: true,
         });
-        (0, bun_test_1.expect)(customerCreates[0]).toEqual({
+        expect(customerCreates[0]).toEqual({
             data: {
                 name: "Dealer",
                 businessName: "Dealer Co",
@@ -955,12 +953,12 @@ function dealerQuoteInput(overrides = {}) {
             },
             select: { id: true },
         });
-        (0, bun_test_1.expect)(dealerUpdates[0]).toEqual({
+        expect(dealerUpdates[0]).toEqual({
             where: { id: 10 },
             data: { dealerId: 40 },
         });
     });
-    (0, bun_test_1.it)("marks linked dealer profile updates as unchanged when the profile is already assigned", async () => {
+    it("marks linked dealer profile updates as unchanged when the profile is already assigned", async () => {
         const db = {
             $transaction: async (callback) => callback(db),
             dealerAuth: {
@@ -986,11 +984,11 @@ function dealerQuoteInput(overrides = {}) {
                 update: async () => ({ id: 20 }),
             },
         };
-        const result = await (0, dealers_1.updateDealerSalesProfile)(db, {
+        const result = await updateDealerSalesProfile(db, {
             dealerId: 10,
             customerProfileId: 30,
         });
-        (0, bun_test_1.expect)(result).toMatchObject({
+        expect(result).toMatchObject({
             dealerId: 10,
             customerId: 20,
             customerProfileId: 30,
@@ -999,7 +997,7 @@ function dealerQuoteInput(overrides = {}) {
             profileChanged: false,
         });
     });
-    (0, bun_test_1.it)("rejects assigning another dealer's sales profile to a dealer customer", async () => {
+    it("rejects assigning another dealer's sales profile to a dealer customer", async () => {
         let capturedWhere = null;
         const db = {
             customerTypes: {
@@ -1014,18 +1012,18 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         };
-        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalCustomer)(db, 10, {
+        await expect(saveDealerPortalCustomer(db, 10, {
             name: "Retail Buyer",
             email: "buyer@example.com",
             customerTypeId: 99,
         })).rejects.toThrow("Customer profile could not be found.");
-        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+        expect(capturedWhere).toMatchObject({
             id: 99,
             dealerOwnerId: 10,
             deletedAt: null,
         });
     });
-    (0, bun_test_1.it)("saves a dealer customer default tax group", async () => {
+    it("saves a dealer customer default tax group", async () => {
         let capturedTaxWhere = null;
         let createdTaxProfile = null;
         const db = {
@@ -1048,21 +1046,21 @@ function dealerQuoteInput(overrides = {}) {
                 },
             }),
         };
-        const customer = await (0, dealers_1.saveDealerPortalCustomer)(db, 10, {
+        const customer = await saveDealerPortalCustomer(db, 10, {
             name: "Taxed Buyer",
             taxCode: "TX",
         });
-        (0, bun_test_1.expect)(customer).toMatchObject({ id: 50 });
-        (0, bun_test_1.expect)(capturedTaxWhere).toMatchObject({
+        expect(customer).toMatchObject({ id: 50 });
+        expect(capturedTaxWhere).toMatchObject({
             taxCode: "TX",
             deletedAt: null,
         });
-        (0, bun_test_1.expect)(createdTaxProfile).toMatchObject({
+        expect(createdTaxProfile).toMatchObject({
             customerId: 50,
             taxCode: "TX",
         });
     });
-    (0, bun_test_1.it)("saves and loads dealer defaults from company settings", async () => {
+    it("saves and loads dealer defaults from company settings", async () => {
         let savedMeta = null;
         const db = {
             dealerAuth: {
@@ -1117,7 +1115,7 @@ function dealerQuoteInput(overrides = {}) {
             },
             $transaction: async (callback) => callback(db),
         };
-        await (0, dealers_1.saveDealerPortalSettings)(db, 10, {
+        await saveDealerPortalSettings(db, 10, {
             name: "Dealer",
             companyName: "Dealer Co",
             phoneNo: "555-111-2222",
@@ -1127,7 +1125,7 @@ function dealerQuoteInput(overrides = {}) {
             defaultTaxCode: "FL",
             defaultFulfillmentMode: "delivery",
         });
-        (0, bun_test_1.expect)(savedMeta).toMatchObject({
+        expect(savedMeta).toMatchObject({
             logoUrl: "https://example.com/logo.png",
             billingZip: "32801",
             brandingVersion: 1,
@@ -1135,12 +1133,12 @@ function dealerQuoteInput(overrides = {}) {
             defaultTaxCode: "FL",
             defaultFulfillmentMode: "delivery",
         });
-        const settings = await (0, dealers_1.getDealerPortalSettings)(db, 10);
-        (0, bun_test_1.expect)(settings?.meta).toMatchObject({
+        const settings = await getDealerPortalSettings(db, 10);
+        expect(settings?.meta).toMatchObject({
             logoUrl: "https://example.com/old.png",
         });
     });
-    (0, bun_test_1.it)("shares only a customer owned by the active dealer", async () => {
+    it("shares only a customer owned by the active dealer", async () => {
         let update;
         const db = {
             customers: {
@@ -1150,11 +1148,11 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         };
-        await (0, dealers_1.updateDealerPortalCustomerOfficeVisibility)(db, 10, {
+        await updateDealerPortalCustomerOfficeVisibility(db, 10, {
             id: 44,
             officeVisibility: "SHARED",
         });
-        (0, bun_test_1.expect)(update).toEqual({
+        expect(update).toEqual({
             where: {
                 id: 44,
                 dealerOwnerId: 10,
@@ -1165,7 +1163,7 @@ function dealerQuoteInput(overrides = {}) {
             },
         });
     });
-    (0, bun_test_1.it)("rejects dealer defaults outside the active dealer scope", async () => {
+    it("rejects dealer defaults outside the active dealer scope", async () => {
         const baseDb = {
             dealerAuth: {
                 findUnique: async () => ({
@@ -1185,11 +1183,11 @@ function dealerQuoteInput(overrides = {}) {
             },
             $transaction: async (callback) => callback(baseDb),
         };
-        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalSettings)(baseDb, 10, {
+        await expect(saveDealerPortalSettings(baseDb, 10, {
             defaultCustomerProfileId: 99,
         })).rejects.toThrow("Default customer profile could not be found.");
     });
-    (0, bun_test_1.it)("rejects unknown default tax groups", async () => {
+    it("rejects unknown default tax groups", async () => {
         const baseDb = {
             dealerAuth: {
                 findUnique: async () => ({
@@ -1209,11 +1207,11 @@ function dealerQuoteInput(overrides = {}) {
             },
             $transaction: async (callback) => callback(baseDb),
         };
-        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalSettings)(baseDb, 10, {
+        await expect(saveDealerPortalSettings(baseDb, 10, {
             defaultTaxCode: "BAD",
         })).rejects.toThrow("Default tax group could not be found.");
     });
-    (0, bun_test_1.it)("uses dealer defaults when creating a customer with blank profile and tax", async () => {
+    it("uses dealer defaults when creating a customer with blank profile and tax", async () => {
         let createdCustomer = null;
         let createdTaxProfile = null;
         const db = {
@@ -1246,19 +1244,19 @@ function dealerQuoteInput(overrides = {}) {
             },
             $transaction: async (callback) => callback(db),
         };
-        await (0, dealers_1.saveDealerPortalCustomer)(db, 10, {
+        await saveDealerPortalCustomer(db, 10, {
             name: "Defaulted Customer",
         });
-        (0, bun_test_1.expect)(createdCustomer).toMatchObject({
+        expect(createdCustomer).toMatchObject({
             customerTypeId: 45,
             dealerOwnerId: 10,
         });
-        (0, bun_test_1.expect)(createdTaxProfile).toEqual({
+        expect(createdTaxProfile).toEqual({
             customerId: 20,
             taxCode: "FL",
         });
     });
-    (0, bun_test_1.it)("preserves explicit customer profile and tax values on edit", async () => {
+    it("preserves explicit customer profile and tax values on edit", async () => {
         let updatedCustomer = null;
         let updatedTaxProfile = null;
         const db = {
@@ -1284,20 +1282,20 @@ function dealerQuoteInput(overrides = {}) {
             },
             $transaction: async (callback) => callback(db),
         };
-        await (0, dealers_1.saveDealerPortalCustomer)(db, 10, {
+        await saveDealerPortalCustomer(db, 10, {
             id: 20,
             name: "Explicit Customer",
             customerTypeId: 46,
             taxCode: "TX",
         });
-        (0, bun_test_1.expect)(updatedCustomer).toMatchObject({
+        expect(updatedCustomer).toMatchObject({
             customerTypeId: 46,
         });
-        (0, bun_test_1.expect)(updatedTaxProfile).toEqual({
+        expect(updatedTaxProfile).toEqual({
             taxCode: "TX",
         });
     });
-    (0, bun_test_1.it)("soft-deletes only a customer owned by the dealer", async () => {
+    it("soft-deletes only a customer owned by the dealer", async () => {
         let capturedArgs = null;
         const db = {
             customers: {
@@ -1307,27 +1305,27 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         };
-        await (0, bun_test_1.expect)((0, dealers_1.deleteDealerPortalCustomer)(db, 10, 55)).resolves.toEqual({ id: 55 });
-        (0, bun_test_1.expect)(capturedArgs).not.toBeNull();
+        await expect(deleteDealerPortalCustomer(db, 10, 55)).resolves.toEqual({ id: 55 });
+        expect(capturedArgs).not.toBeNull();
         const args = capturedArgs;
-        (0, bun_test_1.expect)(args.where).toEqual({
+        expect(args.where).toEqual({
             id: 55,
             dealerOwnerId: 10,
             deletedAt: null,
         });
-        (0, bun_test_1.expect)(args.data.deletedAt).toBeInstanceOf(Date);
+        expect(args.data.deletedAt).toBeInstanceOf(Date);
     });
-    (0, bun_test_1.it)("rejects deleting a missing or unowned dealer customer", async () => {
+    it("rejects deleting a missing or unowned dealer customer", async () => {
         const db = {
             customers: {
                 updateMany: async () => ({ count: 0 }),
             },
         };
-        await (0, bun_test_1.expect)((0, dealers_1.deleteDealerPortalCustomer)(db, 10, 55)).rejects.toThrow("Dealer customer could not be found.");
+        await expect(deleteDealerPortalCustomer(db, 10, 55)).rejects.toThrow("Dealer customer could not be found.");
     });
-    (0, bun_test_1.it)("lists only the active dealer's percentage sales profiles", async () => {
+    it("lists only the active dealer's percentage sales profiles", async () => {
         let capturedWhere = null;
-        const profiles = await (0, dealers_1.getDealerPortalSalesProfiles)({
+        const profiles = await getDealerPortalSalesProfiles({
             customerTypes: {
                 findMany: async ({ where }) => {
                     capturedWhere = where;
@@ -1344,16 +1342,16 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         }, 10);
-        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+        expect(capturedWhere).toMatchObject({
             dealerOwnerId: 10,
             deletedAt: null,
         });
-        (0, bun_test_1.expect)(profiles[0]).toMatchObject({
+        expect(profiles[0]).toMatchObject({
             id: 45,
             salesPercentage: 20,
         });
     });
-    (0, bun_test_1.it)("saves dealer sales profiles as dealer-owned percentage profiles", async () => {
+    it("saves dealer sales profiles as dealer-owned percentage profiles", async () => {
         let createData = null;
         const db = {
             customerTypes: {
@@ -1363,21 +1361,21 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         };
-        await (0, dealers_1.saveDealerPortalSalesProfile)(db, 10, {
+        await saveDealerPortalSalesProfile(db, 10, {
             title: "Retail",
             salesPercentage: 20,
             defaultProfile: false,
         });
-        (0, bun_test_1.expect)(createData).toMatchObject({
+        expect(createData).toMatchObject({
             title: "Retail",
             salesPercentage: 20,
             defaultProfile: false,
             dealerOwnerId: 10,
         });
     });
-    (0, bun_test_1.it)("does not expose raw sales order item metadata in dealer document detail", async () => {
+    it("does not expose raw sales order item metadata in dealer document detail", async () => {
         let capturedWhere = null;
-        const document = await (0, dealers_1.getDealerPortalSalesDocument)({
+        const document = await getDealerPortalSalesDocument({
             salesOrders: {
                 findFirst: async ({ where }) => {
                     capturedWhere = where;
@@ -1436,18 +1434,18 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         }, 10, 55);
-        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+        expect(capturedWhere).toMatchObject({
             id: 55,
             dealerAuthId: 10,
             deletedAt: null,
         });
-        (0, bun_test_1.expect)("meta" in document).toBe(false);
-        (0, bun_test_1.expect)("items" in document).toBe(false);
-        (0, bun_test_1.expect)("deliveries" in document).toBe(false);
-        (0, bun_test_1.expect)("pickup" in document).toBe(false);
-        (0, bun_test_1.expect)("prodStatus" in document).toBe(false);
-        (0, bun_test_1.expect)("deliveredAt" in document).toBe(false);
-        (0, bun_test_1.expect)(document).toMatchObject({
+        expect("meta" in document).toBe(false);
+        expect("items" in document).toBe(false);
+        expect("deliveries" in document).toBe(false);
+        expect("pickup" in document).toBe(false);
+        expect("prodStatus" in document).toBe(false);
+        expect("deliveredAt" in document).toBe(false);
+        expect(document).toMatchObject({
             grandTotal: 150,
             amountDue: 150,
             officeGrandTotal: 100,
@@ -1456,7 +1454,7 @@ function dealerQuoteInput(overrides = {}) {
             customerPaidAmount: 0,
             fulfillmentStatus: "preparing",
         });
-        (0, bun_test_1.expect)(document.lineItems).toEqual([
+        expect(document.lineItems).toEqual([
             {
                 uid: "line-1",
                 title: "Entry Door",
@@ -1467,7 +1465,7 @@ function dealerQuoteInput(overrides = {}) {
             },
         ]);
     });
-    (0, bun_test_1.it)("updates only the active dealer's customer-payment ledger and records history", async () => {
+    it("updates only the active dealer's customer-payment ledger and records history", async () => {
         let updatedDue = null;
         let historyData = null;
         const tx = {
@@ -1497,13 +1495,13 @@ function dealerQuoteInput(overrides = {}) {
         const db = {
             $transaction: async (callback) => callback(tx),
         };
-        const result = await (0, dealers_1.updateDealerPortalCustomerPayment)(db, 10, {
+        const result = await updateDealerPortalCustomerPayment(db, 10, {
             id: 55,
             status: "paid",
         });
-        (0, bun_test_1.expect)(updatedDue).toBe(0);
-        (0, bun_test_1.expect)(result).toMatchObject({ status: "paid", amountDue: 0 });
-        (0, bun_test_1.expect)(historyData).toMatchObject({
+        expect(updatedDue).toBe(0);
+        expect(result).toMatchObject({ status: "paid", amountDue: 0 });
+        expect(historyData).toMatchObject({
             salesId: 55,
             name: "Dealer customer payment status updated",
             authorName: "Dealer 10",
@@ -1515,8 +1513,8 @@ function dealerQuoteInput(overrides = {}) {
             },
         });
     });
-    (0, bun_test_1.it)("reopens dealer documents from saved package workflow payload", async () => {
-        const document = await (0, dealers_1.getDealerPortalSalesDocument)({
+    it("reopens dealer documents from saved package workflow payload", async () => {
+        const document = await getDealerPortalSalesDocument({
             salesOrders: {
                 findFirst: async () => ({
                     id: 55,
@@ -1582,10 +1580,10 @@ function dealerQuoteInput(overrides = {}) {
                 }),
             },
         }, 10, 55);
-        (0, bun_test_1.expect)(document.grandTotal).toBe(150);
-        (0, bun_test_1.expect)(document.customerProfileId).toBe(40);
-        (0, bun_test_1.expect)(document.taxRate).toBe(8.25);
-        (0, bun_test_1.expect)(document.lineItems).toEqual([
+        expect(document.grandTotal).toBe(150);
+        expect(document.customerProfileId).toBe(40);
+        expect(document.taxRate).toBe(8.25);
+        expect(document.lineItems).toEqual([
             {
                 uid: "saved-line",
                 title: "Saved Door",
@@ -1599,7 +1597,7 @@ function dealerQuoteInput(overrides = {}) {
             },
         ]);
     });
-    (0, bun_test_1.it)("saves quotes with the selected dealer customer profile", async () => {
+    it("saves quotes with the selected dealer customer profile", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
             dealerProfile: {
@@ -1610,25 +1608,25 @@ function dealerQuoteInput(overrides = {}) {
                 defaultProfile: false,
             },
         });
-        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+        await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput({
             customerProfileId: 45,
         }));
-        (0, bun_test_1.expect)(testDb.getCreatedOrderData()).toMatchObject({
+        expect(testDb.getCreatedOrderData()).toMatchObject({
             dealerSalesProfileId: 45,
             grandTotal: 100,
         });
         const savedOrderData = testDb.getCreatedOrderData();
-        (0, bun_test_1.expect)(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
-        (0, bun_test_1.expect)(savedOrderData.meta).not.toHaveProperty("dealerPricing");
-        (0, bun_test_1.expect)(savedOrderData.meta).not.toHaveProperty("pricingSnapshot");
-        (0, bun_test_1.expect)(testDb.getDealerSalesData()).toMatchObject({
+        expect(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
+        expect(savedOrderData.meta).not.toHaveProperty("dealerPricing");
+        expect(savedOrderData.meta).not.toHaveProperty("pricingSnapshot");
+        expect(testDb.getDealerSalesData()).toMatchObject({
             dealerCustomerProfileId: 45,
             dealerSalesPercentage: 50,
             grandTotal: 150,
             dueAmount: 150,
         });
     });
-    (0, bun_test_1.it)("falls back to the dealer customer's assigned profile when quote profile is omitted", async () => {
+    it("falls back to the dealer customer's assigned profile when quote profile is omitted", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
             customerTypeId: 45,
@@ -1640,14 +1638,14 @@ function dealerQuoteInput(overrides = {}) {
                 defaultProfile: false,
             },
         });
-        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput());
-        (0, bun_test_1.expect)(testDb.getCreatedOrderData()).toMatchObject({
+        await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput());
+        expect(testDb.getCreatedOrderData()).toMatchObject({
             dealerSalesProfileId: 45,
         });
         const savedOrderData = testDb.getCreatedOrderData();
-        (0, bun_test_1.expect)(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
+        expect(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
     });
-    (0, bun_test_1.it)("falls back to dealership default profile, tax, and fulfillment on quote save", async () => {
+    it("falls back to dealership default profile, tax, and fulfillment on quote save", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
             customerTypeId: null,
@@ -1664,19 +1662,19 @@ function dealerQuoteInput(overrides = {}) {
                 defaultProfile: true,
             },
         });
-        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput());
+        await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput());
         const savedOrderData = testDb.getCreatedOrderData();
-        (0, bun_test_1.expect)(savedOrderData).toMatchObject({
+        expect(savedOrderData).toMatchObject({
             dealerSalesProfileId: 45,
             taxPercentage: 6,
         });
-        (0, bun_test_1.expect)(savedOrderData.meta.newSalesForm.form).toMatchObject({
+        expect(savedOrderData.meta.newSalesForm.form).toMatchObject({
             customerProfileId: 45,
             taxCode: "FL",
             deliveryOption: "delivery",
         });
     });
-    (0, bun_test_1.it)("keeps explicit quote customer tax and fulfillment over dealership defaults", async () => {
+    it("keeps explicit quote customer tax and fulfillment over dealership defaults", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
             customerTaxCode: "TX",
@@ -1685,20 +1683,20 @@ function dealerQuoteInput(overrides = {}) {
                 defaultFulfillmentMode: "delivery",
             },
         });
-        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+        await saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput({
             taxCode: "TX",
             deliveryOption: "ship",
         }));
         const savedOrderData = testDb.getCreatedOrderData();
-        (0, bun_test_1.expect)(savedOrderData).toMatchObject({
+        expect(savedOrderData).toMatchObject({
             taxPercentage: 8,
         });
-        (0, bun_test_1.expect)(savedOrderData.meta.newSalesForm.form).toMatchObject({
+        expect(savedOrderData.meta.newSalesForm.form).toMatchObject({
             taxCode: "TX",
             deliveryOption: "ship",
         });
     });
-    (0, bun_test_1.it)("rejects quote profiles not owned by the active dealer", async () => {
+    it("rejects quote profiles not owned by the active dealer", async () => {
         const testDb = createDealerQuoteTestDb({
             activeDppCount: 0,
             dealerProfile: {
@@ -1709,14 +1707,14 @@ function dealerQuoteInput(overrides = {}) {
                 defaultProfile: true,
             },
         });
-        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+        await expect(saveDealerPortalQuote(testDb.db, 10, dealerQuoteInput({
             customerProfileId: 99,
         }))).rejects.toThrow("Dealer customer profile is required before saving a quote.");
-        (0, bun_test_1.expect)(testDb.getCreatedOrderData()).toBeNull();
+        expect(testDb.getCreatedOrderData()).toBeNull();
     });
-    (0, bun_test_1.it)("scopes dealer order lists and keeps partial dispatches out of order-level fulfillment", async () => {
+    it("scopes dealer order lists and keeps partial dispatches out of order-level fulfillment", async () => {
         let capturedWhere = null;
-        const documents = await (0, dealers_1.getDealerPortalSalesDocuments)({
+        const documents = await getDealerPortalSalesDocuments({
             salesOrders: {
                 findMany: async ({ where }) => {
                     capturedWhere = where;
@@ -1821,28 +1819,28 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         }, 10, "order");
-        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+        expect(capturedWhere).toMatchObject({
             dealerAuthId: 10,
             deletedAt: null,
             type: { not: "quote" },
         });
-        (0, bun_test_1.expect)(documents[0]?.grandTotal).toBe(150);
-        (0, bun_test_1.expect)(documents[0]?.amountDue).toBe(150);
-        (0, bun_test_1.expect)(documents[0]?.officeAmountDue).toBeNull();
-        (0, bun_test_1.expect)(documents[0]?.deliveryOption).toBe("ship");
-        (0, bun_test_1.expect)(documents[0]?.fulfillmentStatus).toBe("preparing");
-        (0, bun_test_1.expect)(documents[1]?.fulfillmentStatus).toBe("ready");
-        (0, bun_test_1.expect)(documents[2]?.fulfillmentStatus).toBe("completed");
-        (0, bun_test_1.expect)(documents[3]?.fulfillmentStatus).toBe("preparing");
-        (0, bun_test_1.expect)("meta" in documents[0]).toBe(false);
-        (0, bun_test_1.expect)("deliveries" in documents[0]).toBe(false);
-        (0, bun_test_1.expect)("pickup" in documents[0]).toBe(false);
-        (0, bun_test_1.expect)("prodStatus" in documents[0]).toBe(false);
-        (0, bun_test_1.expect)("deliveredAt" in documents[0]).toBe(false);
+        expect(documents[0]?.grandTotal).toBe(150);
+        expect(documents[0]?.amountDue).toBe(150);
+        expect(documents[0]?.officeAmountDue).toBeNull();
+        expect(documents[0]?.deliveryOption).toBe("ship");
+        expect(documents[0]?.fulfillmentStatus).toBe("preparing");
+        expect(documents[1]?.fulfillmentStatus).toBe("ready");
+        expect(documents[2]?.fulfillmentStatus).toBe("completed");
+        expect(documents[3]?.fulfillmentStatus).toBe("preparing");
+        expect("meta" in documents[0]).toBe(false);
+        expect("deliveries" in documents[0]).toBe(false);
+        expect("pickup" in documents[0]).toBe(false);
+        expect("prodStatus" in documents[0]).toBe(false);
+        expect("deliveredAt" in documents[0]).toBe(false);
     });
-    (0, bun_test_1.it)("applies dealer sales list filters to dealer-owned records", async () => {
+    it("applies dealer sales list filters to dealer-owned records", async () => {
         let capturedWhere = null;
-        await (0, dealers_1.getDealerPortalSalesList)({
+        await getDealerPortalSalesList({
             salesOrders: {
                 findMany: async ({ where }) => {
                     capturedWhere = where;
@@ -1857,7 +1855,7 @@ function dealerQuoteInput(overrides = {}) {
             paymentStatus: "due",
             invoiceStatus: "pending",
         });
-        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+        expect(capturedWhere).toMatchObject({
             dealerAuthId: 10,
             deletedAt: null,
             dealerSale: {
@@ -1876,10 +1874,10 @@ function dealerQuoteInput(overrides = {}) {
             invoiceStatus: "pending",
         });
     });
-    (0, bun_test_1.it)("loads dealer customer overview with scoped sales counts", async () => {
+    it("loads dealer customer overview with scoped sales counts", async () => {
         let capturedCustomerWhere = null;
         let capturedSalesWhere = null;
-        const overview = await (0, dealers_1.getDealerPortalCustomerOverview)({
+        const overview = await getDealerPortalCustomerOverview({
             customers: {
                 findFirst: async ({ where }) => {
                     capturedCustomerWhere = where;
@@ -1917,12 +1915,12 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         }, 10, 20);
-        (0, bun_test_1.expect)(capturedCustomerWhere).toMatchObject({
+        expect(capturedCustomerWhere).toMatchObject({
             id: 20,
             dealerOwnerId: 10,
             deletedAt: null,
         });
-        (0, bun_test_1.expect)(capturedSalesWhere).toMatchObject({
+        expect(capturedSalesWhere).toMatchObject({
             dealerAuthId: 10,
             customerId: 20,
             deletedAt: null,
@@ -1930,18 +1928,18 @@ function dealerQuoteInput(overrides = {}) {
                 in: ["order", "quote"],
             },
         });
-        (0, bun_test_1.expect)(overview).toMatchObject({
+        expect(overview).toMatchObject({
             id: 20,
             formattedAddress: "100 Main St, Dallas, TX",
             ordersCount: 1,
             quotesCount: 2,
         });
-        (0, bun_test_1.expect)("meta" in overview).toBe(false);
+        expect("meta" in overview).toBe(false);
     });
-    (0, bun_test_1.it)("loads dealer customers with scoped sales and quote counts", async () => {
+    it("loads dealer customers with scoped sales and quote counts", async () => {
         let capturedCustomerWhere = null;
         let capturedSalesWhere = null;
-        const customers = await (0, dealers_1.getDealerPortalCustomers)({
+        const customers = await getDealerPortalCustomers({
             customers: {
                 findMany: async ({ where }) => {
                     capturedCustomerWhere = where;
@@ -1994,11 +1992,11 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         }, 10);
-        (0, bun_test_1.expect)(capturedCustomerWhere).toMatchObject({
+        expect(capturedCustomerWhere).toMatchObject({
             dealerOwnerId: 10,
             deletedAt: null,
         });
-        (0, bun_test_1.expect)(capturedSalesWhere).toMatchObject({
+        expect(capturedSalesWhere).toMatchObject({
             dealerAuthId: 10,
             deletedAt: null,
             customerId: {
@@ -2009,7 +2007,7 @@ function dealerQuoteInput(overrides = {}) {
             },
         });
         const customer = customers[0];
-        (0, bun_test_1.expect)(customer).toMatchObject({
+        expect(customer).toMatchObject({
             id: 20,
             formattedAddress: "100 Main St, Dallas, TX",
             ordersCount: 2,
@@ -2022,11 +2020,11 @@ function dealerQuoteInput(overrides = {}) {
                 salesPercentage: 20,
             },
         });
-        (0, bun_test_1.expect)("dealerOwnerId" in (customer?.profile || {})).toBe(false);
+        expect("dealerOwnerId" in (customer?.profile || {})).toBe(false);
     });
-    (0, bun_test_1.it)("rejects another dealer's customer overview", async () => {
+    it("rejects another dealer's customer overview", async () => {
         let grouped = false;
-        await (0, bun_test_1.expect)((0, dealers_1.getDealerPortalCustomerOverview)({
+        await expect(getDealerPortalCustomerOverview({
             customers: {
                 findFirst: async () => null,
             },
@@ -2037,9 +2035,9 @@ function dealerQuoteInput(overrides = {}) {
                 },
             },
         }, 10, 20)).rejects.toThrow("Dealer customer could not be found.");
-        (0, bun_test_1.expect)(grouped).toBe(false);
+        expect(grouped).toBe(false);
     });
-    (0, bun_test_1.it)("scopes quote conversion to the active dealer", async () => {
+    it("scopes quote conversion to the active dealer", async () => {
         let capturedWhere = null;
         const tx = {
             salesOrders: {
@@ -2055,8 +2053,8 @@ function dealerQuoteInput(overrides = {}) {
         const db = {
             $transaction: async (callback) => callback(tx),
         };
-        await (0, bun_test_1.expect)((0, dealers_1.convertDealerPortalQuoteToOrder)(db, 10, 55)).rejects.toThrow("Dealer quote could not be found.");
-        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+        await expect(convertDealerPortalQuoteToOrder(db, 10, 55)).rejects.toThrow("Dealer quote could not be found.");
+        expect(capturedWhere).toMatchObject({
             id: 55,
             dealerAuthId: 10,
             deletedAt: null,

@@ -234,7 +234,7 @@ function CustomSheetBase({
 				<div
 					data-slot="custom-sheet-surface"
 					className={cn(
-						"relative flex h-full w-full min-w-0 flex-col overflow-hidden border bg-[#FAFAF9] p-4 shadow-lg dark:bg-[#0C0C0C] md:rounded-[10px] md:p-6",
+						"relative flex h-full w-full min-w-0 flex-col overflow-hidden border bg-background p-4 shadow-lg md:rounded-[10px] md:p-6",
 						className,
 					)}
 				>

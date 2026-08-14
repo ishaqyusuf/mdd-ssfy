@@ -1,26 +1,24 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // @ts-expect-error packages/db typecheck does not include Bun test types.
-const bun_test_1 = require("bun:test");
-const short_links_1 = require("./short-links");
-(0, bun_test_1.describe)("short link helpers", () => {
-    (0, bun_test_1.it)("normalizes custom slugs to lowercase kebab-case", () => {
-        (0, bun_test_1.expect)((0, short_links_1.normalizeShortLinkSlug)("  Lorem Ipsum!!  ")).toBe("lorem-ipsum");
-        (0, bun_test_1.expect)((0, short_links_1.normalizeShortLinkSlug)("Invoice_123")).toBe("invoice-123");
+import { describe, expect, it } from "bun:test";
+import { buildShortUrl, createShortLink, findOrCreateShortLinkForTarget, isShortLinkExpired, normalizeShortLinkSlug, } from "./short-links";
+describe("short link helpers", () => {
+    it("normalizes custom slugs to lowercase kebab-case", () => {
+        expect(normalizeShortLinkSlug("  Lorem Ipsum!!  ")).toBe("lorem-ipsum");
+        expect(normalizeShortLinkSlug("Invoice_123")).toBe("invoice-123");
     });
-    (0, bun_test_1.it)("rejects empty and reserved slugs", () => {
-        (0, bun_test_1.expect)(() => (0, short_links_1.normalizeShortLinkSlug)("!!!")).toThrow("required");
-        (0, bun_test_1.expect)(() => (0, short_links_1.normalizeShortLinkSlug)("admin")).toThrow("reserved");
+    it("rejects empty and reserved slugs", () => {
+        expect(() => normalizeShortLinkSlug("!!!")).toThrow("required");
+        expect(() => normalizeShortLinkSlug("admin")).toThrow("reserved");
     });
-    (0, bun_test_1.it)("builds public /sh urls", () => {
-        (0, bun_test_1.expect)((0, short_links_1.buildShortUrl)("lorem-ipsum", "https://gndprodesk.com/")).toBe("https://gndprodesk.com/sh/lorem-ipsum");
+    it("builds public /sh urls", () => {
+        expect(buildShortUrl("lorem-ipsum", "https://gndprodesk.com/")).toBe("https://gndprodesk.com/sh/lorem-ipsum");
     });
-    (0, bun_test_1.it)("detects expired short links", () => {
-        (0, bun_test_1.expect)((0, short_links_1.isShortLinkExpired)(new Date(Date.now() - 1000))).toBe(true);
-        (0, bun_test_1.expect)((0, short_links_1.isShortLinkExpired)(new Date(Date.now() + 1000))).toBe(false);
-        (0, bun_test_1.expect)((0, short_links_1.isShortLinkExpired)(null)).toBe(false);
+    it("detects expired short links", () => {
+        expect(isShortLinkExpired(new Date(Date.now() - 1000))).toBe(true);
+        expect(isShortLinkExpired(new Date(Date.now() + 1000))).toBe(false);
+        expect(isShortLinkExpired(null)).toBe(false);
     });
-    (0, bun_test_1.it)("retries generated slug collisions", async () => {
+    it("retries generated slug collisions", async () => {
         let createCount = 0;
         const db = {
             shortLink: {
@@ -33,13 +31,13 @@ const short_links_1 = require("./short-links");
                 },
             },
         };
-        const link = await (0, short_links_1.createShortLink)(db, {
+        const link = await createShortLink(db, {
             targetUrl: "https://gndprodesk.com/p/sales-document-v2?token=abc",
         });
-        (0, bun_test_1.expect)(createCount).toBe(2);
-        (0, bun_test_1.expect)(link.targetUrl).toBe("https://gndprodesk.com/p/sales-document-v2?token=abc");
+        expect(createCount).toBe(2);
+        expect(link.targetUrl).toBe("https://gndprodesk.com/p/sales-document-v2?token=abc");
     });
-    (0, bun_test_1.it)("reuses active source links for repeated SMS targets", async () => {
+    it("reuses active source links for repeated SMS targets", async () => {
         const existing = {
             slug: "abc123",
             targetUrl: "https://gndprodesk.com/checkout/token/v2",
@@ -53,7 +51,7 @@ const short_links_1 = require("./short-links");
                 },
             },
         };
-        await (0, bun_test_1.expect)((0, short_links_1.findOrCreateShortLinkForTarget)(db, {
+        await expect(findOrCreateShortLinkForTarget(db, {
             targetUrl: existing.targetUrl,
             sourceType: "sms",
             sourceId: "payment-token-1",

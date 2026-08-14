@@ -1,7 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.modelSupportsField = modelSupportsField;
-exports.applyDefaultSoftDeleteFilter = applyDefaultSoftDeleteFilter;
 function getModelDelegate(client, model) {
     if (!client || typeof client !== "object" || !model) {
         return null;
@@ -13,11 +9,11 @@ function getModelDelegate(client, model) {
     }
     return delegate;
 }
-function modelSupportsField(client, model, field) {
+export function modelSupportsField(client, model, field) {
     const fields = getModelDelegate(client, model)?.fields;
     return Boolean(fields && Object.keys(fields).includes(field));
 }
-function applyDefaultSoftDeleteFilter(client, model, args) {
+export function applyDefaultSoftDeleteFilter(client, model, args) {
     if (!modelSupportsField(client, model, "deletedAt")) {
         return args;
     }

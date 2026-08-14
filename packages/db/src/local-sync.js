@@ -1,30 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.quoteIdent = quoteIdent;
-exports.buildCursorExpression = buildCursorExpression;
-exports.buildCursorWhereClause = buildCursorWhereClause;
-exports.buildKeysetWhereClause = buildKeysetWhereClause;
-exports.buildUpsertSql = buildUpsertSql;
-exports.normalizeUpsertValue = normalizeUpsertValue;
-exports.buildUpsertValues = buildUpsertValues;
-exports.classifyTable = classifyTable;
-exports.assertSafeConnections = assertSafeConnections;
-exports.redactDatabaseUrl = redactDatabaseUrl;
-exports.readState = readState;
-exports.writeState = writeState;
-exports.parseArgs = parseArgs;
-exports.parseEnvFile = parseEnvFile;
-exports.readFirstEnvValue = readFirstEnvValue;
-exports.resolveOptions = resolveOptions;
-exports.getTableManifest = getTableManifest;
-exports.syncDatabases = syncDatabases;
-exports.recoverFromDuplicateConflict = recoverFromDuplicateConflict;
-exports.buildDuplicateSkipReason = buildDuplicateSkipReason;
-exports.resetLocalTable = resetLocalTable;
-exports.isDuplicateKeyError = isDuplicateKeyError;
-const promises_1 = require("node:fs/promises");
-const node_path_1 = require("node:path");
-const client_1 = require("@prisma/client");
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { PrismaClient } from "@prisma/client";
 class DuplicateKeySyncError extends Error {
     context;
     constructor(context) {
@@ -42,13 +18,13 @@ const DEFAULT_INITIAL_CURSOR_VALUE = "2026-05-04 23:59:59.999";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "mysql"]);
 const DUPLICATE_POLICIES = new Set(["prompt", "ignore", "reset", "cancel"]);
 const TARGET_MODES = new Set(["local", "preview"]);
-function quoteIdent(identifier) {
+export function quoteIdent(identifier) {
     return `\`${identifier.replaceAll("`", "``")}\``;
 }
-function buildCursorExpression(cursorColumns) {
+export function buildCursorExpression(cursorColumns) {
     return `COALESCE(${[...cursorColumns.map(quoteIdent), "'1000-01-01 00:00:00.000'"].join(", ")})`;
 }
-function buildCursorWhereClause(cursorExpression, keyColumns, cursor) {
+export function buildCursorWhereClause(cursorExpression, keyColumns, cursor) {
     if (!cursor?.cursorValue) {
         return { sql: "", params: [] };
     }
@@ -71,7 +47,7 @@ function buildCursorWhereClause(cursorExpression, keyColumns, cursor) {
         params,
     };
 }
-function buildKeysetWhereClause(keyColumns, keyValues, cursorExpression, minCursorValue) {
+export function buildKeysetWhereClause(keyColumns, keyValues, cursorExpression, minCursorValue) {
     if ((!keyValues || keyColumns.length === 0) && (!cursorExpression || !minCursorValue)) {
         return { sql: "", params: [] };
     }
@@ -102,7 +78,7 @@ function buildKeysetWhereClause(keyColumns, keyValues, cursorExpression, minCurs
         params,
     };
 }
-function buildUpsertSql(table, columns, keyColumns, rowCount) {
+export function buildUpsertSql(table, columns, keyColumns, rowCount) {
     if (rowCount < 1) {
         throw new Error("rowCount must be greater than zero");
     }
@@ -112,16 +88,16 @@ function buildUpsertSql(table, columns, keyColumns, rowCount) {
     const updates = columns.map((column) => `${quoteIdent(column)} = VALUES(${quoteIdent(column)})`).join(", ");
     return `INSERT INTO ${quoteIdent(table)} (${columnList}) VALUES ${placeholders} ON DUPLICATE KEY UPDATE ${updates}`;
 }
-function normalizeUpsertValue(value) {
+export function normalizeUpsertValue(value) {
     if (Array.isArray(value) || isPlainObject(value)) {
         return JSON.stringify(value);
     }
     return value;
 }
-function buildUpsertValues(columns, rows) {
+export function buildUpsertValues(columns, rows) {
     return rows.flatMap((row) => columns.map((column) => normalizeUpsertValue(row[column])));
 }
-function classifyTable(input) {
+export function classifyTable(input) {
     const hasUpdatedAt = input.columns.includes("updatedAt");
     const hasCreatedAt = input.columns.includes("createdAt");
     if (input.keyColumns.length === 0) {
@@ -172,7 +148,7 @@ function classifyTable(input) {
         reason: "No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.",
     };
 }
-function assertSafeConnections(sourceUrl, targetUrl, options = {}) {
+export function assertSafeConnections(sourceUrl, targetUrl, options = {}) {
     const source = new URL(sourceUrl);
     const target = new URL(targetUrl);
     const sourceDatabase = source.pathname.replace(/^\//, "");
@@ -211,7 +187,7 @@ function isPlanetScaleHostname(hostname) {
     const normalized = hostname.toLowerCase();
     return normalized === "psdb.cloud" || normalized.endsWith(".psdb.cloud");
 }
-function redactDatabaseUrl(databaseUrl) {
+export function redactDatabaseUrl(databaseUrl) {
     try {
         const parsed = new URL(databaseUrl);
         const credentials = parsed.username || parsed.password ? "<redacted>@" : "";
@@ -221,9 +197,9 @@ function redactDatabaseUrl(databaseUrl) {
         return "<invalid database URL>";
     }
 }
-async function readState(stateFile) {
+export async function readState(stateFile) {
     try {
-        const raw = await (0, promises_1.readFile)(stateFile, "utf8");
+        const raw = await readFile(stateFile, "utf8");
         const parsed = JSON.parse(raw);
         return {
             version: 1,
@@ -238,11 +214,11 @@ async function readState(stateFile) {
         throw error;
     }
 }
-async function writeState(stateFile, state) {
-    await (0, promises_1.mkdir)((0, node_path_1.dirname)(stateFile), { recursive: true });
-    await (0, promises_1.writeFile)(stateFile, `${JSON.stringify({ ...state, updatedAt: new Date().toISOString() }, null, 2)}\n`, "utf8");
+export async function writeState(stateFile, state) {
+    await mkdir(dirname(stateFile), { recursive: true });
+    await writeFile(stateFile, `${JSON.stringify({ ...state, updatedAt: new Date().toISOString() }, null, 2)}\n`, "utf8");
 }
-function parseArgs(argv) {
+export function parseArgs(argv) {
     const parsed = {};
     for (let index = 0; index < argv.length; index += 1) {
         const arg = argv[index];
@@ -316,7 +292,7 @@ function parseArgs(argv) {
     }
     return parsed;
 }
-function parseEnvFile(text) {
+export function parseEnvFile(text) {
     const values = {};
     for (const line of text.split(/\r?\n/)) {
         const trimmed = line.trim();
@@ -335,10 +311,10 @@ function parseEnvFile(text) {
     }
     return values;
 }
-async function readFirstEnvValue(files, keys) {
+export async function readFirstEnvValue(files, keys) {
     for (const file of files) {
         try {
-            const env = parseEnvFile(await (0, promises_1.readFile)(file, "utf8"));
+            const env = parseEnvFile(await readFile(file, "utf8"));
             for (const key of keys) {
                 if (env[key]) {
                     return env[key];
@@ -353,14 +329,14 @@ async function readFirstEnvValue(files, keys) {
     }
     return undefined;
 }
-async function resolveOptions(argv, cwd = process.cwd()) {
+export async function resolveOptions(argv, cwd = process.cwd()) {
     const parsed = parseArgs(argv);
-    const repoRoot = cwd.endsWith("packages/db") ? (0, node_path_1.resolve)(cwd, "../..") : cwd;
+    const repoRoot = cwd.endsWith("packages/db") ? resolve(cwd, "../..") : cwd;
     const targetMode = parsed.targetMode ?? normalizeTargetMode(process.env.GND_DB_SYNC_TARGET_MODE ?? "local");
     const sourceUrl = parsed.sourceUrl ??
-        (await readFirstEnvValue([(0, node_path_1.resolve)(repoRoot, ".env.production")], ["DATABASE_URL"]));
+        (await readFirstEnvValue([resolve(repoRoot, ".env.production")], ["DATABASE_URL"]));
     const targetUrl = await resolveTargetUrl(parsed.targetUrl, targetMode, repoRoot);
-    const stateFile = parsed.stateFile ?? (0, node_path_1.resolve)(repoRoot, ".local-db-sync", targetMode, "state.json");
+    const stateFile = parsed.stateFile ?? resolve(repoRoot, ".local-db-sync", targetMode, "state.json");
     if (parsed.help) {
         return {
             sourceUrl: sourceUrl ?? "",
@@ -406,9 +382,9 @@ async function resolveTargetUrl(parsedTargetUrl, targetMode, repoRoot) {
         return parsedTargetUrl;
     }
     if (targetMode === "preview") {
-        return readFirstEnvValue([(0, node_path_1.resolve)(repoRoot, ".env.preview")], ["DATABASE_URL"]);
+        return readFirstEnvValue([resolve(repoRoot, ".env.preview")], ["DATABASE_URL"]);
     }
-    return readFirstEnvValue([(0, node_path_1.resolve)(repoRoot, ".env.local")], ["DATABASE_URL"]);
+    return readFirstEnvValue([resolve(repoRoot, ".env.local")], ["DATABASE_URL"]);
 }
 function normalizeTargetMode(value) {
     if (TARGET_MODES.has(value)) {
@@ -416,7 +392,7 @@ function normalizeTargetMode(value) {
     }
     throw new Error(`Invalid target mode: ${value}. Expected local or preview.`);
 }
-async function getTableManifest(db, refreshStatic, tableFilter) {
+export async function getTableManifest(db, refreshStatic, tableFilter) {
     const tables = await db.$queryRaw `
 		SELECT TABLE_NAME AS table_name
 		FROM INFORMATION_SCHEMA.TABLES
@@ -545,12 +521,12 @@ async function getBestKeyColumns(db, table) {
         ?.sort((left, right) => Number(left.seq_in_index) - Number(right.seq_in_index))
         .map((row) => row.column_name) ?? [];
 }
-async function syncDatabases(options) {
+export async function syncDatabases(options) {
     assertSafeConnections(options.sourceUrl, options.targetUrl, {
         targetMode: options.targetMode,
     });
-    const source = new client_1.PrismaClient({ datasources: { db: { url: options.sourceUrl } } });
-    const target = options.dryRun ? undefined : new client_1.PrismaClient({ datasources: { db: { url: options.targetUrl } } });
+    const source = new PrismaClient({ datasources: { db: { url: options.sourceUrl } } });
+    const target = options.dryRun ? undefined : new PrismaClient({ datasources: { db: { url: options.targetUrl } } });
     const reports = [];
     const state = await readState(options.stateFile);
     const resetAttempts = new Set();
@@ -627,7 +603,7 @@ async function syncDatabases(options) {
     }
     return reports;
 }
-async function recoverFromDuplicateConflict(input) {
+export async function recoverFromDuplicateConflict(input) {
     const action = await resolveDuplicateConflictAction(input.context, input.options);
     if (action === "ignore") {
         return {
@@ -666,10 +642,10 @@ async function resolveDuplicateConflictAction(context, options) {
     }
     return options.onDuplicate === "prompt" ? "cancel" : options.onDuplicate;
 }
-function buildDuplicateSkipReason(context) {
+export function buildDuplicateSkipReason(context) {
     return `Skipped after duplicate-key conflict: ${context.message}`;
 }
-async function resetLocalTable(target, table) {
+export async function resetLocalTable(target, table) {
     await target.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 0");
     try {
         await target.$executeRawUnsafe(`DELETE FROM ${quoteIdent(table)}`);
@@ -860,7 +836,7 @@ function isSortMemoryError(error) {
     const message = error instanceof Error ? error.message : String(error);
     return message.includes("Code: `1038`") || message.includes("Out of sort memory");
 }
-function isDuplicateKeyError(error) {
+export function isDuplicateKeyError(error) {
     const code = getErrorField(error, "code");
     const meta = getErrorField(error, "meta");
     const metaCode = meta?.code;

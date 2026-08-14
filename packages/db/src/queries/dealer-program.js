@@ -1,33 +1,9 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DealerProgramInvitationError = void 0;
-exports.buildOfficeCustomerVisibilityWhere = buildOfficeCustomerVisibilityWhere;
-exports.isDealerRecruitmentCandidate = isDealerRecruitmentCandidate;
-exports.hashDealerProgramInvitationToken = hashDealerProgramInvitationToken;
-exports.createDealerProgramInvitationToken = createDealerProgramInvitationToken;
-exports.campaignIsInWindow = campaignIsInWindow;
-exports.getDealerInvitationRetryAt = getDealerInvitationRetryAt;
-exports.resolveDealerPartnershipSummary = resolveDealerPartnershipSummary;
-exports.resolveDealerRecruitmentBanner = resolveDealerRecruitmentBanner;
-exports.markDealerRecruitmentInvitationDelivered = markDealerRecruitmentInvitationDelivered;
-exports.markDealerRecruitmentInvitationDelivery = markDealerRecruitmentInvitationDelivery;
-exports.getDealerPartnershipSummaries = getDealerPartnershipSummaries;
-exports.sendDirectDealerProgramInvitation = sendDirectDealerProgramInvitation;
-exports.listDealerRecruitmentCampaigns = listDealerRecruitmentCampaigns;
-exports.saveDealerRecruitmentCampaign = saveDealerRecruitmentCampaign;
-exports.setDealerRecruitmentCampaignStatus = setDealerRecruitmentCampaignStatus;
-exports.getDealerProgramInvitation = getDealerProgramInvitation;
-exports.submitDealerProgramApplication = submitDealerProgramApplication;
-exports.listDealerProgramApplications = listDealerProgramApplications;
-exports.decideDealerProgramApplication = decideDealerProgramApplication;
-exports.resetDealerProgramApplicationSuppression = resetDealerProgramApplicationSuppression;
-exports.setDealerAccountSuspension = setDealerAccountSuspension;
-const node_crypto_1 = require("node:crypto");
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 const INVITATION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const INVITATION_RESEND_DELAY_MS = 24 * 60 * 60 * 1000;
 const INVITATION_PENDING_STALE_MS = 10 * 60 * 1000;
 const INVITATION_SEND_LEASE_MS = 5 * 60 * 1000;
-class DealerProgramInvitationError extends Error {
+export class DealerProgramInvitationError extends Error {
     code;
     constructor(message, code) {
         super(message);
@@ -35,8 +11,7 @@ class DealerProgramInvitationError extends Error {
         this.name = "DealerProgramInvitationError";
     }
 }
-exports.DealerProgramInvitationError = DealerProgramInvitationError;
-function buildOfficeCustomerVisibilityWhere() {
+export function buildOfficeCustomerVisibilityWhere() {
     return {
         OR: [{ dealerOwnerId: null }, { officeVisibility: "SHARED" }],
     };
@@ -48,7 +23,7 @@ function validEmail(value) {
     const email = normalizedEmail(value);
     return email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
 }
-function isDealerRecruitmentCandidate(input) {
+export function isDealerRecruitmentCandidate(input) {
     const customerEmail = validEmail(input.customerEmail);
     const recipientEmail = validEmail(input.recipientEmail);
     return Boolean(input.customerId &&
@@ -60,17 +35,17 @@ function isDealerRecruitmentCandidate(input) {
         !input.hasActiveApplicationSuppression &&
         input.audienceMatches);
 }
-function hashDealerProgramInvitationToken(token) {
-    return (0, node_crypto_1.createHash)("sha256").update(token).digest("hex");
+export function hashDealerProgramInvitationToken(token) {
+    return createHash("sha256").update(token).digest("hex");
 }
-function createDealerProgramInvitationToken() {
-    return (0, node_crypto_1.randomBytes)(32).toString("base64url");
+export function createDealerProgramInvitationToken() {
+    return randomBytes(32).toString("base64url");
 }
-function campaignIsInWindow(campaign, now) {
+export function campaignIsInWindow(campaign, now) {
     return ((!campaign.startsAt || campaign.startsAt <= now) &&
         (!campaign.endsAt || campaign.endsAt >= now));
 }
-function getDealerInvitationRetryAt(invitation, now = new Date()) {
+export function getDealerInvitationRetryAt(invitation, now = new Date()) {
     if (invitation.deliveryStatus === "FAILED" ||
         invitation.deliveryStatus === "SKIPPED") {
         return null;
@@ -102,7 +77,7 @@ const partnershipLabels = {
     DEALER_SUSPENDED: "Dealer suspended",
     DEALER_RESTRICTED: "Dealer restricted",
 };
-function resolveDealerPartnershipSummary(input) {
+export function resolveDealerPartnershipSummary(input) {
     const now = input.now || new Date();
     const effectiveCampaign = input.activeCampaign &&
         input.activeCampaign.status === "ACTIVE" &&
@@ -232,7 +207,7 @@ function resolveDealerPartnershipSummary(input) {
         dealer: input.dealer || null,
     };
 }
-async function resolveDealerRecruitmentBanner(db, input) {
+export async function resolveDealerRecruitmentBanner(db, input) {
     const now = input.now ?? new Date();
     const [campaign, customer, activeApplication] = await Promise.all([
         db.dealerRecruitmentCampaign.findFirst({
@@ -350,7 +325,7 @@ async function resolveDealerRecruitmentBanner(db, input) {
         url: `${input.baseUrl.replace(/\/$/, "")}/dealer-program/${encodeURIComponent(rawToken)}`,
     };
 }
-async function markDealerRecruitmentInvitationDelivered(db, invitationId, deliveredAt = new Date()) {
+export async function markDealerRecruitmentInvitationDelivered(db, invitationId, deliveredAt = new Date()) {
     return markDealerRecruitmentInvitationDelivery(db, invitationId, {
         status: "SENT",
         attemptedAt: deliveredAt,
@@ -364,7 +339,7 @@ function sanitizeDeliveryFailure(value) {
         .trim()
         .slice(0, 1000) || null);
 }
-async function markDealerRecruitmentInvitationDelivery(db, invitationId, result) {
+export async function markDealerRecruitmentInvitationDelivery(db, invitationId, result) {
     const attemptedAt = result.attemptedAt || new Date();
     return db.dealerRecruitmentInvitation.updateMany({
         where: {
@@ -385,7 +360,7 @@ async function markDealerRecruitmentInvitationDelivery(db, invitationId, result)
         },
     });
 }
-async function getDealerPartnershipSummaries(db, customers, input) {
+export async function getDealerPartnershipSummaries(db, customers, input) {
     if (!customers.length)
         return new Map();
     const now = input.now || new Date();
@@ -504,9 +479,9 @@ async function getDealerPartnershipSummaries(db, customers, input) {
         }),
     ]));
 }
-async function sendDirectDealerProgramInvitation(db, actorId, input, deliver) {
+export async function sendDirectDealerProgramInvitation(db, actorId, input, deliver) {
     const now = input.now || new Date();
-    const leaseId = (0, node_crypto_1.randomUUID)();
+    const leaseId = randomUUID();
     const leaseExpiresAt = new Date(now.getTime() + INVITATION_SEND_LEASE_MS);
     await db.dealerRecruitmentCustomerState.upsert({
         where: { customerId: input.customerId },
@@ -682,7 +657,7 @@ async function sendDirectDealerProgramInvitation(db, actorId, input, deliver) {
         });
     }
 }
-async function listDealerRecruitmentCampaigns(db) {
+export async function listDealerRecruitmentCampaigns(db) {
     return db.dealerRecruitmentCampaign.findMany({
         where: { deletedAt: null },
         orderBy: { createdAt: "desc" },
@@ -707,7 +682,7 @@ async function listDealerRecruitmentCampaigns(db) {
         },
     });
 }
-async function saveDealerRecruitmentCampaign(db, actorId, input) {
+export async function saveDealerRecruitmentCampaign(db, actorId, input) {
     if (input.startsAt && input.endsAt && input.startsAt >= input.endsAt) {
         throw new Error("Campaign end date must be after its start date.");
     }
@@ -762,7 +737,7 @@ async function saveDealerRecruitmentCampaign(db, actorId, input) {
         return campaign;
     }, { isolationLevel: "Serializable" });
 }
-async function setDealerRecruitmentCampaignStatus(db, actorId, input) {
+export async function setDealerRecruitmentCampaignStatus(db, actorId, input) {
     return db.$transaction(async (tx) => {
         const campaign = await tx.dealerRecruitmentCampaign.findFirst({
             where: { id: input.id, deletedAt: null },
@@ -793,7 +768,7 @@ async function setDealerRecruitmentCampaignStatus(db, actorId, input) {
         });
     }, { isolationLevel: "Serializable" });
 }
-async function getDealerProgramInvitation(db, rawToken, input = {}) {
+export async function getDealerProgramInvitation(db, rawToken, input = {}) {
     const now = input.now || new Date();
     const invitation = await db.dealerRecruitmentInvitation.findFirst({
         where: {
@@ -890,7 +865,7 @@ async function getDealerProgramInvitation(db, rawToken, input = {}) {
         expiresAt: invitation.expiresAt,
     };
 }
-async function submitDealerProgramApplication(db, rawToken) {
+export async function submitDealerProgramApplication(db, rawToken) {
     const tokenHash = hashDealerProgramInvitationToken(rawToken);
     const now = new Date();
     return db.$transaction(async (tx) => {
@@ -962,7 +937,7 @@ async function submitDealerProgramApplication(db, rawToken) {
         return { application, created: true };
     }, { isolationLevel: "Serializable" });
 }
-async function listDealerProgramApplications(db) {
+export async function listDealerProgramApplications(db) {
     const applications = await db.dealerProgramApplication.findMany({
         where: { deletedAt: null },
         orderBy: { submittedAt: "desc" },
@@ -990,7 +965,7 @@ async function listDealerProgramApplications(db) {
         customer: byId.get(application.customerId) || null,
     }));
 }
-async function decideDealerProgramApplication(db, actorId, input) {
+export async function decideDealerProgramApplication(db, actorId, input) {
     return db.$transaction(async (tx) => {
         const application = await tx.dealerProgramApplication.findFirst({
             where: { id: input.id, deletedAt: null },
@@ -1077,7 +1052,7 @@ async function decideDealerProgramApplication(db, actorId, input) {
             where: { dealerId: dealer.id, consumedAt: null },
             data: { consumedAt: new Date() },
         });
-        const onboardingToken = (0, node_crypto_1.randomUUID)();
+        const onboardingToken = randomUUID();
         await tx.dealerToken.create({
             data: {
                 dealerId: dealer.id,
@@ -1112,7 +1087,7 @@ async function decideDealerProgramApplication(db, actorId, input) {
         };
     }, { isolationLevel: "Serializable" });
 }
-async function resetDealerProgramApplicationSuppression(db, actorId, input) {
+export async function resetDealerProgramApplicationSuppression(db, actorId, input) {
     return db.dealerProgramApplication.update({
         where: { id: input.id },
         data: {
@@ -1122,7 +1097,7 @@ async function resetDealerProgramApplicationSuppression(db, actorId, input) {
         },
     });
 }
-async function setDealerAccountSuspension(db, actorId, input) {
+export async function setDealerAccountSuspension(db, actorId, input) {
     return db.$transaction(async (tx) => {
         const dealer = await tx.dealerAuth.findFirst({
             where: { id: input.dealerId, deletedAt: null },

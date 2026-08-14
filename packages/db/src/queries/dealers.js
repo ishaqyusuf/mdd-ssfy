@@ -1,53 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DealerQuoteEditLockedError = exports.DEALER_ORDER_REQUEST_TYPE = void 0;
-exports.getDealerQuoteEditLock = getDealerQuoteEditLock;
-exports.getDealers = getDealers;
-exports.getDealersCount = getDealersCount;
-exports.searchDealerCustomerCandidates = searchDealerCustomerCandidates;
-exports.updateDealerSalesProfile = updateDealerSalesProfile;
-exports.createDealerAccount = createDealerAccount;
-exports.resendDealerOnboardingInvite = resendDealerOnboardingInvite;
-exports.getDealerOnboardingInvite = getDealerOnboardingInvite;
-exports.getDealerByAuthUserId = getDealerByAuthUserId;
-exports.getActiveDealerByAuthUserId = getActiveDealerByAuthUserId;
-exports.getDealerPortalDashboard = getDealerPortalDashboard;
-exports.getDealerPortalCustomers = getDealerPortalCustomers;
-exports.getDealerPortalCustomer = getDealerPortalCustomer;
-exports.getDealerPortalCustomerOverview = getDealerPortalCustomerOverview;
-exports.getDealerPortalSalesList = getDealerPortalSalesList;
-exports.getDealerPortalCustomersList = getDealerPortalCustomersList;
-exports.saveDealerPortalCustomer = saveDealerPortalCustomer;
-exports.deleteDealerPortalCustomer = deleteDealerPortalCustomer;
-exports.updateDealerPortalCustomerOfficeVisibility = updateDealerPortalCustomerOfficeVisibility;
-exports.getDealerPortalSalesProfiles = getDealerPortalSalesProfiles;
-exports.getDealerOfficeSalesProfiles = getDealerOfficeSalesProfiles;
-exports.getDealerPortalPrimarySalesProfile = getDealerPortalPrimarySalesProfile;
-exports.getDealerPortalInternalSalesProfile = getDealerPortalInternalSalesProfile;
-exports.saveDealerPortalSalesProfile = saveDealerPortalSalesProfile;
-exports.getDealerPortalSalesDocuments = getDealerPortalSalesDocuments;
-exports.getDealerPortalSalesDocument = getDealerPortalSalesDocument;
-exports.updateDealerPortalCustomerPayment = updateDealerPortalCustomerPayment;
-exports.validateDealerPortalQuoteVisibility = validateDealerPortalQuoteVisibility;
-exports.calculateDealerQuotePricing = calculateDealerQuotePricing;
-exports.calculateDealerApprovalPricing = calculateDealerApprovalPricing;
-exports.mergeDealerApprovalDeliveryMeta = mergeDealerApprovalDeliveryMeta;
-exports.saveDealerPortalQuote = saveDealerPortalQuote;
-exports.convertDealerPortalQuoteToOrder = convertDealerPortalQuoteToOrder;
-exports.requestDealerPortalQuoteOrder = requestDealerPortalQuoteOrder;
-exports.getDealerOrderRequestCount = getDealerOrderRequestCount;
-exports.assertDealerSaleOfficeAccess = assertDealerSaleOfficeAccess;
-exports.getDealerRequestSla = getDealerRequestSla;
-exports.summarizeDealerRequestSla = summarizeDealerRequestSla;
-exports.getDealerOrderRequestAnalytics = getDealerOrderRequestAnalytics;
-exports.getDealerOrderRequests = getDealerOrderRequests;
-exports.getDealerOrderRequest = getDealerOrderRequest;
-exports.approveDealerOrderRequest = approveDealerOrderRequest;
-exports.rejectDealerOrderRequest = rejectDealerOrderRequest;
-exports.getDealerPortalSettings = getDealerPortalSettings;
-exports.saveDealerPortalSettings = saveDealerPortalSettings;
-exports.completeDealerOnboarding = completeDealerOnboarding;
-const format_1 = require("@gnd/utils/format");
+import { formatUSPhoneNumber } from "@gnd/utils/format";
 const dealerFulfillmentModes = new Set(["pickup", "delivery", "ship"]);
 function normalizeDealerDefaultFulfillmentMode(value) {
     return typeof value === "string" && dealerFulfillmentModes.has(value)
@@ -68,8 +19,8 @@ function getDealerDefaultsFromMeta(meta) {
         defaultFulfillmentMode: normalizeDealerDefaultFulfillmentMode(objectMeta.defaultFulfillmentMode),
     };
 }
-exports.DEALER_ORDER_REQUEST_TYPE = "make_order";
-function getDealerQuoteEditLock(status) {
+export const DEALER_ORDER_REQUEST_TYPE = "make_order";
+export function getDealerQuoteEditLock(status) {
     if (status === "pending") {
         return {
             locked: true,
@@ -93,7 +44,7 @@ function getDealerQuoteEditLock(status) {
         reason: null,
     };
 }
-class DealerQuoteEditLockedError extends Error {
+export class DealerQuoteEditLockedError extends Error {
     requestStatus;
     code = "DEALER_QUOTE_EDIT_LOCKED";
     constructor(requestStatus, reason) {
@@ -102,7 +53,6 @@ class DealerQuoteEditLockedError extends Error {
         this.name = "DealerQuoteEditLockedError";
     }
 }
-exports.DealerQuoteEditLockedError = DealerQuoteEditLockedError;
 function getObjectMeta(meta) {
     return meta && typeof meta === "object" && !Array.isArray(meta)
         ? meta
@@ -197,7 +147,7 @@ function dealerSearchWhere(search) {
         ],
     };
 }
-async function getDealers(db, input = {}) {
+export async function getDealers(db, input = {}) {
     return db.dealerAuth.findMany({
         where: {
             ...dealerSearchWhere(input.search),
@@ -237,7 +187,7 @@ async function getDealers(db, input = {}) {
         },
     });
 }
-async function getDealersCount(db, input = {}) {
+export async function getDealersCount(db, input = {}) {
     return db.dealerAuth.count({
         where: {
             ...dealerSearchWhere(input.search),
@@ -245,7 +195,7 @@ async function getDealersCount(db, input = {}) {
         },
     });
 }
-async function searchDealerCustomerCandidates(db, input = {}) {
+export async function searchDealerCustomerCandidates(db, input = {}) {
     const query = input.query?.trim();
     return db.customers.findMany({
         where: query
@@ -278,7 +228,7 @@ async function searchDealerCustomerCandidates(db, input = {}) {
         },
     });
 }
-async function updateDealerSalesProfile(db, input) {
+export async function updateDealerSalesProfile(db, input) {
     return db.$transaction(async (tx) => {
         const [dealer, profile] = await Promise.all([
             tx.dealerAuth.findFirst({
@@ -380,7 +330,7 @@ async function updateDealerSalesProfile(db, input) {
         };
     });
 }
-async function createDealerAccount(db, input) {
+export async function createDealerAccount(db, input) {
     const email = input.email.trim().toLowerCase();
     const name = input.name?.trim() || null;
     const token = crypto.randomUUID();
@@ -472,7 +422,7 @@ async function createDealerAccount(db, input) {
         };
     });
 }
-async function resendDealerOnboardingInvite(db, input) {
+export async function resendDealerOnboardingInvite(db, input) {
     const token = crypto.randomUUID();
     const expiredAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
     return db.$transaction(async (tx) => {
@@ -550,7 +500,7 @@ async function resendDealerOnboardingInvite(db, input) {
         };
     });
 }
-async function getDealerOnboardingInvite(db, token) {
+export async function getDealerOnboardingInvite(db, token) {
     return db.dealerToken.findFirst({
         where: {
             token,
@@ -575,7 +525,7 @@ async function getDealerOnboardingInvite(db, token) {
         },
     });
 }
-async function getDealerByAuthUserId(db, authUserId) {
+export async function getDealerByAuthUserId(db, authUserId) {
     return db.dealerAuth.findUnique({
         where: {
             authUserId,
@@ -602,7 +552,7 @@ async function getDealerByAuthUserId(db, authUserId) {
         },
     });
 }
-async function getActiveDealerByAuthUserId(db, authUserId) {
+export async function getActiveDealerByAuthUserId(db, authUserId) {
     const dealer = await getDealerByAuthUserId(db, authUserId);
     if (!dealer || dealer.deletedAt || dealer.restricted) {
         return null;
@@ -611,7 +561,7 @@ async function getActiveDealerByAuthUserId(db, authUserId) {
         ? dealer
         : null;
 }
-async function getDealerPortalDashboard(db, dealerId) {
+export async function getDealerPortalDashboard(db, dealerId) {
     const [openQuotes, activeOrders, customers, salesProfiles, pendingRequests, orderTotals, recentQuotes, recentOrders, recentRequests,] = await Promise.all([
         db.salesOrders.count({
             where: {
@@ -643,7 +593,7 @@ async function getDealerPortalDashboard(db, dealerId) {
         }),
         db.dealerSalesRequest.count({
             where: {
-                request: exports.DEALER_ORDER_REQUEST_TYPE,
+                request: DEALER_ORDER_REQUEST_TYPE,
                 status: "pending",
                 deletedAt: null,
                 sale: {
@@ -703,7 +653,7 @@ async function getDealerPortalDashboard(db, dealerId) {
         }),
         db.dealerSalesRequest.findMany({
             where: {
-                request: exports.DEALER_ORDER_REQUEST_TYPE,
+                request: DEALER_ORDER_REQUEST_TYPE,
                 deletedAt: null,
                 sale: {
                     dealerAuthId: dealerId,
@@ -815,7 +765,7 @@ function mapDealerDashboardSale(sale) {
         customerName: customerName(sale.customer),
     };
 }
-async function getDealerPortalCustomers(db, dealerId) {
+export async function getDealerPortalCustomers(db, dealerId) {
     const customers = await db.customers.findMany({
         where: {
             dealerOwnerId: dealerId,
@@ -908,7 +858,7 @@ async function getDealerSalesCountsByCustomer(db, dealerId, customerIds) {
     }
     return salesCountsByCustomer;
 }
-async function getDealerPortalCustomer(db, dealerId, id) {
+export async function getDealerPortalCustomer(db, dealerId, id) {
     const customer = await db.customers.findFirst({
         where: {
             id,
@@ -960,7 +910,7 @@ async function getDealerPortalCustomer(db, dealerId, id) {
         ...getDealerCustomerTaxProfile(customer),
     };
 }
-async function getDealerPortalCustomerOverview(db, dealerId, id) {
+export async function getDealerPortalCustomerOverview(db, dealerId, id) {
     const customer = await db.customers.findFirst({
         where: {
             id,
@@ -1054,8 +1004,8 @@ function getDealerSalesListWhere(dealerId, type, input = {}) {
     const invoiceStatus = input.invoiceStatus?.trim();
     const paymentStatus = input.paymentStatus || input.amountDue || null;
     const customerSearch = customerName || undefined;
-    const phoneSearch = phone ? (0, format_1.formatUSPhoneNumber)(phone) : undefined;
-    const searchPhone = search ? (0, format_1.formatUSPhoneNumber)(search) : undefined;
+    const phoneSearch = phone ? formatUSPhoneNumber(phone) : undefined;
+    const searchPhone = search ? formatUSPhoneNumber(search) : undefined;
     const dealerSaleFilters = {
         ...(customerId ? { customerId } : {}),
         ...(customerProfileId
@@ -1227,7 +1177,7 @@ function nullableFiniteNumber(value) {
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
 }
-async function getDealerPortalSalesList(db, dealerId, type, input = {}) {
+export async function getDealerPortalSalesList(db, dealerId, type, input = {}) {
     const size = Math.min(Math.max(Number(input.size || 25), 1), 100);
     const cursor = Number(input.cursor || 0);
     const where = getDealerSalesListWhere(dealerId, type, input);
@@ -1275,7 +1225,7 @@ async function getDealerPortalSalesList(db, dealerId, type, input = {}) {
                 },
                 requests: {
                     where: {
-                        request: exports.DEALER_ORDER_REQUEST_TYPE,
+                        request: DEALER_ORDER_REQUEST_TYPE,
                         deletedAt: null,
                     },
                     orderBy: {
@@ -1308,9 +1258,9 @@ async function getDealerPortalSalesList(db, dealerId, type, input = {}) {
 function getDealerCustomersListWhere(dealerId, input = {}) {
     const search = input.q?.trim();
     const customerName = input["customer.name"]?.trim();
-    const phone = input.phone ? (0, format_1.formatUSPhoneNumber)(input.phone) : undefined;
+    const phone = input.phone ? formatUSPhoneNumber(input.phone) : undefined;
     const profile = input.profile?.trim();
-    const searchPhone = search ? (0, format_1.formatUSPhoneNumber)(search) : undefined;
+    const searchPhone = search ? formatUSPhoneNumber(search) : undefined;
     return {
         dealerOwnerId: dealerId,
         deletedAt: null,
@@ -1353,7 +1303,7 @@ function getDealerCustomersListWhere(dealerId, input = {}) {
             : {}),
     };
 }
-async function getDealerPortalCustomersList(db, dealerId, input = {}) {
+export async function getDealerPortalCustomersList(db, dealerId, input = {}) {
     const size = Math.min(Math.max(Number(input.size || 25), 1), 100);
     const cursor = Number(input.cursor || 0);
     const where = getDealerCustomersListWhere(dealerId, input);
@@ -1423,7 +1373,7 @@ async function getDealerPortalCustomersList(db, dealerId, input = {}) {
         },
     };
 }
-async function saveDealerPortalCustomer(db, dealerId, input) {
+export async function saveDealerPortalCustomer(db, dealerId, input) {
     let customerTypeId = input.customerTypeId || null;
     let taxCode = input.taxCode?.trim() || null;
     if (!input.id && (!customerTypeId || !taxCode)) {
@@ -1574,7 +1524,7 @@ async function saveDealerPortalCustomer(db, dealerId, input) {
         return customer;
     });
 }
-async function deleteDealerPortalCustomer(db, dealerId, id) {
+export async function deleteDealerPortalCustomer(db, dealerId, id) {
     const result = await db.customers.updateMany({
         where: {
             id,
@@ -1590,7 +1540,7 @@ async function deleteDealerPortalCustomer(db, dealerId, id) {
     }
     return { id };
 }
-async function updateDealerPortalCustomerOfficeVisibility(db, dealerId, input) {
+export async function updateDealerPortalCustomerOfficeVisibility(db, dealerId, input) {
     const result = await db.customers.updateMany({
         where: {
             id: input.id,
@@ -1609,7 +1559,7 @@ async function updateDealerPortalCustomerOfficeVisibility(db, dealerId, input) {
         officeVisibility: input.officeVisibility,
     };
 }
-async function getDealerPortalSalesProfiles(db, dealerId) {
+export async function getDealerPortalSalesProfiles(db, dealerId) {
     return db.customerTypes.findMany({
         where: {
             dealerOwnerId: dealerId,
@@ -1631,7 +1581,7 @@ async function getDealerPortalSalesProfiles(db, dealerId) {
         },
     });
 }
-async function getDealerOfficeSalesProfiles(db) {
+export async function getDealerOfficeSalesProfiles(db) {
     return db.customerTypes.findMany({
         where: {
             dealerOwnerId: null,
@@ -1652,7 +1602,7 @@ async function getDealerOfficeSalesProfiles(db) {
         },
     });
 }
-async function getDealerPortalPrimarySalesProfile(db, dealerId) {
+export async function getDealerPortalPrimarySalesProfile(db, dealerId) {
     const dealer = await db.dealerAuth.findUnique({
         where: {
             id: dealerId,
@@ -1675,7 +1625,7 @@ async function getDealerPortalPrimarySalesProfile(db, dealerId) {
     });
     return dealer?.dealer?.profile || null;
 }
-async function getDealerPortalInternalSalesProfile(db) {
+export async function getDealerPortalInternalSalesProfile(db) {
     return db.customerTypes.findFirst({
         where: {
             dealerOwnerId: null,
@@ -1689,7 +1639,7 @@ async function getDealerPortalInternalSalesProfile(db) {
         },
     });
 }
-async function saveDealerPortalSalesProfile(db, dealerId, input) {
+export async function saveDealerPortalSalesProfile(db, dealerId, input) {
     const data = {
         title: input.title.trim(),
         salesPercentage: input.salesPercentage ??
@@ -1734,7 +1684,7 @@ async function saveDealerPortalSalesProfile(db, dealerId, input) {
         data,
     });
 }
-async function getDealerPortalSalesDocuments(db, dealerId, type) {
+export async function getDealerPortalSalesDocuments(db, dealerId, type) {
     const documents = (await db.salesOrders.findMany({
         where: {
             dealerAuthId: dealerId,
@@ -1780,7 +1730,7 @@ async function getDealerPortalSalesDocuments(db, dealerId, type) {
             },
             requests: {
                 where: {
-                    request: exports.DEALER_ORDER_REQUEST_TYPE,
+                    request: DEALER_ORDER_REQUEST_TYPE,
                     deletedAt: null,
                 },
                 orderBy: {
@@ -1816,7 +1766,7 @@ function pricingValueChanged(savedValue, currentValue) {
         return false;
     return Math.abs(savedValue - currentValue) > 0.0001;
 }
-async function getDealerPortalSalesDocument(db, dealerId, id) {
+export async function getDealerPortalSalesDocument(db, dealerId, id) {
     const document = await db.salesOrders.findFirst({
         where: {
             id,
@@ -1997,7 +1947,7 @@ async function getDealerPortalSalesDocument(db, dealerId, id) {
             }),
     };
 }
-async function updateDealerPortalCustomerPayment(db, dealerId, input) {
+export async function updateDealerPortalCustomerPayment(db, dealerId, input) {
     return db.$transaction(async (tx) => {
         const dealerSale = await tx.dealerSales.findFirst({
             where: {
@@ -2229,7 +2179,7 @@ function shelfItemAllowedByCategory(shelfItem, product, allowedCategoryIds) {
     ].filter((id) => id != null);
     return candidateCategoryIds.some((id) => allowedCategoryIds.has(id));
 }
-async function validateDealerPortalQuoteVisibility(tx, lineItems) {
+export async function validateDealerPortalQuoteVisibility(tx, lineItems) {
     const visibility = await getDealerQuoteVisibilitySettings(tx);
     for (const line of lineItems) {
         if (lineUsesHiddenDealerRoot(line, visibility.hiddenRootUids)) {
@@ -2253,7 +2203,7 @@ async function validateDealerPortalQuoteVisibility(tx, lineItems) {
         }
     }
 }
-function calculateDealerQuotePricing({ lineItems, taxRate, internalProfile, dealerProfile, createdAt, sellerOfRecord = "DEALER", resaleCertificateOnFile = false, }) {
+export function calculateDealerQuotePricing({ lineItems, taxRate, internalProfile, dealerProfile, createdAt, sellerOfRecord = "DEALER", resaleCertificateOnFile = false, }) {
     const internalCoefficient = pricingCoefficient(internalProfile);
     const dealerCoefficient = pricingCoefficient(dealerProfile);
     const dealerSalesPercentage = pricingSalesPercentage(dealerProfile);
@@ -2339,7 +2289,7 @@ function calculateDealerQuotePricing({ lineItems, taxRate, internalProfile, deal
         },
     };
 }
-function calculateDealerApprovalPricing({ lineItems, taxRate, internalGrandTotal, internalCoefficient, dealerSalesPercentage, fallbackDealerGrandTotal, }) {
+export function calculateDealerApprovalPricing({ lineItems, taxRate, internalGrandTotal, internalCoefficient, dealerSalesPercentage, fallbackDealerGrandTotal, }) {
     if (!lineItems.length) {
         return {
             internalBaseTotal: internalGrandTotal,
@@ -2362,7 +2312,7 @@ function calculateDealerApprovalPricing({ lineItems, taxRate, internalGrandTotal
         dealerBaseTotal: roundCurrency(pricing.dealerPricing.grandTotal + nonLineAdjustment),
     };
 }
-function mergeDealerApprovalDeliveryMeta({ meta, deliveryCost, extraCostId, }) {
+export function mergeDealerApprovalDeliveryMeta({ meta, deliveryCost, extraCostId, }) {
     const root = getObjectMeta(meta);
     const persistedForm = getObjectMeta(root.newSalesForm);
     const persistedExtraCosts = Array.isArray(persistedForm.extraCosts)
@@ -2416,7 +2366,7 @@ async function createDealerProgramPartnerIdentity(db, type) {
         nextSerial += 1;
     }
 }
-async function saveDealerPortalQuote(db, dealerId, input) {
+export async function saveDealerPortalQuote(db, dealerId, input) {
     return db.$transaction(async (tx) => {
         const existing = input.id
             ? await tx.salesOrders.findFirst({
@@ -2432,7 +2382,7 @@ async function saveDealerPortalQuote(db, dealerId, input) {
                     slug: true,
                     requests: {
                         where: {
-                            request: exports.DEALER_ORDER_REQUEST_TYPE,
+                            request: DEALER_ORDER_REQUEST_TYPE,
                             deletedAt: null,
                         },
                         orderBy: {
@@ -2835,7 +2785,7 @@ async function convertDealerPortalQuoteToOrderTx(tx, dealerId, quoteId, metaPatc
         },
     });
 }
-async function convertDealerPortalQuoteToOrder(db, dealerId, quoteId) {
+export async function convertDealerPortalQuoteToOrder(db, dealerId, quoteId) {
     return db.$transaction((tx) => convertDealerPortalQuoteToOrderTx(tx, dealerId, quoteId));
 }
 function dealerName(dealer) {
@@ -2844,7 +2794,7 @@ function dealerName(dealer) {
 function customerName(customer) {
     return (customer?.businessName || customer?.name || customer?.email || "Customer");
 }
-async function requestDealerPortalQuoteOrder(db, dealerId, quoteId) {
+export async function requestDealerPortalQuoteOrder(db, dealerId, quoteId) {
     return db.$transaction(async (tx) => {
         const quote = (await tx.salesOrders.findFirst({
             where: {
@@ -2884,7 +2834,7 @@ async function requestDealerPortalQuoteOrder(db, dealerId, quoteId) {
                 },
                 requests: {
                     where: {
-                        request: exports.DEALER_ORDER_REQUEST_TYPE,
+                        request: DEALER_ORDER_REQUEST_TYPE,
                         deletedAt: null,
                         status: "pending",
                     },
@@ -2995,7 +2945,7 @@ async function requestDealerPortalQuoteOrder(db, dealerId, quoteId) {
             (await tx.dealerSalesRequest.create({
                 data: {
                     salesId: quote.id,
-                    request: exports.DEALER_ORDER_REQUEST_TYPE,
+                    request: DEALER_ORDER_REQUEST_TYPE,
                     status: "pending",
                 },
                 select: {
@@ -3048,7 +2998,7 @@ async function getSalesRequestUserScope(db, userId) {
 function dealerOrderRequestWhere(userId, canReviewUnassigned, input = {}) {
     const status = input.status && input.status !== "all" ? input.status : null;
     return {
-        request: exports.DEALER_ORDER_REQUEST_TYPE,
+        request: DEALER_ORDER_REQUEST_TYPE,
         deletedAt: null,
         ...(status ? { status } : {}),
         OR: [
@@ -3069,7 +3019,7 @@ function dealerOrderRequestWhere(userId, canReviewUnassigned, input = {}) {
         ],
     };
 }
-async function getDealerOrderRequestCount(db, userId) {
+export async function getDealerOrderRequestCount(db, userId) {
     const scope = await getSalesRequestUserScope(db, userId);
     return db.dealerSalesRequest.count({
         where: dealerOrderRequestWhere(userId, scope.canReviewUnassigned, {
@@ -3077,7 +3027,7 @@ async function getDealerOrderRequestCount(db, userId) {
         }),
     });
 }
-async function assertDealerSaleOfficeAccess(db, userId, salesId) {
+export async function assertDealerSaleOfficeAccess(db, userId, salesId) {
     const scope = await getSalesRequestUserScope(db, userId);
     const request = await db.dealerSalesRequest.findFirst({
         where: {
@@ -3152,7 +3102,7 @@ function validDate(value) {
     const date = value instanceof Date ? value : new Date(String(value || ""));
     return Number.isFinite(date.getTime()) ? date : null;
 }
-function getDealerRequestSla({ createdAt, decisionAt, status, now = new Date(), }) {
+export function getDealerRequestSla({ createdAt, decisionAt, status, now = new Date(), }) {
     const created = validDate(createdAt);
     const completed = validDate(decisionAt);
     const end = status === "pending" || !completed ? now : completed;
@@ -3176,7 +3126,7 @@ function getDealerRequestSla({ createdAt, decisionAt, status, now = new Date(), 
         dueAt,
     };
 }
-function summarizeDealerRequestSla(rows, now = new Date()) {
+export function summarizeDealerRequestSla(rows, now = new Date()) {
     let pending = 0;
     let dueSoon = 0;
     let overdue = 0;
@@ -3219,7 +3169,7 @@ function summarizeDealerRequestSla(rows, now = new Date()) {
         targetHours: DEALER_REQUEST_SLA_HOURS,
     };
 }
-async function getDealerOrderRequestAnalytics(db, userId) {
+export async function getDealerOrderRequestAnalytics(db, userId) {
     const scope = await getSalesRequestUserScope(db, userId);
     const rows = await db.dealerSalesRequest.findMany({
         where: dealerOrderRequestWhere(userId, scope.canReviewUnassigned, {
@@ -3233,7 +3183,7 @@ async function getDealerOrderRequestAnalytics(db, userId) {
     });
     return summarizeDealerRequestSla(rows);
 }
-async function getDealerOrderRequests(db, userId, input = {}) {
+export async function getDealerOrderRequests(db, userId, input = {}) {
     const size = Math.min(Math.max(Number(input.size || 25), 1), 100);
     const cursor = Number(input.cursor || 0);
     const scope = await getSalesRequestUserScope(db, userId);
@@ -3353,7 +3303,7 @@ async function getDealerOrderRequests(db, userId, input = {}) {
         },
     };
 }
-async function getDealerOrderRequest(db, userId, requestId) {
+export async function getDealerOrderRequest(db, userId, requestId) {
     const scope = await getSalesRequestUserScope(db, userId);
     const row = (await db.dealerSalesRequest.findFirst({
         where: {
@@ -3411,7 +3361,7 @@ async function getDealerOrderRequest(db, userId, requestId) {
     }
     return mapDealerOrderRequest(row);
 }
-async function approveDealerOrderRequest(db, userId, requestId, input = {}) {
+export async function approveDealerOrderRequest(db, userId, requestId, input = {}) {
     return db.$transaction(async (tx) => {
         const scope = await getSalesRequestUserScope(tx, userId);
         const row = (await tx.dealerSalesRequest.findFirst({
@@ -3678,7 +3628,7 @@ async function approveDealerOrderRequest(db, userId, requestId, input = {}) {
         };
     });
 }
-async function rejectDealerOrderRequest(db, userId, requestId, reason) {
+export async function rejectDealerOrderRequest(db, userId, requestId, reason) {
     return db.$transaction(async (tx) => {
         const scope = await getSalesRequestUserScope(tx, userId);
         const row = (await tx.dealerSalesRequest.findFirst({
@@ -3761,7 +3711,7 @@ async function rejectDealerOrderRequest(db, userId, requestId, reason) {
         };
     });
 }
-async function getDealerPortalSettings(db, dealerId) {
+export async function getDealerPortalSettings(db, dealerId) {
     return db.dealerAuth.findUnique({
         where: {
             id: dealerId,
@@ -3797,7 +3747,7 @@ async function getDealerPortalSettings(db, dealerId) {
         },
     });
 }
-async function saveDealerPortalSettings(db, dealerId, input) {
+export async function saveDealerPortalSettings(db, dealerId, input) {
     return db.$transaction(async (tx) => {
         const dealer = await tx.dealerAuth.findUnique({
             where: {
@@ -3915,7 +3865,7 @@ async function saveDealerPortalSettings(db, dealerId, input) {
         });
     });
 }
-async function completeDealerOnboarding(db, input) {
+export async function completeDealerOnboarding(db, input) {
     return db.$transaction(async (tx) => {
         const invite = await tx.dealerToken.findFirst({
             where: {

@@ -1,17 +1,15 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // @ts-expect-error packages/db typecheck does not include Bun test types.
-const bun_test_1 = require("bun:test");
-const dealer_program_1 = require("./dealer-program");
-(0, bun_test_1.describe)("dealer customer office visibility", () => {
-    (0, bun_test_1.it)("keeps direct customers and explicitly shared dealer customers visible", () => {
-        (0, bun_test_1.expect)((0, dealer_program_1.buildOfficeCustomerVisibilityWhere)()).toEqual({
+import { describe, expect, it } from "bun:test";
+import { buildOfficeCustomerVisibilityWhere, getDealerInvitationRetryAt, hashDealerProgramInvitationToken, isDealerRecruitmentCandidate, markDealerRecruitmentInvitationDelivery, resolveDealerPartnershipSummary, resolveDealerRecruitmentBanner, sendDirectDealerProgramInvitation, setDealerRecruitmentCampaignStatus, submitDealerProgramApplication, } from "./dealer-program";
+describe("dealer customer office visibility", () => {
+    it("keeps direct customers and explicitly shared dealer customers visible", () => {
+        expect(buildOfficeCustomerVisibilityWhere()).toEqual({
             OR: [{ dealerOwnerId: null }, { officeVisibility: "SHARED" }],
         });
     });
 });
-(0, bun_test_1.describe)("dealer recruitment campaign delivery", () => {
-    (0, bun_test_1.it)("uses profile and individual targeting as a union and stores only a token hash", async () => {
+describe("dealer recruitment campaign delivery", () => {
+    it("uses profile and individual targeting as a union and stores only a token hash", async () => {
         let invitationData;
         const db = {
             dealerRecruitmentCampaign: {
@@ -54,19 +52,19 @@ const dealer_program_1 = require("./dealer-program");
             },
             $transaction: async (callback) => callback(db),
         };
-        const banner = await (0, dealer_program_1.resolveDealerRecruitmentBanner)(db, {
+        const banner = await resolveDealerRecruitmentBanner(db, {
             customerId: 42,
             recipientEmail: "buyer@example.com",
             baseUrl: "https://app.example.com",
             now: new Date("2026-07-19T00:00:00.000Z"),
         });
-        (0, bun_test_1.expect)(banner?.campaignId).toBe("campaign-1");
-        (0, bun_test_1.expect)(banner?.url).toStartWith("https://app.example.com/dealer-program/");
-        (0, bun_test_1.expect)(invitationData?.tokenHash).toBeString();
-        (0, bun_test_1.expect)(String(invitationData?.tokenHash)).toHaveLength(64);
-        (0, bun_test_1.expect)(invitationData).not.toHaveProperty("token");
+        expect(banner?.campaignId).toBe("campaign-1");
+        expect(banner?.url).toStartWith("https://app.example.com/dealer-program/");
+        expect(invitationData?.tokenHash).toBeString();
+        expect(String(invitationData?.tokenHash)).toHaveLength(64);
+        expect(invitationData).not.toHaveProperty("token");
     });
-    (0, bun_test_1.it)("suppresses every later banner while a non-reset application exists", async () => {
+    it("suppresses every later banner while a non-reset application exists", async () => {
         let invitationsCreated = 0;
         const db = {
             dealerRecruitmentCampaign: {
@@ -99,14 +97,14 @@ const dealer_program_1 = require("./dealer-program");
                 },
             },
         };
-        (0, bun_test_1.expect)(await (0, dealer_program_1.resolveDealerRecruitmentBanner)(db, {
+        expect(await resolveDealerRecruitmentBanner(db, {
             customerId: 42,
             recipientEmail: "buyer@example.com",
             baseUrl: "https://app.example.com",
         })).toBeNull();
-        (0, bun_test_1.expect)(invitationsCreated).toBe(0);
+        expect(invitationsCreated).toBe(0);
     });
-    (0, bun_test_1.it)("submits an invitation idempotently", async () => {
+    it("submits an invitation idempotently", async () => {
         const existingApplication = {
             id: "application-1",
             customerId: 42,
@@ -135,9 +133,9 @@ const dealer_program_1 = require("./dealer-program");
         const db = {
             $transaction: async (callback) => callback(tx),
         };
-        (0, bun_test_1.expect)(await (0, dealer_program_1.submitDealerProgramApplication)(db, "opaque-token-with-enough-characters")).toEqual({ application: existingApplication, created: false });
+        expect(await submitDealerProgramApplication(db, "opaque-token-with-enough-characters")).toEqual({ application: existingApplication, created: false });
     });
-    (0, bun_test_1.it)("serializes activation and pauses the previously active campaign", async () => {
+    it("serializes activation and pauses the previously active campaign", async () => {
         const operations = [];
         const tx = {
             dealerRecruitmentCampaign: {
@@ -158,15 +156,15 @@ const dealer_program_1 = require("./dealer-program");
                 return callback(tx);
             },
         };
-        await (0, dealer_program_1.setDealerRecruitmentCampaignStatus)(db, 1, {
+        await setDealerRecruitmentCampaignStatus(db, 1, {
             id: "campaign-2",
             status: "ACTIVE",
         });
-        (0, bun_test_1.expect)(operations).toEqual(["pause-others", "activate-target"]);
-        (0, bun_test_1.expect)(isolationLevel).toBe("Serializable");
+        expect(operations).toEqual(["pause-others", "activate-target"]);
+        expect(isolationLevel).toBe("Serializable");
     });
 });
-(0, bun_test_1.describe)("dealer recruitment eligibility", () => {
+describe("dealer recruitment eligibility", () => {
     const eligible = {
         customerId: 42,
         customerEmail: "buyer@example.com",
@@ -176,30 +174,30 @@ const dealer_program_1 = require("./dealer-program");
         hasActiveApplicationSuppression: false,
         audienceMatches: true,
     };
-    (0, bun_test_1.it)("accepts an eligible direct customer with a matching recipient", () => {
-        (0, bun_test_1.expect)((0, dealer_program_1.isDealerRecruitmentCandidate)(eligible)).toBe(true);
+    it("accepts an eligible direct customer with a matching recipient", () => {
+        expect(isDealerRecruitmentCandidate(eligible)).toBe(true);
     });
-    (0, bun_test_1.it)("rejects dealer-owned, existing-dealer, suppressed, and email-mismatched customers", () => {
-        (0, bun_test_1.expect)((0, dealer_program_1.isDealerRecruitmentCandidate)({ ...eligible, dealerOwnerId: 7 })).toBe(false);
-        (0, bun_test_1.expect)((0, dealer_program_1.isDealerRecruitmentCandidate)({ ...eligible, hasDealerAccount: true })).toBe(false);
-        (0, bun_test_1.expect)((0, dealer_program_1.isDealerRecruitmentCandidate)({
+    it("rejects dealer-owned, existing-dealer, suppressed, and email-mismatched customers", () => {
+        expect(isDealerRecruitmentCandidate({ ...eligible, dealerOwnerId: 7 })).toBe(false);
+        expect(isDealerRecruitmentCandidate({ ...eligible, hasDealerAccount: true })).toBe(false);
+        expect(isDealerRecruitmentCandidate({
             ...eligible,
             hasActiveApplicationSuppression: true,
         })).toBe(false);
-        (0, bun_test_1.expect)((0, dealer_program_1.isDealerRecruitmentCandidate)({
+        expect(isDealerRecruitmentCandidate({
             ...eligible,
             recipientEmail: "other@example.com",
         })).toBe(false);
     });
-    (0, bun_test_1.it)("hashes invitation tokens without storing the raw token", () => {
+    it("hashes invitation tokens without storing the raw token", () => {
         const token = "customer-visible-random-token";
-        const hash = (0, dealer_program_1.hashDealerProgramInvitationToken)(token);
-        (0, bun_test_1.expect)(hash).toHaveLength(64);
-        (0, bun_test_1.expect)(hash).not.toContain(token);
-        (0, bun_test_1.expect)((0, dealer_program_1.hashDealerProgramInvitationToken)(token)).toBe(hash);
+        const hash = hashDealerProgramInvitationToken(token);
+        expect(hash).toHaveLength(64);
+        expect(hash).not.toContain(token);
+        expect(hashDealerProgramInvitationToken(token)).toBe(hash);
     });
 });
-(0, bun_test_1.describe)("dealer partnership status", () => {
+describe("dealer partnership status", () => {
     const now = new Date("2026-07-22T12:00:00.000Z");
     const customer = {
         id: 42,
@@ -213,19 +211,19 @@ const dealer_program_1 = require("./dealer-program");
         startsAt: null,
         endsAt: null,
     };
-    (0, bun_test_1.it)("marks an office customer with email as eligible for a Super Admin", () => {
-        const summary = (0, dealer_program_1.resolveDealerPartnershipSummary)({
+    it("marks an office customer with email as eligible for a Super Admin", () => {
+        const summary = resolveDealerPartnershipSummary({
             customer,
             activeCampaign,
             canManage: true,
             now,
         });
-        (0, bun_test_1.expect)(summary.state).toBe("ELIGIBLE");
-        (0, bun_test_1.expect)(summary.canSend).toBe(true);
-        (0, bun_test_1.expect)(summary.canResend).toBe(false);
-        (0, bun_test_1.expect)(summary.campaign?.id).toBe("campaign-1");
+        expect(summary.state).toBe("ELIGIBLE");
+        expect(summary.canSend).toBe(true);
+        expect(summary.canResend).toBe(false);
+        expect(summary.campaign?.id).toBe("campaign-1");
     });
-    (0, bun_test_1.it)("gives dealer and application states precedence over invitation state", () => {
+    it("gives dealer and application states precedence over invitation state", () => {
         const invitation = {
             id: "invite-1",
             campaignId: "campaign-1",
@@ -241,7 +239,7 @@ const dealer_program_1 = require("./dealer-program");
             campaign: activeCampaign,
             sentBy: null,
         };
-        (0, bun_test_1.expect)((0, dealer_program_1.resolveDealerPartnershipSummary)({
+        expect(resolveDealerPartnershipSummary({
             customer,
             activeCampaign,
             invitation,
@@ -255,7 +253,7 @@ const dealer_program_1 = require("./dealer-program");
             canManage: true,
             now,
         }).state).toBe("APPLICATION_PENDING");
-        (0, bun_test_1.expect)((0, dealer_program_1.resolveDealerPartnershipSummary)({
+        expect(resolveDealerPartnershipSummary({
             customer,
             activeCampaign,
             invitation,
@@ -269,22 +267,22 @@ const dealer_program_1 = require("./dealer-program");
             now,
         }).state).toBe("DEALER_SUSPENDED");
     });
-    (0, bun_test_1.it)("allows a controlled resend only after 24 hours", () => {
+    it("allows a controlled resend only after 24 hours", () => {
         const sentAt = new Date("2026-07-22T00:00:00.000Z");
-        const retryAt = (0, dealer_program_1.getDealerInvitationRetryAt)({
+        const retryAt = getDealerInvitationRetryAt({
             deliveryStatus: "SENT",
             deliveredAt: sentAt,
             createdAt: sentAt,
         }, now);
-        (0, bun_test_1.expect)(retryAt?.toISOString()).toBe("2026-07-23T00:00:00.000Z");
-        (0, bun_test_1.expect)((0, dealer_program_1.getDealerInvitationRetryAt)({
+        expect(retryAt?.toISOString()).toBe("2026-07-23T00:00:00.000Z");
+        expect(getDealerInvitationRetryAt({
             deliveryStatus: "FAILED",
             deliveredAt: null,
             createdAt: sentAt,
         }, now)).toBeNull();
     });
 });
-(0, bun_test_1.describe)("manual customer partnership invitations", () => {
+describe("manual customer partnership invitations", () => {
     const now = new Date("2026-07-22T12:00:00.000Z");
     function database(options) {
         const created = [];
@@ -342,39 +340,39 @@ const dealer_program_1 = require("./dealer-program");
         };
         return { db, created, updates };
     }
-    (0, bun_test_1.it)("stores only a hash and supersedes older unused links after provider acceptance", async () => {
+    it("stores only a hash and supersedes older unused links after provider acceptance", async () => {
         const { db, created, updates } = database();
-        const result = await (0, dealer_program_1.sendDirectDealerProgramInvitation)(db, 9, { customerId: 42, baseUrl: "https://app.example.com", now }, async (message) => {
-            (0, bun_test_1.expect)(message.to).toBe("owner@acme.test");
-            (0, bun_test_1.expect)(message.applicationUrl).toContain("/dealer-program/");
+        const result = await sendDirectDealerProgramInvitation(db, 9, { customerId: 42, baseUrl: "https://app.example.com", now }, async (message) => {
+            expect(message.to).toBe("owner@acme.test");
+            expect(message.applicationUrl).toContain("/dealer-program/");
             return {
                 status: "SENT",
                 providerMessageId: "provider-1",
             };
         });
-        (0, bun_test_1.expect)(result.deliveryStatus).toBe("SENT");
-        (0, bun_test_1.expect)(created[0]?.source).toBe("MANUAL_CUSTOMER");
-        (0, bun_test_1.expect)(String(created[0]?.tokenHash)).toHaveLength(64);
-        (0, bun_test_1.expect)(created[0]).not.toHaveProperty("token");
-        (0, bun_test_1.expect)(updates.some((data) => "supersededAt" in data)).toBe(true);
+        expect(result.deliveryStatus).toBe("SENT");
+        expect(created[0]?.source).toBe("MANUAL_CUSTOMER");
+        expect(String(created[0]?.tokenHash)).toHaveLength(64);
+        expect(created[0]).not.toHaveProperty("token");
+        expect(updates.some((data) => "supersededAt" in data)).toBe(true);
     });
-    (0, bun_test_1.it)("revokes a failed replacement without superseding an older usable link", async () => {
+    it("revokes a failed replacement without superseding an older usable link", async () => {
         const { db, updates } = database();
-        const result = await (0, dealer_program_1.sendDirectDealerProgramInvitation)(db, 9, { customerId: 42, baseUrl: "https://app.example.com", now }, async () => ({ status: "FAILED", failure: "provider rejected\nsecret" }));
-        (0, bun_test_1.expect)(result.deliveryStatus).toBe("FAILED");
-        (0, bun_test_1.expect)(updates.some((data) => "supersededAt" in data)).toBe(false);
-        (0, bun_test_1.expect)(updates).toContainEqual(bun_test_1.expect.objectContaining({ deliveryStatus: "FAILED" }));
+        const result = await sendDirectDealerProgramInvitation(db, 9, { customerId: 42, baseUrl: "https://app.example.com", now }, async () => ({ status: "FAILED", failure: "provider rejected\nsecret" }));
+        expect(result.deliveryStatus).toBe("FAILED");
+        expect(updates.some((data) => "supersededAt" in data)).toBe(false);
+        expect(updates).toContainEqual(expect.objectContaining({ deliveryStatus: "FAILED" }));
     });
-    (0, bun_test_1.it)("rejects simultaneous sends when the customer lease is held", async () => {
+    it("rejects simultaneous sends when the customer lease is held", async () => {
         const { db } = database({ leaseCount: 0 });
-        await (0, bun_test_1.expect)((0, dealer_program_1.sendDirectDealerProgramInvitation)(db, 9, { customerId: 42, baseUrl: "https://app.example.com", now }, async () => ({ status: "SENT" }))).rejects.toMatchObject({ code: "CONFLICT" });
+        await expect(sendDirectDealerProgramInvitation(db, 9, { customerId: 42, baseUrl: "https://app.example.com", now }, async () => ({ status: "SENT" }))).rejects.toMatchObject({ code: "CONFLICT" });
     });
-    (0, bun_test_1.it)("does not let a stale sender supersede a newer invitation", async () => {
+    it("does not let a stale sender supersede a newer invitation", async () => {
         const { db, updates } = database({ ownsLease: false });
-        await (0, dealer_program_1.sendDirectDealerProgramInvitation)(db, 9, { customerId: 42, baseUrl: "https://app.example.com", now }, async () => ({ status: "SENT" }));
-        (0, bun_test_1.expect)(updates.some((data) => "supersededAt" in data)).toBe(false);
+        await sendDirectDealerProgramInvitation(db, 9, { customerId: 42, baseUrl: "https://app.example.com", now }, async () => ({ status: "SENT" }));
+        expect(updates.some((data) => "supersededAt" in data)).toBe(false);
     });
-    (0, bun_test_1.it)("accepts delivery results only for a live pending invitation", async () => {
+    it("accepts delivery results only for a live pending invitation", async () => {
         let update;
         const db = {
             dealerRecruitmentInvitation: {
@@ -384,12 +382,12 @@ const dealer_program_1 = require("./dealer-program");
                 },
             },
         };
-        await (0, dealer_program_1.markDealerRecruitmentInvitationDelivery)(db, "invitation-1", { status: "SENT", attemptedAt: now });
-        (0, bun_test_1.expect)(update?.where).toEqual(bun_test_1.expect.objectContaining({
+        await markDealerRecruitmentInvitationDelivery(db, "invitation-1", { status: "SENT", attemptedAt: now });
+        expect(update?.where).toEqual(expect.objectContaining({
             deliveryStatus: "PENDING",
             revokedAt: null,
             supersededAt: null,
         }));
-        (0, bun_test_1.expect)(update?.data?.revokedAt).toBeUndefined();
+        expect(update?.data?.revokedAt).toBeUndefined();
     });
 });

@@ -1,20 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.normalizeShortLinkSlug = normalizeShortLinkSlug;
-exports.generateShortLinkSlug = generateShortLinkSlug;
-exports.buildShortUrl = buildShortUrl;
-exports.isShortLinkExpired = isShortLinkExpired;
-exports.createShortLink = createShortLink;
-exports.updateShortLink = updateShortLink;
-exports.deactivateShortLink = deactivateShortLink;
-exports.deleteShortLink = deleteShortLink;
-exports.listShortLinks = listShortLinks;
-exports.getActiveShortLinkBySlug = getActiveShortLinkBySlug;
-exports.recordShortLinkClick = recordShortLinkClick;
-exports.resolveShortLinkTargetAndRecordClick = resolveShortLinkTargetAndRecordClick;
-exports.findOrCreateShortLinkForTarget = findOrCreateShortLinkForTarget;
-const node_crypto_1 = require("node:crypto");
-const envs_1 = require("@gnd/utils/envs");
+import { randomBytes } from "node:crypto";
+import { getAppUrl } from "@gnd/utils/envs";
 const GENERATED_SLUG_BYTES = 5;
 const MAX_GENERATED_ATTEMPTS = 8;
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -49,7 +34,7 @@ function isUniqueConstraintError(error) {
         "code" in error &&
         error.code === "P2002");
 }
-function normalizeShortLinkSlug(value) {
+export function normalizeShortLinkSlug(value) {
     const normalized = value
         .trim()
         .toLowerCase()
@@ -71,13 +56,13 @@ function normalizeShortLinkSlug(value) {
     }
     return normalized;
 }
-function generateShortLinkSlug() {
-    return (0, node_crypto_1.randomBytes)(GENERATED_SLUG_BYTES).toString("hex");
+export function generateShortLinkSlug() {
+    return randomBytes(GENERATED_SLUG_BYTES).toString("hex");
 }
-function buildShortUrl(slug, baseUrl = (0, envs_1.getAppUrl)()) {
+export function buildShortUrl(slug, baseUrl = getAppUrl()) {
     return `${trimSlashes(baseUrl)}/sh/${encodeURIComponent(slug)}`;
 }
-function isShortLinkExpired(expiresAt) {
+export function isShortLinkExpired(expiresAt) {
     const expiry = toDate(expiresAt);
     return !!expiry && expiry.getTime() <= Date.now();
 }
@@ -88,7 +73,7 @@ function validateTargetUrl(targetUrl) {
     }
     return url.toString();
 }
-async function createShortLink(db, input) {
+export async function createShortLink(db, input) {
     const targetUrl = validateTargetUrl(input.targetUrl);
     const customSlug = input.slug ? normalizeShortLinkSlug(input.slug) : null;
     const attempts = customSlug ? 1 : MAX_GENERATED_ATTEMPTS;
@@ -117,7 +102,7 @@ async function createShortLink(db, input) {
     }
     throw new Error("Unable to create a unique short link slug.");
 }
-async function updateShortLink(db, input) {
+export async function updateShortLink(db, input) {
     const data = {};
     if (input.targetUrl !== undefined) {
         data.targetUrl = validateTargetUrl(input.targetUrl);
@@ -150,7 +135,7 @@ async function updateShortLink(db, input) {
         data,
     });
 }
-async function deactivateShortLink(db, id) {
+export async function deactivateShortLink(db, id) {
     return db.shortLink.update({
         where: { id },
         data: {
@@ -158,7 +143,7 @@ async function deactivateShortLink(db, id) {
         },
     });
 }
-async function deleteShortLink(db, id) {
+export async function deleteShortLink(db, id) {
     return db.shortLink.update({
         where: { id },
         data: {
@@ -167,7 +152,7 @@ async function deleteShortLink(db, id) {
         },
     });
 }
-async function listShortLinks(db, input = {}) {
+export async function listShortLinks(db, input = {}) {
     const size = Math.min(Math.max(Number(input.size || 50), 1), 200);
     const page = Math.max(Number(input.page || 1), 1);
     const cursor = Math.max(Number(input.cursor || 0), 0);
@@ -251,7 +236,7 @@ function getShortLinkOrderBy(sortValues) {
     }
     return orderBy.length ? orderBy : fallback;
 }
-async function getActiveShortLinkBySlug(db, slug) {
+export async function getActiveShortLinkBySlug(db, slug) {
     let normalizedSlug;
     try {
         normalizedSlug = normalizeShortLinkSlug(slug);
@@ -270,7 +255,7 @@ async function getActiveShortLinkBySlug(db, slug) {
         return null;
     return link;
 }
-async function recordShortLinkClick(db, id) {
+export async function recordShortLinkClick(db, id) {
     return db.shortLink.update({
         where: { id },
         data: {
@@ -281,14 +266,14 @@ async function recordShortLinkClick(db, id) {
         },
     });
 }
-async function resolveShortLinkTargetAndRecordClick(db, slug) {
+export async function resolveShortLinkTargetAndRecordClick(db, slug) {
     const link = await getActiveShortLinkBySlug(db, slug);
     if (!link)
         return null;
     await recordShortLinkClick(db, link.id);
     return link.targetUrl;
 }
-async function findOrCreateShortLinkForTarget(db, input) {
+export async function findOrCreateShortLinkForTarget(db, input) {
     if (input.sourceType?.trim() && input.sourceId?.trim()) {
         const existing = await db.shortLink.findFirst({
             where: {
