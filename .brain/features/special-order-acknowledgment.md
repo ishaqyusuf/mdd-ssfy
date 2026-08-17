@@ -141,9 +141,12 @@ request/evidence pointers; actor/reason enrollment audit remains in
 and evidence rows preserve the review record. Notification deliveries and
 operation events provide retry/rollout evidence.
 
-Signature PNGs are AES-256-GCM encrypted before Blob upload. Production defaults
-to private Blob objects; an explicitly public local-only store still exposes
-only ciphertext.
+Signature PNGs are AES-256-GCM encrypted before Blob upload. Blob access follows
+an explicit `SPECIAL_ORDER_SIGNATURE_BLOB_ACCESS` override, then the configured
+Vercel Blob hostname; the shared encrypted store defaults to public when neither
+is available. This matches the current shared production store while exposing
+only ciphertext. A dedicated private store remains supported through the
+explicit override.
 The database stores no Blob URL, only a private `StoredDocument` reference and
 encrypted pathname. An authenticated `viewOrders`/`editOrders` route fetches and
 decrypts the envelope; operational documents never receive signature data.

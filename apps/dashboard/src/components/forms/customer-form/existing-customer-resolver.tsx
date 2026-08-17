@@ -53,7 +53,8 @@ export function ExistingCustomerResolver() {
 	const matches = useMemo(
 		() =>
 			(matchesQuery.data ?? []).filter(
-				(candidate) => candidate.id !== id && candidate.id !== params.customerId,
+				(candidate) =>
+					candidate.id !== id && candidate.id !== params.customerId,
 			),
 		[matchesQuery.data, id, params.customerId],
 	);
@@ -83,13 +84,10 @@ export function ExistingCustomerResolver() {
 	if (!isCreating || !debouncedQuery) return null;
 	if (matchesQuery.isFetching && matches.length === 0) {
 		return (
-			<p
-				className="flex items-center gap-2 text-xs text-muted-foreground"
-				role="status"
-			>
+			<output className="flex items-center gap-2 text-xs text-muted-foreground">
 				<Icons.Loader2 className="size-3.5 animate-spin" />
 				Checking for matching customers…
-			</p>
+			</output>
 		);
 	}
 	if (matches.length === 0) return null;

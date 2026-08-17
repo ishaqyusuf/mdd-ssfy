@@ -53,9 +53,21 @@ export function getSpecialOrderSignatureBlobAccess() {
 	if (process.env.SPECIAL_ORDER_SIGNATURE_BLOB_ACCESS === "private") {
 		return "private" as const;
 	}
-	return process.env.NODE_ENV === "production"
-		? ("private" as const)
-		: ("public" as const);
+	const configuredBlobUrl = process.env.NEXT_PUBLIC_VERCEL_BLOB_URL;
+	if (configuredBlobUrl) {
+		try {
+			const hostname = new URL(configuredBlobUrl).hostname.toLowerCase();
+			if (hostname.endsWith(".private.blob.vercel-storage.com")) {
+				return "private" as const;
+			}
+			if (hostname.endsWith(".public.blob.vercel-storage.com")) {
+				return "public" as const;
+			}
+		} catch {
+			// Fall through to the encrypted shared-store default.
+		}
+	}
+	return "public" as const;
 }
 
 export function encryptSpecialOrderSignature(

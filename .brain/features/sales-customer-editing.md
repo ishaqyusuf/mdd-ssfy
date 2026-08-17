@@ -3,7 +3,7 @@
 ## Status
 
 Implemented on 2026-07-23; address-only Sales Overview editing added on
-2026-07-24.
+2026-07-24; duplicate-aware customer creation added on 2026-08-17.
 
 ## Purpose
 
@@ -27,6 +27,14 @@ directory.
   email, and phone fields are not editable in this mode.
 - A successful edit refreshes customer and sales projections without requiring
   the user to leave Sales Overview or manually reload the page.
+- While a new customer is being entered, the form debounces searches by phone,
+  email, business name, or personal name and shows up to three likely active
+  customer records inline.
+- An exact ten-digit phone match blocks Create and directs the user to the
+  matching record. Sales-context creation exposes `Use customer`; the customer
+  directory exposes `Open customer` and changes the same sheet into edit mode.
+- Name, email, and business-name matches remain advisory because shared or
+  reused values are not authoritative duplicate keys.
 
 ## Data Integrity
 
@@ -37,6 +45,10 @@ directory.
   retained rather than cleared.
 - Customer editing does not mutate sale totals, payments, inventory,
   production, or documents.
+- The database phone uniqueness constraint remains authoritative. A write-time
+  duplicate phone conflict returns a public, actionable error even when the
+  live match query is stale or bypassed, and the customer form displays the
+  mutation error instead of failing silently.
 
 ## Authorization
 
@@ -91,6 +103,12 @@ closes the sheet.
   `customer.changed` invalidates customer projections and
   `sales.getSaleOverview`; the focused query-event suite passes 31 tests / 65
   assertions.
+- Duplicate-create validation passes 12 focused tests / 26 assertions across
+  match selection, exact-phone blocking, and server conflict translation.
+- Authenticated desktop browser QA verified the inline duplicate warning,
+  match evidence, disabled Create action, and transition from Create Customer
+  to the existing customer's edit form without submitting a write. Mobile
+  layout was inspected at `390x844` with no form-level horizontal overflow.
 
 ## Related Plan
 

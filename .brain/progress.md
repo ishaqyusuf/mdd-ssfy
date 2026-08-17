@@ -1,5 +1,27 @@
 # Progress
 
+- 2026-08-17: fixed public Special Order approval submissions failing before the
+  response transaction. Read-only production inspection proved the shared
+  Vercel Blob store is public while signature uploads forced private access in
+  production. The resolver now honors an explicit access override, derives
+  access from the configured Blob hostname, and otherwise uses the encrypted
+  shared-store public fallback. Signature PNGs remain AES-256-GCM encrypted,
+  Blob URLs remain unpersisted, and only the authenticated order-view route can
+  decrypt them. Focused storage and response coverage passes 7 tests / 17
+  assertions. No database schema, migration, API input shape, or permission
+  behavior changed.
+
+- 2026-08-17: added duplicate-aware customer creation. The create form now
+  debounces active-customer matches from phone, email, business name, and name;
+  labels the evidence; blocks exact phone duplicates; and lets Sales flows use
+  the existing customer or the directory open it for editing. Server-side
+  unique-phone conflicts now return and display actionable feedback instead of
+  failing silently. Focused validation passes 12 tests / 26 assertions, API
+  typecheck and touched dashboard Biome pass, and authenticated desktop browser
+  QA verified the complete conflict path without submitting a write. A mobile
+  `390x844` layout inspection found no form-level horizontal overflow. No
+  database schema, migration, or permission behavior changed.
+
 - 2026-08-17: fixed new-sales-form Delivery and Labor additional costs appearing
   twice in printed sales documents and suppressed non-applicable zero-value
   cost rows such as the default `Labor: $0`. The print footer now treats

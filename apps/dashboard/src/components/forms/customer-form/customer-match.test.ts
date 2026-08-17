@@ -59,8 +59,8 @@ describe("customer create matching", () => {
 			"email",
 			"name",
 		]);
-		expect(findBlockingCustomerMatches(input, [sameCustomer, sameNameOnly])).toEqual([
-			sameCustomer,
-		]);
+		expect(
+			findBlockingCustomerMatches(input, [sameCustomer, sameNameOnly]),
+		).toEqual([sameCustomer]);
 	});
 });

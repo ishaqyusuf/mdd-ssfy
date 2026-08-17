@@ -100,10 +100,10 @@ export function FormAction({
 				{hasBlockingDuplicate
 					? "Use the matching customer above or change the phone number"
 					: params.address
-					? `${isEditing ? "Update" : "Create"} this address only`
-					: isEditing
-						? "Update customer information"
-						: "Create a new customer"}
+						? `${isEditing ? "Update" : "Create"} this address only`
+						: isEditing
+							? "Update customer information"
+							: "Create a new customer"}
 			</div>
 			<div className="flex-1" />
 			<div className="flex gap-3">

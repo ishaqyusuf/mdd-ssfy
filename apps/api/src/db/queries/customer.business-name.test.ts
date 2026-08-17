@@ -11,7 +11,7 @@ function createContext() {
 	};
 	const tx = {
 		customers: {
-			findUnique: async () => ({ dealerOwnerId: null }),
+			findUnique: async () => null,
 			create: async (args: any) => {
 				calls.customerCreate = args;
 				return { id: 101 };
@@ -34,7 +34,13 @@ function createContext() {
 			update: async () => null,
 		},
 		salesOrders: {
-			findFirst: async () => ({ id: 77 }),
+			findFirst: async () => ({
+				id: 77,
+				billingAddressId: null,
+				shippingAddressId: null,
+				status: "pending",
+				deliveries: [],
+			}),
 			update: async (args: any) => {
 				calls.saleUpdate = args;
 				return { id: 77 };
@@ -58,13 +64,19 @@ describe("customer business names", () => {
 			code: "P2002",
 			meta: { target: ["phoneNo"] },
 		});
-		const ctx = {
-			db: {
-				$transaction: async () => {
+		const tx = {
+			customers: {
+				create: async () => {
 					throw conflict;
 				},
 			},
-		} as any;
+		};
+		const ctx = {
+			db: {
+				$transaction: async (run: (client: typeof tx) => Promise<unknown>) =>
+					run(tx),
+			},
+		} as unknown as Parameters<typeof createOrUpdateCustomer>[0];
 
 		expect(
 			createOrUpdateCustomer(ctx, {

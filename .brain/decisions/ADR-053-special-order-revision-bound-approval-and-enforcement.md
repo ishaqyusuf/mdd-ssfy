@@ -39,10 +39,12 @@ multiple purchasing, production, packing, and dispatch entry points consistently
    the interrupted classification/save/send only after success; the server
    independently fails closed. No duplicate order-level email field is added.
 9. Signature PNGs are encrypted with an authenticated AES-256-GCM envelope
-   before Blob upload. Production defaults to private Blob access; local stores
-   that do not support private objects may explicitly use public access because
-   only ciphertext is exposed. The Blob URL is not persisted. Decryption occurs
-   only in the authenticated order-view route.
+   before Blob upload. Blob access follows an explicit signature-store override,
+   then the configured Vercel Blob hostname. The current shared production store
+   is public, so the compatibility fallback is public and exposes only
+   ciphertext; a dedicated private store remains supported through the explicit
+   override. The Blob URL is not persisted. Decryption occurs only in the
+   authenticated order-view route.
 10. Migration-chain exception: the repository's required `bun run db:migrate`
     workflow was attempted first, but the pre-existing split migration roots and
     shadow replay failure at `20260722180000_master_password_usage_audit`
@@ -96,6 +98,11 @@ multiple purchasing, production, packing, and dispatch entry points consistently
   server encryption secret becomes required in production (with the existing
   Special Order/auth secret chain as the supported fallback), and key rotation
   requires an explicit re-encryption plan for historical envelopes.
+- Signature writes must use the actual store access mode. A deployment moving
+  to a dedicated private Blob store sets
+  `SPECIAL_ORDER_SIGNATURE_BLOB_ACCESS=private`; an access value that conflicts
+  with the connected store causes Vercel Blob to reject the response before the
+  approval transaction begins.
 - The override is an auditable exception to approval enforcement, not Current
   Approval and not a general operations permission. Removing either the Role
   capability or the underlying operation permission removes the forward bypass.

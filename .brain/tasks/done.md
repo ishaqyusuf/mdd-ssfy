@@ -1,5 +1,18 @@
 # Done
 
+- [x] 2026-08-17 — Repair public Special Order approval submissions against the
+  current shared production Blob store. Encrypted signature uploads now resolve
+  the store's configured public/private access mode while retaining an explicit
+  private-store override, unpersisted Blob URLs, and authenticated decryption.
+  Focused storage and response validation passed 7 tests / 17 assertions.
+
+- [x] 2026-08-17 — Prevent silent duplicate customer creation by searching for
+  likely matches as the create form is completed, blocking an exact existing
+  phone number, and offering a direct `Use customer` or `Open customer` path.
+  Duplicate writes now return an actionable conflict message instead of failing
+  silently. Focused tests, API typecheck, Biome, and authenticated desktop
+  browser QA passed.
+
 - [x] 2026-08-14 — Gate only new Special Order enrollment behind a
   Super Admin-controlled `SUPER_ADMIN_ONLY` pilot audience, with an
   authoritative save transition check and an `ALL_STAFF` release option.

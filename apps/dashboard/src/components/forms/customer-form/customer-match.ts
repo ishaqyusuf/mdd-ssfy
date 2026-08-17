@@ -57,10 +57,7 @@ export function getCustomerMatchSignals(
 	if (email && email === normalizeText(candidate.email)) signals.push("email");
 
 	const businessName = normalizeText(input.businessName);
-	if (
-		businessName &&
-		businessName === normalizeText(candidate.businessName)
-	) {
+	if (businessName && businessName === normalizeText(candidate.businessName)) {
 		signals.push("businessName");
 	}
 
