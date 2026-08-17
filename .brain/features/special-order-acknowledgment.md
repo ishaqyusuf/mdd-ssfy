@@ -97,7 +97,10 @@ hidden.
 
 - The invoice summary uses a compact `Special Order` section with the current
   status beside its title and equal-width No/Yes controls. Unanswered orders
-  display No as a visual fallback without persisting a declaration.
+  display No as a visual fallback without persisting a declaration. Inactive
+  options remain neutral; active No uses the destructive red treatment and
+  active Yes uses the shared success green treatment in both the summary and
+  classification modal.
 - One `Special Order classification` modal owns required-save decisions and
   saved-order changes. It defaults to No for untouched orders or the persisted
   choice for saved orders, accepts an optional 3-500 character reason, and

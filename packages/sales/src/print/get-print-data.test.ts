@@ -187,6 +187,120 @@ function lineValue(lines: Array<{ label: string; value: string }>, label: string
 }
 
 describe("getPrintData", () => {
+	it("recovers printable sections from the saved form when relations are empty", async () => {
+		const sale = {
+			...createSale(),
+			items: [],
+			meta: {
+				newSalesForm: {
+					lineItems: [
+						{
+							uid: "door-line",
+							title: "Interior Door",
+							description: "Interior pre-hung",
+							qty: 2,
+							unitPrice: 100,
+							lineTotal: 200,
+							meta: { lineIndex: 0 },
+							formSteps: [
+								{
+									id: 10,
+									stepId: 1,
+									value: "Interior",
+									step: { id: 1, title: "Item Type" },
+								},
+							],
+							housePackageTool: {
+								doorType: "Interior",
+								doors: [
+									{
+										id: 20,
+										dimension: "2-8 x 7-0",
+										lhQty: 1,
+										rhQty: 1,
+										totalQty: 2,
+										unitPrice: 100,
+										lineTotal: 200,
+										stepProduct: { name: "Flush Door" },
+									},
+								],
+							},
+						},
+						{
+							uid: "moulding-line",
+							title: "Mouldings",
+							description: "Casing",
+							qty: 3,
+							unitPrice: 20,
+							lineTotal: 60,
+							meta: {
+								lineIndex: 1,
+								mouldingRows: [
+									{ uid: "m-1", title: "Casing", qty: 3, salesPrice: 20 },
+								],
+							},
+							formSteps: [
+								{
+									id: 11,
+									stepId: 2,
+									value: "Moulding",
+									step: { id: 2, title: "Item Type" },
+								},
+							],
+							housePackageTool: { doorType: "Moulding", doors: [] },
+						},
+						{
+							uid: "service-line",
+							title: "Services",
+							description: "Installation",
+							qty: 1,
+							unitPrice: 80,
+							lineTotal: 80,
+							meta: {
+								lineIndex: 2,
+								serviceRows: [
+									{
+										uid: "svc-1",
+										service: "Installation",
+										qty: 1,
+										unitPrice: 80,
+									},
+								],
+							},
+							formSteps: [
+								{
+									id: 12,
+									stepId: 3,
+									value: "Services",
+									step: { id: 3, title: "Item Type" },
+								},
+							],
+						},
+					],
+				},
+			},
+		};
+		const db = {
+			salesOrders: { findMany: async () => [sale] },
+			settings: { findFirst: async () => null },
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "quote",
+			dispatchId: null,
+		});
+
+		expect(result.pages[0]?.sections.map((section) => section.kind)).toEqual([
+			"door",
+			"moulding",
+			"service",
+		]);
+		expect(
+			result.pages[0]?.sections.map((section) => section.rows.length),
+		).toEqual([1, 1, 1]);
+	});
+
 	it("prints only door sizes retained by an applied adjustment snapshot", async () => {
 		const sale: ReturnType<typeof createSale> & {
 			meta: Record<string, unknown>;

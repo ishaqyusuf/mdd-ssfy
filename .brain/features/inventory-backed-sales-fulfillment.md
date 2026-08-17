@@ -736,4 +736,16 @@ Status: Partially done; dry-run reconciliation and receive/allocation retry guar
   by the pre-existing `@gnd/errors` `./app-error.js` resolution failure in
   `packages/errors/src/index.ts`, before device/runtime proof can begin.
 
-Last updated: 2026-08-05
+## 2026-08-17 Inbound expected-date default
+
+- The saved-sales `Configure inventory` inbound editor and the Sales Overview
+  secondary inbound form now default Expected date to the operator's current
+  local calendar date.
+- The shared formatter avoids UTC conversion, and opening a fresh inline
+  inbound action resets the default to the then-current date while preserving
+  normal calendar edits.
+- Focused helper and UI-source regressions pass with 12 tests / 57 assertions.
+  Authenticated browser QA confirmed `Aug 17, 2026` on the secondary inbound
+  form and closed it without creating an inbound shipment.
+
+Last updated: 2026-08-17

@@ -1,5 +1,11 @@
 # Done
 
+- [x] 2026-08-17 — Align Special Order classification colors with active state:
+  inactive choices remain neutral, active No is red, and active Yes is green in
+  both the invoice summary and confirmation dialog. The shared success tokens
+  are now exposed to Tailwind utilities. Focused tests and authenticated browser
+  QA passed without changing or saving order `09338PC`.
+
 - [x] 2026-08-17 — Keep new-sales-form House Package Tool quantity and swing
   inputs focused while editing. HPT row keys now use stable persisted or draft
   identity instead of mutable quantity/swing values. HPT, Moulding, Service,
@@ -1165,3 +1171,14 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   on `09166LRG`, 25 focused tests / 126 assertions, and the new edit-loader
   retained-row regression (1 test / 10 assertions).
 - Completed Date: 2026-08-07
+
+### Default Inbound Expected Date
+- Priority: High
+- Description: Defaulted Expected date to the operator's current local date in
+  both the post-save Configure Inventory editor and the Sales Overview inbound
+  form, including fresh inline-action resets.
+- Related Feature: Inventory-Backed Sales Fulfillment
+- Status: Done
+- Validation: 12 focused tests / 57 assertions, scoped Biome, diff validation,
+  and authenticated browser QA without submitting an inbound shipment.
+- Completed Date: 2026-08-17

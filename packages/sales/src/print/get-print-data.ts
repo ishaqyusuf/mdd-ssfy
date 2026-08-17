@@ -18,6 +18,7 @@ import { composeSpecialOrderPrintData } from "./compose/special-order";
 import { getModeConfig } from "./constants";
 import { resolveDealerPrintPricingSurface } from "./dealer-pricing-surface";
 import { parsePrintModes } from "./modes";
+import { applyPersistedFormPrintFallback } from "./persisted-form-fallback";
 import { type PrintSalesData, buildPrintSalesInclude } from "./query";
 import type { PrintSalesV2Input } from "./schema";
 import type {
@@ -51,7 +52,9 @@ export async function getPrintData(
 		getSalesSetting(db),
 	]);
 
-	const currentSales = sales.map(applyApprovedAdjustmentPrintSnapshot);
+	const currentSales = sales
+		.map(applyPersistedFormPrintFallback)
+		.map(applyApprovedAdjustmentPrintSnapshot);
 	const jobs: { sale: PrintSalesData; mode: PrintMode }[] =
 		currentSales.flatMap((s) => modes.map((mode) => ({ sale: s, mode })));
 
@@ -130,7 +133,6 @@ async function composePage(
 		specialOrder,
 	};
 }
-
 async function composeSigningData(
 	db: Db,
 	sale: PrintSalesData,

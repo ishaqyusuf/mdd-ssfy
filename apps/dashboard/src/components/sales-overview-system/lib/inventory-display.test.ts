@@ -4,6 +4,7 @@ import {
 	formatInventoryDateInputValue,
 	formatInventoryExpectedDateLabel,
 	formatInventoryItemSubtitle,
+	getDefaultInventoryExpectedDateValue,
 } from "./inventory-display";
 
 describe("inventory display", () => {
@@ -11,6 +12,12 @@ describe("inventory display", () => {
 		expect(formatInventoryDateInputValue(new Date(2026, 7, 5))).toBe(
 			"2026-08-05",
 		);
+	});
+
+	test("uses the current local calendar date as the inbound default", () => {
+		expect(
+			getDefaultInventoryExpectedDateValue(new Date(2026, 7, 17, 23, 59)),
+		).toBe("2026-08-17");
 	});
 
 	test("keeps an empty or invalid inbound expected date as the placeholder", () => {

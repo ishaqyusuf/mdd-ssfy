@@ -6,6 +6,7 @@ import {
 	formatInventoryDateInputValue,
 	formatInventoryExpectedDateLabel,
 	formatInventoryItemSubtitle,
+	getDefaultInventoryExpectedDateValue,
 } from "@/components/sales-overview-system/lib/inventory-display";
 import { isInventoryNeedRow } from "@/components/sales-overview-system/lib/inventory-inbounds-utils";
 import { useTRPC } from "@/trpc/client";
@@ -108,7 +109,9 @@ export function InboundCreatePane({
 	const [selected, setSelected] = useState<string[]>([]);
 	const [quantities, setQuantities] = useState<Record<string, number>>({});
 	const [supplierId, setSupplierId] = useState("none");
-	const [expectedAt, setExpectedAt] = useState("");
+	const [expectedAt, setExpectedAt] = useState(
+		getDefaultInventoryExpectedDateValue,
+	);
 	const [status, setStatus] = useState<NewInboundShipmentStatus>("pending");
 	const [note, setNote] = useState("");
 	const supplierItems = useMemo(

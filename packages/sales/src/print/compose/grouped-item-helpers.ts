@@ -1,5 +1,10 @@
 import type { PrintSalesItem } from "../query";
 
+type PrintFormStep = PrintSalesItem["formSteps"][number];
+type PrintDoor = NonNullable<
+	PrintSalesItem["housePackageTool"]
+>["doors"][number];
+
 function safeRecord(value: unknown): Record<string, unknown> {
 	if (!value || typeof value !== "object" || Array.isArray(value)) {
 		return {};
@@ -22,9 +27,135 @@ function getNumber(value: unknown): number | null {
 	return null;
 }
 
+function getRevisionTime(value: { updatedAt?: Date | string | null }) {
+	const time = value.updatedAt ? new Date(value.updatedAt).getTime() : 0;
+	return Number.isFinite(time) ? time : 0;
+}
+
+function getRevisionId(value: { id?: number | null }) {
+	return getNumber(value.id) ?? 0;
+}
+
+function isNewerRevision(
+	candidate: { id?: number | null; updatedAt?: Date | string | null },
+	current: { id?: number | null; updatedAt?: Date | string | null },
+) {
+	const timeDifference = getRevisionTime(candidate) - getRevisionTime(current);
+	return (
+		timeDifference > 0 ||
+		(timeDifference === 0 && getRevisionId(candidate) > getRevisionId(current))
+	);
+}
+
+export function getLatestFormSteps(item: PrintSalesItem): PrintFormStep[] {
+	const latestByStep = new Map<
+		string,
+		{ index: number; step: PrintFormStep }
+	>();
+
+	for (const [index, step] of (item.formSteps || []).entries()) {
+		const stepIdentity =
+			getNumber(step.stepId) ??
+			getNumber(step.step?.id) ??
+			normalizeTitle(step.step?.title);
+		const key = stepIdentity
+			? String(stepIdentity)
+			: `form-step:${String(step.id)}`;
+		const current = latestByStep.get(key);
+
+		if (!current || isNewerRevision(step, current.step)) {
+			latestByStep.set(key, { index, step });
+		}
+	}
+
+	return [...latestByStep.values()]
+		.sort((left, right) => left.index - right.index)
+		.map(({ step }) => step);
+}
+
+function getDoorQuantity(door: PrintDoor) {
+	const totalQty = getNumber(door.totalQty);
+	if (totalQty !== null && totalQty > 0) return totalQty;
+
+	return (getNumber(door.lhQty) ?? 0) + (getNumber(door.rhQty) ?? 0);
+}
+
+function getDoorTotalCents(door: PrintDoor) {
+	const lineTotal = getNumber(door.lineTotal);
+	if (lineTotal !== null) return Math.round(lineTotal * 100);
+
+	const unitPrice = getNumber(door.unitPrice);
+	return unitPrice === null
+		? null
+		: Math.round(unitPrice * getDoorQuantity(door) * 100);
+}
+
+/**
+ * Older sales-form saves can leave prior HPT door generations active. Recover
+ * only when the newest rows reconcile exactly to the persisted item quantity
+ * and total; otherwise preserve every row rather than guessing.
+ */
+export function getCurrentHousePackageDoors(item: PrintSalesItem): PrintDoor[] {
+	const doors = item.housePackageTool?.doors || [];
+	const targetQty = getNumber(item.qty);
+	const targetTotal = getNumber(item.total);
+
+	if (doors.length < 2 || targetQty === null || targetTotal === null) {
+		return doors;
+	}
+
+	const targetTotalCents = Math.round(targetTotal * 100);
+	const allQty = doors.reduce(
+		(total, door) => total + getDoorQuantity(door),
+		0,
+	);
+	const allTotalCents = doors.reduce<number | null>((total, door) => {
+		const doorTotal = getDoorTotalCents(door);
+		return total === null || doorTotal === null ? null : total + doorTotal;
+	}, 0);
+
+	if (allQty === targetQty && allTotalCents === targetTotalCents) {
+		return doors;
+	}
+
+	const newestFirst = doors
+		.map((door, index) => ({ door, index }))
+		.sort((left, right) => {
+			const timeDifference =
+				getRevisionTime(right.door) - getRevisionTime(left.door);
+			return (
+				timeDifference || getRevisionId(right.door) - getRevisionId(left.door)
+			);
+		});
+	const selected: Array<{ door: PrintDoor; index: number }> = [];
+	let selectedQty = 0;
+	let selectedTotalCents = 0;
+
+	for (const candidate of newestFirst) {
+		const doorTotalCents = getDoorTotalCents(candidate.door);
+		if (doorTotalCents === null) return doors;
+
+		selected.push(candidate);
+		selectedQty += getDoorQuantity(candidate.door);
+		selectedTotalCents += doorTotalCents;
+
+		if (selectedQty === targetQty && selectedTotalCents === targetTotalCents) {
+			return selected
+				.sort((left, right) => left.index - right.index)
+				.map(({ door }) => door);
+		}
+
+		if (selectedQty > targetQty || selectedTotalCents > targetTotalCents) {
+			return doors;
+		}
+	}
+
+	return doors;
+}
+
 function findStep(item: PrintSalesItem, title: string) {
 	const expected = normalizeTitle(title);
-	return (item.formSteps || []).find(
+	return getLatestFormSteps(item).find(
 		(step) => normalizeTitle(step?.step?.title) === expected,
 	);
 }

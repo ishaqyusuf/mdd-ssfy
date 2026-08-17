@@ -213,6 +213,17 @@ matching soft-deleted cache row. Focused regression coverage synchronizes two
 same-document cache misses and verifies that both callers receive ready data
 while only one cache row remains.
 
+2026-08-17 historical-record recovery: print composition now collapses repeated
+active form-step revisions to the newest logical step and selects a newest HPT
+door generation only when its quantity and line total reconcile exactly to the
+persisted sales item. If reconciliation is not exact, all relational rows remain
+visible rather than guessing. When a migrated sale has no active relational
+items, print may recover from `meta.newSalesForm.lineItems` only if the complete
+saved line-item array validates; ordinary records with relational items continue
+to use those relations. This preserves the shared `PrintPage` contract while
+making legacy quotes such as `03471PC` and `03470PC` printable without modifying
+their persisted sales data.
+
 ---
 
 ## Type contract

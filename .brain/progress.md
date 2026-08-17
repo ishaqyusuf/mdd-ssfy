@@ -1,5 +1,31 @@
 # Progress
 
+- 2026-08-17: repaired historical sales printing for quotes `03471PC` and
+  `03470PC` after a production-to-local data sync. Print composition now removes
+  repeated active form-step revisions and uses the newest exact-reconciling HPT
+  door generation, eliminating repeated configuration and door rows on
+  `03471PC`. Itemless migrated records may recover from a fully validated saved
+  sales-form snapshot, restoring the door, moulding, and service sections on
+  `03470PC`. The sync completed with 280 tables, 31 skipped tables, and 7,504
+  rows copied; no optional table-reset prompt occurred. Focused print validation
+  passes 20 tests / 98 assertions, the Sales package typecheck and scoped Biome
+  checks pass, and regenerated in-app previews verify one Interior configuration
+  plus four Bifold rows on `03471PC` and all expected sections on `03470PC`. No
+  database schema, API contract, permission, or persisted sales record changed.
+
+- 2026-08-17: corrected Special Order classification colors so only the active
+  option is colored: active No is destructive red, active Yes is success green,
+  and inactive options remain neutral in both the invoice summary and the
+  classification modal. The existing success CSS variables are now mapped into
+  Tailwind's theme utilities, fixing the previously ineffective `bg-success`
+  class without hard-coding a one-off color. Focused enrollment coverage passes
+  9 tests / 42 assertions, scoped Biome and whitespace checks pass, and
+  authenticated browser QA on `09338PC` verified all four active/inactive states
+  before dismissing the modal without changing or saving the order. The broad
+  Dashboard typecheck reached its existing 4 GB heap limit without emitting a
+  TypeScript diagnostic. No API, database, permission, classification, or
+  persistence behavior changed.
+
 - 2026-08-17: fixed new-sales-form House Package Tool quantity inputs losing
   focus after one keystroke. The table row key included `swing` and `totalQty`,
   so every edit changed React identity, remounted the row, and moved focus to
@@ -9387,3 +9413,13 @@
   Clipboard API after the server round trip consumes user activation.
 - Copy success is reported only after either clipboard path completes; genuine
   link-preparation and clipboard failures retain actionable error feedback.
+
+## 2026-08-17 — Defaulted inbound expected dates to today
+
+- Both sales inbound entry surfaces now initialize Expected date from the
+  operator's current local calendar date instead of a blank placeholder.
+- The shared local-date helper prevents UTC day shifts, and the inline
+  Configure Inventory editor refreshes the default for each fresh action.
+- Focused tests pass with 12 tests / 57 assertions; scoped Biome and diff
+  checks pass. Authenticated browser QA displayed `Aug 17, 2026` in the
+  secondary inbound form and exited without submitting.

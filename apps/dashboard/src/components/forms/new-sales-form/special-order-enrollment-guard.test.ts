@@ -18,6 +18,9 @@ const columnsSource = readSource("../../tables-2/sales-orders/columns.tsx");
 const declarationSource = readSource(
 	"./sections/special-order-declaration-control.tsx",
 );
+const uiStylesSource = readSource(
+	"../../../../../../packages/ui/src/styles/globals.css",
+);
 
 describe("Special Order enrollment pilot guard", () => {
 	test("gates only new enrollment while preserving existing order repair", () => {
@@ -165,9 +168,13 @@ describe("Special Order enrollment pilot guard", () => {
 		);
 		expect(
 			declarationSource.match(
-				/className="border-success bg-success text-success-foreground hover:bg-success\/90 hover:text-success-foreground data-\[state=on\]:bg-success data-\[state=on\]:text-success-foreground"/g,
+				/className="data-\[state=on\]:bg-success data-\[state=on\]:text-success-foreground"/g,
 			),
 		).toHaveLength(2);
+		expect(uiStylesSource).toContain("--color-success: var(--success);");
+		expect(uiStylesSource).toContain(
+			"--color-success-foreground: var(--success-foreground);",
+		);
 		expect(formSource).toContain("setPendingSpecialOrderCommit(null)");
 	});
 });

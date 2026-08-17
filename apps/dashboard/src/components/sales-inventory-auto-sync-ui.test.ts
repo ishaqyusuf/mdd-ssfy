@@ -45,10 +45,9 @@ describe("sales inventory automatic synchronization UI", () => {
 
 	test("uses flat item-to-order rows with grouped bounded quantity controls", () => {
 		for (const source of [inventoryTabSource, inboundCreatePaneSource]) {
-			expect(source).toContain('aria-label="Items to order"');
-			expect(source).toContain(
-				"Order quantity controls for ${row.componentName}",
-			);
+			expect(source).toContain('"Items to order"');
+			expect(source).toContain('"Items to mark available"');
+			expect(source).toContain("quantity controls for ${row.componentName}");
 			expect(source).toContain("<InputGroupInput");
 			expect(source).toContain("<InputGroupText");
 			expect(source).toContain("border-b border-border");
@@ -86,5 +85,17 @@ describe("sales inventory automatic synchronization UI", () => {
 			"formatInventoryExpectedDateLabel(expectedAt)",
 		);
 		expect(inboundCreatePaneSource).not.toContain('type="date"');
+	});
+
+	test("defaults both inbound entry surfaces to the current local date", () => {
+		for (const source of [inventoryTabSource, inboundCreatePaneSource]) {
+			expect(source).toContain("getDefaultInventoryExpectedDateValue");
+		}
+		expect(inventoryTabSource).not.toContain(
+			'const [expectedAt, setExpectedAt] = useState("")',
+		);
+		expect(inboundCreatePaneSource).not.toContain(
+			'const [expectedAt, setExpectedAt] = useState("")',
+		);
 	});
 });

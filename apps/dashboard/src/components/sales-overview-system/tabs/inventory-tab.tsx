@@ -80,6 +80,7 @@ import {
 	formatInventoryDateInputValue,
 	formatInventoryExpectedDateLabel,
 	formatInventoryItemSubtitle,
+	getDefaultInventoryExpectedDateValue,
 } from "../lib/inventory-display";
 import {
 	areAllInventoryNeedsFulfilled,
@@ -865,7 +866,9 @@ function InventoryActionBar({
 		[inboundQtyByRowId, selectedInboundRows],
 	);
 	const [supplierId, setSupplierId] = useState("");
-	const [expectedAt, setExpectedAt] = useState("");
+	const [expectedAt, setExpectedAt] = useState(
+		getDefaultInventoryExpectedDateValue,
+	);
 	const [reference, setReference] = useState("");
 	const [inboundStatus, setInboundStatus] =
 		useState<NewInboundShipmentStatus>("pending");
@@ -878,6 +881,7 @@ function InventoryActionBar({
 			onInboundFormOpened?.();
 			return;
 		}
+		setExpectedAt(getDefaultInventoryExpectedDateValue());
 		setIsInboundFormOpen(
 			shouldShowInventoryInboundForm({
 				isOpen: true,
@@ -943,7 +947,7 @@ function InventoryActionBar({
 				setInboundFormMode("create_inbound");
 				setSelectedInboundRowIds([]);
 				setReference("");
-				setExpectedAt("");
+				setExpectedAt(getDefaultInventoryExpectedDateValue());
 				setInboundStatus("pending");
 				setInboundNote("");
 				setInventorySegment("inbounds", {
@@ -1087,6 +1091,7 @@ function InventoryActionBar({
 								setIsInboundFormOpen(false);
 							} else {
 								setInboundFormMode("create_inbound");
+								setExpectedAt(getDefaultInventoryExpectedDateValue());
 								setInboundStatus("pending");
 								setSelectedInboundRowIds(inboundRowIds);
 								setIsInboundFormOpen(true);
@@ -1118,6 +1123,7 @@ function InventoryActionBar({
 								setIsInboundFormOpen(false);
 							} else {
 								setInboundFormMode("mark_available");
+								setExpectedAt(getDefaultInventoryExpectedDateValue());
 								setInboundStatus("pending");
 								setSelectedInboundRowIds([]);
 								setIsInboundFormOpen(true);

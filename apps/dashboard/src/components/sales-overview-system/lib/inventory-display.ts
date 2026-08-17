@@ -77,3 +77,7 @@ export function formatInventoryDateInputValue(value: Date) {
 	const day = String(value.getDate()).padStart(2, "0");
 	return `${year}-${month}-${day}`;
 }
+
+export function getDefaultInventoryExpectedDateValue(now = new Date()) {
+	return formatInventoryDateInputValue(now);
+}

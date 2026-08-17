@@ -1,21 +1,23 @@
+import { formatCurrency } from "@gnd/utils";
+import { type SalesSetting, getSalesSetting } from "../../exports";
+import type { StepComponentMeta } from "../../types";
+import { ftToIn, isComponentType } from "../../utils/utils";
+import type { PrintSalesData, PrintSalesItem } from "../query";
 import type {
-  DoorSection,
   CellHeader,
   DoorRow,
+  DoorSection,
+  PrintModeConfig,
   RowCell,
   SectionDetail,
-  PrintModeConfig,
 } from "../types";
-import type { PrintSalesData, PrintSalesItem } from "../query";
-import { formatCurrency } from "@gnd/utils";
-import { isComponentType, ftToIn } from "../../utils/utils";
-import type { StepComponentMeta } from "../../types";
-import { getSalesSetting, type SalesSetting } from "../../exports";
-import { packingInfo } from "./packing";
 import {
+  getCurrentHousePackageDoors,
+  getLatestFormSteps,
   getSalesItemType,
   getSectionIndex,
 } from "./grouped-item-helpers";
+import { packingInfo } from "./packing";
 
 /**
  * Compose door sections from sales items.
@@ -34,7 +36,9 @@ export function composeDoorSections(
     if (!item.housePackageTool) continue;
     if (seen.has(item.id)) continue;
 
-    const doorType = getSalesItemType(item);
+    const currentFormSteps = getLatestFormSteps(item);
+    const currentItem = { ...item, formSteps: currentFormSteps };
+    const doorType = getSalesItemType(currentItem);
     if (!doorType) continue;
 
     const is = isComponentType(doorType);
@@ -49,17 +53,19 @@ export function composeDoorSections(
     for (const m of multis) seen.add(m.id);
 
     // Resolve config overrides (noHandle, hasSwing)
-    const ovs = item.formSteps
+    const ovs = currentFormSteps
       ?.map(
         (fs) =>
-          (fs.component?.meta as any as StepComponentMeta)?.sectionOverride,
+          (fs.component?.meta as unknown as StepComponentMeta)?.sectionOverride,
       )
       ?.filter(Boolean);
-    const sectionOverride = ovs?.find((s) => s!.overrideMode);
-    const rootStep = item.formSteps?.find(
+    const sectionOverride = ovs?.find((s) => s?.overrideMode);
+    const rootStep = currentFormSteps.find(
       (fs) => fs.step.title === "Item Type",
     );
-    const rootConfig = setting?.data?.route?.[rootStep?.prodUid!]?.config;
+    const rootConfig = rootStep?.prodUid
+      ? setting?.data?.route?.[rootStep.prodUid]?.config
+      : null;
     const resolvedConfig = sectionOverride || rootConfig || null;
 
     const noHandle = resolvedConfig
@@ -107,7 +113,7 @@ export function composeDoorSections(
     // Build configuration details
     const details: SectionDetail[] = is.bifold
       ? []
-      : (item.formSteps ?? [])
+      : currentFormSteps
           .filter(
             (t) =>
               !["Door", "Item Type", "Moulding"].includes(t.step.title ?? ""),
@@ -121,15 +127,17 @@ export function composeDoorSections(
     const rows: DoorRow[] = [];
     let rowNum = 0;
     for (const m of multis) {
-      if (!m.housePackageTool?.doors?.length) continue;
-      for (const door of m.housePackageTool.doors) {
+      const currentDoors = getCurrentHousePackageDoors(m);
+      if (!currentDoors.length) continue;
+      const currentMultiFormSteps = getLatestFormSteps(m);
+      for (const door of currentDoors) {
         rowNum++;
         const doorTitle =
           door?.stepProduct?.name ||
           door?.stepProduct?.door?.title ||
           door?.stepProduct?.product?.title ||
           "";
-        const isPh = m.formSteps?.find((s) =>
+        const isPh = currentMultiFormSteps.find((s) =>
           s.value?.toLowerCase()?.startsWith("ph -"),
         );
 
