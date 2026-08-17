@@ -51,8 +51,12 @@ export function composeFooter(
     labor_cost?: number | null;
   } | null;
   const paymentState = getPrintPaymentFooterState(sale);
+  const applicableExtraCosts = (sale.extraCosts ?? []).filter((cost) => {
+    const amount = Number(cost.amount);
+    return Number.isFinite(amount) && amount !== 0;
+  });
   const extraCostTypes = new Set(
-    (sale.extraCosts ?? []).map((cost) => cost.type),
+    applicableExtraCosts.map((cost) => cost.type),
   );
 
   const lines: FooterLine[] = [];
@@ -108,7 +112,7 @@ export function composeFooter(
   }
 
   // Extra costs
-  for (const ec of sale.extraCosts ?? []) {
+  for (const ec of applicableExtraCosts) {
     lines.push({
       label: ec.label ?? "Extra",
       value: `$${formatCurrency(ec.amount || 0)}`,

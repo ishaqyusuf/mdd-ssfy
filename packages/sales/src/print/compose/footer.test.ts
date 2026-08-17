@@ -58,4 +58,23 @@ describe("composeFooter", () => {
 			expect.objectContaining({ value: "$20.00" }),
 		]);
 	});
+
+	it("omits additional costs that are not applicable", () => {
+		const footer = composeFooter(
+			createSale({
+				meta: {
+					deliveryCost: 0,
+					labor_cost: 0,
+				},
+				extraCosts: [
+					{ type: "Delivery", label: "Delivery", amount: 0 },
+					{ type: "Labor", label: "Labor", amount: 0 },
+				] as PrintSalesData["extraCosts"],
+			}),
+			"invoice",
+		);
+
+		expect(footer?.lines.some((line) => line.label === "Delivery")).toBe(false);
+		expect(footer?.lines.some((line) => line.label === "Labor")).toBe(false);
+	});
 });

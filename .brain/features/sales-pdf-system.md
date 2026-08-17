@@ -24,6 +24,8 @@ New-form `Delivery` and `Labor` extra costs are canonical footer rows. Their
 legacy metadata projections (`deliveryCost` and `labor_cost`) remain printable
 only as fallbacks for records without the matching canonical extra-cost type,
 preventing mirrored values from appearing twice without changing totals.
+Zero or invalid additional-cost values are not print-applicable and are omitted
+from the footer entirely.
 
 ```
 packages/sales/src/print/
