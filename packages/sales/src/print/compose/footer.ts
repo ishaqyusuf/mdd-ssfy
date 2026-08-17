@@ -51,6 +51,9 @@ export function composeFooter(
     labor_cost?: number | null;
   } | null;
   const paymentState = getPrintPaymentFooterState(sale);
+  const extraCostTypes = new Set(
+    (sale.extraCosts ?? []).map((cost) => cost.type),
+  );
 
   const lines: FooterLine[] = [];
   const notes: string[] = [];
@@ -92,7 +95,11 @@ export function composeFooter(
   }
 
   // Labor
-  if (meta?.labor_cost) {
+  if (
+    meta?.labor_cost &&
+    !extraCostTypes.has("Labor") &&
+    !extraCostTypes.has("FlatLabor")
+  ) {
     lines.push({
       label: "Labor",
       value: `$${formatCurrency(meta.labor_cost || 0)}`,
@@ -110,7 +117,7 @@ export function composeFooter(
   }
 
   // Delivery
-  if ((meta?.deliveryCost ?? 0) > 0) {
+  if ((meta?.deliveryCost ?? 0) > 0 && !extraCostTypes.has("Delivery")) {
     lines.push({
       label: "Delivery",
       value: `$${formatCurrency(meta?.deliveryCost ?? 0)}`,

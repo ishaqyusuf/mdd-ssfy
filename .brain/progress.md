@@ -1,5 +1,13 @@
 # Progress
 
+- 2026-08-17: fixed new-sales-form Delivery and Labor additional costs appearing
+  twice in printed sales documents. The print footer now treats persisted
+  extra-cost rows as canonical and uses mirrored legacy `deliveryCost` /
+  `labor_cost` metadata only when no matching canonical cost exists. Totals and
+  Sales Overview behavior are unchanged, legacy-only records retain their
+  fallback lines, focused print coverage passes 12 tests / 58 assertions, and
+  the Sales package typecheck passes.
+
 - 2026-08-14: compacted Special Order classification into a small invoice-summary
   control and one optional-reason modal, with visual-default No for unanswered
   orders and exact save/email continuation. Classification and removal now

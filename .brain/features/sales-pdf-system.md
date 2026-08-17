@@ -20,6 +20,11 @@ client/schema drift from breaking sales documents.
 
 The print data layer owns C.C.C/payment footer semantics. `composeFooter` and `composeMeta` use a shared payment footer state helper. Customer-facing print footers use a compact summary: unpaid card estimates show `Order Due Amount`, `Estimated Card Fee`, and `Total if Paying by Card`; paid and partially paid records show `Order Total`, optional aggregated `Card Fees`, `Total Paid`, and principal-only `Balance Due`. `Total Paid` combines principal applied to the order with only safely matched recorded card fees; it never infers historical fees from the selected payment method. HTML preview and both PDF templates render the shared `PrintPage` payload and do not calculate payment totals themselves. Internal sales overview `costLines` retain their detailed accounting labels and continue to use the shared payment state helper.
 
+New-form `Delivery` and `Labor` extra costs are canonical footer rows. Their
+legacy metadata projections (`deliveryCost` and `labor_cost`) remain printable
+only as fallbacks for records without the matching canonical extra-cost type,
+preventing mirrored values from appearing twice without changing totals.
+
 ```
 packages/sales/src/print/
 ├── index.ts                    # public barrel: getPrintData, types
