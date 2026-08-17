@@ -1,5 +1,31 @@
 # Progress
 
+- 2026-08-17: fixed new-sales-form House Package Tool quantity inputs losing
+  focus after one keystroke. The table row key included `swing` and `totalQty`,
+  so every edit changed React identity, remounted the row, and moved focus to
+  the document body. HPT rows now use a persisted row id/uid or a stable draft
+  component-size-index fallback. HPT, Moulding, Service, and Shelf quantity
+  controls and table columns also reserve enough room for three-digit values
+  without changing the shared stepper default on other sales surfaces. A
+  regression test first proved the key
+  changed from `inswing-5` to `outswing-46`, then passed after the fix; the
+  focused HPT, grouped-line, shelf, render, and stepper slice passes 19 tests /
+  67 assertions and the Sales typecheck passes. Authenticated browser proof on
+  order `09326LM` changed LH quantity `4` to `45` while retaining the same active
+  input, restored `4`, and recorded no console errors. Follow-up visual
+  inspection measured HPT and Moulding numeric inputs growing from 38px to 54px
+  while the tables remained aligned; Moulding values `30` and `18` were retained
+  and the temporary QA tab returned to Sales Orders without submitting an input
+  or save event. No API, database, permission, pricing, or persistence contract
+  changed.
+
+- 2026-08-17: hid mobile Quick Login from preview builds by requiring the
+  embedded development app variant in addition to Expo's `__DEV__` runtime.
+  Preview now returns before mounting the employee query or rendering the
+  Quick Login control, while explicit development builds retain the workflow.
+  Focused preview-security coverage passes 4 tests / 35 assertions. No database,
+  API contract, permission, or production authentication behavior changed.
+
 - 2026-08-17: fixed public Special Order approval submissions failing before the
   response transaction. Read-only production inspection proved the shared
   Vercel Blob store is public while signature uploads forced private access in
@@ -13,14 +39,18 @@
 
 - 2026-08-17: added duplicate-aware customer creation. The create form now
   debounces active-customer matches from phone, email, business name, and name;
-  labels the evidence; blocks exact phone duplicates; and lets Sales flows use
-  the existing customer or the directory open it for editing. Server-side
-  unique-phone conflicts now return and display actionable feedback instead of
-  failing silently. Focused validation passes 12 tests / 26 assertions, API
-  typecheck and touched dashboard Biome pass, and authenticated desktop browser
-  QA verified the complete conflict path without submitting a write. A mobile
-  `390x844` layout inspection found no form-level horizontal overflow. No
-  database schema, migration, or permission behavior changed.
+  presents up to ten compact suggestions in an animated horizontal rail below
+  Name; hides the scrollbar; exposes bounded smooth-scroll arrows; and reveals
+  complete customer, profile, tax, contact, term, ownership, and visibility
+  details on hover or keyboard focus. Exact phone duplicates remain blocked,
+  and Sales/directory flows can use or open the existing customer. Server-side
+  unique-phone conflicts return actionable feedback instead of failing
+  silently. Focused validation passes 13 tests / 32 assertions, API typecheck
+  and touched dashboard Biome pass, and authenticated browser QA verified
+  placement, 300ms motion, ten-result scrolling and arrow states, complete
+  details, and a clean console without submitting a write. A mobile `390x844`
+  layout inspection found no form-level horizontal overflow. No database
+  schema, migration, or permission behavior changed.
 
 - 2026-08-17: fixed new-sales-form Delivery and Labor additional costs appearing
   twice in printed sales documents and suppressed non-applicable zero-value
@@ -9278,3 +9308,82 @@
   Moulding shape. Focused print validation passes 14 tests / 74 assertions, and
   scoped `git diff --check` passes. No database, API contract, permission,
   subtotal, or persisted-order behavior changed.
+
+## 2026-08-17 — New sales form title spacing and HPT custom price access
+
+- Fixed controlled item-title editing so a typed trailing space survives the
+  per-keystroke state patch and supports multi-word titles; ordinary
+  save/hydration normalization still trims persisted values.
+- Removed the pricing-admin guard from only the HPT Estimate dropdown's Custom
+  Price field. Base cost, Addon Price, profile-price repair, and other pricing
+  controls keep their existing capability gates.
+- Added focused state and capability-boundary regressions. Per the explicitly
+  requested fast Bun workflow, no tests, typecheck, build, formatter, dev
+  server, or browser run was executed; scoped whitespace validation passed.
+
+## 2026-08-17 — Sales Overview approval-link copy action
+
+- Added `Copy approval link` directly to the Special Order Approval Options menu
+  for governed orders that still need customer approval, including orders with
+  no previously emailed request.
+- Added a protected `specialOrder.prepareApprovalLink` mutation requiring
+  `editOrders`. It validates and reuses an active link or prepares a new
+  revision-bound request and activity record without sending customer email.
+- Updated focused permission coverage and API/feature documentation. Per the
+  fast Bun workflow, no tests, typecheck, build, formatter, dev server, or
+  browser run was executed.
+
+## 2026-08-17 — Sales Overview Special Order enrollment
+
+- Added `Mark as Special Order` to the General-tab Special Order card for
+  internal orders when the authenticated employee has `editOrders` and belongs
+  to the live enrollment audience.
+- Added a protected, serializable `specialOrder.enrollFromOverview` transition.
+  It reloads the canonical persisted Sales Form projection, customer/profile/
+  addresses, actor, audience, prior requests, and evidence; requires a bounded
+  reason and valid canonical customer email; then initializes the current
+  Approval Revision as `SIGNATURE_PENDING` while preserving historical evidence.
+- Reused the customer-email repair dialog with exact continuation, recorded
+  actor-attributed Sales Activity and Sales History, refreshed Special Order
+  document snapshots, and invalidated focused overview/list/history reads.
+  Enrollment never creates or emails an approval request.
+- Focused validation passes 17 tests / 82 assertions across the authoritative
+  command, protected router boundary, and dashboard enrollment guard. Per the
+  fast Bun workflow, no build, broad typecheck, formatter, dev-server, curl, or
+  browser run was executed; authenticated browser acceptance remains open.
+
+## 2026-08-17 — Special Order signing-screen door specifications
+
+- Fixed the public Special Order order review dropping nested HPT/house-package
+  door specifications while rendering the immutable approval snapshot.
+- Door rows now show door type, Prehung Swing or general Swing, left/right-hand
+  quantities, and total doors. The review also surfaces line size/swing and
+  house-package height, total-door, and moulding details when present.
+- Expanded immutable public-review coverage and added focused specification
+  rendering regressions. Five focused tests pass with eight assertions; no API
+  contract, pricing, persistence, revision, evidence, or email behavior changed.
+# 2026-08-17 — Clarified Sales Overview Special Order enrollment validation
+
+- Verified the live `09331AD` Sales Overview flow in the in-app browser: the
+  enrollment control and dialog were accessible, but confirmation was disabled
+  without explaining the documented three-character reason minimum.
+- Added associated help text, required/min-length semantics, and invalid-state
+  signaling to the Special Order action reason field while preserving the
+  existing enrollment contract.
+
+## 2026-08-17 — Made Sales Overview Special Order reason optional
+
+- Updated `specialOrder.enrollFromOverview` to accept an omitted, blank, or
+  null classification reason and normalize it to `null`; supplied reasons keep
+  the existing 3-500 character bound.
+- Updated the overview dialog so an empty reason no longer disables enrollment,
+  while re-approval reasons remain required and short optional reasons remain
+  invalid.
+
+## 2026-08-17 — Repaired Sales Overview approval-link copying
+
+- Kept the revision-bound approval-link preparation command unchanged and added
+  a DOM-selection clipboard fallback for browsers that reject the async
+  Clipboard API after the server round trip consumes user activation.
+- Copy success is reported only after either clipboard path completes; genuine
+  link-preparation and clipboard failures retain actionable error feedback.

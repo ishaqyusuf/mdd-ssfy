@@ -1,6 +1,9 @@
 "use client";
 
+import { CustomerEmailRequiredDialog } from "@/components/modals/customer-email-required-dialog";
+import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
+import { hasSpecialOrderCustomerEmail } from "@gnd/sales/special-order";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
@@ -27,7 +30,37 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useSaleOverview } from "./context";
 
-type ReasonDialog = "reapproval" | "remove" | null;
+type ReasonDialog = "enroll" | "reapproval" | "remove" | null;
+
+async function copyTextToClipboard(value: string) {
+	try {
+		if (navigator.clipboard?.writeText) {
+			await navigator.clipboard.writeText(value);
+			return;
+		}
+	} catch {
+		// Fall through when async clipboard access loses user activation.
+	}
+
+	const textarea = document.createElement("textarea");
+	textarea.value = value;
+	textarea.setAttribute("readonly", "");
+	textarea.setAttribute("aria-hidden", "true");
+	textarea.style.position = "fixed";
+	textarea.style.opacity = "0";
+	document.body.appendChild(textarea);
+	let copied = false;
+	try {
+		textarea.focus();
+		textarea.select();
+		copied = document.execCommand("copy");
+	} finally {
+		textarea.remove();
+	}
+	if (!copied) {
+		throw new Error("The browser blocked clipboard access.");
+	}
+}
 
 function statusDescription(
 	declaration: string | null | undefined,
@@ -54,9 +87,11 @@ function statusDescription(
 export function SpecialOrderOverviewCard() {
 	const { data, query } = useSaleOverview();
 	const trpc = useTRPC();
+	const auth = useAuth();
 	const queryClient = useQueryClient();
 	const [reasonDialog, setReasonDialog] = useState<ReasonDialog>(null);
 	const [reason, setReason] = useState("");
+	const [emailRequirementOpen, setEmailRequirementOpen] = useState(false);
 	const [showHistory, setShowHistory] = useState(false);
 	const salesId = data?.id ?? 0;
 	const specialOrder = data?.specialOrder;
@@ -68,10 +103,22 @@ export function SpecialOrderOverviewCard() {
 			{ enabled: showHistory && evaluated && salesId > 0 },
 		),
 	);
+	const enrollmentAccess = useQuery(
+		trpc.specialOrder.enrollmentAccess.queryOptions(undefined, {
+			enabled: data?.type === "order" && salesId > 0,
+			staleTime: 0,
+		}),
+	);
+	const canEnrollFromOverview =
+		!governed &&
+		!data?.isDealerSale &&
+		Boolean(auth.can?.editOrders) &&
+		enrollmentAccess.data?.canEnroll === true;
 
 	const invalidate = async () => {
 		await Promise.all([
 			query.salesQuery.invalidate.saleOverview(),
+			query.salesQuery.invalidate.salesDocumentChanged("order"),
 			queryClient.invalidateQueries({
 				queryKey: trpc.specialOrder.history.queryKey({ salesId }),
 			}),
@@ -109,6 +156,24 @@ export function SpecialOrderOverviewCard() {
 				toast.error(error.message);
 			},
 		}),
+	);
+	const enrollFromOverview = useMutation(
+		trpc.specialOrder.enrollFromOverview.mutationOptions({
+			async onSuccess(result) {
+				setReasonDialog(null);
+				setReason("");
+				setEmailRequirementOpen(false);
+				await invalidate();
+				toast.success(
+					result.enrolled
+						? "Special Order enabled. No approval request was sent."
+						: "This order is already a Special Order.",
+				);
+			},
+		}),
+	);
+	const prepareApprovalLink = useMutation(
+		trpc.specialOrder.prepareApprovalLink.mutationOptions(),
 	);
 	const removeSpecialOrder = useMutation(
 		trpc.specialOrder.remove.mutationOptions({
@@ -151,13 +216,62 @@ export function SpecialOrderOverviewCard() {
 				? "Send Re-Approval Request"
 				: "Send Approval Request";
 	const isPending =
+		enrollFromOverview.isPending ||
 		requestApproval.isPending ||
 		requestReapproval.isPending ||
+		prepareApprovalLink.isPending ||
 		removeSpecialOrder.isPending ||
 		retryNotifications.isPending;
 	const normalizedReason = reason.trim();
 	const optionalReasonIsTooShort =
 		normalizedReason.length > 0 && normalizedReason.length < 3;
+	const reasonIsRequired = reasonDialog === "reapproval";
+	const requiredReasonIsTooShort =
+		reasonIsRequired &&
+		normalizedReason.length > 0 &&
+		normalizedReason.length < 3;
+	const submitEnrollment = () =>
+		enrollFromOverview.mutateAsync({
+			salesId,
+			reason: normalizedReason || null,
+		});
+	const proceedEnrollment = async () => {
+		if (optionalReasonIsTooShort) return;
+		if (!hasSpecialOrderCustomerEmail(data?.email)) {
+			if (!data?.customerId) {
+				toast.error(
+					"Assign a customer before marking this as a Special Order.",
+				);
+				return;
+			}
+			setReasonDialog(null);
+			setEmailRequirementOpen(true);
+			return;
+		}
+		try {
+			await submitEnrollment();
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Unable to mark this as a Special Order.",
+			);
+		}
+	};
+	const copyApprovalLink = async () => {
+		try {
+			const result = await prepareApprovalLink.mutateAsync({ salesId });
+			void invalidate().catch(() => undefined);
+			await copyTextToClipboard(result.approvalUrl);
+			toast.success("Approval link copied to clipboard.");
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Unable to copy the approval link.",
+			);
+		}
+	};
 
 	if (data?.type === "quote") return null;
 
@@ -188,6 +302,16 @@ export function SpecialOrderOverviewCard() {
 						</Badge>
 					</div>
 
+					{canEnrollFromOverview ? (
+						<Button
+							size="sm"
+							disabled={isPending || !salesId}
+							onClick={() => setReasonDialog("enroll")}
+						>
+							<Icons.PenTool className="mr-2 size-4" />
+							Mark as Special Order
+						</Button>
+					) : null}
 					{governed ? (
 						<div className="flex flex-wrap gap-2">
 							{specialOrder?.status !== "CUSTOMER_APPROVED" ? (
@@ -208,6 +332,14 @@ export function SpecialOrderOverviewCard() {
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end">
+									{specialOrder?.status !== "CUSTOMER_APPROVED" ? (
+										<DropdownMenuItem
+											onSelect={() => void copyApprovalLink()}
+										>
+											<Icons.Copy className="mr-2 size-4" />
+											Copy approval link
+										</DropdownMenuItem>
+									) : null}
 									{specialOrder?.status === "CUSTOMER_APPROVED" ? (
 										<DropdownMenuItem
 											onSelect={() => setReasonDialog("reapproval")}
@@ -393,45 +525,70 @@ export function SpecialOrderOverviewCard() {
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
-							{reasonDialog === "reapproval"
-								? "Request Re-Approval"
-								: "Remove Special Order"}
+							{reasonDialog === "enroll"
+								? "Mark as Special Order"
+								: reasonDialog === "reapproval"
+									? "Request Re-Approval"
+									: "Remove Special Order"}
 						</DialogTitle>
 						<DialogDescription>
-							{reasonDialog === "reapproval"
-								? "The current approval will be superseded immediately. Explain why the customer must approve again."
-								: "All requests and customer evidence will remain in history. You may add a reason for removing this classification."}
+							{reasonDialog === "enroll"
+								? "This starts the Special Order approval lifecycle for the current order revision. You may add a reason for the classification. The customer will not be contacted until you send an approval request separately."
+								: reasonDialog === "reapproval"
+									? "The current approval will be superseded immediately. Explain why the customer must approve again."
+									: "All requests and customer evidence will remain in history. You may add a reason for removing this classification."}
 						</DialogDescription>
 					</DialogHeader>
 					<label className="text-sm font-medium" htmlFor="special-order-action-reason">
-						{reasonDialog === "remove" ? "Reason (optional)" : "Reason"}
+						{reasonIsRequired ? "Reason" : "Reason (optional)"}
 					</label>
 					<Textarea
 						id="special-order-action-reason"
 						aria-label="Reason"
+						aria-describedby="special-order-action-reason-help"
+						aria-invalid={
+							requiredReasonIsTooShort || optionalReasonIsTooShort
+						}
 						placeholder="Enter a reason"
+						required={reasonIsRequired}
+						minLength={3}
 						maxLength={500}
 						value={reason}
 						onChange={(event) => setReason(event.target.value)}
 					/>
-					{reasonDialog === "remove" && optionalReasonIsTooShort ? (
-						<p className="text-xs text-destructive">
-							Enter at least 3 characters, or leave the reason blank.
-						</p>
-					) : null}
+					<p
+						id="special-order-action-reason-help"
+						className={
+							requiredReasonIsTooShort || optionalReasonIsTooShort
+								? "text-xs text-destructive"
+								: "text-xs text-muted-foreground"
+						}
+					>
+						{reasonIsRequired
+							? "Required. Enter at least 3 characters to continue."
+							: "Optional. Enter at least 3 characters, or leave it blank."}
+					</p>
 					<DialogFooter>
-						<Button variant="outline" onClick={() => setReasonDialog(null)}>
+						<Button
+							variant="outline"
+							onClick={() => {
+								setReasonDialog(null);
+								setReason("");
+							}}
+						>
 							Cancel
 						</Button>
 						<Button
 							variant={reasonDialog === "remove" ? "destructive" : "default"}
 							disabled={
 								isPending ||
-								(reasonDialog === "reapproval" && normalizedReason.length < 3) ||
-								(reasonDialog === "remove" && optionalReasonIsTooShort)
+								(reasonIsRequired && normalizedReason.length < 3) ||
+								(!reasonIsRequired && optionalReasonIsTooShort)
 							}
 							onClick={() => {
-								if (reasonDialog === "reapproval") {
+								if (reasonDialog === "enroll") {
+									void proceedEnrollment();
+								} else if (reasonDialog === "reapproval") {
 									requestReapproval.mutate({
 										salesId,
 										reason: normalizedReason,
@@ -444,13 +601,26 @@ export function SpecialOrderOverviewCard() {
 								}
 							}}
 						>
-							{reasonDialog === "reapproval"
-								? "Supersede & Send"
-								: "Confirm Removal"}
+							{reasonDialog === "enroll"
+								? "Mark as Special Order"
+								: reasonDialog === "reapproval"
+									? "Supersede & Send"
+									: "Confirm Removal"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
+
+			<CustomerEmailRequiredDialog
+				open={emailRequirementOpen}
+				onOpenChange={setEmailRequirementOpen}
+				customerId={data?.customerId}
+				customerName={data?.displayName}
+				description="Special Orders require a customer email. Save it now to finish classification; no approval request will be sent."
+				onSaved={async () => {
+					await submitEnrollment();
+				}}
+			/>
 		</>
 	);
 }

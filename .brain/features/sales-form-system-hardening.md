@@ -173,6 +173,14 @@
   explicit bounds and accessible action labels. The desktop door-size table
   also keeps its Size header and values on one line, allowing the table scroller
   to absorb longer dimensions instead of wrapping them inside the column.
+- House Package Tool table rows use persisted row identity, with a stable
+  component/size/index fallback for unsaved rows. Mutable swing and quantity
+  values are excluded from React keys, so typing into Qty, LH, RH, or Swing
+  updates the row without remounting it or dropping keyboard focus. HPT,
+  Moulding, Service, and Shelf quantity controls reserve enough width for
+  three-digit values. Their table minimum widths and fixed quantity columns
+  absorb the added space inside existing horizontal overflow boundaries instead
+  of squeezing the numeric inputs or overlapping adjacent cells.
 - Component search/action bars now use the component picker itself as their
   boundary. They float above the editor footer while a long component list is
   active, anchor at the end of that list, and disappear when the picker leaves
@@ -210,6 +218,15 @@
 - Legacy costing and subtotal tests: 13 tests / 50 assertions.
 - Current grouped-service tax/costing, normalization, workflow, and state tests:
   82 tests / 315 assertions in the focused parity slice.
+- HPT row-identity, grouped-line layout, shelf editor, render, and shared
+  quantity-stepper validation passes 19 tests / 67 assertions. Authenticated
+  browser reproduction on order `09326LM`
+  changed an LH quantity from `4` to `45` with one keystroke, retained the same
+  focused input, restored the original `4`, submitted no save, and recorded no
+  console errors. The width update increased the visible HPT and Moulding
+  numeric input areas from 38px to 54px while preserving table layout; the
+  Moulding proof retained values `30` and `18`, then returned the temporary QA
+  tab to Sales Orders without submitting an input or save event.
 - API sales-form transaction/parity tests: 29 tests / 237 assertions, plus 3
   bounded post-save tests / 8 assertions.
 - Shelf Decimal projection, render-stability, and print-data regression slice:
@@ -347,6 +364,12 @@
   Authenticated QA on `09166LRG` confirmed all five existing titles render in
   uppercase without editing or saving the order. The focused workflow regression,
   Sales typecheck, and scoped formatting check pass.
+- 2026-08-17 live item-title patches preserve trailing whitespace until the
+  next character arrives, preventing controlled-state normalization from
+  collapsing spaces between words. Save/hydration normalization remains
+  unchanged. The HPT Estimate dropdown now exposes Custom Price to all order
+  editors while keeping base cost, addon price, and repair controls behind the
+  existing pricing-admin capability.
 - 2026-08-07 adding a sales-form item now smoothly scrolls the shared workflow
   list to the newly inserted active item section. Initial hydration and ordinary
   item switching do not trigger the scroll, and reduced-motion users receive an

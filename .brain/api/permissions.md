@@ -425,7 +425,13 @@ Tracks authentication and authorization patterns across API surfaces.
   to see and operate on previously marked orders under the normal Special Order
   lifecycle and enforcement rules.
 - Classification, approval request/retry, reapproval, and removal require an
-  authenticated user with `editOrders`.
+  authenticated user with `editOrders`. Sales Overview classification also
+  re-resolves the live enrollment audience server-side; `SUPER_ADMIN_ONLY`
+  limits the transition to active Super Admin role assignments, while
+  `ALL_STAFF` admits otherwise-authorized active employees.
+- Reusing or preparing an approval capability for Sales Overview clipboard use
+  also requires `editOrders`; possessing the public URL remains the customer's
+  revision-bound capability, and preparing it does not send customer email.
 - Approval history requires `viewOrders` or `editOrders`.
 - Decrypted signature retrieval requires an authenticated user with
   `viewOrders` or `editOrders`; anonymous access returns `401` and an

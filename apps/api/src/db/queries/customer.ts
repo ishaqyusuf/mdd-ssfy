@@ -1122,7 +1122,28 @@ export async function searchCustomers(
 			name: true,
 			businessName: true,
 			phoneNo: true,
+			phoneNo2: true,
 			email: true,
+			address: true,
+			meta: true,
+			profile: {
+				select: {
+					id: true,
+					title: true,
+				},
+			},
+			taxProfiles: {
+				where: { deletedAt: null },
+				select: {
+					taxCode: true,
+					tax: {
+						select: {
+							percentage: true,
+							title: true,
+						},
+					},
+				},
+			},
 			dealerOwnerId: true,
 			officeVisibility: true,
 			dealerOwner: {
@@ -1135,7 +1156,10 @@ export async function searchCustomers(
 		take: 10, // Limit results for performance
 	});
 
-	return customers;
+	return customers.map(({ meta, ...customer }) => ({
+		...customer,
+		netTerm: (meta as CustomerMeta | null)?.netTerm ?? null,
+	}));
 }
 
 export async function getCustomerDirectoryV2Summary(

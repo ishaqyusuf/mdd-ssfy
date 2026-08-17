@@ -16,12 +16,22 @@ lines, components, or catalog rows independently.
   Save & New and final internal-order saves require an explicit Yes or No.
 - No produces `NOT_REQUIRED`. Yes starts at `SIGNATURE_PENDING` unless a current
   approval matches the exact order revision.
-- Existing legacy orders remain `Not evaluated` and are not governed until a
-  salesperson deliberately enables Special Order with confirmation. The
-  classification reason is optional.
-- Sales Overview exposes the independent state, approval request actions,
-  `Request Re-Approval`, history, and removal. Removal reasons are optional;
-  reapproval and customer-decline reasons remain required.
+- Existing legacy orders remain `Not evaluated` and are not governed until an
+  eligible salesperson deliberately enables Special Order with confirmation.
+  Sales Form and Sales Overview classification reasons are optional.
+- Sales Overview lets employees with `editOrders` and live enrollment-audience
+  access mark an ordinary internal order as Special Order. Missing canonical
+  customer email uses the shared repair-and-resume dialog. Enrollment records
+  activity, initializes the current Approval Revision in `SIGNATURE_PENDING`,
+  refreshes documents, and does not send an approval request. If a reason is
+  supplied it must contain 3-500 characters; an omitted or blank reason is
+  normalized to `null` and does not block enrollment.
+- Sales Overview also exposes approval request actions, `Copy approval link`,
+  `Request Re-Approval`, history, and removal. Copying reuses the current active
+  request or prepares one for the current revision without sending customer
+  email. The clipboard action falls back to a transient DOM selection when the
+  async Clipboard API is unavailable or rejects after link preparation. Removal
+  reasons are optional; reapproval and customer-decline reasons remain required.
 - Enabling, revision invalidation, requests, customer responses, reapproval,
   and removal write Sales Activity. Removal sends a customer notification when
   the policy had already been communicated or answered.
@@ -39,6 +49,12 @@ The customer sees the customer-visible order snapshot and policy, then either:
 - approves after checking the acknowledgment, supplying a printed name, and
   drawing a signature; or
 - declines with a required reason.
+
+The public order review renders customer-visible line specifications and nested
+group details from that immutable snapshot. House-package doors show size, door
+type, prehung/general swing, left- and right-hand quantities, total doors,
+height, and moulding details when present; these values are review-only and do
+not mutate the snapshot or order.
 
 A material order change supersedes prior evidence, revokes active links, moves
 the order to `REAPPROVAL_REQUIRED`, and requires a new signature. Prior evidence
@@ -168,7 +184,7 @@ implementation tickets are published under
 01-04 form the initial parallel frontier and Ticket 05 is the blocked integration
 and acceptance gate:
 
-- Sales Overview gains Special Order enrollment with the same release audience,
+- Sales Overview now has Special Order enrollment with the same release audience,
   customer-email repair, reason, activity, and revision rules as the Sales Form;
   enrollment does not automatically send the request.
 - The public approval Customer name comes from the immutable request snapshot

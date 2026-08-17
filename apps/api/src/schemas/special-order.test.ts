@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
 	specialOrderApprovalResponseSchema,
+	specialOrderEnrollmentSchema,
 	specialOrderReapprovalSchema,
 	specialOrderRemovalSchema,
 	specialOrderRequestSchema,
@@ -76,6 +77,19 @@ describe("Special Order public command validation", () => {
 				reason: "Pricing changed",
 			}).success,
 		).toBe(true);
+	});
+
+	it("normalizes an omitted or blank Sales Overview enrollment reason", () => {
+		expect(specialOrderEnrollmentSchema.parse({ salesId: 1 })).toEqual({
+			salesId: 1,
+		});
+		expect(
+			specialOrderEnrollmentSchema.parse({ salesId: 1, reason: "   " }),
+		).toEqual({ salesId: 1, reason: null });
+		expect(
+			specialOrderEnrollmentSchema.safeParse({ salesId: 1, reason: "no" })
+				.success,
+		).toBe(false);
 	});
 
 	it("does not accept an approval recipient override", () => {

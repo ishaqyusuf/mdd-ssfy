@@ -17,7 +17,9 @@ const salesFormQuery = readFileSync(
 describe("Special Order authorization boundaries", () => {
 	test("exposes authenticated enrollment access without changing lifecycle permissions", () => {
 		expect(approvalRouter).toContain("enrollmentAccess: protectedProcedure");
+		expect(approvalRouter).toContain("enrollFromOverview: protectedProcedure");
 		expect(approvalRouter).toContain("getSpecialOrderEnrollmentAccess");
+		expect(approvalRouter).toContain("enrollSpecialOrderFromOverview");
 	});
 
 	test("enforces the pilot at the authoritative Sales Form save boundary", () => {
@@ -45,6 +47,7 @@ describe("Special Order authorization boundaries", () => {
 		for (const marker of [
 			"requestApproval: protectedProcedure",
 			"requestReapproval: protectedProcedure",
+			"prepareApprovalLink: protectedProcedure",
 			"remove: protectedProcedure",
 			"history: protectedProcedure",
 			"retryNotifications: protectedProcedure",

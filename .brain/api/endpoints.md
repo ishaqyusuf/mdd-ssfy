@@ -553,11 +553,20 @@ Planning only; endpoint names may be refined during approved implementation.
 
 ## Special Order acknowledgment endpoints (2026-08-13)
 
+- `specialOrder.enrollFromOverview`: protected order-editor mutation that
+  classifies an existing internal Sales Order using the live enrollment
+  audience, canonical customer email, persisted customer-visible projection,
+  optional reason, and current Approval Revision. It records activity and
+  refreshes documents without issuing or emailing an approval request.
 - `specialOrder.requestApproval`: protected order-editor mutation that issues or
   reuses the current revision-bound request and sends the customer action to the
   order's canonical customer email; it accepts no recipient override.
 - `specialOrder.requestReapproval`: protected order-editor mutation that revokes
   the prior request/current approval and issues a replacement with a reason.
+- `specialOrder.prepareApprovalLink`: protected order-editor mutation used by
+  Sales Overview clipboard actions. It reuses the current active,
+  revision-bound approval URL or prepares a new request for the current revision
+  when none is active; it does not send customer email.
 - `specialOrder.remove`: protected order-editor mutation that removes current
   classification with confirmation/reason while preserving evidence history.
 - `specialOrder.history`: protected order-view query for requests, evidence,

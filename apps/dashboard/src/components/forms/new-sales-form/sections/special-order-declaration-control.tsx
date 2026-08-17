@@ -223,7 +223,7 @@ export function SpecialOrderDeclarationControl(props: Props) {
 							<ToggleGroupItem
 								value="YES"
 								aria-label="Special Order"
-								className="data-[state=on]:bg-success data-[state=on]:text-success-foreground"
+								className="border-success bg-success text-success-foreground hover:bg-success/90 hover:text-success-foreground data-[state=on]:bg-success data-[state=on]:text-success-foreground"
 								onClick={() => requestChange("YES")}
 							>
 								Yes
@@ -274,7 +274,7 @@ export function SpecialOrderDeclarationControl(props: Props) {
 						</ToggleGroupItem>
 						<ToggleGroupItem
 							value="YES"
-							className="data-[state=on]:bg-success data-[state=on]:text-success-foreground"
+							className="border-success bg-success text-success-foreground hover:bg-success/90 hover:text-success-foreground data-[state=on]:bg-success data-[state=on]:text-success-foreground"
 						>
 							Yes
 						</ToggleGroupItem>

@@ -28,8 +28,14 @@ directory.
 - A successful edit refreshes customer and sales projections without requiring
   the user to leave Sales Overview or manually reload the page.
 - While a new customer is being entered, the form debounces searches by phone,
-  email, business name, or personal name and shows up to three likely active
-  customer records inline.
+  email, business name, or personal name and shows up to ten likely active
+  customer records in an animated horizontal rail directly below the name
+  field. The rail hides its scrollbar, exposes bounded previous/next controls,
+  and supports mouse-wheel/touch scrolling.
+- Each suggestion ticket shows the customer identity, profile, primary contact,
+  and match evidence. Hover or keyboard focus opens a complete summary with
+  account number, personal/business names, profile, phones, email, address, tax,
+  net term, dealer ownership, and office visibility.
 - An exact ten-digit phone match blocks Create and directs the user to the
   matching record. Sales-context creation exposes `Use customer`; the customer
   directory exposes `Open customer` and changes the same sheet into edit mode.
@@ -103,12 +109,17 @@ closes the sheet.
   `customer.changed` invalidates customer projections and
   `sales.getSaleOverview`; the focused query-event suite passes 31 tests / 65
   assertions.
-- Duplicate-create validation passes 12 focused tests / 26 assertions across
-  match selection, exact-phone blocking, and server conflict translation.
+- Duplicate-create validation passes 13 focused tests / 32 assertions across
+  match selection, enriched active-customer search, exact-phone blocking, and
+  server conflict translation.
 - Authenticated desktop browser QA verified the inline duplicate warning,
   match evidence, disabled Create action, and transition from Create Customer
   to the existing customer's edit form without submitting a write. Mobile
   layout was inspected at `390x844` with no form-level horizontal overflow.
+- In-app browser QA verified the rail sits below Name, animates for 300ms,
+  remains width-bounded with ten matches, scrolls smoothly in 240px steps,
+  updates both arrow states at its bounds, exposes complete hover details, and
+  emits no console errors.
 
 ## Related Plan
 

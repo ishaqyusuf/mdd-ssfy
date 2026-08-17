@@ -129,6 +129,57 @@ export type SpecialOrderApprovalDeliveryResult = {
 	errorMessage?: string | null;
 };
 
+export async function resolveCurrentSpecialOrderApprovalLink(
+	db: Db,
+	salesId: number,
+) {
+	const order = await db.salesOrders.findFirst({
+		where: { id: salesId, type: "order", deletedAt: null },
+		select: {
+			orderId: true,
+			specialOrderDeclaration: true,
+			specialOrderRevision: true,
+			currentSpecialOrderRequestId: true,
+		},
+	});
+	if (
+		!order ||
+		order.specialOrderDeclaration !== "YES" ||
+		!order.specialOrderRevision ||
+		!order.currentSpecialOrderRequestId
+	) {
+		return null;
+	}
+
+	const request = await db.specialOrderApprovalRequest.findFirst({
+		where: {
+			id: order.currentSpecialOrderRequestId,
+			salesOrderId: salesId,
+			orderRevision: order.specialOrderRevision,
+			status: "ACTIVE",
+			expiresAt: { gt: new Date() },
+		},
+		select: { id: true, tokenHash: true, expiresAt: true },
+	});
+	if (!request) return null;
+
+	const token = createSpecialOrderApprovalCapability(request.id);
+	if (hashSpecialOrderApprovalCapability(token) !== request.tokenHash) {
+		throw new Error("Unable to resolve the active approval capability.");
+	}
+	const appUrl = getAppUrl()?.replace(/\/$/, "");
+	if (!appUrl) {
+		throw new Error("Missing app URL for Special Order approval action.");
+	}
+
+	return {
+		requestId: request.id,
+		orderId: order.orderId,
+		approvalUrl: `${appUrl}/sales/special-order-approval/${encodeURIComponent(token)}`,
+		expiresAt: request.expiresAt,
+	};
+}
+
 export async function recordSpecialOrderApprovalDelivery(
 	db: Db,
 	actions: SpecialOrderEmailApprovalAction[],

@@ -11,6 +11,9 @@ const summarySource = readSource("./sections/invoice-overview-panel.tsx");
 const overviewSource = readSource(
 	"../../sheets/sales-overview-sheet/general-tab.tsx",
 );
+const overviewCardSource = readSource(
+	"../../sheets/sales-overview-sheet/special-order-overview-card.tsx",
+);
 const columnsSource = readSource("../../tables-2/sales-orders/columns.tsx");
 const declarationSource = readSource(
 	"./sections/special-order-declaration-control.tsx",
@@ -116,6 +119,33 @@ describe("Special Order enrollment pilot guard", () => {
 		expect(overviewSource).toContain("<SpecialOrderOverviewCard />");
 	});
 
+	test("offers guarded Sales Overview enrollment with email continuation", () => {
+		for (const marker of [
+			"specialOrder.enrollmentAccess",
+			"auth.can?.editOrders",
+			"enrollmentAccess.data?.canEnroll === true",
+			"Mark as Special Order",
+			"CustomerEmailRequiredDialog",
+			"specialOrder.enrollFromOverview",
+			"No approval request was sent",
+		]) {
+			expect(overviewCardSource).toContain(marker);
+		}
+		expect(overviewCardSource).toContain(
+			"!hasSpecialOrderCustomerEmail(data?.email)",
+		);
+		expect(overviewCardSource).toContain(
+			"Optional. Enter at least 3 characters, or leave it blank.",
+		);
+		expect(overviewCardSource).toContain(
+			'aria-describedby="special-order-action-reason-help"',
+		);
+		expect(overviewCardSource).toContain('document.execCommand("copy")');
+		expect(overviewCardSource).toContain(
+			"await copyTextToClipboard(result.approvalUrl)",
+		);
+	});
+
 	test("renders the compact classification control and one optional-reason modal", () => {
 		expect(declarationSource).not.toContain(
 			"Does this order contain Special Order items?",
@@ -133,6 +163,11 @@ describe("Special Order enrollment pilot guard", () => {
 		expect(declarationSource).toContain(
 			"props.onRequiredPromptOpenChange?.(false)",
 		);
+		expect(
+			declarationSource.match(
+				/className="border-success bg-success text-success-foreground hover:bg-success\/90 hover:text-success-foreground data-\[state=on\]:bg-success data-\[state=on\]:text-success-foreground"/g,
+			),
+		).toHaveLength(2);
 		expect(formSource).toContain("setPendingSpecialOrderCommit(null)");
 	});
 });

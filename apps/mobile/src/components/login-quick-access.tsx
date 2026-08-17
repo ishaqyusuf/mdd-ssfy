@@ -32,7 +32,12 @@ export function LoginQuickAccess({
   onSelectCredentials,
   variant = "default",
 }: LoginQuickAccessProps) {
-  if (!__DEV__) return null;
+  if (
+    !__DEV__ ||
+    Constants.expoConfig?.extra?.appVariant !== "development"
+  ) {
+    return null;
+  }
 
   return (
     <DevLoginQuickAccess

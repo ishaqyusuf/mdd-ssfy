@@ -159,7 +159,6 @@ export function CustomerForm({
 								</AccordionTrigger>
 								<AccordionContent>
 									<div className="space-y-4">
-										<ExistingCustomerResolver />
 										<FormSelect
 											placeholder="Customer Type"
 											control={form.control}
@@ -183,6 +182,8 @@ export function CustomerForm({
 											label={isBusiness ? "Customer Name" : "Name *"}
 											size="sm"
 										/>
+
+										<ExistingCustomerResolver />
 
 										<div className="grid grid-cols-2 gap-4">
 											<PhoneFormInput

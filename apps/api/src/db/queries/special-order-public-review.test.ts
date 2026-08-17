@@ -48,7 +48,17 @@ function request(overrides: Record<string, unknown> = {}) {
 					unitPrice: 250,
 					shelfItems: [{ description: "Trim", qty: 2, unitPrice: 10 }],
 					housePackageTool: {
-						doors: [{ dimension: "36 x 80", totalQty: 1, unitPrice: 230 }],
+						doors: [
+							{
+								dimension: "36 x 80",
+								doorType: "Interior Pre-Hung Door",
+								swing: "RH",
+								lhQty: 0,
+								rhQty: 1,
+								totalQty: 1,
+								unitPrice: 230,
+							},
+						],
 					},
 					meta: {
 						serviceRows: [{ service: "Install", qty: 1, unitPrice: 80 }],
@@ -108,7 +118,17 @@ describe("Special Order public review boundary", () => {
 						title: "Snapshot door",
 						unitPrice: 250,
 						shelfItems: [{ description: "Trim" }],
-						housePackageTool: { doors: [{ dimension: "36 x 80" }] },
+						housePackageTool: {
+							doors: [
+								{
+									dimension: "36 x 80",
+									doorType: "Interior Pre-Hung Door",
+									swing: "RH",
+									lhQty: 0,
+									rhQty: 1,
+								},
+							],
+						},
 						meta: { serviceRows: [{ service: "Install" }] },
 					},
 				],

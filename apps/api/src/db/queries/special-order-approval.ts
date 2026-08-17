@@ -12,6 +12,7 @@ import {
 	ensureSpecialOrderEmailApprovalAction,
 	hashSpecialOrderApprovalCapability,
 	readSpecialOrderRecord,
+	resolveCurrentSpecialOrderApprovalLink,
 	toSpecialOrderJson,
 } from "@gnd/sales/special-order";
 import {
@@ -25,6 +26,35 @@ import { del, put } from "@vercel/blob";
 
 const readObject = readSpecialOrderRecord;
 const json = toSpecialOrderJson;
+
+export async function prepareSpecialOrderApprovalLink(
+	ctx: TRPCContext,
+	salesId: number,
+) {
+	const current = await resolveCurrentSpecialOrderApprovalLink(ctx.db, salesId);
+	if (current) return current;
+
+	const action = await ensureSpecialOrderEmailApprovalAction(ctx.db, {
+		salesId,
+		issuedByUserId: ctx.userId ?? null,
+		activityName: "Special Order approval link prepared",
+		authorName: await getActorName(ctx),
+		revokedReason: "REPLACED_BY_APPROVAL_LINK",
+	});
+	if (!action) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"SPECIAL_ORDER_ALREADY_APPROVED: The current order revision already has customer approval.",
+		});
+	}
+	return {
+		requestId: action.requestId,
+		orderId: action.orderId,
+		approvalUrl: action.approvalUrl,
+		expiresAt: action.expiresAt,
+	};
+}
 
 async function recordPublicSpecialOrderLinkUse(
 	ctx: TRPCContext,

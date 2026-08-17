@@ -171,7 +171,11 @@ export function updateSalesFormLineItem<
 			);
 		}
 
-		return normalizeSalesFormLineItem(merged, index);
+		const normalized = normalizeSalesFormLineItem(merged, index);
+		if (Object.prototype.hasOwnProperty.call(patch, "title")) {
+			normalized.title = String(patch.title ?? "");
+		}
+		return normalized;
 	});
 
 	return {

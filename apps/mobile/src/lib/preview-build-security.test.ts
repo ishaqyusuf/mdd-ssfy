@@ -20,7 +20,9 @@ describe("mobile preview build security", () => {
 		const debug = readAppFile("src/components/debug.tsx");
 		const loginTemplates = readLoginTemplates();
 
-		expect(quickAccess).toContain("if (!__DEV__) return null;");
+		expect(quickAccess).toMatch(
+			/if\s*\(\s*!__DEV__\s*\|\|\s*Constants\.expoConfig\?\.extra\?\.appVariant\s*!==\s*"development"/,
+		);
 		const quickAccessWrapper = quickAccess.slice(
 			quickAccess.indexOf("export function LoginQuickAccess"),
 			quickAccess.indexOf("function DevLoginQuickAccess"),

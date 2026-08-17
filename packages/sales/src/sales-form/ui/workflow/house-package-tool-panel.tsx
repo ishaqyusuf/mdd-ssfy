@@ -112,6 +112,20 @@ export type HousePackageToolPanelProps = {
 	onRemoveSizeRow: (row: DoorStoredRow) => void;
 };
 
+export function getHousePackageToolRowKey(
+	componentId: number,
+	row: DoorStoredRow,
+	rowIndex: number,
+) {
+	const persistedId = Number(row.id);
+	if (Number.isFinite(persistedId) && persistedId > 0)
+		return `hpt-row-${componentId}-saved-id-${persistedId}`;
+	const persistedUid = String(row.uid ?? "").trim();
+	if (persistedUid) return `hpt-row-${componentId}-saved-uid-${persistedUid}`;
+
+	return `hpt-row-${componentId}-draft-${String(row.stepProductId || "product")}-${String(row.dimension || "size")}-${rowIndex}`;
+}
+
 function HptHeaderActionTooltip({
 	children,
 	label,
@@ -374,7 +388,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 							</div>
 						</header>
 						<div className="overflow-x-auto">
-							<table className="w-full min-w-[620px] table-fixed text-sm">
+							<table className="w-full min-w-[660px] table-fixed text-sm">
 								<thead>
 									<tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
 										<th className="whitespace-nowrap px-3 py-2">Size</th>
@@ -382,11 +396,11 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											<th className="w-20 px-2 py-2">Swing</th>
 										) : null}
 										{props.noHandle ? (
-											<th className="w-32 px-2 py-2 text-center">Qty</th>
+											<th className="w-36 px-2 py-2 text-center">Qty</th>
 										) : (
 											<>
-												<th className="w-32 px-2 py-2 text-center">LH</th>
-												<th className="w-32 px-2 py-2 text-center">RH</th>
+												<th className="w-36 px-2 py-2 text-center">LH</th>
+												<th className="w-36 px-2 py-2 text-center">RH</th>
 												<th className="w-14 px-2 py-2 text-right">Total</th>
 											</>
 										)}
@@ -422,7 +436,11 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 
 										return (
 											<tr
-												key={`hpt-row-${componentId}-${row.id ?? "new"}-${row.stepProductId || row.dimension || "row"}-${row.swing || "noswing"}-${row.totalQty || 0}-${rowIndex}`}
+												key={getHousePackageToolRowKey(
+													componentId,
+													row,
+													rowIndex,
+												)}
 												className="border-b border-slate-100 last:border-0"
 											>
 												<td className="whitespace-nowrap px-3 py-2 font-medium text-slate-800">
@@ -455,7 +473,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																})
 															}
 															disabled={isDoorRowPriceMissing(row)}
-															className="w-28"
+															className="w-32"
 															min={0}
 														/>
 													</td>
@@ -471,7 +489,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	})
 																}
 																disabled={isDoorRowPriceMissing(row)}
-																className="w-28"
+																className="w-32"
 																min={0}
 															/>
 														</td>
@@ -485,7 +503,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	})
 																}
 																disabled={isDoorRowPriceMissing(row)}
-																className="w-28"
+																className="w-32"
 																min={0}
 															/>
 														</td>
@@ -636,81 +654,79 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																		</span>
 																	)}
 																</div>
-																{props.canEditPricing ? (
-																	<>
-																		<Separator />
-																		<FieldGroup className="gap-2">
-																			<Field
-																				orientation="horizontal"
-																				className="gap-2"
-																			>
-																				<FieldTitle>
-																					{pricingLabels.addonPrice}
-																				</FieldTitle>
-																				<InputGroup className="h-8 w-28">
-																					<InputGroupAddon>
-																						<InputGroupText>$</InputGroupText>
-																					</InputGroupAddon>
-																					<InputGroupInput
-																						id={addonInputId}
-																						aria-label={
-																							pricingLabels.addonPrice
-																						}
-																						type="number"
-																						step="0.01"
-																						value={row.addon ?? 0}
-																						onChange={(event) =>
-																							props.onPatchRow(row, {
-																								addon: Number(
+																<Separator />
+																<FieldGroup className="gap-2">
+																	{props.canEditPricing ? (
+																		<Field
+																			orientation="horizontal"
+																			className="gap-2"
+																		>
+																			<FieldTitle>
+																				{pricingLabels.addonPrice}
+																			</FieldTitle>
+																			<InputGroup className="h-8 w-28">
+																				<InputGroupAddon>
+																					<InputGroupText>$</InputGroupText>
+																				</InputGroupAddon>
+																				<InputGroupInput
+																					id={addonInputId}
+																					aria-label={
+																						pricingLabels.addonPrice
+																					}
+																					type="number"
+																					step="0.01"
+																					value={row.addon ?? 0}
+																					onChange={(event) =>
+																						props.onPatchRow(row, {
+																							addon: Number(
+																								event.target.value || 0,
+																							),
+																						})
+																					}
+																					className="text-right"
+																				/>
+																			</InputGroup>
+																		</Field>
+																	) : null}
+																	<Field
+																		orientation="horizontal"
+																		className="gap-2"
+																	>
+																		<FieldTitle>
+																			{pricingLabels.customPrice}
+																		</FieldTitle>
+																		<InputGroup className="h-8 w-28">
+																			<InputGroupAddon>
+																				<InputGroupText>$</InputGroupText>
+																			</InputGroupAddon>
+																			<InputGroupInput
+																				id={customInputId}
+																				aria-label={
+																					pricingLabels.customPrice
+																				}
+																				type="number"
+																				step="0.01"
+																				value={row.customPrice ?? ""}
+																				onChange={(event) => {
+																					const customPrice =
+																						event.target.value === ""
+																							? null
+																							: Number(
 																									event.target.value || 0,
-																								),
-																							})
-																						}
-																						className="text-right"
-																					/>
-																				</InputGroup>
-																			</Field>
-																			<Field
-																				orientation="horizontal"
-																				className="gap-2"
-																			>
-																				<FieldTitle>
-																					{pricingLabels.customPrice}
-																				</FieldTitle>
-																				<InputGroup className="h-8 w-28">
-																					<InputGroupAddon>
-																						<InputGroupText>$</InputGroupText>
-																					</InputGroupAddon>
-																					<InputGroupInput
-																						id={customInputId}
-																						aria-label={
-																							pricingLabels.customPrice
-																						}
-																						type="number"
-																						step="0.01"
-																						value={row.customPrice ?? ""}
-																						onChange={(event) => {
-																							const customPrice =
-																								event.target.value === ""
-																									? null
-																									: Number(
-																											event.target.value || 0,
-																										);
-																							props.onPatchRow(
-																								row,
-																								patchDoorRowCustomPrice(
-																									row,
-																									customPrice,
-																								),
-																							);
-																						}}
-																						className="text-right"
-																					/>
-																				</InputGroup>
-																			</Field>
-																		</FieldGroup>
-																	</>
-																) : null}
+																								);
+																					props.onPatchRow(
+																						row,
+																						patchDoorRowCustomPrice(
+																							row,
+																							customPrice,
+																						),
+																					);
+																				}}
+																				className="text-right"
+																			/>
+																		</InputGroup>
+																	</Field>
+																</FieldGroup>
 															</CardContent>
 															<CardFooter className="justify-between p-3">
 																<span>Line total</span>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { upsertCustomerSchema } from "@api/schemas/customer";
-import { createOrUpdateCustomer } from "./customer";
+import { createOrUpdateCustomer, searchCustomers } from "./customer";
 
 function createContext() {
 	const calls = {
@@ -59,6 +59,48 @@ function createContext() {
 }
 
 describe("customer business names", () => {
+	it("returns enriched, active customer match details without exposing raw metadata", async () => {
+		type SearchQueryArgs = {
+			where: { AND: unknown[] };
+			select: { profile?: unknown; taxProfiles?: unknown };
+		};
+		let queryArgs: SearchQueryArgs = { where: { AND: [] }, select: {} };
+		const customer = {
+			id: 44,
+			name: "Ada Lovelace",
+			businessName: null,
+			phoneNo: "555-123-4567",
+			phoneNo2: null,
+			email: "ada@example.com",
+			address: "1 Analytical Way",
+			meta: { netTerm: "Net 30" },
+			profile: { id: 2, title: "Builder" },
+			taxProfiles: [],
+			dealerOwnerId: null,
+			officeVisibility: "PRIVATE",
+			dealerOwner: null,
+		};
+		const ctx = {
+			db: {
+				customers: {
+					findMany: async (args: SearchQueryArgs) => {
+						queryArgs = args;
+						return [customer];
+					},
+				},
+			},
+		} as unknown as Parameters<typeof searchCustomers>[0];
+
+		const result = await searchCustomers(ctx, { query: "Ada" });
+
+		expect(queryArgs.where.AND).toContainEqual({ deletedAt: null });
+		expect(queryArgs.select.profile).toBeDefined();
+		expect(queryArgs.select.taxProfiles).toBeDefined();
+		expect(result[0]?.id).toBe(44);
+		expect(result[0]?.netTerm).toBe("Net 30");
+		expect(Object.hasOwn(result[0] ?? {}, "meta")).toBe(false);
+	});
+
 	it("returns actionable copy when create hits the unique customer phone guard", async () => {
 		const conflict = Object.assign(new Error("Unique constraint failed"), {
 			code: "P2002",

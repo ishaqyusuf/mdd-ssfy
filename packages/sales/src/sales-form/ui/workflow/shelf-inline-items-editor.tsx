@@ -540,12 +540,12 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 				{props.headerSlot}
 			</div>
 			<div className="overflow-x-auto rounded-lg border">
-				<table className="w-full min-w-[780px] table-fixed text-sm">
+				<table className="w-full min-w-[820px] table-fixed text-sm">
 					<colgroup>
 						<col style={{ width: "2.5rem" }} />
 						<col />
 						<col style={{ width: "8rem" }} />
-						<col style={{ width: "8rem" }} />
+						<col style={{ width: "9.5rem" }} />
 						<col style={{ width: "8rem" }} />
 						<col style={{ width: "5rem" }} />
 					</colgroup>
@@ -722,7 +722,7 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 											onChange={(value) =>
 												patchEntry(entry, patchShelfRowQty(entry.row, value))
 											}
-											className="w-28"
+											className="w-32"
 										/>
 									</td>
 									<td className="px-3 py-2 text-right text-xs font-bold">

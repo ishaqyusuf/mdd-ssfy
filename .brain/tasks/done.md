@@ -1,5 +1,14 @@
 # Done
 
+- [x] 2026-08-17 — Keep new-sales-form House Package Tool quantity and swing
+  inputs focused while editing. HPT row keys now use stable persisted or draft
+  identity instead of mutable quantity/swing values. HPT, Moulding, Service,
+  and Shelf quantity controls now reserve enough width for three-digit values,
+  with fixed table columns expanded where required. Focused tests, Sales
+  typecheck, and authenticated browser reproduction on `09326LM` passed without
+  saving the order; live HPT and Moulding inspection increased the numeric input
+  from 38px to 54px.
+
 - [x] 2026-08-17 — Repair public Special Order approval submissions against the
   current shared production Blob store. Encrypted signature uploads now resolve
   the store's configured public/private access mode while retaining an explicit
@@ -9,9 +18,10 @@
 - [x] 2026-08-17 — Prevent silent duplicate customer creation by searching for
   likely matches as the create form is completed, blocking an exact existing
   phone number, and offering a direct `Use customer` or `Open customer` path.
-  Duplicate writes now return an actionable conflict message instead of failing
-  silently. Focused tests, API typecheck, Biome, and authenticated desktop
-  browser QA passed.
+  Suggestions now use an animated, horizontally scrollable ticket rail below
+  Name with bounded arrow controls and complete hover/focus details. Duplicate
+  writes return an actionable conflict message instead of failing silently.
+  Focused tests, API typecheck, Biome, and authenticated browser QA passed.
 
 - [x] 2026-08-14 — Gate only new Special Order enrollment behind a
   Super Admin-controlled `SUPER_ADMIN_ONLY` pilot audience, with an

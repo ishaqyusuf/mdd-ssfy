@@ -49,10 +49,10 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 	return (
 		<div className="space-y-3">
 			<div className="overflow-x-auto rounded-lg border">
-				<table className="w-full min-w-[760px] table-fixed text-sm">
+				<table className="w-full min-w-[800px] table-fixed text-sm">
 					<colgroup>
 						<col />
-						<col style={{ width: "8rem" }} />
+						<col style={{ width: "9.5rem" }} />
 						<col style={{ width: "7rem" }} />
 						{canEditPricing ? (
 							<>
@@ -111,7 +111,7 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 												qty: value,
 											} as Partial<TRow>)
 										}
-										className="w-28"
+										className="w-32"
 									/>
 								</td>
 								<td className="px-3 py-2">

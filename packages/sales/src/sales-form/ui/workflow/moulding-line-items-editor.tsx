@@ -74,7 +74,7 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 
 	return (
 		<div className="overflow-x-auto rounded-lg border">
-			<table className="min-w-[760px] text-sm">
+			<table className="min-w-[780px] text-sm">
 				<thead>
 					<tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
 						<th className="px-3 py-2">Moulding</th>
@@ -140,7 +140,7 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 													qty: value,
 												} as Partial<TRow>)
 											}
-											className="w-28"
+											className="w-32"
 										/>
 									</div>
 								</td>

@@ -13,8 +13,12 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - Expo updates are app-owned with `updates.checkAutomatically: "NEVER"` and `runtimeVersion.policy = "appVersion"`; GND controls automatic checks through the root-mounted update modal instead of Expo's native automatic check UI.
 - Launch-time auto-update checks are enabled only for installed preview builds where `extra.appVariant === "preview"` and `expo-updates` is enabled. Development and production builds keep updates manual-only.
 - Preview installed builds also check for OTA updates when the app returns to the foreground. Foreground checks are enabled by default, are cooldown-gated for 5 minutes, and can be overridden with `EXPO_PUBLIC_AUTO_UPDATE_ON_FOREGROUND` and `EXPO_PUBLIC_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS`.
-- Mobile quick login, login credential prefills, and `Debug` wrappers are
-  `__DEV__`-only. Preview and production builds render none of those controls.
+- Mobile quick login requires both the Expo `__DEV__` runtime and the embedded
+  `extra.appVariant === "development"` build identity. This prevents preview
+  builds from rendering or mounting the quick-login employee query even if the
+  runtime reports development semantics. Login credential prefills and `Debug`
+  wrappers remain `__DEV__`-only; preview and production release commands strip
+  the development credentials.
 - Selecting a development quick-login employee fills both login form fields:
   the selected employee email and the current `EXPO_PUBLIC_TOK`, exposed to the
   development client through scoped Expo config. The picker does not

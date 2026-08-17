@@ -136,6 +136,22 @@ describe("sales form state line item actions", () => {
 		expect(next.record?.summary?.subTotal).toBe(45);
 	});
 
+	it("preserves spaces while editing an item title", () => {
+		const state = {
+			...createInitialSalesFormState(),
+			record: createRecord(),
+		};
+		const withSpace = updateSalesFormLineItem(state, "line-1", {
+			title: "INTERIOR ",
+		});
+		const withNextWord = updateSalesFormLineItem(withSpace, "line-1", {
+			title: `${withSpace.record?.lineItems[0]?.title}DOOR`,
+		});
+
+		expect(withSpace.record?.lineItems[0]?.title).toBe("INTERIOR ");
+		expect(withNextWord.record?.lineItems[0]?.title).toBe("INTERIOR DOOR");
+	});
+
 	it("sets the new line active when adding a line", () => {
 		const state = {
 			...createInitialSalesFormState(),

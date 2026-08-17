@@ -540,7 +540,10 @@ Tracks important request/response contracts and shared schema boundaries.
   - `customer.getCustomerOverviewV2` returns normalized `customer`, `addresses`, `walletBalance`, `general`, and `salesWorkspace` sections so the web UI no longer stitches this from server actions
 - Customer create and matching contracts now include:
   - `customers.searchCustomers` returns only active, non-deleted customer
-    candidates for create-form matching.
+    candidates for create-form matching. Its bounded ten-row result includes
+    primary/secondary contact fields, legacy address, profile, active tax
+    profiles, explicit net term, dealer owner, and office visibility for the
+    suggestion-card detail view; raw customer metadata is not returned.
   - `customers.createCustomer` translates a unique `phoneNo` collision into an
     actionable `CONFLICT` response directing the client to select the matching
     customer or use a different phone number.
@@ -1262,14 +1265,28 @@ implementation phase is approved and released.
 - Public capabilities are revision- and policy-bound, expire, and are atomically
   single-use. Completed, expired, revoked, and stale links disclose only their
   terminal state and cannot submit again.
+- `specialOrder.enrollFromOverview` accepts a positive Sales Order id and a
+  nullable/optional trimmed reason; when supplied it must contain 3-500
+  characters. The server reloads the internal
+  order, authenticated actor, live enrollment audience, canonical customer and
+  addresses, prior Special Order state/evidence, and hydrated persisted Sales
+  Form projection in a serializable transaction. Success returns the order id,
+  `SIGNATURE_PENDING` status, and current Approval Revision; it creates no
+  approval request or email delivery.
+- `specialOrder.prepareApprovalLink` returns only a request id, order id,
+  approval URL, and expiry. It reuses a current ACTIVE, unexpired request that
+  matches the current Approval Revision; otherwise it creates a replacement
+  request for that revision without sending email. An already approved current
+  revision cannot be prepared through this action.
 - Approve requires acknowledgment, printed name, and PNG signature. Decline
   requires a reason. Every response snapshots the customer-visible order and
   policy that were reviewed.
-- Sales Form classification and `specialOrder.remove` accept an absent or blank
-  reason and normalize it to `null`. When present, the trimmed reason remains
-  limited to 3-500 characters. Reapproval and customer-decline reasons remain
-  required, and reasonless transitions still record actor, transition, prior
-  state, revision, and outcome.
+- Sales Form classification, Sales Overview enrollment, and
+  `specialOrder.remove` accept an absent or blank reason and normalize it to
+  `null`. When present, classification/removal reasons remain limited to 3-500
+  characters. Reapproval and customer-decline reasons remain required, and
+  reasonless supported transitions still record actor, transition, prior state,
+  revision, and outcome.
 - The PNG is encrypted before storage. The upload access mode follows an
   explicit signature-store override, then the configured Vercel Blob hostname,
   with an encrypted public-store compatibility fallback. No raw signature data,

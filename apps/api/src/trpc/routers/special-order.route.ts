@@ -2,13 +2,16 @@ import {
 	getPublicSpecialOrderApproval,
 	getSpecialOrderApprovalHistory,
 	issueSpecialOrderApprovalRequest,
+	prepareSpecialOrderApprovalLink,
 	removeSpecialOrderClassification,
 	respondToSpecialOrderApproval,
 	retrySpecialOrderStatusNotifications,
 } from "@api/db/queries/special-order-approval";
+import { enrollSpecialOrderFromOverview } from "@api/db/queries/special-order-enrollment";
 import { getSpecialOrderEnrollmentAccess } from "@api/db/queries/special-order-settings";
 import {
 	specialOrderApprovalResponseSchema,
+	specialOrderEnrollmentSchema,
 	specialOrderHistorySchema,
 	specialOrderNotificationRetrySchema,
 	specialOrderPublicTokenSchema,
@@ -43,6 +46,12 @@ export const specialOrderRouter = createTRPCRouter({
 	enrollmentAccess: protectedProcedure.query(({ ctx }) =>
 		getSpecialOrderEnrollmentAccess(ctx.db, ctx.userId ?? null),
 	),
+	enrollFromOverview: protectedProcedure
+		.input(specialOrderEnrollmentSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireSpecialOrderEditor(ctx);
+			return enrollSpecialOrderFromOverview(ctx, input);
+		}),
 	requestApproval: protectedProcedure
 		.input(specialOrderRequestSchema)
 		.mutation(async ({ ctx, input }) => {
@@ -58,6 +67,12 @@ export const specialOrderRouter = createTRPCRouter({
 				forceReplacement: true,
 				reapprovalReason: input.reason,
 			});
+		}),
+	prepareApprovalLink: protectedProcedure
+		.input(specialOrderRequestSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireSpecialOrderEditor(ctx);
+			return prepareSpecialOrderApprovalLink(ctx, input.salesId);
 		}),
 	remove: protectedProcedure
 		.input(specialOrderRemovalSchema)

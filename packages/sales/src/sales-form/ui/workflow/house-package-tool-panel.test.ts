@@ -1,7 +1,38 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
+import { getHousePackageToolRowKey } from "./house-package-tool-panel";
 
 describe("HPT add-size parity", () => {
+	it("keeps a row mounted while quantity and swing fields are edited", () => {
+		const row = {
+			id: 42,
+			stepProductId: 7,
+			dimension: "2-8 x 6-8",
+			swing: "inswing",
+			lhQty: 4,
+			rhQty: 1,
+			totalQty: 5,
+		};
+		const initialKey = getHousePackageToolRowKey(7, row, 0);
+
+		expect(
+			getHousePackageToolRowKey(
+				7,
+				{ ...row, swing: "outswing", lhQty: 45, totalQty: 46 },
+				0,
+			),
+		).toBe(initialKey);
+		expect(
+			getHousePackageToolRowKey(
+				7,
+				{ ...row, id: undefined, swing: "outswing", totalQty: 46 },
+				0,
+			),
+		).toBe(
+			getHousePackageToolRowKey(7, { ...row, id: undefined, totalQty: 5 }, 0),
+		);
+	});
+
 	it("keeps Add Size available before the first size row exists", () => {
 		const source = readFileSync(
 			new URL("./house-package-tool-panel.tsx", import.meta.url),
@@ -13,6 +44,19 @@ describe("HPT add-size parity", () => {
 		);
 		expect(emptySummaryBranch).toContain("HptAddSizeMenu");
 		expect(emptySummaryBranch).toContain("onAddSize={props.onAddSize}");
+	});
+
+	it("allocates enough width for three-digit HPT quantities", () => {
+		const source = readFileSync(
+			new URL("./house-package-tool-panel.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source).toContain("min-w-[660px]");
+		expect(
+			source.match(/className="w-36 px-2 py-2 text-center"/g),
+		).toHaveLength(3);
+		expect(source.match(/className="w-32"/g)).toHaveLength(3);
 	});
 
 	it("keeps Add Size available when another door owns the only rows", () => {
@@ -70,5 +114,22 @@ describe("HPT add-size parity", () => {
 		expect(source).toContain("repairDoorRowProfilePriceDrift");
 		expect(source).toContain("props.canEditPricing && profilePriceDrift");
 		expect(source).toContain('aria-label={`Repair price for ${row.dimension || "door size"}`}');
+	});
+
+	it("keeps custom price outside the admin-only HPT pricing guard", () => {
+		const source = readFileSync(
+			new URL("./house-package-tool-panel.tsx", import.meta.url),
+			"utf8",
+		);
+		const addonFieldIndex = source.indexOf("{pricingLabels.addonPrice}");
+		const guardEndIndex = source.indexOf(") : null}", addonFieldIndex);
+		const customFieldIndex = source.indexOf(
+			"{pricingLabels.customPrice}",
+			addonFieldIndex,
+		);
+
+		expect(addonFieldIndex).toBeGreaterThan(-1);
+		expect(guardEndIndex).toBeGreaterThan(addonFieldIndex);
+		expect(customFieldIndex).toBeGreaterThan(guardEndIndex);
 	});
 });
