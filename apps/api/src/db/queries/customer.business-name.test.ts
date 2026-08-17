@@ -53,6 +53,33 @@ function createContext() {
 }
 
 describe("customer business names", () => {
+	it("returns actionable copy when create hits the unique customer phone guard", async () => {
+		const conflict = Object.assign(new Error("Unique constraint failed"), {
+			code: "P2002",
+			meta: { target: ["phoneNo"] },
+		});
+		const ctx = {
+			db: {
+				$transaction: async () => {
+					throw conflict;
+				},
+			},
+		} as any;
+
+		expect(
+			createOrUpdateCustomer(ctx, {
+				customerType: "Personal",
+				name: "Ada Lovelace",
+				phoneNo: "555-123-4567",
+				profileId: "1",
+			}),
+		).rejects.toMatchObject({
+			code: "CONFLICT",
+			publicMessage:
+				"A customer already uses this phone number. Select the matching customer or enter a different number.",
+		});
+	});
+
 	it("allows a business customer with only a business name", () => {
 		const result = upsertCustomerSchema.safeParse({
 			customerType: "Business",

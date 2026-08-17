@@ -304,6 +304,143 @@ describe("getPrintData", () => {
 		);
 	});
 
+	it("prints metadata-backed service groups once when legacy sibling rows are retained", async () => {
+		const sale = createSale();
+		const serviceItem = sale.items.find((item) => item.id === 103);
+		if (!serviceItem) {
+			throw new Error("Expected the print fixture to include a service item.");
+		}
+
+		serviceItem.multiDyke = true;
+		serviceItem.multiDykeUid = "service-group-1";
+		sale.items.push({
+			id: 106,
+			description: "Delivery",
+			dykeDescription: "Services",
+			qty: 1,
+			rate: 50,
+			total: 50,
+			meta: {
+				uid: "svc-2",
+				meta: serviceItem.meta.meta,
+			},
+			formSteps: [],
+			housePackageTool: null,
+			shelfItems: [],
+			multiDyke: false,
+			multiDykeUid: "service-group-1",
+		});
+
+		const db = {
+			salesOrders: {
+				findMany: async () => [sale],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			dispatchId: null,
+		});
+		const serviceSections = result.pages[0]?.sections.filter(
+			(section) => section.kind === "service",
+		);
+		const genericSections = result.pages[0]?.sections.filter(
+			(section) => section.kind === "line-item",
+		);
+
+		expect(serviceSections).toHaveLength(1);
+		expect(serviceSections?.[0]?.rows).toHaveLength(2);
+		expect(
+			serviceSections?.[0]?.rows.map((row) => row.cells[1]?.value),
+		).toEqual(["Install", "Delivery"]);
+		expect(genericSections).toHaveLength(1);
+		expect(genericSections?.[0]?.rows).toHaveLength(1);
+		expect(genericSections?.[0]?.rows[0]?.cells[1]?.value).toBe(
+			"GENERIC LINE ITEM",
+		);
+	});
+
+	it("prints metadata-backed moulding groups once when legacy sibling rows are retained", async () => {
+		const sale = createSale();
+		const mouldingItem = sale.items.find((item) => item.id === 102);
+		if (!mouldingItem) {
+			throw new Error("Expected the print fixture to include a moulding item.");
+		}
+
+		mouldingItem.multiDyke = true;
+		mouldingItem.multiDykeUid = "moulding-group-1";
+		mouldingItem.meta.meta.mouldingRows.push({
+			uid: "m-2",
+			title: "Baseboard",
+			qty: 3,
+			salesPrice: 20,
+		});
+		const mouldingStep = mouldingItem.formSteps.find(
+			(formStep) => formStep.step?.title === "Moulding",
+		);
+		if (!mouldingStep?.meta?.selectedComponents) {
+			throw new Error("Expected selected moulding component metadata.");
+		}
+		mouldingStep.meta.selectedComponents.push({
+			uid: "m-2",
+			title: "Baseboard",
+			img: "baseboard.png",
+		});
+		sale.items.push({
+			id: 106,
+			description: "Baseboard",
+			dykeDescription: "Moulding",
+			qty: 3,
+			rate: 20,
+			total: 60,
+			meta: {
+				uid: "m-2",
+				meta: mouldingItem.meta.meta,
+			},
+			formSteps: [],
+			housePackageTool: null,
+			shelfItems: [],
+			multiDyke: false,
+			multiDykeUid: "moulding-group-1",
+		});
+
+		const db = {
+			salesOrders: {
+				findMany: async () => [sale],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			dispatchId: null,
+		});
+		const mouldingSections = result.pages[0]?.sections.filter(
+			(section) => section.kind === "moulding",
+		);
+		const genericSections = result.pages[0]?.sections.filter(
+			(section) => section.kind === "line-item",
+		);
+
+		expect(mouldingSections).toHaveLength(1);
+		expect(mouldingSections?.[0]?.rows).toHaveLength(2);
+		expect(
+			mouldingSections?.[0]?.rows.map((row) => row.cells[1]?.value),
+		).toEqual(["Casing", "Baseboard"]);
+		expect(genericSections).toHaveLength(1);
+		expect(genericSections?.[0]?.rows).toHaveLength(1);
+		expect(genericSections?.[0]?.rows[0]?.cells[1]?.value).toBe(
+			"GENERIC LINE ITEM",
+		);
+	});
+
 	it("adds derived credit-card ccc to preview total due", async () => {
 		const sale = {
 			...createSale(),

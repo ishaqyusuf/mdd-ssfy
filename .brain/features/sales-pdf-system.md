@@ -358,3 +358,9 @@ The stored-document phase should answer these operational rules explicitly:
   bodies contain stable reusable `/sh/<slug>` links for the signed PDF and any
   available payment or quote-acceptance action. Direct-message delivery stops
   if a secure PDF link cannot be generated.
+- 2026-08-17: Print composition treats metadata-backed grouped Service and
+  Moulding items as authoritative. Compatibility `SalesOrderItems` sharing the
+  authoritative item's `multiDykeUid` are excluded from section composition, so
+  grouped metadata rows render once and legacy siblings cannot reappear through
+  either the grouped fallback or generic line-item table. Legacy groups without
+  authoritative metadata remain supported.

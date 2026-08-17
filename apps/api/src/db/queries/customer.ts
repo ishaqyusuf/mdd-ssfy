@@ -12,6 +12,7 @@ import type {
 } from "@api/schemas/customer";
 import type { TRPCContext } from "@api/trpc/init";
 import type { AddressBooks, Prisma, TransactionClient } from "@gnd/db";
+import { AppError } from "@gnd/errors";
 import {
 	buildOfficeCustomerVisibilityWhere,
 	getDealerPartnershipSummaries,
@@ -568,7 +569,8 @@ export async function createOrUpdateCustomer(
 	ctx: TRPCContext,
 	input: UpsertCustomerSchema,
 ) {
-	return ctx.db.$transaction(async (tx) => {
+	try {
+		return await ctx.db.$transaction(async (tx) => {
 		let customerId = input.id;
 		let customerBefore: Record<string, unknown> | null = null;
 		if (input.id) {
@@ -833,7 +835,27 @@ export async function createOrUpdateCustomer(
 					}
 				: {}),
 		};
-	});
+		});
+	} catch (error) {
+		const record = error as {
+			code?: string;
+			meta?: { target?: string | string[] };
+		};
+		const target = Array.isArray(record.meta?.target)
+			? record.meta.target.join(",")
+			: record.meta?.target;
+		if (record.code === "P2002" && target?.toLowerCase().includes("phoneno")) {
+			throw new AppError({
+				cause: error,
+				code: "CONFLICT",
+				internalMessage: "Customer phone number unique constraint conflict.",
+				operation: "customers.createCustomer",
+				publicMessage:
+					"A customer already uses this phone number. Select the matching customer or enter a different number.",
+			});
+		}
+		throw error;
+	}
 }
 
 export async function createOrUpdateCustomerAddress(

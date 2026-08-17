@@ -8,6 +8,7 @@ import { applyApprovedAdjustmentPrintSnapshot } from "./approved-adjustment-snap
 import { composeAddresses } from "./compose/addresses";
 import { composeDoorSections } from "./compose/door-sections";
 import { composeFooter } from "./compose/footer";
+import { suppressMetadataBackedGroupSiblings } from "./compose/grouped-item-helpers";
 import { composeLineItemSections } from "./compose/line-item-sections";
 import { composeMeta } from "./compose/meta";
 import { composeMouldingSections } from "./compose/moulding-sections";
@@ -85,13 +86,25 @@ async function composePage(
 	const config = getModeConfig(mode);
 	const meta = composeMeta(sale, mode);
 	const { billing, shipping } = composeAddresses(sale, mode);
+	const compositionSale = {
+		...sale,
+		items: suppressMetadataBackedGroupSiblings(sale.items),
+	};
 
 	// Compose all section types
-	const doors = composeDoorSections(sale, config, setting, dispatchId);
-	const mouldings = composeMouldingSections(sale, config, dispatchId);
-	const services = composeServiceSections(sale, config, dispatchId);
-	const shelves = composeShelfSections(sale, config);
-	const lineItems = composeLineItemSections(sale, config, dispatchId);
+	const doors = composeDoorSections(compositionSale, config, setting, dispatchId);
+	const mouldings = composeMouldingSections(
+		compositionSale,
+		config,
+		dispatchId,
+	);
+	const services = composeServiceSections(compositionSale, config, dispatchId);
+	const shelves = composeShelfSections(compositionSale, config);
+	const lineItems = composeLineItemSections(
+		compositionSale,
+		config,
+		dispatchId,
+	);
 
 	// Merge and sort all sections by their lineIndex
 	const sections: PrintSection[] = [

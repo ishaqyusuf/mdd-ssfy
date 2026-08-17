@@ -95,6 +95,36 @@ export function isMetadataBackedServiceItem(item: PrintSalesItem) {
 	);
 }
 
+export function suppressMetadataBackedGroupSiblings(
+	items: PrintSalesItem[],
+): PrintSalesItem[] {
+	const authoritativeItems = new Map<string, PrintSalesItem>();
+
+	for (const item of items) {
+		const groupUid = String(item.multiDykeUid || "").trim();
+		if (!groupUid) continue;
+		if (
+			!isMetadataBackedMouldingItem(item) &&
+			!isMetadataBackedServiceItem(item)
+		) {
+			continue;
+		}
+
+		const current = authoritativeItems.get(groupUid);
+		if (!current || (item.multiDyke && !current.multiDyke)) {
+			authoritativeItems.set(groupUid, item);
+		}
+	}
+
+	if (!authoritativeItems.size) return items;
+
+	return items.filter((item) => {
+		const groupUid = String(item.multiDykeUid || "").trim();
+		const authoritativeItem = authoritativeItems.get(groupUid);
+		return !authoritativeItem || authoritativeItem.id === item.id;
+	});
+}
+
 export function findSelectedStepComponent(
 	item: PrintSalesItem,
 	title: string,

@@ -9244,3 +9244,15 @@
   removal notification, re-enrollment, missing-email continuation, automatic
   Sales-email resume, Warning Only, Block All, invalid links, and reload
   persistence. Test recipients used `.invalid`; no real customer email was sent.
+
+## 2026-08-17 — Grouped service and moulding print deduplication
+
+- Fixed Sales Preview composition for hybrid new-form/legacy persistence: a
+  metadata-backed grouped Service or Moulding item now owns its complete print
+  rows, while compatibility siblings with the same `multiDykeUid` are removed
+  from the composition input before grouped and generic sections are built.
+- Preserved standalone legacy groups that have no metadata-backed owner.
+- Added regressions for the reported two-row Service shape and the equivalent
+  Moulding shape. Focused print validation passes 14 tests / 74 assertions, and
+  scoped `git diff --check` passes. No database, API contract, permission,
+  subtotal, or persisted-order behavior changed.

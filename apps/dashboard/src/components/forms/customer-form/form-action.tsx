@@ -31,9 +31,11 @@ export function FormAction({
 	const params = formParams ?? (customerParams.params as CustomerFormParams);
 	const form = useCustomerForm();
 	const id = form.watch("id");
+	const existingCustomers = form.watch("existingCustomers");
 	const isEditing = params.address
 		? Boolean(params.addressId)
 		: (params.customerId ?? 0) > 0;
+	const hasBlockingDuplicate = !isEditing && Boolean(existingCustomers?.length);
 	const trpc = useTRPC();
 	const { mutate: mutateAddress, isPending: isAddressSubmitting } = useMutation(
 		trpc.customers.createCustomerAddress.mutationOptions({
@@ -59,7 +61,16 @@ export function FormAction({
 	);
 	const { mutate, isPending: isCustomerSubmitting } = useMutation(
 		trpc.customers.createCustomer.mutationOptions({
-			onError() {},
+			onError(error) {
+				toast({
+					title: "Customer was not saved",
+					description:
+						error instanceof Error && error.message
+							? error.message
+							: "Please review the customer details and try again.",
+					variant: "destructive",
+				});
+			},
 			onSuccess: (resp) => {
 				toast({
 					title: id ? "Updated" : "Created",
@@ -86,7 +97,9 @@ export function FormAction({
 	return (
 		<div className="flex flex-1 py-4 items-center gap-4">
 			<div className="text-sm text-muted-foreground">
-				{params.address
+				{hasBlockingDuplicate
+					? "Use the matching customer above or change the phone number"
+					: params.address
 					? `${isEditing ? "Update" : "Create"} this address only`
 					: isEditing
 						? "Update customer information"
@@ -122,7 +135,7 @@ export function FormAction({
 				>
 					<SubmitButton
 						isSubmitting={isSubmitting}
-						disabled={disabled}
+						disabled={disabled || hasBlockingDuplicate}
 						className="min-w-[120px]"
 					>
 						{isEditing ? "Update" : "Create"}
