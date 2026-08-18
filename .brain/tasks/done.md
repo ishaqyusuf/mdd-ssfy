@@ -1,5 +1,18 @@
 # Done
 
+- [x] 2026-08-18 — Complete Sales Production admin workspace modernization
+  (Sequence 04/P1+P4): promoted `/sales-book/productions`, adopted the Sales
+  Finance title/summary/PageTabs/search system, separated Active/Review/
+  Completed work state from Table/Calendar display state, added responsive
+  queue cards and a bounded daily agenda, preserved Sales Overview production
+  opening, and retained `/v2` as a query-preserving compatibility redirect.
+  Validation passed 37 focused tests / 160 assertions, Sales package typecheck,
+  responsive authenticated browser proof at 375/768/1440, and scoped compiler
+  filtering with zero production diagnostics. The dashboard build compiled and
+  stopped only when page-data collection encountered unavailable environment
+  secrets; the repository-wide dashboard typecheck retains unrelated baseline
+  diagnostics.
+
 - [x] 2026-08-17 — Align Special Order classification colors with active state:
   inactive choices remain neutral, active No is red, and active Yes is green in
   both the invoice summary and confirmation dialog. The shared success tokens

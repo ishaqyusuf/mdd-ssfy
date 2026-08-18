@@ -5,7 +5,7 @@ export interface PageTabItem {
 	count?: number;
 	url?: string;
 	query?: string;
-	params?: Record<string, string>;
+	params?: Record<string, string | null>;
 	default?: boolean;
 	active?: boolean;
 	visibility?: "private" | "public";

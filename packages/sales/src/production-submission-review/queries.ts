@@ -36,59 +36,84 @@ export async function getProductionSubmissionMaterialReviewQueue(
 		status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 		take: number;
 		cursor?: number | null;
+		q?: string | null;
 	},
 ) {
-	const reviews = await db.salesProductionSubmissionMaterialReview.findMany({
-		where: {
-			status: input.status,
-		},
-		take: input.take + 1,
-		skip: input.cursor ? 1 : undefined,
-		cursor: input.cursor ? { id: input.cursor } : undefined,
-		orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
-		select: {
-			id: true,
-			status: true,
-			classificationReason: true,
-			submittedAt: true,
-			updatedAt: true,
-			reviewedAt: true,
-			decisionNote: true,
-			order: {
-				select: {
-					id: true,
-					orderId: true,
-					customer: {
-						select: {
-							name: true,
-							businessName: true,
+	const q = input.q?.trim();
+	const where = {
+		status: input.status,
+		...(q
+			? {
+					OR: [
+						{ order: { orderId: { contains: q } } },
+						{
+							order: {
+								customer: {
+									OR: [
+										{ name: { contains: q } },
+										{ businessName: { contains: q } },
+									],
+								},
+							},
+						},
+						{ submittedBy: { name: { contains: q } } },
+					],
+				}
+			: {}),
+	};
+	const [reviews, total] = await Promise.all([
+		db.salesProductionSubmissionMaterialReview.findMany({
+			where,
+			take: input.take + 1,
+			skip: input.cursor ? 1 : undefined,
+			cursor: input.cursor ? { id: input.cursor } : undefined,
+			orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
+			select: {
+				id: true,
+				status: true,
+				classificationReason: true,
+				submittedAt: true,
+				updatedAt: true,
+				reviewedAt: true,
+				decisionNote: true,
+				order: {
+					select: {
+						id: true,
+						orderId: true,
+						customer: {
+							select: {
+								name: true,
+								businessName: true,
+							},
 						},
 					},
 				},
-			},
-			submittedBy: {
-				select: {
-					id: true,
-					name: true,
+				submittedBy: {
+					select: {
+						id: true,
+						name: true,
+					},
+				},
+				reviewedBy: {
+					select: {
+						id: true,
+						name: true,
+					},
+				},
+				submissions: {
+					where: { deletedAt: null },
+					select: {
+						qty: true,
+					},
 				},
 			},
-			reviewedBy: {
-				select: {
-					id: true,
-					name: true,
-				},
-			},
-			submissions: {
-				where: { deletedAt: null },
-				select: {
-					qty: true,
-				},
-			},
-		},
-	});
+		}),
+		db.salesProductionSubmissionMaterialReview.count({ where }),
+	]);
 	const hasNextPage = reviews.length > input.take;
 	const page = hasNextPage ? reviews.slice(0, input.take) : reviews;
 	return {
+		total,
 		rows: page.map((review) => ({
 			...review,
 			customer:

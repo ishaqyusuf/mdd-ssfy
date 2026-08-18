@@ -88,6 +88,7 @@ interface Props {
 	pageTabs?: ReactNode;
 	pageTabsLayout?: "default" | "adaptive";
 	toolbarActions?: ReactNode;
+	hiddenFilterKeys?: string[];
 }
 
 function CalendarSkeleton() {
@@ -117,6 +118,7 @@ export function SearchFilterTRPC({
 	pageTabs,
 	pageTabsLayout = "default",
 	toolbarActions,
+	hiddenFilterKeys = [],
 }: Props) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const searchParams = useSearchParams();
@@ -170,6 +172,10 @@ export function SearchFilterTRPC({
 	const hasSearchValue = hasActiveSearchValue(prompt, searchValue);
 	const canSaveCurrentView = Boolean(saveTabQuery && !hasSearchValue);
 	const hasLockedSort = lockedKeys.has("sort");
+	const excludedFilterKeys = useMemo(
+		() => new Set([...lockedKeys, ...hiddenFilterKeys]),
+		[hiddenFilterKeys, lockedKeys],
+	);
 	const usesAdaptivePageTabs =
 		pageTabsLayout === "adaptive" && pageTabs === undefined;
 	const resolvedPageTabCount =
@@ -178,14 +184,14 @@ export function SearchFilterTRPC({
 		usesAdaptivePageTabs && shouldStackPageTabs(resolvedPageTabCount);
 
 	const clearEditableFilters = () => {
-		if (lockedKeys.size === 0) {
+		if (excludedFilterKeys.size === 0) {
 			clearAll();
 			return;
 		}
 
 		const update = getClearableFilterUpdate({
 			filters: filters || {},
-			lockedKeys,
+			lockedKeys: excludedFilterKeys,
 			searchKey,
 		});
 
@@ -239,6 +245,7 @@ export function SearchFilterTRPC({
 	});
 
 	const hasValidFilters = Object.entries(filters || {}).some(([key, value]) => {
+		if (excludedFilterKeys.has(key)) return false;
 		if (isSearchKey(key)) return false;
 		if (value === null || value === undefined || value === "") return false;
 		if (Array.isArray(value)) return value.length > 0;
@@ -352,7 +359,7 @@ export function SearchFilterTRPC({
 					filters={filters}
 					definitions={definitions}
 					optionLookup={optionLookup}
-					excludedKeys={lockedKeys}
+					excludedKeys={excludedFilterKeys}
 					className={cn(usesAdaptivePageTabs && "lg:w-auto lg:flex-1 lg:pb-0")}
 				/>
 				{activeSortLabel && !hasLockedSort ? (

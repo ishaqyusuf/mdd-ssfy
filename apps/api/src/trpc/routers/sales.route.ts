@@ -139,6 +139,7 @@ import {
 	getProductionReadiness,
 	productionV2DetailQuerySchema,
 	productionV2ListQuerySchema,
+	salesProductionCalendarQuerySchema,
 	salesProductionQueryParamsSchema,
 	setProductionReadinessOverride,
 } from "@sales/exports";
@@ -158,7 +159,9 @@ import {
 	getProductionOrderDetailV2,
 } from "@sales/production-v2";
 import {
+	getSalesProductionCalendar,
 	getSalesProductionDashboard,
+	getSalesProductionSummary,
 	getSalesProductions,
 } from "@sales/sales-production";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
@@ -660,6 +663,20 @@ export const salesRouter = createTRPCRouter({
 			return getSalesProductionDashboard(props.ctx.db, {
 				...(props.input || {}),
 			});
+		}),
+	productionSummary: protectedProcedure
+		.input(salesProductionQueryParamsSchema.optional())
+		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
+			return getSalesProductionSummary(props.ctx.db, {
+				...(props.input || {}),
+			});
+		}),
+	productionCalendar: protectedProcedure
+		.input(salesProductionCalendarQuerySchema)
+		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
+			return getSalesProductionCalendar(props.ctx.db, props.input);
 		}),
 	productionsV2: protectedProcedure
 		.input(productionV2ListQuerySchema)

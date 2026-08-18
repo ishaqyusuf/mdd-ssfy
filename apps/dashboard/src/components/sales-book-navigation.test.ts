@@ -51,7 +51,7 @@ describe("Sales Book navigation", () => {
 		const destinations = [
 			"/sales-book/orders",
 			"/sales-book/quotes",
-			"/sales-book/productions/v2",
+			"/sales-book/productions",
 			"/sales-book/shelf-items",
 			"/sales-book/inbounds",
 			"/sales-book/emails",

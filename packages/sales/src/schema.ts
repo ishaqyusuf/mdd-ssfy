@@ -392,12 +392,53 @@ export type GetInventoryCategories = z.infer<
 	typeof getInventoryCategoriesSchema
 >;
 
+const productionCalendarDateSchema = z
+	.string()
+	.regex(/^\d{4}-\d{2}-\d{2}$/, "Use an ISO calendar date (YYYY-MM-DD).")
+	.refine((value) => {
+		const date = new Date(`${value}T00:00:00Z`);
+		return (
+			Number.isFinite(date.getTime()) &&
+			date.toISOString().slice(0, 10) === value
+		);
+	}, "Use a valid calendar date.");
+
 export const salesProductionQueryParamsSchema = z
 	.object({
 		assignedToId: z.number().optional().nullable(),
 		workerId: z.number().optional().nullable(),
+		tab: z
+			.enum(["queue", "reviews", "calendar", "completed"])
+			.optional()
+			.nullable(),
+		queue: z
+			.enum([
+				"all",
+				"unassigned",
+				"ready",
+				"in-progress",
+				"blocked",
+				"awaiting-review",
+			])
+			.optional()
+			.nullable(),
+		due: z.enum(["overdue", "today", "tomorrow"]).optional().nullable(),
+		date: productionCalendarDateSchema.optional().nullable(),
+		material: z
+			.enum(["available", "review", "blocked", "unavailable"])
+			.optional()
+			.nullable(),
+		label: z.string().optional().nullable(),
 		production: z.custom<SalesProductionStatusFilter>().optional().nullable(),
-		productionDueDate: z.string().optional().nullable(),
+		productionDueDate: productionCalendarDateSchema.optional().nullable(),
+		productionSort: z
+			.enum(["priority", "dueDateAsc", "dueDateDesc", "newest", "oldest"])
+			.optional()
+			.nullable(),
+		"production.assignment": z
+			.enum(["all assigned", "not assigned", "part assigned"])
+			.optional()
+			.nullable(),
 		priority: salesPrioritySchema.optional().nullable(),
 		"sales.priority": salesPrioritySchema.optional().nullable(),
 		salesNo: z.string().optional().nullable(),
@@ -408,10 +449,41 @@ export const salesProductionQueryParamsSchema = z
 	})
 	.extend({
 		...paginationSchema.shape,
+		sort: z
+			.enum(["priority", "due-asc", "due-desc", "newest", "oldest"])
+			.optional()
+			.nullable(),
 		size: z.number().int().min(1).max(100).optional().nullable(),
 	});
 export type SalesProductionQueryParams = z.infer<
 	typeof salesProductionQueryParamsSchema
+>;
+
+export const salesProductionCalendarQuerySchema = z
+	.object({
+		from: productionCalendarDateSchema,
+		to: productionCalendarDateSchema,
+		q: z.string().optional().nullable(),
+		assignedToId: z.number().optional().nullable(),
+		priority: salesPrioritySchema.optional().nullable(),
+	})
+	.superRefine((value, ctx) => {
+		const from = new Date(`${value.from}T00:00:00Z`);
+		const to = new Date(`${value.to}T00:00:00Z`);
+		if (
+			!Number.isFinite(from.getTime()) ||
+			!Number.isFinite(to.getTime()) ||
+			to < from
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["to"],
+				message: "The calendar end date must be on or after the start date.",
+			});
+		}
+	});
+export type SalesProductionCalendarQuery = z.infer<
+	typeof salesProductionCalendarQuerySchema
 >;
 
 export const variantFormSchema = z.object({

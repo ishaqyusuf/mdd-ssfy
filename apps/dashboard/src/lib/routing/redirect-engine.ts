@@ -24,7 +24,6 @@ const exactRedirectMaps = {
     "/payments": "/jobs-dashboard/payments",
     "/production/dashboard": "/production/dashboard/v2",
     "/sales-book/production-tasks": "/production/dashboard/v2",
-    "/sales-book/productions": "/sales-book/productions/v2",
     "/settings/community/builders": "/community/builders",
 } as const;
 const dynamicRedirectMaps = {
@@ -32,7 +31,6 @@ const dynamicRedirectMaps = {
     "/community/community-template/:slug":
         "/community/community-template/:slug/v1",
     "/jobs/:taskType": "/jobs-dashboard",
-    // "/sales-book/productions/:salesNo": "/sales-book/productions/v2/:salesNo",
 } as const;
 const redirectRules: RedirectRule[] = [
     ...Object.entries(exactRedirectMaps).map(([from, to]) => ({
@@ -47,12 +45,6 @@ const redirectRules: RedirectRule[] = [
         to: to as string,
         type: "pattern" as const,
     })),
-    // Dynamic examples for future migrations:
-    // {
-    //     from: "/sales-book/productions/:salesNo",
-    //     to: "/sales-book/productions/v2/:salesNo",
-    //     type: "pattern",
-    // },
 ];
 
 export function resolveRedirectPath(input: string): ResolvedRedirect | null {

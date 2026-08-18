@@ -3,31 +3,65 @@
 ## Goal
 Provide a cleaner production operations surface for both admins and production workers with fast due-date triage, clear urgency alerts, and a more usable daily queue.
 
+## Canonical Admin Workspace (2026-08-18)
+
+- Canonical route: `/sales-book/productions`.
+- Compatibility route: `/sales-book/productions/v2`, implemented as a
+  query-preserving local redirect to the canonical route.
+- The admin workspace follows the Sales Finance page system: compact title,
+  separate summary cards, shared `PageTabs` inside the Midday search/filter
+  toolbar, Tables-2 queue, and isolated Suspense/error boundaries.
+- Work-state PageTabs are `Active`, `Review`, and `Completed`.
+- Active queue presentation is URL-owned by `view=table|calendar`; Calendar is
+  a toolbar display control rather than a page tab.
+- Calendar selection loads a bounded daily agenda whose order rows preserve
+  the existing Sales Overview `sales-production` open flow.
+- Desktop/tablet render the virtualized queue table. Widths below 768px render
+  production cards backed by the same row DTO.
+
 ## Routes
-- Admin board: `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(pages)/(admin)/productions/page.tsx`
-- Admin board v2: `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(pages)/(admin)/productions/v2/page.tsx`
+- Admin board: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/productions/page.tsx`
+- Admin board v2 compatibility: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/productions/v2/page.tsx`
 - Worker sales-book route: `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(pages)/production-tasks/page.tsx`
 - Worker sidebar route: `apps/dashboard/src/app/(sidebar)/(sales-production-worker)/production/dashboard/page.tsx`
 - Worker sidebar route v2: `apps/dashboard/src/app/(sidebar)/(sales-production-worker)/production/dashboard/v2/page.tsx`
 
 ## Shared UI
 - Shared client shell: `apps/dashboard/src/components/production-workspace.tsx`
+- Canonical admin shell: `apps/dashboard/src/components/sales-production/workspace.tsx`
+- Admin title, summary, header, calendar, and reviews:
+  `apps/dashboard/src/components/sales-production/*`
 - Shared list/table: `apps/dashboard/src/components/tables-2/sales-production/*`
 - Shared filter state: `apps/dashboard/src/hooks/use-sales-production-filter-params.ts`
 
-## V2 Architecture
-- 2026-07-17 update: the live v2 route entry points now reuse `ProductionWorkspace` and `components/tables-2/sales-production/*` so the user-facing worker/admin production pages match the Sales Orders table migration standard.
-- `/production/dashboard/v2` uses the worker production table path with `sales.productionTasks`.
-- `/sales-book/productions/v2` uses the admin production table path with `sales.productions`.
-- Both v2 routes use `PageShell`, `HydrateClient`, `ScrollableContent`, `batchPrefetch`, `getInitialTableSettings("sales-production")`, and `loadSalesProductionFilterParams`.
-- The previous dedicated v2 board/list code and `sales.productionsV2` / `sales.productionDashboardV2` read models remain in the tree for production detail/action reference, but they are no longer the live route-level list surface for these v2 pages.
+## V2 Compatibility
+- `/sales-book/productions/v2` is no longer an admin list implementation. It
+  preserves the incoming query and redirects locally to
+  `/sales-book/productions`.
+- `/production/dashboard/v2` remains the worker route and continues to use the
+  worker production table path with `sales.productionTasks`.
+- The previous dedicated v2 board/list code and `sales.productionsV2` /
+  `sales.productionDashboardV2` read models remain only for worker/detail/action
+  reference; they are not the canonical admin list surface.
 
-## Core UX
-- Summary cards for active queue, past due, due today, and due tomorrow
-- Alert sections for today and tomorrow with direct open-to-overview actions
-- Compact due-date calendar strip that applies exact-date filtering to the queue
-- Search/filter panel retained from the existing production filter system
-- Worker and admin routes now reuse the same workspace shell with role-specific copy
+## Canonical Admin UX
+- Finance-style summary cards for Unassigned, Past due, Due today, and Awaiting
+  review.
+- Active/Review/Completed PageTabs in the shared search/filter toolbar.
+- Table/Calendar display control for Active work; the calendar is month-bounded
+  and its selected-day agenda opens Sales Overview.
+- Responsive production cards below 768px and the existing virtual table at
+  tablet/desktop widths.
+- Search, queue, due, assignee, priority, material, sort, and column controls
+  appear only where their underlying view supports them.
+- Ready requires 100% assigned production quantity, at least one active owned
+  assignment, no active unowned assignment, and available materials.
+  Unassigned includes null-owner assignment rows. Combined due views preserve
+  all supported filters and pagination state.
+
+## Shared Worker/Legacy Queue UX
+- Worker routes retain the role-specific shared workspace and production task
+  query while reusing the same Tables-2 row contract.
 - The legacy workspace queue table now follows the Sales Orders `tables-2` pattern:
   - table-owned scroll with `VirtualRow` and header-offset spacer
   - draggable and resizable compact headers
@@ -67,9 +101,26 @@ Provide a cleaner production operations surface for both admins and production w
   - single-handle assignments auto-select the only valid handle
 
 ## Data Contract
+- Canonical URL state:
+  - `tab=queue|reviews|completed`
+  - `view=table|calendar`
+  - `queue`, `q`, `assignedToId`, `priority`, `due`, `date`, `material`, and
+    `sort`
+- Legacy `tab=calendar`, `production`, `show`, `productionDueDate`, `salesNo`,
+  `label`, and `date` values are normalized by
+  `@gnd/sales/production-workspace-query`.
 - `sales.productions`: full/admin production queue
 - `sales.productionTasks`: authenticated worker queue
-- `sales.productionDashboard`: summary counts, alert buckets, and next-10-day calendar counts
+- `sales.productionSummary`: bounded canonical summary counts without list or
+  calendar work
+- `sales.productionDashboard`: legacy summary, alert, spotlight, and calendar
+  payload retained for legacy consumers
+- `sales.productionCalendar`: bounded due-date aggregates for an explicit
+  `from` and `to` month range.
+- Material-only and created-date sorted pagination stream forward from the raw
+  database cursor; custom priority/due sorts use a minimal global candidate
+  projection and omit a misleading total when completion eligibility is
+  evaluated after hydration.
 - `productionDueDate`: exact queue filter used by the compact calendar
 - `show`: alert preset selector for `due-today`, `due-tomorrow`, and `past-due`
 - Sales overview Production tab badges count the same production-capable `sales.productionOverview.items` rows rendered in the tab, instead of using `prodAssigned.total` quantity totals. This keeps the badge inline with visible production cards for both the v2 sales overview system and the legacy sales overview sheet.

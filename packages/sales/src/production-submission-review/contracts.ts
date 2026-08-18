@@ -6,6 +6,7 @@ export const productionSubmissionMaterialReviewQueueSchema = z.object({
 		.default("PENDING"),
 	take: z.number().int().min(1).max(100).default(50),
 	cursor: z.number().int().positive().optional().nullable(),
+	q: z.string().trim().max(120).optional().nullable(),
 });
 
 export const productionSubmissionMaterialReviewDetailSchema = z.object({

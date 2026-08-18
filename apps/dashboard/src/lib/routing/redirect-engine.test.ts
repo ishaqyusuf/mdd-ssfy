@@ -73,5 +73,6 @@ describe("redirect engine", () => {
 	it("returns null when no redirect is needed", () => {
 		expect(resolveRedirectPath("/login/v2")).toBeNull();
 		expect(resolveRedirectPath("/production/dashboard")).toBeNull();
+		expect(resolveRedirectPath("/sales-book/productions?tab=queue")).toBeNull();
 	});
 });

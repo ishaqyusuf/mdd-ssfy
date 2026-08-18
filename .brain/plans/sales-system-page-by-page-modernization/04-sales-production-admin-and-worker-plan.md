@@ -4,7 +4,7 @@
 Feature Modernization
 
 ## Status
-Deferred - Activate Only After Sequence 03 Acceptance
+In Progress - Admin Workspace Complete; Worker Phases Pending
 
 ## Sequence
 04
@@ -13,7 +13,7 @@ Deferred - Activate Only After Sequence 03 Acceptance
 2026-07-30
 
 ## Last Updated
-2026-07-30
+2026-08-18
 
 ## Goal
 Provide clear, role-specific production workspaces for administrators and
@@ -51,6 +51,20 @@ review, approval, payroll, and fulfillment-release authority.
 - Views: Queue, Calendar, Capacity, Material review.
 - Bulk assignment, priority and due-date actions are permission-gated.
 - Detail tabs: Overview, Assignments, Items, Materials, Activity.
+
+## Admin Workspace Decision (2026-08-18)
+
+- `/sales-book/productions` is canonical; `/v2` redirects locally and preserves
+  its query.
+- The admin shell follows Sales Finance layout and visual primitives.
+- PageTabs express work state: Active, Review, Completed.
+- Table and Calendar are Active queue display modes, not peer work tabs.
+- Summary cards apply queue/review filters and return the operator to the table
+  when the selected summary represents a list slice.
+- Row, card, and calendar-agenda selection continue to open Sales Overview on
+  the production tab.
+- P1 and the admin portion of P4 are complete. Capacity and the worker-specific
+  phases remain pending and are not implied by the admin workspace release.
 
 ## Intended Worker Experience
 - My current task, Today, Next, Blocked, Submitted.
@@ -128,7 +142,7 @@ review, approval, payroll, and fulfillment-release authority.
 - Route removal before telemetry
 
 ## TODO
-- Select the final canonical admin and worker URLs.
+- Select the final canonical worker URL.
 - Approve capacity metrics and worker scheduling rules.
 - Confirm which worker actions require offline drafts.
 

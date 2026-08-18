@@ -10,12 +10,11 @@ function readSource(path: string) {
 }
 
 describe("Sales Production Sales Orders table migration parity", () => {
-	it("keeps both production routes on the restarted Sales Orders-style shell", () => {
+	it("keeps worker production routes on the restarted Sales Orders-style shell", () => {
 		const routes = [
 			"app/(sidebar)/(sales-production-worker)/production/dashboard/page.tsx",
 			"app/(sidebar)/(sales-production-worker)/production/dashboard/v2/page.tsx",
 			"app/(clean-code)/(sales)/sales-book/(pages)/production-tasks/page.tsx",
-			"app/(sidebar)/(sales)/sales-book/productions/v2/page.tsx",
 		];
 
 		for (const route of routes) {
@@ -40,6 +39,75 @@ describe("Sales Production Sales Orders table migration parity", () => {
 			expect(source.includes("PageStickyHeader")).toBe(false);
 			expect(source.includes("@gnd/ui/data-table")).toBe(false);
 		}
+	});
+
+	it("promotes the canonical admin route and leaves v2 as a local redirect", () => {
+		const canonical = readSource(
+			"app/(sidebar)/(sales)/sales-book/productions/page.tsx",
+		);
+		const legacy = readSource(
+			"app/(sidebar)/(sales)/sales-book/productions/v2/page.tsx",
+		);
+		const redirectEngine = readSource("lib/routing/redirect-engine.ts");
+		const sidebar = readSource("components/sidebar-links.ts");
+
+		expect(canonical.includes("SalesProductionWorkspace")).toBe(true);
+		expect(canonical.includes("import { ProductionWorkspace }")).toBe(false);
+		expect(
+			legacy.includes("redirect(`/sales-book/productions${suffix}`)"),
+		).toBe(true);
+		expect(legacy.includes("ProductionWorkspace")).toBe(false);
+		expect(
+			redirectEngine.includes(
+				'"/sales-book/productions": "/sales-book/productions/v2"',
+			),
+		).toBe(false);
+		expect(sidebar.includes('"/sales-book/productions"')).toBe(true);
+	});
+
+	it("uses Finance-style work tabs and preserves Sales Overview production opens", () => {
+		const workspace = readSource("components/sales-production/workspace.tsx");
+		const header = readSource("components/sales-production/header.tsx");
+		const tabs = readSource("components/sales-production/tabs.ts");
+		const reviews = readSource("components/sales-production/reviews.tsx");
+		const table = readSource(
+			"components/tables-2/sales-production/data-table.tsx",
+		);
+
+		expect(workspace.includes("SalesProductionHeader")).toBe(true);
+		expect(header.includes("<PageTabs")).toBe(true);
+		expect(header.includes('allTitle="Active"')).toBe(true);
+		expect(header.includes("tabs={salesProductionPageTabs}")).toBe(true);
+		expect(header.includes("SalesProductionDisplayToggle")).toBe(true);
+		expect(header.includes("hiddenFilterKeys")).toBe(true);
+		expect(tabs.includes('title: "Review"')).toBe(true);
+		expect(tabs.includes('title: "Completed"')).toBe(true);
+		expect(tabs.includes('title: "Calendar"')).toBe(false);
+		expect(workspace.includes('view === "calendar"')).toBe(true);
+		expect(reviews.includes("standalone")).toBe(true);
+		expect(reviews.includes("search={filters.q}")).toBe(true);
+		expect(
+			table.includes('workerMode ? "production-tasks" : "sales-production"'),
+		).toBe(true);
+		expect(table.includes('className="md:hidden"')).toBe(true);
+	});
+
+	it("keeps the calendar responsive and reloads its bounded month", () => {
+		const calendar = readSource("components/sales-production/calendar.tsx");
+
+		expect(calendar.includes("month={month}")).toBe(true);
+		expect(calendar.includes("onMonthChange={setMonth}")).toBe(true);
+		expect(calendar.includes("defaultMonth=")).toBe(false);
+		expect(calendar.includes("xl:grid-cols")).toBe(true);
+		expect(calendar.includes("md:grid-cols")).toBe(false);
+		expect(calendar.includes("<Card")).toBe(true);
+		expect(calendar.includes("<CardHeader")).toBe(true);
+		expect(calendar.includes("<CardContent")).toBe(true);
+		expect(calendar.includes("space-y-")).toBe(false);
+		expect(calendar.includes('view: "calendar"')).toBe(true);
+		expect(calendar.includes('view: "table"')).toBe(true);
+		expect(calendar.includes('"sales-production"')).toBe(true);
+		expect(calendar.includes("Daily agenda")).toBe(true);
 	});
 
 	it("keeps the production workspace on the new tables-2 surface with compact table padding", () => {

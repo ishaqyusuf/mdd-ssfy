@@ -51,6 +51,10 @@ import { usePageTabSelection } from "./use-page-tab-selection";
 
 interface PageTabsProps {
 	tabs?: PageTabItem[];
+	allTitle?: string;
+	allCount?: number;
+	allActiveParam?: { key: string; value: string };
+	activeParams?: Record<string, string | null>;
 	portal?: boolean;
 	className?: string;
 	page?: string;
@@ -83,7 +87,8 @@ function buildTabHref(
 	const nextParams = new URLSearchParams(searchParams.toString());
 	nextParams.delete("_page");
 	for (const [key, value] of Object.entries(tab.params)) {
-		nextParams.set(key, value);
+		if (value === null) nextParams.delete(key);
+		else nextParams.set(key, value);
 	}
 
 	return buildPageTabHref(basePath, nextParams, tab.title);
@@ -113,20 +118,32 @@ function isTabActive(
 	);
 }
 
-function buildAllTab(pathname: string, page?: string): ResolvedPageTab {
+function buildAllTab(
+	pathname: string,
+	page?: string,
+	allTitle?: string,
+	allCount?: number,
+): ResolvedPageTab {
 	const basePath = normalizePagePath(page || pathname);
-
-	return {
+	const allTab: ResolvedPageTab = {
 		active: false,
 		href: basePath,
 		isAll: true,
+		count: allCount,
 		page: basePath,
 		title: "All",
 	};
+	if (allTitle) allTab.title = allTitle;
+
+	return allTab;
 }
 
 export function PageTabs({
 	tabs,
+	allTitle,
+	allCount,
+	allActiveParam,
+	activeParams,
 	portal = true,
 	className,
 	page,
@@ -170,6 +187,11 @@ export function PageTabs({
 
 	const resolvedTabs = useMemo(() => {
 		const currentSearch = new URLSearchParams(searchParams.toString());
+		const activeSearch = new URLSearchParams(currentSearch.toString());
+		for (const [key, value] of Object.entries(activeParams || {})) {
+			if (value === null) activeSearch.delete(key);
+			else activeSearch.set(key, value);
+		}
 		const savedTabs = pageTabs.map((tab, index) => {
 			return {
 				...tab,
@@ -178,18 +200,22 @@ export function PageTabs({
 					hasSavedQuery: tab.query !== undefined,
 					index,
 					selectedIndex: selectedState.matchingTabIndex,
-					fallbackActive: isTabActive(pathname, currentSearch, tab),
+					fallbackActive: isTabActive(pathname, activeSearch, tab),
 				}),
 			};
 		});
 		if (!savedTabs.length) return [];
 
 		const hasActiveSavedTab = savedTabs.some((tab) => tab.active);
-		const allTab = buildAllTab(pathname, page);
+		const allTab = buildAllTab(pathname, page, allTitle, allCount);
 		const normalizedCurrentQuery = normalizeTabQuery(
 			currentQuery ?? currentSearch,
 		);
-		allTab.active = !hasActiveSavedTab && normalizedCurrentQuery.length === 0;
+		const allParamMatches = allActiveParam
+			? !activeSearch.has(allActiveParam.key) ||
+				activeSearch.get(allActiveParam.key) === allActiveParam.value
+			: normalizedCurrentQuery.length === 0;
+		allTab.active = !hasActiveSavedTab && allParamMatches;
 
 		return [allTab, ...savedTabs];
 	}, [
@@ -197,6 +223,10 @@ export function PageTabs({
 		searchParams,
 		pageTabs,
 		page,
+		allTitle,
+		allCount,
+		allActiveParam,
+		activeParams,
 		currentQuery,
 		selectedState.matchingTabIndex,
 	]);

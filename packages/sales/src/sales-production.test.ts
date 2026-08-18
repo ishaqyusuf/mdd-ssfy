@@ -7,14 +7,30 @@ import {
 	sortProductionListByPriority,
 } from "./sales-production";
 import { salesProductionQueryParamsSchema } from "./schema";
+import { whereSales } from "./utils/where-queries";
 
 type SalesFindManyArgs = {
 	take?: number;
 	skip?: number;
 };
 
+function productionRow(id: number, priority: string) {
+	return {
+		id,
+		orderId: `ORDER-${id}`,
+		createdAt: new Date(`2026-07-${String(id).padStart(2, "0")}T12:00:00Z`),
+		priority,
+		customer: null,
+		billingAddress: null,
+		salesRep: null,
+		stat: [],
+		itemControls: [],
+		assignments: [],
+	};
+}
+
 describe("sales production priority sorting", () => {
-	it("keeps database pagination when a production sort is requested", async () => {
+	it("loads the global candidate set before applying a production sort", async () => {
 		const findManyCalls: SalesFindManyArgs[] = [];
 		const db = {
 			salesOrders: {
@@ -34,8 +50,8 @@ describe("sales production priority sorting", () => {
 		});
 
 		expect(findManyCalls).toHaveLength(1);
-		expect(findManyCalls[0].take).toBe(20);
-		expect(findManyCalls[0].skip).toBe(40);
+		expect(findManyCalls[0].take).toBeUndefined();
+		expect(findManyCalls[0].skip).toBeUndefined();
 	});
 
 	it("bounds material-enriched production pages", async () => {
@@ -59,6 +75,114 @@ describe("sales production priority sorting", () => {
 		expect(
 			salesProductionQueryParamsSchema.safeParse({ size: 101 }).success,
 		).toBe(false);
+	});
+
+	it("keeps the next cursor on the first unconsumed sorted candidate", async () => {
+		let call = 0;
+		const db = {
+			salesOrders: {
+				findMany: async () => {
+					call += 1;
+					if (call === 1) {
+						return [
+							productionRow(2, "NORMAL"),
+							productionRow(3, "LOW"),
+							productionRow(1, "CRITICAL"),
+						];
+					}
+					return [
+						productionRow(1, "CRITICAL"),
+						productionRow(2, "NORMAL"),
+						productionRow(3, "LOW"),
+					];
+				},
+			},
+		};
+
+		const result = await getSalesProductions(db as unknown as Db, {
+			production: "pending",
+			productionSort: "priority",
+			size: 1,
+		});
+
+		expect(result.data.map((row) => row.id)).toEqual([1]);
+		expect(result.meta.cursor).toBe("1");
+	});
+
+	it("keeps later material-filtered pages reachable without a global rescan", async () => {
+		let call = 0;
+		const rows = [
+			productionRow(1, "CRITICAL"),
+			productionRow(2, "NORMAL"),
+			productionRow(3, "LOW"),
+		];
+		const db = {
+			salesOrders: {
+				findMany: async () => {
+					call += 1;
+					return call === 1 ? rows : rows;
+				},
+			},
+		};
+
+		const result = await getSalesProductions(db as unknown as Db, {
+			production: "pending",
+			material: "unavailable",
+			size: 1,
+		});
+
+		expect(result.data.map((row) => row.id)).toEqual([1]);
+		expect(result.meta.count).toBeUndefined();
+		expect(result.meta.cursor).toBe("1");
+	});
+
+	it("preserves search and cursor when a canonical due filter is active", async () => {
+		const findManyCalls: Array<SalesFindManyArgs & { where?: unknown }> = [];
+		const db = {
+			salesOrders: {
+				count: async () => 100,
+				findMany: async (args: SalesFindManyArgs & { where?: unknown }) => {
+					findManyCalls.push(args);
+					return [];
+				},
+			},
+		};
+
+		await getSalesProductions(db as unknown as Db, {
+			due: "today",
+			q: "needle",
+			size: 20,
+			cursor: "40",
+		});
+
+		expect(findManyCalls[0]?.skip).toBe(40);
+		expect(JSON.stringify(findManyCalls[0]?.where)).toContain("needle");
+	});
+
+	it("requires every active assignment to have an owner for Ready", () => {
+		const where = whereSales({
+			production: "pending",
+			"production.assignment": "all assigned",
+		});
+		const serialized = JSON.stringify(where);
+
+		expect(serialized).toContain('"some"');
+		expect(serialized).toContain('"none"');
+		expect(serialized).toContain('"assignedToId":null');
+		expect(serialized).toContain('"type":"prodAssigned"');
+		expect(serialized).toContain('"percentage":100');
+	});
+
+	it("treats null-owner assignment rows as Unassigned", () => {
+		const serialized = JSON.stringify(
+			whereSales({
+				production: "pending",
+				"production.assignment": "not assigned",
+			}),
+		);
+
+		expect(serialized).toContain('"none"');
+		expect(serialized).toContain('"assignedToId":{"not":null}');
 	});
 
 	it("keeps the production queue available when material lookup fails", async () => {

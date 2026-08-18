@@ -9433,3 +9433,31 @@
 - Targeted tests pass (7 tests, 18 assertions), and authenticated browser QA
   confirmed the production action menu renders its expected quantities.
 - No database, API contract, or permission behavior changed.
+
+## 2026-08-18 — Completed Sales Production Finance-style admin workspace
+
+- Promoted `/sales-book/productions` as the canonical admin workspace while
+  keeping `/sales-book/productions/v2` as a query-preserving local compatibility
+  redirect.
+- Adopted the Sales Finance page system for title, summary cards, shared
+  PageTabs/search toolbar, isolated active views, and compact responsive data
+  surfaces.
+- Separated operational work state (`Active`, `Review`, `Completed`) from Active
+  queue presentation (`Table`, `Calendar`) and preserved legacy calendar/date
+  deep links through the shared production workspace resolver.
+- Added a bounded selected-day calendar agenda that opens the existing Sales
+  Overview production flow and aligned its aggregate counts with the queue's
+  completion eligibility.
+- Added same-DTO responsive cards below 768px, compact 2x2 mobile summary cards,
+  searchable material review, semantic empty states, and presentation-state
+  exclusions so `tab`/`view` never appear as business-filter chips.
+- Validation passed 37 focused tests / 160 assertions, `@gnd/sales` typecheck,
+  `git diff --check`, and authenticated browser proof at 375px, 768px, and
+  1440px with no document overflow. A live queue row opened Sales Overview with
+  Productions selected. Legacy Completed links highlight the normalized tab,
+  malformed legacy date links render the Active queue without an error, and a
+  server-searched review deep link returned the matching order. Local searches
+  found neither `03471` nor `03470PC` in Active or Completed production results.
+  The dashboard build compiled successfully in 91 seconds before stopping on
+  unavailable runtime secrets; the broad dashboard typecheck still reports
+  unrelated baseline diagnostics and zero scoped production errors.

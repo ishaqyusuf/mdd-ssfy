@@ -408,11 +408,7 @@ export const linkModules = [
 			// ).data,
 		]),
 		_section("", "", [
-			_link("Productions", "production", "/sales-book/productions/v2", [
-				// _subLink("Productions v2", "/sales-book/productions/v2").access(
-				// 	_perm.is("editOrders"),
-				// ).data,
-			])
+			_link("Productions", "production", "/sales-book/productions", [])
 				.access(_perm.is("editOrders"))
 				.childPaths("/sales-book/productions/v2").data,
 			_link("Packing List", "pickup", "/sales/packing-list").access(

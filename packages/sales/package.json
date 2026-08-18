@@ -27,6 +27,7 @@
 		"./get-sale-information": "./src/sales-control/get-sale-information.ts",
 		"./production-gate": "./src/production-gate.ts",
 		"./sales-production": "./src/sales-production.ts",
+		"./production-workspace-query": "./src/production-workspace-query.ts",
 		"./sales-transaction": "./src/sales-transaction.ts",
 		"./shipping": "./src/shipping.ts",
 		"./storefront-shipping": "./src/storefront-shipping.ts",

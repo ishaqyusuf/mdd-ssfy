@@ -531,9 +531,21 @@ Tracks important request/response contracts and shared schema boundaries.
   - repeat acceptance returns the already accepted order with `alreadyAccepted=true` and does not create another order copy
   - post-commit inventory sync queueing, `quote_accepted` notifications, and accepted-order sales email queueing are best-effort; failures are logged and must not reject a committed acceptance response
 - The production workspace now depends on:
-  - `show: "due-today" | "due-tomorrow" | "past-due"` for alert-focused list slices
-  - `productionDueDate: string | null` for exact due-date queue filtering from the compact calendar strip
-  - `sales.productionDashboard` response buckets: `summary`, `alerts`, `calendar`, and `spotlight`
+  - canonical `tab: "queue" | "reviews" | "completed"` work state and
+    `view: "table" | "calendar"` presentation state; legacy
+    `tab: "calendar"` normalizes to the Active calendar view
+  - `queue`, `due`, `material`, and `sort` workspace filters mapped by the
+    shared `@gnd/sales/production-workspace-query` resolver to the existing
+    production list input
+  - `show: "due-today" | "due-tomorrow" | "past-due"` for alert-focused list slices; combined due views retain the canonical search, queue, material, sort, and cursor inputs
+  - `date` and `productionDueDate` accept real ISO `YYYY-MM-DD` values only; invalid legacy URL values normalize away before calendar rendering
+  - `sales.productionSummary` returns the canonical page's bounded queue, completed, assignment, due, and review counts without loading alert rows or calendar data
+  - legacy `sales.productionDashboard` retains `summary`, `alerts`, `calendar`, and `spotlight` buckets for remaining legacy consumers
+  - `sales.productionCalendar({ from, to, q?, assignedToId?, priority? })` for
+    bounded month aggregates; the selected-day agenda reuses
+    `sales.productions` with `productionDueDate` and a bounded page size
+  - material review queue pages apply `q` on the server, return `nextCursor`,
+    and include the filtered `total` used by the Review badge
 - Customer v2 contracts now include:
   - `getCustomerDirectoryV2SummarySchema = {}` for directory stat cards
   - `getCustomerOverviewV2Schema = { accountNo: string }` for the shared page/sheet customer workspace payload

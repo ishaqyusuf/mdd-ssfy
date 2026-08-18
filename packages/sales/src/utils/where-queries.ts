@@ -761,12 +761,33 @@ export function whereSales(query: SalesQueryParamsSchema) {
 
   switch (query["production.assignment"]) {
     case "all assigned":
+      where.push({
+        ...salesStatSome("prodAssigned" as QtyControlType, {
+          total: { gt: 0 },
+          percentage: 100,
+        }),
+        assignments: {
+          some: {
+            deletedAt: null,
+            assignedToId: {
+              not: null,
+            },
+          },
+          none: {
+            deletedAt: null,
+            assignedToId: null,
+          },
+        },
+      });
       break;
     case "not assigned":
       where.push({
         assignments: {
           none: {
             deletedAt: null,
+            assignedToId: {
+              not: null,
+            },
           },
         },
       });

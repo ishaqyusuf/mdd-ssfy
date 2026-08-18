@@ -7,15 +7,17 @@ import {
 	getSalesPriorityRank,
 	normalizeSalesPriority,
 } from "./priority";
+import { isFinalizedProductionSubmission } from "./production-submission-review/policy";
 import {
 	type ProductionMaterialStatus,
 	buildProductionMaterialStatuses,
 	summarizeProductionMaterials,
 	unavailableProductionMaterialSummary,
 } from "./production-v2/application/production-materials";
+import { resolveSalesProductionWorkspaceQuery } from "./production-workspace-query";
 import { getSalesProductionPlan } from "./sales-fulfillment-plan";
-import { isFinalizedProductionSubmission } from "./production-submission-review/policy";
 import type {
+	SalesProductionCalendarQuery,
 	SalesProductionQueryParams,
 	SalesQueryParamsSchema,
 } from "./schema";
@@ -36,69 +38,48 @@ export type ProductionListSort =
 type SalesProductionListQuery = SalesProductionQueryParams & {
 	productionSort?: ProductionListSort | null;
 	includeMaterials?: boolean;
+	"production.assignedToId"?: number | null;
+	"production.status"?: SalesQueryParamsSchema["production.status"];
 };
 
 export async function getSalesProductions(
 	db: Db,
-	query: SalesProductionListQuery,
+	input: SalesProductionListQuery,
 ) {
+	const resolved = resolveSalesProductionWorkspaceQuery(input);
+	const query = {
+		...input,
+		...resolved.list,
+	} as SalesProductionListQuery;
 	const assignedToId = query.workerId || query.assignedToId;
 	const normalizedQuery = {
 		...query,
 		"production.assignedToId":
 			query["production.assignedToId"] || assignedToId || undefined,
 	};
-	const getDueToday = async () =>
-		filterCompletedProductions(
+	const { sort: _canonicalSort, ...productionQuery } = normalizedQuery;
+	const getDueQueue = async (
+		status: NonNullable<SalesQueryParamsSchema["production.status"]>,
+	) => {
+		const { show: _show, ...dueQuery } = productionQuery;
+		return filterCompletedProductions(
 			await getProductionListAction(
 				db,
 				{
+					...dueQuery,
 					salesType: "order",
-					"production.assignedToId": assignedToId,
-					"production.status": "due today",
+					"production.status": status,
 					"sales.priority": query.priority || query["sales.priority"],
-					productionSort: query.productionSort,
-					size: 99,
 				},
 				{
 					includeMaterials: query.includeMaterials,
 				},
 			),
 		);
-	const getPastDue = async () =>
-		filterCompletedProductions(
-			await getProductionListAction(
-				db,
-				{
-					salesType: "order",
-					"production.assignedToId": assignedToId,
-					"production.status": "past due",
-					"sales.priority": query.priority || query["sales.priority"],
-					productionSort: query.productionSort,
-					size: 99,
-				},
-				{
-					includeMaterials: query.includeMaterials,
-				},
-			),
-		);
-	const getDueTomorrow = async () =>
-		filterCompletedProductions(
-			await getProductionListAction(
-				db,
-				{
-					salesType: "order",
-					"production.assignedToId": assignedToId,
-					"production.status": "due tomorrow",
-					"sales.priority": query.priority || query["sales.priority"],
-					productionSort: query.productionSort,
-					size: 99,
-				},
-				{
-					includeMaterials: query.includeMaterials,
-				},
-			),
-		);
+	};
+	const getDueToday = async () => getDueQueue("due today");
+	const getPastDue = async () => getDueQueue("past due");
+	const getDueTomorrow = async () => getDueQueue("due tomorrow");
 	switch (query.show) {
 		case "due-today":
 			return await getDueToday();
@@ -110,7 +91,7 @@ export async function getSalesProductions(
 	const response = await getProductionListAction(
 		db,
 		{
-			...normalizedQuery,
+			...productionQuery,
 			"sales.priority": query.priority || query["sales.priority"],
 			salesType: "order",
 			//   "production.status": "part assigned",
@@ -127,98 +108,228 @@ export async function getSalesProductions(
 
 export async function getSalesProductionDashboard(
 	db: Db,
-	query: SalesProductionListQuery,
+	input: SalesProductionListQuery,
 ) {
+	const resolved = resolveSalesProductionWorkspaceQuery(input);
+	const query = {
+		...input,
+		...resolved.list,
+	} as SalesProductionListQuery;
 	const assignedToId = query.workerId || query.assignedToId;
 	const baseQuery: SalesProductionQueryParams = {
-		...query,
+		q: query.q,
+		priority: query.priority,
 		assignedToId,
 		workerId: query.workerId,
 		production: "pending",
-		size: 500,
 	};
 
-	const [queueResponse, dueToday, dueTomorrow, pastDue] = await Promise.all([
-		getProductionListAction(
-			db,
-			{
+	const [{ summary }, spotlight, dueToday, dueTomorrow, pastDue, calendar] =
+		await Promise.all([
+			getSalesProductionSummary(db, input),
+			getSalesProductions(db, {
 				...baseQuery,
-				"production.assignedToId":
-					query["production.assignedToId"] || assignedToId || undefined,
-				"sales.priority": query.priority || query["sales.priority"],
-				salesType: "order",
-			} as SalesQueryParamsSchema,
-			{
+				size: 6,
 				includeMaterials: false,
-			},
-		),
-		getSalesProductions(db, {
-			...baseQuery,
-			show: "due-today",
-			includeMaterials: false,
-		}),
-		getSalesProductions(db, {
-			...baseQuery,
-			show: "due-tomorrow",
-			includeMaterials: false,
-		}),
-		getSalesProductions(db, {
-			...baseQuery,
-			show: "past-due",
-			includeMaterials: false,
-		}),
-	]);
-
-	const queue = filterCompletedProductions(queueResponse);
-	const queueData = queue.data || [];
-	const calendarMap = new Map<
-		string,
-		{
-			date: string;
-			label: string;
-			shortLabel: string;
-			count: number;
-			isToday: boolean;
-			isTomorrow: boolean;
-		}
-	>();
-
-	for (let index = 0; index < 10; index++) {
-		const currentDate = dayjs().add(index, "day");
-		const key = currentDate.format("YYYY-MM-DD");
-		calendarMap.set(key, {
-			date: key,
-			label: currentDate.format("ddd, MMM D"),
-			shortLabel: currentDate.format("ddd"),
-			count: 0,
-			isToday: index === 0,
-			isTomorrow: index === 1,
-		});
-	}
-
-	for (const item of queueData) {
-		if (!item.dueDate) continue;
-		const key = dayjs(item.dueDate).format("YYYY-MM-DD");
-		const current = calendarMap.get(key);
-		if (!current) continue;
-		current.count += 1;
-	}
+			}),
+			getSalesProductions(db, {
+				...baseQuery,
+				show: "due-today",
+				size: 8,
+				includeMaterials: false,
+			}),
+			getSalesProductions(db, {
+				...baseQuery,
+				show: "due-tomorrow",
+				size: 8,
+				includeMaterials: false,
+			}),
+			getSalesProductions(db, {
+				...baseQuery,
+				show: "past-due",
+				size: 8,
+				includeMaterials: false,
+			}),
+			getSalesProductionCalendar(db, {
+				from: dayjs().format("YYYY-MM-DD"),
+				to: dayjs().add(9, "day").format("YYYY-MM-DD"),
+				q: baseQuery.q,
+				priority: baseQuery.priority,
+				assignedToId,
+			}),
+		]);
 
 	return {
-		summary: {
-			queueCount: queueData.length,
-			dueTodayCount: dueToday.data.length,
-			dueTomorrowCount: dueTomorrow.data.length,
-			pastDueCount: pastDue.data.length,
-		},
+		summary,
 		alerts: {
 			pastDue: pastDue.data.slice(0, 8),
 			dueToday: dueToday.data.slice(0, 8),
 			dueTomorrow: dueTomorrow.data.slice(0, 8),
 		},
-		calendar: Array.from(calendarMap.values()),
-		spotlight: queueData.slice(0, 6),
+		calendar,
+		spotlight: spotlight.data,
 	};
+}
+
+export async function getSalesProductionSummary(
+	db: Db,
+	input: SalesProductionListQuery,
+) {
+	const resolved = resolveSalesProductionWorkspaceQuery(input);
+	const query = {
+		...input,
+		...resolved.list,
+	} as SalesProductionListQuery;
+	const assignedToId = query.workerId || query.assignedToId;
+	const baseQuery: SalesProductionQueryParams = {
+		q: query.q,
+		priority: query.priority,
+		assignedToId,
+		workerId: query.workerId,
+		production: "pending",
+	};
+	const [
+		queueCount,
+		unassignedCount,
+		dueTodayCount,
+		dueTomorrowCount,
+		pastDueCount,
+		completedCount,
+		awaitingReviewCount,
+	] = await Promise.all([
+		countProductionOrders(db, baseQuery),
+		countProductionOrders(db, {
+			...baseQuery,
+			"production.assignment": "not assigned",
+		}),
+		countProductionOrders(db, {
+			...baseQuery,
+			"production.status": "due today",
+		}),
+		countProductionOrders(db, {
+			...baseQuery,
+			"production.status": "due tomorrow",
+		}),
+		countProductionOrders(db, {
+			...baseQuery,
+			"production.status": "past due",
+		}),
+		countProductionOrders(db, {
+			q: baseQuery.q,
+			priority: baseQuery.priority,
+			assignedToId,
+			workerId: query.workerId,
+			production: "completed",
+		}),
+		db.salesProductionSubmissionMaterialReview.count({
+			where: { status: "PENDING" },
+		}),
+	]);
+	return {
+		summary: {
+			queueCount,
+			unassignedCount,
+			dueTodayCount,
+			dueTomorrowCount,
+			pastDueCount,
+			completedCount,
+			awaitingReviewCount,
+		},
+	};
+}
+
+export async function getSalesProductionCalendar(
+	db: Db,
+	input: SalesProductionCalendarQuery,
+) {
+	const start = dayjs(input.from).startOf("day");
+	const requestedEnd = dayjs(input.to).startOf("day");
+	const end =
+		requestedEnd.diff(start, "day") > 41 ? start.add(41, "day") : requestedEnd;
+	const exclusiveEnd = end.add(1, "day");
+	const orderWhere = whereSales({
+		salesType: "order",
+		production: "pending",
+		q: input.q,
+		"sales.priority": input.priority,
+	} as SalesQueryParamsSchema);
+	const groups = await db.orderItemProductionAssignments.groupBy({
+		by: ["dueDate"],
+		where: {
+			deletedAt: null,
+			assignedToId: input.assignedToId || undefined,
+			dueDate: {
+				gte: start.toDate(),
+				lt: exclusiveEnd.toDate(),
+			},
+			itemControl: {
+				qtyControls: {
+					some: {
+						type: "prodCompleted",
+						deletedAt: null,
+						percentage: { not: 100 },
+					},
+				},
+			},
+			order: orderWhere,
+		},
+		_count: { _all: true },
+		orderBy: { dueDate: "asc" },
+	});
+	const counts = new Map(
+		groups.flatMap((group) =>
+			group.dueDate
+				? [
+						[
+							dayjs(group.dueDate).format("YYYY-MM-DD"),
+							group._count._all,
+						] as const,
+					]
+				: [],
+		),
+	);
+	const today = dayjs().format("YYYY-MM-DD");
+	const tomorrow = dayjs().add(1, "day").format("YYYY-MM-DD");
+	const days: Array<{
+		date: string;
+		label: string;
+		shortLabel: string;
+		count: number;
+		isToday: boolean;
+		isTomorrow: boolean;
+	}> = [];
+	for (let index = 0; index <= end.diff(start, "day"); index++) {
+		const current = start.add(index, "day");
+		const date = current.format("YYYY-MM-DD");
+		days.push({
+			date,
+			label: current.format("ddd, MMM D"),
+			shortLabel: current.format("ddd"),
+			count: counts.get(date) || 0,
+			isToday: date === today,
+			isTomorrow: date === tomorrow,
+		});
+	}
+	return days;
+}
+
+async function countProductionOrders(
+	db: Db,
+	query: SalesProductionListQuery & Record<string, unknown>,
+) {
+	const { sort: _canonicalSort, ...countQuery } = query;
+	return db.salesOrders.count({
+		where: whereSales({
+			...countQuery,
+			salesType: "order",
+			"production.assignedToId":
+				query["production.assignedToId"] ||
+				query.workerId ||
+				query.assignedToId ||
+				undefined,
+			"sales.priority": query.priority || query["sales.priority"],
+		} as SalesQueryParamsSchema),
+	});
 }
 
 async function getProductionListAction(
@@ -226,12 +337,13 @@ async function getProductionListAction(
 	query: SalesQueryParamsSchema & {
 		workerId?: number | null;
 		productionSort?: ProductionListSort | null;
+		material?: string | null;
 	},
 	options: {
 		includeMaterials?: boolean;
 	} = {},
 ) {
-	const where = whereSales(query);
+	const where = whereSales(query) || {};
 	const requestedTake =
 		options.includeMaterials === false
 			? Math.max(Number(query.size || 20), 1)
@@ -251,6 +363,48 @@ async function getProductionListAction(
 	} else if (where?.assignments?.some) {
 		whereAssignments.push(where.assignments.some);
 	}
+	if (query.material || query.productionSort) {
+		if (query.material && !query.productionSort) {
+			return getMaterialFilteredProductionPage(
+				db,
+				query,
+				where,
+				whereAssignments,
+				requestedTake,
+			);
+		}
+		if (
+			!query.material &&
+			(query.productionSort === "newest" || query.productionSort === "oldest")
+		) {
+			return getDatabaseSortedProductionPage(
+				db,
+				query,
+				where,
+				whereAssignments,
+				requestedTake,
+				options,
+			);
+		}
+		return getFilteredProductionPage(
+			db,
+			query,
+			where,
+			whereAssignments,
+			requestedTake,
+			options,
+		);
+	}
+	if (query.production === "pending") {
+		return getDatabaseSortedProductionPage(
+			db,
+			{ ...query, productionSort: "newest" },
+			where,
+			whereAssignments,
+			requestedTake,
+			options,
+		);
+	}
 	const { response, queryProps } = await composeQueryData(
 		boundedQuery,
 		where,
@@ -260,43 +414,349 @@ async function getProductionListAction(
 		...queryProps,
 		select: select(whereAssignments),
 	});
-	const materialsBySalesOrder = new Map<number, ProductionMaterialStatus[]>();
-	let materialLookupUnavailable = false;
-	if (data.length && options.includeMaterials !== false) {
-		try {
-			const productionPlan = await getSalesProductionPlan(db, {
-				salesOrderIds: data.map((item) => item.id),
-				completeOrder: true,
-			});
-			for (const material of buildProductionMaterialStatuses(
-				productionPlan.components,
-			)) {
-				if (material.salesOrderId == null) continue;
-				const materials =
-					materialsBySalesOrder.get(material.salesOrderId) || [];
-				materials.push(material);
-				materialsBySalesOrder.set(material.salesOrderId, materials);
+	const materialState = await loadProductionMaterialSummaries(
+		db,
+		data.map((item) => item.id),
+		options.includeMaterials !== false,
+	);
+	const rows = data.map((item) => ({
+		...transformProductionList(item, {
+			useAssignmentCompletion: !!query.workerId || !!query["production.status"],
+		}),
+		materials: materialState.unavailable
+			? unavailableProductionMaterialSummary()
+			: summarizeProductionMaterials(
+					materialState.bySalesOrder.get(item.id) || [],
+				),
+	}));
+
+	return response(rows.slice(0, requestedTake));
+}
+
+type ProductionSelectedRow = Prisma.SalesOrdersGetPayload<{
+	select: ReturnType<typeof select>;
+}>;
+
+async function getDatabaseSortedProductionPage(
+	db: Db,
+	query: SalesQueryParamsSchema & {
+		workerId?: number | null;
+		productionSort?: ProductionListSort | null;
+	},
+	where: Prisma.SalesOrdersWhereInput,
+	whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[],
+	requestedTake: number,
+	options: { includeMaterials?: boolean },
+) {
+	let rawCursor = Math.max(Number(query.cursor || 0), 0);
+	let nextCursor: string | null = null;
+	let hasNextPage = false;
+	const selected: ProductionSelectedRow[] = [];
+	const direction = query.productionSort === "oldest" ? "asc" : "desc";
+	const scanSize = 100;
+
+	scan: while (!hasNextPage) {
+		const records = await db.salesOrders.findMany({
+			where,
+			orderBy: [{ createdAt: direction }, { id: direction }],
+			skip: rawCursor,
+			take: scanSize,
+			select: select(whereAssignments),
+		});
+		if (records.length === 0) break;
+		for (const item of records) {
+			rawCursor += 1;
+			if (
+				query.production === "pending" &&
+				transformProductionList(item, {
+					useAssignmentCompletion:
+						!!query.workerId || !!query["production.status"],
+				}).completed
+			) {
+				continue;
 			}
-		} catch {
-			materialLookupUnavailable = true;
+			if (selected.length === requestedTake) {
+				hasNextPage = true;
+				break scan;
+			}
+			selected.push(item);
+			nextCursor = String(rawCursor);
 		}
+		if (records.length < scanSize) break;
 	}
-	const sorted = sortProductionListByPriority(
-		data.map((item) => ({
-			...transformProductionList(item, {
+
+	const materialState = await loadProductionMaterialSummaries(
+		db,
+		selected.map((item) => item.id),
+		options.includeMaterials !== false,
+	);
+	return {
+		data: selected.map((item) =>
+			attachMaterialSummary(item, query, materialState),
+		),
+		meta: {
+			count: undefined,
+			size: requestedTake,
+			cursor: hasNextPage ? nextCursor : null,
+		},
+	};
+}
+
+async function getMaterialFilteredProductionPage(
+	db: Db,
+	query: SalesQueryParamsSchema & {
+		workerId?: number | null;
+		material?: string | null;
+	},
+	where: Prisma.SalesOrdersWhereInput,
+	whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[],
+	requestedTake: number,
+) {
+	let rawCursor = Math.max(Number(query.cursor || 0), 0);
+	let nextCursor: string | null = null;
+	let hasNextPage = false;
+	const selectedRows: Array<ReturnType<typeof attachMaterialSummary>> = [];
+	const scanSize = 100;
+
+	scan: while (!hasNextPage) {
+		const records = await db.salesOrders.findMany({
+			where,
+			orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+			skip: rawCursor,
+			take: scanSize,
+			select: select(whereAssignments),
+		});
+		if (records.length === 0) break;
+		const materialState = await loadProductionMaterialSummaries(
+			db,
+			records.map((item) => item.id),
+			true,
+		);
+
+		for (const item of records) {
+			rawCursor += 1;
+			if (
+				query.production === "pending" &&
+				transformProductionList(item, {
+					useAssignmentCompletion:
+						!!query.workerId || !!query["production.status"],
+				}).completed
+			) {
+				continue;
+			}
+			const row = attachMaterialSummary(item, query, materialState);
+			if (
+				!query.material ||
+				!matchesMaterialFilter(row.materials.state, query.material)
+			) {
+				continue;
+			}
+			if (selectedRows.length === requestedTake) {
+				hasNextPage = true;
+				break scan;
+			}
+			selectedRows.push(row);
+			nextCursor = String(rawCursor);
+		}
+		if (records.length < scanSize) break;
+	}
+
+	return {
+		data: selectedRows,
+		meta: {
+			count: undefined,
+			size: requestedTake,
+			cursor: hasNextPage ? nextCursor : null,
+		},
+	};
+}
+
+async function getFilteredProductionPage(
+	db: Db,
+	query: SalesQueryParamsSchema & {
+		workerId?: number | null;
+		productionSort?: ProductionListSort | null;
+		material?: string | null;
+	},
+	where: Prisma.SalesOrdersWhereInput,
+	whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[],
+	requestedTake: number,
+	options: { includeMaterials?: boolean },
+) {
+	const candidates = await db.salesOrders.findMany({
+		where,
+		orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+		select: {
+			id: true,
+			priority: true,
+			createdAt: true,
+			assignments: {
+				where: {
+					deletedAt: null,
+					AND: whereAssignments.length > 1 ? whereAssignments : undefined,
+					...(whereAssignments.length === 1 ? whereAssignments[0] : {}),
+				},
+				select: { dueDate: true },
+			},
+		},
+	});
+	const orderedCandidates = query.productionSort
+		? sortProductionListByPriority(
+				candidates.map((candidate) => ({
+					...candidate,
+					dueDate: earliestDate(
+						candidate.assignments.map((assignment) => assignment.dueDate),
+					),
+				})),
+				query.productionSort,
+			)
+		: candidates;
+	const requestedCursor = Math.max(Number(query.cursor || 0), 0);
+	let candidateIndex = requestedCursor;
+	const selectedRows: Array<ReturnType<typeof attachMaterialSummary>> = [];
+	let nextCursor: string | null = null;
+	let hasMatchingRowAfterPage = false;
+	const scanSize = 100;
+
+	while (
+		candidateIndex < orderedCandidates.length &&
+		!hasMatchingRowAfterPage
+	) {
+		const batch = orderedCandidates.slice(
+			candidateIndex,
+			candidateIndex + scanSize,
+		);
+		const records = await db.salesOrders.findMany({
+			where: { id: { in: batch.map((item) => item.id) } },
+			select: select(whereAssignments),
+		});
+		const recordsById = new Map(records.map((item) => [item.id, item]));
+		const activeRecords = records.filter((item) => {
+			if (query.production !== "pending") return true;
+			return !transformProductionList(item, {
 				useAssignmentCompletion:
 					!!query.workerId || !!query["production.status"],
-			}),
-			materials: materialLookupUnavailable
+			}).completed;
+		});
+		const materialState = await loadProductionMaterialSummaries(
+			db,
+			activeRecords.map((item) => item.id),
+			Boolean(query.material),
+		);
+
+		for (const candidate of batch) {
+			candidateIndex += 1;
+			const item = recordsById.get(candidate.id);
+			if (!item) continue;
+			if (
+				query.production === "pending" &&
+				transformProductionList(item, {
+					useAssignmentCompletion:
+						!!query.workerId || !!query["production.status"],
+				}).completed
+			) {
+				continue;
+			}
+			const row = attachMaterialSummary(item, query, materialState);
+			if (
+				query.material &&
+				!matchesMaterialFilter(row.materials.state, query.material)
+			) {
+				continue;
+			}
+			if (selectedRows.length === requestedTake) {
+				hasMatchingRowAfterPage = true;
+				break;
+			}
+			selectedRows.push(row);
+			if (selectedRows.length === requestedTake) {
+				nextCursor = String(candidateIndex);
+			}
+		}
+	}
+
+	if (!query.material && options.includeMaterials !== false) {
+		const materialState = await loadProductionMaterialSummaries(
+			db,
+			selectedRows.map((item) => item.id),
+			true,
+		);
+		for (const row of selectedRows) {
+			row.materials = materialState.unavailable
 				? unavailableProductionMaterialSummary()
 				: summarizeProductionMaterials(
-						materialsBySalesOrder.get(item.id) || [],
-					),
-		})),
-		query.productionSort,
-	);
+						materialState.bySalesOrder.get(row.id) || [],
+					);
+		}
+	}
 
-	return response(sorted.slice(0, requestedTake));
+	return {
+		data: selectedRows,
+		meta: {
+			count: undefined,
+			size: requestedTake,
+			cursor: hasMatchingRowAfterPage ? nextCursor : null,
+		},
+	};
+}
+
+function attachMaterialSummary(
+	item: ProductionSelectedRow,
+	query: SalesQueryParamsSchema & { workerId?: number | null },
+	materialState: Awaited<ReturnType<typeof loadProductionMaterialSummaries>>,
+) {
+	return {
+		...transformProductionList(item, {
+			useAssignmentCompletion: !!query.workerId || !!query["production.status"],
+		}),
+		materials: materialState.unavailable
+			? unavailableProductionMaterialSummary()
+			: summarizeProductionMaterials(
+					materialState.bySalesOrder.get(item.id) || [],
+				),
+	};
+}
+
+async function loadProductionMaterialSummaries(
+	db: Db,
+	salesOrderIds: number[],
+	enabled: boolean,
+) {
+	const bySalesOrder = new Map<number, ProductionMaterialStatus[]>();
+	if (!enabled || salesOrderIds.length === 0) {
+		return { bySalesOrder, unavailable: false };
+	}
+	try {
+		const productionPlan = await getSalesProductionPlan(db, {
+			salesOrderIds,
+			completeOrder: true,
+		});
+		for (const material of buildProductionMaterialStatuses(
+			productionPlan.components,
+		)) {
+			if (material.salesOrderId == null) continue;
+			const materials = bySalesOrder.get(material.salesOrderId) || [];
+			materials.push(material);
+			bySalesOrder.set(material.salesOrderId, materials);
+		}
+		return { bySalesOrder, unavailable: false };
+	} catch {
+		return { bySalesOrder, unavailable: true };
+	}
+}
+
+function earliestDate(dates: Array<Date | null>) {
+	return dates
+		.filter((date): date is Date => date != null)
+		.sort((left, right) => left.getTime() - right.getTime())[0];
+}
+
+function matchesMaterialFilter(state: string, filter: string) {
+	if (filter === "available") return state === "ready";
+	if (filter === "review") return state === "not_configured";
+	if (filter === "blocked") return state === "pending";
+	if (filter === "unavailable") return state === "unavailable";
+	return true;
 }
 
 export function sortProductionListByPriority<
@@ -574,9 +1034,5 @@ function filterCompletedProductions<
 	return {
 		...response,
 		data,
-		meta: {
-			...response.meta,
-			count: data.length,
-		},
 	};
 }

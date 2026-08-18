@@ -249,7 +249,13 @@ export function ProductionAdminBoardV2() {
     );
 }
 
-export function ProductionMaterialReviewPanel() {
+export function ProductionMaterialReviewPanel({
+	standalone = false,
+	search,
+}: {
+	standalone?: boolean;
+	search?: string | null;
+} = {}) {
 	const trpc = useTRPC();
 	const reviewProductionSubmission =
 		trpc.sales.reviewProductionSubmission as any;
@@ -263,13 +269,20 @@ export function ProductionMaterialReviewPanel() {
 		Record<number, { good: string; issue: string }>
 	>({});
 	const [manualComponentIds, setManualComponentIds] = useState<number[]>([]);
-	const queueQuery = useQuery(
-		trpc.sales.productionSubmissionMaterialReviews.queryOptions({
-			status: "PENDING",
-			take: 100,
-		}),
+	const queueQuery = useInfiniteQuery(
+		trpc.sales.productionSubmissionMaterialReviews.infiniteQueryOptions(
+			{
+				status: "PENDING",
+				take: 50,
+				q: search || undefined,
+			},
+			{
+				getNextPageParam: (lastPage) => lastPage.nextCursor,
+			},
+		),
 	);
-	const rows = queueQuery.data?.rows || [];
+	const normalizedSearch = search?.trim().toLowerCase() || "";
+	const rows = queueQuery.data?.pages.flatMap((page) => page.rows) || [];
 	const detailQuery = useQuery(
 		trpc.sales.productionSubmissionMaterialReviewDetail.queryOptions(
 			{
@@ -309,6 +322,15 @@ export function ProductionMaterialReviewPanel() {
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.sales.productionDashboardV2.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.productions.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.productionSummary.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.productionCalendar.pathKey(),
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.sales.productionOrderDetailV2.pathKey(),
@@ -435,12 +457,33 @@ export function ProductionMaterialReviewPanel() {
 	}
 
 	if (!queueQuery.isPending && rows.length === 0) {
+		if (standalone) {
+			return (
+				<Card className="rounded-xl bg-card shadow-sm">
+					<CardContent className="flex min-h-64 flex-col items-center justify-center gap-2 p-6 text-center">
+						<div className="flex size-10 items-center justify-center rounded-full bg-muted">
+							<Icons.copyDone className="size-5 text-muted-foreground" />
+						</div>
+						<p className="text-sm font-medium">
+							{normalizedSearch
+								? "No matching material reviews"
+								: "Material review is clear"}
+						</p>
+						<p className="max-w-md text-sm text-muted-foreground">
+							{normalizedSearch
+								? "Try a different order number or worker name."
+								: "New submissions that need a material decision will appear here."}
+						</p>
+					</CardContent>
+				</Card>
+			);
+		}
 		return null;
 	}
 
 	return (
-		<Card className="overflow-hidden rounded-[28px] border-amber-200 bg-amber-50/40">
-			<CardHeader>
+		<Card className="overflow-hidden rounded-xl bg-card shadow-sm">
+			<CardHeader className="px-4 py-4">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<CardTitle className="text-lg">
@@ -451,15 +494,15 @@ export function ProductionMaterialReviewPanel() {
 							whose material records are still unresolved.
 						</CardDescription>
 					</div>
-					<Badge className="rounded-full bg-amber-600 text-white hover:bg-amber-600">
-						{rows.length} pending
+					<Badge variant="outline" className="rounded-full">
+						{queueQuery.data?.pages[0]?.total ?? rows.length} pending
 					</Badge>
 				</div>
 			</CardHeader>
-			<CardContent className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-				<div className="space-y-2">
+			<CardContent className="grid gap-4 px-4 pb-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+				<div className="flex flex-col gap-2">
 					{queueQuery.isPending ? (
-						<Skeleton className="h-28 rounded-xl" />
+						<Skeleton className="h-28 rounded-lg" />
 					) : (
 						rows.map((review) => (
 							<button
@@ -467,10 +510,10 @@ export function ProductionMaterialReviewPanel() {
 								type="button"
 								onClick={() => setSelectedReviewId(review.id)}
 								className={cn(
-									"w-full rounded-xl border bg-background p-3 text-left transition-colors",
+									"w-full rounded-lg border bg-background p-3 text-left transition-colors",
 									selectedReviewId === review.id
-										? "border-amber-500 ring-2 ring-amber-200"
-										: "hover:border-amber-300",
+										? "border-foreground bg-muted/40"
+										: "hover:bg-muted/40",
 								)}
 							>
 								<div className="flex items-center justify-between gap-2">
@@ -488,11 +531,22 @@ export function ProductionMaterialReviewPanel() {
 							</button>
 						))
 					)}
+					{queueQuery.hasNextPage ? (
+						<Button
+							type="button"
+							variant="outline"
+							disabled={queueQuery.isFetchingNextPage}
+							onClick={() => queueQuery.fetchNextPage()}
+							className="h-10 w-full"
+						>
+							{queueQuery.isFetchingNextPage ? "Loading..." : "Load more"}
+						</Button>
+					) : null}
 				</div>
 
-				<div className="rounded-2xl border bg-background p-4">
+				<div className="rounded-lg border bg-background p-4">
 					{detailQuery.isPending ? (
-						<Skeleton className="h-52 rounded-xl" />
+						<Skeleton className="h-52 rounded-lg" />
 					) : detail ? (
 						<div className="space-y-4">
 							<div className="flex flex-wrap items-start justify-between gap-3">

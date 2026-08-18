@@ -4,14 +4,18 @@
 Tracks the promoted sales production board used by admins for production queue oversight.
 
 ## Current Behavior
-- `/sales-book/productions/v2` is the canonical sales production board route.
-- `/sales-book/productions` is a compatibility redirect to `/sales-book/productions/v2` and preserves query params.
-- Sales tabs and sales-book tab summary links route directly to `/sales-book/productions/v2`.
-- The board title is `Production Board`; the v2 suffix is no longer shown in the page title.
-- The board header keeps search, status, and priority controls in a row on wider screens to reduce header height.
-- The right rail calendar is labeled `Calendar` and no longer includes the old compact date-picker description or Current Focus mini-card, leaving more room for the queue snapshot.
-- Production order summary trigger areas show pointer cursor, hover/focus treatment, and a parent collapsed-header background change so operators can tell the order card summary is clickable without tinting the expanded overview.
+- `/sales-book/productions` is the canonical admin production workspace.
+- `/sales-book/productions/v2` is a query-preserving compatibility redirect to
+  the canonical route.
+- Sidebar and Sales Book navigation link directly to the canonical route.
+- The old dedicated v2 board is no longer mounted by either admin route.
+- The canonical page uses the Sales Finance workspace system with Active,
+  Review, and Completed PageTabs plus a Table/Calendar display control for the
+  Active queue.
 
 ## Implementation Notes
-- The board still uses `packages/sales/src/production-v2` read-model contracts through `trpc.sales.productionsV2` and `trpc.sales.productionDashboardV2`.
-- The legacy `ProductionWorkspace` route implementation is no longer mounted from `/sales-book/productions`.
+- The canonical list uses `sales.productions`, bounded summary/calendar
+  queries, and `components/tables-2/sales-production`.
+- The old `packages/sales/src/production-v2` read-model contracts remain only
+  for unremoved legacy consumers and production-detail/action reference.
+- Do not restore the global redirect-engine rule from productions to v2.
