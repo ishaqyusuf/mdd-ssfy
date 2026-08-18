@@ -50,11 +50,16 @@ The customer sees the customer-visible order snapshot and policy, then either:
   drawing a signature; or
 - declines with a required reason.
 
-The public order review renders customer-visible line specifications and nested
-group details from that immutable snapshot. House-package doors show size, door
-type, prehung/general swing, left- and right-hand quantities, total doors,
-height, and moulding details when present; these values are review-only and do
-not mutate the snapshot or order.
+The public order review validates the immutable request snapshot's persisted
+Sales Form line items and composes them with the canonical invoice print
+pipeline. Its Complete order tables use the shared HTML invoice-section
+renderer with customer pricing, template 2 styling, product images, grouped-row
+suppression, and the normal door, moulding, service, shelf, and generic section
+ordering. Products, specifications, quantities, handing, and prices never fall
+back to the mutable order graph or live Sales Form metadata. The browser
+receives typed print sections instead of raw snapshot line items; snapshot
+addresses, additional costs, totals, policy, and response controls retain their
+existing presentation and behavior.
 
 A material order change supersedes prior evidence, revokes active links, moves
 the order to `REAPPROVAL_REQUIRED`, and requires a new signature. Prior evidence

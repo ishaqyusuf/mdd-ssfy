@@ -9,6 +9,9 @@ function context(request: Record<string, unknown> | null) {
 		events,
 		ctx: {
 			db: {
+				settings: {
+					findFirst: async () => ({ id: 1, meta: {} }),
+				},
 				specialOrderApprovalRequest: {
 					findUnique: async () => request,
 				},
@@ -44,10 +47,19 @@ function request(overrides: Record<string, unknown> = {}) {
 				{
 					uid: "line-1",
 					title: "Snapshot door",
+					description: "Snapshot door",
 					qty: 1,
 					unitPrice: 250,
+					lineTotal: 250,
+					formSteps: [
+						{
+							step: { id: 1, title: "Item Type" },
+							value: "Interior",
+						},
+					],
 					shelfItems: [{ description: "Trim", qty: 2, unitPrice: 10 }],
 					housePackageTool: {
+						doorType: "Interior",
 						doors: [
 							{
 								dimension: "36 x 80",
@@ -57,6 +69,8 @@ function request(overrides: Record<string, unknown> = {}) {
 								rhQty: 1,
 								totalQty: 1,
 								unitPrice: 230,
+								lineTotal: 230,
+								stepProduct: { name: "Snapshot Carrara" },
 							},
 						],
 					},
@@ -101,7 +115,7 @@ describe("Special Order public review boundary", () => {
 		expect(error.message).not.toContain("S-42");
 	});
 
-	it("renders the immutable issued snapshot instead of mutable order metadata", async () => {
+	it("composes canonical invoice sections from the immutable issued snapshot", async () => {
 		const fake = context(request());
 		const result = await getPublicSpecialOrderApproval(
 			fake.ctx as never,
@@ -113,28 +127,18 @@ describe("Special Order public review boundary", () => {
 			salespersonName: "Snapshot Salesperson",
 			order: {
 				form: { po: "SNAPSHOT-PO" },
-				lineItems: [
+				invoiceSections: [
 					{
+						kind: "shelf",
 						title: "Snapshot door",
-						unitPrice: 250,
-						shelfItems: [{ description: "Trim" }],
-						housePackageTool: {
-							doors: [
-								{
-									dimension: "36 x 80",
-									doorType: "Interior Pre-Hung Door",
-									swing: "RH",
-									lhQty: 0,
-									rhQty: 1,
-								},
-							],
-						},
-						meta: { serviceRows: [{ service: "Install" }] },
 					},
 				],
 				summary: { grandTotal: 250 },
 			},
 		});
+		expect(JSON.stringify(result)).toContain("Trim");
+		expect(JSON.stringify(result)).not.toContain("Mutable line");
+		expect(JSON.stringify(result)).not.toContain('"lineItems"');
 	});
 
 	it("returns minimal terminal states and records stale-link telemetry", async () => {

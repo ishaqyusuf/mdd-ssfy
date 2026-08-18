@@ -200,6 +200,17 @@ plus generated miss in the same batch and preserves `INV-10`, then `INV-11` page
 ordering. The 2026-07-23 browser proof above closes the quote-download and
 representative batch-artifact release gate.
 
+2026-08-18 responsive HTML rows: the shared HTML section renderer retains its
+canonical table at `sm` and wider widths and for print output. Below `640px`, it
+renders the same typed section rows as a shadcn `ItemGroup`, with one outlined
+`Item` per invoice line. Each item keeps the product image and description as
+its primary content, places the line total in `ItemActions`, and exposes the
+remaining quantity, handing, pricing, packing, and component specifications as
+labeled facts. This is presentation-only: it does not change `PrintPage`, PDF
+rendering, print composition, pricing, or document caching. Because Special
+Order approval embeds the same `SalesHtmlSections`, it inherits the responsive
+row presentation without maintaining a second implementation.
+
 Batch cache resolution also deduplicates repeated sales IDs while preserving
 first-seen order, avoiding duplicate pages and duplicate generation work when a
 selection source accidentally repeats an order.

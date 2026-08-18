@@ -10,15 +10,16 @@ function asRecord(value: unknown): Record<string, unknown> {
 		: {};
 }
 
-function getPersistedLineItems(
-	sale: PrintSalesData,
-): SalesFormLineItem[] | null {
+function getPersistedLineItems(sale: PrintSalesData): unknown {
 	const meta = asRecord(sale.meta);
 	const newSalesForm = asRecord(meta.newSalesForm);
-	const lineItems = newSalesForm.lineItems;
-	if (!Array.isArray(lineItems) || lineItems.length === 0) return null;
+	return newSalesForm.lineItems;
+}
 
-	const parsed = lineItems.map((lineItem) =>
+function parseSalesFormLineItems(value: unknown): SalesFormLineItem[] | null {
+	if (!Array.isArray(value) || value.length === 0) return null;
+
+	const parsed = value.map((lineItem) =>
 		salesFormLineItemSchema.safeParse(lineItem),
 	);
 	if (parsed.some((result) => !result.success)) return null;
@@ -37,12 +38,17 @@ function hasMetadataRows(meta: Record<string, unknown>) {
 }
 
 function toPrintItem(
-	sale: PrintSalesData,
+	sale: {
+		salesOrderId: number;
+		createdAt?: Date | null;
+		updatedAt?: Date | null;
+	},
 	lineItem: SalesFormLineItem,
 	index: number,
 ): PrintSalesItem {
 	const itemId = -(index + 1);
-	const revisionDate = sale.updatedAt ?? sale.createdAt;
+	const revisionDate = sale.updatedAt ?? sale.createdAt ?? new Date(0);
+	const lineItemRecord = asRecord(lineItem);
 	const itemMeta = {
 		...asRecord(lineItem.meta),
 		lineIndex:
@@ -93,7 +99,7 @@ function toPrintItem(
 	return {
 		...lineItem,
 		id: itemId,
-		salesOrderId: sale.id,
+		salesOrderId: sale.salesOrderId,
 		description: lineItem.description ?? lineItem.title,
 		dykeDescription: lineItem.title,
 		qty: lineItem.qty,
@@ -108,9 +114,28 @@ function toPrintItem(
 		formSteps,
 		shelfItems,
 		housePackageTool,
-		multiDyke: false,
-		multiDykeUid: null,
+		multiDyke: lineItemRecord.multiDyke === true,
+		multiDykeUid:
+			typeof lineItemRecord.multiDykeUid === "string"
+				? lineItemRecord.multiDykeUid
+				: null,
 	} as unknown as PrintSalesItem;
+}
+
+export function buildPrintItemsFromSalesFormLineItems(
+	value: unknown,
+	context: {
+		salesOrderId: number;
+		createdAt?: Date | null;
+		updatedAt?: Date | null;
+	},
+): PrintSalesItem[] | null {
+	const lineItems = parseSalesFormLineItems(value);
+	if (!lineItems) return null;
+
+	return lineItems.map((lineItem, index) =>
+		toPrintItem(context, lineItem, index),
+	);
 }
 
 /**
@@ -123,13 +148,18 @@ export function applyPersistedFormPrintFallback(
 ): PrintSalesData {
 	if (sale.items.length > 0) return sale;
 
-	const lineItems = getPersistedLineItems(sale);
-	if (!lineItems) return sale;
+	const items = buildPrintItemsFromSalesFormLineItems(
+		getPersistedLineItems(sale),
+		{
+			salesOrderId: sale.id,
+			createdAt: sale.createdAt,
+			updatedAt: sale.updatedAt,
+		},
+	);
+	if (!items) return sale;
 
 	return {
 		...sale,
-		items: lineItems.map((lineItem, index) =>
-			toPrintItem(sale, lineItem, index),
-		),
+		items,
 	};
 }

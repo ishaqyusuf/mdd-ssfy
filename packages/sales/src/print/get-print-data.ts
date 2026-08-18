@@ -6,14 +6,9 @@ import {
 } from "../sales-control/actions";
 import { applyApprovedAdjustmentPrintSnapshot } from "./approved-adjustment-snapshot";
 import { composeAddresses } from "./compose/addresses";
-import { composeDoorSections } from "./compose/door-sections";
 import { composeFooter } from "./compose/footer";
-import { suppressMetadataBackedGroupSiblings } from "./compose/grouped-item-helpers";
-import { composeLineItemSections } from "./compose/line-item-sections";
 import { composeMeta } from "./compose/meta";
-import { composeMouldingSections } from "./compose/moulding-sections";
-import { composeServiceSections } from "./compose/service-sections";
-import { composeShelfSections } from "./compose/shelf-sections";
+import { composePrintSections } from "./compose/sections";
 import { composeSpecialOrderPrintData } from "./compose/special-order";
 import { getModeConfig } from "./constants";
 import { resolveDealerPrintPricingSurface } from "./dealer-pricing-surface";
@@ -21,12 +16,7 @@ import { parsePrintModes } from "./modes";
 import { applyPersistedFormPrintFallback } from "./persisted-form-fallback";
 import { type PrintSalesData, buildPrintSalesInclude } from "./query";
 import type { PrintSalesV2Input } from "./schema";
-import type {
-	PrintMode,
-	PrintPage,
-	PrintSection,
-	PrintSigningData,
-} from "./types";
+import type { PrintMode, PrintPage, PrintSigningData } from "./types";
 
 /**
  * Main entry point: DB → typed PrintPage[] payloads.
@@ -89,34 +79,7 @@ async function composePage(
 	const config = getModeConfig(mode);
 	const meta = composeMeta(sale, mode);
 	const { billing, shipping } = composeAddresses(sale, mode);
-	const compositionSale = {
-		...sale,
-		items: suppressMetadataBackedGroupSiblings(sale.items),
-	};
-
-	// Compose all section types
-	const doors = composeDoorSections(compositionSale, config, setting, dispatchId);
-	const mouldings = composeMouldingSections(
-		compositionSale,
-		config,
-		dispatchId,
-	);
-	const services = composeServiceSections(compositionSale, config, dispatchId);
-	const shelves = composeShelfSections(compositionSale, config);
-	const lineItems = composeLineItemSections(
-		compositionSale,
-		config,
-		dispatchId,
-	);
-
-	// Merge and sort all sections by their lineIndex
-	const sections: PrintSection[] = [
-		...doors,
-		...mouldings,
-		...services,
-		...shelves,
-		...lineItems,
-	].sort((a, b) => a.index - b.index);
+	const sections = composePrintSections(sale, config, setting, dispatchId);
 
 	const footer = config.showFooter ? composeFooter(sale, mode) : null;
 	const signing = await composeSigningData(db, sale, mode, dispatchId);

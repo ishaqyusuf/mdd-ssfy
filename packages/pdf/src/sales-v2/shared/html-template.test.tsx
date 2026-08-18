@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import type { PrintPage } from "@gnd/sales/print/types";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SalesHtmlTemplatePage } from "./html-template";
+import { SalesHtmlSections, SalesHtmlTemplatePage } from "./html-template";
 
 const companyAddress = {
 	address1: "Address one",
@@ -11,6 +11,120 @@ const companyAddress = {
 };
 
 describe("SalesHtmlTemplatePage", () => {
+	test("renders one responsive shadcn item per invoice row while preserving the desktop table", () => {
+		const markup = renderToStaticMarkup(
+			<SalesHtmlSections
+				baseUrl="https://gnd.test"
+				sections={[
+					{
+						kind: "moulding",
+						index: 0,
+						title: "Mouldings",
+						headers: [
+							{ title: "#", key: null, colSpan: 1 },
+							{ title: "Items", key: "moulding", colSpan: 4 },
+							{ title: "Qty", key: "qty", colSpan: 1.2 },
+							{ title: "Total", key: "lineTotal", colSpan: 2.5 },
+						],
+						rows: [
+							{
+								cells: [
+									{ value: 1, colSpan: 1 },
+									{
+										value: "Colonial casing",
+										colSpan: 4,
+										image: "casing.png",
+									},
+									{ value: 2, colSpan: 1.2 },
+									{ value: "$140.00", colSpan: 2.5 },
+								],
+							},
+							{
+								cells: [
+									{ value: 2, colSpan: 1 },
+									{ value: "Flat board", colSpan: 4 },
+									{ value: 4, colSpan: 1.2 },
+									{ value: "$64.00", colSpan: 2.5 },
+								],
+							},
+						],
+					},
+				]}
+			/>,
+		);
+
+		expect(markup).toContain("sales-html-section-table");
+		expect(markup).toContain("sales-html-mobile-item-group");
+		expect(markup).toContain("@media (max-width: 639px)");
+		expect(markup.match(/data-slot=\"item\"/g)).toHaveLength(2);
+		expect(markup).toContain("data-variant=\"outline\"");
+		expect(markup).toContain("Colonial casing");
+		expect(markup).toContain("casing.png");
+		expect(markup).toContain("$140.00");
+		expect(markup).toContain("Qty");
+	});
+
+	test("shares the canonical section renderer with embedded invoice-item previews", () => {
+		const sections: PrintPage["sections"] = [
+			{
+				kind: "line-item",
+				index: 0,
+				title: "",
+				headers: [
+					{ title: "Description", key: "description", colSpan: 5 },
+					{ title: "Total", key: "total", colSpan: 2.5, align: "right" },
+				],
+				rows: [
+					{
+						cells: [
+							{
+								value: "SNAPSHOT ITEM",
+								colSpan: 5,
+								image: "snapshot.png",
+							},
+							{ value: "$125.00", colSpan: 2.5, align: "right" },
+						],
+					},
+				],
+			},
+		];
+		const page: PrintPage = {
+			meta: {
+				title: "Invoice",
+				salesNo: "S-42",
+				date: "08/18/2026",
+				status: "pending",
+				total: "$125.00",
+			},
+			billing: null,
+			shipping: null,
+			sections,
+			footer: null,
+			config: {
+				mode: "invoice",
+				showPrices: true,
+				showFooter: false,
+				showPackingCol: false,
+				showSignature: false,
+				showImages: true,
+			},
+			signing: null,
+			specialOrder: null,
+		};
+
+		const documentMarkup = renderToStaticMarkup(
+			<SalesHtmlTemplatePage page={page} companyAddress={companyAddress} />,
+		);
+		const sectionsMarkup = renderToStaticMarkup(
+			<SalesHtmlSections sections={sections} baseUrl="https://gnd.test" />,
+		);
+
+		for (const expected of ["SNAPSHOT ITEM", "$125.00", "snapshot.png"]) {
+			expect(documentMarkup).toContain(expected);
+			expect(sectionsMarkup).toContain(expected);
+		}
+	});
+
 	test("renders every door-table text value in uppercase without changing other sections", () => {
 		const page: PrintPage = {
 			meta: {

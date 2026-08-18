@@ -1,5 +1,33 @@
 # Progress
 
+- 2026-08-18: made sales HTML invoice tables responsive through the shared V2
+  section renderer. Desktop and printed documents retain the canonical tables;
+  below 640px each typed invoice row becomes its own outlined shadcn Item with
+  image, description, total, and labeled quantity, handing, price, packing, and
+  specification facts. The renderer stays server-driven and uses the existing
+  `PrintSection[]` payload, so pricing, composition, PDF output, and caching are
+  unchanged, while the Special Order approval view inherits the same mobile
+  behavior. Added static-render coverage for one mobile item per source row and
+  preserved desktop-table markup. No database, API, permission, or persisted
+  sales behavior changed.
+
+- 2026-08-18: replaced the Special Order approval page's bespoke Complete order
+  item markup with the canonical sales invoice composition and shared HTML
+  section renderer. Active public review now validates and composes only the
+  immutable approval-request line-item snapshot, returns typed invoice sections
+  instead of raw lines, and uses customer pricing, template 2, normal grouped
+  section ordering, and product images; order details, snapshot totals, policy,
+  signature, and decline behavior are unchanged. Focused composition, shared
+  renderer, public-contract, and dashboard rendering coverage passes 17 tests /
+  89 assertions; `@gnd/sales` and `@gnd/pdf` typechecks pass. Live local browser
+  QA verified the canonical tables and both response modes at desktop and
+  390x844 without submitting a response or sending email; wide tables scroll
+  internally with no page-level horizontal overflow and the console remained
+  clean. The API typecheck retains unrelated concurrent Sales Form diagnostics,
+  and the broad dashboard typecheck reached its existing 4 GB heap limit without
+  emitting a diagnostic. No database, migration, permission, approval-revision,
+  or persisted business-data behavior changed.
+
 - 2026-08-17: repaired historical sales printing for quotes `03471PC` and
   `03470PC` after a production-to-local data sync. Print composition now removes
   repeated active form-step revisions and uses the newest exact-reconciling HPT

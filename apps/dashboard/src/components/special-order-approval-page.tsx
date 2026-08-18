@@ -2,6 +2,7 @@
 
 import { SignaturePad } from "@/components/signature-pad";
 import { SpecialOrderOrderReview } from "@/components/special-order-order-review";
+import { getBaseUrl } from "@/lib/base-url";
 import { useTRPC } from "@/trpc/client";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
@@ -39,6 +40,7 @@ function formatAddress(value: unknown) {
 
 export function SpecialOrderApprovalPage({ token }: { token: string }) {
 	const trpc = useTRPC();
+	const baseUrl = getBaseUrl();
 	const review = useQuery(
 		trpc.specialOrder.publicReview.queryOptions({ token }),
 	);
@@ -160,7 +162,7 @@ export function SpecialOrderApprovalPage({ token }: { token: string }) {
 					</CardContent>
 				</Card>
 
-				<SpecialOrderOrderReview order={data.order} />
+				<SpecialOrderOrderReview order={data.order} baseUrl={baseUrl} />
 
 				<Card>
 					<CardHeader className="flex-row items-center justify-between gap-3">

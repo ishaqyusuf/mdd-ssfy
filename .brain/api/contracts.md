@@ -1306,6 +1306,14 @@ implementation phase is approved and released.
   order date and purchase order, billing/shipping addresses, complete item
   specifications, additional costs, subtotal, discount, tax, total, and exact
   published policy.
+- For an active capability, `specialOrder.publicReview` validates and adapts
+  `request.orderSnapshot.lineItems` into typed invoice `PrintSection[]` with the
+  canonical customer-priced sales print composers. It returns those sections as
+  `invoiceSections` and does not serialize raw line items. Current Sales document
+  settings may affect presentation and image resolution only; item identity,
+  specifications, quantities, handing, and pricing remain exclusively bound to
+  the immutable request snapshot. Terminal invalid, expired, stale, revoked,
+  declined, and completed capability responses are unchanged.
 - Customer invoice/order output may contain policy/signer evidence; quote and
   operational document contracts prevent private signature disclosure.
 - Selecting Yes and every non-autosave governed save require a nonblank canonical
