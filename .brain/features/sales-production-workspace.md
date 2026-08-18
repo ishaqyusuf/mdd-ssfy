@@ -139,3 +139,11 @@ Provide a cleaner production operations surface for both admins and production w
   - item-card chevrons are pinned to the top-right of each card
   - worker submission UX is optimized for fast repetitive entry
   - row-level detail expansion replaces the older nested accordion feel for production items
+
+## Submit-All Action Integrity (2026-08-18)
+
+- The Sales Overview production menu passes the `submit` action directly when
+  `Submit All` can execute immediately, avoiding a stale React state closure
+  that previously dispatched an actionless Trigger payload.
+- The legacy update-sales-control command resolver rejects payloads with zero
+  actions before command execution, while retaining its one-action-only rule.

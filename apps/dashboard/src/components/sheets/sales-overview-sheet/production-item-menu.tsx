@@ -6,7 +6,7 @@ import { useProductionItem } from "./production-tab";
 import { DropdownMenu, Tabs } from "@gnd/ui/namespace";
 import { Menu } from "@gnd/ui/custom/menu";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { sum, timeout } from "@gnd/utils";
+import { sum } from "@gnd/utils";
 import { createAssignmentSchema } from "@/actions/schema";
 import z from "zod";
 import { Icons } from "@gnd/ui/icons";
@@ -293,13 +293,11 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         onClick={(e) => {
                             e.preventDefault();
                             setAction("submit");
-                            setTimeout(() => {
-                                if (!submitPendingAssignments) {
-                                    submitAction();
-                                } else {
-                                    setTab("users");
-                                }
-                            }, 500);
+                            if (!submitPendingAssignments) {
+                                submitAction("submit");
+                            } else {
+                                setTab("users");
+                            }
                         }}
                     >
                         Submit All

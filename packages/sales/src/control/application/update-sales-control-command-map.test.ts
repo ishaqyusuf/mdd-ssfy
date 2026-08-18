@@ -75,4 +75,10 @@ describe("update sales control command map", () => {
 			}),
 		).toThrow("Multiple actions are not allowed");
 	});
+
+	it("rejects payloads without an action before command execution", () => {
+		expect(() =>
+			resolveLegacyUpdateSalesControlAction(baseInput as UpdateSalesControl),
+		).toThrow("One action is required");
+	});
 });

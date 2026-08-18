@@ -9423,3 +9423,13 @@
 - Focused tests pass with 12 tests / 57 assertions; scoped Biome and diff
   checks pass. Authenticated browser QA displayed `Aug 17, 2026` in the
   secondary inbound form and exited without submitting.
+
+## 2026-08-18 — Fixed Sales Overview production Submit All dispatch
+
+- Removed the delayed state-dependent Submit All dispatch and now pass the
+  `submit` action explicitly when no assignment-selection step is needed.
+- Added fail-fast validation for actionless legacy update-sales-control payloads
+  plus focused regressions for the UI dispatch and command resolver.
+- Targeted tests pass (7 tests, 18 assertions), and authenticated browser QA
+  confirmed the production action menu renders its expected quantities.
+- No database, API contract, or permission behavior changed.

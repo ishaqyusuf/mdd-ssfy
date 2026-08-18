@@ -74,6 +74,9 @@ export function resolveLegacyUpdateSalesControlAction(
 	input: UpdateSalesControl,
 ): LegacyActionMapping | null {
 	const activeActions = ORDERED_ACTION_KEYS.filter((action) => !!input[action]);
+	if (activeActions.length === 0) {
+		throw new Error("One action is required");
+	}
 	if (activeActions.length > 1) {
 		throw new Error(
 			`Multiple actions are not allowed: ${activeActions.join(", ")}`,

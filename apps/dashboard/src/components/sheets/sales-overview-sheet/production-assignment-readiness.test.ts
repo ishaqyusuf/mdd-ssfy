@@ -32,6 +32,13 @@ const productionColumnsSource = readFileSync(
 );
 
 describe("production assignment inventory readiness", () => {
+	it("passes the immediate submit action explicitly", () => {
+		assert.match(
+			itemMenuSource,
+			/if \(!submitPendingAssignments\) \{\s*submitAction\("submit"\);/,
+		);
+	});
+
 	it("keeps inventory and inbound status informational during assignment", () => {
 		assert.doesNotMatch(itemMenuSource, /productionReadiness\.queryOptions/);
 		assert.doesNotMatch(itemMenuSource, /Inventory confirmation required/);
