@@ -1,7 +1,6 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import type { Db, Prisma } from "@gnd/db";
 import { getAppUrl } from "@gnd/utils/envs";
-import { getPrintDocumentData } from "../print/get-print-document-data";
 import {
 	INITIAL_SPECIAL_ORDER_POLICY,
 	hasSpecialOrderCustomerEmail,
@@ -138,10 +137,6 @@ export type SpecialOrderApprovalDeliveryResult = {
 	errorMessage?: string | null;
 };
 
-type EnsureSpecialOrderApprovalDependencies = {
-	loadPrintDocumentData?: typeof getPrintDocumentData;
-};
-
 export async function resolveCurrentSpecialOrderApprovalLink(
 	db: Db,
 	salesId: number,
@@ -233,7 +228,6 @@ export async function ensureSpecialOrderEmailApprovalAction(
 		forceReplacement?: boolean;
 		reapprovalReason?: string | null;
 	},
-	dependencies: EnsureSpecialOrderApprovalDependencies = {},
 ): Promise<SpecialOrderEmailApprovalAction | null> {
 	let resolved: {
 		orderId: string;
@@ -323,18 +317,6 @@ export async function ensureSpecialOrderEmailApprovalAction(
 						tx as unknown as Db,
 						input.issuedByUserId,
 					);
-					const loadPrintDocumentData =
-						dependencies.loadPrintDocumentData ?? getPrintDocumentData;
-					const documentData = await loadPrintDocumentData(tx as unknown as Db, {
-						ids: [order.id],
-						mode: "invoice",
-					});
-					const invoicePage = documentData.pages[0];
-					if (!invoicePage) {
-						throw new Error(
-							"Unable to create a canonical invoice snapshot for this Special Order.",
-						);
-					}
 					const requestId = randomUUID();
 					const token = createSpecialOrderApprovalCapability(requestId);
 					const orderMeta = readSpecialOrderRecord(order.meta);
@@ -351,13 +333,6 @@ export async function ensureSpecialOrderEmailApprovalAction(
 						summary: readSpecialOrderRecord(newSalesForm.summary),
 						billingAddress: order.billingAddress,
 						shippingAddress: order.shippingAddress,
-						documentSnapshot: {
-							version: 1,
-							templateId: "template-2",
-							invoicePage,
-							companyAddress: documentData.companyAddress,
-							logoUrl: documentData.logoUrl ?? null,
-						},
 					};
 					const expiresAt = new Date(
 						now.getTime() + linkLifetimeDays * 24 * 60 * 60 * 1000,

@@ -7,11 +7,7 @@ import {
 } from "@api/db/queries/special-order-email-ledger";
 import type { TRPCContext } from "@api/trpc/init";
 import { EmailService } from "@gnd/notifications/services/email-service";
-import { getSalesSetting } from "@gnd/sales";
-import {
-	buildInvoicePrintPageFromSalesFormSnapshot,
-	resolveSalesCompanyAddress,
-} from "@gnd/sales/print";
+import { getPrintDocumentData } from "@gnd/sales/print";
 import {
 	createSpecialOrderApprovalCapability,
 	ensureSpecialOrderEmailApprovalAction,
@@ -422,6 +418,9 @@ export async function issueSpecialOrderApprovalRequest(
 export async function getPublicSpecialOrderApproval(
 	ctx: TRPCContext,
 	token: string,
+	dependencies: {
+		loadPrintDocumentData?: typeof getPrintDocumentData;
+	} = {},
 ) {
 	const request = await ctx.db.specialOrderApprovalRequest.findUnique({
 		where: { tokenHash: hashSpecialOrderApprovalCapability(token) },
@@ -491,71 +490,27 @@ export async function getPublicSpecialOrderApproval(
 				"The order has changed. Request the current approval link from your salesperson.",
 		};
 	}
-	const meta = readObject(request.order.meta);
-	const form = readObject(meta.newSalesForm);
-	const storedOrder = readObject(request.orderSnapshot);
-	const storedCustomer = readObject(request.customerSnapshot);
-	const storedSalesperson = readObject(request.salespersonSnapshot);
-	const storedDocument = readObject(storedOrder.documentSnapshot);
-	const storedInvoicePage = readObject(storedDocument.invoicePage);
-	const hasStoredDocument = Object.keys(storedInvoicePage).length > 0;
-	const invoicePage = hasStoredDocument
-		? storedDocument.invoicePage
-		: buildInvoicePrintPageFromSalesFormSnapshot({
-				lineItems: Array.isArray(storedOrder.lineItems)
-					? storedOrder.lineItems
-					: [],
-				salesOrderId: request.salesOrderId,
-				revisionDate: request.createdAt,
-				setting: await getSalesSetting(ctx.db),
-				orderNo: request.order.orderId,
-				form: Object.keys(readObject(storedOrder.form)).length
-					? readObject(storedOrder.form)
-					: readObject(form.form),
-				summary: Object.keys(readObject(storedOrder.summary)).length
-					? readObject(storedOrder.summary)
-					: readObject(form.summary),
-				extraCosts: Array.isArray(storedOrder.extraCosts)
-					? storedOrder.extraCosts
-					: Array.isArray(form.extraCosts)
-						? form.extraCosts
-						: [],
-				customer: storedCustomer,
-				salesperson: storedSalesperson,
-				billingAddress: storedOrder.billingAddress,
-				shippingAddress: storedOrder.shippingAddress,
-			});
-	const storedCompanyAddress = readObject(storedDocument.companyAddress);
-	const companyAddress =
-		hasStoredDocument && Object.keys(storedCompanyAddress).length > 0
-			? storedDocument.companyAddress
-			: resolveSalesCompanyAddress(request.order.orderId);
-	const templateId =
-		typeof storedDocument.templateId === "string" &&
-		storedDocument.templateId.trim()
-			? storedDocument.templateId
-			: "template-2";
-	const logoUrl =
-		typeof storedDocument.logoUrl === "string" && storedDocument.logoUrl.trim()
-			? storedDocument.logoUrl
-			: null;
+	const loadPrintDocumentData =
+		dependencies.loadPrintDocumentData ?? getPrintDocumentData;
+	const documentData = await loadPrintDocumentData(ctx.db, {
+		ids: [request.salesOrderId],
+		mode: "invoice",
+	});
+	const invoicePage = documentData.pages[0];
+	if (!invoicePage) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Unable to load the current sales document for this order.",
+		});
+	}
 	return {
 		state: "ACTIVE" as const,
 		orderNo: request.order.orderId,
 		customerName:
-			(typeof storedCustomer.businessName === "string"
-				? storedCustomer.businessName
-				: null) ||
-			(typeof storedCustomer.name === "string" ? storedCustomer.name : null) ||
 			request.order.customer?.businessName ||
 			request.order.customer?.name ||
 			"Customer",
-		salespersonName:
-			(typeof storedSalesperson.name === "string"
-				? storedSalesperson.name
-				: null) ||
-			request.order.salesRep?.name ||
-			null,
+		salespersonName: request.order.salesRep?.name || null,
 		expiresAt: request.expiresAt,
 		policy: {
 			version: request.policyVersion.version,
@@ -563,9 +518,9 @@ export async function getPublicSpecialOrderApproval(
 			acknowledgmentText: request.policyVersion.acknowledgmentText,
 			policyText: request.policyVersion.policyText,
 		},
-		companyAddress,
-		templateId,
-		logoUrl,
+		companyAddress: documentData.companyAddress,
+		templateId: "template-2",
+		logoUrl: documentData.logoUrl ?? null,
 		order: {
 			invoicePage,
 		},
