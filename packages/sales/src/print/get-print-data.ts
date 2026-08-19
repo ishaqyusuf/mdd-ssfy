@@ -1,5 +1,5 @@
 import type { Db, Prisma } from "@gnd/db";
-import { type SalesSetting, getSalesSetting } from "../exports";
+import { type SalesSetting, getSalesSetting } from "../sales-control/settings";
 import {
 	getDispatchCompletedActivity,
 	getDispatchCompletetionNotes,

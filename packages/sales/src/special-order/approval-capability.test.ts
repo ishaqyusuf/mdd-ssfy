@@ -8,6 +8,32 @@ import {
 	resolveCurrentSpecialOrderApprovalLink,
 } from "./approval-capability";
 
+const canonicalInvoicePage = {
+	meta: { title: "Invoice", salesNo: "S-42", date: "Aug 19, 2026" },
+	billing: { title: "Sold To", lines: ["Customer"] },
+	shipping: { title: "Ship To", lines: ["Customer"] },
+	sections: [],
+	footer: null,
+	config: { mode: "invoice" },
+	signing: null,
+	specialOrder: null,
+};
+
+const canonicalDocumentDependencies = {
+	loadPrintDocumentData: async () =>
+		({
+			pages: [canonicalInvoicePage],
+			title: "Invoice S-42",
+			firstOrderId: "S-42",
+			companyAddress: {
+				address1: "13285 SW 131 ST",
+				address2: "Miami, FL 33186",
+				phone: "305-278-6555",
+			},
+			logoUrl: "https://example.test/logo.png",
+		}) as never,
+};
+
 function storedTokenHash(requestId: string) {
 	return hashSpecialOrderApprovalCapability(
 		createSpecialOrderApprovalCapability(requestId),
@@ -164,7 +190,7 @@ describe("Special Order approval capability issuance", () => {
 		const action = await ensureSpecialOrderEmailApprovalAction(fixture.db, {
 			salesId: 42,
 			issuedByUserId: 9,
-		});
+		}, canonicalDocumentDependencies);
 
 		expect(action?.requestId).toBe("active-request");
 		expect(action?.newlyIssued).toBe(false);
@@ -180,7 +206,7 @@ describe("Special Order approval capability issuance", () => {
 		const action = await ensureSpecialOrderEmailApprovalAction(fixture.db, {
 			salesId: 42,
 			issuedByUserId: 9,
-		});
+		}, canonicalDocumentDependencies);
 
 		expect(action?.newlyIssued).toBe(true);
 		expect(action?.requestId).not.toBe("active-request");
@@ -197,11 +223,11 @@ describe("Special Order approval capability issuance", () => {
 		const first = await ensureSpecialOrderEmailApprovalAction(fixture.db, {
 			salesId: 42,
 			issuedByUserId: 9,
-		});
+		}, canonicalDocumentDependencies);
 		const second = await ensureSpecialOrderEmailApprovalAction(fixture.db, {
 			salesId: 42,
 			issuedByUserId: 9,
-		});
+		}, canonicalDocumentDependencies);
 
 		expect(first?.newlyIssued).toBe(true);
 		expect(second?.requestId).toBe(first?.requestId);
@@ -210,6 +236,25 @@ describe("Special Order approval capability issuance", () => {
 		expect(fixture.requests.filter((request) => request.status === "ACTIVE"))
 			.toHaveLength(1);
 		expect(fixture.getHistoryCount()).toBe(1);
+	});
+
+	test("captures the canonical invoice page with the approval request", async () => {
+		const fixture = createDbFixture();
+		await ensureSpecialOrderEmailApprovalAction(
+			fixture.db,
+			{ salesId: 42, issuedByUserId: 9 },
+			canonicalDocumentDependencies,
+		);
+
+		expect(fixture.requests[0]?.orderSnapshot).toMatchObject({
+			documentSnapshot: {
+				version: 1,
+				templateId: "template-2",
+				invoicePage: canonicalInvoicePage,
+				companyAddress: { address1: "13285 SW 131 ST" },
+				logoUrl: "https://example.test/logo.png",
+			},
+		});
 	});
 
 	test("records delivery from a Sales-document email on every included request", async () => {

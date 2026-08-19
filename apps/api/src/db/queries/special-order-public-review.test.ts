@@ -191,6 +191,55 @@ describe("Special Order public review boundary", () => {
 		expect(JSON.stringify(result)).not.toContain('"lineItems"');
 	});
 
+	it("returns the canonical invoice page captured with a new request", async () => {
+		const invoicePage = {
+			meta: {
+				title: "Invoice",
+				salesNo: "S-42",
+				date: "Aug 19, 2026",
+				total: "$250.00",
+			},
+			billing: { title: "Sold To", lines: ["CAPTURED CUSTOMER"] },
+			shipping: { title: "Ship To", lines: ["CAPTURED CUSTOMER"] },
+			sections: [],
+			footer: null,
+			config: { mode: "invoice" },
+			signing: null,
+			specialOrder: null,
+		};
+		const fake = context(
+			request({
+				orderSnapshot: {
+					...request().orderSnapshot,
+					documentSnapshot: {
+						version: 1,
+						templateId: "template-2",
+						invoicePage,
+						companyAddress: {
+							address1: "Captured address",
+							address2: "Captured city",
+							phone: "555-0100",
+						},
+						logoUrl: "https://example.test/captured-logo.png",
+					},
+				},
+			}),
+		);
+
+		const result = await getPublicSpecialOrderApproval(
+			fake.ctx as never,
+			"valid-token",
+		);
+
+		expect(result).toMatchObject({
+			state: "ACTIVE",
+			templateId: "template-2",
+			logoUrl: "https://example.test/captured-logo.png",
+			companyAddress: { address1: "Captured address" },
+			order: { invoicePage },
+		});
+	});
+
 	it("returns minimal terminal states and records stale-link telemetry", async () => {
 		const stale = context(
 			request({

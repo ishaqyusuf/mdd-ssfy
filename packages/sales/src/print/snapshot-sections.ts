@@ -1,4 +1,4 @@
-import type { SalesSetting } from "../exports";
+import type { SalesSetting } from "../sales-control/settings";
 import { buildCustomerNameLines } from "./compose/customer-name-lines";
 import { composeDoorSections } from "./compose/door-sections";
 import { composeFooter } from "./compose/footer";

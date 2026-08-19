@@ -1,5 +1,5 @@
 import { formatCurrency } from "@gnd/utils";
-import { type SalesSetting, getSalesSetting } from "../../exports";
+import type { SalesSetting } from "../../sales-control/settings";
 import type { StepComponentMeta } from "../../types";
 import { ftToIn, isComponentType } from "../../utils/utils";
 import type { PrintSalesData, PrintSalesItem } from "../query";

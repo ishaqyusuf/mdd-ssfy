@@ -105,8 +105,9 @@ export function SpecialOrderApprovalPage({ token }: { token: string }) {
 			<div className="mx-auto max-w-[980px] space-y-6">
 				<SalesHtmlDocument
 					pages={[data.order.invoicePage as PrintPage]}
-					templateId="template-2"
+					templateId={data.templateId}
 					companyAddress={data.companyAddress as CompanyAddress}
+					logoUrl={data.logoUrl ?? undefined}
 					baseUrl={baseUrl}
 					config={{ showImages: true }}
 				/>

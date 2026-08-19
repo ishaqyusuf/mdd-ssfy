@@ -496,33 +496,49 @@ export async function getPublicSpecialOrderApproval(
 	const storedOrder = readObject(request.orderSnapshot);
 	const storedCustomer = readObject(request.customerSnapshot);
 	const storedSalesperson = readObject(request.salespersonSnapshot);
-	const snapshotForm = Object.keys(readObject(storedOrder.form)).length
-		? readObject(storedOrder.form)
-		: readObject(form.form);
-	const snapshotSummary = Object.keys(readObject(storedOrder.summary)).length
-		? readObject(storedOrder.summary)
-		: readObject(form.summary);
-	const snapshotExtraCosts = Array.isArray(storedOrder.extraCosts)
-		? storedOrder.extraCosts
-		: Array.isArray(form.extraCosts)
-			? form.extraCosts
-			: [];
-	const invoicePage = buildInvoicePrintPageFromSalesFormSnapshot({
-		lineItems: Array.isArray(storedOrder.lineItems)
-			? storedOrder.lineItems
-			: [],
-		salesOrderId: request.salesOrderId,
-		revisionDate: request.createdAt,
-		setting: await getSalesSetting(ctx.db),
-		orderNo: request.order.orderId,
-		form: snapshotForm,
-		summary: snapshotSummary,
-		extraCosts: snapshotExtraCosts,
-		customer: storedCustomer,
-		salesperson: storedSalesperson,
-		billingAddress: storedOrder.billingAddress,
-		shippingAddress: storedOrder.shippingAddress,
-	});
+	const storedDocument = readObject(storedOrder.documentSnapshot);
+	const storedInvoicePage = readObject(storedDocument.invoicePage);
+	const hasStoredDocument = Object.keys(storedInvoicePage).length > 0;
+	const invoicePage = hasStoredDocument
+		? storedDocument.invoicePage
+		: buildInvoicePrintPageFromSalesFormSnapshot({
+				lineItems: Array.isArray(storedOrder.lineItems)
+					? storedOrder.lineItems
+					: [],
+				salesOrderId: request.salesOrderId,
+				revisionDate: request.createdAt,
+				setting: await getSalesSetting(ctx.db),
+				orderNo: request.order.orderId,
+				form: Object.keys(readObject(storedOrder.form)).length
+					? readObject(storedOrder.form)
+					: readObject(form.form),
+				summary: Object.keys(readObject(storedOrder.summary)).length
+					? readObject(storedOrder.summary)
+					: readObject(form.summary),
+				extraCosts: Array.isArray(storedOrder.extraCosts)
+					? storedOrder.extraCosts
+					: Array.isArray(form.extraCosts)
+						? form.extraCosts
+						: [],
+				customer: storedCustomer,
+				salesperson: storedSalesperson,
+				billingAddress: storedOrder.billingAddress,
+				shippingAddress: storedOrder.shippingAddress,
+			});
+	const storedCompanyAddress = readObject(storedDocument.companyAddress);
+	const companyAddress =
+		hasStoredDocument && Object.keys(storedCompanyAddress).length > 0
+			? storedDocument.companyAddress
+			: resolveSalesCompanyAddress(request.order.orderId);
+	const templateId =
+		typeof storedDocument.templateId === "string" &&
+		storedDocument.templateId.trim()
+			? storedDocument.templateId
+			: "template-2";
+	const logoUrl =
+		typeof storedDocument.logoUrl === "string" && storedDocument.logoUrl.trim()
+			? storedDocument.logoUrl
+			: null;
 	return {
 		state: "ACTIVE" as const,
 		orderNo: request.order.orderId,
@@ -547,7 +563,9 @@ export async function getPublicSpecialOrderApproval(
 			acknowledgmentText: request.policyVersion.acknowledgmentText,
 			policyText: request.policyVersion.policyText,
 		},
-		companyAddress: resolveSalesCompanyAddress(request.order.orderId),
+		companyAddress,
+		templateId,
+		logoUrl,
 		order: {
 			invoicePage,
 		},
