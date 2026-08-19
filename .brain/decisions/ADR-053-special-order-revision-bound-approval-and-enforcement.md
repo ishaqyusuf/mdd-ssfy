@@ -76,6 +76,11 @@ multiple purchasing, production, packing, and dispatch entry points consistently
     hides governed state or disables approval, documents, notifications,
     reapproval, or operational gates for an already marked order. The pilot
     defaults to `SUPER_ADMIN_ONLY` and the server owns the transition check.
+14. An ACTIVE request is reusable only when its stored token hash can be
+    reproduced with the runtime signing secret. A copied database or signing-key
+    rotation may leave an unexpired request that is cryptographically unusable;
+    authenticated link preparation treats it as stale, revokes it, and issues
+    one revision-bound replacement instead of returning a broken link.
 
 ## Consequences
 
@@ -103,6 +108,9 @@ multiple purchasing, production, packing, and dispatch entry points consistently
   `SPECIAL_ORDER_SIGNATURE_BLOB_ACCESS=private`; an access value that conflicts
   with the connected store causes Vercel Blob to reject the response before the
   approval transaction begins.
+- Environment sync and signing-secret rotation recover on the next authenticated
+  link-preparation action without weakening public token validation or reusing
+  unverifiable capabilities.
 - The override is an auditable exception to approval enforcement, not Current
   Approval and not a general operations permission. Removing either the Role
   capability or the underlying operation permission removes the forward bypass.

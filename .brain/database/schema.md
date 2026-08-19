@@ -432,6 +432,6 @@ The canonical plan is
   `summary` are deprecated compatibility snapshots and are ignored by canonical
   hydration. New saves do not write them.
 - The active door logical key is `housePackageToolId + stepProductId + normalized
-  dimension`. It is enforced transactionally now. The physical unique key is
-  deferred until the concurrent dispatch schema migration is complete and the
-  duplicate audit is clean.
+  dimension`. `DykeSalesDoors.activeIdentity` stores that key for active rows as
+  a nullable unique `VarChar(191)`; soft deletion clears the key so historical
+  rows remain available. Transactional validation still provides early errors.

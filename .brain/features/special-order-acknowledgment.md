@@ -28,9 +28,11 @@ lines, components, or catalog rows independently.
   normalized to `null` and does not block enrollment.
 - Sales Overview also exposes approval request actions, `Copy approval link`,
   `Request Re-Approval`, history, and removal. Copying reuses the current active
-  request or prepares one for the current revision without sending customer
-  email. The clipboard action falls back to a transient DOM selection when the
-  async Clipboard API is unavailable or rejects after link preparation. Removal
+  request only when its stored proof matches the current signing secret; a
+  request imported from another environment or invalidated by secret rotation is
+  revoked and replaced for the same revision without sending customer email.
+  The clipboard action falls back to a transient DOM selection when the async
+  Clipboard API is unavailable or rejects after link preparation. Removal
   reasons are optional; reapproval and customer-decline reasons remain required.
 - Enabling, revision invalidation, requests, customer responses, reapproval,
   and removal write Sales Activity. Removal sends a customer notification when
@@ -207,6 +209,19 @@ and acceptance gate:
 
 ## Validation and rollout status
 
+- 2026-08-19: Restored the retained responsive invoice-section renderer for the
+  public approval review. Immutable snapshots are now composed by the same
+  current sales-preview pipeline and render the same desktop table/mobile item
+  pair, including product images and grouped item ordering. Billing and shipping
+  snapshot data now uses the preview's shared address-line rules and two-card
+  presentation. Focused public review, renderer, and HTML-template coverage
+  passes; no schema, API input, permission, or persistence contract changed.
+- Order `09369LM` reproduced approval-link generation failure after a
+  production-to-local sync because the active capability proof did not match the
+  local signing secret. Focused capability/dashboard coverage passes, the
+  invalid request was rotated once, and authenticated in-app browser QA shows
+  the success toast and stable link reuse. The in-app browser's isolated
+  clipboard is a development-shell limitation and is not a product contract.
 - The enrollment pilot follow-up adds focused domain, settings, permission, and
   dashboard boundary coverage. The complete focused Special Order suite now
   passes 121 tests with 523 assertions across 25 files. Authenticated browser QA

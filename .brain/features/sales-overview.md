@@ -32,6 +32,10 @@ opening production, dispatch, packing, or inventory workflows.
 ## Runtime Behavior
 
 - The canonical orders list stays mounted behind the sheet.
+- The order-only Inventory tab has no `New` badge; it remains available with
+  its existing inventory workflow unchanged.
+- General tab content uses the sheet's horizontal gutter rather than adding a
+  second one; its vertical section spacing remains unchanged.
 - Order and quote P.O. edits use a serialized, debounced save path with visible
   `Saving`, `Saved`, and `Failed` states. A successful edit refreshes the
   active overview and the correctly typed order or quote list.

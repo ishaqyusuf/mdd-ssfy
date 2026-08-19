@@ -7,9 +7,10 @@
 ## Problem
 
 Quote `03523PC` rendered two active rows for the same Garage Door component and
-`2-6 x 6-8` size. The stored relational rows each had a final unit price of
-`$355.67`, but the open new editor passively repriced them to `$281.17`, marked
-the document dirty, and displayed a zero base cost.
+`2-6 x 6-8` size. Each corrupt stored row was `$281.17` with no recoverable base
+cost, while a fresh equivalent Tier 2 configuration calculated `$355.67`. The
+duplicate rows doubled the item, and loading the customer profile triggered a
+separate infinite synchronization loop in the editor.
 
 ## Root Cause
 
@@ -33,6 +34,17 @@ was reconstructed at another boundary.
   while profile pricing is unresolved.
 - Provide a bounded audit/repair command and force stale open editors to reload
   through a revision change.
+- Make normalized line updates idempotent and keep animation/pricing sync effects
+  dependent on stable primitive identities instead of freshly allocated React
+  children or patch objects.
+
+## Resolution
+
+Local quote `03523PC` was repaired on 2026-08-19. Door row `63943` remains the
+single active `2-6 x 6-8` identity at quantity `1` and `$355.67`; duplicate door
+and form-step rows were retired. A read-only post-repair audit reports no
+findings. Browser acceptance confirms one `$355.67` estimate/line row after the
+Tier 2 price finishes loading, with no maximum-update-depth error.
 
 ## Prevention
 
@@ -50,4 +62,3 @@ clean-data window is complete.
 - `apps/dashboard/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
 - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
 - `scripts/sales-form-relational-repair.ts`
-

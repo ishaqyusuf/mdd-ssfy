@@ -1,5 +1,11 @@
 # Done
 
+- [x] 2026-08-19 — Restore Special Order approval-link copying for synced or
+  signing-key-rotated requests. Link preparation now replaces unverifiable
+  active capabilities once. Focused tests and authenticated in-app browser
+  acceptance passed on order `09369LM`; the development shell's isolated
+  clipboard is not treated as product behavior.
+
 - [x] 2026-08-18 — Complete Sales Production admin workspace modernization
   (Sequence 04/P1+P4): promoted `/sales-book/productions`, adopted the Sales
   Finance title/summary/PageTabs/search system, separated Active/Review/
@@ -1205,3 +1211,18 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Validation: 12 focused tests / 57 assertions, scoped Biome, diff validation,
   and authenticated browser QA without submitting an inbound shipment.
 - Completed Date: 2026-08-17
+
+### Sales Form Relational Persistence and Pricing Repair
+
+- Priority: Critical
+- Description: Made the legacy relational Sales graph the sole commercial
+  authority, added revision-checked identity-preserving saves and physical door
+  identity uniqueness, repaired `03523PC`, and removed the pricing-load render
+  loop caused by non-idempotent effect synchronization.
+- Related Feature: Sales Form System Hardening
+- Status: Done
+- Validation: 98 focused tests passed across the Sales, API, and Dashboard
+  suites; Sales/UI typechecks and targeted API/Dashboard bundles passed; the
+  bounded `03523PC` audit returned no findings; authenticated browser proof
+  shows one quantity-one `$355.67` row with no error after profile pricing loads.
+- Completed Date: 2026-08-19

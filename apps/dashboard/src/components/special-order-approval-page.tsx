@@ -2,7 +2,9 @@
 
 import { SignaturePad } from "@/components/signature-pad";
 import { SpecialOrderOrderReview } from "@/components/special-order-order-review";
+import { getBaseUrl } from "@/lib/base-url";
 import { useTRPC } from "@/trpc/client";
+import { SalesHtmlAddressBlocks } from "@gnd/pdf/sales-v2";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -24,21 +26,9 @@ function text(value: unknown) {
 	return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function formatAddress(value: unknown) {
-	const address = readObject(value);
-	return [
-		text(address.name),
-		text(address.address1),
-		text(address.address2),
-		[text(address.city), text(address.state)].filter(Boolean).join(", "),
-		text(address.country),
-	]
-		.filter(Boolean)
-		.join(" · ");
-}
-
 export function SpecialOrderApprovalPage({ token }: { token: string }) {
 	const trpc = useTRPC();
+	const baseUrl = getBaseUrl();
 	const review = useQuery(
 		trpc.specialOrder.publicReview.queryOptions({ token }),
 	);
@@ -97,8 +87,6 @@ export function SpecialOrderApprovalPage({ token }: { token: string }) {
 	}
 
 	const form = data.order.form;
-	const billingAddress = formatAddress(data.order.billingAddress);
-	const shippingAddress = formatAddress(data.order.shippingAddress);
 	const canApprove =
 		acknowledged && printedName.trim().length >= 2 && signature;
 	const canDecline = declineReason.trim().length >= 1;
@@ -148,19 +136,15 @@ export function SpecialOrderApprovalPage({ token }: { token: string }) {
 										: "—"}
 								</dd>
 							</div>
-							<div>
-								<dt className="text-muted-foreground">Billing address</dt>
-								<dd>{billingAddress || "—"}</dd>
-							</div>
-							<div>
-								<dt className="text-muted-foreground">Shipping address</dt>
-								<dd>{shippingAddress || "—"}</dd>
-							</div>
 						</dl>
+						<SalesHtmlAddressBlocks
+							billing={data.order.billing}
+							shipping={data.order.shipping}
+						/>
 					</CardContent>
 				</Card>
 
-				<SpecialOrderOrderReview order={data.order} />
+				<SpecialOrderOrderReview order={data.order} baseUrl={baseUrl} />
 
 				<Card>
 					<CardHeader className="flex-row items-center justify-between gap-3">

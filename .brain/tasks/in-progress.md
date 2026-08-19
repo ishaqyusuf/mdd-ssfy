@@ -236,11 +236,6 @@ Tracks the active work queue. Keep this focused and execution-ready.
 - [ ] Sales Orders V2: build the clean `sales-book` orders workspace on dedicated v2 query/filter contracts, summary widgets, reusable invoice-style table shell, and unified funnel status system (`brain/features/sales-orders-v2.md`)
 - [ ] Pickup packing funnel: `Send for Pickup` now routes packing work into queued pickup deliveries with `sales-packing-list` notification membership, the canonical warehouse page lives at `/sales/packing-list` under the sidebar tree with `Current` / `Completed` / admin-only `Cancelled` tabs, signing/completion happens on `/p/sales-invoice-v2` in `packing-slip` mode, and Expo now exposes a separate mobile warehouse workspace at `/(drivers)/warehouse-packing` from Settings backed by `dispatch.packingList` with packing-aware detail routing into the existing dispatch detail screen; next slice is notification deep-link polish, broader browser/device validation, and finishing the new control-engine migration for packing/dispatch writes while cleaning remaining legacy status helpers that still mention `packing queue` (API + UI + Notifications + Print + Control)
 - [x] Make old sales form updates refresh inventory line items and stock demand synchronously after save, matching the new sales form behavior.
-- [ ] 2026-08-18 Sales Form relational persistence and pricing repair: canonical
-  relational hydration/diff, durable nested IDs, duplicate identity rejection,
-  explicit-only profile repricing, bounded open-quote repair, and `03523PC`
-  `$355.67` parity are implemented; final automated/browser validation and
-  commit remain.
 # Sales Decimal/Rounding Corrections — implementation complete, deployment pending
 
 - Shared decimal-safe calculations, legacy/new parity, grouped authoritative

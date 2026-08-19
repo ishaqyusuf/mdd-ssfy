@@ -161,7 +161,7 @@ type LegacyFormStepSnapshot = {
 	qty: number;
 	price: number;
 	basePrice: number;
-	meta: unknown;
+	meta: Record<string, unknown> | null;
 	step: {
 		id: number;
 		uid: string | null;

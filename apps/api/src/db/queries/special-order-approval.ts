@@ -7,6 +7,11 @@ import {
 } from "@api/db/queries/special-order-email-ledger";
 import type { TRPCContext } from "@api/trpc/init";
 import { EmailService } from "@gnd/notifications/services/email-service";
+import { getSalesSetting } from "@gnd/sales";
+import {
+	buildInvoicePrintAddressesFromSnapshot,
+	buildInvoicePrintSectionsFromSalesFormSnapshot,
+} from "@gnd/sales/print";
 import {
 	createSpecialOrderApprovalCapability,
 	ensureSpecialOrderEmailApprovalAction,
@@ -491,6 +496,19 @@ export async function getPublicSpecialOrderApproval(
 	const storedOrder = readObject(request.orderSnapshot);
 	const storedCustomer = readObject(request.customerSnapshot);
 	const storedSalesperson = readObject(request.salespersonSnapshot);
+	const invoiceSections = buildInvoicePrintSectionsFromSalesFormSnapshot({
+		lineItems: Array.isArray(storedOrder.lineItems)
+			? storedOrder.lineItems
+			: [],
+		salesOrderId: request.salesOrderId,
+		revisionDate: request.createdAt,
+		setting: await getSalesSetting(ctx.db),
+	});
+	const invoiceAddresses = buildInvoicePrintAddressesFromSnapshot({
+		customer: storedCustomer,
+		billingAddress: storedOrder.billingAddress,
+		shippingAddress: storedOrder.shippingAddress,
+	});
 	return {
 		state: "ACTIVE" as const,
 		orderNo: request.order.orderId,
@@ -517,16 +535,14 @@ export async function getPublicSpecialOrderApproval(
 		},
 		order: {
 			customer: storedCustomer,
+			billing: invoiceAddresses.billing,
+			shipping: invoiceAddresses.shipping,
 			billingAddress: readObject(storedOrder.billingAddress),
 			shippingAddress: readObject(storedOrder.shippingAddress),
 			form: Object.keys(readObject(storedOrder.form)).length
 				? readObject(storedOrder.form)
 				: readObject(form.form),
-			lineItems: Array.isArray(storedOrder.lineItems)
-				? storedOrder.lineItems
-				: Array.isArray(form.lineItems)
-					? form.lineItems
-					: [],
+			invoiceSections,
 			extraCosts: Array.isArray(storedOrder.extraCosts)
 				? storedOrder.extraCosts
 				: Array.isArray(form.extraCosts)

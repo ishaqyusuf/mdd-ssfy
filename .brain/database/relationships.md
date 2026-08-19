@@ -287,7 +287,8 @@ Planning only; no schema relationship changed yet.
 - A door-producing `SalesOrderItems` row owns at most one active
   `HousePackageTools` record; that HPT owns active `DykeSalesDoors` rows.
 - Within one HPT, component plus normalized dimension identifies one active door
-  row. Historical soft-deleted siblings remain audit history and are never
-  merged into active quantity.
+  row. `DykeSalesDoors.activeIdentity` physically enforces that relationship for
+  active rows. Historical soft-deleted siblings clear the key, remain audit
+  history, and are never merged into active quantity.
 - `SalesOrders.meta.newSalesForm` has no authority relationship to commercial
   rows; it carries only revision/editor metadata.

@@ -1,5 +1,25 @@
 # Progress
 
+- 2026-08-19: Recovered the Special Order approval item display work from
+  retained commit `51093f9c2` (`codex/special-order-html-renderer`). The public
+  review now composes immutable snapshot line items through the same current
+  sales-preview section pipeline and renders the shared responsive table/mobile
+  item UI, rather than a divergent approval-only card layout. The same snapshot
+  now feeds the sales preview's Billing/Shipping address-line rules and shared
+  address cards. Focused public review, renderer, and HTML-template tests pass
+  (7 tests / 40 assertions), as do `@gnd/sales` and `@gnd/pdf` typechecks. No
+  schema, API input, permission, or persistence contract changed.
+
+- 2026-08-19: fixed Sales Overview `Copy approval link` for Special Orders after
+  reproducing order `09369LM` in the in-app browser. Production-synced active
+  requests can carry a token hash created with another environment's signing
+  secret; link preparation now treats those capabilities as stale, rotates one
+  replacement, and reuses the valid replacement thereafter. Focused validation
+  passes 15 tests / 62 assertions; authenticated in-app browser QA copied the
+  same approval URL twice. Its isolated clipboard is intentionally excluded
+  from the product contract. No schema, migration, input shape, or permission
+  changed.
+
 - 2026-08-17: repaired historical sales printing for quotes `03471PC` and
   `03470PC` after a production-to-local data sync. Print composition now removes
   repeated active form-step revisions and uses the newest exact-reconciling HPT
@@ -9511,18 +9531,29 @@
   unavailable runtime secrets; the broad dashboard typecheck still reports
   unrelated baseline diagnostics and zero scoped production errors.
 
-## 2026-08-18 — Sales Form relational authority implementation in progress
+## 2026-08-19 — Sales Form relational authority and 03523PC repair complete
 
-- Confirmed quote `03523PC` had two active relational door rows while each row's
-  committed final price was `$355.67`; passive client profile hydration reduced
-  the displayed value to `$281.17` and dirtied the form.
+- Confirmed quote `03523PC` had two active relational door rows saved at
+  `$281.17` with missing base authority while a fresh equivalent Tier 2
+  configuration calculated `$355.67`.
 - Replaced JSON/relational commercial merging with relational-only hydration,
   identity-preserving child diffs, duplicate payload rejection, canonical
   post-save reload, and nested-ID autosave rebasing.
 - Added recovered base authority and explicit-only profile repricing, plus a
   pricing-loading gate for door actions.
-- Added the bounded relational audit/repair command, ADR-056, and the permanent
-  `03523PC` bug record. Final validation and the local bounded repair remain.
+- Added nullable unique `DykeSalesDoors.activeIdentity`, converged the retained
+  legacy writer on the same identity, and applied the additive local migration.
+- Repaired local Sales Order `26124`: retained door `63943`, retired duplicate
+  door/form-step siblings, restored quantity `1` and unit/line `$355.67`, and
+  recalculated relational totals. The post-repair bounded audit is empty.
+- Fixed the price-load browser crash by making normalized line patches
+  idempotent and narrowing animation/door-sync effects to stable primitive
+  identities with transient values held in refs.
+- Validation: 98 focused tests pass; `@gnd/sales` and `@gnd/ui` typechecks pass;
+  targeted API, repair, and Dashboard bundles pass; authenticated in-app browser
+  proof shows exactly one target row at `$355.67` after pricing loads. API
+  typecheck retains only two pre-existing `special-order-enrollment.ts` errors;
+  full Dashboard typecheck exhausted its 4 GB heap.
 
 ## 2026-08-18 — Charted responsive dispatch workflow Wayfinder
 
@@ -9554,3 +9585,14 @@
   differs from server order; the rendered workspace recovers correctly.
 - Added ADR-057. No API, database, mobile, dispatch lifecycle, packing,
   inventory, proof, or exception contract changed.
+## 2026-08-19 — Removed Sales Overview Inventory `New` badge
+
+- Removed the obsolete `New` badge from the order-only Inventory tab in the
+  canonical Sales Overview sheet. The tab's availability and inventory
+  workflow are unchanged.
+
+## 2026-08-19 — Reduced Sales Overview General tab horizontal padding
+
+- Removed the General tab's duplicate horizontal `p-6` gutter. The sheet shell
+  already supplies the 24px desktop gutter, while the tab retains its existing
+  24px vertical spacing.

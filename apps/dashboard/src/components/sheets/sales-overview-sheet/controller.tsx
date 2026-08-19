@@ -163,7 +163,6 @@ export function createLegacySalesOverviewTabs({
 					value: "inventory",
 					label: "Inventory",
 					hidden: isQuote,
-					badge: "New",
 					content: (
 						<LegacySalesOverviewInventoryTab
 							onCreateInbound={onCreateInbound}

@@ -395,3 +395,14 @@ for phase ownership and rollout requirements.
   shared HPT formula, recovered base authority, and pricing-ready gates.
 - Quote `03523PC` is the regression oracle: Tier 2, component `1322`, size
   `2-6 x 6-8`, quantity one, final unit/line price `$355.67`.
+- The browser pricing-load crash was a separate state-synchronization defect:
+  the animated item panel treated a newly allocated React child as effect state,
+  and door synchronization wrote idempotent patches repeatedly. Animation now
+  keys only on stable item/step identity, transient children live in refs, and
+  normalized no-op line patches preserve the existing store state.
+- Local repair retained door row `63943`, retired its duplicate siblings,
+  restored its pricing authority, and removed duplicate active form steps.
+  The bounded follow-up audit reports no findings for Sales Order `26124`.
+- Authenticated in-app browser acceptance on `03523PC` confirms one target row,
+  quantity `1`, estimate `$355.67`, line `$355.67`, and no error page after the
+  Tier 2 pricing profile finishes loading.

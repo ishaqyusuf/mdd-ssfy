@@ -32,6 +32,14 @@ export function hashSpecialOrderApprovalCapability(token: string) {
 	return createHash("sha256").update(token).digest("hex");
 }
 
+function specialOrderApprovalCapabilityMatches(request: {
+	id: string;
+	tokenHash: string;
+}) {
+	const token = createSpecialOrderApprovalCapability(request.id);
+	return hashSpecialOrderApprovalCapability(token) === request.tokenHash;
+}
+
 export function readSpecialOrderRecord(value: unknown): Record<string, unknown> {
 	return value && typeof value === "object" && !Array.isArray(value)
 		? (value as Record<string, unknown>)
@@ -163,10 +171,8 @@ export async function resolveCurrentSpecialOrderApprovalLink(
 	});
 	if (!request) return null;
 
+	if (!specialOrderApprovalCapabilityMatches(request)) return null;
 	const token = createSpecialOrderApprovalCapability(request.id);
-	if (hashSpecialOrderApprovalCapability(token) !== request.tokenHash) {
-		throw new Error("Unable to resolve the active approval capability.");
-	}
 	const appUrl = getAppUrl()?.replace(/\/$/, "");
 	if (!appUrl) {
 		throw new Error("Missing app URL for Special Order approval action.");
@@ -299,7 +305,7 @@ export async function ensureSpecialOrderEmailApprovalAction(
 						orderBy: { createdAt: "desc" },
 						})
 						: null;
-					if (active) {
+					if (active && specialOrderApprovalCapabilityMatches(active)) {
 						return {
 							orderId: order.orderId,
 							recipientEmail,

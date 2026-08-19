@@ -5,6 +5,7 @@ import {
 	createSpecialOrderApprovalCapability,
 	hashSpecialOrderApprovalCapability,
 	recordSpecialOrderApprovalDelivery,
+	resolveCurrentSpecialOrderApprovalLink,
 } from "./approval-capability";
 
 function storedTokenHash(requestId: string) {
@@ -15,6 +16,7 @@ function storedTokenHash(requestId: string) {
 
 function createDbFixture(input?: {
 	activeExpiresAt?: Date;
+	activeTokenHash?: string;
 	canonicalCustomerEmail?: string | null;
 }) {
 	const requests: Array<Record<string, unknown>> = [];
@@ -24,7 +26,8 @@ function createDbFixture(input?: {
 			salesOrderId: 42,
 			orderRevision: "revision-1",
 			status: "ACTIVE",
-			tokenHash: storedTokenHash("active-request"),
+			tokenHash:
+				input.activeTokenHash ?? storedTokenHash("active-request"),
 			expiresAt: input.activeExpiresAt,
 			createdAt: new Date("2026-08-13T12:00:00.000Z"),
 		});
@@ -117,6 +120,30 @@ function createDbFixture(input?: {
 }
 
 describe("Special Order approval capability issuance", () => {
+	test("does not reuse an active link signed by another environment", async () => {
+		const db = {
+			salesOrders: {
+				findFirst: async () => ({
+					orderId: "S-42",
+					specialOrderDeclaration: "YES",
+					specialOrderRevision: "revision-1",
+					currentSpecialOrderRequestId: "active-request",
+				}),
+			},
+			specialOrderApprovalRequest: {
+				findFirst: async () => ({
+					id: "active-request",
+					tokenHash: "foreign-environment-token-hash",
+					expiresAt: new Date(Date.now() + 60_000),
+				}),
+			},
+		} as unknown as Db;
+
+		await expect(
+			resolveCurrentSpecialOrderApprovalLink(db, 42),
+		).resolves.toBeNull();
+	});
+
 	test("fails closed when the canonical customer email is invalid", async () => {
 		const fixture = createDbFixture({
 			canonicalCustomerEmail: "missing-at-sign",
@@ -143,6 +170,24 @@ describe("Special Order approval capability issuance", () => {
 		expect(action?.newlyIssued).toBe(false);
 		expect(fixture.requests).toHaveLength(1);
 		expect(fixture.getHistoryCount()).toBe(0);
+	});
+
+	test("rotates an active capability signed by another environment", async () => {
+		const fixture = createDbFixture({
+			activeExpiresAt: new Date(Date.now() + 60_000),
+			activeTokenHash: "foreign-environment-token-hash",
+		});
+		const action = await ensureSpecialOrderEmailApprovalAction(fixture.db, {
+			salesId: 42,
+			issuedByUserId: 9,
+		});
+
+		expect(action?.newlyIssued).toBe(true);
+		expect(action?.requestId).not.toBe("active-request");
+		expect(fixture.requests).toHaveLength(2);
+		expect(fixture.requests[0]?.status).toBe("REVOKED");
+		expect(fixture.requests[1]?.status).toBe("ACTIVE");
+		expect(fixture.getHistoryCount()).toBe(1);
 	});
 
 	test("revokes an expired capability, issues one replacement, then reuses it", async () => {

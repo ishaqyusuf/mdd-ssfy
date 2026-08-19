@@ -10,6 +10,10 @@ import type {
 	RowCell,
 } from "@gnd/sales/print/types";
 import type { CSSProperties } from "react";
+import {
+	MobileSectionItems,
+	RESPONSIVE_SECTION_STYLES,
+} from "./html-section-items";
 import { resolveDocumentImageSrc, resolveImageSrc } from "./utils";
 
 const COLORS = {
@@ -72,17 +76,12 @@ export function SalesHtmlTemplatePage({
 				<SpecialOrderBlock specialOrder={page.specialOrder} />
 			) : null}
 
-			<div style={{ display: "grid", gap: 12 }}>
-				{page.sections.map((section) => (
-					<SectionBlock
-						key={`${section.kind}-${section.index}`}
-						section={section}
-						baseUrl={baseUrl}
-						showImages={page.config.showImages}
-						variant={variant}
-					/>
-				))}
-			</div>
+			<SalesHtmlSections
+				sections={page.sections}
+				baseUrl={baseUrl}
+				showImages={page.config.showImages}
+				variant={variant}
+			/>
 
 			{page.footer ? (
 				<div style={{ marginTop: 16 }}>
@@ -96,6 +95,35 @@ export function SalesHtmlTemplatePage({
 				</div>
 			) : null}
 		</article>
+	);
+}
+
+export function SalesHtmlSections({
+	sections,
+	baseUrl,
+	showImages = true,
+	variant = "template-2",
+}: {
+	sections: PrintSection[];
+	baseUrl?: string;
+	showImages?: boolean;
+	variant?: "template-1" | "template-2";
+}) {
+	return (
+		<>
+			<style>{RESPONSIVE_SECTION_STYLES}</style>
+			<div style={{ display: "grid", gap: 12 }}>
+				{sections.map((section) => (
+					<SectionBlock
+						key={`${section.kind}-${section.index}`}
+						section={section}
+						baseUrl={baseUrl}
+						showImages={showImages}
+						variant={variant}
+					/>
+				))}
+			</div>
+		</>
 	);
 }
 
@@ -133,7 +161,14 @@ function SpecialOrderBlock({
 				color: "#451a03",
 			}}
 		>
-			<div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.8 }}>
+			<div
+				style={{
+					fontSize: 12,
+					fontWeight: 800,
+					textTransform: "uppercase",
+					letterSpacing: 0.8,
+				}}
+			>
 				Special Order · {specialOrder.label}
 			</div>
 			{specialOrder.policyTitle ? (
@@ -150,12 +185,26 @@ function SpecialOrderBlock({
 				</p>
 			) : null}
 			{specialOrder.acknowledgmentText ? (
-				<p style={{ margin: "7px 0 0", fontSize: 12, lineHeight: 1.5, fontWeight: 700 }}>
+				<p
+					style={{
+						margin: "7px 0 0",
+						fontSize: 12,
+						lineHeight: 1.5,
+						fontWeight: 700,
+					}}
+				>
 					{specialOrder.acknowledgmentText}
 				</p>
 			) : null}
 			{specialOrder.signerName ? (
-				<div style={{ display: "flex", alignItems: "flex-end", gap: 18, marginTop: 10 }}>
+				<div
+					style={{
+						display: "flex",
+						alignItems: "flex-end",
+						gap: 18,
+						marginTop: 10,
+					}}
+				>
 					<div style={{ fontSize: 12 }}>
 						Approved by <strong>{specialOrder.signerName}</strong>
 						{specialOrder.approvedAt
@@ -311,26 +360,38 @@ function HeaderBlock({
 				) : null}
 			</div>
 
-			<div
-				style={{
-					display: "grid",
-					gridTemplateColumns: billing || shipping ? "1fr 1fr" : "1fr",
-					gap: 8,
-					marginTop: 16,
-				}}
-			>
-				{billing ? (
-					<AddressCard title="Bill To" lines={billing.lines} />
-				) : (
-					<div />
-				)}
-				{shipping ? (
-					<AddressCard title="Ship To" lines={shipping.lines} />
-				) : (
-					<div />
-				)}
-			</div>
+			<SalesHtmlAddressBlocks billing={billing} shipping={shipping} />
 		</header>
+	);
+}
+
+export function SalesHtmlAddressBlocks({
+	billing,
+	shipping,
+}: {
+	billing: AddressBlock | null;
+	shipping: AddressBlock | null;
+}) {
+	return (
+		<div
+			style={{
+				display: "grid",
+				gridTemplateColumns: billing || shipping ? "1fr 1fr" : "1fr",
+				gap: 8,
+				marginTop: 16,
+			}}
+		>
+			{billing ? (
+				<AddressCard title="Bill To" lines={billing.lines} />
+			) : (
+				<div />
+			)}
+			{shipping ? (
+				<AddressCard title="Ship To" lines={shipping.lines} />
+			) : (
+				<div />
+			)}
+		</div>
 	);
 }
 
@@ -481,7 +542,10 @@ function SectionBlock({
 					))}
 				</div>
 			) : null}
-			<div style={{ overflowX: "auto", padding: "10px 12px 12px" }}>
+			<div
+				className="sales-html-section-table"
+				style={{ overflowX: "auto", padding: "10px 12px 12px" }}
+			>
 				<table
 					style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}
 				>
@@ -537,6 +601,12 @@ function SectionBlock({
 					</tbody>
 				</table>
 			</div>
+			<MobileSectionItems
+				section={section}
+				baseUrl={baseUrl}
+				showImages={showImages}
+				uppercaseText={uppercaseText}
+			/>
 		</section>
 	);
 }

@@ -497,7 +497,7 @@ Tracks notable migrations and migration strategy.
   recalculating HPT/item/order totals, removing JSON commercial authority, and
   recording the migration evidence in `SalesHistory`.
 - Accepted, paid, production, and fulfilled records are report-only.
-- No Prisma schema migration is included in this change because an unrelated
-  dispatch schema migration is active in the shared worktree. The physical
-  active-door unique constraint follows after that migration lands and the audit
-  reports zero conflicts; ADR-056 records the temporary transactional boundary.
+- Added and applied local migration
+  `20260818183000_sales_door_active_identity`, which creates nullable unique
+  `DykeSalesDoors.activeIdentity`. Active writers populate the key and clear it
+  on retirement. The post-repair bounded audit for `03523PC` reports no conflicts.

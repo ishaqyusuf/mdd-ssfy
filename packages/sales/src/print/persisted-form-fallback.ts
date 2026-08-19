@@ -10,15 +10,10 @@ function asRecord(value: unknown): Record<string, unknown> {
 		: {};
 }
 
-function getPersistedLineItems(
-	sale: PrintSalesData,
-): SalesFormLineItem[] | null {
-	const meta = asRecord(sale.meta);
-	const newSalesForm = asRecord(meta.newSalesForm);
-	const lineItems = newSalesForm.lineItems;
-	if (!Array.isArray(lineItems) || lineItems.length === 0) return null;
+function parseSalesFormLineItems(value: unknown): SalesFormLineItem[] | null {
+	if (!Array.isArray(value) || value.length === 0) return null;
 
-	const parsed = lineItems.map((lineItem) =>
+	const parsed = value.map((lineItem) =>
 		salesFormLineItemSchema.safeParse(lineItem),
 	);
 	if (parsed.some((result) => !result.success)) return null;
@@ -27,6 +22,14 @@ function getPersistedLineItems(
 		if (!result.success) throw new Error("Unreachable line-item parse failure");
 		return result.data;
 	});
+}
+
+function getPersistedLineItems(
+	sale: PrintSalesData,
+): SalesFormLineItem[] | null {
+	const meta = asRecord(sale.meta);
+	const newSalesForm = asRecord(meta.newSalesForm);
+	return parseSalesFormLineItems(newSalesForm.lineItems);
 }
 
 function hasMetadataRows(meta: Record<string, unknown>) {
@@ -132,4 +135,23 @@ export function applyPersistedFormPrintFallback(
 			toPrintItem(sale, lineItem, index),
 		),
 	};
+}
+
+export function buildPrintItemsFromSalesFormLineItems(
+	value: unknown,
+	context: {
+		salesOrderId: number;
+		createdAt?: Date | null;
+		updatedAt?: Date | null;
+	},
+): PrintSalesItem[] | null {
+	const lineItems = parseSalesFormLineItems(value);
+	if (!lineItems) return null;
+
+	const sale = {
+		id: context.salesOrderId,
+		createdAt: context.createdAt ?? new Date(0),
+		updatedAt: context.updatedAt ?? new Date(0),
+	} as PrintSalesData;
+	return lineItems.map((lineItem, index) => toPrintItem(sale, lineItem, index));
 }

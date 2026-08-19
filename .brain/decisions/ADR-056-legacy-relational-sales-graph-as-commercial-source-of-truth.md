@@ -41,9 +41,11 @@ collapsed defensively without summing quantity.
 - Historical JSON commercial snapshots become compatibility/audit data only.
 - The legacy editor remains for one release, but must preserve the same
   relational identities and invariants before its UI is removed.
-- A database active-identity unique constraint remains a follow-up after the
-  concurrent dispatch schema migration is clean; serializable server validation
-  is the active enforcement boundary meanwhile.
+- `DykeSalesDoors.activeIdentity` is a nullable unique key. Active writers assign
+  `housePackageToolId + component identity + normalized dimension`; retirement
+  clears it so historical soft-deleted rows remain available.
+- Both the canonical and retained legacy writers preserve/rebind this identity,
+  while serializable validation supplies a human-readable pre-write rejection.
 
 ## Implementation Notes
 
@@ -53,4 +55,5 @@ collapsed defensively without summing quantity.
   `apps/api/src/db/queries/new-sales-form.ts`.
 - `scripts/sales-form-relational-repair.ts` audits all sales and applies bounded,
   explicitly confirmed repairs to open quotes while reporting committed sales.
-
+- Migration `20260818183000_sales_door_active_identity` adds the physical unique
+  key after the local duplicate audit/repair gate.

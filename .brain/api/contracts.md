@@ -1310,9 +1310,11 @@ implementation phase is approved and released.
   approval request or email delivery.
 - `specialOrder.prepareApprovalLink` returns only a request id, order id,
   approval URL, and expiry. It reuses a current ACTIVE, unexpired request that
-  matches the current Approval Revision; otherwise it creates a replacement
-  request for that revision without sending email. An already approved current
-  revision cannot be prepared through this action.
+  matches the current Approval Revision and whose capability proof is
+  reproducible with the active signing secret. An active request imported from
+  another environment or invalidated by secret rotation is treated as stale,
+  revoked, and replaced for that revision without sending email. An already
+  approved current revision cannot be prepared through this action.
 - Approve requires acknowledgment, printed name, and PNG signature. Decline
   requires a reason. Every response snapshots the customer-visible order and
   policy that were reviewed.
@@ -1368,3 +1370,9 @@ implementation phase is approved and released.
 - Successful saves return the fully reloaded relational document, including
   persisted item, form-step, shelf, HPT, door, and extra-cost IDs plus the next
   revision. JSON commercial snapshots never override the response.
+- Existing-document saves and direct line deletion require the current version;
+  deletion delegates to the same canonical relational save service rather than
+  recalculating from deprecated JSON snapshots.
+- Durable IDs are accepted only when they belong to the current Sales Order.
+  Ambiguous or repeated nested IDs fail before writes, and an approved JSON
+  adjustment that was never projected into relations blocks save for review.
