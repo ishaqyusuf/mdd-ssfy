@@ -145,8 +145,12 @@ export function getHptDoorSalesUnitPrice(
 		baseUnitPrice != null && baseUnitPrice > 0
 			? profileAdjusted(baseUnitPrice, context)
 			: null;
+	const hasExplicitProfileAuthority =
+		(toFinite(context?.salesMultiplier) ?? 0) > 0 ||
+		(toFinite(context?.profileCoefficient) ?? 0) > 0;
 	return roundCurrency(
 		firstFinite(
+			hasExplicitProfileAuthority ? derivedFromBase : null,
 			meta?.doorSalesUnitPrice,
 			derivedFromBase,
 			row?.jambSizePrice && Number(row.jambSizePrice) > 0

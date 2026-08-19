@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 "use client";
 
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,13 +10,6 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@gnd/ui/select";
 import {
 	type CostPriceBreakdownContext,
 	CostPriceBreakdownHover,
@@ -134,21 +127,20 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 							Payment Method
 						</span>
 						<div className="max-w-[190px] flex-1">
-							<Select
+							<select
+								aria-label="Payment method"
 								value={props.paymentMethod}
-								onValueChange={props.onPaymentMethodChange}
+								onChange={(event) =>
+									props.onPaymentMethodChange?.(event.target.value)
+								}
+								className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							>
-								<SelectTrigger className="h-9 rounded-md bg-background text-xs font-bold">
-									<SelectValue placeholder="Select Payment Method" />
-								</SelectTrigger>
-								<SelectContent>
-									{props.paymentMethods.map((mode) => (
-										<SelectItem key={mode.value} value={mode.value}>
-											{mode.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+								{props.paymentMethods.map((mode) => (
+									<option key={mode.value} value={mode.value}>
+										{mode.label}
+									</option>
+								))}
+							</select>
 						</div>
 					</div>
 				) : null}
@@ -159,21 +151,20 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 							Tax Group
 						</span>
 						<div className="max-w-[190px] flex-1">
-							<Select
+							<select
+								aria-label="Tax group"
 								value={props.taxCode}
-								onValueChange={props.onTaxCodeChange}
+								onChange={(event) =>
+									props.onTaxCodeChange?.(event.target.value)
+								}
+								className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							>
-								<SelectTrigger className="h-9 rounded-md bg-background text-xs font-bold">
-									<SelectValue placeholder="Select Tax Group" />
-								</SelectTrigger>
-								<SelectContent>
-									{props.taxOptions.map((tax) => (
-										<SelectItem key={tax.value} value={tax.value}>
-											{tax.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+								{props.taxOptions.map((tax) => (
+									<option key={tax.value} value={tax.value}>
+										{tax.label}
+									</option>
+								))}
+							</select>
 						</div>
 					</div>
 				) : null}
@@ -290,17 +281,17 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 							</p>
 						)}
 						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									className="h-9"
-								>
-									<Icons.Plus className="size-3.5" />
-									Add Cost
-									<Icons.ChevronDown className="size-3.5 text-muted-foreground" />
-								</Button>
+							<DropdownMenuTrigger
+								type="button"
+								className={buttonVariants({
+									variant: "outline",
+									size: "sm",
+									className: "h-9",
+								})}
+							>
+								<Icons.Plus className="size-3.5" />
+								Add Cost
+								<Icons.ChevronDown className="size-3.5 text-muted-foreground" />
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="start" className="w-48">
 								{salesFormAdditionalCostOptions.map((option) => (

@@ -13,6 +13,16 @@
   secrets; the repository-wide dashboard typecheck retains unrelated baseline
   diagnostics.
 
+- [x] 2026-08-18 — Implement Dispatch Admin and driver delivery modernization
+  (Sequence 06): added the Sales Finance/Midday-style six-view admin workspace,
+  shared lifecycle and risk projection, backlog creation flow, URL-owned action
+  and detail sheet, durable dispatch exceptions, inventory-safe bulk handling,
+  and one server-owned mobile driver manifest with next-stop, directions, and
+  exception workflows. The operator explicitly deferred remaining automated
+  tests and broad browser/device QA; those remain release gates in the
+  authoritative plan. A later authenticated relation error was fixed by
+  applying the additive migration locally and restarting the stale dashboard.
+
 - [x] 2026-08-17 — Align Special Order classification colors with active state:
   inactive choices remain neutral, active No is red, and active Yes is green in
   both the invoice summary and confirmation dialog. The shared success tokens

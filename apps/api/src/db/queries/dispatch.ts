@@ -1,5 +1,5 @@
-import { whereDispatch } from "@api/prisma-where";
 import { getDispatchInventoryManifest } from "@api/db/queries/dispatch-inventory";
+import { whereDispatch } from "@api/prisma-where";
 import type {
 	BulkAssignDriverSchema,
 	BulkCancelDispatchSchema,
@@ -38,6 +38,9 @@ import {
 	summarizeDriverWorkQueue,
 } from "@gnd/sales/dispatch-manifest/driver-work-queue";
 import { normalizeLegacyDispatchManifestItem } from "@gnd/sales/dispatch-manifest/normalize-legacy-item";
+import { projectDispatchLifecycle } from "@gnd/sales/dispatch-manifest/status";
+import { projectDispatchRisks } from "@gnd/sales/dispatch-manifest/workspace";
+import { releaseDispatchBoundInventory } from "@gnd/sales/sales-fulfillment-plan";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import { noteTag } from "@gnd/utils/note";
 import { composeQueryData } from "@gnd/utils/query-response";
@@ -452,6 +455,13 @@ export async function getDispatches(
 			dueDate: true,
 			deliveryMode: true,
 			driverId: true,
+			_count: {
+				select: {
+					exceptions: {
+						where: { status: "open", deletedAt: null },
+					},
+				},
+			},
 			order: {
 				select: {
 					stat: {
@@ -561,9 +571,23 @@ export async function getDispatches(
 				};
 				const control = (a as any).control || null;
 				const effectiveStatus = control?.dispatchStatus || (rest as any).status;
+				const lifecycle = projectDispatchLifecycle({
+					status: effectiveStatus,
+					driverId: rest.driverId,
+					packedTotal: control?.packed?.total,
+					pendingPackingTotal: control?.pendingPacking?.total,
+				});
 				return withDriverDuePresentation({
 					...rest,
 					status: effectiveStatus,
+					workspace: {
+						...lifecycle,
+						risks: projectDispatchRisks({
+							stage: lifecycle.stage,
+							dueDate: rest.dueDate,
+							hasOpenException: rest._count.exceptions > 0,
+						}),
+					},
 					order: {
 						...rest.order,
 						shippingAddress: normalizeShippingAddress(
@@ -589,9 +613,24 @@ export async function getDispatches(
 		rowsWithStatistic.map((a) => {
 			const effectiveStatus =
 				(a as any)?.statistic?.dispatchStatus || (a as any)?.status;
+			const control = (a as any)?.statistic;
+			const lifecycle = projectDispatchLifecycle({
+				status: effectiveStatus,
+				driverId: (a as any).driverId,
+				packedTotal: control?.packed?.total,
+				pendingPackingTotal: control?.pendingPacking?.total,
+			});
 			return withDriverDuePresentation({
 				...a,
 				status: effectiveStatus,
+				workspace: {
+					...lifecycle,
+					risks: projectDispatchRisks({
+						stage: lifecycle.stage,
+						dueDate: (a as any).dueDate,
+						hasOpenException: (a as any)._count?.exceptions > 0,
+					}),
+				},
 				order: {
 					...(a as any).order,
 					shippingAddress: normalizeShippingAddress(
@@ -1354,6 +1393,7 @@ function mapStatusToNotificationChannel(
 	switch (status) {
 		case "queue":
 		case "packing queue":
+		case "missing items":
 			return "sales_dispatch_queued";
 		case "packed":
 			return "sales_dispatch_queued";
@@ -2585,18 +2625,32 @@ export async function bulkAssignDispatchDriver(
 	input: BulkAssignDriverSchema,
 ) {
 	const { db } = ctx;
-	const now = new Date();
-	await db.orderDelivery.updateMany({
-		where: {
-			id: { in: input.dispatchIds },
-			deletedAt: null,
-		},
-		data: {
-			driverId: input.newDriverId,
-			updatedAt: now,
-		},
-	});
-	return { ok: true, updated: input.dispatchIds.length };
+	const results: Array<{
+		dispatchId: number;
+		ok: boolean;
+		reason?: string;
+	}> = [];
+	for (const dispatchId of [...new Set(input.dispatchIds)]) {
+		const updated = await db.orderDelivery.updateMany({
+			where: {
+				id: dispatchId,
+				deletedAt: null,
+				status: { notIn: ["in progress", "completed", "cancelled"] },
+			},
+			data: { driverId: input.newDriverId },
+		});
+		results.push(
+			updated.count === 1
+				? { dispatchId, ok: true }
+				: { dispatchId, ok: false, reason: "DISPATCH_NOT_ASSIGNABLE" },
+		);
+	}
+	return {
+		ok: results.every((result) => result.ok),
+		updated: results.filter((result) => result.ok).length,
+		failed: results.filter((result) => !result.ok).length,
+		results,
+	};
 }
 
 export async function bulkCancelDispatches(
@@ -2604,20 +2658,56 @@ export async function bulkCancelDispatches(
 	input: BulkCancelDispatchSchema,
 ) {
 	const { db } = ctx;
-	const now = new Date();
-	await db.orderDelivery.updateMany({
-		where: {
-			id: { in: input.dispatchIds },
-			deletedAt: null,
-			status: { notIn: ["completed", "cancelled"] },
-		},
-		data: {
-			status: "cancelled",
-			deliveredAt: null,
-			updatedAt: now,
-		},
-	});
-	return { ok: true, cancelled: input.dispatchIds.length };
+	const results: Array<{
+		dispatchId: number;
+		ok: boolean;
+		reason?: string;
+	}> = [];
+	for (const dispatchId of [...new Set(input.dispatchIds)]) {
+		try {
+			const result = await db.$transaction(async (tx) => {
+				const dispatch = await tx.orderDelivery.findFirst({
+					where: { id: dispatchId, deletedAt: null },
+					select: { id: true, status: true },
+				});
+				if (!dispatch) throw new Error("DISPATCH_NOT_FOUND");
+				if (["completed", "cancelled"].includes(String(dispatch.status))) {
+					throw new Error("DISPATCH_TERMINAL");
+				}
+				await releaseDispatchBoundInventory(tx, {
+					orderDeliveryId: dispatchId,
+					allowPickedRelease: input.allowPickedRelease,
+					note: `Dispatch ${dispatchId} cancelled by user ${ctx.userId}`,
+				});
+				const updated = await tx.orderDelivery.updateMany({
+					where: {
+						id: dispatchId,
+						deletedAt: null,
+						status: dispatch.status,
+					},
+					data: { status: "cancelled", deliveredAt: null },
+				});
+				if (updated.count !== 1) {
+					throw new Error("DISPATCH_CONCURRENT_UPDATE");
+				}
+				return dispatch.id;
+			});
+			results.push({ dispatchId: result, ok: true });
+		} catch (error) {
+			results.push({
+				dispatchId,
+				ok: false,
+				reason:
+					error instanceof Error ? error.message : "DISPATCH_CANCEL_FAILED",
+			});
+		}
+	}
+	return {
+		ok: results.every((result) => result.ok),
+		cancelled: results.filter((result) => result.ok).length,
+		failed: results.filter((result) => !result.ok).length,
+		results,
+	};
 }
 
 export async function exportDispatches(

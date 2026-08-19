@@ -345,6 +345,23 @@ export function SalesFormWorkflowPanel<
 		props.pricing?.profileCoefficient,
 		record?.form?.customerProfileId,
 	]);
+	const activePricingReady = useMemo(() => {
+		const pricingCoefficient = Number(props.pricing?.profileCoefficient || 0);
+		if (Number.isFinite(pricingCoefficient) && pricingCoefficient > 0) {
+			return true;
+		}
+		const selectedProfileId = Number(record?.form?.customerProfileId || 0);
+		if (!selectedProfileId) return true;
+		const profile = (profilesQuery?.data || []).find(
+			(entry) => Number(entry?.id || 0) === selectedProfileId,
+		);
+		const coefficient = Number(profile?.coefficient || 0);
+		return Number.isFinite(coefficient) && coefficient > 0;
+	}, [
+		profilesQuery?.data,
+		props.pricing?.profileCoefficient,
+		record?.form?.customerProfileId,
+	]);
 	const activePricingView = props.pricing?.activeView || "internal";
 	const activeDealerSalesPercentage = Number(
 		props.pricing?.dealerSalesPercentage || 0,
@@ -856,6 +873,7 @@ export function SalesFormWorkflowPanel<
 				hasSwing={hasSwing}
 				sharedDoorSurcharge={sharedDoorSurcharge}
 				profileCoefficient={activeDisplayProfileCoefficient}
+				pricingReady={activePricingReady}
 				priceBreakdown={dealerDoorPriceBreakdown}
 				canSwapDoor={Boolean(swapDoorCandidates.length)}
 				canEditPricing={workflowCapabilities.canEditLinePricing}

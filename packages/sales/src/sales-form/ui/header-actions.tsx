@@ -5,19 +5,12 @@ import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@gnd/ui/select";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@gnd/ui/tooltip";
-import type { MouseEvent, ReactNode } from "react";
+	cloneElement,
+	isValidElement,
+	type MouseEvent,
+	type ReactElement,
+	type ReactNode,
+} from "react";
 import type { SalesFormCapabilities, SalesFormPermissions } from "../contracts";
 import { buildSalesFormHeaderTitle } from "./header-title";
 import { salesFormStatusClass, salesFormStatusLabel } from "./status-utils";
@@ -74,14 +67,10 @@ function HeaderActionTooltip({
 	children: ReactNode;
 	label: string;
 }) {
-	return (
-		<Tooltip>
-			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent side="bottom" className="px-2 py-1 text-xs">
-				{label}
-			</TooltipContent>
-		</Tooltip>
-	);
+	if (!isValidElement(children)) return children;
+	return cloneElement(children as ReactElement<{ title?: string }>, {
+		title: label,
+	});
 }
 
 export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
@@ -119,15 +108,12 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 
 	return (
 		<header className="border-b bg-card px-4 py-3 sm:px-6">
-			<TooltipProvider delayDuration={120}>
-				<div className="flex w-full flex-wrap items-center gap-2">
+			<div className="flex w-full flex-wrap items-center gap-2">
 				<div className="min-w-0 flex-1">
 					<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
 						Sales Invoice Editor
 					</p>
-					<h2 className="truncate text-lg font-semibold capitalize">
-						{title}
-					</h2>
+					<h2 className="truncate text-lg font-semibold capitalize">{title}</h2>
 					<div className="mt-1 hidden flex-wrap items-center gap-2 lg:flex">
 						<span
 							className={`inline-flex items-center rounded-md border px-2 py-1 text-[10px] font-semibold ${salesFormStatusClass(props.saveStatus, props.dirty)}`}
@@ -169,7 +155,9 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 								variant="outline"
 								onClick={() => void props.onPreview?.()}
 								disabled={props.isSaving || props.isPreviewing}
-								aria-label={props.isPreviewing ? "Preparing preview" : "Preview"}
+								aria-label={
+									props.isPreviewing ? "Preparing preview" : "Preview"
+								}
 							>
 								{props.isPreviewing ? (
 									<Icons.Loader2 className="size-4 animate-spin" />
@@ -214,25 +202,21 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 				</div>
 				<div className="order-2 flex w-full min-w-0 items-center gap-2 lg:hidden">
 					<div className="min-w-0 flex-1">
-						<Select
-							value={props.activeItem || undefined}
-							onValueChange={props.onActiveItemChange}
+						<select
+							aria-label="Select item"
+							value={props.activeItem || ""}
+							onChange={(event) =>
+								props.onActiveItemChange?.(event.target.value)
+							}
 							disabled={(props.itemOptions?.length || 0) <= 1}
+							className="h-9 w-full min-w-0 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 						>
-							<SelectTrigger className="h-9 w-full min-w-0">
-								<SelectValue placeholder="Select item" />
-							</SelectTrigger>
-							<SelectContent>
-								{(props.itemOptions || []).map((option) => (
-									<SelectItem
-										key={`header-item-${option.uid}`}
-										value={option.uid}
-									>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+							{(props.itemOptions || []).map((option) => (
+								<option key={`header-item-${option.uid}`} value={option.uid}>
+									{option.label}
+								</option>
+							))}
+						</select>
 					</div>
 					<Button
 						size="icon"
@@ -268,7 +252,11 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						</Button>
 					}
 				>
-					<Menu.Item Icon={Icons.Plus} disabled={props.isSaving} onClick={props.onAddItem}>
+					<Menu.Item
+						Icon={Icons.Plus}
+						disabled={props.isSaving}
+						onClick={props.onAddItem}
+					>
 						Add Item
 					</Menu.Item>
 					{props.onToggleStepDisplay ? (
@@ -380,8 +368,7 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						</Menu.Item>
 					) : null}
 				</Menu>
-				</div>
-			</TooltipProvider>
+			</div>
 		</header>
 	);
 }

@@ -1,5 +1,28 @@
 # API Contracts
 
+## Dispatch Workspace And Durable Exception Contract (2026-08-18)
+
+- Workspace list inputs add URL-compatible lifecycle stages, driver ids, due
+  buckets, delivery modes, schedule range, and risk filters. List rows expose a
+  shared lifecycle projection plus risk codes while retaining legacy status.
+- `dispatch.workspaceSummary` returns backlog, overdue, open-exception, and
+  per-stage counts used by the five actionable admin summaries.
+- `dispatch.backlog` returns eligible delivery/pickup orders with no active
+  non-cancelled dispatch. Creating a dispatch therefore always starts from a
+  real order.
+- `dispatch.driverManifest` ignores caller driver scope, applies the
+  authenticated user id, and returns `{ queue, summary, nextStop }`.
+- `dispatch.reportException` accepts a positive dispatch id, bounded reason,
+  optional bounded notes, and UUID request id. Replays return the same record;
+  terminal dispatches reject new exceptions.
+- `dispatch.resolveException` accepts a positive exception id, a 3-2000
+  character resolution note, and only `tripAction = keep_assigned`. Schedule or
+  cancel changes use their existing guarded commands instead of piggybacking on
+  exception resolution.
+- Bulk assignment and cancellation return per-row success/failure evidence.
+  Cancellation releases dispatch-bound inventory through canonical logic and
+  will not release picked rows without explicit confirmation.
+
 ## Driver Work Queue and Manifest Contract (2026-08-06)
 
 - `dispatch.driverWorkQueue` returns paginated, authenticated driver work with
@@ -1334,3 +1357,14 @@ implementation phase is approved and released.
 - Standalone approval and reapproval sends create and complete
   `SalesEmailAttempt` rows, including failed/skipped outcomes, using the same
   audit ledger as Sales document email.
+
+## Canonical Sales Form persistence (2026-08-18)
+
+- Existing new-form tRPC mutation names remain stable, but every save command is
+  revision-checked and executed as one serializable relational diff.
+- Duplicate active door identities (`component + normalized dimension`) return
+  `BAD_REQUEST` before any order or relational-total write.
+- A stale document version returns `CONFLICT` and requires a canonical reload.
+- Successful saves return the fully reloaded relational document, including
+  persisted item, form-step, shelf, HPT, door, and extra-cost IDs plus the next
+  revision. JSON commercial snapshots never override the response.

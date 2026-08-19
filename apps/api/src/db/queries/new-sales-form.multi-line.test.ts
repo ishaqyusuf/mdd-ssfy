@@ -1,1863 +1,2018 @@
 import { describe, expect, it, mock } from "bun:test";
 import { duplicateSalesFormLineItemRecord } from "@gnd/sales/sales-form";
 import { tasks } from "@trigger.dev/sdk/v3";
-import {
-  getNewSalesForm,
-  saveDraftNewSalesForm,
-} from "./new-sales-form";
+import { getNewSalesForm, saveDraftNewSalesForm } from "./new-sales-form";
 
 (tasks as any).trigger = mock(async () => ({ id: "test-trigger-run" }));
 
 function createMockContext() {
-  const now = new Date("2026-02-24T12:00:00.000Z");
-  const state = {
-    orders: [] as any[],
-    items: [] as any[],
-    stepForms: [] as any[],
-    shelfItems: [] as any[],
-    hpts: [] as any[],
-    doors: [] as any[],
-    extraCosts: [] as any[],
-    salesTaxes: [] as any[],
-    salesDocumentSnapshots: [] as any[],
-    salesPrintData: [] as any[],
-    notePadContacts: [] as any[],
-    activities: [] as any[],
-    users: [
-      {
-        id: 77,
-        name: "Ada Lovelace",
-      },
-    ],
-    settings: [
-      {
-        id: 1,
-        type: "sales-settings",
-        meta: {
-          ccc: 3.5,
-          taxCode: "GST",
-        },
-      },
-    ],
-    customers: [
-      {
-        id: 100,
-        name: "Ada",
-        businessName: "Ada Co",
-        phoneNo: "111",
-        email: "ada@example.com",
-      },
-    ],
-    products: [
-      {
-        id: 501,
-        title: "Classic Moulding",
-        value: "moulding-classic",
-        price: 12.5,
-        deletedAt: null,
-      },
-    ],
-    ids: {
-      order: 1,
-      item: 1,
-      formStep: 1,
-      shelf: 1,
-      hpt: 1,
-      door: 1,
-      extra: 1,
-      contact: 1,
-      note: 1,
-    },
-  };
+	const now = new Date("2026-02-24T12:00:00.000Z");
+	const state = {
+		orders: [] as any[],
+		items: [] as any[],
+		stepForms: [] as any[],
+		shelfItems: [] as any[],
+		hpts: [] as any[],
+		doors: [] as any[],
+		extraCosts: [] as any[],
+		salesTaxes: [] as any[],
+		salesDocumentSnapshots: [] as any[],
+		salesPrintData: [] as any[],
+		notePadContacts: [] as any[],
+		activities: [] as any[],
+		users: [
+			{
+				id: 77,
+				name: "Ada Lovelace",
+			},
+		],
+		settings: [
+			{
+				id: 1,
+				type: "sales-settings",
+				meta: {
+					ccc: 3.5,
+					taxCode: "GST",
+				},
+			},
+		],
+		customers: [
+			{
+				id: 100,
+				name: "Ada",
+				businessName: "Ada Co",
+				phoneNo: "111",
+				email: "ada@example.com",
+			},
+		],
+		products: [
+			{
+				id: 501,
+				title: "Classic Moulding",
+				value: "moulding-classic",
+				price: 12.5,
+				deletedAt: null,
+			},
+		],
+		ids: {
+			order: 1,
+			item: 1,
+			formStep: 1,
+			shelf: 1,
+			hpt: 1,
+			door: 1,
+			extra: 1,
+			contact: 1,
+			note: 1,
+		},
+	};
 
-  function findOrder(where: any) {
-    return state.orders.find((o) => {
-      if (where?.id && o.id !== where.id) return false;
-      if (where?.slug && o.slug !== where.slug) return false;
-      if (where?.type && o.type !== where.type) return false;
-      if (where?.deletedAt === null && o.deletedAt != null) return false;
-      return true;
-    });
-  }
+	function findOrder(where: any) {
+		return state.orders.find((o) => {
+			if (where?.id && o.id !== where.id) return false;
+			if (where?.slug && o.slug !== where.slug) return false;
+			if (where?.type && o.type !== where.type) return false;
+			if (where?.deletedAt === null && o.deletedAt != null) return false;
+			return true;
+		});
+	}
 
-  function getOrderGraph(order: any) {
-    const items = state.items
-      .filter((item) => item.salesOrderId === order.id && item.deletedAt == null)
-      .sort((a, b) => a.id - b.id)
-      .map((item) => {
-        const formSteps = state.stepForms
-          .filter((f) => f.salesItemId === item.id && f.deletedAt == null)
-          .map((f) => ({
-            ...f,
-            step: f.step || {
-              id: f.stepId,
-              title: `Step ${f.stepId}`,
-            },
-          }));
-        const shelfItems = state.shelfItems.filter(
-          (s) => s.salesOrderItemId === item.id && s.deletedAt == null,
-        );
-        const hpt = state.hpts.find(
-          (h) => h.orderItemId === item.id && h.deletedAt == null,
-        );
-        const doors = hpt
-          ? state.doors.filter(
-              (d) => d.housePackageToolId === hpt.id && d.deletedAt == null,
-            )
-          : [];
-        const molding = hpt?.moldingId
-          ? state.products.find(
-              (p) => p.id === hpt.moldingId && p.deletedAt == null,
-            ) || null
-          : null;
+	function getOrderGraph(order: any) {
+		const items = state.items
+			.filter(
+				(item) => item.salesOrderId === order.id && item.deletedAt == null,
+			)
+			.sort((a, b) => a.id - b.id)
+			.map((item) => {
+				const formSteps = state.stepForms
+					.filter((f) => f.salesItemId === item.id && f.deletedAt == null)
+					.map((f) => ({
+						...f,
+						step: f.step || {
+							id: f.stepId,
+							title: `Step ${f.stepId}`,
+						},
+					}));
+				const shelfItems = state.shelfItems.filter(
+					(s) => s.salesOrderItemId === item.id && s.deletedAt == null,
+				);
+				const hpt = state.hpts.find(
+					(h) => h.orderItemId === item.id && h.deletedAt == null,
+				);
+				const doors = hpt
+					? state.doors.filter(
+							(d) => d.housePackageToolId === hpt.id && d.deletedAt == null,
+						)
+					: [];
+				const molding = hpt?.moldingId
+					? state.products.find(
+							(p) => p.id === hpt.moldingId && p.deletedAt == null,
+						) || null
+					: null;
 
-        return {
-          ...item,
-          formSteps,
-          shelfItems,
-          housePackageTool: hpt
-            ? {
-                ...hpt,
-                doors,
-                molding,
-              }
-            : null,
-        };
-      });
+				return {
+					...item,
+					formSteps,
+					shelfItems,
+					housePackageTool: hpt
+						? {
+								...hpt,
+								doors,
+								molding,
+							}
+						: null,
+				};
+			});
 
-    return {
-      ...order,
-      extraCosts: state.extraCosts.filter((c) => c.orderId === order.id),
-      customer: state.customers.find((c) => c.id === order.customerId) || null,
-      items,
-    };
-  }
+		return {
+			...order,
+			extraCosts: state.extraCosts.filter((c) => c.orderId === order.id),
+			customer: state.customers.find((c) => c.id === order.customerId) || null,
+			salesProfile: null,
+			items,
+		};
+	}
 
-  const tx = {
-    customers: {
-      findFirst: async ({ where }: any) => {
-        const customer = state.customers.find(
-          (row) => row.id === where?.id && row.dealerOwnerId == null,
-        );
-        return customer ? { dealerOwnerId: customer.dealerOwnerId ?? null } : null;
-      },
-    },
-    salesOrders: {
-      findFirst: async ({ where }: any) => {
-        const order = findOrder(where);
-        if (!order) return null;
-        const graph = getOrderGraph(order);
-        return {
-          ...graph,
-          payments: order.payments || [],
-          items: graph.items.map((item) => ({
-            ...item,
-            assignments: item.assignments || [],
-            itemDeliveries: item.itemDeliveries || [],
-            lineItem: item.lineItem || null,
-          })),
-        };
-      },
-      create: async ({ data }: any) => {
-        const row = {
-          id: state.ids.order++,
-          createdAt: now,
-          updatedAt: now,
-          deletedAt: null,
-          ...data,
-        };
-        state.orders.push(row);
-        return { id: row.id, slug: row.slug, orderId: row.orderId };
-      },
-      update: async ({ where, data }: any) => {
-        const row = state.orders.find((o) => o.id === where.id);
-        Object.assign(row, data, { updatedAt: now });
-        return row;
-      },
-    },
-    salesOrderItems: {
-      updateMany: async ({ where, data }: any) => {
-        state.items
-          .filter((item) => {
-            if (where?.salesOrderId && item.salesOrderId !== where.salesOrderId)
-              return false;
-            if (where?.deletedAt === null && item.deletedAt != null) return false;
-            return true;
-          })
-          .forEach((item) => Object.assign(item, data));
-      },
-      create: async ({ data, select }: any) => {
-        const row = {
-          id: state.ids.item++,
-          deletedAt: null,
-          ...data,
-        };
-        state.items.push(row);
-        return select?.id ? { id: row.id } : row;
-      },
-      update: async ({ where, data, select }: any) => {
-        const row = state.items.find((item) => item.id === where.id);
-        if (!row) throw new Error(`Missing salesOrderItem ${where.id}`);
-        Object.assign(row, data);
-        return select?.id ? { id: row.id } : row;
-      },
-    },
-    dykeStepForm: {
-      updateMany: async ({ where, data }: any) => {
-        state.stepForms
-          .filter((f) => {
-            if (where?.salesId && f.salesId !== where.salesId) return false;
-            if (where?.deletedAt === null && f.deletedAt != null) return false;
-            return true;
-          })
-          .forEach((f) => Object.assign(f, data));
-      },
-      createMany: async ({ data }: any) => {
-        data.forEach((row) =>
-          state.stepForms.push({
-            id: state.ids.formStep++,
-            deletedAt: null,
-            ...row,
-          }),
-        );
-      },
-    },
-    dykeSalesShelfItem: {
-      updateMany: async ({ where, data }: any) => {
-        state.shelfItems
-          .filter((s) => {
-            if (where?.deletedAt === null && s.deletedAt != null) return false;
-            const order = state.items.find((i) => i.id === s.salesOrderItemId);
-            return order?.salesOrderId === where?.salesOrderItem?.salesOrderId;
-          })
-          .forEach((s) => Object.assign(s, data));
-      },
-      createMany: async ({ data }: any) => {
-        data.forEach((row) =>
-          state.shelfItems.push({
-            id: state.ids.shelf++,
-            deletedAt: null,
-            ...row,
-          }),
-        );
-      },
-    },
-    housePackageTools: {
-      updateMany: async ({ where, data }: any) => {
-        state.hpts
-          .filter((h) => {
-            if (where?.salesOrderId && h.salesOrderId !== where.salesOrderId)
-              return false;
-            if (where?.deletedAt === null && h.deletedAt != null) return false;
-            return true;
-          })
-          .forEach((h) => Object.assign(h, data));
-      },
-      create: async ({ data, select }: any) => {
-        const row = {
-          id: state.ids.hpt++,
-          deletedAt: null,
-          ...data,
-        };
-        state.hpts.push(row);
-        return select?.id ? { id: row.id } : row;
-      },
-      update: async ({ where, data, select }: any) => {
-        const row = state.hpts.find((hpt) => hpt.id === where.id);
-        if (!row) throw new Error(`Missing housePackageTool ${where.id}`);
-        Object.assign(row, data);
-        return select?.id ? { id: row.id } : row;
-      },
-    },
-    dykeSalesDoors: {
-      updateMany: async ({ where, data }: any) => {
-        state.doors
-          .filter((d) => {
-            if (where?.salesOrderId && d.salesOrderId !== where.salesOrderId)
-              return false;
-            if (where?.deletedAt === null && d.deletedAt != null) return false;
-            return true;
-          })
-          .forEach((d) => Object.assign(d, data));
-      },
-      createMany: async ({ data }: any) => {
-        data.forEach((row) =>
-          state.doors.push({
-            id: state.ids.door++,
-            deletedAt: null,
-            ...row,
-          }),
-        );
-      },
-      create: async ({ data }: any) => {
-        const row = {
-          id: state.ids.door++,
-          deletedAt: null,
-          ...data,
-        };
-        state.doors.push(row);
-        return row;
-      },
-      update: async ({ where, data }: any) => {
-        const row = state.doors.find((door) => door.id === where.id);
-        if (!row) throw new Error(`Missing dykeSalesDoor ${where.id}`);
-        Object.assign(row, data);
-        return row;
-      },
-    },
-    salesExtraCosts: {
-      updateMany: async ({ where, data }: any) => {
-        state.extraCosts
-          .filter((c) => c.orderId === where.orderId)
-          .forEach((c) => Object.assign(c, data));
-      },
-      deleteMany: async ({ where }: any) => {
-        state.extraCosts = state.extraCosts.filter((c) => {
-          if (c.orderId !== where.orderId) return true;
-          const keep = where.id?.notIn?.includes(c.id);
-          return keep;
-        });
-      },
-      update: async ({ where, data }: any) => {
-        const row = state.extraCosts.find((c) => c.id === where.id);
-        Object.assign(row, data);
-        return row;
-      },
-      create: async ({ data }: any) => {
-        const row = {
-          id: state.ids.extra++,
-          ...data,
-        };
-        state.extraCosts.push(row);
-        return row;
-      },
-    },
-    salesTaxes: {
-      deleteMany: async ({ where }: any) => {
-        state.salesTaxes = state.salesTaxes.filter(
-          (row) => row.salesId !== where.salesId,
-        );
-      },
-      create: async ({ data }: any) => {
-        const row = {
-          id: `tax-${state.salesTaxes.length + 1}`,
-          ...data,
-        };
-        state.salesTaxes.push(row);
-        return row;
-      },
-    },
-    notePad: {
-      create: async ({ data }: any) => {
-        const row = { id: state.ids.note++, ...data };
-        state.activities.push(row);
-        return row;
-      },
-    },
-  };
+	const tx = {
+		settings: {
+			findFirst: async ({ where, select }: any) => {
+				const setting =
+					state.settings.find((row) => row.type === where?.type) || null;
+				if (!setting || !select) return setting;
+				return Object.fromEntries(
+					Object.keys(select)
+						.filter((key) => select[key])
+						.map((key) => [key, (setting as any)[key]]),
+				);
+			},
+		},
+		users: {
+			findUnique: async ({ where }: any) =>
+				state.users.some((row) => row.id === where?.id) ? { roles: [] } : null,
+			findFirst: async ({ where }: any) =>
+				state.users.some((row) => row.id === where?.id) ? { roles: [] } : null,
+		},
+		customers: {
+			findFirst: async ({ where }: any) => {
+				const customer = state.customers.find(
+					(row) => row.id === where?.id && row.dealerOwnerId == null,
+				);
+				return customer
+					? { dealerOwnerId: customer.dealerOwnerId ?? null }
+					: null;
+			},
+		},
+		salesOrders: {
+			findFirst: async ({ where }: any) => {
+				const order = findOrder(where);
+				if (!order) return null;
+				const graph = getOrderGraph(order);
+				return {
+					...graph,
+					payments: order.payments || [],
+					items: graph.items.map((item) => ({
+						...item,
+						assignments: item.assignments || [],
+						itemDeliveries: item.itemDeliveries || [],
+						lineItem: item.lineItem || null,
+					})),
+				};
+			},
+			create: async ({ data }: any) => {
+				const row = {
+					id: state.ids.order++,
+					createdAt: now,
+					updatedAt: now,
+					deletedAt: null,
+					...data,
+				};
+				state.orders.push(row);
+				return { id: row.id, slug: row.slug, orderId: row.orderId };
+			},
+			update: async ({ where, data }: any) => {
+				const row = state.orders.find((o) => o.id === where.id);
+				Object.assign(row, data, { updatedAt: now });
+				return row;
+			},
+		},
+		salesOrderItems: {
+			updateMany: async ({ where, data }: any) => {
+				state.items
+					.filter((item) => {
+						if (where?.salesOrderId && item.salesOrderId !== where.salesOrderId)
+							return false;
+						if (where?.deletedAt === null && item.deletedAt != null)
+							return false;
+						if (where?.id?.notIn?.includes(item.id)) return false;
+						return true;
+					})
+					.forEach((item) => Object.assign(item, data));
+			},
+			create: async ({ data, select }: any) => {
+				const row = {
+					id: state.ids.item++,
+					deletedAt: null,
+					...data,
+				};
+				state.items.push(row);
+				return select?.id ? { id: row.id } : row;
+			},
+			update: async ({ where, data, select }: any) => {
+				const row = state.items.find((item) => item.id === where.id);
+				if (!row) throw new Error(`Missing salesOrderItem ${where.id}`);
+				Object.assign(row, data);
+				return select?.id ? { id: row.id } : row;
+			},
+		},
+		dykeStepForm: {
+			updateMany: async ({ where, data }: any) => {
+				state.stepForms
+					.filter((f) => {
+						if (where?.salesId && f.salesId !== where.salesId) return false;
+						if (where?.deletedAt === null && f.deletedAt != null) return false;
+						if (where?.id?.notIn?.includes(f.id)) return false;
+						return true;
+					})
+					.forEach((f) => Object.assign(f, data));
+			},
+			createMany: async ({ data }: any) => {
+				data.forEach((row) =>
+					state.stepForms.push({
+						id: state.ids.formStep++,
+						deletedAt: null,
+						...row,
+					}),
+				);
+			},
+			findFirst: async ({ where }: any) =>
+				state.stepForms.find(
+					(row) =>
+						(where.id == null || row.id === where.id) &&
+						row.salesItemId === where.salesItemId &&
+						(where.stepId == null || row.stepId === where.stepId) &&
+						(where.deletedAt !== null || row.deletedAt == null),
+				) || null,
+			create: async ({ data, select }: any) => {
+				const row = { id: state.ids.formStep++, deletedAt: null, ...data };
+				state.stepForms.push(row);
+				return select?.id ? { id: row.id } : row;
+			},
+			update: async ({ where, data, select }: any) => {
+				const row = state.stepForms.find((entry) => entry.id === where.id);
+				Object.assign(row, data);
+				return select?.id ? { id: row.id } : row;
+			},
+		},
+		dykeSalesShelfItem: {
+			findFirst: async ({ where }: any) =>
+				state.shelfItems.find(
+					(row) =>
+						(where.id == null || row.id === where.id) &&
+						row.salesOrderItemId === where.salesOrderItemId &&
+						(where.categoryId == null || row.categoryId === where.categoryId) &&
+						(where.productId === undefined ||
+							row.productId === where.productId) &&
+						(where.deletedAt !== null || row.deletedAt == null),
+				) || null,
+			updateMany: async ({ where, data }: any) => {
+				state.shelfItems
+					.filter((s) => {
+						if (where?.deletedAt === null && s.deletedAt != null) return false;
+						if (where?.id?.notIn?.includes(s.id)) return false;
+						const order = state.items.find((i) => i.id === s.salesOrderItemId);
+						return order?.salesOrderId === where?.salesOrderItem?.salesOrderId;
+					})
+					.forEach((s) => Object.assign(s, data));
+			},
+			createMany: async ({ data }: any) => {
+				data.forEach((row) =>
+					state.shelfItems.push({
+						id: state.ids.shelf++,
+						deletedAt: null,
+						...row,
+					}),
+				);
+			},
+			create: async ({ data, select }: any) => {
+				const row = { id: state.ids.shelf++, deletedAt: null, ...data };
+				state.shelfItems.push(row);
+				return select?.id ? { id: row.id } : row;
+			},
+			update: async ({ where, data, select }: any) => {
+				const row = state.shelfItems.find((entry) => entry.id === where.id);
+				Object.assign(row, data);
+				return select?.id ? { id: row.id } : row;
+			},
+		},
+		housePackageTools: {
+			findUnique: async ({ where, select }: any) => {
+				const row = state.hpts.find(
+					(hpt) => hpt.orderItemId === where.orderItemId,
+				);
+				if (!row) return null;
+				return select?.id ? { id: row.id } : row;
+			},
+			updateMany: async ({ where, data }: any) => {
+				state.hpts
+					.filter((h) => {
+						if (where?.salesOrderId && h.salesOrderId !== where.salesOrderId)
+							return false;
+						if (where?.deletedAt === null && h.deletedAt != null) return false;
+						if (where?.id?.notIn?.includes(h.id)) return false;
+						return true;
+					})
+					.forEach((h) => Object.assign(h, data));
+			},
+			create: async ({ data, select }: any) => {
+				const row = {
+					id: state.ids.hpt++,
+					deletedAt: null,
+					...data,
+				};
+				state.hpts.push(row);
+				return select?.id ? { id: row.id } : row;
+			},
+			update: async ({ where, data, select }: any) => {
+				const row = state.hpts.find((hpt) => hpt.id === where.id);
+				if (!row) throw new Error(`Missing housePackageTool ${where.id}`);
+				Object.assign(row, data);
+				return select?.id ? { id: row.id } : row;
+			},
+		},
+		dykeSalesDoors: {
+			findMany: async ({ where }: any) =>
+				state.doors
+					.filter(
+						(door) =>
+							door.housePackageToolId === where.housePackageToolId &&
+							(where.deletedAt !== null || door.deletedAt == null),
+					)
+					.sort((a, b) => a.id - b.id),
+			updateMany: async ({ where, data }: any) => {
+				state.doors
+					.filter((d) => {
+						if (where?.salesOrderId && d.salesOrderId !== where.salesOrderId)
+							return false;
+						if (where?.deletedAt === null && d.deletedAt != null) return false;
+						if (where?.id?.notIn?.includes(d.id)) return false;
+						return true;
+					})
+					.forEach((d) => Object.assign(d, data));
+			},
+			createMany: async ({ data }: any) => {
+				data.forEach((row) =>
+					state.doors.push({
+						id: state.ids.door++,
+						deletedAt: null,
+						...row,
+					}),
+				);
+			},
+			create: async ({ data }: any) => {
+				const row = {
+					id: state.ids.door++,
+					deletedAt: null,
+					...data,
+				};
+				state.doors.push(row);
+				return row;
+			},
+			update: async ({ where, data }: any) => {
+				const row = state.doors.find((door) => door.id === where.id);
+				if (!row) throw new Error(`Missing dykeSalesDoor ${where.id}`);
+				Object.assign(row, data);
+				return row;
+			},
+		},
+		salesExtraCosts: {
+			updateMany: async ({ where, data }: any) => {
+				state.extraCosts
+					.filter((c) => c.orderId === where.orderId)
+					.forEach((c) => Object.assign(c, data));
+			},
+			deleteMany: async ({ where }: any) => {
+				state.extraCosts = state.extraCosts.filter((c) => {
+					if (c.orderId !== where.orderId) return true;
+					const keep = where.id?.notIn?.includes(c.id);
+					return keep;
+				});
+			},
+			update: async ({ where, data }: any) => {
+				const row = state.extraCosts.find((c) => c.id === where.id);
+				Object.assign(row, data);
+				return row;
+			},
+			create: async ({ data }: any) => {
+				const row = {
+					id: state.ids.extra++,
+					...data,
+				};
+				state.extraCosts.push(row);
+				return row;
+			},
+		},
+		salesTaxes: {
+			deleteMany: async ({ where }: any) => {
+				state.salesTaxes = state.salesTaxes.filter(
+					(row) => row.salesId !== where.salesId,
+				);
+			},
+			create: async ({ data }: any) => {
+				const row = {
+					id: `tax-${state.salesTaxes.length + 1}`,
+					...data,
+				};
+				state.salesTaxes.push(row);
+				return row;
+			},
+		},
+		notePad: {
+			create: async ({ data }: any) => {
+				const row = { id: state.ids.note++, ...data };
+				state.activities.push(row);
+				return row;
+			},
+		},
+	};
 
-  const db = {
-    $transaction: async (cb: any) => cb(tx),
-    salesOrders: {
-      count: async ({ where }: any) => {
-        return state.orders.filter((o) => {
-          return where.OR.some(
-            (clause) =>
-              (clause.orderId && clause.orderId === o.orderId) ||
-              (clause.slug && clause.slug === o.slug),
-          );
-        }).length;
-      },
-      findFirst: async ({ where }: any) => {
-        const order = findOrder(where);
-        if (!order) return null;
-        return getOrderGraph(order);
-      },
-    },
-    customers: {
-      findMany: async () => state.customers,
-    },
-    users: {
-      findUnique: async ({ where }: any) => {
-        const user = state.users.find((row) => row.id === where?.id) || null;
-        return user
-          ? {
-              roles: [],
-            }
-          : null;
-      },
-      findFirst: async ({ where, select }: any) => {
-        const user = state.users.find((row) => row.id === where?.id) || null;
-        if (!user || !select) return user;
-        return Object.fromEntries(
-          Object.keys(select)
-            .filter((key) => select[key])
-            .map((key) => [key, (user as any)[key]]),
-        );
-      },
-    },
-    notePadContacts: {
-      findFirst: async ({ where }: any) =>
-        state.notePadContacts.find(
-          (row) =>
-            row.profileId === where?.profileId &&
-            row.role === where?.role &&
-            row.deletedAt == null,
-        ) || null,
-      create: async ({ data }: any) => {
-        const row = { id: state.ids.contact++, deletedAt: null, ...data };
-        state.notePadContacts.push(row);
-        return row;
-      },
-    },
-    dealerSalesRequest: {
-      findFirst: async () => ({ id: 1 }),
-    },
-    settings: {
-      findFirst: async ({ where, select }: any) => {
-        const setting =
-          state.settings.find((row) => row.type === where?.type) || null;
-        if (!setting || !select) return setting;
-        return Object.fromEntries(
-          Object.keys(select)
-            .filter((key) => select[key])
-            .map((key) => [key, (setting as any)[key]]),
-        );
-      },
-    },
-    salesDocumentSnapshot: {
-      findMany: async ({ where }: any) => {
-        return state.salesDocumentSnapshots.filter((snapshot) => {
-          if (
-            where?.salesOrderId &&
-            snapshot.salesOrderId !== where.salesOrderId
-          )
-            return false;
-          if (where?.isCurrent != null && snapshot.isCurrent !== where.isCurrent)
-            return false;
-          if (where?.deletedAt === null && snapshot.deletedAt != null) return false;
-          return true;
-        });
-      },
-      update: async ({ where, data }: any) => {
-        const row = state.salesDocumentSnapshots.find(
-          (snapshot) => snapshot.id === where.id,
-        );
-        if (!row) return null;
-        Object.assign(row, data);
-        return row;
-      },
-    },
-    salesPrintData: {
-      findMany: async ({ where }: any) => {
-        return state.salesPrintData.filter((printData) => {
-          if (
-            where?.salesOrderId &&
-            printData.salesOrderId !== where.salesOrderId
-          )
-            return false;
-          if (where?.status != null && printData.status !== where.status)
-            return false;
-          if (where?.deletedAt === null && printData.deletedAt != null)
-            return false;
-          return true;
-        });
-      },
-      update: async ({ where, data }: any) => {
-        const row = state.salesPrintData.find(
-          (printData) => printData.id === where.id,
-        );
-        if (!row) return null;
-        Object.assign(row, data);
-        return row;
-      },
-    },
-  };
+	const db = {
+		$transaction: async (cb: any) => cb(tx),
+		salesOrders: {
+			count: async ({ where }: any) => {
+				return state.orders.filter((o) => {
+					return where.OR.some(
+						(clause) =>
+							(clause.orderId && clause.orderId === o.orderId) ||
+							(clause.slug && clause.slug === o.slug),
+					);
+				}).length;
+			},
+			findFirst: async ({ where }: any) => {
+				const order = findOrder(where);
+				if (!order) return null;
+				return getOrderGraph(order);
+			},
+		},
+		customers: {
+			findMany: async () => state.customers,
+			findFirst: async ({ where, select }: any) => {
+				const customer =
+					state.customers.find((row) => row.id === where?.id) || null;
+				if (!customer || !select) return customer;
+				return Object.fromEntries(
+					Object.keys(select)
+						.filter((key) => select[key])
+						.map((key) => [key, (customer as any)[key] ?? null]),
+				);
+			},
+		},
+		users: {
+			findUnique: async ({ where }: any) => {
+				const user = state.users.find((row) => row.id === where?.id) || null;
+				return user
+					? {
+							roles: [],
+						}
+					: null;
+			},
+			findFirst: async ({ where, select }: any) => {
+				const user = state.users.find((row) => row.id === where?.id) || null;
+				if (!user || !select) return user;
+				return Object.fromEntries(
+					Object.keys(select)
+						.filter((key) => select[key])
+						.map((key) => [key, (user as any)[key]]),
+				);
+			},
+		},
+		notePadContacts: {
+			findFirst: async ({ where }: any) =>
+				state.notePadContacts.find(
+					(row) =>
+						row.profileId === where?.profileId &&
+						row.role === where?.role &&
+						row.deletedAt == null,
+				) || null,
+			create: async ({ data }: any) => {
+				const row = { id: state.ids.contact++, deletedAt: null, ...data };
+				state.notePadContacts.push(row);
+				return row;
+			},
+		},
+		dealerSalesRequest: {
+			findFirst: async () => ({ id: 1 }),
+		},
+		settings: {
+			findFirst: async ({ where, select }: any) => {
+				const setting =
+					state.settings.find((row) => row.type === where?.type) || null;
+				if (!setting || !select) return setting;
+				return Object.fromEntries(
+					Object.keys(select)
+						.filter((key) => select[key])
+						.map((key) => [key, (setting as any)[key]]),
+				);
+			},
+		},
+		salesDocumentSnapshot: {
+			findMany: async ({ where }: any) => {
+				return state.salesDocumentSnapshots.filter((snapshot) => {
+					if (
+						where?.salesOrderId &&
+						snapshot.salesOrderId !== where.salesOrderId
+					)
+						return false;
+					if (
+						where?.isCurrent != null &&
+						snapshot.isCurrent !== where.isCurrent
+					)
+						return false;
+					if (where?.deletedAt === null && snapshot.deletedAt != null)
+						return false;
+					return true;
+				});
+			},
+			update: async ({ where, data }: any) => {
+				const row = state.salesDocumentSnapshots.find(
+					(snapshot) => snapshot.id === where.id,
+				);
+				if (!row) return null;
+				Object.assign(row, data);
+				return row;
+			},
+		},
+		salesPrintData: {
+			findMany: async ({ where }: any) => {
+				return state.salesPrintData.filter((printData) => {
+					if (
+						where?.salesOrderId &&
+						printData.salesOrderId !== where.salesOrderId
+					)
+						return false;
+					if (where?.status != null && printData.status !== where.status)
+						return false;
+					if (where?.deletedAt === null && printData.deletedAt != null)
+						return false;
+					return true;
+				});
+			},
+			update: async ({ where, data }: any) => {
+				const row = state.salesPrintData.find(
+					(printData) => printData.id === where.id,
+				);
+				if (!row) return null;
+				Object.assign(row, data);
+				return row;
+			},
+		},
+	};
 
-  return {
-    ctx: { db, userId: 77 } as any,
-    state,
-  };
+	return {
+		ctx: { db, userId: 77 } as any,
+		state,
+	};
 }
 
 describe("new-sales-form multi-line mixed parity", () => {
-  it("persists a copied line independently and retains moved metadata order", async () => {
-    const { ctx, state } = createMockContext();
-    const initial = await saveDraftNewSalesForm(ctx, {
-      type: "quote",
-      slug: null,
-      salesId: null,
-      version: null,
-      autosave: false,
-      meta: {
-        customerId: 100,
-        customerProfileId: null,
-        billingAddressId: null,
-        shippingAddressId: null,
-        paymentTerm: "None",
-        goodUntil: null,
-        po: null,
-        notes: null,
-        deliveryOption: "pickup",
-        taxCode: null,
-      },
-      summary: { subTotal: 75, taxRate: 0, taxTotal: 0, grandTotal: 75 },
-      extraCosts: [],
-      lineItems: [
-        {
-          id: null,
-          uid: "line-source",
-          title: "Shelf Line",
-          description: "",
-          qty: 1,
-          unitPrice: 75,
-          lineTotal: 75,
-          meta: {},
-          formSteps: [{ stepId: 9, value: "Shelf Items", prodUid: "shelf-items" }],
-          shelfItems: [
-            {
-              categoryId: 300,
-              productId: 301,
-              description: "Shelf A",
-              qty: 1,
-              unitPrice: 75,
-              totalPrice: 75,
-            },
-          ],
-          housePackageTool: null,
-        } as any,
-      ],
-    });
-    const loadedSource = await getNewSalesForm(ctx, {
-      type: "quote",
-      slug: initial.slug!,
-    });
-    const sourceLine = loadedSource.lineItems[0]!;
-    const copy = duplicateSalesFormLineItemRecord(sourceLine, 1);
+	it("persists a copied line independently and retains moved metadata order", async () => {
+		const { ctx, state } = createMockContext();
+		const initial = await saveDraftNewSalesForm(ctx, {
+			type: "quote",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: null,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				goodUntil: null,
+				po: null,
+				notes: null,
+				deliveryOption: "pickup",
+				taxCode: null,
+			},
+			summary: { subTotal: 75, taxRate: 0, taxTotal: 0, grandTotal: 75 },
+			extraCosts: [],
+			lineItems: [
+				{
+					id: null,
+					uid: "line-source",
+					title: "Shelf Line",
+					description: "",
+					qty: 1,
+					unitPrice: 75,
+					lineTotal: 75,
+					meta: {},
+					formSteps: [
+						{ stepId: 9, value: "Shelf Items", prodUid: "shelf-items" },
+					],
+					shelfItems: [
+						{
+							categoryId: 300,
+							productId: 301,
+							description: "Shelf A",
+							qty: 1,
+							unitPrice: 75,
+							totalPrice: 75,
+						},
+					],
+					housePackageTool: null,
+				} as any,
+			],
+		});
+		const loadedSource = await getNewSalesForm(ctx, {
+			type: "quote",
+			slug: initial.slug!,
+		});
+		const sourceLine = loadedSource.lineItems[0]!;
+		const copy = duplicateSalesFormLineItemRecord(sourceLine, 1);
 
-    const copied = await saveDraftNewSalesForm(ctx, {
-      type: "quote",
-      slug: loadedSource.slug,
-      salesId: loadedSource.salesId,
-      version: loadedSource.version,
-      autosave: false,
-      meta: loadedSource.form,
-      summary: loadedSource.summary,
-      extraCosts: loadedSource.extraCosts,
-      lineItems: [sourceLine, copy] as any,
-    });
-    const loadedCopy = await getNewSalesForm(ctx, {
-      type: "quote",
-      slug: copied.slug!,
-    });
+		const copied = await saveDraftNewSalesForm(ctx, {
+			type: "quote",
+			slug: loadedSource.slug,
+			salesId: loadedSource.salesId,
+			version: loadedSource.version,
+			autosave: false,
+			meta: loadedSource.form,
+			summary: loadedSource.summary,
+			extraCosts: loadedSource.extraCosts,
+			lineItems: [sourceLine, copy] as any,
+		});
+		const loadedCopy = await getNewSalesForm(ctx, {
+			type: "quote",
+			slug: copied.slug!,
+		});
 
-    expect(loadedCopy.lineItems.map((line) => line.uid)).toEqual([
-      "line-source",
-      copy.uid,
-    ]);
-    expect(loadedCopy.lineItems[0]?.id).not.toBe(loadedCopy.lineItems[1]?.id);
-    expect(loadedCopy.lineItems[0]?.shelfItems?.[0]?.id).not.toBe(
-      loadedCopy.lineItems[1]?.shelfItems?.[0]?.id,
-    );
-    expect(state.items.filter((item) => item.deletedAt == null)).toHaveLength(2);
-    expect(state.shelfItems.filter((item) => item.deletedAt == null)).toHaveLength(2);
+		expect(loadedCopy.lineItems.map((line) => line.uid)).toEqual([
+			"line-source",
+			copy.uid,
+		]);
+		expect(loadedCopy.lineItems[0]?.id).not.toBe(loadedCopy.lineItems[1]?.id);
+		expect(loadedCopy.lineItems[0]?.shelfItems?.[0]?.id).not.toBe(
+			loadedCopy.lineItems[1]?.shelfItems?.[0]?.id,
+		);
+		expect(state.items.filter((item) => item.deletedAt == null)).toHaveLength(
+			2,
+		);
+		expect(
+			state.shelfItems.filter((item) => item.deletedAt == null),
+		).toHaveLength(2);
 
-    await saveDraftNewSalesForm(ctx, {
-      type: "quote",
-      slug: loadedCopy.slug,
-      salesId: loadedCopy.salesId,
-      version: loadedCopy.version,
-      autosave: false,
-      meta: loadedCopy.form,
-      summary: loadedCopy.summary,
-      extraCosts: loadedCopy.extraCosts,
-      lineItems: [...loadedCopy.lineItems].reverse(),
-    });
-    const loadedMoved = await getNewSalesForm(ctx, {
-      type: "quote",
-      slug: loadedCopy.slug,
-    });
+		await saveDraftNewSalesForm(ctx, {
+			type: "quote",
+			slug: loadedCopy.slug,
+			salesId: loadedCopy.salesId,
+			version: loadedCopy.version,
+			autosave: false,
+			meta: loadedCopy.form,
+			summary: loadedCopy.summary,
+			extraCosts: loadedCopy.extraCosts,
+			lineItems: [...loadedCopy.lineItems].reverse(),
+		});
+		const loadedMoved = await getNewSalesForm(ctx, {
+			type: "quote",
+			slug: loadedCopy.slug,
+		});
 
-    expect(loadedMoved.lineItems.map((line) => line.uid)).toEqual([
-      copy.uid,
-      "line-source",
-    ]);
-  });
+		expect(loadedMoved.lineItems.map((line) => line.uid)).toEqual([
+			copy.uid,
+			"line-source",
+		]);
+	});
 
-  it("preserves relation boundaries across door, shelf-only, and service lines", async () => {
-    const { ctx } = createMockContext();
+	it("preserves relation boundaries across door, shelf-only, and service lines", async () => {
+		const { ctx } = createMockContext();
 
-    const saved = await saveDraftNewSalesForm(ctx, {
-      type: "order",
-      slug: null,
-      salesId: null,
-      version: null,
-      autosave: false,
-      meta: {
-        customerId: 100,
-        customerProfileId: null,
-        billingAddressId: null,
-        shippingAddressId: null,
-        paymentTerm: "None",
-        goodUntil: null,
-        po: null,
-        notes: null,
-        deliveryOption: "pickup",
-        taxCode: null,
-      },
-      summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
-      extraCosts: [{ id: null, label: "Labor", type: "Labor", amount: 0 }],
-      lineItems: [
-        {
-          id: null,
-          uid: "line-door",
-          title: "Door Line",
-          description: "",
-          qty: 1,
-          unitPrice: 1000,
-          lineTotal: 1000,
-          meta: {},
-          formSteps: [{ stepId: 7, value: "Oak", prodUid: "door-oak" }],
-          shelfItems: [],
-          housePackageTool: {
-            doorType: "Moulding",
-            dykeDoorId: 200,
-            moldingId: 501,
-            stepProductId: 70,
-            totalPrice: 1000,
-            totalDoors: 2,
-            doors: [
-              {
-                dimension: '2-6 x 6-8"',
-                swing: "LH",
-                lhQty: 1,
-                rhQty: 1,
-                totalQty: 2,
-                lineTotal: 1000,
-              },
-            ],
-          },
-        } as any,
-        {
-          id: null,
-          uid: "line-shelf",
-          title: "Shelf Line",
-          description: "",
-          qty: 1,
-          unitPrice: 120,
-          lineTotal: 120,
-          meta: {},
-          formSteps: [{ stepId: 9, value: "Shelf Items", prodUid: "shelf-items" }],
-          shelfItems: [
-            {
-              categoryId: 300,
-              productId: 301,
-              description: "Shelf A",
-              qty: 2,
-              unitPrice: 60,
-              totalPrice: 120,
-            },
-          ],
-          housePackageTool: null,
-        } as any,
-        {
-          id: null,
-          uid: "line-service",
-          title: "Service Line",
-          description: "Install | Delivery",
-          qty: 2,
-          unitPrice: 65,
-          lineTotal: 130,
-          meta: {
-            taxxable: true,
-            serviceRows: [
-              { uid: "svc-1", service: "Install", taxxable: true, qty: 1, unitPrice: 80 },
-              { uid: "svc-2", service: "Delivery", taxxable: false, qty: 1, unitPrice: 50 },
-            ],
-          },
-          formSteps: [{ stepId: 11, value: "Services", prodUid: "service" }],
-          shelfItems: [],
-          housePackageTool: null,
-        } as any,
-        {
-          id: null,
-          uid: "line-moulding",
-          title: "Moulding Line",
-          description: "Casing",
-          qty: 2,
-          unitPrice: 75,
-          lineTotal: 150,
-          meta: {
-            mouldingRows: [
-              {
-                uid: "m-1",
-                title: "Casing",
-                description: "Casing",
-                qty: 2,
-                addon: 0,
-                customPrice: null,
-                salesPrice: 70,
-                basePrice: 40,
-              },
-            ],
-          },
-          formSteps: [
-            { stepId: 13, value: "Moulding", prodUid: "item-type-moulding" },
-            { stepId: 14, value: "Casing", prodUid: "moulding-casing" },
-          ],
-          shelfItems: [],
-          housePackageTool: null,
-        } as any,
-      ],
-    });
+		const saved = await saveDraftNewSalesForm(ctx, {
+			type: "order",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: null,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				goodUntil: null,
+				po: null,
+				notes: null,
+				deliveryOption: "pickup",
+				taxCode: null,
+			},
+			summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [{ id: null, label: "Labor", type: "Labor", amount: 0 }],
+			lineItems: [
+				{
+					id: null,
+					uid: "line-door",
+					title: "Door Line",
+					description: "",
+					qty: 1,
+					unitPrice: 1000,
+					lineTotal: 1000,
+					meta: {},
+					formSteps: [{ stepId: 7, value: "Oak", prodUid: "door-oak" }],
+					shelfItems: [],
+					housePackageTool: {
+						doorType: "Moulding",
+						dykeDoorId: 200,
+						moldingId: 501,
+						stepProductId: 70,
+						totalPrice: 1000,
+						totalDoors: 2,
+						doors: [
+							{
+								dimension: '2-6 x 6-8"',
+								swing: "LH",
+								lhQty: 1,
+								rhQty: 1,
+								totalQty: 2,
+								lineTotal: 1000,
+							},
+						],
+					},
+				} as any,
+				{
+					id: null,
+					uid: "line-shelf",
+					title: "Shelf Line",
+					description: "",
+					qty: 1,
+					unitPrice: 120,
+					lineTotal: 120,
+					meta: {},
+					formSteps: [
+						{ stepId: 9, value: "Shelf Items", prodUid: "shelf-items" },
+					],
+					shelfItems: [
+						{
+							categoryId: 300,
+							productId: 301,
+							description: "Shelf A",
+							qty: 2,
+							unitPrice: 60,
+							totalPrice: 120,
+						},
+					],
+					housePackageTool: null,
+				} as any,
+				{
+					id: null,
+					uid: "line-service",
+					title: "Service Line",
+					description: "Install | Delivery",
+					qty: 2,
+					unitPrice: 65,
+					lineTotal: 130,
+					meta: {
+						taxxable: true,
+						serviceRows: [
+							{
+								uid: "svc-1",
+								service: "Install",
+								taxxable: true,
+								qty: 1,
+								unitPrice: 80,
+							},
+							{
+								uid: "svc-2",
+								service: "Delivery",
+								taxxable: false,
+								qty: 1,
+								unitPrice: 50,
+							},
+						],
+					},
+					formSteps: [{ stepId: 11, value: "Services", prodUid: "service" }],
+					shelfItems: [],
+					housePackageTool: null,
+				} as any,
+				{
+					id: null,
+					uid: "line-moulding",
+					title: "Moulding Line",
+					description: "Casing",
+					qty: 2,
+					unitPrice: 75,
+					lineTotal: 150,
+					meta: {
+						mouldingRows: [
+							{
+								uid: "m-1",
+								title: "Casing",
+								description: "Casing",
+								qty: 2,
+								addon: 0,
+								customPrice: null,
+								salesPrice: 70,
+								basePrice: 40,
+							},
+						],
+					},
+					formSteps: [
+						{ stepId: 13, value: "Moulding", prodUid: "item-type-moulding" },
+						{ stepId: 14, value: "Casing", prodUid: "moulding-casing" },
+					],
+					shelfItems: [],
+					housePackageTool: null,
+				} as any,
+			],
+		});
 
-    const loaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: saved.slug!,
-    });
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: saved.slug!,
+		});
 
-    const doorLine = loaded.lineItems.find((l) => l.uid === "line-door");
-    const shelfLine = loaded.lineItems.find((l) => l.uid === "line-shelf");
-    const serviceLine = loaded.lineItems.find((l) => l.uid === "line-service");
-    const mouldingLine = loaded.lineItems.find((l) => l.uid === "line-moulding");
+		const doorLine = loaded.lineItems.find((l) => l.uid === "line-door");
+		const shelfLine = loaded.lineItems.find((l) => l.uid === "line-shelf");
+		const serviceLine = loaded.lineItems.find((l) => l.uid === "line-service");
+		const mouldingLine = loaded.lineItems.find(
+			(l) => l.uid === "line-moulding",
+		);
+		expect(loaded.lineItems).toHaveLength(4);
 
-    expect(loaded.lineItems).toHaveLength(4);
+		expect(doorLine?.housePackageTool).toBeTruthy();
+		expect(doorLine?.housePackageTool?.doors).toHaveLength(1);
+		expect(doorLine?.shelfItems || []).toHaveLength(0);
+		expect(doorLine?.formSteps || []).toHaveLength(1);
 
-    expect(doorLine?.housePackageTool).toBeTruthy();
-    expect(doorLine?.housePackageTool?.doors).toHaveLength(1);
-    expect(doorLine?.shelfItems || []).toHaveLength(0);
-    expect(doorLine?.formSteps || []).toHaveLength(1);
+		expect(shelfLine?.housePackageTool).toBeNull();
+		expect(shelfLine?.shelfItems || []).toHaveLength(1);
+		expect(shelfLine?.formSteps || []).toHaveLength(1);
+		expect(shelfLine?.qty).toBe(1);
+		expect(shelfLine?.unitPrice).toBe(120);
+		expect(shelfLine?.lineTotal).toBe(120);
+		expect(shelfLine?.shelfItems?.[0]?.qty).toBe(2);
+		expect(shelfLine?.shelfItems?.[0]?.unitPrice).toBe(60);
+		expect(shelfLine?.shelfItems?.[0]?.totalPrice).toBe(120);
 
-    expect(shelfLine?.housePackageTool).toBeNull();
-    expect(shelfLine?.shelfItems || []).toHaveLength(1);
-    expect(shelfLine?.formSteps || []).toHaveLength(1);
-    expect(shelfLine?.qty).toBe(1);
-    expect(shelfLine?.unitPrice).toBe(120);
-    expect(shelfLine?.lineTotal).toBe(120);
-    expect(shelfLine?.shelfItems?.[0]?.qty).toBe(2);
-    expect(shelfLine?.shelfItems?.[0]?.unitPrice).toBe(60);
-    expect(shelfLine?.shelfItems?.[0]?.totalPrice).toBe(120);
+		expect(serviceLine?.housePackageTool).toBeNull();
+		expect(serviceLine?.shelfItems || []).toHaveLength(0);
+		expect(serviceLine?.formSteps || []).toHaveLength(1);
+		expect(serviceLine?.qty).toBe(2);
+		expect(serviceLine?.unitPrice).toBe(65);
+		expect(serviceLine?.lineTotal).toBe(130);
+		expect((serviceLine?.meta as any)?.taxxable).toBe(true);
+		expect(((serviceLine?.meta as any)?.serviceRows || []).length).toBe(2);
 
-    expect(serviceLine?.housePackageTool).toBeNull();
-    expect(serviceLine?.shelfItems || []).toHaveLength(0);
-    expect(serviceLine?.formSteps || []).toHaveLength(1);
-    expect(serviceLine?.qty).toBe(2);
-    expect(serviceLine?.unitPrice).toBe(65);
-    expect(serviceLine?.lineTotal).toBe(130);
-    expect((serviceLine?.meta as any)?.taxxable).toBe(true);
-    expect(((serviceLine?.meta as any)?.serviceRows || []).length).toBe(2);
+		expect(mouldingLine?.housePackageTool).toBeTruthy();
+		expect(mouldingLine?.housePackageTool?.doors || []).toHaveLength(0);
+		expect(mouldingLine?.shelfItems || []).toHaveLength(0);
+		expect(mouldingLine?.formSteps || []).toHaveLength(2);
+		expect(mouldingLine?.qty).toBe(2);
+		expect(mouldingLine?.unitPrice).toBe(70);
+		expect(mouldingLine?.lineTotal).toBe(140);
+		expect(((mouldingLine?.meta as any)?.mouldingRows || []).length).toBe(1);
+		expect((mouldingLine?.meta as any)?.mouldingRows?.[0]?.salesPrice).toBe(70);
+	});
 
-    expect(mouldingLine?.housePackageTool).toBeTruthy();
-    expect(mouldingLine?.housePackageTool?.doors || []).toHaveLength(0);
-    expect(mouldingLine?.shelfItems || []).toHaveLength(0);
-    expect(mouldingLine?.formSteps || []).toHaveLength(2);
-    expect(mouldingLine?.qty).toBe(2);
-    expect(mouldingLine?.unitPrice).toBe(75);
-    expect(mouldingLine?.lineTotal).toBe(150);
-    expect(((mouldingLine?.meta as any)?.mouldingRows || []).length).toBe(1);
-    expect((mouldingLine?.meta as any)?.mouldingRows?.[0]?.salesPrice).toBe(70);
-  });
+	it("keeps the relational door graph authoritative over stale metadata reductions", async () => {
+		const { ctx, state } = createMockContext();
+		state.orders.push({
+			id: 5,
+			slug: "order-09140db",
+			orderId: "09140DB",
+			type: "order",
+			status: "Pending",
+			deletedAt: null,
+			customerId: 100,
+			customerProfileId: null,
+			billingAddressId: null,
+			shippingAddressId: null,
+			paymentTerm: "None",
+			goodUntil: null,
+			prodDueDate: null,
+			deliveryOption: "pickup",
+			taxPercentage: 0,
+			subTotal: 535,
+			tax: 0,
+			grandTotal: 535,
+			updatedAt: new Date("2026-08-07T09:57:03.000Z"),
+			meta: {
+				newSalesForm: {
+					version: "applied-adjustment-v1",
+					approvedAdjustmentId: "adjustment-09140db",
+					updatedAt: "2026-08-07T09:57:03.000Z",
+					form: {
+						paymentTerm: "None",
+						deliveryOption: "pickup",
+					},
+					extraCosts: [],
+					summary: { taxRate: 0 },
+					lineItems: [
+						{
+							id: 50,
+							uid: "line-interior-door",
+							title: "Interior Pre-Hung Door",
+							description: "",
+							qty: 3,
+							unitPrice: 178.33,
+							lineTotal: 535,
+							meta: {},
+							formSteps: [],
+							shelfItems: [],
+							housePackageTool: {
+								id: 500,
+								doorType: "Interior Pre-Hung Door",
+								totalDoors: 3,
+								totalPrice: 535,
+								meta: {},
+								doors: [
+									{
+										id: 502,
+										dimension: "2-0 x 6-8",
+										stepProductId: 200,
+										lhQty: 0,
+										rhQty: 1,
+										totalQty: 1,
+										unitPrice: 175,
+										lineTotal: 175,
+										meta: {},
+									},
+									{
+										id: 503,
+										dimension: "2-6 x 6-8",
+										stepProductId: 260,
+										lhQty: 0,
+										rhQty: 2,
+										totalQty: 2,
+										unitPrice: 180,
+										lineTotal: 360,
+										meta: {},
+									},
+								],
+							},
+						},
+					],
+				},
+			},
+		});
+		state.items.push({
+			id: 50,
+			salesOrderId: 5,
+			dykeDescription: "Interior Pre-Hung Door",
+			description: "",
+			qty: 5,
+			rate: 178,
+			total: 890,
+			deletedAt: null,
+			meta: { uid: "line-interior-door", meta: {} },
+		});
+		state.hpts.push({
+			id: 500,
+			salesOrderId: 5,
+			orderItemId: 50,
+			deletedAt: null,
+			doorType: "Interior Pre-Hung Door",
+			totalDoors: 5,
+			totalPrice: 890,
+			meta: {},
+		});
+		state.doors.push(
+			{
+				id: 501,
+				salesOrderId: 5,
+				housePackageToolId: 500,
+				deletedAt: null,
+				dimension: "1-6 x 6-8",
+				stepProductId: 160,
+				lhQty: 0,
+				rhQty: 1,
+				totalQty: 1,
+				unitPrice: 175,
+				lineTotal: 175,
+				meta: {},
+			},
+			{
+				id: 502,
+				salesOrderId: 5,
+				housePackageToolId: 500,
+				deletedAt: null,
+				dimension: "2-0 x 6-8",
+				stepProductId: 200,
+				lhQty: 0,
+				rhQty: 1,
+				totalQty: 1,
+				unitPrice: 175,
+				lineTotal: 175,
+				meta: {},
+			},
+			{
+				id: 503,
+				salesOrderId: 5,
+				housePackageToolId: 500,
+				deletedAt: null,
+				dimension: "2-6 x 6-8",
+				stepProductId: 260,
+				lhQty: 1,
+				rhQty: 2,
+				totalQty: 3,
+				unitPrice: 180,
+				lineTotal: 540,
+				meta: {},
+			},
+		);
 
-  it("keeps applied persisted door reductions authoritative over stale legacy door rows", async () => {
-    const { ctx, state } = createMockContext();
-    state.orders.push({
-      id: 5,
-      slug: "order-09140db",
-      orderId: "09140DB",
-      type: "order",
-      status: "Pending",
-      deletedAt: null,
-      customerId: 100,
-      customerProfileId: null,
-      billingAddressId: null,
-      shippingAddressId: null,
-      paymentTerm: "None",
-      goodUntil: null,
-      prodDueDate: null,
-      deliveryOption: "pickup",
-      taxPercentage: 0,
-      subTotal: 535,
-      tax: 0,
-      grandTotal: 535,
-      updatedAt: new Date("2026-08-07T09:57:03.000Z"),
-      meta: {
-        newSalesForm: {
-          version: "applied-adjustment-v1",
-          approvedAdjustmentId: "adjustment-09140db",
-          updatedAt: "2026-08-07T09:57:03.000Z",
-          form: {
-            paymentTerm: "None",
-            deliveryOption: "pickup",
-          },
-          extraCosts: [],
-          summary: { taxRate: 0 },
-          lineItems: [
-            {
-              id: 50,
-              uid: "line-interior-door",
-              title: "Interior Pre-Hung Door",
-              description: "",
-              qty: 3,
-              unitPrice: 178.33,
-              lineTotal: 535,
-              meta: {},
-              formSteps: [],
-              shelfItems: [],
-              housePackageTool: {
-                id: 500,
-                doorType: "Interior Pre-Hung Door",
-                totalDoors: 3,
-                totalPrice: 535,
-                meta: {},
-                doors: [
-                  {
-                    id: 502,
-                    dimension: "2-0 x 6-8",
-                    stepProductId: 200,
-                    lhQty: 0,
-                    rhQty: 1,
-                    totalQty: 1,
-                    unitPrice: 175,
-                    lineTotal: 175,
-                    meta: {},
-                  },
-                  {
-                    id: 503,
-                    dimension: "2-6 x 6-8",
-                    stepProductId: 260,
-                    lhQty: 0,
-                    rhQty: 2,
-                    totalQty: 2,
-                    unitPrice: 180,
-                    lineTotal: 360,
-                    meta: {},
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-    });
-    state.items.push({
-      id: 50,
-      salesOrderId: 5,
-      dykeDescription: "Interior Pre-Hung Door",
-      description: "",
-      qty: 5,
-      rate: 178,
-      total: 890,
-      deletedAt: null,
-      meta: { uid: "line-interior-door", meta: {} },
-    });
-    state.hpts.push({
-      id: 500,
-      salesOrderId: 5,
-      orderItemId: 50,
-      deletedAt: null,
-      doorType: "Interior Pre-Hung Door",
-      totalDoors: 5,
-      totalPrice: 890,
-      meta: {},
-    });
-    state.doors.push(
-      {
-        id: 501,
-        salesOrderId: 5,
-        housePackageToolId: 500,
-        deletedAt: null,
-        dimension: "1-6 x 6-8",
-        stepProductId: 160,
-        lhQty: 0,
-        rhQty: 1,
-        totalQty: 1,
-        unitPrice: 175,
-        lineTotal: 175,
-        meta: {},
-      },
-      {
-        id: 502,
-        salesOrderId: 5,
-        housePackageToolId: 500,
-        deletedAt: null,
-        dimension: "2-0 x 6-8",
-        stepProductId: 200,
-        lhQty: 0,
-        rhQty: 1,
-        totalQty: 1,
-        unitPrice: 175,
-        lineTotal: 175,
-        meta: {},
-      },
-      {
-        id: 503,
-        salesOrderId: 5,
-        housePackageToolId: 500,
-        deletedAt: null,
-        dimension: "2-6 x 6-8",
-        stepProductId: 260,
-        lhQty: 1,
-        rhQty: 2,
-        totalQty: 3,
-        unitPrice: 180,
-        lineTotal: 540,
-        meta: {},
-      },
-    );
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-09140db",
+		});
 
-    const loaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-09140db",
-    });
+		const doorLine = loaded.lineItems.find(
+			(line) => line.uid === "line-interior-door",
+		);
 
-    const doorLine = loaded.lineItems.find(
-      (line) => line.uid === "line-interior-door",
-    );
+		expect(doorLine?.housePackageTool?.doors).toHaveLength(3);
+		expect(
+			doorLine?.housePackageTool?.doors?.some(
+				(door) => door.dimension === "1-6 x 6-8",
+			),
+		).toBe(true);
+		expect(
+			doorLine?.housePackageTool?.doors?.find(
+				(door) => door.dimension === "2-6 x 6-8",
+			),
+		).toMatchObject({ lhQty: 1, rhQty: 2, totalQty: 3 });
+		expect(doorLine).toMatchObject({ qty: 5, lineTotal: 890 });
+		expect(doorLine?.housePackageTool).toMatchObject({
+			totalDoors: 5,
+			totalPrice: 890,
+		});
+		expect(loaded.summary.subTotal).toBe(890);
+		await expect(
+			saveDraftNewSalesForm(ctx, {
+				type: "order",
+				salesId: loaded.salesId,
+				slug: loaded.slug,
+				version: loaded.version,
+				autosave: false,
+				commitIntent: "draft",
+				specialOrderDeclaration: loaded.specialOrder.declaration,
+				meta: loaded.form,
+				lineItems: loaded.lineItems,
+				extraCosts: loaded.extraCosts,
+				summary: loaded.summary,
+			}),
+		).rejects.toThrow("SALES_RELATIONAL_REVIEW_REQUIRED");
 
-    expect(doorLine?.housePackageTool?.doors).toHaveLength(2);
-    expect(
-      doorLine?.housePackageTool?.doors?.some(
-        (door) => door.dimension === "1-6 x 6-8",
-      ),
-    ).toBe(false);
-    expect(
-      doorLine?.housePackageTool?.doors?.find(
-        (door) => door.dimension === "2-6 x 6-8",
-      ),
-    ).toMatchObject({ lhQty: 0, rhQty: 2, totalQty: 2 });
-    expect(doorLine).toMatchObject({ qty: 3, lineTotal: 535 });
-    expect(doorLine?.housePackageTool).toMatchObject({
-      totalDoors: 3,
-      totalPrice: 535,
-    });
+		const persistedDoorItem = state.items.find(
+			(item) => item.meta?.uid === "line-interior-door",
+		);
+		const persistedHpt = state.hpts.find(
+			(hpt) => hpt.orderItemId === persistedDoorItem?.id,
+		);
+		Object.assign(persistedDoorItem, { qty: 0, rate: 0, total: 0 });
+		Object.assign(persistedHpt, { totalDoors: 0, totalPrice: 0 });
+		state.doors
+			.filter((door) => door.housePackageToolId === persistedHpt?.id)
+			.forEach((door) => Object.assign(door, { deletedAt: new Date() }));
 
-    const persistedDoorLine = state.orders[0]?.meta.newSalesForm.lineItems[0];
-    persistedDoorLine.qty = 0;
-    persistedDoorLine.unitPrice = 0;
-    persistedDoorLine.lineTotal = 0;
-    persistedDoorLine.housePackageTool.totalDoors = 0;
-    persistedDoorLine.housePackageTool.totalPrice = 0;
-    persistedDoorLine.housePackageTool.doors = [];
+		const loadedAfterRemovingAllDoors = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-09140db",
+		});
+		const emptyDoorLine = loadedAfterRemovingAllDoors.lineItems.find(
+			(line) => line.uid === "line-interior-door",
+		);
 
-    const loadedAfterRemovingAllDoors = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-09140db",
-    });
-    const emptyDoorLine = loadedAfterRemovingAllDoors.lineItems.find(
-      (line) => line.uid === "line-interior-door",
-    );
+		expect(emptyDoorLine?.housePackageTool?.doors).toHaveLength(0);
+		expect(emptyDoorLine).toMatchObject({ qty: 0, lineTotal: 0 });
+		expect(emptyDoorLine?.housePackageTool).toMatchObject({
+			totalDoors: 0,
+			totalPrice: 0,
+		});
+	});
 
-    expect(emptyDoorLine?.housePackageTool?.doors).toHaveLength(0);
-    expect(emptyDoorLine).toMatchObject({ qty: 0, lineTotal: 0 });
-    expect(emptyDoorLine?.housePackageTool).toMatchObject({
-      totalDoors: 0,
-      totalPrice: 0,
-    });
+	it("hydrates historical HPT door titles and images from legacy step products", async () => {
+		const { ctx, state } = createMockContext();
+		const legacyDoorComponent = {
+			id: 978,
+			uid: "QSOAe",
+			name: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
+			img: "carrara.png",
+			redirectUid: null,
+			meta: {},
+			deletedAt: new Date("2026-08-06T10:00:00.000Z"),
+			door: {
+				id: 2,
+				title: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
+				img: "carrara-door.png",
+				deletedAt: new Date("2026-08-06T10:00:00.000Z"),
+			},
+		};
+		state.orders.push({
+			id: 6,
+			slug: "order-09166lrg",
+			orderId: "09166LRG",
+			type: "order",
+			status: "Pending",
+			deletedAt: null,
+			customerId: 100,
+			customerProfileId: null,
+			billingAddressId: null,
+			shippingAddressId: null,
+			paymentTerm: "None",
+			goodUntil: null,
+			prodDueDate: null,
+			deliveryOption: "pickup",
+			taxPercentage: 0,
+			subTotal: 1315.8,
+			tax: 0,
+			grandTotal: 1315.8,
+			updatedAt: new Date("2026-08-05T15:40:00.000Z"),
+			meta: {
+				newSalesForm: {
+					version: "legacy-edit-v1",
+					updatedAt: "2026-08-05T15:40:00.000Z",
+					autosave: false,
+					form: {
+						paymentTerm: "None",
+						deliveryOption: "pickup",
+					},
+					extraCosts: [],
+					summary: { taxRate: 0 },
+					lineItems: [
+						{
+							id: 60,
+							uid: "sales-item-60",
+							title: "pre-hung first floor",
+							description: "",
+							qty: 12,
+							unitPrice: 109.65,
+							lineTotal: 1315.8,
+							meta: {},
+							formSteps: [
+								{
+									id: 601,
+									stepId: 51,
+									componentId: null,
+									prodUid: null,
+									value: null,
+									qty: 0,
+									price: 0,
+									basePrice: 0,
+									meta: { selectedComponents: [] },
+									step: { id: 51, uid: "door", title: "Door" },
+								},
+							],
+							shelfItems: [],
+							housePackageTool: null,
+						},
+					],
+				},
+			},
+		});
+		state.items.push({
+			id: 60,
+			salesOrderId: 6,
+			dykeDescription: "pre-hung first floor",
+			description: "",
+			qty: 12,
+			rate: 109.65,
+			total: 1315.8,
+			deletedAt: null,
+			meta: { uid: "sales-item-60", meta: {} },
+		});
+		state.stepForms.push({
+			id: 601,
+			salesId: 6,
+			salesItemId: 60,
+			deletedAt: null,
+			stepId: 51,
+			componentId: null,
+			prodUid: null,
+			value: null,
+			qty: 0,
+			price: 0,
+			basePrice: 0,
+			meta: { flatRate: false },
+			step: { id: 51, uid: "door", title: "Door" },
+		});
+		state.hpts.push({
+			id: 600,
+			salesOrderId: 6,
+			orderItemId: 60,
+			deletedAt: null,
+			doorType: "Interior Pre-Hung Door",
+			stepProductId: 978,
+			totalDoors: 12,
+			totalPrice: 1315.8,
+			meta: {},
+			stepProduct: legacyDoorComponent,
+		});
+		state.doors.push({
+			id: 602,
+			salesOrderId: 6,
+			housePackageToolId: 600,
+			deletedAt: null,
+			dimension: "2-8 x 6-8",
+			stepProductId: 978,
+			lhQty: 4,
+			rhQty: 8,
+			totalQty: 12,
+			unitPrice: 109.65,
+			lineTotal: 1315.8,
+			meta: {},
+			stepProduct: legacyDoorComponent,
+		});
 
-    delete state.orders[0]?.meta.newSalesForm.approvedAdjustmentId;
-    const loadedOrdinarySnapshot = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-09140db",
-    });
-    const ordinaryDoorLine = loadedOrdinarySnapshot.lineItems.find(
-      (line) => line.uid === "line-interior-door",
-    );
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-09166lrg",
+		});
+		const doorStep = loaded.lineItems[0]?.formSteps?.find(
+			(step) => step.step?.title === "Door",
+		);
 
-    expect(ordinaryDoorLine?.housePackageTool?.doors).toHaveLength(3);
-    expect(
-      ordinaryDoorLine?.housePackageTool?.doors?.find(
-        (door) => door.dimension === "2-6 x 6-8",
-      ),
-    ).toMatchObject({ lhQty: 1, rhQty: 2, totalQty: 3 });
-  });
+		expect((doorStep?.meta as any)?.selectedComponents).toEqual([
+			expect.objectContaining({
+				id: 978,
+				uid: "QSOAe",
+				title: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
+				img: "carrara.png",
+			}),
+		]);
+	});
 
-  it("hydrates historical HPT door titles and images from legacy step products", async () => {
-    const { ctx, state } = createMockContext();
-    const legacyDoorComponent = {
-      id: 978,
-      uid: "QSOAe",
-      name: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
-      img: "carrara.png",
-      redirectUid: null,
-      meta: {},
-      deletedAt: new Date("2026-08-06T10:00:00.000Z"),
-      door: {
-        id: 2,
-        title: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
-        img: "carrara-door.png",
-        deletedAt: new Date("2026-08-06T10:00:00.000Z"),
-      },
-    };
-    state.orders.push({
-      id: 6,
-      slug: "order-09166lrg",
-      orderId: "09166LRG",
-      type: "order",
-      status: "Pending",
-      deletedAt: null,
-      customerId: 100,
-      customerProfileId: null,
-      billingAddressId: null,
-      shippingAddressId: null,
-      paymentTerm: "None",
-      goodUntil: null,
-      prodDueDate: null,
-      deliveryOption: "pickup",
-      taxPercentage: 0,
-      subTotal: 1315.8,
-      tax: 0,
-      grandTotal: 1315.8,
-      updatedAt: new Date("2026-08-05T15:40:00.000Z"),
-      meta: {
-        newSalesForm: {
-          version: "legacy-edit-v1",
-          updatedAt: "2026-08-05T15:40:00.000Z",
-          autosave: false,
-          form: {
-            paymentTerm: "None",
-            deliveryOption: "pickup",
-          },
-          extraCosts: [],
-          summary: { taxRate: 0 },
-          lineItems: [
-            {
-              id: 60,
-              uid: "sales-item-60",
-              title: "pre-hung first floor",
-              description: "",
-              qty: 12,
-              unitPrice: 109.65,
-              lineTotal: 1315.8,
-              meta: {},
-              formSteps: [
-                {
-                  id: 601,
-                  stepId: 51,
-                  componentId: null,
-                  prodUid: null,
-                  value: null,
-                  qty: 0,
-                  price: 0,
-                  basePrice: 0,
-                  meta: { selectedComponents: [] },
-                  step: { id: 51, uid: "door", title: "Door" },
-                },
-              ],
-              shelfItems: [],
-              housePackageTool: null,
-            },
-          ],
-        },
-      },
-    });
-    state.items.push({
-      id: 60,
-      salesOrderId: 6,
-      dykeDescription: "pre-hung first floor",
-      description: "",
-      qty: 12,
-      rate: 109.65,
-      total: 1315.8,
-      deletedAt: null,
-      meta: { uid: "sales-item-60", meta: {} },
-    });
-    state.stepForms.push({
-      id: 601,
-      salesId: 6,
-      salesItemId: 60,
-      deletedAt: null,
-      stepId: 51,
-      componentId: null,
-      prodUid: null,
-      value: null,
-      qty: 0,
-      price: 0,
-      basePrice: 0,
-      meta: { flatRate: false },
-      step: { id: 51, uid: "door", title: "Door" },
-    });
-    state.hpts.push({
-      id: 600,
-      salesOrderId: 6,
-      orderItemId: 60,
-      deletedAt: null,
-      doorType: "Interior Pre-Hung Door",
-      stepProductId: 978,
-      totalDoors: 12,
-      totalPrice: 1315.8,
-      meta: {},
-      stepProduct: legacyDoorComponent,
-    });
-    state.doors.push({
-      id: 602,
-      salesOrderId: 6,
-      housePackageToolId: 600,
-      deletedAt: null,
-      dimension: "2-8 x 6-8",
-      stepProductId: 978,
-      lhQty: 4,
-      rhQty: 8,
-      totalQty: 12,
-      unitPrice: 109.65,
-      lineTotal: 1315.8,
-      meta: {},
-      stepProduct: legacyDoorComponent,
-    });
+	it("merges db line meta back into stale persisted drafts for moulding edits", async () => {
+		const { ctx, state } = createMockContext();
+		state.orders.push({
+			id: 1,
+			slug: "order-07890pc",
+			orderId: "07890PC",
+			type: "order",
+			status: "Draft",
+			deletedAt: null,
+			customerId: 100,
+			customerProfileId: null,
+			billingAddressId: null,
+			shippingAddressId: null,
+			paymentTerm: "None",
+			goodUntil: null,
+			prodDueDate: null,
+			deliveryOption: "pickup",
+			taxPercentage: 0,
+			subTotal: 150,
+			tax: 0,
+			grandTotal: 150,
+			updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+			meta: {
+				newSalesForm: {
+					version: "stale-v1",
+					updatedAt: "2026-02-24T12:00:00.000Z",
+					form: {
+						paymentTerm: "None",
+						deliveryOption: "pickup",
+					},
+					extraCosts: [],
+					summary: {
+						taxRate: 0,
+					},
+					lineItems: [
+						{
+							id: 10,
+							uid: "line-moulding-stale",
+							title: "Casing",
+							description: "Casing",
+							qty: 2,
+							unitPrice: 75,
+							lineTotal: 150,
+							meta: {},
+							formSteps: [
+								{
+									stepId: 13,
+									value: "Moulding",
+									prodUid: "item-type-moulding",
+								},
+								{ stepId: 14, value: "Casing", prodUid: "moulding-casing" },
+							],
+							shelfItems: [],
+							housePackageTool: null,
+						},
+					],
+				},
+			},
+		});
+		state.items.push({
+			id: 10,
+			salesOrderId: 1,
+			dykeDescription: "Moulding",
+			description: "Casing",
+			qty: 2,
+			rate: 75,
+			total: 150,
+			deletedAt: null,
+			meta: {
+				uid: "line-moulding-stale",
+				meta: {
+					mouldingRows: [
+						{
+							uid: "m-1",
+							title: "Casing",
+							description: "Casing",
+							qty: 2,
+							addon: 0,
+							customPrice: null,
+							salesPrice: 70,
+							basePrice: 40,
+						},
+					],
+				},
+			},
+		});
+		state.stepForms.push(
+			{
+				id: 1,
+				salesId: 1,
+				salesItemId: 10,
+				deletedAt: null,
+				stepId: 13,
+				componentId: null,
+				prodUid: "item-type-moulding",
+				value: "Moulding",
+				qty: 0,
+				price: 0,
+				basePrice: 0,
+				meta: {},
+			},
+			{
+				id: 2,
+				salesId: 1,
+				salesItemId: 10,
+				deletedAt: null,
+				stepId: 14,
+				componentId: null,
+				prodUid: "moulding-casing",
+				value: "Casing",
+				qty: 0,
+				price: 70,
+				basePrice: 40,
+				meta: {},
+			},
+		);
 
-    const loaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-09166lrg",
-    });
-    const doorStep = loaded.lineItems[0]?.formSteps?.find(
-      (step) => step.step?.title === "Door",
-    );
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-07890pc",
+		});
 
-    expect((doorStep?.meta as any)?.selectedComponents).toEqual([
-      expect.objectContaining({
-        id: 978,
-        uid: "QSOAe",
-        title: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
-        img: "carrara.png",
-      }),
-    ]);
-  });
+		const mouldingLine = loaded.lineItems.find(
+			(line) => line.uid === "line-moulding-stale",
+		);
 
-  it("merges db line meta back into stale persisted drafts for moulding edits", async () => {
-    const { ctx, state } = createMockContext();
-    state.orders.push({
-      id: 1,
-      slug: "order-07890pc",
-      orderId: "07890PC",
-      type: "order",
-      status: "Draft",
-      deletedAt: null,
-      customerId: 100,
-      customerProfileId: null,
-      billingAddressId: null,
-      shippingAddressId: null,
-      paymentTerm: "None",
-      goodUntil: null,
-      prodDueDate: null,
-      deliveryOption: "pickup",
-      taxPercentage: 0,
-      subTotal: 150,
-      tax: 0,
-      grandTotal: 150,
-      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
-      meta: {
-        newSalesForm: {
-          version: "stale-v1",
-          updatedAt: "2026-02-24T12:00:00.000Z",
-          form: {
-            paymentTerm: "None",
-            deliveryOption: "pickup",
-          },
-          extraCosts: [],
-          summary: {
-            taxRate: 0,
-          },
-          lineItems: [
-            {
-              id: 10,
-              uid: "line-moulding-stale",
-              title: "Casing",
-              description: "Casing",
-              qty: 2,
-              unitPrice: 75,
-              lineTotal: 150,
-              meta: {},
-              formSteps: [
-                { stepId: 13, value: "Moulding", prodUid: "item-type-moulding" },
-                { stepId: 14, value: "Casing", prodUid: "moulding-casing" },
-              ],
-              shelfItems: [],
-              housePackageTool: null,
-            },
-          ],
-        },
-      },
-    });
-    state.items.push({
-      id: 10,
-      salesOrderId: 1,
-      dykeDescription: "Moulding",
-      description: "Casing",
-      qty: 2,
-      rate: 75,
-      total: 150,
-      deletedAt: null,
-      meta: {
-        uid: "line-moulding-stale",
-        meta: {
-          mouldingRows: [
-            {
-              uid: "m-1",
-              title: "Casing",
-              description: "Casing",
-              qty: 2,
-              addon: 0,
-              customPrice: null,
-              salesPrice: 70,
-              basePrice: 40,
-            },
-          ],
-        },
-      },
-    });
-    state.stepForms.push(
-      {
-        id: 1,
-        salesId: 1,
-        salesItemId: 10,
-        deletedAt: null,
-        stepId: 13,
-        componentId: null,
-        prodUid: "item-type-moulding",
-        value: "Moulding",
-        qty: 0,
-        price: 0,
-        basePrice: 0,
-        meta: {},
-      },
-      {
-        id: 2,
-        salesId: 1,
-        salesItemId: 10,
-        deletedAt: null,
-        stepId: 14,
-        componentId: null,
-        prodUid: "moulding-casing",
-        value: "Casing",
-        qty: 0,
-        price: 70,
-        basePrice: 40,
-        meta: {},
-      },
-    );
+		expect(mouldingLine?.title).toBe("Moulding");
+		expect(((mouldingLine?.meta as any)?.mouldingRows || []).length).toBe(1);
+		expect((mouldingLine?.meta as any)?.mouldingRows?.[0]?.title).toBe(
+			"Casing",
+		);
+		expect(mouldingLine?.formSteps?.[0]?.step?.title).toBe("Step 13");
+		expect(mouldingLine?.formSteps?.[1]?.step?.title).toBe("Step 14");
+	});
 
-    const loaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-07890pc",
-    });
+	it("restores service parent titles from legacy dykeDescription on edit reopen", async () => {
+		const { ctx, state } = createMockContext();
+		state.orders.push({
+			id: 2,
+			slug: "order-service-07890pc",
+			orderId: "07890PC-S",
+			type: "order",
+			status: "Draft",
+			deletedAt: null,
+			customerId: 100,
+			customerProfileId: null,
+			billingAddressId: null,
+			shippingAddressId: null,
+			paymentTerm: "None",
+			goodUntil: null,
+			prodDueDate: null,
+			deliveryOption: "pickup",
+			taxPercentage: 0,
+			subTotal: 80,
+			tax: 0,
+			grandTotal: 80,
+			updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+			meta: {
+				newSalesForm: {
+					version: "stale-v1",
+					updatedAt: "2026-02-24T12:00:00.000Z",
+					form: {
+						paymentTerm: "None",
+						deliveryOption: "pickup",
+					},
+					extraCosts: [],
+					summary: {
+						taxRate: 0,
+					},
+					lineItems: [
+						{
+							id: 20,
+							uid: "line-service-stale",
+							title: "Install",
+							description: "Install",
+							qty: 1,
+							unitPrice: 80,
+							lineTotal: 80,
+							meta: {},
+							formSteps: [
+								{
+									stepId: 11,
+									value: "Services",
+									prodUid: "item-type-services",
+								},
+							],
+							shelfItems: [],
+							housePackageTool: null,
+						},
+					],
+				},
+			},
+		});
+		state.items.push({
+			id: 20,
+			salesOrderId: 2,
+			dykeDescription: "Services",
+			description: "Install",
+			qty: 1,
+			rate: 80,
+			total: 80,
+			deletedAt: null,
+			meta: {
+				uid: "line-service-stale",
+				meta: {
+					serviceRows: [
+						{
+							uid: "svc-1",
+							service: "Install",
+							qty: 1,
+							unitPrice: 80,
+							taxxable: true,
+						},
+					],
+				},
+			},
+		});
+		state.stepForms.push({
+			id: 3,
+			salesId: 2,
+			salesItemId: 20,
+			deletedAt: null,
+			stepId: 11,
+			componentId: null,
+			prodUid: "item-type-services",
+			value: "Services",
+			qty: 0,
+			price: 0,
+			basePrice: 0,
+			meta: {},
+		});
 
-    const mouldingLine = loaded.lineItems.find(
-      (line) => line.uid === "line-moulding-stale",
-    );
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-service-07890pc",
+		});
 
-    expect(mouldingLine?.title).toBe("Moulding");
-    expect(((mouldingLine?.meta as any)?.mouldingRows || []).length).toBe(1);
-    expect((mouldingLine?.meta as any)?.mouldingRows?.[0]?.title).toBe("Casing");
-    expect(mouldingLine?.formSteps?.[0]?.step?.title).toBe("Step 13");
-    expect(mouldingLine?.formSteps?.[1]?.step?.title).toBe("Step 14");
-  });
+		const serviceLine = loaded.lineItems.find(
+			(line) => line.uid === "line-service-stale",
+		);
 
-  it("restores service parent titles from legacy dykeDescription on edit reopen", async () => {
-    const { ctx, state } = createMockContext();
-    state.orders.push({
-      id: 2,
-      slug: "order-service-07890pc",
-      orderId: "07890PC-S",
-      type: "order",
-      status: "Draft",
-      deletedAt: null,
-      customerId: 100,
-      customerProfileId: null,
-      billingAddressId: null,
-      shippingAddressId: null,
-      paymentTerm: "None",
-      goodUntil: null,
-      prodDueDate: null,
-      deliveryOption: "pickup",
-      taxPercentage: 0,
-      subTotal: 80,
-      tax: 0,
-      grandTotal: 80,
-      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
-      meta: {
-        newSalesForm: {
-          version: "stale-v1",
-          updatedAt: "2026-02-24T12:00:00.000Z",
-          form: {
-            paymentTerm: "None",
-            deliveryOption: "pickup",
-          },
-          extraCosts: [],
-          summary: {
-            taxRate: 0,
-          },
-          lineItems: [
-            {
-              id: 20,
-              uid: "line-service-stale",
-              title: "Install",
-              description: "Install",
-              qty: 1,
-              unitPrice: 80,
-              lineTotal: 80,
-              meta: {},
-              formSteps: [
-                { stepId: 11, value: "Services", prodUid: "item-type-services" },
-              ],
-              shelfItems: [],
-              housePackageTool: null,
-            },
-          ],
-        },
-      },
-    });
-    state.items.push({
-      id: 20,
-      salesOrderId: 2,
-      dykeDescription: "Services",
-      description: "Install",
-      qty: 1,
-      rate: 80,
-      total: 80,
-      deletedAt: null,
-      meta: {
-        uid: "line-service-stale",
-        meta: {
-          serviceRows: [
-            {
-              uid: "svc-1",
-              service: "Install",
-              qty: 1,
-              unitPrice: 80,
-              taxxable: true,
-            },
-          ],
-        },
-      },
-    });
-    state.stepForms.push({
-      id: 3,
-      salesId: 2,
-      salesItemId: 20,
-      deletedAt: null,
-      stepId: 11,
-      componentId: null,
-      prodUid: "item-type-services",
-      value: "Services",
-      qty: 0,
-      price: 0,
-      basePrice: 0,
-      meta: {},
-    });
+		expect(serviceLine?.title).toBe("Services");
+		expect(((serviceLine?.meta as any)?.serviceRows || []).length).toBe(1);
+		expect((serviceLine?.meta as any)?.serviceRows?.[0]?.service).toBe(
+			"Install",
+		);
+		expect(serviceLine?.formSteps?.[0]?.step?.title).toBe("Step 11");
+	});
 
-    const loaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-service-07890pc",
-    });
+	it("collapses legacy grouped moulding siblings by multiDykeUid on edit reopen", async () => {
+		const { ctx, state } = createMockContext();
+		state.orders.push({
+			id: 3,
+			slug: "order-legacy-moulding-group",
+			orderId: "07838DB-M",
+			type: "order",
+			status: "Draft",
+			deletedAt: null,
+			customerId: 100,
+			customerProfileId: null,
+			billingAddressId: null,
+			shippingAddressId: null,
+			paymentTerm: "None",
+			goodUntil: null,
+			prodDueDate: null,
+			deliveryOption: "pickup",
+			taxPercentage: 0,
+			subTotal: 175,
+			tax: 0,
+			grandTotal: 175,
+			updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+			meta: {},
+		});
+		state.items.push(
+			{
+				id: 30,
+				salesOrderId: 3,
+				multiDykeUid: "legacy-moulding-group-1",
+				multiDyke: true,
+				dykeProduction: false,
+				dykeDescription: "Moulding",
+				description: "Casing",
+				qty: 2,
+				rate: 70,
+				total: 140,
+				deletedAt: null,
+				meta: {
+					uid: "legacy-moulding-item-1",
+					tax: false,
+					meta: {},
+				},
+			},
+			{
+				id: 31,
+				salesOrderId: 3,
+				multiDykeUid: "legacy-moulding-group-1",
+				multiDyke: false,
+				dykeProduction: false,
+				dykeDescription: "Moulding",
+				description: "Stop",
+				qty: 1,
+				rate: 35,
+				total: 35,
+				deletedAt: null,
+				meta: {
+					uid: "legacy-moulding-item-2",
+					tax: false,
+					meta: {},
+				},
+			},
+		);
+		state.hpts.push(
+			{
+				id: 1,
+				salesOrderId: 3,
+				orderItemId: 30,
+				deletedAt: null,
+				height: null,
+				doorType: "Moulding",
+				doorId: null,
+				dykeDoorId: null,
+				jambSizeId: null,
+				casingId: null,
+				moldingId: 501,
+				stepProductId: null,
+				totalPrice: 140,
+				totalDoors: 0,
+				meta: {},
+			},
+			{
+				id: 2,
+				salesOrderId: 3,
+				orderItemId: 31,
+				deletedAt: null,
+				height: null,
+				doorType: "Moulding",
+				doorId: null,
+				dykeDoorId: null,
+				jambSizeId: null,
+				casingId: null,
+				moldingId: 501,
+				stepProductId: null,
+				totalPrice: 35,
+				totalDoors: 0,
+				meta: {},
+			},
+		);
 
-    const serviceLine = loaded.lineItems.find(
-      (line) => line.uid === "line-service-stale",
-    );
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-legacy-moulding-group",
+		});
 
-    expect(serviceLine?.title).toBe("Services");
-    expect(((serviceLine?.meta as any)?.serviceRows || []).length).toBe(1);
-    expect((serviceLine?.meta as any)?.serviceRows?.[0]?.service).toBe("Install");
-    expect(serviceLine?.formSteps?.[0]?.step?.title).toBe("Step 11");
-  });
+		expect(loaded.lineItems).toHaveLength(1);
+		expect(loaded.lineItems[0]?.title).toBe("Moulding");
+		expect(loaded.lineItems[0]?.qty).toBe(3);
+		expect(loaded.lineItems[0]?.lineTotal).toBe(175);
+		expect(
+			((loaded.lineItems[0]?.meta as any)?.mouldingRows || []).length,
+		).toBe(2);
+		expect(
+			(loaded.lineItems[0]?.meta as any)?.mouldingRows?.[0]?.description,
+		).toBe("Casing");
+		expect(
+			(loaded.lineItems[0]?.meta as any)?.mouldingRows?.[1]?.description,
+		).toBe("Stop");
+	});
 
-  it("collapses legacy grouped moulding siblings by multiDykeUid on edit reopen", async () => {
-    const { ctx, state } = createMockContext();
-    state.orders.push({
-      id: 3,
-      slug: "order-legacy-moulding-group",
-      orderId: "07838DB-M",
-      type: "order",
-      status: "Draft",
-      deletedAt: null,
-      customerId: 100,
-      customerProfileId: null,
-      billingAddressId: null,
-      shippingAddressId: null,
-      paymentTerm: "None",
-      goodUntil: null,
-      prodDueDate: null,
-      deliveryOption: "pickup",
-      taxPercentage: 0,
-      subTotal: 175,
-      tax: 0,
-      grandTotal: 175,
-      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
-      meta: {},
-    });
-    state.items.push(
-      {
-        id: 30,
-        salesOrderId: 3,
-        multiDykeUid: "legacy-moulding-group-1",
-        multiDyke: true,
-        dykeProduction: false,
-        dykeDescription: "Moulding",
-        description: "Casing",
-        qty: 2,
-        rate: 70,
-        total: 140,
-        deletedAt: null,
-        meta: {
-          uid: "legacy-moulding-item-1",
-          tax: false,
-          meta: {},
-        },
-      },
-      {
-        id: 31,
-        salesOrderId: 3,
-        multiDykeUid: "legacy-moulding-group-1",
-        multiDyke: false,
-        dykeProduction: false,
-        dykeDescription: "Moulding",
-        description: "Stop",
-        qty: 1,
-        rate: 35,
-        total: 35,
-        deletedAt: null,
-        meta: {
-          uid: "legacy-moulding-item-2",
-          tax: false,
-          meta: {},
-        },
-      },
-    );
-    state.hpts.push(
-      {
-        id: 1,
-        salesOrderId: 3,
-        orderItemId: 30,
-        deletedAt: null,
-        height: null,
-        doorType: "Moulding",
-        doorId: null,
-        dykeDoorId: null,
-        jambSizeId: null,
-        casingId: null,
-        moldingId: 501,
-        stepProductId: null,
-        totalPrice: 140,
-        totalDoors: 0,
-        meta: {},
-      },
-      {
-        id: 2,
-        salesOrderId: 3,
-        orderItemId: 31,
-        deletedAt: null,
-        height: null,
-        doorType: "Moulding",
-        doorId: null,
-        dykeDoorId: null,
-        jambSizeId: null,
-        casingId: null,
-        moldingId: 501,
-        stepProductId: null,
-        totalPrice: 35,
-        totalDoors: 0,
-        meta: {},
-      },
-    );
+	it("collapses legacy grouped service siblings by multiDykeUid on edit reopen", async () => {
+		const { ctx, state } = createMockContext();
+		state.orders.push({
+			id: 4,
+			slug: "order-legacy-service-group",
+			orderId: "07838DB-S",
+			type: "order",
+			status: "Draft",
+			deletedAt: null,
+			customerId: 100,
+			customerProfileId: null,
+			billingAddressId: null,
+			shippingAddressId: null,
+			paymentTerm: "None",
+			goodUntil: null,
+			prodDueDate: null,
+			deliveryOption: "pickup",
+			taxPercentage: 0,
+			subTotal: 110,
+			tax: 0,
+			grandTotal: 110,
+			updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+			meta: {},
+		});
+		state.items.push(
+			{
+				id: 40,
+				salesOrderId: 4,
+				multiDykeUid: "legacy-service-group-1",
+				multiDyke: true,
+				dykeProduction: true,
+				dykeDescription: "Services",
+				description: "Install",
+				qty: 1,
+				rate: 80,
+				total: 80,
+				deletedAt: null,
+				meta: {
+					uid: "legacy-service-item-1",
+					tax: true,
+					meta: {},
+				},
+			},
+			{
+				id: 41,
+				salesOrderId: 4,
+				multiDykeUid: "legacy-service-group-1",
+				multiDyke: false,
+				dykeProduction: false,
+				dykeDescription: "Services",
+				description: "Delivery",
+				qty: 1,
+				rate: 30,
+				total: 30,
+				deletedAt: null,
+				meta: {
+					uid: "legacy-service-item-2",
+					tax: false,
+					meta: {},
+				},
+			},
+		);
 
-    const loaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-legacy-moulding-group",
-    });
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-legacy-service-group",
+		});
 
-    expect(loaded.lineItems).toHaveLength(1);
-    expect(loaded.lineItems[0]?.title).toBe("Moulding");
-    expect(loaded.lineItems[0]?.qty).toBe(3);
-    expect(loaded.lineItems[0]?.lineTotal).toBe(175);
-    expect(((loaded.lineItems[0]?.meta as any)?.mouldingRows || []).length).toBe(2);
-    expect((loaded.lineItems[0]?.meta as any)?.mouldingRows?.[0]?.description).toBe(
-      "Casing",
-    );
-    expect((loaded.lineItems[0]?.meta as any)?.mouldingRows?.[1]?.description).toBe(
-      "Stop",
-    );
-  });
-
-  it("collapses legacy grouped service siblings by multiDykeUid on edit reopen", async () => {
-    const { ctx, state } = createMockContext();
-    state.orders.push({
-      id: 4,
-      slug: "order-legacy-service-group",
-      orderId: "07838DB-S",
-      type: "order",
-      status: "Draft",
-      deletedAt: null,
-      customerId: 100,
-      customerProfileId: null,
-      billingAddressId: null,
-      shippingAddressId: null,
-      paymentTerm: "None",
-      goodUntil: null,
-      prodDueDate: null,
-      deliveryOption: "pickup",
-      taxPercentage: 0,
-      subTotal: 110,
-      tax: 0,
-      grandTotal: 110,
-      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
-      meta: {},
-    });
-    state.items.push(
-      {
-        id: 40,
-        salesOrderId: 4,
-        multiDykeUid: "legacy-service-group-1",
-        multiDyke: true,
-        dykeProduction: true,
-        dykeDescription: "Services",
-        description: "Install",
-        qty: 1,
-        rate: 80,
-        total: 80,
-        deletedAt: null,
-        meta: {
-          uid: "legacy-service-item-1",
-          tax: true,
-          meta: {},
-        },
-      },
-      {
-        id: 41,
-        salesOrderId: 4,
-        multiDykeUid: "legacy-service-group-1",
-        multiDyke: false,
-        dykeProduction: false,
-        dykeDescription: "Services",
-        description: "Delivery",
-        qty: 1,
-        rate: 30,
-        total: 30,
-        deletedAt: null,
-        meta: {
-          uid: "legacy-service-item-2",
-          tax: false,
-          meta: {},
-        },
-      },
-    );
-
-    const loaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-legacy-service-group",
-    });
-
-    expect(loaded.lineItems).toHaveLength(1);
-    expect(loaded.lineItems[0]?.title).toBe("Services");
-    expect(loaded.lineItems[0]?.qty).toBe(2);
-    expect(loaded.lineItems[0]?.lineTotal).toBe(110);
-    expect(((loaded.lineItems[0]?.meta as any)?.serviceRows || []).length).toBe(2);
-    expect((loaded.lineItems[0]?.meta as any)?.serviceRows?.[0]?.service).toBe(
-      "Install",
-    );
-    expect((loaded.lineItems[0]?.meta as any)?.serviceRows?.[1]?.service).toBe(
-      "Delivery",
-    );
-  });
+		expect(loaded.lineItems).toHaveLength(1);
+		expect(loaded.lineItems[0]?.title).toBe("Services");
+		expect(loaded.lineItems[0]?.qty).toBe(2);
+		expect(loaded.lineItems[0]?.lineTotal).toBe(110);
+		expect(((loaded.lineItems[0]?.meta as any)?.serviceRows || []).length).toBe(
+			2,
+		);
+		expect((loaded.lineItems[0]?.meta as any)?.serviceRows?.[0]?.service).toBe(
+			"Install",
+		);
+		expect((loaded.lineItems[0]?.meta as any)?.serviceRows?.[1]?.service).toBe(
+			"Delivery",
+		);
+	});
 });
 
 describe("new-sales-form grouped legacy save parity", () => {
-  it("saves edited grouped service rows back as legacy siblings", async () => {
-    const { ctx, state } = createMockContext();
-    state.orders.push({
-      id: 5,
-      slug: "order-save-service-group",
-      orderId: "07838DB-S2",
-      type: "order",
-      status: "Draft",
-      deletedAt: null,
-      customerId: 100,
-      customerProfileId: null,
-      billingAddressId: null,
-      shippingAddressId: null,
-      paymentTerm: "None",
-      goodUntil: null,
-      prodDueDate: null,
-      deliveryOption: "pickup",
-      taxPercentage: 0,
-      subTotal: 110,
-      tax: 0,
-      grandTotal: 110,
-      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
-      meta: {},
-    });
-    state.items.push(
-      {
-        id: 50,
-        salesOrderId: 5,
-        multiDykeUid: "service-save-group",
-        multiDyke: true,
-        dykeProduction: true,
-        dykeDescription: "Services",
-        description: "Install",
-        qty: 1,
-        rate: 80,
-        total: 80,
-        deletedAt: null,
-        meta: { uid: "svc-save-1", tax: true, meta: {} },
-      },
-      {
-        id: 51,
-        salesOrderId: 5,
-        multiDykeUid: "service-save-group",
-        multiDyke: false,
-        dykeProduction: false,
-        dykeDescription: "Services",
-        description: "Delivery",
-        qty: 1,
-        rate: 30,
-        total: 30,
-        deletedAt: null,
-        meta: { uid: "svc-save-2", tax: false, meta: {} },
-      },
-    );
+	it("saves edited grouped service rows back as legacy siblings", async () => {
+		const { ctx, state } = createMockContext();
+		state.orders.push({
+			id: 5,
+			slug: "order-save-service-group",
+			orderId: "07838DB-S2",
+			type: "order",
+			status: "Draft",
+			deletedAt: null,
+			customerId: 100,
+			customerProfileId: null,
+			billingAddressId: null,
+			shippingAddressId: null,
+			paymentTerm: "None",
+			goodUntil: null,
+			prodDueDate: null,
+			deliveryOption: "pickup",
+			taxPercentage: 0,
+			subTotal: 110,
+			tax: 0,
+			grandTotal: 110,
+			updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+			meta: {},
+		});
+		state.items.push(
+			{
+				id: 50,
+				salesOrderId: 5,
+				multiDykeUid: "service-save-group",
+				multiDyke: true,
+				dykeProduction: true,
+				dykeDescription: "Services",
+				description: "Install",
+				qty: 1,
+				rate: 80,
+				total: 80,
+				deletedAt: null,
+				meta: { uid: "svc-save-1", tax: true, meta: {} },
+			},
+			{
+				id: 51,
+				salesOrderId: 5,
+				multiDykeUid: "service-save-group",
+				multiDyke: false,
+				dykeProduction: false,
+				dykeDescription: "Services",
+				description: "Delivery",
+				qty: 1,
+				rate: 30,
+				total: 30,
+				deletedAt: null,
+				meta: { uid: "svc-save-2", tax: false, meta: {} },
+			},
+		);
 
-    const loaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-save-service-group",
-    });
-    const serviceLine = loaded.lineItems[0]!;
-    const rows = [...((serviceLine.meta as any).serviceRows || [])];
-    rows[0] = {
-      ...rows[0],
-      qty: 2,
-      unitPrice: 90,
-      lineTotal: 180,
-      taxxable: false,
-      produceable: false,
-    };
-    rows.push({
-      uid: "svc-save-3",
-      service: "Cleanup",
-      taxxable: true,
-      produceable: true,
-      qty: 1,
-      unitPrice: 25,
-      lineTotal: 25,
-    });
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-save-service-group",
+		});
+		const serviceLine = loaded.lineItems[0]!;
+		const rows = [...((serviceLine.meta as any).serviceRows || [])];
+		rows[0] = {
+			...rows[0],
+			qty: 2,
+			unitPrice: 90,
+			lineTotal: 180,
+			taxxable: false,
+			produceable: false,
+		};
+		rows.push({
+			uid: "svc-save-3",
+			service: "Cleanup",
+			taxxable: true,
+			produceable: true,
+			qty: 1,
+			unitPrice: 25,
+			lineTotal: 25,
+		});
 
-    await saveDraftNewSalesForm(ctx, {
-      type: "order",
-      slug: loaded.slug,
-      salesId: loaded.salesId,
-      version: loaded.version,
-      autosave: false,
-      meta: loaded.form,
-      extraCosts: loaded.extraCosts,
-      summary: {
-        subTotal: 235,
-        taxRate: 0,
-        taxTotal: 0,
-        grandTotal: 235,
-      },
-      lineItems: [
-        {
-          ...serviceLine,
-          qty: 4,
-          unitPrice: 58.75,
-          lineTotal: 235,
-          meta: {
-            ...(serviceLine.meta as any),
-            serviceRows: rows,
-          },
-        },
-      ],
-    });
+		await saveDraftNewSalesForm(ctx, {
+			type: "order",
+			slug: loaded.slug,
+			salesId: loaded.salesId,
+			version: loaded.version,
+			autosave: false,
+			meta: loaded.form,
+			extraCosts: loaded.extraCosts,
+			summary: {
+				subTotal: 235,
+				taxRate: 0,
+				taxTotal: 0,
+				grandTotal: 235,
+			},
+			lineItems: [
+				{
+					...serviceLine,
+					qty: 4,
+					unitPrice: 58.75,
+					lineTotal: 235,
+					meta: {
+						...(serviceLine.meta as any),
+						serviceRows: rows,
+					},
+				},
+			],
+		});
 
-    const activeItems = state.items.filter(
-      (item) => item.salesOrderId === 5 && item.deletedAt == null,
-    );
-    expect(activeItems).toHaveLength(3);
-    expect(new Set(activeItems.map((item) => item.multiDykeUid)).size).toBe(1);
-    expect(activeItems.filter((item) => item.multiDyke)).toHaveLength(1);
-    expect(activeItems.map((item) => item.id).sort()).toEqual([1, 50, 51]);
-    expect(activeItems.find((item) => item.description === "Install")?.qty).toBe(2);
-    expect(activeItems.find((item) => item.description === "Install")?.rate).toBe(90);
-    expect(activeItems.find((item) => item.description === "Install")?.meta?.tax).toBe(false);
-    expect(
-      activeItems.find((item) => item.description === "Cleanup")?.dykeProduction,
-    ).toBe(true);
+		const activeItems = state.items.filter(
+			(item) => item.salesOrderId === 5 && item.deletedAt == null,
+		);
+		expect(activeItems).toHaveLength(3);
+		expect(new Set(activeItems.map((item) => item.multiDykeUid)).size).toBe(1);
+		expect(activeItems.filter((item) => item.multiDyke)).toHaveLength(1);
+		expect(activeItems.map((item) => item.id).sort()).toEqual([1, 50, 51]);
+		expect(
+			activeItems.find((item) => item.description === "Install")?.qty,
+		).toBe(2);
+		expect(
+			activeItems.find((item) => item.description === "Install")?.rate,
+		).toBe(90);
+		expect(
+			activeItems.find((item) => item.description === "Install")?.meta?.tax,
+		).toBe(false);
+		expect(
+			activeItems.find((item) => item.description === "Cleanup")
+				?.dykeProduction,
+		).toBe(true);
 
-    const reloaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-save-service-group",
-    });
-    expect(reloaded.lineItems).toHaveLength(1);
-    expect(((reloaded.lineItems[0]?.meta as any)?.serviceRows || [])).toHaveLength(3);
-  });
+		const reloaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-save-service-group",
+		});
+		expect(reloaded.lineItems).toHaveLength(1);
+		expect(
+			(reloaded.lineItems[0]?.meta as any)?.serviceRows || [],
+		).toHaveLength(3);
+	});
 
-  it("saves edited grouped moulding rows back as legacy siblings with HPT rows", async () => {
-    const { ctx, state } = createMockContext();
-    state.orders.push({
-      id: 6,
-      slug: "order-save-moulding-group",
-      orderId: "07838DB-M2",
-      type: "order",
-      status: "Draft",
-      deletedAt: null,
-      customerId: 100,
-      customerProfileId: null,
-      billingAddressId: null,
-      shippingAddressId: null,
-      paymentTerm: "None",
-      goodUntil: null,
-      prodDueDate: null,
-      deliveryOption: "pickup",
-      taxPercentage: 0,
-      subTotal: 175,
-      tax: 0,
-      grandTotal: 175,
-      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
-      meta: {},
-    });
-    state.items.push(
-      {
-        id: 60,
-        salesOrderId: 6,
-        multiDykeUid: "moulding-save-group",
-        multiDyke: true,
-        dykeProduction: false,
-        dykeDescription: "Moulding",
-        description: "Casing",
-        qty: 2,
-        rate: 70,
-        total: 140,
-        deletedAt: null,
-        meta: { uid: "mould-save-1", tax: false, meta: {} },
-      },
-      {
-        id: 61,
-        salesOrderId: 6,
-        multiDykeUid: "moulding-save-group",
-        multiDyke: false,
-        dykeProduction: false,
-        dykeDescription: "Moulding",
-        description: "Stop",
-        qty: 1,
-        rate: 35,
-        total: 35,
-        deletedAt: null,
-        meta: { uid: "mould-save-2", tax: false, meta: {} },
-      },
-    );
-    state.hpts.push(
-      {
-        id: 60,
-        salesOrderId: 6,
-        orderItemId: 60,
-        deletedAt: null,
-        doorType: "Moulding",
-        moldingId: 501,
-        stepProductId: 501,
-        totalPrice: 140,
-        totalDoors: 0,
-        meta: {
-          priceTags: {
-            moulding: { salesPrice: 70, basePrice: 50, price: 70 },
-          },
-        },
-      },
-      {
-        id: 61,
-        salesOrderId: 6,
-        orderItemId: 61,
-        deletedAt: null,
-        doorType: "Moulding",
-        moldingId: 501,
-        stepProductId: 501,
-        totalPrice: 35,
-        totalDoors: 0,
-        meta: {
-          priceTags: {
-            moulding: { salesPrice: 35, basePrice: 20, price: 35 },
-          },
-        },
-      },
-    );
+	it("saves edited grouped moulding rows back as legacy siblings with HPT rows", async () => {
+		const { ctx, state } = createMockContext();
+		state.orders.push({
+			id: 6,
+			slug: "order-save-moulding-group",
+			orderId: "07838DB-M2",
+			type: "order",
+			status: "Draft",
+			deletedAt: null,
+			customerId: 100,
+			customerProfileId: null,
+			billingAddressId: null,
+			shippingAddressId: null,
+			paymentTerm: "None",
+			goodUntil: null,
+			prodDueDate: null,
+			deliveryOption: "pickup",
+			taxPercentage: 0,
+			subTotal: 175,
+			tax: 0,
+			grandTotal: 175,
+			updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+			meta: {},
+		});
+		state.items.push(
+			{
+				id: 60,
+				salesOrderId: 6,
+				multiDykeUid: "moulding-save-group",
+				multiDyke: true,
+				dykeProduction: false,
+				dykeDescription: "Moulding",
+				description: "Casing",
+				qty: 2,
+				rate: 70,
+				total: 140,
+				deletedAt: null,
+				meta: { uid: "mould-save-1", tax: false, meta: {} },
+			},
+			{
+				id: 61,
+				salesOrderId: 6,
+				multiDykeUid: "moulding-save-group",
+				multiDyke: false,
+				dykeProduction: false,
+				dykeDescription: "Moulding",
+				description: "Stop",
+				qty: 1,
+				rate: 35,
+				total: 35,
+				deletedAt: null,
+				meta: { uid: "mould-save-2", tax: false, meta: {} },
+			},
+		);
+		state.hpts.push(
+			{
+				id: 60,
+				salesOrderId: 6,
+				orderItemId: 60,
+				deletedAt: null,
+				doorType: "Moulding",
+				moldingId: 501,
+				stepProductId: 501,
+				totalPrice: 140,
+				totalDoors: 0,
+				meta: {
+					priceTags: {
+						moulding: { salesPrice: 70, basePrice: 50, price: 70 },
+					},
+				},
+			},
+			{
+				id: 61,
+				salesOrderId: 6,
+				orderItemId: 61,
+				deletedAt: null,
+				doorType: "Moulding",
+				moldingId: 501,
+				stepProductId: 501,
+				totalPrice: 35,
+				totalDoors: 0,
+				meta: {
+					priceTags: {
+						moulding: { salesPrice: 35, basePrice: 20, price: 35 },
+					},
+				},
+			},
+		);
 
-    const loaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-save-moulding-group",
-    });
-    const mouldingLine = loaded.lineItems[0]!;
-    const rows = [...((mouldingLine.meta as any).mouldingRows || [])];
-    rows[0] = {
-      ...rows[0],
-      qty: 3,
-      salesPrice: 72,
-      lineTotal: 216,
-    };
-    rows.splice(1, 1);
-    rows.push({
-      uid: "mould-save-3",
-      title: "Base",
-      description: "Base",
-      qty: 1,
-      salesPrice: 44,
-      basePrice: 25,
-      addon: 0,
-      lineTotal: 44,
-      mouldingProductId: 501,
-      stepProductId: 501,
-    });
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-save-moulding-group",
+		});
+		const mouldingLine = loaded.lineItems[0]!;
+		const rows = [...((mouldingLine.meta as any).mouldingRows || [])];
+		rows[0] = {
+			...rows[0],
+			qty: 3,
+			salesPrice: 72,
+			lineTotal: 216,
+		};
+		rows.splice(1, 1);
+		rows.push({
+			uid: "mould-save-3",
+			title: "Base",
+			description: "Base",
+			qty: 1,
+			salesPrice: 44,
+			basePrice: 25,
+			addon: 0,
+			lineTotal: 44,
+			mouldingProductId: 501,
+			stepProductId: 501,
+		});
 
-    await saveDraftNewSalesForm(ctx, {
-      type: "order",
-      slug: loaded.slug,
-      salesId: loaded.salesId,
-      version: loaded.version,
-      autosave: false,
-      meta: loaded.form,
-      extraCosts: loaded.extraCosts,
-      summary: {
-        subTotal: 260,
-        taxRate: 0,
-        taxTotal: 0,
-        grandTotal: 260,
-      },
-      lineItems: [
-        {
-          ...mouldingLine,
-          qty: 4,
-          unitPrice: 65,
-          lineTotal: 260,
-          meta: {
-            ...(mouldingLine.meta as any),
-            mouldingRows: rows,
-          },
-        },
-      ],
-    });
+		await saveDraftNewSalesForm(ctx, {
+			type: "order",
+			slug: loaded.slug,
+			salesId: loaded.salesId,
+			version: loaded.version,
+			autosave: false,
+			meta: loaded.form,
+			extraCosts: loaded.extraCosts,
+			summary: {
+				subTotal: 260,
+				taxRate: 0,
+				taxTotal: 0,
+				grandTotal: 260,
+			},
+			lineItems: [
+				{
+					...mouldingLine,
+					qty: 4,
+					unitPrice: 65,
+					lineTotal: 260,
+					meta: {
+						...(mouldingLine.meta as any),
+						mouldingRows: rows,
+					},
+				},
+			],
+		});
 
-    const activeItems = state.items.filter(
-      (item) => item.salesOrderId === 6 && item.deletedAt == null,
-    );
-    const activeHpts = state.hpts.filter(
-      (hpt) => hpt.salesOrderId === 6 && hpt.deletedAt == null,
-    );
-    expect(activeItems).toHaveLength(2);
-    expect(activeHpts).toHaveLength(2);
-    expect(new Set(activeItems.map((item) => item.multiDykeUid)).size).toBe(1);
-    expect(activeItems.map((item) => item.id).sort()).toEqual([1, 60]);
-    expect(activeHpts.map((hpt) => hpt.id).sort()).toEqual([1, 60]);
-    expect(state.items.find((item) => item.id === 61)?.deletedAt).toBeInstanceOf(Date);
-    expect(state.hpts.find((hpt) => hpt.id === 61)?.deletedAt).toBeInstanceOf(Date);
-    expect(activeItems.find((item) => item.description === "Casing")?.qty).toBe(3);
-    expect(activeItems.find((item) => item.description === "Base")?.rate).toBe(44);
-    expect(
-      activeHpts.find((hpt) => {
-        const item = activeItems.find((active) => active.id === hpt.orderItemId);
-        return item?.description === "Base";
-      })?.meta?.priceTags?.moulding?.salesPrice,
-    ).toBe(44);
+		const activeItems = state.items.filter(
+			(item) => item.salesOrderId === 6 && item.deletedAt == null,
+		);
+		const activeHpts = state.hpts.filter(
+			(hpt) => hpt.salesOrderId === 6 && hpt.deletedAt == null,
+		);
+		expect(activeItems).toHaveLength(2);
+		expect(activeHpts).toHaveLength(2);
+		expect(new Set(activeItems.map((item) => item.multiDykeUid)).size).toBe(1);
+		expect(activeItems.map((item) => item.id).sort()).toEqual([1, 60]);
+		expect(activeHpts.map((hpt) => hpt.id).sort()).toEqual([1, 60]);
+		expect(
+			state.items.find((item) => item.id === 61)?.deletedAt,
+		).toBeInstanceOf(Date);
+		expect(state.hpts.find((hpt) => hpt.id === 61)?.deletedAt).toBeInstanceOf(
+			Date,
+		);
+		expect(activeItems.find((item) => item.description === "Casing")?.qty).toBe(
+			3,
+		);
+		expect(activeItems.find((item) => item.description === "Base")?.rate).toBe(
+			44,
+		);
+		expect(
+			activeHpts.find((hpt) => {
+				const item = activeItems.find(
+					(active) => active.id === hpt.orderItemId,
+				);
+				return item?.description === "Base";
+			})?.meta?.priceTags?.moulding?.salesPrice,
+		).toBe(44);
 
-    const reloaded = await getNewSalesForm(ctx, {
-      type: "order",
-      slug: "order-save-moulding-group",
-    });
-    expect(reloaded.lineItems).toHaveLength(1);
-    expect(((reloaded.lineItems[0]?.meta as any)?.mouldingRows || [])).toHaveLength(2);
-  });
+		const reloaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-save-moulding-group",
+		});
+		expect(reloaded.lineItems).toHaveLength(1);
+		expect(
+			(reloaded.lineItems[0]?.meta as any)?.mouldingRows || [],
+		).toHaveLength(2);
+	});
 });

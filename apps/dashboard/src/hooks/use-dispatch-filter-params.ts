@@ -1,32 +1,91 @@
+import { dispatchWorkspaceStages } from "@gnd/sales/dispatch-manifest/status";
+import {
+	dispatchRiskCodes,
+	dispatchWorkspaceSections,
+} from "@gnd/sales/dispatch-manifest/workspace";
+import { salesDispatchStatus } from "@gnd/utils/constants";
 import { useQueryStates } from "nuqs";
 import {
-    createLoader,
-    parseAsStringLiteral,
-    parseAsArrayOf,
-    parseAsString,
-    parseAsInteger,
+	createLoader,
+	parseAsArrayOf,
+	parseAsInteger,
+	parseAsString,
+	parseAsStringLiteral,
 } from "nuqs/server";
-import { RouterInputs } from "@api/trpc/routers/_app";
-import { salesDispatchStatus } from "@gnd/utils/constants";
-type FilterKeys = keyof Exclude<RouterInputs["dispatch"]["index"], void>;
+
+const dueBuckets = [
+	"overdue",
+	"today",
+	"tomorrow",
+	"upcoming",
+	"unscheduled",
+] as const;
+const sheetModes = [
+	"details",
+	"create",
+	"assign",
+	"schedule",
+	"exception",
+	"resolve",
+] as const;
+const detailTabs = ["overview", "items", "route", "proof", "activity"] as const;
 
 export const dispatchFilterParamsSchema = {
-    tab: parseAsStringLiteral(["all", "pending", "completed"]),
-    status: parseAsStringLiteral(salesDispatchStatus),
-    q: parseAsString,
-    driversId: parseAsArrayOf(parseAsInteger, ","),
-    scheduleDate: parseAsArrayOf(parseAsString, ","),
-    view: parseAsStringLiteral(["table", "calendar"]).withDefault("table"),
-} satisfies Partial<Record<FilterKeys | "view", any>>;
+	section: parseAsStringLiteral(dispatchWorkspaceSections).withDefault(
+		"dashboard",
+	),
+	stages: parseAsArrayOf(parseAsStringLiteral(dispatchWorkspaceStages)),
+	tab: parseAsStringLiteral(["all", "pending", "completed"]),
+	status: parseAsStringLiteral(salesDispatchStatus),
+	q: parseAsString,
+	driversId: parseAsArrayOf(parseAsInteger, ","),
+	dueBuckets: parseAsArrayOf(parseAsStringLiteral(dueBuckets), ","),
+	scheduleRange: parseAsArrayOf(parseAsString, ","),
+	scheduleDate: parseAsArrayOf(parseAsString, ","),
+	deliveryModes: parseAsArrayOf(
+		parseAsStringLiteral(["delivery", "pickup"]),
+		",",
+	),
+	risks: parseAsArrayOf(parseAsStringLiteral(dispatchRiskCodes), ","),
+	view: parseAsStringLiteral(["table", "calendar"]).withDefault("table"),
+	dispatchId: parseAsInteger,
+	dispatchSalesId: parseAsInteger,
+	exceptionId: parseAsInteger,
+	sheetMode: parseAsStringLiteral(sheetModes),
+	detailTab: parseAsStringLiteral(detailTabs).withDefault("overview"),
+	exceptionStatus: parseAsStringLiteral(["open", "resolved"]).withDefault(
+		"open",
+	),
+};
+
+export const dispatchSearchFilterParams = {
+	q: dispatchFilterParamsSchema.q,
+	stages: dispatchFilterParamsSchema.stages,
+	driversId: dispatchFilterParamsSchema.driversId,
+	dueBuckets: dispatchFilterParamsSchema.dueBuckets,
+	scheduleRange: dispatchFilterParamsSchema.scheduleRange,
+	deliveryModes: dispatchFilterParamsSchema.deliveryModes,
+	risks: dispatchFilterParamsSchema.risks,
+};
 
 export function useDispatchFilterParams() {
-    const [filters, setFilters] = useQueryStates(dispatchFilterParamsSchema);
-    return {
-        filters,
-        setFilters,
-        hasFilters: Object.values(filters).some((value) => value !== null),
-    };
+	const [filters, setFilters] = useQueryStates(dispatchFilterParamsSchema, {
+		shallow: false,
+	});
+	const hasFilters = Boolean(
+		filters.q ||
+			filters.stages?.length ||
+			filters.driversId?.length ||
+			filters.dueBuckets?.length ||
+			filters.scheduleRange?.length ||
+			filters.deliveryModes?.length ||
+			filters.risks?.length ||
+			filters.status ||
+			filters.tab,
+	);
+	return { filters, setFilters, hasFilters };
 }
+
 export const loadDispatchFilterParams = createLoader(
-    dispatchFilterParamsSchema,
+	dispatchFilterParamsSchema,
 );

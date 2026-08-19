@@ -165,13 +165,21 @@ function classifyLegacyGroup(siblings: any[]): GroupKind | null {
     siblings.find((item) => Boolean(item?.multiDyke)) || siblings[0];
   const representativeTitle = String(representative?.title || "").trim();
   const itemTypeTitle = getLineItemTypeTitle(representative);
+  const representativeHptMeta = safeRecord(
+    representative?.housePackageTool?.meta,
+  );
+  const representativePriceTags = safeRecord(representativeHptMeta.priceTags);
   const groupedMoulding =
     siblings.some((item) => Number(item?.housePackageTool?.moldingId || 0) > 0) ||
+    Object.keys(safeRecord(representativePriceTags.moulding)).length > 0 ||
+    isGroupedMouldingLine(representative) ||
     isMouldingTitle(itemTypeTitle) ||
     isMouldingTitle(representativeTitle);
   if (groupedMoulding) return "moulding";
   const groupedService =
-    isServiceTitle(itemTypeTitle) || isServiceTitle(representativeTitle);
+    isGroupedServiceLine(representative) ||
+    isServiceTitle(itemTypeTitle) ||
+    isServiceTitle(representativeTitle);
   return groupedService ? "service" : null;
 }
 
@@ -220,6 +228,7 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
       return [
         {
           ...representative,
+          uid: groupUid,
           title: "Services",
           description: summary.description,
           qty: summary.qtyTotal,
@@ -323,6 +332,7 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
     return [
       {
         ...representative,
+        uid: groupUid,
         title: "Moulding",
         description: summary.description,
         qty: summary.qtyTotal,

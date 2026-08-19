@@ -1,5 +1,16 @@
 # Database Relationships
 
+## Dispatch Exceptions (2026-08-18)
+
+- `OrderDelivery.exceptions` owns the operational issues reported against one
+  physical trip; `DispatchException.orderDeliveryId` is the required relation.
+- Exception reporter/resolver ids are actor evidence from authenticated API
+  context. They are not client-selected identities and remain scalar evidence
+  rather than trip ownership relations.
+- Exception state overlays the dispatch lifecycle. It never replaces
+  `OrderDelivery.status`, driver assignment, packing readiness, proof state, or
+  dispatch-bound inventory state.
+
 ## Dispatch-Bound Inventory (2026-08-06)
 
 - `OrderDelivery.stockAllocations` contains the exact stock rows reserved,
@@ -268,3 +279,15 @@ Planning only; no schema relationship changed yet.
   event.
 - `SalesOrders 1:N SpecialOrderOperationEvent` preserves warning/block rollout
   telemetry independently of the bounded Sales Activity presentation.
+
+## Canonical Sales Form graph (2026-08-18)
+
+- `SalesOrders 1:N SalesOrderItems`; each active item owns its active
+  `DykeStepForm` and `DykeSalesShelfItem` rows.
+- A door-producing `SalesOrderItems` row owns at most one active
+  `HousePackageTools` record; that HPT owns active `DykeSalesDoors` rows.
+- Within one HPT, component plus normalized dimension identifies one active door
+  row. Historical soft-deleted siblings remain audit history and are never
+  merged into active quantity.
+- `SalesOrders.meta.newSalesForm` has no authority relationship to commercial
+  rows; it carries only revision/editor metadata.

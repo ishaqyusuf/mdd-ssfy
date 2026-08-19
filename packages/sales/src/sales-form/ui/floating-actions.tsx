@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 "use client";
 
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,13 +10,13 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@gnd/ui/tooltip";
-import { useEffect, useRef, useState } from "react";
-import type { MouseEvent, ReactNode } from "react";
+	cloneElement,
+	isValidElement,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
+import type { MouseEvent, ReactElement, ReactNode } from "react";
 import type { SalesFormCapabilities, SalesFormPermissions } from "../contracts";
 
 export type SalesFormFloatingActionsVisibilityInput = {
@@ -114,7 +114,8 @@ export function resolveSalesFormFloatingActionsVisibility(
 		preview,
 		print,
 		downloadPdf,
-		moreMenu: payment || savedRecord || overview || preview || print || downloadPdf,
+		moreMenu:
+			payment || savedRecord || overview || preview || print || downloadPdf,
 	};
 }
 
@@ -125,14 +126,10 @@ function FloatingActionTooltip({
 	children: ReactNode;
 	label: string;
 }) {
-	return (
-		<Tooltip>
-			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent side="top" className="px-2 py-1 text-xs">
-				{label}
-			</TooltipContent>
-		</Tooltip>
-	);
+	if (!isValidElement(children)) return children;
+	return cloneElement(children as ReactElement<{ title?: string }>, {
+		title: label,
+	});
 }
 
 function FloatingSaveChoice({
@@ -316,7 +313,7 @@ export function SalesFormFloatingActions(props: SalesFormFloatingActionsProps) {
 
 	return (
 		<div className="pointer-events-none absolute inset-x-0 bottom-1 z-20 hidden justify-center px-2 pb-[env(safe-area-inset-bottom)] lg:flex">
-			<TooltipProvider delayDuration={120}>
+			<>
 				<div className="pointer-events-auto flex w-fit max-w-[calc(100%-1rem)] items-center gap-1 overflow-hidden rounded-full border border-slate-200 bg-card/95 p-1 shadow-lg backdrop-blur">
 					{visibility.addItem ? (
 						<FloatingActionTooltip label="Add item">
@@ -420,16 +417,16 @@ export function SalesFormFloatingActions(props: SalesFormFloatingActionsProps) {
 
 					{menuVisibility.moreMenu ? (
 						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									type="button"
-									size="icon"
-									variant="outline"
-									className="size-8 shrink-0 rounded-full xl:hidden"
-									aria-label="More actions"
-								>
-									<Icons.MoreHorizontal className="size-3.5" />
-								</Button>
+							<DropdownMenuTrigger
+								type="button"
+								className={buttonVariants({
+									variant: "outline",
+									size: "icon",
+									className: "size-8 shrink-0 rounded-full xl:hidden",
+								})}
+								aria-label="More actions"
+							>
+								<Icons.MoreHorizontal className="size-3.5" />
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-52">
 								{menuVisibility.payment ? props.paymentMenuAction : null}
@@ -503,7 +500,7 @@ export function SalesFormFloatingActions(props: SalesFormFloatingActionsProps) {
 						/>
 					) : null}
 				</div>
-			</TooltipProvider>
+			</>
 		</div>
 	);
 }

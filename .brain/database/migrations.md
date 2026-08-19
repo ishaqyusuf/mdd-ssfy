@@ -1,5 +1,20 @@
 # Database Migrations
 
+## 2026-08-18: Durable Dispatch Exceptions
+
+- Added additive migration `20260818110000_dispatch_exceptions`, creating
+  `DispatchException`, its retry/request and operational lookup indexes, and
+  the required relation to `OrderDelivery`.
+- Prisma Client generation completed during implementation.
+- The initial handoff intentionally deferred application. On 2026-08-18 the
+  authenticated Dispatch Admin page exposed the stale-runtime boundary, so the
+  additive SQL was applied directly to the local development database with
+  `prisma db execute` and then recorded with `prisma migrate resolve --applied`.
+- Normal `prisma migrate dev` remains blocked by unrelated pre-existing local
+  schema drift and correctly refused to reset the database. No reset or drift
+  reconciliation was performed. Hosted environments must still apply the
+  migration through their normal deployment workflow.
+
 ## 2026-08-06: Bind Stock Allocations to Dispatch
 
 - Added migration `20260806120000_bind_stock_allocations_to_dispatch`, which
@@ -472,3 +487,17 @@ Tracks notable migrations and migration strategy.
   passed against local MySQL and reported the composed schema in sync. Three
   `bun run db:migrate` attempts stopped at the existing Docker/shadow preflight
   before migration execution; ADR-053 remains the explicit bounded exception.
+
+## 2026-08-18 Sales Form relational repair
+
+- Added `sales-form:relational-repair`, dry-run by default. Apply mode requires
+  both `--confirm-review` and explicit Sales Order IDs.
+- Open quotes may be repaired by retaining the lowest stable door ID, copying
+  the most complete pricing state, retiring duplicate siblings without summing,
+  recalculating HPT/item/order totals, removing JSON commercial authority, and
+  recording the migration evidence in `SalesHistory`.
+- Accepted, paid, production, and fulfilled records are report-only.
+- No Prisma schema migration is included in this change because an unrelated
+  dispatch schema migration is active in the shared worktree. The physical
+  active-door unique constraint follows after that migration lands and the audit
+  reports zero conflicts; ADR-056 records the temporary transactional boundary.

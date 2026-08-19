@@ -19,7 +19,7 @@ describe("redirect engine", () => {
 		expect(
 			resolveRedirectPath("/sales-book/production-tasks?tab=assigned"),
 		).toEqual({
-			pathname: "/production/dashboard",
+			pathname: "/production/dashboard/v2",
 			search: "?tab=assigned",
 			permanent: false,
 		});
@@ -66,13 +66,13 @@ describe("redirect engine", () => {
 
 	it("normalizes canonical paths through the same redirect rules", () => {
 		expect(resolveCanonicalPath("/sales-book/production-tasks?tab=mine")).toBe(
-			"/production/dashboard?tab=mine",
+			"/production/dashboard/v2?tab=mine",
 		);
 	});
 
 	it("returns null when no redirect is needed", () => {
 		expect(resolveRedirectPath("/login/v2")).toBeNull();
-		expect(resolveRedirectPath("/production/dashboard")).toBeNull();
+		expect(resolveRedirectPath("/production/dashboard/v2")).toBeNull();
 		expect(resolveRedirectPath("/sales-book/productions?tab=queue")).toBeNull();
 	});
 });

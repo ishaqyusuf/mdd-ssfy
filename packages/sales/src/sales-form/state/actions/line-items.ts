@@ -152,6 +152,7 @@ export function updateSalesFormLineItem<
 	patch: Partial<TRecord["lineItems"][number]>,
 ): TState {
 	if (!state.record) return state;
+	let changed = false;
 	const lineItems = state.record.lineItems.map((line, index) => {
 		if (line.uid !== uid) return line;
 		const merged = {
@@ -175,8 +176,14 @@ export function updateSalesFormLineItem<
 		if (Object.prototype.hasOwnProperty.call(patch, "title")) {
 			normalized.title = String(patch.title ?? "");
 		}
+		const currentNormalized = normalizeSalesFormLineItem(line, index);
+		if (JSON.stringify(currentNormalized) === JSON.stringify(normalized)) {
+			return line;
+		}
+		changed = true;
 		return normalized;
 	});
+	if (!changed) return state;
 
 	return {
 		...state,

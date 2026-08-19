@@ -221,6 +221,7 @@ export type RespondNewSalesFormAdjustmentApprovalSchema = z.infer<
 export const deleteNewSalesFormLineItemSchema = z.object({
 	salesId: z.number(),
 	lineItemId: z.number(),
+	version: z.string().trim().min(1),
 });
 export type DeleteNewSalesFormLineItemSchema = z.infer<
 	typeof deleteNewSalesFormLineItemSchema

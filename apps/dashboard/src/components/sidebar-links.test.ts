@@ -135,6 +135,26 @@ describe("sidebar role access", () => {
 		expect(links.linksNameMap["/sales-book/dispatch-admin"]?.hasAccess).toBe(
 			true,
 		);
+		expect(
+			links.linksNameMap["/sales-book/dispatch-admin/v2"]?.hasAccess,
+		).toBe(false);
+	});
+
+	test("shows Dispatch Admin v2 only to super admins with dispatch admin access", () => {
+		const links = getLinkModules(
+			validateLinks({
+				role: { name: "Super Admin" },
+				can: permissions({ editOrders: true }),
+				userId: "super-admin-1",
+			}),
+		);
+
+		expect(links.linksNameMap["/sales-book/dispatch-admin"]?.hasAccess).toBe(
+			true,
+		);
+		expect(
+			links.linksNameMap["/sales-book/dispatch-admin/v2"]?.hasAccess,
+		).toBe(true);
 	});
 
 	test("keeps the dispatch admin page guard aligned with navigation", () => {
@@ -146,6 +166,17 @@ describe("sidebar role access", () => {
 		expect(source).toContain('rules={[_perm.is("editOrders")]}');
 		expect(source).not.toContain(
 			'rules={[_perm.some("editOrders", "editDelivery")]}',
+		);
+
+		const v2Source = readFileSync(
+			join(
+				appRoot,
+				"(sidebar)/(sales)/sales-book/dispatch-admin/v2/page.tsx",
+			),
+			"utf8",
+		);
+		expect(v2Source).toContain(
+			'rules={[_role.is("Super Admin"), _perm.is("editOrders")]}',
 		);
 	});
 

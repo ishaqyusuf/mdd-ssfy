@@ -1,5 +1,20 @@
 # API Endpoints
 
+## Dispatch Admin Workspace And Driver Manifest (2026-08-18)
+
+- Manager reads: `dispatch.workspaceSummary`, `dispatch.backlog`,
+  `dispatch.list`, `dispatch.calendar`, `dispatch.driverWorkload`, and
+  `dispatch.exceptions`.
+- Assigned-driver-or-manager read: `dispatch.detail`, returning the canonical
+  V2 overview plus durable exception history.
+- Driver read: `dispatch.driverManifest`, returning the authenticated driver's
+  paginated work queue, global summary, and next stop in one projection.
+- Assigned-driver-or-manager mutation: `dispatch.reportException`.
+- Manager mutation: `dispatch.resolveException`.
+- Existing create, assignment, due-date, packing, inventory preparation,
+  start-trip, proof completion, cancellation, and restore endpoints remain the
+  command authorities; the workspace endpoints do not duplicate them.
+
 ## Driver Platform Revival
 
 - Protected reads: `dispatch.driverWorkQueue`,

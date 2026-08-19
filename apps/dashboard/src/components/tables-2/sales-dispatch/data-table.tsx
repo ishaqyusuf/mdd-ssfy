@@ -27,6 +27,7 @@ import { type SalesDispatch, getSalesDispatchColumns } from "./columns";
 import { EmptyState, NoResults } from "./empty-states";
 import { useSalesDispatchTableStore } from "./store";
 import { DataTableHeader } from "./table-header";
+import { workspaceColumns } from "./workspace-columns";
 
 const TABLE_ID = "sales-dispatch";
 const NON_CLICKABLE_COLUMNS = new Set([
@@ -52,6 +53,7 @@ type Props = {
 	driver?: boolean;
 	singlePage?: boolean;
 	enableSalesMarkAs?: boolean;
+	workspace?: boolean;
 };
 
 export function DataTable({
@@ -60,19 +62,22 @@ export function DataTable({
 	driver,
 	singlePage,
 	enableSalesMarkAs = false,
+	workspace = false,
 }: Props) {
 	const trpc = useTRPC();
 	const { params } = useSortParams();
-	const { filters } = useDispatchFilterParams();
+	const { filters, setFilters } = useDispatchFilterParams();
 	const overviewQuery = useSalesOverviewQuery();
 	const parentRef = useRef<HTMLDivElement>(null);
 	const tableColumns = useMemo(
 		() =>
-			getSalesDispatchColumns({
-				driverMode: driver,
-				enableSalesMarkAs,
-			}),
-		[driver, enableSalesMarkAs],
+			workspace
+				? workspaceColumns
+				: getSalesDispatchColumns({
+						driverMode: driver,
+						enableSalesMarkAs,
+					}),
+		[driver, enableSalesMarkAs, workspace],
 	);
 	const columnIds = useMemo(() => getColumnIds(tableColumns), [tableColumns]);
 	const { rowSelection, setRowSelection, setColumns } =
@@ -100,7 +105,17 @@ export function DataTable({
 	});
 
 	const routeFilters = useMemo(() => {
-		const { view: _view, ...nextFilters } = filters;
+		const {
+			view: _view,
+			section: _section,
+			dispatchId: _dispatchId,
+			dispatchSalesId: _dispatchSalesId,
+			exceptionId: _exceptionId,
+			sheetMode: _sheetMode,
+			detailTab: _detailTab,
+			exceptionStatus: _exceptionStatus,
+			...nextFilters
+		} = filters;
 		return nextFilters;
 	}, [filters]);
 	const queryInput = {
@@ -114,10 +129,21 @@ export function DataTable({
 				getNextPageParam: ({ meta }) =>
 					(meta as { cursor?: string | number | null } | undefined)?.cursor,
 			})
-		: trpc.dispatch.index.infiniteQueryOptions(queryInput, {
-				getNextPageParam: ({ meta }) =>
-					(meta as { cursor?: string | number | null } | undefined)?.cursor,
-			});
+		: workspace
+			? trpc.dispatch.list.infiniteQueryOptions(
+					{
+						...queryInput,
+						section: "dispatches",
+					},
+					{
+						getNextPageParam: ({ meta }) =>
+							(meta as { cursor?: string | number | null } | undefined)?.cursor,
+					},
+				)
+			: trpc.dispatch.index.infiniteQueryOptions(queryInput, {
+					getNextPageParam: ({ meta }) =>
+						(meta as { cursor?: string | number | null } | undefined)?.cursor,
+				});
 
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
 		useSuspenseInfiniteQuery<DispatchPage>(infiniteQueryOptions as never);
@@ -190,6 +216,14 @@ export function DataTable({
 		(rowId: string) => {
 			const dispatch = rowById.get(rowId);
 			if (!dispatch) return;
+			if (workspace) {
+				void setFilters({
+					dispatchId: dispatch.id,
+					sheetMode: "details",
+					detailTab: "overview",
+				});
+				return;
+			}
 
 			overviewQuery.openDispatch(
 				dispatch.order?.orderId,
@@ -197,11 +231,21 @@ export function DataTable({
 				"packing",
 			);
 		},
-		[overviewQuery, rowById],
+		[overviewQuery, rowById, setFilters, workspace],
 	);
 
 	const hasRouteFilters = Object.entries(filters).some(
-		([key, value]) => key !== "view" && value !== null,
+		([key, value]) =>
+			![
+				"view",
+				"section",
+				"dispatchId",
+				"dispatchSalesId",
+				"exceptionId",
+				"sheetMode",
+				"detailTab",
+				"exceptionStatus",
+			].includes(key) && value !== null,
 	);
 	const showBottomBar = Object.values(rowSelection).some(Boolean);
 
@@ -287,10 +331,7 @@ export function DataTable({
 
 			<AnimatePresence>
 				{showBottomBar && (
-					<BottomBar
-						data={tableData}
-						enableSalesMarkAs={enableSalesMarkAs}
-					/>
+					<BottomBar data={tableData} enableSalesMarkAs={enableSalesMarkAs} />
 				)}
 			</AnimatePresence>
 		</div>

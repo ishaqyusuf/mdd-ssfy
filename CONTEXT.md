@@ -98,3 +98,40 @@ _Avoid_: Special sale override, unsigned-order permission, general operations ov
 Public page copy, media, navigation, promotions, and sections that present
 Storefront Offers without defining their product relationships or pricing.
 _Avoid_: Product configuration
+
+## Dispatch Language
+
+**Dispatch**:
+A planned physical delivery trip for selected Sales Order quantities, assigned
+to one driver and completed as one operational journey.
+_Avoid_: Order, shipment status
+
+**Driver Manifest**:
+The authoritative driver-facing projection of assigned Dispatches, their
+ordered work, readiness, risks, and next actions.
+_Avoid_: Driver's local queue, client-derived work list
+
+**Packing**:
+Physical verification of the item quantities available for one Dispatch before
+the trip begins.
+_Avoid_: Production completion, inventory adjustment
+
+**Packed Quantity**:
+The quantity physically verified for the current Dispatch. It may be less than
+the ordered quantity without changing the commercial Sales Order quantity.
+_Avoid_: Ordered quantity, produced quantity
+
+**Dispatch Exception**:
+A durable operational issue reported against a Dispatch that can be reviewed
+and resolved without replacing the Dispatch lifecycle state.
+_Avoid_: Cancellation reason, temporary alert
+
+**Delivered**:
+The state in which accepted recipient proof has completed the physical delivery
+trip.
+_Avoid_: Fulfilled
+
+**Fulfilled**:
+The terminal result in which delivery proof and required inventory/dispatch
+completion have both been committed successfully.
+_Avoid_: Delivered, manually completed

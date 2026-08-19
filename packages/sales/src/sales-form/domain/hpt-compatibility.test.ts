@@ -340,4 +340,25 @@ describe("HPT legacy compatibility", () => {
 		expect(line.housePackageTool.doors[0].meta.flatRate).toBe(3);
 		expect(line.housePackageTool.totalPrice).toBe(268);
 	});
+
+	it("uses recovered base authority instead of a stale derived door price", () => {
+		const row: any = normalizeHptDoorRowForLegacy(
+			{
+				totalQty: 1,
+				jambSizePrice: 206.67,
+				meta: {
+					baseUnitPrice: 196.82,
+					doorSalesUnitPrice: 206.67,
+				},
+			},
+			{
+				salesMultiplier: 1 / 0.7,
+				sharedDoorSurcharge: 74.5,
+			},
+		);
+
+		expect(row.jambSizePrice).toBe(281.17);
+		expect(row.unitPrice).toBe(355.67);
+		expect(row.lineTotal).toBe(355.67);
+	});
 });

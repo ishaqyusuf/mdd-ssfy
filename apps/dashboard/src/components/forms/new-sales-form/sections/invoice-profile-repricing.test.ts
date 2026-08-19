@@ -27,4 +27,16 @@ describe("new sales form profile repricing transition", () => {
 						"if (customerProfileId != null && !currentProfile) return;",
 				);
 		});
+
+	it("never reprices a passive hydration transition", () => {
+		const source = readFileSync(
+			new URL("./invoice-overview-panel.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source).toContain("if (!pendingProfileRepriceRef.current)");
+		expect(source).toContain(
+			"profile selection reprices in applyCustomerProfileMeta",
+		);
+	});
 });

@@ -56,12 +56,15 @@ import {
 	sumMoney,
 } from "@gnd/sales/payment-system";
 import {
+	collapseDuplicateSalesDoorRows,
+	findDuplicateSalesDoorIdentities,
+	getSalesDoorActiveIdentity,
 	normalizeShelfProductSearchQuery,
+	normalizeSalesDoorDimension,
 	searchShelfProductIndex,
 	shelfProductSearchCandidateTerms,
 	shelfProductSearchCandidateTitleAnchorGroups,
 } from "@gnd/sales/sales-form";
-import { projectApprovedAdjustmentDoorRows } from "@gnd/sales/sales-form/application/approved-adjustment-projection";
 import {
 	calculateLegacyPaymentDueDate,
 	projectSalesFormMetaToLegacyMeta,
@@ -111,10 +114,14 @@ type NewSalesFormPersistedMeta = {
 	approvedAdjustmentId?: string;
 	updatedAt: string;
 	autosave: boolean;
-	lineItems: NewSalesFormLineItem[];
-	extraCosts: NewSalesFormExtraCost[];
-	summary: NewSalesFormSummary;
-	form: NewSalesFormMeta;
+	/** @deprecated Commercial state is relational. Retained only to read old rows. */
+	lineItems?: NewSalesFormLineItem[];
+	/** @deprecated Commercial state is relational. Retained only to read old rows. */
+	extraCosts?: NewSalesFormExtraCost[];
+	/** @deprecated Commercial state is relational. Retained only to read old rows. */
+	summary?: NewSalesFormSummary;
+	/** @deprecated Relational/root legacy fields are authoritative on load. */
+	form?: NewSalesFormMeta;
 };
 
 type NewSalesFormContainer = {
@@ -294,6 +301,26 @@ function roundCurrency(value: number) {
 	return roundMoney(value);
 }
 
+function hasUnprojectedApprovedCommercialSnapshot(
+	meta: NewSalesFormContainer,
+	items: Array<{ total: number | null }>,
+) {
+	const persisted = meta.newSalesForm;
+	if (!persisted?.approvedAdjustmentId || !persisted.lineItems?.length) {
+		return false;
+	}
+	const snapshotTotal = roundCurrency(
+		persisted.lineItems.reduce(
+			(total, line) => total + Number(line.lineTotal || 0),
+			0,
+		),
+	);
+	const relationalTotal = roundCurrency(
+		items.reduce((total, item) => total + Number(item.total || 0), 0),
+	);
+	return Math.abs(snapshotTotal - relationalTotal) >= 0.01;
+}
+
 function uniquePositiveNumbers(values: Array<unknown>) {
 	return values
 		.map((value) => Number(value || 0))
@@ -336,22 +363,32 @@ function legacyShelfMeta(shelf: any, index: number) {
 	};
 }
 
+function salesFormStepIdentity(step: any) {
+	return [
+		Number(step?.stepId || step?.step?.id || 0),
+		Number(step?.componentId || 0),
+		String(step?.prodUid || "").trim(),
+	].join("|");
+}
+
+function collapseDuplicateRelationalFormSteps<T extends { id?: number | null }>(
+	steps: T[],
+) {
+	const rows = new Map<string, T>();
+	for (const step of steps) {
+		const identity = salesFormStepIdentity(step);
+		const current = rows.get(identity);
+		if (!current || Number(step.id || 0) < Number(current.id || 0)) {
+			rows.set(identity, step);
+		}
+	}
+	return [...rows.values()];
+}
+
 function normalizeSalesFormTitle(value?: string | null) {
 	return String(value || "")
 		.trim()
 		.toLowerCase();
-}
-
-function getLineItemTypeTitle(line: {
-	formSteps?: Array<{
-		step?: { title?: string | null } | null;
-		value?: string | null;
-	}> | null;
-}) {
-	const itemTypeStep = (line.formSteps || []).find(
-		(step) => normalizeSalesFormTitle(step?.step?.title) === "item type",
-	);
-	return String(itemTypeStep?.value || "").trim();
 }
 
 function getLineMetaRows(
@@ -363,220 +400,6 @@ function getLineMetaRows(
 	const meta = safeRecord(line.meta);
 	const rows = meta[key];
 	return Array.isArray(rows) ? rows : [];
-}
-
-function isGroupedLine(line: {
-	formSteps?: Array<{
-		step?: { title?: string | null } | null;
-		value?: string | null;
-	}> | null;
-	meta?: unknown;
-}) {
-	const itemType = normalizeSalesFormTitle(getLineItemTypeTitle(line));
-	if (
-		itemType === "moulding" ||
-		itemType === "mouldings" ||
-		itemType === "molding" ||
-		itemType === "moldings" ||
-		itemType === "service" ||
-		itemType === "services"
-	) {
-		return true;
-	}
-	return (
-		getLineMetaRows(line, "mouldingRows").length > 0 ||
-		getLineMetaRows(line, "serviceRows").length > 0
-	);
-}
-
-function mergePersistedFormSteps(
-	persistedSteps: Array<Record<string, unknown>> | undefined,
-	dbSteps: Array<Record<string, unknown>> | undefined,
-) {
-	const persisted = Array.isArray(persistedSteps) ? persistedSteps : [];
-	const database = Array.isArray(dbSteps) ? dbSteps : [];
-	if (!persisted.length) return database;
-	return persisted.map((step, index) => {
-		const dbMatch =
-			database.find(
-				(dbStep) =>
-					Number(dbStep.id || 0) > 0 &&
-					Number(dbStep.id || 0) === Number(step.id || 0),
-			) ||
-			database.find(
-				(dbStep) =>
-					Number(dbStep.stepId || 0) > 0 &&
-					Number(dbStep.stepId || 0) === Number(step.stepId || 0),
-			) ||
-			database.find(
-				(dbStep) =>
-					String(dbStep.prodUid || "").trim() &&
-					String(dbStep.prodUid || "").trim() ===
-						String(step.prodUid || "").trim(),
-			) ||
-			database[index];
-		return {
-			...(dbMatch || {}),
-			...step,
-			meta: (() => {
-				const dbMeta = safeRecord(dbMatch?.meta);
-				const persistedMeta = safeRecord(step.meta);
-				const persistedComponents = persistedMeta.selectedComponents;
-				const dbComponents = dbMeta.selectedComponents;
-				const selectedComponents =
-					Array.isArray(persistedComponents) && persistedComponents.length
-						? persistedComponents
-						: Array.isArray(dbComponents) && dbComponents.length
-							? dbComponents
-							: persistedComponents;
-				return {
-					...dbMeta,
-					...persistedMeta,
-					...(Array.isArray(selectedComponents) ? { selectedComponents } : {}),
-				};
-			})(),
-			step:
-				safeRecord(step.step).id ||
-				safeRecord(step.step).title ||
-				safeRecord(step.step).uid
-					? {
-							...(safeRecord(dbMatch?.step) || {}),
-							...(safeRecord(step.step) || {}),
-						}
-					: safeRecord(dbMatch?.step),
-		};
-	});
-}
-
-function rowText(row: Record<string, unknown>, key: "moulding" | "service") {
-	if (key === "service")
-		return String(row.service || row.description || "").trim();
-	return String(row.title || row.description || "").trim();
-}
-
-function mergeGroupedRowsByIdentity(
-	persistedRows: unknown,
-	dbRows: unknown,
-	key: "moulding" | "service",
-) {
-	const persisted = Array.isArray(persistedRows) ? persistedRows : [];
-	const database = Array.isArray(dbRows) ? dbRows : [];
-	if (!persisted.length) return database;
-	if (!database.length) return persisted;
-	return persisted.map((row: Record<string, unknown>, index) => {
-		const uid = String(row?.uid || "").trim();
-		const text = rowText(row, key).toLowerCase();
-		const dbMatch =
-			database.find(
-				(dbRow: Record<string, unknown>) =>
-					uid && String(dbRow?.uid || "").trim() === uid,
-			) ||
-			database.find(
-				(dbRow: Record<string, unknown>) =>
-					text && rowText(dbRow, key).toLowerCase() === text,
-			) ||
-			database[index];
-		return {
-			...(dbMatch || {}),
-			...row,
-			salesItemId:
-				(row as any)?.salesItemId ?? (dbMatch as any)?.salesItemId ?? null,
-			hptId: (row as any)?.hptId ?? (dbMatch as any)?.hptId ?? null,
-			groupUid: (row as any)?.groupUid ?? (dbMatch as any)?.groupUid ?? null,
-			primaryGroupItem:
-				(row as any)?.primaryGroupItem ??
-				(dbMatch as any)?.primaryGroupItem ??
-				index === 0,
-		};
-	});
-}
-
-function mergePersistedDoorRows(
-	persistedRows: unknown,
-	dbRows: unknown,
-	preferPersistedSnapshot: boolean,
-) {
-	const hasPersistedRows = Array.isArray(persistedRows);
-	const persisted = (
-		Array.isArray(persistedRows) ? persistedRows : []
-	) as Array<Record<string, unknown>>;
-	const database = (Array.isArray(dbRows) ? dbRows : []) as Array<
-		Record<string, unknown>
-	>;
-	if (preferPersistedSnapshot && hasPersistedRows) {
-		return projectApprovedAdjustmentDoorRows(persisted, database);
-	}
-	const findMatchingDoorRow = (
-		rows: Array<Record<string, unknown>>,
-		row: Record<string, unknown>,
-		index: number,
-		allowPositionalFallback: boolean,
-	) => {
-		const rowId = Number(row?.id || 0);
-		const rowDimension = String(row?.dimension || "")
-			.trim()
-			.toLowerCase();
-		const rowStepProductId = Number(row?.stepProductId || 0);
-		return (
-			rows.find(
-				(candidate) => rowId > 0 && Number(candidate?.id || 0) === rowId,
-			) ||
-			rows.find((candidate) => {
-				const candidateDimension = String(candidate?.dimension || "")
-					.trim()
-					.toLowerCase();
-				return (
-					rowDimension &&
-					candidateDimension === rowDimension &&
-					(!rowStepProductId ||
-						Number(candidate?.stepProductId || 0) === rowStepProductId)
-				);
-			}) ||
-			(allowPositionalFallback ? rows[index] : undefined)
-		);
-	};
-	return database.map((dbRow, index) => {
-		const persistedMatch = findMatchingDoorRow(persisted, dbRow, index, true);
-		return {
-			...(persistedMatch || {}),
-			...dbRow,
-			meta: {
-				...safeRecord(persistedMatch?.meta),
-				...safeRecord(dbRow?.meta),
-			},
-		};
-	});
-}
-
-function mergeGroupedLineMeta(
-	persistedMeta: Record<string, unknown>,
-	dbMeta: Record<string, unknown>,
-) {
-	const merged = {
-		...dbMeta,
-		...persistedMeta,
-	};
-	if (
-		Array.isArray(dbMeta.mouldingRows) ||
-		Array.isArray(persistedMeta.mouldingRows)
-	) {
-		merged.mouldingRows = mergeGroupedRowsByIdentity(
-			persistedMeta.mouldingRows,
-			dbMeta.mouldingRows,
-			"moulding",
-		);
-	}
-	if (
-		Array.isArray(dbMeta.serviceRows) ||
-		Array.isArray(persistedMeta.serviceRows)
-	) {
-		merged.serviceRows = mergeGroupedRowsByIdentity(
-			persistedMeta.serviceRows,
-			dbMeta.serviceRows,
-			"service",
-		);
-	}
-	return merged;
 }
 
 function mergeLegacyDoorComponentSnapshots(
@@ -760,6 +583,67 @@ function normalizeLineItems(lines: NewSalesFormLineItem[]) {
 	});
 }
 
+function assertUniqueDurableSalesFormIds(
+	lines: NewSalesFormLineItem[],
+	extraCosts: NewSalesFormExtraCost[],
+) {
+	const assertUnique = (
+		label: string,
+		values: Array<number | null | undefined>,
+	) => {
+		const seen = new Set<number>();
+		for (const value of values) {
+			const id = Number(value || 0);
+			if (id <= 0) continue;
+			if (seen.has(id)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Duplicate durable ${label} id ${id}. Reload the document before saving.`,
+				});
+			}
+			seen.add(id);
+		}
+	};
+	const lineUids = lines.map((line) => line.uid);
+	if (new Set(lineUids).size !== lineUids.length) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Duplicate line identity. Reload the document before saving.",
+		});
+	}
+	assertUnique(
+		"line",
+		lines.map((line) => line.id),
+	);
+	assertUnique(
+		"form-step",
+		lines.flatMap((line) => (line.formSteps || []).map((step) => step.id)),
+	);
+	assertUnique(
+		"shelf-row",
+		lines.flatMap((line) => (line.shelfItems || []).map((row) => row.id)),
+	);
+	assertUnique(
+		"door",
+		lines.flatMap((line) =>
+			(line.housePackageTool?.doors || []).map((door) => door.id),
+		),
+	);
+	assertUnique(
+		"extra-cost",
+		extraCosts.map((cost) => cost.id),
+	);
+	for (const line of lines) {
+		const stepIdentities = (line.formSteps || []).map(salesFormStepIdentity);
+		if (new Set(stepIdentities).size !== stepIdentities.length) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Duplicate form-step selection on ${line.title}. Remove the duplicate component before saving.`,
+			});
+		}
+	}
+}
+
 async function generateSalesIdentity(
 	ctx: TRPCContext,
 	type: "order" | "quote",
@@ -941,6 +825,9 @@ function toBootstrapPayload(
 			salesPercentage: number | null;
 			coefficient: number | null;
 		} | null;
+		salesProfile?: {
+			coefficient: number | null;
+		} | null;
 		meta: unknown;
 		payments?: { amount: number | null; status?: string | null }[];
 	},
@@ -948,8 +835,6 @@ function toBootstrapPayload(
 ) {
 	const container = safeMeta(order.meta);
 	const persisted = container.newSalesForm;
-	const persistedLines = persisted?.lineItems || [];
-	const persistedExtraCosts = persisted?.extraCosts || [];
 	const rawDbLines = order.items
 		.filter((item) => !item.deletedAt)
 		.map((item, index) => {
@@ -981,23 +866,51 @@ function toBootstrapPayload(
 											price: Number(item.housePackageTool.molding.price || 0),
 										}
 									: null,
-							doors: (item.housePackageTool.doors || []).map((door) => ({
-								id: door.id,
-								dimension: door.dimension,
-								swing: door.swing,
-								doorType: door.doorType,
-								doorPrice: Number(door.doorPrice || 0),
-								jambSizePrice: Number(door.jambSizePrice || 0),
-								casingPrice: Number(door.casingPrice || 0),
-								unitPrice: Number(door.unitPrice || 0),
-								lhQty: Number(door.lhQty || 0),
-								rhQty: Number(door.rhQty || 0),
-								totalQty: Number(door.totalQty || 0),
-								lineTotal: Number(door.lineTotal || 0),
-								stepProductId: door.stepProductId,
-								meta: safeRecord(door.meta),
-								stepProduct: door.stepProduct,
-							})),
+							doors: collapseDuplicateSalesDoorRows(
+								(item.housePackageTool.doors || []).map((door) => {
+									const doorMeta = safeRecord(door.meta);
+									const coefficient = Number(
+										order.salesProfile?.coefficient || 0,
+									);
+									const storedBase = Number(doorMeta.baseUnitPrice || 0);
+									const recoveredBase =
+										storedBase > 0
+											? storedBase
+											: coefficient > 0 && Number(door.jambSizePrice || 0) > 0
+												? roundMoney(
+														Number(door.jambSizePrice || 0) * coefficient,
+													)
+												: 0;
+									return {
+										id: door.id,
+										dimension: normalizeSalesDoorDimension(door.dimension),
+										swing: door.swing,
+										doorType: door.doorType,
+										doorPrice: Number(door.doorPrice || 0),
+										jambSizePrice: Number(door.jambSizePrice || 0),
+										casingPrice: Number(door.casingPrice || 0),
+										unitPrice: Number(door.unitPrice || 0),
+										lhQty: Number(door.lhQty || 0),
+										rhQty: Number(door.rhQty || 0),
+										totalQty: Number(door.totalQty || 0),
+										lineTotal: Number(door.lineTotal || 0),
+										stepProductId: door.stepProductId,
+										meta: {
+											...doorMeta,
+											...(recoveredBase > 0
+												? {
+														baseUnitPrice: recoveredBase,
+														pricingAuthority:
+															storedBase > 0
+																? doorMeta.pricingAuthority || "catalog"
+																: "recovered-relational-price",
+													}
+												: {}),
+										},
+										stepProduct: door.stepProduct,
+									};
+								}),
+							),
 						}
 					: null;
 			const rawLine = {
@@ -1020,7 +933,7 @@ function toBootstrapPayload(
 				lineTotal: Number(item.total || 0),
 				meta: lineMeta,
 				formSteps: mergeLegacyDoorComponentSnapshots(
-					item.formSteps.map((step) => ({
+					collapseDuplicateRelationalFormSteps(item.formSteps).map((step) => ({
 						id: step.id,
 						stepId: step.stepId,
 						componentId: step.componentId,
@@ -1050,113 +963,44 @@ function toBootstrapPayload(
 				})),
 				housePackageTool,
 			};
-			return hydrateHptLineFromLegacy(rawLine as any) as typeof rawLine;
+			return hydrateHptLineFromLegacy(rawLine as any, {
+				profileCoefficient: order.salesProfile?.coefficient,
+			}) as typeof rawLine;
 		});
-	const dbLines = collapseLegacyGroupedLines(rawDbLines).map(
-		({ multiDykeUid, multiDyke, dykeProduction, sourceMeta, ...line }) => line,
-	);
+	const dbLines = collapseLegacyGroupedLines(rawDbLines)
+		.map(
+			({ multiDykeUid, multiDyke, dykeProduction, sourceMeta, ...line }) =>
+				line,
+		)
+		.sort((left, right) => {
+			const leftIndex = Number(safeRecord(left.meta).itemIndex);
+			const rightIndex = Number(safeRecord(right.meta).itemIndex);
+			if (!Number.isFinite(leftIndex) || !Number.isFinite(rightIndex)) return 0;
+			return leftIndex - rightIndex;
+		});
 
-	const lineItems = (persistedLines.length ? persistedLines : dbLines).map(
-		(line, index) => {
-			const dbMatch =
-				dbLines.find((dbLine) => dbLine.id && dbLine.id === line.id) ||
-				dbLines.find((dbLine) => dbLine.uid === line.uid) ||
-				dbLines[index];
-			const mergedHousePackageTool =
-				line.housePackageTool || dbMatch?.housePackageTool
-					? {
-							...(dbMatch?.housePackageTool || {}),
-							...(line.housePackageTool || {}),
-							meta: {
-								...safeRecord(dbMatch?.housePackageTool?.meta),
-								...safeRecord(line.housePackageTool?.meta),
-							},
-							doors:
-								dbMatch?.housePackageTool?.doors &&
-								dbMatch.housePackageTool.doors.length
-									? mergePersistedDoorRows(
-											line.housePackageTool?.doors,
-											dbMatch.housePackageTool.doors,
-											Boolean(persisted?.approvedAdjustmentId),
-										)
-									: line.housePackageTool?.doors || [],
-							molding:
-								line.housePackageTool?.molding ||
-								dbMatch?.housePackageTool?.molding ||
-								null,
-						}
-					: null;
-			const persistedTitle =
-				typeof line.title === "string" ? line.title.trim() : "";
-			const persistedDescription =
-				typeof line.description === "string" ? line.description.trim() : "";
-			const dbTitle =
-				typeof dbMatch?.title === "string" ? dbMatch.title.trim() : "";
-			const groupedLine = isGroupedLine({
-				formSteps:
-					line.formSteps && line.formSteps.length
-						? line.formSteps
-						: dbMatch?.formSteps || [],
-				meta: {
-					...(dbMatch?.meta || {}),
-					...(line.meta || {}),
-				},
-			});
-			const normalizedItemTypeTitle = getLineItemTypeTitle({
-				formSteps:
-					line.formSteps && line.formSteps.length
-						? line.formSteps
-						: dbMatch?.formSteps || [],
-			});
-			const mergedMeta = mergeGroupedLineMeta(
-				safeRecord(line.meta),
-				safeRecord(dbMatch?.meta),
-			);
-			const mergedLine = {
-				...line,
-				title: groupedLine
-					? dbTitle || normalizedItemTypeTitle || persistedTitle
-					: dbTitle &&
-							(!persistedTitle || persistedTitle === persistedDescription)
-						? dbTitle
-						: persistedTitle || dbTitle,
-				meta: mergedMeta,
-				formSteps: mergePersistedFormSteps(
-					line.formSteps as Array<Record<string, unknown>> | undefined,
-					dbMatch?.formSteps as Array<Record<string, unknown>> | undefined,
-				),
-				shelfItems:
-					line.shelfItems && line.shelfItems.length
-						? line.shelfItems
-						: dbMatch?.shelfItems || [],
-				housePackageTool: mergedHousePackageTool,
-			};
-			return normalizeHptLineForLegacy(mergedLine as any) as typeof mergedLine;
-		},
-	);
+	// The relational sales graph is the sole commercial authority. Historical
+	// JSON line snapshots are deliberately ignored here so they cannot recreate
+	// deleted rows, replace durable ids, or override current prices.
+	const lineItems = dbLines.map((line) =>
+		normalizeHptLineForLegacy(line as any, {
+			profileCoefficient: order.salesProfile?.coefficient,
+		}),
+	) as typeof dbLines;
 	const taxRate = Number(
-		order.taxPercentage ||
-			order.taxes?.[0]?.taxConfig?.percentage ||
-			persisted?.summary?.taxRate ||
-			0,
+		order.taxPercentage ?? order.taxes?.[0]?.taxConfig?.percentage ?? 0,
 	);
 	const paymentMethod = resolvePersistedPaymentMethod(container, persisted);
 	const summary = recalculateSummary({
 		taxRate,
 		paymentMethod,
 		cccPercentage: settings.cccPercentage,
-		extraCosts: persistedExtraCosts.length
-			? persistedExtraCosts.map((cost) => ({
-					type: cost.type,
-					amount: Number(cost.amount || 0),
-					taxxable: cost.taxxable ?? false,
-				}))
-			: order.extraCosts.map((cost) => ({
-					type: cost.type as any,
-					amount: Number(cost.amount || 0),
-					taxxable: cost.taxxable ?? false,
-				})),
-		lineItems,
+		extraCosts: order.extraCosts.map((cost) => ({
+			type: cost.type as any,
+			amount: Number(cost.amount || 0),
+			taxxable: cost.taxxable ?? false,
+		})),
+		lineItems: lineItems as any,
 	});
 	const hasComputedSummary = Number(summary.subTotal || 0) > 0;
 	const paymentTotal = sumMoney(
@@ -1239,20 +1083,19 @@ function toBootstrapPayload(
 			paymentMethod,
 		},
 		lineItems,
-		extraCosts: persistedExtraCosts.length
-			? persistedExtraCosts
-			: order.extraCosts.map((cost) => ({
-					id: cost.id,
-					label: cost.label,
-					type: cost.type as any,
-					amount: Number(cost.amount || 0),
-					taxxable: cost.taxxable,
-				})),
+		extraCosts: order.extraCosts.map((cost) => ({
+			id: cost.id,
+			label: cost.label,
+			type: cost.type as any,
+			amount: Number(cost.amount || 0),
+			taxxable: cost.taxxable,
+		})),
 		summary: {
-			subTotal: Number(order.subTotal ?? summary.subTotal),
+			subTotal: Number(summary.subTotal),
 			adjustedSubTotal: Number(summary.adjustedSubTotal ?? summary.subTotal),
+			taxableSubTotal: Number(summary.taxableSubTotal || 0),
 			taxRate,
-			taxTotal: Number(order.tax ?? summary.taxTotal),
+			taxTotal: Number(summary.taxTotal),
 			grandTotal: Number(displayHydratedSummary.grandTotal || 0),
 			totalWithCcc: Number(displayHydratedSummary.totalWithCcc || 0),
 			discount: Number(summary.discount || 0),
@@ -1484,6 +1327,11 @@ export async function getNewSalesForm(
 						id: true,
 						title: true,
 						salesPercentage: true,
+						coefficient: true,
+					},
+				},
+				salesProfile: {
+					select: {
 						coefficient: true,
 					},
 				},
@@ -3048,9 +2896,38 @@ async function saveNewSalesFormInternal(
 				? await getSalesActivitySenderContactId(ctx.db, ctx.userId)
 				: null
 			: null;
-	const normalizedLines = normalizeLineItems(payload.lineItems);
+	const normalizedLines = normalizeLineItems(payload.lineItems).map((line) => {
+		const doors = line.housePackageTool?.doors || [];
+		return !doors.length
+			? line
+			: {
+					...line,
+					housePackageTool: {
+						...line.housePackageTool!,
+						doors: doors.map((door) => ({
+							...door,
+							dimension: normalizeSalesDoorDimension(door.dimension),
+						})),
+					},
+				};
+	});
+	assertUniqueDurableSalesFormIds(normalizedLines, payload.extraCosts);
+	for (const line of normalizedLines) {
+		const duplicates = findDuplicateSalesDoorIdentities(
+			line.housePackageTool?.doors || [],
+		);
+		if (duplicates.length) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Duplicate door component and size: ${duplicates.join(", ")}. Remove the duplicate row before saving.`,
+			});
+		}
+	}
 	const legacySaveLines = normalizedLines.flatMap((line) =>
 		expandGroupedLineForLegacySave(line),
+	);
+	const lineOrderByUid = new Map(
+		normalizedLines.map((line, index) => [line.uid, index]),
 	);
 	const setting = await ctx.db.settings.findFirst({
 		where: {
@@ -3148,463 +3025,511 @@ async function saveNewSalesFormInternal(
 		paymentMethod: payload.meta.paymentMethod || null,
 		cccPercentage: settings.cccPercentage,
 	});
-	return ctx.db.$transaction(async (tx) => {
-		const isNew = !(payload.salesId || payload.slug);
-		let currentId = payload.salesId || null;
-		const persistedLineItemIds = new Map<string, number>();
-		const persistedExtraCosts: NewSalesFormExtraCost[] = [];
-		let order = null as null | {
-			id: number;
-			slug: string;
-			orderId: string;
-			meta: unknown;
-			inventoryStatus: string | null;
-			specialOrderDeclaration: "NO" | "YES" | null;
-			specialOrderStatus:
-				| "NOT_REQUIRED"
-				| "SIGNATURE_PENDING"
-				| "CUSTOMER_APPROVED"
-				| "REAPPROVAL_REQUIRED"
-				| "CUSTOMER_DECLINED"
-				| null;
-			specialOrderRevision: string | null;
-			currentSpecialOrderApprovalId: string | null;
-			currentSpecialOrderRequestId: string | null;
-			updatedAt: Date | null;
-			createdAt: Date | null;
-			paymentTerm: string | null;
-			paymentDueDate: Date | null;
-			goodUntil: Date | null;
-			prodDueDate: Date | null;
-			customerId: number | null;
-			dealerAuthId: number | null;
-			salesChannel: string | null;
-			payments: { amount: number | null; status: string | null }[];
-			grandTotal: number | null;
-			items: Array<{
+	const transactionResult = await ctx.db.$transaction(
+		async (tx) => {
+			const isNew = !(payload.salesId || payload.slug);
+			let currentId = payload.salesId || null;
+			const persistedLineItemIds = new Map<string, number>();
+			const retainedSalesItemIds = new Set<number>();
+			const retainedStepIds = new Set<number>();
+			const retainedShelfIds = new Set<number>();
+			const retainedHptIds = new Set<number>();
+			const retainedDoorIds = new Set<number>();
+			const persistedExtraCosts: NewSalesFormExtraCost[] = [];
+			let order = null as null | {
 				id: number;
-				multiDykeUid: string | null;
-				description: string | null;
-				dykeDescription: string | null;
-				qty: number | null;
-				total: number | null;
+				slug: string;
+				orderId: string;
 				meta: unknown;
-			}>;
-		};
+				inventoryStatus: string | null;
+				specialOrderDeclaration: "NO" | "YES" | null;
+				specialOrderStatus:
+					| "NOT_REQUIRED"
+					| "SIGNATURE_PENDING"
+					| "CUSTOMER_APPROVED"
+					| "REAPPROVAL_REQUIRED"
+					| "CUSTOMER_DECLINED"
+					| null;
+				specialOrderRevision: string | null;
+				currentSpecialOrderApprovalId: string | null;
+				currentSpecialOrderRequestId: string | null;
+				updatedAt: Date | null;
+				createdAt: Date | null;
+				paymentTerm: string | null;
+				paymentDueDate: Date | null;
+				goodUntil: Date | null;
+				prodDueDate: Date | null;
+				customerId: number | null;
+				dealerAuthId: number | null;
+				salesChannel: string | null;
+				payments: { amount: number | null; status: string | null }[];
+				grandTotal: number | null;
+				items: Array<{
+					id: number;
+					multiDykeUid: string | null;
+					description: string | null;
+					dykeDescription: string | null;
+					qty: number | null;
+					total: number | null;
+					meta: unknown;
+				}>;
+			};
 
-		if (payload.salesId || payload.slug) {
-			order = await tx.salesOrders.findFirst({
-				where: {
-					id: payload.salesId || undefined,
-					slug: payload.slug || undefined,
-					type: payload.type,
-					deletedAt: null,
-				},
-				select: {
-					id: true,
-					slug: true,
-					orderId: true,
-					meta: true,
-					inventoryStatus: true,
-					specialOrderDeclaration: true,
-					specialOrderStatus: true,
-					specialOrderRevision: true,
-					currentSpecialOrderApprovalId: true,
-					currentSpecialOrderRequestId: true,
-					updatedAt: true,
-					createdAt: true,
-					paymentTerm: true,
-					paymentDueDate: true,
-					goodUntil: true,
-					prodDueDate: true,
-					customerId: true,
-					dealerAuthId: true,
-					salesChannel: true,
-					payments: {
-						where: {
-							deletedAt: null,
-						},
-						select: {
-							amount: true,
-							status: true,
-						},
+			if (payload.salesId || payload.slug) {
+				order = await tx.salesOrders.findFirst({
+					where: {
+						id: payload.salesId || undefined,
+						slug: payload.slug || undefined,
+						type: payload.type,
+						deletedAt: null,
 					},
-					grandTotal: true,
-					items: {
-						where: { deletedAt: null },
-						orderBy: { id: "asc" },
-						select: {
-							id: true,
-							multiDykeUid: true,
-							description: true,
-							dykeDescription: true,
-							qty: true,
-							total: true,
-							meta: true,
-						},
-					},
-				},
-			});
-			if (!order) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Sales form not found for save.",
-				});
-			}
-			currentId = order.id;
-		}
-
-		if (order?.dealerAuthId && payload.meta.customerId !== order.customerId) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: "A dealer-origin order's customer cannot be changed.",
-			});
-		}
-		let selectedCustomer: {
-			dealerOwnerId: number | null;
-			email: string | null;
-		} | null = null;
-		if (payload.meta.customerId) {
-			selectedCustomer = await tx.customers.findFirst({
-				where: {
-					id: payload.meta.customerId,
-					deletedAt: null,
-				},
-				select: { dealerOwnerId: true, email: true },
-			});
-			const editsMatchingDealerOrder =
-				Boolean(order?.dealerAuthId) &&
-				order?.customerId === payload.meta.customerId;
-			if (
-				!selectedCustomer ||
-				(selectedCustomer.dealerOwnerId && !editsMatchingDealerOrder)
-			) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message:
-						"Dealer-owned customers cannot be used for office-origin sales.",
-				});
-			}
-		}
-
-		const isInternalDashboardOrder = !origin && !order?.dealerAuthId;
-		const enrollmentAccess = isInternalDashboardOrder
-			? await getSpecialOrderEnrollmentAccess(
-					tx as unknown as TRPCContext["db"],
-					ctx.userId ?? null,
-				)
-			: { canEnroll: true };
-		const actorCanEnrollSpecialOrder = enrollmentAccess.canEnroll;
-		const currentSpecialOrderDeclaration =
-			order?.specialOrderDeclaration ?? null;
-		const nextSpecialOrderDeclaration =
-			payload.type !== "order"
-				? null
-				: payload.specialOrderDeclaration === undefined
-					? currentSpecialOrderDeclaration
-					: payload.specialOrderDeclaration;
-		const enrollmentValidation = validateSpecialOrderEnrollment({
-			currentDeclaration: currentSpecialOrderDeclaration,
-			nextDeclaration: nextSpecialOrderDeclaration,
-			canEnroll: !isInternalDashboardOrder || actorCanEnrollSpecialOrder,
-		});
-		if (!enrollmentValidation.allowed) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message:
-					"SPECIAL_ORDER_ENROLLMENT_RESTRICTED: Only Super Admin can mark an order as Special Order during the pilot.",
-			});
-		}
-		const declarationValidation = validateSpecialOrderDeclaration({
-			type: payload.type,
-			commitIntent: payload.commitIntent,
-			declaration: nextSpecialOrderDeclaration,
-			isInternalDashboardOrder,
-			canEnroll: actorCanEnrollSpecialOrder,
-		});
-		if (!declarationValidation.valid) {
-			throw new TRPCError({
-				code: "PRECONDITION_FAILED",
-				message:
-					"SPECIAL_ORDER_DECLARATION_REQUIRED: Choose Yes or No for Special Order before completing this sale.",
-			});
-		}
-		if (
-			requiresSpecialOrderCustomerEmail({
-				declaration: nextSpecialOrderDeclaration,
-				customerEmail: selectedCustomer?.email,
-				commitIntent: payload.commitIntent,
-			})
-		) {
-			throw new TRPCError({
-				code: "PRECONDITION_FAILED",
-				message:
-					"SPECIAL_ORDER_CUSTOMER_EMAIL_REQUIRED: Add a valid customer email before saving this Special Order.",
-			});
-		}
-		const manuallyEnrolledExistingOrder =
-			Boolean(order) &&
-			isInternalDashboardOrder &&
-			currentSpecialOrderDeclaration !== "YES" &&
-			nextSpecialOrderDeclaration === "YES";
-		const specialOrderTransition = deriveSpecialOrderRevisionTransition({
-			declaration: nextSpecialOrderDeclaration,
-			currentRevision: order?.specialOrderRevision,
-			nextRevision: specialOrderRevision,
-			currentApprovalId: order?.currentSpecialOrderApprovalId,
-			currentStatus: order?.specialOrderStatus,
-		});
-		const nextCurrentSpecialOrderApprovalId =
-			specialOrderTransition.nextApprovalId;
-		const specialOrderRevisionChanged =
-			specialOrderTransition.revisionChanged;
-		const hadCustomerEvidence =
-			specialOrderTransition.hadCustomerEvidence;
-		const nextSpecialOrderStatus = specialOrderTransition.nextStatus;
-		if (order && specialOrderRevisionChanged) {
-			await tx.specialOrderApprovalRequest.updateMany({
-				where: { salesOrderId: order.id, status: "ACTIVE" },
-				data: {
-					status: "REVOKED",
-					revokedAt: new Date(),
-					revokedReason: "ORDER_REVISION_CHANGED",
-				},
-			});
-			if (order.currentSpecialOrderApprovalId) {
-				await tx.specialOrderApprovalEvidence.updateMany({
-					where: { id: order.currentSpecialOrderApprovalId },
-					data: {
-						supersededAt: new Date(),
-						supersededReason: "Order revision changed",
-						supersededByUserId: ctx.userId ?? null,
-					},
-				});
-			}
-		}
-
-		const currentMeta = safeMeta(order?.meta);
-		const currentVersion = order
-			? currentMeta.newSalesForm?.version ||
-				`${order.updatedAt?.getTime() || order.createdAt?.getTime() || 0}-legacy`
-			: null;
-		if (
-			currentVersion &&
-			payload.version &&
-			currentVersion !== payload.version
-		) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message:
-					"This form changed elsewhere. Reload the latest version before saving.",
-			});
-		}
-		const saveCommitments =
-			order && payload.type === "order"
-				? await getNewSalesFormCommitmentSnapshot(
-						tx as unknown as TRPCContext["db"],
-						order.id,
-					)
-				: null;
-		if (order && payload.type === "order" && saveCommitments) {
-			const persistedLines = currentMeta.newSalesForm?.lineItems || [];
-			const beforeLines = persistedLines.length
-				? persistedLines
-				: order.items.map((item) => ({
-						id: item.id,
-						uid:
-							(typeof safeRecord(item.meta).uid === "string" &&
-								String(safeRecord(item.meta).uid)) ||
-							item.multiDykeUid ||
-							`sales-item-${item.id}`,
-						title: item.dykeDescription || item.description || "Line item",
-						qty: Number(item.qty || 0),
-						lineTotal: Number(item.total || 0),
-					}));
-			const analysis = analyzeSalesFormChange({
-				before: {
-					lineItems: beforeLines,
-					summary: {
-						grandTotal:
-							currentMeta.newSalesForm?.summary?.grandTotal ??
-							order.grandTotal ??
-							0,
-					},
-				},
-				after: { lineItems: normalizedLines, summary: persistedSummary },
-				commitments: saveCommitments,
-			});
-			if (analysis.requiresSalesRepApproval) {
-				const approved = payload.approvedAdjustmentId
-					? await tx.salesOrderAdjustment.findFirst({
+					select: {
+						id: true,
+						slug: true,
+						orderId: true,
+						meta: true,
+						inventoryStatus: true,
+						specialOrderDeclaration: true,
+						specialOrderStatus: true,
+						specialOrderRevision: true,
+						currentSpecialOrderApprovalId: true,
+						currentSpecialOrderRequestId: true,
+						updatedAt: true,
+						createdAt: true,
+						paymentTerm: true,
+						paymentDueDate: true,
+						goodUntil: true,
+						prodDueDate: true,
+						customerId: true,
+						dealerAuthId: true,
+						salesChannel: true,
+						payments: {
 							where: {
-								id: payload.approvedAdjustmentId,
-								salesOrderId: order.id,
-								status: { in: ["APPROVED", "APPLYING"] },
-								sourceVersion: currentVersion || null,
+								deletedAt: null,
 							},
 							select: {
+								amount: true,
+								status: true,
+							},
+						},
+						grandTotal: true,
+						items: {
+							where: { deletedAt: null },
+							orderBy: { id: "asc" },
+							select: {
 								id: true,
-								proposedGrandTotal: true,
-								proposedSnapshot: true,
+								multiDykeUid: true,
+								description: true,
+								dykeDescription: true,
+								qty: true,
+								total: true,
+								meta: true,
 							},
-						})
-					: null;
-				const approvedSnapshot = safeRecord(approved?.proposedSnapshot);
-				const approvedLines = Array.isArray(approvedSnapshot.lineItems)
-					? approvedSnapshot.lineItems.map((line) => safeRecord(line))
-					: [];
-				const approvedSummary = safeRecord(approvedSnapshot.summary);
-				const approvedPayloadDiff = approved
-					? analyzeSalesFormChange({
-							before: {
-								lineItems: approvedLines.map((line) => ({
-									id: Number(line.id || 0) || null,
-									uid: String(line.uid || ""),
-									title: String(line.title || line.description || "Line item"),
-									qty: Number(line.qty || 0),
-									lineTotal: Number(line.lineTotal || 0),
-								})),
-								summary: {
-									grandTotal: Number(approvedSummary.grandTotal || 0),
-								},
-							},
-							after: {
-								lineItems: normalizedLines,
-								summary: persistedSummary,
-							},
-							commitments: {},
-						})
-					: null;
+						},
+					},
+				});
+				if (!order) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Sales form not found for save.",
+					});
+				}
+				currentId = order.id;
+			}
+
+			if (order?.dealerAuthId && payload.meta.customerId !== order.customerId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "A dealer-origin order's customer cannot be changed.",
+				});
+			}
+			let selectedCustomer: {
+				dealerOwnerId: number | null;
+				email: string | null;
+			} | null = null;
+			if (payload.meta.customerId) {
+				selectedCustomer = await tx.customers.findFirst({
+					where: {
+						id: payload.meta.customerId,
+						deletedAt: null,
+					},
+					select: { dealerOwnerId: true, email: true },
+				});
+				const editsMatchingDealerOrder =
+					Boolean(order?.dealerAuthId) &&
+					order?.customerId === payload.meta.customerId;
 				if (
-					!approved ||
-					Number(approved.proposedGrandTotal) !==
-						Number(persistedSummary.grandTotal) ||
-					approvedPayloadDiff?.direction !== "NONE"
+					!selectedCustomer ||
+					(selectedCustomer.dealerOwnerId && !editsMatchingDealerOrder)
 				) {
 					throw new TRPCError({
-						code: "PRECONDITION_FAILED",
+						code: "FORBIDDEN",
 						message:
-							"SALES_CHANGE_REVIEW_REQUIRED: This change creates a refund or affects inbound/allocated material. Review and approve it before saving.",
+							"Dealer-owned customers cannot be used for office-origin sales.",
 					});
 				}
 			}
-		}
-		const salesProfile = payload.meta.customerProfileId
-			? await tx.customerTypes.findFirst({
-					where: {
-						id: payload.meta.customerProfileId,
+
+			const isInternalDashboardOrder = !origin && !order?.dealerAuthId;
+			const enrollmentAccess = isInternalDashboardOrder
+				? await getSpecialOrderEnrollmentAccess(
+						tx as unknown as TRPCContext["db"],
+						ctx.userId ?? null,
+					)
+				: { canEnroll: true };
+			const actorCanEnrollSpecialOrder = enrollmentAccess.canEnroll;
+			const currentSpecialOrderDeclaration =
+				order?.specialOrderDeclaration ?? null;
+			const nextSpecialOrderDeclaration =
+				payload.type !== "order"
+					? null
+					: payload.specialOrderDeclaration === undefined
+						? currentSpecialOrderDeclaration
+						: payload.specialOrderDeclaration;
+			const enrollmentValidation = validateSpecialOrderEnrollment({
+				currentDeclaration: currentSpecialOrderDeclaration,
+				nextDeclaration: nextSpecialOrderDeclaration,
+				canEnroll: !isInternalDashboardOrder || actorCanEnrollSpecialOrder,
+			});
+			if (!enrollmentValidation.allowed) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"SPECIAL_ORDER_ENROLLMENT_RESTRICTED: Only Super Admin can mark an order as Special Order during the pilot.",
+				});
+			}
+			const declarationValidation = validateSpecialOrderDeclaration({
+				type: payload.type,
+				commitIntent: payload.commitIntent,
+				declaration: nextSpecialOrderDeclaration,
+				isInternalDashboardOrder,
+				canEnroll: actorCanEnrollSpecialOrder,
+			});
+			if (!declarationValidation.valid) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"SPECIAL_ORDER_DECLARATION_REQUIRED: Choose Yes or No for Special Order before completing this sale.",
+				});
+			}
+			if (
+				requiresSpecialOrderCustomerEmail({
+					declaration: nextSpecialOrderDeclaration,
+					customerEmail: selectedCustomer?.email,
+					commitIntent: payload.commitIntent,
+				})
+			) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"SPECIAL_ORDER_CUSTOMER_EMAIL_REQUIRED: Add a valid customer email before saving this Special Order.",
+				});
+			}
+			const manuallyEnrolledExistingOrder =
+				Boolean(order) &&
+				isInternalDashboardOrder &&
+				currentSpecialOrderDeclaration !== "YES" &&
+				nextSpecialOrderDeclaration === "YES";
+			const specialOrderTransition = deriveSpecialOrderRevisionTransition({
+				declaration: nextSpecialOrderDeclaration,
+				currentRevision: order?.specialOrderRevision,
+				nextRevision: specialOrderRevision,
+				currentApprovalId: order?.currentSpecialOrderApprovalId,
+				currentStatus: order?.specialOrderStatus,
+			});
+			const nextCurrentSpecialOrderApprovalId =
+				specialOrderTransition.nextApprovalId;
+			const specialOrderRevisionChanged =
+				specialOrderTransition.revisionChanged;
+			const hadCustomerEvidence = specialOrderTransition.hadCustomerEvidence;
+			const nextSpecialOrderStatus = specialOrderTransition.nextStatus;
+			if (order && specialOrderRevisionChanged) {
+				await tx.specialOrderApprovalRequest.updateMany({
+					where: { salesOrderId: order.id, status: "ACTIVE" },
+					data: {
+						status: "REVOKED",
+						revokedAt: new Date(),
+						revokedReason: "ORDER_REVISION_CHANGED",
+					},
+				});
+				if (order.currentSpecialOrderApprovalId) {
+					await tx.specialOrderApprovalEvidence.updateMany({
+						where: { id: order.currentSpecialOrderApprovalId },
+						data: {
+							supersededAt: new Date(),
+							supersededReason: "Order revision changed",
+							supersededByUserId: ctx.userId ?? null,
+						},
+					});
+				}
+			}
+
+			const currentMeta = safeMeta(order?.meta);
+			const currentVersion = order
+				? currentMeta.newSalesForm?.version ||
+					`${order.updatedAt?.getTime() || order.createdAt?.getTime() || 0}-legacy`
+				: null;
+			if (order && !payload.version) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"This sales document must be reloaded before it can be saved.",
+				});
+			}
+			if (
+				currentVersion &&
+				payload.version &&
+				currentVersion !== payload.version
+			) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"This form changed elsewhere. Reload the latest version before saving.",
+				});
+			}
+			if (
+				order &&
+				hasUnprojectedApprovedCommercialSnapshot(currentMeta, order.items)
+			) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"SALES_RELATIONAL_REVIEW_REQUIRED: An approved adjustment was not projected into the relational sales rows. This document is locked until the migration review reconciles it.",
+				});
+			}
+			const saveCommitments =
+				order && payload.type === "order"
+					? await getNewSalesFormCommitmentSnapshot(
+							tx as unknown as TRPCContext["db"],
+							order.id,
+						)
+					: null;
+			if (order && payload.type === "order" && saveCommitments) {
+				const persistedLines = currentMeta.newSalesForm?.lineItems || [];
+				const beforeLines = persistedLines.length
+					? persistedLines
+					: order.items.map((item) => ({
+							id: item.id,
+							uid:
+								(typeof safeRecord(item.meta).uid === "string" &&
+									String(safeRecord(item.meta).uid)) ||
+								item.multiDykeUid ||
+								`sales-item-${item.id}`,
+							title: item.dykeDescription || item.description || "Line item",
+							qty: Number(item.qty || 0),
+							lineTotal: Number(item.total || 0),
+						}));
+				const analysis = analyzeSalesFormChange({
+					before: {
+						lineItems: beforeLines,
+						summary: {
+							grandTotal:
+								currentMeta.newSalesForm?.summary?.grandTotal ??
+								order.grandTotal ??
+								0,
+						},
+					},
+					after: { lineItems: normalizedLines, summary: persistedSummary },
+					commitments: saveCommitments,
+				});
+				if (analysis.requiresSalesRepApproval) {
+					const approved = payload.approvedAdjustmentId
+						? await tx.salesOrderAdjustment.findFirst({
+								where: {
+									id: payload.approvedAdjustmentId,
+									salesOrderId: order.id,
+									status: { in: ["APPROVED", "APPLYING"] },
+									sourceVersion: currentVersion || null,
+								},
+								select: {
+									id: true,
+									proposedGrandTotal: true,
+									proposedSnapshot: true,
+								},
+							})
+						: null;
+					const approvedSnapshot = safeRecord(approved?.proposedSnapshot);
+					const approvedLines = Array.isArray(approvedSnapshot.lineItems)
+						? approvedSnapshot.lineItems.map((line) => safeRecord(line))
+						: [];
+					const approvedSummary = safeRecord(approvedSnapshot.summary);
+					const approvedPayloadDiff = approved
+						? analyzeSalesFormChange({
+								before: {
+									lineItems: approvedLines.map((line) => ({
+										id: Number(line.id || 0) || null,
+										uid: String(line.uid || ""),
+										title: String(
+											line.title || line.description || "Line item",
+										),
+										qty: Number(line.qty || 0),
+										lineTotal: Number(line.lineTotal || 0),
+									})),
+									summary: {
+										grandTotal: Number(approvedSummary.grandTotal || 0),
+									},
+								},
+								after: {
+									lineItems: normalizedLines,
+									summary: persistedSummary,
+								},
+								commitments: {},
+							})
+						: null;
+					if (
+						!approved ||
+						Number(approved.proposedGrandTotal) !==
+							Number(persistedSummary.grandTotal) ||
+						approvedPayloadDiff?.direction !== "NONE"
+					) {
+						throw new TRPCError({
+							code: "PRECONDITION_FAILED",
+							message:
+								"SALES_CHANGE_REVIEW_REQUIRED: This change creates a refund or affects inbound/allocated material. Review and approve it before saving.",
+						});
+					}
+				}
+			}
+			const salesProfile = payload.meta.customerProfileId
+				? await tx.customerTypes.findFirst({
+						where: {
+							id: payload.meta.customerProfileId,
+						},
+						select: {
+							coefficient: true,
+						},
+					})
+				: null;
+			const salesCoefficient =
+				finiteOptionalNumber(salesProfile?.coefficient) ??
+				finiteOptionalNumber(currentMeta.salesCoefficient) ??
+				finiteOptionalNumber(currentMeta.sales_percentage);
+
+			const nextVersion = `${Date.now()}-${generateRandomString(8)}`;
+			const nextCreatedAt = resolveOrderCreatedAt(
+				payload.meta.createdAt,
+				order?.createdAt,
+			);
+			const nextPaymentDueDate = resolveOrderPaymentDueDate(
+				payload.type,
+				payload.meta,
+				nextCreatedAt,
+			);
+			const nextFormMeta = {
+				...payload.meta,
+				paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
+				createdAt: nextCreatedAt.toISOString(),
+				paymentDueDate: nextPaymentDueDate?.toISOString() || null,
+				goodUntil: safeDate(payload.meta.goodUntil)?.toISOString() || null,
+				prodDueDate: safeDate(payload.meta.prodDueDate)?.toISOString() || null,
+			};
+			const legacyMeta = projectSalesFormMetaToLegacyMeta({
+				existingMeta: currentMeta,
+				form:
+					salesCoefficient == null
+						? nextFormMeta
+						: {
+								...nextFormMeta,
+								salesCoefficient,
+							},
+				summary: {
+					...summary,
+					ccc: displayCcc.ccc,
+				},
+				extraCosts: payload.extraCosts,
+				cccPercentage: settings.cccPercentage,
+			});
+			const originMeta = {
+				...(origin?.storefrontCheckoutId
+					? {
+							storefront: {
+								checkoutId: origin.storefrontCheckoutId,
+								channel: origin.salesChannel || "storefront",
+								...(origin.storefrontPricing
+									? { pricing: origin.storefrontPricing }
+									: {}),
+							},
+						}
+					: {}),
+				...(origin?.storefrontInquiryId
+					? {
+							storefrontInquiry: {
+								id: origin.storefrontInquiryId,
+								reference: origin.storefrontInquiryReference || null,
+								channel: origin.salesChannel || "storefront-custom",
+							},
+						}
+					: {}),
+			};
+			const nextMeta: NewSalesFormContainer = {
+				...legacyMeta,
+				...originMeta,
+				newSalesForm: {
+					version: nextVersion,
+					draftKey:
+						currentMeta.newSalesForm?.draftKey || newDraftKey || undefined,
+					updatedAt: new Date().toISOString(),
+					autosave: payload.autosave,
+				},
+			};
+			const nextAmountDue =
+				order?.id != null
+					? projectLegacyOrderPayments({
+							salesOrderId: order.id,
+							grandTotal: persistedSummary.grandTotal,
+							payments: order.payments || [],
+						}).amountDue
+					: persistedSummary.grandTotal;
+
+			if (!order) {
+				const identity = await generateSalesIdentity(ctx, payload.type);
+				const created = await tx.salesOrders.create({
+					data: {
+						orderId: identity.orderId,
+						slug: origin ? identity.slug : identity.orderId,
+						type: payload.type,
+						status,
+						isDyke: true,
+						salesRepId: origin ? null : ctx.userId,
+						customerId: payload.meta.customerId || null,
+						customerProfileId: payload.meta.customerProfileId || null,
+						billingAddressId: payload.meta.billingAddressId || null,
+						shippingAddressId: payload.meta.shippingAddressId || null,
+						paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
+						createdAt: nextCreatedAt,
+						paymentDueDate: nextPaymentDueDate,
+						goodUntil: safeDate(payload.meta.goodUntil),
+						prodDueDate: safeDate(payload.meta.prodDueDate),
+						deliveryOption:
+							payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
+						inventoryStatus:
+							payload.type === "order" ? payload.inventoryStatus || null : null,
+						specialOrderDeclaration: nextSpecialOrderDeclaration,
+						specialOrderStatus: nextSpecialOrderStatus,
+						specialOrderRevision:
+							nextSpecialOrderDeclaration === "YES"
+								? specialOrderRevision
+								: null,
+						currentSpecialOrderApprovalId: nextCurrentSpecialOrderApprovalId,
+						currentSpecialOrderRequestId: null,
+						taxPercentage: persistedSummary.taxRate,
+						subTotal: persistedSummary.subTotal,
+						tax: persistedSummary.taxTotal,
+						grandTotal: persistedSummary.grandTotal,
+						amountDue: nextAmountDue,
+						meta: nextMeta as any,
+						salesChannel: origin?.salesChannel || null,
 					},
 					select: {
-						coefficient: true,
+						id: true,
+						slug: true,
+						orderId: true,
 					},
-				})
-			: null;
-		const salesCoefficient =
-			finiteOptionalNumber(salesProfile?.coefficient) ??
-			finiteOptionalNumber(currentMeta.salesCoefficient) ??
-			finiteOptionalNumber(currentMeta.sales_percentage);
-
-		const nextVersion = `${Date.now()}-${generateRandomString(8)}`;
-		const nextCreatedAt = resolveOrderCreatedAt(
-			payload.meta.createdAt,
-			order?.createdAt,
-		);
-		const nextPaymentDueDate = resolveOrderPaymentDueDate(
-			payload.type,
-			payload.meta,
-			nextCreatedAt,
-		);
-		const nextFormMeta = {
-			...payload.meta,
-			paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
-			createdAt: nextCreatedAt.toISOString(),
-			paymentDueDate: nextPaymentDueDate?.toISOString() || null,
-			goodUntil: safeDate(payload.meta.goodUntil)?.toISOString() || null,
-			prodDueDate: safeDate(payload.meta.prodDueDate)?.toISOString() || null,
-		};
-		const legacyMeta = projectSalesFormMetaToLegacyMeta({
-			existingMeta: currentMeta,
-			form:
-				salesCoefficient == null
-					? nextFormMeta
-					: {
-							...nextFormMeta,
-							salesCoefficient,
-						},
-			summary: {
-				...summary,
-				ccc: displayCcc.ccc,
-			},
-			extraCosts: payload.extraCosts,
-			cccPercentage: settings.cccPercentage,
-		});
-		const originMeta = {
-			...(origin?.storefrontCheckoutId
-				? {
-						storefront: {
-							checkoutId: origin.storefrontCheckoutId,
-							channel: origin.salesChannel || "storefront",
-							...(origin.storefrontPricing
-								? { pricing: origin.storefrontPricing }
-								: {}),
-						},
-					}
-				: {}),
-			...(origin?.storefrontInquiryId
-				? {
-						storefrontInquiry: {
-							id: origin.storefrontInquiryId,
-							reference: origin.storefrontInquiryReference || null,
-							channel: origin.salesChannel || "storefront-custom",
-						},
-					}
-				: {}),
-		};
-		const nextMeta: NewSalesFormContainer = {
-			...legacyMeta,
-			...originMeta,
-			newSalesForm: {
-				version: nextVersion,
-				draftKey:
-					currentMeta.newSalesForm?.draftKey || newDraftKey || undefined,
-				updatedAt: new Date().toISOString(),
-				autosave: payload.autosave,
-				lineItems: normalizedLines,
-				extraCosts: payload.extraCosts,
-				summary: persistedSummary,
-				form: nextFormMeta,
-			},
-		};
-		const nextAmountDue =
-			order?.id != null
-				? projectLegacyOrderPayments({
-						salesOrderId: order.id,
-						grandTotal: persistedSummary.grandTotal,
-						payments: order.payments || [],
-					}).amountDue
-				: persistedSummary.grandTotal;
-
-		if (!order) {
-			const identity = await generateSalesIdentity(ctx, payload.type);
-			const created = await tx.salesOrders.create({
-				data: {
-					orderId: identity.orderId,
-					slug: origin ? identity.slug : identity.orderId,
-					type: payload.type,
-					status,
-					isDyke: true,
-					salesRepId: origin ? null : ctx.userId,
-					customerId: payload.meta.customerId || null,
-					customerProfileId: payload.meta.customerProfileId || null,
-					billingAddressId: payload.meta.billingAddressId || null,
-					shippingAddressId: payload.meta.shippingAddressId || null,
-					paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
-					createdAt: nextCreatedAt,
-					paymentDueDate: nextPaymentDueDate,
-					goodUntil: safeDate(payload.meta.goodUntil),
-					prodDueDate: safeDate(payload.meta.prodDueDate),
-					deliveryOption:
-						payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
+				});
+				currentId = created.id;
+				order = {
+					...created,
+					meta: nextMeta,
 					inventoryStatus:
 						payload.type === "order" ? payload.inventoryStatus || null : null,
 					specialOrderDeclaration: nextSpecialOrderDeclaration,
@@ -3613,638 +3538,712 @@ async function saveNewSalesFormInternal(
 						nextSpecialOrderDeclaration === "YES" ? specialOrderRevision : null,
 					currentSpecialOrderApprovalId: nextCurrentSpecialOrderApprovalId,
 					currentSpecialOrderRequestId: null,
-					taxPercentage: persistedSummary.taxRate,
-					subTotal: persistedSummary.subTotal,
-					tax: persistedSummary.taxTotal,
-					grandTotal: persistedSummary.grandTotal,
-					amountDue: nextAmountDue,
-					meta: nextMeta as any,
-					salesChannel: origin?.salesChannel || null,
-				},
-				select: {
-					id: true,
-					slug: true,
-					orderId: true,
-				},
-			});
-			currentId = created.id;
-			order = {
-				...created,
-				meta: nextMeta,
-				inventoryStatus:
-					payload.type === "order" ? payload.inventoryStatus || null : null,
-				specialOrderDeclaration: nextSpecialOrderDeclaration,
-				specialOrderStatus: nextSpecialOrderStatus,
-				specialOrderRevision:
-					nextSpecialOrderDeclaration === "YES" ? specialOrderRevision : null,
-				currentSpecialOrderApprovalId: nextCurrentSpecialOrderApprovalId,
-				currentSpecialOrderRequestId: null,
-				updatedAt: new Date(),
-				createdAt: nextCreatedAt,
-				paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
-				paymentDueDate: nextPaymentDueDate,
-				goodUntil: safeDate(payload.meta.goodUntil),
-				prodDueDate: safeDate(payload.meta.prodDueDate),
-				customerId: payload.meta.customerId || null,
-				dealerAuthId: null,
-				salesChannel: origin?.salesChannel || null,
-				payments: [],
-				grandTotal: persistedSummary.grandTotal,
-				items: [],
-			};
-		} else {
-			await tx.salesOrders.update({
-				where: {
-					id: order.id,
-				},
-				data: {
-					status,
-					customerId: payload.meta.customerId || null,
-					customerProfileId: payload.meta.customerProfileId || null,
-					billingAddressId: payload.meta.billingAddressId || null,
-					shippingAddressId: payload.meta.shippingAddressId || null,
-					paymentTerm:
-						payload.meta.paymentTerm ||
-						order.paymentTerm ||
-						DEFAULT_PAYMENT_TERM,
+					updatedAt: new Date(),
 					createdAt: nextCreatedAt,
+					paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
 					paymentDueDate: nextPaymentDueDate,
 					goodUntil: safeDate(payload.meta.goodUntil),
 					prodDueDate: safeDate(payload.meta.prodDueDate),
-					deliveryOption:
-						payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
-					inventoryStatus:
-						payload.type === "order"
-							? payload.inventoryStatus || order.inventoryStatus || null
-							: null,
-					specialOrderDeclaration: nextSpecialOrderDeclaration,
-					specialOrderStatus: nextSpecialOrderStatus,
-					specialOrderRevision:
-						nextSpecialOrderDeclaration === "YES" ? specialOrderRevision : null,
-					currentSpecialOrderApprovalId: nextCurrentSpecialOrderApprovalId,
-					currentSpecialOrderRequestId:
-						nextSpecialOrderDeclaration === "YES" &&
-						!specialOrderRevisionChanged
-							? order.currentSpecialOrderRequestId
-							: null,
-					taxPercentage: persistedSummary.taxRate,
-					subTotal: persistedSummary.subTotal,
-					tax: persistedSummary.taxTotal,
+					customerId: payload.meta.customerId || null,
+					dealerAuthId: null,
+					salesChannel: origin?.salesChannel || null,
+					payments: [],
 					grandTotal: persistedSummary.grandTotal,
-					amountDue: nextAmountDue,
-					meta: nextMeta as any,
-					salesChannel: origin?.salesChannel || order.salesChannel || null,
-				},
-			});
-			await tx.salesExtraCosts.updateMany({
-				where: {
-					orderId: order.id,
-				},
-				data: {
-					amount: 0,
-				},
-			});
-			await tx.salesOrderItems.updateMany({
-				where: {
-					salesOrderId: order.id,
-					deletedAt: null,
-				},
-				data: {
-					deletedAt: new Date(),
-				},
-			});
-			await tx.dykeStepForm.updateMany({
-				where: {
-					salesId: order.id,
-					deletedAt: null,
-				},
-				data: {
-					deletedAt: new Date(),
-				},
-			});
-			await tx.dykeSalesShelfItem.updateMany({
-				where: {
-					salesOrderItem: {
-						salesOrderId: order.id,
+					items: [],
+				};
+			} else {
+				await tx.salesOrders.update({
+					where: {
+						id: order.id,
 					},
-					deletedAt: null,
-				},
-				data: {
-					deletedAt: new Date(),
-				},
-			});
-			await tx.housePackageTools.updateMany({
-				where: {
-					salesOrderId: order.id,
-					deletedAt: null,
-				},
-				data: {
-					deletedAt: new Date(),
-				},
-			});
+					data: {
+						status,
+						customerId: payload.meta.customerId || null,
+						customerProfileId: payload.meta.customerProfileId || null,
+						billingAddressId: payload.meta.billingAddressId || null,
+						shippingAddressId: payload.meta.shippingAddressId || null,
+						paymentTerm:
+							payload.meta.paymentTerm ||
+							order.paymentTerm ||
+							DEFAULT_PAYMENT_TERM,
+						createdAt: nextCreatedAt,
+						paymentDueDate: nextPaymentDueDate,
+						goodUntil: safeDate(payload.meta.goodUntil),
+						prodDueDate: safeDate(payload.meta.prodDueDate),
+						deliveryOption:
+							payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
+						inventoryStatus:
+							payload.type === "order"
+								? payload.inventoryStatus || order.inventoryStatus || null
+								: null,
+						specialOrderDeclaration: nextSpecialOrderDeclaration,
+						specialOrderStatus: nextSpecialOrderStatus,
+						specialOrderRevision:
+							nextSpecialOrderDeclaration === "YES"
+								? specialOrderRevision
+								: null,
+						currentSpecialOrderApprovalId: nextCurrentSpecialOrderApprovalId,
+						currentSpecialOrderRequestId:
+							nextSpecialOrderDeclaration === "YES" &&
+							!specialOrderRevisionChanged
+								? order.currentSpecialOrderRequestId
+								: null,
+						taxPercentage: persistedSummary.taxRate,
+						subTotal: persistedSummary.subTotal,
+						tax: persistedSummary.taxTotal,
+						grandTotal: persistedSummary.grandTotal,
+						amountDue: nextAmountDue,
+						meta: nextMeta as any,
+						salesChannel: origin?.salesChannel || order.salesChannel || null,
+					},
+				});
+			}
+
+			if (!currentId) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Unable to persist sales form.",
+				});
+			}
 			await tx.dykeSalesDoors.updateMany({
-				where: {
-					salesOrderId: order.id,
-					deletedAt: null,
-				},
-				data: {
-					deletedAt: new Date(),
-				},
+				where: { salesOrderId: currentId, deletedAt: null },
+				data: { activeIdentity: null },
 			});
-		}
 
-		if (!currentId) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Unable to persist sales form.",
-			});
-		}
-
-		if (legacySaveLines.length) {
-			for (const legacyLine of legacySaveLines) {
-				const line = legacyLine.line;
-				const row = legacyLine.row || {};
-				const rowQty =
-					legacyLine.kind === "service" || legacyLine.kind === "moulding"
-						? Number(row.qty || 0)
-						: line.qty;
-				const rowUnitPrice =
-					legacyLine.kind === "service"
-						? Number(row.unitPrice || 0)
-						: legacyLine.kind === "moulding"
-							? row.customPrice == null || row.customPrice === ""
-								? Number(row.salesPrice || 0) + Number(row.addon || 0)
-								: Number(row.customPrice || 0) + Number(row.addon || 0)
-							: line.unitPrice;
-				const rowTotal =
-					legacyLine.kind === "service" || legacyLine.kind === "moulding"
-						? roundCurrency(
-								Number.isFinite(Number(row.lineTotal))
-									? Number(row.lineTotal || 0)
-									: rowQty * rowUnitPrice,
-							)
-						: line.lineTotal;
-				const rowDescription =
-					legacyLine.kind === "service"
-						? String(row.service || row.description || "").trim()
-						: legacyLine.kind === "moulding"
-							? String(row.description || row.title || "Moulding").trim()
-							: line.description || line.title;
-				const rowUid =
-					String(row.uid || "").trim() ||
-					(legacyLine.kind ? `${line.uid}-${legacyLine.kind}` : line.uid);
-				const itemMeta = {
-					uid: rowUid,
-					title: line.title,
-					description: rowDescription,
-					meta: line.meta || {},
-					...(legacyLine.kind === "service"
-						? {
-								tax: Boolean(row.taxxable),
-							}
-						: {}),
-				};
-				const itemData = {
-					salesOrderId: currentId!,
-					dykeDescription: line.title || null,
-					description: rowDescription,
-					qty: rowQty,
-					rate: rowUnitPrice,
-					total: rowTotal,
-					multiDykeUid: legacyLine.groupUid,
-					multiDyke: Boolean(legacyLine.primaryGroupItem),
-					dykeProduction:
-						legacyLine.kind === "service" ? Boolean(row.produceable) : false,
-					meta: itemMeta as any,
-					deletedAt: null,
-				};
-				const existingSalesItemId = Number(
-					row.salesItemId ||
-						(legacyLine.kind && !legacyLine.primaryGroupItem ? 0 : line.id) ||
-						0,
-				);
-				const createdItem =
-					existingSalesItemId > 0
-						? await tx.salesOrderItems.update({
-								where: {
-									id: existingSalesItemId,
-								},
-								data: itemData,
-								select: {
-									id: true,
-								},
-							})
-						: await tx.salesOrderItems.create({
-								data: itemData,
-								select: {
-									id: true,
-								},
-							});
-				if (!legacyLine.kind || legacyLine.primaryGroupItem) {
-					persistedLineItemIds.set(line.uid, createdItem.id);
-				}
-
-				const formSteps =
-					legacyLine.kind && !legacyLine.primaryGroupItem
-						? []
-						: line.formSteps || [];
-				if (formSteps.length) {
-					const stepRows = formSteps
-						.map((step) => ({
-							stepId: Number(step.stepId || step.step?.id || 0),
-							componentId: step.componentId || null,
-							prodUid: step.prodUid || null,
-							value: step.value || null,
-							qty: Number(step.qty || 0),
-							price: Number(step.price || 0),
-							basePrice: Number(step.basePrice || 0),
-							meta: safeRecord(step.meta) as any,
-							salesId: currentId!,
-							salesItemId: createdItem.id,
-						}))
-						.filter((step) => step.stepId > 0);
-					if (stepRows.length) {
-						await tx.dykeStepForm.createMany({
-							data: stepRows,
-						});
-					}
-				}
-
-				const shelfItems = legacyLine.kind ? [] : line.shelfItems || [];
-				if (shelfItems.length) {
-					const shelfRows = shelfItems
-						.map((shelf, index) => {
-							const meta = legacyShelfMeta(shelf, index);
-							const categoryIds = Array.isArray(meta.categoryIds)
-								? meta.categoryIds
-								: [];
-							const categoryId =
-								Number(shelf.categoryId || 0) ||
-								Number(categoryIds[categoryIds.length - 1] || 0);
-							return {
-								salesOrderItemId: createdItem.id,
-								categoryId,
-								productId: shelf.productId || null,
-								description: shelf.description || null,
-								qty: Number(shelf.qty || 0),
-								unitPrice: roundMoney(shelf.unitPrice),
-								totalPrice: roundMoney(shelf.totalPrice),
-								meta: meta as any,
-							};
-						})
-						.filter((shelf) => shelf.categoryId > 0);
-					if (shelfRows.length) {
-						await tx.dykeSalesShelfItem.createMany({
-							data: shelfRows,
-						});
-					}
-				}
-
-				const hpt =
-					legacyLine.kind === "moulding"
-						? {
-								...(line.housePackageTool || {}),
-								doorType:
-									line.housePackageTool?.doorType ||
-									String(line.title || "Moulding"),
-								moldingId:
-									Number(row.mouldingProductId || 0) ||
-									line.housePackageTool?.moldingId ||
-									null,
-								stepProductId:
-									Number(row.stepProductId || 0) ||
-									line.housePackageTool?.stepProductId ||
-									null,
-								totalPrice: rowTotal,
-								totalDoors: 0,
-								meta: {
-									...safeRecord(line.housePackageTool?.meta),
-									priceTags: {
-										...safeRecord(
-											safeRecord(line.housePackageTool?.meta).priceTags,
-										),
-										moulding: {
-											...safeRecord(
-												safeRecord(
-													safeRecord(line.housePackageTool?.meta).priceTags,
-												).moulding,
-											),
-											addon: Number(row.addon || 0),
-											overridePrice:
-												row.customPrice == null || row.customPrice === ""
-													? null
-													: Number(row.customPrice || 0),
-											salesPrice: Number(row.salesPrice || 0),
-											basePrice: Number(row.basePrice || 0),
-											price: rowUnitPrice,
-											laborQty: row.laborQty ?? null,
-											unitLabor: row.unitLabor ?? null,
-										},
-									},
-									legacyGroupUid: legacyLine.groupUid,
-									legacySalesItemId: row.salesItemId ?? null,
-									legacyHptId: row.hptId ?? null,
-								},
-								doors: [],
-							}
-						: legacyLine.kind
-							? null
-							: line.housePackageTool;
-				const hasHpt =
-					!!hpt &&
-					(!!hpt.doorType ||
-						!!hpt.dykeDoorId ||
-						!!hpt.doorId ||
-						!!hpt.moldingId ||
-						!!hpt.stepProductId ||
-						!!hpt.totalDoors ||
-						!!hpt.totalPrice ||
-						!!(hpt.doors || []).length);
-
-				if (hasHpt && hpt) {
-					const hptData = {
+			if (legacySaveLines.length) {
+				for (const legacyLine of legacySaveLines) {
+					const line = legacyLine.line;
+					const row = legacyLine.row || {};
+					const rowQty =
+						legacyLine.kind === "service" || legacyLine.kind === "moulding"
+							? Number(row.qty || 0)
+							: line.qty;
+					const rowUnitPrice =
+						legacyLine.kind === "service"
+							? Number(row.unitPrice || 0)
+							: legacyLine.kind === "moulding"
+								? row.customPrice == null || row.customPrice === ""
+									? Number(row.salesPrice || 0) + Number(row.addon || 0)
+									: Number(row.customPrice || 0) + Number(row.addon || 0)
+								: line.unitPrice;
+					const rowTotal =
+						legacyLine.kind === "service" || legacyLine.kind === "moulding"
+							? roundCurrency(
+									Number.isFinite(Number(row.lineTotal))
+										? Number(row.lineTotal || 0)
+										: rowQty * rowUnitPrice,
+								)
+							: line.lineTotal;
+					const rowDescription =
+						legacyLine.kind === "service"
+							? String(row.service || row.description || "").trim()
+							: legacyLine.kind === "moulding"
+								? String(row.description || row.title || "Moulding").trim()
+								: line.description || line.title;
+					const rowUid =
+						String(row.uid || "").trim() ||
+						(legacyLine.kind ? `${line.uid}-${legacyLine.kind}` : line.uid);
+					const itemMeta = {
+						uid: rowUid,
+						title: line.title,
+						description: rowDescription,
+						meta: {
+							...safeRecord(line.meta),
+							itemIndex: lineOrderByUid.get(line.uid) ?? 0,
+						},
+						...(legacyLine.kind === "service"
+							? {
+									tax: Boolean(row.taxxable),
+								}
+							: {}),
+					};
+					const itemData = {
 						salesOrderId: currentId!,
-						orderItemId: createdItem.id,
-						height: hpt.height || null,
-						doorType: hpt.doorType || null,
-						doorId: hpt.doorId || null,
-						dykeDoorId: hpt.dykeDoorId || null,
-						jambSizeId: hpt.jambSizeId || null,
-						casingId: hpt.casingId || null,
-						moldingId: hpt.moldingId || null,
-						stepProductId: hpt.stepProductId || null,
-						totalPrice: Number(hpt.totalPrice || 0),
-						totalDoors: Number(hpt.totalDoors || 0),
-						meta: safeRecord(hpt.meta) as any,
+						dykeDescription: line.title || null,
+						description: rowDescription,
+						qty: rowQty,
+						rate: rowUnitPrice,
+						total: rowTotal,
+						multiDykeUid: legacyLine.groupUid,
+						multiDyke: Boolean(legacyLine.primaryGroupItem),
+						dykeProduction:
+							legacyLine.kind === "service" ? Boolean(row.produceable) : false,
+						meta: itemMeta as any,
 						deletedAt: null,
 					};
-					const existingHptId = Number(
-						row.hptId ||
-							(legacyLine.kind && !legacyLine.primaryGroupItem ? 0 : hpt.id) ||
+					const existingSalesItemId = Number(
+						row.salesItemId ||
+							(legacyLine.kind && !legacyLine.primaryGroupItem ? 0 : line.id) ||
 							0,
 					);
-					const existingHpt =
-						existingHptId > 0
-							? { id: existingHptId }
-							: await tx.housePackageTools.findUnique({
-									where: { orderItemId: createdItem.id },
-									select: { id: true },
+					const ownedSalesItemId = order?.items.some(
+						(item) => item.id === existingSalesItemId,
+					)
+						? existingSalesItemId
+						: 0;
+					const existingSalesItemByUid = order?.items.find((item) => {
+						const meta = safeRecord(item.meta);
+						return String(meta.uid || "").trim() === rowUid;
+					});
+					const retainedSalesItemId =
+						ownedSalesItemId > 0
+							? ownedSalesItemId
+							: Number(existingSalesItemByUid?.id || 0);
+					const createdItem =
+						retainedSalesItemId > 0
+							? await tx.salesOrderItems.update({
+									where: {
+										id: retainedSalesItemId,
+									},
+									data: itemData,
+									select: {
+										id: true,
+									},
+								})
+							: await tx.salesOrderItems.create({
+									data: itemData,
+									select: {
+										id: true,
+									},
 								});
-					const createdHpt = existingHpt
-						? await tx.housePackageTools.update({
+					retainedSalesItemIds.add(createdItem.id);
+					if (!legacyLine.kind || legacyLine.primaryGroupItem) {
+						persistedLineItemIds.set(line.uid, createdItem.id);
+					}
+
+					const formSteps =
+						legacyLine.kind && !legacyLine.primaryGroupItem
+							? []
+							: line.formSteps || [];
+					if (formSteps.length) {
+						const stepRows = formSteps
+							.map((step) => ({
+								id: Number(step.id || 0),
+								stepId: Number(step.stepId || step.step?.id || 0),
+								componentId: step.componentId || null,
+								prodUid: step.prodUid || null,
+								value: step.value || null,
+								qty: Number(step.qty || 0),
+								price: Number(step.price || 0),
+								basePrice: Number(step.basePrice || 0),
+								meta: safeRecord(step.meta) as any,
+								salesId: currentId!,
+								salesItemId: createdItem.id,
+								deletedAt: null,
+							}))
+							.filter((step) => step.stepId > 0);
+						for (const { id, ...stepData } of stepRows) {
+							const existingStep = await tx.dykeStepForm.findFirst({
 								where: {
-									id: existingHpt.id,
+									...(id > 0 ? { id } : {}),
+									salesItemId: createdItem.id,
+									...(id > 0
+										? {}
+										: {
+												stepId: stepData.stepId,
+												componentId: stepData.componentId,
+												prodUid: stepData.prodUid,
+											}),
+									deletedAt: null,
 								},
-								data: hptData,
-								select: {
-									id: true,
-								},
+								orderBy: { id: "asc" },
+								select: { id: true },
+							});
+							const savedStep = existingStep
+								? await tx.dykeStepForm.update({
+										where: { id: existingStep.id },
+										data: stepData,
+										select: { id: true },
+									})
+								: await tx.dykeStepForm.create({
+										data: stepData,
+										select: { id: true },
+									});
+							retainedStepIds.add(savedStep.id);
+						}
+					}
+
+					const shelfItems = legacyLine.kind ? [] : line.shelfItems || [];
+					if (shelfItems.length) {
+						const shelfRows = shelfItems
+							.map((shelf, index) => {
+								const meta = legacyShelfMeta(shelf, index);
+								const categoryIds = Array.isArray(meta.categoryIds)
+									? meta.categoryIds
+									: [];
+								const categoryId =
+									Number(shelf.categoryId || 0) ||
+									Number(categoryIds[categoryIds.length - 1] || 0);
+								return {
+									id: Number(shelf.id || 0),
+									salesOrderItemId: createdItem.id,
+									categoryId,
+									productId: shelf.productId || null,
+									description: shelf.description || null,
+									qty: Number(shelf.qty || 0),
+									unitPrice: roundMoney(shelf.unitPrice),
+									totalPrice: roundMoney(shelf.totalPrice),
+									meta: meta as any,
+									deletedAt: null,
+								};
 							})
-						: await tx.housePackageTools.create({
-								data: hptData,
+							.filter((shelf) => shelf.categoryId > 0);
+						for (const { id, ...shelfData } of shelfRows) {
+							const existingShelf = await tx.dykeSalesShelfItem.findFirst({
+								where: {
+									...(id > 0 ? { id } : {}),
+									salesOrderItemId: createdItem.id,
+									...(id > 0
+										? {}
+										: {
+												categoryId: shelfData.categoryId,
+												productId: shelfData.productId,
+											}),
+									deletedAt: null,
+								},
+								orderBy: { id: "asc" },
+								select: { id: true },
+							});
+							const savedShelf = existingShelf
+								? await tx.dykeSalesShelfItem.update({
+										where: { id: existingShelf.id },
+										data: shelfData,
+										select: { id: true },
+									})
+								: await tx.dykeSalesShelfItem.create({
+										data: shelfData,
+										select: { id: true },
+									});
+							retainedShelfIds.add(savedShelf.id);
+						}
+					}
+
+					const hpt =
+						legacyLine.kind === "moulding"
+							? {
+									...(line.housePackageTool || {}),
+									doorType:
+										line.housePackageTool?.doorType ||
+										String(line.title || "Moulding"),
+									moldingId:
+										Number(row.mouldingProductId || 0) ||
+										line.housePackageTool?.moldingId ||
+										null,
+									stepProductId:
+										Number(row.stepProductId || 0) ||
+										line.housePackageTool?.stepProductId ||
+										null,
+									totalPrice: rowTotal,
+									totalDoors: 0,
+									meta: {
+										...safeRecord(line.housePackageTool?.meta),
+										priceTags: {
+											...safeRecord(
+												safeRecord(line.housePackageTool?.meta).priceTags,
+											),
+											moulding: {
+												...safeRecord(
+													safeRecord(
+														safeRecord(line.housePackageTool?.meta).priceTags,
+													).moulding,
+												),
+												addon: Number(row.addon || 0),
+												overridePrice:
+													row.customPrice == null || row.customPrice === ""
+														? null
+														: Number(row.customPrice || 0),
+												salesPrice: Number(row.salesPrice || 0),
+												basePrice: Number(row.basePrice || 0),
+												price: rowUnitPrice,
+												laborQty: row.laborQty ?? null,
+												unitLabor: row.unitLabor ?? null,
+											},
+										},
+										legacyGroupUid: legacyLine.groupUid,
+										legacySalesItemId: row.salesItemId ?? null,
+										legacyHptId: row.hptId ?? null,
+									},
+									doors: [],
+								}
+							: legacyLine.kind
+								? null
+								: line.housePackageTool;
+					const hasHpt =
+						!!hpt &&
+						(!!hpt.doorType ||
+							!!hpt.dykeDoorId ||
+							!!hpt.doorId ||
+							!!hpt.moldingId ||
+							!!hpt.stepProductId ||
+							!!hpt.totalDoors ||
+							!!hpt.totalPrice ||
+							!!(hpt.doors || []).length);
+
+					if (hasHpt && hpt) {
+						const hptData = {
+							salesOrderId: currentId!,
+							orderItemId: createdItem.id,
+							height: hpt.height || null,
+							doorType: hpt.doorType || null,
+							doorId: hpt.doorId || null,
+							dykeDoorId: hpt.dykeDoorId || null,
+							jambSizeId: hpt.jambSizeId || null,
+							casingId: hpt.casingId || null,
+							moldingId: hpt.moldingId || null,
+							stepProductId: hpt.stepProductId || null,
+							totalPrice: Number(hpt.totalPrice || 0),
+							totalDoors: Number(hpt.totalDoors || 0),
+							meta: safeRecord(hpt.meta) as any,
+							deletedAt: null,
+						};
+						const existingHpt = await tx.housePackageTools.findUnique({
+							where: { orderItemId: createdItem.id },
+							select: { id: true },
+						});
+						const createdHpt = existingHpt
+							? await tx.housePackageTools.update({
+									where: {
+										id: existingHpt.id,
+									},
+									data: hptData,
+									select: {
+										id: true,
+									},
+								})
+							: await tx.housePackageTools.create({
+									data: hptData,
+									select: {
+										id: true,
+									},
+								});
+						retainedHptIds.add(createdHpt.id);
+
+						const doors = (hpt.doors || []).filter(
+							(door) =>
+								!!door.dimension && (door.lhQty || door.rhQty || door.totalQty),
+						);
+						if (doors.length) {
+							const existingDoors = await tx.dykeSalesDoors.findMany({
+								where: {
+									housePackageToolId: createdHpt.id,
+									deletedAt: null,
+								},
+								orderBy: { id: "asc" },
 								select: {
 									id: true,
+									dimension: true,
+									stepProductId: true,
+									meta: true,
 								},
 							});
-
-					const doors = (hpt.doors || []).filter(
-						(door) =>
-							!!door.dimension && (door.lhQty || door.rhQty || door.totalQty),
-					);
-					if (doors.length) {
-						for (const door of doors) {
-							const doorData = {
-								housePackageToolId: createdHpt.id,
-								salesOrderId: currentId!,
-								salesOrderItemId: createdItem.id,
-								dimension: door.dimension!,
-								swing: door.swing || null,
-								doorType: door.doorType || hpt.doorType || null,
-								doorPrice: Number(door.doorPrice || 0),
-								jambSizePrice: Number(door.jambSizePrice || 0),
-								casingPrice: Number(door.casingPrice || 0),
-								unitPrice: Number(door.unitPrice || 0),
-								lhQty: Math.round(Number(door.lhQty || 0)),
-								rhQty: Math.round(Number(door.rhQty || 0)),
-								totalQty: Math.round(
-									Number(door.totalQty || 0) ||
-										Number(door.lhQty || 0) + Number(door.rhQty || 0),
-								),
-								lineTotal: Number(door.lineTotal || 0),
-								stepProductId: door.stepProductId || null,
-								meta: safeRecord(door.meta) as any,
-								deletedAt: null,
-							};
-							const existingDoorId = Number(door.id || 0);
-							if (existingDoorId > 0) {
-								await tx.dykeSalesDoors.update({
-									where: {
-										id: existingDoorId,
-									},
-									data: doorData,
-								});
-							} else {
-								await tx.dykeSalesDoors.create({
-									data: doorData,
-								});
+							const existingDoorIds = new Set(
+								existingDoors.map((door) => door.id),
+							);
+							const existingDoorByIdentity = new Map<string, number>();
+							for (const door of existingDoors) {
+								const identity = getSalesDoorActiveIdentity(door);
+								if (!existingDoorByIdentity.has(identity)) {
+									existingDoorByIdentity.set(identity, door.id);
+								}
+							}
+							for (const door of doors) {
+								const normalizedDimension = normalizeSalesDoorDimension(
+									door.dimension,
+								);
+								const doorData = {
+									housePackageToolId: createdHpt.id,
+									activeIdentity: `${createdHpt.id}|${getSalesDoorActiveIdentity(
+										{
+											...door,
+											dimension: normalizedDimension,
+										},
+									)}`,
+									salesOrderId: currentId!,
+									salesOrderItemId: createdItem.id,
+									dimension: normalizedDimension,
+									swing: door.swing || null,
+									doorType: door.doorType || hpt.doorType || null,
+									doorPrice: Number(door.doorPrice || 0),
+									jambSizePrice: Number(door.jambSizePrice || 0),
+									casingPrice: Number(door.casingPrice || 0),
+									unitPrice: Number(door.unitPrice || 0),
+									lhQty: Math.round(Number(door.lhQty || 0)),
+									rhQty: Math.round(Number(door.rhQty || 0)),
+									totalQty: Math.round(
+										Number(door.totalQty || 0) ||
+											Number(door.lhQty || 0) + Number(door.rhQty || 0),
+									),
+									lineTotal: Number(door.lineTotal || 0),
+									stepProductId: door.stepProductId || null,
+									meta: safeRecord(door.meta) as any,
+									deletedAt: null,
+								};
+								const requestedDoorId = Number(door.id || 0);
+								const existingDoorId = existingDoorIds.has(requestedDoorId)
+									? requestedDoorId
+									: Number(
+											existingDoorByIdentity.get(
+												getSalesDoorActiveIdentity(doorData),
+											) || 0,
+										);
+								let savedDoorId: number;
+								if (existingDoorId > 0) {
+									await tx.dykeSalesDoors.update({
+										where: {
+											id: existingDoorId,
+										},
+										data: doorData,
+									});
+									savedDoorId = existingDoorId;
+								} else {
+									const savedDoor = await tx.dykeSalesDoors.create({
+										data: doorData,
+										select: { id: true },
+									});
+									savedDoorId = savedDoor.id;
+								}
+								retainedDoorIds.add(savedDoorId);
 							}
 						}
 					}
 				}
 			}
-		}
 
-		if (payload.extraCosts.length) {
-			const existingCostIds = payload.extraCosts
-				.map((cost) => Number(cost.id || 0))
-				.filter((id) => id > 0);
-
-			await tx.salesExtraCosts.deleteMany({
+			// Identity-preserving relational diff: only rows omitted from the canonical
+			// command are retired. Retained rows keep their durable ids across autosaves.
+			const retiredAt = new Date();
+			await tx.dykeSalesDoors.updateMany({
 				where: {
-					orderId: currentId,
+					salesOrderId: currentId,
+					deletedAt: null,
+					id: { notIn: retainedDoorIds.size ? [...retainedDoorIds] : [0] },
+				},
+				data: { deletedAt: retiredAt, activeIdentity: null },
+			});
+			await tx.dykeStepForm.updateMany({
+				where: {
+					salesId: currentId,
+					deletedAt: null,
+					id: { notIn: retainedStepIds.size ? [...retainedStepIds] : [0] },
+				},
+				data: { deletedAt: retiredAt },
+			});
+			await tx.dykeSalesShelfItem.updateMany({
+				where: {
+					salesOrderItem: { salesOrderId: currentId },
+					deletedAt: null,
+					id: { notIn: retainedShelfIds.size ? [...retainedShelfIds] : [0] },
+				},
+				data: { deletedAt: retiredAt },
+			});
+			await tx.housePackageTools.updateMany({
+				where: {
+					salesOrderId: currentId,
+					deletedAt: null,
+					id: { notIn: retainedHptIds.size ? [...retainedHptIds] : [0] },
+				},
+				data: { deletedAt: retiredAt },
+			});
+			await tx.salesOrderItems.updateMany({
+				where: {
+					salesOrderId: currentId,
+					deletedAt: null,
 					id: {
-						notIn: existingCostIds.length ? existingCostIds : [0],
+						notIn: retainedSalesItemIds.size ? [...retainedSalesItemIds] : [0],
 					},
 				},
+				data: { deletedAt: retiredAt },
 			});
 
-			for (const cost of payload.extraCosts) {
-				if (cost.id) {
-					const updatedCost = await tx.salesExtraCosts.updateMany({
-						where: {
-							id: cost.id,
-							orderId: currentId,
+			if (payload.extraCosts.length) {
+				const existingCostIds = payload.extraCosts
+					.map((cost) => Number(cost.id || 0))
+					.filter((id) => id > 0);
+
+				await tx.salesExtraCosts.deleteMany({
+					where: {
+						orderId: currentId,
+						id: {
+							notIn: existingCostIds.length ? existingCostIds : [0],
 						},
+					},
+				});
+
+				for (const cost of payload.extraCosts) {
+					if (cost.id) {
+						const updatedCost = await tx.salesExtraCosts.updateMany({
+							where: {
+								id: cost.id,
+								orderId: currentId,
+							},
+							data: {
+								label: cost.label,
+								amount: Number(cost.amount || 0),
+								type: cost.type as any,
+								taxxable: cost.taxxable ?? false,
+							},
+						});
+						if (updatedCost.count > 0) {
+							persistedExtraCosts.push(cost);
+							continue;
+						}
+					}
+					const createdCost = await tx.salesExtraCosts.create({
 						data: {
+							orderId: currentId!,
 							label: cost.label,
 							amount: Number(cost.amount || 0),
 							type: cost.type as any,
 							taxxable: cost.taxxable ?? false,
 						},
+						select: {
+							id: true,
+						},
 					});
-					if (updatedCost.count > 0) {
-						persistedExtraCosts.push(cost);
-						continue;
-					}
+					persistedExtraCosts.push({
+						...cost,
+						id: createdCost.id,
+					});
 				}
-				const createdCost = await tx.salesExtraCosts.create({
+			} else {
+				await tx.salesExtraCosts.deleteMany({
+					where: { orderId: currentId },
+				});
+			}
+
+			const hydratedLineItems = normalizedLines.map((line) => ({
+				...line,
+				id: persistedLineItemIds.get(line.uid) ?? line.id ?? null,
+			}));
+			const hydratedExtraCosts = persistedExtraCosts.length
+				? persistedExtraCosts
+				: payload.extraCosts;
+			await tx.salesTaxes.deleteMany({
+				where: {
+					salesId: currentId,
+				},
+			});
+
+			if (payload.meta.taxCode) {
+				await tx.salesTaxes.create({
 					data: {
-						orderId: currentId!,
-						label: cost.label,
-						amount: Number(cost.amount || 0),
-						type: cost.type as any,
-						taxxable: cost.taxxable ?? false,
+						salesId: currentId,
+						taxCode: payload.meta.taxCode,
+						taxxable: summary.taxableSubTotal,
+						tax: summary.taxTotal,
 					},
-					select: {
-						id: true,
-					},
-				});
-				persistedExtraCosts.push({
-					...cost,
-					id: createdCost.id,
 				});
 			}
-		}
 
-		const hydratedLineItems = normalizedLines.map((line) => ({
-			...line,
-			id: persistedLineItemIds.get(line.uid) ?? line.id ?? null,
-		}));
-		const hydratedExtraCosts = persistedExtraCosts.length
-			? persistedExtraCosts
-			: payload.extraCosts;
-		const persistedForm = nextMeta.newSalesForm;
-		if (!persistedForm) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Saved sales form metadata is missing.",
-			});
-		}
-		nextMeta.newSalesForm = {
-			...persistedForm,
-			lineItems: hydratedLineItems,
-			extraCosts: hydratedExtraCosts,
-		};
-		await tx.salesOrders.update({
-			where: {
-				id: currentId,
-			},
-			data: {
-				meta: nextMeta as any,
-			},
-		});
+			if (!isNew && activitySenderContactId) {
+				const beforeLines = currentMeta.newSalesForm?.lineItems?.length
+					? currentMeta.newSalesForm.lineItems
+					: order!.items.map((item) => ({
+							id: item.id,
+							uid:
+								(typeof safeRecord(item.meta).uid === "string" &&
+									String(safeRecord(item.meta).uid)) ||
+								item.multiDykeUid ||
+								`sales-item-${item.id}`,
+							title: item.dykeDescription || item.description || "Line item",
+							description: item.description,
+							qty: Number(item.qty || 0),
+						}));
+				await createSalesFormTimelineActivity(
+					tx as unknown as TRPCContext["db"],
+					{
+						salesId: currentId,
+						orderId: order!.orderId,
+						senderContactId: activitySenderContactId,
+						copy: buildSalesFormUpdateActivity({
+							salesType: payload.type,
+							orderId: order!.orderId,
+							status,
+							autosave: payload.autosave,
+							beforeGrandTotal: Number(order!.grandTotal || 0),
+							afterGrandTotal: persistedSummary.grandTotal,
+							beforeLines,
+							afterLines: hydratedLineItems,
+						}),
+					},
+				);
+				if (manuallyEnrolledExistingOrder) {
+					await createSalesFormTimelineActivity(
+						tx as unknown as TRPCContext["db"],
+						{
+							salesId: currentId,
+							orderId: order!.orderId,
+							senderContactId: activitySenderContactId,
+							copy: buildSpecialOrderEnrollmentActivity({
+								orderId: order!.orderId,
+								reason: payload.specialOrderChangeReason,
+							}),
+						},
+					);
+				}
+				if (specialOrderRevisionChanged) {
+					await createSalesFormTimelineActivity(
+						tx as unknown as TRPCContext["db"],
+						{
+							salesId: currentId,
+							orderId: order!.orderId,
+							senderContactId: activitySenderContactId,
+							copy: buildSpecialOrderRevisionInvalidatedActivity({
+								orderId: order!.orderId,
+								hadCustomerEvidence,
+							}),
+						},
+					);
+				}
+			}
 
-		await tx.salesTaxes.deleteMany({
-			where: {
+			return {
 				salesId: currentId,
-			},
-		});
-
-		if (payload.meta.taxCode) {
-			await tx.salesTaxes.create({
-				data: {
-					salesId: currentId,
-					taxCode: payload.meta.taxCode,
-					taxxable: summary.taxableSubTotal,
-					tax: summary.taxTotal,
-				},
-			});
-		}
-
-		if (!isNew && activitySenderContactId) {
-			const beforeLines = currentMeta.newSalesForm?.lineItems?.length
-				? currentMeta.newSalesForm.lineItems
-				: order!.items.map((item) => ({
-						id: item.id,
-						uid:
-							(typeof safeRecord(item.meta).uid === "string" &&
-								String(safeRecord(item.meta).uid)) ||
-							item.multiDykeUid ||
-							`sales-item-${item.id}`,
-						title: item.dykeDescription || item.description || "Line item",
-						description: item.description,
-						qty: Number(item.qty || 0),
-					}));
-			await createSalesFormTimelineActivity(
-				tx as unknown as TRPCContext["db"],
-				{
-					salesId: currentId,
-					orderId: order!.orderId,
-					senderContactId: activitySenderContactId,
-					copy: buildSalesFormUpdateActivity({
-						salesType: payload.type,
-						orderId: order!.orderId,
-						status,
-						autosave: payload.autosave,
-						beforeGrandTotal: Number(order!.grandTotal || 0),
-						afterGrandTotal: persistedSummary.grandTotal,
-						beforeLines,
-						afterLines: hydratedLineItems,
-					}),
-				},
-			);
-			if (manuallyEnrolledExistingOrder) {
-				await createSalesFormTimelineActivity(
-					tx as unknown as TRPCContext["db"],
-					{
-						salesId: currentId,
-						orderId: order!.orderId,
-						senderContactId: activitySenderContactId,
-						copy: buildSpecialOrderEnrollmentActivity({
-							orderId: order!.orderId,
-							reason: payload.specialOrderChangeReason,
-						}),
-					},
-				);
-			}
-			if (specialOrderRevisionChanged) {
-				await createSalesFormTimelineActivity(
-					tx as unknown as TRPCContext["db"],
-					{
-						salesId: currentId,
-						orderId: order!.orderId,
-						senderContactId: activitySenderContactId,
-						copy: buildSpecialOrderRevisionInvalidatedActivity({
-							orderId: order!.orderId,
-							hadCustomerEvidence,
-						}),
-					},
-				);
-			}
-		}
-
-		return {
-			salesId: currentId,
-			slug: order!.slug,
-			orderId: order!.orderId,
-			inventoryStatus:
-				payload.type === "order"
-					? payload.inventoryStatus || order!.inventoryStatus || null
-					: null,
-			type: payload.type,
-			isNew,
-			version: nextVersion,
-			updatedAt: nextMeta.newSalesForm?.updatedAt,
-			form: nextFormMeta,
-			lineItems: hydratedLineItems,
-			extraCosts: hydratedExtraCosts,
-			summary,
-			settings,
-			status,
-			specialOrder: {
-				declaration: nextSpecialOrderDeclaration,
-				status: nextSpecialOrderStatus,
-				revision:
-					nextSpecialOrderDeclaration === "YES" ? specialOrderRevision : null,
-				currentApprovalId: nextCurrentSpecialOrderApprovalId,
-				currentRequestId:
-					nextSpecialOrderDeclaration === "YES" && !specialOrderRevisionChanged
-						? order!.currentSpecialOrderRequestId
+				slug: order!.slug,
+				orderId: order!.orderId,
+				inventoryStatus:
+					payload.type === "order"
+						? payload.inventoryStatus || order!.inventoryStatus || null
 						: null,
-				changeReason: null,
-			},
-		};
+				type: payload.type,
+				isNew,
+				version: nextVersion,
+				updatedAt: nextMeta.newSalesForm?.updatedAt,
+				form: nextFormMeta,
+				lineItems: hydratedLineItems,
+				extraCosts: hydratedExtraCosts,
+				summary,
+				settings,
+				status,
+				specialOrder: {
+					declaration: nextSpecialOrderDeclaration,
+					status: nextSpecialOrderStatus,
+					revision:
+						nextSpecialOrderDeclaration === "YES" ? specialOrderRevision : null,
+					currentApprovalId: nextCurrentSpecialOrderApprovalId,
+					currentRequestId:
+						nextSpecialOrderDeclaration === "YES" &&
+						!specialOrderRevisionChanged
+							? order!.currentSpecialOrderRequestId
+							: null,
+					changeReason: null,
+				},
+			};
+		},
+		{
+			isolationLevel: "Serializable",
+			maxWait: 5_000,
+			timeout: 30_000,
+		},
+	);
+	const canonical = await getNewSalesForm(ctx, {
+		slug: transactionResult.slug,
+		type: transactionResult.type,
 	});
+	return {
+		...canonical,
+		isNew: transactionResult.isNew,
+	};
 }
 
 const POST_SAVE_QUEUE_TIMEOUT_MS = 2_000;
@@ -4587,7 +4586,13 @@ export async function deleteNewSalesFormLineItem(
 		select: {
 			id: true,
 			salesOrderId: true,
-			meta: true,
+			salesOrder: {
+				select: {
+					slug: true,
+					type: true,
+					status: true,
+				},
+			},
 		},
 	});
 	if (!line) {
@@ -4613,194 +4618,61 @@ export async function deleteNewSalesFormLineItem(
 				"SALES_CHANGE_REVIEW_REQUIRED: This committed line must be removed through the in-form sales-representative review flow.",
 		});
 	}
-	const result = await ctx.db.$transaction(async (tx) => {
-		const deletedAt = new Date();
-		await tx.salesOrderItems.update({
-			where: {
-				id: line.id,
-			},
-			data: {
-				deletedAt,
-			},
+	const type = line.salesOrder?.type;
+	if (type !== "order" && type !== "quote") {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "Unsupported sales document type.",
 		});
-		await tx.dykeStepForm.updateMany({
-			where: {
-				salesId: line.salesOrderId,
-				salesItemId: line.id,
-				deletedAt: null,
-			},
-			data: {
-				deletedAt,
-			},
-		});
-		await tx.dykeSalesShelfItem.updateMany({
-			where: {
-				salesOrderItemId: line.id,
-				deletedAt: null,
-			},
-			data: {
-				deletedAt,
-			},
-		});
-		await tx.housePackageTools.updateMany({
-			where: {
-				salesOrderId: line.salesOrderId,
-				orderItemId: line.id,
-				deletedAt: null,
-			},
-			data: {
-				deletedAt,
-			},
-		});
-		await tx.dykeSalesDoors.updateMany({
-			where: {
-				salesOrderId: line.salesOrderId,
-				salesOrderItemId: line.id,
-				deletedAt: null,
-			},
-			data: {
-				deletedAt,
-			},
-		});
-
-		const order = await tx.salesOrders.findFirst({
-			where: {
-				id: line.salesOrderId,
-				deletedAt: null,
-			},
-			select: {
-				meta: true,
-				payments: {
-					where: {
-						deletedAt: null,
-					},
-					select: {
-						amount: true,
-						status: true,
-					},
-				},
-			},
-		});
-		const container = safeMeta(order?.meta);
-		const persisted = container.newSalesForm;
-		const lineMeta = safeRecord(line.meta);
-		const lineUid = String(lineMeta.uid || "").trim();
-		const nextVersion = `${Date.now()}-${generateRandomString(8)}`;
-		const updatedAt = deletedAt.toISOString();
-		const nextLineItems = (persisted?.lineItems || []).filter((item: any) => {
-			if (Number(item?.id || 0) === line.id) return false;
-			if (lineUid && String(item?.uid || "") === lineUid) return false;
-			const meta = safeRecord(item?.meta);
-			if (Number(meta.salesItemId || meta.legacySalesItemId || 0) === line.id) {
-				return false;
-			}
-			const groupedRows = [
-				...(((item as any)?.shelfItems || []) as any[]),
-				...(((item as any)?.formSteps || []) as any[]),
-			];
-			return !groupedRows.some((row) => {
-				const rowMeta = safeRecord(row?.meta);
-				return Number(row?.salesItemId || rowMeta.salesItemId || 0) === line.id;
-			});
-		});
-		const setting = await tx.settings.findFirst({
-			where: {
-				type: "sales-settings",
-			},
-			select: {
-				meta: true,
-			},
-		});
-		const settings = deriveNewSalesFormSettings(setting?.meta);
-		const nextSummary = persisted
-			? recalculateSummary({
-					taxRate: Number(persisted.summary?.taxRate || 0),
-					paymentMethod: persisted.form?.paymentMethod || null,
-					cccPercentage: settings.cccPercentage,
-					lineItems: nextLineItems,
-					extraCosts: (persisted.extraCosts || []).map((cost) => ({
-						type: cost.type,
-						amount: Number(cost.amount || 0),
-						taxxable: cost.taxxable ?? false,
-					})),
-				})
-			: null;
-		const persistedNextSummary = nextSummary
-			? storedOrderSummary(nextSummary)
-			: null;
-		const nextDisplayCcc = persistedNextSummary
-			? resolveSalesDisplayCcc({
-					baseTotal: persistedNextSummary.grandTotal,
-					paymentMethod: persisted?.form?.paymentMethod || null,
-					cccPercentage: settings.cccPercentage,
-				})
-			: null;
-		const nextAmountDue = nextSummary
-			? projectLegacyOrderPayments({
-					salesOrderId: line.salesOrderId,
-					grandTotal: persistedNextSummary!.grandTotal,
-					payments: order?.payments || [],
-				}).amountDue
-			: null;
-		const nextMeta: NewSalesFormContainer = persisted
-			? {
-					...container,
-					ccc: nextDisplayCcc?.ccc || 0,
-					ccc_percentage: settings.cccPercentage,
-					payment_option: persisted.form?.paymentMethod || null,
-					newSalesForm: {
-						...persisted,
-						version: nextVersion,
-						updatedAt,
-						lineItems: nextLineItems,
-						summary: persistedNextSummary!,
-					},
-				}
-			: container;
-		await tx.salesOrders.update({
-			where: {
-				id: line.salesOrderId,
-			},
-			data: {
-				...(nextSummary
-					? {
-							subTotal: persistedNextSummary!.subTotal,
-							tax: persistedNextSummary!.taxTotal,
-							grandTotal: persistedNextSummary!.grandTotal,
-							amountDue: nextAmountDue,
-						}
-					: {}),
-				meta: nextMeta as any,
-			},
-		});
-		if (nextSummary) {
-			await tx.salesTaxes.deleteMany({
-				where: {
-					salesId: line.salesOrderId,
-				},
-			});
-			if (persisted?.form?.taxCode) {
-				await tx.salesTaxes.create({
-					data: {
-						salesId: line.salesOrderId,
-						taxCode: persisted.form.taxCode,
-						taxxable: nextSummary.taxableSubTotal,
-						tax: nextSummary.taxTotal,
-					},
-				});
-			}
-		}
-
-		return {
-			version: nextVersion,
-			updatedAt,
-			lineItems: nextLineItems,
-			...(nextSummary ? { summary: nextSummary } : {}),
-		};
+	}
+	const document = await getNewSalesForm(ctx, {
+		type,
+		slug: line.salesOrder!.slug,
 	});
+	if (document.version !== payload.version) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "This sales document changed elsewhere. Reload before deleting.",
+		});
+	}
+	const nextLineItems = document.lineItems.filter(
+		(item) => Number(item.id || 0) !== line.id,
+	);
+	const nextSummary = recalculateSummary({
+		taxRate: document.summary.taxRate,
+		paymentMethod: document.form.paymentMethod || null,
+		cccPercentage: document.settings.cccPercentage,
+		lineItems: nextLineItems,
+		extraCosts: document.extraCosts.map((cost) => ({
+			type: cost.type,
+			amount: Number(cost.amount || 0),
+			taxxable: cost.taxxable ?? false,
+		})),
+	});
+	const result = await saveNewSalesFormInternal(
+		ctx,
+		{
+			type,
+			salesId: document.salesId,
+			slug: document.slug,
+			version: document.version,
+			autosave: false,
+			commitIntent: "draft",
+			specialOrderDeclaration: document.specialOrder.declaration,
+			meta: document.form,
+			lineItems: nextLineItems,
+			extraCosts: document.extraCosts,
+			summary: nextSummary,
+		},
+		line.salesOrder!.status || document.status,
+	);
+	await runNewSalesFormPostSaveTasks(ctx, result);
 	return {
 		ok: true,
 		lineItemId: payload.lineItemId,
-		...result,
+		version: result.version,
+		updatedAt: result.updatedAt,
+		lineItems: result.lineItems,
+		summary: result.summary,
 	};
 }

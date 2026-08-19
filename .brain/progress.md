@@ -9423,6 +9423,18 @@
 - Focused tests pass with 12 tests / 57 assertions; scoped Biome and diff
   checks pass. Authenticated browser QA displayed `Aug 17, 2026` in the
   secondary inbound form and exited without submitting.
+## 2026-08-18 — Activated Dispatch Admin and driver delivery modernization
+
+- Activated Sequence 06 at the operator's request and replaced its deferred
+  outline with the complete approved implementation contract.
+- Locked the Sales Finance visual reference and Midday Invoices architecture
+  reference, six admin views, canonical lifecycle projection, URL-owned detail
+  sheet, Tables-2 behavior, bulk-action safety, durable exception model, and
+  canonical mobile driver journey.
+- Recorded the rule that Dispatch Admin orchestrates while Packing List executes,
+  and that final fulfillment remains proof-bound and inventory-backed.
+- Implementation is in progress; completion still requires shared/API/database,
+  dashboard, mobile, automated validation, and runtime QA gates.
 
 ## 2026-08-18 — Fixed Sales Overview production Submit All dispatch
 
@@ -9433,6 +9445,43 @@
 - Targeted tests pass (7 tests, 18 assertions), and authenticated browser QA
   confirmed the production action menu renders its expected quantities.
 - No database, API contract, or permission behavior changed.
+
+## 2026-08-18 — Implemented Dispatch Admin and driver delivery modernization
+
+- Delivered the Sales Finance/Midday-style Dispatch Admin workspace with
+  Dashboard, Backlog, Dispatches, Calendar, Drivers, and Exceptions sections,
+  actionable summaries, URL-owned filters and sheets, and the shared dispatch
+  lifecycle/risk projection.
+- Added protected workspace and driver-manifest routes, durable idempotent
+  exception reporting/resolution, a `DispatchException` schema/migration, and
+  guarded partial-result bulk assignment/cancellation behavior.
+- Updated the Expo driver dashboard with Today/All/Exceptions views, one
+  server-ranked next stop, live directions, durable issue reporting, and the
+  existing proof-bound completion authority.
+- Recorded ADR-054 and synchronized the dispatch feature, mobile proof,
+  database schema/relationships/migration, API endpoint/contract/permission,
+  plan, and task records.
+- At the operator's explicit direction, all remaining automated tests and QA
+  were skipped for the final handoff stage. The migration still must be applied
+  and the Sequence 06 release validation gate still must pass before rollout or
+  compatibility-route removal.
+
+## 2026-08-18 — Repaired Dispatch Admin Prisma relation runtime mismatch
+
+- Reproduced the authenticated Dispatch Admin error boundary caused by
+  selecting `OrderDelivery._count.exceptions` in a dashboard process started
+  before the regenerated Prisma Client contained that relation.
+- Confirmed the current generated client and composed schema both contain
+  `OrderDelivery.exceptions` and `DispatchException`, eliminating an incorrect
+  relation name or generation target as the cause.
+- Normal local migration refused to proceed because of unrelated historical
+  schema drift and requested a destructive reset. Preserved the database,
+  applied only `20260818110000_dispatch_exceptions` with `prisma db execute`,
+  and marked it applied with `prisma migrate resolve`.
+- Restarted only the dashboard dev route. The authenticated page now renders
+  the operational summaries and dispatch table without the previous Prisma
+  validation error. Production migration and the broader Sequence 06 release
+  validation gate remain separate rollout work.
 
 ## 2026-08-18 — Completed Sales Production Finance-style admin workspace
 
@@ -9461,3 +9510,47 @@
   The dashboard build compiled successfully in 91 seconds before stopping on
   unavailable runtime secrets; the broad dashboard typecheck still reports
   unrelated baseline diagnostics and zero scoped production errors.
+
+## 2026-08-18 — Sales Form relational authority implementation in progress
+
+- Confirmed quote `03523PC` had two active relational door rows while each row's
+  committed final price was `$355.67`; passive client profile hydration reduced
+  the displayed value to `$281.17` and dirtied the form.
+- Replaced JSON/relational commercial merging with relational-only hydration,
+  identity-preserving child diffs, duplicate payload rejection, canonical
+  post-save reload, and nested-ID autosave rebasing.
+- Added recovered base authority and explicit-only profile repricing, plus a
+  pricing-loading gate for door actions.
+- Added the bounded relational audit/repair command, ADR-056, and the permanent
+  `03523PC` bug record. Final validation and the local bounded repair remain.
+
+## 2026-08-18 — Charted responsive dispatch workflow Wayfinder
+
+- Created the local
+  `.scratch/dispatch-admin-responsive-driver-workflow/` Wayfinder map with
+  eleven dependency-wired decision tickets spanning office assignment, driver
+  warehouse packing, partial quantities, admin approval and notifications,
+  shared lifecycle, responsive admin/driver information architecture, proof
+  completion, prototype review, and cutover.
+- Recorded the current architecture conflicts explicitly: Expo is canonical for
+  drivers, Packing List owns packing execution, and dependency approval must
+  reuse audited inventory/production commands instead of blindly skipping
+  blockers.
+- Added dispatch ubiquitous language to `CONTEXT.md`. No implementation,
+  database, API, or permission contract was changed by the charting pass.
+
+## 2026-08-18 — Split Dispatch Admin replacement into a guarded v2 route
+
+- Restored the previous Dispatch Admin summary/dashboard, overdue banner,
+  controls, table/calendar switch, legacy calendar, and workload sidebar at
+  `/sales-book/dispatch-admin`.
+- Moved the replacement six-section workspace and its calendar to
+  `/sales-book/dispatch-admin/v2`, with both the page guard and dropdown
+  sub-link limited to Super Admins with `editOrders`.
+- Added route-isolation and navigation-permission regression coverage; the
+  focused suite passes 24 tests and 120 assertions.
+- Authenticated browser QA confirmed both routes and the v2 dropdown entry. The
+  replacement retains a PageTabs hydration warning when saved client tab order
+  differs from server order; the rendered workspace recovers correctly.
+- Added ADR-057. No API, database, mobile, dispatch lifecycle, packing,
+  inventory, proof, or exception contract changed.

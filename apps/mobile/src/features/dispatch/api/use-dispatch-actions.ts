@@ -39,6 +39,16 @@ type UpdateDispatchStatusInput = DispatchMeta & {
 	oldStatus?: DispatchStatus | null;
 	newStatus: DispatchStatus;
 };
+type ReportDispatchExceptionInput = DispatchMeta & {
+	reasonCode:
+		| "wrong_address"
+		| "customer_not_home"
+		| "damaged_items"
+		| "access_issue"
+		| "other";
+	notes?: string | null;
+	requestId: string;
+};
 
 function getAuthor(profile: ReturnType<typeof useAuthContext>["profile"]) {
 	const rawId = profile?.user?.id;
@@ -65,6 +75,12 @@ export function useDispatchActions() {
 			queryClient.invalidateQueries({
 				queryKey: _trpc.dispatch.packingList.queryKey(),
 			}),
+			queryClient.invalidateQueries({
+				queryKey: _trpc.dispatch.driverManifest.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: _trpc.dispatch.exceptions.queryKey(),
+			}),
 		]);
 	};
 
@@ -88,6 +104,11 @@ export function useDispatchActions() {
 	);
 	const prepareInventoryMutation = useMutation(
 		_trpc.dispatch.prepareInventoryForDispatch.mutationOptions({
+			onSuccess: invalidateDispatchQueries,
+		}),
+	);
+	const reportExceptionMutation = useMutation(
+		_trpc.dispatch.reportException.mutationOptions({
 			onSuccess: invalidateDispatchQueries,
 		}),
 	);
@@ -119,6 +140,7 @@ export function useDispatchActions() {
 		submitDispatch,
 		updateDispatchStatus: updateDispatchStatusMutation,
 		prepareInventory: prepareInventoryMutation,
+		reportException: reportExceptionMutation,
 		invalidateDispatchQueries,
 		onStartDispatch(input: DispatchMeta) {
 			const author = getAuthor(auth.profile);
@@ -176,16 +198,25 @@ export function useDispatchActions() {
 				items: input.items,
 			});
 		},
+		onReportException(input: ReportDispatchExceptionInput) {
+			return reportExceptionMutation.mutateAsync({
+				dispatchId: input.dispatchId,
+				reasonCode: input.reasonCode,
+				notes: input.notes,
+				requestId: input.requestId,
+			});
+		},
 		canStart(status?: DispatchStatus | null) {
-			return (
-				status === "queue" || status === "packed" || status === "cancelled"
-			);
+			return status === "packed";
 		},
 		canCancel(status?: DispatchStatus | null) {
 			return status === "in progress" || status === "packed";
 		},
+		canReportException(status?: DispatchStatus | null) {
+			return !["completed", "cancelled"].includes(String(status || "queue"));
+		},
 		canComplete(status?: DispatchStatus | null) {
-			return status === "in progress" || status === "packed";
+			return status === "in progress";
 		},
 	};
 }

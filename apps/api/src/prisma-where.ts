@@ -7,8 +7,8 @@ import type { EmployeesQueryParams } from "./schemas/hrm";
 import type { DispatchQueryParamsSchema } from "./schemas/sales";
 import type { DriverWorkQueueQuerySchema } from "./schemas/sales";
 
-import { whereSales } from "@sales/utils/where-queries";
 import { getDispatchDateBoundaries } from "@gnd/sales/dispatch-manifest/driver-work-queue";
+import { whereSales } from "@sales/utils/where-queries";
 export function whereCustomer(query: DispatchQueryParamsSchema) {
 	const whereStack: Prisma.CustomersWhereInput[] = [];
 
@@ -37,7 +37,29 @@ export function whereDispatch(
 ) {
 	const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
 
-	if (query.statuses?.length) {
+	if (query.stages?.length) {
+		const stageWhere: Prisma.OrderDeliveryWhereInput[] = [];
+		for (const stage of query.stages) {
+			if (stage === "ready_to_assign") {
+				stageWhere.push({ status: "queue", driverId: null });
+			} else if (stage === "assigned") {
+				stageWhere.push({ status: "queue", driverId: { not: null } });
+			} else if (stage === "packing") {
+				stageWhere.push({ status: "packing queue" });
+			} else if (stage === "packing_blocked") {
+				stageWhere.push({ status: "missing items" });
+			} else if (stage === "ready_to_load") {
+				stageWhere.push({ status: "packed" });
+			} else if (stage === "in_transit") {
+				stageWhere.push({ status: "in progress" });
+			} else if (stage === "fulfilled") {
+				stageWhere.push({ status: "completed" });
+			} else if (stage === "cancelled") {
+				stageWhere.push({ status: "cancelled" });
+			}
+		}
+		if (stageWhere.length) whereStack.push({ OR: stageWhere });
+	} else if (query.statuses?.length) {
 		whereStack.push({
 			status: { in: query.statuses },
 		});
@@ -113,6 +135,57 @@ export function whereDispatch(
 				in: query.driversId,
 			},
 		});
+	if (query.deliveryModes?.length) {
+		whereStack.push({ deliveryMode: { in: query.deliveryModes } });
+	}
+	if (query.scheduleRange?.length) {
+		const [from, to] = query.scheduleRange;
+		const fromDate = from ? new Date(from) : null;
+		const toDate = to ? new Date(to) : null;
+		if (fromDate && !Number.isNaN(fromDate.getTime())) {
+			whereStack.push({
+				dueDate: {
+					gte: fromDate,
+					...(toDate && !Number.isNaN(toDate.getTime()) ? { lte: toDate } : {}),
+				},
+			});
+		}
+	}
+	if (query.risks?.length) {
+		const { startToday } = getDispatchDateBoundaries({
+			now: query.now,
+			timeZone:
+				process.env.BUSINESS_TIME_ZONE || process.env.TZ || "America/New_York",
+		});
+		const riskWhere: Prisma.OrderDeliveryWhereInput[] = [];
+		for (const risk of query.risks) {
+			if (risk === "overdue") {
+				riskWhere.push({
+					dueDate: { lt: startToday },
+					status: { notIn: ["completed", "cancelled"] },
+				});
+			} else if (risk === "unscheduled") {
+				riskWhere.push({
+					dueDate: null,
+					status: { notIn: ["completed", "cancelled"] },
+				});
+			} else if (risk === "missing_items") {
+				riskWhere.push({ status: "missing items" });
+			} else if (risk === "unassigned") {
+				riskWhere.push({
+					driverId: null,
+					status: { notIn: ["completed", "cancelled"] },
+				});
+			} else if (risk === "open_exception") {
+				riskWhere.push({
+					exceptions: {
+						some: { status: "open", deletedAt: null },
+					},
+				});
+			}
+		}
+		if (riskWhere.length) whereStack.push({ OR: riskWhere });
+	}
 	if (query.dueBuckets?.length) {
 		const { startToday, startTomorrow, startAfterTomorrow } =
 			getDispatchDateBoundaries({

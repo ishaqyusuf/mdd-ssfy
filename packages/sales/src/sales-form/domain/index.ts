@@ -1,5 +1,11 @@
 export { calculateSalesFormSummary } from "./costing";
 export {
+	collapseDuplicateSalesDoorRows,
+	findDuplicateSalesDoorIdentities,
+	getSalesDoorActiveIdentity,
+	normalizeSalesDoorDimension,
+} from "./door-identity";
+export {
 	isCustomSalesFormComponent,
 	readSalesFormObjectMetadata,
 } from "./metadata";

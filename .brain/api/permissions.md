@@ -1,5 +1,17 @@
 # API Permissions
 
+## Dispatch Workspace And Exceptions (2026-08-18)
+
+- Workspace summary, backlog, list, calendar, driver workload, exception list,
+  and exception resolution require the existing dispatch-manager capability
+  boundary (`editPickup`, `editOrders`, or `viewPacking`).
+- Dispatch detail and exception reporting require either that manager boundary
+  or a live `OrderDelivery.driverId` match to the authenticated user.
+- Driver manifest access requires dispatch-worker capability and always
+  overwrites requested driver ids with the authenticated user id.
+- Reporter and resolver ids are taken only from protected API context. The
+  client cannot attribute an exception to another employee.
+
 ## Driver Platform Revival (2026-08-06)
 
 - Dispatch operational/customer reads use `protectedProcedure`; no public

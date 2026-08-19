@@ -1,3 +1,5 @@
+import { dispatchWorkspaceStages } from "@gnd/sales/dispatch-manifest/status";
+import { dispatchRiskCodes } from "@gnd/sales/dispatch-manifest/workspace";
 import { salesDispatchStatus } from "@gnd/utils/constants";
 import {
 	INVOICE_FILTER_OPTIONS,
@@ -19,13 +21,6 @@ import {
 import { salesPrioritySchema } from "@sales/priority";
 import { z } from "zod";
 
-const dispatchQueryParamsShape = {
-	tab: z.enum(["all", "pending", "completed"]).optional().nullable(),
-	driversId: z.array(z.number()).optional().nullable(),
-	status: z.enum(salesDispatchStatus).optional().nullable(),
-	scheduleDate: z.array(z.string().optional().nullable()).optional().nullable(),
-};
-
 export const dispatchDueBucketSchema = z.enum([
 	"overdue",
 	"today",
@@ -33,6 +28,21 @@ export const dispatchDueBucketSchema = z.enum([
 	"upcoming",
 	"unscheduled",
 ]);
+
+const dispatchQueryParamsShape = {
+	tab: z.enum(["all", "pending", "completed"]).optional().nullable(),
+	driversId: z.array(z.number()).optional().nullable(),
+	status: z.enum(salesDispatchStatus).optional().nullable(),
+	stages: z.array(z.enum(dispatchWorkspaceStages)).optional().nullable(),
+	dueBuckets: z.array(dispatchDueBucketSchema).optional().nullable(),
+	deliveryModes: z
+		.array(z.enum(["delivery", "pickup"]))
+		.optional()
+		.nullable(),
+	scheduleRange: z.array(z.string()).max(2).optional().nullable(),
+	risks: z.array(z.enum(dispatchRiskCodes)).optional().nullable(),
+	scheduleDate: z.array(z.string().optional().nullable()).optional().nullable(),
+};
 
 export const dispatchQueryParamsSchema = z
 	.object(dispatchQueryParamsShape)
@@ -42,7 +52,6 @@ export type DispatchQueryParamsSchema = z.infer<
 >;
 
 export const driverWorkQueueQuerySchema = dispatchQueryParamsSchema.extend({
-	dueBuckets: z.array(dispatchDueBucketSchema).optional().nullable(),
 	statuses: z.array(z.enum(salesDispatchStatus)).optional().nullable(),
 });
 export type DriverWorkQueueQuerySchema = z.infer<
@@ -65,6 +74,7 @@ export type UpdateSalesDeliveryOptionSchema = z.infer<
 export const dispatchStatusSchema = z.enum([
 	"queue",
 	"packing queue",
+	"missing items",
 	"packed",
 	"in progress",
 	"completed",
@@ -317,6 +327,7 @@ export type BulkAssignDriverSchema = z.infer<typeof bulkAssignDriverSchema>;
 
 export const bulkCancelDispatchSchema = z.object({
 	dispatchIds: z.array(z.number()).min(1),
+	allowPickedRelease: z.boolean().optional().default(false),
 });
 export type BulkCancelDispatchSchema = z.infer<typeof bulkCancelDispatchSchema>;
 

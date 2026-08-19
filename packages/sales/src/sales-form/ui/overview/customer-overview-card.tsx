@@ -13,13 +13,6 @@ import {
 	AlertDialogTrigger,
 } from "@gnd/ui/alert-dialog";
 import { Icons } from "@gnd/ui/icons";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@gnd/ui/select";
 import { type ReactNode, useMemo, useState } from "react";
 import type { SalesFormSelectOption } from "./invoice-pricing-overview";
 
@@ -137,24 +130,25 @@ export function SalesFormCustomerOverviewCard(
 							<span className="inline-flex items-center rounded-md border bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-700">
 								CUSTOMER
 							</span>
-							<Select
+							<select
+								aria-label="Customer profile"
 								value={props.profileValue}
-								onValueChange={props.onProfileChange}
+								onChange={(event) =>
+									props.onProfileChange?.(event.target.value)
+								}
+								onClick={(event) => event.stopPropagation()}
+								disabled={!props.onProfileChange}
+								className="h-8 w-[180px] rounded-lg border border-border bg-card px-2 text-xs font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 							>
-								<SelectTrigger
-									className="h-8 w-[180px] rounded-lg bg-card text-xs font-bold"
-									onClick={(event) => event.stopPropagation()}
-								>
-									<SelectValue placeholder="Select Profile" />
-								</SelectTrigger>
-								<SelectContent>
-									{props.profileOptions.map((profile) => (
-										<SelectItem key={profile.value} value={profile.value}>
-											{profile.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+								{props.profileOptions.length ? null : (
+									<option value="none">Select Profile</option>
+								)}
+								{props.profileOptions.map((profile) => (
+									<option key={profile.value} value={profile.value}>
+										{profile.label}
+									</option>
+								))}
+							</select>
 						</div>
 					</div>
 				</div>
@@ -181,13 +175,8 @@ export function SalesFormCustomerOverviewCard(
 								shippingMatchesBilling: props.shippingMatchesBilling,
 							}) ? (
 								<AlertDialog>
-									<AlertDialogTrigger asChild>
-										<button
-											className="ml-3 inline-flex h-8 items-center rounded-md px-2 text-xs font-bold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-											type="button"
-										>
-											Same as billing
-										</button>
+									<AlertDialogTrigger className="ml-3 inline-flex h-8 items-center rounded-md px-2 text-xs font-bold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+										Same as billing
 									</AlertDialogTrigger>
 									<AlertDialogContent>
 										<AlertDialogHeader>

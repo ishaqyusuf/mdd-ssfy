@@ -2,7 +2,7 @@
 "use client";
 
 import { Badge } from "@gnd/ui/badge";
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import {
 	Card,
 	CardContent,
@@ -29,12 +29,11 @@ import {
 } from "@gnd/ui/input-group";
 import { Separator } from "@gnd/ui/separator";
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@gnd/ui/tooltip";
-import type { ReactNode } from "react";
+	cloneElement,
+	isValidElement,
+	type ReactElement,
+	type ReactNode,
+} from "react";
 import { multiplyMoney } from "../../../payment-system/domain/money";
 import {
 	getHptDoorSalesUnitPrice,
@@ -90,7 +89,8 @@ export type HousePackageToolPanelProps = {
 	noHandle: boolean;
 	hasSwing: boolean;
 	sharedDoorSurcharge: number;
-	profileCoefficient: number;
+	profileCoefficient: number | null;
+	pricingReady: boolean;
 	priceBreakdown?: DoorPriceBreakdownContext | null;
 	canSwapDoor: boolean;
 	canEditPricing: boolean;
@@ -133,14 +133,10 @@ function HptHeaderActionTooltip({
 	children: ReactNode;
 	label: string;
 }) {
-	return (
-		<Tooltip>
-			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent side="top" className="px-2 py-1 text-xs">
-				{label}
-			</TooltipContent>
-		</Tooltip>
-	);
+	if (!isValidElement(children)) return children;
+	return cloneElement(children as ReactElement<{ title?: string }>, {
+		title: label,
+	});
 }
 
 function HptAddSizeMenu(props: {
@@ -151,54 +147,46 @@ function HptAddSizeMenu(props: {
 	disabled?: boolean;
 }) {
 	return (
-		<TooltipProvider delayDuration={120}>
-			<DropdownMenu>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<DropdownMenuTrigger asChild>
-							<Button
-								type="button"
-								size="icon"
-								variant="outline"
-								className="size-8 rounded-full"
-								disabled={props.disabled}
-								aria-label="Add Size"
-							>
-								<Icons.Plus className="size-3.5" />
-							</Button>
-						</DropdownMenuTrigger>
-					</TooltipTrigger>
-					<TooltipContent side="top" className="px-2 py-1 text-xs">
-						Add Size
-					</TooltipContent>
-				</Tooltip>
-				<DropdownMenuContent align="end" className="w-56">
-					{!props.availableSizeOptions.length ? (
-						<DropdownMenuItem disabled>No more sizes</DropdownMenuItem>
-					) : (
-						props.availableSizeOptions.map((option) => (
-							<DropdownMenuItem
-								key={`add-size-${props.componentId}-${option.size}`}
-								disabled={option.selected}
-								onClick={() => {
-									if (!option.selected) props.onAddSize(option.size);
-								}}
-								className="flex items-center justify-between gap-4"
-							>
-								<span>{option.size}</span>
-								<span className="text-xs tabular-nums text-muted-foreground">
-									{option.selected
-										? "Selected"
-										: option.doorPrice == null
+		<DropdownMenu>
+			<DropdownMenuTrigger
+				type="button"
+				title="Add Size"
+				className={buttonVariants({
+					variant: "outline",
+					size: "icon",
+					className: "size-8 rounded-full",
+				})}
+				disabled={props.disabled}
+				aria-label="Add Size"
+			>
+				<Icons.Plus className="size-3.5" />
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="w-56">
+				{!props.availableSizeOptions.length ? (
+					<DropdownMenuItem disabled>No more sizes</DropdownMenuItem>
+				) : (
+					props.availableSizeOptions.map((option) => (
+						<DropdownMenuItem
+							key={`add-size-${props.componentId}-${option.size}`}
+							disabled={option.selected}
+							onClick={() => {
+								if (!option.selected) props.onAddSize(option.size);
+							}}
+							className="flex items-center justify-between gap-4"
+						>
+							<span>{option.size}</span>
+							<span className="text-xs tabular-nums text-muted-foreground">
+								{option.selected
+									? "Selected"
+									: option.doorPrice == null
 										? "Price unavailable"
 										: props.formatMoney(option.doorPrice)}
-								</span>
-							</DropdownMenuItem>
-						))
-					)}
-				</DropdownMenuContent>
-			</DropdownMenu>
-		</TooltipProvider>
+							</span>
+						</DropdownMenuItem>
+					))
+				)}
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }
 
@@ -221,6 +209,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 						size="sm"
 						variant="outline"
 						onClick={props.onAddDoor}
+						disabled={!props.pricingReady}
 						aria-label="Add door"
 					>
 						<Icons.Plus className="mr-1.5 size-3.5" />
@@ -270,7 +259,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 							availableSizeOptions={props.availableSizeOptions}
 							formatMoney={props.formatMoney}
 							onAddSize={props.onAddSize}
-							disabled={!props.activeDoorComponent}
+							disabled={!props.activeDoorComponent || !props.pricingReady}
 						/>
 					</div>
 				) : !rowsForComponent.length ? (
@@ -288,7 +277,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 								availableSizeOptions={props.availableSizeOptions}
 								formatMoney={props.formatMoney}
 								onAddSize={props.onAddSize}
-								disabled={!props.activeDoorComponent}
+								disabled={!props.activeDoorComponent || !props.pricingReady}
 							/>
 							<HptHeaderActionTooltip label="Configure Sizes">
 								<Button
@@ -296,7 +285,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 									size="sm"
 									variant="outline"
 									onClick={props.onConfigureSizes}
-									disabled={!props.activeDoorComponent}
+									disabled={!props.activeDoorComponent || !props.pricingReady}
 								>
 									Configure Sizes
 								</Button>
@@ -341,8 +330,9 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 									availableSizeOptions={props.availableSizeOptions}
 									formatMoney={props.formatMoney}
 									onAddSize={props.onAddSize}
+									disabled={!props.pricingReady}
 								/>
-								<TooltipProvider delayDuration={120}>
+								<>
 									<HptHeaderActionTooltip label="Configure Sizes">
 										<Button
 											type="button"
@@ -350,7 +340,9 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											variant="outline"
 											className="size-8 rounded-full"
 											onClick={props.onConfigureSizes}
-											disabled={!props.activeDoorComponent}
+											disabled={
+												!props.activeDoorComponent || !props.pricingReady
+											}
 											aria-label="Configure Sizes"
 										>
 											<Icons.Settings2 className="size-3.5" />
@@ -364,7 +356,9 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											className="size-8 rounded-full"
 											onClick={props.onSwapDoor}
 											disabled={
-												!props.activeDoorComponent || !props.canSwapDoor
+												!props.activeDoorComponent ||
+												!props.canSwapDoor ||
+												!props.pricingReady
 											}
 											aria-label="Swap Door"
 										>
@@ -384,7 +378,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											<Icons.Trash2 className="size-3.5 text-current" />
 										</Button>
 									</HptHeaderActionTooltip>
-								</TooltipProvider>
+								</>
 							</div>
 						</header>
 						<div className="overflow-x-auto">
@@ -456,6 +450,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																})
 															}
 															className="h-8 w-16 rounded-md border-slate-200 text-xs"
+															disabled={!props.pricingReady}
 															placeholder="LH/RH"
 														/>
 													</td>
@@ -472,7 +467,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	rhQty: 0,
 																})
 															}
-															disabled={isDoorRowPriceMissing(row)}
+															disabled={
+																!props.pricingReady ||
+																isDoorRowPriceMissing(row)
+															}
 															className="w-32"
 															min={0}
 														/>
@@ -488,7 +486,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																		lhQty: value,
 																	})
 																}
-																disabled={isDoorRowPriceMissing(row)}
+																disabled={
+																	!props.pricingReady ||
+																	isDoorRowPriceMissing(row)
+																}
 																className="w-32"
 																min={0}
 															/>
@@ -502,7 +503,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																		rhQty: value,
 																	})
 																}
-																disabled={isDoorRowPriceMissing(row)}
+																disabled={
+																	!props.pricingReady ||
+																	isDoorRowPriceMissing(row)
+																}
 																className="w-32"
 																min={0}
 															/>
@@ -524,7 +528,9 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																profileCoefficient: props.profileCoefficient,
 															}),
 														}}
-														readOnly={!props.canEditPricing}
+														readOnly={
+															!props.canEditPricing || !props.pricingReady
+														}
 														onSave={(nextBase) =>
 															props.onPatchRow(
 																row,
@@ -670,9 +676,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																				</InputGroupAddon>
 																				<InputGroupInput
 																					id={addonInputId}
-																					aria-label={
-																						pricingLabels.addonPrice
-																					}
+																					aria-label={pricingLabels.addonPrice}
 																					type="number"
 																					step="0.01"
 																					value={row.addon ?? 0}
@@ -684,6 +688,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																						})
 																					}
 																					className="text-right"
+																					disabled={!props.pricingReady}
 																				/>
 																			</InputGroup>
 																		</Field>
@@ -701,9 +706,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																			</InputGroupAddon>
 																			<InputGroupInput
 																				id={customInputId}
-																				aria-label={
-																					pricingLabels.customPrice
-																				}
+																				aria-label={pricingLabels.customPrice}
 																				type="number"
 																				step="0.01"
 																				value={row.customPrice ?? ""}
@@ -711,9 +714,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																					const customPrice =
 																						event.target.value === ""
 																							? null
-																							: Number(
-																									event.target.value || 0,
-																								);
+																							: Number(event.target.value || 0);
 																					props.onPatchRow(
 																						row,
 																						patchDoorRowCustomPrice(
@@ -723,6 +724,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																					);
 																				}}
 																				className="text-right"
+																				disabled={!props.pricingReady}
 																			/>
 																		</InputGroup>
 																	</Field>
@@ -738,7 +740,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 													</Menu>
 												</td>
 												<td className="px-2 py-2 text-right">
-													<TooltipProvider delayDuration={120}>
+													<>
 														<div className="flex items-center justify-end gap-1">
 															{props.canEditPricing && profilePriceDrift ? (
 																<HptHeaderActionTooltip
@@ -749,19 +751,19 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																		size="icon"
 																		variant="ghost"
 																		className="size-6 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+																		disabled={!props.pricingReady}
 																		onClick={() => {
-																			const repaired = repairDoorRowProfilePriceDrift(
-																				row,
-																				{
+																			const repaired =
+																				repairDoorRowProfilePriceDrift(row, {
 																					profileCoefficient:
 																						props.profileCoefficient,
 																					sharedDoorSurcharge:
 																						props.sharedDoorSurcharge,
 																					noHandle: props.noHandle,
 																					hasSwing: props.hasSwing,
-																				},
-																			);
-																			if (repaired) props.onPatchRow(row, repaired);
+																				});
+																			if (repaired)
+																				props.onPatchRow(row, repaired);
 																		}}
 																		aria-label={`Repair price for ${row.dimension || "door size"}`}
 																	>
@@ -780,7 +782,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																<Icons.Trash2 className="size-3" />
 															</Button>
 														</div>
-													</TooltipProvider>
+													</>
 												</td>
 											</tr>
 										);

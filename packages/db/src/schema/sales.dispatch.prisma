@@ -17,11 +17,36 @@ model OrderDelivery {
     driver       Users?              @relation(name: "driver", fields: [driverId], references: [id])
     createdBy    Users?              @relation(name: "createdBy", fields: [createdById], references: [id])
 	stockAllocations StockAllocation[]
+	exceptions DispatchException[]
 
     @@index([salesOrderId])
     @@index([driverId])
     @@index([createdById])
     @@index([deliveredAt])
+}
+
+model DispatchException {
+    id              Int       @id @default(autoincrement())
+    orderDeliveryId Int
+    reasonCode      String    @db.VarChar(64)
+    notes           String?   @db.Text
+    status          String    @default("open") @db.VarChar(32)
+    tripAction      String    @default("keep_assigned") @db.VarChar(32)
+    reportedById    Int
+    resolvedById    Int?
+    resolutionNote  String?   @db.Text
+    requestId       String?   @unique @db.VarChar(191)
+    meta            Json?     @db.Json
+    reportedAt      DateTime  @default(now()) @db.Timestamp(0)
+    resolvedAt      DateTime? @db.Timestamp(0)
+    createdAt       DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime  @updatedAt
+    deletedAt       DateTime? @db.Timestamp(0)
+    delivery        OrderDelivery @relation(fields: [orderDeliveryId], references: [id])
+
+    @@index([orderDeliveryId, status, deletedAt])
+    @@index([status, reportedAt])
+    @@index([reportedById, reportedAt])
 }
 
 model DispatchRegion {

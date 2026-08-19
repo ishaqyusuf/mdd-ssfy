@@ -1,5 +1,9 @@
 import { Prisma } from "@/db";
 import { roundMoney } from "@sales/payment-system/domain/money";
+import {
+    getSalesDoorActiveIdentity,
+    normalizeSalesDoorDimension,
+} from "@sales/sales-form/domain/door-identity";
 
 import {
     DykeFormStepMeta,
@@ -90,6 +94,7 @@ export class ItemHelperClass {
             doors: [],
         };
         const hptId = itemHtp?.id || this.ctx.nextId("hpt");
+        const activeDoorIdentities = new Set<string>();
         let stepProductId;
         const hptMeta = {} satisfies HousePackageToolMeta;
 
@@ -118,6 +123,19 @@ export class ItemHelperClass {
                             formData.stepProductId?.id ||
                                 formData.stepProductId?.fallbackId
                         );
+                        const activeIdentity = `${hptId}|${getSalesDoorActiveIdentity({
+                            stepProductId:
+                                formData.stepProductId?.id ||
+                                formData.stepProductId?.fallbackId,
+                            dimension,
+                        })}`;
+                        if (activeDoorIdentities.has(activeIdentity)) {
+                            throw new Error(
+                                `Duplicate door component and size: ${normalizeSalesDoorDimension(dimension)}`
+                            );
+                        }
+                        activeDoorIdentities.add(activeIdentity);
+                        (updateDoor as any).activeIdentity = activeIdentity;
 
                         if (formData.doorId) {
                             if (

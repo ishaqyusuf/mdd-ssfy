@@ -38,6 +38,30 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(taskRoute.includes("<DataTable driver")).toBe(true);
 	});
 
+	it("keeps the legacy admin dashboard canonical and the new workspace isolated at v2", () => {
+		const adminRoute = readSource(
+			"app/(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx",
+		);
+		const adminV2Route = readSource(
+			"app/(sidebar)/(sales)/sales-book/dispatch-admin/v2/page.tsx",
+		);
+		const workspaceClient = readSource(
+			"components/dispatch-admin/dispatch-admin-workspace-client.tsx",
+		);
+
+		expect(adminRoute.includes("AdminDispatchHeader")).toBe(true);
+		expect(adminRoute.includes("DispatchSummaryCards")).toBe(true);
+		expect(adminRoute.includes("DriverWorkloadCard")).toBe(true);
+		expect(adminRoute.includes("enableSalesMarkAs")).toBe(true);
+		expect(adminRoute.includes("DispatchAdminWorkspaceClient")).toBe(false);
+		expect(adminV2Route.includes("DispatchAdminWorkspaceClient")).toBe(true);
+		expect(adminV2Route.includes("DispatchSheet")).toBe(true);
+		expect(adminV2Route.includes('_role.is("Super Admin")')).toBe(true);
+		expect(
+			workspaceClient.includes("dispatch-calendar-view-v2"),
+		).toBe(true);
+	});
+
 	it("keeps the table-owned scroll, header offset, DnD, selection, and bottom-bar behavior from Sales Orders", () => {
 		const source = readSource(
 			"components/tables-2/sales-dispatch/data-table.tsx",
@@ -50,7 +74,7 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(source.includes('id="sales-dispatch-table-dnd"')).toBe(true);
 		expect(source.includes("collisionDetection={closestCenter}")).toBe(true);
 		expect(source.includes("onRowSelectionChange: setRowSelection")).toBe(true);
-		expect(source.includes("<BottomBar data={tableData} />")).toBe(true);
+		expect(source.includes("<BottomBar data={tableData}")).toBe(true);
 		expect(source.includes('height: "var(--header-offset, 0px)"')).toBe(true);
 		expect(source.includes("rowHeight={tableConfig.rowHeight}")).toBe(true);
 		expect(source.includes("estimateSize: () => tableConfig.rowHeight")).toBe(

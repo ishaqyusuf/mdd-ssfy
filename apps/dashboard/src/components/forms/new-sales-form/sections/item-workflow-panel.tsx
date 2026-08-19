@@ -133,12 +133,6 @@ import {
 import { Icon } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@gnd/ui/tooltip";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	useArchiveDykeCustomStepComponentMutation,
@@ -461,16 +455,18 @@ export function ItemWorkflowPanel() {
 			),
 		[shelfCategories],
 	);
-	const activeProfileCoefficient = useMemo(() => {
+	const activeProfileCoefficient = useMemo<number | null>(() => {
 		const selectedProfileId = Number(record?.form?.customerProfileId || 0);
 		if (!selectedProfileId) return 1;
 		const profile = (
 			(customerProfilesQuery.data || []) as CustomerProfileRecord[]
 		).find((cp) => Number(cp?.id || 0) === selectedProfileId);
+		if (!profile) return null;
 		const coefficient = Number(profile?.coefficient || 0);
-		return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
+		return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : null;
 	}, [customerProfilesQuery.data, record?.form?.customerProfileId]);
 	const activeShelfSync = useMemo(() => {
+		if (activeProfileCoefficient == null) return null;
 		return buildWorkflowShelfSyncPatch(activeLine, activeProfileCoefficient);
 	}, [activeLine, activeProfileCoefficient]);
 	useEffect(() => {
@@ -507,6 +503,7 @@ export function ItemWorkflowPanel() {
 		});
 	}, [activeShelfSync, updateLineItem]);
 	useEffect(() => {
+		if (activeProfileCoefficient == null) return;
 		const initialShelfPatch = buildInitialWorkflowShelfPatch(
 			activeLine,
 			activeProfileCoefficient,
@@ -603,6 +600,7 @@ export function ItemWorkflowPanel() {
 		activeDoorStep,
 	]);
 	const activeDoorSync = useMemo(() => {
+		if (activeProfileCoefficient == null) return null;
 		return buildWorkflowDoorSyncPatch({
 			line: activeLine,
 			routeData,
@@ -619,13 +617,19 @@ export function ItemWorkflowPanel() {
 		routeData,
 		visibleDoorComponents,
 	]);
+	const activeDoorSyncFingerprint = activeDoorSync
+		? `${activeDoorSync.lineUid}:${JSON.stringify(activeDoorSync.linePatch)}`
+		: null;
+	const activeDoorSyncRef = useRef(activeDoorSync);
+	activeDoorSyncRef.current = activeDoorSync;
 	useEffect(() => {
+		const activeDoorSync = activeDoorSyncRef.current;
 		if (!activeDoorSync) return;
 		updateLineItem(
 			activeDoorSync.lineUid,
 			activeDoorSync.linePatch as Partial<NewSalesFormLineItem>,
 		);
-	}, [activeDoorSync, updateLineItem]);
+	}, [activeDoorSyncFingerprint, updateLineItem]);
 	const activeRootComponents = useMemo(() => {
 		const roots = rootComponentsQuery.data || [];
 		const configured = new Set(Object.keys(routeData?.composedRouter || {}));
@@ -1240,18 +1244,19 @@ export function ItemWorkflowPanel() {
 				{ ignorePersistedVariations: true },
 			);
 			return sizes.map((size) => {
-					const pricing = resolveSizePricing(size);
-					const selected = focusedRows.some(
-						(row) =>
-							String(row?.dimension || "").trim().toLowerCase() ===
-							String(size).trim().toLowerCase(),
-					);
-					return {
-						size,
-						doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
-						selected,
-					};
-				});
+				const pricing = resolveSizePricing(size);
+				const selected = focusedRows.some(
+					(row) =>
+						String(row?.dimension || "")
+							.trim()
+							.toLowerCase() === String(size).trim().toLowerCase(),
+				);
+				return {
+					size,
+					doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
+					selected,
+				};
+			});
 		})();
 		const swapDoorCandidates = (() => {
 			return lineVisibleDoorComponents.filter(
@@ -1286,6 +1291,7 @@ export function ItemWorkflowPanel() {
 				hasSwing={hasSwing}
 				sharedDoorSurcharge={sharedDoorSurcharge}
 				profileCoefficient={activeProfileCoefficient}
+				pricingReady={activeProfileCoefficient != null}
 				canSwapDoor={Boolean(swapDoorCandidates.length)}
 				canEditPricing={workflowAdminCapabilities.canEditLinePricing}
 				formatMoney={money}
@@ -1493,22 +1499,21 @@ export function ItemWorkflowPanel() {
 		const salesPrice =
 			moneyIfPositive(Number(component.salesPrice || 0)) || "$0.00";
 		const basePrice = moneyIfPositive(Number(component.basePrice || 0));
+		const priceTitle = [
+			`Calculated sales cost: ${salesPrice}`,
+			basePrice ? `Base cost: ${basePrice}` : null,
+		]
+			.filter(Boolean)
+			.join(" · ");
 		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<span
-						className="cursor-help underline decoration-dotted underline-offset-2"
-						tabIndex={0}
-						aria-label={`Calculated sales cost ${salesPrice}`}
-					>
-						{salesPrice}
-					</span>
-				</TooltipTrigger>
-				<TooltipContent>
-					<div>Calculated sales cost: {salesPrice}</div>
-					{basePrice ? <div>Base cost: {basePrice}</div> : null}
-				</TooltipContent>
-			</Tooltip>
+			<span
+				className="cursor-help underline decoration-dotted underline-offset-2"
+				tabIndex={0}
+				aria-label={`Calculated sales cost ${salesPrice}`}
+				title={priceTitle}
+			>
+				{salesPrice}
+			</span>
 		);
 	}
 	function renderItemComponentPanel(
@@ -1900,31 +1905,21 @@ export function ItemWorkflowPanel() {
 																>
 																	Clear
 																</Button>
-																<Tooltip>
-																	<TooltipTrigger asChild>
-																		<ConfirmBtn
-																			type="button"
-																			size="icon-sm"
-																			variant="ghost"
-																			trash
-																			aria-label="Remove section"
-																			onClick={() =>
-																				persistSections(
-																					sections.filter(
-																						(_, i: number) =>
-																							i !== sectionIndex,
-																					),
-																				)
-																			}
-																		/>
-																	</TooltipTrigger>
-																	<TooltipContent
-																		side="left"
-																		className="px-2 py-1 text-xs"
-																	>
-																		Remove section
-																	</TooltipContent>
-																</Tooltip>
+																<ConfirmBtn
+																	type="button"
+																	size="icon-sm"
+																	variant="ghost"
+																	trash
+																	aria-label="Remove section"
+																	title="Remove section"
+																	onClick={() =>
+																		persistSections(
+																			sections.filter(
+																				(_, i: number) => i !== sectionIndex,
+																			),
+																		)
+																	}
+																/>
 															</div>
 
 															<div className="grid gap-2 md:grid-cols-12">
@@ -2002,33 +1997,24 @@ export function ItemWorkflowPanel() {
 																	/>
 																</div>
 																<div className="md:col-span-6 flex items-center justify-end">
-																	<Tooltip>
-																		<TooltipTrigger asChild>
-																			<Button
-																				type="button"
-																				size="icon-sm"
-																				variant="outline"
-																				aria-label="Add product"
-																				onClick={() =>
-																					patchSection((current) => ({
-																						...current,
-																						rows: [
-																							...(current?.rows || []),
-																							createShelfProductDraft(),
-																						],
-																					}))
-																				}
-																			>
-																				<Icon name="Plus" className="size-4" />
-																			</Button>
-																		</TooltipTrigger>
-																		<TooltipContent
-																			side="left"
-																			className="px-2 py-1 text-xs"
-																		>
-																			Add product
-																		</TooltipContent>
-																	</Tooltip>
+																	<Button
+																		type="button"
+																		size="icon-sm"
+																		variant="outline"
+																		aria-label="Add product"
+																		title="Add product"
+																		onClick={() =>
+																			patchSection((current) => ({
+																				...current,
+																				rows: [
+																					...(current?.rows || []),
+																					createShelfProductDraft(),
+																				],
+																			}))
+																		}
+																	>
+																		<Icon name="Plus" className="size-4" />
+																	</Button>
 																</div>
 															</div>
 
@@ -2700,7 +2686,7 @@ export function ItemWorkflowPanel() {
 	}
 
 	return (
-		<TooltipProvider delayDuration={120}>
+		<>
 			<WorkflowLineList
 				items={visibleLineItems}
 				activeLineUid={activeLine?.uid || null}
@@ -3034,6 +3020,6 @@ export function ItemWorkflowPanel() {
 			) : null}
 
 			{componentAdmin.dialogs}
-		</TooltipProvider>
+		</>
 	);
 }

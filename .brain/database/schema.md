@@ -1,5 +1,18 @@
 # Database Schema
 
+## Durable Dispatch Exceptions (2026-08-18)
+
+- `DispatchException` is the durable operational issue record for one
+  `OrderDelivery`. It stores a bounded reason code, notes, open/resolved state,
+  resolution note, reporter/resolver ids, timestamps, request id, and optional
+  metadata without overloading trip status or cancellation.
+- `requestId` is unique for retry-safe mobile reporting. Active issue reads are
+  indexed by delivery/status/deleted state and by status/reported time.
+- `tripAction` currently persists `keep_assigned`. Schedule and cancellation
+  changes continue through their canonical guarded dispatch commands.
+- `OrderDelivery.exceptions` is the one-to-many Prisma relation used by list
+  risk projection, detail history, driver workload, and manager resolution.
+
 ## Dispatch-Bound Stock Allocation (2026-08-06)
 
 - `StockAllocation.orderDeliveryId` is the nullable canonical binding from an
@@ -409,3 +422,16 @@ The canonical plan is
   `vercel-blob-encrypted`, keep `url = null`, and record the AES-256-GCM envelope
   and Blob access mode in metadata. The logical MIME type remains `image/png`.
 - New enums constrain declaration, lifecycle, request, and evidence states.
+
+## Sales Form relational authority (2026-08-18)
+
+- `SalesOrders`, `SalesOrderItems`, `DykeStepForm`, `HousePackageTools`,
+  `DykeSalesDoors`, `DykeSalesShelfItem`, `SalesExtraCosts`, and `SalesTaxes`
+  are the only commercial persistence authority.
+- Historical `SalesOrders.meta.newSalesForm.lineItems`, `extraCosts`, and
+  `summary` are deprecated compatibility snapshots and are ignored by canonical
+  hydration. New saves do not write them.
+- The active door logical key is `housePackageToolId + stepProductId + normalized
+  dimension`. It is enforced transactionally now. The physical unique key is
+  deferred until the concurrent dispatch schema migration is complete and the
+  duplicate audit is clean.

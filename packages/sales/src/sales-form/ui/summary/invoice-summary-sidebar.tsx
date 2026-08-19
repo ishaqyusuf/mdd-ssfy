@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 "use client";
 
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -129,14 +129,14 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 								{props.isSaving ? "Saving..." : "Save"}
 							</Button>
 							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										size="icon"
-										variant="outline"
-										disabled={props.isSaving}
-									>
-										<Icons.MoreHorizontal className="size-4" />
-									</Button>
+								<DropdownMenuTrigger
+									className={buttonVariants({
+										variant: "outline",
+										size: "icon",
+									})}
+									disabled={props.isSaving}
+								>
+									<Icons.MoreHorizontal className="size-4" />
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end">
 									<DropdownMenuItem

@@ -380,3 +380,18 @@
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.
+
+## 2026-08-18 Relational source-of-truth hardening
+
+- Commercial Sales Form state now hydrates from the legacy relational graph
+  only; `meta.newSalesForm` is limited to revision and editor/session metadata.
+- Save uses a serializable, revision-checked relational diff. Retained items,
+  steps, shelves, HPT rows, doors, and costs keep durable IDs; omitted rows alone
+  are retired. The response is a fresh canonical relational reload.
+- Active door identity is component plus normalized dimension. Duplicate input
+  is rejected before writes, historical duplicates collapse without summing,
+  and the bounded repair command records before/after evidence in `SalesHistory`.
+- Passive profile hydration never reprices. Explicit profile changes use the
+  shared HPT formula, recovered base authority, and pricing-ready gates.
+- Quote `03523PC` is the regression oracle: Tier 2, component `1322`, size
+  `2-6 x 6-8`, quantity one, final unit/line price `$355.67`.

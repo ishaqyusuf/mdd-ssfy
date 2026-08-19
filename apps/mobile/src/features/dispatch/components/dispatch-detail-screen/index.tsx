@@ -13,6 +13,13 @@ import { useDispatchPacking } from "../../api/use-dispatch-packing";
 import { formatDispatchDate, totalQty } from "../../lib/format-dispatch";
 import { buildPackingPayload, hasQty } from "../../lib/packing-payload";
 import { useDispatchUiState } from "../../state/use-dispatch-ui-state";
+import { DispatchDetailFooterActions } from "./components/footer-actions";
+import {
+	DispatchDetailScreenProvider,
+	type DispatchDetailScreenVm,
+} from "./components/screen-context";
+import { DispatchDetailScrollContent } from "./components/scroll-content";
+import { DispatchDetailTopBar } from "./components/top-bar";
 import { DispatchDetailProvider, useDispatchDetailContext } from "./context";
 import { useDispatchDetailUiState } from "./hooks/use-dispatch-detail-ui-state";
 import { usePackingSlipDrafts } from "./hooks/use-packing-slip-drafts";
@@ -28,13 +35,6 @@ import { CompleteDispatchScreen } from "./subscreens/complete-dispatch-screen";
 import { DispatchConfirmScreen } from "./subscreens/dispatch-confirm-screen";
 import { IssueReportScreen } from "./subscreens/issue-report-screen";
 import { PackingSlipScreen } from "./subscreens/packing-slip-screen";
-import { DispatchDetailFooterActions } from "./components/footer-actions";
-import { DispatchDetailScrollContent } from "./components/scroll-content";
-import {
-	DispatchDetailScreenProvider,
-	type DispatchDetailScreenVm,
-} from "./components/screen-context";
-import { DispatchDetailTopBar } from "./components/top-bar";
 
 type Props = {
 	dispatchId: number;
@@ -186,7 +186,7 @@ function DispatchDetailScreenInner({
 	const canStart = actions.canStart(dispatch?.status);
 	const canStartReady =
 		canStart && data?.dispatchReadiness?.canDispatch !== false;
-	const canCancel = actions.canCancel(dispatch?.status);
+	const canReportException = actions.canReportException(dispatch?.status);
 	const canComplete = actions.canComplete(dispatch?.status);
 	const primaryStatusActionLabel = canStart
 		? "Start Trip"
@@ -429,7 +429,7 @@ function DispatchDetailScreenInner({
 		(dispatch?.status === "in progress" ? !canComplete : !canStartReady);
 
 	const onIssue = async () => {
-		if (!order?.id || !dispatch?.id || !canCancel) {
+		if (!order?.id || !dispatch?.id || !canReportException) {
 			Toast.show("Issue reporting is unavailable at this dispatch stage.", {
 				type: "warning",
 			});
@@ -516,7 +516,7 @@ function DispatchDetailScreenInner({
 	};
 
 	const onSubmitIssueReport = async () => {
-		if (!order?.id || !dispatch?.id || !canCancel) {
+		if (!order?.id || !dispatch?.id || !canReportException) {
 			Toast.show("Issue reporting is unavailable at this dispatch stage.", {
 				type: "warning",
 			});
@@ -527,14 +527,22 @@ function DispatchDetailScreenInner({
 			return;
 		}
 		try {
-			await actions.onCancelDispatch({
+			await actions.onReportException({
 				salesId: order.id,
 				dispatchId: dispatch.id,
+				reasonCode: selectedIssueReason as
+					| "wrong_address"
+					| "customer_not_home"
+					| "damaged_items"
+					| "access_issue"
+					| "other",
+				notes: issueDetails,
+				requestId: crypto.randomUUID(),
 			});
 			setIssueReportOpen(false);
 			setSelectedIssueReason(null);
 			setIssueDetails("");
-			Toast.show("Dispatch marked with issue and cancelled", {
+			Toast.show("Issue reported to dispatch support", {
 				type: "success",
 			});
 		} catch {

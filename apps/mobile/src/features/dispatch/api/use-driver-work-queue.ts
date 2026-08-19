@@ -1,37 +1,33 @@
 import { _trpc } from "@/components/static-trpc";
 import type { RouterInputs } from "@api/trpc/routers/_app";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import type { DispatchListItem } from "../types/dispatch.types";
 
-type DriverWorkQueueFilter = RouterInputs["dispatch"]["driverWorkQueue"];
+type DriverWorkQueueFilter = RouterInputs["dispatch"]["driverManifest"];
 
 export function useDriverWorkQueue(
 	filter: DriverWorkQueueFilter = {},
-	options?: { summaryFilter?: DriverWorkQueueFilter },
+	_options?: { summaryFilter?: DriverWorkQueueFilter },
 ) {
-	const normalizedFilter = useMemo(
-		() => ({ size: 20, ...filter }),
-		[filter],
-	);
-	const queue = useInfiniteQuery(
-		_trpc.dispatch.driverWorkQueue.infiniteQueryOptions(normalizedFilter, {
-			getNextPageParam: (lastPage) => lastPage?.meta?.cursor,
-		}),
-	);
-	const summary = useQuery(
-		_trpc.dispatch.driverWorkQueueSummary.queryOptions({
-			...(options?.summaryFilter ?? filter),
-			size: undefined,
-			cursor: undefined,
+	const normalizedFilter = useMemo(() => ({ size: 50, ...filter }), [filter]);
+	const query = useInfiniteQuery(
+		_trpc.dispatch.driverManifest.infiniteQueryOptions(normalizedFilter, {
+			getNextPageParam: (lastPage) => lastPage.queue.meta?.cursor,
 		}),
 	);
 	const items = useMemo(() => {
-		const pages = queue.data?.pages as unknown as
-			| Array<{ data?: DispatchListItem[] }>
+		const pages = query.data?.pages as unknown as
+			| Array<{ queue?: { data?: DispatchListItem[] } }>
 			| undefined;
-		return pages?.flatMap((page) => page.data ?? []) ?? [];
-	}, [queue.data]);
-
-	return { ...queue, items, summary: summary.data, summaryQuery: summary };
+		return pages?.flatMap((page) => page.queue?.data ?? []) ?? [];
+	}, [query.data]);
+	const firstPage = query.data?.pages[0];
+	return {
+		...query,
+		items,
+		summary: firstPage?.summary,
+		nextStop: firstPage?.nextStop as DispatchListItem | null | undefined,
+		summaryQuery: query,
+	};
 }

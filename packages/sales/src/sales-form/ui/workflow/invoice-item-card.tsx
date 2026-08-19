@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 "use client";
 
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -13,7 +13,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { InputGroup } from "@gnd/ui/namespace";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { middleTruncateText } from "./workflow-format";
 
 export type WorkflowStepUiRecord = {
@@ -57,17 +57,17 @@ function InvoiceItemActionsMenu(props: {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button
-					type="button"
-					size="icon"
-					variant="outline"
-					className="size-8"
-					aria-label={`Item ${props.index + 1} actions`}
-					onClick={(event) => event.stopPropagation()}
-				>
-					<Icons.MoreHorizontal className="size-3.5" />
-				</Button>
+			<DropdownMenuTrigger
+				type="button"
+				className={buttonVariants({
+					variant: "outline",
+					size: "icon",
+					className: "size-8",
+				})}
+				aria-label={`Item ${props.index + 1} actions`}
+				onClick={(event) => event.stopPropagation()}
+			>
+				<Icons.MoreHorizontal className="size-3.5" />
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				align="end"
@@ -113,6 +113,8 @@ function AnimatedStepPanel(props: {
 		key: props.panelKey,
 	});
 	const [isVisible, setIsVisible] = useState(isOpen);
+	const latestChildrenRef = useRef(props.children);
+	if (isOpen) latestChildrenRef.current = props.children;
 	const isSwitchingStep = isOpen && renderedPanel.key !== props.panelKey;
 	const panelIsVisible = isVisible && isOpen && !isSwitchingStep;
 	const displayedChildren =
@@ -124,6 +126,10 @@ function AnimatedStepPanel(props: {
 
 		if (!isOpen) {
 			setIsVisible(false);
+			setRenderedPanel((current) => ({
+				...current,
+				children: latestChildrenRef.current,
+			}));
 			timeout = window.setTimeout(
 				() =>
 					setRenderedPanel((current) => ({
@@ -137,16 +143,12 @@ function AnimatedStepPanel(props: {
 			timeout = window.setTimeout(
 				() =>
 					setRenderedPanel({
-						children: props.children,
+						children: latestChildrenRef.current,
 						key: props.panelKey,
 					}),
 				STEP_PANEL_ANIMATION_MS,
 			);
 		} else {
-			setRenderedPanel({
-				children: props.children,
-				key: props.panelKey,
-			});
 			animationFrame = window.requestAnimationFrame(() => setIsVisible(true));
 		}
 
@@ -154,7 +156,7 @@ function AnimatedStepPanel(props: {
 			if (animationFrame != null) window.cancelAnimationFrame(animationFrame);
 			if (timeout != null) window.clearTimeout(timeout);
 		};
-	}, [isOpen, props.children, props.panelKey, renderedPanel.key]);
+	}, [isOpen, props.panelKey, renderedPanel.key]);
 
 	return (
 		<div

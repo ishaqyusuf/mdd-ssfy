@@ -39,7 +39,23 @@ import {
 	isDispatchCompletionProofStale,
 	mergeDispatchCompletionProof,
 } from "@api/db/queries/dispatch-proof-completion";
+import {
+	getDispatchBacklog,
+	getDispatchDriverWorkload,
+	getDispatchExceptions,
+	getDispatchWorkspaceSummary,
+	reportDispatchException,
+	resolveDispatchException,
+} from "@api/db/queries/dispatch-workspace";
 import { auth } from "@api/db/queries/user";
+import {
+	dispatchBacklogSchema,
+	dispatchExceptionListSchema,
+	dispatchWorkspaceDetailSchema,
+	dispatchWorkspaceListSchema,
+	reportDispatchExceptionSchema,
+	resolveDispatchExceptionSchema,
+} from "@api/schemas/dispatch-workspace";
 import {
 	bulkAssignDriverSchema,
 	bulkCancelDispatchSchema,
@@ -226,6 +242,87 @@ async function requireAssignedDispatchOrManager(
 }
 
 export const dispatchRouters = createTRPCRouter({
+	workspaceSummary: protectedProcedure.query(async (props) => {
+		await requireDispatchManager(props.ctx);
+		return getDispatchWorkspaceSummary(props.ctx);
+	}),
+	backlog: protectedProcedure
+		.input(dispatchBacklogSchema)
+		.query(async (props) => {
+			await requireDispatchManager(props.ctx);
+			return getDispatchBacklog(props.ctx, props.input);
+		}),
+	list: protectedProcedure
+		.input(dispatchWorkspaceListSchema)
+		.query(async (props) => {
+			await requireDispatchManager(props.ctx);
+			const { section: _section, ...input } = props.input;
+			return getDispatches(props.ctx, input);
+		}),
+	calendar: protectedProcedure
+		.input(dispatchWorkspaceListSchema)
+		.query(async (props) => {
+			await requireDispatchManager(props.ctx);
+			const { section: _section, ...input } = props.input;
+			return getDispatches(props.ctx, input);
+		}),
+	driverWorkload: protectedProcedure.query(async (props) => {
+		await requireDispatchManager(props.ctx);
+		return getDispatchDriverWorkload(props.ctx);
+	}),
+	exceptions: protectedProcedure
+		.input(dispatchExceptionListSchema)
+		.query(async (props) => {
+			await requireDispatchManager(props.ctx);
+			return getDispatchExceptions(props.ctx, props.input);
+		}),
+	detail: protectedProcedure
+		.input(dispatchWorkspaceDetailSchema)
+		.query(async (props) => {
+			await requireAssignedDispatchOrManager(props.ctx, props.input.dispatchId);
+			const [overview, exceptions] = await Promise.all([
+				getDispatchOverviewV2(props.ctx, {
+					dispatchId: props.input.dispatchId,
+				}),
+				props.ctx.db.dispatchException.findMany({
+					where: {
+						orderDeliveryId: props.input.dispatchId,
+						deletedAt: null,
+					},
+					orderBy: [{ reportedAt: "desc" }, { id: "desc" }],
+				}),
+			]);
+			return { overview, exceptions };
+		}),
+	driverManifest: protectedProcedure
+		.input(driverWorkQueueQuerySchema)
+		.query(async (props) => {
+			await requireDispatchWorker(props.ctx);
+			const input = {
+				...props.input,
+				driversId: [props.ctx.userId],
+			};
+			const [queue, summary] = await Promise.all([
+				getDispatches(props.ctx, input),
+				getDriverWorkQueueSummary(props.ctx, input),
+			]);
+			const nextStop = queue.data.find(
+				(row) => !["completed", "cancelled"].includes(String(row.status)),
+			);
+			return { queue, summary, nextStop: nextStop || null };
+		}),
+	reportException: protectedProcedure
+		.input(reportDispatchExceptionSchema)
+		.mutation(async (props) => {
+			await requireAssignedDispatchOrManager(props.ctx, props.input.dispatchId);
+			return reportDispatchException(props.ctx, props.input);
+		}),
+	resolveException: protectedProcedure
+		.input(resolveDispatchExceptionSchema)
+		.mutation(async (props) => {
+			await requireDispatchManager(props.ctx);
+			return resolveDispatchException(props.ctx, props.input);
+		}),
 	index: protectedProcedure
 		.input(dispatchQueryParamsSchema)
 		.query(async (props) => {

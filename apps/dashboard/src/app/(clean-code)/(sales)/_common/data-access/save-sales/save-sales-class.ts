@@ -3,6 +3,7 @@ import { nextId } from "@/lib/nextId";
 import { generateRandomString } from "@/lib/utils";
 import { expireCurrentSalesDocumentSnapshots } from "@gnd/api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@gnd/api/utils/sales-document-warm";
+import { getSalesDoorActiveIdentity } from "@sales/sales-form/domain/door-identity";
 
 import {
     SalesFormFields,
@@ -151,8 +152,54 @@ export class SaveSalesClass extends SaveSalesHelper {
         this.nextIds.shelfItemId = await nextId(prisma.dykeSalesShelfItem);
         await this.generateSalesForm();
         await this.generateItemsForm();
+        await this.rebindLegacyDoorIdentities();
         this.composeTax();
         await this.saveData();
+    }
+    private async rebindLegacyDoorIdentities() {
+        const salesId = Number(this.salesId || 0);
+        if (!salesId) return;
+        const existingDoors = await prisma.dykeSalesDoors.findMany({
+            where: { salesOrderId: salesId, deletedAt: null },
+            orderBy: { id: "asc" },
+            select: {
+                id: true,
+                housePackageToolId: true,
+                stepProductId: true,
+                dimension: true,
+                meta: true,
+            },
+        });
+        const existingByIdentity = new Map<string, number>();
+        for (const door of existingDoors) {
+            const identity = `${door.housePackageToolId}|${getSalesDoorActiveIdentity(door)}`;
+            if (!existingByIdentity.has(identity)) {
+                existingByIdentity.set(identity, door.id);
+            }
+        }
+        for (const item of this.data.items || []) {
+            for (const door of item.hpt?.doors || []) {
+                const data = door.data as any;
+                if (!data?.id || !data.activeIdentity) continue;
+                const existingId = existingByIdentity.get(data.activeIdentity);
+                if (!existingId) continue;
+                const {
+                    id: _generatedId,
+                    housePackageToolId: _housePackageToolId,
+                    salesOrderId: _salesOrderId,
+                    salesOrderItemId: _salesOrderItemId,
+                    stepProductId,
+                    ...updateData
+                } = data;
+                door.id = existingId;
+                door.data = {
+                    ...updateData,
+                    ...(stepProductId
+                        ? { stepProduct: { connect: { id: stepProductId } } }
+                        : {}),
+                };
+            }
+        }
     }
     public get isRestoreMode() {
         return this.query?.restoreMode;
@@ -175,6 +222,9 @@ export class SaveSalesClass extends SaveSalesHelper {
                         },
                         data: {
                             deletedAt: new Date(),
+                            ...(s.priority === 5
+                                ? { activeIdentity: null }
+                                : {}),
                         },
                     })
                 );

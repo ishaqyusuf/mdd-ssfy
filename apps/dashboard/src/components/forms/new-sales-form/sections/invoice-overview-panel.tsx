@@ -52,7 +52,9 @@ interface Props {
 		declaration: "NO" | "YES",
 		reason?: string | null,
 	) => void;
-	onRemoveSpecialOrderClassification?: (reason?: string | null) => Promise<void>;
+	onRemoveSpecialOrderClassification?: (
+		reason?: string | null,
+	) => Promise<void>;
 }
 
 function formDateValue(value: string | null) {
@@ -388,24 +390,22 @@ export function InvoiceOverviewPanel(props: Props) {
 			lastProfileIdRef.current = currentProfileId;
 			return;
 		}
-		if (
-			lastProfileIdRef.current === currentProfileId &&
-			lastProfileCoefficientRef.current == null &&
-			normalizedCurrent != null &&
-			!pendingProfileRepriceRef.current
-		) {
-			// The form may hydrate before profile options arrive. When the matching
-			// profile coefficient resolves later, seed the refs without repricing so
-			// existing saved sales prices are not mistaken for base prices on load.
+		if (!pendingProfileRepriceRef.current) {
+			// Query hydration, customer resolution, browser history, and canonical
+			// document reloads are passive state changes. They must establish the
+			// pricing baseline without mutating committed relational prices. Explicit
+			// profile selection reprices in applyCustomerProfileMeta; only its deferred
+			// query-loading continuation reaches the branch below.
 			lastProfileCoefficientRef.current = normalizedCurrent;
 			lastProfileIdRef.current = currentProfileId;
 			return;
 		}
-		const profileChanged = lastProfileIdRef.current !== currentProfileId;
-		if (
-			lastProfileCoefficientRef.current === normalizedCurrent &&
-			!profileChanged
-		) {
+		if (lastProfileIdRef.current !== currentProfileId) {
+			// A different profile superseded the deferred selection. Seed it and do
+			// not apply the stale transition.
+			lastProfileCoefficientRef.current = normalizedCurrent;
+			lastProfileIdRef.current = currentProfileId;
+			pendingProfileRepriceRef.current = false;
 			return;
 		}
 		setCustomerProfileMeta(
@@ -534,9 +534,7 @@ export function InvoiceOverviewPanel(props: Props) {
 						props.onRequiredSpecialOrderPromptOpenChange
 					}
 					onRequiredDecision={props.onRequiredSpecialOrderDecision}
-					onRemoveClassification={
-						props.onRemoveSpecialOrderClassification
-					}
+					onRemoveClassification={props.onRemoveSpecialOrderClassification}
 					onCustomerEmailSaved={(email) => {
 						if (!record.customer) return;
 						patchRecord({
@@ -600,7 +598,10 @@ export function InvoiceOverviewPanel(props: Props) {
 				onProfileChange={applyCustomerProfile}
 				onUseBillingAddressForShipping={
 					hasDistinctShippingAddress
-						? () => setMeta({ shippingAddressId: resolvedBillingAddressId })
+						? () =>
+								setMeta({
+									shippingAddressId: resolvedBillingAddressId,
+								})
 						: undefined
 				}
 				profileOptions={profileSelectOptions}

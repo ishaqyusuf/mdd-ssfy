@@ -1,18 +1,11 @@
 /** @jsxImportSource react */
 "use client";
 
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { Calendar } from "@gnd/ui/calendar";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@gnd/ui/select";
 import type { SalesFormSelectOption } from "./invoice-pricing-overview";
 import { normalizeSalesFormPaymentTerm } from "./overview-options";
 import { SalesFormSummarySectionHeader } from "./summary-section-header";
@@ -99,20 +92,18 @@ function DateInputField(props: {
 		<div className="grid gap-1.5">
 			<FieldLabel htmlFor={props.id}>{props.label}</FieldLabel>
 			<Popover>
-				<PopoverTrigger asChild>
-					<Button
-						id={props.id}
-						type="button"
-						variant="outline"
-						disabled={props.disabled}
-						className={cn(
-							"h-10 justify-start bg-background text-left text-xs font-bold",
-							!selectedDate && "text-muted-foreground",
-						)}
-					>
-						{dateDisplayValue(props.value)}
-						<Icons.CalendarIcon className="ml-auto size-4 opacity-50" />
-					</Button>
+				<PopoverTrigger
+					id={props.id}
+					type="button"
+					disabled={props.disabled}
+					className={cn(
+						buttonVariants({ variant: "outline" }),
+						"h-10 w-full justify-start bg-background text-left text-xs font-bold",
+						!selectedDate && "text-muted-foreground",
+					)}
+				>
+					{dateDisplayValue(props.value)}
+					<Icons.CalendarIcon className="ml-auto size-4 opacity-50" />
 				</PopoverTrigger>
 				<PopoverContent align="start" className="w-auto p-0">
 					<Calendar
@@ -146,24 +137,20 @@ export function SalesFormInvoiceDetailsPanel(
 				{isQuote ? null : (
 					<div className="grid gap-1.5">
 						<FieldLabel htmlFor="invoice-payment-term">Net</FieldLabel>
-						<Select
+						<select
+							id="invoice-payment-term"
 							value={normalizeSalesFormPaymentTerm(props.paymentTerm)}
-							onValueChange={props.onPaymentTermChange}
+							onChange={(event) =>
+								props.onPaymentTermChange?.(event.target.value)
+							}
+							className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						>
-							<SelectTrigger
-								id="invoice-payment-term"
-								className="h-10 bg-background text-xs font-bold"
-							>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{props.paymentTerms.map((term) => (
-									<SelectItem key={term.value} value={term.value}>
-										{term.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+							{props.paymentTerms.map((term) => (
+								<option key={term.value} value={term.value}>
+									{term.label}
+								</option>
+							))}
+						</select>
 					</div>
 				)}
 				<DateInputField
@@ -185,24 +172,20 @@ export function SalesFormInvoiceDetailsPanel(
 				)}
 				<div className="grid gap-1.5">
 					<FieldLabel htmlFor="invoice-fulfillment">Fulfillment</FieldLabel>
-					<Select
+					<select
+						id="invoice-fulfillment"
 						value={props.deliveryOption}
-						onValueChange={props.onDeliveryOptionChange}
+						onChange={(event) =>
+							props.onDeliveryOptionChange?.(event.target.value)
+						}
+						className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
-						<SelectTrigger
-							id="invoice-fulfillment"
-							className="h-10 bg-background text-xs font-bold"
-						>
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{props.deliveryOptions.map((mode) => (
-								<SelectItem key={mode.value} value={mode.value}>
-									{mode.label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+						{props.deliveryOptions.map((mode) => (
+							<option key={mode.value} value={mode.value}>
+								{mode.label}
+							</option>
+						))}
+					</select>
 				</div>
 			</div>
 		</section>

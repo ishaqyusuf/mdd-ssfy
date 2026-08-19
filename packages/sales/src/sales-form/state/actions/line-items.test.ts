@@ -136,6 +136,21 @@ describe("sales form state line item actions", () => {
 		expect(next.record?.summary?.subTotal).toBe(45);
 	});
 
+	it("returns the same state for an idempotent normalized patch", () => {
+		const state = {
+			...createInitialSalesFormState(),
+			record: createRecord(),
+		};
+
+		const next = updateSalesFormLineItem(state, "line-1", {
+			qty: 2,
+			unitPrice: 10,
+			lineTotal: 20,
+		});
+
+		expect(next).toBe(state);
+	});
+
 	it("preserves spaces while editing an item title", () => {
 		const state = {
 			...createInitialSalesFormState(),

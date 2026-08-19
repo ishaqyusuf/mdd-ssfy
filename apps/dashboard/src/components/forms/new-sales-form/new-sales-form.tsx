@@ -801,6 +801,14 @@ export function NewSalesForm(props: Props) {
                 orderId: resp?.orderId,
                 status: resp?.status,
                 specialOrder: resp?.specialOrder,
+				...(!hasPendingChanges
+					? {
+							lineItems: resp?.lineItems,
+							extraCosts: resp?.extraCosts,
+							summary: resp?.summary,
+							form: resp?.form,
+						}
+					: {}),
             });
             markSaved({
                 version: resp?.version,
@@ -1006,6 +1014,10 @@ export function NewSalesForm(props: Props) {
             type?: "order" | "quote" | null;
             isNew?: boolean | null;
             specialOrder?: NewSalesFormRecord["specialOrder"];
+			lineItems?: NewSalesFormRecord["lineItems"];
+			extraCosts?: NewSalesFormRecord["extraCosts"];
+			summary?: NewSalesFormRecord["summary"];
+			form?: NewSalesFormRecord["form"];
         }) => {
             patchRecord({
                 salesId: resp?.salesId,
@@ -1014,6 +1026,10 @@ export function NewSalesForm(props: Props) {
                 inventoryStatus: resp?.inventoryStatus,
                 status: resp?.status,
                 specialOrder: resp?.specialOrder,
+				lineItems: resp?.lineItems,
+				extraCosts: resp?.extraCosts,
+				summary: resp?.summary,
+				form: resp?.form,
             });
             markSaved({
                 version: resp?.version,
@@ -1450,11 +1466,7 @@ export function NewSalesForm(props: Props) {
                 commitIntent: intent,
                 ...(recordOverride
                     ? {
-                          payloadOverride: toSaveDraftInput(
-                              recordOverride,
-                              false,
-                              intent,
-                          ),
+							payloadOverride: toSaveDraftInput(recordOverride, false, intent),
                       }
                     : {}),
             });
@@ -2162,9 +2174,7 @@ export function NewSalesForm(props: Props) {
 									reason,
                                 )
                             }
-							onRemoveSpecialOrderClassification={
-								removeSpecialOrderFromForm
-							}
+							onRemoveSpecialOrderClassification={removeSpecialOrderFromForm}
                             mode={props.mode}
                             type={props.type}
                         />

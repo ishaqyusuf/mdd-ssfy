@@ -8,6 +8,18 @@ pickup packing, and final completion.
 
 ## Behavior
 
+- The driver dashboard now consumes `dispatch.driverManifest`, which forces
+  the authenticated user as the driver scope and returns the paginated queue,
+  global summary, and server-ranked next stop together.
+- Driver views are Today, All stops, and Exceptions. They share due-bucket and
+  risk semantics with Dispatch Admin and display sync state without inventing a
+  second lifecycle authority.
+- Start Trip opens live turn-by-turn directions for the canonical destination.
+- Reporting a delivery problem writes a durable `DispatchException`; it does
+  not cancel or reclassify the trip on the client. A manager resolves the
+  exception with an audit note, while reschedule/cancel remain guarded dispatch
+  commands.
+
 - Expo keeps one completion request id while the completion form is open.
 - The server binds that id to a SHA-256 fingerprint of the signature and
   attachment bytes. Reusing the id with different proof content conflicts;
@@ -69,7 +81,12 @@ pickup packing, and final completion.
 - A full Expo TypeScript scan still contains the documented broad baseline
   failures; filtered output contains no diagnostics in changed runtime source.
 - `git diff --check` passes.
+- 2026-08-18 driver-manifest and exception UI implementation was completed, but
+  its remaining device/browser QA and broad validation were explicitly skipped
+  by the operator for the handoff stage.
 
 ## Decision
 
 See `.brain/decisions/ADR-026-resumable-dispatch-proof-completion.md`.
+The shared workspace/lifecycle and durable-exception boundary is recorded in
+`.brain/decisions/ADR-054-canonical-dispatch-workspace-and-durable-exceptions.md`.

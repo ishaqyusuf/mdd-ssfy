@@ -217,6 +217,12 @@ function createMockContext() {
     return {
       ...order,
       extraCosts: state.extraCosts.filter((c) => c.orderId === order.id),
+      taxes: state.salesTaxes
+        .filter((tax) => tax.salesId === order.id && tax.deletedAt == null)
+        .map((tax) => ({
+          ...tax,
+          taxConfig: { percentage: Number(order.taxPercentage || 0) },
+        })),
       customer: state.customers.find((c) => c.id === order.customerId) || null,
       dealerAuth:
         state.dealerAuth.find((dealer) => dealer.id === order.dealerAuthId) ||
@@ -229,6 +235,10 @@ function createMockContext() {
         state.customerTypes.find(
           (profile) => profile.id === order.dealerSalesProfileId,
         ) || null,
+			salesProfile:
+				state.customerTypes.find(
+					(profile) => profile.id === order.customerProfileId,
+				) || null,
       items,
     };
   }
@@ -355,6 +365,7 @@ function createMockContext() {
               return false;
             if (where?.deletedAt === null && item.deletedAt != null)
               return false;
+						if (where?.id?.notIn?.includes(item.id)) return false;
             return true;
           })
           .forEach((item) => Object.assign(item, data));
@@ -380,6 +391,7 @@ function createMockContext() {
           .filter((f) => {
             if (where?.salesId && f.salesId !== where.salesId) return false;
             if (where?.deletedAt === null && f.deletedAt != null) return false;
+						if (where?.id?.notIn?.includes(f.id)) return false;
             return true;
           })
           .forEach((f) => Object.assign(f, data));
@@ -393,13 +405,41 @@ function createMockContext() {
           }),
         );
       },
+      findFirst: async ({ where }: any) =>
+        state.stepForms.find(
+          (row) =>
+			(where.id == null || row.id === where.id) &&
+            row.salesItemId === where.salesItemId &&
+			(where.stepId == null || row.stepId === where.stepId) &&
+            (where.deletedAt !== null || row.deletedAt == null),
+        ) || null,
+			create: async ({ data, select }: any) => {
+				const row = { id: state.ids.formStep++, deletedAt: null, ...data };
+				state.stepForms.push(row);
+				return select?.id ? { id: row.id } : row;
+			},
+			update: async ({ where, data, select }: any) => {
+				const row = state.stepForms.find((entry) => entry.id === where.id);
+				Object.assign(row, data);
+				return select?.id ? { id: row.id } : row;
+			},
     },
     dykeSalesShelfItem: {
       findMany: async (args: any) => findShelfItemRows(args),
+	  findFirst: async ({ where }: any) =>
+		state.shelfItems.find(
+		  (row) =>
+			(where.id == null || row.id === where.id) &&
+			row.salesOrderItemId === where.salesOrderItemId &&
+			(where.categoryId == null || row.categoryId === where.categoryId) &&
+			(where.productId === undefined || row.productId === where.productId) &&
+			(where.deletedAt !== null || row.deletedAt == null),
+		) || null,
       updateMany: async ({ where, data }: any) => {
         state.shelfItems
           .filter((s) => {
             if (where?.deletedAt === null && s.deletedAt != null) return false;
+						if (where?.id?.notIn?.includes(s.id)) return false;
             const order = state.items.find((i) => i.id === s.salesOrderItemId);
             return order?.salesOrderId === where?.salesOrderItem?.salesOrderId;
           })
@@ -414,12 +454,20 @@ function createMockContext() {
           }),
         );
       },
+			create: async ({ data, select }: any) => {
+				const row = { id: state.ids.shelf++, deletedAt: null, ...data };
+				state.shelfItems.push(row);
+				return select?.id ? { id: row.id } : row;
+			},
+			update: async ({ where, data, select }: any) => {
+				const row = state.shelfItems.find((entry) => entry.id === where.id);
+				Object.assign(row, data);
+				return select?.id ? { id: row.id } : row;
+			},
     },
     housePackageTools: {
       findUnique: async ({ where, select }: any) => {
-        const row = state.hpts.find(
-          (h) => h.orderItemId === where.orderItemId,
-        );
+				const row = state.hpts.find((h) => h.orderItemId === where.orderItemId);
         if (!row) return null;
         return select?.id ? { id: row.id } : row;
       },
@@ -429,6 +477,7 @@ function createMockContext() {
             if (where?.salesOrderId && h.salesOrderId !== where.salesOrderId)
               return false;
             if (where?.deletedAt === null && h.deletedAt != null) return false;
+						if (where?.id?.notIn?.includes(h.id)) return false;
             return true;
           })
           .forEach((h) => Object.assign(h, data));
@@ -449,12 +498,21 @@ function createMockContext() {
       },
     },
     dykeSalesDoors: {
+			findMany: async ({ where }: any) =>
+				state.doors
+					.filter(
+						(d) =>
+							d.housePackageToolId === where.housePackageToolId &&
+							(where.deletedAt !== null || d.deletedAt == null),
+					)
+					.sort((a, b) => a.id - b.id),
       updateMany: async ({ where, data }: any) => {
         state.doors
           .filter((d) => {
             if (where?.salesOrderId && d.salesOrderId !== where.salesOrderId)
               return false;
             if (where?.deletedAt === null && d.deletedAt != null) return false;
+						if (where?.id?.notIn?.includes(d.id)) return false;
             return true;
           })
           .forEach((d) => Object.assign(d, data));
@@ -888,7 +946,9 @@ function createMockContext() {
           }
           if (
             titleEquals &&
-            String(row.title || "").trim().toLowerCase() !== titleEquals
+						String(row.title || "")
+							.trim()
+							.toLowerCase() !== titleEquals
           ) {
             return false;
           }
@@ -1114,7 +1174,9 @@ describe("new-sales-form relational parity", () => {
   it("hides child-linked products when their effective parent category is archived", async () => {
     const { ctx, state } = createMockContext();
     const parent = state.shelfCategories.find((row) => row.id === 10);
-    const childLinkedProduct = state.shelfProducts.find((row) => row.id === 1001);
+		const childLinkedProduct = state.shelfProducts.find(
+			(row) => row.id === 1001,
+		);
     if (parent) parent.deletedAt = new Date("2026-08-06T00:00:00.000Z");
     if (childLinkedProduct) childLinkedProduct.parentCategoryId = null;
 
@@ -2225,7 +2287,7 @@ describe("new-sales-form relational parity", () => {
     expect(thirdLoaded.lineItems[0]?.shelfItems).toHaveLength(1);
     expect(thirdLoaded.lineItems[0]?.shelfItems[0]?.unitPrice).toBe(12.34);
     expect(thirdLoaded.lineItems[0]?.shelfItems[0]?.totalPrice).toBe(24.68);
-    expect(state.shelfItems).toHaveLength(3);
+    expect(state.shelfItems).toHaveLength(1);
     expect(
       state.shelfItems.filter((row) => row.deletedAt == null),
     ).toHaveLength(1);
@@ -2235,9 +2297,7 @@ describe("new-sales-form relational parity", () => {
           row.salesOrderItemId === secondItem.id && row.deletedAt == null,
       ),
     ).toHaveLength(1);
-    expect(
-      state.shelfItems.filter((row) => row.salesOrderItemId === secondItem.id),
-    ).toHaveLength(3);
+    expect(state.shelfItems[0]?.id).toBe(firstShelf.id);
   });
 
   it("saves HPT door pricing with legacy-compatible door fields", async () => {
@@ -2405,6 +2465,13 @@ describe("new-sales-form relational parity", () => {
     const itemId = state.items[0].id;
     const hptId = state.hpts[0].id;
     const doorId = state.doors[0].id;
+		expect(first.lineItems[0]).toMatchObject({
+			id: itemId,
+			housePackageTool: {
+				id: hptId,
+				doors: [{ id: doorId }],
+			},
+		});
 
     await saveDraftNewSalesForm(ctx, {
       type: "order",
@@ -2494,6 +2561,63 @@ describe("new-sales-form relational parity", () => {
     });
   });
 
+	it("rejects a duplicate component and normalized size before writing", async () => {
+		const { ctx, state } = createMockContext();
+		const save = saveDraftNewSalesForm(ctx, {
+			type: "quote",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: 7,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				deliveryOption: "pickup",
+				taxCode: null,
+			},
+			summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [],
+			lineItems: [
+				{
+					id: null,
+					uid: "duplicate-door",
+					title: "Garage Door",
+					description: "",
+					qty: 2,
+					unitPrice: 355.67,
+					lineTotal: 711.34,
+					meta: {},
+					formSteps: [],
+					shelfItems: [],
+					housePackageTool: {
+						doors: [
+							{
+								stepProductId: 1322,
+								dimension: "2-6 x 6-8",
+								totalQty: 1,
+								unitPrice: 355.67,
+							},
+							{
+								stepProductId: 1322,
+								dimension: "2-6 × 6-8",
+								totalQty: 1,
+								unitPrice: 355.67,
+							},
+						],
+					},
+				} as any,
+			],
+		} as any);
+
+		await expect(save).rejects.toThrow("Duplicate door component and size");
+		expect(state.orders).toHaveLength(0);
+		expect(state.items).toHaveLength(0);
+		expect(state.doors).toHaveLength(0);
+	});
+
   it("hydrates legacy-edited HPT rows over stale new-form metadata", async () => {
     const { ctx, state } = createMockContext();
 
@@ -2558,20 +2682,29 @@ describe("new-sales-form relational parity", () => {
       ],
     });
 
-    const staleDoor =
-      state.orders[0].meta.newSalesForm.lineItems[0].housePackageTool.doors[0];
-    Object.assign(staleDoor, {
+		state.orders[0].meta.newSalesForm.lineItems = [
+			{
+				id: state.items[0].id,
+				uid: "line-hpt-stale-meta",
+				qty: 2,
+				unitPrice: 1118,
+				lineTotal: 2236,
+				housePackageTool: {
+					doors: [
+						{
+							id: state.doors[0].id,
       jambSizePrice: 999,
       doorPrice: 99,
       addon: 99,
       unitPrice: 1118,
       lineTotal: 2236,
       totalQty: 2,
-      meta: {
-        doorSalesUnitPrice: 999,
-        addon: 99,
+							meta: { doorSalesUnitPrice: 999, addon: 99 },
       },
-    });
+					],
+				},
+			},
+		];
     Object.assign(state.items[0], {
       qty: 3,
       rate: 136,
@@ -3308,9 +3441,7 @@ describe("new-sales-form relational parity", () => {
   });
 });
 
-function buildSpecialOrderEnrollmentPayload(
-  declaration?: "NO" | "YES" | null,
-) {
+function buildSpecialOrderEnrollmentPayload(declaration?: "NO" | "YES" | null) {
   return {
     type: "order" as const,
     slug: null,
@@ -3379,10 +3510,7 @@ describe("Special Order enrollment save boundary", () => {
     };
 
     await expect(
-      saveFinalNewSalesForm(
-        ctx,
-        buildSpecialOrderEnrollmentPayload(undefined),
-      ),
+			saveFinalNewSalesForm(ctx, buildSpecialOrderEnrollmentPayload(undefined)),
     ).rejects.toThrow("SPECIAL_ORDER_DECLARATION_REQUIRED");
   });
 
