@@ -1,5 +1,14 @@
 # Progress
 
+- 2026-08-19: fixed `newSalesForm.saveDraft` for existing order `09369LM`.
+  Change-protection analysis now uses the canonical relational form as its
+  before-state, so stale nested sales-form JSON cannot trigger a false review.
+  Actor timeline copy is bounded to the existing 191-character `NotePad`
+  columns so a long activity summary cannot fail the save with Prisma `P2000`.
+  Focused API coverage passes 54 tests / 322 assertions, and authenticated
+  in-app browser QA saved the order and retained the saved state after reload.
+  The API input/output, permission model, and database schema are unchanged.
+
 - 2026-08-19: Recovered the Special Order approval item display work from
   retained commit `51093f9c2` (`codex/special-order-html-renderer`). The public
   review now composes immutable snapshot line items through the same current

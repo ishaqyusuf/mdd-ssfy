@@ -36,6 +36,12 @@
   and, when open inbound exists, chooses whether to cancel that supplier
   quantity or retain it for warehouse stock. See
   [`inbound-sales-adjustment-reconciliation.md`](./inbound-sales-adjustment-reconciliation.md).
+- Existing-order change review compares an incoming save against the canonical
+  relational edit projection instead of the potentially stale
+  `meta.newSalesForm.lineItems` snapshot. Sales timeline activity also bounds
+  its subject, headline, and note to the existing 191-character `NotePad`
+  columns, preventing long update summaries from rolling back an otherwise
+  valid save transaction.
 
 - Shared sales-form state disables debounced autosave by default for newly
   created and hydrated records. Forms start in deliberate manual-save mode;
