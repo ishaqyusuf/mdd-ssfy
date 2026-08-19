@@ -92,18 +92,19 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(table.includes('className="md:hidden"')).toBe(true);
 	});
 
-	it("keeps the calendar responsive and reloads its bounded month", () => {
+	it("keeps the calendar as a responsive, bounded weekly production board", () => {
 		const calendar = readSource("components/sales-production/calendar.tsx");
 
-		expect(calendar.includes("month={month}")).toBe(true);
-		expect(calendar.includes("onMonthChange={setMonth}")).toBe(true);
+		expect(calendar.includes("weekStart")).toBe(true);
+		expect(calendar.includes('aria-label="Previous week"')).toBe(true);
+		expect(calendar.includes('aria-label="Next week"')).toBe(true);
+		expect(calendar.includes("min-w-[980px]")).toBe(true);
+		expect(calendar.includes("grid-cols-7")).toBe(true);
 		expect(calendar.includes("defaultMonth=")).toBe(false);
-		expect(calendar.includes("xl:grid-cols")).toBe(true);
-		expect(calendar.includes("md:grid-cols")).toBe(false);
+		expect(calendar.includes("<Calendar")).toBe(false);
 		expect(calendar.includes("<Card")).toBe(true);
 		expect(calendar.includes("<CardHeader")).toBe(true);
 		expect(calendar.includes("<CardContent")).toBe(true);
-		expect(calendar.includes("space-y-")).toBe(false);
 		expect(calendar.includes('view: "calendar"')).toBe(true);
 		expect(calendar.includes('view: "table"')).toBe(true);
 		expect(calendar.includes('"sales-production"')).toBe(true);

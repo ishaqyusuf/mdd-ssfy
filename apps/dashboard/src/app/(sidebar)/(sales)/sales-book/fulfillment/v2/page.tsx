@@ -16,7 +16,7 @@ import type { SearchParams } from "nuqs";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-	return constructMetadata({ title: "Dispatch Admin v2 | GND" });
+	return constructMetadata({ title: "Fulfillment v2 | GND" });
 }
 
 type Props = { searchParams: Promise<SearchParams> };
@@ -109,7 +109,7 @@ export default async function DispatchAdminPage({ searchParams }: Props) {
 					rules={[_role.is("Super Admin"), _perm.is("editOrders")]}
 					Fallback={
 						<div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
-							You do not have permission to access Dispatch Admin v2.
+							You do not have permission to access Fulfillment v2.
 						</div>
 					}
 				>

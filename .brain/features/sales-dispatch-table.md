@@ -1,6 +1,13 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-19: The order-management dispatch workspace was renamed Fulfillment
+  and moved to `/sales-book/fulfillment`. The sidebar now exposes it as one
+  top-level link without the former Delivery or v2 sub-links. The prior
+  `/sales-book/dispatch-admin` route path is retired.
+- 2026-08-19: Fulfillment now uses the Sales Finance `PageTabs` pattern inside
+  its shared search toolbar. The legacy native status tabs that preceded search
+  were removed; Pending, All, and Completed remain URL-backed filters.
 - 2026-08-18: The Finance/Midday-style Dispatch Admin replacement moved to
   `/sales-book/dispatch-admin/v2` for a reversible Super Admin rollout. The
   previous Dispatch Admin dashboard is restored at `/sales-book/dispatch-admin`,
@@ -40,9 +47,9 @@
 - 2026-07-17: Dispatch density and content-fit widths were tightened against the Sales Orders/Midday invoices standard while keeping the interactive dispatch controls readable.
 - 2026-07-27: Admin dispatch single-row and batch menus now reuse the canonical Sales Orders `Mark as` workflow for production completion and fulfillment.
 
-## Dispatch Admin v2 Workspace (2026-08-18)
+## Fulfillment v2 Workspace (2026-08-18)
 
-- `/sales-book/dispatch-admin/v2` is the replacement workspace selected by the
+- `/sales-book/fulfillment/v2` is the unlinked replacement workspace selected by the
   `section` URL parameter: `dashboard | backlog | dispatches | calendar |
   drivers | exceptions`.
 - Lifecycle filters project legacy storage into `ready_to_assign`, `assigned`,
@@ -57,7 +64,7 @@
 - The URL-owned sheet supports create-from-backlog, assign/reassign, schedule,
   durable exception report/resolve, and detail tabs for overview, packing,
   route/contact, proof, and activity.
-- Packing execution still belongs to `/sales/packing-list`. Dispatch Admin
+- Packing execution still belongs to `/sales/packing-list`. Fulfillment
   displays readiness and deep-links into that accepted workflow.
 - The workspace table removes unrestricted trip status selection. Assignment,
   scheduling, packing, exceptions, start, proof completion, fulfillment, and
@@ -66,18 +73,18 @@
 ## Routes
 - Canonical dispatch route: `/sales-book/dispatch`
 - Compatibility redirect: `/sales-book/dispatch/v2` redirects to `/sales-book/dispatch` and preserves query params.
-- Legacy Admin dashboard: `/sales-book/dispatch-admin?view=table|calendar`
+- Fulfillment dashboard: `/sales-book/fulfillment?view=table|calendar`
   (`editOrders`)
-- Replacement Admin workspace: `/sales-book/dispatch-admin/v2` (Super Admin
-  plus `editOrders`; linked only from the Dispatch Admin dropdown)
+- Replacement workspace: `/sales-book/fulfillment/v2` (Super Admin plus
+  `editOrders`; retained for direct access but not linked from the sidebar)
 - Driver task route: `/sales-book/dispatch-task` (`editDelivery` without
   `editOrders`)
 
 ## Frontend Implementation
 - Dispatch route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch/page.tsx`
 - Dispatch redirect: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch/v2/page.tsx`
-- Admin route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx`
-- Admin v2 route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch-admin/v2/page.tsx`
+- Fulfillment route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/fulfillment/page.tsx`
+- Fulfillment v2 route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/fulfillment/v2/page.tsx`
 - Driver route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch-task/page.tsx`
 - Legacy calendar: `apps/dashboard/src/components/dispatch-admin/dispatch-calendar-view.tsx`
 - Admin v2 calendar: `apps/dashboard/src/components/dispatch-admin/dispatch-calendar-view-v2.tsx`
@@ -122,8 +129,9 @@ cancelled rows, the standard dispatch route, and the driver task route do not
 receive them. The dispatch trip status menu remains separate and continues to
 own queue/packed/in-progress/completed trip transitions.
 
-The replacement now runs in parallel at `/sales-book/dispatch-admin/v2` while
-the previous dashboard remains the canonical admin URL. Both routes share the
+The replacement remains available at `/sales-book/fulfillment/v2` while the
+Fulfillment dashboard at `/sales-book/fulfillment` is the canonical route. Both
+routes share the
 existing dispatch, Packing List, inventory, and proof authorities; the split is
 only a page-composition and rollout boundary.
 

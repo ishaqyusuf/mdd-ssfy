@@ -7,9 +7,18 @@ import {
 } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
+import type { ReactNode } from "react";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 
-export function DispatchSearchFilter() {
+type DispatchSearchFilterProps = {
+	pageTabs?: ReactNode;
+	toolbarActions?: ReactNode;
+};
+
+export function DispatchSearchFilter({
+	pageTabs,
+	toolbarActions,
+}: DispatchSearchFilterProps) {
 	return (
 		<SearchFilterProvider
 			args={[
@@ -18,11 +27,11 @@ export function DispatchSearchFilter() {
 				},
 			]}
 		>
-			<Content />
+			<Content pageTabs={pageTabs} toolbarActions={toolbarActions} />
 		</SearchFilterProvider>
 	);
 }
-function Content() {
+function Content({ pageTabs, toolbarActions }: DispatchSearchFilterProps) {
 	const ctx = useSearchFilterContext();
 	const { shouldFetch } = ctx;
 	const trpc = useTRPC();
@@ -37,6 +46,8 @@ function Content() {
 				placeholder="Search dispatch information"
 				filterList={trpcFilterData}
 				loading={shouldFetch && isFetching}
+				pageTabs={pageTabs}
+				toolbarActions={toolbarActions}
 			/>
 		</>
 	);

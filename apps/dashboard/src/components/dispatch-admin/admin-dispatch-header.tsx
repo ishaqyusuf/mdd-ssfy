@@ -5,7 +5,9 @@ import { Icons } from "@gnd/ui/icons";
 import { DispatchAutoRefresh } from "@/components/dispatch-admin/dispatch-auto-refresh";
 import { DispatchDeletedPanel } from "@/components/dispatch-admin/dispatch-deleted-panel";
 import { DispatchExportButton } from "@/components/dispatch-admin/dispatch-export-button";
+import { fulfillmentPageTabs } from "@/components/dispatch-admin/fulfillment-tabs";
 import { DispatchSearchFilter } from "@/components/dispatch-search-filter";
+import { PageTabs } from "@/components/page-tabs";
 import { SalesDispatchColumnVisibility } from "@/components/tables-2/sales-dispatch/column-visibility";
 import { useAuth } from "@/hooks/use-auth";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
@@ -20,7 +22,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { useEffect, useState } from "react";
@@ -260,88 +261,70 @@ export function AdminDispatchHeader() {
 	const auth = useAuth();
 	const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
 
-	const tabValue =
-		filters.tab || (filters.status === "completed" ? "completed" : "pending");
-
 	const currentView = filters.view ?? "table";
 
 	return (
-		<div className="flex flex-col gap-3">
-			<div className="flex items-center justify-between gap-2 flex-wrap">
-				<div className="flex items-center gap-2 flex-wrap">
-					<Tabs
-						value={tabValue}
-						onValueChange={(value) => {
-							const nextTab =
-								value === "all" || value === "pending" || value === "completed"
-									? value
-									: "pending";
-							setFilters({
-								tab: nextTab,
-								status: nextTab === "completed" ? "completed" : null,
-							});
-						}}
-					>
-						<TabsList>
-							<TabsTrigger value="all">All</TabsTrigger>
-							<TabsTrigger value="pending">Pending</TabsTrigger>
-							<TabsTrigger value="completed">Completed</TabsTrigger>
-						</TabsList>
-					</Tabs>
-
-					{/* View toggle: table / calendar */}
-					<div className="flex items-center rounded-md border overflow-hidden">
-						<Button
-							variant={currentView === "table" ? "secondary" : "ghost"}
-							size="sm"
-							className="rounded-none border-0 gap-1.5 h-8"
-							onClick={() => setFilters({ view: "table" })}
-							title="Table view"
-						>
-							<Icons.Table2 size={14} />
-						</Button>
-						<Button
-							variant={currentView === "calendar" ? "secondary" : "ghost"}
-							size="sm"
-							className="rounded-none border-0 gap-1.5 h-8 border-l"
-							onClick={() => setFilters({ view: "calendar" })}
-							title="Calendar view"
-						>
-							<Icons.LayoutGrid size={14} />
-						</Button>
-					</div>
-				</div>
-
-				<div className="flex items-center gap-2 flex-wrap">
-					{currentView === "table" && <SalesDispatchColumnVisibility />}
-					<DispatchAutoRefresh />
-					<DispatchExportButton />
-					{isSuperAdmin && (
-						<>
+		<div className="min-w-0">
+			<DispatchSearchFilter
+				pageTabs={
+					<PageTabs
+						portal={false}
+						tabs={fulfillmentPageTabs}
+						allTitle="Pending"
+						allActiveParam={{ key: "tab", value: "pending" }}
+						maxVisible={{ base: 3, lg: 3, "2xl": 3 }}
+					/>
+				}
+				toolbarActions={
+					<>
+						<div className="flex items-center rounded-md border overflow-hidden">
 							<Button
-								variant="outline"
+								variant={currentView === "table" ? "secondary" : "ghost"}
 								size="sm"
-								onClick={() => setDeletedOpen(true)}
-								className="gap-1.5 text-muted-foreground"
+								className="rounded-none border-0 gap-1.5 h-8"
+								onClick={() => setFilters({ view: "table" })}
+								title="Table view"
 							>
-								<Icons.Trash2 size={14} />
-								Deleted
+								<Icons.Table2 size={14} />
 							</Button>
 							<Button
-								variant="outline"
+								variant={currentView === "calendar" ? "secondary" : "ghost"}
 								size="sm"
-								onClick={() => setSweeperOpen(true)}
-								className="gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+								className="rounded-none border-0 gap-1.5 h-8 border-l"
+								onClick={() => setFilters({ view: "calendar" })}
+								title="Calendar view"
 							>
-								<Icons.ShieldAlert size={14} />
-								Duplicate Sweeper
+								<Icons.LayoutGrid size={14} />
 							</Button>
-						</>
-					)}
-				</div>
-			</div>
-
-			<DispatchSearchFilter />
+						</div>
+						{currentView === "table" && <SalesDispatchColumnVisibility />}
+						<DispatchAutoRefresh />
+						<DispatchExportButton />
+						{isSuperAdmin && (
+							<>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setDeletedOpen(true)}
+									className="gap-1.5 text-muted-foreground"
+								>
+									<Icons.Trash2 size={14} />
+									Deleted
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setSweeperOpen(true)}
+									className="gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+								>
+									<Icons.ShieldAlert size={14} />
+									Duplicate Sweeper
+								</Button>
+							</>
+						)}
+					</>
+				}
+			/>
 
 			{isSuperAdmin && (
 				<>

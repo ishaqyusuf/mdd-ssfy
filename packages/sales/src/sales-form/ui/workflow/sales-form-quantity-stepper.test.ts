@@ -18,6 +18,7 @@ describe("sales form quantity stepper", () => {
 		for (const file of [
 			"./modals/door-size-qty-dialog.tsx",
 			"./house-package-tool-panel.tsx",
+			"./moulding-selection-popover.tsx",
 			"./moulding-line-items-editor.tsx",
 			"./service-line-items-editor.tsx",
 			"./shelf-inline-items-editor.tsx",
@@ -62,7 +63,7 @@ describe("sales form quantity stepper", () => {
 			"utf8",
 		);
 
-		expect(mouldingSource).toContain("min-w-[780px]");
+		expect(mouldingSource).toContain("min-w-[620px]");
 		expect(serviceSource).toContain("min-w-[800px]");
 		expect(serviceSource).toContain(
 			'<col />\n\t\t\t\t\t\t<col style={{ width: "9.5rem" }} />',
@@ -71,5 +72,18 @@ describe("sales form quantity stepper", () => {
 		expect(shelfSource).toContain(
 			'<col style={{ width: "8rem" }} />\n\t\t\t\t\t\t<col style={{ width: "9.5rem" }} />\n\t\t\t\t\t\t<col style={{ width: "8rem" }} />',
 		);
+	});
+
+	it("keeps Moulding component clicks in the quantity form with the shared stepper", () => {
+		const source = readFileSync(
+			new URL("./moulding-selection-popover.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source).toContain("<SalesFormQuantityStepper");
+		expect(source).toContain("inputRef={props.inputRef}");
+		expect(source).toContain("min={1}");
+		expect(source).toContain("props.onQtyChange(String(value))");
+		expect(source).toContain("onInputKeyDown");
 	});
 });

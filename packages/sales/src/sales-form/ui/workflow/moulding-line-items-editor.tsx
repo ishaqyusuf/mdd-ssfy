@@ -1,9 +1,26 @@
 /** @jsxImportSource react */
 "use client";
 
+import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@gnd/ui/card";
+import { Menu } from "@gnd/ui/custom/menu";
+import { Field, FieldGroup, FieldTitle } from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
-import { Input } from "@gnd/ui/input";
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupInput,
+	InputGroupText,
+} from "@gnd/ui/input-group";
+import { Separator } from "@gnd/ui/separator";
 import type { ReactNode } from "react";
 import { multiplyMoney } from "../../../payment-system/domain/money";
 import {
@@ -22,6 +39,7 @@ export type MouldingLineItemEditorRow = {
 	estimateUnit?: number | null;
 	basePrice?: number | null;
 	salesPrice?: number | null;
+	unit?: number | null;
 	lineTotal?: number | null;
 	[key: string]: unknown;
 };
@@ -45,6 +63,150 @@ export type MouldingLineItemsEditorProps<
 	onRowsChange: (rows: TRow[]) => void;
 	onRemoveRow: (uid: string) => void;
 };
+
+function MouldingEstimateBreakdown<TRow extends MouldingLineItemEditorRow>(
+	props: {
+		row: TRow;
+		index: number;
+		quantity: number;
+		canEditPricing: boolean;
+		formatMoney: (value?: number | null) => string | null;
+		componentLabel: (value?: string | null) => string;
+		priceBreakdown?: CostPriceBreakdownContext | null;
+		onPatch: (patch: Partial<TRow>) => void;
+	},
+) {
+	const hasCustomPrice =
+		props.row.customPrice != null && props.row.customPrice !== "";
+	const estimatedUnit = Number(props.row.estimateUnit || 0);
+	const addon = Number(props.row.addon || 0);
+	const customPrice = hasCustomPrice ? Number(props.row.customPrice || 0) : null;
+	const finalUnit = Number(
+		props.row.unit ?? (customPrice ?? estimatedUnit) + addon,
+	);
+
+	return (
+		<Menu
+			noSize
+			Icon={null}
+			label={
+				<span
+					className="cursor-pointer underline decoration-dotted underline-offset-2"
+					aria-label={`Open cost estimate breakdown for moulding line ${props.index + 1}`}
+				>
+					<CostPriceBreakdownHover
+						breakdown={{
+							costPrice: props.row.basePrice,
+							displayPrice: props.row.estimateUnit,
+						}}
+						context={props.priceBreakdown}
+					>
+						<span>{props.formatMoney(props.row.estimateUnit) || "$0.00"}</span>
+					</CostPriceBreakdownHover>
+				</span>
+			}
+		>
+			<Card className="w-[320px] rounded-lg text-left">
+				<CardHeader className="flex-row items-start justify-between gap-3 p-3">
+					<div className="min-w-0">
+						<CardTitle>Cost estimate breakdown</CardTitle>
+						<CardDescription className="truncate">
+							{props.componentLabel(props.row.title)}
+						</CardDescription>
+					</div>
+					<Badge variant="secondary">Qty {props.quantity}</Badge>
+				</CardHeader>
+				<CardContent className="flex flex-col gap-3 p-3 pt-0">
+					<dl className="flex flex-col gap-1.5">
+						<div className="flex items-center justify-between gap-4">
+							<dt className="text-muted-foreground">Estimate</dt>
+							<dd className="font-medium">
+								{props.formatMoney(props.row.estimateUnit) || "$0.00"}
+							</dd>
+						</div>
+					</dl>
+					<Separator />
+					<FieldGroup className="gap-2">
+						<Field orientation="horizontal" className="gap-2">
+							<FieldTitle>Addon/Qty</FieldTitle>
+							{props.canEditPricing ? (
+								<InputGroup className="h-8 w-28">
+									<InputGroupAddon>
+										<InputGroupText>$</InputGroupText>
+									</InputGroupAddon>
+									<InputGroupInput
+										aria-label={`Moulding line ${props.index + 1} addon per quantity`}
+										type="number"
+										step="0.01"
+										value={props.row.addon || 0}
+										onChange={(event) =>
+											props.onPatch({
+												addon: Number(event.target.value || 0),
+											} as Partial<TRow>)
+										}
+										className="text-right"
+									/>
+								</InputGroup>
+							) : (
+								<span className="font-medium">
+									{props.formatMoney(addon) || "$0.00"}
+								</span>
+							)}
+						</Field>
+						<Field orientation="horizontal" className="gap-2">
+							<FieldTitle>Custom Price</FieldTitle>
+							{props.canEditPricing ? (
+								<InputGroup className="h-8 w-28">
+									<InputGroupAddon>
+										<InputGroupText>$</InputGroupText>
+									</InputGroupAddon>
+									<InputGroupInput
+										aria-label={`Moulding line ${props.index + 1} custom price`}
+										type="number"
+										step="0.01"
+										value={props.row.customPrice ?? ""}
+										onChange={(event) =>
+											props.onPatch({
+												customPrice:
+													event.target.value === ""
+														? null
+														: Number(event.target.value || 0),
+											} as Partial<TRow>)
+										}
+										className="text-right"
+										placeholder="auto"
+									/>
+								</InputGroup>
+							) : (
+								<span className="font-medium">
+									{hasCustomPrice
+										? props.formatMoney(customPrice) || "$0.00"
+										: "Auto"}
+								</span>
+							)}
+						</Field>
+					</FieldGroup>
+					<Separator />
+					<div className="flex items-center justify-between gap-4">
+						<div className="flex items-center gap-2">
+							<span className="font-medium">Final unit</span>
+							{hasCustomPrice ? <Badge variant="outline">Custom</Badge> : null}
+						</div>
+						<span className="font-semibold">
+							{props.formatMoney(finalUnit) || "$0.00"}
+						</span>
+					</div>
+				</CardContent>
+				<CardFooter className="justify-between p-3">
+					<span>Line total</span>
+					<span className="font-semibold text-foreground">
+						{props.formatMoney(props.row.lineTotal) || "$0.00"}
+					</span>
+				</CardFooter>
+			</Card>
+		</Menu>
+	);
+}
 
 export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 	props: MouldingLineItemsEditorProps<TRow>,
@@ -74,14 +236,12 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 
 	return (
 		<div className="overflow-x-auto rounded-lg border">
-			<table className="min-w-[780px] text-sm">
+			<table className="min-w-[620px] text-sm">
 				<thead>
 					<tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
 						<th className="px-3 py-2">Moulding</th>
 						<th className="px-3 py-2 text-right">Qty</th>
 						<th className="px-3 py-2 text-right">Estimate</th>
-						<th className="px-3 py-2 text-right">Addon/Qty</th>
-						<th className="px-3 py-2 text-right">Custom</th>
 						<th className="px-3 py-2 text-right">Line Total</th>
 						<th className="px-3 py-2 text-right">Remove</th>
 					</tr>
@@ -89,10 +249,6 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 				<tbody>
 					{props.rows.map((row, index) => {
 						const rowImageSrc = props.resolveImageSrc(row.img || null);
-						const unitBreakdown = {
-							costPrice: row.basePrice,
-							displayPrice: row.estimateUnit,
-						};
 						const qty = Number(row.qty || 0);
 						const lineBreakdown = {
 							costPrice: multiplyMoney(Number(row.basePrice || 0), qty),
@@ -145,61 +301,16 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 									</div>
 								</td>
 								<td className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">
-									<CostPriceBreakdownHover
-										breakdown={unitBreakdown}
-										context={props.priceBreakdown}
-									>
-										<span>
-											{props.formatMoney(row.estimateUnit) || "$0.00"}
-										</span>
-									</CostPriceBreakdownHover>
-								</td>
-								<td className="px-3 py-2">
-									{canEditPricing ? (
-										<Input
-											aria-label={`Moulding line ${index + 1} addon per quantity`}
-											type="number"
-											step="0.01"
-											value={row.addon || 0}
-											onChange={(e) =>
-												patchRow(index, {
-													addon: Number(e.target.value || 0),
-												} as Partial<TRow>)
-											}
-											className="h-8 text-right"
-										/>
-									) : (
-										<p className="text-right text-xs font-semibold">
-											{props.formatMoney(row.addon || 0) || "$0.00"}
-										</p>
-									)}
-								</td>
-								<td className="px-3 py-2">
-									{canEditPricing ? (
-										<Input
-											aria-label={`Moulding line ${index + 1} custom price`}
-											type="number"
-											step="0.01"
-											value={row.customPrice ?? ""}
-											onChange={(e) =>
-												patchRow(index, {
-													customPrice:
-														e.target.value === ""
-															? null
-															: Number(e.target.value || 0),
-												} as Partial<TRow>)
-											}
-											className="h-8 text-right"
-											placeholder="auto"
-										/>
-									) : (
-										<p className="text-right text-xs font-semibold">
-											{row.customPrice == null || row.customPrice === ""
-												? "Auto"
-												: props.formatMoney(Number(row.customPrice || 0)) ||
-													"$0.00"}
-										</p>
-									)}
+									<MouldingEstimateBreakdown
+										row={row}
+										index={index}
+										quantity={qty}
+										canEditPricing={canEditPricing}
+										formatMoney={props.formatMoney}
+										componentLabel={props.componentLabel}
+										priceBreakdown={props.priceBreakdown}
+										onPatch={(patch) => patchRow(index, patch)}
+									/>
 								</td>
 								<td className="px-3 py-2 text-right text-xs font-bold">
 									<CostPriceBreakdownHover
@@ -230,8 +341,6 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 					<tr className="border-t bg-muted/20 text-xs font-bold">
 						<td className="px-3 py-2 uppercase">Total</td>
 						<td className="px-3 py-2 text-right">{props.totalQty}</td>
-						<td />
-						<td />
 						<td />
 						<td className="px-3 py-2 text-right">
 							{props.formatMoney(props.totalAmount) || "$0.00"}

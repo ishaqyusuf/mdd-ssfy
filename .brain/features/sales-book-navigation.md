@@ -16,6 +16,9 @@ Tracks the canonical navigation behavior shared by Sales Book routes.
 - Saved filter tabs remain available inside supported page headers, including
   the adaptive Sales Orders saved-view tabs.
 - Contextual tabs inside forms, sheets, and detail workspaces are unaffected.
+- The order-management dispatch workspace is a single top-level `Fulfillment`
+  sidebar link at `/sales-book/fulfillment`; its former Delivery and v2
+  sub-links are not shown in the sidebar.
 
 ## Implementation Notes
 

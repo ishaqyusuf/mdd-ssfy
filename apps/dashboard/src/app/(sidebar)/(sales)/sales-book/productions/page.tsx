@@ -53,11 +53,11 @@ export default async function SalesProductionsPage({ searchParams }: Props) {
 	}
 
 	if (resolved.view === "calendar") {
-		const anchor = dayjs(filters.date || undefined);
+		const weekStart = dayjs(filters.date || undefined).startOf("day");
 		batchPrefetch([
 			trpc.sales.productionCalendar.queryOptions({
-				from: anchor.startOf("month").format("YYYY-MM-DD"),
-				to: anchor.endOf("month").format("YYYY-MM-DD"),
+				from: weekStart.format("YYYY-MM-DD"),
+				to: weekStart.add(6, "day").format("YYYY-MM-DD"),
 				q: filters.q,
 				assignedToId: filters.assignedToId,
 				priority: filters.priority,

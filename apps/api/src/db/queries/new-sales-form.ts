@@ -3305,28 +3305,18 @@ async function saveNewSalesFormInternal(
 						)
 					: null;
 			if (order && payload.type === "order" && saveCommitments) {
-				const persistedLines = currentMeta.newSalesForm?.lineItems || [];
-				const beforeLines = persistedLines.length
-					? persistedLines
-					: order.items.map((item) => ({
-							id: item.id,
-							uid:
-								(typeof safeRecord(item.meta).uid === "string" &&
-									String(safeRecord(item.meta).uid)) ||
-								item.multiDykeUid ||
-								`sales-item-${item.id}`,
-							title: item.dykeDescription || item.description || "Line item",
-							qty: Number(item.qty || 0),
-							lineTotal: Number(item.total || 0),
-						}));
+				const canonicalBefore = await getNewSalesForm(
+					{
+						...ctx,
+						db: tx as unknown as TRPCContext["db"],
+					},
+					{ type: payload.type, slug: order.slug },
+				);
 				const analysis = analyzeSalesFormChange({
 					before: {
-						lineItems: beforeLines,
+						lineItems: canonicalBefore.lineItems,
 						summary: {
-							grandTotal:
-								currentMeta.newSalesForm?.summary?.grandTotal ??
-								order.grandTotal ??
-								0,
+							grandTotal: canonicalBefore.summary.grandTotal,
 						},
 					},
 					after: { lineItems: normalizedLines, summary: persistedSummary },

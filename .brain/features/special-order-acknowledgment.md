@@ -218,9 +218,10 @@ and acceptance gate:
   page and renders the full Template 2 HTML document—company logo/header,
   addresses, items, and footer—with no duplicated approval-only order/policy
   cards or Special Order document block. A bottom floating Approve/Decline bar
-  selects the response mode and smoothly scrolls to the response form. Focused
-  public review, renderer, and HTML-template coverage passes; no schema, API
-  input, permission, or persistence contract changed.
+  selects the response mode and smoothly scrolls to the response form; it hides
+  while that response form is on screen. Focused public review, renderer, and
+  HTML-template coverage passes; no schema, API input, permission, or
+  persistence contract changed.
 - Order `09369LM` reproduced approval-link generation failure after a
   production-to-local sync because the active capability proof did not match the
   local signing secret. Focused capability/dashboard coverage passes, the

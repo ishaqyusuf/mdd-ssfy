@@ -11,6 +11,8 @@
   and a floating Approve/Decline bar that selects response mode and scrolls to
   the response form. The full-document page intentionally suppresses the
   Special Order template block and removes the duplicate order/policy cards.
+  The floating action bar uses an IntersectionObserver and hides while the
+  response form is visible.
   Focused public review and HTML-template tests pass (6 tests / 34 assertions),
   as do `@gnd/sales` and `@gnd/pdf` typechecks. No schema, API input,
   permission, or persistence contract changed.
@@ -9601,3 +9603,42 @@
 - Removed the General tab's duplicate horizontal `p-6` gutter. The sheet shell
   already supplies the 24px desktop gutter, while the tab retains its existing
   24px vertical spacing.
+
+## 2026-08-19 — Condensed new sales form Moulding pricing controls
+
+- Removed the Moulding `Addon/Qty` and `Custom` table columns from the shared
+  new-sales-form editor. Clicking a row's Estimate now opens an HPT-style cost
+  estimate breakdown containing the unchanged Addon/Qty and Custom Price
+  controls, plus the current estimate, quantity, final unit, and line total.
+- Existing Moulding pricing calculations, persistence/row patching, and the
+  dashboard/dealership capability boundary remain unchanged. Focused shared UI
+  coverage passes 3 tests / 16 assertions; `git diff --check` passes. Browser,
+  build, and broad typecheck verification were intentionally skipped under the
+  requested fast Bun monorepo workflow.
+
+## 2026-08-19 — Unified Moulding selection quantity input
+
+- Clicking a Moulding component continues to open its quantity form, which now
+  uses the shared segmented Sales Form quantity stepper instead of a standalone
+  number field. The form keeps its calculator, quantity autofocus, minimum-one
+  guard, and Enter-to-add action.
+- Focused Moulding quantity/editor coverage passes 8 tests / 42 assertions.
+  No browser, build, or broad typecheck verification was run under the requested
+  fast Bun monorepo workflow.
+
+## 2026-08-19 — Renamed Dispatch Admin navigation to Fulfillment
+
+- Moved the order-management dispatch pages from `/sales-book/dispatch-admin`
+  to `/sales-book/fulfillment`, renamed the sidebar link to Fulfillment, and
+  removed its Delivery and v2 sub-links.
+- Updated the main and v2 page metadata and access-fallback copy to use the
+  Fulfillment name. The existing route guards and dispatch behavior are
+  unchanged.
+
+## 2026-08-19 — Aligned Fulfillment tabs with Sales Finance
+
+- Replaced the native status tab row before Fulfillment search with the shared
+  Finance-style `PageTabs` control embedded in the search toolbar. Pending,
+  All, and Completed retain their existing URL-backed filter semantics.
+- Table/calendar switching and administrative toolbar actions remain available
+  beside the shared search and filter controls.

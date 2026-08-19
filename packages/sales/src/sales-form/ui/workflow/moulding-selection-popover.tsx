@@ -3,8 +3,8 @@
 
 import type { ReactNode, RefObject } from "react";
 import { Button } from "@gnd/ui/button";
-import { Input } from "@gnd/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import { SalesFormQuantityStepper } from "./sales-form-quantity-stepper";
 
 export type MouldingSelectionPopoverProps = {
 	open: boolean;
@@ -35,15 +35,13 @@ export function MouldingSelectionPopover(props: MouldingSelectionPopoverProps) {
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
-					<Input
-						ref={props.inputRef}
-						aria-label={`Quantity for ${props.title}`}
-						type="number"
-						min="1"
-						value={props.qty}
-						onChange={(event) => props.onQtyChange(event.target.value)}
-						className="h-9 text-right"
-						onKeyDown={(event) => {
+					<SalesFormQuantityStepper
+						inputRef={props.inputRef}
+						label={`Quantity for ${props.title}`}
+						value={Number(props.qty || 1)}
+						min={1}
+						onChange={(value) => props.onQtyChange(String(value))}
+						onInputKeyDown={(event) => {
 							if (event.key !== "Enter") return;
 							event.preventDefault();
 							props.onAdd();

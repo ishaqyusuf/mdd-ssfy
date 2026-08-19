@@ -33,7 +33,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
 	return constructMetadata({
-		title: "Admin Dispatch Dashboard | GND",
+		title: "Fulfillment | GND",
 	});
 }
 
@@ -81,11 +81,11 @@ export default async function Page(props: Props) {
 					rules={[_perm.is("editOrders")]}
 					Fallback={
 						<div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-							You do not have permission to access dispatch admin.
+							You do not have permission to access fulfillment.
 						</div>
 					}
 				>
-					<PageTitle>Admin Dispatch Dashboard</PageTitle>
+					<PageTitle>Fulfillment</PageTitle>
 					<div className="flex flex-col gap-6">
 						{/* Summary KPI Cards */}
 						<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">

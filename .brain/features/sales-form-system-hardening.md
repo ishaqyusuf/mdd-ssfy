@@ -370,6 +370,14 @@
   unchanged. The HPT Estimate dropdown now exposes Custom Price to all order
   editors while keeping base cost, addon price, and repair controls behind the
   existing pricing-admin capability.
+- 2026-08-19 the shared Moulding line table no longer has separate Addon/Qty
+  and Custom columns. Selecting its Estimate amount opens a cost estimate
+  breakdown with the current estimate, quantity, final unit, and line total;
+  the existing Addon/Qty and Custom Price controls remain in that menu for
+  pricing-enabled users, while read-only users see their current values. Clicking
+  a Moulding component opens its quantity form with the shared segmented
+  minus/value/plus quantity control, retaining calculator, autofocus, and
+  Enter-to-add behavior.
 - 2026-08-07 adding a sales-form item now smoothly scrolls the shared workflow
   list to the newly inserted active item section. Initial hydration and ordinary
   item switching do not trigger the scroll, and reduced-motion users receive an
@@ -377,6 +385,14 @@
   added in an unsaved copy and brought near the top of the form viewport; the QA
   tab was closed without saving. Focused workflow coverage, Sales typecheck, and
   scoped formatting and whitespace checks pass.
+- 2026-08-19 focused shared Moulding editor coverage passes 3 tests / 16
+  assertions for the five-column table, Estimate breakdown placement, and
+  existing row-patch path. No browser, build, or broad typecheck run was
+  performed under the requested fast Bun workflow.
+- 2026-08-19 focused Moulding quantity-form and editor coverage passes 8 tests
+  / 42 assertions, including the shared stepper, minimum quantity, autofocus
+  ref, and Enter-to-add wiring. No browser, build, or broad typecheck run was
+  performed under the requested fast Bun workflow.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

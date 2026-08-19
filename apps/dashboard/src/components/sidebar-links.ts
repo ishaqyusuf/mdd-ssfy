@@ -419,14 +419,8 @@ export const linkModules = [
 				_perm.is("editDelivery"),
 				_perm.isNot("editOrders"),
 			).data,
-			_link("Dispatch Admin", "dispatch", "/sales-book/dispatch-admin", [
-				_subLink("Delivery", "/sales-book/dispatch").access(
-					_role.is("Super Admin"),
-				).data,
-				_subLink("Dispatch Admin v2", "/sales-book/dispatch-admin/v2").access(
-					_role.is("Super Admin"),
-				).data,
-			]).access(_perm.is("editOrders")).data,
+			_link("Fulfillment", "dispatch", "/sales-book/fulfillment")
+				.access(_perm.is("editOrders")).data,
 		]),
 		_section("", "", [
 			_link("Customers", "customers", "/sales-book/customers")

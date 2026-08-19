@@ -5,6 +5,7 @@ import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import type { KeyboardEventHandler, RefObject } from "react";
 
 export type SalesFormQuantityStepperProps = {
 	value?: number | null;
@@ -14,6 +15,8 @@ export type SalesFormQuantityStepperProps = {
 	step?: number;
 	disabled?: boolean;
 	className?: string;
+	inputRef?: RefObject<HTMLInputElement | null>;
+	onInputKeyDown?: KeyboardEventHandler<HTMLInputElement>;
 	onChange: (value: number) => void;
 };
 
@@ -71,6 +74,7 @@ export function SalesFormQuantityStepper(props: SalesFormQuantityStepperProps) {
 				<Icons.Minus className="size-3.5" />
 			</Button>
 			<Input
+				ref={props.inputRef}
 				type="number"
 				inputMode="numeric"
 				aria-label={props.label}
@@ -85,6 +89,7 @@ export function SalesFormQuantityStepper(props: SalesFormQuantityStepperProps) {
 						normalizeSalesFormQuantity(event.target.value, min, max),
 					)
 				}
+				onKeyDown={props.onInputKeyDown}
 			/>
 			<Button
 				type="button"

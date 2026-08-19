@@ -1972,6 +1972,106 @@ describe("new-sales-form relational parity", () => {
     expect(state.orders[0]?.meta?.po).toBe("AUTOSAVE-B");
   });
 
+  it("uses the canonical relational form as the change-review baseline", async () => {
+    const { ctx, state } = createMockContext();
+    const created = await saveDraftNewSalesForm(ctx, {
+      type: "order",
+      slug: null,
+      salesId: null,
+      version: null,
+      autosave: false,
+      meta: {
+        customerId: 100,
+        customerProfileId: 7,
+        billingAddressId: null,
+        shippingAddressId: null,
+        paymentTerm: "None",
+        paymentMethod: "Credit Card",
+        goodUntil: null,
+        po: null,
+        notes: null,
+        deliveryOption: "pickup",
+        taxCode: null,
+      },
+      summary: { subTotal: 100, taxRate: 0, taxTotal: 0, grandTotal: 100 },
+      extraCosts: [],
+      lineItems: [
+        {
+          id: null,
+          uid: "canonical-line",
+          title: "Canonical line",
+          description: "",
+          qty: 1,
+          unitPrice: 100,
+          lineTotal: 100,
+          meta: {},
+          formSteps: [],
+          shelfItems: [],
+          housePackageTool: null,
+        },
+      ],
+    });
+
+    const order = state.orders[0]!;
+    order.payments = [
+      {
+        amount: 1_000,
+        status: "success",
+        transactionId: 42,
+        deletedAt: null,
+      },
+    ];
+    order.meta = {
+      ...order.meta,
+      newSalesForm: {
+        ...order.meta.newSalesForm,
+        lineItems: [
+          {
+            id: 99_999,
+            uid: "stale-json-line",
+            title: "Stale JSON line",
+            qty: 9,
+            unitPrice: 100,
+            lineTotal: 900,
+          },
+        ],
+      },
+    };
+
+    const canonical = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: created.slug!,
+    });
+    expect(canonical.lineItems).toHaveLength(1);
+    expect(canonical.lineItems[0]).toMatchObject({
+      uid: "canonical-line",
+      qty: 1,
+      lineTotal: 100,
+    });
+
+    const saved = await saveDraftNewSalesForm(ctx, {
+      type: "order",
+      salesId: canonical.salesId,
+      slug: canonical.slug,
+      version: canonical.version,
+      autosave: false,
+      commitIntent: "draft",
+      inventoryStatus: canonical.inventoryStatus,
+      specialOrderDeclaration: canonical.specialOrder.declaration,
+      meta: canonical.form,
+      lineItems: canonical.lineItems,
+      extraCosts: canonical.extraCosts,
+      summary: canonical.summary,
+    });
+
+    expect(saved.salesId).toBe(created.salesId);
+    expect(saved.lineItems[0]).toMatchObject({
+      uid: "canonical-line",
+      qty: 1,
+      lineTotal: 100,
+    });
+  });
+
   it("rejects a stale manual quote revision", async () => {
     const { ctx } = createMockContext();
     const payload = {

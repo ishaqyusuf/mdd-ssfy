@@ -18,6 +18,14 @@ type SalesActivityCopy = {
 
 type SalesActivityDb = TRPCContext["db"];
 
+const NOTE_PAD_TEXT_LIMIT = 191;
+
+function fitNotePadText(value: string) {
+	const characters = Array.from(value);
+	if (characters.length <= NOTE_PAD_TEXT_LIMIT) return value;
+	return `${characters.slice(0, NOTE_PAD_TEXT_LIMIT - 1).join("")}…`;
+}
+
 function money(value: number) {
 	return `$${Number(value || 0).toFixed(2)}`;
 }
@@ -235,9 +243,9 @@ export async function createSalesFormTimelineActivity(
 ) {
 	return db.notePad.create({
 		data: {
-			subject: input.copy.subject,
-			headline: input.copy.headline,
-			note: input.copy.note,
+			subject: fitNotePadText(input.copy.subject),
+			headline: fitNotePadText(input.copy.headline),
+			note: fitNotePadText(input.copy.note),
 			senderContactId: input.senderContactId,
 			tags: {
 				createMany: {

@@ -74,7 +74,8 @@ Grouped route reference for the `apps/dashboard` Next.js App Router surface.
 - `/sales-book/customers`
 - `/sales-book/dispatch`
 - `/sales-book/dispatch/v2` (compatibility redirect to `/sales-book/dispatch`)
-- `/sales-book/dispatch-admin`
+- `/sales-book/fulfillment`
+- `/sales-book/fulfillment/v2`
 - `/sales-book/dispatch-task`
 - `/sales-book/edit/[type]`
 - `/sales-book/inbound-management`

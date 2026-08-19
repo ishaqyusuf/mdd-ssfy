@@ -144,6 +144,39 @@ describe("sales form activity copy", () => {
 		});
 	});
 
+	it("bounds timeline copy to the NotePad varchar columns", async () => {
+		const writes: unknown[] = [];
+		const db = {
+			notePad: {
+				create: async (input: unknown) => {
+					writes.push(input);
+					return { id: 45 };
+				},
+			},
+		} as unknown as TRPCContext["db"];
+		const longText = "Long sales activity detail ".repeat(20);
+
+		await createSalesFormTimelineActivity(db, {
+			salesId: 91,
+			orderId: "09165AD",
+			senderContactId: 7,
+			copy: {
+				subject: longText,
+				headline: longText,
+				note: longText,
+				activityType: "sales_form_updated",
+			},
+		});
+
+		const write = writes[0] as {
+			data: { subject: string; headline: string; note: string };
+		};
+		expect(Array.from(write.data.subject)).toHaveLength(191);
+		expect(Array.from(write.data.headline)).toHaveLength(191);
+		expect(Array.from(write.data.note)).toHaveLength(191);
+		expect(write.data.note.endsWith("…")).toBe(true);
+	});
+
 	it("records deliberate enrollment and automatic invalidation as distinct actor-attributed activity", async () => {
 		const enrollment = buildSpecialOrderEnrollmentActivity({
 			orderId: "09232PC",

@@ -95,7 +95,7 @@ describe("sidebar role access", () => {
 		expect(links.linksNameMap["/sales-book/orders"]?.hasAccess).toBe(true);
 	});
 
-	test("routes delivery-only users to dispatch tasks instead of dispatch admin", () => {
+	test("routes delivery-only users to dispatch tasks instead of fulfillment", () => {
 		const links = getLinkModules(
 			validateLinks({
 				role: { name: "Dispatch" },
@@ -111,7 +111,7 @@ describe("sidebar role access", () => {
 		expect(links.linksNameMap["/sales-book/dispatch-task"]?.hasAccess).toBe(
 			true,
 		);
-		expect(links.linksNameMap["/sales-book/dispatch-admin"]?.hasAccess).toBe(
+		expect(links.linksNameMap["/sales-book/fulfillment"]?.hasAccess).toBe(
 			false,
 		);
 		expect(visibleDispatchLinks.map((link) => link.href)).toEqual([
@@ -120,7 +120,7 @@ describe("sidebar role access", () => {
 		expect(links.defaultLink).toBe("/sales-book/dispatch-task");
 	});
 
-	test("routes order editors to dispatch admin instead of dispatch tasks", () => {
+	test("routes order editors to fulfillment instead of dispatch tasks", () => {
 		const links = getLinkModules(
 			validateLinks({
 				role: { name: "Admin" },
@@ -132,15 +132,13 @@ describe("sidebar role access", () => {
 		expect(links.linksNameMap["/sales-book/dispatch-task"]?.hasAccess).toBe(
 			false,
 		);
-		expect(links.linksNameMap["/sales-book/dispatch-admin"]?.hasAccess).toBe(
+		expect(links.linksNameMap["/sales-book/fulfillment"]?.hasAccess).toBe(
 			true,
 		);
-		expect(
-			links.linksNameMap["/sales-book/dispatch-admin/v2"]?.hasAccess,
-		).toBe(false);
+		expect(links.linksNameMap["/sales-book/fulfillment/v2"]).toBeUndefined();
 	});
 
-	test("shows Dispatch Admin v2 only to super admins with dispatch admin access", () => {
+	test("shows fulfillment as a single top-level link to super admins", () => {
 		const links = getLinkModules(
 			validateLinks({
 				role: { name: "Super Admin" },
@@ -149,17 +147,15 @@ describe("sidebar role access", () => {
 			}),
 		);
 
-		expect(links.linksNameMap["/sales-book/dispatch-admin"]?.hasAccess).toBe(
+		expect(links.linksNameMap["/sales-book/fulfillment"]?.hasAccess).toBe(
 			true,
 		);
-		expect(
-			links.linksNameMap["/sales-book/dispatch-admin/v2"]?.hasAccess,
-		).toBe(true);
+		expect(links.linksNameMap["/sales-book/fulfillment/v2"]).toBeUndefined();
 	});
 
-	test("keeps the dispatch admin page guard aligned with navigation", () => {
+	test("keeps the fulfillment page guard aligned with navigation", () => {
 		const source = readFileSync(
-			join(appRoot, "(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx"),
+			join(appRoot, "(sidebar)/(sales)/sales-book/fulfillment/page.tsx"),
 			"utf8",
 		);
 
@@ -171,7 +167,7 @@ describe("sidebar role access", () => {
 		const v2Source = readFileSync(
 			join(
 				appRoot,
-				"(sidebar)/(sales)/sales-book/dispatch-admin/v2/page.tsx",
+				"(sidebar)/(sales)/sales-book/fulfillment/v2/page.tsx",
 			),
 			"utf8",
 		);

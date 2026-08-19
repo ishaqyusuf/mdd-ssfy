@@ -15,7 +15,7 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 			"app/(sidebar)/(sales)/sales-book/dispatch/page.tsx",
 		);
 		const adminRoute = readSource(
-			"app/(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx",
+			"app/(sidebar)/(sales)/sales-book/fulfillment/page.tsx",
 		);
 		const taskRoute = readSource(
 			"app/(sidebar)/(sales)/sales-book/dispatch-task/page.tsx",
@@ -40,10 +40,10 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 
 	it("keeps the legacy admin dashboard canonical and the new workspace isolated at v2", () => {
 		const adminRoute = readSource(
-			"app/(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx",
+			"app/(sidebar)/(sales)/sales-book/fulfillment/page.tsx",
 		);
 		const adminV2Route = readSource(
-			"app/(sidebar)/(sales)/sales-book/dispatch-admin/v2/page.tsx",
+			"app/(sidebar)/(sales)/sales-book/fulfillment/v2/page.tsx",
 		);
 		const workspaceClient = readSource(
 			"components/dispatch-admin/dispatch-admin-workspace-client.tsx",
@@ -104,7 +104,7 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 			"components/tables-2/sales-dispatch/bottom-bar.tsx",
 		);
 		const adminRoute = readSource(
-			"app/(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx",
+			"app/(sidebar)/(sales)/sales-book/fulfillment/page.tsx",
 		);
 		const dispatchRoute = readSource(
 			"app/(sidebar)/(sales)/sales-book/dispatch/page.tsx",
