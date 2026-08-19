@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
 	archiveWorkflowComponentsSchema,
+	createWorkflowComponentSchema,
 	saveWorkflowComponentDetailsSchema,
 	saveWorkflowComponentPricingSchema,
 	saveWorkflowComponentVisibilitySchema,
@@ -40,6 +41,17 @@ describe("workflow component mutation contracts", () => {
 		).toMatchObject({ componentIds: [10, 11] });
 	});
 
+	test("accepts a new component bound to the active workflow step", () => {
+		expect(
+			createWorkflowComponentSchema.parse({
+				stepId: 12,
+				title: "New component",
+				productCode: null,
+				img: null,
+			}),
+		).toMatchObject({ stepId: 12, title: "New component" });
+	});
+
 	test("requires canonical component ids and owned pricing-row identities", () => {
 		expect(() =>
 			archiveWorkflowComponentsSchema.parse({ componentIds: [] }),
@@ -69,6 +81,7 @@ describe("workflow component mutation contracts", () => {
 			"utf8",
 		);
 		for (const mutation of [
+			"createWorkflowComponent",
 			"saveWorkflowComponentDetails",
 			"saveWorkflowComponentVisibility",
 			"saveWorkflowComponentSectionOverride",
@@ -78,7 +91,7 @@ describe("workflow component mutation contracts", () => {
 		]) {
 			expect(routerSource).toContain(`${mutation}: protectedProcedure`);
 		}
-		expect(routerSource).toContain("requireWorkflowComponentAdmin");
+		expect(routerSource).toContain('"editSalesComponent"');
 		expect(routerSource).toContain("requireSuperAdmin(ctx)");
 		expect(querySource).toContain("invalidateSalesWorkflowForStepComponent");
 		expect(querySource).toContain("queueDykeStepToInventorySync");

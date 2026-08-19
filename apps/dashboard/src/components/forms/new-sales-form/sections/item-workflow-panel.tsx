@@ -19,6 +19,7 @@ import {
 	deriveDoorSizeCandidates,
 	findLineStepByTitle,
 	getRedirectableRoutes,
+	getDoorSwingOptions,
 	getSelectedDoorComponentsForLine,
 	getSelectedProdUids,
 	isComponentVisibleByRules,
@@ -1289,6 +1290,7 @@ export function ItemWorkflowPanel() {
 				supplierName={supplier.supplierName}
 				noHandle={noHandle}
 				hasSwing={hasSwing}
+				swingOptions={getDoorSwingOptions(line)}
 				sharedDoorSurcharge={sharedDoorSurcharge}
 				profileCoefficient={activeProfileCoefficient}
 				pricingReady={activeProfileCoefficient != null}

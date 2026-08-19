@@ -2,6 +2,15 @@
 
 ## Current behavior (2026-08-12)
 
+- Quote-to-invoice conversion uses a copy-specific source projection instead
+  of loading the complete Sales graph. Conversion serializes on the source row,
+  records the source identity in target metadata, and returns the existing
+  target on retry or concurrent submission. Inventory synchronization and
+  activity-note follow-up remain durably dispatched/recorded, with follow-up
+  failures isolated from the successful copy result. Focused copy/idempotency
+  tests pass; production timing and browser proof were skipped at the user's
+  request.
+
 - New internal dashboard orders and quotes use the legacy sales identity for
   both `orderId` and `slug`. A generated quote such as `03464PC` now persists
   `slug: "03464PC"` instead of `slug: "quote-03464pc"`; orders follow the same

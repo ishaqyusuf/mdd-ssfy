@@ -46,14 +46,22 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
   - `apps/dashboard/src/components/forms/sales-form/component-item-card.tsx:320`
 - New anchor:
   - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
-- Status: Implemented in code; runtime proof pending
-- Gap: the new workflow toolbar and per-card action menu now expose `Tabs`, `Select All`, `Pricing`, custom controls, `Refresh`, `Edit`, `Select`, `Redirect`, and `Delete` with capability gating. Remaining work is authenticated interaction proof.
+- Status: Implemented in code; browser proof skipped by request
+- Gap: the shared picker keeps search/actions visible through loading and empty
+  states; its menu exposes `Tabs`, `Select All`, `Pricing`, `Component`,
+  `Refresh`, and state-aware custom controls. `editSalesComponent` grants the
+  leading create card and details editor without widening pricing, visibility,
+  redirect, archive, or supplier permissions. Garage/Exterior size and HPT rows
+  use In-Swing/Out-Swing choices.
 
 ### Requested Feature Matrix
 1. Moulding line items + calculator parity
 - Legacy: `apps/dashboard/src/components/forms/sales-form/moulding-and-service/moulding-content.tsx`
 - New: `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:956`
-- Status: Implemented in code; runtime proof pending
+- Status: Implemented in code; browser proof skipped by request
+- Gap: the shared toolbar remains mounted during picker loading and empty
+  results and exposes `Tabs`, `Select All`, `Pricing`, `Component`, `Refresh`,
+  and `Enable Custom` / `Disable Custom`.
 - Gap: grouped edit/save round-trip preserves legacy moulding sibling rows and HPT rows; the hosted calculator now derives per-LF pricing from piece price/length, refreshes defaults when reused for another row, and safely applies optional callbacks. Remaining work is authenticated calculator and full price-summary workflow proof.
 
 2. Customer profile update not changing pricing

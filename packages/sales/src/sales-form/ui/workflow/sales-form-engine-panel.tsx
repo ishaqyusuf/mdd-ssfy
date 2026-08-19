@@ -52,10 +52,13 @@ export function filterSalesFormWorkflowSlots<
 			: undefined,
 		componentActions: slots.componentActions
 			? {
+					onCreateComponent: capabilities.canCreateWorkflowComponents
+						? slots.componentActions.onCreateComponent
+						: undefined,
 					onOpenPricing: capabilities.canEditWorkflowComponentPricing
 						? slots.componentActions.onOpenPricing
 						: undefined,
-					onEditDetails: capabilities.canEditWorkflowComponents
+					onEditDetails: capabilities.canEditWorkflowComponentDetails
 						? slots.componentActions.onEditDetails
 						: undefined,
 					onEditVisibility: capabilities.canEditWorkflowComponents

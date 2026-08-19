@@ -91,29 +91,6 @@ export const upsertCustomerSchema = z
 	})
 	.superRefine((data, ctx) => {
 		if (data.addressOnly) return;
-		if (
-			!data.customerOnly &&
-			data.salesType &&
-			!hasText(data.billingAddress?.address1)
-		) {
-			ctx.addIssue({
-				path: ["billingAddress", "address1"],
-				message: "Billing address is required!",
-				code: "custom",
-			});
-		}
-		if (
-			!data.customerOnly &&
-			data.salesType &&
-			data.shippingSameAsBilling === false &&
-			!hasText(data.shippingAddress?.address1)
-		) {
-			ctx.addIssue({
-				path: ["shippingAddress", "address1"],
-				message: "Shipping address is required!",
-				code: "custom",
-			});
-		}
 		if (!data.profileId)
 			ctx.addIssue({
 				path: ["profileId"],
@@ -144,21 +121,11 @@ export const upsertCustomerSchema = z
 	});
 export type UpsertCustomerSchema = z.infer<typeof upsertCustomerSchema>;
 
-export const assignSalesAddressSchema = customerAddressInputSchema
-	.extend({
-		addressType: z.enum(["billing", "shipping"]),
-		customerId: z.number().positive(),
-		salesId: z.number().positive(),
-	})
-	.superRefine((data, ctx) => {
-		if (!hasText(data.address1)) {
-			ctx.addIssue({
-				path: ["address1"],
-				message: "Address is required!",
-				code: "custom",
-			});
-		}
-	});
+export const assignSalesAddressSchema = customerAddressInputSchema.extend({
+	addressType: z.enum(["billing", "shipping"]),
+	customerId: z.number().positive(),
+	salesId: z.number().positive(),
+});
 export type AssignSalesAddressSchema = z.infer<typeof assignSalesAddressSchema>;
 
 export const updateCustomerEmailSchema = z.object({

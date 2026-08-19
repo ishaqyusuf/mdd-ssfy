@@ -144,6 +144,9 @@ export type SalesFormWorkflowSurfaceSlots<
 		stepIndex: number;
 	}) => Array<{ uid: string; title: string }>;
 	componentActions?: {
+		onCreateComponent?: (
+			input: Omit<SalesFormWorkflowComponentActionInput<TLine>, "component">,
+		) => void;
 		onOpenPricing?: (
 			input: SalesFormWorkflowComponentActionInput<TLine>,
 		) => void;

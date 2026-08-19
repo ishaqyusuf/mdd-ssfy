@@ -4,6 +4,7 @@ import {
 	calculateSalesAdjustmentSettlement,
 	resolveSalesAdjustmentApplyClaim,
 	resolveSalesAdjustmentStaleReason,
+	salesAdjustmentRequiresInboundDisposition,
 } from "./change-analysis";
 
 describe("analyzeSalesFormChange", () => {
@@ -73,6 +74,68 @@ describe("analyzeSalesFormChange", () => {
 		expect(result.commitmentKinds).toEqual(["INBOUND", "PRODUCTION"]);
 		expect(result.reviewReasons).toEqual(["INBOUND"]);
 		expect(result.requiresSalesRepApproval).toBe(true);
+	});
+
+	it("does not request inbound disposition when only another changed line is reduced", () => {
+		const result = analyzeSalesFormChange({
+			before: {
+				lineItems: [
+					{ uid: "reduced", qty: 5, lineTotal: 500 },
+					{ uid: "inbound", qty: 2, lineTotal: 200 },
+				],
+				summary: { grandTotal: 700 },
+			},
+			after: {
+				lineItems: [
+					{ uid: "reduced", qty: 4, lineTotal: 400 },
+					{ uid: "inbound", qty: 3, lineTotal: 300 },
+				],
+				summary: { grandTotal: 700 },
+			},
+			commitments: {
+				inboundQty: 2,
+				lines: [
+					{ uid: "reduced", inboundQty: 0 },
+					{ uid: "inbound", inboundQty: 2 },
+				],
+			},
+		});
+
+		expect(result.reviewReasons).toEqual([]);
+		expect(result.requiresSalesRepApproval).toBe(false);
+	});
+
+	it("ignores fully received or cancelled inbound demands on the reduced line", () => {
+		const lines = [
+			{
+				uid: "reduced",
+				id: 1,
+				title: "Reduced",
+				beforeQty: 3,
+				afterQty: 2,
+				quantityDelta: -1,
+				beforeLineTotal: 300,
+				afterLineTotal: 200,
+				lineTotalDelta: -100,
+			},
+		];
+		expect(
+			salesAdjustmentRequiresInboundDisposition({
+				lines,
+				commitments: {
+					lines: [
+						{
+							uid: "reduced",
+							inboundQty: 4,
+							inboundDemands: [
+								{ qty: 2, qtyReceived: 2, status: "received" },
+								{ qty: 2, qtyReceived: 0, status: "cancelled" },
+							],
+						},
+					],
+				},
+			}),
+		).toBe(false);
 	});
 
 	it("accepts a paid reduction automatically when it only lowers the balance due", () => {

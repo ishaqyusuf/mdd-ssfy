@@ -30,6 +30,10 @@ import {
 	updateDoorRowBasePrice,
 } from "../door-price-cell";
 import {
+	getDoorSwingOptions,
+	normalizeDoorSwingValue,
+} from "../door-swing-options";
+import {
 	calcWorkflowDoorRow,
 	clearUnpricedDoorRowQty,
 	deriveDoorSizeRows,
@@ -112,6 +116,7 @@ function doorSizePricingDependency(size: string, supplierUid?: string | null) {
 
 export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 	const [rows, setRows] = useState<DoorLine[]>([]);
+	const swingOptions = getDoorSwingOptions(props.line);
 
 	useEffect(() => {
 		if (!props.open || !props.component) return;
@@ -284,22 +289,51 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 									{props.routeConfig?.hasSwing ? (
 										<div className="space-y-2">
 											<Label>Swing</Label>
-											<Input
-												value={row.swing || ""}
-												onChange={(e) =>
-													setRows((prev) =>
-														prev.map((item, ri) =>
-															ri === index
-																? {
-																		...item,
-																		swing: e.target.value,
-																	}
-																: item,
-														),
-													)
-												}
-												placeholder="LH/RH"
-											/>
+											{swingOptions ? (
+												<Select
+													value={normalizeDoorSwingValue(row.swing) || undefined}
+													onValueChange={(value) =>
+														setRows((prev) =>
+															prev.map((item, ri) =>
+																ri === index
+																	? {
+																			...item,
+																			swing: value,
+																		}
+																	: item,
+															),
+														)
+													}
+												>
+													<SelectTrigger>
+														<SelectValue placeholder="Select swing" />
+													</SelectTrigger>
+													<SelectContent>
+														{swingOptions.map((option) => (
+															<SelectItem
+																key={option.value}
+																value={option.value}
+															>
+																{option.label}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+											) : (
+												<Input
+													value={row.swing || ""}
+													onChange={(e) =>
+														setRows((prev) =>
+															prev.map((item, ri) =>
+																ri === index
+																	? { ...item, swing: e.target.value }
+																	: item,
+															),
+														)
+													}
+													placeholder="LH/RH"
+												/>
+											)}
 										</div>
 									) : null}
 									{props.routeConfig?.noHandle ? (
@@ -450,23 +484,52 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 											</td>
 											{props.routeConfig?.hasSwing ? (
 												<td className="px-4 py-3">
-													<Input
-														value={row.swing || ""}
-														onChange={(e) =>
-															setRows((prev) =>
-																prev.map((item, ri) =>
-																	ri === index
-																		? {
-																				...item,
-																				swing: e.target.value,
-																			}
-																		: item,
-																),
-															)
-														}
-														placeholder="LH/RH"
-														className="h-10 rounded-xl"
-													/>
+													{swingOptions ? (
+														<Select
+															value={normalizeDoorSwingValue(row.swing) || undefined}
+															onValueChange={(value) =>
+																setRows((prev) =>
+																	prev.map((item, ri) =>
+																		ri === index
+																			? { ...item, swing: value }
+																			: item,
+																	),
+																)
+															}
+														>
+															<SelectTrigger className="h-10 rounded-xl">
+																<SelectValue placeholder="Select swing" />
+															</SelectTrigger>
+															<SelectContent>
+																{swingOptions.map((option) => (
+																	<SelectItem
+																		key={option.value}
+																		value={option.value}
+																	>
+																		{option.label}
+																	</SelectItem>
+																))}
+															</SelectContent>
+														</Select>
+													) : (
+														<Input
+															value={row.swing || ""}
+															onChange={(e) =>
+																setRows((prev) =>
+																	prev.map((item, ri) =>
+																		ri === index
+																			? {
+																					...item,
+																					swing: e.target.value,
+																				}
+																			: item,
+																	),
+																)
+															}
+															placeholder="LH/RH"
+															className="h-10 rounded-xl"
+														/>
+													)}
 												</td>
 											) : null}
 											{props.routeConfig?.noHandle ? (

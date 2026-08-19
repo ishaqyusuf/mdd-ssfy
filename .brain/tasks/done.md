@@ -1226,3 +1226,57 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   bounded `03523PC` audit returned no findings; authenticated browser proof
   shows one quantity-one `$355.67` row with no error after profile pricing loads.
 - Completed Date: 2026-08-19
+
+### New Sales Form Step Picker And Component Creation Parity
+
+- Priority: High
+- Description: Kept the shared floating search/action toolbar visible through
+  picker loading and empty states, added the Component and state-aware custom
+  actions, permission-gated `[ + ]` creation/details, and Garage/Exterior
+  In-Swing/Out-Swing controls.
+- Status: Done
+- Plan Status: Done
+- Plan File: `.brain/plans/2026-08-19-feature-new-sales-form-step-picker-parity.md`
+- Handoff File: `.brain/handoffs/completed/2026-08-19-new-sales-form-step-picker-parity-handoff.md`
+- Validation: focused picker/swing/capability/API tests and Sales typecheck pass;
+  browser proof skipped by request.
+- Completed Date: 2026-08-19
+
+### Optional Address Line 1 In Sales Customer Forms
+
+- Priority: Medium
+- Description: Made Address Line 1 optional in the sales-linked customer and
+  direct billing/shipping address schemas without changing storefront checkout.
+- Status: Done
+- Plan Status: Done
+- Plan File: `.brain/plans/2026-08-19-bug-fix-sales-address-line-one-optional.md`
+- Handoff File: `.brain/handoffs/completed/2026-08-19-sales-address-line-one-optional-handoff.md`
+- Validation: focused API schema tests pass; browser proof skipped by request.
+- Completed Date: 2026-08-19
+
+### Fix Sales Quantity Decision Gating
+
+- Priority: High
+- Description: Correlated inbound disposition to the same reduced line's
+  mutable open demand so no-decision quantity edits save directly.
+- Status: Done
+- Plan Status: Done
+- Plan File: `.brain/plans/2026-08-19-bug-fix-sales-quantity-decision-gating.md`
+- Handoff File: `.brain/handoffs/completed/2026-08-19-sales-quantity-decision-gating-handoff.md`
+- Validation: focused decision-matrix/API tests and Sales typecheck pass;
+  browser proof skipped by request.
+- Completed Date: 2026-08-19
+
+### Fix Quote To Invoice Runtime Timeout
+
+- Priority: Critical
+- Description: Narrowed the copy projection, serialized quote conversion,
+  reused the source-linked target on retry/concurrency, and isolated durable
+  follow-up failures from the successful copy result.
+- Status: Done
+- Plan Status: Done
+- Plan File: `.brain/plans/2026-08-19-bug-fix-quote-to-invoice-runtime-timeout.md`
+- Handoff File: `.brain/handoffs/completed/2026-08-19-quote-to-invoice-runtime-timeout-handoff.md`
+- Validation: focused copy/idempotency/concurrency tests and Sales typecheck
+  pass; production timing and browser proof skipped by request.
+- Completed Date: 2026-08-19

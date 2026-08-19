@@ -262,7 +262,7 @@ describe("customer business names", () => {
 		expect(result.shippingAddressId).toBe(201);
 	});
 
-	it("requires billing and independent shipping street addresses in sales mode", () => {
+	it("allows blank billing and independent shipping street addresses in sales mode", () => {
 		const result = upsertCustomerSchema.safeParse({
 			businessName: "Ada Homes",
 			customerType: "Business",
@@ -271,15 +271,6 @@ describe("customer business names", () => {
 			shippingSameAsBilling: false,
 		});
 
-		expect(result.success).toBe(false);
-		if (result.success) throw new Error("Expected validation to fail");
-		expect(result.error.issues.map((issue) => issue.path)).toContainEqual([
-			"billingAddress",
-			"address1",
-		]);
-		expect(result.error.issues.map((issue) => issue.path)).toContainEqual([
-			"shippingAddress",
-			"address1",
-		]);
+		expect(result.success).toBe(true);
 	});
 });

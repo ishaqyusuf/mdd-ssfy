@@ -29,6 +29,13 @@ import {
 } from "@gnd/ui/input-group";
 import { Separator } from "@gnd/ui/separator";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@gnd/ui/select";
+import {
 	cloneElement,
 	isValidElement,
 	type ReactElement,
@@ -40,6 +47,7 @@ import {
 	resolveHptDoorUnitPriceBreakdown,
 } from "../../domain";
 import { CostPriceBreakdownHover } from "./cost-price-breakdown-hover";
+import { normalizeDoorSwingValue } from "./door-swing-options";
 import {
 	type DoorPriceBreakdownContext,
 	DoorPriceCell,
@@ -88,6 +96,7 @@ export type HousePackageToolPanelProps = {
 	supplierName?: string | null;
 	noHandle: boolean;
 	hasSwing: boolean;
+	swingOptions?: ReadonlyArray<{ value: string; label: string }> | null;
 	sharedDoorSurcharge: number;
 	profileCoefficient: number | null;
 	pricingReady: boolean;
@@ -442,17 +451,41 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 												</td>
 												{props.hasSwing ? (
 													<td className="px-2 py-2">
-														<Input
-															value={row.swing || ""}
-															onChange={(event) =>
-																props.onPatchRow(row, {
-																	swing: event.target.value,
-																})
-															}
-															className="h-8 w-16 rounded-md border-slate-200 text-xs"
-															disabled={!props.pricingReady}
-															placeholder="LH/RH"
-														/>
+														{props.swingOptions ? (
+															<Select
+															value={normalizeDoorSwingValue(row.swing) || undefined}
+																onValueChange={(swing) =>
+																	props.onPatchRow(row, { swing })
+																}
+																disabled={!props.pricingReady}
+															>
+																<SelectTrigger className="h-8 w-28 rounded-md border-slate-200 text-xs">
+																	<SelectValue placeholder="Select swing" />
+																</SelectTrigger>
+																<SelectContent>
+																	{props.swingOptions.map((option) => (
+																		<SelectItem
+																			key={option.value}
+																			value={option.value}
+																		>
+																			{option.label}
+																		</SelectItem>
+																	))}
+																</SelectContent>
+															</Select>
+														) : (
+															<Input
+																value={row.swing || ""}
+																onChange={(event) =>
+																	props.onPatchRow(row, {
+																		swing: event.target.value,
+																	})
+																}
+																className="h-8 w-16 rounded-md border-slate-200 text-xs"
+																disabled={!props.pricingReady}
+																placeholder="LH/RH"
+															/>
+														)}
 													</td>
 												) : null}
 												{props.noHandle ? (

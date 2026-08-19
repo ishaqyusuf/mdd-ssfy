@@ -24,6 +24,8 @@ import { useQueryClient } from "@gnd/ui/tanstack";
 import { useRef, useState } from "react";
 import {
 	useArchiveWorkflowComponentsMutation,
+	useCreateWorkflowComponentMutation,
+	useSalesUpdateStepMetaMutation,
 	useSaveWorkflowComponentDetailsMutation,
 	useSaveWorkflowComponentPricingMutation,
 	useSaveWorkflowComponentRedirectMutation,
@@ -51,6 +53,7 @@ type BatchActionInput = Parameters<
 		>["onEditVisibility"]
 	>
 >[0];
+type CreateActionInput = Omit<ActionInput, "component">;
 
 type VisibilityRule = {
 	stepUid: string;
@@ -66,6 +69,7 @@ type EditableVisibilityGroup = {
 
 type AdminDialogState =
 	| { kind: "closed" }
+	| { kind: "create"; input: CreateActionInput }
 	| { kind: "details"; input: ActionInput }
 	| { kind: "visibility"; input: BatchActionInput }
 	| { kind: "pricing"; input: ActionInput }
@@ -128,6 +132,8 @@ export function useWorkflowComponentAdmin(input: {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const detailsMutation = useSaveWorkflowComponentDetailsMutation();
+	const createMutation = useCreateWorkflowComponentMutation();
+	const stepMetaMutation = useSalesUpdateStepMetaMutation();
 	const visibilityMutation = useSaveWorkflowComponentVisibilityMutation();
 	const sectionMutation = useSaveWorkflowComponentSectionOverrideMutation();
 	const redirectMutation = useSaveWorkflowComponentRedirectMutation();
@@ -184,6 +190,22 @@ export function useWorkflowComponentAdmin(input: {
 	const componentActions: NonNullable<
 		SalesFormWorkflowSurfaceSlots<NewSalesFormLineItem>["componentActions"]
 	> = {
+		onCreateComponent: (action) => setDialog({ kind: "create", input: action }),
+		onEnableCustomComponent: async (action) => {
+			const stepId = Number(action.step.stepId || action.step.step?.id || 0);
+			const nextMeta = {
+				...objectRecord(action.step.meta),
+				custom: objectRecord(action.step.meta).custom !== true,
+			};
+			if (stepId) {
+				await stepMetaMutation.mutateAsync({ stepId, meta: nextMeta });
+			}
+			const steps = action.steps.map((step, index) =>
+				index === action.stepIndex ? { ...step, meta: nextMeta } : step,
+			);
+			input.updateLineItem(String(action.line.uid || ""), { formSteps: steps });
+			await refreshCatalog();
+		},
 		onEditDetails: (action) => setDialog({ kind: "details", input: action }),
 		onEditVisibility: (action) =>
 			setDialog({ kind: "visibility", input: action }),
@@ -226,12 +248,25 @@ export function useWorkflowComponentAdmin(input: {
 				dialog={dialog}
 				setDialog={setDialog}
 				pending={
+					createMutation.isPending ||
+					stepMetaMutation.isPending ||
 					detailsMutation.isPending ||
 					visibilityMutation.isPending ||
 					sectionMutation.isPending ||
 					pricingMutation.isPending
 				}
 				onSaveDetails={async (values) => {
+					if (dialog.kind === "create") {
+						const stepId = Number(
+							dialog.input.step.stepId || dialog.input.step.step?.id || 0,
+						);
+						if (!stepId)
+							throw new Error("The active workflow step is unavailable.");
+						await createMutation.mutateAsync({ stepId, ...values });
+						await refreshCatalog();
+						setDialog({ kind: "closed" });
+						return;
+					}
 					if (dialog.kind !== "details") return;
 					await detailsMutation.mutateAsync({
 						componentId: Number(dialog.input.component.id),
@@ -330,10 +365,13 @@ function WorkflowComponentAdminDialogs(props: {
 }) {
 	const close = () => props.setDialog({ kind: "closed" });
 	if (props.dialog.kind === "closed") return null;
-	if (props.dialog.kind === "details") {
+	if (props.dialog.kind === "details" || props.dialog.kind === "create") {
 		return (
 			<DetailsDialog
-				component={props.dialog.input.component}
+				component={
+					props.dialog.kind === "details" ? props.dialog.input.component : {}
+				}
+				creating={props.dialog.kind === "create"}
 				pending={props.pending}
 				onClose={close}
 				onSave={props.onSaveDetails}
@@ -406,6 +444,7 @@ function DialogShell(props: {
 
 function DetailsDialog(props: {
 	component: WorkflowComponentRecord;
+	creating?: boolean;
 	pending: boolean;
 	onClose: () => void;
 	onSave: (value: {
@@ -421,8 +460,12 @@ function DetailsDialog(props: {
 	const [img, setImg] = useState(String(props.component.img || ""));
 	return (
 		<DialogShell
-			title="Component Details"
-			description="Edit the shared component catalog details."
+			title={props.creating ? "New Component" : "Component Details"}
+			description={
+				props.creating
+					? "Add a component to this workflow step."
+					: "Edit the shared component catalog details."
+			}
 			pending={props.pending}
 			onClose={props.onClose}
 			onSave={() =>

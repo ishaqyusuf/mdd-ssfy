@@ -45,6 +45,8 @@ export async function copySale(ctx: TRPCContext, input: CopySaleSchema) {
 					tagValue: "public",
 				},
 			],
+		}).catch((error) => {
+			console.error("Unable to record sales copy note", error);
 		});
 	}
 

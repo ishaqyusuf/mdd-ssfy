@@ -394,8 +394,11 @@ Tracks notable API surfaces and where they are implemented.
 
 ## Workflow component catalog mutations (2026-07-21)
 
+- `sales.createWorkflowComponent`: protected active-step component creation,
+  authorized by `editSalesComponent`, with cache invalidation and targeted
+  Dyke-to-inventory synchronization.
 - `sales.saveWorkflowComponentDetails`: protected component name, product-code,
-  and image update.
+  and image update, authorized by `editSalesComponent`.
 - `sales.saveWorkflowComponentVisibility`: protected multi-component OR/AND
   visibility-rule update with canonical rule-target validation.
 - `sales.saveWorkflowComponentSectionOverride`: protected metadata-merged

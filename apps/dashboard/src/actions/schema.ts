@@ -86,29 +86,6 @@ export const createCustomerSchema = z
 	})
 	.superRefine((data, ctx) => {
 		if (data.addressOnly) return;
-		if (
-			!data.customerOnly &&
-			data.salesType &&
-			!hasText(data.billingAddress?.address1)
-		) {
-			ctx.addIssue({
-				path: ["billingAddress", "address1"],
-				message: "Billing address is required!",
-				code: "custom",
-			});
-		}
-		if (
-			!data.customerOnly &&
-			data.salesType &&
-			data.shippingSameAsBilling === false &&
-			!hasText(data.shippingAddress?.address1)
-		) {
-			ctx.addIssue({
-				path: ["shippingAddress", "address1"],
-				message: "Shipping address is required!",
-				code: "custom",
-			});
-		}
 		if (!data.profileId)
 			ctx.addIssue({
 				path: ["profileId"],
@@ -137,17 +114,7 @@ export const createCustomerSchema = z
 			});
 		}
 	});
-export const salesAddressPaneSchema = createCustomerSchema.superRefine(
-	(data, ctx) => {
-		if (!hasText(data.address1)) {
-			ctx.addIssue({
-				path: ["address1"],
-				message: "Address is required!",
-				code: "custom",
-			});
-		}
-	},
-);
+export const salesAddressPaneSchema = createCustomerSchema;
 export const createPaymentSchema = salesPaymentProcessorApplyPaymentSchema;
 export const createSalesDispatchItemsSchema = z.object({
 	// deliveryMode: z.string(),

@@ -37,6 +37,9 @@ describe("Dashboard sales form workflow capabilities", () => {
 			canEditWorkflowComponentPricing: false,
 			canArchiveWorkflowComponents: false,
 		});
+		expect(
+			createWwwWorkflowAdminCapabilities({ roleTitle: "Admin" }),
+		).toMatchObject({ canCreateWorkflowComponents: false });
 	});
 
 	test("lets editOrders users edit only service line pricing controls", () => {
@@ -49,6 +52,26 @@ describe("Dashboard sales form workflow capabilities", () => {
 			canEditServiceLinePricing: true,
 			canEditLinePricing: false,
 			canEditWorkflowComponentPricing: false,
+		});
+	});
+
+	test("uses the explicit sales-component permission for catalog creation", () => {
+		expect(
+			createWwwWorkflowAdminCapabilities({
+				roleTitle: "Sales",
+				canEditSalesComponent: true,
+			}),
+		).toMatchObject({
+			canCreateWorkflowComponents: true,
+			canEditWorkflowComponentDetails: true,
+			canEditWorkflowComponents: false,
+		});
+		expect(
+			createWwwWorkflowAdminCapabilities({ roleTitle: "Sales" }),
+		).toMatchObject({
+			canCreateWorkflowComponents: false,
+			canEditWorkflowComponentDetails: false,
+			canEditWorkflowComponents: false,
 		});
 	});
 

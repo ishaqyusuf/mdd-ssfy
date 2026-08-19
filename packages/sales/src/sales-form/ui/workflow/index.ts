@@ -27,17 +27,17 @@ export {
 } from "./door-step-panel";
 export { profileAdjustedDoorSalesPrice } from "./door-pricing";
 export {
-	applySharedDoorSurcharge,
-	calcWorkflowDoorRow,
-	clearUnpricedDoorRowQty,
-	computeSharedDoorSurcharge,
-	deriveDoorSizeRows,
-	getDoorSupplierMeta,
-	isDoorRowPriceMissing,
-	normalizeStoredDoorRows,
-	repricePersistedDoorRowsForSupplier,
-	resolveWorkflowDoorSizePricing,
-	rowsForDoorComponent,
+  applySharedDoorSurcharge,
+  calcWorkflowDoorRow,
+  clearUnpricedDoorRowQty,
+  computeSharedDoorSurcharge,
+  deriveDoorSizeRows,
+  getDoorSupplierMeta,
+  isDoorRowPriceMissing,
+  normalizeStoredDoorRows,
+  repricePersistedDoorRowsForSupplier,
+  resolveWorkflowDoorSizePricing,
+  rowsForDoorComponent,
 } from "./door-utils";
 export { InvoiceItemCard } from "./invoice-item-card";
 export type {
@@ -286,6 +286,11 @@ export {
   createWorkflowComponentImageResolver,
   resolveWorkflowComponentImageSrc,
 } from "./component-image-src";
+export {
+  getDoorSwingOptions,
+  IN_OUT_SWING_OPTIONS,
+  normalizeDoorSwingValue,
+} from "./door-swing-options";
 export {
   ComponentEditDialog,
   DoorDetailsDialog,

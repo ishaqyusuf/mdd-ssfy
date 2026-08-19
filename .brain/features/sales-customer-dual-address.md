@@ -12,6 +12,9 @@
   are non-null and equal. Distinct ids hydrate both sections independently.
 - Generic customer-directory creation and address-only editing retain their
   single-address presentation.
+- Address Line 1 is optional in sales-linked customer creation and direct
+  billing/shipping address assignment. Other customer/profile validation and
+  storefront checkout address requirements are unchanged.
 
 ## Persistence
 

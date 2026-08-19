@@ -44,6 +44,11 @@ export type SalesAdjustmentCommitments = {
 		salesOrderItemId?: number | null;
 		allocatedQty?: number | null;
 		inboundQty?: number | null;
+		inboundDemands?: Array<{
+			qty?: number | null;
+			qtyReceived?: number | null;
+			status?: string | null;
+		}>;
 	}>;
 };
 
@@ -87,6 +92,36 @@ function resolveDirection(changes: SalesAdjustmentLineChange[]) {
 	return "NONE" as const;
 }
 
+export function salesAdjustmentRequiresInboundDisposition(input: {
+	lines: SalesAdjustmentLineChange[];
+	commitments: SalesAdjustmentCommitments;
+}) {
+	const reducedLines = input.lines.filter((line) => line.quantityDelta < 0);
+	if (!reducedLines.length) return false;
+	if (input.commitments.lines == null) {
+		return finite(input.commitments.inboundQty) > 0;
+	}
+	const reducedUids = new Set(reducedLines.map((line) => line.uid));
+	const reducedIds = new Set(
+		reducedLines.flatMap((line) => (line.id ? [line.id] : [])),
+	);
+	return input.commitments.lines.some((line) => {
+		const affected =
+			reducedUids.has(line.uid) ||
+			(Boolean(line.salesOrderItemId) &&
+				reducedIds.has(Number(line.salesOrderItemId)));
+		if (!affected) return false;
+		if (line.inboundDemands) {
+			return line.inboundDemands.some(
+				(demand) =>
+					String(demand.status || "").toLowerCase() !== "cancelled" &&
+					finite(demand.qty) - finite(demand.qtyReceived) > 0,
+			);
+		}
+		return finite(line.inboundQty) > 0;
+	});
+}
+
 function getSalesAdjustmentReviewReasons(input: {
 	lines: SalesAdjustmentLineChange[];
 	commitments: SalesAdjustmentCommitments;
@@ -111,9 +146,10 @@ function getSalesAdjustmentReviewReasons(input: {
 				changedIds.has(Number(line.salesOrderItemId))),
 	);
 	const usesLineCommitments = input.commitments.lines != null;
-	const hasInbound = usesLineCommitments
-		? affectedCommitmentLines?.some((line) => finite(line.inboundQty) > 0)
-		: finite(input.commitments.inboundQty) > 0;
+	const hasInbound = salesAdjustmentRequiresInboundDisposition({
+		lines: input.lines,
+		commitments: input.commitments,
+	});
 	const hasAllocatedInventory = usesLineCommitments
 		? affectedCommitmentLines?.some((line) => finite(line.allocatedQty) > 0)
 		: finite(input.commitments.allocatedQty) > 0;

@@ -9651,3 +9651,51 @@
   All, and Completed retain their existing URL-backed filter semantics.
 - Table/calendar switching and administrative toolbar actions remain available
   beside the shared search and filter controls.
+## 2026-08-19 — Prepared sales form parity and reliability handoff tickets
+
+- Converted the reported new-sales-form gaps, quote conversion timeout, and
+  quantity-decision behavior into four approved implementation plans and four
+  independent ready handoff tickets.
+- Assigned `gpt-5.6-terra` to the bounded step-picker/component, optional
+  address, and quantity-decision tickets. Reserved `gpt-5.6-sol` for the
+  production quote-to-invoice timeout because it requires cross-boundary timing,
+  idempotency, and duplicate-invoice analysis.
+- Reconciled the floating toolbar report with current code: a shared toolbar and
+  most legacy actions exist, so the ticket requires runtime placement diagnosis,
+  completion of the Component and Enable/Disable Custom contracts, and no
+  duplicate app-local toolbar.
+- Identified the quantity-gating defect boundary: API preview currently combines
+  any reduction with inbound on any changed line, while the shared domain already
+  supports direct save when no review reason exists. The handoff pins same-line,
+  reduced, mutable-open-inbound correlation and direct-save regression coverage.
+- Recorded the quote timeout's Redis GET as timing context rather than presumed
+  cause and required separate measurement of copy mutation, post-copy work, and
+  target invoice first load.
+- Saved the batch intake at
+  `.brain/intake/2026-08-19-sales-form-parity-and-sales-flow-reliability.md` and
+  registered all four companion tasks in the active task ledger.
+- No implementation, global Brain-loop queue item, worktree, database change, or
+  API behavior change was made during planning.
+
+## 2026-08-19 — Implemented sales form parity and reliability tickets
+
+- Restored the new sales form's persistent step picker search/action toolbar,
+  completed the Component and Enable/Disable Custom actions, added the
+  `editSalesComponent`-gated leading create card/details path, and changed
+  Garage/Exterior door-size and HPT swing entry to In-Swing/Out-Swing choices.
+- Made Address Line 1 optional in sales-linked customer and billing/shipping
+  address validation while leaving storefront checkout requirements unchanged.
+- Correlated quantity-change inbound disposition to the same reduced line's
+  mutable open demand, allowing changes with no inbound, settlement, or other
+  review decision to save directly.
+- Reduced quote-to-invoice synchronous work with a copy-specific projection,
+  source-row serialization, source-linked retry/concurrency reuse, and
+  durable inventory/activity follow-up whose failures no longer misreport the
+  committed copy.
+- Focused suites pass 48 tests across copy, adjustment, swing, picker, customer,
+  capability, and API component paths. The new-sales-form migration behavior
+  suites pass, and `@gnd/sales` typecheck passes. `@gnd/api` typecheck retains
+  two unrelated existing `special-order-enrollment.ts` diagnostics;
+  `@gnd/dashboard` typecheck did not complete in the bounded validation window.
+- Browser and production timing proof were skipped at the user's request. No
+  Prisma schema or migration changed.

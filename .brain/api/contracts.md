@@ -1,5 +1,21 @@
 # API Contracts
 
+## Sales Form Reliability Contract (2026-08-19)
+
+- `sales.createWorkflowComponent` accepts an active workflow step plus bounded
+  component details and creates one selectable catalog component. Creation and
+  `sales.saveWorkflowComponentDetails` require `editSalesComponent`; visibility,
+  redirect, archive, section override, and pricing retain their existing role
+  boundaries.
+- Sales-linked customer and direct billing/shipping address schemas accept an
+  empty Address Line 1. Storefront checkout schemas are unchanged.
+- Adjustment preview derives inbound disposition from a reduced line's own
+  mutable open demand. It does not combine an arbitrary reduction with inbound
+  on another changed line.
+- Quote conversion stores the source sale id in target metadata and reuses the
+  same target for retries/concurrent submissions rather than creating a second
+  invoice.
+
 ## Dispatch Workspace And Durable Exception Contract (2026-08-18)
 
 - Workspace list inputs add URL-compatible lifecycle stages, driver ids, due

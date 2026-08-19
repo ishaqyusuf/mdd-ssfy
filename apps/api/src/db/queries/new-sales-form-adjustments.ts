@@ -10,6 +10,7 @@ import type { Prisma } from "@gnd/db";
 import {
 	analyzeSalesFormChange,
 	calculateSalesAdjustmentSettlement,
+	salesAdjustmentRequiresInboundDisposition,
 } from "@gnd/sales/adjustment-system";
 import { projectLegacyOrderPayments } from "@gnd/sales/payment-system";
 import { tasks } from "@trigger.dev/sdk/v3";
@@ -344,9 +345,10 @@ async function buildNewSalesFormAdjustmentPreview(
 			(line.id ? commitmentByItemId.get(line.id) : undefined);
 		return commitment ? [commitment] : [];
 	});
-	const requiresInboundDisposition =
-		analysis.lines.some((line) => line.quantityDelta < 0) &&
-		changedCommitments.some((line) => line.inboundQty > 0);
+	const requiresInboundDisposition = salesAdjustmentRequiresInboundDisposition({
+		lines: analysis.lines,
+		commitments,
+	});
 	const requiresOperationalAcknowledgement = changedCommitments.some((line) =>
 		[
 			line.allocatedQty,

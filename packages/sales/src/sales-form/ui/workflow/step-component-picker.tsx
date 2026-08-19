@@ -12,6 +12,7 @@ export type StepComponentPickerProps<TComponent> = {
 	search: string;
 	noticeSlot?: ReactNode;
 	toolbarSlot: ReactNode;
+	leadingSlot?: ReactNode;
 	getKey: (component: TComponent, index: number) => string;
 	renderComponent: (component: TComponent, index: number) => ReactNode;
 };
@@ -19,35 +20,24 @@ export type StepComponentPickerProps<TComponent> = {
 export function StepComponentPicker<TComponent>(
 	props: StepComponentPickerProps<TComponent>,
 ) {
-	if (props.loading) {
-		return (
-			<>
-				{props.noticeSlot}
-				<ComponentCardSkeletonGrid />
-			</>
-		);
-	}
-
-	if (!props.hasComponents) {
-		return (
-			<div className="space-y-3">
-				{props.noticeSlot}
-				<p className="text-sm text-muted-foreground">
-					No components returned for this step.
-				</p>
-			</div>
-		);
-	}
-
 	return (
 		<div className="relative" data-workflow-component-boundary="true">
 			{props.noticeSlot}
-			<WorkflowComponentGrid
-				components={props.filteredComponents}
-				search={props.search}
-				getKey={props.getKey}
-				renderComponent={props.renderComponent}
-			/>
+			{props.loading ? (
+				<ComponentCardSkeletonGrid />
+			) : !props.hasComponents && !props.leadingSlot ? (
+				<p className="pb-24 text-sm text-muted-foreground">
+					No components returned for this step.
+				</p>
+			) : (
+				<WorkflowComponentGrid
+					components={props.filteredComponents}
+					search={props.search}
+					getKey={props.getKey}
+					renderComponent={props.renderComponent}
+					leadingSlot={props.leadingSlot}
+				/>
+			)}
 			{props.toolbarSlot}
 		</div>
 	);

@@ -11,6 +11,8 @@ describe("sales form workflow capabilities", () => {
 	test("defaults workflow controls to disabled while preserving component context", () => {
 		expect(createSalesFormWorkflowCapabilities()).toEqual({
 			canEditWorkflowComponents: false,
+			canEditWorkflowComponentDetails: false,
+			canCreateWorkflowComponents: false,
 			canEditWorkflowComponentPricing: false,
 			canArchiveWorkflowComponents: false,
 			canEditSectionOverrides: false,
@@ -86,6 +88,8 @@ describe("sales form workflow capabilities", () => {
 	test("keeps dealership workflow controls dealer-safe", () => {
 		expect(createDealerSalesFormWorkflowCapabilities()).toEqual({
 			canEditWorkflowComponents: false,
+			canEditWorkflowComponentDetails: false,
+			canCreateWorkflowComponents: false,
 			canEditWorkflowComponentPricing: false,
 			canArchiveWorkflowComponents: false,
 			canEditSectionOverrides: false,
@@ -107,6 +111,8 @@ describe("sales form workflow capabilities", () => {
 	test("keeps the storefront surface restrictive", () => {
 		expect(createStorefrontSalesFormWorkflowCapabilities()).toEqual({
 			canEditWorkflowComponents: false,
+			canEditWorkflowComponentDetails: false,
+			canCreateWorkflowComponents: false,
 			canEditWorkflowComponentPricing: false,
 			canArchiveWorkflowComponents: false,
 			canEditSectionOverrides: false,

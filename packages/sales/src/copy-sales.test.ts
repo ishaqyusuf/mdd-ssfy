@@ -6,11 +6,13 @@ import {
 
 function createTransactionLikeDb(
   sourceOverrides: Record<string, unknown> = {},
+  existingTarget: Record<string, unknown> | null = null,
 ) {
   const calls = {
     createdSales: [] as Record<string, unknown>[],
     createdItems: [] as Record<string, unknown>[],
     findFirstArgs: null as Record<string, unknown> | null,
+    existingTargetReads: 0,
   };
 
   const sourceSale = {
@@ -76,7 +78,12 @@ function createTransactionLikeDb(
   };
 
   const db = {
+    $queryRaw: async () => [],
     salesOrders: {
+      findFirst: async () => {
+        calls.existingTargetReads += 1;
+        return existingTarget;
+      },
       findFirstOrThrow: async (args: Record<string, unknown>) => {
         calls.findFirstArgs = args;
         return sourceSale;
@@ -142,7 +149,18 @@ describe("copySalesInTransaction", () => {
       type: "order",
       amountDue: 425,
       grandTotal: 425,
+      meta: {
+        copySource: {
+          salesOrderId: 100,
+          type: "quote",
+          kind: "quote-to-invoice",
+        },
+      },
     });
+    expect(calls.findFirstArgs).toMatchObject({
+      select: expect.any(Object),
+    });
+    expect(calls.existingTargetReads).toBe(1);
     expect(calls.createdItems).toHaveLength(1);
     expect(calls.createdItems[0]).toMatchObject({
       description: "Door slab",
@@ -174,6 +192,28 @@ describe("copySalesInTransaction", () => {
       orderId: "00010PC-hx01",
       salesRep: { connect: { id: 7 } },
     });
+  });
+
+  it("returns the existing invoice when quote conversion is retried", async () => {
+    const { db, calls } = createTransactionLikeDb(
+      {},
+      {
+        id: 777,
+        slug: "00077PC",
+        isDyke: true,
+      },
+    );
+
+    const result = await copySalesInTransaction({
+      db: db as unknown as CopySalesInTransactionProps["db"],
+      salesUid: "00010PC",
+      as: "order",
+      type: "quote",
+      author: { id: 7, name: "Pablo Cruz" },
+    });
+
+    expect(result).toEqual({ id: 777, slug: "00077PC", isDyke: true });
+    expect(calls.createdSales).toHaveLength(0);
   });
 
   it("allocates distinct history slugs when two snapshots start concurrently", async () => {

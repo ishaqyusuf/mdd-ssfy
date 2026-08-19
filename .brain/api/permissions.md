@@ -253,8 +253,10 @@ Tracks authentication and authorization patterns across API surfaces.
 
 ## Workflow component catalog permissions (2026-07-21)
 
-- Admin and Super Admin may edit component details, visibility, section
-  overrides, redirects, enter catalog selection, and soft archive components.
+- `editSalesComponent` authorizes component creation and component-details
+  updates. Both mutations repeat this explicit permission check server-side.
+- Admin and Super Admin may edit visibility, section overrides, redirects,
+  enter catalog selection, and soft archive components.
 - Only Super Admin may edit shared component base pricing.
 - Ordinary internal sales users retain normal sale-component selection only.
 - Dealership and storefront capability sets never expose internal
@@ -279,8 +281,9 @@ Tracks authentication and authorization patterns across API surfaces.
 - Private attachment downloads repeat employee authentication, permission, and
   document owner checks on every request. Storage credentials and private blob
   URLs never cross the office API boundary.
-- All catalog mutations are `protectedProcedure` routes and repeat role checks
-  server-side; UI capability checks are not an authorization boundary.
+- All catalog mutations are `protectedProcedure` routes and repeat their
+  permission or role checks server-side; UI capability checks are not an
+  authorization boundary.
 
 ## Employee, profile, and notification mutation boundaries (2026-07-22)
 

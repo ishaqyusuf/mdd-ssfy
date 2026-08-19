@@ -61,8 +61,9 @@ export function DashboardSalesFormWorkflowPanel() {
 			createWwwWorkflowAdminCapabilities({
 				roleTitle: auth.roleTitle,
 				canEditOrders: auth.can?.editOrders,
+				canEditSalesComponent: auth.can?.editSalesComponent,
 			}),
-		[auth.roleTitle, auth.can?.editOrders],
+		[auth.roleTitle, auth.can?.editOrders, auth.can?.editSalesComponent],
 	);
 	const componentAdmin = useWorkflowComponentAdmin({
 		record: { lineItems: record?.lineItems || [] },

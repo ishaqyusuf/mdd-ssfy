@@ -68,6 +68,7 @@ export type WorkflowStepComponentPanelProps<
 	onJumpStep: (index: number) => void;
 	onSelectAll: () => void;
 	onOpenPricing?: (component: TComponent) => void;
+	onCreateComponent?: () => void;
 	onOpenDoorSizeVariant?: () => void;
 	onEnableCustomComponent?: () => void;
 	onRefresh: () => void;
@@ -145,6 +146,7 @@ export function WorkflowStepComponentPanel<
 	const supportsCustomComponents = Boolean(
 		activeStepMeta.custom || activeFormStepMeta.custom,
 	);
+	const customEnabled = activeFormStepMeta.custom === true;
 	const selectedCustomComponents = (
 		Array.isArray(props.activeStep?.meta?.selectedComponents)
 			? props.activeStep.meta.selectedComponents
@@ -200,6 +202,18 @@ export function WorkflowStepComponentPanel<
 				search={props.search}
 				noticeSlot={props.noticeSlot}
 				getKey={(component) => String(component.uid || "")}
+				leadingSlot={
+					props.onCreateComponent ? (
+						<button
+							type="button"
+							aria-label="Add workflow component"
+							className="flex min-h-44 w-full items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-4xl text-slate-500 transition hover:border-primary hover:text-primary"
+							onClick={props.onCreateComponent}
+						>
+							+
+						</button>
+					) : null
+				}
 				renderComponent={(component) => {
 					const componentUid = String(component.uid || "");
 					const isSelected = props.selectedUids.has(componentUid);
@@ -371,6 +385,11 @@ export function WorkflowStepComponentPanel<
 									>
 										Select All
 									</Menu.Item>
+									{props.onCreateComponent ? (
+										<Menu.Item onClick={props.onCreateComponent}>
+											Component
+										</Menu.Item>
+									) : null}
 									{props.onOpenPricing ? (
 										<Menu.Item
 											onClick={() => {
@@ -394,7 +413,7 @@ export function WorkflowStepComponentPanel<
 									) : null}
 									{props.onEnableCustomComponent ? (
 										<Menu.Item onClick={props.onEnableCustomComponent}>
-											Custom
+											{customEnabled ? "Disable Custom" : "Enable Custom"}
 										</Menu.Item>
 									) : null}
 									<Menu.Item onClick={props.onRefresh}>Refresh</Menu.Item>
@@ -452,7 +471,7 @@ export function WorkflowStepComponentPanel<
 												variant="destructive"
 												onClick={props.onEnableCustomComponent}
 											>
-												Custom
+												{customEnabled ? "Disable Custom" : "Enable Custom"}
 											</Button>
 										) : null}
 										{isMultiSelectStep ? (

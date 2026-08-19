@@ -2,8 +2,14 @@
 
 ## Purpose
 
-Restores the legacy component-card three-dot menu contract in the new sales
-form without changing ordinary sales selection or the wider step toolbar.
+Restores the legacy component-card and step-toolbar contracts in the new sales
+form without changing ordinary sales selection.
+
+The picker keeps its search/action toolbar mounted through loading, empty, and
+populated states. Its menu exposes Tabs, Select All, Pricing, Component,
+Refresh, and the state-aware Enable Custom / Disable Custom action. Employees
+with `editSalesComponent` also receive a leading `[ + ]` card that opens the
+shared component-details editor for the active step.
 
 ## Menu and editors
 
@@ -43,8 +49,10 @@ respond without reopening the sale.
 
 ## Permissions
 
-- Admin and Super Admin: details, visibility, section override, redirect,
-  catalog selection, and archive.
+- Employees with `editSalesComponent`: create components and edit component
+  details.
+- Admin and Super Admin: visibility, section override, redirect, catalog
+  selection, and archive.
 - Super Admin only: shared component base pricing.
 - Ordinary internal sales users: sales selection only.
 - Dealership/storefront surfaces: no internal catalog-management actions.
@@ -57,6 +65,10 @@ other workflow pricing controls remain behind the Super Admin-only
 
 Authorization is duplicated intentionally at the capability/UI boundary and
 the protected tRPC mutation boundary. No database migration is required.
+
+Garage Door and Exterior Door size rows use canonical `In-Swing` and
+`Out-Swing` choices in both the door-size dialog and HPT table. Other door
+families retain their legacy free-text swing behavior.
 
 ## Grouped workflow parity slices
 

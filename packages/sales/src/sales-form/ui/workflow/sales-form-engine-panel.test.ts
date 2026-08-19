@@ -15,6 +15,7 @@ describe("sales form engine panel gating", () => {
 				renderDoorSupplierPanel: noop,
 				getComponentRedirectOptions: (() => []) as any,
 				componentActions: {
+					onCreateComponent: noop,
 					onOpenPricing: noop,
 					onEditDetails: noop,
 					onEditVisibility: noop,
@@ -35,6 +36,7 @@ describe("sales form engine panel gating", () => {
 		expect(slots?.renderDoorSupplierPanel).toBeUndefined();
 		expect(slots?.getComponentRedirectOptions).toBeUndefined();
 		expect(slots?.componentActions?.onOpenPricing).toBeUndefined();
+		expect(slots?.componentActions?.onCreateComponent).toBeUndefined();
 		expect(slots?.componentActions?.onEditDetails).toBeUndefined();
 		expect(slots?.componentActions?.onEditVisibility).toBeUndefined();
 		expect(slots?.componentActions?.onEditSectionOverride).toBeUndefined();
@@ -53,6 +55,7 @@ describe("sales form engine panel gating", () => {
 				renderDoorSupplierPanel: noop,
 				getComponentRedirectOptions: (() => []) as any,
 				componentActions: {
+					onCreateComponent: noop,
 					onOpenPricing: noop,
 					onEditDetails: noop,
 					onEditVisibility: noop,
@@ -66,6 +69,8 @@ describe("sales form engine panel gating", () => {
 			},
 			createSalesFormWorkflowCapabilities({
 				canEditWorkflowComponents: true,
+				canEditWorkflowComponentDetails: true,
+				canCreateWorkflowComponents: true,
 				canEditWorkflowComponentPricing: true,
 				canArchiveWorkflowComponents: true,
 				canEditSectionOverrides: true,
@@ -82,6 +87,7 @@ describe("sales form engine panel gating", () => {
 		expect(slots?.renderDoorSupplierPanel).toBe(noop);
 		expect(slots?.getComponentRedirectOptions).toBeDefined();
 		expect(slots?.componentActions?.onOpenPricing).toBe(noop);
+		expect(slots?.componentActions?.onCreateComponent).toBe(noop);
 		expect(slots?.componentActions?.onEditDetails).toBe(noop);
 		expect(slots?.componentActions?.onEditVisibility).toBe(noop);
 		expect(slots?.componentActions?.onEditSectionOverride).toBe(noop);
@@ -93,6 +99,7 @@ describe("sales form engine panel gating", () => {
 	});
 
 	test("removes moulding calculator render hook when not allowed", () => {
+		const noop = () => undefined;
 		const dataSource = {
 			useStepRouting: (() => ({ data: null })) as any,
 			useStepComponents: (() => ({ data: [] })) as any,

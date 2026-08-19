@@ -27,6 +27,11 @@ orders in the new sales form.
   only after explicit employee acknowledgement. That operational evidence is
   preserved, the change finishes as `APPLIED_WITH_REVIEW`, and the sales
   representative is notified.
+- Inbound disposition is requested only when the same persisted line is being
+  reduced and has mutable open inbound demand. Inbound on an increased or
+  unrelated line, and cancelled or fully received demand, does not create a
+  meaningless Cancel/Keep Warehouse decision. When no inbound, settlement, or
+  operational decision remains, the edit follows the normal direct-save path.
 
 ## Settlement Contract
 

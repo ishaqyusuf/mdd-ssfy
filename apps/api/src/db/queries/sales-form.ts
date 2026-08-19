@@ -214,6 +214,13 @@ export const saveWorkflowComponentDetailsSchema = z.object({
 	img: z.string().trim().nullable().optional(),
 });
 
+export const createWorkflowComponentSchema = z.object({
+	stepId: z.number().int().positive(),
+	title: z.string().trim().min(1),
+	productCode: z.string().trim().nullable().optional(),
+	img: z.string().trim().nullable().optional(),
+});
+
 export const saveWorkflowComponentVisibilitySchema = z.object({
 	componentIds: z.array(z.number().int().positive()).min(1),
 	variations: z.array(
@@ -319,6 +326,34 @@ export async function saveWorkflowComponentDetails(
 			productCode: input.productCode || null,
 			img: input.img || null,
 		},
+	});
+	return finishWorkflowComponentMutation({
+		componentIds: [component.id],
+		componentUids: [component.uid],
+		stepIds: [component.dykeStepId],
+		routing: true,
+	});
+}
+
+export async function createWorkflowComponent(
+	ctx: TRPCContext,
+	input: z.infer<typeof createWorkflowComponentSchema>,
+) {
+	const step = await ctx.db.dykeSteps.findFirst({
+		where: { id: input.stepId, deletedAt: null },
+		select: { id: true },
+	});
+	if (!step) throw new Error("Workflow step does not exist.");
+	const component = await ctx.db.dykeStepProducts.create({
+		data: {
+			dykeStepId: step.id,
+			uid: generateRandomString(8),
+			name: input.title,
+			productCode: input.productCode || null,
+			img: input.img || null,
+			meta: {},
+		},
+		select: { id: true, uid: true, dykeStepId: true },
 	});
 	return finishWorkflowComponentMutation({
 		componentIds: [component.id],

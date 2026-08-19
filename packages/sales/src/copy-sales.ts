@@ -1,7 +1,7 @@
 import type { Db, TransactionClient } from "@gnd/db";
 import { queueSalesInventoryLineItemsSync } from "./sales-inventory-sync-job";
 import type { SalesType } from "./types";
-import { SalesIncludeAll, generateSalesSlug } from "./utils/utils";
+import { generateSalesSlug } from "./utils/utils";
 
 interface Props {
   db: Db;
@@ -17,6 +17,100 @@ interface Props {
 type CopySalesWriteClient = Db | TransactionClient;
 type SalesOrdersDelegate = CopySalesWriteClient["salesOrders"];
 const MAX_HISTORY_SLUG_COLLISION_RETRIES = 20;
+const SALES_COPY_SOURCE_SELECT = {
+  id: true,
+  meta: true,
+  shippingAddressId: true,
+  billingAddressId: true,
+  customerId: true,
+  customerProfileId: true,
+  grandTotal: true,
+  deliveryOption: true,
+  title: true,
+  tax: true,
+  subTotal: true,
+  isDyke: true,
+  taxPercentage: true,
+  salesRep: { select: { id: true, name: true } },
+  extraCosts: {
+    select: {
+      amount: true,
+      label: true,
+      percentage: true,
+      tax: true,
+      taxxable: true,
+      totalAmount: true,
+      type: true,
+    },
+  },
+  taxes: {
+    where: { deletedAt: null },
+    select: { tax: true, taxCode: true, taxxable: true },
+  },
+  items: {
+    where: { deletedAt: null },
+    select: {
+      description: true,
+      discount: true,
+      discountPercentage: true,
+      dykeDescription: true,
+      dykeProduction: true,
+      multiDyke: true,
+      multiDykeUid: true,
+      qty: true,
+      rate: true,
+      meta: true,
+      price: true,
+      swing: true,
+      total: true,
+      taxPercenatage: true,
+      tax: true,
+      formSteps: {
+        where: { deletedAt: null },
+        select: {
+          basePrice: true,
+          meta: true,
+          price: true,
+          prodUid: true,
+          qty: true,
+          stepId: true,
+          value: true,
+          componentId: true,
+          priceId: true,
+        },
+      },
+      housePackageTool: {
+        where: { deletedAt: null },
+        select: {
+          doorId: true,
+          moldingId: true,
+          dykeDoorId: true,
+          meta: true,
+          totalPrice: true,
+          doorType: true,
+          stepProductId: true,
+          doors: {
+            where: { deletedAt: null },
+            select: {
+              dimension: true,
+              stepProductId: true,
+              lhQty: true,
+              rhQty: true,
+              totalQty: true,
+              lineTotal: true,
+              jambSizePrice: true,
+              doorPrice: true,
+              meta: true,
+              unitPrice: true,
+              swing: true,
+              doorType: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} as const;
 
 export type CopySalesResult = {
   error?: string;
@@ -46,11 +140,13 @@ async function getNextHistorySlugSequence(
     },
   });
 
-  return histories.reduce((highest, history) => {
-    const suffix = history.orderId.slice(prefix.length);
-    if (!/^\d+$/.test(suffix)) return highest;
-    return Math.max(highest, Number(suffix));
-  }, 0) + 1;
+  return (
+    histories.reduce((highest, history) => {
+      const suffix = history.orderId.slice(prefix.length);
+      if (!/^\d+$/.test(suffix)) return highest;
+      return Math.max(highest, Number(suffix));
+    }, 0) + 1
+  );
 }
 
 function formatHistorySlug(slug: string, sequence: number) {
@@ -78,8 +174,30 @@ export async function copySalesInTransaction(
       orderId: salesUid,
       type: props.type,
     },
-    include: SalesIncludeAll,
+    select: SALES_COPY_SOURCE_SELECT,
   });
+  const isQuoteToInvoice = props.type === "quote" && as === "order";
+  if (isQuoteToInvoice) {
+    await db.$queryRaw`SELECT id FROM SalesOrders WHERE id = ${sale.id} FOR UPDATE`;
+    const existing = await db.salesOrders.findFirst({
+      where: {
+        type: "order",
+        deletedAt: null,
+        meta: {
+          path: "$.copySource.salesOrderId",
+          equals: sale.id,
+        },
+      },
+      select: { id: true, slug: true, isDyke: true },
+    });
+    if (existing) {
+      return {
+        id: existing.id,
+        slug: existing.slug,
+        isDyke: existing.isDyke ?? undefined,
+      };
+    }
+  }
   const isHx = props.as?.endsWith("-hx");
   const salesRep = isHx ? (sale.salesRep ?? props.author) : props.author;
   if (!salesRep) {
@@ -99,63 +217,80 @@ export async function copySalesInTransaction(
   let historySequence = isHx
     ? await getNextHistorySlugSequence(db.salesOrders, props.salesUid)
     : null;
-  let orderId = historySequence === null
-    ? await generateSalesSlug(as, db.salesOrders, salesRep.name)
-    : formatHistorySlug(props.salesUid, historySequence);
+  let orderId =
+    historySequence === null
+      ? await generateSalesSlug(as, db.salesOrders, salesRep.name)
+      : formatHistorySlug(props.salesUid, historySequence);
 
-  const createSalesOrder = (newOrderId: string) => db.salesOrders.create({
-    data: {
-      orderId: newOrderId,
-      slug: newOrderId,
-      type: as,
-      meta: sale.meta as never,
-      shippingAddress: connectOr(sale.shippingAddressId),
-      billingAddress: connectOr(sale.billingAddressId),
-      customer: connectOr(sale.customerId),
-      salesRep: connectOr(salesRep.id),
-      amountDue: sale.grandTotal,
-      deliveryOption: sale.deliveryOption,
-      grandTotal: sale.grandTotal,
-      salesProfile: connectOr(sale.customerProfileId),
-      title: sale.title,
-      tax: sale.tax,
-      subTotal: sale.subTotal,
-      isDyke: sale.isDyke,
-      taxPercentage: sale.taxPercentage,
-      extraCosts: {
-        createMany: {
-          data: sale.extraCosts.map(
-            ({
-              amount,
-              label,
-              percentage,
-              tax,
+  const createSalesOrder = (newOrderId: string) =>
+    db.salesOrders.create({
+      data: {
+        orderId: newOrderId,
+        slug: newOrderId,
+        type: as,
+        meta: {
+          ...(sale.meta &&
+          typeof sale.meta === "object" &&
+          !Array.isArray(sale.meta)
+            ? sale.meta
+            : {}),
+          ...(isQuoteToInvoice
+            ? {
+                copySource: {
+                  salesOrderId: sale.id,
+                  type: "quote",
+                  kind: "quote-to-invoice",
+                },
+              }
+            : {}),
+        } as never,
+        shippingAddress: connectOr(sale.shippingAddressId),
+        billingAddress: connectOr(sale.billingAddressId),
+        customer: connectOr(sale.customerId),
+        salesRep: connectOr(salesRep.id),
+        amountDue: sale.grandTotal,
+        deliveryOption: sale.deliveryOption,
+        grandTotal: sale.grandTotal,
+        salesProfile: connectOr(sale.customerProfileId),
+        title: sale.title,
+        tax: sale.tax,
+        subTotal: sale.subTotal,
+        isDyke: sale.isDyke,
+        taxPercentage: sale.taxPercentage,
+        extraCosts: {
+          createMany: {
+            data: sale.extraCosts.map(
+              ({
+                amount,
+                label,
+                percentage,
+                tax,
+                taxxable,
+                totalAmount,
+                type,
+              }) => ({
+                amount,
+                label,
+                percentage,
+                tax,
+                taxxable,
+                totalAmount,
+                type,
+              }),
+            ),
+          },
+        },
+        taxes: {
+          createMany: {
+            data: sale.taxes.map(({ tax, taxCode, taxxable }) => ({
+              taxCode,
               taxxable,
-              totalAmount,
-              type,
-            }) => ({
-              amount,
-              label,
-              percentage,
               tax,
-              taxxable,
-              totalAmount,
-              type,
-            })
-          ),
+            })),
+          },
         },
       },
-      taxes: {
-        createMany: {
-          data: sale.taxes.map(({ tax, taxCode, taxxable }) => ({
-            taxCode,
-            taxxable,
-            tax,
-          })),
-        },
-      },
-    },
-  });
+    });
 
   let newSales: Awaited<ReturnType<typeof createSalesOrder>>;
   for (let attempt = 0; ; attempt += 1) {
@@ -193,7 +328,6 @@ export async function copySalesInTransaction(
         meta,
         price,
         swing,
-        salesDoors,
         total,
         taxPercenatage,
         tax,
@@ -236,7 +370,7 @@ export async function copySalesInTransaction(
                         stepId,
                         value,
                         salesId: newSales.id,
-                      })
+                      }),
                     ),
                   },
                 } as never),
@@ -286,8 +420,8 @@ export async function copySalesInTransaction(
           },
         });
         return newItem;
-      }
-    )
+      },
+    ),
   );
 
   return {
@@ -314,11 +448,11 @@ export async function copySales(props: Props) {
     };
   }
 
-  if (!response.error && response.id) {
-    await queueSalesInventoryLineItemsSync({
-      salesOrderId: response.id,
-      source: "copy-sales",
-      triggeredByUserId: props.author?.id ?? null,
+	if (!response.error && response.id) {
+		await queueSalesInventoryLineItemsSync({
+			salesOrderId: response.id,
+			source: "copy-sales",
+			triggeredByUserId: props.author?.id ?? null,
     });
   }
   return response;

@@ -65,6 +65,7 @@ import {
 	type CostPriceBreakdownContext,
 	CostPriceBreakdownHover,
 } from "./cost-price-breakdown-hover";
+import { getDoorSwingOptions } from "./door-swing-options";
 import {
 	DoorSizeQtyDialog,
 	DoorStepPanel,
@@ -742,18 +743,19 @@ export function SalesFormWorkflowPanel<
 				{ ignorePersistedVariations: true },
 			);
 			return sizes.map((size) => {
-					const pricing = resolveSizePricing(size);
-					const selected = displayedRows.some(
-						(row) =>
-							String(row?.dimension || "").trim().toLowerCase() ===
-							String(size).trim().toLowerCase(),
-					);
-					return {
-						size,
-						doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
-						selected,
-					};
-				});
+				const pricing = resolveSizePricing(size);
+				const selected = displayedRows.some(
+					(row) =>
+						String(row?.dimension || "")
+							.trim()
+							.toLowerCase() === String(size).trim().toLowerCase(),
+				);
+				return {
+					size,
+					doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
+					selected,
+				};
+			});
 		})();
 		const pricedSteps = getWorkflowSteps(line).filter((candidate) => {
 			const title = normalizeTitle(candidate?.step?.title);
@@ -871,6 +873,7 @@ export function SalesFormWorkflowPanel<
 				supplierName={supplier.supplierName}
 				noHandle={noHandle}
 				hasSwing={hasSwing}
+				swingOptions={getDoorSwingOptions(line)}
 				sharedDoorSurcharge={sharedDoorSurcharge}
 				profileCoefficient={activeDisplayProfileCoefficient}
 				pricingReady={activePricingReady}
@@ -1219,6 +1222,18 @@ export function SalesFormWorkflowPanel<
 						selectComponent(line, steps, activeIndex, component, true);
 					}
 				}}
+				onCreateComponent={
+					props.slots?.componentActions?.onCreateComponent
+						? () =>
+								props.slots?.componentActions?.onCreateComponent?.({
+									routeData,
+									line,
+									steps,
+									step: activeItemStep,
+									stepIndex: activeIndex,
+								})
+						: undefined
+				}
 				onEditPricing={
 					props.slots?.componentActions?.onOpenPricing
 						? (component) =>

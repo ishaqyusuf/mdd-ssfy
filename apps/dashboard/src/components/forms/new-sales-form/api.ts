@@ -194,6 +194,11 @@ export function useSaveWorkflowComponentDetailsMutation() {
 	return useMutation(trpc.sales.saveWorkflowComponentDetails.mutationOptions());
 }
 
+export function useCreateWorkflowComponentMutation() {
+	const trpc = useTRPC();
+	return useMutation(trpc.sales.createWorkflowComponent.mutationOptions());
+}
+
 export function useSaveWorkflowComponentVisibilityMutation() {
 	const trpc = useTRPC();
 	return useMutation(

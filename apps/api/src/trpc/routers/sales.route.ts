@@ -26,6 +26,8 @@ import { getMobileSalesDashboardOverview } from "@api/db/queries/sales-dashboard
 import {
 	archiveWorkflowComponents,
 	archiveWorkflowComponentsSchema,
+	createWorkflowComponent,
+	createWorkflowComponentSchema,
 	deleteSupplier,
 	deleteSupplierSchema,
 	getMultiLineComponents,
@@ -446,6 +448,14 @@ async function requireWorkflowComponentAdmin(ctx: TRPCContext) {
 			"Only Admin or Super Admin can manage workflow components.",
 		);
 	}
+}
+
+async function requireWorkflowComponentEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editSalesComponent"],
+		"You do not have permission to manage workflow components.",
+	);
 }
 
 async function sendDealerRejectedEmail(
@@ -1348,10 +1358,16 @@ export const salesRouter = createTRPCRouter({
 		.mutation(async (props) => {
 			return updateStepMeta(props.ctx, props.input);
 		}),
+	createWorkflowComponent: protectedProcedure
+		.input(createWorkflowComponentSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireWorkflowComponentEditor(ctx);
+			return createWorkflowComponent(ctx, input);
+		}),
 	saveWorkflowComponentDetails: protectedProcedure
 		.input(saveWorkflowComponentDetailsSchema)
 		.mutation(async ({ ctx, input }) => {
-			await requireWorkflowComponentAdmin(ctx);
+			await requireWorkflowComponentEditor(ctx);
 			return saveWorkflowComponentDetails(ctx, input);
 		}),
 	saveWorkflowComponentVisibility: protectedProcedure
