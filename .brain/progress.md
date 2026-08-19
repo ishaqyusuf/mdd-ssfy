@@ -1,5 +1,21 @@
 # Progress
 
+- 2026-08-19: initialized the local Markdown Wayfinder map for Square Refunds
+  for Sales under `.scratch/square-refunds/`. The destination is an
+  implementation-ready specification for an audited original-tender Square
+  refund lifecycle. Approved stakeholder constraints establish the dedicated
+  `can.editRefundSquare` capability, completed-payment eligibility, full and
+  partial refunds, explicit multi-order allocation, C.C.C/tip treatment,
+  provider-confirmed accounting, external-refund review, immutable completion,
+  customer/Finance notifications, document and activity evidence, and a
+  forward-only launch with historical reconciliation reporting. The two
+  research-frontier tickets are resolved, and their findings exposed a ninth
+  decision ticket for canonical Square tender-payment identity. That ticket is
+  now the frontier before the refund state machine. Added Square Refund and
+  Wallet Credit to `CONTEXT.md` as
+  distinct domain terms. This was planning only; no runtime, API, database,
+  permission, or deployment behavior changed.
+
 - 2026-08-19: fixed `newSalesForm.saveDraft` for existing order `09369LM`.
   Change-protection analysis now uses the canonical relational form as its
   before-state, so stale nested sales-form JSON cannot trigger a false review.

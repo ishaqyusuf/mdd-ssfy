@@ -1,5 +1,18 @@
 # In Progress
 
+- [ ] Square Refunds for Sales Wayfinder: the local map at
+  `.scratch/square-refunds/map.md` preserves the approved external-tender,
+  permission, allocation, provider-state, accounting, notification, and rollout
+  constraints. Nine dependency-wired decision tickets cover the current GND
+  path, current Square provider contract, canonical refund state machine,
+  multi-order accounting application, external-refund reconciliation,
+  permissioned Sales/Finance experience, documents/notifications/audit, and
+  rollout acceptance and the newly exposed canonical Square tender-payment
+  identity decision. Both research tickets are resolved; canonical Square
+  payment identity is now the immediate frontier and blocks the refund state
+  machine. Implementation is not authorized by this planning map. (Sales + Payments +
+  Finance + Square + Permissions + Notifications + Documents + Validation)
+
 - [ ] Special Order usability and operational-override addendum: the approved
   addendum spec and five local `ready-for-agent` implementation tickets are
   published under `.scratch/special-order-usability-override-addendum/` and

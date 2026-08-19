@@ -46,6 +46,18 @@ The customer-safe projection of a Storefront Order, its payment, documents, and
 fulfillment progress.
 _Avoid_: Customer copy of an order
 
+**Square Refund**:
+An audited return of money to the original Square payment tender. A Square
+Refund remains separate from the Sales Order's commercial change and from any
+internal customer balance until Square confirms the provider outcome.
+_Avoid_: Wallet credit, payment cancellation, order cancellation, return
+
+**Wallet Credit**:
+An internal customer liability balance held by GND for future use. Wallet
+Credit does not mean money has been returned through Square or another
+external payment provider.
+_Avoid_: Square refund, card refund
+
 **Special Order Declaration**:
 The required Yes or No decision that classifies an entire Sales Order as
 containing special-order or non-returnable items. It applies to the order as a
