@@ -214,8 +214,13 @@ and acceptance gate:
   current sales-preview pipeline and render the same desktop table/mobile item
   pair, including product images and grouped item ordering. Billing and shipping
   snapshot data now uses the preview's shared address-line rules and two-card
-  presentation. Focused public review, renderer, and HTML-template coverage
-  passes; no schema, API input, permission, or persistence contract changed.
+  presentation. The public page now receives one complete immutable invoice
+  page and renders the full Template 2 HTML document—company logo/header,
+  addresses, items, and footer—with no duplicated approval-only order/policy
+  cards or Special Order document block. A bottom floating Approve/Decline bar
+  selects the response mode and smoothly scrolls to the response form. Focused
+  public review, renderer, and HTML-template coverage passes; no schema, API
+  input, permission, or persistence contract changed.
 - Order `09369LM` reproduced approval-link generation failure after a
   production-to-local sync because the active capability proof did not match the
   local signing secret. Focused capability/dashboard coverage passes, the

@@ -6,9 +6,14 @@
   sales-preview section pipeline and renders the shared responsive table/mobile
   item UI, rather than a divergent approval-only card layout. The same snapshot
   now feeds the sales preview's Billing/Shipping address-line rules and shared
-  address cards. Focused public review, renderer, and HTML-template tests pass
-  (7 tests / 40 assertions), as do `@gnd/sales` and `@gnd/pdf` typechecks. No
-  schema, API input, permission, or persistence contract changed.
+  address cards. Follow-up replaces all approval-only document fragments with
+  one immutable Template 2 invoice page (logo/header, addresses, items, footer)
+  and a floating Approve/Decline bar that selects response mode and scrolls to
+  the response form. The full-document page intentionally suppresses the
+  Special Order template block and removes the duplicate order/policy cards.
+  Focused public review and HTML-template tests pass (6 tests / 34 assertions),
+  as do `@gnd/sales` and `@gnd/pdf` typechecks. No schema, API input,
+  permission, or persistence contract changed.
 
 - 2026-08-19: fixed Sales Overview `Copy approval link` for Special Orders after
   reproducing order `09369LM` in the in-app browser. Production-synced active

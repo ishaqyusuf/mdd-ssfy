@@ -95,7 +95,7 @@ function request(overrides: Record<string, unknown> = {}) {
 				},
 			],
 			extraCosts: [],
-			summary: { grandTotal: 250 },
+			summary: { subTotal: 250, grandTotal: 250 },
 		},
 		customerSnapshot: {
 			businessName: "Snapshot Customer",
@@ -144,35 +144,46 @@ describe("Special Order public review boundary", () => {
 			state: "ACTIVE",
 			customerName: "Snapshot Customer",
 			salespersonName: "Snapshot Salesperson",
+			companyAddress: {
+				address1: "13285 SW 131 ST",
+			},
 			order: {
-				form: { po: "SNAPSHOT-PO" },
-				billing: {
-					lines: [
-						"SNAPSHOT CUSTOMER",
-						"BILLING CONTACT",
-						"555-0100",
-						"snapshot@example.test",
-						"10 Billing Street",
-						"Dallas TX 75201",
-					],
-				},
-				shipping: {
-					lines: [
-						"SNAPSHOT CUSTOMER",
-						"SHIPPING CONTACT",
-						"555-0100",
-						"snapshot@example.test",
-						"20 Shipping Street",
-						"Austin TX 78701",
-					],
-				},
-				invoiceSections: [
-					{
-						kind: "shelf",
-						title: "Snapshot door",
+				invoicePage: {
+					meta: {
+						title: "Invoice",
+						salesNo: "S-42",
+						po: "SNAPSHOT-PO",
+						total: "$250.00",
 					},
-				],
-				summary: { grandTotal: 250 },
+					billing: {
+						lines: [
+							"SNAPSHOT CUSTOMER",
+							"BILLING CONTACT",
+							"555-0100",
+							"snapshot@example.test",
+							"10 Billing Street",
+							"Dallas TX 75201",
+						],
+					},
+					shipping: {
+						lines: [
+							"SNAPSHOT CUSTOMER",
+							"SHIPPING CONTACT",
+							"555-0100",
+							"snapshot@example.test",
+							"20 Shipping Street",
+							"Austin TX 78701",
+						],
+					},
+					sections: [{ kind: "shelf", title: "Snapshot door" }],
+					footer: {
+						lines: [
+							{ label: "Subtotal", value: "$250.00" },
+							{ label: "Total Due", value: "$250.00" },
+						],
+					},
+					specialOrder: null,
+				},
 			},
 		});
 		expect(JSON.stringify(result)).toContain("Trim");

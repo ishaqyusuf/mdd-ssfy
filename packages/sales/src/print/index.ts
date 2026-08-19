@@ -13,6 +13,7 @@ export { buildCustomerNameLines } from "./compose/customer-name-lines";
 export { composeSpecialOrderPrintData } from "./compose/special-order";
 export {
 	buildInvoicePrintAddressesFromSnapshot,
+	buildInvoicePrintPageFromSalesFormSnapshot,
 	buildInvoicePrintSectionsFromSalesFormSnapshot,
 } from "./snapshot-sections";
 export {

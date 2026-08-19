@@ -9,8 +9,8 @@ import type { TRPCContext } from "@api/trpc/init";
 import { EmailService } from "@gnd/notifications/services/email-service";
 import { getSalesSetting } from "@gnd/sales";
 import {
-	buildInvoicePrintAddressesFromSnapshot,
-	buildInvoicePrintSectionsFromSalesFormSnapshot,
+	buildInvoicePrintPageFromSalesFormSnapshot,
+	resolveSalesCompanyAddress,
 } from "@gnd/sales/print";
 import {
 	createSpecialOrderApprovalCapability,
@@ -496,16 +496,30 @@ export async function getPublicSpecialOrderApproval(
 	const storedOrder = readObject(request.orderSnapshot);
 	const storedCustomer = readObject(request.customerSnapshot);
 	const storedSalesperson = readObject(request.salespersonSnapshot);
-	const invoiceSections = buildInvoicePrintSectionsFromSalesFormSnapshot({
+	const snapshotForm = Object.keys(readObject(storedOrder.form)).length
+		? readObject(storedOrder.form)
+		: readObject(form.form);
+	const snapshotSummary = Object.keys(readObject(storedOrder.summary)).length
+		? readObject(storedOrder.summary)
+		: readObject(form.summary);
+	const snapshotExtraCosts = Array.isArray(storedOrder.extraCosts)
+		? storedOrder.extraCosts
+		: Array.isArray(form.extraCosts)
+			? form.extraCosts
+			: [];
+	const invoicePage = buildInvoicePrintPageFromSalesFormSnapshot({
 		lineItems: Array.isArray(storedOrder.lineItems)
 			? storedOrder.lineItems
 			: [],
 		salesOrderId: request.salesOrderId,
 		revisionDate: request.createdAt,
 		setting: await getSalesSetting(ctx.db),
-	});
-	const invoiceAddresses = buildInvoicePrintAddressesFromSnapshot({
+		orderNo: request.order.orderId,
+		form: snapshotForm,
+		summary: snapshotSummary,
+		extraCosts: snapshotExtraCosts,
 		customer: storedCustomer,
+		salesperson: storedSalesperson,
 		billingAddress: storedOrder.billingAddress,
 		shippingAddress: storedOrder.shippingAddress,
 	});
@@ -533,24 +547,9 @@ export async function getPublicSpecialOrderApproval(
 			acknowledgmentText: request.policyVersion.acknowledgmentText,
 			policyText: request.policyVersion.policyText,
 		},
+		companyAddress: resolveSalesCompanyAddress(request.order.orderId),
 		order: {
-			customer: storedCustomer,
-			billing: invoiceAddresses.billing,
-			shipping: invoiceAddresses.shipping,
-			billingAddress: readObject(storedOrder.billingAddress),
-			shippingAddress: readObject(storedOrder.shippingAddress),
-			form: Object.keys(readObject(storedOrder.form)).length
-				? readObject(storedOrder.form)
-				: readObject(form.form),
-			invoiceSections,
-			extraCosts: Array.isArray(storedOrder.extraCosts)
-				? storedOrder.extraCosts
-				: Array.isArray(form.extraCosts)
-					? form.extraCosts
-					: [],
-			summary: Object.keys(readObject(storedOrder.summary)).length
-				? readObject(storedOrder.summary)
-				: readObject(form.summary),
+			invoicePage,
 		},
 	};
 }

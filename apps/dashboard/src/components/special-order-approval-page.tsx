@@ -1,12 +1,11 @@
 "use client";
 
 import { SignaturePad } from "@/components/signature-pad";
-import { SpecialOrderOrderReview } from "@/components/special-order-order-review";
 import { getBaseUrl } from "@/lib/base-url";
 import { useTRPC } from "@/trpc/client";
-import { SalesHtmlAddressBlocks } from "@gnd/pdf/sales-v2";
+import { SalesHtmlDocument } from "@gnd/pdf/sales-v2";
+import type { CompanyAddress, PrintPage } from "@gnd/sales/print";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
-import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -15,16 +14,6 @@ import { Input } from "@gnd/ui/input";
 import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { useState } from "react";
-
-function readObject(value: unknown): Record<string, unknown> {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? (value as Record<string, unknown>)
-		: {};
-}
-
-function text(value: unknown) {
-	return typeof value === "string" && value.trim() ? value.trim() : null;
-}
 
 export function SpecialOrderApprovalPage({ token }: { token: string }) {
 	const trpc = useTRPC();
@@ -86,98 +75,35 @@ export function SpecialOrderApprovalPage({ token }: { token: string }) {
 		);
 	}
 
-	const form = data.order.form;
 	const canApprove =
 		acknowledged && printedName.trim().length >= 2 && signature;
 	const canDecline = declineReason.trim().length >= 1;
+	const chooseResponse = (nextMode: "APPROVE" | "DECLINE") => {
+		setMode(nextMode);
+		document.getElementById("special-order-response")?.scrollIntoView({
+			behavior: "smooth",
+			block: "start",
+		});
+	};
 
 	return (
-		<main className="min-h-screen bg-muted/30 px-4 py-8 sm:py-12">
-			<div className="mx-auto max-w-3xl space-y-6">
-				<header>
-					<div className="flex flex-wrap items-center gap-2">
-						<Badge>Special Order</Badge>
-						<Badge variant="outline">Order {data.orderNo}</Badge>
-					</div>
-					<h1 className="mt-3 text-2xl font-semibold sm:text-3xl">
-						Review and acknowledge your order
-					</h1>
-					<p className="mt-2 text-sm text-muted-foreground">
-						Review every item, price, and specification before responding. This
-						link expires {new Date(data.expiresAt).toLocaleString()}.
-					</p>
-				</header>
+		<main className="min-h-screen bg-muted/30 px-3 py-6 pb-28 sm:px-6 sm:py-8 sm:pb-28">
+			<div className="mx-auto max-w-[980px] space-y-6">
+				<SalesHtmlDocument
+					pages={[data.order.invoicePage as PrintPage]}
+					templateId="template-2"
+					companyAddress={data.companyAddress as CompanyAddress}
+					baseUrl={baseUrl}
+					config={{ showImages: true }}
+				/>
 
-				<Card>
+				<Card id="special-order-response" className="scroll-mt-6">
 					<CardHeader>
-						<CardTitle>Order details</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<dl className="grid gap-4 text-sm sm:grid-cols-2">
-							<div>
-								<dt className="text-muted-foreground">Customer</dt>
-								<dd className="font-medium">{data.customerName}</dd>
-							</div>
-							<div>
-								<dt className="text-muted-foreground">Salesperson</dt>
-								<dd className="font-medium">
-									{data.salespersonName || "Sales team"}
-								</dd>
-							</div>
-							<div>
-								<dt className="text-muted-foreground">Purchase order</dt>
-								<dd>{text(form.po) || "—"}</dd>
-							</div>
-							<div>
-								<dt className="text-muted-foreground">Order date</dt>
-								<dd>
-									{text(form.createdAt)
-										? new Date(String(form.createdAt)).toLocaleDateString()
-										: "—"}
-								</dd>
-							</div>
-						</dl>
-						<SalesHtmlAddressBlocks
-							billing={data.order.billing}
-							shipping={data.order.shipping}
-						/>
-					</CardContent>
-				</Card>
-
-				<SpecialOrderOrderReview order={data.order} baseUrl={baseUrl} />
-
-				<Card>
-					<CardHeader className="flex-row items-center justify-between gap-3">
-						<CardTitle>{data.policy.title}</CardTitle>
-						<Badge variant="outline">Policy v{data.policy.version}</Badge>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<p className="whitespace-pre-wrap text-sm leading-6">
-							{data.policy.policyText}
-						</p>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<CardTitle>Your response</CardTitle>
+						<CardTitle>
+							{mode === "APPROVE" ? "Approve order" : "Decline order"}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-5">
-						<div className="grid grid-cols-2 gap-2">
-							<Button
-								variant={mode === "APPROVE" ? "default" : "outline"}
-								onClick={() => setMode("APPROVE")}
-							>
-								Approve
-							</Button>
-							<Button
-								variant={mode === "DECLINE" ? "destructive" : "outline"}
-								onClick={() => setMode("DECLINE")}
-							>
-								Decline
-							</Button>
-						</div>
-
 						{mode === "APPROVE" ? (
 							<FieldGroup>
 								<Field orientation="horizontal">
@@ -259,6 +185,33 @@ export function SpecialOrderApprovalPage({ token }: { token: string }) {
 						</Button>
 					</CardContent>
 				</Card>
+			</div>
+			<div className="fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">
+				<div
+					className="flex h-12 items-center gap-1 rounded-full border bg-background/85 p-1.5 shadow-[0_18px_42px_rgba(15,23,42,0.22)] backdrop-blur-xl"
+					role="toolbar"
+					aria-label="Order response actions"
+				>
+					<Button
+						type="button"
+						size="sm"
+						className="rounded-full"
+						onClick={() => chooseResponse("APPROVE")}
+						aria-controls="special-order-response"
+					>
+						Approve
+					</Button>
+					<Button
+						type="button"
+						size="sm"
+						variant="destructive"
+						className="rounded-full"
+						onClick={() => chooseResponse("DECLINE")}
+						aria-controls="special-order-response"
+					>
+						Decline
+					</Button>
+				</div>
 			</div>
 		</main>
 	);
