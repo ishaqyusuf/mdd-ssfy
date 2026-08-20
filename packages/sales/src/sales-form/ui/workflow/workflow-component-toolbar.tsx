@@ -6,6 +6,7 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type WorkflowComponentToolbarProps = {
 	count: number;
@@ -118,7 +119,7 @@ export function WorkflowComponentToolbar(props: WorkflowComponentToolbarProps) {
 		};
 	}, []);
 
-	return (
+	const toolbar = (
 		<div
 			ref={toolbarRef}
 			aria-hidden={position.mode === "hidden"}
@@ -181,4 +182,8 @@ export function WorkflowComponentToolbar(props: WorkflowComponentToolbarProps) {
 			</div>
 		</div>
 	);
+
+	return position.mode === "fixed" && typeof document !== "undefined"
+		? createPortal(toolbar, document.body)
+		: toolbar;
 }

@@ -6,7 +6,97 @@ import {
 	isMasterPassword,
 	loginAction,
 	parseMasterPasswords,
+	userHasPermission,
 } from "./utils";
+
+function permissionDb({
+	roleName = "Operations",
+	rolePermissions = [],
+	specificPermissions = [],
+	active = true,
+}: {
+	roleName?: string;
+	rolePermissions?: string[];
+	specificPermissions?: string[];
+	active?: boolean;
+}) {
+	const permissionNames = [...rolePermissions, ...specificPermissions];
+	const permissionIds = new Map(
+		permissionNames.map((name, index) => [name, index + 1]),
+	);
+	return {
+		users: {
+			findFirst: async () =>
+				active
+					? {
+							roles: [
+								{
+									role: {
+										name: roleName,
+										RoleHasPermissions: rolePermissions.map((name) => ({
+											permissionId: permissionIds.get(name),
+										})),
+									},
+								},
+							],
+						}
+					: null,
+		},
+		permissions: {
+			findMany: async ({ where }: { where: { id: { in: number[] } } }) =>
+				rolePermissions
+					.filter((name) => where.id.in.includes(permissionIds.get(name) ?? -1))
+					.map((name) => ({ id: permissionIds.get(name), name })),
+		},
+		modelHasPermissions: {
+			findMany: async () =>
+				specificPermissions.map((name) => ({
+					permissions: { id: permissionIds.get(name), name },
+				})),
+		},
+	};
+}
+
+describe("userHasPermission", () => {
+	test("accepts a role-level Mark Sales Order Fulfilled grant", async () => {
+		const db = permissionDb({
+			rolePermissions: ["mark sales order fulfilled"],
+		});
+		expect(
+			await userHasPermission(db as never, 42, "markSalesOrderFulfilled"),
+		).toBe(true);
+	});
+
+	test("accepts an employee-specific Mark Sales Order Fulfilled grant", async () => {
+		const db = permissionDb({
+			specificPermissions: ["mark sales order fulfilled"],
+		});
+		expect(
+			await userHasPermission(db as never, 42, "markSalesOrderFulfilled"),
+		).toBe(true);
+	});
+
+	test("keeps Super Admin implicit access", async () => {
+		const db = permissionDb({ roleName: "Super Admin" });
+		expect(
+			await userHasPermission(db as never, 42, "markSalesOrderFulfilled"),
+		).toBe(true);
+	});
+
+	test("rejects broad operational permissions without the dedicated grant", async () => {
+		const db = permissionDb({
+			rolePermissions: [
+				"edit orders",
+				"edit pickup",
+				"edit delivery",
+				"view packing",
+			],
+		});
+		expect(
+			await userHasPermission(db as never, 42, "markSalesOrderFulfilled"),
+		).toBe(false);
+	});
+});
 
 describe("master password helpers", () => {
 	test("parses a single value", () => {
@@ -110,9 +200,12 @@ describe("loginAction token auth", () => {
 			},
 		};
 
-		const result = await loginAction(db as unknown as Parameters<typeof loginAction>[0], {
-			token: "token-id",
-		});
+		const result = await loginAction(
+			db as unknown as Parameters<typeof loginAction>[0],
+			{
+				token: "token-id",
+			},
+		);
 
 		expect(result?.sessionId).toBe("session-id");
 		expect(result?.user.email).toBe("admin@example.com");

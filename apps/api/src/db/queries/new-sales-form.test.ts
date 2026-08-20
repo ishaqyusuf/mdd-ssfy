@@ -3539,6 +3539,98 @@ describe("new-sales-form relational parity", () => {
       tagValue: String(saved.salesId),
     });
   });
+
+  it("preserves P.O. compatibility metadata across save and reload", async () => {
+    const { ctx, state } = createMockContext();
+    const payload = {
+      type: "order",
+      slug: null,
+      salesId: null,
+      version: null,
+      autosave: false,
+      meta: {
+        customerId: 100,
+        customerProfileId: null,
+        billingAddressId: null,
+        shippingAddressId: null,
+        paymentTerm: "None",
+        goodUntil: null,
+        po: "PO-09353",
+        notes: null,
+        deliveryOption: "pickup",
+        taxCode: null,
+      },
+      summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+      extraCosts: [],
+      lineItems: [
+        {
+          id: null,
+          uid: "po-line",
+          title: "P.O. persistence line",
+          description: "",
+          qty: 1,
+          unitPrice: 100,
+          lineTotal: 100,
+          meta: {},
+          formSteps: [],
+          shelfItems: [],
+          housePackageTool: null,
+        },
+      ],
+    } as any;
+
+    const created = await saveDraftNewSalesForm(ctx, payload);
+    expect(state.orders[0]?.meta).toMatchObject({
+      po: "PO-09353",
+      newSalesForm: {
+        form: {
+          po: "PO-09353",
+        },
+      },
+    });
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: created.slug!,
+    });
+    expect(loaded.form.po).toBe("PO-09353");
+
+    const { po: _po, ...metaWithoutPo } = payload.meta;
+    const savedWithoutPo = await saveDraftNewSalesForm(ctx, {
+      ...payload,
+      salesId: created.salesId,
+      slug: created.slug,
+      version: created.version,
+      meta: metaWithoutPo,
+    });
+    expect(state.orders[0]?.meta).toMatchObject({
+      po: "PO-09353",
+      newSalesForm: {
+        form: {
+          po: "PO-09353",
+        },
+      },
+    });
+
+    await saveDraftNewSalesForm(ctx, {
+      ...payload,
+      salesId: created.salesId,
+      slug: created.slug,
+      version: savedWithoutPo.version,
+      meta: {
+        ...payload.meta,
+        po: "",
+      },
+    });
+    expect(state.orders[0]?.meta).toMatchObject({
+      po: null,
+      newSalesForm: {
+        form: {
+          po: null,
+        },
+      },
+    });
+  });
 });
 
 function buildSpecialOrderEnrollmentPayload(declaration?: "NO" | "YES" | null) {

@@ -23,6 +23,16 @@ describe("workflow component toolbar boundary", () => {
 		expect(stepPicker).toContain('data-workflow-component-boundary="true"');
 	});
 
+	it("portals fixed mode outside transformed and clipped step panels", () => {
+		const toolbar = readFileSync(
+			new URL("./workflow-component-toolbar.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(toolbar).toContain('from "react-dom"');
+		expect(toolbar).toContain("createPortal(toolbar, document.body)");
+	});
+
 	it("fixes, anchors, and hides according to the component boundary", () => {
 		expect(
 			resolveWorkflowToolbarMode({

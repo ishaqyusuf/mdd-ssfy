@@ -161,6 +161,27 @@ function SalesMenuRoot({
 	const trpc = useTRPC();
 	const copySaleMutation = useMutation(trpc.sales.copySale.mutationOptions());
 	const moveSaleMutation = useMutation(trpc.sales.moveSale.mutationOptions());
+	const refreshCreatedOrder = useCallback(
+		async (salesId: number, orderNo: string) => {
+			const results = await Promise.allSettled([
+				resetSalesStatAction(salesId, orderNo),
+				sq.events.productionUpdated({
+					orderNo,
+					salesId,
+					salesType: "order",
+				}),
+			]);
+			for (const result of results) {
+				if (result.status === "rejected") {
+					console.error(
+						"Unable to refresh a created sales order",
+						result.reason,
+					);
+				}
+			}
+		},
+		[sq],
+	);
 
 	const state = useMemo<SalesMenuState>(() => {
 		const resolvedType = type ?? "order";
@@ -227,14 +248,10 @@ function SalesMenuRoot({
 						type: state.type,
 					});
 
-					if (as === "order" && result.id && result.slug) {
-						await resetSalesStatAction(result.id, result.slug);
-						await sq.events.productionUpdated({
-							orderNo: result.slug,
-							salesId: result.id,
-							salesType: "order",
-						});
-					}
+					const createdOrderRefresh =
+						as === "order" && result.id && result.slug
+							? refreshCreatedOrder(result.id, result.slug)
+							: null;
 
 					if (result.slug) {
 						loader.success(`Copied as ${as}`, {
@@ -256,6 +273,7 @@ function SalesMenuRoot({
 						});
 					}
 					setOpen(false);
+					await createdOrderRefresh;
 				} catch {
 					loader.error("Unable to complete");
 				}
@@ -279,14 +297,10 @@ function SalesMenuRoot({
 								type: state.type,
 							});
 
-					if (to === "order" && result.id && result.slug) {
-						await resetSalesStatAction(result.id, result.slug);
-						await sq.events.productionUpdated({
-							orderNo: result.slug,
-							salesId: result.id,
-							salesType: "order",
-						});
-					}
+					const createdOrderRefresh =
+						to === "order" && result.id && result.slug
+							? refreshCreatedOrder(result.id, result.slug)
+							: null;
 
 					if (result.slug) {
 						loader.success(isQuote ? "Invoice created" : `Moved to ${to}`, {
@@ -301,6 +315,7 @@ function SalesMenuRoot({
 						});
 					}
 					setOpen(false);
+					await createdOrderRefresh;
 				} catch {
 					loader.error("Unable to complete");
 				}
@@ -310,8 +325,8 @@ function SalesMenuRoot({
 			copySaleMutation,
 			loader,
 			moveSaleMutation,
+			refreshCreatedOrder,
 			setOpen,
-			sq,
 			state.slug,
 			state.type,
 		],
@@ -1007,8 +1022,8 @@ function SalesMenuMarkAs({
 		statusActionInFlightRef.current = false;
 		setStatusActionPending(false);
 	};
-	const createDispatchMutation = useMutation(
-		trpc.dispatch.createDispatch.mutationOptions({
+	const ensureFulfillmentDispatchMutation = useMutation(
+		trpc.dispatch.ensureSalesOrderFulfillmentDispatch.mutationOptions({
 			meta: {
 				queryEventScope: {
 					sales: state.salesRefs,
@@ -1120,39 +1135,10 @@ function SalesMenuMarkAs({
 	};
 
 	const resolveDispatchId = async (salesId: number) => {
-		const deliveryInfo = await sq.qc.fetchQuery(
-			trpc.dispatch.salesDeliveryInfo.queryOptions(
-				{ salesId },
-				{ staleTime: 0 },
-			),
-		);
-		const existingDispatch = [...(deliveryInfo?.deliveries || [])]
-			.sort((left, right) => {
-				const leftTime = left.dueDate ? new Date(left.dueDate).getTime() : 0;
-				const rightTime = right.dueDate ? new Date(right.dueDate).getTime() : 0;
-				return rightTime - leftTime;
-			})
-			.find((dispatch) => {
-				const status = String(dispatch.status || "").toLowerCase();
-				return (
-					status !== "completed" &&
-					status !== "cancelled" &&
-					status !== "delivered"
-				);
-			});
-
-		if (existingDispatch?.id) {
-			return existingDispatch.id;
-		}
-
-		const createdDispatch = await createDispatchMutation.mutateAsync({
+		const dispatch = await ensureFulfillmentDispatchMutation.mutateAsync({
 			salesId,
-			deliveryMode: deliveryInfo?.deliveryOption || "delivery",
-			dueDate: new Date(),
-			status: "queue",
 		});
-
-		return createdDispatch.id;
+		return dispatch.id;
 	};
 
 	const startMarkProductionCompletedTask = async () => {
@@ -1252,6 +1238,15 @@ function SalesMenuMarkAs({
 	};
 
 	const markFulfilled = async () => {
+		if (!auth.can.markSalesOrderFulfilled) {
+			toast({
+				title: "Mark as Fulfilled is not permitted",
+				description:
+					"Ask an administrator for the Mark Sales Order Fulfilled permission.",
+				variant: "destructive",
+			});
+			return;
+		}
 		if (statusActionInFlightRef.current) return;
 		if (!beginStatusAction()) return;
 		const inventoryReady = await runInventoryMarkAsPreflight("fulfilled");
@@ -1369,12 +1364,16 @@ function SalesMenuMarkAs({
 						label: "Fulfilled",
 					},
 				]
-	).filter(
-		(item) =>
-			salesIds.length === 1 ||
-			(item.action !== "cancel_production" &&
-				item.action !== "cancel_fulfillment"),
-	);
+	)
+		.filter(
+			(item) => item.action !== "fulfilled" || auth.can.markSalesOrderFulfilled,
+		)
+		.filter(
+			(item) =>
+				salesIds.length === 1 ||
+				(item.action !== "cancel_production" &&
+					item.action !== "cancel_fulfillment"),
+		);
 	const items = (
 		<>
 			{statusMenuActions.map((item) => (

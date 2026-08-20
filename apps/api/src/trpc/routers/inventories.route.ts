@@ -16,7 +16,6 @@ import {
 	uploadInboundDocumentsQuery,
 } from "@api/db/queries/inbound-receiving";
 import { requireInventoryImportOperator } from "@api/db/queries/inventory-import-permissions";
-import { assertSpecialOrderOperationAllowedForApi } from "@api/utils/special-order-enforcement";
 import {
 	getInventoryImportProjectionHistory,
 	recordInventoryImportProjectionAttempt,
@@ -47,6 +46,7 @@ import {
 } from "@api/db/queries/stock-allocation-review";
 import { idSchema } from "@api/schemas/common";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
+import { assertSpecialOrderOperationAllowedForApi } from "@api/utils/special-order-enforcement";
 import {
 	saveCommunityInput,
 	saveCommunityInputSchema,
@@ -243,6 +243,18 @@ async function requireInventoryFulfillmentOperator(ctx: TRPCContext) {
 		ctx,
 		["editOrders", "editPickup", "editDelivery", "viewPacking"],
 		"You do not have permission to manage inventory fulfillment.",
+	);
+}
+
+async function requireSalesOrderMarkAsPermission(
+	ctx: TRPCContext,
+	action: "production_completed" | "fulfilled",
+) {
+	if (action !== "fulfilled") return null;
+	return requireAnyOperationalPermission(
+		ctx,
+		["markSalesOrderFulfilled"],
+		"You do not have permission to mark sales orders fulfilled.",
 	);
 }
 
@@ -1227,6 +1239,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.query(async (props) => {
+			await requireSalesOrderMarkAsPermission(props.ctx, props.input.action);
 			return getSalesStatusMarkAsPreflight(props.ctx.db, props.input);
 		}),
 	resolveSalesInventoryMarkAsAvailabilityForContinue: protectedProcedure
@@ -1237,6 +1250,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireSalesOrderMarkAsPermission(props.ctx, props.input.action);
 			return resolveSalesInventoryMarkAsAvailabilityForContinue(props.ctx.db, {
 				...props.input,
 				authorName: String(props.ctx.userId ?? "System"),
@@ -1269,6 +1283,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireSalesOrderMarkAsPermission(props.ctx, props.input.action);
 			await requireAnyOperationalPermission(
 				props.ctx,
 				["editOrders"],
@@ -1307,6 +1322,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireSalesOrderMarkAsPermission(props.ctx, props.input.action);
 			for (const salesOrderId of props.input.salesOrderIds) {
 				await assertSpecialOrderOperationAllowedForApi(props.ctx.db, {
 					salesOrderId,

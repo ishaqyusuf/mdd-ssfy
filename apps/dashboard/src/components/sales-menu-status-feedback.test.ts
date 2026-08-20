@@ -3,19 +3,29 @@ import { describe, expect, it } from "bun:test";
 const source = await Bun.file(
 	new URL("./sales-menu.tsx", import.meta.url),
 ).text();
+const dispatchMenuSource = await Bun.file(
+	new URL(
+		"./sheets/sales-overview-sheet/dispatch-list-menu.tsx",
+		import.meta.url,
+	),
+).text();
 
 describe("sales menu status feedback", () => {
 	it("uses fresh safety reads before starting fulfillment", () => {
-		for (const procedure of [
-			"salesInventoryMarkAsPreflight",
-			"salesDeliveryInfo",
-		]) {
-			const callStart = source.indexOf(`${procedure}.queryOptions(`);
-			expect(callStart).toBeGreaterThan(-1);
-			expect(source.slice(callStart, callStart + 500)).toContain(
-				"staleTime: 0",
-			);
-		}
+		const callStart = source.indexOf(
+			"salesInventoryMarkAsPreflight.queryOptions(",
+		);
+		expect(callStart).toBeGreaterThan(-1);
+		expect(source.slice(callStart, callStart + 500)).toContain("staleTime: 0");
+	});
+
+	it("gates fulfillment and resolves its dispatch through the narrow endpoint", () => {
+		expect(source).toContain("auth.can.markSalesOrderFulfilled");
+		expect(dispatchMenuSource).toContain("auth.can.markSalesOrderFulfilled");
+		expect(source).toContain("ensureSalesOrderFulfillmentDispatch");
+		expect(source).not.toContain(
+			"trpc.dispatch.createDispatch.mutationOptions",
+		);
 	});
 
 	it("keeps a fulfillment start locked until its task is accepted", () => {

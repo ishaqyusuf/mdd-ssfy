@@ -9,9 +9,6 @@ function context(request: Record<string, unknown> | null) {
 		events,
 		ctx: {
 			db: {
-				settings: {
-					findFirst: async () => ({ id: 1, meta: {} }),
-				},
 				specialOrderApprovalRequest: {
 					findUnique: async () => request,
 				},
@@ -134,78 +131,25 @@ describe("Special Order public review boundary", () => {
 		expect(error.message).not.toContain("S-42");
 	});
 
-	it("composes canonical invoice sections from the immutable issued snapshot", async () => {
-		const fake = context(request());
-		const result = await getPublicSpecialOrderApproval(
-			fake.ctx as never,
-			"valid-token",
-		);
-		expect(result).toMatchObject({
-			state: "ACTIVE",
-			customerName: "Snapshot Customer",
-			salespersonName: "Snapshot Salesperson",
-			companyAddress: {
-				address1: "13285 SW 131 ST",
-			},
-			order: {
-				invoicePage: {
-					meta: {
-						title: "Invoice",
-						salesNo: "S-42",
-						po: "SNAPSHOT-PO",
-						total: "$250.00",
-					},
-					billing: {
-						lines: [
-							"SNAPSHOT CUSTOMER",
-							"BILLING CONTACT",
-							"555-0100",
-							"snapshot@example.test",
-							"10 Billing Street",
-							"Dallas TX 75201",
-						],
-					},
-					shipping: {
-						lines: [
-							"SNAPSHOT CUSTOMER",
-							"SHIPPING CONTACT",
-							"555-0100",
-							"snapshot@example.test",
-							"20 Shipping Street",
-							"Austin TX 78701",
-						],
-					},
-					sections: [{ kind: "shelf", title: "Snapshot door" }],
-					footer: {
-						lines: [
-							{ label: "Subtotal", value: "$250.00" },
-							{ label: "Total Due", value: "$250.00" },
-						],
-					},
-					specialOrder: null,
-				},
-			},
-		});
-		expect(JSON.stringify(result)).toContain("Trim");
-		expect(JSON.stringify(result)).not.toContain("Mutable line");
-		expect(JSON.stringify(result)).not.toContain('"lineItems"');
-	});
-
-	it("returns the canonical invoice page captured with a new request", async () => {
-		const invoicePage = {
+	it("loads current canonical sales data on every open and ignores document snapshots", async () => {
+		const currentInvoicePage = {
 			meta: {
 				title: "Invoice",
 				salesNo: "S-42",
 				date: "Aug 19, 2026",
 				total: "$250.00",
 			},
-			billing: { title: "Sold To", lines: ["CAPTURED CUSTOMER"] },
-			shipping: { title: "Ship To", lines: ["CAPTURED CUSTOMER"] },
-			sections: [],
+			billing: { title: "Sold To", lines: ["CURRENT CUSTOMER"] },
+			shipping: { title: "Ship To", lines: ["CURRENT CUSTOMER"] },
+			sections: [{ kind: "line-item", title: "Current sales line" }],
 			footer: null,
 			config: { mode: "invoice" },
 			signing: null,
 			specialOrder: null,
+		};
+		const capturedInvoicePage = {
+			...currentInvoicePage,
+			sections: [{ kind: "line-item", title: "Captured stale line" }],
 		};
 		const fake = context(
 			request({
@@ -214,7 +158,7 @@ describe("Special Order public review boundary", () => {
 					documentSnapshot: {
 						version: 1,
 						templateId: "template-2",
-						invoicePage,
+						invoicePage: capturedInvoicePage,
 						companyAddress: {
 							address1: "Captured address",
 							address2: "Captured city",
@@ -225,19 +169,42 @@ describe("Special Order public review boundary", () => {
 				},
 			}),
 		);
+		let loadCount = 0;
+		const dependencies = {
+			loadPrintDocumentData: async () => {
+				loadCount += 1;
+				return {
+					pages: [currentInvoicePage],
+					title: "Invoice S-42",
+					firstOrderId: "S-42",
+					companyAddress: { address1: "Current company address" },
+					logoUrl: "https://example.test/current-logo.png",
+				} as never;
+			},
+		};
 
-		const result = await getPublicSpecialOrderApproval(
+		const first = await getPublicSpecialOrderApproval(
 			fake.ctx as never,
 			"valid-token",
+			dependencies,
+		);
+		await getPublicSpecialOrderApproval(
+			fake.ctx as never,
+			"valid-token",
+			dependencies,
 		);
 
-		expect(result).toMatchObject({
+		expect(loadCount).toBe(2);
+		expect(first).toMatchObject({
 			state: "ACTIVE",
+			customerName: "Mutable Customer",
+			salespersonName: "Mutable Salesperson",
 			templateId: "template-2",
-			logoUrl: "https://example.test/captured-logo.png",
-			companyAddress: { address1: "Captured address" },
-			order: { invoicePage },
+			logoUrl: "https://example.test/current-logo.png",
+			companyAddress: { address1: "Current company address" },
+			order: { invoicePage: currentInvoicePage },
 		});
+		expect(JSON.stringify(first)).not.toContain("Captured stale line");
 	});
 
 	it("returns minimal terminal states and records stale-link telemetry", async () => {

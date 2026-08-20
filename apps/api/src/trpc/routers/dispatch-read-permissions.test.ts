@@ -39,9 +39,7 @@ describe("dispatch read permissions", () => {
 				roles: {
 					findFirstOrThrow: async () => ({
 						name: "Driver",
-						RoleHasPermissions: [
-							{ permission: { name: "view delivery" } },
-						],
+						RoleHasPermissions: [{ permission: { name: "view delivery" } }],
 					}),
 				},
 				modelHasPermissions: { findMany: async () => [] },
@@ -54,5 +52,33 @@ describe("dispatch read permissions", () => {
 		await expect(caller.manifest({ dispatchId: 501 })).rejects.toMatchObject({
 			code: "FORBIDDEN",
 		});
+	});
+
+	it("rejects fulfillment dispatch resolution without the dedicated permission", async () => {
+		const caller = dispatchRouters.createCaller({
+			userId: 19,
+			db: {
+				users: {
+					findFirstOrThrow: async () => ({
+						id: 19,
+						email: "driver@example.test",
+						name: "Driver One",
+						phoneNo: null,
+						roles: [{ role: { id: 7, name: "Driver" } }],
+					}),
+				},
+				roles: {
+					findFirstOrThrow: async () => ({
+						name: "Driver",
+						RoleHasPermissions: [{ permission: { name: "edit delivery" } }],
+					}),
+				},
+				modelHasPermissions: { findMany: async () => [] },
+			},
+		} as Parameters<typeof dispatchRouters.createCaller>[0]);
+
+		await expect(
+			caller.ensureSalesOrderFulfillmentDispatch({ salesId: 501 }),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
 });

@@ -11,6 +11,11 @@ Refresh, and the state-aware Enable Custom / Disable Custom action. Employees
 with `editSalesComponent` also receive a leading `[ + ]` card that opens the
 shared component-details editor for the active step.
 
+When the toolbar is floating, it renders at the document level so transformed
+and overflow-clipped item-step animation containers cannot hide it. Its
+viewport position still comes from the active picker boundary, and end-of-list
+anchored mode remains inside that boundary.
+
 ## Menu and editors
 
 - `Edit` contains `Details`, `Visibility`, `Price`, and

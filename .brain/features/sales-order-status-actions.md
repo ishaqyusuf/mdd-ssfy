@@ -6,6 +6,24 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 
 ## Behavior
 
+### Dedicated Mark as Fulfilled permission (2026-08-20)
+
+- Sales Orders fulfillment now uses the action-specific
+  `markSalesOrderFulfilled` permission instead of borrowing order, pickup,
+  delivery, packing, or inventory authority.
+- The canonical Sales status menu and the Sales Overview dispatch menu hide
+  their fulfillment-completion action without the grant. Production completed
+  and workflow cancellation retain their independent permission rules.
+- Fulfillment preflight, ordinary continuation, fulfillment-only dispatch
+  resolution, protected task start, and the terminal `update-sales-control`
+  job all repeat the dedicated check using the authenticated actor.
+- The fulfillment-only dispatch resolver reuses the newest active dispatch or
+  serializably creates one queued dispatch. General dispatch creation remains
+  restricted to dispatch managers.
+- Receiving inbound items and approving production blockers remain additive
+  manager operations; the dedicated fulfillment permission alone cannot
+  perform them.
+
 ### Safe layered cancellation (2026-08-06)
 
 - Status-menu cancellation opens a single-order, lazy-loaded review dialog. It

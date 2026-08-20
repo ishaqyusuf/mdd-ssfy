@@ -1,10 +1,11 @@
 /** @jsxImportSource react */
 "use client";
 
-import { Button, buttonVariants } from "@gnd/ui/button";
+import { buttonVariants } from "@gnd/ui/button";
 import { Calendar } from "@gnd/ui/calendar";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
+import { Input } from "@gnd/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import type { SalesFormSelectOption } from "./invoice-pricing-overview";
 import { normalizeSalesFormPaymentTerm } from "./overview-options";
@@ -129,11 +130,21 @@ export function SalesFormInvoiceDetailsPanel(
 	return (
 		<section className="border-b border-border/70 pb-6">
 			<SalesFormSummarySectionHeader
-				description="Payment terms, due dates, and fulfillment."
+				description="Purchase order, payment terms, due dates, and fulfillment."
 				icon={<Icons.Info size={18} />}
 				title="Global Invoice Details"
 			/>
 			<div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
+				<div className="grid gap-1.5">
+					<FieldLabel htmlFor="invoice-po">P.O. Number</FieldLabel>
+					<Input
+						id="invoice-po"
+						value={props.po || ""}
+						onChange={(event) => props.onPoChange?.(event.target.value)}
+						className="h-10 bg-background text-xs font-bold"
+						placeholder="Purchase order number"
+					/>
+				</div>
 				{isQuote ? null : (
 					<div className="grid gap-1.5">
 						<FieldLabel htmlFor="invoice-payment-term">Net</FieldLabel>

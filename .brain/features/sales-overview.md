@@ -40,7 +40,10 @@ opening production, dispatch, packing, or inventory workflows.
   `Saving`, `Saved`, and `Failed` states. A successful edit refreshes the
   active overview and the correctly typed order or quote list.
 - P.O. reads support both legacy root metadata and nested new-form metadata;
-  writes synchronize both shapes when the nested document exists.
+  writes synchronize both shapes when the nested document exists. New-form
+  persistence also retains the nested compatibility form, preserves the current
+  P.O. when a save omits the field, and clears both shapes only for an explicit
+  blank value.
 - Billing and shipping cards each expose their own permission-gated address
   action for orders and quotes. The action opens the shared customer sheet in
   address-only mode, and successful saves refresh the mounted overview and

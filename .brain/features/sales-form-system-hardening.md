@@ -6,10 +6,12 @@
   of loading the complete Sales graph. Conversion serializes on the source row,
   records the source identity in target metadata, and returns the existing
   target on retry or concurrent submission. Inventory synchronization and
-  activity-note follow-up remain durably dispatched/recorded, with follow-up
-  failures isolated from the successful copy result. Focused copy/idempotency
-  tests pass; production timing and browser proof were skipped at the user's
-  request.
+  activity-note follow-up use the Vercel request's post-response lifecycle, so
+  their durable dispatch/recording no longer delays the committed copy result.
+  Dashboard status reset and query refresh start together and do not delay the
+  success confirmation. Authenticated local browser proof on a new 4-item,
+  9-door conversion measured the copy API at 127ms and click-to-confirmation at
+  521ms, down from 1.53s and 2.12s respectively on the prior path.
 
 - New internal dashboard orders and quotes use the legacy sales identity for
   both `orderId` and `slug`. A generated quote such as `03464PC` now persists
@@ -85,6 +87,12 @@
   multipliers retain ratio precision until the final currency value is rounded,
   so switching back restores the original price instead of compounding or
   drifting.
+- Editing an existing HPT door row's Base Price explicitly returns that row to
+  calculated pricing by clearing stale custom/override price metadata. The new
+  final unit price retains the row's shared surcharge, flat rate, addon, and
+  quantities, then persists through the normal relational save path. This
+  prevents an older custom-price value from making a changed Base Price appear
+  to save the same amount.
 - Existing HPT rows with a positive stored base price compare their stored
   door-only sales price against the active customer-profile calculation. Users
   with door-pricing permission see a row-level Repair action only when those
@@ -176,11 +184,11 @@
   Pricing rows use subtle separators, while the additional-cost rows remain an
   inline subsection without a nested card, tinted panel, or shadow. Form
   controls keep their standard outlined treatment for clear affordance.
-- Global invoice details no longer render separate P.O. or invoice-date
-  controls. The underlying metadata remains available to persistence and
-  compatibility paths. Once a sale is saved, the editor header combines the
-  visible document number and persisted invoice date as `#09158PC 08/03/26`;
-  unsaved create forms keep the date out of the title.
+- Global invoice details render an editable, labeled `P.O. Number` control for
+  orders and quotes while keeping the separate invoice-date control hidden.
+  Once a sale is saved, the editor header combines the visible document number
+  and persisted invoice date as `#09158PC 08/03/26`; unsaved create forms keep
+  the date out of the title.
 - Door size selection uses an all-caps title, a single non-wrapping Door
   Supplier label beside the supplier dropdown, and no duplicate selected-
   supplier caption. Door LH/RH/Qty, HPT size rows, shelf rows, moulding rows,
@@ -299,6 +307,13 @@
   renders `#09158PC 08/03/26` from its persisted date with the same controls
   hidden. Seven focused tests / 20 assertions, the Sales package typecheck,
   scoped Biome checks, and browser console-error check pass.
+- 2026-08-20 restored the P.O. control after production feedback showed that
+  open/save could erase order `09353PC`'s value. Omitted P.O. payloads preserve
+  the existing compatibility value, explicit blanks clear both root and nested
+  shapes, and new-form saves retain `newSalesForm.form.po`. Focused metadata,
+  summary UI, autosave, and relational persistence suites pass 59 tests / 252
+  assertions; Sales typecheck and whitespace checks pass. Authenticated browser
+  proof was blocked because local Docker services did not become available.
 - 2026-08-06 the focused shelf product picker UI regression passes 1 test / 2
   assertions and confirms the results container has a fixed maximum height with
   vertical scrolling and contained overscroll.

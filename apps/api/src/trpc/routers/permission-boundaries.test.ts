@@ -165,9 +165,35 @@ describe("high-risk tRPC permission boundaries", () => {
 			"overrideSalesInventoryMarkAsAvailabilityForContinue: protectedProcedure",
 		);
 		const mutationSource = inventories.slice(start, start + 2200);
+		expect(mutationSource).toContain(
+			"await requireSalesOrderMarkAsPermission(props.ctx, props.input.action)",
+		);
 		expect(mutationSource).toContain('"editOrders"');
 		expect(mutationSource).toContain('"editInboundOrder"');
 		expect(mutationSource).toContain('"editProduction"');
+	});
+
+	test("Mark as Fulfilled uses a dedicated permission at API boundaries", () => {
+		const inventories = source("inventories.route.ts");
+		for (const procedure of [
+			"salesInventoryMarkAsPreflight",
+			"resolveSalesInventoryMarkAsAvailabilityForContinue",
+			"overrideSalesInventoryMarkAsAvailabilityForContinue",
+			"resolveSalesInventoryMarkAsAutoForContinue",
+		]) {
+			const start = inventories.indexOf(`${procedure}: protectedProcedure`);
+			expect(start).toBeGreaterThanOrEqual(0);
+			expect(inventories.slice(start, start + 1600)).toContain(
+				"await requireSalesOrderMarkAsPermission(props.ctx, props.input.action)",
+			);
+		}
+
+		const dispatch = source("dispatch.route.ts");
+		expectProtectedMutation(
+			dispatch,
+			"ensureSalesOrderFulfillmentDispatch",
+			'"markSalesOrderFulfilled"',
+		);
 	});
 
 	test("manual inventory need fulfillment requires order editing permission", () => {

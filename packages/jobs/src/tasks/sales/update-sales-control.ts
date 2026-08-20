@@ -1,8 +1,9 @@
+import { userHasPermission } from "@gnd/auth/utils";
 import { type Db, db } from "@gnd/db";
 import {
-	assertSpecialOrderOperationAllowed,
 	type LegacyUpdateSalesControlAction,
 	type UpdateSalesControl,
+	assertSpecialOrderOperationAllowed,
 	cancelDispatchTask,
 	clearPackingTask,
 	createAssignmentsTask,
@@ -415,6 +416,18 @@ export const updateSalesControl = schemaTask({
 	run: async (input) => {
 		const action = resolveActionHandler(input as UpdateSalesControl);
 		if (action) {
+			if (
+				input.markAsCompleted &&
+				!(await userHasPermission(
+					db,
+					input.meta.authorId,
+					"markSalesOrderFulfilled",
+				))
+			) {
+				throw new Error(
+					"You do not have permission to mark sales orders fulfilled.",
+				);
+			}
 			await enforceSpecialOrderForAction(input as UpdateSalesControl);
 			const response = await action(db, input);
 			if (

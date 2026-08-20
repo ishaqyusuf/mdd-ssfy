@@ -81,6 +81,11 @@ multiple purchasing, production, packing, and dispatch entry points consistently
     rotation may leave an unexpired request that is cryptographically unusable;
     authenticated link preparation treats it as stale, revokes it, and issues
     one revision-bound replacement instead of returning a broken link.
+15. A valid public approval link renders from the current canonical relational
+    sales print loader on every open. Rendered invoice pages are not persisted
+    in new approval requests, and any legacy persisted document page is ignored.
+    The revision check runs before loading the document, preserving the rule
+    that changed customer-visible content requires a new capability and approval.
 
 ## Consequences
 
@@ -111,6 +116,8 @@ multiple purchasing, production, packing, and dispatch entry points consistently
 - Environment sync and signing-secret rotation recover on the next authenticated
   link-preparation action without weakening public token validation or reusing
   unverifiable capabilities.
+- Old and newly issued links share one document-loading path, so link reuse or
+  request age cannot select a stale or incomplete rendered invoice snapshot.
 - The override is an auditable exception to approval enforcement, not Current
   Approval and not a general operations permission. Removing either the Role
   capability or the underlying operation permission removes the forward bypass.

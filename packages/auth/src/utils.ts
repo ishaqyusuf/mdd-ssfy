@@ -100,6 +100,58 @@ export async function getUserIdsWithPermission(db: Db, permission: string) {
 	]);
 }
 
+export async function userHasPermission(
+	db: Db,
+	userId: number | null | undefined,
+	permission: PermissionScope,
+) {
+	if (!userId) return false;
+	const user = await db.users.findFirst({
+		where: {
+			id: userId,
+			deletedAt: null,
+			accessRevokedAt: null,
+		},
+		select: {
+			roles: {
+				where: { deletedAt: null },
+				take: 1,
+				select: {
+					role: {
+						select: {
+							name: true,
+							RoleHasPermissions: {
+								where: { deletedAt: null },
+								select: { permissionId: true },
+							},
+						},
+					},
+				},
+			},
+		},
+	});
+	if (!user) return false;
+
+	const role = user.roles[0]?.role;
+	const [rolePermissions, specificPermissions] = await Promise.all([
+		db.permissions.findMany({
+			where: {
+				id: {
+					in: role?.RoleHasPermissions.map((item) => item.permissionId) ?? [],
+				},
+				deletedAt: null,
+			},
+			select: { id: true, name: true },
+		}),
+		getUserSpecificPermissions(db, userId),
+	]);
+
+	return generatePermissions(
+		role?.name,
+		mergePermissionRecords(rolePermissions, specificPermissions),
+	)[permission];
+}
+
 export function mergePermissionRecords(
 	...collections: Array<Array<{ id?: number; name: string }>>
 ) {

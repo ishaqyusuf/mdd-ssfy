@@ -1,5 +1,23 @@
 # API Contracts
 
+## Mark Sales Order Fulfilled Contract (2026-08-20)
+
+- `inventories.salesInventoryMarkAsPreflight`,
+  `resolveSalesInventoryMarkAsAvailabilityForContinue`,
+  `overrideSalesInventoryMarkAsAvailabilityForContinue`, and
+  `resolveSalesInventoryMarkAsAutoForContinue` require
+  `markSalesOrderFulfilled` only for `action = fulfilled`.
+- `dispatch.ensureSalesOrderFulfillmentDispatch({ salesId })` requires the
+  dedicated permission, repeats Special Order dispatch enforcement, and runs a
+  serializable lookup/create. It reuses the newest active dispatch or creates
+  one queued dispatch from the order's delivery option, then returns `{ id }`.
+- The shared Dashboard task action rejects `update-sales-control` payloads with
+  `markAsCompleted` unless the authenticated session has the dedicated grant.
+  It still overwrites client-supplied actor metadata.
+- The background job rebuilds the live role plus employee-specific permission
+  snapshot for `meta.authorId` and rejects unauthorized direct task invocation
+  before Special Order checks or domain writes.
+
 ## Sales Form Reliability Contract (2026-08-19)
 
 - `sales.createWorkflowComponent` accepts an active workflow step plus bounded

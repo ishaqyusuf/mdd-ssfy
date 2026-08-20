@@ -160,6 +160,7 @@ export const PERMISSIONS = [
 	"generateSalesPaymentReport",
 	"generateSalesPerformanceReport",
 	"generateSalesStatementReport",
+	"markSalesOrderFulfilled",
 	"viewStorefront",
 	"editStorefront",
 	"viewStorefrontCarts",
@@ -266,6 +267,7 @@ export const EXTRA_PERMISSION_SCOPES = [
 	"generateSalesPaymentReport",
 	"generateSalesPerformanceReport",
 	"generateSalesStatementReport",
+	"markSalesOrderFulfilled",
 	"publishStorefront",
 ] as const;
 export type ExtraPermissionScope = (typeof EXTRA_PERMISSION_SCOPES)[number];

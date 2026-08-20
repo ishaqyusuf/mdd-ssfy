@@ -2,6 +2,7 @@ import type { CopySaleSchema, MoveSaleSchema } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import { createNoteAction } from "@notifications/note";
 import { copySales } from "@sales/copy-sales";
+import { waitUntil } from "@vercel/functions";
 
 export async function copySale(ctx: TRPCContext, input: CopySaleSchema) {
 	if (!ctx.userId) {
@@ -22,32 +23,35 @@ export async function copySale(ctx: TRPCContext, input: CopySaleSchema) {
 			id: author.id,
 			name: author.name || "",
 		},
+		deferPostCommit: waitUntil,
 	});
 
 	if (result.id) {
-		await createNoteAction({
-			db: ctx.db,
-			authorId: ctx.userId,
-			note: `Copied from ${input.salesUid}`,
-			headline: "Copy Action",
-			type: "general",
-			tags: [
-				{
-					tagName: "salesId",
-					tagValue: String(result.id),
-				},
-				{
-					tagName: "type",
-					tagValue: "general",
-				},
-				{
-					tagName: "status",
-					tagValue: "public",
-				},
-			],
-		}).catch((error) => {
-			console.error("Unable to record sales copy note", error);
-		});
+		waitUntil(
+			createNoteAction({
+				db: ctx.db,
+				authorId: ctx.userId,
+				note: `Copied from ${input.salesUid}`,
+				headline: "Copy Action",
+				type: "general",
+				tags: [
+					{
+						tagName: "salesId",
+						tagValue: String(result.id),
+					},
+					{
+						tagName: "type",
+						tagValue: "general",
+					},
+					{
+						tagName: "status",
+						tagValue: "public",
+					},
+				],
+			}).catch((error) => {
+				console.error("Unable to record sales copy note", error);
+			}),
+		);
 	}
 
 	return {

@@ -3460,6 +3460,11 @@ async function saveNewSalesFormInternal(
 						currentMeta.newSalesForm?.draftKey || newDraftKey || undefined,
 					updatedAt: new Date().toISOString(),
 					autosave: payload.autosave,
+					form: {
+						...safeRecord(currentMeta.newSalesForm?.form),
+						...nextFormMeta,
+						po: legacyMeta.po == null ? null : String(legacyMeta.po),
+					},
 				},
 			};
 			const nextAmountDue =

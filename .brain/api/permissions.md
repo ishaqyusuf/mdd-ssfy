@@ -1,5 +1,26 @@
 # API Permissions
 
+## Mark Sales Order Fulfilled Permission (2026-08-20)
+
+- `markSalesOrderFulfilled` is the dedicated capability for the Sales Orders
+  Mark as Fulfilled action. It is available to roles and employee-specific
+  grants as `Mark Sales Order Fulfilled`; Super Admin retains implicit access.
+- `editOrders`, `editPickup`, `editDelivery`, and `viewPacking` do not imply the
+  new capability. Their existing inventory, dispatch, packing, and order
+  permissions are unchanged.
+- Fulfillment preflight and ordinary continuation enforce the capability only
+  when `action = fulfilled`; Production completed keeps its existing boundary.
+- Dependency resolution that receives inbound material or approves production
+  requires `markSalesOrderFulfilled` plus the existing `editOrders`,
+  `editInboundOrder`, and `editProduction` checks.
+- The Dashboard hides both Sales menu Fulfilled and dispatch-list Mark as
+  completed without the grant. The protected task-start action and the
+  `update-sales-control` job independently recheck the authenticated actor
+  before any terminal fulfillment write.
+- `dispatch.ensureSalesOrderFulfillmentDispatch` uses the dedicated capability
+  to reuse or create only the active dispatch needed by this workflow. It does
+  not grant the general `dispatch.createDispatch` contract.
+
 ## Dispatch Workspace And Exceptions (2026-08-18)
 
 - Workspace summary, backlog, list, calendar, driver workload, exception list,

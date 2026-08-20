@@ -1,6 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
+import { tasks } from "@trigger.dev/sdk/v3";
 import {
   type CopySalesInTransactionProps,
+  copySales,
   copySalesInTransaction,
 } from "./copy-sales";
 
@@ -301,5 +303,40 @@ describe("copySalesInTransaction", () => {
       "00010PC-hx01",
       "00010PC-hx02",
     ]);
+  });
+});
+
+describe("copySales post-commit work", () => {
+  it("can defer inventory sync dispatch without delaying the copy response", async () => {
+    const { db: transactionDb } = createTransactionLikeDb(
+      {},
+      { id: 777, slug: "00077PC", isDyke: true },
+    );
+    const trigger = mock(async () => ({ id: "inventory-sync-run" }));
+    (tasks as { trigger: typeof tasks.trigger }).trigger = trigger;
+    let deferred: Promise<unknown> | undefined;
+    const deferPostCommit = mock((promise: Promise<unknown>) => {
+      deferred = promise;
+    });
+    const db = {
+      $transaction: async (
+        callback: (tx: CopySalesInTransactionProps["db"]) => Promise<unknown>,
+      ) => callback(transactionDb as CopySalesInTransactionProps["db"]),
+    };
+
+    const result = await copySales({
+      db: db as never,
+      salesUid: "00010PC",
+      as: "order",
+      type: "quote",
+      author: { id: 7, name: "Pablo Cruz" },
+      deferPostCommit,
+    });
+
+    expect(result).toEqual({ id: 777, slug: "00077PC", isDyke: true });
+    expect(deferPostCommit).toHaveBeenCalledTimes(1);
+    expect(deferred).toBeInstanceOf(Promise);
+    await deferred;
+    expect(trigger).toHaveBeenCalledTimes(1);
   });
 });

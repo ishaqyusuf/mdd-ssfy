@@ -1064,6 +1064,90 @@ export const dispatchRouters = createTRPCRouter({
 			await requireDispatchManager(props.ctx);
 			return getSalesDeliveryInfo(props.ctx, props.input.salesId);
 		}),
+	ensureSalesOrderFulfillmentDispatch: protectedProcedure
+		.input(z.object({ salesId: z.number().int().positive() }))
+		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["markSalesOrderFulfilled"],
+				"You do not have permission to mark sales orders fulfilled.",
+			);
+			await enforceSpecialOrderForSale(
+				props.ctx,
+				props.input.salesId,
+				"DISPATCH",
+				"api.dispatch.ensure-sales-order-fulfillment",
+			);
+
+			const resolved = await props.ctx.db.$transaction(
+				async (tx) => {
+					const sale = await tx.salesOrders.findFirstOrThrow({
+						where: {
+							id: props.input.salesId,
+							type: "order",
+						},
+						select: {
+							orderId: true,
+							deliveryOption: true,
+							deliveries: {
+								where: { deletedAt: null },
+								orderBy: [{ dueDate: "desc" }, { id: "desc" }],
+								select: {
+									id: true,
+									status: true,
+								},
+							},
+						},
+					});
+					const existing = sale.deliveries.find((dispatch) => {
+						const status = String(dispatch.status || "").toLowerCase();
+						return !["completed", "cancelled", "delivered"].includes(status);
+					});
+					if (existing) {
+						return { created: false, dispatchId: existing.id };
+					}
+
+					const dueDate = new Date();
+					const deliveryMode = (sale.deliveryOption ||
+						"delivery") as DeliveryOption;
+					const dispatch = await tx.orderDelivery.create({
+						data: {
+							deliveryMode,
+							createdBy: { connect: { id: props.ctx.userId } },
+							status: "queue" as SalesDispatchStatus,
+							dueDate,
+							meta: {},
+							order: { connect: { id: props.input.salesId } },
+						},
+						select: { id: true },
+					});
+					return {
+						created: true,
+						deliveryMode,
+						dispatchId: dispatch.id,
+						dueDate,
+						orderNo: sale.orderId,
+					};
+				},
+				{ isolationLevel: "Serializable" },
+			);
+
+			if (resolved.created) {
+				await getDispatchNotificationService(props.ctx).send(
+					"sales_dispatch_created",
+					{
+						payload: {
+							orderNo: resolved.orderNo,
+							dispatchId: resolved.dispatchId,
+							deliveryMode: resolved.deliveryMode,
+							dueDate: resolved.dueDate,
+						},
+					},
+				);
+			}
+
+			return { id: resolved.dispatchId };
+		}),
 	orderDispatchOverview: protectedProcedure
 		.input(salesDispatchOverviewSchema)
 		.query(async (props) => {

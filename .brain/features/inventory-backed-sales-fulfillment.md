@@ -11,6 +11,20 @@ The long-term source of truth for overview, print, production, deployment, fulfi
 - A line can only move forward when all required fulfillment units are available for that step.
 - If one required component is missing, the line remains blocked even when other components are available.
 
+## Mark As Fulfilled Authorization (2026-08-20)
+
+- The Sales Orders terminal fulfillment action is authorized by
+  `markSalesOrderFulfilled`, not the broader inventory fulfillment operator set.
+- Action-aware inventory preflight and continuation preserve the same
+  inventory projection and blocker rules while rejecting unauthorized
+  fulfillment before writes.
+- Existing inbound receipt and production approval permissions remain required
+  when resolving blockers. The dedicated grant does not expand inventory
+  administration, packing, shipping, or stock authority.
+- Terminal `update-sales-control` execution reloads the actor's effective role
+  and employee-specific permissions before calling the existing inventory and
+  dispatch completion logic.
+
 ## Core Units
 - [x] `LineItem` is the inventory-backed sale line.
 - [x] `LineItemComponents` is the BOM / production component demand row.

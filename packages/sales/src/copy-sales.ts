@@ -12,6 +12,7 @@ interface Props {
     name: string;
     id: number;
   };
+  deferPostCommit?: (promise: Promise<unknown>) => void;
 }
 
 type CopySalesWriteClient = Db | TransactionClient;
@@ -447,13 +448,17 @@ export async function copySales(props: Props) {
       error: error instanceof Error ? error.message : String(error),
     };
   }
-
-	if (!response.error && response.id) {
-		await queueSalesInventoryLineItemsSync({
-			salesOrderId: response.id,
-			source: "copy-sales",
-			triggeredByUserId: props.author?.id ?? null,
+  if (!response.error && response.id) {
+    const inventorySync = queueSalesInventoryLineItemsSync({
+      salesOrderId: response.id,
+      source: "copy-sales",
+      triggeredByUserId: props.author?.id ?? null,
     });
+    if (props.deferPostCommit) {
+      props.deferPostCommit(inventorySync);
+    } else {
+      await inventorySync;
+    }
   }
   return response;
 }

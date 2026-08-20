@@ -1,12 +1,12 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useInvalidateQuery } from "@/hooks/use-invalidate-query";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { printPackingSlip } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import { Menu } from "@gnd/ui/custom/menu";
-import { ResetSalesControl, UpdateSalesControl } from "@sales/schema";
-import { useDispatch } from "./context";
+import type { ResetSalesControl, UpdateSalesControl } from "@sales/schema";
 import { useMutation } from "@tanstack/react-query";
-import { useInvalidateQuery } from "@/hooks/use-invalidate-query";
+import { useDispatch } from "./context";
 
 interface Props {
 	dispatch;
@@ -17,12 +17,24 @@ export function DispatchListMenu({ dispatch }: Props) {
 	const auth = useAuth();
 	const ctx = useDispatch();
 	const { invalidateQuery } = useInvalidateQuery();
+	const getTaskMeta = () => {
+		const salesId = ctx.data?.id;
+		const authorId = Number(auth.id || 0);
+		if (!salesId || !authorId) return null;
+		return {
+			salesId,
+			authorId,
+			authorName: auth.name || "Employee",
+		};
+	};
 	const { trigger } = useTaskTrigger({
 		silent: true,
 		onSuccess() {
 			// sq.salesQuery.dispatchUpdated();
+			const salesNo = ctx.data?.order?.orderId;
+			if (!salesNo) return;
 			invalidateQuery("dispatch.orderDispatchOverview", {
-				salesNo: ctx.data?.order?.orderId!,
+				salesNo,
 			});
 			console.log("triggered fallback");
 		},
@@ -32,14 +44,12 @@ export function DispatchListMenu({ dispatch }: Props) {
 			onSuccess() {
 				// loader.success("Deleted!.");
 				// sq.salesQuery.dispatchUpdated();
+				const meta = getTaskMeta();
+				if (!meta) return;
 				trigger({
 					taskName: "reset-sales-control",
 					payload: {
-						meta: {
-							salesId: ctx.data?.id!,
-							authorId: auth?.id!,
-							authorName: auth?.name!,
-						},
+						meta,
 					} as ResetSalesControl,
 				});
 			},
@@ -58,14 +68,12 @@ export function DispatchListMenu({ dispatch }: Props) {
 		});
 	};
 	const packAll = () => {
+		const meta = getTaskMeta();
+		if (!meta) return;
 		trigger({
 			taskName: "update-sales-control",
 			payload: {
-				meta: {
-					salesId: ctx.data?.id!,
-					authorId: auth?.id!,
-					authorName: auth?.name!,
-				},
+				meta,
 				packItems: {
 					dispatchId: dispatch.id,
 					dispatchStatus: dispatch.status || "queue",
@@ -76,14 +84,12 @@ export function DispatchListMenu({ dispatch }: Props) {
 		});
 	};
 	const markAsCompleted = () => {
+		const meta = getTaskMeta();
+		if (!meta || !auth.can.markSalesOrderFulfilled) return;
 		trigger({
 			taskName: "update-sales-control",
 			payload: {
-				meta: {
-					salesId: ctx.data?.id!,
-					authorId: auth?.id!,
-					authorName: auth?.name!,
-				},
+				meta,
 				markAsCompleted: {
 					dispatchId: dispatch.id,
 					receivedBy: auth?.name || "System",
@@ -106,9 +112,11 @@ export function DispatchListMenu({ dispatch }: Props) {
 				Pack all
 			</Menu.Item>
 
-			<Menu.Item icon="check" onClick={markAsCompleted}>
-				Mark as completed
-			</Menu.Item>
+			{auth.can.markSalesOrderFulfilled ? (
+				<Menu.Item icon="check" onClick={markAsCompleted}>
+					Mark as completed
+				</Menu.Item>
+			) : null}
 
 			<Menu.Trash action={() => deleteDispatch(dispatch.id)}>Delete</Menu.Trash>
 		</Menu>

@@ -46,17 +46,21 @@ The canonical states are `NOT_REQUIRED`, `SIGNATURE_PENDING`,
 Each request is bound to a deterministic Approval Revision and an immutable
 published policy version. The public capability is random, stored only as a
 SHA-256 hash, expires according to Sales settings, and can be consumed once.
-The customer sees the customer-visible order snapshot and policy, then either:
+The customer sees the current canonical sales document and the request's
+published policy, then either:
 
 - approves after checking the acknowledgment, supplying a printed name, and
   drawing a signature; or
 - declines with a required reason.
 
-The public order review renders customer-visible line specifications and nested
-group details from that immutable snapshot. House-package doors show size, door
-type, prehung/general swing, left- and right-hand quantities, total doors,
-height, and moulding details when present; these values are review-only and do
-not mutate the snapshot or order.
+Every valid public-link open rebuilds the full invoice page through the same
+canonical relational print loader used by Sales Preview. It never renders a
+captured document page or reconstructs items from approval-request JSON.
+Revision equality is checked before the live load, so a material order change
+makes the capability stale instead of showing changed content under the prior
+approval revision. House-package doors show size, door type, prehung/general
+swing, left- and right-hand quantities, total doors, height, and moulding
+details when present.
 
 A material order change supersedes prior evidence, revokes active links, moves
 the order to `REAPPROVAL_REQUIRED`, and requires a new signature. Prior evidence
@@ -209,13 +213,20 @@ and acceptance gate:
 
 ## Validation and rollout status
 
-- 2026-08-19: Public approval requests now capture the canonical invoice
+- 2026-08-19: Special Order public review now loads the current canonical
+  invoice, company address, logo, line items, addresses, and totals from the
+  sales record on every valid link open. Approval issuance no longer embeds a
+  rendered document snapshot, and existing stored document snapshots are
+  ignored. Revision and policy snapshots remain audit evidence; revision
+  mismatch still makes a link stale before any sales data is returned.
+- 2026-08-19 (superseded later the same day): Public approval requests captured the canonical invoice
   `PrintPage`, company address, logo, and Template 2 identifier while issuing
   the revision-bound capability. This uses the same relational print loader as
   Sales Preview, so new approval links render the identical grouped item,
   image, pricing, address, header, and footer projection without rebuilding
   synthetic items from `newSalesForm.lineItems`. Existing links retain the
-  prior immutable-snapshot reconstruction as a compatibility fallback. The
+  prior immutable-snapshot reconstruction as a compatibility fallback. This
+  capture/read strategy was replaced by the live canonical loading rule above. The
   public page renders the stored page in the full Template 2 HTML document;
   its floating Approve/Decline bar still selects the response mode, scrolls to
   the response form, and hides while that form is on screen. No schema, API

@@ -432,9 +432,8 @@ export async function getPublicSpecialOrderApproval(
 					orderId: true,
 					specialOrderDeclaration: true,
 					specialOrderRevision: true,
-					meta: true,
 					customer: {
-						select: { name: true, businessName: true, email: true },
+						select: { name: true, businessName: true },
 					},
 					salesRep: { select: { name: true } },
 				},

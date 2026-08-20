@@ -38,6 +38,11 @@ export const triggerTask = actionClient
 					input.meta && typeof input.meta === "object"
 						? (input.meta as Record<string, unknown>)
 						: {};
+				if (input.markAsCompleted && !actor.can?.markSalesOrderFulfilled) {
+					throw new Error(
+						"You do not have permission to mark sales orders fulfilled.",
+					);
+				}
 				payload = {
 					...input,
 					meta: {

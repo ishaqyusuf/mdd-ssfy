@@ -1,5 +1,28 @@
 # Progress
 
+- 2026-08-20: fixed the new sales form's floating component-step toolbar being
+  present in the DOM but clipped off-screen by the animated item-step panel's
+  transformed and overflow-hidden ancestors. Fixed mode now portals to the
+  document while preserving picker-boundary measurement and inline anchored
+  mode. The regression test failed before the change and now passes with the
+  empty/loading picker coverage; `@gnd/sales` typecheck and scoped Biome pass.
+  The new-sales-form migration suites pass through Sales, dealer persistence,
+  API compatibility, catalog mutations, and overview params; the final
+  dealership typecheck retains its unrelated existing `packages/email`
+  `TailwindProps.children` diagnostic. Authenticated browser verification was
+  blocked because the available browser session was signed out. No schema,
+  API, permission, or persistence contract changed.
+
+- 2026-08-19: changed every valid Special Order approval-link open to rebuild
+  its complete invoice page from the current canonical relational sales print
+  loader. Public review no longer reads captured or legacy reconstructed
+  approval document snapshots, and request issuance no longer embeds a rendered
+  invoice page. Revision validation still happens before the live document load,
+  so changed customer-visible content makes the link stale and requires a new
+  approval. Added focused regression coverage for repeated live loading and
+  ignoring an existing stored document snapshot. No schema, migration,
+  permission, or public input contract changed.
+
 - 2026-08-19: initialized the local Markdown Wayfinder map for Square Refunds
   for Sales under `.scratch/square-refunds/`. The destination is an
   implementation-ready specification for an audited original-tender Square
@@ -9715,3 +9738,107 @@
   `@gnd/dashboard` typecheck did not complete in the bounded validation window.
 - Browser and production timing proof were skipped at the user's request. No
   Prisma schema or migration changed.
+
+## 2026-08-20 — Converted Pablo's sales feedback into proposed tickets
+
+- Reviewed Pablo's complete WhatsApp feedback for the day and the attached
+  30-second video. The video showed Sales Orders, order `09353PC`, and the new
+  sales form invoice summary while reporting that P.O. data is deleted after
+  open/save and no longer appears in Global Invoice Details.
+- Captured the separate fulfillment report that Donovan receives an inventory
+  permission error when attempting Mark Fulfilled, plus the client-process
+  complaint that no clear final ready-to-use update was received.
+- Reconciled the P.O. report with the completed July persistence fix and the
+  later intentional removal of the Global Invoice Details P.O. control; treated
+  the new report as a regression/reversal rather than duplicating the old task.
+- Created three proposed plans for P.O. integrity/UI restoration, fulfillment
+  permission alignment without blanket employee access, and client-ready
+  delivery status reporting. Added one roadmap task per plan.
+- No implementation, database, API, permission, deployment, or external-message
+  change was made during this intake.
+
+## 2026-08-20 — Approved Pablo's sales feedback plans
+
+- Approved all three plans from the Pablo sales P.O., fulfillment, and status
+  feedback intake after confirming that each is ready for handoff.
+- Promoted the companion tasks for P.O. integrity/UI restoration, fulfillment
+  permission alignment, and client-ready delivery reporting from Roadmap to
+  Backlog.
+- No handoffs, queue items, implementation changes, database changes, API
+  changes, permission changes, deployments, or external messages were created.
+
+## 2026-08-20 — Refined fulfillment access to a dedicated permission
+
+- Replaced the approved fulfillment plan's borrowed operational-capability
+  approach with a first-class `markSalesOrderFulfilled` permission, labeled
+  `Mark Sales Order Fulfilled` for administrators.
+- Kept inbound receiving, production approval, inventory administration,
+  packing administration, and general order editing outside the new grant;
+  blocker resolution continues to require its existing additive permissions.
+- Added the planned UI, preflight, continuation, task-dispatch, terminal-write,
+  session-hydration, role, employee-specific grant, and regression boundaries.
+- No runtime code, permission records, role assignments, database schema, API
+  behavior, deployment, or external messages changed during this plan update.
+
+## 2026-08-20 — Restored sales P.O. editing and persistence
+
+- Restored the labeled `P.O. Number` input in the new sales form's Global
+  Invoice Details for orders and quotes.
+- Fixed metadata projection so a save that omits P.O. preserves the current
+  root-first/nested-fallback value, while an explicit blank clears both root and
+  nested compatibility shapes.
+- Retained `newSalesForm.form.po` during new-form saves without restoring the
+  deprecated line-item, extra-cost, or summary JSON snapshots; relational sales
+  rows remain authoritative.
+- Added focused metadata, accessible UI, autosave, and relational save/reload
+  coverage. The combined validation passes 59 tests / 252 assertions;
+  `@gnd/sales` typecheck and `git diff --check` pass.
+- Authenticated browser validation was attempted against the local dashboard,
+  but Docker Engine did not become available and Dev Quick Login had no
+  employee fixture. `@gnd/api` typecheck retains three unrelated diagnostics in
+  special-order enrollment and inventory routing. No database schema,
+  permission, deployment, or external-message change was made.
+
+## 2026-08-20 — Implemented dedicated Mark Sales Order Fulfilled permission
+
+- Added the `markSalesOrderFulfilled` action permission to canonical session
+  generation and the existing role/employee-specific grant synchronization.
+- Hid fulfillment completion in both Dashboard entry points without the grant;
+  Production completed, cancellation, packing, and other dispatch actions keep
+  their existing authorization.
+- Enforced the grant for fulfillment preflight and continuation, a new narrow
+  serializable dispatch resolver, protected task start, and the terminal
+  `update-sales-control` job using a live actor permission rebuild.
+- Preserved stronger additive permissions for inbound receipt and production
+  approval and did not make order, pickup, delivery, or packing permissions
+  implicit fulfillment grants.
+- Added focused role, employee-specific, Super Admin, former-broad-permission,
+  API denial, Dashboard source-contract, and job-boundary coverage. All 48
+  tests / 357 assertions passed, scoped Biome passed, and filtered compiler
+  output reported no changed-file diagnostics.
+- Broad package typechecks retain unrelated existing failures in
+  special-order enrollment, `@gnd/errors` extension resolution, email JSX
+  runtime resolution, test matcher typing, and Dashboard sources.
+- No Prisma schema or migration, deployed permission record, role/employee
+  grant, production data, deployment, browser mutation, or external message was
+  changed. Donovan's grant target and authenticated runtime proof remain
+  explicit rollout steps.
+
+## 2026-08-20 — Fixed persisted HPT amount updates and quote conversion latency
+
+- Existing HPT Base Price edits now clear stale custom-price authority and
+  retain explicit surcharge, flat-rate, addon, and quantity components. Local
+  order `09353PC` moved from `$18.50` / `$740.00` to `$18.52` / `$740.80`, saved,
+  and retained the new values after reload.
+- Quote conversion now registers inventory dispatch and copy-note creation on
+  Vercel's post-response lifecycle. Dashboard status reset and query refresh run
+  concurrently and no longer delay the `Invoice created` confirmation.
+- Authenticated local browser timing improved from 1.53s API / 2.12s
+  click-to-confirmation to 127ms API / 521ms click-to-confirmation on a new
+  4-item, 9-door conversion, which created invoice `09388PC` once. An idempotent
+  retry reused its target and confirmed in 421ms.
+- Focused suites pass 43 tests / 148 assertions across door pricing, copy,
+  inventory dispatch, sales-menu latency, and status feedback. `@gnd/sales`
+  typecheck passes. Broad `@gnd/api` and `@gnd/dashboard` typechecks retain
+  unrelated existing diagnostics; no Prisma schema or API request/response
+  contract changed.

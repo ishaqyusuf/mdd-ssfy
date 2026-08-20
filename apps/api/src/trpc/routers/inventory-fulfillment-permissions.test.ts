@@ -56,4 +56,19 @@ describe("inventory fulfillment route permissions", () => {
 			await expect(call()).rejects.toMatchObject({ code: "FORBIDDEN" });
 		}
 	});
+
+	it("rejects Mark as Fulfilled preflight without the dedicated permission", async () => {
+		const caller = inventoriesRouter.createCaller(
+			unauthorizedOperationalContext(),
+		);
+		await expect(
+			caller.salesInventoryMarkAsPreflight({
+				salesOrderIds: [1],
+				action: "fulfilled",
+			}),
+		).rejects.toMatchObject({
+			code: "FORBIDDEN",
+			message: "You do not have permission to perform this action.",
+		});
+	});
 });

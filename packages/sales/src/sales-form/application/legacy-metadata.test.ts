@@ -178,6 +178,61 @@ describe("legacy sales form metadata", () => {
 		});
 	});
 
+	it("preserves an existing P.O. when a save does not submit the field", () => {
+		const meta = projectSalesFormMetaToLegacyMeta({
+			existingMeta: {
+				po: "PO-EXISTING",
+				newSalesForm: {
+					form: {
+						po: "PO-EXISTING",
+						notes: "Preserve me",
+					},
+				},
+			},
+			form: {
+				paymentMethod: "Cash",
+			},
+		});
+
+		expect(meta).toMatchObject({
+			po: "PO-EXISTING",
+			newSalesForm: {
+				form: {
+					po: "PO-EXISTING",
+					notes: "Preserve me",
+				},
+			},
+		});
+	});
+
+	it("clears root and nested P.O. metadata when the field is explicitly blank", () => {
+		const meta = projectSalesFormMetaToLegacyMeta({
+			existingMeta: {
+				po: "PO-EXISTING",
+				newSalesForm: {
+					form: {
+						po: "PO-EXISTING",
+						notes: "Preserve me",
+					},
+				},
+			},
+			form: {
+				po: "",
+			},
+		});
+
+		expect(meta).toMatchObject({
+			po: null,
+			newSalesForm: {
+				form: {
+					po: null,
+					notes: "Preserve me",
+				},
+			},
+		});
+		expect(readSalesFormPo(meta)).toBe("");
+	});
+
 	it("persists projected ccc for credit-card payment metadata", () => {
 		const meta = projectSalesFormMetaToLegacyMeta({
 			form: {

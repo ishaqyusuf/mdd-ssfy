@@ -26,6 +26,7 @@ import { TRPCError } from "@trpc/server";
 const EMPLOYEE_SPECIFIC_PERMISSION_NAMES = [
   "submit custom job",
   "submit bug report",
+  "mark sales order fulfilled",
 ] as const;
 
 async function ensureEmployeeSpecificPermissions(ctx: TRPCContext) {

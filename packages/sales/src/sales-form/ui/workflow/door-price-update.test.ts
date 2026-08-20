@@ -32,6 +32,39 @@ describe("door price updates", () => {
 		expect(row.lineTotal).toBe(377.7);
 	});
 
+	it("clears a stale custom override when the base price is edited", () => {
+		const row = updateDoorRowBasePrice(
+			{
+				unitPrice: 18.5,
+				lhQty: 24,
+				rhQty: 16,
+				totalQty: 40,
+				lineTotal: 740,
+				customPrice: 18.5,
+				meta: {
+					baseUnitPrice: 13.13,
+					doorSalesUnitPrice: 17.51,
+					sharedDoorSurcharge: 1,
+					customPrice: 18.5,
+					overridePrice: 18.5,
+				},
+			},
+			13.14,
+			0.75,
+		);
+
+		expect(row.customPrice).toBeNull();
+		expect(row.meta).toMatchObject({
+			baseUnitPrice: 13.14,
+			doorSalesUnitPrice: 17.52,
+			sharedDoorSurcharge: 1,
+			customPrice: null,
+			overridePrice: null,
+		});
+		expect(row.unitPrice).toBe(18.52);
+		expect(row.lineTotal).toBe(740.8);
+	});
+
 	it("clears legacy custom-price metadata when returning to auto pricing", () => {
 		const row = patchDoorRowCustomPrice(
 			{

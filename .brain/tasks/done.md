@@ -1,5 +1,18 @@
 # Done
 
+### Add A Dedicated Mark Sales Order Fulfilled Permission
+- Priority: High
+- Description: Track plan in `.brain/plans/2026-08-20-bug-fix-sales-fulfillment-permission-alignment.md`.
+- Related Feature: Sales status actions, dedicated fulfillment permission, and inventory-backed fulfillment
+- Status: Done
+- Plan Status: Done
+- Plan File: .brain/plans/2026-08-20-bug-fix-sales-fulfillment-permission-alignment.md
+- Intake File: .brain/intake/2026-08-20-pablo-sales-po-fulfillment-and-status-feedback.md
+- Created Date: 2026-08-20
+- Completed Date: 2026-08-20
+- Checks: 48 focused tests / 357 assertions passed; scoped Biome, changed-file compiler filtering, and `git diff --check` passed.
+- Notes: The code does not auto-grant the permission. Donovan's individual or role-level grant and authenticated browser proof remain rollout steps.
+
 - [x] 2026-08-19 — Restore Special Order approval-link copying for synced or
   signing-key-rotated requests. Link preparation now replaces unverifiable
   active capabilities once. Focused tests and authenticated in-app browser
@@ -1280,3 +1293,17 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Validation: focused copy/idempotency/concurrency tests and Sales typecheck
   pass; production timing and browser proof skipped by request.
 - Completed Date: 2026-08-19
+
+### Preserve And Restore Sales P.O. Data In The New Form
+
+- Priority: High
+- Description: Restored Global Invoice Details P.O. editing and hardened
+  root/nested compatibility persistence so no-op saves preserve values and an
+  explicit blank clears both shapes.
+- Status: Done
+- Plan Status: Done
+- Plan File: `.brain/plans/2026-08-20-bug-fix-sales-po-persistence-and-invoice-details.md`
+- Validation: 59 focused metadata, UI, autosave, and relational tests / 252
+  assertions pass; Sales typecheck and whitespace checks pass. Browser proof
+  was blocked by unavailable local Docker services.
+- Completed Date: 2026-08-20

@@ -215,6 +215,13 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 	const ccc = appliesPaymentChannelCharge(form.paymentMethod as string | null)
 		? finiteNumber(summary.ccc)
 		: 0;
+	const submittedPo = form.po;
+	const projectedPo =
+		submittedPo === undefined
+			? readSalesFormPo(existingMeta) || null
+			: typeof submittedPo === "string" && submittedPo.trim()
+				? submittedPo
+				: null;
 
 	const projectedMeta = {
 		...existingMetaWithoutDeprecated,
@@ -229,7 +236,7 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 		discount: finiteNumber(summary.discount),
 		deliveryCost: finiteNumber(delivery),
 		labor_cost: finiteNumber(labor),
-		po: form.po || null,
+		po: projectedPo,
 		qb: existingMeta.qb ?? null,
 		payment_option: form.paymentMethod || null,
 		paymentMethodReviewDismissed,
@@ -246,6 +253,7 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 			form: {
 				...safeRecord(newSalesForm.form),
 				...form,
+				po: projectedPo,
 			},
 		},
 	};

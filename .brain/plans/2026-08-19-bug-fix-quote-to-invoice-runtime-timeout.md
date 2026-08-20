@@ -10,7 +10,7 @@ Done
 2026-08-19
 
 ## Last Updated
-2026-08-19
+2026-08-20
 
 ## Recommended Codex Agent
 - Agent: `gpt-5.6-sol`
@@ -95,3 +95,17 @@ Report measured root cause, before/after stage timings, changed files, checks ru
 ## Linked Task
 - Task Title: Fix Quote To Invoice Runtime Timeout
 - Task File: `.brain/tasks/backlog.md`
+
+## 2026-08-20 Runtime Follow-Up
+
+- Measured the remaining local critical path: the idempotent copy transaction
+  took 31ms while awaited inventory task dispatch took 2.53s.
+- Deferred inventory dispatch and copy-note creation through Vercel
+  `waitUntil`; history/job callers retain the default awaited `copySales`
+  behavior unless they explicitly provide a post-commit scheduler.
+- Dashboard confirmation now precedes its concurrent status reset and query
+  refresh waits.
+- Authenticated local browser evidence improved from 1.53s API / 2.12s
+  click-to-confirmation to 127ms API / 521ms click-to-confirmation on a new
+  4-item, 9-door conversion. Retry reused the existing target and confirmed in
+  421ms.

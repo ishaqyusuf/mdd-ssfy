@@ -44,6 +44,16 @@ Tracks queued work that is important but not currently in the top execution slic
 - Status: Backlog
 - Created Date: 2026-08-11
 
+### Standardize Client-Ready Delivery Status Updates
+- Priority: Medium
+- Description: Track plan in `.brain/plans/2026-08-20-docs-client-delivery-status-reporting.md`.
+- Related Feature: Project delivery reporting and client communication readiness
+- Status: Backlog
+- Plan Status: Approved
+- Plan File: .brain/plans/2026-08-20-docs-client-delivery-status-reporting.md
+- Intake File: .brain/intake/2026-08-20-pablo-sales-po-fulfillment-and-status-feedback.md
+- Created Date: 2026-08-20
+
 ## Next Up
 - [x] Sales Finance compact ledger columns and persistent visibility: apply the
   shared Sales Orders small-column sizing to Invoices, Received, Refunded, Sub

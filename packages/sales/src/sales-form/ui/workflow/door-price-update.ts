@@ -62,23 +62,48 @@ export function updateDoorRowBasePrice<T extends DoorPriceRow>(
 		priorBase == null
 			? toNumber(row.unitPrice, 0)
 			: profileAdjustedDoorSalesPrice(null, priorBase, profileCoefficient);
-	const surcharge = subtractMoney(
-		toNumber(row.unitPrice, 0),
-		priorCalculatedSales,
+	const priorBreakdown = resolveHptDoorUnitPriceBreakdown(row, {
+		profileCoefficient,
+	});
+	const hasExplicitPriceComponents = [
+		row.meta?.sharedDoorSurcharge,
+		row.meta?.flatRate,
+		row.addon,
+		row.doorPrice,
+	].some(
+		(value) => value != null && value !== "" && Number.isFinite(Number(value)),
 	);
+	const sharedDoorSurcharge = hasExplicitPriceComponents
+		? priorBreakdown.sharedDoorSurcharge
+		: subtractMoney(toNumber(row.unitPrice, 0), priorCalculatedSales);
 	const nextCalculatedSales = profileAdjustedDoorSalesPrice(
 		null,
 		normalizedNextBase,
 		profileCoefficient,
 	);
+	const nextUnitPrice = sumMoney([
+		nextCalculatedSales,
+		sharedDoorSurcharge,
+		priorBreakdown.flatRate,
+		priorBreakdown.addon,
+	]);
 	return calcDoorPriceRow({
 		...row,
-		unitPrice: sumMoney([nextCalculatedSales, surcharge]),
+		unitPrice: nextUnitPrice,
 		jambSizePrice: nextCalculatedSales,
+		addon: priorBreakdown.addon,
+		doorPrice: priorBreakdown.addon,
+		customPrice: null,
 		meta: {
 			...(row.meta || {}),
 			baseUnitPrice: normalizedNextBase,
 			doorSalesUnitPrice: nextCalculatedSales,
+			sharedDoorSurcharge,
+			flatRate: priorBreakdown.flatRate,
+			customPrice: null,
+			overridePrice: null,
+			calculatedFinalUnitPrice: nextUnitPrice,
+			finalUnitPrice: nextUnitPrice,
 			priceMissing: false,
 		},
 	});
