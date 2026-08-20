@@ -158,8 +158,8 @@ employees can safely unwind work.
 - Customer invoice/order output includes a state-aware stamp and the applicable
   policy. Customer-approved Special Orders render with the shared green success
   treatment in HTML preview and PDF print output; other lifecycle states retain
-  their existing alert treatment. Approved invoices may include signer/signature
-  evidence.
+  their existing alert treatment. When signature evidence exists, approved
+  invoices place it to the right of the `Approved by` evidence in both outputs.
 - Quotes have no Special Order output. Production and packing documents show a
   compact operational status and do not expose private signature evidence.
 

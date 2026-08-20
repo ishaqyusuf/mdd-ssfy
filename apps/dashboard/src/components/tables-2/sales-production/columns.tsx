@@ -6,6 +6,7 @@ import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
@@ -13,6 +14,8 @@ import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
 import { timeAgo } from "@gnd/utils/dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
+
+import { getSalesProductionDueDateClassName } from "./due-date-tone";
 
 export type SalesProductionRow =
 	RouterOutputs["sales"]["productions"]["data"][number];
@@ -78,17 +81,15 @@ const salesColumn: Column = {
 		const item = row.original;
 
 		return (
-			<div className="min-w-0 space-y-1">
+			<div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
 				<TextWithTooltip
-					className="max-w-full truncate font-medium uppercase"
+					className="min-w-0 flex-1 truncate font-medium uppercase"
 					text={item.customer || "Customer unavailable"}
 				/>
-				<div className="flex min-w-0 items-center gap-1.5">
-					<span className="truncate font-mono text-xs font-medium uppercase text-muted-foreground">
-						{item.orderId}
-					</span>
-					<SalesPriorityBadge priority={item.priority} />
-				</div>
+				<span className="shrink-0 font-mono text-xs font-medium uppercase text-muted-foreground">
+					{item.orderId}
+				</span>
+				<SalesPriorityBadge priority={item.priority} />
 			</div>
 		);
 	},
@@ -124,12 +125,7 @@ const assignedToColumn: Column = {
 		headerLabel: "Assigned To",
 		className: sizeClass(sizes.custom(130, 220, 160)),
 	},
-	cell: ({ row }) => (
-		<TextWithTooltip
-			className="max-w-full truncate text-muted-foreground"
-			text={row.original.assignedTo || "Unassigned"}
-		/>
-	),
+	cell: ({ row }) => <AssignedToBadge assignedTo={row.original.assignedTo} />,
 };
 
 const salesRepColumn: Column = {
@@ -285,16 +281,27 @@ function DueDateCell({ item }: { item: SalesProductionRow }) {
 	const dueDate = item.dueDate || item.alert?.date;
 
 	return (
-		<div className="min-w-0 space-y-1">
-			<p className="truncate text-sm font-medium">
-				{dueDate ? timeAgo(dueDate) : "No due date"}
-			</p>
-			{item.completed ? null : (
-				<p className="truncate text-xs font-semibold text-muted-foreground">
-					{item.alert?.text || "Open"}
-				</p>
+		<p
+			className={cn(
+				"min-w-0 truncate text-sm font-medium",
+				getSalesProductionDueDateClassName(dueDate, item.completed),
 			)}
-		</div>
+		>
+			{dueDate ? timeAgo(dueDate) : "No due date"}
+		</p>
+	);
+}
+
+function AssignedToBadge({ assignedTo }: { assignedTo?: string | null }) {
+	const label = assignedTo || "Unassigned";
+
+	return (
+		<Badge
+			variant={assignedTo ? "secondary" : "outline"}
+			className="h-5 max-w-full rounded-full px-1.5 text-[10px]"
+		>
+			<span className="truncate">{label}</span>
+		</Badge>
 	);
 }
 

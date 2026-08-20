@@ -10,6 +10,11 @@ import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { notFound } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 
+// Statements may synchronously render the selected invoices into one PDF.
+// Keep this route above Vercel's legacy 15-second default without changing
+// the duration budget for unrelated API routes.
+export const maxDuration = 60;
+
 function resolvePdfBaseUrl(requestUrl: URL) {
 	const configuredBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
 	if (!configuredBaseUrl) return requestUrl.origin;

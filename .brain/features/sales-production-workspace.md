@@ -11,7 +11,8 @@ Provide a cleaner production operations surface for both admins and production w
 - The admin workspace follows the Sales Finance page system: compact title,
   separate summary cards, shared `PageTabs` inside the Midday search/filter
   toolbar, Tables-2 queue, and isolated Suspense/error boundaries.
-- Work-state PageTabs are `Active`, `Review`, and `Completed`.
+- Work-state PageTabs are `Active`, `Due Today`, `Past Due`, `Review`, and
+  `Completed`; each displays its current summary count.
 - The queue also exposes `Due Today` and `Past Due` tabs. Past Due uses the
   start of the current day as an exclusive boundary, so it never includes
   today’s assignments.
@@ -73,14 +74,19 @@ Provide a cleaner production operations surface for both admins and production w
   - worker mode columns: Due Date, Sales, Sales Rep, Status, Progress, Actions
   - admin mode columns: Due Date, Assigned To, Customer, Order #, Sales Rep, Status, Progress, Actions
   - sticky Actions column
-  - compact 64px rows with tighter content-tailored widths instead of the old `@gnd/ui/data-table` shell
+  - compact 40px rows matching the Sales Orders table, with tighter
+    content-tailored widths instead of the old `@gnd/ui/data-table` shell
 - The queue table now uses the Sales Orders-style height contract `calc(100vh - 350px + var(--header-offset, 0px))` instead of capping the table at 560px.
 - The queue table surface is flat, not wrapped in a table card; the filter/action row sits directly above the table like the Sales Orders table surface.
 - Desktop Materials cells show only the primary material state; supporting ETA,
   availability, and verification copy is intentionally omitted. Desktop Progress
   retains its visual bar but omits the numeric percentage.
 - The desktop Due Date title uses the same shared relative/short-date formatter
-  as the Sales Orders Date column.
+  as the Sales Orders Date column and omits the alert-status subtitle. Incomplete
+  work due today or earlier is red; work due in the following seven days is
+  amber; completed and later dates remain neutral.
+- The desktop Assigned To cell uses a compact secondary badge for assigned
+  workers and an outlined `Unassigned` badge when no worker is assigned.
 
 ## V2 Core UX
 - Worker dashboard v2 is a mobile-friendly assigned-production board with:

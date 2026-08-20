@@ -65,6 +65,25 @@ describe("sales inventory automatic synchronization UI", () => {
 		);
 	});
 
+	test("preselects Mark as available items and supports mark or unmark all", () => {
+		expect(inboundCreatePaneSource).toContain(
+			"setSelected(rows.map((row) => row.id))",
+		);
+		expect(inventoryTabSource).toContain(
+			"setSelectedInboundRowIds(inboundRowIds)",
+		);
+		expect(inboundCreatePaneSource).toContain('id="inbound-create-select-all"');
+		expect(inventoryTabSource).toContain('id="inbound-inline-select-all"');
+		expect(inboundCreatePaneSource).toContain("Mark / unmark all");
+		expect(inventoryTabSource).toContain("Mark / unmark all");
+		expect(inboundCreatePaneSource).toContain(
+			"checked === true ? rows.map((row) => row.id) : []",
+		);
+		expect(inventoryTabSource).toContain(
+			"checked === true ? inboundRowIds : []",
+		);
+	});
+
 	test("keeps create-inbound item subtitles aligned with Inventory Needs", () => {
 		expect(inboundCreatePaneSource).toContain("formatInventoryItemSubtitle({");
 		expect(inboundCreatePaneSource).toContain("stepName: row.stepName");

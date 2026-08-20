@@ -90,6 +90,8 @@ Everything else is standalone.
 - `/hrm/employees/v2` now uses the shared compact `PageTabs` treatment used by Sales Finance rather than a local two-button `Tabs` control.
 - The tab row exposes `Employees`, `Revoked Access`, and, for users with `editRole`, `Roles` and `Profiles`. Employees restores the active-access list, Revoked Access switches the existing `accessStatus=revoked` filter, and the Role/Profile tabs each use an explicit URL-backed page state.
 - Roles and Profiles now render their existing Tables-2 grids as standard, full-height page tables with on-demand loading, column controls, DnD, resizing, and persisted settings. The legacy roles/profile global sheet is removed; Roles create/edit uses the existing form in a page-level dialog. Role cells show only the role name, and an Employees count navigates to the active Employees list filtered to that role. No HRM API, employee access, role, or persistence contract changed.
+- On the Employees view, fixed HRM tabs live beside the search field. The generic saved-tab Edit control is hidden for this fixed navigation set, including on the Roles and Profiles pages.
+- The Roles editor dialog permits up to 96vh and its permissions grid can grow to 640px, showing substantially more permission rows before scrolling.
 
 ---
 

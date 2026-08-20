@@ -62,6 +62,10 @@ describe("Employees Sales Orders table migration parity", () => {
 		expect(source.includes('title: "Profiles"')).toBe(true);
 		expect(source.includes('allTitle="Employees"')).toBe(true);
 		expect(source.includes("portal={false}")).toBe(true);
+		expect(source.includes("showManage={false}")).toBe(true);
+		expect(
+			source.includes("<EmployeeHeader pageTabs={navigationTabs} />"),
+		).toBe(true);
 		expect(source.includes('tab: "roles"')).toBe(true);
 		expect(source.includes('tab: "profiles"')).toBe(true);
 		expect(actionsSource.includes("useRolesParams")).toBe(false);

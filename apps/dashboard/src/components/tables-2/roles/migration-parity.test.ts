@@ -21,6 +21,7 @@ describe("Roles page table migration parity", () => {
 		expect(tabSource.includes("RolesColumnVisibility")).toBe(true);
 		expect(tabSource.includes("isLoading={!roles}")).toBe(true);
 		expect(tabSource.includes("Dialog")).toBe(true);
+		expect(tabSource.includes("max-h-[96vh]")).toBe(true);
 		expect(tabSource.includes("components/tables/roles/table")).toBe(false);
 		expect(tabSource.includes("@gnd/ui/data-table")).toBe(false);
 	});

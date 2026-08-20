@@ -38,3 +38,11 @@
   Sentry instrumentation baselines, with no customer-statement diagnostics.
 - Dashboard typecheck reaches the repository's existing 4 GB heap-exhaustion
   baseline; focused table coverage and targeted Biome checks pass.
+
+## PDF download execution budget
+
+- The customer-statement download route declares a 60-second Vercel function
+  budget. This allows its synchronous React-PDF work, including the optional
+  embedded sales invoices, to complete instead of inheriting the legacy
+  15-second default.
+- The route-specific limit leaves unrelated dashboard API routes unchanged.

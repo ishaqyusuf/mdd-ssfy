@@ -803,6 +803,12 @@ function InventoryActionBar({
 	const [selectedInboundRowIds, setSelectedInboundRowIds] = useState<string[]>(
 		[],
 	);
+	const allInboundRowsSelected =
+		inboundRows.length > 0 &&
+		inboundRows.every((row) => selectedInboundRowIds.includes(row.id));
+	const someInboundRowsSelected = inboundRows.some((row) =>
+		selectedInboundRowIds.includes(row.id),
+	);
 	const [inboundQtyByRowId, setInboundQtyByRowId] = useState<
 		Record<string, number>
 	>({});
@@ -980,11 +986,7 @@ function InventoryActionBar({
 	);
 	useEffect(() => {
 		if (!isInboundFormVisible) return;
-		if (inboundFormMode === "create_inbound") {
-			setSelectedInboundRowIds((prev) =>
-				prev.length === 0 ? inboundRowIds : prev,
-			);
-		}
+		setSelectedInboundRowIds(inboundRowIds);
 		setInboundQtyByRowId((current) => {
 			const next: Record<string, number> = {};
 			for (const row of inboundRows) {
@@ -993,7 +995,7 @@ function InventoryActionBar({
 			}
 			return next;
 		});
-	}, [inboundRowIds, inboundRows, isInboundFormVisible, inboundFormMode]);
+	}, [inboundRowIds, inboundRows, isInboundFormVisible]);
 
 	const toggleInboundRow = (row: InventoryLine, checked: boolean) => {
 		setSelectedInboundRowIds((current) => {
@@ -1248,6 +1250,26 @@ function InventoryActionBar({
 						placeholder="Inbound note (appears in Sales Overview activity)"
 						aria-label="Inbound note"
 					/>
+					<label
+						htmlFor="inbound-inline-select-all"
+						className="flex w-fit cursor-pointer items-center gap-2 text-xs font-medium"
+					>
+						<Checkbox
+							id="inbound-inline-select-all"
+							aria-label="Mark or unmark all inbound items"
+							checked={
+								allInboundRowsSelected
+									? true
+									: someInboundRowsSelected
+										? "indeterminate"
+										: false
+							}
+							onCheckedChange={(checked) =>
+								setSelectedInboundRowIds(checked === true ? inboundRowIds : [])
+							}
+						/>
+						<span>Mark / unmark all</span>
+					</label>
 					<ItemGroup
 						className="max-h-72 gap-0 overflow-y-auto pr-1"
 						aria-label={

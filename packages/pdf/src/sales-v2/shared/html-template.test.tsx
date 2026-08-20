@@ -181,4 +181,49 @@ describe("SalesHtmlTemplatePage", () => {
 		expect(markup).not.toContain("PRIVATE SIGNER");
 		expect(markup).not.toContain("signature.png");
 	});
+
+	test("places approved Special Order signatures beside the approver evidence", () => {
+		const page: PrintPage = {
+			meta: {
+				title: "Invoice",
+				salesNo: "S-42",
+				date: "08/13/2026",
+				status: "pending",
+				total: "$250.00",
+			},
+			billing: null,
+			shipping: null,
+			sections: [],
+			footer: null,
+			config: {
+				mode: "invoice",
+				showPrices: true,
+				showFooter: false,
+				showPackingCol: false,
+				showSignature: false,
+				showImages: false,
+			},
+			signing: null,
+			specialOrder: {
+				status: "CUSTOMER_APPROVED",
+				label: "Customer approved",
+				compact: false,
+				policyTitle: null,
+				policyText: null,
+				acknowledgmentText: null,
+				policyVersion: null,
+				signerName: "Customer Signer",
+				approvedAt: "2026-08-13T12:00:00.000Z",
+				signatureUrl: "https://private.example/signature.png",
+			},
+		};
+
+		const markup = renderToStaticMarkup(
+			<SalesHtmlTemplatePage page={page} companyAddress={companyAddress} />,
+		);
+
+		expect(markup).toContain("display:flex;align-items:center;gap:12px");
+		expect(markup).toContain("Customer Signer");
+		expect(markup).toContain("signature.png");
+	});
 });

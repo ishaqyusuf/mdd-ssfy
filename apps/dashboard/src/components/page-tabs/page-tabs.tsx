@@ -61,6 +61,7 @@ interface PageTabsProps {
 	action?: ReactNode;
 	currentQuery?: string;
 	maxVisible?: ResponsivePageTabLimit;
+	showManage?: boolean;
 }
 
 type ResolvedPageTab = PageTabItem & {
@@ -150,6 +151,7 @@ export function PageTabs({
 	action,
 	currentQuery,
 	maxVisible,
+	showManage = true,
 }: PageTabsProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -308,11 +310,12 @@ export function PageTabs({
 						);
 					})}
 				</div>
-				{canShowAction || hasSavedTabs ? (
+				{canShowAction || (showManage && hasSavedTabs) ? (
 					<div
 						className={cn(
 							"ml-auto flex shrink-0 items-center gap-1 bg-background pl-1",
-							hasSavedTabs &&
+							showManage &&
+								hasSavedTabs &&
 								"border-l shadow-[-10px_0_14px_-14px_rgba(0,0,0,0.7)]",
 							portal ? "h-full" : "h-8 rounded-r-sm",
 						)}
@@ -391,7 +394,7 @@ export function PageTabs({
 								</DropdownMenuContent>
 							</DropdownMenu>
 						) : null}
-						{hasSavedTabs ? (
+						{showManage && hasSavedTabs ? (
 							<TooltipProvider delayDuration={120}>
 								<Tooltip>
 									<TooltipTrigger asChild>

@@ -1,5 +1,12 @@
 # Progress
 
+- 2026-08-20: aligned Special Order approval evidence across the HTML preview
+  and generated PDF invoice. A stored customer signature now sits to the right
+  of the `Approved by` line instead of below it, with the approver text retaining
+  the remaining row space. Focused HTML template coverage, `@gnd/pdf` typecheck,
+  and scoped formatting passed. No schema, API, permission, or persistence
+  contract changed.
+
 - 2026-08-20: restored the new sales form's legacy step-component catalog
   controls after the floating toolbar repair. The shared menu now provides
   contextual Default/Custom/Hidden tabs, workflow Steps, Select All for
@@ -9873,3 +9880,11 @@
   typecheck passes. Broad `@gnd/api` and `@gnd/dashboard` typechecks retain
   unrelated existing diagnostics; no Prisma schema or API request/response
   contract changed.
+
+## 2026-08-20 — Raised customer-statement PDF duration budget
+
+- Configured the customer-statement download route with a 60-second Vercel
+  execution budget, covering synchronous React-PDF work and optional embedded
+  sales invoices that exceeded the previous 15-second default.
+- Added a focused route-configuration regression test. No database schema,
+  API request/response contract, permission, or deployment was changed.

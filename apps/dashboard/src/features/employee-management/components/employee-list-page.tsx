@@ -93,6 +93,16 @@ export function EmployeeListPage({
 	const pageTabs = auth.can?.editRole
 		? employeePageTabs
 		: employeePageTabs.slice(0, 1);
+	const navigationTabs = (
+		<PageTabs
+			allActiveParam={{ key: "accessStatus", value: "active" }}
+			allTitle="Employees"
+			maxVisible={{ base: 4, lg: 4, "2xl": 4 }}
+			portal={false}
+			showManage={false}
+			tabs={pageTabs}
+		/>
+	);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -121,14 +131,11 @@ export function EmployeeListPage({
 				</div>
 			) : null}
 			<div className="flex flex-col gap-3">
-				<PageTabs
-					allActiveParam={{ key: "accessStatus", value: "active" }}
-					allTitle="Employees"
-					maxVisible={{ base: 4, lg: 4, "2xl": 4 }}
-					portal={false}
-					tabs={pageTabs}
-				/>
-				{isEmployeeList ? <EmployeeHeader /> : null}
+				{isEmployeeList ? (
+					<EmployeeHeader pageTabs={navigationTabs} />
+				) : (
+					navigationTabs
+				)}
 			</div>
 			{activeTab === "roles" ? (
 				<AuthGuard rules={[_perm.is("editRole")]}>

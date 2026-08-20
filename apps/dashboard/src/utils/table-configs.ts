@@ -894,7 +894,7 @@ const TABLE_CONFIG_BASES: Record<TableId, Omit<TableConfig, "fillColumnId">> = {
 		stickyColumns: [{ id: "dueDate", width: sizes.custom(140, 200, 160).size }],
 		sortFieldMap: {},
 		nonReorderableColumns: new Set(["dueDate", "actions"]),
-		rowHeight: 64,
+		rowHeight: 40,
 		headerHeight: 45,
 		style: "compact",
 	},

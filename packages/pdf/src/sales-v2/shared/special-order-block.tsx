@@ -75,8 +75,14 @@ export function SpecialOrderBlock({ specialOrder }: SpecialOrderBlockProps) {
 				</Text>
 			) : null}
 			{specialOrder.signerName ? (
-				<View style={{ marginTop: 5 }}>
-					<Text style={{ fontSize: 7.5 }}>
+				<View
+					style={{
+						alignItems: "center",
+						flexDirection: "row",
+						marginTop: 5,
+					}}
+				>
+					<Text style={{ flex: 1, fontSize: 7.5 }}>
 						Approved by {specialOrder.signerName}
 						{specialOrder.approvedAt
 							? ` on ${new Date(specialOrder.approvedAt).toLocaleString("en-US")}`
@@ -86,8 +92,8 @@ export function SpecialOrderBlock({ specialOrder }: SpecialOrderBlockProps) {
 						<Image
 							src={specialOrder.signatureUrl}
 							style={{
+								flexShrink: 0,
 								height: 28,
-								marginTop: 3,
 								objectFit: "contain",
 								width: 120,
 							}}

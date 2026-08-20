@@ -53,6 +53,7 @@ describe("Role form permissions table migration parity", () => {
 		assertContains(source, "rowHeight={tableConfig.rowHeight}");
 		assertContains(source, "estimateSize: () => tableConfig.rowHeight");
 		assertContains(source, "useTableScroll");
+		assertContains(source, "\t\t640,");
 	});
 
 	it("keeps compact permission and checkbox columns bound to role form fields", () => {

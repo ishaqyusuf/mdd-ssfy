@@ -56,7 +56,7 @@ export function RolesPage({ initialSettings }: Props) {
 					}
 				}}
 			>
-				<DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+				<DialogContent className="max-h-[96vh] max-w-5xl overflow-y-auto">
 					<DialogHeader>
 						<DialogTitle>
 							{params.roleEditId ? "Edit role" : "Create role"}

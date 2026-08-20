@@ -73,17 +73,27 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		const table = readSource(
 			"components/tables-2/sales-production/data-table.tsx",
 		);
+		const columns = readSource(
+			"components/tables-2/sales-production/columns.tsx",
+		);
 
 		expect(workspace.includes("SalesProductionHeader")).toBe(true);
 		expect(header.includes("<PageTabs")).toBe(true);
 		expect(header.includes('allTitle="Active"')).toBe(true);
-		expect(header.includes("tabs={salesProductionPageTabs}")).toBe(true);
+		expect(header.includes("tabs={pageTabs}")).toBe(true);
+		expect(
+			header.includes("createSalesProductionPageTabs(dashboard.summary)"),
+		).toBe(true);
 		expect(header.includes("SalesProductionDisplayToggle")).toBe(true);
 		expect(header.includes("hiddenFilterKeys")).toBe(true);
 		expect(tabs.includes('title: "Due Today"')).toBe(true);
 		expect(tabs.includes('title: "Past Due"')).toBe(true);
 		expect(tabs.includes('title: "Review"')).toBe(true);
 		expect(tabs.includes('title: "Completed"')).toBe(true);
+		expect(tabs.includes("count: dueTodayCount")).toBe(true);
+		expect(tabs.includes("count: pastDueCount")).toBe(true);
+		expect(tabs.includes("count: awaitingReviewCount")).toBe(true);
+		expect(tabs.includes("count: completedCount")).toBe(true);
 		expect(tabs.includes('title: "Calendar"')).toBe(false);
 		expect(workspace.includes('view === "calendar"')).toBe(true);
 		expect(reviews.includes("standalone")).toBe(true);
@@ -92,6 +102,12 @@ describe("Sales Production Sales Orders table migration parity", () => {
 			table.includes('workerMode ? "production-tasks" : "sales-production"'),
 		).toBe(true);
 		expect(table.includes('className="md:hidden"')).toBe(true);
+		expect(columns.includes("timeAgo(dueDate)")).toBe(true);
+		expect(columns.includes('item.alert?.text || "Open"')).toBe(false);
+		expect(columns.includes("function AssignedToBadge")).toBe(true);
+		expect(
+			columns.includes('variant={assignedTo ? "secondary" : "outline"}'),
+		).toBe(true);
 	});
 
 	it("keeps the calendar as a responsive, bounded weekly production board", () => {
@@ -183,13 +199,16 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(configSource.includes('"sales-production": {')).toBe(true);
 		expect(configSource.includes('tableId: "sales-production"')).toBe(true);
 		expect(configSource.includes('id: "dueDate"')).toBe(true);
-		expect(configSource.includes("rowHeight: 64")).toBe(true);
+		expect(configSource.includes("rowHeight: 40")).toBe(true);
 		expect(configSource.includes('style: "compact"')).toBe(true);
 		expect(columnsSource.includes("sizes.custom(140, 200, 160)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(110, 170, 130)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(190, 340, 240)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(170, 320, 220)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(72, 96, 80)")).toBe(true);
+		expect(
+			columnsSource.includes("min-w-0 flex-1 truncate font-medium uppercase"),
+		).toBe(true);
 		expect(columnsSource.includes("md:sticky md:right-0")).toBe(true);
 	});
 });

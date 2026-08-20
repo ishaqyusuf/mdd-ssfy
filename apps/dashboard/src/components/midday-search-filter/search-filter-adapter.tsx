@@ -21,6 +21,7 @@ type SearchFilterAdapterProps = {
 	debounceMs?: number;
 	searchKey?: string;
 	toolbarActions?: ReactNode;
+	pageTabs?: ReactNode;
 };
 
 export function SearchFilterAdapter({
@@ -50,6 +51,7 @@ function SearchFilterAdapterContent({
 	debounceMs,
 	searchKey,
 	toolbarActions,
+	pageTabs,
 }: Omit<SearchFilterAdapterProps, "filterSchema">) {
 	const { shouldFetch } = useSearchFilterContext();
 	const queryOptions = trpcRoute.queryOptions(trpQueryOptions);
@@ -71,6 +73,7 @@ function SearchFilterAdapterContent({
 			}
 			searchKey={searchKey}
 			toolbarActions={toolbarActions}
+			pageTabs={pageTabs}
 		/>
 	);
 }

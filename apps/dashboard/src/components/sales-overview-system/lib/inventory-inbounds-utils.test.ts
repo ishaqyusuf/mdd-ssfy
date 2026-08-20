@@ -287,7 +287,7 @@ describe("sales overview inventory inbound helpers", () => {
 		);
 	});
 
-	it("configures Mark as available inbound form mode with locked status and unchecked items", () => {
+	it("configures Mark as available inbound form mode with locked status and selected items", () => {
 		const tabSource = readFileSync(
 			resolve(
 				dirname(fileURLToPath(import.meta.url)),
@@ -300,7 +300,9 @@ describe("sales overview inventory inbound helpers", () => {
 		expect(tabSource.includes('inboundFormMode === "mark_available"')).toBe(
 			true,
 		);
-		expect(tabSource.includes("setSelectedInboundRowIds([])")).toBe(true);
+		expect(tabSource.includes("setSelectedInboundRowIds(inboundRowIds)")).toBe(
+			true,
+		);
 		expect(tabSource.includes("<span>Available</span>")).toBe(true);
 	});
 

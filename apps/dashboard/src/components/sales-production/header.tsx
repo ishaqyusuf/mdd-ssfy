@@ -17,7 +17,7 @@ import { CalendarDays, List } from "lucide-react";
 
 import type { FilterDefinition } from "../midday-search-filter/filter-definitions";
 import { SearchFilterTRPC } from "../midday-search-filter/search-filter-trpc";
-import { salesProductionPageTabs } from "./tabs";
+import { createSalesProductionPageTabs } from "./tabs";
 
 const workspaceFilters = [
 	{
@@ -70,6 +70,10 @@ const workspaceFilters = [
 type DashboardSummary = {
 	summary: {
 		queueCount: number;
+		dueTodayCount: number;
+		pastDueCount: number;
+		awaitingReviewCount: number;
+		completedCount: number;
 	};
 };
 
@@ -90,6 +94,7 @@ export function SalesProductionHeader() {
 		["q", "assignedToId", "priority"].includes(String(filter.value)),
 	) as PageFilterData[];
 	const resolved = resolveSalesProductionWorkspaceQuery(filters);
+	const pageTabs = createSalesProductionPageTabs(dashboard.summary);
 	const isReview = resolved.tab === "reviews";
 	const isCompleted = resolved.tab === "completed";
 	const isCalendar = resolved.view === "calendar";
@@ -162,7 +167,7 @@ export function SalesProductionHeader() {
 										? { queue: null, due: null, date: null }
 										: {}),
 							}}
-							tabs={salesProductionPageTabs}
+							tabs={pageTabs}
 							maxVisible={{ base: 3, lg: 5, "2xl": 5 }}
 						/>
 					}

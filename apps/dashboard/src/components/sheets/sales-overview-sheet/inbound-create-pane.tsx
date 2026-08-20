@@ -145,16 +145,17 @@ export function InboundCreatePane({
 		}),
 	);
 	useEffect(() => {
-		if (!isMarkAvailable) {
-			setSelected(rows.map((row) => row.id));
-		}
+		setSelected(rows.map((row) => row.id));
 		setQuantities(
 			Object.fromEntries(rows.map((row) => [row.id, orderableQty(row)])),
 		);
-	}, [rows, isMarkAvailable]);
+	}, [rows]);
 	const selectedRows = rows.filter(
 		(row) => selected.includes(row.id) && Number(quantities[row.id] || 0) > 0,
 	);
+	const allRowsSelected =
+		rows.length > 0 && rows.every((row) => selected.includes(row.id));
+	const someRowsSelected = rows.some((row) => selected.includes(row.id));
 	const demandSelections = selectedRows
 		.filter((row) => !row.componentIds.length)
 		.map((row) => ({
@@ -392,7 +393,7 @@ export function InboundCreatePane({
 						</Field>
 					</FieldGroup>
 					<section className="space-y-3">
-						<div className="flex items-end justify-between gap-3">
+						<div className="flex items-start justify-between gap-3">
 							<div>
 								<h3 className="text-sm font-semibold">
 									{isMarkAvailable
@@ -405,9 +406,33 @@ export function InboundCreatePane({
 										: "All available missing items are selected by default."}
 								</p>
 							</div>
-							<Badge variant="secondary" className="min-h-7 px-2.5 text-xs">
-								{selectedRows.length} selected
-							</Badge>
+							<div className="flex shrink-0 flex-col items-end gap-2">
+								<label
+									htmlFor="inbound-create-select-all"
+									className="flex cursor-pointer items-center gap-2 text-xs font-medium"
+								>
+									<Checkbox
+										id="inbound-create-select-all"
+										aria-label="Mark or unmark all inbound items"
+										checked={
+											allRowsSelected
+												? true
+												: someRowsSelected
+													? "indeterminate"
+													: false
+										}
+										onCheckedChange={(checked) =>
+											setSelected(
+												checked === true ? rows.map((row) => row.id) : [],
+											)
+										}
+									/>
+									<span>Mark / unmark all</span>
+								</label>
+								<Badge variant="secondary" className="min-h-7 px-2.5 text-xs">
+									{selectedRows.length} selected
+								</Badge>
+							</div>
 						</div>
 						<ItemGroup
 							className="gap-0"

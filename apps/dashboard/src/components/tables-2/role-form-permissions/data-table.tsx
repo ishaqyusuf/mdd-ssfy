@@ -94,7 +94,7 @@ export function DataTable({ data, control, initialSettings }: Props) {
 	});
 
 	const tableHeight = Math.min(
-		360,
+		640,
 		Math.max(
 			tableConfig.headerHeight +
 				tableConfig.rowHeight * Math.max(rows.length, 1) +

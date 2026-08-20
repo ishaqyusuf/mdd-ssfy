@@ -202,12 +202,12 @@ function SpecialOrderBlock({
 				<div
 					style={{
 						display: "flex",
-						alignItems: "flex-end",
-						gap: 18,
+						alignItems: "center",
+						gap: 12,
 						marginTop: 10,
 					}}
 				>
-					<div style={{ fontSize: 12 }}>
+					<div style={{ flex: 1, fontSize: 12, minWidth: 0 }}>
 						Approved by <strong>{specialOrder.signerName}</strong>
 						{specialOrder.approvedAt
 							? ` on ${new Date(specialOrder.approvedAt).toLocaleString("en-US")}`
@@ -217,7 +217,12 @@ function SpecialOrderBlock({
 						<img
 							src={specialOrder.signatureUrl}
 							alt="Customer Special Order signature"
-							style={{ width: 150, height: 55, objectFit: "contain" }}
+							style={{
+								width: 150,
+								height: 55,
+								objectFit: "contain",
+								flexShrink: 0,
+							}}
 						/>
 					) : null}
 				</div>
