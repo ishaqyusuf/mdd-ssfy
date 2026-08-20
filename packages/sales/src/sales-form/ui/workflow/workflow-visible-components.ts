@@ -15,6 +15,7 @@ import {
 	type WorkflowStepRecord,
 	getStepPriceDeps,
 	isComponentEnabledForView,
+	isWorkflowComponentCustom,
 } from "./workflow-records";
 
 export type ResolveWorkflowVisibleComponentsInput<
@@ -52,7 +53,11 @@ export function resolveWorkflowCatalogComponents<
 	const selectedProdUidsByStepUid = buildSelectedProdUidsByStepUid(steps);
 
 	return (components || [])
-		.filter((component) => !component.isDeleted)
+		.filter(
+			(component) =>
+				!component.isDeleted &&
+				!readSalesFormObjectMetadata(component?._metaData)?.deletedAt,
+		)
 		.map((component) => {
 			const override = overrides.get(String(component?.uid || ""));
 			const overridePricing =
@@ -102,7 +107,7 @@ export function resolveWorkflowCatalogComponents<
 						])
 					: internalSalesPrice;
 			const metadata = readSalesFormObjectMetadata(component?._metaData);
-			const custom = !isComponentEnabledForView(component, false);
+			const custom = isWorkflowComponentCustom(component);
 			const visible = isComponentVisibleByRules(
 				component,
 				selectedByStepUid,

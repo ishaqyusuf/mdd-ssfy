@@ -479,8 +479,14 @@ export function isComponentEnabledForView(
 	if (includeCustom) return true;
 	const uid = String(component?.uid || "");
 	if (uid && selectedCustomUids?.has(uid)) return true;
+	return !isWorkflowComponentCustom(component);
+}
+
+export function isWorkflowComponentCustom(
+	component: WorkflowComponentRecord,
+) {
 	const metaData = readSalesFormObjectMetadata(component?._metaData);
-	return !metaData?.custom && !component?.custom;
+	return metaData?.custom === true || component?.custom === true;
 }
 
 export function getStepPriceDeps(step?: WorkflowStepRecord | null) {

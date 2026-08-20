@@ -25,6 +25,7 @@ import {
 	type WorkflowStepRecord,
 	isDoorStepTitle,
 	isMultiSelectStepTitle,
+	isWorkflowComponentCustom,
 } from "./workflow-records";
 
 export type WorkflowStepComponentPanelRedirectOption = {
@@ -57,6 +58,7 @@ export type WorkflowStepComponentPanelProps<
 	noticeSlot?: ReactNode;
 	customComponentSlot?: ReactNode;
 	isDealershipMode: boolean;
+	isStorefrontMode?: boolean;
 	mouldingSelection?: WorkflowMouldingSelectionState;
 	isMouldingSelectionStep?: boolean;
 	redirectOptions: WorkflowStepComponentPanelRedirectOption[];
@@ -92,10 +94,6 @@ export type WorkflowStepComponentPanelProps<
 	onAddMoulding: (component: TComponent) => void;
 };
 
-function isCustomWorkflowComponent(component: WorkflowComponentRecord) {
-	return component?._metaData?.custom === true || component?.custom === true;
-}
-
 export function WorkflowStepComponentPanel<
 	TComponent extends WorkflowComponentRecord,
 >(props: WorkflowStepComponentPanelProps<TComponent>) {
@@ -117,7 +115,7 @@ export function WorkflowStepComponentPanel<
 	const catalogComponents = props.catalogComponents || props.components;
 	const catalogCounts = catalogComponents.reduce(
 		(counts, component) => {
-			if (isCustomWorkflowComponent(component)) counts.custom += 1;
+			if (isWorkflowComponentCustom(component)) counts.custom += 1;
 			else if (component._metaData?.visible === false) counts.hidden += 1;
 			else counts.default += 1;
 			return counts;
@@ -170,7 +168,7 @@ export function WorkflowStepComponentPanel<
 	).filter(
 		(component) =>
 			props.selectedUids.has(String(component?.uid || "")) &&
-			isCustomWorkflowComponent(component),
+			isWorkflowComponentCustom(component),
 	) as TComponent[];
 	if (
 		!selectedCustomComponents.length &&
@@ -191,15 +189,15 @@ export function WorkflowStepComponentPanel<
 		? catalogComponents
 				.filter((component) => {
 					if (catalogTab === "custom")
-						return isCustomWorkflowComponent(component);
+						return isWorkflowComponentCustom(component);
 					if (catalogTab === "hidden") {
 						return (
-							!isCustomWorkflowComponent(component) &&
+							!isWorkflowComponentCustom(component) &&
 							component._metaData?.visible === false
 						);
 					}
 					return (
-						!isCustomWorkflowComponent(component) &&
+						!isWorkflowComponentCustom(component) &&
 						component._metaData?.visible !== false
 					);
 				})
@@ -229,10 +227,10 @@ export function WorkflowStepComponentPanel<
 		.sort((a, b) => {
 			const aSelectedCustom =
 				props.selectedUids.has(String(a.uid || "")) &&
-				isCustomWorkflowComponent(a);
+				isWorkflowComponentCustom(a);
 			const bSelectedCustom =
 				props.selectedUids.has(String(b.uid || "")) &&
-				isCustomWorkflowComponent(b);
+				isWorkflowComponentCustom(b);
 			if (aSelectedCustom === bSelectedCustom) return 0;
 			return aSelectedCustom ? -1 : 1;
 		});
@@ -262,7 +260,7 @@ export function WorkflowStepComponentPanel<
 					const componentUid = String(component.uid || "");
 					const isSelected = props.selectedUids.has(componentUid);
 					const isSelectedCustom =
-						isSelected && isCustomWorkflowComponent(component);
+						isSelected && isWorkflowComponentCustom(component);
 					const mouldingOpen =
 						Boolean(props.mouldingSelection?.open) &&
 						props.mouldingSelection?.lineUid === props.lineUid &&
@@ -276,7 +274,7 @@ export function WorkflowStepComponentPanel<
 							selected={isSelected}
 							selectedCustom={isSelectedCustom}
 							badgesSlot={
-								!props.isDealershipMode ? (
+								!props.isDealershipMode && !props.isStorefrontMode ? (
 									<WorkflowComponentBadges
 										hasVariations={Boolean(
 											(component as { variations?: unknown[] | null })
@@ -406,7 +404,9 @@ export function WorkflowStepComponentPanel<
 						search={props.search}
 						onSearchChange={props.onSearchChange}
 						menuSlot={
-							!props.isDealershipMode && !managementSelection.size ? (
+							!props.isDealershipMode &&
+							!props.isStorefrontMode &&
+							!managementSelection.size ? (
 								<>
 									<Menu.Item
 										SubMenu={[
@@ -444,15 +444,11 @@ export function WorkflowStepComponentPanel<
 									>
 										Steps
 									</Menu.Item>
-									<Menu.Item
-										disabled={!isMultiSelectStep}
-										onClick={() => {
-											if (!isMultiSelectStep) return;
-											props.onSelectAll();
-										}}
-									>
-										Select All
-									</Menu.Item>
+									{isMultiSelectStep ? (
+										<Menu.Item onClick={props.onSelectAll}>
+											Select All
+										</Menu.Item>
+									) : null}
 									{!isDoorStep && props.onOpenPricing ? (
 										<Menu.Item
 											onClick={() => {

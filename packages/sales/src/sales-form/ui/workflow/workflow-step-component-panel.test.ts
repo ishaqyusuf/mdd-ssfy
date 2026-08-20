@@ -29,4 +29,11 @@ describe("workflow step component panel catalog controls", () => {
 		expect(source).toContain("Disable Custom");
 		expect(source).toContain("Enable Custom");
 	});
+
+	test("keeps internal catalog actions out of dealership and storefront hosts", () => {
+		expect(source).toContain("!props.isDealershipMode &&");
+		expect(source).toContain("!props.isStorefrontMode &&");
+		expect(source).toContain("{isMultiSelectStep ? (");
+		expect(source).not.toContain("disabled={!isMultiSelectStep}");
+	});
 });

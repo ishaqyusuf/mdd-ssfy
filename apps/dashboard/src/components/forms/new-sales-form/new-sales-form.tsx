@@ -66,6 +66,7 @@ import type {
 } from "./schema";
 import {
 	continueSaveAfterCommittedChangeReview,
+	createSaveContinuationGuard,
 	type SaveIntent,
 } from "./save-intent-continuation";
 import {
@@ -451,6 +452,11 @@ export function NewSalesForm(props: Props) {
     >(null);
 	const [pendingCommittedChangeSaveIntent, setPendingCommittedChangeSaveIntent] =
 		useState<SaveIntent | null>(null);
+	const committedChangeContinuationGuardRef = useRef(
+		createSaveContinuationGuard(),
+	);
+	const committedChangeSubmissionRef = useRef(false);
+	const manualSaveLockRef = useRef(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [historyPreview, setHistoryPreview] = useState<{
         entry: SalesHistoryEntry;
@@ -1302,6 +1308,7 @@ export function NewSalesForm(props: Props) {
 
 	async function openCommittedChangeReview() {
 		if (!record?.salesId || !record.slug || !record.version) return false;
+		committedChangeContinuationGuardRef.current.status = "idle";
 		setChangeReviewOpen(true);
 		try {
 			const review = await previewAdjustmentMutation.mutateAsync({
@@ -1330,7 +1337,10 @@ export function NewSalesForm(props: Props) {
 		for (let attempt = 0; attempt < 16; attempt += 1) {
 			await new Promise((resolve) => setTimeout(resolve, 750));
 			const refreshed = await getQuery.refetch();
-			if (refreshed.data?.version !== sourceVersion) {
+			if (
+				refreshed.data?.version &&
+				refreshed.data.version !== sourceVersion
+			) {
 				return refreshed.data as NewSalesFormRecord;
 			}
 		}
@@ -1342,6 +1352,8 @@ export function NewSalesForm(props: Props) {
 		acknowledgeOperationalImpact: boolean;
 	}) {
 		if (!record?.salesId || !record.slug || !record.version) return;
+		if (committedChangeSubmissionRef.current) return;
+		committedChangeSubmissionRef.current = true;
 		const sourceVersion = record.version;
 		const reasons = changeReview?.analysis.reviewReasons || [];
 		const reason = reasons.length
@@ -1363,26 +1375,31 @@ export function NewSalesForm(props: Props) {
 				acknowledgeOperationalImpact: input.acknowledgeOperationalImpact,
 			});
 			const refreshedRecord = await waitForAdjustmentApplication(sourceVersion);
+			if (!refreshedRecord) {
+				toast({
+					title: "Approved change is still applying",
+					description:
+						"The form will stay open. Retry this confirmation after the updated sale appears.",
+				});
+				return;
+			}
 			const pendingIntent = pendingCommittedChangeSaveIntent;
 			setPendingCommittedChangeSaveIntent(null);
 			setChangeReviewOpen(false);
 			setChangeReview(null);
 			toast({
-				title: refreshedRecord ? "Changes committed" : "Changes approved",
-				description: refreshedRecord
-					? "The sale and affected inventory were updated."
-					: "The approved changes are being committed automatically in the background.",
+				title: "Changes committed",
+				description: "The sale and affected inventory were updated.",
 				variant: "success",
 			});
-			if (refreshedRecord) {
-				hydrate(refreshedRecord);
-				await continueSaveAfterCommittedChangeReview({
-					intent: pendingIntent,
-					refreshedRecord,
-					promptForSpecialOrderDeclaration,
-					executeSaveIntent,
-				});
-			}
+			hydrate(refreshedRecord);
+			await continueSaveAfterCommittedChangeReview({
+				intent: pendingIntent,
+				refreshedRecord,
+				promptForSpecialOrderDeclaration,
+				executeSaveIntent,
+				guard: committedChangeContinuationGuardRef.current,
+			});
 		} catch (error) {
 			toast({
 				title: "Unable to approve changes",
@@ -1390,6 +1407,7 @@ export function NewSalesForm(props: Props) {
 				variant: "destructive",
 			});
 		} finally {
+			committedChangeSubmissionRef.current = false;
 			setIsApplyingAdjustment(false);
 		}
 	}
@@ -1399,15 +1417,17 @@ export function NewSalesForm(props: Props) {
 		if (intent) setPendingCommittedChangeSaveIntent(intent);
 		const opened = await openCommittedChangeReview();
 		if (!opened && intent) setPendingCommittedChangeSaveIntent(null);
-		return opened;
+		return true;
 	}
 
     async function runWithManualSaveLock(action: () => Promise<void>) {
-        if (isSaveBusy) return;
+		if (manualSaveLockRef.current || isSaveBusy) return;
+		manualSaveLockRef.current = true;
         setManualSaveLock(true);
         try {
             await action();
         } finally {
+			manualSaveLockRef.current = false;
             setManualSaveLock(false);
         }
     }
@@ -1927,6 +1947,7 @@ export function NewSalesForm(props: Props) {
 					if (!open && !isApplyingAdjustment) {
 						setPendingCommittedChangeSaveIntent(null);
 						setChangeReview(null);
+						committedChangeContinuationGuardRef.current.status = "idle";
 					}
 				}}
 				review={changeReview}

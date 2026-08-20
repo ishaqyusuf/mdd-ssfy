@@ -128,6 +128,13 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 - Legacy: floating action menu in components section
 - New: `packages/sales/src/sales-form/ui/workflow/workflow-step-component-panel.tsx`
 - Status: Implemented in code; runtime proof pending
+- Gap: no known code gap remains. The shared picker now has contextual Default /
+  Custom / Hidden catalog tabs, a separate workflow Steps submenu, applicable
+  legacy actions, and distinct custom sale-entry/configuration controls. The
+  default dashboard host supplies `editSalesComponent` and the existing create
+  action, so its permission-gated add tile renders first in the grid. Internal
+  catalog actions remain hidden for dealership/storefront hosts. Remaining work
+  is authenticated authorized/unauthorized desktop and mobile proof.
 
 13. Component menu (edit/select/redirect/delete)
 - Legacy: per-card menu in `component-item-card.tsx`

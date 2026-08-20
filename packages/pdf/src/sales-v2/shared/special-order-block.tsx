@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import type { PrintSpecialOrderData } from "@gnd/sales/print/types";
 import { Image, Text, View } from "@react-pdf/renderer";
+import { getSpecialOrderColors } from "./special-order-colors";
 
 interface SpecialOrderBlockProps {
 	specialOrder: PrintSpecialOrderData | null;
@@ -8,14 +9,15 @@ interface SpecialOrderBlockProps {
 
 export function SpecialOrderBlock({ specialOrder }: SpecialOrderBlockProps) {
 	if (!specialOrder) return null;
+	const colors = getSpecialOrderColors(specialOrder.status);
 
 	if (specialOrder.compact) {
 		return (
 			<View
 				wrap={false}
 				style={{
-					backgroundColor: "#fff7ed",
-					borderColor: "#f97316",
+					backgroundColor: colors.background,
+					borderColor: colors.border,
 					borderRadius: 3,
 					borderWidth: 1,
 					marginBottom: 8,
@@ -23,7 +25,9 @@ export function SpecialOrderBlock({ specialOrder }: SpecialOrderBlockProps) {
 					paddingVertical: 5,
 				}}
 			>
-				<Text style={{ color: "#9a3412", fontSize: 9, fontWeight: 700 }}>
+				<Text
+					style={{ color: colors.foreground, fontSize: 9, fontWeight: 700 }}
+				>
 					SPECIAL ORDER · {specialOrder.label.toUpperCase()}
 				</Text>
 			</View>
@@ -34,8 +38,8 @@ export function SpecialOrderBlock({ specialOrder }: SpecialOrderBlockProps) {
 		<View
 			wrap={false}
 			style={{
-				backgroundColor: "#fff7ed",
-				borderColor: "#f97316",
+				backgroundColor: colors.background,
+				borderColor: colors.border,
 				borderRadius: 3,
 				borderWidth: 1,
 				marginBottom: 8,
@@ -44,7 +48,7 @@ export function SpecialOrderBlock({ specialOrder }: SpecialOrderBlockProps) {
 		>
 			<Text
 				style={{
-					color: "#9a3412",
+					color: colors.foreground,
 					fontSize: 10,
 					fontWeight: 700,
 					marginBottom: 4,

@@ -26,6 +26,11 @@ describe("workflow visible components", () => {
 				},
 				{ uid: "custom", title: "Custom", custom: true },
 				{ uid: "deleted", title: "Deleted", isDeleted: true },
+				{
+					uid: "metadata-deleted",
+					title: "Metadata deleted",
+					_metaData: { deletedAt: "2026-08-20T00:00:00.000Z" },
+				},
 			],
 			steps: [
 				{

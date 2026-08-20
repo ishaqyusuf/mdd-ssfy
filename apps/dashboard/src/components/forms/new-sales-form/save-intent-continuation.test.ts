@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { continueSaveAfterCommittedChangeReview } from "./save-intent-continuation";
+import {
+	continueSaveAfterCommittedChangeReview,
+	createSaveContinuationGuard,
+} from "./save-intent-continuation";
 
 const formSource = readFileSync(
 	new URL("./new-sales-form.tsx", import.meta.url),
@@ -44,16 +47,96 @@ describe("new sales form save intent continuation", () => {
 		expect(saveCalls).toBe(0);
 	});
 
+	test("consumes one approval continuation exactly once", async () => {
+		const guard = createSaveContinuationGuard();
+		let saveCalls = 0;
+		const input = {
+			intent: "close" as const,
+			refreshedRecord: { version: "v2" },
+			promptForSpecialOrderDeclaration: () => false,
+			executeSaveIntent: async () => {
+				saveCalls += 1;
+			},
+			guard,
+		};
+
+		expect(await continueSaveAfterCommittedChangeReview(input)).toBe(
+			"completed",
+		);
+		expect(await continueSaveAfterCommittedChangeReview(input)).toBe(
+			"duplicate",
+		);
+		expect(saveCalls).toBe(1);
+	});
+
+	test("allows a failed continuation to be retried without closing", async () => {
+		const guard = createSaveContinuationGuard();
+		let attempts = 0;
+		const input = {
+			intent: "close" as const,
+			refreshedRecord: { version: "v2" },
+			promptForSpecialOrderDeclaration: () => false,
+			executeSaveIntent: async () => {
+				attempts += 1;
+				if (attempts === 1) throw new Error("save failed");
+			},
+			guard,
+		};
+
+		await expect(continueSaveAfterCommittedChangeReview(input)).rejects.toThrow(
+			"save failed",
+		);
+		expect(guard.status).toBe("idle");
+		expect(await continueSaveAfterCommittedChangeReview(input)).toBe(
+			"completed",
+		);
+		expect(attempts).toBe(2);
+	});
+
+	test("cancellation has no save side effect", async () => {
+		let saveCalls = 0;
+		expect(
+			await continueSaveAfterCommittedChangeReview({
+				intent: null,
+				refreshedRecord: { version: "v2" },
+				promptForSpecialOrderDeclaration: () => false,
+				executeSaveIntent: async () => {
+					saveCalls += 1;
+				},
+			}),
+		).toBe("cancelled");
+		expect(saveCalls).toBe(0);
+	});
+
 	test("keeps navigation after successful persistence and inventory confirmation", () => {
 		const saveIndex = formSource.indexOf("await handlePostSaveSuccess(resp)");
 		const inventoryIndex = formSource.indexOf(
 			"await configureInventoryAfterSave(resp)",
 			saveIndex,
 		);
-		const navigationIndex = formSource.indexOf("router.push(", inventoryIndex);
+		const navigationIndex = formSource.indexOf(
+			'intent === "close"',
+			inventoryIndex,
+		);
 
 		expect(saveIndex > -1).toBe(true);
 		expect(inventoryIndex > saveIndex).toBe(true);
 		expect(navigationIndex > inventoryIndex).toBe(true);
+	});
+
+	test("blocks the save when required change-review preview cannot open", () => {
+		const start = formSource.indexOf(
+			"async function stopForCommittedChangeReview",
+		);
+		const end = formSource.indexOf(
+			"async function runWithManualSaveLock",
+			start,
+		);
+		const reviewGuardSource = formSource.slice(start, end);
+
+		expect(reviewGuardSource).toContain(
+			"if (!opened && intent) setPendingCommittedChangeSaveIntent(null)",
+		);
+		expect(reviewGuardSource).toContain("return true");
 	});
 });

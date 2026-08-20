@@ -14,6 +14,7 @@ import {
 	MobileSectionItems,
 	RESPONSIVE_SECTION_STYLES,
 } from "./html-section-items";
+import { getSpecialOrderColors } from "./special-order-colors";
 import { resolveDocumentImageSrc, resolveImageSrc } from "./utils";
 
 const COLORS = {
@@ -132,18 +133,19 @@ function SpecialOrderBlock({
 }: {
 	specialOrder: NonNullable<PrintPage["specialOrder"]>;
 }) {
+	const colors = getSpecialOrderColors(specialOrder.status);
 	if (specialOrder.compact) {
 		return (
 			<div
 				style={{
 					marginBottom: 12,
-					border: "1px solid #f59e0b",
-					background: "#fffbeb",
+					border: `1px solid ${colors.border}`,
+					background: colors.background,
 					borderRadius: 8,
 					padding: "8px 12px",
 					fontSize: 12,
 					fontWeight: 700,
-					color: "#92400e",
+					color: colors.foreground,
 				}}
 			>
 				Special Order · {specialOrder.label}
@@ -154,11 +156,11 @@ function SpecialOrderBlock({
 		<section
 			style={{
 				marginBottom: 14,
-				border: "1px solid #f59e0b",
-				background: "#fffbeb",
+				border: `1px solid ${colors.border}`,
+				background: colors.background,
 				borderRadius: 10,
 				padding: 14,
-				color: "#451a03",
+				color: colors.foreground,
 			}}
 		>
 			<div

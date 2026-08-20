@@ -1,5 +1,29 @@
 # Progress
 
+- 2026-08-20: restored the new sales form's legacy step-component catalog
+  controls after the floating toolbar repair. The shared menu now provides
+  contextual Default/Custom/Hidden tabs, workflow Steps, Select All for
+  multi-select steps, Pricing or Door Size Variants, Component, Refresh, and
+  Enable/Disable Custom. The default dashboard host now supplies
+  `editSalesComponent` and renders the existing create-component tile first;
+  dealership/storefront hosts remain isolated. Save & Close now retains its
+  intent through committed-change review, Special Order/customer-email repair,
+  persistence, and the inventory configurator, with slow-application and
+  duplicate-callback guards. Focused continuation and workflow tests plus the
+  Sales/API migration sections pass. Authenticated browser proof remains open
+  because the local headless browser redirects to `/login/v2`; the migration
+  command's final dealership typecheck retains the pre-existing email
+  `TailwindProps.children` diagnostic. No schema, migration, or permission
+  contract changed.
+
+- 2026-08-20: made the Special Order approval block green across HTML preview
+  and PDF print output when the customer has approved the current revision.
+  Pending, reapproval-required, and declined output retain their established
+  alert palette. Focused HTML-template coverage and the PDF package typecheck
+  pass; browser inspection verified the approved preview uses the green
+  `rgb(236, 253, 245)` background and `rgb(34, 197, 94)` border. No schema,
+  API, permission, or persistence contract changed.
+
 - 2026-08-20: fixed new-sales-form item sequence being ignored in HTML preview
   and print/PDF output. The form persists its sequence as `meta.itemIndex`, but
   the shared print composer read only the legacy `lineIndex`; it now prioritizes

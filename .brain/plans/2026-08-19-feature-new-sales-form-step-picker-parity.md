@@ -56,7 +56,7 @@ flowchart TD
 1. Add failing tests for toolbar visibility while the active picker boundary intersects the window or a nested scroll container, including short grids, long grids, loading-to-loaded transition, empty search results, resize, and the dashboard footer offset.
 2. Fix `WorkflowComponentToolbar`/`StepComponentPicker` so the search/action bar remains visible above the form footer while the active component picker is in view, anchors at the grid end, does not cover the final row, and unregisters listeners/observers cleanly.
 3. Complete the action menu contract in legacy order: catalog `Tabs` (Default / Custom / Hidden), workflow `Steps`, Select All only for multi-select steps, Pricing or Door Size Variants when applicable, Component when creation is authorized, Refresh, and `Enable Custom`/`Disable Custom` derived from the active step state.
-4. Add catalog-view state, counts, and filtering using canonical component metadata. Keep archived/deleted components excluded and verify the API DTO exposes visibility accurately instead of assigning one hard-coded value.
+4. Add catalog-view state, counts, and filtering using canonical component metadata. Keep archived/deleted components excluded. Treat the API DTO's visibility placeholder as non-authoritative because contextual visibility requires the current sale's selected workflow values; resolve and stamp the accurate visibility in the shared workflow resolver before the picker consumes it.
 5. Extend shared workflow capabilities/slots with an explicit create-component action. Render an accessible leading `[ + ]` tile as the first grid item only when `canEditWorkflowComponents` is derived from `auth.can.editSalesComponent` and a create handler is present. Reuse the existing component detail/admin dialog and save mutation; do not create a second persistence path.
 6. Pass `canEditSalesComponent`, `onCreateComponent`, and the narrower details capability through the default `ItemWorkflowPanel` host. Keep dealership/storefront consumers free of internal catalog actions.
 7. Separate the custom catalog configuration toggle from the custom sale-value editor so labels and actions describe the behavior they invoke.
@@ -117,6 +117,24 @@ Avoid:
 - `bun run --filter @gnd/dashboard typecheck`
 - Authenticated browser proof with authorized and unauthorized users at mobile and desktop widths.
 
+## Implementation Status (2026-08-20)
+
+- Implemented the legacy catalog Tabs/Steps/action menu contract in the shared
+  step panel, including contextual Default/Custom/Hidden classification.
+- Wired the default dashboard host's `editSalesComponent` capability and
+  existing component-admin create flow so the leading add tile is first.
+- Separated custom sale-value entry from the administrative custom toggle and
+  kept internal catalog actions out of dealership/storefront hosts.
+- Preserved Save & Close through committed-change and Special Order
+  confirmations, retained the intent while asynchronous application is still
+  pending, and guarded duplicate confirmation callbacks.
+- Focused workflow and continuation tests pass. The sales/API portions of the
+  migration suite pass; its final dealership typecheck remains blocked by the
+  pre-existing email `TailwindProps.children` error.
+- Remaining release evidence: authenticated desktop/mobile browser proof. The
+  local headless browser reaches the route with no console errors but redirects
+  to `/login/v2` because it has no authenticated application session.
+
 ## Brain Update Requirements
 - Update `.brain/features/new-sales-form-component-management.md` and `.brain/new-sales-form-missing-features-execution-plan.md` after implementation.
 - Update `.brain/api/permissions.md` for the `editSalesComponent` boundary.
@@ -145,4 +163,4 @@ None. Use `editSalesComponent` as the canonical permission name requested by the
 
 ## Linked Task
 - Task Title: New Sales Form Step Picker And Component Creation Parity
-- Task File: `.brain/tasks/backlog.md`
+- Task File: `.brain/tasks/in-progress.md`

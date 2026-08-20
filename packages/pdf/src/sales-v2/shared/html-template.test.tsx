@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import type { PrintPage } from "@gnd/sales/print/types";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SalesHtmlTemplatePage } from "./html-template";
+import { getSpecialOrderColors } from "./special-order-colors";
 
 const companyAddress = {
 	address1: "Address one",
@@ -126,6 +127,13 @@ describe("SalesHtmlTemplatePage", () => {
 			expect(markup).toContain("non-returnable and non-refundable");
 			if (status === "CUSTOMER_APPROVED") {
 				expect(markup).toContain("Customer Signer");
+				expect(markup).toContain(getSpecialOrderColors(status).background);
+				expect(markup).toContain(getSpecialOrderColors(status).border);
+			} else {
+				expect(markup).toContain(getSpecialOrderColors(status).background);
+				expect(markup).not.toContain(
+					getSpecialOrderColors("CUSTOMER_APPROVED").background,
+				);
 			}
 		}
 	});

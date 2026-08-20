@@ -762,7 +762,7 @@ export function dtoStepComponent(
 			custom: component.custom,
 			deletedAt:
 				typeof metaRecord.deletedAt === "string" ? metaRecord.deletedAt : null,
-			visible: !Array.isArray(meta?.variations) || meta.variations.length === 0,
+			visible: false,
 			priceId: null,
 			sortId: null,
 			sortIndex: null,

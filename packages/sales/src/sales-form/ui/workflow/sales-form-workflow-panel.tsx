@@ -1198,6 +1198,7 @@ export function SalesFormWorkflowPanel<
 					) : null
 				}
 				isDealershipMode={workflowCapabilities.isDealershipMode}
+				isStorefrontMode={workflowCapabilities.isStorefrontMode}
 				mouldingSelection={{
 					open: mouldingSelectionPopover.open,
 					lineUid: mouldingSelectionPopover.lineUid,
