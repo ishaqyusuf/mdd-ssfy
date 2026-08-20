@@ -124,6 +124,29 @@ describe("sales production workspace query", () => {
 		});
 	});
 
+	it("maps due-date tabs to mutually exclusive queue filters", () => {
+		expect(
+			resolveSalesProductionWorkspaceQuery({
+				tab: "queue",
+				due: "today",
+			}),
+		).toEqual({
+			tab: "queue",
+			view: "table",
+			list: { production: "pending", show: "due-today" },
+		});
+		expect(
+			resolveSalesProductionWorkspaceQuery({
+				tab: "queue",
+				due: "overdue",
+			}),
+		).toEqual({
+			tab: "queue",
+			view: "table",
+			list: { production: "pending", show: "past-due" },
+		});
+	});
+
 	it("routes awaiting review to the review tab", () => {
 		expect(
 			resolveSalesProductionWorkspaceQuery({ queue: "awaiting-review" }),

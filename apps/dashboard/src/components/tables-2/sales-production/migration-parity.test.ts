@@ -80,6 +80,8 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(header.includes("tabs={salesProductionPageTabs}")).toBe(true);
 		expect(header.includes("SalesProductionDisplayToggle")).toBe(true);
 		expect(header.includes("hiddenFilterKeys")).toBe(true);
+		expect(tabs.includes('title: "Due Today"')).toBe(true);
+		expect(tabs.includes('title: "Past Due"')).toBe(true);
 		expect(tabs.includes('title: "Review"')).toBe(true);
 		expect(tabs.includes('title: "Completed"')).toBe(true);
 		expect(tabs.includes('title: "Calendar"')).toBe(false);

@@ -4,7 +4,6 @@ import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { formatBusinessDate } from "@/lib/format-business-date";
 import { cn } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
@@ -12,6 +11,7 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
+import { timeAgo } from "@gnd/utils/dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
 
 export type SalesProductionRow =
@@ -26,7 +26,7 @@ export function getSalesProductionRowId(item: SalesProductionRow) {
 const dueDateColumn: Column = {
 	id: "dueDate",
 	header: "Due Date",
-	accessorFn: (row) => row.dueDateLabel || row.alert?.date,
+	accessorFn: (row) => row.dueDate || row.alert?.date,
 	...sizes.custom(140, 200, 160),
 	enableResizing: true,
 	enableHiding: false,
@@ -189,62 +189,25 @@ const materialsColumn: Column = {
 	},
 	cell: ({ row }) => {
 		const materials = row.original.materials;
-		const expectedAt = formatBusinessDate(materials.expectedAt);
-
-		if (materials.state === "unavailable") {
-			return (
-				<div className="min-w-0 space-y-1">
-					<p className="truncate text-sm font-medium text-amber-700">
-						Materials unavailable
-					</p>
-					<p className="truncate text-xs text-muted-foreground">
-						Assignment remains active
-					</p>
-				</div>
-			);
-		}
-
-		if (materials.state === "ready") {
-			return (
-				<div className="min-w-0 space-y-1">
-					<p className="truncate text-sm font-medium text-emerald-700">
-						Materials ready
-					</p>
-					<p className="truncate text-xs text-muted-foreground">
-						Ready to start
-					</p>
-				</div>
-			);
-		}
-
-		if (materials.state === "not_configured") {
-			return (
-				<div className="min-w-0 space-y-1">
-					<p className="truncate text-sm font-medium text-amber-700">
-						Materials not set
-					</p>
-					<p className="truncate text-xs text-muted-foreground">
-						Verify before starting
-					</p>
-				</div>
-			);
-		}
+		const isReady = materials.state === "ready";
+		const label =
+			materials.state === "unavailable"
+				? "Materials unavailable"
+				: materials.state === "not_configured"
+					? "Materials not set"
+					: isReady
+						? "Materials ready"
+						: "Materials pending";
 
 		return (
-			<div className="min-w-0 space-y-1">
-				<p className="truncate text-sm font-medium text-amber-700">
-					Materials pending
-				</p>
-				<p className="truncate text-xs text-muted-foreground">
-					{expectedAt
-						? materials.undatedPendingCount
-							? `Latest known ETA ${expectedAt} · ${materials.undatedPendingCount} unscheduled`
-							: `Expected ${expectedAt}`
-						: materials.openInboundQty
-							? "Inbound ordered · date pending"
-							: "Availability pending"}
-				</p>
-			</div>
+			<p
+				className={cn(
+					"truncate text-sm font-medium",
+					isReady ? "text-emerald-700" : "text-amber-700",
+				)}
+			>
+				{label}
+			</p>
 		);
 	},
 };
@@ -268,7 +231,6 @@ const progressColumn: Column = {
 				<Progress>
 					<Progress.ProgressBar
 						className="w-20"
-						showPercent
 						score={production?.score || 0}
 						total={production?.total || 0}
 					/>
@@ -320,17 +282,12 @@ export const workerColumns: Column[] = [
 ];
 
 function DueDateCell({ item }: { item: SalesProductionRow }) {
-	const hasDueDate = Boolean(item.alert?.date);
-	const alertDateString = (
-		item.alert as { dateString?: string | null } | undefined
-	)?.dateString;
+	const dueDate = item.dueDate || item.alert?.date;
 
 	return (
 		<div className="min-w-0 space-y-1">
 			<p className="truncate text-sm font-medium">
-				{hasDueDate
-					? item.dueDateLabel || alertDateString || "Due date set"
-					: "No due date"}
+				{dueDate ? timeAgo(dueDate) : "No due date"}
 			</p>
 			{item.completed ? null : (
 				<p className="truncate text-xs font-semibold text-muted-foreground">

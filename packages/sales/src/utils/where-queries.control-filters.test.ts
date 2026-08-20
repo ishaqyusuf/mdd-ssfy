@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import dayjs from "@gnd/utils/dayjs";
 import { salesQueryParamsSchema } from "../schema";
 import { whereSales } from "./where-queries";
 
@@ -99,11 +100,18 @@ describe("whereSales stat filters", () => {
 		const where = whereSales({
 			"production.status": "past due",
 		} as any);
+		const clauses = toClauses(where);
 		const json = JSON.stringify(toClauses(where));
+		const pastDueClause = clauses.find(
+			(clause) => clause.assignments?.some?.dueDate?.lt,
+		);
 
 		expect(json).toContain('"type":"prodCompleted"');
 		expect(json).not.toContain('"type":"dispatchCompleted"');
 		expect(json).toContain('"dueDate":{"lt":');
+		expect(pastDueClause?.assignments.some.dueDate.lt).toBe(
+			dayjs().startOf("day").toISOString(),
+		);
 	});
 
 	it("treats normal priority as NORMAL or legacy null", () => {

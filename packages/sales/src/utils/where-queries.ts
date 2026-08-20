@@ -4,7 +4,6 @@ import { SalesDispatchStatus } from "./constants";
 import {
   anyDateQuery,
   dateEquals,
-  fixDbTime,
   transformFilterDateToQuery,
 } from "@gnd/utils";
 import { orderInboundStatuses } from "@gnd/utils/constants";
@@ -750,9 +749,9 @@ export function whereSales(query: SalesQueryParamsSchema) {
           some: {
             assignedToId: assignedToId || undefined,
             deletedAt: null,
-            dueDate: {
-              lt: fixDbTime(dayjs()).toISOString(),
-            },
+                dueDate: {
+                  lt: dayjs().startOf("day").toISOString(),
+                },
           },
         },
       });

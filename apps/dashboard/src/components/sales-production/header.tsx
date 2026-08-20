@@ -163,7 +163,7 @@ export function SalesProductionHeader() {
 										: {}),
 							}}
 							tabs={salesProductionPageTabs}
-							maxVisible={{ base: 3, lg: 3, "2xl": 3 }}
+							maxVisible={{ base: 3, lg: 5, "2xl": 5 }}
 						/>
 					}
 					toolbarActions={
