@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import {
 	continueSaveAfterCommittedChangeReview,
 	createSaveContinuationGuard,
+	resolveCommittedChangeSubmissionAction,
+	runCommittedChangeSubmission,
 } from "./save-intent-continuation";
 
 const formSource = readFileSync(
@@ -11,6 +13,44 @@ const formSource = readFileSync(
 );
 
 describe("new sales form save intent continuation", () => {
+	test("polls an already-approved change without submitting it again", () => {
+		expect(resolveCommittedChangeSubmissionAction(false)).toBe(
+			"create-and-poll",
+		);
+		expect(resolveCommittedChangeSubmissionAction(true)).toBe("poll");
+	});
+
+	test("checks a slow approved change without creating a duplicate adjustment", async () => {
+		let createCalls = 0;
+		let pollCalls = 0;
+		const createAdjustment = async () => {
+			createCalls += 1;
+		};
+		const first = await runCommittedChangeSubmission({
+			alreadyCreated: false,
+			createAdjustment,
+			pollForRefreshedRecord: async () => {
+				pollCalls += 1;
+				return null;
+			},
+		});
+		const second = await runCommittedChangeSubmission({
+			alreadyCreated: first.alreadyCreated,
+			createAdjustment,
+			pollForRefreshedRecord: async () => {
+				pollCalls += 1;
+				return { version: "v2" };
+			},
+		});
+
+		expect(createCalls).toBe(1);
+		expect(pollCalls).toBe(2);
+		expect(second).toEqual({
+			alreadyCreated: false,
+			refreshedRecord: { version: "v2" },
+		});
+	});
+
 	test("resumes Save & Close with the refreshed record after change review", async () => {
 		const calls: string[] = [];
 		const refreshedRecord = { version: "v2" };

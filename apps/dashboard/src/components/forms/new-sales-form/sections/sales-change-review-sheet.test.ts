@@ -24,7 +24,10 @@ describe("sales change review", () => {
 		expect(formSource).toContain("requiresSalesRepApproval");
 		expect(formSource).toContain("hasSalesRepApprovalChange");
 		expect(formSource).toContain(
-			"The approved changes are being committed automatically in the background.",
+			"Approved change is still applying",
+		);
+		expect(formSource).toContain(
+			"if (!opened && intent) setPendingCommittedChangeSaveIntent(null)",
 		);
 	});
 
@@ -34,8 +37,7 @@ describe("sales change review", () => {
 		expect(sheetSource).toContain("acknowledgeOperationalImpact");
 		expect(sheetSource).toContain("Preserve that evidence");
 		expect(sheetSource).not.toContain("This change cannot be submitted.");
-		expect(formSource).toContain(
-			"acknowledgeOperationalImpact: input.acknowledgeOperationalImpact",
-		);
+		expect(formSource).toContain("acknowledgeOperationalImpact:");
+		expect(formSource).toContain("input.acknowledgeOperationalImpact");
 	});
 });

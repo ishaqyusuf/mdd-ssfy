@@ -67,6 +67,7 @@ import type {
 import {
 	continueSaveAfterCommittedChangeReview,
 	createSaveContinuationGuard,
+	runCommittedChangeSubmission,
 	type SaveIntent,
 } from "./save-intent-continuation";
 import {
@@ -456,6 +457,11 @@ export function NewSalesForm(props: Props) {
 		createSaveContinuationGuard(),
 	);
 	const committedChangeSubmissionRef = useRef(false);
+	const committedChangeCreatedRef = useRef(false);
+	const [
+		isAwaitingCommittedChangeApplication,
+		setIsAwaitingCommittedChangeApplication,
+	] = useState(false);
 	const manualSaveLockRef = useRef(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [historyPreview, setHistoryPreview] = useState<{
@@ -1309,6 +1315,8 @@ export function NewSalesForm(props: Props) {
 	async function openCommittedChangeReview() {
 		if (!record?.salesId || !record.slug || !record.version) return false;
 		committedChangeContinuationGuardRef.current.status = "idle";
+		committedChangeCreatedRef.current = false;
+		setIsAwaitingCommittedChangeApplication(false);
 		setChangeReviewOpen(true);
 		try {
 			const review = await previewAdjustmentMutation.mutateAsync({
@@ -1363,23 +1371,33 @@ export function NewSalesForm(props: Props) {
 			: "Sales representative approved the sale adjustment.";
 		setIsApplyingAdjustment(true);
 		try {
-			await createAdjustmentMutation.mutateAsync({
-				...toSaveDraftInput(record, false),
-				type: "order",
-				salesId: record.salesId,
-				slug: record.slug,
-				version: record.version,
-				autosave: false,
-				reason,
-				inboundDisposition: input.inboundDisposition,
-				acknowledgeOperationalImpact: input.acknowledgeOperationalImpact,
+			const submission = await runCommittedChangeSubmission({
+				alreadyCreated: committedChangeCreatedRef.current,
+				createAdjustment: async () => {
+					await createAdjustmentMutation.mutateAsync({
+						...toSaveDraftInput(record, false),
+						type: "order",
+						salesId: record.salesId,
+						slug: record.slug,
+						version: record.version,
+						autosave: false,
+						reason,
+						inboundDisposition: input.inboundDisposition,
+						acknowledgeOperationalImpact:
+							input.acknowledgeOperationalImpact,
+					});
+				},
+				pollForRefreshedRecord: () =>
+					waitForAdjustmentApplication(sourceVersion),
 			});
-			const refreshedRecord = await waitForAdjustmentApplication(sourceVersion);
+			committedChangeCreatedRef.current = submission.alreadyCreated;
+			setIsAwaitingCommittedChangeApplication(submission.alreadyCreated);
+			const refreshedRecord = submission.refreshedRecord;
 			if (!refreshedRecord) {
 				toast({
 					title: "Approved change is still applying",
 					description:
-						"The form will stay open. Retry this confirmation after the updated sale appears.",
+						"The form will stay open. Use Check status to resume after the updated sale appears.",
 				});
 				return;
 			}
@@ -1948,6 +1966,8 @@ export function NewSalesForm(props: Props) {
 						setPendingCommittedChangeSaveIntent(null);
 						setChangeReview(null);
 						committedChangeContinuationGuardRef.current.status = "idle";
+						committedChangeCreatedRef.current = false;
+						setIsAwaitingCommittedChangeApplication(false);
 					}
 				}}
 				review={changeReview}
@@ -1955,6 +1975,7 @@ export function NewSalesForm(props: Props) {
 				isSubmitting={
 					createAdjustmentMutation.isPending || isApplyingAdjustment
 				}
+				isAwaitingApplication={isAwaitingCommittedChangeApplication}
 				onSubmit={submitCommittedChange}
 			/>
             {settingsOpen ? (

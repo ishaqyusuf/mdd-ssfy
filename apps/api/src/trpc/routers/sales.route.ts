@@ -101,6 +101,7 @@ import {
 } from "@api/utils/dealer-delivery-pricing";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { transformSalesFilterQuery } from "@api/utils/sales";
+import { requireWorkflowComponentEditor } from "@api/utils/workflow-component-access";
 import {
 	approveDealerOrderRequest,
 	getDealerOrderRequest,
@@ -448,14 +449,6 @@ async function requireWorkflowComponentAdmin(ctx: TRPCContext) {
 			"Only Admin or Super Admin can manage workflow components.",
 		);
 	}
-}
-
-async function requireWorkflowComponentEditor(ctx: TRPCContext) {
-	return requireAnyOperationalPermission(
-		ctx,
-		["editSalesComponent"],
-		"You do not have permission to manage workflow components.",
-	);
 }
 
 async function sendDealerRejectedEmail(

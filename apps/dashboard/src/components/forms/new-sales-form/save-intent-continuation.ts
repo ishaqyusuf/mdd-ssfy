@@ -8,6 +8,30 @@ export function createSaveContinuationGuard(): SaveContinuationGuard {
 	return { status: "idle" };
 }
 
+export function resolveCommittedChangeSubmissionAction(
+	alreadyCreated: boolean,
+) {
+	return alreadyCreated ? ("poll" as const) : ("create-and-poll" as const);
+}
+
+export async function runCommittedChangeSubmission<TRecord>(input: {
+	alreadyCreated: boolean;
+	createAdjustment: () => Promise<void>;
+	pollForRefreshedRecord: () => Promise<TRecord | null>;
+}) {
+	if (
+		resolveCommittedChangeSubmissionAction(input.alreadyCreated) ===
+		"create-and-poll"
+	) {
+		await input.createAdjustment();
+	}
+	const refreshedRecord = await input.pollForRefreshedRecord();
+	return {
+		alreadyCreated: refreshedRecord === null,
+		refreshedRecord,
+	};
+}
+
 type ContinueSaveAfterCommittedChangeReviewInput<TRecord> = {
 	intent: SaveIntent | null;
 	refreshedRecord: TRecord | null;

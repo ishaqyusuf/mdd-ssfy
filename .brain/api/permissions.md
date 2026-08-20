@@ -279,7 +279,10 @@ Tracks authentication and authorization patterns across API surfaces.
 ## Workflow component catalog permissions (2026-07-21)
 
 - `editSalesComponent` authorizes component creation and component-details
-  updates. Both mutations repeat this explicit permission check server-side.
+  updates. Both mutations repeat this explicit permission check server-side
+  through the shared workflow-component editor guard. Its regression test
+  executes the guard with authenticated allowed and denied role-permission
+  contexts and asserts the denied path returns `FORBIDDEN` before mutation work.
 - Admin and Super Admin may edit visibility, section overrides, redirects,
   enter catalog selection, and soft archive components.
 - Only Super Admin may edit shared component base pricing.

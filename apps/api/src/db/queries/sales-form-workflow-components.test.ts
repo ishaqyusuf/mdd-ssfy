@@ -73,6 +73,13 @@ describe("workflow component mutation contracts", () => {
 			resolve(repositoryRoot, "apps/api/src/trpc/routers/sales.route.ts"),
 			"utf8",
 		);
+		const accessSource = readFileSync(
+			resolve(
+				repositoryRoot,
+				"apps/api/src/utils/workflow-component-access.ts",
+			),
+			"utf8",
+		);
 		const inventorySource = readFileSync(
 			resolve(
 				repositoryRoot,
@@ -91,7 +98,8 @@ describe("workflow component mutation contracts", () => {
 		]) {
 			expect(routerSource).toContain(`${mutation}: protectedProcedure`);
 		}
-		expect(routerSource).toContain('"editSalesComponent"');
+		expect(accessSource).toContain('"editSalesComponent"');
+		expect(routerSource).toContain("requireWorkflowComponentEditor(ctx)");
 		expect(routerSource).toContain("requireSuperAdmin(ctx)");
 		expect(querySource).toContain("invalidateSalesWorkflowForStepComponent");
 		expect(querySource).toContain("queueDykeStepToInventorySync");

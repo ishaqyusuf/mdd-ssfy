@@ -72,6 +72,7 @@ export function SalesChangeReviewSheet(props: {
 	review: ChangeReview | null;
 	isLoading: boolean;
 	isSubmitting: boolean;
+	isAwaitingApplication?: boolean;
 	onSubmit: (input: {
 		inboundDisposition: InboundDisposition | null;
 		acknowledgeOperationalImpact: boolean;
@@ -282,7 +283,13 @@ export function SalesChangeReviewSheet(props: {
 								})
 							}
 						>
-							{props.isSubmitting ? "Committing changes…" : "Approve"}
+							{props.isSubmitting
+								? props.isAwaitingApplication
+									? "Checking status…"
+									: "Committing changes…"
+								: props.isAwaitingApplication
+									? "Check status"
+									: "Approve"}
 						</Button>
 					</div>
 				) : (
