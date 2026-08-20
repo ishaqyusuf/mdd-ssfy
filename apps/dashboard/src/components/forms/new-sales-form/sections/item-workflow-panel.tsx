@@ -109,6 +109,7 @@ import {
 	removeWorkflowMouldingSelection,
 	resolveConfiguredRouteStepsForLine,
 	resolveInteractiveStepIndex,
+	resolveWorkflowCatalogComponents,
 	resolveWorkflowVisibleComponents,
 	saveWorkflowSelectedComponent,
 	selectAllWorkflowComponents,
@@ -303,8 +304,9 @@ export function ItemWorkflowPanel() {
 			createWwwWorkflowAdminCapabilities({
 				roleTitle: auth.roleTitle,
 				canEditOrders: auth.can?.editOrders,
+				canEditSalesComponent: auth.can?.editSalesComponent,
 			}),
-		[auth.roleTitle, auth.can?.editOrders],
+		[auth.roleTitle, auth.can?.editOrders, auth.can?.editSalesComponent],
 	);
 	const componentAdmin = useWorkflowComponentAdmin({
 		record,
@@ -552,6 +554,21 @@ export function ItemWorkflowPanel() {
 			overrides: activeStepComponentOverrides,
 			includeCustomComponents: false,
 			profileCoefficient: activeProfileCoefficient,
+		});
+	}, [
+		stepComponentsQuery.data,
+		activeStep,
+		activeLineSteps,
+		activeProfileCoefficient,
+		activeStepComponentOverrides,
+	]);
+	const catalogComponents = useMemo(() => {
+		return resolveWorkflowCatalogComponents({
+			components: stepComponentsQuery.data || [],
+			steps: activeLineSteps,
+			activeStep: activeStep || null,
+			overrides: activeStepComponentOverrides,
+			profileCoefficient: activeProfileCoefficient ?? 1,
 		});
 	}, [
 		stepComponentsQuery.data,
@@ -2463,6 +2480,7 @@ export function ItemWorkflowPanel() {
 								steps={steps}
 								loading={stepComponentsQuery.isPending}
 								components={visibleComponents}
+								catalogComponents={catalogComponents}
 								filteredComponents={filteredVisibleComponents}
 								selectedUids={selectedUids}
 								search={componentSearch}
@@ -2523,6 +2541,18 @@ export function ItemWorkflowPanel() {
 										);
 									}
 								}}
+								onCreateComponent={
+									workflowAdminCapabilities.canCreateWorkflowComponents
+										? () =>
+												componentAdmin.componentActions.onCreateComponent?.({
+													routeData,
+													line,
+													steps,
+													step: activeItemStep,
+													stepIndex: activeIndex,
+												})
+										: undefined
+								}
 								onOpenPricing={
 									workflowAdminCapabilities.canEditWorkflowComponentPricing
 										? (component) =>
@@ -2536,15 +2566,30 @@ export function ItemWorkflowPanel() {
 												})
 										: undefined
 								}
-								onOpenDoorSizeVariant={() =>
-									setDoorSizeVariantModal({
-										open: true,
-										lineUid: line.uid,
-										stepIndex: activeIndex,
-									})
+								onOpenDoorSizeVariant={
+									workflowAdminCapabilities.canManageDoorSizeVariants
+										? () =>
+												setDoorSizeVariantModal({
+													open: true,
+													lineUid: line.uid,
+													stepIndex: activeIndex,
+												})
+										: undefined
 								}
-								onEnableCustomComponent={() =>
+								onOpenCustomComponent={() =>
 									openCustomComponentDialog(line, activeIndex)
+								}
+								onEnableCustomComponent={
+									workflowAdminCapabilities.canEnableCustomComponents
+										? () =>
+												componentAdmin.componentActions.onEnableCustomComponent?.({
+													routeData,
+													line,
+													steps,
+													step: activeItemStep,
+													stepIndex: activeIndex,
+												})
+										: undefined
 								}
 								customComponentSlot={renderCustomComponentInlinePanel(
 									line,
@@ -2558,7 +2603,7 @@ export function ItemWorkflowPanel() {
 									proceedMultiSelectStep(line, activeIndex)
 								}
 								onEditDetails={
-									workflowAdminCapabilities.canEditWorkflowComponents
+									workflowAdminCapabilities.canEditWorkflowComponentDetails
 										? (component) =>
 												componentAdmin.componentActions.onEditDetails?.({
 													routeData,

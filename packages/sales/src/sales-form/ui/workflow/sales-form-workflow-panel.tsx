@@ -129,6 +129,7 @@ import {
 	profileAdjustedDoorSalesPrice,
 	profileAdjustedSalesPrice,
 	removeWorkflowHptDoorOption,
+	resolveWorkflowCatalogComponents,
 	resolveWorkflowDoorSizePricing,
 	resolveInteractiveStepIndex,
 	saveWorkflowSelectedComponent,
@@ -542,6 +543,27 @@ export function SalesFormWorkflowPanel<
 		activeStepComponentOverrides,
 		stepComponentsQuery.data,
 	]);
+	const catalogComponents = useMemo(
+		() =>
+			resolveWorkflowCatalogComponents({
+				components: stepComponentsQuery.data || [],
+				steps: activeLineSteps,
+				activeStep: activeStep || null,
+				overrides: activeStepComponentOverrides,
+				profileCoefficient: activeProfileCoefficient,
+				pricingView: activePricingView,
+				dealerSalesPercentage: activeDealerSalesPercentage,
+			}),
+		[
+			activeDealerSalesPercentage,
+			activeLineSteps,
+			activePricingView,
+			activeProfileCoefficient,
+			activeStep,
+			activeStepComponentOverrides,
+			stepComponentsQuery.data,
+		],
+	);
 	const visibleDoorComponents = useMemo(() => {
 		return (doorComponentsQuery.data || [])
 			.filter((component) =>
@@ -1163,6 +1185,7 @@ export function SalesFormWorkflowPanel<
 				steps={steps}
 				loading={Boolean(stepComponentsQuery.isPending)}
 				components={visibleComponents}
+				catalogComponents={catalogComponents}
 				filteredComponents={filteredVisibleComponents}
 				selectedUids={selectedUids}
 				search={componentSearch}

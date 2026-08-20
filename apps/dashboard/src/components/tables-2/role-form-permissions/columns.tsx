@@ -10,6 +10,7 @@ import type { Control } from "react-hook-form";
 export type RoleFormPermissionRow = {
 	uid: string;
 	permission: string;
+	kind: "direct" | "scoped";
 };
 
 type PermissionAction = "view" | "edit";
@@ -32,7 +33,9 @@ function getMeta(table: unknown): RoleFormPermissionsTableMeta | undefined {
 function permissionFieldName(
 	permission: string,
 	action: PermissionAction,
+	kind: RoleFormPermissionRow["kind"],
 ): PermissionFieldName {
+	if (kind === "direct") return `permissions.${permission}.checked`;
 	return `permissions.${action} ${permission}.checked`;
 }
 
@@ -75,13 +78,20 @@ function PermissionCheckboxCell({
 	action: PermissionAction;
 }) {
 	const meta = getMeta(table);
+	if (row.original.kind === "direct" && action === "edit") {
+		return <DataSkeleton placeholder="**" />;
+	}
 
 	return (
 		<DataSkeleton placeholder="**">
 			<div className="flex justify-center">
 				<FormCheckbox
 					control={meta?.control}
-					name={permissionFieldName(row.original.permission, action)}
+					name={permissionFieldName(
+						row.original.permission,
+						action,
+						row.original.kind,
+					)}
 					className="space-x-0"
 				/>
 			</div>
@@ -91,12 +101,12 @@ function PermissionCheckboxCell({
 
 const createColumn: Column = {
 	id: "create",
-	header: "Create",
+	header: "Access",
 	...sizes.custom(84, 112, 92),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge", width: "w-10" },
-		headerLabel: "Create",
+		headerLabel: "Access",
 		className: sizeClass(sizes.custom(84, 112, 92), "justify-center"),
 		contentClassName: "flex justify-center",
 	},

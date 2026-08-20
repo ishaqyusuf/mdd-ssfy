@@ -33,19 +33,21 @@ export function RoleForm() {
 		if (!data) return;
 		reset(data.form);
 	}, [data, reset]);
-	const permissionRows = useMemo(
-		() =>
-			(data?.permissionsList?.length
-				? data.permissionsList
-				: Array.from({ length: 10 }, () => "permission")
-			).map((permission, index) => ({
-				uid: data?.permissionsList?.length
-					? `permission-${permission}`
-					: `permission-skeleton-${index}`,
-				permission,
-			})),
-		[data?.permissionsList],
-	);
+	const permissionRows = useMemo(() => {
+		if (!data?.permissionsList?.length) {
+			return Array.from({ length: 10 }, (_, index) => ({
+				uid: `permission-skeleton-${index}`,
+				permission: "permission",
+				kind: "scoped" as const,
+			}));
+		}
+
+		return data.permissionsList.map(({ permission, kind }) => ({
+			uid: `permission-${permission}`,
+			permission,
+			kind,
+		}));
+	}, [data?.permissionsList]);
 	const dataSkeletonContext = useMemo(
 		() =>
 			({

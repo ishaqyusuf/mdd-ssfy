@@ -1,5 +1,15 @@
 # In Progress
 
+### New Sales Form Step Picker And Component Creation Parity
+
+- Priority: High
+- Description: Track the reopened implementation plan in `.brain/plans/2026-08-19-feature-new-sales-form-step-picker-parity.md`; complete default-host catalog menu/add-tile parity and make Save & Close navigate only after every required confirmation and a successful save.
+- Related Feature: New sales form workflow component management and save continuation
+- Status: In Progress
+- Plan Status: In Progress
+- Plan File: `.brain/plans/2026-08-19-feature-new-sales-form-step-picker-parity.md`
+- Created Date: 2026-08-19
+
 - [ ] Square Refunds for Sales Wayfinder: the local map at
   `.scratch/square-refunds/map.md` preserves the approved external-tender,
   permission, allocation, provider-state, accounting, notification, and rollout

@@ -1,7 +1,12 @@
 import {
+	percentageMoney,
+	sumMoney,
+} from "../../../payment-system/domain/money";
+import {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,
 	isComponentVisibleByRules,
+	readSalesFormObjectMetadata,
 	resolveComponentPriceByDeps,
 } from "../../domain";
 import { profileAdjustedSalesPrice } from "./workflow-format";
@@ -11,13 +16,11 @@ import {
 	getStepPriceDeps,
 	isComponentEnabledForView,
 } from "./workflow-records";
-import {
-	percentageMoney,
-	sumMoney,
-} from "../../../payment-system/domain/money";
 
-export type ResolveWorkflowVisibleComponentsInput = {
-	components: WorkflowComponentRecord[];
+export type ResolveWorkflowVisibleComponentsInput<
+	TComponent extends WorkflowComponentRecord = WorkflowComponentRecord,
+> = {
+	components: TComponent[];
 	steps: WorkflowStepRecord[];
 	activeStep: WorkflowStepRecord | null;
 	overrides: Map<string, Partial<WorkflowComponentRecord>>;
@@ -27,38 +30,29 @@ export type ResolveWorkflowVisibleComponentsInput = {
 	dealerSalesPercentage?: number | null;
 };
 
-export function resolveWorkflowVisibleComponents({
+export type ResolveWorkflowCatalogComponentsInput<
+	TComponent extends WorkflowComponentRecord = WorkflowComponentRecord,
+> = Omit<
+	ResolveWorkflowVisibleComponentsInput<TComponent>,
+	"includeCustomComponents"
+>;
+
+export function resolveWorkflowCatalogComponents<
+	TComponent extends WorkflowComponentRecord = WorkflowComponentRecord,
+>({
 	components,
 	steps,
 	activeStep,
 	overrides,
-	includeCustomComponents,
 	profileCoefficient,
 	pricingView = "internal",
 	dealerSalesPercentage = 0,
-}: ResolveWorkflowVisibleComponentsInput): WorkflowComponentRecord[] {
+}: ResolveWorkflowCatalogComponentsInput<TComponent>): TComponent[] {
 	const selectedByStepUid = buildSelectedByStepUid(steps);
 	const selectedProdUidsByStepUid = buildSelectedProdUidsByStepUid(steps);
-	const selectedComponentUids = new Set(
-		Object.values(selectedProdUidsByStepUid).flat().map(String),
-	);
 
 	return (components || [])
 		.filter((component) => !component.isDeleted)
-		.filter((component) =>
-			isComponentEnabledForView(
-				component,
-				includeCustomComponents,
-				selectedComponentUids,
-			),
-		)
-		.filter((component) =>
-			isComponentVisibleByRules(
-				component,
-				selectedByStepUid,
-				selectedProdUidsByStepUid,
-			),
-		)
 		.map((component) => {
 			const override = overrides.get(String(component?.uid || ""));
 			const overridePricing =
@@ -107,11 +101,59 @@ export function resolveWorkflowVisibleComponents({
 							percentageMoney(internalSalesPrice, dealerSalesPercentage),
 						])
 					: internalSalesPrice;
+			const metadata = readSalesFormObjectMetadata(component?._metaData);
+			const custom = !isComponentEnabledForView(component, false);
+			const visible = isComponentVisibleByRules(
+				component,
+				selectedByStepUid,
+				selectedProdUidsByStepUid,
+			);
 
 			return {
 				...effectiveComponent,
 				salesPrice,
 				basePrice: Number(resolvedBasePrice ?? 0),
-			};
+				_metaData: {
+					...metadata,
+					custom,
+					visible,
+				},
+			} as TComponent;
 		});
+}
+
+export function resolveWorkflowVisibleComponents<
+	TComponent extends WorkflowComponentRecord = WorkflowComponentRecord,
+>({
+	components,
+	steps,
+	activeStep,
+	overrides,
+	includeCustomComponents,
+	profileCoefficient,
+	pricingView = "internal",
+	dealerSalesPercentage = 0,
+}: ResolveWorkflowVisibleComponentsInput<TComponent>): TComponent[] {
+	const selectedProdUidsByStepUid = buildSelectedProdUidsByStepUid(steps);
+	const selectedComponentUids = new Set(
+		Object.values(selectedProdUidsByStepUid).flat().map(String),
+	);
+
+	return resolveWorkflowCatalogComponents<TComponent>({
+		components,
+		steps,
+		activeStep,
+		overrides,
+		profileCoefficient,
+		pricingView,
+		dealerSalesPercentage,
+	})
+		.filter((component) =>
+			isComponentEnabledForView(
+				component,
+				includeCustomComponents,
+				selectedComponentUids,
+			),
+		)
+		.filter((component) => component._metaData?.visible === true);
 }

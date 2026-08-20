@@ -180,6 +180,10 @@ export function getSalesItemType(item: PrintSalesItem) {
 export function getSectionIndex(item: PrintSalesItem, fallbackIndex: number) {
 	const meta = getPersistedItemMeta(item);
 	return (
+		getNumber(meta.itemIndex) ??
+		getNumber(meta.item_index) ??
+		getNumber(safeRecord(item.meta).itemIndex) ??
+		getNumber(safeRecord(item.meta).item_index) ??
 		getNumber(meta.lineIndex) ??
 		getNumber(meta.line_index) ??
 		getNumber(safeRecord(item.meta).lineIndex) ??

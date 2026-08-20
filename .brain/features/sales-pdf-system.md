@@ -375,3 +375,7 @@ The stored-document phase should answer these operational rules explicitly:
   grouped metadata rows render once and legacy siblings cannot reappear through
   either the grouped fallback or generic line-item table. Legacy groups without
   authoritative metadata remain supported.
+- 2026-08-20: Print section ordering now treats the new sales form's persisted
+  `itemIndex` as authoritative, before legacy `lineIndex` aliases. HTML preview
+  and PDF rendering share this composer, so both follow the saved form sequence
+  even when an older line index remains on the item.

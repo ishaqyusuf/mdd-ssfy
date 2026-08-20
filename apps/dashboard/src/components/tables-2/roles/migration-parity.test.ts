@@ -9,18 +9,18 @@ function readSource(path: string) {
 	return readFileSync(resolve(root, path), "utf8");
 }
 
-describe("Roles sheet table migration parity", () => {
-	it("keeps the roles tab off the legacy data-table path", () => {
+describe("Roles page table migration parity", () => {
+	it("keeps the roles page off the legacy data-table path", () => {
 		const tabSource = readSource(
-			"components/sheets/roles-profile-sheet/roles-tab.tsx",
+			"features/employee-management/components/roles-page.tsx",
 		);
 
 		expect(tabSource.includes("components/tables-2/roles/data-table")).toBe(
 			true,
 		);
 		expect(tabSource.includes("RolesColumnVisibility")).toBe(true);
-		expect(tabSource.includes("RolesSkeleton")).toBe(true);
-		expect(tabSource.includes("Portal")).toBe(true);
+		expect(tabSource.includes("isLoading={!roles}")).toBe(true);
+		expect(tabSource.includes("Dialog")).toBe(true);
 		expect(tabSource.includes("components/tables/roles/table")).toBe(false);
 		expect(tabSource.includes("@gnd/ui/data-table")).toBe(false);
 	});
@@ -44,7 +44,7 @@ describe("Roles sheet table migration parity", () => {
 		expect(source.includes("onCellClick={() => onEdit(row.original)}")).toBe(
 			true,
 		);
-		expect(source.includes("clamp(240px")).toBe(true);
+		expect(source.includes('height: "calc(100vh - 240px')).toBe(true);
 	});
 
 	it("keeps compact headers, horizontal pagination, and resize handles", () => {
@@ -63,6 +63,9 @@ describe("Roles sheet table migration parity", () => {
 	it("keeps roles registered with compact tailored column widths", () => {
 		const settingsSource = readSource("utils/table-settings.ts");
 		const configSource = readSource("utils/table-configs.ts");
+		const dataTableSource = readSource(
+			"components/tables-2/roles/data-table.tsx",
+		);
 		const columnsSource = readSource("components/tables-2/roles/columns.tsx");
 
 		expect(settingsSource.includes('| "roles"')).toBe(true);
@@ -76,5 +79,14 @@ describe("Roles sheet table migration parity", () => {
 		expect(columnsSource.includes("sizes.custom(120, 180, 136)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(72, 104, 84)")).toBe(true);
 		expect(columnsSource.includes("md:sticky md:right-0")).toBe(true);
+		expect(columnsSource.includes("Role #")).toBe(false);
+		expect(
+			columnsSource.includes(
+				"href={`/hrm/employees/v2?role=${encodeURIComponent(roleName)}`}",
+			),
+		).toBe(true);
+		expect(dataTableSource.includes('new Set(["employees", "actions"])')).toBe(
+			true,
+		);
 	});
 });

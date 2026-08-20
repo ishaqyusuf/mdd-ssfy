@@ -1,10 +1,10 @@
+import { readSalesFormObjectMetadata } from "../../domain/metadata";
 import {
 	isWorkflowRedirectDisabledStep,
 	normalizeSalesFormTitle as normalizeTitle,
 	resolveInitialWorkflowStepIndex as resolveInitialStepIndex,
 	resolveInteractiveWorkflowStepIndex,
 } from "../../domain/step-engine";
-import { readSalesFormObjectMetadata } from "../../domain/metadata";
 
 export type WorkflowStepRecord = {
 	id?: number | null;
@@ -52,6 +52,9 @@ export type WorkflowComponentRecord = {
 	custom?: boolean;
 	_metaData?: {
 		custom?: boolean;
+		visible?: boolean;
+		deletedAt?: string | null;
+		[key: string]: unknown;
 	} | null;
 	[key: string]: unknown;
 };

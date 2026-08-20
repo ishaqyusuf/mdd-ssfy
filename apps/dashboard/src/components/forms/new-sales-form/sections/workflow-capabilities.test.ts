@@ -75,6 +75,28 @@ describe("Dashboard sales form workflow capabilities", () => {
 		});
 	});
 
+	test("wires component creation and custom configuration through the default host", () => {
+		const source = readFileSync(
+			new URL("./item-workflow-panel.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source).toContain(
+			"canEditSalesComponent: auth.can?.editSalesComponent",
+		);
+		expect(source).toContain(
+			"workflowAdminCapabilities.canCreateWorkflowComponents",
+		);
+		expect(source).toContain("onCreateComponent={");
+		expect(source).toContain(
+			"workflowAdminCapabilities.canEditWorkflowComponentDetails",
+		);
+		expect(source).toContain("onOpenCustomComponent={() =>");
+		expect(source).toMatch(
+			/onEnableCustomComponent=\{[\s\S]*componentAdmin\.componentActions\.onEnableCustomComponent/,
+		);
+	});
+
 	test("wires door size pricing editability through ItemWorkflowPanel", () => {
 		const source = readFileSync(
 			new URL("./item-workflow-panel.tsx", import.meta.url),

@@ -1,7 +1,56 @@
 import { describe, expect, it } from "bun:test";
-import { resolveWorkflowVisibleComponents } from "./workflow-visible-components";
+import {
+	resolveWorkflowCatalogComponents,
+	resolveWorkflowVisibleComponents,
+} from "./workflow-visible-components";
 
 describe("workflow visible components", () => {
+	it("classifies default, custom, and hidden catalog components without deleted rows", () => {
+		const components = resolveWorkflowCatalogComponents({
+			components: [
+				{ uid: "default", title: "Default" },
+				{
+					uid: "hidden",
+					title: "Hidden",
+					variations: [
+						{
+							rules: [
+								{
+									stepUid: "color",
+									operator: "is",
+									componentsUid: ["black"],
+								},
+							],
+						},
+					],
+				},
+				{ uid: "custom", title: "Custom", custom: true },
+				{ uid: "deleted", title: "Deleted", isDeleted: true },
+			],
+			steps: [
+				{
+					step: { uid: "color" },
+					prodUid: "white",
+				},
+			],
+			activeStep: null,
+			overrides: new Map(),
+			profileCoefficient: 1,
+		});
+
+		expect(
+			components.map((component) => ({
+				uid: component.uid,
+				custom: component._metaData?.custom,
+				visible: component._metaData?.visible,
+			})),
+		).toEqual([
+			{ uid: "default", custom: false, visible: true },
+			{ uid: "hidden", custom: false, visible: false },
+			{ uid: "custom", custom: true, visible: true },
+		]);
+	});
+
 	it("filters deleted components and applies profile-adjusted pricing", () => {
 		const components = resolveWorkflowVisibleComponents({
 			components: [

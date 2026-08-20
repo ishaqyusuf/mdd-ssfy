@@ -172,7 +172,9 @@ export {
 } from "./sales-form/ui/workflow/workflow-records";
 export { getItemWorkflowStepFamily } from "./sales-form/ui/workflow/step-family";
 export {
+	resolveWorkflowCatalogComponents,
 	resolveWorkflowVisibleComponents,
+	type ResolveWorkflowCatalogComponentsInput,
 	type ResolveWorkflowVisibleComponentsInput,
 } from "./sales-form/ui/workflow/workflow-visible-components";
 export {

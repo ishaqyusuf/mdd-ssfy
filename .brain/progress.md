@@ -1,5 +1,12 @@
 # Progress
 
+- 2026-08-20: fixed new-sales-form item sequence being ignored in HTML preview
+  and print/PDF output. The form persists its sequence as `meta.itemIndex`, but
+  the shared print composer read only the legacy `lineIndex`; it now prioritizes
+  `itemIndex` while retaining legacy fallbacks. Focused print coverage passes
+  20 tests / 89 assertions, including a regression for stale legacy ordering.
+  No schema, API, permission, or persisted-record migration was required.
+
 - 2026-08-20: fixed the new sales form's floating component-step toolbar being
   present in the DOM but clipped off-screen by the animated item-step panel's
   transformed and overflow-hidden ancestors. Fixed mode now portals to the

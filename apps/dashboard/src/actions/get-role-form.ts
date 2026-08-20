@@ -11,6 +11,39 @@ const staticPermissions = PERMISSIONS.map((permission) =>
 	addSpacesToCamelCase(permission).toLocaleLowerCase(),
 );
 
+export type RolePermissionRow = {
+	permission: string;
+	kind: "direct" | "scoped";
+};
+
+function getRolePermissionRows(
+	permissions: Array<{ name: string }>,
+): RolePermissionRow[] {
+	const rows = new Map<string, RolePermissionRow>();
+
+	for (const { name } of permissions) {
+		const normalizedName = name.toLocaleLowerCase();
+		const permission = normalizedName
+			.replace(/^edit /, "")
+			.replace(/^view /, "")
+			.replace(/^review /, "");
+		const row: RolePermissionRow = {
+			permission,
+			kind: permission === normalizedName ? "direct" : "scoped",
+		};
+
+		// A direct action permission must retain its direct binding even if a
+		// legacy scoped permission happens to share its display label.
+		if (!rows.has(permission) || row.kind === "direct") {
+			rows.set(permission, row);
+		}
+	}
+
+	return Array.from(rows.values()).sort((a, b) =>
+		a.permission.localeCompare(b.permission),
+	);
+}
+
 async function getUpdatedPermissions() {
 	const permissions = await getPermissions();
 
@@ -62,17 +95,7 @@ export async function getRoleForm(id?) {
 			checked: !!current,
 		};
 	});
-	const permissionsList = Array.from(
-		new Set(
-			permissions.map((permission) =>
-				permission.name
-					?.replace(/^edit /, "")
-					.replace(/^view /, "")
-					.replace(/^review /, "")
-					?.toLocaleLowerCase(),
-			) as string[],
-		),
-	).sort((a, b) => a.localeCompare(b));
+	const permissionsList = getRolePermissionRows(permissions);
 	const promise = staticPermissions.map((name) => {
 		if (!form.permissions[name]) {
 			form.permissions[name] = {

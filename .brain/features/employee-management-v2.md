@@ -68,12 +68,28 @@ Everything else is standalone.
 - `get-role-form` now uses the current two-argument `revalidateTag("permissions", "max")` signature, and `role-form-context` keeps a local typed resolver adapter for the installed Zod/resolver package-version boundary.
 - Validation: focused role/profile parity tests passed with 13 tests / 80 assertions; full restarted table parity suite passed with 245 tests / 2337 assertions; targeted Biome passed; touched-file filtered `@gnd/dashboard` typecheck output showed no diagnostics; static scan found no old table primitives in `role-form.tsx`; `git diff --check` passed; `components/tables-2/core` remained unchanged; HTTPS route smoke for `/hrm/employees/v2` returned `200`.
 
+## 2026-08-20 Standalone Role Action Permissions
+
+- Role permissions now distinguish scoped `view`/`edit` pairs from standalone
+  action grants. A standalone grant has one Access checkbox bound directly to
+  its stored permission name; its Edit cell is intentionally blank.
+- This preserves the paired-resource controls and makes action grants such as
+  `Mark Sales Order Fulfilled` assignable through the role editor. The role
+  save action, permission storage, and session authorization contract are
+  unchanged.
+
 ## 2026-07-17 Employee Form Permissions Table-Core Migration
 
 - The employee create/edit modal now renders `apps/dashboard/src/components/tables-2/employee-form-permissions/*` instead of inline `@gnd/ui/table` permission markup.
 - The embedded permissions grid preserves the existing employee override contract: one row per permission subject, `Create` toggles the subject `viewPermissionId`, `Edit` toggles the subject `editPermissionId`, selected ids remain stored in `permissionIds`, and the existing employee save mutation/list invalidation flow is unchanged.
 - `TABLE_CONFIGS["employee-form-permissions"]` uses compact 48px rows, sticky Permission column, content-fit Permission `240/420/300`, Create `84/112/92`, and Edit `84/112/92` widths, table-owned scroll, virtual rows, DnD, draggable headers, resize handles, dividers, and persisted settings.
 - Validation: focused employee form permissions plus role/employees parity tests passed with 14 tests / 44 assertions; full restarted table parity suite passed with 249 tests / 2337 assertions; targeted Biome passed; touched-file filtered `@gnd/dashboard` typecheck output showed no diagnostics while broad `@gnd/dashboard` typecheck remains blocked by unrelated baseline API/UI errors; static scan found no old table primitives in `employee-form-modal.tsx`; `git diff --check` passed; `components/tables-2/core` remained unchanged; HTTPS route smoke for `/hrm/employees/v2` returned `200`.
+
+## 2026-08-20 Employee List Page Tabs
+
+- `/hrm/employees/v2` now uses the shared compact `PageTabs` treatment used by Sales Finance rather than a local two-button `Tabs` control.
+- The tab row exposes `Employees`, `Revoked Access`, and, for users with `editRole`, `Roles` and `Profiles`. Employees restores the active-access list, Revoked Access switches the existing `accessStatus=revoked` filter, and the Role/Profile tabs each use an explicit URL-backed page state.
+- Roles and Profiles now render their existing Tables-2 grids as standard, full-height page tables with on-demand loading, column controls, DnD, resizing, and persisted settings. The legacy roles/profile global sheet is removed; Roles create/edit uses the existing form in a page-level dialog. Role cells show only the role name, and an Employees count navigates to the active Employees list filtered to that role. No HRM API, employee access, role, or persistence contract changed.
 
 ---
 

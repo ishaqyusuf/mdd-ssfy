@@ -1,6 +1,7 @@
 "use client";
 
 import type { getRolesList } from "@/actions/get-roles";
+import Link from "@/components/link";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import type { PageItemData } from "@/types/type";
 import { Badge } from "@gnd/ui/badge";
@@ -51,9 +52,6 @@ const roleColumn: Column = {
 				className="max-w-full truncate font-medium"
 				text={row.original.name || "Untitled role"}
 			/>
-			<p className="truncate text-xs text-muted-foreground">
-				Role #{row.original.id}
-			</p>
 		</div>
 	),
 };
@@ -69,11 +67,21 @@ const employeesColumn: Column = {
 		className: sizeClass(sizes.custom(108, 160, 120), "text-right"),
 		contentClassName: "justify-end text-right",
 	},
-	cell: ({ row }) => (
-		<span className="block truncate text-right tabular-nums">
-			{row.original._count?.ModelHasRoles || 0}
-		</span>
-	),
+	cell: ({ row }) => {
+		const roleName = row.original.name || "Untitled role";
+		const employeeCount = row.original._count?.ModelHasRoles || 0;
+
+		return (
+			<Link
+				aria-label={`View ${employeeCount} employees with the ${roleName} role`}
+				className="block truncate text-right tabular-nums text-primary underline-offset-4 hover:underline"
+				href={`/hrm/employees/v2?role=${encodeURIComponent(roleName)}`}
+				onClick={(event) => event.stopPropagation()}
+			>
+				{employeeCount}
+			</Link>
+		);
+	},
 };
 
 const permissionsColumn: Column = {

@@ -1240,21 +1240,6 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   shows one quantity-one `$355.67` row with no error after profile pricing loads.
 - Completed Date: 2026-08-19
 
-### New Sales Form Step Picker And Component Creation Parity
-
-- Priority: High
-- Description: Kept the shared floating search/action toolbar visible through
-  picker loading and empty states, added the Component and state-aware custom
-  actions, permission-gated `[ + ]` creation/details, and Garage/Exterior
-  In-Swing/Out-Swing controls.
-- Status: Done
-- Plan Status: Done
-- Plan File: `.brain/plans/2026-08-19-feature-new-sales-form-step-picker-parity.md`
-- Handoff File: `.brain/handoffs/completed/2026-08-19-new-sales-form-step-picker-parity-handoff.md`
-- Validation: focused picker/swing/capability/API tests and Sales typecheck pass;
-  browser proof skipped by request.
-- Completed Date: 2026-08-19
-
 ### Optional Address Line 1 In Sales Customer Forms
 
 - Priority: Medium

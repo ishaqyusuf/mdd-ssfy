@@ -20,7 +20,7 @@ import { RolesSkeleton } from "./skeleton";
 import { useRolesTableStore } from "./store";
 import { DataTableHeader } from "./table-header";
 
-const NON_CLICKABLE_COLUMNS = new Set(["actions"]);
+const NON_CLICKABLE_COLUMNS = new Set(["employees", "actions"]);
 const TABLE_ID = "roles";
 const COLUMN_IDS = getColumnIds(columns);
 const tableConfig = TABLE_CONFIGS[TABLE_ID];
@@ -121,8 +121,7 @@ export function DataTable({ data, initialSettings, isLoading, onEdit }: Props) {
 					}}
 					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
 					style={{
-						height:
-							"clamp(240px, calc(100vh - 300px + var(--header-offset, 0px)), 460px)",
+						height: "calc(100vh - 240px + var(--header-offset, 0px))",
 					}}
 				>
 					<DndContext

@@ -15,6 +15,12 @@ orders in the new sales form.
 - Quantity changes are compared with the immutable version loaded into the
   editor. Save, final-save, print, preview, PDF, and autosave paths cannot bypass
   the review requirement.
+- Manual save intent survives the Change Review boundary. After an approved
+  change is applied and the refreshed sale version is loaded, the form resumes
+  the exact pending Draft, Save & Close, Save & New, or Final action. Save &
+  Close then waits for any required Special Order declaration and the
+  post-save inventory configurator before navigating away; cancelling any
+  confirmation leaves the editor open.
 - The in-form Change Review sheet shows each previous/new quantity and line
   total, the previous/new order totals, amount due, projected wallet credit,
   operational commitments, and any irreversible quantity floor.

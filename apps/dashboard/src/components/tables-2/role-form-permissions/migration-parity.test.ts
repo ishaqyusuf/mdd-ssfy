@@ -30,6 +30,7 @@ describe("Role form permissions table migration parity", () => {
 		assertContains(source, "control={form.control}");
 		assertContains(source, "`permission-${permission}`");
 		assertContains(source, "`permission-skeleton-${index}`");
+		assertContains(source, 'kind: "scoped" as const');
 		assertNotContains(source, 'from "@gnd/ui/table"');
 		assertNotContains(source, "<Table");
 		assertNotContains(source, "TableHeader");
@@ -65,9 +66,28 @@ describe("Role form permissions table migration parity", () => {
 		assertContains(source, "FormCheckbox");
 		assertContains(source, 'action="view"');
 		assertContains(source, 'action="edit"');
+		assertContains(source, "permissions.${permission}.checked");
 		assertContains(source, "permissions.${action} ${permission}.checked");
+		assertContains(source, 'row.original.kind === "direct"');
 		assertContains(source, "sizes.custom(240, 420, 300)");
 		assertContains(source, "sizes.custom(84, 112, 92)");
+	});
+
+	it("binds standalone action permissions to their stored permission name", () => {
+		const roleFormSource = readSource("actions/get-role-form.ts");
+		const columnsSource = readSource(
+			"components/tables-2/role-form-permissions/columns.tsx",
+		);
+
+		assertContains(roleFormSource, 'kind: "direct" | "scoped"');
+		assertContains(
+			roleFormSource,
+			'kind: permission === normalizedName ? "direct" : "scoped"',
+		);
+		assertContains(
+			columnsSource,
+			'if (kind === "direct") return `permissions.${permission}.checked`;',
+		);
 	});
 
 	it("registers compact content-fit role form permission settings", () => {

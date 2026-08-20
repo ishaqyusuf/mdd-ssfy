@@ -9,18 +9,18 @@ function readSource(path: string) {
 	return readFileSync(resolve(root, path), "utf8");
 }
 
-describe("Employee Profiles sheet table migration parity", () => {
-	it("keeps the profiles tab off the legacy data-table path", () => {
+describe("Employee Profiles page table migration parity", () => {
+	it("keeps the profiles page off the legacy data-table path", () => {
 		const tabSource = readSource(
-			"components/sheets/roles-profile-sheet/profiles-tab.tsx",
+			"features/employee-management/components/profiles-page.tsx",
 		);
 
 		expect(
 			tabSource.includes("components/tables-2/employee-profiles/data-table"),
 		).toBe(true);
 		expect(tabSource.includes("EmployeeProfilesColumnVisibility")).toBe(true);
-		expect(tabSource.includes("EmployeeProfilesSkeleton")).toBe(true);
-		expect(tabSource.includes("Portal")).toBe(true);
+		expect(tabSource.includes("isLoading={!profiles}")).toBe(true);
+		expect(tabSource.includes("Portal")).toBe(false);
 		expect(
 			tabSource.includes("components/tables/employee-profiles/table"),
 		).toBe(false);
@@ -48,12 +48,12 @@ describe("Employee Profiles sheet table migration parity", () => {
 		expect(source.includes("onCellClick={() => onEdit(row.original)}")).toBe(
 			true,
 		);
-		expect(source.includes("clamp(240px")).toBe(true);
+		expect(source.includes('height: "calc(100vh - 240px')).toBe(true);
 	});
 
 	it("keeps profile actions wired to profile params and delete action", () => {
 		const tabSource = readSource(
-			"components/sheets/roles-profile-sheet/profiles-tab.tsx",
+			"features/employee-management/components/profiles-page.tsx",
 		);
 		const columnsSource = readSource(
 			"components/tables-2/employee-profiles/columns.tsx",
@@ -62,7 +62,7 @@ describe("Employee Profiles sheet table migration parity", () => {
 		expect(tabSource.includes("deleteProfileAction")).toBe(true);
 		expect(tabSource.includes("deleteRoleAction")).toBe(false);
 		expect(tabSource.includes("profileForm: true")).toBe(true);
-		expect(tabSource.includes("profileEditId: profile.id")).toBe(true);
+		expect(tabSource.includes("profileEditId: profile?.id")).toBe(true);
 		expect(tabSource.includes("roleForm: true")).toBe(false);
 		expect(columnsSource.includes("ConfirmBtn")).toBe(true);
 		expect(columnsSource.includes("disabled={hasEmployees}")).toBe(true);

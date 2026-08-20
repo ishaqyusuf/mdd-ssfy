@@ -5,6 +5,10 @@
 - `markSalesOrderFulfilled` is the dedicated capability for the Sales Orders
   Mark as Fulfilled action. It is available to roles and employee-specific
   grants as `Mark Sales Order Fulfilled`; Super Admin retains implicit access.
+- In the role editor, this is a standalone action grant rather than a
+  `view`/`edit` pair. Its single Access checkbox persists the exact
+  `mark sales order fulfilled` permission record, so assigning it to Sales
+  Team or another role produces the canonical session capability.
 - `editOrders`, `editPickup`, `editDelivery`, and `viewPacking` do not imply the
   new capability. Their existing inventory, dispatch, packing, and order
   permissions are unchanged.

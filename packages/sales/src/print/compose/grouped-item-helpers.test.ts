@@ -39,6 +39,19 @@ describe("grouped-item-helpers", () => {
 		expect(isMetadataBackedServiceItem(item)).toBe(false);
 	});
 
+	it("prefers the new-form item sequence over a stale legacy line index", () => {
+		const item = createItem({
+			meta: {
+				meta: {
+					itemIndex: 0,
+					lineIndex: 9,
+				},
+			},
+		});
+
+		expect(getSectionIndex(item, 99)).toBe(0);
+	});
+
 	it("detects metadata-backed service rows", () => {
 		const item = createItem({
 			meta: {

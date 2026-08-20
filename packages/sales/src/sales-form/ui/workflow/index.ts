@@ -132,7 +132,9 @@ export {
   getWorkflowLineDisplayTotal,
 } from "./workflow-line-totals";
 export {
+  resolveWorkflowCatalogComponents,
   resolveWorkflowVisibleComponents,
+  type ResolveWorkflowCatalogComponentsInput,
   type ResolveWorkflowVisibleComponentsInput,
 } from "./workflow-visible-components";
 export {

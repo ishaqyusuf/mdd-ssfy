@@ -50,6 +50,23 @@ describe("Employees Sales Orders table migration parity", () => {
 		expect(source.includes("fetchInfiniteQuery")).toBe(false);
 	});
 
+	it("uses the shared page-tab treatment for employee access and role management", () => {
+		const source = readSource(
+			"features/employee-management/components/employee-list-page.tsx",
+		);
+		const actionsSource = readSource("components/open-employee-sheet.tsx");
+
+		expect(source.includes("import { type PageTabItem, PageTabs }")).toBe(true);
+		expect(source.includes('title: "Revoked Access"')).toBe(true);
+		expect(source.includes('title: "Roles"')).toBe(true);
+		expect(source.includes('title: "Profiles"')).toBe(true);
+		expect(source.includes('allTitle="Employees"')).toBe(true);
+		expect(source.includes("portal={false}")).toBe(true);
+		expect(source.includes('tab: "roles"')).toBe(true);
+		expect(source.includes('tab: "profiles"')).toBe(true);
+		expect(actionsSource.includes("useRolesParams")).toBe(false);
+	});
+
 	it("keeps the table-owned scroll and column-drag behavior from Sales Orders", () => {
 		const source = readSource("components/tables-2/employees/data-table.tsx");
 

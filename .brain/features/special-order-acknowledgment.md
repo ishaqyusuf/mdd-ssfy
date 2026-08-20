@@ -110,7 +110,9 @@ hidden.
 - One `Special Order classification` modal owns required-save decisions and
   saved-order changes. It defaults to No for untouched orders or the persisted
   choice for saved orders, accepts an optional 3-500 character reason, and
-  resumes the exact pending save after any required customer-email repair.
+  resumes the exact pending save after an earlier committed-change review and
+  any required customer-email repair. Save & Close navigates only after that
+  resumed save and its post-save inventory confirmation finish.
 - Removing a classification without a reason keeps the full revocation,
   evidence, history, pointer-clearing, and notification lifecycle. Blank reason
   values normalize to `null`, and generated copy never renders an empty or

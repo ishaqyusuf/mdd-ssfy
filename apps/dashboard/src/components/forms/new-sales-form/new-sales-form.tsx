@@ -65,6 +65,10 @@ import type {
 	NewSalesFormRecord,
 } from "./schema";
 import {
+	continueSaveAfterCommittedChangeReview,
+	type SaveIntent,
+} from "./save-intent-continuation";
+import {
 	type SpecialOrderEnrollmentAccessState,
 	resolveSpecialOrderSaveInterruption,
 } from "./special-order-save-interruption";
@@ -445,6 +449,8 @@ export function NewSalesForm(props: Props) {
     const [pendingSpecialOrderCommit, setPendingSpecialOrderCommit] = useState<
         "draft" | "close" | "new" | "final" | null
     >(null);
+	const [pendingCommittedChangeSaveIntent, setPendingCommittedChangeSaveIntent] =
+		useState<SaveIntent | null>(null);
     const [isPreviewing, setIsPreviewing] = useState(false);
     const [historyPreview, setHistoryPreview] = useState<{
         entry: SalesHistoryEntry;
@@ -1295,7 +1301,7 @@ export function NewSalesForm(props: Props) {
     }
 
 	async function openCommittedChangeReview() {
-		if (!record?.salesId || !record.slug || !record.version) return;
+		if (!record?.salesId || !record.slug || !record.version) return false;
 		setChangeReviewOpen(true);
 		try {
 			const review = await previewAdjustmentMutation.mutateAsync({
@@ -1307,12 +1313,16 @@ export function NewSalesForm(props: Props) {
 				autosave: false,
 			});
 			setChangeReview(review);
+			return true;
 		} catch (error) {
+			setChangeReviewOpen(false);
+			setChangeReview(null);
 			toast({
 				title: "Unable to review this change",
 				description: getErrorMessage(error, "Reload the sale and try again."),
 				variant: "destructive",
 			});
+			return false;
 		}
 	}
 
@@ -1320,9 +1330,11 @@ export function NewSalesForm(props: Props) {
 		for (let attempt = 0; attempt < 16; attempt += 1) {
 			await new Promise((resolve) => setTimeout(resolve, 750));
 			const refreshed = await getQuery.refetch();
-			if (refreshed.data?.version !== sourceVersion) return true;
+			if (refreshed.data?.version !== sourceVersion) {
+				return refreshed.data as NewSalesFormRecord;
+			}
 		}
-		return false;
+		return null;
 	}
 
 	async function submitCommittedChange(input: {
@@ -1350,16 +1362,27 @@ export function NewSalesForm(props: Props) {
 				inboundDisposition: input.inboundDisposition,
 				acknowledgeOperationalImpact: input.acknowledgeOperationalImpact,
 			});
-			const applied = await waitForAdjustmentApplication(sourceVersion);
+			const refreshedRecord = await waitForAdjustmentApplication(sourceVersion);
+			const pendingIntent = pendingCommittedChangeSaveIntent;
+			setPendingCommittedChangeSaveIntent(null);
 			setChangeReviewOpen(false);
 			setChangeReview(null);
 			toast({
-				title: applied ? "Changes committed" : "Changes approved",
-				description: applied
+				title: refreshedRecord ? "Changes committed" : "Changes approved",
+				description: refreshedRecord
 					? "The sale and affected inventory were updated."
 					: "The approved changes are being committed automatically in the background.",
 				variant: "success",
 			});
+			if (refreshedRecord) {
+				hydrate(refreshedRecord);
+				await continueSaveAfterCommittedChangeReview({
+					intent: pendingIntent,
+					refreshedRecord,
+					promptForSpecialOrderDeclaration,
+					executeSaveIntent,
+				});
+			}
 		} catch (error) {
 			toast({
 				title: "Unable to approve changes",
@@ -1371,10 +1394,12 @@ export function NewSalesForm(props: Props) {
 		}
 	}
 
-	async function stopForCommittedChangeReview() {
+	async function stopForCommittedChangeReview(intent: SaveIntent | null = null) {
 		if (!hasSalesRepApprovalChange) return false;
-		await openCommittedChangeReview();
-		return true;
+		if (intent) setPendingCommittedChangeSaveIntent(intent);
+		const opened = await openCommittedChangeReview();
+		if (!opened && intent) setPendingCommittedChangeSaveIntent(null);
+		return opened;
 	}
 
     async function runWithManualSaveLock(action: () => Promise<void>) {
@@ -1387,14 +1412,16 @@ export function NewSalesForm(props: Props) {
         }
     }
 
-    type SaveIntent = "draft" | "close" | "new" | "final";
 
-    function promptForSpecialOrderDeclaration(intent: SaveIntent) {
+    function promptForSpecialOrderDeclaration(
+		intent: SaveIntent,
+		candidateRecord: NewSalesFormRecord = record as NewSalesFormRecord,
+	) {
 		const interruption = resolveSpecialOrderSaveInterruption({
 			type: props.type,
 			intent,
-			declaration: record?.specialOrder?.declaration,
-			hasCustomerEmail: Boolean(record?.customer?.email?.trim()),
+			declaration: candidateRecord?.specialOrder?.declaration,
+			hasCustomerEmail: Boolean(candidateRecord?.customer?.email?.trim()),
 			enrollmentAccess: specialOrderEnrollmentState,
 		});
 		if (interruption === "CONTINUE") return false;
@@ -1547,7 +1574,7 @@ export function NewSalesForm(props: Props) {
     async function runRequestedSave(intent: SaveIntent) {
         await runWithManualSaveLock(async () => {
             if (!record || !validateBeforeSave()) return;
-            if (await stopForCommittedChangeReview()) return;
+            if (await stopForCommittedChangeReview(intent)) return;
             if (promptForSpecialOrderDeclaration(intent)) return;
             await executeSaveIntent(intent);
         });
@@ -1895,7 +1922,13 @@ export function NewSalesForm(props: Props) {
             {inventoryConfiguratorDialog}
 			<SalesChangeReviewSheet
 				open={changeReviewOpen}
-				onOpenChange={setChangeReviewOpen}
+				onOpenChange={(open) => {
+					setChangeReviewOpen(open);
+					if (!open && !isApplyingAdjustment) {
+						setPendingCommittedChangeSaveIntent(null);
+						setChangeReview(null);
+					}
+				}}
 				review={changeReview}
 				isLoading={previewAdjustmentMutation.isPending}
 				isSubmitting={

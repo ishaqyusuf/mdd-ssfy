@@ -9,11 +9,8 @@ import { useInboundView } from "@/hooks/use-inbound-filter-params";
 import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
 import { useInventoryInboundParams } from "@/hooks/use-inventory-inbound-params";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
-import { useRolesParams } from "@/hooks/use-roles-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import dynamic from "next/dynamic";
-import { AuthGuard } from "../auth-guard";
-import { _perm } from "../sidebar-links";
 
 const CommunityInventoryOverviewSheet = dynamic(() =>
     import("./community-inventory-overview").then(
@@ -54,7 +51,6 @@ const InventoryProductSheet = dynamic(() =>
         (mod) => mod.InventoryProductSheet,
     ),
 );
-const RolesProfilesSheet = dynamic(() => import("./roles-profile-sheet"));
 const SalesOverviewSheet = dynamic(() => import("./sales-overview-sheet"));
 export function GlobalSheets() {
     const { params: inboundViewParams } = useInboundView();
@@ -67,15 +63,8 @@ export function GlobalSheets() {
     const inventoryCategoryParams = useInventoryCategoryParams();
     const { opened: communityInventoryOpen } = useCommunityInventoryParams();
     const filePreview = useFilePreviewParams();
-    const rolesParams = useRolesParams();
-
     return (
         <>
-            {rolesParams.params.viewRoles ? (
-                <AuthGuard rules={[_perm.is("editRole")]}>
-                    <RolesProfilesSheet />
-                </AuthGuard>
-            ) : null}
             {inboundViewParams.viewInboundId ? <InboundOverviewSheet /> : null}
             {legacySalesOverview["sales-overview-id"] ? (
                 <SalesOverviewSheet />

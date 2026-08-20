@@ -6,10 +6,19 @@ Restores the legacy component-card and step-toolbar contracts in the new sales
 form without changing ordinary sales selection.
 
 The picker keeps its search/action toolbar mounted through loading, empty, and
-populated states. Its menu exposes Tabs, Select All, Pricing, Component,
-Refresh, and the state-aware Enable Custom / Disable Custom action. Employees
-with `editSalesComponent` also receive a leading `[ + ]` card that opens the
-shared component-details editor for the active step.
+populated states. Its menu exposes the legacy catalog controls: Tabs (Default,
+Custom, and Hidden), Select All, Pricing or Door Size Variants, Component,
+Refresh, and the state-aware Enable Custom / Disable Custom action. Workflow
+step navigation remains available in a separate Steps submenu instead of being
+mislabelled as Tabs. Employees with `editSalesComponent` also receive a leading
+`[ + ]` card, rendered before every catalog component, that opens the shared
+component-details editor for the active step.
+
+The catalog tabs are resolved from the complete active-step component result.
+Deleted rows are excluded, visibility rules are evaluated against the current
+sale selections, and custom/hidden classification is kept separate from the
+ordinary sale-selection list. The red Custom sale-entry action is also distinct
+from the administrative Enable Custom / Disable Custom configuration action.
 
 When the toolbar is floating, it renders at the document level so transformed
 and overflow-clipped item-step animation containers cannot hide it. Its
@@ -47,10 +56,11 @@ selection path.
 ## Hosts and freshness
 
 Both `ItemWorkflowPanel` and `DashboardSalesFormWorkflowPanel` use
-`useWorkflowComponentAdmin`. Successful writes invalidate step-component and
-routing queries, refetch active picker data, queue Dyke-to-inventory sync, and
-patch matching selected-component snapshots so badges, redirects, and pricing
-respond without reopening the sale.
+`useWorkflowComponentAdmin`, and both the default dashboard host and the shared
+package host supply the complete catalog to the step picker. Successful writes
+invalidate step-component and routing queries, refetch active picker data,
+queue Dyke-to-inventory sync, and patch matching selected-component snapshots
+so badges, redirects, and pricing respond without reopening the sale.
 
 ## Permissions
 

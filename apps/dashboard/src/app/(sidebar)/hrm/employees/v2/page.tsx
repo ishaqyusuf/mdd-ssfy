@@ -11,19 +11,24 @@ import { ScrollableContent } from "@/components/scrollable-content";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-    return constructMetadata({
-        title: "Employees v2 | GND",
-    });
+	return constructMetadata({
+		title: "Employees v2 | GND",
+	});
 }
 
 type Props = {
-    searchParams: Promise<SearchParams>;
+	searchParams: Promise<SearchParams>;
 };
 
 export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
 	const filter = loadEmployeeFilterParams(searchParams);
-	const initialSettings = await getInitialTableSettings("employees");
+	const [initialSettings, initialRoleSettings, initialProfileSettings] =
+		await Promise.all([
+			getInitialTableSettings("employees"),
+			getInitialTableSettings("roles"),
+			getInitialTableSettings("employee-profiles"),
+		]);
 
 	batchPrefetch([
 		trpc.filters.employee.queryOptions(),
@@ -45,7 +50,11 @@ export default async function Page(props: Props) {
 				<ScrollableContent>
 					<div className="flex flex-col gap-6">
 						<PageTitle>Employees</PageTitle>
-						<EmployeeListPage initialSettings={initialSettings} />
+						<EmployeeListPage
+							initialProfileSettings={initialProfileSettings}
+							initialRoleSettings={initialRoleSettings}
+							initialSettings={initialSettings}
+						/>
 					</div>
 				</ScrollableContent>
 			</HydrateClient>

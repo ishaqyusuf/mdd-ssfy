@@ -50,6 +50,7 @@ export type WorkflowStepComponentPanelProps<
 	steps: WorkflowStepRecord[];
 	loading: boolean;
 	components: TComponent[];
+	catalogComponents?: TComponent[];
 	filteredComponents: TComponent[];
 	selectedUids: Set<string>;
 	search: string;
@@ -71,6 +72,7 @@ export type WorkflowStepComponentPanelProps<
 	onCreateComponent?: () => void;
 	onOpenDoorSizeVariant?: () => void;
 	onEnableCustomComponent?: () => void;
+	onOpenCustomComponent?: () => void;
 	onRefresh: () => void;
 	onProceedMultiSelect: () => void;
 	onEditDetails?: (component: TComponent) => void;
@@ -102,12 +104,26 @@ export function WorkflowStepComponentPanel<
 	);
 	const [archiveTargets, setArchiveTargets] = useState<TComponent[]>([]);
 	const [archiving, setArchiving] = useState(false);
+	const [catalogTab, setCatalogTab] = useState<"default" | "custom" | "hidden">(
+		"default",
+	);
 	const managementScope = `${props.lineUid}:${props.activeStepIndex}`;
 	useEffect(() => {
 		if (!managementScope) return;
 		setManagementSelection(new Set());
 		setArchiveTargets([]);
+		setCatalogTab("default");
 	}, [managementScope]);
+	const catalogComponents = props.catalogComponents || props.components;
+	const catalogCounts = catalogComponents.reduce(
+		(counts, component) => {
+			if (isCustomWorkflowComponent(component)) counts.custom += 1;
+			else if (component._metaData?.visible === false) counts.hidden += 1;
+			else counts.default += 1;
+			return counts;
+		},
+		{ default: 0, custom: 0, hidden: 0 },
+	);
 	const canManageCatalog = Boolean(
 		props.onEditDetails ||
 			props.onEditVisibility ||
@@ -125,7 +141,7 @@ export function WorkflowStepComponentPanel<
 			return next;
 		});
 	};
-	const selectedManagementComponents = props.components.filter((component) =>
+	const selectedManagementComponents = catalogComponents.filter((component) =>
 		managementSelection.has(String(component.uid || "")),
 	);
 	const activeStepTitle = props.activeStep?.step?.title;
@@ -170,16 +186,44 @@ export function WorkflowStepComponentPanel<
 			_metaData: { custom: true },
 		} as TComponent);
 	}
+	const normalizedSearch = props.search.trim().toLowerCase();
+	const catalogTabComponents = props.catalogComponents
+		? catalogComponents
+				.filter((component) => {
+					if (catalogTab === "custom")
+						return isCustomWorkflowComponent(component);
+					if (catalogTab === "hidden") {
+						return (
+							!isCustomWorkflowComponent(component) &&
+							component._metaData?.visible === false
+						);
+					}
+					return (
+						!isCustomWorkflowComponent(component) &&
+						component._metaData?.visible !== false
+					);
+				})
+				.filter((component) =>
+					!normalizedSearch
+						? true
+						: [component.title, component.uid]
+								.filter(Boolean)
+								.join(" ")
+								.toLowerCase()
+								.includes(normalizedSearch),
+				)
+		: props.filteredComponents;
 	const selectedCustomFallbacks = selectedCustomComponents.filter(
 		(component) =>
-			!props.filteredComponents.some(
+			catalogTab === "default" &&
+			!catalogTabComponents.some(
 				(candidate) =>
 					String(candidate?.uid || "") === String(component?.uid || ""),
 			),
 	);
 	const filteredComponents = [
 		...selectedCustomFallbacks,
-		...props.filteredComponents,
+		...catalogTabComponents,
 	]
 		.slice()
 		.sort((a, b) => {
@@ -197,7 +241,7 @@ export function WorkflowStepComponentPanel<
 		<>
 			<StepComponentPicker
 				loading={props.loading}
-				hasComponents={Boolean(props.components.length)}
+				hasComponents={Boolean(catalogComponents.length)}
 				filteredComponents={filteredComponents}
 				search={props.search}
 				noticeSlot={props.noticeSlot}
@@ -357,13 +401,37 @@ export function WorkflowStepComponentPanel<
 				}}
 				toolbarSlot={
 					<WorkflowComponentToolbar
-						count={managementSelection.size || props.filteredComponents.length}
-						total={props.components.length}
+						count={managementSelection.size || filteredComponents.length}
+						total={catalogComponents.length}
 						search={props.search}
 						onSearchChange={props.onSearchChange}
 						menuSlot={
 							!props.isDealershipMode && !managementSelection.size ? (
 								<>
+									<Menu.Item
+										SubMenu={[
+											<Menu.Item
+												key="catalog-default"
+												onClick={() => setCatalogTab("default")}
+											>
+												Default Components ({catalogCounts.default})
+											</Menu.Item>,
+											<Menu.Item
+												key="catalog-custom"
+												onClick={() => setCatalogTab("custom")}
+											>
+												Custom Components ({catalogCounts.custom})
+											</Menu.Item>,
+											<Menu.Item
+												key="catalog-hidden"
+												onClick={() => setCatalogTab("hidden")}
+											>
+												Hidden Components ({catalogCounts.hidden})
+											</Menu.Item>,
+										]}
+									>
+										Tabs
+									</Menu.Item>
 									<Menu.Item
 										SubMenu={(props.steps || []).map((step, index) => (
 											<Menu.Item
@@ -374,7 +442,7 @@ export function WorkflowStepComponentPanel<
 											</Menu.Item>
 										))}
 									>
-										Tabs
+										Steps
 									</Menu.Item>
 									<Menu.Item
 										disabled={!isMultiSelectStep}
@@ -385,12 +453,7 @@ export function WorkflowStepComponentPanel<
 									>
 										Select All
 									</Menu.Item>
-									{props.onCreateComponent ? (
-										<Menu.Item onClick={props.onCreateComponent}>
-											Component
-										</Menu.Item>
-									) : null}
-									{props.onOpenPricing ? (
+									{!isDoorStep && props.onOpenPricing ? (
 										<Menu.Item
 											onClick={() => {
 												const openPricing = props.onOpenPricing;
@@ -408,15 +471,20 @@ export function WorkflowStepComponentPanel<
 									) : null}
 									{isDoorStep && props.onOpenDoorSizeVariant ? (
 										<Menu.Item onClick={props.onOpenDoorSizeVariant}>
-											Door Size Variant
+											Door Size Variants
 										</Menu.Item>
 									) : null}
+									{props.onCreateComponent ? (
+										<Menu.Item onClick={props.onCreateComponent}>
+											Component
+										</Menu.Item>
+									) : null}
+									<Menu.Item onClick={props.onRefresh}>Refresh</Menu.Item>
 									{props.onEnableCustomComponent ? (
 										<Menu.Item onClick={props.onEnableCustomComponent}>
 											{customEnabled ? "Disable Custom" : "Enable Custom"}
 										</Menu.Item>
 									) : null}
-									<Menu.Item onClick={props.onRefresh}>Refresh</Menu.Item>
 								</>
 							) : null
 						}
@@ -464,14 +532,13 @@ export function WorkflowStepComponentPanel<
 										</div>
 									) : null}
 									<div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
-										{supportsCustomComponents &&
-										props.onEnableCustomComponent ? (
+										{supportsCustomComponents && props.onOpenCustomComponent ? (
 											<Button
 												type="button"
 												variant="destructive"
-												onClick={props.onEnableCustomComponent}
+												onClick={props.onOpenCustomComponent}
 											>
-												{customEnabled ? "Disable Custom" : "Enable Custom"}
+												Custom
 											</Button>
 										) : null}
 										{isMultiSelectStep ? (
