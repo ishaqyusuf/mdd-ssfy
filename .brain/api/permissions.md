@@ -25,6 +25,13 @@
   to reuse or create only the active dispatch needed by this workflow. It does
   not grant the general `dispatch.createDispatch` contract.
 
+## Dashboard Liveness (2026-08-21)
+
+- `GET /api/health/live` is intentionally public and returns no application,
+  customer, employee, session, deployment, or database detail.
+- The Dashboard proxy excludes `/api/*`, so the route cannot create an auth
+  session lookup. The route itself does not read auth or persistence state.
+
 ## Dispatch Workspace And Exceptions (2026-08-18)
 
 - Workspace summary, backlog, list, calendar, driver workload, exception list,

@@ -15,6 +15,16 @@
   start-trip, proof completion, cancellation, and restore endpoints remain the
   command authorities; the workspace endpoints do not duplicate them.
 
+## Dashboard Liveness (2026-08-21)
+
+- Public `GET /api/health/live` returns an empty `204` response with
+  `Cache-Control: no-store`.
+- The handler performs no authentication, database work, external or
+  same-origin fetch, redirect, or downstream health check. It is the intended
+  high-frequency uptime target for the Dashboard.
+- The standalone API's `GET /health` remains the database-backed readiness
+  probe and should run at a lower frequency.
+
 ## Driver Platform Revival
 
 - Protected reads: `dispatch.driverWorkQueue`,

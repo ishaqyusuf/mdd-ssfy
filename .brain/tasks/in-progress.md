@@ -1,5 +1,19 @@
 # In Progress
 
+### Vercel Function Cost Reduction And Trigger Offload
+
+- Priority: High
+- Description: Steps 1-3 are active: repository and daily cost monitoring are
+  live, the database-free liveness endpoint is preview-verified, and Fluid
+  Compute is deployed to an isolated preview. Remaining gates are authenticated
+  Sentry cutover, 12-24 hours of canary evidence, and explicit production
+  promotion before later optimization and Trigger.dev migration phases.
+- Related Feature: Vercel runtime cost control and background job architecture
+- Status: In Progress
+- Plan Status: In Progress
+- Plan File: `.brain/plans/2026-08-21-feature-vercel-function-cost-reduction-and-trigger-offload.md`
+- Created Date: 2026-08-21
+
 ### New Sales Form Step Picker And Component Creation Parity
 
 - Priority: High

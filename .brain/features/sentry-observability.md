@@ -97,6 +97,11 @@ filtering without duplicating backend project administration.
 ## Operational Notes
 
 - Vercel environment changes apply on the next deployment.
+- Dashboard `GET /api/health/live` is implemented and returned `204` with
+  `Cache-Control: no-store` on the isolated Fluid Compute preview. The current
+  production uptime monitor still targets `/` and fans out through login/auth
+  work. Repointing it to `/api/health/live` at a one-to-five-minute interval is
+  pending the production deployment and authenticated Sentry access.
 - Expo environment changes apply on the next `eas:build --prod` or `eas:update --prod` release that consumes the production environment.
 - Preview monitoring is intentionally disabled. Add a separate preview Sentry policy instead of reusing production DSNs if preview telemetry becomes necessary.
 - The authenticated Sentry audit on 2026-07-28 confirmed live web ingestion and

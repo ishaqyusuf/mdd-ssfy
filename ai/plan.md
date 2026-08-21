@@ -1,3 +1,44 @@
+# Vercel Cost Controls, Liveness, And Fluid Canary Execution
+
+Date: 2026-08-21
+Status: In Progress
+
+Plan:
+- Add a repeatable Vercel current-cycle cost snapshot that separates fixed
+  subscriptions from infrastructure, evaluates the $8/$12/$16/$18 guardrails,
+  and reports daily/projected burn.
+- Add a public, database-free `GET /api/health/live` endpoint and focused route
+  coverage so Sentry can stop probing the authenticated root/login flow.
+- Enable Fluid Compute in the dashboard deployment config, validate it in an
+  isolated preview, and preserve a one-line rollback.
+- Repoint the Sentry uptime monitor to the liveness endpoint at a lower
+  frequency once authenticated Sentry access is available.
+- Record measured evidence and remaining production gates in Brain.
+
+Validation:
+- `bun test scripts/vercel-cost-snapshot.test.ts`
+- `bun test apps/dashboard/src/app/api/health/live/route.test.ts`
+- `bun test scripts/vercel-deployment-boundary.test.ts`
+- `bun --filter @gnd/dashboard typecheck`
+- Preview deployment and HTTP smoke for `/api/health/live`
+- `git diff --check`
+
+Progress:
+- [x] Confirmed current billing-cycle infrastructure usage is $3.95, native
+  75%-of-credit web/email notifications are already enabled, and dashboard
+  traffic owns nearly all attributable infrastructure usage.
+- [x] Establish the cost snapshot and threshold validation harness.
+- [ ] Accumulate comparable 24-hour and seven-day route duration, invocation,
+  error, timeout, and memory evidence.
+- [x] Implement and validate the public liveness route.
+- [x] Enable and preview-canary Fluid Compute.
+- [ ] Repoint Sentry uptime monitoring and verify one invocation per check.
+- [x] Complete code review and Brain reconciliation.
+- [ ] Complete the 12-24-hour canary gate, then explicitly promote and repoint
+  Sentry in production.
+
+---
+
 # Sales Orders Filtered Excel Export Execution
 
 Date: 2026-07-10

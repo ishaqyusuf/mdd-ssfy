@@ -7,6 +7,25 @@
   and scoped formatting passed. No schema, API, permission, or persistence
   contract changed.
 
+- 2026-08-21: Implemented the repository/preview foundation for steps 1-3 of
+  the Vercel Function Cost Reduction plan through the safe preview boundary.
+  Added a repeatable current-cycle cost snapshot with fixed-subscription
+  separation, per-project/service attribution, $8/$12/$16/$18 thresholds,
+  daily burn, and projection; the deterministic two-day baseline was $3.95
+  infrastructure, $1.98/day, and a $61.23 anomaly-sensitive projection. A
+  daily 09:00 Codex monitor now evaluates the $15 cycle target, $0.50/day
+  steady-state target, and $0.75/day critical threshold. Added public,
+  database-free `GET /api/health/live`; focused tests prove `204`, empty body,
+  and `no-store`. Enabled deployment-owned Fluid Compute and canary-deployed
+  preview `dpl_4Zfyx9YpMSUhLEudTMZV9sqqErje`; Vercel accepted `fluid: true`,
+  kept the existing 1 GB functions in `iad1`, and returned `204` from the new
+  route. Scoped tests and Biome checks pass. Broad Dashboard typecheck remains
+  blocked by unrelated existing workspace diagnostics. The remaining
+  operational gates are comparable 24-hour and seven-day route evidence,
+  12-24 hours of preview canary evidence, explicit production promotion, and
+  authenticated Sentry monitor cutover from `/` to `/api/health/live` at a
+  one-to-five-minute interval.
+
 - 2026-08-20: restored the new sales form's legacy step-component catalog
   controls after the floating toolbar repair. The shared menu now provides
   contextual Default/Custom/Hidden tabs, workflow Steps, Select All for

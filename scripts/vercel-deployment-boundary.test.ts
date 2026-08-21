@@ -23,10 +23,18 @@ describe("Vercel deployment source boundaries", () => {
 	it("generates Prisma Client after the dashboard's filtered install", () => {
 		const dashboardConfig = JSON.parse(
 			readFileSync(resolve(root, "apps/dashboard/vercel.json"), "utf8"),
-		) as { installCommand?: string };
+		) as { fluid?: boolean; installCommand?: string };
 
 		expect(dashboardConfig.installCommand).toBe(
 			"bun install --filter @gnd/dashboard --frozen-lockfile && bun run --filter @gnd/db prisma:generate:ci",
 		);
+	});
+
+	it("enables Fluid Compute through deployment-owned configuration", () => {
+		const dashboardConfig = JSON.parse(
+			readFileSync(resolve(root, "apps/dashboard/vercel.json"), "utf8"),
+		) as { fluid?: boolean };
+
+		expect(dashboardConfig.fluid).toBe(true);
 	});
 });

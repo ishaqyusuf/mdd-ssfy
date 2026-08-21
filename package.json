@@ -74,7 +74,8 @@
 		"test:new-sales-form-migration": "node ./scripts/new-sales-form-migration-tests.mjs",
 		"test:dealership-sales-form-browser": "node ./scripts/dealership-sales-form-browser-qa.mjs",
 		"test:dealership-recruitment-browser": "bun ../../local-infra-kit/bin/with-env.ts --profile gnd -- bun ./scripts/dealership-recruitment-browser-qa.ts",
-		"typecheck": "turbo typecheck"
+		"typecheck": "turbo typecheck",
+		"vercel:cost-snapshot": "bun ./scripts/vercel-cost-snapshot.ts"
 	},
 	"overrides": {
 		"@types/react": "19.2.17",
