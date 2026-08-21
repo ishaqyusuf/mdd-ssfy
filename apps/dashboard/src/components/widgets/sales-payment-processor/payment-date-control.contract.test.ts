@@ -14,6 +14,17 @@ describe("sales payment processor date control contract", () => {
 		expect(source.includes('from "@gnd/sales/payment-system";')).toBe(false);
 	});
 
+	it("shows the payment date only to Super Admin and reclaims its grid column", () => {
+		expect(source.includes("canSetSalesPaymentDate")).toBe(true);
+		expect(source.includes("canSetPaymentDate ? (")).toBe(true);
+		expect(source.includes('"grid-cols-1"')).toBe(true);
+		expect(
+			source.includes(
+				"paymentDate: canSetPaymentDate ? formData.paymentDate : null",
+			),
+		).toBe(true);
+	});
+
 	it("places the compact date group before the payment method", () => {
 		const dateControl = source.indexOf("<PaymentDateControl");
 		const methodControl = source.indexOf("<SalesPaymentMethodControl");

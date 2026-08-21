@@ -1,3 +1,29 @@
+# Sales Payment Date Super Admin Access
+
+Date: 2026-08-21
+Status: Completed
+
+Plan:
+- Define one exact `Super Admin` role rule for selecting a manual payment date.
+- Hide the date control for all other staff and let the payment-method control use the reclaimed width.
+- Clear/omit unauthorized client date state and reject forged payment-date input at the protected payment mutation boundary.
+- Add focused role, API-boundary, and UI contract coverage.
+- Update Sales Payment feature and API permission documentation.
+
+Validation:
+- `bun test packages/sales/src/payment-system/domain/payment-date.test.ts`
+- `bun test apps/api/src/utils/sales-payment-date-access.test.ts`
+- `bun test apps/dashboard/src/components/widgets/sales-payment-processor/payment-date-control.contract.test.ts`
+- `git diff --check`
+
+Progress:
+- [x] Confirmed the date control and payment mutation currently have no role gate.
+- [x] Add the shared role rule and protected API enforcement.
+- [x] Restrict and reflow the dashboard payment UI.
+- [x] Run focused validation and reconcile Brain documentation.
+
+---
+
 # Vercel Cost Controls, Liveness, And Fluid Canary Execution
 
 Date: 2026-08-21

@@ -46,7 +46,7 @@ import {
 	normalizeSalesPriority,
 	salesPrioritySchema,
 } from "@sales/priority";
-import { tasks } from "@trigger.dev/sdk/v3";
+import { idempotencyKeys, tasks } from "@trigger.dev/sdk/v3";
 import { waitUntil } from "@vercel/functions";
 import { z } from "zod";
 import { salesNotesCount } from "./sales";
@@ -731,19 +731,35 @@ async function queueSalesOrderListProjectionWarm(
 			updatedAt: true,
 		},
 	});
-	const taskOrders = sourceRows.map((source) => ({
-		salesOrderId: source.id,
-		sourceUpdatedAt: (
-			source.updatedAt ??
-			source.createdAt ??
-			new Date(0)
-		).toISOString(),
-	}));
+	const taskOrders = sourceRows
+		.map((source) => ({
+			salesOrderId: source.id,
+			sourceUpdatedAt: (
+				source.updatedAt ??
+				source.createdAt ??
+				new Date(0)
+			).toISOString(),
+		}))
+		.sort((left, right) => left.salesOrderId - right.salesOrderId);
 	if (!taskOrders.length) return;
+	const idempotencyKey = await idempotencyKeys.create(
+		[
+			"sales-order-list-projection",
+			...taskOrders.map(
+				(order) => `${order.salesOrderId}:${order.sourceUpdatedAt}`,
+			),
+		],
+		{ scope: "global" },
+	);
 
-	await tasks.trigger("persist-sales-order-list-projections", {
-		orders: taskOrders,
-	});
+	await tasks.trigger(
+		"persist-sales-order-list-projections",
+		{ orders: taskOrders },
+		{
+			idempotencyKey,
+			idempotencyKeyTTL: "5m",
+		},
+	);
 }
 
 function deferSalesOrderListProjectionWarm(

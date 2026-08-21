@@ -1486,7 +1486,9 @@ implementation phase is approved and released.
 ## Staff Sales Payment Date contract (2026-08-21)
 
 - `salesPaymentProcessor.applyPayment` accepts optional
-  `paymentDate: YYYY-MM-DD | null` for staff-recorded manual payments.
+  `paymentDate: YYYY-MM-DD | null` for staff-recorded manual payments. A
+  non-null date requires an authenticated, active user with an active exact
+  `Super Admin` role; other authorized payment users must omit it or send null.
 - The date must be a real calendar date no later than the current
   `America/New_York` business date. Omitted or null values resolve to today.
 - One resolved occurrence is propagated to every transaction, application,

@@ -485,6 +485,17 @@ Tracks authentication and authorization patterns across API surfaces.
   a reason, not an author field; Sales and inbound activity use the server-resolved
   employee contact.
 
+## Staff Sales Payment Date permissions (2026-08-21)
+
+- Existing payment authorization continues to govern who may apply a payment.
+- Supplying a non-null manual `paymentDate` to
+  `salesPaymentProcessor.applyPayment` additionally requires an authenticated,
+  non-deleted, non-revoked user with an active exact `Super Admin` role.
+- Other authorized payment users may omit the date or send null; the payment
+  occurrence then resolves to the current New York business date. The hidden
+  dashboard control is a usability affordance, while the API check is the
+  authorization boundary.
+
 ## Proposed multi-tenant SaaS permission boundary (2026-08-08)
 
 - Platform roles and tenant roles are distinct. A tenant Super Admin is not a

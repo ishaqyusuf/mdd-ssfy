@@ -1,15 +1,13 @@
 import type { Db } from "@gnd/db";
 import { getNameInitials } from "@gnd/utils";
 import { timeAgo } from "@gnd/utils/dayjs";
+import { channelNames } from "@gnd/utils/notification-channels";
 import { getSalesOrderLifecycleStatusInfo } from "./order-status";
 import {
 	SALES_ORDER_LIST_PROJECTION_VERSION,
 	serializeSalesOrderListRow,
 } from "./order-list-read-model";
-import {
-	isReviewableSalesPaymentStatus,
-	repairSalesInvoiceCccDisplay,
-} from "./payment-system";
+import { repairSalesInvoiceCccDisplay } from "./payment-system";
 import { getSalesPriorityLabel, normalizeSalesPriority } from "./priority";
 import { readSalesFormPo } from "./sales-form/application/legacy-metadata";
 import { resolveSalesInventoryApplicability } from "./sales-inventory-applicability";
@@ -78,6 +76,10 @@ function titleCaseStatus(status?: string | null) {
 		.join(" ");
 }
 
+function productionLabel(status?: string | null) {
+	return !status || status === "N/A" ? "Pending" : titleCaseStatus(status);
+}
+
 function statStatus(stat?: {
 	percentage: number | null;
 	score: number | null;
@@ -138,6 +140,9 @@ async function getNoteCounts(
 				some: {
 					tagName: "channel",
 					deletedAt: null,
+					tagValue: {
+						in: channelNames.map((channel) => serializeTagValue(channel)),
+					},
 				},
 			},
 			OR: [
@@ -323,23 +328,6 @@ export async function refreshSalesOrderListProjections(
 					_count: { select: { items: { where: { deletedAt: null } } } },
 				},
 			},
-			payments: {
-				where: {
-					deletedAt: null,
-					reviewStatus: "needs_review",
-					status: { in: ["success", "completed", "paid"] },
-				},
-				orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-				take: 1,
-				select: {
-					id: true,
-					amount: true,
-					origin: true,
-					status: true,
-					reviewStatus: true,
-					createdAt: true,
-				},
-			},
 			inventoryProjection: {
 				select: { status: true, needCount: true, completedAt: true },
 			},
@@ -436,11 +424,6 @@ export async function refreshSalesOrderListProjections(
 			prioritizedDelivery?.status === "completed"
 				? "completed"
 				: statStatus(dispatchStat(order.stat));
-		const reviewPayment = order.payments.find(
-			(payment) =>
-				isReviewableSalesPaymentStatus(payment.status) &&
-				payment.reviewStatus === "needs_review",
-		);
 		const customerName =
 			order.customer?.businessName ??
 			order.customer?.name ??
@@ -515,22 +498,14 @@ export async function refreshSalesOrderListProjections(
 				baseTotal: amountDue,
 				meta: order.meta,
 			}).totalWithCcc,
-			latestPaymentReview: reviewPayment
-				? {
-						paymentId: reviewPayment.id,
-						amount: Number(reviewPayment.amount ?? 0),
-						origin: reviewPayment.origin ?? "office",
-						receivedAt: reviewPayment.createdAt,
-						reviewStatus: reviewPayment.reviewStatus ?? "needs_review",
-					}
-				: null,
+			latestPaymentReview: null,
 			due: amountDue,
 			paymentDueDate: order.paymentDueDate,
 			invoiceStatus: amountDue <= 0 ? "paid" : "outstanding",
 			orderStatus: order.status,
 			prodStatus: order.prodStatus,
 			productionState,
-			productionLabel: titleCaseStatus(productionState),
+			productionLabel: productionLabel(productionState),
 			fulfillmentState,
 			fulfillmentLabel: titleCaseStatus(fulfillmentState),
 			inventoryInboundOwnership:
@@ -564,7 +539,7 @@ export async function refreshSalesOrderListProjections(
 		return {
 			...payload,
 			productionState,
-			productionLabel: titleCaseStatus(productionState),
+			productionLabel: productionLabel(productionState),
 			fulfillmentState,
 			fulfillmentLabel: titleCaseStatus(fulfillmentState),
 			status: lifecycle.status,

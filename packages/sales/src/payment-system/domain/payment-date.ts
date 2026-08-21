@@ -1,5 +1,13 @@
 export const SALES_PAYMENT_BUSINESS_TIME_ZONE = "America/New_York";
 
+export function canSetSalesPaymentDate(
+	roleNames: Array<string | null | undefined>,
+) {
+	return roleNames.some(
+		(roleName) => roleName?.trim().toLowerCase() === "super admin",
+	);
+}
+
 type PaymentDateParts = {
 	day: number;
 	hour: number;

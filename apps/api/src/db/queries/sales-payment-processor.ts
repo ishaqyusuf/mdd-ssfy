@@ -1,6 +1,7 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
+import { assertCanSetSalesPaymentDate } from "@api/utils/sales-payment-date-access";
 import { logger } from "@gnd/logger";
 import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
 import { NotificationService } from "@gnd/notifications/services/triggers";
@@ -155,6 +156,8 @@ export async function applySalesPaymentProcessorPayment(
 	ctx: TRPCContext & { userId: number },
 	input: SalesPaymentProcessorApplyPaymentInput,
 ) {
+	await assertCanSetSalesPaymentDate(ctx, input.paymentDate);
+
 	const response = {
 		terminalPaymentSession: null as typeof input.terminalPaymentSession,
 		status: null as "success" | null,

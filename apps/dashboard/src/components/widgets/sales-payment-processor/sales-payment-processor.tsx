@@ -1,10 +1,14 @@
 import { Env } from "@/components/env";
+import { useAuth } from "@/hooks/use-auth";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
 import { salesPaymentMethods } from "@/utils/constants";
 import { formatDate } from "@/utils/format";
-import { getSalesPaymentBusinessDate } from "@gnd/sales/payment-system/payment-date";
+import {
+	canSetSalesPaymentDate,
+	getSalesPaymentBusinessDate,
+} from "@gnd/sales/payment-system/payment-date";
 import type { TerminalCheckoutStatus } from "@gnd/square";
 import { Button } from "@gnd/ui/button";
 import { ButtonGroup } from "@gnd/ui/button-group";
@@ -54,11 +58,11 @@ import {
 } from "react-hook-form";
 import type z from "zod";
 import { PaymentProcessorSkeleton } from "./payment-processor-skeleton";
+import { PaymentStatusOverlay } from "./payment-status-overlay";
 import {
 	type PaymentTerminalOption,
 	SalesPaymentMethodControl,
 } from "./sales-payment-method-control";
-import { PaymentStatusOverlay } from "./payment-status-overlay";
 import { paymentProcessorFormSchema as formSchema } from "./schema";
 import {
 	fetchFreshTerminalPaymentStatus,
@@ -334,6 +338,8 @@ function Content(
 ) {
 	const { presentation, selectedIds, setOpened } = props;
 	const isSheet = presentation === "sheet";
+	const auth = useAuth();
+	const canSetPaymentDate = canSetSalesPaymentDate([auth.roleTitle]);
 	const prefersReducedMotion = useReducedMotion();
 	const formId = useId();
 	const trpc = useTRPC();
@@ -859,6 +865,7 @@ function Content(
 			...sanitizePaymentMethodFields(formData, paymentMethod),
 			notifyCustomer: canNotifyCustomer && formData.notifyCustomer === true,
 			amount,
+			paymentDate: canSetPaymentDate ? formData.paymentDate : null,
 			paymentMethod,
 			salesIds: selectedSalesIds,
 			orderNos: selectedOrderNos,
@@ -949,6 +956,9 @@ function Content(
 							...completedSaleReferences,
 							notifyCustomer:
 								canNotifyCustomer && completedFormData.notifyCustomer === true,
+							paymentDate: canSetPaymentDate
+								? completedFormData.paymentDate
+								: null,
 							amount:
 								lastSubmittedAmountRef.current ??
 								Number(form.getValues("amount") || 0),
@@ -982,6 +992,7 @@ function Content(
 			checkTerminalPaymentStatus();
 		}
 	}, [
+		canSetPaymentDate,
 		canNotifyCustomer,
 		data.pendingSales,
 		form,
@@ -1095,6 +1106,7 @@ function Content(
 	});
 	const sendLink = effectivePaymentMethod === "link" && !linkProcessed;
 	const paymentDateDisabled = effectivePaymentMethod === "terminal" || sendLink;
+	const paymentDateUnavailable = !canSetPaymentDate || paymentDateDisabled;
 	const paymentDateDisabledTitle =
 		effectivePaymentMethod === "terminal"
 			? "Square sets the payment date when the terminal payment completes"
@@ -1114,12 +1126,12 @@ function Content(
 	const paymentDisplayAmount =
 		paymentChargePreview.chargeAmount || paymentChargePreview.walletApplied;
 	useEffect(() => {
-		if (!paymentDateDisabled || !paymentDate) return;
+		if (!paymentDateUnavailable || !paymentDate) return;
 		form.setValue("paymentDate", null, {
 			shouldDirty: true,
 			shouldValidate: true,
 		});
-	}, [form, paymentDate, paymentDateDisabled]);
+	}, [form, paymentDate, paymentDateUnavailable]);
 	useEffect(() => {
 		if (pm && pm !== "wallet") {
 			lastExternalPaymentMethodRef.current = pm as ExternalPaymentMethod;
@@ -1261,20 +1273,27 @@ function Content(
 					<motion.div
 						layout
 						transition={paymentLayoutTransition}
-						className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] gap-2"
+						className={cn(
+							"grid min-w-0 flex-1 gap-2",
+							canSetPaymentDate
+								? "grid-cols-[auto_minmax(0,1fr)]"
+								: "grid-cols-1",
+						)}
 					>
-						<PaymentDateControl
-							value={paymentDate}
-							disabled={paymentDateDisabled}
-							disabledTitle={paymentDateDisabledTitle}
-							transition={paymentLayoutTransition}
-							onChange={(value) =>
-								form.setValue("paymentDate", value, {
-									shouldDirty: true,
-									shouldValidate: true,
-								})
-							}
-						/>
+						{canSetPaymentDate ? (
+							<PaymentDateControl
+								value={paymentDate}
+								disabled={paymentDateDisabled}
+								disabledTitle={paymentDateDisabledTitle}
+								transition={paymentLayoutTransition}
+								onChange={(value) =>
+									form.setValue("paymentDate", value, {
+										shouldDirty: true,
+										shouldValidate: true,
+									})
+								}
+							/>
+						) : null}
 						<SalesPaymentMethodControl
 							method={effectivePaymentMethod || "credit-card"}
 							methods={paymentMethodOptions}

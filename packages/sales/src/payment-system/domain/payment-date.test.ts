@@ -1,11 +1,19 @@
 import { describe, expect, it } from "bun:test";
 import {
+	canSetSalesPaymentDate,
 	getSalesPaymentBusinessDate,
 	isValidSalesPaymentDate,
 	resolveSalesPaymentOccurrence,
 } from "./payment-date";
 
 describe("sales payment date", () => {
+	it("allows only an exact Super Admin role to select a payment date", () => {
+		expect(canSetSalesPaymentDate(["Sales", "Super Admin"])).toBe(true);
+		expect(canSetSalesPaymentDate(["super admin"])).toBe(true);
+		expect(canSetSalesPaymentDate(["Admin", "Sales"])).toBe(false);
+		expect(canSetSalesPaymentDate(["Super Administrator"])).toBe(false);
+	});
+
 	it("defaults an omitted date to the current New York business date", () => {
 		const now = new Date("2026-08-22T02:30:00.000Z");
 		const result = resolveSalesPaymentOccurrence({ now });

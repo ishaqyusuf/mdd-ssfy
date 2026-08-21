@@ -53,7 +53,7 @@
 		"@gnd/settings": "workspace:*",
 		"@gnd/square": "workspace:*",
 		"@sindresorhus/slugify": "^2.2.1",
-		"@trigger.dev/sdk": "3.3.17",
+		"@trigger.dev/sdk": "4.5.9",
 		"@trpc/server": "^11.4.1",
 		"@vercel/blob": "^2.3.0",
 		"@vercel/functions": "^1.5.0",

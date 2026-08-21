@@ -98,6 +98,18 @@
   deployment, or external state changed; no ADR was required because this
   extends the existing payment occurrence contract without a new architecture.
 
+- 2026-08-21: Restricted the Sales Payment Processor's manual payment date to
+  active Super Admin users. Other payment-authorized staff no longer render the
+  date control, the payment-method selector reclaims its row width, and client
+  submissions omit any stale manual date so the existing current New York date
+  default applies. `salesPaymentProcessor.applyPayment` now independently
+  rejects forged non-null dates unless the authenticated user and role
+  assignment are active and the exact role is `Super Admin`. Focused role,
+  API-boundary, and UI contract validation passed 14 tests / 39 assertions. No
+  database schema, migration, deployment, production data, or external state
+  changed; no ADR was required because this tightens the existing payment-date
+  authorization boundary without changing payment architecture.
+
 - 2026-08-21: Removed the new Sales Form's dirty-navigation confirmation so
   operators can leave an unsaved order or quote without an alert. Versioned
   local-recovery snapshots still persist on change, `pagehide`, and
