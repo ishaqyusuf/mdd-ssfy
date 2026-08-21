@@ -7,10 +7,14 @@
   live, the database-free liveness endpoint is preview-verified, and Fluid
   Compute is deployed to an isolated preview. Remaining gates are authenticated
   Sentry cutover, 12-24 hours of canary evidence, and explicit production
-  promotion before later optimization and Trigger.dev migration phases.
-  Authenticated replay is currently blocked by Prisma `P2000` because the
-  MySQL `WebAuthVerification` verification value exceeds its original
-  `VARCHAR(191)` boundary during Google sign-in.
+  promotion before later optimization and Trigger.dev migration phases. A
+  supplied authenticated session completed the main Sales/Customers replay and
+  a bounded concurrent replay without timeout or application errors. Production
+  promotion remains held while statement PDF latency/error behavior and
+  auth-session fan-out are investigated and the 12-24-hour window accumulates.
+  Google sign-in separately remains broken by Prisma `P2000` because the MySQL
+  `WebAuthVerification` verification value exceeds its original `VARCHAR(191)`
+  boundary.
 - Related Feature: Vercel runtime cost control and background job architecture
 - Status: In Progress
 - Plan Status: In Progress

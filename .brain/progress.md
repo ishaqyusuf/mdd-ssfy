@@ -27,10 +27,18 @@
   one-to-five-minute interval. Follow-up preview replay proved a liveness probe
   creates exactly one function log entry and no root/login/auth fan-out.
   Anonymous root/login replay still generated repeated `/api/auth-session`
-  work. Google sign-in then failed with HTTP 500 and Prisma `P2000` because the
-  generated `WebAuthVerification` value exceeds the original MySQL
-  `VARCHAR(191)` boundary, blocking authenticated workflow replay until a
-  deliberate schema migration or valid preview session is available.
+  work. A supplied authenticated session subsequently completed Sales Orders,
+  pagination, Sales Overview, order/quote editors, Customers, statement detail,
+  and a bounded three-page concurrent replay without timeout or application
+  error. Preview Observability showed 438 invocations, 0% timeout, 347 MB
+  average memory of 1.02 GB, 41.5% P75 CPU throttle, and 2.5% cold starts;
+  `/api/auth-session` accounted for 207 invocations and one statement PDF
+  request took about 39.3 seconds to return its UI control to idle. Production
+  promotion remains held for 12-24 hours of comparable evidence and focused
+  auth-session/statement-PDF investigation. Google sign-in separately remains
+  broken by Prisma `P2000` because the generated `WebAuthVerification` value
+  exceeds the original MySQL `VARCHAR(191)` boundary. No database, API,
+  production deployment, or Sentry target changed in this replay slice.
 
 - 2026-08-20: restored the new sales form's legacy step-component catalog
   controls after the floating toolbar repair. The shared menu now provides

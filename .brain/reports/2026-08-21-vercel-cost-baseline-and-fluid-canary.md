@@ -38,8 +38,8 @@ requested `--to` date for repeatable historical burn/projection math.
 | Comparable 24-hour and seven-day windows | Pending | Accumulate before interpreting the early-cycle projection as steady state |
 | Fluid deployment shape and pricing | Partial | `fluid: true`, 1024 MB, Node.js 22, and `iad1` are verified; effective Fluid pricing/shape confirmation remains pending |
 | Liveness invocation isolation | Complete | A protected-preview `GET /api/health/live` returned `204` and produced exactly one function log entry |
-| Workflow replay | Blocked | Anonymous root/login replay completed, but Google sign-in fails before session creation because `WebAuthVerification` rejects an oversized OAuth verification value |
-| CPU, memory, cold-start, Prisma, timeout, and cost comparison | Pending | Observe the preview for 12-24 hours against equivalent baseline windows |
+| Workflow replay | Partial | A supplied authenticated preview session completed Sales Orders, pagination, Sales Overview, order/quote editors, Customers, statement detail, and a bounded three-page concurrent replay; statement PDF latency and Google OAuth remain open |
+| CPU, memory, cold-start, Prisma, timeout, and cost comparison | Partial | The preview-environment 12-hour view shows 438 invocations, 0% timeout, 347 MB average memory, 41.5% P75 CPU throttle, and 2.5% cold starts; observe for 12-24 hours before a cost comparison or production decision |
 | Production and Sentry cutover | Pending | Requires explicit deployment decision and authenticated Sentry access |
 
 ## Controls
@@ -64,16 +64,43 @@ requested `--to` date for repeatable historical burn/projection math.
 - Anonymous root/login replay reproduced the existing auth fan-out: the preview
   emitted repeated `/api/auth-session` and `/login/v2` requests before reaching
   the login form.
-- Google sign-in then returned HTTP 500. Vercel logged Prisma `P2000` while
+- Google sign-in returned HTTP 500. Vercel logged Prisma `P2000` while
   creating `WebAuthVerification`: the generated OAuth verification value is too
   long for the current database column. The schema currently uses unbounded
   Prisma `String` fields, which map to the original MySQL `VARCHAR(191)` table
-  columns. Authenticated Sales Orders and Sales Overview replay cannot proceed
-  until that persistence boundary is deliberately migrated or another valid
-  preview session is supplied.
+  columns. This remains a Google OAuth defect, but a supplied authenticated
+  preview session unblocked the canary replay without a database change.
+- Authenticated first-load samples completed without an application error:
+  Sales Orders in about 9.2 seconds, Sales Overview in about 8.4 seconds, the
+  order editor in about 9.2 seconds, the quote editor in about 6.1 seconds,
+  Customers in about 5.4 seconds, customer overview in about 7.2 seconds, and
+  the statement workspace/detail in about 8.2/8.1 seconds. Sales Orders
+  pagination appended rows successfully in about 6.0 seconds.
+- A bounded concurrent replay of Sales Rep, Sales Orders, and one order editor
+  stayed authenticated and error-free. Warm navigation settled in 1.9-2.8
+  seconds, with rendered content confirmed within the following five seconds.
+- One bounded customer-statement PDF request returned its UI control to idle
+  after about 39.3 seconds. Vercel recorded one successful preview invocation
+  and no timeout, but the latency is too high to treat the route as cleared.
+- The preview-environment 12-hour Observability view reported 438 invocations,
+  1% errors, 0% timeouts, 347 MB average memory of 1.02 GB, 41.5% P75 CPU
+  throttle, and 2.5% cold starts. The view is environment-wide rather than
+  deployment-isolated, so it is directional evidence only.
+- `/api/auth-session` generated 207 of 438 preview invocations (47%) while
+  consuming 0.0085 GB-hours. The tRPC function generated 57 invocations and
+  0.014 GB-hours; Sales Rep generated 35 and 0.011 GB-hours; the order editor
+  generated 76 and 0.0072 GB-hours. Auth fan-out is the clearest invocation
+  reduction target, while tRPC and rendered routes remain the larger compute
+  targets.
+- Targeted deployment log checks found no timeouts and no 5xx response other
+  than the known Google OAuth `WebAuthVerification` failure. The production
+  12-hour view separately showed three customer-statement invocations with a
+  100% error rate, reinforcing the decision to hold production promotion.
 - The preview is protected and is not a valid production Sentry target.
-- No production promotion occurred. The next gate is a 12-24-hour comparison
-  followed by an explicit production decision.
+- No production promotion occurred. The next gate is 12-24 hours of comparable
+  preview evidence, followed by an explicit production decision. Before that
+  decision, reduce or explain auth-session fan-out and diagnose statement PDF
+  latency/error behavior.
 
 ## Validation
 
