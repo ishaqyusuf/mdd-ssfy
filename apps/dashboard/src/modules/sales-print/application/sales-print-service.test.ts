@@ -575,6 +575,105 @@ describe("sales print service", () => {
 		]);
 	});
 
+	it("waits for hidden print readiness when explicitly requested", async () => {
+		let releasePrint: (() => void) | null = null;
+		let settled = false;
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: false,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: () => undefined,
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => null,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			mountHiddenPrintViewer: (_href, callbacks) => {
+				releasePrint = () => callbacks?.onPrintReady?.();
+				return true;
+			},
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: false,
+		};
+
+		const pending = openSalesPrintDocument(
+			{
+				awaitPrintReady: true,
+				forceHiddenViewer: true,
+				salesIds: [42],
+				mode: "invoice",
+			},
+			dependencies,
+		).then(() => {
+			settled = true;
+		});
+
+		for (let attempt = 0; attempt < 20 && !releasePrint; attempt += 1) {
+			await Promise.resolve();
+		}
+		expect(settled).toBe(false);
+		expect(releasePrint).toBeFunction();
+
+		releasePrint?.();
+		await pending;
+		expect(settled).toBe(true);
+	});
+
+	it("rejects an awaited hidden print failure", async () => {
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: false,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		const printError = new Error("Print frame unavailable.");
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: () => undefined,
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => null,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			mountHiddenPrintViewer: (_href, callbacks) => {
+				callbacks?.onPrintError?.(printError);
+				return true;
+			},
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: false,
+		};
+
+		await expect(
+			openSalesPrintDocument(
+				{
+					awaitPrintReady: true,
+					forceHiddenViewer: true,
+					salesIds: [42],
+					mode: "invoice",
+				},
+				dependencies,
+			),
+		).rejects.toThrow("Print frame unavailable.");
+	});
+
 	it("navigates an explicitly reserved print window after access resolves", async () => {
 		let hiddenViewerMounted = false;
 		let pendingWindowOpened = false;

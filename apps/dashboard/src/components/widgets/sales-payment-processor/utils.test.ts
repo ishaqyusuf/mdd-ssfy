@@ -1,16 +1,21 @@
 import { describe, expect, it } from "bun:test";
 import {
 	buildPrintRequests,
+	buildPaymentMethodControlModel,
 	calculatePaymentChannelChargePreview,
 	calculatePaymentPlanPreview,
 	canNotifyPaymentCustomer,
 	getAvailablePaymentSales,
 	getListedPaymentAmount,
 	getListedPaymentSales,
+	getPaymentMethodControlFeedback,
+	getPaymentStatusOverlayContent,
 	isAvailablePaymentTerminal,
+	orderPaymentTerminals,
 	resolveAvailablePaymentTerminal,
 	resolveDefaultPaymentMethod,
 	resolveDefaultPaymentTerminal,
+	sanitizePaymentMethodFields,
 } from "./utils";
 
 describe("sales payment processor utils", () => {
@@ -101,6 +106,124 @@ describe("sales payment processor utils", () => {
 
 		expect(resolveDefaultPaymentTerminal(terminals)).toBeUndefined();
 		expect(resolveDefaultPaymentTerminal([terminal1451])).toEqual(terminal1451);
+		expect(resolveDefaultPaymentTerminal(terminals, "device:2443")).toEqual(
+			terminals[1],
+		);
+	});
+
+	it("orders available terminal choices before offline devices", () => {
+		const offline = { label: "Offline", status: "OFFLINE", value: "offline" };
+		const available = {
+			label: "Available",
+			status: "AVAILABLE",
+			value: "available",
+		};
+
+		expect(orderPaymentTerminals([offline, available])).toEqual([
+			available,
+			offline,
+		]);
+	});
+
+	it("keeps only fields owned by the submitted payment method", () => {
+		const draft = {
+			checkNo: " 12345 ",
+			deviceId: "device:2443",
+			deviceName: "Terminal 2443",
+			terminalPaymentSession: { squareCheckoutId: "checkout-1" },
+		};
+
+		expect(sanitizePaymentMethodFields(draft, "check")).toEqual({
+			...draft,
+			checkNo: "12345",
+			deviceId: null,
+			deviceName: null,
+			terminalPaymentSession: null,
+		});
+		expect(sanitizePaymentMethodFields(draft, "terminal")).toEqual({
+			...draft,
+			checkNo: null,
+		});
+		expect(sanitizePaymentMethodFields(draft, "cash")).toEqual({
+			...draft,
+			checkNo: null,
+			deviceId: null,
+			deviceName: null,
+			terminalPaymentSession: null,
+		});
+	});
+
+	it("models Check and selected Terminal control presentations", () => {
+		const methods = [
+			{ label: "Check", value: "check" as const },
+			{ label: "Terminal Payment", value: "terminal" as const },
+		];
+		const terminals = [
+			{ label: "Offline", status: "OFFLINE", value: "device:offline" },
+			{ label: "Terminal 2443", status: "AVAILABLE", value: "device:2443" },
+		];
+
+		expect(
+			buildPaymentMethodControlModel({
+				method: "check",
+				methods,
+				terminals,
+			}).presentation,
+		).toBe("check");
+		const terminalModel = buildPaymentMethodControlModel({
+			deviceId: "2443",
+			method: "terminal",
+			methods,
+			terminals,
+		});
+		expect(terminalModel.triggerLabel).toBe("Terminal 2443");
+		expect(terminalModel.availableTerminalCount).toBe(1);
+		expect(terminalModel.terminals.map((terminal) => terminal.label)).toEqual([
+			"Terminal 2443",
+			"Offline",
+		]);
+	});
+
+	it("resolves Check validation and Terminal availability feedback", () => {
+		expect(
+			getPaymentMethodControlFeedback({
+				availableTerminalCount: 2,
+				checkError: "Check number is required",
+				method: "check",
+				terminalPaymentsEnabled: true,
+			}),
+		).toEqual({ error: "Check number is required", invalid: true });
+		expect(
+			getPaymentMethodControlFeedback({
+				availableTerminalCount: 0,
+				method: "cash",
+				terminalPaymentsEnabled: true,
+			}),
+		).toEqual({
+			error: "No online Square terminals are available.",
+			invalid: false,
+		});
+	});
+
+	it("maps print lifecycle states to the approved payment-screen copy", () => {
+		expect(
+			getPaymentStatusOverlayContent("printing", {
+				printMode: "invoice,packing-slip",
+			}),
+		).toEqual({
+			title: "Preparing to print",
+			description:
+				"Payment recorded. Preparing the invoice and packing slip.",
+		});
+		expect(
+			getPaymentStatusOverlayContent("print_failed", {
+				printMode: "invoice",
+			}),
+		).toEqual({
+			title: "Payment complete",
+			description:
+				"The payment was recorded, but printing needs attention.",
+		});
 	});
 
 	it("uses the selected sale payment method when available", () => {
@@ -180,7 +303,6 @@ describe("sales payment processor utils", () => {
 			{
 				mode: "invoice,packing-slip",
 				salesIds: [1],
-				windowRef: null,
 			},
 		]);
 	});

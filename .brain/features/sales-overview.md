@@ -157,6 +157,16 @@ opening production, dispatch, packing, or inventory workflows.
   combobox can opt out of the shared trigger's full-width default. Closing the
   secondary pane clears only payment-create state and returns focus to its
   opening control.
+- The fixed payment action row places a compact payment-date button group
+  immediately before Payment Method. Its default icon-only state means the
+  current New York business date. Opening it shows a titled calendar with
+  future dates disabled; selecting a date replaces the icon with the formatted
+  date and adds an adjacent clear button. Clearing returns to the today
+  fallback. Width and conditional-method changes animate with reduced-motion
+  support.
+- Staff-selected past dates apply to manual office payments. Square terminal
+  settlements and newly paid links retain their verified provider occurrence
+  time instead of accepting staff date overrides.
 - A verified refundable Square tender exposes the action only to
   `editRefundSquare`. The composer shows provider identity, original charge,
   prior/pending refunds, remaining capacity, principal/C.C.C./tip, eligible
@@ -369,3 +379,22 @@ The temporary General renderer rollout is governed by
   browser QA on `09337LRG` confirmed the slanted pencil in the General action
   bar, Customer control, P.O. control, and Delivery control without saving or
   changing order data.
+
+## Validation (2026-08-21 — Make Payment method control and hidden printing)
+
+- The fixed payment action row keeps the compact date control immediately
+  before one adaptive payment method control. Check becomes a grouped method
+  trigger and check-number input; Terminal owns a nested availability-aware
+  device menu and displays the chosen terminal name after selection.
+- Payment method/device changes are committed together, the last available
+  terminal is preferred safely, and mutation payloads exclude stale Check or
+  Terminal-only fields when another method is submitted.
+- Successful payments with a print selection remain on the same payment screen
+  in `Preparing to print` until the hidden viewer reports readiness. No new tab
+  is opened. Print failures preserve payment success and expose print-only retry
+  and close actions.
+- Focused payment/print validation passes 69 tests / 169 assertions. Focused
+  TypeScript diagnostics pass for eight changed implementation files and
+  `git diff --check` passes. No browser QA or payment submission was performed.
+- No schema, migration, API contract, permission, or ADR changed; this adopts
+  the existing hidden sales-print viewer and payment contracts.

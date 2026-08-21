@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SALES_PAYMENT_METHODS } from "../../constants";
+import { isValidSalesPaymentDate } from "../domain/payment-date";
 
 export const terminalPaymentSessionSchema = z
 	.object({
@@ -16,6 +17,7 @@ export const salesPaymentProcessorApplyPaymentSchema = z
 		orderNos: z.array(z.string()).optional().nullable(),
 		accountNo: z.string().optional(),
 		paymentMethod: z.enum(SALES_PAYMENT_METHODS),
+		paymentDate: z.string().optional().nullable(),
 		amount: z.number(),
 		_amount: z.any().optional().nullable(),
 		checkNo: z.string().optional().nullable(),
@@ -28,6 +30,13 @@ export const salesPaymentProcessorApplyPaymentSchema = z
 		terminalPaymentSession: terminalPaymentSessionSchema,
 	})
 	.superRefine((data, ctx) => {
+		if (data.paymentDate && !isValidSalesPaymentDate(data.paymentDate)) {
+			ctx.addIssue({
+				path: ["paymentDate"],
+				message: "Payment date must be a valid date in YYYY-MM-DD format",
+				code: "custom",
+			});
+		}
 		const amount = Number(data?._amount ?? data.amount ?? 0);
 		if (!data.useWallet && amount <= 0) {
 			ctx.addIssue({

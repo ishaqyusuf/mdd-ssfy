@@ -86,6 +86,7 @@
 		"./payment-system": "./src/payment-system/index.ts",
 		"./adjustment-system": "./src/adjustment-system/index.ts",
 		"./payment-system/money": "./src/payment-system/domain/money.ts",
+		"./payment-system/payment-date": "./src/payment-system/domain/payment-date.ts",
 		"./payment-system/payment-channel-charge": "./src/payment-system/domain/payment-channel-charge.ts",
 		"./payment-system/contracts": "./src/payment-system/contracts/index.ts",
 		"./payment-system/refunds": "./src/payment-system/refunds/index.ts",

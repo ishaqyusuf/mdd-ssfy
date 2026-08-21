@@ -1,51 +1,19 @@
 import { describe, expect, it } from "bun:test";
 import {
-	closePendingPrintRequests,
+	capturePendingPrintRequests,
+	createPostPaymentPrintQueue,
 	dispatchPendingPrintRequests,
-	reservePendingPrintRequests,
 	takePendingPrintRequests,
 } from "./post-payment-print";
-import type { PendingPrintRequest } from "./types";
 import { buildPrintRequests } from "./utils";
 
-function createWindow() {
-	let replacedHref: string | null = null;
-	let closed = false;
-	const windowRef = {
-		get closed() {
-			return closed;
-		},
-		close() {
-			closed = true;
-		},
-		location: {
-			replace(href: string) {
-				replacedHref = href;
-			},
-		},
-	} as unknown as Window;
-
-	return {
-		get replacedHref() {
-			return replacedHref;
-		},
-		windowRef,
-	};
-}
-
 describe("post-payment print orchestration", () => {
-	it("reserves and dispatches an invoice request exactly once", async () => {
-		const target = createWindow();
-		let opened = 0;
-		const requests = reservePendingPrintRequests(
+	it("captures and dispatches a hidden invoice request exactly once", async () => {
+		const requests = capturePendingPrintRequests(
 			buildPrintRequests({
 				salesIds: [42],
 				shouldPrintInvoice: true,
 			}),
-			() => {
-				opened += 1;
-				return target.windowRef;
-			},
 		);
 		const pendingRef = { current: requests };
 		const first = takePendingPrintRequests(pendingRef);
@@ -62,15 +30,17 @@ describe("post-payment print orchestration", () => {
 			throw new Error("A consumed request must not print twice.");
 		});
 
-		expect(opened).toBe(1);
 		expect(calls).toEqual([
 			{
 				input: {
 					mode: "invoice",
+					openInNewTab: false,
 					salesIds: [42],
-					targetWindow: target.windowRef,
 				},
 				options: {
+					awaitReady: true,
+					headless: true,
+					showToast: false,
 					throwOnError: true,
 				},
 			},
@@ -79,15 +49,13 @@ describe("post-payment print orchestration", () => {
 		expect(pendingRef.current).toEqual([]);
 	});
 
-	it("preserves a packing-slip request after the form state changes", async () => {
-		const target = createWindow();
+	it("preserves a packing-slip request after form state changes", async () => {
 		const submittedSalesIds = [51];
-		const requests = reservePendingPrintRequests(
+		const requests = capturePendingPrintRequests(
 			buildPrintRequests({
 				salesIds: submittedSalesIds,
 				shouldPrintPackingSlip: true,
 			}),
-			() => target.windowRef,
 		);
 		submittedSalesIds.splice(0, submittedSalesIds.length, 999);
 		let received: unknown = null;
@@ -98,102 +66,74 @@ describe("post-payment print orchestration", () => {
 
 		expect(received).toEqual({
 			mode: "packing-slip",
+			openInNewTab: false,
 			salesIds: [51],
-			targetWindow: target.windowRef,
 		});
 	});
 
-	it("reserves one tab for a combined invoice and packing slip", () => {
-		const target = createWindow();
-		let opened = 0;
-		const requests = reservePendingPrintRequests(
+	it("captures one combined invoice and packing-slip request without a window", () => {
+		const requests = capturePendingPrintRequests(
 			buildPrintRequests({
 				salesIds: [61, 62],
 				shouldPrintInvoice: true,
 				shouldPrintPackingSlip: true,
 			}),
-			() => {
-				opened += 1;
-				return target.windowRef;
-			},
 		);
 
-		expect(opened).toBe(1);
 		expect(requests).toEqual([
 			{
 				mode: "invoice,packing-slip",
 				salesIds: [61, 62],
-				windowRef: target.windowRef,
 			},
 		]);
 	});
 
-	it("returns a recoverable blocked failure without dispatching", async () => {
-		const requests = reservePendingPrintRequests(
-			buildPrintRequests({
-				salesIds: [71],
-				shouldPrintInvoice: true,
-			}),
-			() => null,
-		);
-		let calls = 0;
+	it("returns a print-only retry request after preparation failure", async () => {
+		const error = new Error("Unable to prepare document.");
+		const requests = capturePendingPrintRequests([
+			{
+				mode: "packing-slip",
+				salesIds: [82],
+			},
+		]);
 
 		const result = await dispatchPendingPrintRequests(requests, async () => {
-			calls += 1;
+			throw error;
 		});
 
-		expect(calls).toBe(0);
-		expect(result.failures).toEqual([
-			{
-				error: null,
-				reason: "blocked",
-				request: {
-					mode: "invoice",
-					salesIds: [71],
-					windowRef: null,
-				},
-			},
-		]);
-	});
-
-	it("closes reserved tabs on cancellation and preparation failure", async () => {
-		const cancelledWindow = createWindow();
-		const cancelledRequests: PendingPrintRequest[] = [
-			{
-				mode: "invoice",
-				salesIds: [81],
-				windowRef: cancelledWindow.windowRef,
-			},
-		];
-		closePendingPrintRequests(cancelledRequests);
-
-		const failedWindow = createWindow();
-		const error = new Error("Unable to prepare document.");
-		const result = await dispatchPendingPrintRequests(
-			[
-				{
-					mode: "packing-slip",
-					salesIds: [82],
-					windowRef: failedWindow.windowRef,
-				},
-			],
-			async () => {
-				throw error;
-			},
-		);
-
-		expect(cancelledWindow.windowRef.closed).toBe(true);
-		expect(failedWindow.windowRef.closed).toBe(true);
 		expect(result.failures).toEqual([
 			{
 				error,
-				reason: "failed",
 				request: {
 					mode: "packing-slip",
 					salesIds: [82],
-					windowRef: failedWindow.windowRef,
 				},
 			},
+		]);
+	});
+
+	it("retries printing without recapturing or redispatching a payment", async () => {
+		const queue = createPostPaymentPrintQueue();
+		const calls: unknown[] = [];
+		queue.capture([{ mode: "invoice", salesIds: [91] }]);
+
+		const first = await queue.complete(async (input) => {
+			calls.push(input);
+			throw new Error("Printer unavailable");
+		});
+		const retry = await queue.retry(async (input) => {
+			calls.push(input);
+		});
+		const duplicate = await queue.complete(async () => {
+			throw new Error("Consumed print request must not run twice");
+		});
+
+		expect(first.status).toBe("failed");
+		expect(retry.status).toBe("printed");
+		expect(duplicate.status).toBe("skipped");
+		expect(calls).toEqual([
+			{ mode: "invoice", openInNewTab: false, salesIds: [91] },
+			{ mode: "invoice", openInNewTab: false, salesIds: [91] },
 		]);
 	});
 });

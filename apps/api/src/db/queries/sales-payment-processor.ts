@@ -10,7 +10,9 @@ import {
 	calculatePaymentChannelCharge,
 	captureVerifiedSquareTender,
 	createLegacyWalletCreditTransaction,
+	getSalesPaymentBusinessDate,
 	recordLegacySalesPayment,
+	resolveSalesPaymentOccurrence,
 	roundMoney,
 } from "@gnd/sales/payment-system";
 import {
@@ -265,6 +267,25 @@ async function applySalesPayment(
 	terminalSettlement: VerifiedTerminalSettlement | null = null,
 ) {
 	if (!props.accountNo) throw new Error("Customer account number is required.");
+	const recordedAt = new Date();
+	const occurrence = terminalSettlement
+		? {
+				occurredAt: terminalSettlement.paidAt || recordedAt,
+				paymentDate: getSalesPaymentBusinessDate(
+					terminalSettlement.paidAt || recordedAt,
+				),
+				recordedAt,
+				source: "square_provider",
+			}
+		: resolveSalesPaymentOccurrence({
+				now: recordedAt,
+				paymentDate: props.paymentDate,
+			});
+	const paymentDateMeta = {
+		paymentDate: occurrence.paymentDate,
+		paymentDateSource: occurrence.source,
+		recordedAt: occurrence.recordedAt.toISOString(),
+	};
 	const wallet = await getCustomerWallet(ctx.db, props.accountNo);
 	if (!wallet) throw new Error("Customer not found.");
 	const pendingSalesData = await getCustomerPendingSales(ctx, props.accountNo);
@@ -348,6 +369,7 @@ async function applySalesPayment(
 				const paymentWrite = await recordLegacySalesPayment(tx, {
 					amount: walletPayAmount,
 					authorId: ctx.userId,
+					occurredAt: occurrence.occurredAt,
 					walletId: wallet.id,
 					paymentMethod: "wallet" as SalesPaymentMethods,
 					salesId: order.id,
@@ -355,11 +377,13 @@ async function applySalesPayment(
 					transactionStatus: "success" as CustomerTransanctionStatus,
 					paymentStatus: "success" as SalesPaymentStatus,
 					transactionMeta: {
+						...paymentDateMeta,
 						source: "wallet-balance-payment",
 						destinationSalesId: order.id,
 						destinationOrderId: order.orderId,
 						walletAppliedAmount: walletPayAmount,
 					},
+					paymentMeta: paymentDateMeta,
 				});
 				const salesPayment = paymentWrite.salesPayment as
 					| (typeof paymentWrite.salesPayment & {
@@ -390,6 +414,7 @@ async function applySalesPayment(
 							? paymentCharge.chargeAmount
 							: undefined,
 					authorId: ctx.userId,
+					occurredAt: occurrence.occurredAt,
 					walletId: wallet.id,
 					paymentMethod: props.paymentMethod,
 					salesId: order.id,
@@ -401,8 +426,9 @@ async function applySalesPayment(
 					paymentStatus: "success" as SalesPaymentStatus,
 					transactionMeta:
 						externalCustomerTransactionId == null
-							? paymentChargeMeta
+							? { ...paymentChargeMeta, ...paymentDateMeta }
 							: undefined,
+					paymentMeta: paymentDateMeta,
 				});
 				externalCustomerTransactionId = paymentWrite.customerTransactionId;
 				const salesPayment = paymentWrite.salesPayment as
@@ -437,8 +463,10 @@ async function applySalesPayment(
 			await createLegacyWalletCreditTransaction(tx, {
 				amount: walletCreditAmount,
 				authorId: ctx.userId,
+				occurredAt: occurrence.occurredAt,
 				meta: {
 					...paymentChargeMeta,
+					...paymentDateMeta,
 					source: "sales-overpayment",
 					selectedSalesIds: props.salesIds || [],
 					selectedOrderIds,
@@ -494,6 +522,7 @@ type VerifiedTerminalSettlement = {
 	squareCheckoutId: string;
 	squarePaymentId: string;
 	tip: number;
+	paidAt: Date | null;
 };
 
 export async function claimSalesPaymentProcessorTerminalSettlement(
@@ -584,8 +613,12 @@ export async function verifySalesPaymentProcessorTerminalSettlement(
 	if (status !== "COMPLETED") {
 		throw new Error("Terminal payment is not complete.");
 	}
+	let paidAt: Date | null = null;
 	for (const providerPaymentId of paymentIds) {
 		const payment = await getSquareTenderPayment(providerPaymentId);
+		if (payment.paidAt && (!paidAt || payment.paidAt > paidAt)) {
+			paidAt = payment.paidAt;
+		}
 		await captureVerifiedSquareTender(ctx.db, {
 			...payment,
 			legacySquarePaymentId: squarePaymentId,
@@ -599,6 +632,7 @@ export async function verifySalesPaymentProcessorTerminalSettlement(
 		squareCheckoutId,
 		squarePaymentId,
 		tip,
+		paidAt,
 	};
 }
 

@@ -25,6 +25,7 @@ export interface RecordLegacySalesPaymentInput {
 	paymentStatus?: SalesPaymentStatus;
 	transactionMeta?: Record<string, unknown> | null;
 	paymentMeta?: Record<string, unknown> | null;
+	occurredAt?: Date | null;
 }
 
 export async function recordLegacySalesPayment(
@@ -36,6 +37,7 @@ export async function recordLegacySalesPayment(
 			data: {
 				transactionId: input.customerTransactionId,
 				amount: input.amount,
+				createdAt: input.occurredAt || undefined,
 				status: input.paymentStatus || ("success" as SalesPaymentStatus),
 				origin: resolveSalesPaymentOrigin(input.paymentMethod),
 				reviewStatus: "needs_review",
@@ -82,6 +84,7 @@ export async function recordLegacySalesPayment(
 		await mirrorPostedLegacySalesPayment(db, {
 			amount: input.amount,
 			customerTransactionId: input.customerTransactionId,
+			occurredAt: input.occurredAt,
 			paymentMethod: input.paymentMethod,
 			salesId: input.salesId,
 			salesPaymentId: salesPayment.id,
@@ -120,6 +123,7 @@ export async function recordLegacySalesPayment(
 	const transaction = await db.customerTransaction.create({
 		data: {
 			amount: input.transactionAmount ?? input.amount,
+			createdAt: input.occurredAt || undefined,
 			wallet: {
 				connect: {
 					id: input.walletId,
@@ -150,6 +154,7 @@ export async function recordLegacySalesPayment(
 				: undefined,
 			salesPayments: {
 				create: {
+					createdAt: input.occurredAt || undefined,
 					meta: {
 						...(input.paymentMeta || {}),
 						checkNo: input.checkNo || undefined,
@@ -206,6 +211,7 @@ export async function recordLegacySalesPayment(
 		await mirrorPostedLegacySalesPayment(db, {
 			amount: input.amount,
 			customerTransactionId: transaction.id,
+			occurredAt: input.occurredAt,
 			paymentMethod: input.paymentMethod,
 			salesId: input.salesId,
 			salesPaymentId: salesPayment.id,

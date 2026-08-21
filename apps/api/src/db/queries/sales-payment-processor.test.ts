@@ -296,6 +296,7 @@ describe("verifySalesPaymentProcessorTerminalSettlement", () => {
 			squareCheckoutId: "checkout-1",
 			squarePaymentId: "square-payment-row-1",
 			tip: 4.25,
+			paidAt: null,
 		});
 	});
 
@@ -373,6 +374,7 @@ describe("terminal settlement persistence", () => {
 			squareCheckoutId: "checkout-1",
 			squarePaymentId: "square-payment-row-1",
 			tip: 4.25,
+			paidAt: null,
 		};
 
 		await claimSalesPaymentProcessorTerminalSettlement(db as never, settlement);
@@ -434,6 +436,7 @@ describe("terminal settlement persistence", () => {
 					squareCheckoutId: "checkout-1",
 					squarePaymentId: "square-payment-row-1",
 					tip: 0,
+					paidAt: null,
 				},
 			),
 		).rejects.toThrow("already applied");

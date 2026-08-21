@@ -36,6 +36,8 @@ export type SalesPrintRequestMode = PrintMode | IOrderPrintMode | string;
 
 export interface SalesPrintRequest {
 	salesIds: number[];
+	awaitPrintReady?: boolean;
+	forceHiddenViewer?: boolean;
 	mode?: SalesPrintRequestMode;
 	pricingMode?: "customer" | "internal" | null;
 	dispatchId?: number | null;
@@ -358,6 +360,7 @@ export async function openSalesPrintDocument(
 	dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
 	const mode = resolveSalesPrintMode(request.mode);
+	let accessResolved = false;
 	const hasTargetWindow = request.targetWindow != null;
 	const targetWindow =
 		request.targetWindow && !request.targetWindow.closed
@@ -365,7 +368,7 @@ export async function openSalesPrintDocument(
 			: null;
 	const shouldUseAttachmentOverlay =
 		!hasTargetWindow &&
-		dependencies.useAttachmentOverlay &&
+		(request.forceHiddenViewer || dependencies.useAttachmentOverlay) &&
 		!request.openInNewTab;
 	const pendingWindow = hasTargetWindow
 		? targetWindow
@@ -381,6 +384,7 @@ export async function openSalesPrintDocument(
 			salesIds: request.salesIds,
 		});
 		const access = await resolveSalesPrintAccess(request, dependencies);
+		accessResolved = true;
 		const printedFromSnapshot = access.kind === "snapshot" && !access.generated;
 		request.onPrintStage?.("resolve-access-done", {
 			mode,
@@ -395,14 +399,38 @@ export async function openSalesPrintDocument(
 		});
 
 		if (shouldUseAttachmentOverlay) {
+			let resolvePrintReady: (() => void) | null = null;
+			let rejectPrintReady: ((error: Error) => void) | null = null;
+			let printReadySettled = false;
+			const printReadyPromise = request.awaitPrintReady
+				? new Promise<void>((resolve, reject) => {
+						resolvePrintReady = resolve;
+						rejectPrintReady = reject;
+					})
+				: null;
+			const settlePrintReady = (error?: unknown) => {
+				if (printReadySettled) return;
+				printReadySettled = true;
+				if (error) {
+					rejectPrintReady?.(
+						error instanceof Error
+							? error
+							: new Error("Unable to open the print dialog."),
+					);
+					return;
+				}
+				resolvePrintReady?.();
+			};
 			const mountedHiddenViewer = await dependencies.mountHiddenPrintViewer?.(
 				href,
 				{
 					onPrintReady: () => {
 						request.onPrintReady?.();
+						settlePrintReady();
 					},
 					onPrintError: (error) => {
 						request.onPrintError?.(error);
+						settlePrintReady(error);
 					},
 					onPrintStage: (stage, details) => {
 						request.onPrintStage?.(stage, {
@@ -424,7 +452,13 @@ export async function openSalesPrintDocument(
 					salesIds: request.salesIds,
 					printedFromSnapshot,
 				});
+				if (printReadyPromise) {
+					await printReadyPromise;
+				}
 				return;
+			}
+			if (request.awaitPrintReady) {
+				throw new Error("The hidden print viewer is unavailable.");
 			}
 		}
 
@@ -443,11 +477,13 @@ export async function openSalesPrintDocument(
 
 		dependencies.openLink(href, null, true);
 	} catch (error) {
-		request.onPrintStage?.("resolve-access-error", {
-			mode,
-			salesIds: request.salesIds,
-			error,
-		});
+		if (!accessResolved) {
+			request.onPrintStage?.("resolve-access-error", {
+				mode,
+				salesIds: request.salesIds,
+				error,
+			});
+		}
 		if (pendingWindow && !pendingWindow.closed) {
 			pendingWindow.close();
 		}

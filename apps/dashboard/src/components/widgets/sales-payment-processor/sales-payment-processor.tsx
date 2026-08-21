@@ -4,8 +4,11 @@ import { useSalesPrintController } from "@/modules/sales-print/application/use-s
 import { useTRPC } from "@/trpc/client";
 import { salesPaymentMethods } from "@/utils/constants";
 import { formatDate } from "@/utils/format";
+import { getSalesPaymentBusinessDate } from "@gnd/sales/payment-system/payment-date";
 import type { TerminalCheckoutStatus } from "@gnd/square";
 import { Button } from "@gnd/ui/button";
+import { ButtonGroup } from "@gnd/ui/button-group";
+import { Calendar } from "@gnd/ui/calendar";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
@@ -13,7 +16,13 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
-import { Dialog, Field, InputGroup, Item, Select } from "@gnd/ui/namespace";
+import {
+	Dialog,
+	Field,
+	InputGroup,
+	Item,
+	Popover,
+} from "@gnd/ui/namespace";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Spinner } from "@gnd/ui/spinner";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
@@ -26,6 +35,7 @@ import {
 } from "@gnd/ui/tooltip";
 import { toast } from "@gnd/ui/use-toast";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import React, {
 	Suspense,
 	useCallback,
@@ -44,13 +54,11 @@ import {
 } from "react-hook-form";
 import type z from "zod";
 import { PaymentProcessorSkeleton } from "./payment-processor-skeleton";
-import { PaymentStatusOverlay } from "./payment-status-overlay";
 import {
-	closePendingPrintRequests,
-	dispatchPendingPrintRequests,
-	reservePendingPrintRequests,
-	takePendingPrintRequests,
-} from "./post-payment-print";
+	type PaymentTerminalOption,
+	SalesPaymentMethodControl,
+} from "./sales-payment-method-control";
+import { PaymentStatusOverlay } from "./payment-status-overlay";
 import { paymentProcessorFormSchema as formSchema } from "./schema";
 import {
 	fetchFreshTerminalPaymentStatus,
@@ -59,9 +67,9 @@ import {
 import type {
 	PaymentOverlayState,
 	PendingAppliedPaymentCheck,
-	PendingPrintRequest,
 	SalesPaymentProcessorProps,
 } from "./types";
+import { usePostPaymentPrintFlow } from "./use-post-payment-print-flow";
 import {
 	buildPrintRequests,
 	calculatePaymentPlanPreview,
@@ -70,10 +78,12 @@ import {
 	getAvailablePaymentSales,
 	getListedPaymentAmount,
 	getListedPaymentSales,
+	getPaymentMethodControlFeedback,
 	isAvailablePaymentTerminal,
 	resolveAvailablePaymentTerminal,
 	resolveDefaultPaymentMethod,
 	resolveDefaultPaymentTerminal,
+	sanitizePaymentMethodFields,
 } from "./utils";
 
 type PaymentMethod = NonNullable<z.infer<typeof formSchema>["paymentMethod"]>;
@@ -83,6 +93,132 @@ const walletPaymentMethodOption = {
 	label: "Wallet",
 	value: "wallet",
 } as const;
+
+function paymentDateToLocalDate(value: string) {
+	const [year, month, day] = value.split("-").map(Number);
+	return new Date(year, month - 1, day);
+}
+
+function localDateToPaymentDate(value: Date) {
+	return [
+		value.getFullYear(),
+		String(value.getMonth() + 1).padStart(2, "0"),
+		String(value.getDate()).padStart(2, "0"),
+	].join("-");
+}
+
+function paymentDateLabel(value: string) {
+	return new Intl.DateTimeFormat("en-US", {
+		day: "numeric",
+		month: "short",
+		year: "numeric",
+	}).format(paymentDateToLocalDate(value));
+}
+
+function PaymentDateControl({
+	disabled,
+	disabledTitle,
+	onChange,
+	transition,
+	value,
+}: {
+	disabled: boolean;
+	disabledTitle: string;
+	onChange: (value: string | null) => void;
+	transition: { duration: number; ease: [number, number, number, number] };
+	value?: string | null;
+}) {
+	const [open, setOpen] = useState(false);
+	const today = getSalesPaymentBusinessDate();
+	const calendarDate = paymentDateToLocalDate(value || today);
+	const hasSelectedDate = Boolean(value);
+	const title = disabled
+		? disabledTitle
+		: hasSelectedDate
+			? `Payment date: ${paymentDateLabel(value || today)}`
+			: "Select payment date (defaults to today)";
+
+	return (
+		<motion.div layout transition={transition} className="shrink-0">
+			<ButtonGroup aria-label="Payment date">
+				<Popover.Root open={open} onOpenChange={setOpen}>
+					<Popover.Trigger asChild>
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							disabled={disabled}
+							aria-label={title}
+							title={title}
+							className={cn(
+								"overflow-hidden transition-[width,padding] duration-200 ease-out motion-reduce:transition-none",
+								hasSelectedDate ? "w-32 px-3" : "w-9 px-0",
+							)}
+						>
+							<AnimatePresence initial={false} mode="wait">
+								{hasSelectedDate ? (
+									<motion.span
+										key="payment-date"
+										initial={{ opacity: 0, y: 3 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: -3 }}
+										transition={transition}
+										className="whitespace-nowrap"
+									>
+										{paymentDateLabel(value || today)}
+									</motion.span>
+								) : (
+									<motion.span
+										key="calendar-icon"
+										initial={{ opacity: 0, scale: 0.9 }}
+										animate={{ opacity: 1, scale: 1 }}
+										exit={{ opacity: 0, scale: 0.9 }}
+										transition={transition}
+									>
+										<Icons.CalendarIcon className="size-4" />
+									</motion.span>
+								)}
+							</AnimatePresence>
+						</Button>
+					</Popover.Trigger>
+					<Popover.Content align="start" className="w-auto p-0">
+						<div className="border-b px-4 py-3">
+							<p className="text-sm font-semibold">Payment date</p>
+							<p className="mt-0.5 text-xs text-muted-foreground">
+								Choose when the payment was received.
+							</p>
+						</div>
+						<Calendar
+							mode="single"
+							initialFocus
+							defaultMonth={calendarDate}
+							selected={calendarDate}
+							disabled={(date) => localDateToPaymentDate(date) > today}
+							onSelect={(date) => {
+								if (!date) return;
+								onChange(localDateToPaymentDate(date));
+								setOpen(false);
+							}}
+						/>
+					</Popover.Content>
+				</Popover.Root>
+				{hasSelectedDate ? (
+					<Button
+						type="button"
+						size="icon"
+						variant="outline"
+						className="size-9 animate-in fade-in zoom-in-95 duration-200 motion-reduce:animate-none"
+						onClick={() => onChange(null)}
+						aria-label="Clear payment date and use today"
+						title="Clear payment date and use today"
+					>
+						<Icons.X className="size-4" />
+					</Button>
+				) : null}
+			</ButtonGroup>
+		</motion.div>
+	);
+}
 
 export function SalesPaymentProcessor(props: SalesPaymentProcessorProps) {
 	const [open, setOpened] = useState(false);
@@ -171,10 +307,12 @@ function Content(
 ) {
 	const { presentation, selectedIds, setOpened } = props;
 	const isSheet = presentation === "sheet";
+	const prefersReducedMotion = useReducedMotion();
 	const formId = useId();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const salesPrint = useSalesPrintController();
+	const postPaymentPrint = usePostPaymentPrintFlow(salesPrint.print);
 	const accountNo = props.phoneNo ?? `cust-${props.customerId}`;
 	const { data, refetch } = useSuspenseQuery(
 		trpc.customers.getCustomerPayPortal.queryOptions({
@@ -191,12 +329,11 @@ function Content(
 	const form = useZodForm(formSchema, {
 		defaultValues: {},
 	});
-	const { field: terminalDeviceField, fieldState: terminalDeviceFieldState } =
-		useController({
+	const { fieldState: terminalDeviceFieldState } = useController({
 			control: form.control,
 			name: "deviceId",
 		});
-	const pendingPrintRequestsRef = useRef<PendingPrintRequest[]>([]);
+	const paymentCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const pendingAppliedPaymentCheckRef =
 		useRef<PendingAppliedPaymentCheck | null>(null);
 	const lastExternalPaymentMethodRef =
@@ -258,7 +395,7 @@ function Content(
 		if (lastFormResetKeyRef.current === formResetKey) return;
 		lastFormResetKeyRef.current = formResetKey;
 
-		const paymentMethod = resolveDefaultPaymentMethod(
+		let paymentMethod = resolveDefaultPaymentMethod(
 			data.pendingSales,
 			selectedIds,
 			{
@@ -266,11 +403,18 @@ function Content(
 				terminalEnabled: terminalPaymentsEnabled,
 			},
 		);
-		const recentTerminal = resolveDefaultPaymentTerminal(data.terminals);
+		const recentTerminal = resolveDefaultPaymentTerminal(
+			data.terminals,
+			data.lastTerminalId,
+		);
+		if (paymentMethod === "terminal" && !recentTerminal) {
+			paymentMethod = "credit-card";
+		}
 
 		form.reset({
 			deviceId: terminalPaymentsEnabled ? recentTerminal?.value : undefined,
 			deviceName: terminalPaymentsEnabled ? recentTerminal?.label : undefined,
+			paymentDate: null,
 			terminalPaymentSession: null,
 			notifyCustomer: false,
 			useWallet: false,
@@ -319,6 +463,8 @@ function Content(
 		printPackingSlip,
 		deviceId,
 		useWallet,
+		paymentDate,
+		checkNo,
 	} = form.watch();
 	const listedSalesIds = useMemo(
 		() => salesFields.map((sale) => sale.id),
@@ -386,10 +532,33 @@ function Content(
 		},
 		[form],
 	);
+	const closeCompletedPayment = useCallback(
+		(isTerminalPayment: boolean) => {
+			if (paymentCloseTimerRef.current) {
+				clearTimeout(paymentCloseTimerRef.current);
+			}
+			paymentCloseTimerRef.current = setTimeout(
+				() => {
+					setOpened(false);
+					resetTerminalFlow({ clearSession: true });
+					postPaymentPrint.clear();
+				},
+				isTerminalPayment ? 3000 : 1800,
+			);
+		},
+		[postPaymentPrint.clear, resetTerminalFlow, setOpened],
+	);
+	useEffect(
+		() => () => {
+			if (paymentCloseTimerRef.current) {
+				clearTimeout(paymentCloseTimerRef.current);
+			}
+		},
+		[],
+	);
 	const showTerminalFailure = useCallback(
 		(message?: string | null, options?: { clearSession?: boolean }) => {
-			closePendingPrintRequests(pendingPrintRequestsRef.current);
-			pendingPrintRequestsRef.current = [];
+			postPaymentPrint.clear();
 			setWaitSeconds(null);
 			setTerminalError(
 				message ||
@@ -401,89 +570,47 @@ function Content(
 				form.setValue("terminalPaymentSession", null);
 			}
 		},
-		[form],
+		[form, postPaymentPrint.clear],
 	);
 	useEffect(() => {
-		// console.log({ paymentStatus });
 		if (!paymentStatus) return;
 		switch (paymentStatus) {
 			case "cancelled":
-				closePendingPrintRequests(pendingPrintRequestsRef.current);
-				pendingPrintRequestsRef.current = [];
+				postPaymentPrint.clear();
 				form.setValue("paymentStatus", null);
 				break;
 			case "processing":
 				break;
 			case "completed": {
 				const isTerminalPayment =
-					pm === "terminal" || terminalState === "success";
-				const pendingPrintRequests = takePendingPrintRequests(
-					pendingPrintRequestsRef,
-				);
-				void dispatchPendingPrintRequests(
-					pendingPrintRequests,
-					salesPrint.print,
-				).then(({ failures }) => {
-					if (!failures.length) return;
-
-					const retryRequests = failures.map(({ request }) => ({
-						...request,
-						windowRef: null,
-					}));
-					const popupWasBlocked = failures.some(
-						(failure) => failure.reason === "blocked",
-					);
-					toast({
-						title: popupWasBlocked
-							? "Print popup blocked"
-							: "Unable to open print view",
-						description: popupWasBlocked
-							? "The payment was recorded. Allow popups, then open the print view."
-							: "The payment was recorded, but the print view failed.",
-						variant: popupWasBlocked ? undefined : "destructive",
-						action: (
-							<ToastAction
-								altText="Open print"
-								onClick={() => {
-									const reservedRetryRequests =
-										reservePendingPrintRequests(retryRequests);
-									void dispatchPendingPrintRequests(
-										reservedRetryRequests,
-										salesPrint.print,
-									).then(({ failures: retryFailures }) => {
-										if (!retryFailures.length) return;
-										toast({
-											title: "Unable to open print view",
-											description:
-												"Allow popups for this site, then print from the sale menu.",
-											variant: "destructive",
-										});
-									});
-								}}
-							>
-								Open print
-							</ToastAction>
-						),
-					});
-				});
-				setTerminalError(null);
-				setTerminalState("success");
+					lastSubmittedPaymentMethodRef.current === "terminal";
+				form.setValue("paymentStatus", null);
 				pendingAppliedPaymentCheckRef.current = null;
-				const closeTimer = setTimeout(
-					() => {
-						setOpened(false);
-						resetTerminalFlow({ clearSession: true });
-					},
-					isTerminalPayment ? 3000 : 1800,
-				);
-				if (isTerminalPayment) {
-					return () => clearTimeout(closeTimer);
+				setTerminalError(null);
+
+				if (!postPaymentPrint.hasPending()) {
+					setTerminalState("success");
+					closeCompletedPayment(isTerminalPayment);
+					break;
 				}
-				return () => clearTimeout(closeTimer);
+
+				setTerminalState("printing");
+				void postPaymentPrint.complete().then((outcome) => {
+					if (outcome.status === "failed") {
+						setTerminalError(
+							"The payment was recorded, but the document could not be prepared.",
+						);
+						setTerminalState("print_failed");
+						return;
+					}
+
+					setTerminalState("success");
+					closeCompletedPayment(isTerminalPayment);
+				});
+				break;
 			}
 			case "failed":
-				closePendingPrintRequests(pendingPrintRequestsRef.current);
-				pendingPrintRequestsRef.current = [];
+				postPaymentPrint.clear();
 				setTerminalError(
 					(current) =>
 						current ||
@@ -493,14 +620,30 @@ function Content(
 				break;
 		}
 	}, [
+		closeCompletedPayment,
 		form,
 		paymentStatus,
-		pm,
-		resetTerminalFlow,
-		salesPrint.print,
-		setOpened,
-		terminalState,
+		postPaymentPrint.clear,
+		postPaymentPrint.complete,
+		postPaymentPrint.hasPending,
 	]);
+	const retryPostPaymentPrint = useCallback(async () => {
+		setTerminalError(null);
+		setTerminalState("printing");
+		const outcome = await postPaymentPrint.retry();
+		if (outcome.status === "failed") {
+			setTerminalError(
+				"The payment was recorded, but the document still could not be prepared.",
+			);
+			setTerminalState("print_failed");
+			return;
+		}
+
+		setTerminalState("success");
+		closeCompletedPayment(
+			lastSubmittedPaymentMethodRef.current === "terminal",
+		);
+	}, [closeCompletedPayment, postPaymentPrint.retry]);
 	useEffect(() => {
 		form.setValue(
 			"amount",
@@ -525,8 +668,7 @@ function Content(
 
 		const elapsed = Date.now() - pendingCheck.startedAt;
 		if (elapsed > 12000) {
-			closePendingPrintRequests(pendingPrintRequestsRef.current);
-			pendingPrintRequestsRef.current = [];
+			postPaymentPrint.clear();
 			setTerminalError(
 				"Payment is taking longer than expected. Check the invoice balance and try again if it did not apply.",
 			);
@@ -541,7 +683,13 @@ function Content(
 		}, 2000);
 
 		return () => clearTimeout(timer);
-	}, [data.pendingSales, form, refetch, terminalState]);
+	}, [
+		data.pendingSales,
+		form,
+		postPaymentPrint.clear,
+		refetch,
+		terminalState,
+	]);
 	const makePayment = useMutation(
 		trpc.salesPaymentProcessor.applyPayment.mutationOptions({
 			onSuccess: (data) => {
@@ -563,10 +711,6 @@ function Content(
 					}
 					form.setValue("paymentStatus", "completed");
 					void props.onPaymentApplied?.();
-					if (terminalState === "recording") {
-						setTerminalState("success");
-						setTerminalError(null);
-					}
 				}
 			},
 			onError(error) {
@@ -579,8 +723,7 @@ function Content(
 					});
 					return;
 				}
-				closePendingPrintRequests(pendingPrintRequestsRef.current);
-				pendingPrintRequestsRef.current = [];
+				postPaymentPrint.clear();
 				setTerminalError(serverError);
 				setTerminalState("failed");
 				form.setValue("paymentStatus", "failed");
@@ -662,10 +805,8 @@ function Content(
 		if (amount == null) return;
 		const selectedSalesIds = getSelectedSalesIds(formData);
 		const selectedOrderNos = getSelectedOrderNos(formData);
-		closePendingPrintRequests(pendingPrintRequestsRef.current);
-		pendingPrintRequestsRef.current = reservePendingPrintRequests(
-			getPrintableRequests(formData),
-		);
+		postPaymentPrint.clear();
+		postPaymentPrint.capture(getPrintableRequests(formData));
 		const walletOnly =
 			!!formData.useWallet &&
 			paymentChargePreview.walletApplied > 0 &&
@@ -688,7 +829,7 @@ function Content(
 			};
 		}
 		makePayment.mutate({
-			...formData,
+			...sanitizePaymentMethodFields(formData, paymentMethod),
 			notifyCustomer: canNotifyCustomer && formData.notifyCustomer === true,
 			amount,
 			paymentMethod,
@@ -770,17 +911,21 @@ function Content(
 							completedFormData.sales,
 							data.pendingSales,
 						);
+						const completedPaymentMethod =
+							lastSubmittedPaymentMethodRef.current ||
+							form.getValues("paymentMethod");
 						makePayment.mutate({
-							...completedFormData,
+							...sanitizePaymentMethodFields(
+								completedFormData,
+								completedPaymentMethod,
+							),
 							...completedSaleReferences,
 							notifyCustomer:
 								canNotifyCustomer && completedFormData.notifyCustomer === true,
 							amount:
 								lastSubmittedAmountRef.current ??
 								Number(form.getValues("amount") || 0),
-							paymentMethod:
-								lastSubmittedPaymentMethodRef.current ||
-								form.getValues("paymentMethod"),
+							paymentMethod: completedPaymentMethod,
 						});
 						return null;
 					}
@@ -823,8 +968,7 @@ function Content(
 		waitSeconds,
 	]);
 	function finalizeTerminalCancellation() {
-		closePendingPrintRequests(pendingPrintRequestsRef.current);
-		pendingPrintRequestsRef.current = [];
+		postPaymentPrint.clear();
 		setWaitSeconds(null);
 		setMockStatus(null);
 		setTerminalError(null);
@@ -908,13 +1052,43 @@ function Content(
 		? walletPaymentMethodOption.value
 		: pm;
 	const selectedPaymentMethodLabel =
-		paymentMethodOptions.find(
-			(method) => method.value === effectivePaymentMethod,
-		)?.label || "Payment";
+		effectivePaymentMethod === "terminal" && selectedTerminal?.label
+			? selectedTerminal.label
+			: paymentMethodOptions.find(
+					(method) => method.value === effectivePaymentMethod,
+				)?.label || "Payment";
+	const paymentMethodFeedback = getPaymentMethodControlFeedback({
+		availableTerminalCount: availableTerminals.length,
+		checkError: form.formState.errors.checkNo?.message,
+		method: effectivePaymentMethod || "credit-card",
+		terminalError:
+			terminalDeviceFieldState.error?.message || terminalLoadError,
+		terminalInvalid: terminalDeviceFieldState.invalid,
+		terminalPaymentsEnabled,
+	});
 	const sendLink = effectivePaymentMethod === "link" && !linkProcessed;
+	const paymentDateDisabled = effectivePaymentMethod === "terminal" || sendLink;
+	const paymentDateDisabledTitle =
+		effectivePaymentMethod === "terminal"
+			? "Square sets the payment date when the terminal payment completes"
+			: "The payment date will be recorded when the payment link is paid";
+	const paymentLayoutTransition = useMemo(
+		() => ({
+			duration: prefersReducedMotion ? 0 : 0.22,
+			ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+		}),
+		[prefersReducedMotion],
+	);
 	const submitLabel = sendLink ? "Send link" : "Apply payment";
 	const paymentDisplayAmount =
 		paymentChargePreview.chargeAmount || paymentChargePreview.walletApplied;
+	useEffect(() => {
+		if (!paymentDateDisabled || !paymentDate) return;
+		form.setValue("paymentDate", null, {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+	}, [form, paymentDate, paymentDateDisabled]);
 	useEffect(() => {
 		if (pm && pm !== "wallet") {
 			lastExternalPaymentMethodRef.current = pm as ExternalPaymentMethod;
@@ -951,11 +1125,51 @@ function Content(
 			clearSession: terminalPaymentSession?.status !== "COMPLETED",
 		});
 	};
+	const closePaymentOverlay = () => {
+		setOpened(false);
+		resetTerminalFlow({ clearSession: true });
+		postPaymentPrint.clear();
+	};
+	const handlePaymentMethodChange = (method: PaymentMethod) => {
+		form.setValue("paymentMethod", method, {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+		if (method !== "terminal") {
+			form.clearErrors("deviceId");
+			form.setValue("deviceId", null);
+			form.setValue("deviceName", null);
+			form.setValue("terminalPaymentSession", null);
+			setTerminalError(null);
+			setTerminalState("form");
+			hasSubmittedCompletedTerminalRef.current = false;
+		}
+	};
+	const handleTerminalChange = (terminal: PaymentTerminalOption) => {
+		if (!isAvailablePaymentTerminal(terminal)) return;
+		form.setValue("paymentMethod", "terminal", {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+		form.setValue("deviceId", terminal.value, {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+		form.setValue("deviceName", terminal.label || null, {
+			shouldDirty: true,
+		});
+		form.setValue("terminalPaymentSession", null);
+		form.clearErrors("deviceId");
+		setTerminalError(null);
+		setTerminalState("form");
+		hasSubmittedCompletedTerminalRef.current = false;
+	};
 	const handleInvalidPaymentForm = (
 		errors: FieldErrors<z.infer<typeof formSchema>>,
 	) => {
 		const message =
 			errors.deviceId?.message ||
+			errors.paymentDate?.message ||
 			errors.amount?.message ||
 			errors.checkNo?.message ||
 			errors.root?.message ||
@@ -1013,111 +1227,44 @@ function Content(
 				</>
 			) : (
 				<>
-					<div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-						<Field>
-							<Field.Content>
-								<Select.Root
-									value={effectivePaymentMethod || undefined}
-									disabled={payFullWithWallet}
-									onValueChange={(value) => {
-										form.setValue(
-											"paymentMethod",
-											value as z.infer<typeof formSchema>["paymentMethod"],
-											{
-												shouldDirty: true,
-												shouldValidate: true,
-											},
-										);
-										if (value !== "terminal") {
-											form.clearErrors("deviceId");
-											form.setValue("terminalPaymentSession", null);
-											setTerminalError(null);
-											setTerminalState("form");
-											hasSubmittedCompletedTerminalRef.current = false;
-										}
-									}}
-								>
-									<Select.Trigger className="w-full">
-										<Select.Value placeholder="Payment Method" />
-									</Select.Trigger>
-									<Select.Content>
-										{paymentMethodOptions.map((option) => (
-											<Select.Item key={option.value} value={option.value}>
-												{option.label}
-											</Select.Item>
-										))}
-									</Select.Content>
-								</Select.Root>
-							</Field.Content>
-						</Field>
-						{effectivePaymentMethod === "check" ? (
-							<InputGroup>
-								<InputGroup.Addon align="inline-start">
-									<InputGroup.Text>Check No:</InputGroup.Text>
-								</InputGroup.Addon>
-								<InputGroup.Input
-									className="!pl-1"
-									{...form.register("checkNo")}
-									placeholder="eg., 12345"
-								/>
-							</InputGroup>
-						) : effectivePaymentMethod === "terminal" ? (
-							<Field data-invalid={terminalDeviceFieldState.invalid}>
-								<Field.Content>
-									<Select.Root
-										name={terminalDeviceField.name}
-										value={terminalDeviceField.value || undefined}
-										onValueChange={(value) => {
-											terminalDeviceField.onChange(value);
-											const terminal = resolveAvailablePaymentTerminal(
-												data.terminals,
-												value,
-											);
-											form.setValue("deviceName", terminal?.label || null, {
-												shouldDirty: true,
-											});
-										}}
-									>
-										<Select.Trigger
-											className="w-full"
-											id="terminal-device"
-											aria-invalid={terminalDeviceFieldState.invalid}
-											onBlur={terminalDeviceField.onBlur}
-										>
-											<Select.Value placeholder="Select Terminal" />
-										</Select.Trigger>
-										<Select.Content>
-											{data?.terminals?.map((terminal) => (
-												<Select.Item
-													disabled={!isAvailablePaymentTerminal(terminal)}
-													key={terminal?.value || terminal?.label}
-													value={terminal?.value}
-												>
-													{terminal.label}
-													{isAvailablePaymentTerminal(terminal)
-														? ""
-														: " (offline)"}
-												</Select.Item>
-											))}
-										</Select.Content>
-									</Select.Root>
-									{terminalDeviceFieldState.invalid ? (
-										<Field.Error errors={[terminalDeviceFieldState.error]} />
-									) : terminalLoadError ? (
-										<Field.Error>{terminalLoadError}</Field.Error>
-									) : availableTerminals.length > 1 && !deviceId ? (
-										<Field.Description>
-											Choose the terminal beside you.
-										</Field.Description>
-									) : availableTerminals.length === 0 ? (
-										<Field.Description>
-											No online Square terminals are available.
-										</Field.Description>
-									) : null}
-								</Field.Content>
-							</Field>
-						) : undefined}
-					</div>
+					<motion.div
+						layout
+						transition={paymentLayoutTransition}
+						className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] gap-2"
+					>
+						<PaymentDateControl
+							value={paymentDate}
+							disabled={paymentDateDisabled}
+							disabledTitle={paymentDateDisabledTitle}
+							transition={paymentLayoutTransition}
+							onChange={(value) =>
+								form.setValue("paymentDate", value, {
+									shouldDirty: true,
+									shouldValidate: true,
+								})
+							}
+						/>
+						<SalesPaymentMethodControl
+							method={effectivePaymentMethod || "credit-card"}
+							methods={paymentMethodOptions}
+							terminals={data.terminals || []}
+							deviceId={deviceId}
+							checkNumber={checkNo}
+							disabled={payFullWithWallet}
+							invalid={paymentMethodFeedback.invalid}
+							error={paymentMethodFeedback.error}
+							transition={paymentLayoutTransition}
+							onMethodChange={handlePaymentMethodChange}
+							onTerminalChange={handleTerminalChange}
+							onCheckNumberChange={(value) =>
+								form.setValue("checkNo", value, {
+									shouldDirty: true,
+									shouldValidate: true,
+								})
+							}
+							onCheckNumberBlur={() => void form.trigger("checkNo")}
+						/>
+					</motion.div>
 					{sendLink ? (
 						<Button
 							type="submit"
@@ -1586,8 +1733,8 @@ function Content(
 											<Field.Label htmlFor="print-copy" className="font-normal">
 												Print invoice
 											</Field.Label>
-											<Field.Description className="text-xs font-normal">
-												Open the invoice print view.
+									<Field.Description className="text-xs font-normal">
+										Print the invoice after payment succeeds.
 											</Field.Description>
 										</Field.Content>
 									</Field>
@@ -1611,7 +1758,7 @@ function Content(
 												Print packing slip
 											</Field.Label>
 											<Field.Description className="text-xs font-normal">
-												Open a packing slip after payment is applied.
+												Print a packing slip after payment is applied.
 											</Field.Description>
 										</Field.Content>
 									</Field>
@@ -1658,10 +1805,13 @@ function Content(
 											? selectedTerminal?.label
 											: undefined
 									}
+									printMode={postPaymentPrint.activePrintMode}
 									elapsedSeconds={waitSeconds}
 									error={terminalError}
 									onCancel={__cancel}
 									onBack={backToPaymentForm}
+									onRetryPrint={() => void retryPostPaymentPrint()}
+									onClose={closePaymentOverlay}
 									onMockCancel={() => setMockStatus("CANCELED")}
 									onMockComplete={() => setMockStatus("COMPLETED")}
 								/>

@@ -52,4 +52,19 @@ describe("sales payment processor contract", () => {
 		expect(missingDevice.success).toBe(false);
 		expect(selectedDevice.success).toBe(true);
 	});
+
+	it("accepts an optional date-only payment date", () => {
+		expect(
+			salesPaymentProcessorApplyPaymentSchema.safeParse({
+				...basePayment,
+				paymentDate: "2026-08-14",
+			}).success,
+		).toBe(true);
+		expect(
+			salesPaymentProcessorApplyPaymentSchema.safeParse({
+				...basePayment,
+				paymentDate: "2026-02-29",
+			}).success,
+		).toBe(false);
+	});
 });

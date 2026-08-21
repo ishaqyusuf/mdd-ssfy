@@ -36,6 +36,8 @@ export type SalesPrintControllerActionInput = {
 };
 
 export type SalesPrintControllerOptions = {
+	awaitReady?: boolean;
+	headless?: boolean;
 	showToast?: boolean;
 	throwOnError?: boolean;
 	onRegenerated?: (access: SalesPrintRegenerateResult) => void | Promise<void>;
@@ -396,6 +398,8 @@ export function useSalesPrintController() {
 
 			try {
 				await openSalesPrintDocument({
+					awaitPrintReady: options.awaitReady ?? false,
+					forceHiddenViewer: options.headless ?? false,
 					salesIds: input.salesIds,
 					mode,
 					dispatchId: input.dispatchId ?? null,

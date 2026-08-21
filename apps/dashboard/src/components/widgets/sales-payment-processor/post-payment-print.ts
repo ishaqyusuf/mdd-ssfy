@@ -1,4 +1,3 @@
-import { reserveSalesPrintWindow } from "@/modules/sales-print/application/sales-print-service";
 import type {
 	SalesPrintControllerActionInput,
 	SalesPrintControllerOptions,
@@ -16,18 +15,17 @@ type SalesPrintExecutor = (
 
 export type PendingPrintFailure = {
 	error: unknown;
-	reason: "blocked" | "failed";
 	request: PendingPrintRequest;
 };
 
-export function reservePendingPrintRequests(
-	requests: PendingPrintRequest[],
-	openWindow: () => Window | null = reserveSalesPrintWindow,
-) {
+export type PostPaymentPrintOutcome =
+	| { status: "skipped" | "printed"; failures: [] }
+	| { status: "failed"; failures: PendingPrintFailure[] };
+
+export function capturePendingPrintRequests(requests: PendingPrintRequest[]) {
 	return requests.map((request) => ({
 		...request,
 		salesIds: [...request.salesIds],
-		windowRef: openWindow(),
 	}));
 }
 
@@ -37,14 +35,6 @@ export function takePendingPrintRequests(ref: PendingPrintRequestRef) {
 	return requests;
 }
 
-export function closePendingPrintRequests(requests: PendingPrintRequest[]) {
-	for (const request of requests) {
-		if (request.windowRef && !request.windowRef.closed) {
-			request.windowRef.close();
-		}
-	}
-}
-
 export async function dispatchPendingPrintRequests(
 	requests: PendingPrintRequest[],
 	printSalesDocument: SalesPrintExecutor,
@@ -52,42 +42,83 @@ export async function dispatchPendingPrintRequests(
 	const failures: PendingPrintFailure[] = [];
 
 	for (const request of requests) {
-		if (!request.salesIds.length) {
-			request.windowRef?.close();
-			continue;
-		}
-
-		if (!request.windowRef || request.windowRef.closed) {
-			failures.push({
-				error: null,
-				reason: "blocked",
-				request,
-			});
-			continue;
-		}
+		if (!request.salesIds.length) continue;
 
 		try {
 			await printSalesDocument(
 				{
 					salesIds: request.salesIds,
 					mode: request.mode,
-					targetWindow: request.windowRef,
+					openInNewTab: false,
 				},
 				{
+					awaitReady: true,
+					headless: true,
+					showToast: false,
 					throwOnError: true,
 				},
 			);
 		} catch (error) {
-			if (!request.windowRef.closed) {
-				request.windowRef.close();
-			}
 			failures.push({
 				error,
-				reason: "failed",
 				request,
 			});
 		}
 	}
 
 	return { failures };
+}
+
+export function createPostPaymentPrintQueue() {
+	let pendingRequests: PendingPrintRequest[] = [];
+	let failedRequests: PendingPrintRequest[] = [];
+
+	return {
+		capture(requests: PendingPrintRequest[]) {
+			pendingRequests = capturePendingPrintRequests(requests);
+			failedRequests = [];
+		},
+		clear() {
+			pendingRequests = [];
+			failedRequests = [];
+		},
+		hasPending() {
+			return pendingRequests.length > 0;
+		},
+		getActiveMode() {
+			return pendingRequests[0]?.mode || failedRequests[0]?.mode || null;
+		},
+		async complete(printSalesDocument: SalesPrintExecutor) {
+			const requests = pendingRequests;
+			pendingRequests = [];
+			if (!requests.length) {
+				return { status: "skipped", failures: [] } satisfies PostPaymentPrintOutcome;
+			}
+
+			const { failures } = await dispatchPendingPrintRequests(
+				requests,
+				printSalesDocument,
+			);
+			failedRequests = failures.map(({ request }) => request);
+			return failures.length
+				? ({ status: "failed", failures } satisfies PostPaymentPrintOutcome)
+				: ({ status: "printed", failures: [] } satisfies PostPaymentPrintOutcome);
+		},
+		async retry(printSalesDocument: SalesPrintExecutor) {
+			const requests = failedRequests;
+			failedRequests = [];
+			if (!requests.length) {
+				return { status: "skipped", failures: [] } satisfies PostPaymentPrintOutcome;
+			}
+
+			const { failures } = await dispatchPendingPrintRequests(
+				requests,
+				printSalesDocument,
+			);
+			failedRequests = failures.map(({ request }) => request);
+			return failures.length
+				? ({ status: "failed", failures } satisfies PostPaymentPrintOutcome)
+				: ({ status: "printed", failures: [] } satisfies PostPaymentPrintOutcome);
+		},
+	};
 }

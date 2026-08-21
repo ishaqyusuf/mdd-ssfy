@@ -19,7 +19,6 @@ export type PendingAppliedPaymentCheck = {
 export type PendingPrintRequest = {
 	mode: string;
 	salesIds: number[];
-	windowRef: Window | null;
 };
 
 export type PaymentOverlayState =
@@ -28,5 +27,7 @@ export type PaymentOverlayState =
 	| "creating"
 	| "awaiting"
 	| "recording"
+	| "printing"
 	| "success"
+	| "print_failed"
 	| "failed";

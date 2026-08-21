@@ -1,5 +1,6 @@
 import { salesPaymentMethods } from "@/utils/constants";
-import type { PendingPrintRequest } from "./types";
+import type { SalesPaymentMethods } from "@gnd/sales/constants";
+import type { PaymentOverlayState, PendingPrintRequest } from "./types";
 
 export const formatPaymentAmount = (value?: number | string | null) =>
 	new Intl.NumberFormat("en-US", {
@@ -13,7 +14,7 @@ type PaymentTerminal = {
 	value?: string | null;
 };
 
-const normalizeTerminalId = (value?: string | null) =>
+export const normalizePaymentTerminalId = (value?: string | null) =>
 	String(value || "").replace(/^device:/, "");
 
 export function isAvailablePaymentTerminal(terminal?: PaymentTerminal | null) {
@@ -28,20 +29,159 @@ export function resolveAvailablePaymentTerminal<T extends PaymentTerminal>(
 	deviceId?: string | null,
 ): T | undefined {
 	if (!deviceId) return undefined;
-	const normalizedDeviceId = normalizeTerminalId(deviceId);
+	const normalizedDeviceId = normalizePaymentTerminalId(deviceId);
 
 	return terminals?.find(
 		(terminal) =>
 			isAvailablePaymentTerminal(terminal) &&
-			normalizeTerminalId(terminal.value) === normalizedDeviceId,
+			normalizePaymentTerminalId(terminal.value) === normalizedDeviceId,
 	);
+}
+
+export function orderPaymentTerminals<T extends PaymentTerminal>(terminals: T[]) {
+	return [...terminals].sort(
+		(left, right) =>
+			Number(isAvailablePaymentTerminal(right)) -
+			Number(isAvailablePaymentTerminal(left)),
+	);
+}
+
+export function buildPaymentMethodControlModel<
+	TTerminal extends PaymentTerminal,
+>(input: {
+	deviceId?: string | null;
+	method: SalesPaymentMethods;
+	methods: Array<{ label?: string; value?: SalesPaymentMethods }>;
+	terminals: TTerminal[];
+}) {
+	const methods = input.methods.flatMap((option) =>
+		option.value
+			? [{ label: option.label || option.value, value: option.value }]
+			: [],
+	);
+	const terminals = orderPaymentTerminals(input.terminals);
+	const selectedTerminal = terminals.find(
+		(terminal) =>
+			Boolean(input.deviceId) &&
+			normalizePaymentTerminalId(terminal.value) ===
+				normalizePaymentTerminalId(input.deviceId),
+	);
+	const availableTerminalCount = terminals.filter(
+		isAvailablePaymentTerminal,
+	).length;
+	const methodLabel =
+		methods.find((option) => option.value === input.method)?.label ||
+		"Payment method";
+
+	return {
+		availableTerminalCount,
+		methods,
+		presentation: input.method === "check" ? ("check" as const) : ("menu" as const),
+		selectedTerminal,
+		terminals,
+		triggerLabel:
+			input.method === "terminal"
+				? selectedTerminal?.label || "Select terminal"
+				: methodLabel,
+	};
+}
+
+export function getPaymentMethodControlFeedback(input: {
+	availableTerminalCount: number;
+	checkError?: string | null;
+	method: SalesPaymentMethods;
+	terminalError?: string | null;
+	terminalInvalid?: boolean;
+	terminalPaymentsEnabled: boolean;
+}) {
+	if (input.method === "check") {
+		return { error: input.checkError || null, invalid: Boolean(input.checkError) };
+	}
+
+	const terminalAvailabilityError = input.terminalPaymentsEnabled
+		? input.terminalError ||
+			(input.availableTerminalCount === 0
+				? "No online Square terminals are available."
+				: null)
+		: null;
+
+	return {
+		error: terminalAvailabilityError,
+		invalid: input.method === "terminal" && Boolean(input.terminalInvalid),
+	};
+}
+
+function getPrintPreparationDescription(printMode?: string | null) {
+	if (printMode === "packing-slip") {
+		return "Payment recorded. Preparing the packing slip.";
+	}
+	if (printMode === "invoice,packing-slip") {
+		return "Payment recorded. Preparing the invoice and packing slip.";
+	}
+	return "Payment recorded. Preparing the invoice.";
+}
+
+export function getPaymentStatusOverlayContent(
+	state: Exclude<PaymentOverlayState, "form">,
+	options?: { error?: string | null; printMode?: string | null },
+) {
+	const titles: Record<Exclude<PaymentOverlayState, "form">, string> = {
+		applying: "Applying payment",
+		creating: "Sending to terminal",
+		awaiting: "Waiting for payment",
+		recording: "Recording payment",
+		printing: "Preparing to print",
+		success: "Payment complete",
+		print_failed: "Payment complete",
+		failed: "Payment failed",
+	};
+	const descriptions: Record<Exclude<PaymentOverlayState, "form">, string> = {
+		applying: "Recording this payment and updating the selected orders.",
+		creating: "Preparing this charge on the selected Square terminal.",
+		awaiting: "Complete the payment on the Square terminal.",
+		recording: "Payment was received. We are applying it to the order.",
+		printing: getPrintPreparationDescription(options?.printMode),
+		success: options?.printMode
+			? "The print dialog is ready."
+			: "The sale payment was recorded successfully.",
+		print_failed: "The payment was recorded, but printing needs attention.",
+		failed: options?.error || "The payment could not be completed.",
+	};
+
+	return { description: descriptions[state], title: titles[state] };
+}
+
+export function sanitizePaymentMethodFields<
+	T extends {
+		checkNo?: string | null;
+		deviceId?: string | null;
+		deviceName?: string | null;
+		terminalPaymentSession?: unknown;
+	},
+>(data: T, paymentMethod?: string | null) {
+	const isTerminalPayment = paymentMethod === "terminal";
+	return {
+		...data,
+		checkNo: paymentMethod === "check" ? data.checkNo?.trim() || null : null,
+		deviceId: isTerminalPayment ? data.deviceId : null,
+		deviceName: isTerminalPayment ? data.deviceName : null,
+		terminalPaymentSession: isTerminalPayment
+			? data.terminalPaymentSession
+			: null,
+	};
 }
 
 export function resolveDefaultPaymentTerminal<T extends PaymentTerminal>(
 	terminals: T[] | null | undefined,
+	preferredDeviceId?: string | null,
 ): T | undefined {
 	const availableTerminals =
 		terminals?.filter(isAvailablePaymentTerminal) || [];
+	const preferredTerminal = resolveAvailablePaymentTerminal(
+		availableTerminals,
+		preferredDeviceId,
+	);
+	if (preferredTerminal) return preferredTerminal;
 	return availableTerminals.length === 1 ? availableTerminals[0] : undefined;
 }
 
@@ -167,7 +307,6 @@ export function buildPrintRequests(input: {
 		requests.push({
 			mode: "invoice,packing-slip",
 			salesIds: [...input.salesIds],
-			windowRef: null,
 		});
 		return requests;
 	}
@@ -176,7 +315,6 @@ export function buildPrintRequests(input: {
 		requests.push({
 			mode: "invoice",
 			salesIds: [...input.salesIds],
-			windowRef: null,
 		});
 	}
 
@@ -184,7 +322,6 @@ export function buildPrintRequests(input: {
 		requests.push({
 			mode: "packing-slip",
 			salesIds: [...input.salesIds],
-			windowRef: null,
 		});
 	}
 

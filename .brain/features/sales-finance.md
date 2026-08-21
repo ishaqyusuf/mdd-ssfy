@@ -80,6 +80,14 @@ from invoice summaries. Wallet remains `unclassified` in the narrower Finance
 contract. Finance ledger rows stay transaction-level; grouping is limited to
 summary/report totals.
 
+Manual staff payments may carry a date-only effective payment date. Omission
+means the current `America/New_York` business date, future dates are rejected,
+and the selected business date is persisted consistently across the legacy
+transaction/application rows and canonical ledger mirror. Audit metadata keeps
+the effective date, whether it was staff-selected or recorded-now, and the
+actual recording instant. Square terminal and completed payment-link receipts
+use provider occurrence time when available.
+
 The Payments ledger presents `subTotal` with the label `Sub Total` positioned immediately before the `netAmount` column (labeled `Invoice Total`). Invoices, Received, Fee, Refunded, Sub Total, Invoice Total, Applied, Unapplied, and Review use canonical small-column dimensions (120px default, 100px min, 180px max). Selection, Payment, and Actions remain non-hideable while all other ledger columns can be toggled via the accessible column control and persist across reloads and tab navigation. Both the top workspace header and table-level search input (`SalesFinanceTableSearch`) expose the right toolbar actions (`SalesFinanceAdoptionStatus`, `SalesFinanceColumnVisibility`, `SalesFinanceReports`).
 
 ## Review Contract

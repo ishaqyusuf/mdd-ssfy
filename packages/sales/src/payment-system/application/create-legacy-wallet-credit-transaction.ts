@@ -10,6 +10,7 @@ export interface CreateLegacyWalletCreditTransactionInput {
 	authorId?: number | null;
 	squarePaymentId?: string | null;
 	meta?: Record<string, unknown> | null;
+	occurredAt?: Date | null;
 }
 
 export async function createLegacyWalletCreditTransaction(
@@ -19,6 +20,7 @@ export async function createLegacyWalletCreditTransaction(
 	const transaction = await db.customerTransaction.create({
 		data: {
 			amount: input.amount,
+			createdAt: input.occurredAt || undefined,
 			status: "success",
 			type: "wallet",
 			description: input.note,
@@ -51,6 +53,7 @@ export async function createLegacyWalletCreditTransaction(
 	await mirrorLegacyWalletCreditTransaction(db, {
 		amount: input.amount,
 		customerTransactionId: transaction.id,
+		occurredAt: input.occurredAt,
 		meta: input.meta,
 		reason: input.reason,
 		walletId: input.walletId,

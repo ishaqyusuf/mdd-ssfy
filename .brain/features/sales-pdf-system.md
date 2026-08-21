@@ -170,6 +170,14 @@ apps/dashboard/src/components/sales-document-preview-page.tsx # HTML preview wit
 apps/dashboard/src/app/(public)/p/sales-document-v2/        # signed HTML preview route
 ```
 
+2026-08-21 Make Payment integration: post-payment invoice and packing-slip
+printing explicitly forces the existing hidden same-page viewer even when the
+general attachment-overlay feature flag is disabled. The caller can opt into an
+await-ready contract that resolves only after the print lifecycle reports ready
+and rejects on viewer/access/timeout failure. The payment screen owns feedback,
+opens no placeholder tab, and retries only the immutable print request after a
+successful payment.
+
 2026-07-16 browser proof: `/sales-book/orders` batch selection of five orders used `Print > PDF > Order & Packing` and produced `~/Downloads/Sales_Print_10_.pdf`; after root auth hydration was fixed, the same selected batch used `Print > PDF > Order`, showed `PDF download started`, and produced `~/Downloads/Sales_Print_4_.pdf` with no new browser console errors.
 
 2026-07-16 filtered batch proof: applying `q=cimera`, `invoice=pending`, and `sales.rep=Pablo Cruz` returned active orders `08682PC`, `08680PC`, and `08472PC`; the batch `Print > PDF > Order` UI path reached `PDF download started`, but the in-app browser did not persist a fresh blob download, so the same sales PDF route/rendering path was used to save `~/Downloads/Sales_Print_Cimera_Pablo_Cruz_pending.pdf`. PDF text extraction confirmed all three order numbers, `CIMERA`, and `Pablo Cruz`.

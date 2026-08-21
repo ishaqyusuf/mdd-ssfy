@@ -55,6 +55,10 @@ Tracks queued work that is important but not currently in the top execution slic
 - Created Date: 2026-08-20
 
 ## Next Up
+- [x] Review and, after approval, implement Make Payment hidden post-payment
+  printing plus the adaptive Check/Terminal payment method control
+  (`.brain/plans/2026-08-21-sales-payment-headless-print-and-method-control.md`)
+  (UI + Print + Payment Orchestration + Validation)
 - [x] Sales Finance compact ledger columns and persistent visibility: apply the
   shared Sales Orders small-column sizing to Invoices, Received, Refunded, Sub
   Total, Invoice Total, Applied, Unapplied, and Review, then verify the

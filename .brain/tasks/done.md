@@ -1,5 +1,20 @@
 # Done
 
+### Implement Make Payment Hidden Printing And Adaptive Methods
+
+- Priority: High
+- Description: Replaced popup-based post-payment printing with the awaited
+  hidden same-page viewer and replaced separate Check/Terminal fields with one
+  adaptive, availability-aware payment method control.
+- Related Feature: Sales Payment Processor and Sales Printing
+- Status: Done
+- Plan Status: Implemented
+- Plan File: `.brain/plans/2026-08-21-sales-payment-headless-print-and-method-control.md`
+- Validation: 69 focused tests / 169 assertions; focused TypeScript diagnostics
+  for eight implementation files; `git diff --check`. Browser/payment
+  acceptance was not run because it requires separate authorization.
+- Completed Date: 2026-08-21
+
 ### Sales Overview General V2 Controlled Rollout
 
 - Priority: High

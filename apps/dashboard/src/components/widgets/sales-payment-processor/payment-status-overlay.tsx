@@ -4,17 +4,24 @@ import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { Spinner } from "@gnd/ui/spinner";
 import type { PaymentOverlayState } from "./types";
-import { formatElapsedTime, formatPaymentAmount } from "./utils";
+import {
+	formatElapsedTime,
+	formatPaymentAmount,
+	getPaymentStatusOverlayContent,
+} from "./utils";
 
 export function PaymentStatusOverlay({
 	state,
 	amount,
 	methodLabel,
 	terminalName,
+	printMode,
 	elapsedSeconds,
 	error,
 	onCancel,
 	onBack,
+	onRetryPrint,
+	onClose,
 	onMockCancel,
 	onMockComplete,
 }: {
@@ -22,10 +29,13 @@ export function PaymentStatusOverlay({
 	amount?: number | string | null;
 	methodLabel?: string | null;
 	terminalName?: string | null;
+	printMode?: string | null;
 	elapsedSeconds?: number | null;
 	error?: string | null;
 	onCancel: () => void;
 	onBack: () => void;
+	onRetryPrint: () => void;
+	onClose: () => void;
 	onMockCancel: () => void;
 	onMockComplete: () => void;
 }) {
@@ -33,31 +43,20 @@ export function PaymentStatusOverlay({
 		state === "applying" ||
 		state === "creating" ||
 		state === "awaiting" ||
-		state === "recording";
+		state === "recording" ||
+		state === "printing";
 	const isSuccess = state === "success";
-	const titles: Record<Exclude<PaymentOverlayState, "form">, string> = {
-		applying: "Applying payment",
-		creating: "Sending to terminal",
-		awaiting: "Waiting for payment",
-		recording: "Recording payment",
-		success: "Payment complete",
-		failed: "Payment failed",
-	};
-	const descriptions: Record<Exclude<PaymentOverlayState, "form">, string> = {
-		applying: "Recording this payment and updating the selected orders.",
-		creating: "Preparing this charge on the selected Square terminal.",
-		awaiting: "Complete the payment on the Square terminal.",
-		recording: "Payment was received. We are applying it to the order.",
-		success: "The sale payment was recorded successfully.",
-		failed: error || "The payment could not be completed.",
-	};
-	const title = titles[state];
-	const description = descriptions[state];
+	const { description, title } = getPaymentStatusOverlayContent(state, {
+		error,
+		printMode,
+	});
 	const Icon = isSuccess
 		? Icons.CheckCircle
-		: state === "failed"
+		: state === "failed" || state === "print_failed"
 			? Icons.AlertCircle
-			: Icons.payment;
+			: state === "printing"
+				? Icons.print
+				: Icons.payment;
 
 	return (
 		<div className="animate-in fade-in-0 zoom-in-95 grid min-h-[535px] place-items-center p-6 duration-200">
@@ -121,6 +120,14 @@ export function PaymentStatusOverlay({
 							</span>
 						</div>
 					) : null}
+					{printMode && (state === "printing" || state === "print_failed") ? (
+						<div className="flex items-center justify-between gap-3">
+							<span className="text-muted-foreground">Document</span>
+							<span className="max-w-48 truncate font-medium capitalize">
+								{printMode.replaceAll("-", " ").replaceAll(",", " + ")}
+							</span>
+						</div>
+					) : null}
 				</div>
 
 				{state === "awaiting" ? (
@@ -153,6 +160,16 @@ export function PaymentStatusOverlay({
 						<Icons.arrowLeft className="size-4" />
 						Back to payment form
 					</Button>
+				) : state === "print_failed" ? (
+					<div className="flex items-center justify-center gap-2">
+						<Button type="button" onClick={onClose} variant="outline">
+							Close
+						</Button>
+						<Button type="button" onClick={onRetryPrint}>
+							<Icons.print className="size-4" />
+							Retry print
+						</Button>
+					</div>
 				) : state === "success" ? (
 					<p className="text-xs text-muted-foreground">
 						This window will close automatically.

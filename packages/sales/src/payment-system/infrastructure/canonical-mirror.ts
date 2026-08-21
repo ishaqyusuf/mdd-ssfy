@@ -150,6 +150,7 @@ async function syncPaymentProjection(db: MirrorDb, salesId: number) {
 export interface MirrorPostedLegacySalesPaymentInput {
 	amount: number;
 	customerTransactionId?: number | null;
+	occurredAt?: Date | null;
 	paymentMethod: string;
 	salesId: number;
 	salesPaymentId: number;
@@ -187,7 +188,7 @@ export async function mirrorPostedLegacySalesPayment(
         ${"posted"},
         ${input.amount},
         ${"USD"},
-        NOW(),
+        ${input.occurredAt || new Date()},
         ${input.salesId},
         ${input.walletId},
         ${input.customerTransactionId || null},
@@ -391,6 +392,7 @@ export async function mirrorLegacyWalletCreditTransaction(
 	input: {
 		amount: number;
 		customerTransactionId: number;
+		occurredAt?: Date | null;
 		reason: string;
 		walletId: number;
 		meta?: Record<string, unknown> | null;
@@ -418,7 +420,7 @@ export async function mirrorLegacyWalletCreditTransaction(
         ${"posted"},
         ${input.amount},
         ${"USD"},
-        NOW(),
+        ${input.occurredAt || new Date()},
         ${input.walletId},
         ${input.customerTransactionId},
         ${JSON.stringify({
