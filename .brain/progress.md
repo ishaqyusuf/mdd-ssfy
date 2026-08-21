@@ -1,5 +1,16 @@
 # Progress
 
+- 2026-08-21: Authenticated development QA verified Make Payment's same-page
+  post-payment printing from both supported staff entry points. Recorded a
+  `$0.01` Credit Card payment on `09376AD` through the standalone modal and a
+  `$0.01` Credit Card payment on `09360PC` through Sales Overview's secondary
+  payment sheet, with Print invoice and Print packing slip enabled for both.
+  Each flow showed `Preparing to print` and logged access resolution, hidden
+  viewer mount, PDF iframe load, and `print-dialog-called`; the browser retained
+  one tab and returned to the originating surface. The development balances
+  changed from `$82.04` to `$82.03` and `$112.66` to `$112.65`. No printing code,
+  API, schema, migration, permission, deployment, or production data changed.
+
 - 2026-08-21: Refined Steps 4-5 of the active Vercel Function Cost Reduction
   and Trigger Offload plan using production timeout request
   `2tsrm-1787337006268-39a732e75b45`. The plan now distinguishes duplicate
@@ -10781,3 +10792,15 @@
   diagnostics pass for eight changed implementation files, and
   `git diff --check` passes. Browser QA and a disposable payment were not run.
   No API, database, permission, or ADR update was required.
+
+## 2026-08-21 — Planned global Production worker search and filters
+
+- Confirmed that worker table search currently intersects search/order-number/
+  priority criteria with the selected due or completion preset, while Calendar
+  search is additionally bounded to the visible date period.
+- Added an approval-first plan for a temporary global-results state across the
+  authenticated worker's complete assigned corpus. It preserves router-owned
+  authorization, stable navigation counts, bounded pagination, Calendar state,
+  and an explicit performance gate without adding a permanent All tab.
+- No application code, API contract, schema, production data, browser session,
+  deployment, or external state changed.

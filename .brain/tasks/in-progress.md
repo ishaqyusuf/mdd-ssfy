@@ -11,11 +11,14 @@
   and contains dated work only; undated work is isolated in the shared table tab
   on both worker and admin workspaces. The former v2 URL is now a
   query-preserving compatibility redirect. Remaining P2 work is the worker
-  action hierarchy, mobile interruption proof, and offline-draft decision.
+  action hierarchy, mobile interruption proof, and offline-draft decision. A
+  global worker search/filter plan is awaiting approval; it replaces
+  tab-intersected and Calendar-period-intersected discovery with a temporary,
+  authenticated all-assigned-results state without a permanent All tab.
 - Related Feature: Sales Production Workspace
 - Status: In Progress
 - Plan Status: In Progress - Worker Tabs/Analytics/Calendar Complete; Worker Actions Pending
-- Plan File: `.brain/plans/sales-system-page-by-page-modernization/04-sales-production-admin-and-worker-plan.md`
+- Plan Files: `.brain/plans/sales-system-page-by-page-modernization/04-sales-production-admin-and-worker-plan.md`; `.brain/plans/2026-08-21-feature-production-worker-global-search.md`
 - Updated Date: 2026-08-21
 
 ### Vercel Function Cost Reduction And Trigger Offload

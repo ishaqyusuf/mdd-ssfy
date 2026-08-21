@@ -267,7 +267,7 @@ export function SalesPaymentProcessor(props: SalesPaymentProcessorProps) {
 					</Button>
 				)}
 			</Dialog.Trigger>
-			<Dialog.Content className="max-h-[90vh] w-[min(94vw,560px)] gap-0 overflow-hidden p-0">
+			<Dialog.Content className="max-h-[90vh] w-[min(94vw,560px)] max-w-none gap-0 overflow-hidden p-0">
 				<Suspense fallback={<PaymentProcessorSkeleton />}>
 					<Content presentation="dialog" setOpened={setOpened} {...props} />
 				</Suspense>
@@ -1106,7 +1106,11 @@ function Content(
 		}),
 		[prefersReducedMotion],
 	);
-	const submitLabel = sendLink ? "Send link" : "Apply payment";
+	const submitLabel = sendLink
+		? "Send link"
+		: isSheet
+			? "Apply payment"
+			: "Apply";
 	const paymentDisplayAmount =
 		paymentChargePreview.chargeAmount || paymentChargePreview.walletApplied;
 	useEffect(() => {
@@ -1214,7 +1218,7 @@ function Content(
 				"flex w-full min-w-0 gap-3",
 				isSheet
 					? "flex-col sm:flex-row sm:items-center"
-					: "sticky bottom-0 z-20 -mx-6 items-center border-t bg-background/95 px-6 py-4 shadow-[0_-8px_20px_rgba(15,23,42,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85",
+					: "sticky bottom-0 z-20 -mx-6 w-[calc(100%+3rem)] flex-col items-stretch border-t bg-background/95 px-6 py-4 shadow-[0_-8px_20px_rgba(15,23,42,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85 sm:flex-row sm:items-center",
 			)}
 		>
 			{hasActiveTerminalCheckout ? (
@@ -1312,13 +1316,17 @@ function Content(
 						<Button
 							type="submit"
 							form={formId}
+							aria-label="Apply payment"
 							disabled={
 								selectedSalesCount === 0 ||
 								(effectivePaymentMethod === "terminal" && !selectedTerminal) ||
 								makePayment.isPending ||
 								hasActiveTerminalCheckout
 							}
-							className="w-full min-w-36 sm:w-auto"
+							className={cn(
+								"w-full sm:w-auto",
+								isSheet ? "min-w-36" : "min-w-24",
+							)}
 						>
 							{makePayment.isPending || hasActiveTerminalCheckout ? (
 								<Spinner />
