@@ -2,6 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
+import { DropdownMenuItem } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import {
@@ -12,18 +13,12 @@ import {
 } from "@gnd/ui/tooltip";
 import { toast } from "sonner";
 
-export function SendForPackingButton({
+function useSendForPacking({
 	salesId,
 	orderNo,
-	className,
-	variant = "outline",
-	size = "sm",
 }: {
 	salesId?: number | null;
 	orderNo?: string | null;
-	className?: string;
-	variant?: "default" | "secondary" | "outline" | "ghost" | "destructive";
-	size?: "sm" | "xs" | "default" | "lg" | "icon";
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -70,6 +65,30 @@ export function SendForPackingButton({
 		}),
 	);
 
+	return {
+		isPending: mutation.isPending,
+		send() {
+			if (!salesId) return;
+			mutation.mutate({ salesId });
+		},
+	};
+}
+
+export function SendForPackingButton({
+	salesId,
+	orderNo,
+	className,
+	variant = "outline",
+	size = "sm",
+}: {
+	salesId?: number | null;
+	orderNo?: string | null;
+	className?: string;
+	variant?: "default" | "secondary" | "outline" | "ghost" | "destructive";
+	size?: "sm" | "xs" | "default" | "lg" | "icon";
+}) {
+	const packing = useSendForPacking({ salesId, orderNo });
+
 	return (
 		<TooltipProvider delayDuration={100}>
 			<Tooltip>
@@ -79,14 +98,11 @@ export function SendForPackingButton({
 						size={size}
 						variant={variant}
 						className={className}
-						disabled={!salesId || mutation.isPending}
-						onClick={() => {
-							if (!salesId) return;
-							mutation.mutate({ salesId });
-						}}
+						disabled={!salesId || packing.isPending}
+						onClick={packing.send}
 					>
 						<Icons.packingList className="size-3.5" />
-						<span>{mutation.isPending ? "Packing..." : "Pack"}</span>
+						<span>{packing.isPending ? "Packing..." : "Pack"}</span>
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" className="max-w-64 text-xs">
@@ -94,5 +110,25 @@ export function SendForPackingButton({
 				</TooltipContent>
 			</Tooltip>
 		</TooltipProvider>
+	);
+}
+
+export function SendForPackingMenuItem({
+	salesId,
+	orderNo,
+}: {
+	salesId?: number | null;
+	orderNo?: string | null;
+}) {
+	const packing = useSendForPacking({ salesId, orderNo });
+
+	return (
+		<DropdownMenuItem
+			disabled={!salesId || packing.isPending}
+			onSelect={packing.send}
+		>
+			<Icons.packingList className="mr-2 size-4 text-muted-foreground/70" />
+			{packing.isPending ? "Sending to packing..." : "Send to packing"}
+		</DropdownMenuItem>
 	);
 }

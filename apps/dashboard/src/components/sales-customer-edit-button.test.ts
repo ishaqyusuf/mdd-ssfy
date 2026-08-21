@@ -138,9 +138,7 @@ describe("sales customer edit button", () => {
 		expect(generalSource.includes("onEditAddress")).toBe(true);
 		expect(generalSource.includes("onEditCustomer")).toBe(true);
 		expect(sheetSource.includes("paneOpened")).toBe(true);
-		expect(
-			sheetSource.includes('from "@gnd/ui/custom/sheet-v2"'),
-		).toBe(true);
+		expect(sheetSource.includes('from "@gnd/ui/custom/sheet-v2"')).toBe(true);
 		expect(sharedSheetSource.includes("Back to sales overview")).toBe(true);
 		expect(sharedSheetSource.includes("resolveCustomSheetDismissLayer")).toBe(
 			true,
@@ -155,7 +153,7 @@ describe("sales customer edit button", () => {
 		expect(sharedSheetSource.includes("event.preventDefault()")).toBe(true);
 		expect(sharedSheetSource.includes('"pointerup"')).toBe(true);
 		expect(sharedSheetSource.includes("onSecondaryExited")).toBe(true);
-		expect(sheetSource.includes('primarySize="2xl"')).toBe(true);
+		expect(sheetSource.includes('primarySize="3xl"')).toBe(true);
 		expect(sheetSource.includes('secondarySize="2xl"')).toBe(true);
 		expect(sheetSource.includes("onSecondaryExited={handlePaneExited}")).toBe(
 			true,
@@ -279,9 +277,7 @@ describe("sales customer edit button", () => {
 			);
 			expect(source.includes("<Sheet.Portal>")).toBe(true);
 			expect(source.includes("hideWhenSecondary")).toBe(false);
-			expect(source.includes('from "@gnd/ui/custom/sheet-v2"')).toBe(
-				true,
-			);
+			expect(source.includes('from "@gnd/ui/custom/sheet-v2"')).toBe(true);
 			expect(source.includes("../custom-sheet-content")).toBe(false);
 		}
 	});

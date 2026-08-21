@@ -1,5 +1,93 @@
 # Done
 
+### Sales Overview General V2 Controlled Rollout
+
+- Priority: High
+- Description: Implemented the approved Split Command Center as the versioned
+  General renderer inside the canonical Sales Overview sheet, with a typed
+  Super Admin-managed office/pilot policy, dedicated V2 composition and
+  skeleton, measured same-endpoint projection, preserved non-General tabs, and
+  reversible V1 compatibility.
+- Related Feature: Sales Overview General tab
+- Status: Done
+- Plan Status: Done
+- Decision: `.brain/decisions/ADR-060-versioned-general-tab-rollout-inside-canonical-sales-overview.md`
+- Performance: Representative orders fell from 24–25 to 14–15 database
+  queries, 6.4–7.2 KB to 5.4–5.5 KB, and 14.5–15.3 ms to 8.7–10.0 ms warm
+  median latency; all 34 V2-consumed fields matched the compatibility loader.
+- Validation: 45 focused tests / 376 assertions; targeted Biome; touched-path
+  API/Dashboard type scans; authenticated 390×844 and 1280×720 browser proof;
+  keyboard/focus acceptance; genuine Super Admin management-screen save; two
+  representative V2 orders; current Transactions fallback; reload persistence;
+  and no new browser application error.
+- Post-cutover polish: Authenticated order `09405PC` proof confirmed the
+  approved contextual header, three-command row, packing action inside More,
+  0px command/grid join, borderless 280px financial rail, and 390px viewport
+  with no horizontal overflow. The incremental focused run passed 30 tests /
+  85 assertions; targeted Biome and touched-file type scans remained clean.
+- Financial/fulfillment polish: General V2 now uses the typed cents-based
+  financial breakdown, distinguishes recorded card settlement from pending
+  estimates, keeps Balance structural, presents current-revision Special Order
+  evidence on demand, moves delivery and rep controls into popovers, retains
+  compact address/P.O. editors, and reduces Operations to Production and
+  Fulfillment. Refund reconciliation, delivery permission/date projection, and
+  keyboard-native rep selection passed the final review. Focused validation
+  passes 51 tests / 241 assertions.
+- Special Order disclosure refinement: removed the nested management dialog
+  from General V2 and surfaced each applicable action directly in the expanded
+  Fulfillment signal. Enrollment now uses a reasonless inline confirmation,
+  while V1 and the canonical mutation/permission controller remain intact.
+  Focused validation passed 22 tests / 135 assertions; authenticated browser
+  QA covered governed and ungoverned orders without submitting a mutation.
+- Fulfillment calendar refinement: replaced the browser-native date input in
+  the General V2 Delivery popover with the shared Shadcn single-date Calendar
+  rendered directly in the popover, retaining date-only save semantics,
+  explicit Save/Cancel, permissions, and focused invalidation. Removed the
+  helper subtitle and nested date trigger, and moved the distinct slanted
+  `Edit3` pencil to the far right of the compact Delivery row. Final validation
+  passed 10 tests / 99 assertions, scoped Biome, and authenticated browser QA
+  without saving order data.
+- Rollout: User-approved local office cutover persisted
+  `officeDefault: v2` and `superAdminPreview: v2` on 2026-08-21. V1 remains a
+  temporary rollback renderer and is not the office default.
+- Completed Date: 2026-08-21
+
+### Implement Grouped Sales Payment Summaries
+
+- Priority: High
+- Description: Added one cents-based payment-domain projection that groups
+  successful receipts by canonical method, totals exact recorded C.C.C./tips,
+  emits a receipt-count row only above one, and drives Sales Overview, mobile,
+  and invoice HTML/PDF summaries without collapsing audit ledgers.
+- Related Feature: Sales payments, Sales Overview, mobile sales, and Sales PDF
+- Status: Done
+- Plan Status: Done
+- Plan File: `.brain/plans/2026-08-21-feature-grouped-sales-payment-summaries.md`
+- Validation: 46 focused tests / 154 assertions; `@gnd/sales` typecheck;
+  authenticated browser proof on `09397LM` for grouped invoice details and two
+  retained Transactions rows.
+- Completed Date: 2026-08-21
+
+### Implement Square Refunds For Sales
+
+- Priority: Critical
+- Description: Replaced the unsafe legacy Square refund behavior with a
+  provider-first immutable lifecycle, canonical tender identity, exact
+  multi-order accounting, webhook/reconciliation handling, dedicated
+  permission, shared Sales Overview/Finance experience, and customer/internal
+  activity and notification evidence.
+- Related Feature: Square Sales Refunds
+- Status: Done
+- Plan Status: Done
+- Wayfinder: `.scratch/square-refunds/map.md`
+- Validation: 32 focused tests / 326 assertions; Prisma generation and local
+  additive migration; authenticated desktop/mobile Sales Overview and Sales
+  Finance browser QA; real `$1.00` Square sandbox payment and completed refund.
+- Rollout: Local development is forced to sandbox. Production enablement,
+  webhook subscription, and a separately approved controlled production proof
+  remain rollout operations rather than implementation work.
+- Completed Date: 2026-08-21
+
 ### Add A Dedicated Mark Sales Order Fulfilled Permission
 - Priority: High
 - Description: Track plan in `.brain/plans/2026-08-20-bug-fix-sales-fulfillment-permission-alignment.md`.
@@ -1292,3 +1380,31 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   assertions pass; Sales typecheck and whitespace checks pass. Browser proof
   was blocked by unavailable local Docker services.
 - Completed Date: 2026-08-20
+
+### Standardize Generic Edit Icons
+
+- Priority: Medium
+- Description: Remapped the shared uppercase and legacy lowercase generic Edit
+  aliases to the slanted `PencilEdit01Icon` while preserving specialized
+  document-edit glyphs.
+- Status: Done
+- Validation: shared-icons rendering coverage passed 3 tests / 5 assertions;
+  authenticated Sales Overview QA confirmed the action-bar, Customer, P.O., and
+  Delivery edit controls without mutating order data.
+- Completed Date: 2026-08-21
+
+### Migrate Sales Overview Transactions To Compact Receipt Flow
+
+- Priority: High
+- Description: Replaced order-level analytics cards and duplicated transaction
+  layouts with one settlement strip, receipt rows, and an actionable empty
+  state; routed General and Transactions payment creation into the canonical
+  URL-driven Sales Overview secondary pane.
+- Status: Done
+- Validation: 32 focused tests / 149 assertions and scoped Biome passed;
+  authenticated browser QA covered paid and empty orders, payment details,
+  both payment-entry points, URL cleanup, focus return, a fixed standard footer,
+  and zero horizontal overflow without submitting a payment. The
+  repository-wide Dashboard typecheck remains on its existing baseline, with
+  no touched migration-file diagnostic.
+- Completed Date: 2026-08-21

@@ -292,3 +292,30 @@ Planning only; no schema relationship changed yet.
   history, and are never merged into active quantity.
 - `SalesOrders.meta.newSalesForm` has no authority relationship to commercial
   rows; it carries only revision/editor metadata.
+
+## Square Sales Refund links (2026-08-21)
+
+- `SquareTenderPayment 1:N SalesSquareRefund`; each refund targets exactly one
+  verified Square tender.
+- `SalesSquareRefund 1:N SalesSquareRefundAllocation`; each allocation names an
+  eligible `SalesOrders.id` and may link its source and applied compatibility
+  `SalesPayments` rows by stored ids.
+- `SalesSquareRefund 1:N SalesSquareRefundTransition`; transitions retain the
+  originating actor/event and an immutable state snapshot.
+- `SquareTenderPayment.legacySquarePaymentId` provides the bounded compatibility
+  bridge to existing `SquarePayments` and `SquarePaymentOrders` rows without
+  changing the overloaded legacy identifier's meaning.
+- `SquareRefundWebhookEvent.providerRefundId` is an indexed provider reference,
+  not a cascading ownership link; processing resolves/upserts the canonical
+  refund independently so duplicate and out-of-order delivery is safe.
+
+## Sales Order list projection link (2026-08-21)
+
+- `SalesOrders 1:0..1 SalesOrderListProjection`; the projection uses
+  `salesOrderId` as a unique foreign key and cascades only when the authoritative
+  order is physically deleted.
+- Customer, payment, note, inventory/inbound, production, dispatch, and Special
+  Order entities do not point to the projection. Trigger reloads those canonical
+  relationships when rebuilding the list row.
+- Reads verify the projection revision against `SalesOrders.updatedAt` (falling
+  back to `createdAt` for legacy rows) before returning projected data.

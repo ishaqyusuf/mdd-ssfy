@@ -1,6 +1,6 @@
 "use client";
 
-import { dispatchFilterParamsSchema } from "@/hooks/use-dispatch-filter-params";
+import { dispatchTableSearchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import {
 	SearchFilterProvider,
 	useSearchFilterContext,
@@ -23,7 +23,7 @@ export function DispatchSearchFilter({
 		<SearchFilterProvider
 			args={[
 				{
-					filterSchema: dispatchFilterParamsSchema,
+					filterSchema: dispatchTableSearchFilterParams,
 				},
 			]}
 		>

@@ -2,6 +2,7 @@
 
 import { ErrorFallback } from "@/components/error-fallback";
 import { SalesFinanceAdoptionTracker } from "@/components/sales-finance/adoption";
+import { ExternalSquareRefundReview } from "@/components/sales-finance/external-square-refund-review";
 import {
 	SalesFinanceHeader,
 	SalesFinanceTableSearch,
@@ -128,6 +129,7 @@ export function SalesFinanceWorkspaceClient({
 					<SalesFinanceSummary />
 				</Suspense>
 			</ErrorBoundary>
+			{params.tab === "review" ? <ExternalSquareRefundReview /> : null}
 			<div className="space-y-3">
 				<SalesFinanceHeader />
 				<ErrorBoundary errorComponent={ErrorFallback}>

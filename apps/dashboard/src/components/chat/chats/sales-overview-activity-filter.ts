@@ -10,6 +10,7 @@ export function buildSalesOverviewActivityFilter(saleData: {
 	if (orderId) {
 		filters.push(
 			activityTag("salesNo", orderId),
+			activityTag("orderNo", orderId),
 			activityTag("orderNos", orderId),
 		);
 	}

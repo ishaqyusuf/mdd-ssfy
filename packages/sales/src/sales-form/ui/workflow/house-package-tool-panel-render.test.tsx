@@ -7,6 +7,7 @@ import { HousePackageToolPanel } from "./house-package-tool-panel";
 function renderPanel(options?: {
 	doorSalesUnitPrice?: number;
 	canEditPricing?: boolean;
+	imageSrc?: string | null;
 }) {
 	const doorSalesUnitPrice = options?.doorSalesUnitPrice ?? 5_500;
 	const row = {
@@ -27,11 +28,21 @@ function renderPanel(options?: {
 	return renderToStaticMarkup(
 		<HousePackageToolPanel
 			selectedDoorComponents={[
-				{ id: 10, uid: "door-a", title: "Door A" } as any,
+				{
+					id: 10,
+					uid: "door-a",
+					title: "Door A",
+					img: options?.imageSrc,
+				} as any,
 			]}
 			activeDoorUid="door-a"
 			activeDoorComponent={
-				{ id: 10, uid: "door-a", title: "Door A" } as any
+				{
+					id: 10,
+					uid: "door-a",
+					title: "Door A",
+					img: options?.imageSrc,
+				} as any
 			}
 			focusedRows={[row as any]}
 			summary={{ rows: [row as any], totalDoors: 1, totalPrice: row.lineTotal }}
@@ -47,7 +58,7 @@ function renderPanel(options?: {
 			canEditPricing={options?.canEditPricing ?? true}
 			formatMoney={(value) => `$${Number(value).toFixed(2)}`}
 			componentLabel={(value) => value || ""}
-			resolveImageSrc={() => null}
+			resolveImageSrc={(src) => (src ? `https://images.example/${src}` : null)}
 			onActiveDoorChange={() => undefined}
 			onAddSize={() => undefined}
 			onConfigureSizes={() => undefined}
@@ -60,6 +71,14 @@ function renderPanel(options?: {
 }
 
 describe("HousePackageToolPanel repair action", () => {
+	it("makes the active door avatar an accessible image preview trigger", () => {
+		const html = renderPanel({ imageSrc: "door-a.png" });
+
+		expect(html).toContain('aria-label="View Door A image"');
+		expect(html).toContain('src="https://images.example/door-a.png"');
+		expect(html).toContain('data-component-image-preview-trigger="true"');
+	});
+
 	it("renders Repair in the right actions when profile pricing drift exists", () => {
 		const html = renderPanel();
 

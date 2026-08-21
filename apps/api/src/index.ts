@@ -4,8 +4,10 @@ import { randomUUID } from "node:crypto";
 import { db } from "@gnd/db";
 import type { DevLogEntry } from "@gnd/dev-logger";
 import { classifyError } from "@gnd/errors";
+import { verifySquareWebhookSignature } from "@gnd/square";
 import { trpcServer } from "@hono/trpc-server";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { tasks } from "@trigger.dev/sdk/v3";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import { captureApiError, captureTrpcError } from "./observability/sentry";
@@ -19,174 +21,230 @@ const app = new OpenAPIHono<Context>(); //.basePath("/api");
 
 app.use(secureHeaders());
 app.use("*", async (c, next) => {
-  const requestId = c.req.header("x-request-id") || randomUUID();
-  c.set("requestId", requestId);
-  c.header("x-request-id", requestId);
-  await next();
+	const requestId = c.req.header("x-request-id") || randomUUID();
+	c.set("requestId", requestId);
+	c.header("x-request-id", requestId);
+	await next();
 });
 if (process.env.NODE_ENV === "development")
-  app.use(
-    "/api/trpc/*",
-    cors({
-      origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
-      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-      allowHeaders: [
-        "Authorization",
-        "Content-Type",
-        "accept-language",
-        "x-guest-id",
-        "x-trpc-source",
-        "x-app-authorization",
-        "x-request-id",
-        "x-tenant-domain",
-        "x-tenant-session-term-id",
-        "x-user-timezone",
-        "x-user-country",
-      ],
-      exposeHeaders: ["Content-Length", "x-request-id"],
-      maxAge: 86400,
-    }),
-  );
+	app.use(
+		"/api/trpc/*",
+		cors({
+			origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
+			allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+			allowHeaders: [
+				"Authorization",
+				"Content-Type",
+				"accept-language",
+				"x-guest-id",
+				"x-trpc-source",
+				"x-app-authorization",
+				"x-request-id",
+				"x-tenant-domain",
+				"x-tenant-session-term-id",
+				"x-user-timezone",
+				"x-user-country",
+			],
+			exposeHeaders: ["Content-Length", "x-request-id"],
+			maxAge: 86400,
+		}),
+	);
 if (process.env.NODE_ENV === "development")
-  app.use(
-    "/api/storefront/trpc/*",
-    cors({
-      origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
-      allowMethods: ["GET", "POST", "OPTIONS"],
-      allowHeaders: [
-        "Authorization",
-        "Content-Type",
-        "x-request-id",
-        "x-trpc-source",
-      ],
-      exposeHeaders: ["Content-Length", "x-request-id"],
-      credentials: true,
-      maxAge: 86400,
-    }),
-  );
+	app.use(
+		"/api/storefront/trpc/*",
+		cors({
+			origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
+			allowMethods: ["GET", "POST", "OPTIONS"],
+			allowHeaders: [
+				"Authorization",
+				"Content-Type",
+				"x-request-id",
+				"x-trpc-source",
+			],
+			exposeHeaders: ["Content-Length", "x-request-id"],
+			credentials: true,
+			maxAge: 86400,
+		}),
+	);
 if (process.env.NODE_ENV === "development")
-  app.use(
-    "/api/dev-logger",
-    cors({
-      origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
-      allowMethods: ["POST", "OPTIONS"],
-      allowHeaders: [
-        "Authorization",
-        "Content-Type",
-        "x-app-authorization",
-        "x-request-id",
-      ],
-      exposeHeaders: ["Content-Length", "x-request-id"],
-      maxAge: 86400,
-    }),
-  );
+	app.use(
+		"/api/dev-logger",
+		cors({
+			origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
+			allowMethods: ["POST", "OPTIONS"],
+			allowHeaders: [
+				"Authorization",
+				"Content-Type",
+				"x-app-authorization",
+				"x-request-id",
+			],
+			exposeHeaders: ["Content-Length", "x-request-id"],
+			maxAge: 86400,
+		}),
+	);
 app.post("/api/dev-logger", async (c) => {
-  const isDev = process.env.NODE_ENV === "development";
-  const enabled =
-    String(process.env.EXPO_PUBLIC_DEBUG_LOGGER ?? "1").toLowerCase() !==
-    "false";
-  if (!isDev || !enabled) {
-    return c.json({ ok: true, skipped: true });
-  }
-  try {
-    const body = (await c.req.json()) as { entry?: unknown };
-    if (!body?.entry || typeof body.entry !== "object") {
-      return c.json({ ok: false, error: "INVALID_ENTRY" }, 400);
-    }
-    const { appendDevLogEntryToFile } = await import(
-      "@gnd/dev-logger/file-sink"
-    );
-    await appendDevLogEntryToFile(body.entry as DevLogEntry);
-    return c.json({ ok: true, skipped: false });
-  } catch {
-    return c.json({ ok: false, error: "WRITE_FAILED" }, 500);
-  }
+	const isDev = process.env.NODE_ENV === "development";
+	const enabled =
+		String(process.env.EXPO_PUBLIC_DEBUG_LOGGER ?? "1").toLowerCase() !==
+		"false";
+	if (!isDev || !enabled) {
+		return c.json({ ok: true, skipped: true });
+	}
+	try {
+		const body = (await c.req.json()) as { entry?: unknown };
+		if (!body?.entry || typeof body.entry !== "object") {
+			return c.json({ ok: false, error: "INVALID_ENTRY" }, 400);
+		}
+		const { appendDevLogEntryToFile } = await import(
+			"@gnd/dev-logger/file-sink"
+		);
+		await appendDevLogEntryToFile(body.entry as DevLogEntry);
+		return c.json({ ok: true, skipped: false });
+	} catch {
+		return c.json({ ok: false, error: "WRITE_FAILED" }, 500);
+	}
+});
+app.post("/api/webhooks/square/refunds", async (c) => {
+	const signature = c.req.header("x-square-hmacsha256-signature") || "";
+	const signatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY || "";
+	const rawBody = await c.req.text();
+	const notificationUrl =
+		process.env.SQUARE_REFUND_WEBHOOK_URL ||
+		c.req.url.split("?")[0] ||
+		c.req.url;
+	if (
+		!signatureKey ||
+		!verifySquareWebhookSignature({
+			rawBody,
+			signatureHeader: signature,
+			signatureKey,
+			notificationUrl,
+		})
+	) {
+		return c.json({ ok: false, error: "INVALID_SIGNATURE" }, 401);
+	}
+	const payload = JSON.parse(rawBody) as {
+		event_id?: string;
+		type?: string;
+		data?: { object?: { refund?: { id?: string } } };
+	};
+	if (!payload.event_id || !payload.type) {
+		return c.json({ ok: false, error: "INVALID_EVENT" }, 400);
+	}
+	const providerRefundId = payload.data?.object?.refund?.id || null;
+	const event = await db.squareRefundWebhookEvent.upsert({
+		where: { providerEventId: payload.event_id },
+		create: {
+			providerEventId: payload.event_id,
+			eventType: payload.type,
+			providerRefundId,
+			payload,
+		},
+		update: {},
+	});
+	if (event.status === "received") {
+		const refund = providerRefundId
+			? await db.salesSquareRefund.findUnique({
+					where: { providerRefundId },
+					select: { id: true },
+				})
+			: null;
+		await tasks.trigger(
+			refund ? "process-square-sales-refund" : "reconcile-square-sales-refunds",
+			refund ? { refundId: refund.id } : {},
+		);
+		await db.squareRefundWebhookEvent.update({
+			where: { id: event.id },
+			data: { status: "queued", processedAt: new Date() },
+		});
+	}
+	return c.json({ ok: true });
 });
 app.use(
-  "/api/storefront/trpc/*",
-  trpcServer({
-    router: storefrontAppRouter,
-    createContext: createTRPCContext,
-    endpoint: "/api/storefront/trpc",
-    onError({ ctx, error, path, type }) {
-      captureTrpcError({
-        error,
-        path,
-        requestId: ctx?.requestId,
-        type,
-        router: "storefront",
-      });
-    },
-  }),
+	"/api/storefront/trpc/*",
+	trpcServer({
+		router: storefrontAppRouter,
+		createContext: createTRPCContext,
+		endpoint: "/api/storefront/trpc",
+		onError({ ctx, error, path, type }) {
+			captureTrpcError({
+				error,
+				path,
+				requestId: ctx?.requestId,
+				type,
+				router: "storefront",
+			});
+		},
+	}),
 );
 app.use(
-  "/api/trpc/*",
-  trpcServer({
-    router: appRouter,
-    createContext: createTRPCContext,
-    endpoint: "/api/trpc",
-    onError({ ctx, error, path, type }) {
-      captureTrpcError({
-        error,
-        path,
-        requestId: ctx?.requestId,
-        type,
-        router: "app",
-      });
-    },
-  }),
+	"/api/trpc/*",
+	trpcServer({
+		router: appRouter,
+		createContext: createTRPCContext,
+		endpoint: "/api/trpc",
+		onError({ ctx, error, path, type }) {
+			captureTrpcError({
+				error,
+				path,
+				requestId: ctx?.requestId,
+				type,
+				router: "app",
+			});
+		},
+	}),
 );
 app.get("/health", async (c) => {
-  c.header("Cache-Control", "no-store");
+	c.header("Cache-Control", "no-store");
 
-  try {
-    await db.users.count();
+	try {
+		await db.users.count();
 
-    return c.json({
-      status: "ok",
-      checks: {
-        database: "ok",
-      },
-    });
-  } catch (error) {
-    captureApiError(
-      error instanceof Error
-        ? error
-        : new Error("Database health check failed"),
-      {
-        method: c.req.method,
-        requestId: c.get("requestId"),
-      },
-    );
+		return c.json({
+			status: "ok",
+			checks: {
+				database: "ok",
+			},
+		});
+	} catch (error) {
+		captureApiError(
+			error instanceof Error
+				? error
+				: new Error("Database health check failed"),
+			{
+				method: c.req.method,
+				requestId: c.get("requestId"),
+			},
+		);
 
-    return c.json(
-      {
-        status: "error",
-        checks: {
-          database: "unavailable",
-        },
-      },
-      503,
-    );
-  }
+		return c.json(
+			{
+				status: "error",
+				checks: {
+					database: "unavailable",
+				},
+			},
+			503,
+		);
+	}
 });
 app.get("/", (c) => {
-  return c.json({ message: "Congrats! You've deployed Hono to Vercel" });
+	return c.json({ message: "Congrats! You've deployed Hono to Vercel" });
 });
 
 app.onError((error, c) => {
-  const classified = classifyError(error);
-  captureApiError(classified, {
-    method: c.req.method,
-    requestId: c.get("requestId"),
-  });
+	const classified = classifyError(error);
+	captureApiError(classified, {
+		method: c.req.method,
+		requestId: c.get("requestId"),
+	});
 
-  const response = getRestErrorResponse(classified);
-  return c.json(response.body, response.status);
+	const response = getRestErrorResponse(classified);
+	return c.json(response.body, response.status);
 });
 
 export { app };
 export default {
-  port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3014,
-  fetch: app.fetch,
+	port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3014,
+	fetch: app.fetch,
 };

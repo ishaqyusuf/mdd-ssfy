@@ -226,4 +226,48 @@ describe("SalesHtmlTemplatePage", () => {
 		expect(markup).toContain("Customer Signer");
 		expect(markup).toContain("signature.png");
 	});
+
+	test("gives the HTML preview totals footer more room without overflowing narrow pages", () => {
+		const page: PrintPage = {
+			meta: {
+				title: "Invoice",
+				salesNo: "S-42",
+				date: "08/21/2026",
+				status: "pending",
+				total: "$104.08",
+			},
+			billing: null,
+			shipping: null,
+			sections: [],
+			footer: {
+				notes: [],
+				lines: [
+					{ label: "Subtotal", value: "$94.44" },
+					{
+						label: "Total if Paying by Card",
+						value: "$104.08",
+						bold: true,
+					},
+				],
+			},
+			config: {
+				mode: "invoice",
+				showPrices: true,
+				showFooter: true,
+				showPackingCol: false,
+				showSignature: false,
+				showImages: false,
+			},
+			signing: null,
+			specialOrder: null,
+		};
+
+		const markup = renderToStaticMarkup(
+			<SalesHtmlTemplatePage page={page} companyAddress={companyAddress} />,
+		);
+
+		expect(markup).toContain("flex-wrap:wrap");
+		expect(markup).toContain("flex:0 1 320px;width:320px;max-width:100%");
+		expect(markup).toContain("padding:10px 16px");
+	});
 });

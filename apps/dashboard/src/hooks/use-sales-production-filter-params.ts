@@ -9,11 +9,9 @@ import {
 	SALES_PRODUCTION_WORKSPACE_VIEWS,
 } from "@sales/production-workspace-query";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
-import {
-	createLoader,
-	createParser,
-	parseAsStringLiteral,
-} from "nuqs/server";
+import { createLoader, createParser, parseAsStringLiteral } from "nuqs/server";
+
+import { operationsCalendarViews } from "@/components/operations-calendar/range";
 
 const parseAsProductionDate = createParser({
 	parse(value) {
@@ -34,6 +32,10 @@ export const salesProductionFilterParamsSchema = {
 	assignedToId: parseAsInteger,
 	tab: parseAsStringLiteral(SALES_PRODUCTION_WORKSPACE_TAB_PARAMS),
 	view: parseAsStringLiteral(SALES_PRODUCTION_WORKSPACE_VIEWS),
+	calendarView: parseAsStringLiteral(operationsCalendarViews).withDefault(
+		"week",
+	),
+	calendarDate: parseAsProductionDate,
 	queue: parseAsStringLiteral(SALES_PRODUCTION_QUEUE_STATES),
 	due: parseAsStringLiteral(SALES_PRODUCTION_DUE_FILTERS),
 	date: parseAsProductionDate,
@@ -48,6 +50,8 @@ export const salesProductionFilterParamsSchema = {
 		"due-today",
 		"due-tomorrow",
 		"past-due",
+		"future",
+		"unscheduled",
 	] as const),
 };
 
@@ -59,7 +63,9 @@ export function useSalesProductionFilterParams() {
 		filters,
 		setFilters,
 		hasFilters: Object.entries(filters).some(
-			([key, value]) => key !== "tab" && key !== "view" && value !== null,
+			([key, value]) =>
+				!["tab", "view", "calendarView", "calendarDate"].includes(key) &&
+				value !== null,
 		),
 	};
 }

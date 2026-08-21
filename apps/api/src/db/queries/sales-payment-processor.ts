@@ -8,6 +8,7 @@ import { buildSalesCustomerPaymentReceivedPayload } from "@gnd/notifications/typ
 import {
 	buildPaymentChannelChargeMeta,
 	calculatePaymentChannelCharge,
+	captureVerifiedSquareTender,
 	createLegacyWalletCreditTransaction,
 	recordLegacySalesPayment,
 	roundMoney,
@@ -27,6 +28,7 @@ import {
 	cancelSquareTerminalPayment,
 	createSquareTerminalCheckout,
 	getSquareDevices,
+	getSquareTenderPayment,
 	getTerminalPaymentStatus,
 	normalizeTerminalDeviceId,
 	verifySquareTerminalReady,
@@ -456,6 +458,7 @@ async function applySalesPayment(
 			await completeSalesPaymentProcessorTerminalSettlement(
 				tx,
 				terminalSettlement,
+				appliedSalesIds,
 			);
 		}
 
@@ -522,8 +525,9 @@ export async function claimSalesPaymentProcessorTerminalSettlement(
 }
 
 export async function completeSalesPaymentProcessorTerminalSettlement(
-	tx: Pick<TRPCContext["db"], "squarePayments">,
+	tx: Pick<TRPCContext["db"], "squarePaymentOrders" | "squarePayments">,
 	settlement: VerifiedTerminalSettlement,
+	salesOrderIds: number[] = [],
 ) {
 	const completed = await tx.squarePayments.updateMany({
 		where: {
@@ -538,6 +542,14 @@ export async function completeSalesPaymentProcessorTerminalSettlement(
 	});
 	if (completed.count !== 1) {
 		throw new Error("Unable to finalize the terminal payment record.");
+	}
+	if (salesOrderIds.length) {
+		await tx.squarePaymentOrders.createMany({
+			data: salesOrderIds.map((orderId) => ({
+				orderId,
+				squarePaymentId: settlement.squarePaymentId,
+			})),
+		});
 	}
 }
 
@@ -555,8 +567,10 @@ export async function verifySalesPaymentProcessorTerminalSettlement(
 		throw new Error("Terminal payment session is incomplete.");
 	}
 
-	const { status, tip } =
+	const terminalStatus =
 		await dependencies.getTerminalPaymentStatus(squareCheckoutId);
+	const { status, tip } = terminalStatus;
+	const paymentIds = terminalStatus.paymentIds || [];
 	if (status === "CANCELED") {
 		await ctx.db.squarePayments.updateMany({
 			where: {
@@ -569,6 +583,16 @@ export async function verifySalesPaymentProcessorTerminalSettlement(
 	}
 	if (status !== "COMPLETED") {
 		throw new Error("Terminal payment is not complete.");
+	}
+	for (const providerPaymentId of paymentIds) {
+		const payment = await getSquareTenderPayment(providerPaymentId);
+		await captureVerifiedSquareTender(ctx.db, {
+			...payment,
+			legacySquarePaymentId: squarePaymentId,
+			checkoutId: squareCheckoutId,
+			source: "terminal",
+			verificationSource: "terminal_settlement",
+		});
 	}
 
 	return {

@@ -1,13 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
-
-import { SearchInput } from "@/components/search-input";
 import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@gnd/ui/command";
 import {
 	Dialog,
 	DialogContent,
@@ -16,10 +21,14 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
+import { Field, FieldGroup, FieldLabel } from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import { useMutation, useQuery } from "@gnd/ui/tanstack";
-import { toast } from "@gnd/ui/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { Textarea } from "@gnd/ui/textarea";
+import { useState } from "react";
+import { toast } from "sonner";
 
 type TransferableSale = {
 	id?: number | null;
@@ -30,11 +39,14 @@ type TransferableSale = {
 
 export function SalesRepTransferControl({
 	sale,
+	presentation = "inline",
 }: {
 	sale?: TransferableSale | null;
+	presentation?: "inline" | "popover";
 }) {
 	const auth = useAuth();
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [selectedSalesRepId, setSelectedSalesRepId] = useState<number | null>(
@@ -66,46 +78,33 @@ export function SalesRepTransferControl({
 		setPassword("");
 	};
 	const salesReps = salesRepsQuery.data ?? [];
-	const filteredSalesReps = useMemo(() => {
-		const term = search.trim().toLowerCase();
-		if (!term) return salesReps.slice(0, 12);
-		return salesReps
-			.filter((rep) =>
-				[rep.name, rep.email, ...rep.roles]
-					.filter(
-						(value): value is string =>
-							typeof value === "string" && value.length > 0,
-					)
-					.some((value) => value.toLowerCase().includes(term)),
-			)
-			.slice(0, 12);
-	}, [salesReps, search]);
 	const selectedSalesRep = salesReps.find(
 		(rep) => rep.id === selectedSalesRepId,
 	);
 	const transferMutation = useMutation(
 		trpc.sales.transferSalesRep.mutationOptions({
-			onSuccess: (result) => {
+			async onSuccess(result) {
+				await queryClient.invalidateQueries({
+					queryKey: trpc.sales.getSaleOverview.queryKey({
+						orderNo: result.order.orderId,
+						salesType: sale?.type === "quote" ? "quote" : "order",
+					}),
+				});
 				if (result.changed) {
-					toast({
-						title: "Sales rep updated.",
+					toast.success("Sales rep updated", {
 						description: `${result.order.orderId} now belongs to ${result.salesRep.name}.`,
-						variant: "success",
 					});
 				} else {
-					toast({
-						title: "Sales rep already assigned.",
+					toast("Sales rep already assigned", {
 						description: `${result.order.orderId} is already assigned to ${result.salesRep.name}.`,
 					});
 				}
 				resetTransferState();
 			},
-			onError: (error) => {
+			onError(error) {
 				setPassword("");
-				toast({
-					title: "Unable to transfer sales rep.",
+				toast.error("Unable to transfer sales rep", {
 					description: error.message,
-					variant: "destructive",
 				});
 			},
 		}),
@@ -119,104 +118,118 @@ export function SalesRepTransferControl({
 		!!selectedSalesRep &&
 		selectedSalesRep.id !== currentSalesRepId &&
 		!isPending;
-
-	if (!isOpen) {
-		return (
-			<Button
-				type="button"
-				size="sm"
-				variant="outline"
-				className="mt-3"
-				onClick={() => setIsOpen(true)}
-			>
-				<Icons.UserPlus className="mr-2 size-4" />
-				Change Rep
-			</Button>
-		);
-	}
-
-	return (
-		<div className="mt-3 space-y-3 rounded-md border border-border/60 p-3">
+	const trigger = (
+		<Button
+			type="button"
+			size={presentation === "popover" ? "xs" : "sm"}
+			variant="outline"
+			className={presentation === "inline" ? "mt-3" : undefined}
+			onClick={presentation === "inline" ? () => setIsOpen(true) : undefined}
+		>
+			<Icons.UserPlus data-icon="inline-start" />
+			Change rep
+		</Button>
+	);
+	const picker = (
+		<div
+			className={cn(
+				"flex flex-col gap-3",
+				presentation === "inline" &&
+					"mt-3 rounded-md border border-border/60 p-3",
+			)}
+		>
 			<div className="flex items-center justify-between gap-3">
 				<p className="text-xs font-medium uppercase text-muted-foreground">
 					Transfer {saleTypeLabel} to
 				</p>
-				<Button
-					type="button"
-					size="icon"
-					variant="ghost"
-					className="size-7"
-					aria-label="Close sales rep transfer"
-					onClick={resetTransferState}
-				>
-					<Icons.X className="size-4" />
-				</Button>
+				{presentation === "inline" ? (
+					<Button
+						type="button"
+						size="icon-xs"
+						variant="ghost"
+						aria-label="Close sales rep transfer"
+						onClick={resetTransferState}
+					>
+						<Icons.X aria-hidden="true" />
+					</Button>
+				) : null}
 			</div>
 
-			<SearchInput
-				placeholder="Search sales reps"
-				value={search}
-				onChangeText={setSearch}
-			/>
+			<Command className="rounded-md border border-border/60">
+				<CommandInput
+					placeholder="Search sales reps"
+					value={search}
+					onValueChange={setSearch}
+				/>
+				<CommandList className="max-h-56">
+					{salesRepsQuery.isPending ? (
+						<div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
+							<Icons.Loader2 className="size-4 animate-spin" />
+							Loading reps
+						</div>
+					) : (
+						<>
+							<CommandEmpty>No matching reps</CommandEmpty>
+							<CommandGroup>
+								{salesReps.map((rep) => {
+									const isCurrent = rep.id === currentSalesRepId;
+									const isSelected = rep.id === selectedSalesRepId;
 
-			<div className="max-h-56 overflow-y-auto rounded-md border border-border/60">
-				{salesRepsQuery.isPending ? (
-					<div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
-						<Icons.Loader2 className="size-4 animate-spin" />
-						Loading reps
-					</div>
-				) : filteredSalesReps.length ? (
-					filteredSalesReps.map((rep) => {
-						const isCurrent = rep.id === currentSalesRepId;
-						const isSelected = rep.id === selectedSalesRepId;
+									return (
+										<CommandItem
+											key={rep.id}
+											value={`${rep.id} ${rep.name} ${rep.email || ""} ${rep.roles.join(" ")}`}
+											disabled={isCurrent || isPending}
+											aria-selected={isSelected}
+											className={cn(
+												"flex items-center gap-3 px-3 py-2",
+												isSelected && "bg-muted",
+											)}
+											onSelect={() => setSelectedSalesRepId(rep.id)}
+										>
+											<span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+												{rep.initials}
+											</span>
+											<span className="min-w-0 flex-1">
+												<span className="block truncate text-sm font-medium">
+													{rep.name}
+												</span>
+												{rep.email ? (
+													<span className="block truncate text-xs text-muted-foreground">
+														{rep.email}
+													</span>
+												) : null}
+											</span>
+											{isCurrent ? (
+												<Badge variant="outline">Current</Badge>
+											) : isSelected ? (
+												<Icons.CheckCircle2 className="size-4 text-primary" />
+											) : null}
+										</CommandItem>
+									);
+								})}
+							</CommandGroup>
+						</>
+					)}
+				</CommandList>
+			</Command>
 
-						return (
-							<button
-								key={rep.id}
-								type="button"
-								disabled={isCurrent || isPending}
-								className={cn(
-									"flex w-full items-center gap-3 border-b border-border/40 px-3 py-2 text-left last:border-b-0 hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-70",
-									isSelected ? "bg-muted" : null,
-								)}
-								onClick={() => setSelectedSalesRepId(rep.id)}
-							>
-								<span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-									{rep.initials}
-								</span>
-								<span className="min-w-0 flex-1">
-									<span className="block truncate text-sm font-medium">
-										{rep.name}
-									</span>
-									{rep.email ? (
-										<span className="block truncate text-xs text-muted-foreground">
-											{rep.email}
-										</span>
-									) : null}
-								</span>
-								{isCurrent ? (
-									<Badge variant="outline">Current</Badge>
-								) : isSelected ? (
-									<Icons.CheckCircle2 className="size-4 text-primary" />
-								) : null}
-							</button>
-						);
-					})
-				) : (
-					<div className="px-3 py-4 text-sm text-muted-foreground">
-						No matching reps
-					</div>
-				)}
-			</div>
-
-			<textarea
-				value={reason}
-				maxLength={500}
-				rows={2}
-				placeholder="Optional note"
-				className="min-h-16 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-				onChange={(event) => setReason(event.target.value)}
-			/>
+			<FieldGroup className="gap-3">
+				<Field>
+					<FieldLabel htmlFor="sales-rep-transfer-reason" className="sr-only">
+						Optional transfer note
+					</FieldLabel>
+					<Textarea
+						id="sales-rep-transfer-reason"
+						value={reason}
+						maxLength={500}
+						rows={2}
+						placeholder="Optional note"
+						className="min-h-16 resize-none"
+						onChange={(event) => setReason(event.target.value)}
+					/>
+				</Field>
+			</FieldGroup>
 
 			<div className="flex justify-end gap-2">
 				<Button
@@ -232,15 +245,36 @@ export function SalesRepTransferControl({
 					type="button"
 					size="sm"
 					disabled={!canSubmit}
-					onClick={() => {
-						if (!sale?.id || !selectedSalesRep) return;
-						setIsPasswordOpen(true);
-					}}
+					onClick={() => setIsPasswordOpen(true)}
 				>
-					<Icons.UserCheck className="mr-2 size-4" />
+					<Icons.UserCheck data-icon="inline-start" />
 					Transfer
 				</Button>
 			</div>
+		</div>
+	);
+
+	return (
+		<>
+			{presentation === "popover" ? (
+				<Popover
+					open={isOpen}
+					onOpenChange={(open) => {
+						if (isPending) return;
+						if (open) setIsOpen(true);
+						else if (!isPasswordOpen) resetTransferState();
+					}}
+				>
+					<PopoverTrigger asChild>{trigger}</PopoverTrigger>
+					<PopoverContent align="start" className="w-96">
+						{picker}
+					</PopoverContent>
+				</Popover>
+			) : isOpen ? (
+				picker
+			) : (
+				trigger
+			)}
 
 			<Dialog
 				open={isPasswordOpen}
@@ -252,7 +286,7 @@ export function SalesRepTransferControl({
 			>
 				<DialogContent className="sm:max-w-md">
 					<form
-						className="space-y-4"
+						className="flex flex-col gap-4"
 						onSubmit={(event) => {
 							event.preventDefault();
 							if (!sale?.id || !selectedSalesRep || !password) return;
@@ -265,30 +299,27 @@ export function SalesRepTransferControl({
 						}}
 					>
 						<DialogHeader>
-							<DialogTitle>Confirm Sales Rep Transfer</DialogTitle>
+							<DialogTitle>Confirm sales rep transfer</DialogTitle>
 							<DialogDescription>
 								Enter your password to move {sale?.orderId} to{" "}
 								{selectedSalesRep?.name}.
 							</DialogDescription>
 						</DialogHeader>
-
-						<div className="space-y-2">
-							<label
-								htmlFor="sales-rep-transfer-password"
-								className="text-sm font-medium"
-							>
-								Password
-							</label>
-							<Input
-								id="sales-rep-transfer-password"
-								type="password"
-								autoComplete="current-password"
-								value={password}
-								disabled={isPending}
-								onChange={(event) => setPassword(event.target.value)}
-							/>
-						</div>
-
+						<FieldGroup>
+							<Field>
+								<FieldLabel htmlFor="sales-rep-transfer-password">
+									Password
+								</FieldLabel>
+								<Input
+									id="sales-rep-transfer-password"
+									type="password"
+									autoComplete="current-password"
+									value={password}
+									disabled={isPending}
+									onChange={(event) => setPassword(event.target.value)}
+								/>
+							</Field>
+						</FieldGroup>
 						<DialogFooter>
 							<Button
 								type="button"
@@ -306,16 +337,19 @@ export function SalesRepTransferControl({
 								disabled={!canSubmit || !password || isPending}
 							>
 								{isPending ? (
-									<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+									<Icons.Loader2
+										data-icon="inline-start"
+										className="animate-spin"
+									/>
 								) : (
-									<Icons.UserCheck className="mr-2 size-4" />
+									<Icons.UserCheck data-icon="inline-start" />
 								)}
-								Confirm Transfer
+								Confirm transfer
 							</Button>
 						</DialogFooter>
 					</form>
 				</DialogContent>
 			</Dialog>
-		</div>
+		</>
 	);
 }

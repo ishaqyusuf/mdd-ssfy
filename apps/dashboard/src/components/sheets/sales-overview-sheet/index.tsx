@@ -17,17 +17,21 @@ import { CustomerEditPane } from "./customer-edit-pane";
 import { InboundCreatePane } from "./inbound-create-pane";
 import { InboundDetailPane } from "./inbound-detail-pane";
 import { LegacySalesOverviewHeader, LegacySalesOverviewPanels } from "./layout";
+import { PaymentCreatePane } from "./payment-create-pane";
 import {
 	SalesAddressPane,
 	type SalesAddressPaneSelection,
 } from "./sales-address-pane";
+import { PaymentTransactionPane } from "./transactions-tab";
 import type { LegacySalesOverviewTabId } from "./types";
 
 type SalesOverviewPane =
 	| { kind: "customer" }
 	| ({ kind: "address" } & SalesAddressPaneSelection)
 	| { kind: "inbound-create"; mode?: "create_inbound" | "mark_available" }
-	| { kind: "inbound-detail"; inboundId: number };
+	| { kind: "inbound-detail"; inboundId: number }
+	| { kind: "payment-create" }
+	| { kind: "payment"; transactionId: string };
 
 export default function SalesOverviewSheet() {
 	const query = useSalesOverviewQuery();
@@ -82,8 +86,43 @@ function Content() {
 		setPane({ kind: "inbound-detail", inboundId });
 		setPaneOpened(true);
 	};
+	const openPaymentPane = (transactionId: string) => {
+		if (!paneOpened) rememberPaneTrigger();
+		setPane({ kind: "payment", transactionId });
+		setPaneOpened(true);
+		query.setParams({
+			salesPayment: null,
+			salesTransaction: transactionId,
+			salesRefund: null,
+		});
+	};
+	const openPaymentCreatePane = () => {
+		if (!paneOpened) rememberPaneTrigger();
+		setPane({ kind: "payment-create" });
+		setPaneOpened(true);
+		query.setParams({
+			salesPayment: "new",
+			salesTransaction: null,
+			salesRefund: null,
+		});
+	};
 	const closePane = () => {
+		if (query.salesRefund) {
+			query.setParams({ salesRefund: null });
+			return;
+		}
 		setPaneOpened(false);
+		if (pane?.kind === "payment-create" || query.salesPayment) {
+			query.setParams({ salesPayment: null });
+			return;
+		}
+		if (pane?.kind === "payment") {
+			query.setParams({
+				salesTab: "transactions",
+				salesTransaction: null,
+				salesRefund: null,
+			});
+		}
 	};
 	const handlePaneExited = () => {
 		setPane(null);
@@ -91,6 +130,30 @@ function Content() {
 		paneTriggerRef.current = null;
 		requestAnimationFrame(() => trigger?.focus());
 	};
+	useEffect(() => {
+		if (query.salesPayment === "new") {
+			setPane((current) =>
+				current?.kind === "payment-create"
+					? current
+					: { kind: "payment-create" },
+			);
+			setPaneOpened(true);
+			return;
+		}
+		if (query.salesTransaction) {
+			setPane((current) =>
+				current?.kind === "payment" &&
+				current.transactionId === query.salesTransaction
+					? current
+					: { kind: "payment", transactionId: query.salesTransaction },
+			);
+			setPaneOpened(true);
+			return;
+		}
+		if (pane?.kind === "payment" || pane?.kind === "payment-create") {
+			setPaneOpened(false);
+		}
+	}, [pane?.kind, query.salesPayment, query.salesTransaction]);
 	const isQuote =
 		data?.type === "quote" || query.params["sales-type"] === "quote";
 	const addressEditingLocked =
@@ -110,11 +173,17 @@ function Content() {
 		onEditCustomer: openCustomerPane,
 		onCreateInbound: openInboundCreatePane,
 		onViewInbound: openInboundDetailPane,
+		onViewPayment: openPaymentPane,
+		onCreatePayment: openPaymentCreatePane,
 	});
 	const activeTab = resolveLegacySalesOverviewActiveTab({
 		currentTab: query?.params?.salesTab,
 		tabs,
 	});
+	const isGeneralV2 =
+		activeTab === "general" &&
+		(data as { generalViewVersion?: "v1" | "v2" } | undefined)
+			?.generalViewVersion === "v2";
 	const setActiveTab = (tab: LegacySalesOverviewTabId) => {
 		query.setParams({
 			salesTab: tab as never,
@@ -128,8 +197,22 @@ function Content() {
 		<Sheet
 			sheetName="sales-overview-sheet"
 			open
+			onOpenAutoFocus={(event) => {
+				event.preventDefault();
+				window.requestAnimationFrame(() => {
+					const targets = document.querySelectorAll<HTMLElement>(
+						"#custom-sheet-sales-overview-sheet [data-sales-overview-initial-focus]",
+					);
+					for (const target of targets) {
+						if (target.offsetParent !== null) {
+							target.focus();
+							break;
+						}
+					}
+				});
+			}}
 			onOpenChange={query.close}
-			primarySize="2xl"
+			primarySize="3xl"
 			secondarySize="2xl"
 			secondaryOpened={paneOpened}
 			onCloseSecondary={closePane}
@@ -149,7 +232,9 @@ function Content() {
 							onTabChange={setActiveTab}
 						/>
 					</Tabs>
-					<Sheet.Content className="-mt-4">
+					<Sheet.Content
+						contentClassName={isGeneralV2 ? "pb-0 sm:pb-0" : undefined}
+					>
 						<Tabs value={activeTab}>
 							<LegacySalesOverviewPanels activeTab={activeTab} tabs={tabs} />
 						</Tabs>
@@ -191,6 +276,24 @@ function Content() {
 					<InboundDetailPane
 						key={`inbound-${pane.inboundId}`}
 						inboundId={pane.inboundId}
+					/>
+				) : null}
+				{pane?.kind === "payment" && data?.orderId ? (
+					<PaymentTransactionPane
+						key={`payment-${pane.transactionId}`}
+						salesId={data.orderId}
+						transactionId={pane.transactionId}
+						onClose={closePane}
+					/>
+				) : null}
+				{pane?.kind === "payment-create" && data?.id && data.orderId ? (
+					<PaymentCreatePane
+						key={`payment-create-${data.id}`}
+						customerId={data.customerId}
+						customerPhone={data.customerPhone}
+						onClose={closePane}
+						orderNo={data.orderId}
+						salesId={data.id}
 					/>
 				) : null}
 			</Sheet.MultiContent>

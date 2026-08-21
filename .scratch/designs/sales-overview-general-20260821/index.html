@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GND General Tab — Design Directions</title>
+  <style>
+    :root{--bg:#eef0ed;--paper:#fff;--ink:#17221e;--muted:#67736d;--line:#d5dad7;--accent:#176f55}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}.wrap{max-width:1240px;margin:auto;padding:48px 24px 80px}.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:800}h1{font-size:36px;letter-spacing:-.04em;line-height:1.05;margin:10px 0 14px;max-width:760px}.lead{color:var(--muted);line-height:1.6;max-width:760px;margin:0}.brief{margin:26px 0 36px;padding:18px 20px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--accent);font-size:13px;line-height:1.55}.brief b{display:block;margin-bottom:4px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.card{background:var(--paper);border:1px solid var(--line);overflow:hidden}.card-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:start;justify-content:space-between;gap:18px}.num{font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:800}.card h2{font-size:17px;margin:4px 0 3px}.card p{font-size:12px;color:var(--muted);margin:0;line-height:1.45}.open{flex:none;text-decoration:none;font-size:11px;font-weight:750;color:#fff;background:var(--ink);padding:8px 10px;border-radius:5px}.preview{height:650px;overflow:hidden;background:#dfe2df;position:relative}.preview img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}.pick{width:100%;border:0;border-top:1px solid var(--line);background:#fff;padding:14px 18px;text-align:left;font:750 12px inherit;color:var(--accent);cursor:pointer}.pick:hover,.pick:focus{background:#f0f8f5}.selection{position:fixed;right:20px;bottom:20px;max-width:330px;background:#17221e;color:#fff;padding:13px 16px;box-shadow:0 14px 40px #0003;font-size:12px;display:none}.selection.show{display:block}.selection b{display:block;margin-bottom:3px}.selection button{position:absolute;right:8px;top:7px;background:none;border:0;color:#fff;font-size:16px}.card:last-child:nth-child(odd){grid-column:1/-1;max-width:608px;margin:auto;width:100%}
+    @media(max-width:850px){.wrap{padding:30px 14px 60px}h1{font-size:28px}.grid{grid-template-columns:1fr}.card:last-child:nth-child(odd){grid-column:auto;max-width:none}.preview{height:560px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="eyebrow">GND · Sales Overview · General</div>
+    <h1>Five cleaner ways to make the order readable in five seconds.</h1>
+    <p class="lead">Each direction uses order 09397LM and preserves the existing sheet, tabs, actions, operational facts, grouped payment details, CCC, and fixed footer. Only hierarchy, density, color, and layout change.</p>
+    <div class="brief"><b>Recommended brief</b>Create five production-feasible redesign directions for the existing 672px Sales Overview General tab. Preserve the product contract and real data. Optimize identity, order state, payment state, and next-action scanning; use strong hierarchy, accessible contrast, restrained surfaces, and responsive behavior at 390px and 672px. Do not add features or turn the operational sheet into a marketing dashboard.</div>
+    <section class="grid">
+      <article class="card"><div class="card-head"><div><span class="num">01</span><h2>Executive Ledger</h2><p>Strict rules, prominent settlement, dense accounting rhythm.</p></div><a class="open" href="variant-ledger.html" target="_blank">Open full</a></div><div class="preview"><img alt="Executive Ledger preview" src="preview-01-ledger.png"></div><button class="pick" data-pick="Executive Ledger">Pick 01 · Executive Ledger</button></article>
+      <article class="card"><div class="card-head"><div><span class="num">02</span><h2>Operational Timeline</h2><p>A sequenced lifecycle from customer to financial close.</p></div><a class="open" href="variant-timeline.html" target="_blank">Open full</a></div><div class="preview"><img alt="Operational Timeline preview" src="preview-02-timeline.png"></div><button class="pick" data-pick="Operational Timeline">Pick 02 · Operational Timeline</button></article>
+      <article class="card"><div class="card-head"><div><span class="num">03</span><h2>Split Command Center</h2><p>Operational identity on the left, money on its own rail.</p></div><a class="open" href="variant-command.html" target="_blank">Open full</a></div><div class="preview"><img alt="Split Command Center preview" src="preview-03-command.png"></div><button class="pick" data-pick="Split Command Center">Pick 03 · Split Command Center</button></article>
+      <article class="card"><div class="card-head"><div><span class="num">04</span><h2>Document Canvas</h2><p>Invoice familiarity with precise typographic sections.</p></div><a class="open" href="variant-document.html" target="_blank">Open full</a></div><div class="preview"><img alt="Document Canvas preview" src="preview-04-document.png"></div><button class="pick" data-pick="Document Canvas">Pick 04 · Document Canvas</button></article>
+      <article class="card"><div class="card-head"><div><span class="num">05</span><h2>Quiet Blocks</h2><p>Calm scan-first bands with a softer GND character.</p></div><a class="open" href="variant-blocks.html" target="_blank">Open full</a></div><div class="preview"><img alt="Quiet Blocks preview" src="preview-05-blocks.png"></div><button class="pick" data-pick="Quiet Blocks">Pick 05 · Quiet Blocks</button></article>
+    </section>
+  </main>
+  <aside class="selection" role="status"><button aria-label="Dismiss">×</button><b id="selection-title"></b><span>Tell Codex this name or number to continue into implementation.</span></aside>
+  <script>
+    const toast=document.querySelector('.selection'); const title=document.querySelector('#selection-title');
+    document.querySelectorAll('[data-pick]').forEach(button=>button.addEventListener('click',()=>{title.textContent=`Selected: ${button.dataset.pick}`;toast.classList.add('show')}));
+    toast.querySelector('button').addEventListener('click',()=>toast.classList.remove('show'));
+  </script>
+</body>
+</html>

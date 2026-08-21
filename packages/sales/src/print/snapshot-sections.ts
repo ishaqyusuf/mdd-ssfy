@@ -55,8 +55,8 @@ function buildSnapshotAddressLines(
 	const phone = text(address.phoneNo) || text(customer.phoneNo);
 	const phone2 = text(address.phoneNo2);
 	const email = text(address.email) || text(customer.email);
-	const street =
-		text(address.address1) || text(address.address2) || text(customer.address);
+	const street1 = text(address.address1) || text(customer.address);
+	const street2 = text(address.address2);
 	const cityStateZip = [
 		text(address.city),
 		text(address.state),
@@ -74,7 +74,8 @@ function buildSnapshotAddressLines(
 		}),
 		[phone, phone2 ? `(${phone2})` : ""].filter(Boolean).join(" "),
 		email?.toLowerCase(),
-		street,
+		street1,
+		street2,
 		cityStateZip,
 	].filter(Boolean) as string[];
 }

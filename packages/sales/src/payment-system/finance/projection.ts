@@ -1,4 +1,5 @@
 import { addMoney, roundMoney, subtractMoney, sumMoney } from "../domain/money";
+import { normalizeSalesPaymentSummaryMethod } from "../domain/payment-summary";
 
 export const SALES_FINANCE_PAYMENT_METHODS = [
 	"card",
@@ -182,29 +183,8 @@ function uniqueStrings(values: Array<string | null | undefined>) {
 export function normalizeSalesFinancePaymentMethod(
 	value?: string | null,
 ): SalesFinancePaymentMethod {
-	const normalized = String(value || "")
-		.trim()
-		.toLowerCase();
-
-	if (
-		[
-			"card",
-			"credit-card",
-			"credit card",
-			"terminal",
-			"link",
-			"payment-link",
-			"payment link",
-		].includes(normalized)
-	) {
-		return "card";
-	}
-	if (normalized === "check" || normalized === "cheque") return "check";
-	if (normalized === "zelle") return "zelle";
-	if (normalized === "cash") return "cash";
-	if (normalized === "wire" || normalized === "wire transfer") return "wire";
-
-	return "unclassified";
+	const method = normalizeSalesPaymentSummaryMethod(value);
+	return method === "wallet" ? "unclassified" : method;
 }
 
 function resolveCustomer(source: SalesFinanceTransactionSource) {
@@ -365,12 +345,14 @@ export function projectSalesFinanceTransaction(
 		(isSuccessfulStatus(source.status) ? "Success" : "Unknown");
 
 	const uniqueOrderSubtotals = Array.from(
-		(source.salesPayments || []).reduce((acc, payment) => {
-			if (payment.order?.id != null && payment.order?.subTotal != null) {
-				acc.set(payment.order.id, roundMoney(payment.order.subTotal));
-			}
-			return acc;
-		}, new Map<number, number>()).values(),
+		(source.salesPayments || [])
+			.reduce((acc, payment) => {
+				if (payment.order?.id != null && payment.order?.subTotal != null) {
+					acc.set(payment.order.id, roundMoney(payment.order.subTotal));
+				}
+				return acc;
+			}, new Map<number, number>())
+			.values(),
 	);
 	const subTotal =
 		uniqueOrderSubtotals.length > 0 ? sumMoney(uniqueOrderSubtotals) : null;

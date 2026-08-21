@@ -2,10 +2,13 @@
 
 import { SalesFinancePaymentResolutionPanel } from "@/components/sales-finance/payment-resolution-panel";
 import { SalesFinanceReconciliationPanel } from "@/components/sales-finance/reconciliation-panel";
+import { SquarePaymentTransactionSheet } from "@/components/sheets/sales-overview-sheet/transactions-tab";
+import { useAuth } from "@/hooks/use-auth";
 import { useSalesFinanceFilterParams } from "@/hooks/use-sales-finance-filter-params";
 import { formatCurrency } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
 	Sheet,
@@ -16,6 +19,7 @@ import {
 } from "@gnd/ui/sheet";
 import { useQuery } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
+import { useState } from "react";
 
 function formatDate(value: string | number | Date | null | undefined) {
 	if (!value) return "Not recorded";
@@ -29,6 +33,7 @@ function formatDate(value: string | number | Date | null | undefined) {
 }
 
 export function SalesFinanceTransactionSheet() {
+	const auth = useAuth();
 	const trpc = useTRPC();
 	const { params, setParams } = useSalesFinanceFilterParams();
 	const id = params.transactionId;
@@ -39,6 +44,23 @@ export function SalesFinanceTransactionSheet() {
 		),
 	);
 	const transaction = query.data;
+	const [squareDetailOpen, setSquareDetailOpen] = useState(false);
+	const [squareRefundOpen, setSquareRefundOpen] = useState(false);
+	const primaryApplication = transaction?.applications[0];
+	const squareOverview = useQuery(
+		trpc.salesRefunds.overview.queryOptions(
+			{ orderNo: primaryApplication?.orderNo || "" },
+			{
+				enabled: Boolean(
+					transaction?.hasSquarePayment && primaryApplication?.orderNo,
+				),
+				refetchInterval: 15_000,
+			},
+		),
+	);
+	const squareTransaction = squareOverview.data?.transactions.find(
+		(item) => item.transactionId === transaction?.id,
+	);
 	const skeletonIds = [
 		"identity",
 		"money",
@@ -51,7 +73,11 @@ export function SalesFinanceTransactionSheet() {
 		<Sheet
 			open={Boolean(id)}
 			onOpenChange={(open) => {
-				if (!open) void setParams({ transactionId: null });
+				if (!open) {
+					setSquareDetailOpen(false);
+					setSquareRefundOpen(false);
+					void setParams({ transactionId: null });
+				}
 			}}
 		>
 			<SheetContent
@@ -146,6 +172,48 @@ export function SalesFinanceTransactionSheet() {
 								</section>
 							) : null}
 							<SalesFinanceReconciliationPanel transaction={transaction} />
+							{transaction.hasSquarePayment ? (
+								<section className="space-y-3 rounded-xl border p-4">
+									<div>
+										<h3 className="font-semibold">Square refund</h3>
+										<p className="mt-1 text-sm text-muted-foreground">
+											Review provider identity, capacity, history, and
+											allocations in the shared Sales refund workflow.
+										</p>
+									</div>
+									{squareOverview.isPending ? (
+										<div className="h-10 animate-pulse rounded-lg bg-muted" />
+									) : squareTransaction ? (
+										<div className="flex flex-wrap items-center justify-between gap-3">
+											<div>
+												<p className="font-mono text-sm font-semibold">
+													{formatCurrency.format(
+														squareTransaction.remainingRefundableCents / 100,
+													)}{" "}
+													available
+												</p>
+												<p className="text-xs text-muted-foreground">
+													{squareTransaction.refunds.length} refund record(s)
+												</p>
+											</div>
+											<Button
+												type="button"
+												variant="outline"
+												onClick={() => setSquareDetailOpen(true)}
+											>
+												{auth.can?.editRefundSquare
+													? "Review / refund"
+													: "View refund history"}
+											</Button>
+										</div>
+									) : (
+										<p className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+											This historical Square payment has no uniquely verified
+											tender identity, so GND keeps it read-only.
+										</p>
+									)}
+								</section>
+							) : null}
 							<SalesFinancePaymentResolutionPanel transaction={transaction} />
 							<section>
 								<div className="mb-3 flex items-center justify-between gap-3">
@@ -184,6 +252,19 @@ export function SalesFinanceTransactionSheet() {
 						</div>
 					)}
 				</ScrollArea>
+				{squareTransaction && primaryApplication ? (
+					<SquarePaymentTransactionSheet
+						transaction={squareTransaction}
+						salesOrderId={primaryApplication.orderId}
+						open={squareDetailOpen}
+						refundOpen={squareRefundOpen}
+						onRefundOpenChange={setSquareRefundOpen}
+						onOpenChange={setSquareDetailOpen}
+						onCreated={async () => {
+							await Promise.all([query.refetch(), squareOverview.refetch()]);
+						}}
+					/>
+				) : null}
 			</SheetContent>
 		</Sheet>
 	);

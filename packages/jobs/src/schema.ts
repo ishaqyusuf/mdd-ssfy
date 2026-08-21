@@ -16,6 +16,8 @@ export const taskNames = [
 	"create-sales-dispatch",
 	"create-sales-history",
 	"apply-sales-order-adjustment",
+	"process-square-sales-refund",
+	"reconcile-square-sales-refunds",
 	"mark-sales-as-completed",
 	"run-inventory-full-import-now",
 	"run-inventory-full-import-test",

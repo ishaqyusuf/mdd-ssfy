@@ -12,7 +12,8 @@ function isDirectRecipientEmailChannel(
 		channel === "simple_sales_document_email" ||
 		channel === "composed_sales_document_email" ||
 		channel === "customer_statement" ||
-		channel === "sales_customer_payment_received"
+		channel === "sales_customer_payment_received" ||
+		channel === "sales_customer_refund_completed"
 	);
 }
 

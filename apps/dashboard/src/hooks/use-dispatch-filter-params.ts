@@ -13,6 +13,8 @@ import {
 	parseAsStringLiteral,
 } from "nuqs/server";
 
+import { fulfillmentCalendarViews } from "@/components/dispatch-admin/fulfillment-calendar-range";
+
 const dueBuckets = [
 	"overdue",
 	"today",
@@ -35,7 +37,7 @@ export const dispatchFilterParamsSchema = {
 		"dashboard",
 	),
 	stages: parseAsArrayOf(parseAsStringLiteral(dispatchWorkspaceStages)),
-	tab: parseAsStringLiteral(["all", "pending", "completed"]),
+	tab: parseAsStringLiteral(["all", "pending", "completed", "calendar"]),
 	status: parseAsStringLiteral(salesDispatchStatus),
 	q: parseAsString,
 	driversId: parseAsArrayOf(parseAsInteger, ","),
@@ -48,6 +50,10 @@ export const dispatchFilterParamsSchema = {
 	),
 	risks: parseAsArrayOf(parseAsStringLiteral(dispatchRiskCodes), ","),
 	view: parseAsStringLiteral(["table", "calendar"]).withDefault("table"),
+	calendarView: parseAsStringLiteral(fulfillmentCalendarViews).withDefault(
+		"week",
+	),
+	calendarDate: parseAsString,
 	dispatchId: parseAsInteger,
 	dispatchSalesId: parseAsInteger,
 	exceptionId: parseAsInteger,
@@ -66,6 +72,12 @@ export const dispatchSearchFilterParams = {
 	scheduleRange: dispatchFilterParamsSchema.scheduleRange,
 	deliveryModes: dispatchFilterParamsSchema.deliveryModes,
 	risks: dispatchFilterParamsSchema.risks,
+};
+
+export const dispatchTableSearchFilterParams = {
+	q: dispatchFilterParamsSchema.q,
+	status: dispatchFilterParamsSchema.status,
+	scheduleDate: dispatchFilterParamsSchema.scheduleDate,
 };
 
 export function useDispatchFilterParams() {

@@ -13,7 +13,7 @@ export type ResolvedRedirect = {
 };
 
 const exactRedirectMaps = {
-    "/login": "/login/v2",
+    "/login/v2": "/login",
     "/contractor/jobs": "/hrm/contractors/jobs",
     "/contractor/jobs/payments": "/hrm/contractors/jobs/payments",
     "/community/invoices": "/community/unit-invoices",
@@ -22,8 +22,8 @@ const exactRedirectMaps = {
     "community-settings/builders": "/community/builders",
     "/hrm/employees": "/hrm/employees/v2",
     "/payments": "/jobs-dashboard/payments",
-    "/production/dashboard": "/production/dashboard/v2",
-    "/sales-book/production-tasks": "/production/dashboard/v2",
+    "/production/dashboard/v2": "/production/dashboard",
+    "/sales-book/production-tasks": "/production/dashboard",
     "/settings/community/builders": "/community/builders",
 } as const;
 const dynamicRedirectMaps = {

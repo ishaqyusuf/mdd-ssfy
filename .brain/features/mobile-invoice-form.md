@@ -39,6 +39,11 @@ Tracks the Expo mobile invoice/quote form under `apps/mobile/src/features/sales/
   decimal-safe money helpers. Shelf and grouped line totals remain
   authoritative; two-decimal average rates are display-only and carry
   `rateRoundingAdjustment` metadata when they cannot recompose the row sum.
+- The read-only mobile order/quote Financial ledger consumes the Sales Overview
+  grouped payment `costLines`. Money rows remain currency-formatted; a domain-
+  supplied `format: count` row renders as a plain number and exists only for a
+  method used more than once. Mobile does not recreate method aliases or count
+  labels locally.
 
 ## Mobile Step Editors
 

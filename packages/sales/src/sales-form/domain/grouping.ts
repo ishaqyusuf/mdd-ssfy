@@ -132,6 +132,7 @@ function summarizeMouldingRows(rows: Array<Record<string, any>>) {
       uid: String(row.uid || "").trim() || `legacy-moulding-row-${index + 1}`,
       title: String(row.title || row.description || "Moulding").trim(),
       description: String(row.description || row.title || "Moulding").trim(),
+      img: row.img == null ? null : String(row.img),
       qty,
       addon,
       customPrice,
@@ -275,6 +276,7 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
             hpt?.molding?.title ||
             "Moulding",
         ).trim(),
+        img: hpt?.stepProduct?.img || hpt?.molding?.img || null,
         qty: Number(item?.qty || 0),
         addon: Number(mouldingTag.addon || 0),
         customPrice:
@@ -314,7 +316,7 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
                 id: row.stepProductId ?? null,
                 uid: row.uid,
                 title: row.title,
-                img: null,
+                img: row.img || null,
                 inventoryId: null,
                 inventoryVariantId: null,
                 salesPrice: row.salesPrice,

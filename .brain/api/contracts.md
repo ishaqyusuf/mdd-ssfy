@@ -1,5 +1,16 @@
 # API Contracts
 
+## Fulfillment Calendar Contract (2026-08-21)
+
+- `dispatch.fulfillmentCalendar({ from, to })` accepts real `YYYY-MM-DD` dates,
+  requires `to >= from`, and caps requests at 46 inclusive days so both a week
+  and a six-week month grid remain bounded.
+- Results contain active dispatches only (`queue`, `packing queue`, `missing
+  items`, `packed`, and `in progress`), split into `scheduled` rows within the
+  requested inclusive range and `unscheduled` rows with no due date.
+- The projection is read-only and does not replace the accepted list, sheet,
+  packing, assignment, status, proof, or v2 calendar contracts.
+
 ## Mark Sales Order Fulfilled Contract (2026-08-20)
 
 - `inventories.salesInventoryMarkAsPreflight`,
@@ -591,16 +602,35 @@ Tracks important request/response contracts and shared schema boundaries.
   - canonical `tab: "queue" | "reviews" | "completed"` work state and
     `view: "table" | "calendar"` presentation state; legacy
     `tab: "calendar"` normalizes to the Active calendar view
+  - production calendar presentation also owns
+    `calendarView: "week" | "month"` and validated
+    `calendarDate: "YYYY-MM-DD"` URL state
   - `queue`, `due`, `material`, and `sort` workspace filters mapped by the
     shared `@gnd/sales/production-workspace-query` resolver to the existing
     production list input
-  - `show: "due-today" | "due-tomorrow" | "past-due"` for alert-focused list slices; combined due views retain the canonical search, queue, material, sort, and cursor inputs
+  - `show: "due-today" | "due-tomorrow" | "past-due" | "future" | "unscheduled"` for focused list slices; `future` means incomplete assignments due from tomorrow forward, `unscheduled` means incomplete assignments whose due date is null, and combined views retain the canonical search, queue, material, sort, and cursor inputs
   - `date` and `productionDueDate` accept real ISO `YYYY-MM-DD` values only; invalid legacy URL values normalize away before calendar rendering
   - `sales.productionSummary` returns the canonical page's bounded queue, completed, assignment, due, and review counts without loading alert rows or calendar data
   - legacy `sales.productionDashboard` retains `summary`, `alerts`, `calendar`, and `spotlight` buckets for remaining legacy consumers
-  - `sales.productionCalendar({ from, to, q?, assignedToId?, priority? })` for
-    bounded month aggregates; the selected-day agenda reuses
-    `sales.productions` with `productionDueDate` and a bounded page size
+  - `sales.productionDashboardTasks(input?)` ignores caller worker scope and
+    returns the legacy summary/alerts/calendar/spotlight projection for the
+    authenticated worker; `sales.productionTasks` applies the same rule to list
+    rows. Its worker summary exposes `dueTodayCount`, `unscheduledCount`,
+    `pastDueCount`, `futureCount`, and `completedCount`; Completed is calculated
+    with the same authenticated assignment-level completion semantics as the
+    worker list.
+  - worker `production=completed` list pages evaluate completion against the
+    authenticated worker's filtered assignments, including finalized
+    submission quantity, instead of requiring global order completion
+  - `sales.productionCalendar({ from, to, q?, assignedToId?, priority? })`
+    returns `days` and `scheduled` for a bounded Week/Month range. Calendar rows
+    include order/customer/priority/assignee/status data, collapse same-order/day
+    assignments into one card with `assignmentCount`, and cap the raw scheduled
+    assignment read at 1,500. Undated work is queried through `sales.productions`
+    or `sales.productionTasks` with `show=unscheduled`.
+  - `sales.productionCalendarTasks({ from, to, q?, priority? })` returns the
+    same calendar shape but ignores caller assignee scope and injects the
+    authenticated worker id.
   - material review queue pages apply `q` on the server, return `nextCursor`,
     and include the filtered `total` used by the Review badge
 - Customer v2 contracts now include:
@@ -1411,6 +1441,98 @@ implementation phase is approved and released.
   Ambiguous or repeated nested IDs fail before writes, and an approved JSON
   adjustment that was never projected into relations blocks save for review.
 
+## Square Sales Refund contract (2026-08-21)
+
+- Refund commands accept a local canonical tender id, never a caller-supplied
+  Square Payment id. The server verifies provider identity, completed status,
+  USD currency, age, amount, refund count, and eligible Sales Order links.
+- All money uses integer cents. Principal allocations plus payment-level C.C.C.
+  and tip allocations must equal the requested/provider refund amount exactly.
+- One immutable intent owns one persisted provider-safe idempotency key.
+  Pending and not-submitted intents reserve capacity; completed refunds consume
+  capacity; failed/rejected intents release it.
+- Only Square `COMPLETED` authorizes local application. Provider and application
+  states can diverge temporarily, and `completed + apply_failed` remains a
+  retryable Finance exception.
+- External refunds are ingested idempotently but cannot change Sales balances
+  until their exact eligible-order allocation is supplied.
+- Completion preserves original invoice totals and operational status while
+  updating paid/due projections, compatibility activity, documents, and
+  idempotent notifications.
+
+## Grouped Sales Payment Summary contract (2026-08-21)
+
+- `sales.getSaleOverview` adds `paymentSummary`, containing cents-based overall
+  totals and ordered canonical method groups for successful positive receipts.
+- Group totals distinguish principal, exact recorded customer C.C.C., tip, and
+  customer charged. Missing historical charge evidence is omitted, never
+  estimated as a completed charge.
+- Existing `costLines` remain additive-compatible but their paid-payment rows
+  are generated from the same domain presentation adapter. Count rows carry
+  `format: "count"`; money remains the default format.
+- Receipt counts use stable transaction/provider/Square/Sales Payment identity
+  and are emitted only above one. Refund compatibility, deleted, non-success,
+  and non-positive rows are excluded.
+- This read model changes no payment/refund mutation, balance, receivables, or
+  audit-ledger contract.
+
+## Sales Overview financial breakdown contract (2026-08-21)
+
+- `sales.getSaleOverview` adds `financialBreakdown` as an additive General V2
+  read model. It contains integer-cent invoice facts (`subtotal`, adjustments,
+  taxes, total, paid, and balance), canonical grouped payment facts, and an
+  optional pending-card estimate. Existing `paymentSummary` and `costLines`
+  remain available for V1 and compatibility consumers.
+- Completed settlement facts use only successful positive payment evidence.
+  Recorded C.C.C., tip, and customer-charged totals are never inferred when
+  historical evidence is absent. When canonical net paid is below grouped gross
+  receipts after a completed refund, `invoice.refundedCents` exposes the
+  difference so presentation can render gross received, Refunded, and Net paid
+  without changing the payment/refund ledger.
+- When the currently selected method applies a card charge and an order retains
+  a positive balance, the breakdown may include a remaining-balance estimate
+  even when prior payment groups exist. The estimate is explicitly separate
+  from recorded settlement and does not alter the canonical amount due.
+- Quote breakdowns omit payment groups, paid facts, pending-card estimates, and
+  payment actions. No payment, refund, receivable, or database mutation
+  contract changes with this read model.
+- General V2's narrow projection includes at most one active delivery summary
+  (`id`, mode, Fulfillment date, and status) so the collapsed Order details row
+  is accurate without an eager `dispatch.salesDeliveryInfo` request. Detailed
+  delivery reads and updates retain the dispatch-manager permission boundary.
+
+## Sales Overview General rollout contract (2026-08-21)
+
+- `sales-settings.meta.salesOverviewView` stores
+  `{ officeDefault: "v1" | "v2", superAdminPreview: "inherit" | "v1" | "v2" }`.
+  Missing or malformed values normalize to office V1 and Super Admin V2.
+- `sales.getSaleOverview` returns a caller-resolved
+  `generalViewVersion: "v1" | "v2"`. Active Super Admin callers use the preview
+  choice unless it is `inherit`; every other caller uses the office default.
+- Ordinary overview callers never receive the complete management policy.
+  Management reads and writes use dedicated protected procedures.
+- Reading rollout settings is side-effect-free. The Settings row is created
+  only by the management mutation, and writes preserve unrelated metadata in
+  the shared `sales-settings` record.
+- The canonical Sales Overview route, sheet, query params, tab registry, and
+  secondary-pane contract are unchanged. Only the General renderer is gated;
+  V2 is dynamically loaded and all non-General tabs keep their current data and
+  UI contracts.
+- The V2 renderer consumes the existing overview DTO through a conditional
+  server-side projection. It excludes Product/configuration rows, Sales Profile,
+  delivery-item counts, and legacy control enrichment, while retaining the
+  identity/header/actions, customer/addresses, P.O., sales rep, Special Order,
+  payment/provider/C.C.C., status, inventory ownership, and document-readiness
+  evidence General requires. V1 continues through the compatibility projection.
+- Both projections remain behind `sales.getSaleOverview`; the client still
+  performs one overview request and uses one provider. The narrower selection
+  was promoted only after a repeatable two-order benchmark reduced 24–25
+  queries to 14–15 and warm medians from 14.5–15.3 ms to 8.7–10.0 ms.
+- Projection selection is centralized in a typed versioned loader. It changes
+  database relation loading, not the logical overview response contract.
+  Read-only parity checks on `09397LM` and `09388PC` matched all 34 fields
+  consumed by General V2 between the compatibility and narrow loaders.
+
 ## Filter option presentation metadata (2026-08-21)
 
 - Existing filter procedures may add optional `color` and `subLabel` metadata
@@ -1424,3 +1546,21 @@ implementation phase is approved and released.
   phone, order number, and sales rep remain uncolored.
 - Dashboard and Dealership treat color as decorative supplementary metadata;
   text labels and checkbox state remain the accessible source of meaning.
+
+## `sales.getOrders` read-model compatibility contract (2026-08-21)
+
+- The projection changes query execution only; field names, lifecycle labels,
+  inventory/inbound evidence, Special Order state, payment-review display, and
+  permission/filter semantics must remain compatible with the legacy result.
+- Shadow telemetry contains order ids and mismatch ids only, never customer,
+  address, payment, or order payload data.
+- A projected page is eligible only when every selected id has a `ready` row on
+  the current projection version, its source revision matches the canonical
+  order, and it is inside the configured freshness window. Eligibility is
+  all-or-nothing per page.
+- `paymentReview=needs_review` is explicitly excluded from projection reads
+  until its distinct-payment grouping and latest-payment sort have independent
+  parity evidence.
+- The Trigger refresh contract accepts ids and revisions only, reloads canonical
+  data, and skips stale revisions. Projection errors never mutate canonical
+  sales state and always preserve the synchronous legacy fallback.

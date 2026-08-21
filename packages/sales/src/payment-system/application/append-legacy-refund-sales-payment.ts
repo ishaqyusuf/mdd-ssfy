@@ -90,26 +90,26 @@ export async function appendLegacyRefundSalesPayment(
 			walletId: transaction.wallet?.id,
 		});
 	}
-	const events =
-		salesPayment?.order?.salesRep?.id != null
-			? [
-					buildSalesPaymentRefundedNotificationEvent({
-						amount: input.refundAmount,
-						reason: input.reason,
-						seed: {
-							customerId: salesPayment.order.customerId,
-							customerName:
-								salesPayment.order.customer?.businessName ||
-								salesPayment.order.customer?.name ||
-								salesPayment.order.billingAddress?.name ||
-								undefined,
-							orderNo: salesPayment.order.orderId,
-							salesRepEmail: salesPayment.order.salesRep.email,
-							salesRepId: salesPayment.order.salesRep.id,
-						},
-					}),
-				]
-			: [];
+	const events = salesPayment?.order
+		? [
+				buildSalesPaymentRefundedNotificationEvent({
+					amount: input.refundAmount,
+					reason: input.reason,
+					seed: {
+						salesId: input.orderId,
+						customerId: salesPayment.order.customerId,
+						customerName:
+							salesPayment.order.customer?.businessName ||
+							salesPayment.order.customer?.name ||
+							salesPayment.order.billingAddress?.name ||
+							undefined,
+						orderNo: salesPayment.order.orderId,
+						salesRepEmail: salesPayment.order.salesRep?.email,
+						salesRepId: salesPayment.order.salesRep?.id,
+					},
+				}),
+			]
+		: [];
 	return {
 		...transaction,
 		events,

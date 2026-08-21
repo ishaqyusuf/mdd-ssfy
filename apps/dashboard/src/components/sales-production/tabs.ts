@@ -1,14 +1,18 @@
 import type { PageTabItem } from "@/components/page-tabs";
 
 type SalesProductionTabCounts = {
+	queueCount: number;
 	dueTodayCount: number;
+	unscheduledCount: number;
 	pastDueCount: number;
 	awaitingReviewCount: number;
 	completedCount: number;
 };
 
 export function createSalesProductionPageTabs({
+	queueCount,
 	dueTodayCount,
+	unscheduledCount,
 	pastDueCount,
 	awaitingReviewCount,
 	completedCount,
@@ -27,6 +31,62 @@ export function createSalesProductionPageTabs({
 				productionDueDate: null,
 				show: null,
 				label: null,
+				calendarView: null,
+				calendarDate: null,
+			},
+		},
+		{
+			title: "Calendar",
+			params: {
+				tab: "calendar",
+				view: "calendar",
+				queue: null,
+				due: null,
+				date: null,
+				material: null,
+				sort: null,
+				production: null,
+				productionDueDate: null,
+				show: null,
+				label: null,
+			},
+		},
+		{
+			title: "Unscheduled",
+			count: unscheduledCount,
+			params: {
+				tab: "queue",
+				view: "table",
+				queue: null,
+				due: "unscheduled",
+				date: null,
+				material: null,
+				sort: null,
+				production: null,
+				productionDueDate: null,
+				show: null,
+				label: null,
+				calendarView: null,
+				calendarDate: null,
+			},
+		},
+		{
+			title: "Active",
+			count: queueCount,
+			params: {
+				tab: "queue",
+				view: "table",
+				queue: null,
+				due: null,
+				date: null,
+				material: null,
+				sort: null,
+				production: null,
+				productionDueDate: null,
+				show: null,
+				label: null,
+				calendarView: null,
+				calendarDate: null,
 			},
 		},
 		{
@@ -42,6 +102,8 @@ export function createSalesProductionPageTabs({
 				productionDueDate: null,
 				show: null,
 				label: null,
+				calendarView: null,
+				calendarDate: null,
 			},
 		},
 		{
@@ -61,6 +123,8 @@ export function createSalesProductionPageTabs({
 				productionDueDate: null,
 				show: null,
 				label: null,
+				calendarView: null,
+				calendarDate: null,
 			},
 		},
 		{
@@ -76,6 +140,8 @@ export function createSalesProductionPageTabs({
 				productionDueDate: null,
 				show: null,
 				label: null,
+				calendarView: null,
+				calendarDate: null,
 			},
 		},
 	];

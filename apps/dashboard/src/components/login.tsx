@@ -19,10 +19,10 @@ import {
 	FormMessage,
 } from "@gnd/ui/form";
 
+import { sendEmailLoginLink } from "@/app-deps/(v1)/_actions/auth";
 import { Env } from "@/components/env";
 import QuickLogin from "@/components/quick-login";
 import { SubmitButton } from "@/components/submit-button";
-import { sendEmailLoginLink } from "@/app-deps/(v1)/_actions/auth";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { Icons } from "@gnd/ui/icons";
@@ -42,7 +42,7 @@ type LoginErrorInfo = {
 	details?: string;
 };
 
-export function LoginV2() {
+export function Login() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { data: session } = useSession();
@@ -337,12 +337,10 @@ export function LoginV2() {
 													</FormControl>
 													<FormMessage />
 												</FormItem>
-												)}
+											)}
 										/>
 
-										{loginError ? (
-											<LoginErrorAlert error={loginError} />
-										) : null}
+										{loginError ? <LoginErrorAlert error={loginError} /> : null}
 
 										<SubmitButton
 											type="submit"

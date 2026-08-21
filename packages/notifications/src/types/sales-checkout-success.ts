@@ -1,53 +1,54 @@
 import type { NotificationHandler } from "../base";
 import {
-  type SalesCheckoutSuccessInput,
-  type SalesCheckoutSuccessTags,
-  salesCheckoutSuccessSchema,
+	type SalesCheckoutSuccessInput,
+	type SalesCheckoutSuccessTags,
+	salesCheckoutSuccessSchema,
 } from "../schemas";
 
 export const salesCheckoutSuccess: NotificationHandler = {
-  schema: salesCheckoutSuccessSchema,
-  createActivity(data: SalesCheckoutSuccessInput, author, user) {
-    const orderLabel =
-      data.orderNos.length === 1
-        ? `order ${data.orderNos[0]}`
-        : `${data.orderNos.length} orders`;
-    const payload: SalesCheckoutSuccessTags = {
-      type: "sales_checkout_success",
-      source: "system",
-      priority: 3,
-      orderNos: data.orderNos,
-      customerName: data.customerName,
-      totalAmount: data.totalAmount,
-    };
+	schema: salesCheckoutSuccessSchema,
+	createActivityWithoutContact: true,
+	createActivity(data: SalesCheckoutSuccessInput, author, user) {
+		const orderLabel =
+			data.orderNos.length === 1
+				? `order ${data.orderNos[0]}`
+				: `${data.orderNos.length} orders`;
+		const payload: SalesCheckoutSuccessTags = {
+			type: "sales_checkout_success",
+			source: "system",
+			priority: 3,
+			orderNos: data.orderNos,
+			customerName: data.customerName,
+			totalAmount: data.totalAmount,
+		};
 
-    return {
-      type: "sales_checkout_success",
-      source: "system",
-      subject: "Payment received",
-      headline: data.customerName
-        ? `${data.customerName} completed payment for ${orderLabel}.`
-        : `Payment received for ${orderLabel}.`,
-      note:
-        typeof data.totalAmount === "number"
-          ? `Total received: $${data.totalAmount.toFixed(2)}`
-          : undefined,
-      authorId: author.id,
-      tags: payload,
-    };
-  },
-  createEmail(data: SalesCheckoutSuccessInput, author, user, args) {
-    return {
-      ...args,
-      template: "sales-rep-online-payment-received",
-      to: [user.email],
-      subject: `Payment Received - Order${data.orderNos.length > 1 ? "s" : ""} #${data.orderNos.join(", ")}`,
-      data: {
-        ordersNo: data.orderNos,
-        amount: data.totalAmount ?? 0,
-        repName: user.name,
-        customerName: data.customerName ?? "",
-      },
-    };
-  },
+		return {
+			type: "sales_checkout_success",
+			source: "system",
+			subject: "Payment received",
+			headline: data.customerName
+				? `${data.customerName} completed payment for ${orderLabel}.`
+				: `Payment received for ${orderLabel}.`,
+			note:
+				typeof data.totalAmount === "number"
+					? `Total received: $${data.totalAmount.toFixed(2)}`
+					: undefined,
+			authorId: author.id,
+			tags: payload,
+		};
+	},
+	createEmail(data: SalesCheckoutSuccessInput, author, user, args) {
+		return {
+			...args,
+			template: "sales-rep-online-payment-received",
+			to: [user.email],
+			subject: `Payment Received - Order${data.orderNos.length > 1 ? "s" : ""} #${data.orderNos.join(", ")}`,
+			data: {
+				ordersNo: data.orderNos,
+				amount: data.totalAmount ?? 0,
+				repName: user.name,
+				customerName: data.customerName ?? "",
+			},
+		};
+	},
 };

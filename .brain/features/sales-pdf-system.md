@@ -18,7 +18,16 @@ column. This keeps invoice and quote generation compatible while additive
 dealership schema changes are being rolled out and prevents unrelated
 client/schema drift from breaking sales documents.
 
-The print data layer owns C.C.C/payment footer semantics. `composeFooter` and `composeMeta` use a shared payment footer state helper. Customer-facing print footers use a compact summary: unpaid card estimates show `Order Due Amount`, `Estimated Card Fee`, and `Total if Paying by Card`; paid and partially paid records show `Order Total`, optional aggregated `Card Fees`, `Total Paid`, and principal-only `Balance Due`. `Total Paid` combines principal applied to the order with only safely matched recorded card fees; it never infers historical fees from the selected payment method. HTML preview and both PDF templates render the shared `PrintPage` payload and do not calculate payment totals themselves. Internal sales overview `costLines` retain their detailed accounting labels and continue to use the shared payment state helper.
+The print data layer owns C.C.C/payment footer semantics. `composeFooter` and
+`composeMeta` use the shared payment footer state plus the canonical
+payment-summary domain projection. Unpaid card estimates show `Order Due
+Amount`, `Estimated Card Fee`, and `Total if Paying by Card`. Paid and partially
+paid documents show `Order Total`, `Paid Toward Order`, one principal/C.C.C./tip/
+customer-charge group per canonical method, a payment count only above one, and
+principal-only `Balance Due`. Historical C.C.C. is never inferred without exact
+recorded evidence. HTML preview and both PDF templates render the same
+`PrintPage` payload and perform no payment math. Sales Overview compatibility
+`costLines` are generated from the same presentation-line adapter.
 
 New-form `Delivery` and `Labor` extra costs are canonical footer rows. Their
 legacy metadata projections (`deliveryCost` and `labor_cost`) remain printable
@@ -379,3 +388,12 @@ The stored-document phase should answer these operational rules explicitly:
   `itemIndex` as authoritative, before legacy `lineIndex` aliases. HTML preview
   and PDF rendering share this composer, so both follow the saved form sequence
   even when an older line index remains on the item.
+- 2026-08-21: The HTML sales-preview totals footer uses a wrapping flex layout
+  with a `320px` totals card, `100%` narrow-page cap, and wider horizontal row
+  padding. This gives invoice totals more breathing room on desktop while
+  preserving narrow-preview containment; the PDF renderer remains unchanged.
+- 2026-08-21: Sales document address composition now preserves Address Line 2
+  as its own line instead of treating it as a fallback for Address Line 1.
+  Delivery details stored there, including gate codes, render in both HTML
+  preview and PDF output. Immutable Special Order document snapshots follow the
+  same rule.

@@ -88,6 +88,7 @@
 		"./payment-system/money": "./src/payment-system/domain/money.ts",
 		"./payment-system/payment-channel-charge": "./src/payment-system/domain/payment-channel-charge.ts",
 		"./payment-system/contracts": "./src/payment-system/contracts/index.ts",
+		"./payment-system/refunds": "./src/payment-system/refunds/index.ts",
 		"./pdf-system": "./src/pdf-system/index.ts",
 		"./resolution-system": "./src/resolution-system/index.ts",
 		"./print/types": "./src/print/types.ts",

@@ -21,7 +21,7 @@ export function fetchFreshTerminalPaymentStatus<
 
 export function getCompletedTerminalSaleReferences(
 	formSales: { id: number; selected: boolean }[],
-	pendingSales: { id: number; orderId: string }[],
+	pendingSales: { id?: number | null; orderId?: string | null }[],
 ) {
 	const salesIds = formSales
 		.filter((sale) => sale.selected)
@@ -30,8 +30,12 @@ export function getCompletedTerminalSaleReferences(
 
 	return {
 		salesIds,
-		orderNos: pendingSales
-			.filter((sale) => selectedSalesIds.has(sale.id))
-			.map((sale) => sale.orderId),
+		orderNos: pendingSales.flatMap((sale) =>
+			typeof sale.id === "number" &&
+			sale.orderId &&
+			selectedSalesIds.has(sale.id)
+				? [sale.orderId]
+				: [],
+		),
 	};
 }

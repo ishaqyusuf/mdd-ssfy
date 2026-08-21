@@ -44,6 +44,7 @@ export const salesFormPaymentMethods = [
 	"ACH",
 	"Link",
 	"Wire Transfer",
+	"Zelle",
 ];
 
 export function normalizeSalesFormPaymentTerm(

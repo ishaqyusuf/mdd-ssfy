@@ -45,6 +45,7 @@ export interface ComboboxProps<T> {
   headless?: boolean;
   noSearch?: boolean;
   className?: string;
+  triggerClassName?: string;
   listClassName?: string;
   pageSize?: number;
   valueKey?: string;
@@ -76,6 +77,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   disabled,
   onCreate,
   className,
+  triggerClassName,
   listClassName,
   pageSize = 20,
   onSearch,
@@ -321,7 +323,11 @@ export function ComboboxDropdown<T extends ComboboxItem>({
       }}
       modal
     >
-      <PopoverTrigger asChild disabled={disabled} className="w-full">
+      <PopoverTrigger
+        asChild
+        disabled={disabled}
+        className={cn("w-full", triggerClassName)}
+      >
         {trigger}
       </PopoverTrigger>
 

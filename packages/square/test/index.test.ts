@@ -17,7 +17,7 @@ describe("Square runtime environment", () => {
 		);
 	});
 
-	it("keeps local development in sandbox unless explicitly overridden", () => {
+	it("keeps local development in sandbox even with a stale production override", () => {
 		expect(isProductionSquareEnvironment({ NODE_ENV: "development" })).toBe(
 			false,
 		);
@@ -26,7 +26,7 @@ describe("Square runtime environment", () => {
 				NODE_ENV: "development",
 				SQUARE_FORCE_PRODUCTION: "true",
 			}),
-		).toBe(true);
+		).toBe(false);
 	});
 
 	it("uses Square's successful simulated terminal for sandbox checkout", () => {

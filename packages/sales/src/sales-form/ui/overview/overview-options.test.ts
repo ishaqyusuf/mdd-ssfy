@@ -7,10 +7,15 @@ import {
 	normalizeSalesFormTaxOptions,
 	resolveSalesFormProfilePaymentTerm,
 	resolveSalesFormTaxRateByCode,
+	salesFormPaymentMethods,
 } from "./overview-options";
 import { hasSalesFormSummaryDrift } from "./overview-summary";
 
 describe("sales form overview options", () => {
+	it("includes Zelle in the shared sales-form payment methods", () => {
+		expect(salesFormPaymentMethods).toContain("Zelle");
+	});
+
 	it("selects tier 1 as the default customer profile", () => {
 		const profile = getDefaultSalesFormCustomerProfile([
 			{ id: 1, title: "Retail" },

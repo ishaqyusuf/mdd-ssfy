@@ -4,6 +4,7 @@ import {
 	exportDispatches,
 	findDuplicateDispatchGroups,
 	getDeletedDispatches,
+	getFulfillmentCalendar,
 	getDispatchOverview,
 	getDispatchOverviewV2,
 	getDispatchSummary,
@@ -51,6 +52,7 @@ import { auth } from "@api/db/queries/user";
 import {
 	dispatchBacklogSchema,
 	dispatchExceptionListSchema,
+	fulfillmentCalendarSchema,
 	dispatchWorkspaceDetailSchema,
 	dispatchWorkspaceListSchema,
 	reportDispatchExceptionSchema,
@@ -265,6 +267,12 @@ export const dispatchRouters = createTRPCRouter({
 			await requireDispatchManager(props.ctx);
 			const { section: _section, ...input } = props.input;
 			return getDispatches(props.ctx, input);
+		}),
+	fulfillmentCalendar: protectedProcedure
+		.input(fulfillmentCalendarSchema)
+		.query(async (props) => {
+			await requireDispatchManager(props.ctx);
+			return getFulfillmentCalendar(props.ctx, props.input);
 		}),
 	driverWorkload: protectedProcedure.query(async (props) => {
 		await requireDispatchManager(props.ctx);

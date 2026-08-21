@@ -1,7 +1,9 @@
 import {
+	type SalesFormDeliveryOption,
 	type SalesFormEditorState,
 	type SalesFormSaveStatus,
 	type SalesFormState,
+	type SetSalesFormDeliveryOptionOptions,
 	addSalesFormLineItem,
 	clearSalesFormDirty,
 	createInitialSalesFormState,
@@ -17,6 +19,7 @@ import {
 	removeSalesFormLineItem,
 	restoreSalesFormLocalDraft,
 	setSalesFormCustomerProfileMeta,
+	setSalesFormDeliveryOption,
 	setSalesFormEditorState,
 	setSalesFormExtraCosts,
 	setSalesFormLineItems,
@@ -46,6 +49,10 @@ type NewSalesFormActions = {
 	hydrate: (record: NewSalesFormRecord) => void;
 	restoreLocalDraft: (record: NewSalesFormRecord) => void;
 	setMeta: (patch: Partial<NewSalesFormMeta>) => void;
+	setDeliveryOption: (
+		deliveryOption: SalesFormDeliveryOption,
+		options?: SetSalesFormDeliveryOptionOptions,
+	) => void;
 	setCustomerProfileMeta: (
 		patch: Partial<NewSalesFormMeta>,
 		previousProfileCoefficient?: number | null,
@@ -107,6 +114,12 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 		),
 	setMeta: (patch) =>
 		set(applySalesFormState((state) => setSalesFormMeta(state, patch))),
+	setDeliveryOption: (deliveryOption, options) =>
+		set(
+			applySalesFormState((state) =>
+				setSalesFormDeliveryOption(state, deliveryOption, options),
+			),
+		),
 	setCustomerProfileMeta: (
 		patch,
 		previousProfileCoefficient,

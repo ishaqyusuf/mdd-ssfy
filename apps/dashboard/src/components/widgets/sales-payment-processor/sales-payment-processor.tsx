@@ -30,11 +30,13 @@ import React, {
 	Suspense,
 	useCallback,
 	useEffect,
+	useId,
 	useMemo,
 	useRef,
 	useState,
 	useTransition,
 } from "react";
+import { createPortal } from "react-dom";
 import {
 	type FieldErrors,
 	useController,
@@ -104,10 +106,32 @@ export function SalesPaymentProcessor(props: SalesPaymentProcessorProps) {
 			</Dialog.Trigger>
 			<Dialog.Content className="max-h-[90vh] w-[min(94vw,560px)] gap-0 overflow-hidden p-0">
 				<Suspense fallback={<PaymentProcessorSkeleton />}>
-					<Content setOpened={setOpened} {...props} />
+					<Content presentation="dialog" setOpened={setOpened} {...props} />
 				</Suspense>
 			</Dialog.Content>
 		</Dialog.Root>
+	);
+}
+
+export function SalesPaymentProcessorContent({
+	footerTarget,
+	onClose,
+	...props
+}: SalesPaymentProcessorProps & {
+	footerTarget?: HTMLElement | null;
+	onClose: () => void;
+}) {
+	return (
+		<Suspense fallback={<PaymentProcessorSkeleton />}>
+			<Content
+				{...props}
+				footerTarget={footerTarget}
+				presentation="sheet"
+				setOpened={(open) => {
+					if (!open) onClose();
+				}}
+			/>
+		</Suspense>
 	);
 }
 
@@ -138,8 +162,16 @@ function resolveCccPercentageFromSales(sales: Array<{ meta?: unknown }>) {
 	return 3.5;
 }
 
-function Content(props: SalesPaymentProcessorProps & { setOpened }) {
-	const { selectedIds, setOpened } = props;
+function Content(
+	props: SalesPaymentProcessorProps & {
+		footerTarget?: HTMLElement | null;
+		presentation: "dialog" | "sheet";
+		setOpened: (open: boolean) => void;
+	},
+) {
+	const { presentation, selectedIds, setOpened } = props;
+	const isSheet = presentation === "sheet";
+	const formId = useId();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const salesPrint = useSalesPrintController();
@@ -935,49 +967,282 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			variant: "destructive",
 		});
 	};
+	const paymentActions = (
+		<div
+			className={cn(
+				"flex w-full min-w-0 gap-3",
+				isSheet
+					? "flex-col sm:flex-row sm:items-center"
+					: "sticky bottom-0 z-20 -mx-6 items-center border-t bg-background/95 px-6 py-4 shadow-[0_-8px_20px_rgba(15,23,42,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85",
+			)}
+		>
+			{hasActiveTerminalCheckout ? (
+				<>
+					<Spinner />
+					<Label className="text-sm text-muted-foreground">
+						Waiting for payment...
+					</Label>
+					<div className="flex-1" />
+					<Env isDev>
+						<div className="flex gap-2">
+							<Button
+								type="button"
+								onClick={() => setMockStatus("CANCELED")}
+								size="icon"
+								variant="destructive"
+							>
+								<Icons.X className="size-4" />
+							</Button>
+							<Button
+								type="button"
+								size="icon"
+								onClick={() => setMockStatus("COMPLETED")}
+							>
+								<Icons.check className="size-4" />
+							</Button>
+						</div>
+					</Env>
+					<Button
+						type="button"
+						onClick={__cancel}
+						size="icon"
+						variant="destructive"
+					>
+						<Icons.X className="size-4" />
+					</Button>
+				</>
+			) : (
+				<>
+					<div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+						<Field>
+							<Field.Content>
+								<Select.Root
+									value={effectivePaymentMethod || undefined}
+									disabled={payFullWithWallet}
+									onValueChange={(value) => {
+										form.setValue(
+											"paymentMethod",
+											value as z.infer<typeof formSchema>["paymentMethod"],
+											{
+												shouldDirty: true,
+												shouldValidate: true,
+											},
+										);
+										if (value !== "terminal") {
+											form.clearErrors("deviceId");
+											form.setValue("terminalPaymentSession", null);
+											setTerminalError(null);
+											setTerminalState("form");
+											hasSubmittedCompletedTerminalRef.current = false;
+										}
+									}}
+								>
+									<Select.Trigger className="w-full">
+										<Select.Value placeholder="Payment Method" />
+									</Select.Trigger>
+									<Select.Content>
+										{paymentMethodOptions.map((option) => (
+											<Select.Item key={option.value} value={option.value}>
+												{option.label}
+											</Select.Item>
+										))}
+									</Select.Content>
+								</Select.Root>
+							</Field.Content>
+						</Field>
+						{effectivePaymentMethod === "check" ? (
+							<InputGroup>
+								<InputGroup.Addon align="inline-start">
+									<InputGroup.Text>Check No:</InputGroup.Text>
+								</InputGroup.Addon>
+								<InputGroup.Input
+									className="!pl-1"
+									{...form.register("checkNo")}
+									placeholder="eg., 12345"
+								/>
+							</InputGroup>
+						) : effectivePaymentMethod === "terminal" ? (
+							<Field data-invalid={terminalDeviceFieldState.invalid}>
+								<Field.Content>
+									<Select.Root
+										name={terminalDeviceField.name}
+										value={terminalDeviceField.value || undefined}
+										onValueChange={(value) => {
+											terminalDeviceField.onChange(value);
+											const terminal = resolveAvailablePaymentTerminal(
+												data.terminals,
+												value,
+											);
+											form.setValue("deviceName", terminal?.label || null, {
+												shouldDirty: true,
+											});
+										}}
+									>
+										<Select.Trigger
+											className="w-full"
+											id="terminal-device"
+											aria-invalid={terminalDeviceFieldState.invalid}
+											onBlur={terminalDeviceField.onBlur}
+										>
+											<Select.Value placeholder="Select Terminal" />
+										</Select.Trigger>
+										<Select.Content>
+											{data?.terminals?.map((terminal) => (
+												<Select.Item
+													disabled={!isAvailablePaymentTerminal(terminal)}
+													key={terminal?.value || terminal?.label}
+													value={terminal?.value}
+												>
+													{terminal.label}
+													{isAvailablePaymentTerminal(terminal)
+														? ""
+														: " (offline)"}
+												</Select.Item>
+											))}
+										</Select.Content>
+									</Select.Root>
+									{terminalDeviceFieldState.invalid ? (
+										<Field.Error errors={[terminalDeviceFieldState.error]} />
+									) : terminalLoadError ? (
+										<Field.Error>{terminalLoadError}</Field.Error>
+									) : availableTerminals.length > 1 && !deviceId ? (
+										<Field.Description>
+											Choose the terminal beside you.
+										</Field.Description>
+									) : availableTerminals.length === 0 ? (
+										<Field.Description>
+											No online Square terminals are available.
+										</Field.Description>
+									) : null}
+								</Field.Content>
+							</Field>
+						) : undefined}
+					</div>
+					{sendLink ? (
+						<Button
+							type="submit"
+							form={formId}
+							disabled={sendingLink || selectedSalesCount === 0}
+							className="w-full min-w-32 sm:w-auto"
+						>
+							{sendingLink ? (
+								<Spinner />
+							) : (
+								<>
+									<Icons.Email className="size-4" />
+									{submitLabel}
+								</>
+							)}
+						</Button>
+					) : (
+						<Button
+							type="submit"
+							form={formId}
+							disabled={
+								selectedSalesCount === 0 ||
+								(effectivePaymentMethod === "terminal" && !selectedTerminal) ||
+								makePayment.isPending ||
+								hasActiveTerminalCheckout
+							}
+							className="w-full min-w-36 sm:w-auto"
+						>
+							{makePayment.isPending || hasActiveTerminalCheckout ? (
+								<Spinner />
+							) : (
+								<>
+									{submitLabel}
+									<Icons.arrowRight className="size-4" />
+								</>
+							)}
+						</Button>
+					)}
+				</>
+			)}
+		</div>
+	);
 	return (
 		<Form {...form}>
 			<form
-				className="flex max-h-[90vh] flex-col"
-				onSubmit={form.handleSubmit((formData: z.infer<typeof formSchema>) => {
+				id={formId}
+				className={cn(
+					"flex w-full min-w-0 flex-col",
+					isSheet ? "min-h-0" : "max-h-[90vh]",
+				)}
+				onSubmit={form.handleSubmit((formData) => {
+					const paymentFormData = formSchema.parse(formData);
 					if (sendLink) {
-						sendPaymentLink(formData);
+						sendPaymentLink(paymentFormData);
 					} else {
-						initPayment(formData);
+						initPayment(paymentFormData);
 					}
 				}, handleInvalidPaymentForm)}
 			>
 				<div className="flex min-h-0 flex-col">
-					<div className="shrink-0 border-b bg-muted/30 px-6 py-5">
-						<Dialog.Header className="space-y-3">
-							<div className="flex items-start gap-3 pr-8">
-								<div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
-									<Icons.payment className="size-5" />
+					<div
+						className={cn(
+							"shrink-0 border-b bg-muted/30",
+							isSheet ? "py-4" : "px-6 py-5",
+						)}
+					>
+						{isSheet ? (
+							<div className="flex items-start gap-3">
+								<div className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+									<Icons.payment className="size-4" />
 								</div>
 								<div className="min-w-0 flex-1">
-									<Dialog.Title className="truncate text-base">
+									<p className="truncate text-sm font-semibold">
 										{listedSales[0]?.customerName || "Payment"}
-									</Dialog.Title>
-									<Dialog.Description className="mt-1">
+									</p>
+									<p className="mt-1 text-xs text-muted-foreground">
 										Account {data?.wallet?.accountNo || accountNo}
-									</Dialog.Description>
+									</p>
 								</div>
 								<div className="text-right">
-									<p className="text-xs font-medium uppercase text-muted-foreground">
+									<p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
 										Total due
 									</p>
-									<p className="mt-1 text-xl font-semibold tabular-nums">
+									<p className="mt-1 text-lg font-semibold tabular-nums">
 										{formatPaymentAmount(amount)}
 									</p>
 								</div>
 							</div>
-						</Dialog.Header>
+						) : (
+							<Dialog.Header className="space-y-3">
+								<div className="flex items-start gap-3 pr-8">
+									<div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+										<Icons.payment className="size-5" />
+									</div>
+									<div className="min-w-0 flex-1">
+										<Dialog.Title className="truncate text-base">
+											{listedSales[0]?.customerName || "Payment"}
+										</Dialog.Title>
+										<Dialog.Description className="mt-1">
+											Account {data?.wallet?.accountNo || accountNo}
+										</Dialog.Description>
+									</div>
+									<div className="text-right">
+										<p className="text-xs font-medium uppercase text-muted-foreground">
+											Total due
+										</p>
+										<p className="mt-1 text-xl font-semibold tabular-nums">
+											{formatPaymentAmount(amount)}
+										</p>
+									</div>
+								</div>
+							</Dialog.Header>
+						)}
 					</div>
 
-					<div className="relative min-h-0 flex-1 overflow-y-auto">
+					<div
+						className={cn(
+							"relative min-h-0 flex-1",
+							isSheet ? "overflow-visible" : "overflow-y-auto",
+						)}
+					>
 						<div
 							className={cn(
-								"grid gap-5 p-6 pb-0",
+								"grid gap-5 pb-0",
+								isSheet ? "pt-5" : "p-6",
 								isTerminalFlowActive && "invisible pointer-events-none",
 							)}
 						>
@@ -999,6 +1264,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 										searchPlaceholder="Search customer orders"
 										emptyResults="No more pending orders"
 										disabled={!availablePaymentSales.length}
+										triggerClassName="w-auto shrink-0"
 										popoverProps={{ align: "end" }}
 										Trigger={
 											<Button
@@ -1375,200 +1641,11 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 								)}
 							</section>
 
-							<div className="sticky bottom-0 z-20 -mx-6 flex items-center gap-3 border-t bg-background/95 px-6 py-4 shadow-[0_-8px_20px_rgba(15,23,42,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85">
-								{hasActiveTerminalCheckout ? (
-									<>
-										<Spinner />
-										<Label className="text-sm text-muted-foreground">
-											Waiting for payment...
-										</Label>
-										<div className="flex-1" />
-										<Env isDev>
-											<div className="flex gap-2">
-												<Button
-													type="button"
-													onClick={(e) => setMockStatus("CANCELED")}
-													size="icon"
-													variant="destructive"
-												>
-													<Icons.X className="size-4" />
-												</Button>
-												<Button
-													type="button"
-													size="icon"
-													onClick={(e) => setMockStatus("COMPLETED")}
-												>
-													<Icons.check className="size-4" />
-												</Button>
-											</div>
-										</Env>
-										<Button
-											type="button"
-											onClick={__cancel}
-											size="icon"
-											variant="destructive"
-										>
-											<Icons.X className="size-4" />
-										</Button>
-									</>
-								) : (
-									<>
-										<div className="grid flex-1 gap-2 sm:grid-cols-2">
-											<Field>
-												<Field.Content>
-													<Select.Root
-														value={effectivePaymentMethod || undefined}
-														disabled={payFullWithWallet}
-														onValueChange={(e) => {
-															form.setValue(
-																"paymentMethod",
-																e as z.infer<
-																	typeof formSchema
-																>["paymentMethod"],
-																{
-																	shouldDirty: true,
-																	shouldValidate: true,
-																},
-															);
-															if (e !== "terminal") {
-																form.clearErrors("deviceId");
-																form.setValue("terminalPaymentSession", null);
-																setTerminalError(null);
-																setTerminalState("form");
-																hasSubmittedCompletedTerminalRef.current = false;
-															}
-														}}
-													>
-														<Select.Trigger>
-															<Select.Value placeholder="Payment Method" />
-														</Select.Trigger>
-														<Select.Content>
-															{paymentMethodOptions.map((s) => (
-																<Select.Item key={s.value} value={s.value}>
-																	{s.label}
-																</Select.Item>
-															))}
-														</Select.Content>
-													</Select.Root>
-												</Field.Content>
-											</Field>
-											{effectivePaymentMethod === "check" ? (
-												<InputGroup>
-													<InputGroup.Addon align="inline-start">
-														<InputGroup.Text>Check No:</InputGroup.Text>
-													</InputGroup.Addon>
-													<InputGroup.Input
-														className="!pl-1"
-														{...form.register("checkNo")}
-														placeholder="eg., 12345"
-													/>
-												</InputGroup>
-											) : effectivePaymentMethod === "terminal" ? (
-												<Field data-invalid={terminalDeviceFieldState.invalid}>
-													<Field.Content>
-														<Select.Root
-															name={terminalDeviceField.name}
-															value={terminalDeviceField.value || undefined}
-															onValueChange={(e) => {
-																terminalDeviceField.onChange(e);
-																const terminal =
-																	resolveAvailablePaymentTerminal(
-																		data.terminals,
-																		e,
-																	);
-																form.setValue(
-																	"deviceName",
-																	terminal?.label || null,
-																	{
-																		shouldDirty: true,
-																	},
-																);
-															}}
-														>
-															<Select.Trigger
-																id="terminal-device"
-																aria-invalid={terminalDeviceFieldState.invalid}
-																onBlur={terminalDeviceField.onBlur}
-															>
-																<Select.Value placeholder="Select Terminal" />
-															</Select.Trigger>
-															<Select.Content>
-																{data?.terminals?.map((terminal) => (
-																	<Select.Item
-																		disabled={
-																			terminal?.status !== "PAIRED" &&
-																			terminal?.status !== "AVAILABLE"
-																		}
-																		key={terminal?.value || terminal?.label}
-																		value={terminal?.value}
-																	>
-																		{terminal.label}
-																		{isAvailablePaymentTerminal(terminal)
-																			? ""
-																			: " (offline)"}
-																	</Select.Item>
-																))}
-															</Select.Content>
-														</Select.Root>
-														{terminalDeviceFieldState.invalid ? (
-															<Field.Error
-																errors={[terminalDeviceFieldState.error]}
-															/>
-														) : terminalLoadError ? (
-															<Field.Error>{terminalLoadError}</Field.Error>
-														) : availableTerminals.length > 1 && !deviceId ? (
-															<Field.Description>
-																Choose the terminal beside you.
-															</Field.Description>
-														) : availableTerminals.length === 0 ? (
-															<Field.Description>
-																No online Square terminals are available.
-															</Field.Description>
-														) : null}
-													</Field.Content>
-												</Field>
-											) : undefined}
-										</div>
-										{sendLink ? (
-											<Button
-												type="submit"
-												disabled={sendingLink || selectedSalesCount === 0}
-												className="min-w-32"
-											>
-												{sendingLink ? (
-													<Spinner />
-												) : (
-													<>
-														<Icons.Email className="size-4" />
-														{submitLabel}
-													</>
-												)}
-											</Button>
-										) : (
-											<Button
-												type="submit"
-												disabled={
-													selectedSalesCount === 0 ||
-													(effectivePaymentMethod === "terminal" &&
-														!selectedTerminal) ||
-													makePayment.isPending ||
-													hasActiveTerminalCheckout
-												}
-												className="min-w-36"
-											>
-												{makePayment.isPending || hasActiveTerminalCheckout ? (
-													<Spinner />
-												) : (
-													<>
-														{submitLabel}
-														<Icons.arrowRight className="size-4" />
-													</>
-												)}
-											</Button>
-										)}
-									</>
-								)}
-							</div>
+							{isSheet
+								? props.footerTarget
+									? createPortal(paymentActions, props.footerTarget)
+									: null
+								: paymentActions}
 						</div>
 						{isTerminalFlowActive ? (
 							<div className="absolute inset-0 bg-background">

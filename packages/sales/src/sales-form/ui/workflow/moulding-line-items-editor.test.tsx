@@ -16,6 +16,7 @@ describe("MouldingLineItemsEditor estimate breakdown", () => {
 					{
 						uid: "moulding-1",
 						title: "Casing",
+						img: "casing.png",
 						qty: 2,
 						estimateUnit: 12,
 						addon: 3,
@@ -28,15 +29,22 @@ describe("MouldingLineItemsEditor estimate breakdown", () => {
 				totalAmount={30}
 				formatMoney={(value) => `$${Number(value || 0).toFixed(2)}`}
 				componentLabel={(value) => value || ""}
-				resolveImageSrc={() => null}
+				resolveImageSrc={(src) =>
+					src ? `https://images.example/${src}` : null
+				}
 				onRowsChange={() => undefined}
 				onRemoveRow={() => undefined}
 			/>,
 		);
 
-		expect(html).toContain("min-w-[620px]");
+		expect(html).toContain("w-full min-w-[620px]");
+		expect(html).toContain('src="https://images.example/casing.png"');
+		expect(html).toContain('alt="Casing"');
+		expect(html).toContain('aria-label="View Casing image"');
+		expect(html).toContain('data-component-image-preview-trigger="true"');
 		expect(html).toContain(">Estimate<");
 		expect(html).toContain(">Line Total<");
+		expect(html).toContain('class="flex justify-end"');
 	});
 
 	it("moves add-on and custom pricing from table columns into the Estimate menu", () => {
@@ -59,7 +67,7 @@ describe("MouldingLineItemsEditor estimate breakdown", () => {
 
 	it("continues to patch pricing through the existing row update path", () => {
 		expect(source).toContain("onPatch={(patch) => patchRow(index, patch)}");
-		expect(source).toContain("event.target.value === \"\"");
+		expect(source).toContain('event.target.value === ""');
 		expect(source).toContain("? null");
 	});
 });

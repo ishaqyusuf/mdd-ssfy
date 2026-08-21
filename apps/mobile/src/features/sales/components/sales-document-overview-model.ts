@@ -30,6 +30,7 @@ export type SalesDocumentOverviewSale = {
 		description?: string | null;
 		amount?: number | null;
 		value?: number | null;
+		format?: "money" | "count" | null;
 	}> | null;
 	overviewItems?: SalesDocumentOverviewApiItem[] | null;
 };
@@ -74,6 +75,7 @@ export type SalesDocumentOverviewFinancialRow = {
 	value: number;
 	tone: "neutral" | "positive" | "warning";
 	bold: boolean;
+	format?: "money" | "count";
 };
 
 export function toSalesOverviewMoney(value?: number | null) {
@@ -239,6 +241,7 @@ function buildFinancialLedgerRows(
 			tone:
 				isBalance && value > 0 ? "warning" : isPaid ? "positive" : "neutral",
 			bold: isTotal || isBalance,
+			...(line.format === "count" ? { format: "count" as const } : {}),
 		};
 	});
 }

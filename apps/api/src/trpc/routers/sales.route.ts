@@ -57,6 +57,11 @@ import {
 	getOrdersSummary,
 	getOrdersSummarySchema,
 } from "@api/db/queries/sales-orders-v2";
+import { getSaleOverviewLoader } from "@api/db/queries/sales-overview-versioned-loader";
+import {
+	getSalesOverviewViewSettings,
+	updateSalesOverviewViewSettings,
+} from "@api/db/queries/sales-overview-view-settings";
 import {
 	getSalesRepTransferOptions,
 	transferSalesRep,
@@ -101,6 +106,7 @@ import {
 } from "@api/utils/dealer-delivery-pricing";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { transformSalesFilterQuery } from "@api/utils/sales";
+import { requireSalesOverviewViewer } from "@api/utils/sales-overview-access";
 import { requireWorkflowComponentEditor } from "@api/utils/workflow-component-access";
 import {
 	approveDealerOrderRequest,
@@ -129,6 +135,8 @@ import {
 import {
 	getSettingAction,
 	normalizeSalesPrintSettings,
+	resolveSalesOverviewGeneralVersion,
+	salesOverviewViewSettingsSchema,
 	salesPrintSettingsSchema,
 	specialOrderEnforcementModeSchema,
 	specialOrderReleaseAudienceSchema,
@@ -244,26 +252,6 @@ const setProductionReadinessOverrideSchema = z
 			});
 		}
 	});
-
-async function requireSalesOverviewViewer(ctx: TRPCContext) {
-	return requireAnyOperationalPermission(
-		ctx,
-		[
-			"viewOrders",
-			"editOrders",
-			"viewEstimates",
-			"editEstimates",
-			"viewProduction",
-			"editProduction",
-			"viewDelivery",
-			"editDelivery",
-			"viewPickup",
-			"editPickup",
-			"viewPacking",
-		],
-		"You do not have permission to view sales order details.",
-	);
-}
 
 async function requireProductionOverviewViewer(ctx: TRPCContext) {
 	return requireAnyOperationalPermission(
@@ -400,6 +388,7 @@ async function isSuperAdmin(ctx: TRPCContext) {
 			roles: {
 				where: {
 					deletedAt: null,
+					role: { deletedAt: null },
 				},
 				select: {
 					role: {
@@ -659,6 +648,15 @@ export const salesRouter = createTRPCRouter({
 			input.workerId = props.ctx.userId;
 			return getSalesProductions(props.ctx.db, input);
 		}),
+	productionDashboardTasks: protectedProcedure
+		.input(salesProductionQueryParamsSchema.optional().nullable())
+		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
+			return getSalesProductionDashboard(props.ctx.db, {
+				...(props.input || {}),
+				workerId: props.ctx.userId,
+			});
+		}),
 	productionDashboard: protectedProcedure
 		.input(salesProductionQueryParamsSchema.optional().nullable())
 		.query(async (props) => {
@@ -680,6 +678,15 @@ export const salesRouter = createTRPCRouter({
 		.query(async (props) => {
 			await requireProductionOverviewViewer(props.ctx);
 			return getSalesProductionCalendar(props.ctx.db, props.input);
+		}),
+	productionCalendarTasks: protectedProcedure
+		.input(salesProductionCalendarQuerySchema)
+		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
+			return getSalesProductionCalendar(props.ctx.db, {
+				...props.input,
+				assignedToId: props.ctx.userId,
+			});
 		}),
 	productionsV2: protectedProcedure
 		.input(productionV2ListQuerySchema)
@@ -827,7 +834,23 @@ export const salesRouter = createTRPCRouter({
 		.input(getSaleOverviewSchema)
 		.query(async (props) => {
 			await requireSalesOverviewViewer(props.ctx);
-			return getSaleOverview(props.ctx, props.input);
+			const [viewSettings, superAdmin] = await Promise.all([
+				getSalesOverviewViewSettings(props.ctx.db),
+				isSuperAdmin(props.ctx),
+			]);
+			const generalViewVersion = resolveSalesOverviewGeneralVersion({
+				isSuperAdmin: Boolean(superAdmin),
+				settings: viewSettings,
+			});
+			const overview = await getSaleOverviewLoader(generalViewVersion)(
+				props.ctx,
+				props.input,
+			);
+			if (!overview) return overview;
+			return {
+				...overview,
+				generalViewVersion,
+			};
 		}),
 	getSaleTransactions: publicProcedure
 		.input(getSaleTransactionsSchema)
@@ -945,6 +968,23 @@ export const salesRouter = createTRPCRouter({
 			canManage,
 		};
 	}),
+	getSalesOverviewViewSettings: protectedProcedure.query(async (props) => {
+		await requireSuperAdmin(props.ctx);
+		return {
+			settings: await getSalesOverviewViewSettings(props.ctx.db),
+		};
+	}),
+	updateSalesOverviewViewSettings: protectedProcedure
+		.input(salesOverviewViewSettingsSchema)
+		.mutation(async (props) => {
+			await requireSuperAdmin(props.ctx);
+			return {
+				settings: await updateSalesOverviewViewSettings(
+					props.ctx.db,
+					props.input,
+				),
+			};
+		}),
 	updatePaymentReviewSettings: protectedProcedure
 		.input(updatePaymentReviewSettingsSchema)
 		.mutation(async (props) => {

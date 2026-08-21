@@ -32,7 +32,7 @@ export async function resolveSalesFormRequest(input: {
 	const session = await getServerAuthSession();
 	const userId = Number(session?.user?.id);
 	if (!Number.isInteger(userId) || userId <= 0) {
-		redirect("/login/v2");
+		redirect("/login");
 	}
 
 	const queryMode = normalizeSalesFormPreferenceMode(

@@ -141,6 +141,7 @@ export const PERMISSIONS = [
 	"editOrderProduction",
 	"viewOrderPayment",
 	"editOrderPayment",
+	"editRefundSquare",
 	"viewPriceList",
 	"editPriceList",
 	"viewCommunity",
@@ -268,6 +269,7 @@ export const EXTRA_PERMISSION_SCOPES = [
 	"generateSalesPerformanceReport",
 	"generateSalesStatementReport",
 	"markSalesOrderFulfilled",
+	"editRefundSquare",
 	"publishStorefront",
 ] as const;
 export type ExtraPermissionScope = (typeof EXTRA_PERMISSION_SCOPES)[number];
@@ -351,6 +353,8 @@ export const PRODUCTION_STATUS = [
 	"due today",
 	"due tomorrow",
 	"past due",
+	"future",
+	"unscheduled",
 	"completed",
 	"not completed",
 ] as const;

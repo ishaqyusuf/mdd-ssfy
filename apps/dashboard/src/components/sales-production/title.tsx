@@ -20,7 +20,7 @@ export function SalesProductionTitle() {
 				</p>
 			</div>
 			<Button asChild variant="outline" size="sm" className="h-9 gap-2">
-				<Link href="/production/dashboard/v2">
+				<Link href="/production/dashboard">
 					<Icons.employees className="size-4" />
 					Worker dashboard
 				</Link>

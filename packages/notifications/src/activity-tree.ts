@@ -15,6 +15,7 @@ import type {
 	JobTaskConfigureRequestTags,
 	JobTaskConfiguredTags,
 	SalesCheckoutSuccessTags,
+	SalesCustomerRefundCompletedTags,
 	SalesDispatchAssignedTags,
 	SalesDispatchCancelledTags,
 	SalesDispatchCompletedTags,
@@ -59,6 +60,7 @@ type KnownNotificationActivityTags =
 	| JobTaskConfigureRequestTags
 	| InventoryInboundActivityTags
 	| SalesCheckoutSuccessTags
+	| SalesCustomerRefundCompletedTags
 	| SalesDispatchAssignedTags
 	| SalesDispatchCancelledTags
 	| SalesDispatchCompletedTags

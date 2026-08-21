@@ -282,7 +282,10 @@ export const SalesOverviewInclude = {
 		},
 		select: {
 			id: true,
+			transactionId: true,
+			squarePaymentsId: true,
 			amount: true,
+			tip: true,
 			status: true,
 			origin: true,
 			reviewStatus: true,
@@ -295,12 +298,15 @@ export const SalesOverviewInclude = {
 			meta: true,
 			transaction: {
 				select: {
+					id: true,
 					meta: true,
 					paymentMethod: true,
 				},
 			},
 			squarePayments: {
 				select: {
+					id: true,
+					paymentId: true,
 					meta: true,
 					paymentMethod: true,
 				},

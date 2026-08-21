@@ -145,34 +145,45 @@ const orderDateColumn: Column = {
 	),
 };
 
-const customerColumn: Column = {
-	id: "customer",
-	header: "Ship To",
-	accessorFn: (row) => getCustomerName(row),
-	...sizes.custom(180, 360, 220),
-	enableResizing: true,
-	meta: {
-		skeleton: { type: "text", width: "w-40" },
-		headerLabel: "Ship to",
-		className: sizeClass(sizes.custom(180, 360, 220)),
-	},
-	cell: ({ row }) => {
-		const customerName = getCustomerName(row.original);
-		const phone = getCustomerPhone(row.original);
+function createCustomerColumn(compact = false): Column {
+	return {
+		id: "customer",
+		header: "Ship To",
+		accessorFn: (row) => getCustomerName(row),
+		...sizes.custom(180, 360, 220),
+		enableResizing: true,
+		meta: {
+			skeleton: { type: "text", width: "w-40" },
+			headerLabel: "Ship to",
+			className: sizeClass(sizes.custom(180, 360, 220)),
+		},
+		cell: ({ row }) => {
+			const customerName = getCustomerName(row.original);
 
-		return (
-			<div className="min-w-0 space-y-1">
-				<TextWithTooltip
-					className="max-w-full truncate font-medium uppercase"
-					text={customerName || "-"}
-				/>
-				<div className="truncate text-xs text-muted-foreground">
-					{phone || "No phone"}
+			if (compact) {
+				return (
+					<TextWithTooltip
+						className="max-w-full truncate font-medium uppercase"
+						text={customerName || "-"}
+					/>
+				);
+			}
+
+			const phone = getCustomerPhone(row.original);
+			return (
+				<div className="min-w-0 space-y-1">
+					<TextWithTooltip
+						className="max-w-full truncate font-medium uppercase"
+						text={customerName || "-"}
+					/>
+					<div className="truncate text-xs text-muted-foreground">
+						{phone || "No phone"}
+					</div>
 				</div>
-			</div>
-		);
-	},
-};
+			);
+		},
+	};
+}
 
 const assignedToColumn: Column = {
 	id: "assignedTo",
@@ -189,19 +200,23 @@ const assignedToColumn: Column = {
 	cell: ({ row }) => <AssignedDriverCell item={row.original} />,
 };
 
-const progressColumn: Column = {
-	id: "packingProgress",
-	header: "Progress",
-	accessorFn: (row) => getPackingTotals(row).packed,
-	...sizes.custom(118, 180, 132),
-	enableResizing: true,
-	meta: {
-		skeleton: { type: "text", width: "w-24" },
-		headerLabel: "Progress",
-		className: sizeClass(sizes.custom(118, 180, 132)),
-	},
-	cell: ({ row }) => <PackingProgressCell item={row.original} />,
-};
+function createProgressColumn(compact = false): Column {
+	return {
+		id: "packingProgress",
+		header: "Progress",
+		accessorFn: (row) => getPackingTotals(row).packed,
+		...sizes.custom(118, 180, 132),
+		enableResizing: true,
+		meta: {
+			skeleton: { type: "text", width: "w-24" },
+			headerLabel: "Progress",
+			className: sizeClass(sizes.custom(118, 180, 132)),
+		},
+		cell: ({ row }) => (
+			<PackingProgressCell compact={compact} item={row.original} />
+		),
+	};
+}
 
 const statusColumn: Column = {
 	id: "status",
@@ -246,13 +261,14 @@ function createActionsColumn(enableSalesMarkAs = false): Column {
 function createColumns({
 	driverMode = false,
 	enableSalesMarkAs = false,
+	compact = false,
 } = {}): Column[] {
 	const baseColumns = [
 		selectColumn,
 		createScheduleColumn(driverMode),
 		orderIdColumn,
 		orderDateColumn,
-		customerColumn,
+		createCustomerColumn(compact),
 	];
 
 	if (!driverMode) {
@@ -261,7 +277,7 @@ function createColumns({
 
 	return [
 		...baseColumns,
-		progressColumn,
+		createProgressColumn(compact),
 		statusColumn,
 		createActionsColumn(enableSalesMarkAs),
 	];
@@ -269,16 +285,19 @@ function createColumns({
 
 export const columns: Column[] = createColumns();
 export const driverColumns: Column[] = createColumns({ driverMode: true });
+export const compactColumns: Column[] = createColumns({ compact: true });
 
 export function getSalesDispatchColumns({
 	driverMode = false,
 	enableSalesMarkAs = false,
+	compact = false,
 } = {}) {
-	if (!enableSalesMarkAs) {
-		return driverMode ? driverColumns : columns;
+	if (!enableSalesMarkAs && !driverMode) {
+		return compact ? compactColumns : columns;
 	}
+	if (!enableSalesMarkAs && driverMode && !compact) return driverColumns;
 
-	return createColumns({ driverMode, enableSalesMarkAs });
+	return createColumns({ driverMode, enableSalesMarkAs, compact });
 }
 
 function ScheduleDateCell({
@@ -458,7 +477,13 @@ function AssignedDriverCell({ item }: { item: SalesDispatch }) {
 	);
 }
 
-function PackingProgressCell({ item }: { item: SalesDispatch }) {
+function PackingProgressCell({
+	item,
+	compact = false,
+}: {
+	item: SalesDispatch;
+	compact?: boolean;
+}) {
 	const { packed, pending, total } = getPackingTotals(item);
 	const ratio = total <= 0 ? 0 : packed / total;
 	const colorClass =
@@ -467,6 +492,14 @@ function PackingProgressCell({ item }: { item: SalesDispatch }) {
 			: ratio > 0
 				? "text-amber-600"
 				: "text-muted-foreground";
+
+	if (compact) {
+		return (
+			<div className={cn("truncate text-sm font-semibold", colorClass)}>
+				{packed}/{total} packed
+			</div>
+		);
+	}
 
 	return (
 		<div className="min-w-0">

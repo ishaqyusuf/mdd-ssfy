@@ -27,6 +27,7 @@ export const SALES_PRODUCTION_DUE_FILTERS = [
 	"overdue",
 	"today",
 	"tomorrow",
+	"unscheduled",
 ] as const;
 
 export const SALES_PRODUCTION_MATERIAL_FILTERS = [
@@ -80,6 +81,7 @@ const DUE_MAP: Record<string, string> = {
 	overdue: "past-due",
 	today: "due-today",
 	tomorrow: "due-tomorrow",
+	unscheduled: "unscheduled",
 };
 
 const LEGACY_LABEL_DUE_MAP: Record<string, string> = {

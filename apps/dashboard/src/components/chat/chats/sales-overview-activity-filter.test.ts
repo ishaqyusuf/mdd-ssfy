@@ -13,6 +13,7 @@ describe("Sales Overview activity filter", () => {
 			filters: [
 				{ tagName: "salesId", tagValue: "23521" },
 				{ tagName: "salesNo", tagValue: "08651AD" },
+				{ tagName: "orderNo", tagValue: "08651AD" },
 				{ tagName: "orderNos", tagValue: "08651AD" },
 			],
 		});

@@ -1,5 +1,13 @@
 # API Permissions
 
+## Role Permission Session Revocation (2026-08-20)
+
+- Saving changed permissions for an existing role atomically revokes both legacy
+  `session` records and Better Auth `webAuthSession` records for every employee
+  assigned to that role. They must authenticate again to receive the updated
+  permission snapshot.
+- Creating a role or changing only its name leaves existing sessions intact.
+
 ## Mark Sales Order Fulfilled Permission (2026-08-20)
 
 - `markSalesOrderFulfilled` is the dedicated capability for the Sales Orders
@@ -115,6 +123,23 @@
   only to `editOrderPayment` users, while the server response never grants
   legacy-record deletion or redirect authority.
 
+## Square Sales Refunds (2026-08-21)
+
+- `editRefundSquare` is the dedicated action capability, stored as
+  `edit refund square`; Super Admin retains implicit access.
+- `salesRefunds.create`, `salesRefunds.retry`, and
+  `salesRefunds.allocateExternal` repeat the exact capability check at the
+  protected API boundary. Existing `editOrderPayment`, `editSales`, and other
+  broad Sales/Finance permissions do not authorize a Square refund command.
+- `salesRefunds.overview` uses the same canonical Sales Overview viewer boundary
+  as `sales.getSaleOverview`: order, estimate, production, delivery, pickup, or
+  packing viewers may read the mounted order's transaction/refund projection.
+  The external-review queue retains the authenticated Sales Finance/payment-view
+  audience. The dashboard hides action controls without `editRefundSquare`, but
+  UI visibility is never the authorization boundary.
+- The legacy `sales.resolvePayment` path rejects Square refund attempts before
+  it can write a local negative payment.
+
 ## Purpose
 Tracks authentication and authorization patterns across API surfaces.
 
@@ -130,6 +155,11 @@ Tracks authentication and authorization patterns across API surfaces.
   or packing viewers; `sales.productionOverview` accepts order, production,
   delivery, pickup, or packing viewers. UI tab visibility is not the
   authorization boundary, and both queries are side-effect-free.
+- Sales Overview General rollout management is Super Admin-only.
+  `sales.getSalesOverviewViewSettings` and
+  `sales.updateSalesOverviewViewSettings` repeat the active-role check at the
+  API boundary. Other overview viewers receive only their resolved V1/V2 value
+  through `sales.getSaleOverview`, never the office or pilot policy.
 - Production queue, dashboard, worker-task, and v2 order-detail reads require an
   authenticated user with an order, production, delivery, pickup, or packing
   viewing capability. Worker routes always replace caller scope with the
@@ -377,6 +407,16 @@ Tracks authentication and authorization patterns across API surfaces.
   trust client-supplied author identity.
 - UI visibility is not an authorization boundary; the assignment task repeats
   the revision-bound readiness check before writing.
+
+## Sales production workspace permissions (2026-08-21)
+
+- Production list, dashboard, summary, and calendar reads require the existing
+  Production Overview viewer boundary.
+- Worker reads `sales.productionTasks`, `sales.productionDashboardTasks`, and
+  `sales.productionCalendarTasks` derive assignee scope from `ctx.userId` and
+  do not trust caller-supplied worker or assignee ids.
+- Calendar cards do not expand read authority; worker cards open the existing
+  Production Tasks context.
 
 ## Sales dashboard and reporting permissions (2026-07-30)
 

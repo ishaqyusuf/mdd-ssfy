@@ -48,6 +48,17 @@ existing Expo driver app and Packing List.
 - Use Sales Finance for the admin visual shell and Midday-style thin routes,
   targeted queries, URL state, tables, sheets, loading, and responsive
   composition.
+- The current refinement proposes an order-grain Fulfillment list with the same
+  canonical lifecycle projection as Sales Orders. Assignment, partial packing,
+  blockers, and approval requests remain overlays or related dispatch facts,
+  not competing top-level order statuses.
+- The current refinement also proposes that an admin opens an order-first
+  Dispatch tab containing its dispatch history and create/view actions. Packing
+  remains an explicit dispatch-level workspace rather than the default result
+  of clicking a Fulfillment row.
+- The driver journey should provide a focused Today/Assigned queue, contextual
+  packing, structured blocker reporting, automatic in-app and email escalation
+  to authorized admins, and a clear ready-to-resume signal after resolution.
 - Existing related work:
   [`Driver Platform Revival Closeout`](../driver-platform-revival-closeout/map.md),
   ADR-026, ADR-048, ADR-050, and ADR-054.

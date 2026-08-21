@@ -66,6 +66,7 @@ import { quoteAccepted } from "./types/quote-accepted";
 import { salesCheckoutSuccess } from "./types/sales-checkout-success";
 import { salesCustomerPaymentFailed } from "./types/sales-customer-payment-failed";
 import { salesCustomerPaymentReceived } from "./types/sales-customer-payment-received";
+import { salesCustomerRefundCompleted } from "./types/sales-customer-refund-completed";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
 import { salesDispatchCompleted } from "./types/sales-dispatch-completed";
@@ -116,6 +117,7 @@ export {
 const handlers = {
 	sales_checkout_success: salesCheckoutSuccess,
 	sales_customer_payment_received: salesCustomerPaymentReceived,
+	sales_customer_refund_completed: salesCustomerRefundCompleted,
 	sales_customer_payment_failed: salesCustomerPaymentFailed,
 	dealer_onboarding: dealerOnboarding,
 	dealer_profile_updated: dealerProfileUpdated,

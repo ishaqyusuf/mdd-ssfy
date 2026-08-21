@@ -726,6 +726,7 @@ function FinancialOverviewCard({
 		value: number;
 		tone: "neutral" | "positive" | "warning";
 		bold: boolean;
+		format?: "money" | "count";
 	}>;
 	paymentMethod: string;
 	progressStats: Array<{
@@ -784,7 +785,9 @@ function FinancialOverviewCard({
 					<AmountRow
 						key={row.key}
 						label={row.label}
-						value={money(row.value)}
+						value={
+							row.format === "count" ? String(row.value) : money(row.value)
+						}
 						divider={index < ledgerRows.length - 1}
 						valueClassName={`${financialToneValueClass(row.tone)} ${
 							row.bold ? "font-bold" : ""

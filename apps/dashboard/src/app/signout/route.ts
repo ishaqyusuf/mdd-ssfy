@@ -139,10 +139,10 @@ function getLoginUrl(request: NextRequest) {
 
     if (forwardedHost) {
         return new URL(
-            "/login/v2",
+            "/login",
             `${forwardedProto || request.nextUrl.protocol.replace(":", "")}://${forwardedHost}`,
         );
     }
 
-    return new URL("/login/v2", request.url);
+    return new URL("/login", request.url);
 }

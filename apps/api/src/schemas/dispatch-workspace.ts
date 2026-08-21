@@ -29,6 +29,49 @@ export type DispatchWorkspaceListInput = z.infer<
 	typeof dispatchWorkspaceListSchema
 >;
 
+const fulfillmentCalendarDateSchema = z
+	.string()
+	.regex(/^\d{4}-\d{2}-\d{2}$/, "Expected a YYYY-MM-DD date")
+	.refine(
+		(value) => {
+			const parsed = new Date(`${value}T00:00:00.000Z`);
+			return (
+				!Number.isNaN(parsed.getTime()) &&
+				parsed.toISOString().slice(0, 10) === value
+			);
+		},
+		"Expected a valid calendar date",
+	);
+
+export const fulfillmentCalendarSchema = z
+	.object({
+		from: fulfillmentCalendarDateSchema,
+		to: fulfillmentCalendarDateSchema,
+	})
+	.superRefine((value, ctx) => {
+		const from = Date.parse(`${value.from}T00:00:00.000Z`);
+		const to = Date.parse(`${value.to}T00:00:00.000Z`);
+		const rangeInDays = (to - from) / 86_400_000;
+
+		if (!Number.isFinite(rangeInDays) || rangeInDays < 0) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Calendar end date must be on or after the start date",
+				path: ["to"],
+			});
+		} else if (rangeInDays > 45) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Calendar ranges cannot exceed 46 days",
+				path: ["to"],
+			});
+		}
+	});
+
+export type FulfillmentCalendarInput = z.infer<
+	typeof fulfillmentCalendarSchema
+>;
+
 export const dispatchBacklogSchema = paginationSchema.extend({
 	deliveryModes: z
 		.array(z.enum(["delivery", "pickup"]))

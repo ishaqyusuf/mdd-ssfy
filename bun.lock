@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "nextjs-template",
@@ -690,6 +689,7 @@
         "@gnd/pdf": "workspace:*",
         "@gnd/sales": "workspace:*",
         "@gnd/settings": "workspace:*",
+        "@gnd/square": "workspace:*",
         "@gnd/utils": "workspace:*",
         "@prisma/client": "^6.18.0",
         "@prisma/instrumentation": "^6.18.0",

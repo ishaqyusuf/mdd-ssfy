@@ -493,11 +493,9 @@ export const linkModules = [
 	]),
 	_module(null, null, null, [
 		_section("", null, [
-			_link("Dashboard", "dashboard", "/production/dashboard", [
-				_subLink("Production Dashboard v2", "/production/dashboard/v2").access(
-					_role.is("Production"),
-				).data,
-			]).access(_role.is("Production")).data,
+			_link("Dashboard", "dashboard", "/production/dashboard").access(
+				_role.is("Production"),
+			).data,
 		]),
 	]),
 	_module("Community", "project", "GND Community", [
@@ -541,13 +539,11 @@ export const linkModules = [
 		]),
 
 		_section("", null, [
-			_link("Production Dashboard", "production", "/production/dashboard", [
-				_subLink("Production Dashboard v2", "/production/dashboard/v2").access(
-					_role.is("Production"),
-				).data,
-			])
-				.access(_role.is("Production"))
-				.childPaths("/production/dashboard/v2").data,
+			_link(
+				"Production Dashboard",
+				"production",
+				"/production/dashboard",
+			).access(_role.is("Production")).data,
 			_link(
 				"Unit Production",
 				"production",

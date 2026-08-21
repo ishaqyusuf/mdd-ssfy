@@ -3,6 +3,7 @@ import { DataSkeleton } from "@/components/data-skeleton";
 import { LabelInput } from "@/components/label-input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { toast } from "@gnd/ui/use-toast";
 import { useEffect, useRef, useState } from "react";
@@ -20,10 +21,14 @@ export function SalesPO({
 	value,
 	salesId,
 	salesType,
+	showLabel = true,
+	compact = false,
 }: {
 	value?: string | null;
 	salesId?: number | null;
 	salesType: SalesDocumentType;
+	showLabel?: boolean;
+	compact?: boolean;
 }) {
 	const ctx = useSalesOverviewQuery();
 	const initialValue = normalizeSalesPo(value);
@@ -36,6 +41,7 @@ export function SalesPO({
 	const mountedRef = useRef(true);
 	const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const invalidationRef = useRef(ctx.salesQuery.invalidate);
+	const inputContainerRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
 		invalidationRef.current = ctx.salesQuery.invalidate;
@@ -105,15 +111,31 @@ export function SalesPO({
 
 	return (
 		<div>
-			<p className="text-muted-foreground">P.O No</p>
+			{showLabel ? <p className="text-muted-foreground">P.O No</p> : null}
 			<DataSkeleton className="font-medium" placeholder="Standard">
 				<div className="flex min-h-8 items-center gap-2">
-					<LabelInput
-						aria-label="P.O. number"
-						onChange={(event) => setInputValue(event.target.value)}
-						className="w-24 uppercase"
-						value={inputValue}
-					/>
+					<div ref={inputContainerRef}>
+						<LabelInput
+							aria-label="P.O. number"
+							onChange={(event) => setInputValue(event.target.value)}
+							className="w-24 uppercase"
+							value={inputValue}
+						/>
+					</div>
+					{compact ? (
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon-xs"
+							aria-label="Edit P.O. number"
+							title="Edit P.O. number"
+							onClick={() =>
+								inputContainerRef.current?.querySelector("input")?.focus()
+							}
+						>
+							<Icons.Pencil aria-hidden="true" />
+						</Button>
+					) : null}
 					<span
 						aria-live="polite"
 						className="flex min-w-14 items-center gap-1 text-xs text-muted-foreground"

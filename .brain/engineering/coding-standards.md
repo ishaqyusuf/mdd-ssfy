@@ -8,6 +8,10 @@ Repository-level implementation rules that recur across active workstreams.
 
 ## Standards
 - Prefer shared package/domain logic over app-local duplication.
+- Use the shared `Icons.Edit` alias for generic edit actions. Both the canonical
+  `Icons.Edit` and legacy lowercase `Icons.edit` aliases resolve to the slanted
+  `PencilEdit01Icon`; reserve file-edit and annotation glyphs for actions whose
+  domain meaning is specifically a document or note.
 - Follow the implementation order `Schema -> API -> UI -> Validation -> Polish` for cross-layer features and fixes.
 - Keep correctness-critical business behavior inside explicit package boundaries rather than route-local helpers.
 - Add focused regression coverage for fixes touching pricing, persistence, payments, dispatch, or other high-risk business flows.

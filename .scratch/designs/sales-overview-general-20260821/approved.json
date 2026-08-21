@@ -1,0 +1,14 @@
+{
+  "screen": "sales-overview-general",
+  "selection": "Split Command Center",
+  "approved_variant": "variant-command.html",
+  "approved_preview": "preview-03-command.png",
+  "approved_at": "2026-08-21T07:48:06Z",
+  "feedback": [
+    "Add a customer address toggle that expands billing and shipping beneath the phone number.",
+    "Make the P.O. number directly editable inside Order Details.",
+    "Keep delivery type and date on one line.",
+    "Use a small delivery edit control that opens a pickup-or-delivery dialog with a service date.",
+    "Keep the primary operational and financial summary visible without requiring desktop scrolling."
+  ]
+}

@@ -14,12 +14,19 @@ import {
 	salesLinks,
 } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
-import { repairSalesInvoiceCccDisplay } from "@gnd/sales/payment-system";
+import {
+	appliesPaymentChannelCharge,
+	buildSalesPaymentSummaryLines,
+	composeSalesOverviewFinancialBreakdown,
+	getSalesPaymentSummary,
+	moneyToCents,
+	repairSalesInvoiceCccDisplay,
+} from "@gnd/sales/payment-system";
 import { getPrintPaymentFooterState } from "@gnd/sales/print/payment-footer-state";
 import { deriveOrderProductionGateState } from "@gnd/sales/production-gate";
 import { resolvePersistedSalesLineDoorRouteConfig } from "@gnd/sales/sales-form";
-import { getSpecialOrderStatusLabel } from "@gnd/sales/special-order";
 import { readSalesFormPo } from "@gnd/sales/sales-form/application/legacy-metadata";
+import { getSpecialOrderStatusLabel } from "@gnd/sales/special-order";
 import { getNameInitials, sum, toNumber } from "@gnd/utils";
 import { timeAgo } from "@gnd/utils/dayjs";
 import type { DeliveryOption } from "@gnd/utils/sales";
@@ -62,7 +69,10 @@ export type Item = Prisma.SalesOrdersGetPayload<{
 	} | null;
 	payments?: Array<{
 		id?: number | null;
+		transactionId?: number | null;
+		squarePaymentsId?: string | null;
 		amount: number | null;
+		tip?: number | null;
 		status: string | null;
 		origin?: string | null;
 		reviewStatus?: string | null;
@@ -73,8 +83,17 @@ export type Item = Prisma.SalesOrdersGetPayload<{
 		deletedAt: Date | null;
 		createdAt: Date | null;
 		meta?: unknown;
-		transaction?: { meta?: unknown; paymentMethod?: string | null } | null;
-		squarePayments?: { meta?: unknown; paymentMethod?: string | null } | null;
+		transaction?: {
+			id?: number | null;
+			meta?: unknown;
+			paymentMethod?: string | null;
+		} | null;
+		squarePayments?: {
+			id?: string | null;
+			paymentId?: string | null;
+			meta?: unknown;
+			paymentMethod?: string | null;
+		} | null;
 	}>;
 };
 export function salesOrderDto(data: Item, bin?: boolean) {
@@ -295,8 +314,14 @@ function commonListData(data: Item, bin?: boolean) {
 	const costLines: {
 		label: string | null | undefined;
 		amount: number | null | undefined;
+		paymentMethod?: string;
+		format?: "count";
 	}[] = [];
-	const _cost = (label, amount) => costLines.push({ label, amount });
+	const _cost = (
+		label,
+		amount,
+		payment?: { paymentMethod: string; format?: "count" },
+	) => costLines.push({ label, amount, ...payment });
 	const paid = sum([data.grandTotal! - data.amountDue!]);
 	const paymentMethod = resolveSalesPaymentMethod(meta);
 	const invoiceCccDisplay = repairSalesInvoiceCccDisplay({
@@ -307,39 +332,55 @@ function commonListData(data: Item, bin?: boolean) {
 	const paymentState = Array.isArray(data.payments)
 		? getPrintPaymentFooterState(data as any)
 		: null;
-	_cost("Sub total", data.subTotal);
-	data.extraCosts.map((e) => {
-		_cost(e.label, e.totalAmount || e.amount);
-	});
-	data.taxes.map((t) => _cost(t.taxConfig?.title, t.tax));
-	if (paymentState?.kind === "unpaid-card-estimate") {
+	const paymentSummary = Array.isArray(data.payments)
+		? getSalesPaymentSummary(data.payments)
+		: null;
+	let pendingCardEstimate: {
+		principalCents: number;
+		cccCents: number;
+		totalCents: number;
+	} | null = null;
+	if (
+		paymentState &&
+		paymentState.amountDue > 0 &&
+		appliesPaymentChannelCharge(paymentState.selectedPaymentMethod)
+	) {
 		const charge = repairSalesInvoiceCccDisplay({
 			baseTotal: paymentState.amountDue,
 			paymentMethod: paymentState.selectedPaymentMethod,
 			cccPercentage: paymentState.estimatedDueCharge?.percentage,
 			meta,
 		});
+		pendingCardEstimate = {
+			principalCents: moneyToCents(paymentState.amountDue),
+			cccCents: moneyToCents(charge.ccc),
+			totalCents: moneyToCents(charge.totalWithCcc),
+		};
+	}
+	_cost("Sub total", data.subTotal);
+	data.extraCosts.map((e) => {
+		_cost(e.label, e.totalAmount || e.amount);
+	});
+	data.taxes.map((t) => _cost(t.taxConfig?.title, t.tax));
+	if (paymentState?.kind === "unpaid-card-estimate") {
 		_cost("Order Due Amount", paymentState.amountDue);
-		if (charge.ccc) _cost("C.C.C", charge.ccc);
-		_cost("Total Due With C.C.C", charge.totalWithCcc);
-	} else if (paymentState?.kind === "paid-single-full-card") {
-		const charge = paymentState.recordedCardCharges[0];
-		if (charge?.cccAmount) _cost("C.C.C", charge.cccAmount);
+		if (pendingCardEstimate?.cccCents) {
+			_cost("C.C.C", pendingCardEstimate.cccCents / 100);
+		}
 		_cost(
-			charge?.customerChargedAmount ? "Charged to Card" : "Paid",
-			charge?.customerChargedAmount ?? paymentState.principalPaid,
+			"Total Due With C.C.C",
+			pendingCardEstimate?.totalCents
+				? pendingCardEstimate.totalCents / 100
+				: paymentState.amountDue,
 		);
-		_cost("Total Due", 0);
-	} else if (paymentState?.kind === "paid-single-full-non-card") {
-		_cost("Paid", paymentState.principalPaid);
-		_cost("Total Due", 0);
-	} else if (paymentState?.kind === "partial-or-mixed") {
+	} else if (paymentState && paymentSummary?.groups.length) {
 		_cost("Order Total", paymentState.orderTotal);
 		_cost("Paid Toward Order", paymentState.principalPaid);
-		for (const charge of paymentState.recordedCardCharges) {
-			_cost("Card Payment", charge.principalAmount);
-			_cost("C.C.C on Card Payment", charge.cccAmount);
-			_cost("Charged to Card", charge.customerChargedAmount);
+		for (const line of buildSalesPaymentSummaryLines(paymentSummary)) {
+			_cost(line.label, line.value, {
+				paymentMethod: line.method,
+				...(line.kind === "count" ? { format: "count" as const } : {}),
+			});
 		}
 		_cost("Balance Due", paymentState.amountDue);
 	} else if (invoiceCccDisplay.ccc > 0) {
@@ -376,15 +417,42 @@ function commonListData(data: Item, bin?: boolean) {
 		cardPending ||
 		pendingCccDisplay?.totalWithCcc ||
 		Number(data.amountDue || 0);
-	const displayPaid = cardCharged || paid;
+	const customerCharged =
+		Number(paymentSummary?.customerChargedCents || 0) / 100;
+	const displayPaid = customerCharged || cardCharged || paid;
 
 	const customerId = data?.customer?.id;
+	const financialBreakdown = composeSalesOverviewFinancialBreakdown({
+		documentType: data.type === "quote" ? "quote" : "order",
+		subtotalCents: moneyToCents(data.subTotal),
+		adjustments: data.extraCosts.map((line, index) => ({
+			key: `adjustment-${line.id ?? index}`,
+			label: line.label || "Adjustment",
+			amountCents: moneyToCents(line.totalAmount ?? line.amount),
+		})),
+		taxes: data.taxes.map((line, index) => ({
+			key: `tax-${line.id ?? index}`,
+			label: line.taxConfig?.title || line.taxCode || "Tax",
+			amountCents: moneyToCents(line.tax),
+		})),
+		totalCents: moneyToCents(data.grandTotal),
+		paidCents: moneyToCents(paid),
+		refundedCents: Math.max(
+			0,
+			(paymentSummary?.principalCents ?? moneyToCents(paid)) -
+				moneyToCents(paid),
+		),
+		balanceCents: moneyToCents(data.amountDue),
+		paymentSummary,
+		pendingCardEstimate,
+	});
 	const accountNo = data.customer?.phoneNo
 		? data.customer?.phoneNo
 		: !customerId
 			? null
 			: `cust-${customerId}`;
 	const salesStat = composeSalesStat(data.stat);
+	const currentDelivery = data.deliveries?.[0];
 	return {
 		// noteCount: data.noteCount,
 		netTerm: data.paymentTerm,
@@ -416,9 +484,18 @@ function commonListData(data: Item, bin?: boolean) {
 		salesRepInitial: getNameInitials(data.salesRep?.name!),
 		poNo: readSalesFormPo(meta as any),
 		paymentMethod,
+		paymentSummary,
+		financialBreakdown,
 		priority: normalizeSalesPriority(data.priority),
 		priorityLabel: getSalesPriorityLabel(data.priority),
 		deliveryOption: data?.deliveryOption,
+		deliverySummary: currentDelivery
+			? {
+					id: currentDelivery.id,
+					mode: currentDelivery.deliveryMode,
+					fulfillmentDate: currentDelivery.dueDate,
+				}
+			: null,
 		// taxes: data.taxes,
 		// costLines: data.extraCosts,
 		costLines,

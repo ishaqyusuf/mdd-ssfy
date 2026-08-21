@@ -12,6 +12,7 @@ import {
 	applyLegacySalesCheckoutSettlement,
 	buildPaymentChannelChargeMeta,
 	calculatePaymentChannelCharge,
+	captureVerifiedSquareTender,
 	createPendingLegacySalesCheckout,
 	linkLegacySalesCheckoutSquareOrder,
 	resolveSalesCheckoutToken,
@@ -730,16 +731,19 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 	}
 	const notify = response.notify;
 	if (!response.alreadyAccepted && notify) {
-		await runQuoteAcceptanceSideEffect("quote_accepted notification", async () => {
-			const notificationService = new NotificationService(tasks, ctx);
-			if (notify.recipients.length) {
-				notificationService.setEmployeeRecipients(...notify.recipients);
-			}
-			await notificationService.send("quote_accepted", {
-				author: notify.author,
-				payload: notify.payload,
-			});
-		});
+		await runQuoteAcceptanceSideEffect(
+			"quote_accepted notification",
+			async () => {
+				const notificationService = new NotificationService(tasks, ctx);
+				if (notify.recipients.length) {
+					notificationService.setEmployeeRecipients(...notify.recipients);
+				}
+				await notificationService.send("quote_accepted", {
+					author: notify.author,
+					payload: notify.payload,
+				});
+			},
+		);
 	}
 	const emailAuthorId = result.emailAuthorId;
 	if (
@@ -1042,7 +1046,25 @@ export async function verifyPayment(
 								paymentId: tender.paymentId,
 							})
 						)?.payment;
-						if (!payment) return;
+						if (!payment?.id) return;
+						await captureVerifiedSquareTender(tx, {
+							providerPaymentId: payment.id,
+							legacySquarePaymentId: squarePayment.id,
+							checkoutId: checkout.id,
+							providerOrderId: payment.orderId || squarePayment.squareOrderId,
+							source: "link",
+							status: payment.status || "UNKNOWN",
+							amountCents: Number(payment.amountMoney?.amount || 0),
+							tipCents: Number(payment.tipMoney?.amount || 0),
+							currency: payment.amountMoney?.currency || "USD",
+							locationId: payment.locationId,
+							paidAt: payment.updatedAt ? new Date(payment.updatedAt) : null,
+							processingFeeCents: (payment.processingFee || []).reduce(
+								(sum, fee) => sum + Number(fee.amountMoney?.amount || 0),
+								0,
+							),
+							verificationSource: "payment_link_settlement",
+						});
 						//   payment.payment.tim
 						const tip = payment.tipMoney?.amount;
 						resp.status = payment.status as SquarePaymentStatus;
@@ -1098,7 +1120,8 @@ export async function verifyPayment(
 	).catch((e) => {
 		// P2034: transaction conflict under Serializable isolation. If all retries
 		// lose the race, allow the polling client to re-check the persisted state.
-		if (isPrismaTransactionWriteConflict(e)) return { status: "PENDING" as const };
+		if (isPrismaTransactionWriteConflict(e))
+			return { status: "PENDING" as const };
 		throw e;
 	});
 	const notifications =

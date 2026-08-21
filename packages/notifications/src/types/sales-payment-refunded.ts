@@ -7,12 +7,15 @@ import {
 
 export const salesPaymentRefunded: NotificationHandler = {
 	schema: salesPaymentRefundedSchema,
+	createActivityWithoutContact: true,
 	createActivity(data: SalesPaymentRefundedInput, author) {
 		const payload: SalesPaymentRefundedTags = {
 			type: "sales_payment_refunded",
 			source: "system",
 			priority: 5,
 			amount: data.amount,
+			salesId: data.salesId,
+			salesNo: data.orderNo,
 			customerName: data.customerName,
 			orderNo: data.orderNo,
 			reason: data.reason,

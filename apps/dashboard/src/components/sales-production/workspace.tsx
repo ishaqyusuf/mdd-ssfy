@@ -11,7 +11,11 @@ import { resolveSalesProductionWorkspaceQuery } from "@sales/production-workspac
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 
-import { SalesProductionCalendar } from "./calendar";
+import {
+	SalesProductionCalendar,
+	SalesProductionCalendarSkeleton,
+} from "./calendar";
+import { SalesProductionAnalyticsCardSkeleton } from "./analytics-card";
 import { SalesProductionHeader } from "./header";
 import { SalesProductionReviews } from "./reviews";
 import { SalesProductionSummary } from "./summary";
@@ -42,7 +46,13 @@ export function SalesProductionWorkspace({
 			</ErrorBoundary>
 			<ErrorBoundary errorComponent={ErrorFallback}>
 				<Suspense
-					fallback={<ViewSkeleton initialSettings={initialTableSettings} />}
+					fallback={
+						view === "calendar" ? (
+							<SalesProductionCalendarSkeleton />
+						) : (
+							<ViewSkeleton initialSettings={initialTableSettings} />
+						)
+					}
 				>
 					{tab === "reviews" ? (
 						<SalesProductionReviews />
@@ -68,7 +78,7 @@ function SummarySkeleton() {
 	return (
 		<div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
 			{Array.from({ length: 4 }).map((_, index) => (
-				<Skeleton key={index.toString()} className="h-[104px] rounded-xl" />
+				<SalesProductionAnalyticsCardSkeleton key={index.toString()} />
 			))}
 		</div>
 	);

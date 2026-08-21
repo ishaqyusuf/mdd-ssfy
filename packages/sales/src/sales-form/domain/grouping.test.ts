@@ -28,6 +28,13 @@ describe("sales form grouped line parity", () => {
           id: 101,
           moldingId: 501,
           stepProductId: 301,
+          molding: {
+            title: "Casing",
+            img: null,
+          },
+          stepProduct: {
+            img: "casing.png",
+          },
           meta: {
             priceTags: {
               moulding: {
@@ -76,8 +83,10 @@ describe("sales form grouped line parity", () => {
     expect(line.meta.mouldingRows).toHaveLength(2);
     expect(line.meta.mouldingRows[0].salesItemId).toBe(10);
     expect(line.meta.mouldingRows[0].hptId).toBe(101);
+    expect(line.meta.mouldingRows[0].img).toBe("casing.png");
     expect(line.meta.mouldingRows[0].primaryGroupItem).toBe(true);
     expect(line.formSteps[1].meta.selectedProdUids).toEqual(["casing", "line-b"]);
+    expect(line.formSteps[1].meta.selectedComponents[0].img).toBe("casing.png");
   });
 
   it("collapses legacy service siblings and preserves tax/production flags", () => {

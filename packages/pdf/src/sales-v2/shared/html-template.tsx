@@ -635,30 +635,37 @@ function FooterBlock({
 	return (
 		<div
 			style={{
-				display: "grid",
-				gridTemplateColumns: "1fr 240px",
+				display: "flex",
+				alignItems: "flex-start",
+				flexWrap: "wrap",
 				gap: 12,
 				borderTop: `1px solid ${COLORS.border}`,
 				paddingTop: 12,
 			}}
 		>
-			<div>
-				{notes.map((note, index) => (
-					<div
-						key={note}
-						style={{
-							color: COLORS.danger,
-							fontSize: 11,
-							marginBottom: 4,
-							fontStyle: index === 0 ? "italic" : "normal",
-						}}
-					>
-						{note}
-					</div>
-				))}
-			</div>
+			{notes.length ? (
+				<div style={{ flex: "1 1 320px", minWidth: 0 }}>
+					{notes.map((note, index) => (
+						<div
+							key={note}
+							style={{
+								color: COLORS.danger,
+								fontSize: 11,
+								marginBottom: 4,
+								fontStyle: index === 0 ? "italic" : "normal",
+							}}
+						>
+							{note}
+						</div>
+					))}
+				</div>
+			) : null}
 			<div
 				style={{
+					flex: "0 1 320px",
+					width: 320,
+					maxWidth: "100%",
+					marginLeft: "auto",
 					border: `1px solid ${COLORS.border}`,
 					borderRadius: variant === "template-2" ? 8 : 0,
 					overflow: "hidden",
@@ -673,7 +680,7 @@ function FooterBlock({
 								display: "flex",
 								justifyContent: "space-between",
 								gap: 12,
-								padding: isLast ? "10px 12px" : "8px 12px",
+								padding: isLast ? "10px 16px" : "8px 16px",
 								background: isLast
 									? COLORS.navy
 									: index % 2 === 0

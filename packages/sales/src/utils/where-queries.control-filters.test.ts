@@ -114,6 +114,52 @@ describe("whereSales stat filters", () => {
 		);
 	});
 
+	it("builds future production from tomorrow forward for the assigned worker", () => {
+		const where = whereSales({
+			"production.assignedToId": 17,
+			"production.status": "future",
+		} as any);
+		const clauses = toClauses(where);
+		const futureClause = clauses.find(
+			(clause) => clause.assignments?.some?.dueDate?.gte,
+		);
+
+		expect(futureClause?.assignments.some.assignedToId).toBe(17);
+		expect(futureClause?.assignments.some.dueDate.gte).toBe(
+			dayjs().add(1, "day").startOf("day").toISOString(),
+		);
+	});
+
+	it("builds unscheduled production from undated assignments for the assigned worker", () => {
+		const where = whereSales({
+			"production.assignedToId": 17,
+			"production.status": "unscheduled",
+		} as any);
+		const clauses = toClauses(where);
+		const unscheduledClause = clauses.find(
+			(clause) => clause.assignments?.some?.dueDate === null,
+		);
+
+		expect(unscheduledClause?.assignments.some.assignedToId).toBe(17);
+		expect(unscheduledClause?.assignments.some.deletedAt).toBeNull();
+		expect(JSON.stringify(unscheduledClause)).toContain(
+			'"type":"prodCompleted"',
+		);
+	});
+
+	it("keeps exact production dates aligned with the assigned-worker due queue", () => {
+		const where = whereSales({
+			production: "pending",
+			productionDueDate: "2026-08-21",
+			"production.assignedToId": 17,
+		} as any);
+		const json = JSON.stringify(toClauses(where));
+
+		expect(json).toContain('"assignedToId":17');
+		expect(json).toContain('"dueDate":{"gte":"2026-08-21T00:00:00.000Z"');
+		expect(json).not.toContain('"itemControl":{"qtyControls"');
+	});
+
 	it("treats normal priority as NORMAL or legacy null", () => {
 		const where = whereSales({
 			"sales.priority": "NORMAL",
@@ -220,9 +266,7 @@ describe("whereSales stat filters", () => {
 		).toBe(false);
 		expect(
 			JSON.stringify(
-				toClauses(
-					whereSales({ specialOrderScope: "special_orders" }),
-				),
+				toClauses(whereSales({ specialOrderScope: "special_orders" })),
 			),
 		).toContain('"specialOrderDeclaration":"YES"');
 		expect(

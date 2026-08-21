@@ -145,6 +145,16 @@ describe("sales production workspace query", () => {
 			view: "table",
 			list: { production: "pending", show: "past-due" },
 		});
+		expect(
+			resolveSalesProductionWorkspaceQuery({
+				tab: "queue",
+				due: "unscheduled",
+			}),
+		).toEqual({
+			tab: "queue",
+			view: "table",
+			list: { production: "pending", show: "unscheduled" },
+		});
 	});
 
 	it("routes awaiting review to the review tab", () => {

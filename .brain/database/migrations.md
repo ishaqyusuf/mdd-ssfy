@@ -501,3 +501,26 @@ Tracks notable migrations and migration strategy.
   `20260818183000_sales_door_active_identity`, which creates nullable unique
   `DykeSalesDoors.activeIdentity`. Active writers populate the key and clear it
   on retirement. The post-repair bounded audit for `03523PC` reports no conflicts.
+
+## 20260820120000_square_refund_lifecycle
+
+- Adds `SquareTenderPayment`, `SalesSquareRefund`,
+  `SalesSquareRefundAllocation`, `SalesSquareRefundTransition`, and
+  `SquareRefundWebhookEvent` with additive keys and reconciliation indexes.
+- The migration was applied to the local development database only. Prisma
+  Client generation passed; no preview or production database was changed.
+- The schema is forward-only: legacy Square/payment rows remain intact and are
+  connected through explicit compatibility identifiers.
+
+## Pending: Sales Order list read model (2026-08-21)
+
+- Adds `SalesOrderListProjection` and the nullable one-to-one relation from
+  `SalesOrders`.
+- This is additive and does not rewrite or delete canonical sales data.
+- Migration generation/application was not run in this implementation slice.
+  The worktree already contains the unrelated untracked
+  `sales.square-refund.prisma` schema and `20260820120000_square_refund_lifecycle`
+  migration; generating a migration now could bundle those changes with this
+  read model. Generate and review the projection-only migration after that
+  schema work is isolated or landed.
+- No local, preview, or production database was changed.

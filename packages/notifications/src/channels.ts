@@ -27,6 +27,7 @@ export const channelNames = [
 	"sales_payment_recorded",
 	"sales_payment_refunded",
 	"sales_customer_payment_received",
+	"sales_customer_refund_completed",
 	"sales_customer_payment_failed",
 	"sales_info",
 	"sales_item_info",
@@ -256,7 +257,8 @@ export const channelsConfig: Partial<{
 	},
 	dealer_sales_request: {
 		name: "Dealer Sales Request",
-		description: "Send when a dealer asks a sales rep to approve a quote as an order.",
+		description:
+			"Send when a dealer asks a sales rep to approve a quote as an order.",
 		priority: 4,
 		category: "Sales",
 	},
@@ -282,6 +284,13 @@ export const channelsConfig: Partial<{
 	sales_customer_payment_received: {
 		name: "Customer Payment Received",
 		description: "Send a receipt email to a customer after payment succeeds.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_customer_refund_completed: {
+		name: "Customer Refund Completed",
+		description:
+			"Email a customer only after Square reports a completed refund.",
 		priority: 5,
 		category: "Sales",
 	},
@@ -375,7 +384,8 @@ export const channelsConfig: Partial<{
 	},
 	customer_statement: {
 		name: "Customer Statement",
-		description: "Send a customer account statement with open invoice balances.",
+		description:
+			"Send a customer account statement with open invoice balances.",
 		priority: 5,
 		category: "Sales",
 	},

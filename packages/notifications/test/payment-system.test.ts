@@ -46,4 +46,49 @@ describe("payment system notifications", () => {
 			},
 		});
 	});
+
+	it("queues payment activity even when the sale has no notification recipient", async () => {
+		const triggered: Array<{ taskId: string; payload: unknown }> = [];
+		const tasks = {
+			trigger: async (taskId: string, payload: unknown) => {
+				triggered.push({ taskId, payload });
+				return {};
+			},
+		};
+
+		await sendPaymentSystemNotifications(
+			tasks,
+			{ db: {} as never, userId: 9 },
+			[
+				{
+					type: "sales_payment_recorded",
+					recipientEmployeeId: null,
+					author: { id: 9, role: "employee" },
+					payload: {
+						salesId: 10,
+						orderNo: "ORD-10",
+						amount: 100,
+						paymentMethod: "terminal",
+					},
+				},
+			],
+		);
+
+		expect(triggered).toEqual([
+			{
+				taskId: "notification",
+				payload: {
+					channel: "sales_payment_recorded",
+					recipients: null,
+					author: { id: 9, role: "employee" },
+					payload: {
+						salesId: 10,
+						orderNo: "ORD-10",
+						amount: 100,
+						paymentMethod: "terminal",
+					},
+				},
+			},
+		]);
+	});
 });

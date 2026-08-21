@@ -11,15 +11,23 @@ Provide a cleaner production operations surface for both admins and production w
 - The admin workspace follows the Sales Finance page system: compact title,
   separate summary cards, shared `PageTabs` inside the Midday search/filter
   toolbar, Tables-2 queue, and isolated Suspense/error boundaries.
-- Work-state PageTabs are `Active`, `Due Today`, `Past Due`, `Review`, and
-  `Completed`; each displays its current summary count.
+- Work-state PageTabs are ordered `Due Today`, `Calendar`, `Unscheduled`,
+  `Active`, `Past Due`, `Review`, and `Completed`; every work-state tab displays
+  its current summary count while Calendar is intentionally count-free.
 - The queue also exposes `Due Today` and `Past Due` tabs. Past Due uses the
   start of the current day as an exclusive boundary, so it never includes
   today’s assignments.
-- Active queue presentation is URL-owned by `view=table|calendar`; Calendar is
-  a toolbar display control rather than a page tab.
-- Calendar selection loads a bounded daily agenda whose order rows preserve
-  the existing Sales Overview `sales-production` open flow.
+- Calendar is a first-class page tab rather than a separate Table/Calendar
+  toolbar display control. Active returns to the canonical queue table.
+- Calendar selection loads bounded scheduled production rows only. Week and
+  Month views match the Fulfillment calendar interaction model, group same-day
+  assignments into one order card, show the assignment count, and preserve the
+  existing Sales Overview `sales-production` open flow. Orders whose production
+  assignments have no due date live in the separate Unscheduled table tab.
+- The centered period label is clickable in both views. Week mode offers the
+  selected week plus ten earlier and ten later weeks; Month mode offers the
+  selected month plus four earlier and four later months. Selection is
+  unrestricted in either direction and writes the new anchor to the URL.
 - Desktop/tablet render the virtualized queue table. Widths below 768px render
   production cards backed by the same row DTO.
 
@@ -27,14 +35,20 @@ Provide a cleaner production operations surface for both admins and production w
 - Admin board: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/productions/page.tsx`
 - Admin board v2 compatibility: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/productions/v2/page.tsx`
 - Worker sales-book route: `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(pages)/production-tasks/page.tsx`
-- Worker sidebar route: `apps/dashboard/src/app/(sidebar)/(sales-production-worker)/production/dashboard/page.tsx`
-- Worker sidebar route v2: `apps/dashboard/src/app/(sidebar)/(sales-production-worker)/production/dashboard/v2/page.tsx`
+- Canonical worker dashboard:
+  `apps/dashboard/src/app/(sidebar)/(sales-production-worker)/production/dashboard/page.tsx`
+- Worker v2 compatibility redirect:
+  `apps/dashboard/src/app/(sidebar)/(sales-production-worker)/production/dashboard/v2/page.tsx`
 
 ## Shared UI
 - Shared client shell: `apps/dashboard/src/components/production-workspace.tsx`
 - Canonical admin shell: `apps/dashboard/src/components/sales-production/workspace.tsx`
 - Admin title, summary, header, calendar, and reviews:
   `apps/dashboard/src/components/sales-production/*`
+- Admin and worker analytics reuse the compact admin card component at
+  `apps/dashboard/src/components/sales-production/analytics-card.tsx` so the
+  small radius, inline icon, monospaced count, compact description, hover, and
+  active-filter treatments stay synchronized.
 - Shared list/table: `apps/dashboard/src/components/tables-2/sales-production/*`
 - Shared filter state: `apps/dashboard/src/hooks/use-sales-production-filter-params.ts`
 
@@ -42,18 +56,24 @@ Provide a cleaner production operations surface for both admins and production w
 - `/sales-book/productions/v2` is no longer an admin list implementation. It
   preserves the incoming query and redirects locally to
   `/sales-book/productions`.
-- `/production/dashboard/v2` remains the worker route and continues to use the
-  worker production table path with `sales.productionTasks`.
+- `/production/dashboard` is the canonical worker route and owns the complete
+  tabs, analytics, calendar, and `sales.productionTasks` table implementation.
+- `/production/dashboard/v2` preserves incoming query parameters and redirects
+  locally to `/production/dashboard`; sidebar and internal links use only the
+  canonical base path.
 - The previous dedicated v2 board/list code and `sales.productionsV2` /
   `sales.productionDashboardV2` read models remain only for worker/detail/action
   reference; they are not the canonical admin list surface.
 
 ## Canonical Admin UX
-- Finance-style summary cards for Unassigned, Past due, Due today, and Awaiting
-  review.
-- Active/Review/Completed PageTabs in the shared search/filter toolbar.
-- Table/Calendar display control for Active work; the calendar is month-bounded
-  and its selected-day agenda opens Sales Overview.
+- Shared Production analytics cards for Unassigned, Past due, Due today, and
+  Awaiting review. The worker dashboard reuses this compact admin design while
+  both surfaces retain their own labels, counts, and filter actions.
+- Due Today/Calendar/Unscheduled/Active/Past Due/Review/Completed PageTabs in
+  the shared search/filter toolbar.
+- The Calendar page tab supports URL-backed Week and Month periods, a centered
+  clickable period picker, and inline order cards. Calendar cards open Sales
+  Overview on the Production tab; undated work is intentionally excluded.
 - Responsive production cards below 768px and the existing virtual table at
   tablet/desktop widths.
 - Search, queue, due, assignee, priority, material, sort, and column controls
@@ -64,6 +84,40 @@ Provide a cleaner production operations surface for both admins and production w
   all supported filters and pagination state.
 
 ## Shared Worker/Legacy Queue UX
+- Worker routes now expose URL-owned PageTabs in this order: `Due Today`,
+  `Calendar`, `Unscheduled`, `Past Due`, `Future`, and `Completed`. Due Today is
+  the default worker view; Unscheduled means incomplete assignments with no due
+  date, and Future means incomplete assignments due after the current day.
+- The worker dashboard starts with four authenticated-account analytics cards:
+  Due Today, Past Due, Future, and Completed. Each card writes the same
+  URL-owned filter as its matching tab, and the Future/Completed counts are
+  also shown on their tabs.
+- The decorative worker dashboard hero is removed. Tabs and search share the
+  compact toolbar row, internal canonical filter values stay hidden, and the
+  retired saved-view/Add-tab controls are disabled on worker routes.
+- The worker queue hides the admin column-visibility selector; the canonical
+  admin Production workspace retains its column selector and quick filters.
+- Worker dashboard summaries and calendars use the authenticated-account
+  `sales.productionDashboardTasks` read. Worker table slices continue through
+  `sales.productionTasks`; neither endpoint trusts a caller-supplied worker id.
+- Calendar renders only on its tab and reuses the canonical admin Production
+  Week/Month calendar, including period navigation, the status legend, grouped
+  inline order cards, and overflow menus. Unscheduled work uses the normal
+  account-scoped table tab; worker calendar cards open the Production Tasks
+  context.
+- `sales.productionCalendarTasks` owns worker calendar scoping by replacing
+  any caller assignee with the authenticated user. Exact-date and calendar
+  reads use the same incomplete-order assignment boundary as Due Today,
+  without the retired item-control readiness predicate.
+- The worker queue no longer renders a duplicate title or current-filter
+  subtitle beneath the tab/search toolbar.
+- Completed worker rows are determined from that worker's related assignment
+  quantities/submissions (or completed assignment timestamps), so a worker can
+  see finished work before the entire multi-worker order is globally complete.
+- The worker Completed analytics count uses the same assignment-level
+  completion rule as its list. Client-side card transitions discard the
+  server's initial Due Today fallback so no stale preset can leak into another
+  analytics view.
 - Worker routes retain the role-specific shared workspace and production task
   query while reusing the same Tables-2 row contract.
 - The legacy workspace queue table now follows the Sales Orders `tables-2` pattern:
@@ -116,27 +170,36 @@ Provide a cleaner production operations surface for both admins and production w
 
 ## Data Contract
 - Canonical URL state:
-  - `tab=queue|reviews|completed`
+  - `tab=queue|calendar|reviews|completed`; `tab=calendar` is normalized
+    internally to the queue-backed calendar workspace
   - `view=table|calendar`
+  - `calendarView=week|month` and `calendarDate=YYYY-MM-DD`
   - `queue`, `q`, `assignedToId`, `priority`, `due`, `date`, `material`, and
-    `sort`
-- Legacy `tab=calendar`, `production`, `show`, `productionDueDate`, `salesNo`,
-  `label`, and `date` values are normalized by
+    `sort`; `due=unscheduled` selects orders with an active undated assignment
+- Legacy `production`, `show`, `productionDueDate`, `salesNo`, `label`, and
+  `date` values are normalized by
   `@gnd/sales/production-workspace-query`.
 - `sales.productions`: full/admin production queue
 - `sales.productionTasks`: authenticated worker queue
+- `sales.productionDashboardTasks`: authenticated worker summary, alert, and
+  compact calendar projection; the router always replaces worker scope with
+  the current session user id
 - `sales.productionSummary`: bounded canonical summary counts without list or
   calendar work
 - `sales.productionDashboard`: legacy summary, alert, spotlight, and calendar
   payload retained for legacy consumers
-- `sales.productionCalendar`: bounded due-date aggregates for an explicit
-  `from` and `to` month range.
+- `sales.productionCalendar`: bounded due-date aggregates plus grouped
+  scheduled production order cards for an explicit `from` and `to` range.
+  Scheduled rows are capped at 1,500 assignments before same-order/day grouping;
+  undated assignments are served by the production list contract instead.
 - Material-only and created-date sorted pagination stream forward from the raw
   database cursor; custom priority/due sorts use a minimal global candidate
   projection and omit a misleading total when completion eligibility is
   evaluated after hydration.
 - `productionDueDate`: exact queue filter used by the compact calendar
 - `show`: alert preset selector for `due-today`, `due-tomorrow`, and `past-due`
+- Worker routes additionally support `show=future`, defined as incomplete
+  assigned work due from tomorrow forward.
 - Sales overview Production tab badges count the same production-capable `sales.productionOverview.items` rows rendered in the tab, instead of using `prodAssigned.total` quantity totals. This keeps the badge inline with visible production cards for both the v2 sales overview system and the legacy sales overview sheet.
 
 ## V2 Data Contract
@@ -199,7 +262,10 @@ Provide a cleaner production operations surface for both admins and production w
 ## Notes
 - The rebuild intentionally reuses the existing production list infrastructure instead of creating a second list system.
 - The current dashboard summary is optimized around open production queue visibility and near-term due dates.
-- As of 2026-07-17, the live v2 production pages are also restarted table pages. HTTP/HTTPS smokes for `/production/dashboard/v2` and `/sales-book/productions/v2` return `200`, while `/production/dashboard` still redirects to `/production/dashboard/v2`.
+- The 2026-08-21 worker cutover promotes the restarted implementation to
+  `/production/dashboard`; `/production/dashboard/v2` is now query-preserving
+  compatibility only. The admin normalization remains
+  `/sales-book/productions/v2` -> `/sales-book/productions`.
 - The current v2 slice now includes a worker-focused interaction pass:
   - item-card chevrons are pinned to the top-right of each card
   - worker submission UX is optimized for fast repetitive entry

@@ -5,6 +5,7 @@ import { PageTitle } from "@gnd/ui/custom/page-title";
 
 const salesSettingsItems = [
 	{ path: "/settings/sales", label: "Documents" },
+	{ path: "/settings/sales/overview", label: "Sales overview" },
 	{ path: "/settings/sales/dealer-orders", label: "Dealer orders" },
 	{ path: "/settings/sales/special-orders", label: "Special orders" },
 ];
@@ -21,7 +22,7 @@ export default function SalesSettingsLayout({
 					<header>
 						<PageTitle>Sales Settings</PageTitle>
 						<p className="text-sm text-muted-foreground">
-							Configure sales documents and dealer-order operations.
+							Configure sales views, documents, and order operations.
 						</p>
 					</header>
 					<SecondaryMenu

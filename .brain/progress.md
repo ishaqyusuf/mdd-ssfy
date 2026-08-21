@@ -1,5 +1,308 @@
 # Progress
 
+- 2026-08-21: Hid the column-visibility selector from the authenticated worker
+  Production Dashboard while retaining it on the canonical admin Production
+  workspace. This is a presentation-only conditional in the shared workspace;
+  persisted table preferences and admin controls remain unchanged.
+  Authenticated Chrome QA confirmed the selector is absent from the worker
+  Unscheduled table while tabs, search, filters, and rows remain visible. The
+  existing authenticated SSR `Sign in again` client-render fallback remains in
+  the browser log, but the client-rendered page is functional. No API, database,
+  migration, permission, production data, deployment, or external state changed.
+
+- 2026-08-21: Corrected Production analytics parity in the intended direction:
+  the worker Due today, Past due, Future, and Completed cards now reuse the
+  canonical admin card's compact radius, inline icon, monospaced 20px count,
+  condensed description, hover, focus, and active-filter treatment. Shared
+  loaded and loading components keep both surfaces aligned. Promoted the
+  complete worker workspace from `/production/dashboard/v2` to canonical
+  `/production/dashboard`, removed the older base-route implementation, changed
+  v2 into a query-preserving compatibility redirect, normalized redirect-engine
+  and Sales Production links, and removed the v2 sidebar sublinks. Scoped source
+  and whitespace checks pass. Chrome UI verification was attempted in the
+  existing signed-in production account, but canonical navigation remained
+  blocked by the active unrelated `sales-payment-processor.tsx` parse error and
+  local compilation timeout; the account and browser session were not changed.
+  No API, database, migration, permission, production data, deployment, or
+  external state changed; no ADR was required because this reuses the existing
+  canonical-route compatibility pattern.
+
+- 2026-08-21: Superseded later the same day after the intended design direction
+  was clarified. Unified the canonical admin and worker Production analytics card
+  presentation behind `SalesProductionAnalyticsCard`. The admin Unassigned,
+  Past due, Due today, and Awaiting review cards now use the worker dashboard's
+  rounded card, bordered icon, large count, description, hover, and active
+  filter treatment; admin labels, counts, and URL-owned click behavior remain
+  unchanged. The admin loading skeleton now matches the shared card footprint.
+  Authenticated Chrome QA confirmed the source worker card layout remained
+  intact after extraction. The current production role cannot render the
+  admin-only route without redirecting, so admin visual proof remains access
+  constrained. No API, database, migration, permission, production data,
+  deployment, or external state changed; no ADR was required for component
+  reuse.
+
+- 2026-08-21: Separated undated production work from the canonical Production
+  Calendar. Admin and worker PageTabs now place `Unscheduled` directly after
+  Calendar, backed by the normal searchable production table and an explicit
+  incomplete-assignment `dueDate = null` filter. Summary payloads expose an
+  account-aware `unscheduledCount`; worker reads remain session-injected. The
+  Week/Month calendar no longer queries or renders undated assignments and now
+  returns only `days` plus grouped `scheduled` rows. Authenticated Chrome QA in
+  the existing production account confirmed an active Unscheduled tab with 47
+  rows in scope, visible rows labeled `No due date`, the absence of the former
+  below-calendar Unscheduled section, and no browser warnings/errors. The
+  production role redirected an attempted separate-tab admin route check back
+  to its authorized worker dashboard, so the admin tab was verified through the
+  shared resolver/tab contract rather than by changing accounts. No account,
+  production record, database schema, migration, permission, deployment, or
+  external state changed; no ADR was required for this queue-view separation.
+
+- 2026-08-21: Replaced the worker Production Calendar tab's compact date picker
+  with the canonical admin Week/Month calendar. Added
+  `sales.productionCalendarTasks` to inject authenticated worker scope, reused
+  period navigation, status legend, grouped order cards, overflow, and
+  Unscheduled work, and routed worker card opens to Production Tasks. Removed
+  the duplicate worker queue title and current-filter subtitle below the tabs.
+  Scoped diff checks passed. Authenticated Chrome QA confirmed Week and Month,
+  account-scoped Izri assignments, the cleaned layout, and no interaction
+  errors without logging out or changing production records. No schema,
+  migration, permission, deployment, or external state changed; no ADR was
+  required because this reuses the canonical admin calendar pattern.
+
+- 2026-08-21: Added authenticated worker PageTabs to
+  `/production/dashboard/v2`: Due Today (default), Calendar, Past Due, Future,
+  and Completed. Replaced the worker hero with clickable Due Today, Past Due,
+  Future, and Completed analytics, moved tabs/search into the compact admin-style
+  toolbar, hid internal filter chips, and removed saved-view/Add-tab controls.
+  Added `sales.productionDashboardTasks` so summary/calendar worker scope is
+  derived from the session, added the future-assignment due boundary, aligned
+  exact-date/calendar reads with Due Today, and made worker completed lists and
+  counts independent of global multi-worker order completion. Focused coverage
+  passed 46 tests / 133 assertions and targeted Biome passed. Authenticated
+  Chrome QA confirmed all five tabs, all analytics-card transitions, Completed
+  rows after consecutive client-side filter changes, Due Today's three-row
+  queue, calendar/date parity, the compact desktop toolbar, absence of legacy
+  saved controls, and no errors during card transitions. One final hard reload
+  hit the existing authenticated SSR `Sign in again` client-render fallback;
+  the Chrome account remained signed in and subsequent card transitions were
+  error-free. No production record, permission, schema, migration, deployment,
+  or external state changed.
+
+- 2026-08-21: Normalized the dashboard authentication surface onto canonical
+  `/login`. The complete former v2 flow now owns that route; the obsolete
+  first-version template and versioned page were removed; protected-layout,
+  sign-out, password-setup, sales-form, client-error, and Google callback paths
+  now target `/login`; and `/login/v2` remains only as a query-preserving
+  compatibility redirect. Focused redirect coverage passes 6 tests / 8
+  assertions, canonical changed-file Biome checks pass, and local HTTP proof
+  returns `200` for `/login` plus `307` from `/login/v2` to `/login` with the
+  return path preserved. Responsive browser QA at mobile, tablet, and desktop
+  rendered the complete form with the existing GND backdrop and no console
+  error. Broad Dashboard typecheck retains the repository's existing unrelated
+  diagnostics. No API, database, migration, permission, production data,
+  dependency, deployment, environment-secret, or Git operation changed.
+
+- 2026-08-21: Completed the approved Sales Overview General V2 financial,
+  fulfillment, and compact-control refinement. The financial rail now renders
+  a typed cents-based breakdown instead of parsing display labels, keeps
+  recorded card C.C.C./tip/charge facts separate from remaining-balance
+  estimates, groups repeated receipts, and always shows the order balance.
+  Fulfillment now exposes a compact Special Order signal with current-revision
+  signed/not-signed semantics and lazy protected evidence. P.O. has a compact
+  pencil affordance; delivery and sales-representative edits use popovers;
+  billing/shipping retain direct line editors; and Operations contains only
+  Production and Fulfillment. Refunded orders explicitly reconcile gross
+  receipts, refunds, and net paid; delivery editing is permission-aligned and
+  its saved date arrives in the lean overview response; and representative
+  search now uses keyboard-native Command semantics. Focused validation passes
+  51 tests / 241
+  assertions. Targeted Biome passes for the new and changed implementation;
+  the existing `as any` in the legacy DTO test remains the only reported
+  scoped baseline lint item. No database, migration, environment-secret,
+  production-data, deployment, or Git operation changed.
+
+- 2026-08-21: Refined the office-default Sales Overview General V2 scroll and
+  compact-control layout on order `09405PC`. The main tab container now owns a
+  full-width bottom rule, the former negative content overlap is removed, and
+  General V2 owns `pb-24` scroll clearance through a narrow shared sheet
+  `contentClassName` hook. Live scrolling measured 0px tab/action overlap and a
+  0px divider-to-scroll-end gap. The customer block now uses a 12px phone icon,
+  places Addresses at the right of the phone row, and consolidates Customer,
+  Shipping, and Billing—with individual icons—under an Edit chevron menu.
+  Invoice now places the editable Check selector in its heading and removes the
+  redundant Payment Method row. Focused coverage passes 31 tests / 151
+  assertions, targeted Biome passes, and authenticated browser QA found no
+  application error. No API, database, migration, deployment, production data,
+  environment-secret, or Git operation changed.
+
+- 2026-08-21: Increased the canonical Sales Overview primary pane from the
+  `2xl` 42rem token to the existing `3xl` 48rem token, while preserving the
+  `2xl` secondary pane, the established responsive replacement behavior, and
+  the V1 tab-bar presentation for the V2 header.
+  No custom width, new size token, API, schema, migration, or Git operation was
+  introduced.
+
+- 2026-08-21: Completed post-cutover visual parity for Sales Overview General
+  V2 on order `09405PC`. The canonical header now carries the approved order
+  eyebrow, lifecycle, inbound, age, and priority context above underline tabs;
+  General owns a stable Preview/Edit/More command row, with the Super Admin
+  packing action preserved inside More. The command-row bottom rule and the
+  operations/financial divider meet with a measured zero-pixel gap. Financial
+  control is now a wider 280px borderless rail with no rounded Card wrapper.
+  Authenticated browser QA verified the packing menu item, 0px join delta,
+  0px rail radius, desktop rendering, and 390px rendering with document and
+  body scroll widths equal to the viewport. The focused rollout suite passes
+  30 tests / 85 assertions, targeted Biome passes, and the touched-file
+  Dashboard typecheck scan has no diagnostics; the broad Dashboard typecheck
+  retains unrelated baseline failures. The persisted office V2 policy remains
+  unchanged. No schema, migration, deployment, environment-secret, production
+  data, or Git operation changed.
+
+- 2026-08-21: Completed the user-approved Sales Overview General V2 office
+  cutover. A genuine Super Admin opened `/settings/sales/overview`, selected
+  Office Version 2, and saved through the protected management mutation; the
+  success notice appeared, a Settings reload retained Version 2 with no dirty
+  state, and direct local persistence verification returned
+  `{ officeDefault: "v2", superAdminPreview: "v2" }`. Orders `09397LM` and
+  `09388PC` both rendered the Split Command Center, `09388PC` retained its
+  existing Transactions implementation, and General remained V2 after reload.
+  The cutover run produced no application error; only the unrelated existing
+  logo aspect-ratio warning appeared. The rollout task moved from In Progress
+  to Done. V1 remains available only as the documented rollback renderer during
+  the observation window. No schema, migration, production deployment,
+  environment-secret, or Git operation changed.
+
+- 2026-08-21: Completed the safe pre-cutover acceptance slice for Sales
+  Overview General V2. A typed versioned loader now preserves the stable
+  overview response contract while selecting the full V1 projection or the
+  measured V2 projection. Read-only local parity checks on `09397LM` and
+  `09388PC` matched all 34 General V2 fields between the full and narrow
+  loaders. The persisted office policy was temporarily changed to V2 in the
+  local development Settings record: authenticated browser QA rendered V2,
+  retained the existing Transactions tab, and kept V2 after reload; restoring
+  the exact prior missing-policy state returned the browser to V1. Responsive
+  acceptance passed at 390×844 and 1280×720 with no horizontal overflow, a
+  single-column mobile stack, the desktop financial rail, and correct mobile
+  tab-menu behavior. The run exposed and repaired URL-open autofocus, desktop
+  tab arrow navigation, and delivery-dialog focus restoration by reusing the
+  existing Radix tab contract and scoped trigger tracking. The focused suite
+  passes 45 tests / 376 assertions across eight files, targeted Biome
+  passes, and touched-path API/Dashboard type scans report no diagnostics.
+  Broad API, Dashboard, and Settings typechecks retain unrelated baseline
+  failures. The current account is not Super Admin, so the management-screen
+  save path remains the only browser-role gate alongside explicit office-cutover
+  approval. No production data, schema, migration, deployment, environment
+  secret, or Git state changed.
+
+- 2026-08-21: Implemented Ticket 01 of the Fulfillment Admin and responsive
+  driver program as a development-only connected prototype at
+  `/sales-book/fulfillment/prototype`. A single typed reducer now replays
+  assignment, packing, assistance waiting/denial/resolution, physical shortage,
+  approved partial dispatch, Back order, trip, proof retry, Delivered,
+  Fulfilled, stale revision, reassignment, and duplicate-submit scenarios into
+  coordinated desktop admin and 390px driver presentations. Typed URL state
+  preserves the review surface and scenario; production returns not found and
+  the prototype imports no operational client or mutation. Focused reducer and
+  no-write boundary coverage passes 8 tests / 30 assertions. Authenticated
+  in-app-browser QA verified URL scenario switching, assistance notification,
+  the single driver primary action, and weak-network proof retry, with admin and
+  driver screenshots stored under the implementation scratch directory. Ticket
+  01 remains In Progress until representative admin/driver feedback is recorded;
+  no API, database, email, inventory, dispatch, proof, hosted data, dependency,
+  deployment, or production behavior changed.
+
+- 2026-08-21: Promoted the measured Sales Overview General V2 projection behind
+  the existing `sales.getSaleOverview` endpoint. The router resolves rollout
+  policy first, keeps V1 on its compatibility projection, and conditionally
+  loads V2 without Product/configuration items, Sales Profile,
+  delivery-item-count relations, or legacy control enrichment. Customer,
+  addresses, rep/P.O., payments and Square metadata, Special Order, statuses,
+  inventory inbound ownership, and document readiness remain present. Across
+  the same local orders, the candidate reduced `09397LM` from 25 queries / 7,184
+  B / 14.54 ms median to 15 / 5,433 B / 10.01 ms, and `09388PC` from 24 / 6,447
+  B / 15.31 ms to 14 / 5,520 B / 8.67 ms. Focused projection tests and API and
+  Dashboard touched-path type scans pass. Authenticated browser QA rendered the
+  real V2 sheet through the narrowed projection with customer, P.O., delivery,
+  and financial controls present and no new console error; the temporary local
+  QA override was removed and V1 office policy reconfirmed. No database schema,
+  migration, deployment, production data, or Git operation changed.
+
+- 2026-08-21: Established the ADR-060 performance baseline for the canonical
+  Sales Overview read using a read-only local scratch benchmark. Seven warm
+  samples per order measured `09397LM` at 14.54 ms median / 24.20 ms P95 / 25
+  queries / 7,184 serialized bytes and `09388PC` at 15.31 ms median / 26.41 ms
+  P95 / 24 queries / 6,447 bytes. The evidence identifies relation query fan-out
+  as the first V2 data-boundary target while payload and local warm latency are
+  modest. The next candidate must reduce server-side queries while retaining
+  the canonical one-request sheet/provider contract; adding a second client V2
+  request is not justified. Results and the repeatable benchmark live under
+  `.scratch/sales-overview-general-v2/`. No runtime, database, migration,
+  deployment, production data, or Git state changed in this measurement slice.
+
+- 2026-08-21: Delivered the first controlled Sales Overview General V2 slice
+  under ADR-060 without introducing a parallel route or sheet. Added a typed
+  office/Super Admin rollout policy in the existing Sales Settings JSON,
+  protected management procedures and a route-backed settings screen, and a
+  caller-resolved renderer value on the canonical overview response. The
+  General gateway dynamically loads the selected Split Command Center with a
+  dedicated skeleton; the V2 composition provides customer/address expansion,
+  direct P.O. editing, inline pickup/delivery plus service-date dialog,
+  operational progress, and grouped invoice/card settlement while reusing
+  canonical actions. Fixed the delivery mutation so a first option-and-date
+  update persists both fields and made the shared DataSkeleton safe outside an
+  optional provider. Focused validation passes 44 tests / 394 assertions;
+  scoped Biome passes for the bounded new surfaces; touched-path Dashboard and
+  API typecheck scans have no implementation diagnostics (broad typecheck
+  retains unrelated existing workspace failures). Authenticated browser QA on
+  order `09397LM` verified V1 policy behavior, V2 rendering through a temporary
+  local-only QA override that was removed afterward, address expansion, the
+  delivery dialog, and no new console errors after the runtime fix. The browser
+  account was not Super Admin, so management API denial was also verified; a
+  genuine Super Admin settings-switch run, responsive acceptance, measured
+  narrow projection, and office cutover remain open. No database schema,
+  migration, deployment, production data, or Git operation changed.
+
+- 2026-08-21: Aligned Fulfillment table density with Sales Orders. The Ship To
+  cell no longer renders a phone subtitle, Progress no longer renders its
+  percentage/pending subtitle, and the Fulfillment-only table/skeleton mode now
+  derives the same compact `40px` row height used by Sales Orders. The standard
+  Dispatch and driver-task views preserve their `56px` rows and secondary
+  details. Focused migration parity coverage passed with 8 tests and 83
+  assertions.
+
+- 2026-08-21: Fixed the Fulfillment/Dispatch Midday search toolbar treating
+  internal URL defaults as user filters. The toolbar now receives a dedicated
+  `q`/`status`/`scheduleDate` schema, matching Sales Finance's separation of
+  route state from editable filter state. Dashboard, Table, Week, Overview, and
+  Open chips no longer appear, Clear filters no longer touches route-owned
+  state, and initial rendering no longer fetches filter definitions merely
+  because defaults exist. Focused migration parity coverage passed with 8 tests
+  and 75 assertions; scoped whitespace validation passed.
+
+- 2026-08-21: Migrated the canonical Fulfillment calendar in line with the
+  Midday page-tab composition contract. Pending, All, Completed, and Calendar
+  are now peers; Calendar renders without list analytics, overdue/search/table
+  actions, or workload UI, and adds URL-owned Week/Month/date navigation. A
+  bounded manager-only calendar projection now loads only the visible range
+  plus active unscheduled work, while legacy `?view=calendar` links redirect
+  and the accepted fulfillment table/sheet plus v2 workspace remain unchanged.
+  Focused calendar range, schema, and migration parity coverage passed with 12
+  tests and 78 assertions; whitespace validation passed. Browser QA, lint,
+  build, and broad typecheck were not run under the Bun monorepo command
+  discipline.
+
+- 2026-08-20: role permission updates now atomically invalidate both legacy and
+  Better Auth sessions for every employee assigned to the edited role, forcing
+  a fresh login with the updated permission snapshot. Role creation and
+  name-only edits do not log users out. Focused regression coverage, Dashboard
+  typecheck, formatting, and whitespace validation pass.
+
+- 2026-08-20: restored Zelle to the new sales form's Payment Method selector
+  and save-time payment review prompt. Both controls now source their values
+  from the shared form catalog, which has a regression assertion for Zelle, so
+  the UI no longer diverges from the canonical payment-method support. No
+  schema, API, permission, or persistence contract changed.
+
 - 2026-08-20: aligned Special Order approval evidence across the HTML preview
   and generated PDF invoice. A stored customer signature now sits to the right
   of the `Approved by` line instead of below it, with the approver text retaining
@@ -9922,6 +10225,97 @@
 - Added a focused route-configuration regression test. No database schema,
   API request/response contract, permission, or deployment was changed.
 
+## 2026-08-21 — Implemented provider-first Square Sales refunds
+
+- Added a canonical verified Square tender and immutable refund lifecycle with
+  provider/application state separation, cents-safe multi-order allocation,
+  persistent idempotency, pending reservation, webhook dedupe, hourly provider
+  reconciliation, external-refund Finance review, and local-only migration.
+- Added the dedicated `editRefundSquare` command boundary and blocked Square in
+  the legacy resolution refund path. Development now forces Square sandbox even
+  when a stale production override is present.
+- Redesigned Sales Overview Transactions with payment/refund/net/pending/due
+  totals, responsive activity, and a shared refund sheet reused by Sales
+  Finance. Canonical refunds now flow through Finance, Sales Activity,
+  documents, customer completion communication, internal failure/pending
+  notices, and fulfilled-order Resolution exceptions.
+- Validation passed 32 focused tests / 326 assertions. A real Square sandbox
+  `$1.00` payment and refund both completed against the same provider payment.
+  Authenticated desktop/mobile Sales Overview and Finance review QA passed.
+- Added `.brain/features/square-sales-refunds.md` and ADR-058; updated API,
+  database, Sales Overview, Sales Finance, task, and progress documentation.
+  No Git command, production Square action, hosted database write, deployment,
+  or external customer message was performed.
+
+## 2026-08-21 — Fixed Sales Overview Transactions access regression
+
+- Consolidated `salesRefunds.overview` and `sales.getSaleOverview` on one shared
+  Sales Overview viewer helper. Order, estimate, production, delivery, pickup,
+  and packing viewers can now load the mounted order's transaction projection;
+  every refund command still independently requires `editRefundSquare`.
+- Added a permission source-contract regression. The focused Square/refund suite
+  passes 32 tests / 334 assertions, and scoped Biome passes for all new/changed
+  bounded files. The large Sales router retains four unrelated existing `any`
+  warnings.
+- Restarted only the local Dashboard process to load the generated Prisma refund
+  client. Authenticated in-app browser proof on order `09388PC` shows payment
+  `#11935`, `$1,127.12` received/net, `$0.00` refunded/pending/due, and no
+  Transactions error. No database, production Square, deployment, or Git action
+  was performed.
+
+## 2026-08-21 — Open Sales Overview payment details in the secondary pane
+
+- Replaced the Sales Overview Transactions nested payment sheet with the same
+  Custom Sheet V2 secondary-pane architecture used by Inventory inbound forms.
+  Payment selection remains URL-addressable through `salesTransaction`; the
+  secondary back/close control clears the payment and refund selection.
+- Kept the shared payment-detail body and refund action flow so Sales Finance
+  retains its existing standalone sheet while Sales Overview gets the native
+  two-pane interaction.
+- Authenticated in-app browser QA on `09388PC` verified both direct URL opening
+  and clicking Payment `#11935` open the secondary pane. Scoped Biome passes;
+  the broad Dashboard typecheck retains unrelated repository-wide diagnostics,
+  with no changed-file diagnostic reported. No database, Square, deployment, or
+  Git action was performed.
+
+## 2026-08-21 — Planned grouped Sales payment summaries
+
+- Inspected the live Invoice Details for order `09397LM`: two card payments are
+  currently repeated as `$2,277.13` / `$68.31` C.C.C. / `$2,345.44` charged and
+  `$182.22` / `$5.47` C.C.C. / `$187.69` charged.
+- Added an execution plan for one payment-domain summary projection that would
+  display the case once as `$2,459.35` card principal, `$73.78` C.C.C.,
+  `$2,533.13` charged, and `2` payments. Counts of one and zero-value details
+  are intentionally omitted.
+- The plan covers Sales Overview, mobile Sales Order Detail, shared invoice
+  HTML/PDF, statement inheritance, and method-summary reports while preserving
+  itemized Transactions, Finance, refund, and customer-history audit views.
+- Added the proposed work to Backlog. No runtime code, database, API behavior,
+  payment/refund record, browser data, deployment, external message, or Git
+  operation changed.
+
+## 2026-08-21 — Implemented grouped Sales payment summaries
+
+- Added the cents-based Sales payment-summary domain projection with canonical
+  method aliases, exact recorded C.C.C./tip handling, stable receipt counting,
+  and one shared presentation-line adapter.
+- Sales Overview Invoice Details, the mobile Financial ledger, and invoice
+  HTML/PDF now show each method once. Order `09397LM` renders Card Payment
+  `$2,459.35`, C.C.C. `$73.78`, Charged to Card `$2,533.13`, and Card Payments
+  Made `2`; count rows are omitted for a single receipt.
+- Sales Finance and daily reports reuse the domain method normalizer while
+  retaining transaction-level ledger rows. The Sales Overview Transactions tab
+  still shows both `09397LM` receipts separately at `$182.22` and `$2,277.13`.
+- Validation passed 46 focused tests / 154 assertions and `@gnd/sales`
+  typecheck. Authenticated in-app browser acceptance passed on `09397LM` after
+  a fresh local reload. The broad API typecheck retains unrelated repository
+  diagnostics with none in the changed payment-summary paths; the Dashboard
+  typecheck remains blocked by the
+  unrelated syntax error in `sales-production/header.tsx:45`.
+- No database schema/migration, payment/refund record, browser data, external
+  message, deployment, or Git operation changed. No new ADR was required
+  because the implementation follows existing payment and C.C.C. authority.
+
 ## 2026-08-21 — Added semantic colors to filter options
 
 - Added one shared semantic status/payment/delivery palette and a shared
@@ -9934,3 +10328,336 @@
   resolver semantics, Dashboard standard/long-list and active-chip rendering,
   Dealership rendering, and category/custom-control boundaries. No database,
   permission, filter value, URL, deployment, or external-data contract changed.
+
+## 2026-08-21 — Refined Fulfillment and driver workflow Wayfinder
+
+- Extended the existing Dispatch Admin/responsive-driver decision map with the
+  proposed order-grain Fulfillment list, canonical Sales Order lifecycle
+  status, separate exception overlays, order-first Dispatch tab, and removal of
+  list-level packing Progress.
+- Added the proposed driver Today/Assigned journey, assignment-scoped packing,
+  structured blocker reporting, protected admin resolution, deduplicated
+  in-app/email escalation, and ready-to-resume feedback loop.
+- No runtime code, database/API contract, permission, email, notification,
+  deployment, or external state changed. The relevant Wayfinder tickets remain
+  open pending authority and quantity decisions.
+
+## 2026-08-21 — Approved the full Fulfillment and driver Wayfinder answer batch
+
+- Approved recommendations now cover all 11 decision tickets: canonical driver
+  surface, packing authority, quantity/back-order semantics, admin approval
+  boundaries, lifecycle, notifications, admin command center, responsive driver
+  information architecture, web proof completion, connected prototype, and
+  compatibility/cutover.
+- Added the five missing pipeline comments and retained six existing comments
+  without duplication. All tickets remain open for normal dependency-aware
+  Wayfinder resolution and later specification synthesis.
+- No runtime code, database/API contract, permission, email/notification,
+  deployment, ADR status, route ownership, or external state changed.
+
+## 2026-08-21 — Published the Fulfillment admin and responsive driver spec
+
+- Synthesized the approved 11-ticket Wayfinder into a ready-for-agent local
+  specification covering one order-level Fulfillment lifecycle, the Sales
+  Overview Dispatch hierarchy, a phone-first assigned-driver journey,
+  dispatch-bound packing quantities, durable blocker assistance, scoped in-app
+  and email notifications, resumable browser proof, and aggregate fulfillment.
+- The specification defines one reversible local end-to-end acceptance seam,
+  a connected prototype gate, cohort telemetry and rollback, and a new-ADR gate
+  before responsive web can replace Expo as canonical.
+- Existing Wayfinder tickets remain open and unchanged. No implementation
+  ticket, runtime code, database/API contract, permission, email/notification,
+  deployment, ADR status, route ownership, hosted data, or external state
+  changed.
+
+## 2026-08-21 — Published Fulfillment admin and responsive driver tickets
+
+- Published 14 approved, dependency-ordered, ready-for-agent tracer bullets in
+  `.scratch/fulfillment-admin-responsive-driver-implementation/issues/` from
+  the ready-for-agent specification.
+- The graph starts with a connected prototype, splits into order-grain admin and
+  responsive-driver trunks, adds packing, shortage/back-order, domain-specific
+  assistance, deduplicated notifications, resumable proof, and then converges
+  on full reconciliation, cohort controls, rollback, and the evidence-backed
+  canonical-surface decision.
+- Ticket 01 is the immediate frontier. No runtime code, database/API contract,
+  permission, email/notification, deployment, ADR status, route ownership,
+  hosted data, or external state changed while publishing tickets.
+
+## 2026-08-21 — Started controlled Sales Overview General V2 rollout
+
+- Accepted ADR-060: keep the canonical `/sales-book/orders` workspace, URL
+  contract, and Sales Overview sheet; version only the General renderer during
+  migration.
+- Defined a Sales Settings policy with an office default and a Super Admin pilot
+  override, safe V1 office fallback, conditional V2 loading, and explicit V1
+  retirement after acceptance.
+- Selected the Split Command Center prototype as V2 while retaining all
+  non-General tabs and canonical domain actions. Implementation and validation
+  are in progress; no runtime code, database schema, migration, deployment, or
+  Git operation changed in this documentation slice.
+
+## 2026-08-21 — Implemented guarded Sales Orders list read model
+
+- Added the additive `SalesOrderListProjection` schema contract and ADR-061.
+- Added a shared canonical projection builder that composes the current list-row
+  fields in Trigger, accepts only order ids/source revisions, rechecks revisions
+  before upsert, and never changes authoritative Sales state.
+- Added bounded Trigger refresh and cursor backfill tasks, projection row date
+  hydration/parity helpers, and focused pure-contract coverage.
+- Wrapped `sales.getOrders` with default-off `off|shadow|read` controls. Read
+  mode selects canonical ids using the existing filter/permission surface,
+  requires complete/versioned/fresh projection coverage, and otherwise falls
+  back to the legacy include/enrichment path while queueing a refresh.
+- Added sampled id-only shadow telemetry and stable `(createdAt,id)` keyset
+  pagination for the default sort, with embedded offset rollback. Payment review
+  and custom sorts preserve their legacy behavior.
+- No database, Trigger deployment, Vercel environment, preview, or production
+  state changed. Migration generation is deferred because unrelated Square
+  refund schema/migration work is present in the same dirty worktree.
+
+## 2026-08-21 — Widened HTML sales-preview totals footer
+
+- Updated `packages/pdf/src/sales-v2/shared/html-template.tsx` so the HTML
+  preview footer wraps cleanly and gives the right-aligned totals card `320px`
+  of width, a `100%` narrow-page cap, and wider horizontal padding.
+- Re-saved local QA order `09406PC` after changing the persisted custom door
+  price to `$61.11` and custom moulding price to `$33.33`. A hard reload and
+  regenerated preview showed both updated rates and totals, with the totals
+  card measuring `320px`.
+- Validation passed: focused sales HTML/pricing/print coverage completed with
+  12 tests and 76 assertions, targeted Biome passed, scoped `git diff --check`
+  passed, and `@gnd/pdf` typecheck exited successfully.
+- No database schema, API contract, permissions, PDF-renderer layout, or
+  production state changed.
+
+## 2026-08-21 — Matched Productions calendar to Fulfillment
+
+- Replaced the Productions count-only weekly calendar and selected-day agenda
+  with the Fulfillment-style Week/Month operations calendar, inline
+  status-colored order cards, overflow popovers, and an Unscheduled section.
+- Added URL-owned `calendarView` and `calendarDate`, shared the bounded calendar
+  range utilities with Fulfillment, and kept card selection opening Sales
+  Overview on the Production tab.
+- Expanded `sales.productionCalendar` to return bounded scheduled and
+  unscheduled rows. Same-order/day assignments collapse into one visible card
+  with an assignment count while legacy dashboard day aggregates remain
+  available.
+- The shared calendar-range suite passed 3 tests / 8 assertions. Focused Biome
+  and `git diff --check` passed. Authenticated in-app browser QA passed for
+  Week/Month navigation, month period movement, Today return, order opening,
+  and Fulfillment regression coverage with no new console errors.
+- No database schema, migration, mutation, permission, production data,
+  deployment, or external state changed. No ADR was required because the work
+  reuses the established Fulfillment calendar pattern.
+
+## 2026-08-21 — Added calendar period pickers and Production page-tab navigation
+
+- Added one shared clickable period picker to the Productions and Fulfillment
+  calendars. Week mode renders ten earlier weeks, the selected week, and ten
+  later weeks; Month mode renders four earlier months, the selected month, and
+  four later months. The selected period opens centered in the menu, and the
+  Production title is now centered between its previous/next controls.
+- Promoted Production Calendar from the toolbar display toggle into the page
+  tabs and reordered the workspace to Due Today, Calendar, Active, Past Due,
+  Review, and Completed. Calendar owns `tab=calendar&view=calendar`; Active
+  returns to the canonical table queue.
+- Focused validation passed with 34 tests / 179 assertions, targeted Biome, and
+  authenticated in-app browser QA covering both picker ranges, past/future
+  selection, URL updates, exact page-tab order, Calendar active state, and
+  removal of the old toolbar toggle.
+- No API contract, database schema, migration, permission, production data,
+  deployment, or external state changed. No ADR was required because this
+  extends the existing shared PageTabs and operations-calendar patterns.
+
+## 2026-08-21 — Restored full-width Moulding rows and thumbnails
+
+- Expanded the shared Moulding line-item table to fill the item workspace while
+  retaining its 620px horizontal-scroll floor.
+- Extended saved-order legacy hydration to select the related Moulding product
+  image, prefer the selected step-product image, and persist it into grouped
+  rows and selected-component snapshots. Order `09406PC` now reloads with the
+  actual Moulding thumbnail rather than the fallback ruler.
+- Validation passed with 39 focused tests and 154 assertions, Sales typecheck,
+  scoped whitespace checks, and authenticated in-app browser QA confirming the
+  full-width table and labelled thumbnail. API typecheck remains blocked only
+  by unrelated existing dispatch, special-order, and sales DTO diagnostics; no
+  diagnostic points to the touched new-sales-form query.
+- No schema, migration, permissions, external API contract, production state,
+  or saved-order pricing changed.
+
+## 2026-08-21 — Fixed Square refund composition and Sales Activity coverage
+
+- Moved the Sales Overview Square refund composer into the canonical secondary
+  pane and made Back/Cancel return to payment detail.
+- Synchronized single-order partial-refund allocations with principal edits and
+  restored eligibility for historical Terminal tenders from their direct Sales
+  Payment link. Future Terminal settlements also persist legacy order links.
+- Added singular `orderNo` Activity matching, complete Sales identity tags, and
+  contact-independent activity persistence for checkout, payment, and refund
+  events, including sales without an assigned notification recipient.
+- Authenticated local Square sandbox QA submitted a `$4.00` refund for
+  `09396PC` / Payment `#11952`; the UI reserved `$4.00` and Activity displayed
+  `Square refund pending`. Six screenshots were captured under
+  `.gstack/qa-reports/screenshots/refund-secondary-activity-fix-2026-08-21/`.
+- Validation passed 34 focused tests / 72 assertions and targeted Biome. Sales
+  typecheck passed. Workspace/API/Dashboard/Notifications/Jobs typechecks remain
+  blocked by unrelated existing diagnostics outside the touched refund and
+  activity files.
+
+## 2026-08-21 — Preserved gate codes in sales print addresses
+
+- Changed the shared sales print composer to emit Address Line 1 and Address
+  Line 2 independently, so delivery details such as gate codes appear in both
+  HTML preview and generated PDF documents.
+- Applied the same rule to immutable Special Order document snapshots.
+- Added focused regression coverage for both paths. The relevant print and HTML
+  template suite passes 20 tests / 118 assertions, and targeted Biome and
+  whitespace validation pass. The Sales package typecheck retains one unrelated
+  existing `grouping.ts` missing-`img` diagnostic.
+- No database schema, migration, API contract, permission, or persisted sales
+  data changed.
+
+## 2026-08-21 — Inlined Sales Overview Special Order controls
+
+- Removed the General V2 `Manage special order` action and nested management
+  dialog. Expanding the Fulfillment signal now renders the applicable
+  enrollment, approval-request, approval-link, reapproval, and removal actions
+  directly beneath the current status evidence.
+- Reused the canonical Special Order controller, permissions, notifications,
+  email-repair continuation, query invalidation, and mutation contracts. New
+  enrollment uses a reasonless inline Cancel/Continue confirmation; the V1
+  card and its existing dialogs remain available during the rollback window.
+- Focused regressions passed 22 tests / 135 assertions and scoped Biome passed.
+  Authenticated in-app browser QA verified direct governed actions on
+  `09337LRG`, the inline confirmation/cancel flow on ungoverned `09405PC`, no
+  nested dialog, no horizontal overflow, and no browser errors. Continue was
+  not submitted, so no order data changed. No database, API, permission, Git,
+  deployment, or external state changed.
+
+## 2026-08-21 — Automated Delivery additional-cost lifecycle
+
+- Added one atomic Sales Form state transition for Fulfillment and Delivery
+  additional costs. Delivery appends a single editable `$0` charge when needed;
+  confirmed Pickup removes every Delivery-typed row, retains unrelated costs,
+  recomputes totals once, and clears stale save errors.
+- Added a controlled destructive confirmation to create/edit orders and quotes.
+  Cancel leaves the Delivery method and charges untouched, while Pickup without
+  a Delivery cost remains immediate. Hydration stays passive.
+- Focused coverage passed 18 tests / 65 assertions, Sales typecheck passed,
+  targeted Biome and whitespace checks passed, and the broad Dashboard
+  typecheck reported only its existing diagnostics with none in the touched
+  fulfillment files.
+- Authenticated browser QA on order `09406PC` and quote `03534PC` confirmed
+  automatic creation, amount editing, save/reload persistence, cancel, confirmed
+  removal, and Pickup save/reload persistence. Both local QA records were
+  restored to their original Pickup state without a Delivery cost.
+- No schema, migration, API contract, permission, production data, deployment,
+  or external state changed. No ADR was required.
+
+## 2026-08-21 — Standardized the Sales Overview Fulfillment calendar
+
+- Replaced the browser-native Fulfillment date input in General V2's Delivery
+  popover with the shared `@gnd/ui/calendar` single-date picker inside a nested
+  Shadcn Popover. The trigger shows the formatted date and calendar icon, date
+  selection closes only the calendar, and the existing outer Save/Cancel flow
+  remains authoritative.
+- Preserved local date-only conversion, lazy Delivery detail loading, existing
+  edit permissions, mutation input, and focused query invalidation. Closing the
+  Delivery popover resets both calendar and draft state.
+- The focused General gateway suite passed 10 tests / 93 assertions and scoped
+  Biome passed. Authenticated browser QA on `09337LRG` verified the rendered
+  August 2026 calendar, month navigation, accessible grid, clean cancellation,
+  and no date-control runtime error. The dev log retained an unrelated existing
+  missing `@/components/login-v2` diagnostic from the public login route. Save
+  was not pressed, so no order data changed. No database, API, permission, Git,
+  deployment, or external state changed.
+
+## 2026-08-21 — Added Sales Form component image previews
+
+- Added a shared image-only lightbox for resolved HPT door and Moulding
+  line-item thumbnails. The triggers support keyboard and pointer use, retain a
+  visible focus ring and hand cursor, and leave missing-image ruler fallbacks
+  non-clickable.
+- Added a versioned, per-browser seven-day discovery window that gives the
+  thumbnails a mild 1px blue-violet-amber gradient border. The temporary border
+  expires automatically without disabling the permanent preview interaction.
+  A visual follow-up moved the treatment to explicit browser styles and
+  advanced the storage version after live inspection showed the original
+  arbitrary gradient class was present in markup but missing from generated
+  CSS. A second visual review removed the temporary glow, pulse, thick outline,
+  and inset so the at-rest cue remains intentionally quiet.
+- Focused workflow coverage passed 33 tests / 145 assertions, Sales typecheck
+  passed, and scoped Biome checks passed. Authenticated browser QA on order
+  `09406PC` confirmed both real-image triggers, both image-only previews, and a
+  high-contrast close control against the light Moulding image.
+- No schema, migration, API contract, permission, pricing calculation, save
+  payload, production data, deployment, or external state changed. No ADR was
+  required.
+
+## 2026-08-21 — Embedded the Fulfillment calendar in the Delivery popover
+
+- Removed the nested Fulfillment date selector from General V2. Opening the
+  Delivery popover now immediately shows the shared single-date Calendar with
+  its previous/next month controls, followed by the existing right-aligned
+  Cancel and Save actions. The helper subtitle was removed.
+- Changed the compact Delivery trigger to fill its row and moved the slanted
+  `PencilEdit01Icon` edit glyph to the far right through `Icons.Edit3`.
+- Preserved the current date-only draft, mutation, permissions, lazy query, and
+  focused invalidation behavior. The focused General gateway suite passed 10
+  tests / 99 assertions and scoped Biome passed. Authenticated browser QA on
+  `09337LRG` verified August/September navigation, inline selection, Cancel
+  rollback, the final icon placement, and no browser errors. Save was not
+  pressed, so no order data changed. No database, API, permission, Git,
+  deployment, or external state changed.
+
+## 2026-08-21 — Right-aligned Moulding estimates
+
+- Wrapped each Moulding Estimate menu trigger in an explicit right-aligned flex
+  container so the header and value share the same right edge as HPT pricing.
+- Focused coverage passed 3 tests / 21 assertions, Sales typecheck passed, and
+  scoped Biome checks passed. Authenticated browser QA on `09406PC` confirmed
+  right alignment with the expected 12px cell inset. No pricing, persistence,
+  schema, API, permission, or external state changed.
+
+## 2026-08-21 — Standardized generic edit actions on the slanted pencil
+
+- Remapped both shared generic edit aliases, `Icons.Edit` and legacy
+  `Icons.edit`, to `PencilEdit01Icon`. All existing generic dashboard consumers
+  inherit the slanted pencil without screen-level rewrites; Draft, file-edit,
+  and annotation glyphs remain unchanged.
+- Added a shared-icons rendering regression test. The focused suite passed 3
+  tests / 5 assertions. Authenticated browser QA on Sales Overview order
+  `09337LRG` confirmed the General action bar, Customer, P.O., and Delivery edit
+  controls render the intended glyph. No data was saved or changed.
+- No database, API, permission, deployment, Git, or external state changed. No
+  ADR was required because this standardizes an existing design-system alias.
+
+## 2026-08-21 — Migrated Sales Overview Transactions to a compact receipt flow
+
+- Replaced the five analytics cards and duplicate desktop/mobile transaction
+  renderers with one order settlement strip and a concise full-row receipt
+  ledger. Added a clean zero-transaction state with a direct payment CTA.
+- Added typed `salesPayment=new` URL state to the canonical Sales Overview
+  multi-pane controller. Transactions `Make payment` and General `Pay` now open
+  the mature Sales Payment Processor inside the secondary sheet; the existing
+  dialog wrapper remains available to unrelated callers.
+- Preserved the `salesTransaction` payment-detail/refund route, exact server
+  projection, focused post-payment invalidation, and focus-return contract.
+  Payment creation is disabled when the order has no remaining balance.
+- The shared payment action composition now targets either the modal body or
+  the standard Sales Overview secondary footer, so payment method, terminal,
+  check, and submit behavior have one implementation. The sheet body is
+  horizontally constrained, and the shared combobox gained an optional trigger
+  width override to keep the compact Add Order action inside its row.
+- Focused validation passed 32 tests / 149 assertions and scoped Biome. Live QA
+  passed on paid order `09397LM` and empty order `09337LRG`, including row
+  details, both payment-entry points, URL cleanup, and focus restoration. No
+  payment was submitted. The broad Dashboard typecheck remains on its existing
+  failure baseline; touched-path filtering found no migration diagnostic.
+- Follow-up sheet geometry proof found no horizontal offender: pane and scroll
+  widths were 672/672px and 624/624px respectively, with a separate fixed
+  624px-wide footer. No payment was submitted during this verification.
+- No schema, migration, API contract, permission, deployment, Git, or external
+  state changed. No ADR was required because this extends the existing Sales
+  Overview multi-pane and payment-processor contracts.

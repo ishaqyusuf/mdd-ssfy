@@ -271,6 +271,44 @@ describe("high-risk tRPC permission boundaries", () => {
 		}
 	});
 
+	test("Square refund commands require the dedicated refund permission", () => {
+		const refunds = source("sales-refunds.route.ts");
+		for (const mutation of ["create", "allocateExternal", "retry"]) {
+			expectProtectedMutation(refunds, mutation, '["editRefundSquare"]');
+		}
+
+		const overview = refunds.indexOf("overview: protectedProcedure");
+		expect(overview).toBeGreaterThanOrEqual(0);
+		expect(refunds.slice(overview, overview + 500)).toContain(
+			"await requireSalesOverviewViewer(ctx)",
+		);
+		const overviewAccess = source("../../utils/sales-overview-access.ts");
+		for (const permission of [
+			"viewOrders",
+			"editOrders",
+			"viewProduction",
+			"viewDelivery",
+			"viewPickup",
+			"viewPacking",
+		]) {
+			expect(overviewAccess).toContain(`"${permission}"`);
+		}
+	});
+
+	test("Sales Overview rollout settings are Super Admin-only", () => {
+		const sales = source("sales.route.ts");
+		for (const procedure of [
+			"getSalesOverviewViewSettings",
+			"updateSalesOverviewViewSettings",
+		]) {
+			const start = sales.indexOf(`${procedure}: protectedProcedure`);
+			expect(start).toBeGreaterThanOrEqual(0);
+			expect(sales.slice(start, start + 900)).toContain(
+				"requireSuperAdmin(props.ctx)",
+			);
+		}
+	});
+
 	test("sales dashboard reporting reads require an authenticated sales viewer", () => {
 		const dashboard = source("sales-dashboard.route.ts");
 		for (const procedure of [

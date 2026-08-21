@@ -49,6 +49,9 @@ export function useSalesOverviewQuery() {
 		] as const),
 		// refreshTok: parseAsString,
 		dispatchOverviewId: parseAsInteger,
+		salesTransaction: parseAsString,
+		salesPayment: parseAsString,
+		salesRefund: parseAsString,
 	});
 	const auth = useAuth();
 	const assignedTo =

@@ -62,6 +62,7 @@ interface PageTabsProps {
 	currentQuery?: string;
 	maxVisible?: ResponsivePageTabLimit;
 	showManage?: boolean;
+	showAll?: boolean;
 }
 
 type ResolvedPageTab = PageTabItem & {
@@ -152,6 +153,7 @@ export function PageTabs({
 	currentQuery,
 	maxVisible,
 	showManage = true,
+	showAll = true,
 }: PageTabsProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -207,6 +209,7 @@ export function PageTabs({
 			};
 		});
 		if (!savedTabs.length) return [];
+		if (!showAll) return savedTabs;
 
 		const hasActiveSavedTab = savedTabs.some((tab) => tab.active);
 		const allTab = buildAllTab(pathname, page, allTitle, allCount);
@@ -231,6 +234,7 @@ export function PageTabs({
 		activeParams,
 		currentQuery,
 		selectedState.matchingTabIndex,
+		showAll,
 	]);
 	const selectedResolvedTabIndex = resolvedTabs.findIndex((tab) => tab.active);
 	const visibleTabLimit = getResponsivePageTabLimit(maxVisible, {

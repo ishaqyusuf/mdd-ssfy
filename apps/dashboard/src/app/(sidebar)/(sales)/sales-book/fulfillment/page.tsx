@@ -1,23 +1,12 @@
 import { AuthGuard } from "@/components/auth-guard";
-import { AdminDispatchHeader } from "@/components/dispatch-admin/admin-dispatch-header";
+import { FulfillmentCalendarWorkspace } from "@/components/dispatch-admin/fulfillment-calendar-workspace";
 import {
-	DispatchCalendarSkeleton,
-	DispatchCalendarView,
-} from "@/components/dispatch-admin/dispatch-calendar-view";
-import { DispatchOverdueBanner } from "@/components/dispatch-admin/dispatch-overdue-banner";
-import {
-	DispatchSummaryCards,
-	DispatchSummaryCardsSkeleton,
-} from "@/components/dispatch-admin/dispatch-summary-cards";
-import {
-	DriverWorkloadCard,
-	DriverWorkloadSkeleton,
-} from "@/components/dispatch-admin/driver-workload-card";
-import { ErrorFallback } from "@/components/error-fallback";
+	getFulfillmentCalendarPeriod,
+	resolveFulfillmentCalendarDate,
+} from "@/components/dispatch-admin/fulfillment-calendar-range";
+import { FulfillmentListWorkspace } from "@/components/dispatch-admin/fulfillment-list-workspace";
 import PageShell from "@/components/page-shell";
 import { _perm } from "@/components/sidebar-links";
-import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
-import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
 import { loadDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { loadSortParams } from "@/hooks/use-sort-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
@@ -25,9 +14,9 @@ import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { PageTitle } from "@gnd/ui/custom/page-title";
-import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { redirect } from "next/navigation";
 import type { SearchParams } from "nuqs";
-import { Suspense } from "react";
+import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -41,27 +30,45 @@ type Props = {
 	searchParams: Promise<SearchParams>;
 };
 type DispatchInput = RouterInputs["dispatch"]["index"];
-type ExportDispatchesInput = RouterInputs["dispatch"]["exportDispatches"];
+
+function getLegacyCalendarHref() {
+	return "/sales-book/fulfillment?tab=calendar&tabName=Calendar";
+}
 
 export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
 	const filter = loadDispatchFilterParams(searchParams);
-	const view = filter.view ?? "table";
-	const { view: _view, ...dispatchFilter } = filter;
-	const { sort } = loadSortParams(searchParams);
-	const initialSettings = await getInitialTableSettings("sales-dispatch");
-	const queryInput = {
-		...dispatchFilter,
-		sort,
-	} as DispatchInput;
 
-	if (view === "calendar") {
+	if (filter.view === "calendar" && filter.tab !== "calendar") {
+		redirect(getLegacyCalendarHref());
+	}
+
+	const isCalendar = filter.tab === "calendar";
+	let workspace: ReactNode;
+
+	if (isCalendar) {
+		const calendarDate = resolveFulfillmentCalendarDate(filter.calendarDate);
+		const period = getFulfillmentCalendarPeriod(
+			calendarDate,
+			filter.calendarView,
+		);
 		batchPrefetch([
-			trpc.dispatch.exportDispatches.queryOptions(
-				dispatchFilter as ExportDispatchesInput,
-			),
+			trpc.dispatch.fulfillmentCalendar.queryOptions({
+				from: period.from,
+				to: period.to,
+			}),
 		]);
+		workspace = <FulfillmentCalendarWorkspace />;
 	} else {
+		const {
+			view: _view,
+			calendarView: _calendarView,
+			calendarDate: _calendarDate,
+			...dispatchFilter
+		} = filter;
+		const { sort } = loadSortParams(searchParams);
+		const initialSettings = await getInitialTableSettings("sales-dispatch");
+		const queryInput = { ...dispatchFilter, sort } as DispatchInput;
 		batchPrefetch([
 			trpc.dispatch.index.infiniteQueryOptions(queryInput, {
 				getNextPageParam: ({ meta }) =>
@@ -72,6 +79,7 @@ export default async function Page(props: Props) {
 				cannot: ["editOrders"],
 			}),
 		]);
+		workspace = <FulfillmentListWorkspace initialSettings={initialSettings} />;
 	}
 
 	return (
@@ -86,66 +94,7 @@ export default async function Page(props: Props) {
 					}
 				>
 					<PageTitle>Fulfillment</PageTitle>
-					<div className="flex flex-col gap-6">
-						{/* Summary KPI Cards */}
-						<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-							<ErrorBoundary errorComponent={ErrorFallback}>
-								<Suspense fallback={<DispatchSummaryCardsSkeleton />}>
-									<DispatchSummaryCards />
-								</Suspense>
-							</ErrorBoundary>
-						</div>
-
-						{/* Overdue alert banner */}
-						<ErrorBoundary errorComponent={ErrorFallback}>
-							<Suspense fallback={null}>
-								<DispatchOverdueBanner />
-							</Suspense>
-						</ErrorBoundary>
-
-						{/* Header with Filters + Admin Actions */}
-						<AdminDispatchHeader />
-
-						{/* Main Content */}
-						{view === "calendar" ? (
-							/* Calendar View */
-							<ErrorBoundary errorComponent={ErrorFallback}>
-								<Suspense fallback={<DispatchCalendarSkeleton />}>
-									<DispatchCalendarView />
-								</Suspense>
-							</ErrorBoundary>
-						) : (
-							/* Table View: Table + Sidebar */
-							<div className="flex gap-6 items-start">
-								{/* Dispatch Table */}
-								<div className="flex-1 min-w-0">
-									<ErrorBoundary errorComponent={ErrorFallback}>
-										<Suspense
-											fallback={
-												<SalesDispatchSkeleton
-													initialSettings={initialSettings}
-												/>
-											}
-										>
-											<DataTable
-												enableSalesMarkAs
-												initialSettings={initialSettings}
-											/>
-										</Suspense>
-									</ErrorBoundary>
-								</div>
-
-								{/* Driver Workload Sidebar */}
-								<div className="hidden xl:block w-64 shrink-0">
-									<ErrorBoundary errorComponent={ErrorFallback}>
-										<Suspense fallback={<DriverWorkloadSkeleton />}>
-											<DriverWorkloadCard />
-										</Suspense>
-									</ErrorBoundary>
-								</div>
-							</div>
-						)}
-					</div>
+					{workspace}
 				</AuthGuard>
 			</HydrateClient>
 		</PageShell>

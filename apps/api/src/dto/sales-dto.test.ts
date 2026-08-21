@@ -292,6 +292,29 @@ describe("sales dto cost lines", () => {
 		).toBe("PO-ROOT");
 	});
 
+	it("exposes the current fulfillment date without an eager detail request", () => {
+		const dueDate = new Date("2026-09-04T12:00:00.000Z");
+		const dto = salesOrderDto(
+			makeSale({
+				type: "order",
+				deliveries: [
+					{
+						id: 42,
+						deliveryMode: "pickup",
+						dueDate,
+						status: "pending",
+					},
+				],
+			}),
+		);
+
+		expect(dto.deliverySummary).toEqual({
+			id: 42,
+			mode: "pickup",
+			fulfillmentDate: dueDate,
+		});
+	});
+
 	it("includes repaired credit card fee before invoice total", () => {
 		const dto = salesQuoteDto(
 			makeSale({
@@ -416,9 +439,20 @@ describe("sales dto cost lines", () => {
 			{ label: "Sub total", amount: 825 },
 			{ label: "Discount", amount: -33.72 },
 			{ label: "County & State Tax", amount: 55.39 },
-			{ label: "C.C.C", amount: 25.4 },
-			{ label: "Charged to Card", amount: 872.07 },
-			{ label: "Total Due", amount: 0 },
+			{ label: "Order Total", amount: 846.67 },
+			{ label: "Paid Toward Order", amount: 846.67 },
+			{ label: "Card Payment", amount: 846.67, paymentMethod: "card" },
+			{
+				label: "C.C.C. on Card Payment",
+				amount: 25.4,
+				paymentMethod: "card",
+			},
+			{
+				label: "Charged to Card",
+				amount: 872.07,
+				paymentMethod: "card",
+			},
+			{ label: "Balance Due", amount: 0 },
 		]);
 		expect(dto.invoice).toMatchObject({
 			displayPaid: 872.07,
@@ -481,11 +515,190 @@ describe("sales dto cost lines", () => {
 			{ label: "Sub total", amount: 5000 },
 			{ label: "Order Total", amount: 5000 },
 			{ label: "Paid Toward Order", amount: 3500 },
-			{ label: "Card Payment", amount: 2500 },
-			{ label: "C.C.C on Card Payment", amount: 87.5 },
-			{ label: "Charged to Card", amount: 2587.5 },
+			{ label: "Card Payment", amount: 2500, paymentMethod: "card" },
+			{
+				label: "C.C.C. on Card Payment",
+				amount: 87.5,
+				paymentMethod: "card",
+			},
+			{
+				label: "Charged to Card",
+				amount: 2587.5,
+				paymentMethod: "card",
+			},
+			{ label: "Cash Payment", amount: 1000, paymentMethod: "cash" },
 			{ label: "Balance Due", amount: 1500 },
 		]);
+		expect(dto.invoice.displayPaid).toBe(3587.5);
+		expect(dto.financialBreakdown.pendingCardEstimate).toEqual({
+			principalCents: 150_000,
+			cccCents: 5_250,
+			totalCents: 155_250,
+		});
+	});
+
+	it("groups repeated card payments into one invoice summary", () => {
+		const dto = salesOrderDto(
+			makeSale({
+				type: "order",
+				grandTotal: 2459.35,
+				amountDue: 0,
+				subTotal: 2298.46,
+				taxes: [{ tax: 160.89, taxConfig: { title: "County & State Tax" } }],
+				payments: [
+					{
+						id: 9158,
+						transactionId: 11935,
+						amount: 2277.13,
+						status: "success",
+						deletedAt: null,
+						createdAt: new Date("2026-08-20T20:00:00.000Z"),
+						meta: {
+							salesAmount: 2277.13,
+							feeAmount: 68.31,
+							customerChargeAmount: 2345.44,
+						},
+						transaction: { paymentMethod: "credit-card" },
+						squarePayments: null,
+					},
+					{
+						id: 9159,
+						transactionId: 11936,
+						amount: 182.22,
+						status: "success",
+						deletedAt: null,
+						createdAt: new Date("2026-08-20T21:00:00.000Z"),
+						meta: {
+							salesAmount: 182.22,
+							feeAmount: 5.47,
+							customerChargeAmount: 187.69,
+						},
+						transaction: { paymentMethod: "terminal" },
+						squarePayments: null,
+					},
+				],
+			}),
+		);
+
+		expect(dto.paymentSummary).toMatchObject({
+			paymentCount: 2,
+			principalCents: 245935,
+			cccCents: 7378,
+			customerChargedCents: 253313,
+			methodLabel: "Credit Card",
+			groups: [
+				{
+					method: "card",
+					paymentCount: 2,
+					principalCents: 245935,
+					cccCents: 7378,
+				},
+			],
+		});
+		expect(dto.costLines).toEqual([
+			{ label: "Sub total", amount: 2298.46 },
+			{ label: "County & State Tax", amount: 160.89 },
+			{ label: "Order Total", amount: 2459.35 },
+			{ label: "Paid Toward Order", amount: 2459.35 },
+			{
+				label: "Card Payment",
+				amount: 2459.35,
+				paymentMethod: "card",
+			},
+			{
+				label: "C.C.C. on Card Payment",
+				amount: 73.78,
+				paymentMethod: "card",
+			},
+			{
+				label: "Charged to Card",
+				amount: 2533.13,
+				paymentMethod: "card",
+			},
+			{
+				label: "Card Payments Made",
+				amount: 2,
+				paymentMethod: "card",
+				format: "count",
+			},
+			{ label: "Balance Due", amount: 0 },
+		]);
+		expect(dto.invoice.displayPaid).toBe(2533.13);
+		expect(dto.financialBreakdown).toEqual({
+			documentType: "order",
+			invoice: {
+				subtotalCents: 229846,
+				adjustments: [],
+				taxes: [
+					{
+						key: "tax-0",
+						label: "County & State Tax",
+						amountCents: 16089,
+					},
+				],
+				totalCents: 245935,
+				paidCents: 245935,
+				refundedCents: 0,
+				balanceCents: 0,
+			},
+			paymentGroups: [
+				{
+					method: "card",
+					label: "Card",
+					paymentCount: 2,
+					principalCents: 245935,
+					cccCents: 7378,
+					tipCents: 0,
+					customerChargedCents: 253313,
+					cccEvidence: "recorded",
+				},
+			],
+			pendingCardEstimate: null,
+		});
+	});
+
+	it("reconciles gross payment groups with canonical net paid after a refund", () => {
+		const dto = salesOrderDto(
+			makeSale({
+				type: "order",
+				grandTotal: 1000,
+				amountDue: 500,
+				subTotal: 1000,
+				taxes: [],
+				payments: [
+					{
+						id: 1,
+						amount: 1000,
+						status: "success",
+						deletedAt: null,
+						createdAt: new Date("2026-08-20T20:00:00.000Z"),
+						meta: {},
+						transaction: { paymentMethod: "credit-card" },
+						squarePayments: null,
+					},
+					{
+						id: 2,
+						amount: -500,
+						status: "success",
+						deletedAt: null,
+						createdAt: new Date("2026-08-21T12:00:00.000Z"),
+						meta: { kind: "refund" },
+						transaction: { paymentMethod: "credit-card" },
+						squarePayments: null,
+					},
+				],
+			}),
+		);
+
+		expect(dto.financialBreakdown.invoice).toMatchObject({
+			paidCents: 50_000,
+			refundedCents: 50_000,
+			balanceCents: 50_000,
+		});
+		expect(dto.financialBreakdown.paymentGroups[0]).toMatchObject({
+			method: "card",
+			principalCents: 100_000,
+		});
 	});
 
 	it("does not infer unrecorded partial card ccc", () => {
@@ -519,6 +732,7 @@ describe("sales dto cost lines", () => {
 			{ label: "Sub total", amount: 5000 },
 			{ label: "Order Total", amount: 5000 },
 			{ label: "Paid Toward Order", amount: 2500 },
+			{ label: "Card Payment", amount: 2500, paymentMethod: "card" },
 			{ label: "Balance Due", amount: 2500 },
 		]);
 	});

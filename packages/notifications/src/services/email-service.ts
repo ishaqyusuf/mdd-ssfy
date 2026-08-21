@@ -23,14 +23,15 @@ import { JobTaskConfigureRequestEmail } from "@gnd/email/emails/job-task-configu
 import LoginEmail from "@gnd/email/emails/login-link-email";
 import { SalesCustomerPaymentFailedEmail } from "@gnd/email/emails/sales-customer-payment-failed";
 import { SalesCustomerPaymentReceivedEmail } from "@gnd/email/emails/sales-customer-payment-received";
+import { SalesCustomerRefundCompletedEmail } from "@gnd/email/emails/sales-customer-refund-completed";
 import SalesEmail from "@gnd/email/emails/sales-email";
 import SalesReminderScheduleAdminNotificationEmail from "@gnd/email/emails/sales-reminder-schedule-admin-notification";
 import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
+import SpecialOrderApprovalRequestEmail from "@gnd/email/emails/special-order-approval-request";
+import SpecialOrderStatusNotificationEmail from "@gnd/email/emails/special-order-status-notification";
 import StorefrontCustomInquiryReceived from "@gnd/email/emails/storefront-custom-inquiry-received";
 import StorefrontOrderConfirmation from "@gnd/email/emails/storefront-order-confirmation";
 import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
-import SpecialOrderApprovalRequestEmail from "@gnd/email/emails/special-order-approval-request";
-import SpecialOrderStatusNotificationEmail from "@gnd/email/emails/special-order-status-notification";
 import { render } from "@gnd/email/render";
 import {
 	getRecipient,
@@ -513,6 +514,7 @@ export class EmailService {
 		const templates = {
 			"sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
 			"sales-customer-payment-received": SalesCustomerPaymentReceivedEmail,
+			"sales-customer-refund-completed": SalesCustomerRefundCompletedEmail,
 			"sales-customer-payment-failed": SalesCustomerPaymentFailedEmail,
 			"customer-statement": CustomerStatementEmail,
 			"job-assigned": JobAssignedEmail,

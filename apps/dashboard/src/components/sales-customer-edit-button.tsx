@@ -174,6 +174,7 @@ export function SalesAddressEditButton({
 	label,
 	onEdit,
 	readOnly = false,
+	iconOnly = false,
 }: {
 	customerId?: number | null;
 	addressId?: number | null;
@@ -181,6 +182,7 @@ export function SalesAddressEditButton({
 	label: string;
 	onEdit?: () => void;
 	readOnly?: boolean;
+	iconOnly?: boolean;
 }) {
 	const auth = useAuth();
 	const { params, setParams } = useCreateCustomerParams();
@@ -225,7 +227,7 @@ export function SalesAddressEditButton({
 			aria-label={`${action} ${label}`}
 			title={`${action} ${label}`}
 			type="button"
-			size="xs"
+			size={iconOnly ? "icon-xs" : "xs"}
 			variant="outline"
 			onClick={() => {
 				if (onEdit) {
@@ -239,8 +241,8 @@ export function SalesAddressEditButton({
 				void setParams(editParams);
 			}}
 		>
-			<Icons.Edit className="mr-1 size-3.5" />
-			{action}
+			<Icons.Edit aria-hidden="true" />
+			{iconOnly ? null : action}
 		</Button>
 	);
 }

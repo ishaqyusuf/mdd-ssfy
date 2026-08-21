@@ -219,6 +219,58 @@ describe("sales production priority sorting", () => {
 		expect(result.data[0]?.materials.state).toBe("unavailable");
 	});
 
+	it("returns work completed by the authenticated worker before the full order completes", async () => {
+		const incomplete = {
+			...productionRow(1, "NORMAL"),
+			assignments: [
+				{
+					qtyAssigned: 2,
+					lhQty: 0,
+					rhQty: 0,
+					completedAt: null,
+					dueDate: null,
+					assignedTo: { name: "Worker" },
+					submissions: [],
+				},
+			],
+		};
+		const complete = {
+			...productionRow(2, "NORMAL"),
+			assignments: [
+				{
+					qtyAssigned: 2,
+					lhQty: 0,
+					rhQty: 0,
+					completedAt: null,
+					dueDate: null,
+					assignedTo: { name: "Worker" },
+					submissions: [
+						{
+							qty: 2,
+							lhQty: 0,
+							rhQty: 0,
+							materialReview: null,
+						},
+					],
+				},
+			],
+		};
+		const db = {
+			salesOrders: {
+				findMany: async () => [incomplete, complete],
+			},
+		};
+
+		const result = await getSalesProductions(db as unknown as Db, {
+			workerId: 17,
+			production: "completed",
+			includeMaterials: false,
+			size: 20,
+		});
+
+		expect(result.data.map((row) => row.id)).toEqual([2]);
+	});
+
 	it("sorts production queue by priority before due date", () => {
 		const sorted = sortProductionListByPriority([
 			{

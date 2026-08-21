@@ -196,7 +196,7 @@ export async function signIn(provider: string, options: SignInOptions = {}) {
             status: String(response.status),
         });
 
-        window.location.assign(`/login/v2?${params.toString()}`);
+        window.location.assign(`/login?${params.toString()}`);
     }
 
     return {
@@ -223,7 +223,7 @@ export async function signInWithGoogle(options: SignInOptions = {}) {
         body: JSON.stringify({
             provider: "google",
             callbackURL,
-            errorCallbackURL: "/login/v2?error=google",
+            errorCallbackURL: "/login?error=google",
             requestSignUp: true,
             disableRedirect: true,
         }),
@@ -259,7 +259,7 @@ export async function signInWithGoogle(options: SignInOptions = {}) {
             status: String(response.status),
         });
 
-        window.location.assign(`/login/v2?${params.toString()}`);
+        window.location.assign(`/login?${params.toString()}`);
     }
 
     return {

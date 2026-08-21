@@ -15,7 +15,7 @@ export default async function Layout({ children }) {
     const session = await getServerAuthSession();
 
     if (!session?.user?.id) {
-        redirect("/login/v2");
+        redirect("/login");
     }
 
     const initialAuth: InitialAuthState = {

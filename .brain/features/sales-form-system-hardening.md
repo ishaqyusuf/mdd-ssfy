@@ -213,6 +213,10 @@
   Due, and Production Due; legacy values such as `Net30` normalize to `Net 30`,
   a selected automatic term recalculates and disables Due, and `None` leaves
   Due editable. Quotes omit Net, Due, and Production Due and expose Good Until.
+- The new-form Payment Method selector and its save-time Review payment method
+  prompt share one catalog. It includes Zelle alongside Cash, Check, Credit
+  Card, ACH, Link, and Wire Transfer, preventing the two controls from
+  drifting apart.
 - Expanded customer summaries expose Billing Address and Shipping Address as
   full-width keyboard-accessible edit targets with right-aligned Edit text,
   pointer cursors, and subtle hover feedback. Address-only saves reconcile a
@@ -423,6 +427,29 @@
   / 42 assertions, including the shared stepper, minimum quantity, autofocus
   ref, and Enter-to-add wiring. No browser, build, or broad typecheck run was
   performed under the requested fast Bun workflow.
+- 2026-08-21 the shared Moulding line-item table fills the available item
+  workspace while retaining its 620px horizontal-scroll floor. Saved grouped
+  Moulding rows now preserve the related step-product image, with the Moulding
+  product image as a fallback, so reloaded orders render the actual component
+  thumbnail instead of the ruler placeholder.
+- 2026-08-21 explicit Fulfillment changes now keep the method and invoice-wide
+  Delivery charge aligned in create/edit orders and quotes. Selecting Delivery
+  creates one editable zero-value `Delivery` additional-cost row when none
+  exists. Selecting Pickup with one or more Delivery-typed rows opens a
+  confirmation; cancel keeps Delivery and its charges, while confirm removes
+  every Delivery row and preserves unrelated additional costs. Passive
+  hydration does not create or remove charges.
+- 2026-08-21 resolved HPT door and Moulding line-item thumbnails are now
+  keyboard-accessible image-preview triggers. They open a shared image-only
+  lightbox with a dark backdrop, a full-size contained image, and standard
+  close, backdrop, and Escape dismissal without a conventional dialog card. A
+  versioned per-browser first-seen timestamp shows a mild 1px
+  blue-violet-amber gradient border for seven days; after expiry the border
+  disappears while the hand cursor, focus ring, hover affordance, and preview
+  behavior remain. Missing-image ruler fallbacks remain non-clickable.
+- 2026-08-21 the Moulding line-item Estimate header and interactive value now
+  share an explicit right edge, matching the HPT Estimate column instead of
+  relying on inherited table-cell text alignment for the menu trigger.
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.

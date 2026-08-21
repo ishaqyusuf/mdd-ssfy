@@ -87,12 +87,20 @@ export function DataTable({
 	});
 
 	const resolvedFilters = resolveSalesProductionWorkspaceQuery(filters);
+	const hasExplicitWorkerView = Boolean(
+		filters.show ||
+			filters.productionDueDate ||
+			filters.tab === "calendar" ||
+			filters.production === "completed",
+	);
 	const queryInput = (
 		workerMode
-			? {
-					...(defaultFilters || {}),
-					...resolvedFilters.list,
-				}
+			? hasExplicitWorkerView
+				? resolvedFilters.list
+				: {
+						...(defaultFilters || {}),
+						...resolvedFilters.list,
+					}
 			: resolvedFilters.list
 	) as SalesProductionInput;
 

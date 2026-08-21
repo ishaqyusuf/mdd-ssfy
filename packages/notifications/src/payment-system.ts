@@ -48,20 +48,21 @@ async function sendPaymentSystemNotification<
 	ctx: PaymentSystemNotificationContext,
 	event: PaymentSystemTypedEvent<TType>,
 ) {
-	if (!event.recipientEmployeeId) return;
-
-	const service = new NotificationService(tasks, ctx).setEmployeeRecipients(
-		event.recipientEmployeeId,
-	);
+	const service = new NotificationService(tasks, ctx);
+	if (event.recipientEmployeeId) {
+		service.setEmployeeRecipients(event.recipientEmployeeId);
+	}
 
 	await service.send(event.type, {
 		author: resolveAuthor(ctx, event),
-		recipients: [
-			{
-				ids: [event.recipientEmployeeId],
-				role: "employee",
-			},
-		],
+		recipients: event.recipientEmployeeId
+			? [
+					{
+						ids: [event.recipientEmployeeId],
+						role: "employee",
+					},
+				]
+			: null,
 		payload: event.payload,
 	} as Parameters<typeof service.send<TType>>[1]);
 }

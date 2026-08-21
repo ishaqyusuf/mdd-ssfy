@@ -6,6 +6,10 @@ import { transformSalesFilterQuery } from "@api/utils/sales";
 import { SalesListInclude } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
 import {
+	SALES_ORDER_LIST_PROJECTION_VERSION,
+	compareSalesOrderListRows,
+	hydrateSalesOrderListRow,
+	isSalesOrderListProjectionFresh,
 	isControlReadV2Enabled,
 	withSalesControl,
 	withSalesListControl,
@@ -42,6 +46,8 @@ import {
 	normalizeSalesPriority,
 	salesPrioritySchema,
 } from "@sales/priority";
+import { tasks } from "@trigger.dev/sdk/v3";
+import { waitUntil } from "@vercel/functions";
 import { z } from "zod";
 import { salesNotesCount } from "./sales";
 import {
@@ -433,7 +439,328 @@ function parsePrimarySort(query: GetOrdersSchema) {
 	};
 }
 
-export async function getOrders(ctx: TRPCContext, query: GetOrdersSchema) {
+type SalesOrderListKeysetCursor = {
+	version: 1;
+	offset: number;
+	createdAt: string;
+	id: number;
+};
+
+const SALES_ORDER_LIST_KEYSET_PREFIX = "orders-k1.";
+
+export function encodeSalesOrderListKeysetCursor(
+	cursor: SalesOrderListKeysetCursor,
+) {
+	return `${SALES_ORDER_LIST_KEYSET_PREFIX}${Buffer.from(
+		JSON.stringify(cursor),
+	).toString("base64url")}`;
+}
+
+export function decodeSalesOrderListKeysetCursor(
+	value?: string | null,
+): SalesOrderListKeysetCursor | null {
+	if (!value?.startsWith(SALES_ORDER_LIST_KEYSET_PREFIX)) return null;
+	try {
+		const decoded = JSON.parse(
+			Buffer.from(value.slice(SALES_ORDER_LIST_KEYSET_PREFIX.length), "base64url")
+				.toString("utf8"),
+		) as SalesOrderListKeysetCursor;
+		if (
+			decoded.version !== 1 ||
+			!Number.isInteger(decoded.offset) ||
+			decoded.offset < 0 ||
+			!Number.isInteger(decoded.id) ||
+			decoded.id <= 0 ||
+			Number.isNaN(new Date(decoded.createdAt).getTime())
+		) {
+			return null;
+		}
+		return decoded;
+	} catch {
+		return null;
+	}
+}
+
+function legacyCompatibleOrdersQuery(query: GetOrdersSchema): GetOrdersSchema {
+	const cursor = decodeSalesOrderListKeysetCursor(query.cursor);
+	return cursor ? { ...query, cursor: String(cursor.offset) } : query;
+}
+
+type SalesOrderListReadModelMode = "off" | "shadow" | "read";
+
+type ProjectionRecord = {
+	salesOrderId: number;
+	sourceUpdatedAt: Date;
+	version: number;
+	state: string;
+	payload: Record<string, unknown>;
+	projectedAt: Date;
+};
+
+type ProjectionRepository = {
+	findMany(args: {
+		where: { salesOrderId: { in: number[] } };
+		select: {
+			salesOrderId: true;
+			sourceUpdatedAt: true;
+			version: true;
+			state: true;
+			payload: true;
+			projectedAt: true;
+		};
+	}): Promise<ProjectionRecord[]>;
+};
+
+function salesOrderListReadModelMode(): SalesOrderListReadModelMode {
+	const value = String(process.env.GND_SALES_ORDERS_READ_MODEL_MODE ?? "off")
+		.trim()
+		.toLowerCase();
+	if (value === "read" || value === "on") return "read";
+	if (value === "shadow") return "shadow";
+	return "off";
+}
+
+function salesOrderListProjectionMaxAgeMs() {
+	const seconds = Number(
+		process.env.GND_SALES_ORDERS_READ_MODEL_MAX_AGE_SECONDS ?? 300,
+	);
+	return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 300_000;
+}
+
+function shouldSampleProjectionShadow() {
+	const rate = Number(
+		process.env.GND_SALES_ORDERS_READ_MODEL_SHADOW_SAMPLE_RATE ?? 0.05,
+	);
+	if (!Number.isFinite(rate) || rate <= 0) return false;
+	if (rate >= 1) return true;
+	return Math.random() < rate;
+}
+
+function projectionRepository(db: TRPCContext["db"]): ProjectionRepository {
+	return (
+		db as unknown as { salesOrderListProjection: ProjectionRepository }
+	).salesOrderListProjection;
+}
+
+async function getOrdersFromProjection(
+	ctx: TRPCContext,
+	query: GetOrdersSchema,
+) {
+	if (query.paymentReview === "needs_review") {
+		return { hit: false as const, reason: "unsupported_payment_review" };
+	}
+
+	try {
+		const legacyQuery = toLegacyOrdersQuery(query, ctx.userId);
+		const baseWhere = whereSales(legacyQuery) ?? {};
+		const { sort, sortOrder } = parsePrimarySort(query);
+		const keysetCursor = decodeSalesOrderListKeysetCursor(query.cursor);
+		const useKeyset =
+			(sort === "createdAt" || sort === "salesDate") &&
+			(query.sort?.length ?? 0) <= 1 &&
+			(!query.cursor || Boolean(keysetCursor));
+		let sourceRows: Array<{
+			id: number;
+			createdAt: Date | null;
+			updatedAt: Date | null;
+		}>;
+		let response: (data: Array<Record<string, unknown>>) => {
+			meta: { count?: number; size?: number; cursor?: string | null };
+			data: Array<Record<string, unknown>>;
+			filter?: unknown;
+			query?: unknown;
+		};
+
+		if (useKeyset) {
+			const direction = sortOrder === "asc" ? "asc" : "desc";
+			const size = query.size ? Number(query.size) : 20;
+			const scopedWhere = applyOrdersSoftDeleteScope(query, baseWhere);
+			const cursorDate = keysetCursor
+				? new Date(keysetCursor.createdAt)
+				: null;
+			const createdAtBoundary = cursorDate
+				? direction === "asc"
+					? { gt: cursorDate }
+					: { lt: cursorDate }
+				: null;
+			const idBoundary = keysetCursor
+				? direction === "asc"
+					? { gt: keysetCursor.id }
+					: { lt: keysetCursor.id }
+				: null;
+			const pageWhere: Prisma.SalesOrdersWhereInput = cursorDate
+				? {
+						AND: [
+							scopedWhere,
+							{
+								OR: [
+									{
+										createdAt: createdAtBoundary!,
+									},
+									{
+										createdAt: cursorDate,
+										id: idBoundary!,
+									},
+								],
+							},
+						],
+					}
+				: scopedWhere;
+			const [count, candidates] = await Promise.all([
+				ctx.db.salesOrders.count({ where: scopedWhere }),
+				ctx.db.salesOrders.findMany({
+					where: pageWhere,
+					orderBy: [{ createdAt: direction }, { id: direction }],
+					take: size + 1,
+					select: { id: true, createdAt: true, updatedAt: true },
+				}),
+			]);
+			const hasMore = candidates.length > size;
+			sourceRows = candidates.slice(0, size);
+			const last = sourceRows.at(-1);
+			const nextOffset = (keysetCursor?.offset ?? 0) + sourceRows.length;
+			const nextCursor =
+				hasMore && last?.createdAt
+					? encodeSalesOrderListKeysetCursor({
+							version: 1,
+							offset: nextOffset,
+							createdAt: last.createdAt.toISOString(),
+							id: last.id,
+						})
+					: null;
+			response = (data) => ({
+				meta: { count, size, cursor: nextCursor },
+				data,
+				filter: process.env.NODE_ENV === "production" ? undefined : scopedWhere,
+				query: process.env.NODE_ENV === "production" ? undefined : query,
+			});
+		} else {
+			const composed = await composeQueryData(
+				legacyCompatibleOrdersQuery(query),
+				baseWhere,
+				ctx.db.salesOrders,
+				{ sortFn: ordersV2Sort },
+			);
+			sourceRows = await ctx.db.salesOrders.findMany({
+				where: composed.where,
+				...composed.searchMeta,
+				select: { id: true, createdAt: true, updatedAt: true },
+			});
+			response = composed.response;
+		}
+		if (!sourceRows.length) {
+			return {
+				hit: true as const,
+				response: response([]),
+			};
+		}
+
+		const projections = await projectionRepository(ctx.db).findMany({
+			where: {
+				salesOrderId: {
+					in: sourceRows.map((row) => row.id),
+				},
+			},
+			select: {
+				salesOrderId: true,
+				sourceUpdatedAt: true,
+				version: true,
+				state: true,
+				payload: true,
+				projectedAt: true,
+			},
+		});
+		const projectionsById = new Map(
+			projections.map((projection) => [projection.salesOrderId, projection]),
+		);
+		const orderedProjections = sourceRows.map((source) => {
+			const projection = projectionsById.get(source.id);
+			if (!projection) return null;
+			const sourceUpdatedAt =
+				source.updatedAt ?? source.createdAt ?? new Date(0);
+			if (
+				!isSalesOrderListProjectionFresh({
+					state: projection.state,
+					version: projection.version,
+					sourceUpdatedAt,
+					projectionSourceUpdatedAt: projection.sourceUpdatedAt,
+					projectedAt: projection.projectedAt,
+					maxAgeMs: salesOrderListProjectionMaxAgeMs(),
+				})
+			) {
+				return null;
+			}
+			return projection;
+		});
+
+		if (orderedProjections.some((projection) => !projection)) {
+			return { hit: false as const, reason: "missing_or_stale" };
+		}
+
+		const data = orderedProjections.map((projection) =>
+			hydrateSalesOrderListRow<Record<string, unknown>>(
+				projection!.payload,
+			),
+		);
+		return {
+			hit: true as const,
+			response: response(data),
+		};
+	} catch (error) {
+		console.error("Sales order list projection read failed", {
+			error: error instanceof Error ? error.message : String(error),
+		});
+		return { hit: false as const, reason: "read_error" };
+	}
+}
+
+async function queueSalesOrderListProjectionWarm(
+	ctx: TRPCContext,
+	rows: Array<Record<string, unknown>>,
+) {
+	const ids = rows
+		.map((row) => Number(row.id))
+		.filter((id) => Number.isInteger(id) && id > 0);
+	if (!ids.length) return;
+
+	const sourceRows = await ctx.db.salesOrders.findMany({
+		where: { id: { in: ids } },
+		select: {
+			id: true,
+			createdAt: true,
+			updatedAt: true,
+		},
+	});
+	const taskOrders = sourceRows.map((source) => ({
+		salesOrderId: source.id,
+		sourceUpdatedAt: (
+			source.updatedAt ??
+			source.createdAt ??
+			new Date(0)
+		).toISOString(),
+	}));
+	if (!taskOrders.length) return;
+
+	await tasks.trigger("persist-sales-order-list-projections", {
+		orders: taskOrders,
+	});
+}
+
+function deferSalesOrderListProjectionWarm(
+	ctx: TRPCContext,
+	rows: Array<Record<string, unknown>>,
+) {
+	waitUntil(
+		queueSalesOrderListProjectionWarm(ctx, rows).catch((error) => {
+			console.error("Unable to queue sales order list projection warm", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}),
+	);
+}
+
+async function getOrdersLegacy(ctx: TRPCContext, query: GetOrdersSchema) {
+	query = legacyCompatibleOrdersQuery(query);
 	const { db } = ctx;
 	const legacyQuery = toLegacyOrdersQuery(query, ctx.userId);
 	const baseWhere = whereSales(legacyQuery);
@@ -576,6 +903,60 @@ export async function getOrders(ctx: TRPCContext, query: GetOrdersSchema) {
 
 	const data = await normalizeOrders(ctx, rows);
 	return response(data);
+}
+
+type GetOrdersResponse = Awaited<ReturnType<typeof getOrdersLegacy>>;
+
+export async function getOrders(
+	ctx: TRPCContext,
+	query: GetOrdersSchema,
+): Promise<GetOrdersResponse> {
+	const mode = salesOrderListReadModelMode();
+
+	if (mode === "read") {
+		const projection = await getOrdersFromProjection(ctx, query);
+		if (projection.hit) return projection.response as GetOrdersResponse;
+	}
+
+	const legacy = await getOrdersLegacy(ctx, query);
+	const legacyRows = legacy.data as Array<Record<string, unknown>>;
+	const sampleShadow = mode === "shadow" && shouldSampleProjectionShadow();
+
+	if (mode === "read" || sampleShadow) {
+		deferSalesOrderListProjectionWarm(ctx, legacyRows);
+	}
+
+	if (sampleShadow) {
+		waitUntil(
+			getOrdersFromProjection(ctx, query)
+				.then((projection) => {
+					if (!projection.hit) {
+						console.info("Sales order list projection shadow miss", {
+							reason: projection.reason,
+						});
+						return;
+					}
+
+					const comparison = compareSalesOrderListRows(
+						legacyRows,
+						projection.response.data as Array<Record<string, unknown>>,
+					);
+					console.info("Sales order list projection shadow comparison", {
+						matches: comparison.matches,
+						legacyIds: comparison.legacyIds,
+						projectionIds: comparison.projectionIds,
+						mismatchedIds: comparison.mismatchedIds,
+					});
+				})
+				.catch((error) => {
+					console.error("Sales order list projection shadow failed", {
+						error: error instanceof Error ? error.message : String(error),
+					});
+				}),
+		);
+	}
+
+	return legacy;
 }
 
 async function normalizeOrders(

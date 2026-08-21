@@ -1,12 +1,68 @@
 import { describe, expect, test } from "bun:test";
 import {
+	DEFAULT_SALES_OVERVIEW_VIEW_SETTINGS,
 	DEFAULT_SALES_PRINT_SETTINGS,
 	DEFAULT_SPECIAL_ORDER_SETTINGS,
+	normalizeSalesOverviewViewSettings,
 	normalizeSalesPrintSettings,
 	normalizeSpecialOrderSettings,
+	resolveSalesOverviewGeneralVersion,
+	salesOverviewViewSettingsSchema,
 	salesPrintSettingsSchema,
 	specialOrderSettingsSchema,
 } from "./schema";
+
+describe("sales overview view settings", () => {
+	test("pilots V2 for Super Admin while the office remains on V1", () => {
+		expect(normalizeSalesOverviewViewSettings()).toEqual(
+			DEFAULT_SALES_OVERVIEW_VIEW_SETTINGS,
+		);
+		expect(
+			resolveSalesOverviewGeneralVersion({
+				isSuperAdmin: true,
+			}),
+		).toBe("v2");
+		expect(
+			resolveSalesOverviewGeneralVersion({
+				isSuperAdmin: false,
+			}),
+		).toBe("v1");
+	});
+
+	test("lets Super Admin inherit the office default", () => {
+		const settings = {
+			officeDefault: "v2",
+			superAdminPreview: "inherit",
+		} as const;
+		expect(
+			resolveSalesOverviewGeneralVersion({
+				isSuperAdmin: true,
+				settings,
+			}),
+		).toBe("v2");
+		expect(
+			resolveSalesOverviewGeneralVersion({
+				isSuperAdmin: false,
+				settings,
+			}),
+		).toBe("v2");
+	});
+
+	test("falls back safely when persisted settings are malformed", () => {
+		expect(
+			salesOverviewViewSettingsSchema.safeParse({
+				officeDefault: "v3",
+				superAdminPreview: "everyone",
+			}).success,
+		).toBe(false);
+		expect(
+			resolveSalesOverviewGeneralVersion({
+				isSuperAdmin: false,
+				settings: { officeDefault: "v3" },
+			}),
+		).toBe("v1");
+	});
+});
 
 describe("sales print settings", () => {
 	test("uses the current V2 print defaults", () => {

@@ -1,271 +1,421 @@
 "use client";
 
-import { SalesPriorityBadge } from "@/components/sales-priority-control";
+import { OperationsCalendarPeriodPicker } from "@/components/operations-calendar/period-picker";
 import {
-	type SalesProductionRow,
-	getSalesProductionRowId,
-} from "@/components/tables-2/sales-production/columns";
+	type OperationsCalendarView,
+	getOperationsCalendarPeriod,
+	moveOperationsCalendarDate,
+	resolveOperationsCalendarDate,
+} from "@/components/operations-calendar/range";
+import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
 import { useTRPC } from "@/trpc/client";
-import type { RouterInputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@gnd/ui/card";
+import { Card, CardContent } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
+import { Icons } from "@gnd/ui/icons";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Skeleton } from "@gnd/ui/skeleton";
-import dayjs from "@gnd/utils/dayjs";
-import { useInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { format, isPast, isSameMonth, isToday, startOfDay } from "date-fns";
 
-export function SalesProductionCalendar() {
-	const trpc = useTRPC();
-	const { filters, setFilters } = useSalesProductionFilterParams();
-	const overviewQuery = useSalesOverviewQuery();
-	const [weekStart, setWeekStart] = useState(() =>
-		dayjs(filters.date || undefined).startOf("day"),
-	);
+type ProductionCalendarItem =
+	RouterOutputs["sales"]["productionCalendar"]["scheduled"][number];
 
-	useEffect(() => {
-		if (filters.date) setWeekStart(dayjs(filters.date).startOf("day"));
-	}, [filters.date]);
+const STATUS_COLORS: Record<string, string> = {
+	unassigned:
+		"bg-yellow-100 border-yellow-300 text-yellow-800 dark:bg-yellow-900/30 dark:border-yellow-700 dark:text-yellow-300",
+	assigned:
+		"bg-purple-100 border-purple-300 text-purple-800 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300",
+	"in progress":
+		"bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300",
+	completed:
+		"bg-emerald-100 border-emerald-300 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-300",
+};
 
-	const weekDays = Array.from({ length: 7 }, (_, index) =>
-		weekStart.add(index, "day"),
-	);
-	const firstDay = weekDays[0]!;
-	const lastDay = weekDays.at(-1)!;
-	const { data } = useSuspenseQuery(
-		trpc.sales.productionCalendar.queryOptions({
-			from: firstDay.format("YYYY-MM-DD"),
-			to: lastDay.format("YYYY-MM-DD"),
-			q: filters.q,
-			assignedToId: filters.assignedToId,
-			priority: filters.priority,
-		}),
-	);
-	const selected = data.find((item) => item.date === filters.date);
-	const agendaQuery = useInfiniteQuery(
-		trpc.sales.productions.infiniteQueryOptions(
-			{
-				production: "pending",
-				productionDueDate: filters.date || undefined,
-				q: filters.q,
-				assignedToId: filters.assignedToId,
-				priority: filters.priority,
-				size: 10,
-			} as RouterInputs["sales"]["productions"],
-			{
-				enabled: Boolean(selected),
-				getNextPageParam: ({ meta }) =>
-					(meta as { cursor?: string | number | null } | undefined)?.cursor,
-			},
-		),
-	);
-	const agendaRows =
-		(
-			agendaQuery.data?.pages as
-				| Array<{ data?: SalesProductionRow[] }>
-				| undefined
-		)?.flatMap((page) => page.data ?? []) ?? [];
+const LEGEND_STATUSES = ["unassigned", "assigned", "in progress", "completed"];
+const CALENDAR_SKELETON_KEYS = [
+	"monday",
+	"tuesday",
+	"wednesday",
+	"thursday",
+	"friday",
+	"saturday",
+	"sunday",
+];
+
+function ProductionChip({
+	item,
+	compact = false,
+	workerMode = false,
+}: {
+	item: ProductionCalendarItem;
+	compact?: boolean;
+	workerMode?: boolean;
+}) {
+	const overview = useSalesOverviewQuery();
+	const colorClass = STATUS_COLORS[item.status] ?? STATUS_COLORS.assigned;
+	const isOverdue = item.dueDate
+		? isPast(startOfDay(new Date(item.dueDate)))
+		: false;
 
 	return (
-		<div className="flex flex-col gap-4">
+		<button
+			type="button"
+			className={cn(
+				"w-full truncate rounded border text-left text-xs transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+				compact ? "px-1.5 py-1" : "px-2 py-1.5",
+				colorClass,
+				isOverdue && "ring-1 ring-red-400",
+			)}
+			onClick={() =>
+				overview.open2(
+					item.orderNo,
+					workerMode ? "production-tasks" : "sales-production",
+				)
+			}
+			title={`${item.orderNo} · ${item.customer}`}
+		>
+			<div className="flex min-w-0 items-center justify-between gap-1">
+				<span className="truncate font-mono font-semibold uppercase">
+					{item.orderNo}
+				</span>
+				{compact ? null : <SalesPriorityBadge priority={item.priority} />}
+			</div>
+			{compact ? null : (
+				<>
+					<div className="truncate opacity-70">{item.customer}</div>
+					<div className="truncate opacity-60">
+						{item.assignedTo || "Unassigned"} · {item.assignmentCount}{" "}
+						{item.assignmentCount === 1 ? "assignment" : "assignments"}
+					</div>
+				</>
+			)}
+		</button>
+	);
+}
+
+function DayColumn({
+	date,
+	items,
+	workerMode,
+}: {
+	date: Date;
+	items: ProductionCalendarItem[];
+	workerMode?: boolean;
+}) {
+	const today = isToday(date);
+	const past = isPast(startOfDay(date)) && !today;
+
+	return (
+		<div
+			className={cn(
+				"flex min-h-[300px] flex-col border-r last:border-r-0",
+				today && "bg-blue-50/50 dark:bg-blue-950/20",
+			)}
+		>
+			<div
+				className={cn(
+					"sticky top-0 z-10 border-b px-2 py-2 text-center",
+					today ? "bg-blue-100 dark:bg-blue-900/50" : "bg-muted/30",
+					past && "opacity-60",
+				)}
+			>
+				<div className="text-xs text-muted-foreground">
+					{format(date, "EEE")}
+				</div>
+				<div
+					className={cn(
+						"text-lg font-bold leading-none tabular-nums",
+						today && "text-blue-600 dark:text-blue-400",
+					)}
+				>
+					{format(date, "d")}
+				</div>
+				<div className="text-xs text-muted-foreground">
+					{format(date, "MMM")}
+				</div>
+				{items.length > 0 ? (
+					<Badge
+						variant={today ? "default" : "secondary"}
+						className="mt-1 px-1.5 text-xs"
+					>
+						{items.length}
+					</Badge>
+				) : null}
+			</div>
+			<div className="flex flex-1 flex-col gap-1 p-1.5">
+				{items.map((item) => (
+					<ProductionChip key={item.id} item={item} workerMode={workerMode} />
+				))}
+				{items.length === 0 ? (
+					<div className="flex flex-1 items-center justify-center">
+						<span className="text-xs text-muted-foreground/50">
+							No production
+						</span>
+					</div>
+				) : null}
+			</div>
+		</div>
+	);
+}
+
+function MonthDayCell({
+	date,
+	items,
+	anchorDate,
+	workerMode,
+}: {
+	date: Date;
+	items: ProductionCalendarItem[];
+	anchorDate: Date;
+	workerMode?: boolean;
+}) {
+	const visibleItems = items.slice(0, 3);
+	const overflowItems = items.slice(3);
+
+	return (
+		<div
+			className={cn(
+				"min-h-32 border-b border-r p-1.5",
+				!isSameMonth(date, anchorDate) && "bg-muted/20 text-muted-foreground",
+				isToday(date) && "bg-blue-50/70 dark:bg-blue-950/20",
+			)}
+		>
+			<div className="mb-1 flex items-center justify-between">
+				<span
+					className={cn(
+						"flex size-6 items-center justify-center rounded-full text-xs font-medium tabular-nums",
+						isToday(date) && "bg-primary text-primary-foreground",
+					)}
+				>
+					{format(date, "d")}
+				</span>
+				{items.length > 0 ? (
+					<span className="text-[10px] text-muted-foreground">
+						{items.length}
+					</span>
+				) : null}
+			</div>
+			<div className="space-y-1">
+				{visibleItems.map((item) => (
+					<ProductionChip
+						key={item.id}
+						item={item}
+						compact
+						workerMode={workerMode}
+					/>
+				))}
+				{overflowItems.length > 0 ? (
+					<Popover>
+						<PopoverTrigger asChild>
+							<Button variant="ghost" size="sm" className="h-6 w-full text-xs">
+								+{overflowItems.length} more
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent align="start" className="w-64 space-y-1 p-2">
+							<p className="px-1 pb-1 text-xs font-medium">
+								{format(date, "EEEE, MMMM d")}
+							</p>
+							{overflowItems.map((item) => (
+								<ProductionChip
+									key={item.id}
+									item={item}
+									workerMode={workerMode}
+								/>
+							))}
+						</PopoverContent>
+					</Popover>
+				) : null}
+			</div>
+		</div>
+	);
+}
+
+function groupByDay(items: ProductionCalendarItem[], days: Date[]) {
+	const grouped = new Map<string, ProductionCalendarItem[]>();
+	for (const day of days) grouped.set(format(day, "yyyy-MM-dd"), []);
+	for (const item of items) {
+		if (!item.dueDate) continue;
+		const key = format(new Date(item.dueDate), "yyyy-MM-dd");
+		grouped.get(key)?.push(item);
+	}
+	return grouped;
+}
+
+export function SalesProductionCalendar({
+	workerMode = false,
+}: {
+	workerMode?: boolean;
+}) {
+	const trpc = useTRPC();
+	const { filters, setFilters } = useSalesProductionFilterParams();
+	const calendarView = filters.calendarView;
+	const anchorDate = resolveOperationsCalendarDate(
+		filters.calendarDate || filters.date,
+	);
+	const period = getOperationsCalendarPeriod(anchorDate, calendarView);
+	const queryOptions = workerMode
+		? trpc.sales.productionCalendarTasks.queryOptions(
+				{
+					from: period.from,
+					to: period.to,
+					q: filters.q,
+					priority: filters.priority,
+				},
+				{ refetchOnWindowFocus: false, staleTime: 60 * 1000 },
+			)
+		: trpc.sales.productionCalendar.queryOptions(
+				{
+					from: period.from,
+					to: period.to,
+					q: filters.q,
+					assignedToId: filters.assignedToId,
+					priority: filters.priority,
+				},
+				{ refetchOnWindowFocus: false, staleTime: 60 * 1000 },
+			);
+	const { data } = useSuspenseQuery(queryOptions);
+	const grouped = groupByDay(data.scheduled, period.days);
+	const isCurrentPeriod = period.days.some(isToday);
+
+	function setCalendarDate(date: Date) {
+		void setFilters({ calendarDate: format(date, "yyyy-MM-dd") });
+	}
+
+	function setCalendarView(view: string) {
+		void setFilters({ calendarView: view as OperationsCalendarView });
+	}
+
+	return (
+		<div className="flex flex-col gap-3">
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div className="flex items-center gap-2">
 					<Button
-						type="button"
 						variant="outline"
-						size="icon"
-						aria-label="Previous week"
-						onClick={() => setWeekStart((value) => value.subtract(7, "day"))}
+						size="sm"
+						onClick={() =>
+							setCalendarDate(
+								moveOperationsCalendarDate(anchorDate, calendarView, -1),
+							)
+						}
+						aria-label={`Previous ${calendarView}`}
 					>
-						<ChevronLeft className="size-4" />
+						<Icons.ChevronLeft size={14} />
 					</Button>
-					<span className="text-sm font-medium">
-						{firstDay.format("MMM D")} – {lastDay.format("MMM D, YYYY")}
-					</span>
+					<OperationsCalendarPeriodPicker
+						date={anchorDate}
+						view={calendarView}
+						onSelect={setCalendarDate}
+					/>
 					<Button
-						type="button"
 						variant="outline"
-						size="icon"
-						aria-label="Next week"
-						onClick={() => setWeekStart((value) => value.add(7, "day"))}
+						size="sm"
+						onClick={() =>
+							setCalendarDate(
+								moveOperationsCalendarDate(anchorDate, calendarView, 1),
+							)
+						}
+						aria-label={`Next ${calendarView}`}
 					>
-						<ChevronRight className="size-4" />
+						<Icons.ChevronRight size={14} />
 					</Button>
-					{weekStart.isSame(dayjs(), "day") ? null : (
+					{isCurrentPeriod ? null : (
 						<Button
-							type="button"
 							variant="ghost"
 							size="sm"
-							onClick={() => setWeekStart(dayjs().startOf("day"))}
+							onClick={() => setCalendarDate(new Date())}
 						>
 							Today
 						</Button>
 					)}
 				</div>
-				{selected ? (
-					<Button
-						type="button"
-						size="sm"
-						className="h-9"
-						onClick={() =>
-							setFilters({ tab: "queue", view: "table", date: selected.date })
-						}
-					>
-						View queue
-					</Button>
-				) : null}
+
+				<div className="flex items-center gap-3">
+					<div className="hidden items-center gap-3 text-xs xl:flex">
+						{LEGEND_STATUSES.map((status) => (
+							<div key={status} className="flex items-center gap-1">
+								<div
+									className={cn(
+										"size-2.5 rounded border",
+										STATUS_COLORS[status],
+									)}
+								/>
+								<span className="capitalize text-muted-foreground">
+									{status}
+								</span>
+							</div>
+						))}
+					</div>
+					<Tabs value={calendarView} onValueChange={setCalendarView}>
+						<TabsList className="min-h-9 rounded-md p-0.5 max-lg:border max-lg:bg-muted/60">
+							<TabsTrigger value="week" className="min-h-8 rounded px-3 py-1">
+								Week
+							</TabsTrigger>
+							<TabsTrigger value="month" className="min-h-8 rounded px-3 py-1">
+								Month
+							</TabsTrigger>
+						</TabsList>
+					</Tabs>
+				</div>
 			</div>
 
-			<Card className="overflow-hidden rounded-xl shadow-sm">
-				<CardHeader className="px-3 pt-3 sm:px-4 sm:pt-4">
-					<CardTitle>Production calendar</CardTitle>
-					<CardDescription>
-						Review this week&apos;s production load, then select a day to
-						inspect its agenda.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="p-0">
-					<div className="overflow-x-auto">
-						<div className="grid min-w-[980px] grid-cols-7 divide-x">
-							{data.map((item) => {
-								const day = dayjs(item.date);
-								const isSelected = item.date === filters.date;
-
-								return (
-									<button
-										key={item.date}
-										type="button"
-										aria-pressed={isSelected}
-										onClick={() =>
-											setFilters({
-												tab: "queue",
-												view: "calendar",
-												date: item.date,
-											})
-										}
-										className={cn(
-											"min-h-44 p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
-											item.isToday && "bg-muted/30",
-											isSelected && "bg-primary/10",
-										)}
-									>
-										<div className="flex items-start justify-between gap-2">
-											<div>
-												<p className="text-xs text-muted-foreground">
-													{day.format("ddd")}
-												</p>
-												<p className="text-lg font-semibold tabular-nums">
-													{day.format("D")}
-												</p>
-												<p className="text-xs text-muted-foreground">
-													{day.format("MMM")}
-												</p>
-											</div>
-											{item.count ? (
-												<Badge variant={item.isToday ? "default" : "secondary"}>
-													{item.count}
-												</Badge>
-											) : null}
-										</div>
-										<p className="mt-8 text-sm text-muted-foreground">
-											{item.count
-												? `${item.count} production ${item.count === 1 ? "assignment" : "assignments"} due`
-												: "No production due"}
-										</p>
-									</button>
-								);
-							})}
+			<Card className="overflow-auto">
+				{calendarView === "week" ? (
+					<div className="grid min-w-[980px] grid-cols-7 divide-x">
+						{period.days.map((day) => (
+							<DayColumn
+								key={day.toISOString()}
+								date={day}
+								items={grouped.get(format(day, "yyyy-MM-dd")) ?? []}
+								workerMode={workerMode}
+							/>
+						))}
+					</div>
+				) : (
+					<div className="min-w-[980px]">
+						<div className="grid grid-cols-7 border-b bg-muted/30">
+							{period.days.slice(0, 7).map((day) => (
+								<div
+									key={day.toISOString()}
+									className="p-2 text-center text-xs font-medium text-muted-foreground"
+								>
+									{format(day, "EEE")}
+								</div>
+							))}
+						</div>
+						<div className="grid grid-cols-7 border-l">
+							{period.days.map((day) => (
+								<MonthDayCell
+									key={day.toISOString()}
+									date={day}
+									anchorDate={anchorDate}
+									items={grouped.get(format(day, "yyyy-MM-dd")) ?? []}
+									workerMode={workerMode}
+								/>
+							))}
 						</div>
 					</div>
-				</CardContent>
+				)}
 			</Card>
-
-			{selected ? (
-				<Card className="overflow-hidden rounded-xl shadow-sm">
-					<CardHeader className="flex flex-row items-center justify-between gap-3 border-b px-4 py-3">
-						<div className="flex flex-col gap-1">
-							<CardTitle className="text-sm">{selected.label}</CardTitle>
-							<CardDescription>
-								{selected.count} assignment{selected.count === 1 ? "" : "s"} due
-							</CardDescription>
-						</div>
-						<Badge variant="secondary">Daily agenda</Badge>
-					</CardHeader>
-					<CardContent className="p-2">
-						{agendaQuery.isFetching && !agendaRows.length ? (
-							<div className="grid gap-2 p-2">
-								<Skeleton className="h-14 rounded-md" />
-								<Skeleton className="h-14 rounded-md" />
-								<Skeleton className="h-14 rounded-md" />
-							</div>
-						) : agendaRows.length ? (
-							<div className="flex flex-col gap-1">
-								{agendaRows.map((row) => (
-									<Button
-										key={getSalesProductionRowId(row)}
-										type="button"
-										variant="ghost"
-										onClick={() =>
-											overviewQuery.open2(
-												getSalesProductionRowId(row),
-												"sales-production",
-											)
-										}
-										className="h-auto min-h-14 w-full justify-between gap-3 px-3 py-2 text-left"
-									>
-										<span className="min-w-0">
-											<span className="block truncate font-mono text-sm font-semibold uppercase">
-												{row.orderId}
-											</span>
-											<span className="block truncate text-xs font-normal text-muted-foreground">
-												{row.customer || "Customer unavailable"} ·{" "}
-												{row.assignedTo || "Unassigned"}
-											</span>
-										</span>
-										<SalesPriorityBadge priority={row.priority} />
-									</Button>
-								))}
-								{agendaQuery.hasNextPage ? (
-									<Button
-										type="button"
-										variant="ghost"
-										disabled={agendaQuery.isFetchingNextPage}
-										onClick={() => agendaQuery.fetchNextPage()}
-										className="mt-1 h-9 w-full"
-									>
-										{agendaQuery.isFetchingNextPage
-											? "Loading..."
-											: "Load more"}
-									</Button>
-								) : null}
-							</div>
-						) : (
-							<p className="p-4 text-center text-sm text-muted-foreground">
-								No production orders match this date and the current filters.
-							</p>
-						)}
-					</CardContent>
-				</Card>
-			) : (
-				<Card className="shadow-sm">
-					<CardContent className="flex min-h-28 flex-col items-center justify-center gap-1 p-4 text-center">
-						<p className="text-sm font-medium">Select a production day</p>
-						<p className="text-sm text-muted-foreground">
-							Choose any date above to inspect its production assignments.
-						</p>
-					</CardContent>
-				</Card>
-			)}
 		</div>
+	);
+}
+
+export function SalesProductionCalendarSkeleton() {
+	return (
+		<Card>
+			<CardContent className="p-4">
+				<div className="grid grid-cols-7 gap-2">
+					{CALENDAR_SKELETON_KEYS.map((key) => (
+						<Skeleton key={key} className="h-64 w-full" />
+					))}
+				</div>
+			</CardContent>
+		</Card>
 	);
 }

@@ -91,6 +91,7 @@ const EyeOff = hugeIcon("EyeOff");
 const Eye = hugeIcon("View");
 const Menu = hugeIcon("Menu");
 const Pencil = hugeIcon("Pencil");
+const SlantedPencil = hugeIcon("PencilEdit01Icon");
 const BadgeDollarSign = hugeIcon("BadgeDollarSign");
 const ClipboardEdit = hugeIcon("FileEditIcon");
 const ShoppingBag = hugeIcon("ShoppingBag");
@@ -243,7 +244,6 @@ const MdOutlineDelete = Delete;
 const MdOutlineDescription = FileText;
 const MdOutlineDone = Check;
 const MdOutlineDownload = Download;
-const MdOutlineEditNote = ClipboardEdit;
 const MdOutlineEmail = Mail;
 const MdOutlineEqualizer = BarChart2;
 const MdOutlineExitToApp = LogOut;
@@ -464,7 +464,7 @@ export const IconsBase = {
   hide: EyeOff,
   view: Eye,
   flag: Flag,
-  edit: ClipboardEdit,
+  edit: SlantedPencil,
   Draft: FileEdit,
   Published: CheckCircle,
   Archived: Archive,
@@ -1080,7 +1080,7 @@ const IconsStatic = {
   Repeat: MdOutlineRepeat,
   ProjectStatus: MdDownloading,
   Download: MdOutlineDownload,
-  Edit: MdOutlineEditNote,
+  Edit: SlantedPencil,
   Bold: MdFormatBold,
   Italic: MdFormatItalic,
   Underlined: MdFormatUnderlined,

@@ -311,3 +311,19 @@
   - Desktop `/sales-book/orders/bin` rendered `Sales Bin`, the orders v2 search placeholder, table headers, and deleted-order rows.
   - Mobile viewport `390x844` rendered without document-level horizontal overflow; the table kept horizontal and vertical scrolling inside its own container.
   - Search smoke for `08489PC` updated the URL to `q=08489PC` and narrowed the table to the matching row.
+
+## Guarded list projection (2026-08-21)
+
+- The orders table can read a versioned `SalesOrderListProjection` after the
+  canonical sales query selects authorized/filter-matching ids. The projection
+  stores exactly the compact row data the table needs, so normal projected reads
+  avoid `SalesListInclude` and repeated note/control/inventory/Special Order
+  enrichment.
+- Trigger performs canonical reload and composition. The interactive endpoint
+  remains synchronous and falls back to its current behavior for any coverage,
+  revision, freshness, version, or worker problem.
+- Default rollout is off. Shadow mode warms and samples parity; read mode is not
+  eligible for production until migration, backfill, parity, latency, timeout,
+  and Function Duration gates pass.
+- Default created-date pages use a stable `(createdAt,id)` cursor; custom sorts
+  retain offsets. The payment-review queue remains legacy-only.

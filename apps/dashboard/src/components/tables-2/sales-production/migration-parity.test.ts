@@ -13,7 +13,6 @@ describe("Sales Production Sales Orders table migration parity", () => {
 	it("keeps worker production routes on the restarted Sales Orders-style shell", () => {
 		const routes = [
 			"app/(sidebar)/(sales-production-worker)/production/dashboard/page.tsx",
-			"app/(sidebar)/(sales-production-worker)/production/dashboard/v2/page.tsx",
 			"app/(clean-code)/(sales)/sales-book/(pages)/production-tasks/page.tsx",
 		];
 
@@ -39,6 +38,36 @@ describe("Sales Production Sales Orders table migration parity", () => {
 			expect(source.includes("PageStickyHeader")).toBe(false);
 			expect(source.includes("@gnd/ui/data-table")).toBe(false);
 		}
+	});
+
+	it("promotes the base worker dashboard and leaves v2 as a local redirect", () => {
+		const canonical = readSource(
+			"app/(sidebar)/(sales-production-worker)/production/dashboard/page.tsx",
+		);
+		const legacy = readSource(
+			"app/(sidebar)/(sales-production-worker)/production/dashboard/v2/page.tsx",
+		);
+		const redirectEngine = readSource("lib/routing/redirect-engine.ts");
+		const sidebar = readSource("components/sidebar-links.ts");
+
+		expect(canonical.includes("ProductionWorkspace")).toBe(true);
+		expect(canonical.includes("productionCalendarTasks")).toBe(true);
+		expect(canonical.includes("defaultTableFilters={tableFilter}")).toBe(true);
+		expect(
+			legacy.includes("redirect(`/production/dashboard${suffix}`)"),
+		).toBe(true);
+		expect(legacy.includes("ProductionWorkspace")).toBe(false);
+		expect(
+			redirectEngine.includes(
+				'"/production/dashboard/v2": "/production/dashboard"',
+			),
+		).toBe(true);
+		expect(
+			redirectEngine.includes(
+				'"/production/dashboard": "/production/dashboard/v2"',
+			),
+		).toBe(false);
+		expect(sidebar.includes('"/production/dashboard/v2"')).toBe(false);
 	});
 
 	it("promotes the canonical admin route and leaves v2 as a local redirect", () => {
@@ -79,22 +108,23 @@ describe("Sales Production Sales Orders table migration parity", () => {
 
 		expect(workspace.includes("SalesProductionHeader")).toBe(true);
 		expect(header.includes("<PageTabs")).toBe(true);
-		expect(header.includes('allTitle="Active"')).toBe(true);
+		expect(header.includes("showAll={false}")).toBe(true);
 		expect(header.includes("tabs={pageTabs}")).toBe(true);
 		expect(
 			header.includes("createSalesProductionPageTabs(dashboard.summary)"),
 		).toBe(true);
-		expect(header.includes("SalesProductionDisplayToggle")).toBe(true);
+		expect(header.includes("SalesProductionDisplayToggle")).toBe(false);
 		expect(header.includes("hiddenFilterKeys")).toBe(true);
 		expect(tabs.includes('title: "Due Today"')).toBe(true);
 		expect(tabs.includes('title: "Past Due"')).toBe(true);
 		expect(tabs.includes('title: "Review"')).toBe(true);
 		expect(tabs.includes('title: "Completed"')).toBe(true);
+		expect(tabs.includes('title: "Calendar"')).toBe(true);
+		expect(tabs.includes('title: "Active"')).toBe(true);
 		expect(tabs.includes("count: dueTodayCount")).toBe(true);
 		expect(tabs.includes("count: pastDueCount")).toBe(true);
 		expect(tabs.includes("count: awaitingReviewCount")).toBe(true);
 		expect(tabs.includes("count: completedCount")).toBe(true);
-		expect(tabs.includes('title: "Calendar"')).toBe(false);
 		expect(workspace.includes('view === "calendar"')).toBe(true);
 		expect(reviews.includes("standalone")).toBe(true);
 		expect(reviews.includes("search={filters.q}")).toBe(true);
@@ -110,23 +140,22 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		).toBe(true);
 	});
 
-	it("keeps the calendar as a responsive, bounded weekly production board", () => {
+	it("keeps the calendar as a responsive week and month production board", () => {
 		const calendar = readSource("components/sales-production/calendar.tsx");
 
-		expect(calendar.includes("weekStart")).toBe(true);
-		expect(calendar.includes('aria-label="Previous week"')).toBe(true);
-		expect(calendar.includes('aria-label="Next week"')).toBe(true);
+		expect(calendar.includes("getOperationsCalendarPeriod")).toBe(true);
+		expect(calendar.includes("OperationsCalendarPeriodPicker")).toBe(true);
+		expect(calendar.includes("Previous ${calendarView}")).toBe(true);
+		expect(calendar.includes("Next ${calendarView}")).toBe(true);
 		expect(calendar.includes("min-w-[980px]")).toBe(true);
 		expect(calendar.includes("grid-cols-7")).toBe(true);
-		expect(calendar.includes("defaultMonth=")).toBe(false);
-		expect(calendar.includes("<Calendar")).toBe(false);
+		expect(calendar.includes('value="week"')).toBe(true);
+		expect(calendar.includes('value="month"')).toBe(true);
 		expect(calendar.includes("<Card")).toBe(true);
 		expect(calendar.includes("<CardHeader")).toBe(true);
 		expect(calendar.includes("<CardContent")).toBe(true);
-		expect(calendar.includes('view: "calendar"')).toBe(true);
-		expect(calendar.includes('view: "table"')).toBe(true);
 		expect(calendar.includes('"sales-production"')).toBe(true);
-		expect(calendar.includes("Daily agenda")).toBe(true);
+		expect(calendar.includes("Unscheduled (")).toBe(true);
 	});
 
 	it("keeps the production workspace on the new tables-2 surface with compact table padding", () => {

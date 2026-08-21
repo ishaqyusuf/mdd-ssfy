@@ -1,3 +1,7 @@
+import {
+	getOperationsCalendarPeriod,
+	resolveOperationsCalendarDate,
+} from "@/components/operations-calendar/range";
 import PageShell from "@/components/page-shell";
 import { SalesProductionTitle } from "@/components/sales-production/title";
 import { SalesProductionWorkspace } from "@/components/sales-production/workspace";
@@ -7,7 +11,6 @@ import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
 import type { RouterInputs } from "@api/trpc/routers/_app";
-import dayjs from "@gnd/utils/dayjs";
 import { resolveSalesProductionWorkspaceQuery } from "@sales/production-workspace-query";
 import type { SearchParams } from "nuqs";
 
@@ -53,11 +56,17 @@ export default async function SalesProductionsPage({ searchParams }: Props) {
 	}
 
 	if (resolved.view === "calendar") {
-		const weekStart = dayjs(filters.date || undefined).startOf("day");
+		const calendarDate = resolveOperationsCalendarDate(
+			filters.calendarDate || filters.date,
+		);
+		const period = getOperationsCalendarPeriod(
+			calendarDate,
+			filters.calendarView,
+		);
 		batchPrefetch([
 			trpc.sales.productionCalendar.queryOptions({
-				from: weekStart.format("YYYY-MM-DD"),
-				to: weekStart.add(6, "day").format("YYYY-MM-DD"),
+				from: period.from,
+				to: period.to,
 				q: filters.q,
 				assignedToId: filters.assignedToId,
 				priority: filters.priority,

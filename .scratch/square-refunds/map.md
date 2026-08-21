@@ -2,11 +2,11 @@
 
 ## Destination
 
-Publish an implementation-ready specification for an audited Sales-owned
-Square Refund lifecycle that returns money to the original Square tender,
-tracks provider truth through completion, applies explicit Sales Order
-allocations, reconciles externally initiated refunds, and leaves implementation
-ready to split into tracer-bullet tickets.
+Implemented an audited Sales-owned Square Refund lifecycle that returns money to
+the original Square tender, tracks provider truth through completion, applies
+explicit Sales Order allocations, reconciles externally initiated refunds, and
+projects one refund truth through Sales Overview, Sales Activity, Finance,
+documents, and notifications.
 
 ## Notes
 
@@ -79,6 +79,26 @@ Standing stakeholder constraints approved before initialization:
   — Square requires completed payments, durable idempotency, asynchronous
   provider truth, authenticated idempotent webhook handling, pending-value
   reservation, and read-side reconciliation; only `COMPLETED` posts locally.
+- [Define The Canonical Square Refund State Machine](./issues/03-define-canonical-square-refund-state-machine.md)
+  — implemented immutable intents, independent provider/application states,
+  reservations, persisted idempotency, and completion-only application.
+- [Define Refund Allocation And Accounting Application](./issues/04-define-refund-allocation-accounting-application.md)
+  — implemented exact cents-based multi-order principal/C.C.C./tip allocation,
+  canonical/compatibility posting, due rebuilds, and Finance exceptions.
+- [Define External Square Refund Reconciliation](./issues/05-define-external-square-refund-reconciliation.md)
+  — implemented authenticated webhook ingestion, dedupe, provider convergence,
+  external review, and explicit allocation.
+- [Prototype The Permissioned Sales And Finance Refund Experience](./issues/06-prototype-permissioned-sales-finance-refund-experience.md)
+  — implemented and browser-validated the shared responsive refund experience.
+- [Define Refund Notifications Documents And Audit](./issues/07-define-refund-notifications-documents-audit.md)
+  — implemented immutable transition/activity evidence, document refresh, and
+  customer/initiator/Finance notification rules.
+- [Define Rollout Compatibility And Acceptance Boundary](./issues/08-define-rollout-compatibility-acceptance-boundary.md)
+  — implemented the local sandbox, permission, feature-gate, migration,
+  compatibility, test, and runtime acceptance boundary.
+- [Define Canonical Square Payment Identity](./issues/09-define-canonical-square-payment-identity.md)
+  — implemented verified Square `Payment.id` tender capture with separate
+  legacy/link/order/Terminal correlation identities.
 
 ## Not yet specified
 
@@ -96,5 +116,5 @@ route to the implementation-ready specification.
 - Dual approval, refund amount thresholds, or a second refund-specific approval
   role in release one.
 - Bulk historical refund allocation or rewriting historical invoices.
-- Direct implementation inside this planning map; execution follows the
-  published specification and separately approved tracer-bullet tickets.
+- Production enablement or use of an existing customer payment as a test
+  fixture; both remain separately approved rollout operations.

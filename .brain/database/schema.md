@@ -435,3 +435,32 @@ The canonical plan is
   dimension`. `DykeSalesDoors.activeIdentity` stores that key for active rows as
   a nullable unique `VarChar(191)`; soft deletion clears the key so historical
   rows remain available. Transactional validation still provides early errors.
+
+## Square Sales Refund lifecycle (2026-08-21)
+
+- `SquareTenderPayment` stores the verified Square `Payment.id` separately from
+  legacy Square rows, link ids, provider order ids, and Terminal checkout ids.
+- `SalesSquareRefund` stores one immutable refund intent with provider and local
+  application states, cents-based principal/C.C.C./tip totals, reservation,
+  commercial evidence, actor, persisted idempotency key, provider id, failure
+  evidence, and lifecycle timestamps.
+- `SalesSquareRefundAllocation` freezes the exact per-order component split and
+  links original and compatibility Sales Payment projections.
+- `SalesSquareRefundTransition` is append-only lifecycle evidence.
+- `SquareRefundWebhookEvent` is the raw-payload, provider-event-id-deduplicated
+  inbox for Square refund events.
+- Unique provider payment, provider refund, and idempotency identities plus
+  provider/application queue indexes enforce retry and reconciliation safety.
+
+## Sales Order list read model (2026-08-21)
+
+- `SalesOrderListProjection` is a non-authoritative, versioned one-row-per-order
+  projection for `sales.getOrders`.
+- It stores the canonical sales order id/revision, tenant and common filter/sort
+  scalars, projection health timestamps/state, and a compact JSON list-row
+  payload. It does not own commercial totals, payments, inventory, fulfillment,
+  or customer data.
+- `sourceUpdatedAt` rejects out-of-order Trigger work; `projectedAt` supports a
+  bounded freshness window for related-table changes.
+- Scope, sales-rep, and health indexes support list selection and operational
+  reconciliation. `SalesOrders` remains the source of truth.

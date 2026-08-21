@@ -1,4 +1,5 @@
 import type { Db } from "@gnd/db";
+import { normalizeSalesPaymentSummaryMethod } from "../domain/payment-summary";
 
 export const DAILY_PAYMENT_METHODS = [
 	"card",
@@ -67,22 +68,10 @@ function roundMoney(value: number) {
 }
 
 function normalizePaymentMethod(value?: string | null): DailyPaymentMethod {
-	const normalized = String(value || "")
-		.trim()
-		.toLowerCase();
-
-	if (
-		["card", "credit-card", "credit card", "terminal", "link"].includes(
-			normalized,
-		)
-	) {
-		return "card";
-	}
-	if (normalized === "check" || normalized === "cheque") return "check";
-	if (normalized === "zelle") return "zelle";
-	if (normalized === "cash") return "cash";
-
-	return "unclassified";
+	const method = normalizeSalesPaymentSummaryMethod(value);
+	return ["card", "check", "zelle", "cash"].includes(method)
+		? (method as DailyPaymentMethod)
+		: "unclassified";
 }
 
 function customerName(input: {

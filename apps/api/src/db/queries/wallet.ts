@@ -21,6 +21,14 @@ export { resolvePaymentSchema, type ResolvePayment };
 export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
 	const { db } = ctx;
 	const user = await getAuthUser(ctx);
+	if (
+		data.action === "refund" &&
+		(data.refundMethod === "terminal" || data.refundMethod === "credit-card")
+	) {
+		throw new Error(
+			"Square refunds must be created from Sales Overview > Transactions.",
+		);
+	}
 	const result = await db.$transaction(async (prisma) => {
 		let walletId: number | undefined;
 		let orderId: number | undefined;

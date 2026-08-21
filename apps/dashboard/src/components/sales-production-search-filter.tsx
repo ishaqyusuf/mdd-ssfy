@@ -13,11 +13,13 @@ import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 type Props = {
 	initialFilterList?: PageFilterData[];
 	workerMode?: boolean;
+	showSavedViews?: boolean;
 };
 
 export function SalesProductionSearchFilter({
 	initialFilterList,
 	workerMode = false,
+	showSavedViews = true,
 }: Props) {
 	return (
 		<SearchFilterProvider
@@ -27,11 +29,19 @@ export function SalesProductionSearchFilter({
 				},
 			]}
 		>
-			<Content initialFilterList={initialFilterList} workerMode={workerMode} />
+			<Content
+				initialFilterList={initialFilterList}
+				workerMode={workerMode}
+				showSavedViews={showSavedViews}
+			/>
 		</SearchFilterProvider>
 	);
 }
-function Content({ initialFilterList, workerMode = false }: Props) {
+function Content({
+	initialFilterList,
+	workerMode = false,
+	showSavedViews = true,
+}: Props) {
 	const trpc = useTRPC();
 	const { shouldFetch } = useSearchFilterContext();
 	const { data, isFetching } = useQuery({
@@ -51,6 +61,24 @@ function Content({ initialFilterList, workerMode = false }: Props) {
 				placeholder={"Search Order Production Information"}
 				filterList={trpcFilterData}
 				loading={shouldFetch && isFetching}
+				pageTabs={showSavedViews ? undefined : null}
+				hiddenFilterKeys={
+					workerMode
+						? [
+								"tab",
+								"view",
+								"calendarView",
+								"calendarDate",
+								"production",
+								"productionDueDate",
+								"show",
+								"label",
+								"queue",
+								"due",
+								"date",
+							]
+						: undefined
+				}
 			/>
 		</>
 	);

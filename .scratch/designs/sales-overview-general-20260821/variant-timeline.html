@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GND Sales Overview — Operational Timeline</title>
+  <style>
+    :root {
+      --canvas: #ddd9d0;
+      --sheet: #f8f7f3;
+      --paper: #f1efe8;
+      --ink: #292c2b;
+      --ink-soft: #5d625f;
+      --line: #d7d3ca;
+      --line-strong: #aaa79f;
+      --amber: #b76d13;
+      --amber-soft: #f1dfbd;
+      --amber-deep: #77420a;
+      --sage: #4d745c;
+      --sage-soft: #dce8df;
+      --danger: #a4463c;
+      --white: #fff;
+      --shadow: 0 18px 50px rgba(41, 44, 43, .14);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: var(--canvas); }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: "IBM Plex Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, select { font: inherit; }
+    button { color: inherit; }
+
+    .stage {
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .annotation {
+      width: min(100%, 672px);
+      margin: 0 auto 10px;
+      display: grid;
+      grid-template-columns: 1.35fr repeat(3, 1fr);
+      border: 1px solid rgba(41, 44, 43, .24);
+      background: rgba(248, 247, 243, .7);
+      backdrop-filter: blur(8px);
+    }
+
+    .annotation > div {
+      min-width: 0;
+      padding: 8px 10px;
+      border-left: 1px solid rgba(41, 44, 43, .16);
+    }
+
+    .annotation > div:first-child { border-left: 0; }
+
+    .annotation strong,
+    .annotation span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .annotation strong {
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .annotation span {
+      margin-top: 2px;
+      color: var(--ink-soft);
+      font-size: 10px;
+    }
+
+    .sheet {
+      width: min(100%, 672px);
+      height: min(920px, calc(100vh - 80px));
+      min-height: 640px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      overflow: hidden;
+      border: 1px solid rgba(41, 44, 43, .22);
+      background: var(--sheet);
+      box-shadow: var(--shadow);
+    }
+
+    .sheet-header {
+      padding: 18px 20px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .crumb-row,
+    .title-row,
+    .action-row,
+    .phase-head,
+    .status-button,
+    .payment-lead,
+    .footer,
+    .footer-actions,
+    .stage-label,
+    .customer-name,
+    .rail-caption {
+      display: flex;
+      align-items: center;
+    }
+
+    .crumb-row {
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--ink-soft);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .live-mark { display: inline-flex; align-items: center; gap: 6px; }
+    .live-mark::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--sage);
+      content: "";
+    }
+
+    .icon-button {
+      width: 30px;
+      height: 30px;
+      display: inline-grid;
+      place-items: center;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .icon-button:hover { background: var(--paper); }
+
+    .title-row {
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 0 16px;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 430px;
+      font-size: clamp(20px, 3.2vw, 28px);
+      font-weight: 520;
+      letter-spacing: -.035em;
+      line-height: 1.08;
+    }
+
+    .pipe { color: var(--line-strong); font-weight: 300; }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--ink-soft);
+      font-size: 12px;
+    }
+
+    .subtitle b { color: var(--ink); font-weight: 520; }
+
+    .age {
+      min-width: 76px;
+      padding-left: 14px;
+      border-left: 1px solid var(--line);
+      text-align: right;
+    }
+
+    .age strong {
+      display: block;
+      color: var(--amber-deep);
+      font-size: 24px;
+      font-weight: 540;
+      line-height: 1;
+    }
+
+    .age span {
+      display: block;
+      margin-top: 5px;
+      color: var(--ink-soft);
+      font-size: 9px;
+      font-weight: 650;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 2px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 0 10px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      color: var(--ink-soft);
+      background: transparent;
+      font-size: 10px;
+      font-weight: 650;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .tab:hover { color: var(--ink); }
+    .tab[aria-selected="true"] {
+      border-bottom-color: var(--ink);
+      color: var(--ink);
+    }
+
+    .action-row {
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--paper);
+    }
+
+    .action-set { display: flex; gap: 6px; }
+
+    .button {
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 2px;
+      background: var(--sheet);
+      font-size: 11px;
+      font-weight: 620;
+      cursor: pointer;
+    }
+
+    .button:hover { border-color: var(--ink); background: var(--white); }
+    .button.primary { border-color: var(--ink); color: var(--sheet); background: var(--ink); }
+    .button.primary:hover { background: #111; }
+    .button.ghost { border-color: transparent; background: transparent; }
+
+    .status-wrap { position: relative; }
+
+    .status-button {
+      min-height: 32px;
+      gap: 8px;
+      padding: 0 10px;
+      border: 1px solid #d2b077;
+      border-radius: 2px;
+      color: var(--amber-deep);
+      background: var(--amber-soft);
+      font-size: 11px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
+    .chevron { margin-left: 5px; font-size: 9px; }
+
+    .status-menu,
+    .more-menu {
+      position: absolute;
+      z-index: 20;
+      top: calc(100% + 5px);
+      right: 0;
+      width: 190px;
+      padding: 5px;
+      border: 1px solid var(--line-strong);
+      background: var(--white);
+      box-shadow: 0 12px 25px rgba(41, 44, 43, .14);
+    }
+
+    .status-menu[hidden], .more-menu[hidden] { display: none; }
+    .menu-item {
+      width: 100%;
+      padding: 8px;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .menu-item:hover { background: var(--paper); }
+
+    .content {
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .content-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--ink-soft);
+      font-size: 9px;
+      font-weight: 650;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    h2 { margin: 0; font-size: 16px; font-weight: 550; letter-spacing: -.015em; }
+    .content-head > p {
+      max-width: 275px;
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 11px;
+      line-height: 1.45;
+      text-align: right;
+    }
+
+    .timeline { padding: 0 20px; }
+
+    .phase {
+      position: relative;
+      display: grid;
+      grid-template-columns: 132px minmax(0, 1fr);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .phase:last-child { border-bottom: 0; }
+
+    .rail {
+      position: relative;
+      padding: 22px 22px 22px 0;
+      border-right: 1px solid var(--line);
+    }
+
+    .rail::after {
+      position: absolute;
+      top: 31px;
+      right: -5px;
+      width: 9px;
+      height: 9px;
+      border: 2px solid var(--sheet);
+      border-radius: 50%;
+      background: var(--line-strong);
+      box-shadow: 0 0 0 1px var(--line-strong);
+      content: "";
+    }
+
+    .phase.complete .rail::after { background: var(--sage); box-shadow: 0 0 0 1px var(--sage); }
+    .phase.current .rail::after {
+      width: 13px;
+      height: 13px;
+      top: 29px;
+      right: -7px;
+      background: var(--amber);
+      box-shadow: 0 0 0 1px var(--amber), 0 0 0 5px var(--amber-soft);
+    }
+
+    .phase.current .rail { background: rgba(183, 109, 19, .055); }
+
+    .phase-no {
+      color: var(--line-strong);
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10px;
+    }
+
+    .rail h3 {
+      margin: 6px 0 0;
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: .01em;
+    }
+
+    .rail-caption {
+      align-items: flex-start;
+      gap: 5px;
+      margin-top: 6px;
+      color: var(--ink-soft);
+      font-size: 10px;
+      line-height: 1.3;
+    }
+
+    .phase.current .rail-caption { color: var(--amber-deep); }
+
+    .phase-body { min-width: 0; padding: 20px 0 20px 26px; }
+
+    .phase-head { justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .phase-head h3 { margin: 0; font-size: 13px; font-weight: 600; }
+
+    .stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 7px;
+      border: 1px solid var(--line);
+      color: var(--ink-soft);
+      background: transparent;
+      font-size: 9px;
+      font-weight: 650;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .stamp.sage { border-color: #a9c0af; color: #355744; background: var(--sage-soft); }
+    .stamp.amber { border-color: #d2b077; color: var(--amber-deep); background: var(--amber-soft); }
+
+    .customer-name { gap: 9px; font-size: 15px; font-weight: 560; }
+    .avatar {
+      width: 30px;
+      height: 30px;
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      color: var(--sheet);
+      background: var(--ink);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+
+    .minor { margin: 5px 0 0 39px; color: var(--ink-soft); font-size: 11px; }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0 18px;
+    }
+
+    .data {
+      min-width: 0;
+      padding: 9px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .data:nth-child(-n+2) { border-top: 0; padding-top: 0; }
+    .data dt {
+      margin: 0 0 3px;
+      color: var(--ink-soft);
+      font-size: 9px;
+      font-weight: 650;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+    .data dd { margin: 0; font-size: 12px; font-weight: 530; line-height: 1.35; }
+
+    .inline-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--amber-deep);
+    }
+
+    .tiny-square { width: 6px; height: 6px; background: var(--amber); }
+
+    .payment-lead {
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .due-label {
+      display: block;
+      color: var(--sage);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .due-amount {
+      display: block;
+      margin-top: 3px;
+      font-size: 28px;
+      font-weight: 520;
+      letter-spacing: -.04em;
+    }
+
+    .paid-copy { color: var(--ink-soft); font-size: 11px; text-align: right; }
+    .paid-copy b { display: block; color: var(--ink); font-size: 13px; font-weight: 600; }
+
+    .progress { height: 4px; margin: 12px 0 16px; background: var(--line); }
+    .progress > span { display: block; width: 100%; height: 100%; background: var(--sage); }
+
+    .ledger {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0 22px;
+    }
+
+    .ledger-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px dotted var(--line-strong);
+      font-size: 11px;
+    }
+
+    .ledger-row span:first-child { color: var(--ink-soft); }
+    .ledger-row strong { font-weight: 580; white-space: nowrap; }
+    .ledger-row.total { border-bottom-style: solid; color: var(--ink); }
+    .ledger-row.charge strong { color: var(--amber-deep); }
+
+    .current-callout {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 13px 14px;
+      border-left: 3px solid var(--amber);
+      background: var(--amber-soft);
+    }
+
+    .current-callout b { display: block; font-size: 13px; font-weight: 650; }
+    .current-callout p { margin: 3px 0 0; color: var(--amber-deep); font-size: 10px; line-height: 1.4; }
+    .current-callout .button { border-color: #b98d4c; background: rgba(255,255,255,.42); }
+
+    .next-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+      font-size: 11px;
+    }
+    .next-line:first-of-type { border-top: 0; }
+    .next-line span { color: var(--ink-soft); }
+    .next-line b { font-weight: 580; text-align: right; }
+
+    .footer {
+      min-height: 58px;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 20px;
+      border-top: 1px solid var(--line-strong);
+      background: var(--sheet);
+      box-shadow: 0 -8px 18px rgba(41, 44, 43, .05);
+    }
+
+    .footer-state { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .footer-state .status-dot { background: var(--sage); }
+    .footer-state span { color: var(--ink-soft); font-size: 10px; }
+    .footer-state b { color: var(--ink); font-weight: 630; }
+    .mobile-balance { display: none; }
+    .footer-actions { gap: 6px; }
+    .more-wrap { position: relative; }
+
+    .toast {
+      position: fixed;
+      z-index: 50;
+      left: 50%;
+      bottom: 20px;
+      max-width: calc(100vw - 32px);
+      padding: 10px 14px;
+      transform: translate(-50%, 12px);
+      border: 1px solid var(--ink);
+      color: var(--sheet);
+      background: var(--ink);
+      font-size: 11px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease, transform .15s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    button:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 620px) {
+      .stage { padding: 0; }
+      .annotation { margin: 0; grid-template-columns: 1fr 1fr; border-width: 0 0 1px; }
+      .annotation > div:nth-child(3) { border-left: 0; border-top: 1px solid rgba(41, 44, 43, .16); }
+      .annotation > div:nth-child(4) { border-top: 1px solid rgba(41, 44, 43, .16); }
+      .sheet { width: 100%; height: calc(100vh - 74px); min-height: 600px; border-width: 0; box-shadow: none; }
+      .sheet-header { padding-inline: 16px; }
+      .title-row { gap: 10px; }
+      .age { min-width: 61px; padding-left: 10px; }
+      .age strong { font-size: 20px; }
+      .action-row { align-items: stretch; padding-inline: 16px; }
+      .action-set { min-width: 0; }
+      .action-set .button { padding-inline: 10px; }
+      .status-button { max-width: 172px; white-space: nowrap; }
+      .content-head { display: block; padding-inline: 16px; }
+      .content-head > p { margin-top: 7px; max-width: none; text-align: left; }
+      .timeline { padding-inline: 16px; }
+      .phase { grid-template-columns: 92px minmax(0, 1fr); }
+      .rail { padding-right: 16px; }
+      .phase-body { padding-left: 19px; }
+      .data-grid, .ledger { grid-template-columns: 1fr; }
+      .data:nth-child(2) { padding-top: 9px; border-top: 1px solid var(--line); }
+      .payment-lead { align-items: flex-start; flex-direction: column; gap: 7px; }
+      .paid-copy { text-align: left; }
+      .current-callout { grid-template-columns: 1fr; }
+      .current-callout .button { width: 100%; }
+      .footer { padding-inline: 16px; }
+      .footer-state span { display: none; }
+      .footer-state .status-dot { display: inline-block; }
+      .mobile-balance { display: inline; }
+      .footer-actions .button { padding-inline: 10px; }
+    }
+
+    @media (max-width: 390px) {
+      .sheet { height: calc(100vh - 74px); }
+      .crumb-row { font-size: 9px; }
+      h1 { font-size: 20px; }
+      .subtitle { font-size: 11px; }
+      .action-row { gap: 8px; }
+      .action-set { gap: 4px; }
+      .action-set .button { padding-inline: 8px; }
+      .status-button { padding-inline: 8px; }
+      .phase { grid-template-columns: 78px minmax(0, 1fr); }
+      .rail h3 { font-size: 11px; }
+      .rail-caption { font-size: 9px; }
+      .phase-body { padding-left: 17px; }
+      .footer-state b { font-size: 11px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <aside class="annotation" aria-label="Design concept notes">
+      <div><strong>Concept</strong><span>Operational timeline</span></div>
+      <div><strong>01 Sequence</strong><span>One continuous ledger</span></div>
+      <div><strong>02 Signal</strong><span>Color means state</span></div>
+      <div><strong>03 Density</strong><span>Details at the checkpoint</span></div>
+    </aside>
+
+    <section class="sheet" aria-label="Sales overview for order 09397LM">
+      <header class="sheet-header">
+        <div class="crumb-row">
+          <span class="live-mark">Sales overview · live order</span>
+          <button class="icon-button" type="button" aria-label="Close sales overview" data-toast="Close the sales overview">×</button>
+        </div>
+
+        <div class="title-row">
+          <div>
+            <h1>09397LM <span class="pipe">|</span> Roberto Lorenzo</h1>
+            <p class="subtitle"><b>786-325-4715</b> · Order · Rep Leydiana Martin (LM)</p>
+          </div>
+          <div class="age" aria-label="Order age 15 hours">
+            <strong>15h</strong>
+            <span>Order age</span>
+          </div>
+        </div>
+
+        <nav class="tabs" aria-label="Sales overview tabs" role="tablist">
+          <button class="tab" type="button" role="tab" aria-selected="true">General</button>
+          <button class="tab" type="button" role="tab" aria-selected="false">Products</button>
+          <button class="tab" type="button" role="tab" aria-selected="false">Transactions</button>
+          <button class="tab" type="button" role="tab" aria-selected="false">Activity</button>
+        </nav>
+      </header>
+
+      <div class="action-row">
+        <div class="action-set" aria-label="Order actions">
+          <button class="button primary" type="button" data-toast="Invoice preview opened">Preview</button>
+          <button class="button" type="button" data-toast="Order editor opened">Edit</button>
+          <button class="button ghost" type="button" data-toast="More order actions">More ···</button>
+        </div>
+        <div class="status-wrap">
+          <button class="status-button" id="status-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
+            <span class="status-dot"></span>
+            <span id="status-label">Awaiting production</span>
+            <span class="chevron">⌄</span>
+          </button>
+          <div class="status-menu" id="status-menu" role="menu" hidden>
+            <button class="menu-item" role="menuitem" type="button" data-status="Awaiting production">Awaiting production</button>
+            <button class="menu-item" role="menuitem" type="button" data-status="In production">In production</button>
+            <button class="menu-item" role="menuitem" type="button" data-status="Ready for pickup">Ready for pickup</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="content" id="timeline-content">
+        <div class="content-head">
+          <div>
+            <p class="eyebrow">General / lifecycle record</p>
+            <h2>Where this order stands</h2>
+          </div>
+          <p>Read top to bottom: identity, terms, money, work, then handoff.</p>
+        </div>
+
+        <div class="timeline">
+          <section class="phase complete">
+            <div class="rail">
+              <span class="phase-no">01</span>
+              <h3>Customer</h3>
+              <span class="rail-caption">Identified</span>
+            </div>
+            <div class="phase-body">
+              <div class="phase-head">
+                <h3>Customer record</h3>
+                <span class="stamp sage">Ready</span>
+              </div>
+              <div class="customer-name"><span class="avatar">RL</span>Roberto Lorenzo</div>
+              <p class="minor">786-325-4715</p>
+              <dl class="data-grid" style="margin-top: 15px">
+                <div class="data"><dt>Sales representative</dt><dd>Leydiana Martin (LM)</dd></div>
+              </dl>
+            </div>
+          </section>
+
+          <section class="phase complete">
+            <div class="rail">
+              <span class="phase-no">02</span>
+              <h3>Order</h3>
+              <span class="rail-caption">Captured</span>
+            </div>
+            <div class="phase-body">
+              <div class="phase-head">
+                <h3>Order terms</h3>
+                <span class="stamp">09397LM</span>
+              </div>
+              <dl class="data-grid">
+                <div class="data"><dt>Type</dt><dd>Order</dd></div>
+                <div class="data"><dt>Inbound status</dt><dd>No status</dd></div>
+                <div class="data"><dt>Delivery option</dt><dd>Pickup</dd></div>
+                <div class="data"><dt>Classification</dt><dd><span class="inline-tag"><span class="tiny-square"></span>Special Order</span></dd></div>
+              </dl>
+            </div>
+          </section>
+
+          <section class="phase complete">
+            <div class="rail">
+              <span class="phase-no">03</span>
+              <h3>Payment</h3>
+              <span class="rail-caption">Settled</span>
+            </div>
+            <div class="phase-body">
+              <div class="phase-head">
+                <h3>Payment & invoice</h3>
+                <span class="stamp sage">100% settled</span>
+              </div>
+              <div class="payment-lead">
+                <div><span class="due-label">Due now</span><span class="due-amount">$0.00</span></div>
+                <div class="paid-copy"><b>$2,459.35 paid</b>of $2,459.35</div>
+              </div>
+              <div class="progress" aria-label="Payment progress 100 percent"><span></span></div>
+              <div class="ledger" aria-label="Invoice ledger">
+                <div>
+                  <div class="ledger-row"><span>Payment method</span><strong>Credit Card</strong></div>
+                  <div class="ledger-row"><span>Subtotal</span><strong>$2,298.46</strong></div>
+                  <div class="ledger-row"><span>Tax</span><strong>$160.89</strong></div>
+                  <div class="ledger-row total"><span>Total</span><strong>$2,459.35</strong></div>
+                </div>
+                <div>
+                  <div class="ledger-row"><span>Paid</span><strong>$2,459.35</strong></div>
+                  <div class="ledger-row"><span>Card</span><strong>$2,459.35</strong></div>
+                  <div class="ledger-row charge"><span>C.C.C</span><strong>$73.78</strong></div>
+                  <div class="ledger-row total charge"><span>Total charged</span><strong>$2,533.13</strong></div>
+                  <div class="ledger-row"><span>Card Payments Made</span><strong>2</strong></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="phase current">
+            <div class="rail">
+              <span class="phase-no">04</span>
+              <h3>Production</h3>
+              <span class="rail-caption">Current · 15h</span>
+            </div>
+            <div class="phase-body">
+              <div class="phase-head">
+                <h3>Production checkpoint</h3>
+                <span class="stamp amber">Current</span>
+              </div>
+              <div class="current-callout">
+                <div>
+                  <b>Awaiting production</b>
+                  <p>The order is paid and ready to enter the production queue.</p>
+                </div>
+                <button class="button" type="button" data-toast="Production details opened">Open production</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="phase">
+            <div class="rail">
+              <span class="phase-no">05</span>
+              <h3>Fulfillment</h3>
+              <span class="rail-caption">Next</span>
+            </div>
+            <div class="phase-body">
+              <div class="phase-head">
+                <h3>Customer handoff</h3>
+                <span class="stamp">Pending</span>
+              </div>
+              <div class="next-line"><span>Delivery option</span><b>Pickup</b></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <div class="footer-state"><span class="status-dot"></span><span><b>Payment settled</b> · production is next</span><b class="mobile-balance">$0 due</b></div>
+        <div class="footer-actions">
+          <button class="button primary" type="button" data-toast="Invoice preview opened">Preview</button>
+          <div class="more-wrap">
+            <button class="button" id="footer-more" type="button" aria-haspopup="menu" aria-expanded="false">More ···</button>
+            <div class="more-menu" id="footer-menu" role="menu" hidden>
+              <button class="menu-item" role="menuitem" type="button" data-toast="Share options opened">Share</button>
+              <button class="menu-item" role="menuitem" type="button" data-toast="Print options opened">Print</button>
+              <button class="menu-item" role="menuitem" type="button" data-toast="Order number copied">Copy order</button>
+              <button class="menu-item" role="menuitem" type="button" data-toast="Email options opened">Email customer</button>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const statusTrigger = document.querySelector('#status-trigger');
+    const statusMenu = document.querySelector('#status-menu');
+    const footerMore = document.querySelector('#footer-more');
+    const footerMenu = document.querySelector('#footer-menu');
+    const toast = document.querySelector('#toast');
+    let toastTimer;
+
+    function toggleMenu(trigger, menu) {
+      const nextOpen = menu.hidden;
+      document.querySelectorAll('.status-menu, .more-menu').forEach((item) => item.hidden = true);
+      document.querySelectorAll('[aria-haspopup="menu"]').forEach((item) => item.setAttribute('aria-expanded', 'false'));
+      menu.hidden = !nextOpen;
+      trigger.setAttribute('aria-expanded', String(nextOpen));
+    }
+
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.classList.add('show');
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    statusTrigger.addEventListener('click', () => toggleMenu(statusTrigger, statusMenu));
+    footerMore.addEventListener('click', () => toggleMenu(footerMore, footerMenu));
+
+    document.querySelectorAll('[data-status]').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelector('#status-label').textContent = button.dataset.status;
+        statusMenu.hidden = true;
+        statusTrigger.setAttribute('aria-expanded', 'false');
+        showToast(`Status preview: ${button.dataset.status}`);
+      });
+    });
+
+    document.querySelectorAll('[data-toast]').forEach((button) => {
+      button.addEventListener('click', () => {
+        showToast(button.dataset.toast);
+        footerMenu.hidden = true;
+        footerMore.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    document.querySelectorAll('.tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach((item) => item.setAttribute('aria-selected', 'false'));
+        tab.setAttribute('aria-selected', 'true');
+        if (tab.textContent.trim() !== 'General') showToast(`${tab.textContent.trim()} is preserved as navigation; this sample focuses on General`);
+      });
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.status-wrap')) {
+        statusMenu.hidden = true;
+        statusTrigger.setAttribute('aria-expanded', 'false');
+      }
+      if (!event.target.closest('.more-wrap')) {
+        footerMenu.hidden = true;
+        footerMore.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        statusMenu.hidden = true;
+        footerMenu.hidden = true;
+        statusTrigger.setAttribute('aria-expanded', 'false');
+        footerMore.setAttribute('aria-expanded', 'false');
+      }
+    });
+  </script>
+</body>
+</html>

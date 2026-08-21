@@ -7,9 +7,11 @@ import {
 } from "./redirect-engine";
 
 describe("redirect engine", () => {
-	it("redirects the legacy login route to login v2", () => {
-		expect(resolveRedirectPath("/login?return_to=/sales-book/orders")).toEqual({
-			pathname: "/login/v2",
+	it("redirects the versioned login route to the canonical login", () => {
+		expect(
+			resolveRedirectPath("/login/v2?return_to=/sales-book/orders"),
+		).toEqual({
+			pathname: "/login",
 			search: "?return_to=/sales-book/orders",
 			permanent: false,
 		});
@@ -19,7 +21,7 @@ describe("redirect engine", () => {
 		expect(
 			resolveRedirectPath("/sales-book/production-tasks?tab=assigned"),
 		).toEqual({
-			pathname: "/production/dashboard/v2",
+			pathname: "/production/dashboard",
 			search: "?tab=assigned",
 			permanent: false,
 		});
@@ -66,13 +68,23 @@ describe("redirect engine", () => {
 
 	it("normalizes canonical paths through the same redirect rules", () => {
 		expect(resolveCanonicalPath("/sales-book/production-tasks?tab=mine")).toBe(
-			"/production/dashboard/v2?tab=mine",
+			"/production/dashboard?tab=mine",
 		);
 	});
 
+	it("normalizes the versioned production dashboard to the base route", () => {
+		expect(
+			resolveRedirectPath("/production/dashboard/v2?show=unscheduled"),
+		).toEqual({
+			pathname: "/production/dashboard",
+			search: "?show=unscheduled",
+			permanent: false,
+		});
+	});
+
 	it("returns null when no redirect is needed", () => {
-		expect(resolveRedirectPath("/login/v2")).toBeNull();
-		expect(resolveRedirectPath("/production/dashboard/v2")).toBeNull();
+		expect(resolveRedirectPath("/login")).toBeNull();
+		expect(resolveRedirectPath("/production/dashboard")).toBeNull();
 		expect(resolveRedirectPath("/sales-book/productions?tab=queue")).toBeNull();
 	});
 });

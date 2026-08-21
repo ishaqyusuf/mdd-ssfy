@@ -23,6 +23,7 @@ import {
 import { Separator } from "@gnd/ui/separator";
 import type { ReactNode } from "react";
 import { multiplyMoney } from "../../../payment-system/domain/money";
+import { ComponentImageLightbox } from "./component-image-lightbox";
 import {
 	type CostPriceBreakdownContext,
 	CostPriceBreakdownHover,
@@ -236,7 +237,7 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 
 	return (
 		<div className="overflow-x-auto rounded-lg border">
-			<table className="min-w-[620px] text-sm">
+			<table className="w-full min-w-[620px] text-sm">
 				<thead>
 					<tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
 						<th className="px-3 py-2">Moulding</th>
@@ -249,6 +250,7 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 				<tbody>
 					{props.rows.map((row, index) => {
 						const rowImageSrc = props.resolveImageSrc(row.img || null);
+						const rowTitle = props.componentLabel(row.title);
 						const qty = Number(row.qty || 0);
 						const lineBreakdown = {
 							costPrice: multiplyMoney(Number(row.basePrice || 0), qty),
@@ -261,19 +263,18 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 							<tr key={`moulding-row-${row.uid}-${index}`} className="border-t">
 								<td className="px-3 py-2">
 									<div className="flex items-center gap-3">
-										<div className="group flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
-											{rowImageSrc ? (
-												<img
-													src={rowImageSrc}
-													alt={row.title || "Moulding"}
-													className="h-full w-full object-contain p-3 transition-transform duration-200 group-hover:scale-90"
-												/>
-											) : (
+										<ComponentImageLightbox
+											imageSrc={rowImageSrc}
+											title={rowTitle || "Moulding"}
+											alt={row.title || "Moulding"}
+											className="size-14 rounded-lg bg-white"
+											imageClassName="p-3"
+											fallback={
 												<Icons.Ruler className="size-4 text-muted-foreground" />
-											)}
-										</div>
+											}
+										/>
 										<p className="text-xs font-semibold uppercase">
-											{props.componentLabel(row.title)}
+											{rowTitle}
 										</p>
 									</div>
 								</td>
@@ -301,16 +302,18 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 									</div>
 								</td>
 								<td className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">
-									<MouldingEstimateBreakdown
-										row={row}
-										index={index}
-										quantity={qty}
-										canEditPricing={canEditPricing}
-										formatMoney={props.formatMoney}
-										componentLabel={props.componentLabel}
-										priceBreakdown={props.priceBreakdown}
-										onPatch={(patch) => patchRow(index, patch)}
-									/>
+									<div className="flex justify-end">
+										<MouldingEstimateBreakdown
+											row={row}
+											index={index}
+											quantity={qty}
+											canEditPricing={canEditPricing}
+											formatMoney={props.formatMoney}
+											componentLabel={props.componentLabel}
+											priceBreakdown={props.priceBreakdown}
+											onPatch={(patch) => patchRow(index, patch)}
+										/>
+									</div>
 								</td>
 								<td className="px-3 py-2 text-right text-xs font-bold">
 									<CostPriceBreakdownHover

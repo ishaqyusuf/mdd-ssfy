@@ -9,6 +9,12 @@ export {
 } from "./cost-price-breakdown-hover";
 export { ComponentCardSkeletonGrid } from "./component-card-skeleton-grid";
 export {
+	ComponentImageLightbox,
+	COMPONENT_IMAGE_PREVIEW_HIGHLIGHT_WINDOW_MS,
+	isComponentImagePreviewHighlightActive,
+	type ComponentImageLightboxProps,
+} from "./component-image-lightbox";
+export {
   DoorPriceCell,
   formatDoorSizeTitle,
   updateDoorRowBasePrice,

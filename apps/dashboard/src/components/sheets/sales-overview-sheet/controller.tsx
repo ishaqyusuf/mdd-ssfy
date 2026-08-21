@@ -7,12 +7,13 @@ import { SalesOverviewInventoryContent } from "@/components/sales-overview-syste
 import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
 
-import { TransactionsTab } from "../customer-overview-sheet/transactions-tab";
 import { useSaleOverview } from "./context";
 import { DispatchTab } from "./dispatch-tab";
-import { GeneralTab } from "./general-tab";
+import type { GeneralTabProps } from "./general-tab";
+import { GeneralTabGateway } from "./general/general-tab-gateway";
 import { PackingTab } from "./packing-tab";
 import { ProductionTab } from "./production-tab";
+import { TransactionsTab } from "./transactions-tab";
 import type {
 	LegacySalesOverviewMode,
 	LegacySalesOverviewTabDefinition,
@@ -66,16 +67,20 @@ export function createLegacySalesOverviewTabs({
 	onEditCustomer,
 	onCreateInbound,
 	onViewInbound,
+	onViewPayment,
+	onCreatePayment,
 }: {
 	mode: LegacySalesOverviewMode;
 	isQuote: boolean;
 	prodQty: number;
 	saleId?: number | null;
 	orderId?: string | null;
-	onEditAddress?: Parameters<typeof GeneralTab>[0]["onEditAddress"];
-	onEditCustomer?: Parameters<typeof GeneralTab>[0]["onEditCustomer"];
+	onEditAddress?: GeneralTabProps["onEditAddress"];
+	onEditCustomer?: GeneralTabProps["onEditCustomer"];
 	onCreateInbound?: () => void;
 	onViewInbound?: (inboundId: number) => void;
+	onViewPayment?: (transactionId: string) => void;
+	onCreatePayment?: () => void;
 }): LegacySalesOverviewTabDefinition[] {
 	const prodBadge = prodQty > 0 ? prodQty : 0;
 
@@ -124,7 +129,8 @@ export function createLegacySalesOverviewTabs({
 					value: "general",
 					label: "General",
 					content: (
-						<GeneralTab
+						<GeneralTabGateway
+							onCreatePayment={onCreatePayment}
 							onEditAddress={onEditAddress}
 							onEditCustomer={onEditCustomer}
 						/>
@@ -141,7 +147,13 @@ export function createLegacySalesOverviewTabs({
 					value: "transactions",
 					label: "Transactions",
 					hidden: isQuote,
-					content: <TransactionsTab salesId={orderId || undefined} />,
+					content: (
+						<TransactionsTab
+							salesId={orderId || undefined}
+							onCreatePayment={onCreatePayment}
+							onViewTransaction={onViewPayment}
+						/>
+					),
 				},
 				{
 					value: "activity",

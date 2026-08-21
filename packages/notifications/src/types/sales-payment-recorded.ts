@@ -7,12 +7,15 @@ import {
 
 export const salesPaymentRecorded: NotificationHandler = {
 	schema: salesPaymentRecordedSchema,
+	createActivityWithoutContact: true,
 	createActivity(data: SalesPaymentRecordedInput, author) {
 		const payload: SalesPaymentRecordedTags = {
 			type: "sales_payment_recorded",
 			source: "system",
 			priority: 3,
 			amount: data.amount,
+			salesId: data.salesId,
+			salesNo: data.orderNo,
 			customerName: data.customerName,
 			orderNo: data.orderNo,
 			paymentMethod: data.paymentMethod,

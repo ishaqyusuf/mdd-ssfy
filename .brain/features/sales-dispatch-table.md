@@ -1,6 +1,61 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-21: Published 14 approved `ready-for-agent` implementation tickets
+  for the Fulfillment Admin and Responsive Driver Workflow under
+  `.scratch/fulfillment-admin-responsive-driver-implementation/issues/`.
+  Ticket 01, the connected prototype, is the immediate frontier. The admin
+  order-grain and responsive-driver trunks then progress independently before
+  converging on assistance notifications, proof, full reconciliation, rollout
+  controls, and the evidence-backed canonical-surface decision. Existing
+  Wayfinder tickets and the published specification were not modified.
+- 2026-08-21: Published the ready-for-agent Fulfillment Admin and Responsive
+  Driver Workflow specification from the approved 11-ticket Wayfinder. The spec
+  defines the order-grain Fulfillment list, canonical order lifecycle,
+  order-first Dispatch tab, assignment-scoped responsive packing, blocker and
+  notification loop, resumable browser proof, prototype, pilot, rollback, and
+  ADR-gated web cutover. It preserves current Expo, Packing List,
+  `OrderDelivery`, dispatch-bound inventory, Dispatch Exception, and proof
+  authorities until their explicit gates pass. No implementation ticket or
+  runtime behavior changed in this publication step.
+- 2026-08-21: The complete 11-ticket Dispatch Admin/responsive-driver Wayfinder
+  recommendation batch was approved. Missing proposed-answer comments were
+  added for canonical web/Expo ownership, blocker-specific admin authority,
+  browser proof completion, the connected prototype, and compatibility/cutover.
+  Existing lifecycle, quantity, packing, notification, admin, and driver-IA
+  comments were retained without duplication. Tickets remain open; approval of
+  proposed comments does not implement behavior, resolve dependencies, change
+  ADR-054, or authorize a rollout.
+- 2026-08-21: The existing Dispatch Admin/driver Wayfinder was refined with a
+  proposed order-grain Fulfillment list, reuse of the canonical Sales Order
+  lifecycle as the single list status, exception badges instead of a Progress
+  column, an order-first Sales Overview Dispatch tab, and a phone-first driver
+  queue with structured blocker reporting plus deduplicated in-app/email admin
+  escalation. These are planning inputs only; the blocked authority, quantity,
+  lifecycle, notification, and information-architecture tickets remain open.
+- 2026-08-21: Fulfillment table rows now match the Sales Orders compact `40px`
+  density. Ship To displays only the customer/destination name, and Progress
+  displays only the packed quantity summary; the phone and percentage/pending
+  subtitle lines were removed. This is a Fulfillment-only presentation mode;
+  the standard Dispatch and driver-task views retain their existing `56px`
+  rows and secondary details.
+- 2026-08-21: Fulfillment and the standard Dispatch table now pass only their
+  actual user-editable search fields (`q`, `status`, and `scheduleDate`) into
+  the Midday search-filter provider. Internal route defaults such as Dashboard,
+  Table, Week, Overview, and Open no longer render as filter chips, trigger the
+  filter-options query on initial load, or participate in Clear filters. Tabs,
+  calendar state, sheet state, and workspace routing remain URL-owned.
+- 2026-08-21: Fulfillment Calendar is now a first-class `PageTabs` workspace
+  beside Pending, All, and Completed. The Calendar tab owns its composition, so
+  list summaries, the overdue banner, search/filter controls, column settings,
+  refresh/auto-refresh, export, deleted/sweeper actions, and driver workload do
+  not render there. Calendar state is URL-backed with Week and Month modes plus
+  a date anchor, and the month mode displays complete Monday-Sunday calendar
+  weeks. Legacy `?view=calendar` links redirect to the canonical Calendar tab.
+- 2026-08-21: The Fulfillment Calendar period title is now a centered clickable
+  picker. Week mode offers ten weeks before and after the selected anchor, and
+  Month mode offers four months before and after it; both accept unrestricted
+  past and future selection and persist the chosen anchor in `calendarDate`.
 - 2026-08-19: The order-management dispatch workspace was renamed Fulfillment
   and moved to `/sales-book/fulfillment`. The sidebar now exposes it as one
   top-level link without the former Delivery or v2 sub-links. The prior
@@ -73,8 +128,10 @@
 ## Routes
 - Canonical dispatch route: `/sales-book/dispatch`
 - Compatibility redirect: `/sales-book/dispatch/v2` redirects to `/sales-book/dispatch` and preserves query params.
-- Fulfillment dashboard: `/sales-book/fulfillment?view=table|calendar`
-  (`editOrders`)
+- Fulfillment dashboard: `/sales-book/fulfillment?tab=pending|all|completed|calendar`
+  (`editOrders`). Calendar accepts `calendarView=week|month` and
+  `calendarDate=YYYY-MM-DD`; legacy `?view=calendar` redirects to the Calendar
+  tab.
 - Replacement workspace: `/sales-book/fulfillment/v2` (Super Admin plus
   `editOrders`; retained for direct access but not linked from the sidebar)
 - Driver task route: `/sales-book/dispatch-task` (`editDelivery` without
@@ -86,7 +143,11 @@
 - Fulfillment route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/fulfillment/page.tsx`
 - Fulfillment v2 route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/fulfillment/v2/page.tsx`
 - Driver route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch-task/page.tsx`
-- Legacy calendar: `apps/dashboard/src/components/dispatch-admin/dispatch-calendar-view.tsx`
+- Fulfillment list/calendar composition:
+  `apps/dashboard/src/components/dispatch-admin/fulfillment-list-workspace.tsx`
+  and `fulfillment-calendar-workspace.tsx`
+- Fulfillment calendar:
+  `apps/dashboard/src/components/dispatch-admin/dispatch-calendar-view.tsx`
 - Admin v2 calendar: `apps/dashboard/src/components/dispatch-admin/dispatch-calendar-view-v2.tsx`
 - Table module: `apps/dashboard/src/components/tables-2/sales-dispatch/*`
 - Headers:
@@ -96,7 +157,12 @@
 The table uses the shared `tables-2` domain pattern with typed columns, stable row ids, virtual rows, sticky order columns, column visibility/settings, table-owned horizontal and vertical scrolling, `useScrollHeader(parentRef)` header-offset behavior, empty state, no-results state, row selection, and the existing dispatch row-action flows.
 
 ## Density And Widths
-- `TABLE_CONFIGS["sales-dispatch"].rowHeight` is `56` with compact table padding. This is intentionally taller than the 40px Sales Orders/Quotes rows because dispatch rows include a schedule picker, two-line Ship To/progress text, and status/driver menus.
+- The shared `TABLE_CONFIGS["sales-dispatch"].rowHeight` remains `56` for the
+  standard Dispatch and driver-task views. Fulfillment opts into a compact table
+  presentation whose row height derives from `TABLE_CONFIGS["sales-orders"]`
+  (`40px`), and its skeleton uses the same derived value. Fulfillment Ship To
+  and Progress are single-line cells; schedule, status, and driver controls
+  retain their existing behavior.
 - Current content-fit defaults:
   - Schedule: `sizes.custom(118, 180, 136)`
   - Order: `sizes.custom(140, 230, 160)`
@@ -117,6 +183,10 @@ The table uses the shared `tables-2` domain pattern with typed columns, stable r
 - Existing `SalesMenu.MarkAs` workflow for inventory preflight, production completion, fulfillment, task monitoring, and query invalidation
 - Added protected admin projections: `dispatch.workspaceSummary`, `backlog`,
   `list`, `calendar`, `driverWorkload`, `exceptions`, and `detail`.
+- Added the bounded manager-only `dispatch.fulfillmentCalendar` projection for
+  active scheduled dispatches in the requested 7-42 day visible range plus a
+  bounded unscheduled queue. The accepted v2 `dispatch.calendar` projection is
+  unchanged.
 - Added the authenticated `dispatch.driverManifest` projection and durable
   `reportException` / manager-only `resolveException` mutations.
 

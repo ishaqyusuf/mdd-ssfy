@@ -15,15 +15,19 @@ const documentsRouteSource = readSource(
 const dealerOrdersRouteSource = readSource(
 	"../../app/(sidebar)/settings/sales/dealer-orders/page.tsx",
 );
+const salesOverviewRouteSource = readSource(
+	"../../app/(sidebar)/settings/sales/overview/page.tsx",
+);
 const specialOrdersRouteSource = readSource(
 	"../../app/(sidebar)/settings/sales/special-orders/page.tsx",
 );
 const sidebarSource = readSource("../sidebar-links.ts");
 
 describe("Sales Settings route-backed navigation", () => {
-	it("exposes the three approved settings destinations in the shared layout", () => {
+	it("exposes the approved settings destinations in the shared layout", () => {
 		for (const [label, path] of [
 			["Documents", "/settings/sales"],
+			["Sales overview", "/settings/sales/overview"],
 			["Dealer orders", "/settings/sales/dealer-orders"],
 			["Special orders", "/settings/sales/special-orders"],
 		]) {
@@ -56,6 +60,9 @@ describe("Sales Settings route-backed navigation", () => {
 		expect(documentsRouteSource.includes("DealerOrderSettingsPage")).toBe(
 			false,
 		);
+		expect(
+			salesOverviewRouteSource.includes("<SalesOverviewViewSettingsPage />"),
+		).toBe(true);
 
 		expect(
 			dealerOrdersRouteSource.includes("<DealerOrderSettingsPage />"),
@@ -78,6 +85,7 @@ describe("Sales Settings route-backed navigation", () => {
 	it("provides metadata, hydration, loading, and error boundaries per route", () => {
 		for (const [routeSource, routePath] of [
 			[documentsRouteSource, "../../app/(sidebar)/settings/sales"],
+			[salesOverviewRouteSource, "../../app/(sidebar)/settings/sales/overview"],
 			[
 				dealerOrdersRouteSource,
 				"../../app/(sidebar)/settings/sales/dealer-orders",

@@ -1,4 +1,3 @@
-import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
 import { ProductionWorkspace } from "@/components/production-workspace";
@@ -26,20 +25,13 @@ export default async function SalesBookPage(props: Props) {
 	unstable_noStore();
 	const searchParams = await props.searchParams;
 	const filter = loadSalesProductionFilterParams(searchParams);
-	const workerId = await authId();
-	const initialTableSettings = await getInitialTableSettings("sales-production");
+	const initialTableSettings =
+		await getInitialTableSettings("sales-production");
 
 	batchPrefetch([
-		trpc.sales.productionDashboard.queryOptions(
-			workerId
-				? {
-						workerId: Number(workerId),
-						priority: filter.priority || undefined,
-					}
-				: {
-						priority: filter.priority || undefined,
-					},
-		),
+		trpc.sales.productionDashboardTasks.queryOptions({
+			priority: filter.priority || undefined,
+		}),
 		trpc.filters.salesProductions.queryOptions(),
 		trpc.sales.productionTasks.infiniteQueryOptions(filter, {
 			getNextPageParam: ({ meta }) =>

@@ -2,10 +2,16 @@ import type { Db } from "@gnd/db";
 import type { SettingsTypes } from "./schema";
 export {
 	DEFAULT_SPECIAL_ORDER_SETTINGS,
+	DEFAULT_SALES_OVERVIEW_VIEW_SETTINGS,
 	DEFAULT_SALES_PRINT_SETTINGS,
 	SPECIAL_ORDER_RELEASE_AUDIENCES,
+	normalizeSalesOverviewViewSettings,
 	normalizeSpecialOrderSettings,
 	normalizeSalesPrintSettings,
+	resolveSalesOverviewGeneralVersion,
+	salesOverviewGeneralVersionSchema,
+	salesOverviewSuperAdminPreviewSchema,
+	salesOverviewViewSettingsSchema,
 	salesPrintSettingsSchema,
 	specialOrderEnforcementModeSchema,
 	specialOrderReleaseAudienceSchema,
@@ -13,6 +19,8 @@ export {
 } from "./schema";
 export type {
 	SalesPrintSettings,
+	SalesOverviewGeneralVersion,
+	SalesOverviewViewSettings,
 	SpecialOrderReleaseAudience,
 	SpecialOrderSettings,
 } from "./schema";

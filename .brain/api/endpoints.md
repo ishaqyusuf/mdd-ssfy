@@ -1,5 +1,20 @@
 # API Endpoints
 
+## Fulfillment Calendar Projection (2026-08-21)
+
+- `dispatch.fulfillmentCalendar` is a protected manager read used by the
+  canonical Fulfillment Calendar tab. It returns active scheduled dispatches
+  for an inclusive `from`/`to` date range and active unscheduled dispatches.
+- The endpoint uses the existing dispatch-management permission boundary. The
+  existing v2 `dispatch.calendar` list endpoint remains unchanged.
+
+## Role Permission Session Revocation (2026-08-20)
+
+- `createRoleAction` is the Dashboard role create/update command. When an
+  existing role's effective permission set changes, it deletes all legacy and
+  Better Auth sessions for users assigned through `ModelHasRoles` before the
+  update transaction commits.
+
 ## Dispatch Admin Workspace And Driver Manifest (2026-08-18)
 
 - Manager reads: `dispatch.workspaceSummary`, `dispatch.backlog`,
@@ -185,13 +200,34 @@ Tracks notable API surfaces and where they are implemented.
 - Sales production routes now include:
   - `sales.productions`: admin-facing production queue list with due-date/status filtering
   - `sales.productionTasks`: worker-scoped production queue list using the authenticated user as `workerId`
+  - `sales.productionDashboardTasks`: worker-scoped summary, alert, and compact calendar read that always injects the authenticated user as `workerId`; its summary includes Due Today, Unscheduled, Past Due, Future, and assignment-level Completed counts for worker tabs and analytics
   - `sales.productionDashboard`: production workspace summary query for alert buckets, queue counts, and compact due-date calendar data
+  - `sales.productionCalendar`: protected bounded Week/Month calendar query
+    returning daily counts plus grouped scheduled production order cards for
+    the canonical admin workspace; undated work uses the Unscheduled list tab
+  - `sales.productionCalendarTasks`: authenticated-worker variant of the same
+    bounded Week/Month projection; caller assignee input is always replaced
+    with the current session user id
 - Sales overview routes now include:
   - `sales.getSaleOverview`: dedicated single-sale overview query used by the
     v2 sales overview system; loads one order/quote directly instead of routing
     through the broader sales list query. Order responses also join current
     invoice-PDF snapshot readiness for the manager production-preflight card;
-    the read never generates a document.
+    the read never generates a document. The response now also includes only
+    the caller's resolved `generalViewVersion: "v1" | "v2"`; it does not expose
+    the office rollout policy. V1 callers retain the compatibility projection;
+    V2 callers use a measured General projection that omits non-General relation
+    families while keeping the same endpoint and canonical DTO fields required
+    by the sheet header and actions. A typed versioned loader owns this choice
+    so the client retains one stable query contract and one provider.
+  - `sales.getSalesOverviewViewSettings`: protected Super Admin-only query for
+    the Sales Settings management view. It returns the normalized office
+    default and Super Admin preview policy without creating a Settings record
+    on read.
+  - `sales.updateSalesOverviewViewSettings`: protected Super Admin-only mutation
+    that validates and persists the normalized General-tab rollout policy under
+    `sales-settings.meta.salesOverviewView` while preserving unrelated Sales
+    Settings metadata.
   - `sales.salesRepOptions`: protected active-sales-user option list for the sales overview transfer control
   - `sales.transferSalesRep`: protected owner-only order/quote sales rep transfer mutation that accepts account- or master-password confirmation, changes `SalesOrders.salesRepId`, writes `SalesHistory`, and atomically records master-password transfer usage when applicable
 - Sales print routes now include:
@@ -554,6 +590,24 @@ Tracks notable API surfaces and where they are implemented.
 - New-sales-form adjustment preview/create expose explicit operational
   acknowledgement plus `CANCEL_OPEN_INBOUND | KEEP_IN_WAREHOUSE` disposition.
 
+## Square Sales Refunds (2026-08-21)
+
+- `salesRefunds.overview`: verified tender, received/completed/pending/net and
+  remaining values, eligible orders, and refund timeline for one order.
+- `salesRefunds.create`: permissioned immutable GND-origin intent with exact
+  principal/C.C.C./tip allocation and commercial evidence.
+- `salesRefunds.retry`: requeues the same refund/idempotency identity.
+- `salesRefunds.externalReview`: authenticated Finance queue for externally
+  initiated refunds awaiting local allocation.
+- `salesRefunds.allocateExternal`: permissioned exact multi-order allocation
+  for an external refund.
+- `POST /api/webhooks/square/refunds`: verifies the raw body with the exact
+  callback URL, deduplicates provider event id, and asynchronously converges the
+  latest Square refund resource.
+- Hourly reconciliation lists/gets refunds, imports eligible external results,
+  retries local application, and emits 24-hour, 7-day, and 14-day escalation
+  evidence.
+
 ## Proposed multi-tenant SaaS API surfaces (2026-08-08)
 
 Planning only; endpoint names may be refined during approved implementation.
@@ -621,3 +675,18 @@ Planning only; endpoint names may be refined during approved implementation.
 - Existing canonical customer and assigned-address update endpoints invoke the
   shared Special Order revision-invalidation service when customer-visible
   identity or address content changes.
+
+## Sales Orders projected read path (2026-08-21)
+
+- `sales.getOrders` keeps its existing input and row-output contract. A guarded
+  internal read model can replace the broad include/enrichment path after the
+  canonical filter/sort query selects the page.
+- `GND_SALES_ORDERS_READ_MODEL_MODE=off|shadow|read` controls rollout and
+  defaults to `off`. Missing, stale, wrong-version, unsupported, or failed reads
+  fall back to the existing implementation.
+- Default created-date sorting uses an opaque `(createdAt,id)` cursor in read
+  mode. It embeds the equivalent offset so fallback remains compatible. Custom
+  sorts and `paymentReview=needs_review` retain legacy pagination/query behavior.
+- Read misses and sampled shadow traffic queue
+  `persist-sales-order-list-projections`; bounded initial population uses
+  `backfill-sales-order-list-projections`.

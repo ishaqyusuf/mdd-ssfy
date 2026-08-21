@@ -17,4 +17,13 @@ describe("Icons", () => {
 		expect(columnsMarkup).toBe(tuneMarkup);
 		expect(columnsMarkup).not.toBe(searchMarkup);
 	});
+
+	it("uses the slanted pencil for generic edit actions", () => {
+		const editMarkup = renderToStaticMarkup(<Icons.Edit />);
+		const legacyEditMarkup = renderToStaticMarkup(<Icons.edit />);
+		const slantedPencilMarkup = renderToStaticMarkup(<Icons.Edit3 />);
+
+		expect(editMarkup).toBe(slantedPencilMarkup);
+		expect(legacyEditMarkup).toBe(slantedPencilMarkup);
+	});
 });

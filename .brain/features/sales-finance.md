@@ -74,7 +74,11 @@ Customer resolution uses the transaction wallet customer first, preferring
 names are the fallback, with duplicate multi-invoice names removed.
 
 Canonical payment methods are `card`, `check`, `zelle`, `cash`, `wire`, and
-`unclassified`. Card includes credit-card, terminal, and payment-link aliases.
+`unclassified`. Finance adapts the shared Sales payment-domain normalizer, so
+credit-card, terminal, link/payment-link, cheque, and wire aliases cannot drift
+from invoice summaries. Wallet remains `unclassified` in the narrower Finance
+contract. Finance ledger rows stay transaction-level; grouping is limited to
+summary/report totals.
 
 The Payments ledger presents `subTotal` with the label `Sub Total` positioned immediately before the `netAmount` column (labeled `Invoice Total`). Invoices, Received, Fee, Refunded, Sub Total, Invoice Total, Applied, Unapplied, and Review use canonical small-column dimensions (120px default, 100px min, 180px max). Selection, Payment, and Actions remain non-hideable while all other ledger columns can be toggled via the accessible column control and persist across reloads and tab navigation. Both the top workspace header and table-level search input (`SalesFinanceTableSearch`) expose the right toolbar actions (`SalesFinanceAdoptionStatus`, `SalesFinanceColumnVisibility`, `SalesFinanceReports`).
 
@@ -91,6 +95,27 @@ more exception codes:
 
 Review is evidence-only. No financial mutation, deletion, manual payment
 creation, categorization, or bank-sync behavior was copied from Midday.
+
+Square refund review is a bounded exception to the otherwise evidence-only
+queue: externally initiated Square refunds are provider truth that must be
+allocated before GND can apply them. The review surface lists external refunds
+in `awaiting_allocation`, their verified tender, provider amount, and eligible
+orders. Only `editRefundSquare` may submit an exact principal/C.C.C./tip
+allocation; the read queue follows normal Sales Finance access.
+
+## Square Refund Contract (2026-08-21)
+
+- Square-backed payment detail reuses the Sales Overview refund detail/action
+  sheet so provider status, remaining capacity, allocations, and timeline do not
+  diverge across surfaces.
+- Canonical completed refunds feed Finance `refundedAmount` and net collections;
+  their per-order negative compatibility rows are excluded from gross payment
+  aggregation.
+- A completed refund that reopens balance on a fulfilled or delivered order
+  creates a canonical Resolution case/finding without reverting its operational
+  lifecycle.
+- Retained Square processing fees remain explicit merchant-cost metadata, not a
+  deduction from customer refund or order principal.
 
 ## Reconciliation Contract
 

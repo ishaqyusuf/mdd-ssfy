@@ -25,12 +25,15 @@ const financialInclude = {
 		include: {
 			transaction: {
 				select: {
+					id: true,
 					meta: true,
 					paymentMethod: true,
 				},
 			},
 			squarePayments: {
 				select: {
+					id: true,
+					paymentId: true,
 					meta: true,
 					paymentMethod: true,
 				},

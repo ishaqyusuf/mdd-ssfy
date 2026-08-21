@@ -27,6 +27,7 @@ import { printRouter } from "./print.route";
 import { salesDashboardRouter } from "./sales-dashboard.route";
 import { salesFinanceRouter } from "./sales-finance.route";
 import { salesPaymentProcessorRouter } from "./sales-payment-processor.route";
+import { salesRefundsRouter } from "./sales-refunds.route";
 import { salesRepDashboardRouter } from "./sales-rep-dashboard.route";
 import { salesShelfItems } from "./sales-shelf-item";
 import { salesRouter } from "./sales.route";
@@ -35,8 +36,8 @@ import { settingsRouter } from "./settings.route";
 import { shoppingProductsRouter } from "./shopping-products.route";
 import { shortLinksRouter } from "./short-links.route";
 import { siteActionsRoutes } from "./site-action.route";
-import { squareTestRouter } from "./square-test.route";
 import { specialOrderRouter } from "./special-order.route";
+import { squareTestRouter } from "./square-test.route";
 import { storageRouter } from "./storage.route";
 import { storefrontAdminRouter } from "./storefront-admin.route";
 import { storefrontAuthRouter } from "./storefront-auth.route";
@@ -79,6 +80,7 @@ export const appRouter = createTRPCRouter({
 	salesShelfItems,
 	salesPaymentProcessor: salesPaymentProcessorRouter,
 	salesRepDashboard: salesRepDashboardRouter,
+	salesRefunds: salesRefundsRouter,
 	salesDashboard: salesDashboardRouter,
 	search: searchRouter,
 	settings: settingsRouter,

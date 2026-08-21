@@ -1,5 +1,9 @@
 import { roundMoney } from "../../payment-system/domain/money";
 import { calculatePaymentChannelCharge } from "../../payment-system/domain/payment-channel-charge";
+import {
+	getSalesPaymentSummary,
+	type SalesPaymentSummary,
+} from "../../payment-system/domain/payment-summary";
 import type { PrintSalesData } from "../query";
 
 type PaymentRecord = PrintSalesData["payments"][number];
@@ -28,6 +32,7 @@ export interface PrintPaymentFooterState {
 	selectedPaymentMethod: string | null;
 	estimatedDueCharge: PrintPaymentChargeDetail | null;
 	recordedCardCharges: PrintPaymentChargeDetail[];
+	paymentSummary: SalesPaymentSummary;
 	latestPaymentDate: Date | null;
 }
 
@@ -37,10 +42,7 @@ export interface PrintPaymentFooterSummary {
 }
 
 export function getPrintPaymentFooterSummary(
-	state: Pick<
-		PrintPaymentFooterState,
-		"principalPaid" | "recordedCardCharges"
-	>,
+	state: Pick<PrintPaymentFooterState, "principalPaid" | "recordedCardCharges">,
 ): PrintPaymentFooterSummary {
 	const cardFees = roundMoney(
 		state.recordedCardCharges
@@ -71,7 +73,9 @@ function normalizePaymentMethod(value: unknown): string | null {
 }
 
 function isSuccessfulPayment(payment: PaymentRecord) {
-	return String(payment.status || "").toLowerCase() === "success";
+	return ["completed", "paid", "success"].includes(
+		String(payment.status || "").toLowerCase(),
+	);
 }
 
 function getPaymentMetas(payment: PaymentRecord) {
@@ -112,10 +116,13 @@ function readChargeFromMeta(
 	const cccAmount = finiteNumber(cccCharge?.amount ?? meta.feeAmount);
 	if (!cccAmount || cccAmount <= 0) return null;
 
-	const metadataPrincipal = finiteNumber(cccCharge?.baseAmount ?? meta.salesAmount);
+	const metadataPrincipal = finiteNumber(
+		cccCharge?.baseAmount ?? meta.salesAmount,
+	);
 	if (
 		metadataPrincipal != null &&
-		Math.abs(roundMoney(metadataPrincipal) - roundMoney(fallbackPrincipal)) > 0.01
+		Math.abs(roundMoney(metadataPrincipal) - roundMoney(fallbackPrincipal)) >
+			0.01
 	) {
 		return null;
 	}
@@ -128,7 +135,8 @@ function readChargeFromMeta(
 		cccAmount: roundMoney(cccAmount),
 		customerChargedAmount,
 		percentage: finiteNumber(cccCharge?.percentage ?? meta.cccPercentage),
-		paymentMethod: normalizePaymentMethod(meta.paymentMethod) ?? fallbackPaymentMethod,
+		paymentMethod:
+			normalizePaymentMethod(meta.paymentMethod) ?? fallbackPaymentMethod,
 		source: "recorded",
 	};
 }
@@ -194,6 +202,7 @@ export function getPrintPaymentFooterState(
 	const principalPaid = roundMoney(
 		payments.reduce((total, payment) => total + Number(payment.amount || 0), 0),
 	);
+	const paymentSummary = getSalesPaymentSummary(payments);
 	const selectedPaymentMethod = getSelectedPaymentMethod(sale);
 	const cccPercentage = getCccPercentage(sale);
 	const recordedCardCharges = payments
@@ -219,6 +228,7 @@ export function getPrintPaymentFooterState(
 			selectedPaymentMethod,
 			estimatedDueCharge,
 			recordedCardCharges,
+			paymentSummary,
 			latestPaymentDate,
 		};
 	}
@@ -227,7 +237,9 @@ export function getPrintPaymentFooterState(
 	const hasSinglePayment = payments.length === 1;
 	const singlePayment = payments[0];
 	const singleRecordedCharge = recordedCardCharges[0] ?? null;
-	const singlePaymentMethod = singlePayment ? getPaymentMethod(singlePayment) : null;
+	const singlePaymentMethod = singlePayment
+		? getPaymentMethod(singlePayment)
+		: null;
 	const derivedFullSingleCharge =
 		isPaid && hasSinglePayment && !singleRecordedCharge
 			? toChargeDetail({
@@ -249,6 +261,7 @@ export function getPrintPaymentFooterState(
 			selectedPaymentMethod,
 			estimatedDueCharge: null,
 			recordedCardCharges: fullCardCharge ? [fullCardCharge] : [],
+			paymentSummary,
 			latestPaymentDate,
 		};
 	}
@@ -261,6 +274,7 @@ export function getPrintPaymentFooterState(
 		selectedPaymentMethod,
 		estimatedDueCharge: null,
 		recordedCardCharges,
+		paymentSummary,
 		latestPaymentDate,
 	};
 }

@@ -27,7 +27,6 @@ import {
 	InputGroupInput,
 	InputGroupText,
 } from "@gnd/ui/input-group";
-import { Separator } from "@gnd/ui/separator";
 import {
 	Select,
 	SelectContent,
@@ -35,25 +34,27 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
+import { Separator } from "@gnd/ui/separator";
 import {
-	cloneElement,
-	isValidElement,
 	type ReactElement,
 	type ReactNode,
+	cloneElement,
+	isValidElement,
 } from "react";
 import { multiplyMoney } from "../../../payment-system/domain/money";
 import {
 	getHptDoorSalesUnitPrice,
 	resolveHptDoorUnitPriceBreakdown,
 } from "../../domain";
+import { ComponentImageLightbox } from "./component-image-lightbox";
 import { CostPriceBreakdownHover } from "./cost-price-breakdown-hover";
-import { normalizeDoorSwingValue } from "./door-swing-options";
 import {
 	type DoorPriceBreakdownContext,
 	DoorPriceCell,
 	patchDoorRowCustomPrice,
 	updateDoorRowBasePrice,
 } from "./door-price-cell";
+import { normalizeDoorSwingValue } from "./door-swing-options";
 import {
 	clearUnpricedDoorRowQty,
 	getDoorRowProfilePriceDrift,
@@ -203,6 +204,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 	const componentId = Number(props.activeDoorComponent?.id || 0);
 	const rowsForComponent = props.focusedRows.map(clearUnpricedDoorRowQty);
 	const showDoorTabs = props.selectedDoorComponents.length > 1;
+	const doorTitle = props.componentLabel(
+		props.activeDoorComponent?.title || `Component ${componentId}`,
+	);
+	const doorImageSrc = props.resolveImageSrc(props.activeDoorComponent?.img);
 	const pricingLabels = {
 		doorPrice: props.pricingLabels?.doorPrice || "Door Price",
 		addonPrice: props.pricingLabels?.addonPrice || "Addon Price",
@@ -304,29 +309,19 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 				) : (
 					<article className="overflow-hidden rounded-lg border bg-background">
 						<header className="flex items-center gap-3 border-b bg-muted/20 px-4 py-3">
-							<div className="group flex size-12 items-center justify-center overflow-hidden rounded-md border bg-card">
-								{props.resolveImageSrc(props.activeDoorComponent?.img) ? (
-									<img
-										src={
-											props.resolveImageSrc(props.activeDoorComponent?.img) ||
-											""
-										}
-										alt={
-											props.activeDoorComponent?.title ||
-											`Component ${componentId}`
-										}
-										className="h-full w-full object-contain p-2 transition-transform duration-200 group-hover:scale-90"
-									/>
-								) : (
+							<ComponentImageLightbox
+								imageSrc={doorImageSrc}
+								title={doorTitle}
+								alt={props.activeDoorComponent?.title || doorTitle}
+								className="size-12 rounded-md"
+								imageClassName="p-2"
+								fallback={
 									<Icons.Ruler size={15} className="text-slate-500" />
-								)}
-							</div>
+								}
+							/>
 							<div className="min-w-0">
 								<p className="truncate text-sm font-semibold text-slate-900">
-									{props.componentLabel(
-										props.activeDoorComponent?.title ||
-											`Component ${componentId}`,
-									)}
+									{doorTitle}
 								</p>
 								<p className="text-[11px] uppercase tracking-wide text-slate-500">
 									{rowsForComponent.length} size row

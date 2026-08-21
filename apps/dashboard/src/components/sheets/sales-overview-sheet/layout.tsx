@@ -2,12 +2,15 @@
 
 import { DataSkeleton } from "@/components/data-skeleton";
 import {
-	getInventoryInboundOwnershipTitle,
-	getSingleInventoryInboundId,
+	type InventoryInboundOwnershipLike,
 	InventoryInboundStatusBadge,
 	SalesInboundStatusBadge,
+	getInventoryInboundOwnershipTitle,
+	getSingleInventoryInboundId,
 } from "@/components/sales-inbound-status-badge";
 import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
+import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
+import { SalesPrioritySelect } from "@/components/sales-priority-control";
 import {
 	DataSkeletonProvider,
 	type useCreateDataSkeletonCtx,
@@ -24,13 +27,22 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { SheetDescription, SheetHeader, SheetTitle } from "@gnd/ui/sheet";
-import { TabsContent } from "@gnd/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { useSaleOverview } from "./context";
 import type {
 	LegacySalesOverviewTabDefinition,
 	LegacySalesOverviewTabId,
 } from "./types";
+
+type SalesOverviewHeaderData = NonNullable<
+	ReturnType<typeof useSaleOverview>["data"]
+> & {
+	inventoryInboundOwnership?: InventoryInboundOwnershipLike | null;
+	generalViewVersion?: "v1" | "v2";
+	priority?: string | null;
+	salesDate?: string | null;
+};
 
 export function LegacySalesOverviewHeader({
 	tabs,
@@ -41,7 +53,8 @@ export function LegacySalesOverviewHeader({
 	activeTab: LegacySalesOverviewTabId;
 	onTabChange?: (tab: LegacySalesOverviewTabId) => void;
 }) {
-	const { data } = useSaleOverview();
+	const { data: contextData } = useSaleOverview();
+	const data = contextData as SalesOverviewHeaderData | undefined;
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const visibleTabs = tabs.filter((tab) => !tab.hidden);
 	const activeTabDef =
@@ -50,6 +63,9 @@ export function LegacySalesOverviewHeader({
 		loading: !data?.id,
 	} as unknown as ReturnType<typeof useCreateDataSkeletonCtx>;
 	const showInboundStatus = !!data?.id && data?.type !== "quote";
+	const isV2Header = data?.generalViewVersion === "v2";
+	const isQuote = data?.type === "quote";
+	const documentStatus = getSalesOverviewDocumentStatus(data);
 	const hasInventoryInbound =
 		!!data?.inventoryInboundOwnership?.hasInventoryInbound;
 	const selectedInventoryInboundId = getSingleInventoryInboundId(
@@ -66,54 +82,126 @@ export function LegacySalesOverviewHeader({
 	return (
 		<SheetHeader>
 			<DataSkeletonProvider value={skeletonContext}>
-				<SheetTitle>
-					<DataSkeleton pok="textLg">
-						<span className="flex flex-wrap items-center gap-2">
-							<span>
-								{[data?.orderId, data?.displayName]
-									.filter(Boolean)
-									.join(" | ")}
-							</span>
-							{showInboundStatus ? (
-								<span className="inline-flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
-									<span className="text-[10px] font-semibold uppercase">
-										Inbound
+				{isV2Header ? (
+					<div className="flex min-w-0 items-start justify-between gap-3 pr-7">
+						<div className="min-w-0">
+							<p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+								Sales overview · {isQuote ? "Quote" : "Order"}
+							</p>
+							<SheetTitle>
+								<DataSkeleton pok="textLg">
+									<span className="block truncate">
+										{[data?.orderId, data?.displayName]
+											.filter(Boolean)
+											.join(" | ")}
 									</span>
-									{hasInventoryInbound ? (
-										<Button
-											type="button"
-											variant="ghost"
-											className="h-auto rounded-full p-0 hover:bg-transparent"
-											onClick={openInventoryInbounds}
-											title={getInventoryInboundOwnershipTitle(
-												data?.inventoryInboundOwnership,
-											)}
-										>
-											<InventoryInboundStatusBadge
-												ownership={data?.inventoryInboundOwnership}
-												className="h-5 px-2 text-[10px]"
-											/>
-										</Button>
-									) : (
-										<SalesInboundStatusBadge
-											status={data?.inboundStatus}
-											emptyFallback="No status"
-											title="Manual order status"
-											className="h-5 px-2 text-[10px]"
-											emptyClassName="text-[11px] font-medium"
-										/>
-									)}
+								</DataSkeleton>
+							</SheetTitle>
+							<div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+								<span className="font-medium text-foreground/80">
+									{documentStatus.label}
 								</span>
-							) : null}
-						</span>
-					</DataSkeleton>
-				</SheetTitle>
+								{showInboundStatus ? (
+									<>
+										<span aria-hidden="true">•</span>
+										<span className="inline-flex items-center gap-1.5">
+											<span>Inbound</span>
+											{hasInventoryInbound ? (
+												<Button
+													type="button"
+													variant="ghost"
+													className="h-auto rounded-full p-0 hover:bg-transparent"
+													onClick={openInventoryInbounds}
+													title={getInventoryInboundOwnershipTitle(
+														data?.inventoryInboundOwnership,
+													)}
+												>
+													<InventoryInboundStatusBadge
+														ownership={data?.inventoryInboundOwnership}
+														className="h-5 px-2 text-[10px]"
+													/>
+												</Button>
+											) : (
+												<SalesInboundStatusBadge
+													status={data?.inboundStatus}
+													emptyFallback="No status"
+													title="Manual order status"
+													className="h-5 px-2 text-[10px]"
+													emptyClassName="text-[11px] font-medium"
+												/>
+											)}
+										</span>
+									</>
+								) : null}
+								{data?.salesDate ? (
+									<>
+										<span aria-hidden="true">•</span>
+										<span>Updated {data.salesDate}</span>
+									</>
+								) : null}
+							</div>
+						</div>
+						{!isQuote ? (
+							<SalesPrioritySelect
+								salesId={data?.id}
+								orderId={data?.orderId}
+								priority={data?.priority}
+								triggerClassName="w-[112px] rounded-md"
+								showBadge={false}
+							/>
+						) : null}
+					</div>
+				) : (
+					<SheetTitle>
+						<DataSkeleton pok="textLg">
+							<span className="flex flex-wrap items-center gap-2">
+								<span>
+									{[data?.orderId, data?.displayName]
+										.filter(Boolean)
+										.join(" | ")}
+								</span>
+								{showInboundStatus ? (
+									<span className="inline-flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+										<span className="text-[10px] font-semibold uppercase">
+											Inbound
+										</span>
+										{hasInventoryInbound ? (
+											<Button
+												type="button"
+												variant="ghost"
+												className="h-auto rounded-full p-0 hover:bg-transparent"
+												onClick={openInventoryInbounds}
+												title={getInventoryInboundOwnershipTitle(
+													data?.inventoryInboundOwnership,
+												)}
+											>
+												<InventoryInboundStatusBadge
+													ownership={data?.inventoryInboundOwnership}
+													className="h-5 px-2 text-[10px]"
+												/>
+											</Button>
+										) : (
+											<SalesInboundStatusBadge
+												status={data?.inboundStatus}
+												emptyFallback="No status"
+												title="Manual order status"
+												className="h-5 px-2 text-[10px]"
+												emptyClassName="text-[11px] font-medium"
+											/>
+										)}
+									</span>
+								) : null}
+							</span>
+						</DataSkeleton>
+					</SheetTitle>
+				)}
 			</DataSkeletonProvider>
 			<SheetDescription asChild>
-				<div className="w-full">
+				<div className="w-full border-b border-border">
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
+								data-sales-overview-initial-focus
 								type="button"
 								variant="outline"
 								className="flex h-9 w-full min-w-0 justify-between rounded-md border-border/70 bg-background px-3 text-sm font-medium sm:hidden"
@@ -158,32 +246,28 @@ export function LegacySalesOverviewHeader({
 							))}
 						</DropdownMenuContent>
 					</DropdownMenu>
-					<div
+					<TabsList
 						aria-label="Sales overview tabs"
 						className="hidden h-auto w-fit max-w-full flex-wrap justify-start gap-1 rounded-md border border-border bg-muted/40 p-1 sm:flex"
-						role="tablist"
 					>
 						{visibleTabs.map((tab) => {
 							const isActive = tab.value === activeTab;
 
 							return (
-								<Button
-									aria-selected={isActive}
+								<TabsTrigger
 									className={cn(
-										"h-8 rounded-sm px-3 text-xs uppercase",
+										"h-8 min-h-8 rounded-sm px-3 text-xs uppercase data-[state=active]:translate-y-0",
 										isActive
 											? "bg-foreground text-background shadow-sm hover:bg-foreground/90"
 											: "text-muted-foreground hover:bg-background hover:text-foreground",
 										tab.hidden && "hidden",
 									)}
 									disabled={tab.disabled}
+									data-sales-overview-initial-focus={
+										isActive ? "true" : undefined
+									}
 									key={tab.value}
-									onClick={() => onTabChange?.(tab.value)}
-									role="tab"
-									size="sm"
-									tabIndex={isActive ? 0 : -1}
-									type="button"
-									variant={isActive ? "default" : "ghost"}
+									value={tab.value}
 								>
 									<span>{tab.label}</span>
 									{tab.badge !== undefined ? (
@@ -197,10 +281,10 @@ export function LegacySalesOverviewHeader({
 											{tab.badge}
 										</Badge>
 									) : null}
-								</Button>
+								</TabsTrigger>
 							);
 						})}
-					</div>
+					</TabsList>
 				</div>
 			</SheetDescription>
 		</SheetHeader>

@@ -3,3 +3,4 @@ export interface PaymentSystemRepositoryDependencies {
 }
 
 export * from "./canonical-mirror";
+export * from "./square-tender";

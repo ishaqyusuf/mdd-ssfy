@@ -101,6 +101,7 @@ model SalesOrders {
     history           SalesHistory[]
     lineItems         LineItem[]
     inventoryProjection SalesInventoryProjectionState?
+    listProjection      SalesOrderListProjection?
     productionGate    OrderProductionGate?
     productionReadinessOverride SalesProductionReadinessOverride?
     productionSubmissionMaterialReviews SalesProductionSubmissionMaterialReview[]
@@ -319,6 +320,36 @@ model SalesInventoryProjectionState {
     salesOrder   SalesOrders  @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
 
     @@index([status, updatedAt])
+}
+
+model SalesOrderListProjection {
+    id              Int         @id @default(autoincrement())
+    salesOrderId    Int         @unique
+    orgId           Int?
+    salesRepId      Int?
+    customerId      Int?
+    orderId         String      @db.VarChar(255)
+    slug            String      @db.VarChar(255)
+    type            String?     @db.VarChar(255)
+    status          String?     @db.VarChar(255)
+    prodStatus      String?     @db.VarChar(255)
+    amountDue       Float?
+    invoiceTotal    Float?
+    salesCreatedAt  DateTime?   @db.Timestamp(0)
+    salesDeletedAt  DateTime?   @db.Timestamp(0)
+    sourceUpdatedAt DateTime
+    version         Int         @default(1)
+    state           String      @default("ready") @db.VarChar(32)
+    payload         Json        @db.Json
+    lastError       String?     @db.Text
+    projectedAt     DateTime    @default(now()) @db.Timestamp(0)
+    createdAt       DateTime    @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime    @updatedAt
+    salesOrder      SalesOrders @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+    @@index([orgId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_scope")
+    @@index([salesRepId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_rep")
+    @@index([state, version, projectedAt], name: "idx_sales_order_list_health")
 }
 
 enum DealerSellerOfRecord {

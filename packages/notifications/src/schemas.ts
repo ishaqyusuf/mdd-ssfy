@@ -146,6 +146,7 @@ export const dealerSalesRequestTags = actityTagsSchema.extend({
 export type DealerSalesRequestTags = z.infer<typeof dealerSalesRequestTags>;
 
 export const salesPaymentRecordedSchema = z.object({
+	salesId: z.number().optional(),
 	orderNo: z.string(),
 	customerName: z.string().optional(),
 	amount: z.number(),
@@ -155,6 +156,8 @@ export type SalesPaymentRecordedInput = z.infer<
 	typeof salesPaymentRecordedSchema
 >;
 export const salesPaymentRecordedTags = actityTagsSchema.extend({
+	salesId: z.number().optional(),
+	salesNo: z.string(),
 	orderNo: z.string(),
 	customerName: z.string().optional(),
 	amount: z.number(),
@@ -163,6 +166,7 @@ export const salesPaymentRecordedTags = actityTagsSchema.extend({
 export type SalesPaymentRecordedTags = z.infer<typeof salesPaymentRecordedTags>;
 
 export const salesPaymentRefundedSchema = z.object({
+	salesId: z.number().optional(),
 	orderNo: z.string(),
 	customerName: z.string().optional(),
 	amount: z.number(),
@@ -172,6 +176,8 @@ export type SalesPaymentRefundedInput = z.infer<
 	typeof salesPaymentRefundedSchema
 >;
 export const salesPaymentRefundedTags = actityTagsSchema.extend({
+	salesId: z.number().optional(),
+	salesNo: z.string(),
 	orderNo: z.string(),
 	customerName: z.string().optional(),
 	amount: z.number(),
@@ -213,6 +219,28 @@ export const salesCustomerPaymentReceivedTags = actityTagsSchema.extend({
 });
 export type SalesCustomerPaymentReceivedTags = z.infer<
 	typeof salesCustomerPaymentReceivedTags
+>;
+
+export const salesCustomerRefundCompletedSchema = z.object({
+	customerEmail: z.string().email(),
+	customerName: z.string(),
+	refundId: z.string(),
+	totalAmount: z.number(),
+	reason: z.string().optional().nullable(),
+	sales: z.array(salesCustomerPaymentSaleSchema).min(1),
+});
+export type SalesCustomerRefundCompletedInput = z.infer<
+	typeof salesCustomerRefundCompletedSchema
+>;
+export const salesCustomerRefundCompletedTags = actityTagsSchema.extend({
+	customerEmail: z.string().email(),
+	customerName: z.string(),
+	orderNos: z.array(z.string()).min(1),
+	refundId: z.string(),
+	totalAmount: z.number(),
+});
+export type SalesCustomerRefundCompletedTags = z.infer<
+	typeof salesCustomerRefundCompletedTags
 >;
 
 export const salesCustomerPaymentFailedSchema = z.object({
@@ -806,6 +834,7 @@ export type NotificationTypes = {
 	sales_payment_recorded: SalesPaymentRecordedInput;
 	sales_payment_refunded: SalesPaymentRefundedInput;
 	sales_customer_payment_received: SalesCustomerPaymentReceivedInput;
+	sales_customer_refund_completed: SalesCustomerRefundCompletedInput;
 	sales_customer_payment_failed: SalesCustomerPaymentFailedInput;
 	customer_statement: CustomerStatementInput;
 	dealer_onboarding: DealerOnboardingInput;
@@ -1564,6 +1593,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_customer_payment_received"),
 		payload: salesCustomerPaymentReceivedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_customer_refund_completed"),
+		payload: salesCustomerRefundCompletedSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_customer_payment_failed"),

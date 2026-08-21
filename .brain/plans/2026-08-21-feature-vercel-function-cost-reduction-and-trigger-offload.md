@@ -347,6 +347,44 @@ flowchart TD
 - Fixed subscription decisions for Speed Insights and the additional seat are
   documented separately from application infrastructure savings.
 
+## Sales Order List Read Model Migration Contract (2026-08-21)
+
+- Source authority: `SalesOrders` plus canonical customer/address, control,
+  payment-review, note, inventory/inbound, and Special Order relations.
+- Projection: one versioned `SalesOrderListProjection` row per sales order.
+  Indexed scalar columns support future projection-only filtering; `payload`
+  stores the compact final list row, not a commercial snapshot.
+- Worker messages contain only `{ salesOrderId, sourceUpdatedAt }`. Trigger
+  reloads canonical state and checks the revision both before enrichment and
+  before upsert. Stale work is skipped safely.
+- Refresh entry points: bounded Trigger backfill and read-miss/sampled-shadow warming.
+  The backfill is cursor-bounded and reports `nextCursorId`; it does not recurse
+  indefinitely.
+- Read modes: `off` (default), `shadow`, and `read`. Shadow comparisons are
+  sampled and log ids only. Read mode falls back on missing, stale, wrong-version,
+  unsupported, or failed projection reads.
+- Freshness: the default five-minute maximum age bounds relation-only changes
+  that do not advance `SalesOrders.updatedAt`. Expired rows use legacy output and
+  enqueue a canonical rebuild.
+- Pagination: created-date sorting uses `(createdAt, id)` keysets. The opaque
+  cursor retains the equivalent numeric offset for rollback. Other sorts remain
+  offset-based until individual keyset parity is implemented.
+- Unsupported scope: `paymentReview=needs_review` remains legacy because its
+  distinct latest-payment grouping/order needs a separate projection contract.
+- Rollout gates: generate/review an additive migration; align/verify Trigger
+  SDK compatibility and add an explicitly global enqueue idempotency key;
+  deploy tasks; backfill; run shadow parity; then enable a
+  small read cohort and compare p75/p95, timeout, Function Duration, and mismatch
+  telemetry. `off` is the one-setting rollback.
+- Current migration status: schema code is present, but migration generation is
+  intentionally deferred. The dirty worktree already contains an unrelated
+  Square-refund Prisma schema and migration, so generating now could couple two
+  independently reviewed database changes.
+- Current enqueue status: worker execution is revision-safe and repeatable, but
+  cross-request Trigger run deduplication is intentionally not enabled while the
+  API and jobs packages are on different SDK generations. Default-off rollout
+  prevents activation before that gate is closed.
+
 ## Test Plan
 
 - Before/after Vercel comparison over equivalent 12-hour, 24-hour, and seven-

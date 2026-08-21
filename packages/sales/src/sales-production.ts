@@ -80,6 +80,8 @@ export async function getSalesProductions(
 	const getDueToday = async () => getDueQueue("due today");
 	const getPastDue = async () => getDueQueue("past due");
 	const getDueTomorrow = async () => getDueQueue("due tomorrow");
+	const getFuture = async () => getDueQueue("future");
+	const getUnscheduled = async () => getDueQueue("unscheduled");
 	switch (query.show) {
 		case "due-today":
 			return await getDueToday();
@@ -87,17 +89,26 @@ export async function getSalesProductions(
 			return await getDueTomorrow();
 		case "past-due":
 			return await getPastDue();
+		case "future":
+			return await getFuture();
+		case "unscheduled":
+			return await getUnscheduled();
 	}
+	const workerCompleted = !!query.workerId && query.production === "completed";
+	const listQuery = workerCompleted
+		? { ...productionQuery, production: undefined }
+		: productionQuery;
 	const response = await getProductionListAction(
 		db,
 		{
-			...productionQuery,
+			...listQuery,
 			"sales.priority": query.priority || query["sales.priority"],
 			salesType: "order",
 			//   "production.status": "part assigned",
 		},
 		{
 			includeMaterials: query.includeMaterials,
+			workerCompletion: workerCompleted ? "completed" : undefined,
 		},
 	);
 	return query.production === "pending"
@@ -124,40 +135,46 @@ export async function getSalesProductionDashboard(
 		production: "pending",
 	};
 
-	const [{ summary }, spotlight, dueToday, dueTomorrow, pastDue, calendar] =
-		await Promise.all([
-			getSalesProductionSummary(db, input),
-			getSalesProductions(db, {
-				...baseQuery,
-				size: 6,
-				includeMaterials: false,
-			}),
-			getSalesProductions(db, {
-				...baseQuery,
-				show: "due-today",
-				size: 8,
-				includeMaterials: false,
-			}),
-			getSalesProductions(db, {
-				...baseQuery,
-				show: "due-tomorrow",
-				size: 8,
-				includeMaterials: false,
-			}),
-			getSalesProductions(db, {
-				...baseQuery,
-				show: "past-due",
-				size: 8,
-				includeMaterials: false,
-			}),
-			getSalesProductionCalendar(db, {
-				from: dayjs().format("YYYY-MM-DD"),
-				to: dayjs().add(9, "day").format("YYYY-MM-DD"),
-				q: baseQuery.q,
-				priority: baseQuery.priority,
-				assignedToId,
-			}),
-		]);
+	const [
+		{ summary },
+		spotlight,
+		dueToday,
+		dueTomorrow,
+		pastDue,
+		calendarResult,
+	] = await Promise.all([
+		getSalesProductionSummary(db, input),
+		getSalesProductions(db, {
+			...baseQuery,
+			size: 6,
+			includeMaterials: false,
+		}),
+		getSalesProductions(db, {
+			...baseQuery,
+			show: "due-today",
+			size: 8,
+			includeMaterials: false,
+		}),
+		getSalesProductions(db, {
+			...baseQuery,
+			show: "due-tomorrow",
+			size: 8,
+			includeMaterials: false,
+		}),
+		getSalesProductions(db, {
+			...baseQuery,
+			show: "past-due",
+			size: 8,
+			includeMaterials: false,
+		}),
+		getSalesProductionCalendar(db, {
+			from: dayjs().format("YYYY-MM-DD"),
+			to: dayjs().add(9, "day").format("YYYY-MM-DD"),
+			q: baseQuery.q,
+			priority: baseQuery.priority,
+			assignedToId,
+		}),
+	]);
 
 	return {
 		summary,
@@ -166,7 +183,7 @@ export async function getSalesProductionDashboard(
 			dueToday: dueToday.data.slice(0, 8),
 			dueTomorrow: dueTomorrow.data.slice(0, 8),
 		},
-		calendar,
+		calendar: calendarResult.days,
 		spotlight: spotlight.data,
 	};
 }
@@ -194,6 +211,8 @@ export async function getSalesProductionSummary(
 		dueTodayCount,
 		dueTomorrowCount,
 		pastDueCount,
+		futureCount,
+		unscheduledCount,
 		completedCount,
 		awaitingReviewCount,
 	] = await Promise.all([
@@ -215,12 +234,25 @@ export async function getSalesProductionSummary(
 			"production.status": "past due",
 		}),
 		countProductionOrders(db, {
-			q: baseQuery.q,
-			priority: baseQuery.priority,
-			assignedToId,
-			workerId: query.workerId,
-			production: "completed",
+			...baseQuery,
+			"production.status": "future",
 		}),
+		countProductionOrders(db, {
+			...baseQuery,
+			"production.status": "unscheduled",
+		}),
+		query.workerId
+			? countWorkerCompletedProductionOrders(db, {
+					q: baseQuery.q,
+					priority: baseQuery.priority,
+					workerId: query.workerId,
+				})
+			: countProductionOrders(db, {
+					q: baseQuery.q,
+					priority: baseQuery.priority,
+					assignedToId,
+					production: "completed",
+				}),
 		db.salesProductionSubmissionMaterialReview.count({
 			where: { status: "PENDING" },
 		}),
@@ -232,6 +264,8 @@ export async function getSalesProductionSummary(
 			dueTodayCount,
 			dueTomorrowCount,
 			pastDueCount,
+			futureCount,
+			unscheduledCount,
 			completedCount,
 			awaitingReviewCount,
 		},
@@ -253,41 +287,108 @@ export async function getSalesProductionCalendar(
 		q: input.q,
 		"sales.priority": input.priority,
 	} as SalesQueryParamsSchema);
-	const groups = await db.orderItemProductionAssignments.groupBy({
-		by: ["dueDate"],
-		where: {
-			deletedAt: null,
-			assignedToId: input.assignedToId || undefined,
-			dueDate: {
-				gte: start.toDate(),
-				lt: exclusiveEnd.toDate(),
+	const activeWhere = {
+		deletedAt: null,
+		assignedToId: input.assignedToId || undefined,
+		order: orderWhere,
+	} satisfies Prisma.OrderItemProductionAssignmentsWhereInput;
+	const calendarSelect = {
+		id: true,
+		assignedToId: true,
+		startedAt: true,
+		completedAt: true,
+		dueDate: true,
+		assignedTo: { select: { name: true } },
+		order: {
+			select: {
+				id: true,
+				orderId: true,
+				priority: true,
+				customer: { select: { name: true, businessName: true } },
 			},
-			itemControl: {
-				qtyControls: {
-					some: {
-						type: "prodCompleted",
-						deletedAt: null,
-						percentage: { not: 100 },
-					},
-				},
-			},
-			order: orderWhere,
 		},
-		_count: { _all: true },
-		orderBy: { dueDate: "asc" },
+	} satisfies Prisma.OrderItemProductionAssignmentsSelect;
+	const scheduledRows = await db.orderItemProductionAssignments.findMany({
+		where: {
+			...activeWhere,
+			dueDate: { gte: start.toDate(), lt: exclusiveEnd.toDate() },
+		},
+		orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
+		take: 1_500,
+		select: calendarSelect,
 	});
-	const counts = new Map(
-		groups.flatMap((group) =>
-			group.dueDate
-				? [
-						[
-							dayjs(group.dueDate).format("YYYY-MM-DD"),
-							group._count._all,
-						] as const,
-					]
-				: [],
-		),
-	);
+	const toCalendarRow = (row: (typeof scheduledRows)[number]) => ({
+		id: row.id,
+		orderId: row.order.id,
+		orderNo: row.order.orderId,
+		customer:
+			row.order.customer?.businessName ||
+			row.order.customer?.name ||
+			"Customer unavailable",
+		priority: normalizeSalesPriority(row.order.priority),
+		assignedTo: row.assignedTo?.name || null,
+		dueDate: row.dueDate?.toISOString() || null,
+		status: row.completedAt
+			? "completed"
+			: row.startedAt
+				? "in progress"
+				: row.assignedToId
+					? "assigned"
+					: "unassigned",
+	});
+	const collapseCalendarRows = (rows: typeof scheduledRows) => {
+		const groups = new Map<
+			string,
+			{
+				row: ReturnType<typeof toCalendarRow>;
+				assignedTo: Set<string>;
+				statuses: Set<string>;
+				assignmentCount: number;
+			}
+		>();
+
+		for (const source of rows) {
+			const row = toCalendarRow(source);
+			const date = row.dueDate
+				? dayjs(row.dueDate).format("YYYY-MM-DD")
+				: "unscheduled";
+			const key = `${row.orderId}:${date}`;
+			const existing = groups.get(key);
+			if (existing) {
+				existing.assignmentCount += 1;
+				existing.statuses.add(row.status);
+				if (row.assignedTo) existing.assignedTo.add(row.assignedTo);
+				continue;
+			}
+
+			groups.set(key, {
+				row,
+				assignedTo: new Set(row.assignedTo ? [row.assignedTo] : []),
+				statuses: new Set([row.status]),
+				assignmentCount: 1,
+			});
+		}
+
+		return Array.from(groups.values()).map((group) => ({
+			...group.row,
+			assignedTo: Array.from(group.assignedTo).join(" & ") || null,
+			assignmentCount: group.assignmentCount,
+			status: group.statuses.has("in progress")
+				? "in progress"
+				: group.statuses.has("unassigned")
+					? "unassigned"
+					: group.statuses.has("assigned")
+						? "assigned"
+						: "completed",
+		}));
+	};
+	const scheduled = collapseCalendarRows(scheduledRows);
+	const counts = new Map<string, number>();
+	for (const row of scheduledRows) {
+		if (!row.dueDate) continue;
+		const date = dayjs(row.dueDate).format("YYYY-MM-DD");
+		counts.set(date, (counts.get(date) || 0) + 1);
+	}
 	const today = dayjs().format("YYYY-MM-DD");
 	const tomorrow = dayjs().add(1, "day").format("YYYY-MM-DD");
 	const days: Array<{
@@ -310,7 +411,7 @@ export async function getSalesProductionCalendar(
 			isTomorrow: date === tomorrow,
 		});
 	}
-	return days;
+	return { days, scheduled };
 }
 
 async function countProductionOrders(
@@ -332,6 +433,113 @@ async function countProductionOrders(
 	});
 }
 
+async function countWorkerCompletedProductionOrders(
+	db: Db,
+	query: Pick<SalesProductionListQuery, "q" | "priority" | "workerId">,
+) {
+	const workerId = Number(query.workerId || 0);
+	if (!workerId) return 0;
+
+	const whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[] = [
+		{ assignedToId: workerId, deletedAt: null },
+	];
+	const completionSelect = selectWorkerCompletion(whereAssignments);
+	const where = whereSales({
+		q: query.q,
+		salesType: "order",
+		"sales.priority": query.priority,
+		"production.assignedToId": workerId,
+	} as SalesQueryParamsSchema);
+	let skip = 0;
+	let completedCount = 0;
+	const batchSize = 250;
+
+	while (true) {
+		const records = await db.salesOrders.findMany({
+			where,
+			orderBy: { id: "asc" },
+			skip,
+			take: batchSize,
+			select: completionSelect,
+		});
+		for (const item of records) {
+			if (isWorkerCompletionRecordCompleted(item)) {
+				completedCount += 1;
+			}
+		}
+		skip += records.length;
+		if (records.length < batchSize) break;
+	}
+
+	return completedCount;
+}
+
+const selectWorkerCompletion = (
+	whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[],
+) =>
+	({
+		stat: true,
+		assignments: {
+			where: {
+				deletedAt: null,
+				AND: whereAssignments.length > 1 ? whereAssignments : undefined,
+				...(whereAssignments.length === 1 ? whereAssignments[0] : {}),
+			},
+			select: {
+				lhQty: true,
+				rhQty: true,
+				qtyAssigned: true,
+				completedAt: true,
+				submissions: {
+					where: { deletedAt: null },
+					select: {
+						lhQty: true,
+						qty: true,
+						rhQty: true,
+						materialReview: { select: { status: true } },
+					},
+				},
+			},
+		},
+	}) satisfies Prisma.SalesOrdersSelect;
+
+type WorkerCompletionRecord = Prisma.SalesOrdersGetPayload<{
+	select: ReturnType<typeof selectWorkerCompletion>;
+}>;
+
+function isWorkerCompletionRecordCompleted(item: WorkerCompletionRecord) {
+	const stats = composeSalesStatKeyValue(item.stat);
+	const totalAssigned = sum(
+		item.assignments.map(
+			(assignment) =>
+				assignment.qtyAssigned || sum([assignment.lhQty, assignment.rhQty]),
+		),
+	);
+	const totalCompleted = sum(
+		item.assignments.map((assignment) =>
+			sum(
+				assignment.submissions
+					.filter(isFinalizedProductionSubmission)
+					.map(
+						(submission) =>
+							submission.qty || sum([submission.lhQty, submission.rhQty]),
+					),
+			),
+		),
+	);
+
+	return isProductionCompleted({
+		productionStat: stats.prodCompleted,
+		totalAssigned,
+		totalCompleted,
+		totalProductionQty: 0,
+		assignmentCompleted:
+			item.assignments.length > 0 &&
+			item.assignments.every((assignment) => !!assignment.completedAt),
+		useAssignmentCompletion: true,
+	});
+}
+
 async function getProductionListAction(
 	db: Db,
 	query: SalesQueryParamsSchema & {
@@ -341,6 +549,7 @@ async function getProductionListAction(
 	},
 	options: {
 		includeMaterials?: boolean;
+		workerCompletion?: "completed";
 	} = {},
 ) {
 	const where = whereSales(query) || {};
@@ -389,6 +598,16 @@ async function getProductionListAction(
 		return getFilteredProductionPage(
 			db,
 			query,
+			where,
+			whereAssignments,
+			requestedTake,
+			options,
+		);
+	}
+	if (options.workerCompletion) {
+		return getDatabaseSortedProductionPage(
+			db,
+			{ ...query, productionSort: "newest" },
 			where,
 			whereAssignments,
 			requestedTake,
@@ -446,7 +665,10 @@ async function getDatabaseSortedProductionPage(
 	where: Prisma.SalesOrdersWhereInput,
 	whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[],
 	requestedTake: number,
-	options: { includeMaterials?: boolean },
+	options: {
+		includeMaterials?: boolean;
+		workerCompletion?: "completed";
+	},
 ) {
 	let rawCursor = Math.max(Number(query.cursor || 0), 0);
 	let nextCursor: string | null = null;
@@ -466,13 +688,14 @@ async function getDatabaseSortedProductionPage(
 		if (records.length === 0) break;
 		for (const item of records) {
 			rawCursor += 1;
-			if (
-				query.production === "pending" &&
-				transformProductionList(item, {
-					useAssignmentCompletion:
-						!!query.workerId || !!query["production.status"],
-				}).completed
-			) {
+			const completed = transformProductionList(item, {
+				useAssignmentCompletion:
+					!!query.workerId || !!query["production.status"],
+			}).completed;
+			if (query.production === "pending" && completed) {
+				continue;
+			}
+			if (options.workerCompletion === "completed" && !completed) {
 				continue;
 			}
 			if (selected.length === requestedTake) {

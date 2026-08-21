@@ -37,7 +37,11 @@ const NON_CLICKABLE_COLUMNS = new Set([
 	"status",
 	"actions",
 ]);
-const tableConfig = TABLE_CONFIGS[TABLE_ID];
+const defaultTableConfig = TABLE_CONFIGS[TABLE_ID];
+const compactTableConfig = {
+	...defaultTableConfig,
+	rowHeight: TABLE_CONFIGS["sales-orders"].rowHeight,
+};
 
 type DispatchInput = RouterInputs["dispatch"]["index"];
 type DispatchPage = {
@@ -54,6 +58,7 @@ type Props = {
 	singlePage?: boolean;
 	enableSalesMarkAs?: boolean;
 	workspace?: boolean;
+	compact?: boolean;
 };
 
 export function DataTable({
@@ -63,7 +68,9 @@ export function DataTable({
 	singlePage,
 	enableSalesMarkAs = false,
 	workspace = false,
+	compact = false,
 }: Props) {
+	const tableConfig = compact ? compactTableConfig : defaultTableConfig;
 	const trpc = useTRPC();
 	const { params } = useSortParams();
 	const { filters, setFilters } = useDispatchFilterParams();
@@ -76,8 +83,9 @@ export function DataTable({
 				: getSalesDispatchColumns({
 						driverMode: driver,
 						enableSalesMarkAs,
+						compact,
 					}),
-		[driver, enableSalesMarkAs, workspace],
+		[compact, driver, enableSalesMarkAs, workspace],
 	);
 	const columnIds = useMemo(() => getColumnIds(tableColumns), [tableColumns]);
 	const { rowSelection, setRowSelection, setColumns } =
@@ -107,6 +115,8 @@ export function DataTable({
 	const routeFilters = useMemo(() => {
 		const {
 			view: _view,
+			calendarView: _calendarView,
+			calendarDate: _calendarDate,
 			section: _section,
 			dispatchId: _dispatchId,
 			dispatchSalesId: _dispatchSalesId,
@@ -238,6 +248,8 @@ export function DataTable({
 		([key, value]) =>
 			![
 				"view",
+				"calendarView",
+				"calendarDate",
 				"section",
 				"dispatchId",
 				"dispatchSalesId",

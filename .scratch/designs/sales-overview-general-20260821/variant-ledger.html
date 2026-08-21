@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GND Sales Overview — Executive Ledger</title>
+  <style>
+    :root {
+      --ink: #18211d;
+      --ink-2: #35423c;
+      --stone-0: #fbfbf9;
+      --stone-1: #f5f5f1;
+      --stone-2: #e6e6df;
+      --stone-3: #c9cbc2;
+      --stone-5: #717970;
+      --emerald: #0c6b4f;
+      --emerald-dark: #07513c;
+      --emerald-soft: #e7f2ed;
+      --amber: #9a5d09;
+      --focus: #168a67;
+      --shadow: 0 20px 52px rgb(24 33 29 / 0.13);
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #e9e9e4;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    button, select { font: inherit; color: inherit; }
+    button, select, a { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, select:focus-visible, a:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--focus) 28%, transparent);
+      outline-offset: 2px;
+    }
+
+    .stage {
+      min-height: 100dvh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      justify-items: center;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .annotation {
+      width: min(672px, 100%);
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border: 1px solid #d1d2cb;
+      background: rgb(251 251 249 / 0.94);
+      padding: 7px 10px;
+      color: var(--stone-5);
+      font-size: 10px;
+      font-weight: 650;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .annotation strong { color: var(--ink); letter-spacing: .04em; }
+    .principles { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+    .principles span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .principles i { width: 4px; height: 4px; background: var(--emerald); border-radius: 50%; }
+
+    .sheet {
+      width: min(672px, 100%);
+      height: min(900px, calc(100dvh - 68px));
+      min-height: 620px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--stone-3);
+      background: var(--stone-0);
+      box-shadow: var(--shadow);
+    }
+
+    .sheet-header {
+      flex: 0 0 auto;
+      padding: 20px 22px 0;
+      border-bottom: 1px solid var(--stone-2);
+      background: var(--stone-0);
+    }
+    .heading-row { display: flex; align-items: flex-start; gap: 16px; }
+    .eyebrow {
+      margin: 0 0 3px;
+      color: var(--stone-5);
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.25;
+      font-weight: 730;
+      letter-spacing: -.025em;
+    }
+    .heading-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      padding-top: 18px;
+      color: var(--stone-5);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); }
+    .close-button {
+      width: 32px;
+      height: 32px;
+      display: inline-grid;
+      place-items: center;
+      margin: -2px -4px 0 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .close-button:hover { background: var(--stone-1); }
+
+    .tabs {
+      display: flex;
+      gap: 22px;
+      margin-top: 18px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      position: relative;
+      flex: 0 0 auto;
+      border: 0;
+      background: transparent;
+      padding: 0 0 11px;
+      color: var(--stone-5);
+      font-size: 11px;
+      font-weight: 720;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .tab:hover { color: var(--ink); }
+    .tab[aria-selected="true"] { color: var(--ink); }
+    .tab[aria-selected="true"]::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: -1px;
+      left: 0;
+      height: 2px;
+      background: var(--emerald);
+    }
+
+    .sheet-body {
+      min-height: 0;
+      flex: 1 1 auto;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-color: var(--stone-3) transparent;
+    }
+    .panel { display: none; }
+    .panel.is-active { display: block; }
+    .general-panel { padding: 18px 22px 34px; }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) 136px;
+      gap: 8px;
+      padding-bottom: 17px;
+      border-bottom: 1px solid var(--stone-2);
+    }
+    .button {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: 1px solid var(--stone-3);
+      border-radius: 5px;
+      background: var(--stone-0);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 680;
+      cursor: pointer;
+      transition: background .15s ease, border-color .15s ease, color .15s ease;
+    }
+    .button:hover { border-color: #aeb2a8; background: var(--stone-1); }
+    .button.primary { border-color: var(--ink); background: var(--ink); color: #fff; }
+    .button.primary:hover { border-color: var(--emerald-dark); background: var(--emerald-dark); }
+    .button svg { width: 14px; height: 14px; flex: 0 0 auto; }
+    .priority {
+      min-height: 36px;
+      width: 100%;
+      border: 1px solid var(--stone-3);
+      border-radius: 5px;
+      background: var(--stone-0);
+      padding: 0 30px 0 11px;
+      font-size: 12px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .settlement-rail {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 18px;
+      padding: 24px 0 22px;
+      border-bottom: 1px solid var(--ink);
+    }
+    .rail-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 7px;
+      color: var(--emerald);
+      font-size: 10px;
+      font-weight: 780;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .rail-label::before { content: ""; width: 18px; height: 2px; background: var(--emerald); }
+    .balance {
+      margin: 0;
+      color: var(--emerald-dark);
+      font-size: clamp(34px, 6vw, 46px);
+      line-height: .95;
+      font-weight: 760;
+      letter-spacing: -.055em;
+      font-variant-numeric: tabular-nums;
+    }
+    .balance-note { margin: 8px 0 0; color: var(--stone-5); font-size: 12px; }
+    .paid-fraction { text-align: right; }
+    .paid-fraction strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.2;
+      font-weight: 730;
+      font-variant-numeric: tabular-nums;
+    }
+    .paid-fraction span { color: var(--stone-5); font-size: 11px; }
+    .progress-track { width: 170px; height: 3px; margin-top: 10px; background: var(--stone-2); }
+    .progress-fill { width: 100%; height: 100%; background: var(--emerald); }
+
+    .ledger-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .ledger-column:first-child { padding-right: 24px; }
+    .ledger-column:last-child { border-left: 1px solid var(--stone-2); padding-left: 24px; }
+    .ledger-section { padding: 23px 0 2px; }
+    .ledger-column .ledger-section + .ledger-section { border-top: 1px solid var(--stone-2); margin-top: 20px; }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 12px;
+    }
+    .section-heading h2 {
+      margin: 0;
+      font-size: 10px;
+      font-weight: 790;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .section-index { color: var(--stone-3); font-size: 10px; font-weight: 720; font-variant-numeric: tabular-nums; }
+    .text-action {
+      border: 0;
+      border-bottom: 1px solid currentColor;
+      background: transparent;
+      padding: 1px 0;
+      color: var(--emerald);
+      font-size: 11px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .person { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+    .monogram {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid #b8c9c1;
+      background: var(--emerald-soft);
+      color: var(--emerald-dark);
+      font-size: 11px;
+      font-weight: 780;
+    }
+    .person-name { margin: 0; font-size: 14px; font-weight: 730; }
+    .person-phone { margin: 2px 0 0; color: var(--stone-5); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    .detail-list, .money-list { margin: 0; }
+    .detail-row, .money-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: baseline;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--stone-2);
+    }
+    .detail-row:last-child, .money-row:last-child { border-bottom: 0; }
+    dt { color: var(--stone-5); font-size: 11px; }
+    dd { margin: 0; text-align: right; font-size: 12px; font-weight: 680; }
+    .status-inline { display: inline-flex; align-items: center; gap: 6px; color: var(--amber); }
+    .status-inline::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #c98018; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      border: 1px solid #b8c9c1;
+      background: var(--emerald-soft);
+      padding: 2px 7px;
+      color: var(--emerald-dark);
+      font-size: 10px;
+      font-weight: 760;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .money-row dd { font-variant-numeric: tabular-nums; }
+    .money-row.emphasis { padding-top: 10px; border-top: 1px solid var(--ink); border-bottom: 0; }
+    .money-row.emphasis dt, .money-row.emphasis dd { color: var(--ink); font-size: 13px; font-weight: 770; }
+    .money-row.settled dt, .money-row.settled dd { color: var(--emerald-dark); }
+    .method {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 0 11px;
+      border-bottom: 1px solid var(--stone-2);
+    }
+    .method span { color: var(--stone-5); font-size: 11px; }
+    .method strong { font-size: 12px; }
+
+    .special-order {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid var(--stone-2);
+      border-bottom: 1px solid var(--stone-2);
+      padding: 11px 0;
+    }
+    .special-mark { width: 4px; height: 30px; background: var(--emerald); }
+    .special-order strong { display: block; font-size: 12px; }
+    .special-order span { color: var(--stone-5); font-size: 10px; }
+
+    .addresses {
+      grid-column: 1 / -1;
+      padding-top: 22px;
+      margin-top: 20px;
+      border-top: 1px solid var(--ink);
+    }
+    .address-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .address { padding: 3px 20px 3px 0; }
+    .address + .address { border-left: 1px solid var(--stone-2); padding: 3px 0 3px 24px; }
+    .address-label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; font-size: 11px; font-weight: 740; }
+    address { color: var(--stone-5); font-size: 11px; font-style: normal; line-height: 1.55; }
+
+    .production-line {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      margin-top: 22px;
+      border-top: 1px solid var(--ink);
+      border-bottom: 1px solid var(--stone-2);
+    }
+    .production-cell { padding: 14px 16px 14px 0; }
+    .production-cell + .production-cell { border-left: 1px solid var(--stone-2); padding-left: 18px; }
+    .production-cell span { display: block; color: var(--stone-5); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+    .production-cell strong { display: block; margin-top: 4px; font-size: 12px; }
+
+    .empty-panel { min-height: 380px; display: grid; place-items: center; padding: 40px; text-align: center; color: var(--stone-5); }
+    .empty-panel strong { display: block; color: var(--ink); font-size: 18px; margin-bottom: 5px; }
+
+    .sheet-footer {
+      position: relative;
+      z-index: 5;
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 68px;
+      border-top: 1px solid var(--stone-3);
+      background: rgb(251 251 249 / .98);
+      padding: 14px 22px;
+      box-shadow: 0 -10px 22px rgb(24 33 29 / .045);
+    }
+    .footer-state { display: flex; align-items: center; gap: 8px; color: var(--stone-5); font-size: 11px; }
+    .footer-actions { display: flex; gap: 8px; }
+    .footer-actions .button { min-width: 92px; }
+
+    .menu-wrap { position: relative; }
+    .menu {
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + 8px);
+      width: 198px;
+      display: none;
+      border: 1px solid var(--stone-3);
+      background: var(--stone-0);
+      padding: 5px;
+      box-shadow: 0 14px 38px rgb(24 33 29 / .16);
+    }
+    .menu.is-open { display: block; }
+    .menu.top-menu { top: calc(100% + 7px); bottom: auto; }
+    .menu button {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      padding: 9px 10px;
+      text-align: left;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .menu button:hover, .menu button:focus-visible { background: var(--stone-1); }
+    .menu hr { border: 0; border-top: 1px solid var(--stone-2); margin: 4px 0; }
+
+    .toast {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      z-index: 50;
+      transform: translate(-50%, -20px);
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: #fff;
+      padding: 9px 13px;
+      font-size: 12px;
+      font-weight: 650;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 560px) {
+      .stage { gap: 0; padding: 0; }
+      .annotation {
+        width: 100%;
+        min-height: 42px;
+        overflow-x: auto;
+        border-width: 0 0 1px;
+        padding-inline: 14px;
+      }
+      .principles { gap: 10px; }
+      .sheet { width: 100%; height: calc(100dvh - 42px); min-height: 0; border: 0; box-shadow: none; }
+      .sheet-header { padding: 16px 16px 0; }
+      .heading-row { gap: 9px; }
+      .heading-status { display: none; }
+      h1 { max-width: 260px; font-size: 17px; }
+      .tabs { gap: 18px; margin-top: 16px; }
+      .general-panel { padding: 14px 16px 28px; }
+      .action-row { grid-template-columns: repeat(3, 1fr); }
+      .action-row .priority { grid-column: 1 / -1; }
+      .settlement-rail { grid-template-columns: 1fr; gap: 12px; padding: 22px 0 20px; }
+      .paid-fraction { text-align: left; }
+      .progress-track { width: 100%; }
+      .ledger-grid { grid-template-columns: 1fr; }
+      .ledger-column:first-child { padding-right: 0; }
+      .ledger-column:last-child { border-left: 0; padding-left: 0; }
+      .ledger-column:last-child .ledger-section:first-child { border-top: 1px solid var(--stone-2); margin-top: 20px; }
+      .addresses { grid-column: auto; }
+      .address-grid { grid-template-columns: 1fr; }
+      .address { padding: 4px 0 14px; }
+      .address + .address { border-left: 0; border-top: 1px solid var(--stone-2); padding: 14px 0 3px; }
+      .production-line { grid-column: auto; grid-template-columns: 1fr; }
+      .production-cell { padding: 11px 0; }
+      .production-cell + .production-cell { border-left: 0; border-top: 1px solid var(--stone-2); padding: 11px 0; }
+      .sheet-footer { min-height: 62px; padding: 11px 16px; }
+      .footer-state { display: none; }
+      .footer-actions { width: 100%; }
+      .footer-actions .button { min-width: 0; flex: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <aside class="annotation" aria-label="Design concept annotation">
+      <strong>Executive Ledger</strong>
+      <div class="principles" aria-label="Design principles">
+        <span><i></i>Hierarchy first</span>
+        <span><i></i>One rule system</span>
+        <span><i></i>Money reconciles</span>
+      </div>
+    </aside>
+
+    <section class="sheet" aria-label="Sales Overview">
+      <header class="sheet-header">
+        <div class="heading-row">
+          <div>
+            <p class="eyebrow">Sales overview</p>
+            <h1>09397LM <span aria-hidden="true">|</span> Roberto Lorenzo</h1>
+          </div>
+          <div class="heading-status"><span class="status-dot" style="background:var(--stone-3)"></span>Inbound · No status</div>
+          <button class="close-button" type="button" aria-label="Close sales overview" data-action="Close overview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+
+        <nav class="tabs" role="tablist" aria-label="Sales overview tabs">
+          <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="general-panel" id="general-tab" data-tab="general">General</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="products-panel" id="products-tab" data-tab="products">Products</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="transactions-panel" id="transactions-tab" data-tab="transactions">Transactions</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="activity-panel" id="activity-tab" data-tab="activity">Activity</button>
+        </nav>
+      </header>
+
+      <div class="sheet-body" id="sheet-body">
+        <section class="panel general-panel is-active" id="general-panel" role="tabpanel" aria-labelledby="general-tab" data-panel="general">
+          <div class="action-row" aria-label="Order actions">
+            <button class="button primary" type="button" data-action="Opening invoice preview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+              Preview
+            </button>
+            <button class="button" type="button" data-action="Opening order editor">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 20 4.2-1 10.9-10.9a2.1 2.1 0 0 0-3-3L5.2 16 4 20Z"/><path d="m14.8 6.4 3 3"/></svg>
+              Edit
+            </button>
+            <div class="menu-wrap">
+              <button class="button" style="width:100%" type="button" aria-haspopup="menu" aria-expanded="false" data-menu-button="top">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+                More
+              </button>
+              <div class="menu top-menu" role="menu" data-menu="top">
+                <button type="button" role="menuitem" data-action="Share options opened">Share order</button>
+                <button type="button" role="menuitem" data-action="Print options opened">Print documents</button>
+                <button type="button" role="menuitem" data-action="Order number copied">Copy order number</button>
+                <hr />
+                <button type="button" role="menuitem" data-action="Email options opened">Email customer</button>
+              </div>
+            </div>
+            <select class="priority" aria-label="Order priority" data-priority>
+              <option selected>Normal</option>
+              <option>High</option>
+              <option>Critical</option>
+              <option>Low</option>
+            </select>
+          </div>
+
+          <div class="settlement-rail">
+            <div>
+              <p class="rail-label">Settled · $0 due</p>
+              <p class="balance">$2,459.35</p>
+              <p class="balance-note">Paid in full across 2 card payments</p>
+            </div>
+            <div class="paid-fraction">
+              <strong>$2,459.35 / $2,459.35</strong>
+              <span>100% of invoice paid</span>
+              <div class="progress-track" aria-label="100% settled"><div class="progress-fill"></div></div>
+            </div>
+          </div>
+
+          <div class="ledger-grid">
+            <div class="ledger-column">
+              <section class="ledger-section" aria-labelledby="customer-heading">
+                <div class="section-heading">
+                  <h2 id="customer-heading">Customer</h2>
+                </div>
+                <div class="person">
+                  <span class="monogram" aria-hidden="true">RL</span>
+                  <div>
+                    <p class="person-name">Roberto Lorenzo</p>
+                    <p class="person-phone">786-325-4715</p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="ledger-section" aria-labelledby="order-heading">
+                <div class="section-heading"><h2 id="order-heading">Order record</h2><span class="section-index">01</span></div>
+                <dl class="detail-list">
+                  <div class="detail-row"><dt>Order number</dt><dd>09397LM</dd></div>
+                  <div class="detail-row"><dt>Document status</dt><dd><span class="status-inline">Awaiting production</span></dd></div>
+                  <div class="detail-row"><dt>Type</dt><dd>Order</dd></div>
+                  <div class="detail-row"><dt>Inbound status</dt><dd>No status</dd></div>
+                  <div class="detail-row"><dt>Age</dt><dd>15h</dd></div>
+                  <div class="detail-row"><dt>Delivery option</dt><dd>Pickup</dd></div>
+                  <div class="detail-row"><dt>Priority</dt><dd>Normal</dd></div>
+                </dl>
+              </section>
+
+              <section class="ledger-section" aria-labelledby="rep-heading">
+                <div class="section-heading"><h2 id="rep-heading">Sales representative</h2><span class="section-index">02</span></div>
+                <div class="person">
+                  <span class="monogram" aria-hidden="true">LM</span>
+                  <div>
+                    <p class="person-name">Leydiana Martin</p>
+                    <p class="person-phone">Sales representative · LM</p>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="ledger-column">
+              <section class="ledger-section" aria-labelledby="invoice-heading">
+                <div class="section-heading"><h2 id="invoice-heading">Invoice ledger</h2><span class="section-index">03</span></div>
+                <div class="method"><span>Payment method</span><strong>Credit Card</strong></div>
+                <dl class="money-list">
+                  <div class="money-row"><dt>Subtotal</dt><dd>$2,298.46</dd></div>
+                  <div class="money-row"><dt>Tax</dt><dd>$160.89</dd></div>
+                  <div class="money-row emphasis"><dt>Invoice total</dt><dd>$2,459.35</dd></div>
+                  <div class="money-row settled"><dt>Paid</dt><dd>$2,459.35</dd></div>
+                  <div class="money-row"><dt>Card payment</dt><dd>$2,459.35</dd></div>
+                  <div class="money-row"><dt>C.C.C.</dt><dd>$73.78</dd></div>
+                  <div class="money-row emphasis"><dt>Total charged</dt><dd>$2,533.13</dd></div>
+                  <div class="money-row"><dt>Card Payments Made</dt><dd>2</dd></div>
+                  <div class="money-row settled"><dt>Balance</dt><dd>$0.00</dd></div>
+                </dl>
+              </section>
+
+              <section class="ledger-section" aria-labelledby="classification-heading">
+                <div class="section-heading"><h2 id="classification-heading">Classification</h2><span class="section-index">04</span></div>
+                <div class="special-order">
+                  <span class="special-mark" aria-hidden="true"></span>
+                  <div><strong>Special Order</strong><span>Order classification</span></div>
+                  <span class="badge">Yes</span>
+                </div>
+              </section>
+            </div>
+
+            <section class="production-line" aria-label="Production and fulfillment status">
+              <div class="production-cell"><span>Production</span><strong>Awaiting production</strong></div>
+              <div class="production-cell"><span>Fulfillment</span><strong>Pickup</strong></div>
+              <div class="production-cell"><span>Inbound</span><strong>No status</strong></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="panel empty-panel" id="products-panel" role="tabpanel" aria-labelledby="products-tab" data-panel="products"><div><strong>Products</strong>Order products and configurations load here.</div></section>
+        <section class="panel empty-panel" id="transactions-panel" role="tabpanel" aria-labelledby="transactions-tab" data-panel="transactions"><div><strong>Transactions</strong>Two completed card payments reconcile this order.</div></section>
+        <section class="panel empty-panel" id="activity-panel" role="tabpanel" aria-labelledby="activity-tab" data-panel="activity"><div><strong>Activity</strong>Order history, messages, and staff notes load here.</div></section>
+      </div>
+
+      <footer class="sheet-footer">
+        <div class="footer-state"><span class="status-dot"></span>All invoice amounts reconciled</div>
+        <div class="footer-actions">
+          <button class="button primary" type="button" data-action="Opening invoice preview">Preview</button>
+          <button class="button" type="button" data-action="Opening order editor">Edit</button>
+          <div class="menu-wrap">
+            <button class="button" type="button" aria-haspopup="menu" aria-expanded="false" data-menu-button="footer">More</button>
+            <div class="menu" role="menu" data-menu="footer">
+              <button type="button" role="menuitem" data-action="Share options opened">Share order</button>
+              <button type="button" role="menuitem" data-action="Print options opened">Print documents</button>
+              <button type="button" role="menuitem" data-action="Order number copied">Copy order number</button>
+              <hr />
+              <button type="button" role="menuitem" data-action="Email options opened">Email customer</button>
+              <button type="button" role="menuitem" data-action="Resolution Center opened">Resolution Center</button>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <div class="toast" role="status" aria-live="polite" id="toast"></div>
+
+  <script>
+    const toast = document.getElementById("toast");
+    let toastTimer;
+    function notify(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    document.querySelectorAll("[data-tab]").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll("[data-tab]").forEach((item) => item.setAttribute("aria-selected", String(item === tab)));
+        document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("is-active", panel.dataset.panel === tab.dataset.tab));
+        document.getElementById("sheet-body").scrollTop = 0;
+      });
+    });
+
+    document.querySelectorAll("[data-action]").forEach((control) => {
+      control.addEventListener("click", () => notify(control.dataset.action));
+    });
+
+    document.querySelectorAll("[data-priority]").forEach((select) => {
+      select.addEventListener("change", () => notify(`Priority set to ${select.value}`));
+    });
+
+    document.querySelectorAll("[data-menu-button]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const id = button.dataset.menuButton;
+        const existing = document.querySelector(`[data-menu="${id}"]`);
+        let menu = existing;
+        const open = !menu.classList.contains("is-open");
+        document.querySelectorAll("[data-menu]").forEach((item) => item.classList.remove("is-open"));
+        document.querySelectorAll("[data-menu-button]").forEach((item) => item.setAttribute("aria-expanded", "false"));
+        menu.classList.toggle("is-open", open);
+        button.setAttribute("aria-expanded", String(open));
+      });
+    });
+
+    document.addEventListener("click", () => {
+      document.querySelectorAll("[data-menu]").forEach((menu) => menu.classList.remove("is-open"));
+      document.querySelectorAll("[data-menu-button]").forEach((button) => button.setAttribute("aria-expanded", "false"));
+    });
+  </script>
+</body>
+</html>

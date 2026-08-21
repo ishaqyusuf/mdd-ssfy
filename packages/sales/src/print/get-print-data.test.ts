@@ -51,11 +51,15 @@ function createSale() {
 				],
 				housePackageTool: {
 					doorType: "Interior",
-					stepProduct: { img: null, door: { img: null }, product: { img: null } },
+					stepProduct: {
+						img: null,
+						door: { img: null },
+						product: { img: null },
+					},
 					doors: [
 						{
 							id: 201,
-							dimension: '2-8 x 7-0',
+							dimension: "2-8 x 7-0",
 							swing: "LH",
 							unitPrice: 100,
 							totalQty: 1,
@@ -182,7 +186,10 @@ function createSale() {
 	};
 }
 
-function lineValue(lines: Array<{ label: string; value: string }>, label: string) {
+function lineValue(
+	lines: Array<{ label: string; value: string }>,
+	label: string,
+) {
 	return lines.find((line) => line.label === label)?.value;
 }
 
@@ -592,9 +599,7 @@ describe("getPrintData", () => {
 		expect(result.pages[0]?.meta.balanceDue).toBe("$1,669.68");
 		expect(lineValue(footerLines, "Estimated Card Fee")).toBe("$48.63");
 		expect(lineValue(footerLines, "Order Due Amount")).toBe("$1,621.05");
-		expect(lineValue(footerLines, "Total if Paying by Card")).toBe(
-			"$1,669.68",
-		);
+		expect(lineValue(footerLines, "Total if Paying by Card")).toBe("$1,669.68");
 	});
 
 	it("prints a simple paid footer for a full single card payment", async () => {
@@ -651,8 +656,11 @@ describe("getPrintData", () => {
 		expect(result.pages[0]?.meta.total).toBe("$5,175.00");
 		expect(result.pages[0]?.meta.balanceDue).toBeUndefined();
 		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
-		expect(lineValue(footerLines, "Card Fees")).toBe("$175.00");
-		expect(lineValue(footerLines, "Total Paid")).toBe("$5,175.00");
+		expect(lineValue(footerLines, "Paid Toward Order")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Card Payment")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "C.C.C. on Card Payment")).toBe("$175.00");
+		expect(lineValue(footerLines, "Charged to Card")).toBe("$5,175.00");
+		expect(lineValue(footerLines, "Card Payments Made")).toBeUndefined();
 		expect(lineValue(footerLines, "Balance Due")).toBe("$0.00");
 	});
 
@@ -719,12 +727,12 @@ describe("getPrintData", () => {
 		expect(result.pages[0]?.meta.total).toBe("$5,000.00");
 		expect(result.pages[0]?.meta.balanceDue).toBe("$1,500.00");
 		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
-		expect(lineValue(footerLines, "Card Fees")).toBe("$87.50");
-		expect(lineValue(footerLines, "Total Paid")).toBe("$3,587.50");
+		expect(lineValue(footerLines, "Paid Toward Order")).toBe("$3,500.00");
+		expect(lineValue(footerLines, "Card Payment")).toBe("$2,500.00");
+		expect(lineValue(footerLines, "C.C.C. on Card Payment")).toBe("$87.50");
+		expect(lineValue(footerLines, "Charged to Card")).toBe("$2,587.50");
+		expect(lineValue(footerLines, "Cash Payment")).toBe("$1,000.00");
 		expect(lineValue(footerLines, "Balance Due")).toBe("$1,500.00");
-		expect(lineValue(footerLines, "Card Payment")).toBeUndefined();
-		expect(lineValue(footerLines, "C.C.C on Card Payment")).toBeUndefined();
-		expect(lineValue(footerLines, "Charged to Card")).toBeUndefined();
 	});
 
 	it("aggregates multiple card payments into one customer-facing summary", async () => {
@@ -783,14 +791,20 @@ describe("getPrintData", () => {
 		const footerLines = result.pages[0]?.footer?.lines || [];
 
 		expect(lineValue(footerLines, "Order Total")).toBe("$946.20");
-		expect(lineValue(footerLines, "Card Fees")).toBe("$28.39");
-		expect(lineValue(footerLines, "Total Paid")).toBe("$974.59");
+		expect(lineValue(footerLines, "Paid Toward Order")).toBe("$946.20");
+		expect(lineValue(footerLines, "Card Payment")).toBe("$946.20");
+		expect(lineValue(footerLines, "C.C.C. on Card Payment")).toBe("$28.39");
+		expect(lineValue(footerLines, "Charged to Card")).toBe("$974.59");
+		expect(lineValue(footerLines, "Card Payments Made")).toBe("2");
 		expect(lineValue(footerLines, "Balance Due")).toBe("$0.00");
 		expect(footerLines.map((line) => line.label)).toEqual([
 			"Subtotal",
 			"Order Total",
-			"Card Fees",
-			"Total Paid",
+			"Paid Toward Order",
+			"Card Payment",
+			"C.C.C. on Card Payment",
+			"Charged to Card",
+			"Card Payments Made",
 			"Balance Due",
 		]);
 	});
@@ -835,8 +849,9 @@ describe("getPrintData", () => {
 
 		expect(result.pages[0]?.meta.total).toBe("$5,000.00");
 		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
-		expect(lineValue(footerLines, "Card Fees")).toBeUndefined();
-		expect(lineValue(footerLines, "Total Paid")).toBe("$2,500.00");
+		expect(lineValue(footerLines, "Paid Toward Order")).toBe("$2,500.00");
+		expect(lineValue(footerLines, "Card Payment")).toBe("$2,500.00");
+		expect(lineValue(footerLines, "C.C.C. on Card Payment")).toBeUndefined();
 		expect(lineValue(footerLines, "Balance Due")).toBe("$2,500.00");
 	});
 
@@ -875,8 +890,9 @@ describe("getPrintData", () => {
 		const footerLines = result.pages[0]?.footer?.lines || [];
 
 		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
-		expect(lineValue(footerLines, "Card Fees")).toBeUndefined();
-		expect(lineValue(footerLines, "Total Paid")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Paid Toward Order")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Cash Payment")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Cash Payments Made")).toBeUndefined();
 		expect(lineValue(footerLines, "Balance Due")).toBe("$0.00");
 	});
 
@@ -919,8 +935,9 @@ describe("getPrintData", () => {
 		const footerLines = result.pages[0]?.footer?.lines || [];
 
 		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
-		expect(lineValue(footerLines, "Card Fees")).toBeUndefined();
-		expect(lineValue(footerLines, "Total Paid")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Paid Toward Order")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Card Payment")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "C.C.C. on Card Payment")).toBeUndefined();
 		expect(lineValue(footerLines, "Balance Due")).toBe("$0.00");
 	});
 

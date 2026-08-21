@@ -1,5 +1,6 @@
 import { getDispatchInventoryManifest } from "@api/db/queries/dispatch-inventory";
 import { whereDispatch } from "@api/prisma-where";
+import type { FulfillmentCalendarInput } from "@api/schemas/dispatch-workspace";
 import type {
 	BulkAssignDriverSchema,
 	BulkCancelDispatchSchema,
@@ -884,17 +885,21 @@ export async function updateSalesDeliveryOption(
 	ctx: TRPCContext,
 	data: UpdateSalesDeliveryOptionSchema,
 ) {
-	if (data.option && !data.deliveryId) {
+	if (data.option) {
 		await ctx.db.salesOrders.update({
 			where: { id: data.salesId },
 			data: {
 				deliveryOption: data.option,
 			},
 		});
-		return;
 	}
-	if (!data.deliveryId) {
-		data.deliveryId = (
+	const hasDeliveryDetails =
+		data.date != null || data.driverId != null || data.status != null;
+	if (!data.deliveryId && !hasDeliveryDetails) return;
+
+	let deliveryId = data.deliveryId;
+	if (!deliveryId) {
+		deliveryId = (
 			await ctx.db.orderDelivery.create({
 				data: {
 					deliveryMode: data.option || data.defaultOption || "delivery",
@@ -942,7 +947,7 @@ export async function updateSalesDeliveryOption(
 		});
 		await ctx.db.orderDelivery.update({
 			where: {
-				id: data.deliveryId,
+				id: deliveryId,
 			},
 			data: updateData,
 		});
@@ -2707,6 +2712,84 @@ export async function bulkCancelDispatches(
 		cancelled: results.filter((result) => result.ok).length,
 		failed: results.filter((result) => !result.ok).length,
 		results,
+	};
+}
+
+const fulfillmentCalendarStatuses = [
+	"queue",
+	"packing queue",
+	"missing items",
+	"packed",
+	"in progress",
+] satisfies SalesDispatchStatus[];
+
+export async function getFulfillmentCalendar(
+	ctx: TRPCContext,
+	input: FulfillmentCalendarInput,
+) {
+	const { db } = ctx;
+	const from = new Date(`${input.from}T00:00:00.000Z`);
+	const toExclusive = new Date(`${input.to}T00:00:00.000Z`);
+	toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
+
+	const activeWhere = whereDispatch({ statuses: fulfillmentCalendarStatuses });
+	const select = {
+		id: true,
+		status: true,
+		dueDate: true,
+		deliveryMode: true,
+		order: {
+			select: {
+				orderId: true,
+				customer: {
+					select: { name: true, businessName: true },
+				},
+			},
+		},
+		driver: { select: { name: true } },
+	} satisfies Prisma.OrderDeliverySelect;
+
+	const [scheduledRows, unscheduledRows] = await Promise.all([
+		db.orderDelivery.findMany({
+			where: {
+				AND: [
+					activeWhere,
+					{ deletedAt: null },
+					{ dueDate: { gte: from, lt: toExclusive } },
+				],
+			},
+			orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
+			take: 1_500,
+			select,
+		}),
+		db.orderDelivery.findMany({
+			where: { AND: [activeWhere, { deletedAt: null }, { dueDate: null }] },
+			orderBy: { createdAt: "desc" },
+			take: 250,
+			select,
+		}),
+	]);
+
+	const toCalendarRow = (row: (typeof scheduledRows)[number]) => ({
+		id: row.id,
+		status: row.status,
+		dueDate: row.dueDate?.toISOString() ?? null,
+		deliveryMode: row.deliveryMode,
+		driver: row.driver ? { name: row.driver.name || "Unassigned" } : null,
+		order: {
+			orderId: row.order.orderId,
+			customer: row.order.customer
+				? {
+						name: row.order.customer.name,
+						businessName: row.order.customer.businessName,
+					}
+				: null,
+		},
+	});
+
+	return {
+		scheduled: scheduledRows.map(toCalendarRow),
+		unscheduled: unscheduledRows.map(toCalendarRow),
 	};
 }
 

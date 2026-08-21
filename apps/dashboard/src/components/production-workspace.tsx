@@ -8,10 +8,15 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Suspense, useEffect } from "react";
 
+import { PageTabs } from "@/components/page-tabs";
+import {
+	SalesProductionAnalyticsCard,
+	SalesProductionAnalyticsCardSkeleton,
+} from "@/components/sales-production/analytics-card";
+import { createWorkerProductionPageTabs } from "@/components/sales-production/worker-tabs";
 import { SalesProductionColumnVisibility } from "@/components/tables-2/sales-production/column-visibility";
 import { DataTable } from "@/components/tables-2/sales-production/data-table";
 import { SalesProductionSkeleton } from "@/components/tables-2/sales-production/skeleton";
-import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
 import { cn } from "@/lib/utils";
@@ -45,6 +50,9 @@ export type DashboardResponse = {
 		dueTodayCount: number;
 		dueTomorrowCount: number;
 		pastDueCount: number;
+		futureCount: number;
+		unscheduledCount: number;
+		completedCount: number;
 	};
 	alerts: {
 		dueToday: DashboardItem[];
@@ -95,6 +103,12 @@ const ProductionMaterialReviewPanel = dynamic(
 	},
 );
 
+const SalesProductionCalendar = dynamic(() =>
+	import("./sales-production/calendar").then(
+		(mod) => mod.SalesProductionCalendar,
+	),
+);
+
 function FilterCardSkeleton() {
 	return (
 		<div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur sm:min-w-[320px]">
@@ -119,30 +133,65 @@ function ProductionTableSkeleton({
 	);
 }
 
+function WorkerCalendarSkeleton() {
+	return (
+		<div className="flex flex-col gap-3">
+			<div className="flex items-center justify-between gap-3">
+				<Skeleton className="h-9 w-64 rounded-md" />
+				<Skeleton className="h-9 w-36 rounded-md" />
+			</div>
+			<Card>
+				<CardContent className="grid min-w-[980px] grid-cols-7 gap-2 p-4">
+					{Array.from({ length: 7 }).map((_, index) => (
+						<Skeleton
+							key={`worker-calendar-${index + 1}`}
+							className="h-64 w-full"
+						/>
+					))}
+				</CardContent>
+			</Card>
+		</div>
+	);
+}
+
 export function ProductionWorkspace({
 	mode,
 	initialTableSettings,
 	defaultTableFilters,
 }: Props) {
 	const workerMode = mode === "worker";
-	const auth = useAuth();
 	const trpc = useTRPC();
 	const overviewQuery = useSalesOverviewQuery();
 	const { filters, setFilters } = useSalesProductionFilterParams();
-	const workerId = auth.id ? Number(auth.id) : undefined;
 
 	const dashboardQuery = useQuery(
-		trpc.sales.productionDashboard.queryOptions(
-			workerMode && workerId
-				? { workerId, priority: filters.priority || undefined }
-				: { priority: filters.priority || undefined },
-			{
-				enabled: workerMode ? !!workerId : true,
-			},
-		),
+		workerMode
+			? trpc.sales.productionDashboardTasks.queryOptions({
+					priority: filters.priority || undefined,
+				})
+			: trpc.sales.productionDashboard.queryOptions({
+					priority: filters.priority || undefined,
+				}),
 	);
 
 	useEffect(() => {
+		if (workerMode) {
+			const hasWorkerView =
+				!!filters.show ||
+				!!filters.productionDueDate ||
+				filters.tab === "calendar" ||
+				filters.production === "completed";
+			if (!hasWorkerView) {
+				setFilters({
+					tab: "queue",
+					view: "table",
+					production: "pending",
+					show: "due-today",
+				});
+			}
+			return;
+		}
+
 		const hasDefaultView =
 			!!filters.show ||
 			!!filters.production ||
@@ -164,7 +213,9 @@ export function ProductionWorkspace({
 		filters.q,
 		filters.salesNo,
 		filters.show,
+		filters.tab,
 		setFilters,
+		workerMode,
 	]);
 
 	const pageCopy = workerMode
@@ -189,7 +240,13 @@ export function ProductionWorkspace({
 	const applyPreset = (preset: {
 		production?: "pending" | "in progress" | "completed" | null;
 		productionDueDate?: string | null;
-		show?: "due-today" | "due-tomorrow" | "past-due" | null;
+		show?:
+			| "due-today"
+			| "due-tomorrow"
+			| "past-due"
+			| "future"
+			| "unscheduled"
+			| null;
 	}) => {
 		setFilters({
 			production: preset.production ?? null,
@@ -211,295 +268,424 @@ export function ProductionWorkspace({
 	const selectedCalendarItem = calendarItems.find(
 		(item) => item.date === filters.productionDueDate,
 	);
+	const workerView =
+		filters.tab === "calendar"
+			? "calendar"
+			: filters.production === "completed" || filters.tab === "completed"
+				? "completed"
+				: filters.show || "due-today";
+	const workerTabs = createWorkerProductionPageTabs({
+		dueTodayCount: dashboard?.summary.dueTodayCount || 0,
+		unscheduledCount: dashboard?.summary.unscheduledCount || 0,
+		pastDueCount: dashboard?.summary.pastDueCount || 0,
+		futureCount: dashboard?.summary.futureCount || 0,
+		completedCount: dashboard?.summary.completedCount || 0,
+	});
+	const applyWorkerView = (
+		view: "due-today" | "past-due" | "future" | "completed",
+	) => {
+		if (view === "completed") {
+			setFilters({
+				tab: "completed",
+				view: "table",
+				production: "completed",
+				productionDueDate: null,
+				show: null,
+			});
+			return;
+		}
+
+		setFilters({
+			tab: "queue",
+			view: "table",
+			production: "pending",
+			productionDueDate: null,
+			show: view,
+		});
+	};
 
 	return (
 		<div className="flex flex-col gap-6">
-			<section className="rounded-3xl border bg-gradient-to-br from-background via-background to-amber-50/60 p-5 sm:p-6">
-				<div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-					<div className="max-w-3xl space-y-3">
-						<Badge
-							variant="outline"
-							className="w-fit rounded-full border-amber-200 bg-amber-50 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-amber-800"
-						>
-							{workerMode ? "Worker view" : "Operations view"}
-						</Badge>
-						<div className="space-y-2">
-							<h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-								{pageCopy.title}
-							</h2>
-							<p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-								{pageCopy.description}
+			{workerMode ? null : (
+				<section className="rounded-3xl border bg-gradient-to-br from-background via-background to-amber-50/60 p-5 sm:p-6">
+					<div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+						<div className="max-w-3xl space-y-3">
+							<Badge
+								variant="outline"
+								className="w-fit rounded-full border-amber-200 bg-amber-50 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-amber-800"
+							>
+								{workerMode ? "Worker view" : "Operations view"}
+							</Badge>
+							<div className="space-y-2">
+								<h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+									{pageCopy.title}
+								</h2>
+								<p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+									{pageCopy.description}
+								</p>
+							</div>
+							<p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+								{pageCopy.helper}
 							</p>
 						</div>
-						<p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-							{pageCopy.helper}
-						</p>
+						<SalesProductionSearchFilter workerMode={workerMode} />
 					</div>
-					<SalesProductionSearchFilter workerMode={workerMode} />
-				</div>
-			</section>
+				</section>
+			)}
 
 			{workerMode ? null : <ProductionMaterialReviewPanel />}
 
-			<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-				{dashboardQuery.isPending || !dashboard ? (
-					Array.from({ length: 4 }).map((_, index) => (
-						<Card key={index.toString()} className="rounded-3xl">
-							<CardHeader className="pb-3">
-								<Skeleton className="h-4 w-28 rounded-full" />
-							</CardHeader>
-							<CardContent className="space-y-2">
-								<Skeleton className="h-8 w-16 rounded-md" />
-								<Skeleton className="h-4 w-36 rounded-md" />
-							</CardContent>
-						</Card>
-					))
-				) : (
-					<>
-						<SummaryCard
-							active={activePreset === "pending"}
-							title={pageCopy.queueLabel}
-							value={dashboard.summary.queueCount}
-							description="All open production records in the active queue."
-							icon={<Icons.Package className="h-4 w-4" />}
-							onClick={() =>
-								applyPreset({
-									production: "pending",
-								})
+			{workerMode ? (
+				<>
+					<section
+						aria-label="My production analytics"
+						className="grid grid-cols-2 gap-3 xl:grid-cols-4"
+					>
+						{dashboardQuery.isPending || !dashboard ? (
+							Array.from({ length: 4 }).map((_, index) => (
+								<SalesProductionAnalyticsCardSkeleton key={index.toString()} />
+							))
+						) : (
+							<>
+								<SalesProductionAnalyticsCard
+									active={workerView === "due-today"}
+									title="Due today"
+									value={dashboard.summary.dueTodayCount}
+									description="Assigned to your account and due today."
+									icon={<Icons.Clock3 className="h-4 w-4" />}
+									onClick={() => applyWorkerView("due-today")}
+								/>
+								<SalesProductionAnalyticsCard
+									active={workerView === "past-due"}
+									title="Past due"
+									value={dashboard.summary.pastDueCount}
+									description="Your overdue assignments needing attention."
+									icon={<Icons.AlertTriangle className="h-4 w-4" />}
+									onClick={() => applyWorkerView("past-due")}
+								/>
+								<SalesProductionAnalyticsCard
+									active={workerView === "future"}
+									title="Future"
+									value={dashboard.summary.futureCount}
+									description="Your assignments scheduled after today."
+									icon={<Icons.CalendarDays className="h-4 w-4" />}
+									onClick={() => applyWorkerView("future")}
+								/>
+								<SalesProductionAnalyticsCard
+									active={workerView === "completed"}
+									title="Completed"
+									value={dashboard.summary.completedCount}
+									description="Production assignments you have completed."
+									icon={<Icons.CheckCircle2 className="h-4 w-4" />}
+									onClick={() => applyWorkerView("completed")}
+								/>
+							</>
+						)}
+					</section>
+					<section className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+						<PageTabs
+							portal={false}
+							showAll={false}
+							showManage={false}
+							tabs={workerTabs}
+							activeParams={
+								workerView === "calendar"
+									? {
+											tab: "calendar",
+											view: "calendar",
+											production: "pending",
+											productionDueDate: null,
+											show: null,
+										}
+									: undefined
 							}
+							maxVisible={{ base: 6, lg: 6, "2xl": 6 }}
+							className="lg:flex-1"
 						/>
-						<SummaryCard
-							active={activePreset === "past-due"}
-							title="Past due"
-							value={dashboard.summary.pastDueCount}
-							description="Needs attention first before more work slips."
-							icon={<Icons.AlertTriangle className="h-4 w-4" />}
-							onClick={() =>
-								applyPreset({
-									show: "past-due",
-								})
-							}
-						/>
-						<SummaryCard
-							active={activePreset === "due-today"}
-							title="Due today"
-							value={dashboard.summary.dueTodayCount}
-							description="What must move now before the day closes."
-							icon={<Icons.Clock3 className="h-4 w-4" />}
-							onClick={() =>
-								applyPreset({
-									show: "due-today",
-								})
-							}
-						/>
-						<SummaryCard
-							active={activePreset === "due-tomorrow"}
-							title="Due tomorrow"
-							value={dashboard.summary.dueTomorrowCount}
-							description="Tomorrow's pressure points you can prepare today."
-							icon={<Icons.CalendarDays className="h-4 w-4" />}
-							onClick={() =>
-								applyPreset({
-									show: "due-tomorrow",
-								})
-							}
-						/>
-					</>
-				)}
-			</section>
-
-			<section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-				<Card className="rounded-3xl">
-					<CardHeader className="pb-3">
-						<div className="flex items-center justify-between gap-3">
-							<div>
-								<CardTitle className="flex items-center gap-2 text-lg">
-									<Icons.CalendarDays className="h-5 w-5 text-sky-600" />
-									Due-date calendar
-								</CardTitle>
-								<CardDescription>
-									Compact date view for the next few working days.
-								</CardDescription>
-							</div>
-							<Button
-								variant="ghost"
-								size="sm"
+						<div className="min-w-0 lg:ml-auto lg:w-auto">
+							<SalesProductionSearchFilter workerMode showSavedViews={false} />
+						</div>
+					</section>
+				</>
+			) : (
+				<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+					{dashboardQuery.isPending || !dashboard ? (
+						Array.from({ length: 4 }).map((_, index) => (
+							<Card key={index.toString()} className="rounded-3xl">
+								<CardHeader className="pb-3">
+									<Skeleton className="h-4 w-28 rounded-full" />
+								</CardHeader>
+								<CardContent className="space-y-2">
+									<Skeleton className="h-8 w-16 rounded-md" />
+									<Skeleton className="h-4 w-36 rounded-md" />
+								</CardContent>
+							</Card>
+						))
+					) : (
+						<>
+							<SalesProductionAnalyticsCard
+								active={activePreset === "pending"}
+								title={pageCopy.queueLabel}
+								value={dashboard.summary.queueCount}
+								description="All open production records in the active queue."
+								icon={<Icons.Package className="h-4 w-4" />}
 								onClick={() =>
 									applyPreset({
 										production: "pending",
 									})
 								}
-							>
-								Reset
-							</Button>
-						</div>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="overflow-hidden rounded-2xl border bg-muted/20">
-							<Calendar
-								mode="single"
-								selected={selectedDueDate}
-								defaultMonth={selectedDueDate}
-								onSelect={(date) => {
-									if (!date) {
+							/>
+							<SalesProductionAnalyticsCard
+								active={activePreset === "past-due"}
+								title="Past due"
+								value={dashboard.summary.pastDueCount}
+								description="Needs attention first before more work slips."
+								icon={<Icons.AlertTriangle className="h-4 w-4" />}
+								onClick={() =>
+									applyPreset({
+										show: "past-due",
+									})
+								}
+							/>
+							<SalesProductionAnalyticsCard
+								active={activePreset === "due-today"}
+								title="Due today"
+								value={dashboard.summary.dueTodayCount}
+								description="What must move now before the day closes."
+								icon={<Icons.Clock3 className="h-4 w-4" />}
+								onClick={() =>
+									applyPreset({
+										show: "due-today",
+									})
+								}
+							/>
+							<SalesProductionAnalyticsCard
+								active={activePreset === "due-tomorrow"}
+								title="Due tomorrow"
+								value={dashboard.summary.dueTomorrowCount}
+								description="Tomorrow's pressure points you can prepare today."
+								icon={<Icons.CalendarDays className="h-4 w-4" />}
+								onClick={() =>
+									applyPreset({
+										show: "due-tomorrow",
+									})
+								}
+							/>
+						</>
+					)}
+				</section>
+			)}
+
+			{workerMode && workerView === "calendar" ? (
+				<section aria-label="My production calendar">
+					<Suspense fallback={<WorkerCalendarSkeleton />}>
+						<SalesProductionCalendar workerMode />
+					</Suspense>
+				</section>
+			) : null}
+
+			{!workerMode ? (
+				<section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+					<Card className="rounded-3xl">
+						<CardHeader className="pb-3">
+							<div className="flex items-center justify-between gap-3">
+								<div>
+									<CardTitle className="flex items-center gap-2 text-lg">
+										<Icons.CalendarDays className="h-5 w-5 text-sky-600" />
+										Due-date calendar
+									</CardTitle>
+									<CardDescription>
+										Compact date view for the next few working days.
+									</CardDescription>
+								</div>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() =>
 										applyPreset({
 											production: "pending",
-										});
-										return;
+										})
 									}
-									applyPreset({
-										production: null,
-										show: null,
-										productionDueDate: formatCalendarDate(date),
-									});
-								}}
-								modifiers={{
-									hasDue: dueDatesWithLoad,
-								}}
-								modifiersClassNames={{
-									hasDue:
-										"rounded-full border border-sky-200 bg-sky-50 font-semibold text-sky-900",
-								}}
-								className="w-full"
-							/>
-						</div>
-						<div className="rounded-2xl border bg-background p-4">
-							<div className="flex flex-wrap items-center gap-2">
-								<Badge variant="outline" className="rounded-full">
-									Click a date to filter the queue
-								</Badge>
-								<Badge
-									variant="outline"
-									className="rounded-full border-sky-200 bg-sky-50 text-sky-800"
 								>
-									Blue dates have due work
-								</Badge>
+									Reset
+								</Button>
 							</div>
-							<div className="mt-4 flex items-start justify-between gap-4">
-								<div className="space-y-1">
-									<p className="text-sm font-medium">
-										{selectedCalendarItem
-											? selectedCalendarItem.label
-											: "No date selected"}
-									</p>
-									<p className="text-sm text-muted-foreground">
-										{selectedCalendarItem
-											? `${selectedCalendarItem.count} production item(s) due`
-											: "Select a date on the calendar to focus the queue."}
-									</p>
-								</div>
-								{selectedCalendarItem ? (
-									<Badge
-										variant={
-											selectedCalendarItem.isToday
-												? "destructive"
-												: selectedCalendarItem.isTomorrow
-													? "secondary"
-													: "outline"
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div className="overflow-hidden rounded-2xl border bg-muted/20">
+								<Calendar
+									mode="single"
+									selected={selectedDueDate}
+									defaultMonth={selectedDueDate}
+									onSelect={(date) => {
+										if (!date) {
+											applyPreset({
+												production: "pending",
+											});
+											return;
 										}
-										className="rounded-full"
-									>
-										{selectedCalendarItem.isToday
-											? "Today"
-											: selectedCalendarItem.isTomorrow
-												? "Tomorrow"
-												: "Selected"}
-									</Badge>
-								) : null}
+										applyPreset({
+											production: null,
+											show: null,
+											productionDueDate: formatCalendarDate(date),
+										});
+									}}
+									modifiers={{
+										hasDue: dueDatesWithLoad,
+									}}
+									modifiersClassNames={{
+										hasDue:
+											"rounded-full border border-sky-200 bg-sky-50 font-semibold text-sky-900",
+									}}
+									className="w-full"
+								/>
 							</div>
-						</div>
-					</CardContent>
-				</Card>
-			</section>
+							<div className="rounded-2xl border bg-background p-4">
+								<div className="flex flex-wrap items-center gap-2">
+									<Badge variant="outline" className="rounded-full">
+										Click a date to filter the queue
+									</Badge>
+									<Badge
+										variant="outline"
+										className="rounded-full border-sky-200 bg-sky-50 text-sky-800"
+									>
+										Blue dates have due work
+									</Badge>
+								</div>
+								<div className="mt-4 flex items-start justify-between gap-4">
+									<div className="space-y-1">
+										<p className="text-sm font-medium">
+											{selectedCalendarItem
+												? selectedCalendarItem.label
+												: "No date selected"}
+										</p>
+										<p className="text-sm text-muted-foreground">
+											{selectedCalendarItem
+												? `${selectedCalendarItem.count} production item(s) due`
+												: "Select a date on the calendar to focus the queue."}
+										</p>
+									</div>
+									{selectedCalendarItem ? (
+										<Badge
+											variant={
+												selectedCalendarItem.isToday
+													? "destructive"
+													: selectedCalendarItem.isTomorrow
+														? "secondary"
+														: "outline"
+											}
+											className="rounded-full"
+										>
+											{selectedCalendarItem.isToday
+												? "Today"
+												: selectedCalendarItem.isTomorrow
+													? "Tomorrow"
+													: "Selected"}
+										</Badge>
+									) : null}
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+				</section>
+			) : null}
 
-			<section className="flex flex-col gap-3">
-				<div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-					<div>
-						<h2 className="text-lg font-semibold tracking-tight">
-							{pageCopy.queueLabel}
-						</h2>
-						<p className="text-sm text-muted-foreground">
-							Current filter:{" "}
-							<span className="font-medium text-foreground">
-								{humanizeActiveFilter(activePreset)}
-							</span>
-						</p>
+			{!workerMode || workerView !== "calendar" || filters.productionDueDate ? (
+				<section className="flex flex-col gap-3">
+					<div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+						{workerMode ? null : (
+							<div>
+								<h2 className="text-lg font-semibold tracking-tight">
+									{pageCopy.queueLabel}
+								</h2>
+								<p className="text-sm text-muted-foreground">
+									Current filter:{" "}
+									<span className="font-medium text-foreground">
+										{humanizeActiveFilter(activePreset)}
+									</span>
+								</p>
+							</div>
+						)}
+						<div className="flex flex-wrap items-center gap-2">
+							{workerMode ? null : (
+								<>
+									<SalesProductionColumnVisibility />
+									<QuickFilterButton
+										active={activePreset === "pending"}
+										onClick={() =>
+											applyPreset({
+												production: "pending",
+											})
+										}
+									>
+										Active queue
+									</QuickFilterButton>
+									<QuickFilterButton
+										active={activePreset === "past-due"}
+										onClick={() =>
+											applyPreset({
+												show: "past-due",
+											})
+										}
+									>
+										Past due
+									</QuickFilterButton>
+									<QuickFilterButton
+										active={activePreset === "due-today"}
+										onClick={() =>
+											applyPreset({
+												show: "due-today",
+											})
+										}
+									>
+										Due today
+									</QuickFilterButton>
+									<QuickFilterButton
+										active={activePreset === "due-tomorrow"}
+										onClick={() =>
+											applyPreset({
+												show: "due-tomorrow",
+											})
+										}
+									>
+										Due tomorrow
+									</QuickFilterButton>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() =>
+											setFilters({
+												production: null,
+												productionDueDate: null,
+												show: null,
+												q: null,
+												salesNo: null,
+												assignedToId: null,
+											})
+										}
+									>
+										Clear filters
+									</Button>
+								</>
+							)}
+						</div>
 					</div>
-					<div className="flex flex-wrap items-center gap-2">
-						<SalesProductionColumnVisibility />
-						<QuickFilterButton
-							active={activePreset === "pending"}
-							onClick={() =>
-								applyPreset({
-									production: "pending",
-								})
-							}
-						>
-							Active queue
-						</QuickFilterButton>
-						<QuickFilterButton
-							active={activePreset === "past-due"}
-							onClick={() =>
-								applyPreset({
-									show: "past-due",
-								})
-							}
-						>
-							Past due
-						</QuickFilterButton>
-						<QuickFilterButton
-							active={activePreset === "due-today"}
-							onClick={() =>
-								applyPreset({
-									show: "due-today",
-								})
-							}
-						>
-							Due today
-						</QuickFilterButton>
-						<QuickFilterButton
-							active={activePreset === "due-tomorrow"}
-							onClick={() =>
-								applyPreset({
-									show: "due-tomorrow",
-								})
-							}
-						>
-							Due tomorrow
-						</QuickFilterButton>
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() =>
-								setFilters({
-									production: null,
-									productionDueDate: null,
-									show: null,
-									q: null,
-									salesNo: null,
-									assignedToId: null,
-								})
-							}
-						>
-							Clear filters
-						</Button>
-					</div>
-				</div>
-				<Suspense
-					fallback={
-						<ProductionTableSkeleton
+					<Suspense
+						fallback={
+							<ProductionTableSkeleton
+								initialSettings={initialTableSettings}
+								workerMode={workerMode}
+							/>
+						}
+					>
+						<DataTable
 							initialSettings={initialTableSettings}
+							defaultFilters={defaultTableFilters}
 							workerMode={workerMode}
 						/>
-					}
-				>
-					<DataTable
-						initialSettings={initialTableSettings}
-						defaultFilters={defaultTableFilters}
-						workerMode={workerMode}
-					/>
-				</Suspense>
-			</section>
+					</Suspense>
+				</section>
+			) : null}
 
 			{!workerMode && dashboard?.alerts.pastDue?.length ? (
 				<Card className="rounded-3xl border-red-200/80 bg-red-50/60">
@@ -550,44 +736,6 @@ export function ProductionWorkspace({
 				</div>
 			) : null}
 		</div>
-	);
-}
-
-function SummaryCard({
-	title,
-	value,
-	description,
-	icon,
-	active,
-	onClick,
-}: {
-	title: string;
-	value: number;
-	description: string;
-	icon: ReactNode;
-	active?: boolean;
-	onClick: () => void;
-}) {
-	return (
-		<button type="button" onClick={onClick} className="text-left">
-			<Card
-				className={cn(
-					"h-full rounded-3xl transition-colors",
-					active ? "border-sky-500 bg-sky-50" : "hover:bg-muted/40",
-				)}
-			>
-				<CardHeader className="pb-2">
-					<div className="flex items-center justify-between gap-3">
-						<CardDescription>{title}</CardDescription>
-						<div className="rounded-full border bg-background p-2">{icon}</div>
-					</div>
-				</CardHeader>
-				<CardContent className="space-y-1">
-					<p className="text-3xl font-semibold tracking-tight">{value}</p>
-					<p className="text-sm text-muted-foreground">{description}</p>
-				</CardContent>
-			</Card>
-		</button>
 	);
 }
 
@@ -678,6 +826,9 @@ function humanizeActiveFilter(activePreset: string) {
 	if (activePreset === "past-due") return "Past due";
 	if (activePreset === "due-today") return "Due today";
 	if (activePreset === "due-tomorrow") return "Due tomorrow";
+	if (activePreset === "future") return "Future assignments";
+	if (activePreset === "unscheduled") return "Unscheduled assignments";
+	if (activePreset === "completed") return "Completed assignments";
 	if (/^\d{4}-\d{2}-\d{2}$/.test(activePreset)) return `Due on ${activePreset}`;
 	return activePreset;
 }

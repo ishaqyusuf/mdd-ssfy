@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GND Sales Overview — Split Command Center</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --navy-950: #0d2032;
+      --navy-900: #13283f;
+      --navy-800: #1b3853;
+      --navy-700: #2b4b65;
+      --mist-50: #f8fafb;
+      --mist-100: #eef3f5;
+      --mist-200: #dce5e9;
+      --mist-300: #c5d2d8;
+      --ink: #172633;
+      --muted: #637583;
+      --teal: #0c746f;
+      --teal-dark: #075b57;
+      --teal-soft: #e1f1ef;
+      --white: #ffffff;
+      --line: #d7e0e4;
+      --focus: #0b736e;
+      --radius: 7px;
+      --shadow: 0 18px 42px rgba(13, 32, 50, .13);
+      font-family: Manrope, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      overflow-x: hidden;
+      color: var(--ink);
+      background: #e7edef;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    button, select, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+      outline: 3px solid rgba(12, 116, 111, .26);
+      outline-offset: 2px;
+    }
+
+    svg { display: block; }
+
+    .stage {
+      width: min(100%, 744px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 20px 36px 32px;
+    }
+
+    .annotation {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 672px;
+      max-width: 100%;
+      min-height: 36px;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      border: 1px solid #bdcbd1;
+      background: rgba(255, 255, 255, .78);
+      color: var(--navy-800);
+      font-size: 10px;
+      letter-spacing: .03em;
+    }
+
+    .annotation strong {
+      flex: 0 0 auto;
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .annotation-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--muted);
+    }
+
+    .annotation-list li::before {
+      content: "•";
+      margin-right: 6px;
+      color: var(--teal);
+    }
+
+    .sheet {
+      width: 672px;
+      max-width: 100%;
+      min-width: 0;
+      height: min(860px, calc(100vh - 88px));
+      min-height: 620px;
+      overflow: hidden;
+      border: 1px solid #bcc9cf;
+      background: var(--white);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+    }
+
+    .sheet > * { min-width: 0; }
+
+    .sheet-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--white);
+    }
+
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .title-row > div { min-width: 0; }
+
+    h1 {
+      margin: 0;
+      color: var(--navy-950);
+      font-size: 21px;
+      line-height: 1.18;
+      letter-spacing: -.025em;
+    }
+
+    .title-meta {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .meta-separator { color: var(--mist-300); }
+
+    .priority {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 32px;
+      padding: 0 9px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: var(--white);
+      color: var(--navy-800);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .flag-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .tabs-wrap {
+      min-width: 0;
+      overflow: hidden;
+      padding: 9px 12px 0;
+      border-bottom: 1px solid var(--line);
+      background: var(--mist-50);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 2px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      flex: 0 0 auto;
+      min-height: 37px;
+      padding: 0 10px 9px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .tab:hover { color: var(--navy-900); }
+    .tab[aria-selected="true"] {
+      border-bottom-color: var(--teal);
+      color: var(--navy-950);
+    }
+
+    .sheet-scroll {
+      width: 100%;
+      min-width: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      background: var(--white);
+    }
+
+    .action-bar {
+      position: sticky;
+      z-index: 5;
+      top: 0;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .96);
+    }
+
+    .btn {
+      display: inline-flex;
+      min-width: 0;
+      min-height: 36px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: var(--white);
+      color: var(--navy-900);
+      font-weight: 750;
+    }
+
+    .btn:hover { border-color: #9dafb7; background: var(--mist-50); }
+    .btn.primary { border-color: var(--navy-900); background: var(--navy-900); color: var(--white); }
+    .btn.primary:hover { background: var(--navy-800); }
+    .btn svg { width: 14px; height: 14px; }
+
+    .command-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.43fr) minmax(226px, .92fr);
+      align-items: start;
+    }
+
+    .operations {
+      min-width: 0;
+      padding: 14px 18px 18px;
+      border-right: 1px solid var(--line);
+    }
+
+    .finance-rail {
+      position: sticky;
+      top: 59px;
+      min-width: 0;
+      padding: 18px 16px 24px;
+      background: var(--mist-50);
+    }
+
+    .section + .section {
+      margin-top: 14px;
+      padding-top: 13px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .section-heading h2 {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 0;
+      color: var(--navy-700);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .section-heading h2 svg { width: 14px; height: 14px; color: var(--teal); }
+
+    .link-button {
+      min-height: 28px;
+      border: 0;
+      background: transparent;
+      color: var(--teal-dark);
+      font-size: 11px;
+      font-weight: 800;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .customer-name {
+      margin: 0;
+      color: var(--navy-950);
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+    }
+
+    .customer-phone {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 5px;
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .customer-phone:hover { color: var(--teal-dark); text-decoration: underline; }
+
+    .address-toggle {
+      display: inline-flex;
+      min-height: 30px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: var(--white);
+      color: var(--teal-dark);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .address-toggle svg { width: 13px; height: 13px; transition: transform .16s ease; }
+    .address-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+    .address-panel {
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: var(--mist-50);
+    }
+
+    .address-panel[hidden] { display: none; }
+
+    .address-row {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 10px;
+      padding: 10px 11px;
+    }
+
+    .address-row + .address-row { border-top: 1px solid var(--line); }
+    .address-row strong { color: var(--navy-700); font-size: 9px; letter-spacing: .05em; text-transform: uppercase; }
+    .address-row span { color: var(--muted); font-size: 10px; }
+
+    .status-banner {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+      padding: 9px 11px;
+      border-left: 3px solid var(--teal);
+      background: var(--teal-soft);
+    }
+
+    .status-banner strong { display: block; color: var(--navy-950); font-size: 12px; }
+    .status-banner span { display: block; margin-top: 1px; color: #54716f; font-size: 10px; }
+
+    .badge {
+      display: inline-flex;
+      min-height: 22px;
+      align-items: center;
+      border: 1px solid #aabac1;
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: var(--white);
+      color: var(--navy-800);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0 16px;
+      margin: 0;
+    }
+
+    .fact {
+      min-width: 0;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--mist-200);
+    }
+
+    .fact dt {
+      margin: 0 0 2px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 750;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .fact dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+      color: var(--navy-950);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .fact-wide { grid-column: 1 / -1; }
+
+    .inline-input {
+      width: 100%;
+      min-height: 30px;
+      padding: 4px 8px;
+      border: 1px solid var(--mist-300);
+      border-radius: 4px;
+      background: var(--mist-50);
+      color: var(--navy-950);
+      font-weight: 750;
+    }
+
+    .inline-input::placeholder { color: #8a9aa5; font-weight: 650; }
+
+    .delivery-control {
+      display: flex;
+      min-height: 32px;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .delivery-value {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--navy-950);
+      font-weight: 800;
+    }
+
+    .mini-edit {
+      display: inline-grid;
+      width: 27px;
+      height: 27px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--white);
+      color: var(--teal-dark);
+    }
+
+    .mini-edit svg { width: 12px; height: 12px; }
+    .inline-separator { color: var(--mist-300); }
+    .date-link { border: 0; padding: 3px 0; background: transparent; color: var(--teal-dark); font-size: 11px; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
+
+    .special-order {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 11px;
+      border: 1px solid var(--mist-300);
+      background: var(--mist-100);
+    }
+
+    .special-order strong { display: block; font-size: 12px; color: var(--navy-950); }
+    .special-order small { color: var(--muted); }
+
+    .mini-flow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .flow-item { padding: 10px 0; }
+    .flow-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .flow-top strong { font-size: 11px; color: var(--navy-900); }
+    .flow-top span { color: var(--muted); font-size: 10px; }
+    .track { height: 4px; margin-top: 8px; overflow: hidden; background: var(--mist-200); }
+    .track > span { display: block; height: 100%; background: var(--teal); }
+
+    .rail-kicker {
+      margin: 0 0 10px;
+      color: var(--navy-700);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .settlement {
+      padding: 13px 0 14px;
+      border-top: 2px solid var(--navy-900);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .settled-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--teal-dark);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .settled-label svg { width: 14px; height: 14px; }
+
+    .due {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .due strong {
+      color: var(--navy-950);
+      font-size: 29px;
+      line-height: 1;
+      letter-spacing: -.045em;
+    }
+
+    .due span { color: var(--muted); font-size: 10px; font-weight: 700; }
+    .paid-copy { margin: 7px 0 0; color: var(--muted); font-size: 10px; }
+
+    .payment-track { height: 6px; margin-top: 11px; background: var(--mist-200); }
+    .payment-track span { display: block; width: 100%; height: 100%; background: var(--teal); }
+
+    .rail-section {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .rail-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+
+    .rail-heading h3 {
+      margin: 0;
+      color: var(--navy-700);
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .payment-method {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--navy-800);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .payment-method svg { width: 13px; height: 13px; color: var(--teal); }
+
+    .money-list { margin: 0; }
+    .money-line {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 25px;
+    }
+
+    .money-line dt { margin: 0; color: var(--muted); font-size: 10px; }
+    .money-line dd { margin: 0; color: var(--navy-950); font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .money-line.total { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--mist-300); }
+    .money-line.total dt, .money-line.total dd { color: var(--navy-950); font-weight: 850; }
+    .money-line.charge { margin-top: 5px; padding-top: 9px; border-top: 1px solid var(--mist-300); }
+    .money-line.charge dt, .money-line.charge dd { color: var(--teal-dark); font-weight: 850; }
+
+    .balance-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 11px;
+      border: 1px solid #b8d7d4;
+      background: var(--teal-soft);
+    }
+
+    .balance-box span { color: #4a6d6a; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+    .balance-box strong { color: var(--teal-dark); font-size: 17px; }
+
+    .sheet-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 58px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--line);
+      background: var(--white);
+    }
+
+    .footer-note { color: var(--muted); font-size: 10px; }
+    .footer-actions { display: flex; gap: 7px; }
+    .footer-actions .btn { min-width: 88px; min-height: 34px; padding: 0 13px; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      z-index: 20;
+      transform: translate(-50%, 12px);
+      padding: 9px 13px;
+      border: 1px solid var(--navy-700);
+      border-radius: 5px;
+      background: var(--navy-950);
+      color: var(--white);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .16s ease, transform .16s ease;
+      font-size: 11px;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    .delivery-dialog {
+      width: min(420px, calc(100vw - 28px));
+      padding: 0;
+      border: 1px solid var(--mist-300);
+      border-radius: 8px;
+      color: var(--ink);
+      background: var(--white);
+      box-shadow: 0 24px 70px rgba(13, 32, 50, .28);
+    }
+
+    .delivery-dialog::backdrop { background: rgba(13, 32, 50, .46); }
+    .dialog-head { padding: 17px 18px 14px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { margin: 0; color: var(--navy-950); font-size: 16px; }
+    .dialog-head p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+    .dialog-body { display: grid; gap: 17px; padding: 18px; }
+    .field-label { display: block; margin-bottom: 7px; color: var(--navy-700); font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .delivery-options { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .delivery-choice { min-height: 42px; border: 1px solid var(--line); border-radius: 5px; background: var(--white); color: var(--navy-900); font-weight: 800; }
+    .delivery-choice[aria-pressed="true"] { border-color: var(--teal); background: var(--teal-soft); color: var(--teal-dark); box-shadow: inset 0 0 0 1px var(--teal); }
+    .date-input { width: 100%; min-height: 42px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 5px; color: var(--navy-950); background: var(--white); }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 13px 18px; border-top: 1px solid var(--line); background: var(--mist-50); }
+    .dialog-actions .btn { min-width: 88px; padding: 0 13px; }
+
+    @media (max-width: 720px) {
+      .stage { padding: 0; width: 100%; }
+      .annotation { width: 100%; margin: 0; border-width: 0 0 1px; }
+      .sheet { width: 100%; height: calc(100vh - 53px); min-height: 540px; border: 0; box-shadow: none; }
+    }
+
+    @media (max-width: 560px) {
+      .annotation { align-items: flex-start; padding: 8px 12px; }
+      .annotation-list { gap: 2px 10px; }
+      .annotation-list li { white-space: nowrap; }
+      .sheet { width: 100vw; max-width: 100vw; height: calc(100vh - 64px); }
+      .sheet-header { padding: 14px 14px 12px; }
+      h1 { font-size: 18px; }
+      .title-row { flex-wrap: wrap; }
+      .title-meta { flex-wrap: wrap; gap: 4px 7px; }
+      .priority { min-height: 30px; padding: 0 8px; }
+      .tabs-wrap { padding-inline: 8px; }
+      .action-bar { padding: 9px 10px; }
+      .btn { min-height: 40px; }
+      .command-grid { display: block; }
+      .operations { padding: 16px 14px 24px; border-right: 0; }
+      .finance-rail { position: static; padding: 17px 14px 24px; border-top: 7px solid var(--mist-200); }
+      .sheet-footer { padding: 9px 10px; }
+      .footer-note { display: none; }
+      .footer-actions { width: 100%; }
+      .footer-actions .btn { flex: 1; min-height: 40px; }
+    }
+
+    @media (max-width: 390px) {
+      body { font-size: 12px; }
+      .annotation { min-height: 58px; }
+      .sheet { height: calc(100vh - 58px); }
+      .eyebrow { font-size: 8px; }
+      .title-row { gap: 8px; }
+      .title-meta .hide-compact { display: none; }
+      .tab { padding-inline: 9px; }
+      .facts { gap: 0 12px; }
+      .mini-flow { grid-template-columns: 1fr; gap: 0; }
+      .action-bar .btn span { font-size: 11px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <aside class="annotation" aria-label="Design concept annotation">
+      <strong>Split Command Center</strong>
+      <ul class="annotation-list">
+        <li>Identity before detail</li>
+        <li>Actions stay within reach</li>
+        <li>Money holds its own rail</li>
+      </ul>
+    </aside>
+
+    <article class="sheet" aria-labelledby="sales-title">
+      <header class="sheet-header">
+        <p class="eyebrow">Sales overview · Order</p>
+        <div class="title-row">
+          <div>
+            <h1 id="sales-title">09397LM <span aria-hidden="true">|</span> Roberto Lorenzo</h1>
+            <div class="title-meta">
+              <span>Awaiting production</span>
+              <span class="meta-separator" aria-hidden="true">•</span>
+              <span>Inbound: No status</span>
+              <span class="meta-separator hide-compact" aria-hidden="true">•</span>
+              <span class="hide-compact">Updated 15h ago</span>
+            </div>
+          </div>
+          <button class="priority" type="button" data-action="Priority is Normal" aria-label="Order priority: Normal">
+            <span class="flag-dot" aria-hidden="true"></span>
+            Normal
+          </button>
+        </div>
+      </header>
+
+      <nav class="tabs-wrap" aria-label="Sales overview tabs">
+        <div class="tabs" role="tablist">
+          <button class="tab" type="button" role="tab" aria-selected="true">General</button>
+          <button class="tab" type="button" role="tab" aria-selected="false">Products</button>
+          <button class="tab" type="button" role="tab" aria-selected="false">Transactions</button>
+          <button class="tab" type="button" role="tab" aria-selected="false">Activity</button>
+        </div>
+      </nav>
+
+      <div class="sheet-scroll">
+        <div class="action-bar" aria-label="Order actions">
+          <button class="btn primary" type="button" data-action="Preview opened">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+            <span>Preview</span>
+          </button>
+          <button class="btn" type="button" data-action="Edit order opened">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m14 5 5 5M4 20l3.5-.8L19 7.7 15.3 4 3.8 15.5 3 20Z"/></svg>
+            <span>Edit</span>
+          </button>
+          <button class="btn" type="button" data-action="More actions opened" aria-haspopup="menu">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            <span>More</span>
+          </button>
+        </div>
+
+        <div class="command-grid">
+          <div class="operations">
+            <section class="section" aria-labelledby="customer-heading">
+              <div class="section-heading">
+                <h2 id="customer-heading">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                  Customer
+                </h2>
+                <button class="address-toggle" id="address-toggle" type="button" aria-expanded="false" aria-controls="address-panel">
+                  Addresses
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+              </div>
+              <p class="customer-name">Roberto Lorenzo</p>
+              <a class="customer-phone" href="tel:+17863254715">
+                <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.7 19.7 0 0 1-8.6-3.1 19.3 19.3 0 0 1-6-6A19.7 19.7 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2.1Z"/></svg>
+                786-325-4715
+              </a>
+              <div class="address-panel" id="address-panel" hidden>
+                <div class="address-row"><strong>Billing</strong><span>Roberto Lorenzo · No billing address on file</span></div>
+                <div class="address-row"><strong>Shipping</strong><span>Roberto Lorenzo · No shipping address on file</span></div>
+              </div>
+              <div class="status-banner">
+                <div>
+                  <strong>Awaiting production</strong>
+                </div>
+                <span class="badge">Order</span>
+              </div>
+            </section>
+
+            <section class="section" aria-labelledby="order-heading">
+              <div class="section-heading">
+                <h2 id="order-heading">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h6"/></svg>
+                  Order details
+                </h2>
+              </div>
+              <dl class="facts">
+                <div class="fact"><dt>Order number</dt><dd>09397LM</dd></div>
+                <div class="fact"><dt>Age</dt><dd>15h</dd></div>
+                <div class="fact"><dt>Type</dt><dd>Order</dd></div>
+                <div class="fact"><dt>Inbound status</dt><dd>No status</dd></div>
+                <div class="fact"><dt>P.O. number</dt><dd><input class="inline-input" id="po-number" type="text" value="" placeholder="Add P.O." aria-label="P.O. number"></dd></div>
+                <div class="fact"><dt>Sales representative</dt><dd>Leydiana Martin (LM)</dd></div>
+                <div class="fact fact-wide">
+                  <dt>Delivery option</dt>
+                  <dd class="delivery-control">
+                    <span class="delivery-value" id="delivery-type">Pickup</span>
+                    <button class="mini-edit" id="open-delivery" type="button" aria-label="Change delivery option and date">
+                      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m14 5 5 5M4 20l3.5-.8L19 7.7 15.3 4 3.8 15.5 3 20Z"/></svg>
+                    </button>
+                    <span class="inline-separator" aria-hidden="true">·</span>
+                    <button class="date-link" id="delivery-date" type="button">Set date</button>
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="section" aria-labelledby="special-heading">
+              <div class="section-heading">
+                <h2 id="special-heading">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 2.4 4.9L20 9l-4 3.9.9 5.6-4.9-2.6-4.9 2.6.9-5.6L4 9l5.6-1.1Z"/></svg>
+                  Fulfillment signal
+                </h2>
+              </div>
+              <div class="special-order">
+                <strong>Special Order</strong>
+                <span class="badge" id="fulfillment-badge">Pickup</span>
+              </div>
+            </section>
+
+            <section class="section" aria-labelledby="progress-heading">
+              <div class="section-heading">
+                <h2 id="progress-heading">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+                  Operations
+                </h2>
+              </div>
+              <div class="mini-flow">
+                <div class="flow-item">
+                  <div class="flow-top"><strong>Production</strong><span>Awaiting</span></div>
+                  <div class="track" aria-label="Production progress 0 percent"><span style="width: 0%"></span></div>
+                </div>
+                <div class="flow-item">
+                  <div class="flow-top"><strong>Shipping</strong><span>Pending</span></div>
+                  <div class="track" aria-label="Shipping progress 0 percent"><span style="width: 0%"></span></div>
+                </div>
+                <div class="flow-item">
+                  <div class="flow-top"><strong>Payment</strong><span>Complete</span></div>
+                  <div class="track" aria-label="Payment progress 100 percent"><span style="width: 100%"></span></div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <aside class="finance-rail" aria-label="Financial summary">
+            <p class="rail-kicker">Financial control</p>
+            <div class="settlement">
+              <div class="settled-label">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/></svg>
+                Settled
+              </div>
+              <div class="due"><strong>$0</strong><span>due now</span></div>
+              <p class="paid-copy">$2,459.35 paid of $2,459.35</p>
+              <div class="payment-track" aria-label="Invoice is 100 percent settled"><span></span></div>
+            </div>
+
+            <section class="rail-section" aria-labelledby="invoice-heading">
+              <div class="rail-heading">
+                <h3 id="invoice-heading">Invoice</h3>
+                <span class="payment-method">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                  Credit Card
+                </span>
+              </div>
+              <dl class="money-list">
+                <div class="money-line"><dt>Subtotal</dt><dd>$2,298.46</dd></div>
+                <div class="money-line"><dt>Tax</dt><dd>$160.89</dd></div>
+                <div class="money-line total"><dt>Total</dt><dd>$2,459.35</dd></div>
+                <div class="money-line"><dt>Paid</dt><dd>$2,459.35</dd></div>
+                <div class="money-line"><dt>Credit Card</dt><dd>$2,459.35</dd></div>
+              </dl>
+            </section>
+
+            <section class="rail-section" aria-labelledby="card-heading">
+              <div class="rail-heading"><h3 id="card-heading">Card settlement</h3></div>
+              <dl class="money-list">
+                <div class="money-line"><dt>C.C.C</dt><dd>$73.78</dd></div>
+                <div class="money-line charge"><dt>Total charged</dt><dd>$2,533.13</dd></div>
+                <div class="money-line"><dt>Card Payments Made</dt><dd>2</dd></div>
+              </dl>
+              <div class="balance-box"><span>Balance</span><strong>$0</strong></div>
+            </section>
+          </aside>
+        </div>
+      </div>
+
+      <footer class="sheet-footer">
+        <span class="footer-note">Order 09397LM · Roberto Lorenzo</span>
+        <div class="footer-actions">
+          <button class="btn" type="button" data-action="More actions opened">More</button>
+          <button class="btn primary" type="button" data-action="Preview opened">Preview</button>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <dialog class="delivery-dialog" id="delivery-dialog" aria-labelledby="delivery-dialog-title">
+    <form method="dialog" id="delivery-form">
+      <div class="dialog-head">
+        <h2 id="delivery-dialog-title">Delivery option</h2>
+        <p>Choose pickup or delivery, then set the service date.</p>
+      </div>
+      <div class="dialog-body">
+        <div>
+          <span class="field-label">Fulfillment type</span>
+          <div class="delivery-options" role="group" aria-label="Fulfillment type">
+            <button class="delivery-choice" type="button" data-delivery-choice="Pickup" aria-pressed="true">Pickup</button>
+            <button class="delivery-choice" type="button" data-delivery-choice="Delivery" aria-pressed="false">Delivery</button>
+          </div>
+        </div>
+        <label>
+          <span class="field-label">Service date</span>
+          <input class="date-input" id="delivery-date-input" type="date">
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="cancel-delivery">Cancel</button>
+        <button class="btn primary" type="submit" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" role="status" aria-live="polite"></div>
+  <script>
+    const toast = document.querySelector('.toast');
+    let toastTimer;
+    document.querySelectorAll('[data-action]').forEach((button) => {
+      button.addEventListener('click', () => {
+        toast.textContent = button.dataset.action;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+      });
+    });
+
+    document.querySelectorAll('[role="tab"]').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('[role="tab"]').forEach((item) => item.setAttribute('aria-selected', 'false'));
+        tab.setAttribute('aria-selected', 'true');
+        toast.textContent = `${tab.textContent.trim()} tab selected`;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+      });
+    });
+
+    const addressToggle = document.querySelector('#address-toggle');
+    const addressPanel = document.querySelector('#address-panel');
+    addressToggle.addEventListener('click', () => {
+      const expanded = addressToggle.getAttribute('aria-expanded') === 'true';
+      addressToggle.setAttribute('aria-expanded', String(!expanded));
+      addressPanel.hidden = expanded;
+    });
+
+    const poNumber = document.querySelector('#po-number');
+    poNumber.addEventListener('change', () => {
+      toast.textContent = poNumber.value.trim() ? `P.O. ${poNumber.value.trim()} saved` : 'P.O. number cleared';
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+    });
+
+    const deliveryDialog = document.querySelector('#delivery-dialog');
+    const deliveryForm = document.querySelector('#delivery-form');
+    const deliveryType = document.querySelector('#delivery-type');
+    const deliveryDate = document.querySelector('#delivery-date');
+    const fulfillmentBadge = document.querySelector('#fulfillment-badge');
+    const deliveryDateInput = document.querySelector('#delivery-date-input');
+    const deliveryChoices = [...document.querySelectorAll('[data-delivery-choice]')];
+    let pendingDeliveryType = 'Pickup';
+
+    const openDeliveryDialog = () => {
+      pendingDeliveryType = deliveryType.textContent.trim();
+      deliveryChoices.forEach((choice) => choice.setAttribute('aria-pressed', String(choice.dataset.deliveryChoice === pendingDeliveryType)));
+      deliveryDialog.showModal();
+    };
+
+    document.querySelector('#open-delivery').addEventListener('click', openDeliveryDialog);
+    deliveryDate.addEventListener('click', openDeliveryDialog);
+    deliveryChoices.forEach((choice) => {
+      choice.addEventListener('click', () => {
+        pendingDeliveryType = choice.dataset.deliveryChoice;
+        deliveryChoices.forEach((item) => item.setAttribute('aria-pressed', String(item === choice)));
+      });
+    });
+    document.querySelector('#cancel-delivery').addEventListener('click', () => deliveryDialog.close('cancel'));
+    deliveryForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      deliveryType.textContent = pendingDeliveryType;
+      fulfillmentBadge.textContent = pendingDeliveryType;
+      if (deliveryDateInput.value) {
+        const selected = new Date(`${deliveryDateInput.value}T12:00:00`);
+        deliveryDate.textContent = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(selected);
+      } else {
+        deliveryDate.textContent = 'Set date';
+      }
+      deliveryDialog.close('save');
+      toast.textContent = `${pendingDeliveryType} details updated`;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+    });
+  </script>
+</body>
+</html>

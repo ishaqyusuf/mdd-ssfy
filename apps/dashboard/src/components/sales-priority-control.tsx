@@ -1,9 +1,9 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { cva } from "class-variance-authority";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import {
 	Select,
@@ -13,13 +13,14 @@ import {
 	SelectValue,
 } from "@gnd/ui/select";
 import { toast } from "@gnd/ui/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
 	SALES_PRIORITY_OPTIONS,
+	type SalesPriorityValue,
 	getSalesPriorityLabel,
 	normalizeSalesPriority,
-	type SalesPriorityValue,
 } from "@sales/priority";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { cva } from "class-variance-authority";
 
 function salesPriorityTone(priority?: string | null) {
 	switch (normalizeSalesPriority(priority)) {
@@ -106,9 +107,9 @@ function useUpdateSalesPriority({
 						queryKey: trpc.sales.productionDashboardV2.pathKey(),
 					}),
 				]);
-					const priority = (
-						variables as { priority?: SalesPriorityValue } | undefined
-					)?.priority;
+				const priority = (
+					variables as { priority?: SalesPriorityValue } | undefined
+				)?.priority;
 				toast({
 					title: "Priority updated.",
 					description: `Sales order priority is now ${getSalesPriorityLabel(priority)}.`,
@@ -123,17 +124,21 @@ export function SalesPrioritySelect({
 	salesId,
 	orderId,
 	priority,
+	triggerClassName,
+	showBadge = true,
 }: {
 	salesId?: number | null;
 	orderId?: string | null;
 	priority?: string | null;
+	triggerClassName?: string;
+	showBadge?: boolean;
 }) {
 	const updatePriority = useUpdateSalesPriority({ salesId, orderId });
 	const value = normalizeSalesPriority(priority);
 
 	return (
 		<div className="flex items-center gap-2">
-			<SalesPriorityBadge priority={value} />
+			{showBadge ? <SalesPriorityBadge priority={value} /> : null}
 			<Select
 				value={value}
 				onValueChange={(nextPriority) => {
@@ -145,7 +150,9 @@ export function SalesPrioritySelect({
 				}}
 				disabled={updatePriority.isPending}
 			>
-				<SelectTrigger className="h-8 w-[136px] rounded-xl">
+				<SelectTrigger
+					className={cn("h-8 w-[136px] rounded-xl", triggerClassName)}
+				>
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>

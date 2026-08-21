@@ -21,6 +21,7 @@ import {
     SalesFormHeaderActions,
     SalesFormShell,
     normalizeSalesFormInitialCustomerId,
+    salesFormPaymentMethods,
 } from "@gnd/sales/sales-form";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -273,14 +274,9 @@ type PackingDispatch = {
     deliveryMode?: string | null;
 };
 
-const PAYMENT_METHODS = [
-    "Cash",
-    "Check",
-    "Credit Card",
-    "ACH",
-    "Link",
-    "Wire Transfer",
-];
+const PAYMENT_METHODS = salesFormPaymentMethods.filter(
+    (method) => method !== "None",
+);
 
 function normalizeDispatchStatus(status?: string | null): DispatchStatus {
     switch (status) {

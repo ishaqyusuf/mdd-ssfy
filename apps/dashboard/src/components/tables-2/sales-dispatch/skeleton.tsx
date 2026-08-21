@@ -4,15 +4,20 @@ import { TableSkeleton } from "@/components/tables-2/core";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import type { TableSettings } from "@/utils/table-settings";
 
-import { columns, driverColumns } from "./columns";
+import { columns, compactColumns, driverColumns } from "./columns";
 
-const tableConfig = TABLE_CONFIGS["sales-dispatch"];
+const defaultTableConfig = TABLE_CONFIGS["sales-dispatch"];
+const compactTableConfig = {
+	...defaultTableConfig,
+	rowHeight: TABLE_CONFIGS["sales-orders"].rowHeight,
+};
 
 type Props = {
 	initialSettings?: Partial<TableSettings>;
 	rowCount?: number;
 	isEmpty?: boolean;
 	driver?: boolean;
+	compact?: boolean;
 };
 
 export function SalesDispatchSkeleton({
@@ -20,10 +25,18 @@ export function SalesDispatchSkeleton({
 	rowCount,
 	isEmpty,
 	driver,
+	compact = false,
 }: Props) {
+	const tableConfig = compact ? compactTableConfig : defaultTableConfig;
+	const resolvedColumns = driver
+		? driverColumns
+		: compact
+			? compactColumns
+			: columns;
+
 	return (
 		<TableSkeleton
-			columns={driver ? driverColumns : columns}
+			columns={resolvedColumns}
 			rowCount={rowCount}
 			isEmpty={isEmpty}
 			columnVisibility={initialSettings?.columns}

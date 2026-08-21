@@ -43,6 +43,49 @@ export function normalizeSalesPrintSettings(
 	return parsed.success ? parsed.data : DEFAULT_SALES_PRINT_SETTINGS;
 }
 
+export const salesOverviewGeneralVersionSchema = z.enum(["v1", "v2"]);
+
+export const salesOverviewSuperAdminPreviewSchema = z.enum([
+	"inherit",
+	"v1",
+	"v2",
+]);
+
+export const salesOverviewViewSettingsSchema = z.object({
+	officeDefault: salesOverviewGeneralVersionSchema.default("v1"),
+	superAdminPreview: salesOverviewSuperAdminPreviewSchema.default("v2"),
+});
+
+export type SalesOverviewGeneralVersion = z.infer<
+	typeof salesOverviewGeneralVersionSchema
+>;
+export type SalesOverviewViewSettings = z.infer<
+	typeof salesOverviewViewSettingsSchema
+>;
+
+export const DEFAULT_SALES_OVERVIEW_VIEW_SETTINGS: SalesOverviewViewSettings = {
+	officeDefault: "v1",
+	superAdminPreview: "v2",
+};
+
+export function normalizeSalesOverviewViewSettings(
+	value?: unknown,
+): SalesOverviewViewSettings {
+	const parsed = salesOverviewViewSettingsSchema.safeParse(value);
+	return parsed.success ? parsed.data : DEFAULT_SALES_OVERVIEW_VIEW_SETTINGS;
+}
+
+export function resolveSalesOverviewGeneralVersion(input: {
+	isSuperAdmin: boolean;
+	settings?: unknown;
+}): SalesOverviewGeneralVersion {
+	const settings = normalizeSalesOverviewViewSettings(input.settings);
+	if (!input.isSuperAdmin || settings.superAdminPreview === "inherit") {
+		return settings.officeDefault;
+	}
+	return settings.superAdminPreview;
+}
+
 export const specialOrderEnforcementModeSchema = z.enum([
 	"WARNING_ONLY",
 	"BLOCK_PURCHASING_AND_PRODUCTION",

@@ -625,6 +625,7 @@ export async function getSalesFinanceTransactionDetail(
 
 	return {
 		...applySalesFinanceReconciliation(projected, events),
+		hasSquarePayment: Boolean(row.squarePayment),
 		reconciliationHistory: events
 			.slice()
 			.reverse()

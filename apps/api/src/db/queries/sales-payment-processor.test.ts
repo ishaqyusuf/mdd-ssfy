@@ -354,11 +354,18 @@ describe("verifySalesPaymentProcessorTerminalSettlement", () => {
 describe("terminal settlement persistence", () => {
 	it("claims pending and finalizes completed Square rows with the terminal tip", async () => {
 		const updates: unknown[] = [];
+		const orderLinks: unknown[] = [];
 		const db = {
 			squarePayments: {
 				updateMany: async (request: unknown) => {
 					updates.push(request);
 					return { count: 1 };
+				},
+			},
+			squarePaymentOrders: {
+				createMany: async (request: unknown) => {
+					orderLinks.push(request);
+					return { count: 2 };
 				},
 			},
 		};
@@ -372,6 +379,7 @@ describe("terminal settlement persistence", () => {
 		await completeSalesPaymentProcessorTerminalSettlement(
 			db as never,
 			settlement,
+			[10, 11],
 		);
 
 		expect(updates).toEqual([
@@ -402,6 +410,14 @@ describe("terminal settlement persistence", () => {
 					status: "COMPLETED",
 					tip: 4.25,
 				},
+			},
+		]);
+		expect(orderLinks).toEqual([
+			{
+				data: [
+					{ orderId: 10, squarePaymentId: "square-payment-row-1" },
+					{ orderId: 11, squarePaymentId: "square-payment-row-1" },
+				],
 			},
 		]);
 	});

@@ -9,12 +9,9 @@ import {
 import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
 import type { PageFilterData } from "@api/type";
-import { Button } from "@gnd/ui/button";
-import { cn } from "@gnd/ui/cn";
 import { getStatusFilterOptionColor } from "@gnd/utils/filter-option-colors";
 import { resolveSalesProductionWorkspaceQuery } from "@sales/production-workspace-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { CalendarDays, List } from "lucide-react";
 
 import type { FilterDefinition } from "../midday-search-filter/filter-definitions";
 import { SearchFilterTRPC } from "../midday-search-filter/search-filter-trpc";
@@ -44,6 +41,7 @@ const workspaceFilters = [
 			{ label: "Overdue", value: "overdue" },
 			{ label: "Today", value: "today" },
 			{ label: "Tomorrow", value: "tomorrow" },
+			{ label: "Unscheduled", value: "unscheduled" },
 		].map((option) => ({
 			...option,
 			color: getStatusFilterOptionColor(option.value),
@@ -81,6 +79,7 @@ type DashboardSummary = {
 	summary: {
 		queueCount: number;
 		dueTodayCount: number;
+		unscheduledCount: number;
 		pastDueCount: number;
 		awaitingReviewCount: number;
 		completedCount: number;
@@ -120,6 +119,8 @@ export function SalesProductionHeader() {
 	const hiddenFilterKeys = [
 		"tab",
 		"view",
+		"calendarView",
+		"calendarDate",
 		"production",
 		...(isReview
 			? [
@@ -150,17 +151,14 @@ export function SalesProductionHeader() {
 					pageTabs={
 						<PageTabs
 							portal={false}
-							allTitle="Active"
-							allCount={dashboard.summary.queueCount}
-							allActiveParam={{
-								key: "tab",
-								value: "queue",
-							}}
+							showAll={false}
 							activeParams={{
-								tab: resolved.tab,
+								tab: isCalendar ? "calendar" : resolved.tab,
 								view: resolved.view,
 								production: null,
 								productionDueDate: null,
+								calendarView: null,
+								calendarDate: null,
 								show: null,
 								label: null,
 								...(isReview
@@ -178,73 +176,16 @@ export function SalesProductionHeader() {
 										: {}),
 							}}
 							tabs={pageTabs}
-							maxVisible={{ base: 3, lg: 5, "2xl": 5 }}
+							maxVisible={{ base: 3, lg: 7, "2xl": 7 }}
 						/>
 					}
 					toolbarActions={
-						<>
-							{!isReview && !isCompleted ? (
-								<SalesProductionDisplayToggle isCalendar={isCalendar} />
-							) : null}
-							{!isReview && !isCalendar ? (
-								<SalesProductionColumnVisibility />
-							) : null}
-						</>
+						!isReview && !isCalendar ? (
+							<SalesProductionColumnVisibility />
+						) : null
 					}
 				/>
 			</SearchFilterProvider>
-		</div>
-	);
-}
-
-function SalesProductionDisplayToggle({
-	isCalendar,
-}: {
-	isCalendar: boolean;
-}) {
-	const { setFilters } = useSalesProductionFilterParams();
-
-	return (
-		<div className="inline-flex h-9 items-center rounded-md border bg-muted/60 p-0.5">
-			<Button
-				type="button"
-				size="sm"
-				variant={isCalendar ? "ghost" : "secondary"}
-				aria-pressed={!isCalendar}
-				onClick={() => setFilters({ tab: "queue", view: "table" })}
-				className={cn(
-					"h-8 gap-1.5 rounded-sm px-2",
-					!isCalendar && "bg-background shadow-xs",
-				)}
-			>
-				<List className="size-4" />
-				<span className="hidden xl:inline">Table</span>
-			</Button>
-			<Button
-				type="button"
-				size="sm"
-				variant={isCalendar ? "secondary" : "ghost"}
-				aria-pressed={isCalendar}
-				onClick={() =>
-					setFilters({
-						tab: "queue",
-						view: "calendar",
-						queue: null,
-						due: null,
-						material: null,
-						sort: null,
-						show: null,
-						productionDueDate: null,
-					})
-				}
-				className={cn(
-					"h-8 gap-1.5 rounded-sm px-2",
-					isCalendar && "bg-background shadow-xs",
-				)}
-			>
-				<CalendarDays className="size-4" />
-				<span className="hidden xl:inline">Calendar</span>
-			</Button>
 		</div>
 	);
 }

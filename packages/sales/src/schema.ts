@@ -422,7 +422,10 @@ export const salesProductionQueryParamsSchema = z
 			])
 			.optional()
 			.nullable(),
-		due: z.enum(["overdue", "today", "tomorrow"]).optional().nullable(),
+		due: z
+			.enum(["overdue", "today", "tomorrow", "unscheduled"])
+			.optional()
+			.nullable(),
 		date: productionCalendarDateSchema.optional().nullable(),
 		material: z
 			.enum(["available", "review", "blocked", "unavailable"])
@@ -443,7 +446,7 @@ export const salesProductionQueryParamsSchema = z
 		"sales.priority": salesPrioritySchema.optional().nullable(),
 		salesNo: z.string().optional().nullable(),
 		show: z
-			.enum(["due-today", "due-tomorrow", "past-due"])
+			.enum(["due-today", "due-tomorrow", "past-due", "future", "unscheduled"])
 			.optional()
 			.nullable(),
 	})

@@ -1,5 +1,6 @@
 # Daily Codebase Review Index
 
+- [2026-08-21](./2026-08-21.md) - Typecheck still fails in `@gnd/utils`; top risks are public task/scheduler controls, broad public operational reads and checkout/device-code side effects, inventory release evidence, mock Active Sessions, and dealer/mobile manufacturing-readiness gaps.
 - [2026-08-18](./2026-08-18.md) - Typecheck still fails in `@gnd/utils`; top risks are public task/scheduler controls, public checkout/Square side effects, broad public org/filter/HRM reads, dispatch cancel payload drift, and mock Active Sessions.
 - [2026-08-17](./2026-08-17.md) - Typecheck still fails in `@gnd/utils`; top risks remain public generic task execution, public scheduler controls, public Square/payment side effects, public office/filter reads, and mock Active Sessions.
 - [2026-08-16](./2026-08-16.md) - Typecheck still fails in `@gnd/utils`; Special Order stays retired as missing work, while top risks are public task/scheduler controls, public payment/Square side effects, public office/filter reads, and mock Active Sessions.

@@ -39,6 +39,7 @@ type SalesOverviewPaymentMethodSelectProps = {
 	value?: string | null;
 	disabled?: boolean;
 	className?: string;
+	variant?: "row" | "inline";
 };
 
 export function SalesOverviewPaymentMethodSelect({
@@ -46,6 +47,7 @@ export function SalesOverviewPaymentMethodSelect({
 	value,
 	disabled,
 	className,
+	variant = "row",
 }: SalesOverviewPaymentMethodSelectProps) {
 	const trpc = useTRPC();
 	const selectedValue = formatPaymentMethod(value);
@@ -69,6 +71,40 @@ export function SalesOverviewPaymentMethodSelect({
 		}),
 	);
 	const isDisabled = disabled || !salesId || updatePaymentMethod.isPending;
+	const control = isDisabled ? (
+		<span className="text-sm font-medium">{selectedValue}</span>
+	) : (
+		<Select.Root
+			value={selectedValue}
+			onValueChange={(paymentMethod) => {
+				if (!salesId || paymentMethod === selectedValue) return;
+				updatePaymentMethod.mutate({
+					salesId,
+					paymentMethod,
+				});
+			}}
+		>
+			<Select.Trigger
+				className={cn(
+					"h-8 w-[156px] text-xs",
+					variant === "inline" && "w-auto min-w-24",
+				)}
+			>
+				<Select.Value placeholder="Payment Method" />
+			</Select.Trigger>
+			<Select.Content>
+				{options.map((method) => (
+					<Select.Item key={method} value={method}>
+						{method}
+					</Select.Item>
+				))}
+			</Select.Content>
+		</Select.Root>
+	);
+
+	if (variant === "inline") {
+		return <div className={cn("shrink-0", className)}>{control}</div>;
+	}
 
 	return (
 		<div
@@ -78,31 +114,7 @@ export function SalesOverviewPaymentMethodSelect({
 			)}
 		>
 			<span className="text-sm text-muted-foreground">Payment Method</span>
-			{isDisabled ? (
-				<span className="text-sm font-medium">{selectedValue}</span>
-			) : (
-				<Select.Root
-					value={selectedValue}
-					onValueChange={(paymentMethod) => {
-						if (!salesId || paymentMethod === selectedValue) return;
-						updatePaymentMethod.mutate({
-							salesId,
-							paymentMethod,
-						});
-					}}
-				>
-					<Select.Trigger className="h-8 w-[156px] text-xs">
-						<Select.Value placeholder="Payment Method" />
-					</Select.Trigger>
-					<Select.Content>
-						{options.map((method) => (
-							<Select.Item key={method} value={method}>
-								{method}
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Root>
-			)}
+			{control}
 		</div>
 	);
 }

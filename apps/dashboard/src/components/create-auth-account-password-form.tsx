@@ -95,7 +95,7 @@ export function CreateAuthAccountPasswordForm() {
                     asChild
                     className="h-12 w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800"
                 >
-                    <Link href="/login/v2">Back to login</Link>
+                    <Link href="/login">Back to login</Link>
                 </Button>
             </div>
         );

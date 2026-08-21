@@ -1,7 +1,7 @@
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { AuthGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
-import { SendForPackingButton } from "@/components/sales/send-for-packing-button";
+import { SendForPackingMenuItem } from "@/components/sales/send-for-packing-button";
 import { _perm } from "@/components/sidebar-links";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -9,14 +9,13 @@ import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { Button } from "@gnd/ui/button";
-import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { useSaleOverview } from "./context";
 type SalesType = "order" | "quote";
 const actionButtonClass =
-	"h-9 min-w-[7.5rem] flex-1 items-center justify-center gap-2";
+	"h-9 w-full min-w-0 items-center justify-center gap-2";
 
 export function GeneralActionBar({ type, salesNo, salesId }) {
 	const { data } = useSaleOverview() as {
@@ -64,30 +63,22 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 		});
 	}
 	return (
-		<div className="flex flex-wrap gap-2">
-			{canSendForPacking ? (
-				<SendForPackingButton
-					salesId={salesId}
-					orderNo={data?.orderId}
-					className={actionButtonClass}
-					variant="outline"
-				/>
-			) : null}
+		<div aria-label="Sales actions" className="grid grid-cols-3 gap-2">
 			<Button
-				onClick={(e) => {
+				onClick={() => {
 					preview();
 				}}
 				size="sm"
 				variant="default"
-				className={cn(actionButtonClass, "hover:bg-secondary")}
+				className={actionButtonClass}
 			>
 				<Icons.Eye className="size-3.5" />
 				<span>Preview</span>
 			</Button>
 			<Button
 				size="sm"
-				variant="secondary"
-				className={cn(actionButtonClass, "hover:bg-secondary")}
+				variant="outline"
+				className={actionButtonClass}
 				disabled={!salesNo && !data?.orderId}
 				onClick={() => {
 					openLink(
@@ -105,12 +96,12 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				<span>Edit</span>
 			</Button>
 			<SalesMenu
-				triggerVariant="secondary"
+				triggerVariant="outline"
 				trigger={
 					<Button
 						type="button"
 						size="sm"
-						variant="secondary"
+						variant="outline"
 						className={actionButtonClass}
 					>
 						<Icons.Menu className="size-3.5" />
@@ -130,6 +121,15 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 					<SalesMenu.QuoteEmailMenuItems />
 				) : (
 					<>
+						{canSendForPacking ? (
+							<>
+								<SendForPackingMenuItem
+									salesId={salesId}
+									orderNo={data?.orderId}
+								/>
+								<SalesMenu.Separator />
+							</>
+						) : null}
 						<SalesMenu.SalesEmailMenuItems />
 						<SalesMenu.MarkAs />
 						<SalesMenu.Separator />

@@ -12,7 +12,7 @@ export interface PaymentSystemNotificationEvent<
 	TPayload = Record<string, unknown>,
 > {
 	type: PaymentSystemNotificationType;
-	recipientEmployeeId: number;
+	recipientEmployeeId: number | null;
 	recipientEmail?: string | null;
 	author: PaymentSystemNotificationAuthor;
 	payload: TPayload;
@@ -25,6 +25,7 @@ export interface SalesCheckoutSuccessNotificationPayload {
 }
 
 export interface SalesPaymentRecordedNotificationPayload {
+	salesId?: number;
 	orderNo: string;
 	customerName?: string;
 	amount: number;
@@ -32,6 +33,7 @@ export interface SalesPaymentRecordedNotificationPayload {
 }
 
 export interface SalesPaymentRefundedNotificationPayload {
+	salesId?: number;
 	orderNo: string;
 	customerName?: string;
 	amount: number;
@@ -39,11 +41,12 @@ export interface SalesPaymentRefundedNotificationPayload {
 }
 
 export interface PaymentNotificationSeed {
+	salesId?: number;
 	customerId: number | null;
 	customerName?: string;
 	orderNo: string;
 	salesRepEmail?: string | null;
-	salesRepId: number;
+	salesRepId?: number | null;
 }
 
 export function buildSalesCheckoutSuccessNotificationEvent(input: {
@@ -77,13 +80,14 @@ export function buildSalesPaymentRecordedNotificationEvent(input: {
 }): PaymentSystemNotificationEvent<SalesPaymentRecordedNotificationPayload> {
 	return {
 		type: "sales_payment_recorded",
-		recipientEmployeeId: input.seed.salesRepId,
+		recipientEmployeeId: input.seed.salesRepId ?? null,
 		recipientEmail: input.seed.salesRepEmail,
 		author: {
 			id: input.seed.customerId,
 			role: "customer",
 		},
 		payload: {
+			salesId: input.seed.salesId,
 			amount: input.amount,
 			customerName: input.seed.customerName,
 			orderNo: input.seed.orderNo,
@@ -99,13 +103,14 @@ export function buildSalesPaymentRefundedNotificationEvent(input: {
 }): PaymentSystemNotificationEvent<SalesPaymentRefundedNotificationPayload> {
 	return {
 		type: "sales_payment_refunded",
-		recipientEmployeeId: input.seed.salesRepId,
+		recipientEmployeeId: input.seed.salesRepId ?? null,
 		recipientEmail: input.seed.salesRepEmail,
 		author: {
 			id: input.seed.customerId,
 			role: "customer",
 		},
 		payload: {
+			salesId: input.seed.salesId,
 			amount: input.amount,
 			customerName: input.seed.customerName,
 			orderNo: input.seed.orderNo,

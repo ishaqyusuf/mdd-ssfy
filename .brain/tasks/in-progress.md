@@ -1,5 +1,23 @@
 # In Progress
 
+### Sales Production Worker Workspace Modernization
+
+- Priority: High
+- Description: The first P2 slice is complete: canonical `/production/dashboard`
+  defaults to Due Today and exposes authenticated Calendar, Unscheduled, Past
+  Due, Future, and Completed tabs plus clickable account-scoped analytics. Its
+  compact toolbar excludes the retired saved-view/Add-tab feature. Calendar
+  reuses the admin Week/Month production calendar with server-owned worker scope
+  and contains dated work only; undated work is isolated in the shared table tab
+  on both worker and admin workspaces. The former v2 URL is now a
+  query-preserving compatibility redirect. Remaining P2 work is the worker
+  action hierarchy, mobile interruption proof, and offline-draft decision.
+- Related Feature: Sales Production Workspace
+- Status: In Progress
+- Plan Status: In Progress - Worker Tabs/Analytics/Calendar Complete; Worker Actions Pending
+- Plan File: `.brain/plans/sales-system-page-by-page-modernization/04-sales-production-admin-and-worker-plan.md`
+- Updated Date: 2026-08-21
+
 ### Vercel Function Cost Reduction And Trigger Offload
 
 - Priority: High
@@ -31,19 +49,6 @@
 - Plan File: `.brain/plans/2026-08-19-feature-new-sales-form-step-picker-parity.md`
 - Created Date: 2026-08-19
 
-- [ ] Square Refunds for Sales Wayfinder: the local map at
-  `.scratch/square-refunds/map.md` preserves the approved external-tender,
-  permission, allocation, provider-state, accounting, notification, and rollout
-  constraints. Nine dependency-wired decision tickets cover the current GND
-  path, current Square provider contract, canonical refund state machine,
-  multi-order accounting application, external-refund reconciliation,
-  permissioned Sales/Finance experience, documents/notifications/audit, and
-  rollout acceptance and the newly exposed canonical Square tender-payment
-  identity decision. Both research tickets are resolved; canonical Square
-  payment identity is now the immediate frontier and blocks the refund state
-  machine. Implementation is not authorized by this planning map. (Sales + Payments +
-  Finance + Square + Permissions + Notifications + Documents + Validation)
-
 - [ ] Special Order usability and operational-override addendum: the approved
   addendum spec and five local `ready-for-agent` implementation tickets are
   published under `.scratch/special-order-usability-override-addendum/` and
@@ -70,15 +75,21 @@
   See `.brain/features/driver-platform-revival.md` and ADR-050. (Mobile + Auth +
   API + Inventory + Runtime Validation)
 
-- [ ] Dispatch Admin and responsive driver workflow Wayfinder: a local map and
-  eleven decision tickets now cover canonical web/mobile surface ownership,
-  driver packing authority, partial-quantity semantics, protected admin
-  approval, shared lifecycle, in-app/email response, admin and driver
-  information architecture, resumable web proof, a connected prototype, and
-  compatibility cutover. The immediate frontier is Tickets 01-03; no redesign
-  implementation is authorized until the decisions are reviewed. See
-  `.scratch/dispatch-admin-responsive-driver-workflow/map.md`. (Product +
-  Dispatch + Responsive Web + Notifications + Inventory)
+- [ ] Fulfillment Admin and responsive driver implementation: the approved
+  Wayfinder and ready-for-agent specification now have 14 dependency-ordered
+  tracer-bullet tickets under
+  `.scratch/fulfillment-admin-responsive-driver-implementation/issues/`.
+  Ticket 01 now has a development-only connected prototype with shared reducer
+  state, URL-addressable admin/driver scenarios, explicit lifecycle and
+  quantity language, responsive driver actions, focused tests, and authenticated
+  browser screenshots. It remains In Progress at the required representative
+  admin/driver feedback gate. Order-grain Fulfillment and the responsive
+  assigned-driver queue follow as parallel trunks only after this review.
+  Existing Expo, Packing List, `OrderDelivery`, dispatch-bound inventory,
+  Dispatch Exception, and proof authorities remain active until their stated
+  gates pass. See `.brain/features/fulfillment-admin-responsive-driver.md` and
+  `.scratch/dispatch-admin-responsive-driver-workflow/spec.md`. (Product +
+  Dispatch + Responsive Web + Notifications + Inventory + Validation)
 
 
 - [ ] Sales Customers and Customer Overview monitored modernization: the
@@ -295,3 +306,8 @@ Tracks the active work queue. Keep this focused and execution-ready.
   browser proof for direct inbound removal/reduction, both Sales Change Review
   dispositions, activity attribution, and Sales-list recovery after inbound
   cancellation (`.brain/features/inbound-sales-adjustment-reconciliation.md`).
+- [ ] Guarded `sales.getOrders` read-model rollout: projection schema, canonical
+  Trigger builder, bounded backfill, shadow parity, revision/freshness fallback,
+  and default-sort keyset cursor are implemented behind default-off controls.
+  Remaining gates are an isolated additive migration, Trigger SDK/deployment
+  verification, backfill, shadow parity, and measured cohort cost/latency proof.

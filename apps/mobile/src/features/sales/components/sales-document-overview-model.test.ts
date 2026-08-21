@@ -277,6 +277,54 @@ describe("mobile sales document overview model", () => {
 		});
 	});
 
+	it("shows a grouped payment count only when a method was used more than once", () => {
+		const details = getSalesDocumentOverviewFinancialDetails({
+			paymentMethod: "Credit Card",
+			invoice: {
+				total: 2459.35,
+				paid: 2459.35,
+				pending: 0,
+				displayPaid: 2533.13,
+			},
+			costLines: [
+				{ label: "Order Total", amount: 2459.35 },
+				{
+					label: "Card Payment",
+					amount: 2459.35,
+					paymentMethod: "card",
+				},
+				{
+					label: "C.C.C. on Card Payment",
+					amount: 73.78,
+					paymentMethod: "card",
+				},
+				{
+					label: "Charged to Card",
+					amount: 2533.13,
+				},
+				{
+					label: "Card Payments Made",
+					amount: 2,
+					format: "count" as const,
+				},
+				{ label: "Balance Due", amount: 0 },
+			],
+		});
+
+		expect(details.ledgerRows.map((row) => row.label)).toEqual([
+			"Order Total",
+			"Card Payment",
+			"C.C.C. on Card Payment",
+			"Charged to Card",
+			"Card Payments Made",
+			"Balance Due",
+		]);
+		expect(details.ledgerRows[4]).toMatchObject({
+			format: "count",
+			value: 2,
+		});
+	});
+
 	it("keeps quote financial details ledger-only like the website finance tab", () => {
 		const details = getSalesDocumentOverviewFinancialDetails(
 			{

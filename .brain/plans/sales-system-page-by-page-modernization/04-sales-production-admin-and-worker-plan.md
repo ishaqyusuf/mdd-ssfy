@@ -29,7 +29,8 @@ review, approval, payroll, and fulfillment-release authority.
 ## Current Context
 - Admin routes include `/sales-book/productions` and
   `/sales-book/productions/v2`.
-- Worker routes include `/production/dashboard/v2`.
+- The canonical worker route is `/production/dashboard`;
+  `/production/dashboard/v2` is query-preserving compatibility only.
 - Admin and worker currently share `ProductionWorkspace` and
   `tables-2/sales-production`.
 - Current Brain decisions require assignment before material readiness,
@@ -90,6 +91,18 @@ review, approval, payroll, and fulfillment-release authority.
 - Build the `scope=mine` task hierarchy.
 - Keep admin and worker presentation separate while reusing domain contracts.
 - Validate mobile and interruption behavior.
+
+Progress (2026-08-21): the authenticated worker list now defaults to Due Today
+and exposes Calendar, Unscheduled, Past Due, Future, and Completed PageTabs.
+Summary/calendar scope is server-owned, exact calendar dates match the due
+queue, and completed rows use worker-assignment completion. The worker top area
+now follows the admin production pattern with clickable account-scoped
+analytics, a compact tabs/search toolbar, and no saved-view/Add-tab controls.
+The worker Calendar tab reuses the admin Week/Month production calendar through
+a server-owned worker projection and now contains dated work only. Both admin
+and worker workspaces isolate active assignments with no due date in the
+Unscheduled table tab. The action hierarchy, mobile interruption proof, and
+offline-safe draft decisions remain pending.
 
 ### P3 - Production Detail
 - Consolidate detail/open behavior into one URL-owned composition.

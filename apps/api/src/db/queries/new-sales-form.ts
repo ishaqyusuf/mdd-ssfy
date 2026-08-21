@@ -772,6 +772,7 @@ function toBootstrapPayload(
 					id: number;
 					deletedAt: Date | null;
 					title: string | null;
+					img: string | null;
 					value: string;
 					price: number | null;
 				} | null;
@@ -862,6 +863,7 @@ function toBootstrapPayload(
 									? {
 											id: item.housePackageTool.molding.id,
 											title: item.housePackageTool.molding.title,
+											img: item.housePackageTool.molding.img,
 											value: item.housePackageTool.molding.value,
 											price: Number(item.housePackageTool.molding.price || 0),
 										}
@@ -1412,6 +1414,7 @@ export async function getNewSalesForm(
 										id: true,
 										deletedAt: true,
 										title: true,
+										img: true,
 										value: true,
 										price: true,
 									},

@@ -13,6 +13,7 @@ import {
 	buildSalesFormSelectOptions,
 	buildSalesFormTaxSelectOptions,
 	calculateLegacyPaymentDueDate,
+	countSalesFormDeliveryCosts,
 	getDefaultSalesFormCustomerProfile,
 	hasSalesFormSummaryDrift,
 	normalizeSalesFormPaymentTerm,
@@ -23,6 +24,16 @@ import {
 	salesFormPaymentMethods,
 	salesFormPaymentTerms,
 } from "@gnd/sales/sales-form";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@gnd/ui/alert-dialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	useCustomerProfilesQuery,
@@ -65,6 +76,7 @@ export function InvoiceOverviewPanel(props: Props) {
 	const { setParams: setCreateCustomerParams } = useCreateCustomerParams();
 	const record = useNewSalesFormStore((s) => s.record);
 	const setMeta = useNewSalesFormStore((s) => s.setMeta);
+	const setDeliveryOption = useNewSalesFormStore((s) => s.setDeliveryOption);
 	const setCustomerProfileMeta = useNewSalesFormStore(
 		(s) => s.setCustomerProfileMeta,
 	);
@@ -85,6 +97,9 @@ export function InvoiceOverviewPanel(props: Props) {
 	const lastResolvedCustomerDefaultsIdRef = useRef<number | null>(null);
 
 	const [isCustomerSelectorOpen, setIsCustomerSelectorOpen] = useState(false);
+	const [pendingDeliveryOption, setPendingDeliveryOption] = useState<
+		"pickup" | null
+	>(null);
 	const customerProfiles = useCustomerProfilesQuery(true);
 	const customerTaxProfiles = useCustomerTaxProfilesQuery(true);
 	const profileOptions = useMemo(
@@ -280,6 +295,9 @@ export function InvoiceOverviewPanel(props: Props) {
 			amount: Number(cost.amount || 0),
 		}))
 		.filter((cost) => cost.type !== "Labor");
+	const deliveryCostCount = countSalesFormDeliveryCosts(
+		record?.extraCosts || [],
+	);
 	const cccPercentage = Number((record as any)?.settings?.cccPercentage ?? 3.5);
 	const showCcc =
 		String(record?.form.paymentMethod || "")
@@ -505,6 +523,39 @@ export function InvoiceOverviewPanel(props: Props) {
 
 	return (
 		<section className="space-y-6">
+			<AlertDialog
+				open={pendingDeliveryOption === "pickup"}
+				onOpenChange={(open) => {
+					if (!open) setPendingDeliveryOption(null);
+				}}
+			>
+				<AlertDialogContent size="sm">
+					<AlertDialogHeader>
+						<AlertDialogTitle>Change fulfillment to Pickup?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This change will remove {deliveryCostCount === 1 ? "the" : "all"}{" "}
+							{deliveryCostCount === 1
+								? "Delivery additional cost"
+								: `${deliveryCostCount} Delivery additional costs`}{" "}
+							from this sale.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Keep Delivery</AlertDialogCancel>
+						<AlertDialogAction
+							variant="destructive"
+							onClick={() => {
+								setDeliveryOption("pickup", {
+									removeDeliveryCosts: true,
+								});
+								setPendingDeliveryOption(null);
+							}}
+						>
+							Change to Pickup
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 			<CustomerSelectorDialog
 				mode={props.mode}
 				open={isCustomerSelectorOpen}
@@ -640,7 +691,15 @@ export function InvoiceOverviewPanel(props: Props) {
 							: {}),
 					});
 				}}
-				onDeliveryOptionChange={(value) => setMeta({ deliveryOption: value })}
+				onDeliveryOptionChange={(value) => {
+					if (value !== "delivery" && value !== "pickup") return;
+					if (value === record.form.deliveryOption) return;
+					if (value === "pickup" && deliveryCostCount > 0) {
+						setPendingDeliveryOption("pickup");
+						return;
+					}
+					setDeliveryOption(value);
+				}}
 				onGoodUntilChange={(value) =>
 					setMeta({
 						goodUntil: formDateValue(value),

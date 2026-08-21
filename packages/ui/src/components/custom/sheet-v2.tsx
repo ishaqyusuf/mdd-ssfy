@@ -101,9 +101,7 @@ function useCustomSheetContextValue(props: Props): CustomSheetContextValue {
 export function useSheetV2() {
 	const context = useContext(CustomSheetV2Context);
 	if (context === undefined) {
-		throw new Error(
-			"useSheetV2 must be used within a CustomSheetV2Provider",
-		);
+		throw new Error("useSheetV2 must be used within a CustomSheetV2Provider");
 	}
 	return context;
 }
@@ -273,11 +271,13 @@ export function CustomSheetContent({
 	children = null,
 	Header = null,
 	className = "",
+	contentClassName,
 	secondary = false,
 }: {
 	children?: ReactNode;
 	Header?: ReactNode;
 	className?: string;
+	contentClassName?: string;
 	secondary?: boolean;
 }) {
 	const sheet = useSheetV2();
@@ -297,7 +297,7 @@ export function CustomSheetContent({
 							? `${sheet.scrollContentId}-secondary`
 							: sheet.scrollContentId
 					}
-					className="flex flex-col gap-4 pb-36 sm:pb-16"
+					className={cn("flex flex-col gap-4 pb-36 sm:pb-16", contentClassName)}
 				>
 					{children}
 				</div>

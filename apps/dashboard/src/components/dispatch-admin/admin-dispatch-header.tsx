@@ -5,12 +5,10 @@ import { Icons } from "@gnd/ui/icons";
 import { DispatchAutoRefresh } from "@/components/dispatch-admin/dispatch-auto-refresh";
 import { DispatchDeletedPanel } from "@/components/dispatch-admin/dispatch-deleted-panel";
 import { DispatchExportButton } from "@/components/dispatch-admin/dispatch-export-button";
-import { fulfillmentPageTabs } from "@/components/dispatch-admin/fulfillment-tabs";
+import { FulfillmentPageTabs } from "@/components/dispatch-admin/fulfillment-page-tabs";
 import { DispatchSearchFilter } from "@/components/dispatch-search-filter";
-import { PageTabs } from "@/components/page-tabs";
 import { SalesDispatchColumnVisibility } from "@/components/tables-2/sales-dispatch/column-visibility";
 import { useAuth } from "@/hooks/use-auth";
-import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Button as Btn } from "@gnd/ui/button";
@@ -253,51 +251,18 @@ function SweeperDialog({
 }
 
 export function AdminDispatchHeader() {
-	const { filters, setFilters } = useDispatchFilterParams();
 	const [sweeperOpen, setSweeperOpen] = useState(false);
 	const [deletedOpen, setDeletedOpen] = useState(false);
-	const trpc = useTRPC();
-	const queryClient = useQueryClient();
 	const auth = useAuth();
 	const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
-
-	const currentView = filters.view ?? "table";
 
 	return (
 		<div className="min-w-0">
 			<DispatchSearchFilter
-				pageTabs={
-					<PageTabs
-						portal={false}
-						tabs={fulfillmentPageTabs}
-						allTitle="Pending"
-						allActiveParam={{ key: "tab", value: "pending" }}
-						maxVisible={{ base: 3, lg: 3, "2xl": 3 }}
-					/>
-				}
+				pageTabs={<FulfillmentPageTabs />}
 				toolbarActions={
 					<>
-						<div className="flex items-center rounded-md border overflow-hidden">
-							<Button
-								variant={currentView === "table" ? "secondary" : "ghost"}
-								size="sm"
-								className="rounded-none border-0 gap-1.5 h-8"
-								onClick={() => setFilters({ view: "table" })}
-								title="Table view"
-							>
-								<Icons.Table2 size={14} />
-							</Button>
-							<Button
-								variant={currentView === "calendar" ? "secondary" : "ghost"}
-								size="sm"
-								className="rounded-none border-0 gap-1.5 h-8 border-l"
-								onClick={() => setFilters({ view: "calendar" })}
-								title="Calendar view"
-							>
-								<Icons.LayoutGrid size={14} />
-							</Button>
-						</div>
-						{currentView === "table" && <SalesDispatchColumnVisibility />}
+						<SalesDispatchColumnVisibility />
 						<DispatchAutoRefresh />
 						<DispatchExportButton />
 						{isSuperAdmin && (

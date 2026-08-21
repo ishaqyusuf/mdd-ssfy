@@ -1,0 +1,117 @@
+model SquareTenderPayment {
+    id                    String    @id @default(cuid())
+    providerPaymentId     String    @unique @db.VarChar(191)
+    legacySquarePaymentId String?   @db.VarChar(191)
+    checkoutId            String?   @db.VarChar(191)
+    providerOrderId       String?   @db.VarChar(191)
+    source                String    @db.VarChar(50)
+    status                String    @db.VarChar(50)
+    amountCents           Int
+    tipCents              Int       @default(0)
+    currency              String    @default("USD") @db.VarChar(10)
+    locationId            String?   @db.VarChar(191)
+    paidAt                DateTime? @db.Timestamp(0)
+    verifiedAt            DateTime? @db.Timestamp(0)
+    verificationSource    String?   @db.VarChar(100)
+    meta                  Json?     @db.Json
+    createdAt             DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime  @updatedAt
+
+    refunds SalesSquareRefund[]
+
+    @@index([legacySquarePaymentId])
+    @@index([checkoutId])
+    @@index([providerOrderId])
+    @@index([status, paidAt])
+}
+
+model SalesSquareRefund {
+    id                    String    @id @default(cuid())
+    tenderPaymentId       String
+    origin                String    @default("gnd") @db.VarChar(30)
+    providerStatus        String    @default("not_submitted") @db.VarChar(50)
+    applicationStatus     String    @default("reserved") @db.VarChar(50)
+    providerRefundId      String?   @unique @db.VarChar(191)
+    idempotencyKey        String    @unique @db.VarChar(45)
+    amountCents           Int
+    principalCents        Int
+    cccCents              Int       @default(0)
+    tipCents              Int       @default(0)
+    reservedCents         Int
+    currency              String    @default("USD") @db.VarChar(10)
+    reason                String    @db.VarChar(192)
+    note                  String?   @db.Text
+    commercialActionType  String?   @db.VarChar(100)
+    commercialActionId    String?   @db.VarChar(191)
+    initiatedById         Int?
+    providerCreatedAt     DateTime? @db.Timestamp(0)
+    completedAt           DateTime? @db.Timestamp(0)
+    appliedAt             DateTime? @db.Timestamp(0)
+    failureCode           String?   @db.VarChar(100)
+    failureDetail         String?   @db.Text
+    version               Int       @default(0)
+    meta                  Json?     @db.Json
+    createdAt             DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime  @updatedAt
+    tender                SquareTenderPayment @relation(fields: [tenderPaymentId], references: [id])
+    allocations           SalesSquareRefundAllocation[]
+    transitions           SalesSquareRefundTransition[]
+
+    @@index([tenderPaymentId, providerStatus])
+    @@index([providerStatus, applicationStatus, updatedAt])
+    @@index([origin, applicationStatus])
+    @@index([initiatedById])
+}
+
+model SalesSquareRefundAllocation {
+    id                    String    @id @default(cuid())
+    refundId              String
+    salesOrderId          Int
+    originalSalesPaymentId Int?
+    appliedSalesPaymentId Int?
+    principalCents        Int
+    cccCents              Int       @default(0)
+    tipCents              Int       @default(0)
+    meta                  Json?     @db.Json
+    createdAt             DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime  @updatedAt
+    refund                SalesSquareRefund @relation(fields: [refundId], references: [id])
+
+    @@unique([refundId, salesOrderId])
+    @@index([salesOrderId, createdAt])
+    @@index([originalSalesPaymentId])
+    @@index([appliedSalesPaymentId])
+}
+
+model SalesSquareRefundTransition {
+    id                String    @id @default(cuid())
+    refundId          String
+    providerStatus    String    @db.VarChar(50)
+    applicationStatus String    @db.VarChar(50)
+    source            String    @db.VarChar(50)
+    actorId           Int?
+    eventId           String?   @db.VarChar(191)
+    message           String?   @db.Text
+    snapshot          Json?     @db.Json
+    createdAt         DateTime  @default(now()) @db.Timestamp(0)
+    refund            SalesSquareRefund @relation(fields: [refundId], references: [id])
+
+    @@index([refundId, createdAt])
+    @@index([eventId])
+}
+
+model SquareRefundWebhookEvent {
+    id               String    @id @default(cuid())
+    providerEventId  String    @unique @db.VarChar(191)
+    eventType        String    @db.VarChar(100)
+    providerRefundId String?   @db.VarChar(191)
+    payload          Json      @db.Json
+    status           String    @default("received") @db.VarChar(50)
+    processedAt      DateTime? @db.Timestamp(0)
+    failureDetail    String?   @db.Text
+    createdAt        DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime  @updatedAt
+
+    @@index([providerRefundId])
+    @@index([status, createdAt])
+}

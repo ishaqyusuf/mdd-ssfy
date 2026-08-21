@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
+	decodeSalesOrderListKeysetCursor,
+	encodeSalesOrderListKeysetCursor,
 	getOrdersCount,
 	getOrdersSchema,
 	normalizeOrderRow,
@@ -43,6 +45,22 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 }
 
 describe("sales orders default query contract", () => {
+	it("round-trips the guarded keyset cursor", () => {
+		const cursor = {
+			version: 1 as const,
+			offset: 40,
+			createdAt: "2026-08-21T08:00:00.000Z",
+			id: 901,
+		};
+
+		expect(
+			decodeSalesOrderListKeysetCursor(
+				encodeSalesOrderListKeysetCursor(cursor),
+			),
+		).toEqual(cursor);
+		expect(decodeSalesOrderListKeysetCursor("orders-k1.invalid")).toBeNull();
+	});
+
 	it("derives active and expired current Special Order links", () => {
 		const now = new Date("2026-08-14T12:00:00.000Z").getTime();
 		expect(

@@ -33,6 +33,8 @@ export const PRODUCTION_STATUS = [
 	"part assigned",
 	"due today",
 	"past due",
+	"future",
+	"unscheduled",
 	"completed",
 	"not completed",
 ] as const;
