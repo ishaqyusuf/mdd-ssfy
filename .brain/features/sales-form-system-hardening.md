@@ -107,8 +107,8 @@
   of replacing unknown metadata, and both editors hydrate the same canonical
   P.O. value.
 - Dirty form payloads are persisted to versioned local-recovery storage on
-  change and page-leave. Risky navigation warns when autosave is disabled,
-  stale, or errored.
+  change and page-leave. Navigation does not show an unsaved-changes alert;
+  snapshot capture continues silently when the user leaves the form.
 - The web new-form local-recovery alert is temporarily hidden while snapshot
   capture and restore handling remain available for a later UI re-enable.
 - The invoice-summary customer card starts expanded so billing and shipping

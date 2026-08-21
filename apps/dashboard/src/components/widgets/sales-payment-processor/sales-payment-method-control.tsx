@@ -220,7 +220,14 @@ export function SalesPaymentMethodControl({
 				)}
 			</AnimatePresence>
 			{error ? (
-				<p id={errorId} role="alert" className="text-xs text-destructive">
+				<p
+					id={errorId}
+					role="alert"
+					className={cn(
+						"text-xs text-destructive",
+						method === "check" && "sr-only",
+					)}
+				>
 					{error}
 				</p>
 			) : null}

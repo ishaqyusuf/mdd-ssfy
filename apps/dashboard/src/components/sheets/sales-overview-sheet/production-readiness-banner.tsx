@@ -23,7 +23,83 @@ export function ProductionReadinessBanner() {
 	const production = useProduction();
 	const readiness = production.readiness;
 	const query = useSalesOverviewQuery();
+	const workerMode = Boolean(query.assignedTo);
 	const reviewInventory = () => query.setParams({ salesTab: "inventory" });
+	if (workerMode) {
+		if (production.readinessLoading) return null;
+		if (production.readinessUnavailable) {
+			return (
+				<section
+					id="production-readiness"
+					className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-950"
+				>
+					<div className="flex items-start gap-3">
+						<Icons.AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-700" />
+						<div>
+							<h3 className="font-semibold">
+								Material availability could not be verified
+							</h3>
+							<p className="mt-1 text-sm text-red-900">
+								Submission is temporarily blocked until material availability
+								can be confirmed.
+							</p>
+						</div>
+					</div>
+				</section>
+			);
+		}
+		if (
+			!readiness ||
+			readiness.state === "ready" ||
+			readiness.state === "not_configured" ||
+			readiness.state === "read_only"
+		) {
+			return null;
+		}
+		const assignedItemIds = new Set(
+			(production.data?.items || [])
+				.filter(
+					(item) =>
+						Number(item?.analytics?.stats?.prodAssigned?.qty || 0) > 0,
+				)
+				.map((item) => item.itemId),
+		);
+		const relevantBlockers = readiness.blockers.filter(
+			(blocker) =>
+				blocker.salesItemId == null || assignedItemIds.has(blocker.salesItemId),
+		);
+		if (!relevantBlockers.length) return null;
+		const blockerPreview = relevantBlockers.slice(0, 3);
+		return (
+			<section
+				id="production-readiness"
+				className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-950"
+			>
+				<div className="flex min-w-0 items-start gap-3">
+					<Icons.AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-700" />
+					<div className="min-w-0">
+						<h3 className="font-semibold">Materials unavailable</h3>
+						<p className="mt-1 text-sm text-red-900">
+							Submission is blocked for affected items until the required
+							materials are available.
+						</p>
+						{blockerPreview.length ? (
+							<ul className="mt-2 space-y-1 text-xs text-red-800">
+								{blockerPreview.map((blocker, index) => (
+									<li key={`${blocker.componentId}-${index}`}>
+										{blocker.lineTitle || "Production item"}
+										{blocker.componentName
+											? ` — ${blocker.componentName}`
+											: ""}
+									</li>
+								))}
+							</ul>
+						) : null}
+					</div>
+				</div>
+			</section>
+		);
+	}
 
 	if (production.readinessLoading) {
 		return (

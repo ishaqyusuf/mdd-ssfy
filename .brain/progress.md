@@ -1,5 +1,110 @@
 # Progress
 
+- 2026-08-21: Refined Steps 4-5 of the active Vercel Function Cost Reduction
+  and Trigger Offload plan using production timeout request
+  `2tsrm-1787337006268-39a732e75b45`. The plan now distinguishes duplicate
+  pagination from a slow no-cursor initial search, requires privacy-safe timing
+  for each batched procedure and list stage, uses `q=APA` as a concrete query-
+  plan and regression fixture, calls out the 21-field cross-relation substring
+  search, prevents six repeated list/summary evaluations of the same expensive
+  predicate, and bounds saved-tab count work outside critical first paint. No
+  application code, API contract, database schema, migration, deployment, or
+  external state changed.
+
+- 2026-08-21: Flattened the production-worker Submissions UI inside Sales
+  Overview. Removed the nested assignment/form card borders, changed existing
+  submission entries to separator rows, removed the duplicate form Cancel
+  action, and reused the new Sales Form `SalesFormQuantityStepper` for bounded
+  LH/RH/general quantities. Empty handle quantities remain visible and disabled
+  as approved. Moved the production item disclosure chevron into the title row
+  and removed the worker's empty row below the subtitle. Focused validation
+  passed 9 tests plus scoped Biome and whitespace checks. Authenticated read-only
+  Chrome QA confirmed one Cancel action, bounded RH minus/plus controls, disabled
+  zero-pending LH controls, full-width Submit, and right-aligned chevron; the
+  panel was returned to Details without submitting or deleting production data.
+
+- 2026-08-21: Focused the Sales Overview Production tab for authenticated
+  production-only workers. Worker detail now scopes items to their assignments,
+  auto-expands one to three items, defaults every role to Details, replaces the
+  worker Assignments tab with `Submissions (X/Y)`, and hides admin assignment
+  progress, priority, and inventory-setup controls. Configured unavailable or
+  unverifiable materials now block worker submission in both the UI and shared
+  server authority, while missing configuration remains nonblocking and admin
+  submissions retain material review. Worker deletion is now server-bound to
+  the sale, submission author, and assignment owner, while administrators keep
+  the existing `editProduction` scope. Focused validation passed 24 tests / 79
+  assertions. Authenticated read-only Chrome QA confirmed automatic expansion,
+  selected-by-default Details, `Submissions (0/1)`, the add-submission entry
+  point, and absence of priority, assignment, and inventory-setup controls; the
+  tab was returned to Details and no production data was submitted or deleted.
+  Dashboard typecheck retains a large pre-existing error baseline; the changed
+  Sales package authority has no focused typecheck diagnostics.
+
+- 2026-08-21: Restyled the Sales Overview Production item Details/Notes/
+  Submissions-or-Assignments tabs to match the main Sales Overview tabs: compact
+  bordered rail, uppercase triggers, matching active state, and a separate
+  Submissions quantity badge. Focused coverage passed 8 tests, scoped Biome and
+  whitespace checks passed, and authenticated read-only Chrome QA confirmed the
+  live worker panel matches the main tab treatment with Details still selected.
+  No production data, API, permission, database, migration, deployment, or
+  external state changed.
+
+- 2026-08-21: Planned the Make Payment printing and payment-method control
+  redesign. The recommended print path removes the post-payment reserved tab,
+  waits for the established hidden same-page print viewer to invoke the print
+  dialog, and keeps the payment screen in `Preparing to print`; print failure
+  remains a successful payment with print-only retry. The proposed adaptive
+  method component uses a Check input group with a method-menu addon and an
+  accessible Terminal submenu showing available devices, while other methods
+  retain a compact select-shaped trigger and selected terminals show their
+  device label. The execution plan includes state, component, accessibility,
+  exactly-once, failure-recovery, test, and rollout contracts. No application
+  code, API, database, migration, permission, payment data, printing, browser
+  state, deployment, or external state changed in this planning pass.
+
+- 2026-08-21: Removed the stale development-only `controlUid` label from each
+  Sales Overview Production item card. Internal identifiers still drive item
+  selection, expansion, notes, and assignments, but the visible card now stops
+  after its actual title and subtitle. Added a focused source regression check.
+  Authenticated Chrome QA on order `09338PC` confirmed the Productions/Notes
+  order view renders the clean item card without the identifier and without
+  changing the signed-in account or any production record. No API, database,
+  migration, permission, deployment, or external state changed.
+
+- 2026-08-21: Added an effective payment date to the Sales Payment Processor.
+  The fixed action row now places an icon-only calendar group immediately before
+  Payment Method; its implicit default is today's New York business date. The
+  titled calendar permits past/today dates only, selected dates replace the icon
+  with formatted text plus an adjacent clear button, and layout changes animate
+  with reduced-motion support. Manual office payments persist one resolved
+  occurrence across legacy transactions/applications, wallet credits, and the
+  canonical mirror with separate audit metadata; Square terminal settlements
+  retain verified provider time. A browser-safe date subpath prevents Prisma
+  infrastructure from entering the client bundle. Validation passed 34 focused
+  tests / 83 assertions, Sales package typecheck, targeted Biome, and authenticated
+  browser QA for open/select/clear/future-date behavior with zero console errors;
+  no payment was submitted. No schema, migration, permission, production data,
+  deployment, or external state changed; no ADR was required because this
+  extends the existing payment occurrence contract without a new architecture.
+
+- 2026-08-21: Removed the new Sales Form's dirty-navigation confirmation so
+  operators can leave an unsaved order or quote without an alert. Versioned
+  local-recovery snapshots still persist on change, `pagehide`, and
+  `beforeunload`. Focused recovery coverage passes 5 tests / 19 assertions,
+  scoped Biome lint passes, and authenticated browser QA confirmed a dirty new
+  order navigates directly to Sales Orders with no JavaScript dialog. The broad
+  Dashboard typecheck retains unrelated existing diagnostics, including
+  pre-existing errors in the large new-sales-form component. No API, database,
+  migration, permission, production data, deployment, or external state
+  changed; no ADR was required for removing the component-local click guard.
+
+- 2026-08-21: Hid the leading dashed component `+` tile from the new sales
+  form's step component grid at the client's request. Authorized users retain
+  the permission-gated toolbar menu `Component` option, which opens the same
+  existing component creation dialog and persistence path. No API, permission,
+  database, migration, pricing, sales data, or dealership/storefront behavior
+  changed.
+
 - 2026-08-21: Hid the column-visibility selector from the authenticated worker
   Production Dashboard while retaining it on the canonical admin Production
   workspace. This is a presentation-only conditional in the shared workspace;
@@ -10661,3 +10766,18 @@
 - No schema, migration, API contract, permission, deployment, Git, or external
   state changed. No ADR was required because this extends the existing Sales
   Overview multi-pane and payment-processor contracts.
+
+## 2026-08-21 — Added adaptive Make Payment methods and hidden post-payment printing
+
+- Replaced the separate method, Check number, and terminal selectors with one
+  adaptive control after the compact payment date. Check uses a grouped menu
+  addon/input; Terminal uses an availability-aware submenu and displays the
+  selected device label.
+- Post-payment invoice and packing-slip requests now use the hidden same-page
+  viewer without reserving or opening a tab. The payment overlay remains in
+  `Preparing to print` until readiness and offers print-only retry/close after a
+  print failure without risking duplicate payment application.
+- Focused coverage passes 69 tests / 169 assertions, focused TypeScript
+  diagnostics pass for eight changed implementation files, and
+  `git diff --check` passes. Browser QA and a disposable payment were not run.
+  No API, database, permission, or ADR update was required.

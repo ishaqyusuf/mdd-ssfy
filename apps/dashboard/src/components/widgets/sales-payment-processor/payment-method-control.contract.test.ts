@@ -26,4 +26,9 @@ describe("sales payment method control contract", () => {
 		expect(source.includes("model.triggerLabel")).toBe(true);
 		expect(source.includes("Terminal Payment")).toBe(false);
 	});
+
+	it("keeps Check validation on the border without a visible error label", () => {
+		expect(source.includes('method === "check" && "sr-only"')).toBe(true);
+		expect(source.includes("aria-invalid={invalid || undefined}")).toBe(true);
+	});
 });

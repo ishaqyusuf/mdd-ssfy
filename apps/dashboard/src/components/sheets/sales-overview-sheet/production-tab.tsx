@@ -1,6 +1,5 @@
 import { DataSkeleton } from "@/components/data-skeleton";
 import { EmptyState } from "@/components/empty-state";
-import { Env } from "@/components/env";
 import { getProductionTabItems } from "@/components/sales-overview-system/lib/production-items";
 import {
 	DataSkeletonProvider,
@@ -10,7 +9,14 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useAfterTaskTrigger } from "@/hooks/use-task-trigger";
 import { cn } from "@/lib/utils";
 import { skeletonListData } from "@/utils/format";
-import React, { createContext, useContext, useState } from "react";
+import React, {
+	createContext,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 
 import {
 	Accordion,
@@ -41,9 +47,60 @@ export function ProductionTab() {
 }
 function Content() {
 	const { data, query } = useProduction();
-	const items = getProductionTabItems(data?.items);
-	const itemCount = items?.length || 0;
 	const queryCtx = useSalesOverviewQuery();
+	const workerMode = Boolean(queryCtx.assignedTo);
+	const productionItems = getProductionTabItems(data?.items);
+	const items = workerMode
+		? productionItems.filter(
+				(item) => Number(item?.analytics?.stats?.prodAssigned?.qty || 0) > 0,
+			)
+		: productionItems;
+	const itemCount = items?.length || 0;
+	const itemUidKey = items.map((item) => item.controlUid).join(",");
+	const itemUids = useMemo(
+		() => (itemUidKey ? itemUidKey.split(",") : []),
+		[itemUidKey],
+	);
+	const requestedItemUid = query.params["prod-item-view"];
+	const expansionScopeKey = `${data?.orderId || "loading"}:${itemUidKey}`;
+	const initializedExpansionKey = useRef<string | null>(null);
+	const [expandedItemUids, setExpandedItemUids] = useState<string[]>([]);
+	useEffect(() => {
+		if (
+			!data?.orderId ||
+			initializedExpansionKey.current === expansionScopeKey
+		) {
+			return;
+		}
+		initializedExpansionKey.current = expansionScopeKey;
+		setExpandedItemUids(
+			requestedItemUid && itemUids.includes(requestedItemUid)
+				? [requestedItemUid]
+				: workerMode && itemUids.length > 0 && itemUids.length < 4
+					? itemUids
+					: [],
+		);
+	}, [
+		data?.orderId,
+		expansionScopeKey,
+		itemUids,
+		requestedItemUid,
+		workerMode,
+	]);
+	const toggleItem = (itemUid: string) => {
+		const isOpen = expandedItemUids.includes(itemUid);
+		const nextExpandedItemUids = isOpen
+			? expandedItemUids.filter((uid) => uid !== itemUid)
+			: [...expandedItemUids, itemUid];
+		const nextActiveItemUid = isOpen
+			? (nextExpandedItemUids.at(-1) ?? null)
+			: itemUid;
+		setExpandedItemUids(nextExpandedItemUids);
+		queryCtx.setParams({
+			"prod-item-view": nextActiveItemUid,
+			"prod-item-tab": nextActiveItemUid ? "details" : null,
+		});
+	};
 	useAfterTaskTrigger(() => {
 		queryCtx.salesQuery.assignmentUpdated();
 	});
@@ -59,7 +116,7 @@ function Content() {
 				{itemCount > 0 ? <ProductionReadinessBanner /> : null}
 				<Accordion
 					type="multiple"
-					value={[query.params["prod-item-view"]]}
+					value={expandedItemUids}
 					className="space-y-4"
 				>
 					<EmptyState
@@ -74,7 +131,13 @@ function Content() {
 							className="h-48"
 							key={item?.controlUid || `skeleton-${i}`}
 						>
-							<ItemCard item={item} key={item?.controlUid || `item-${i}`} />
+							<ItemCard
+								item={item}
+								key={item?.controlUid || `item-${i}`}
+								onToggle={() => toggleItem(item.controlUid)}
+								opened={expandedItemUids.includes(item.controlUid)}
+								workerMode={workerMode}
+							/>
 						</DataSkeleton>
 					))}
 				</Accordion>
@@ -95,22 +158,17 @@ function useItemCardContext(item: ItemCardProps["item"]) {
 const ItemCardContext =
 	createContext<ReturnType<typeof useItemCardContext>>(null);
 export const useProductionItem = () => useContext(ItemCardContext);
-function ItemCard({ item }: ItemCardProps) {
+function ItemCard({
+	item,
+	onToggle,
+	opened,
+	workerMode,
+}: ItemCardProps & {
+	onToggle: () => void;
+	opened: boolean;
+	workerMode: boolean;
+}) {
 	const ctx = useItemCardContext(item);
-	const queryCtx = ctx.queryCtx;
-	const toggle = () => {
-		if (queryCtx.params["prod-item-view"] === item.controlUid)
-			queryCtx.setParams({
-				"prod-item-view": null,
-				"prod-item-tab": null,
-			});
-		else
-			queryCtx.setParams({
-				"prod-item-view": item.controlUid,
-				"prod-item-tab": "notes",
-			});
-	};
-	const opened = item.controlUid === queryCtx["prod-item-view"];
 	const prod = useProduction();
 
 	return (
@@ -132,7 +190,7 @@ function ItemCard({ item }: ItemCardProps) {
 				>
 					<CardHeader
 						className={cn(
-							"space-y-4 px-4 pb-2 pt-4",
+							"space-y-3 px-4 pb-2 pt-4",
 							opened && "border-b border-muted/50 bg-rose-100/20",
 						)}
 					>
@@ -154,7 +212,7 @@ function ItemCard({ item }: ItemCardProps) {
 							<button
 								type="button"
 								className="flex-1 cursor-pointer space-y-1 text-left"
-								onClick={toggle}
+								onClick={onToggle}
 							>
 								<h3 className="text-base font-semibold uppercase">
 									{item.title}
@@ -162,26 +220,21 @@ function ItemCard({ item }: ItemCardProps) {
 								<p className="font-mono$ text-sm font-semibold uppercase text-muted-foreground">
 									{item.subtitle}
 								</p>
-								<Env isDev>{item.controlUid}</Env>
 							</button>
 
-							<div className="flex items-center space-x-2">
+							<div className="flex shrink-0 items-center gap-1">
 								<AccessBased>
 									<ProductionItemMenu />
 								</AccessBased>
-							</div>
-						</div>
-						<div className="mt-4 flex  space-x-4">
-							<ItemProgressBar item={item} />
-							<div>
 								<AccordionTrigger
-									onClick={toggle}
-									className="w-auto p-0 hover:no-underline"
+									onClick={onToggle}
+									className="mt-0.5 w-auto shrink-0 rounded-sm p-1 hover:bg-muted hover:no-underline"
 								>
-									<span className="sr-only">Toggle</span>
+									<span className="sr-only">Toggle production item</span>
 								</AccordionTrigger>
 							</div>
 						</div>
+						{workerMode ? null : <ItemProgressBar item={item} />}
 					</CardHeader>
 					<AccordionContent className="">
 						<ProductionItemDetail />

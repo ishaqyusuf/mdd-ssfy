@@ -244,18 +244,6 @@ export function WorkflowStepComponentPanel<
 				search={props.search}
 				noticeSlot={props.noticeSlot}
 				getKey={(component) => String(component.uid || "")}
-				leadingSlot={
-					props.onCreateComponent ? (
-						<button
-							type="button"
-							aria-label="Add workflow component"
-							className="flex min-h-44 w-full items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-4xl text-slate-500 transition hover:border-primary hover:text-primary"
-							onClick={props.onCreateComponent}
-						>
-							+
-						</button>
-					) : null
-				}
 				renderComponent={(component) => {
 					const componentUid = String(component.uid || "");
 					const isSelected = props.selectedUids.has(componentUid);

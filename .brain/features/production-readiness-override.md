@@ -25,10 +25,16 @@ retained only for compatibility and historical audit.
   inventory movement.
 - Assigned production order detail shows pending material names, quantities,
   and the linked inbound expected date when available.
-- Orders without inventory component configuration can still be assigned and
-  show a verify-materials notice to production.
+- Orders without inventory component configuration can still be assigned.
+  Production-only users do not see the admin setup notice because missing setup
+  is not proof that material is physically unavailable.
+- Production-only users may submit only when configured material evidence for
+  the submitted item is ready. Awaiting inbound/allocation, configured blockers,
+  and an unavailable projection block submission. Admin/supervisor submissions
+  retain the nonblocking material-review flow.
 - Fulfilled and cancelled orders remain read-only.
-- `submitAll` remains subject to the strict readiness gate.
+- `submitAll` and production-only worker submissions are subject to material
+  readiness enforcement at their respective shared command boundaries.
 - Assignment does not mutate inbound demand, stock, allocation, or receipt
   records.
 - Assignment is excluded from the post-command inventory lifecycle sync; the
@@ -45,18 +51,21 @@ retained only for compatibility and historical audit.
   applies `resolveSalesInventoryTrackingPolicy`, and derives material status
   from both physical quantity evidence and the component's explicit resolution
   status.
-- The Trigger task enforces readiness only for `submitAll`.
+- The Trigger task enforces readiness for `submitAll`; the shared direct
+  submission authority separately enforces the production-only worker gate.
 - The active Production tab loads the core production overview first, then
   starts readiness from the resolved order identity. Readiness never participates
   in the core items response, so a slow or failed projection cannot blank or
   indefinitely load the production list.
 - If the readiness projection is temporarily unavailable, the tab keeps the
-  core items and assignment available and shows an Inventory-directed notice.
+  core items and assignment available. Admins see the Inventory-directed
+  notice; production-only users see a submission-blocked availability notice.
 - `sales.productionOrderDetailV2` reads inventory production-plan evidence
   lazily for the expanded worker/admin order and exposes per-item material
   status, open inbound quantity, and expected inbound date.
 - If detail material enrichment fails, the core order/items still return with
-  `materialsState=unavailable`; the worker sees that assignment remains active.
+  `materialsState=unavailable`; the worker's assignment remains active but a
+  direct submission is blocked until availability can be verified.
 - Production queue material enrichment is bounded to 100 orders and fails open
   to an explicit `unavailable` display state.
 - The persisted override model, API, and audit history remain compatible but are
@@ -66,4 +75,5 @@ retained only for compatibility and historical audit.
 
 ADR-030 documented the previous revision-bound exception. ADR-035 supersedes
 that authorization model: assignment is now unconditionally independent of
-inventory readiness.
+inventory readiness. ADR-062 adds the role-specific production-only submission
+gate without changing assignment authorization.

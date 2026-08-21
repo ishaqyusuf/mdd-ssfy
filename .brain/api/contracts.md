@@ -1220,6 +1220,13 @@ Tracks important request/response contracts and shared schema boundaries.
 
 - A production submission returns `finalized` or `pending_material_review`,
   review id, material revision, submitted count, and idempotent-replay state.
+- The authenticated direct submission action derives a production-only worker
+  boundary from `viewProduction && !viewOrders`. For that actor class, the
+  shared submission authority rejects configured awaiting-inbound,
+  allocation-review, blocked, or projection-unavailable evidence before it
+  creates a review or submission. `NOT_CONFIGURED` remains eligible for the
+  existing pending material-review result. Admin/supervisor behavior is
+  unchanged.
 - Every new produceable submission has a server-validated batch key and scoped
   assignment/material snapshot. Reuse with another order, worker, or assignment
   scope is rejected.
@@ -1475,6 +1482,20 @@ implementation phase is approved and released.
   and non-positive rows are excluded.
 - This read model changes no payment/refund mutation, balance, receivables, or
   audit-ledger contract.
+
+## Staff Sales Payment Date contract (2026-08-21)
+
+- `salesPaymentProcessor.applyPayment` accepts optional
+  `paymentDate: YYYY-MM-DD | null` for staff-recorded manual payments.
+- The date must be a real calendar date no later than the current
+  `America/New_York` business date. Omitted or null values resolve to today.
+- One resolved occurrence is propagated to every transaction, application,
+  overpayment wallet-credit, and canonical-ledger row created by the command.
+- Terminal settlement ignores a caller date and uses Square's verified paid
+  timestamp; newly sent links receive their occurrence date when the provider
+  later reports payment.
+- Audit metadata records `paymentDate`, `paymentDateSource`, and the separate
+  `recordedAt` instant without changing the existing response shape.
 
 ## Sales Overview financial breakdown contract (2026-08-21)
 

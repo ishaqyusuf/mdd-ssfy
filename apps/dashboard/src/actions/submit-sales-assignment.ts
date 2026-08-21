@@ -31,5 +31,8 @@ export const submitSalesAssignmentAction = actionClient
 			rhQty: input.qty.rh,
 			note: input.note,
 			allowSubmitForOthers: Boolean(actor.can?.editProduction),
+			enforceMaterialAvailability: Boolean(
+				actor.can?.viewProduction && !actor.can?.viewOrders,
+			),
         });
     });

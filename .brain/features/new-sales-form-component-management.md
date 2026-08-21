@@ -10,9 +10,10 @@ populated states. Its menu exposes the legacy catalog controls: Tabs (Default,
 Custom, and Hidden), Select All, Pricing or Door Size Variants, Component,
 Refresh, and the state-aware Enable Custom / Disable Custom action. Workflow
 step navigation remains available in a separate Steps submenu instead of being
-mislabelled as Tabs. Employees with `editSalesComponent` also receive a leading
-`[ + ]` card, rendered before every catalog component, that opens the shared
-component-details editor for the active step.
+mislabelled as Tabs. Employees with `editSalesComponent` create a component for
+the active step through the toolbar menu's `Component` action, which opens the
+shared component-details editor. The component grid no longer renders a leading
+`[ + ]` card, per the client-requested step-menu workflow.
 
 The catalog tabs are resolved from the complete active-step component result.
 Deleted rows are excluded, visibility rules are evaluated against the current
@@ -64,8 +65,8 @@ so badges, redirects, and pricing respond without reopening the sale.
 
 ## Permissions
 
-- Employees with `editSalesComponent`: create components and edit component
-  details.
+- Employees with `editSalesComponent`: create components from the step toolbar
+  menu and edit component details.
 - Admin and Super Admin: visibility, section override, redirect, catalog
   selection, and archive.
 - Super Admin only: shared component base pricing.

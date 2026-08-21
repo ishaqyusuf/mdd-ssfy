@@ -141,6 +141,42 @@ describe("production submission material review service", () => {
 		});
 	});
 
+	it("blocks a worker submission before creating a review when materials are unavailable", async () => {
+		const upsert = mock(async () => ({
+			id: 93,
+			salesOrderId: 42,
+			submittedById: 7,
+			assignmentScope: [],
+		}));
+
+		await expect(
+			prepareProductionSubmissionMaterialReview(
+				{
+					salesProductionSubmissionMaterialReview: { upsert },
+				} as never,
+				{
+					salesOrderId: 42,
+					submittedById: 7,
+					idempotencyKey: "worker-blocked-42",
+					itemScope: [{ controlUid: "door-1", salesItemId: 10 }],
+					enforceMaterialAvailability: true,
+				},
+				{
+					loadMaterials: mock(async () => ({
+						state: "available" as const,
+						materials: [
+							{
+								salesItemId: 10,
+								readiness: "awaiting_inbound",
+							},
+						],
+					})) as never,
+				},
+			),
+		).rejects.toThrow("Required materials are unavailable");
+		expect(upsert).not.toHaveBeenCalled();
+	});
+
 	it("holds a mixed scope when any scoped item has no material configuration", async () => {
 		const upsert = mock(async ({ create }: any) => ({
 			id: 92,

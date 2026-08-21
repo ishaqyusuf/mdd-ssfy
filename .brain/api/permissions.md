@@ -445,6 +445,15 @@ Tracks authentication and authorization patterns across API surfaces.
 - Background and direct worker submissions replace client-supplied author
   identity with the authenticated employee. Without `editProduction`, the
   server restricts submission scope to assignments owned by that employee.
+- Direct production-only actors (`viewProduction` without `viewOrders`) must
+  also pass the scoped material-availability evaluation. Configured unresolved
+  or unreadable evidence rejects the submission server-side; missing material
+  configuration remains eligible for material review. Admin/supervisor
+  submissions retain the nonblocking review workflow.
+- Production submission deletion always binds the requested submission to the
+  supplied sale. Without `editProduction`, the authenticated employee must be
+  both the submission author and the current assignment owner. An empty or
+  cross-scope match is rejected before the production reset lifecycle runs.
 - UI visibility is not an authorization boundary; assignment/order/inbound
   ownership and optimistic review state are revalidated inside the transaction.
 

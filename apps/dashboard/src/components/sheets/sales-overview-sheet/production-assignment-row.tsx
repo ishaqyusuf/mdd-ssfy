@@ -1,16 +1,10 @@
-import { Icons } from "@gnd/ui/icons";
-import {
-    createContext as createContextBase,
-    useContext as useContextBase,
-    useState,
-} from "react";
+import { useState } from "react";
 import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
 import { updateAssignmentDueDateUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-prod.use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { formatDate } from "@/lib/use-day";
 import { cn } from "@/lib/utils";
 import createContextFactory from "@/utils/context-factory";
 import { useAction } from "next-safe-action/hooks";
@@ -22,22 +16,19 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@gnd/ui/collapsible";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@gnd/ui/tooltip";
+import { Icons } from "@gnd/ui/icons";
 
 import { AccessBased } from "./access-based";
+import { useProduction } from "./context";
 import { useProductionAssignments } from "./production-assignments";
 import { ProductionSubmissions } from "./production-submissions";
 import { ProductionSubmitForm } from "./production-submit-form";
 import { useProductionItem } from "./production-tab";
+import { isWorkerProductionItemSubmissionBlocked } from "./production-worker-policy";
 import { QtyStatus } from "./qty-label";
 
 const { useContext: useAssignmentRow, Provider: AssignmentRowProvider } =
-    createContextFactory(function (index: number) {
+    createContextFactory((index: number) => {
         const ctx = useProductionAssignments();
         const assignment = ctx?.data?.assignments[index];
         const [openSubmitForm, setOpenSubmitForm] = useState(false);
@@ -50,20 +41,27 @@ const { useContext: useAssignmentRow, Provider: AssignmentRowProvider } =
         };
     });
 export { useAssignmentRow };
-export function ProductionAssignmentRow({ index }) {
+export function ProductionAssignmentRow({
+    index,
+    view = "assignments",
+}: {
+    index: number;
+    view?: "assignments" | "submissions";
+}) {
     return (
         <AssignmentRowProvider args={[index]}>
-            <Content />
+			<Content view={view} />
         </AssignmentRowProvider>
     );
 }
-function Content() {
+function Content({ view }: { view: "assignments" | "submissions" }) {
     const ctx = useAssignmentRow();
     const { assignment } = ctx;
     const queryCtx = useSalesOverviewQuery();
     const itemCtx = useProductionItem();
+	const production = useProduction();
     const deleteAction = useAction(deleteSalesAssignmentAction, {
-        onSuccess(args) {
+        onSuccess() {
             toast.success("Deleted");
             queryCtx.salesQuery.assignmentUpdated();
         },
@@ -75,10 +73,59 @@ function Content() {
     const [date, setDate] = useState(assignment.dueDate);
     async function changeDueDate(e) {
         toast.loading("Updating....");
-        updateAssignmentDueDateUseCase(assignment.id, e).then((resp) => {
+        updateAssignmentDueDateUseCase(assignment.id, e).then(() => {
             toast.success("Updated");
         });
     }
+	const materialBlocked = isWorkerProductionItemSubmissionBlocked({
+		itemId: itemCtx.item.itemId,
+		readiness: production.readiness,
+		readinessUnavailable: production.readinessUnavailable,
+	});
+	if (view === "submissions") {
+		const submittedQty = Number(assignment?.completed?.qty || 0);
+		const assignedQty = Number(assignment?.qty?.qty || 0);
+		const hasPendingQty = Number(assignment?.pending?.qty || 0) > 0;
+		return (
+			<Collapsible open={ctx.openSubmitForm}>
+				<div className="space-y-4">
+					<div className="flex flex-wrap items-center justify-between gap-3">
+						<div>
+							<p className="text-sm font-medium">My submissions</p>
+							<p className="text-xs text-muted-foreground">
+								{submittedQty}/{assignedQty} submitted
+							</p>
+						</div>
+						<Button
+							type="button"
+							size="sm"
+							variant={ctx.openSubmitForm ? "outline" : "default"}
+							disabled={!hasPendingQty || materialBlocked || queryCtx.dispatchMode}
+							onClick={() => ctx.setOpenSubmitForm(!ctx.openSubmitForm)}
+						>
+							{ctx.openSubmitForm ? "Cancel" : "Add submission"}
+						</Button>
+					</div>
+					{materialBlocked ? (
+						<div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-red-950">
+							<Icons.AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-700" />
+							<div>
+								<p className="text-sm font-medium">Materials unavailable</p>
+								<p className="mt-1 text-xs text-red-900">
+									Submission is blocked until the required materials are
+									available.
+								</p>
+							</div>
+						</div>
+					) : null}
+					<CollapsibleContent>
+						<ProductionSubmitForm />
+					</CollapsibleContent>
+					<ProductionSubmissions />
+				</div>
+			</Collapsible>
+		);
+	}
     return (
         <Collapsible
             open={ctx.openSubmitForm}
@@ -144,7 +191,7 @@ function Content() {
                             <Badge>{assignment.assignedOn}</Badge>
                         </div>
                     </div>
-                    <div className="flex-1"></div>
+					<div className="flex-1" />
                     <CollapsibleTrigger
                         disabled={!assignment?.pending?.qty}
                         asChild

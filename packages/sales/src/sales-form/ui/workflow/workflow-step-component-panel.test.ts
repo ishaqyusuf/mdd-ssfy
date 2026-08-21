@@ -7,10 +7,11 @@ const source = readFileSync(
 );
 
 describe("workflow step component panel catalog controls", () => {
-	test("keeps the add tile first and exposes separate catalog tabs and workflow steps", () => {
-		expect(source.indexOf("leadingSlot={")).toBeLessThan(
-			source.indexOf("renderComponent={(component)"),
-		);
+	test("keeps component creation in the step menu without a leading add tile", () => {
+		expect(source).not.toContain('aria-label="Add workflow component"');
+		expect(source).not.toContain("leadingSlot={");
+		expect(source).toContain("<Menu.Item onClick={props.onCreateComponent}>");
+		expect(source).toContain("Component");
 		for (const label of [
 			"Default Components",
 			"Custom Components",

@@ -501,7 +501,6 @@ export function NewSalesForm(props: Props) {
         normalizeSalesFormInitialCustomerId(draftParams.selectedCustomerId),
     );
     const lastHydratedLoadKeyRef = useRef<string | null>(null);
-    const leaveWarningBypassedRef = useRef(false);
 
     const bootstrapQuery = useNewSalesFormBootstrapQuery(
         {
@@ -1128,60 +1127,6 @@ export function NewSalesForm(props: Props) {
             window.removeEventListener("beforeunload", persistSnapshot);
         };
     }, [dirty, payload, recoveryKey]);
-
-    useEffect(() => {
-        if (!dirty || !payload) return;
-        const shouldPromptOnLeave =
-            dirty &&
-            (!editor.autosaveEnabled ||
-                saveStatus === "error" ||
-                saveStatus === "stale");
-        if (!shouldPromptOnLeave) return;
-
-        const handleDocumentClick = (event: MouseEvent) => {
-            if (leaveWarningBypassedRef.current) return;
-            if (event.defaultPrevented) return;
-            if (event.button !== 0) return;
-			if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-                return;
-            }
-
-            const target = event.target;
-            if (!(target instanceof Element)) return;
-
-			const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
-            if (!anchor) return;
-            if (anchor.target && anchor.target !== "_self") return;
-            if (anchor.hasAttribute("download")) return;
-
-            const href = anchor.href;
-            if (!href) return;
-
-            const nextUrl = new URL(href, window.location.href);
-            const currentUrl = new URL(window.location.href);
-            const isSameDocumentNavigation =
-                nextUrl.pathname === currentUrl.pathname &&
-                nextUrl.search === currentUrl.search &&
-                nextUrl.hash === currentUrl.hash;
-            if (isSameDocumentNavigation) return;
-
-            event.preventDefault();
-            writeRecoverySnapshot(recoveryKey, payload);
-
-            const confirmed = window.confirm(
-                "You have unsaved changes that may not be safely persisted yet. Leave this page?",
-            );
-            if (!confirmed) return;
-
-            leaveWarningBypassedRef.current = true;
-            window.location.assign(nextUrl.toString());
-        };
-
-        document.addEventListener("click", handleDocumentClick, true);
-        return () => {
-            document.removeEventListener("click", handleDocumentClick, true);
-        };
-    }, [dirty, editor.autosaveEnabled, payload, recoveryKey, saveStatus]);
 
     const applyRecoverySnapshot = useCallback(() => {
         if (!loadData || !recoverySnapshot) return;

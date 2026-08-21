@@ -10,7 +10,7 @@ In Progress
 2026-08-19
 
 ## Last Updated
-2026-08-20
+2026-08-21
 
 ## Recommended Codex Agent
 - Agent: `gpt-5.6-terra`
@@ -57,7 +57,7 @@ flowchart TD
 2. Fix `WorkflowComponentToolbar`/`StepComponentPicker` so the search/action bar remains visible above the form footer while the active component picker is in view, anchors at the grid end, does not cover the final row, and unregisters listeners/observers cleanly.
 3. Complete the action menu contract in legacy order: catalog `Tabs` (Default / Custom / Hidden), workflow `Steps`, Select All only for multi-select steps, Pricing or Door Size Variants when applicable, Component when creation is authorized, Refresh, and `Enable Custom`/`Disable Custom` derived from the active step state.
 4. Add catalog-view state, counts, and filtering using canonical component metadata. Keep archived/deleted components excluded. Treat the API DTO's visibility placeholder as non-authoritative because contextual visibility requires the current sale's selected workflow values; resolve and stamp the accurate visibility in the shared workflow resolver before the picker consumes it.
-5. Extend shared workflow capabilities/slots with an explicit create-component action. Render an accessible leading `[ + ]` tile as the first grid item only when `canEditWorkflowComponents` is derived from `auth.can.editSalesComponent` and a create handler is present. Reuse the existing component detail/admin dialog and save mutation; do not create a second persistence path.
+5. Extend shared workflow capabilities/slots with an explicit create-component action. Expose it through the permission-gated step toolbar `Component` option when `canEditWorkflowComponents` is derived from `auth.can.editSalesComponent`; the former leading `[ + ]` grid tile is intentionally hidden per the 2026-08-21 client request. Reuse the existing component detail/admin dialog and save mutation; do not create a second persistence path.
 6. Pass `canEditSalesComponent`, `onCreateComponent`, and the narrower details capability through the default `ItemWorkflowPanel` host. Keep dealership/storefront consumers free of internal catalog actions.
 7. Separate the custom catalog configuration toggle from the custom sale-value editor so labels and actions describe the behavior they invoke.
 8. Preserve `SaveIntent` across committed-change review and resume the remaining Special Order, save, inventory-configuration, and navigation stages after approval. Cancelled confirmations and save failures must not close; successful Close must navigate exactly once after every modal resolves.
@@ -100,7 +100,7 @@ Avoid:
 - The floating search/action bar is visible whenever the active step component grid is visible and stays above the sales-form footer on desktop and mobile widths.
 - Search filters cards without losing the toolbar when there are zero matches.
 - The action menu contains the applicable legacy actions and shows the correct Enable/Disable Custom label.
-- `can.editSalesComponent === true` shows the leading `[ + ]` card and opens the existing component creation flow; false hides it and the API rejects unauthorized writes.
+- `can.editSalesComponent === true` shows the toolbar menu's `Component` option and opens the existing component creation flow; the grid has no leading `[ + ]` card, and the API rejects unauthorized writes.
 - A created component appears after mutation/refetch and can be selected without reloading the page.
 - Save & Close preserves its intent through committed-change review, Special Order classification, required customer-email repair, and inventory configuration; it remains on-screen after any cancellation/failure and closes exactly once only after the last required confirmation and successful save.
 - Garage Door and Exterior Door size rows offer only `In-Swing` and `Out-Swing`; save/reopen preserves the selection.
@@ -122,7 +122,8 @@ Avoid:
 - Implemented the legacy catalog Tabs/Steps/action menu contract in the shared
   step panel, including contextual Default/Custom/Hidden classification.
 - Wired the default dashboard host's `editSalesComponent` capability and
-  existing component-admin create flow so the leading add tile is first.
+  existing component-admin create flow through the step toolbar menu. The
+  leading add tile was subsequently hidden on 2026-08-21 by client request.
 - Separated custom sale-value entry from the administrative custom toggle and
   kept internal catalog actions out of dealership/storefront hosts.
 - Preserved Save & Close through committed-change and Special Order

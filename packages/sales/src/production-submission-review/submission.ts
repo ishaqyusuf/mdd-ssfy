@@ -18,6 +18,7 @@ export type SubmitProductionAssignmentInput = {
 	note?: string | null;
 	meta?: Prisma.InputJsonValue;
 	allowSubmitForOthers?: boolean;
+	enforceMaterialAvailability?: boolean;
 };
 
 export async function submitProductionAssignmentInTransaction(
@@ -114,6 +115,7 @@ export async function submitProductionAssignmentInTransaction(
 				assignmentId: assignment.id,
 			},
 		],
+		enforceMaterialAvailability: input.enforceMaterialAvailability,
 	});
 	if (!review.reviewId) {
 		throw new Error("Production material review batch was not created.");

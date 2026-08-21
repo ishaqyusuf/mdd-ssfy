@@ -145,7 +145,7 @@ function PaymentDateControl({
 					<Popover.Trigger asChild>
 						<Button
 							type="button"
-							size="sm"
+							size="icon"
 							variant="outline"
 							disabled={disabled}
 							aria-label={title}
@@ -217,6 +217,33 @@ function PaymentDateControl({
 				) : null}
 			</ButtonGroup>
 		</motion.div>
+	);
+}
+
+function InlinePaymentOptionCopy({
+	description,
+	htmlFor,
+	title,
+}: {
+	description: string;
+	htmlFor: string;
+	title: string;
+}) {
+	return (
+		<Field.Content className="min-w-0 flex-row items-baseline gap-1.5">
+			<Field.Label
+				htmlFor={htmlFor}
+				className="shrink-0 whitespace-nowrap font-normal"
+			>
+				{title}
+			</Field.Label>
+			<span aria-hidden="true" className="text-xs text-muted-foreground">
+				—
+			</span>
+			<Field.Description className="min-w-0 text-xs font-normal">
+				{description}
+			</Field.Description>
+		</Field.Content>
 	);
 }
 
@@ -1487,10 +1514,7 @@ function Content(
 								</div>
 								<Field
 									orientation="horizontal"
-									className={cn(
-										"rounded-md border p-3",
-										useWallet && "border-emerald-200 bg-emerald-50/70",
-									)}
+									className="min-h-10 py-2"
 								>
 									<Checkbox
 										checked={!!useWallet}
@@ -1503,18 +1527,13 @@ function Content(
 										}
 										id="use-wallet"
 									/>
-									<Field.Content>
-										<Field.Label htmlFor="use-wallet" className="font-normal">
-											Use wallet balance
-										</Field.Label>
-										<Field.Description className="text-xs font-normal">
-											Apply up to{" "}
-											{formatPaymentAmount(
-												Math.min(walletBalanceAmount, selectedBalanceAmount),
-											)}{" "}
-											before collecting the remaining amount.
-										</Field.Description>
-									</Field.Content>
+									<InlinePaymentOptionCopy
+										htmlFor="use-wallet"
+										title="Use wallet balance"
+										description={`Apply up to ${formatPaymentAmount(
+											Math.min(walletBalanceAmount, selectedBalanceAmount),
+										)}.`}
+									/>
 								</Field>
 							</section>
 
@@ -1674,43 +1693,34 @@ function Content(
 
 							<section className="grid gap-3">
 								<h3 className="text-sm font-medium">Options</h3>
-								<div className="grid gap-2 sm:grid-cols-2">
+								<div className="divide-y">
 									<TooltipProvider delayDuration={100}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<div
+												<Field
+													orientation="horizontal"
 													aria-disabled={!canNotifyCustomer}
 													tabIndex={canNotifyCustomer ? undefined : 0}
+													className={cn(
+														"min-h-10 py-2",
+														!canNotifyCustomer &&
+															"cursor-not-allowed opacity-60",
+													)}
 												>
-													<Field
-														orientation="horizontal"
-														className={cn(
-															"rounded-md border p-3",
-															!canNotifyCustomer &&
-																"cursor-not-allowed opacity-60",
-														)}
-													>
-														<Checkbox
-															checked={!!notifyCustomer}
-															disabled={!canNotifyCustomer}
-															onCheckedChange={(checked) =>
-																form.setValue("notifyCustomer", !!checked)
-															}
-															id="notify-customer"
-														/>
-														<Field.Content>
-															<Field.Label
-																htmlFor="notify-customer"
-																className="font-normal"
-															>
-																Notify customer
-															</Field.Label>
-															<Field.Description className="text-xs font-normal">
-																Send a receipt email after payment.
-															</Field.Description>
-														</Field.Content>
-													</Field>
-												</div>
+													<Checkbox
+														checked={!!notifyCustomer}
+														disabled={!canNotifyCustomer}
+														onCheckedChange={(checked) =>
+															form.setValue("notifyCustomer", !!checked)
+														}
+														id="notify-customer"
+													/>
+													<InlinePaymentOptionCopy
+														htmlFor="notify-customer"
+														title="Notify customer"
+														description="Email a receipt after payment."
+													/>
+												</Field>
 											</TooltipTrigger>
 											{!canNotifyCustomer ? (
 												<TooltipContent>Customer have no email</TooltipContent>
@@ -1720,7 +1730,7 @@ function Content(
 
 									<Field
 										orientation="horizontal"
-										className="rounded-md border p-3"
+										className="min-h-10 py-2"
 									>
 										<Checkbox
 											checked={!!print}
@@ -1729,19 +1739,16 @@ function Content(
 											}
 											id="print-copy"
 										/>
-										<Field.Content>
-											<Field.Label htmlFor="print-copy" className="font-normal">
-												Print invoice
-											</Field.Label>
-									<Field.Description className="text-xs font-normal">
-										Print the invoice after payment succeeds.
-											</Field.Description>
-										</Field.Content>
+										<InlinePaymentOptionCopy
+											htmlFor="print-copy"
+											title="Print invoice"
+											description="Print after payment succeeds."
+										/>
 									</Field>
 
 									<Field
 										orientation="horizontal"
-										className="rounded-md border p-3 sm:col-span-2"
+										className="min-h-10 py-2"
 									>
 										<Checkbox
 											checked={!!printPackingSlip}
@@ -1750,42 +1757,33 @@ function Content(
 											}
 											id="print-packing-slip"
 										/>
-										<Field.Content>
-											<Field.Label
-												htmlFor="print-packing-slip"
-												className="font-normal"
-											>
-												Print packing slip
-											</Field.Label>
-											<Field.Description className="text-xs font-normal">
-												Print a packing slip after payment is applied.
-											</Field.Description>
-										</Field.Content>
-									</Field>
-								</div>
-
-								{effectivePaymentMethod !== "link" || (
-									<Field
-										orientation="horizontal"
-										className="rounded-md border border-amber-200 bg-amber-50/50 p-3"
-									>
-										<Checkbox
-											checked={!!linkProcessed}
-											onCheckedChange={(checked) =>
-												form.setValue("linkProcessed", !!checked)
-											}
-											id="paid"
+										<InlinePaymentOptionCopy
+											htmlFor="print-packing-slip"
+											title="Print packing slip"
+											description="Print after payment is applied."
 										/>
-										<Field.Content>
-											<Field.Label htmlFor="paid" className="font-normal">
-												Payment already received
-											</Field.Label>
-											<Field.Description className="text-xs font-normal">
-												Mark this as paid without sending a payment link.
-											</Field.Description>
-										</Field.Content>
 									</Field>
-								)}
+
+									{effectivePaymentMethod === "link" ? (
+										<Field
+											orientation="horizontal"
+											className="min-h-10 py-2"
+										>
+											<Checkbox
+												checked={!!linkProcessed}
+												onCheckedChange={(checked) =>
+													form.setValue("linkProcessed", !!checked)
+												}
+												id="paid"
+											/>
+											<InlinePaymentOptionCopy
+												htmlFor="paid"
+												title="Payment already received"
+												description="Skip sending a payment link."
+											/>
+										</Field>
+									) : null}
+								</div>
 							</section>
 
 							{isSheet

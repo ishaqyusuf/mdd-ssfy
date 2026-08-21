@@ -201,6 +201,46 @@ Provide a cleaner production operations surface for both admins and production w
 - Worker routes additionally support `show=future`, defined as incomplete
   assigned work due from tomorrow forward.
 - Sales overview Production tab badges count the same production-capable `sales.productionOverview.items` rows rendered in the tab, instead of using `prodAssigned.total` quantity totals. This keeps the badge inline with visible production cards for both the v2 sales overview system and the legacy sales overview sheet.
+- Sales Overview Production item cards show the customer-facing title and
+  subtitle only; internal `controlUid` values remain available to notes,
+  assignments, selection, and URL state but are never rendered as card copy.
+
+## Sales Overview Worker Item Detail (2026-08-21)
+
+- Production-only users see only production items with quantity assigned to the
+  authenticated worker. When an order has one to three such items, all are
+  expanded automatically so work can begin without extra disclosure clicks.
+- `Details` is the default Production item tab for every role. Admins retain
+  `Details`, `Notes`, and `Assignments`; production-only users receive
+  `Details`, `Notes`, and `Submissions (X/Y)`, where X is reported submission
+  quantity and Y is the authenticated worker's assigned quantity.
+- Production item tabs use the same compact bordered rail, uppercase trigger,
+  active-state treatment, and count-badge pattern as the main Sales Overview
+  tabs rather than the retired full-width grid treatment.
+- The worker Submissions tab reuses the scoped assignment authority to add work
+  only up to the remaining assigned quantity and to display the worker's
+  existing deletable submissions. It does not expose assignment creation,
+  assignment ownership metadata, or the Assigned/Production/Fulfilled progress
+  strip.
+- Submission deletion is sale-bound and authenticated. Production workers may
+  delete only submissions they authored for an assignment currently owned by
+  them; `editProduction` retains the administrative delete boundary.
+- The worker Submissions surface is flat inside the production item card: it
+  omits nested assignment/form cards, uses simple separators for existing
+  submissions, and aligns to the same horizontal content inset as Details.
+  Submission quantities reuse the shared new Sales Form
+  `SalesFormQuantityStepper` with bounded minus/input/plus controls. Handle
+  quantities with no pending work remain visible but disabled.
+- The production item disclosure chevron sits in the title row beside the item
+  controls. Worker cards no longer reserve a second empty progress row beneath
+  the subtitle.
+- The Sales Overview header priority selector is hidden for production-only
+  users. Admin/order-capable users retain the existing selector and Production
+  assignment controls.
+- Worker detail hides the admin `Inventory setup incomplete` notice. Configured
+  unavailable material or an unavailable readiness projection shows a blocking
+  worker alert for affected work; missing material configuration remains
+  nonblocking and invisible to workers.
 
 ## V2 Data Contract
 - `sales.productionsV2`: v2 list query for worker/admin boards
@@ -223,15 +263,18 @@ Provide a cleaner production operations surface for both admins and production w
   - worker mode treats an order as completed only when that worker's related assignments are fully submitted
   - admin mode treats an order as completed only when total submitted production qty meets the full production qty for the order
 - Production assignment mutations emitted through `update-sales-control` now trigger a targeted `sales_production_assigned` notification to the assigned worker from the Trigger jobs layer.
-- Inventory readiness never blocks `createAssignments` or production
-  submission. Unresolved submissions are saved under material review and remain
-  excluded from finalized production until an admin resolves and approves
-  them.
+- Inventory readiness never blocks `createAssignments`. Admin/supervisor
+  submissions with unresolved evidence are saved under material review and
+  remain excluded from finalized production until approved. Production-only
+  worker submissions are rejected for configured unavailable or unverifiable
+  materials; `NOT_CONFIGURED` remains nonblocking.
 
 ## Submission Material Verification (2026-07-30)
 
-- The live Sales Overview production form warns workers when material evidence
-  is pending, missing, or unavailable, but keeps Submit enabled.
+- The live Sales Overview production form blocks production-only workers when
+  configured material evidence is pending/unavailable or cannot be loaded.
+  Missing configuration alone does not block the worker. Admin/supervisor
+  submissions retain the nonblocking material-review path.
 - A pending submission immediately consumes the assignment's reported
   remainder so repeat submission is prevented. It displays `Awaiting material
   approval` to the worker.

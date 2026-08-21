@@ -63,4 +63,14 @@ describe("legacy production control mutations", () => {
             );
         }
     });
+
+    it("scopes production submission deletion to the authenticated worker and sale", () => {
+        const source = readActionFile("delete-sales-assignment-submission.ts");
+
+        expect(source).toContain("getLoggedInProfile");
+        expect(source).toContain("salesOrderId: data.salesId");
+        expect(source).toContain("submittedById: actor.userId");
+        expect(source).toContain("assignedToId: actor.userId");
+        expect(source).toContain("profile.can?.editProduction");
+    });
 });

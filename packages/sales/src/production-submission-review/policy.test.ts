@@ -4,6 +4,7 @@ import {
 	classifyProductionSubmissionMaterials,
 	isActiveReportedSubmission,
 	isFinalizedProductionSubmission,
+	shouldBlockProductionWorkerSubmission,
 } from "./policy";
 
 describe("production submission material review policy", () => {
@@ -53,6 +54,33 @@ describe("production submission material review policy", () => {
 			state: "pending_material_review",
 			reason: "PROJECTION_UNAVAILABLE",
 		});
+	});
+
+	test("blocks worker submissions only when material availability is unresolved", () => {
+		expect(
+			shouldBlockProductionWorkerSubmission({
+				state: "pending_material_review",
+				reason: "AWAITING_INBOUND",
+			}),
+		).toBe(true);
+		expect(
+			shouldBlockProductionWorkerSubmission({
+				state: "pending_material_review",
+				reason: "PROJECTION_UNAVAILABLE",
+			}),
+		).toBe(true);
+		expect(
+			shouldBlockProductionWorkerSubmission({
+				state: "pending_material_review",
+				reason: "NOT_CONFIGURED",
+			}),
+		).toBe(false);
+		expect(
+			shouldBlockProductionWorkerSubmission({
+				state: "finalized",
+				reason: null,
+			}),
+		).toBe(false);
 	});
 
 	test("pending review consumes reported quantity but not finalized quantity", () => {

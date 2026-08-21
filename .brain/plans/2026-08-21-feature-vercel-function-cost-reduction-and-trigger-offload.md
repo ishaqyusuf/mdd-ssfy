@@ -83,6 +83,15 @@ seven-day route windows must replace it with a stable estimate.
   and 662 MB; a sampled cursor-40 call used 15.09 seconds and 617 MB and was
   logged as a Vercel timeout. The response appeared to finish around 13.3
   seconds, but the function remained active until the 15-second limit.
+- Production request `2tsrm-1787337006268-39a732e75b45` proved that duplicate
+  pagination is not the only Sales Orders failure mode. The initial no-cursor
+  search for `q=APA` batched `sales.getOrders`, `sales.getOrdersSummary`,
+  `pageTabs.list`, and `pageTabs.defaults`, used 483 MB, made no third-party API
+  calls, and reached Vercel's 15-second invocation limit. Plain search expands
+  into a substring predicate across 21 order, customer, address, and producer
+  fields. The list performs a matching-row count before row retrieval and deep
+  enrichment; the summary repeats the same filter across five counts or sums;
+  and `pageTabs.list` can add one Sales Orders count per visible saved tab.
 - The sales order page server-prefetches the list and summary, while its client
   table also uses an infinite query. The infinite-scroll hook checks for more
   data immediately on effect runs and relies on asynchronously updated React
@@ -202,6 +211,14 @@ flowchart TD
      reliability improve without connection-pool or shared-state regressions.
 
 4. Stop the Sales Orders request storm before optimizing the database query.
+   - Add privacy-safe stage timings and one request correlation ID for each
+     batched procedure, separating `sales.getOrders` count, row selection, and
+     enrichment; `sales.getOrdersSummary`; `pageTabs.list` tab counts; and
+     `pageTabs.defaults`. Preserve filter shape, cursor presence, result size,
+     and visible-tab count without logging customer search text or row data.
+   - Measure no-cursor initial searches separately from pagination. Treat the
+     confirmed `q=APA` initial-load timeout as a first-request performance
+     failure even when duplicate-cursor prevention is working.
    - Add an in-flight request lock and remember the last requested cursor so a
      cursor cannot be fetched twice concurrently.
    - Replace effect-driven eager loading with a stable intersection sentinel.
@@ -210,11 +227,27 @@ flowchart TD
    - Normalize and memoize filter/sort inputs, make server-prefetch and client
      query keys identical, and cancel superseded filter requests.
    - Add regression coverage proving initial render performs one list request
-     plus one summary request and each subsequent cursor is requested once.
+     plus one summary request, each subsequent cursor is requested once, and a
+     superseded search cannot leave older list or summary work consuming the
+     active request budget.
+   - Keep tRPC batch failure coupling visible in telemetry. Do not split the
+     list, summary, or metadata into extra Vercel invocations solely to hide a
+     timeout; change batching only when measured reliability benefit outweighs
+     the added invocation and connection cost.
    - Target at least a 60% reduction in tRPC Function Duration attributable to
      Sales Orders, list p75 below 750 ms, p95 below two seconds, and no timeouts.
 
 5. Build a lean Sales Orders read model.
+   - Establish an explicit search contract before changing semantics. Capture
+     production-safe query plans for the confirmed three-character `APA`
+     search plus exact order-number, customer-name, address, empty-result, and
+     high-match fixtures. Record rows examined, database duration, and whether
+     each predicate can use an index.
+   - Replace the current 21-field cross-relation substring `OR` with a measured
+     indexed strategy, such as deliberately routed exact/prefix predicates,
+     maintained normalized search columns, or database-supported full-text
+     search. Preserve required customer, address, and producer discovery, and
+     do not add speculative indexes that cannot serve leading-wildcard search.
    - Replace the broad `SalesListInclude` path for the table with a table-
      specific `select` containing only displayed and filtering fields.
    - Remove deep line-item/component and repeated enrichment from interactive
@@ -224,8 +257,14 @@ flowchart TD
      idempotent Trigger task through an outbox and expose last-updated state.
    - Replace numeric offset-like cursors with keyset pagination using
      `(createdAt, id)` or the active stable sort plus `id` as a tiebreaker.
-   - Consolidate summary queries or cache their stable result for 30 to 60
-     seconds with correct invalidation after writes.
+   - Consolidate the matching-row count and the five summary operations into
+     the smallest measured query set, or cache their stable result for 30 to 60
+     seconds with correct invalidation after writes. Do not execute the same
+     expensive search predicate independently six times on initial load.
+   - Treat Sales Orders saved-tab counts as consumers of the same optimized
+     count path. `pageTabs.list` must not synchronously issue one uncached
+     expensive count per visible tab in the critical first-paint batch; use a
+     bounded consolidated, cached, deferred, or explicitly lazy count design.
    - Capture representative production-safe query plans before adding indexes;
      add only indexes justified by real filters and ordering.
    - Keep `sales.getOrders` as an interactive request. Do not move this read to
@@ -331,9 +370,17 @@ flowchart TD
   the Vercel timeout.
 - Sales Orders initial load issues one list and one summary request; each next
   cursor is fetched at most once concurrently.
+- Privacy-safe procedure timings identify list count, list rows, enrichment,
+  summary, saved-tab counts, and defaults separately for a timed-out or slow
+  batch without recording customer search terms or result data.
 - `sales.getOrders` p75 is below 750 ms and p95 below two seconds for
   representative production filters, with at least 60% lower associated tRPC
   Function Duration than the captured baseline.
+- The exact initial no-cursor `q=APA` regression fixture completes below the
+  Sales Orders p95 target, and initial load does not run the equivalent broad
+  search predicate independently for one list count plus five summary queries.
+- `pageTabs.list` does not perform one uncached expensive Sales Orders count per
+  visible tab as blocking first-paint work.
 - Fluid Compute has an isolated 12-to-24-hour canary result and a tested
   rollback; it is retained only with measured benefit.
 - Every migrated Trigger workflow has an outbox or equivalent durable enqueue,
@@ -396,11 +443,17 @@ flowchart TD
 - Unit and integration tests for infinite-scroll cursor locking, filter changes,
   request cancellation, query-key equality, end-of-list behavior, and no eager
   viewport waterfall.
+- A regression replay of the production request shape with no cursor,
+  `q=APA`, list, summary, saved tabs, and defaults. Assert per-procedure timing
+  visibility, bounded database statement count, successful completion, and no
+  customer search text in telemetry.
 - Sales Orders parity tests across permissions, tabs, status filters, search,
   sorting, lifecycle flags, inventory state, payment state, special orders,
   empty results, and concurrent record updates.
 - Database query-plan captures for representative high-volume filters before
-  and after the read-model work, plus pagination stability under inserts.
+  and after the read-model work, including `APA`, exact order number, customer,
+  address, empty-result, and high-match searches, plus pagination stability
+  under inserts.
 - Auth tests for anonymous root/login, authenticated navigation, expired
   sessions, role changes, logout, multi-tab refresh, and protected redirects.
 - Fluid canary load tests for Sales Orders, Sales Overview, edit flows,
@@ -427,6 +480,12 @@ flowchart TD
   equal timestamps can create duplicates or omissions.
 - Removing eager pagination may change the perceived table experience on tall
   screens and needs an intentional load-more threshold.
+- Replacing broad substring search can change which customer, address, or
+  producer matches operators see. Search semantics need explicit parity tests
+  and an operator-visible rollout before legacy predicates are removed.
+- Caching or deferring summary and saved-tab counts can display briefly stale
+  totals. The design must define invalidation, freshness labeling when needed,
+  and a bounded fallback rather than silently returning incorrect counts.
 - Auth fast paths must never bypass protected authorization or allow stale role
   permissions. Public caching must not leak user-specific content.
 - Trigger.dev introduces eventual completion. Without an outbox, a database

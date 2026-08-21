@@ -38,4 +38,14 @@ describe("sales payment processor date control contract", () => {
 		expect(source.includes("<AnimatePresence")).toBe(true);
 		expect(source.includes("motion-reduce:transition-none")).toBe(true);
 	});
+
+	it("uses the standard 36px button height for date and clear controls", () => {
+		const dateControl = source.slice(
+			source.indexOf("function PaymentDateControl"),
+			source.indexOf("export function SalesPaymentProcessor"),
+		);
+
+		expect(dateControl.match(/size="icon"/g)?.length).toBe(2);
+		expect(dateControl.includes('className="size-9')).toBe(true);
+	});
 });

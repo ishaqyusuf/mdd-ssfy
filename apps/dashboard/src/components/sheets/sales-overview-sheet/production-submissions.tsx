@@ -37,7 +37,7 @@ export function ProductionSubmissions({}) {
             {assignment.submissions.map((submission) => (
                 <div
                     key={submission.id}
-                    className="rounded-md border border-border bg-zinc-50 p-2 text-xs"
+                    className="border-border border-b py-3 text-xs last:border-b-0"
                 >
                     <div className="flex items-start justify-between">
                         <div>

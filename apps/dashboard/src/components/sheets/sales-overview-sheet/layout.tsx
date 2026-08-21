@@ -11,6 +11,7 @@ import {
 import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
 import { SalesPrioritySelect } from "@/components/sales-priority-control";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import {
 	DataSkeletonProvider,
 	type useCreateDataSkeletonCtx,
@@ -54,6 +55,7 @@ export function LegacySalesOverviewHeader({
 	onTabChange?: (tab: LegacySalesOverviewTabId) => void;
 }) {
 	const { data: contextData } = useSaleOverview();
+	const query = useSalesOverviewQuery();
 	const data = contextData as SalesOverviewHeaderData | undefined;
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const visibleTabs = tabs.filter((tab) => !tab.hidden);
@@ -141,7 +143,7 @@ export function LegacySalesOverviewHeader({
 								) : null}
 							</div>
 						</div>
-						{!isQuote ? (
+						{!isQuote && !query.assignedTo ? (
 							<SalesPrioritySelect
 								salesId={data?.id}
 								orderId={data?.orderId}

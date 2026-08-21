@@ -30,6 +30,10 @@
   a bounded concurrent replay without timeout or application errors. Production
   promotion remains held while statement PDF latency/error behavior and
   auth-session fan-out are investigated and the 12-24-hour window accumulates.
+  Steps 4-5 now include the confirmed no-cursor `q=APA` timeout: privacy-safe
+  per-procedure timing, explicit broad-search query-plan fixtures, summary-query
+  consolidation, and bounded saved-tab counts are required in addition to
+  duplicate-cursor prevention and the lean read-model rollout.
   Google sign-in separately remains broken by Prisma `P2000` because the MySQL
   `WebAuthVerification` verification value exceeds its original `VARCHAR(191)`
   boundary.
@@ -42,7 +46,7 @@
 ### New Sales Form Step Picker And Component Creation Parity
 
 - Priority: High
-- Description: Track the reopened implementation plan in `.brain/plans/2026-08-19-feature-new-sales-form-step-picker-parity.md`; complete default-host catalog menu/add-tile parity and make Save & Close navigate only after every required confirmation and a successful save.
+- Description: Track the reopened implementation plan in `.brain/plans/2026-08-19-feature-new-sales-form-step-picker-parity.md`; complete default-host catalog menu parity with component creation kept in the step menu (the client-requested grid add-tile removal) and make Save & Close navigate only after every required confirmation and a successful save.
 - Related Feature: New sales form workflow component management and save continuation
 - Status: In Progress
 - Plan Status: In Progress

@@ -50,9 +50,10 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 - Gap: the shared picker keeps search/actions visible through loading and empty
   states; its menu exposes `Tabs`, `Select All`, `Pricing`, `Component`,
   `Refresh`, and state-aware custom controls. `editSalesComponent` grants the
-  leading create card and details editor without widening pricing, visibility,
-  redirect, archive, or supplier permissions. Garage/Exterior size and HPT rows
-  use In-Swing/Out-Swing choices.
+  step-menu component creator and details editor without widening pricing,
+  visibility, redirect, archive, or supplier permissions. The former leading
+  add card is hidden per client request. Garage/Exterior size and HPT rows use
+  In-Swing/Out-Swing choices.
 
 ### Requested Feature Matrix
 1. Moulding line items + calculator parity
@@ -132,9 +133,10 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
   Custom / Hidden catalog tabs, a separate workflow Steps submenu, applicable
   legacy actions, and distinct custom sale-entry/configuration controls. The
   default dashboard host supplies `editSalesComponent` and the existing create
-  action, so its permission-gated add tile renders first in the grid. Internal
-  catalog actions remain hidden for dealership/storefront hosts. Remaining work
-  is authenticated authorized/unauthorized desktop and mobile proof.
+  action through the permission-gated `Component` step-menu option; the former
+  first-grid add tile is intentionally hidden. Internal catalog actions remain
+  hidden for dealership/storefront hosts. Remaining work is authenticated
+  authorized/unauthorized desktop and mobile proof.
 
 13. Component menu (edit/select/redirect/delete)
 - Legacy: per-card menu in `component-item-card.tsx`

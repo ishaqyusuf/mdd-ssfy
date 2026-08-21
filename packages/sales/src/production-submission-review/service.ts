@@ -10,6 +10,7 @@ import {
 import {
 	classifyProductionSubmissionMaterials,
 	type ProductionSubmissionMaterialReviewReason,
+	shouldBlockProductionWorkerSubmission,
 } from "./policy";
 
 export type ProductionSubmissionItemScope = {
@@ -23,6 +24,7 @@ type PrepareProductionSubmissionMaterialReviewInput = {
 	submittedById: number;
 	idempotencyKey: string;
 	itemScope: ProductionSubmissionItemScope[];
+	enforceMaterialAvailability?: boolean;
 };
 
 type MaterialProjection = Awaited<
@@ -159,6 +161,16 @@ export async function prepareProductionSubmissionMaterialReview(
 		dependencies,
 	);
 	const { classification, materialSnapshot, materialRevision } = evidence;
+	if (
+		input.enforceMaterialAvailability &&
+		shouldBlockProductionWorkerSubmission(classification)
+	) {
+		throw new Error(
+			classification.reason === "PROJECTION_UNAVAILABLE"
+				? "Material availability could not be verified. Try again before submitting production."
+				: "Required materials are unavailable. Production submission is blocked until inventory is ready.",
+		);
+	}
 
 	const review = await createPendingMaterialReview(db, {
 		...input,
