@@ -8,6 +8,9 @@
   Compute is deployed to an isolated preview. Remaining gates are authenticated
   Sentry cutover, 12-24 hours of canary evidence, and explicit production
   promotion before later optimization and Trigger.dev migration phases.
+  Authenticated replay is currently blocked by Prisma `P2000` because the
+  MySQL `WebAuthVerification` verification value exceeds its original
+  `VARCHAR(191)` boundary during Google sign-in.
 - Related Feature: Vercel runtime cost control and background job architecture
 - Status: In Progress
 - Plan Status: In Progress

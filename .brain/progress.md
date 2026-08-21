@@ -24,7 +24,13 @@
   operational gates are comparable 24-hour and seven-day route evidence,
   12-24 hours of preview canary evidence, explicit production promotion, and
   authenticated Sentry monitor cutover from `/` to `/api/health/live` at a
-  one-to-five-minute interval.
+  one-to-five-minute interval. Follow-up preview replay proved a liveness probe
+  creates exactly one function log entry and no root/login/auth fan-out.
+  Anonymous root/login replay still generated repeated `/api/auth-session`
+  work. Google sign-in then failed with HTTP 500 and Prisma `P2000` because the
+  generated `WebAuthVerification` value exceeds the original MySQL
+  `VARCHAR(191)` boundary, blocking authenticated workflow replay until a
+  deliberate schema migration or valid preview session is available.
 
 - 2026-08-20: restored the new sales form's legacy step-component catalog
   controls after the floating toolbar repair. The shared menu now provides
