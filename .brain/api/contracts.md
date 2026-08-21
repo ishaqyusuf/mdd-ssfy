@@ -1410,3 +1410,17 @@ implementation phase is approved and released.
 - Durable IDs are accepted only when they belong to the current Sales Order.
   Ambiguous or repeated nested IDs fail before writes, and an approved JSON
   adjustment that was never projected into relations blocks save for review.
+
+## Filter option presentation metadata (2026-08-21)
+
+- Existing filter procedures may add optional `color` and `subLabel` metadata
+  to `PageFilterData.options[]`. The option `value`, label, ordering, selection,
+  and URL/query serialization contracts remain unchanged.
+- Status/state colors use the shared semantic filter palette; explicit domain
+  colors such as Sales priority remain authoritative. Unknown dynamic statuses
+  use neutral slate.
+- True category filters may use stable name-derived colors when the source
+  record has no stored color. Identity filters such as customer, employee,
+  phone, order number, and sales rep remain uncolored.
+- Dashboard and Dealership treat color as decorative supplementary metadata;
+  text labels and checkbox state remain the accessible source of meaning.

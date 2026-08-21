@@ -1,4 +1,3 @@
-// @ts-expect-error apps/dealership typecheck does not include Bun test types.
 import { describe, expect, it } from "bun:test";
 import { dealerPricingTerms } from "./dealer-pricing-terms";
 
@@ -10,4 +9,3 @@ describe("dealer pricing terms", () => {
     expect(dealerPricingTerms.showProfit).toBe("Show Profit");
   });
 });
-

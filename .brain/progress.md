@@ -9888,3 +9888,16 @@
   sales invoices that exceeded the previous 15-second default.
 - Added a focused route-configuration regression test. No database schema,
   API request/response contract, permission, or deployment was changed.
+
+## 2026-08-21 — Added semantic colors to filter options
+
+- Added one shared semantic status/payment/delivery palette and a shared
+  Midday-style decorative square marker used by Dashboard and Dealership.
+- Preserved optional filter option presentation metadata through the API helper,
+  including non-string option values, and colorized operational status/state,
+  delivery, payment, priority, and true category families while leaving identity
+  and custom-control options uncolored.
+- Focused validation passed 19 tests / 53 assertions across API metadata,
+  resolver semantics, Dashboard standard/long-list and active-chip rendering,
+  Dealership rendering, and category/custom-control boundaries. No database,
+  permission, filter value, URL, deployment, or external-data contract changed.

@@ -7,6 +7,10 @@ import { inventoryPartialShipmentFilterParamsSchema } from "@/hooks/use-inventor
 import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
+import {
+	getDeliveryFilterOptionColor,
+	getStatusFilterOptionColor,
+} from "@gnd/utils/filter-option-colors";
 import Link from "next/link";
 
 const definitions = [
@@ -21,7 +25,10 @@ const definitions = [
 			{ label: "Awaiting inbound", value: "awaiting_inbound" },
 			{ label: "Backordered", value: "backordered" },
 			{ label: "Ready remaining", value: "ready_to_ship_remaining" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.value),
+		})),
 	},
 	{
 		key: "deliveryModes",
@@ -31,7 +38,10 @@ const definitions = [
 			{ label: "Pickup", value: "pickup" },
 			{ label: "Delivery", value: "delivery" },
 			{ label: "Ship", value: "ship" },
-		],
+		].map((option) => ({
+			...option,
+			color: getDeliveryFilterOptionColor(option.value),
+		})),
 	},
 	{
 		key: "holdUntilComplete",
@@ -40,7 +50,10 @@ const definitions = [
 		options: [
 			{ label: "Held until complete", value: "true" },
 			{ label: "Partial shipment allowed", value: "false" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.label),
+		})),
 	},
 ] satisfies FilterDefinition[];
 

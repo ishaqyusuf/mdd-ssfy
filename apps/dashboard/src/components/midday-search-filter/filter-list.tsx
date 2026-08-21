@@ -4,6 +4,7 @@ import { formatDateRange } from "little-date";
 import type { PageFilterData } from "@api/type";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
+import { FilterOptionColor } from "@gnd/ui/filter-option-color";
 import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { getDatePresetLabel } from "./date-filter-selection";
@@ -14,7 +15,6 @@ import {
 	getFilterValueLabel,
 	normalizeFilterDefinitions,
 } from "./filter-definitions";
-import { FilterOptionColor } from "./filter-option-color";
 import { isSearchKey } from "./search-utils";
 
 interface Props {

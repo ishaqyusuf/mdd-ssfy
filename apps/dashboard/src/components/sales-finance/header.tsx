@@ -18,6 +18,7 @@ import {
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
+import { getStatusFilterOptionColor } from "@gnd/utils/filter-option-colors";
 import Link from "next/link";
 
 import type { FilterDefinition } from "../midday-search-filter/filter-definitions";
@@ -52,10 +53,26 @@ const financeFilterDefinitions = [
 		label: "Payment status",
 		type: "multi-select",
 		options: [
-			{ label: "Successful", value: "success" },
-			{ label: "Pending", value: "pending" },
-			{ label: "Failed", value: "failed" },
-			{ label: "Cancelled", value: "cancelled" },
+			{
+				label: "Successful",
+				value: "success",
+				color: getStatusFilterOptionColor("success"),
+			},
+			{
+				label: "Pending",
+				value: "pending",
+				color: getStatusFilterOptionColor("pending"),
+			},
+			{
+				label: "Failed",
+				value: "failed",
+				color: getStatusFilterOptionColor("failed"),
+			},
+			{
+				label: "Cancelled",
+				value: "cancelled",
+				color: getStatusFilterOptionColor("cancelled"),
+			},
 		],
 	},
 	{
@@ -63,10 +80,26 @@ const financeFilterDefinitions = [
 		label: "Application",
 		type: "multi-select",
 		options: [
-			{ label: "Applied", value: "applied" },
-			{ label: "Partially applied", value: "partial" },
-			{ label: "Unapplied", value: "unapplied" },
-			{ label: "Overapplied", value: "overapplied" },
+			{
+				label: "Applied",
+				value: "applied",
+				color: getStatusFilterOptionColor("applied"),
+			},
+			{
+				label: "Partially applied",
+				value: "partial",
+				color: getStatusFilterOptionColor("partial"),
+			},
+			{
+				label: "Unapplied",
+				value: "unapplied",
+				color: getStatusFilterOptionColor("unapplied"),
+			},
+			{
+				label: "Overapplied",
+				value: "overapplied",
+				color: getStatusFilterOptionColor("overapplied"),
+			},
 		],
 	},
 	{
@@ -79,7 +112,10 @@ const financeFilterDefinitions = [
 			{ label: "Missing reference", value: "missing_reference" },
 			{ label: "Application mismatch", value: "application_mismatch" },
 			{ label: "Failed payment", value: "failed_payment" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.value),
+		})),
 	},
 ] satisfies FilterDefinition[];
 

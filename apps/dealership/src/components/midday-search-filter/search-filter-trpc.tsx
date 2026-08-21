@@ -18,6 +18,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import { FilterOptionLabel } from "@gnd/ui/filter-option-label";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type FilterOption = {
@@ -50,7 +51,7 @@ function normalizeFilterDefinitions(filterList?: PageFilterData[]) {
 			typeof option === "string"
 				? { label: option, value: option }
 				: {
-						label: String(option.label),
+						label: String(option.label ?? ""),
 						value: String(option.value),
 						color: option.color,
 					},
@@ -222,7 +223,10 @@ export function SearchFilterTRPC({
 											}}
 											key={option.value}
 										>
-											<span>{option.label}</span>
+											<FilterOptionLabel
+												label={option.label}
+												color={option.color}
+											/>
 										</DropdownMenuCheckboxItem>
 									))}
 								</DropdownMenuSubContent>

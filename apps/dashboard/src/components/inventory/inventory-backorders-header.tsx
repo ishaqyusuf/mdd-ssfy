@@ -19,6 +19,10 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
+import {
+	getDeliveryFilterOptionColor,
+	getStatusFilterOptionColor,
+} from "@gnd/utils/filter-option-colors";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -32,7 +36,10 @@ const definitions = [
 			{ label: "Awaiting inbound", value: "awaiting_inbound" },
 			{ label: "Backordered", value: "backordered" },
 			{ label: "Ready remaining", value: "ready_to_ship_remaining" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.value),
+		})),
 	},
 	{
 		key: "deliveryModes",
@@ -42,7 +49,10 @@ const definitions = [
 			{ label: "Pickup", value: "pickup" },
 			{ label: "Delivery", value: "delivery" },
 			{ label: "Ship", value: "ship" },
-		],
+		].map((option) => ({
+			...option,
+			color: getDeliveryFilterOptionColor(option.value),
+		})),
 	},
 	{
 		key: "holdUntilComplete",
@@ -51,7 +61,10 @@ const definitions = [
 		options: [
 			{ label: "Held until complete", value: "true" },
 			{ label: "Partial shipment allowed", value: "false" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.label),
+		})),
 	},
 ] satisfies FilterDefinition[];
 

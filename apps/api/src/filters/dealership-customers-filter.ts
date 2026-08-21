@@ -1,46 +1,17 @@
 import type { DealerPortalCustomersListSchema } from "@api/schemas/dealer";
 import type { TRPCContext } from "@api/trpc/init";
 import type { PageFilterData } from "@api/type";
-import { sortList, uniqueList } from "@gnd/utils";
+import { optionFilter } from "@api/utils/filter";
+import { toDealershipFilterOptions } from "./dealership-filter-options";
 
 type FilterKey = keyof DealerPortalCustomersListSchema;
 type FilterData = PageFilterData<FilterKey>;
-
-function optionFilter(
-	value: FilterKey,
-	label: string,
-	options: ({ label: string; value: string } | string)[],
-) {
-	return {
-		label,
-		value,
-		options: options
-			.map((option) =>
-				typeof option === "string" ? { label: option, value: option } : option,
-			)
-			.filter((option) => option.value),
-		type: "checkbox",
-	} satisfies FilterData;
-}
 
 const searchFilter = {
 	label: "Search",
 	type: "input",
 	value: "q",
 } satisfies PageFilterData<"q">;
-
-function toOptions(values: Array<string | null | undefined>) {
-	return uniqueList(
-		sortList(
-			values
-				.map((value) => value?.trim())
-				.filter(Boolean)
-				.map((value) => ({ label: value!, value: value! })),
-			"value",
-		),
-		"value",
-	);
-}
 
 export async function getDealershipCustomersFilter(
 	ctx: TRPCContext,
@@ -69,7 +40,7 @@ export async function getDealershipCustomersFilter(
 		optionFilter(
 			"customer.name",
 			"Customer",
-			toOptions(
+			toDealershipFilterOptions(
 				customers.flatMap((customer) => [
 					customer.businessName,
 					customer.name,
@@ -80,12 +51,14 @@ export async function getDealershipCustomersFilter(
 		optionFilter(
 			"phone",
 			"Phone",
-			toOptions(customers.map((customer) => customer.phoneNo)),
+			toDealershipFilterOptions(customers.map((customer) => customer.phoneNo)),
 		),
 		optionFilter(
 			"profile",
 			"Sales Profile",
-			toOptions(customers.map((customer) => customer.profile?.title)),
+			toDealershipFilterOptions(
+				customers.map((customer) => customer.profile?.title),
+			),
 		),
 	] satisfies FilterData[];
 }

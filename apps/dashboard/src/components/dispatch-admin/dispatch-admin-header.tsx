@@ -23,6 +23,10 @@ import {
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import { ToggleGroup, ToggleGroupItem } from "@gnd/ui/toggle-group";
+import {
+	getDeliveryFilterOptionColor,
+	getStatusFilterOptionColor,
+} from "@gnd/utils/filter-option-colors";
 import { CalendarDays, MoreHorizontal, Table2, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -40,7 +44,10 @@ const baseDefinitions = [
 			{ label: "Ready to load", value: "ready_to_load" },
 			{ label: "In transit", value: "in_transit" },
 			{ label: "Fulfilled", value: "fulfilled" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.value),
+		})),
 	},
 	{
 		key: "dueBuckets",
@@ -52,7 +59,10 @@ const baseDefinitions = [
 			{ label: "Tomorrow", value: "tomorrow" },
 			{ label: "Upcoming", value: "upcoming" },
 			{ label: "Unscheduled", value: "unscheduled" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.value),
+		})),
 	},
 	{
 		key: "deliveryModes",
@@ -61,7 +71,10 @@ const baseDefinitions = [
 		options: [
 			{ label: "Delivery", value: "delivery" },
 			{ label: "Pickup", value: "pickup" },
-		],
+		].map((option) => ({
+			...option,
+			color: getDeliveryFilterOptionColor(option.value),
+		})),
 	},
 	{
 		key: "risks",
@@ -73,7 +86,10 @@ const baseDefinitions = [
 			{ label: "Missing items", value: "missing_items" },
 			{ label: "Unassigned", value: "unassigned" },
 			{ label: "Open exception", value: "open_exception" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.value),
+		})),
 	},
 ] satisfies FilterDefinition[];
 

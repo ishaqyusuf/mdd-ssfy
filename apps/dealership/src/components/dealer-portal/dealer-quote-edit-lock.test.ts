@@ -1,4 +1,3 @@
-// @ts-expect-error apps/dealership typecheck does not include Bun test types.
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 

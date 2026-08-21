@@ -24,6 +24,7 @@ import {
 } from "@gnd/ui/hover-card";
 import { Icon, Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import { FilterOptionLabel } from "@gnd/ui/filter-option-label";
 import { daysFilters } from "@gnd/utils/constants";
 import { formatISO } from "date-fns";
 import dynamic from "next/dynamic";
@@ -50,7 +51,6 @@ import {
 	normalizeFilterDefinitions,
 } from "./filter-definitions";
 import { FilterList } from "./filter-list";
-import { FilterOptionColor } from "./filter-option-color";
 import { isSearchKey, searchIcons } from "./search-utils";
 import {
 	getClearableFilterUpdate,
@@ -429,12 +429,11 @@ export function SearchFilterTRPC({
 													id: option.value,
 												}))}
 												renderListItem={({ item }) => (
-													<div className="flex items-center gap-2">
-														<FilterOptionColor
-															color={(item as { color?: string }).color}
-														/>
-														<span className="line-clamp-1">{item.label}</span>
-													</div>
+													<FilterOptionLabel
+														label={item.label}
+														color={(item as { color?: string }).color}
+														truncate
+													/>
 												)}
 												onChange={(selected) => {
 													optionSelected(definition.key, {
@@ -461,10 +460,10 @@ export function SearchFilterTRPC({
 													}}
 													key={option.value}
 												>
-													<span className="flex items-center gap-2">
-														<FilterOptionColor color={option.color} />
-														<span>{option.label}</span>
-													</span>
+													<FilterOptionLabel
+														label={option.label}
+														color={option.color}
+													/>
 												</DropdownMenuCheckboxItem>
 											))
 										)}

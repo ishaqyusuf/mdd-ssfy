@@ -73,7 +73,7 @@ export function normalizeFilterDefinitions(
 				type,
 				icon: (pageFilter.icon || searchIcons[key]) as IconKeys,
 				options: pageFilter.options?.map((option) => ({
-					label: option.label,
+					label: option.label ?? "",
 					subLabel: option.subLabel,
 					value: String(option.value),
 					color: option.color,

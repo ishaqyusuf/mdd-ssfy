@@ -1,59 +1,22 @@
 import type { DealerPortalSalesListSchema } from "@api/schemas/dealer";
 import type { TRPCContext } from "@api/trpc/init";
 import type { PageFilterData } from "@api/type";
-import { sortList, uniqueList } from "@gnd/utils";
+import { optionFilter } from "@api/utils/filter";
+import {
+	dealershipPaymentStateOptions,
+	toDealershipFilterOptions,
+	withDealershipDeliveryColors,
+	withDealershipStatusColors,
+} from "./dealership-filter-options";
 
 type FilterKey = keyof DealerPortalSalesListSchema;
 type FilterData = PageFilterData<FilterKey>;
-
-function optionFilter(
-	value: FilterKey,
-	label: string,
-	options: ({ label: string; value: string } | string)[],
-) {
-	return {
-		label,
-		value,
-		options: options
-			.map((option) =>
-				typeof option === "string" ? { label: option, value: option } : option,
-			)
-			.filter((option) => option.value),
-		type: "checkbox",
-	} satisfies FilterData;
-}
 
 const searchFilter = {
 	label: "Search",
 	type: "input",
 	value: "q",
 } satisfies PageFilterData<"q">;
-
-function toOptions(values: Array<string | null | undefined>) {
-	const options = values
-		.map((value) => value?.trim())
-		.filter((value): value is string => Boolean(value));
-
-	return uniqueList(
-		sortList(
-			options.map((value) => ({ label: value, value })),
-			"value",
-		),
-		"value",
-	);
-}
-
-const paymentStateOptions = [
-	{ label: "Balance due", value: "due" },
-	{ label: "Paid", value: "paid" },
-	{ label: "Credit", value: "credit" },
-];
-
-const deliveryOptionLabels: Record<string, string> = {
-	pickup: "Pickup",
-	delivery: "Delivery",
-	ship: "Ship",
-};
 
 export async function getDealershipQuotesFilter(
 	ctx: TRPCContext,
@@ -100,7 +63,7 @@ export async function getDealershipQuotesFilter(
 		optionFilter(
 			"customer.name",
 			"Customer",
-			toOptions(
+			toDealershipFilterOptions(
 				quotes.flatMap((quote) => [
 					quote.customer?.businessName,
 					quote.customer?.name,
@@ -111,7 +74,7 @@ export async function getDealershipQuotesFilter(
 		optionFilter(
 			"phone",
 			"Phone",
-			toOptions(
+			toDealershipFilterOptions(
 				quotes.flatMap((quote) => [
 					quote.customer?.phoneNo,
 					quote.billingAddress?.phoneNo,
@@ -121,25 +84,30 @@ export async function getDealershipQuotesFilter(
 		optionFilter(
 			"orderNo",
 			"Quote #",
-			toOptions(quotes.map((quote) => quote.orderId)),
+			toDealershipFilterOptions(quotes.map((quote) => quote.orderId)),
 		),
 		optionFilter(
 			"status",
 			"Status",
-			toOptions(quotes.map((quote) => quote.status || "open")),
+			withDealershipStatusColors(
+				toDealershipFilterOptions(
+					quotes.map((quote) => quote.status || "open"),
+				),
+			),
 		),
 		optionFilter(
 			"deliveryOption",
 			"Delivery",
-			toOptions(quotes.map((quote) => quote.deliveryOption)).map((option) => ({
-				...option,
-				label: deliveryOptionLabels[option.value] || option.label,
-			})),
+			withDealershipDeliveryColors(
+				toDealershipFilterOptions(
+					quotes.map((quote) => quote.deliveryOption),
+				),
+			),
 		),
 		optionFilter(
 			"customerProfileId",
 			"Sales Profile",
-			toOptions(
+			toDealershipFilterOptions(
 				quotes.map((quote) =>
 					quote.dealerSale?.dealerCustomerProfile
 						? `${quote.dealerSale.dealerCustomerProfile.id}:${quote.dealerSale.dealerCustomerProfile.title}`
@@ -153,6 +121,6 @@ export async function getDealershipQuotesFilter(
 				};
 			}),
 		),
-		optionFilter("amountDue", "Payment", paymentStateOptions),
+		optionFilter("amountDue", "Payment", dealershipPaymentStateOptions),
 	] satisfies FilterData[];
 }

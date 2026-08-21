@@ -11,6 +11,7 @@ import { useTRPC } from "@/trpc/client";
 import type { PageFilterData } from "@api/type";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
+import { getStatusFilterOptionColor } from "@gnd/utils/filter-option-colors";
 import { resolveSalesProductionWorkspaceQuery } from "@sales/production-workspace-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { CalendarDays, List } from "lucide-react";
@@ -30,7 +31,10 @@ const workspaceFilters = [
 			{ label: "Ready", value: "ready" },
 			{ label: "In progress", value: "in-progress" },
 			{ label: "Blocked", value: "blocked" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.value),
+		})),
 	},
 	{
 		key: "due",
@@ -40,7 +44,10 @@ const workspaceFilters = [
 			{ label: "Overdue", value: "overdue" },
 			{ label: "Today", value: "today" },
 			{ label: "Tomorrow", value: "tomorrow" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.value),
+		})),
 	},
 	{
 		key: "material",
@@ -51,7 +58,10 @@ const workspaceFilters = [
 			{ label: "Needs review", value: "review" },
 			{ label: "Blocked", value: "blocked" },
 			{ label: "Unavailable", value: "unavailable" },
-		],
+		].map((option) => ({
+			...option,
+			color: getStatusFilterOptionColor(option.value),
+		})),
 	},
 	{
 		key: "sort",

@@ -16,17 +16,19 @@ export type PageDataMeta = {
   hasNextPage?;
 };
 
-export type PageFilterData<TValue = string> = {
-  value?: TValue;
+export type PageFilterOption<TOptionValue = unknown> = {
+  label?: string | null;
+  subLabel?: string;
+  value: TOptionValue;
+  color?: string;
+};
+
+export type PageFilterData<TFilterKey = string, TOptionValue = unknown> = {
+  value?: TFilterKey;
   icon?;
   type: "checkbox" | "input" | "date" | "date-range";
   label?: string;
-  options?: {
-    label: string;
-    subLabel?: string;
-    value: string;
-    color?: string;
-  }[];
+  options?: PageFilterOption<TOptionValue>[];
 };
 export type StepMeta = {
   custom: boolean;

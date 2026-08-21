@@ -7,9 +7,11 @@ import type {
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import type { PageFilterData, SalesType } from "@api/type";
+import { optionFilter } from "@api/utils/filter";
 import type { GetBuildersSchema } from "@community/builder";
 import { salesFilterOptionsCache } from "@gnd/cache/sales-filter-options-cache";
 import { labelValueOptions, sortList, uniqueList } from "@gnd/utils";
+import { getColorFromName } from "@gnd/utils/colors";
 import {
   INVOICE_FILTER_OPTIONS,
   PRODUCTION_FILTER_OPTIONS,
@@ -18,6 +20,7 @@ import {
   WORK_ORDER_STATUS,
   salesDispatchStatus,
 } from "@gnd/utils/constants";
+import { getStatusFilterOptionColor } from "@gnd/utils/filter-option-colors";
 import type { GetNotificationChannelsSchema } from "@notifications/schemas";
 import {
   SALES_PAYMENT_METHODS,
@@ -52,8 +55,6 @@ import type { GetContractorPayoutsSchema } from "./jobs";
 import type { ProductReportSchema } from "./product-report";
 import {
   type GetProjectUnitsSchema,
-  communityInstallCostFilters,
-  communityInstllationFilters,
   communityProductionFilter,
   communityTemplateConfigFilters,
   invoiceFilter,
@@ -143,6 +144,7 @@ export async function getDispatchFilters(ctx: TRPCContext) {
       salesDispatchStatus.map((status) => ({
         label: status,
         value: status,
+        color: getStatusFilterOptionColor(status),
       })),
     ),
     dateRangeFilter<T>("scheduleDate", "Schedule Date"),
@@ -153,23 +155,6 @@ export async function getInboundFilters(ctx: TRPCContext) {
   type FilterData = PageFilterData<keyof InboundQuerySchema>;
   const resp = [searchFilter] as FilterData[];
   return resp;
-}
-function optionFilter<T>(
-  value: T,
-  label,
-  options: ({ label: any; value: any } | string)[],
-) {
-  return {
-    label,
-    value,
-    options: options
-      .map((a) => (typeof a !== "object" ? { label: a, value: a } : a))
-      .map(({ label, value }) => ({
-        label,
-        value: value, //?.toString(),
-      })),
-    type: "checkbox",
-  } satisfies PageFilterData<T>;
 }
 function dateFilter<T>(value: T, label) {
   return {
@@ -489,10 +474,12 @@ export async function communityProjectFilters(ctx: TRPCContext) {
       {
         label: "Active",
         value: "active",
+        color: getStatusFilterOptionColor("active"),
       },
       {
         label: "Archived",
         value: "archived",
+        color: getStatusFilterOptionColor("archived"),
       },
     ]),
   ] satisfies FilterData[];
@@ -556,28 +543,50 @@ export async function projectUnitFilters(ctx: TRPCContext) {
     optionFilter<T>(
       "invoice",
       "Invoice",
-      labelValueOptions([...invoiceFilter]),
+      invoiceFilter.map((value) => ({
+        label: value,
+        value,
+        color: getStatusFilterOptionColor(value),
+      })),
     ),
     optionFilter<T>(
       "template",
       "Template",
-      labelValueOptions([...communityTemplateConfigFilters]),
+      communityTemplateConfigFilters.map((value) => ({
+        label: value,
+        value,
+        color: getStatusFilterOptionColor(value),
+      })),
     ),
     dateRangeFilter<T>("dateRange", "Filter by date"),
     optionFilter<T>(
       "installation",
       "Installation",
-      labelValueOptions(["has installation", "no installation"]),
+      ["has installation", "no installation"].map((value) => ({
+        label: value,
+        value,
+        color: getStatusFilterOptionColor(value),
+      })),
     ),
     optionFilter<T>(
       "installCost",
       "Install Cost",
-      labelValueOptions(["configured", "part configured", "not configured"]),
+      ["configured", "part configured", "not configured"].map((value) => ({
+        label: value,
+        value,
+        color: getStatusFilterOptionColor(value),
+      })),
     ),
     optionFilter<T>(
       "production",
       "Production",
-      labelValueOptions([...communityProductionFilter]),
+      communityProductionFilter.map((value) => ({
+        label: value,
+        value,
+        ...(value === "sort"
+          ? {}
+          : { color: getStatusFilterOptionColor(value) }),
+      })),
     ),
   ] satisfies FilterData[];
 
@@ -648,6 +657,7 @@ export async function unitProductionFilters(ctx: TRPCContext) {
       unitProductionStatusFilter.map((status) => ({
         label: status.charAt(0).toUpperCase() + status.slice(1),
         value: status,
+        color: getStatusFilterOptionColor(status),
       })),
     ),
     dateRangeFilter<T>("dateRange", "Due date"),
@@ -768,6 +778,7 @@ export async function getSalesOrderFilters(
       SALES_DISPATCH_FILTER_OPTIONS.map((status) => ({
         label: status,
         value: status,
+        color: getStatusFilterOptionColor(status),
       })),
     ),
     optionFilter<T>(
@@ -776,12 +787,14 @@ export async function getSalesOrderFilters(
       INVOICE_FILTER_OPTIONS.map((status) => ({
         label: status,
         value: status,
+        color: getStatusFilterOptionColor(status),
       })),
     ),
     optionFilter<T>("paymentReview", "Payment Review", [
       {
         label: "Needs review",
         value: "needs_review",
+        color: getStatusFilterOptionColor("needs_review"),
       },
     ]),
     optionFilter<T>(
@@ -790,6 +803,7 @@ export async function getSalesOrderFilters(
       PRODUCTION_FILTER_OPTIONS.map((status) => ({
         label: `${status}`,
         value: status,
+        color: getStatusFilterOptionColor(status),
       })),
     ),
     optionFilter<T>(
@@ -815,6 +829,7 @@ export async function getSalesOrderFilters(
       SALES_INBOUND_FILTER_OPTIONS.map((value) => ({
         label: SALES_INBOUND_FILTER_LABELS[value],
         value,
+        color: getStatusFilterOptionColor(value),
       })),
     ),
     optionFilter<T>(
@@ -831,6 +846,7 @@ export async function getSalesOrderFilters(
       SALES_SPECIAL_ORDER_FILTER_OPTIONS.map((value) => ({
         label: SALES_SPECIAL_ORDER_FILTER_LABELS[value],
         value,
+        color: getStatusFilterOptionColor(value),
       })),
     ),
   ].filter(Boolean);
@@ -854,6 +870,7 @@ export async function getResolutionFilters(ctx: TRPCContext) {
       RESOLUTION_FILTER_OPTIONS.map((status) => ({
         label: `${status}`,
         value: status,
+        color: getStatusFilterOptionColor(status),
       })),
     ),
   );
@@ -885,7 +902,11 @@ export async function getSalesProductionFilters(ctx: TRPCContext) {
       value: "production",
       type: "checkbox",
       label: "Production Status",
-      options: labelValueOptions([...SALES_PRODUCTION_STATUS_FILTER_OPTIONS]),
+      options: SALES_PRODUCTION_STATUS_FILTER_OPTIONS.map((status) => ({
+        label: status,
+        value: status,
+        color: getStatusFilterOptionColor(status),
+      })),
     },
     {
       value: "priority",
@@ -1046,6 +1067,7 @@ export async function getInventoryFilters(ctx: TRPCContext) {
       categories.map((c) => ({
         label: c.title,
         value: c.id,
+        color: getColorFromName(c.title ?? "Uncategorized"),
       })),
     ),
   ];
@@ -1082,6 +1104,7 @@ export async function productReportFilters(ctx: TRPCContext) {
   ).map(({ title }) => ({
     label: title,
     value: title,
+    color: getColorFromName(title ?? "Uncategorized"),
   }));
   // "title",
   // "title"
@@ -1220,6 +1243,7 @@ export async function customerServiceFilters(ctx: TRPCContext) {
       WORK_ORDER_STATUS.map((status) => ({
         label: `${status}`,
         value: status,
+        color: getStatusFilterOptionColor(status),
       })),
     ),
 

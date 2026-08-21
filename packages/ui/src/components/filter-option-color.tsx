@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import { cn } from "@gnd/ui/cn";
@@ -15,6 +16,7 @@ export function FilterOptionColor({
 
 	return (
 		<div
+			aria-hidden="true"
 			className={cn("flex-shrink-0", className)}
 			style={{
 				backgroundColor: color,

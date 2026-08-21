@@ -1,6 +1,7 @@
 declare module "bun:test" {
   type TestCallback = () => void | Promise<void>;
   type Matcher = {
+    toBe(value: unknown): void;
     toBeNull(): void;
     toBeUndefined(): void;
     toContain(value: unknown): void;

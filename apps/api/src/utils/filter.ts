@@ -1,37 +1,47 @@
-import type { PageFilterData, SalesType } from "@api/type";
-export function optionFilter<T>(
-  value: T,
-  label,
-  options: ({ label: any; value: any } | string)[]
+import type { PageFilterData, PageFilterOption } from "@api/type";
+
+export function optionFilter<TFilterKey, TOptionValue = unknown>(
+	value: TFilterKey,
+	label: string,
+	options: Array<PageFilterOption<TOptionValue> | string>,
 ) {
-  return {
-    label,
-    value,
-    options: options
-      .map((a) => (typeof a !== "object" ? { label: a, value: a } : a))
-      .map(({ label, value }) => ({
-        label,
-        value: value, //?.toString(),
-      })),
-    type: "checkbox",
-  } satisfies PageFilterData<T>;
+	const normalizedOptions: PageFilterOption<TOptionValue | string>[] = options.map(
+		(option) =>
+			typeof option === "string"
+				? { label: option, value: option }
+				: {
+						label: option.label,
+						value: option.value,
+						...(option.subLabel === undefined
+							? {}
+							: { subLabel: option.subLabel }),
+						...(option.color === undefined ? {} : { color: option.color }),
+					},
+	);
+
+	return {
+		label,
+		value,
+		options: normalizedOptions,
+		type: "checkbox",
+	} satisfies PageFilterData<TFilterKey, TOptionValue | string>;
 }
-export function dateFilter<T>(value: T, label) {
-  return {
-    label,
-    value,
-    type: "date",
-  } satisfies PageFilterData<T>;
+export function dateFilter<T>(value: T, label: string) {
+	return {
+		label,
+		value,
+		type: "date",
+	} satisfies PageFilterData<T>;
 }
-export function dateRangeFilter<T>(value: T, label) {
-  return {
-    label,
-    value,
-    type: "date-range",
-  } satisfies PageFilterData<T>;
+export function dateRangeFilter<T>(value: T, label: string) {
+	return {
+		label,
+		value,
+		type: "date-range",
+	} satisfies PageFilterData<T>;
 }
 const searchFilter = {
-  label: "Search",
-  type: "input",
-  value: "q",
+	label: "Search",
+	type: "input",
+	value: "q",
 } as PageFilterData<"q">;
