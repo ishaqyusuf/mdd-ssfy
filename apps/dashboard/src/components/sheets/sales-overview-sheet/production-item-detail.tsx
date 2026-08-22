@@ -7,7 +7,7 @@ import { cn } from "@gnd/ui/cn";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { ProductionItemAssignments } from "./production-assignments";
-import { useProductionItem } from "./production-tab";
+import { useProductionItem } from "./production-item-context";
 import { getWorkerProductionSubmissionProgress } from "./production-worker-policy";
 
 export function ProductionItemDetail() {

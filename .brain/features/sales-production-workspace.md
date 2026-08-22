@@ -208,8 +208,8 @@ Provide a cleaner production operations surface for both admins and production w
 ## Sales Overview Worker Item Detail (2026-08-21)
 
 - Production-only users see only production items with quantity assigned to the
-  authenticated worker. When an order has one to three such items, all are
-  expanded automatically so work can begin without extra disclosure clicks.
+  authenticated worker. Only the first assigned item expands automatically;
+  workers can open additional items manually.
 - `Details` is the default Production item tab for every role. Admins retain
   `Details`, `Notes`, and `Assignments`; production-only users receive
   `Details`, `Notes`, and `Submissions (X/Y)`, where X is reported submission
@@ -234,6 +234,13 @@ Provide a cleaner production operations surface for both admins and production w
 - The production item disclosure chevron sits in the title row beside the item
   controls. Worker cards no longer reserve a second empty progress row beneath
   the subtitle.
+- Production item labels use the standard shadcn `ItemContent`, `ItemTitle`,
+  and `ItemDescription` typography, with both title and description displayed
+  in uppercase.
+- Collapsed production items use only the accordion's bottom divider, with no
+  card side or top borders. Expanded items replace that divider with a neutral
+  border around the full card and add no background tint, gradient, or elevated
+  shadow.
 - The Sales Overview header priority selector is hidden for production-only
   users. Admin/order-capable users retain the existing selector and Production
   assignment controls.
@@ -321,3 +328,68 @@ Provide a cleaner production operations surface for both admins and production w
   that previously dispatched an actionless Trigger payload.
 - The legacy update-sales-control command resolver rejects payloads with zero
   actions before command execution, while retaining its one-action-only rule.
+
+## Sales Overview Production Item Single-View Design Review (2026-08-22)
+
+- The proposed replacement removes the Production item-level `Details`, `Notes`,
+  and role-specific `Assignments` / `Submissions` tabs. An expanded item instead
+  presents one continuous content view in this fixed order:
+  1. a role-aware create action and its simple inline collapsible form
+  2. assignments for admins or the authenticated worker's submissions
+  3. production item details
+  4. notes and activity
+- Only the create form collapses. Assignments/submissions, details, and
+  notes/activity remain visible so workers and admins do not have to switch
+  context to understand or act on an item.
+- The admin design inventory preserves assignment creation, worker and due-date
+  selection, bounded LH/RH quantities, editable due dates, guarded assignment
+  deletion, assignment submission, nested submissions, completion, and material
+  review states.
+- The production-worker inventory preserves assignment-bounded submission
+  quantities, optional submission notes, personal submission counts/history,
+  guarded deletion, pending material approval, material blocking, and completed
+  quantities. Shared notes preserve author/time, visibility/type, attachments,
+  empty states, and authorized administrative actions.
+- `A — Command Document` is the approved direction. The rejected exploration
+  directions remain Operations Rail, Production Ledger, and Conversation
+  Canvas. Command Document uses a calm continuous layout with simple separators,
+  gives assignments/submissions the strongest hierarchy, uses a compact details
+  definition grid, and finishes with chronological notes/activity. It shows
+  admin and worker states with the same component system, preserves uppercase
+  shadcn item title/description, outlines only the expanded item, leaves
+  collapsed items with bottom dividers, and adds no expanded-state background.
+- Persistent GStack artifacts live outside the repository at
+  `~/.gstack/projects/gnd/designs/production-item-single-view-20260822/`.
+  The approved interactive source is `finalized.html`, its metadata lives in
+  `approved.json` / `finalized.json`, and the comparison board remains
+  `design-board.html`. The implementation checklist is
+  `.brain/plans/2026-08-22-feature-sales-overview-production-item-single-view.md`.
+  No application behavior changed during design approval.
+
+## Sales Overview Production Item Single View — V2 Implementation (2026-08-22)
+
+- The approved Command Document is implemented only when the Sales Overview is
+  in V2 mode. A dynamic Production gateway uses the same rollout selection as
+  General V2 and retains the previous Production item tabs as the legacy
+  fallback.
+- Expanded V2 items render the role-aware create action and inline form first,
+  followed by Assignments/Submissions, Details, and Notes & activity. The
+  information sections do not collapse and no item-level tab state is written.
+- Admin assignment creation, editable due dates, assignment submission, nested
+  submissions, material states, and guarded deletion continue through the
+  existing mutation components. Production workers retain server-filtered own
+  assignments/submissions, bounded quantities, optional notes, material and
+  dispatch locks, pending approval states, and guarded deletion.
+- Zero, one, and multiple eligible worker assignments are handled explicitly;
+  multiple choices default to the earliest due eligible assignment. Successful
+  creation closes only the inline form.
+- Item shells use shadcn Item title/description composition in uppercase.
+  Collapsed items have only a bottom divider; expanded items receive one neutral
+  outline with no active color. Only the first assigned worker item opens by
+  default.
+- The implementation follows the Midday split between a thin V2 tab owner,
+  item-document content, shared context, skeleton, and pure selection policy.
+  No API, database, permission, migration, or new package contract changed.
+- Focused Production validation passes 20 tests / 48 assertions; new V2 files
+  pass scoped Biome. Broad dashboard typecheck and authenticated browser QA were
+  not run under the fast Bun command discipline.

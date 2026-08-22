@@ -12,7 +12,7 @@ import { DispatchTab } from "./dispatch-tab";
 import type { GeneralTabProps } from "./general-tab";
 import { GeneralTabGateway } from "./general/general-tab-gateway";
 import { PackingTab } from "./packing-tab";
-import { ProductionTab } from "./production-tab";
+import { ProductionTabGateway } from "./production/production-tab-gateway";
 import { TransactionsTab } from "./transactions-tab";
 import type {
 	LegacySalesOverviewMode,
@@ -90,7 +90,7 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "production",
 					label: "Productions",
-					content: <ProductionTab />,
+					content: <ProductionTabGateway />,
 				},
 				{
 					value: "production-notes",
@@ -111,7 +111,7 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "production",
 					label: "Productions",
-					content: <ProductionTab />,
+					content: <ProductionTabGateway />,
 				},
 				{
 					value: "dispatch-notes",
@@ -141,7 +141,7 @@ export function createLegacySalesOverviewTabs({
 					label: "Productions",
 					hidden: isQuote,
 					badge: prodBadge ? (prodBadge as ReactNode) : undefined,
-					content: <ProductionTab />,
+					content: <ProductionTabGateway />,
 				},
 				{
 					value: "transactions",

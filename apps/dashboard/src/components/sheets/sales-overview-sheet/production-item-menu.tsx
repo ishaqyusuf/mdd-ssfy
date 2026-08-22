@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@gnd/ui/button";
 import { useProduction } from "./context";
-import { useProductionItem } from "./production-tab";
+import { useProductionItem } from "./production-item-context";
 import { DropdownMenu, Tabs } from "@gnd/ui/namespace";
 import { Menu } from "@gnd/ui/custom/menu";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";

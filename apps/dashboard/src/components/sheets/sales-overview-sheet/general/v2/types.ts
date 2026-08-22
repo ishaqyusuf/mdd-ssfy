@@ -1,8 +1,4 @@
-import type { RouterOutputs } from "@gnd/api/trpc/routers/_app";
-
-type SalesOverviewRouteData = NonNullable<
-	RouterOutputs["sales"]["getSaleOverview"]
->;
+import type { SalesOverviewVersionedData } from "../../types";
 
 type ProgressValue = {
 	percentage?: number | null;
@@ -12,9 +8,8 @@ type StatusValue = {
 	status?: string | null;
 };
 
-export type SalesOverviewData = SalesOverviewRouteData & {
+export type SalesOverviewData = SalesOverviewVersionedData & {
 	id: number;
-	generalViewVersion?: "v1" | "v2";
 	inventoryInboundOwnership?: unknown;
 	stats?: {
 		dispatchCompleted?: ProgressValue | null;

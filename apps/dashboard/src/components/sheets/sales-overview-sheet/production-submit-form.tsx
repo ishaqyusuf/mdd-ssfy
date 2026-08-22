@@ -11,23 +11,28 @@ import type z from "zod";
 
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
+import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@gnd/ui/collapsible";
 import { Form } from "@gnd/ui/form";
+import { Field, FieldGroup, FieldLabel } from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
-import { Label } from "@gnd/ui/label";
 
 import { useProduction } from "./context";
 import { useAssignmentRow } from "./production-assignment-row";
-import { useProductionItem } from "./production-tab";
+import { useProductionItem } from "./production-item-context";
 import { isWorkerProductionItemSubmissionBlocked } from "./production-worker-policy";
 
 type ProductionSubmissionFormValues = z.infer<typeof createSubmissionSchema>;
 
-export function ProductionSubmitForm() {
+export function ProductionSubmitForm({
+	afterSuccess,
+}: {
+	afterSuccess?: () => void;
+} = {}) {
 	const ctx = useAssignmentRow();
 	const pending = ctx.assignment.pending;
 	const { item, queryCtx } = useProductionItem();
@@ -62,6 +67,7 @@ export function ProductionSubmitForm() {
 			}
 			toast.clearToastId();
 			ctx.setOpenSubmitForm(false);
+			afterSuccess?.();
 			queryCtx.salesQuery.productionUpdated();
 		},
 		onError({ error }) {
@@ -96,7 +102,7 @@ export function ProductionSubmitForm() {
 			>
 				<div
 					className={cn(
-						"space-y-4 duration-300 animate-in fade-in-50 slide-in-from-top-5",
+						"flex flex-col gap-4 duration-300 animate-in fade-in-50 slide-in-from-top-5",
 						workerMode ? "mt-2" : "mt-4 border border-border p-3",
 					)}
 				>
@@ -104,32 +110,26 @@ export function ProductionSubmitForm() {
 						<h5 className="text-sm font-medium">Submit Assignment</h5>
 					)}
 					{materialBlocked ? (
-						<div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-red-950">
-							<Icons.AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-700" />
-							<div>
-								<p className="text-sm font-medium">Materials unavailable</p>
-								<p className="mt-1 text-xs leading-5 text-red-900">
-									This item cannot be submitted until its required materials are
-									available.
-								</p>
-							</div>
-						</div>
+						<Alert variant="destructive">
+							<Icons.AlertTriangle />
+							<AlertTitle>Materials unavailable</AlertTitle>
+							<AlertDescription>
+								This item cannot be submitted until its required materials are
+								available.
+							</AlertDescription>
+						</Alert>
 					) : !workerMode && materialReviewExpected ? (
-						<div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-950">
-							<Icons.AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" />
-							<div>
-								<p className="text-sm font-medium">
-									Material verification is still pending
-								</p>
-								<p className="mt-1 text-xs leading-5 text-amber-900">
-									You can submit this completed work now. It will be saved and
-									sent to an admin for approval while the material or inbound
-									record is verified.
-								</p>
-							</div>
-						</div>
+						<Alert variant="warning">
+							<Icons.AlertTriangle />
+							<AlertTitle>Material verification is still pending</AlertTitle>
+							<AlertDescription>
+								You can submit this completed work now. It will be saved and sent
+								to an admin for approval while the material or inbound record is
+								verified.
+							</AlertDescription>
+						</Alert>
 					) : null}
-					<div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+					<FieldGroup className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
 						{formData.pending?.lh || formData.pending?.rh ? (
 							<>
 								<QtyInput name="lh" />
@@ -138,7 +138,7 @@ export function ProductionSubmitForm() {
 						) : (
 							<QtyInput name="qty" />
 						)}
-						<div className="sm:col-span-2">
+						<Field className="sm:col-span-2">
 							<Collapsible>
 								<CollapsibleTrigger asChild>
 									<Button
@@ -162,28 +162,31 @@ export function ProductionSubmitForm() {
 									</div>
 								</CollapsibleContent>
 							</Collapsible>
-						</div>
-						<SubmitButton
-							isSubmitting={createSubmit.isExecuting}
-							className={cn(workerMode && "sm:col-span-2")}
-							disabled={
-								createSubmit.isExecuting ||
-								!form.formState.isValid ||
-								materialBlocked
-							}
-						>
-							Submit
-						</SubmitButton>
-						{workerMode ? null : (
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => ctx.setOpenSubmitForm(false)}
+						</Field>
+						<Field className={cn(workerMode && "sm:col-span-2")}>
+							<SubmitButton
+								isSubmitting={createSubmit.isExecuting}
+								disabled={
+									createSubmit.isExecuting ||
+									!form.formState.isValid ||
+									materialBlocked
+								}
 							>
-								Cancel
-							</Button>
+								Submit
+							</SubmitButton>
+						</Field>
+						{workerMode ? null : (
+							<Field>
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => ctx.setOpenSubmitForm(false)}
+								>
+									Cancel
+								</Button>
+							</Field>
 						)}
-					</div>
+					</FieldGroup>
 				</div>
 			</form>
 		</Form>
@@ -203,11 +206,11 @@ function QtyInput({ name }: { name: "lh" | "rh" | "qty" }) {
 	});
 	const label = name === "qty" ? "Quantity" : `${name.toUpperCase()} quantity`;
 	return (
-		<div className="grid gap-2">
-			<Label className="flex justify-between uppercase">
+		<Field>
+			<FieldLabel className="flex justify-between uppercase">
 				<span>{label}</span>
 				<span className="text-muted-foreground">{pendingQty || 0} pending</span>
-			</Label>
+			</FieldLabel>
 			<SalesFormQuantityStepper
 				label={label}
 				value={value}
@@ -222,6 +225,6 @@ function QtyInput({ name }: { name: "lh" | "rh" | "qty" }) {
 					});
 				}}
 			/>
-		</div>
+		</Field>
 	);
 }

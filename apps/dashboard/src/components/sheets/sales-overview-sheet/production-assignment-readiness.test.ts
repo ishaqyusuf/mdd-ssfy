@@ -14,6 +14,10 @@ const productionTabSource = readFileSync(
 	new URL("./production-tab.tsx", import.meta.url),
 	"utf8",
 );
+const productionItemExpansionSource = readFileSync(
+	new URL("./use-production-item-expansion.ts", import.meta.url),
+	"utf8",
+);
 const productionItemDetailSource = readFileSync(
 	new URL("./production-item-detail.tsx", import.meta.url),
 	"utf8",
@@ -90,7 +94,24 @@ describe("production assignment inventory readiness", () => {
 	});
 
 	it("keeps worker production focused on immediate item work", () => {
-		assert.match(productionTabSource, /itemUids\.length < 4/);
+		assert.match(productionItemExpansionSource, /itemUids\.slice\(0, 1\)/);
+		assert.doesNotMatch(productionItemExpansionSource, /itemUids\.length < 4/);
+		assert.match(
+			productionTabSource,
+			/opened \? "border-2" : "border-0"/,
+		);
+		assert.match(productionTabSource, /opened && "border-b-0"/);
+		assert.match(productionTabSource, /<ItemTitle className="uppercase">/);
+		assert.match(productionTabSource, /after:absolute after:inset-0/);
+		assert.match(
+			productionTabSource,
+			/<ItemDescription className="uppercase">/,
+		);
+		assert.doesNotMatch(productionTabSource, /font-mono\$|<h3/);
+		assert.doesNotMatch(
+			productionTabSource,
+			/sbg-gradient|from-slate|bg-rose|shadow-xl/,
+		);
 		assert.match(
 			productionTabSource,
 			/workerMode \? null : <ItemProgressBar item=\{item\} \/>/,
@@ -105,7 +126,10 @@ describe("production assignment inventory readiness", () => {
 	it("keeps worker submission entry flat and reuses the Sales Form stepper", () => {
 		assert.match(productionSubmitFormSource, /SalesFormQuantityStepper/);
 		assert.doesNotMatch(productionSubmitFormSource, /NumberInput/);
-		assert.match(productionAssignmentRowSource, /className="space-y-4"/);
+		assert.match(
+			productionAssignmentRowSource,
+			/className="flex flex-col gap-4"/,
+		);
 		assert.match(
 			productionSubmissionsSource,
 			/border-border border-b py-3 text-xs last:border-b-0/,

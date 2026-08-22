@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/use-day";
 import { useAction } from "next-safe-action/hooks";
 
 import { useAssignmentRow } from "./production-assignment-row";
-import { useProductionItem } from "./production-tab";
+import { useProductionItem } from "./production-item-context";
 import { QtyStatus } from "./qty-label";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Badge } from "@gnd/ui/badge";
@@ -33,7 +33,7 @@ export function ProductionSubmissions({}) {
             </p>
         );
     return (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
             {assignment.submissions.map((submission) => (
                 <div
                     key={submission.id}
@@ -58,17 +58,11 @@ export function ProductionSubmissions({}) {
 
 								<QtyStatus as="badge" qty={submission.qty} label="lh" />
 								{submission.materialReview?.status === "PENDING" ? (
-									<Badge
-										variant="outline"
-										className="border-amber-200 bg-amber-50 text-amber-800"
-									>
+									<Badge variant="secondary">
 										Awaiting material approval
 									</Badge>
 								) : submission.materialReview?.status === "APPROVED" ? (
-									<Badge
-										variant="outline"
-										className="border-emerald-200 bg-emerald-50 text-emerald-700"
-									>
+									<Badge variant="success">
 										Materials approved
 									</Badge>
 								) : null}

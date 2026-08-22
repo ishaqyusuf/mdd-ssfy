@@ -11,6 +11,7 @@ import { useAction } from "next-safe-action/hooks";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import {
     Collapsible,
     CollapsibleContent,
@@ -23,11 +24,11 @@ import { useProduction } from "./context";
 import { useProductionAssignments } from "./production-assignments";
 import { ProductionSubmissions } from "./production-submissions";
 import { ProductionSubmitForm } from "./production-submit-form";
-import { useProductionItem } from "./production-tab";
+import { useProductionItem } from "./production-item-context";
 import { isWorkerProductionItemSubmissionBlocked } from "./production-worker-policy";
 import { QtyStatus } from "./qty-label";
 
-const { useContext: useAssignmentRow, Provider: AssignmentRowProvider } =
+const { useContext: useAssignmentRow, Provider: ProductionAssignmentRowProvider } =
     createContextFactory((index: number) => {
         const ctx = useProductionAssignments();
         const assignment = ctx?.data?.assignments[index];
@@ -40,21 +41,42 @@ const { useContext: useAssignmentRow, Provider: AssignmentRowProvider } =
             setOpenSubmitForm,
         };
     });
-export { useAssignmentRow };
+export { ProductionAssignmentRowProvider, useAssignmentRow };
 export function ProductionAssignmentRow({
     index,
     view = "assignments",
+	showCreateAction = true,
+	showRecordHeading = true,
+	presentation = "card",
 }: {
     index: number;
     view?: "assignments" | "submissions";
+	showCreateAction?: boolean;
+	showRecordHeading?: boolean;
+	presentation?: "card" | "document";
 }) {
     return (
-        <AssignmentRowProvider args={[index]}>
-			<Content view={view} />
-        </AssignmentRowProvider>
+        <ProductionAssignmentRowProvider args={[index]}>
+			<Content
+				view={view}
+				showCreateAction={showCreateAction}
+				showRecordHeading={showRecordHeading}
+				presentation={presentation}
+			/>
+        </ProductionAssignmentRowProvider>
     );
 }
-function Content({ view }: { view: "assignments" | "submissions" }) {
+function Content({
+	view,
+	showCreateAction,
+	showRecordHeading,
+	presentation,
+}: {
+	view: "assignments" | "submissions";
+	showCreateAction: boolean;
+	showRecordHeading: boolean;
+	presentation: "card" | "document";
+}) {
     const ctx = useAssignmentRow();
     const { assignment } = ctx;
     const queryCtx = useSalesOverviewQuery();
@@ -88,15 +110,15 @@ function Content({ view }: { view: "assignments" | "submissions" }) {
 		const hasPendingQty = Number(assignment?.pending?.qty || 0) > 0;
 		return (
 			<Collapsible open={ctx.openSubmitForm}>
-				<div className="space-y-4">
-					<div className="flex flex-wrap items-center justify-between gap-3">
+				<div className="flex flex-col gap-4">
+					{showRecordHeading ? <div className="flex flex-wrap items-center justify-between gap-3">
 						<div>
 							<p className="text-sm font-medium">My submissions</p>
 							<p className="text-xs text-muted-foreground">
 								{submittedQty}/{assignedQty} submitted
 							</p>
 						</div>
-						<Button
+						{showCreateAction ? <Button
 							type="button"
 							size="sm"
 							variant={ctx.openSubmitForm ? "outline" : "default"}
@@ -104,23 +126,20 @@ function Content({ view }: { view: "assignments" | "submissions" }) {
 							onClick={() => ctx.setOpenSubmitForm(!ctx.openSubmitForm)}
 						>
 							{ctx.openSubmitForm ? "Cancel" : "Add submission"}
-						</Button>
-					</div>
+						</Button> : null}
+					</div> : null}
 					{materialBlocked ? (
-						<div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-red-950">
-							<Icons.AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-700" />
-							<div>
-								<p className="text-sm font-medium">Materials unavailable</p>
-								<p className="mt-1 text-xs text-red-900">
-									Submission is blocked until the required materials are
-									available.
-								</p>
-							</div>
-						</div>
+						<Alert variant="destructive">
+							<Icons.AlertTriangle />
+							<AlertTitle>Materials unavailable</AlertTitle>
+							<AlertDescription>
+								Submission is blocked until the required materials are available.
+							</AlertDescription>
+						</Alert>
 					) : null}
-					<CollapsibleContent>
+					{showCreateAction ? <CollapsibleContent>
 						<ProductionSubmitForm />
-					</CollapsibleContent>
+					</CollapsibleContent> : null}
 					<ProductionSubmissions />
 				</div>
 			</Collapsible>
@@ -131,9 +150,16 @@ function Content({ view }: { view: "assignments" | "submissions" }) {
             open={ctx.openSubmitForm}
             // onOpenChange={ctx.setOpenSubmitForm}
         >
-            <div className="space-y-3 border border-border p-3">
+            <div
+				className={cn(
+					"flex flex-col gap-3",
+					presentation === "document"
+						? "border-b border-border py-4 last:border-b-0"
+						: "border border-border p-3",
+				)}
+			>
                 <div className="flex items-start gap-2">
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                         <div className="flex gap-2 items-center">
                             <p className="text-sm font-medium uppercase">
                                 {assignment.assignedTo}
@@ -196,28 +222,27 @@ function Content({ view }: { view: "assignments" | "submissions" }) {
                         disabled={!assignment?.pending?.qty}
                         asChild
                     >
-                        <div className="">
-                            <Button
-                                disabled={
-                                    !assignment?.pending?.qty ||
-                                    queryCtx.dispatchMode
-                                }
-                                onClick={(e) => {
-                                    ctx.setOpenSubmitForm(!ctx.openSubmitForm);
-                                }}
-                                size="sm"
-                                variant="outline"
-                                className={cn(
-                                    "h-7 w-full",
-                                    ctx.openSubmitForm && "hidden"
-                                )}
-                            >
-                                <Icons.Send className="mr-2 h-4 w-4" />
-                                Submit
-                            </Button>
-                        </div>
+                        <Button
+                            disabled={
+                                !assignment?.pending?.qty ||
+                                queryCtx.dispatchMode
+                            }
+                            onClick={() => {
+                                ctx.setOpenSubmitForm(!ctx.openSubmitForm);
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className={cn(
+                                "h-7 w-full",
+                                ctx.openSubmitForm && "hidden"
+                            )}
+                        >
+                            <Icons.Send data-icon="inline-start" />
+                            Submit
+                        </Button>
                     </CollapsibleTrigger>
                     <Badge
+						className="gap-1 [&>svg]:size-3"
                         variant={
                             assignment.status === "completed"
                                 ? "success"
@@ -227,11 +252,11 @@ function Content({ view }: { view: "assignments" | "submissions" }) {
                         }
                     >
                         {assignment.status === "completed" ? (
-                            <Icons.CheckCircle className="mr-1 h-3 w-3" />
+							<Icons.CheckCircle />
                         ) : assignment.status === "in progress" ? (
-                            <Icons.Clock className="mr-1 h-3 w-3" />
+							<Icons.Clock />
                         ) : (
-                            <Icons.ClipboardList className="mr-1 h-3 w-3" />
+							<Icons.ClipboardList />
                         )}
                         {assignment.status?.replace("-", " ")}
                     </Badge>
@@ -263,7 +288,7 @@ function Content({ view }: { view: "assignments" | "submissions" }) {
                         />
                     </AccessBased>
                 </div>
-                <div className="space-y-2 pt-2">
+                <div className="flex flex-col gap-2 pt-2">
                     <div className="flex items-center justify-between">
                         <p className="text-xs font-medium">Submissions</p>
                         {/* {expandedSubmitForms[assignment.id] && ( */}

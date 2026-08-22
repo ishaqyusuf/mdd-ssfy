@@ -14,12 +14,16 @@
   action hierarchy, mobile interruption proof, and offline-draft decision. A
   global worker search/filter plan is awaiting approval; it replaces
   tab-intersected and Calendar-period-intersected discovery with a temporary,
-  authenticated all-assigned-results state without a permanent All tab.
+  authenticated all-assigned-results state without a permanent All tab. The
+  Sales Overview Production item single view is now implemented for Sales
+  Overview V2 as `A — Command Document`; it replaces item-level
+  Details/Notes/Assignments-or-Submissions tabs with one role-aware document
+  while preserving the legacy fallback and all existing mutations and guards.
 - Related Feature: Sales Production Workspace
 - Status: In Progress
-- Plan Status: In Progress - Worker Tabs/Analytics/Calendar Complete; Worker Actions Pending
-- Plan Files: `.brain/plans/sales-system-page-by-page-modernization/04-sales-production-admin-and-worker-plan.md`; `.brain/plans/2026-08-21-feature-production-worker-global-search.md`
-- Updated Date: 2026-08-21
+- Plan Status: In Progress - Worker Tabs/Analytics/Calendar Complete; Production Item Single View Implemented; Worker Actions Pending
+- Plan Files: `.brain/plans/sales-system-page-by-page-modernization/04-sales-production-admin-and-worker-plan.md`; `.brain/plans/2026-08-21-feature-production-worker-global-search.md`; `.brain/plans/2026-08-22-feature-sales-overview-production-item-single-view.md`
+- Updated Date: 2026-08-22
 
 ### Vercel Function Cost Reduction And Trigger Offload
 

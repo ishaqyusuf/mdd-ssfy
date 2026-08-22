@@ -22,7 +22,7 @@ import { Icons } from "@gnd/ui/icons";
 import { AccessBased } from "./access-based";
 import { ProductionAssignmentForm } from "./production-assignment-form";
 import { ProductionAssignmentRow } from "./production-assignment-row";
-import { useProductionItem } from "./production-tab";
+import { useProductionItem } from "./production-item-context";
 
 export const {
 	Provider: ProductionItemAssignmentsProvider,
@@ -30,16 +30,23 @@ export const {
 } = createContextFactory(() => {
 	const ctx = useProductionItem();
 	const { queryCtx, item } = ctx;
-	const data = useAsyncMemo(async () => {
+	const result = useAsyncMemo(async () => {
 		await timeout(100);
-		return getSalesItemAssignments(
-			item.controlUid,
-			item.itemId,
-			item.doorId,
-			queryCtx.assignedTo,
-		);
+		try {
+			return {
+				data: await getSalesItemAssignments(
+					item.controlUid,
+					item.itemId,
+					item.doorId,
+					queryCtx.assignedTo,
+				),
+				error: false,
+			};
+		} catch {
+			return { data: undefined, error: true };
+		}
 	}, [item.controlUid]);
-	return { data, item };
+	return { data: result?.data, error: result?.error || false, item };
 });
 
 export function ProductionItemAssignments({

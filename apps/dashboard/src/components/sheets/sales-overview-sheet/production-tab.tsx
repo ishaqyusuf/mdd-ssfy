@@ -9,14 +9,7 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useAfterTaskTrigger } from "@/hooks/use-task-trigger";
 import { cn } from "@/lib/utils";
 import { skeletonListData } from "@/utils/format";
-import React, {
-	createContext,
-	useContext,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { useMemo } from "react";
 
 import {
 	Accordion,
@@ -26,14 +19,20 @@ import {
 } from "@gnd/ui/accordion";
 import { Card, CardHeader } from "@gnd/ui/card";
 import { Checkbox } from "@gnd/ui/checkbox";
+import { ItemContent, ItemDescription, ItemTitle } from "@gnd/ui/item";
 
 import { AccessBased } from "./access-based";
 import { ProductionProvider, useProduction } from "./context";
 import { ItemProgressBar } from "./item-progress-bar";
+import {
+	type ProductionItem,
+	ProductionItemProvider,
+} from "./production-item-context";
 import { ProductionItemDetail } from "./production-item-detail";
 import { ProductionItemMenu } from "./production-item-menu";
 import { ProductionReadinessBanner } from "./production-readiness-banner";
 import { ProductionTabFooter } from "./production-tab-footer";
+import { useProductionItemExpansion } from "./use-production-item-expansion";
 
 export function ProductionTab() {
 	return (
@@ -46,7 +45,7 @@ export function ProductionTab() {
 	);
 }
 function Content() {
-	const { data, query } = useProduction();
+	const { data } = useProduction();
 	const queryCtx = useSalesOverviewQuery();
 	const workerMode = Boolean(queryCtx.assignedTo);
 	const productionItems = getProductionTabItems(data?.items);
@@ -61,46 +60,12 @@ function Content() {
 		() => (itemUidKey ? itemUidKey.split(",") : []),
 		[itemUidKey],
 	);
-	const requestedItemUid = query.params["prod-item-view"];
-	const expansionScopeKey = `${data?.orderId || "loading"}:${itemUidKey}`;
-	const initializedExpansionKey = useRef<string | null>(null);
-	const [expandedItemUids, setExpandedItemUids] = useState<string[]>([]);
-	useEffect(() => {
-		if (
-			!data?.orderId ||
-			initializedExpansionKey.current === expansionScopeKey
-		) {
-			return;
-		}
-		initializedExpansionKey.current = expansionScopeKey;
-		setExpandedItemUids(
-			requestedItemUid && itemUids.includes(requestedItemUid)
-				? [requestedItemUid]
-				: workerMode && itemUids.length > 0 && itemUids.length < 4
-					? itemUids
-					: [],
-		);
-	}, [
-		data?.orderId,
-		expansionScopeKey,
+	const { expandedItemUids, toggleItem } = useProductionItemExpansion({
 		itemUids,
-		requestedItemUid,
+		orderId: data?.orderId,
 		workerMode,
-	]);
-	const toggleItem = (itemUid: string) => {
-		const isOpen = expandedItemUids.includes(itemUid);
-		const nextExpandedItemUids = isOpen
-			? expandedItemUids.filter((uid) => uid !== itemUid)
-			: [...expandedItemUids, itemUid];
-		const nextActiveItemUid = isOpen
-			? (nextExpandedItemUids.at(-1) ?? null)
-			: itemUid;
-		setExpandedItemUids(nextExpandedItemUids);
-		queryCtx.setParams({
-			"prod-item-view": nextActiveItemUid,
-			"prod-item-tab": nextActiveItemUid ? "details" : null,
-		});
-	};
+		legacyTabState: true,
+	});
 	useAfterTaskTrigger(() => {
 		queryCtx.salesQuery.assignmentUpdated();
 	});
@@ -146,18 +111,8 @@ function Content() {
 	);
 }
 export interface ItemCardProps {
-	item: ReturnType<typeof useProduction>["data"]["items"][number];
+	item: ProductionItem;
 }
-function useItemCardContext(item: ItemCardProps["item"]) {
-	const ctx = useSalesOverviewQuery();
-	return {
-		item,
-		queryCtx: ctx,
-	};
-}
-const ItemCardContext =
-	createContext<ReturnType<typeof useItemCardContext>>(null);
-export const useProductionItem = () => useContext(ItemCardContext);
 function ItemCard({
 	item,
 	onToggle,
@@ -168,31 +123,21 @@ function ItemCard({
 	opened: boolean;
 	workerMode: boolean;
 }) {
-	const ctx = useItemCardContext(item);
 	const prod = useProduction();
 
 	return (
-		<ItemCardContext.Provider value={ctx}>
+		<ProductionItemProvider args={[item]}>
 			<AccordionItem
 				value={item.controlUid}
 				className={cn(
 					"overflow-hidden border-border",
-
+					opened && "border-b-0",
 					!item?.itemConfig?.production && "hidden",
 				)}
 			>
-				<Card
-					className={cn(
-						opened
-							? "border-muted-foregrounds sbg-gradient-to-tr  border-muted/50 from-slate-50 to-slate-50/10 shadow-xl"
-							: "hover:border-muted-foreground/50",
-					)}
-				>
+				<Card className={opened ? "border-2" : "border-0"}>
 					<CardHeader
-						className={cn(
-							"space-y-3 px-4 pb-2 pt-4",
-							opened && "border-b border-muted/50 bg-rose-100/20",
-						)}
+						className={cn("space-y-3 px-4 pb-2 pt-4", opened && "border-b")}
 					>
 						<div className="flex items-start gap-4">
 							<AccessBased>
@@ -209,18 +154,20 @@ function ItemCard({
 									/>
 								</div>
 							</AccessBased>
-							<button
-								type="button"
-								className="flex-1 cursor-pointer space-y-1 text-left"
-								onClick={onToggle}
-							>
-								<h3 className="text-base font-semibold uppercase">
-									{item.title}
-								</h3>
-								<p className="font-mono$ text-sm font-semibold uppercase text-muted-foreground">
+							<ItemContent className="relative min-w-0">
+								<ItemTitle className="uppercase">
+									<button
+										type="button"
+										className="cursor-pointer text-left after:absolute after:inset-0"
+										onClick={onToggle}
+									>
+										{item.title}
+									</button>
+								</ItemTitle>
+								<ItemDescription className="uppercase">
 									{item.subtitle}
-								</p>
-							</button>
+								</ItemDescription>
+							</ItemContent>
 
 							<div className="flex shrink-0 items-center gap-1">
 								<AccessBased>
@@ -241,6 +188,6 @@ function ItemCard({
 					</AccordionContent>
 				</Card>
 			</AccordionItem>
-		</ItemCardContext.Provider>
+		</ProductionItemProvider>
 	);
 }

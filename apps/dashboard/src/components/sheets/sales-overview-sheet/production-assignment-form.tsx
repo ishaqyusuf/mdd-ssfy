@@ -17,10 +17,10 @@ import z from "zod";
 
 import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
-import { Label } from "@gnd/ui/label";
+import { Field, FieldGroup, FieldLabel } from "@gnd/ui/field";
 
 import { useProduction } from "./context";
-import { useProductionItem } from "./production-tab";
+import { useProductionItem } from "./production-item-context";
 
 export function ProductionAssignmentForm({ closeForm }) {
     const ctx = useProductionItem();
@@ -90,28 +90,32 @@ export function ProductionAssignmentForm({ closeForm }) {
                         createAssignment.execute(e);
                     })}
                 >
-                    <div className="mt-4 space-y-3 border border-border p-3 duration-300 animate-in fade-in-50 slide-in-from-top-5">
+                    <div className="mt-4 flex flex-col gap-3 border border-border p-3 duration-300 animate-in fade-in-50 slide-in-from-top-5">
                         <h5 className="text-sm font-medium">
                             Create New Assignment
                         </h5>
-                        <div className="grid grid-cols-2 items-end gap-4">
-                            <FormSelect
-                                size="sm"
-                                options={data?.productionTeams || []}
-                                label={"Assign To"}
-                                name="assignedToId"
-                                control={form.control}
-                                placeholder="Select Production"
-                                titleKey="name"
-                                valueKey="id"
-                            />
+                        <FieldGroup className="grid grid-cols-2 items-end gap-4">
+                            <Field>
+                                <FormSelect
+                                    size="sm"
+                                    options={data?.productionTeams || []}
+                                    label={"Assign To"}
+                                    name="assignedToId"
+                                    control={form.control}
+                                    placeholder="Select Production"
+                                    titleKey="name"
+                                    valueKey="id"
+                                />
+                            </Field>
 
-                            <DatePicker
-                                control={form.control}
-                                name="dueDate"
-                                size="sm"
-                                label="Due Date"
-                            />
+                            <Field>
+                                <DatePicker
+                                    control={form.control}
+                                    name="dueDate"
+                                    size="sm"
+                                    label="Due Date"
+                                />
+                            </Field>
                             {formData?.pending?.lh || formData?.pending?.rh ? (
                                 <>
                                     <QtyInput name="lh" />
@@ -120,22 +124,26 @@ export function ProductionAssignmentForm({ closeForm }) {
                             ) : (
                                 <>
                                     <QtyInput name="qty" />
-                                    <div></div>
+                                    <div />
                                 </>
                             )}
-                            <SubmitButton
-                                isSubmitting={createAssignment.isExecuting}
-                                disabled={
-                                    createAssignment.isExecuting ||
-                                    !form.formState.isValid
-                                }
-                            >
-                                Create Assignment
-                            </SubmitButton>
-                            <Button variant="outline" onClick={(e) => {}}>
-                                Cancel
-                            </Button>
-                        </div>
+                            <Field>
+                                <SubmitButton
+                                    isSubmitting={createAssignment.isExecuting}
+                                    disabled={
+                                        createAssignment.isExecuting ||
+                                        !form.formState.isValid
+                                    }
+                                >
+                                    Create Assignment
+                                </SubmitButton>
+                            </Field>
+                            <Field>
+                                <Button type="button" variant="outline" onClick={closeForm}>
+                                    Cancel
+                                </Button>
+                            </Field>
+                        </FieldGroup>
                     </div>
                 </form>
             </Form>
@@ -160,19 +168,19 @@ function QtyInput({
         control,
     });
     return (
-        <div className="grid gap-2">
-            <Label className="flex justify-between uppercase">
+        <Field>
+            <FieldLabel className="flex justify-between uppercase">
                 <span>
                     {name}
-                    {name != "qty" ? " qty" : ``}
+                    {name !== "qty" ? " qty" : ""}
                 </span>
                 <span className="text-muted-foreground">
                     {pendingQty || 0} available
                 </span>
-            </Label>
+            </FieldLabel>
             <NumberInput
                 onValueChange={(e) => {
-                    let value = e.floatValue || null;
+                    const value = e.floatValue || null;
                     onChange(value, { shouldValidate: true });
                 }}
                 value={value}
@@ -182,6 +190,6 @@ function QtyInput({
                 suffix={`/${pendingQty}`}
                 {...props}
             />
-        </div>
+        </Field>
     );
 }

@@ -10851,3 +10851,64 @@
 - No Trigger deployment, remote task promotion, database mutation, projection
   backfill, or read-mode activation occurred. Production remains on the legacy
   `getOrders` path.
+
+## 2026-08-22 — Explored the Sales Overview Production item single-view redesign
+
+- Audited the authenticated admin and production-worker item detail states,
+  including assignment creation/management, submission creation/history,
+  material-review and deletion guards, details, and note composition/activity.
+  Browser interactions were read-only; no assignment, submission, or note was
+  created, changed, or deleted.
+- Locked the proposed single-view order to role-aware inline create action,
+  assignments/submissions, details, then notes/activity. Only the create form
+  collapses; the information sections remain visible and the item-level tabs are
+  removed in every design direction.
+- Generated four interactive design-html prototypes: Command Document,
+  Operations Rail, Production Ledger, and Conversation Canvas. Each includes
+  admin/worker parity, the current item border/divider rules, uppercase shadcn
+  title/description treatment, and role-specific permissions/states.
+- Verified every direction at 1,440px, 768px, and 375px. The Production Ledger's
+  initial 375px overflow was fixed before presentation. Persistent artifacts and
+  the selection board live under
+  `~/.gstack/projects/gnd/designs/production-item-single-view-20260822/`.
+- No application code, API contract, schema, migration, production data,
+  deployment, or durable architecture changed. Implementation remains pending
+  the user's design selection, so no ADR was required.
+
+## 2026-08-22 — Approved Command Document for the Production item single view
+
+- Selected Option A, Command Document, as the implementation source of truth.
+  Persisted the approved/finalized GStack HTML and metadata and updated the GND
+  design taste profile.
+- Added an implementation-ready checklist covering the tab-controller removal,
+  role-aware top create form, zero/one/multiple eligible worker assignments,
+  admin assignment management, worker submissions, Details, Notes/activity,
+  loading boundaries, accessibility, focused tests, and authenticated browser
+  acceptance.
+- No application code, API contract, schema, migration, production data, or
+  deployment changed. Implementation remains a separate authorized step; no
+  ADR is required for the approved presentation refactor.
+
+## 2026-08-22 — Implemented the Sales Overview Production V2 Command Document
+
+- Added a lazy Production gateway parallel to General V2, using the existing
+  Sales Overview V2 selection while preserving the current tabbed Production UI
+  as the legacy fallback.
+- Implemented the approved role-aware single view in the fixed order: inline
+  create assignment/submission, Assignments/Submissions, Details, then Notes &
+  activity. Existing mutations, guards, invalidation, and Note tag identity are
+  reused.
+- Split the V2 surface into thin tab/list, item document, skeleton, shared item
+  context, and a pure worker-assignment selection policy. Zero, one, and
+  multiple eligible worker assignments are covered; multiple defaults to the
+  earliest due assignment.
+- Applied the Midday ownership pattern and installed shadcn Item, Collapsible,
+  Accordion, Alert, Empty, Badge, Select, Separator, and Skeleton composition.
+  Collapsed items remain divider-only; expanded items use one neutral border;
+  title and description remain uppercase.
+- Focused validation passes 20 tests / 48 assertions and scoped Biome on all new
+  V2 files. Focused ESLint could not run because Bun resolved ESLint 10 against
+  the repository's legacy config. Broad typecheck and authenticated browser QA
+  were intentionally not run under fast Bun command discipline.
+- No API, database, schema, migration, permission, deployment, or external state
+  changed; no ADR was required.
