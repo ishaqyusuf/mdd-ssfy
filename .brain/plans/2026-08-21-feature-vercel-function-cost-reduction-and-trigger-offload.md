@@ -418,19 +418,31 @@ flowchart TD
   offset-based until individual keyset parity is implemented.
 - Unsupported scope: `paymentReview=needs_review` remains legacy because its
   distinct latest-payment grouping/order needs a separate projection contract.
-- Rollout gates: generate/review an additive migration; align/verify Trigger
-  SDK compatibility and add an explicitly global enqueue idempotency key;
-  deploy tasks; backfill; run shadow parity; then enable a
-  small read cohort and compare p75/p95, timeout, Function Duration, and mismatch
-  telemetry. `off` is the one-setting rollback.
-- Current migration status: schema code is present, but migration generation is
-  intentionally deferred. The dirty worktree already contains an unrelated
-  Square-refund Prisma schema and migration, so generating now could couple two
-  independently reviewed database changes.
-- Current enqueue status: worker execution is revision-safe and repeatable, but
-  cross-request Trigger run deduplication is intentionally not enabled while the
-  API and jobs packages are on different SDK generations. Default-off rollout
-  prevents activation before that gate is closed.
+- Rollout gates: the development schema reconciliation, projection backfill,
+  Trigger SDK alignment for this execution chain, global enqueue idempotency,
+  and local parity evidence are complete. Remaining gates are Trigger task
+  deployment, production/preview ledger reconciliation and backfill, production
+  shadow evidence, then a small read cohort comparing p75/p95, timeout, Function
+  Duration, and mismatch telemetry. `off` is the one-setting rollback.
+- Current migration status: the full current-schema catch-up migration
+  `20260821090000_current_schema_updates` was generated from the 120-migration
+  history through an isolated shadow database. It includes all schema changes
+  already present in the Prisma schema, including Square refund and
+  `SalesOrderListProjection`; it is intentionally not a projection-only
+  migration. Development was updated without accepting data loss, the migration
+  was recorded as applied, and the 121-migration schema now has no diff. No
+  preview or production migration ledger was changed.
+- Current enqueue status: the API and jobs packages used by this path are both
+  on Trigger SDK 4.5.9. Refresh requests are sorted and use explicitly global,
+  five-minute idempotency keys. The worker remains revision checked and safe to
+  retry.
+- Development evidence: all 8,007 active orders have a ready projection with
+  the expected revision and contract version. Legacy and projected results
+  matched across default pages, `APA`, exact order number, customer name,
+  address, and empty-result fixtures. Default-page runtime fell from roughly
+  390-448 ms on the legacy path to roughly 27-30 ms on the projected path in
+  local development; search fixtures also remained faster. These figures prove
+  local behavior, not production cost savings.
 
 ## Test Plan
 

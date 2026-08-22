@@ -690,3 +690,6 @@ Planning only; endpoint names may be refined during approved implementation.
 - Read misses and sampled shadow traffic queue
   `persist-sales-order-list-projections`; bounded initial population uses
   `backfill-sales-order-list-projections`.
+- Refresh enqueues use globally scoped five-minute idempotency keys. Development
+  is fully backfilled and locally parity-verified, but the rollout setting still
+  defaults to `off`; no production read behavior changed.

@@ -3,6 +3,7 @@ import {
 	compareSalesOrderListRows,
 	hydrateSalesOrderListRow,
 	isSalesOrderListProjectionFresh,
+	salesOrderListProjectionVersion,
 	serializeSalesOrderListRow,
 } from "./order-list-read-model";
 
@@ -47,11 +48,27 @@ describe("sales order list read model", () => {
 		});
 	});
 
+	it("ignores storage-level floating point noise but detects real changes", () => {
+		expect(
+			compareSalesOrderListRows(
+				[{ id: 1, amountPaid: 0.009999999999990905 }],
+				[{ id: 1, amountPaid: 0.009999999999990903 }],
+			).matches,
+		).toBe(true);
+		expect(
+			compareSalesOrderListRows(
+				[{ id: 1, amountPaid: 0.01 }],
+				[{ id: 1, amountPaid: 0.02 }],
+			).matches,
+		).toBe(false);
+	});
+
 	it("rejects wrong-version, changed-source, and expired rows", () => {
 		const now = new Date("2026-08-21T08:10:00.000Z").getTime();
+		const version = salesOrderListProjectionVersion();
 		const base = {
 			state: "ready",
-			version: 1,
+			version,
 			sourceUpdatedAt: new Date("2026-08-21T08:00:00.123Z"),
 			projectionSourceUpdatedAt: new Date("2026-08-21T08:00:00.123Z"),
 			projectedAt: new Date("2026-08-21T08:09:00.000Z"),
@@ -61,7 +78,7 @@ describe("sales order list read model", () => {
 
 		expect(isSalesOrderListProjectionFresh(base)).toBe(true);
 		expect(
-			isSalesOrderListProjectionFresh({ ...base, version: 2 }),
+			isSalesOrderListProjectionFresh({ ...base, version: version + 1 }),
 		).toBe(false);
 		expect(
 			isSalesOrderListProjectionFresh({

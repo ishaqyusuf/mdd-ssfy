@@ -34,15 +34,24 @@ worker reloads canonical data. Related-table freshness is bounded by a default
 five-minute maximum age; expiration falls back to legacy and queues another
 refresh. Projection failure never changes authoritative sales behavior.
 
+The projection contract version follows the active Control reader: version 1
+for the legacy control shape and version 2 for Control V2. A row built under the
+other control contract therefore fails freshness checks instead of being served
+silently. Trigger enqueue keys are explicitly global with a five-minute TTL.
+Parity comparisons normalize insignificant MySQL JSON floating-point noise but
+still reject commercially meaningful numeric differences.
+
 ## Consequences
 
 - The hot path can replace the broad include/enrichment fan-out with canonical
   count/id selection plus one projection read.
 - Trigger carries the expensive list-row composition and bounded backfill work;
   no customer/order payload is dispatched through the queue.
-- Production activation requires a generated additive migration, Trigger
-  SDK alignment plus global enqueue deduplication, Trigger deployment, backfill,
-  shadow parity evidence, and a measured cohort rollout.
+- Development schema reconciliation, full backfill, local parity, Trigger SDK
+  alignment for this execution chain, and global enqueue deduplication are
+  complete. Production activation still requires production/preview migration-
+  ledger reconciliation, Trigger deployment, environment-specific backfill,
+  production shadow evidence, and a measured cohort rollout.
 - The projection duplicates presentation data intentionally and must be
   versioned whenever the list-row contract changes.
 - The legacy query remains the rollback path until parity and cost goals hold.

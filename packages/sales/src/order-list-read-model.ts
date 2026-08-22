@@ -1,4 +1,13 @@
-export const SALES_ORDER_LIST_PROJECTION_VERSION = 1;
+import { isControlReadV2Enabled } from "./control/application/feature-flags";
+
+export const SALES_ORDER_LIST_PROJECTION_VERSION = 2;
+const SALES_ORDER_LIST_PROJECTION_LEGACY_CONTROL_VERSION = 1;
+
+export function salesOrderListProjectionVersion() {
+	return isControlReadV2Enabled()
+		? SALES_ORDER_LIST_PROJECTION_VERSION
+		: SALES_ORDER_LIST_PROJECTION_LEGACY_CONTROL_VERSION;
+}
 
 export type SalesOrderListProjectionPayload = Record<string, unknown>;
 
@@ -20,7 +29,7 @@ export function isSalesOrderListProjectionFresh(input: {
 }) {
 	return (
 		input.state === "ready" &&
-		input.version === SALES_ORDER_LIST_PROJECTION_VERSION &&
+		input.version === salesOrderListProjectionVersion() &&
 		input.sourceUpdatedAt.getTime() ===
 			input.projectionSourceUpdatedAt.getTime() &&
 		input.projectedAt.getTime() >=
@@ -85,6 +94,9 @@ export function hydrateSalesOrderListRow<T>(
 function stableJson(value: unknown): string {
 	if (Array.isArray(value)) {
 		return `[${value.map(stableJson).join(",")}]`;
+	}
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return JSON.stringify(Number(value.toPrecision(12)));
 	}
 	if (!value || typeof value !== "object") {
 		return JSON.stringify(value) ?? "undefined";

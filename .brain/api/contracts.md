@@ -1587,3 +1587,8 @@ implementation phase is approved and released.
 - The Trigger refresh contract accepts ids and revisions only, reloads canonical
   data, and skips stale revisions. Projection errors never mutate canonical
   sales state and always preserve the synchronous legacy fallback.
+- The stored projection version is selected from the same Control reader feature
+  flag as the canonical list builder (legacy version 1, Control V2 version 2).
+  Trigger enqueue deduplication is global with a five-minute TTL. Comparison may
+  ignore insignificant JSON floating-point serialization noise, but material
+  numeric differences remain mismatches.

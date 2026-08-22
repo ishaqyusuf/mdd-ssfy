@@ -316,5 +316,10 @@ Tracks the active work queue. Keep this focused and execution-ready.
 - [ ] Guarded `sales.getOrders` read-model rollout: projection schema, canonical
   Trigger builder, bounded backfill, shadow parity, revision/freshness fallback,
   and default-sort keyset cursor are implemented behind default-off controls.
-  Remaining gates are an isolated additive migration, Trigger SDK/deployment
-  verification, backfill, shadow parity, and measured cohort cost/latency proof.
+  Development now has the full current-schema catch-up migration applied, 8,007
+  active projections backfilled, SDK 4.5.9 aligned across the API/jobs execution
+  chain, global five-minute enqueue idempotency, and passing local parity across
+  seven representative fixtures. Remaining gates are controlled Trigger task
+  deployment, production/preview migration-ledger reconciliation and backfill,
+  production shadow evidence, and measured cohort cost/latency proof. Read mode
+  remains `off`.

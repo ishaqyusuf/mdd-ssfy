@@ -512,15 +512,27 @@ Tracks notable migrations and migration strategy.
 - The schema is forward-only: legacy Square/payment rows remain intact and are
   connected through explicit compatibility identifiers.
 
-## Pending: Sales Order list read model (2026-08-21)
+## 20260821090000_current_schema_updates
 
-- Adds `SalesOrderListProjection` and the nullable one-to-one relation from
-  `SalesOrders`.
-- This is additive and does not rewrite or delete canonical sales data.
-- Migration generation/application was not run in this implementation slice.
-  The worktree already contains the unrelated untracked
-  `sales.square-refund.prisma` schema and `20260820120000_square_refund_lifecycle`
-  migration; generating a migration now could bundle those changes with this
-  read model. Generate and review the projection-only migration after that
-  schema work is isolated or landed.
-- No local, preview, or production database was changed.
+- Reconciles the complete 120-migration history with the current modular Prisma
+  schema. It includes every previously schema-pushed update in that delta,
+  including the Square refund lifecycle and `SalesOrderListProjection`; it is
+  deliberately not a projection-only migration.
+- The migration was generated against an isolated temporary shadow database
+  after ordinary `migrate dev --create-only` correctly refused to continue
+  without resetting the historically drifted development database. No reset was
+  performed.
+- Development was brought to the current schema with `db:push` without an
+  accept-data-loss override, then this migration was marked applied in the
+  development ledger. Prisma reports 121 migrations and no remaining schema
+  difference.
+- `SalesOrderListProjection` has a unique `salesOrderId`, version/revision and
+  freshness fields, indexed list scope/sort columns, and a compact JSON payload.
+  It is a derived read model and does not replace canonical sales tables.
+- Verification found 8,007 active sales orders, zero missing projections, zero
+  source-revision mismatches, and zero wrong-version/unready projections after
+  the development backfill.
+- The isolated shadow database was removed after verification. No preview or
+  production database or migration ledger was changed. Because production was
+  previously schema-pushed independently, its migration ledger must be
+  reconciled explicitly before this catch-up migration is ever deployed there.

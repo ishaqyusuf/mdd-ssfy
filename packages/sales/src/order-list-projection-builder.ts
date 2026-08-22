@@ -4,7 +4,7 @@ import { timeAgo } from "@gnd/utils/dayjs";
 import { channelNames } from "@gnd/utils/notification-channels";
 import { getSalesOrderLifecycleStatusInfo } from "./order-status";
 import {
-	SALES_ORDER_LIST_PROJECTION_VERSION,
+	salesOrderListProjectionVersion,
 	serializeSalesOrderListRow,
 } from "./order-list-read-model";
 import { repairSalesInvoiceCccDisplay } from "./payment-system";
@@ -14,7 +14,8 @@ import { resolveSalesInventoryApplicability } from "./sales-inventory-applicabil
 import { resolveSalesInventoryLegacyCompatibility } from "./sales-inventory-legacy-compatibility";
 import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 import { getSpecialOrderStatusLabel } from "./special-order";
-import { withSalesListControl } from "./control";
+import { isControlReadV2Enabled, withSalesListControl } from "./control";
+import { withSalesControl } from "./utils/with-sales-control";
 
 export type RefreshSalesOrderListProjectionInput = {
 	salesOrderId: number;
@@ -89,8 +90,9 @@ function statStatus(stat?: {
 	const total = Number(stat?.total ?? 0);
 	if (percentage === 0 && total === 0) return "N/A";
 	if (percentage === 0) return "pending";
-	if (percentage >= 100) return "completed";
-	return "in progress";
+	if (percentage > 0 && percentage < 100) return "in progress";
+	if (percentage === 100) return "completed";
+	return "unknown";
 }
 
 function dispatchStat(
@@ -413,21 +415,28 @@ export async function refreshSalesOrderListProjections(
 		const amountDue = Math.max(Number(order.amountDue ?? 0), 0);
 		const amountPaid = Number(order.grandTotal ?? 0) - amountDue;
 		const productionStat = order.stat.find((stat) => stat.type === "prodCompleted");
+		const dispatchCompletedStat = order.stat.find(
+			(stat) => stat.type === "dispatchCompleted",
+		);
 		const deliveriesWithItems = order.deliveries.filter(
 			(delivery) => delivery._count.items > 0,
 		);
 		const prioritizedDelivery =
 			deliveriesWithItems.find((delivery) => delivery.status === "completed") ??
 			deliveriesWithItems[0];
-		const productionState = statStatus(productionStat);
+		const productionState =
+			Number(dispatchCompletedStat?.percentage ?? 0) === 100 ||
+			prioritizedDelivery?.status === "completed"
+				? "completed"
+				: statStatus(productionStat);
 		const fulfillmentState =
 			prioritizedDelivery?.status === "completed"
 				? "completed"
 				: statStatus(dispatchStat(order.stat));
 		const customerName =
-			order.customer?.businessName ??
-			order.customer?.name ??
-			order.shippingAddress?.name ??
+			order.customer?.businessName ||
+			order.customer?.name ||
+			order.shippingAddress?.name ||
 			"Unknown customer";
 		const currentRequest = order.currentSpecialOrderRequestId
 			? requestById.get(order.currentSpecialOrderRequestId)
@@ -469,7 +478,7 @@ export async function refreshSalesOrderListProjections(
 			salesRepInitial: getNameInitials(order.salesRep?.name ?? "") || "",
 			poNo:
 				readSalesFormPo((order.meta ?? {}) as Record<string, unknown>) || "-",
-			inboundStatus: order.inventoryStatus,
+			inboundStatus: order.inventoryStatus || null,
 			isDealerSale: Number(order.dealerAuthId ?? 0) > 0,
 			noteCount: noteCounts.get(order.id) ?? 0,
 			deliveryOption: order.deliveryOption ?? "pickup",
@@ -502,8 +511,8 @@ export async function refreshSalesOrderListProjections(
 			due: amountDue,
 			paymentDueDate: order.paymentDueDate,
 			invoiceStatus: amountDue <= 0 ? "paid" : "outstanding",
-			orderStatus: order.status,
-			prodStatus: order.prodStatus,
+			orderStatus: order.status || null,
+			prodStatus: order.prodStatus || null,
 			productionState,
 			productionLabel: productionLabel(productionState),
 			fulfillmentState,
@@ -513,7 +522,9 @@ export async function refreshSalesOrderListProjections(
 			inventoryProjection: order.inventoryProjection,
 		};
 	});
-	const controlledRows = await withSalesListControl(baseRows, db);
+	const controlledRows = isControlReadV2Enabled()
+		? await withSalesListControl(baseRows, db)
+		: await withSalesControl(baseRows, db);
 	const projectedRows = controlledRows.map((row) => {
 		const productionState =
 			row.control.productionStatus !== "unknown"
@@ -590,7 +601,7 @@ export async function refreshSalesOrderListProjections(
 			salesCreatedAt: order.createdAt,
 			salesDeletedAt: order.deletedAt,
 			sourceUpdatedAt: revision,
-			version: SALES_ORDER_LIST_PROJECTION_VERSION,
+			version: salesOrderListProjectionVersion(),
 			state: "ready",
 			payload: serializeSalesOrderListRow(row),
 			lastError: null,

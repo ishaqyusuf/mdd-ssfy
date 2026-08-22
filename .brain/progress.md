@@ -10816,3 +10816,23 @@
   and an explicit performance gate without adding a permanent All tab.
 - No application code, API contract, schema, production data, browser session,
   deployment, or external state changed.
+
+## 2026-08-21 — Completed the development `sales.getOrders` read-model foundation
+
+- Generated the full `20260821090000_current_schema_updates` catch-up migration
+  through an isolated shadow database after Prisma detected historical drift.
+  Applied the current schema to development without accepting data loss, marked
+  the migration applied, and verified 121 migrations with no remaining schema
+  diff. No preview or production database or ledger changed.
+- Aligned the `sales.getOrders` API/jobs Trigger execution chain on SDK 4.5.9
+  and added sorted, globally scoped enqueue idempotency with a five-minute TTL.
+  Projection versions now follow the active legacy/Control V2 reader so mixed-
+  contract rows fail closed.
+- Backfilled all 8,007 active development orders. The final audit found no
+  missing, stale-revision, wrong-version, or unready rows. Seven legacy/projected
+  parity fixtures passed, covering both default pages, `APA`, exact order number,
+  customer name, address, and an empty result.
+- Default-page local timings improved from roughly 390-448 ms on the legacy path
+  to roughly 27-30 ms on the projected path. This is development evidence only;
+  production mode remains `off`, and no Trigger deployment, production backfill,
+  or production cohort activation was performed.

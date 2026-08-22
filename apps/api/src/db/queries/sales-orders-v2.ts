@@ -6,7 +6,6 @@ import { transformSalesFilterQuery } from "@api/utils/sales";
 import { SalesListInclude } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
 import {
-	SALES_ORDER_LIST_PROJECTION_VERSION,
 	compareSalesOrderListRows,
 	hydrateSalesOrderListRow,
 	isSalesOrderListProjectionFresh,

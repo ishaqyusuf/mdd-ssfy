@@ -1,7 +1,7 @@
 import { db } from "@gnd/db";
 import {
-	SALES_ORDER_LIST_PROJECTION_VERSION,
 	refreshSalesOrderListProjections,
+	salesOrderListProjectionVersion,
 } from "@gnd/sales";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
@@ -26,6 +26,7 @@ export const persistSalesOrderListProjectionsTask = schemaTask({
 		concurrencyLimit: 1,
 	},
 	run: async ({ orders }) => {
+		const version = salesOrderListProjectionVersion();
 		const result = await refreshSalesOrderListProjections(
 			db,
 			orders.map((order) => ({
@@ -36,12 +37,12 @@ export const persistSalesOrderListProjectionsTask = schemaTask({
 
 		logger.info("Sales order list projections refreshed", {
 			...result,
-			version: SALES_ORDER_LIST_PROJECTION_VERSION,
+			version,
 		});
 
 		return {
 			...result,
-			version: SALES_ORDER_LIST_PROJECTION_VERSION,
+			version,
 		};
 	},
 });
