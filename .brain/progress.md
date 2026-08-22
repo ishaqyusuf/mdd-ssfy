@@ -10836,3 +10836,18 @@
   to roughly 27-30 ms on the projected path. This is development evidence only;
   production mode remains `off`, and no Trigger deployment, production backfill,
   or production cohort activation was performed.
+
+## 2026-08-22 — Landed `getOrders` foundation and audited the Trigger rollout gate
+
+- Committed the verified read-model implementation and its Brain records as
+  `4a71be823` without including unrelated daily-codebase-review changes.
+- Verified Trigger CLI profile `redland` is authenticated for project `GND`
+  (`proj_caklyqpkhwrtmdbtjhjs`). The project has a production environment with
+  19 configured worker variables but no staging environment.
+- The repository's existing jobs deployment command always loads production
+  environment configuration and defaults Trigger deployment to production.
+  Deployment stopped before any build or remote mutation because staging needs
+  an explicitly non-production database and worker-secret configuration first.
+- No Trigger deployment, remote task promotion, database mutation, projection
+  backfill, or read-mode activation occurred. Production remains on the legacy
+  `getOrders` path.
