@@ -1,7 +1,7 @@
 # Stable Vercel Preview Branch and Domain
 
 Date: 2026-08-23
-Status: Planned; awaiting execution approval
+Status: In progress; Preview branch created, deployment remediation underway
 
 ## Objective
 
@@ -92,6 +92,21 @@ local day-to-day branch remains `master`.
    the prior Vercel deployment and PlanetScale branch for diagnosis.
 
 ## Completion record
+
+### 2026-08-23 execution checkpoint
+
+- Created remote Git branch `preview` at commit `e2c0fa84a` without pushing or
+  changing remote `master`.
+- Vercel Git integration created Preview deployment
+  `dpl_6DuuMa5422E2Z8tqWYstKrqFAyqt` for the correct project, branch, and commit.
+- The first build compiled successfully, then remained in Next.js page-data
+  collection with three isolated workers until Vercel ended the deployment.
+- PlanetScale Insights showed no application query activity during that build,
+  ruling out the Preview database and `getOrders` as the wait source.
+- Reduced Next.js build page-analysis concurrency to one worker to constrain
+  peak memory while each worker loads the complete dashboard server graph. The
+  corrective commit will be validated on `preview` before protection or DNS is
+  changed.
 
 After execution, update the PlanetScale Preview decision/research notes, this
 plan's status, `.brain/progress.md`, and the deployment runbook with the stable

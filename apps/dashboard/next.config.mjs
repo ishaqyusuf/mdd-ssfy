@@ -71,6 +71,9 @@ const config = {
         ],
     },
     experimental: {
+        // Page-data workers each load the full dashboard server graph. Keep the
+        // Vercel build within its memory envelope as that graph grows.
+        cpus: 1,
         optimizePackageImports: [
             "lucide-react",
             "react-icons",
