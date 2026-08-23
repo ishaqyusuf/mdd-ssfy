@@ -31,6 +31,32 @@
    temporary password, and clear the clipboard. Never use a production
    credential as the target or publish Preview data to production.
 
+### Credential routing correction and Dev catch-up
+
+- Authenticated application data, the seed timing, and PlanetScale branch
+  metadata are consistent with Vercel Preview using the new PlanetScale
+  `preview` branch and its 150-order sanitized fixture. A new branch-scoped
+  credential is still required for direct fingerprint verification.
+- The repository's existing `.env.preview` credential does **not** target that
+  branch; its credential fingerprint maps to PlanetScale `dev`. Until the local
+  profile is corrected, do not use `--preview` as evidence about the database
+  serving `preview.gndprodesk.com`.
+- A read-only Prisma diff against that local-profile target found the current
+  schema delta to be additive: 19 tables, nullable columns, and indexes. The
+  complete schema was pushed to PlanetScale `dev`; Prisma's two warnings were
+  for unique indexes on newly added nullable columns. Production and the actual
+  PlanetScale `preview` branch were not changed by this catch-up.
+- A projection trial on `dev` created 256 revision-checked version-2 rows. A
+  payload safety audit found 116 rows derived from older unsanitized Dev data;
+  those non-authoritative cache rows were deleted, leaving 140 safe projections.
+  No canonical sale, customer, payment, inventory, production, or dispatch row
+  was deleted or rewritten.
+- The actual `preview` branch must be re-verified using a new branch-scoped
+  credential because the existing `vercel-preview` sensitive password cannot be
+  read back from Vercel or PlanetScale. Do not enable
+  `GND_SALES_ORDERS_READ_MODEL_MODE` before that verification and a safe
+  projection-coverage check.
+
 ## 2026-08-23: Material And Production Sales Handoff Action Epochs
 
 - Added the dedicated additive `sales-handoff.prisma` schema with

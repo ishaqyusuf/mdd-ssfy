@@ -117,6 +117,20 @@ local day-to-day branch remains `master`.
 - Verified the corrected domain is verified, reports `misconfigured: false`,
   resolves through Vercel DNS, and returns the expected Vercel Authentication
   redirect over HTTPS.
+- Authenticated Chrome smoke testing confirmed the stable domain reaches the
+  sanitized application dataset. Sales Orders loaded 74 orders for the retained
+  user; three bounded reloads reached rows in 3.98s, 1.90s, and 2.05s. The
+  no-cursor `q=APA` case completed without a `getOrders` error, cursor loading
+  appended rows in 2.65s, and General/Production/Transactions/Dispatch order
+  views rendered coherent Preview data.
+- A separate `sales.getSalesHandoffActions` alert failed transiently and
+  recovered through its Retry control; keep that defect separate from the
+  successful `getOrders` evidence.
+- Verified that the repository's `.env.preview` credential targets PlanetScale
+  `dev`, not the PlanetScale `preview` branch used by Vercel. Read-model mode
+  remains off. Direct verification/backfill of the serving branch is blocked on
+  creating a new branch-scoped local credential because the existing sensitive
+  `vercel-preview` password cannot be recovered.
 - Removed the accidental `preview.grdproducts.com` project-domain assignment and
   the unused `grdproducts.com` ownership entry from the Vercel team. No EasyDNS
   DNS record was created or changed.
