@@ -1,8 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import {
+	buildMaterialSalesOverviewUrl,
+	buildProductionSalesOverviewUrl,
 	buildSalesOverviewUrl,
 	composeLegacyQuoteOverviewOpenParams,
 	composeLegacySalesOverviewOpenParams,
+	composeMaterialSalesOverviewOpenParams,
+	composeProductionSalesOverviewOpenParams,
 } from "./sales-overview-open-params";
 
 describe("sales overview open params", () => {
@@ -51,5 +55,71 @@ describe("sales overview open params", () => {
 		).toBe(
 			"/sales-book/orders?sales-overview-id=order+1&sales-type=order&mode=sales-production&salesTab=production",
 		);
+	});
+
+	it("opens Material actions in Inventory Needs with Create inbound expanded", () => {
+		expect(composeMaterialSalesOverviewOpenParams("SO-1001")).toEqual({
+			"sales-overview-id": "SO-1001",
+			"sales-type": "order",
+			mode: "sales",
+			salesTab: "inventory",
+			inventorySegment: "stock",
+			inventoryCreateInbound: true,
+		});
+
+		const url = new URL(
+			buildMaterialSalesOverviewUrl("SO 1001"),
+			"https://gnd.test",
+		);
+		expect(url.pathname).toBe("/sales-book/orders");
+		expect(Object.fromEntries(url.searchParams)).toEqual({
+			"sales-overview-id": "SO 1001",
+			"sales-type": "order",
+			mode: "sales",
+			salesTab: "inventory",
+			inventorySegment: "stock",
+			inventoryCreateInbound: "true",
+		});
+	});
+
+	it("retains the production-only user's authorization-derived overview mode", () => {
+		expect(composeMaterialSalesOverviewOpenParams("SO-1002", 77).mode).toBe(
+			"production-tasks",
+		);
+	});
+
+	it("opens Production actions at the exact item assignment surface", () => {
+		expect(
+			composeProductionSalesOverviewOpenParams("SO-1003", "item-42"),
+		).toEqual({
+			"sales-overview-id": "SO-1003",
+			"sales-type": "order",
+			mode: "sales-production",
+			salesTab: "production",
+			"prod-item-view": "item-42",
+			"prod-item-tab": "assignments",
+		});
+		const url = new URL(
+			buildProductionSalesOverviewUrl("SO 1003", "item-42"),
+			"https://gnd.test",
+		);
+		expect(Object.fromEntries(url.searchParams)).toEqual({
+			"sales-overview-id": "SO 1003",
+			"sales-type": "order",
+			mode: "sales-production",
+			salesTab: "production",
+			"prod-item-view": "item-42",
+			"prod-item-tab": "assignments",
+		});
+	});
+
+	it("keeps production-only users inside their authorization-derived mode", () => {
+		expect(
+			composeProductionSalesOverviewOpenParams("SO-1004", "item-43", 77),
+		).toMatchObject({
+			mode: "production-tasks",
+			salesTab: "production",
+			"prod-item-view": "item-43",
+		});
 	});
 });

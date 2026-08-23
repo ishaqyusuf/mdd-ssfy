@@ -4,8 +4,8 @@ import {
 	type CommunityUnitProductionCompletedTags,
 	type CommunityUnitProductionStartedTags,
 	type CommunityUnitProductionStoppedTags,
-	type DispatchPackingDelayTags,
 	type DealerSalesRequestTags,
+	type DispatchPackingDelayTags,
 	type EmployeeAccessRevokedTags,
 	type EmployeeDocumentReviewTags,
 	type InventoryInboundActivityTags,
@@ -15,6 +15,7 @@ import {
 	type SalesCheckoutSuccessTags,
 	type SalesDispatchAssignedTags,
 	type SalesDispatchDuplicateAlertTags,
+	type SalesHandoffActionEscalationTags,
 	type SalesMarkedAsProductionCompletedTags,
 	type SalesPaymentRecordedTags,
 	type SalesProductionAllCompletedTags,
@@ -24,8 +25,8 @@ import {
 	communityUnitProductionCompletedTags,
 	communityUnitProductionStartedTags,
 	communityUnitProductionStoppedTags,
-	dispatchPackingDelayTags,
 	dealerSalesRequestTags,
+	dispatchPackingDelayTags,
 	employeeAccessRevokedTags,
 	employeeDocumentReviewTags,
 	inventoryInboundActivityTags,
@@ -35,6 +36,7 @@ import {
 	salesCheckoutSuccessTags,
 	salesDispatchAssignedTags,
 	salesDispatchDuplicateAlertTags,
+	salesHandoffActionEscalationTags,
 	salesMarkedAsProductionCompletedTags,
 	salesPaymentRecordedTags,
 	salesProductionAllCompletedTags,
@@ -77,6 +79,10 @@ type NotificationActionPayloadMap = {
 	quote_accepted: Omit<QuoteAcceptedTags, "type">;
 	dealer_sales_request: Omit<DealerSalesRequestTags, "type">;
 	sales_dispatch_duplicate_alert: Omit<SalesDispatchDuplicateAlertTags, "type">;
+	sales_handoff_action_escalation: Omit<
+		SalesHandoffActionEscalationTags,
+		"type"
+	>;
 	sales_checkout_success: Omit<SalesCheckoutSuccessTags, "type">;
 	sales_payment_recorded: Omit<SalesPaymentRecordedTags, "type">;
 	sales_marked_as_production_completed: Omit<
@@ -294,6 +300,16 @@ function parseAction(
 		return {
 			type: "sales_dispatch_duplicate_alert",
 			label: "Open Dispatch",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "sales_handoff_action_escalation") {
+		const parsed = salesHandoffActionEscalationTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "sales_handoff_action_escalation",
+			label: "Open Action",
 			data: parsed.data,
 		};
 	}

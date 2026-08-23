@@ -5,13 +5,27 @@ import {
 	prepareProductionSubmissionMaterialReview,
 } from "./service";
 
+type ReviewUpsertArgs = {
+	create: {
+		salesOrderId: number;
+		submittedById: number;
+		assignmentScope: unknown[];
+		status: "PENDING" | "APPROVED";
+		classificationReason: string | null;
+		materialRevision: string | null;
+	};
+};
+
 describe("production submission material review service", () => {
 	it("auto-approves ready submissions while retaining an idempotent batch", async () => {
-		const upsert = mock(async ({ create }: any) => ({
+		const upsert = mock(async ({ create }: ReviewUpsertArgs) => ({
 			id: 88,
 			salesOrderId: create.salesOrderId,
 			submittedById: create.submittedById,
 			assignmentScope: create.assignmentScope,
+			status: create.status,
+			classificationReason: create.classificationReason,
+			materialRevision: create.materialRevision,
 		}));
 		const result = await prepareProductionSubmissionMaterialReview(
 			{
@@ -53,11 +67,14 @@ describe("production submission material review service", () => {
 	});
 
 	it("persists one pending review with bounded scoped evidence", async () => {
-		const upsert = mock(async ({ create }: any) => ({
+		const upsert = mock(async ({ create }: ReviewUpsertArgs) => ({
 			id: 91,
 			salesOrderId: create.salesOrderId,
 			submittedById: create.submittedById,
 			assignmentScope: create.assignmentScope,
+			status: create.status,
+			classificationReason: create.classificationReason,
+			materialRevision: create.materialRevision,
 		}));
 		const db = {
 			salesProductionSubmissionMaterialReview: {
@@ -121,6 +138,9 @@ describe("production submission material review service", () => {
 						controlUid: "door-1",
 						salesItemId: 10,
 						assignmentId: null,
+						assignedToId: null,
+						assignmentUpdatedAt: null,
+						laborCost: null,
 					},
 				],
 				materialSnapshot: [
@@ -137,20 +157,50 @@ describe("production submission material review service", () => {
 				salesOrderId: true,
 				submittedById: true,
 				assignmentScope: true,
+				status: true,
+				classificationReason: true,
+				materialRevision: true,
 			},
 		});
 	});
 
-	it("blocks a worker submission before creating a review when materials are unavailable", async () => {
-		const upsert = mock(async () => ({
-			id: 93,
-			salesOrderId: 42,
-			submittedById: 7,
-			assignmentScope: [],
-		}));
-
-		await expect(
-			prepareProductionSubmissionMaterialReview(
+	for (const scenario of [
+		{
+			name: "awaiting inbound",
+			state: "available" as const,
+			readiness: "awaiting_inbound",
+			reason: "AWAITING_INBOUND",
+		},
+		{
+			name: "awaiting allocation",
+			state: "available" as const,
+			readiness: "allocation_review",
+			reason: "ALLOCATION_REVIEW",
+		},
+		{
+			name: "configured unavailable",
+			state: "available" as const,
+			readiness: "blocked",
+			reason: "BLOCKED",
+		},
+		{
+			name: "temporarily unavailable",
+			state: "unavailable" as const,
+			readiness: null,
+			reason: "PROJECTION_UNAVAILABLE",
+		},
+	] as const) {
+		it(`routes ${scenario.name} worker evidence to durable review`, async () => {
+			const upsert = mock(async ({ create }: ReviewUpsertArgs) => ({
+				id: 93,
+				salesOrderId: create.salesOrderId,
+				submittedById: create.submittedById,
+				assignmentScope: create.assignmentScope,
+				status: create.status,
+				classificationReason: create.classificationReason,
+				materialRevision: create.materialRevision,
+			}));
+			const result = await prepareProductionSubmissionMaterialReview(
 				{
 					salesProductionSubmissionMaterialReview: { upsert },
 				} as never,
@@ -159,30 +209,35 @@ describe("production submission material review service", () => {
 					submittedById: 7,
 					idempotencyKey: "worker-blocked-42",
 					itemScope: [{ controlUid: "door-1", salesItemId: 10 }],
-					enforceMaterialAvailability: true,
 				},
 				{
 					loadMaterials: mock(async () => ({
-						state: "available" as const,
-						materials: [
-							{
-								salesItemId: 10,
-								readiness: "awaiting_inbound",
-							},
-						],
+						state: scenario.state,
+						materials: scenario.readiness
+							? [{ salesItemId: 10, readiness: scenario.readiness }]
+							: [],
 					})) as never,
 				},
-			),
-		).rejects.toThrow("Required materials are unavailable");
-		expect(upsert).not.toHaveBeenCalled();
-	});
+			);
+
+			expect(result).toMatchObject({
+				state: "pending_material_review",
+				reason: scenario.reason,
+				reviewId: 93,
+			});
+			expect(upsert).toHaveBeenCalledTimes(1);
+		});
+	}
 
 	it("holds a mixed scope when any scoped item has no material configuration", async () => {
-		const upsert = mock(async ({ create }: any) => ({
+		const upsert = mock(async ({ create }: ReviewUpsertArgs) => ({
 			id: 92,
 			salesOrderId: create.salesOrderId,
 			submittedById: create.submittedById,
 			assignmentScope: create.assignmentScope,
+			status: create.status,
+			classificationReason: create.classificationReason,
+			materialRevision: create.materialRevision,
 		}));
 		const result = await prepareProductionSubmissionMaterialReview(
 			{
@@ -236,6 +291,9 @@ describe("createPendingMaterialReview", () => {
 			salesOrderId: 42,
 			submittedById: 7,
 			assignmentScope: [],
+			status: "PENDING" as const,
+			classificationReason: "NOT_CONFIGURED" as const,
+			materialRevision: null,
 		}));
 		const db = {
 			salesProductionSubmissionMaterialReview: {
@@ -266,6 +324,9 @@ describe("createPendingMaterialReview", () => {
 					assignmentScope: [
 						{ controlUid: "door-2", salesItemId: 11, assignmentId: 78 },
 					],
+					status: "PENDING" as const,
+					classificationReason: "NOT_CONFIGURED" as const,
+					materialRevision: null,
 				})),
 			},
 		};

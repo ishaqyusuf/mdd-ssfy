@@ -498,6 +498,14 @@ export const channelsConfig: Partial<{
 		priority: 5,
 		category: "Sales",
 	},
+	sales_handoff_action_escalation: {
+		name: "Sales Handoff Escalation",
+		description:
+			"Mandatory in-app escalation for a Material or Production action open longer than one New York business day.",
+		priority: 8,
+		category: "Sales",
+		published: true,
+	},
 };
 
 export type ChannelOption = {

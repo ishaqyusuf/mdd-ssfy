@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	composePageTabSources,
 	getPageTabSelection,
 	getPageTabViewState,
 	getResponsivePageTabLimit,
@@ -10,6 +11,30 @@ import {
 } from "./render-utils";
 
 describe("page tab render utils", () => {
+	it("keeps fixed tabs visible but outside saved-tab management", () => {
+		const fixed = { title: "Needs Action" };
+		const sources = composePageTabSources({
+			fixedTabs: [fixed],
+			savedTabs: [],
+		});
+
+		expect(sources).toEqual({
+			contentTabs: [fixed],
+			hasSavedTabs: false,
+		});
+
+		const saved = { title: "Payment Review" };
+		expect(
+			composePageTabSources({
+				fixedTabs: [fixed],
+				savedTabs: [saved],
+			}),
+		).toEqual({
+			contentTabs: [fixed, saved],
+			hasSavedTabs: true,
+		});
+	});
+
 	it("hides the shell when there are no tabs and no saveable action", () => {
 		expect(
 			shouldRenderPageTabsShell({

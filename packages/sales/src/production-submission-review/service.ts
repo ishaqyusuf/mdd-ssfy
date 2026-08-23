@@ -2,21 +2,23 @@ import { createHash } from "node:crypto";
 
 import type { Prisma } from "@gnd/db";
 
+import {
+	type ProductionMaterialStatus,
+	loadProductionMaterialStatuses,
+} from "../production-v2/application/production-materials";
 import type { Db } from "../types";
 import {
-	loadProductionMaterialStatuses,
-	type ProductionMaterialStatus,
-} from "../production-v2/application/production-materials";
-import {
-	classifyProductionSubmissionMaterials,
 	type ProductionSubmissionMaterialReviewReason,
-	shouldBlockProductionWorkerSubmission,
+	classifyProductionSubmissionMaterials,
 } from "./policy";
 
 export type ProductionSubmissionItemScope = {
 	controlUid: string;
 	salesItemId: number;
 	assignmentId?: number | null;
+	assignedToId?: number | null;
+	assignmentUpdatedAt?: string | null;
+	laborCost?: number | null;
 };
 
 type PrepareProductionSubmissionMaterialReviewInput = {
@@ -24,7 +26,6 @@ type PrepareProductionSubmissionMaterialReviewInput = {
 	submittedById: number;
 	idempotencyKey: string;
 	itemScope: ProductionSubmissionItemScope[];
-	enforceMaterialAvailability?: boolean;
 };
 
 type MaterialProjection = Awaited<
@@ -88,13 +89,40 @@ function buildMaterialRevision(
 	return createHash("sha256").update(JSON.stringify(materials)).digest("hex");
 }
 
-function normalizeItemScope(itemScope: ProductionSubmissionItemScope[]) {
-	return [...itemScope]
-		.map((item) => ({
-			controlUid: item.controlUid,
-			salesItemId: item.salesItemId,
-			assignmentId: item.assignmentId ?? null,
-		}))
+export function normalizeProductionSubmissionItemScope(
+	itemScope: unknown,
+) {
+	if (!Array.isArray(itemScope)) return [];
+	return itemScope
+		.flatMap((item) => {
+			if (!item || typeof item !== "object") return [];
+			const row = item as Record<string, unknown>;
+			if (
+				typeof row.controlUid !== "string" ||
+				!Number.isInteger(row.salesItemId) ||
+				(row.assignmentId != null && !Number.isInteger(row.assignmentId)) ||
+				(row.assignedToId != null && !Number.isInteger(row.assignedToId)) ||
+				(row.assignmentUpdatedAt != null &&
+					typeof row.assignmentUpdatedAt !== "string") ||
+				(row.laborCost != null &&
+					(typeof row.laborCost !== "number" ||
+						!Number.isFinite(row.laborCost)))
+			) {
+				return [];
+			}
+			return [
+				{
+					controlUid: row.controlUid,
+					salesItemId: row.salesItemId as number,
+					assignmentId: (row.assignmentId as number | null | undefined) ?? null,
+					assignedToId:
+						(row.assignedToId as number | null | undefined) ?? null,
+					assignmentUpdatedAt:
+						(row.assignmentUpdatedAt as string | null | undefined) ?? null,
+					laborCost: (row.laborCost as number | null | undefined) ?? null,
+				},
+			];
+		})
 		.sort(
 			(left, right) =>
 				left.salesItemId - right.salesItemId ||
@@ -107,7 +135,9 @@ export async function createPendingMaterialReview(
 	db: Db,
 	input: CreatePendingMaterialReviewInput,
 ) {
-	const normalizedScope = normalizeItemScope(input.itemScope);
+	const normalizedScope = normalizeProductionSubmissionItemScope(
+		input.itemScope,
+	);
 	const review = await db.salesProductionSubmissionMaterialReview.upsert({
 		where: {
 			idempotencyKey: input.idempotencyKey,
@@ -133,13 +163,17 @@ export async function createPendingMaterialReview(
 			salesOrderId: true,
 			submittedById: true,
 			assignmentScope: true,
+			status: true,
+			classificationReason: true,
+			materialRevision: true,
 		},
 	});
 	if (
 		review.salesOrderId !== input.salesOrderId ||
 		review.submittedById !== input.submittedById ||
-		JSON.stringify(normalizeItemScope(review.assignmentScope as any)) !==
-			JSON.stringify(normalizedScope)
+		JSON.stringify(
+			normalizeProductionSubmissionItemScope(review.assignmentScope),
+		) !== JSON.stringify(normalizedScope)
 	) {
 		throw new Error(
 			"Production submission idempotency key belongs to another request.",
@@ -161,17 +195,6 @@ export async function prepareProductionSubmissionMaterialReview(
 		dependencies,
 	);
 	const { classification, materialSnapshot, materialRevision } = evidence;
-	if (
-		input.enforceMaterialAvailability &&
-		shouldBlockProductionWorkerSubmission(classification)
-	) {
-		throw new Error(
-			classification.reason === "PROJECTION_UNAVAILABLE"
-				? "Material availability could not be verified. Try again before submitting production."
-				: "Required materials are unavailable. Production submission is blocked until inventory is ready.",
-		);
-	}
-
 	const review = await createPendingMaterialReview(db, {
 		...input,
 		materialSnapshot,
@@ -179,10 +202,22 @@ export async function prepareProductionSubmissionMaterialReview(
 		reason: classification.reason,
 		status: classification.state === "finalized" ? "APPROVED" : "PENDING",
 	});
+	if (review.status === "REJECTED" || review.status === "CANCELLED") {
+		throw new Error(
+			"Production submission idempotency key belongs to a closed review. Start a new submission.",
+		);
+	}
 	return {
-		...classification,
+		state:
+			review.status === "APPROVED"
+				? ("finalized" as const)
+				: ("pending_material_review" as const),
+		reason:
+			review.status === "APPROVED"
+				? null
+				: (review.classificationReason ?? classification.reason),
 		reviewId: review.id,
-		materialRevision,
+		materialRevision: review.materialRevision,
 	};
 }
 
@@ -213,10 +248,19 @@ export async function evaluateProductionSubmissionMaterialEvidence(
 			material.salesItemId == null ? [] : [material.salesItemId],
 		),
 	);
-	const missingSalesItemIds = Array.from(scopedSalesItemIds).filter(
-		(salesItemId) => !materialSalesItemIds.has(salesItemId),
-	);
-	const classification = missingSalesItemIds.length
+	const missingSalesItemIds =
+		projection.state === "available"
+			? Array.from(scopedSalesItemIds).filter(
+					(salesItemId) => !materialSalesItemIds.has(salesItemId),
+				)
+			: [];
+	const classification =
+		projection.state === "unavailable"
+			? classifyProductionSubmissionMaterials({
+					state: projection.state,
+					materials: [],
+				})
+			: missingSalesItemIds.length
 		? ({
 				state: "pending_material_review",
 				reason: "NOT_CONFIGURED",

@@ -17,6 +17,7 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
+import { FilterOptionLabel } from "@gnd/ui/filter-option-label";
 import {
 	HoverCard,
 	HoverCardContent,
@@ -24,7 +25,6 @@ import {
 } from "@gnd/ui/hover-card";
 import { Icon, Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import { FilterOptionLabel } from "@gnd/ui/filter-option-label";
 import { daysFilters } from "@gnd/utils/constants";
 import { formatISO } from "date-fns";
 import dynamic from "next/dynamic";
@@ -32,12 +32,16 @@ import { useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { PageTabs } from "../page-tabs";
-import { queryFromActiveFilters } from "../page-tabs/query-utils";
+import {
+	queryContainsTabQuery,
+	queryFromActiveFilters,
+} from "../page-tabs/query-utils";
 import {
 	type ResponsivePageTabLimit,
 	shouldStackPageTabs,
 } from "../page-tabs/render-utils";
 import { SavePageTabButton } from "../page-tabs/save-page-tab-button";
+import type { PageTabItem } from "../page-tabs/types";
 import { usePageTabSelection } from "../page-tabs/use-page-tab-selection";
 import { SelectTag } from "../select-tag";
 import {
@@ -86,6 +90,7 @@ interface Props {
 	debounceMs?: number;
 	afterSearch?: ReactNode;
 	pageTabs?: ReactNode;
+	fixedPageTabs?: PageTabItem[];
 	pageTabsLayout?: "default" | "adaptive";
 	toolbarActions?: ReactNode;
 	hiddenFilterKeys?: string[];
@@ -116,6 +121,7 @@ export function SearchFilterTRPC({
 	debounceMs = 400,
 	afterSearch,
 	pageTabs,
+	fixedPageTabs = [],
 	pageTabsLayout = "default",
 	toolbarActions,
 	hiddenFilterKeys = [],
@@ -169,8 +175,19 @@ export function SearchFilterTRPC({
 		() => queryFromActiveFilters(searchParams, filters, { searchKey }),
 		[searchParams, filters, searchKey],
 	);
+	const isFixedPageTabActive = useMemo(
+		() =>
+			fixedPageTabs.some(
+				(tab) =>
+					tab.query !== undefined &&
+					queryContainsTabQuery(searchParams, tab.query),
+			),
+		[fixedPageTabs, searchParams],
+	);
 	const hasSearchValue = hasActiveSearchValue(prompt, searchValue);
-	const canSaveCurrentView = Boolean(saveTabQuery && !hasSearchValue);
+	const canSaveCurrentView = Boolean(
+		saveTabQuery && !hasSearchValue && !isFixedPageTabActive,
+	);
 	const hasLockedSort = lockedKeys.has("sort");
 	const excludedFilterKeys = useMemo(
 		() => new Set([...lockedKeys, ...hiddenFilterKeys]),
@@ -178,8 +195,9 @@ export function SearchFilterTRPC({
 	);
 	const usesAdaptivePageTabs =
 		pageTabsLayout === "adaptive" && pageTabs === undefined;
+	const pageTabContentCount = savedPageTabs.length + fixedPageTabs.length;
 	const resolvedPageTabCount =
-		savedPageTabs.length > 0 ? savedPageTabs.length + 1 : 0;
+		pageTabContentCount > 0 ? pageTabContentCount + 1 : 0;
 	const stackPageTabs =
 		usesAdaptivePageTabs && shouldStackPageTabs(resolvedPageTabCount);
 
@@ -277,6 +295,7 @@ export function SearchFilterTRPC({
 				portal={false}
 				currentQuery={saveTabQuery}
 				tabs={usesAdaptivePageTabs ? savedPageTabs : undefined}
+				fixedTabs={fixedPageTabs}
 				maxVisible={usesAdaptivePageTabs ? ADAPTIVE_PAGE_TAB_LIMITS : undefined}
 				className={cn(stackPageTabs && "w-full lg:basis-full")}
 				action={

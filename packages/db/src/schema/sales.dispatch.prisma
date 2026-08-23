@@ -18,6 +18,7 @@ model OrderDelivery {
     createdBy    Users?              @relation(name: "createdBy", fields: [createdById], references: [id])
 	stockAllocations StockAllocation[]
 	exceptions DispatchException[]
+	packingReports SalesPackingReport[]
 
     @@index([salesOrderId])
     @@index([driverId])
@@ -81,6 +82,7 @@ model OrderItemDelivery {
     delivery                    OrderDelivery?              @relation(fields: [orderDeliveryId], references: [id])
     orderProductionSubmissionId Int?
     submission                  OrderProductionSubmissions? @relation(fields: [orderProductionSubmissionId], references: [id])
+    packingReports              SalesPackingReport[]
 
     @@index([orderProductionSubmissionId])
     @@index([orderId])

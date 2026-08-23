@@ -12,7 +12,7 @@ type TriggerOutput = RouterOutputs["taskTrigger"]["trigger"];
 type StatusOutput = RouterOutputs["taskTrigger"]["status"];
 
 type UseTaskTriggerProps = {
-  taskName?: string;
+  taskName?: TriggerInput["taskName"];
   autoCheckStatus?: boolean;
   pollIntervalMs?: number;
   onStarted?: (run: TriggerOutput) => void | Promise<void>;
@@ -23,7 +23,7 @@ type UseTaskTriggerProps = {
 };
 
 type StartTaskInput = {
-  taskName?: string;
+  taskName?: TriggerInput["taskName"];
   payload: TriggerInput["payload"];
 };
 

@@ -5,6 +5,7 @@ export * from "./sales-control/get-dispatch-information";
 export * from "./sales-control/get-sale-information";
 export * from "./sales-control/settings";
 export * from "./sales-control/tasks";
+export * from "./sales-control/task-authorization";
 export * from "./control";
 export {
 	withDispatchControl,
@@ -25,8 +26,16 @@ export * from "./production-readiness-evidence";
 export * from "./production-readiness-override";
 export * from "./production-v2";
 export * from "./production-workspace-query";
+export * from "./packing-report-review";
 export * from "./resolution-system/contracts";
 export * from "./resolution-system/domain";
 export * from "./sales-form";
+export * from "./sales-handoff-qualification";
+export * from "./sales-handoff/escalation";
+export * from "./sales-handoff/access";
+export * from "./sales-handoff/material";
+export * from "./sales-handoff/production";
+export * from "./sales-handoff/repair";
+export * from "./sales-handoff/service";
 export * from "./schema";
 export * from "./special-order";

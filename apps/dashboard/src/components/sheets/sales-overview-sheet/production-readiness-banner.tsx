@@ -7,11 +7,6 @@ import { Icons } from "@gnd/ui/icons";
 import { useProduction } from "./context";
 
 const bannerCopy = {
-	blocked: {
-		title: "Materials pending",
-		description:
-			"Production assignment and submission remain available. If completed work is submitted before this is resolved, it will be saved for admin material verification.",
-	},
 	not_configured: {
 		title: "Inventory setup incomplete",
 		description:
@@ -31,17 +26,17 @@ export function ProductionReadinessBanner() {
 			return (
 				<section
 					id="production-readiness"
-					className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-950"
+					className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950"
 				>
 					<div className="flex items-start gap-3">
-						<Icons.AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-700" />
+						<Icons.AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-700" />
 						<div>
 							<h3 className="font-semibold">
 								Material availability could not be verified
 							</h3>
-							<p className="mt-1 text-sm text-red-900">
-								Submission is temporarily blocked until material availability
-								can be confirmed.
+							<p className="mt-1 text-sm text-amber-900">
+								You can report completed work now. It will remain awaiting admin
+								approval until material availability can be verified.
 							</p>
 						</div>
 					</div>
@@ -73,18 +68,18 @@ export function ProductionReadinessBanner() {
 		return (
 			<section
 				id="production-readiness"
-				className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-950"
+				className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950"
 			>
 				<div className="flex min-w-0 items-start gap-3">
-					<Icons.AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-700" />
+					<Icons.AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-700" />
 					<div className="min-w-0">
-						<h3 className="font-semibold">Materials unavailable</h3>
-						<p className="mt-1 text-sm text-red-900">
-							Submission is blocked for affected items until the required
-							materials are available.
+						<h3 className="font-semibold">Materials need verification</h3>
+						<p className="mt-1 text-sm text-amber-900">
+							You can report completed work for affected items. It will remain
+							awaiting admin approval until the material record is resolved.
 						</p>
 						{blockerPreview.length ? (
-							<ul className="mt-2 space-y-1 text-xs text-red-800">
+							<ul className="mt-2 space-y-1 text-xs text-amber-800">
 								{blockerPreview.map((blocker, index) => (
 									<li key={`${blocker.componentId}-${index}`}>
 										{blocker.lineTitle || "Production item"}
@@ -177,11 +172,23 @@ export function ProductionReadinessBanner() {
 			</section>
 		);
 	}
+	if (readiness.state === "blocked") {
+		return (
+			<section
+				id="production-readiness"
+				className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-950"
+			>
+				<div className="flex items-center justify-between gap-3">
+					<h3 className="text-sm font-semibold">Material Pending</h3>
+					<Button variant="outline" size="sm" onClick={reviewInventory}>
+						Review Inventory
+					</Button>
+				</div>
+			</section>
+		);
+	}
 
-	const copy =
-		readiness.state === "not_configured"
-			? bannerCopy.not_configured
-			: bannerCopy.blocked;
+	const copy = bannerCopy.not_configured;
 	const blockerPreview = readiness.blockers.slice(0, 3);
 	return (
 		<section
@@ -194,16 +201,6 @@ export function ProductionReadinessBanner() {
 					<div className="min-w-0">
 						<h3 className="font-semibold">{copy.title}</h3>
 						<p className="mt-1 text-sm text-amber-900">{copy.description}</p>
-						{readiness.state === "blocked" ? (
-							<p className="mt-2 text-sm text-amber-800">
-								{readiness.summary.blockedComponentCount} required component
-								{readiness.summary.blockedComponentCount === 1 ? "" : "s"}{" "}
-								blocked
-								{readiness.summary.openInboundQty
-									? ` · ${readiness.summary.openInboundQty} open inbound`
-									: ""}
-							</p>
-						) : null}
 						{blockerPreview.length ? (
 							<ul className="mt-2 space-y-1 text-xs text-amber-800">
 								{blockerPreview.map((blocker, index) => (

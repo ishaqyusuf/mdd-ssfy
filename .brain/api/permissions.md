@@ -1,5 +1,29 @@
 # API Permissions
 
+## Sales Handoff Action Read Boundary (2026-08-23)
+
+- `sales.getSalesHandoffActions`, its exact open-epoch where fragment, and its
+  distinct-order scope helper derive authority only from the authenticated
+  active user. Active Super Admin assignments grant organization-wide reads;
+  all other actors are limited to their own representative id. Caller-provided
+  representative, organization, worker, or role scope is not accepted.
+- Material and Production action payloads are read/deep-link intents only. They
+  do not grant inventory, inbound, production assignment, submission, review,
+  payroll, packing, dispatch, or fulfillment authority.
+- Production deep links re-enter the ordinary Sales Overview permission and
+  role-derived mode boundary. Production-only workers remain in their
+  authorization-derived `production-tasks` mode; the alert never auto-assigns.
+- Escalation recipients are re-read as active, non-revoked Super Admins inside
+  the epoch organization. The scheduler uses only the explicitly configured
+  active system notification actor and fails visibly if it is absent; it never
+  attributes system activity to an arbitrary admin.
+- Recurring repair has no user-callable API and accepts no representative,
+  organization, worker, or role scope. It requires the explicitly configured
+  `SALES_HANDOFF_RECONCILIATION_ACTOR_USER_ID`, verifies that user remains
+  active/non-revoked before scanning, and attributes every reconciliation to
+  that actor. Invalid actor configuration fails the task with durable worker
+  repair and schedule-history evidence.
+
 ## Role Permission Session Revocation (2026-08-20)
 
 - Saving changed permissions for an existing role atomically revokes both legacy
@@ -558,3 +582,32 @@ Tracks authentication and authorization patterns across API surfaces.
   session, and remains forbidden for dealer-owned customers in office mode.
 - Warning Only response metadata grants no additional authority; callers must
   still satisfy the existing permission for the attempted operation.
+
+## Guarded packing report permissions (2026-08-23)
+
+- `viewPacking`, `editPickup`, or `editOrders` grants role-scoped reporting and
+  review. A `viewDelivery`/`viewPickup` worker may report only on their assigned
+  dispatch and cannot review.
+- Reporter and reviewer ids come only from the protected session; forged caller
+  actor fields are stripped by the boundary schema.
+- Assignment-scoped authority is rechecked after the dispatch lock so a driver
+  reassignment cannot race a submit. Context returns server-derived reviewer
+  capability, and assignment-only actors do not receive Approve/Reject controls.
+
+## Mobile task and notification boundaries (2026-08-23)
+
+- The client task-trigger router is authenticated and permits only
+  `update-sales-control`. Every durable sales-control run revalidates the active
+  employee, action-specific permissions, exact sale/dispatch or owned-production
+  scope, and replaces caller identity and production elevation with server data.
+- Direct cancel, start, submit, packing, and unpack routes derive audit identity
+  from the authenticated session; caller-supplied names or ids grant no
+  authority and are not written as audit attribution.
+- Generic notification task execution is not exposed to clients. Mobile may use
+  only the dedicated five-channel notification route for `job_task_configured`,
+  `sales_request_packing`, `dispatch_packing_delay`,
+  `sales_dispatch_duplicate_alert`, and `sales_dispatch_packing_reset`.
+- Job notification authority requires `editJobs`, reloads the active job, and
+  derives its contractor recipient. Dispatch notification authority reloads the
+  active dispatch, requires the assigned driver or packing/dispatch-manager
+  authority, and derives dispatch scope and subscriber recipients server-side.

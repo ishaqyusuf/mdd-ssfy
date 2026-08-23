@@ -283,6 +283,14 @@ export function NotificationCenter({
 			);
 			toast.info(`Duplicate dispatch alert opened for #${data.dispatchId}.`);
 		},
+		sales_handoff_action_escalation: (data, _notification, context) => {
+			context.close();
+			if (data.actionType === "PRODUCTION") {
+				legacySalesOverview.openProduction(data.orderId, data.targetControlUid);
+				return;
+			}
+			legacySalesOverview.openMaterial(data.orderId);
+		},
 	});
 
 	const closeForAction = () => {

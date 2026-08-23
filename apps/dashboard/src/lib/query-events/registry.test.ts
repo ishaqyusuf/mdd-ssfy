@@ -8,7 +8,7 @@ import {
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(82);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(88);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(15);
 	});
 
@@ -92,6 +92,42 @@ describe("query event mutation registry", () => {
 		);
 
 		expect(routes).toContain("notes.activityTree");
+	});
+
+	it("reconciles the Material handoff queue after every canonical evidence family", () => {
+		for (const event of [
+			"sales.order.changed",
+			"sales.payment.changed",
+			"inventory.inbound.changed",
+			"inventory.allocation.changed",
+			"inventory.fulfillment.changed",
+		] as const) {
+			const routes = QUERY_EVENTS[event].targets.map((target) => target.route);
+			expect(routes).toContain("sales.getSalesHandoffActions");
+			expect(routes).toContain("sales.getOpenSalesHandoffOrderScope");
+		}
+
+		for (const mutationKey of [
+			[["sales", "updateSalesHandoffTrigger"]],
+			[["salesRefunds", "create"]],
+			[["salesRefunds", "allocateExternal"]],
+			[["salesRefunds", "retry"]],
+		]) {
+			expect(resolveMutationQueryEvents({ mutationKey })).toHaveLength(1);
+		}
+	});
+
+	it("reconciles Production handoffs after production and review evidence changes", () => {
+		const routes = QUERY_EVENTS["sales.production.changed"].targets.map(
+			(target) => target.route,
+		);
+		expect(routes).toContain("sales.getSalesHandoffActions");
+		expect(routes).toContain("sales.getOpenSalesHandoffOrderScope");
+		expect(
+			resolveMutationQueryEvents({
+				mutationKey: [["sales", "reviewProductionSubmission"]],
+			}),
+		).toEqual([{ name: "sales.production.changed" }]);
 	});
 
 	it("refreshes inventory and sales order projections after manual need fulfillment", () => {

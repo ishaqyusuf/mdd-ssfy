@@ -8,8 +8,8 @@ import type { Prisma } from "@gnd/db";
 import {
 	compareSalesOrderListRows,
 	hydrateSalesOrderListRow,
-	isSalesOrderListProjectionFresh,
 	isControlReadV2Enabled,
+	isSalesOrderListProjectionFresh,
 	withSalesControl,
 	withSalesListControl,
 } from "@gnd/sales";
@@ -49,6 +49,7 @@ import { idempotencyKeys, tasks } from "@trigger.dev/sdk/v3";
 import { waitUntil } from "@vercel/functions";
 import { z } from "zod";
 import { salesNotesCount } from "./sales";
+import { getOpenSalesHandoffEpochWhere } from "./sales-handoff-actions";
 import {
 	emptySalesInventoryInboundOwnership,
 	getSalesInventoryInboundOwnershipMap,
@@ -57,6 +58,7 @@ import {
 const ordersV2InvoiceStatus = ["paid", "outstanding"] as const;
 const PAYMENT_REVIEW_SORT_FIELD = "latestPaymentAt";
 const paymentReviewFilterOptions = ["needs_review"] as const;
+const needsActionFilterOptions = ["open"] as const;
 
 const ordersV2FilterShape = {
 	q: z.string().optional().nullable(),
@@ -72,6 +74,7 @@ const ordersV2FilterShape = {
 	salesNo: z.string().optional().nullable(),
 	sort: z.array(z.string()).optional().nullable(),
 	paymentReview: z.enum(paymentReviewFilterOptions).optional().nullable(),
+	needsAction: z.enum(needsActionFilterOptions).optional().nullable(),
 	invoiceStatus: z.enum(ordersV2InvoiceStatus).optional().nullable(),
 	invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
 	production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
@@ -159,12 +162,23 @@ function toLegacyOrdersQuery(
 	};
 
 	transformSalesFilterQuery(legacyQuery as SalesQueryParamsSchema);
+	if (query.needsAction === "open") {
+		legacyQuery.defaultSearch = false;
+	}
 
-	if (legacyQuery.defaultSearch && legacyQuery.showing !== "all sales") {
+	if (
+		query.needsAction !== "open" &&
+		legacyQuery.defaultSearch &&
+		legacyQuery.showing !== "all sales"
+	) {
 		legacyQuery.salesRepId = userId ?? undefined;
 	}
 
-	if (legacyQuery.showing !== "all sales" && !legacyQuery.q?.trim()) {
+	if (
+		query.needsAction !== "open" &&
+		legacyQuery.showing !== "all sales" &&
+		!legacyQuery.q?.trim()
+	) {
 		legacyQuery.salesRepId = userId ?? undefined;
 	}
 
@@ -461,8 +475,10 @@ export function decodeSalesOrderListKeysetCursor(
 	if (!value?.startsWith(SALES_ORDER_LIST_KEYSET_PREFIX)) return null;
 	try {
 		const decoded = JSON.parse(
-			Buffer.from(value.slice(SALES_ORDER_LIST_KEYSET_PREFIX.length), "base64url")
-				.toString("utf8"),
+			Buffer.from(
+				value.slice(SALES_ORDER_LIST_KEYSET_PREFIX.length),
+				"base64url",
+			).toString("utf8"),
 		) as SalesOrderListKeysetCursor;
 		if (
 			decoded.version !== 1 ||
@@ -536,9 +552,8 @@ function shouldSampleProjectionShadow() {
 }
 
 function projectionRepository(db: TRPCContext["db"]): ProjectionRepository {
-	return (
-		db as unknown as { salesOrderListProjection: ProjectionRepository }
-	).salesOrderListProjection;
+	return (db as unknown as { salesOrderListProjection: ProjectionRepository })
+		.salesOrderListProjection;
 }
 
 async function getOrdersFromProjection(
@@ -547,6 +562,9 @@ async function getOrdersFromProjection(
 ) {
 	if (query.paymentReview === "needs_review") {
 		return { hit: false as const, reason: "unsupported_payment_review" };
+	}
+	if (query.needsAction === "open") {
+		return { hit: false as const, reason: "unsupported_needs_action" };
 	}
 
 	try {
@@ -574,9 +592,7 @@ async function getOrdersFromProjection(
 			const direction = sortOrder === "asc" ? "asc" : "desc";
 			const size = query.size ? Number(query.size) : 20;
 			const scopedWhere = applyOrdersSoftDeleteScope(query, baseWhere);
-			const cursorDate = keysetCursor
-				? new Date(keysetCursor.createdAt)
-				: null;
+			const cursorDate = keysetCursor ? new Date(keysetCursor.createdAt) : null;
 			const createdAtBoundary = cursorDate
 				? direction === "asc"
 					? { gt: cursorDate }
@@ -697,9 +713,7 @@ async function getOrdersFromProjection(
 		}
 
 		const data = orderedProjections.map((projection) =>
-			hydrateSalesOrderListRow<Record<string, unknown>>(
-				projection!.payload,
-			),
+			hydrateSalesOrderListRow<Record<string, unknown>>(projection!.payload),
 		);
 		return {
 			hit: true as const,
@@ -778,7 +792,20 @@ async function getOrdersLegacy(ctx: TRPCContext, query: GetOrdersSchema) {
 	query = legacyCompatibleOrdersQuery(query);
 	const { db } = ctx;
 	const legacyQuery = toLegacyOrdersQuery(query, ctx.userId);
-	const baseWhere = whereSales(legacyQuery);
+	let baseWhere = whereSales(legacyQuery);
+	if (query.needsAction === "open") {
+		const epochWhere = ctx.userId
+			? (await getOpenSalesHandoffEpochWhere(db, ctx.userId)).where
+			: null;
+		baseWhere = {
+			AND: [
+				baseWhere ?? {},
+				epochWhere
+					? { handoffActionEpochs: { some: epochWhere } }
+					: { id: { in: [] } },
+			],
+		};
+	}
 	const { sort, sortOrder } = parsePrimarySort(query);
 
 	if (query.paymentReview === "needs_review") {
@@ -1181,10 +1208,23 @@ export async function getOrdersSummary(
 	query: GetOrdersSummarySchema,
 ) {
 	const { db } = ctx;
-	const where = applyOrdersSoftDeleteScope(
+	let where = applyOrdersSoftDeleteScope(
 		query,
 		whereSales(toLegacyOrdersQuery(query, ctx.userId)) ?? {},
 	);
+	if (query.needsAction === "open") {
+		const epochWhere = ctx.userId
+			? (await getOpenSalesHandoffEpochWhere(db, ctx.userId)).where
+			: null;
+		where = {
+			AND: [
+				where,
+				epochWhere
+					? { handoffActionEpochs: { some: epochWhere } }
+					: { id: { in: [] } },
+			],
+		};
+	}
 
 	const [
 		totalOrders,
@@ -1230,10 +1270,23 @@ export async function getOrdersSummary(
 export async function getOrdersCount(ctx: TRPCContext, query: GetOrdersSchema) {
 	const { db } = ctx;
 	const legacyQuery = toLegacyOrdersQuery(query, ctx.userId);
-	const baseWhere = applyOrdersSoftDeleteScope(
+	let baseWhere = applyOrdersSoftDeleteScope(
 		query,
 		whereSales(legacyQuery) ?? {},
 	);
+	if (query.needsAction === "open") {
+		const epochWhere = ctx.userId
+			? (await getOpenSalesHandoffEpochWhere(db, ctx.userId)).where
+			: null;
+		baseWhere = {
+			AND: [
+				baseWhere,
+				epochWhere
+					? { handoffActionEpochs: { some: epochWhere } }
+					: { id: { in: [] } },
+			],
+		};
+	}
 
 	if (query.paymentReview === "needs_review") {
 		const where = { ...baseWhere };

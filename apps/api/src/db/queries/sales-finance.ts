@@ -1,3 +1,4 @@
+import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
 import { buildOfficeCustomerVisibilityWhere } from "@gnd/db/queries";
@@ -660,7 +661,7 @@ export async function syncSalesFinanceResolutionBalance(
 ) {
 	const user = await getAuthUser(ctx);
 
-	return ctx.db.$transaction(async (db) => {
+	const result = await ctx.db.$transaction(async (db) => {
 		const before = await db.salesOrders.findFirst({
 			where: {
 				id: input.salesId,
@@ -725,6 +726,12 @@ export async function syncSalesFinanceResolutionBalance(
 			afterAmountDue: Number(after.amountDue || 0),
 		};
 	});
+	await reconcileSalesHandoffAfterCommit(ctx.db, {
+		salesOrderIds: [input.salesId],
+		actorUserId: ctx.userId ?? 1,
+		source: "api.sales-finance.reconcile",
+	});
+	return result;
 }
 
 async function loadRawSalesFinanceTransaction(ctx: TRPCContext, id: number) {

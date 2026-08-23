@@ -40,6 +40,7 @@ import {
 } from "./query-utils";
 import {
 	type ResponsivePageTabLimit,
+	composePageTabSources,
 	getPageTabViewState,
 	getResponsivePageTabLimit,
 	isResolvedPageTabActive,
@@ -51,6 +52,7 @@ import { usePageTabSelection } from "./use-page-tab-selection";
 
 interface PageTabsProps {
 	tabs?: PageTabItem[];
+	fixedTabs?: PageTabItem[];
 	allTitle?: string;
 	allCount?: number;
 	allActiveParam?: { key: string; value: string };
@@ -142,6 +144,7 @@ function buildAllTab(
 
 export function PageTabs({
 	tabs,
+	fixedTabs = [],
 	allTitle,
 	allCount,
 	allActiveParam,
@@ -169,7 +172,10 @@ export function PageTabs({
 		...trpc.pageTabs.list.queryOptions({ page: resolvedPage }),
 	});
 	const pageTabs = tabs ?? data ?? [];
-	const hasSavedTabs = pageTabs.length > 0;
+	const { hasSavedTabs } = composePageTabSources({
+		fixedTabs,
+		savedTabs: pageTabs,
+	});
 	const hasActionNode = Boolean(action);
 	const tabDataReady = tabs !== undefined || isSuccess;
 	const viewState = getPageTabViewState({
@@ -196,6 +202,11 @@ export function PageTabs({
 			if (value === null) activeSearch.delete(key);
 			else activeSearch.set(key, value);
 		}
+		const systemTabs = fixedTabs.map((tab) => ({
+			...tab,
+			href: buildTabHref(pathname, currentSearch, tab),
+			active: isTabActive(pathname, activeSearch, tab),
+		}));
 		const savedTabs = pageTabs.map((tab, index) => {
 			return {
 				...tab,
@@ -208,10 +219,14 @@ export function PageTabs({
 				}),
 			};
 		});
-		if (!savedTabs.length) return [];
-		if (!showAll) return savedTabs;
+		const { contentTabs } = composePageTabSources({
+			fixedTabs: systemTabs,
+			savedTabs,
+		});
+		if (!contentTabs.length) return [];
+		if (!showAll) return contentTabs;
 
-		const hasActiveSavedTab = savedTabs.some((tab) => tab.active);
+		const hasActiveContentTab = contentTabs.some((tab) => tab.active);
 		const allTab = buildAllTab(pathname, page, allTitle, allCount);
 		const normalizedCurrentQuery = normalizeTabQuery(
 			currentQuery ?? currentSearch,
@@ -220,13 +235,14 @@ export function PageTabs({
 			? !activeSearch.has(allActiveParam.key) ||
 				activeSearch.get(allActiveParam.key) === allActiveParam.value
 			: normalizedCurrentQuery.length === 0;
-		allTab.active = !hasActiveSavedTab && allParamMatches;
+		allTab.active = !hasActiveContentTab && allParamMatches;
 
-		return [allTab, ...savedTabs];
+		return [allTab, ...contentTabs];
 	}, [
 		pathname,
 		searchParams,
 		pageTabs,
+		fixedTabs,
 		page,
 		allTitle,
 		allCount,

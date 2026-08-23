@@ -18,6 +18,9 @@ const dealerOrdersRouteSource = readSource(
 const salesOverviewRouteSource = readSource(
 	"../../app/(sidebar)/settings/sales/overview/page.tsx",
 );
+const operationsRouteSource = readSource(
+	"../../app/(sidebar)/settings/sales/operations/page.tsx",
+);
 const specialOrdersRouteSource = readSource(
 	"../../app/(sidebar)/settings/sales/special-orders/page.tsx",
 );
@@ -28,6 +31,7 @@ describe("Sales Settings route-backed navigation", () => {
 		for (const [label, path] of [
 			["Documents", "/settings/sales"],
 			["Sales overview", "/settings/sales/overview"],
+			["Operations", "/settings/sales/operations"],
 			["Dealer orders", "/settings/sales/dealer-orders"],
 			["Special orders", "/settings/sales/special-orders"],
 		]) {
@@ -63,6 +67,9 @@ describe("Sales Settings route-backed navigation", () => {
 		expect(
 			salesOverviewRouteSource.includes("<SalesOverviewViewSettingsPage />"),
 		).toBe(true);
+		expect(
+			operationsRouteSource.includes("<SalesHandoffTriggerSettingsPage />"),
+		).toBe(true);
 
 		expect(
 			dealerOrdersRouteSource.includes("<DealerOrderSettingsPage />"),
@@ -86,6 +93,7 @@ describe("Sales Settings route-backed navigation", () => {
 		for (const [routeSource, routePath] of [
 			[documentsRouteSource, "../../app/(sidebar)/settings/sales"],
 			[salesOverviewRouteSource, "../../app/(sidebar)/settings/sales/overview"],
+			[operationsRouteSource, "../../app/(sidebar)/settings/sales/operations"],
 			[
 				dealerOrdersRouteSource,
 				"../../app/(sidebar)/settings/sales/dealer-orders",

@@ -1544,6 +1544,20 @@ export const dispatchPackingDelayTags = actityTagsSchema.extend({
 	note: z.string().optional(),
 });
 export type DispatchPackingDelayTags = z.infer<typeof dispatchPackingDelayTags>;
+
+export const salesHandoffActionEscalationTags = actityTagsSchema.extend({
+	actionEpochId: z.string(),
+	salesOrderId: z.number().int().positive(),
+	orderId: z.string(),
+	actionType: z.enum(["MATERIAL", "PRODUCTION"]),
+	responsibleRepId: z.number().int().positive(),
+	responsibleRepName: z.string(),
+	openedAt: z.string().datetime(),
+	targetControlUid: z.string().nullable(),
+});
+export type SalesHandoffActionEscalationTags = z.infer<
+	typeof salesHandoffActionEscalationTags
+>;
 export const baseNotificationJobSchema = z.object({
 	author: z.object({
 		id: z.number(),

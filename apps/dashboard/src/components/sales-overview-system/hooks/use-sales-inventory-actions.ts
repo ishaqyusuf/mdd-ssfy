@@ -32,6 +32,9 @@ export function useRefreshSalesInventoryQueries(salesOrderId: number) {
 				queryClient.invalidateQueries({
 					queryKey: trpc.sales.getOrdersSummary.pathKey(),
 				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.sales.getSalesHandoffActions.pathKey(),
+				}),
 			];
 
 			if (options?.includeInboundWorkspace) {

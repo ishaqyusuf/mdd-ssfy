@@ -282,7 +282,6 @@ export const deletePackingSchema = z.object({
 	salesId: z.number(),
 	packingId: z.number().optional().nullable(),
 	packingUid: z.string().optional().nullable(),
-	deleteBy: z.string(),
 });
 export type DeletePackingSchema = z.infer<typeof deletePackingSchema>;
 

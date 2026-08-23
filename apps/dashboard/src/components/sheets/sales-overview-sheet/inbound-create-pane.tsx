@@ -192,6 +192,9 @@ export function InboundCreatePane({
 					queryClient.invalidateQueries({
 						queryKey: trpc.notes.activityTree.pathKey(),
 					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getSalesHandoffActions.pathKey(),
+					}),
 				]);
 				toast({
 					title: isMarkAvailable

@@ -2,6 +2,7 @@
 
 import { serverSession } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
+import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import { actionClient } from "./safe-action";
 import {
 	assertSpecialOrderOperationAllowed,
@@ -26,8 +27,9 @@ export const batchAssignProductionOrdersAction = actionClient
 		name: "batch-assign-production-orders",
 		track: {},
 	})
-	.action(async ({ parsedInput: input }) => {
-		const session = await serverSession();
+		.action(async ({ parsedInput: input }) => {
+			const session = await serverSession();
+			const actorUserId = Number(session.user.id);
 		let ordersUpdated = 0;
 		let assignmentsQueued = 0;
 		const operationalDecisions: SpecialOrderOperationalDecision[] = [];
@@ -37,7 +39,7 @@ export const batchAssignProductionOrdersAction = actionClient
 				await assertSpecialOrderOperationAllowed(prisma as any, {
 					salesOrderId: salesId,
 					operation: "PRODUCTION",
-					actorUserId: Number(session.user.id),
+						actorUserId,
 					authorName: session.user.name || "Unknown",
 					source: "dashboard.batch-assign-production-orders",
 				}),
@@ -63,7 +65,7 @@ export const batchAssignProductionOrdersAction = actionClient
 
 			if (!selections.length) continue;
 
-			await createAssignmentsTask(prisma as any, {
+				await createAssignmentsTask(prisma as any, {
 				meta: {
 					salesId,
 					authorId: Number(session.user.id),
@@ -75,7 +77,12 @@ export const batchAssignProductionOrdersAction = actionClient
 					dueDate: input.dueDate ?? null,
 					selections,
 				},
-			});
+				});
+				await reconcileSalesHandoffAfterCommit(prisma, {
+					salesOrderIds: [salesId],
+					actorUserId,
+					source: "dashboard.production.batch-assign",
+				});
 			ordersUpdated += 1;
 			assignmentsQueued += selections.length;
 		}

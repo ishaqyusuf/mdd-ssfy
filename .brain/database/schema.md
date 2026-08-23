@@ -1,5 +1,23 @@
 # Database Schema
 
+## Material And Production Sales Handoff Action Epochs (2026-08-23)
+
+- `SalesHandoffActionEpoch` is an additive independent operational ledger for
+  one Sales order/action epoch. It stores scalar Sales order/order-number,
+  action type, epoch number, responsible representative, policy/evidence
+  revisions, uncovered quantity, qualification/open/resolution/reconciliation
+  timestamps, authenticated actor ids, resolution reason, reopen predecessor,
+  source, and created/updated timestamps.
+- Nullable unique `openKey` permits one open epoch per order/action type while
+  retaining resolved history. The order/action/epoch compound uniqueness and
+  representative/admin/order/escalation/evidence indexes support idempotent
+  writes, bounded queues, audit, and later escalation without sharing Packing
+  schema ownership.
+- Ticket 03 reuses the same model with `actionType=PRODUCTION` and
+  `openKey=PRODUCTION:<salesOrderId>`. Order and production revisions remain in
+  `evidenceRevision`; no Production-specific table or column was added.
+
+
 ## Durable Dispatch Exceptions (2026-08-18)
 
 - `DispatchException` is the durable operational issue record for one
@@ -464,3 +482,28 @@ The canonical plan is
   bounded freshness window for related-table changes.
 - Scope, sales-rep, and health indexes support list selection and operational
   reconciliation. `SalesOrders` remains the source of truth.
+
+## Guarded packing reports (2026-08-23)
+
+- `SalesPackingReport` binds Sales order, dispatch, Sales item, production
+  submission, and the exact canonical `OrderItemDelivery` allocation row through
+  required `dispatchAllocationItemId`; it also snapshots authenticated actors,
+  exact quantity, evidence revision, a stable dispatch-allocation key,
+  idempotency/open keys, decision, and lifecycle timestamps.
+- Status/time and scope indexes support pending holds and audit reads. Nullable
+  unique `openKey` permits one open report per exact dispatch allocation and is cleared
+  only by a terminal decision.
+- All canonical identity and actor relations use `onDelete: Restrict`, preserving
+  the immutable review record; operational cancellation remains a soft state
+  change rather than source deletion.
+
+## Sales Handoff escalation (2026-08-23)
+
+- `SalesHandoffActionEpoch` now persists nullable legacy-safe organization
+  scope, immutable Material/Production deep-link targets, `escalationDueAt`, and
+  `escalatedAt`. A required Restrict relation binds each epoch to `SalesOrders`.
+- `SalesHandoffActionEscalationRecipient` is the durable per-epoch/per-admin
+  delivery and acknowledgement ledger with a unique `(actionEpochId,
+  recipientUserId)` identity plus notification-activity and recipient/ack
+  indexes.
+- The open organization queue and due/unresolved scan have dedicated indexes.

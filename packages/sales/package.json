@@ -75,6 +75,9 @@
 		"./new-sales-form-costing": "./src/new-sales-form-costing.ts",
 		"./sales-form-core": "./src/sales-form-core.ts",
 		"./sales-form": "./src/sales-form/index.ts",
+		"./sales-handoff-qualification": "./src/sales-handoff-qualification.ts",
+		"./sales-handoff": "./src/sales-handoff/index.ts",
+		"./sales-handoff/production": "./src/sales-handoff/production.ts",
 		"./sales-form/application/legacy-metadata": "./src/sales-form/application/legacy-metadata.ts",
 		"./sales-form/application/approved-adjustment-projection": "./src/sales-form/application/approved-adjustment-projection.ts",
 		"./sales-form/contracts/schemas": "./src/sales-form/contracts/schemas.ts",
@@ -99,6 +102,8 @@
 		"./print": "./src/print/index.ts",
 		"./priority": "./src/priority.ts",
 		"./production-submission-review": "./src/production-submission-review/index.ts",
+		"./packing-report-review": "./src/packing-report-review/index.ts",
+		"./sales-control/task-authorization": "./src/sales-control/task-authorization.ts",
 		"./reporting": "./src/reporting.ts",
 		"./performance-reports": "./src/sales-performance-reports.ts"
 	},

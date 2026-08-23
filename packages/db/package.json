@@ -21,6 +21,7 @@
 		"db:push": "prisma db push",
 		"db:studio": "prisma studio --port 5556",
 		"db:sync": "bun scripts/sync-prod-to-local.ts",
+		"db:seed-preview-sales": "bun scripts/seed-preview-sales.ts",
 		"dev": "rm -rf dist .turbo tsc",
 		"dev:prod": "rm -rf dist .turbo tsc",
 		"format": "biome format --write .",

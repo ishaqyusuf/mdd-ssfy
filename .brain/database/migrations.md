@@ -1,5 +1,75 @@
 # Database Migrations
 
+## 2026-08-23: Guarded PlanetScale Preview Seed
+
+- Added `bun run db:seed-preview-sales` for a bounded, referentially complete
+  Preview fixture. It accepts only a local MySQL source and a PlanetScale target,
+  enforces 100–200 root sales orders, and requires a dry-run credential
+  fingerprint before any write.
+- The selector balances sales-workflow scenarios, keeps the root set at the
+  requested limit, follows Prisma relations with per-model caps, and uses
+  repeatable upserts. Customer/address/order-note/token/external-payment data is
+  sanitized while internal employee email addresses and local password hashes
+  are retained for Preview login testing.
+- The full current Prisma schema was pushed to the schema-only PlanetScale
+  `preview` development branch without reset or `--accept-data-loss`. This was a
+  Preview-only synchronization; production was not changed.
+- The guarded import wrote exactly 150 sales orders and their selected relation
+  graph, including 55 users. Temporary schema and seed credentials were revoked
+  after use; the permanent branch-scoped `vercel-preview` credential remains.
+
+### Refresh runbook
+
+1. Create a temporary read/write password scoped to the `preview` branch and
+   copy its MySQL URL to the macOS clipboard.
+2. Dry-run first and record the printed target fingerprint:
+   `bun run db:seed-preview-sales -- --source-env-file .env.local --target-clipboard --limit 150 --dry-run`.
+3. Rerun without `--dry-run`, add
+   `--expect-target-fingerprint <fingerprint>`, and use `--allow-existing` only
+   when deliberately refreshing the existing fixture through idempotent upserts.
+4. Verify the reported target order count and relation totals, revoke the
+   temporary password, and clear the clipboard. Never use a production
+   credential as the target or publish Preview data to production.
+
+## 2026-08-23: Material And Production Sales Handoff Action Epochs
+
+- Added the dedicated additive `sales-handoff.prisma` schema with
+  `SalesHandoffActionEpoch`, nullable unique open identity, epoch uniqueness,
+  and bounded queue/audit indexes. `bun run db:generate` passed against the
+  combined current schema.
+- Ticket 03 adds no model or column: `PRODUCTION` uses the existing string
+  `actionType` and nullable unique `openKey` contract. Migration generation
+  remains deferred to the coordinated Ticket 06 schema workflow.
+- No migration SQL was invented and no reset or destructive workflow ran.
+  Generate the repository-owned migration after concurrent packing schema work
+  is integrated with `bun run db:migrate -- -- --name sales_handoff_action_epochs`;
+  then apply it through the normal environment-specific migration workflow.
+
+### Ticket 04 final schema delta
+
+- Add nullable `organizationId`, target ids/control uid, `escalationDueAt`, and
+  `escalatedAt` to `SalesHandoffActionEpoch`; replace the old qualification scan
+  with organization-queue and unresolved/due scan indexes.
+- Add the required Restrict `SalesHandoffActionEpoch.salesOrder` relation and
+  inverse `SalesOrders.handoffActionEpochs`.
+- Add `SalesHandoffActionEscalationRecipient` with unique epoch/admin delivery,
+  NotePad activity id, notified time, acknowledged time, and supporting indexes.
+- Ticket 04 ran Prisma client generation only. It did not create or apply a
+  migration; the combined migration remains the coordinated root-owned step.
+
+
+## 2026-08-23: Guarded Packing Reports
+
+- Added additive `SalesPackingReport` schema, enums, relations, idempotency/open
+  uniqueness, and operational indexes. `db:generate` passed and `db:push`
+  synchronized local `gnd-prisma2` without reset or data-loss flags.
+- `bun run db:migrate -- -- --name guarded_packing_reports` was attempted three
+  times. The wrapper reported `Docker Engine is not reachable`, opened Docker
+  Desktop, waited 30 checks, and exited before Prisma generated a migration,
+  even though `docker info` and the subsequent local push succeeded.
+- No migration SQL was manually created. Rerun that exact command when the
+  wrapper can observe Docker; local push is not a production migration.
+
 ## 2026-08-18: Durable Dispatch Exceptions
 
 - Added additive migration `20260818110000_dispatch_exceptions`, creating
@@ -536,3 +606,28 @@ Tracks notable migrations and migration strategy.
   production database or migration ledger was changed. Because production was
   previously schema-pushed independently, its migration ledger must be
   reconciled explicitly before this catch-up migration is ever deployed there.
+
+## 20260823100000_paid_sales_operational_handoff
+
+- Adds durable `SalesHandoffActionEpoch` and
+  `SalesHandoffActionEscalationRecipient` tables for independent Material and
+  Production action epochs, actor/organization scope, one-business-day SLA
+  scans, per-admin delivery/acknowledgement identity, and exact Sales Order
+  queue filtering.
+- Adds the guarded `SalesPackingReport` lifecycle with exact
+  `OrderItemDelivery` allocation identity, immutable evidence snapshots,
+  pending-review indexes, and delete-restricted Prisma relations to its order,
+  dispatch, item, production submission, allocation, submitter, and reviewer.
+- Generated as an additive diff from the complete 121-migration history to the
+  finalized modular Prisma schema. The SQL creates only the three new tables
+  and their indexes; `relationMode = "prisma"` intentionally emits no database
+  foreign keys.
+- Applied the full 122-migration chain to a fresh isolated local validation
+  database successfully. The existing local development database had earlier
+  schema-pushed versions of the epoch and packing tables, so the reviewed
+  additive alignment was applied without deleting either table and the new
+  migration was resolved as applied. All 39 local QA action epochs were
+  preserved and the packing table was empty before alignment.
+- Final local checks report all 122 migrations current and no schema drift.
+  No preview, production, hosted database, or production migration ledger was
+  changed.

@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/db";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
+import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import { resetSalesAction } from "@sales/sales-control/actions";
 import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 import z from "zod";
@@ -46,11 +48,16 @@ export const deleteSalesAssignmentAction = actionClient
                 salesId: assignment.orderId,
             };
         });
-        if (resp?.salesId) {
+	        if (resp?.salesId) {
             await syncInventoryProductionLifecycleForSale(
                 prisma as any,
                 resp.salesId,
-            );
-        }
+	            );
+			await reconcileSalesHandoffAfterCommit(prisma, {
+				salesOrderIds: [resp.salesId],
+				actorUserId: await authId(),
+				source: "dashboard.production.delete-assignment",
+			});
+	        }
         return resp;
     });

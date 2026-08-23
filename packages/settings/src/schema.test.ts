@@ -1,16 +1,70 @@
 import { describe, expect, test } from "bun:test";
 import {
+	DEFAULT_SALES_HANDOFF_TRIGGER_POLICY,
 	DEFAULT_SALES_OVERVIEW_VIEW_SETTINGS,
 	DEFAULT_SALES_PRINT_SETTINGS,
 	DEFAULT_SPECIAL_ORDER_SETTINGS,
+	normalizeSalesHandoffTriggerPolicy,
 	normalizeSalesOverviewViewSettings,
 	normalizeSalesPrintSettings,
 	normalizeSpecialOrderSettings,
 	resolveSalesOverviewGeneralVersion,
+	reviseSalesHandoffTriggerPolicy,
+	salesHandoffTriggerInputSchema,
 	salesOverviewViewSettingsSchema,
 	salesPrintSettingsSchema,
 	specialOrderSettingsSchema,
 } from "./schema";
+
+describe("sales handoff trigger settings", () => {
+	test("defaults to fully paid without inventing a persisted revision", () => {
+		expect(normalizeSalesHandoffTriggerPolicy()).toEqual(
+			DEFAULT_SALES_HANDOFF_TRIGGER_POLICY,
+		);
+	});
+
+	test("requires a whole-number percentage from one through one hundred", () => {
+		for (const percentage of [0, 1.5, 101, null]) {
+			expect(
+				salesHandoffTriggerInputSchema.safeParse({
+					mode: "PAYMENT_PERCENTAGE",
+					percentage,
+				}).success,
+			).toBe(false);
+		}
+		expect(
+			salesHandoffTriggerInputSchema.safeParse({
+				mode: "PAYMENT_PERCENTAGE",
+				percentage: 35,
+			}).success,
+		).toBe(true);
+	});
+
+	test("revises only effective policy changes", () => {
+		const changed = reviseSalesHandoffTriggerPolicy({
+			current: DEFAULT_SALES_HANDOFF_TRIGGER_POLICY,
+			next: { mode: "ANY_PAYMENT", percentage: 80 },
+			changedAt: "2026-08-23T10:00:00.000Z",
+		});
+		expect(changed).toEqual({
+			changed: true,
+			policy: {
+				mode: "ANY_PAYMENT",
+				percentage: null,
+				revision: 1,
+				changedAt: "2026-08-23T10:00:00.000Z",
+			},
+		});
+
+		expect(
+			reviseSalesHandoffTriggerPolicy({
+				current: changed.policy,
+				next: { mode: "ANY_PAYMENT", percentage: null },
+				changedAt: "2026-08-23T11:00:00.000Z",
+			}),
+		).toEqual({ policy: changed.policy, changed: false });
+	});
+});
 
 describe("sales overview view settings", () => {
 	test("pilots V2 for Super Admin while the office remains on V1", () => {

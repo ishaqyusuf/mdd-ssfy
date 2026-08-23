@@ -12,6 +12,7 @@ import {
 	normalizeInventoryFulfillmentDeliveryMode,
 	resolveInventoryFulfillmentDeliveryMode,
 } from "./inventory-fulfillment-policy";
+import { assertNoPendingPackingReports } from "./packing-report-review";
 import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 
 const COMMITTED_ALLOCATION_STATUSES = new Set([
@@ -3863,8 +3864,8 @@ export async function shipAvailableSalesInventory(
 	});
 }
 
-export async function transitionInventoryDispatchAllocations(
-	db: Db,
+export async function transitionInventoryDispatchAllocationsInTransaction(
+	tx: TransactionClient,
 	action: InventoryDispatchTransitionAction,
 	input: InventoryDispatchTransitionInput,
 ): Promise<InventoryDispatchTransitionResult> {
@@ -3883,198 +3884,148 @@ export async function transitionInventoryDispatchAllocations(
 		);
 	}
 
-	return runSerializableInventoryTransaction(db, async (tx) => {
-		if (input.orderDeliveryId) {
-			const delivery = await tx.orderDelivery.findFirst({
-				where: {
-					id: input.orderDeliveryId,
-					deletedAt: null,
-					salesOrderId: input.salesOrderId || undefined,
-				},
-				select: { id: true, salesOrderId: true, status: true },
-			});
-			if (!delivery) throw new Error("INVENTORY_DISPATCH_NOT_FOUND");
-			if (["completed", "cancelled"].includes(delivery.status || "")) {
-				throw new Error("INVENTORY_DISPATCH_TERMINAL");
-			}
-		}
-		const allocations = await tx.stockAllocation.findMany({
+	if (input.orderDeliveryId) {
+		const delivery = await tx.orderDelivery.findFirst({
 			where: {
+				id: input.orderDeliveryId,
 				deletedAt: null,
-				...(input.orderDeliveryId
-					? action === "assign"
-						? {
-								OR: [
-									{ orderDeliveryId: null },
-									{ orderDeliveryId: input.orderDeliveryId },
-								],
-							}
-						: { orderDeliveryId: input.orderDeliveryId }
-					: {}),
-				id: selectedAllocationIds?.length
+				salesOrderId: input.salesOrderId || undefined,
+			},
+			select: { id: true, salesOrderId: true, status: true },
+		});
+		if (!delivery) throw new Error("INVENTORY_DISPATCH_NOT_FOUND");
+		if (["completed", "cancelled"].includes(delivery.status || "")) {
+			throw new Error("INVENTORY_DISPATCH_TERMINAL");
+		}
+	}
+	const allocations = await tx.stockAllocation.findMany({
+		where: {
+			deletedAt: null,
+			...(input.orderDeliveryId
+				? action === "assign"
 					? {
-							in: selectedAllocationIds,
+							OR: [
+								{ orderDeliveryId: null },
+								{ orderDeliveryId: input.orderDeliveryId },
+							],
 						}
-					: undefined,
-				lineItemComponent: {
-					parent: {
-						deletedAt: null,
-						lineItemType: "SALE",
-						saleId: input.salesOrderId || undefined,
-						id: input.lineItemIds?.length
-							? {
-									in: input.lineItemIds,
-								}
-							: undefined,
-					},
+					: { orderDeliveryId: input.orderDeliveryId }
+				: {}),
+			id: selectedAllocationIds?.length
+				? {
+						in: selectedAllocationIds,
+					}
+				: undefined,
+			lineItemComponent: {
+				parent: {
+					deletedAt: null,
+					lineItemType: "SALE",
+					saleId: input.salesOrderId || undefined,
+					id: input.lineItemIds?.length
+						? {
+								in: input.lineItemIds,
+							}
+						: undefined,
 				},
 			},
-			orderBy: {
-				id: "asc",
-			},
-			select: {
-				id: true,
-				qty: true,
-				status: true,
-				orderDeliveryId: true,
-				inventoryStockId: true,
-				inventoryVariantId: true,
-				lineItemComponentId: true,
-				notes: true,
-				lineItemComponent: {
-					select: {
-						parent: {
-							select: {
-								sale: {
-									select: {
-										status: true,
-										prodStatus: true,
-									},
+		},
+		orderBy: {
+			id: "asc",
+		},
+		select: {
+			id: true,
+			qty: true,
+			status: true,
+			orderDeliveryId: true,
+			inventoryStockId: true,
+			inventoryVariantId: true,
+			lineItemComponentId: true,
+			notes: true,
+			lineItemComponent: {
+				select: {
+					parent: {
+						select: {
+							sale: {
+								select: {
+									status: true,
+									prodStatus: true,
 								},
 							},
 						},
 					},
 				},
 			},
+		},
+	});
+
+	const transitions: InventoryDispatchTransitionResult["transitions"] = [];
+	const skipped: InventoryDispatchTransitionResult["skipped"] = [];
+	const touchedComponentIds = new Set<number>();
+
+	for (const allocation of allocations) {
+		if (
+			input.orderDeliveryId &&
+			allocation.orderDeliveryId &&
+			allocation.orderDeliveryId !== input.orderDeliveryId
+		) {
+			throw new Error("INVENTORY_ALLOCATION_DISPATCH_MISMATCH");
+		}
+		assertInventoryFulfillmentMutableSale({
+			orderStatus: allocation.lineItemComponent?.parent?.sale?.status,
+			productionStatus: allocation.lineItemComponent?.parent?.sale?.prodStatus,
 		});
+		const fromStatus = allocation.status as InventoryDispatchAllocationStatus;
+		const plan = planInventoryDispatchAllocationTransition({
+			action,
+			status: fromStatus,
+		});
+		const bindsUnboundReservedAllocation =
+			action === "assign" &&
+			fromStatus === "reserved" &&
+			Boolean(input.orderDeliveryId) &&
+			allocation.orderDeliveryId === null;
+		const targetStatus = bindsUnboundReservedAllocation
+			? ("reserved" as const)
+			: plan.toStatus;
 
-		const transitions: InventoryDispatchTransitionResult["transitions"] = [];
-		const skipped: InventoryDispatchTransitionResult["skipped"] = [];
-		const touchedComponentIds = new Set<number>();
-
-		for (const allocation of allocations) {
-			if (
-				input.orderDeliveryId &&
-				allocation.orderDeliveryId &&
-				allocation.orderDeliveryId !== input.orderDeliveryId
-			) {
-				throw new Error("INVENTORY_ALLOCATION_DISPATCH_MISMATCH");
-			}
-			assertInventoryFulfillmentMutableSale({
-				orderStatus: allocation.lineItemComponent?.parent?.sale?.status,
-				productionStatus:
-					allocation.lineItemComponent?.parent?.sale?.prodStatus,
-			});
-			const fromStatus = allocation.status as InventoryDispatchAllocationStatus;
-			const plan = planInventoryDispatchAllocationTransition({
-				action,
+		if (
+			(!plan.transition && !bindsUnboundReservedAllocation) ||
+			!targetStatus
+		) {
+			skipped.push({
+				allocationId: allocation.id,
+				lineItemComponentId: allocation.lineItemComponentId,
 				status: fromStatus,
+				reason: plan.reason,
 			});
-			const bindsUnboundReservedAllocation =
-				action === "assign" &&
-				fromStatus === "reserved" &&
-				Boolean(input.orderDeliveryId) &&
-				allocation.orderDeliveryId === null;
-			const targetStatus = bindsUnboundReservedAllocation
-				? ("reserved" as const)
-				: plan.toStatus;
+			continue;
+		}
 
-			if (
-				(!plan.transition && !bindsUnboundReservedAllocation) ||
-				!targetStatus
-			) {
-				skipped.push({
-					allocationId: allocation.id,
-					lineItemComponentId: allocation.lineItemComponentId,
-					status: fromStatus,
-					reason: plan.reason,
-				});
-				continue;
-			}
-
-			const selectedQty = selectedQtyByAllocationId.get(allocation.id);
-			const allocationQty = roundQuantity(numberValue(allocation.qty));
-			if (selectedQty !== undefined && selectedQty <= 0) {
-				throw new Error("INVENTORY_DISPATCH_INVALID_ALLOCATION_QUANTITY");
-			}
-			if (selectedQty !== undefined && selectedQty > allocationQty) {
-				throw new Error("INVENTORY_DISPATCH_ALLOCATION_QUANTITY_EXCEEDED");
-			}
-			if (
-				action === "assign" &&
-				input.orderDeliveryId &&
-				selectedQty !== undefined &&
-				selectedQty < allocationQty
-			) {
-				const split = await tx.stockAllocation.updateMany({
-					where: {
-						id: allocation.id,
-						deletedAt: null,
-						status: fromStatus,
-						qty: allocation.qty,
-						orderDeliveryId: allocation.orderDeliveryId,
-					},
-					data: { qty: roundQuantity(allocationQty - selectedQty) },
-				});
-				if (split.count === 0) {
-					skipped.push({
-						allocationId: allocation.id,
-						lineItemComponentId: allocation.lineItemComponentId,
-						status: fromStatus,
-						reason: "concurrently_claimed",
-					});
-					continue;
-				}
-				const bound = await tx.stockAllocation.create({
-					data: {
-						lineItemComponentId: allocation.lineItemComponentId,
-						inventoryStockId: allocation.inventoryStockId,
-						inventoryVariantId: allocation.inventoryVariantId,
-						orderDeliveryId: input.orderDeliveryId,
-						qty: selectedQty,
-						status: targetStatus,
-						notes: input.note || allocation.notes,
-					},
-					select: { id: true },
-				});
-				transitions.push({
-					allocationId: bound.id,
-					lineItemComponentId: allocation.lineItemComponentId,
-					fromStatus,
-					toStatus: targetStatus,
-				});
-				touchedComponentIds.add(allocation.lineItemComponentId);
-				continue;
-			}
-
-			const updated = await tx.stockAllocation.updateMany({
+		const selectedQty = selectedQtyByAllocationId.get(allocation.id);
+		const allocationQty = roundQuantity(numberValue(allocation.qty));
+		if (selectedQty !== undefined && selectedQty <= 0) {
+			throw new Error("INVENTORY_DISPATCH_INVALID_ALLOCATION_QUANTITY");
+		}
+		if (selectedQty !== undefined && selectedQty > allocationQty) {
+			throw new Error("INVENTORY_DISPATCH_ALLOCATION_QUANTITY_EXCEEDED");
+		}
+		if (
+			action === "assign" &&
+			input.orderDeliveryId &&
+			selectedQty !== undefined &&
+			selectedQty < allocationQty
+		) {
+			const split = await tx.stockAllocation.updateMany({
 				where: {
 					id: allocation.id,
 					deletedAt: null,
 					status: fromStatus,
-					...(input.orderDeliveryId
-						? { orderDeliveryId: allocation.orderDeliveryId }
-						: {}),
+					qty: allocation.qty,
+					orderDeliveryId: allocation.orderDeliveryId,
 				},
-				data: {
-					status: targetStatus,
-					notes: input.note || allocation.notes,
-					...(input.orderDeliveryId && action === "assign"
-						? { orderDeliveryId: input.orderDeliveryId }
-						: {}),
-				},
+				data: { qty: roundQuantity(allocationQty - selectedQty) },
 			});
-			if (updated.count === 0) {
+			if (split.count === 0) {
 				skipped.push({
 					allocationId: allocation.id,
 					lineItemComponentId: allocation.lineItemComponentId,
@@ -4083,30 +4034,87 @@ export async function transitionInventoryDispatchAllocations(
 				});
 				continue;
 			}
-
+			const bound = await tx.stockAllocation.create({
+				data: {
+					lineItemComponentId: allocation.lineItemComponentId,
+					inventoryStockId: allocation.inventoryStockId,
+					inventoryVariantId: allocation.inventoryVariantId,
+					orderDeliveryId: input.orderDeliveryId,
+					qty: selectedQty,
+					status: targetStatus,
+					notes: input.note || allocation.notes,
+				},
+				select: { id: true },
+			});
 			transitions.push({
-				allocationId: allocation.id,
+				allocationId: bound.id,
 				lineItemComponentId: allocation.lineItemComponentId,
 				fromStatus,
 				toStatus: targetStatus,
 			});
 			touchedComponentIds.add(allocation.lineItemComponentId);
+			continue;
 		}
 
-		for (const componentId of touchedComponentIds) {
-			await recomputeLineItemComponentFulfillment(tx, componentId);
+		const updated = await tx.stockAllocation.updateMany({
+			where: {
+				id: allocation.id,
+				deletedAt: null,
+				status: fromStatus,
+				...(input.orderDeliveryId
+					? { orderDeliveryId: allocation.orderDeliveryId }
+					: {}),
+			},
+			data: {
+				status: targetStatus,
+				notes: input.note || allocation.notes,
+				...(input.orderDeliveryId && action === "assign"
+					? { orderDeliveryId: input.orderDeliveryId }
+					: {}),
+			},
+		});
+		if (updated.count === 0) {
+			skipped.push({
+				allocationId: allocation.id,
+				lineItemComponentId: allocation.lineItemComponentId,
+				status: fromStatus,
+				reason: "concurrently_claimed",
+			});
+			continue;
 		}
 
-		return {
-			ok: transitions.length > 0,
-			action,
-			transitionedCount: transitions.length,
-			skippedCount: skipped.length,
-			touchedComponentCount: touchedComponentIds.size,
-			transitions,
-			skipped,
-		};
-	});
+		transitions.push({
+			allocationId: allocation.id,
+			lineItemComponentId: allocation.lineItemComponentId,
+			fromStatus,
+			toStatus: targetStatus,
+		});
+		touchedComponentIds.add(allocation.lineItemComponentId);
+	}
+
+	for (const componentId of touchedComponentIds) {
+		await recomputeLineItemComponentFulfillment(tx, componentId);
+	}
+
+	return {
+		ok: transitions.length > 0,
+		action,
+		transitionedCount: transitions.length,
+		skippedCount: skipped.length,
+		touchedComponentCount: touchedComponentIds.size,
+		transitions,
+		skipped,
+	};
+}
+
+export async function transitionInventoryDispatchAllocations(
+	db: Db,
+	action: InventoryDispatchTransitionAction,
+	input: InventoryDispatchTransitionInput,
+): Promise<InventoryDispatchTransitionResult> {
+	return runSerializableInventoryTransaction(db, (tx) =>
+		transitionInventoryDispatchAllocationsInTransaction(tx, action, input),
+	);
 }
 
 export async function assignInventoryDispatchAllocations(
@@ -4116,10 +4124,25 @@ export async function assignInventoryDispatchAllocations(
 	return transitionInventoryDispatchAllocations(db, "assign", input);
 }
 
+export async function assignInventoryDispatchAllocationsInTransaction(
+	tx: TransactionClient,
+	input: InventoryDispatchTransitionInput,
+) {
+	return transitionInventoryDispatchAllocationsInTransaction(
+		tx,
+		"assign",
+		input,
+	);
+}
+
 export async function assertDispatchInventoryReadyToStart(
 	db: DbLike,
 	input: { orderDeliveryId: number; salesOrderId: number },
 ) {
+	await assertNoPendingPackingReports(db, {
+		dispatchId: input.orderDeliveryId,
+		salesOrderId: input.salesOrderId,
+	});
 	const deliveryItems = await db.orderItemDelivery.findMany({
 		where: {
 			orderDeliveryId: input.orderDeliveryId,
@@ -4360,6 +4383,13 @@ export async function packInventoryDispatchAllocations(
 	input: InventoryDispatchTransitionInput,
 ) {
 	return transitionInventoryDispatchAllocations(db, "pack", input);
+}
+
+export async function packInventoryDispatchAllocationsInTransaction(
+	tx: TransactionClient,
+	input: InventoryDispatchTransitionInput,
+) {
+	return transitionInventoryDispatchAllocationsInTransaction(tx, "pack", input);
 }
 
 export async function releaseInventoryDispatchAllocations(

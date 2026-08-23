@@ -37,6 +37,7 @@ export const salesOrdersV2FilterParams = {
 	invoiceStatus: parseAsStringLiteral(["paid", "outstanding"] as const),
 	invoice: parseAsStringLiteral(INVOICE_FILTER_OPTIONS),
 	paymentReview: parseAsStringLiteral(["needs_review"] as const),
+	needsAction: parseAsStringLiteral(["open"] as const),
 	production: parseAsStringLiteral(PRODUCTION_FILTER_OPTIONS),
 	"production.status": parseAsStringLiteral(PRODUCTION_STATUS),
 	"production.assignment": parseAsStringLiteral(

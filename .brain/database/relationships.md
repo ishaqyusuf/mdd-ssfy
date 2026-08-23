@@ -1,5 +1,23 @@
 # Database Relationships
 
+## Material And Production Sales Handoff Epoch Ownership (2026-08-23)
+
+- `SalesHandoffActionEpoch.salesOrderId` has a required Restrict relation to the
+  canonical `SalesOrders` row; `orderId` is the display/deep-link snapshot and
+  `responsibleRepId` records the current representative. `SalesOrders` exposes
+  the inverse `handoffActionEpochs` collection for exact actor-scoped filtering.
+- `reopenedFromEpochId` links audit history logically to the previous resolved
+  epoch. It is scalar evidence, not a cascade owner. Payment projections,
+  inbound demands, shipment items, allocations, and fulfillment remain their
+  existing canonical owners and are never copied into the epoch.
+- `SalesHandoffActionEscalationRecipient.actionEpochId` belongs to one epoch.
+  Recipient user and NotePad activity identities remain scalar audit links so
+  employee/contact lifecycle cannot cascade-delete escalation evidence.
+- Production controls, assignments, and submissions likewise remain canonical
+  in their existing Sales models. The epoch stores only action/order/rep and
+  revision evidence plus its protected target snapshot.
+
+
 ## Dispatch Exceptions (2026-08-18)
 
 - `OrderDelivery.exceptions` owns the operational issues reported against one
@@ -319,3 +337,16 @@ Planning only; no schema relationship changed yet.
   relationships when rebuilding the list row.
 - Reads verify the projection revision against `SalesOrders.updatedAt` (falling
   back to `createdAt` for legacy rows) before returning projected data.
+
+## Guarded packing report links (2026-08-23)
+
+- `SalesOrders`, `OrderDelivery`, `SalesOrderItems`, and
+  `OrderProductionSubmissions` each own 1:N `SalesPackingReport` rows. Each
+  report also belongs to exactly one canonical dispatch allocation
+  `OrderItemDelivery`; submitter and reviewer relations point to authenticated
+  `Users`.
+- Reports never substitute that `OrderItemDelivery`; only a freshly revalidated
+  approved report authorizes canonical packing for the same allocation identity.
+- Every report identity relation is delete-restricted so an audit record cannot
+  disappear through physical deletion of its order, dispatch, line, submission,
+  allocation row, submitter, or reviewer.

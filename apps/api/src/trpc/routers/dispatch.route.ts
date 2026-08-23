@@ -1,6 +1,7 @@
 import {
 	bulkAssignDispatchDriver,
 	bulkCancelDispatches,
+	deleteDispatch,
 	exportDispatches,
 	findDuplicateDispatchGroups,
 	getDeletedDispatches,
@@ -97,6 +98,7 @@ import {
 	deletePackingItem,
 	deletePackingSchema,
 	getSalesDispatchOverview,
+	normalizeSalesControlTaskActor,
 	packDispatchItemTask,
 	startDispatchTask,
 	submitDispatchTask,
@@ -153,6 +155,17 @@ async function requireDispatchWorker(ctx: TRPCContext) {
 		["viewDelivery", "editDelivery", "viewPickup", "editPickup", "viewPacking"],
 		"You do not have permission to update dispatch proof.",
 	);
+}
+
+function withAuthenticatedSalesControlActor(
+	input: UpdateSalesControl,
+	actor: Awaited<ReturnType<typeof auth>>,
+) {
+	return normalizeSalesControlTaskActor(input, {
+		userId: actor.id,
+		name: actor.name,
+		canEditProduction: Boolean(actor.can.editProduction),
+	});
 }
 
 async function enforceSpecialOrderForSale(
@@ -367,21 +380,26 @@ export const dispatchRouters = createTRPCRouter({
 	deletePackingItem: protectedProcedure
 		.input(deletePackingSchema)
 		.mutation(async (props) => {
-			await requirePackingOperator(props.ctx);
-			return deletePackingItem(props.ctx.db, props.input);
+			const actor = await requirePackingOperator(props.ctx);
+			return deletePackingItem(
+				props.ctx.db,
+				props.input,
+				actor.name || "Packing operator",
+			);
 		}),
 	cancelDispatch: protectedProcedure
 		.input(updateSalesControlSchema)
 		.mutation(async (props) => {
-			await requireDispatchManager(props.ctx);
-			const response = await cancelDispatchTask(props.ctx.db, props.input, {
+			const actor = await requireDispatchManager(props.ctx);
+			const input = withAuthenticatedSalesControlActor(props.input, actor);
+			const response = await cancelDispatchTask(props.ctx.db, input, {
 				releaseDispatchInventory: (tx, input) =>
 					releaseDispatchBoundInventory(tx, input),
 			});
-			const dispatchIds = props.input.cancelDispatch?.dispatchIds?.length
-				? props.input.cancelDispatch.dispatchIds
-				: props.input.cancelDispatch?.dispatchId
-					? [props.input.cancelDispatch.dispatchId]
+			const dispatchIds = input.cancelDispatch?.dispatchIds?.length
+				? input.cancelDispatch.dispatchIds
+				: input.cancelDispatch?.dispatchId
+					? [input.cancelDispatch.dispatchId]
 					: [];
 			try {
 				if (dispatchIds.length) {
@@ -390,7 +408,7 @@ export const dispatchRouters = createTRPCRouter({
 							id: {
 								in: dispatchIds,
 							},
-							salesOrderId: props.input.meta.salesId,
+							salesOrderId: input.meta.salesId,
 							deletedAt: null,
 						},
 						select: {
@@ -446,20 +464,21 @@ export const dispatchRouters = createTRPCRouter({
 	startDispatch: protectedProcedure
 		.input(updateSalesControlSchema)
 		.mutation(async (props) => {
-			await requireAssignedDispatchOrManager(
+			const actor = await requireAssignedDispatchOrManager(
 				props.ctx,
 				props.input.startDispatch?.dispatchId,
 			);
+			const input = withAuthenticatedSalesControlActor(props.input, actor);
 			await enforceSpecialOrderForSale(
 				props.ctx,
-				props.input.meta.salesId,
+				input.meta.salesId,
 				"DISPATCH",
 				"api.dispatch.start",
 			);
-			const response = await startDispatchTask(props.ctx.db, props.input, {
+			const response = await startDispatchTask(props.ctx.db, input, {
 				assertInventoryReady: assertDispatchInventoryReadyToStart,
 			});
-			const dispatchId = props.input.startDispatch?.dispatchId;
+			const dispatchId = input.startDispatch?.dispatchId;
 			if (dispatchId) {
 				const dispatch = await props.ctx.db.orderDelivery.findFirst({
 					where: {
@@ -501,17 +520,18 @@ export const dispatchRouters = createTRPCRouter({
 	submitDispatch: protectedProcedure
 		.input(updateSalesControlSchema)
 		.mutation(async (props) => {
-			await requireAssignedDispatchOrManager(
+			const actor = await requireAssignedDispatchOrManager(
 				props.ctx,
 				props.input.submitDispatch?.dispatchId,
 			);
+			const input = withAuthenticatedSalesControlActor(props.input, actor);
 			await enforceSpecialOrderForSale(
 				props.ctx,
-				props.input.meta.salesId,
+				input.meta.salesId,
 				"DISPATCH",
 				"api.dispatch.submit",
 			);
-			return submitDispatchTask(props.ctx.db, props.input);
+			return submitDispatchTask(props.ctx.db, input);
 		}),
 	completeDispatchWithProof: protectedProcedure
 		.input(completeDispatchWithProofSchema)
@@ -1769,35 +1789,7 @@ export const dispatchRouters = createTRPCRouter({
 		)
 		.mutation(async (props) => {
 			await requireDispatchManager(props.ctx);
-			const dispatch = await props.ctx.db.orderDelivery.findFirst({
-				where: {
-					id: props.input.dispatchId,
-					deletedAt: null,
-				},
-				select: {
-					status: true,
-				},
-			});
-			if (!dispatch) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "DISPATCH_NOT_FOUND",
-				});
-			}
-			if (dispatch.status === "completed") {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Completed dispatch cannot be deleted.",
-				});
-			}
-			await props.ctx.db.orderDelivery.update({
-				where: {
-					id: props.input.dispatchId,
-				},
-				data: {
-					deletedAt: new Date(),
-				},
-			});
+			await deleteDispatch(props.ctx, props.input.dispatchId);
 			// return deletePackingItem(props.ctx.db, props.input);
 		}),
 	debugLog: protectedProcedure

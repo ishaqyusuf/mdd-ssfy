@@ -7,6 +7,10 @@ import type { NoteTagTypes } from "@gnd/utils/constants";
 import { type SaveNoteSchema, noteTag, saveNote } from "@gnd/utils/note";
 import { hasQty } from "@gnd/utils/sales";
 import { updateSalesItemControlAction, updateSalesStatControlAction } from ".";
+import {
+	assertNoPendingPackingReports,
+	lockAndAssertNoPendingPackingReports,
+} from "../packing-report-review";
 import { autoReviewSalesPaymentsForOrderAction } from "../payment-system/application/payment-review";
 import type { DeletePackingSchema, UpdateSalesControl } from "../schema";
 import type {
@@ -306,39 +310,142 @@ export async function submitNonProductionsTask(
 }
 export async function clearPackingTask(db: Db, data: UpdateSalesControl) {
 	const clearData = data.clearPackings;
-	await db.$transaction(async (tx) => {
-		await tx.orderItemDelivery.updateMany({
-			where: {
-				orderId: !clearData?.dispatchId ? data.meta.salesId : undefined,
-				orderDeliveryId: !clearData?.dispatchId
-					? undefined
-					: clearData?.dispatchId,
-				packingStatus: {
-					not: "unpacked",
+	await db.$transaction(
+		async (tx) => {
+			const requestedDispatchId = clearData?.dispatchId ?? null;
+			const dispatches = await tx.orderDelivery.findMany({
+				where: {
+					salesOrderId: data.meta.salesId,
+					deletedAt: null,
+					id: requestedDispatchId ?? undefined,
 				},
-			},
-			data: {
-				packingStatus: "unpacked" as DispatchItemPackingStatus,
-				unpackedBy: data.meta.authorName,
-			},
-		});
-		await resetSalesAction(tx as any, data.meta.salesId);
-	});
+				orderBy: { id: "asc" },
+				select: { id: true },
+			});
+			if (requestedDispatchId && dispatches.length !== 1) {
+				throw new Error("Packing dispatch was not found for this sales order.");
+			}
+
+			for (const dispatch of dispatches) {
+				await lockAndAssertNoPendingPackingReports(tx as Db, {
+					dispatchId: dispatch.id,
+					salesOrderId: data.meta.salesId,
+				});
+			}
+
+			if (dispatches.length) {
+				const activeDispatchCount = await tx.orderDelivery.count({
+					where: {
+						id: { in: dispatches.map((dispatch) => dispatch.id) },
+						salesOrderId: data.meta.salesId,
+						deletedAt: null,
+					},
+				});
+				if (activeDispatchCount !== dispatches.length) {
+					throw new Error(
+						"Packing dispatch scope changed before it was cleared.",
+					);
+				}
+			}
+
+			await tx.orderItemDelivery.updateMany({
+				where: {
+					orderId: data.meta.salesId,
+					deletedAt: null,
+					...(requestedDispatchId
+						? { orderDeliveryId: requestedDispatchId }
+						: {
+								OR: [
+									{ orderDeliveryId: null },
+									...(dispatches.length
+										? [
+												{
+													orderDeliveryId: {
+														in: dispatches.map((dispatch) => dispatch.id),
+													},
+												},
+											]
+										: []),
+								],
+							}),
+					packingStatus: {
+						not: "unpacked",
+					},
+				},
+				data: {
+					packingStatus: "unpacked" as DispatchItemPackingStatus,
+					unpackedBy: data.meta.authorName,
+				},
+			});
+			await resetSalesAction(tx as Db, data.meta.salesId);
+		},
+		{ isolationLevel: "Serializable" },
+	);
 }
-export async function deletePackingItem(db: Db, data: DeletePackingSchema) {
-	await db.$transaction(async (tx) => {
-		await tx.orderItemDelivery.updateMany({
-			where: {
-				id: !data.packingUid ? data.packingId! : undefined,
-				packingUid: data.packingUid ? data.packingUid : undefined,
-			},
-			data: {
-				packingStatus: "unpacked" as DispatchItemPackingStatus,
-				packedBy: data.deleteBy,
-			},
-		});
-		await resetSalesAction(tx as any, data.salesId);
-	});
+export async function deletePackingItem(
+	db: Db,
+	data: DeletePackingSchema,
+	unpackedBy: string,
+) {
+	if (!data.packingId && !data.packingUid) {
+		throw new Error("Packing item identity is required.");
+	}
+	await db.$transaction(
+		async (tx) => {
+			const target = await tx.orderItemDelivery.findFirst({
+				where: {
+					id: data.packingId ?? undefined,
+					packingUid: data.packingUid ?? undefined,
+					orderId: data.salesId,
+					deletedAt: null,
+					orderDeliveryId: { not: null },
+				},
+				select: { id: true, orderDeliveryId: true },
+			});
+			if (!target?.orderDeliveryId) {
+				throw new Error("Packing item was not found in an active dispatch.");
+			}
+
+			await lockAndAssertNoPendingPackingReports(tx as Db, {
+				dispatchId: target.orderDeliveryId,
+				salesOrderId: data.salesId,
+			});
+			const activeTarget = await tx.orderItemDelivery.findFirst({
+				where: {
+					id: target.id,
+					orderId: data.salesId,
+					orderDeliveryId: target.orderDeliveryId,
+					deletedAt: null,
+					delivery: {
+						salesOrderId: data.salesId,
+						deletedAt: null,
+					},
+				},
+				select: { id: true },
+			});
+			if (!activeTarget) {
+				throw new Error("Packing item scope changed before it was removed.");
+			}
+
+			const unpacked = await tx.orderItemDelivery.updateMany({
+				where: {
+					id: activeTarget.id,
+					orderId: data.salesId,
+					orderDeliveryId: target.orderDeliveryId,
+					deletedAt: null,
+				},
+				data: {
+					packingStatus: "unpacked" as DispatchItemPackingStatus,
+					unpackedBy,
+				},
+			});
+			if (unpacked.count !== 1) {
+				throw new Error("Packing item scope changed before it was removed.");
+			}
+			await resetSalesAction(tx as Db, data.salesId);
+		},
+		{ isolationLevel: "Serializable" },
+	);
 }
 export async function cancelDispatchTask(
 	db: Db,
@@ -410,6 +517,10 @@ export async function startDispatchTask(
 		if (!orderDeliveryId) {
 			throw new Error("Unable to start fulfillment without a dispatch.");
 		}
+		await lockAndAssertNoPendingPackingReports(tx as Db, {
+			dispatchId: orderDeliveryId,
+			salesOrderId: data.meta.salesId,
+		});
 		await internal?.assertInventoryReady?.(tx as TransactionClient, {
 			orderDeliveryId,
 			salesOrderId: data.meta.salesId,
@@ -444,7 +555,11 @@ export async function submitDispatchTask(
 		};
 		completeInventoryDispatch?: (
 			tx: TransactionClient,
-			input: { orderDeliveryId: number; salesOrderId: number; note?: string | null },
+			input: {
+				orderDeliveryId: number;
+				salesOrderId: number;
+				note?: string | null;
+			},
 		) => Promise<{
 			executionMode: "inventory" | "legacy";
 			allocationIds: number[];
@@ -482,6 +597,10 @@ export async function submitDispatchTask(
 			if (currentDispatch.salesOrderId !== data.meta.salesId) {
 				throw new Error("Dispatch does not belong to this sales order.");
 			}
+			await lockAndAssertNoPendingPackingReports(tx as Db, {
+				dispatchId: task.dispatchId!,
+				salesOrderId: currentDispatch.salesOrderId,
+			});
 
 			const completionRequestId = task.completionRequestId?.trim();
 			const currentMeta = asJsonRecord(currentDispatch.meta);
@@ -795,6 +914,22 @@ export async function packDispatchItemTask(
 	data: UpdateSalesControl,
 	dependencies: SubmitAllTaskDependencies = {},
 ) {
+	const dispatchId = data.packItems!.dispatchId;
+	const dispatchScope = await db.orderDelivery.findFirst({
+		where: {
+			id: dispatchId,
+			salesOrderId: data.meta.salesId,
+			deletedAt: null,
+		},
+		select: { id: true },
+	});
+	if (!dispatchScope) {
+		throw new Error("Packing dispatch was not found for this sales order.");
+	}
+	await assertNoPendingPackingReports(db, {
+		dispatchId,
+		salesOrderId: data.meta.salesId,
+	});
 	const packMode = data.packItems?.packMode!;
 	const requestedDispatchStatus = data.packItems?.dispatchStatus;
 	let assignmentInfo: RenturnTypeAsync<typeof getSaleInformation> | null = null;
@@ -905,10 +1040,26 @@ export async function packDispatchItemTask(
 			profile: "workflow",
 		},
 		async (tx) => {
+			await lockAndAssertNoPendingPackingReports(tx as Db, {
+				dispatchId,
+				salesOrderId: data.meta.salesId,
+			});
+			const activeDispatch = await tx.orderDelivery.findFirst({
+				where: {
+					id: dispatchId,
+					salesOrderId: data.meta.salesId,
+					deletedAt: null,
+				},
+				select: { id: true },
+			});
+			if (!activeDispatch) {
+				throw new Error("Packing dispatch scope changed before it was updated.");
+			}
 			if (data.packItems?.replaceExisting) {
 				await tx.orderItemDelivery.updateMany({
 					where: {
-						orderDeliveryId: data.packItems.dispatchId,
+						orderId: data.meta.salesId,
+						orderDeliveryId: dispatchId,
 						packingStatus: {
 							not: "unpacked",
 						},

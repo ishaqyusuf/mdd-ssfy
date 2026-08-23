@@ -1,0 +1,56 @@
+model SalesHandoffActionEpoch {
+    id                    String    @id @default(cuid()) @db.VarChar(191)
+    salesOrderId          Int
+    orderId               String    @db.VarChar(255)
+    actionType            String    @db.VarChar(32)
+    epoch                 Int
+    openKey               String?   @unique @db.VarChar(191)
+    responsibleRepId      Int
+    organizationId        Int?
+    policyRevision        Int
+    evidenceRevision      String    @db.VarChar(191)
+    uncoveredQty          Float     @default(0)
+    qualifiedAt           DateTime? @db.Timestamp(0)
+    openedAt              DateTime  @db.Timestamp(0)
+    openedByUserId        Int?
+    targetSalesItemId     Int?
+    targetControlUid      String?   @db.VarChar(191)
+    targetAssignmentId    Int?
+    escalationDueAt       DateTime? @db.Timestamp(0)
+    escalatedAt           DateTime? @db.Timestamp(0)
+    resolvedAt            DateTime? @db.Timestamp(0)
+    resolvedByUserId      Int?
+    resolutionReason      String?   @db.VarChar(64)
+    reopenedFromEpochId   String?   @db.VarChar(191)
+    lastReconciledAt      DateTime  @db.Timestamp(0)
+    lastReconciledByUserId Int?
+    source                String    @default("projection") @db.VarChar(32)
+    createdAt             DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime  @updatedAt
+    salesOrder            SalesOrders @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+    escalationRecipients  SalesHandoffActionEscalationRecipient[]
+
+    @@unique([salesOrderId, actionType, epoch], name: "uq_sales_handoff_epoch")
+    @@index([actionType, responsibleRepId, resolvedAt, openedAt], name: "idx_sales_handoff_rep_queue")
+    @@index([actionType, resolvedAt, openedAt], name: "idx_sales_handoff_admin_queue")
+    @@index([organizationId, resolvedAt, openedAt], name: "idx_sales_handoff_org_queue")
+    @@index([salesOrderId, actionType, resolvedAt], name: "idx_sales_handoff_order_action")
+    @@index([resolvedAt, escalatedAt, escalationDueAt, id], name: "idx_sales_handoff_escalation_scan")
+    @@index([evidenceRevision], name: "idx_sales_handoff_evidence")
+}
+
+model SalesHandoffActionEscalationRecipient {
+    id                     String                   @id @default(cuid()) @db.VarChar(191)
+    actionEpochId          String                   @db.VarChar(191)
+    recipientUserId        Int
+    notificationActivityId Int?
+    notifiedAt             DateTime?                @db.Timestamp(0)
+    acknowledgedAt         DateTime?                @db.Timestamp(0)
+    createdAt              DateTime                 @default(now()) @db.Timestamp(0)
+    updatedAt              DateTime                 @updatedAt
+    actionEpoch            SalesHandoffActionEpoch @relation(fields: [actionEpochId], references: [id], onDelete: Restrict)
+
+    @@unique([actionEpochId, recipientUserId], name: "uq_sales_handoff_escalation_recipient")
+    @@index([notificationActivityId], name: "idx_sales_handoff_notification_activity")
+    @@index([recipientUserId, acknowledgedAt, notifiedAt], name: "idx_sales_handoff_recipient_ack")
+}

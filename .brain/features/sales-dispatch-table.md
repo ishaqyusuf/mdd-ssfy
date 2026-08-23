@@ -1,6 +1,35 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-23: Corrected the Packing List metadata source after the initial item
+  redesign exposed empty legacy manifest fields. Dispatch packing now reuses
+  the exact composed Production title/subtitle pair, including item type, door
+  size, swing/handing, quantity, and labor context, instead of rebuilding a
+  reduced subtitle or preferring stale `Sales Item <database id>` control
+  labels. A live comparison then exposed that persisted item controls still
+  collapsed distinct Production configurations. The packing manifest now
+  projects canonical Production controls first and appends only unmatched
+  persisted controls as compatibility rows. Both the primary list and secondary
+  Pack Items sheet consume the same projection. Packing quantities, payloads,
+  permissions, and task execution are unchanged. Added focused package, API,
+  and presentation regression coverage.
+- 2026-08-22: The Sales Overview Packing List and its secondary Pack Items
+  form now share the standard Production-style item hierarchy. Both surfaces
+  use borderless shadcn `Item` rows separated only by dividers, suppress legacy
+  `Sales Item <database id>` fallback labels when a real product subtitle is
+  available, and present product title followed by item type, size, handing,
+  and ordered quantity metadata. The secondary form now reuses
+  `SalesFormQuantityStepper` for Qty/LH/RH editing while preserving the existing
+  packing payload, replacement semantics, permissions, and task execution.
+  Added focused presentation and source regression coverage.
+- 2026-08-22: Sales Overview dispatch packing now opens `Pack Items` in the
+  canonical secondary sheet instead of replacing the Packing List item summary
+  inline. The primary overview remains present, the secondary surface owns its
+  back navigation, scrollable quantity form, Pack All action, note, and fixed
+  Cancel/Pack footer, and closing returns focus to the trigger. Packing payload,
+  replacement semantics, permissions, and task execution are unchanged. Added
+  focused source regression coverage; no automated or browser validation ran in
+  this pass.
 - 2026-08-21: Published 14 approved `ready-for-agent` implementation tickets
   for the Fulfillment Admin and Responsive Driver Workflow under
   `.scratch/fulfillment-admin-responsive-driver-implementation/issues/`.

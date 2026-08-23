@@ -86,6 +86,106 @@ export function resolveSalesOverviewGeneralVersion(input: {
 	return settings.superAdminPreview;
 }
 
+export const SALES_HANDOFF_TRIGGER_MODES = [
+	"FULLY_PAID",
+	"ANY_PAYMENT",
+	"PAYMENT_PERCENTAGE",
+] as const;
+
+export const salesHandoffTriggerModeSchema = z.enum(
+	SALES_HANDOFF_TRIGGER_MODES,
+);
+
+const salesHandoffTriggerBaseSchema = z.object({
+	mode: salesHandoffTriggerModeSchema,
+	percentage: z.number().int().min(1).max(100).nullable().default(null),
+});
+
+function requireSalesHandoffPercentage(
+	value: { mode: string; percentage: number | null },
+	ctx: z.RefinementCtx,
+) {
+	if (value.mode === "PAYMENT_PERCENTAGE" && value.percentage === null) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["percentage"],
+			message: "Enter a whole-number payment percentage from 1 through 100.",
+		});
+	}
+}
+
+export const salesHandoffTriggerInputSchema =
+	salesHandoffTriggerBaseSchema.superRefine(requireSalesHandoffPercentage);
+
+export type SalesHandoffTriggerInput = z.infer<
+	typeof salesHandoffTriggerInputSchema
+>;
+
+export const salesHandoffTriggerPolicySchema = salesHandoffTriggerBaseSchema
+	.extend({
+		revision: z.number().int().min(0),
+		changedAt: z.string().datetime().nullable(),
+	})
+	.superRefine(requireSalesHandoffPercentage);
+
+export type SalesHandoffTriggerPolicy = z.infer<
+	typeof salesHandoffTriggerPolicySchema
+>;
+
+export const DEFAULT_SALES_HANDOFF_TRIGGER_POLICY: SalesHandoffTriggerPolicy = {
+	mode: "FULLY_PAID",
+	percentage: null,
+	revision: 0,
+	changedAt: null,
+};
+
+export function normalizeSalesHandoffTriggerPolicy(
+	value?: unknown,
+): SalesHandoffTriggerPolicy {
+	const parsed = salesHandoffTriggerPolicySchema.safeParse(value);
+	return parsed.success ? parsed.data : DEFAULT_SALES_HANDOFF_TRIGGER_POLICY;
+}
+
+export function normalizeSalesHandoffTriggerInput(
+	value: SalesHandoffTriggerInput,
+): SalesHandoffTriggerInput {
+	return {
+		mode: value.mode,
+		percentage: value.mode === "PAYMENT_PERCENTAGE" ? value.percentage : null,
+	};
+}
+
+export function isSameSalesHandoffTrigger(
+	current: SalesHandoffTriggerPolicy,
+	input: SalesHandoffTriggerInput,
+) {
+	const normalized = normalizeSalesHandoffTriggerInput(input);
+	return (
+		current.mode === normalized.mode &&
+		current.percentage === normalized.percentage
+	);
+}
+
+export function reviseSalesHandoffTriggerPolicy(input: {
+	current?: unknown;
+	next: SalesHandoffTriggerInput;
+	changedAt: string;
+}): { policy: SalesHandoffTriggerPolicy; changed: boolean } {
+	const current = normalizeSalesHandoffTriggerPolicy(input.current);
+	if (isSameSalesHandoffTrigger(current, input.next)) {
+		return { policy: current, changed: false };
+	}
+
+	return {
+		policy: {
+			...normalizeSalesHandoffTriggerInput(input.next),
+			revision: current.revision + 1,
+			changedAt: input.changedAt,
+		},
+		changed: true,
+	};
+}
+
 export const specialOrderEnforcementModeSchema = z.enum([
 	"WARNING_ONLY",
 	"BLOCK_PURCHASING_AND_PRODUCTION",

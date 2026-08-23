@@ -63,7 +63,7 @@ test("uses the Midday content split and shadcn composition primitives", () => {
 	);
 	expect(productionDocumentSource).toContain("<ItemGroup>");
 	expect(productionDocumentSource).toContain("<SelectGroup>");
-	expect(productionDocumentSource).toContain('<Alert variant="destructive"');
+	expect(productionDocumentSource).toContain('<Alert variant="warning"');
 	expect(productionDocumentSource).toContain("<Empty");
 	expect(productionDocumentSource).toContain("<Separator />");
 	expect(productionDocumentSource).not.toMatch(/space-[xy]-/);
@@ -91,4 +91,14 @@ test("preserves role actions, mutation surfaces, and legacy compatibility", () =
 		'<ItemDescription className="uppercase">',
 	);
 	expect(legacyDetailSource).toContain("TabsTrigger");
+});
+
+test("keeps empty assignment and submission sections compact", () => {
+	expect(productionDocumentSource).toContain('`${data?.assignments?.length || 0} total`');
+	expect(productionDocumentSource).not.toContain(
+		"Create the first assignment for this production item.",
+	);
+	expect(productionDocumentSource).not.toContain(
+		"No submission assignment is available for this item.",
+	);
 });

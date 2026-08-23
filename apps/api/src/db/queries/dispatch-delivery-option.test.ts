@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { updateSalesDeliveryOptionSchema } from "@api/schemas/sales";
 import { updateSalesDeliveryOption } from "./dispatch";
 
 function createContext() {
@@ -66,5 +67,14 @@ describe("sales delivery option persistence", () => {
 		});
 
 		expect(writes.map((write) => write.kind)).toEqual(["sales-order"]);
+	});
+
+	test("does not accept a lifecycle status mutation", () => {
+		const parsed = updateSalesDeliveryOptionSchema.parse({
+			salesId: 42,
+			deliveryId: 91,
+			status: "completed",
+		});
+		expect("status" in parsed).toBe(false);
 	});
 });

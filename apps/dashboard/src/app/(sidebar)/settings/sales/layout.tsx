@@ -6,6 +6,7 @@ import { PageTitle } from "@gnd/ui/custom/page-title";
 const salesSettingsItems = [
 	{ path: "/settings/sales", label: "Documents" },
 	{ path: "/settings/sales/overview", label: "Sales overview" },
+	{ path: "/settings/sales/operations", label: "Operations" },
 	{ path: "/settings/sales/dealer-orders", label: "Dealer orders" },
 	{ path: "/settings/sales/special-orders", label: "Special orders" },
 ];

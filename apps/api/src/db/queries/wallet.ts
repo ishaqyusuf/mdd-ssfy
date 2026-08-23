@@ -1,3 +1,4 @@
+import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import type { TRPCContext } from "@api/trpc/init";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
@@ -148,6 +149,11 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
 				)?.salesPayments?.[0]?.orderId
 			: null;
 	if (orderId) {
+		await reconcileSalesHandoffAfterCommit(db, {
+			salesOrderIds: [orderId],
+			actorUserId: ctx.userId ?? 1,
+			source: "api.wallet.resolve-payment",
+		});
 		await expireCurrentSalesDocumentSnapshots({
 			db,
 			salesOrderId: orderId,

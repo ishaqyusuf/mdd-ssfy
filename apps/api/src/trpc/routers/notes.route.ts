@@ -10,6 +10,14 @@ import {
 	saveInboundNote,
 	syncNotificationChannels,
 } from "@api/db/queries/note";
+import {
+	updateAllNotificationStatusesWithSalesHandoffAcknowledgement,
+	updateNotificationStatusWithSalesHandoffAcknowledgement,
+} from "@api/db/queries/sales-handoff-escalation-ack";
+import {
+	MANDATORY_SALES_HANDOFF_CHANNEL,
+	includeMandatorySalesHandoffChannel,
+} from "@api/db/queries/sales-handoff-notification-channel";
 import { saveInboundNoteSchema } from "@api/schemas/notes";
 import {
 	adoptStoredDocumentAttachments,
@@ -20,8 +28,6 @@ import {
 	getActivityCount,
 	getActivityTypeSummaries,
 	getActivties,
-	updateActivityStatus,
-	updateAllActivitiesStatus,
 } from "@notifications/activities";
 import {
 	type GetActivityTagSuggestionsQuery,
@@ -80,7 +86,6 @@ const activityTagFilterNodeSchema: z.ZodTypeAny = z.lazy(() =>
 
 const noteStatusSchema = z.enum(["unread", "read", "archived"]);
 const NOTIFICATION_ATTACHMENT_CLAIM_LEASE_MS = 15 * 60 * 1000;
-
 function collectPayloadStrings(
 	value: unknown,
 	result = new Set<string>(),
@@ -433,13 +438,12 @@ export const notesRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const notePadContactId = await getCurrentNotificationContactId(ctx);
-
-			return updateActivityStatus(
-				ctx.db,
-				input.activityId,
-				input.status,
+			return updateNotificationStatusWithSalesHandoffAcknowledgement(ctx.db, {
+				actorUserId: ctx.userId,
 				notePadContactId,
-			);
+				notificationActivityId: input.activityId,
+				status: input.status,
+			});
 		}),
 	updateAllNotificationStatus: protectedProcedure
 		.input(
@@ -450,12 +454,15 @@ export const notesRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const notePadContactId = await getCurrentNotificationContactId(ctx);
-
-			return updateAllActivitiesStatus(ctx.db, {
-				notePadContactId,
-				status: input.status,
-				fromStatus: input.fromStatus,
-			});
+			return updateAllNotificationStatusesWithSalesHandoffAcknowledgement(
+				ctx.db,
+				{
+					actorUserId: ctx.userId,
+					notePadContactId,
+					status: input.status,
+					fromStatus: input.fromStatus,
+				},
+			);
 		}),
 	myNotificationPreferences: protectedProcedure.query(async ({ ctx }) => {
 		return getUserNotificationChannelPreferences(ctx.db, ctx.userId);
@@ -519,8 +526,10 @@ export const notesRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const notePadContactId = await getCurrentNotificationContactId(ctx);
-			const enabledTypes = (await getEnabledInAppNotificationChannels(ctx)).map(
-				(channel) => channel.name,
+			const enabledTypes = includeMandatorySalesHandoffChannel(
+				(await getEnabledInAppNotificationChannels(ctx)).map(
+					(channel) => channel.name,
+				),
 			);
 
 			return getActivties(ctx.db, {
@@ -540,8 +549,10 @@ export const notesRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const notePadContactId = await getCurrentNotificationContactId(ctx);
-			const enabledTypes = (await getEnabledInAppNotificationChannels(ctx)).map(
-				(channel) => channel.name,
+			const enabledTypes = includeMandatorySalesHandoffChannel(
+				(await getEnabledInAppNotificationChannels(ctx)).map(
+					(channel) => channel.name,
+				),
 			);
 
 			return getActivityCount(ctx.db, {
@@ -563,11 +574,18 @@ export const notesRouter = createTRPCRouter({
 			const titleByType = new Map(
 				enabledChannels.map((channel) => [channel.name, channel.title]),
 			);
+			titleByType.set(
+				MANDATORY_SALES_HANDOFF_CHANNEL,
+				"Sales Handoff Escalation",
+			);
+			const enabledTypes = includeMandatorySalesHandoffChannel(
+				enabledChannels.map((channel) => channel.name),
+			);
 
 			const summaries = await getActivityTypeSummaries(ctx.db, {
 				contactIds: [notePadContactId],
 				status: input.status,
-				types: enabledChannels.map((channel) => channel.name),
+				types: enabledTypes,
 			});
 
 			return summaries.map((summary) => ({

@@ -1,5 +1,28 @@
 # Done
 
+### Paid Sales Operational Handoff
+
+- Priority: High
+- Description: Added the Super-Admin-configurable payment trigger, durable
+  Material and Production action epochs, the six-at-a-time Sales Orders alert,
+  permanent Needs Action tab with unique-order count, protected operational
+  deep links, New York business-day Super Admin escalation, guarded production
+  and packing review, and bounded recurring repair.
+- Related Feature: Paid Sales Operational Handoff
+- Status: Done
+- Plan Status: Completed — all seven approved tracer-bullet tickets
+- Map File: `.scratch/paid-sales-operational-handoff/map.md`
+- Spec File: `.scratch/paid-sales-operational-handoff/spec.md`
+- Tickets Directory: `.scratch/paid-sales-operational-handoff-implementation/issues/`
+- Feature File: `.brain/features/paid-sales-operational-handoff.md`
+- Decisions: `.brain/decisions/ADR-063-guarded-worker-production-reporting-and-separate-packing-review.md`; `.brain/decisions/ADR-064-organization-scoped-sales-handoff-escalation.md`
+- Validation: 75 handoff tests, 75 guarded production/packing tests, 49 task
+  authorization tests, 44 Dashboard workflow tests, authenticated browser
+  evidence for all seven slices, 122 migrations current, zero schema diff,
+  scoped Biome, and `git diff --check`. Broad workspace typechecks retain
+  documented unrelated baseline failures.
+- Completed Date: 2026-08-23
+
 ### Implement Make Payment Hidden Printing And Adaptive Methods
 
 - Priority: High

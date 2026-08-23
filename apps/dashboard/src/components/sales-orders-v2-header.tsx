@@ -135,6 +135,9 @@ function SalesOrdersV2SearchFilterContent() {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const { shouldFetch } = useSearchFilterContext();
+	const { data: needsActionScope } = useQuery({
+		...trpc.sales.getOpenSalesHandoffOrderScope.queryOptions({ limit: 200 }),
+	});
 	const { data: trpcFilterData, isFetching } = useQuery({
 		enabled: shouldFetch,
 		...trpc.filters.salesOrders.queryOptions({
@@ -148,6 +151,13 @@ function SalesOrdersV2SearchFilterContent() {
 			filterList={trpcFilterData}
 			loading={shouldFetch && isFetching}
 			pageTabsLayout="adaptive"
+			fixedPageTabs={[
+				{
+					title: "Needs Action",
+					query: "needsAction=open",
+					count: needsActionScope?.uniqueOrderCount ?? 0,
+				},
+			]}
 			toolbarActions={<SalesOrdersV2ToolbarActions />}
 		/>
 	);

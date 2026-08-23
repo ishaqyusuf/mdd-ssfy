@@ -1,6 +1,10 @@
 "use client";
 
 import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
+import {
+	inventoryCreateInboundParamForClose,
+	inventoryCreateInboundParamForOpen,
+} from "@/components/sales-overview-system/lib/inbound-create-continuation";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import Sheet from "@gnd/ui/custom/sheet-v2";
@@ -22,6 +26,7 @@ import {
 	SalesAddressPane,
 	type SalesAddressPaneSelection,
 } from "./sales-address-pane";
+import { buildLegacySalesOverviewTabNavigation } from "./tab-navigation";
 import { PaymentTransactionPane } from "./transactions-tab";
 import type { LegacySalesOverviewTabId } from "./types";
 
@@ -31,7 +36,8 @@ type SalesOverviewPane =
 	| { kind: "inbound-create"; mode?: "create_inbound" | "mark_available" }
 	| { kind: "inbound-detail"; inboundId: number }
 	| { kind: "payment-create" }
-	| { kind: "payment"; transactionId: string };
+	| { kind: "payment"; transactionId: string }
+	| { kind: "packing" };
 
 export default function SalesOverviewSheet() {
 	const query = useSalesOverviewQuery();
@@ -77,9 +83,15 @@ function Content() {
 	const openInboundCreatePane = (
 		mode: "create_inbound" | "mark_available" = "create_inbound",
 	) => {
-		rememberPaneTrigger();
+		if (pane?.kind === "inbound-create" && pane.mode === mode && paneOpened) {
+			return;
+		}
+		if (!paneOpened) rememberPaneTrigger();
 		setPane({ kind: "inbound-create", mode });
 		setPaneOpened(true);
+		query.setParams({
+			inventoryCreateInbound: inventoryCreateInboundParamForOpen(mode),
+		});
 	};
 	const openInboundDetailPane = (inboundId: number) => {
 		if (!paneOpened) rememberPaneTrigger();
@@ -112,6 +124,12 @@ function Content() {
 			return;
 		}
 		setPaneOpened(false);
+		const inventoryCreateInbound = inventoryCreateInboundParamForClose(
+			pane?.kind,
+		);
+		if (inventoryCreateInbound !== undefined) {
+			query.setParams({ inventoryCreateInbound });
+		}
 		if (pane?.kind === "payment-create" || query.salesPayment) {
 			query.setParams({ salesPayment: null });
 			return;
@@ -123,6 +141,19 @@ function Content() {
 				salesRefund: null,
 			});
 		}
+	};
+	const handleInboundCreated = (inboundId: number) => {
+		query.setParams({ inventoryCreateInbound: null });
+		openInboundDetailPane(inboundId);
+	};
+	const setPackItemsOpen = (open: boolean) => {
+		if (!open) {
+			closePane();
+			return;
+		}
+		rememberPaneTrigger();
+		setPane({ kind: "packing" });
+		setPaneOpened(true);
 	};
 	const handlePaneExited = () => {
 		setPane(null);
@@ -173,8 +204,11 @@ function Content() {
 		onEditCustomer: openCustomerPane,
 		onCreateInbound: openInboundCreatePane,
 		onViewInbound: openInboundDetailPane,
+		inboundCreateOpen: pane?.kind === "inbound-create",
 		onViewPayment: openPaymentPane,
 		onCreatePayment: openPaymentCreatePane,
+		packItemsOpen: pane?.kind === "packing",
+		onPackItemsOpenChange: setPackItemsOpen,
 	});
 	const activeTab = resolveLegacySalesOverviewActiveTab({
 		currentTab: query?.params?.salesTab,
@@ -185,12 +219,9 @@ function Content() {
 		(data as { generalViewVersion?: "v1" | "v2" } | undefined)
 			?.generalViewVersion === "v2";
 	const setActiveTab = (tab: LegacySalesOverviewTabId) => {
-		query.setParams({
-			salesTab: tab as never,
-			"prod-item-tab": null,
-			"prod-item-view": null,
-			dispatchOverviewId: null,
-		});
+		const navigation = buildLegacySalesOverviewTabNavigation(tab, pane?.kind);
+		if (navigation.closePackingPane) closePane();
+		query.setParams({ ...navigation.params, salesTab: tab as never });
 	};
 
 	return (
@@ -269,7 +300,7 @@ function Content() {
 						orderNumber={data.orderId}
 						mode={pane.mode || "create_inbound"}
 						onClose={closePane}
-						onCreated={openInboundDetailPane}
+						onCreated={handleInboundCreated}
 					/>
 				) : null}
 				{pane?.kind === "inbound-detail" ? (

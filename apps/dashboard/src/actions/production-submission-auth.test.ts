@@ -16,15 +16,4 @@ describe("production submission authentication boundary", () => {
 		expect(source.includes("actor.can?.markSalesOrderFulfilled")).toBe(true);
 	});
 
-	it("binds the direct submission action to the authenticated employee", () => {
-		const source = readFileSync(
-			new URL("./submit-sales-assignment.ts", import.meta.url),
-			"utf8",
-		);
-		expect(source.includes("const actor = await getLoggedInProfile()")).toBe(
-			true,
-		);
-		expect(source.includes("submittedById: actor.userId")).toBe(true);
-		expect(source.includes("allowSubmitForOthers")).toBe(true);
-	});
 });

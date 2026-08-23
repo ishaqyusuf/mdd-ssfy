@@ -125,6 +125,7 @@ describe("createInboundShipmentFromDemandsQuery", () => {
 				createActivity: async (_ctx, input) => {
 					activities.push(input);
 				},
+				reconcileSalesHandoffOrders: async () => [],
 			},
 		);
 
@@ -235,6 +236,7 @@ describe("createInboundShipmentFromDemandsQuery", () => {
 				getSalesSetting: async () => ({ meta: {} }) as never,
 				autoReviewPayments: async () => ({}) as never,
 				createActivity: async () => undefined,
+				reconcileSalesHandoffOrders: async () => [],
 			},
 		);
 
@@ -565,6 +567,7 @@ describe("updateInboundShipmentStatusQuery", () => {
 		} as any;
 
 		let projectionAttempt = 0;
+		const handoffRepairs: number[][] = [];
 		const run = () =>
 			updateInboundShipmentStatusQuery(
 				ctx,
@@ -575,6 +578,10 @@ describe("updateInboundShipmentStatusQuery", () => {
 				},
 				{
 					createActivity: async () => undefined,
+					reconcileSalesHandoffOrders: async (_db, input) => {
+						handoffRepairs.push(input.salesOrderIds);
+						return [];
+					},
 					syncSalesInventoryProjection: async (_db, input) => {
 						projectionAttempt += 1;
 						repairedSalesOrderIds.push(input.salesOrderId);
@@ -588,6 +595,7 @@ describe("updateInboundShipmentStatusQuery", () => {
 		const result = await run();
 
 		expect(repairedSalesOrderIds).toEqual([100, 100]);
+		expect(handoffRepairs).toEqual([[100]]);
 		expect(result.repairedSalesOrderCount).toBe(1);
 	});
 
@@ -702,10 +710,7 @@ describe("updateInboundShipmentStatusQuery", () => {
 			}
 		}
 
-		expect(transactionEvents).toEqual([
-			"read-linked-orders",
-			"commit-status",
-		]);
+		expect(transactionEvents).toEqual(["read-linked-orders", "commit-status"]);
 		expect(activityData.note).toBe("Supplier confirmed dispatch.");
 		expect(activityData.tags.createMany.data).toContainEqual({
 			tagName: "orderNos",

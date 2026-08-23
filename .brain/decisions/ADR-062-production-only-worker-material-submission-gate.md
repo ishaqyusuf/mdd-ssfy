@@ -1,6 +1,6 @@
 # ADR-062: Production-Only Worker Material Submission Gate
 
-- Status: Accepted
+- Status: Superseded by ADR-063 on 2026-08-23
 - Date: 2026-08-21
 
 ## Context

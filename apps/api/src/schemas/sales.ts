@@ -62,7 +62,6 @@ export const updateSalesDeliveryOptionSchema = z.object({
 	deliveryId: z.number().nullable().optional(),
 	salesId: z.number(),
 	driverId: z.number().nullable().optional(),
-	status: z.string().nullable().optional(),
 	option: z.string().nullable().optional(),
 	defaultOption: z.string().nullable().optional(),
 	date: z.date().nullable().optional(),
@@ -163,6 +162,7 @@ export const salesQueryParamsSchema = z
 			.nullable(),
 		invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
 		paymentReview: z.enum(["needs_review"]).optional().nullable(),
+		needsAction: z.enum(["open"]).optional().nullable(),
 		production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
 		showing: z.enum(["all sales"]).optional().nullable(),
 	})

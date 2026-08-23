@@ -16,6 +16,11 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Expo sales, delivery, and dispatch workflow expansion
 - Inventory-backed sales fulfillment cutover (`brain/features/inventory-backed-sales-fulfillment.md`)
 
+## Completed Workstreams
+
+- Paid Sales Operational Handoff — completed locally 2026-08-23 across all
+  seven approved tickets; no production deployment or production data mutation.
+
 ## Planned Tasks
 
 ### Sales System Page-by-Page Modernization
@@ -583,3 +588,16 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Plan Status: Proposed
 - Plan File: .brain/plans/2026-08-08-feature-multi-tenant-saas-commercialization.md
 - Created Date: 2026-08-08
+
+### Driver Dashboard Command Center
+- Priority: Medium
+- Description: Track the responsive, role-aware driver command center plan in
+  `.brain/plans/2026-08-23-feature-driver-dashboard-command-center.md`.
+- Related Feature: Driver Platform Revival and inventory-backed fulfillment
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: .brain/plans/2026-08-23-feature-driver-dashboard-command-center.md
+- Design Samples: /Users/M1PRO/.gstack/projects/gnd/designs/driver-dashboard-system-20260823/design-board.html
+- Created Date: 2026-08-23
+- Selection Gate: Choose Route Command, Dispatch Ledger, Field Focus, or an
+  explicit remix before production component implementation.

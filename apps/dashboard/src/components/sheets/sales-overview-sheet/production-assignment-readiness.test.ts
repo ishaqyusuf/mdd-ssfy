@@ -67,7 +67,9 @@ describe("production assignment inventory readiness", () => {
 		assert.doesNotMatch(itemMenuSource, /productionReadiness\.queryOptions/);
 		assert.doesNotMatch(itemMenuSource, /Inventory confirmation required/);
 		assert.match(readinessBannerSource, /Production assignment is available/);
-		assert.match(readinessBannerSource, /open inbound/);
+		assert.match(readinessBannerSource, />Material Pending<\/h3>/);
+		assert.match(readinessBannerSource, /Review Inventory/);
+		assert.doesNotMatch(readinessBannerSource, /blockedComponentCount/);
 		assert.match(productionDetailSource, /ProductionMaterialsNotice/);
 		assert.match(materialsStatusSource, /Expected/);
 		assert.match(productionColumnsSource, /Materials pending/);

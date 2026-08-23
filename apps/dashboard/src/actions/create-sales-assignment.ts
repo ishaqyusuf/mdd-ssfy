@@ -3,6 +3,7 @@
 import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
+import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import { resetSalesAction } from "@sales/sales-control/actions";
 import z from "zod";
 
@@ -84,6 +85,11 @@ const _createSalesAssignmentAction = async (input) => {
         return {
             assignmentId: assignment.id,
         };
-    });
-    return resp;
+	    });
+	await reconcileSalesHandoffAfterCommit(prisma, {
+		salesOrderIds: [input.salesId],
+		actorUserId: await authId(),
+		source: "dashboard.production.create-assignment",
+	});
+	    return resp;
 };

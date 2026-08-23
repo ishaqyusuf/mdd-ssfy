@@ -4,6 +4,7 @@ import {
 	type LegacyUpdateSalesControlAction,
 	type UpdateSalesControl,
 	assertSpecialOrderOperationAllowed,
+	authorizeSalesControlTaskInput,
 	cancelDispatchTask,
 	clearPackingTask,
 	createAssignmentsTask,
@@ -13,6 +14,7 @@ import {
 	markAsCompletedTask,
 	packDispatchItemTask,
 	resolveLegacyUpdateSalesControlAction,
+	salesControlTaskPermissionKeys,
 	shouldSyncInventoryProductionLifecycleForSalesControl,
 	startDispatchTask,
 	submitAllTask,
@@ -105,6 +107,19 @@ async function enforceSpecialOrderForAction(input: UpdateSalesControl) {
 			operation: "DISPATCH",
 		});
 	}
+}
+
+async function authorizeTaskInput(input: UpdateSalesControl) {
+	const permissionEntries = await Promise.all(
+		salesControlTaskPermissionKeys.map(async (permission) => [
+			permission,
+			await userHasPermission(db, input.meta.authorId, permission),
+		] as const),
+	);
+	return authorizeSalesControlTaskInput(db, input, {
+		userId: input.meta.authorId,
+		can: Object.fromEntries(permissionEntries),
+	});
 }
 
 async function sendDispatchPackedNotification(input: UpdateSalesControl) {
@@ -414,58 +429,47 @@ export const updateSalesControl = schemaTask({
 		concurrencyLimit: 10,
 	},
 	run: async (input) => {
-		const action = resolveActionHandler(input as UpdateSalesControl);
+		const authorizedInput = await authorizeTaskInput(input as UpdateSalesControl);
+		const action = resolveActionHandler(authorizedInput);
 		if (action) {
-			if (
-				input.markAsCompleted &&
-				!(await userHasPermission(
-					db,
-					input.meta.authorId,
-					"markSalesOrderFulfilled",
-				))
-			) {
-				throw new Error(
-					"You do not have permission to mark sales orders fulfilled.",
-				);
-			}
-			await enforceSpecialOrderForAction(input as UpdateSalesControl);
-			const response = await action(db, input);
+			await enforceSpecialOrderForAction(authorizedInput);
+			const response = await action(db, authorizedInput);
 			if (
 				shouldSyncInventoryProductionLifecycleForSalesControl(
-					input as UpdateSalesControl,
+					authorizedInput,
 				)
 			) {
 				await syncInventoryProductionLifecycleForSale(
 					db as any,
-					input.meta.salesId,
+					authorizedInput.meta.salesId,
 				);
 			}
-			if (input.packItems) {
-				await sendDispatchPackedNotification(input as UpdateSalesControl);
+			if (authorizedInput.packItems) {
+				await sendDispatchPackedNotification(authorizedInput);
 			}
-			if (input.startDispatch || input.cancelDispatch) {
+			if (authorizedInput.startDispatch || authorizedInput.cancelDispatch) {
 				try {
-					await sendDispatchLifecycleNotification(input as UpdateSalesControl);
+					await sendDispatchLifecycleNotification(authorizedInput);
 				} catch (error) {
 					logger.error(
 						"Sales control committed, but its dispatch notification failed.",
 						{
 							error,
-							salesId: input.meta.salesId,
+							salesId: authorizedInput.meta.salesId,
 						},
 					);
 				}
 			}
-			if (input.submitDispatch) {
-				await sendDispatchCompletedNotification(input as UpdateSalesControl);
+			if (authorizedInput.submitDispatch) {
+				await sendDispatchCompletedNotification(authorizedInput);
 			}
-			if (input.createAssignments) {
-				await sendProductionAssignedNotification(input as UpdateSalesControl);
+			if (authorizedInput.createAssignments) {
+				await sendProductionAssignedNotification(authorizedInput);
 			}
-			if (input.submitAll) {
+			if (authorizedInput.submitAll) {
 				try {
 					await sendProductionMaterialReviewNotification(
-						input as UpdateSalesControl,
+						authorizedInput,
 						response,
 					);
 				} catch (error) {
@@ -473,7 +477,7 @@ export const updateSalesControl = schemaTask({
 						"Production submission committed, but its material review notification failed.",
 						{
 							error,
-							salesId: input.meta.salesId,
+							salesId: authorizedInput.meta.salesId,
 						},
 					);
 				}

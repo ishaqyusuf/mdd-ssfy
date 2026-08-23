@@ -9,22 +9,22 @@ import { useAction } from "next-safe-action/hooks";
 import { type Control, useController, useFormContext } from "react-hook-form";
 import type z from "zod";
 
+import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@gnd/ui/collapsible";
-import { Form } from "@gnd/ui/form";
 import { Field, FieldGroup, FieldLabel } from "@gnd/ui/field";
+import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";
 
 import { useProduction } from "./context";
 import { useAssignmentRow } from "./production-assignment-row";
 import { useProductionItem } from "./production-item-context";
-import { isWorkerProductionItemSubmissionBlocked } from "./production-worker-policy";
+import { shouldWarnWorkerProductionItemMaterialReview } from "./production-worker-policy";
 
 type ProductionSubmissionFormValues = z.infer<typeof createSubmissionSchema>;
 
@@ -77,22 +77,22 @@ export function ProductionSubmitForm({
 			});
 		},
 	});
-	const materialReviewExpected =
-		production.readinessUnavailable ||
-		(production.readiness && production.readiness.state !== "ready");
-	const materialBlocked =
+	const workerMaterialReviewExpected =
 		workerMode &&
-		isWorkerProductionItemSubmissionBlocked({
+		shouldWarnWorkerProductionItemMaterialReview({
 			itemId: item.itemId,
 			readiness: production.readiness,
 			readinessUnavailable: production.readinessUnavailable,
 		});
+	const materialReviewExpected = workerMode
+		? workerMaterialReviewExpected
+		: production.readinessUnavailable ||
+			(production.readiness && production.readiness.state !== "ready");
 
 	return (
 		<Form {...form}>
 			<form
 				onSubmit={form.handleSubmit((values) => {
-					if (materialBlocked) return;
 					toast.display({
 						title: "Creating assignment",
 						duration: Number.POSITIVE_INFINITY,
@@ -109,22 +109,13 @@ export function ProductionSubmitForm({
 					{workerMode ? null : (
 						<h5 className="text-sm font-medium">Submit Assignment</h5>
 					)}
-					{materialBlocked ? (
-						<Alert variant="destructive">
-							<Icons.AlertTriangle />
-							<AlertTitle>Materials unavailable</AlertTitle>
-							<AlertDescription>
-								This item cannot be submitted until its required materials are
-								available.
-							</AlertDescription>
-						</Alert>
-					) : !workerMode && materialReviewExpected ? (
+					{materialReviewExpected ? (
 						<Alert variant="warning">
 							<Icons.AlertTriangle />
 							<AlertTitle>Material verification is still pending</AlertTitle>
 							<AlertDescription>
-								You can submit this completed work now. It will be saved and sent
-								to an admin for approval while the material or inbound record is
+								You can submit this completed work now. It will be saved and
+								sent for admin approval while the material or inbound record is
 								verified.
 							</AlertDescription>
 						</Alert>
@@ -166,11 +157,7 @@ export function ProductionSubmitForm({
 						<Field className={cn(workerMode && "sm:col-span-2")}>
 							<SubmitButton
 								isSubmitting={createSubmit.isExecuting}
-								disabled={
-									createSubmit.isExecuting ||
-									!form.formState.isValid ||
-									materialBlocked
-								}
+								disabled={createSubmit.isExecuting || !form.formState.isValid}
 							>
 								Submit
 							</SubmitButton>

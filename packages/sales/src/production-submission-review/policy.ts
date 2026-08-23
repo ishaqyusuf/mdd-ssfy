@@ -29,15 +29,6 @@ export type ProductionSubmissionMaterialClassification =
 			reason: ProductionSubmissionMaterialReviewReason;
 	  };
 
-export function shouldBlockProductionWorkerSubmission(
-	classification: ProductionSubmissionMaterialClassification,
-) {
-	return (
-		classification.state === "pending_material_review" &&
-		classification.reason !== "NOT_CONFIGURED"
-	);
-}
-
 type MaterialProjection = {
 	state: "available" | "unavailable";
 	materials: Array<{

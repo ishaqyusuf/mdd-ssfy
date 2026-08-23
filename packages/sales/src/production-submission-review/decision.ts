@@ -7,7 +7,10 @@ import { getSalesSetting } from "../sales-control/settings";
 import type { Db } from "../types";
 import type { DecideProductionSubmissionMaterialReviewInput } from "./contracts";
 import { parseItemScope } from "./queries";
-import { evaluateProductionSubmissionMaterialEvidence } from "./service";
+import {
+	evaluateProductionSubmissionMaterialEvidence,
+	normalizeProductionSubmissionItemScope,
+} from "./service";
 
 type ReviewDecisionActor = {
 	id: number;
@@ -37,6 +40,47 @@ type ReviewDecisionDependencies = {
 		},
 	) => Promise<void>;
 };
+
+type AssignmentScopeSnapshotMode = "legacy" | "modern" | "invalid";
+
+function getAssignmentScopeSnapshotMode(
+	value: unknown,
+): AssignmentScopeSnapshotMode {
+	if (!Array.isArray(value) || !value.length) return "invalid";
+	const modes = value.map((item) => {
+		if (!item || typeof item !== "object") return "invalid" as const;
+		const row = item as Record<string, unknown>;
+		if (
+			typeof row.controlUid !== "string" ||
+			!Number.isInteger(row.salesItemId) ||
+			!Number.isInteger(row.assignmentId)
+		) {
+			return "invalid" as const;
+		}
+		const snapshotFields = [
+			"assignedToId",
+			"assignmentUpdatedAt",
+			"laborCost",
+		] as const;
+		const present = snapshotFields.map((field) =>
+			Object.prototype.hasOwnProperty.call(row, field),
+		);
+		if (present.every(Boolean)) return "modern" as const;
+		if (present.every((fieldPresent) => !fieldPresent)) {
+			return "legacy" as const;
+		}
+		return "invalid" as const;
+	});
+	if (modes.every((mode) => mode === "legacy")) return "legacy";
+	if (modes.every((mode) => mode === "modern")) return "modern";
+	return "invalid";
+}
+
+function validDateTimestamp(value: Date | null | undefined) {
+	if (!(value instanceof Date)) return null;
+	const timestamp = value.getTime();
+	return Number.isFinite(timestamp) ? timestamp : null;
+}
 
 function productionPayrollUid(salesOrderId: number, submissionId: number) {
 	return `oid:${salesOrderId},submissionId:${submissionId}`;
@@ -210,11 +254,27 @@ export async function decideProductionSubmissionMaterialReview(
 						select: {
 							id: true,
 							qty: true,
+							lhQty: true,
+							rhQty: true,
+							createdAt: true,
+							salesOrderId: true,
+							salesOrderItemId: true,
+							assignmentId: true,
+							materialReviewId: true,
+							submittedById: true,
 							assignment: {
 								select: {
+									id: true,
+									orderId: true,
+									itemId: true,
 									assignedToId: true,
 									laborCost: true,
 									salesItemControlUid: true,
+									qtyAssigned: true,
+									lhQty: true,
+									rhQty: true,
+									deletedAt: true,
+									updatedAt: true,
 								},
 							},
 						},
@@ -312,6 +372,182 @@ export async function decideProductionSubmissionMaterialReview(
 			};
 		}
 
+		let assignmentScope = normalizeProductionSubmissionItemScope(
+			review.assignmentScope,
+		);
+		const scopeMode = getAssignmentScopeSnapshotMode(review.assignmentScope);
+		const scopeAssignmentIds = assignmentScope.flatMap((scope) =>
+			scope.assignmentId == null ? [] : [scope.assignmentId],
+		);
+		const staleReasons = [
+			...(scopeMode === "invalid" ? ["review:assignment_scope_shape"] : []),
+			...(assignmentScope.length !== review.submissions.length
+				? ["review:assignment_scope_count"]
+				: []),
+			...(new Set(scopeAssignmentIds).size !== scopeAssignmentIds.length
+				? ["review:assignment_scope_duplicate"]
+				: []),
+			...review.submissions.flatMap((submission) => {
+				const assignment = submission.assignment;
+				const snapshot = assignmentScope.find(
+					(scope) => scope.assignmentId === submission.assignmentId,
+				);
+				if (
+					!assignment ||
+					!snapshot ||
+					assignment.id !== submission.assignmentId
+				) {
+					return [`submission:${submission.id}:scope`];
+				}
+				const currentRevision = assignment.updatedAt?.toISOString() ?? null;
+				const submittedAt = submission.createdAt;
+				const currentRevisionTimestamp = validDateTimestamp(
+					assignment.updatedAt,
+				);
+				const submittedAtTimestamp = validDateTimestamp(submittedAt);
+				const qty = Number(submission.qty);
+				const lhQty = Number(submission.lhQty || 0);
+				const rhQty = Number(submission.rhQty || 0);
+				const assignedQty = Number(assignment.qtyAssigned || 0);
+				const assignedLhQty = Number(assignment.lhQty || 0);
+				const assignedRhQty = Number(assignment.rhQty || 0);
+				const currentControlUid =
+					assignment.salesItemControlUid || `item-${assignment.itemId}`;
+				return [
+					review.submittedById !== submission.submittedById
+						? `submission:${submission.id}:reporter`
+						: null,
+					submission.materialReviewId !== review.id
+						? `submission:${submission.id}:review`
+						: null,
+					submission.salesOrderId !== review.salesOrderId
+						? `submission:${submission.id}:order`
+						: null,
+					!Number.isFinite(qty) || qty <= 0 || qty > assignedQty
+						? `submission:${submission.id}:qty`
+						: null,
+					!Number.isFinite(lhQty) || lhQty < 0 || lhQty > assignedLhQty
+						? `submission:${submission.id}:lh_qty`
+						: null,
+					!Number.isFinite(rhQty) || rhQty < 0 || rhQty > assignedRhQty
+						? `submission:${submission.id}:rh_qty`
+						: null,
+					assignment.deletedAt ? `assignment:${assignment.id}:deleted` : null,
+					assignment.assignedToId == null
+						? `assignment:${assignment.id}:unassigned`
+						: null,
+					assignment.orderId !== review.salesOrderId
+						? `assignment:${assignment.id}:order`
+						: null,
+					assignment.itemId !== submission.salesOrderItemId ||
+					snapshot.salesItemId !== submission.salesOrderItemId
+						? `assignment:${assignment.id}:item`
+						: null,
+					snapshot.controlUid !== currentControlUid
+						? `assignment:${assignment.id}:control`
+						: null,
+					scopeMode === "modern" &&
+					(snapshot.assignedToId == null ||
+						assignment.assignedToId !== snapshot.assignedToId)
+						? `assignment:${assignment.id}:owner`
+						: null,
+					scopeMode === "modern" &&
+					(!snapshot.assignmentUpdatedAt ||
+						currentRevision !== snapshot.assignmentUpdatedAt)
+						? `assignment:${assignment.id}:revision`
+						: null,
+					scopeMode === "legacy" &&
+					(currentRevisionTimestamp == null || submittedAtTimestamp == null)
+						? `assignment:${assignment.id}:legacy_revision_unverifiable`
+						: null,
+					scopeMode === "legacy" &&
+					currentRevisionTimestamp != null &&
+					submittedAtTimestamp != null &&
+					currentRevisionTimestamp >= submittedAtTimestamp
+						? `assignment:${assignment.id}:legacy_revision_not_strictly_before_submission`
+						: null,
+				].filter((reason): reason is string => Boolean(reason));
+			}),
+		];
+		if (staleReasons.length) {
+			const cancelled =
+				await tx.salesProductionSubmissionMaterialReview.updateMany({
+					where: {
+						id: review.id,
+						status: "PENDING",
+						updatedAt: input.expectedUpdatedAt,
+					},
+					data: {
+						status: "CANCELLED",
+						reviewedById: actor.id,
+						cancelledAt: new Date(),
+						decisionNote:
+							"The production report no longer matches its recorded assignment scope.",
+						resolution: {
+							action: "CANCEL_STALE_ASSIGNMENT_SCOPE",
+							staleReasons,
+						},
+					},
+				});
+			if (cancelled.count !== 1) {
+				throw new Error(
+					"This production material review changed. Refresh it before deciding.",
+				);
+			}
+			await resetSales(tx as Db, review.salesOrderId);
+			await tx.salesHistory.create({
+				data: {
+					salesId: review.salesOrderId,
+					name: "Production submission material review cancelled",
+					authorName: actor.name,
+					data: {
+						event: "production_submission_material_review_scope_stale",
+						reviewId: review.id,
+						staleReasons,
+					},
+				},
+			});
+			return {
+				reviewId: review.id,
+				status: "CANCELLED" as const,
+				staleAssignmentScope: true,
+			};
+		}
+		let legacyAssignmentScopeBackfilled = false;
+		if (scopeMode === "legacy") {
+			const backfilledScope = assignmentScope.map((scope) => {
+				const submission = review.submissions.find(
+					(candidate) => candidate.assignmentId === scope.assignmentId,
+				);
+				return {
+					...scope,
+					assignedToId: submission?.assignment?.assignedToId ?? null,
+					assignmentUpdatedAt:
+						submission?.assignment?.updatedAt?.toISOString() ?? null,
+					laborCost: submission?.assignment?.laborCost ?? null,
+				};
+			});
+			const backfilled =
+				await tx.salesProductionSubmissionMaterialReview.updateMany({
+					where: {
+						id: review.id,
+						status: "PENDING",
+						updatedAt: input.expectedUpdatedAt,
+					},
+					data: {
+						assignmentScope: backfilledScope,
+						updatedAt: input.expectedUpdatedAt,
+					},
+				});
+			if (backfilled.count !== 1) {
+				throw new Error(
+					"This production material review changed. Refresh it before deciding.",
+				);
+			}
+			assignmentScope = backfilledScope;
+			legacyAssignmentScopeBackfilled = true;
+		}
+
 		const before = await evaluateEvidence(tx as Db, {
 			salesOrderId: review.salesOrderId,
 			itemScope,
@@ -320,6 +556,9 @@ export async function decideProductionSubmissionMaterialReview(
 		let resolution: Record<string, unknown> = {
 			action: input.action,
 			componentIds,
+			...(legacyAssignmentScopeBackfilled
+				? { legacyAssignmentScopeBackfilled: true }
+				: {}),
 		};
 		if (input.action === "APPROVE_CONFIGURATION_EXCEPTION") {
 			if (
@@ -488,11 +727,27 @@ export async function decideProductionSubmissionMaterialReview(
 			);
 		}
 		await resetSales(tx as Db, review.salesOrderId);
+		const immutableSubmissions = review.submissions.map((submission) => {
+			const scope = assignmentScope.find(
+				(item) => item.assignmentId === submission.assignment?.id,
+			);
+			return {
+				id: submission.id,
+				qty: submission.qty,
+				assignment: scope
+					? {
+							assignedToId: scope.assignedToId ?? null,
+							laborCost: scope.laborCost ?? null,
+							salesItemControlUid: scope.controlUid,
+						}
+					: null,
+			};
+		});
 		await onApproved(tx as Db, {
 			salesOrderId: review.salesOrderId,
 			reviewId: review.id,
 			actorId: actor.id,
-			submissions: review.submissions,
+			submissions: immutableSubmissions,
 		});
 		await tx.salesHistory.create({
 			data: {

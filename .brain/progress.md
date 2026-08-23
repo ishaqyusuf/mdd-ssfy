@@ -1,5 +1,261 @@
 # Progress
 
+- 2026-08-23: Completed the responsive Driver Dashboard design exploration and
+  implementation plan. Three clickable directions now share one canonical
+  driver contract: Route Command, Dispatch Ledger, and Field Focus. Each was
+  verified at mobile, tablet, and desktop widths with working primary actions,
+  no document-level mobile overflow, and no console errors. The persistent
+  comparison board is under the local gstack GND design directory, and the
+  proposed Brain plan covers role-aware landing, shared server projections,
+  lifecycle guards, proof recovery, typed exceptions, accessibility,
+  performance, security, pilot, cutover, and rollback. No product code or
+  production behavior changed.
+
+- 2026-08-23: Provisioned the low-cost PlanetScale `preview` development branch
+  as the database for Vercel Preview. The full current Prisma schema was synced
+  Preview-only, and the new guarded `db:seed-preview-sales` workflow imported a
+  sanitized, referentially complete fixture of exactly 150 sales orders and 55
+  internal users. Customer/address/order-note/token/external-payment data is
+  sanitized; local employee login hashes are retained intentionally. Vercel's
+  sensitive `DATABASE_URL` is scoped to Preview only, both temporary PlanetScale
+  credentials were revoked, the clipboard and temporary environment artifacts
+  were cleared, and six focused seed-safety tests plus `@gnd/db` typecheck pass.
+
+- 2026-08-23: Completed all seven Paid Sales Operational Handoff tickets. The
+  shipped local flow includes configurable qualification, independent Material
+  and Production epochs, the six-at-a-time grouped alert, the fixed Needs
+  Action tab and exact unique-order count, canonical deep links, one-business-
+  day Super Admin escalation, guarded production and packing reviews, and a
+  bounded policy-aware repair worker. Independent review cleared all P0-P2
+  findings, including policy fan-out clocks, unavailable inventory behavior,
+  cross-sale packing, pending-report race holds, forged task actors, and the
+  generic mobile notification bridge. Aggregate focused validation passed 75
+  handoff tests, 75 guarded production/packing tests, 49 authorization tests,
+  and 44 Dashboard workflow tests; the final stale hydration assertion also
+  passed after matching the focus-safe loading composition. Authenticated
+  browser evidence confirms six visible pills with progressive `+N more`, a
+  permanent Needs Action tab showing 36 unique orders for 39 action records,
+  protected Material/Production destinations, grouped Super Admin scope, and
+  pending/held/approved guarded packing states. All 122 local migrations are
+  current, Prisma diff is empty, client generation and scoped Biome pass, and
+  `git diff --check` is clean. Broad package typechecks remain blocked by the
+  documented unrelated workspace baselines; no production deployment or
+  production data mutation was performed.
+
+- 2026-08-23: Closed two final Ticket 04 escalation correctness findings.
+  Escalation activities now persist the canonical notification `type` tag, and
+  a storage-round-trip regression proves the real job payload remains clickable
+  through the notification-center parser. First-epoch clocks now require an
+  explicit qualification or policy-change milestone before backdating;
+  material or production evidence loss discovered later opens at reconciliation
+  time. Transfer and genuine-reopen clocks remain unchanged. Focused validation
+  passed 74 tests / 193 assertions and `@gnd/sales` typecheck. Jobs typecheck is
+  still blocked only by the existing email `react/jsx-runtime` baseline; API
+  typecheck retains unrelated dispatch, special-order, and DTO diagnostics.
+
+- 2026-08-23: Closed the Ticket 02/03 independent-review remediations. Exact
+  nonthrowing post-commit reconciliation now covers API payment processor and
+  checkout writes plus current Dashboard assignment, submission, owner,
+  deletion, and production/dispatch completion writers. Failures upsert
+  deterministic visible `ResolutionCase` repair markers, including worker-safe
+  completed Square-refund and policy-revision fallbacks, without asking callers
+  to retry an authoritative mutation that already committed. Production
+  projection now relies only on persisted current control/item identity,
+  soft-deletion, ownership, and finalized attributable submissions rather than
+  imaginary nullable revision/supersession fields. Same-second settlement
+  activity is bucketed atomically and deterministically, and alert close restores
+  focus to the invoking pill or a stable surviving anchor. Focused validation
+  passed 29 tests / 114 assertions and `@gnd/sales` typecheck; filtered API and
+  Dashboard typecheck output reported no touched-file diagnostics. Jobs remains
+  blocked by the existing email `react/jsx-runtime` baseline. No schema or
+  migration changed; Ticket 04 transfer preserves the same epoch and clock.
+
+- 2026-08-23: Closed the independent Ticket 04 review findings. The Needs Action
+  table now preserves organization-wide Super Admin scope while retaining an
+  explicit representative filter. The bounded escalation scan prefilters to
+  organizations with active Super Admin recipients so fail-closed rows cannot
+  starve valid work, notification status and acknowledgement share one database
+  transaction, and grouped admin pills include representative tooltips without
+  weakening their accessible labels. Focused validation passed 68 tests / 182
+  assertions; focused Biome and diff checks passed. Broad package typechecks
+  remain blocked by unrelated existing diagnostics and reported no touched-file
+  failures. No schema or migration change was required.
+
+- 2026-08-23: Implemented Paid Sales Operational Handoff Ticket 04. Action
+  epochs now persist fail-closed organization scope, protected workflow targets,
+  and a New York next-weekday escalation due time. Active Super Admins receive
+  organization-wide oldest-first/grouped reads while representatives stay
+  own-scope; the alert reveals six actions at a time. A bounded serializable
+  Trigger schedule creates mandatory activity-only NotePad notifications through
+  an explicit system actor and persists unique per-admin delivery and separate
+  acknowledgement. Transfer preserves the epoch/clock, resolution cancels
+  unsent escalation, and genuine reopen starts a new clock. Added the required
+  SalesOrders/epoch relation and reusable authenticated open-epoch fragment for
+  exact Needs Action filtering/counting. Focused validation passed 31 behavioral
+  tests; `@gnd/sales` typecheck passed. API/dashboard/jobs/notifications full
+  typechecks remain blocked only by pre-existing unrelated baselines after
+  touched-file diagnostics were cleared. Prisma client generation passed; no
+  migration was created or applied.
+
+- 2026-08-23: Remediated the remaining Ticket 02 exact-reconciliation audit.
+  The event seam now projects one explicit Sales order rather than calling the
+  bounded representative read, resolves missing/terminal/unassigned work,
+  rolls transferred representative ownership into a new audited epoch, and
+  repairs ids that fall outside a 200-row read window. Canonical settlement
+  timelines now normalize negative `square_refund` allocations; regression
+  coverage proves refund-below-threshold closes the epoch and repayment gets a
+  fresh qualification time and epoch. API-owned settings, rep-transfer,
+  wallet/refund, finance-repair, inbound, delete/restore, and production-review
+  writers reconcile after commit. Background Trigger and legacy Dashboard
+  writer coverage remains an explicit Ticket 07 durable-repair responsibility
+  because jobs cannot safely import the API-owned query through the existing
+  API-to-jobs dependency. Focused validation passed 86 tests / 271 assertions;
+  API typecheck has no diagnostics in touched handoff files and remains blocked
+  by unrelated dispatch, special-order enrollment, and Sales DTO baselines.
+
+- 2026-08-23: Implemented Paid Sales Operational Handoff Ticket 03. A
+  package-owned Production projection now compares current production-capable
+  required quantity with active/completed owned assignments and finalized
+  attributable submissions, including conservative legacy identity recovery,
+  split-worker aggregation, partial/unowned handling, revision evidence, and
+  explicit independence from Material state. Generic durable epochs keep
+  Material and Production identities independent. The bounded protected read
+  now returns targeted Production intents, skips irrelevant reconciliation
+  transactions, and feeds distinct accessible Sales Orders pills whose
+  canonical deep link opens the exact Production item Assignments surface.
+  Production/review invalidation joins the existing event seam, and the API
+  exposes no assignment authority. The combined focused handoff suite passed
+  93 tests / 259 assertions; the live endpoint recovered after bounding transaction
+  work. Authenticated representative browser acceptance remains in Ticket 07.
+
+- 2026-08-23: Fixed Material Handoff candidate starvation found by integration
+  browser testing against a representative with more than 200 historical
+  orders. New-open discovery now excludes deleted, delivered, terminal,
+  cancelled, and quote rows in the database and orders the bounded 200-row
+  candidate set by recent update/create evidence. The independently bounded
+  oldest 200 open epochs remain included for resolution even when their orders
+  are old. Payment projection, allocation, and ledger lookups are chunked.
+  Behavioral coverage proves a recent paid uncovered order appears beyond a
+  205-order fulfilled history while an old open epoch resolves.
+
+
+- 2026-08-23: Implemented Paid Sales Operational Handoff Ticket 02. Canonical
+  payment qualification plus inventory applicability, tracked fulfillment, and
+  demand-owned active inbound coverage now project durable Material action
+  epochs. Added representative-session protected bounded reads, serializable
+  open/resolve/reopen behavior, central mutation-event invalidation, the
+  independent Sales Orders shadcn alert, canonical Inventory/Create-inbound
+  deep linking, focus restoration, and behavioral projection/persistence/auth/
+  interaction coverage. Prisma generation and the 54-test focused Ticket 02
+  suite pass; `@gnd/sales` typecheck passes. The API and Dashboard broad
+  typechecks remain blocked by unrelated existing errors. Migration generation
+  is deliberately deferred to the coordinated schema workflow, and
+  authenticated browser acceptance remains for Ticket 07.
+
+
+- 2026-08-23: Fixed missing item type and door-size metadata in the Sales
+  Overview Packing List follow-up. The dispatch projection had recomputed a
+  reduced subtitle and preferred stale persisted item-control titles even
+  though the Production projection already owned the complete presentation.
+  A live Production-versus-Packing comparison then confirmed the packing
+  manifest still started from aggregated persisted controls. Dispatch now
+  projects canonical Production controls first, preserving each configuration's
+  item type, dimension, swing/handing, quantity, and labor context on both the
+  primary list and secondary Pack Items sheet; unmatched persisted controls are
+  retained only as compatibility rows. Added focused package, API, and
+  presentation regression coverage. No database, migration, permission,
+  production data, deployment, or external state changed; no ADR was required
+  because this removes duplicate projection logic and restores an existing
+  canonical contract. Browser verification was attempted but the dashboard
+  reload was blocked before route render by the unrelated existing
+  `salesHandoffTriggerInputSchema.innerType is not a function` startup error.
+
+- 2026-08-23: Published seven approved `ready-for-agent` tracer-bullet tickets
+  for Paid Sales Operational Handoff in a separate implementation issue set,
+  preserving the seven original Wayfinder decision tickets. The dependency
+  graph has two initial frontier slices: configurable Sales Handoff Trigger
+  policy and guarded production-only reporting. Material and Production alert
+  actions, Super Admin escalation, guarded packing reports, and integrated
+  reconciliation/acceptance follow through explicit blocking edges. No
+  application code, API, permission, database, migration, production data,
+  deployment, notification, or external state changed.
+
+- 2026-08-22: Published the Paid Sales Operational Handoff specification as
+  `ready-for-agent`. It consolidates the Wayfinder map and all seven approved
+  comments into configurable payment qualification, durable Material and
+  Production action epochs, the scoped Sales Orders alert and canonical deep
+  links, one-business-day Super Admin escalation, guarded production/packing
+  review, additive persistence, ADR-062 supersession, and explicit behavior,
+  service, persistence, integration, and browser test seams. No application
+  code, API, permission, database, migration, production data, deployment,
+  notification, or external state changed.
+
+- 2026-08-22: Standardized item presentation across the Sales Overview Packing
+  List and secondary Pack Items sheet. Replaced per-item bordered cards with
+  borderless shadcn `Item` rows and dividers, promoted the real product subtitle
+  over legacy `Sales Item <database id>` labels, and composed the subtitle from
+  item type, size, handing, and ordered quantity. Replaced the secondary form's
+  bespoke minus/input/plus controls with the shared new Sales Form
+  `SalesFormQuantityStepper`. Existing packing payload construction,
+  replacement behavior, permissions, and task execution remain unchanged.
+  Added focused presentation and source regression coverage. No API, database,
+  migration, permission, production data, deployment, or external state
+  changed; no ADR was required because the change reuses established shadcn
+  Item and Sales Form quantity components.
+
+- 2026-08-22: Converted Sales Overview dispatch packing from an inline edit
+  branch into the established secondary-sheet interaction. Both Pack Items
+  entry points keep the Packing List summary in the primary sheet while opening
+  a secondary header, scrollable quantity form, Pack All action, optional note,
+  and fixed Cancel/Pack footer. Existing packing payload construction,
+  replacement behavior, permissions, and task execution remain unchanged.
+  Added focused source regression coverage; no automated tests or browser QA
+  ran in this pass. No API, database, migration, permission, production data,
+  deployment, or external state changed; no ADR was required because the change
+  reuses the existing Sales Overview secondary-sheet architecture.
+
+- 2026-08-22: Charted the Paid Sales Operational Handoff Wayfinder from the
+  client/Pablo Cruz discussion and two voice notes. The planning map records the
+  configurable payment trigger, Sales Orders action alert, representative and
+  Super Admin scope, Material/Production deep links, no-automatic-inbound
+  boundary, guarded production/packing review direction, and one-business-day
+  in-app escalation. Added seven dependency-wired local decision tickets,
+  sharpened the domain glossary, and created the planned feature record. No
+  application code, API, permission, database, migration, production data,
+  deployment, notification, or external state changed.
+
+- 2026-08-22: Set both the standard shadcn Production item title and
+  description to uppercase in Sales Overview. The Item primitive composition,
+  sizing, weight, color, and disclosure behavior remain unchanged. Updated the
+  focused source regression contract. No API, permission, database, migration,
+  production data, deployment, or external state changed.
+
+- 2026-08-22: Replaced Sales Overview Production item title/subtitle markup
+  with the repository's standard shadcn `ItemContent`, `ItemTitle`, and
+  `ItemDescription` composition. Removed the custom uppercase, semibold, and
+  malformed monospace typography overrides. Updated the focused source
+  regression contract. No API, permission, database, migration, production
+  data, deployment, or external state changed.
+
+- 2026-08-22: Refined Sales Overview Production item borders so collapsed
+  items use only the accordion's bottom divider with no card side or top
+  borders. Expanded items suppress that divider and retain the full neutral
+  outline without a tint or shadow. Updated the focused source regression
+  contract. No API, permission, database, migration, production data,
+  deployment, or external state changed.
+
+- 2026-08-22: Simplified the Sales Overview Production item expanded state to
+  use a neutral border around the full card. Removed the expanded slate
+  gradient, rose header tint, and elevated shadow while retaining the header
+  divider. Updated the focused source regression contract. No API, permission,
+  database, migration, production data, deployment, or external state changed.
+
+- 2026-08-22: Changed Sales Overview's production-worker item initialization so
+  only the first assigned production item expands automatically. Explicit
+  deep-linked item selection and manual multi-item expansion remain unchanged.
+  Updated the focused source regression contract. No API, permission, database,
+  migration, production data, deployment, or external state changed.
+
 - 2026-08-21: Authenticated development QA verified Make Payment's same-page
   post-payment printing from both supported staff entry points. Recorded a
   `$0.01` Credit Card payment on `09376AD` through the standalone modal and a
@@ -10912,3 +11168,160 @@
   were intentionally not run under fast Bun command discipline.
 - No API, database, schema, migration, permission, deployment, or external state
   changed; no ADR was required.
+
+## 2026-08-23 — Implemented guarded packing reports
+
+- Added packing-specific persistence, protected actor/reviewer authority,
+  idempotency, stale-evidence and quantity checks, downstream readiness/loading/
+  trip/completion holds, atomic canonical approval, and rejection without side
+  effects. Packing UI distinguishes pending physical evidence from finalized
+  Packed Quantity and routes shortages to Dispatch Exceptions.
+- Follow-up hardening binds every report to the exact canonical
+  `OrderItemDelivery` allocation, permits the legitimate pre-trip `missing
+  items` state, rechecks assignment authority under the dispatch lock, removes
+  delivery-option status mutation, makes batch completion hold checks and all
+  lifecycle side effects atomic, and delete-restricts immutable audit sources.
+  The ordinary Sales Overview now exposes Packing and preserves the canonical
+  sheet URL/mode while opening Pack Items in the secondary pane.
+- Focused validation passed 68 tests / 204 assertions, scoped Biome and diff
+  checks passed, and Prisma Client generation passed. No Ticket 06 migration or
+  database push was created/run; the coordinating implementation owns the final
+  additive migration after related schema work stabilizes.
+
+## 2026-08-23 — Hardened guarded packing report deletion and review inputs
+
+- Direct dispatch deletion and duplicate cleanup now lock selected dispatches
+  in deterministic order and reject atomically while any packing report remains
+  pending, preserving visible and reviewable audit state.
+- Packing review decisions normalize serialized report timestamps back to the
+  Date-valued protected mutation contract, and the packing form quantity input
+  now satisfies its complete typed quantity shape.
+- Replaced the sales-control test suite's process-wide packing-hold module mock
+  with explicit dependency seams, preventing test-order leakage from disabling
+  real fail-closed guard coverage.
+- Focused validation passed 76 tests / 222 assertions. Sales typecheck, filtered
+  Dashboard implementation diagnostics, scoped Biome, and whitespace checks
+  passed. API typecheck retained only the known unrelated dispatch-list
+  diagnostics outside the changed hunks. No migration or database push was
+  created or run.
+
+## 2026-08-23 — Persisted the Material inbound continuation URL
+
+- Sales Overview now retains `inventoryCreateInbound=true` while the Create
+  inbound secondary pane is mounted, suppresses repeat opening, restores the
+  continuation after copied-link reload, and clears it only when the pane or
+  outer Sales Overview closes. Existing secondary-pane and originating Material
+  pill focus restoration remain unchanged.
+- Focused continuation, Material URL, and alert-focus coverage passed 12 tests /
+  26 assertions. Scoped Biome and whitespace checks passed.
+
+## 2026-08-23 — Isolated Sales Handoff alert hydration
+
+- Removed the non-Suspense Sales Handoff query from Sales Orders server batch
+  prefetch so server markup and first client hydration consistently render the
+  compact alert skeleton. The alert continues to fetch, fail/retry, resolve, or
+  disappear independently without blocking the table and summary prefetches.
+- Focused hydration-boundary, alert, focus, and continuation coverage passed 15
+  tests / 45 assertions. Scoped Biome and whitespace checks passed.
+
+## 2026-08-23 — Added bounded recurring Sales Handoff repair
+
+- Moved Sales Handoff trigger persistence into `@gnd/settings` and the exact
+  action projection/epoch service into `@gnd/sales/sales-handoff`, retaining
+  thin API compatibility exports so the recurring worker has no cross-app or
+  API/jobs cycle.
+- Added a serial 15-minute Trigger worker capped at 200 unique orders. It
+  prioritizes durable order repair markers and a rotating open-epoch keyset,
+  reserves active-order cursor progress, resolves missing-order epochs, and
+  records complete cursor/count/failure evidence in ScheduleHistory.
+- Every committed policy revision now writes its timestamped fan-out marker
+  before the bounded immediate reconciliation, including when that immediate
+  pass succeeds. The worker performs the complete persisted active-order pass
+  and applies the `POLICY_CHANGE` milestone only to that pass's active-cursor
+  candidates, so orders beyond the immediate 200-order cohort retain policy-time
+  exposure without contaminating routine discovery or priority candidates.
+- Failed policy-pass candidates now persist the policy milestone, revision, and
+  change time in their deterministic order repair marker. Repair-only retries
+  reuse that context, preserving the policy-time `openedAt`; a failed marker
+  write leaves the global policy repair open so a completed cursor pass cannot
+  discard an unrecorded exposure.
+- Missing canonical payment evidence and otherwise-empty unavailable inventory
+  evidence now fail with a typed source-projection error. Per-order and worker
+  failures create durable ResolutionCase markers, write failed run history, and
+  fail the Trigger task rather than silently returning an empty queue.
+- Focused validation passed 49 tests / 156 assertions across shared
+  reconciliation, epoch lifecycle, escalation clocks, settings persistence, and
+  the worker, including durable policy retry and fan-out completion regressions;
+  scoped Biome and package-boundary import smoke passed. Package
+  typechecks reported no touched-file diagnostics: Sales retained the unrelated
+  `sales-control/actions.ts` assignment-id baseline, Jobs retained that plus the
+  existing email JSX-runtime baseline, and Settings retained the existing
+  `@gnd/errors` NodeNext extension baseline. No schema, migration, database,
+  browser, deployment, or external state changed.
+
+## 2026-08-23 — Closed guarded packing approval and inventory races
+
+- Canonical packing approval now normalizes scalar and LH/RH report quantities
+  through the same quantity-matrix semantics before authorizing the exact
+  packed delta. Authenticated LH approval completed successfully through the
+  canonical packing writer.
+- Inventory-backed prepare/pick now locks and rechecks the dispatch hold first,
+  then performs canonical row creation, allocation assignment, picking,
+  readiness verification, and the packed transition in one serializable
+  transaction. The public procedure exposes no dependency override seam.
+- Focused Ticket 06 validation passed 69 tests / 198 assertions, including
+  handled-quantity authorization and whole-transaction rollback coverage.
+  Scoped whitespace checks passed. Package typechecks retained only known
+  unrelated baseline diagnostics outside the changed inventory path.
+
+## 2026-08-23 — Closed guarded packing unpack races
+
+- Clear-all, per-dispatch clear, and single-item unpack now derive exact active
+  dispatch scope, acquire the deterministic pending-report lock, recheck scope,
+  and commit unpack plus derived-sales reset in one serializable transaction.
+  Clear-all still includes legacy unscoped packing rows while excluding rows
+  owned by deleted or otherwise unlocked dispatches.
+- Removed caller-supplied pending-hold replacements from exported packing,
+  trip-start, dispatch-completion, and batch-completion task paths. Tests now
+  exercise the canonical lock/count guard with realistic transaction stubs.
+- Focused Ticket 06 validation passed 86 tests / 260 assertions. Sales
+  typecheck retained only the existing unrelated
+  `sales-control/actions.ts:113` assignment-id diagnostic; scoped Biome retained
+  the file's pre-existing explicit-`any` baseline, and whitespace validation
+  passed.
+
+## 2026-08-23 — Closed Ticket 06 client task authorization boundary
+
+- Protected the client Trigger bridge, restricted it to `update-sales-control`,
+  and added API plus durable-worker authorization for every sales-control action.
+  Actor identity, production elevation, dispatch ownership, and production
+  submission ownership now come from persisted server state.
+- Direct dispatch cancel/start/submit and unpack attribution are normalized from
+  the authenticated session. Packing proves exact sale/dispatch scope under the
+  lock and scopes replace-existing writes by sale as well as dispatch.
+- Replaced generic client notification execution with a dedicated authenticated
+  route for the five mobile operational channels. Job and dispatch authority is
+  reloaded from persistence and recipients/scope are server-derived.
+- Focused authorization, packing transaction, pending-hold, deletion/sweeper,
+  and report lifecycle coverage passed 82 tests / 217 assertions in one run.
+  The task-trigger boundary test reads the route contract without importing the
+  unrelated application module graph, while the authorization services retain
+  runtime permission, forged-actor, and persisted-scope regression coverage.
+  Scoped production Biome and whitespace checks passed; package typechecks
+  retained only previously recorded unrelated diagnostics outside touched files.
+
+## 2026-08-23 — Integrated guarded packing into the normal packing list
+
+- Removed the standalone Guarded Packing section from Sales Overview. The
+  existing Pack Items form now checks exact scalar or LH/RH availability on
+  submit and opens a confirmation only for an eligible guarded remainder.
+- `Proceed` packs canonically available quantities first, reloads current
+  packing evidence, and submits the guarded remainder for review. Quantities
+  beyond canonical and guarded availability remain Dispatch Exceptions.
+- Pending guarded quantity and authorized approve/reject actions now render
+  inline on the affected packing-list item. The report context exposes its
+  canonical `salesOrderItemId` for this placement.
+- Focused validation passed 28 tests / 92 assertions. A filtered Dashboard
+  compiler run reported no diagnostics in the changed packing/report files;
+  the broad Dashboard typecheck retained its existing unrelated baseline
+  failures. Scoped Biome and whitespace checks passed.

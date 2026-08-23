@@ -10,6 +10,7 @@ import {
 import { productionStatus } from "@/utils/sales-utils";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { DispatchItemPackingStatus } from "@sales/types";
+import { splitProductionSubmissionQuantities } from "./production-assignment-aggregates";
 
 export async function getSalesItemAssignments(
     salesItemControlUid,
@@ -76,12 +77,11 @@ export async function getSalesItemAssignments(
                 rh: assignment.rhQty,
                 qty: assignment.qtyAssigned,
             };
-            const completed: Qty = {
-                lh: sum(assignment.submissions, "lhQty"),
-                rh: sum(assignment.submissions, "rhQty"),
-                qty: sum(assignment.submissions, "qty"),
-            };
-            const pending = qtyMatrixDifference(qty, completed);
+			const aggregates = splitProductionSubmissionQuantities(
+				assignment.submissions,
+			);
+			const completed: Qty = aggregates.finalized;
+			const pending = qtyMatrixDifference(qty, aggregates.reported);
             const data = {
                 id: assignment.id,
                 assignedTo: assignment.assignedTo?.name,
@@ -89,7 +89,9 @@ export async function getSalesItemAssignments(
                 dueDate: assignment.dueDate,
                 qty,
                 assignedBy: assignment.assignedBy?.name,
-                completed,
+				completed,
+				reported: aggregates.reported,
+				pendingReview: aggregates.pendingReview,
                 assignedOn: formatDate(assignment.createdAt),
                 pending,
                 status: productionStatus(assignment.qtyAssigned, completed.qty),
@@ -121,7 +123,7 @@ export async function getSalesItemAssignments(
                         };
                     },
                 ),
-                submissionCount: sum(assignment.submissions, "qty"),
+				submissionCount: aggregates.reported.qty,
             };
 
             return data;

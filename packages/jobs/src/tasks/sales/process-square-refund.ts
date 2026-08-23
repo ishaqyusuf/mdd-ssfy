@@ -10,6 +10,7 @@ import {
 	repairLegacySalesPaymentBalance,
 } from "@gnd/sales/payment-system";
 import { normalizeSquareRefundStatus } from "@gnd/sales/payment-system/refunds";
+import { recordSalesHandoffReconciliationRepair } from "@gnd/sales/sales-handoff";
 import { createSquarePaymentRefund, getSquarePaymentRefund } from "@gnd/square";
 import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
@@ -320,6 +321,22 @@ export async function applyCompletedSquareRefund(refundId: string) {
 			reason: refund.reason,
 		};
 	});
+	if (result.applied && result.orders.length) {
+		try {
+			await recordSalesHandoffReconciliationRepair(db, {
+				salesOrderIds: result.orders.map((order) => order.id),
+				actorUserId: result.authorId,
+				source: "jobs.square-refund.completed",
+				reason:
+					"Completed Square refund requires exact Sales Handoff reconciliation.",
+			});
+		} catch (error) {
+			logger.error(
+				"Square refund committed, but its Sales Handoff repair request could not be recorded.",
+				{ refundId, error },
+			);
+		}
+	}
 
 	if (result.events.length) {
 		await sendPaymentSystemNotifications(

@@ -24,9 +24,11 @@ export { resolveLegacySalesOverviewMode } from "./mode";
 function LegacySalesOverviewInventoryTab({
 	onCreateInbound,
 	onViewInbound,
+	inboundCreateOpen,
 }: {
-	onCreateInbound?: () => void;
+	onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void;
 	onViewInbound?: (inboundId: number) => void;
+	inboundCreateOpen?: boolean;
 }) {
 	const { data } = useSaleOverview();
 
@@ -35,6 +37,7 @@ function LegacySalesOverviewInventoryTab({
 			salesOrderId={data?.id}
 			onCreateInbound={onCreateInbound}
 			onViewInbound={onViewInbound}
+			inboundCreateOpen={inboundCreateOpen}
 		/>
 	);
 }
@@ -67,8 +70,11 @@ export function createLegacySalesOverviewTabs({
 	onEditCustomer,
 	onCreateInbound,
 	onViewInbound,
+	inboundCreateOpen,
 	onViewPayment,
 	onCreatePayment,
+	packItemsOpen,
+	onPackItemsOpenChange,
 }: {
 	mode: LegacySalesOverviewMode;
 	isQuote: boolean;
@@ -77,10 +83,13 @@ export function createLegacySalesOverviewTabs({
 	orderId?: string | null;
 	onEditAddress?: GeneralTabProps["onEditAddress"];
 	onEditCustomer?: GeneralTabProps["onEditCustomer"];
-	onCreateInbound?: () => void;
+	onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void;
 	onViewInbound?: (inboundId: number) => void;
+	inboundCreateOpen?: boolean;
 	onViewPayment?: (transactionId: string) => void;
 	onCreatePayment?: () => void;
+	packItemsOpen: boolean;
+	onPackItemsOpenChange: (open: boolean) => void;
 }): LegacySalesOverviewTabDefinition[] {
 	const prodBadge = prodQty > 0 ? prodQty : 0;
 
@@ -120,7 +129,12 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "packing",
 					label: "Packing List",
-					content: <PackingTab />,
+					content: (
+						<PackingTab
+							packItemsOpen={packItemsOpen}
+							onPackItemsOpenChange={onPackItemsOpenChange}
+						/>
+					),
 				},
 			];
 		default:
@@ -179,6 +193,7 @@ export function createLegacySalesOverviewTabs({
 						<LegacySalesOverviewInventoryTab
 							onCreateInbound={onCreateInbound}
 							onViewInbound={onViewInbound}
+							inboundCreateOpen={inboundCreateOpen}
 						/>
 					),
 				},
@@ -191,8 +206,12 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "packing",
 					label: "Packing",
-					hidden: true,
-					content: <PackingTab />,
+					content: (
+						<PackingTab
+							packItemsOpen={packItemsOpen}
+							onPackItemsOpenChange={onPackItemsOpenChange}
+						/>
+					),
 				},
 			];
 	}

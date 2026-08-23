@@ -18,6 +18,19 @@ export function shouldStackPageTabs(resolvedTabCount: number) {
 	return resolvedTabCount >= 3;
 }
 
+export function composePageTabSources<T>({
+	fixedTabs,
+	savedTabs,
+}: {
+	fixedTabs: T[];
+	savedTabs: T[];
+}) {
+	return {
+		contentTabs: [...fixedTabs, ...savedTabs],
+		hasSavedTabs: savedTabs.length > 0,
+	};
+}
+
 export function getResponsivePageTabLimit(
 	limits: ResponsivePageTabLimit | undefined,
 	{

@@ -53,7 +53,7 @@ import { useProductionItem } from "../../production-item-context";
 import { ProductionSubmitForm } from "../../production-submit-form";
 import {
 	getWorkerProductionSubmissionProgress,
-	isWorkerProductionItemSubmissionBlocked,
+	shouldWarnWorkerProductionItemMaterialReview,
 } from "../../production-worker-policy";
 import {
 	getEligibleProductionSubmissionAssignments,
@@ -78,15 +78,13 @@ function ProductionV2CreateAction() {
 		eligibleAssignments,
 		requestedAssignmentIndex,
 	);
-	const materialBlocked = isWorkerProductionItemSubmissionBlocked({
+	const materialReviewExpected = shouldWarnWorkerProductionItemMaterialReview({
 		itemId: item.itemId,
 		readiness: production.readiness,
 		readinessUnavailable: production.readinessUnavailable,
 	});
 	const disabled = workerMode
-		? selectedAssignmentIndex === null ||
-			materialBlocked ||
-			queryCtx.dispatchMode
+		? selectedAssignmentIndex === null || queryCtx.dispatchMode
 		: !hasPendingProductionQuantity(item.analytics?.assignment?.pending) ||
 			queryCtx.dispatchMode;
 	const label = workerMode ? "Create submission" : "Create assignment";
@@ -136,12 +134,13 @@ function ProductionV2CreateAction() {
 						</ItemActions>
 					</Item>
 				</ItemGroup>
-				{materialBlocked && workerMode ? (
-					<Alert variant="destructive" className="mt-3">
+				{materialReviewExpected && workerMode ? (
+					<Alert variant="warning" className="mt-3">
 						<Icons.AlertTriangle />
-						<AlertTitle>Materials unavailable</AlertTitle>
+						<AlertTitle>Material verification required</AlertTitle>
 						<AlertDescription>
-							Submission is blocked until the required materials are available.
+							You can report completed work now. It will remain awaiting admin
+							approval until the material record is resolved.
 						</AlertDescription>
 					</Alert>
 				) : disabledReason ? (
@@ -265,18 +264,7 @@ function ProductionV2RecordsSection() {
 						/>
 					))}
 				</div>
-			) : (
-				<Empty className="min-h-36 p-4">
-					<EmptyHeader>
-						<EmptyTitle>No {label.toLowerCase()}</EmptyTitle>
-						<EmptyDescription>
-							{workerMode
-								? "No submission assignment is available for this item."
-								: "Create the first assignment for this production item."}
-						</EmptyDescription>
-					</EmptyHeader>
-				</Empty>
-			)}
+			) : null}
 		</section>
 	);
 }

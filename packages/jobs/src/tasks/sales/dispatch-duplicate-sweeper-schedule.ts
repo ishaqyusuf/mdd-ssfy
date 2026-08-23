@@ -1,11 +1,12 @@
 import { db } from "@gnd/db";
 import { getSettingAction } from "@gnd/settings";
+import { logger, schedules, task } from "@trigger.dev/sdk/v3";
 import type { TaskName } from "../../schema";
 import {
   getTaskEventConfigFromMeta,
   getTaskEventDefaultConfig,
 } from "../../task-events/registry";
-import { logger, schedules, task } from "@trigger.dev/sdk/v3";
+import { cleanDuplicateDispatchGroups } from "./dispatch-duplicate-cleanup";
 
 const EVENT_NAME = "dispatch-duplicate-sweeper-schedule" as const;
 
@@ -148,6 +149,8 @@ async function resolveDuplicateDispatchGroups(
     keepDispatchId: number;
     deleteDispatchIds: number[];
     deletedCount: number;
+    blocked?: boolean;
+    blockedReason?: string;
   }> = [];
 
   for (const group of groups) {
@@ -161,21 +164,20 @@ async function resolveDuplicateDispatchGroups(
     if (!deleteDispatchIds.length) continue;
 
     let deletedCount = deleteDispatchIds.length;
+    let blocked = false;
+    let blockedReason: string | undefined;
 
     if (!dryRun) {
-      const result = await db.orderDelivery.updateMany({
-        where: {
-          salesOrderId: group.salesId,
-          id: {
-            in: deleteDispatchIds,
-          },
-          deletedAt: null,
+      const [result] = await cleanDuplicateDispatchGroups(db, [
+        {
+          salesId: group.salesId,
+          keepDispatchId: keep.id,
+          deleteDispatchIds,
         },
-        data: {
-          deletedAt: new Date(),
-        },
-      });
-      deletedCount = result.count;
+      ]);
+      deletedCount = result?.deletedCount ?? 0;
+      blocked = result?.blocked ?? false;
+      blockedReason = result?.blockedReason;
     }
 
     if (deletedCount > 0) {
@@ -189,6 +191,8 @@ async function resolveDuplicateDispatchGroups(
         keepDispatchId: keep.id,
         deleteDispatchIds,
         deletedCount,
+        blocked,
+        blockedReason,
       });
     }
   }

@@ -1,9 +1,11 @@
 import type { TRPCContext } from "@api/trpc/init";
-import {
-	assignInventoryDispatchAllocations,
-	packInventoryDispatchAllocations,
-} from "@gnd/sales/sales-fulfillment-plan";
+import { Prisma } from "@gnd/db";
 import { dispatchItemQuantity } from "@gnd/sales/dispatch-manifest/inventory-quantities";
+import { lockAndAssertNoPendingPackingReports } from "@gnd/sales/packing-report-review";
+import {
+	assignInventoryDispatchAllocationsInTransaction,
+	packInventoryDispatchAllocationsInTransaction,
+} from "@gnd/sales/sales-fulfillment-plan";
 
 import { getDispatchInventoryManifest } from "./dispatch-inventory";
 
@@ -78,127 +80,155 @@ export async function prepareAndPickDispatchInventory(
 	) {
 		throw new Error("INVENTORY_DISPATCH_INVALID_ITEM_QUANTITY");
 	}
-	const before = await getDispatchInventoryManifest(db, {
-		...input,
-		requestedItems,
-	});
-	if (!before.scope.resolved && before.scope.inventoryLineCount > 0) {
-		throw new Error("INVENTORY_DISPATCH_SCOPE_UNRESOLVED");
-	}
-	if (!before.lines.length) {
-		return {
-			executionMode: "legacy" as const,
-			manifestRevision: before.revision,
-			assignedCount: 0,
-			pickedCount: 0,
-		};
-	}
-	const plan = buildDispatchInventoryAllocationSelections(before.lines);
-	if (plan.blockingComponents.length) {
-		throw new Error(
-			`INVENTORY_DISPATCH_STOCK_SHORTAGE:${plan.blockingComponents
-				.map((component) => `${component.componentId}:${component.missingQty}`)
-				.join(",")}`,
-		);
-	}
 
-	await db.$transaction(async (tx) => {
-		const delivery = await tx.orderDelivery.findFirst({
-			where: {
-				id: input.orderDeliveryId,
+	return db.$transaction(
+		async (tx) => {
+			await lockAndAssertNoPendingPackingReports(tx, {
+				dispatchId: input.orderDeliveryId,
 				salesOrderId: input.salesOrderId,
-				deletedAt: null,
-			},
-			select: { id: true, status: true },
-		});
-		if (!delivery) throw new Error("INVENTORY_DISPATCH_NOT_FOUND");
-		if (
-			["completed", "delivered", "cancelled"].includes(delivery.status || "")
-		) {
-			throw new Error("INVENTORY_DISPATCH_TERMINAL");
-		}
-
-		for (const line of before.lines) {
-			if (!line.salesItemId) {
-				throw new Error("INVENTORY_DISPATCH_SALES_ITEM_REQUIRED");
-			}
-			const activeItems = await tx.orderItemDelivery.findMany({
-				where: {
-					orderDeliveryId: input.orderDeliveryId,
-					orderId: input.salesOrderId,
-					orderItemId: line.salesItemId,
-					deletedAt: null,
-					packingStatus: { not: "unpacked" },
-				},
-				select: { qty: true, lhQty: true, rhQty: true },
 			});
-			const scopedQty = activeItems.reduce(
-				(total, item) => total + dispatchItemQuantity(item),
-				0,
+			const delivery = await tx.orderDelivery.findFirst({
+				where: {
+					id: input.orderDeliveryId,
+					salesOrderId: input.salesOrderId,
+					deletedAt: null,
+				},
+				select: { id: true, status: true },
+			});
+			if (!delivery) throw new Error("INVENTORY_DISPATCH_NOT_FOUND");
+			if (
+				["completed", "delivered", "cancelled"].includes(delivery.status || "")
+			) {
+				throw new Error("INVENTORY_DISPATCH_TERMINAL");
+			}
+
+			const before = await getDispatchInventoryManifest(
+				tx as TRPCContext["db"],
+				{
+					...input,
+					requestedItems,
+				},
 			);
-			const missingQty = quantity(line.dispatchItemQty - scopedQty);
-			if (missingQty < 0) {
-				throw new Error("INVENTORY_DISPATCH_SCOPE_REDUCTION_REQUIRES_RESET");
+			if (!before.scope.resolved && before.scope.inventoryLineCount > 0) {
+				throw new Error("INVENTORY_DISPATCH_SCOPE_UNRESOLVED");
 			}
-			if (missingQty > 0) {
-				await tx.orderItemDelivery.create({
-					data: {
-						orderItemId: line.salesItemId,
-						orderId: input.salesOrderId,
+			if (!before.lines.length) {
+				return {
+					executionMode: "legacy" as const,
+					manifestRevision: before.revision,
+					assignedCount: 0,
+					pickedCount: 0,
+				};
+			}
+			const plan = buildDispatchInventoryAllocationSelections(before.lines);
+			if (plan.blockingComponents.length) {
+				throw new Error(
+					`INVENTORY_DISPATCH_STOCK_SHORTAGE:${plan.blockingComponents
+						.map(
+							(component) => `${component.componentId}:${component.missingQty}`,
+						)
+						.join(",")}`,
+				);
+			}
+
+			for (const line of before.lines) {
+				if (!line.salesItemId) {
+					throw new Error("INVENTORY_DISPATCH_SALES_ITEM_REQUIRED");
+				}
+				const activeItems = await tx.orderItemDelivery.findMany({
+					where: {
 						orderDeliveryId: input.orderDeliveryId,
-						qty: missingQty,
-						status: "completed",
-						packingStatus: "packed",
-						packedBy: "Warehouse inventory",
-						note: "Inventory-backed dispatch scope",
-						meta: {
-							source: "inventory_dispatch",
-							lineItemId: line.lineItemId,
-							manifestRevision: before.revision,
-						},
+						orderId: input.salesOrderId,
+						orderItemId: line.salesItemId,
+						deletedAt: null,
+						packingStatus: { not: "unpacked" },
 					},
+					select: { qty: true, lhQty: true, rhQty: true },
 				});
+				const scopedQty = activeItems.reduce(
+					(total, item) => total + dispatchItemQuantity(item),
+					0,
+				);
+				const missingQty = quantity(line.dispatchItemQty - scopedQty);
+				if (missingQty < 0) {
+					throw new Error("INVENTORY_DISPATCH_SCOPE_REDUCTION_REQUIRES_RESET");
+				}
+				if (missingQty > 0) {
+					await tx.orderItemDelivery.create({
+						data: {
+							orderItemId: line.salesItemId,
+							orderId: input.salesOrderId,
+							orderDeliveryId: input.orderDeliveryId,
+							qty: missingQty,
+							status: "completed",
+							packingStatus: "packed",
+							packedBy: "Warehouse inventory",
+							note: "Inventory-backed dispatch scope",
+							meta: {
+								source: "inventory_dispatch",
+								lineItemId: line.lineItemId,
+								manifestRevision: before.revision,
+							},
+						},
+					});
+				}
 			}
-		}
-	});
 
-	const scoped = await getDispatchInventoryManifest(db, input);
-	const scopedPlan = buildDispatchInventoryAllocationSelections(scoped.lines);
-	if (scopedPlan.blockingComponents.length) {
-		throw new Error("INVENTORY_DISPATCH_SCOPE_CHANGED_DURING_PREPARE");
-	}
+			const scoped = await getDispatchInventoryManifest(
+				tx as TRPCContext["db"],
+				input,
+			);
+			const scopedPlan = buildDispatchInventoryAllocationSelections(
+				scoped.lines,
+			);
+			if (scopedPlan.blockingComponents.length) {
+				throw new Error("INVENTORY_DISPATCH_SCOPE_CHANGED_DURING_PREPARE");
+			}
 
-	const assignment = scopedPlan.selections.length
-		? await assignInventoryDispatchAllocations(db, {
+			const assignment = scopedPlan.selections.length
+				? await assignInventoryDispatchAllocationsInTransaction(tx, {
+						salesOrderId: input.salesOrderId,
+						orderDeliveryId: input.orderDeliveryId,
+						allocationSelections: scopedPlan.selections,
+						note: "Reserved for warehouse dispatch packing.",
+					})
+				: null;
+			const picking = await packInventoryDispatchAllocationsInTransaction(tx, {
 				salesOrderId: input.salesOrderId,
 				orderDeliveryId: input.orderDeliveryId,
-				allocationSelections: scopedPlan.selections,
-				note: "Reserved for warehouse dispatch packing.",
-			})
-		: null;
-	const picking = await packInventoryDispatchAllocations(db, {
-		salesOrderId: input.salesOrderId,
-		orderDeliveryId: input.orderDeliveryId,
-		note: "Picked during warehouse dispatch packing.",
-	});
-	const after = await getDispatchInventoryManifest(db, input);
-	if (after.lines.some((line) => line.readiness !== "ready_to_load")) {
-		throw new Error("INVENTORY_DISPATCH_NOT_READY_AFTER_PICK");
-	}
-	await db.orderDelivery.updateMany({
-		where: {
-			id: input.orderDeliveryId,
-			salesOrderId: input.salesOrderId,
-			deletedAt: null,
-			status: { in: ["queue", "missing items", "packed"] },
-		},
-		data: { status: "packed", deliveredAt: null },
-	});
+				note: "Picked during warehouse dispatch packing.",
+			});
+			const after = await getDispatchInventoryManifest(
+				tx as TRPCContext["db"],
+				input,
+			);
+			if (after.lines.some((line) => line.readiness !== "ready_to_load")) {
+				throw new Error("INVENTORY_DISPATCH_NOT_READY_AFTER_PICK");
+			}
+			const updated = await tx.orderDelivery.updateMany({
+				where: {
+					id: input.orderDeliveryId,
+					salesOrderId: input.salesOrderId,
+					deletedAt: null,
+					status: { in: ["queue", "missing items", "packed"] },
+				},
+				data: { status: "packed", deliveredAt: null },
+			});
+			if (updated.count !== 1) {
+				throw new Error("INVENTORY_DISPATCH_SCOPE_CHANGED_DURING_PREPARE");
+			}
 
-	return {
-		executionMode: "inventory" as const,
-		manifestRevision: after.revision,
-		assignedCount: assignment?.transitionedCount || 0,
-		pickedCount: picking.transitionedCount,
-	};
+			return {
+				executionMode: "inventory" as const,
+				manifestRevision: after.revision,
+				assignedCount: assignment?.transitionedCount || 0,
+				pickedCount: picking.transitionedCount,
+			};
+		},
+		{
+			isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+			maxWait: 5_000,
+			timeout: 30_000,
+		},
+	);
 }

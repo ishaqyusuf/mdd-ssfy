@@ -4,7 +4,10 @@ import { resetSalesAction } from "../sales-control/actions";
 import type { Db } from "../types";
 import { createProductionPayrollForSubmissions } from "./decision";
 import { isActiveReportedSubmission } from "./policy";
-import { prepareProductionSubmissionMaterialReview } from "./service";
+import {
+	normalizeProductionSubmissionItemScope,
+	prepareProductionSubmissionMaterialReview,
+} from "./service";
 
 export type SubmitProductionAssignmentInput = {
 	salesOrderId: number;
@@ -18,13 +21,85 @@ export type SubmitProductionAssignmentInput = {
 	note?: string | null;
 	meta?: Prisma.InputJsonValue;
 	allowSubmitForOthers?: boolean;
-	enforceMaterialAvailability?: boolean;
 };
 
 export async function submitProductionAssignmentInTransaction(
 	tx: Db,
 	input: SubmitProductionAssignmentInput,
 ) {
+	const existingReview =
+		await tx.salesProductionSubmissionMaterialReview.findUnique({
+			where: { idempotencyKey: input.idempotencyKey },
+			select: {
+				id: true,
+				salesOrderId: true,
+				submittedById: true,
+				status: true,
+				assignmentScope: true,
+				submissions: {
+					where: {
+						assignmentId: input.assignmentId,
+						deletedAt: null,
+					},
+					select: {
+						id: true,
+						salesOrderId: true,
+						salesOrderItemId: true,
+						assignmentId: true,
+						submittedById: true,
+						qty: true,
+						lhQty: true,
+						rhQty: true,
+					},
+					take: 1,
+				},
+			},
+		});
+	if (existingReview) {
+		const reviewScope = normalizeProductionSubmissionItemScope(
+			existingReview.assignmentScope,
+		);
+		const matchingScope = reviewScope.filter(
+			(scope) =>
+				scope.assignmentId === input.assignmentId &&
+				scope.salesItemId === input.salesOrderItemId,
+		);
+		const existingSubmission = existingReview.submissions[0];
+		const requestMatches =
+			existingReview.salesOrderId === input.salesOrderId &&
+			existingReview.submittedById === input.submittedById &&
+			reviewScope.length === 1 &&
+			matchingScope.length === 1 &&
+			existingSubmission?.salesOrderId === input.salesOrderId &&
+			existingSubmission.salesOrderItemId === input.salesOrderItemId &&
+			existingSubmission.assignmentId === input.assignmentId &&
+			existingSubmission.submittedById === input.submittedById &&
+			Number(existingSubmission.qty) === Number(input.qty) &&
+			Number(existingSubmission.lhQty || 0) === Number(input.lhQty || 0) &&
+			Number(existingSubmission.rhQty || 0) === Number(input.rhQty || 0);
+		if (!requestMatches) {
+			throw new Error(
+				"Production submission idempotency key belongs to another request.",
+			);
+		}
+		if (
+			existingReview.status === "REJECTED" ||
+			existingReview.status === "CANCELLED"
+		) {
+			throw new Error(
+				"Production submission idempotency key belongs to a closed review. Start a new submission.",
+			);
+		}
+		return {
+			submissionId: existingSubmission.id,
+			state:
+				existingReview.status === "APPROVED"
+					? ("finalized" as const)
+					: ("pending_material_review" as const),
+			reviewId: existingReview.id,
+			idempotentReplay: true,
+		};
+	}
 	const assignment = await tx.orderItemProductionAssignments.findUniqueOrThrow({
 		where: { id: input.assignmentId },
 		select: {
@@ -32,11 +107,13 @@ export async function submitProductionAssignmentInTransaction(
 			orderId: true,
 			itemId: true,
 			assignedToId: true,
+			deletedAt: true,
 			laborCost: true,
 			salesItemControlUid: true,
 			qtyAssigned: true,
 			lhQty: true,
 			rhQty: true,
+			updatedAt: true,
 			submissions: {
 				where: { deletedAt: null },
 				select: {
@@ -59,6 +136,12 @@ export async function submitProductionAssignmentInTransaction(
 			"Production assignment does not belong to this order item.",
 		);
 	}
+	if (assignment.deletedAt) {
+		throw new Error("Production assignment is no longer active.");
+	}
+	if (!assignment.assignedToId) {
+		throw new Error("Production assignment must have an active assigned worker.");
+	}
 	if (
 		!input.allowSubmitForOthers &&
 		assignment.assignedToId !== input.submittedById
@@ -76,8 +159,20 @@ export async function submitProductionAssignmentInTransaction(
 		requestedLhQty < 0 ||
 		requestedRhQty < 0
 	) {
-		throw new Error("Production submission quantity must be greater than zero.");
+		throw new Error(
+			"Production submission quantity must be greater than zero.",
+		);
 	}
+	const itemScope = [
+		{
+			controlUid: assignment.salesItemControlUid || `item-${assignment.itemId}`,
+			salesItemId: assignment.itemId,
+			assignmentId: assignment.id,
+			assignedToId: assignment.assignedToId,
+			assignmentUpdatedAt: assignment.updatedAt?.toISOString() ?? null,
+			laborCost: assignment.laborCost,
+		},
+	];
 	const reported = assignment.submissions
 		.filter(isActiveReportedSubmission)
 		.reduce(
@@ -107,15 +202,7 @@ export async function submitProductionAssignmentInTransaction(
 		salesOrderId: input.salesOrderId,
 		submittedById: input.submittedById,
 		idempotencyKey: input.idempotencyKey,
-		itemScope: [
-			{
-				controlUid:
-					assignment.salesItemControlUid || `item-${assignment.itemId}`,
-				salesItemId: assignment.itemId,
-				assignmentId: assignment.id,
-			},
-		],
-		enforceMaterialAvailability: input.enforceMaterialAvailability,
+		itemScope,
 	});
 	if (!review.reviewId) {
 		throw new Error("Production material review batch was not created.");

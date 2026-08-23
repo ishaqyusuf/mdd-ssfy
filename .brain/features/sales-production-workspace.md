@@ -270,18 +270,18 @@ Provide a cleaner production operations surface for both admins and production w
   - worker mode treats an order as completed only when that worker's related assignments are fully submitted
   - admin mode treats an order as completed only when total submitted production qty meets the full production qty for the order
 - Production assignment mutations emitted through `update-sales-control` now trigger a targeted `sales_production_assigned` notification to the assigned worker from the Trigger jobs layer.
-- Inventory readiness never blocks `createAssignments`. Admin/supervisor
-  submissions with unresolved evidence are saved under material review and
-  remain excluded from finalized production until approved. Production-only
-  worker submissions are rejected for configured unavailable or unverifiable
-  materials; `NOT_CONFIGURED` remains nonblocking.
+- Inventory readiness never blocks `createAssignments`. Per ADR-063, worker,
+  admin, and supervisor reports with unresolved or unavailable evidence are
+  saved under guarded material review and remain excluded from finalized
+  production until approved. Submission identity and elevated
+  submit-for-others capability are derived server-side.
 
 ## Submission Material Verification (2026-07-30)
 
-- The live Sales Overview production form blocks production-only workers when
-  configured material evidence is pending/unavailable or cannot be loaded.
-  Missing configuration alone does not block the worker. Admin/supervisor
-  submissions retain the nonblocking material-review path.
+- The live Sales Overview production form warns production-only workers when
+  material evidence is pending/unavailable or cannot be loaded, but preserves
+  their physical-work report through the ADR-063 pending material-review path.
+  It does not present pending quantity as finalized production.
 - A pending submission immediately consumes the assignment's reported
   remainder so repeat submission is prevented. It displays `Awaiting material
   approval` to the worker.
@@ -292,8 +292,17 @@ Provide a cleaner production operations surface for both admins and production w
   with no-inbound manual fulfillment, approve only after fresh readiness, or
   reject and void the submitted rows.
 - Pending work never creates payroll or becomes packable/dispatchable. Approval
-  creates deferred payroll idempotently, refreshes production stats, runs
-  completion-dependent payment review, and unlocks downstream fulfillment.
+  uses only the immutable submission scope for payroll and downstream effects.
+- Review scope snapshots the original authenticated reporter, assignment owner,
+  revision, and labor terms. Approval re-reads fresh assignment state; stale
+  reassignment/deletion cancels the review safely and never pays a replacement
+  worker. Exact same-request retries replay before mutable assignment checks.
+- Pre-snapshot pending reviews are preserved through an exact legacy-scope
+  compatibility check. Untouched active assignments are bound to their current
+  owner, revision, and labor terms in the decision transaction; reporter,
+  quantity, control, or assignment revisions not strictly earlier than the
+  submission cancel safely without finalization or payroll. Equal timestamps
+  are treated as ambiguous rather than eligible for backfill.
 - Worker and admin notifications use typed production material-review channels.
 - All produceable legacy submission writers route through the shared
   `@gnd/sales` submission authority; non-production dispatch compatibility rows
@@ -393,3 +402,9 @@ Provide a cleaner production operations surface for both admins and production w
 - Focused Production validation passes 20 tests / 48 assertions; new V2 files
   pass scoped Biome. Broad dashboard typecheck and authenticated browser QA were
   not run under the fast Bun command discipline.
+- When an item has no assignments or submissions, the V2 section stops after
+  its role-specific heading and count badge. Redundant empty-state panels are
+  omitted for both admins and production workers.
+- The admin material-pending readiness alert is compact: it shows only
+  `Material Pending` and the `Review Inventory` action. Detailed blocker and
+  inbound copy remains available on the Inventory surface reached by that CTA.

@@ -181,12 +181,10 @@ export function useDispatchPacking() {
 			});
 		},
 		onDeletePackingItem(input: DeletePackingInput) {
-			const author = getAuthor(auth.profile);
 			return deletePackingItem.mutateAsync({
 				salesId: input.salesId,
 				packingId: input.packingId,
 				packingUid: input.packingUid,
-				deleteBy: author.name,
 			});
 		},
 		canEditPacking(status?: DispatchStatus | null) {

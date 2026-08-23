@@ -1,3 +1,4 @@
+import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import type { TRPCContext } from "@api/trpc/init";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
@@ -229,6 +230,12 @@ export async function applySalesPaymentProcessorPayment(
 			]);
 		}),
 	);
+	await reconcileSalesHandoffAfterCommit(ctx.db, {
+		salesOrderIds: response.appliedSalesIds,
+		actorUserId: ctx.userId,
+		source: "api.sales-payment-processor.apply-payment",
+		initialExposureMilestone: "QUALIFICATION",
+	});
 
 	return response;
 }

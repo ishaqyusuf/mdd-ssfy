@@ -68,6 +68,8 @@ model Users {
     revokedProductionReadinessOverrides SalesProductionReadinessOverride[] @relation(name: "revokedProductionReadinessOverrides")
     submittedProductionMaterialReviews SalesProductionSubmissionMaterialReview[] @relation(name: "productionSubmissionMaterialReviewsSubmitted")
     reviewedProductionMaterialReviews SalesProductionSubmissionMaterialReview[] @relation(name: "productionSubmissionMaterialReviewsReviewed")
+    submittedPackingReports           SalesPackingReport[] @relation(name: "packingReportsSubmitted")
+    reviewedPackingReports            SalesPackingReport[] @relation(name: "packingReportsReviewed")
     performedSalesWorkflowCancellations SalesWorkflowCancellation[] @relation(name: "salesWorkflowCancellationsPerformed")
     sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")

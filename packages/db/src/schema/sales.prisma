@@ -105,10 +105,12 @@ model SalesOrders {
     productionGate    OrderProductionGate?
     productionReadinessOverride SalesProductionReadinessOverride?
     productionSubmissionMaterialReviews SalesProductionSubmissionMaterialReview[]
+    packingReports    SalesPackingReport[]
     adjustments       SalesOrderAdjustment[]
     workflowCancellations SalesWorkflowCancellation[]
     specialOrderRequests SpecialOrderApprovalRequest[]
     specialOrderEvidence SpecialOrderApprovalEvidence[] @relation(name: "SpecialOrderEvidence")
+    handoffActionEpochs SalesHandoffActionEpoch[]
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -474,6 +476,64 @@ model SalesProductionSubmissionMaterialReview {
     @@index([reviewedById])
 }
 
+enum SalesPackingReportStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    CANCELLED
+}
+
+enum SalesPackingReportReason {
+    UPSTREAM_PRODUCTION_REVIEW
+    STALE_UPSTREAM_EVIDENCE
+}
+
+model SalesPackingReport {
+    id                          Int                      @id @default(autoincrement())
+    salesOrderId                Int
+    orderDeliveryId             Int
+    salesOrderItemId            Int
+    orderProductionSubmissionId Int
+    dispatchAllocationItemId    Int
+    submittedById               Int
+    reviewedById                Int?
+    status                      SalesPackingReportStatus @default(PENDING)
+    reason                      SalesPackingReportReason
+    idempotencyKey              String                   @unique @db.VarChar(128)
+    openKey                     String?                  @unique @db.VarChar(191)
+    qty                         Int
+    lhQty                       Int                      @default(0)
+    rhQty                       Int                      @default(0)
+    manifestRevision            String                   @db.VarChar(64)
+    dispatchAllocationKey       String                   @db.VarChar(64)
+    evidenceSnapshot            Json                     @db.Json
+    note                        String?                  @db.Text
+    decisionNote                String?                  @db.Text
+    submittedAt                 DateTime                 @default(now()) @db.Timestamp(0)
+    reviewedAt                  DateTime?                @db.Timestamp(0)
+    rejectedAt                  DateTime?                @db.Timestamp(0)
+    cancelledAt                 DateTime?                @db.Timestamp(0)
+    createdAt                   DateTime                 @default(now()) @db.Timestamp(0)
+    updatedAt                   DateTime                 @updatedAt
+    order                       SalesOrders              @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+    delivery                    OrderDelivery            @relation(fields: [orderDeliveryId], references: [id], onDelete: Restrict)
+    item                        SalesOrderItems           @relation(fields: [salesOrderItemId], references: [id], onDelete: Restrict)
+    productionSubmission        OrderProductionSubmissions @relation(fields: [orderProductionSubmissionId], references: [id], onDelete: Restrict)
+    dispatchAllocationItem      OrderItemDelivery        @relation(fields: [dispatchAllocationItemId], references: [id], onDelete: Restrict)
+    submittedBy                 Users                    @relation(name: "packingReportsSubmitted", fields: [submittedById], references: [id], onDelete: Restrict)
+    reviewedBy                  Users?                   @relation(name: "packingReportsReviewed", fields: [reviewedById], references: [id], onDelete: Restrict)
+
+    @@index([status, submittedAt])
+    @@index([orderDeliveryId, status])
+    @@index([orderDeliveryId, dispatchAllocationKey])
+    @@index([salesOrderId, status])
+    @@index([salesOrderItemId, status])
+    @@index([orderProductionSubmissionId, status])
+    @@index([dispatchAllocationItemId])
+    @@index([submittedById, status])
+    @@index([reviewedById])
+}
+
 model SalesHistory {
     id         String       @unique @default(uuid())
     data       Json?        @db.Json
@@ -561,6 +621,7 @@ model SalesOrderItems {
     assignments        OrderItemProductionAssignments[]
     productions        OrderProductionSubmissions[]
     itemDeliveries     OrderItemDelivery[]
+    packingReports     SalesPackingReport[]
     priceList          ComponentPrice[]
     itemControls       SalesItemControl[]
     lineItem           LineItem?
@@ -1070,6 +1131,7 @@ model OrderProductionSubmissions {
     assignment       OrderItemProductionAssignments? @relation(fields: [assignmentId], references: [id])
     materialReview   SalesProductionSubmissionMaterialReview? @relation(fields: [materialReviewId], references: [id])
     itemDeliveries   OrderItemDelivery[]
+    packingReports   SalesPackingReport[]
 
     payroll     Payroll?
     submittedBy Users?   @relation(fields: [submittedById], references: [id])

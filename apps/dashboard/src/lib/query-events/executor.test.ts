@@ -48,6 +48,10 @@ function createTRPCProxy() {
 			customersIndex: procedure("sales.customersIndex"),
 			getOrders: procedure("sales.getOrders"),
 			getOrdersSummary: procedure("sales.getOrdersSummary"),
+			getOpenSalesHandoffOrderScope: procedure(
+				"sales.getOpenSalesHandoffOrderScope",
+			),
+			getSalesHandoffActions: procedure("sales.getSalesHandoffActions"),
 			getSalesAccountings: procedure("sales.getSalesAccountings"),
 			getSaleTransactions: procedure("sales.getSaleTransactions"),
 			getSaleOverview: procedure("sales.getSaleOverview"),

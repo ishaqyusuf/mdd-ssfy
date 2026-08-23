@@ -1,6 +1,10 @@
 import { CollapsibleSummary } from "@/components/collapsible-summary";
 import { ErrorFallbackSales } from "@/components/error-fallback-sales";
 import PageShell from "@/components/page-shell";
+import {
+	SalesHandoffActionsAlert,
+	SalesHandoffActionsAlertSkeleton,
+} from "@/components/sales-handoff-actions-alert";
 import { SalesOrdersV2Evaluating } from "@/components/sales-orders-v2-evaluating";
 import {
 	SalesOrdersPaymentReviewSettings,
@@ -88,6 +92,9 @@ export default async function Page(props: Props) {
 						</div>
 						<SalesOrdersV2Header />
 						<SalesOrdersPaymentReviewSettings />
+						<Suspense fallback={<SalesHandoffActionsAlertSkeleton />}>
+							<SalesHandoffActionsAlert />
+						</Suspense>
 						<ErrorBoundary errorComponent={ErrorFallbackSales}>
 							<Suspense
 								fallback={

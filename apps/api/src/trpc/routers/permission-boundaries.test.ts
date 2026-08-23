@@ -309,6 +309,25 @@ describe("high-risk tRPC permission boundaries", () => {
 		}
 	});
 
+	test("Sales Handoff Trigger settings are Super Admin-only", () => {
+		const sales = source("sales.route.ts");
+		const superAdminBoundary = sales.slice(
+			sales.indexOf("async function isSuperAdmin"),
+			sales.indexOf("async function requireWorkflowComponentAdmin"),
+		);
+		expect(superAdminBoundary).toContain("deletedAt: null");
+		for (const procedure of [
+			"getSalesHandoffTrigger",
+			"updateSalesHandoffTrigger",
+		]) {
+			const start = sales.indexOf(`${procedure}: protectedProcedure`);
+			expect(start).toBeGreaterThanOrEqual(0);
+			expect(sales.slice(start, start + 900)).toContain(
+				"requireSuperAdmin(props.ctx)",
+			);
+		}
+	});
+
 	test("sales dashboard reporting reads require an authenticated sales viewer", () => {
 		const dashboard = source("sales-dashboard.route.ts");
 		for (const procedure of [

@@ -1,3 +1,4 @@
+import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import type {
 	SalesRepOptionsSchema,
 	TransferSalesRepSchema,
@@ -299,7 +300,7 @@ export async function transferSalesRep(
 	const actor = await requirePasswordConfirmedActor(ctx, input.password);
 	const reason = compactReason(input.reason);
 
-	return ctx.db.$transaction(async (tx) => {
+	const result = await ctx.db.$transaction(async (tx) => {
 		const db = tx as SalesRepTransferDb;
 		const sale = await db.salesOrders.findFirst({
 			where: {
@@ -412,4 +413,12 @@ export async function transferSalesRep(
 			salesRep: targetSalesRep,
 		};
 	});
+	if (result.changed) {
+		await reconcileSalesHandoffAfterCommit(ctx.db, {
+			salesOrderIds: [input.salesId],
+			actorUserId: actor.user.id,
+			source: "api.sales-rep-transfer",
+		});
+	}
+	return result;
 }

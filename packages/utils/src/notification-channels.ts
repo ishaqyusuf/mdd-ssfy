@@ -67,6 +67,7 @@ export const channelNames = [
 	"sales-packing-list",
 	"dispatch_packing_delay",
 	"sales_dispatch_duplicate_alert",
+	"sales_handoff_action_escalation",
 	"dealer_onboarding",
 	"dealer_profile_updated",
 	"auth_new_device_login",

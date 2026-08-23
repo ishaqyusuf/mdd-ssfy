@@ -1,3 +1,4 @@
+import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import type { TRPCContext } from "@api/trpc/init";
 import { Prisma, type TransactionClient } from "@gnd/db";
 import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
@@ -1206,6 +1207,14 @@ export async function verifyPayment(
 					},
 				})
 			: [];
+	await reconcileSalesHandoffAfterCommit(ctx.db, {
+		salesOrderIds: appliedSales.map((sale) => sale.id),
+		actorUserId:
+			ctx.userId ??
+			("customerAuthorId" in result ? result.customerAuthorId || 1 : 1),
+		source: "api.checkout.verify-payment",
+		initialExposureMilestone: "QUALIFICATION",
+	});
 	return {
 		...result,
 		appliedSales: appliedSales.map((sale) => ({

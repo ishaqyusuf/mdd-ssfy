@@ -25,7 +25,7 @@ import { useProductionAssignments } from "./production-assignments";
 import { ProductionSubmissions } from "./production-submissions";
 import { ProductionSubmitForm } from "./production-submit-form";
 import { useProductionItem } from "./production-item-context";
-import { isWorkerProductionItemSubmissionBlocked } from "./production-worker-policy";
+import { shouldWarnWorkerProductionItemMaterialReview } from "./production-worker-policy";
 import { QtyStatus } from "./qty-label";
 
 const { useContext: useAssignmentRow, Provider: ProductionAssignmentRowProvider } =
@@ -99,13 +99,13 @@ function Content({
             toast.success("Updated");
         });
     }
-	const materialBlocked = isWorkerProductionItemSubmissionBlocked({
+	const materialReviewExpected = shouldWarnWorkerProductionItemMaterialReview({
 		itemId: itemCtx.item.itemId,
 		readiness: production.readiness,
 		readinessUnavailable: production.readinessUnavailable,
 	});
 	if (view === "submissions") {
-		const submittedQty = Number(assignment?.completed?.qty || 0);
+		const submittedQty = Number(assignment?.reported?.qty || 0);
 		const assignedQty = Number(assignment?.qty?.qty || 0);
 		const hasPendingQty = Number(assignment?.pending?.qty || 0) > 0;
 		return (
@@ -122,18 +122,19 @@ function Content({
 							type="button"
 							size="sm"
 							variant={ctx.openSubmitForm ? "outline" : "default"}
-							disabled={!hasPendingQty || materialBlocked || queryCtx.dispatchMode}
+							disabled={!hasPendingQty || queryCtx.dispatchMode}
 							onClick={() => ctx.setOpenSubmitForm(!ctx.openSubmitForm)}
 						>
 							{ctx.openSubmitForm ? "Cancel" : "Add submission"}
 						</Button> : null}
 					</div> : null}
-					{materialBlocked ? (
-						<Alert variant="destructive">
+					{materialReviewExpected ? (
+						<Alert variant="warning">
 							<Icons.AlertTriangle />
-							<AlertTitle>Materials unavailable</AlertTitle>
+							<AlertTitle>Material verification required</AlertTitle>
 							<AlertDescription>
-								Submission is blocked until the required materials are available.
+								You can report completed work now. It will remain awaiting admin
+								approval until the material record is resolved.
 							</AlertDescription>
 						</Alert>
 					) : null}
@@ -241,7 +242,7 @@ function Content({
                             Submit
                         </Button>
                     </CollapsibleTrigger>
-                    <Badge
+					<Badge
 						className="gap-1 [&>svg]:size-3"
                         variant={
                             assignment.status === "completed"
@@ -258,8 +259,17 @@ function Content({
                         ) : (
 							<Icons.ClipboardList />
                         )}
-                        {assignment.status?.replace("-", " ")}
-                    </Badge>
+						{assignment.status?.replace("-", " ")}
+					</Badge>
+					{Number(assignment.pendingReview?.qty || 0) > 0 ? (
+						<Badge
+							variant="secondary"
+							className="gap-1 bg-amber-100 text-amber-900 [&>svg]:size-3"
+						>
+							<Icons.Clock />
+							{assignment.pendingReview.qty} awaiting material review
+						</Badge>
+					) : null}
                     <AccessBased>
                         <ConfirmBtn
                             disabled={

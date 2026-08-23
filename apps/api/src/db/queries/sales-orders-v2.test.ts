@@ -45,6 +45,57 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 }
 
 describe("sales orders default query contract", () => {
+	it("uses the actor-derived handoff relation without an implicit current-rep filter", async () => {
+		const countQueries: unknown[] = [];
+		const ctx = {
+			userId: 7,
+			db: {
+				users: {
+					findFirst: async () => ({
+						id: 7,
+						roles: [{ organizationId: 4, role: { name: "Super Admin" } }],
+					}),
+				},
+				salesOrders: {
+					count: async (input: unknown) => {
+						countQueries.push(input);
+						return 0;
+					},
+				},
+			},
+		} as unknown as Parameters<typeof getOrdersCount>[0];
+
+		await getOrdersCount(ctx, { needsAction: "open" });
+		await getOrdersCount(ctx, {
+			needsAction: "open",
+			"sales.rep": "Pablo Cruz",
+		});
+
+		expect(countQueries[0]).toMatchObject({
+			where: {
+				AND: [
+					expect.anything(),
+					{
+						handoffActionEpochs: {
+							some: { organizationId: { in: [4] } },
+						},
+					},
+				],
+			},
+		});
+		expect(JSON.stringify(countQueries[0])).not.toContain("salesRepId");
+		expect(countQueries[1]).toMatchObject({
+			where: {
+				AND: [
+					{
+						AND: expect.arrayContaining([{ salesRep: { name: "Pablo Cruz" } }]),
+					},
+					expect.anything(),
+				],
+			},
+		});
+	});
+
 	it("round-trips the guarded keyset cursor", () => {
 		const cursor = {
 			version: 1 as const,

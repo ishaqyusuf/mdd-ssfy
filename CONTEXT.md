@@ -58,6 +58,30 @@ Credit does not mean money has been returned through Square or another
 external payment provider.
 _Avoid_: Square refund, card refund
 
+**Sales Handoff Trigger**:
+The global Sales policy that determines which payment milestone makes missing
+material-purchasing or production-assignment work actionable for the Sales
+Order's responsible sales representative.
+_Avoid_: Payment status, order status, paid-order flag
+
+**Sales Handoff Action**:
+A required Material or Production follow-up for a Sales Order that has reached
+the Sales Handoff Trigger but is missing the corresponding operational handoff.
+_Avoid_: Generic order alert, production completion, fulfillment status
+
+**Material Handoff Action**:
+A Sales Handoff Action raised when tracked material demand lacks recorded
+supplier-order or inbound coverage. Material that is already represented by a
+valid inbound is not a Material Handoff Action merely because it has not yet
+arrived.
+_Avoid_: Material unavailable, low stock, awaiting delivery
+
+**Production Handoff Action**:
+A Sales Handoff Action raised when production-capable Sales Order quantity lacks
+an active owned production assignment. Material readiness does not determine
+whether the production handoff exists.
+_Avoid_: Production incomplete, material blocked, production status
+
 **Special Order Declaration**:
 The required Yes or No decision that classifies an entire Sales Order as
 containing special-order or non-returnable items. It applies to the order as a

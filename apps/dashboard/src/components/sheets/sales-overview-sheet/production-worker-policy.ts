@@ -5,7 +5,7 @@ type ProductionReadinessLike = {
 	}>;
 } | null;
 
-export function isWorkerProductionItemSubmissionBlocked({
+export function shouldWarnWorkerProductionItemMaterialReview({
 	itemId,
 	readiness,
 	readinessUnavailable,

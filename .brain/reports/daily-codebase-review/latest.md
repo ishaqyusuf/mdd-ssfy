@@ -1,13 +1,13 @@
 # Latest Daily GND Codebase Review
 
-Latest report: [2026-08-21](./2026-08-21.md)
+Latest report: [2026-08-23](./2026-08-23.md)
 
 ## Executive Summary
 
-This was a read-only operational review for Ishaq using the Africa/Lagos date. The active Brain directory is `.brain/`; there is still no top-level `brain/` directory in this workspace. The prompt's legacy `apps/www` and `apps/expo-app` scope maps to the current `apps/dashboard`, `apps/web`, and `apps/mobile` paths.
+This was a read-only operational review for Ishaq using the Africa/Lagos date. The active Brain directory remains `.brain/`; there is no top-level `brain/` directory in this workspace, so this report continues the existing `.brain/reports/daily-codebase-review/` history.
 
-The highest-risk pattern remains backend boundary drift: generic task execution, scheduler controls, broad operational reads/reports, and some payment/device-code flows are still exposed through public tRPC procedures. That matters for a door manufacturing operation because sales reps, dealers, warehouse staff, drivers, and managers need clear accountability for who changed a job, launched a task, issued a payment action, or viewed customer/order data.
+The highest-risk issue today is validation health: `bun run typecheck` fails in `@gnd/email` before the full monorepo can be proven. The immediate diagnostic is `packages/email/tsconfig.json` extending `@gnd/tsconfig/base.json` while `packages/email/package.json` does not list `@gnd/tsconfig`, unlike peer packages that use the same shared config.
 
-Square refunds look materially better than earlier payment risks. Brain progress records the 2026-08-21 provider-first refund implementation, focused tests, sandbox refund proof, and desktop/mobile QA. I did not treat refunds as today's unresolved top risk, but production rollout still needs operational care.
+Operationally, the main risk remains the generic public task launcher. `apps/api/src/trpc/routers/task-trigger.route.ts` accepts arbitrary task names and payloads and returns run output/error by run id. That is a poor fit for mixed-skill operations because sales, warehouse, mobile, production, and admin actions need explicit commands, typed payloads, actor accountability, and permission gates.
 
-Inventory remains a release-readiness concern. Brain still records stopped repair work by user request and prior read-only evidence of missing sales, componentless orders, stale processed candidates, drift, skipped groups, and `hasMore=true`.
+The product is improving in the right door-manufacturing direction: Sales Overview now has production readiness and worker submission blocking, mobile dispatch completion captures signatures/photos with retry-preserved proof, and dealer next-step guidance separates GND payable from customer receivable. The remaining gap is cross-surface clarity: dealers do not see the same production/material readiness vocabulary, mobile packing is still manual quantity entry rather than scan-first, and inventory correctness remains not release-clean while repairs are stopped by user request.

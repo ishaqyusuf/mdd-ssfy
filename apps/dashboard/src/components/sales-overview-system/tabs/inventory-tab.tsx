@@ -75,6 +75,7 @@ import {
 	type SalesInventorySegment,
 	useSalesInventorySegmentQuery,
 } from "../hooks/use-sales-inventory-segment-query";
+import { shouldOpenInboundCreateContinuation } from "../lib/inbound-create-continuation";
 import {
 	formatInventoryCategoryStepLabel,
 	formatInventoryDateInputValue,
@@ -756,12 +757,14 @@ function InventoryActionBar({
 	overview,
 	salesOrderId,
 	openInboundForm = false,
+	inboundCreateOpen = false,
 	onInboundFormOpened,
 	onCreateInbound,
 }: {
 	overview: NonNullable<InventoryOverview>;
 	salesOrderId: number;
 	openInboundForm?: boolean;
+	inboundCreateOpen?: boolean;
 	onInboundFormOpened?: () => void;
 	onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void;
 }) {
@@ -881,7 +884,14 @@ function InventoryActionBar({
 	const [inboundNote, setInboundNote] = useState("");
 	const [createdInboundId, setCreatedInboundId] = useState<number | null>(null);
 	useEffect(() => {
-		if (!openInboundForm) return;
+		if (
+			!shouldOpenInboundCreateContinuation({
+				requested: openInboundForm,
+				paneOpen: inboundCreateOpen,
+			})
+		) {
+			return;
+		}
 		if (onCreateInbound) {
 			onCreateInbound();
 			onInboundFormOpened?.();
@@ -899,6 +909,7 @@ function InventoryActionBar({
 		onInboundFormOpened?.();
 	}, [
 		capabilities.canCreateInbound,
+		inboundCreateOpen,
 		inboundRows.length,
 		onInboundFormOpened,
 		onCreateInbound,
@@ -2495,10 +2506,12 @@ function SalesOverviewInventoryContentBody({
 	salesOrderId,
 	onCreateInbound,
 	onViewInbound,
+	inboundCreateOpen,
 }: {
 	salesOrderId?: number | null;
 	onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void;
 	onViewInbound?: (inboundId: number) => void;
+	inboundCreateOpen?: boolean;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -2507,7 +2520,6 @@ function SalesOverviewInventoryContentBody({
 		inventorySegment: stockFilter,
 		openInboundCreator,
 		setInventorySegment: setStockFilter,
-		setOpenInboundCreator,
 	} = useSalesInventorySegmentQuery();
 	const normalizedSalesOrderId = salesOrderId ? Number(salesOrderId) : 0;
 	const inventoryQuery = useQuery(
@@ -2780,8 +2792,8 @@ function SalesOverviewInventoryContentBody({
 					openInboundForm={openInboundForm || openInboundCreator}
 					onInboundFormOpened={() => {
 						setOpenInboundForm(false);
-						setOpenInboundCreator(false);
 					}}
+					inboundCreateOpen={inboundCreateOpen}
 					onCreateInbound={onCreateInbound}
 				/>
 			) : null}
@@ -2820,10 +2832,12 @@ export function SalesOverviewInventoryContent({
 	salesOrderId,
 	onCreateInbound,
 	onViewInbound,
+	inboundCreateOpen,
 }: {
 	salesOrderId?: number | null;
 	onCreateInbound?: (mode?: "create_inbound" | "mark_available") => void;
 	onViewInbound?: (inboundId: number) => void;
+	inboundCreateOpen?: boolean;
 }) {
 	const normalizedSalesOrderId = salesOrderId ? Number(salesOrderId) : 0;
 
@@ -2836,6 +2850,7 @@ export function SalesOverviewInventoryContent({
 				salesOrderId={salesOrderId}
 				onCreateInbound={onCreateInbound}
 				onViewInbound={onViewInbound}
+				inboundCreateOpen={inboundCreateOpen}
 			/>
 		</>
 	);

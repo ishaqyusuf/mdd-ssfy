@@ -50,6 +50,16 @@ import {
 	updateStepMeta,
 	updateStepMetaSchema,
 } from "@api/db/queries/sales-form";
+import {
+	getOpenSalesHandoffOrderScope,
+	getSalesHandoffActions,
+	reconcileSalesHandoffAfterCommit,
+	reconcileSalesHandoffPolicyAfterCommit,
+} from "@api/db/queries/sales-handoff-actions";
+import {
+	getSalesHandoffTriggerSettings,
+	updateSalesHandoffTriggerSettings,
+} from "@api/db/queries/sales-handoff-trigger-settings";
 import { getSalesHx, getSalesHxSchema } from "@api/db/queries/sales-hx";
 import {
 	getOrders,
@@ -136,6 +146,7 @@ import {
 	getSettingAction,
 	normalizeSalesPrintSettings,
 	resolveSalesOverviewGeneralVersion,
+	salesHandoffTriggerInputSchema,
 	salesOverviewViewSettingsSchema,
 	salesPrintSettingsSchema,
 	specialOrderEnforcementModeSchema,
@@ -194,6 +205,9 @@ const dealerOrderRequestsSchema = z.object({
 		.enum(["pending", "approved", "rejected", "all"])
 		.optional()
 		.nullable(),
+});
+const salesHandoffActionsInputSchema = z.object({
+	limit: z.number().int().min(1).max(50).optional(),
 });
 const dealerOrderRequestIdSchema = z.object({
 	requestId: z.number(),
@@ -383,6 +397,7 @@ async function isSuperAdmin(ctx: TRPCContext) {
 	const user = await ctx.db.users.findFirst({
 		where: {
 			id: ctx.userId,
+			deletedAt: null,
 		},
 		select: {
 			roles: {
@@ -771,6 +786,18 @@ export const salesRouter = createTRPCRouter({
 					name: actor.name || "Production administrator",
 				},
 			);
+			const reconciledReview =
+				await props.ctx.db.salesProductionSubmissionMaterialReview.findUnique({
+					where: { id: result.reviewId },
+					select: { salesOrderId: true },
+				});
+			if (reconciledReview) {
+				await reconcileSalesHandoffAfterCommit(props.ctx.db, {
+					salesOrderIds: [reconciledReview.salesOrderId],
+					actorUserId: actor.id,
+					source: "api.production-submission-review.decision",
+				});
+			}
 			if (result.status !== "PENDING")
 				try {
 					const review =
@@ -983,6 +1010,49 @@ export const salesRouter = createTRPCRouter({
 					props.ctx.db,
 					props.input,
 				),
+			};
+		}),
+	getSalesHandoffTrigger: protectedProcedure.query(async (props) => {
+		await requireSuperAdmin(props.ctx);
+		return {
+			settings: await getSalesHandoffTriggerSettings(props.ctx.db),
+		};
+	}),
+	getSalesHandoffActions: protectedProcedure
+		.input(salesHandoffActionsInputSchema.optional())
+		.query(async (props) => {
+			return getSalesHandoffActions(props.ctx.db, {
+				actorUserId: props.ctx.userId,
+				limit: props.input?.limit,
+			});
+		}),
+	getOpenSalesHandoffOrderScope: protectedProcedure
+		.input(z.object({ limit: z.number().int().min(1).max(200).optional() }))
+		.query(({ ctx, input }) =>
+			getOpenSalesHandoffOrderScope(ctx.db, {
+				actorUserId: ctx.userId,
+				limit: input.limit,
+			}),
+		),
+	updateSalesHandoffTrigger: protectedProcedure
+		.input(salesHandoffTriggerInputSchema)
+		.mutation(async (props) => {
+			await requireSuperAdmin(props.ctx);
+			const result = await updateSalesHandoffTriggerSettings(
+				props.ctx.db,
+				props.input,
+			);
+			if (result.changed) {
+				await reconcileSalesHandoffPolicyAfterCommit(props.ctx.db, {
+					policyRevision: result.policy.revision,
+					policyChangedAt: result.policy.changedAt,
+					actorUserId: props.ctx.userId,
+					source: "api.sales-handoff.update-trigger-settings",
+				});
+			}
+			return {
+				settings: result.policy,
+				changed: result.changed,
 			};
 		}),
 	updatePaymentReviewSettings: protectedProcedure
@@ -1323,7 +1393,14 @@ export const salesRouter = createTRPCRouter({
 	salesPayWithWallet: publicProcedure
 		.input(salesPayWithWalletSchema)
 		.mutation(async (props) => {
-			return salesPayWithWallet(props.ctx.db, props.input);
+			const result = await salesPayWithWallet(props.ctx.db, props.input);
+			await reconcileSalesHandoffAfterCommit(props.ctx.db, {
+				salesOrderIds: props.input.salesIds,
+				actorUserId: props.ctx.userId ?? props.input.authorId ?? 1,
+				source: "api.sales.wallet-payment",
+				initialExposureMilestone: "QUALIFICATION",
+			});
+			return result;
 		}),
 	startNewSales: publicProcedure
 		.input(startNewSalesSchema)
@@ -1347,6 +1424,11 @@ export const salesRouter = createTRPCRouter({
 					// bin: false,
 					deletedAt: null,
 				},
+			});
+			await reconcileSalesHandoffAfterCommit(props.ctx.db, {
+				salesOrderIds: [props.input.salesId],
+				actorUserId: props.ctx.userId ?? 1,
+				source: "api.sales.restore",
 			});
 			return true;
 		}),
@@ -1442,6 +1524,10 @@ export const salesRouter = createTRPCRouter({
 	deleteSalesByOrderIds: protectedProcedure
 		.input(deleteSalesByOrderIdsSchema)
 		.mutation(async (props) => {
+			const affected = await props.ctx.db.salesOrders.findMany({
+				where: { orderId: { in: props.input.orderIds } },
+				select: { id: true },
+			});
 			const result = await props.ctx.db.salesOrders.updateMany({
 				where: {
 					orderId: {
@@ -1451,6 +1537,11 @@ export const salesRouter = createTRPCRouter({
 				data: {
 					deletedAt: new Date(),
 				},
+			});
+			await reconcileSalesHandoffAfterCommit(props.ctx.db, {
+				salesOrderIds: affected.map((order) => order.id),
+				actorUserId: props.ctx.userId,
+				source: "api.sales.delete-many",
 			});
 
 			return {
@@ -1498,6 +1589,11 @@ export const salesRouter = createTRPCRouter({
 						tagValue: "public",
 					},
 				],
+			});
+			await reconcileSalesHandoffAfterCommit(props.ctx.db, {
+				salesOrderIds: [props.input.salesId],
+				actorUserId: props.ctx.userId,
+				source: "api.sales.delete",
 			});
 			return true;
 		}),

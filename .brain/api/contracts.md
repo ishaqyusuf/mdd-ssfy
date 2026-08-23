@@ -1,5 +1,140 @@
 # API Contracts
 
+## Material And Production Sales Handoff Actions (2026-08-23)
+
+- Protected `sales.getSalesHandoffActions({ limit? })` accepts only an optional
+  integer limit from 1 through 50. Representative scope is always
+  `ctx.userId`; unknown or forged representative fields are stripped and never
+  reach the database query.
+- Active Super Admins receive organization-wide unresolved actions grouped by
+  responsible representative; other active users remain representative-scoped.
+  Results are ordered by opening time, order number, Material before Production,
+  then epoch id. The alert reveals six more actions per activation.
+- Protected `sales.getOpenSalesHandoffOrderScope` returns bounded distinct ids,
+  an exact `uniqueOrderCount`, and truncation metadata. Server callers reuse
+  `getOpenSalesHandoffEpochWhere` for exact relation filtering/pagination.
+- The response is
+  `{ actions, total, counts: { MATERIAL, PRODUCTION }, limit, truncated }`.
+  `total` and both per-type counts are exact for the authenticated actor scope,
+  independent of the bounded returned action page. Actions are stable
+  oldest-first Material or Production epochs with scalar action/order/representative identity,
+  uncovered quantity, ISO qualification/open timestamps, and policy/evidence
+  revisions. Read repair is split into two independently bounded sets: the
+  oldest 200 open epochs are always eligible for resolution regardless of order
+  age, while up to 200 new-open candidates are nondeleted, nonterminal orders
+  for the session representative ordered by newest update/create evidence.
+- Production actions add `targetSalesItemId`, `targetControlUid`, optional
+  `targetAssignmentId`, and `orderRevision`. Material actions return those
+  fields as `null`. No assignment mutation authority or worker identity is
+  exposed.
+
+## Sales Handoff escalation contract (2026-08-23)
+
+- First-open action clock is the later of qualification or the policy change
+  that newly exposed it. One New York business day is the same wall time on the
+  next weekday. Transfer preserves the epoch and clock; genuine reopen creates
+  a new epoch and clock; resolution cancels an unsent escalation.
+- The 15-minute bounded schedule atomically claims due unresolved epochs and
+  creates one activity-only NotePad notification plus one durable ledger row per
+  active Super Admin in the epoch organization. No email, SMS, push, or WhatsApp
+  handler exists.
+- Organization scope prefers `SalesOrders.orgId`, otherwise requires exactly one
+  organization from the responsible rep's active role assignments. Missing or
+  ambiguous scope fails closed and is logged.
+- Notification deep links use the persisted order/action/production-control
+  snapshot and re-enter ordinary protected Sales Overview authorization.
+- Marking the activity read records the authenticated recipient's
+  `acknowledgedAt`; acknowledgement never changes `resolvedAt`.
+- The read consumes canonical `PaymentProjection` totals plus identity-bearing
+  posted allocation/ledger occurrence evidence and the shared Ticket 01
+  qualifier. It does not interpret raw receipt status or create operational
+  evidence.
+- `reconcileMaterialSalesHandoffOrder({ salesOrderId, actorUserId })` is an
+  exact affected-order command. It loads only that order and its canonical
+  payment/allocation evidence, reconciles both Material and Production epochs,
+  and resolves existing epochs when the row is missing or no longer
+  actionable. It never invokes the representative-scoped bounded read.
+- `reconcileSalesHandoffOrders` deduplicates explicit affected ids for
+  post-commit mutation orchestration. A settings-policy change immediately
+  reconciles a bounded union of the 200 oldest opens and 200 newest active
+  orders; the recurring repair worker owns remaining global fan-out.
+- Reconciliation and Sales Handoff settings persistence are package-owned
+  services (`@gnd/sales/sales-handoff` and `@gnd/settings`). API callers retain
+  compatibility re-exports, while jobs consume the package contract directly;
+  no API-to-jobs or jobs-to-API dependency is introduced.
+- Posted allocation evidence recognizes `payment`, `refund`, `void`, and
+  `square_refund`; magnitudes are normalized from type semantics before the
+  cumulative settlement timeline is built, so negative Square-refund storage
+  cannot increase settled value.
+- Material actions open Sales Overview with `salesTab=inventory`,
+  `inventorySegment=stock`, and `inventoryCreateInbound=true`. The Create
+  inbound continuation remains URL-owned while its secondary pane is mounted,
+  survives copied-link reload, and is cleared only when that pane or the outer
+  Sales Overview closes. A mounted pane suppresses repeat opening, and the
+  existing secondary-pane exit path restores focus to its opening control.
+- Production actions open Sales Overview with `mode=sales-production`,
+  `salesTab=production`, the exact `prod-item-view` control UID, and
+  `prod-item-tab=assignments`. Existing Sales Overview session authorization is
+  re-applied; the deep link does not authorize assignment or submission writes.
+- The read derives Production quantity from current production-capable controls,
+  active owned assignments, completed owned assignments, and finalized
+  attributable submission evidence. Pending/rejected/deleted reviews,
+  unrelated/stale controls, and unowned assignment quantity do not cover.
+- The Sales Orders server batch prefetch excludes
+  `sales.getSalesHandoffActions`. The alert owns a non-Suspense client query so
+  server markup and the first hydration render both begin with its compact
+  skeleton, then independently resolve to alert, empty, or explicit retryable
+  error state without delaying table or summary prefetch.
+
+
+## Sales Handoff recurring reconciliation contract (2026-08-23)
+
+- `sales-handoff-reconciliation-schedule` runs every 15 minutes on a queue with
+  concurrency one and processes at most 200 unique Sales Order ids per run.
+  Durable order repair markers are selected first, then a rotating keyset over
+  open Material/Production epochs, while at least 50 slots remain available for
+  the active-order primary-key cursor. No full active Sales Orders working set
+  is loaded.
+- `ScheduleHistory` persists the active-order cursor, open-epoch cursor,
+  policy-revision fan-out state, source counts, scanned/reconciled/failed totals,
+  cursor wrap evidence, and a bounded failure sample for every run.
+- Every committed policy revision first upserts an open revision marker with
+  its original policy-change timestamp, then performs the bounded immediate
+  reconciliation. The marker resets the active cursor once and stays open until
+  the complete active-order pass wraps, including when the immediate pass
+  succeeds. Only active-cursor candidates in that pass use the explicit
+  `POLICY_CHANGE` initial-exposure milestone. Priority repair/open candidates
+  remain unmarked, and ordinary recurring discovery remains unmarked, so later
+  evidence loss starts its SLA at reconciliation time.
+- When a policy-pass active candidate fails, its deterministic order repair
+  marker retains the policy milestone, revision, and change timestamp. A retry
+  replays that exact first-exposure context even after the global fan-out has
+  wrapped, so the epoch opens at policy time rather than retry time. The global
+  policy marker is not resolved if this durable handoff cannot be recorded.
+- Missing/deleted orders enter the exact command and resolve their open epochs.
+  Per-order projection failures upsert the deterministic order repair marker;
+  worker/source failures upsert a global worker marker, persist failed run
+  history, and fail the Trigger task. Missing canonical payment evidence and an
+  otherwise-empty result caused by unavailable inventory evidence are errors,
+  never an implicit empty queue.
+- If inventory applicability is unavailable while Production truth is still
+  actionable, reconciliation advances Production only and leaves Material
+  untouched. It neither resolves a prior Material epoch nor creates a false
+  Material epoch from unavailable evidence.
+
+## Dispatch Packing Item Presentation Contract (2026-08-23)
+
+- `dispatch.dispatchOverviewV2` reuses the canonical composed Production item
+  title and subtitle for legacy dispatch rows instead of preferring stale
+  persisted `SalesItemControl` fallback labels.
+- Canonical Production control rows are projected first so distinct door sizes
+  and handings remain separate in Packing. Persisted controls without a current
+  Production counterpart are appended only as legacy compatibility rows.
+- The subtitle retains the Production projection's section/item type, door
+  dimension, swing/handing, quantity, and labor context. Existing dispatch ids,
+  quantity matrices, packing lines, inventory readiness, permissions, and write
+  contracts are unchanged.
+
 ## Fulfillment Calendar Contract (2026-08-21)
 
 - `dispatch.fulfillmentCalendar({ from, to })` accepts real `YYYY-MM-DD` dates,
@@ -1220,16 +1355,29 @@ Tracks important request/response contracts and shared schema boundaries.
 
 - A production submission returns `finalized` or `pending_material_review`,
   review id, material revision, submitted count, and idempotent-replay state.
-- The authenticated direct submission action derives a production-only worker
-  boundary from `viewProduction && !viewOrders`. For that actor class, the
-  shared submission authority rejects configured awaiting-inbound,
-  allocation-review, blocked, or projection-unavailable evidence before it
-  creates a review or submission. `NOT_CONFIGURED` remains eligible for the
-  existing pending material-review result. Admin/supervisor behavior is
-  unchanged.
+- Per ADR-063, the authenticated direct submission action accepts assigned
+  production-worker reports even when exact-scope material evidence is awaiting
+  inbound, awaiting allocation, blocked, unconfigured, or temporarily
+  unavailable. Those states create a guarded pending review; they do not
+  hard-block the physical-work report. Production capability and elevated
+  submit-for-others authority are derived server-side from the authenticated
+  profile.
 - Every new produceable submission has a server-validated batch key and scoped
-  assignment/material snapshot. Reuse with another order, worker, or assignment
-  scope is rejected.
+  assignment/material snapshot, including original owner, assignment revision,
+  and labor terms. Reuse with another order, reporting actor, quantity, or
+  assignment scope is rejected. Exact authenticated retries replay before
+  mutable assignment validation, including after later reassignment/deletion.
+- Approval re-reads the active assignment and cancels stale ownership or
+  revision scope without payroll. Fresh approval pays only the original
+  snapshotted assignee, never a replacement worker.
+- Pending reviews created before owner/revision/labor snapshots use a bounded
+  compatibility path. Only the exact legacy scope shape is eligible; decision
+  revalidates the original reporter, one-to-one review/submission/assignment
+  scope, positive bounded quantity, active owner, control identity, and an
+  assignment revision strictly earlier than the submission. Equal timestamps
+  are ambiguous because legacy submission timestamps have second-level
+  precision, so they cancel without payroll. Valid scope is backfilled
+  transactionally before approval; unverifiable or changed scope is cancelled.
 - Pending review quantity is reported but not finalized. Only approved or
   legacy no-review submissions contribute to production completion, packing,
   dispatch, payroll, or completion-dependent payment review.
@@ -1592,3 +1740,61 @@ implementation phase is approved and released.
   Trigger enqueue deduplication is global with a five-minute TTL. Comparison may
   ignore insignificant JSON floating-point serialization noise, but material
   numeric differences remain mismatches.
+
+## Guarded packing report contract (2026-08-23)
+
+- Protected `packingReports.context`, `.submit`, and `.decide` procedures use
+  session identity. Submit binds one dispatch, production submission, exact
+  canonical `OrderItemDelivery` allocation row, scalar-or-LH/RH quantity,
+  evidence revision, and idempotency identity. Split submissions across two
+  dispatches therefore have distinct report scopes.
+- `packingReports.context.reports[]` exposes the bound `salesOrderItemId` so the
+  dashboard can place pending review evidence and reviewer actions on the exact
+  item in the ordinary packing list. The submit UI checks normal deliverables
+  first and uses reportable lines only for the remaining eligible quantity.
+- Assignment-scoped reporters are rechecked against the locked dispatch before
+  submit; role-scoped reporters remain independent of assignment. `missing
+  items` is a legitimate pre-trip report state, while `in progress` and later
+  lifecycle states are not reportable.
+- Approval rebuilds production-review, exact allocation, canonical-packing, and
+  remaining-quantity evidence inside the transaction and invokes canonical
+  packing only for the exact unchanged report. Scalar and LH/RH report
+  quantities are normalized through the same canonical quantity-matrix
+  semantics before the approved delta is authorized; rejection changes no
+  canonical operational fact. Batch completion locks and verifies every
+  dispatch hold in the same serializable transaction before any quantity,
+  dispatch, reset, or lifecycle side effect.
+- Inventory-backed prepare/pick acquires the deterministic dispatch lock and
+  rechecks the pending-report hold before its fresh scope read. Canonical packed
+  rows, allocation assignment, picking, readiness verification, and the packed
+  dispatch transition share that one serializable transaction, so a failure or
+  concurrent pending report rolls the complete operation back.
+- Canonical clear-packing and single-item unpack commands derive active
+  dispatch scope from persisted rows, acquire the mandatory lock and pending
+  hold, recheck exact scope, then unpack and reset derived sales state in one
+  serializable transaction. Exported packing, trip-start, and completion tasks
+  do not accept caller-supplied replacements for this mandatory guard.
+- Direct dispatch deletion and duplicate-dispatch cleanup lock every selected
+  dispatch and reject the whole serializable transaction while any selected
+  dispatch has a pending packing report. Pending audit evidence is never hidden
+  behind a soft-deleted dispatch.
+- `updateSalesDeliveryOption` no longer accepts or writes a dispatch lifecycle
+  status; all lifecycle transitions continue through guarded dispatch authority.
+
+## Authenticated mobile mutation contract (2026-08-23)
+
+- `taskTrigger.trigger` accepts only `update-sales-control`; arbitrary Trigger
+  task identifiers, including generic `notification`, are rejected before job
+  dispatch. The API and durable worker both reauthorize and normalize the actor.
+- Packing writes prove the active dispatch belongs to `meta.salesId` before and
+  after the dispatch lock. Replace-existing packing is scoped by both sale and
+  dispatch, so a cross-sale id mismatch produces no write or hold bypass.
+- `dispatch.deletePackingItem` no longer accepts `deleteBy`. The protected route
+  supplies the authenticated employee name and the canonical unpack row writes
+  `unpackedBy`.
+- Direct protected dispatch cancel/start/submit inputs overwrite caller `meta`
+  identity before task and audit/notification use.
+- `taskTrigger.notification` is the dedicated mobile contract for the five
+  supported operational channels. It ignores caller author and recipient data,
+  reloads the job or dispatch, authorizes that entity, and derives canonical
+  scope and recipients before sending.

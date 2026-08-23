@@ -40,6 +40,7 @@
 		"db:push": "bun --env-file=/dev/null ../../local-infra-kit/bin/db.ts push --profile gnd",
 		"db:studio": "bun --env-file=/dev/null ../../local-infra-kit/bin/db.ts studio --profile gnd",
 		"db:sync": "bun --env-file=/dev/null ../../local-infra-kit/bin/db-sync.ts --profile gnd",
+		"db:seed-preview-sales": "bun run --cwd packages/db db:seed-preview-sales",
 		"dev": "bun ../../local-infra-kit/bin/dev.ts --profile gnd",
 		"dev:local-db:preview-redis": "bun ../../local-infra-kit/bin/dev.ts --profile gnd --local --redis-preview",
 		"dev:preview-db:local-redis": "bun ../../local-infra-kit/bin/dev.ts --profile gnd --preview --redis-local",

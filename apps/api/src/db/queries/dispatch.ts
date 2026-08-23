@@ -58,6 +58,10 @@ import {
 import type { UpdateSalesControl } from "@sales/schema";
 import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
 import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
+import {
+	assertDispatchDeletionPackingAllowed,
+	assertDispatchStatusPackingAllowed,
+} from "./dispatch-status-packing-hold";
 
 function isControlReadParityEnabled() {
 	return ["1", "true", "yes", "on"].includes(
@@ -794,67 +798,111 @@ export async function resolveDuplicateDispatchGroup(
 	}
 
 	const now = new Date();
-	const result = await ctx.db.$transaction(async (tx) => {
-		const activeDispatches = await tx.orderDelivery.findMany({
-			where: {
-				salesOrderId: input.salesId,
-				deletedAt: null,
-			},
-			select: {
-				id: true,
-			},
-		});
+	const result = await ctx.db.$transaction(
+		async (tx) => {
+			const activeDispatches = await tx.orderDelivery.findMany({
+				where: {
+					salesOrderId: input.salesId,
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+				},
+			});
 
-		if (activeDispatches.length <= 1) {
+			if (activeDispatches.length <= 1) {
+				return {
+					salesId: input.salesId,
+					keepDispatchId: input.keepDispatchId,
+					deletedDispatchIds: [] as number[],
+					alreadyClean: true,
+				};
+			}
+
+			const activeIds = new Set(
+				activeDispatches.map((dispatch) => dispatch.id),
+			);
+			if (!activeIds.has(input.keepDispatchId)) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "Selected keep dispatch is stale or no longer active.",
+				});
+			}
+
+			const validDeleteIds = deleteDispatchIds.filter((id) =>
+				activeIds.has(id),
+			);
+			if (!validDeleteIds.length) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"Selected duplicate dispatches are stale or already resolved.",
+				});
+			}
+			await assertDispatchDeletionPackingAllowed(tx, {
+				dispatchIds: validDeleteIds,
+				salesOrderId: input.salesId,
+			});
+
+			await tx.orderDelivery.updateMany({
+				where: {
+					salesOrderId: input.salesId,
+					id: {
+						in: validDeleteIds,
+					},
+					deletedAt: null,
+				},
+				data: {
+					deletedAt: now,
+				},
+			});
+
 			return {
 				salesId: input.salesId,
 				keepDispatchId: input.keepDispatchId,
-				deletedDispatchIds: [] as number[],
-				alreadyClean: true,
+				deletedDispatchIds: validDeleteIds,
+				alreadyClean: false,
 			};
-		}
-
-		const activeIds = new Set(activeDispatches.map((dispatch) => dispatch.id));
-		if (!activeIds.has(input.keepDispatchId)) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Selected keep dispatch is stale or no longer active.",
-			});
-		}
-
-		const validDeleteIds = deleteDispatchIds.filter((id) => activeIds.has(id));
-		if (!validDeleteIds.length) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Selected duplicate dispatches are stale or already resolved.",
-			});
-		}
-
-		await tx.orderDelivery.updateMany({
-			where: {
-				salesOrderId: input.salesId,
-				id: {
-					in: validDeleteIds,
-				},
-				deletedAt: null,
-			},
-			data: {
-				deletedAt: now,
-			},
-		});
-
-		return {
-			salesId: input.salesId,
-			keepDispatchId: input.keepDispatchId,
-			deletedDispatchIds: validDeleteIds,
-			alreadyClean: false,
-		};
-	});
+		},
+		{ isolationLevel: "Serializable" },
+	);
 
 	return {
 		ok: true,
 		...result,
 	};
+}
+
+export async function deleteDispatch(ctx: TRPCContext, dispatchId: number) {
+	await ctx.db.$transaction(
+		async (tx) => {
+			const dispatch = await tx.orderDelivery.findFirst({
+				where: { id: dispatchId, deletedAt: null },
+				select: { salesOrderId: true, status: true },
+			});
+			if (!dispatch) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "DISPATCH_NOT_FOUND",
+				});
+			}
+			if (dispatch.status === "completed") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Completed dispatch cannot be deleted.",
+				});
+			}
+			await assertDispatchDeletionPackingAllowed(tx, {
+				dispatchIds: [dispatchId],
+				salesOrderId: dispatch.salesOrderId,
+			});
+			await tx.orderDelivery.update({
+				where: { id: dispatchId },
+				data: { deletedAt: new Date() },
+			});
+		},
+		{ isolationLevel: "Serializable" },
+	);
 }
 
 export async function getSalesDeliveryInfo(ctx: TRPCContext, salesId) {
@@ -893,8 +941,7 @@ export async function updateSalesDeliveryOption(
 			},
 		});
 	}
-	const hasDeliveryDetails =
-		data.date != null || data.driverId != null || data.status != null;
+	const hasDeliveryDetails = data.date != null || data.driverId != null;
 	if (!data.deliveryId && !hasDeliveryDetails) return;
 
 	let deliveryId = data.deliveryId;
@@ -911,7 +958,7 @@ export async function updateSalesDeliveryOption(
 								},
 							}
 						: undefined,
-					status: data.status || ("queue" as SalesDispatchStatus),
+					status: "queue" as SalesDispatchStatus,
 					dueDate: data.date,
 					meta: {},
 					order: {
@@ -938,10 +985,6 @@ export async function updateSalesDeliveryOption(
 					break;
 				case "option":
 					updateData.deliveryMode = value;
-					break;
-				case "status":
-					updateData.status = value;
-					updateData.deliveredAt = value === "completed" ? new Date() : null;
 					break;
 			}
 		});
@@ -1455,6 +1498,7 @@ async function sendDispatchNotification(
 
 type DispatchSelect = {
 	id: number;
+	salesOrderId: number;
 	status: string | null;
 	driverId: number | null;
 	dueDate: Date | null;
@@ -1517,6 +1561,7 @@ async function getDispatchForUpdate(
 
 	return {
 		id: dispatch.id,
+		salesOrderId: dispatch.order.id,
 		status: dispatch.status,
 		driverId: dispatch.driverId,
 		dueDate: dispatch.dueDate,
@@ -1713,15 +1758,29 @@ export async function updateDispatchStatus(
 		};
 	}
 
-	await ctx.db.orderDelivery.update({
-		where: {
-			id: dispatch.id,
-		},
+	await ctx.db.$transaction(
+		async (tx) => {
+			await assertDispatchStatusPackingAllowed(tx, {
+				dispatchId: dispatch.id,
+				salesOrderId: dispatch.salesOrderId,
+				newStatus,
+			});
+			const updated = await tx.orderDelivery.updateMany({
+				where: { id: dispatch.id, status: oldStatus, deletedAt: null },
 		data: {
 			status: newStatus as SalesDispatchStatus,
 			deliveredAt: newStatus === "completed" ? new Date() : null,
 		},
 	});
+			if (updated.count !== 1) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "CONFLICT_STALE_STATUS",
+				});
+			}
+		},
+		{ isolationLevel: "Serializable" },
+	);
 
 	let channel = mapStatusToNotificationChannel(newStatus);
 	if (newStatus === "cancelled" && oldStatus === "in progress") {
@@ -2087,10 +2146,26 @@ export async function getDispatchOverviewV2(
 	const order = result.order;
 	const address = normalizeShippingAddress(order.shippingAddress as any);
 
-	const legacyDispatchItems = result.order.itemControls.map((item) => {
-		const dispatchable = result.dispatchables.find((d) => d.uid === item.uid);
+	const canonicalDispatchItemUids = new Set(
+		result.dispatchables.map((item) => item.uid),
+	);
+	const itemControlByUid = new Map(
+		result.order.itemControls.map((item) => [item.uid, item]),
+	);
+	const legacyDispatchItemSources = [
+		...result.dispatchables.map((dispatchable) => ({
+			dispatchable,
+			item: itemControlByUid.get(dispatchable.uid),
+		})),
+		...result.order.itemControls
+			.filter((item) => !canonicalDispatchItemUids.has(item.uid))
+			.map((item) => ({ dispatchable: undefined, item })),
+	];
+	const legacyDispatchItems = legacyDispatchItemSources.map(
+		({ dispatchable, item }) => {
+			const uid = dispatchable?.uid ?? item!.uid;
 		const listedItems = dispatch?.items.filter(
-			(a) => a.item?.controlUid === item.uid,
+				(a) => a.item?.controlUid === uid,
 		);
 		const packedItems = listedItems?.filter(
 			(a) => !("packingStatus" in a) || a.packingStatus === "packed",
@@ -2101,7 +2176,7 @@ export async function getDispatchOverviewV2(
 					.filter((d) => d.status !== "cancelled")
 					.flatMap((d) =>
 						d.items
-							.filter((i) => i.item.controlUid === item.uid)
+								.filter((i) => i.item.controlUid === uid)
 							.flatMap(transformQtyHandle),
 					),
 			),
@@ -2136,8 +2211,9 @@ export async function getDispatchOverviewV2(
 				(p, o) =>
 					!p.packingUid ||
 					(p.packingUid &&
-						packingHistory?.findIndex((a) => a.packingUid === p.packingUid) ===
-							o),
+							packingHistory?.findIndex(
+								(a) => a.packingUid === p.packingUid,
+							) === o),
 			)
 			.map((d) => ({
 				...d,
@@ -2199,13 +2275,15 @@ export async function getDispatchOverviewV2(
 			);
 			deliverableBySubmission.set(
 				submissionId,
-				recomposeQty(qtyMatrixSum(existing as any, listedSubmissionQty as any)),
+					recomposeQty(
+						qtyMatrixSum(existing as any, listedSubmissionQty as any),
+					),
 			);
 		});
 
 		const manifestItem = normalizeLegacyDispatchManifestItem({
-			title: item.title,
-			sectionTitle: item.sectionTitle,
+				title: dispatchable?.title || item?.title,
+				sectionTitle: dispatchable?.sectionTitle || item?.sectionTitle,
 			size: dispatchable?.size,
 			swing: dispatchable?.swing,
 			doorId: dispatchable?.doorId,
@@ -2214,10 +2292,10 @@ export async function getDispatchOverviewV2(
 		});
 
 		return {
-			uid: item.uid,
-			title: item.title,
-			subtitle: dispatchable?.subtitle || item.sectionTitle || "",
-			sectionTitle: item.sectionTitle || "",
+				uid,
+				title: dispatchable?.title || item?.title || "Untitled item",
+				subtitle: dispatchable?.subtitle || item?.sectionTitle || "",
+				sectionTitle: dispatchable?.sectionTitle || item?.sectionTitle || "",
 			img: dispatchable?.img || null,
 			dispatchable: true,
 			itemConfig: (dispatchable as any)?.itemConfig || null,
@@ -2237,7 +2315,8 @@ export async function getDispatchOverviewV2(
 			packingHistory,
 			...manifestItem,
 		};
-	});
+		},
+	);
 	const inventoryManifest = await getDispatchInventoryManifest(ctx.db, {
 		salesOrderId: order.id,
 		orderDeliveryId: dispatch?.id,

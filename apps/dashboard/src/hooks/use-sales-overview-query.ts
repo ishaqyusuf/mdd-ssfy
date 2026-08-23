@@ -1,5 +1,6 @@
 import type { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
 import {
+	parseAsBoolean,
 	parseAsInteger,
 	parseAsJson,
 	parseAsString,
@@ -12,6 +13,8 @@ import {
 	type LegacySalesOverviewMode,
 	type LegacySalesOverviewTab,
 	composeLegacySalesOverviewOpenParams,
+	composeMaterialSalesOverviewOpenParams,
+	composeProductionSalesOverviewOpenParams,
 } from "./sales-overview-open-params";
 import { useAuth } from "./use-auth";
 import { useOnCloseQuery } from "./use-on-close-query";
@@ -57,6 +60,8 @@ export function useSalesOverviewQuery() {
 		salesTransaction: parseAsString,
 		salesPayment: parseAsString,
 		salesRefund: parseAsString,
+		inventorySegment: parseAsStringEnum(["stock", "inbounds", "non_stock"]),
+		inventoryCreateInbound: parseAsBoolean,
 	});
 	const auth = useAuth();
 	const assignedTo =
@@ -129,6 +134,18 @@ export function useSalesOverviewQuery() {
 				composeLegacySalesOverviewOpenParams(orderNo, mode, {
 					assignedTo,
 				}),
+			);
+		},
+		openMaterial(orderNo: string) {
+			setParams(composeMaterialSalesOverviewOpenParams(orderNo, assignedTo));
+		},
+		openProduction(orderNo: string, targetControlUid: string | null) {
+			setParams(
+				composeProductionSalesOverviewOpenParams(
+					orderNo,
+					targetControlUid,
+					assignedTo,
+				),
 			);
 		},
 	};

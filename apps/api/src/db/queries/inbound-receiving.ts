@@ -1,3 +1,7 @@
+import {
+	reconcileSalesHandoffAfterCommit,
+	reconcileSalesHandoffOrders,
+} from "@api/db/queries/sales-handoff-actions";
 import type { TRPCContext } from "@api/trpc/init";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
 import { assertSpecialOrderOperationAllowedForApi } from "@api/utils/special-order-enforcement";
@@ -1050,6 +1054,7 @@ export async function updateInboundShipmentStatusQuery(
 	deps: {
 		syncSalesInventoryProjection?: typeof runSalesInventoryProjectionSync;
 		createActivity?: typeof createInboundActivity;
+		reconcileSalesHandoffOrders?: typeof reconcileSalesHandoffOrders;
 	} = {},
 ) {
 	const actor = await getInboundActor(ctx);
@@ -1197,6 +1202,15 @@ export async function updateInboundShipmentStatusQuery(
 			),
 		);
 	}
+	await reconcileSalesHandoffAfterCommit(
+		ctx.db,
+		{
+			salesOrderIds,
+			actorUserId: ctx.userId ?? 1,
+			source: "api.inbound.status-update",
+		},
+		{ reconcile: deps.reconcileSalesHandoffOrders },
+	);
 
 	await (deps.createActivity ?? createInboundActivity)(ctx, {
 		inboundId: input.inboundId,
@@ -1438,6 +1452,7 @@ export async function createInboundShipmentFromDemandsQuery(
 		getSalesSetting?: typeof getSettingAction;
 		autoReviewPayments?: typeof autoReviewSalesPaymentsForOrderAction;
 		createActivity?: typeof createInboundActivity;
+		reconcileSalesHandoffOrders?: typeof reconcileSalesHandoffOrders;
 	} = {},
 ) {
 	const actor = await getInboundActor(ctx);
@@ -1585,6 +1600,15 @@ export async function createInboundShipmentFromDemandsQuery(
 				updatedSalesOrderCount,
 			};
 		});
+	await reconcileSalesHandoffAfterCommit(
+		ctx.db,
+		{
+			salesOrderIds: linkedSales.map((sale) => sale.id),
+			actorUserId: ctx.userId ?? 1,
+			source: "api.inbound.create-from-demands",
+		},
+		{ reconcile: deps.reconcileSalesHandoffOrders },
+	);
 	const inbound = await ctx.db.inboundShipment.findFirst({
 		where: {
 			id: result.inboundId,

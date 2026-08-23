@@ -3,6 +3,7 @@
 import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
+import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 import { updateQtyControlAction } from "../item-control.action";
 import {
@@ -13,6 +14,7 @@ import { itemControlUidObject } from "../../utils/item-control-utils";
 import { _notify } from "@/app-deps/(v1)/_actions/notifications";
 import { submitProductionAssignment } from "@sales/production-submission-review";
 import { getLoggedInProfile } from "@/actions/cache/get-loggedin-profile";
+import { requireProductionSubmissionAuthority } from "@/actions/production-submission-authority";
 
 export async function createItemAssignmentAction({
     salesItemId,
@@ -78,8 +80,13 @@ export async function createItemAssignmentAction({
             await updateSalesStatControlAction(salesId);
         }
         return assignment.id;
-    }) as any)) as any;
-    return assignmentId;
+		}) as any)) as any;
+	await reconcileSalesHandoffAfterCommit(prisma, {
+		salesOrderIds: [salesId],
+		actorUserId: await authId(),
+		source: "dashboard.production.create-item-assignment",
+	});
+	    return assignmentId;
 }
 export async function deleteItemAssignmentAction({ id }) {
 	const salesId = await prisma.$transaction(async (tx) => {
@@ -114,7 +121,12 @@ export async function deleteItemAssignmentAction({ id }) {
         await resetSalesStatAction(a.orderId);
         return a.orderId;
 	});
-    await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
+	    await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
+	await reconcileSalesHandoffAfterCommit(prisma, {
+		salesOrderIds: [salesId],
+		actorUserId: await authId(),
+		source: "dashboard.production.delete-item-assignment",
+	});
 }
 export async function submitItemAssignmentAction({
     uid,
@@ -130,7 +142,8 @@ export async function submitItemAssignmentAction({
 }) {
 	const actor = await getLoggedInProfile();
 	if (!actor.userId) throw new Error("Authentication is required.");
-	return submitProductionAssignment(prisma as any, {
+	const authority = requireProductionSubmissionAuthority(actor);
+	const result = await submitProductionAssignment(prisma as any, {
 		salesOrderId: salesId,
 		salesOrderItemId: salesItemId,
 		assignmentId,
@@ -141,11 +154,17 @@ export async function submitItemAssignmentAction({
 		qty,
                 lhQty: lh,
                 rhQty: rh,
-		allowSubmitForOthers: Boolean(actor.can?.editProduction),
-            });
+		allowSubmitForOthers: authority.allowSubmitForOthers,
+	            });
+	await reconcileSalesHandoffAfterCommit(prisma, {
+		salesOrderIds: [salesId],
+		actorUserId: actor.userId,
+		source: "dashboard.production.submit-item-assignment",
+	});
+	return result;
 }
 export async function updateAssignmentDueDateAction(assignmentId, dueDate) {
-    await prisma.orderItemProductionAssignments.update({
+	    await prisma.orderItemProductionAssignments.update({
         where: {
             id: assignmentId,
         },
@@ -158,14 +177,20 @@ export async function updateAssignmentAssignedToAction(
     assignmentId,
 	assignedToId,
 ) {
-    await prisma.orderItemProductionAssignments.update({
+	    const assignment = await prisma.orderItemProductionAssignments.update({
         where: {
             id: assignmentId,
         },
         data: {
-            assignedToId,
-        },
-    });
+			assignedToId,
+	        },
+		select: { orderId: true },
+	    });
+	await reconcileSalesHandoffAfterCommit(prisma, {
+		salesOrderIds: [assignment.orderId],
+		actorUserId: await authId(),
+		source: "dashboard.production.update-assignment-owner",
+	});
 }
 export async function deleteSubmissionAction({ id }) {
 	const salesId = await prisma.$transaction(async (tx) => {
@@ -178,5 +203,12 @@ export async function deleteSubmissionAction({ id }) {
         await resetSalesStatAction(resp.salesOrderId);
         return resp.salesOrderId;
 	});
-    await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
+	    await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
+	if (salesId) {
+		await reconcileSalesHandoffAfterCommit(prisma, {
+			salesOrderIds: [salesId],
+			actorUserId: await authId(),
+			source: "dashboard.production.delete-submission",
+		});
+	}
 }

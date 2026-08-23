@@ -77,9 +77,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
       itemConfig: item.itemConfig,
       analytics: item.analytics,
       pendingSubmissions: item.analytics?.pendingSubmissions,
-      subtitle: [item.sectionTitle, item.size, item.swing]
-        .filter(Boolean)
-        .join(" | "),
+      subtitle: item.subtitle,
       availableQty: qtyMatrixDifference(
         item.itemConfig?.production
           ? item.analytics.stats.prodCompleted

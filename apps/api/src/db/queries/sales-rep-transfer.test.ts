@@ -73,6 +73,12 @@ function buildTransferContext({
 	const transactionCalls: Array<{ name: string; payload: unknown }> = [];
 	const attempts: Array<{ name: string; payload: unknown }> = [];
 	const tx = {
+		salesHandoffActionEpoch: {
+			findMany: async () => [],
+			update: async () => {
+				throw new Error("unexpected handoff epoch update");
+			},
+		},
 		users: {
 			findFirst: async ({ where }: { where: { id: number } }) =>
 				users.get(where.id) ?? null,

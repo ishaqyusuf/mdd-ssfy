@@ -1,17 +1,48 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
 
-const paths = [
-	"../app/(clean-code)/(sales)/_common/data-actions/production-actions/item-assign-action.ts",
-	"../app/(clean-code)/(sales)/_common/data-access/sales-prod.dta.ts",
-	"../app-deps/(clean-code)/(sales)/_common/data-access/sales-prod.dta.ts",
-];
+import {
+	requireProductionSubmissionAuthority,
+	resolveProductionSubmissionAuthority,
+} from "./production-submission-authority";
 
-describe("legacy production submission writers", () => {
-	it("route produceable submissions through the shared review authority", () => {
-		for (const path of paths) {
-			const source = readFileSync(new URL(path, import.meta.url), "utf8");
-			expect(source.includes("submitProductionAssignment")).toBe(true);
+describe("production submission authority", () => {
+	it("allows an assigned production worker without submit-for-others authority", () => {
+		expect(
+			resolveProductionSubmissionAuthority({
+				role: "Production",
+				can: { viewProduction: true, editProduction: false },
+			}),
+		).toEqual({
+			canSubmitProduction: true,
+			allowSubmitForOthers: false,
+		});
+	});
+
+	it("preserves elevated and production edit authority for submit-for-others", () => {
+		for (const profile of [
+			{ role: "Admin", can: {} },
+			{ role: "Super Admin", can: {} },
+			{ role: "Production Supervisor", can: { editProduction: true } },
+		]) {
+			expect(resolveProductionSubmissionAuthority(profile)).toEqual({
+				canSubmitProduction: true,
+				allowSubmitForOthers: true,
+			});
 		}
+	});
+
+	it("rejects an authenticated actor without production capability", () => {
+		let message = "";
+		try {
+			requireProductionSubmissionAuthority({
+				role: "Sales Rep",
+				can: { viewProduction: false, editProduction: false },
+			});
+		} catch (error) {
+			message = error instanceof Error ? error.message : String(error);
+		}
+		expect(message).toBe(
+			"Production access is required to report completed work.",
+		);
 	});
 });

@@ -1,26 +1,35 @@
+import type { Prisma } from "@gnd/db";
 import {
+  type RenturnTypeAsync,
   generateRandomString,
   lastId,
-  RenturnTypeAsync,
   sum,
 } from "@gnd/utils";
-import { Db, DispatchItemPackingStatus, Qty, SalesInfoItem } from "../types";
-import { Prisma } from "@gnd/db";
+import type { NoteTagNames } from "@gnd/utils/constants";
+import { transformNote } from "@gnd/utils/note";
+import { hasQty } from "@gnd/utils/sales";
+import type { z } from "zod";
+import { updateSalesItemControlAction, updateSalesStatControlAction } from ".";
+import type { updateSalesControlSchema } from "../schema";
+import type {
+  Db,
+  DispatchItemPackingStatus,
+  Qty,
+  SalesInfoItem,
+} from "../types";
+import {
+  qtyMatrixDifference,
+  recomposeQty,
+  transformQtyHandle,
+} from "../utils/sales-control";
+import { getDispatchControlType } from "../utils/utils";
+import type { getSaleInformation } from "./get-sale-information";
 import { updateSalesItemStats } from "./update-sales-item-stat";
 import { updateSalesStatAction } from "./update-sales-stat";
-import { hasQty } from "@gnd/utils/sales";
-import { getSaleInformation } from "./get-sale-information";
-import { z } from "zod";
-import { updateSalesControlSchema } from "../schema";
-import { getDispatchControlType } from "../utils/utils";
-import { qtyMatrixDifference, recomposeQty } from "../utils/sales-control";
-import { updateSalesItemControlAction, updateSalesStatControlAction } from ".";
-import { NoteTagNames } from "@gnd/utils/constants";
-import { transformNote } from "@gnd/utils/note";
 
 export interface CreateSalesAssignmentProps {
   submit?: boolean;
-	materialReviewId?: number | null;
+  materialReviewId?: number | null;
   submissionMeta?: Prisma.InputJsonObject;
   salesId: number;
   assignedToId?: number;
@@ -99,12 +108,12 @@ export async function createSalesAssignmentAction(
       authorId: args.authorId,
       updateStats: args.updateStats,
       salesId: args.salesId,
-			materialReviewId: args.materialReviewId,
+      materialReviewId: args.materialReviewId,
       submissionMeta: args.submissionMeta,
       items: args.items.map((data) => ({
         assignmentId: assignments.find(
           (a) => a.salesItemControlUid === data.itemInfo.controlUid,
-        )!?.id,
+        )?.id,
         itemInfo: data.itemInfo,
         qty: data.qty,
       })),
@@ -114,7 +123,7 @@ export async function createSalesAssignmentAction(
 export interface CreateSalesAssignmentSubmissionProps {
   salesId: number;
   authorId: number;
-	materialReviewId?: number | null;
+  materialReviewId?: number | null;
   submissionMeta?: Prisma.InputJsonObject;
   updateStats?: boolean;
   items: {
@@ -142,16 +151,16 @@ export async function createSalesAssignmentSubmissionAction(
           // assignedToId: args.assignedToId || undefined,
           // dueDate: args.dueDate,
           submittedById: args.authorId,
-					materialReviewId: args.materialReviewId ?? undefined,
+          materialReviewId: args.materialReviewId ?? undefined,
           salesOrderItemId: item.itemInfo.itemId!,
           // salesItemControlUid: item.itemInfo.controlUid,
           meta: args.submissionMeta ?? {},
           assignmentId: item.assignmentId,
         }) satisfies Prisma.OrderProductionSubmissionsCreateManyInput,
     ),
-		skipDuplicates: Boolean(args.materialReviewId),
+    skipDuplicates: Boolean(args.materialReviewId),
   });
-	if (args.updateStats && !args.materialReviewId) {
+  if (args.updateStats && !args.materialReviewId) {
     await Promise.all(
       args.items.map(async (item) => {
         await updateSalesItemStats(
@@ -256,16 +265,16 @@ export async function packDispatchItemsAction(
   props: PackDispatchItemsAction,
 ) {
   const { data } = props;
-	const packingLines = props.packItems?.packingLines?.length
-      ? props.packItems.packingLines
-      : (props.packItems?.packingList ?? []).flatMap((item) =>
-          item.submissions.map((submission) => ({
-            salesItemId: item.salesItemId,
-            submissionId: submission.submissionId,
-            qty: submission.qty,
-            note: item.note,
-          })),
-        );
+  const packingLines = props.packItems?.packingLines?.length
+    ? props.packItems.packingLines
+    : (props.packItems?.packingList ?? []).flatMap((item) =>
+        item.submissions.map((submission) => ({
+          salesItemId: item.salesItemId,
+          submissionId: submission.submissionId,
+          qty: submission.qty,
+          note: item.note,
+        })),
+      );
 
   if (!packingLines.length) return { created: 0, skipped: 0 };
 
@@ -273,30 +282,73 @@ export async function packDispatchItemsAction(
   const submissionIds = packingLines
     .map((line) => line.submissionId)
     .filter(Boolean);
-	const uniqueSubmissionIds = Array.from(new Set(submissionIds));
-	if (uniqueSubmissionIds.length) {
-		const eligibleSubmissions = await db.orderProductionSubmissions.findMany({
-			where: {
-				id: { in: uniqueSubmissionIds },
-				salesOrderId: data.order.id,
-				deletedAt: null,
-				OR: [
-					{ materialReviewId: null },
-					{
-						materialReview: {
-							status: "APPROVED",
-						},
-					},
-				],
-			},
-			select: { id: true },
-		});
-		if (eligibleSubmissions.length !== uniqueSubmissionIds.length) {
-			throw new Error(
-				"A production submission is awaiting material review and cannot be packed.",
-			);
-		}
-	}
+  const uniqueSubmissionIds = Array.from(new Set(submissionIds));
+  let approvedPackingReport: {
+    salesOrderItemId: number;
+    orderProductionSubmissionId: number;
+    qty: number;
+    lhQty: number;
+    rhQty: number;
+  } | null = null;
+  if (uniqueSubmissionIds.length) {
+    let approvedPackingSubmissionId: number | null = null;
+    if (props.approvedPackingReportId) {
+      const report = await db.salesPackingReport.findFirst({
+        where: {
+          id: props.approvedPackingReportId,
+          status: "APPROVED",
+          reviewedById: props.authorId,
+          orderDeliveryId: dispatchId,
+          salesOrderId: data.order.id,
+        },
+        select: {
+          salesOrderItemId: true,
+          orderProductionSubmissionId: true,
+          qty: true,
+          lhQty: true,
+          rhQty: true,
+        },
+      });
+      const reportLine = packingLines[0];
+      if (
+        !report ||
+        packingLines.length !== 1 ||
+        !reportLine ||
+        reportLine.salesItemId !== report.salesOrderItemId ||
+        reportLine.submissionId !== report.orderProductionSubmissionId
+      ) {
+        throw new Error(
+          "Approved packing report does not authorize this packing command.",
+        );
+      }
+      approvedPackingReport = report;
+      approvedPackingSubmissionId = report.orderProductionSubmissionId;
+    }
+    const eligibleSubmissions = await db.orderProductionSubmissions.findMany({
+      where: {
+        id: { in: uniqueSubmissionIds },
+        salesOrderId: data.order.id,
+        deletedAt: null,
+        OR: [
+          { materialReviewId: null },
+          {
+            materialReview: {
+              status: "APPROVED",
+            },
+          },
+          ...(approvedPackingSubmissionId
+            ? [{ id: approvedPackingSubmissionId }]
+            : []),
+        ],
+      },
+      select: { id: true },
+    });
+    if (eligibleSubmissions.length !== uniqueSubmissionIds.length) {
+      throw new Error(
+        "A production submission is awaiting material review and cannot be packed.",
+      );
+    }
+  }
 
   const existingPacked = submissionIds.length
     ? await db.orderItemDelivery.findMany({
@@ -332,6 +384,26 @@ export async function packDispatchItemsAction(
       rh: sum([current.rh, row.rhQty]),
       qty: sum([current.qty, row.qty]),
     });
+  }
+
+  if (approvedPackingReport) {
+    const reportLine = packingLines[0]!;
+    const requested = recomposeQty(reportLine.qty as any);
+    const authorized = recomposeQty(transformQtyHandle(approvedPackingReport));
+    const existing = packedBySubmission.get(reportLine.submissionId) || {
+      lh: 0,
+      rh: 0,
+      qty: 0,
+    };
+    if (
+      Number(requested.qty || 0) - existing.qty !== authorized.qty ||
+      Number(requested.lh || 0) - existing.lh !== authorized.lh ||
+      Number(requested.rh || 0) - existing.rh !== authorized.rh
+    ) {
+      throw new Error(
+        "Approved packing report does not authorize this packing command.",
+      );
+    }
   }
 
   const createRows: Prisma.OrderItemDeliveryCreateManyInput[] = [];
@@ -405,7 +477,7 @@ type SubmitAll = z.infer<typeof updateSalesControlSchema>["submitAll"];
 export type SubmitAssingmentsAction = {
   data: RenturnTypeAsync<typeof getSaleInformation>;
   authorId;
-	materialReviewId?: number | null;
+  materialReviewId?: number | null;
 } & SubmitAll;
 export function buildProductionSubmissionPlan(props: SubmitAssingmentsAction) {
   const createSubmissions: CreateSalesAssignmentSubmissionProps["items"] = [];
@@ -436,55 +508,55 @@ export function buildProductionSubmissionPlan(props: SubmitAssingmentsAction) {
       }
     }
   }
-	const scopedItems = [
-		...createAssignments.map((item) => ({
-			controlUid: item.itemInfo.controlUid,
-			salesItemId: item.itemInfo.itemId!,
-			assignmentId: null,
-		})),
-		...createSubmissions.map((item) => ({
-			controlUid: item.itemInfo.controlUid,
-			salesItemId: item.itemInfo.itemId!,
-			assignmentId: item.assignmentId,
-		})),
-	];
-	const itemScope = Array.from(
-		new Map(
-			scopedItems.map((item) => [
-				`${item.controlUid}:${item.assignmentId ?? "new"}`,
-				item,
-			]),
-		).values(),
-	);
-	return {
-		createAssignments,
-		createSubmissions,
-		itemScope,
-	};
+  const scopedItems = [
+    ...createAssignments.map((item) => ({
+      controlUid: item.itemInfo.controlUid,
+      salesItemId: item.itemInfo.itemId!,
+      assignmentId: null,
+    })),
+    ...createSubmissions.map((item) => ({
+      controlUid: item.itemInfo.controlUid,
+      salesItemId: item.itemInfo.itemId!,
+      assignmentId: item.assignmentId,
+    })),
+  ];
+  const itemScope = Array.from(
+    new Map(
+      scopedItems.map((item) => [
+        `${item.controlUid}:${item.assignmentId ?? "new"}`,
+        item,
+      ]),
+    ).values(),
+  );
+  return {
+    createAssignments,
+    createSubmissions,
+    itemScope,
+  };
 }
 export async function submitAssignmentsAction(
-	db: Db,
-	props: SubmitAssingmentsAction,
+  db: Db,
+  props: SubmitAssingmentsAction,
 ) {
-	const { assignedToId, authorId, data } = props;
-	const submissionMeta = props.submissionSource
-		? { source: props.submissionSource }
-		: undefined;
-	const { createAssignments, createSubmissions } =
-		buildProductionSubmissionPlan(props);
+  const { assignedToId, authorId, data } = props;
+  const submissionMeta = props.submissionSource
+    ? { source: props.submissionSource }
+    : undefined;
+  const { createAssignments, createSubmissions } =
+    buildProductionSubmissionPlan(props);
   await createSalesAssignmentAction(db, {
     items: createAssignments,
     submit: true,
     authorId: authorId,
     salesId: data.order.id,
     assignedToId: assignedToId!,
-		materialReviewId: props.materialReviewId,
+    materialReviewId: props.materialReviewId,
     submissionMeta,
   });
   await createSalesAssignmentSubmissionAction(db, {
     authorId,
     salesId: data.order.id,
-		materialReviewId: props.materialReviewId,
+    materialReviewId: props.materialReviewId,
     submissionMeta,
     items: createSubmissions,
   });
@@ -562,4 +634,5 @@ type PackDispatchItemsAction = {
   packItems: PackDispatch;
   update?: boolean;
   authorName: string;
+  approvedPackingReportId?: number;
 };
