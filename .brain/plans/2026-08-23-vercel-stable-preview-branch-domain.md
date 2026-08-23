@@ -1,7 +1,7 @@
 # Stable Vercel Preview Branch and Domain
 
 Date: 2026-08-23
-Status: In progress; Preview branch created, deployment remediation underway
+Status: In progress; Preview is Ready, EasyDNS authentication pending
 
 ## Objective
 
@@ -105,8 +105,15 @@ local day-to-day branch remains `master`.
   ruling out the Preview database and `getOrders` as the wait source.
 - Reduced Next.js build page-analysis concurrency to one worker to constrain
   peak memory while each worker loads the complete dashboard server graph. The
-  corrective commit will be validated on `preview` before protection or DNS is
-  changed.
+  corrective commit `9071abe35` completed on Vercel in four minutes and the
+  Preview deployment is Ready.
+- Enabled Vercel Authentication for all Preview deployments.
+- Added `preview.grdproducts.com` to project `gndprodesk` and assigned it to Git
+  branch `preview`. Vercel's preferred project-specific DNS target is
+  `c836a7917ef57179.vercel-dns-017.com.`
+- EasyDNS rejected the available saved Redland login. No DNS record was changed;
+  CNAME creation, TLS verification, and authenticated application smoke tests
+  remain pending a valid EasyDNS session.
 
 After execution, update the PlanetScale Preview decision/research notes, this
 plan's status, `.brain/progress.md`, and the deployment runbook with the stable
