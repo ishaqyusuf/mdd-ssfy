@@ -1,14 +1,14 @@
 # Stable Vercel Preview Branch and Domain
 
 Date: 2026-08-23
-Status: In progress; Preview is Ready, EasyDNS authentication pending
+Status: Infrastructure complete; authenticated application workflow smoke tests pending
 
 ## Objective
 
 Create a permanent remote Git branch named `preview` for the `gndprodesk`
 Vercel project, deploy it with the Preview environment and PlanetScale Preview
 database, and bind its latest successful deployment to
-`preview.grdproducts.com`. Day-to-day work remains on the repository's actual
+`preview.gndprodesk.com`. Day-to-day work remains on the repository's actual
 production branch, `master`.
 
 ## Verified starting state
@@ -20,8 +20,11 @@ production branch, `master`.
   project id `prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr`.
 - The repository-local `.vercel/project.json` points to the separate
   `gnd-storefront` project, so it must not be used or rewritten for this task.
-- `preview.grdproducts.com` is not assigned in Vercel and currently has no A or
-  CNAME record. `grdproducts.com` uses external EasyDNS nameservers.
+- `gndprodesk.com` uses Vercel DNS (`ns1.vercel-dns.com` and
+  `ns2.vercel-dns.com`), so the stable Preview hostname requires no external DNS
+  provider change.
+- `preview.gndprodesk.com` was already assigned to project `gndprodesk`, but it
+  tracked the obsolete Git branch `codex/shadcn-upgrade`.
 - Vercel Preview already has the branch-scoped PlanetScale Preview
   `DATABASE_URL`.
 
@@ -70,17 +73,17 @@ local day-to-day branch remains `master`.
 
 ### 5. Attach the stable branch domain
 
-1. Add `preview.grdproducts.com` to the `gndprodesk` project.
-2. Edit the domain assignment: environment `Preview`, Git branch `preview`.
-3. Read the project-specific CNAME target Vercel provides after the domain is
-   added; do not assume the generic CNAME value.
-4. In EasyDNS, add host `preview` as a CNAME to that exact Vercel target. Keep
-   the existing EasyDNS nameservers and all unrelated DNS records unchanged.
-5. Wait for DNS verification and Vercel TLS certificate issuance.
+1. Inspect the existing `preview.gndprodesk.com` project-domain assignment.
+2. Edit only its Git branch mapping from `codex/shadcn-upgrade` to `preview`.
+3. Confirm Vercel reports the domain as verified and DNS as correctly
+   configured. Do not add an EasyDNS record because Vercel DNS is authoritative
+   for `gndprodesk.com`.
+4. Wait for Vercel TLS certificate issuance if the hostname does not already
+   have a valid certificate.
 
 ### 6. Acceptance and rollback checks
 
-1. Confirm `https://preview.grdproducts.com` resolves with a valid certificate
+1. Confirm `https://preview.gndprodesk.com` resolves with a valid certificate
    and points to the `preview` branch's latest successful deployment.
 2. Sign in with a retained local employee login and smoke-test Sales Orders,
    `getOrders`, production, dispatch, payment, and the seeded 150-order dataset.
@@ -108,13 +111,18 @@ local day-to-day branch remains `master`.
   corrective commit `9071abe35` completed on Vercel in four minutes and the
   Preview deployment is Ready.
 - Enabled Vercel Authentication for all Preview deployments.
-- Added `preview.grdproducts.com` to project `gndprodesk` and assigned it to Git
-  branch `preview`. Vercel's preferred project-specific DNS target is
-  `c836a7917ef57179.vercel-dns-017.com.`
-- EasyDNS rejected the available saved Redland login. No DNS record was changed;
-  CNAME creation, TLS verification, and authenticated application smoke tests
-  remain pending a valid EasyDNS session.
+- Corrected the requested stable hostname to `preview.gndprodesk.com`. It was
+  already owned by project `gndprodesk`; changed its branch mapping from
+  `codex/shadcn-upgrade` to `preview`.
+- Verified the corrected domain is verified, reports `misconfigured: false`,
+  resolves through Vercel DNS, and returns the expected Vercel Authentication
+  redirect over HTTPS.
+- Removed the accidental `preview.grdproducts.com` project-domain assignment and
+  the unused `grdproducts.com` ownership entry from the Vercel team. No EasyDNS
+  DNS record was created or changed.
+- Production branch `master`, production domains, and the production database
+  were not changed.
 
-After execution, update the PlanetScale Preview decision/research notes, this
-plan's status, `.brain/progress.md`, and the deployment runbook with the stable
-domain, branch update command, protection posture, and validation evidence.
+After authenticated application smoke tests, update the PlanetScale Preview
+decision/research notes and deployment runbook with the stable domain, branch
+update command, protection posture, and validation evidence.
