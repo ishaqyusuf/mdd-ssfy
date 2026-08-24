@@ -1,5 +1,36 @@
 # In Progress
 
+### Driver Dashboard Command Center
+
+- Priority: Medium
+- Description: The approved Route Command responsive web slice is implemented
+  at `/sales-book/dispatch-task` with authoritative summary/manifest data,
+  URL-owned route and stop state, guarded lifecycle actions, recoverable proof
+  drafts, conventional search, compact sidebarless branding, and a full-page
+  intercepted stop workspace with standalone direct-entry fallback. Approved
+  Option A Packing Command Sheet now owns the selected-stop dashboard. Its Pack
+  Items action reuses the canonical Sales Overview packing form as a desktop
+  floating, inset `CustomSheetV2` side sheet and full-width mobile sheet with a
+  fixed action footer. Packing item titles and subtitles use consistent
+  uppercase presentation. Stop-local packing/proof/help modes use shallow URL
+  transitions so opening the sheet keeps the selected-stop dashboard mounted
+  and confines loading to the sheet. The main route and both selected-stop entry
+  paths now stream Midday-style,
+  geometry-matched loading skeletons, and the reused packing drawer preserves
+  its own shell while its code or data loads. Standalone stop pages now rely on
+  the standard application header only; the contextual stop header is retained
+  for intercepted modal navigation and direct proof/help subflows.
+  Remaining work is reversible proof/retry evidence, real weak-network/device
+  validation, driver/dispatcher review, performance measurement, and explicit
+  pilot/cutover approval.
+- Related Feature: Driver Platform Revival and inventory-backed fulfillment
+- Status: In Progress
+- Plan Status: In Progress — Responsive Web And Selected-Stop Packing Slices Implemented
+- Plan File: `.brain/plans/2026-08-23-feature-driver-dashboard-command-center.md`
+- Decision: `.brain/decisions/ADR-065-route-command-as-driver-dashboard-visual-base.md`
+- Stop Workspace Decision: `.brain/decisions/ADR-066-intercepted-driver-stop-workspace.md`
+- Updated Date: 2026-08-23
+
 ### Sales Production Worker Workspace Modernization
 
 - Priority: High
@@ -299,6 +330,16 @@ Tracks the active work queue. Keep this focused and execution-ready.
   - 2026-07-23 batch/projection slice: the progressive batch control moves up to 12 visible same-kind rows through a 25-row unique server cap while preserving independent row baselines/audits; each projection attempt is durable, and a failed diagnostic can be claimed and retried once with new actor/run evidence.
 - [ ] Inventory app-domain split: moved the inventory App Router tree out of `apps/dashboard/src/app/(sidebar)/(sales)/inventory` and into `apps/dashboard/src/app/(sidebar)/inventory` so inventory now lives as its own workspace/domain in the web app while preserving the same `/inventory` URLs; next slice is removing any remaining “sales-owned” assumptions in shared labels, filters, and supporting modules where inventory still reads as a sales subfeature (Architecture + UI)
 - [ ] New sales form parity hotfix/repro batch: grouped component edit/image/redirect, door pricing, HPT estimate/add-size, and moulding outside-click paths are implemented in code; the HPT `Add Door` action now returns to Door multi-select without changing configured rows. Remaining work is authenticated runtime proof for the parity matrix and any fixture-specific discrepancies (API + UI + Validation)
+- [ ] 2026-08-24 Pablo sales-form save follow-up: repository fix widens
+  `DykeStepForm.value` to `TEXT` with additive migration and passing focused
+  coverage; local migration apply is complete. Native WhatsApp video review
+  also confirmed the fulfillment resolver permission mismatch on `09403DB`;
+  the scoped authorization change awaits explicit approval. Production Special Order
+  enrollment is confirmed still set to `Super Admin only`. Remaining gates are
+  clean-worktree build/Preview proof, Preview handoff migration verification,
+  guarded Production migration/deploy, `All staff` enrollment rollout, and live
+  orders `09403DB` / `09433PC` proof. See
+  `.brain/plans/2026-08-24-bug-fix-pablo-sales-form-save-and-vercel-errors.md`.
 - [ ] Sales Orders V2: build the clean `sales-book` orders workspace on dedicated v2 query/filter contracts, summary widgets, reusable invoice-style table shell, and unified funnel status system (`brain/features/sales-orders-v2.md`)
 - [ ] Pickup packing funnel: `Send for Pickup` now routes packing work into queued pickup deliveries with `sales-packing-list` notification membership, the canonical warehouse page lives at `/sales/packing-list` under the sidebar tree with `Current` / `Completed` / admin-only `Cancelled` tabs, signing/completion happens on `/p/sales-invoice-v2` in `packing-slip` mode, and Expo now exposes a separate mobile warehouse workspace at `/(drivers)/warehouse-packing` from Settings backed by `dispatch.packingList` with packing-aware detail routing into the existing dispatch detail screen; next slice is notification deep-link polish, broader browser/device validation, and finishing the new control-engine migration for packing/dispatch writes while cleaning remaining legacy status helpers that still mention `packing queue` (API + UI + Notifications + Print + Control)
 - [x] Make old sales form updates refresh inventory line items and stock demand synchronously after save, matching the new sales form behavior.

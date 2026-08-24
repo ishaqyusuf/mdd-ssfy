@@ -1,5 +1,38 @@
 # Done
 
+### Mobile Delivery Module Logic Hardening
+
+- Priority: High
+- Description: Upgraded Expo driver and warehouse-delivery behavior to the
+  current packing, inventory, guarded-review, lifecycle, proof, permission,
+  freshness, notification, search, and summary contracts while preserving the
+  accepted mobile UI flow.
+- Related Feature: Driver Platform Revival and inventory-backed fulfillment
+- Status: Done
+- Plan Status: Done
+- Plan File: `.brain/plans/2026-08-23-mobile-delivery-module-logic-hardening.md`
+- Handoff File: `.brain/handoffs/completed/2026-08-23-mobile-delivery-module-logic-hardening-handoff.md`
+- Review File: `.brain/reviews/2026-08-23-mobile-delivery-module-logic-hardening-review.md`
+- Validation: 83 focused tests / 500 assertions pass; post-review subsets pass
+  24 tests / 79 assertions and 20 tests / 38 assertions; scoped Biome and
+  owned-path whitespace checks pass. Broad API/Expo typechecks retain unrelated
+  baseline diagnostics with no new changed-dispatch runtime diagnostic.
+- Follow-up: Android/device and sequential screen UI review remains behind the
+  user's explicit permission gate. Each screen will receive five design-html
+  samples and wait for approval before the next screen.
+- Completed Date: 2026-08-23
+
+### Driver Dispatch Lifecycle and Guarded Approval
+
+- Completed: 2026-08-23.
+- Scope: Midday route shell, Design A stop workspace, shared floating packing
+  sheet, guarded packing consent/review, desktop trip actions, signed proof
+  completion, admin assignment, pending-material production consent,
+  sales-rep/worker notifications, authenticated Chrome/in-app-browser
+  acceptance, and focused regression suite.
+- Evidence: `artifacts/dispatch-lifecycle-20260823/`.
+- Decision: `.brain/decisions/ADR-068-guarded-fulfillment-and-production-review-authority.md`.
+
 ### Paid Sales Operational Handoff
 
 - Priority: High

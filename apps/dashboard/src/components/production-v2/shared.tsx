@@ -23,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { printProduction } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
+import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { ButtonGroup } from "@gnd/ui/button-group";
@@ -199,11 +200,11 @@ type ProductionDetail = {
                 createdAt?: string | Date | null;
                 note?: string | null;
                 submittedBy?: string | null;
-				materialReview?: {
-					id: number;
-					status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
-					reason: string;
-				} | null;
+                materialReview?: {
+                    id: number;
+                    status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+                    reason: string;
+                } | null;
                 deliveredQty?: number | null;
                 qty?: {
                     qty?: number | null;
@@ -250,506 +251,620 @@ export function ProductionAdminBoardV2() {
 }
 
 export function ProductionMaterialReviewPanel({
-	standalone = false,
-	search,
+    standalone = false,
+    search,
 }: {
-	standalone?: boolean;
-	search?: string | null;
+    standalone?: boolean;
+    search?: string | null;
 } = {}) {
-	const trpc = useTRPC();
-	const reviewProductionSubmission =
-		trpc.sales.reviewProductionSubmission as any;
-	const queryClient = useQueryClient();
-	const loadingToast = useLoadingToast();
-	const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
-	const [decisionNote, setDecisionNote] = useState(
-		"Materials verified by production admin.",
-	);
-	const [receiptQuantities, setReceiptQuantities] = useState<
-		Record<number, { good: string; issue: string }>
-	>({});
-	const [manualComponentIds, setManualComponentIds] = useState<number[]>([]);
-	const queueQuery = useInfiniteQuery(
-		trpc.sales.productionSubmissionMaterialReviews.infiniteQueryOptions(
-			{
-				status: "PENDING",
-				take: 50,
-				q: search || undefined,
-			},
-			{
-				getNextPageParam: (lastPage) => lastPage.nextCursor,
-			},
-		),
-	);
-	const normalizedSearch = search?.trim().toLowerCase() || "";
-	const rows = queueQuery.data?.pages.flatMap((page) => page.rows) || [];
-	const detailQuery = useQuery(
-		trpc.sales.productionSubmissionMaterialReviewDetail.queryOptions(
-			{
-				reviewId: selectedReviewId || 0,
-			},
-			{
-				enabled: !!selectedReviewId,
-			},
-		),
-	);
-	const decision: any = useMutation(
-		reviewProductionSubmission.mutationOptions({
-			onMutate: () => {
-				loadingToast.loading("Updating production material review...");
-			},
-			onSuccess: async (result: { status: string }) => {
-				if (result.status === "PENDING") {
-					loadingToast.success("Resolution saved; verification still pending");
-				} else {
-					loadingToast.success(
-						result.status === "APPROVED"
-							? "Production submission approved"
-							: "Production submission rejected",
-					);
-					setSelectedReviewId(null);
-				}
-				await Promise.all([
-					queryClient.invalidateQueries({
-						queryKey: trpc.sales.productionSubmissionMaterialReviews.pathKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey:
-							trpc.sales.productionSubmissionMaterialReviewDetail.pathKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.sales.productionsV2.pathKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.sales.productionDashboardV2.pathKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.sales.productions.pathKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.sales.productionSummary.pathKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.sales.productionCalendar.pathKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.sales.productionOrderDetailV2.pathKey(),
-					}),
-				]);
-			},
-			onError: (error: Error) => {
-				loadingToast.error(error.message || "Unable to update material review");
-			},
-		}),
-	);
+    const trpc = useTRPC();
+    const reviewProductionSubmission = trpc.sales
+        .reviewProductionSubmission as any;
+    const queryClient = useQueryClient();
+    const loadingToast = useLoadingToast();
+    const [selectedReviewId, setSelectedReviewId] = useState<number | null>(
+        null,
+    );
+    const [decisionNote, setDecisionNote] = useState(
+        "Materials verified by production admin.",
+    );
+    const [receiptQuantities, setReceiptQuantities] = useState<
+        Record<number, { good: string; issue: string }>
+    >({});
+    const [manualComponentIds, setManualComponentIds] = useState<number[]>([]);
+    const queueQuery = useInfiniteQuery(
+        trpc.sales.productionSubmissionMaterialReviews.infiniteQueryOptions(
+            {
+                status: "PENDING",
+                take: 50,
+                q: search || undefined,
+            },
+            {
+                getNextPageParam: (lastPage) => lastPage.nextCursor,
+            },
+        ),
+    );
+    const normalizedSearch = search?.trim().toLowerCase() || "";
+    const rows = queueQuery.data?.pages.flatMap((page) => page.rows) || [];
+    const detailQuery = useQuery(
+        trpc.sales.productionSubmissionMaterialReviewDetail.queryOptions(
+            {
+                reviewId: selectedReviewId || 0,
+            },
+            {
+                enabled: !!selectedReviewId,
+            },
+        ),
+    );
+    const decision: any = useMutation(
+        reviewProductionSubmission.mutationOptions({
+            onMutate: () => {
+                loadingToast.loading("Updating production material review...");
+            },
+            onSuccess: async (result: { status: string }) => {
+                if (result.status === "PENDING") {
+                    loadingToast.success(
+                        "Resolution saved; verification still pending",
+                    );
+                } else {
+                    loadingToast.success(
+                        result.status === "APPROVED"
+                            ? "Production submission approved"
+                            : "Production submission rejected",
+                    );
+                    setSelectedReviewId(null);
+                }
+                await Promise.all([
+                    queryClient.invalidateQueries({
+                        queryKey:
+                            trpc.sales.productionSubmissionMaterialReviews.pathKey(),
+                    }),
+                    queryClient.invalidateQueries({
+                        queryKey:
+                            trpc.sales.productionSubmissionMaterialReviewDetail.pathKey(),
+                    }),
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.sales.productionsV2.pathKey(),
+                    }),
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.sales.productionDashboardV2.pathKey(),
+                    }),
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.sales.productions.pathKey(),
+                    }),
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.sales.productionSummary.pathKey(),
+                    }),
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.sales.productionCalendar.pathKey(),
+                    }),
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.sales.productionOrderDetailV2.pathKey(),
+                    }),
+                ]);
+            },
+            onError: (error: Error) => {
+                loadingToast.error(
+                    error.message || "Unable to update material review",
+                );
+            },
+        }),
+    );
 
-	useEffect(() => {
-		if (
-			selectedReviewId &&
-			rows.some((review) => review.id === selectedReviewId)
-		) {
-			return;
-		}
-		setSelectedReviewId(rows[0]?.id || null);
-	}, [rows, selectedReviewId]);
-	useEffect(() => {
-		setReceiptQuantities({});
-		setManualComponentIds([]);
-	}, [selectedReviewId]);
+    useEffect(() => {
+        if (
+            selectedReviewId &&
+            rows.some((review) => review.id === selectedReviewId)
+        ) {
+            return;
+        }
+        setSelectedReviewId(rows[0]?.id || null);
+    }, [rows, selectedReviewId]);
+    useEffect(() => {
+        setReceiptQuantities({});
+        setManualComponentIds([]);
+    }, [selectedReviewId]);
 
-	const detail: any = (detailQuery as unknown as { data?: unknown }).data;
-	const materialSnapshot = Array.isArray(
-		detail?.currentEvidence.materialSnapshot,
-	)
-		? detail.currentEvidence.materialSnapshot
-		: [];
-	const linkedComponentIds = new Set(
-		(detail?.linkedInboundReceipts || []).flatMap(
-			(receipt: any) => receipt.lineItemComponentIds,
-		),
-	);
-	const manualCandidates = materialSnapshot.flatMap((material) => {
-		const row = material as Record<string, unknown>;
-		const componentId = Number(row.componentId);
-		const readiness = String(row.readiness || "");
-		if (
-			!Number.isInteger(componentId) ||
-			linkedComponentIds.has(componentId) ||
-			readiness === "ready_for_production" ||
-			readiness === "fulfilled"
-		) {
-			return [];
-		}
-		return [
-			{
-				componentId,
-				name: String(row.name || "Required material"),
-			},
-		];
-	});
-	const selectedReceiptQuantityRows = Object.values(receiptQuantities);
-	const hasIncompleteReceiptQuantity = selectedReceiptQuantityRows.some(
-		(quantities) => (quantities.good === "") !== (quantities.issue === ""),
-	);
-	const hasCompleteReceiptQuantity = selectedReceiptQuantityRows.some(
-		(quantities) => quantities.good !== "" && quantities.issue !== "",
-	);
-	const hasSelectedResolution =
-		hasCompleteReceiptQuantity || manualComponentIds.length > 0;
+    const detail: any = (detailQuery as unknown as { data?: unknown }).data;
+    const materialSnapshot = Array.isArray(
+        detail?.currentEvidence.materialSnapshot,
+    )
+        ? detail.currentEvidence.materialSnapshot
+        : [];
+    const linkedComponentIds = new Set(
+        (detail?.linkedInboundReceipts || []).flatMap(
+            (receipt: any) => receipt.lineItemComponentIds,
+        ),
+    );
+    const manualCandidates = materialSnapshot.flatMap((material) => {
+        const row = material as Record<string, unknown>;
+        const componentId =
+            typeof row.componentId === "number" ? row.componentId : null;
+        const readiness = String(row.readiness || "");
+        if (
+            componentId === null ||
+            !Number.isInteger(componentId) ||
+            componentId <= 0 ||
+            linkedComponentIds.has(componentId) ||
+            readiness === "ready_for_production" ||
+            readiness === "fulfilled"
+        ) {
+            return [];
+        }
+        return [
+            {
+                componentId: componentId as number,
+                name: String(row.name || "Required material"),
+            },
+        ];
+    });
+    const needsConfigurationException =
+        detail?.currentEvidence?.classification?.state ===
+            "pending_material_review" &&
+        detail?.currentEvidence?.classification?.reason === "NOT_CONFIGURED";
+    const selectedReceiptQuantityRows = Object.values(receiptQuantities);
+    const hasIncompleteReceiptQuantity = selectedReceiptQuantityRows.some(
+        (quantities) => (quantities.good === "") !== (quantities.issue === ""),
+    );
+    const hasCompleteReceiptQuantity = selectedReceiptQuantityRows.some(
+        (quantities) => quantities.good !== "" && quantities.issue !== "",
+    );
+    const hasSelectedResolution =
+        hasCompleteReceiptQuantity || manualComponentIds.length > 0;
 
-	function submitDecision(
-		action:
-			| "RECHECK_AND_APPROVE"
-			| "MARK_AVAILABLE_AND_APPROVE"
-			| "RECEIVE_INBOUND_AND_APPROVE"
-			| "RESOLVE_AND_APPROVE"
-			| "REJECT",
-	) {
-		if (!detail || !decisionNote.trim()) return;
-		const receipts = Array.from(
-				(detail.linkedInboundReceipts || []).reduce(
-					(groups: Map<number, Array<{
-						inboundShipmentItemId: number;
-						qtyGood: number;
-						qtyIssue: number;
-					}>>, item: any) => {
-					const quantities = receiptQuantities[item.inboundShipmentItemId];
-					if (
-						quantities?.good === undefined ||
-						quantities.good === "" ||
-						quantities?.issue === undefined ||
-						quantities.issue === ""
-					) {
-						return groups;
-					}
-					const group = groups.get(item.inboundId) || [];
-					group.push({
-						inboundShipmentItemId: item.inboundShipmentItemId,
-						qtyGood: Number(quantities.good),
-						qtyIssue: Number(quantities.issue),
-					});
-					groups.set(item.inboundId, group);
-					return groups;
-				},
-				new Map<
-					number,
-					Array<{
-						inboundShipmentItemId: number;
-						qtyGood: number;
-						qtyIssue: number;
-					}>
-				>(),
-			),
-		).map(([inboundId, items]) => ({ inboundId, items }));
-		decision.mutate({
-			reviewId: detail.id,
-			expectedUpdatedAt: new Date(detail.updatedAt),
-			action,
-			note: decisionNote.trim(),
-			resolutions:
-				action === "RESOLVE_AND_APPROVE"
-					? {
-							receipts,
-							markAvailableComponentIds: manualComponentIds,
-						}
-					: undefined,
-		});
-	}
+    function submitDecision(
+        action:
+            | "RECHECK_AND_APPROVE"
+            | "APPROVE_CONFIGURATION_EXCEPTION"
+            | "MARK_AVAILABLE_AND_APPROVE"
+            | "RECEIVE_INBOUND_AND_APPROVE"
+            | "RESOLVE_AND_APPROVE"
+            | "REJECT",
+    ) {
+        if (!detail || !decisionNote.trim()) return;
+        const receipts = Array.from(
+            (detail.linkedInboundReceipts || []).reduce(
+                (
+                    groups: Map<
+                        number,
+                        Array<{
+                            inboundShipmentItemId: number;
+                            qtyGood: number;
+                            qtyIssue: number;
+                        }>
+                    >,
+                    item: any,
+                ) => {
+                    const quantities =
+                        receiptQuantities[item.inboundShipmentItemId];
+                    if (
+                        quantities?.good === undefined ||
+                        quantities.good === "" ||
+                        quantities?.issue === undefined ||
+                        quantities.issue === ""
+                    ) {
+                        return groups;
+                    }
+                    const group = groups.get(item.inboundId) || [];
+                    group.push({
+                        inboundShipmentItemId: item.inboundShipmentItemId,
+                        qtyGood: Number(quantities.good),
+                        qtyIssue: Number(quantities.issue),
+                    });
+                    groups.set(item.inboundId, group);
+                    return groups;
+                },
+                new Map<
+                    number,
+                    Array<{
+                        inboundShipmentItemId: number;
+                        qtyGood: number;
+                        qtyIssue: number;
+                    }>
+                >(),
+            ),
+        ).map(([inboundId, items]) => ({ inboundId, items }));
+        decision.mutate({
+            reviewId: detail.id,
+            expectedUpdatedAt: new Date(detail.updatedAt),
+            action,
+            note: decisionNote.trim(),
+            resolutions:
+                action === "RESOLVE_AND_APPROVE"
+                    ? {
+                          receipts,
+                          markAvailableComponentIds: manualComponentIds,
+                      }
+                    : undefined,
+        });
+    }
 
-	if (!queueQuery.isPending && rows.length === 0) {
-		if (standalone) {
-			return (
-				<Card className="rounded-xl bg-card shadow-sm">
-					<CardContent className="flex min-h-64 flex-col items-center justify-center gap-2 p-6 text-center">
-						<div className="flex size-10 items-center justify-center rounded-full bg-muted">
-							<Icons.copyDone className="size-5 text-muted-foreground" />
-						</div>
-						<p className="text-sm font-medium">
-							{normalizedSearch
-								? "No matching material reviews"
-								: "Material review is clear"}
-						</p>
-						<p className="max-w-md text-sm text-muted-foreground">
-							{normalizedSearch
-								? "Try a different order number or worker name."
-								: "New submissions that need a material decision will appear here."}
-						</p>
-					</CardContent>
-				</Card>
-			);
-		}
-		return null;
-	}
+    if (!queueQuery.isPending && rows.length === 0) {
+        if (standalone) {
+            return (
+                <Card className="rounded-xl bg-card shadow-sm">
+                    <CardContent className="flex min-h-64 flex-col items-center justify-center gap-2 p-6 text-center">
+                        <div className="flex size-10 items-center justify-center rounded-full bg-muted">
+                            <Icons.copyDone className="size-5 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-medium">
+                            {normalizedSearch
+                                ? "No matching material reviews"
+                                : "Material review is clear"}
+                        </p>
+                        <p className="max-w-md text-sm text-muted-foreground">
+                            {normalizedSearch
+                                ? "Try a different order number or worker name."
+                                : "New submissions that need a material decision will appear here."}
+                        </p>
+                    </CardContent>
+                </Card>
+            );
+        }
+        return null;
+    }
 
-	return (
-		<Card className="overflow-hidden rounded-xl bg-card shadow-sm">
-			<CardHeader className="px-4 py-4">
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div>
-						<CardTitle className="text-lg">
-							Material verification queue
-						</CardTitle>
-						<CardDescription>
-							Production work is saved immediately. Verify only the submissions
-							whose material records are still unresolved.
-						</CardDescription>
-					</div>
-					<Badge variant="outline" className="rounded-full">
-						{queueQuery.data?.pages[0]?.total ?? rows.length} pending
-					</Badge>
-				</div>
-			</CardHeader>
-			<CardContent className="grid gap-4 px-4 pb-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-				<div className="flex flex-col gap-2">
-					{queueQuery.isPending ? (
-						<Skeleton className="h-28 rounded-lg" />
-					) : (
-						rows.map((review) => (
-							<button
-								key={review.id}
-								type="button"
-								onClick={() => setSelectedReviewId(review.id)}
-								className={cn(
-									"w-full rounded-lg border bg-background p-3 text-left transition-colors",
-									selectedReviewId === review.id
-										? "border-foreground bg-muted/40"
-										: "hover:bg-muted/40",
-								)}
-							>
-								<div className="flex items-center justify-between gap-2">
-									<p className="font-medium">Order {review.order.orderId}</p>
-									<Badge variant="outline" className="rounded-full">
-										Qty {review.submittedQty}
-									</Badge>
-								</div>
-								<p className="mt-1 text-xs text-muted-foreground">
-									{review.submittedBy.name || "Worker"} ·{" "}
-									{(review.classificationReason || "MATERIAL_REVIEW")
-										.replaceAll("_", " ")
-										.toLowerCase()}
-								</p>
-							</button>
-						))
-					)}
-					{queueQuery.hasNextPage ? (
-						<Button
-							type="button"
-							variant="outline"
-							disabled={queueQuery.isFetchingNextPage}
-							onClick={() => queueQuery.fetchNextPage()}
-							className="h-10 w-full"
-						>
-							{queueQuery.isFetchingNextPage ? "Loading..." : "Load more"}
-						</Button>
-					) : null}
-				</div>
+    return (
+        <Card className="overflow-hidden rounded-xl bg-card shadow-sm">
+            <CardHeader className="px-4 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <CardTitle className="text-lg">
+                            Material verification queue
+                        </CardTitle>
+                        <CardDescription>
+                            Production work is saved immediately. Verify only
+                            the submissions whose material records are still
+                            unresolved.
+                        </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="rounded-full">
+                        {queueQuery.data?.pages[0]?.total ?? rows.length}{" "}
+                        pending
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="grid gap-4 px-4 pb-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+                <div className="flex flex-col gap-2">
+                    {queueQuery.isPending ? (
+                        <Skeleton className="h-28 rounded-lg" />
+                    ) : (
+                        rows.map((review) => (
+                            <button
+                                key={review.id}
+                                type="button"
+                                onClick={() => setSelectedReviewId(review.id)}
+                                className={cn(
+                                    "w-full rounded-lg border bg-background p-3 text-left transition-colors",
+                                    selectedReviewId === review.id
+                                        ? "border-foreground bg-muted/40"
+                                        : "hover:bg-muted/40",
+                                )}
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <p className="font-medium">
+                                        Order {review.order.orderId}
+                                    </p>
+                                    <Badge
+                                        variant="outline"
+                                        className="rounded-full"
+                                    >
+                                        Qty {review.submittedQty}
+                                    </Badge>
+                                </div>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    {review.submittedBy.name || "Worker"} ·{" "}
+                                    {(
+                                        review.classificationReason ||
+                                        "MATERIAL_REVIEW"
+                                    )
+                                        .replaceAll("_", " ")
+                                        .toLowerCase()}
+                                </p>
+                            </button>
+                        ))
+                    )}
+                    {queueQuery.hasNextPage ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={queueQuery.isFetchingNextPage}
+                            onClick={() => queueQuery.fetchNextPage()}
+                            className="h-10 w-full"
+                        >
+                            {queueQuery.isFetchingNextPage
+                                ? "Loading..."
+                                : "Load more"}
+                        </Button>
+                    ) : null}
+                </div>
 
-				<div className="rounded-lg border bg-background p-4">
-					{detailQuery.isPending ? (
-						<Skeleton className="h-52 rounded-lg" />
-					) : detail ? (
-						<div className="space-y-4">
-							<div className="flex flex-wrap items-start justify-between gap-3">
-								<div>
-									<p className="font-semibold">Order {detail.order.orderId}</p>
-									<p className="text-sm text-muted-foreground">
-										Submitted by {detail.submittedBy.name || "Worker"}
-									</p>
-								</div>
-								{detail.isStale ? (
-									<Badge
-										variant="outline"
-										className="border-blue-200 bg-blue-50 text-blue-700"
-									>
-										Evidence changed
-									</Badge>
-								) : null}
-							</div>
+                <div className="rounded-lg border bg-background p-4">
+                    {detailQuery.isPending ? (
+                        <Skeleton className="h-52 rounded-lg" />
+                    ) : detail ? (
+                        <div className="space-y-4">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <p className="font-semibold">
+                                        Order {detail.order.orderId}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Submitted by{" "}
+                                        {detail.submittedBy.name || "Worker"}
+                                    </p>
+                                </div>
+                                {detail.isStale ? (
+                                    <Badge
+                                        variant="outline"
+                                        className="border-blue-200 bg-blue-50 text-blue-700"
+                                    >
+                                        Evidence changed
+                                    </Badge>
+                                ) : null}
+                            </div>
 
-							<div className="grid gap-2 sm:grid-cols-2">
-								{materialSnapshot.length ? (
-									materialSnapshot.map((material, index) => {
-										const row = material as Record<string, unknown>;
-										return (
-											<div
-												key={`${String(row.componentId)}-${index}`}
-												className="rounded-xl border p-3"
-											>
-												<p className="text-sm font-medium">
-													{String(row.name || "Required material")}
-												</p>
-												<p className="mt-1 text-xs text-muted-foreground">
-													{String(row.readiness || "")
-														.replaceAll("_", " ")
-														.toLowerCase()}
-													{" · "}
-													{Number(row.availableQty || 0)} available /{" "}
-													{Number(row.requiredQty || 0)} required
-												</p>
-											</div>
-										);
-									})
-								) : (
-									<div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground sm:col-span-2">
-										Material configuration is missing or temporarily
-										unavailable.
-									</div>
-								)}
-							</div>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                {materialSnapshot.length ? (
+                                    materialSnapshot.map((material, index) => {
+                                        const row = material as Record<
+                                            string,
+                                            unknown
+                                        >;
+                                        return (
+                                            <div
+                                                key={`${String(row.componentId)}-${index}`}
+                                                className="rounded-xl border p-3"
+                                            >
+                                                <p className="text-sm font-medium">
+                                                    {String(
+                                                        row.name ||
+                                                            "Required material",
+                                                    )}
+                                                </p>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    {String(row.readiness || "")
+                                                        .replaceAll("_", " ")
+                                                        .toLowerCase()}
+                                                    {" · "}
+                                                    {Number(
+                                                        row.availableQty || 0,
+                                                    )}{" "}
+                                                    available /{" "}
+                                                    {Number(
+                                                        row.requiredQty || 0,
+                                                    )}{" "}
+                                                    required
+                                                </p>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground sm:col-span-2">
+                                        Material configuration is missing or
+                                        temporarily unavailable.
+                                    </div>
+                                )}
+                            </div>
 
-							{detail.linkedInboundReceipts.length ? (
-								<div className="space-y-2 rounded-xl border p-3">
-									<div>
-										<p className="text-sm font-medium">
-											Receive linked inbound
-										</p>
-										<p className="text-xs text-muted-foreground">
-											Enter and confirm both good and issue quantities. No
-											quantity is selected automatically.
-										</p>
-									</div>
-									{detail.linkedInboundReceipts.map((receipt) => {
-										const quantities = receiptQuantities[
-											receipt.inboundShipmentItemId
-										] || { good: "", issue: "" };
-										return (
-											<div
-												key={receipt.inboundShipmentItemId}
-												className="grid gap-2 rounded-lg bg-muted/30 p-3 sm:grid-cols-[minmax(0,1fr)_100px_100px]"
-											>
-												<div className="text-xs">
-													<p className="font-medium">
-														Inbound #{receipt.inboundId}
-													</p>
-													<p className="text-muted-foreground">
-														Planned {receipt.plannedQty} · already received{" "}
-														{receipt.receivedQty}
-													</p>
-												</div>
-												<Input
-													type="number"
-													min={0}
-													placeholder="Good qty"
-													aria-label={`Good quantity for inbound item ${receipt.inboundShipmentItemId}`}
-													value={quantities.good}
-													onChange={(event) =>
-														setReceiptQuantities((current) => ({
-															...current,
-															[receipt.inboundShipmentItemId]: {
-																...quantities,
-																good: event.target.value,
-															},
-														}))
-													}
-												/>
-												<Input
-													type="number"
-													min={0}
-													placeholder="Issue qty"
-													aria-label={`Issue quantity for inbound item ${receipt.inboundShipmentItemId}`}
-													value={quantities.issue}
-													onChange={(event) =>
-														setReceiptQuantities((current) => ({
-															...current,
-															[receipt.inboundShipmentItemId]: {
-																...quantities,
-																issue: event.target.value,
-															},
-														}))
-													}
-												/>
-											</div>
-										);
-									})}
-								</div>
-							) : null}
+                            {detail.linkedInboundReceipts.length ? (
+                                <div className="space-y-2 rounded-xl border p-3">
+                                    <div>
+                                        <p className="text-sm font-medium">
+                                            Receive linked inbound
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Enter and confirm both good and
+                                            issue quantities. No quantity is
+                                            selected automatically.
+                                        </p>
+                                    </div>
+                                    {detail.linkedInboundReceipts.map(
+                                        (receipt) => {
+                                            const quantities =
+                                                receiptQuantities[
+                                                    receipt
+                                                        .inboundShipmentItemId
+                                                ] || { good: "", issue: "" };
+                                            return (
+                                                <div
+                                                    key={
+                                                        receipt.inboundShipmentItemId
+                                                    }
+                                                    className="grid gap-2 rounded-lg bg-muted/30 p-3 sm:grid-cols-[minmax(0,1fr)_100px_100px]"
+                                                >
+                                                    <div className="text-xs">
+                                                        <p className="font-medium">
+                                                            Inbound #
+                                                            {receipt.inboundId}
+                                                        </p>
+                                                        <p className="text-muted-foreground">
+                                                            Planned{" "}
+                                                            {receipt.plannedQty}{" "}
+                                                            · already received{" "}
+                                                            {
+                                                                receipt.receivedQty
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                    <Input
+                                                        type="number"
+                                                        min={0}
+                                                        placeholder="Good qty"
+                                                        aria-label={`Good quantity for inbound item ${receipt.inboundShipmentItemId}`}
+                                                        value={quantities.good}
+                                                        onChange={(event) =>
+                                                            setReceiptQuantities(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [receipt.inboundShipmentItemId]:
+                                                                        {
+                                                                            ...quantities,
+                                                                            good: event
+                                                                                .target
+                                                                                .value,
+                                                                        },
+                                                                }),
+                                                            )
+                                                        }
+                                                    />
+                                                    <Input
+                                                        type="number"
+                                                        min={0}
+                                                        placeholder="Issue qty"
+                                                        aria-label={`Issue quantity for inbound item ${receipt.inboundShipmentItemId}`}
+                                                        value={quantities.issue}
+                                                        onChange={(event) =>
+                                                            setReceiptQuantities(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [receipt.inboundShipmentItemId]:
+                                                                        {
+                                                                            ...quantities,
+                                                                            issue: event
+                                                                                .target
+                                                                                .value,
+                                                                        },
+                                                                }),
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            );
+                                        },
+                                    )}
+                                </div>
+                            ) : null}
 
-							{manualCandidates.length ? (
-								<div className="space-y-2 rounded-xl border p-3">
-									<div>
-										<p className="text-sm font-medium">
-											Mark needs available without inbound
-										</p>
-										<p className="text-xs text-muted-foreground">
-											This changes only the selected need status and records no
-											physical stock movement.
-										</p>
-									</div>
-									{manualCandidates.map((candidate) => (
-										<label
-											key={candidate.componentId}
-											className="flex items-center gap-2 text-sm"
-										>
-											<Checkbox
-												checked={manualComponentIds.includes(
-													candidate.componentId,
-												)}
-												onCheckedChange={(checked) =>
-													setManualComponentIds((current) =>
-														checked
-															? Array.from(
-																	new Set([...current, candidate.componentId]),
-																)
-															: current.filter(
-																	(id) => id !== candidate.componentId,
-																),
-													)
-												}
-											/>
-											{candidate.name}
-										</label>
-									))}
-								</div>
-							) : null}
+                            {manualCandidates.length ? (
+                                <div className="space-y-2 rounded-xl border p-3">
+                                    <div>
+                                        <p className="text-sm font-medium">
+                                            Mark needs available without inbound
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            This changes only the selected need
+                                            status and records no physical stock
+                                            movement.
+                                        </p>
+                                    </div>
+                                    {manualCandidates.map((candidate) => (
+                                        <label
+                                            key={candidate.componentId}
+                                            className="flex items-center gap-2 text-sm"
+                                        >
+                                            <Checkbox
+                                                checked={manualComponentIds.includes(
+                                                    candidate.componentId,
+                                                )}
+                                                onCheckedChange={(checked) =>
+                                                    setManualComponentIds(
+                                                        (current) =>
+                                                            checked
+                                                                ? Array.from(
+                                                                      new Set([
+                                                                          ...current,
+                                                                          candidate.componentId,
+                                                                      ]),
+                                                                  )
+                                                                : current.filter(
+                                                                      (id) =>
+                                                                          id !==
+                                                                          candidate.componentId,
+                                                                  ),
+                                                    )
+                                                }
+                                            />
+                                            {candidate.name}
+                                        </label>
+                                    ))}
+                                </div>
+                            ) : null}
 
-							<div className="space-y-2">
-								<Label htmlFor="production-review-note">Decision note</Label>
-								<Input
-									id="production-review-note"
-									value={decisionNote}
-									onChange={(event) => setDecisionNote(event.target.value)}
-								/>
-							</div>
+                            {needsConfigurationException ? (
+                                <Alert variant="warning">
+                                    <Icons.AlertTriangle />
+                                    <AlertTitle>
+                                        Material configuration is missing
+                                    </AlertTitle>
+                                    <AlertDescription>
+                                        Approve only after confirming the
+                                        completed item is physically available.
+                                        This records an auditable exception and
+                                        does not create or move inventory.
+                                    </AlertDescription>
+                                </Alert>
+                            ) : null}
 
-							<div className="flex flex-wrap gap-2">
-								<Button
-									type="button"
-									variant="outline"
-									disabled={decision.isPending}
-									onClick={() => submitDecision("RECHECK_AND_APPROVE")}
-								>
-									Recheck & approve
-								</Button>
-								<Button
-									type="button"
-									disabled={
-										decision.isPending ||
-										!hasSelectedResolution ||
-										hasIncompleteReceiptQuantity
-									}
-									onClick={() => submitDecision("RESOLVE_AND_APPROVE")}
-								>
-									Apply selected resolutions & approve
-								</Button>
-								<Button
-									type="button"
-									variant="destructive"
-									disabled={decision.isPending}
-									onClick={() => submitDecision("REJECT")}
-								>
-									Reject
-								</Button>
-							</div>
-						</div>
-					) : (
-						<p className="text-sm text-muted-foreground">
-							Select a pending review.
-						</p>
-					)}
-				</div>
-			</CardContent>
-		</Card>
-	);
+                            <div className="space-y-2">
+                                <Label htmlFor="production-review-note">
+                                    Decision note
+                                </Label>
+                                <Input
+                                    id="production-review-note"
+                                    value={decisionNote}
+                                    onChange={(event) =>
+                                        setDecisionNote(event.target.value)
+                                    }
+                                />
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                                {needsConfigurationException ? (
+                                    <Button
+                                        type="button"
+                                        disabled={decision.isPending}
+                                        onClick={() =>
+                                            submitDecision(
+                                                "APPROVE_CONFIGURATION_EXCEPTION",
+                                            )
+                                        }
+                                    >
+                                        Approve confirmed availability
+                                    </Button>
+                                ) : null}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={decision.isPending}
+                                    onClick={() =>
+                                        submitDecision("RECHECK_AND_APPROVE")
+                                    }
+                                >
+                                    Recheck & approve
+                                </Button>
+                                <Button
+                                    type="button"
+                                    disabled={
+                                        decision.isPending ||
+                                        !hasSelectedResolution ||
+                                        hasIncompleteReceiptQuantity
+                                    }
+                                    onClick={() =>
+                                        submitDecision("RESOLVE_AND_APPROVE")
+                                    }
+                                >
+                                    Apply selected resolutions & approve
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    disabled={decision.isPending}
+                                    onClick={() => submitDecision("REJECT")}
+                                >
+                                    Reject
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            Select a pending review.
+                        </p>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
 }
 
 function ProductionV2Board({
@@ -784,7 +899,8 @@ function ProductionV2Board({
         trpc.sales.productionDashboardV2.queryOptions(
             {
                 scope,
-				production: activeLabel === "completed" ? "completed" : "pending",
+                production:
+                    activeLabel === "completed" ? "completed" : "pending",
                 productionDueDate: selectedDate,
                 priority,
                 q: deferredSearch || null,
@@ -799,12 +915,14 @@ function ProductionV2Board({
         trpc.sales.productionsV2.infiniteQueryOptions(
             {
                 scope,
-				production: activeLabel === "completed" ? "completed" : "pending",
+                production:
+                    activeLabel === "completed" ? "completed" : "pending",
                 show:
                     activeLabel === "due-today" ||
                     activeLabel === "due-tomorrow" ||
                     activeLabel === "past-due"
-						? (activeLabel as "due-today" | "due-tomorrow" | "past-due")
+                        ? (activeLabel as
+                              "due-today" | "due-tomorrow" | "past-due")
                         : null,
                 productionDueDate: selectedDate,
                 priority,
@@ -814,8 +932,8 @@ function ProductionV2Board({
             },
             {
                 getNextPageParam: (lastPage) =>
-					(lastPage as { meta?: { cursor?: string | null } })?.meta?.cursor ||
-					undefined,
+                    (lastPage as { meta?: { cursor?: string | null } })?.meta
+                        ?.cursor || undefined,
                 refetchOnWindowFocus: false,
                 staleTime: 60 * 1000,
             },
@@ -843,14 +961,19 @@ function ProductionV2Board({
     const dueDateCalendarMap = useMemo(
         () =>
             new Map(
-				(dashboard?.calendar || []).map((item) => [item.date, item] as const),
+                (dashboard?.calendar || []).map(
+                    (item) => [item.date, item] as const,
+                ),
             ),
         [dashboard?.calendar],
     );
     const pastDueDates = useMemo(
         () =>
             (dashboard?.calendar || [])
-				.filter((item) => item.count > 0 && !item.isToday && !item.isTomorrow)
+                .filter(
+                    (item) =>
+                        item.count > 0 && !item.isToday && !item.isTomorrow,
+                )
                 .filter((item) => {
                     const date = new Date(`${item.date}T00:00:00`);
                     const today = new Date();
@@ -877,7 +1000,10 @@ function ProductionV2Board({
     const upcomingDueDates = useMemo(
         () =>
             (dashboard?.calendar || [])
-				.filter((item) => item.count > 0 && !item.isToday && !item.isTomorrow)
+                .filter(
+                    (item) =>
+                        item.count > 0 && !item.isToday && !item.isTomorrow,
+                )
                 .filter((item) => {
                     const date = new Date(`${item.date}T00:00:00`);
                     const today = new Date();
@@ -934,7 +1060,11 @@ function ProductionV2Board({
     });
 
     useEffect(() => {
-		if (!inView || !boardQuery.hasNextPage || boardQuery.isFetchingNextPage) {
+        if (
+            !inView ||
+            !boardQuery.hasNextPage ||
+            boardQuery.isFetchingNextPage
+        ) {
             return;
         }
         void boardQuery.fetchNextPage();
@@ -972,7 +1102,9 @@ function ProductionV2Board({
                     <div className="space-y-4">
                         <div className="flex flex-wrap items-center gap-3">
                             <Badge className="rounded-full border border-slate-300 bg-white/90 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-700 hover:bg-white">
-								{scope === "worker" ? "Worker queue" : "Admin command"}
+                                {scope === "worker"
+                                    ? "Worker queue"
+                                    : "Admin command"}
                             </Badge>
                             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-600">
                                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -1003,16 +1135,29 @@ function ProductionV2Board({
                                     className="h-11 rounded-2xl border-slate-200 bg-white/90 pl-10 shadow-sm"
                                 />
                             </div>
-							<Select value={activeLabel} onValueChange={setActiveLabel}>
+                            <Select
+                                value={activeLabel}
+                                onValueChange={setActiveLabel}
+                            >
                                 <SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-white/90 shadow-sm sm:w-[160px]">
                                     <SelectValue placeholder="Choose label" />
                                 </SelectTrigger>
                                 <SelectContent>
-									<SelectItem value="pending">Pending</SelectItem>
-									<SelectItem value="due-today">Due Today</SelectItem>
-									<SelectItem value="due-tomorrow">Due Tomorrow</SelectItem>
-									<SelectItem value="past-due">Past Due</SelectItem>
-									<SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="pending">
+                                        Pending
+                                    </SelectItem>
+                                    <SelectItem value="due-today">
+                                        Due Today
+                                    </SelectItem>
+                                    <SelectItem value="due-tomorrow">
+                                        Due Tomorrow
+                                    </SelectItem>
+                                    <SelectItem value="past-due">
+                                        Past Due
+                                    </SelectItem>
+                                    <SelectItem value="completed">
+                                        Completed
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                             <Select
@@ -1030,10 +1175,16 @@ function ProductionV2Board({
                                     <SelectValue placeholder="Priority" />
                                 </SelectTrigger>
                                 <SelectContent>
-									<SelectItem value="all">All priorities</SelectItem>
-									<SelectItem value="CRITICAL">Critical</SelectItem>
+                                    <SelectItem value="all">
+                                        All priorities
+                                    </SelectItem>
+                                    <SelectItem value="CRITICAL">
+                                        Critical
+                                    </SelectItem>
                                     <SelectItem value="HIGH">High</SelectItem>
-									<SelectItem value="NORMAL">Normal</SelectItem>
+                                    <SelectItem value="NORMAL">
+                                        Normal
+                                    </SelectItem>
                                     <SelectItem value="LOW">Low</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -1053,18 +1204,28 @@ function ProductionV2Board({
                                 <SelectValue placeholder="Sort by" />
                             </SelectTrigger>
                             <SelectContent>
-								<SelectItem value="priority">Priority</SelectItem>
-								<SelectItem value="dueDateAsc">Due date soonest</SelectItem>
-								<SelectItem value="dueDateDesc">Due date latest</SelectItem>
-								<SelectItem value="newest">Newest order</SelectItem>
-								<SelectItem value="oldest">Oldest order</SelectItem>
+                                <SelectItem value="priority">
+                                    Priority
+                                </SelectItem>
+                                <SelectItem value="dueDateAsc">
+                                    Due date soonest
+                                </SelectItem>
+                                <SelectItem value="dueDateDesc">
+                                    Due date latest
+                                </SelectItem>
+                                <SelectItem value="newest">
+                                    Newest order
+                                </SelectItem>
+                                <SelectItem value="oldest">
+                                    Oldest order
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
             </section>
 
-			{scope === "admin" ? <ProductionMaterialReviewPanel /> : null}
+            {scope === "admin" ? <ProductionMaterialReviewPanel /> : null}
 
             <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 <SummaryCard
@@ -1114,8 +1275,8 @@ function ProductionV2Board({
                                     : "Production Orders"}
                             </CardTitle>
                             <CardDescription className="mt-1">
-								A cleaner production feed with compact order cards and inline
-								expansion.
+                                A cleaner production feed with compact order
+                                cards and inline expansion.
                             </CardDescription>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -1125,19 +1286,25 @@ function ProductionV2Board({
                                     size="sm"
                                     onClick={() =>
                                         setSelectedIds(
-											allVisibleSelected ? [] : items.map((item) => item.id),
+                                            allVisibleSelected
+                                                ? []
+                                                : items.map((item) => item.id),
                                         )
                                     }
                                 >
                                     <Icons.SquareCheckBig className="h-4 w-4" />
-									{allVisibleSelected ? "Clear visible" : "Select visible"}
+                                    {allVisibleSelected
+                                        ? "Clear visible"
+                                        : "Select visible"}
                                 </Button>
                             ) : null}
                             {selectedDate ? (
                                 <Button
                                     variant="ghost"
                                     size="sm"
-									onClick={() => void setFilters({ date: null })}
+                                    onClick={() =>
+                                        void setFilters({ date: null })
+                                    }
                                 >
                                     Clear date
                                 </Button>
@@ -1159,19 +1326,30 @@ function ProductionV2Board({
                                     key={item.id}
                                     scope={scope}
                                     item={item}
-									isExpanded={expandedOrderId === item.orderId}
+                                    isExpanded={
+                                        expandedOrderId === item.orderId
+                                    }
                                     onToggle={() =>
                                         void setFilters({
                                             order:
-												expandedOrderId === item.orderId ? null : item.orderId,
+                                                expandedOrderId === item.orderId
+                                                    ? null
+                                                    : item.orderId,
                                         })
                                     }
                                     isSelected={selectedIds.includes(item.id)}
                                     onSelectionChange={(checked) =>
                                         setSelectedIds((current) =>
                                             checked
-												? Array.from(new Set([...current, item.id]))
-												: current.filter((id) => id !== item.id),
+                                                ? Array.from(
+                                                      new Set([
+                                                          ...current,
+                                                          item.id,
+                                                      ]),
+                                                  )
+                                                : current.filter(
+                                                      (id) => id !== item.id,
+                                                  ),
                                         )
                                     }
                                     assignOptions={assignOptions}
@@ -1219,10 +1397,22 @@ function ProductionV2Board({
                                 </CardTitle>
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-								<LegendPill color="bg-rose-500" label="Past due" />
-								<LegendPill color="bg-amber-500" label="Today" />
-								<LegendPill color="bg-sky-500" label="Tomorrow" />
-								<LegendPill color="bg-emerald-500" label="Upcoming" />
+                                <LegendPill
+                                    color="bg-rose-500"
+                                    label="Past due"
+                                />
+                                <LegendPill
+                                    color="bg-amber-500"
+                                    label="Today"
+                                />
+                                <LegendPill
+                                    color="bg-sky-500"
+                                    label="Tomorrow"
+                                />
+                                <LegendPill
+                                    color="bg-emerald-500"
+                                    label="Upcoming"
+                                />
                             </div>
                         </CardHeader>
                         <CardContent className="px-4 pb-4 pt-0">
@@ -1231,12 +1421,16 @@ function ProductionV2Board({
                                     mode="single"
                                     selected={
                                         selectedDate
-											? new Date(`${selectedDate}T00:00:00`)
+                                            ? new Date(
+                                                  `${selectedDate}T00:00:00`,
+                                              )
                                             : undefined
                                     }
                                     onSelect={(date) =>
                                         void setFilters({
-											date: date ? formatCalendarDate(date) : null,
+                                            date: date
+                                                ? formatCalendarDate(date)
+                                                : null,
                                         })
                                     }
                                     modifiers={{
@@ -1247,19 +1441,22 @@ function ProductionV2Board({
                                         upcomingDue: upcomingDueDates,
                                     }}
                                     modifiersClassNames={{
-										hasDue:
-											"border-sky-200 bg-sky-50/90 font-semibold text-sky-950 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.08)]",
+                                        hasDue: "border-sky-200 bg-sky-50/90 font-semibold text-sky-950 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.08)]",
                                     }}
                                     components={{
                                         DayButton: (props) => {
-											const dateKey = formatCalendarDate(props.day.date);
-											const entry = dueDateCalendarMap.get(dateKey);
+                                            const dateKey = formatCalendarDate(
+                                                props.day.date,
+                                            );
+                                            const entry =
+                                                dueDateCalendarMap.get(dateKey);
                                             return (
                                                 <CalendarDayButton
                                                     {...props}
                                                     className={cn(
                                                         "relative flex h-full min-h-[52px] w-full flex-col items-start justify-between rounded-xl px-1.5 py-1.5 text-left transition-all duration-200",
-														entry?.count && "shadow-sm",
+                                                        entry?.count &&
+                                                            "shadow-sm",
                                                     )}
                                                 >
                                                     <span className="text-xs font-semibold">
@@ -1274,7 +1471,9 @@ function ProductionV2Board({
                                                                         ? "bg-amber-500"
                                                                         : entry.isTomorrow
                                                                           ? "bg-sky-500"
-																			: isPastDueCalendarItem(entry)
+                                                                          : isPastDueCalendarItem(
+                                                                                  entry,
+                                                                              )
                                                                             ? "bg-rose-500"
                                                                             : "bg-emerald-500",
                                                                 )}
@@ -1302,7 +1501,8 @@ function ProductionV2Board({
                                             "h-7 w-7 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm",
                                         button_next:
                                             "h-7 w-7 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm",
-										weekdays: "grid w-full grid-cols-7 gap-1 px-0.5",
+                                        weekdays:
+                                            "grid w-full grid-cols-7 gap-1 px-0.5",
                                         weekday:
                                             "flex h-6 items-center justify-center text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500",
                                         week: "mt-1 grid w-full grid-cols-7 gap-1 px-0.5",
@@ -1340,8 +1540,9 @@ function ProductionV2Board({
                                 </div>
                             </div>
                             <p className="text-xs leading-5 text-slate-300">
-								Use the cards for broad queue states and the calendar for
-								exact-date cuts. The feed on the left stays focused on action.
+                                Use the cards for broad queue states and the
+                                calendar for exact-date cuts. The feed on the
+                                left stays focused on action.
                             </p>
                         </CardContent>
                     </Card>
@@ -1378,7 +1579,9 @@ function ProductionV2Board({
                                     <Input
                                         type="date"
                                         value={batchDueDate}
-										onChange={(event) => setBatchDueDate(event.target.value)}
+                                        onChange={(event) =>
+                                            setBatchDueDate(event.target.value)
+                                        }
                                         className="h-9 w-[160px] rounded-xl bg-background"
                                     />
                                     <Button
@@ -1387,12 +1590,16 @@ function ProductionV2Board({
                                         disabled={batchAssign.isExecuting}
                                         onClick={() =>
                                             batchAssign.execute({
-												salesIds: selectedItems.map((item) => item.id),
+                                                salesIds: selectedItems.map(
+                                                    (item) => item.id,
+                                                ),
                                                 assignedToId: batchAssignedToId
                                                     ? Number(batchAssignedToId)
                                                     : null,
                                                 dueDate: batchDueDate
-													? new Date(`${batchDueDate}T00:00:00`)
+                                                    ? new Date(
+                                                          `${batchDueDate}T00:00:00`,
+                                                      )
                                                     : null,
                                             })
                                         }
@@ -1405,7 +1612,9 @@ function ProductionV2Board({
                                 size="sm"
                                 onClick={() =>
                                     runBatchAction((ids) =>
-										batchSales.markAsProductionCompleted(...ids),
+                                        batchSales.markAsProductionCompleted(
+                                            ...ids,
+                                        ),
                                     )
                                 }
                             >
@@ -1415,7 +1624,9 @@ function ProductionV2Board({
                                 size="sm"
                                 variant="outline"
                                 onClick={() =>
-									runBatchAction((ids) => batchSales.markAsFulfilled(...ids))
+                                    runBatchAction((ids) =>
+                                        batchSales.markAsFulfilled(...ids),
+                                    )
                                 }
                             >
                                 Mark Fulfillment Complete
@@ -1472,7 +1683,9 @@ function ProductionOrderCard({
                 <div className="group/order-summary flex items-start gap-3 px-4 py-4 transition-colors hover:bg-sky-50/75 focus-within:bg-sky-50/75 sm:px-5">
                     <Checkbox
                         checked={isSelected}
-						onCheckedChange={(checked) => onSelectionChange(checked === true)}
+                        onCheckedChange={(checked) =>
+                            onSelectionChange(checked === true)
+                        }
                         className="mt-1"
                         aria-label={`Select ${item.orderId}`}
                     />
@@ -1492,7 +1705,9 @@ function ProductionOrderCard({
                                                 <p className="text-lg font-semibold tracking-tight text-slate-950">
                                                     {item.orderId}
                                                 </p>
-												<SalesPriorityBadge priority={item.priority} />
+                                                <SalesPriorityBadge
+                                                    priority={item.priority}
+                                                />
                                                 {scope === "admin" ? (
                                                     <Badge
                                                         variant="outline"
@@ -1508,7 +1723,8 @@ function ProductionOrderCard({
                                                 )}
                                             </div>
                                             <p className="text-sm text-slate-600">
-												{item.customer || "Customer unavailable"}
+                                                {item.customer ||
+                                                    "Customer unavailable"}
                                             </p>
                                         </div>
 
@@ -1523,15 +1739,21 @@ function ProductionOrderCard({
                                             />
                                             <OrderMetaBlock
                                                 label="Assigned To"
-												value={item.assignedTo || "Unassigned"}
+                                                value={
+                                                    item.assignedTo ||
+                                                    "Unassigned"
+                                                }
                                             />
                                             <OrderMetaBlock
                                                 label="Due"
                                                 value={
-													item.dueDateLabel || item.alert?.dateString || "N/A"
+                                                    item.dueDateLabel ||
+                                                    item.alert?.dateString ||
+                                                    "N/A"
                                                 }
                                                 tone={
-													orderStatus.label === "Past Due"
+                                                    orderStatus.label ===
+                                                    "Past Due"
                                                         ? "text-rose-700"
                                                         : undefined
                                                 }
@@ -1791,7 +2013,9 @@ function ProductionOrderDetailInline({
                             <TabsTrigger value="productions">
                                 Productions ({productionItems.length})
                             </TabsTrigger>
-							<TabsTrigger value="notes">Notes ({orderNotesCount})</TabsTrigger>
+                            <TabsTrigger value="notes">
+                                Notes ({orderNotesCount})
+                            </TabsTrigger>
                         </TabsList>
                         <ProductionOrderActionsMenu
                             scope={scope}
@@ -1800,10 +2024,17 @@ function ProductionOrderDetailInline({
                             submittableItemUids={submittableItemUids}
                             canDeleteAssignments={canDeleteAssignments}
                             canDeleteSubmissions={canDeleteSubmissions}
-							productionItemIds={productionItems.map((item) => item.itemId)}
-							submittedItemIds={submittedItems.map((item) => item.itemId)}
+                            productionItemIds={productionItems.map(
+                                (item) => item.itemId,
+                            )}
+                            submittedItemIds={submittedItems.map(
+                                (item) => item.itemId,
+                            )}
                             onAction={(payload) =>
-								actionTrigger.triggerWithAuth("update-sales-control", payload)
+                                actionTrigger.triggerWithAuth(
+                                    "update-sales-control",
+                                    payload,
+                                )
                             }
                             salesId={detail?.salesId}
                         />
@@ -1813,7 +2044,9 @@ function ProductionOrderDetailInline({
                 <TabsContent value="productions" className="mt-0 space-y-4">
                     <ProductionMaterialsNotice
                         unavailable={detail.materialsState === "unavailable"}
-						materials={productionItems.flatMap((item) => item.materials || [])}
+                        materials={productionItems.flatMap(
+                            (item) => item.materials || [],
+                        )}
                     />
                     {productionItems.length ? (
                         <ProductionItemsGrid
@@ -1832,9 +2065,12 @@ function ProductionOrderDetailInline({
                 <TabsContent value="notes" className="mt-0">
                     <Card className="rounded-2xl">
                         <CardHeader>
-							<CardTitle className="text-base">Order Notes</CardTitle>
+                            <CardTitle className="text-base">
+                                Order Notes
+                            </CardTitle>
                             <CardDescription>
-								Notes and activity for the full production order.
+                                Notes and activity for the full production
+                                order.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -1883,10 +2119,12 @@ function ProductionItemsGrid({
         <div className="space-y-3">
             {rows.map((row, rowIndex) => {
                 const expandedRowItem =
-					row.find((item) => item.controlUid === expandedItemUid) ?? null;
+                    row.find((item) => item.controlUid === expandedItemUid) ??
+                    null;
                 const expandedColumnIndex = expandedRowItem
                     ? row.findIndex(
-							(item) => item.controlUid === expandedRowItem.controlUid,
+                          (item) =>
+                              item.controlUid === expandedRowItem.controlUid,
                       )
                     : -1;
 
@@ -1898,7 +2136,8 @@ function ProductionItemsGrid({
                         <div className="grid gap-3 lg:grid-cols-2">
                             {row.map((productionItem) => {
                                 const isExpanded =
-									expandedItemUid === productionItem.controlUid;
+                                    expandedItemUid ===
+                                    productionItem.controlUid;
 
                                 return (
                                     <div
@@ -1911,13 +2150,15 @@ function ProductionItemsGrid({
                                             isExpanded={isExpanded}
                                             onToggle={() =>
                                                 setExpandedItemUid((current) =>
-													current === productionItem.controlUid
+                                                    current ===
+                                                    productionItem.controlUid
                                                         ? null
                                                         : productionItem.controlUid,
                                                 )
                                             }
                                         />
-										{isExpanded && productionItem.isProduction ? (
+                                        {isExpanded &&
+                                        productionItem.isProduction ? (
                                             <ExpandedItemOverview
                                                 scope={scope}
                                                 productionItem={productionItem}
@@ -1974,7 +2215,9 @@ function ExpandedItemOverview({
             className={cn(
                 className,
                 "overflow-hidden pt-0 transition-all duration-300 ease-out",
-				showSteppedJoin ? "animate-in fade-in-0 slide-in-from-top-1" : "",
+                showSteppedJoin
+                    ? "animate-in fade-in-0 slide-in-from-top-1"
+                    : "",
             )}
         >
             {showSteppedJoin ? (
@@ -2000,7 +2243,9 @@ function ExpandedItemOverview({
             <div
                 className={cn(
                     "rounded-b-2xl border border-slate-400 bg-muted/50 px-4 pb-4 pt-4 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.42)] transition-all duration-300 ease-out",
-					showSteppedJoin ? "mt-0 border-t-0" : "-mt-4 border-t-0 pt-6",
+                    showSteppedJoin
+                        ? "mt-0 border-t-0"
+                        : "-mt-4 border-t-0 pt-6",
                 )}
             >
                 <ProductionItemDetailTabs
@@ -2034,7 +2279,9 @@ function ProductionItemCard({
                 "relative block w-full overflow-hidden rounded-2xl border border-border bg-background px-4 pb-4 pt-4 text-left transition-[background-color,border-color,border-radius,transform,box-shadow] duration-300 ease-out",
                 isExpanded &&
                     "rounded-b-none border-b-0 border-slate-400 bg-muted/50 shadow-none",
-				item.isProduction ? "hover:bg-muted/30" : "cursor-default bg-muted/10",
+                item.isProduction
+                    ? "hover:bg-muted/30"
+                    : "cursor-default bg-muted/10",
             )}
         >
             <div
@@ -2052,7 +2299,11 @@ function ProductionItemCard({
                         onClick={(event) => event.stopPropagation()}
                     >
                         <div className="overflow-hidden rounded-xl border bg-muted/30">
-							<Img src={item.img} aspectRatio={1} alt={item.title} />
+                            <Img
+                                src={item.img}
+                                aspectRatio={1}
+                                alt={item.title}
+                            />
                         </div>
                     </a>
                 ) : null}
@@ -2061,7 +2312,8 @@ function ProductionItemCard({
                         <div className="min-w-0 flex-1">
                             {scope === "worker"
                                 ? (() => {
-										const workerItemStatus = getWorkerAssignmentStatus(item);
+                                      const workerItemStatus =
+                                          getWorkerAssignmentStatus(item);
                                       return (
                                           <Badge
                                               variant="outline"
@@ -2099,12 +2351,16 @@ function ProductionItemCard({
                         <div className="mt-4 grid gap-3 md:grid-cols-2">
                             <ProductionStatProgress
                                 label="Assigned"
-								completed={item.analytics?.stats?.prodAssigned?.qty}
+                                completed={
+                                    item.analytics?.stats?.prodAssigned?.qty
+                                }
                                 total={item.qty?.qty}
                             />
                             <ProductionStatProgress
                                 label="Production"
-								completed={item.analytics?.stats?.prodCompleted?.qty}
+                                completed={
+                                    item.analytics?.stats?.prodCompleted?.qty
+                                }
                                 total={item.qty?.qty}
                             />
                         </div>
@@ -2164,7 +2420,8 @@ function SummaryCard({
                 <div
                     className={cn(
                         "rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-600",
-						active && "border-emerald-200 bg-emerald-100 text-emerald-700",
+                        active &&
+                            "border-emerald-200 bg-emerald-100 text-emerald-700",
                     )}
                 >
                     {icon}
@@ -2198,7 +2455,10 @@ function OrderMetaBlock({
                 {label}
             </p>
             <p
-				className={cn("mt-1 truncate text-sm font-medium text-slate-900", tone)}
+                className={cn(
+                    "mt-1 truncate text-sm font-medium text-slate-900",
+                    tone,
+                )}
             >
                 {value}
             </p>
@@ -2243,7 +2503,10 @@ function ProductionItemDetailTabs({
                 activityTag("salesId", productionItem.noteContext.salesId),
                 activityTag("salesNo", productionItem.noteContext.salesNo),
                 activityTag("itemId", productionItem.noteContext.itemId),
-				activityTag("itemControlId", productionItem.noteContext.itemControlId),
+                activityTag(
+                    "itemControlId",
+                    productionItem.noteContext.itemControlId,
+                ),
             ]),
             includeChildren: true,
             pageSize: 100,
@@ -2329,7 +2592,10 @@ function ProductionItemDetailTabs({
                 >
                     {submissionsTabLabel}
                 </TabsTrigger>
-				<TabsTrigger value="notes" className="uppercase tracking-[0.12em]">
+                <TabsTrigger
+                    value="notes"
+                    className="uppercase tracking-[0.12em]"
+                >
                     Notes ({notesCount})
                 </TabsTrigger>
             </TabsList>
@@ -2351,8 +2617,12 @@ function ProductionItemDetailTabs({
                             <p className="text-sm font-semibold uppercase tracking-[0.16em]">
                                 Assignments
                             </p>
-							<Badge variant="outline" className="rounded-full px-3 py-1">
-								{completedAssignmentsCount}/{assignmentsCount} ready
+                            <Badge
+                                variant="outline"
+                                className="rounded-full px-3 py-1"
+                            >
+                                {completedAssignmentsCount}/{assignmentsCount}{" "}
+                                ready
                             </Badge>
                         </div>
 
@@ -2366,7 +2636,10 @@ function ProductionItemDetailTabs({
                                 authorId={Number(auth.id || 0)}
                                 authorName={auth.name || "System"}
                                 onAssign={(payload) =>
-									actionTrigger.triggerWithAuth("update-sales-control", payload)
+                                    actionTrigger.triggerWithAuth(
+                                        "update-sales-control",
+                                        payload,
+                                    )
                                 }
                             />
                         ) : null}
@@ -2388,17 +2661,23 @@ function ProductionItemDetailTabs({
                                             <div className="flex flex-wrap items-center justify-between gap-2">
                                                 <div>
                                                     <p className="text-sm font-medium">
-														{assignment.assignedTo || "Unassigned"}
+                                                        {assignment.assignedTo ||
+                                                            "Unassigned"}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
                                                         Due:{" "}
                                                         {assignment.dueDate
-															? formatDateValue(assignment.dueDate)
+                                                            ? formatDateValue(
+                                                                  assignment.dueDate,
+                                                              )
                                                             : "No due date"}
                                                     </p>
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-2">
-													<Badge variant="outline" className="rounded-full">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="rounded-full"
+                                                    >
                                                         {assignmentLabel}
                                                     </Badge>
                                                     <Badge
@@ -2412,15 +2691,21 @@ function ProductionItemDetailTabs({
                                                         {submittedLabel}
                                                     </Badge>
                                                     {!isCompleted ? (
-														<Badge variant="secondary" className="rounded-full">
-															Pending {pendingLabel}
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="rounded-full"
+                                                        >
+                                                            Pending{" "}
+                                                            {pendingLabel}
                                                         </Badge>
                                                     ) : null}
                                                 </div>
                                             </div>
                                             <p className="text-xs text-muted-foreground">
                                                 {submittedLabel}
-												{isCompleted ? " | All submissions completed" : ""}
+                                                {isCompleted
+                                                    ? " | All submissions completed"
+                                                    : ""}
                                             </p>
                                         </div>
                                     ),
@@ -2448,12 +2733,18 @@ function ProductionItemDetailTabs({
                                 </Badge>
                             ) : null}
                             {scope === "worker" && !canSubmitThisItem ? (
-								<Badge variant="outline" className="rounded-full">
+                                <Badge
+                                    variant="outline"
+                                    className="rounded-full"
+                                >
                                     No pending submissions
                                 </Badge>
                             ) : null}
                             {canDeleteThisItem ? (
-								<Badge variant="outline" className="rounded-full">
+                                <Badge
+                                    variant="outline"
+                                    className="rounded-full"
+                                >
                                     Delete enabled
                                 </Badge>
                             ) : null}
@@ -2462,9 +2753,12 @@ function ProductionItemDetailTabs({
 
                     {productionItem.assignments?.length ? (
                         <div className="space-y-3">
-							{assignmentProgress.map((assignmentProgressItem) => (
+                            {assignmentProgress.map(
+                                (assignmentProgressItem) => (
                                     <AssignmentSubmissionCard
-									key={assignmentProgressItem.assignment.id}
+                                        key={
+                                            assignmentProgressItem.assignment.id
+                                        }
                                         scope={scope}
                                         workerId={workerId}
                                         authorId={workerId}
@@ -2478,23 +2772,43 @@ function ProductionItemDetailTabs({
                                             )
                                         }
                                         onDeleteSubmission={(submissionId) =>
-										actionTrigger.triggerWithAuth("update-sales-control", {
+                                            actionTrigger.triggerWithAuth(
+                                                "update-sales-control",
+                                                {
                                                     meta: {
-												salesId: productionItem.salesId,
-												authorId: Number(auth.id || 0),
-												authorName: auth.name || "System",
+                                                        salesId:
+                                                            productionItem.salesId,
+                                                        authorId: Number(
+                                                            auth.id || 0,
+                                                        ),
+                                                        authorName:
+                                                            auth.name ||
+                                                            "System",
                                                     },
                                                     deleteSubmissions: {
-												submissionIds: [submissionId],
+                                                        submissionIds: [
+                                                            submissionId,
+                                                        ],
                                                     },
-										} as UpdateSalesControl)
+                                                } as UpdateSalesControl,
+                                            )
                                         }
-									onUpdateSubmission={(submissionId, qty) =>
-										actionTrigger.triggerWithAuth("update-sales-control", {
+                                        onUpdateSubmission={(
+                                            submissionId,
+                                            qty,
+                                        ) =>
+                                            actionTrigger.triggerWithAuth(
+                                                "update-sales-control",
+                                                {
                                                     meta: {
-												salesId: productionItem.salesId,
-												authorId: Number(auth.id || 0),
-												authorName: auth.name || "System",
+                                                        salesId:
+                                                            productionItem.salesId,
+                                                        authorId: Number(
+                                                            auth.id || 0,
+                                                        ),
+                                                        authorName:
+                                                            auth.name ||
+                                                            "System",
                                                     },
                                                     updateSubmissions: {
                                                         submissions: [
@@ -2504,10 +2818,12 @@ function ProductionItemDetailTabs({
                                                             },
                                                         ],
                                                     },
-										} as UpdateSalesControl)
+                                                } as UpdateSalesControl,
+                                            )
                                         }
                                     />
-							))}
+                                ),
+                            )}
                         </div>
                     ) : (
                         <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
@@ -2571,7 +2887,9 @@ function ProductionItemOverviewTab({
                             })}
                         />
                         <OverviewChip
-							label={scope === "worker" ? "My progress" : "Submitted"}
+                            label={
+                                scope === "worker" ? "My progress" : "Submitted"
+                            }
                             value={
                                 scope === "worker"
                                     ? workerStatus.label
@@ -2625,7 +2943,10 @@ function ProductionItemOverviewTab({
                             label="Production item"
                             value={productionItem.isProduction ? "Yes" : "No"}
                         />
-						<OverviewRow label="Assignments" value={String(assignmentsCount)} />
+                        <OverviewRow
+                            label="Assignments"
+                            value={String(assignmentsCount)}
+                        />
                         <OverviewRow
                             label="Assigned qty"
                             value={String(totalAssignedQty)}
@@ -2635,7 +2956,10 @@ function ProductionItemOverviewTab({
                             value={String(totalSubmittedQty)}
                         />
                         {scope === "worker" ? (
-							<OverviewRow label="My status" value={workerStatus.label} />
+                            <OverviewRow
+                                label="My status"
+                                value={workerStatus.label}
+                            />
                         ) : null}
                     </div>
                 </div>
@@ -2754,9 +3078,11 @@ function ProductionOrderActionsMenu({
                             onAction({
                                 meta: taskMeta,
                                 submitAll: {
-									idempotencyKey: crypto.randomUUID(),
+                                    idempotencyKey: crypto.randomUUID(),
                                     assignedToId:
-										scope === "worker" && auth.id ? Number(auth.id) : null,
+                                        scope === "worker" && auth.id
+                                            ? Number(auth.id)
+                                            : null,
                                     itemUids: submittableItemUids,
                                 },
                             } as UpdateSalesControl);
@@ -2867,13 +3193,17 @@ function ProductionOrderActionsMenu({
                             No Due Date
                         </Button>
                         <Button
-							disabled={!assignedToId || !assignableSelections.length}
+                            disabled={
+                                !assignedToId || !assignableSelections.length
+                            }
                             onClick={() => {
                                 onAction({
                                     meta: taskMeta,
                                     createAssignments: {
                                         retries: 0,
-										assignedToId: assignedToId ? Number(assignedToId) : null,
+                                        assignedToId: assignedToId
+                                            ? Number(assignedToId)
+                                            : null,
                                         dueDate,
                                         selections: assignableSelections,
                                     },
@@ -2897,15 +3227,15 @@ type AssignmentProgress = {
     >[number];
     assignmentQty: { qty: number; lh: number; rh: number };
     submittedQty: { qty: number; lh: number; rh: number };
-	finalizedQty: { qty: number; lh: number; rh: number };
-	pendingReviewQty: { qty: number; lh: number; rh: number };
+    finalizedQty: { qty: number; lh: number; rh: number };
+    pendingReviewQty: { qty: number; lh: number; rh: number };
     pendingQty: { qty: number; lh: number; rh: number };
     assignmentLabel: string;
     submittedLabel: string;
     pendingLabel: string;
     isHandled: boolean;
     isCompleted: boolean;
-	isAwaitingReview: boolean;
+    isAwaitingReview: boolean;
     canSubmitMore: boolean;
     submissionLimit: number | null;
     submissionCount: number;
@@ -2941,7 +3271,9 @@ function InlineAssignmentForm({
     }));
     const selectedWorker = workerItems.find((item) => item.id === assignedToId);
     const quantityItems = buildQuantityComboboxItems(remainingQty);
-	const selectedQtyItem = quantityItems.find((item) => item.id === selectedQty);
+    const selectedQtyItem = quantityItems.find(
+        (item) => item.id === selectedQty,
+    );
     const shouldShowCombobox = remainingQty > 10;
     const presetValues = Array.from(
         { length: Math.min(remainingQty, 10) },
@@ -2998,15 +3330,22 @@ function InlineAssignmentForm({
                                         !dueDate && "text-muted-foreground",
                                     )}
                                 >
-									{dueDate ? formatDateValue(dueDate) : "Pick a date"}
+                                    {dueDate
+                                        ? formatDateValue(dueDate)
+                                        : "Pick a date"}
                                     <Icons.CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
-							<PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                            >
                                 <Calendar
                                     mode="single"
                                     selected={dueDate || undefined}
-									onSelect={(value) => setDueDate(value || null)}
+                                    onSelect={(value) =>
+                                        setDueDate(value || null)
+                                    }
                                     initialFocus
                                 />
                             </PopoverContent>
@@ -3145,9 +3484,9 @@ function AssignmentSubmissionCard({
     const [deleteSubmissionId, setDeleteSubmissionId] = useState<number | null>(
         null,
     );
-	const [editingSubmissionId, setEditingSubmissionId] = useState<number | null>(
-		null,
-	);
+    const [editingSubmissionId, setEditingSubmissionId] = useState<
+        number | null
+    >(null);
     const canSubmitLh = progress.pendingQty.lh > 0;
     const canSubmitRh = progress.pendingQty.rh > 0;
     const canDeleteSubmission = (progress.assignment.submissions || []).some(
@@ -3165,7 +3504,8 @@ function AssignmentSubmissionCard({
     }) {
         if (!workerId) return;
         const normalized = normalizeQtyMatrix(selection);
-		const hasQty = normalized.qty > 0 || normalized.lh > 0 || normalized.rh > 0;
+        const hasQty =
+            normalized.qty > 0 || normalized.lh > 0 || normalized.rh > 0;
         const exceedsPending = progress.isHandled
             ? normalized.lh > progress.pendingQty.lh ||
               normalized.rh > progress.pendingQty.rh
@@ -3178,7 +3518,7 @@ function AssignmentSubmissionCard({
                 authorName,
             },
             submitAll: {
-				idempotencyKey: crypto.randomUUID(),
+                idempotencyKey: crypto.randomUUID(),
                 assignedToId: workerId,
                 selections: [
                     {
@@ -3225,7 +3565,8 @@ function AssignmentSubmissionCard({
                         <p className="text-sm font-medium">
                             {scope === "worker"
                                 ? "My submission"
-								: progress.assignment.assignedTo || "Unassigned"}
+                                : progress.assignment.assignedTo ||
+                                  "Unassigned"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                             Due:{" "}
@@ -3241,11 +3582,11 @@ function AssignmentSubmissionCard({
                         <Badge variant="outline" className="rounded-full">
                             {progress.submittedLabel}
                         </Badge>
-						{progress.isAwaitingReview ? (
-							<Badge className="rounded-full border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">
-								Awaiting admin review
-							</Badge>
-						) : null}
+                        {progress.isAwaitingReview ? (
+                            <Badge className="rounded-full border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">
+                                Awaiting admin review
+                            </Badge>
+                        ) : null}
                         {!progress.isCompleted ? (
                             <Badge variant="secondary" className="rounded-full">
                                 Pending {progress.pendingLabel}
@@ -3257,10 +3598,12 @@ function AssignmentSubmissionCard({
                 {progress.assignment.submissions?.length ? (
                     <div className="space-y-2">
                         {progress.assignment.submissions.map((submission) => {
-							const submissionIsDelivered = (submission.deliveredQty || 0) > 0;
-							const submissionIsAwaitingReview =
-								submission.materialReview?.status === "PENDING";
-							const isEditing = editingSubmissionId === submission.id;
+                            const submissionIsDelivered =
+                                (submission.deliveredQty || 0) > 0;
+                            const submissionIsAwaitingReview =
+                                submission.materialReview?.status === "PENDING";
+                            const isEditing =
+                                editingSubmissionId === submission.id;
                             return (
                                 <div
                                     key={submission.id}
@@ -3271,31 +3614,37 @@ function AssignmentSubmissionCard({
                                             <p className="text-xs font-medium uppercase tracking-[0.16em]">
                                                 Submission #{submission.id}
                                             </p>
-											{submissionIsAwaitingReview ? (
-												<Badge className="mt-2 border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">
-													Submitted · awaiting admin review
-												</Badge>
-											) : submission.materialReview?.status === "APPROVED" ? (
-												<Badge className="mt-2 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">
-													Material review approved
-												</Badge>
-											) : null}
+                                            {submissionIsAwaitingReview ? (
+                                                <Badge className="mt-2 border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">
+                                                    Submitted · awaiting admin
+                                                    review
+                                                </Badge>
+                                            ) : submission.materialReview
+                                                  ?.status === "APPROVED" ? (
+                                                <Badge className="mt-2 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">
+                                                    Material review approved
+                                                </Badge>
+                                            ) : null}
                                             <div className="mt-1 space-y-1 text-xs text-muted-foreground">
                                                 <p>
                                                     Date submitted:{" "}
                                                     {submission.createdAt
-														? formatDateValue(submission.createdAt)
+                                                        ? formatDateValue(
+                                                              submission.createdAt,
+                                                          )
                                                         : "No date"}
                                                 </p>
                                                 {scope === "admin" ? (
                                                     <p>
-														Submitted by: {submission.submittedBy || "Unknown"}
+                                                        Submitted by:{" "}
+                                                        {submission.submittedBy ||
+                                                            "Unknown"}
                                                     </p>
                                                 ) : null}
                                             </div>
                                         </div>
                                         {canDeleteSubmission &&
-										!submissionIsAwaitingReview &&
+                                        !submissionIsAwaitingReview &&
                                         !submissionIsDelivered ? (
                                             <div className="flex items-center gap-2">
                                                 <Button
@@ -3304,17 +3653,25 @@ function AssignmentSubmissionCard({
                                                     variant="outline"
                                                     onClick={() =>
                                                         setEditingSubmissionId(
-															isEditing ? null : submission.id,
+                                                            isEditing
+                                                                ? null
+                                                                : submission.id,
                                                         )
                                                     }
                                                 >
-													{isEditing ? "Close" : "Edit"}
+                                                    {isEditing
+                                                        ? "Close"
+                                                        : "Edit"}
                                                 </Button>
                                                 <Button
                                                     type="button"
                                                     size="sm"
                                                     variant="outline"
-													onClick={() => setDeleteSubmissionId(submission.id)}
+                                                    onClick={() =>
+                                                        setDeleteSubmissionId(
+                                                            submission.id,
+                                                        )
+                                                    }
                                                 >
                                                     Delete
                                                 </Button>
@@ -3332,15 +3689,22 @@ function AssignmentSubmissionCard({
                                             : ""}
                                     </p>
                                     {submission.note ? (
-										<p className="mt-2 text-sm">{submission.note}</p>
+                                        <p className="mt-2 text-sm">
+                                            {submission.note}
+                                        </p>
                                     ) : null}
                                     {isEditing ? (
                                         <SubmissionEditForm
                                             progress={progress}
                                             submission={submission}
-											onCancel={() => setEditingSubmissionId(null)}
+                                            onCancel={() =>
+                                                setEditingSubmissionId(null)
+                                            }
                                             onSave={(qty) => {
-												onUpdateSubmission(submission.id, qty);
+                                                onUpdateSubmission(
+                                                    submission.id,
+                                                    qty,
+                                                );
                                                 setEditingSubmissionId(null);
                                             }}
                                         />
@@ -3359,11 +3723,12 @@ function AssignmentSubmissionCard({
                     <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                         All submissions completed
                     </div>
-				) : progress.isAwaitingReview && !progress.canSubmitMore ? (
-					<div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-						Your production report was submitted. An admin must verify the
-						pending material needs before it is finalized.
-					</div>
+                ) : progress.isAwaitingReview && !progress.canSubmitMore ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        Your production report was submitted. An admin must
+                        verify the pending material needs before it is
+                        finalized.
+                    </div>
                 ) : scope === "worker" ? (
                     <div className="space-y-2 rounded-lg border border-dashed bg-muted/10 p-3">
                         <SimpleSubmissionForm
@@ -3380,11 +3745,18 @@ function AssignmentSubmissionCard({
                             onHandleChange={setSelectedHandle}
                             onSubmit={() => {
                                 if (progress.isHandled) {
-									const quantity = toPositiveNumber(selectedQty);
+                                    const quantity =
+                                        toPositiveNumber(selectedQty);
                                     submitSelection({
                                         qty: quantity,
-										lh: activeHandle === "lh" ? quantity : 0,
-										rh: activeHandle === "rh" ? quantity : 0,
+                                        lh:
+                                            activeHandle === "lh"
+                                                ? quantity
+                                                : 0,
+                                        rh:
+                                            activeHandle === "rh"
+                                                ? quantity
+                                                : 0,
                                     });
                                     return;
                                 }
@@ -3449,7 +3821,8 @@ function AssignmentSubmissionCard({
                     <AlertDialog.Header>
                         <AlertDialog.Title>Delete submission</AlertDialog.Title>
                         <AlertDialog.Description>
-							This will remove the selected submission from the production log.
+                            This will remove the selected submission from the
+                            production log.
                         </AlertDialog.Description>
                     </AlertDialog.Header>
                     <AlertDialog.Footer>
@@ -3532,7 +3905,11 @@ function SimpleSubmissionForm({
                                     <Button
                                         type="button"
                                         size="sm"
-										variant={selectedHandle === "lh" ? "default" : "outline"}
+                                        variant={
+                                            selectedHandle === "lh"
+                                                ? "default"
+                                                : "outline"
+                                        }
                                         disabled={!canSelectLh}
                                         className="min-w-[64px]"
                                         onClick={() => onHandleChange("lh")}
@@ -3542,7 +3919,11 @@ function SimpleSubmissionForm({
                                     <Button
                                         type="button"
                                         size="sm"
-										variant={selectedHandle === "rh" ? "default" : "outline"}
+                                        variant={
+                                            selectedHandle === "rh"
+                                                ? "default"
+                                                : "outline"
+                                        }
                                         disabled={!canSelectRh}
                                         className="min-w-[64px]"
                                         onClick={() => onHandleChange("rh")}
@@ -3564,12 +3945,17 @@ function SimpleSubmissionForm({
                                         size="sm"
                                         variant={
                                             Number(qtyValue) <=
-											Math.min(Number(selectedQty), availableQty)
+                                            Math.min(
+                                                Number(selectedQty),
+                                                availableQty,
+                                            )
                                                 ? "default"
                                                 : "outline"
                                         }
                                         className="min-w-9"
-										disabled={Number(qtyValue) > availableQty}
+                                        disabled={
+                                            Number(qtyValue) > availableQty
+                                        }
                                         onClick={() => onQtyChange(qtyValue)}
                                     >
                                         {qtyValue}
@@ -3602,7 +3988,9 @@ function SimpleSubmissionForm({
                             >
                                 <Menu.Item
                                     Icon={Icons.CheckCircle2}
-									shortCut={formatSubmitAllLabel(progress.pendingQty)}
+                                    shortCut={formatSubmitAllLabel(
+                                        progress.pendingQty,
+                                    )}
                                     onClick={(event) => {
                                         event.preventDefault();
                                         onSubmitAll();
@@ -3661,10 +4049,13 @@ function SimpleSubmissionForm({
                             }}
                             renderOnCreate={(inputValue) => {
                                 const sanitized = inputValue.replace(/\D/g, "");
-								if (!sanitized) return <span>Enter number only</span>;
+                                if (!sanitized)
+                                    return <span>Enter number only</span>;
                                 const numeric = Number(sanitized);
                                 if (numeric < 1 || numeric > availableQty) {
-									return <span>{`Enter 1-${availableQty}`}</span>;
+                                    return (
+                                        <span>{`Enter 1-${availableQty}`}</span>
+                                    );
                                 }
                                 return <span>{`Use ${numeric}`}</span>;
                             }}
@@ -3748,7 +4139,12 @@ function SubmissionEditForm({
                 )}
             </div>
             <div className="mt-3 flex justify-end gap-2">
-				<Button type="button" size="sm" variant="outline" onClick={onCancel}>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={onCancel}
+                >
                     Cancel
                 </Button>
                 <Button
@@ -3758,7 +4154,9 @@ function SubmissionEditForm({
                         onSave(
                             isHandled
                                 ? {
-										qty: toPositiveNumber(lh) + toPositiveNumber(rh),
+                                      qty:
+                                          toPositiveNumber(lh) +
+                                          toPositiveNumber(rh),
                                       lh: toPositiveNumber(lh),
                                       rh: toPositiveNumber(rh),
                                   }
@@ -3829,7 +4227,7 @@ function getWorkerAssignmentStatus(item: ProductionDetail["items"][number]) {
         0,
     );
     const completedTotal = assignmentProgress.reduce(
-		(total, assignment) => total + assignment.finalizedQty.qty,
+        (total, assignment) => total + assignment.finalizedQty.qty,
         0,
     );
     const normalizedCompleted = Math.min(completedTotal, assignedTotal);
@@ -3883,27 +4281,27 @@ function buildAssignmentSubmissionProgress(
             { qty: 0, lh: 0, rh: 0 },
         ),
     );
-	const finalizedQty = normalizeQtyMatrix(
-		(assignment.submissions || [])
-			.filter(
-				(submission) =>
-					!submission.materialReview ||
-					submission.materialReview.status === "APPROVED",
-			)
-			.reduce(
-				(total, submission) => ({
-					qty: total.qty + Number(submission.qty?.qty || 0),
-					lh: total.lh + Number(submission.qty?.lh || 0),
-					rh: total.rh + Number(submission.qty?.rh || 0),
-				}),
-				{ qty: 0, lh: 0, rh: 0 },
-			),
-	);
-	const pendingReviewQty = normalizeQtyMatrix({
-		qty: Math.max(submittedQty.qty - finalizedQty.qty, 0),
-		lh: Math.max(submittedQty.lh - finalizedQty.lh, 0),
-		rh: Math.max(submittedQty.rh - finalizedQty.rh, 0),
-	});
+    const finalizedQty = normalizeQtyMatrix(
+        (assignment.submissions || [])
+            .filter(
+                (submission) =>
+                    !submission.materialReview ||
+                    submission.materialReview.status === "APPROVED",
+            )
+            .reduce(
+                (total, submission) => ({
+                    qty: total.qty + Number(submission.qty?.qty || 0),
+                    lh: total.lh + Number(submission.qty?.lh || 0),
+                    rh: total.rh + Number(submission.qty?.rh || 0),
+                }),
+                { qty: 0, lh: 0, rh: 0 },
+            ),
+    );
+    const pendingReviewQty = normalizeQtyMatrix({
+        qty: Math.max(submittedQty.qty - finalizedQty.qty, 0),
+        lh: Math.max(submittedQty.lh - finalizedQty.lh, 0),
+        rh: Math.max(submittedQty.rh - finalizedQty.rh, 0),
+    });
     const isHandled = assignmentQty.lh > 0 || assignmentQty.rh > 0;
     const pendingQty = isHandled
         ? {
@@ -3919,7 +4317,8 @@ function buildAssignmentSubmissionProgress(
               rh: 0,
           };
     const submissionLimit = isHandled
-		? [assignmentQty.lh, assignmentQty.rh].filter((value) => value > 0).length
+        ? [assignmentQty.lh, assignmentQty.rh].filter((value) => value > 0)
+              .length
         : assignmentQty.qty > 0 && assignmentQty.qty <= 1
           ? assignmentQty.qty
           : null;
@@ -3936,15 +4335,15 @@ function buildAssignmentSubmissionProgress(
         assignment,
         assignmentQty,
         submittedQty,
-		finalizedQty,
-		pendingReviewQty,
+        finalizedQty,
+        pendingReviewQty,
         pendingQty,
         assignmentLabel: formatQtyLabel(assignmentQty),
         submittedLabel: `Submitted ${formatQtyLabel(submittedQty)}`,
         pendingLabel: formatQtyLabel(pendingQty),
         isHandled,
-		isCompleted: finalizedQty.qty >= assignmentQty.qty,
-		isAwaitingReview: pendingReviewQty.qty > 0,
+        isCompleted: finalizedQty.qty >= assignmentQty.qty,
+        isAwaitingReview: pendingReviewQty.qty > 0,
         canSubmitMore: pendingQty.qty > 0,
         submissionLimit,
         submissionCount,
@@ -4025,7 +4424,9 @@ function getOrderStatusPresentation(item: ProductionListItem) {
     if (status.includes("past due") || status.includes("overdue")) {
         return {
             label:
-				item.status?.production?.scoreStatus || item.alert?.text || "Past Due",
+                item.status?.production?.scoreStatus ||
+                item.alert?.text ||
+                "Past Due",
             className: "border-rose-200 bg-rose-50 text-rose-700",
         };
     }
@@ -4033,7 +4434,9 @@ function getOrderStatusPresentation(item: ProductionListItem) {
     if (status.includes("due today")) {
         return {
             label:
-				item.status?.production?.scoreStatus || item.alert?.text || "Due Today",
+                item.status?.production?.scoreStatus ||
+                item.alert?.text ||
+                "Due Today",
             className: "border-amber-200 bg-amber-50 text-amber-700",
         };
     }
@@ -4128,7 +4531,10 @@ function ProductionStatProgress({
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-muted">
                 <div
-					className={cn("h-full rounded-full transition-all", tone.bar)}
+                    className={cn(
+                        "h-full rounded-full transition-all",
+                        tone.bar,
+                    )}
                     style={{ width: `${percentage}%` }}
                 />
             </div>

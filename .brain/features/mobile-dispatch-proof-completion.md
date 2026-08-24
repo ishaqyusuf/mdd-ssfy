@@ -90,3 +90,24 @@ pickup packing, and final completion.
 See `.brain/decisions/ADR-026-resumable-dispatch-proof-completion.md`.
 The shared workspace/lifecycle and durable-exception boundary is recorded in
 `.brain/decisions/ADR-054-canonical-dispatch-workspace-and-durable-exceptions.md`.
+
+## 2026-08-23 Restart-Safe Expo Draft Hardening
+
+- Expo persists a versioned proof draft per authenticated user and dispatch in
+  AsyncStorage. It includes the stable request id, expected manifest revision,
+  recipient, note, signature, attachment descriptors, attempt state, and
+  timestamps.
+- Selected images are copied into app-owned storage. AsyncStorage stores paths,
+  sizes, MIME types, and optional content fingerprints, never base64 customer
+  media. Submission verifies file existence/fingerprint and encodes only after
+  an explicit operator tap.
+- Drafts allow at most five files, 4 MB per file, and 10 MB combined. The API
+  independently enforces five attachments and a 13.5-million-character base64
+  aggregate ceiling (approximately 10 MB raw).
+- A failed request preserves the same draft and request id. Successful
+  completion, explicit discard, or seven-day expiry removes draft metadata and
+  app-owned files. Cleanup failure is logged separately and cannot turn a
+  committed server completion into a visible failure.
+- Completion preflights the stored manifest revision; delivery time and
+  dispatch/pickup note type are derived from the live server record and server
+  clock. General dispatch/customer query caches remain memory-only.

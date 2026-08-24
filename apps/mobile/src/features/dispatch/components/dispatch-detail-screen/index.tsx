@@ -10,8 +10,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatchActions } from "../../api/use-dispatch-actions";
 import { useDispatchOverview } from "../../api/use-dispatch-overview";
 import { useDispatchPacking } from "../../api/use-dispatch-packing";
+import { usePackingReports } from "../../api/use-packing-reports";
+import { useDispatchContactActions } from "../../hooks/use-dispatch-contact-actions";
 import { formatDispatchDate, totalQty } from "../../lib/format-dispatch";
 import { buildPackingPayload, hasQty } from "../../lib/packing-payload";
+import { mobileDispatchPackingCommandsEnabled } from "../../lib/mobile-dispatch-flags";
 import { useDispatchUiState } from "../../state/use-dispatch-ui-state";
 import { DispatchDetailFooterActions } from "./components/footer-actions";
 import {
@@ -35,6 +38,7 @@ import { CompleteDispatchScreen } from "./subscreens/complete-dispatch-screen";
 import { DispatchConfirmScreen } from "./subscreens/dispatch-confirm-screen";
 import { IssueReportScreen } from "./subscreens/issue-report-screen";
 import { PackingSlipScreen } from "./subscreens/packing-slip-screen";
+import { StartTripConfirmScreen } from "./subscreens/start-trip-confirm-screen";
 
 type Props = {
 	dispatchId: number;
@@ -94,6 +98,7 @@ function DispatchDetailScreenInner({
 	const detailUi = useDispatchDetailContext();
 	const actions = useDispatchActions();
 	const packing = useDispatchPacking();
+	const packingReports = usePackingReports(dispatchId);
 	const notification = useNotificationTrigger();
 	const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
 
@@ -114,11 +119,15 @@ function DispatchDetailScreenInner({
 	const duplicateDispatches = duplicateInsight?.dispatches || [];
 	const hasDuplicateDispatch = duplicateInsight?.isDuplicate || false;
 	const activeDispatchId = dispatch?.id || dispatchId;
+	const packingCommandRevision = data?.packingCommandRevision || "";
+	const capabilities = data?.mobileLifecycle?.capabilities;
 	const items = useMemo(
 		() => (data?.dispatchItems || []).filter((item) => !!item.dispatchable),
 		[data?.dispatchItems],
 	);
-	const canEditPacking = packing.canEditPacking(dispatch?.status as any);
+	const canEditPacking = Boolean(
+		mobileDispatchPackingCommandsEnabled && capabilities?.canEditPacking,
+	);
 	const {
 		isPackingSlipOpen,
 		setPackingSlipOpen,
@@ -126,6 +135,8 @@ function DispatchDetailScreenInner({
 		setDispatchConfirmOpen,
 		isIssueReportOpen,
 		setIssueReportOpen,
+		isStartTripConfirmOpen,
+		setStartTripConfirmOpen,
 		selectedIssueReason,
 		setSelectedIssueReason,
 		issueDetails,
@@ -173,21 +184,30 @@ function DispatchDetailScreenInner({
 
 	useEffect(() => {
 		if (!openCompleteOnMount || hasAutoOpenedCompleteRef.current) return;
-		if (!dispatch?.id || !order?.id) return;
+		if (!dispatch?.id || !order?.id || !capabilities?.canComplete) return;
 		hasAutoOpenedCompleteRef.current = true;
 		ui.setCompleteSheetOpen(true);
-	}, [openCompleteOnMount, dispatch?.id, order?.id, ui]);
+	}, [
+		openCompleteOnMount,
+		dispatch?.id,
+		order?.id,
+		capabilities?.canComplete,
+		ui,
+	]);
 
 	const pageTitle = useMemo(() => {
 		return `#DISP-${dispatch?.id || dispatchId}`;
 	}, [dispatch?.id, dispatchId]);
 
 	const statusText = dispatch?.status || "queue";
-	const canStart = actions.canStart(dispatch?.status);
+	const canStart = Boolean(capabilities?.canStartTrip);
 	const canStartReady =
 		canStart && data?.dispatchReadiness?.canDispatch !== false;
-	const canReportException = actions.canReportException(dispatch?.status);
-	const canComplete = actions.canComplete(dispatch?.status);
+	const canReportException = Boolean(capabilities?.canReportException);
+	const canComplete = Boolean(capabilities?.canComplete);
+	const canResetPacking = Boolean(
+		mobileDispatchPackingCommandsEnabled && capabilities?.canResetPacking,
+	);
 	const primaryStatusActionLabel = canStart
 		? "Start Trip"
 		: canComplete
@@ -226,6 +246,12 @@ function DispatchDetailScreenInner({
 		const customer = (order as any)?.customer || {};
 		return a?.email || customer?.email || "";
 	}, [data?.address, order]);
+	const { onCallCustomer, onEmailCustomer, onOpenDirections } =
+		useDispatchContactActions({
+			phone: customerPhone,
+			email: customerEmail,
+			destination: [addressLine1, addressLine2].filter(Boolean).join(", "),
+		});
 
 	const packableItems = useMemo(
 		() =>
@@ -258,27 +284,30 @@ function DispatchDetailScreenInner({
 		asNumber: asSalesRequestNumber,
 		hasSingleQty: hasSingleSalesRequestQty,
 	} = useSalesRequestPacking(unpackableItems);
-	const pendingProductionItems = useMemo(
-		() =>
-			unpackableItems.map((item) => ({
-				uid: String(item.uid),
-				title: String(item.title || "Item"),
-				img: (item as any).img || null,
-				salesItemId: (item as any).salesItemId as number | undefined,
+	const pendingProductionItems = useMemo(() => {
+		const context = packingReports.context.data;
+		return (context?.reportableLines || []).map((line) => {
+			const item = items.find(
+				(candidate) =>
+					candidate.uid === line.itemUid ||
+					candidate.salesItemId === line.salesOrderItemId,
+			);
+			return {
+				uid: String(line.itemUid || `item-${line.salesOrderItemId}`),
+				title: String(line.title || item?.title || "Item"),
+				img: (item as any)?.img || null,
+				salesItemId: line.salesOrderItemId,
+				productionSubmissionId: line.productionSubmissionId,
+				dispatchAllocationKey: line.dispatchAllocationKey,
+				manifestRevision: context?.manifestRevision || "",
 				pendingQty: {
-					qty:
-						Number(((item as any).nonDeliverableQty || {}).qty || 0) ||
-						undefined,
-					lh:
-						Number(((item as any).nonDeliverableQty || {}).lh || 0) ||
-						undefined,
-					rh:
-						Number(((item as any).nonDeliverableQty || {}).rh || 0) ||
-						undefined,
+					qty: Number(line.remaining.qty || 0) || undefined,
+					lh: Number(line.remaining.lhQty || 0) || undefined,
+					rh: Number(line.remaining.rhQty || 0) || undefined,
 				},
-			})),
-		[unpackableItems],
-	);
+			};
+		});
+	}, [items, packingReports.context.data]);
 	const {
 		packingDrafts,
 		setPackingDrafts,
@@ -360,15 +389,7 @@ function DispatchDetailScreenInner({
 	const onPrimaryStatusAction = async () => {
 		if (!order?.id || !dispatch?.id) return;
 		if (canStartReady) {
-			try {
-				await actions.onStartDispatch({
-					salesId: order.id,
-					dispatchId: dispatch.id,
-				});
-				Toast.show("Dispatch started", { type: "success" });
-			} catch {
-				Toast.show("Unable to start dispatch", { type: "error" });
-			}
+			setStartTripConfirmOpen(true);
 			return;
 		}
 		if (canStart && !canStartReady) {
@@ -396,7 +417,7 @@ function DispatchDetailScreenInner({
 
 	const onFooterPrimaryAction = async () => {
 		if (!order?.id || !dispatch?.id) return;
-		if (dispatch.status === "in progress") {
+		if (canComplete) {
 			onMarkDelivered();
 			return;
 		}
@@ -409,24 +430,26 @@ function DispatchDetailScreenInner({
 			);
 			return;
 		}
+		setStartTripConfirmOpen(true);
+	};
+
+	const onConfirmStartTrip = async () => {
+		if (!dispatch?.id || !canStartReady) return;
 		try {
-			await actions.onStartDispatch({
-				salesId: order.id,
-				dispatchId: dispatch.id,
-			});
+			await actions.onStartDispatch({ dispatchId: dispatch.id });
+			setStartTripConfirmOpen(false);
+			await overview.refetch();
 			Toast.show("Trip started", { type: "success" });
-		} catch {
-			Toast.show("Unable to start trip", { type: "error" });
+		} catch (error: any) {
+			Toast.show(error?.message || "Unable to start trip", { type: "error" });
 		}
 	};
 
-	const footerPrimaryLabel =
-		dispatch?.status === "in progress" ? "Complete" : "Start Trip";
+	const footerPrimaryLabel = canComplete ? "Complete" : "Start Trip";
 	const footerPrimaryDisabled =
 		actions.startDispatch.isPending ||
 		actions.submitDispatch.isPending ||
-		dispatch?.status === "queue" ||
-		(dispatch?.status === "in progress" ? !canComplete : !canStartReady);
+		(!canComplete && !canStartReady);
 
 	const onIssue = async () => {
 		if (!order?.id || !dispatch?.id || !canReportException) {
@@ -486,28 +509,32 @@ function DispatchDetailScreenInner({
 		uid: string;
 		title: string;
 		salesItemId?: number;
+		productionSubmissionId: number;
+		dispatchAllocationKey: string;
+		manifestRevision: string;
 		pendingQty: { qty?: number; lh?: number; rh?: number };
 	}) => {
 		if (!dispatch?.id) return;
 
 		setReadyLoadingUid(item.uid);
 		try {
-			await notification.send("dispatch_packing_delay", {
-				payload: {
-					orderNo: String(order?.orderId || pageTitle),
-					dispatchId: dispatch.id,
-					salesItemId: item.salesItemId,
-					itemUid: item.uid,
-					itemName: item.title,
-					pendingQty: item.pendingQty,
-					note: "Driver marked item as ready from pending production popup.",
-				},
+			await packingReports.submit.mutateAsync({
+				dispatchId: dispatch.id,
+				productionSubmissionId: item.productionSubmissionId,
+				dispatchAllocationKey: item.dispatchAllocationKey,
+				manifestRevision: item.manifestRevision,
+				idempotencyKey: crypto.randomUUID(),
+				physicallyVerified: true,
+				qty: Number(item.pendingQty.qty || 0),
+				lhQty: Number(item.pendingQty.lh || 0),
+				rhQty: Number(item.pendingQty.rh || 0),
+				note: "Physically verified in the mobile pending-production flow.",
 			});
-			Toast.show(`${item.title} marked ready and admin notified.`, {
+			Toast.show(`${item.title} submitted for admin review.`, {
 				type: "success",
 			});
 		} catch {
-			Toast.show("Unable to send ready notification right now.", {
+			Toast.show("Unable to submit the packing review right now.", {
 				type: "error",
 			});
 		} finally {
@@ -528,7 +555,6 @@ function DispatchDetailScreenInner({
 		}
 		try {
 			await actions.onReportException({
-				salesId: order.id,
 				dispatchId: dispatch.id,
 				reasonCode: selectedIssueReason as
 					| "wrong_address"
@@ -565,19 +591,6 @@ function DispatchDetailScreenInner({
 			Toast.show("Unable to notify admin right now.", {
 				type: "error",
 			});
-		}
-	};
-
-	const onCancelTrip = async () => {
-		if (!order?.id || !dispatch?.id) return;
-		try {
-			await actions.onCancelDispatch({
-				salesId: order.id,
-				dispatchId: dispatch.id,
-			});
-			Toast.show("Trip cancelled", { type: "success" });
-		} catch {
-			Toast.show("Unable to cancel trip", { type: "error" });
 		}
 	};
 
@@ -635,42 +648,23 @@ function DispatchDetailScreenInner({
 	};
 
 	const onResetPacking = async () => {
-		if (!order?.id || !dispatch?.id) return;
+		if (!canResetPacking) {
+			Toast.show("Only an authorized packing manager can reset packing.", {
+				type: "warning",
+			});
+			return;
+		}
+		if (!dispatch?.id || !packingCommandRevision) return;
 		try {
 			await packing.onClearPackings({
-				salesId: order.id,
 				dispatchId: dispatch.id,
+				expectedManifestRevision: packingCommandRevision,
 			});
-			const prevStatus = (dispatch.status as any) || "queue";
-			if (prevStatus !== "queue") {
-				await actions.onUpdateDispatchStatus({
-					salesId: order.id,
-					dispatchId: dispatch.id,
-					oldStatus: prevStatus,
-					newStatus: "queue" as any,
-				});
-			}
-			try {
-				await notification.send("sales_dispatch_packing_reset", {
-					payload: {
-						orderNo: String(order?.orderId || pageTitle),
-						dispatchId: dispatch.id,
-						deliveryMode: dispatch.deliveryMode as any,
-						dueDate: dispatch.dueDate as any,
-						driverId: dispatch.driver?.id || undefined,
-					},
-				} as any);
-			} catch {
-				Toast.show(
-					"Packing reset completed, but notification failed to send.",
-					{
-						type: "warning",
-					},
-				);
-			}
 			Toast.show("Packing reset", { type: "success" });
-		} catch {
-			Toast.show("Unable to reset packing", { type: "error" });
+		} catch (error: any) {
+			Toast.show(error?.message || "Unable to reset packing", {
+				type: "error",
+			});
 		}
 	};
 
@@ -903,24 +897,27 @@ function DispatchDetailScreenInner({
 
 	const savePackingSlip = async (opts?: { closeSlip?: boolean }) => {
 		const closeSlip = opts?.closeSlip ?? true;
-		if (!order?.id || !dispatch?.id) return;
+		if (!dispatch?.id || !packingCommandRevision) return;
 		try {
 			const selection = buildPackingSelectionFromDrafts(
 				"Packed via packing slip",
 			);
-			if (selection.legacyRequestedItems.length > 0) {
+			if (selection.requestedItems.length > 0) {
 				await packing.onPackItemsSelection({
-					salesId: order.id,
 					dispatchId: dispatch.id,
-					dispatchStatus: (dispatch.status as any) || "queue",
+					expectedManifestRevision: packingCommandRevision,
 					replaceExisting: true,
-					requestedItems: selection.legacyRequestedItems as any,
-					packingLines: selection.packingLines,
+					requestedItems: selection.requestedItems as any,
 				});
-			} else if (selection.inventoryItems.length === 0) {
+			} else {
+				if (!canResetPacking) {
+					throw new Error(
+						"Only an authorized packing manager can clear all packed quantities.",
+					);
+				}
 				await packing.onClearPackings({
-					salesId: order.id,
 					dispatchId: dispatch.id,
+					expectedManifestRevision: packingCommandRevision,
 				});
 			}
 
@@ -951,7 +948,7 @@ function DispatchDetailScreenInner({
 	};
 
 	const onConfirmDispatchAfterPacking = async () => {
-		if (!order?.id || !dispatch?.id) return;
+		if (!order?.id || !dispatch?.id || !packingCommandRevision) return;
 		const flow = startFlow({
 			threadContext: "dispatch-packing-insufficient",
 			feature: "dispatch/packing/confirm-dispatch",
@@ -990,26 +987,22 @@ function DispatchDetailScreenInner({
 					"Inventory-backed items must be confirmed from Warehouse Packing.",
 				);
 			}
-			if (selection.legacyRequestedItems.length > 0) {
+			if (selection.requestedItems.length > 0) {
 				await packing.onPackItemsSelection({
-					salesId: order.id,
 					dispatchId: dispatch.id,
-					dispatchStatus: (dispatch.status as any) || "queue",
+					expectedManifestRevision: packingCommandRevision,
 					replaceExisting: true,
-					requestedItems: selection.legacyRequestedItems as any,
-					packingLines: selection.packingLines,
+					requestedItems: selection.requestedItems as any,
 				});
-			} else if (selection.inventoryItems.length === 0) {
+			} else {
+				if (!canResetPacking) {
+					throw new Error(
+						"Only an authorized packing manager can clear all packed quantities.",
+					);
+				}
 				await packing.onClearPackings({
-					salesId: order.id,
 					dispatchId: dispatch.id,
-				});
-			}
-			if (entryMode === "warehouse-packing") {
-				await actions.onPrepareInventory({
-					salesId: order.id,
-					dispatchId: dispatch.id,
-					items: selection.inventoryItems,
+					expectedManifestRevision: packingCommandRevision,
 				});
 			}
 			await overview.refetch();
@@ -1055,8 +1048,8 @@ function DispatchDetailScreenInner({
 		packingWorkspaceStats,
 		isPrimaryActionDisabled:
 			actions.startDispatch.isPending ||
-			!canStartReady ||
-			dispatch?.status === "queue",
+			actions.submitDispatch.isPending ||
+			(!canStartReady && !canComplete),
 		isPrimaryActionPending: actions.startDispatch.isPending,
 		primaryStatusActionLabel,
 		onPrimaryStatusAction,
@@ -1069,12 +1062,15 @@ function DispatchDetailScreenInner({
 		hasDuplicateDispatch,
 		duplicateDispatches,
 		duplicateInsight,
-		showTripCancelCard: dispatch?.status === "in progress",
-		onCancelTrip,
-		isCancelTripPending: actions.cancelDispatch.isPending,
+		showTripCancelCard: false,
+		onCancelTrip: onIssue,
+		isCancelTripPending: false,
 		customerName,
 		customerPhone,
 		customerEmail,
+		onCallCustomer,
+		onEmailCustomer,
+		onOpenDirections,
 		addressLine1,
 		addressLine2,
 		itemsCount: items.length,
@@ -1084,17 +1080,10 @@ function DispatchDetailScreenInner({
 		totalQty,
 		onSelectPackingItem: (uid: string) => ui.setSelectedItemUid(uid),
 		onImagePress: setPreviewImageUri,
-		showPackingButtons:
-			dispatch?.status === "queue" || dispatch?.status === "packed",
-		isUpdatePackingDisabled:
-			!canEditPacking ||
-			packing.taskTrigger.isPending ||
-			dispatch?.status === "packed",
+		showPackingButtons: canEditPacking || canResetPacking,
+		isUpdatePackingDisabled: !canEditPacking || packing.taskTrigger.isPending,
 		onOpenUpdatePacking,
-		isResetPackingDisabled:
-			!canEditPacking ||
-			packing.taskTrigger.isPending ||
-			dispatch?.status === "queue",
+		isResetPackingDisabled: !canResetPacking || packing.taskTrigger.isPending,
 		onResetPacking,
 		showUnpackableHint: unpackableItems.length > 0,
 		unpackableCount: unpackableItems.length,
@@ -1102,7 +1091,7 @@ function DispatchDetailScreenInner({
 		activeDispatchId,
 		activityRefreshToken,
 		onIssue,
-		isIssuePending: actions.cancelDispatch.isPending,
+		isIssuePending: actions.reportException.isPending,
 		onFooterPrimaryAction,
 		footerPrimaryDisabled,
 		footerPrimaryLabel,
@@ -1214,7 +1203,7 @@ function DispatchDetailScreenInner({
 						issueReasons={issueReasons as any}
 						selectedIssueReason={selectedIssueReason}
 						issueDetails={issueDetails}
-						isSubmitting={actions.cancelDispatch.isPending}
+						isSubmitting={actions.reportException.isPending}
 						onClose={() => setIssueReportOpen(false)}
 						onSelectReason={setSelectedIssueReason}
 						onChangeDetails={setIssueDetails}
@@ -1222,9 +1211,31 @@ function DispatchDetailScreenInner({
 					/>
 				) : null}
 
+				{isStartTripConfirmOpen ? (
+					<StartTripConfirmScreen
+						insetsTop={insets.top}
+						insetsBottom={insets.bottom}
+						pageTitle={pageTitle}
+						orderId={order?.orderId}
+						addressLine1={addressLine1}
+						addressLine2={addressLine2}
+						packingConfirmItems={packingConfirmItems as any}
+						canStartTripFromConfirm={canStartReady}
+						isStarting={actions.startDispatch.isPending}
+						onClose={() => setStartTripConfirmOpen(false)}
+						onViewOrderDetails={() => setStartTripConfirmOpen(false)}
+						onOpenDirections={onOpenDirections}
+						onPrimaryAction={() => void onConfirmStartTrip()}
+						onImagePress={setPreviewImageUri}
+					/>
+				) : null}
+
 				{ui.isCompleteSheetOpen ? (
 					<CompleteDispatchScreen
 						insetsTop={insets.top}
+						userId={Number(auth.profile?.user?.id || 0)}
+						dispatchId={dispatch?.id || dispatchId}
+						manifestRevision={packingCommandRevision}
 						defaultNoteType={
 							dispatch?.deliveryMode === "pickup" ? "pickup" : "dispatch"
 						}
@@ -1234,20 +1245,14 @@ function DispatchDetailScreenInner({
 						}
 						onClose={() => ui.setCompleteSheetOpen(false)}
 						onSubmit={async (input) => {
-							if (!order?.id || !dispatch?.id) return;
+							if (!dispatch?.id) return;
 							try {
 								await actions.onSubmitDispatch({
-									salesId: order.id,
 									dispatchId: dispatch.id,
 									requestId: input.requestId,
+									expectedManifestRevision: input.expectedManifestRevision,
 									receivedBy: input.receivedBy,
-									receivedDate: input.receivedDate,
 									note: input.note,
-									noteType:
-										input.noteType ||
-										(dispatch.deliveryMode === "pickup"
-											? "pickup"
-											: "dispatch"),
 									signaturePath: input.signaturePath,
 									attachments: input.attachments?.map((file) => ({
 										clientId: file.clientId,
@@ -1257,14 +1262,17 @@ function DispatchDetailScreenInner({
 									})),
 								});
 								ui.setCompleteSheetOpen(false);
+								await actions.invalidateDispatchQueries();
 								Toast.show("Dispatch completed", { type: "success" });
-							} catch {
+								router.back();
+							} catch (error) {
 								Toast.show(
 									"Completion paused. Your proof is still here—tap Complete Dispatch to retry.",
 									{
 										type: "error",
 									},
 								);
+								throw error;
 							}
 						}}
 					/>
@@ -1276,9 +1284,8 @@ function DispatchDetailScreenInner({
 					selectedItem={selectedItem as any}
 					canEditPacking={canEditPacking}
 					isSubmitting={packing.taskTrigger.isPending}
-					salesId={order?.id}
 					dispatchId={dispatch?.id}
-					dispatchStatus={dispatch?.status}
+					expectedManifestRevision={packingCommandRevision}
 					onDismiss={() => ui.setSelectedItemUid(null)}
 					onPackItem={packing.onPackItem}
 					onRefetch={overview.refetch}

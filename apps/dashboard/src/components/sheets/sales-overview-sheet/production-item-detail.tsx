@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { ProductionItemAssignments } from "./production-assignments";
 import { useProductionItem } from "./production-item-context";
 import { getWorkerProductionSubmissionProgress } from "./production-worker-policy";
+import { getProductionConfigKey } from "./production/v2/production-item-presentation";
 
 export function ProductionItemDetail() {
 	const ctx = useProductionItem();
@@ -127,8 +128,11 @@ function Details() {
 		<div className="grid grid-cols-2 gap-3 px-6">
 			{ctx.item.configs
 				?.filter((config) => !config.hidden)
-				.map((config) => (
-					<div key={`${config.label}-${config.value}`} className="space-y-1">
+				.map((config, index) => (
+					<div
+						key={getProductionConfigKey(config, index)}
+						className="space-y-1"
+					>
 						<p className="text-xs font-medium uppercase text-muted-foreground">
 							{config.label}:
 						</p>

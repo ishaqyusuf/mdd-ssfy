@@ -17,7 +17,8 @@ export function buildDriverWorkQueueSections<
 	const sectionDefinitions = [
 		{ title: "Overdue", buckets: ["overdue"] },
 		{ title: "Due Today", buckets: ["today"] },
-		{ title: "Upcoming", buckets: ["upcoming", "tomorrow"] },
+		{ title: "Tomorrow", buckets: ["tomorrow"] },
+		{ title: "Upcoming", buckets: ["upcoming"] },
 		{ title: "Needs Scheduling", buckets: ["unscheduled"] },
 	] as const;
 

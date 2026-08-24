@@ -404,6 +404,12 @@ Status: Mostly done.
 - [x] Sales inventory sync has one shared job entrypoint, `sync-sales-inventory-line-items`.
 - [x] Shared sync queue preserves source labels for `new-form`, `old-form`, `copy-sales`, `manual`, and `repair`.
 - [x] New sales form saves queue sales inventory sync.
+- [x] Legacy P.O.-only saves are the bounded exception: after an exact semantic
+  comparison proves no commercial/status/inbound/special-order change, they
+  update metadata and sales documents without queueing inventory sync or
+  running dashboard inventory/history/event follow-ups. An unchanged legacy
+  repeat save is a no-op; Preview graph-hash proof confirms no controls,
+  components, pricing, demand, or history rows are materialized.
 - [x] Legacy sales form saves queue sales inventory sync.
 - [x] Save-path guard coverage verifies new-form draft/final saves and successful legacy saves keep queueing the shared inventory sync job.
 - [x] Copy sales queues the same inventory sync job with `source: "copy-sales"`.

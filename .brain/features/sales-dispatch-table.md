@@ -1,6 +1,20 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-23: Standardized Sales Overview packing and its Production handoff
+  around shared Sales-package policies. Pack All now uses published
+  deliverable/listed/available capacity and never falls back to ordered
+  quantity, while stock/non-production lines can use authoritative availability
+  without a production-submission id. Production-backed lines with no completed
+  submission remain at zero and display `Awaiting production submission`.
+  Dispatch mode continues to freeze new assignments and assignment edits, but
+  no longer blocks submission of work that was already assigned, preventing the
+  Production-to-Packing deadlock. The Pack footer now invokes the canonical
+  submit handler directly, and Sales Overview remounts its scroll viewport when
+  tabs change so scroll position cannot leak between Production, General, and
+  Packing. Authenticated development QA on order `09010DB`, dispatch `4478`,
+  persisted the 80 available units as packed and left the 8 unsubmitted
+  production units pending.
 - 2026-08-23: Corrected the Packing List metadata source after the initial item
   redesign exposed empty legacy manifest fields. Dispatch packing now reuses
   the exact composed Production title/subtitle pair, including item type, door

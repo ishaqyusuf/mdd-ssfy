@@ -578,6 +578,125 @@ model DimensionalWeight {
     baseFee  Float                 @default(0)
 }
 
+// ---- sales.square-refund.prisma ----
+model SquareTenderPayment {
+    id                    String    @id @default(cuid())
+    providerPaymentId     String    @unique @db.VarChar(191)
+    legacySquarePaymentId String?   @db.VarChar(191)
+    checkoutId            String?   @db.VarChar(191)
+    providerOrderId       String?   @db.VarChar(191)
+    source                String    @db.VarChar(50)
+    status                String    @db.VarChar(50)
+    amountCents           Int
+    tipCents              Int       @default(0)
+    currency              String    @default("USD") @db.VarChar(10)
+    locationId            String?   @db.VarChar(191)
+    paidAt                DateTime? @db.Timestamp(0)
+    verifiedAt            DateTime? @db.Timestamp(0)
+    verificationSource    String?   @db.VarChar(100)
+    meta                  Json?     @db.Json
+    createdAt             DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime  @updatedAt
+
+    refunds SalesSquareRefund[]
+
+    @@index([legacySquarePaymentId])
+    @@index([checkoutId])
+    @@index([providerOrderId])
+    @@index([status, paidAt])
+}
+
+model SalesSquareRefund {
+    id                    String    @id @default(cuid())
+    tenderPaymentId       String
+    origin                String    @default("gnd") @db.VarChar(30)
+    providerStatus        String    @default("not_submitted") @db.VarChar(50)
+    applicationStatus     String    @default("reserved") @db.VarChar(50)
+    providerRefundId      String?   @unique @db.VarChar(191)
+    idempotencyKey        String    @unique @db.VarChar(45)
+    amountCents           Int
+    principalCents        Int
+    cccCents              Int       @default(0)
+    tipCents              Int       @default(0)
+    reservedCents         Int
+    currency              String    @default("USD") @db.VarChar(10)
+    reason                String    @db.VarChar(192)
+    note                  String?   @db.Text
+    commercialActionType  String?   @db.VarChar(100)
+    commercialActionId    String?   @db.VarChar(191)
+    initiatedById         Int?
+    providerCreatedAt     DateTime? @db.Timestamp(0)
+    completedAt           DateTime? @db.Timestamp(0)
+    appliedAt             DateTime? @db.Timestamp(0)
+    failureCode           String?   @db.VarChar(100)
+    failureDetail         String?   @db.Text
+    version               Int       @default(0)
+    meta                  Json?     @db.Json
+    createdAt             DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime  @updatedAt
+    tender                SquareTenderPayment @relation(fields: [tenderPaymentId], references: [id])
+    allocations           SalesSquareRefundAllocation[]
+    transitions           SalesSquareRefundTransition[]
+
+    @@index([tenderPaymentId, providerStatus])
+    @@index([providerStatus, applicationStatus, updatedAt])
+    @@index([origin, applicationStatus])
+    @@index([initiatedById])
+}
+
+model SalesSquareRefundAllocation {
+    id                    String    @id @default(cuid())
+    refundId              String
+    salesOrderId          Int
+    originalSalesPaymentId Int?
+    appliedSalesPaymentId Int?
+    principalCents        Int
+    cccCents              Int       @default(0)
+    tipCents              Int       @default(0)
+    meta                  Json?     @db.Json
+    createdAt             DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime  @updatedAt
+    refund                SalesSquareRefund @relation(fields: [refundId], references: [id])
+
+    @@unique([refundId, salesOrderId])
+    @@index([salesOrderId, createdAt])
+    @@index([originalSalesPaymentId])
+    @@index([appliedSalesPaymentId])
+}
+
+model SalesSquareRefundTransition {
+    id                String    @id @default(cuid())
+    refundId          String
+    providerStatus    String    @db.VarChar(50)
+    applicationStatus String    @db.VarChar(50)
+    source            String    @db.VarChar(50)
+    actorId           Int?
+    eventId           String?   @db.VarChar(191)
+    message           String?   @db.Text
+    snapshot          Json?     @db.Json
+    createdAt         DateTime  @default(now()) @db.Timestamp(0)
+    refund            SalesSquareRefund @relation(fields: [refundId], references: [id])
+
+    @@index([refundId, createdAt])
+    @@index([eventId])
+}
+
+model SquareRefundWebhookEvent {
+    id               String    @id @default(cuid())
+    providerEventId  String    @unique @db.VarChar(191)
+    eventType        String    @db.VarChar(100)
+    providerRefundId String?   @db.VarChar(191)
+    payload          Json      @db.Json
+    status           String    @default("received") @db.VarChar(50)
+    processedAt      DateTime? @db.Timestamp(0)
+    failureDetail    String?   @db.Text
+    createdAt        DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime  @updatedAt
+
+    @@index([providerRefundId])
+    @@index([status, createdAt])
+}
+
 // ---- sales.prisma ----
 model CommissionPayment {
     id            Int              @unique @default(autoincrement())
@@ -643,6 +762,11 @@ model SalesOrders {
     customerProfileId Int?
     dealerSalesProfileId Int?
     salesChannel      String?                          @db.VarChar(64)
+    specialOrderDeclaration SalesSpecialOrderDeclaration?
+    specialOrderStatus SalesSpecialOrderStatus?
+    specialOrderRevision String?                       @db.VarChar(64)
+    currentSpecialOrderRequestId String?               @db.VarChar(191)
+    currentSpecialOrderApprovalId String?              @unique @db.VarChar(191)
     taxes             SalesTaxes[]
     checkouts         SalesCheckout[]
     refunds           Refunds[]                        @relation(name: "salesRefunds")
@@ -677,11 +801,16 @@ model SalesOrders {
     history           SalesHistory[]
     lineItems         LineItem[]
     inventoryProjection SalesInventoryProjectionState?
+    listProjection      SalesOrderListProjection?
     productionGate    OrderProductionGate?
     productionReadinessOverride SalesProductionReadinessOverride?
     productionSubmissionMaterialReviews SalesProductionSubmissionMaterialReview[]
+    packingReports    SalesPackingReport[]
     adjustments       SalesOrderAdjustment[]
     workflowCancellations SalesWorkflowCancellation[]
+    specialOrderRequests SpecialOrderApprovalRequest[]
+    specialOrderEvidence SpecialOrderApprovalEvidence[] @relation(name: "SpecialOrderEvidence")
+    handoffActionEpochs SalesHandoffActionEpoch[]
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -694,6 +823,7 @@ model SalesOrders {
     @@index([dealerSalesProfileId])
     @@index([customerId])
     @@index([salesChannel, createdAt])
+    @@index([specialOrderDeclaration, specialOrderStatus])
     @@index([deletedAt, status, prodStatus, id], name: "idx_sales_fulfillment_queue")
     @@index([deletedAt, deliveryOption, id], name: "idx_sales_delivery_queue")
     @@index([shippingAddressId])
@@ -701,6 +831,160 @@ model SalesOrders {
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+enum SalesSpecialOrderDeclaration {
+    NO
+    YES
+}
+
+enum SalesSpecialOrderStatus {
+    NOT_REQUIRED
+    SIGNATURE_PENDING
+    CUSTOMER_APPROVED
+    REAPPROVAL_REQUIRED
+    CUSTOMER_DECLINED
+}
+
+enum SpecialOrderPolicyStatus {
+    DRAFT
+    PUBLISHED
+    RETIRED
+}
+
+enum SpecialOrderApprovalRequestStatus {
+    ACTIVE
+    CONSUMED
+    REVOKED
+    EXPIRED
+}
+
+enum SpecialOrderApprovalOutcome {
+    APPROVED
+    DECLINED
+}
+
+model SpecialOrderPolicyVersion {
+    id                 String                         @id @default(cuid())
+    version            Int?                           @unique
+    status             SpecialOrderPolicyStatus       @default(DRAFT)
+    title              String                         @db.VarChar(255)
+    acknowledgmentText String                         @db.Text
+    policyText         String                         @db.Text
+    createdByUserId    Int?
+    publishedByUserId  Int?
+    publishedAt        DateTime?                      @db.Timestamp(0)
+    retiredAt          DateTime?                      @db.Timestamp(0)
+    createdAt          DateTime                       @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime                       @updatedAt
+    requests           SpecialOrderApprovalRequest[]
+    evidence           SpecialOrderApprovalEvidence[]
+
+    @@index([status, version])
+    @@index([publishedAt])
+}
+
+model SpecialOrderApprovalRequest {
+    id                 String                            @id @default(cuid())
+    salesOrderId       Int
+    policyVersionId    String
+    orderRevision      String                            @db.VarChar(64)
+    status             SpecialOrderApprovalRequestStatus @default(ACTIVE)
+    tokenHash          String                            @unique @db.VarChar(191)
+    idempotencyKey     String                            @unique @db.VarChar(191)
+    sentToEmail        String                            @db.VarChar(255)
+    orderSnapshot      Json?                             @db.Json
+    customerSnapshot   Json?                             @db.Json
+    salespersonSnapshot Json?                            @db.Json
+    sentAt             DateTime                          @default(now()) @db.Timestamp(0)
+    deliveredAt        DateTime?                         @db.Timestamp(0)
+    deliveryStatus     String                            @default("PENDING") @db.VarChar(32)
+    lastDeliveryError  String?                           @db.Text
+    expiresAt          DateTime                          @db.Timestamp(0)
+    consumedAt         DateTime?                         @db.Timestamp(0)
+    revokedAt          DateTime?                         @db.Timestamp(0)
+    revokedReason      String?                           @db.VarChar(255)
+    issuedByUserId     Int?
+    createdAt          DateTime                          @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime                          @updatedAt
+    order              SalesOrders                      @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    policyVersion      SpecialOrderPolicyVersion         @relation(fields: [policyVersionId], references: [id], onDelete: Restrict)
+    evidence           SpecialOrderApprovalEvidence?
+
+    @@index([salesOrderId, status, createdAt])
+    @@index([expiresAt, status])
+    @@index([policyVersionId])
+}
+
+model SpecialOrderApprovalEvidence {
+    id                  String                       @id @default(cuid())
+    salesOrderId        Int
+    requestId           String                       @unique
+    policyVersionId     String
+    orderRevision       String                       @db.VarChar(64)
+    outcome             SpecialOrderApprovalOutcome
+    customerName        String                       @db.VarChar(255)
+    customerEmail       String                       @db.VarChar(255)
+    declineReason       String?                      @db.Text
+    signatureDocumentId String?                      @db.VarChar(191)
+    policyTitle         String                       @db.VarChar(255)
+    acknowledgmentText  String                       @db.Text
+    policyText          String                       @db.Text
+    orderSnapshot       Json                         @db.Json
+    customerSnapshot    Json                         @db.Json
+    salespersonSnapshot Json                         @db.Json
+    ipAddress           String?                      @db.VarChar(64)
+    userAgent           String?                      @db.Text
+    acknowledgedAt      DateTime                     @default(now()) @db.Timestamp(0)
+    supersededAt        DateTime?                    @db.Timestamp(0)
+    supersededReason    String?                      @db.Text
+    supersededByUserId  Int?
+    createdAt           DateTime                     @default(now()) @db.Timestamp(0)
+    order               SalesOrders                  @relation(name: "SpecialOrderEvidence", fields: [salesOrderId], references: [id], onDelete: Restrict)
+    request             SpecialOrderApprovalRequest  @relation(fields: [requestId], references: [id], onDelete: Restrict)
+    policyVersion       SpecialOrderPolicyVersion     @relation(fields: [policyVersionId], references: [id], onDelete: Restrict)
+
+    @@index([salesOrderId, acknowledgedAt])
+    @@index([policyVersionId])
+    @@index([signatureDocumentId])
+}
+
+model SpecialOrderNotificationDelivery {
+    id             String   @id @default(cuid())
+    eventKey       String   @unique @db.VarChar(191)
+    salesOrderId   Int
+    eventType      String   @db.VarChar(64)
+    customerStatus String   @default("PENDING") @db.VarChar(32)
+    staffStatus    String   @default("PENDING") @db.VarChar(32)
+    inAppStatus    String   @default("PENDING") @db.VarChar(32)
+    attempts       Int      @default(0)
+    payload        Json     @db.Json
+    lastError      String?  @db.Text
+    lastAttemptAt  DateTime? @db.Timestamp(0)
+    completedAt    DateTime? @db.Timestamp(0)
+    createdAt      DateTime @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime @updatedAt
+
+    @@index([salesOrderId, createdAt])
+    @@index([customerStatus, staffStatus, inAppStatus, updatedAt])
+}
+
+model SpecialOrderOperationEvent {
+    id              Int      @id @default(autoincrement())
+    eventKey        String   @unique @db.VarChar(191)
+    salesOrderId    Int
+    orderRevision   String?  @db.VarChar(64)
+    operation       String   @db.VarChar(32)
+    enforcementMode String   @db.VarChar(64)
+    result          String   @db.VarChar(32)
+    source          String?  @db.VarChar(191)
+    actorUserId     Int?
+    meta            Json?    @db.Json
+    occurredAt      DateTime @default(now()) @db.Timestamp(0)
+
+    @@index([salesOrderId, occurredAt])
+    @@index([result, operation, occurredAt])
+    @@index([enforcementMode, occurredAt])
 }
 
 model SalesWorkflowCancellation {
@@ -738,6 +1022,36 @@ model SalesInventoryProjectionState {
     salesOrder   SalesOrders  @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
 
     @@index([status, updatedAt])
+}
+
+model SalesOrderListProjection {
+    id              Int         @id @default(autoincrement())
+    salesOrderId    Int         @unique
+    orgId           Int?
+    salesRepId      Int?
+    customerId      Int?
+    orderId         String      @db.VarChar(255)
+    slug            String      @db.VarChar(255)
+    type            String?     @db.VarChar(255)
+    status          String?     @db.VarChar(255)
+    prodStatus      String?     @db.VarChar(255)
+    amountDue       Float?
+    invoiceTotal    Float?
+    salesCreatedAt  DateTime?   @db.Timestamp(0)
+    salesDeletedAt  DateTime?   @db.Timestamp(0)
+    sourceUpdatedAt DateTime
+    version         Int         @default(1)
+    state           String      @default("ready") @db.VarChar(32)
+    payload         Json        @db.Json
+    lastError       String?     @db.Text
+    projectedAt     DateTime    @default(now()) @db.Timestamp(0)
+    createdAt       DateTime    @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime    @updatedAt
+    salesOrder      SalesOrders @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+    @@index([orgId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_scope")
+    @@index([salesRepId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_rep")
+    @@index([state, version, projectedAt], name: "idx_sales_order_list_health")
 }
 
 enum DealerSellerOfRecord {
@@ -862,6 +1176,64 @@ model SalesProductionSubmissionMaterialReview {
     @@index([reviewedById])
 }
 
+enum SalesPackingReportStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    CANCELLED
+}
+
+enum SalesPackingReportReason {
+    UPSTREAM_PRODUCTION_REVIEW
+    STALE_UPSTREAM_EVIDENCE
+}
+
+model SalesPackingReport {
+    id                          Int                      @id @default(autoincrement())
+    salesOrderId                Int
+    orderDeliveryId             Int
+    salesOrderItemId            Int
+    orderProductionSubmissionId Int
+    dispatchAllocationItemId    Int
+    submittedById               Int
+    reviewedById                Int?
+    status                      SalesPackingReportStatus @default(PENDING)
+    reason                      SalesPackingReportReason
+    idempotencyKey              String                   @unique @db.VarChar(128)
+    openKey                     String?                  @unique @db.VarChar(191)
+    qty                         Int
+    lhQty                       Int                      @default(0)
+    rhQty                       Int                      @default(0)
+    manifestRevision            String                   @db.VarChar(64)
+    dispatchAllocationKey       String                   @db.VarChar(64)
+    evidenceSnapshot            Json                     @db.Json
+    note                        String?                  @db.Text
+    decisionNote                String?                  @db.Text
+    submittedAt                 DateTime                 @default(now()) @db.Timestamp(0)
+    reviewedAt                  DateTime?                @db.Timestamp(0)
+    rejectedAt                  DateTime?                @db.Timestamp(0)
+    cancelledAt                 DateTime?                @db.Timestamp(0)
+    createdAt                   DateTime                 @default(now()) @db.Timestamp(0)
+    updatedAt                   DateTime                 @updatedAt
+    order                       SalesOrders              @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+    delivery                    OrderDelivery            @relation(fields: [orderDeliveryId], references: [id], onDelete: Restrict)
+    item                        SalesOrderItems           @relation(fields: [salesOrderItemId], references: [id], onDelete: Restrict)
+    productionSubmission        OrderProductionSubmissions @relation(fields: [orderProductionSubmissionId], references: [id], onDelete: Restrict)
+    dispatchAllocationItem      OrderItemDelivery        @relation(fields: [dispatchAllocationItemId], references: [id], onDelete: Restrict)
+    submittedBy                 Users                    @relation(name: "packingReportsSubmitted", fields: [submittedById], references: [id], onDelete: Restrict)
+    reviewedBy                  Users?                   @relation(name: "packingReportsReviewed", fields: [reviewedById], references: [id], onDelete: Restrict)
+
+    @@index([status, submittedAt])
+    @@index([orderDeliveryId, status])
+    @@index([orderDeliveryId, dispatchAllocationKey])
+    @@index([salesOrderId, status])
+    @@index([salesOrderItemId, status])
+    @@index([orderProductionSubmissionId, status])
+    @@index([dispatchAllocationItemId])
+    @@index([submittedById, status])
+    @@index([reviewedById])
+}
+
 model SalesHistory {
     id         String       @unique @default(uuid())
     data       Json?        @db.Json
@@ -949,6 +1321,7 @@ model SalesOrderItems {
     assignments        OrderItemProductionAssignments[]
     productions        OrderProductionSubmissions[]
     itemDeliveries     OrderItemDelivery[]
+    packingReports     SalesPackingReport[]
     priceList          ComponentPrice[]
     itemControls       SalesItemControl[]
     lineItem           LineItem?
@@ -1070,6 +1443,7 @@ model ComponentPrice {
 
 model DykeSalesDoors {
     id                 Int                              @unique @default(autoincrement())
+    activeIdentity     String?                          @unique @db.VarChar(191)
     priceId            String?                          @unique
     dimension          String
     swing              String?
@@ -1106,7 +1480,7 @@ model DykeSalesDoors {
 model DykeStepForm {
     id             Int               @unique @default(autoincrement())
     componentId    Int?
-    value          String?
+    value          String?             @db.Text
     priceId        String?           @unique
     qty            Int?              @default(0)
     price          Float?            @default(0)
@@ -1457,6 +1831,7 @@ model OrderProductionSubmissions {
     assignment       OrderItemProductionAssignments? @relation(fields: [assignmentId], references: [id])
     materialReview   SalesProductionSubmissionMaterialReview? @relation(fields: [materialReviewId], references: [id])
     itemDeliveries   OrderItemDelivery[]
+    packingReports   SalesPackingReport[]
 
     payroll     Payroll?
     submittedBy Users?   @relation(fields: [submittedById], references: [id])
@@ -1555,6 +1930,64 @@ model SalesLaborCosts {
     deletedAt DateTime? @db.Timestamp(0)
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
+}
+
+// ---- sales-handoff.prisma ----
+model SalesHandoffActionEpoch {
+    id                    String    @id @default(cuid()) @db.VarChar(191)
+    salesOrderId          Int
+    orderId               String    @db.VarChar(255)
+    actionType            String    @db.VarChar(32)
+    epoch                 Int
+    openKey               String?   @unique @db.VarChar(191)
+    responsibleRepId      Int
+    organizationId        Int?
+    policyRevision        Int
+    evidenceRevision      String    @db.VarChar(191)
+    uncoveredQty          Float     @default(0)
+    qualifiedAt           DateTime? @db.Timestamp(0)
+    openedAt              DateTime  @db.Timestamp(0)
+    openedByUserId        Int?
+    targetSalesItemId     Int?
+    targetControlUid      String?   @db.VarChar(191)
+    targetAssignmentId    Int?
+    escalationDueAt       DateTime? @db.Timestamp(0)
+    escalatedAt           DateTime? @db.Timestamp(0)
+    resolvedAt            DateTime? @db.Timestamp(0)
+    resolvedByUserId      Int?
+    resolutionReason      String?   @db.VarChar(64)
+    reopenedFromEpochId   String?   @db.VarChar(191)
+    lastReconciledAt      DateTime  @db.Timestamp(0)
+    lastReconciledByUserId Int?
+    source                String    @default("projection") @db.VarChar(32)
+    createdAt             DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime  @updatedAt
+    salesOrder            SalesOrders @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+    escalationRecipients  SalesHandoffActionEscalationRecipient[]
+
+    @@unique([salesOrderId, actionType, epoch], name: "uq_sales_handoff_epoch")
+    @@index([actionType, responsibleRepId, resolvedAt, openedAt], name: "idx_sales_handoff_rep_queue")
+    @@index([actionType, resolvedAt, openedAt], name: "idx_sales_handoff_admin_queue")
+    @@index([organizationId, resolvedAt, openedAt], name: "idx_sales_handoff_org_queue")
+    @@index([salesOrderId, actionType, resolvedAt], name: "idx_sales_handoff_order_action")
+    @@index([resolvedAt, escalatedAt, escalationDueAt, id], name: "idx_sales_handoff_escalation_scan")
+    @@index([evidenceRevision], name: "idx_sales_handoff_evidence")
+}
+
+model SalesHandoffActionEscalationRecipient {
+    id                     String                   @id @default(cuid()) @db.VarChar(191)
+    actionEpochId          String                   @db.VarChar(191)
+    recipientUserId        Int
+    notificationActivityId Int?
+    notifiedAt             DateTime?                @db.Timestamp(0)
+    acknowledgedAt         DateTime?                @db.Timestamp(0)
+    createdAt              DateTime                 @default(now()) @db.Timestamp(0)
+    updatedAt              DateTime                 @updatedAt
+    actionEpoch            SalesHandoffActionEpoch @relation(fields: [actionEpochId], references: [id], onDelete: Restrict)
+
+    @@unique([actionEpochId, recipientUserId], name: "uq_sales_handoff_escalation_recipient")
+    @@index([notificationActivityId], name: "idx_sales_handoff_notification_activity")
+    @@index([recipientUserId, acknowledgedAt, notifiedAt], name: "idx_sales_handoff_recipient_ack")
 }
 
 // ---- storefront.prisma ----
@@ -4574,6 +5007,8 @@ model Users {
     revokedProductionReadinessOverrides SalesProductionReadinessOverride[] @relation(name: "revokedProductionReadinessOverrides")
     submittedProductionMaterialReviews SalesProductionSubmissionMaterialReview[] @relation(name: "productionSubmissionMaterialReviewsSubmitted")
     reviewedProductionMaterialReviews SalesProductionSubmissionMaterialReview[] @relation(name: "productionSubmissionMaterialReviewsReviewed")
+    submittedPackingReports           SalesPackingReport[] @relation(name: "packingReportsSubmitted")
+    reviewedPackingReports            SalesPackingReport[] @relation(name: "packingReportsReviewed")
     performedSalesWorkflowCancellations SalesWorkflowCancellation[] @relation(name: "salesWorkflowCancellationsPerformed")
     sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
@@ -6404,11 +6839,37 @@ model OrderDelivery {
     driver       Users?              @relation(name: "driver", fields: [driverId], references: [id])
     createdBy    Users?              @relation(name: "createdBy", fields: [createdById], references: [id])
 	stockAllocations StockAllocation[]
+	exceptions DispatchException[]
+	packingReports SalesPackingReport[]
 
     @@index([salesOrderId])
     @@index([driverId])
     @@index([createdById])
     @@index([deliveredAt])
+}
+
+model DispatchException {
+    id              Int       @id @default(autoincrement())
+    orderDeliveryId Int
+    reasonCode      String    @db.VarChar(64)
+    notes           String?   @db.Text
+    status          String    @default("open") @db.VarChar(32)
+    tripAction      String    @default("keep_assigned") @db.VarChar(32)
+    reportedById    Int
+    resolvedById    Int?
+    resolutionNote  String?   @db.Text
+    requestId       String?   @unique @db.VarChar(191)
+    meta            Json?     @db.Json
+    reportedAt      DateTime  @default(now()) @db.Timestamp(0)
+    resolvedAt      DateTime? @db.Timestamp(0)
+    createdAt       DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime  @updatedAt
+    deletedAt       DateTime? @db.Timestamp(0)
+    delivery        OrderDelivery @relation(fields: [orderDeliveryId], references: [id])
+
+    @@index([orderDeliveryId, status, deletedAt])
+    @@index([status, reportedAt])
+    @@index([reportedById, reportedAt])
 }
 
 model DispatchRegion {
@@ -6443,6 +6904,7 @@ model OrderItemDelivery {
     delivery                    OrderDelivery?              @relation(fields: [orderDeliveryId], references: [id])
     orderProductionSubmissionId Int?
     submission                  OrderProductionSubmissions? @relation(fields: [orderProductionSubmissionId], references: [id])
+    packingReports              SalesPackingReport[]
 
     @@index([orderProductionSubmissionId])
     @@index([orderId])

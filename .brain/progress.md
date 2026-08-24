@@ -1,5 +1,243 @@
 # Progress
 
+- 2026-08-24: Normalized Sales Overview Production tab item titles and complete
+  subtitles to uppercase values instead of relying only on CSS text transform.
+  The presentation-only helper is shared by every item card in the V2 tab and
+  leaves the underlying sales item unchanged. Its 2 focused tests pass,
+  Dashboard typecheck and scoped whitespace checks pass, and authenticated
+  admin browser QA on order `09207PC` confirms uppercase title and subtitle text
+  in the accessibility tree. Two broader Production source tests retain an
+  unrelated pre-existing assertion against the retired inline
+  `itemUids.slice(0, 1)` expansion implementation. No mutation was submitted.
+
+- 2026-08-24: Corrected shared admin/driver Pack Items presentation parity.
+  Packing titles now normalize to uppercase in the shared presenter, while the
+  description always preserves the exact canonical Production subtitle instead
+  of rebuilding a reduced metadata string for legacy-title rows. The guarded
+  packing policy remains unchanged: unresolved production/material evidence is
+  reportable, but only an exact approved quantity can enter canonical packing.
+  Focused validation passes 31 tests / 64 assertions, Dashboard typecheck and
+  scoped whitespace checks pass, and authenticated admin plus driver browser QA
+  confirms the same uppercase titles and full production descriptions in both
+  Pack Items surfaces. No packing mutation was submitted.
+
+- 2026-08-24: Fixed and Preview-proved legacy sales-order P.O.-only saves. The
+  API now normalizes only known lossless editor defaults, uses a metadata-only
+  root update for a changed P.O., treats an unchanged normalized legacy save as
+  a no-op, and exposes save scope so the dashboard skips commercial
+  history/inventory/event follow-ups. Real status/payment/note/line/inbound/
+  special-order changes still use the full save. Focused validation passes the
+  API P.O. slice at 2 tests / 12 assertions and dashboard scope slice at 1 test
+  / 4 assertions. Ready Preview deployment `dpl_2ksQrUQYPqSPRbjpPxP3ke8Q1Dws`
+  / commit `91216b891` preserved every tracked graph hash on sanitized order
+  `09379PC` through a P.O. mutation and unchanged repeat save, kept
+  `newSalesForm.form` absent, and created zero history/inventory compatibility
+  rows. The fixture was restored exactly to blank P.O., `$2,573.23`, and a
+  matching ready projection. Production was not touched.
+
+- 2026-08-23: Completed the Preview Sales Orders projection invalidation and
+  recovery proof. A temporary P.O. change on sanitized order `09379PC` advanced
+  source revision; the following exact-order read used the safe legacy fallback
+  in 2.46 seconds and the isolated Trigger worker persisted one projection with
+  zero stale skips. The legacy editor also materialized unrelated compatibility
+  rows, so the entire order-owned graph was restored atomically from the
+  sanitized local seed source and its derived projection was rebuilt by Trigger
+  run `fure6v01`. Post-recovery graph parity is exact: zero extra/different
+  rows, the original `$2,573.23` / blank-P.O. / legacy-inbound-review row is
+  visible, the projection is ready at version 2 with matching source revision,
+  coverage is 95/95, and a second read queued no warm task. Production was not
+  touched. Logged the editor behavior in
+  `.brain/bugs/2026-08-23-legacy-sales-order-editor-save-rewrites-compatibility-graph.md`.
+
+- 2026-08-23: Completed the Free-tier Preview worker rollout for the guarded
+  Sales Orders list projection. Created isolated Trigger project `GND Preview
+  Projections` (`proj_vwljjpifrjlpehfhrkmz`), deployed version `20260823.1`
+  with exactly the backfill and persistence tasks, and bound its
+  Production-labeled environment only to PlanetScale Preview. A bounded Trigger
+  run persisted all 95 Preview order projections in 5.7 seconds with zero stale
+  skips. Vercel branch `preview` now has a sensitive project-specific Trigger
+  key plus read mode and a 3600-second freshness window; the existing global
+  Trigger key and Production configuration were not changed. Ready deployment
+  `dpl_JC1CL6UFde4yAAaipGq4WZzcu1D2` owns the stable Preview aliases.
+  Authenticated smoke testing loaded `/sales-book/orders` in 2.2 seconds,
+  updated broad-search state in under one second, resolved an exact order, and
+  produced no fallback-warm Trigger run. Production read activation remains
+  gated.
+
+- 2026-08-23: Removed the Dispatch Task overview flicker when opening or closing
+  Pack Items. Stop-local `packing`, `proof`, and `help` URL transitions now use
+  shallow navigation, while dashboard search/list transitions remain
+  server-backed. This keeps the selected-stop dashboard mounted and confines
+  asynchronous packing loading to the existing floating sheet skeleton.
+  Focused migration validation passes 6 tests / 76 assertions and scoped Biome
+  passes. Authenticated Chrome QA on dispatch `4403` confirms the overview
+  remains present across both close and open transitions, the URL still updates,
+  the packing dialog opens, and no top-level dispatch loading state or runtime
+  error appears. The broad Dashboard typecheck remains blocked by unrelated
+  repository baseline errors. No packing or dispatch mutation was submitted.
+
+- 2026-08-23: Migrated driver Pack Items from the raw drawer primitive to the
+  shared floating `CustomSheetV2` shell. Desktop now uses the platform-standard
+  inset rounded surface, mobile remains full-width, and the matching loading
+  skeleton preserves the same geometry. Ready and Awaiting Production item
+  titles and subtitles now render uppercase without changing persisted product
+  text. Focused driver and Sales Overview packing validation passes 16 tests /
+  127 assertions, whitespace checks pass, and a filtered Dashboard typecheck
+  reports no diagnostics in the touched packing/driver files. Authenticated
+  Chrome QA verifies the floating desktop sheet, full-width 390x844 layout,
+  fixed actions, uppercase item presentation, and no new runtime errors. No
+  packing mutation was submitted.
+
+- 2026-08-23: Removed the duplicate selected-stop workspace header from the
+  standalone Dispatch Stop overview while preserving it in the intercepted
+  full-page modal and preserving reduced navigation for direct proof/help
+  subflows. Matching route skeletons now follow the same standalone-versus-modal
+  ownership rule. Delivery timestamps use the canonical dispatch timezone on
+  both server and client, eliminating the observed one-hour hydration mismatch.
+  Focused validation passes 8 tests / 73 assertions, scoped Biome and whitespace
+  checks pass, and the broad Dashboard typecheck retains unrelated baseline
+  failures with no diagnostics in dispatch-task or driver-dashboard files.
+  Authenticated Chrome QA on dispatch `4403` confirms exactly one visible page
+  banner and no new console warnings or errors after a full reload. No mutation
+  was submitted.
+
+- 2026-08-23: Added Midday-standard loading behavior to Dispatch Tasks, Design A
+  selected-stop routes, and the reused Pack Items drawer. Server prefetch now
+  starts without blocking the hydrated shell; route-level boundaries cover the
+  main page, standalone detail, and intercepted modal. Responsive skeletons
+  preserve the final command header/search/summary/route layout, the Design A
+  metric and packing workspace, and the canonical side-sheet header/list/fixed
+  footer. Focused validation passes 15 tests / 80 assertions, scoped Biome and
+  whitespace checks pass, and filtered Dashboard typecheck output has no
+  diagnostics in the new loading files. The broad Dashboard typecheck retains
+  unrelated baseline failures. Browser navigation reached the protected app,
+  but its existing admin/sales session correctly redirected the Delivery-only
+  route to Sales Rep; the session was not changed for this implementation-only
+  pass, so fresh authenticated driver visual proof remains open. No packing or
+  dispatch mutation was submitted.
+
+- 2026-08-23: Corrected the selected-stop implementation to match approved
+  Design A. The intercepted stop route now renders the Packing Command Sheet
+  dashboard itself, including the five-metric summary, packing list,
+  destination, server-owned readiness gates, and stop activity. Pack Items no
+  longer replaces that dashboard with an inline form; it opens the existing
+  canonical Sales Overview packing form in a right-side sheet on desktop and a
+  full-width sheet on mobile, preserving the shared provider, guarded plan,
+  mutation, permission, and invalidation paths. Focused validation passes 22
+  tests / 114 assertions, focused Biome passes, and a filtered Dashboard
+  typecheck scan reports no diagnostics in the touched files while the broad
+  Dashboard typecheck remains red on unrelated baseline errors. Authenticated
+  Chrome QA at 1512x827 and 390x844 verified the Design A dashboard, URL-owned
+  `mode=packing`, sheet close back to details, fixed mobile actions, no document
+  horizontal overflow, and no console warnings/errors. No packing mutation was
+  submitted.
+
+- 2026-08-23: Completed the Midday-aligned Dispatch Tasks and selected-stop
+  migration. The sidebarless shell now uses the compact GND mark without text,
+  the standard page title, conventional shared search, and fixed Today/All
+  Stops/Exceptions/Completed views backed by URL state. Stop links use a
+  Next.js intercepted full-page modal with browser-history close and a
+  standalone direct-entry fallback. Approved Option A Packing Command Sheet
+  reuses the existing Sales Overview packing provider, guarded availability
+  plan, mutation, and permission boundary as an inline modal subflow; the item
+  region scrolls independently and the Cancel/Pack footer remains visible on
+  mobile. Focused dashboard and packing validation passes 26 tests / 76
+  assertions, scoped Biome is clean, and filtered Dashboard typecheck output
+  reports no touched-file diagnostics. Authenticated Delivery-role Chrome QA
+  verifies search (`q=Chily`), all four views, soft modal navigation, direct
+  route fallback, Back/Close history, packing readiness separation, and final
+  1280x800 and 390x844 layouts without hydration or runtime errors. No dispatch
+  mutation, API, permission, database, migration, production data, or deployment
+  change was performed.
+
+- 2026-08-23: Completed the Midday-aligned migration and live repair of Sales
+  Overview Pack Items. A red package regression proved Pack All was falling back
+  from explicit zero availability to ordered quantity. Packing selection and
+  guarded allocation now live behind `@gnd/sales/dispatch-packing-plan`, accept
+  canonical stock availability without fabricating production submissions, and
+  keep genuinely unavailable production at zero. Browser comparison of Sales
+  Form, Production, and Packing for `09010DB` found the remaining 8 doors were
+  assigned to CARLOS but had no submissions; dispatch mode also disabled their
+  existing-assignment Submit action. The shared production/dispatch policy now
+  permits that submission while retaining locks on new assignments, edits, and
+  deletion, and Packing explains the state as `Awaiting production submission`.
+  The Pack footer invokes its handler directly. Authenticated development QA
+  persisted dispatch `4478` at 80/88 packed with no task failure and did not
+  falsely complete the 8 production units. The same QA reproduced cross-tab
+  scroll carryover and verified that Sales Overview now resets to the top when
+  changing tabs. The expanded packing matrix now covers partial capacity,
+  listed/re-pack precedence, handed availability, multi-submission allocation,
+  stock overflow, and empty entries. Additional authenticated browser QA proved
+  Pack All selected exactly 38/54 available units on `09207PC` and 12/19 on
+  `09159PC`, leaving their unsubmitted production quantities at zero and
+  discarding both QA drafts without mutation. Focused validation passes 28 tests
+  / 70 assertions; no API input, database, migration, permission, or
+  production-review contract changed.
+
+- 2026-08-23: Fixed the Route Command driver dashboard hydration mismatch in
+  its connectivity badge. Bun exposes `navigator` during SSR without an
+  `onLine` value, so the prior server/client state initializer rendered
+  Offline on the server and Manifest synced in an online browser. The header
+  now uses `useSyncExternalStore` with one stable server snapshot and live
+  browser online/offline subscriptions. Focused validation passes 4 tests / 22
+  assertions. Browser QA reached the login shell without hydration errors, but
+  Dev Quick Login did not establish an authenticated session after three
+  attempts, so protected route-level browser proof remains open. No API,
+  authorization, database, migration, dispatch lifecycle, or proof behavior
+  changed.
+
+- 2026-08-23: Implemented the approved Route Command driver dashboard at the
+  existing Delivery landing `/sales-book/dispatch-task` using the Midday invoice
+  migration architecture. The server route now prefetches and hydrates the
+  assigned-driver manifest plus authoritative summary; the responsive workspace
+  adds explicit sync state, next-stop focus, route filters, attention/activity,
+  and an on-demand URL-owned stop sheet. Overview, Items, Help, guarded Start
+  Trip, and lifecycle-valid proof modes reuse the existing dispatch API. Proof
+  drafts are versioned and recoverable with a stable request id, SVG signature,
+  notes, and bounded photos. Focused validation passes 24 tests, scoped Biome,
+  touched-file TypeScript diagnostics, and authenticated Delivery browser QA at
+  390, 834, and 1440 pixels. The browser pass verified readiness blocking,
+  manifest items, Help, a 374px mobile sheet, and invalid proof deep-link
+  recovery without submitting a mutation. No API, authorization, database, or
+  migration contract changed; reversible proof/retry, weak-network/device,
+  performance, pilot, and cutover evidence remain open.
+
+- 2026-08-23: Changed Sales Overview Production V2 to a URL-owned single-open
+  item accordion. Admin and production-worker views now default to the first
+  available production item, opening another item closes the current one, and
+  every selected/default item is written to `prod-item-view` so refresh and
+  browser navigation restore the same content. Invalid item parameters fall
+  back to the first available item. The shared legacy Production path retains
+  its existing multi-open behavior. Added focused expansion-policy and V2
+  source-contract coverage; execution is deferred under the fast Bun command
+  discipline.
+
+- 2026-08-23: Implemented the approved GStack progressive status header for
+  Sales Overview Production V2. Admin item rows now replace the fixed
+  Assigned / Production / Fulfilled progress bars with one compact shadcn badge
+  line that advances from Not Assigned through assignment, submission, ready
+  to fulfill, and fulfilled states while retaining partial overlapping stages.
+  The resolver supports general and LH/RH quantity matrices and distinguishes
+  shippable Ready to Fulfill from non-shippable Production Completed. Worker
+  visibility, the expanded single-view document, legacy Production, API,
+  permissions, and persistence are unchanged. Focused lifecycle coverage was
+  added; execution is deferred under the fast Bun command discipline.
+
+- 2026-08-23: Approved Option A, Route Command, exactly as shown as the driver
+  dashboard visual base. The approval is saved with the persistent design
+  artifacts and recorded in ADR-065. The implementation plan remains Proposed,
+  with no production code or behavior change and no B or C remix approved.
+
+- 2026-08-23: Replaced the detailed Sales Orders handoff-pill alert with a
+  compact exact unique-order summary on every tab except Needs Action. The one
+  `View needs action` control opens the fixed Needs Action table, which remains
+  the canonical detailed work surface; the redundant alert is not mounted on
+  that tab. Focused validation passed 6 tests / 23 assertions and scoped Biome.
+  Dashboard typecheck retained the existing workspace-wide baseline, including
+  Bun matcher typing in source-based contract tests, with no production-file
+  diagnostic in the changed alert or Sales Orders page. The feature record now
+  also captures the proposed, not-yet-implemented global header indicator.
+
 - 2026-08-23: Completed the responsive Driver Dashboard design exploration and
   implementation plan. Three clickable directions now share one canonical
   driver contract: Route Command, Dispatch Ledger, and Field Focus. Each was
@@ -11325,3 +11563,115 @@
   compiler run reported no diagnostics in the changed packing/report files;
   the broad Dashboard typecheck retained its existing unrelated baseline
   failures. Scoped Biome and whitespace checks passed.
+
+## 2026-08-23 — Explored selected-stop driver packing interactions
+
+- Grounded five responsive HTML directions in the approved Route Command
+  dashboard, the current driver stop sheet, and the existing Sales Overview
+  Packing tab plus secondary Pack Items pane.
+- Built Packing Command Sheet, Load Bay Ledger, Pack Coach, Split Manifest
+  Desk, and Exception-First Board as standalone interactive prototypes with
+  scalar and LH/RH quantity controls, Pack All, guarded-review language,
+  readiness recalculation, sync feedback, and activity updates.
+- Ranked A Packing Command Sheet first, followed by C Pack Coach, D Split
+  Manifest Desk, B Load Bay Ledger, and E Exception-First Board. The ranking is
+  advisory; no direction is recorded as approved yet.
+- Captured desktop and mobile evidence for every direction and verified zero
+  document overflow and zero console errors at 1440 by 1000 and 390 by 844.
+  Artifacts are stored at
+  `/Users/M1PRO/.gstack/projects/gnd/designs/driver-stop-packing-20260823/`.
+- No application source, API, database, authorization, or runtime behavior
+  changed during this design-only pass.
+
+## 2026-08-23 — Verified Preview getOrders projection and preserved safe rollout gate
+
+- Corrected the local Preview credential to the actual PlanetScale `preview`
+  branch, verified its 150 sanitized sales fixtures, and confirmed the current
+  Prisma schema has no diff.
+- Rebuilt the 95 `type=order` projection cache rows after detecting stale
+  pre-sanitization payloads. The final cache audit passed with complete
+  coverage, version 2, exact source revisions, and zero unsafe payloads.
+- A branch-scoped Vercel read-mode cohort improved `q=APA` to 820 ms and kept
+  recent `sales.getOrders` responses at 200. The flags were removed and Preview
+  was redeployed with read mode off after Trigger rejected both staging and
+  Preview-branch deployments because those environments are not enabled for the
+  account. Production code, environment variables, domains, and database were
+  unchanged.
+
+## 2026-08-23 — Reached paid Trigger Preview-environment gate
+
+- Trigger's authenticated dashboard confirmed the organization is on Free and
+  Preview branches require Hobby at $10/month, including five Preview branches
+  and $10 in credits. No upgrade or billing change was submitted.
+- The cost-neutral alternative is a separate Free Trigger project containing
+  only the projection persistence/backfill tasks, with its Production worker
+  isolated to PlanetScale Preview and its key scoped to Vercel Preview. That is
+  a new infrastructure boundary and remains approval-gated.
+
+## 2026-08-23 — Driver dispatch and pending-material approval lifecycle
+
+- Completed the Midday-aligned Dispatch Tasks and selected-stop Design A
+  lifecycle through admin assignment, guarded packing, approval, trip start,
+  required recipient signature, proof completion, and completed-state UI.
+- Completed production pending-material handling through worker submission,
+  direct sales-rep notification, explicit missing-configuration consent,
+  approval, and direct worker notification.
+- Live QA fixed two approval defects: null material components were converted
+  to invalid ID `0`, and submission-owned recalculation immediately invalidated
+  its own assignment snapshot.
+- Focused verification passes 134 tests / 402 assertions. Broad package
+  typechecks retain existing repository baselines; Sales retains the known
+  unrelated `sales-control/actions.ts:113` assignment-ID diagnostic.
+- Browser evidence: `artifacts/dispatch-lifecycle-20260823/`.
+
+## 2026-08-23 — Mobile delivery module logic hardening
+
+- Preserved the accepted Expo UI flow while replacing mobile packing math and
+  split mutations with the shared planner plus one serializable,
+  revision-bound packing/reset command. Legacy compatibility rows, exact
+  inventory transitions, and guarded reports now share one rollback boundary.
+- Added server lifecycle capabilities/blockers, narrow Start Trip, manager-only
+  reset/picked release, durable Report Issue behavior, connected contact/map
+  actions, capability-gated Warehouse Packing, and central post-mutation
+  invalidation.
+- Made proof drafts restart-safe with user/dispatch-scoped AsyncStorage
+  metadata, app-owned media, stable request identity, manifest preflight,
+  bounded aggregate payloads, explicit retry, seven-day expiry, and
+  race-safe cleanup. General customer/manifest caches remain memory-only.
+- Added native connectivity/focus integration, truthful sync age, Completed and
+  server search semantics, authoritative packing summaries, and typed dispatch
+  notification outcomes/deep links. Removed obsolete mobile action/list paths.
+- Validation passes 83 focused tests / 500 assertions, a 24-test post-review
+  proof/transaction subset, a 20-test shared/mobile packing subset, scoped
+  Biome, and owned-path whitespace checks. Broad API/Expo typechecks retain
+  unrelated baseline diagnostics; changed dispatch runtime paths add none.
+- Review passed and is recorded in
+  `.brain/reviews/2026-08-23-mobile-delivery-module-logic-hardening-review.md`;
+  the command decision is ADR-069. Android/device/UI validation is deliberately
+  paused for the user's explicit next-phase permission, after which screens
+  will be reviewed sequentially with five design-html samples each.
+
+## 2026-08-24 — Confirmed production sales-form step-value overflow
+
+- Vercel's last-24-hour review found one Production 500 today at 17:04 WAT for
+  `newSalesForm.saveDraft` on order `09433PC`, plus five separate Preview-only
+  `sales.getSalesHandoffActions` 500s between 08:30 and 09:02 WAT.
+- Historical Preview save traces supplied the exact Prisma P2000 evidence:
+  `DykeStepForm` received a value longer than its database column type.
+- The repository now maps `DykeStepForm.value` to `TEXT` and includes an
+  additive migration plus a schema/migration regression contract. The focused
+  contract passes 2 tests, Prisma generation passes, and the new-sales-form API
+  suite passes 39 tests / 217 assertions.
+- Native WhatsApp review is complete, including both video soundtracks. The
+  19-second clip reproduces Fulfilled dependency-resolution denial on `09403DB`;
+  the 7-second clip shows `Mark Sales Order Fulfilled` checked. Audio adds no
+  further defect detail.
+- The fulfillment root cause is confirmed: the dedicated grant passes
+  preflight, but the resolver adds broad order, inbound, and production checks.
+  The scoped authorization change is pending explicit approval because it would
+  let the fulfillment grant receive linked stock and approve pending material
+  reviews for the selected order. No authorization code is currently changed.
+- Production inspection confirms Special Order enrollment is still configured
+  as `Super Admin only`; the code already supports the requested `All staff`
+  rollout. The local widening migration is applied and the local database is in
+  sync. No Preview or Production database/configuration has changed yet.

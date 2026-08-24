@@ -446,6 +446,9 @@ The canonical plan is
 - `SalesOrders`, `SalesOrderItems`, `DykeStepForm`, `HousePackageTools`,
   `DykeSalesDoors`, `DykeSalesShelfItem`, `SalesExtraCosts`, and `SalesTaxes`
   are the only commercial persistence authority.
+- `DykeStepForm.value` is nullable `TEXT` because it stores the workflow
+  component's human-readable title, not a bounded identifier. This prevents
+  valid long labels from aborting the transactional save with Prisma P2000.
 - Historical `SalesOrders.meta.newSalesForm.lineItems`, `extraCosts`, and
   `summary` are deprecated compatibility snapshots and are ignored by canonical
   hydration. New saves do not write them.

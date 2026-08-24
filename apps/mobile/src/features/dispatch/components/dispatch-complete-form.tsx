@@ -1,5 +1,13 @@
+import { Icon } from "@/components/ui/icon";
+import { Toast } from "@/components/ui/toast";
+import {
+	type UploadImageMimeType,
+	resolveUploadImageMimeType,
+} from "@/lib/upload-image-mime";
+import * as ImagePicker from "expo-image-picker";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+	Alert,
 	type GestureResponderEvent,
 	Image,
 	PanResponder,
@@ -10,19 +18,13 @@ import {
 	View,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { Icon } from "@/components/ui/icon";
-import * as ImagePicker from "expo-image-picker";
-import {
-	type UploadImageMimeType,
-	resolveUploadImageMimeType,
-} from "@/lib/upload-image-mime";
+import { useDispatchProofDraft } from "../hooks/use-dispatch-proof-draft";
 
 export type DispatchCompleteInput = {
 	requestId: string;
+	expectedManifestRevision: string;
 	receivedBy?: string;
 	note?: string;
-	noteType?: "dispatch" | "pickup";
-	receivedDate?: Date;
 	signaturePath: string;
 	attachments?: {
 		clientId: string;
@@ -34,6 +36,9 @@ export type DispatchCompleteInput = {
 };
 
 type Props = {
+	userId: number;
+	dispatchId: number;
+	manifestRevision: string;
 	defaultNoteType?: "dispatch" | "pickup";
 	defaultReceivedBy?: string;
 	isSubmitting?: boolean;
@@ -41,58 +46,58 @@ type Props = {
 	onSubmit: (input: DispatchCompleteInput) => Promise<void> | void;
 };
 
-function createCompletionRequestId() {
-	return `dispatch:${Date.now()}:${Math.random().toString(36).slice(2, 12)}`;
-}
-
 export function DispatchCompleteForm({
+	userId,
+	dispatchId,
+	manifestRevision,
 	defaultNoteType = "dispatch",
 	defaultReceivedBy,
 	isSubmitting,
 	onCancel,
 	onSubmit,
 }: Props) {
-	const [receivedBy, setReceivedBy] = useState(defaultReceivedBy || "");
-	const [note, setNote] = useState("");
-	const [noteType, setNoteType] = useState<"dispatch" | "pickup">(
-		defaultNoteType,
-	);
-	const [requestId] = useState(createCompletionRequestId);
-	const [signaturePath, setSignaturePath] = useState("");
-	const [attachments, setAttachments] = useState<
-		{
-			clientId: string;
-			fileName: string;
-			contentType: UploadImageMimeType;
-			base64: string;
-			uri: string;
-		}[]
-	>([]);
+	const proof = useDispatchProofDraft({
+		userId,
+		dispatchId,
+		defaultReceivedBy,
+		manifestRevision,
+	});
+	const {
+		draft,
+		update,
+		addAttachments,
+		removeAttachment,
+		buildAttachments,
+		clear,
+	} = proof;
 	const pathRef = useRef("");
 
 	useEffect(() => {
-		if (!receivedBy && defaultReceivedBy) {
-			setReceivedBy(defaultReceivedBy);
+		if (!draft.receivedBy && defaultReceivedBy) {
+			update({ receivedBy: defaultReceivedBy });
 		}
-	}, [defaultReceivedBy, receivedBy]);
+	}, [defaultReceivedBy, draft.receivedBy, update]);
 
 	useEffect(() => {
-		setNoteType(defaultNoteType);
-	}, [defaultNoteType]);
+		pathRef.current = draft.signaturePath;
+	}, [draft.signaturePath]);
 
-	const appendSignaturePoint = useCallback((evt: GestureResponderEvent) => {
-		const { locationX, locationY } = evt.nativeEvent;
-		if (!pathRef.current) {
-			pathRef.current = `M ${locationX.toFixed(1)} ${locationY.toFixed(1)}`;
-		} else {
-			pathRef.current += ` L ${locationX.toFixed(1)} ${locationY.toFixed(1)}`;
-		}
-		setSignaturePath(pathRef.current);
-	}, []);
+	const appendSignaturePoint = useCallback(
+		(evt: GestureResponderEvent) => {
+			const { locationX, locationY } = evt.nativeEvent;
+			if (!pathRef.current) {
+				pathRef.current = `M ${locationX.toFixed(1)} ${locationY.toFixed(1)}`;
+			} else {
+				pathRef.current += ` L ${locationX.toFixed(1)} ${locationY.toFixed(1)}`;
+			}
+			update({ signaturePath: pathRef.current });
+		},
+		[update],
+	);
 
 	const clearSignature = () => {
 		pathRef.current = "";
-		setSignaturePath("");
+		update({ signaturePath: "" });
 	};
 
 	const signaturePanResponder = useMemo(
@@ -106,46 +111,107 @@ export function DispatchCompleteForm({
 		[appendSignaturePoint],
 	);
 
-	const hasSignature = signaturePath.trim().length > 0;
+	const hasSignature = draft.signaturePath.trim().length > 0;
 
 	const pickAttachments = async () => {
 		if (isSubmitting) return;
 		const result = await ImagePicker.launchImageLibraryAsync({
 			mediaTypes: ImagePicker.MediaTypeOptions.Images,
-			quality: 0.8,
+			quality: 0.65,
 			allowsMultipleSelection: true,
-			base64: true,
+			base64: false,
 		});
 		if (result.canceled) return;
-		const remaining = Math.max(0, 5 - attachments.length);
-		const next = result.assets
-			.filter(
-				(asset): asset is typeof asset & { base64: string } =>
-					typeof asset.base64 === "string",
-			)
-			.slice(0, remaining)
-			.flatMap((asset, index) => {
-				const fileName =
-					asset.fileName ||
-					`dispatch-attachment-${Date.now()}-${index}.${asset.uri.split(".").pop() || "jpg"}`;
-				const contentType = resolveUploadImageMimeType(
-					asset.mimeType,
+		const remaining = Math.max(0, 5 - draft.attachments.length);
+		let unsupported = 0;
+		const next = result.assets.slice(0, remaining).flatMap((asset, index) => {
+			const fileName =
+				asset.fileName ||
+				`dispatch-attachment-${Date.now()}-${index}.${asset.uri.split(".").pop() || "jpg"}`;
+			const contentType = resolveUploadImageMimeType(asset.mimeType, fileName);
+			if (!contentType) {
+				unsupported += 1;
+				return [];
+			}
+			return [
+				{
+					clientId: `photo-${Date.now()}-${index}`,
 					fileName,
-				);
-				if (!contentType) return [];
-				return [
+					contentType,
+					uri: asset.uri,
+				},
+			];
+		});
+		try {
+			await addAttachments(next);
+			if (unsupported) {
+				Toast.show(
+					`${unsupported} unsupported photo${unsupported === 1 ? " was" : "s were"} skipped.`,
 					{
-						clientId: `photo-${Date.now()}-${index}.${(
-							asset.uri.split(".").pop() || "jpg"
-						).replace(/[^A-Za-z0-9]/g, "")}`,
-						fileName,
-						contentType,
-						base64: asset.base64,
-						uri: asset.uri,
+						type: "warning",
 					},
-				];
+				);
+			}
+		} catch (error) {
+			Toast.show(
+				error instanceof Error ? error.message : "Unable to attach photo.",
+				{
+					type: "error",
+				},
+			);
+		}
+	};
+
+	const submitProof = async () => {
+		if (draft.manifestRevision !== manifestRevision) {
+			Toast.show(
+				"This dispatch changed after the proof draft was created. Refresh and review it before completing.",
+				{ type: "warning" },
+			);
+			return;
+		}
+		update({ attemptState: "submitting" });
+		try {
+			const attachments = await buildAttachments();
+			await onSubmit({
+				requestId: draft.requestId,
+				expectedManifestRevision: draft.manifestRevision,
+				receivedBy: draft.receivedBy || undefined,
+				note: draft.note || undefined,
+				signaturePath: draft.signaturePath,
+				attachments,
 			});
-		setAttachments((prev) => [...prev, ...next]);
+			await clear();
+		} catch (error) {
+			update({ attemptState: "retryable_failure" });
+			throw error;
+		}
+	};
+
+	const cancelProof = () => {
+		const hasDraftContent = Boolean(
+			draft.signaturePath ||
+				draft.note.trim() ||
+				draft.attachments.length ||
+				draft.receivedBy !== (defaultReceivedBy || ""),
+		);
+		if (!hasDraftContent) {
+			onCancel();
+			return;
+		}
+		Alert.alert(
+			"Keep proof draft?",
+			"Keep it on this device to continue later, or discard it and its photos.",
+			[
+				{ text: "Continue editing", style: "cancel" },
+				{ text: "Keep draft", onPress: onCancel },
+				{
+					text: "Discard",
+					style: "destructive",
+					onPress: () => void clear().then(onCancel),
+				},
+			],
+		);
 	};
 
 	return (
@@ -168,8 +234,8 @@ export function DispatchCompleteForm({
 						<View className="flex-row items-center gap-2">
 							<Icon name="User" className="size-14 text-muted-foreground" />
 							<TextInput
-								value={receivedBy}
-								onChangeText={setReceivedBy}
+								value={draft.receivedBy}
+								onChangeText={(receivedBy) => update({ receivedBy })}
 								editable={!isSubmitting}
 								placeholder="Received By"
 								className="flex-1 text-foreground"
@@ -184,12 +250,11 @@ export function DispatchCompleteForm({
 					</Text>
 					<View className="flex-row gap-2">
 						{(["dispatch", "pickup"] as const).map((option) => {
-							const active = noteType === option;
+							const active = defaultNoteType === option;
 							return (
 								<Pressable
 									key={option}
-									disabled={isSubmitting}
-									onPress={() => setNoteType(option)}
+									disabled
 									className={`flex-1 rounded-xl border px-3 py-3 ${
 										active
 											? "border-primary bg-primary/10"
@@ -220,8 +285,8 @@ export function DispatchCompleteForm({
 								className="size-14 text-muted-foreground"
 							/>
 							<TextInput
-								value={note}
-								onChangeText={setNote}
+								value={draft.note}
+								onChangeText={(note) => update({ note })}
 								editable={!isSubmitting}
 								placeholder="Note (optional)"
 								className="flex-1 text-foreground"
@@ -254,7 +319,7 @@ export function DispatchCompleteForm({
 					>
 						<Svg className="h-full w-full">
 							<Path
-								d={signaturePath}
+								d={draft.signaturePath}
 								stroke="#111827"
 								strokeWidth={2}
 								fill="none"
@@ -294,13 +359,13 @@ export function DispatchCompleteForm({
 						</Pressable>
 					</View>
 
-					{attachments.length ? (
+					{draft.attachments.length ? (
 						<ScrollView
 							horizontal
 							showsHorizontalScrollIndicator={false}
 							contentContainerClassName="gap-2 pb-1"
 						>
-							{attachments.map((file) => (
+							{draft.attachments.map((file) => (
 								<View key={`${file.uri}-${file.fileName}`} className="relative">
 									<Image
 										source={{ uri: file.uri }}
@@ -308,11 +373,7 @@ export function DispatchCompleteForm({
 									/>
 									<Pressable
 										disabled={isSubmitting}
-										onPress={() =>
-											setAttachments((prev) =>
-												prev.filter((item) => item.uri !== file.uri),
-											)
-										}
+										onPress={() => void removeAttachment(file.uri)}
 										className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full bg-destructive"
 									>
 										<Text className="text-[10px] font-bold text-destructive-foreground">
@@ -333,24 +394,14 @@ export function DispatchCompleteForm({
 			<View className="mt-5 flex-row gap-3">
 				<Pressable
 					disabled={isSubmitting}
-					onPress={onCancel}
+					onPress={cancelProof}
 					className="h-11 flex-1 items-center justify-center rounded-xl border border-border px-4 active:opacity-80 disabled:opacity-50"
 				>
 					<Text className="text-sm font-semibold text-foreground">Cancel</Text>
 				</Pressable>
 				<Pressable
-					disabled={isSubmitting || !hasSignature}
-					onPress={() =>
-						onSubmit({
-							requestId,
-							receivedBy: receivedBy || undefined,
-							note: note || undefined,
-							noteType,
-							receivedDate: new Date(),
-							signaturePath,
-							attachments,
-						})
-					}
+					disabled={isSubmitting || !hasSignature || !proof.isHydrated}
+					onPress={() => void submitProof().catch(() => undefined)}
 					className="h-11 flex-1 items-center justify-center rounded-xl bg-primary px-4 active:opacity-80 disabled:opacity-40"
 				>
 					<Text className="text-sm font-semibold text-primary-foreground">

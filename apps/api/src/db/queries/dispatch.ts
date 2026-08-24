@@ -38,6 +38,7 @@ import {
 	getDispatchDuePresentation,
 	summarizeDriverWorkQueue,
 } from "@gnd/sales/dispatch-manifest/driver-work-queue";
+import { resolvePackedLegacyInventoryReadiness } from "@gnd/sales/dispatch-manifest/inventory-readiness";
 import { normalizeLegacyDispatchManifestItem } from "@gnd/sales/dispatch-manifest/normalize-legacy-item";
 import { projectDispatchLifecycle } from "@gnd/sales/dispatch-manifest/status";
 import { projectDispatchRisks } from "@gnd/sales/dispatch-manifest/workspace";
@@ -1183,12 +1184,12 @@ export async function getPackingList(
 		});
 	}
 
-	const status =
+	const statuses: SalesDispatchStatus[] =
 		input.tab === "completed"
-			? "completed"
+			? ["completed"]
 			: input.tab === "cancelled"
-				? "cancelled"
-				: "queue";
+				? ["cancelled"]
+				: ["queue", "packing queue", "missing items", "packed", "in progress"];
 	const dispatchIds =
 		input.tab === "current" || input.tab === "completed"
 			? []
@@ -1202,7 +1203,7 @@ export async function getPackingList(
 		where: {
 			deletedAt: null,
 			deliveryMode: "pickup",
-			status,
+			status: { in: statuses },
 			...(input.tab === "current" || input.tab === "completed"
 				? {}
 				: {
@@ -1254,6 +1255,28 @@ export async function getPackingList(
 	});
 
 	return rows.map(mapPackingListRow);
+}
+
+export async function getPackingListSummary(ctx: TRPCContext) {
+	const base = { deletedAt: null, deliveryMode: "pickup" as const };
+	const [ready, active, completed] = await Promise.all([
+		ctx.db.orderDelivery.count({ where: { ...base, status: "queue" } }),
+		ctx.db.orderDelivery.count({
+			where: {
+				...base,
+				status: {
+					in: ["packing queue", "missing items", "packed", "in progress"],
+				},
+			},
+		}),
+		ctx.db.orderDelivery.count({ where: { ...base, status: "completed" } }),
+	]);
+	return {
+		total: ready + active,
+		ready,
+		active,
+		completed,
+	};
 }
 
 export async function signPackingSlip(
@@ -1767,11 +1790,11 @@ export async function updateDispatchStatus(
 			});
 			const updated = await tx.orderDelivery.updateMany({
 				where: { id: dispatch.id, status: oldStatus, deletedAt: null },
-		data: {
-			status: newStatus as SalesDispatchStatus,
-			deliveredAt: newStatus === "completed" ? new Date() : null,
-		},
-	});
+				data: {
+					status: newStatus as SalesDispatchStatus,
+					deliveredAt: newStatus === "completed" ? new Date() : null,
+				},
+			});
 			if (updated.count !== 1) {
 				throw new TRPCError({
 					code: "CONFLICT",
@@ -2164,157 +2187,157 @@ export async function getDispatchOverviewV2(
 	const legacyDispatchItems = legacyDispatchItemSources.map(
 		({ dispatchable, item }) => {
 			const uid = dispatchable?.uid ?? item!.uid;
-		const listedItems = dispatch?.items.filter(
+			const listedItems = dispatch?.items.filter(
 				(a) => a.item?.controlUid === uid,
-		);
-		const packedItems = listedItems?.filter(
-			(a) => !("packingStatus" in a) || a.packingStatus === "packed",
-		);
-		const totalListedAllDispatches = recomposeQty(
-			qtyMatrixSum(
-				...result.deliveries
-					.filter((d) => d.status !== "cancelled")
-					.flatMap((d) =>
-						d.items
+			);
+			const packedItems = listedItems?.filter(
+				(a) => !("packingStatus" in a) || a.packingStatus === "packed",
+			);
+			const totalListedAllDispatches = recomposeQty(
+				qtyMatrixSum(
+					...result.deliveries
+						.filter((d) => d.status !== "cancelled")
+						.flatMap((d) =>
+							d.items
 								.filter((i) => i.item.controlUid === uid)
-							.flatMap(transformQtyHandle),
-					),
-			),
-		);
-		const listedQty = recomposeQty(
-			qtyMatrixSum(...((listedItems || []).map(transformQtyHandle) as any)),
-		);
-		const packedQty = recomposeQty(
-			qtyMatrixSum(...((packedItems || []).map(transformQtyHandle) as any)),
-		);
-		const availableQty = recomposeQty(dispatchable?.availableQty as any);
-		const deliverableQty = recomposeQty(
-			qtyMatrixSum(...(dispatchable?.deliverables?.map((a) => a.qty) || [])),
-		);
-		const nonDeliverableQty = recomposeQty(
-			qtyMatrixDifference(
-				dispatchable?.totalQty!,
-				qtyMatrixSum(availableQty, totalListedAllDispatches),
-			),
-		);
+								.flatMap(transformQtyHandle),
+						),
+				),
+			);
+			const listedQty = recomposeQty(
+				qtyMatrixSum(...((listedItems || []).map(transformQtyHandle) as any)),
+			);
+			const packedQty = recomposeQty(
+				qtyMatrixSum(...((packedItems || []).map(transformQtyHandle) as any)),
+			);
+			const availableQty = recomposeQty(dispatchable?.availableQty as any);
+			const deliverableQty = recomposeQty(
+				qtyMatrixSum(...(dispatchable?.deliverables?.map((a) => a.qty) || [])),
+			);
+			const nonDeliverableQty = recomposeQty(
+				qtyMatrixDifference(
+					dispatchable?.totalQty!,
+					qtyMatrixSum(availableQty, totalListedAllDispatches),
+				),
+			);
 
-		let packingHistory = (listedItems || []).map((a) => ({
-			qty: toQtyMatrix(transformQtyHandle(a)),
-			date: a.createdAt,
-			note: "",
-			packedBy: a.packedBy,
-			id: a.id,
-			packingUid: a.packingUid,
-		}));
-		packingHistory = packingHistory
-			.filter(
-				(p, o) =>
-					!p.packingUid ||
-					(p.packingUid &&
+			let packingHistory = (listedItems || []).map((a) => ({
+				qty: toQtyMatrix(transformQtyHandle(a)),
+				date: a.createdAt,
+				note: "",
+				packedBy: a.packedBy,
+				id: a.id,
+				packingUid: a.packingUid,
+			}));
+			packingHistory = packingHistory
+				.filter(
+					(p, o) =>
+						!p.packingUid ||
+						(p.packingUid &&
 							packingHistory?.findIndex(
 								(a) => a.packingUid === p.packingUid,
 							) === o),
-			)
-			.map((d) => ({
-				...d,
-				qty: toQtyMatrix(
-					!d.packingUid
-						? d.qty
-						: qtyMatrixSum(
-								...packingHistory?.filter(
-									(p) => p.packingUid === d.packingUid,
-								)!,
-							),
-				),
-			}));
+				)
+				.map((d) => ({
+					...d,
+					qty: toQtyMatrix(
+						!d.packingUid
+							? d.qty
+							: qtyMatrixSum(
+									...packingHistory?.filter(
+										(p) => p.packingUid === d.packingUid,
+									)!,
+								),
+					),
+				}));
 
-		// Merge available deliverables with currently-listed dispatch quantities so
-		// replaceExisting re-pack can re-allocate the same submission quantities.
-		const deliverableBySubmission = new Map<number, any>();
-		(dispatchable?.deliverables || []).forEach((entry) => {
-			if (!entry?.submissionId) return;
-			deliverableBySubmission.set(
-				entry.submissionId,
-				recomposeQty(entry.qty as any),
-			);
-		});
-		// Some rows (especially older or non-production flows) expose submission
-		// quantities via dispatchStat instead of deliverables. Use that as fallback
-		// so replaceExisting pack edits can still allocate correctly.
-		(dispatchable as any)?.dispatchStat?.forEach((entry: any) => {
-			const submissionId = Number(entry?.submissionId || 0);
-			if (!submissionId) return;
-			const existing = recomposeQty(
-				(deliverableBySubmission.get(submissionId) || {}) as any,
-			);
-			if (hasQty(existing)) return;
-			const available = recomposeQty(entry?.available as any);
-			const submitted = recomposeQty(entry?.submitted as any);
-			const delivered = recomposeQty(entry?.delivered as any);
-			const fallbackQty = hasQty(available)
-				? available
-				: hasQty(submitted)
-					? submitted
-					: delivered;
-			if (!hasQty(fallbackQty)) return;
-			deliverableBySubmission.set(
-				submissionId,
-				recomposeQty(fallbackQty as any),
-			);
-		});
-		(listedItems || []).forEach((entry) => {
-			const submissionId = Number(
-				(entry as any)?.orderProductionSubmissionId || 0,
-			);
-			if (!submissionId) return;
-			const listedSubmissionQty = recomposeQty(
-				transformQtyHandle(entry) as any,
-			);
-			const existing = recomposeQty(
-				(deliverableBySubmission.get(submissionId) || {}) as any,
-			);
-			deliverableBySubmission.set(
-				submissionId,
+			// Merge available deliverables with currently-listed dispatch quantities so
+			// replaceExisting re-pack can re-allocate the same submission quantities.
+			const deliverableBySubmission = new Map<number, any>();
+			(dispatchable?.deliverables || []).forEach((entry) => {
+				if (!entry?.submissionId) return;
+				deliverableBySubmission.set(
+					entry.submissionId,
+					recomposeQty(entry.qty as any),
+				);
+			});
+			// Some rows (especially older or non-production flows) expose submission
+			// quantities via dispatchStat instead of deliverables. Use that as fallback
+			// so replaceExisting pack edits can still allocate correctly.
+			(dispatchable as any)?.dispatchStat?.forEach((entry: any) => {
+				const submissionId = Number(entry?.submissionId || 0);
+				if (!submissionId) return;
+				const existing = recomposeQty(
+					(deliverableBySubmission.get(submissionId) || {}) as any,
+				);
+				if (hasQty(existing)) return;
+				const available = recomposeQty(entry?.available as any);
+				const submitted = recomposeQty(entry?.submitted as any);
+				const delivered = recomposeQty(entry?.delivered as any);
+				const fallbackQty = hasQty(available)
+					? available
+					: hasQty(submitted)
+						? submitted
+						: delivered;
+				if (!hasQty(fallbackQty)) return;
+				deliverableBySubmission.set(
+					submissionId,
+					recomposeQty(fallbackQty as any),
+				);
+			});
+			(listedItems || []).forEach((entry) => {
+				const submissionId = Number(
+					(entry as any)?.orderProductionSubmissionId || 0,
+				);
+				if (!submissionId) return;
+				const listedSubmissionQty = recomposeQty(
+					transformQtyHandle(entry) as any,
+				);
+				const existing = recomposeQty(
+					(deliverableBySubmission.get(submissionId) || {}) as any,
+				);
+				deliverableBySubmission.set(
+					submissionId,
 					recomposeQty(
 						qtyMatrixSum(existing as any, listedSubmissionQty as any),
 					),
-			);
-		});
+				);
+			});
 
-		const manifestItem = normalizeLegacyDispatchManifestItem({
+			const manifestItem = normalizeLegacyDispatchManifestItem({
 				title: dispatchable?.title || item?.title,
 				sectionTitle: dispatchable?.sectionTitle || item?.sectionTitle,
-			size: dispatchable?.size,
-			swing: dispatchable?.swing,
-			doorId: dispatchable?.doorId,
-			orderedQty: toQtyMatrix(dispatchable?.totalQty as any),
-			packedQty: toQtyMatrix(packedQty as any),
-		});
+				size: dispatchable?.size,
+				swing: dispatchable?.swing,
+				doorId: dispatchable?.doorId,
+				orderedQty: toQtyMatrix(dispatchable?.totalQty as any),
+				packedQty: toQtyMatrix(packedQty as any),
+			});
 
-		return {
+			return {
 				uid,
 				title: dispatchable?.title || item?.title || "Untitled item",
 				subtitle: dispatchable?.subtitle || item?.sectionTitle || "",
 				sectionTitle: dispatchable?.sectionTitle || item?.sectionTitle || "",
-			img: dispatchable?.img || null,
-			dispatchable: true,
-			itemConfig: (dispatchable as any)?.itemConfig || null,
-			shippable: (dispatchable as any)?.itemConfig?.shipping !== false,
-			salesItemId: dispatchable?.itemId || null,
-			totalQty: toQtyMatrix(dispatchable?.totalQty as any),
-			availableQty: toQtyMatrix(availableQty as any),
-			deliverableQty: toQtyMatrix(deliverableQty as any),
-			listedQty: toQtyMatrix(listedQty as any),
-			nonDeliverableQty: toQtyMatrix(nonDeliverableQty as any),
-			deliverables: Array.from(deliverableBySubmission.entries()).map(
-				([submissionId, qty]) => ({
-					submissionId,
-					qty: toQtyMatrix(qty as any),
-				}),
-			),
-			packingHistory,
-			...manifestItem,
-		};
+				img: dispatchable?.img || null,
+				dispatchable: true,
+				itemConfig: (dispatchable as any)?.itemConfig || null,
+				shippable: (dispatchable as any)?.itemConfig?.shipping !== false,
+				salesItemId: dispatchable?.itemId || null,
+				totalQty: toQtyMatrix(dispatchable?.totalQty as any),
+				availableQty: toQtyMatrix(availableQty as any),
+				deliverableQty: toQtyMatrix(deliverableQty as any),
+				listedQty: toQtyMatrix(listedQty as any),
+				nonDeliverableQty: toQtyMatrix(nonDeliverableQty as any),
+				deliverables: Array.from(deliverableBySubmission.entries()).map(
+					([submissionId, qty]) => ({
+						submissionId,
+						qty: toQtyMatrix(qty as any),
+					}),
+				),
+				packingHistory,
+				...manifestItem,
+			};
 		},
 	);
 	const inventoryManifest = await getDispatchInventoryManifest(ctx.db, {
@@ -2328,11 +2351,21 @@ export async function getDispatchOverviewV2(
 		const inventory = item.salesItemId
 			? inventoryLineBySalesItemId.get(item.salesItemId)
 			: null;
+		const packedTotal = qtyTotal(item.packedQty);
+		const listedTotal = qtyTotal(item.listedQty);
+		const targetTotal = listedTotal > 0 ? listedTotal : qtyTotal(item.totalQty);
 		return {
 			...item,
 			manifestRevision: inventoryManifest.revision,
 			executionMode: inventory ? ("inventory" as const) : ("legacy" as const),
-			inventoryReadiness: inventory?.readiness || ("legacy_item" as const),
+			inventoryReadiness: inventory
+				? resolvePackedLegacyInventoryReadiness({
+						readiness: inventory.readiness,
+						componentCount: inventory.components.length,
+						packedQty: packedTotal,
+						targetQty: targetTotal,
+					})
+				: ("legacy_item" as const),
 			inventory: inventory || null,
 		};
 	});

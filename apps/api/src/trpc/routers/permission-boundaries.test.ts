@@ -99,10 +99,14 @@ describe("high-risk tRPC permission boundaries", () => {
 		const dispatch = source("dispatch.route.ts");
 		for (const mutation of [
 			"deletePackingItem",
+			"confirmPacking",
+			"resetPacking",
 			"cancelDispatch",
 			"startDispatch",
+			"startTrip",
 			"submitDispatch",
 			"completeDispatchWithProof",
+			"reportException",
 			"updateSalesDeliveryOption",
 			"updateDispatchDriver",
 			"updateDispatchDueDate",
@@ -120,10 +124,17 @@ describe("high-risk tRPC permission boundaries", () => {
 		]) {
 			expectProtectedMutation(dispatch, mutation, "await require");
 		}
-		expect(dispatch).not.toContain("uploadDispatchDocument:");
+		const resetStart = dispatch.indexOf("resetPacking: protectedProcedure");
+		expect(dispatch.slice(resetStart, resetStart + 500)).toContain(
+			"requireDispatchManager",
+		);
 		const completionStart = dispatch.indexOf(
 			"completeDispatchWithProof: protectedProcedure",
 		);
+		expect(dispatch.slice(completionStart, completionStart + 700)).toContain(
+			"requireAssignedDispatchOrManager",
+		);
+		expect(dispatch).not.toContain("uploadDispatchDocument:");
 		expect(dispatch.slice(completionStart, completionStart + 9000)).toContain(
 			'{ isolationLevel: "Serializable" }',
 		);

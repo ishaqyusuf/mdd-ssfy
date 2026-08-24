@@ -2,13 +2,14 @@
 
 ## Type
 
-Feature plan.
+Feature
 
 ## Status
 
-Proposed. Design direction selection and implementation have not started.
+In Progress — responsive web command center implemented; pilot, resilience,
+and cutover evidence remain open.
 
-## Created
+## Created Date
 
 2026-08-23.
 
@@ -16,7 +17,7 @@ Proposed. Design direction selection and implementation have not started.
 
 2026-08-23.
 
-## Goal / Problem
+## Goal Or Problem
 
 Replace the current driver-facing dispatch table with a responsive command
 center that helps an assigned driver understand the run, identify the next safe
@@ -50,20 +51,95 @@ rather than creating a second fulfillment truth.
 - The mobile driver application remains the canonical field execution surface
   until the responsive web dashboard passes the pilot and cutover gates in this
   plan.
+- Option A, Route Command, was approved exactly as shown on 2026-08-23. The
+  implementation was explicitly authorized later that day and includes no B or
+  C remix.
+
+## 2026-08-23 Implementation Update
+
+- Replaced the generic `/sales-book/dispatch-task` table with the approved
+  Route Command workspace while preserving the established Delivery-role
+  landing route.
+- Followed the Midday invoice migration analogue: a server-composed route,
+  parallel bounded prefetch, hydration, URL-owned `view`, `q`, `mode`, and `tab`
+  state, dedicated workspace and skeleton boundaries, and a shared selected-
+  stop workspace rendered through a Next.js intercepted route or standalone
+  direct route.
+- Reused the existing assigned-driver projections and lifecycle procedures:
+  `driverManifest`, `driverWorkQueueSummary`, `manifest`, `startDispatch`,
+  `completeDispatchWithProof`, and `reportException`. No API, authorization,
+  database, or migration contract changed.
+- Added authoritative route summary, explicit connectivity/sync state, focused
+  next stop, Today/All Stops/Exceptions/Completed filters, blocking attention,
+  activity, on-demand manifest detail, call/navigation, guarded Start Trip,
+  Help, and proof completion.
+- Added versioned on-device proof drafts with a stable request id, recipient,
+  note, signature path, and bounded image attachments. Failed or offline
+  completion retains the draft; successful completion clears it.
+- Invalid proof/help deep links normalize back to the valid stop Overview when
+  the dispatch lifecycle does not permit the requested mode.
+- Applied the standard sidebarless page chrome: compact GND mark without text,
+  standard `PageTitle`, and the conventional shared search/filter composition.
+- Implemented approved Option A Packing Command Sheet as the selected-stop
+  dashboard, including the progress metric strip, packing list, destination,
+  readiness gates, and stop activity. Its Pack Items action reuses the existing
+  Sales Overview packing provider, guarded availability plan, mutation, and
+  form inside the shared floating `CustomSheetV2` shell. The sheet is inset and
+  rounded over the dashboard on desktop, becomes full-width on mobile, owns the
+  item scroll region, keeps Cancel/Pack fixed, and presents item titles and
+  subtitles consistently in uppercase. Stop-local packing/proof/help modes now
+  use shallow URL transitions, preserving the mounted selected-stop dashboard
+  while keeping dashboard search/list state server-backed; packing code/data
+  loading is therefore contained by the floating sheet skeleton instead of the
+  route loading boundary.
+- Added route-level loading boundaries for the Dispatch Tasks page, standalone
+  stop route, and intercepted stop modal. Prefetch now follows the Midday
+  streaming contract instead of blocking the shell. Dashboard, Design A stop,
+  and shared packing-drawer skeletons mirror their final responsive geometry,
+  use the shared Skeleton primitive, and expose accessible busy labels.
+- Intentionally omitted Midday's bulk table selection, column resizing,
+  drag-and-drop, row actions, create action, and bulk bottom bar because this is
+  a single-driver, one-primary-action route workflow rather than a multi-record
+  administrative ledger.
+- Focused validation passes 26 tests / 76 assertions, scoped Biome, and touched-
+  file TypeScript diagnostics. Authenticated Delivery-role Chrome QA passes at
+  390x844 and 1280x800, including all four dashboard views, debounced URL search,
+  intercepted modal navigation, standalone direct entry, the Design A stop
+  dashboard, reused packing side sheet, fixed mobile actions, Back/Close
+  history, and clean hydration/runtime logs without performing a dispatch
+  mutation.
+- Remaining gates are a reversible in-progress proof/retry fixture, real
+  weak-network/restart evidence, driver and dispatcher review, performance
+  measurement on representative hardware, and explicit pilot/cutover approval.
+
+### Loading-state validation addendum
+
+- The focused driver/packing suite passes 15 tests and 80 assertions after the
+  loading follow-up; scoped Biome and whitespace validation pass.
+- The broad Dashboard typecheck remains red on unrelated repository baseline
+  diagnostics. A filtered scan reports no diagnostics in the new route,
+  dashboard skeleton, stop skeleton, or packing drawer files.
+- Local browser navigation reached the protected app, but the available session
+  was an admin/sales identity and correctly redirected the Delivery-only route
+  to Sales Rep. No role or session was changed solely for this implementation
+  pass, so fresh authenticated driver visual evidence remains a follow-up.
 
 ## Proposed Approach
 
-Use one product contract across three selectable visual directions:
+Use Route Command as the approved visual base while preserving the product
+contract shared across all three explored directions:
 
-1. **Route Command**: a light split command center that balances Finance
-   summary density, Sales Rep attention hierarchy, and a prominent next stop.
+1. **Route Command, selected**: a light split command center that balances
+   Finance summary density, Sales Rep attention hierarchy, and a prominent next
+   stop.
 2. **Dispatch Ledger**: a denser industrial ledger for drivers who scan exact
    quantities, readiness, and delivery windows like a load sheet.
 3. **Field Focus**: a dark, phone-first cockpit that keeps one obvious action,
    weak-signal state, and compact route pulse in view.
 
-The chosen direction may remix individual elements, but implementation must
-preserve the shared behavioral contract below.
+Dispatch Ledger and Field Focus remain documented alternatives, not approved
+remix sources. Implementation must preserve the shared behavioral contract
+below.
 
 ### Shared experience contract
 
@@ -146,11 +222,12 @@ flowchart TD
 
 ## Implementation Steps
 
-### 1. Select and lock the visual direction
+### 1. Lock the selected visual direction
 
-1. Review Route Command, Dispatch Ledger, and Field Focus at mobile, tablet,
-   and desktop widths with at least one active driver and one dispatcher.
-2. Record the selected base direction and any approved remixed elements.
+1. Treat Route Command as the selected visual base at mobile, tablet, and
+   desktop widths. No remix is approved.
+2. Review the approved direction with at least one active driver and one
+   dispatcher before production component work.
 3. Freeze the shared information and lifecycle contract before component work.
 4. Document typography, spacing, colors, density, shell navigation, drawer or
    sheet behavior, and mobile action placement as reusable tokens and patterns.
@@ -300,7 +377,7 @@ flowchart TD
 8. Retire the old landing only after the stabilization window and documentation
    handoff are complete.
 
-## Affected Files / Areas
+## Affected Files Or Areas
 
 ### Existing reference and review surfaces
 
@@ -444,19 +521,79 @@ flowchart TD
 
 ## Open Questions
 
-- Which base direction should be selected: Route Command, Dispatch Ledger, or
-  Field Focus, and which parts should be remixed?
 - Should the canonical post-pilot route be `/driver`, or remain under the Sales
   Book hierarchy for navigation consistency?
-- Should Field Focus dark mode be a default, an optional theme, or only a source
-  of mobile interaction patterns?
 - Do mixed-role Delivery users need an always-visible Dispatch Management link?
 - Which map applications and deep-link priority should be supported?
 - Which browser storage and retention policy should be approved for unsynced
   proof files?
 - What measured pilot thresholds should gate cohort expansion and rollback?
 
+## 2026-08-23 Selected-Stop Packing Design Addendum
+
+The implemented stop sheet currently provides Overview, Items, Activity,
+Help, and lifecycle proof modes. A follow-up design exploration now defines how
+a driver can open a selected stop as an admin-grade packing dashboard, enter
+exact packing, and observe the stop status update without losing route context.
+
+### Shared interaction contract
+
+1. Selecting a route stop preserves route/filter/scroll context and opens its
+   bounded manifest on demand.
+2. The stop dashboard shows customer, order, delivery window, manifest
+   revision, packed/ordered/available totals, readiness gates, and activity.
+3. Pack and Edit actions open exact scalar or LH/RH quantity controls with
+   Pack All, optional notes, cancel, shortage/help, and clear submit language.
+4. Canonical packed quantity and guarded pending-review quantity remain
+   visually and behaviorally distinct. Pending evidence cannot unlock Ready to
+   load.
+5. A successful write refreshes only the selected manifest, authoritative
+   summary, readiness, and activity. Offline, stale, reassigned, and failed
+   writes retain recoverable input and expose a concrete retry or help action.
+6. Desktop may use a secondary pane or split workspace; mobile uses a
+   full-height form or guided flow with 44-pixel controls and no page overflow.
+
+### Ranked prototypes
+
+1. **A — Packing Command Sheet, recommended**: closest to the approved Route
+   Command and the existing Sales Overview Packing tab plus secondary Pack
+   Items pane. Best incremental implementation fit.
+2. **C — Pack Coach**: strongest phone-first error resistance and interruption
+   recovery, but slower for experienced packers and less directly aligned with
+   admin packing.
+3. **D — Split Manifest Desk**: clearest item selection and edit context on
+   desktop/tablet, but becomes a longer stacked workspace on phones.
+4. **B — Load Bay Ledger**: strongest dense quantity and audit scanning, but
+   visually heavy for the default driver experience.
+5. **E — Exception-First Board**: strongest blocker visibility, but board
+   movement adds cognitive overhead to a mostly linear stop task.
+
+Comparison board:
+`/Users/M1PRO/.gstack/projects/gnd/designs/driver-stop-packing-20260823/design-board.html`.
+
+Option A was selected and implemented on 2026-08-23. The selected-stop URL now
+opens a full-page intercepted modal from the dashboard and a standalone page on
+direct entry. The selected stop renders Design A's dashboard before packing.
+Packing is a URL-owned side-sheet subflow above that workspace and reuses the
+established Sales Overview packing provider, guarded availability plan,
+mutation, form, and permission boundary. No alternate driver packing authority
+or readiness projection was introduced.
+
 ## Linked Task
 
 - Task Title: Driver Dashboard Command Center
 - Task File: `.brain/tasks/roadmap.md`
+
+## 2026-08-23 Implementation Acceptance
+
+- Completed admin assignment, driver guarded packing and review, trip start,
+  recipient-signature proof completion, and completed-state presentation.
+- Completed the linked production pending-material approval path, including
+  sales-rep and worker in-app notifications and explicit missing-configuration
+  consent.
+- Midday conformance retained server composition, URL-owned list/detail/sheet
+  state, conventional search, sidebarless compact GND mark, geometry-matched
+  Suspense skeletons, and the shared floating side-sheet pattern.
+- Focused automated verification passes 134 tests / 402 assertions.
+  Authenticated browser evidence is stored in
+  `artifacts/dispatch-lifecycle-20260823/`.

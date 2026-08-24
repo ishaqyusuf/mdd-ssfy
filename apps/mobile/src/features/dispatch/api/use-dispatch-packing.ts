@@ -1,47 +1,33 @@
 import { _trpc } from "@/components/static-trpc";
-import { useAuthContext } from "@/hooks/use-auth";
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-	buildPackingPayload,
-	hasQty,
-	type PackingLine,
-} from "../lib/packing-payload";
-import type {
-	DispatchDeliverable,
-	DispatchStatus,
-	QtyMatrix,
-} from "../types/dispatch.types";
-import { buildPackItemTaskPayload } from "./pack-task-payload";
+import { invalidateDispatchQueries } from "./dispatch-query-invalidation";
 
-type PackingMetaInput = {
-	salesId: number;
+import type { DispatchDeliverable, QtyMatrix } from "../types/dispatch.types";
+
+type ConfirmPackingInput = RouterInputs["dispatch"]["confirmPacking"];
+
+type PackItemInput = {
 	dispatchId: number;
-};
-
-type PackItemInput = PackingMetaInput & {
+	expectedManifestRevision: string;
 	salesItemId: number;
+	itemUid?: string | null;
+	title?: string | null;
 	enteredQty: QtyMatrix;
-	deliverables: DispatchDeliverable[];
-	dispatchStatus: DispatchStatus;
+	deliverables?: DispatchDeliverable[];
 	note?: string;
 };
 
-type PackItemsSelectionInput = PackingMetaInput & {
-	dispatchStatus: DispatchStatus;
-	packingLines: PackingLine[];
-	requestedItems?: {
-		salesItemId: number;
-		itemUid?: string;
-		title?: string;
-		qty: QtyMatrix;
-		note?: string;
-	}[];
+type PackItemsSelectionInput = {
+	dispatchId: number;
+	expectedManifestRevision: string;
+	requestedItems: ConfirmPackingInput["items"];
 	replaceExisting?: boolean;
 };
 
-type PackAllInput = PackingMetaInput & {
-	dispatchStatus: DispatchStatus;
+type ResetPackingInput = {
+	dispatchId: number;
+	expectedManifestRevision: string;
 };
 
 type DeletePackingInput = {
@@ -50,134 +36,80 @@ type DeletePackingInput = {
 	packingUid?: string | null;
 };
 
-function getAuthor(profile: ReturnType<typeof useAuthContext>["profile"]) {
-	const rawId = profile?.user?.id;
-	const id = Number(rawId);
-	const name = profile?.user?.name;
-	if (!Number.isFinite(id) || id <= 0 || !name) {
-		throw new Error("Missing authenticated user");
-	}
-	return { id, name };
+function toCommandQty(value: QtyMatrix) {
+	return {
+		qty: Math.max(0, Number(value.qty || 0)),
+		lh: Math.max(0, Number(value.lh || 0)),
+		rh: Math.max(0, Number(value.rh || 0)),
+	};
 }
 
 export function useDispatchPacking() {
 	const queryClient = useQueryClient();
-	const auth = useAuthContext();
 
-	const invalidateDispatchQueries = async () => {
-		await Promise.all([
-			queryClient.invalidateQueries({
-				queryKey: _trpc.dispatch.dispatchOverviewV2.queryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: _trpc.dispatch.assignedDispatch.queryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: _trpc.dispatch.packingList.queryKey(),
-			}),
-		]);
-	};
+	const invalidate = () => invalidateDispatchQueries(queryClient);
 
-	const packingTask = useTaskTrigger({
-		taskName: "update-sales-control",
-		onCompleted: invalidateDispatchQueries,
-	});
-
+	const confirmPacking = useMutation(
+		_trpc.dispatch.confirmPacking.mutationOptions({
+			onSuccess: invalidate,
+			onError: invalidate,
+		}),
+	);
+	const resetPacking = useMutation(
+		_trpc.dispatch.resetPacking.mutationOptions({
+			onSuccess: invalidate,
+			onError: invalidate,
+		}),
+	);
 	const deletePackingItem = useMutation(
 		_trpc.dispatch.deletePackingItem.mutationOptions({
 			async onSuccess() {
-				await invalidateDispatchQueries();
+				await invalidate();
 			},
 		}),
 	);
 
 	const taskTrigger = {
-		...packingTask,
-		isPending:
-			packingTask.isStarting ||
-			packingTask.isQueued ||
-			packingTask.isExecuting ||
-			packingTask.isCheckingStatus,
+		...confirmPacking,
+		isPending: confirmPacking.isPending || resetPacking.isPending,
 	};
 
 	return {
 		taskTrigger,
 		deletePackingItem,
-		invalidateDispatchQueries,
-		async onPackItem(input: PackItemInput) {
-			const author = getAuthor(auth.profile);
-			const packed = buildPackingPayload({
-				salesItemId: input.salesItemId,
-				note: input.note,
-				enteredQty: input.enteredQty,
-				deliverables: input.deliverables,
-			});
-			if (hasQty(packed.remainder)) {
-				throw new Error("Unable to allocate full packing quantity");
-			}
-
-			return packingTask.startAndWait(
-				buildPackItemTaskPayload({
-					salesId: input.salesId,
-					dispatchId: input.dispatchId,
-					dispatchStatus: input.dispatchStatus,
-					authorId: author.id,
-					authorName: author.name,
-					packingLines: packed.packingLines,
-				}),
-			);
-		},
-		async onPackItemsSelection(input: PackItemsSelectionInput) {
-			const author = getAuthor(auth.profile);
-			return packingTask.startAndWait({
-				payload: {
-					meta: {
-						salesId: input.salesId,
-						authorId: author.id,
-						authorName: author.name,
+		resetPacking,
+		invalidateDispatchQueries: invalidate,
+		onPackItem(input: PackItemInput) {
+			return confirmPacking.mutateAsync({
+				dispatchId: input.dispatchId,
+				requestId: crypto.randomUUID(),
+				expectedManifestRevision: input.expectedManifestRevision,
+				replaceExisting: false,
+				items: [
+					{
+						salesItemId: input.salesItemId,
+						itemUid: input.itemUid,
+						title: input.title,
+						qty: toCommandQty(input.enteredQty),
+						note: input.note,
 					},
-					packItems: {
-						dispatchId: input.dispatchId,
-						dispatchStatus: input.dispatchStatus,
-						packMode: "selection",
-						replaceExisting: input.replaceExisting ?? false,
-						requestedItems: input.requestedItems,
-						packingLines: input.packingLines,
-					},
-				},
+				],
 			});
 		},
-		async onPackAll(input: PackAllInput) {
-			const author = getAuthor(auth.profile);
-			return packingTask.startAndWait({
-				payload: {
-					meta: {
-						salesId: input.salesId,
-						authorId: author.id,
-						authorName: author.name,
-					},
-					packItems: {
-						dispatchId: input.dispatchId,
-						dispatchStatus: input.dispatchStatus,
-						packMode: "all",
-						replaceExisting: true,
-					},
-				},
+		onPackItemsSelection(input: PackItemsSelectionInput) {
+			return confirmPacking.mutateAsync({
+				dispatchId: input.dispatchId,
+				requestId: crypto.randomUUID(),
+				expectedManifestRevision: input.expectedManifestRevision,
+				replaceExisting: input.replaceExisting ?? false,
+				items: input.requestedItems,
 			});
 		},
-		async onClearPackings(input: PackingMetaInput) {
-			const author = getAuthor(auth.profile);
-			return packingTask.startAndWait({
-				payload: {
-					meta: {
-						salesId: input.salesId,
-						authorId: author.id,
-						authorName: author.name,
-					},
-					clearPackings: {
-						dispatchId: input.dispatchId,
-					},
-				},
+		onClearPackings(input: ResetPackingInput) {
+			return resetPacking.mutateAsync({
+				dispatchId: input.dispatchId,
+				requestId: crypto.randomUUID(),
+				expectedManifestRevision: input.expectedManifestRevision,
 			});
 		},
 		onDeletePackingItem(input: DeletePackingInput) {
@@ -186,11 +118,6 @@ export function useDispatchPacking() {
 				packingId: input.packingId,
 				packingUid: input.packingUid,
 			});
-		},
-		canEditPacking(status?: DispatchStatus | null) {
-			return (
-				status === "queue" || status === "packed" || status === "in progress"
-			);
 		},
 	};
 }

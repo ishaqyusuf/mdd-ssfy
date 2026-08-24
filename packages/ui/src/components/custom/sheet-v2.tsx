@@ -237,7 +237,7 @@ function CustomSheetBase({
 					)}
 				>
 					{children}
-					{!hideClose ? (
+					{!hideClose && !sheet.secondaryOpened ? (
 						<SheetClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none md:right-6 md:top-6">
 							<Icons.X className="size-4" />
 							<span className="sr-only">Close</span>
@@ -439,6 +439,7 @@ function CloseSecondary() {
 }
 
 interface SecondaryHeaderProps {
+	actions?: ReactNode;
 	children?: ReactNode;
 	description?: ReactNode;
 	title?: ReactNode;
@@ -448,7 +449,7 @@ function SecondaryHeader(props: SecondaryHeaderProps) {
 	return (
 		<SheetHeader className="flex-row items-start gap-3 space-y-0 bg-background text-left">
 			<CloseSecondary />
-			<div className="grid min-w-0 gap-1.5">
+			<div className="grid min-w-0 flex-1 gap-1.5">
 				{props.children ?? (
 					<>
 						<SheetTitle>{props.title}</SheetTitle>
@@ -456,6 +457,7 @@ function SecondaryHeader(props: SecondaryHeaderProps) {
 					</>
 				)}
 			</div>
+			{props.actions ? <div className="shrink-0">{props.actions}</div> : null}
 		</SheetHeader>
 	);
 }

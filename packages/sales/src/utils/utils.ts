@@ -391,6 +391,15 @@ export const FullSalesSelect = {
           lhQty: true,
           rhQty: true,
           orderProductionSubmissionId: true,
+          submission: {
+            select: {
+              assignment: {
+                select: {
+                  salesItemControlUid: true,
+                },
+              },
+            },
+          },
           status: true,
           createdAt: true,
           packedBy: true,
@@ -586,10 +595,7 @@ export const FullSalesSelect = {
   },
 } satisfies Prisma.SalesOrdersSelect;
 export type SalesDispatchStatus =
-  | "queue"
-  | "in progress"
-  | "completed"
-  | "cancelled";
+  "queue" | "in progress" | "completed" | "cancelled";
 
 export function getDispatchControlType(
   status: SalesDispatchStatus,

@@ -327,3 +327,16 @@
   and Function Duration gates pass.
 - Default created-date pages use a stable `(createdAt,id)` cursor; custom sorts
   retain offsets. The payment-review queue remains legacy-only.
+- Preview uses a separate Free Trigger project, `GND Preview Projections`, whose
+  Production-labeled environment is intentionally bound to PlanetScale Preview.
+  Its dedicated Trigger config scans only two wrapper modules, so only the
+  projection backfill and persistence tasks can deploy. Vercel's `preview` Git
+  branch supplies the isolated project key and enables read mode with a
+  one-hour freshness window. Production remains default-off and is not coupled
+  to this Preview worker.
+- Preview write-through verification confirmed that order mutations do not
+  enqueue persistence directly. A source-revision mismatch makes the next
+  `getOrders` read fall back once and enqueue
+  `persist-sales-order-list-projections`; the completed task then returns later
+  reads to the projection path. Order `09379PC` produced `persisted: 1` and
+  `skippedAsStale: 0`, and the following read created no additional warm task.

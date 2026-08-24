@@ -1,5 +1,6 @@
 # Daily Codebase Review Index
 
+- [2026-08-24](./2026-08-24.md) - Typecheck still fails in `@gnd/email`; top risks are public sales mutations, public task-event controls, public HRM/filter reads, inventory release evidence, and mobile/device proof gates.
 - [2026-08-23](./2026-08-23.md) - Typecheck now fails in `@gnd/email`; top risks are generic public task triggering, public checkout/device side effects, inventory release evidence, broad public operational reads, and dealer/mobile readiness gaps.
 - [2026-08-22](./2026-08-22.md) - Typecheck now fails in `@gnd/settings`; top risks are the public generic task launcher, public Square terminal side effects, remaining public sales/payment routes, inventory release evidence, and mobile/dealer readiness gaps.
 - [2026-08-21](./2026-08-21.md) - Typecheck still fails in `@gnd/utils`; top risks are public task/scheduler controls, broad public operational reads and checkout/device-code side effects, inventory release evidence, mock Active Sessions, and dealer/mobile manufacturing-readiness gaps.

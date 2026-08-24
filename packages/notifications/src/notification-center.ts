@@ -14,7 +14,15 @@ import {
 	type QuoteAcceptedTags,
 	type SalesCheckoutSuccessTags,
 	type SalesDispatchAssignedTags,
+	type SalesDispatchCompletedTags,
+	type SalesDispatchDateUpdatedTags,
 	type SalesDispatchDuplicateAlertTags,
+	type SalesDispatchInProgressTags,
+	type SalesDispatchPackedTags,
+	type SalesDispatchPackingResetTags,
+	type SalesDispatchQueuedTags,
+	type SalesDispatchTripCanceledTags,
+	type SalesDispatchUnassignedTags,
 	type SalesHandoffActionEscalationTags,
 	type SalesMarkedAsProductionCompletedTags,
 	type SalesPaymentRecordedTags,
@@ -35,7 +43,15 @@ import {
 	quoteAcceptedTags,
 	salesCheckoutSuccessTags,
 	salesDispatchAssignedTags,
+	salesDispatchCompletedTags,
+	salesDispatchDateUpdatedTags,
 	salesDispatchDuplicateAlertTags,
+	salesDispatchInProgressTags,
+	salesDispatchPackedTags,
+	salesDispatchPackingResetTags,
+	salesDispatchQueuedTags,
+	salesDispatchTripCanceledTags,
+	salesDispatchUnassignedTags,
 	salesHandoffActionEscalationTags,
 	salesMarkedAsProductionCompletedTags,
 	salesPaymentRecordedTags,
@@ -95,6 +111,14 @@ type NotificationActionPayloadMap = {
 		"type"
 	>;
 	sales_dispatch_assigned: Omit<SalesDispatchAssignedTags, "type">;
+	sales_dispatch_unassigned: Omit<SalesDispatchUnassignedTags, "type">;
+	sales_dispatch_queued: Omit<SalesDispatchQueuedTags, "type">;
+	sales_dispatch_packed: Omit<SalesDispatchPackedTags, "type">;
+	sales_dispatch_packing_reset: Omit<SalesDispatchPackingResetTags, "type">;
+	sales_dispatch_in_progress: Omit<SalesDispatchInProgressTags, "type">;
+	sales_dispatch_trip_canceled: Omit<SalesDispatchTripCanceledTags, "type">;
+	sales_dispatch_date_updated: Omit<SalesDispatchDateUpdatedTags, "type">;
+	sales_dispatch_completed: Omit<SalesDispatchCompletedTags, "type">;
 	community_unit_production_started: Omit<
 		CommunityUnitProductionStartedTags,
 		"type"
@@ -289,7 +313,8 @@ function parseAction(
 		if (!parsed.success) return undefined;
 		return {
 			type: "dispatch_packing_delay",
-			label: "Approve",
+			label:
+				parsed.data.reviewStatus === "PENDING" ? "Review" : "View dispatch",
 			data: parsed.data,
 		};
 	}
@@ -382,6 +407,27 @@ function parseAction(
 			label: "Open Dispatch",
 			data: parsed.data,
 		};
+	}
+
+	const dispatchActions = {
+		sales_dispatch_unassigned: salesDispatchUnassignedTags,
+		sales_dispatch_queued: salesDispatchQueuedTags,
+		sales_dispatch_packed: salesDispatchPackedTags,
+		sales_dispatch_packing_reset: salesDispatchPackingResetTags,
+		sales_dispatch_in_progress: salesDispatchInProgressTags,
+		sales_dispatch_trip_canceled: salesDispatchTripCanceledTags,
+		sales_dispatch_date_updated: salesDispatchDateUpdatedTags,
+		sales_dispatch_completed: salesDispatchCompletedTags,
+	} as const;
+	if (type in dispatchActions) {
+		const actionType = type as keyof typeof dispatchActions;
+		const parsed = dispatchActions[actionType].safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: actionType,
+			label: "Open Dispatch",
+			data: parsed.data,
+		} as NotificationAction;
 	}
 
 	return undefined;

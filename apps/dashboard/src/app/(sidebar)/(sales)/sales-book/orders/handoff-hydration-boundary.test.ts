@@ -28,15 +28,17 @@ describe("Sales Handoff alert hydration boundary", () => {
 		expect(pageSource).toContain(
 			"fallback={<SalesHandoffActionsAlertSkeleton />}",
 		);
+		expect(pageSource).toContain('filter.needsAction !== "open"');
 	});
 
 	test("retains compact client loading and explicit retry behavior", () => {
-		expect(alertSource).toContain("const actionsQuery = useQuery(");
-		expect(alertSource).toContain("if (actionsQuery.isPending)");
+		expect(alertSource).toContain("const scopeQuery = useQuery(");
+		expect(alertSource).toContain("getOpenSalesHandoffOrderScope");
+		expect(alertSource).toContain("if (scopeQuery.isPending)");
 		expect(alertSource).toContain("<SalesHandoffActionsAlertSkeleton />");
-		expect(alertSource).toContain("{focusFallback}");
 		expect(alertSource).toContain("Unable to load paid sales actions");
-		expect(alertSource).toContain("actionsQuery.refetch()");
+		expect(alertSource).toContain("scopeQuery.refetch()");
 		expect(alertSource).toContain("Retry");
+		expect(alertSource).toContain("scopeQuery.data.uniqueOrderCount");
 	});
 });

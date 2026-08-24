@@ -24,6 +24,11 @@ recommended follow-up checks under the fast Bun workflow.
   import the legacy renderer.
 - Worker assignment selection covers zero, one, and multiple eligible
   assignments and defaults multiple choices to the earliest due date.
+- Production V2 now uses a single-open accordion for every role. The first
+  available item is the default, `prod-item-view` remains the URL authority,
+  opening another item closes the current item, and refresh/browser navigation
+  restore the selected item. The legacy Production fallback retains its
+  existing multi-open behavior.
 - Focused validation passes 20 tests / 48 assertions plus scoped Biome on all
   new V2 files. A focused ESLint attempt was unavailable because Bun resolved
   ESLint 10 while the repository still uses legacy ESLint configuration.
@@ -67,8 +72,10 @@ Existing item-shell rules remain authoritative:
   both remain uppercase;
 - the expanded item has one neutral outline and no active background color;
 - collapsed neighboring items use only their bottom divider;
-- only the first assigned worker item expands automatically;
-- manually opened items remain independently controllable.
+- the first available item expands automatically when the URL has no valid
+  item selection;
+- exactly one V2 item remains expanded, and opening another item updates
+  `prod-item-view` while closing the previous item.
 
 ## Capability Inventory
 

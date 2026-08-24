@@ -1,15 +1,23 @@
 import { Icon } from "@/components/ui/icon";
 import { Pressable } from "@/components/ui/pressable";
+import { useDebounce } from "@/hooks/use-debounce";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
-import { ActivityIndicator, SectionList, Text, View } from "react-native";
+import {
+	ActivityIndicator,
+	SectionList,
+	Text,
+	TextInput,
+	View,
+} from "react-native";
 import { useDriverWorkQueue } from "../api/use-driver-work-queue";
+import { useDispatchSyncState } from "../hooks/use-dispatch-sync-state";
 import { buildDriverWorkQueueSections } from "../lib/driver-work-queue-model";
 import type { DispatchListItem } from "../types/dispatch.types";
 import { DriverDashboardDispatchItem } from "./driver-dashboard-dispatch-item";
 
-type DriverView = "today" | "all" | "exceptions";
+type DriverView = "today" | "all" | "exceptions" | "completed";
 
 function openDispatch(
 	router: ReturnType<typeof useRouter>,
@@ -29,14 +37,18 @@ function openDispatch(
 export function DispatchListScreen() {
 	const router = useRouter();
 	const [view, setView] = useState<DriverView>("today");
+	const [search, setSearch] = useState("");
+	const debouncedSearch = useDebounce(search.trim(), 350);
 	const filter = useMemo<RouterInputs["dispatch"]["driverManifest"]>(
 		() =>
 			view === "today"
-				? { dueBuckets: ["overdue", "today"] }
+				? { dueBuckets: ["overdue", "today"], q: debouncedSearch || undefined }
 				: view === "exceptions"
-					? { risks: ["open_exception"] }
-					: { tab: "all" as const },
-		[view],
+					? { risks: ["open_exception"], q: debouncedSearch || undefined }
+					: view === "completed"
+						? { tab: "completed" as const, q: debouncedSearch || undefined }
+						: { tab: "all" as const, q: debouncedSearch || undefined },
+		[debouncedSearch, view],
 	);
 	const {
 		items,
@@ -49,14 +61,36 @@ export function DispatchListScreen() {
 		hasNextPage,
 		isFetchingNextPage,
 		error,
+		dataUpdatedAt,
+		isFetching,
 	} = useDriverWorkQueue(filter);
+	const sync = useDispatchSyncState({
+		dataUpdatedAt,
+		isFetching,
+		isError: Boolean(error),
+	});
 	const canTriggerEndReached = useRef(true);
 	const sections = useMemo(() => buildDriverWorkQueueSections(items), [items]);
 	const tabs = [
 		{ key: "today" as const, label: "Today" },
 		{ key: "all" as const, label: "All stops" },
 		{ key: "exceptions" as const, label: "Exceptions" },
+		{ key: "completed" as const, label: "Completed" },
 	];
+	const syncCopy = {
+		checking: ["Checking connection", "Confirming current network state."],
+		offline: [
+			"Offline",
+			`${sync.lastSyncLabel}. Saved proof remains on this device.`,
+		],
+		syncing: ["Syncing dispatches", sync.lastSyncLabel],
+		failed: [
+			"Sync needs attention",
+			`${sync.lastSyncLabel}. Pull down to retry.`,
+		],
+		synced: ["Dispatches synced", sync.lastSyncLabel],
+	} as const;
+	const [syncTitle, syncDescription] = syncCopy[sync.state];
 
 	const header = (
 		<View className="gap-4 pb-4">
@@ -88,23 +122,25 @@ export function DispatchListScreen() {
 			<View className="mx-4 flex-row items-center gap-3 rounded-xl border border-border bg-card p-3">
 				<View className="size-9 items-center justify-center rounded-full bg-success/10">
 					<Icon
-						name={error ? "TriangleAlert" : "CheckCircle2"}
-						className={error ? "text-destructive" : "text-success"}
+						name={
+							sync.state === "offline" || sync.state === "failed"
+								? "TriangleAlert"
+								: "CheckCircle2"
+						}
+						className={
+							sync.state === "offline" || sync.state === "failed"
+								? "text-destructive"
+								: "text-success"
+						}
 						size={18}
 					/>
 				</View>
 				<View className="flex-1">
 					<Text className="text-sm font-semibold text-foreground">
-						{error
-							? "Sync needs attention"
-							: isRefetching
-								? "Syncing dispatches"
-								: "Dispatches synced"}
+						{syncTitle}
 					</Text>
 					<Text className="text-xs text-muted-foreground">
-						{error
-							? "Your saved proof stays on this device. Reconnect and retry."
-							: "Pull down at any time to refresh your manifest."}
+						{syncDescription}
 					</Text>
 				</View>
 			</View>
@@ -131,6 +167,17 @@ export function DispatchListScreen() {
 						</Text>
 					</Pressable>
 				))}
+			</View>
+
+			<View className="mx-4 h-11 flex-row items-center rounded-xl border border-border bg-background px-3">
+				<Icon name="Search" className="text-muted-foreground" size={17} />
+				<TextInput
+					value={search}
+					onChangeText={setSearch}
+					placeholder="Search order, customer, phone, or address"
+					className="ml-2 flex-1 text-sm text-foreground"
+					returnKeyType="search"
+				/>
 			</View>
 
 			{view !== "exceptions" && nextStop ? (

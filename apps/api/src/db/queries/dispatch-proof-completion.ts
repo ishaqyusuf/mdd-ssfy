@@ -39,6 +39,7 @@ export const completeDispatchWithProofSchema = z
 	.object({
 		dispatchId: z.number().int().positive(),
 		requestId: requestIdSchema,
+		expectedManifestRevision: z.string().trim().min(16).max(128).optional(),
 		receivedBy: z.string().trim().max(200).optional(),
 		receivedDate: z.coerce.date().optional(),
 		note: z.string().max(5_000).optional(),
@@ -65,6 +66,17 @@ export const completeDispatchWithProofSchema = z
 				});
 			}
 			clientIds.add(attachment.clientId);
+		}
+		const aggregateBase64Length = value.attachments.reduce(
+			(total, attachment) => total + attachment.base64.length,
+			0,
+		);
+		if (aggregateBase64Length > 13_500_000) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["attachments"],
+				message: "Proof photos must be smaller than 10 MB combined.",
+			});
 		}
 	});
 

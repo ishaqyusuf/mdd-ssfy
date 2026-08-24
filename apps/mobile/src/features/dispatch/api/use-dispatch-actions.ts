@@ -1,31 +1,14 @@
 import { _trpc } from "@/components/static-trpc";
-import { useAuthContext } from "@/hooks/use-auth";
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import type { UploadImageMimeType } from "@/lib/upload-image-mime";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateDispatchQueries } from "./dispatch-query-invalidation";
 
-type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverviewV2"];
-type DispatchStatus = NonNullable<DispatchOverview["dispatch"]>["status"];
-
-type DispatchMeta = {
-	salesId: number;
+type SubmitDispatchInput = {
 	dispatchId: number;
-};
-type PrepareInventoryInput = DispatchMeta & {
-	items?: Array<{
-		salesItemId: number;
-		qty?: number;
-		lhQty?: number;
-		rhQty?: number;
-	}>;
-};
-type SubmitDispatchInput = DispatchMeta & {
 	requestId: string;
+	expectedManifestRevision: string;
 	receivedBy?: string | null;
-	receivedDate?: Date | null;
 	note?: string;
-	noteType?: "dispatch" | "pickup" | null;
 	signaturePath: string;
 	attachments?: {
 		clientId: string;
@@ -35,11 +18,8 @@ type SubmitDispatchInput = DispatchMeta & {
 	}[];
 };
 
-type UpdateDispatchStatusInput = DispatchMeta & {
-	oldStatus?: DispatchStatus | null;
-	newStatus: DispatchStatus;
-};
-type ReportDispatchExceptionInput = DispatchMeta & {
+type ReportDispatchExceptionInput = {
+	dispatchId: number;
 	reasonCode:
 		| "wrong_address"
 		| "customer_not_home"
@@ -50,173 +30,56 @@ type ReportDispatchExceptionInput = DispatchMeta & {
 	requestId: string;
 };
 
-function getAuthor(profile: ReturnType<typeof useAuthContext>["profile"]) {
-	const rawId = profile?.user?.id;
-	const id = Number(rawId);
-	const name = profile?.user?.name;
-	if (!Number.isFinite(id) || id <= 0 || !name) {
-		throw new Error("Missing authenticated user");
-	}
-	return { id, name };
-}
-
 export function useDispatchActions() {
 	const queryClient = useQueryClient();
-	const auth = useAuthContext();
 
-	const invalidateDispatchQueries = async () => {
-		await Promise.all([
-			queryClient.invalidateQueries({
-				queryKey: _trpc.dispatch.dispatchOverviewV2.queryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: _trpc.dispatch.assignedDispatch.queryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: _trpc.dispatch.packingList.queryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: _trpc.dispatch.driverManifest.queryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: _trpc.dispatch.exceptions.queryKey(),
-			}),
-		]);
-	};
+	const invalidate = () => invalidateDispatchQueries(queryClient);
 
-	const startDispatchTask = useTaskTrigger({
-		taskName: "update-sales-control",
-		onCompleted: invalidateDispatchQueries,
-	});
-	const cancelDispatchTask = useTaskTrigger({
-		taskName: "update-sales-control",
-		onCompleted: invalidateDispatchQueries,
-	});
-	const submitDispatchMutation = useMutation(
+	const startDispatch = useMutation(
+		_trpc.dispatch.startTrip.mutationOptions({
+			onSuccess: invalidate,
+		}),
+	);
+	const submitDispatch = useMutation(
 		_trpc.dispatch.completeDispatchWithProof.mutationOptions({
-			onSuccess: invalidateDispatchQueries,
+			onSuccess: invalidate,
 		}),
 	);
-	const updateDispatchStatusMutation = useMutation(
-		_trpc.dispatch.updateDispatchStatus.mutationOptions({
-			onSuccess: invalidateDispatchQueries,
-		}),
-	);
-	const prepareInventoryMutation = useMutation(
-		_trpc.dispatch.prepareInventoryForDispatch.mutationOptions({
-			onSuccess: invalidateDispatchQueries,
-		}),
-	);
-	const reportExceptionMutation = useMutation(
+	const reportException = useMutation(
 		_trpc.dispatch.reportException.mutationOptions({
-			onSuccess: invalidateDispatchQueries,
+			onSuccess: invalidate,
 		}),
 	);
-
-	const startDispatch = {
-		...startDispatchTask,
-		isPending:
-			startDispatchTask.isStarting ||
-			startDispatchTask.isQueued ||
-			startDispatchTask.isExecuting ||
-			startDispatchTask.isCheckingStatus,
-	};
-	const cancelDispatch = {
-		...cancelDispatchTask,
-		isPending:
-			cancelDispatchTask.isStarting ||
-			cancelDispatchTask.isQueued ||
-			cancelDispatchTask.isExecuting ||
-			cancelDispatchTask.isCheckingStatus,
-	};
-	const submitDispatch = {
-		...submitDispatchMutation,
-		isPending: submitDispatchMutation.isPending,
-	};
 
 	return {
 		startDispatch,
-		cancelDispatch,
 		submitDispatch,
-		updateDispatchStatus: updateDispatchStatusMutation,
-		prepareInventory: prepareInventoryMutation,
-		reportException: reportExceptionMutation,
-		invalidateDispatchQueries,
-		onStartDispatch(input: DispatchMeta) {
-			const author = getAuthor(auth.profile);
-			return startDispatchTask.startAndWait({
-				payload: {
-					meta: {
-						salesId: input.salesId,
-						authorId: author.id,
-						authorName: author.name,
-					},
-					startDispatch: {
-						dispatchId: input.dispatchId,
-					},
-				},
-			});
-		},
-		onCancelDispatch(input: DispatchMeta) {
-			const author = getAuthor(auth.profile);
-			return cancelDispatchTask.startAndWait({
-				payload: {
-					meta: {
-						salesId: input.salesId,
-						authorId: author.id,
-						authorName: author.name,
-					},
-					cancelDispatch: {
-						dispatchId: input.dispatchId,
-					},
-				},
+		reportException,
+		invalidateDispatchQueries: invalidate,
+		onStartDispatch(input: { dispatchId: number }) {
+			return startDispatch.mutateAsync({
+				dispatchId: input.dispatchId,
+				requestId: crypto.randomUUID(),
 			});
 		},
 		onSubmitDispatch(input: SubmitDispatchInput) {
-			return submitDispatchMutation.mutateAsync({
+			return submitDispatch.mutateAsync({
 				dispatchId: input.dispatchId,
 				requestId: input.requestId,
+				expectedManifestRevision: input.expectedManifestRevision,
 				receivedBy: input.receivedBy || undefined,
-				receivedDate: input.receivedDate || undefined,
 				note: input.note,
-				noteType: input.noteType || undefined,
 				signaturePath: input.signaturePath,
 				attachments: input.attachments || [],
 			});
 		},
-		onUpdateDispatchStatus(input: UpdateDispatchStatusInput) {
-			return updateDispatchStatusMutation.mutateAsync({
-				dispatchId: input.dispatchId,
-				oldStatus: (input.oldStatus || "queue") as DispatchStatus,
-				newStatus: input.newStatus as DispatchStatus,
-			});
-		},
-		onPrepareInventory(input: PrepareInventoryInput) {
-			return prepareInventoryMutation.mutateAsync({
-				salesOrderId: input.salesId,
-				orderDeliveryId: input.dispatchId,
-				items: input.items,
-			});
-		},
 		onReportException(input: ReportDispatchExceptionInput) {
-			return reportExceptionMutation.mutateAsync({
+			return reportException.mutateAsync({
 				dispatchId: input.dispatchId,
 				reasonCode: input.reasonCode,
 				notes: input.notes,
 				requestId: input.requestId,
 			});
-		},
-		canStart(status?: DispatchStatus | null) {
-			return status === "packed";
-		},
-		canCancel(status?: DispatchStatus | null) {
-			return status === "in progress" || status === "packed";
-		},
-		canReportException(status?: DispatchStatus | null) {
-			return !["completed", "cancelled"].includes(String(status || "queue"));
-		},
-		canComplete(status?: DispatchStatus | null) {
-			return status === "in progress";
 		},
 	};
 }

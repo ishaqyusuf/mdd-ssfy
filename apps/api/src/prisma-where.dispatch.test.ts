@@ -21,4 +21,11 @@ describe("dispatch query scope", () => {
 		expect(serialized).toContain('"lt"');
 		expect(serialized).toContain('"gte"');
 	});
+
+	it("keeps completed scope and search server-owned", () => {
+		const where = whereDispatch({ tab: "completed", q: "09176PC" });
+		const serialized = JSON.stringify(where);
+		expect(serialized).toContain('"status":"completed"');
+		expect(serialized).toContain('"contains":"09176PC"');
+	});
 });

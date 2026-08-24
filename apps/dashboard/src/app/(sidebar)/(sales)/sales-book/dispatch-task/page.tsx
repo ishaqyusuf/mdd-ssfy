@@ -1,45 +1,55 @@
-import { DispatchHeader } from "@/components/dispatch-header";
+import {
+	getDriverManifestInput,
+	getDriverNextCursor,
+} from "@/components/driver-dashboard/model";
+import { DriverDashboardSkeleton } from "@/components/driver-dashboard/skeleton";
+import { DriverDashboardWorkspace } from "@/components/driver-dashboard/workspace";
 import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
-import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
-import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
+import { ScrollableContent } from "@/components/scrollable-content";
+import { loadDriverDashboardParams } from "@/hooks/use-driver-dashboard-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { HydrateClient } from "@/trpc/server";
-import { getInitialTableSettings } from "@/utils/columns";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
 	return constructMetadata({
-		title: "Dispatch Management | GND",
+		title: "Dispatch Tasks | GND",
 	});
 }
 
-export default async function Page() {
-	const initialSettings = await getInitialTableSettings("sales-dispatch");
+type Props = { searchParams: Promise<SearchParams> };
+
+export default async function DriverDashboardPage({ searchParams }: Props) {
+	const params = loadDriverDashboardParams(await searchParams);
+	const input = getDriverManifestInput({
+		view: params.view,
+		search: params.q,
+	});
+
+	batchPrefetch([
+		trpc.dispatch.driverManifest.infiniteQueryOptions(input, {
+			getNextPageParam: getDriverNextCursor,
+		}),
+		trpc.dispatch.driverWorkQueueSummary.queryOptions(input),
+	]);
 
 	return (
-		<PageShell>
+		<PageShell className="p-4 pb-4 sm:p-6 sm:pb-4">
 			<HydrateClient>
-				<PageTitle>Dispatch Management</PageTitle>
-				<div className="flex flex-col gap-6">
-					<DispatchHeader />
+				<ScrollableContent>
+					<PageTitle>Dispatch Tasks</PageTitle>
 					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense
-							fallback={
-								<SalesDispatchSkeleton
-									initialSettings={initialSettings}
-									driver
-								/>
-							}
-						>
-							<DataTable driver initialSettings={initialSettings} />
+						<Suspense fallback={<DriverDashboardSkeleton />}>
+							<DriverDashboardWorkspace />
 						</Suspense>
 					</ErrorBoundary>
-				</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

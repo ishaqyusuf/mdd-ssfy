@@ -8,13 +8,14 @@ const packCanonical = mock(async () => ({ created: 1, skipped: 0 }));
 const resetSales = mock(async () => undefined);
 const allocationKey = buildPackingDispatchAllocationKey({
 	dispatchId: 41,
-	dispatchAllocationItemId: 701,
 	productionSubmissionId: 72,
+	salesOrderItemId: 81,
 });
 
 mock.module("@sales/sales-control/actions", () => ({
 	packDispatchItemsAction: packCanonical,
 	resetSalesAction: resetSales,
+	submitNonProductionsAction: mock(async () => undefined),
 }));
 mock.module("@sales/sales-control/get-sale-information", () => ({
 	getSaleInformation: async () => ({ order: { id: 91 }, items: [] }),
@@ -219,6 +220,7 @@ function packingDecisionDb(input: {
 		orderDelivery: { findFirst: async () => evidence.dispatch },
 		orderItemDelivery: {
 			findMany: async () => evidence.dispatchAllocations,
+			update: async () => undefined,
 		},
 		orderProductionSubmissions: {
 			findMany: async () => evidence.submissions,
@@ -426,8 +428,8 @@ describe("packing report application service", () => {
 		const context = await getPackingReportContext(db, 41);
 		const dispatchBKey = buildPackingDispatchAllocationKey({
 			dispatchId: 42,
-			dispatchAllocationItemId: 702,
 			productionSubmissionId: 72,
+			salesOrderItemId: 81,
 		});
 		expect(dispatchBKey).not.toBe(
 			context.reportableLines[0]?.dispatchAllocationKey,
@@ -526,26 +528,8 @@ describe("packing report application service", () => {
 		expect(cancelled.reports).toHaveLength(1);
 	});
 
-	it("re-evaluates approval evidence and rejects changed or resolved upstream state", async () => {
+	it("re-evaluates the target line and rejects resolved upstream state", async () => {
 		const now = new Date("2026-08-23T10:00:00.000Z");
-		const changed = packingDecisionDb({
-			evidence: approvalEvidence("PENDING"),
-			reportRevision: "packing_original",
-			qty: 1,
-		});
-		await expect(
-			decidePackingReport(
-				changed.db,
-				{
-					reportId: 1,
-					expectedUpdatedAt: now,
-					action: "APPROVE",
-					note: "Approve",
-				},
-				{ id: 20, name: "Manager" },
-			),
-		).rejects.toThrow("evidence changed");
-
 		const resolved = packingDecisionDb({
 			evidence: approvalEvidence("APPROVED"),
 			qty: 1,

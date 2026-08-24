@@ -128,3 +128,184 @@ pilot handoff are tracked in `.scratch/driver-platform-revival-closeout/`.
   `.brain/plans/2026-08-23-feature-driver-dashboard-command-center.md`.
 - No production route or application behavior changed. Direction selection is
   required before implementation.
+- Route Command was approved exactly as shown on 2026-08-23. No Dispatch Ledger
+  or Field Focus remix was requested. This locks the visual base but does not
+  authorize implementation.
+- Decision record:
+  `.brain/decisions/ADR-065-route-command-as-driver-dashboard-visual-base.md`.
+
+## 2026-08-23 Responsive Web Command Center Implementation
+
+- `/sales-book/dispatch-task` now renders the approved Route Command dashboard
+  for Delivery-role users instead of the generic dispatch table.
+- The route server-prefetches the assigned-driver manifest and authoritative
+  summary, then hydrates a URL-owned responsive workspace with conventional
+  search, fixed Today/All Stops/Exceptions/Completed views, next stop, blocking
+  attention, activity, and explicit connectivity state. Sidebarless users see
+  the compact GND mark without the wordmark beside the standard page title.
+- Selecting a stop uses a Next.js intercepted route to open a full-page modal
+  while retaining the route dashboard and browser history underneath. The same
+  URL renders a standalone stop page on refresh or direct entry. The default
+  stop surface is the approved Design A packing dashboard, with progress
+  metrics, manifest rows, destination, readiness gates, and activity visible in
+  one workspace. Help, packing, and lifecycle-aware proof remain URL-owned;
+  invalid proof/help deep links return to the dashboard.
+- Design A's Pack Items action reuses the existing Sales Overview packing form
+  as a right-side sheet on desktop and a full-width sheet on mobile. The
+  dashboard stays mounted underneath. Ready and awaiting-production quantities
+  remain separate, the form owns scrolling, and Cancel/Pack actions stay fixed.
+  Packing writes invalidate the selected manifest, dashboard manifest, summary,
+  and existing dispatch overview queries.
+- Proof completion uses the established server mutation and stores a versioned
+  recoverable browser draft containing a stable request id, signature path,
+  notes, and bounded image attachments. Successful sync clears the draft;
+  failures retain it for retry.
+- No API, authorization, database, or migration contract changed. The existing
+  mobile surface remains canonical until the reversible pilot, weak-network,
+  real-device, and cutover gates are satisfied.
+- The command header connectivity indicator now uses React's external-store
+  hydration contract with a stable online server snapshot, then subscribes to
+  browser `online` and `offline` events. The final focused dashboard and packing
+  suites pass 26 tests / 76 assertions, scoped Biome is clean, and the broad
+  Dashboard typecheck reports no diagnostics in the touched migration files.
+  Authenticated Delivery-role Chrome QA verifies URL search, the intercepted
+  modal, direct-route fallback, modal Back/Close history, Design A dashboard,
+  reused packing side sheet, and desktop/mobile layouts at 1512x827 and 390x844
+  without hydration or runtime errors. No dispatch mutation was submitted
+  during this acceptance pass.
+
+## 2026-08-23 Stop Packing Workflow Design Exploration
+
+- Created five standalone responsive HTML prototypes for the selected-stop
+  packing experience requested after the Route Command implementation. Every
+  direction preserves the same interaction contract: select a stop, review
+  authoritative ordered/available/packed truth, enter exact scalar or LH/RH
+  quantities, keep guarded-review quantity outside canonical packed readiness,
+  and visibly recalculate status, sync, and activity after submission.
+- Ranked the directions for this product as: A Packing Command Sheet, C Pack
+  Coach, D Split Manifest Desk, B Load Bay Ledger, then E Exception-First
+  Board. Option A is recommended because it most directly combines the
+  approved Route Command shell with the existing Sales Overview packing
+  dashboard and secondary Pack Items pane.
+- Verified every prototype at 1440 by 1000 and 390 by 844 pixels. Desktop and
+  mobile captures have no document-level horizontal overflow and produced no
+  browser console errors.
+- The comparison board, interactive HTML files, and ten screenshots are stored
+  under
+  `/Users/M1PRO/.gstack/projects/gnd/designs/driver-stop-packing-20260823/`.
+- No production route, mutation, API, authorization, database, or mobile
+  behavior changed. The ranked recommendation is not an approval decision;
+  implementation remains pending the user's variant selection.
+
+### Selection and implementation
+
+- Option A Packing Command Sheet was approved and implemented later on
+  2026-08-23 inside the intercepted full-page stop workspace.
+- The implementation reuses the canonical Sales Overview packing form and
+  guarded availability plan in the existing side-sheet interaction. Design A
+  owns the selected-stop dashboard; the form opens above it and does not
+  introduce a driver-only packing mutation or alternate readiness calculation.
+- Architecture decision:
+  `.brain/decisions/ADR-066-intercepted-driver-stop-workspace.md`.
+
+### 2026-08-23 Loading-state follow-up
+
+- Dispatch Tasks now has an immediate route-level loading boundary plus a
+  section-shaped Suspense fallback. The skeleton preserves the command header,
+  conventional search/tabs, five-metric strip, next stop, route rows, attention,
+  and activity layout across desktop and mobile.
+- Standalone and intercepted selected-stop routes render the same Design A
+  skeleton while the bounded manifest and packing overview prefetches stream.
+  The fallback preserves the stop header, five metrics, packing rows,
+  destination, readiness, activity, and mobile action bar.
+- Opening Pack Items now shows a full-height shared packing-drawer skeleton for
+  both dynamic-module and query loading. It matches the canonical admin form's
+  header, selection bar, item list, and fixed footer; no driver-only form or
+  mutation was added.
+- This is a presentation and streaming change only. API, authorization,
+  database, packing authority, lifecycle, and mobile-app contracts are
+  unchanged.
+
+### 2026-08-23 Standalone stop header ownership fix
+
+- The standalone selected-stop route now keeps the standard application header
+  as its only page-level header. The stop workspace header remains available
+  inside the intercepted full-page modal, where it owns modal navigation and
+  context, and remains reduced to subflow controls for direct proof/help URLs.
+- Standalone and modal loading skeletons mirror the same ownership rule, so a
+  duplicate GND mark and route header do not flash while data streams.
+- Delivery-window rendering now uses the canonical dispatch business timezone
+  (`America/New_York`) on both server and client to prevent hydration drift.
+- Authenticated Chrome verification on dispatch `4403` confirms one visible
+  banner on the standalone stop page and no new warnings or errors after a full
+  reload. No dispatch or packing mutation was submitted.
+
+### 2026-08-23 Floating Pack Items sheet follow-up
+
+- Driver Pack Items now uses the shared `CustomSheetV2` presentation instead of
+  a raw edge-attached sheet. It is inset and rounded on desktop, remains
+  full-width on mobile, and keeps the existing fixed footer and independently
+  scrolling item form.
+- The loading state uses the same custom floating sheet shell, preventing a
+  geometry change when the packing module or dispatch data resolves.
+- Opening and closing Pack Items now changes the stop-local `mode` query with a
+  shallow URL transition. The selected-stop dashboard remains mounted, so the
+  route-level loading boundary does not flash and any asynchronous packing work
+  stays inside the floating sheet skeleton. The same client-owned transition is
+  used for proof/help subflows; dashboard search and list state remain
+  server-backed.
+- Packing-form item titles render as normalized uppercase in both Ready to Pack
+  and Awaiting Production sections. The description beneath each title is the
+  exact canonical Production subtitle, including its complete section, size,
+  handing, quantity, and labor description; packing no longer rebuilds or
+  shortens that subtitle for legacy-title rows. This is presentation-only;
+  stored product text is unchanged.
+- The canonical packing provider, guarded availability plan, mutations,
+  permissions, and invalidation paths remain unchanged.
+
+### 2026-08-23 End-to-end dispatch lifecycle completion
+
+- The approved Design A stop dashboard exposes desktop trip actions as well as
+  the mobile action bar. A ready stop can start its trip and an in-progress stop
+  can open the existing proof form without leaving the selected workspace.
+- Delivery completion requires recipient signature evidence, preserves
+  retryable form state on validation failure, submits through the canonical
+  proof mutation, and returns to a read-only completed dashboard with
+  proof-saved, delivered, and 100% packed confirmation.
+- Guarded packing may be submitted while production or material evidence is
+  pending, but counts as packed only after exact report approval. Approved
+  guarded quantities can be replayed through canonical packing without being
+  blocked by the still-pending upstream material review.
+- Fully packed legacy dispatches with no component ledger may pass the
+  inventory departure gate. Inventory-backed lines retain component-ledger
+  authority.
+- Authenticated acceptance covered admin assignment, driver guarded packing
+  and consent, admin approval, trip start, required-signature validation,
+  signed completion, and the completed stop UI. Evidence is stored in
+  `artifacts/dispatch-lifecycle-20260823/`.
+- Decision: `.brain/decisions/ADR-068-guarded-fulfillment-and-production-review-authority.md`.
+
+### 2026-08-23 Expo delivery logic hardening
+
+- The existing mobile route and screen flow is preserved, but action authority
+  now comes from one protected detail projection with lifecycle stage, risks,
+  packing revision, pending-review count, capabilities, and typed blockers.
+- Expo packing uses the shared guarded planner and one serializable,
+  revision-bound command for legacy rows, exact inventory transitions, and
+  guarded-report creation. Atomic manager reset replaces the former clear then
+  status-update sequence.
+- The assigned-driver flow no longer exposes cancellation or generic status
+  editing. Start Trip is a narrow server-owned command; Report Issue remains
+  durable; completion remains the idempotent proof command.
+- Phone, email, map, Start Trip confirmation, packing review, completion, and
+  post-action navigation are connected. Settings exposes Warehouse Packing
+  only to the corresponding capability.
+- Proof drafts survive process restart in app-owned storage; native
+  connectivity/focus drives truthful freshness; all dispatch projections use
+  one invalidation boundary; Completed/server search, authoritative packing
+  summaries, and typed notification outcomes are current.
+- Automated implementation gate: 83 focused tests / 500 assertions pass. The
+  broad repository typechecks retain unrelated existing diagnostics, while the
+  changed dispatch runtime paths add no focused diagnostics. Android/device UI
+  review is intentionally held for the user's next-phase permission.
+- Decision: `.brain/decisions/ADR-069-atomic-revision-bound-mobile-dispatch-commands.md`.

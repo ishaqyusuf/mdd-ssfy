@@ -69,6 +69,13 @@ test("uses the Midday content split and shadcn composition primitives", () => {
 	expect(productionDocumentSource).not.toMatch(/space-[xy]-/);
 });
 
+test("keeps exactly one V2 production item open and restores it from the URL", () => {
+	expect(productionV2Source).toContain('type="single"');
+	expect(productionV2Source).toContain("singleOpen: true");
+	expect(productionV2Source).toContain("onValueChange={(itemUid) =>");
+	expect(productionV2Source).not.toContain('type="multiple"');
+});
+
 test("preserves role actions, mutation surfaces, and legacy compatibility", () => {
 	expect(productionDocumentSource).toContain(
 		'workerMode ? "Create submission" : "Create assignment"',
@@ -90,6 +97,10 @@ test("preserves role actions, mutation surfaces, and legacy compatibility", () =
 	expect(productionV2Source).toContain(
 		'<ItemDescription className="uppercase">',
 	);
+	expect(productionV2Source).toContain(
+		"<ProductionItemStatusBadges item={item} />",
+	);
+	expect(productionV2Source).not.toContain("ItemProgressBar");
 	expect(legacyDetailSource).toContain("TabsTrigger");
 });
 

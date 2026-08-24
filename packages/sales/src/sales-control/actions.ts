@@ -324,29 +324,85 @@ export async function packDispatchItemsAction(
       approvedPackingReport = report;
       approvedPackingSubmissionId = report.orderProductionSubmissionId;
     }
-    const eligibleSubmissions = await db.orderProductionSubmissions.findMany({
-      where: {
-        id: { in: uniqueSubmissionIds },
-        salesOrderId: data.order.id,
-        deletedAt: null,
-        OR: [
-          { materialReviewId: null },
-          {
-            materialReview: {
-              status: "APPROVED",
-            },
+    const [normallyEligibleSubmissions, approvedGuardedReports] =
+      await Promise.all([
+        db.orderProductionSubmissions.findMany({
+          where: {
+            id: { in: uniqueSubmissionIds },
+            salesOrderId: data.order.id,
+            deletedAt: null,
+            OR: [
+              { materialReviewId: null },
+              {
+                materialReview: {
+                  status: "APPROVED",
+                },
+              },
+            ],
           },
-          ...(approvedPackingSubmissionId
-            ? [{ id: approvedPackingSubmissionId }]
-            : []),
-        ],
-      },
-      select: { id: true },
-    });
-    if (eligibleSubmissions.length !== uniqueSubmissionIds.length) {
+          select: { id: true },
+        }),
+        db.salesPackingReport.findMany({
+          where: {
+            orderDeliveryId: dispatchId,
+            salesOrderId: data.order.id,
+            orderProductionSubmissionId: { in: uniqueSubmissionIds },
+            status: "APPROVED",
+          },
+          select: {
+            orderProductionSubmissionId: true,
+            qty: true,
+            lhQty: true,
+            rhQty: true,
+          },
+        }),
+      ]);
+    const normallyEligibleIds = new Set(
+      normallyEligibleSubmissions.map((submission) => submission.id),
+    );
+    const approvedGuardedBySubmission = new Map<
+      number,
+      { qty: number; lh: number; rh: number }
+    >();
+    for (const report of approvedGuardedReports) {
+      const normalizedReportQty = recomposeQty({
+        qty: report.qty,
+        lh: report.lhQty,
+        rh: report.rhQty,
+      } as any);
+      const current = approvedGuardedBySubmission.get(
+        report.orderProductionSubmissionId,
+      ) || { qty: 0, lh: 0, rh: 0 };
+      approvedGuardedBySubmission.set(report.orderProductionSubmissionId, {
+        qty: sum([current.qty, normalizedReportQty.qty]),
+        lh: sum([current.lh, normalizedReportQty.lh]),
+        rh: sum([current.rh, normalizedReportQty.rh]),
+      });
+    }
+    const eligibleSubmissionIds = new Set([
+      ...normallyEligibleIds,
+      ...approvedGuardedBySubmission.keys(),
+      ...(approvedPackingSubmissionId ? [approvedPackingSubmissionId] : []),
+    ]);
+    if (eligibleSubmissionIds.size !== uniqueSubmissionIds.length) {
       throw new Error(
         "A production submission is awaiting material review and cannot be packed.",
       );
+    }
+    for (const line of packingLines) {
+      if (normallyEligibleIds.has(line.submissionId)) continue;
+      const authorized = approvedGuardedBySubmission.get(line.submissionId);
+      const requested = recomposeQty(line.qty as any);
+      if (
+        !authorized ||
+        Number(requested.qty || 0) > authorized.qty ||
+        Number(requested.lh || 0) > authorized.lh ||
+        Number(requested.rh || 0) > authorized.rh
+      ) {
+        throw new Error(
+          "Approved guarded packing does not authorize the requested quantity.",
+        );
+      }
     }
   }
 

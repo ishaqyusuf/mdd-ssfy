@@ -1,12 +1,15 @@
 "use client";
 
 import { SiteNav, useSiteNav } from "@gnd/site-nav";
+import { Icons } from "@gnd/ui/icons";
+import Link from "next/link";
 import type { CSSProperties } from "react";
 import { OpenSearchButton } from "./search/open-search-button";
 import { HeaderActions, UserNav } from "./user-nav";
 
 export function Header() {
 	const { isExpanded, linkModules } = useSiteNav();
+	const noSidebar = Boolean(linkModules?.noSidebar);
 	const sidebarHeaderOffset =
 		isExpanded && !linkModules?.noSidebar ? "184px" : "0px";
 
@@ -25,6 +28,15 @@ export function Header() {
 				}
 			>
 				<SiteNav.MobileSidebar />
+				{noSidebar ? (
+					<Link
+						href="/"
+						aria-label="GND home"
+						className="flex shrink-0 items-center"
+					>
+						<Icons.Logo />
+					</Link>
+				) : null}
 				<div id="goBackSlot" />
 				<div className="flex min-w-0 items-center space-x-4 whitespace-nowrap lg:space-x-0">
 					<h1 className="font-bold whitespace-nowrap" id="pageTitle">

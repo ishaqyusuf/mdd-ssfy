@@ -5,6 +5,7 @@ function createDbStub(
   existingPacked: any[] = [],
   eligibleSubmissions?: any[],
   approvedReport?: any,
+  approvedReports?: any[],
 ) {
   const createdRows: any[] = [];
 
@@ -23,6 +24,8 @@ function createDbStub(
       },
       salesPackingReport: {
         findFirst: async () => approvedReport || null,
+        findMany: async () =>
+          approvedReports || (approvedReport ? [approvedReport] : []),
       },
     },
     createdRows,
@@ -159,6 +162,43 @@ describe("packDispatchItemsAction", () => {
         } as any,
       }),
     ).rejects.toThrow("awaiting material review");
+  });
+
+  it("allows an approved guarded quantity to be repacked while material review is pending", async () => {
+    const { db, createdRows } = createDbStub([], [], undefined, [
+      {
+        orderProductionSubmissionId: 5101,
+        qty: 0,
+        lhQty: 1,
+        rhQty: 0,
+      },
+    ]);
+
+    const result = await packDispatchItemsAction(db as any, {
+      data: { order: { id: 105 } } as any,
+      authorId: 9,
+      authorName: "Reviewer",
+      update: false,
+      packItems: {
+        dispatchId: 5005,
+        dispatchStatus: "queue" as any,
+        packingLines: [
+          {
+            salesItemId: 51,
+            submissionId: 5101,
+            qty: { qty: 0, lh: 1, rh: 0 } as any,
+          },
+        ],
+      } as any,
+    });
+
+    expect(result).toEqual({ created: 1, skipped: 0 });
+    expect(createdRows[0]).toMatchObject({
+      orderProductionSubmissionId: 5101,
+      qty: 1,
+      lhQty: 1,
+      rhQty: 0,
+    });
   });
 
   it("allows only the exact quantity authorized by an approved packing report", async () => {

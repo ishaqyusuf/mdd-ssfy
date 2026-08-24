@@ -33,14 +33,13 @@
 
 ### Credential routing correction and Dev catch-up
 
-- Authenticated application data, the seed timing, and PlanetScale branch
-  metadata are consistent with Vercel Preview using the new PlanetScale
-  `preview` branch and its 150-order sanitized fixture. A new branch-scoped
-  credential is still required for direct fingerprint verification.
-- The repository's existing `.env.preview` credential does **not** target that
-  branch; its credential fingerprint maps to PlanetScale `dev`. Until the local
-  profile is corrected, do not use `--preview` as evidence about the database
-  serving `preview.gndprodesk.com`.
+- Created the branch-scoped PlanetScale password `local-preview-admin` and
+  corrected `.env.preview` from `dev` to the actual PlanetScale `preview`
+  branch. Direct queries verified 150 active sanitized sales records and the
+  same bounded order ids rendered at `preview.gndprodesk.com`.
+- A read-only Prisma diff against the actual serving Preview branch reported
+  `No difference detected`; no schema push or migration-ledger mutation was
+  needed on that branch.
 - A read-only Prisma diff against that local-profile target found the current
   schema delta to be additive: 19 tables, nullable columns, and indexes. The
   complete schema was pushed to PlanetScale `dev`; Prisma's two warnings were
@@ -51,11 +50,17 @@
   those non-authoritative cache rows were deleted, leaving 140 safe projections.
   No canonical sale, customer, payment, inventory, production, or dispatch row
   was deleted or rewritten.
-- The actual `preview` branch must be re-verified using a new branch-scoped
-  credential because the existing `vercel-preview` sensitive password cannot be
-  read back from Vercel or PlanetScale. Do not enable
-  `GND_SALES_ORDERS_READ_MODEL_MODE` before that verification and a safe
-  projection-coverage check.
+- The actual Preview branch contains 95 active `type=order` rows and now has
+  95 ready version-2 `SalesOrderListProjection` rows. The original projections
+  contained pre-sanitization customer-derived payloads; only those
+  non-authoritative cache rows were removed and rebuilt. The final audit found
+  zero unsafe payloads, zero source-revision mismatches, and zero scope/version
+  failures. Canonical sales, customer, payment, inventory, production, and
+  dispatch rows were not rewritten.
+- A bounded Vercel Preview read-mode cohort passed, but the read flags were
+  removed afterward because Trigger staging does not exist and Trigger Preview
+  branches are not enabled for the account. Keep read mode off until an
+  isolated Trigger environment is deployed against this Preview credential.
 
 ## 2026-08-23: Material And Production Sales Handoff Action Epochs
 
@@ -657,3 +662,14 @@ Tracks notable migrations and migration strategy.
 - Final local checks report all 122 migrations current and no schema drift.
   No preview, production, hosted database, or production migration ledger was
   changed.
+
+## 20260824185200_widen_dyke_step_form_value
+
+- Widens nullable `DykeStepForm.value` from MySQL `VARCHAR(191)` to `TEXT` so
+  the save path preserves long workflow component titles without Prisma P2000.
+- The migration is additive and changes no identifiers, relations, or data.
+- Prisma Client generation and the schema/migration contract pass. Guarded
+  local `db:migrate` applied the migration to
+  `mysql://127.0.0.1:3307/gnd-prisma2#identity=4813494d`; the follow-up
+  `db:push` reported the database already in sync. Preview and Production
+  rollout remain pending.

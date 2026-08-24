@@ -218,6 +218,14 @@ and acceptance gate:
 
 ## Validation and rollout status
 
+- 2026-08-24: Production inspection in Pablo Cruz's authenticated session
+  confirmed the enrollment audience remains `SUPER_ADMIN_ONLY`. His report that
+  sales staff cannot mark Special Orders is therefore confirmed as an unmade
+  rollout configuration change, not a broken save gate. The authorized rollout
+  step is to change the existing setting to `ALL_STAFF` after the associated
+  release is deployed and then verify the Sales Form control in the same live
+  session.
+
 - 2026-08-19: Special Order public review now loads the current canonical
   invoice, company address, logo, line items, addresses, and totals from the
   sales record on every valid link open. Approval issuance no longer embeds a

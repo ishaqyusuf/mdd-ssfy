@@ -208,7 +208,7 @@ export function DispatchDetailScrollContent() {
 					</View>
 					{vm.hasDuplicateDispatch ? (
 						<View className="mt-3 gap-2">
-							{vm.duplicateDispatches.map((item: any) => {
+							{vm.duplicateDispatches.map((item) => {
 								const isRecommended =
 									item.id === vm.duplicateInsight?.recommendedKeepDispatchId;
 								const isCurrent =
@@ -301,10 +301,18 @@ export function DispatchDetailScrollContent() {
 							</Text>
 						</View>
 						<View className="flex-row gap-2">
-							<Pressable className="rounded-full bg-primary/10 p-2">
+							<Pressable
+								onPress={vm.onCallCustomer}
+								disabled={!vm.customerPhone}
+								className="h-11 w-11 items-center justify-center rounded-full bg-primary/10 disabled:opacity-40"
+							>
 								<Icon name="Phone" className="text-primary" size={18} />
 							</Pressable>
-							<Pressable className="rounded-full bg-primary/10 p-2">
+							<Pressable
+								onPress={vm.onEmailCustomer}
+								disabled={!vm.customerEmail}
+								className="h-11 w-11 items-center justify-center rounded-full bg-primary/10 disabled:opacity-40"
+							>
 								<Icon name="Mail" className="text-primary" size={18} />
 							</Pressable>
 						</View>
@@ -322,7 +330,11 @@ export function DispatchDetailScrollContent() {
 								{vm.addressLine2 || vm.customerPhone || vm.customerEmail || ""}
 							</Text>
 						</View>
-						<Pressable className="mt-1 rounded-full bg-primary/10 p-2">
+						<Pressable
+							onPress={vm.onOpenDirections}
+							disabled={!vm.addressLine1 && !vm.addressLine2}
+							className="mt-1 h-11 w-11 items-center justify-center rounded-full bg-primary/10 disabled:opacity-40"
+						>
 							<Icon name="LocateIcon" className="text-primary" size={18} />
 						</Pressable>
 					</View>
@@ -341,12 +353,10 @@ export function DispatchDetailScrollContent() {
 					</View>
 				</View>
 				<View className="overflow-hidden rounded-xl border border-border">
-					{vm.topPackingItems.map((item: any, index: number) => {
+					{vm.topPackingItems.map((item, index) => {
 						const itemImage = vm.resolveItemImage(item.img as string | null);
-						const deliverableTotal = vm.totalQty(
-							vm.resolvedAvailableQty(item) as any,
-						);
-						const packedTotal = vm.totalQty((item as any).listedQty as any);
+						const deliverableTotal = vm.totalQty(vm.resolvedAvailableQty(item));
+						const packedTotal = vm.totalQty(item.listedQty);
 						const unpackedTotal = Math.max(0, deliverableTotal - packedTotal);
 						const isPacked = deliverableTotal > 0 && unpackedTotal <= 0;
 						return (

@@ -1,1600 +1,1593 @@
 import {
-	accountingIndex,
-	accountingIndexSchema,
+  accountingIndex,
+  accountingIndexSchema,
 } from "@api/db/queries/accounting";
 import { buildFullPaymentToken } from "@api/db/queries/checkout";
 import { getCustomers } from "@api/db/queries/customer";
 import { getInboundSummary, getInbounds } from "@api/db/queries/inbound";
 import {
-	getProductReport,
-	productReportSchema,
+  getProductReport,
+  productReportSchema,
 } from "@api/db/queries/product-report";
 import {
-	getQuotes,
-	getSaleOverview,
-	getSales,
-	sales,
-	saveOrderProductionGate,
-	startNewSales,
+  getQuotes,
+  getSaleOverview,
+  getSales,
+  sales,
+  saveOrderProductionGate,
+  startNewSales,
 } from "@api/db/queries/sales";
 import {
-	getSalesAccountings,
-	getSalesAccountingsSchema,
+  getSalesAccountings,
+  getSalesAccountingsSchema,
 } from "@api/db/queries/sales-accounting";
 import { copySale, moveSale } from "@api/db/queries/sales-actions";
 import { getMobileSalesDashboardOverview } from "@api/db/queries/sales-dashboard";
 import {
-	archiveWorkflowComponents,
-	archiveWorkflowComponentsSchema,
-	createWorkflowComponent,
-	createWorkflowComponentSchema,
-	deleteSupplier,
-	deleteSupplierSchema,
-	getMultiLineComponents,
-	getMultiLineComponentsSchema,
-	getStepComponents,
-	getStepComponentsSchema,
-	getSuppliers,
-	getSuppliersSchema,
-	saveSupplier,
-	saveWorkflowComponentDetails,
-	saveWorkflowComponentDetailsSchema,
-	saveWorkflowComponentPricing,
-	saveWorkflowComponentPricingSchema,
-	saveWorkflowComponentRedirect,
-	saveWorkflowComponentRedirectSchema,
-	saveWorkflowComponentSectionOverride,
-	saveWorkflowComponentSectionOverrideSchema,
-	saveWorkflowComponentVisibility,
-	saveWorkflowComponentVisibilitySchema,
-	updateStepMeta,
-	updateStepMetaSchema,
+  archiveWorkflowComponents,
+  archiveWorkflowComponentsSchema,
+  createWorkflowComponent,
+  createWorkflowComponentSchema,
+  deleteSupplier,
+  deleteSupplierSchema,
+  getMultiLineComponents,
+  getMultiLineComponentsSchema,
+  getStepComponents,
+  getStepComponentsSchema,
+  getSuppliers,
+  getSuppliersSchema,
+  saveSupplier,
+  saveWorkflowComponentDetails,
+  saveWorkflowComponentDetailsSchema,
+  saveWorkflowComponentPricing,
+  saveWorkflowComponentPricingSchema,
+  saveWorkflowComponentRedirect,
+  saveWorkflowComponentRedirectSchema,
+  saveWorkflowComponentSectionOverride,
+  saveWorkflowComponentSectionOverrideSchema,
+  saveWorkflowComponentVisibility,
+  saveWorkflowComponentVisibilitySchema,
+  updateStepMeta,
+  updateStepMetaSchema,
 } from "@api/db/queries/sales-form";
 import {
-	getOpenSalesHandoffOrderScope,
-	getSalesHandoffActions,
-	reconcileSalesHandoffAfterCommit,
-	reconcileSalesHandoffPolicyAfterCommit,
+  getOpenSalesHandoffOrderScope,
+  getSalesHandoffActions,
+  reconcileSalesHandoffAfterCommit,
+  reconcileSalesHandoffPolicyAfterCommit,
 } from "@api/db/queries/sales-handoff-actions";
 import {
-	getSalesHandoffTriggerSettings,
-	updateSalesHandoffTriggerSettings,
+  getSalesHandoffTriggerSettings,
+  updateSalesHandoffTriggerSettings,
 } from "@api/db/queries/sales-handoff-trigger-settings";
 import { getSalesHx, getSalesHxSchema } from "@api/db/queries/sales-hx";
 import {
-	getOrders,
-	getOrdersSchema,
-	getOrdersSummary,
-	getOrdersSummarySchema,
+  getOrders,
+  getOrdersSchema,
+  getOrdersSummary,
+  getOrdersSummarySchema,
 } from "@api/db/queries/sales-orders-v2";
 import { getSaleOverviewLoader } from "@api/db/queries/sales-overview-versioned-loader";
 import {
-	getSalesOverviewViewSettings,
-	updateSalesOverviewViewSettings,
+  getSalesOverviewViewSettings,
+  updateSalesOverviewViewSettings,
 } from "@api/db/queries/sales-overview-view-settings";
 import {
-	getSalesRepTransferOptions,
-	transferSalesRep,
+  getSalesRepTransferOptions,
+  transferSalesRep,
 } from "@api/db/queries/sales-rep-transfer";
 import {
-	getSalesResolutions,
-	getSalesResolutionsSchema,
-	getSalesResolutionsSummary,
+  getSalesResolutions,
+  getSalesResolutionsSchema,
+  getSalesResolutionsSummary,
 } from "@api/db/queries/sales-resolution";
 import {
-	getSaleTransactions,
-	getSaleTransactionsSchema,
+  getSaleTransactions,
+  getSaleTransactionsSchema,
 } from "@api/db/queries/sales-transactions";
 import {
-	getSpecialOrderRolloutMetrics,
-	getSpecialOrderSettingsManagement,
-	publishSpecialOrderPolicy,
-	saveSpecialOrderPolicyDraft,
-	updateSpecialOrderOperationalSettings,
+  getSpecialOrderRolloutMetrics,
+  getSpecialOrderSettingsManagement,
+  publishSpecialOrderPolicy,
+  saveSpecialOrderPolicyDraft,
+  updateSpecialOrderOperationalSettings,
 } from "@api/db/queries/special-order-settings";
 import { resolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
 import { getCustomersSchema } from "@api/schemas/customer";
 import {
-	copySaleSchema,
-	deleteSalesByOrderIdsSchema,
-	getFullSalesDataSchema,
-	getSaleOverviewSchema,
-	inboundQuerySchema,
-	moveSaleSchema,
-	salesQueryParamsSchema,
-	salesRepOptionsSchema,
-	saveOrderProductionGateSchema,
-	startNewSalesSchema,
-	transferSalesRepSchema,
-	updateSalesPaymentMethodSchema,
+  copySaleSchema,
+  deleteSalesByOrderIdsSchema,
+  getFullSalesDataSchema,
+  getSaleOverviewSchema,
+  inboundQuerySchema,
+  moveSaleSchema,
+  salesQueryParamsSchema,
+  salesRepOptionsSchema,
+  saveOrderProductionGateSchema,
+  startNewSalesSchema,
+  transferSalesRepSchema,
+  updateSalesPaymentMethodSchema,
 } from "@api/schemas/sales";
 import { saveSupplierSchema } from "@api/schemas/sales-form";
 import {
-	dealerDeliveryPricingSchema,
-	normalizeDealerDeliveryPricingSettings,
-	resolveDealerDeliveryCostSuggestion,
+  dealerDeliveryPricingSchema,
+  normalizeDealerDeliveryPricingSettings,
+  resolveDealerDeliveryCostSuggestion,
 } from "@api/utils/dealer-delivery-pricing";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { transformSalesFilterQuery } from "@api/utils/sales";
 import { requireSalesOverviewViewer } from "@api/utils/sales-overview-access";
 import { requireWorkflowComponentEditor } from "@api/utils/workflow-component-access";
 import {
-	approveDealerOrderRequest,
-	getDealerOrderRequest,
-	getDealerOrderRequestAnalytics,
-	getDealerOrderRequestCount,
-	getDealerOrderRequests,
-	rejectDealerOrderRequest,
+  approveDealerOrderRequest,
+  getDealerOrderRequest,
+  getDealerOrderRequestAnalytics,
+  getDealerOrderRequestCount,
+  getDealerOrderRequests,
+  rejectDealerOrderRequest,
 } from "@gnd/db/queries";
+import { Notifications } from "@gnd/notifications";
 import { EmailService } from "@gnd/notifications/services/email-service";
 import { getSaleInformation } from "@gnd/sales/get-sale-information";
 import {
-	SALES_PAYMENT_REVIEW_ACTIONS,
-	calculatePaymentChannelCharge,
-	markLatestSalesPaymentReviewed,
-	markSalesPaymentsReviewed,
-	normalizeSalesPaymentReviewSettings,
+  SALES_PAYMENT_REVIEW_ACTIONS,
+  calculatePaymentChannelCharge,
+  markLatestSalesPaymentReviewed,
+  markSalesPaymentsReviewed,
+  normalizeSalesPaymentReviewSettings,
 } from "@gnd/sales/payment-system";
 import {
-	SalesWorkflowCancellationError,
-	cancelSalesWorkflowLayer,
-	cancelSalesWorkflowLayerSchema,
-	getSalesWorkflowCancellationPreview,
-	salesWorkflowCancellationPreviewSchema,
+  SalesWorkflowCancellationError,
+  cancelSalesWorkflowLayer,
+  cancelSalesWorkflowLayerSchema,
+  getSalesWorkflowCancellationPreview,
+  salesWorkflowCancellationPreviewSchema,
 } from "@gnd/sales/sales-workflow-cancellation";
 import {
-	getSettingAction,
-	normalizeSalesPrintSettings,
-	resolveSalesOverviewGeneralVersion,
-	salesHandoffTriggerInputSchema,
-	salesOverviewViewSettingsSchema,
-	salesPrintSettingsSchema,
-	specialOrderEnforcementModeSchema,
-	specialOrderReleaseAudienceSchema,
-	updateSettingsMeta,
+  getSettingAction,
+  normalizeSalesPrintSettings,
+  resolveSalesOverviewGeneralVersion,
+  salesHandoffTriggerInputSchema,
+  salesOverviewViewSettingsSchema,
+  salesPrintSettingsSchema,
+  specialOrderEnforcementModeSchema,
+  specialOrderReleaseAudienceSchema,
+  updateSettingsMeta,
 } from "@gnd/settings";
 import { generateRandomString, timeLog } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
 import { createNoteAction } from "@notifications/note";
-import { NotificationService } from "@notifications/services/triggers";
 import {
-	getProductionReadiness,
-	productionV2DetailQuerySchema,
-	productionV2ListQuerySchema,
-	salesProductionCalendarQuerySchema,
-	salesProductionQueryParamsSchema,
-	setProductionReadinessOverride,
+  getProductionReadiness,
+  productionV2DetailQuerySchema,
+  productionV2ListQuerySchema,
+  salesProductionCalendarQuerySchema,
+  salesProductionQueryParamsSchema,
+  setProductionReadinessOverride,
 } from "@sales/exports";
 import { salesPrioritySchema } from "@sales/priority";
 import {
-	type DecideProductionSubmissionMaterialReviewInput,
-	decideProductionSubmissionMaterialReview,
-	decideProductionSubmissionMaterialReviewSchema,
-	getProductionSubmissionMaterialReviewDetail,
-	getProductionSubmissionMaterialReviewQueue,
-	productionSubmissionMaterialReviewDetailSchema,
-	productionSubmissionMaterialReviewQueueSchema,
+  type DecideProductionSubmissionMaterialReviewInput,
+  decideProductionSubmissionMaterialReview,
+  decideProductionSubmissionMaterialReviewSchema,
+  getProductionSubmissionMaterialReviewDetail,
+  getProductionSubmissionMaterialReviewQueue,
+  productionSubmissionMaterialReviewDetailSchema,
+  productionSubmissionMaterialReviewQueueSchema,
 } from "@sales/production-submission-review";
 import {
-	getProductionDashboardV2,
-	getProductionListV2,
-	getProductionOrderDetailV2,
+  getProductionDashboardV2,
+  getProductionListV2,
+  getProductionOrderDetailV2,
 } from "@sales/production-v2";
 import {
-	getSalesProductionCalendar,
-	getSalesProductionDashboard,
-	getSalesProductionSummary,
-	getSalesProductions,
+  getSalesProductionCalendar,
+  getSalesProductionDashboard,
+  getSalesProductionSummary,
+  getSalesProductions,
 } from "@sales/sales-production";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
-import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
-	type TRPCContext,
-	createTRPCRouter,
-	protectedProcedure,
-	publicProcedure,
+  type TRPCContext,
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
 } from "../init";
 import { loadCoreProductionOverview } from "./sales-production-overview";
 
 const dealerOrderRequestsSchema = z.object({
-	cursor: z.number().optional().nullable(),
-	size: z.number().min(1).max(100).optional().nullable(),
-	status: z
-		.enum(["pending", "approved", "rejected", "all"])
-		.optional()
-		.nullable(),
+  cursor: z.number().optional().nullable(),
+  size: z.number().min(1).max(100).optional().nullable(),
+  status: z
+    .enum(["pending", "approved", "rejected", "all"])
+    .optional()
+    .nullable(),
 });
 const salesHandoffActionsInputSchema = z.object({
-	limit: z.number().int().min(1).max(50).optional(),
+  limit: z.number().int().min(1).max(50).optional(),
 });
 const dealerOrderRequestIdSchema = z.object({
-	requestId: z.number(),
+  requestId: z.number(),
 });
 const approveDealerOrderRequestSchema = dealerOrderRequestIdSchema.extend({
-	deliveryCost: z.number().min(0).optional().nullable(),
-	approverNote: z.string().trim().max(1000).optional().nullable(),
+  deliveryCost: z.number().min(0).optional().nullable(),
+  approverNote: z.string().trim().max(1000).optional().nullable(),
 });
 const rejectDealerOrderRequestSchema = dealerOrderRequestIdSchema.extend({
-	reason: z.string().trim().max(1000).optional().nullable(),
+  reason: z.string().trim().max(1000).optional().nullable(),
 });
 const updatePaymentReviewSettingsSchema = z.object({
-	autoReviewActions: z.object({
-		production: z.boolean(),
-		fulfillment: z.boolean(),
-		inbound: z.boolean(),
-	}),
+  autoReviewActions: z.object({
+    production: z.boolean(),
+    fulfillment: z.boolean(),
+    inbound: z.boolean(),
+  }),
 });
 const specialOrderPolicyInputSchema = z.object({
-	title: z.string().trim().min(3).max(255),
-	acknowledgmentText: z.string().trim().min(20).max(2_000),
-	policyText: z.string().trim().min(50).max(10_000),
+  title: z.string().trim().min(3).max(255),
+  acknowledgmentText: z.string().trim().min(20).max(2_000),
+  policyText: z.string().trim().min(50).max(10_000),
 });
 const updateSpecialOrderSettingsSchema = z.object({
-	releaseAudience: specialOrderReleaseAudienceSchema,
-	enforcementMode: specialOrderEnforcementModeSchema,
-	approvalLinkLifetimeDays: z.coerce.number().int().min(1).max(30),
+  releaseAudience: specialOrderReleaseAudienceSchema,
+  enforcementMode: specialOrderEnforcementModeSchema,
+  approvalLinkLifetimeDays: z.coerce.number().int().min(1).max(30),
 });
 const markPaymentsReviewedSchema = z.object({
-	salesIds: z.array(z.number().int().positive()).min(1).max(100),
-	note: z.string().trim().max(500).optional().nullable(),
+  salesIds: z.array(z.number().int().positive()).min(1).max(100),
+  note: z.string().trim().max(500).optional().nullable(),
 });
 const productionReadinessSchema = z.object({
-	salesOrderId: z.number().int().positive(),
-	lineItemUids: z
-		.array(z.string().trim().min(1))
-		.max(100)
-		.optional()
-		.nullable(),
+  salesOrderId: z.number().int().positive(),
+  lineItemUids: z
+    .array(z.string().trim().min(1))
+    .max(100)
+    .optional()
+    .nullable(),
 });
 const setProductionReadinessOverrideSchema = z
-	.object({
-		salesOrderId: z.number().int().positive(),
-		expectedRevision: z.string().regex(/^[a-f0-9]{64}$/),
-		action: z.enum(["confirm", "revoke"]),
-		affirmation: z
-			.literal("all_required_inventory_physically_available")
-			.optional(),
-	})
-	.superRefine((value, ctx) => {
-		if (value.action === "confirm" && !value.affirmation) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["affirmation"],
-				message: "Inventory availability confirmation is required.",
-			});
-		}
-	});
+  .object({
+    salesOrderId: z.number().int().positive(),
+    expectedRevision: z.string().regex(/^[a-f0-9]{64}$/),
+    action: z.enum(["confirm", "revoke"]),
+    affirmation: z
+      .literal("all_required_inventory_physically_available")
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.action === "confirm" && !value.affirmation) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["affirmation"],
+        message: "Inventory availability confirmation is required.",
+      });
+    }
+  });
 
 async function requireProductionOverviewViewer(ctx: TRPCContext) {
-	return requireAnyOperationalPermission(
-		ctx,
-		[
-			"viewOrders",
-			"editOrders",
-			"viewProduction",
-			"editProduction",
-			"viewDelivery",
-			"editDelivery",
-			"viewPickup",
-			"editPickup",
-			"viewPacking",
-		],
-		"You do not have permission to view sales production details.",
-	);
+  return requireAnyOperationalPermission(
+    ctx,
+    [
+      "viewOrders",
+      "editOrders",
+      "viewProduction",
+      "editProduction",
+      "viewDelivery",
+      "editDelivery",
+      "viewPickup",
+      "editPickup",
+      "viewPacking",
+    ],
+    "You do not have permission to view sales production details.",
+  );
 }
 
 async function requireProductionEditor(ctx: TRPCContext) {
-	return requireAnyOperationalPermission(
-		ctx,
-		["editProduction"],
-		"You do not have permission to override production readiness.",
-	);
+  return requireAnyOperationalPermission(
+    ctx,
+    ["editProduction"],
+    "You do not have permission to override production readiness.",
+  );
 }
 
 async function requireWorkflowCancellationPermission(
-	ctx: TRPCContext,
-	action: "production" | "fulfillment",
+  ctx: TRPCContext,
+  action: "production" | "fulfillment",
 ) {
-	if (action === "production") return requireProductionEditor(ctx);
-	return requireAnyOperationalPermission(
-		ctx,
-		["editPickup", "editOrders", "viewPacking"],
-		"You do not have permission to manage fulfillment.",
-	);
+  if (action === "production") return requireProductionEditor(ctx);
+  return requireAnyOperationalPermission(
+    ctx,
+    ["editPickup", "editOrders", "viewPacking"],
+    "You do not have permission to manage fulfillment.",
+  );
 }
 
 function toWorkflowCancellationTrpcError(error: unknown): never {
-	if (!(error instanceof SalesWorkflowCancellationError)) throw error;
-	const code =
-		error.code === "NOT_FOUND"
-			? "NOT_FOUND"
-			: error.code === "STALE_PREVIEW" || error.code === "IDEMPOTENCY_CONFLICT"
-				? "CONFLICT"
-				: "PRECONDITION_FAILED";
-	throw new TRPCError({ code, message: error.message, cause: error });
+  if (!(error instanceof SalesWorkflowCancellationError)) throw error;
+  const code =
+    error.code === "NOT_FOUND"
+      ? "NOT_FOUND"
+      : error.code === "STALE_PREVIEW" || error.code === "IDEMPOTENCY_CONFLICT"
+        ? "CONFLICT"
+        : "PRECONDITION_FAILED";
+  throw new TRPCError({ code, message: error.message, cause: error });
 }
 
 async function requireProductionReviewResolutionPermissions(
-	ctx: TRPCContext,
-	input: DecideProductionSubmissionMaterialReviewInput,
+  ctx: TRPCContext,
+  input: DecideProductionSubmissionMaterialReviewInput,
 ) {
-	const receivesInbound =
-		input.action === "RECEIVE_INBOUND_AND_APPROVE" ||
-		Boolean(input.resolutions?.receipts.length);
-	const marksNeedsAvailable =
-		input.action === "MARK_AVAILABLE_AND_APPROVE" ||
-		Boolean(input.resolutions?.markAvailableComponentIds.length);
-	if (receivesInbound) {
-		await requireAnyOperationalPermission(
-			ctx,
-			["editInboundOrder"],
-			"You do not have permission to receive inbound materials.",
-		);
-	}
-	if (marksNeedsAvailable) {
-		await requireAnyOperationalPermission(
-			ctx,
-			["editOrders"],
-			"You do not have permission to manually fulfill inventory needs.",
-		);
-	}
+  const receivesInbound =
+    input.action === "RECEIVE_INBOUND_AND_APPROVE" ||
+    Boolean(input.resolutions?.receipts.length);
+  const marksNeedsAvailable =
+    input.action === "MARK_AVAILABLE_AND_APPROVE" ||
+    Boolean(input.resolutions?.markAvailableComponentIds.length);
+  if (receivesInbound) {
+    await requireAnyOperationalPermission(
+      ctx,
+      ["editInboundOrder"],
+      "You do not have permission to receive inbound materials.",
+    );
+  }
+  if (marksNeedsAvailable) {
+    await requireAnyOperationalPermission(
+      ctx,
+      ["editOrders"],
+      "You do not have permission to manually fulfill inventory needs.",
+    );
+  }
 }
 
 function getDealershipUrl() {
-	if (process.env.NEXT_PUBLIC_DEALERSHIP_URL) {
-		return process.env.NEXT_PUBLIC_DEALERSHIP_URL.replace(/\/$/, "");
-	}
+  if (process.env.NEXT_PUBLIC_DEALERSHIP_URL) {
+    return process.env.NEXT_PUBLIC_DEALERSHIP_URL.replace(/\/$/, "");
+  }
 
-	if (
-		process.env.VERCEL_ENV === "production" ||
-		process.env.NODE_ENV === "production"
-	) {
-		return "https://dealers.gndprodesk.com";
-	}
+  if (
+    process.env.VERCEL_ENV === "production" ||
+    process.env.NODE_ENV === "production"
+  ) {
+    return "https://dealers.gndprodesk.com";
+  }
 
-	if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL) {
-		return `https://${process.env.VERCEL_URL}`;
-	}
+  if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
 
-	return "http://localhost:3016";
+  return "http://localhost:3016";
 }
 
 async function sendDealerApprovalEmail(
-	ctx: TRPCContext,
-	result: Awaited<ReturnType<typeof approveDealerOrderRequest>>,
+  ctx: TRPCContext,
+  result: Awaited<ReturnType<typeof approveDealerOrderRequest>>,
 ) {
-	if (!result.dealerEmail) return;
-	const orderUrl = `${getDealershipUrl()}/orders/${result.order.id}`;
-	const paymentToken = await buildFullPaymentToken(ctx, {
-		salesId: result.paymentContext.salesId,
-		customerId: result.paymentContext.customerId,
-		customerPhone: result.paymentContext.customerPhone,
-		amountDue: result.paymentContext.amountDue,
-	});
-	const paymentUrl = paymentToken
-		? `${getAppUrl().replace(/\/$/, "")}/checkout/${paymentToken}/v2`
-		: null;
-	await new EmailService(ctx.db).sendTransactional({
-		to: result.dealerEmail,
-		subject: `Quote ${result.quoteNo} approved as order ${result.order.orderId}`,
-		template: "dealer-sales-request-approved",
-		data: {
-			dealerName: result.dealerName,
-			quoteNo: result.quoteNo,
-			orderNo: result.order.orderId,
-			customerName: result.customerName,
-			total: result.total,
-			orderUrl,
-			paymentUrl,
-		},
-	});
+  if (!result.dealerEmail) return;
+  const orderUrl = `${getDealershipUrl()}/orders/${result.order.id}`;
+  const paymentToken = await buildFullPaymentToken(ctx, {
+    salesId: result.paymentContext.salesId,
+    customerId: result.paymentContext.customerId,
+    customerPhone: result.paymentContext.customerPhone,
+    amountDue: result.paymentContext.amountDue,
+  });
+  const paymentUrl = paymentToken
+    ? `${getAppUrl().replace(/\/$/, "")}/checkout/${paymentToken}/v2`
+    : null;
+  await new EmailService(ctx.db).sendTransactional({
+    to: result.dealerEmail,
+    subject: `Quote ${result.quoteNo} approved as order ${result.order.orderId}`,
+    template: "dealer-sales-request-approved",
+    data: {
+      dealerName: result.dealerName,
+      quoteNo: result.quoteNo,
+      orderNo: result.order.orderId,
+      customerName: result.customerName,
+      total: result.total,
+      orderUrl,
+      paymentUrl,
+    },
+  });
 }
 
 async function isSuperAdmin(ctx: TRPCContext) {
-	if (!ctx.userId) return false;
-	const user = await ctx.db.users.findFirst({
-		where: {
-			id: ctx.userId,
-			deletedAt: null,
-		},
-		select: {
-			roles: {
-				where: {
-					deletedAt: null,
-					role: { deletedAt: null },
-				},
-				select: {
-					role: {
-						select: {
-							name: true,
-						},
-					},
-				},
-			},
-		},
-	});
+  if (!ctx.userId) return false;
+  const user = await ctx.db.users.findFirst({
+    where: {
+      id: ctx.userId,
+      deletedAt: null,
+    },
+    select: {
+      roles: {
+        where: {
+          deletedAt: null,
+          role: { deletedAt: null },
+        },
+        select: {
+          role: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
 
-	return user?.roles?.some(
-		(role) => role.role?.name?.toLowerCase() === "super admin",
-	);
+  return user?.roles?.some(
+    (role) => role.role?.name?.toLowerCase() === "super admin",
+  );
 }
 
 async function requireSuperAdmin(ctx: TRPCContext) {
-	if (!ctx.userId || !(await isSuperAdmin(ctx))) {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "Only Super Admin can manage sales settings.",
-		});
-	}
-	return ctx.userId;
+  if (!ctx.userId || !(await isSuperAdmin(ctx))) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only Super Admin can manage sales settings.",
+    });
+  }
+  return ctx.userId;
 }
 
 async function requireWorkflowComponentAdmin(ctx: TRPCContext) {
-	if (!ctx.userId) throw new Error("Authentication is required.");
-	const user = await ctx.db.users.findFirst({
-		where: { id: ctx.userId },
-		select: {
-			roles: {
-				where: { deletedAt: null },
-				select: { role: { select: { name: true } } },
-			},
-		},
-	});
-	const allowed = user?.roles?.some((assignment) => {
-		const role = String(assignment.role?.name || "")
-			.trim()
-			.toLowerCase();
-		return role === "admin" || role === "super admin";
-	});
-	if (!allowed) {
-		throw new Error(
-			"Only Admin or Super Admin can manage workflow components.",
-		);
-	}
+  if (!ctx.userId) throw new Error("Authentication is required.");
+  const user = await ctx.db.users.findFirst({
+    where: { id: ctx.userId },
+    select: {
+      roles: {
+        where: { deletedAt: null },
+        select: { role: { select: { name: true } } },
+      },
+    },
+  });
+  const allowed = user?.roles?.some((assignment) => {
+    const role = String(assignment.role?.name || "")
+      .trim()
+      .toLowerCase();
+    return role === "admin" || role === "super admin";
+  });
+  if (!allowed) {
+    throw new Error(
+      "Only Admin or Super Admin can manage workflow components.",
+    );
+  }
 }
 
 async function sendDealerRejectedEmail(
-	ctx: { db: any },
-	result: Awaited<ReturnType<typeof rejectDealerOrderRequest>>,
+  ctx: { db: any },
+  result: Awaited<ReturnType<typeof rejectDealerOrderRequest>>,
 ) {
-	if (!result.dealerEmail) return;
-	await new EmailService(ctx.db).sendTransactional({
-		to: result.dealerEmail,
-		subject: `Quote ${result.quoteNo} order request needs review`,
-		template: "dealer-sales-request-rejected",
-		data: {
-			dealerName: result.dealerName,
-			quoteNo: result.quoteNo,
-			customerName: result.customerName,
-			reason: result.reason,
-		},
-	});
+  if (!result.dealerEmail) return;
+  await new EmailService(ctx.db).sendTransactional({
+    to: result.dealerEmail,
+    subject: `Quote ${result.quoteNo} order request needs review`,
+    template: "dealer-sales-request-rejected",
+    data: {
+      dealerName: result.dealerName,
+      quoteNo: result.quoteNo,
+      customerName: result.customerName,
+      reason: result.reason,
+    },
+  });
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-	return value && typeof value === "object" && !Array.isArray(value)
-		? (value as Record<string, unknown>)
-		: null;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function finiteNumber(value: unknown): number | null {
-	const numberValue = Number(value);
-	return Number.isFinite(numberValue) ? numberValue : null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 function resolveCccPercentageFromMeta(meta: Record<string, unknown> | null) {
-	const newSalesForm = asRecord(meta?.newSalesForm);
-	const settings = asRecord(newSalesForm?.settings);
-	const summary = asRecord(newSalesForm?.summary);
-	return (
-		finiteNumber(meta?.ccc_percentage) ??
-		finiteNumber(meta?.cccPercentage) ??
-		finiteNumber(settings?.cccPercentage) ??
-		finiteNumber(summary?.cccPercentage) ??
-		3.5
-	);
+  const newSalesForm = asRecord(meta?.newSalesForm);
+  const settings = asRecord(newSalesForm?.settings);
+  const summary = asRecord(newSalesForm?.summary);
+  return (
+    finiteNumber(meta?.ccc_percentage) ??
+    finiteNumber(meta?.cccPercentage) ??
+    finiteNumber(settings?.cccPercentage) ??
+    finiteNumber(summary?.cccPercentage) ??
+    3.5
+  );
 }
 
 export const salesRouter = createTRPCRouter({
-	workflowCancellationPreview: protectedProcedure
-		.input(salesWorkflowCancellationPreviewSchema)
-		.query(async (props) => {
-			await requireWorkflowCancellationPermission(
-				props.ctx,
-				props.input.action,
-			);
-			try {
-				return await getSalesWorkflowCancellationPreview(
-					props.ctx.db,
-					props.input,
-				);
-			} catch (error) {
-				return toWorkflowCancellationTrpcError(error);
-			}
-		}),
-	cancelWorkflowLayer: protectedProcedure
-		.input(cancelSalesWorkflowLayerSchema)
-		.mutation(async (props) => {
-			await requireWorkflowCancellationPermission(
-				props.ctx,
-				props.input.action,
-			);
-			const actor = await props.ctx.db.users.findUnique({
-				where: { id: props.ctx.userId },
-				select: { id: true, name: true },
-			});
-			if (!actor) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "An authenticated employee is required.",
-				});
-			}
-			try {
-				return await cancelSalesWorkflowLayer(props.ctx.db, props.input, {
-					id: actor.id,
-					name: actor.name || `User ${actor.id}`,
-				});
-			} catch (error) {
-				return toWorkflowCancellationTrpcError(error);
-			}
-		}),
-	dealerOrderRequestCount: protectedProcedure.query(async (props) => {
-		return getDealerOrderRequestCount(props.ctx.db, props.ctx.userId);
-	}),
-	dealerOrderRequestAnalytics: protectedProcedure.query(async (props) => {
-		return getDealerOrderRequestAnalytics(props.ctx.db, props.ctx.userId);
-	}),
-	dealerOrderRequests: protectedProcedure
-		.input(dealerOrderRequestsSchema)
-		.query(async (props) => {
-			const [result, setting] = await Promise.all([
-				getDealerOrderRequests(props.ctx.db, props.ctx.userId, props.input),
-				getSettingAction("sales-settings", props.ctx.db),
-			]);
-			const settings = normalizeDealerDeliveryPricingSettings(
-				asRecord(setting.meta)?.dealerDeliveryPricing,
-			);
-			return {
-				...result,
-				data: result.data.map((request) => ({
-					...request,
-					deliveryCostSuggestion: resolveDealerDeliveryCostSuggestion({
-						settings,
-						deliveryOption: request.deliveryOption,
-						grandTotal: request.grandTotal,
-					}),
-				})),
-			};
-		}),
-	dealerOrderRequest: protectedProcedure
-		.input(dealerOrderRequestIdSchema)
-		.query(async (props) => {
-			const [request, setting] = await Promise.all([
-				getDealerOrderRequest(
-					props.ctx.db,
-					props.ctx.userId,
-					props.input.requestId,
-				),
-				getSettingAction("sales-settings", props.ctx.db),
-			]);
-			const settings = normalizeDealerDeliveryPricingSettings(
-				asRecord(setting.meta)?.dealerDeliveryPricing,
-			);
-			return {
-				...request,
-				deliveryCostSuggestion: resolveDealerDeliveryCostSuggestion({
-					settings,
-					deliveryOption: request.deliveryOption,
-					grandTotal: request.grandTotal,
-				}),
-			};
-		}),
-	approveDealerSalesRequest: protectedProcedure
-		.input(approveDealerOrderRequestSchema)
-		.mutation(async (props) => {
-			const result = await approveDealerOrderRequest(
-				props.ctx.db,
-				props.ctx.userId,
-				props.input.requestId,
-				{
-					deliveryCost: props.input.deliveryCost,
-					approverNote: props.input.approverNote,
-				},
-			);
-			if (!result.alreadyApproved) {
-				await sendDealerApprovalEmail(props.ctx, result);
-			}
-			return result;
-		}),
-	rejectDealerSalesRequest: protectedProcedure
-		.input(rejectDealerOrderRequestSchema)
-		.mutation(async (props) => {
-			const result = await rejectDealerOrderRequest(
-				props.ctx.db,
-				props.ctx.userId,
-				props.input.requestId,
-				props.input.reason,
-			);
-			await sendDealerRejectedEmail(props.ctx, result);
-			return result;
-		}),
-	createStep: publicProcedure
-		.input(
-			z.object({
-				title: z.string(),
-			}),
-		)
-		.mutation(async (props) => {
-			const db = props.ctx.db;
-			const title = props.input.title;
-			return await db.dykeSteps.create({
-				data: {
-					uid: generateRandomString(4),
-					title,
-					meta: {},
-				},
-			});
-			// return createStep(props.ctx, props.input);
-		}),
-	index: protectedProcedure
-		.input(salesQueryParamsSchema)
-		.query(async (props) => {
-			const query = props.input;
-			return getSales(props.ctx, transformSalesFilterQuery(query));
-		}),
-	sales: protectedProcedure
-		.input(salesQueryParamsSchema)
-		.query(async (props) => {
-			return sales(props.ctx, transformSalesFilterQuery(props.input));
-		}),
-	productions: protectedProcedure
-		.input(salesProductionQueryParamsSchema)
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			return getSalesProductions(props.ctx.db, props.input);
-		}),
-	productionTasks: protectedProcedure
-		.input(salesProductionQueryParamsSchema)
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			const input = { ...props.input };
-			input.workerId = props.ctx.userId;
-			return getSalesProductions(props.ctx.db, input);
-		}),
-	productionDashboardTasks: protectedProcedure
-		.input(salesProductionQueryParamsSchema.optional().nullable())
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			return getSalesProductionDashboard(props.ctx.db, {
-				...(props.input || {}),
-				workerId: props.ctx.userId,
-			});
-		}),
-	productionDashboard: protectedProcedure
-		.input(salesProductionQueryParamsSchema.optional().nullable())
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			return getSalesProductionDashboard(props.ctx.db, {
-				...(props.input || {}),
-			});
-		}),
-	productionSummary: protectedProcedure
-		.input(salesProductionQueryParamsSchema.optional())
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			return getSalesProductionSummary(props.ctx.db, {
-				...(props.input || {}),
-			});
-		}),
-	productionCalendar: protectedProcedure
-		.input(salesProductionCalendarQuerySchema)
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			return getSalesProductionCalendar(props.ctx.db, props.input);
-		}),
-	productionCalendarTasks: protectedProcedure
-		.input(salesProductionCalendarQuerySchema)
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			return getSalesProductionCalendar(props.ctx.db, {
-				...props.input,
-				assignedToId: props.ctx.userId,
-			});
-		}),
-	productionsV2: protectedProcedure
-		.input(productionV2ListQuerySchema)
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			const input =
-				props.input.scope === "worker"
-					? {
-							...props.input,
-							workerId: props.ctx.userId,
-						}
-					: props.input;
-			return getProductionListV2(props.ctx.db, input);
-		}),
-	productionDashboardV2: protectedProcedure
-		.input(productionV2ListQuerySchema)
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			const input =
-				props.input.scope === "worker"
-					? {
-							...props.input,
-							workerId: props.ctx.userId,
-						}
-					: props.input;
-			return getProductionDashboardV2(props.ctx.db, input);
-		}),
-	productionOrderDetailV2: protectedProcedure
-		.input(productionV2DetailQuerySchema)
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			const input =
-				props.input.scope === "worker"
-					? {
-							...props.input,
-							workerId: props.ctx.userId,
-						}
-					: props.input;
-			return getProductionOrderDetailV2(props.ctx.db, input);
-		}),
-	productionSubmissionMaterialReviews: protectedProcedure
-		.input(productionSubmissionMaterialReviewQueueSchema)
-		.query(async (props) => {
-			await requireProductionEditor(props.ctx);
-			return getProductionSubmissionMaterialReviewQueue(
-				props.ctx.db,
-				props.input,
-			);
-		}),
-	productionSubmissionMaterialReviewDetail: protectedProcedure
-		.input(productionSubmissionMaterialReviewDetailSchema)
-		.query(async (props) => {
-			await requireProductionEditor(props.ctx);
-			return getProductionSubmissionMaterialReviewDetail(
-				props.ctx.db,
-				props.input.reviewId,
-			);
-		}),
-	reviewProductionSubmission: protectedProcedure
-		.input(decideProductionSubmissionMaterialReviewSchema)
-		.mutation(async (props) => {
-			await requireProductionEditor(props.ctx);
-			await requireProductionReviewResolutionPermissions(
-				props.ctx,
-				props.input,
-			);
-			if (!props.ctx.userId) {
-				throw new Error("Authentication is required.");
-			}
-			const actor = await props.ctx.db.users.findUnique({
-				where: { id: props.ctx.userId },
-				select: { id: true, name: true },
-			});
-			if (!actor) {
-				throw new Error("Authenticated employee was not found.");
-			}
-			const result = await decideProductionSubmissionMaterialReview(
-				props.ctx.db,
-				props.input,
-				{
-					id: actor.id,
-					name: actor.name || "Production administrator",
-				},
-			);
-			const reconciledReview =
-				await props.ctx.db.salesProductionSubmissionMaterialReview.findUnique({
-					where: { id: result.reviewId },
-					select: { salesOrderId: true },
-				});
-			if (reconciledReview) {
-				await reconcileSalesHandoffAfterCommit(props.ctx.db, {
-					salesOrderIds: [reconciledReview.salesOrderId],
-					actorUserId: actor.id,
-					source: "api.production-submission-review.decision",
-				});
-			}
-			if (result.status !== "PENDING")
-				try {
-					const review =
-						await props.ctx.db.salesProductionSubmissionMaterialReview.findUnique(
-							{
-								where: { id: result.reviewId },
-								select: {
-									decisionNote: true,
-									order: {
-										select: { id: true, orderId: true },
-									},
-									submittedBy: {
-										select: { id: true },
-									},
-								},
-							},
-						);
-					if (review) {
-						const notification = new NotificationService(tasks, {
-							db: props.ctx.db,
-							userId: actor.id,
-						});
-						await notification.send(
-							result.status === "APPROVED"
-								? "sales_production_submission_material_approved"
-								: "sales_production_submission_material_rejected",
-							{
-								author: {
-									id: actor.id,
-									role: "employee",
-								},
-								recipients: [
-									{
-										ids: [review.submittedBy.id],
-										role: "employee",
-									},
-								],
-								payload: {
-									reviewId: result.reviewId,
-									salesId: review.order.id,
-									orderNo: review.order.orderId || undefined,
-									workerId: review.submittedBy.id,
-									status: result.status,
-									note: review.decisionNote || undefined,
-								},
-							} as any,
-						);
-					}
-				} catch (error) {
-					console.warn(
-						"Production material review was decided, but worker notification failed.",
-						{ error, reviewId: result.reviewId },
-					);
-				}
-			return result;
-		}),
-	getSalesHx: publicProcedure.input(getSalesHxSchema).query(async (props) => {
-		return getSalesHx(props.ctx, props.input);
-	}),
-	getSaleOverview: protectedProcedure
-		.input(getSaleOverviewSchema)
-		.query(async (props) => {
-			await requireSalesOverviewViewer(props.ctx);
-			const [viewSettings, superAdmin] = await Promise.all([
-				getSalesOverviewViewSettings(props.ctx.db),
-				isSuperAdmin(props.ctx),
-			]);
-			const generalViewVersion = resolveSalesOverviewGeneralVersion({
-				isSuperAdmin: Boolean(superAdmin),
-				settings: viewSettings,
-			});
-			const overview = await getSaleOverviewLoader(generalViewVersion)(
-				props.ctx,
-				props.input,
-			);
-			if (!overview) return overview;
-			return {
-				...overview,
-				generalViewVersion,
-			};
-		}),
-	getSaleTransactions: publicProcedure
-		.input(getSaleTransactionsSchema)
-		.query(async (props) => {
-			return getSaleTransactions(props.ctx, props.input);
-		}),
-	getSalesResolutions: publicProcedure
-		.input(getSalesResolutionsSchema)
-		.query(async (props) => {
-			const result = await getSalesResolutions(props.ctx, props.input);
-			return result;
-		}),
-	getSalesResolutionsSummary: publicProcedure
-		.input(getSalesResolutionsSchema)
-		.query(async (props) => {
-			return getSalesResolutionsSummary(props.ctx, props.input);
-		}),
-	getStepComponents: publicProcedure
-		.input(getStepComponentsSchema)
-		.query(async (props) => {
-			return getStepComponents(props.ctx, props.input);
-		}),
-	getMultiLineComponents: publicProcedure
-		.input(getMultiLineComponentsSchema)
-		.query(async (props) => {
-			return getMultiLineComponents(props.ctx, props.input);
-		}),
-	customersIndex: protectedProcedure
-		.input(getCustomersSchema)
-		.query(async (props) => {
-			return getCustomers(props.ctx, props.input);
-		}),
-	inboundIndex: publicProcedure
-		.input(inboundQuerySchema)
-		.query(async (props) => {
-			return getInbounds(props.ctx, props.input);
-		}),
-	inboundSummary: publicProcedure
-		.input(inboundQuerySchema)
-		.query(async (props) => {
-			return getInboundSummary(props.ctx, props.input);
-		}),
-	productionOverview: protectedProcedure
-		.input(getFullSalesDataSchema)
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			return loadCoreProductionOverview(() =>
-				getSaleInformation(props.ctx.db, props.input),
-			);
-		}),
-	productionReadiness: protectedProcedure
-		.input(productionReadinessSchema)
-		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			return getProductionReadiness(props.ctx.db, props.input);
-		}),
-	setProductionReadinessOverride: protectedProcedure
-		.input(setProductionReadinessOverrideSchema)
-		.mutation(async (props) => {
-			await requireProductionEditor(props.ctx);
-			if (!props.ctx.userId) {
-				throw new Error("Authentication is required.");
-			}
-			const actor = await props.ctx.db.users.findUnique({
-				where: {
-					id: props.ctx.userId,
-				},
-				select: {
-					id: true,
-					name: true,
-				},
-			});
-			if (!actor) {
-				throw new Error("Authenticated employee was not found.");
-			}
+  workflowCancellationPreview: protectedProcedure
+    .input(salesWorkflowCancellationPreviewSchema)
+    .query(async (props) => {
+      await requireWorkflowCancellationPermission(
+        props.ctx,
+        props.input.action,
+      );
+      try {
+        return await getSalesWorkflowCancellationPreview(
+          props.ctx.db,
+          props.input,
+        );
+      } catch (error) {
+        return toWorkflowCancellationTrpcError(error);
+      }
+    }),
+  cancelWorkflowLayer: protectedProcedure
+    .input(cancelSalesWorkflowLayerSchema)
+    .mutation(async (props) => {
+      await requireWorkflowCancellationPermission(
+        props.ctx,
+        props.input.action,
+      );
+      const actor = await props.ctx.db.users.findUnique({
+        where: { id: props.ctx.userId },
+        select: { id: true, name: true },
+      });
+      if (!actor) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "An authenticated employee is required.",
+        });
+      }
+      try {
+        return await cancelSalesWorkflowLayer(props.ctx.db, props.input, {
+          id: actor.id,
+          name: actor.name || `User ${actor.id}`,
+        });
+      } catch (error) {
+        return toWorkflowCancellationTrpcError(error);
+      }
+    }),
+  dealerOrderRequestCount: protectedProcedure.query(async (props) => {
+    return getDealerOrderRequestCount(props.ctx.db, props.ctx.userId);
+  }),
+  dealerOrderRequestAnalytics: protectedProcedure.query(async (props) => {
+    return getDealerOrderRequestAnalytics(props.ctx.db, props.ctx.userId);
+  }),
+  dealerOrderRequests: protectedProcedure
+    .input(dealerOrderRequestsSchema)
+    .query(async (props) => {
+      const [result, setting] = await Promise.all([
+        getDealerOrderRequests(props.ctx.db, props.ctx.userId, props.input),
+        getSettingAction("sales-settings", props.ctx.db),
+      ]);
+      const settings = normalizeDealerDeliveryPricingSettings(
+        asRecord(setting.meta)?.dealerDeliveryPricing,
+      );
+      return {
+        ...result,
+        data: result.data.map((request) => ({
+          ...request,
+          deliveryCostSuggestion: resolveDealerDeliveryCostSuggestion({
+            settings,
+            deliveryOption: request.deliveryOption,
+            grandTotal: request.grandTotal,
+          }),
+        })),
+      };
+    }),
+  dealerOrderRequest: protectedProcedure
+    .input(dealerOrderRequestIdSchema)
+    .query(async (props) => {
+      const [request, setting] = await Promise.all([
+        getDealerOrderRequest(
+          props.ctx.db,
+          props.ctx.userId,
+          props.input.requestId,
+        ),
+        getSettingAction("sales-settings", props.ctx.db),
+      ]);
+      const settings = normalizeDealerDeliveryPricingSettings(
+        asRecord(setting.meta)?.dealerDeliveryPricing,
+      );
+      return {
+        ...request,
+        deliveryCostSuggestion: resolveDealerDeliveryCostSuggestion({
+          settings,
+          deliveryOption: request.deliveryOption,
+          grandTotal: request.grandTotal,
+        }),
+      };
+    }),
+  approveDealerSalesRequest: protectedProcedure
+    .input(approveDealerOrderRequestSchema)
+    .mutation(async (props) => {
+      const result = await approveDealerOrderRequest(
+        props.ctx.db,
+        props.ctx.userId,
+        props.input.requestId,
+        {
+          deliveryCost: props.input.deliveryCost,
+          approverNote: props.input.approverNote,
+        },
+      );
+      if (!result.alreadyApproved) {
+        await sendDealerApprovalEmail(props.ctx, result);
+      }
+      return result;
+    }),
+  rejectDealerSalesRequest: protectedProcedure
+    .input(rejectDealerOrderRequestSchema)
+    .mutation(async (props) => {
+      const result = await rejectDealerOrderRequest(
+        props.ctx.db,
+        props.ctx.userId,
+        props.input.requestId,
+        props.input.reason,
+      );
+      await sendDealerRejectedEmail(props.ctx, result);
+      return result;
+    }),
+  createStep: publicProcedure
+    .input(
+      z.object({
+        title: z.string(),
+      }),
+    )
+    .mutation(async (props) => {
+      const db = props.ctx.db;
+      const title = props.input.title;
+      return await db.dykeSteps.create({
+        data: {
+          uid: generateRandomString(4),
+          title,
+          meta: {},
+        },
+      });
+      // return createStep(props.ctx, props.input);
+    }),
+  index: protectedProcedure
+    .input(salesQueryParamsSchema)
+    .query(async (props) => {
+      const query = props.input;
+      return getSales(props.ctx, transformSalesFilterQuery(query));
+    }),
+  sales: protectedProcedure
+    .input(salesQueryParamsSchema)
+    .query(async (props) => {
+      return sales(props.ctx, transformSalesFilterQuery(props.input));
+    }),
+  productions: protectedProcedure
+    .input(salesProductionQueryParamsSchema)
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      return getSalesProductions(props.ctx.db, props.input);
+    }),
+  productionTasks: protectedProcedure
+    .input(salesProductionQueryParamsSchema)
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      const input = { ...props.input };
+      input.workerId = props.ctx.userId;
+      return getSalesProductions(props.ctx.db, input);
+    }),
+  productionDashboardTasks: protectedProcedure
+    .input(salesProductionQueryParamsSchema.optional().nullable())
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      return getSalesProductionDashboard(props.ctx.db, {
+        ...(props.input || {}),
+        workerId: props.ctx.userId,
+      });
+    }),
+  productionDashboard: protectedProcedure
+    .input(salesProductionQueryParamsSchema.optional().nullable())
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      return getSalesProductionDashboard(props.ctx.db, {
+        ...(props.input || {}),
+      });
+    }),
+  productionSummary: protectedProcedure
+    .input(salesProductionQueryParamsSchema.optional())
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      return getSalesProductionSummary(props.ctx.db, {
+        ...(props.input || {}),
+      });
+    }),
+  productionCalendar: protectedProcedure
+    .input(salesProductionCalendarQuerySchema)
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      return getSalesProductionCalendar(props.ctx.db, props.input);
+    }),
+  productionCalendarTasks: protectedProcedure
+    .input(salesProductionCalendarQuerySchema)
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      return getSalesProductionCalendar(props.ctx.db, {
+        ...props.input,
+        assignedToId: props.ctx.userId,
+      });
+    }),
+  productionsV2: protectedProcedure
+    .input(productionV2ListQuerySchema)
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      const input =
+        props.input.scope === "worker"
+          ? {
+              ...props.input,
+              workerId: props.ctx.userId,
+            }
+          : props.input;
+      return getProductionListV2(props.ctx.db, input);
+    }),
+  productionDashboardV2: protectedProcedure
+    .input(productionV2ListQuerySchema)
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      const input =
+        props.input.scope === "worker"
+          ? {
+              ...props.input,
+              workerId: props.ctx.userId,
+            }
+          : props.input;
+      return getProductionDashboardV2(props.ctx.db, input);
+    }),
+  productionOrderDetailV2: protectedProcedure
+    .input(productionV2DetailQuerySchema)
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      const input =
+        props.input.scope === "worker"
+          ? {
+              ...props.input,
+              workerId: props.ctx.userId,
+            }
+          : props.input;
+      return getProductionOrderDetailV2(props.ctx.db, input);
+    }),
+  productionSubmissionMaterialReviews: protectedProcedure
+    .input(productionSubmissionMaterialReviewQueueSchema)
+    .query(async (props) => {
+      await requireProductionEditor(props.ctx);
+      return getProductionSubmissionMaterialReviewQueue(
+        props.ctx.db,
+        props.input,
+      );
+    }),
+  productionSubmissionMaterialReviewDetail: protectedProcedure
+    .input(productionSubmissionMaterialReviewDetailSchema)
+    .query(async (props) => {
+      await requireProductionEditor(props.ctx);
+      return getProductionSubmissionMaterialReviewDetail(
+        props.ctx.db,
+        props.input.reviewId,
+      );
+    }),
+  reviewProductionSubmission: protectedProcedure
+    .input(decideProductionSubmissionMaterialReviewSchema)
+    .mutation(async (props) => {
+      await requireProductionEditor(props.ctx);
+      await requireProductionReviewResolutionPermissions(
+        props.ctx,
+        props.input,
+      );
+      if (!props.ctx.userId) {
+        throw new Error("Authentication is required.");
+      }
+      const actor = await props.ctx.db.users.findUnique({
+        where: { id: props.ctx.userId },
+        select: { id: true, name: true },
+      });
+      if (!actor) {
+        throw new Error("Authenticated employee was not found.");
+      }
+      const result = await decideProductionSubmissionMaterialReview(
+        props.ctx.db,
+        props.input,
+        {
+          id: actor.id,
+          name: actor.name || "Production administrator",
+        },
+      );
+      const reconciledReview =
+        await props.ctx.db.salesProductionSubmissionMaterialReview.findUnique({
+          where: { id: result.reviewId },
+          select: { salesOrderId: true },
+        });
+      if (reconciledReview) {
+        await reconcileSalesHandoffAfterCommit(props.ctx.db, {
+          salesOrderIds: [reconciledReview.salesOrderId],
+          actorUserId: actor.id,
+          source: "api.production-submission-review.decision",
+        });
+      }
+      if (result.status === "APPROVED" || result.status === "REJECTED")
+        try {
+          const review =
+            await props.ctx.db.salesProductionSubmissionMaterialReview.findUnique(
+              {
+                where: { id: result.reviewId },
+                select: {
+                  decisionNote: true,
+                  order: {
+                    select: { id: true, orderId: true },
+                  },
+                  submittedBy: {
+                    select: { id: true },
+                  },
+                },
+              },
+            );
+          if (review) {
+            const notification = new Notifications(props.ctx.db);
+            await notification.create(
+              result.status === "APPROVED"
+                ? "sales_production_submission_material_approved"
+                : "sales_production_submission_material_rejected",
+              {
+                reviewId: result.reviewId,
+                salesId: review.order.id,
+                orderNo: review.order.orderId || undefined,
+                workerId: review.submittedBy.id,
+                status: result.status,
+                note: review.decisionNote || undefined,
+              },
+              {
+                author: { id: actor.id, role: "employee" },
+                recipients: [
+                  { ids: [review.submittedBy.id], role: "employee" },
+                ],
+                includeChannelSubscribers: false,
+                allowFallbackRecipient: false,
+                forceInAppRecipients: true,
+              },
+            );
+          }
+        } catch (error) {
+          console.warn(
+            "Production material review was decided, but worker notification failed.",
+            { error, reviewId: result.reviewId },
+          );
+        }
+      return result;
+    }),
+  getSalesHx: publicProcedure.input(getSalesHxSchema).query(async (props) => {
+    return getSalesHx(props.ctx, props.input);
+  }),
+  getSaleOverview: protectedProcedure
+    .input(getSaleOverviewSchema)
+    .query(async (props) => {
+      await requireSalesOverviewViewer(props.ctx);
+      const [viewSettings, superAdmin] = await Promise.all([
+        getSalesOverviewViewSettings(props.ctx.db),
+        isSuperAdmin(props.ctx),
+      ]);
+      const generalViewVersion = resolveSalesOverviewGeneralVersion({
+        isSuperAdmin: Boolean(superAdmin),
+        settings: viewSettings,
+      });
+      const overview = await getSaleOverviewLoader(generalViewVersion)(
+        props.ctx,
+        props.input,
+      );
+      if (!overview) return overview;
+      return {
+        ...overview,
+        generalViewVersion,
+      };
+    }),
+  getSaleTransactions: publicProcedure
+    .input(getSaleTransactionsSchema)
+    .query(async (props) => {
+      return getSaleTransactions(props.ctx, props.input);
+    }),
+  getSalesResolutions: publicProcedure
+    .input(getSalesResolutionsSchema)
+    .query(async (props) => {
+      const result = await getSalesResolutions(props.ctx, props.input);
+      return result;
+    }),
+  getSalesResolutionsSummary: publicProcedure
+    .input(getSalesResolutionsSchema)
+    .query(async (props) => {
+      return getSalesResolutionsSummary(props.ctx, props.input);
+    }),
+  getStepComponents: publicProcedure
+    .input(getStepComponentsSchema)
+    .query(async (props) => {
+      return getStepComponents(props.ctx, props.input);
+    }),
+  getMultiLineComponents: publicProcedure
+    .input(getMultiLineComponentsSchema)
+    .query(async (props) => {
+      return getMultiLineComponents(props.ctx, props.input);
+    }),
+  customersIndex: protectedProcedure
+    .input(getCustomersSchema)
+    .query(async (props) => {
+      return getCustomers(props.ctx, props.input);
+    }),
+  inboundIndex: publicProcedure
+    .input(inboundQuerySchema)
+    .query(async (props) => {
+      return getInbounds(props.ctx, props.input);
+    }),
+  inboundSummary: publicProcedure
+    .input(inboundQuerySchema)
+    .query(async (props) => {
+      return getInboundSummary(props.ctx, props.input);
+    }),
+  productionOverview: protectedProcedure
+    .input(getFullSalesDataSchema)
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      return loadCoreProductionOverview(() =>
+        getSaleInformation(props.ctx.db, props.input),
+      );
+    }),
+  productionReadiness: protectedProcedure
+    .input(productionReadinessSchema)
+    .query(async (props) => {
+      await requireProductionOverviewViewer(props.ctx);
+      return getProductionReadiness(props.ctx.db, props.input);
+    }),
+  setProductionReadinessOverride: protectedProcedure
+    .input(setProductionReadinessOverrideSchema)
+    .mutation(async (props) => {
+      await requireProductionEditor(props.ctx);
+      if (!props.ctx.userId) {
+        throw new Error("Authentication is required.");
+      }
+      const actor = await props.ctx.db.users.findUnique({
+        where: {
+          id: props.ctx.userId,
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+      if (!actor) {
+        throw new Error("Authenticated employee was not found.");
+      }
 
-			return setProductionReadinessOverride(props.ctx.db, {
-				salesOrderId: props.input.salesOrderId,
-				expectedRevision: props.input.expectedRevision,
-				action: props.input.action,
-				actor,
-			});
-		}),
-	saveOrderProductionGate: protectedProcedure
-		.input(saveOrderProductionGateSchema)
-		.mutation(async (props) => {
-			return saveOrderProductionGate(props.ctx, props.input);
-		}),
-	salesRepOptions: protectedProcedure
-		.input(salesRepOptionsSchema)
-		.query(async (props) => {
-			return getSalesRepTransferOptions(props.ctx, props.input);
-		}),
-	transferSalesRep: protectedProcedure
-		.input(transferSalesRepSchema)
-		.mutation(async (props) => {
-			return transferSalesRep(props.ctx, props.input);
-		}),
-	getOrders: publicProcedure.input(getOrdersSchema).query(async (props) => {
-		return getOrders(props.ctx, props.input);
-	}),
-	getOrdersSummary: publicProcedure
-		.input(getOrdersSummarySchema)
-		.query(async (props) => {
-			return getOrdersSummary(props.ctx, props.input);
-		}),
-	getPaymentReviewSettings: protectedProcedure.query(async (props) => {
-		const [setting, canManage] = await Promise.all([
-			getSettingAction("sales-settings", props.ctx.db),
-			isSuperAdmin(props.ctx),
-		]);
-		const meta = (setting.meta || {}) as Record<string, any>;
-		return {
-			settings: normalizeSalesPaymentReviewSettings(meta.paymentReview),
-			canManage,
-		};
-	}),
-	getSalesOverviewViewSettings: protectedProcedure.query(async (props) => {
-		await requireSuperAdmin(props.ctx);
-		return {
-			settings: await getSalesOverviewViewSettings(props.ctx.db),
-		};
-	}),
-	updateSalesOverviewViewSettings: protectedProcedure
-		.input(salesOverviewViewSettingsSchema)
-		.mutation(async (props) => {
-			await requireSuperAdmin(props.ctx);
-			return {
-				settings: await updateSalesOverviewViewSettings(
-					props.ctx.db,
-					props.input,
-				),
-			};
-		}),
-	getSalesHandoffTrigger: protectedProcedure.query(async (props) => {
-		await requireSuperAdmin(props.ctx);
-		return {
-			settings: await getSalesHandoffTriggerSettings(props.ctx.db),
-		};
-	}),
-	getSalesHandoffActions: protectedProcedure
-		.input(salesHandoffActionsInputSchema.optional())
-		.query(async (props) => {
-			return getSalesHandoffActions(props.ctx.db, {
-				actorUserId: props.ctx.userId,
-				limit: props.input?.limit,
-			});
-		}),
-	getOpenSalesHandoffOrderScope: protectedProcedure
-		.input(z.object({ limit: z.number().int().min(1).max(200).optional() }))
-		.query(({ ctx, input }) =>
-			getOpenSalesHandoffOrderScope(ctx.db, {
-				actorUserId: ctx.userId,
-				limit: input.limit,
-			}),
-		),
-	updateSalesHandoffTrigger: protectedProcedure
-		.input(salesHandoffTriggerInputSchema)
-		.mutation(async (props) => {
-			await requireSuperAdmin(props.ctx);
-			const result = await updateSalesHandoffTriggerSettings(
-				props.ctx.db,
-				props.input,
-			);
-			if (result.changed) {
-				await reconcileSalesHandoffPolicyAfterCommit(props.ctx.db, {
-					policyRevision: result.policy.revision,
-					policyChangedAt: result.policy.changedAt,
-					actorUserId: props.ctx.userId,
-					source: "api.sales-handoff.update-trigger-settings",
-				});
-			}
-			return {
-				settings: result.policy,
-				changed: result.changed,
-			};
-		}),
-	updatePaymentReviewSettings: protectedProcedure
-		.input(updatePaymentReviewSettingsSchema)
-		.mutation(async (props) => {
-			await requireSuperAdmin(props.ctx);
-			const setting = await getSettingAction("sales-settings", props.ctx.db);
-			const meta = ((setting.meta || {}) as Record<string, any>) || {};
-			const nextPaymentReview = normalizeSalesPaymentReviewSettings({
-				...(meta.paymentReview || {}),
-				autoReviewActions: props.input.autoReviewActions,
-			});
-			await updateSettingsMeta(
-				"sales-settings",
-				{
-					...meta,
-					paymentReview: nextPaymentReview,
-				},
-				props.ctx.db,
-				"full",
-			);
-			return {
-				settings: nextPaymentReview,
-			};
-		}),
-	getSpecialOrderSettings: protectedProcedure.query(async ({ ctx }) => {
-		await requireSuperAdmin(ctx);
-		return getSpecialOrderSettingsManagement(ctx.db, ctx.userId ?? null);
-	}),
-	getSpecialOrderRolloutMetrics: protectedProcedure.query(async ({ ctx }) => {
-		await requireSuperAdmin(ctx);
-		return getSpecialOrderRolloutMetrics(ctx.db);
-	}),
-	updateSpecialOrderSettings: protectedProcedure
-		.input(updateSpecialOrderSettingsSchema)
-		.mutation(async ({ ctx, input }) => {
-			const userId = await requireSuperAdmin(ctx);
-			return {
-				settings: await updateSpecialOrderOperationalSettings(
-					ctx.db,
-					userId,
-					input,
-				),
-			};
-		}),
-	saveSpecialOrderPolicyDraft: protectedProcedure
-		.input(specialOrderPolicyInputSchema)
-		.mutation(async ({ ctx, input }) => {
-			const userId = await requireSuperAdmin(ctx);
-			return {
-				draft: await saveSpecialOrderPolicyDraft(ctx.db, userId, input),
-			};
-		}),
-	publishSpecialOrderPolicy: protectedProcedure
-		.input(specialOrderPolicyInputSchema)
-		.mutation(async ({ ctx, input }) => {
-			const userId = await requireSuperAdmin(ctx);
-			return publishSpecialOrderPolicy(ctx.db, userId, input);
-		}),
-	getPrintSettings: protectedProcedure.query(async (props) => {
-		const [setting, canManage] = await Promise.all([
-			getSettingAction("sales-settings", props.ctx.db),
-			isSuperAdmin(props.ctx),
-		]);
-		const meta = (setting.meta || {}) as Record<string, unknown>;
-		return {
-			settings: normalizeSalesPrintSettings(meta.print),
-			dealerDeliveryPricing: normalizeDealerDeliveryPricingSettings(
-				meta.dealerDeliveryPricing,
-			),
-			canManage,
-		};
-	}),
-	updateDealerDeliveryPricingSettings: protectedProcedure
-		.input(dealerDeliveryPricingSchema)
-		.mutation(async (props) => {
-			await requireSuperAdmin(props.ctx);
-			const dealerDeliveryPricing = normalizeDealerDeliveryPricingSettings(
-				props.input,
-			);
-			const setting = await getSettingAction("sales-settings", props.ctx.db);
-			const meta = (setting.meta || {}) as Record<string, unknown>;
-			await updateSettingsMeta(
-				"sales-settings",
-				{ ...meta, dealerDeliveryPricing },
-				props.ctx.db,
-				"full",
-			);
-			return { dealerDeliveryPricing };
-		}),
-	updatePrintSettings: protectedProcedure
-		.input(salesPrintSettingsSchema)
-		.mutation(async (props) => {
-			await requireSuperAdmin(props.ctx);
-			const setting = await getSettingAction("sales-settings", props.ctx.db);
-			const meta = ((setting.meta || {}) as Record<string, unknown>) || {};
-			const print = normalizeSalesPrintSettings(props.input);
-			await updateSettingsMeta(
-				"sales-settings",
-				{
-					...meta,
-					print,
-				},
-				props.ctx.db,
-				"full",
-			);
-			return { settings: print };
-		}),
-	getPrintPreviewOrders: protectedProcedure.query(async (props) => {
-		await requireSuperAdmin(props.ctx);
-		const orders = await props.ctx.db.salesOrders.findMany({
-			where: {
-				deletedAt: null,
-				type: "order",
-			},
-			orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-			take: 12,
-			select: {
-				id: true,
-				orderId: true,
-				createdAt: true,
-				grandTotal: true,
-				customer: {
-					select: {
-						name: true,
-						businessName: true,
-					},
-				},
-				billingAddress: {
-					select: {
-						name: true,
-					},
-				},
-			},
-		});
+      return setProductionReadinessOverride(props.ctx.db, {
+        salesOrderId: props.input.salesOrderId,
+        expectedRevision: props.input.expectedRevision,
+        action: props.input.action,
+        actor,
+      });
+    }),
+  saveOrderProductionGate: protectedProcedure
+    .input(saveOrderProductionGateSchema)
+    .mutation(async (props) => {
+      return saveOrderProductionGate(props.ctx, props.input);
+    }),
+  salesRepOptions: protectedProcedure
+    .input(salesRepOptionsSchema)
+    .query(async (props) => {
+      return getSalesRepTransferOptions(props.ctx, props.input);
+    }),
+  transferSalesRep: protectedProcedure
+    .input(transferSalesRepSchema)
+    .mutation(async (props) => {
+      return transferSalesRep(props.ctx, props.input);
+    }),
+  getOrders: publicProcedure.input(getOrdersSchema).query(async (props) => {
+    return getOrders(props.ctx, props.input);
+  }),
+  getOrdersSummary: publicProcedure
+    .input(getOrdersSummarySchema)
+    .query(async (props) => {
+      return getOrdersSummary(props.ctx, props.input);
+    }),
+  getPaymentReviewSettings: protectedProcedure.query(async (props) => {
+    const [setting, canManage] = await Promise.all([
+      getSettingAction("sales-settings", props.ctx.db),
+      isSuperAdmin(props.ctx),
+    ]);
+    const meta = (setting.meta || {}) as Record<string, any>;
+    return {
+      settings: normalizeSalesPaymentReviewSettings(meta.paymentReview),
+      canManage,
+    };
+  }),
+  getSalesOverviewViewSettings: protectedProcedure.query(async (props) => {
+    await requireSuperAdmin(props.ctx);
+    return {
+      settings: await getSalesOverviewViewSettings(props.ctx.db),
+    };
+  }),
+  updateSalesOverviewViewSettings: protectedProcedure
+    .input(salesOverviewViewSettingsSchema)
+    .mutation(async (props) => {
+      await requireSuperAdmin(props.ctx);
+      return {
+        settings: await updateSalesOverviewViewSettings(
+          props.ctx.db,
+          props.input,
+        ),
+      };
+    }),
+  getSalesHandoffTrigger: protectedProcedure.query(async (props) => {
+    await requireSuperAdmin(props.ctx);
+    return {
+      settings: await getSalesHandoffTriggerSettings(props.ctx.db),
+    };
+  }),
+  getSalesHandoffActions: protectedProcedure
+    .input(salesHandoffActionsInputSchema.optional())
+    .query(async (props) => {
+      return getSalesHandoffActions(props.ctx.db, {
+        actorUserId: props.ctx.userId,
+        limit: props.input?.limit,
+      });
+    }),
+  getOpenSalesHandoffOrderScope: protectedProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(200).optional() }))
+    .query(({ ctx, input }) =>
+      getOpenSalesHandoffOrderScope(ctx.db, {
+        actorUserId: ctx.userId,
+        limit: input.limit,
+      }),
+    ),
+  updateSalesHandoffTrigger: protectedProcedure
+    .input(salesHandoffTriggerInputSchema)
+    .mutation(async (props) => {
+      await requireSuperAdmin(props.ctx);
+      const result = await updateSalesHandoffTriggerSettings(
+        props.ctx.db,
+        props.input,
+      );
+      if (result.changed) {
+        await reconcileSalesHandoffPolicyAfterCommit(props.ctx.db, {
+          policyRevision: result.policy.revision,
+          policyChangedAt: result.policy.changedAt,
+          actorUserId: props.ctx.userId,
+          source: "api.sales-handoff.update-trigger-settings",
+        });
+      }
+      return {
+        settings: result.policy,
+        changed: result.changed,
+      };
+    }),
+  updatePaymentReviewSettings: protectedProcedure
+    .input(updatePaymentReviewSettingsSchema)
+    .mutation(async (props) => {
+      await requireSuperAdmin(props.ctx);
+      const setting = await getSettingAction("sales-settings", props.ctx.db);
+      const meta = ((setting.meta || {}) as Record<string, any>) || {};
+      const nextPaymentReview = normalizeSalesPaymentReviewSettings({
+        ...(meta.paymentReview || {}),
+        autoReviewActions: props.input.autoReviewActions,
+      });
+      await updateSettingsMeta(
+        "sales-settings",
+        {
+          ...meta,
+          paymentReview: nextPaymentReview,
+        },
+        props.ctx.db,
+        "full",
+      );
+      return {
+        settings: nextPaymentReview,
+      };
+    }),
+  getSpecialOrderSettings: protectedProcedure.query(async ({ ctx }) => {
+    await requireSuperAdmin(ctx);
+    return getSpecialOrderSettingsManagement(ctx.db, ctx.userId ?? null);
+  }),
+  getSpecialOrderRolloutMetrics: protectedProcedure.query(async ({ ctx }) => {
+    await requireSuperAdmin(ctx);
+    return getSpecialOrderRolloutMetrics(ctx.db);
+  }),
+  updateSpecialOrderSettings: protectedProcedure
+    .input(updateSpecialOrderSettingsSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = await requireSuperAdmin(ctx);
+      return {
+        settings: await updateSpecialOrderOperationalSettings(
+          ctx.db,
+          userId,
+          input,
+        ),
+      };
+    }),
+  saveSpecialOrderPolicyDraft: protectedProcedure
+    .input(specialOrderPolicyInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = await requireSuperAdmin(ctx);
+      return {
+        draft: await saveSpecialOrderPolicyDraft(ctx.db, userId, input),
+      };
+    }),
+  publishSpecialOrderPolicy: protectedProcedure
+    .input(specialOrderPolicyInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = await requireSuperAdmin(ctx);
+      return publishSpecialOrderPolicy(ctx.db, userId, input);
+    }),
+  getPrintSettings: protectedProcedure.query(async (props) => {
+    const [setting, canManage] = await Promise.all([
+      getSettingAction("sales-settings", props.ctx.db),
+      isSuperAdmin(props.ctx),
+    ]);
+    const meta = (setting.meta || {}) as Record<string, unknown>;
+    return {
+      settings: normalizeSalesPrintSettings(meta.print),
+      dealerDeliveryPricing: normalizeDealerDeliveryPricingSettings(
+        meta.dealerDeliveryPricing,
+      ),
+      canManage,
+    };
+  }),
+  updateDealerDeliveryPricingSettings: protectedProcedure
+    .input(dealerDeliveryPricingSchema)
+    .mutation(async (props) => {
+      await requireSuperAdmin(props.ctx);
+      const dealerDeliveryPricing = normalizeDealerDeliveryPricingSettings(
+        props.input,
+      );
+      const setting = await getSettingAction("sales-settings", props.ctx.db);
+      const meta = (setting.meta || {}) as Record<string, unknown>;
+      await updateSettingsMeta(
+        "sales-settings",
+        { ...meta, dealerDeliveryPricing },
+        props.ctx.db,
+        "full",
+      );
+      return { dealerDeliveryPricing };
+    }),
+  updatePrintSettings: protectedProcedure
+    .input(salesPrintSettingsSchema)
+    .mutation(async (props) => {
+      await requireSuperAdmin(props.ctx);
+      const setting = await getSettingAction("sales-settings", props.ctx.db);
+      const meta = ((setting.meta || {}) as Record<string, unknown>) || {};
+      const print = normalizeSalesPrintSettings(props.input);
+      await updateSettingsMeta(
+        "sales-settings",
+        {
+          ...meta,
+          print,
+        },
+        props.ctx.db,
+        "full",
+      );
+      return { settings: print };
+    }),
+  getPrintPreviewOrders: protectedProcedure.query(async (props) => {
+    await requireSuperAdmin(props.ctx);
+    const orders = await props.ctx.db.salesOrders.findMany({
+      where: {
+        deletedAt: null,
+        type: "order",
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 12,
+      select: {
+        id: true,
+        orderId: true,
+        createdAt: true,
+        grandTotal: true,
+        customer: {
+          select: {
+            name: true,
+            businessName: true,
+          },
+        },
+        billingAddress: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
 
-		return orders.map((order) => ({
-			id: order.id,
-			orderId: order.orderId,
-			createdAt: order.createdAt,
-			grandTotal: order.grandTotal ?? 0,
-			customerName:
-				order.customer?.businessName ||
-				order.customer?.name ||
-				order.billingAddress?.name ||
-				"Unnamed customer",
-		}));
-	}),
-	markLatestPaymentReviewed: protectedProcedure
-		.input(
-			z.object({
-				salesId: z.number(),
-				note: z.string().trim().max(500).optional().nullable(),
-			}),
-		)
-		.mutation(async (props) => {
-			const payment = await markLatestSalesPaymentReviewed(props.ctx.db, {
-				salesId: props.input.salesId,
-				reviewedById: props.ctx.userId,
-				reviewMethod: "manual",
-				reviewNote: props.input.note || "Reviewed from sales orders table.",
-			});
-			if (!payment) {
-				throw new Error("No payment needs review for this order.");
-			}
-			return payment;
-		}),
-	markPaymentsReviewed: protectedProcedure
-		.input(markPaymentsReviewedSchema)
-		.mutation(async (props) => {
-			return markSalesPaymentsReviewed(props.ctx.db, {
-				salesIds: props.input.salesIds,
-				reviewedById: props.ctx.userId,
-				reviewNote: props.input.note || "Reviewed from batch Mark as menu.",
-			});
-		}),
-	createPaymentLink: protectedProcedure
-		.input(
-			z.object({
-				salesId: z.number(),
-			}),
-		)
-		.mutation(async (props) => {
-			const order = await props.ctx.db.salesOrders.findFirstOrThrow({
-				where: {
-					id: props.input.salesId,
-					type: "order",
-					deletedAt: null,
-				},
-				select: {
-					id: true,
-					orderId: true,
-					customerId: true,
-					amountDue: true,
-					customer: {
-						select: {
-							phoneNo: true,
-						},
-					},
-				},
-			});
-			const amountDue = Math.max(Number(order.amountDue || 0), 0);
-			if (amountDue <= 0) {
-				throw new Error("This order does not have an outstanding balance.");
-			}
-			const token = await buildFullPaymentToken(props.ctx, {
-				salesId: order.id,
-				customerId: order.customerId,
-				customerPhone: order.customer?.phoneNo,
-				amountDue,
-			});
-			if (!token) {
-				throw new Error("Unable to create a payment link for this order.");
-			}
-			const url = `${getAppUrl().replace(/\/$/, "")}/checkout/${token}/v2`;
-			return {
-				url,
-				token,
-				orderId: order.orderId,
-				amountDue,
-			};
-		}),
-	updatePriority: protectedProcedure
-		.input(
-			z
-				.object({
-					salesId: z.number().optional().nullable(),
-					orderId: z.string().optional().nullable(),
-					priority: salesPrioritySchema,
-				})
-				.refine((input) => input.salesId || input.orderId, {
-					message: "salesId or orderId is required",
-					path: ["salesId"],
-				}),
-		)
-		.mutation(async (props) => {
-			const order = await props.ctx.db.salesOrders.findFirstOrThrow({
-				where: {
-					id: props.input.salesId || undefined,
-					orderId: props.input.orderId || undefined,
-				},
-				select: {
-					id: true,
-					orderId: true,
-					priority: true,
-				},
-			});
+    return orders.map((order) => ({
+      id: order.id,
+      orderId: order.orderId,
+      createdAt: order.createdAt,
+      grandTotal: order.grandTotal ?? 0,
+      customerName:
+        order.customer?.businessName ||
+        order.customer?.name ||
+        order.billingAddress?.name ||
+        "Unnamed customer",
+    }));
+  }),
+  markLatestPaymentReviewed: protectedProcedure
+    .input(
+      z.object({
+        salesId: z.number(),
+        note: z.string().trim().max(500).optional().nullable(),
+      }),
+    )
+    .mutation(async (props) => {
+      const payment = await markLatestSalesPaymentReviewed(props.ctx.db, {
+        salesId: props.input.salesId,
+        reviewedById: props.ctx.userId,
+        reviewMethod: "manual",
+        reviewNote: props.input.note || "Reviewed from sales orders table.",
+      });
+      if (!payment) {
+        throw new Error("No payment needs review for this order.");
+      }
+      return payment;
+    }),
+  markPaymentsReviewed: protectedProcedure
+    .input(markPaymentsReviewedSchema)
+    .mutation(async (props) => {
+      return markSalesPaymentsReviewed(props.ctx.db, {
+        salesIds: props.input.salesIds,
+        reviewedById: props.ctx.userId,
+        reviewNote: props.input.note || "Reviewed from batch Mark as menu.",
+      });
+    }),
+  createPaymentLink: protectedProcedure
+    .input(
+      z.object({
+        salesId: z.number(),
+      }),
+    )
+    .mutation(async (props) => {
+      const order = await props.ctx.db.salesOrders.findFirstOrThrow({
+        where: {
+          id: props.input.salesId,
+          type: "order",
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          orderId: true,
+          customerId: true,
+          amountDue: true,
+          customer: {
+            select: {
+              phoneNo: true,
+            },
+          },
+        },
+      });
+      const amountDue = Math.max(Number(order.amountDue || 0), 0);
+      if (amountDue <= 0) {
+        throw new Error("This order does not have an outstanding balance.");
+      }
+      const token = await buildFullPaymentToken(props.ctx, {
+        salesId: order.id,
+        customerId: order.customerId,
+        customerPhone: order.customer?.phoneNo,
+        amountDue,
+      });
+      if (!token) {
+        throw new Error("Unable to create a payment link for this order.");
+      }
+      const url = `${getAppUrl().replace(/\/$/, "")}/checkout/${token}/v2`;
+      return {
+        url,
+        token,
+        orderId: order.orderId,
+        amountDue,
+      };
+    }),
+  updatePriority: protectedProcedure
+    .input(
+      z
+        .object({
+          salesId: z.number().optional().nullable(),
+          orderId: z.string().optional().nullable(),
+          priority: salesPrioritySchema,
+        })
+        .refine((input) => input.salesId || input.orderId, {
+          message: "salesId or orderId is required",
+          path: ["salesId"],
+        }),
+    )
+    .mutation(async (props) => {
+      const order = await props.ctx.db.salesOrders.findFirstOrThrow({
+        where: {
+          id: props.input.salesId || undefined,
+          orderId: props.input.orderId || undefined,
+        },
+        select: {
+          id: true,
+          orderId: true,
+          priority: true,
+        },
+      });
 
-			return props.ctx.db.salesOrders.update({
-				where: {
-					id: order.id,
-				},
-				data: {
-					priority: props.input.priority,
-				},
-				select: {
-					id: true,
-					orderId: true,
-					priority: true,
-				},
-			});
-		}),
-	updatePaymentMethod: protectedProcedure
-		.input(updateSalesPaymentMethodSchema)
-		.mutation(async (props) => {
-			const paymentMethod = props.input.paymentMethod.trim();
-			const order = await props.ctx.db.salesOrders.findUniqueOrThrow({
-				where: {
-					id: props.input.salesId,
-				},
-				select: {
-					id: true,
-					orderId: true,
-					type: true,
-					amountDue: true,
-					meta: true,
-				},
-			});
+      return props.ctx.db.salesOrders.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          priority: props.input.priority,
+        },
+        select: {
+          id: true,
+          orderId: true,
+          priority: true,
+        },
+      });
+    }),
+  updatePaymentMethod: protectedProcedure
+    .input(updateSalesPaymentMethodSchema)
+    .mutation(async (props) => {
+      const paymentMethod = props.input.paymentMethod.trim();
+      const order = await props.ctx.db.salesOrders.findUniqueOrThrow({
+        where: {
+          id: props.input.salesId,
+        },
+        select: {
+          id: true,
+          orderId: true,
+          type: true,
+          amountDue: true,
+          meta: true,
+        },
+      });
 
-			if (order.type !== "order") {
-				throw new Error("Payment method can only be changed on orders.");
-			}
+      if (order.type !== "order") {
+        throw new Error("Payment method can only be changed on orders.");
+      }
 
-			const amountDue = Math.max(Number(order.amountDue || 0), 0);
-			if (amountDue <= 0) {
-				throw new Error(
-					"Payment method cannot be changed after payment is complete.",
-				);
-			}
+      const amountDue = Math.max(Number(order.amountDue || 0), 0);
+      if (amountDue <= 0) {
+        throw new Error(
+          "Payment method cannot be changed after payment is complete.",
+        );
+      }
 
-			const meta = asRecord(order.meta) ?? {};
-			const cccPercentage = resolveCccPercentageFromMeta(meta);
-			const charge = calculatePaymentChannelCharge({
-				paymentMethod,
-				paymentAmount: amountDue,
-				cccPercentage,
-			});
-			const newSalesForm = asRecord(meta.newSalesForm);
-			const form = asRecord(newSalesForm?.form);
-			const nextNewSalesForm = newSalesForm
-				? {
-						...newSalesForm,
-						form: {
-							...(form ?? {}),
-							paymentMethod,
-						},
-					}
-				: undefined;
+      const meta = asRecord(order.meta) ?? {};
+      const cccPercentage = resolveCccPercentageFromMeta(meta);
+      const charge = calculatePaymentChannelCharge({
+        paymentMethod,
+        paymentAmount: amountDue,
+        cccPercentage,
+      });
+      const newSalesForm = asRecord(meta.newSalesForm);
+      const form = asRecord(newSalesForm?.form);
+      const nextNewSalesForm = newSalesForm
+        ? {
+            ...newSalesForm,
+            form: {
+              ...(form ?? {}),
+              paymentMethod,
+            },
+          }
+        : undefined;
 
-			return props.ctx.db.salesOrders.update({
-				where: {
-					id: order.id,
-				},
-				data: {
-					meta: {
-						...meta,
-						...(nextNewSalesForm
-							? {
-									newSalesForm: nextNewSalesForm,
-								}
-							: {}),
-						payment_option: paymentMethod,
-						ccc_percentage: cccPercentage,
-						ccc: charge.amount,
-					},
-				},
-				select: {
-					id: true,
-					orderId: true,
-					amountDue: true,
-					meta: true,
-				},
-			});
-		}),
-	quotes: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
-		return getQuotes(props.ctx, transformSalesFilterQuery(props.input));
-	}),
-	salesPayWithWallet: publicProcedure
-		.input(salesPayWithWalletSchema)
-		.mutation(async (props) => {
-			const result = await salesPayWithWallet(props.ctx.db, props.input);
-			await reconcileSalesHandoffAfterCommit(props.ctx.db, {
-				salesOrderIds: props.input.salesIds,
-				actorUserId: props.ctx.userId ?? props.input.authorId ?? 1,
-				source: "api.sales.wallet-payment",
-				initialExposureMilestone: "QUALIFICATION",
-			});
-			return result;
-		}),
-	startNewSales: publicProcedure
-		.input(startNewSalesSchema)
-		.mutation(async (props) => {
-			return startNewSales(props.ctx, props.input.customerId);
-		}),
-	resolvePayment: publicProcedure
-		.input(resolvePaymentSchema)
-		.mutation(async (props) => {
-			return resolvePayment(props.ctx, props.input);
-		}),
-	restore: publicProcedure
-		.input(z.object({ salesId: z.number() }))
-		.mutation(async (props) => {
-			await props.ctx.db.salesOrders.update({
-				where: {
-					id: props.input.salesId,
-					deletedAt: {},
-				},
-				data: {
-					// bin: false,
-					deletedAt: null,
-				},
-			});
-			await reconcileSalesHandoffAfterCommit(props.ctx.db, {
-				salesOrderIds: [props.input.salesId],
-				actorUserId: props.ctx.userId ?? 1,
-				source: "api.sales.restore",
-			});
-			return true;
-		}),
-	// sales statistics
-	getProductReport: publicProcedure
-		.input(productReportSchema)
-		.query(async (props) => {
-			return getProductReport(props.ctx, props.input);
-		}),
+      return props.ctx.db.salesOrders.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          meta: {
+            ...meta,
+            ...(nextNewSalesForm
+              ? {
+                  newSalesForm: nextNewSalesForm,
+                }
+              : {}),
+            payment_option: paymentMethod,
+            ccc_percentage: cccPercentage,
+            ccc: charge.amount,
+          },
+        },
+        select: {
+          id: true,
+          orderId: true,
+          amountDue: true,
+          meta: true,
+        },
+      });
+    }),
+  quotes: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
+    return getQuotes(props.ctx, transformSalesFilterQuery(props.input));
+  }),
+  salesPayWithWallet: publicProcedure
+    .input(salesPayWithWalletSchema)
+    .mutation(async (props) => {
+      const result = await salesPayWithWallet(props.ctx.db, props.input);
+      await reconcileSalesHandoffAfterCommit(props.ctx.db, {
+        salesOrderIds: props.input.salesIds,
+        actorUserId: props.ctx.userId ?? props.input.authorId ?? 1,
+        source: "api.sales.wallet-payment",
+        initialExposureMilestone: "QUALIFICATION",
+      });
+      return result;
+    }),
+  startNewSales: publicProcedure
+    .input(startNewSalesSchema)
+    .mutation(async (props) => {
+      return startNewSales(props.ctx, props.input.customerId);
+    }),
+  resolvePayment: publicProcedure
+    .input(resolvePaymentSchema)
+    .mutation(async (props) => {
+      return resolvePayment(props.ctx, props.input);
+    }),
+  restore: publicProcedure
+    .input(z.object({ salesId: z.number() }))
+    .mutation(async (props) => {
+      await props.ctx.db.salesOrders.update({
+        where: {
+          id: props.input.salesId,
+          deletedAt: {},
+        },
+        data: {
+          // bin: false,
+          deletedAt: null,
+        },
+      });
+      await reconcileSalesHandoffAfterCommit(props.ctx.db, {
+        salesOrderIds: [props.input.salesId],
+        actorUserId: props.ctx.userId ?? 1,
+        source: "api.sales.restore",
+      });
+      return true;
+    }),
+  // sales statistics
+  getProductReport: publicProcedure
+    .input(productReportSchema)
+    .query(async (props) => {
+      return getProductReport(props.ctx, props.input);
+    }),
 
-	accountingIndex: publicProcedure
-		.input(accountingIndexSchema)
-		.query(async (props) => {
-			const result = await accountingIndex(props.ctx, props.input);
-			return result;
-		}),
-	getSalesAccountings: publicProcedure
-		.input(getSalesAccountingsSchema)
-		.query(async (props) => {
-			return getSalesAccountings(props.ctx, props.input);
-		}),
-	mobileDashboardOverview: publicProcedure.query(async (props) => {
-		return getMobileSalesDashboardOverview(props.ctx);
-	}),
-	getSuppliers: publicProcedure
-		.input(getSuppliersSchema)
-		.query(async (props) => {
-			return getSuppliers(props.ctx, props.input);
-		}),
-	saveSupplier: publicProcedure
-		.input(saveSupplierSchema)
-		.mutation(async (props) => {
-			return saveSupplier(props.ctx, props.input);
-		}),
-	deleteSupplier: publicProcedure
-		.input(deleteSupplierSchema)
-		.mutation(async (props) => {
-			return deleteSupplier(props.ctx, props.input);
-		}),
-	updateStepMeta: publicProcedure
-		.input(updateStepMetaSchema)
-		.mutation(async (props) => {
-			return updateStepMeta(props.ctx, props.input);
-		}),
-	createWorkflowComponent: protectedProcedure
-		.input(createWorkflowComponentSchema)
-		.mutation(async ({ ctx, input }) => {
-			await requireWorkflowComponentEditor(ctx);
-			return createWorkflowComponent(ctx, input);
-		}),
-	saveWorkflowComponentDetails: protectedProcedure
-		.input(saveWorkflowComponentDetailsSchema)
-		.mutation(async ({ ctx, input }) => {
-			await requireWorkflowComponentEditor(ctx);
-			return saveWorkflowComponentDetails(ctx, input);
-		}),
-	saveWorkflowComponentVisibility: protectedProcedure
-		.input(saveWorkflowComponentVisibilitySchema)
-		.mutation(async ({ ctx, input }) => {
-			await requireWorkflowComponentAdmin(ctx);
-			return saveWorkflowComponentVisibility(ctx, input);
-		}),
-	saveWorkflowComponentSectionOverride: protectedProcedure
-		.input(saveWorkflowComponentSectionOverrideSchema)
-		.mutation(async ({ ctx, input }) => {
-			await requireWorkflowComponentAdmin(ctx);
-			return saveWorkflowComponentSectionOverride(ctx, input);
-		}),
-	saveWorkflowComponentRedirect: protectedProcedure
-		.input(saveWorkflowComponentRedirectSchema)
-		.mutation(async ({ ctx, input }) => {
-			await requireWorkflowComponentAdmin(ctx);
-			return saveWorkflowComponentRedirect(ctx, input);
-		}),
-	saveWorkflowComponentPricing: protectedProcedure
-		.input(saveWorkflowComponentPricingSchema)
-		.mutation(async ({ ctx, input }) => {
-			await requireSuperAdmin(ctx);
-			return saveWorkflowComponentPricing(ctx, input);
-		}),
-	archiveWorkflowComponents: protectedProcedure
-		.input(archiveWorkflowComponentsSchema)
-		.mutation(async ({ ctx, input }) => {
-			await requireWorkflowComponentAdmin(ctx);
-			return archiveWorkflowComponents(ctx, input);
-		}),
-	copySale: protectedProcedure.input(copySaleSchema).mutation(async (props) => {
-		return copySale(props.ctx, props.input);
-	}),
-	moveSale: protectedProcedure.input(moveSaleSchema).mutation(async (props) => {
-		return moveSale(props.ctx, props.input);
-	}),
-	deleteSalesByOrderIds: protectedProcedure
-		.input(deleteSalesByOrderIdsSchema)
-		.mutation(async (props) => {
-			const affected = await props.ctx.db.salesOrders.findMany({
-				where: { orderId: { in: props.input.orderIds } },
-				select: { id: true },
-			});
-			const result = await props.ctx.db.salesOrders.updateMany({
-				where: {
-					orderId: {
-						in: props.input.orderIds,
-					},
-				},
-				data: {
-					deletedAt: new Date(),
-				},
-			});
-			await reconcileSalesHandoffAfterCommit(props.ctx.db, {
-				salesOrderIds: affected.map((order) => order.id),
-				actorUserId: props.ctx.userId,
-				source: "api.sales.delete-many",
-			});
+  accountingIndex: publicProcedure
+    .input(accountingIndexSchema)
+    .query(async (props) => {
+      const result = await accountingIndex(props.ctx, props.input);
+      return result;
+    }),
+  getSalesAccountings: publicProcedure
+    .input(getSalesAccountingsSchema)
+    .query(async (props) => {
+      return getSalesAccountings(props.ctx, props.input);
+    }),
+  mobileDashboardOverview: publicProcedure.query(async (props) => {
+    return getMobileSalesDashboardOverview(props.ctx);
+  }),
+  getSuppliers: publicProcedure
+    .input(getSuppliersSchema)
+    .query(async (props) => {
+      return getSuppliers(props.ctx, props.input);
+    }),
+  saveSupplier: publicProcedure
+    .input(saveSupplierSchema)
+    .mutation(async (props) => {
+      return saveSupplier(props.ctx, props.input);
+    }),
+  deleteSupplier: publicProcedure
+    .input(deleteSupplierSchema)
+    .mutation(async (props) => {
+      return deleteSupplier(props.ctx, props.input);
+    }),
+  updateStepMeta: publicProcedure
+    .input(updateStepMetaSchema)
+    .mutation(async (props) => {
+      return updateStepMeta(props.ctx, props.input);
+    }),
+  createWorkflowComponent: protectedProcedure
+    .input(createWorkflowComponentSchema)
+    .mutation(async ({ ctx, input }) => {
+      await requireWorkflowComponentEditor(ctx);
+      return createWorkflowComponent(ctx, input);
+    }),
+  saveWorkflowComponentDetails: protectedProcedure
+    .input(saveWorkflowComponentDetailsSchema)
+    .mutation(async ({ ctx, input }) => {
+      await requireWorkflowComponentEditor(ctx);
+      return saveWorkflowComponentDetails(ctx, input);
+    }),
+  saveWorkflowComponentVisibility: protectedProcedure
+    .input(saveWorkflowComponentVisibilitySchema)
+    .mutation(async ({ ctx, input }) => {
+      await requireWorkflowComponentAdmin(ctx);
+      return saveWorkflowComponentVisibility(ctx, input);
+    }),
+  saveWorkflowComponentSectionOverride: protectedProcedure
+    .input(saveWorkflowComponentSectionOverrideSchema)
+    .mutation(async ({ ctx, input }) => {
+      await requireWorkflowComponentAdmin(ctx);
+      return saveWorkflowComponentSectionOverride(ctx, input);
+    }),
+  saveWorkflowComponentRedirect: protectedProcedure
+    .input(saveWorkflowComponentRedirectSchema)
+    .mutation(async ({ ctx, input }) => {
+      await requireWorkflowComponentAdmin(ctx);
+      return saveWorkflowComponentRedirect(ctx, input);
+    }),
+  saveWorkflowComponentPricing: protectedProcedure
+    .input(saveWorkflowComponentPricingSchema)
+    .mutation(async ({ ctx, input }) => {
+      await requireSuperAdmin(ctx);
+      return saveWorkflowComponentPricing(ctx, input);
+    }),
+  archiveWorkflowComponents: protectedProcedure
+    .input(archiveWorkflowComponentsSchema)
+    .mutation(async ({ ctx, input }) => {
+      await requireWorkflowComponentAdmin(ctx);
+      return archiveWorkflowComponents(ctx, input);
+    }),
+  copySale: protectedProcedure.input(copySaleSchema).mutation(async (props) => {
+    return copySale(props.ctx, props.input);
+  }),
+  moveSale: protectedProcedure.input(moveSaleSchema).mutation(async (props) => {
+    return moveSale(props.ctx, props.input);
+  }),
+  deleteSalesByOrderIds: protectedProcedure
+    .input(deleteSalesByOrderIdsSchema)
+    .mutation(async (props) => {
+      const affected = await props.ctx.db.salesOrders.findMany({
+        where: { orderId: { in: props.input.orderIds } },
+        select: { id: true },
+      });
+      const result = await props.ctx.db.salesOrders.updateMany({
+        where: {
+          orderId: {
+            in: props.input.orderIds,
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+      await reconcileSalesHandoffAfterCommit(props.ctx.db, {
+        salesOrderIds: affected.map((order) => order.id),
+        actorUserId: props.ctx.userId,
+        source: "api.sales.delete-many",
+      });
 
-			return {
-				count: result.count,
-			};
-		}),
-	deleteSale: protectedProcedure
-		.input(z.object({ salesId: z.number() }))
-		.mutation(async (props) => {
-			const o = await props.ctx.db.salesOrders.update({
-				where: {
-					id: props.input.salesId,
-					// deletedAt: null,
-				},
-				data: {
-					// bin: true,
-					deletedAt: new Date(),
-				},
-				select: {
-					orderId: true,
-				},
-			});
-			await createNoteAction({
-				db: props.ctx.db,
-				authorId: props.ctx.userId,
-				subject: "Sale Deleted",
-				headline: `Sale with # ${o.orderId} was deleted.`, // headline is used for the general activities page
-				note: "", // user input
-				type: "activity",
-				tags: [
-					{
-						tagName: "channel",
-						tagValue: "Sales",
-					},
-					{
-						tagName: "salesId",
-						tagValue: String(props.input.salesId),
-					},
-					{
-						tagName: "type",
-						tagValue: "system",
-					},
-					{
-						tagName: "status",
-						tagValue: "public",
-					},
-				],
-			});
-			await reconcileSalesHandoffAfterCommit(props.ctx.db, {
-				salesOrderIds: [props.input.salesId],
-				actorUserId: props.ctx.userId,
-				source: "api.sales.delete",
-			});
-			return true;
-		}),
+      return {
+        count: result.count,
+      };
+    }),
+  deleteSale: protectedProcedure
+    .input(z.object({ salesId: z.number() }))
+    .mutation(async (props) => {
+      const o = await props.ctx.db.salesOrders.update({
+        where: {
+          id: props.input.salesId,
+          // deletedAt: null,
+        },
+        data: {
+          // bin: true,
+          deletedAt: new Date(),
+        },
+        select: {
+          orderId: true,
+        },
+      });
+      await createNoteAction({
+        db: props.ctx.db,
+        authorId: props.ctx.userId,
+        subject: "Sale Deleted",
+        headline: `Sale with # ${o.orderId} was deleted.`, // headline is used for the general activities page
+        note: "", // user input
+        type: "activity",
+        tags: [
+          {
+            tagName: "channel",
+            tagValue: "Sales",
+          },
+          {
+            tagName: "salesId",
+            tagValue: String(props.input.salesId),
+          },
+          {
+            tagName: "type",
+            tagValue: "system",
+          },
+          {
+            tagName: "status",
+            tagValue: "public",
+          },
+        ],
+      });
+      await reconcileSalesHandoffAfterCommit(props.ctx.db, {
+        salesOrderIds: [props.input.salesId],
+        actorUserId: props.ctx.userId,
+        source: "api.sales.delete",
+      });
+      return true;
+    }),
 });

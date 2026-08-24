@@ -134,6 +134,17 @@
   dimension, swing/handing, quantity, and labor context. Existing dispatch ids,
   quantity matrices, packing lines, inventory readiness, permissions, and write
   contracts are unchanged.
+- `@gnd/sales/dispatch-packing-plan` is the deterministic packing-selection
+  boundary. Pack All prefers submission deliverables, existing listed quantity,
+  published deliverable quantity, and finally published available quantity; it
+  never infers packability from ordered quantity. Guarded planning accepts
+  submission-bound production capacity and explicit stock availability without
+  a submission id, while excess quantity remains unavailable.
+- `@gnd/sales/production-dispatch-policy` freezes structural production changes
+  during dispatch but permits completion of an existing assignment. The
+  production submission action remains the authority that creates packable
+  production quantity; the policy changes UI availability, not mutation input,
+  authorization, review, or persistence contracts.
 
 ## Fulfillment Calendar Contract (2026-08-21)
 
@@ -782,6 +793,24 @@ Tracks important request/response contracts and shared schema boundaries.
     actionable `CONFLICT` response directing the client to select the matching
     customer or use a different phone number.
 - Pickup packing contracts now include:
+  - `startDispatchTripSchema = { dispatchId: positive integer, requestId: 8-128
+    characters }`.
+  - `confirmDispatchPackingSchema = { dispatchId, requestId,
+    expectedManifestRevision, replaceExisting, items[1..250] }`; item intent
+    carries stable sales/item identity, scalar or LH/RH quantity, and an
+    optional bounded note. The server derives actor, assignment, execution
+    mode, availability, and notification recipients.
+  - `resetDispatchPackingSchema = { dispatchId, requestId,
+    expectedManifestRevision }`.
+  - Packing command responses include idempotency, resulting status, refreshed
+    manifest revision, applied counts/pending report ids, and post-commit
+    notification-failure metadata. `STALE_MANIFEST`, idempotency conflicts,
+    ambiguous scope, terminal state, and unavailable quantity fail before a
+    partial command commit.
+  - Protected mobile detail/manifest projections include
+    `packingCommandRevision` plus `mobileLifecycle.stage`, risks,
+    `pendingPackingReportCount`, action capabilities, and start/packing/
+    completion blockers.
   - `sendSaleForPickupSchema = { salesId: number }`
   - `packingListQuerySchema = { tab?: "current" | "completed" | "cancelled" }`
   - `signPackingSlipSchema = { dispatchId: number, receivedBy?: string | null, signature: string, note?: string | null }`
@@ -789,7 +818,9 @@ Tracks important request/response contracts and shared schema boundaries.
     requestId: 12-100 safe characters, receivedBy?, receivedDate?, note?,
     noteType?: "dispatch" | "pickup", signaturePath: validated drawing path,
     attachments?: Array<{ clientId, fileName, contentType: image/*, base64 }>
-    }`; attachments are capped at five and 8,000,000 base64 characters each.
+    }`; compatibility device time/type fields may be accepted but live server
+    time and delivery mode are authoritative. Attachments are capped at five,
+    8,000,000 base64 characters each, and 13,500,000 characters combined.
   - Successful completion returns `status: "completed"`, `idempotent`, the
     stored signature/attachment paths, and notification queue status. Repeating
     the same completed request returns idempotent success; a different request
@@ -901,6 +932,7 @@ Tracks important request/response contracts and shared schema boundaries.
   - `notes.saveInboundNote` rejects manual status updates through the shared `inventoryInboundOwnership` rule when the order already has non-cancelled inventory `InboundDemand` linked to an active `InboundShipmentItem` / `InboundShipment`; inventory-created inbound work owns status from that point, and operators should update the linked inbound shipment instead. Cancelled or deleted inbound shipments do not keep blocking manual order status recovery.
 - New sales form save completion contract:
   - `newSalesForm.saveDraft` / `saveFinal` return after the sales form record is persisted
+  - responses expose `saveScope: full | legacy-po-only`; the narrow legacy scope means the server proved no status/commercial/inbound/special-order change on a record without persisted `newSalesForm.form`, so callers must skip commercial history, inventory, sales-stat, production-update, and generic sales-updated follow-ups. An unchanged normalized legacy payload is a no-op within the same scope.
   - both save inputs accept an optional development-only `clientRequestId` (a bounded opaque string); it is used only to correlate mobile diagnostics with the API `requestId` and is not persisted into the order payload
   - follow-up sales-document snapshot expiration, Trigger queue work for sales inventory line-item sync, and document snapshot warmups are best-effort and bounded; timeout/failure must not change the save response payload or leave clients waiting indefinitely
   - an employee-opened HTML Preview force-refreshes its lightweight print-data projection before issuing preview access, so an already-cached pre-adjustment row cannot survive an applied adjustment; stored/public PDF snapshots retain their existing explicit regeneration semantics

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Driver Dispatch — Flat UI Batch 2</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #111;
+      color: #fff;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header { padding: 28px 28px 20px; }
+    h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -.03em; }
+    p { margin: 0; color: #aaa; font-size: 14px; }
+    main {
+      display: grid;
+      grid-template-columns: repeat(2, 390px);
+      align-items: start;
+      gap: 28px;
+      padding: 0 28px 32px;
+    }
+    figure { margin: 0; width: 390px; }
+    figcaption {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-height: 52px;
+      padding: 0 0 10px;
+    }
+    strong {
+      display: inline-grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      background: #fff;
+      color: #111;
+      font-size: 17px;
+    }
+    span { font-size: 17px; font-weight: 700; }
+    img { display: block; width: 390px; height: 844px; object-fit: cover; object-position: top; }
+    figure:last-child { grid-column: 1 / -1; justify-self: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Driver Dispatch · Screen 1</h1>
+    <p>Flat UI exploration — Batch 2</p>
+  </header>
+  <main>
+    <figure><figcaption><strong>F</strong><span>Flat Manifest</span></figcaption><img src="option-f.png" alt="Option F Flat Manifest"></figure>
+    <figure><figcaption><strong>G</strong><span>Route Rail</span></figcaption><img src="option-g.png" alt="Option G Route Rail"></figure>
+    <figure><figcaption><strong>H</strong><span>Proof Ready</span></figcaption><img src="option-h.png" alt="Option H Proof Ready"></figure>
+    <figure><figcaption><strong>I</strong><span>Window Board</span></figcaption><img src="option-i.png" alt="Option I Window Board"></figure>
+    <figure><figcaption><strong>J</strong><span>One-Hand Dock</span></figcaption><img src="option-j.png" alt="Option J One-Hand Dock"></figure>
+  </main>
+</body>
+</html>

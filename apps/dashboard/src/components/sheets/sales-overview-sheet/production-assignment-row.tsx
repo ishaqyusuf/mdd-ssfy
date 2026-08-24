@@ -18,6 +18,7 @@ import {
     CollapsibleTrigger,
 } from "@gnd/ui/collapsible";
 import { Icons } from "@gnd/ui/icons";
+import { getProductionDispatchMutationPolicy } from "@gnd/sales/production-dispatch-policy";
 
 import { AccessBased } from "./access-based";
 import { useProduction } from "./context";
@@ -26,6 +27,7 @@ import { ProductionSubmissions } from "./production-submissions";
 import { ProductionSubmitForm } from "./production-submit-form";
 import { useProductionItem } from "./production-item-context";
 import { shouldWarnWorkerProductionItemMaterialReview } from "./production-worker-policy";
+import { hasPendingProductionQuantity } from "./production/v2/production-submission-selection";
 import { QtyStatus } from "./qty-label";
 
 const { useContext: useAssignmentRow, Provider: ProductionAssignmentRowProvider } =
@@ -104,10 +106,17 @@ function Content({
 		readiness: production.readiness,
 		readinessUnavailable: production.readinessUnavailable,
 	});
+	const hasPendingSubmissionQuantity = hasPendingProductionQuantity(
+		assignment?.pending,
+	);
+	const mutationPolicy = getProductionDispatchMutationPolicy({
+		dispatchMode: Boolean(queryCtx.dispatchMode),
+		hasPendingAssignmentQuantity: false,
+		hasPendingSubmissionQuantity,
+	});
 	if (view === "submissions") {
 		const submittedQty = Number(assignment?.reported?.qty || 0);
 		const assignedQty = Number(assignment?.qty?.qty || 0);
-		const hasPendingQty = Number(assignment?.pending?.qty || 0) > 0;
 		return (
 			<Collapsible open={ctx.openSubmitForm}>
 				<div className="flex flex-col gap-4">
@@ -122,7 +131,7 @@ function Content({
 							type="button"
 							size="sm"
 							variant={ctx.openSubmitForm ? "outline" : "default"}
-							disabled={!hasPendingQty || queryCtx.dispatchMode}
+							disabled={!mutationPolicy.canSubmitExistingAssignment}
 							onClick={() => ctx.setOpenSubmitForm(!ctx.openSubmitForm)}
 						>
 							{ctx.openSubmitForm ? "Cancel" : "Add submission"}
@@ -224,10 +233,7 @@ function Content({
                         asChild
                     >
                         <Button
-                            disabled={
-                                !assignment?.pending?.qty ||
-                                queryCtx.dispatchMode
-                            }
+                            disabled={!mutationPolicy.canSubmitExistingAssignment}
                             onClick={() => {
                                 ctx.setOpenSubmitForm(!ctx.openSubmitForm);
                             }}

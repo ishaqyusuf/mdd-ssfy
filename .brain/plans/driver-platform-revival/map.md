@@ -220,3 +220,17 @@ Planning range: roughly 5-8 engineering weeks for one engineer, or 3-5 weeks wit
 - `apps/dashboard/src/components/tables/invoices/empty-states.tsx`
 
 Midday elements intentionally omitted from the native driver UI: desktop column resize/reorder, DnD, sticky table columns, and a desktop bulk-action portal. Their architectural intent is retained through a small prefetched summary, server-owned filters, detail-on-demand loading, explicit states, URL/route-owned selection, and deliberate invalidation.
+
+## 2026-08-23 Mobile Logic-Hardening Checkpoint
+
+- Phases 0-2 mobile runtime contracts are implemented: protected projections,
+  shared packing decisions, exact mixed inventory/legacy transactionality,
+  guarded-review persistence, narrow lifecycle commands, durable exception and
+  restart-safe proof flows, permission gating, and central freshness.
+- The automated implementation gate passes 83 focused tests / 500 assertions.
+  A reversible flag can disable mobile packing writes without restoring the
+  unsafe split command path.
+- Phase 3 remains at its explicit operator gate. Android phone/tablet,
+  weak-network, and screen-by-screen UI review will begin only after user
+  permission; five design-html samples will be considered separately for each
+  approved screen review.

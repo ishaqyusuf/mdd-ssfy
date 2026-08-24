@@ -443,6 +443,55 @@ flowchart TD
   390-448 ms on the legacy path to roughly 27-30 ms on the projected path in
   local development; search fixtures also remained faster. These figures prove
   local behavior, not production cost savings.
+- Preview-environment gate (2026-08-23): the Trigger organization is on Free,
+  which supports only Development and Production. Trigger Preview branches
+  require Hobby at $10/month; Hobby includes five Preview branches and $10 in
+  monthly credits. Do not upgrade implicitly. The no-new-subscription
+  alternative is a separate Free Trigger project that deploys only the two
+  sales-order projection tasks in its Production environment, points that
+  isolated worker at PlanetScale Preview, disables unrelated schedules/tasks,
+  and gives Vercel Preview its project-specific Trigger key. This alternative
+  is a distinct infrastructure decision and requires approval before creation.
+
+### Free-tier Preview worker completion (2026-08-23)
+
+- Created the isolated Free Trigger project `GND Preview Projections`
+  (`proj_vwljjpifrjlpehfhrkmz`). Its Production-labeled Trigger environment is
+  an infrastructure boundary for GND Preview only: it uses the PlanetScale
+  Preview credential and must never receive the production database URL.
+- Deployed version `20260823.1` as deployment `5z3kuj7g`. The deployment
+  registered exactly `backfill-sales-order-list-projections` and
+  `persist-sales-order-list-projections`; no email, inventory, storefront,
+  production, or scheduled task was included.
+- A bounded backfill run processed two batches and persisted all 95 active
+  Preview order projections with zero stale skips. The run completed in 5.7
+  seconds of execution and cost $0.00016233 on the Free project.
+- Vercel variables `TRIGGER_SECRET_KEY`,
+  `GND_SALES_ORDERS_READ_MODEL_MODE=read`, and
+  `GND_SALES_ORDERS_READ_MODEL_MAX_AGE_SECONDS=3600` are scoped to the Git
+  branch `preview`. The existing all-environment Trigger key and every
+  Production setting remain unchanged.
+- Ready Vercel Preview deployment `dpl_JC1CL6UFde4yAAaipGq4WZzcu1D2` owns
+  `preview.gndprodesk.com` and the `preview` branch alias. Authenticated smoke
+  tests loaded the orders page in 2.2 seconds, updated the broad-search URL in
+  under one second, returned the exact order correctly, and created no fallback
+  projection-warm run. Trigger's run list contained only the intentional
+  backfill.
+- Production activation remains gated. The isolated Free project is a Preview
+  proving ground, not authorization to enable the read model against production
+  data.
+- Preview invalidation evidence (2026-08-23): changing sanitized order
+  `09379PC` advanced its source revision; the next exact-order `getOrders` read
+  returned through the legacy fallback in 2.46 seconds and queued the isolated
+  persistence task. Trigger persisted one version-2 projection with zero stale
+  skips. After exact seed-source restoration and projection deletion, run
+  `fure6v01` rebuilt the original row with a matching source revision for
+  $0.00006179. A subsequent read queued no warm task. This confirms the current
+  behavior is lazy fallback-and-warm, not mutation-time write-through.
+- The attempted UI mutation exposed a separate legacy sales-form compatibility
+  side effect. The test order was atomically restored from the sanitized local
+  seed graph, and a post-recovery audit found zero extra/different order-owned
+  rows. See `.brain/bugs/2026-08-23-legacy-sales-order-editor-save-rewrites-compatibility-graph.md`.
 
 ## Test Plan
 

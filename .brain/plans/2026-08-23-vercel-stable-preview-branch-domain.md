@@ -126,11 +126,73 @@ local day-to-day branch remains `master`.
 - A separate `sales.getSalesHandoffActions` alert failed transiently and
   recovered through its Retry control; keep that defect separate from the
   successful `getOrders` evidence.
-- Verified that the repository's `.env.preview` credential targets PlanetScale
-  `dev`, not the PlanetScale `preview` branch used by Vercel. Read-model mode
-  remains off. Direct verification/backfill of the serving branch is blocked on
-  creating a new branch-scoped local credential because the existing sensitive
-  `vercel-preview` password cannot be recovered.
+- Created the branch-scoped PlanetScale password `local-preview-admin` and
+  corrected `.env.preview` to the actual PlanetScale `preview` branch. Direct
+  verification found 150 active sanitized sales records, including the same
+  order ids rendered by the authenticated Preview application. A read-only
+  Prisma diff reported `No difference detected`; no Preview schema push was
+  required.
+- The serving branch had 95 version-2 projections for its 95 active records of
+  type `order`, but their customer-derived payloads predated sanitization. Only
+  those non-authoritative cache rows were deleted and rebuilt from canonical
+  Preview data. Final audit: 95/95 ready projections, zero unsafe payloads,
+  zero source-revision mismatches, and zero scope/version failures. The other
+  55 fixtures are quote/history types and are outside the `getOrders` backfill
+  contract.
+- Ran a bounded Preview-only read-mode cohort after setting branch-scoped Vercel
+  flags. The stable domain's `APA` search settled in 820 ms versus roughly four
+  seconds before the read model; an exact-order search settled in 1.11 s
+  including client debounce, restoring the list took 683 ms, and recent
+  `sales.getOrders` requests returned 200. Full page row readiness remained
+  6.76 s because it includes authentication and unrelated page fan-out.
+- Trigger staging does not exist for this project, and Trigger Preview branches
+  are not enabled. Clean deployments from commit `9071abe35` were rejected
+  before build for those two account-level reasons. The branch-scoped Vercel
+  read-mode and max-age flags were therefore removed and Preview was redeployed
+  with the safe default-off behavior as Ready deployment
+  `dpl_Nb597PmfKEJRqvA8TswVUPN7swq7`; it owns both the stable custom domain and
+  the `preview` branch alias. Enable a Trigger staging/Preview
+  environment, bind it to the PlanetScale Preview credential, and deploy the
+  projection tasks before the next read cohort.
+- Trigger's billing page confirms that Preview environments require the Hobby
+  plan at $10/month (five Preview branches and $10/month credits included).
+  Because enabling that plan is a paid account change, execution pauses for an
+  explicit choice between upgrading and creating a separate Free,
+  projection-only Trigger project for Preview isolation.
+- Selected the no-subscription Free-tier path and created `GND Preview
+  Projections` (`proj_vwljjpifrjlpehfhrkmz`). Its Production-labeled Trigger
+  environment points only to PlanetScale Preview and contains exactly the two
+  sales-order projection tasks. Version `20260823.1` / deployment `5z3kuj7g`
+  registered no unrelated or scheduled tasks.
+- The bounded Preview backfill run `run_06g311t5ku5ic2eb7jl4k2hpe1`
+  completed successfully: 95 projections persisted across two batches, zero
+  stale skips, and no remaining page.
+- Added a sensitive Trigger key plus the read-mode and one-hour freshness flags
+  as Vercel variables scoped to environment `Preview` and Git branch `preview`.
+  The existing all-environment Trigger key was left intact and is overridden
+  only for that branch.
+- Redeployed the known-good Preview source as Ready deployment
+  `dpl_JC1CL6UFde4yAAaipGq4WZzcu1D2`. It owns
+  `preview.gndprodesk.com` and `gndprodesk-git-preview-gndprodesk.vercel.app`.
+  Signed-in smoke tests confirmed the orders table and exact-order search use
+  the refreshed projection set without queuing a fallback warm task.
+- Completed a controlled projection invalidation test on sanitized order
+  `09379PC`. The next exact-order read safely fell back, Trigger persisted the
+  changed revision, and a direct audit confirmed a ready version-2 projection
+  with matching source revision. The order was then restored exactly from the
+  sanitized local seed graph, its cache row was rebuilt by Trigger run
+  `fure6v01`, and the original `$2,573.23`, blank-P.O., legacy-inbound-review
+  list presentation returned. Final coverage is 95 active orders and 95 ready
+  version-2 projections; a second read queued no fallback warm task.
+- The legacy editor used for the temporary mutation materialized unrelated
+  compatibility rows. The recovery transaction removed only those rows and a
+  post-recovery graph comparison reported zero extras and zero differences.
+  The application fix is now live on Ready deployment
+  `dpl_2ksQrUQYPqSPRbjpPxP3ke8Q1Dws` / commit `91216b891`. A final authenticated
+  P.O.-only mutation and unchanged repeat save preserved every tracked graph
+  hash, kept `newSalesForm.form` absent, and created no inventory/history rows.
+  The fixture was restored to blank P.O. and `$2,573.23`; its ready version-2
+  projection again matches the restored source revision.
 - Removed the accidental `preview.grdproducts.com` project-domain assignment and
   the unused `grdproducts.com` ownership entry from the Vercel team. No EasyDNS
   DNS record was created or changed.

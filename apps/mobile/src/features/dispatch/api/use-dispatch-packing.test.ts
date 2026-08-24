@@ -1,33 +1,19 @@
-import { describe, expect, it } from "bun:test";
-import { buildPackItemTaskPayload } from "./pack-task-payload";
+import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 
-describe("buildPackItemTaskPayload", () => {
-  it("builds update-sales-control payload with packingLines only", () => {
-    const result = buildPackItemTaskPayload({
-      salesId: 101,
-      dispatchId: 5001,
-      dispatchStatus: "queue",
-      authorId: 7,
-      authorName: "Driver",
-      packingLines: [
-        {
-          salesItemId: 9,
-          submissionId: 7001,
-          qty: { qty: 2 },
-          note: "packed from mobile",
-        },
-      ],
-    });
+const source = readFileSync(
+	new URL("./use-dispatch-packing.ts", import.meta.url),
+	"utf8",
+);
 
-    expect(result.taskName).toBe("update-sales-control");
-    expect(result.payload.packItems.packMode).toBe("selection");
-    expect(result.payload.packItems.packingLines).toHaveLength(1);
-    expect(result.payload.packItems.packingLines[0]).toEqual({
-      salesItemId: 9,
-      submissionId: 7001,
-      qty: { qty: 2 },
-      note: "packed from mobile",
-    });
-    expect((result.payload.packItems as any).packingList).toBeUndefined();
-  });
+describe("mobile dispatch packing command", () => {
+	test("uses only atomic revision-bound packing and reset mutations", () => {
+		expect(source).toContain("_trpc.dispatch.confirmPacking.mutationOptions");
+		expect(source).toContain("_trpc.dispatch.resetPacking.mutationOptions");
+		expect(source).toContain("expectedManifestRevision");
+		expect(source).toContain("requestId: crypto.randomUUID()");
+		expect(source).not.toContain("useTaskTrigger");
+		expect(source).not.toContain("prepareInventoryForDispatch");
+		expect(source).not.toContain("updateDispatchStatus");
+	});
 });

@@ -31,7 +31,6 @@ import {
 
 import { AccessBased } from "../../access-based";
 import { ProductionProvider, useProduction } from "../../context";
-import { ItemProgressBar } from "../../item-progress-bar";
 import {
 	type ProductionItem,
 	ProductionItemProvider,
@@ -41,6 +40,8 @@ import { ProductionReadinessBanner } from "../../production-readiness-banner";
 import { ProductionTabFooter } from "../../production-tab-footer";
 import { useProductionItemExpansion } from "../../use-production-item-expansion";
 import { ProductionV2ItemDocument } from "./production-item-document";
+import { getProductionItemPresentation } from "./production-item-presentation";
+import { ProductionItemStatusBadges } from "./production-item-status-badges";
 import { ProductionTabV2Skeleton } from "./production-tab-v2-skeleton";
 
 function ProductionV2Item({
@@ -55,6 +56,7 @@ function ProductionV2Item({
 	onToggle: () => void;
 }) {
 	const production = useProduction();
+	const presentation = getProductionItemPresentation(item);
 
 	return (
 		<ProductionItemProvider args={[item]}>
@@ -91,31 +93,28 @@ function ProductionV2Item({
 										className="cursor-pointer text-left after:absolute after:inset-0"
 										onClick={onToggle}
 									>
-										{item.title}
+										{presentation.title}
 									</button>
 								</ItemTitle>
 								<ItemDescription className="uppercase">
-									{item.subtitle}
+									{presentation.subtitle}
 								</ItemDescription>
+								{workerMode ? null : (
+									<ProductionItemStatusBadges item={item} />
+								)}
 							</ItemContent>
 							<ItemActions className="relative shrink-0 gap-1">
 								<AccessBased>
 									<ProductionItemMenu />
 								</AccessBased>
-								<AccordionTrigger
-									onClick={onToggle}
-									className="w-auto rounded-sm p-1 hover:bg-muted hover:no-underline"
-								>
+				<AccordionTrigger
+					className="w-auto rounded-sm p-1 hover:bg-muted hover:no-underline"
+				>
 									<span className="sr-only">Toggle production item</span>
 								</AccordionTrigger>
 							</ItemActions>
 						</Item>
 					</ItemGroup>
-					{workerMode ? null : (
-						<div className="mt-3">
-							<ItemProgressBar item={item} />
-						</div>
-					)}
 				</div>
 				<AccordionContent className="pb-0">
 					<ProductionV2ItemDocument />
@@ -143,6 +142,7 @@ function ProductionTabV2Content() {
 	const { expandedItemUids, toggleItem } = useProductionItemExpansion({
 		itemUids,
 		orderId: data?.orderId,
+		singleOpen: true,
 		workerMode,
 	});
 
@@ -156,8 +156,11 @@ function ProductionTabV2Content() {
 		<div className="flex flex-col gap-4 p-1">
 			{items.length ? <ProductionReadinessBanner /> : null}
 			<Accordion
-				type="multiple"
-				value={expandedItemUids}
+				type="single"
+				value={expandedItemUids[0]}
+				onValueChange={(itemUid) => {
+					if (itemUid) toggleItem(itemUid);
+				}}
 				className="flex flex-col gap-3"
 			>
 				{items.length ? null : (

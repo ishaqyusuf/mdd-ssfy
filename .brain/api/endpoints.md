@@ -299,6 +299,16 @@ Tracks notable API surfaces and where they are implemented.
   - `jobs.contractorPayoutOverview`, `jobs.getContractorPayoutPrintData`, and public `print.contractorPayouts`: contractor payout job rows now include `description` and optional `isCustom` so payout overview and printed pay reports show what installers installed, including custom jobs without project/unit links.
   - `print.contractorPayouts`: contractor payout print data now includes top-level `companyAddress` for the branded cover page. The PDF render path uses the existing public `logo.png` and `logo-grayscale.png` assets passed through `baseUrl`.
 - Dispatch / pickup packing routes now include:
+  - `dispatch.startTrip`: narrow assigned-driver/dispatch-manager mutation with
+    `{ dispatchId, requestId }`; actor, sale, live status, readiness, and audit
+    semantics are server-derived, and an already-started trip replays safely.
+  - `dispatch.confirmPacking`: protected revision-bound command that atomically
+    applies legacy packing, exact inventory transitions, and guarded-review
+    requests for one dispatch. Same-request/same-content retries are idempotent.
+  - `dispatch.resetPacking`: dispatch-manager-only atomic unpack/release/reset
+    command. It rejects stale revisions, terminal trips, and pending reviews.
+  - `dispatch.packingListSummary`: authoritative current-ready, current-active,
+    and completed warehouse counts independent of the loaded page.
   - `dispatch.sendSaleForPickup`: creates or reuses a pickup `OrderDelivery` in `queue` and records packing-workflow membership on the `sales-packing-list` notification channel
   - `dispatch.packingList`: tab-aware query powering `/sales/packing-list` for `current`, `completed`, and admin-only `cancelled` views
   - `dispatch.signPackingSlip`: saves signature + packed/received names, packs all items into the delivery, and completes packing through the `/p/sales-invoice-v2` flow

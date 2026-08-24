@@ -3,6 +3,7 @@
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
+import { Notifications } from "@gnd/notifications";
 import { submitProductionAssignment } from "@sales/production-submission-review";
 
 import { getLoggedInProfile } from "./cache/get-loggedin-profile";
@@ -17,28 +18,122 @@ export const submitSalesAssignmentAction = actionClient
         track: {},
     })
     .action(async ({ parsedInput: input }) => {
-		const actor = await getLoggedInProfile();
-		if (!actor.userId) throw new Error("Authentication is required.");
-		const authority = requireProductionSubmissionAuthority(actor);
+        const actor = await getLoggedInProfile();
+        if (!actor.userId) throw new Error("Authentication is required.");
+        const authority = requireProductionSubmissionAuthority(actor);
         if (!input.qty.qty) input.qty.qty = sum([input.qty.lh, input.qty.rh]);
-			const result = await submitProductionAssignment(prisma as any, {
-			salesOrderId: input.salesId,
-			salesOrderItemId: input.itemId,
-			assignmentId: input.assignmentId,
-			submittedById: actor.userId,
-			idempotencyKey:
-				input.idempotencyKey ||
-				`production:${input.salesId}:${input.assignmentId}:${actor.userId}`,
-			qty: input.qty.qty,
-			lhQty: input.qty.lh,
-			rhQty: input.qty.rh,
-			note: input.note,
-				allowSubmitForOthers: authority.allowSubmitForOthers,
-		        });
-			await reconcileSalesHandoffAfterCommit(prisma, {
-				salesOrderIds: [input.salesId],
-				actorUserId: actor.userId,
-				source: "dashboard.production.submit-assignment",
-			});
-			return result;
-	    });
+        const result = await submitProductionAssignment(prisma as any, {
+            salesOrderId: input.salesId,
+            salesOrderItemId: input.itemId,
+            assignmentId: input.assignmentId,
+            submittedById: actor.userId,
+            idempotencyKey:
+                input.idempotencyKey ||
+                `production:${input.salesId}:${input.assignmentId}:${actor.userId}`,
+            qty: input.qty.qty,
+            lhQty: input.qty.lh,
+            rhQty: input.qty.rh,
+            note: input.note,
+            allowSubmitForOthers: authority.allowSubmitForOthers,
+        });
+        await reconcileSalesHandoffAfterCommit(prisma, {
+            salesOrderIds: [input.salesId],
+            actorUserId: actor.userId,
+            source: "dashboard.production.submit-assignment",
+        });
+        if (
+            result.state === "pending_material_review" &&
+            !result.idempotentReplay
+        ) {
+            try {
+                const review =
+                    await prisma.salesProductionSubmissionMaterialReview.findUnique(
+                        {
+                            where: { id: result.reviewId },
+                            select: {
+                                id: true,
+                                classificationReason: true,
+                                materialSnapshot: true,
+                                order: {
+                                    select: {
+                                        id: true,
+                                        orderId: true,
+                                        salesRepId: true,
+                                    },
+                                },
+                                submittedBy: {
+                                    select: { id: true, name: true },
+                                },
+                                submissions: {
+                                    where: { deletedAt: null },
+                                    select: { qty: true },
+                                },
+                            },
+                        },
+                    );
+                if (review?.order.salesRepId) {
+                    const snapshot = Array.isArray(review.materialSnapshot)
+                        ? review.materialSnapshot
+                        : [];
+                    const unresolvedMaterials = snapshot.filter((material) => {
+                        if (!material || typeof material !== "object")
+                            return false;
+                        const readiness = String(
+                            (material as { readiness?: unknown }).readiness ||
+                                "",
+                        );
+                        return (
+                            readiness !== "ready_for_production" &&
+                            readiness !== "fulfilled"
+                        );
+                    });
+                    const expectedAt =
+                        unresolvedMaterials
+                            .flatMap((material) => {
+                                const value = (
+                                    material as { expectedAt?: unknown }
+                                ).expectedAt;
+                                return typeof value === "string" ? [value] : [];
+                            })
+                            .sort()
+                            .at(-1) ?? null;
+                    await new Notifications(prisma).create(
+                        "sales_production_submission_material_review",
+                        {
+                            reviewId: review.id,
+                            salesId: review.order.id,
+                            orderNo: review.order.orderId || undefined,
+                            workerId: review.submittedBy.id,
+                            workerName: review.submittedBy.name || undefined,
+                            submittedQty: review.submissions.reduce(
+                                (total, submission) => total + submission.qty,
+                                0,
+                            ),
+                            reason:
+                                review.classificationReason || "NOT_CONFIGURED",
+                            pendingMaterialCount: unresolvedMaterials.length,
+                            expectedAt,
+                        },
+                        {
+                            author: { id: actor.userId, role: "employee" },
+                            recipients: [
+                                {
+                                    ids: [review.order.salesRepId],
+                                    role: "employee",
+                                },
+                            ],
+                            includeChannelSubscribers: false,
+                            allowFallbackRecipient: false,
+                            forceInAppRecipients: true,
+                        },
+                    );
+                }
+            } catch (error) {
+                console.warn(
+                    "Production submission was saved, but its material review notification failed.",
+                    { error, reviewId: result.reviewId },
+                );
+            }
+        }
+        return result;
+    });

@@ -1,6 +1,6 @@
 import { Icon, type IconKeys } from "@/components/ui/icon";
 import { Image } from "expo-image";
-import { Linking, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { resolveItemImage } from "../lib/resolve-item-image";
 
 type ConfirmItem = {
@@ -24,6 +24,7 @@ type Props = {
 	isStarting: boolean;
 	onClose: () => void;
 	onViewOrderDetails: () => void;
+	onOpenDirections: () => void;
 	onPrimaryAction: () => void;
 	onImagePress: (uri: string) => void;
 };
@@ -40,6 +41,7 @@ export function StartTripConfirmScreen({
 	isStarting,
 	onClose,
 	onViewOrderDetails,
+	onOpenDirections,
 	onPrimaryAction,
 	onImagePress,
 }: Props) {
@@ -109,15 +111,7 @@ export function StartTripConfirmScreen({
 				<View className="px-4 pb-4">
 					<Pressable
 						disabled={!addressLine1 && !addressLine2}
-						onPress={() => {
-							const destination = [addressLine1, addressLine2]
-								.filter(Boolean)
-								.join(", ");
-							if (!destination) return;
-							void Linking.openURL(
-								`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`,
-							);
-						}}
+						onPress={onOpenDirections}
 						className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-4 disabled:opacity-50"
 					>
 						<View className="size-11 items-center justify-center rounded-xl bg-primary/10">

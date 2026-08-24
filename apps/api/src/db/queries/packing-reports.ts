@@ -95,6 +95,7 @@ async function loadPackingEvidence(db: PackingDb, dispatchId: number) {
 				lhQty: true,
 				rhQty: true,
 				updatedAt: true,
+				assignment: { select: { salesItemControlUid: true } },
 				materialReview: { select: { id: true, status: true, updatedAt: true } },
 				item: { select: { description: true, dykeDescription: true } },
 				itemDeliveries: {
@@ -175,20 +176,16 @@ function reportableLine(
 			"Packing submission has ambiguous allocation rows in this dispatch. Resolve the dispatch allocation first.",
 		);
 	}
-	const dispatchAllocation = openAllocations[0];
-	if (!dispatchAllocation) {
-		throw new PackingReportError(
-			"STALE_SCOPE",
-			"Packing submission is not allocated to this dispatch.",
-		);
-	}
+	const dispatchAllocation = openAllocations[0] || null;
 	const dispatchAllocationKey = buildPackingDispatchAllocationKey({
 		dispatchId: evidence.dispatch.id,
-		dispatchAllocationItemId: dispatchAllocation.id,
 		productionSubmissionId: submission.id,
+		salesOrderItemId: submission.salesOrderItemId,
 	});
 	const submissionAvailable = canonicalQty(submission);
-	const allocationAvailable = canonicalQty(dispatchAllocation);
+	const allocationAvailable = dispatchAllocation
+		? canonicalQty(dispatchAllocation)
+		: submissionAvailable;
 	const available = {
 		qty: Math.min(submissionAvailable.qty, allocationAvailable.qty),
 		lhQty: Math.min(submissionAvailable.lhQty, allocationAvailable.lhQty),
@@ -202,7 +199,7 @@ function reportableLine(
 		available,
 		remaining: remainingPackingQty(available, ...canonical, ...pending),
 		dispatchAllocationKey,
-		dispatchAllocationItemId: dispatchAllocation.id,
+		dispatchAllocationItemId: dispatchAllocation?.id || null,
 	};
 }
 
@@ -229,6 +226,7 @@ export async function getPackingReportContext(db: Db, dispatchId: number) {
 				select: {
 					id: true,
 					item: { select: { description: true, dykeDescription: true } },
+					assignment: { select: { salesItemControlUid: true } },
 				},
 			},
 			submittedBy: { select: { id: true, name: true } },
@@ -269,6 +267,7 @@ export async function getPackingReportContext(db: Db, dispatchId: number) {
 				{
 					productionSubmissionId: submission.id,
 					salesOrderItemId: submission.salesOrderItemId,
+					itemUid: submission.assignment?.salesItemControlUid || null,
 					dispatchAllocationKey: line.dispatchAllocationKey,
 					title:
 						submission.item?.description ||
@@ -282,136 +281,165 @@ export async function getPackingReportContext(db: Db, dispatchId: number) {
 	};
 }
 
+type PackingReportActor = { id: number; scope: "role" | "assignment" };
+
+function replayPackingReport(
+	existing: Prisma.SalesPackingReportGetPayload<Record<string, never>>,
+	input: SubmitPackingReportInput,
+	actor: PackingReportActor,
+) {
+	const matches =
+		existing.submittedById === actor.id &&
+		existing.orderDeliveryId === input.dispatchId &&
+		existing.orderProductionSubmissionId === input.productionSubmissionId &&
+		existing.dispatchAllocationKey === input.dispatchAllocationKey &&
+		existing.qty === input.qty &&
+		existing.lhQty === input.lhQty &&
+		existing.rhQty === input.rhQty &&
+		(existing.note || null) === (input.note || null);
+	if (!matches) {
+		throw new PackingReportError(
+			"IDEMPOTENCY_CONFLICT",
+			"Packing report idempotency key belongs to another request.",
+		);
+	}
+	if (existing.status === "REJECTED" || existing.status === "CANCELLED") {
+		throw new PackingReportError(
+			"IDEMPOTENCY_CONFLICT",
+			"This packing report is closed. Start a new report.",
+		);
+	}
+	return {
+		reportId: existing.id,
+		status: existing.status,
+		idempotentReplay: true,
+	};
+}
+
+export async function submitPackingReportInTransaction(
+	tx: TransactionClient,
+	input: SubmitPackingReportInput,
+	actor: PackingReportActor,
+) {
+	await lockPackingDispatchScope(tx, input.dispatchId);
+	const lockedDispatch = await tx.orderDelivery.findFirst({
+		where: { id: input.dispatchId, deletedAt: null },
+		select: { driverId: true },
+	});
+	if (!lockedDispatch) {
+		throw new PackingReportError("STALE_SCOPE", "Dispatch was not found.");
+	}
+	if (actor.scope === "assignment" && lockedDispatch.driverId !== actor.id) {
+		throw new PackingReportError(
+			"FORBIDDEN",
+			"Dispatch assignment changed before the packing report was saved.",
+		);
+	}
+	const existing = await tx.salesPackingReport.findUnique({
+		where: { idempotencyKey: input.idempotencyKey },
+	});
+	if (existing) return replayPackingReport(existing, input, actor);
+
+	const evidence = await loadPackingEvidence(tx, input.dispatchId);
+	if (!activeDispatchStatus(evidence.dispatch.status)) {
+		throw new PackingReportError(
+			"STALE_SCOPE",
+			"Packing reports cannot be added to a completed or cancelled dispatch.",
+		);
+	}
+	if (evidence.revision !== input.manifestRevision) {
+		throw new PackingReportError(
+			"STALE_EVIDENCE",
+			"Packing evidence changed. Refresh before reporting verified quantity.",
+		);
+	}
+	const line = reportableLine(evidence, input.productionSubmissionId);
+	if (line.dispatchAllocationKey !== input.dispatchAllocationKey) {
+		throw new PackingReportError(
+			"STALE_SCOPE",
+			"Packing allocation belongs to another dispatch or changed. Refresh before reporting.",
+		);
+	}
+	if (line.submission.materialReview?.status !== "PENDING") {
+		throw new PackingReportError(
+			"NOT_REPORTABLE",
+			"This quantity is not blocked by unresolved upstream evidence. Use normal packing.",
+		);
+	}
+	assertPackingQtyWithinRemaining(input, line.remaining);
+	const openKey = buildPackingReportOpenKey({
+		dispatchId: evidence.dispatch.id,
+		dispatchAllocationKey: line.dispatchAllocationKey,
+	});
+	if (await tx.salesPackingReport.findUnique({ where: { openKey } })) {
+		throw new PackingReportError(
+			"IDEMPOTENCY_CONFLICT",
+			"A packing report is already pending for this dispatch allocation.",
+		);
+	}
+	let allocationItemId = line.dispatchAllocationItemId;
+	let reportEvidence = evidence;
+	if (!allocationItemId) {
+		const allocation = await tx.orderItemDelivery.create({
+			data: {
+				orderId: evidence.dispatch.salesOrderId,
+				orderItemId: line.salesOrderItemId,
+				orderDeliveryId: evidence.dispatch.id,
+				orderProductionSubmissionId: line.submission.id,
+				qty: input.qty || input.lhQty + input.rhQty,
+				lhQty: input.lhQty,
+				rhQty: input.rhQty,
+				status: evidence.dispatch.status,
+				packingStatus: "packing review",
+				packedBy: null,
+				meta: {
+					source: "guarded_packing_report",
+					idempotencyKey: input.idempotencyKey,
+				},
+				note: input.note,
+			},
+			select: { id: true },
+		});
+		allocationItemId = allocation.id;
+		reportEvidence = await loadPackingEvidence(tx, input.dispatchId);
+	}
+	const report = await tx.salesPackingReport.create({
+		data: {
+			salesOrderId: evidence.dispatch.salesOrderId,
+			orderDeliveryId: evidence.dispatch.id,
+			salesOrderItemId: line.salesOrderItemId,
+			orderProductionSubmissionId: line.submission.id,
+			dispatchAllocationKey: line.dispatchAllocationKey,
+			dispatchAllocationItemId: allocationItemId,
+			submittedById: actor.id,
+			status: "PENDING",
+			reason: "UPSTREAM_PRODUCTION_REVIEW",
+			idempotencyKey: input.idempotencyKey,
+			openKey,
+			qty: input.qty,
+			lhQty: input.lhQty,
+			rhQty: input.rhQty,
+			manifestRevision: reportEvidence.revision,
+			evidenceSnapshot: reportEvidence.snapshot as Prisma.InputJsonValue,
+			note: input.note,
+		},
+		select: { id: true, status: true },
+	});
+	return {
+		reportId: report.id,
+		status: report.status,
+		idempotentReplay: false,
+	};
+}
+
 export async function submitPackingReport(
 	db: Db,
 	input: SubmitPackingReportInput,
-	actor: { id: number; scope: "role" | "assignment" },
+	actor: PackingReportActor,
 ) {
-	const replay = (
-		existing: Prisma.SalesPackingReportGetPayload<Record<string, never>>,
-	) => {
-		const matches =
-			existing.submittedById === actor.id &&
-			existing.orderDeliveryId === input.dispatchId &&
-			existing.orderProductionSubmissionId === input.productionSubmissionId &&
-			existing.dispatchAllocationKey === input.dispatchAllocationKey &&
-			existing.manifestRevision === input.manifestRevision &&
-			existing.qty === input.qty &&
-			existing.lhQty === input.lhQty &&
-			existing.rhQty === input.rhQty &&
-			(existing.note || null) === (input.note || null);
-		if (!matches) {
-			throw new PackingReportError(
-				"IDEMPOTENCY_CONFLICT",
-				"Packing report idempotency key belongs to another request.",
-			);
-		}
-		if (existing.status === "REJECTED" || existing.status === "CANCELLED") {
-			throw new PackingReportError(
-				"IDEMPOTENCY_CONFLICT",
-				"This packing report is closed. Start a new report.",
-			);
-		}
-		return {
-			reportId: existing.id,
-			status: existing.status,
-			idempotentReplay: true,
-		};
-	};
-
 	try {
 		return await db.$transaction(
-			async (tx) => {
-				await lockPackingDispatchScope(tx, input.dispatchId);
-				const lockedDispatch = await tx.orderDelivery.findFirst({
-					where: { id: input.dispatchId, deletedAt: null },
-					select: { driverId: true },
-				});
-				if (!lockedDispatch) {
-					throw new PackingReportError(
-						"STALE_SCOPE",
-						"Dispatch was not found.",
-					);
-				}
-				if (
-					actor.scope === "assignment" &&
-					lockedDispatch.driverId !== actor.id
-				) {
-					throw new PackingReportError(
-						"FORBIDDEN",
-						"Dispatch assignment changed before the packing report was saved.",
-					);
-				}
-				const existing = await tx.salesPackingReport.findUnique({
-					where: { idempotencyKey: input.idempotencyKey },
-				});
-				if (existing) return replay(existing);
-
-				const evidence = await loadPackingEvidence(tx, input.dispatchId);
-				if (!activeDispatchStatus(evidence.dispatch.status)) {
-					throw new PackingReportError(
-						"STALE_SCOPE",
-						"Packing reports cannot be added to a completed or cancelled dispatch.",
-					);
-				}
-				if (evidence.revision !== input.manifestRevision) {
-					throw new PackingReportError(
-						"STALE_EVIDENCE",
-						"Packing evidence changed. Refresh before reporting verified quantity.",
-					);
-				}
-				const line = reportableLine(evidence, input.productionSubmissionId);
-				if (line.dispatchAllocationKey !== input.dispatchAllocationKey) {
-					throw new PackingReportError(
-						"STALE_SCOPE",
-						"Packing allocation belongs to another dispatch or changed. Refresh before reporting.",
-					);
-				}
-				if (line.submission.materialReview?.status !== "PENDING") {
-					throw new PackingReportError(
-						"NOT_REPORTABLE",
-						"This quantity is not blocked by unresolved upstream evidence. Use normal packing.",
-					);
-				}
-				assertPackingQtyWithinRemaining(input, line.remaining);
-				const openKey = buildPackingReportOpenKey({
-					dispatchId: evidence.dispatch.id,
-					dispatchAllocationKey: line.dispatchAllocationKey,
-				});
-				if (await tx.salesPackingReport.findUnique({ where: { openKey } })) {
-					throw new PackingReportError(
-						"IDEMPOTENCY_CONFLICT",
-						"A packing report is already pending for this dispatch allocation.",
-					);
-				}
-				const report = await tx.salesPackingReport.create({
-					data: {
-						salesOrderId: evidence.dispatch.salesOrderId,
-						orderDeliveryId: evidence.dispatch.id,
-						salesOrderItemId: line.salesOrderItemId,
-						orderProductionSubmissionId: line.submission.id,
-						dispatchAllocationKey: line.dispatchAllocationKey,
-						dispatchAllocationItemId: line.dispatchAllocationItemId,
-						submittedById: actor.id,
-						status: "PENDING",
-						reason: "UPSTREAM_PRODUCTION_REVIEW",
-						idempotencyKey: input.idempotencyKey,
-						openKey,
-						qty: input.qty,
-						lhQty: input.lhQty,
-						rhQty: input.rhQty,
-						manifestRevision: evidence.revision,
-						evidenceSnapshot: evidence.snapshot as Prisma.InputJsonValue,
-						note: input.note,
-					},
-					select: { id: true, status: true },
-				});
-				return {
-					reportId: report.id,
-					status: report.status,
-					idempotentReplay: false,
-				};
-			},
+			(tx) => submitPackingReportInTransaction(tx, input, actor),
 			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
 		);
 	} catch (error) {
@@ -419,7 +447,7 @@ export async function submitPackingReport(
 		const existing = await db.salesPackingReport.findUnique({
 			where: { idempotencyKey: input.idempotencyKey },
 		});
-		if (existing) return replay(existing);
+		if (existing) return replayPackingReport(existing, input, actor);
 		throw new PackingReportError(
 			"IDEMPOTENCY_CONFLICT",
 			"A packing report is already pending for this dispatch allocation.",
@@ -466,6 +494,13 @@ export async function decidePackingReport(
 				);
 			}
 			if (input.action === "REJECT") {
+				await tx.orderItemDelivery.update({
+					where: { id: report.dispatchAllocationItemId },
+					data: {
+						packingStatus: "packing review rejected",
+						deletedAt: new Date(),
+					},
+				});
 				await tx.salesPackingReport.update({
 					where: { id: report.id },
 					data: {
@@ -497,12 +532,6 @@ export async function decidePackingReport(
 				tx as Db,
 				report.orderDeliveryId,
 			);
-			if (freshEvidence.revision !== report.manifestRevision) {
-				throw new PackingReportError(
-					"STALE_EVIDENCE",
-					"Packing or upstream evidence changed after this report. Refresh and reject or replace it before packing.",
-				);
-			}
 			const submission = freshEvidence.submissions.find(
 				(row) =>
 					row.id === report.orderProductionSubmissionId &&
@@ -569,6 +598,13 @@ export async function decidePackingReport(
 					"Packing report was decided concurrently. Refresh before retrying.",
 				);
 			}
+			await tx.orderItemDelivery.update({
+				where: { id: report.dispatchAllocationItemId },
+				data: {
+					packingStatus: "packing review approved",
+					deletedAt: new Date(),
+				},
+			});
 			const sales = await getSaleInformation(
 				tx as Db,
 				{ salesId: report.salesOrderId },

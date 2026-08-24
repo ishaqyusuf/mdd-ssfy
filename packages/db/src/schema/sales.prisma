@@ -780,7 +780,7 @@ model DykeSalesDoors {
 model DykeStepForm {
     id             Int               @unique @default(autoincrement())
     componentId    Int?
-    value          String?
+    value          String?             @db.Text
     priceId        String?           @unique
     qty            Int?              @default(0)
     price          Float?            @default(0)

@@ -21,8 +21,8 @@ function getAddress(item: DispatchListItem) {
 }
 
 function actionLabel(item: DispatchListItem) {
-	if (item.status === "in progress") return "Complete delivery";
-	if (item.status === "packed") return "Start trip";
+	if (item.workspace?.canComplete) return "Complete delivery";
+	if (item.workspace?.canStartTrip) return "Start trip";
 	return "View stop";
 }
 
@@ -41,7 +41,7 @@ export function DriverDashboardDispatchItem({
 	onComplete,
 }: Props) {
 	const address = getAddress(item);
-	const complete = item.status === "in progress";
+	const complete = Boolean(item.workspace?.canComplete);
 	return (
 		<Pressable
 			onPress={onOpen}

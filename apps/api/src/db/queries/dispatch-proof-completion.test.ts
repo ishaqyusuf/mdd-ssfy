@@ -160,6 +160,31 @@ describe("dispatch proof completion", () => {
 		).toThrow();
 	});
 
+	test("rejects proof media above the aggregate request ceiling", () => {
+		const base64 = "A".repeat(6_800_000);
+		expect(() =>
+			completeDispatchWithProofSchema.parse({
+				dispatchId: 42,
+				requestId: "dispatch:42:aggregate-limit",
+				signaturePath: "M 1 2 L 3 4",
+				attachments: [
+					{
+						clientId: "photo-1",
+						fileName: "one.jpg",
+						contentType: "image/jpeg",
+						base64,
+					},
+					{
+						clientId: "photo-2",
+						fileName: "two.jpg",
+						contentType: "image/jpeg",
+						base64,
+					},
+				],
+			}),
+		).toThrow("10 MB combined");
+	});
+
 	test("uses deterministic proof filenames and server-built SVG", () => {
 		expect(
 			getDispatchProofFilename(

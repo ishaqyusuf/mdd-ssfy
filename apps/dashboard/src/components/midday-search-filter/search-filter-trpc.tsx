@@ -167,6 +167,7 @@ export function SearchFilterTRPC({
 	const nonSearchDefinitions = definitions.filter(
 		(definition) => !isSearchKey(definition.key),
 	);
+	const hasFilterMenu = loading || nonSearchDefinitions.length > 0;
 	const activeSortLabel = useMemo(
 		() => getSortLabel(searchParams.get("sort")),
 		[searchParams],
@@ -330,7 +331,10 @@ export function SearchFilterTRPC({
 						ref={inputRef}
 						aria-label={placeholder || "Search"}
 						placeholder={placeholder}
-						className="w-full pl-9 pr-24 lg:w-[350px] lg:pr-10"
+						className={cn(
+							"w-full pl-9 lg:w-[350px]",
+							hasFilterMenu ? "pr-24 lg:pr-10" : "pr-3",
+						)}
 						value={prompt}
 						onChange={handleSearch}
 						autoComplete="off"
@@ -339,25 +343,27 @@ export function SearchFilterTRPC({
 						spellCheck="false"
 					/>
 					{!SearchTips || <SearchTip>{SearchTips}</SearchTip>}
-					<DropdownMenuTrigger asChild>
-						<Button
-							aria-expanded={isOpen}
-							aria-label="Open filters"
-							onClick={() => setIsOpen((prev) => !prev)}
-							type="button"
-							variant="ghost"
-							size="sm"
-							className={cn(
-								"absolute right-1 top-1 z-10 h-8 gap-1.5 rounded-md px-2 text-muted-foreground opacity-70 transition-opacity duration-300 hover:opacity-100 lg:w-8 lg:px-0",
-								hasValidFilters && "opacity-100",
-								isOpen && "opacity-100",
-							)}
-						>
-							<Icons.Filter className="size-4" />
-							<span className="text-xs lg:hidden">Filters</span>
-							<span className="sr-only">Open filters</span>
-						</Button>
-					</DropdownMenuTrigger>
+					{hasFilterMenu ? (
+						<DropdownMenuTrigger asChild>
+							<Button
+								aria-expanded={isOpen}
+								aria-label="Open filters"
+								onClick={() => setIsOpen((prev) => !prev)}
+								type="button"
+								variant="ghost"
+								size="sm"
+								className={cn(
+									"absolute right-1 top-1 z-10 h-8 gap-1.5 rounded-md px-2 text-muted-foreground opacity-70 transition-opacity duration-300 hover:opacity-100 lg:w-8 lg:px-0",
+									hasValidFilters && "opacity-100",
+									isOpen && "opacity-100",
+								)}
+							>
+								<Icons.Filter className="size-4" />
+								<span className="text-xs lg:hidden">Filters</span>
+								<span className="sr-only">Open filters</span>
+							</Button>
+						</DropdownMenuTrigger>
+					) : null}
 				</form>
 				{usesAdaptivePageTabs && !stackPageTabs ? pageTabsContent : null}
 				{afterSearch}
@@ -396,103 +402,105 @@ export function SearchFilterTRPC({
 					</div>
 				) : null}
 			</div>
-			<DropdownMenuContent
-				className={cn("w-[min(22rem,calc(100vw-2rem))] lg:w-[350px]")}
-				sideOffset={4}
-				alignOffset={0}
-				side="bottom"
-				align="end"
-			>
-				{loading ? (
-					<FilterMenuSkeleton />
-				) : (
-					nonSearchDefinitions.map((definition) => (
-						<DropdownMenuGroup key={definition.key}>
-							<DropdownMenuSub>
-								<DropdownMenuSubTrigger
-									disabled={lockedKeys.has(definition.key)}
-									className="data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-								>
-									<Icon
-										name={
-											(definition.icon ||
-												searchIcons[definition.key] ||
-												"Search") as never
-										}
-										className="mr-2 size-4"
-									/>
-									<span className="capitalize">{definition.label}</span>
-								</DropdownMenuSubTrigger>
-								<DropdownMenuPortal>
-									<DropdownMenuSubContent
-										sideOffset={14}
-										alignOffset={-4}
-										className="p-0"
+			{hasFilterMenu ? (
+				<DropdownMenuContent
+					className={cn("w-[min(22rem,calc(100vw-2rem))] lg:w-[350px]")}
+					sideOffset={4}
+					alignOffset={0}
+					side="bottom"
+					align="end"
+				>
+					{loading ? (
+						<FilterMenuSkeleton />
+					) : (
+						nonSearchDefinitions.map((definition) => (
+							<DropdownMenuGroup key={definition.key}>
+								<DropdownMenuSub>
+									<DropdownMenuSubTrigger
+										disabled={lockedKeys.has(definition.key)}
+										className="data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
 									>
-										{definition.renderControl ? (
-											<definition.renderControl
-												definition={definition}
-												value={filters?.[definition.key]}
-												filters={filters}
-												setFilter={setFilters}
-												toggleOption={optionSelected}
-											/>
-										) : definition.type === "date-range" ||
-											definition.type === "date" ? (
-											<CalendarFilter filter={definition} />
-										) : (definition.options?.length ?? 0) > 20 ? (
-											<SelectTag
-												headless
-												data={definition.options?.map((option) => ({
-													...option,
-													id: option.value,
-												}))}
-												renderListItem={({ item }) => (
-													<FilterOptionLabel
-														label={item.label}
-														color={(item as { color?: string }).color}
-														truncate
-													/>
-												)}
-												onChange={(selected) => {
-													optionSelected(definition.key, {
-														label: selected.label,
-														value: selected.id,
-														color: (
-															selected as {
-																color?: string;
-															}
-														).color,
-													});
-												}}
-											/>
-										) : (
-											definition.options?.map((option) => (
-												<DropdownMenuCheckboxItem
-													checked={isOptionSelected(
-														definition.key,
-														option.value,
+										<Icon
+											name={
+												(definition.icon ||
+													searchIcons[definition.key] ||
+													"Search") as never
+											}
+											className="mr-2 size-4"
+										/>
+										<span className="capitalize">{definition.label}</span>
+									</DropdownMenuSubTrigger>
+									<DropdownMenuPortal>
+										<DropdownMenuSubContent
+											sideOffset={14}
+											alignOffset={-4}
+											className="p-0"
+										>
+											{definition.renderControl ? (
+												<definition.renderControl
+													definition={definition}
+													value={filters?.[definition.key]}
+													filters={filters}
+													setFilter={setFilters}
+													toggleOption={optionSelected}
+												/>
+											) : definition.type === "date-range" ||
+												definition.type === "date" ? (
+												<CalendarFilter filter={definition} />
+											) : (definition.options?.length ?? 0) > 20 ? (
+												<SelectTag
+													headless
+													data={definition.options?.map((option) => ({
+														...option,
+														id: option.value,
+													}))}
+													renderListItem={({ item }) => (
+														<FilterOptionLabel
+															label={item.label}
+															color={(item as { color?: string }).color}
+															truncate
+														/>
 													)}
-													onSelect={(event) => event.preventDefault()}
-													onCheckedChange={() => {
-														optionSelected(definition.key, option);
+													onChange={(selected) => {
+														optionSelected(definition.key, {
+															label: selected.label,
+															value: selected.id,
+															color: (
+																selected as {
+																	color?: string;
+																}
+															).color,
+														});
 													}}
-													key={option.value}
-												>
-													<FilterOptionLabel
-														label={option.label}
-														color={option.color}
-													/>
-												</DropdownMenuCheckboxItem>
-											))
-										)}
-									</DropdownMenuSubContent>
-								</DropdownMenuPortal>
-							</DropdownMenuSub>
-						</DropdownMenuGroup>
-					))
-				)}
-			</DropdownMenuContent>
+												/>
+											) : (
+												definition.options?.map((option) => (
+													<DropdownMenuCheckboxItem
+														checked={isOptionSelected(
+															definition.key,
+															option.value,
+														)}
+														onSelect={(event) => event.preventDefault()}
+														onCheckedChange={() => {
+															optionSelected(definition.key, option);
+														}}
+														key={option.value}
+													>
+														<FilterOptionLabel
+															label={option.label}
+															color={option.color}
+														/>
+													</DropdownMenuCheckboxItem>
+												))
+											)}
+										</DropdownMenuSubContent>
+									</DropdownMenuPortal>
+								</DropdownMenuSub>
+							</DropdownMenuGroup>
+						))
+					)}
+				</DropdownMenuContent>
+			) : null}
 		</DropdownMenu>
 	);
 }

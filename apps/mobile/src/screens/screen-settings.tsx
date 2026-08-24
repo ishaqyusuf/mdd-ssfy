@@ -1,29 +1,30 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, Platform } from "react-native";
-import { Icon, IconKeys } from "../components/ui/icon";
-import { useRouter } from "expo-router";
-import { useAuthContext } from "@/hooks/use-auth";
-import { padStart } from "@gnd/utils";
-import { getInsuranceRequirement } from "@gnd/utils/insurance-documents";
-import { Debug } from "../components/debug";
-import { BackBtn } from "../components/back-btn";
-import config from "@root/app.config";
-import { useTRPC } from "@/trpc/client";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useColorScheme } from "@/hooks/use-color";
-import {
-	getThemeOverride,
-	setThemeOverride,
-	type ThemeOverride,
-} from "@/lib/theme-preference";
 import { InsuranceStatusAlert } from "@/components/insurance/insurance-status-alert";
-import { Pressable } from "@/components/ui/pressable";
-import type { Href } from "expo-router";
 import {
-	SettingsSections,
 	type SettingsSectionKey,
 	type SettingsSectionOption,
+	SettingsSections,
 } from "@/components/settings-sections";
+import { Pressable } from "@/components/ui/pressable";
+import { useAuthContext } from "@/hooks/use-auth";
+import { useColorScheme } from "@/hooks/use-color";
+import { mobileDispatchPackingCommandsEnabled } from "@/features/dispatch/lib/mobile-dispatch-flags";
+import {
+	type ThemeOverride,
+	getThemeOverride,
+	setThemeOverride,
+} from "@/lib/theme-preference";
+import { useTRPC } from "@/trpc/client";
+import { padStart } from "@gnd/utils";
+import { getInsuranceRequirement } from "@gnd/utils/insurance-documents";
+import config from "@root/app.config";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import type { Href } from "expo-router";
+import React, { useState } from "react";
+import { Platform, ScrollView, Text, View } from "react-native";
+import { BackBtn } from "../components/back-btn";
+import { Debug } from "../components/debug";
+import { Icon, type IconKeys } from "../components/ui/icon";
 
 export default function SettingsExampleScreen({
 	sections = [],
@@ -82,9 +83,13 @@ export default function SettingsExampleScreen({
 		? getInsuranceRequirement(profile.documents || [])
 		: null;
 	const showWarehousePacking =
-		auth.isAdmin ||
-		auth.currentSectionKey === "dispatch" ||
-		auth.currentSectionKey === "driver";
+		mobileDispatchPackingCommandsEnabled &&
+		(auth.isAdmin ||
+			Boolean(
+				auth.profile?.can?.viewPacking ||
+					auth.profile?.can?.editPickup ||
+					auth.profile?.can?.editOrders,
+			));
 	const showDesignSystemPreviews = __DEV__;
 	const designSystemPreviewRoute = "/design-system-preview" as Href;
 	const opsConsolePreviewRoute = "/design-system-preview/template-a" as Href;

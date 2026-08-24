@@ -29,6 +29,15 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 qc.invalidateQueries({
                     queryKey: trpc.dispatch.dispatchOverviewV2.queryKey(),
                 }),
+				qc.invalidateQueries({
+					queryKey: trpc.dispatch.driverManifest.pathKey(),
+				}),
+				qc.invalidateQueries({
+					queryKey: trpc.dispatch.driverWorkQueueSummary.pathKey(),
+				}),
+				qc.invalidateQueries({
+					queryKey: trpc.dispatch.manifest.pathKey(),
+				}),
             ]);
         const isQueue = data?.dispatch?.status === "queue";
         const isInProgress = data?.dispatch?.status === "in progress";

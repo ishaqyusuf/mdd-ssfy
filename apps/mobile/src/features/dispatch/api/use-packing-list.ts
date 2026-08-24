@@ -9,11 +9,14 @@ type Props = {
 
 export function usePackingList({ tab }: Props) {
 	const query = useQuery(_trpc.dispatch.packingList.queryOptions({ tab }));
+	const summary = useQuery(_trpc.dispatch.packingListSummary.queryOptions());
 
 	const items = useMemo(() => query.data ?? [], [query.data]);
 
 	return {
 		...query,
 		items,
+		summary: summary.data,
+		isSummaryPending: summary.isPending,
 	};
 }

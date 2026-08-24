@@ -208,8 +208,11 @@ Provide a cleaner production operations surface for both admins and production w
 ## Sales Overview Worker Item Detail (2026-08-21)
 
 - Production-only users see only production items with quantity assigned to the
-  authenticated worker. Only the first assigned item expands automatically;
-  workers can open additional items manually.
+  authenticated worker. The first available item expands automatically when no
+  valid `prod-item-view` is present. V2 keeps exactly one item expanded for
+  every role; opening another item closes the previous one and writes the new
+  item identity to `prod-item-view` so refresh and browser navigation restore
+  the same item.
 - `Details` is the default Production item tab for every role. Admins retain
   `Details`, `Notes`, and `Assignments`; production-only users receive
   `Details`, `Notes`, and `Submissions (X/Y)`, where X is reported submission
@@ -235,12 +238,25 @@ Provide a cleaner production operations surface for both admins and production w
   controls. Worker cards no longer reserve a second empty progress row beneath
   the subtitle.
 - Production item labels use the standard shadcn `ItemContent`, `ItemTitle`,
-  and `ItemDescription` typography, with both title and description displayed
-  in uppercase.
+  and `ItemDescription` typography. A shared presentation helper normalizes the
+  rendered title and complete subtitle values to uppercase, so visual,
+  accessible, and browser text all use the same capitalization without changing
+  stored sales-item data.
 - Collapsed production items use only the accordion's bottom divider, with no
   card side or top borders. Expanded items replace that divider with a neutral
   border around the full card and add no background tint, gradient, or elevated
   shadow.
+- In the V2 admin view, each production item's fixed Assigned / Production /
+  Fulfilled progress strip is replaced by compact shadcn badges beneath the
+  subtitle. Zero assignment shows `Not Assigned`; partial work shows `X of Y`
+  for every active overlapping stage; a completed upstream stage disappears
+  once the next stage starts. Fully assigned work shows `Assigned` until the
+  first submission, fully submitted non-shippable work shows
+  `Production Completed`, fully submitted shippable work shows
+  `Ready to Fulfill`, and completed dispatch shows `Fulfilled`. Production and
+  fulfillment badges remain absent until their stage has actual progress.
+- The progressive item badges retain the existing role boundary: they replace
+  the admin progress strip only and remain hidden from production-only users.
 - The Sales Overview header priority selector is hidden for production-only
   users. Admin/order-capable users retain the existing selector and Production
   assignment controls.
@@ -408,3 +424,22 @@ Provide a cleaner production operations surface for both admins and production w
 - The admin material-pending readiness alert is compact: it shows only
   `Material Pending` and the `Review Inventory` action. Detailed blocker and
   inbound copy remains available on the Inventory surface reached by that CTA.
+
+## 2026-08-23 Pending-material submission approval completion
+
+- Worker production submission remains available when material evidence is
+  pending. A new review request is written directly to the order sales rep's
+  in-app inbox with worker, quantity, order, and classification context.
+- Missing material configuration no longer renders a fake inventory component
+  with ID `0`. The admin sees explicit physical-availability consent and uses
+  `APPROVE_CONFIGURATION_EXCEPTION`, which records no physical stock movement.
+- Pending review assignment snapshots refresh after the submission's own
+  sales-control recalculation. Genuine later ownership or assignment revision
+  changes still cancel approval as stale.
+- Approved or rejected decisions are delivered directly to the submitting
+  worker and are mandatory operational notification-center channels.
+- Authenticated worker/admin acceptance on order `09396PC` verified submission,
+  sales-rep notification, explicit exception approval, persisted approved
+  state, and worker notification. Evidence is in
+  `artifacts/dispatch-lifecycle-20260823/`.
+- Decision: `.brain/decisions/ADR-068-guarded-fulfillment-and-production-review-authority.md`.

@@ -92,9 +92,11 @@ export default async function Page(props: Props) {
 						</div>
 						<SalesOrdersV2Header />
 						<SalesOrdersPaymentReviewSettings />
-						<Suspense fallback={<SalesHandoffActionsAlertSkeleton />}>
-							<SalesHandoffActionsAlert />
-						</Suspense>
+						{filter.needsAction !== "open" ? (
+							<Suspense fallback={<SalesHandoffActionsAlertSkeleton />}>
+								<SalesHandoffActionsAlert />
+							</Suspense>
+						) : null}
 						<ErrorBoundary errorComponent={ErrorFallbackSales}>
 							<Suspense
 								fallback={

@@ -1,9 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { getDispatchPackingItemPresentation } from "./item-presentation";
+import {
+	getDispatchPackingItemPresentation,
+	getDispatchPackingItemStatusText,
+} from "./item-presentation";
 
 describe("dispatch packing item presentation", () => {
-	test("uses the product subtitle instead of a legacy sales-item database label", () => {
+	test("keeps the exact Production subtitle when replacing a legacy item title", () => {
 		expect(
 			getDispatchPackingItemPresentation({
 				title: "Sales Item 167295",
@@ -15,15 +18,15 @@ describe("dispatch packing item presentation", () => {
 			}),
 		).toEqual({
 			title: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
-			description: 'Door · 30\" × 80\" · LH × 7 · QTY 7',
+			description: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
 		});
 	});
 
-	test("keeps a real title and removes duplicate metadata", () => {
+	test("always capitalizes the item title", () => {
 		expect(
 			getDispatchPackingItemPresentation({
-				title: "BASEBOARD 5180 FJ",
-				subtitle: "BASEBOARD 5180 FJ",
+				title: "Baseboard 5180 FJ",
+				subtitle: "Moulding | Primed finger-jointed pine | 16 ft",
 				itemType: "Moulding",
 				sectionTitle: "Moulding",
 				handingLabel: "Not applicable",
@@ -31,14 +34,14 @@ describe("dispatch packing item presentation", () => {
 			}),
 		).toEqual({
 			title: "BASEBOARD 5180 FJ",
-			description: "Moulding · QTY 35",
+			description: "Moulding | Primed finger-jointed pine | 16 ft",
 		});
 	});
 
 	test("preserves the canonical Production subtitle when it is available", () => {
 		expect(
 			getDispatchPackingItemPresentation({
-				title: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
+				title: "H.C 2pnl sqr top (Carrara) 1-3/8",
 				subtitle:
 					'Pre-hung door | 30\" × 80\" | LH | 7 LH | $ 12.00/qty labor',
 				itemType: "Pre-hung door",
@@ -51,5 +54,17 @@ describe("dispatch packing item presentation", () => {
 			description:
 				'Pre-hung door | 30\" × 80\" | LH | 7 LH | $ 12.00/qty labor',
 		});
+	});
+
+	test("explains when ordered production has not produced a packable submission", () => {
+		expect(
+			getDispatchPackingItemStatusText({
+				itemConfig: { production: true },
+				totalQty: { lh: 1, rh: 1 },
+				availableQty: { qty: 0 },
+				listedQty: { qty: 0 },
+				packedQty: { qty: 0 },
+			}),
+		).toBe("Awaiting production submission");
 	});
 });

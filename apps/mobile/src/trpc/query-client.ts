@@ -1,14 +1,39 @@
 import { Toast } from "@/components/ui/toast";
 import { getErrorPresentation } from "@gnd/errors";
+import NetInfo from "@react-native-community/netinfo";
 import {
 	MutationCache,
 	QueryCache,
 	QueryClient,
 	defaultShouldDehydrateQuery,
+	focusManager,
+	onlineManager,
 } from "@tanstack/react-query";
+import { AppState, Platform } from "react-native";
 import superjson from "superjson";
 
+let nativeManagersConfigured = false;
+
+function configureNativeQueryManagers() {
+	if (nativeManagersConfigured || Platform.OS === "web") return;
+	nativeManagersConfigured = true;
+	onlineManager.setEventListener((setOnline) =>
+		NetInfo.addEventListener((state) => {
+			setOnline(
+				state.isConnected !== false && state.isInternetReachable !== false,
+			);
+		}),
+	);
+	focusManager.setEventListener((setFocused) => {
+		const subscription = AppState.addEventListener("change", (status) => {
+			setFocused(status === "active");
+		});
+		return () => subscription.remove();
+	});
+}
+
 export function makeQueryClient() {
+	configureNativeQueryManagers();
 	return new QueryClient({
 		queryCache: new QueryCache({
 			onError: (error, query) => {

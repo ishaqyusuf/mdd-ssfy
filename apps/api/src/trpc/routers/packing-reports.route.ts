@@ -5,6 +5,7 @@ import {
 } from "@api/db/queries/packing-reports";
 import { auth } from "@api/db/queries/user";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
+import { sendPackingReportNotification } from "@api/utils/packing-report-notification";
 import {
 	authorizePackingReportActor,
 	authorizePackingReportReviewer,
@@ -25,7 +26,18 @@ import {
 } from "../init";
 
 function packingReportTrpcError(error: unknown): never {
-	if (!(error instanceof PackingReportError)) throw error;
+	if (!(error instanceof PackingReportError)) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message:
+				process.env.NODE_ENV === "production"
+					? "Guarded packing could not be saved. Your quantities remain selected; retry or contact dispatch support."
+					: error instanceof Error
+						? error.message
+						: "Guarded packing could not be saved.",
+			cause: error,
+		});
+	}
 	const code =
 		error.code === "FORBIDDEN"
 			? "FORBIDDEN"
@@ -94,10 +106,19 @@ export const packingReportsRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const { authority } = await requirePackingActor(ctx, input.dispatchId);
 			try {
-				return await submitPackingReport(ctx.db, input, {
+				const result = await submitPackingReport(ctx.db, input, {
 					id: authority.actorUserId,
 					scope: authority.scope,
 				});
+				if (!result.idempotentReplay) {
+					await sendPackingReportNotification(
+						ctx,
+						result.reportId,
+						"PENDING",
+						authority.actorUserId,
+					);
+				}
+				return result;
 			} catch (error) {
 				packingReportTrpcError(error);
 			}
@@ -107,10 +128,20 @@ export const packingReportsRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const session = await requirePackingReviewer(ctx);
 			try {
-				return await decidePackingReport(ctx.db, input, {
+				const result = await decidePackingReport(ctx.db, input, {
 					id: ctx.userId,
 					name: session.name || "Packing reviewer",
 				});
+				if (!result.idempotentReplay) {
+					await sendPackingReportNotification(
+						ctx,
+						result.reportId,
+						result.status,
+						ctx.userId,
+						session.name || "Packing reviewer",
+					);
+				}
+				return result;
 			} catch (error) {
 				packingReportTrpcError(error);
 			}

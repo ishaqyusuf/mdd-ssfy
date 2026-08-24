@@ -38,6 +38,7 @@ import {
 } from "@gnd/ui/select";
 import { Separator } from "@gnd/ui/separator";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { getProductionDispatchMutationPolicy } from "@gnd/sales/production-dispatch-policy";
 
 import { useProduction } from "../../context";
 import { ProductionAssignmentForm } from "../../production-assignment-form";
@@ -55,6 +56,7 @@ import {
 	getWorkerProductionSubmissionProgress,
 	shouldWarnWorkerProductionItemMaterialReview,
 } from "../../production-worker-policy";
+import { getProductionConfigKey } from "./production-item-presentation";
 import {
 	getEligibleProductionSubmissionAssignments,
 	hasPendingProductionQuantity,
@@ -83,17 +85,23 @@ function ProductionV2CreateAction() {
 		readiness: production.readiness,
 		readinessUnavailable: production.readinessUnavailable,
 	});
+	const hasPendingAssignmentQuantity = hasPendingProductionQuantity(
+		item.analytics?.assignment?.pending,
+	);
+	const mutationPolicy = getProductionDispatchMutationPolicy({
+		dispatchMode: Boolean(queryCtx.dispatchMode),
+		hasPendingAssignmentQuantity,
+		hasPendingSubmissionQuantity: selectedAssignmentIndex !== null,
+	});
 	const disabled = workerMode
-		? selectedAssignmentIndex === null || queryCtx.dispatchMode
-		: !hasPendingProductionQuantity(item.analytics?.assignment?.pending) ||
-			queryCtx.dispatchMode;
+		? !mutationPolicy.canSubmitExistingAssignment
+		: !mutationPolicy.canCreateAssignment;
 	const label = workerMode ? "Create submission" : "Create assignment";
-	const disabledReason = queryCtx.dispatchMode
-		? "Production changes are locked while this order is in dispatch mode."
-		: workerMode && selectedAssignmentIndex === null
+	const disabledReason = workerMode && selectedAssignmentIndex === null
 			? "No assignment has a pending quantity available to submit."
-			: !workerMode &&
-					!hasPendingProductionQuantity(item.analytics?.assignment?.pending)
+			: !workerMode && queryCtx.dispatchMode
+				? "New production assignments are locked while this order is in dispatch mode. Existing assignments can still be submitted."
+				: !workerMode && !hasPendingAssignmentQuantity
 				? "All production quantity for this item is already assigned."
 				: null;
 	const closeForm = () => {
@@ -281,8 +289,8 @@ function ProductionV2DetailsSection() {
 			</h3>
 			{configs.length ? (
 				<dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-					{configs.map((config) => (
-						<div key={`${config.label}-${config.value}`}>
+					{configs.map((config, index) => (
+						<div key={getProductionConfigKey(config, index)}>
 							<dt className="text-xs font-medium uppercase text-muted-foreground">
 								{config.label}
 							</dt>

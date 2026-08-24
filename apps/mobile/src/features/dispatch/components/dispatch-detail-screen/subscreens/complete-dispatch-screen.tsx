@@ -10,6 +10,9 @@ const COMPLETE_DISPATCH_KEYBOARD_BOTTOM_OFFSET = 80;
 
 type Props = {
 	insetsTop: number;
+	userId: number;
+	dispatchId: number;
+	manifestRevision: string;
 	defaultNoteType?: "dispatch" | "pickup";
 	defaultReceivedBy: string;
 	isSubmitting: boolean;
@@ -19,6 +22,9 @@ type Props = {
 
 export function CompleteDispatchScreen({
 	insetsTop,
+	userId,
+	dispatchId,
+	manifestRevision,
 	defaultNoteType,
 	defaultReceivedBy,
 	isSubmitting,
@@ -53,6 +59,9 @@ export function CompleteDispatchScreen({
 				keyboardShouldPersistTaps="handled"
 			>
 				<DispatchCompleteForm
+					userId={userId}
+					dispatchId={dispatchId}
+					manifestRevision={manifestRevision}
 					defaultNoteType={defaultNoteType}
 					defaultReceivedBy={defaultReceivedBy}
 					isSubmitting={isSubmitting}

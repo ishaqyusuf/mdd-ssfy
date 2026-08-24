@@ -61,7 +61,7 @@ function openPackingDetail(
 		entryMode === "warehouse-packing"
 			? `/(drivers)/warehouse-packing/${item.dispatchId}`
 			: `/(drivers)/dispatch/${item.dispatchId}`;
-	router.push(`${pathname}?${search}`);
+	router.push(`${pathname}?${search}` as never);
 }
 
 function PackingListCard({
@@ -111,7 +111,7 @@ function PackingListCard({
 			<View className="mt-4 flex-row items-center justify-between">
 				<View className="flex-row items-center gap-2">
 					<View className="rounded-full bg-primary/10 p-2">
-						<Icon name="Package" className="text-primary" size={16} />
+						<Icon name="ClipboardCheck" className="text-primary" size={16} />
 					</View>
 					<View>
 						<Text className="text-xs font-semibold uppercase tracking-[1px] text-muted-foreground">
@@ -140,9 +140,10 @@ export function PackingListScreen({
 	const router = useRouter();
 	const auth = useAuthContext();
 	const [tab, setTab] = useState<PackingListTab>("current");
-	const { items, isPending, isRefetching, refetch, error } = usePackingList({
-		tab,
-	});
+	const { items, summary, isPending, isRefetching, refetch, error } =
+		usePackingList({
+			tab,
+		});
 
 	const visibleTabs = useMemo(
 		() =>
@@ -154,21 +155,12 @@ export function PackingListScreen({
 		[auth.isAdmin],
 	);
 
-	const stats = useMemo(() => {
-		const ready = items.filter((item) => item.status === "queue").length;
-		const partiallyPacked = items.filter(
-			(item) => item.status === "packed" || item.status === "in progress",
-		).length;
-		const completed = items.filter(
-			(item) => item.status === "completed",
-		).length;
-		return {
-			total: items.length,
-			ready,
-			partiallyPacked,
-			completed,
-		};
-	}, [items]);
+	const stats = {
+		total: summary?.total || 0,
+		ready: summary?.ready || 0,
+		partiallyPacked: summary?.active || 0,
+		completed: summary?.completed || 0,
+	};
 
 	return (
 		<SafeArea>

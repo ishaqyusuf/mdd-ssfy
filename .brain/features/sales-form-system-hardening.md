@@ -106,6 +106,13 @@
   nested new-form document. Legacy saves preserve the nested document instead
   of replacing unknown metadata, and both editors hydrate the same canonical
   P.O. value.
+- A P.O.-only save on a legacy document with no persisted `newSalesForm.form`
+  uses a guarded metadata-only transaction. It persists an explicit blank as
+  root `null`, preserves the legacy graph and unknown metadata, expires/warms
+  invoice documents, and skips server inventory synchronization plus dashboard
+  history/inventory/event follow-ups. Known lossless adapter defaults are
+  normalized for comparison; an unchanged repeat save is a no-op. Any status
+  or commercial difference fails the narrow comparison and uses the full save.
 - Dirty form payloads are persisted to versioned local-recovery storage on
   change and page-leave. Navigation does not show an unsaved-changes alert;
   snapshot capture continues silently when the user leaves the form.
@@ -318,6 +325,14 @@
   summary UI, autosave, and relational persistence suites pass 59 tests / 252
   assertions; Sales typecheck and whitespace checks pass. Authenticated browser
   proof was blocked because local Docker services did not become available.
+- 2026-08-24 legacy P.O.-only persistence was isolated from current-form and
+  inventory compatibility materialization. The focused API P.O. slice passes 2
+  tests / 12 assertions and the dashboard save-scope slice passes 1 test / 4
+  assertions. Authenticated Preview proof on `09379PC` preserved every tracked
+  graph hash through a P.O. change and unchanged repeat save, created no
+  history/inventory rows, kept `newSalesForm.form` absent, restored blank P.O.
+  and `$2,573.23`, and rebuilt a matching ready projection. Production was not
+  touched.
 - 2026-08-06 the focused shelf product picker UI regression passes 1 test / 2
   assertions and confirms the results container has a fixed maximum height with
   vertical scrolling and contained overscroll.
@@ -453,6 +468,17 @@
 
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.
+
+## 2026-08-24 Step-value storage hardening
+
+- Free-form persisted workflow step titles now map to MySQL `TEXT` instead of
+  the implicit `VARCHAR(191)`, eliminating the P2000 save rollback observed for
+  production order `09433PC`.
+- The change preserves the complete submitted label; it does not truncate,
+  rewrite, or otherwise change sales-form behavior.
+- Focused validation passes 2 schema/migration contract tests and the complete
+  39-test / 217-assertion new-sales-form API suite. Database rollout and live
+  order proof remain pending.
 
 ## 2026-08-18 Relational source-of-truth hardening
 

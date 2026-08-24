@@ -70,9 +70,9 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
       deliverables: item.deliverables,
       totalQty: item.qty,
       doorId: item.doorId,
-	  size: item.size,
-	  swing: item.swing,
-	  sectionTitle: item.sectionTitle,
+      size: item.size,
+      swing: item.swing,
+      sectionTitle: item.sectionTitle,
       dispatchStat,
       itemConfig: item.itemConfig,
       analytics: item.analytics,
@@ -120,11 +120,15 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
       status: delivery.status as SalesDispatchStatus,
       dispatchNumber: `DISP-${padStart(delivery.id?.toString(), 5, "0")}`,
       items: delivery.items.map((item) => {
-        const _item = overview.items.find((i) =>
-          i?.analytics?.submissionIds.includes(
-            item.orderProductionSubmissionId!,
-          ),
-        );
+        const directControlUid =
+          item.submission?.assignment?.salesItemControlUid || null;
+        const _item =
+          overview.items.find((i) => i.controlUid === directControlUid) ||
+          overview.items.find((i) =>
+            i?.analytics?.submissionIds.includes(
+              item.orderProductionSubmissionId!,
+            ),
+          );
         const { controlUid, title, sectionTitle, subtitle } = _item || {};
         return {
           ...item,

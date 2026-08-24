@@ -11,6 +11,10 @@ type PendingItem = {
 	uid: string;
 	title: string;
 	img?: string | null;
+	salesItemId?: number;
+	productionSubmissionId: number;
+	dispatchAllocationKey: string;
+	manifestRevision: string;
 	pendingQty: {
 		qty?: number;
 		lh?: number;

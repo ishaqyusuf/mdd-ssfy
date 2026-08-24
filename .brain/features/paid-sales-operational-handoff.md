@@ -46,9 +46,9 @@ mutation was performed.
 
 ## Super Admin escalation (Ticket 04, 2026-08-23)
 
-- Active Super Admins see organization-wide unresolved actions grouped by the
-  responsible representative; representatives remain own-scope. Oldest-first
-  order is stable and the alert reveals actions six at a time.
+- Active Super Admins see organization-wide unresolved actions;
+  representatives remain own-scope. The fixed Needs Action table is the
+  detailed work surface and retains explicit representative filtering.
 - Every epoch stores organization, protected deep-link target, and the same-wall-
   time next-weekday due time in `America/New_York`. Rep transfer preserves that
   epoch/clock, resolution cancels unsent work, and a genuine reopen starts a new
@@ -105,12 +105,11 @@ mutation was performed.
   and 200 oldest open epochs. It skips transaction work for non-actionable
   action types that have no open epoch and reconciles the relevant Material and
   Production types together per order.
-- Sales Orders renders restrained sky Production pills beside amber Material
-  pills inside the same semantic list. A Production pill opens canonical Sales
-  Overview state with `salesTab=production`, the exact `prod-item-view`, and
-  `prod-item-tab=assignments`; existing overview authorization and focus return
-  remain authoritative. The payload grants no assignment mutation capability
-  and never auto-assigns a worker.
+- Production actions remain available through the fixed Needs Action table. An
+  action opens canonical Sales Overview state with `salesTab=production`, the
+  exact `prod-item-view`, and `prod-item-tab=assignments`; existing overview
+  authorization remains authoritative. The payload grants no assignment
+  mutation capability and never auto-assigns a worker.
 - `sales.production.changed` invalidates the handoff read for assignment and
   submission clients, and finalized production-review mutations now join that
   same targeted invalidation family.
@@ -135,14 +134,13 @@ mutation was performed.
   fulfilled histories cannot starve current work; the oldest 200 open epochs
   are loaded independently so old actions can still resolve. Caller input has
   no representative selector.
-- Sales Orders renders the independent shadcn alert immediately before the
-  table but deliberately excludes its non-Suspense query from server batch
-  prefetch. Server markup and first hydration therefore share the compact
-  skeleton while the client independently resolves alert/error/empty state,
-  without delaying table or summary prefetch. It reveals wrapping native-button
-  action pills six at a time, retains explicit Retry, and restores focus after
-  the canonical Sales Overview deep link closes. If reconciliation removes the
-  invoking pill while Overview is open, focus returns to a stable alert anchor.
+- Every Sales Orders tab except Needs Action renders a compact shadcn alert
+  immediately before the table. It shows the exact actor-scoped unique-order
+  count and one `View needs action` link to the fixed Needs Action table; it no
+  longer renders individual Material or Production pills. The client reuses
+  the fixed-tab scope query, retains compact loading and explicit Retry states,
+  and deliberately remains outside server batch prefetch so it does not delay
+  table or summary prefetch. Needs Action does not mount the redundant alert.
 - A Material deep link opens the existing Inventory Needs `stock` segment with
   Create inbound expanded. Its `inventoryCreateInbound=true` URL state remains
   while the pane is mounted, survives copied-link reload, and clears on pane or
@@ -183,10 +181,10 @@ coverage or has not completed production assignment.
 
 - A global, Super-Admin-managed Sales Handoff Trigger supports Fully paid, Any
   payment received, and Payment percentage reached. Fully paid is the default.
-- Sales Orders shows a shadcn `Paid sales need action` alert immediately before
-  the table.
-- Clickable `#ORDERID — Material` and `#ORDERID — Production` pills open the
-  matching Sales Overview operational surface.
+- Every Sales Orders tab except Needs Action shows a compact shadcn alert with
+  the exact unique-order count and one link to the Needs Action table.
+- The Needs Action table is the canonical detailed action surface. Its action
+  controls open the matching Sales Overview operational surface.
 - Sales representatives see their own orders. Super Admin sees all unresolved
   actions and the responsible representative.
 - Material means supplier-order/inbound coverage is missing, not merely that
@@ -200,6 +198,26 @@ coverage or has not completed production assignment.
   resolved.
 - The sales representative is primary owner. Super Admin receives an in-app
   escalation after one business day; first release excludes email.
+
+## Planned Global Header Indicator (not implemented)
+
+- Add one role-aware header action beside the existing notification controls.
+  It displays the exact actor-scoped unique-order count and links to
+  `/sales-book/orders?needsAction=open&tabName=Needs+Action`.
+- Use a lean count-only protected read, or the existing scope read with the
+  smallest supported id limit, so the global shell does not fetch the detailed
+  action list on every page. The server must continue deriving representative
+  versus Super Admin scope from the authenticated actor.
+- Render nothing at zero. Use compact loading/error behavior that does not shift
+  the header, a readable desktop label, an accessible mobile badge/icon, and an
+  `aria-label` containing the full count and destination.
+- Reuse the handoff query-event invalidation family after payment, inventory,
+  production, assignment, and review mutations; refetch on focus and use a
+  bounded stale interval so the header and Needs Action badge converge without
+  polling aggressively.
+- Cover permission scope, singular/plural/large counts, zero/loading/error,
+  keyboard navigation, responsive layout, and routing with component and
+  authenticated browser tests before release.
 
 ## Planning Artifacts
 

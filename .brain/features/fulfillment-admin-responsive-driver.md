@@ -45,3 +45,19 @@ dependency ordered under
 Record representative admin and driver feedback on terminology, density,
 exception handling, and the primary-action progression. Only after that review
 may Ticket 01 be marked complete and Ticket 02 become the active frontier.
+
+## 2026-08-23 Mobile Authority Reconciliation
+
+- Expo now consumes the same server-owned dispatch revision, readiness,
+  lifecycle risks, capabilities, and blockers used by current fulfillment
+  logic while retaining its existing queue, stop, packing, issue, proof,
+  notification, and settings flow.
+- Normal legacy packing, inventory-backed packing, and guarded-review requests
+  share one atomic command boundary. Pending guarded quantity remains visibly
+  pending and never counts as packed readiness until canonical approval.
+- Drivers can Start Trip, report a durable issue, and complete with proof when
+  the server grants those actions. Cancellation, generic status editing,
+  packing reset, and picked-stock release remain manager operations.
+- UI redesign remains outside this reconciliation. Sequential screen review
+  and design alternatives require the explicit post-implementation approval
+  gate.

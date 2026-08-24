@@ -13,6 +13,10 @@ const formSource = readFileSync(
 	new URL("../components/dispatch-complete-form.tsx", import.meta.url),
 	"utf8",
 );
+const draftSource = readFileSync(
+	new URL("../lib/dispatch-proof-draft-storage.ts", import.meta.url),
+	"utf8",
+);
 
 describe("mobile dispatch proof completion", () => {
 	test("submits proof through one dispatch-bound mutation", () => {
@@ -24,11 +28,12 @@ describe("mobile dispatch proof completion", () => {
 		expect(screenSource).not.toContain("documents.uploadText");
 	});
 
-	test("keeps a stable request id and proof in the open form for retry", () => {
-		expect(formSource).toContain(
-			"const [requestId] = useState(createCompletionRequestId)",
-		);
-		expect(formSource).toContain("requestId,");
+	test("keeps a stable manifest-bound request and app-owned proof for restart retry", () => {
+		expect(formSource).toContain("useDispatchProofDraft");
+		expect(formSource).toContain("expectedManifestRevision");
+		expect(draftSource).toContain("dispatch-proof-draft-v2:");
+		expect(draftSource).toContain("FileSystem.documentDirectory");
+		expect(draftSource).not.toContain("base64:");
 		expect(screenSource).toContain(
 			"Completion paused. Your proof is still here—tap Complete Dispatch to retry.",
 		);

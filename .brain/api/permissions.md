@@ -611,3 +611,22 @@ Tracks authentication and authorization patterns across API surfaces.
   derives its contractor recipient. Dispatch notification authority reloads the
   active dispatch, requires the assigned driver or packing/dispatch-manager
   authority, and derives dispatch scope and subscriber recipients server-side.
+
+## Mobile dispatch command boundaries (2026-08-23)
+
+- Mobile detail, manifest, Start Trip, proof completion, and issue reporting
+  require the live assigned driver or dispatch manager. A packing operator may
+  read/confirm packing only through explicit `viewPacking`, `editPickup`, or
+  `editOrders` capability.
+- `dispatch.resetPacking` requires `editPickup` or `editOrders`. Only these
+  manager capabilities may release already-picked inventory; assignment alone
+  never grants that authority.
+- Server capabilities are presentation-safe results, not authorization tokens.
+  Every mutation reloads the dispatch and rechecks assignment, permission,
+  terminal state, pending reviews, special-order policy, and revision under its
+  own protected boundary.
+- Assigned drivers have no mobile cancellation or generic lifecycle-edit
+  route. They use durable Report Issue; reschedule/cancel and reconciliation
+  stay in manager workflows.
+- Warehouse Packing navigation requires packing or manager capability and is
+  also suppressed when the reversible mobile packing-command flag is disabled.
