@@ -47,4 +47,38 @@ describe("legacy inventory post-save routing", () => {
 			}),
 		).toEqual({ action: "none" });
 	});
+
+	it("still queues a recognized legacy order after a PO-only save", () => {
+		expect(
+			resolveLegacyInventoryPostSaveAction({
+				salesId: 24057,
+				orderNo: "09405PC",
+				salesType: "order",
+				inventoryStatus: "AVAILABLE",
+				savedOrderUpdatedAt: "2026-08-24T19:57:53.000Z",
+				afterSuccessfulSave: true,
+				skipOrdinaryConfigurator: true,
+			}),
+		).toEqual({
+			action: "queue_legacy_adaptation",
+			salesOrderId: 24057,
+			orderNo: "09405PC",
+			legacyStatus: "AVAILABLE",
+			savedOrderUpdatedAt: "2026-08-24T19:57:53.000Z",
+		});
+	});
+
+	it("suppresses the ordinary configurator for a PO-only save", () => {
+		expect(
+			resolveLegacyInventoryPostSaveAction({
+				salesId: 24058,
+				orderNo: "09406PC",
+				salesType: "order",
+				inventoryStatus: null,
+				savedOrderUpdatedAt: "2026-08-24T20:00:00.000Z",
+				afterSuccessfulSave: true,
+				skipOrdinaryConfigurator: true,
+			}),
+		).toEqual({ action: "none" });
+	});
 });

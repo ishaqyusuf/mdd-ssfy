@@ -1,5 +1,15 @@
 # Progress
 
+- 2026-08-24: Repaired the canonical Fulfillment page hydration path. The
+  Pending list and Calendar now await their server prefetches, the list hydrates
+  its shared dispatch summary, and workspace-only URL defaults are removed from
+  the server table input so it matches the client query key. Authenticated
+  in-app-browser QA confirms summary cards, overdue banner, populated dispatch
+  rows, and the Calendar route render without error boundaries or new console
+  errors. Added static migration-parity coverage; execution was deferred under
+  the fast Bun command discipline. No mutation, permission, API, database, or
+  production-data behavior changed.
+
 - 2026-08-24: Changed Mark Sales Order Fulfilled authorization to the normal
   view-prefixed permission convention. The canonical session capability is now
   `viewMarkSalesOrderFulfilled`, persisted as
@@ -11705,3 +11715,22 @@
   as `Super Admin only`; the code already supports the requested `All staff`
   rollout. The local widening migration is applied and the local database is in
   sync. No Preview or Production database/configuration has changed yet.
+
+## 2026-08-24 — Implemented headless legacy inventory adaptation
+
+- Replaced Inventory-tab auto-mutation and its module-level attempt marker with
+  an after-save Trigger task for recognized legacy statuses. Both sales forms
+  now queue and continue navigation; ordinary orders retain Configure Inventory.
+- Added exact revision/status guards, queue and worker `editOrders` checks,
+  same-save idempotency, bounded retries, durable projection lifecycle state,
+  persistent monitor intent/effects, and explicit Run/Retry recovery UI.
+- Extracted the shared projection writer. Successful zero-row `AVAILABLE`
+  adaptation now persists `ready/0`, while positive legacy projections record
+  `source=legacy-status` for durable reconciliation.
+- Focused validation passes 71 tests / 199 assertions. Scoped Biome passes.
+  Sales typecheck retains only the known unrelated assignment-ID baseline;
+  filtered Jobs and Dashboard diagnostics contain no touched-path errors.
+- Browser evidence confirms opening `09405PC` no longer renders the blocking
+  Configure Inventory or Adapting modal. Direct local reads confirm the fixture
+  remains `AVAILABLE`/`legacy_locked` until the new task runs. Worker-first
+  deploy and production canary remain pending.

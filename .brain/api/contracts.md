@@ -1775,6 +1775,25 @@ implementation phase is approved and released.
 
 ## Guarded packing report contract (2026-08-23)
 
+## Headless legacy inventory adaptation contract (2026-08-24)
+
+- Trigger task: `migrate-sales-inventory-legacy-status`.
+- Worker payload: positive `salesOrderId`, exact legacy status
+  (`AVAILABLE`, `ORDERED`, or `PENDING ORDER`), ISO `savedOrderUpdatedAt`, and a
+  server-owned actor `{ id, name }`.
+- Dashboard queue input omits actor and accepts `forceRetry`; the queue boundary
+  injects authenticated identity and requires `editOrders`.
+- Automatic runs use a global idempotency key derived from order, status, and
+  save revision. Explicit Retry bypasses that same-save start key while the
+  worker remains transactionally idempotent and revision guarded.
+- The worker rechecks the actor's active `editOrders` permission and exits stale
+  when status or revision no longer matches.
+- Task-monitor intent: `sales.adapt-legacy-inventory`, version 1, with
+  `{ salesId, orderNo }`.
+- `resolveSalesInventoryLegacyStatusMigration` accepts optional
+  `expectedSalesUpdatedAt` and performs no inventory, inbound, terminal
+  projection, or history writes when the baseline is stale.
+
 - Protected `packingReports.context`, `.submit`, and `.decide` procedures use
   session identity. Submit binds one dispatch, production submission, exact
   canonical `OrderItemDelivery` allocation row, scalar-or-LH/RH quantity,

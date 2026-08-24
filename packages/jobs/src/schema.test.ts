@@ -92,6 +92,14 @@ describe("legacy sales inventory migration task schema", () => {
 			).toBe(false);
 		}
 	});
+
+	it("avoids bundler-sensitive schema derivation at module initialization", async () => {
+		const source = await Bun.file(new URL("./schema.ts", import.meta.url)).text();
+		expect(source).not.toContain(
+			"migrateSalesInventoryLegacyStatusSchemaTask.omit",
+		);
+		expect(source).toContain("migrateSalesInventoryLegacyStatusFields");
+	});
 });
 
 describe("inventory reconciliation report schema", () => {

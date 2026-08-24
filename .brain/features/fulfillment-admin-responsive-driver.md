@@ -40,6 +40,18 @@ dependency ordered under
 - Review screenshots live under
   `.scratch/fulfillment-admin-responsive-driver-implementation/screenshots/`.
 
+## 2026-08-24 Canonical Page Hydration Repair
+
+- The canonical `/sales-book/fulfillment` route now awaits its active list or
+  calendar prefetch before hydration.
+- The list route prefetches the shared dispatch summary used by summary cards,
+  overdue status, and driver workload, and removes workspace-only URL defaults
+  before building the table query so its server and client query keys match.
+- Authenticated in-app-browser validation confirmed the populated Pending list
+  and Calendar route render without error boundaries or new console errors.
+- No dispatch behavior, mutation, permission, API contract, or database schema
+  changed.
+
 ## Open gate
 
 Record representative admin and driver feedback on terminology, density,

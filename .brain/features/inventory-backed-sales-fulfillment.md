@@ -772,3 +772,29 @@ Status: Partially done; dry-run reconciliation and receive/allocation retry guar
   form and closed it without creating an inbound shipment.
 
 Last updated: 2026-08-17
+
+## 2026-08-24 Headless legacy inventory adaptation
+
+- Recognized historical `AVAILABLE`, `ORDERED`, and `PENDING ORDER` values are
+  adapted only after a successful sales save. Opening Sales Overview or its
+  Inventory tab is read-only.
+- Both sales-form implementations queue
+  `migrate-sales-inventory-legacy-status` and continue navigation immediately;
+  ordinary non-legacy orders retain the blocking Configure Inventory prompt.
+- Queue and worker boundaries both require `editOrders`. The worker is guarded
+  by the exact saved `updatedAt` revision and legacy status, uses same-save
+  idempotency with bounded retries, and rejects stale work before inventory,
+  inbound, projection-success, or history writes.
+- `SalesInventoryProjectionState` is the durable lifecycle contract:
+  `syncing` while work runs, `ready` with authoritative need totals on success,
+  and `failed` with bounded error evidence. A zero-requirement `AVAILABLE`
+  adaptation persists `ready/0`; positive legacy adaptations use
+  `source=legacy-status` so compatibility resolution can distinguish them from
+  an ordinary form projection.
+- The persisted task-monitor intent is `sales.adapt-legacy-inventory` version
+  1. Completion and failure invalidate order, overview, inventory, inbound, and
+  Sales Orders reads after navigation. Failed jobs remain visible.
+- Historical locked orders expose explicit Run/Retry controls. The former
+  module-level attempt map and auto-on-open mutation were removed.
+
+Last updated: 2026-08-24

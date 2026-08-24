@@ -703,3 +703,15 @@ Planning only; endpoint names may be refined during approved implementation.
 - Refresh enqueues use globally scoped five-minute idempotency keys. Development
   is fully backfilled and locally parity-verified, but the rollout setting still
   defaults to `off`; no production read behavior changed.
+## 2026-08-24 Legacy inventory background adaptation
+
+- Dashboard server action `triggerTask` accepts
+  `migrate-sales-inventory-legacy-status`, validates the saved order baseline,
+  enforces `editOrders`, injects the active actor, and starts the Trigger task.
+- Trigger worker
+  `packages/jobs/src/tasks/sales/migrate-sales-inventory-legacy-status.ts`
+  reauthorizes the actor, persists guarded projection lifecycle state, and
+  invokes the exact-revision legacy resolver.
+- Existing `inventories.resolveSalesInventoryLegacyStatus` remains available
+  for explicit recovery and now requires `editOrders`; it is no longer called
+  automatically by opening the Inventory tab.

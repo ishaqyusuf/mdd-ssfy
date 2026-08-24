@@ -671,3 +671,18 @@ failing idempotency tests, or list/detail contract drift.
   acceptance criteria, and handoff details.
 - Project Brain integration: aligned the proposal with existing inventory
   feature documentation, ADR-009, task history, and API ownership boundaries.
+
+## 2026-08-24 Headless adaptation addendum
+
+This addendum supersedes the earlier auto-on-Inventory-tab behavior and its
+acceptance wording. Merely opening an order must never write. A recognized
+legacy status is queued only after a successful save, and requested navigation
+continues after task acceptance rather than task completion. Historical orders
+that have not been queued, or whose durable projection is `failed`, expose
+explicit Run/Retry controls.
+
+The durable success contract is `SalesInventoryProjectionState.ready` with
+authoritative totals. `AVAILABLE` with zero tracked requirements must persist
+`ready/0`; a nonzero successful migration is distinguished by
+`source=legacy-status`. Exact saved revision/status guards supersede stale jobs
+before inventory, inbound, projection-success, or history writes.

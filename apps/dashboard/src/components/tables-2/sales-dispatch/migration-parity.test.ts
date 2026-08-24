@@ -40,6 +40,21 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(routeSource.includes("@gnd/ui/data-table")).toBe(false);
 		expect(routeSource.includes("PageStickyHeader")).toBe(false);
 		expect(dispatchRoute.includes("batchPrefetch([")).toBe(true);
+		expect(adminRoute.match(/await batchPrefetch\(\[/g)?.length).toBe(2);
+		expect(
+			adminRoute.includes("trpc.dispatch.dispatchSummary.queryOptions()"),
+		).toBe(true);
+		for (const routeOnlyKey of [
+			"section",
+			"dispatchId",
+			"dispatchSalesId",
+			"exceptionId",
+			"sheetMode",
+			"detailTab",
+			"exceptionStatus",
+		]) {
+			expect(adminRoute.includes(`${routeOnlyKey}: _${routeOnlyKey}`)).toBe(true);
+		}
 		expect(adminCalendarWorkspace.includes("DispatchCalendarView")).toBe(true);
 		expect(taskRoute.includes("<DataTable driver")).toBe(true);
 	});

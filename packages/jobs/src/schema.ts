@@ -207,20 +207,24 @@ export type SendStorefrontWelcomeEmailPayload = z.infer<
 
 const positiveIntegerId = z.number().int().positive();
 
-export const migrateSalesInventoryLegacyStatusSchemaTask = z.object({
+const migrateSalesInventoryLegacyStatusFields = {
 	salesOrderId: positiveIntegerId,
 	legacyStatus: z.enum(["AVAILABLE", "ORDERED", "PENDING ORDER"]),
 	savedOrderUpdatedAt: z.string().datetime(),
+};
+
+export const migrateSalesInventoryLegacyStatusSchemaTask = z.object({
+	...migrateSalesInventoryLegacyStatusFields,
 	actor: author,
 });
 export type MigrateSalesInventoryLegacyStatusTaskPayload = z.infer<
 	typeof migrateSalesInventoryLegacyStatusSchemaTask
 >;
 
-export const queueSalesInventoryLegacyStatusMigrationSchema =
-	migrateSalesInventoryLegacyStatusSchemaTask.omit({ actor: true }).extend({
-		forceRetry: z.boolean().optional().default(false),
-	});
+export const queueSalesInventoryLegacyStatusMigrationSchema = z.object({
+	...migrateSalesInventoryLegacyStatusFields,
+	forceRetry: z.boolean().optional().default(false),
+});
 export type QueueSalesInventoryLegacyStatusMigrationInput = z.infer<
 	typeof queueSalesInventoryLegacyStatusMigrationSchema
 >;

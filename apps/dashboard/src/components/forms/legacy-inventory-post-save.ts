@@ -7,6 +7,7 @@ type LegacyInventoryPostSaveInput = {
 	inventoryStatus?: string | null;
 	savedOrderUpdatedAt?: string | null;
 	afterSuccessfulSave: boolean;
+	skipOrdinaryConfigurator?: boolean;
 };
 
 export type LegacyInventoryPostSaveAction =
@@ -40,6 +41,7 @@ export function resolveLegacyInventoryPostSaveAction(
 			savedOrderUpdatedAt: input.savedOrderUpdatedAt,
 		};
 	}
+	if (input.skipOrdinaryConfigurator) return { action: "none" };
 
 	return { action: "configure_inventory", salesOrderId };
 }

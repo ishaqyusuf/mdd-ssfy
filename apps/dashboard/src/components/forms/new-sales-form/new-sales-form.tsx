@@ -1100,7 +1100,7 @@ export function NewSalesForm(props: Props) {
 			},
 			afterSuccessfulSave: boolean,
 		) => {
-			if (!isOrder || isLegacyPoOnlySaveResponse(resp)) return;
+			if (!isOrder) return;
 			const action = resolveLegacyInventoryPostSaveAction({
 				salesId: resp.salesId,
 				orderNo: resp.orderId,
@@ -1108,6 +1108,7 @@ export function NewSalesForm(props: Props) {
 				inventoryStatus: resp.inventoryStatus,
 				savedOrderUpdatedAt: resp.updatedAt,
 				afterSuccessfulSave,
+				skipOrdinaryConfigurator: isLegacyPoOnlySaveResponse(resp),
 			});
 			if (action.action === "queue_legacy_adaptation") {
 				await legacyInventoryAdaptation.queue(action);

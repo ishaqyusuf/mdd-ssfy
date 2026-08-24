@@ -52,7 +52,7 @@ export default async function Page(props: Props) {
 			calendarDate,
 			filter.calendarView,
 		);
-		batchPrefetch([
+		await batchPrefetch([
 			trpc.dispatch.fulfillmentCalendar.queryOptions({
 				from: period.from,
 				to: period.to,
@@ -64,16 +64,24 @@ export default async function Page(props: Props) {
 			view: _view,
 			calendarView: _calendarView,
 			calendarDate: _calendarDate,
+			section: _section,
+			dispatchId: _dispatchId,
+			dispatchSalesId: _dispatchSalesId,
+			exceptionId: _exceptionId,
+			sheetMode: _sheetMode,
+			detailTab: _detailTab,
+			exceptionStatus: _exceptionStatus,
 			...dispatchFilter
 		} = filter;
 		const { sort } = loadSortParams(searchParams);
 		const initialSettings = await getInitialTableSettings("sales-dispatch");
 		const queryInput = { ...dispatchFilter, sort } as DispatchInput;
-		batchPrefetch([
+		await batchPrefetch([
 			trpc.dispatch.index.infiniteQueryOptions(queryInput, {
 				getNextPageParam: ({ meta }) =>
 					(meta as { cursor?: string | number | null } | undefined)?.cursor,
 			}),
+			trpc.dispatch.dispatchSummary.queryOptions(),
 			trpc.hrm.getEmployees.queryOptions({
 				can: ["viewDelivery"],
 				cannot: ["editOrders"],
