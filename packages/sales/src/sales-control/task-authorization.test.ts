@@ -60,6 +60,17 @@ function packingInput(overrides: Partial<UpdateSalesControl> = {}) {
 	} as UpdateSalesControl;
 }
 
+function fulfilledInput() {
+	return {
+		meta: {
+			salesId: 91,
+			authorId: 999,
+			authorName: "Forged Actor",
+		},
+		markAsCompleted: { dispatchId: 41 },
+	} as UpdateSalesControl;
+}
+
 describe("sales-control task authorization", () => {
 	it("normalizes direct task metadata from the authenticated server actor", () => {
 		const result = normalizeSalesControlTaskActor(packingInput(), {
@@ -128,6 +139,26 @@ describe("sales-control task authorization", () => {
 				{ userId: 7, can: { viewPacking: true } },
 			),
 		).rejects.toThrow("do not belong to this sales order");
+	});
+
+	it("authorizes fulfillment with the view-prefixed action permission", async () => {
+		await expect(
+			authorizeSalesControlTaskInput(
+				makeDb([{ id: 41, salesOrderId: 91, driverId: null }]) as any,
+				fulfilledInput(),
+				{ userId: 7, can: { viewMarkSalesOrderFulfilled: true } },
+			),
+		).resolves.toMatchObject({ meta: { authorId: 7 } });
+	});
+
+	it("does not let broad order access replace fulfillment permission", async () => {
+		await expect(
+			authorizeSalesControlTaskInput(
+				makeDb([{ id: 41, salesOrderId: 91, driverId: null }]) as any,
+				fulfilledInput(),
+				{ userId: 7, can: { editOrders: true } },
+			),
+		).rejects.toThrow("permission to mark sales orders fulfilled");
 	});
 
 	it("derives submit-for-others capability from editProduction", async () => {

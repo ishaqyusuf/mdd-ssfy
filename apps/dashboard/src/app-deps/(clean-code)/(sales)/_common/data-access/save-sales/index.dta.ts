@@ -1,6 +1,7 @@
-import { SalesFormFields } from "../../../types";
+import { normalizeSalesInventoryLegacyStatus } from "@gnd/sales/sales-inventory-legacy-compatibility";
 import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
-import { SaveQuery, SaveSalesClass } from "./save-sales-class";
+import type { SalesFormFields } from "../../../types";
+import { type SaveQuery, SaveSalesClass } from "./save-sales-class";
 
 export async function saveSalesFormDta(
     form: SalesFormFields,
@@ -11,7 +12,11 @@ export async function saveSalesFormDta(
     await worker.execute();
     const result = worker.result();
 
-    if (!result?.data?.error && result?.salesId) {
+	if (
+		!result?.data?.error &&
+		result?.salesId &&
+		!normalizeSalesInventoryLegacyStatus(result.inventoryStatus)
+	) {
         await queueSalesInventoryLineItemsSync({
             salesOrderId: result.salesId,
             source: "old-form",

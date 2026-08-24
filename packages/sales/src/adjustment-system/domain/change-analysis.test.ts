@@ -41,7 +41,7 @@ describe("analyzeSalesFormChange", () => {
 		expect(result.totalDelta).toBe(-220);
 	});
 
-	it("requires sales-rep approval when a changed line has inbound material", () => {
+	it("requires sales-rep approval when a reduced line has an active inbound shipment", () => {
 		const result = analyzeSalesFormChange({
 			before: {
 				lineItems: [
@@ -65,6 +65,15 @@ describe("analyzeSalesFormChange", () => {
 						uid: "a",
 						salesOrderItemId: 1,
 						inboundQty: 1,
+						inboundDemands: [
+							{
+								qty: 1,
+								qtyReceived: 0,
+								status: "ordered",
+								inboundShipmentItemId: 10,
+								inboundStatus: "pending",
+							},
+						],
 					},
 				],
 			},
@@ -136,6 +145,58 @@ describe("analyzeSalesFormChange", () => {
 				},
 			}),
 		).toBe(false);
+	});
+
+	it("does not request inbound disposition for unassigned pending demand", () => {
+		const lines = [
+			{
+				uid: "reduced",
+				id: 1,
+				title: "Reduced",
+				beforeQty: 3,
+				afterQty: 2,
+				quantityDelta: -1,
+				beforeLineTotal: 300,
+				afterLineTotal: 200,
+				lineTotalDelta: -100,
+			},
+		];
+
+		const commitments = {
+			inboundQty: 1,
+			lines: [
+				{
+					uid: "reduced",
+					inboundQty: 1,
+					inboundDemands: [
+						{
+							qty: 1,
+							qtyReceived: 0,
+							status: "pending",
+						},
+					],
+				},
+			],
+		};
+
+		expect(
+			salesAdjustmentRequiresInboundDisposition({ lines, commitments }),
+		).toBe(false);
+
+		const analysis = analyzeSalesFormChange({
+			before: {
+				lineItems: [{ uid: "reduced", id: 1, qty: 3, lineTotal: 300 }],
+				summary: { grandTotal: 300 },
+			},
+			after: {
+				lineItems: [{ uid: "reduced", id: 1, qty: 2, lineTotal: 200 }],
+				summary: { grandTotal: 200 },
+			},
+			commitments,
+		});
+
+		expect(analysis.reviewReasons).toEqual([]);
+		expect(analysis.requiresSalesRepApproval).toBe(false);
 	});
 
 	it("accepts a paid reduction automatically when it only lowers the balance due", () => {

@@ -7,14 +7,19 @@ const inventoryTabSource = readFileSync(
 );
 
 describe("legacy sales inventory adaptation UI", () => {
-	test("starts canonical continue automatically and keeps clear as recovery", () => {
-		expect(inventoryTabSource).toContain('action: "continue"');
+	test("queues adaptation explicitly and keeps clear as recovery", () => {
+		expect(inventoryTabSource).toContain("useLegacyInventoryAdaptationTask");
 		expect(inventoryTabSource).toContain("legacyStatus,");
-		expect(inventoryTabSource).toContain("useEffect");
+		expect(inventoryTabSource).toContain("Run adaptation");
 		expect(inventoryTabSource).toContain("Retry migration");
+		expect(inventoryTabSource).toContain(
+			"Opening this order never changes inventory",
+		);
+		expect(inventoryTabSource).toContain("isLegacyLocked ||");
 		expect(inventoryTabSource).toContain(
 			"Clear legacy status and configure from scratch",
 		);
+		expect(inventoryTabSource).not.toContain("legacyMigrationAttempts");
 		expect(inventoryTabSource).not.toContain("Override and configure");
 		expect(inventoryTabSource).not.toContain("Reset status and configure");
 	});

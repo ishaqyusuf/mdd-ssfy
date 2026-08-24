@@ -20,8 +20,10 @@ describe("sales menu status feedback", () => {
 	});
 
 	it("gates fulfillment and resolves its dispatch through the narrow endpoint", () => {
-		expect(source).toContain("auth.can.markSalesOrderFulfilled");
-		expect(dispatchMenuSource).toContain("auth.can.markSalesOrderFulfilled");
+		expect(source).toContain("auth.can.viewMarkSalesOrderFulfilled");
+		expect(dispatchMenuSource).toContain(
+			"auth.can.viewMarkSalesOrderFulfilled",
+		);
 		expect(source).toContain("ensureSalesOrderFulfillmentDispatch");
 		expect(source).not.toContain(
 			"trpc.dispatch.createDispatch.mutationOptions",

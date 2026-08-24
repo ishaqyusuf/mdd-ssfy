@@ -1039,6 +1039,7 @@ async function normalizeOrders(
 				salesOrderId: true,
 				status: true,
 				needCount: true,
+				source: true,
 				completedAt: true,
 			},
 		}),
@@ -1176,6 +1177,7 @@ async function normalizeOrders(
 				inventoryProjection: {
 					status: string;
 					needCount: number;
+					source: string | null;
 					completedAt: Date | null;
 				} | null;
 			};
@@ -1195,6 +1197,8 @@ async function normalizeOrders(
 				lifecycleStatus: lifecycleRow.status as SalesOrderLifecycleStatus,
 				inventoryRowCount: existingInventoryNeedCount,
 				projectionStatus: inventoryProjection?.status,
+				projectionNeedCount: inventoryProjection?.needCount,
+				projectionSource: inventoryProjection?.source,
 				activeLinkedInboundCount:
 					lifecycleRow.inventoryInboundOwnership?.linkedInboundCount ?? 0,
 			}),

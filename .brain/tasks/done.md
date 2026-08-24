@@ -1,5 +1,23 @@
 # Done
 
+### Unassigned Inbound Demand Quantity-Reduction Prompt
+
+- Priority: High
+- Description: Corrected Sales Change Review so automatically projected,
+  unassigned material demand does not appear as created inbound activity. Only
+  reduced quantity linked to an active inbound shipment offers Cancel Open
+  Inbound or Keep For Warehouse.
+- Related Feature: In-form Sales Order Adjustments
+- Status: Done
+- Plan Status: Done with 2026-08-24 correction
+- Plan File: `.brain/plans/2026-08-19-bug-fix-sales-quantity-decision-gating.md`
+- Bug File: `.brain/bugs/2026-08-24-unassigned-inbound-demand-triggered-shipment-disposition.md`
+- Validation: 21 focused tests / 51 assertions pass; authenticated local
+  browser proof on `09407PC` shows no inbound disposition for an unsaved 38 ->
+  37 reduction when no inbound shipment exists, with the value restored and no
+  save submitted.
+- Completed Date: 2026-08-24
+
 ### Mobile Delivery Module Logic Hardening
 
 - Priority: High
@@ -170,7 +188,11 @@
 - Created Date: 2026-08-20
 - Completed Date: 2026-08-20
 - Checks: 48 focused tests / 357 assertions passed; scoped Biome, changed-file compiler filtering, and `git diff --check` passed.
-- Notes: The code does not auto-grant the permission. Donovan's individual or role-level grant and authenticated browser proof remain rollout steps.
+- Notes: Updated on 2026-08-24 to use the canonical view-only
+  `viewMarkSalesOrderFulfilled` capability and
+  `view mark sales order fulfilled` record. Legacy direct grants remain valid
+  and migrate on the next role/employee save. The code does not auto-grant the
+  permission; authenticated non-Super-Admin proof remains a rollout step.
 
 - [x] 2026-08-19 — Restore Special Order approval-link copying for synced or
   signing-key-rotated requests. Link preparation now replaces unverifiable

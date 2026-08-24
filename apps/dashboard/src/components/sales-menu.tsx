@@ -1238,7 +1238,7 @@ function SalesMenuMarkAs({
 	};
 
 	const markFulfilled = async () => {
-		if (!auth.can.markSalesOrderFulfilled) {
+		if (!auth.can.viewMarkSalesOrderFulfilled) {
 			toast({
 				title: "Mark as Fulfilled is not permitted",
 				description:
@@ -1366,7 +1366,8 @@ function SalesMenuMarkAs({
 				]
 	)
 		.filter(
-			(item) => item.action !== "fulfilled" || auth.can.markSalesOrderFulfilled,
+			(item) =>
+				item.action !== "fulfilled" || auth.can.viewMarkSalesOrderFulfilled,
 		)
 		.filter(
 			(item) =>

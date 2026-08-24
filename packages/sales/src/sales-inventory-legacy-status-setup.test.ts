@@ -4,9 +4,24 @@ import type { Db } from "@gnd/db";
 import { resolveSalesInventoryLegacyStatusSetup } from "./sales-inventory-legacy-status-setup";
 
 function makeDb(tx: Record<string, unknown>) {
+	const salesOrders = (tx.salesOrders || {}) as Record<string, unknown>;
+	const transaction = {
+		lineItemComponents: {
+			findMany: async () => [],
+		},
+		salesInventoryProjectionState: {
+			upsert: async () => ({}),
+		},
+		...tx,
+		salesOrders: {
+			findFirst: async () => ({ id: 1, orderId: "09000PC" }),
+			...salesOrders,
+		},
+	};
 	return {
-		$transaction: async <T>(callback: (transaction: typeof tx) => Promise<T>) =>
-			callback(tx),
+		$transaction: async <T>(
+			callback: (currentTransaction: typeof transaction) => Promise<T>,
+		) => callback(transaction),
 	} as unknown as Db;
 }
 
@@ -18,6 +33,118 @@ function lockedOverview(status = "ORDERED") {
 }
 
 describe("resolveSalesInventoryLegacyStatusSetup", () => {
+	test("stops a stale saved revision before inventory, projection success, or history writes", async () => {
+		const calls: string[] = [];
+		const tx = {
+			$queryRaw: async () => {
+				calls.push("salesOrders.lock");
+				return [{ id: 5 }];
+			},
+			salesOrders: {
+				findFirst: async () => {
+					calls.push("salesOrders.findFirst");
+					return null;
+				},
+			},
+			salesInventoryProjectionState: {
+				upsert: async () => {
+					calls.push("projection.upsert");
+					return {};
+				},
+			},
+			salesHistory: {
+				create: async () => {
+					calls.push("salesHistory.create");
+					return { id: 10 };
+				},
+			},
+		};
+
+		await expect(
+			resolveSalesInventoryLegacyStatusSetup(
+				makeDb(tx),
+				{
+					salesOrderId: 5,
+					action: "continue",
+					legacyStatus: "AVAILABLE",
+					expectedSalesUpdatedAt: new Date("2026-08-24T19:57:53.000Z"),
+				},
+				{
+					getOverview: async () => lockedOverview("AVAILABLE"),
+					syncLineItems: async () => {
+						calls.push("syncSalesInventoryLineItems");
+						return {};
+					},
+				} as never,
+			),
+		).rejects.toThrow("saved order revision changed");
+
+		expect(calls).toEqual(["salesOrders.lock", "salesOrders.findFirst"]);
+	});
+
+	test("persists ready zero-need evidence for an AVAILABLE adaptation with no tracked rows", async () => {
+		const projectionWrites: unknown[] = [];
+		const tx = {
+			$queryRaw: async () => [{ id: 7 }],
+			salesOrders: {
+				findFirst: async () => ({ id: 7, orderId: "09405PC" }),
+			},
+			lineItemComponents: {
+				findMany: async () => [],
+			},
+			salesInventoryProjectionState: {
+				upsert: async (input: unknown) => {
+					projectionWrites.push(input);
+					return {};
+				},
+			},
+			salesHistory: {
+				create: async () => ({ id: 12 }),
+			},
+		};
+
+		const result = await resolveSalesInventoryLegacyStatusSetup(
+			makeDb(tx),
+			{
+				salesOrderId: 7,
+				action: "continue",
+				legacyStatus: "AVAILABLE",
+			},
+			{
+				getOverview: async () => lockedOverview("AVAILABLE"),
+				syncLineItems: async () => ({
+					salesOrderId: 7,
+					createdCount: 0,
+					updatedCount: 0,
+					deletedCount: 0,
+					skippedCount: 0,
+					warnings: [],
+				}),
+				fulfillNeedsInTransaction: async () => ({
+					fulfilledComponentCount: 0,
+					protectedComponentCount: 0,
+					protectedComponentIds: [],
+					cancelledDemandCount: 0,
+				}),
+			} as never,
+		);
+
+		expect(result).toMatchObject({
+			projection: { status: "ready", needCount: 0, requiredQty: 0 },
+		});
+		expect(projectionWrites[0]).toMatchObject({
+			update: { status: "syncing", source: "legacy-status" },
+		});
+		expect(projectionWrites.at(-1)).toMatchObject({
+			update: {
+				status: "ready",
+				needCount: 0,
+				requiredQty: 0,
+				source: "legacy-status",
+			},
+		});
+	});
+
 	test("resets legacy inbound status only when the reviewed baseline still matches", async () => {
 		const calls: string[] = [];
 		let updateArgs: unknown;

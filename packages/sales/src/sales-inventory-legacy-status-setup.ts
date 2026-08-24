@@ -14,6 +14,10 @@ import {
 } from "./sales-inventory-inbound-automation";
 import { getSalesInventoryOverview } from "./sales-inventory-overview";
 import {
+	writeSalesInventoryProjectionReady,
+	writeSalesInventoryProjectionState,
+} from "./sales-inventory-projection-state";
+import {
 	type SyncSalesInventoryLineItemsResult,
 	syncSalesInventoryLineItems,
 } from "./sync-sales-inventory-line-items";
@@ -35,7 +39,17 @@ export type ResolveSalesInventoryLegacyStatusSetupInput = {
 	legacyStatus?: string | null;
 	authorName?: string | null;
 	triggeredByUserId?: number | null;
+	expectedSalesUpdatedAt?: Date | string | null;
 };
+
+export class StaleSalesInventoryLegacyMigrationError extends Error {
+	constructor() {
+		super(
+			"The saved order revision changed before legacy inventory adaptation could run.",
+		);
+		this.name = "StaleSalesInventoryLegacyMigrationError";
+	}
+}
 
 type FulfillmentResult = Awaited<
 	ReturnType<typeof fulfillSalesInventoryNeedsManuallyInTransaction>
@@ -183,12 +197,42 @@ export async function resolveSalesInventoryLegacyStatusMigration(
 	}
 
 	return db.$transaction(async (tx) => {
+		const expectedSalesUpdatedAt = input.expectedSalesUpdatedAt
+			? new Date(input.expectedSalesUpdatedAt)
+			: null;
 		const statusGuard = {
 			id: input.salesOrderId,
 			deletedAt: null,
 			type: "order" as const,
 			inventoryStatus: previousInventoryStatus,
+			...(expectedSalesUpdatedAt ? { updatedAt: expectedSalesUpdatedAt } : {}),
 		};
+		if (typeof (tx as Db).$queryRaw === "function") {
+			await (tx as Db)
+				.$queryRaw`SELECT id FROM SalesOrders WHERE id = ${input.salesOrderId} FOR UPDATE`;
+		}
+		const currentOrder = await tx.salesOrders.findFirst({
+			where: statusGuard,
+			select: {
+				id: true,
+				orderId: true,
+			},
+		});
+		if (!currentOrder) {
+			if (expectedSalesUpdatedAt) {
+				throw new StaleSalesInventoryLegacyMigrationError();
+			}
+			throw new Error(
+				"Inventory inbound status changed before setup could run.",
+			);
+		}
+		const projectionStartedAt = new Date();
+		await writeSalesInventoryProjectionState(tx as Db, {
+			salesOrderId: input.salesOrderId,
+			status: "syncing",
+			source: "legacy-status",
+			startedAt: projectionStartedAt,
+		});
 
 		if (action === "clear") {
 			const updated = await tx.salesOrders.updateMany({
@@ -208,6 +252,14 @@ export async function resolveSalesInventoryLegacyStatusMigration(
 				salesOrderId: input.salesOrderId,
 				source: "manual",
 				triggeredByUserId: input.triggeredByUserId ?? null,
+			});
+			if (syncResult.warnings?.length) {
+				throw new Error(syncResult.warnings.join("\n"));
+			}
+			const projection = await writeSalesInventoryProjectionReady(tx as Db, {
+				salesOrderId: input.salesOrderId,
+				source: "legacy-status",
+				startedAt: projectionStartedAt,
 			});
 			await tx.salesHistory.create({
 				data: {
@@ -245,20 +297,8 @@ export async function resolveSalesInventoryLegacyStatusMigration(
 				messages: [
 					"Legacy status cleared; inventory requirements synchronized.",
 				],
+				projection,
 			};
-		}
-
-		const currentOrder = await tx.salesOrders.findFirst({
-			where: statusGuard,
-			select: {
-				id: true,
-				orderId: true,
-			},
-		});
-		if (!currentOrder) {
-			throw new Error(
-				"Inventory inbound status changed before setup could run.",
-			);
 		}
 
 		const syncResult = (await syncLineItems(tx, {
@@ -266,6 +306,9 @@ export async function resolveSalesInventoryLegacyStatusMigration(
 			source: "manual",
 			triggeredByUserId: input.triggeredByUserId ?? null,
 		})) as SyncSalesInventoryLineItemsResult;
+		if (syncResult.warnings?.length) {
+			throw new Error(syncResult.warnings.join("\n"));
+		}
 		const createdInbounds: Array<{
 			id: number;
 			supplierId: number | null;
@@ -410,6 +453,11 @@ export async function resolveSalesInventoryLegacyStatusMigration(
 							createdInbounds.length === 1 ? "" : "s"
 						} created.`,
 					];
+		const projection = await writeSalesInventoryProjectionReady(tx as Db, {
+			salesOrderId: input.salesOrderId,
+			source: "legacy-status",
+			startedAt: projectionStartedAt,
+		});
 
 		await tx.salesHistory.create({
 			data: {
@@ -455,6 +503,7 @@ export async function resolveSalesInventoryLegacyStatusMigration(
 			nextSegment,
 			noPhysicalStockChange: legacyStatus === "AVAILABLE",
 			messages,
+			projection,
 		};
 	});
 }

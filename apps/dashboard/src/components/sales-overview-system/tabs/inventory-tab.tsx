@@ -70,6 +70,7 @@ import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
+import { useLegacyInventoryAdaptationTask } from "@/hooks/use-legacy-inventory-adaptation-task";
 import { useRefreshSalesInventoryQueries } from "../hooks/use-sales-inventory-actions";
 import {
 	type SalesInventorySegment,
@@ -118,7 +119,6 @@ type InboundShipmentStatus =
 	| "closed"
 	| "cancelled";
 
-const legacyMigrationAttempts = new Map<string, string | null>();
 const inventoryAutoSyncAttempts = new Set<number>();
 
 function formatQty(value: number | null | undefined) {
@@ -462,6 +462,7 @@ function LegacyInventoryStatusLockedState({
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const legacyAdaptationTask = useLegacyInventoryAdaptationTask();
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const inventoryStatusLabel = overview.inventoryStatus
 		? titleCaseLabel(overview.inventoryStatus)
@@ -469,7 +470,7 @@ function LegacyInventoryStatusLockedState({
 	const legacyCompatibility = overview.inventoryLegacyCompatibility;
 	const legacyStatus = overview.inventoryStatus || "";
 	const salesOrderId = overview.id;
-	const migrationKey = `${salesOrderId}:${legacyStatus}`;
+	const projection = overview.inventoryProjection;
 	const operationDescription =
 		legacyStatus === "AVAILABLE"
 			? "Synchronizing inventory requirements, then marking eligible needs fulfilled without changing physical stock."
@@ -479,7 +480,6 @@ function LegacyInventoryStatusLockedState({
 	const resolveLegacyStatus = useMutation(
 		trpc.inventories.resolveSalesInventoryLegacyStatusSetup.mutationOptions({
 			onSuccess: async (data) => {
-				legacyMigrationAttempts.set(migrationKey, null);
 				setInventorySegment(data.nextSegment, {
 					inboundId:
 						data.linkedInboundIds.length === 1
@@ -542,7 +542,6 @@ function LegacyInventoryStatusLockedState({
 				});
 			},
 			onError: (error) => {
-				legacyMigrationAttempts.set(migrationKey, error.message);
 				toast({
 					title: "Unable to configure inventory",
 					description: error.message,
@@ -551,43 +550,43 @@ function LegacyInventoryStatusLockedState({
 			},
 		}),
 	);
-	const isResolving = resolveLegacyStatus.isPending;
+	const isResolving =
+		resolveLegacyStatus.isPending || legacyAdaptationTask.isQueueing;
 	const isUnsupported = legacyCompatibility.state === "unsupported";
-	const previousFailure = legacyMigrationAttempts.get(migrationKey);
+	const isBackgroundAdaptation =
+		projection?.status === "syncing" && projection.source === "legacy-status";
+	const persistedFailure =
+		projection?.status === "failed" && projection.source === "legacy-status"
+			? projection.lastError
+			: null;
 	const hasFailed =
-		resolveLegacyStatus.isError ||
-		typeof previousFailure === "string" ||
-		isUnsupported;
+		resolveLegacyStatus.isError || Boolean(persistedFailure) || isUnsupported;
 
-	useEffect(() => {
-		if (
-			!legacyStatus ||
-			!legacyCompatibility.canContinue ||
-			legacyMigrationAttempts.has(migrationKey)
-		) {
+	const queueMigration = async () => {
+		const normalizedLegacyStatus = legacyCompatibility.normalizedLegacyStatus;
+		const savedOrderUpdatedAt = overview.updatedAt
+			? new Date(overview.updatedAt).toISOString()
+			: null;
+		if (!normalizedLegacyStatus || !savedOrderUpdatedAt) {
+			toast({
+				title: "Unable to queue adaptation",
+				description:
+					"Refresh this order so its saved revision can be verified, then try again.",
+				variant: "destructive",
+			});
 			return;
 		}
-
-		legacyMigrationAttempts.set(migrationKey, null);
-		resolveLegacyStatus.mutate({
+		await legacyAdaptationTask.queue({
 			salesOrderId,
-			action: "continue",
-			legacyStatus,
+			orderNo: overview.orderId,
+			legacyStatus: normalizedLegacyStatus,
+			savedOrderUpdatedAt,
+			forceRetry: hasFailed,
 		});
-	}, [
-		legacyCompatibility.canContinue,
-		legacyStatus,
-		migrationKey,
-		resolveLegacyStatus,
-		salesOrderId,
-	]);
-
-	const retryMigration = () => {
-		legacyMigrationAttempts.set(migrationKey, null);
-		resolveLegacyStatus.mutate({
+		await queryClient.invalidateQueries({
+			queryKey: trpc.inventories.salesInventoryOverview.queryKey({
 			salesOrderId,
-			action: "continue",
-			legacyStatus,
+			}),
 		});
 	};
 
@@ -597,7 +596,6 @@ function LegacyInventoryStatusLockedState({
 		);
 		if (!confirmed) return;
 
-		legacyMigrationAttempts.set(migrationKey, null);
 		resolveLegacyStatus.mutate({
 			salesOrderId,
 			action: "clear",
@@ -615,8 +613,14 @@ function LegacyInventoryStatusLockedState({
 				/>
 				<InventoryReadonlyMetric
 					label="Inventory setup"
-					value={hasFailed ? "Needs review" : "Adapting"}
-					description="The saved status is being converted into the current inventory-backed workflow."
+					value={
+						hasFailed
+							? "Needs review"
+							: isBackgroundAdaptation || isResolving
+								? "Adapting"
+								: "Ready to adapt"
+					}
+					description="Adaptation runs as a monitored background task after it is queued."
 				/>
 				<InventoryReadonlyMetric
 					label="Order lifecycle"
@@ -635,8 +639,10 @@ function LegacyInventoryStatusLockedState({
 							>
 								{hasFailed ? (
 									<Icons.AlertTriangle />
-								) : (
+								) : isBackgroundAdaptation || isResolving ? (
 									<Icons.Loader2 className="animate-spin" />
+								) : (
+									<Icons.History />
 								)}
 							</EmptyMedia>
 							<EmptyHeader className="max-w-none items-start text-left">
@@ -645,16 +651,20 @@ function LegacyInventoryStatusLockedState({
 										? "Historical inbound status needs review"
 										: hasFailed
 											? "Automatic adaptation needs attention"
-											: `Adapting legacy ${legacyStatus} status…`}
+											: isBackgroundAdaptation || isResolving
+												? `Adapting legacy ${legacyStatus} status…`
+												: `Legacy ${legacyStatus} status is ready to adapt`}
 								</EmptyTitle>
 								<EmptyDescription>
 									{isUnsupported
 										? legacyCompatibility.description
 										: hasFailed
 											? (resolveLegacyStatus.error?.message ??
-												previousFailure ??
+												persistedFailure ??
 												"Automatic adaptation could not finish.")
-											: operationDescription}
+											: isBackgroundAdaptation || isResolving
+												? operationDescription
+												: "Run the monitored adaptation when you are ready. Opening this order never changes inventory."}
 								</EmptyDescription>
 							</EmptyHeader>
 						</div>
@@ -662,7 +672,11 @@ function LegacyInventoryStatusLockedState({
 							variant="outline"
 							className="w-fit border-amber-200 bg-amber-50 text-amber-700"
 						>
-							{hasFailed ? "Review required" : "Migration in progress"}
+							{hasFailed
+								? "Review required"
+								: isBackgroundAdaptation || isResolving
+									? "Migration in progress"
+									: "Not queued"}
 						</Badge>
 					</div>
 
@@ -677,19 +691,20 @@ function LegacyInventoryStatusLockedState({
 							</AlertDescription>
 						</Alert>
 
-						{hasFailed ? (
+						{!isBackgroundAdaptation ? (
 							<div className="flex flex-col gap-2 sm:flex-row">
-								{legacyCompatibility.canContinue ? (
+								{!isUnsupported && legacyCompatibility.canContinue ? (
 									<Button
 										type="button"
 										size="sm"
 										variant="default"
 										disabled={isResolving}
-										onClick={retryMigration}
+										onClick={() => void queueMigration()}
 									>
-										Retry migration
+										{hasFailed ? "Retry migration" : "Run adaptation"}
 									</Button>
 								) : null}
+								{hasFailed ? (
 								<Button
 									type="button"
 									size="sm"
@@ -700,6 +715,7 @@ function LegacyInventoryStatusLockedState({
 								>
 									Clear legacy status and configure from scratch
 								</Button>
+								) : null}
 							</div>
 						) : null}
 
@@ -741,7 +757,11 @@ function LegacyInventoryStatusLockedState({
 								</ItemContent>
 								<ItemActions>
 									<Badge variant="outline">
-										{isResolving ? "Working" : "Queued"}
+										{isBackgroundAdaptation || isResolving
+											? "Working"
+											: hasFailed
+												? "Failed"
+												: "Not queued"}
 									</Badge>
 								</ItemActions>
 							</Item>
@@ -2598,7 +2618,11 @@ function SalesOverviewInventoryContentBody({
 		});
 	};
 	useEffect(() => {
+		const isLegacyLocked =
+			overview?.setupMode === "legacy_status_locked" ||
+			overview?.inventoryLegacyCompatibility.state === "legacy_locked";
 		if (
+			isLegacyLocked ||
 			!shouldAutoSyncSalesInventory({
 				salesOrderId: normalizedSalesOrderId,
 				applicabilityState,
@@ -2619,6 +2643,8 @@ function SalesOverviewInventoryContentBody({
 		normalizedSalesOrderId,
 		overview?.capabilities.canSync,
 		overview?.inventoryApplicability.canManualSync,
+		overview?.inventoryLegacyCompatibility.state,
+		overview?.setupMode,
 		syncInventory.mutate,
 	]);
 	const groups = overview?.groups ?? [];

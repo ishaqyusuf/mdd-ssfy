@@ -14,7 +14,9 @@ The long-term source of truth for overview, print, production, deployment, fulfi
 ## Mark As Fulfilled Authorization (2026-08-20)
 
 - The Sales Orders terminal fulfillment action is authorized by
-  `markSalesOrderFulfilled`, not the broader inventory fulfillment operator set.
+  `viewMarkSalesOrderFulfilled`, persisted as
+  `view mark sales order fulfilled`, not the broader inventory fulfillment
+  operator set.
 - Action-aware inventory preflight and continuation preserve the same
   inventory projection and blocker rules while rejecting unauthorized
   fulfillment before writes.

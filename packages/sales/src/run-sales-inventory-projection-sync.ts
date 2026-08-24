@@ -1,8 +1,11 @@
 import type { Db } from "@gnd/db";
 
-import { SALES_INVENTORY_PROJECTION_VERSION } from "./sales-inventory-applicability";
+import {
+	getSalesInventoryProjectionErrorMessage,
+	writeSalesInventoryProjectionReady,
+	writeSalesInventoryProjectionState,
+} from "./sales-inventory-projection-state";
 import { cleanupSalesInventoryRepairResidue } from "./sales-inventory-repair";
-import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 import {
 	type SyncSalesInventoryLineItemsInput,
 	syncSalesInventoryLineItems,
@@ -13,43 +16,6 @@ type RunSalesInventoryProjectionSyncDeps = {
 	cleanupRepairResidue?: typeof cleanupSalesInventoryRepairResidue;
 };
 
-function projectionWrite(input: {
-	salesOrderId: number;
-	status: "syncing" | "ready" | "failed";
-	source: string;
-	needCount?: number;
-	requiredQty?: number;
-	lastError?: string | null;
-	startedAt?: Date | null;
-	completedAt?: Date | null;
-}) {
-	const shared = {
-		status: input.status,
-		version: SALES_INVENTORY_PROJECTION_VERSION,
-		needCount: input.needCount ?? 0,
-		requiredQty: input.requiredQty ?? 0,
-		source: input.source,
-		lastError: input.lastError ?? null,
-		startedAt: input.startedAt ?? null,
-		completedAt: input.completedAt ?? null,
-	};
-
-	return {
-		where: {
-			salesOrderId: input.salesOrderId,
-		},
-		create: {
-			salesOrderId: input.salesOrderId,
-			...shared,
-		},
-		update: shared,
-	};
-}
-
-function errorMessage(error: unknown) {
-	return error instanceof Error ? error.message : String(error);
-}
-
 export async function runSalesInventoryProjectionSync(
 	db: Db,
 	input: SyncSalesInventoryLineItemsInput,
@@ -57,14 +23,12 @@ export async function runSalesInventoryProjectionSync(
 ) {
 	const source = input.source ?? "manual";
 	const startedAt = new Date();
-	await db.salesInventoryProjectionState.upsert(
-		projectionWrite({
+	await writeSalesInventoryProjectionState(db, {
 			salesOrderId: input.salesOrderId,
 			status: "syncing",
 			source,
 			startedAt,
-		}),
-	);
+	});
 
 	try {
 		return await db.$transaction(async (tx) => {
@@ -77,110 +41,32 @@ export async function runSalesInventoryProjectionSync(
 			)(tx, {
 				salesOrderId: input.salesOrderId,
 			});
-			const requirements = await tx.lineItemComponents.findMany({
-				where: {
-					required: true,
-					qty: {
-						gt: 0,
-					},
-					parent: {
-						is: {
-							saleId: input.salesOrderId,
-							deletedAt: null,
-							lineItemType: "SALE",
-						},
-					},
-				},
-				select: {
-					qty: true,
-					inventoryId: true,
-					inventoryVariantId: true,
-					inventory: {
-						select: {
-							id: true,
-							productKind: true,
-							stockMode: true,
-						},
-					},
-					inventoryVariant: {
-						select: {
-							id: true,
-						},
-					},
-					inventoryCategory: {
-						select: {
-							productKind: true,
-							stockMode: true,
-						},
-					},
-					subComponent: {
-						select: {
-							defaultInventory: {
-								select: {
-									id: true,
-									productKind: true,
-									stockMode: true,
-								},
-							},
-							inventoryCategory: {
-								select: {
-									productKind: true,
-									stockMode: true,
-								},
-							},
-						},
-					},
-				},
-			});
-			const trackedRequirements = requirements.filter(
-				(requirement) =>
-					resolveSalesInventoryTrackingPolicy(requirement) === "tracked",
-			);
-			const needCount = trackedRequirements.length;
-			const requiredQty = trackedRequirements.reduce(
-				(total, requirement) =>
-					total + Math.max(0, Number(requirement.qty || 0)),
-				0,
-			);
 			const status = result.warnings.length ? "failed" : "ready";
 			const lastError = result.warnings.length
 				? result.warnings.join("\n").slice(0, 65_535)
 				: null;
-
-			await tx.salesInventoryProjectionState.upsert(
-				projectionWrite({
+			const projection = await writeSalesInventoryProjectionReady(tx as Db, {
 					salesOrderId: input.salesOrderId,
-					status,
 					source,
-					needCount,
-					requiredQty,
 					lastError,
 					startedAt,
-					completedAt: new Date(),
-				}),
-			);
+			});
 
 			return {
 				...result,
 				repair,
-				projection: {
-					status,
-					needCount,
-					requiredQty,
-				},
+				projection: { ...projection, status },
 			};
 		});
 	} catch (error) {
-		await db.salesInventoryProjectionState.upsert(
-			projectionWrite({
+		await writeSalesInventoryProjectionState(db, {
 				salesOrderId: input.salesOrderId,
 				status: "failed",
 				source,
-				lastError: errorMessage(error).slice(0, 65_535),
+			lastError: getSalesInventoryProjectionErrorMessage(error),
 				startedAt,
 				completedAt: new Date(),
-			}),
-		);
+		});
 		throw error;
 	}
 }

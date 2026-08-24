@@ -293,7 +293,7 @@ export function useTaskTrigger(props?: Props) {
 	});
 	const trigger = (input: TriggerTaskInput, options?: TriggerTaskOptions) => {
 		pendingTriggersRef.current.push({ input, options });
-		return _action.execute(input);
+		return _action.executeAsync(input);
 	};
 	const ctx = {
 		trigger,

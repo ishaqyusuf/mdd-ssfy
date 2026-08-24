@@ -64,6 +64,8 @@ export function useSalesQueryClient(defaultSales?: SalesScopeInput) {
 			emit("sales.dispatch.changed", sales),
 		fulfillmentUpdated: (sales?: SalesScopeInput) =>
 			emit("inventory.fulfillment.changed", sales),
+		legacyInventoryAdapted: (sales?: SalesScopeInput) =>
+			emit("inventory.inbound.changed", sales),
 		quoteCreated: (sales?: SalesScopeInput) =>
 			emit("sales.quote.changed", sales),
 		salesCreated: (sales?: SalesScopeInput) =>

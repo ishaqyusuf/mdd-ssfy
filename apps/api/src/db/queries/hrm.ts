@@ -26,9 +26,11 @@ import { hash } from "bcrypt-ts";
 const EMPLOYEE_SPECIFIC_PERMISSION_NAMES = [
 	"submit custom job",
 	"submit bug report",
-	"mark sales order fulfilled",
+	"view mark sales order fulfilled",
 	"edit refund square",
 ] as const;
+const LEGACY_MARK_FULFILLED_PERMISSION = "mark sales order fulfilled";
+const VIEW_MARK_FULFILLED_PERMISSION = "view mark sales order fulfilled";
 
 async function ensureEmployeeSpecificPermissions(ctx: TRPCContext) {
 	const existing = await ctx.db.permissions.findMany({
@@ -150,7 +152,7 @@ export async function getEmployeePermissionOptions(ctx: TRPCContext) {
 			current.viewPermissionId = permission.id;
 		} else if (normalizedName.startsWith("edit ")) {
 			current.editPermissionId = permission.id;
-		} else {
+		} else if (!current.viewPermissionId) {
 			current.viewPermissionId = permission.id;
 		}
 
@@ -395,7 +397,7 @@ export async function getEmployeeFormData(
 	{ id }: GetEmployeeFormDataSchema,
 ): Promise<EmployeeFormSchema> {
 	await requireSuperAdmin(ctx);
-	await ensureEmployeeSpecificPermissions(ctx);
+	const permissions = await ensureEmployeeSpecificPermissions(ctx);
 	const employee = await ctx.db.users.findUniqueOrThrow({
 		where: {
 			id,
@@ -427,6 +429,17 @@ export async function getEmployeeFormData(
 			permissionId: true,
 		},
 	});
+	const legacyMarkFulfilled = permissions.find(
+		(permission) => permission.name === LEGACY_MARK_FULFILLED_PERMISSION,
+	);
+	const viewMarkFulfilled = permissions.find(
+		(permission) => permission.name === VIEW_MARK_FULFILLED_PERMISSION,
+	);
+	const permissionIds = specificPermissions.map((permission) =>
+		permission.permissionId === legacyMarkFulfilled?.id && viewMarkFulfilled
+			? viewMarkFulfilled.id
+			: permission.permissionId,
+	);
 	return {
 		id: employee.id,
 		name: employee.name as any,
@@ -437,9 +450,7 @@ export async function getEmployeeFormData(
 		roleId: employee?.roles?.[0]?.roleId!,
 		organizationId: employee?.roles?.[0]?.organizationId!,
 		password: undefined as any,
-		permissionIds: specificPermissions.map(
-			(permission) => permission.permissionId,
-		),
+		permissionIds: Array.from(new Set(permissionIds)),
 	};
 }
 export async function resetEmployeePassword(ctx: TRPCContext, userId: number) {

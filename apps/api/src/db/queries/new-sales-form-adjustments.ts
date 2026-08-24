@@ -349,15 +349,16 @@ async function buildNewSalesFormAdjustmentPreview(
 		lines: analysis.lines,
 		commitments,
 	});
-	const requiresOperationalAcknowledgement = changedCommitments.some((line) =>
-		[
-			line.allocatedQty,
-			line.inboundQty,
-			line.productionQty,
-			line.completedProductionQty,
-			line.fulfilledQty,
-		].some((value) => Number(value || 0) > 0),
-	);
+	const requiresOperationalAcknowledgement =
+		requiresInboundDisposition ||
+		changedCommitments.some((line) =>
+			[
+				line.allocatedQty,
+				line.productionQty,
+				line.completedProductionQty,
+				line.fulfilledQty,
+			].some((value) => Number(value || 0) > 0),
+		);
 	return {
 		baseline,
 		proposed: input,

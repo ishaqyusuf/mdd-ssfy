@@ -53,6 +53,8 @@ export function resolveSalesInventoryLegacyCompatibility(input: {
 	lifecycleStatus: SalesOrderLifecycleStatus;
 	inventoryRowCount: number;
 	projectionStatus?: string | null;
+	projectionNeedCount?: number | null;
+	projectionSource?: string | null;
 	activeLinkedInboundCount?: number | null;
 }): SalesInventoryLegacyCompatibility {
 	const rawLegacyStatus = String(input.legacyStatus || "").trim();
@@ -127,7 +129,9 @@ export function resolveSalesInventoryLegacyCompatibility(input: {
 
 	const isRepresented =
 		normalizedLegacyStatus === "AVAILABLE"
-			? input.inventoryRowCount > 0 || input.projectionStatus === "ready"
+			? input.projectionStatus === "ready" &&
+				(input.projectionSource === "legacy-status" ||
+					Number(input.projectionNeedCount || 0) === 0)
 			: Number(input.activeLinkedInboundCount || 0) > 0;
 	if (isRepresented) {
 		return {

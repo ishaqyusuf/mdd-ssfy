@@ -1,5 +1,35 @@
 # Progress
 
+- 2026-08-24: Changed Mark Sales Order Fulfilled authorization to the normal
+  view-prefixed permission convention. The canonical session capability is now
+  `viewMarkSalesOrderFulfilled`, persisted as
+  `view mark sales order fulfilled`; role and employee editors show the action
+  in the View column with no Edit control. Dashboard, API, protected task start,
+  and terminal sales-control authorization use the same capability. Legacy
+  direct grants continue to authorize fulfillment and are mapped to the
+  canonical permission when the affected role or employee is next saved.
+  General order editing and inbound/production dependency-manager requirements
+  remain unchanged. Focused auth, editor, Dashboard, API, and task-boundary
+  validation passes 65 tests / 382 assertions.
+
+- 2026-08-24: Corrected the repeated Sales Change Review inbound-disposition
+  prompt for quantity reductions made before an inbound shipment exists. The
+  August 19 rule had correlated demand to the same reduced line but still
+  conflated automatically projected pending `InboundDemand` with a real
+  supplier shipment. The shared decision now requires positive unreceived
+  quantity linked through `inboundShipmentItemId` to a non-terminal inbound;
+  unassigned demand saves normally and inventory sync resizes the requirement.
+  Operational acknowledgement no longer counts unassigned demand alone as
+  inbound activity. The exact red regression failed before the fix and the
+  focused domain plus Change Review suites now pass 21 tests / 51 assertions.
+  Authenticated local in-app browser proof on order `09407PC` reduced tracked
+  moulding quantity from 38 to 37 while the inbound workspace showed no
+  shipments; the editor displayed zero Review Required, Cancel Open Inbound,
+  and Keep For Warehouse controls. Quantity 38 and the original displayed total
+  were restored without saving, and the only console message was an unrelated
+  image-performance warning. No broad typecheck, API shape, database,
+  migration, permission, or production-data change was performed.
+
 - 2026-08-24: Normalized Sales Overview Production tab item titles and complete
   subtitles to uppercase values instead of relying only on CSS text transform.
   The presentation-only helper is shared by every item card in the V2 tab and

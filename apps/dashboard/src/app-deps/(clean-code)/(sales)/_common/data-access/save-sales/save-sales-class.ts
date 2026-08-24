@@ -1,10 +1,10 @@
-import { prisma, SalesOrders } from "@/db";
+import { type SalesOrders, prisma } from "@/db";
 import { nextId } from "@/lib/nextId";
 import { generateRandomString } from "@/lib/utils";
 import { expireCurrentSalesDocumentSnapshots } from "@gnd/api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@gnd/api/utils/sales-document-warm";
 
-import { SalesFormFields, SalesType } from "../../../types";
+import type { SalesFormFields, SalesType } from "../../../types";
 import { resetSalesStatAction } from "../../data-actions/sales-stat-control.action";
 import { composeSalesUrl } from "../../utils/sales-utils";
 import { SaveSalesHelper } from "./helper-class";
@@ -107,6 +107,8 @@ export class SaveSalesClass extends SaveSalesHelper {
             salesType: salesResp?.type as SalesType,
             salesId: salesResp?.id,
             salesNo: salesResp?.orderId,
+			inventoryStatus: salesResp?.inventoryStatus,
+			updatedAt: salesResp?.updatedAt?.toISOString() || null,
         };
     }
     public getTable(priority, tx = prisma) {
@@ -332,13 +334,11 @@ export class SaveSalesClass extends SaveSalesHelper {
                 if (!formItem?.groupItem?.groupUid)
                     formItem.groupItem.groupUid = generateRandomString(4);
             }
-            const formEntries = Object.entries(
-                formItem.groupItem.form || {},
-            ).filter(([k, v]) => v.selected);
-
-            const primaryForm = formEntries.find(
-                ([k, v], i) => v.primaryGroupItem,
+			const formEntries = Object.entries(formItem.groupItem.form || {}).filter(
+				([k, v]) => v.selected,
             );
+
+			const primaryForm = formEntries.find(([k, v], i) => v.primaryGroupItem);
             if (!primaryForm && formEntries.length) {
                 formEntries[0][1].primaryGroupItem = true;
             }

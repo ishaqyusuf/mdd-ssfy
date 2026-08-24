@@ -12,6 +12,7 @@ import { Button as UiButton } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 
+import { useLegacyInventoryAdaptationTask } from "@/hooks/use-legacy-inventory-adaptation-task";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { toast } from "@gnd/ui/use-toast";
@@ -19,6 +20,7 @@ import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import { useRouter } from "next/navigation";
 import { parseAsBoolean, useQueryStates } from "nuqs";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { resolveLegacyInventoryPostSaveAction } from "../legacy-inventory-post-save";
 import { useSalesInventoryConfiguratorPrompt } from "./inventory-configurator-dialog";
 
 interface Props {
@@ -55,6 +57,7 @@ export function SalesFormSave({
 	);
 	const { inventoryConfiguratorDialog, openSalesInventoryConfigurator } =
 		useSalesInventoryConfiguratorPrompt();
+	const legacyInventoryAdaptation = useLegacyInventoryAdaptationTask();
 	async function save(action: "new" | "close" | "default" = "default") {
 		if (disabled || saveLockRef.current || isSaving) return;
 		setSaveOptionsOpen(false);
@@ -118,8 +121,20 @@ export function SalesFormSave({
 			}
 			if (resp.salesId) zus.dotUpdate("metaData.id", resp.salesId);
 			if (resp.salesNo) zus.dotUpdate("metaData.salesId", resp.salesNo);
-			if (savedSalesType === "order" && resp.salesId) {
-				await openSalesInventoryConfigurator(resp.salesId);
+			const inventoryPostSaveAction = resolveLegacyInventoryPostSaveAction({
+				salesId: resp.salesId,
+				orderNo: resp.salesNo,
+				salesType: savedSalesType,
+				inventoryStatus: resp.inventoryStatus,
+				savedOrderUpdatedAt: resp.updatedAt,
+				afterSuccessfulSave: true,
+			});
+			if (inventoryPostSaveAction.action === "queue_legacy_adaptation") {
+				await legacyInventoryAdaptation.queue(inventoryPostSaveAction);
+			} else if (inventoryPostSaveAction.action === "configure_inventory") {
+				await openSalesInventoryConfigurator(
+					inventoryPostSaveAction.salesOrderId,
+				);
 			}
 			const syncSavedForm = syncExtraCosts.then(() => {
 				if (!metaData.debugMode) {

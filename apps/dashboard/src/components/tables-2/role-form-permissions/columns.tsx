@@ -10,7 +10,7 @@ import type { Control } from "react-hook-form";
 export type RoleFormPermissionRow = {
 	uid: string;
 	permission: string;
-	kind: "direct" | "scoped";
+	kind: "direct" | "scoped" | "view-only";
 };
 
 type PermissionAction = "view" | "edit";
@@ -78,7 +78,7 @@ function PermissionCheckboxCell({
 	action: PermissionAction;
 }) {
 	const meta = getMeta(table);
-	if (row.original.kind === "direct" && action === "edit") {
+	if (row.original.kind !== "scoped" && action === "edit") {
 		return <DataSkeleton placeholder="**" />;
 	}
 
@@ -101,12 +101,12 @@ function PermissionCheckboxCell({
 
 const createColumn: Column = {
 	id: "create",
-	header: "Access",
+	header: "View",
 	...sizes.custom(84, 112, 92),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge", width: "w-10" },
-		headerLabel: "Access",
+		headerLabel: "View",
 		className: sizeClass(sizes.custom(84, 112, 92), "justify-center"),
 		contentClassName: "flex justify-center",
 	},

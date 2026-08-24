@@ -3,6 +3,7 @@ import {
 	allocateReceivedInboundToBackordersSchemaTask,
 	backfillSalesInventoryLineItemsSchemaTask,
 	inventoryReconciliationReportSchemaTask,
+	migrateSalesInventoryLegacyStatusSchemaTask,
 	syncSalesInventoryLineItemsSchemaTask,
 } from "./schema";
 
@@ -43,9 +44,52 @@ describe("sales inventory sync task schemas", () => {
 			{ cursorId: 3.5 },
 			{ batchSize: 1.5 },
 		]) {
-			expect(backfillSalesInventoryLineItemsSchemaTask.safeParse(input).success).toBe(
-				false,
-			);
+			expect(
+				backfillSalesInventoryLineItemsSchemaTask.safeParse(input).success,
+			).toBe(false);
+		}
+	});
+});
+
+describe("legacy sales inventory migration task schema", () => {
+	it("requires the exact status, save revision, and server actor", () => {
+		expect(
+			migrateSalesInventoryLegacyStatusSchemaTask.safeParse({
+				salesOrderId: 12,
+				legacyStatus: "AVAILABLE",
+				savedOrderUpdatedAt: "2026-08-24T19:57:53.000Z",
+				actor: { id: 7, name: "Pablo" },
+			}).success,
+		).toBe(true);
+
+		for (const input of [
+			{
+				salesOrderId: 0,
+				legacyStatus: "AVAILABLE",
+				savedOrderUpdatedAt: "2026-08-24T19:57:53.000Z",
+				actor: { id: 7, name: "Pablo" },
+			},
+			{
+				salesOrderId: 12,
+				legacyStatus: "UNKNOWN",
+				savedOrderUpdatedAt: "2026-08-24T19:57:53.000Z",
+				actor: { id: 7, name: "Pablo" },
+			},
+			{
+				salesOrderId: 12,
+				legacyStatus: "ORDERED",
+				savedOrderUpdatedAt: "not-a-date",
+				actor: { id: 7, name: "Pablo" },
+			},
+			{
+				salesOrderId: 12,
+				legacyStatus: "ORDERED",
+				savedOrderUpdatedAt: "2026-08-24T19:57:53.000Z",
+			},
+		]) {
+			expect(
+				migrateSalesInventoryLegacyStatusSchemaTask.safeParse(input).success,
+			).toBe(false);
 		}
 	});
 });
@@ -70,9 +114,9 @@ describe("inventory reconciliation report schema", () => {
 			{ limit: 25.5 },
 			{ sampleLimit: 3.5 },
 		]) {
-			expect(inventoryReconciliationReportSchemaTask.safeParse(input).success).toBe(
-				false,
-			);
+			expect(
+				inventoryReconciliationReportSchemaTask.safeParse(input).success,
+			).toBe(false);
 		}
 	});
 });

@@ -84,12 +84,12 @@ const permissionColumn: Column = {
 
 const createColumn: Column = {
 	id: "create",
-	header: "Create",
+	header: "View",
 	...sizes.custom(84, 112, 92),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge", width: "w-10" },
-		headerLabel: "Create",
+		headerLabel: "View",
 		className: sizeClass(sizes.custom(84, 112, 92), "justify-center"),
 		contentClassName: "flex justify-center",
 	},

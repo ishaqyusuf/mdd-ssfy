@@ -32,22 +32,26 @@
   permission snapshot.
 - Creating a role or changing only its name leaves existing sessions intact.
 
-## Mark Sales Order Fulfilled Permission (2026-08-20)
+## Mark Sales Order Fulfilled Permission (updated 2026-08-24)
 
-- `markSalesOrderFulfilled` is the dedicated capability for the Sales Orders
-  Mark as Fulfilled action. It is available to roles and employee-specific
-  grants as `Mark Sales Order Fulfilled`; Super Admin retains implicit access.
-- In the role editor, this is a standalone action grant rather than a
-  `view`/`edit` pair. Its single Access checkbox persists the exact
-  `mark sales order fulfilled` permission record, so assigning it to Sales
-  Team or another role produces the canonical session capability.
+- `viewMarkSalesOrderFulfilled` is the dedicated capability for the Sales
+  Orders Mark as Fulfilled action. It is available to roles and
+  employee-specific grants as the view-only `Mark Sales Order Fulfilled` row;
+  Super Admin retains implicit access.
+- The role and employee editors persist the exact
+  `view mark sales order fulfilled` permission record through the View column.
+  The Edit cell is unavailable because this is an execution capability, not
+  general order-edit authority.
+- Legacy `mark sales order fulfilled` grants continue to hydrate the canonical
+  capability. Opening and saving the affected role or employee maps that legacy
+  grant to the view-prefixed permission record.
 - `editOrders`, `editPickup`, `editDelivery`, and `viewPacking` do not imply the
   new capability. Their existing inventory, dispatch, packing, and order
   permissions are unchanged.
 - Fulfillment preflight and ordinary continuation enforce the capability only
   when `action = fulfilled`; Production completed keeps its existing boundary.
 - Dependency resolution that receives inbound material or approves production
-  requires `markSalesOrderFulfilled` plus the existing `editOrders`,
+  requires `viewMarkSalesOrderFulfilled` plus the existing `editOrders`,
   `editInboundOrder`, and `editProduction` checks.
 - The Dashboard hides both Sales menu Fulfilled and dispatch-list Mark as
   completed without the grant. The protected task-start action and the

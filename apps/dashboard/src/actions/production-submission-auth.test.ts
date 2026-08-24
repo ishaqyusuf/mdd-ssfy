@@ -13,7 +13,7 @@ describe("production submission authentication boundary", () => {
         expect(source.includes("authorId: actor.userId")).toBe(true);
         expect(source.includes("actor.can?.editProduction")).toBe(true);
         expect(source.includes("input.markAsCompleted")).toBe(true);
-        expect(source.includes("actor.can?.markSalesOrderFulfilled")).toBe(
+        expect(source.includes("actor.can?.viewMarkSalesOrderFulfilled")).toBe(
             true,
         );
     });

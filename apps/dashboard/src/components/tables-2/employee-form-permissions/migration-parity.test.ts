@@ -66,6 +66,7 @@ describe("Employee form permissions table migration parity", () => {
 		assertContains(source, "onTogglePermission(permissionId, checked)");
 		assertContains(source, "row.original.viewPermissionId");
 		assertContains(source, "row.original.editPermissionId");
+		assertContains(source, 'header: "View"');
 		assertContains(source, "sizes.custom(240, 420, 300)");
 		assertContains(source, "sizes.custom(84, 112, 92)");
 	});

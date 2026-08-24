@@ -161,7 +161,7 @@ export const PERMISSIONS = [
 	"generateSalesPaymentReport",
 	"generateSalesPerformanceReport",
 	"generateSalesStatementReport",
-	"markSalesOrderFulfilled",
+	"viewMarkSalesOrderFulfilled",
 	"viewStorefront",
 	"editStorefront",
 	"viewStorefrontCarts",
@@ -268,7 +268,7 @@ export const EXTRA_PERMISSION_SCOPES = [
 	"generateSalesPaymentReport",
 	"generateSalesPerformanceReport",
 	"generateSalesStatementReport",
-	"markSalesOrderFulfilled",
+	"viewMarkSalesOrderFulfilled",
 	"editRefundSquare",
 	"publishStorefront",
 ] as const;
@@ -297,6 +297,9 @@ export function isCommunityUnitRestrictedAccess(
 }
 function normalizePermissionName(permission: string) {
 	const normalized = camel(permission);
+	if (normalized === "markSalesOrderFulfilled") {
+		return ["viewMarkSalesOrderFulfilled"];
+	}
 	if (normalized === "reviewEmployeeDocument") {
 		return ["viewEmployeeDocument", "editEmployeeDocument"];
 	}

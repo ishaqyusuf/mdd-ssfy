@@ -9,7 +9,7 @@ export const salesControlTaskPermissionKeys = [
 	"viewPickup",
 	"viewProduction",
 	"editProduction",
-	"markSalesOrderFulfilled",
+	"viewMarkSalesOrderFulfilled",
 ] as const;
 
 export type SalesControlTaskPermission =
@@ -282,7 +282,7 @@ export async function authorizeSalesControlTaskInput(
 	if (action === "markAsCompleted") {
 		requirePermission(
 			actor,
-			["markSalesOrderFulfilled"],
+			["viewMarkSalesOrderFulfilled"],
 			"You do not have permission to mark sales orders fulfilled.",
 		);
 		await requireDispatchScope(
@@ -291,7 +291,7 @@ export async function authorizeSalesControlTaskInput(
 			actor,
 			oneDispatchId(input.markAsCompleted?.dispatchId),
 			{
-				rolePermissions: ["markSalesOrderFulfilled"],
+				rolePermissions: ["viewMarkSalesOrderFulfilled"],
 				assignmentPermissions: [],
 				message:
 					"The fulfillment dispatch does not belong to this sales order.",

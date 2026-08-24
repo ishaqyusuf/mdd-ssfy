@@ -110,6 +110,9 @@ const inventoryStockTargets = [
 
 const inventoryInboundTargets = [
 	...inventoryStockTargets,
+	pathTarget("inventories.salesInventoryOverview"),
+	pathTarget("inventories.orderInboundShipments"),
+	pathTarget("inventories.orderInboundShipmentCount"),
 	pathTarget("inventories.inboundShipments"),
 	pathTarget("inventories.inboundDemandQueue"),
 	pathTarget("inventories.supplierReorderSuggestions"),

@@ -34,10 +34,13 @@ orders in the new sales form.
   preserved, the change finishes as `APPLIED_WITH_REVIEW`, and the sales
   representative is notified.
 - Inbound disposition is requested only when the same persisted line is being
-  reduced and has mutable open inbound demand. Inbound on an increased or
-  unrelated line, and cancelled or fully received demand, does not create a
-  meaningless Cancel/Keep Warehouse decision. When no inbound, settlement, or
-  operational decision remains, the edit follows the normal direct-save path.
+  reduced and has positive unreceived demand linked to an active inbound
+  shipment. Automatically projected pending demand that has not been assigned
+  to a shipment is material need, not inbound activity, and never creates a
+  Cancel/Keep Warehouse decision. Inbound on an increased or unrelated line,
+  and completed, closed, cancelled, or fully received inbound, is also ignored.
+  When no settlement or other operational decision remains, the edit follows
+  the normal direct-save path and inventory sync updates the unassigned need.
 
 ## Settlement Contract
 
@@ -137,6 +140,15 @@ orders in the new sales form.
   projector/print, access-policy, client-control contract, and server-boundary
   tests pass 25 tests / 126 assertions; the new edit-loader retained-row
   regression passes separately with 1 test / 10 assertions.
+- The quantity-decision regression covers a reduced line with positive pending
+  demand but no `inboundShipmentItemId`; it produces no inbound review reason
+  and saves directly. A reduced line linked to an active shipment continues to
+  require disposition.
+- Authenticated in-app browser verification on local order `09407PC` reduced
+  tracked moulding quantity from 38 to 37 while the local inbound workspace had
+  no shipments. The editor showed no Review Required banner, Cancel Open
+  Inbound choice, or Keep For Warehouse choice. The quantity and displayed
+  total were restored without saving; no interaction runtime error appeared.
 
 ## Implementation Map
 

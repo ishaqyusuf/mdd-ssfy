@@ -1,7 +1,7 @@
+import { describe, expect, it } from "bun:test";
 // @ts-nocheck
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "bun:test";
 
 function readWorkspaceFile(path: string) {
     return readFileSync(join(process.cwd(), path), "utf8");
@@ -9,19 +9,28 @@ function readWorkspaceFile(path: string) {
 
 describe("sales inventory sync save paths", () => {
     it("queues inventory line sync after new-form draft and final saves", () => {
-        const source = readWorkspaceFile("apps/api/src/db/queries/new-sales-form.ts");
-        const draftStart = source.indexOf("export async function saveDraftNewSalesForm");
-        const finalStart = source.indexOf("export async function saveFinalNewSalesForm");
+		const source = readWorkspaceFile(
+			"apps/api/src/db/queries/new-sales-form.ts",
+		);
+		const draftStart = source.indexOf(
+			"export async function saveDraftNewSalesForm",
+		);
+		const finalStart = source.indexOf(
+			"export async function saveFinalNewSalesForm",
+		);
+		const postSaveStart = source.indexOf(
+			"async function runNewSalesFormPostSaveTasks",
+		);
         const draftSource = source.slice(draftStart, finalStart);
         const finalSource = source.slice(finalStart);
+		const postSaveSource = source.slice(postSaveStart, draftStart);
 
-        expect(draftSource).toContain("queueSalesInventoryLineItemsSync");
-        expect(draftSource).toContain('source: "new-form"');
-        expect(draftSource).toContain("triggeredByUserId: ctx.userId ?? null");
-
-        expect(finalSource).toContain("queueSalesInventoryLineItemsSync");
-        expect(finalSource).toContain('source: "new-form"');
-        expect(finalSource).toContain("triggeredByUserId: ctx.userId ?? null");
+		expect(postSaveSource).toContain("queueSalesInventoryLineItemsSync");
+		expect(postSaveSource).toContain("normalizeSalesInventoryLegacyStatus");
+		expect(postSaveSource).toContain('source: "new-form"');
+		expect(postSaveSource).toContain("triggeredByUserId: ctx.userId ?? null");
+		expect(draftSource).toContain("runNewSalesFormPostSaveTasks(ctx, result)");
+		expect(finalSource).toContain("runNewSalesFormPostSaveTasks(ctx, result)");
     });
 
     it("queues inventory line sync after old-form saves succeed", () => {
@@ -30,7 +39,27 @@ describe("sales inventory sync save paths", () => {
         );
 
         expect(source).toContain("queueSalesInventoryLineItemsSync");
-        expect(source).toContain("!result?.data?.error && result?.salesId");
+		expect(source).toContain("normalizeSalesInventoryLegacyStatus");
+		expect(source).toContain("!result?.data?.error &&");
+		expect(source).toContain("result?.salesId &&");
         expect(source).toContain('source: "old-form"');
     });
+
+	it("queues legacy adaptation after saves while preserving the ordinary configurator", () => {
+		const oldFormSource = readWorkspaceFile(
+			"apps/dashboard/src/components/forms/sales-form/sales-form-save.tsx",
+		);
+		const newFormSource = readWorkspaceFile(
+			"apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx",
+		);
+
+		for (const source of [oldFormSource, newFormSource]) {
+			expect(source).toContain("resolveLegacyInventoryPostSaveAction");
+			expect(source).toContain("legacyInventoryAdaptation.queue");
+			expect(source).toContain("openSalesInventoryConfigurator");
+		}
+		expect(newFormSource).toContain(
+			"configureInventoryAfterSave(currentRecord, false)",
+		);
+	});
 });

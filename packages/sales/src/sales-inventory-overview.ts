@@ -1169,6 +1169,7 @@ export async function getSalesInventoryOverview(
 		select: {
 			id: true,
 			orderId: true,
+			updatedAt: true,
 			status: true,
 			inventoryStatus: true,
 			prodStatus: true,
@@ -1176,6 +1177,10 @@ export async function getSalesInventoryOverview(
 				select: {
 					status: true,
 					needCount: true,
+					requiredQty: true,
+					source: true,
+					lastError: true,
+					startedAt: true,
 					completedAt: true,
 				},
 			},
@@ -1486,6 +1491,8 @@ export async function getSalesInventoryOverview(
 			lifecycleStatus: lifecycle.status,
 			inventoryRowCount: existingInventoryNeedCount,
 			projectionStatus: sale.inventoryProjection?.status,
+			projectionNeedCount: sale.inventoryProjection?.needCount,
+			projectionSource: sale.inventoryProjection?.source,
 			activeLinkedInboundCount,
 		}),
 		setupMode,

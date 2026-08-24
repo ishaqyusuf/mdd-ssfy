@@ -203,7 +203,7 @@ describe("high-risk tRPC permission boundaries", () => {
 		expectProtectedMutation(
 			dispatch,
 			"ensureSalesOrderFulfillmentDispatch",
-			'"markSalesOrderFulfilled"',
+			'"viewMarkSalesOrderFulfilled"',
 		);
 	});
 

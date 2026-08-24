@@ -6,15 +6,15 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 
 ## Behavior
 
-### Dedicated Mark as Fulfilled permission (2026-08-20)
+### Dedicated Mark as Fulfilled permission (updated 2026-08-24)
 
 - Sales Orders fulfillment now uses the action-specific
-  `markSalesOrderFulfilled` permission instead of borrowing order, pickup,
+  `viewMarkSalesOrderFulfilled` permission instead of borrowing order, pickup,
   delivery, packing, or inventory authority.
-- The role editor displays this as one standalone Access grant, persisted as
-  `mark sales order fulfilled`; it does not create fictitious `view` or `edit`
-  permission variants. Sales Team can therefore receive the capability through
-  the standard role update flow.
+- The role and employee editors display this through the normal View column as
+  `Mark Sales Order Fulfilled`, persist
+  `view mark sales order fulfilled`, and leave Edit unavailable. Existing
+  legacy direct grants remain valid and migrate on the next role/employee save.
 - The canonical Sales status menu and the Sales Overview dispatch menu hide
   their fulfillment-completion action without the grant. Production completed
   and workflow cancellation retain their independent permission rules.

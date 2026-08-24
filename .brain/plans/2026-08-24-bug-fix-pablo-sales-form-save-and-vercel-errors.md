@@ -47,7 +47,7 @@ failures.
 8. Reproduce the fulfillment authorization mismatch from Pablo's clip, add an
    action-aware permission regression, and fix the boundary without granting
    broad workspace permissions. **Blocked on explicit authorization:** the
-   proposed scoped fix would allow holders of `markSalesOrderFulfilled` to
+   proposed scoped fix would allow holders of `viewMarkSalesOrderFulfilled` to
    receive linked inbound stock and approve pending production-material reviews
    for the selected order. No authorization change is currently applied.
 9. Inspect the production Special Order audience. **Complete read-only:** the

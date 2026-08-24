@@ -59,8 +59,8 @@ import {
 	collapseDuplicateSalesDoorRows,
 	findDuplicateSalesDoorIdentities,
 	getSalesDoorActiveIdentity,
-	normalizeShelfProductSearchQuery,
 	normalizeSalesDoorDimension,
+	normalizeShelfProductSearchQuery,
 	searchShelfProductIndex,
 	shelfProductSearchCandidateTerms,
 	shelfProductSearchCandidateTitleAnchorGroups,
@@ -79,6 +79,7 @@ import {
 	hydrateHptLineFromLegacy,
 	normalizeHptLineForLegacy,
 } from "@gnd/sales/sales-form/domain/hpt-compatibility";
+import { normalizeSalesInventoryLegacyStatus } from "@gnd/sales/sales-inventory-legacy-compatibility";
 import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
 import {
 	buildSpecialOrderCustomerVisibleRevision,
@@ -246,9 +247,7 @@ function normalizeLegacyPoOnlyComparableMeta(meta: NewSalesFormMeta) {
 	return comparable;
 }
 
-function normalizeLegacyPoOnlyComparableLines(
-	lines: NewSalesFormLineItem[],
-) {
+function normalizeLegacyPoOnlyComparableLines(lines: NewSalesFormLineItem[]) {
 	return lines.map((line) => {
 		const comparable = { ...line } as Record<string, unknown>;
 		if (comparable.taxxable == null) delete comparable.taxxable;
@@ -710,8 +709,7 @@ function isLegacyPoOnlySave(input: {
 			),
 			summary: beforeSummary,
 			inventoryStatus: input.before.inventoryStatus ?? null,
-			specialOrderDeclaration:
-				input.before.specialOrder?.declaration ?? null,
+			specialOrderDeclaration: input.before.specialOrder?.declaration ?? null,
 		},
 		{
 			meta: normalizeLegacyPoOnlyComparableMeta(input.payload.meta),
@@ -721,8 +719,7 @@ function isLegacyPoOnlySave(input: {
 			),
 			summary: input.persistedSummary,
 			inventoryStatus: input.payload.inventoryStatus ?? null,
-			specialOrderDeclaration:
-				input.payload.specialOrderDeclaration ?? null,
+			specialOrderDeclaration: input.payload.specialOrderDeclaration ?? null,
 		},
 	);
 }
@@ -3593,7 +3590,8 @@ async function saveNewSalesFormInternal(
 				finiteOptionalNumber(currentMeta.salesCoefficient) ??
 				finiteOptionalNumber(currentMeta.sales_percentage);
 
-			const nextVersion = `${Date.now()}-${generateRandomString(8)}`;
+			const saveRevision = new Date();
+			const nextVersion = `${saveRevision.getTime()}-${generateRandomString(8)}`;
 			const nextCreatedAt = resolveOrderCreatedAt(
 				payload.meta.createdAt,
 				order?.createdAt,
@@ -3656,7 +3654,7 @@ async function saveNewSalesFormInternal(
 					version: nextVersion,
 					draftKey:
 						currentMeta.newSalesForm?.draftKey || newDraftKey || undefined,
-					updatedAt: new Date().toISOString(),
+					updatedAt: saveRevision.toISOString(),
 					autosave: payload.autosave,
 					form: {
 						...safeRecord(currentMeta.newSalesForm?.form),
@@ -3711,6 +3709,7 @@ async function saveNewSalesFormInternal(
 						grandTotal: persistedSummary.grandTotal,
 						amountDue: nextAmountDue,
 						meta: nextMeta as any,
+						updatedAt: saveRevision,
 						salesChannel: origin?.salesChannel || null,
 					},
 					select: {
@@ -3732,7 +3731,7 @@ async function saveNewSalesFormInternal(
 						nextSpecialOrderDeclaration === "YES" ? specialOrderRevision : null,
 					currentSpecialOrderApprovalId: nextCurrentSpecialOrderApprovalId,
 					currentSpecialOrderRequestId: null,
-					updatedAt: new Date(),
+					updatedAt: saveRevision,
 					createdAt: nextCreatedAt,
 					paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
 					paymentDueDate: nextPaymentDueDate,
@@ -3788,6 +3787,7 @@ async function saveNewSalesFormInternal(
 						grandTotal: persistedSummary.grandTotal,
 						amountDue: nextAmountDue,
 						meta: nextMeta as any,
+						updatedAt: saveRevision,
 						salesChannel: origin?.salesChannel || order.salesChannel || null,
 					},
 				});
@@ -4402,7 +4402,7 @@ async function saveNewSalesFormInternal(
 				type: payload.type,
 				isNew,
 				version: nextVersion,
-				updatedAt: nextMeta.newSalesForm?.updatedAt,
+				updatedAt: saveRevision.toISOString(),
 				form: nextFormMeta,
 				lineItems: hydratedLineItems,
 				extraCosts: hydratedExtraCosts,
@@ -4503,7 +4503,9 @@ async function runNewSalesFormPostSaveTasks(
 	result: Awaited<ReturnType<typeof saveNewSalesFormInternal>>,
 ) {
 	const isQuote = result.type === "quote";
-	const shouldSyncInventory = result._saveScope !== "legacy-po-only";
+	const shouldSyncInventory =
+		result._saveScope !== "legacy-po-only" &&
+		!normalizeSalesInventoryLegacyStatus(result.inventoryStatus);
 
 	await Promise.all([
 		runBoundedPostSaveTask("expire-current-sales-document-snapshots", () =>
@@ -4516,9 +4518,7 @@ async function runNewSalesFormPostSaveTasks(
 		),
 		...(shouldSyncInventory
 			? [
-					runBoundedPostSaveTask(
-						"queue-sales-inventory-line-items-sync",
-						() =>
+					runBoundedPostSaveTask("queue-sales-inventory-line-items-sync", () =>
 							queueSalesInventoryLineItemsSync({
 								salesOrderId: result.salesId,
 								source: "new-form",

@@ -10,16 +10,21 @@ import type { CreateRoleForm } from "./create-role-action";
 const staticPermissions = PERMISSIONS.map((permission) =>
 	addSpacesToCamelCase(permission).toLocaleLowerCase(),
 );
+const legacyMarkFulfilledPermission = "mark sales order fulfilled";
+const viewMarkFulfilledPermission = "view mark sales order fulfilled";
 
 export type RolePermissionRow = {
 	permission: string;
-	kind: "direct" | "scoped";
+	kind: "direct" | "scoped" | "view-only";
 };
 
 function getRolePermissionRows(
 	permissions: Array<{ name: string }>,
 ): RolePermissionRow[] {
-	const rows = new Map<string, RolePermissionRow>();
+	const rows = new Map<
+		string,
+		{ direct: boolean; view: boolean; edit: boolean }
+	>();
 
 	for (const { name } of permissions) {
 		const normalizedName = name.toLocaleLowerCase();
@@ -27,21 +32,28 @@ function getRolePermissionRows(
 			.replace(/^edit /, "")
 			.replace(/^view /, "")
 			.replace(/^review /, "");
-		const row: RolePermissionRow = {
-			permission,
-			kind: permission === normalizedName ? "direct" : "scoped",
+		const row = rows.get(permission) ?? {
+			direct: false,
+			view: false,
+			edit: false,
 		};
-
-		// A direct action permission must retain its direct binding even if a
-		// legacy scoped permission happens to share its display label.
-		if (!rows.has(permission) || row.kind === "direct") {
-			rows.set(permission, row);
-		}
+		if (normalizedName.startsWith("view ")) row.view = true;
+		else if (normalizedName.startsWith("edit ")) row.edit = true;
+		else row.direct = true;
+		rows.set(permission, row);
 	}
 
-	return Array.from(rows.values()).sort((a, b) =>
-		a.permission.localeCompare(b.permission),
-	);
+	return Array.from(rows.entries())
+		.map(([permission, actions]): RolePermissionRow => ({
+			permission,
+			kind:
+				actions.view && !actions.edit
+					? "view-only"
+					: actions.view || actions.edit
+						? "scoped"
+						: "direct",
+		}))
+		.sort((a, b) => a.permission.localeCompare(b.permission));
 }
 
 async function getUpdatedPermissions() {
@@ -95,6 +107,24 @@ export async function getRoleForm(id?) {
 			checked: !!current,
 		};
 	});
+	const legacyMarkFulfilled = permissions.find(
+		(permission) => permission.name === legacyMarkFulfilledPermission,
+	);
+	const viewMarkFulfilled = permissions.find(
+		(permission) => permission.name === viewMarkFulfilledPermission,
+	);
+	const legacyGrant = role?.RoleHasPermissions.find(
+		(permission) => permission.permissionId === legacyMarkFulfilled?.id,
+	);
+	if (legacyMarkFulfilled && viewMarkFulfilled && legacyGrant) {
+		form.permissions[legacyMarkFulfilledPermission].checked = false;
+		form.permissions[viewMarkFulfilledPermission] = {
+			...form.permissions[viewMarkFulfilledPermission],
+			permissionId: viewMarkFulfilled.id,
+			roleId: legacyGrant.roleId,
+			checked: true,
+		};
+	}
 	const permissionsList = getRolePermissionRows(permissions);
 	const promise = staticPermissions.map((name) => {
 		if (!form.permissions[name]) {

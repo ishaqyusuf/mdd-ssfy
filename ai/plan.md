@@ -1,3 +1,49 @@
+# View-Prefixed Mark Sales Order Fulfilled Permission
+
+Date: 2026-08-24
+Status: Completed
+
+Plan:
+- Replace the standalone `markSalesOrderFulfilled` capability with the
+  view-prefixed `viewMarkSalesOrderFulfilled` capability and persist
+  `view mark sales order fulfilled` through the normal permission editor path.
+- Preserve legacy direct grants as a temporary authentication alias and migrate
+  them to the canonical view-prefixed permission when a role or employee is
+  next saved.
+- Apply the renamed capability consistently at dashboard, API, task-dispatch,
+  and terminal sales-control boundaries without granting order editing or
+  dependency-manager authority.
+- Update focused permission contracts and Brain documentation.
+
+Validation:
+- Focused auth, role/employee editor, dashboard, API-boundary, and sales-control
+  permission tests.
+- Targeted old-symbol scan and `git diff --check` for touched files.
+
+Progress:
+- [x] Confirmed the prior direct permission and historical role-editor binding
+  mismatch.
+- [x] Defined the canonical view-prefixed permission and compatibility path.
+- [x] Implement shared auth, editor migration, and authorization-boundary changes.
+- [x] Update focused tests and Brain documentation.
+- [x] Run lightweight focused validation and reconcile the diff.
+
+Risks:
+- Existing direct grants must continue working until their role or employee
+  record is saved into the canonical view-prefixed form.
+- Fulfillment dependency resolution must retain its additive order, inbound,
+  and production edit checks.
+
+Result:
+- Canonical authorization now uses `viewMarkSalesOrderFulfilled` and the
+  `view mark sales order fulfilled` permission record at every fulfillment
+  boundary.
+- Role and employee editors expose View with no Edit control; legacy direct
+  grants remain valid and migrate on save.
+- Focused validation passed 65 tests / 382 assertions.
+
+---
+
 # Headless Legacy Inventory Adaptation
 
 Date: 2026-08-24

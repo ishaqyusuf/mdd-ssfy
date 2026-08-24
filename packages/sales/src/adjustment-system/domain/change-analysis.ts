@@ -48,6 +48,8 @@ export type SalesAdjustmentCommitments = {
 			qty?: number | null;
 			qtyReceived?: number | null;
 			status?: string | null;
+			inboundShipmentItemId?: number | null;
+			inboundStatus?: string | null;
 		}>;
 	}>;
 };
@@ -113,9 +115,18 @@ export function salesAdjustmentRequiresInboundDisposition(input: {
 		if (!affected) return false;
 		if (line.inboundDemands) {
 			return line.inboundDemands.some(
-				(demand) =>
-					String(demand.status || "").toLowerCase() !== "cancelled" &&
-					finite(demand.qty) - finite(demand.qtyReceived) > 0,
+				(demand) => {
+					const demandStatus = String(demand.status || "").toLowerCase();
+					const inboundStatus = String(
+						demand.inboundStatus || "",
+					).toLowerCase();
+					return (
+						demand.inboundShipmentItemId != null &&
+						demandStatus !== "cancelled" &&
+						!["completed", "closed", "cancelled"].includes(inboundStatus) &&
+						finite(demand.qty) - finite(demand.qtyReceived) > 0
+					);
+				},
 			);
 		}
 		return finite(line.inboundQty) > 0;

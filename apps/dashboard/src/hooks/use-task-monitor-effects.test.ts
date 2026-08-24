@@ -26,6 +26,12 @@ describe("task monitor query events", () => {
 		expect(source.includes("sq.events.fulfillmentUpdated(sales)")).toBe(true);
 	});
 
+	it("invalidates persisted inventory and order state after legacy adaptation", () => {
+		expect(source).toContain('case "sales.mark-as-fulfilled"');
+		expect(source).toContain('"sales.adapt-legacy-inventory"');
+		expect(source).toContain("sq.events.legacyInventoryAdapted");
+	});
+
 	it("does not duplicate event targets with local query invalidation", () => {
 		expect(source.includes("sq.qc.invalidateQueries")).toBe(false);
 		expect(source.includes("sq.invalidate.saleOverview")).toBe(false);

@@ -9,6 +9,7 @@ import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { env } from "@/env.mjs";
 import { useAuth } from "@/hooks/use-auth";
+import { useLegacyInventoryAdaptationTask } from "@/hooks/use-legacy-inventory-adaptation-task";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
@@ -40,6 +41,7 @@ import {
     useRef,
     useState,
 } from "react";
+import { resolveLegacyInventoryPostSaveAction } from "../legacy-inventory-post-save";
 import { SalesFormAdoptionTracker } from "../sales-form-adoption-tracker";
 import { SalesFormVersionSwitcher } from "../sales-form-version-switcher";
 import { useSalesInventoryConfiguratorPrompt } from "../sales-form/inventory-configurator-dialog";
@@ -451,8 +453,10 @@ export function NewSalesForm(props: Props) {
     const [pendingSpecialOrderCommit, setPendingSpecialOrderCommit] = useState<
         "draft" | "close" | "new" | "final" | null
     >(null);
-	const [pendingCommittedChangeSaveIntent, setPendingCommittedChangeSaveIntent] =
-		useState<SaveIntent | null>(null);
+	const [
+		pendingCommittedChangeSaveIntent,
+		setPendingCommittedChangeSaveIntent,
+	] = useState<SaveIntent | null>(null);
 	const committedChangeContinuationGuardRef = useRef(
 		createSaveContinuationGuard(),
 	);
@@ -473,6 +477,7 @@ export function NewSalesForm(props: Props) {
     const [busyHistoryId, setBusyHistoryId] = useState<number | null>(null);
     const { inventoryConfiguratorDialog, openSalesInventoryConfigurator } =
         useSalesInventoryConfiguratorPrompt();
+	const legacyInventoryAdaptation = useLegacyInventoryAdaptationTask();
     const [usePackageWorkflowPanel, setUsePackageWorkflowPanelState] = useState(
         resolveInitialPackageWorkflowPanelEnabled,
     );
@@ -1084,14 +1089,40 @@ export function NewSalesForm(props: Props) {
     );
 
     const configureInventoryAfterSave = useCallback(
-		async (resp: {
+		async (
+			resp: {
 			salesId?: number | null;
+				orderId?: string | null;
+				type?: "order" | "quote" | null;
+				inventoryStatus?: string | null;
+				updatedAt?: string | null;
 			saveScope?: NewSalesFormSaveScope | null;
-		}) => {
+			},
+			afterSuccessfulSave: boolean,
+		) => {
 			if (!isOrder || isLegacyPoOnlySaveResponse(resp)) return;
-            await openSalesInventoryConfigurator(resp.salesId);
+			const action = resolveLegacyInventoryPostSaveAction({
+				salesId: resp.salesId,
+				orderNo: resp.orderId,
+				salesType: resp.type || props.type,
+				inventoryStatus: resp.inventoryStatus,
+				savedOrderUpdatedAt: resp.updatedAt,
+				afterSuccessfulSave,
+			});
+			if (action.action === "queue_legacy_adaptation") {
+				await legacyInventoryAdaptation.queue(action);
+				return;
+			}
+			if (action.action === "configure_inventory") {
+				await openSalesInventoryConfigurator(action.salesOrderId);
+			}
         },
-        [isOrder, openSalesInventoryConfigurator],
+		[
+			isOrder,
+			legacyInventoryAdaptation,
+			openSalesInventoryConfigurator,
+			props.type,
+		],
     );
 
     useEffect(() => {
@@ -1295,10 +1326,7 @@ export function NewSalesForm(props: Props) {
 		for (let attempt = 0; attempt < 16; attempt += 1) {
 			await new Promise((resolve) => setTimeout(resolve, 750));
 			const refreshed = await getQuery.refetch();
-			if (
-				refreshed.data?.version &&
-				refreshed.data.version !== sourceVersion
-			) {
+			if (refreshed.data?.version && refreshed.data.version !== sourceVersion) {
 				return refreshed.data as NewSalesFormRecord;
 			}
 		}
@@ -1333,8 +1361,7 @@ export function NewSalesForm(props: Props) {
 						autosave: false,
 						reason,
 						inboundDisposition: input.inboundDisposition,
-						acknowledgeOperationalImpact:
-							input.acknowledgeOperationalImpact,
+						acknowledgeOperationalImpact: input.acknowledgeOperationalImpact,
 					});
 				},
 				pollForRefreshedRecord: () =>
@@ -1380,7 +1407,9 @@ export function NewSalesForm(props: Props) {
 		}
 	}
 
-	async function stopForCommittedChangeReview(intent: SaveIntent | null = null) {
+	async function stopForCommittedChangeReview(
+		intent: SaveIntent | null = null,
+	) {
 		if (!hasSalesRepApprovalChange) return false;
 		if (intent) setPendingCommittedChangeSaveIntent(intent);
 		const opened = await openCommittedChangeReview();
@@ -1399,7 +1428,6 @@ export function NewSalesForm(props: Props) {
             setManualSaveLock(false);
         }
     }
-
 
     function promptForSpecialOrderDeclaration(
 		intent: SaveIntent,
@@ -1448,7 +1476,7 @@ export function NewSalesForm(props: Props) {
                     autosave: false,
                 });
                 await handlePostSaveSuccess(resp);
-                await configureInventoryAfterSave(resp);
+				await configureInventoryAfterSave(resp, true);
                 await clearSelectedCustomerQuery();
                 toast({
                     title: "Saved",
@@ -1487,7 +1515,7 @@ export function NewSalesForm(props: Props) {
             });
             if (!resp) return;
             await handlePostSaveSuccess(resp);
-            await configureInventoryAfterSave(resp);
+			await configureInventoryAfterSave(resp, true);
             await clearSelectedCustomerQuery();
             if (intent === "draft") {
                 if (props.mode === "create") {
@@ -1501,7 +1529,7 @@ export function NewSalesForm(props: Props) {
                 return;
             }
         } else {
-            await configureInventoryAfterSave(currentRecord);
+			await configureInventoryAfterSave(currentRecord, false);
         }
         router.push(
             intent === "close"

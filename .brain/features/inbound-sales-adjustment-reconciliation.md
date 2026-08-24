@@ -23,15 +23,17 @@
   longer relies on a later repair job to leave the cancelled projection state.
   Released-demand markers preserve the affected sale IDs so a failed projection
   can be retried after demand links have been detached.
-- Existing-sale quantity reductions use the Sales Change Review. When the
-  changed lines have allocation, inbound, production, completion, or delivery
-  evidence, the review explains the impact and requires explicit acknowledgement
-  rather than blocking the edit.
-- If open inbound exists, the sales representative must choose one disposition:
-  cancel the reduced open supplier quantity, or retain that supplier quantity
-  for general warehouse stock. The adjustment job changes the sale and
-  reconciles the approved inbound snapshot in one transaction, rebuilds the
-  sales projection, and only then marks the adjustment applied.
+- Existing-sale quantity reductions use the Sales Change Review only when the
+  change needs a settlement or affects allocation, an active linked inbound
+  shipment, production, completion, or delivery evidence. Pending unassigned
+  `InboundDemand` is not inbound activity and does not require acknowledgement
+  or disposition; normal save and inventory sync resize that requirement.
+- If reduced quantity is already linked to an active inbound shipment, the
+  sales representative must choose one disposition: cancel the reduced open
+  supplier quantity, or retain that supplier quantity for general warehouse
+  stock. The adjustment job changes the sale and reconciles the approved
+  inbound snapshot in one transaction, rebuilds the sales projection, and only
+  then marks the adjustment applied.
 - Reconciliation rejects demand, shipment-link, shipment-status, planned-
   quantity, or received-quantity drift after approval and rolls back the sale,
   wallet, refund, and inbound transaction together. A later projection or
@@ -64,6 +66,13 @@
 - Inventory package typecheck reaches only the existing `@gnd/errors` NodeNext
   extension diagnostics; no touched inventory-file diagnostic remains.
 - API and Jobs package typechecks pass.
+- The 2026-08-24 unassigned-demand regression and Sales Change Review contract
+  pass with 21 tests / 51 assertions. Authenticated local in-app browser proof
+  on order `09407PC` reduced tracked moulding quantity from 38 to 37 with no
+  inbound shipments present and showed none of the Review Required, Cancel Open
+  Inbound, or Keep For Warehouse controls. The quantity and displayed total
+  were restored without saving. No broad typecheck was run under the fast Bun
+  workflow.
 
 ## Follow-up verification
 

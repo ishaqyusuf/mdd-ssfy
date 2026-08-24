@@ -46,6 +46,14 @@ export const taskMonitorIntentSchema = z.discriminatedUnion("name", [
 			sales: z.array(taskSalesQueryRefSchema).optional(),
 		}),
 	}),
+	z.object({
+		name: z.literal("sales.adapt-legacy-inventory"),
+		version: z.literal(1),
+		args: z.object({
+			salesId: z.number().int().positive(),
+			orderNo: z.string().min(1),
+		}),
+	}),
 ]);
 
 export type TaskMonitorIntent = z.infer<typeof taskMonitorIntentSchema>;
@@ -248,7 +256,9 @@ function getTaskMonitorMetadata(
 		data.meta && typeof data.meta === "object"
 			? (data.meta as Record<string, unknown>)
 			: {};
-	const salesId = meta.salesId ?? data.salesId ?? data.salesOrderId;
+	const salesId = asTaskEntityId(
+		meta.salesId ?? data.salesId ?? data.salesOrderId,
+	);
 	const salesIds = Array.isArray(data.salesIds)
 		? data.salesIds
 		: Array.isArray(data.ids)
@@ -258,11 +268,12 @@ function getTaskMonitorMetadata(
 		data.payload && typeof data.payload === "object"
 			? (data.payload as Record<string, unknown>)
 			: {};
-	const dispatchId =
+	const dispatchId = asTaskEntityId(
 		data.dispatchId ??
 		nestedObjectValue(data.packItems, "dispatchId") ??
 		nestedObjectValue(data.clearPackings, "dispatchId") ??
-		nestedObjectValue(data.submitDispatch, "dispatchId");
+			nestedObjectValue(data.submitDispatch, "dispatchId"),
+	);
 
 	if (taskName === "send-sales-email") {
 		return {
@@ -304,6 +315,15 @@ function getTaskMonitorMetadata(
 		};
 	}
 
+	if (taskName === "migrate-sales-inventory-legacy-status") {
+		return {
+			taskName,
+			type: "sales-legacy-inventory",
+			entityId: salesId ?? null,
+			entityLabel: salesId ? `sale #${salesId}` : null,
+		};
+	}
+
 	if (taskName === "notification") {
 		if (
 			data.channel === "simple_sales_document_email" ||
@@ -325,7 +345,9 @@ function getTaskMonitorMetadata(
 		return {
 			taskName,
 			type: "notification",
-			entityId: nestedPayload.dispatchId ?? nestedPayload.salesId ?? null,
+			entityId: asTaskEntityId(
+				nestedPayload.dispatchId ?? nestedPayload.salesId,
+			),
 			entityLabel: data.channel
 				? String(data.channel).replaceAll("_", " ")
 				: null,
@@ -347,6 +369,10 @@ function getTaskMonitorMetadata(
 function nestedObjectValue(value: unknown, key: string) {
 	if (!value || typeof value !== "object") return undefined;
 	return (value as Record<string, unknown>)[key];
+}
+
+function asTaskEntityId(value: unknown): string | number | null {
+	return typeof value === "string" || typeof value === "number" ? value : null;
 }
 
 function getTaskNameLabel(taskName?: TaskName | string) {
@@ -371,6 +397,8 @@ function getTaskNameLabel(taskName?: TaskName | string) {
 			return "Preparing sales document";
 		case "sync-sales-inventory-line-items":
 			return "Syncing sales inventory";
+		case "migrate-sales-inventory-legacy-status":
+			return "Adapting legacy inventory";
 		case "attach-signed-dispatch-pdf":
 			return "Attaching signed dispatch PDF";
 		case "run-inventory-full-import-now":

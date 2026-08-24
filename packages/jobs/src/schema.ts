@@ -61,6 +61,7 @@ export const taskNames = [
 	"run-inventory-reconciliation-report",
 	"generate-contractor-accounting-report",
 	"sync-sales-inventory-line-items",
+	"migrate-sales-inventory-legacy-status",
 	"warm-sales-document-snapshot",
 	"sync-dyke-step-to-inventory",
 	"sync-inventory-to-dyke",
@@ -205,6 +206,24 @@ export type SendStorefrontWelcomeEmailPayload = z.infer<
 >;
 
 const positiveIntegerId = z.number().int().positive();
+
+export const migrateSalesInventoryLegacyStatusSchemaTask = z.object({
+	salesOrderId: positiveIntegerId,
+	legacyStatus: z.enum(["AVAILABLE", "ORDERED", "PENDING ORDER"]),
+	savedOrderUpdatedAt: z.string().datetime(),
+	actor: author,
+});
+export type MigrateSalesInventoryLegacyStatusTaskPayload = z.infer<
+	typeof migrateSalesInventoryLegacyStatusSchemaTask
+>;
+
+export const queueSalesInventoryLegacyStatusMigrationSchema =
+	migrateSalesInventoryLegacyStatusSchemaTask.omit({ actor: true }).extend({
+		forceRetry: z.boolean().optional().default(false),
+	});
+export type QueueSalesInventoryLegacyStatusMigrationInput = z.infer<
+	typeof queueSalesInventoryLegacyStatusMigrationSchema
+>;
 
 export const syncSalesInventoryLineItemsSchemaTask = z.object({
 	salesOrderId: positiveIntegerId,

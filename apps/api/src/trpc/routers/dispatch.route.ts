@@ -1531,7 +1531,7 @@ export const dispatchRouters = createTRPCRouter({
 		.mutation(async (props) => {
 			await requireAnyOperationalPermission(
 				props.ctx,
-				["markSalesOrderFulfilled"],
+				["viewMarkSalesOrderFulfilled"],
 				"You do not have permission to mark sales orders fulfilled.",
 			);
 			await enforceSpecialOrderForSale(

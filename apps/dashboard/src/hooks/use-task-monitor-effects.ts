@@ -11,7 +11,17 @@ export function useTaskMonitorEffects() {
 
 	const runTaskEffect = useCallback(
 		async (task: TaskMonitorTask, phase: TaskEffectPhase) => {
-			if (phase !== "success" || !task.intent) return;
+			if (!task.intent) return;
+			if (task.intent.name === "sales.adapt-legacy-inventory") {
+				if (phase === "canceled") return;
+				await sq.events.legacyInventoryAdapted({
+					orderNo: task.intent.args.orderNo,
+					salesId: task.intent.args.salesId,
+					salesType: "order",
+				});
+				return;
+			}
+			if (phase !== "success") return;
 
 			switch (task.intent.name) {
 				case "sales.mark-as-production-completed": {

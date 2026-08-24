@@ -163,7 +163,7 @@
   `resolveSalesInventoryMarkAsAvailabilityForContinue`,
   `overrideSalesInventoryMarkAsAvailabilityForContinue`, and
   `resolveSalesInventoryMarkAsAutoForContinue` require
-  `markSalesOrderFulfilled` only for `action = fulfilled`.
+  `viewMarkSalesOrderFulfilled` only for `action = fulfilled`.
 - `dispatch.ensureSalesOrderFulfillmentDispatch({ salesId })` requires the
   dedicated permission, repeats Special Order dispatch enforcement, and runs a
   serializable lookup/create. It reuses the newest active dispatch or creates

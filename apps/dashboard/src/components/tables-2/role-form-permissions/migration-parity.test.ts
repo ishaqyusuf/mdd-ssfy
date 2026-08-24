@@ -69,25 +69,26 @@ describe("Role form permissions table migration parity", () => {
 		assertContains(source, 'action="edit"');
 		assertContains(source, "permissions.${permission}.checked");
 		assertContains(source, "permissions.${action} ${permission}.checked");
-		assertContains(source, 'row.original.kind === "direct"');
+		assertContains(source, 'row.original.kind !== "scoped"');
+		assertContains(source, 'header: "View"');
 		assertContains(source, "sizes.custom(240, 420, 300)");
 		assertContains(source, "sizes.custom(84, 112, 92)");
 	});
 
-	it("binds standalone action permissions to their stored permission name", () => {
+	it("binds view-only actions to the canonical view-prefixed permission", () => {
 		const roleFormSource = readSource("actions/get-role-form.ts");
 		const columnsSource = readSource(
 			"components/tables-2/role-form-permissions/columns.tsx",
 		);
 
-		assertContains(roleFormSource, 'kind: "direct" | "scoped"');
-		assertContains(
-			roleFormSource,
-			'kind: permission === normalizedName ? "direct" : "scoped"',
-		);
+		assertContains(roleFormSource, '"direct" | "scoped" | "view-only"');
+		assertContains(roleFormSource, 'actions.view && !actions.edit');
+		assertContains(roleFormSource, '"view-only"');
+		assertContains(roleFormSource, '"view mark sales order fulfilled"');
+		assertContains(roleFormSource, "legacyGrant");
 		assertContains(
 			columnsSource,
-			'if (kind === "direct") return `permissions.${permission}.checked`;',
+			'return `permissions.${action} ${permission}.checked`;',
 		);
 	});
 

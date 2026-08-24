@@ -1,11 +1,11 @@
-import { prisma, SalesOrders } from "@/db";
+import { type SalesOrders, prisma } from "@/db";
 import { nextId } from "@/lib/nextId";
 import { generateRandomString } from "@/lib/utils";
 import { expireCurrentSalesDocumentSnapshots } from "@gnd/api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@gnd/api/utils/sales-document-warm";
 import { getSalesDoorActiveIdentity } from "@sales/sales-form/domain/door-identity";
 
-import {
+import type {
     SalesFormFields,
     SalesType,
 } from "@/app-deps/(clean-code)/(sales)/types";
@@ -111,6 +111,8 @@ export class SaveSalesClass extends SaveSalesHelper {
             salesType: salesResp?.type as SalesType,
             salesId: salesResp?.id,
             salesNo: salesResp?.orderId,
+			inventoryStatus: salesResp?.inventoryStatus,
+			updatedAt: salesResp?.updatedAt?.toISOString() || null,
         };
     }
     public getTable(priority, tx = prisma) {
@@ -131,7 +133,7 @@ export class SaveSalesClass extends SaveSalesHelper {
     constructor(
         public form: SalesFormFields,
         public oldFormState?: SalesFormFields,
-        public query?: SaveQuery
+		public query?: SaveQuery,
     ) {
         super();
         this.ctx = this;
@@ -222,11 +224,9 @@ export class SaveSalesClass extends SaveSalesHelper {
                         },
                         data: {
                             deletedAt: new Date(),
-                            ...(s.priority === 5
-                                ? { activeIdentity: null }
-                                : {}),
+							...(s.priority === 5 ? { activeIdentity: null } : {}),
                         },
-                    })
+					}),
                 );
                 this.data.orderTxIndex++;
             });
@@ -252,7 +252,7 @@ export class SaveSalesClass extends SaveSalesHelper {
                                     ...u.data,
                                     deletedAt: null,
                                 },
-                            })
+							}),
                         );
                     });
             }
@@ -270,7 +270,7 @@ export class SaveSalesClass extends SaveSalesHelper {
                           })
                         : table.createMany({
                               data: createManyData,
-                          })
+							}),
                 );
             }
         });
@@ -287,7 +287,7 @@ export class SaveSalesClass extends SaveSalesHelper {
                             salesId = resp.id;
                         }
                         return resp;
-                    })
+					}),
                 );
             }) as any);
             this.data.result = transactions;
@@ -385,13 +385,11 @@ export class SaveSalesClass extends SaveSalesHelper {
                 if (!formItem?.groupItem?.groupUid)
                     formItem.groupItem.groupUid = generateRandomString(4);
             }
-            const formEntries = Object.entries(
-                formItem.groupItem.form || {}
-            ).filter(([k, v]) => v.selected);
-
-            const primaryForm = formEntries.find(
-                ([k, v], i) => v.primaryGroupItem
+			const formEntries = Object.entries(formItem.groupItem.form || {}).filter(
+				([k, v]) => v.selected,
             );
+
+			const primaryForm = formEntries.find(([k, v], i) => v.primaryGroupItem);
             if (!primaryForm && formEntries.length) {
                 formEntries[0][1].primaryGroupItem = true;
             }
@@ -405,7 +403,7 @@ export class SaveSalesClass extends SaveSalesHelper {
                 } else {
                     itemCtx.generateNonDoorItem(
                         groupItemForm,
-                        groupItemForm.primaryGroupItem
+						groupItemForm.primaryGroupItem,
                     );
                 }
             });

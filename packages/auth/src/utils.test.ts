@@ -60,26 +60,35 @@ function permissionDb({
 describe("userHasPermission", () => {
 	test("accepts a role-level Mark Sales Order Fulfilled grant", async () => {
 		const db = permissionDb({
-			rolePermissions: ["mark sales order fulfilled"],
+			rolePermissions: ["view mark sales order fulfilled"],
 		});
 		expect(
-			await userHasPermission(db as never, 42, "markSalesOrderFulfilled"),
+			await userHasPermission(db as never, 42, "viewMarkSalesOrderFulfilled"),
 		).toBe(true);
 	});
 
 	test("accepts an employee-specific Mark Sales Order Fulfilled grant", async () => {
 		const db = permissionDb({
-			specificPermissions: ["mark sales order fulfilled"],
+			specificPermissions: ["view mark sales order fulfilled"],
 		});
 		expect(
-			await userHasPermission(db as never, 42, "markSalesOrderFulfilled"),
+			await userHasPermission(db as never, 42, "viewMarkSalesOrderFulfilled"),
+		).toBe(true);
+	});
+
+	test("keeps legacy direct Mark Sales Order Fulfilled grants valid", async () => {
+		const db = permissionDb({
+			rolePermissions: ["mark sales order fulfilled"],
+		});
+		expect(
+			await userHasPermission(db as never, 42, "viewMarkSalesOrderFulfilled"),
 		).toBe(true);
 	});
 
 	test("keeps Super Admin implicit access", async () => {
 		const db = permissionDb({ roleName: "Super Admin" });
 		expect(
-			await userHasPermission(db as never, 42, "markSalesOrderFulfilled"),
+			await userHasPermission(db as never, 42, "viewMarkSalesOrderFulfilled"),
 		).toBe(true);
 	});
 
@@ -93,7 +102,7 @@ describe("userHasPermission", () => {
 			],
 		});
 		expect(
-			await userHasPermission(db as never, 42, "markSalesOrderFulfilled"),
+			await userHasPermission(db as never, 42, "viewMarkSalesOrderFulfilled"),
 		).toBe(false);
 	});
 });

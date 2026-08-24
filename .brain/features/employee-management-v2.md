@@ -63,26 +63,25 @@ Everything else is standalone.
 ## 2026-07-17 Role Form Permissions Table-Core Migration
 
 - The role create/edit form now renders `apps/dashboard/src/components/tables-2/role-form-permissions/*` instead of inline `@gnd/ui/table` permission markup.
-- The embedded permissions grid preserves the existing role form contract: one row per permission subject, `Create` bound to `permissions.view <subject>.checked`, `Edit` bound to `permissions.edit <subject>.checked`, the existing title field, submit/cancel flow, loading skeleton behavior, and `createRoleAction` payload shape.
-- `TABLE_CONFIGS["role-form-permissions"]` uses compact 48px rows, sticky Permission column, content-fit Permission `240/420/300`, Create `84/112/92`, and Edit `84/112/92` widths, table-owned scroll, virtual rows, DnD, draggable headers, resize handles, dividers, and persisted settings.
+- The embedded permissions grid preserves the existing role form contract: one row per permission subject, `View` bound to `permissions.view <subject>.checked`, `Edit` bound to `permissions.edit <subject>.checked`, the existing title field, submit/cancel flow, loading skeleton behavior, and `createRoleAction` payload shape.
+- `TABLE_CONFIGS["role-form-permissions"]` uses compact 48px rows, sticky Permission column, content-fit Permission `240/420/300`, View `84/112/92`, and Edit `84/112/92` widths, table-owned scroll, virtual rows, DnD, draggable headers, resize handles, dividers, and persisted settings.
 - `get-role-form` now uses the current two-argument `revalidateTag("permissions", "max")` signature, and `role-form-context` keeps a local typed resolver adapter for the installed Zod/resolver package-version boundary.
 - Validation: focused role/profile parity tests passed with 13 tests / 80 assertions; full restarted table parity suite passed with 245 tests / 2337 assertions; targeted Biome passed; touched-file filtered `@gnd/dashboard` typecheck output showed no diagnostics; static scan found no old table primitives in `role-form.tsx`; `git diff --check` passed; `components/tables-2/core` remained unchanged; HTTPS route smoke for `/hrm/employees/v2` returned `200`.
 
-## 2026-08-20 Standalone Role Action Permissions
+## 2026-08-24 View-Prefixed Fulfillment Action Permission
 
-- Role permissions now distinguish scoped `view`/`edit` pairs from standalone
-  action grants. A standalone grant has one Access checkbox bound directly to
-  its stored permission name; its Edit cell is intentionally blank.
-- This preserves the paired-resource controls and makes action grants such as
-  `Mark Sales Order Fulfilled` assignable through the role editor. The role
-  save action, permission storage, and session authorization contract are
-  unchanged.
+- `Mark Sales Order Fulfilled` now follows the normal View convention and
+  persists `view mark sales order fulfilled`; its Edit cell remains blank.
+- The role form distinguishes paired, view-only, and direct permission rows so
+  a view-only capability cannot display a non-persisting Edit control.
+- Legacy direct fulfillment grants hydrate as the new capability and are mapped
+  to the view-prefixed record when the role or employee is next saved.
 
 ## 2026-07-17 Employee Form Permissions Table-Core Migration
 
 - The employee create/edit modal now renders `apps/dashboard/src/components/tables-2/employee-form-permissions/*` instead of inline `@gnd/ui/table` permission markup.
-- The embedded permissions grid preserves the existing employee override contract: one row per permission subject, `Create` toggles the subject `viewPermissionId`, `Edit` toggles the subject `editPermissionId`, selected ids remain stored in `permissionIds`, and the existing employee save mutation/list invalidation flow is unchanged.
-- `TABLE_CONFIGS["employee-form-permissions"]` uses compact 48px rows, sticky Permission column, content-fit Permission `240/420/300`, Create `84/112/92`, and Edit `84/112/92` widths, table-owned scroll, virtual rows, DnD, draggable headers, resize handles, dividers, and persisted settings.
+- The embedded permissions grid preserves the existing employee override contract: one row per permission subject, `View` toggles the subject `viewPermissionId`, `Edit` toggles the subject `editPermissionId`, selected ids remain stored in `permissionIds`, and the existing employee save mutation/list invalidation flow is unchanged.
+- `TABLE_CONFIGS["employee-form-permissions"]` uses compact 48px rows, sticky Permission column, content-fit Permission `240/420/300`, View `84/112/92`, and Edit `84/112/92` widths, table-owned scroll, virtual rows, DnD, draggable headers, resize handles, dividers, and persisted settings.
 - Validation: focused employee form permissions plus role/employees parity tests passed with 14 tests / 44 assertions; full restarted table parity suite passed with 249 tests / 2337 assertions; targeted Biome passed; touched-file filtered `@gnd/dashboard` typecheck output showed no diagnostics while broad `@gnd/dashboard` typecheck remains blocked by unrelated baseline API/UI errors; static scan found no old table primitives in `employee-form-modal.tsx`; `git diff --check` passed; `components/tables-2/core` remained unchanged; HTTPS route smoke for `/hrm/employees/v2` returned `200`.
 
 ## 2026-08-20 Employee List Page Tabs

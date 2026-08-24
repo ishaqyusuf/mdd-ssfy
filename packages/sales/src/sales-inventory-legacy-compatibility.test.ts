@@ -79,4 +79,35 @@ describe("resolveSalesInventoryLegacyCompatibility", () => {
 			canContinue: true,
 		});
 	});
+
+	test("reconciles AVAILABLE only from a durable ready zero-need projection", () => {
+		expect(
+			resolveSalesInventoryLegacyCompatibility({
+				legacyStatus: "AVAILABLE",
+				lifecycleStatus: "awaiting_production",
+				inventoryRowCount: 0,
+				projectionStatus: "ready",
+				projectionNeedCount: 0,
+			}).state,
+		).toBe("legacy_reconciled");
+		expect(
+			resolveSalesInventoryLegacyCompatibility({
+				legacyStatus: "AVAILABLE",
+				lifecycleStatus: "awaiting_production",
+				inventoryRowCount: 2,
+				projectionStatus: "ready",
+				projectionNeedCount: 2,
+			}).state,
+		).toBe("legacy_locked");
+		expect(
+			resolveSalesInventoryLegacyCompatibility({
+				legacyStatus: "AVAILABLE",
+				lifecycleStatus: "awaiting_production",
+				inventoryRowCount: 2,
+				projectionStatus: "ready",
+				projectionNeedCount: 2,
+				projectionSource: "legacy-status",
+			}).state,
+		).toBe("legacy_reconciled");
+	});
 });

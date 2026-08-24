@@ -85,7 +85,7 @@ export function DispatchListMenu({ dispatch }: Props) {
 	};
 	const markAsCompleted = () => {
 		const meta = getTaskMeta();
-		if (!meta || !auth.can.markSalesOrderFulfilled) return;
+		if (!meta || !auth.can.viewMarkSalesOrderFulfilled) return;
 		trigger({
 			taskName: "update-sales-control",
 			payload: {
@@ -112,7 +112,7 @@ export function DispatchListMenu({ dispatch }: Props) {
 				Pack all
 			</Menu.Item>
 
-			{auth.can.markSalesOrderFulfilled ? (
+			{auth.can.viewMarkSalesOrderFulfilled ? (
 				<Menu.Item icon="check" onClick={markAsCompleted}>
 					Mark as completed
 				</Menu.Item>

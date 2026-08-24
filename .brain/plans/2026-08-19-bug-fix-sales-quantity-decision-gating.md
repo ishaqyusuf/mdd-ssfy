@@ -10,7 +10,7 @@ Done
 2026-08-19
 
 ## Last Updated
-2026-08-19
+2026-08-24
 
 ## Recommended Codex Agent
 - Agent: `gpt-5.6-terra`
@@ -90,6 +90,15 @@ Report changed files, the decision matrix covered, checks run, browser evidence,
 
 ## Open Questions
 None.
+
+## 2026-08-24 Correction
+
+The original implementation correlated demand to the same reduced line but did
+not distinguish automatically projected, unassigned demand from an actual
+inbound shipment. That missed case kept the disposition prompt visible before
+an inbound was created. The shared rule now additionally requires an active
+`inboundShipmentItemId` link, with focused regression coverage for both the
+unassigned direct-save case and the linked-shipment review case.
 
 ## Linked Task
 - Task Title: Fix Sales Quantity Decision Gating

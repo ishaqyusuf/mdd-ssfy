@@ -2,11 +2,12 @@ import type { Db } from "@gnd/db";
 import { getNameInitials } from "@gnd/utils";
 import { timeAgo } from "@gnd/utils/dayjs";
 import { channelNames } from "@gnd/utils/notification-channels";
-import { getSalesOrderLifecycleStatusInfo } from "./order-status";
+import { isControlReadV2Enabled, withSalesListControl } from "./control";
 import {
 	salesOrderListProjectionVersion,
 	serializeSalesOrderListRow,
 } from "./order-list-read-model";
+import { getSalesOrderLifecycleStatusInfo } from "./order-status";
 import { repairSalesInvoiceCccDisplay } from "./payment-system";
 import { getSalesPriorityLabel, normalizeSalesPriority } from "./priority";
 import { readSalesFormPo } from "./sales-form/application/legacy-metadata";
@@ -14,7 +15,6 @@ import { resolveSalesInventoryApplicability } from "./sales-inventory-applicabil
 import { resolveSalesInventoryLegacyCompatibility } from "./sales-inventory-legacy-compatibility";
 import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 import { getSpecialOrderStatusLabel } from "./special-order";
-import { isControlReadV2Enabled, withSalesListControl } from "./control";
 import { withSalesControl } from "./utils/with-sales-control";
 
 export type RefreshSalesOrderListProjectionInput = {
@@ -178,7 +178,9 @@ async function getNoteCounts(
 			},
 		},
 	});
-	const idLookup = new Map(ids.map((value, index) => [value, orders[index]!.id]));
+	const idLookup = new Map(
+		ids.map((value, index) => [value, orders[index]!.id]),
+	);
 	const orderIdLookup = new Map(
 		orderIds.map((value, index) => [value, orders[index]!.id]),
 	);
@@ -233,7 +235,10 @@ async function getInboundOwnership(db: Db, salesOrderIds: number[]) {
 			},
 		},
 	});
-	const inboundsByOrder = new Map<number, Map<number, InventoryInboundSummary>>();
+	const inboundsByOrder = new Map<
+		number,
+		Map<number, InventoryInboundSummary>
+	>();
 	for (const demand of demands) {
 		const salesOrderId = demand.lineItemComponent.parent.saleId;
 		if (!salesOrderId) continue;
@@ -260,7 +265,7 @@ async function getInboundOwnership(db: Db, salesOrderIds: number[]) {
 		current.linkedInboundCount = linkedInbounds.length;
 		current.hasInventoryInbound = linkedInbounds.length > 0;
 		current.primaryInboundStatus =
-			linkedInbounds.length === 1 ? linkedInbounds[0]?.status ?? null : null;
+			linkedInbounds.length === 1 ? (linkedInbounds[0]?.status ?? null) : null;
 		current.canUseManualInboundStatus = linkedInbounds.length === 0;
 		result.set(salesOrderId, current);
 	}
@@ -331,7 +336,12 @@ export async function refreshSalesOrderListProjections(
 				},
 			},
 			inventoryProjection: {
-				select: { status: true, needCount: true, completedAt: true },
+				select: {
+					status: true,
+					needCount: true,
+					source: true,
+					completedAt: true,
+				},
 			},
 		},
 	});
@@ -406,7 +416,9 @@ export async function refreshSalesOrderListProjections(
 			(requirementCounts.get(requirementRow.saleId) ?? 0) + count,
 		);
 	}
-	const requestById = new Map(specialRequests.map((request) => [request.id, request]));
+	const requestById = new Map(
+		specialRequests.map((request) => [request.id, request]),
+	);
 	const baseRows = currentOrders.map((order) => {
 		const invoice = repairSalesInvoiceCccDisplay({
 			baseTotal: order.grandTotal,
@@ -414,7 +426,9 @@ export async function refreshSalesOrderListProjections(
 		});
 		const amountDue = Math.max(Number(order.amountDue ?? 0), 0);
 		const amountPaid = Number(order.grandTotal ?? 0) - amountDue;
-		const productionStat = order.stat.find((stat) => stat.type === "prodCompleted");
+		const productionStat = order.stat.find(
+			(stat) => stat.type === "prodCompleted",
+		);
 		const dispatchCompletedStat = order.stat.find(
 			(stat) => stat.type === "dispatchCompleted",
 		);
@@ -443,9 +457,11 @@ export async function refreshSalesOrderListProjections(
 			: null;
 		const linkState = !currentRequest
 			? null
-			: currentRequest.status === "ACTIVE" && currentRequest.expiresAt > new Date()
+			: currentRequest.status === "ACTIVE" &&
+					currentRequest.expiresAt > new Date()
 				? "ACTIVE"
-				: currentRequest.status === "EXPIRED" || currentRequest.expiresAt <= new Date()
+				: currentRequest.status === "EXPIRED" ||
+						currentRequest.expiresAt <= new Date()
 					? "EXPIRED"
 					: null;
 		return {
@@ -566,6 +582,8 @@ export async function refreshSalesOrderListProjections(
 				lifecycleStatus: lifecycle.status,
 				inventoryRowCount: existingInventoryNeedCount,
 				projectionStatus: inventoryProjection?.status,
+				projectionNeedCount: inventoryProjection?.needCount,
+				projectionSource: inventoryProjection?.source,
 				activeLinkedInboundCount:
 					row.inventoryInboundOwnership.linkedInboundCount,
 			}),
@@ -583,7 +601,10 @@ export async function refreshSalesOrderListProjections(
 			where: { id: order.id },
 			select: { createdAt: true, updatedAt: true },
 		});
-		if (!latestSource || sourceRevision(latestSource).getTime() !== revision.getTime()) {
+		if (
+			!latestSource ||
+			sourceRevision(latestSource).getTime() !== revision.getTime()
+		) {
 			skippedAsStale += 1;
 			continue;
 		}

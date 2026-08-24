@@ -253,7 +253,7 @@ async function requireSalesOrderMarkAsPermission(
 	if (action !== "fulfilled") return null;
 	return requireAnyOperationalPermission(
 		ctx,
-		["markSalesOrderFulfilled"],
+		["viewMarkSalesOrderFulfilled"],
 		"You do not have permission to mark sales orders fulfilled.",
 	);
 }
@@ -1404,6 +1404,11 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editOrders"],
+				"You do not have permission to adapt inventory for sales orders.",
+			);
 			return resolveSalesInventoryLegacyStatusSetupMutation(props.ctx.db, {
 				...props.input,
 				authorName: String(props.ctx.userId ?? "System"),

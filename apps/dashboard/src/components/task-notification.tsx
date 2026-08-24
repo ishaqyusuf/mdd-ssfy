@@ -45,16 +45,24 @@ export function TaskNotification() {
 	const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 	const runningTasks = tasks.filter((task) => task.status === "SYNCING");
 	const failedTasks = tasks.filter((task) => task.status === "FAILED");
+	const persistentFailedTasks = failedTasks.filter(
+		(task) => task.intent?.name === "sales.adapt-legacy-inventory",
+	);
+	const visibleFailedTasks = IS_PRODUCTION_TASK_FEEDBACK
+		? persistentFailedTasks
+		: failedTasks;
 	const canceledTasks = tasks.filter((task) => task.status === "CANCELED");
 	const visibleTasks = IS_PRODUCTION_TASK_FEEDBACK
-		? runningTasks
+		? [...runningTasks, ...persistentFailedTasks]
 		: tasks.filter((task) => task.status !== "COMPLETED");
 	const visibleCount = IS_PRODUCTION_TASK_FEEDBACK
-		? runningTasks.length
+		? runningTasks.length + persistentFailedTasks.length
 		: runningTasks.length + failedTasks.length + canceledTasks.length;
 	const hasRunning = runningTasks.length > 0;
-	const hasFailures = failedTasks.length > 0;
-	const firstFailedRunId = failedTasks[0]?.runId;
+	const hasFailures = visibleFailedTasks.length > 0;
+	const firstFailedRunId = visibleFailedTasks[0]?.runId;
+	const canOpenMonitor =
+		!IS_PRODUCTION_TASK_FEEDBACK || persistentFailedTasks.length > 0;
 
 	useEffect(() => {
 		if (visibleTasks.length === 0) {
@@ -94,7 +102,7 @@ export function TaskNotification() {
 
 			{visibleCount > 0 ? (
 				<div className="fixed bottom-4 right-4 z-[90] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2">
-					{open && !IS_PRODUCTION_TASK_FEEDBACK ? (
+					{open && canOpenMonitor ? (
 						<div className="w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-lg border bg-background shadow-2xl">
 							<div className="flex items-center justify-between gap-3 border-b px-3 py-2">
 								<div className="flex items-center gap-2">
@@ -158,14 +166,12 @@ export function TaskNotification() {
 									: "border-border text-muted-foreground",
 						)}
 						onClick={() => {
-							if (!IS_PRODUCTION_TASK_FEEDBACK) {
+							if (canOpenMonitor) {
 								setOpen((current) => !current);
 							}
 						}}
 						aria-label={
-							IS_PRODUCTION_TASK_FEEDBACK
-								? "Background task running"
-								: "Open task monitor"
+							!canOpenMonitor ? "Background task running" : "Open task monitor"
 						}
 					>
 						<span
@@ -178,7 +184,9 @@ export function TaskNotification() {
 										: "border-muted-foreground/40",
 							)}
 						/>
-						{IS_PRODUCTION_TASK_FEEDBACK ? (
+						{IS_PRODUCTION_TASK_FEEDBACK ? hasFailures ? (
+							<Icons.AlertCircle className="relative size-5" />
+						) : (
 							<Icons.Loader2 className="relative size-5 animate-spin" />
 						) : (
 							<span className="relative text-base font-bold">
@@ -257,6 +265,15 @@ function TaskNotificationWatcher({
 			if (shouldFinalize) finalizeRun("FAILED", message);
 
 			if (!alreadyHandledError) {
+				void runTaskEffect(
+					{
+						...currentTask,
+						status: "FAILED",
+						handledEffects,
+						completedAt,
+					},
+					"error",
+				);
 				toast({
 					duration: 3500,
 					variant: "destructive",
@@ -270,7 +287,10 @@ function TaskNotificationWatcher({
 				});
 			}
 
-			if (IS_PRODUCTION_TASK_FEEDBACK) {
+			if (
+				IS_PRODUCTION_TASK_FEEDBACK &&
+				task.intent?.name !== "sales.adapt-legacy-inventory"
+			) {
 				window.setTimeout(() => removeTask(task.runId), 2500);
 			} else {
 				onTaskFailed(task.runId);

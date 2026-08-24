@@ -10,7 +10,17 @@ Done
 2026-08-20
 
 ## Last Updated
-2026-08-20
+2026-08-24
+
+## 2026-08-24 Permission Naming Revision
+
+The completed behavior now uses `viewMarkSalesOrderFulfilled`, persisted as
+`view mark sales order fulfilled`, so `Mark Sales Order Fulfilled` follows the
+normal View column in role and employee permission editors. Edit remains
+unavailable and does not grant general order-edit authority. The prior
+`markSalesOrderFulfilled` / `mark sales order fulfilled` form is retained only
+as a compatibility alias; legacy grants migrate when the role or employee is
+next saved.
 
 ## Intake
 - Intake File: .brain/intake/2026-08-20-pablo-sales-po-fulfillment-and-status-feedback.md
@@ -142,6 +152,10 @@ Lower agent must report:
 - Should `markSalesOrderFulfilled` be granted to Donovan individually or to his full operational role? Confirm during rollout; do not automatically grant it to every existing order, pickup, delivery, or packing user.
 
 ## Implementation Result
+- Revised on 2026-08-24 to register, persist, hydrate, display, and enforce the
+  canonical view-prefixed fulfillment capability across role/employee editors,
+  Dashboard entry points, API preflight/dispatch, task start, and terminal job
+  authorization. Legacy direct grants remain compatible during migration.
 - Registered and hydrated `markSalesOrderFulfilled` for role and
   employee-specific grants with implicit Super Admin access.
 - Enforced the grant in both Dashboard fulfillment entry points, action-aware
