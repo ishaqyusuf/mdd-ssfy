@@ -1752,7 +1752,7 @@ describe("new-sales-form relational parity", () => {
       salesTaxes: state.salesTaxes,
     }).toEqual(graphBefore);
 
-    const commerciallySaved = await saveDraftNewSalesForm(ctx, {
+    const repeated = await saveDraftNewSalesForm(ctx, {
       type: "order",
       salesId: saved.salesId,
       slug: saved.slug,
@@ -1761,10 +1761,59 @@ describe("new-sales-form relational parity", () => {
       commitIntent: "draft",
       specialOrderDeclaration: saved.specialOrder.declaration,
       inventoryStatus: saved.inventoryStatus,
-      meta: { ...saved.form, paymentTerm: "Net 30", po: "PO-CHANGED" },
-      lineItems: saved.lineItems,
-      extraCosts: saved.extraCosts,
+      meta: {
+        ...saved.form,
+        notes: "",
+        resaleCertificateOnFile: false,
+        sellerOfRecord: "DEALER",
+        po: "",
+      },
+      lineItems: saved.lineItems.map((line) => ({
+        ...line,
+        taxxable: null,
+        title: line.title === "Moulding" ? "Mouldings" : line.title,
+      })),
+      extraCosts: [
+        ...saved.extraCosts,
+        {
+          id: null,
+          type: "Labor",
+          label: "Labor",
+          amount: 0,
+          taxxable: false,
+        },
+      ],
       summary: saved.summary,
+    } as any);
+
+    expect(repeated.saveScope).toBe("legacy-po-only");
+    expect({
+      items: state.items,
+      stepForms: state.stepForms,
+      shelfItems: state.shelfItems,
+      hpts: state.hpts,
+      doors: state.doors,
+      extraCosts: state.extraCosts,
+      salesTaxes: state.salesTaxes,
+    }).toEqual(graphBefore);
+
+    const commerciallySaved = await saveDraftNewSalesForm(ctx, {
+      type: "order",
+      salesId: repeated.salesId,
+      slug: repeated.slug,
+      version: repeated.version,
+      autosave: false,
+      commitIntent: "draft",
+      specialOrderDeclaration: repeated.specialOrder.declaration,
+      inventoryStatus: repeated.inventoryStatus,
+      meta: {
+        ...repeated.form,
+        paymentTerm: "Net 30",
+        po: "PO-CHANGED",
+      },
+      lineItems: repeated.lineItems,
+      extraCosts: repeated.extraCosts,
+      summary: repeated.summary,
     } as any);
 
     expect(state.orders[0]?.meta).toMatchObject({

@@ -686,13 +686,6 @@ function isLegacyPoOnlySave(input: {
 	) {
 		return false;
 	}
-	if (
-		normalizedPo(input.payload.meta.po) ===
-		normalizedPo(input.before.form.po)
-	) {
-		return false;
-	}
-
 	const beforeLines = normalizeLineItems(input.before.lineItems);
 	const beforeSummary = storedOrderSummary(
 		recalculateSummary({
@@ -3481,15 +3474,20 @@ async function saveNewSalesFormInternal(
 					cccPercentage: settings.cccPercentage,
 				})
 			) {
-				await tx.salesOrders.update({
-					where: { id: order.id },
-					data: {
-						meta: {
-							...currentMeta,
-							po: normalizedPo(payload.meta.po),
-						} as any,
-					},
-				});
+				if (
+					normalizedPo(payload.meta.po) !==
+					normalizedPo(canonicalBefore.form.po)
+				) {
+					await tx.salesOrders.update({
+						where: { id: order.id },
+						data: {
+							meta: {
+								...currentMeta,
+								po: normalizedPo(payload.meta.po),
+							} as any,
+						},
+					});
+				}
 				return {
 					salesId: order.id,
 					slug: order.slug,
