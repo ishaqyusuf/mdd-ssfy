@@ -202,6 +202,30 @@ function safeMeta(meta: unknown): NewSalesFormContainer {
 	return meta as NewSalesFormContainer;
 }
 
+function stableComparableValue(value: unknown): unknown {
+	if (value instanceof Date) return value.toISOString();
+	if (Array.isArray(value)) return value.map(stableComparableValue);
+	if (!value || typeof value !== "object") return value;
+	return Object.fromEntries(
+		Object.entries(value as Record<string, unknown>)
+			.filter(([, entry]) => entry !== undefined)
+			.sort(([left], [right]) => left.localeCompare(right))
+			.map(([key, entry]) => [key, stableComparableValue(entry)]),
+	);
+}
+
+function sameComparableValue(left: unknown, right: unknown) {
+	return (
+		JSON.stringify(stableComparableValue(left)) ===
+		JSON.stringify(stableComparableValue(right))
+	);
+}
+
+function withoutPo(meta: NewSalesFormMeta) {
+	const { po: _po, ...rest } = meta;
+	return rest;
+}
+
 function safeDate(value?: string | null) {
 	if (!value) return null;
 	const d = new Date(value);
@@ -581,6 +605,77 @@ function normalizeLineItems(lines: NewSalesFormLineItem[]) {
 			housePackageTool: normalizedHptLine.housePackageTool || null,
 		};
 	});
+}
+
+function normalizedPo(value: unknown) {
+	return typeof value === "string" && value.trim() ? value : null;
+}
+
+function isLegacyPoOnlySave(input: {
+	currentMeta: NewSalesFormContainer;
+	currentStatus: string | null;
+	nextStatus: string;
+	payload: SaveDraftNewSalesFormSchema | SaveFinalNewSalesFormSchema;
+	before: {
+		form: NewSalesFormMeta;
+		lineItems: NewSalesFormLineItem[];
+		extraCosts: NewSalesFormExtraCost[];
+		summary: NewSalesFormSummary;
+		inventoryStatus?: unknown;
+		specialOrder?: { declaration?: "NO" | "YES" | null } | null;
+	};
+	normalizedLines: NewSalesFormLineItem[];
+	persistedSummary: NewSalesFormSummary;
+	cccPercentage: number;
+}) {
+	if (
+		input.currentMeta.newSalesForm?.form ||
+		input.currentStatus !== input.nextStatus
+	) {
+		return false;
+	}
+	if (
+		normalizedPo(input.payload.meta.po) ===
+		normalizedPo(input.before.form.po)
+	) {
+		return false;
+	}
+
+	const beforeLines = normalizeLineItems(input.before.lineItems);
+	const beforeSummary = storedOrderSummary(
+		recalculateSummary({
+			taxRate: input.before.summary.taxRate,
+			lineItems: beforeLines,
+			extraCosts: input.before.extraCosts.map((cost) => ({
+				type: cost.type,
+				amount: Number(cost.amount || 0),
+				taxxable: cost.taxxable ?? false,
+			})),
+			paymentMethod: input.before.form.paymentMethod || null,
+			cccPercentage: input.cccPercentage,
+		}),
+	);
+
+	return sameComparableValue(
+		{
+			meta: withoutPo(input.before.form),
+			lineItems: beforeLines,
+			extraCosts: input.before.extraCosts,
+			summary: beforeSummary,
+			inventoryStatus: input.before.inventoryStatus ?? null,
+			specialOrderDeclaration:
+				input.before.specialOrder?.declaration ?? null,
+		},
+		{
+			meta: withoutPo(input.payload.meta),
+			lineItems: input.normalizedLines,
+			extraCosts: input.payload.extraCosts,
+			summary: input.persistedSummary,
+			inventoryStatus: input.payload.inventoryStatus ?? null,
+			specialOrderDeclaration:
+				input.payload.specialOrderDeclaration ?? null,
+		},
+	);
 }
 
 function assertUniqueDurableSalesFormIds(
@@ -3043,6 +3138,7 @@ async function saveNewSalesFormInternal(
 				id: number;
 				slug: string;
 				orderId: string;
+				status: string | null;
 				meta: unknown;
 				inventoryStatus: string | null;
 				specialOrderDeclaration: "NO" | "YES" | null;
@@ -3090,6 +3186,7 @@ async function saveNewSalesFormInternal(
 						id: true,
 						slug: true,
 						orderId: true,
+						status: true,
 						meta: true,
 						inventoryStatus: true,
 						specialOrderDeclaration: true,
@@ -3300,6 +3397,52 @@ async function saveNewSalesFormInternal(
 						"SALES_RELATIONAL_REVIEW_REQUIRED: An approved adjustment was not projected into the relational sales rows. This document is locked until the migration review reconciles it.",
 				});
 			}
+			let canonicalBefore: Awaited<ReturnType<typeof getNewSalesForm>> | null =
+				null;
+			if (
+				order &&
+				(payload.type === "order" || !currentMeta.newSalesForm?.form)
+			) {
+				canonicalBefore = await getNewSalesForm(
+					{
+						...ctx,
+						db: tx as unknown as TRPCContext["db"],
+					},
+					{ type: payload.type, slug: order.slug },
+				);
+			}
+			if (
+				order &&
+				canonicalBefore &&
+				isLegacyPoOnlySave({
+					currentMeta,
+					currentStatus: order.status,
+					nextStatus: status,
+					payload,
+					before: canonicalBefore,
+					normalizedLines,
+					persistedSummary,
+					cccPercentage: settings.cccPercentage,
+				})
+			) {
+				await tx.salesOrders.update({
+					where: { id: order.id },
+					data: {
+						meta: {
+							...currentMeta,
+							po: normalizedPo(payload.meta.po),
+						} as any,
+					},
+				});
+				return {
+					salesId: order.id,
+					slug: order.slug,
+					orderId: order.orderId,
+					type: payload.type,
+					isNew: false,
+					_saveScope: "legacy-po-only" as const,
+				};
+			}
 			const saveCommitments =
 				order && payload.type === "order"
 					? await getNewSalesFormCommitmentSnapshot(
@@ -3307,14 +3450,12 @@ async function saveNewSalesFormInternal(
 							order.id,
 						)
 					: null;
-			if (order && payload.type === "order" && saveCommitments) {
-				const canonicalBefore = await getNewSalesForm(
-					{
-						...ctx,
-						db: tx as unknown as TRPCContext["db"],
-					},
-					{ type: payload.type, slug: order.slug },
-				);
+			if (
+				order &&
+				payload.type === "order" &&
+				saveCommitments &&
+				canonicalBefore
+			) {
 				const analysis = analyzeSalesFormChange({
 					before: {
 						lineItems: canonicalBefore.lineItems,
@@ -3527,6 +3668,7 @@ async function saveNewSalesFormInternal(
 				currentId = created.id;
 				order = {
 					...created,
+					status,
 					meta: nextMeta,
 					inventoryStatus:
 						payload.type === "order" ? payload.inventoryStatus || null : null,
@@ -4213,6 +4355,7 @@ async function saveNewSalesFormInternal(
 				summary,
 				settings,
 				status,
+				_saveScope: "full" as const,
 				specialOrder: {
 					declaration: nextSpecialOrderDeclaration,
 					status: nextSpecialOrderStatus,
@@ -4241,6 +4384,7 @@ async function saveNewSalesFormInternal(
 	return {
 		...canonical,
 		isNew: transactionResult.isNew,
+		_saveScope: transactionResult._saveScope,
 	};
 }
 
@@ -4305,6 +4449,7 @@ async function runNewSalesFormPostSaveTasks(
 	result: Awaited<ReturnType<typeof saveNewSalesFormInternal>>,
 ) {
 	const isQuote = result.type === "quote";
+	const shouldSyncInventory = result._saveScope !== "legacy-po-only";
 
 	await Promise.all([
 		runBoundedPostSaveTask("expire-current-sales-document-snapshots", () =>
@@ -4315,19 +4460,32 @@ async function runNewSalesFormPostSaveTasks(
 				documentPrefixes: getSalesDocumentPrefixes(isQuote),
 			}),
 		),
-		runBoundedPostSaveTask("queue-sales-inventory-line-items-sync", () =>
-			queueSalesInventoryLineItemsSync({
-				salesOrderId: result.salesId,
-				source: "new-form",
-				triggeredByUserId: ctx.userId ?? null,
-			}),
-		),
+		...(shouldSyncInventory
+			? [
+					runBoundedPostSaveTask(
+						"queue-sales-inventory-line-items-sync",
+						() =>
+							queueSalesInventoryLineItemsSync({
+								salesOrderId: result.salesId,
+								source: "new-form",
+								triggeredByUserId: ctx.userId ?? null,
+							}),
+					),
+				]
+			: []),
 		runBoundedPostSaveTask("queue-sales-document-snapshot-warmups", () =>
 			queueSalesDocumentSnapshotWarmups(
 				getSalesDocumentWarmupInputs(result.salesId, isQuote),
 			),
 		),
 	]);
+}
+
+function publicNewSalesFormSaveResult(
+	result: Awaited<ReturnType<typeof saveNewSalesFormInternal>>,
+) {
+	const { _saveScope: _internalSaveScope, ...publicResult } = result;
+	return publicResult;
 }
 
 export async function saveDraftNewSalesForm(
@@ -4377,7 +4535,7 @@ export async function saveDraftNewSalesForm(
 		startedAt,
 		salesId: result.salesId,
 	});
-	return result;
+	return publicNewSalesFormSaveResult(result);
 }
 
 export async function saveFinalNewSalesForm(
@@ -4427,7 +4585,7 @@ export async function saveFinalNewSalesForm(
 		startedAt,
 		salesId: result.salesId,
 	});
-	return result;
+	return publicNewSalesFormSaveResult(result);
 }
 
 export async function saveStorefrontSalesOrder(
@@ -4524,7 +4682,7 @@ export async function saveStorefrontSalesOrder(
 		data: { salesRepId: input.salesRepId },
 	});
 	await runNewSalesFormPostSaveTasks(ctx, result);
-	return result;
+	return publicNewSalesFormSaveResult(result);
 }
 
 export async function saveStorefrontInquiryQuote(
@@ -4567,7 +4725,7 @@ export async function saveStorefrontInquiryQuote(
 		data: { salesRepId: input.salesRepId },
 	});
 	await runNewSalesFormPostSaveTasks(ctx, result);
-	return result;
+	return publicNewSalesFormSaveResult(result);
 }
 
 export async function deleteNewSalesFormLineItem(

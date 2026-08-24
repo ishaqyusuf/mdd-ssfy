@@ -1638,6 +1638,126 @@ describe("new-sales-form relational parity", () => {
     expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
   });
 
+  it("clears a legacy order P.O. without materializing the current-form graph", async () => {
+    const { ctx, state } = createMockContext();
+    const orderId = state.ids.order++;
+    const itemId = state.ids.item++;
+
+    state.orders.push({
+      id: orderId,
+      orderId: "ORD-LEGACY-PO",
+      slug: "legacy-po-only-save",
+      type: "order",
+      status: "Draft",
+      deletedAt: null,
+      createdAt: new Date("2026-02-20T12:00:00.000Z"),
+      updatedAt: new Date("2026-02-23T12:00:00.000Z"),
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      paymentDueDate: null,
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      inventoryStatus: null,
+      taxPercentage: 0,
+      subTotal: 100,
+      tax: 0,
+      grandTotal: 100,
+      payments: [],
+      meta: {
+        po: "PO-LEGACY",
+        compatibilityMarker: "preserve-me",
+        newSalesForm: { draftKey: "legacy-without-form" },
+      },
+    });
+    state.items.push({
+      id: itemId,
+      salesOrderId: orderId,
+      multiDykeUid: "legacy-line",
+      multiDyke: false,
+      dykeDescription: "Legacy line",
+      description: "Legacy line",
+      qty: 1,
+      rate: 100,
+      total: 100,
+      meta: { uid: "legacy-line", compatibilityMarker: "preserve-me" },
+      deletedAt: null,
+    });
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "legacy-po-only-save",
+    });
+    const graphBefore = {
+      items: structuredClone(state.items),
+      stepForms: structuredClone(state.stepForms),
+      shelfItems: structuredClone(state.shelfItems),
+      hpts: structuredClone(state.hpts),
+      doors: structuredClone(state.doors),
+      extraCosts: structuredClone(state.extraCosts),
+      salesTaxes: structuredClone(state.salesTaxes),
+    };
+
+    const saved = await saveDraftNewSalesForm(ctx, {
+      type: "order",
+      salesId: loaded.salesId,
+      slug: loaded.slug,
+      version: loaded.version,
+      autosave: false,
+      commitIntent: "draft",
+      specialOrderDeclaration: loaded.specialOrder.declaration,
+      inventoryStatus: loaded.inventoryStatus,
+      meta: { ...loaded.form, po: "" },
+      lineItems: loaded.lineItems,
+      extraCosts: loaded.extraCosts,
+      summary: loaded.summary,
+    } as any);
+
+    expect(saved.form.po).toBe("");
+    expect(state.orders[0]?.meta).toEqual({
+      po: null,
+      compatibilityMarker: "preserve-me",
+      newSalesForm: { draftKey: "legacy-without-form" },
+    });
+    expect({
+      items: state.items,
+      stepForms: state.stepForms,
+      shelfItems: state.shelfItems,
+      hpts: state.hpts,
+      doors: state.doors,
+      extraCosts: state.extraCosts,
+      salesTaxes: state.salesTaxes,
+    }).toEqual(graphBefore);
+
+    await saveDraftNewSalesForm(ctx, {
+      type: "order",
+      salesId: saved.salesId,
+      slug: saved.slug,
+      version: saved.version,
+      autosave: false,
+      commitIntent: "draft",
+      specialOrderDeclaration: saved.specialOrder.declaration,
+      inventoryStatus: saved.inventoryStatus,
+      meta: { ...saved.form, paymentTerm: "Net 30", po: "PO-CHANGED" },
+      lineItems: saved.lineItems,
+      extraCosts: saved.extraCosts,
+      summary: saved.summary,
+    } as any);
+
+    expect(state.orders[0]?.meta).toMatchObject({
+      po: "PO-CHANGED",
+      newSalesForm: {
+        form: {
+          paymentTerm: "Net 30",
+          po: "PO-CHANGED",
+        },
+      },
+    });
+  });
+
   it("loads an existing sales form by its visible order number", async () => {
     const { ctx, state } = createMockContext();
 
