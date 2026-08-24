@@ -13,7 +13,10 @@ const payload = {
 function makeDb(current = true) {
 	return {
 		salesOrders: {
-			findFirst: async () => (current ? { id: payload.salesOrderId } : null),
+			findFirst: async () =>
+				current
+					? { id: payload.salesOrderId, inventoryStatus: " available " }
+					: null,
 		},
 	} as unknown as Db;
 }

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/db";
 import { getUserErrorMessage } from "@gnd/errors";
+import { normalizeSalesInventoryLegacyStatus } from "@gnd/sales/sales-inventory-legacy-compatibility";
 import { getSalesInventoryLegacyMigrationIdempotencyKey } from "@gnd/sales/sales-inventory-legacy-task";
 import { writeSalesInventoryProjectionFailureIfCurrent } from "@gnd/sales/sales-inventory-projection-state";
 import {
@@ -85,12 +86,15 @@ export const triggerTask = actionClient
 						id: request.salesOrderId,
 						deletedAt: null,
 						type: "order",
-						inventoryStatus: request.legacyStatus,
 						updatedAt: expectedSalesUpdatedAt,
 					},
-					select: { id: true },
+					select: { id: true, inventoryStatus: true },
 				});
-				if (!currentOrder) {
+				if (
+					!currentOrder ||
+					normalizeSalesInventoryLegacyStatus(currentOrder.inventoryStatus) !==
+						request.legacyStatus
+				) {
 					throw new Error(
 						"The saved order changed before legacy inventory adaptation could be queued.",
 					);
@@ -109,15 +113,13 @@ export const triggerTask = actionClient
 						name: actor.name || "Employee",
 					},
 				};
-				if (!request.forceRetry) {
-					triggerOptions = {
-						idempotencyKey: await idempotencyKeys.create(
-							getSalesInventoryLegacyMigrationIdempotencyKey(request),
-							{ scope: "global" },
-						),
-						idempotencyKeyTTL: "7d",
-					};
-				}
+				triggerOptions = {
+					idempotencyKey: await idempotencyKeys.create(
+						getSalesInventoryLegacyMigrationIdempotencyKey(request),
+						{ scope: "global" },
+					),
+					idempotencyKeyTTL: "7d",
+				};
 			}
 			const event = await tasks.trigger(
 				params.taskName,

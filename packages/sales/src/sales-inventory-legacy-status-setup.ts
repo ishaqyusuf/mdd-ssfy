@@ -178,7 +178,11 @@ export async function resolveSalesInventoryLegacyStatusMigration(
 		overview.setupMode === "legacy_status_locked" ||
 		overview.inventoryLegacyCompatibility?.state === "legacy_locked";
 	if (!needsMigration) {
-		if (action === "continue" && overview.hasInventoryIntegration) {
+		if (
+			action === "continue" &&
+			(overview.hasInventoryIntegration ||
+				overview.inventoryLegacyCompatibility?.state === "legacy_reconciled")
+		) {
 			return {
 				...emptyMigrationResult({
 					action,

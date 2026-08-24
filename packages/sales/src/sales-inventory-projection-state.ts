@@ -1,6 +1,7 @@
 import type { Db } from "@gnd/db";
 
 import { SALES_INVENTORY_PROJECTION_VERSION } from "./sales-inventory-applicability";
+import { normalizeSalesInventoryLegacyStatus } from "./sales-inventory-legacy-compatibility";
 import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 
 export type SalesInventoryProjectionLifecycleStatus =
@@ -146,12 +147,16 @@ export async function writeSalesInventoryProjectionFailureIfCurrent(
 				id: input.salesOrderId,
 				deletedAt: null,
 				type: "order",
-				inventoryStatus: input.legacyStatus,
 				updatedAt: input.expectedSalesUpdatedAt,
 			},
-			select: { id: true },
+			select: { id: true, inventoryStatus: true },
 		});
-		if (!currentOrder) return false;
+		if (
+			!currentOrder ||
+			normalizeSalesInventoryLegacyStatus(currentOrder.inventoryStatus) !==
+				normalizeSalesInventoryLegacyStatus(input.legacyStatus)
+		)
+			return false;
 
 		await writeSalesInventoryProjectionState(tx as Db, {
 			salesOrderId: input.salesOrderId,
@@ -185,12 +190,16 @@ export async function writeSalesInventoryProjectionSyncingIfCurrent(
 				id: input.salesOrderId,
 				deletedAt: null,
 				type: "order",
-				inventoryStatus: input.legacyStatus,
 				updatedAt: input.expectedSalesUpdatedAt,
 			},
-			select: { id: true },
+			select: { id: true, inventoryStatus: true },
 		});
-		if (!currentOrder) return false;
+		if (
+			!currentOrder ||
+			normalizeSalesInventoryLegacyStatus(currentOrder.inventoryStatus) !==
+				normalizeSalesInventoryLegacyStatus(input.legacyStatus)
+		)
+			return false;
 
 		await writeSalesInventoryProjectionState(tx as Db, {
 			salesOrderId: input.salesOrderId,

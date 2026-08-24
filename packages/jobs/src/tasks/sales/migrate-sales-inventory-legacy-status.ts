@@ -1,5 +1,6 @@
 import { userHasPermission } from "@gnd/auth/utils";
 import { type Db, db } from "@gnd/db";
+import { normalizeSalesInventoryLegacyStatus } from "@gnd/sales/sales-inventory-legacy-compatibility";
 import {
 	StaleSalesInventoryLegacyMigrationError,
 	resolveSalesInventoryLegacyStatusMigration,
@@ -54,12 +55,15 @@ export async function runMigrateSalesInventoryLegacyStatus(
 			id: payload.salesOrderId,
 			deletedAt: null,
 			type: "order",
-			inventoryStatus: payload.legacyStatus,
 			updatedAt: expectedSalesUpdatedAt,
 		},
-		select: { id: true },
+		select: { id: true, inventoryStatus: true },
 	});
-	if (!currentOrder) {
+	if (
+		!currentOrder ||
+		normalizeSalesInventoryLegacyStatus(currentOrder.inventoryStatus) !==
+			payload.legacyStatus
+	) {
 		return { result: "stale" as const, salesOrderId: payload.salesOrderId };
 	}
 	const started = await (

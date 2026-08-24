@@ -33,6 +33,37 @@ function lockedOverview(status = "ORDERED") {
 }
 
 describe("resolveSalesInventoryLegacyStatusSetup", () => {
+	test("replays ready zero-need AVAILABLE migration as already migrated", async () => {
+		const result = await resolveSalesInventoryLegacyStatusSetup(
+			{
+				$transaction: async () => {
+					throw new Error("replay must not write");
+				},
+			} as unknown as Db,
+			{
+				salesOrderId: 7,
+				action: "continue",
+				legacyStatus: "AVAILABLE",
+			},
+			{
+				getOverview: async () => ({
+					setupMode: "current",
+					inventoryStatus: "AVAILABLE",
+					hasInventoryIntegration: false,
+					inventoryLegacyCompatibility: {
+						state: "legacy_reconciled",
+					},
+				}),
+			} as never,
+		);
+
+		expect(result).toMatchObject({
+			result: "already_migrated",
+			legacyStatus: "AVAILABLE",
+			nextSegment: "stock",
+		});
+	});
+
 	test("stops a stale saved revision before inventory, projection success, or history writes", async () => {
 		const calls: string[] = [];
 		const tx = {

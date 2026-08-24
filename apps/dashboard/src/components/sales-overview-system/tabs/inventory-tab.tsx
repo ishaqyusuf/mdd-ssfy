@@ -5,6 +5,7 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { useTRPC } from "@/trpc/client";
 import type { NewInboundShipmentStatus } from "@gnd/inventory";
+import { isSalesInventoryLegacyProjectionActivelySyncing } from "@gnd/sales/sales-inventory-legacy-task";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
@@ -554,11 +555,21 @@ function LegacyInventoryStatusLockedState({
 		resolveLegacyStatus.isPending || legacyAdaptationTask.isQueueing;
 	const isUnsupported = legacyCompatibility.state === "unsupported";
 	const isBackgroundAdaptation =
-		projection?.status === "syncing" && projection.source === "legacy-status";
+		isSalesInventoryLegacyProjectionActivelySyncing({
+			status: projection?.status,
+			source: projection?.source,
+			startedAt: projection?.startedAt,
+		});
+	const hasStaleBackgroundAdaptation =
+		projection?.status === "syncing" &&
+		projection.source === "legacy-status" &&
+		!isBackgroundAdaptation;
 	const persistedFailure =
 		projection?.status === "failed" && projection.source === "legacy-status"
 			? projection.lastError
-			: null;
+			: hasStaleBackgroundAdaptation
+				? "The background adaptation did not reach a terminal state. Retry it safely."
+				: null;
 	const hasFailed =
 		resolveLegacyStatus.isError || Boolean(persistedFailure) || isUnsupported;
 
@@ -581,11 +592,18 @@ function LegacyInventoryStatusLockedState({
 			orderNo: overview.orderId,
 			legacyStatus: normalizedLegacyStatus,
 			savedOrderUpdatedAt,
-			forceRetry: hasFailed,
+			forceRetry: Boolean(
+				projection?.status === "failed" || hasStaleBackgroundAdaptation,
+			),
+			retryRevision: projection?.completedAt
+				? new Date(projection.completedAt).toISOString()
+				: projection?.startedAt
+					? new Date(projection.startedAt).toISOString()
+					: undefined,
 		});
 		await queryClient.invalidateQueries({
 			queryKey: trpc.inventories.salesInventoryOverview.queryKey({
-			salesOrderId,
+				salesOrderId,
 			}),
 		});
 	};
@@ -705,16 +723,16 @@ function LegacyInventoryStatusLockedState({
 									</Button>
 								) : null}
 								{hasFailed ? (
-								<Button
-									type="button"
-									size="sm"
-									variant="outline"
-									className="text-destructive hover:text-destructive"
-									disabled={isResolving}
-									onClick={clearLegacyStatus}
-								>
-									Clear legacy status and configure from scratch
-								</Button>
+									<Button
+										type="button"
+										size="sm"
+										variant="outline"
+										className="text-destructive hover:text-destructive"
+										disabled={isResolving}
+										onClick={clearLegacyStatus}
+									>
+										Clear legacy status and configure from scratch
+									</Button>
 								) : null}
 							</div>
 						) : null}

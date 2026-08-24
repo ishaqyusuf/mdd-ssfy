@@ -224,6 +224,7 @@ export type MigrateSalesInventoryLegacyStatusTaskPayload = z.infer<
 export const queueSalesInventoryLegacyStatusMigrationSchema = z.object({
 	...migrateSalesInventoryLegacyStatusFields,
 	forceRetry: z.boolean().optional().default(false),
+	retryRevision: z.string().datetime().optional(),
 });
 export type QueueSalesInventoryLegacyStatusMigrationInput = z.infer<
 	typeof queueSalesInventoryLegacyStatusMigrationSchema

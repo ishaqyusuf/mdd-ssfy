@@ -1,9 +1,8 @@
 "use client";
 
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { useTRPC } from "@/trpc/client";
-import { useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
+import { useSalesQueryClient } from "./use-sales-query-client";
 
 export type QueueLegacyInventoryAdaptationInput = {
 	salesOrderId: number;
@@ -11,11 +10,11 @@ export type QueueLegacyInventoryAdaptationInput = {
 	legacyStatus: "AVAILABLE" | "ORDERED" | "PENDING ORDER";
 	savedOrderUpdatedAt: string;
 	forceRetry?: boolean;
+	retryRevision?: string;
 };
 
 export function useLegacyInventoryAdaptationTask() {
-	const trpc = useTRPC();
-	const queryClient = useQueryClient();
+	const salesQueries = useSalesQueryClient();
 	const task = useTaskTrigger({ silent: true, monitor: true });
 
 	const queue = async (input: QueueLegacyInventoryAdaptationInput) => {
@@ -29,6 +28,7 @@ export function useLegacyInventoryAdaptationTask() {
 						legacyStatus: input.legacyStatus,
 						savedOrderUpdatedAt: input.savedOrderUpdatedAt,
 						forceRetry: input.forceRetry ?? false,
+						retryRevision: input.retryRevision,
 					},
 				},
 				{
@@ -60,10 +60,10 @@ export function useLegacyInventoryAdaptationTask() {
 			return true;
 		}
 
-		await queryClient.invalidateQueries({
-			queryKey: trpc.inventories.salesInventoryOverview.queryKey({
-				salesOrderId: input.salesOrderId,
-			}),
+		await salesQueries.events.legacyInventoryAdapted({
+			orderNo: input.orderNo,
+			salesId: input.salesOrderId,
+			salesType: "order",
 		});
 		toast({
 			duration: 60_000,
