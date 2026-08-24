@@ -4540,8 +4540,8 @@ async function runNewSalesFormPostSaveTasks(
 function publicNewSalesFormSaveResult(
 	result: Awaited<ReturnType<typeof saveNewSalesFormInternal>>,
 ) {
-	const { _saveScope: _internalSaveScope, ...publicResult } = result;
-	return publicResult;
+	const { _saveScope: saveScope, ...publicResult } = result;
+	return { ...publicResult, saveScope };
 }
 
 export async function saveDraftNewSalesForm(

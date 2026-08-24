@@ -61,22 +61,26 @@ import {
     writeRecoverySnapshot,
 } from "./local-recovery";
 import { toSaveDraftInput } from "./mappers";
+import {
+	type SaveIntent,
+	continueSaveAfterCommittedChangeReview,
+	createSaveContinuationGuard,
+	runCommittedChangeSubmission,
+} from "./save-intent-continuation";
+import {
+	type NewSalesFormSaveScope,
+	isLegacyPoOnlySaveResponse,
+} from "./save-scope";
 import type {
 	NewSalesFormAdjustmentPreview,
 	NewSalesFormRecord,
 } from "./schema";
-import {
-	continueSaveAfterCommittedChangeReview,
-	createSaveContinuationGuard,
-	runCommittedChangeSubmission,
-	type SaveIntent,
-} from "./save-intent-continuation";
+import { CustomerSelectorDialog } from "./sections/customer-selector-dialog";
+import { SalesChangeReviewSheet } from "./sections/sales-change-review-sheet";
 import {
 	type SpecialOrderEnrollmentAccessState,
 	resolveSpecialOrderSaveInterruption,
 } from "./special-order-save-interruption";
-import { CustomerSelectorDialog } from "./sections/customer-selector-dialog";
-import { SalesChangeReviewSheet } from "./sections/sales-change-review-sheet";
 import { useNewSalesFormStore } from "./store";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { useCreateFormQueryParams } from "./use-create-form-query-params";
@@ -1026,6 +1030,7 @@ export function NewSalesForm(props: Props) {
             updatedAt?: string | null;
             type?: "order" | "quote" | null;
             isNew?: boolean | null;
+            saveScope?: NewSalesFormSaveScope | null;
             specialOrder?: NewSalesFormRecord["specialOrder"];
 			lineItems?: NewSalesFormRecord["lineItems"];
 			extraCosts?: NewSalesFormRecord["extraCosts"];
@@ -1052,6 +1057,7 @@ export function NewSalesForm(props: Props) {
                 slug: resp?.slug,
                 salesId: resp?.salesId,
             });
+			if (isLegacyPoOnlySaveResponse(resp)) return;
 
             if (resp?.orderId && resp?.type) {
                 taskTrigger.triggerWithAuth("create-sales-history", {
@@ -1078,8 +1084,11 @@ export function NewSalesForm(props: Props) {
     );
 
     const configureInventoryAfterSave = useCallback(
-        async (resp: { salesId?: number | null }) => {
-            if (!isOrder) return;
+		async (resp: {
+			salesId?: number | null;
+			saveScope?: NewSalesFormSaveScope | null;
+		}) => {
+			if (!isOrder || isLegacyPoOnlySaveResponse(resp)) return;
             await openSalesInventoryConfigurator(resp.salesId);
         },
         [isOrder, openSalesInventoryConfigurator],

@@ -1736,6 +1736,7 @@ describe("new-sales-form relational parity", () => {
     } as any);
 
     expect(saved.form.po).toBe("");
+    expect(saved.saveScope).toBe("legacy-po-only");
     expect(state.orders[0]?.meta).toEqual({
       po: null,
       compatibilityMarker: "preserve-me",
@@ -1751,7 +1752,7 @@ describe("new-sales-form relational parity", () => {
       salesTaxes: state.salesTaxes,
     }).toEqual(graphBefore);
 
-    await saveDraftNewSalesForm(ctx, {
+    const commerciallySaved = await saveDraftNewSalesForm(ctx, {
       type: "order",
       salesId: saved.salesId,
       slug: saved.slug,
@@ -1775,6 +1776,7 @@ describe("new-sales-form relational parity", () => {
         },
       },
     });
+    expect(commerciallySaved.saveScope).toBe("full");
   });
 
   it("loads an existing sales form by its visible order number", async () => {
