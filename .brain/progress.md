@@ -11732,5 +11732,18 @@
   filtered Jobs and Dashboard diagnostics contain no touched-path errors.
 - Browser evidence confirms opening `09405PC` no longer renders the blocking
   Configure Inventory or Adapting modal. Direct local reads confirm the fixture
-  remains `AVAILABLE`/`legacy_locked` until the new task runs. Worker-first
-  deploy and production canary remain pending.
+  remains `AVAILABLE`/`legacy_locked` until the new task runs.
+- Post-review hardening makes durable `ready/0` replays return
+  `already_migrated`, compares normalized legacy status under the exact revision
+  guard, deduplicates concurrent explicit retries by terminal projection
+  revision, invalidates all affected query surfaces after queue-start failure,
+  and turns orphaned `syncing` state into Retry after five minutes. The focused
+  regression set now passes 41 tests / 102 assertions; broad typechecks retain
+  only existing repository diagnostics on the changed-package runs.
+- Production Trigger version `20260824.5` deployed successfully with 49 tasks,
+  including the legacy migration worker. Vercel production deployment
+  `dpl_7nouDN3rQBf4RHa1c1K2hrxvbWVA` is Ready and owns the production aliases.
+  The first 15-minute Vercel error canary is clear. Today's earlier production
+  errors are unrelated expired-session 401s on Fulfillment/Dispatch routes;
+  there are no legacy-adaptation or new-sales-save runtime errors in the
+  reviewed window.

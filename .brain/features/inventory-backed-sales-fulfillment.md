@@ -795,6 +795,8 @@ Last updated: 2026-08-17
   1. Completion and failure invalidate order, overview, inventory, inbound, and
   Sales Orders reads after navigation. Failed jobs remain visible.
 - Historical locked orders expose explicit Run/Retry controls. The former
-  module-level attempt map and auto-on-open mutation were removed.
+  module-level attempt map and auto-on-open mutation were removed. A legacy
+  `syncing` projection older than five minutes is treated as an abandoned task
+  and exposes Retry instead of restoring an endless spinner.
 
 Last updated: 2026-08-24

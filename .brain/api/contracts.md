@@ -1781,13 +1781,14 @@ implementation phase is approved and released.
 - Worker payload: positive `salesOrderId`, exact legacy status
   (`AVAILABLE`, `ORDERED`, or `PENDING ORDER`), ISO `savedOrderUpdatedAt`, and a
   server-owned actor `{ id, name }`.
-- Dashboard queue input omits actor and accepts `forceRetry`; the queue boundary
-  injects authenticated identity and requires `editOrders`.
+- Dashboard queue input omits actor and accepts `forceRetry` plus an optional
+  terminal projection `retryRevision`; the queue boundary injects authenticated
+  identity and requires `editOrders`.
 - Automatic runs use a global idempotency key derived from order, status, and
-  save revision. Explicit Retry bypasses that same-save start key while the
-  worker remains transactionally idempotent and revision guarded.
+  save revision. Explicit Retry adds the failed projection revision, so
+  concurrent clicks deduplicate while a later terminal failure can be retried.
 - The worker rechecks the actor's active `editOrders` permission and exits stale
-  when status or revision no longer matches.
+  when normalized status or exact revision no longer matches.
 - Task-monitor intent: `sales.adapt-legacy-inventory`, version 1, with
   `{ salesId, orderNo }`.
 - `resolveSalesInventoryLegacyStatusMigration` accepts optional

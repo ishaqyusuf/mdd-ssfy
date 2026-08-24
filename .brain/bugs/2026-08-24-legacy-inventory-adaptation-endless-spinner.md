@@ -33,9 +33,10 @@ unqueued and failed historical orders expose explicit Run/Retry controls.
 
 Do not represent background lifecycle state in module-level client memory.
 Every asynchronous migration must have durable terminal evidence, exact stale
-write guards, bounded retries, and tests for zero-row success, failure, and
-reload behavior. Read-oriented screens must never begin migrations merely by
-mounting.
+write guards, bounded retries, and tests for zero-row success, replay, failure,
+and reload behavior. The UI must also age out orphaned `syncing` evidence after
+the worker's maximum duration. Read-oriented screens must never begin
+migrations merely by mounting.
 
 ## Related Files
 
