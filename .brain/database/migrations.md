@@ -1,5 +1,17 @@
 # Database Migrations
 
+## 2026-08-24: Production schema synchronization
+
+- Ran the guarded root command `bun run db:push --prod` against the verified
+  production target fingerprint
+  `mysql://aws.connect.psdb.cloud/gndprodesk#identity=ba57b207`.
+- The initial restricted-sandbox attempt reached the target but returned an
+  opaque schema-engine error. The approved network-enabled rerun used the same
+  fingerprint and completed successfully.
+- Prisma reported the production database in sync with the current schema in
+  18.10 seconds and regenerated Prisma Client `6.19.2`.
+- No reset or `--accept-data-loss` flag was used.
+
 ## 2026-08-23: Guarded PlanetScale Preview Seed
 
 - Added `bun run db:seed-preview-sales` for a bounded, referentially complete
