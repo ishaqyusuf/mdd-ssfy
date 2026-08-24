@@ -226,6 +226,58 @@ function withoutPo(meta: NewSalesFormMeta) {
 	return rest;
 }
 
+function normalizeLegacyPoOnlyComparableMeta(meta: NewSalesFormMeta) {
+	const comparable = { ...withoutPo(meta) } as Record<string, unknown>;
+	if (comparable.notes == null || comparable.notes === "") {
+		delete comparable.notes;
+	}
+	if (
+		comparable.resaleCertificateOnFile == null ||
+		comparable.resaleCertificateOnFile === false
+	) {
+		delete comparable.resaleCertificateOnFile;
+	}
+	if (
+		comparable.sellerOfRecord == null ||
+		comparable.sellerOfRecord === "DEALER"
+	) {
+		delete comparable.sellerOfRecord;
+	}
+	return comparable;
+}
+
+function normalizeLegacyPoOnlyComparableLines(
+	lines: NewSalesFormLineItem[],
+) {
+	return lines.map((line) => {
+		const comparable = { ...line } as Record<string, unknown>;
+		if (comparable.taxxable == null) delete comparable.taxxable;
+		if (
+			typeof comparable.title === "string" &&
+			["moulding", "mouldings"].includes(comparable.title.trim().toLowerCase())
+		) {
+			comparable.title = "Mouldings";
+		}
+		return comparable;
+	});
+}
+
+function isSyntheticLegacyLaborPlaceholder(cost: NewSalesFormExtraCost) {
+	return (
+		!cost.id &&
+		cost.type === "Labor" &&
+		cost.label === "Labor" &&
+		Number(cost.amount || 0) === 0 &&
+		(cost.taxxable == null || cost.taxxable === false)
+	);
+}
+
+function normalizeLegacyPoOnlyComparableExtraCosts(
+	costs: NewSalesFormExtraCost[],
+) {
+	return costs.filter((cost) => !isSyntheticLegacyLaborPlaceholder(cost));
+}
+
 function safeDate(value?: string | null) {
 	if (!value) return null;
 	const d = new Date(value);
@@ -658,18 +710,22 @@ function isLegacyPoOnlySave(input: {
 
 	return sameComparableValue(
 		{
-			meta: withoutPo(input.before.form),
-			lineItems: beforeLines,
-			extraCosts: input.before.extraCosts,
+			meta: normalizeLegacyPoOnlyComparableMeta(input.before.form),
+			lineItems: normalizeLegacyPoOnlyComparableLines(beforeLines),
+			extraCosts: normalizeLegacyPoOnlyComparableExtraCosts(
+				input.before.extraCosts,
+			),
 			summary: beforeSummary,
 			inventoryStatus: input.before.inventoryStatus ?? null,
 			specialOrderDeclaration:
 				input.before.specialOrder?.declaration ?? null,
 		},
 		{
-			meta: withoutPo(input.payload.meta),
-			lineItems: input.normalizedLines,
-			extraCosts: input.payload.extraCosts,
+			meta: normalizeLegacyPoOnlyComparableMeta(input.payload.meta),
+			lineItems: normalizeLegacyPoOnlyComparableLines(input.normalizedLines),
+			extraCosts: normalizeLegacyPoOnlyComparableExtraCosts(
+				input.payload.extraCosts,
+			),
 			summary: input.persistedSummary,
 			inventoryStatus: input.payload.inventoryStatus ?? null,
 			specialOrderDeclaration:

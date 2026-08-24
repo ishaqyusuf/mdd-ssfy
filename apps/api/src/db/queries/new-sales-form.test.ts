@@ -1678,8 +1678,8 @@ describe("new-sales-form relational parity", () => {
       salesOrderId: orderId,
       multiDykeUid: "legacy-line",
       multiDyke: false,
-      dykeDescription: "Legacy line",
-      description: "Legacy line",
+      dykeDescription: "Moulding",
+      description: "Moulding",
       qty: 1,
       rate: 100,
       total: 100,
@@ -1710,9 +1710,28 @@ describe("new-sales-form relational parity", () => {
       commitIntent: "draft",
       specialOrderDeclaration: loaded.specialOrder.declaration,
       inventoryStatus: loaded.inventoryStatus,
-      meta: { ...loaded.form, po: "" },
-      lineItems: loaded.lineItems,
-      extraCosts: loaded.extraCosts,
+      meta: {
+        ...loaded.form,
+        notes: "",
+        resaleCertificateOnFile: false,
+        sellerOfRecord: "DEALER",
+        po: "",
+      },
+      lineItems: loaded.lineItems.map((line) => ({
+        ...line,
+        taxxable: null,
+        title: line.title === "Moulding" ? "Mouldings" : line.title,
+      })),
+      extraCosts: [
+        ...loaded.extraCosts,
+        {
+          id: null,
+          type: "Labor",
+          label: "Labor",
+          amount: 0,
+          taxxable: false,
+        },
+      ],
       summary: loaded.summary,
     } as any);
 
