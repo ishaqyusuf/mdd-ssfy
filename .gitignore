@@ -82,3 +82,8 @@ packages/jobs/src/schema.prisma
 android
 ios
 .gstack/
+
+# generated artifacts and visual evidence
+/outputs/
+/artifacts/
+**/screenshots/

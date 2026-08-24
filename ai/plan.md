@@ -1,3 +1,50 @@
+# Headless Legacy Inventory Adaptation
+
+Date: 2026-08-24
+Status: In Progress
+
+Plan:
+- Persist legacy adaptation lifecycle through the existing sales inventory
+  projection and run it in a bounded, authorization-checked Trigger task.
+- Queue recognized legacy status adaptation only after a successful save and
+  let save navigation continue after task acceptance; keep the ordinary
+  Configure Inventory modal for non-legacy orders.
+- Replace Inventory-tab open-time mutation with persisted background state plus
+  explicit Run/Retry recovery actions.
+- Monitor the task across navigation and invalidate order, overview, inventory,
+  inbound, and Sales Orders queries at completion.
+- Prove zero-row `AVAILABLE`, inbound materialization, stale revision,
+  authorization, idempotency, save routing, durable failure, and browser
+  behavior before deploying the worker and dashboard in that order.
+
+Validation:
+- Focused `@gnd/sales`, `@gnd/jobs`, dashboard action/component, and task-monitor
+  tests covering the approved seams.
+- Scoped package typechecks and final relevant-suite validation.
+- Authenticated in-app browser acceptance on order `09405PC` plus Trigger and
+  Vercel canary review.
+- Scoped code review and `git diff --check`.
+
+Progress:
+- [x] Confirmed the endless spinner is a client-only attempt marker combined
+  with a missing durable `ready/0` projection.
+- [x] Confirmed current checkout, applicable repository rules, and approved
+  public test seams.
+- [ ] Establish failing focused tests.
+- [ ] Implement the worker, durable projection helper, stale guards, queue
+  boundary, and persisted monitor intent.
+- [ ] Update both save flows and the Inventory-tab recovery UX.
+- [ ] Validate, review, document, commit, deploy, and canary.
+
+Risks:
+- Existing production-like orders must not be mutated during automated tests;
+  browser mutation remains limited to the explicitly supplied `09405PC` flow.
+- A queued task must become stale before any inventory, inbound, projection
+  success, or history write if a newer save supersedes its revision.
+- Worker deployment must precede application code that can enqueue the new task.
+
+---
+
 # Sales Payment Date Super Admin Access
 
 Date: 2026-08-21
