@@ -171,6 +171,55 @@ describe("copySalesInTransaction", () => {
     });
   });
 
+  it("does not copy adjustment authority or persisted row identities into an editable duplicate", async () => {
+    const { db, calls } = createTransactionLikeDb({
+      type: "order",
+      meta: {
+        source: "order",
+        newSalesForm: {
+          version: "source-version",
+          updatedAt: "2026-08-25T20:24:13.908Z",
+          draftKey: "source-draft",
+          approvedAdjustmentId: "source-adjustment",
+          salesId: 100,
+          slug: "00010PC",
+          type: "order",
+          reason: "Approved adjustment",
+          autosave: true,
+          form: { paymentMethod: "Credit Card" },
+          meta: { notes: "Keep these form defaults" },
+          summary: { grandTotal: 425 },
+          lineItems: [
+            {
+              id: 501,
+              uid: "moulding-group",
+              meta: {
+                mouldingRows: [{ salesItemId: 501, hptId: 601, qty: 2 }],
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    await copySalesInTransaction({
+      db: db as unknown as CopySalesInTransactionProps["db"],
+      salesUid: "00010PC",
+      as: "order",
+      type: "order",
+      author: { id: 7, name: "Pablo Cruz" },
+    });
+
+    expect(calls.createdSales[0]?.meta).toEqual({
+      source: "order",
+      newSalesForm: {
+        autosave: false,
+        form: { paymentMethod: "Credit Card" },
+        meta: { notes: "Keep these form defaults" },
+      },
+    });
+  });
+
   it("uses the author when a legacy source sale has no rep for a history snapshot", async () => {
     const { db, calls } = createTransactionLikeDb({
       salesRepId: null,

@@ -12047,3 +12047,34 @@
 - Focused review-sheet validation passes 3 tests / 21 assertions; scoped Biome
   and whitespace checks pass. Vercel production error logs were clear during
   the live save and reload.
+
+## 2026-08-25 — Fixed grouped adjustment projection and saved 09455PC
+
+- Traced the recurring save failure to the adjustment worker's generic
+  parent-item update: an approved moulding group of `25 + 21` was persisted as
+  primary quantity `46` plus sibling quantity `21`, while nested metadata stayed
+  at `23 + 21`. The next review therefore inferred a false reduction and refund.
+- Added a row-level grouped adjustment projector for moulding and service lines.
+  Each approved persisted sibling now receives its own quantity, rate, total,
+  group flags, and metadata; moulding HPT totals and price tags are synchronized.
+  Missing persisted row identity fails closed.
+- Reconciled `09455PC` from its immutable applied snapshot under exact version,
+  adjustment, row, quantity, and total guards, then saved the requested baseboard
+  quantity `22`. Reopen/database proof shows casing `25`, baseboard `22`, group
+  total `47` / `$462.55`, subtotal `$1,452.30`, tax `$101.66`, displayed total
+  `$1,600.58`, and amount due `$11.13` with matching relational, metadata, and
+  HPT projections.
+- Validation passes 4 focused projector tests / 16 assertions and 15 grouped/API
+  parity tests / 121 assertions, plus scoped Biome and whitespace checks. Jobs
+  typecheck remains blocked only by the known unrelated email JSX runtime and
+  sales-control assignment-id diagnostics.
+
+## 2026-08-25 — Deployed grouped adjustment projection jobs
+
+- Deployed the current `master` jobs source at commit `de45ca4a3` to the
+  Trigger.dev Redland production project with `bun run jobs:deploy`.
+- Trigger.dev production version `20260825.3` deployed successfully with 49
+  detected tasks. The deploy command exited with code 0.
+- The local Trigger.dev CLI reported that optional skill discovery was skipped
+  during bundling, but the task code and remote production image both built and
+  deployed successfully.

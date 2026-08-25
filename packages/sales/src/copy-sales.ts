@@ -166,6 +166,35 @@ function isSalesOrderIdentityCollision(error: unknown) {
   return targetText.includes("orderId") && targetText.includes("type");
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function editableCopyMeta(value: unknown) {
+  const sourceMeta = asRecord(value);
+  const sourceNewSalesForm = asRecord(sourceMeta.newSalesForm);
+  const { newSalesForm: _sourceNewSalesForm, ...copiedMeta } = sourceMeta;
+  const form = asRecord(sourceNewSalesForm.form);
+  const meta = asRecord(sourceNewSalesForm.meta);
+  const hasReusableFormDefaults =
+    Object.keys(form).length > 0 || Object.keys(meta).length > 0;
+
+  return {
+    ...copiedMeta,
+    ...(hasReusableFormDefaults
+      ? {
+          newSalesForm: {
+            autosave: false,
+            ...(Object.keys(form).length > 0 ? { form } : {}),
+            ...(Object.keys(meta).length > 0 ? { meta } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 export async function copySalesInTransaction(
   props: CopySalesInTransactionProps,
 ): Promise<CopySalesResult> {
@@ -230,11 +259,7 @@ export async function copySalesInTransaction(
         slug: newOrderId,
         type: as,
         meta: {
-          ...(sale.meta &&
-          typeof sale.meta === "object" &&
-          !Array.isArray(sale.meta)
-            ? sale.meta
-            : {}),
+          ...(isHx ? asRecord(sale.meta) : editableCopyMeta(sale.meta)),
           ...(isQuoteToInvoice
             ? {
                 copySource: {

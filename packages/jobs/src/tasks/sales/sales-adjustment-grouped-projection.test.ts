@@ -107,6 +107,55 @@ describe("approved grouped sales adjustment projection", () => {
 		expect(hptUpdates).toHaveLength(0);
 	});
 
+	it("projects grouped service rows with their own flags and prices", async () => {
+		const { tx, salesItemUpdates, hptUpdates } = createTransactionMock();
+		const handled = await projectApprovedGroupedSalesLine({
+			tx: tx as unknown as TransactionClient,
+			salesOrderId: 7,
+			persistedItemIds: new Set([41, 42]),
+			line: {
+				uid: "service-group",
+				title: "Services",
+				meta: {
+					serviceRows: [
+						{
+							uid: "delivery",
+							salesItemId: 41,
+							primaryGroupItem: true,
+							service: "Delivery",
+							qty: 2,
+							unitPrice: 35,
+							taxxable: true,
+							produceable: false,
+						},
+						{
+							uid: "installation",
+							salesItemId: 42,
+							service: "Installation",
+							qty: 1,
+							unitPrice: 80,
+							taxxable: false,
+							produceable: true,
+						},
+					],
+				},
+			},
+		});
+
+		expect(handled).toBe(true);
+		expect(salesItemUpdates.map((update) => update.data.qty)).toEqual([2, 1]);
+		expect(salesItemUpdates.map((update) => update.data.rate)).toEqual([
+			35, 80,
+		]);
+		expect(salesItemUpdates.map((update) => update.data.total)).toEqual([
+			70, 80,
+		]);
+		expect(
+			salesItemUpdates.map((update) => update.data.dykeProduction),
+		).toEqual([false, true]);
+		expect(hptUpdates).toHaveLength(0);
+	});
+
 	it("fails closed when an approved grouped row lost its persisted identity", async () => {
 		const { tx } = createTransactionMock();
 		expect(

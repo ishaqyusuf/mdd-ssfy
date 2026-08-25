@@ -85,6 +85,11 @@ orders in the new sales form.
   parent items whose top-level quantity changed. Same-quantity LH/RH moves are
   persisted, retained door ids are reused when possible, and omitted active
   door rows are retired before the adjustment is marked applied.
+- Approved grouped moulding and service lines are projected row by row using
+  each row's persisted `salesItemId`; the aggregate group quantity is never
+  written onto the primary legacy sibling. Moulding projection also synchronizes
+  the matching HPT total and price-tag metadata. Missing grouped-row identity
+  fails closed rather than risking a parent-row overwrite.
 - Creating a new approved adjustment also writes one actor-attributed Sales
   Activity entry in the same transaction. Quantity reductions show the affected
   item titles, previous/new quantities, and previous/new order total. Replaying
@@ -157,6 +162,12 @@ orders in the new sales form.
   no shipments. The editor showed no Review Required banner, Cancel Open
   Inbound choice, or Keep For Warehouse choice. The quantity and displayed
   total were restored without saving; no interaction runtime error appeared.
+- Local order `09455PC` reproduced the previously uncovered grouped-adjustment
+  projection gap: the approved snapshot had moulding rows `25 + 21`, while the
+  database stored aggregate `46` on the first row plus sibling `21`. Exact-guard
+  reconciliation restored `25 + 21`, and the requested baseboard update saved
+  and reloaded as `25 + 22`. Relational rows, nested group metadata, HPT totals,
+  order summary, and amount due all agree after the save.
 
 ## Implementation Map
 
@@ -168,6 +179,8 @@ orders in the new sales form.
 - Sales Activity copy and persistence:
   `apps/api/src/db/queries/sales-form-activity.ts`
 - Apply job: `packages/jobs/src/tasks/sales/apply-sales-order-adjustment.ts`
+- Grouped apply projection:
+  `packages/jobs/src/tasks/sales/sales-adjustment-grouped-projection.ts`
 - In-form review:
   `apps/dashboard/src/components/forms/new-sales-form/sections/sales-change-review-sheet.tsx`
 - Public customer response:
