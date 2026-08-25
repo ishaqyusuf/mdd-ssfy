@@ -10,7 +10,7 @@ const config = {
 } as PrintModeConfig;
 
 describe("grouped print sections", () => {
-	it("renders metadata-backed moulding rows with selected component details", () => {
+	it("renders metadata-backed moulding rows with saved descriptions and component images", () => {
 		const sale = {
 			items: [
 				{
@@ -62,7 +62,7 @@ describe("grouped print sections", () => {
 		expect(sections).toHaveLength(1);
 		expect(sections[0]?.index).toBe(2);
 		expect(sections[0]?.rows).toHaveLength(1);
-		expect(sections[0]?.rows[0]?.cells[1]?.value).toBe("Colonial Casing");
+		expect(sections[0]?.rows[0]?.cells[1]?.value).toBe("Casing");
 		expect(sections[0]?.rows[0]?.cells[1]?.image).toBe("casing.png");
 		expect(sections[0]?.rows[0]?.cells[2]?.value).toBe(2);
 		expect(sections[0]?.rows[0]?.cells[3]?.value).toBe("$70.00");

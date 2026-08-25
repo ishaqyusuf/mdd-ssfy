@@ -10,15 +10,20 @@ function renderPanel(options?: {
 	imageSrc?: string | null;
 	hasSwing?: boolean;
 	authoritativeLineTotal?: number;
+	quantity?: number;
+	sharedDoorSurcharge?: number;
 }) {
 	const doorSalesUnitPrice = options?.doorSalesUnitPrice ?? 5_500;
+	const quantity = options?.quantity ?? 1;
+	const sharedDoorSurcharge = options?.sharedDoorSurcharge ?? 500;
 	const authoritativeLineTotal =
-		options?.authoritativeLineTotal ?? doorSalesUnitPrice + 500;
+		options?.authoritativeLineTotal ??
+		(doorSalesUnitPrice + sharedDoorSurcharge) * quantity;
 	const row = {
 		id: 1,
 		dimension: "3-0 x 6-8",
-		totalQty: 1,
-		unitPrice: doorSalesUnitPrice + 500,
+		totalQty: quantity,
+		unitPrice: doorSalesUnitPrice + sharedDoorSurcharge,
 		lineTotal: authoritativeLineTotal,
 		jambSizePrice: doorSalesUnitPrice,
 		stepProductId: 10,
@@ -26,7 +31,7 @@ function renderPanel(options?: {
 		meta: {
 			baseUnitPrice: 4_500,
 			doorSalesUnitPrice,
-			sharedDoorSurcharge: 500,
+			sharedDoorSurcharge,
 		},
 	};
 
@@ -50,7 +55,11 @@ function renderPanel(options?: {
 				} as any
 			}
 			focusedRows={[row as any]}
-			summary={{ rows: [row as any], totalDoors: 1, totalPrice: row.lineTotal }}
+			summary={{
+				rows: [row as any],
+				totalDoors: quantity,
+				totalPrice: row.lineTotal,
+			}}
 			availableSizeOptions={[
 				{ size: "3-0 x 6-8", doorPrice: 4_500, selected: true },
 			]}
@@ -65,7 +74,7 @@ function renderPanel(options?: {
 						]
 					: null
 			}
-			sharedDoorSurcharge={500}
+			sharedDoorSurcharge={sharedDoorSurcharge}
 			profileCoefficient={1}
 			canSwapDoor={false}
 			canEditPricing={options?.canEditPricing ?? true}
@@ -86,13 +95,15 @@ function renderPanel(options?: {
 describe("HousePackageToolPanel repair action", () => {
 	it("keeps the displayed estimate aligned with the authoritative persisted line total", () => {
 		const html = renderPanel({
-			doorSalesUnitPrice: 4_500,
-			authoritativeLineTotal: 6_000,
+			doorSalesUnitPrice: 425.54,
+			sharedDoorSurcharge: 34.85,
+			authoritativeLineTotal: 4_952.4,
+			quantity: 10,
 		});
 
-		expect(html).not.toContain("$5,000.00");
-		expect(html).toContain("$6,000.00");
-		expect(html).toContain("$6000.00");
+		expect(html).not.toContain("$460.39");
+		expect(html).toContain("$495.24");
+		expect(html).toContain("$4952.40");
 	});
 
 	it("keeps the actions heading accessible-only and reserves the freed width for Swing", () => {

@@ -109,9 +109,9 @@ export function composeMouldingSections(
 						{ value: rowNum, colSpan: 1, align: "center" },
 						{
 							value:
-								String(component?.title || "").trim() ||
-								String(row?.title || "").trim() ||
 								String(row?.description || "").trim() ||
+								String(row?.title || "").trim() ||
+								String(component?.title || "").trim() ||
 								m.description ||
 								"",
 							colSpan: 4,

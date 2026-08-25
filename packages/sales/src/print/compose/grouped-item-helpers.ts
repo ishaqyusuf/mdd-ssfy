@@ -212,7 +212,6 @@ export function getMetaRows<T = Record<string, unknown>>(
 export function isMetadataBackedMouldingItem(item: PrintSalesItem) {
 	const type = normalizeTitle(getSalesItemType(item));
 	return (
-		!item.housePackageTool &&
 		(type === "moulding" ||
 			type === "mouldings" ||
 			type === "molding" ||

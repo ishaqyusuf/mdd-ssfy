@@ -494,9 +494,21 @@ describe("getPrintData", () => {
 
 		mouldingItem.multiDyke = true;
 		mouldingItem.multiDykeUid = "moulding-group-1";
+		(mouldingItem as any).housePackageTool = {
+			doorType: "Moulding",
+			molding: null,
+			stepProduct: {
+				name: "Casing",
+				img: "casing.png",
+				product: { title: "Casing", img: "casing.png" },
+			},
+			doors: [],
+		};
+		mouldingItem.meta.meta.mouldingRows[0].description = "Casing";
 		mouldingItem.meta.meta.mouldingRows.push({
 			uid: "m-2",
 			title: "Baseboard",
+			description: "Baseboard",
 			qty: 3,
 			salesPrice: 20,
 		});
@@ -506,6 +518,7 @@ describe("getPrintData", () => {
 		if (!mouldingStep?.meta?.selectedComponents) {
 			throw new Error("Expected selected moulding component metadata.");
 		}
+		mouldingStep.meta.selectedComponents[0].title = "Casing +1, Baseboard";
 		mouldingStep.meta.selectedComponents.push({
 			uid: "m-2",
 			title: "Baseboard",
@@ -523,7 +536,16 @@ describe("getPrintData", () => {
 				meta: mouldingItem.meta.meta,
 			},
 			formSteps: [],
-			housePackageTool: null,
+			housePackageTool: {
+				doorType: "Moulding",
+				molding: null,
+				stepProduct: {
+					name: "Casing",
+					img: "casing.png",
+					product: { title: "Casing", img: "casing.png" },
+				},
+				doors: [],
+			},
 			shelfItems: [],
 			multiDyke: false,
 			multiDykeUid: "moulding-group-1",

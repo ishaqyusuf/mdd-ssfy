@@ -590,3 +590,20 @@ for phase ownership and rollout requirements.
   changes. The long-running local Next process continued serving its stale
   pre-change bundle, so fresh live visual proof requires that process to be
   restarted before the page is reloaded.
+
+## 2026-08-25 HPT persisted-price display authority
+
+- Existing House Package Tool rows display their saved unit estimate from the
+  authoritative persisted line total divided by the saved quantity. Loading an
+  order or quote must not replace that visible estimate with a value recalculated
+  from the customer's current pricing profile or today's component prices.
+- Current-profile drift remains visible through the explicit row-level Repair
+  action. Only choosing that action may adopt the recalculated price; passive
+  hydration and rendering preserve the commercial amount already saved.
+- Quote `03565PC` is the live regression oracle. Its first HPT group must show
+  unit estimates `$99.72`, `$106.14`, and `$108.84`, and its second HPT group
+  must show `$495.24`; the Sales preview must show the same four unit prices and
+  persisted line totals.
+- Focused HPT rendering and compatibility coverage passes 20 tests / 75
+  assertions. Authenticated local-browser verification confirmed editor/preview
+  parity for all four oracle rows with no error surface.
