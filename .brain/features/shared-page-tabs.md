@@ -32,3 +32,9 @@ Saved page tabs provide reusable filter/sort views across supported list pages w
 - `q`, `search`, `_q*`, and the configured page search key are excluded when constructing a saved query.
 - Any non-empty search value immediately hides the save action, including when other filters or sorting are active.
 - The create/update API rejects active search fields defensively. Existing search-bearing tabs remain readable without migration.
+
+## Lazy Filter Menu Contract
+
+- An undefined filter list means lazy filter metadata has not resolved, so the filter trigger remains visible and can open the menu to start the request.
+- An explicit empty filter list means the surface is search-only and hides the filter trigger.
+- Loading metadata or any resolved non-search definition keeps the filter trigger visible.

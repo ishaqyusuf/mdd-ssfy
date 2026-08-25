@@ -2,10 +2,20 @@ import { describe, expect, it } from "bun:test";
 
 import {
 	patchDoorRowCustomPrice,
+	resolveDoorPriceEditorBasePrice,
 	updateDoorRowBasePrice,
 } from "./door-price-update";
 
 describe("door price updates", () => {
+	it("prefills the editor from the latest stored pricing bucket", () => {
+		expect(
+			resolveDoorPriceEditorBasePrice({ meta: { baseUnitPrice: 100 } }, 80.5),
+		).toBe(80.5);
+		expect(
+			resolveDoorPriceEditorBasePrice({ meta: { baseUnitPrice: 100 } }),
+		).toBe(100);
+	});
+
 	it("recalculates sales price while preserving the existing surcharge", () => {
 		const row = updateDoorRowBasePrice(
 			{

@@ -1,5 +1,42 @@
 # Progress
 
+- 2026-08-25: Restored legacy-compatible door-size price persistence in the new
+  Sales Form. The fresh component query now bypasses stale workflow cache,
+  current catalog buckets override saved component snapshots, size-price writes
+  consolidate the legacy natural key, and Edit Base Price prefills the stored
+  base cost. Focused validation passes 23 tests / 61 assertions. Authenticated
+  in-app browser verification
+  on order `09442PC` saved `1-8 x 6-8` at `$80.50`, refreshed the page, displayed
+  `$107.33` for the active 75% profile, and reopened Edit Base Price with `80.5`.
+  Existing `2-6` quantities remained LH 1 / RH 4 and `2-8` remained LH 1. No
+  order save, permission change, database schema change, or migration was needed.
+
+- 2026-08-25: Fixed new Sales Form door-size price editing so its asynchronous
+  catalog mutation no longer resets unsaved LH/RH quantities. The open dialog
+  now has a stable semantic editing session, optimistically reprices only the
+  target row with rollback on failure, and adopts the freshly refetched
+  component snapshot so a newly added size price remains authoritative when the
+  door is reopened. Focused validation passes 7 tests / 25 assertions.
+  Authenticated in-app browser reproduction showed two selected doors and a
+  `$276.16` total dropping to zero after a no-op price save; the same interaction
+  after the fix preserved both quantities and `Doors: 2`. No sale was saved and
+  no API, permission, database schema, or migration contract changed.
+
+- 2026-08-25: Simplified the Sales Overview dispatch workspace and separated
+  its next design phase by role. Dispatch mode now shows `Productions` and
+  `Overview`; the empty `General` tab is removed and `Packing List` is renamed
+  `Overview` without changing packing behavior. The existing driver stop route
+  remains a tabless single-screen workflow. Generated a persistent GStack HTML
+  comparison with three admin options and three driver options at
+  `~/.gstack/projects/gnd/designs/dispatch-overview-admin-driver-20260825/`.
+  Admin A adds balanced assignment, shipping-date, delivery-mode, blocker,
+  readiness, and manifest controls; Admin B uses a dense audit ledger; Admin C
+  uses a lifecycle-first control model. Driver A preserves the previously
+  approved Packing Command Sheet, with Load Bay Ledger and Pack Coach retained
+  as alternatives. Authenticated in-app browser QA confirmed the live sheet now
+  renders only `Productions` and selected `Overview`. No packing mutation or
+  redesigned admin workflow was implemented.
+
 - 2026-08-25: Removed the Shelf V2 product-search dropdown flicker in both the
   shared cached-index workflow and legacy dashboard query workflow. The shared
   product cell now remembers its last settled visible result count and renders
@@ -21,6 +58,14 @@
   pre-existing `sales-control/actions.ts` assignment-id diagnostic. No sale was
   saved, and no API, permission, database, migration, pricing, or persistence
   contract changed.
+
+- 2026-08-25: Switched the temporary Preview `getOrders` hourly canary from the
+  unauthenticated in-app browser to the user's authenticated Chrome connector.
+  A manual switch check reached `preview.gndprodesk.com`, recovered from one
+  transient `APA` search error on the required retry, and returned exact order
+  `09379PC` in about 3.54 seconds. The automation now uses fresh temporary Chrome
+  tabs for the remaining read-only hourly samples; the first three failed
+  in-app-browser attempts remain part of the qualified final report.
 
 - 2026-08-25: Temporarily expanded the existing `monitor-gnd-vercel-cost`
   heartbeat into a combined hourly Preview `getOrders` canary and daily Vercel
@@ -11898,3 +11943,49 @@
   contracts. Per the Bun monorepo command discipline, no dev server, build,
   typecheck, test suite, or browser QA was run; scoped whitespace and source
   audits are the validation evidence for this pass.
+
+## 2026-08-25 — Moved the Fulfillment V2 toolbar above the table
+
+- Moved the combined PageTabs, search, filters, and table actions below the All
+  analytics and overdue alert so it sits immediately above the dispatch table.
+- Other V2 sections retain the same toolbar directly above their own content.
+- Added a focused source-order contract; scoped whitespace validation is the
+  verification evidence for this composition-only change.
+
+## 2026-08-25 — Consolidated Fulfillment V2 on Sales Overview Packing
+
+- Deleted the V2 dispatch detail sheet, header, and content implementation so
+  Fulfillment no longer maintains a second overview/packing/proof experience.
+- All dispatch table rows, calendar chips, exception actions, and the table
+  action button now open the existing Sales Overview sheet directly on Packing
+  with the selected dispatch context. The multi-order Create Dispatch dialog is
+  unchanged.
+- Removed V2-sheet-only action entry points and added focused source contracts.
+  Scoped whitespace/source audits are the validation evidence; no dev server,
+  typecheck, test suite, or browser QA was run under the Bun command discipline.
+
+## 2026-08-25 — Restored lazy filter dropdown triggers
+
+- Fixed the shared search-filter visibility contract that hid the trigger before
+  Orders, Quotes, and other lazy filter-metadata pages could start their query.
+- Preserved search-only behavior by treating an explicit empty filter list as
+  intentionally menu-free and marking Sales Inbounds with that contract.
+- Added focused regression coverage for unresolved, empty, loading, and resolved
+  metadata states. The complete shared search-filter suite passes 13 tests / 28
+  assertions, and scoped whitespace validation passes.
+
+## 2026-08-25 — Completed production 09433PC adjustment rollout
+
+- Confirmed Vercel production deployment `dpl_9uVM5hEkBNAxLmP7G8tXJtBqRMEF`
+  already served the repaired web commit, then closed the deployment skew by
+  releasing all 49 Trigger tasks as production version `20260825.2`.
+- Authenticated production review/save on `09433PC` completed without a 500.
+  Reload proof shows Item 1 `2-8 x 8-0` LH `0` / RH `1` and Item 2 only
+  `2-8 x 8-0` LH `1` / RH `4`; Items 3 through 7 were left unchanged.
+- The affected-line inbound guard correctly omitted Cancel/Keep choices, but the
+  sheet still showed the unrelated order-wide `Inbound 9` badge. The UI now
+  displays `Open inbound` only when disposition is actually required and uses
+  neutral operational-activity acknowledgement copy otherwise.
+- Focused review-sheet validation passes 3 tests / 21 assertions; scoped Biome
+  and whitespace checks pass. Vercel production error logs were clear during
+  the live save and reload.

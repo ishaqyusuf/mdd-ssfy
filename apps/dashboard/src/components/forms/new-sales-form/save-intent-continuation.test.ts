@@ -148,11 +148,15 @@ describe("new sales form save intent continuation", () => {
 		expect(saveCalls).toBe(0);
 	});
 
-	test("keeps navigation after successful persistence and inventory confirmation", () => {
+	test("routes a saved order to canonical inventory overview before fallback navigation", () => {
 		const saveIndex = formSource.indexOf("await handlePostSaveSuccess(resp)");
 		const inventoryIndex = formSource.indexOf(
-			"await configureInventoryAfterSave(resp)",
+			"continueToInventoryAfterSave(resp, true)",
 			saveIndex,
+		);
+		const inventoryReturnIndex = formSource.indexOf(
+			"if (inventoryOverviewOpened) return",
+			inventoryIndex,
 		);
 		const navigationIndex = formSource.indexOf(
 			'intent === "close"',
@@ -161,7 +165,8 @@ describe("new sales form save intent continuation", () => {
 
 		expect(saveIndex > -1).toBe(true);
 		expect(inventoryIndex > saveIndex).toBe(true);
-		expect(navigationIndex > inventoryIndex).toBe(true);
+		expect(inventoryReturnIndex > inventoryIndex).toBe(true);
+		expect(navigationIndex > inventoryReturnIndex).toBe(true);
 	});
 
 	test("blocks the save when required change-review preview cannot open", () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -26,6 +27,7 @@ import { useMemo } from "react";
 
 export function DispatchExceptionsView() {
 	const trpc = useTRPC();
+	const overview = useSalesOverviewQuery();
 	const { filters, setFilters } = useDispatchFilterParams();
 	const query = useSuspenseInfiniteQuery(
 		trpc.dispatch.exceptions.infiniteQueryOptions(
@@ -102,16 +104,14 @@ export function DispatchExceptionsView() {
 											variant="ghost"
 											size="sm"
 											onClick={() =>
-												setFilters({
-													dispatchId: row.delivery.id,
-													exceptionId: row.id,
-													sheetMode:
-														row.status === "open" ? "resolve" : "details",
-													detailTab: "activity",
-												})
+												overview.openDispatch(
+													row.delivery.order.orderId,
+													row.delivery.id,
+													"packing",
+												)
 											}
 										>
-											{row.status === "open" ? "Resolve" : "View"}
+											Open Packing
 										</Button>
 									</TableCell>
 								</TableRow>

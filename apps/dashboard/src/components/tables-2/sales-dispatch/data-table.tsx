@@ -73,7 +73,7 @@ export function DataTable({
 	const tableConfig = compact ? compactTableConfig : defaultTableConfig;
 	const trpc = useTRPC();
 	const { params } = useSortParams();
-	const { filters, setFilters } = useDispatchFilterParams();
+	const { filters } = useDispatchFilterParams();
 	const overviewQuery = useSalesOverviewQuery();
 	const parentRef = useRef<HTMLDivElement>(null);
 	const tableColumns = useMemo(
@@ -226,22 +226,13 @@ export function DataTable({
 		(rowId: string) => {
 			const dispatch = rowById.get(rowId);
 			if (!dispatch) return;
-			if (workspace) {
-				void setFilters({
-					dispatchId: dispatch.id,
-					sheetMode: "details",
-					detailTab: "overview",
-				});
-				return;
-			}
-
 			overviewQuery.openDispatch(
 				dispatch.order?.orderId,
 				dispatch.id,
 				"packing",
 			);
 		},
-		[overviewQuery, rowById, setFilters, workspace],
+		[overviewQuery, rowById],
 	);
 
 	const hasRouteFilters = Object.entries(filters).some(

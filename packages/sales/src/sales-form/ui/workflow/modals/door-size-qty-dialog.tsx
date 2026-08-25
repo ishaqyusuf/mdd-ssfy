@@ -19,7 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { sumMoney } from "../../../../payment-system/domain/money";
 import type { SalesFormLineItemRecord } from "../../../application";
@@ -27,8 +27,11 @@ import {
 	type DoorPriceBreakdownContext,
 	DoorPriceCell,
 	formatDoorSizeTitle,
-	updateDoorRowBasePrice,
 } from "../door-price-cell";
+import {
+	getDoorSizeDialogSessionKey,
+	updateDoorSizeDialogRowBasePrice,
+} from "../door-size-dialog-state";
 import {
 	getDoorSwingOptions,
 	normalizeDoorSwingValue,
@@ -114,12 +117,38 @@ function doorSizePricingDependency(size: string, supplierUid?: string | null) {
 		: normalizedSize;
 }
 
+function storedDoorSizeBasePrice(
+	component: DoorSizeQtyDialogProps["component"],
+	size?: string | null,
+	supplierUid?: string | null,
+) {
+	const dependenciesUid = doorSizePricingDependency(
+		String(size || ""),
+		supplierUid,
+	);
+	return component?.pricing?.[dependenciesUid]?.price ?? null;
+}
+
 export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 	const [rows, setRows] = useState<DoorLine[]>([]);
+	const initializedSessionKeyRef = useRef<string | null>(null);
 	const swingOptions = getDoorSwingOptions(props.line);
+	const sessionKey = getDoorSizeDialogSessionKey({
+		open: props.open,
+		lineUid: props.line.uid,
+		componentId: props.component?.id,
+		componentUid: props.component?.uid,
+		supplierUid: props.supplierUid,
+		profileCoefficient: props.profileCoefficient,
+	});
 
 	useEffect(() => {
-		if (!props.open || !props.component) return;
+		if (!sessionKey || !props.component) {
+			initializedSessionKeyRef.current = null;
+			return;
+		}
+		if (initializedSessionKeyRef.current === sessionKey) return;
+		initializedSessionKeyRef.current = sessionKey;
 		const existing = rowsForDoorComponent(
 			props.line,
 			props.component.id ?? null,
@@ -140,6 +169,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 		props.routeData,
 		props.profileCoefficient,
 		props.supplierUid,
+		sessionKey,
 	]);
 
 	const totals = useMemo(() => {
@@ -181,6 +211,28 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 			size,
 			supplierUid: props.supplierUid ?? null,
 		});
+	}
+
+	async function saveRowBasePrice(
+		row: DoorLine,
+		rowIndex: number,
+		nextBase: number,
+	) {
+		const rowsBeforeSave = rows;
+		setRows(
+			updateDoorSizeDialogRowBasePrice(
+				rowsBeforeSave,
+				rowIndex,
+				nextBase,
+				props.profileCoefficient,
+			),
+		);
+		try {
+			await saveBasePrice(row, nextBase);
+		} catch (error) {
+			setRows(rowsBeforeSave);
+			throw error;
+		}
 	}
 
 	function persistSelection(nextRows = totals.normalized, selected = true) {
@@ -266,22 +318,16 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 										<div className="min-w-[120px]">
 											<DoorPriceCell
 												row={row}
+												basePrice={storedDoorSizeBasePrice(
+													props.component,
+													row.dimension,
+													props.supplierUid,
+												)}
 												profileCoefficient={props.profileCoefficient}
 												priceBreakdown={props.priceBreakdown}
 												readOnly={!props.canEditPricing}
 												onSave={async (nextBase) => {
-													await saveBasePrice(row, nextBase);
-													setRows((prev) =>
-														prev.map((item, ri) =>
-															ri === index
-																? updateDoorRowBasePrice(
-																		item,
-																		nextBase,
-																		props.profileCoefficient,
-																	)
-																: item,
-														),
-													);
+													await saveRowBasePrice(row, index, nextBase);
 												}}
 											/>
 										</div>
@@ -463,22 +509,16 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 											<td className="px-4 py-3">
 												<DoorPriceCell
 													row={row}
+													basePrice={storedDoorSizeBasePrice(
+														props.component,
+														row.dimension,
+														props.supplierUid,
+													)}
 													profileCoefficient={props.profileCoefficient}
 													priceBreakdown={props.priceBreakdown}
 													readOnly={!props.canEditPricing}
 													onSave={async (nextBase) => {
-														await saveBasePrice(row, nextBase);
-														setRows((prev) =>
-															prev.map((item, ri) =>
-																ri === index
-																	? updateDoorRowBasePrice(
-																			item,
-																			nextBase,
-																			props.profileCoefficient,
-																		)
-																	: item,
-															),
-														);
+														await saveRowBasePrice(row, index, nextBase);
 													}}
 												/>
 											</td>

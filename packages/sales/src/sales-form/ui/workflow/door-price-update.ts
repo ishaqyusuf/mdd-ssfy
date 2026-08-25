@@ -29,10 +29,18 @@ function toNumber(value: unknown, fallback = 0) {
 
 function firstFiniteNumber(...values: Array<number | null | undefined>) {
 	for (const value of values) {
+		if (value == null) continue;
 		const candidate = Number(value);
 		if (Number.isFinite(candidate)) return candidate;
 	}
 	return null;
+}
+
+export function resolveDoorPriceEditorBasePrice(
+	row: DoorPriceRow,
+	storedBasePrice?: number | null,
+) {
+	return firstFiniteNumber(storedBasePrice, row.meta?.baseUnitPrice);
 }
 
 function calcDoorPriceRow<T extends DoorPriceRow>(row: T): T {

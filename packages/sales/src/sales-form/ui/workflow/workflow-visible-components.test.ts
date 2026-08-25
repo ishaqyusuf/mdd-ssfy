@@ -141,6 +141,39 @@ describe("workflow visible components", () => {
 		});
 	});
 
+	it("lets current catalogue pricing replace stale saved door-price snapshots", () => {
+		const components = resolveWorkflowVisibleComponents({
+			components: [
+				{
+					id: 1120,
+					uid: "door-edit",
+					title: "Current Door",
+					pricing: { "1-8 x 6-8": { id: 3220, price: 80.5 } },
+				},
+			],
+			steps: [],
+			activeStep: null,
+			overrides: new Map([
+				[
+					"door-edit",
+					{
+						pricing: {
+							"1-8 x 6-8": { id: 3219, price: 100 },
+							"legacy-only": { id: 44, price: 20 },
+						},
+					},
+				],
+			]),
+			includeCustomComponents: false,
+			profileCoefficient: 1,
+		});
+
+		expect(components[0]?.pricing).toEqual({
+			"1-8 x 6-8": { id: 3220, price: 80.5 },
+			"legacy-only": { id: 44, price: 20 },
+		});
+	});
+
 	it("hides unselected custom components while keeping the selected custom component visible", () => {
 		const components = resolveWorkflowVisibleComponents({
 			components: [

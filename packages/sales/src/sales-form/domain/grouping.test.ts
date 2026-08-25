@@ -89,6 +89,64 @@ describe("sales form grouped line parity", () => {
     expect(line.formSteps[1].meta.selectedComponents[0].img).toBe("casing.png");
   });
 
+  it("keeps aggregate moulding step values from repeating the first row name", () => {
+    const [line] = collapseLegacyGroupedLines([
+      {
+        id: 30,
+        uid: "moulding-primary",
+        multiDykeUid: "grp-aggregate-title",
+        multiDyke: true,
+        title: "Moulding",
+        description: "Casing",
+        qty: 2,
+        unitPrice: 70,
+        lineTotal: 140,
+        meta: {},
+        sourceMeta: {},
+        formSteps: [
+          { step: { title: "Item Type" }, value: "Moulding" },
+          {
+            step: { title: "Moulding" },
+            value: "Casing, Stop",
+            prodUid: "casing",
+          },
+        ],
+        housePackageTool: {
+          id: 301,
+          moldingId: 501,
+          stepProductId: 501,
+          meta: { priceTags: { moulding: { salesPrice: 70 } } },
+        },
+      },
+      {
+        id: 31,
+        uid: "moulding-secondary",
+        multiDykeUid: "grp-aggregate-title",
+        multiDyke: false,
+        title: "Moulding",
+        description: "Stop",
+        qty: 1,
+        unitPrice: 35,
+        lineTotal: 35,
+        meta: {},
+        sourceMeta: {},
+        formSteps: [],
+        housePackageTool: {
+          id: 302,
+          moldingId: 502,
+          stepProductId: 502,
+          meta: { priceTags: { moulding: { salesPrice: 35 } } },
+        },
+      },
+    ]);
+
+    const mouldingRows = (
+      line.meta as { mouldingRows: Array<{ title: string }> }
+    ).mouldingRows;
+    expect(mouldingRows.map((row) => row.title)).toEqual(["Casing", "Stop"]);
+    expect(line.formSteps[1].value).toBe("Casing, Stop");
+  });
+
   it("collapses legacy service siblings and preserves tax/production flags", () => {
     const [line] = collapseLegacyGroupedLines([
       {

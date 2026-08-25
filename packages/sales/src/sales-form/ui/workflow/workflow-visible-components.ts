@@ -60,10 +60,10 @@ export function resolveWorkflowCatalogComponents<
 		)
 		.map((component) => {
 			const override = overrides.get(String(component?.uid || ""));
-			const overridePricing =
-				override?.pricing && Object.keys(override.pricing).length > 0
-					? override.pricing
-					: component?.pricing;
+			const overridePricing = {
+				...(override?.pricing || {}),
+				...(component?.pricing || {}),
+			};
 			const overrideSupplierVariants =
 				Array.isArray(override?.supplierVariants) &&
 				override.supplierVariants.length > 0

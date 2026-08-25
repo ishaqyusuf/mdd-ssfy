@@ -1,6 +1,7 @@
 "use client";
 
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -33,7 +34,7 @@ type CalendarRow = {
 };
 
 function DispatchChip({ item }: { item: CalendarRow }) {
-	const { setFilters } = useDispatchFilterParams();
+	const overview = useSalesOverviewQuery();
 	const customer =
 		item.order?.customer?.businessName ||
 		item.order?.customer?.name ||
@@ -50,13 +51,11 @@ function DispatchChip({ item }: { item: CalendarRow }) {
 				"flex w-full flex-col gap-1 rounded-lg border bg-card p-2 text-left transition-colors hover:bg-muted/50",
 				overdue && "border-destructive",
 			)}
-			onClick={() =>
-				setFilters({
-					dispatchId: item.id,
-					sheetMode: "details",
-					detailTab: "overview",
-				})
-			}
+			onClick={() => {
+				const orderNo = item.order?.orderId;
+				if (!orderNo) return;
+				overview.openDispatch(orderNo, item.id, "packing");
+			}}
 		>
 			<div className="flex items-start justify-between gap-2">
 				<span className="truncate font-mono text-xs font-semibold">
@@ -198,4 +197,3 @@ export function DispatchCalendarView() {
 export function DispatchCalendarSkeleton() {
 	return <Skeleton className="h-[520px] rounded-xl" />;
 }
-

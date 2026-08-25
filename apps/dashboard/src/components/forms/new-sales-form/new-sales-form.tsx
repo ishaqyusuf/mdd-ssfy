@@ -11,6 +11,7 @@ import { env } from "@/env.mjs";
 import { useAuth } from "@/hooks/use-auth";
 import { useLegacyInventoryAdaptationTask } from "@/hooks/use-legacy-inventory-adaptation-task";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { buildSalesOverviewUrl } from "@/hooks/sales-overview-open-params";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
@@ -44,7 +45,6 @@ import {
 import { resolveLegacyInventoryPostSaveAction } from "../legacy-inventory-post-save";
 import { SalesFormAdoptionTracker } from "../sales-form-adoption-tracker";
 import { SalesFormVersionSwitcher } from "../sales-form-version-switcher";
-import { useSalesInventoryConfiguratorPrompt } from "../sales-form/inventory-configurator-dialog";
 import { PaymentMethodReviewDialog } from "../sales-form/payment-method-review-dialog";
 import { useSalesFormCapabilities } from "./adapters/use-sales-form-capabilities";
 import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
@@ -475,8 +475,6 @@ export function NewSalesForm(props: Props) {
     const [restoredHistoryEntry, setRestoredHistoryEntry] =
         useState<SalesHistoryEntry | null>(null);
     const [busyHistoryId, setBusyHistoryId] = useState<number | null>(null);
-    const { inventoryConfiguratorDialog, openSalesInventoryConfigurator } =
-        useSalesInventoryConfiguratorPrompt();
 	const legacyInventoryAdaptation = useLegacyInventoryAdaptationTask();
     const [usePackageWorkflowPanel, setUsePackageWorkflowPanelState] = useState(
         resolveInitialPackageWorkflowPanelEnabled,
@@ -1088,7 +1086,7 @@ export function NewSalesForm(props: Props) {
         [clearRecoveryKeys, markSaved, patchRecord, salesQueryClient, taskTrigger],
     );
 
-    const configureInventoryAfterSave = useCallback(
+    const continueToInventoryAfterSave = useCallback(
 		async (
 			resp: {
 			salesId?: number | null;
@@ -1100,7 +1098,7 @@ export function NewSalesForm(props: Props) {
 			},
 			afterSuccessfulSave: boolean,
 		) => {
-			if (!isOrder) return;
+			if (!isOrder) return false;
 			const action = resolveLegacyInventoryPostSaveAction({
 				salesId: resp.salesId,
 				orderNo: resp.orderId,
@@ -1108,21 +1106,27 @@ export function NewSalesForm(props: Props) {
 				inventoryStatus: resp.inventoryStatus,
 				savedOrderUpdatedAt: resp.updatedAt,
 				afterSuccessfulSave,
-				skipOrdinaryConfigurator: isLegacyPoOnlySaveResponse(resp),
+				skipOrdinaryInventoryContinuation: isLegacyPoOnlySaveResponse(resp),
 			});
 			if (action.action === "queue_legacy_adaptation") {
 				await legacyInventoryAdaptation.queue(action);
-				return;
+				return false;
 			}
-			if (action.action === "configure_inventory") {
-				await openSalesInventoryConfigurator(action.salesOrderId);
+			if (action.action === "open_inventory_overview") {
+				router.push(
+					buildSalesOverviewUrl(action.orderNo, "sales", {
+						salesTab: "inventory",
+					}),
+				);
+				return true;
 			}
+			return false;
         },
 		[
 			isOrder,
 			legacyInventoryAdaptation,
-			openSalesInventoryConfigurator,
 			props.type,
+			router,
 		],
     );
 
@@ -1477,13 +1481,15 @@ export function NewSalesForm(props: Props) {
                     autosave: false,
                 });
                 await handlePostSaveSuccess(resp);
-				await configureInventoryAfterSave(resp, true);
+				const inventoryOverviewOpened =
+					await continueToInventoryAfterSave(resp, true);
                 await clearSelectedCustomerQuery();
                 toast({
                     title: "Saved",
                     description: `${props.type} ${resp?.orderId} has been finalized.`,
                     variant: "success",
                 });
+				if (inventoryOverviewOpened) return;
                 if (props.mode === "create") {
                     const editHref = buildEditHref(resp);
                     if (editHref) router.push(editHref);
@@ -1516,9 +1522,12 @@ export function NewSalesForm(props: Props) {
             });
             if (!resp) return;
             await handlePostSaveSuccess(resp);
-			await configureInventoryAfterSave(resp, true);
+			const inventoryOverviewOpened =
+				await continueToInventoryAfterSave(resp, true);
             await clearSelectedCustomerQuery();
             if (intent === "draft") {
+				toast({ title: "Draft saved", variant: "success" });
+				if (inventoryOverviewOpened) return;
                 if (props.mode === "create") {
                     const editHref = buildEditHref(resp);
                     if (editHref) {
@@ -1526,11 +1535,13 @@ export function NewSalesForm(props: Props) {
                         return;
                     }
                 }
-                toast({ title: "Draft saved", variant: "success" });
                 return;
             }
+			if (inventoryOverviewOpened) return;
         } else {
-			await configureInventoryAfterSave(currentRecord, false);
+			const inventoryOverviewOpened =
+				await continueToInventoryAfterSave(currentRecord, false);
+			if (inventoryOverviewOpened) return;
         }
         router.push(
             intent === "close"
@@ -1936,7 +1947,6 @@ export function NewSalesForm(props: Props) {
                 enabled={usePackageWorkflowPanel}
                 onChange={setUsePackageWorkflowPanel}
             />
-            {inventoryConfiguratorDialog}
 			<SalesChangeReviewSheet
 				open={changeReviewOpen}
 				onOpenChange={(open) => {

@@ -39,6 +39,32 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(header).toContain("summary.data?.backlog");
 	});
 
+	it("places tabs and search immediately above the All table", () => {
+		const dashboard = readDashboard(
+			"components/dispatch-admin/views/dispatch-dashboard-view.tsx",
+		);
+		const headerPosition = dashboard.indexOf("<DispatchAdminHeader />");
+		expect(headerPosition).toBeGreaterThan(dashboard.indexOf("data.overdue"));
+		expect(headerPosition).toBeLessThan(dashboard.indexOf("<DataTable"));
+	});
+
+	it("opens Sales Overview Packing instead of the V2 dispatch sheet", () => {
+		const page = readDashboard(
+			"app/(sidebar)/(sales)/sales-book/fulfillment/v2/page.tsx",
+		);
+		const table = readDashboard(
+			"components/tables-2/sales-dispatch/data-table.tsx",
+		);
+		const workspaceColumns = readDashboard(
+			"components/tables-2/sales-dispatch/workspace-columns.tsx",
+		);
+		expect(page).not.toContain("DispatchSheet");
+		expect(table).toContain("overviewQuery.openDispatch(");
+		expect(table).not.toContain('sheetMode: "details"');
+		expect(workspaceColumns).toContain('openDispatch(item.order?.orderId, item.id, "packing")');
+		expect(workspaceColumns).not.toContain("openSheet(");
+	});
+
 	it("uses a permission-aware driver tile and role-prefilled employee modal", () => {
 		const drivers = readDashboard(
 			"components/dispatch-admin/views/dispatch-drivers-view.tsx",

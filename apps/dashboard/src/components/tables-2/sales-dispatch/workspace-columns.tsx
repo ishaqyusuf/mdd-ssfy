@@ -1,29 +1,12 @@
 "use client";
 
-import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@gnd/ui/dropdown-menu";
 import { Progress } from "@gnd/ui/progress";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-	CalendarClock,
-	CircleAlert,
-	ClipboardList,
-	MoreHorizontal,
-	PackageCheck,
-	Truck,
-	UserRoundPlus,
-} from "lucide-react";
+import { PackageCheck } from "lucide-react";
 import type { SalesDispatch } from "./columns";
 
 type Column = ColumnDef<SalesDispatch>;
@@ -67,59 +50,19 @@ function formatDate(value: Date | string | null | undefined) {
 }
 
 function WorkspaceActions({ item }: { item: SalesDispatch }) {
-	const { setFilters } = useDispatchFilterParams();
 	const overview = useSalesOverviewQuery();
-	const openSheet = (mode: "details" | "assign" | "schedule" | "exception") => {
-		void setFilters({
-			dispatchId: item.id,
-			sheetMode: mode,
-			detailTab: "overview",
-		});
-	};
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button
-					variant="ghost"
-					size="icon"
-					aria-label={`Actions for ${item.order?.orderId || `dispatch ${item.id}`}`}
-					onClick={(event) => event.stopPropagation()}
-				>
-					<MoreHorizontal />
-				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-52">
-				<DropdownMenuGroup>
-					<DropdownMenuItem onSelect={() => openSheet("details")}>
-						<ClipboardList />
-						View dispatch
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={() => openSheet("assign")}>
-						<UserRoundPlus />
-						{item.driver ? "Reassign driver" : "Assign driver"}
-					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={() => openSheet("schedule")}>
-						<CalendarClock />
-						{item.dueDate ? "Reschedule" : "Schedule"}
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						onSelect={() =>
-							overview.openDispatch(item.order?.orderId, item.id, "packing")
-						}
-					>
-						<PackageCheck />
-						Open Packing
-					</DropdownMenuItem>
-				</DropdownMenuGroup>
-				<DropdownMenuSeparator />
-				<DropdownMenuGroup>
-					<DropdownMenuItem onSelect={() => openSheet("exception")}>
-						<CircleAlert />
-						Report exception
-					</DropdownMenuItem>
-				</DropdownMenuGroup>
-			</DropdownMenuContent>
-		</DropdownMenu>
+		<Button
+			variant="ghost"
+			size="icon"
+			aria-label={`Open Packing for ${item.order?.orderId || `dispatch ${item.id}`}`}
+			onClick={(event) => {
+				event.stopPropagation();
+				overview.openDispatch(item.order?.orderId, item.id, "packing");
+			}}
+		>
+			<PackageCheck />
+		</Button>
 	);
 }
 

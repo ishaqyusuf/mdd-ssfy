@@ -1,6 +1,5 @@
 "use client";
 
-import { useSalesInventoryConfiguratorPrompt } from "@/components/forms/sales-form/inventory-configurator-dialog";
 import {
 	getInventoryInboundOwnershipLabel,
 	getInventoryInboundOwnershipStatus,
@@ -963,8 +962,6 @@ function ActionCell({ item }: { item: SalesOrder }) {
 	const queryClient = useQueryClient();
 	const overviewQuery = useSalesOverviewQuery();
 	const { filters } = useSalesOrdersV2FilterParams();
-	const { inventoryConfiguratorDialog, openSalesInventoryConfigurator } =
-		useSalesInventoryConfiguratorPrompt();
 	const [paymentLinkOpen, setPaymentLinkOpen] = useState(false);
 	const [paymentLink, setPaymentLink] = useState<{
 		url: string;
@@ -1011,7 +1008,6 @@ function ActionCell({ item }: { item: SalesOrder }) {
 
 	return (
 		<>
-			{inventoryConfiguratorDialog}
 			<PaymentLinkDialog
 				open={paymentLinkOpen}
 				onOpenChange={setPaymentLinkOpen}
@@ -1075,9 +1071,11 @@ function ActionCell({ item }: { item: SalesOrder }) {
 					contentClassName="min-w-56"
 				>
 					<SalesMenu.Item
-						disabled={!item.id}
+						disabled={!item.uuid}
 						onSelect={() => {
-							void openSalesInventoryConfigurator(item.id);
+							overviewQuery.open(item.uuid, "sales", {
+								salesTab: "inventory",
+							});
 						}}
 					>
 						<Icons.PackageOpen className="mr-2 size-4 text-muted-foreground/70" />

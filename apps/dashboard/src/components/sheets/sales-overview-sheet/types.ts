@@ -18,7 +18,6 @@ export type LegacySalesOverviewTabId =
 	| "general"
 	| "production"
 	| "production-notes"
-	| "dispatch-notes"
 	| "transactions"
 	| "activity"
 	| "inbound"

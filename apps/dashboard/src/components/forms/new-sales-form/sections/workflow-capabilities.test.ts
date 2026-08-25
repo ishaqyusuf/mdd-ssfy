@@ -106,6 +106,9 @@ describe("Dashboard sales form workflow capabilities", () => {
 		expect(source).toMatch(
 			/<DoorSizeQtyDialog[\s\S]*canEditPricing=\{[\s\S]*workflowAdminCapabilities\.canEditLinePricing[\s\S]*\}[\s\S]*onPriceSave=/,
 		);
+		expect(source).toMatch(
+			/const refreshed = await doorStepComponentsQuery\.refetch\(\);[\s\S]*setDoorStepModal/,
+		);
 	});
 
 	test("wires grouped service and shelf pricing editability through capabilities", () => {

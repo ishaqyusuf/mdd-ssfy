@@ -32,6 +32,12 @@ opening production, dispatch, packing, or inventory workflows.
 ## Runtime Behavior
 
 - The canonical orders list stays mounted behind the sheet.
+- Ordinary order saves from both sales editors now continue to the canonical
+  `/sales-book/orders` workspace with the saved order's Sales Overview open on
+  `salesTab=inventory`. The former form-owned Configure Inventory dialog was
+  removed, and order-table Inventory actions use the same URL-driven overview
+  tab. Recognized legacy inventory statuses still queue their adaptation task
+  instead of opening the ordinary Inventory continuation.
 - The order-only Inventory tab has no `New` badge; it remains available with
   its existing inventory workflow unchanged.
 - General tab content uses the sheet's horizontal gutter rather than adding a
@@ -352,6 +358,7 @@ The temporary General renderer rollout is governed by
   command row; and Super Admin packing remains available inside More. The V2
   header intentionally preserves the established V1 tab-bar presentation
   rather than introducing a second tab visual contract.
+
 - The V2 tab container has a full-width bottom rule and no negative overlap
   with the scroll surface. General owns 96px (`pb-24`) end clearance instead of
   inheriting the shared sheet default, allowing the customer/financial divider
@@ -398,3 +405,12 @@ The temporary General renderer rollout is governed by
   `git diff --check` passes. No browser QA or payment submission was performed.
 - No schema, migration, API contract, permission, or ADR changed; this adopts
   the existing hidden sales-print viewer and payment contracts.
+
+## Validation (2026-08-25 — post-save Inventory continuation)
+
+- Focused routing, save-continuation, inventory sync, grouped-line, and Sales
+  Overview URL coverage passes 40 tests / 183 assertions.
+- Authenticated development validation saved order `09433PC` and landed at
+  `/sales-book/orders?sales-overview-id=09433PC&sales-type=order&mode=sales&salesTab=inventory`.
+  Sales Overview opened with Inventory selected and no Configure Inventory
+  dialog mounted.

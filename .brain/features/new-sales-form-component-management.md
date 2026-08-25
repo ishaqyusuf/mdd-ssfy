@@ -62,6 +62,9 @@ package host supply the complete catalog to the step picker. Successful writes
 invalidate step-component and routing queries, refetch active picker data,
 queue Dyke-to-inventory sync, and patch matching selected-component snapshots
 so badges, redirects, and pricing respond without reopening the sale.
+The new Sales Form requests a fresh step-component snapshot instead of trusting
+the long-lived workflow cache, and current catalog pricing wins when it is
+merged with a saved sale's older component snapshot.
 
 ## Permissions
 
@@ -90,6 +93,15 @@ families retain their legacy free-text swing behavior.
 
 - HPT keeps `Add Size` reachable before the first active-door row exists and
   when another selected door owns the only persisted rows.
+- Door-size quantity edits remain local to one stable open-dialog session while
+  a base-price mutation and component-query refresh complete. The target row is
+  repriced optimistically without clearing quantities on any row, failures roll
+  back the local price, and the dashboard replaces the modal component with the
+  freshly refetched catalog snapshot so newly added size pricing remains present
+  after closing and reopening the door. Door-size writes also update active rows
+  by the legacy natural key (`stepProductUid` plus size/supplier dependency), so
+  stale client IDs cannot create conflicting prices; the edit popover prefills
+  from that current catalog bucket.
 - Shelf sections expose the category path used by the legacy editor; changing
   or clearing it resets stale product, pricing, and subtotal state before the
   next selection.

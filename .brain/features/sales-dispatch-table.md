@@ -1,6 +1,28 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-25: Simplified Sales Overview dispatch mode to two meaningful tabs:
+  `Productions` and `Overview`. The empty `General` tab was removed and the
+  admin-facing `Packing List` label became `Overview`, while its established
+  packing content and secondary Pack Items workflow remain unchanged. Driver
+  stop packing continues as a dedicated single-screen route without Sales
+  Overview tabs. A GStack HTML comparison at
+  `~/.gstack/projects/gnd/designs/dispatch-overview-admin-driver-20260825/`
+  provides three admin concepts (Command Overview, Operations Ledger, Stage
+  Control) and three driver concepts (Packing Command Sheet, Load Bay Ledger,
+  Pack Coach). No redesigned concept has been implemented; selection remains
+  the gate for the next UI phase.
+- 2026-08-25: Removed the Fulfillment V2 dispatch detail sheet and its parallel
+  overview/packing/proof/action UI. All table rows, calendar dispatches,
+  exception actions, and the table action button now open the existing Sales
+  Overview sheet directly on Packing for the selected order and dispatch. The
+  separate multi-order Create Dispatch dialog remains. This consolidates
+  packing continuation on the established Sales Overview authority instead of
+  maintaining a second redesign.
+- 2026-08-25: Fulfillment V2 now places its PageTabs/search/filter/action
+  toolbar after the analytics and overdue alert, immediately above the All
+  dispatch table. Backlog, Calendar, Drivers, and Exceptions retain the toolbar
+  directly above their section content.
 - 2026-08-25: Fulfillment V2 is now the sidebar destination for order editors
   and uses the same `editOrders` page boundary as the former linked
   Fulfillment page. Its navigation is reduced to generated `All`, counted
@@ -178,18 +200,26 @@
   `cancelled` without rewriting historical rows.
 - The admin route is a thin server composition boundary. It loads URL/sort
   state and table settings, prefetches only the active section, then hydrates
-  the client workspace and always-mounted dispatch sheet.
+	  the client workspace. The global Sales Overview sheet owns dispatch packing
+	  continuation.
 - The title and five colored summary cards follow the established Fulfillment
   visual language. Search, semantic filters, PageTabs, table column tools, and
   administrative overflow share one Midday-style toolbar. Calendar is selected
   only through its page tab; automatic refresh and CSV export are intentionally
   absent.
 - The URL-owned create mode opens a dialog with server-backed multi-order
-  search and removable order-number pills. Assign/reassign, schedule, durable
-  exception report/resolve, and detail tabs for overview, packing,
-  route/contact, proof, and activity remain in the detail sheet.
-- Packing execution still belongs to `/sales/packing-list`. Fulfillment
-  displays readiness and deep-links into that accepted workflow.
+	  search and removable order-number pills. The former V2 dispatch detail
+	  sheet and its assign/schedule/exception/proof surfaces were removed; row,
+	  calendar, exception, and action-button entry points open Sales Overview on
+	  its Packing tab with the selected dispatch id.
+- Sales Overview dispatch mode labels the established packing surface
+  `Overview` and exposes only `Productions` and `Overview`. The driver task
+  route remains a role-specific, tabless stop workspace. Assignment,
+  rescheduling, delivery-mode, and blocker controls shown in the HTML concepts
+  are design proposals only until an admin option is selected.
+- Packing continuation belongs to the established Sales Overview Packing
+	  workflow (which retains the accepted packing authorities and secondary Pack
+	  Items sheet). Fulfillment displays readiness and opens that workflow.
 - The workspace table removes unrestricted trip status selection. Assignment,
   scheduling, packing, exceptions, start, proof completion, fulfillment, and
   cancellation retain their guarded domain commands.

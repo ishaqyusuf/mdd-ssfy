@@ -4,6 +4,7 @@ import {
 	DispatchAdminSummary,
 	DispatchAdminSummarySkeleton,
 } from "@/components/dispatch-admin/dispatch-admin-summary";
+import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-header";
 import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
 import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
@@ -55,6 +56,7 @@ export function DispatchDashboardView({
 					</AlertDescription>
 				</Alert>
 			) : null}
+			<DispatchAdminHeader />
 			<Suspense
 				fallback={<SalesDispatchSkeleton initialSettings={initialSettings} />}
 			>

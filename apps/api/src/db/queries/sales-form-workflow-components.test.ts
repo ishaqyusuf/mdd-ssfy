@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
 	archiveWorkflowComponentsSchema,
 	createWorkflowComponentSchema,
+	getStepComponentsSchema,
 	saveWorkflowComponentDetailsSchema,
 	saveWorkflowComponentPricingSchema,
 	saveWorkflowComponentVisibilitySchema,
@@ -14,6 +15,12 @@ const repositoryRoot = existsSync(resolve(process.cwd(), "apps/api/src"))
 	: resolve(process.cwd(), "../..");
 
 describe("workflow component mutation contracts", () => {
+	test("allows the new sales form to bypass stale workflow component cache", () => {
+		expect(
+			getStepComponentsSchema.parse({ stepId: 51, fresh: true }),
+		).toMatchObject({ stepId: 51, fresh: true });
+	});
+
 	test("accepts the catalog details and OR/AND visibility contracts", () => {
 		expect(
 			saveWorkflowComponentDetailsSchema.parse({

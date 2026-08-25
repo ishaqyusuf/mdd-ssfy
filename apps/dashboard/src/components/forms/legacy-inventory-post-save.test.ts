@@ -22,7 +22,7 @@ describe("legacy inventory post-save routing", () => {
 		});
 	});
 
-	it("keeps the configurator for ordinary saved orders", () => {
+	it("opens the canonical inventory overview for ordinary saved orders", () => {
 		expect(
 			resolveLegacyInventoryPostSaveAction({
 				salesId: 24058,
@@ -32,7 +32,10 @@ describe("legacy inventory post-save routing", () => {
 				savedOrderUpdatedAt: "2026-08-24T20:00:00.000Z",
 				afterSuccessfulSave: true,
 			}),
-		).toEqual({ action: "configure_inventory", salesOrderId: 24058 });
+		).toEqual({
+			action: "open_inventory_overview",
+			orderNo: "09406PC",
+		});
 	});
 
 	it("never queues adaptation from an open-only historical order", () => {
@@ -57,7 +60,7 @@ describe("legacy inventory post-save routing", () => {
 				inventoryStatus: "AVAILABLE",
 				savedOrderUpdatedAt: "2026-08-24T19:57:53.000Z",
 				afterSuccessfulSave: true,
-				skipOrdinaryConfigurator: true,
+				skipOrdinaryInventoryContinuation: true,
 			}),
 		).toEqual({
 			action: "queue_legacy_adaptation",
@@ -68,7 +71,7 @@ describe("legacy inventory post-save routing", () => {
 		});
 	});
 
-	it("suppresses the ordinary configurator for a PO-only save", () => {
+	it("suppresses the ordinary inventory continuation for a PO-only save", () => {
 		expect(
 			resolveLegacyInventoryPostSaveAction({
 				salesId: 24058,
@@ -77,7 +80,7 @@ describe("legacy inventory post-save routing", () => {
 				inventoryStatus: null,
 				savedOrderUpdatedAt: "2026-08-24T20:00:00.000Z",
 				afterSuccessfulSave: true,
-				skipOrdinaryConfigurator: true,
+				skipOrdinaryInventoryContinuation: true,
 			}),
 		).toEqual({ action: "none" });
 	});

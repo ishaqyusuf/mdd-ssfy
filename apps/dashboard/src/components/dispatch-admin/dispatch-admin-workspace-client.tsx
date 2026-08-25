@@ -24,8 +24,9 @@ export function DispatchAdminWorkspaceClient({
 	initialSettings?: Partial<TableSettings>;
 }) {
 	const { filters } = useDispatchFilterParams();
+	const showsOverview = ["dashboard", "dispatches"].includes(filters.section);
 	let content: React.ReactNode;
-	if (["dashboard", "dispatches"].includes(filters.section)) {
+	if (showsOverview) {
 		content = <DispatchDashboardView initialSettings={initialSettings} />;
 	} else if (filters.section === "backlog") {
 		content = <DispatchBacklogView />;
@@ -41,13 +42,13 @@ export function DispatchAdminWorkspaceClient({
 
 	return (
 		<div className="flex flex-col gap-4">
-			<DispatchAdminHeader />
+			{showsOverview ? null : <DispatchAdminHeader />}
 			<ErrorBoundary errorComponent={ErrorFallback}>
 				<Suspense
 					fallback={
 						filters.section === "calendar" ? (
 							<DispatchCalendarSkeleton />
-						) : ["dashboard", "dispatches"].includes(filters.section) ? (
+						) : showsOverview ? (
 							<SalesDispatchSkeleton initialSettings={initialSettings} />
 						) : (
 							<Skeleton className="h-[480px] rounded-xl" />

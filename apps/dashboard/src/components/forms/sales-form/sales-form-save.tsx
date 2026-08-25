@@ -13,6 +13,7 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 
 import { useLegacyInventoryAdaptationTask } from "@/hooks/use-legacy-inventory-adaptation-task";
+import { buildSalesOverviewUrl } from "@/hooks/sales-overview-open-params";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { toast } from "@gnd/ui/use-toast";
@@ -21,7 +22,6 @@ import { useRouter } from "next/navigation";
 import { parseAsBoolean, useQueryStates } from "nuqs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { resolveLegacyInventoryPostSaveAction } from "../legacy-inventory-post-save";
-import { useSalesInventoryConfiguratorPrompt } from "./inventory-configurator-dialog";
 
 interface Props {
 	type?: "button" | "menu";
@@ -55,8 +55,6 @@ export function SalesFormSave({
 	const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
 		null,
 	);
-	const { inventoryConfiguratorDialog, openSalesInventoryConfigurator } =
-		useSalesInventoryConfiguratorPrompt();
 	const legacyInventoryAdaptation = useLegacyInventoryAdaptationTask();
 	async function save(action: "new" | "close" | "default" = "default") {
 		if (disabled || saveLockRef.current || isSaving) return;
@@ -129,11 +127,16 @@ export function SalesFormSave({
 				savedOrderUpdatedAt: resp.updatedAt,
 				afterSuccessfulSave: true,
 			});
+			let inventoryOverviewHref: string | null = null;
 			if (inventoryPostSaveAction.action === "queue_legacy_adaptation") {
 				await legacyInventoryAdaptation.queue(inventoryPostSaveAction);
-			} else if (inventoryPostSaveAction.action === "configure_inventory") {
-				await openSalesInventoryConfigurator(
-					inventoryPostSaveAction.salesOrderId,
+			} else if (
+				inventoryPostSaveAction.action === "open_inventory_overview"
+			) {
+				inventoryOverviewHref = buildSalesOverviewUrl(
+					inventoryPostSaveAction.orderNo,
+					"sales",
+					{ salesTab: "inventory" },
 				);
 			}
 			const syncSavedForm = syncExtraCosts.then(() => {
@@ -160,6 +163,10 @@ export function SalesFormSave({
 						title: "Saved",
 					});
 				}
+			}
+			if (inventoryOverviewHref) {
+				router.push(inventoryOverviewHref);
+				return;
 			}
 			switch (action) {
 				case "close":
@@ -355,10 +362,5 @@ export function SalesFormSave({
 			</>
 		);
 
-	return (
-		<>
-			{inventoryConfiguratorDialog}
-			{saveControl}
-		</>
-	);
+	return saveControl;
 }

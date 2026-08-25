@@ -154,6 +154,7 @@ export function useSalesStepComponentsQuery(
 			{
 				stepId: input.stepId || undefined,
 				stepTitle: input.stepTitle || undefined,
+				fresh: true,
 			},
 			{
 				enabled: enabled && (!!input.stepId || !!input.stepTitle),

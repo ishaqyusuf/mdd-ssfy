@@ -54,6 +54,7 @@ import {
 	buildOptionLabelLookup,
 	normalizeFilterDefinitions,
 } from "./filter-definitions";
+import { shouldShowFilterMenu } from "./filter-menu-visibility";
 import { FilterList } from "./filter-list";
 import { isSearchKey, searchIcons } from "./search-utils";
 import {
@@ -167,7 +168,11 @@ export function SearchFilterTRPC({
 	const nonSearchDefinitions = definitions.filter(
 		(definition) => !isSearchKey(definition.key),
 	);
-	const hasFilterMenu = loading || nonSearchDefinitions.length > 0;
+	const hasFilterMenu = shouldShowFilterMenu({
+		filterList,
+		loading: Boolean(loading),
+		nonSearchDefinitionCount: nonSearchDefinitions.length,
+	});
 	const activeSortLabel = useMemo(
 		() => getSortLabel(searchParams.get("sort")),
 		[searchParams],

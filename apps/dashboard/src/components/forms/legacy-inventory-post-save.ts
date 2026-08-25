@@ -7,12 +7,12 @@ type LegacyInventoryPostSaveInput = {
 	inventoryStatus?: string | null;
 	savedOrderUpdatedAt?: string | null;
 	afterSuccessfulSave: boolean;
-	skipOrdinaryConfigurator?: boolean;
+	skipOrdinaryInventoryContinuation?: boolean;
 };
 
 export type LegacyInventoryPostSaveAction =
 	| { action: "none" }
-	| { action: "configure_inventory"; salesOrderId: number }
+	| { action: "open_inventory_overview"; orderNo: string }
 	| {
 			action: "queue_legacy_adaptation";
 			salesOrderId: number;
@@ -41,7 +41,8 @@ export function resolveLegacyInventoryPostSaveAction(
 			savedOrderUpdatedAt: input.savedOrderUpdatedAt,
 		};
 	}
-	if (input.skipOrdinaryConfigurator) return { action: "none" };
+	if (input.skipOrdinaryInventoryContinuation) return { action: "none" };
+	if (!input.orderNo) return { action: "none" };
 
-	return { action: "configure_inventory", salesOrderId };
+	return { action: "open_inventory_overview", orderNo: input.orderNo };
 }

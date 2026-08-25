@@ -79,7 +79,8 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(adminListWorkspace.includes("enableSalesMarkAs")).toBe(true);
 		expect(adminRoute.includes("DispatchAdminWorkspaceClient")).toBe(false);
 		expect(adminV2Route.includes("DispatchAdminWorkspaceClient")).toBe(true);
-		expect(adminV2Route.includes("DispatchSheet")).toBe(true);
+		expect(adminV2Route.includes("DispatchSheet")).toBe(false);
+		expect(adminV2Route.includes("CreateDispatchDialog")).toBe(true);
 		expect(adminV2Route.includes('rules={[_perm.is("editOrders")]}')).toBe(true);
 		expect(adminV2Route.includes('_role.is("Super Admin")')).toBe(false);
 		expect(

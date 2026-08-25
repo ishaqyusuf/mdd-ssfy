@@ -47,10 +47,18 @@ avoidable Function Duration and invocation amplification.
 
 - The existing `monitor-gnd-vercel-cost` thread heartbeat is temporarily running
   hourly because Codex permits only one heartbeat automation per thread.
-- Each hourly run performs read-only Preview Sales Orders checks for broad search
-  `APA` and exact order `09379PC`, records timings and browser evidence under
-  `.gstack/canary-reports/`, and alerts only on a confirmed retry failure,
-  authentication loss, or untrustworthy evidence.
+- The first three hourly runs used the in-app browser and could not obtain an
+  authenticated Preview session. Starting 2026-08-25 at 10:53 Africa/Lagos,
+  the canary uses the authenticated Chrome connector instead.
+- Each remaining hourly run performs read-only Preview Sales Orders checks for
+  broad search `APA` and exact order `09379PC`, records timings and browser
+  evidence under `.gstack/canary-reports/`, and alerts only on a confirmed retry
+  failure, authentication loss, or untrustworthy evidence.
+- The Chrome switch check reached Preview successfully. The first `APA` request
+  showed a transient application error, its required retry completed with a
+  valid no-results state, and exact order `09379PC` returned one row in about
+  3.54 seconds. Chrome navigation control timed out while the page still loaded,
+  so this is a functional/search baseline, not a trustworthy list-load baseline.
 - The normal Vercel cost snapshot still runs only at 09:00 Africa/Lagos during
   this window. Hourly browser checks do not run the usage command.
 - The canary ends at 07:00 Africa/Lagos on 2026-08-26. It must write

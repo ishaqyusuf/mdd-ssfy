@@ -232,6 +232,14 @@
   action column without a visible header label. The accessible Actions name is
   retained for assistive technology, while Swing receives a wider fixed column
   and its selector stays within that cell instead of crowding the LH control.
+- Grouped moulding hydration treats each legacy sales-item description as the
+  row-scoped title instead of treating the primary Moulding step's aggregate
+  label as one row's name. Repeated saves therefore keep the selected component
+  label stable, and previously inflated first-row names self-correct on reload.
+- Ordinary order saves no longer mount a form-specific inventory configurator.
+  They continue through the canonical Sales Overview URL contract and land on
+  the saved order's Inventory tab; legacy inventory-status adaptation remains
+  on its existing queued path.
 - Desktop invoice-item headers reserve an additional 12px after the title input
   before the line-total/actions column. Mobile stacking and the existing total
   alignment remain unchanged.
@@ -309,6 +317,11 @@
   confirms the current House Package Tool pill has a strong primary fill,
   high-contrast foreground text, visible light border, and unchanged inactive
   pills.
+- 2026-08-25 grouped moulding title regression coverage passes 5 tests / 27
+  assertions, and the grouped API suite passes 10 tests / 94 assertions.
+  Authenticated development proof on `09433PC` confirms that Item 5 retains five
+  distinct moulding names after a Save and reload, with no repeated aggregate
+  label on the first row.
 - API sales-form transaction/parity tests: 29 tests / 237 assertions, plus 3
   bounded post-save tests / 8 assertions.
 - Shelf Decimal projection, render-stability, and print-data regression slice:

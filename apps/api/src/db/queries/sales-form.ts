@@ -536,6 +536,7 @@ export const getStepComponentsSchema = z.object({
 	ids: z.array(z.number()).optional().nullable(),
 	stepIds: z.array(z.number()).optional().nullable(),
 	isCustom: z.boolean().optional().nullable(),
+	fresh: z.boolean().optional(),
 });
 export type GetStepComponentsSchema = z.infer<typeof getStepComponentsSchema>;
 
@@ -543,6 +544,7 @@ export async function getStepComponents(
 	ctx: TRPCContext,
 	query: GetStepComponentsSchema,
 ) {
+	if (query.fresh) return fetchStepComponentsFromDb(ctx, query);
 	const cached =
 		await salesWorkflowCache.getStepComponents<StepComponentData[]>(query);
 	if (cached) return cached;

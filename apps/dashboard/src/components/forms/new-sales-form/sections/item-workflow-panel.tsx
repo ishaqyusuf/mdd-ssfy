@@ -2905,7 +2905,22 @@ export function ItemWorkflowPanel() {
 								formSteps: steps,
 							} as Partial<NewSalesFormLineItem>);
 						}
-						await doorStepComponentsQuery.refetch();
+						const refreshed = await doorStepComponentsQuery.refetch();
+						const refreshedComponent = (refreshed.data || []).find(
+							(component) =>
+								String(component?.uid || "") === String(stepProductUid || ""),
+						);
+						if (refreshedComponent) {
+							setDoorStepModal((prev) =>
+								String(prev.component?.uid || "") ===
+								String(stepProductUid || "")
+									? {
+											...prev,
+											component: refreshedComponent,
+										}
+									: prev,
+							);
+						}
 					}}
 					onSupplierChange={(supplierUid) => {
 						if (activeDoorStepIndex < 0) return;

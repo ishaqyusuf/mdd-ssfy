@@ -65,7 +65,10 @@ function SalesInboundsSearchFilter() {
 		<SearchFilterProvider
 			args={[{ filterSchema: salesInboundWorkspaceParams }]}
 		>
-			<SearchFilterTRPC placeholder="Search inbound, supplier, reference" />
+			<SearchFilterTRPC
+				placeholder="Search inbound, supplier, reference"
+				filterList={[]}
+			/>
 		</SearchFilterProvider>
 	);
 }

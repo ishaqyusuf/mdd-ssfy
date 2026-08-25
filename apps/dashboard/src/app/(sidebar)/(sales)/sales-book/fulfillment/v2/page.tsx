@@ -2,7 +2,6 @@ import { AuthGuard } from "@/components/auth-guard";
 import { CreateDispatchDialog } from "@/components/dispatch-admin/create-dispatch-dialog";
 import { DispatchAdminTitle } from "@/components/dispatch-admin/dispatch-admin-title";
 import { DispatchAdminWorkspaceClient } from "@/components/dispatch-admin/dispatch-admin-workspace-client";
-import { DispatchSheet } from "@/components/dispatch-admin/dispatch-sheet";
 import PageShell from "@/components/page-shell";
 import { ScrollableContent } from "@/components/scrollable-content";
 import { _perm } from "@/components/sidebar-links";
@@ -122,7 +121,6 @@ export default async function DispatchAdminPage({ searchParams }: Props) {
 							<DispatchAdminWorkspaceClient initialSettings={initialSettings} />
 						</div>
 					</ScrollableContent>
-					<DispatchSheet />
 					<CreateDispatchDialog />
 				</AuthGuard>
 			</HydrateClient>

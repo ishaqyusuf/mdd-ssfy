@@ -123,12 +123,8 @@ export function createLegacySalesOverviewTabs({
 					content: <ProductionTabGateway />,
 				},
 				{
-					value: "dispatch-notes",
-					label: "General",
-				},
-				{
 					value: "packing",
-					label: "Packing List",
+					label: "Overview",
 					content: (
 						<PackingTab
 							packItemsOpen={packItemsOpen}

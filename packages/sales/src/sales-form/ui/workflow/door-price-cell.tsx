@@ -18,10 +18,14 @@ import {
 	type CostPriceBreakdownLabels,
 } from "./cost-price-breakdown-hover";
 import { profileAdjustedDoorSalesPrice } from "./door-pricing";
-import type { DoorPriceRow } from "./door-price-update";
+import {
+	resolveDoorPriceEditorBasePrice,
+	type DoorPriceRow,
+} from "./door-price-update";
 
 export {
 	patchDoorRowCustomPrice,
+	resolveDoorPriceEditorBasePrice,
 	updateDoorRowBasePrice,
 } from "./door-price-update";
 export type { DoorPriceRow } from "./door-price-update";
@@ -33,6 +37,7 @@ function toNumber(value: unknown, fallback = 0) {
 
 function firstFiniteNumber(...values: Array<number | null | undefined>) {
 	for (const value of values) {
+		if (value == null) continue;
 		const candidate = Number(value);
 		if (Number.isFinite(candidate)) return candidate;
 	}
@@ -124,6 +129,7 @@ export function formatDoorSizeTitle(size?: string | null) {
 
 export function DoorPriceCell({
 	row,
+	basePrice,
 	onSave,
 	profileCoefficient,
 	priceBreakdown,
@@ -131,6 +137,7 @@ export function DoorPriceCell({
 	readOnly = false,
 }: {
 	row: DoorPriceRow;
+	basePrice?: number | null;
 	onSave: (nextBase: number) => void | Promise<void>;
 	profileCoefficient?: number | null;
 	priceBreakdown?: DoorPriceBreakdownContext | null;
@@ -140,7 +147,7 @@ export function DoorPriceCell({
 	const [open, setOpen] = useState(false);
 	const [draft, setDraft] = useState("");
 	const [isSaving, setIsSaving] = useState(false);
-	const baseUnit = firstFiniteNumber(row.meta?.baseUnitPrice);
+	const baseUnit = resolveDoorPriceEditorBasePrice(row, basePrice);
 	const hasStoredBasePrice = baseUnit != null;
 	const isMissingPrice = Boolean(row.meta?.priceMissing);
 	const doorSalesPrice = hasStoredBasePrice

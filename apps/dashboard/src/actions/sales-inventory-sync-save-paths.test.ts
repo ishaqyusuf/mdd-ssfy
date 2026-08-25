@@ -45,7 +45,7 @@ describe("sales inventory sync save paths", () => {
         expect(source).toContain('source: "old-form"');
     });
 
-	it("queues legacy adaptation after saves while preserving the ordinary configurator", () => {
+	it("queues legacy adaptation and routes ordinary saves to Sales Overview inventory", () => {
 		const oldFormSource = readWorkspaceFile(
 			"apps/dashboard/src/components/forms/sales-form/sales-form-save.tsx",
 		);
@@ -56,10 +56,12 @@ describe("sales inventory sync save paths", () => {
 		for (const source of [oldFormSource, newFormSource]) {
 			expect(source).toContain("resolveLegacyInventoryPostSaveAction");
 			expect(source).toContain("legacyInventoryAdaptation.queue");
-			expect(source).toContain("openSalesInventoryConfigurator");
+			expect(source).toContain("buildSalesOverviewUrl");
+			expect(source).toContain('salesTab: "inventory"');
+			expect(source).not.toContain("useSalesInventoryConfiguratorPrompt");
 		}
 		expect(newFormSource).toContain(
-			"configureInventoryAfterSave(currentRecord, false)",
+			"continueToInventoryAfterSave(currentRecord, false)",
 		);
 	});
 });

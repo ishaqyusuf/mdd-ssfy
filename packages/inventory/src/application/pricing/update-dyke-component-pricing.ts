@@ -36,6 +36,25 @@ export async function updateDykeComponentPricing(
     updatedCount += result.count;
   }
 
+  for (const pricing of input.pricings.filter(
+    (item) =>
+      item.id &&
+      item.dependenciesUid != null &&
+      item.price != null &&
+      !Number.isNaN(Number(item.price)),
+  )) {
+    await db.dykePricingSystem.updateMany({
+      where: {
+        stepProductUid: input.stepProductUid,
+        dependenciesUid: pricing.dependenciesUid,
+        deletedAt: null,
+      },
+      data: {
+        price: Number(pricing.price),
+      },
+    });
+  }
+
   let deletedCount = 0;
   if (deleteIds.length) {
     const result = await db.dykePricingSystem.updateMany({
@@ -51,9 +70,30 @@ export async function updateDykeComponentPricing(
     deletedCount = result.count;
   }
 
-  const newData = input.pricings
-    .filter((item) => !item.id && item.price != null)
-    .map(({ id, ...rest }) => rest);
+  const newData: Array<{
+    dependenciesUid?: string;
+    price?: number | null;
+  }> = [];
+
+  for (const pricing of input.pricings.filter(
+    (item) => !item.id && item.price != null,
+  )) {
+    const result = await db.dykePricingSystem.updateMany({
+      where: {
+        stepProductUid: input.stepProductUid,
+        dependenciesUid: pricing.dependenciesUid ?? null,
+        deletedAt: null,
+      },
+      data: {
+        price: Number(pricing.price),
+      },
+    });
+    if (result.count > 0) {
+      updatedCount += result.count;
+      continue;
+    }
+    newData.push(pricing);
+  }
 
   let createdCount = 0;
   if (newData.length) {

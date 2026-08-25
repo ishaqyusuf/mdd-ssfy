@@ -265,9 +265,9 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
           String(hpt?.molding?.value || "").trim() ||
           `legacy-moulding-${index + 1}`,
         title: String(
-          mouldingStep?.value ||
-            item?.description ||
+          item?.description ||
             hpt?.molding?.title ||
+            mouldingStep?.value ||
             "Moulding",
         ).trim(),
         description: String(

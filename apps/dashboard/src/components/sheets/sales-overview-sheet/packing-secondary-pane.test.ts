@@ -25,6 +25,9 @@ describe("Sales Overview packing secondary pane", () => {
 			packingTab.includes("onPackItemsOpenChange={onPackItemsOpenChange}"),
 		).toBe(true);
 		expect(controller.includes('value: "packing"')).toBe(true);
+		expect(controller.includes('label: "Overview"')).toBe(true);
+		expect(controller.includes('label: "Packing List"')).toBe(false);
+		expect(controller.includes('value: "dispatch-notes"')).toBe(false);
 		expect(controller.includes("hidden: true")).toBe(false);
 		expect(sheet.includes("buildLegacySalesOverviewTabNavigation")).toBe(true);
 	});
