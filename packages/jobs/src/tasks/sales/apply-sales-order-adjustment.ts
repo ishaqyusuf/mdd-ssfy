@@ -29,6 +29,7 @@ import {
 	getCommittedSalesAdjustmentCheckpoint,
 	resolveSalesAdjustmentApplyRecovery,
 } from "./sales-adjustment-apply-recovery";
+import { projectApprovedGroupedSalesLine } from "./sales-adjustment-grouped-projection";
 
 function record(value: unknown): Record<string, unknown> {
 	return value && typeof value === "object" && !Array.isArray(value)
@@ -537,6 +538,13 @@ export async function runApplySalesOrderAdjustment(
 				if (!adjustedItemIds.has(salesOrderItemId) && !hasDoorProjection) {
 					continue;
 				}
+				const groupedProjectionHandled = await projectApprovedGroupedSalesLine({
+					tx,
+					salesOrderId: adjustment.salesOrderId,
+					line: proposedLine,
+					persistedItemIds,
+				});
+				if (groupedProjectionHandled) continue;
 				const proposedQty = Number(proposedLine.qty || 0);
 				const proposedLineTotal = Number(proposedLine.lineTotal || 0);
 				await tx.salesOrderItems.update({
