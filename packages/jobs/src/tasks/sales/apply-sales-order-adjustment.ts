@@ -1,4 +1,4 @@
-import { db } from "@gnd/db";
+import { type TransactionClient, db } from "@gnd/db";
 import {
 	type SalesAdjustmentInboundDisposition,
 	SalesAdjustmentInboundSnapshotConflictError,
@@ -14,6 +14,10 @@ import {
 	projectLegacyOrderPayments,
 } from "@gnd/sales/payment-system";
 import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
+import {
+	getSalesDoorActiveIdentity,
+	normalizeSalesDoorDimension,
+} from "@gnd/sales/sales-form";
 import { schemaTask, tasks } from "@trigger.dev/sdk/v3";
 import {
 	type ApplySalesOrderAdjustmentPayload,
@@ -30,6 +34,109 @@ function record(value: unknown): Record<string, unknown> {
 	return value && typeof value === "object" && !Array.isArray(value)
 		? (value as Record<string, unknown>)
 		: {};
+}
+
+async function projectApprovedHousePackageLine(input: {
+	tx: TransactionClient;
+	salesOrderId: number;
+	salesOrderItemId: number;
+	line: Record<string, unknown>;
+}) {
+	const proposedHpt = record(input.line.housePackageTool);
+	if (!Object.keys(proposedHpt).length) return;
+	const hpt = await input.tx.housePackageTools.findUnique({
+		where: { orderItemId: input.salesOrderItemId },
+		select: { id: true, doorType: true },
+	});
+	if (!hpt) {
+		throw new Error(
+			`Approved adjustment line ${input.salesOrderItemId} is missing its house-package row.`,
+		);
+	}
+
+	await input.tx.housePackageTools.update({
+		where: { id: hpt.id },
+		data: {
+			totalDoors: Number(proposedHpt.totalDoors || input.line.qty || 0),
+			totalPrice: Number(proposedHpt.totalPrice || input.line.lineTotal || 0),
+		},
+	});
+	const existingDoors = await input.tx.dykeSalesDoors.findMany({
+		where: { housePackageToolId: hpt.id, deletedAt: null },
+		select: {
+			id: true,
+			dimension: true,
+			stepProductId: true,
+			meta: true,
+		},
+	});
+	await input.tx.dykeSalesDoors.updateMany({
+		where: { housePackageToolId: hpt.id, deletedAt: null },
+		data: { activeIdentity: null },
+	});
+	const existingIds = new Set(existingDoors.map((door) => door.id));
+	const existingByIdentity = new Map(
+		existingDoors.map((door) => [getSalesDoorActiveIdentity(door), door.id]),
+	);
+	const retainedIds: number[] = [];
+	const proposedDoors = Array.isArray(proposedHpt.doors)
+		? proposedHpt.doors.map(record)
+		: [];
+	for (const door of proposedDoors) {
+		const dimension = normalizeSalesDoorDimension(door.dimension);
+		const totalQty = Math.round(
+			Number(door.totalQty || 0) ||
+				Number(door.lhQty || 0) + Number(door.rhQty || 0),
+		);
+		if (!dimension || totalQty <= 0) continue;
+		const doorData = {
+			housePackageToolId: hpt.id,
+			salesOrderId: input.salesOrderId,
+			salesOrderItemId: input.salesOrderItemId,
+			dimension,
+			swing: typeof door.swing === "string" ? door.swing : null,
+			doorType:
+				typeof door.doorType === "string" ? door.doorType : hpt.doorType,
+			doorPrice: Number(door.doorPrice || 0),
+			jambSizePrice: Number(door.jambSizePrice || 0),
+			casingPrice: Number(door.casingPrice || 0),
+			unitPrice: Number(door.unitPrice || 0),
+			lhQty: Math.round(Number(door.lhQty || 0)),
+			rhQty: Math.round(Number(door.rhQty || 0)),
+			totalQty,
+			lineTotal: Number(door.lineTotal || 0),
+			stepProductId: Number(door.stepProductId || 0) || null,
+			meta: record(door.meta),
+			deletedAt: null,
+		};
+		const identity = getSalesDoorActiveIdentity(doorData);
+		const requestedId = Number(door.id || 0);
+		const existingId = existingIds.has(requestedId)
+			? requestedId
+			: Number(existingByIdentity.get(identity) || 0);
+		const activeIdentity = `${hpt.id}|${identity}`;
+		if (existingId > 0) {
+			await input.tx.dykeSalesDoors.update({
+				where: { id: existingId },
+				data: { ...doorData, activeIdentity },
+			});
+			retainedIds.push(existingId);
+		} else {
+			const created = await input.tx.dykeSalesDoors.create({
+				data: { ...doorData, activeIdentity },
+				select: { id: true },
+			});
+			retainedIds.push(created.id);
+		}
+	}
+	await input.tx.dykeSalesDoors.updateMany({
+		where: {
+			housePackageToolId: hpt.id,
+			deletedAt: null,
+			id: { notIn: retainedIds.length ? retainedIds : [0] },
+		},
+		data: { deletedAt: new Date(), activeIdentity: null },
+	});
 }
 
 function adjustmentCompletionStatus(proposal: Record<string, unknown>) {
@@ -409,24 +516,46 @@ export async function runApplySalesOrderAdjustment(
 						`Adjustment line ${line.lineUid} is not linked to a persisted sale item.`,
 					);
 				}
-				const proposedLine = proposedByUid.get(line.lineUid);
+				if (!proposedByUid.get(line.lineUid)) {
+					throw new Error(
+						`Adjustment line ${line.lineUid} is missing from its approved proposal.`,
+					);
+				}
+			}
+			const persistedItemIds = new Set(
+				adjustment.order.items.map((item) => item.id),
+			);
+			const adjustedItemIds = new Set(
+				adjustment.lines.map((line) => Number(line.salesOrderItemId || 0)),
+			);
+			for (const proposedLine of proposedLines) {
+				const salesOrderItemId = Number(proposedLine.id || 0);
+				if (!persistedItemIds.has(salesOrderItemId)) continue;
+				const proposedHpt = record(proposedLine.housePackageTool);
+				const hasDoorProjection =
+					Array.isArray(proposedHpt.doors) && proposedHpt.doors.length > 0;
+				if (!adjustedItemIds.has(salesOrderItemId) && !hasDoorProjection) {
+					continue;
+				}
+				const proposedQty = Number(proposedLine.qty || 0);
+				const proposedLineTotal = Number(proposedLine.lineTotal || 0);
 				await tx.salesOrderItems.update({
-					where: { id: line.salesOrderItemId },
+					where: { id: salesOrderItemId },
 					data: {
-						qty: Number(line.proposedQty),
-						total: Number(line.proposedLineTotal),
-						deletedAt: Number(line.proposedQty) === 0 ? new Date() : null,
-						...(proposedLine
-							? {
-									rate: Number(proposedLine.unitPrice || 0),
-									description: String(
-										proposedLine.description ||
-											proposedLine.title ||
-											line.title,
-									),
-								}
-							: {}),
+						qty: proposedQty,
+						total: proposedLineTotal,
+						deletedAt: proposedQty === 0 ? new Date() : null,
+						rate: Number(proposedLine.unitPrice || 0),
+						description: String(
+							proposedLine.description || proposedLine.title || "Line item",
+						),
 					},
+				});
+				await projectApprovedHousePackageLine({
+					tx,
+					salesOrderId: adjustment.salesOrderId,
+					salesOrderItemId,
+					line: proposedLine,
 				});
 			}
 

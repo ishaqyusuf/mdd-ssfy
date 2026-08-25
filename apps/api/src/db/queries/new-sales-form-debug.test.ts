@@ -3,6 +3,7 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+	captureNewSalesFormSaveFailure,
 	captureNewSalesFormSavePayload,
 	logNewSalesFormSaveDiagnostic,
 } from "./new-sales-form-debug";
@@ -112,6 +113,49 @@ describe("captureNewSalesFormSavePayload", () => {
 
 		expect(filePath).toBeNull();
 		await expect(readdir(join(rootDir, "debug"))).rejects.toThrow();
+	});
+
+	it("writes a payload-free failure companion for a captured save", async () => {
+		const rootDir = await createTempWorkspaceRoot();
+		const capturedAt = new Date("2026-06-24T12:34:56.789Z");
+		const capturePath = await captureNewSalesFormSavePayload(
+			{
+				action: "save-draft",
+				requestId: "request-1",
+				payload: {
+					type: "order",
+					salesId: 42,
+					lineItems: [],
+					extraCosts: [],
+				},
+			},
+			{ nodeEnv: "development", rootDir, now: capturedAt },
+		);
+		if (!capturePath) throw new Error("Expected payload capture path");
+
+		const error = Object.assign(new Error("Door relation failed"), {
+			code: "P2003",
+			meta: { modelName: "DykeSalesDoors" },
+		});
+		const failurePath = await captureNewSalesFormSaveFailure({
+			capturePath,
+			error,
+			requestId: "request-1",
+		});
+
+		expect(failurePath).toBe(`${capturePath}.error.json`);
+		if (!failurePath) throw new Error("Expected failure capture path");
+		const saved = JSON.parse(await readFile(failurePath, "utf8"));
+		expect(saved).toMatchObject({
+			requestId: "request-1",
+			error: {
+				name: "Error",
+				message: "Door relation failed",
+				code: "P2003",
+				meta: { modelName: "DykeSalesDoors" },
+			},
+		});
+		expect(JSON.stringify(saved)).not.toContain("lineItems");
 	});
 });
 

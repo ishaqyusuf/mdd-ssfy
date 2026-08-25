@@ -29,6 +29,7 @@ export function DispatchAdminSummary() {
 			value: data.backlog,
 			icon: Boxes,
 			onClick: () => setFilters({ section: "backlog", stages: null }),
+			color: "#66c8bfd9",
 		},
 		{
 			key: "unassigned",
@@ -37,6 +38,7 @@ export function DispatchAdminSummary() {
 			icon: UserRoundPlus,
 			onClick: () =>
 				setFilters({ section: "dispatches", stages: ["ready_to_assign"] }),
+			color: "#cdeb60d9",
 		},
 		{
 			key: "ready",
@@ -45,6 +47,7 @@ export function DispatchAdminSummary() {
 			icon: PackageCheck,
 			onClick: () =>
 				setFilters({ section: "dispatches", stages: ["ready_to_load"] }),
+			color: "#a78bfad9",
 		},
 		{
 			key: "transit",
@@ -53,6 +56,7 @@ export function DispatchAdminSummary() {
 			icon: Truck,
 			onClick: () =>
 				setFilters({ section: "dispatches", stages: ["in_transit"] }),
+			color: "#60a5fad9",
 		},
 		{
 			key: "exceptions",
@@ -60,6 +64,7 @@ export function DispatchAdminSummary() {
 			value: data.openExceptions,
 			icon: AlertTriangle,
 			onClick: () => setFilters({ section: "exceptions" }),
+			color: "#fb923cd9",
 		},
 	];
 
@@ -74,12 +79,15 @@ export function DispatchAdminSummary() {
 						className="text-left"
 						onClick={card.onClick}
 					>
-						<Card className="h-full transition-colors hover:bg-muted/40">
+						<Card
+							className="h-full border-0 text-slate-950 shadow-none transition-transform hover:scale-[1.02]"
+							style={{ backgroundColor: card.color }}
+						>
 							<CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-								<CardTitle className="text-xs font-medium text-muted-foreground">
+								<CardTitle className="text-xs font-medium opacity-80">
 									{card.label}
 								</CardTitle>
-								<Icon className="size-4 text-muted-foreground" />
+								<Icon className="size-4 opacity-70" />
 							</CardHeader>
 							<CardContent>
 								<p className="font-mono text-2xl font-semibold tracking-tight">

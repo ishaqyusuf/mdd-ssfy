@@ -1,13 +1,9 @@
 import { AdminDispatchHeader } from "@/components/dispatch-admin/admin-dispatch-header";
-import { DispatchOverdueBanner } from "@/components/dispatch-admin/dispatch-overdue-banner";
-import {
-	DispatchSummaryCards,
-	DispatchSummaryCardsSkeleton,
-} from "@/components/dispatch-admin/dispatch-summary-cards";
 import {
 	DriverWorkloadCard,
 	DriverWorkloadSkeleton,
 } from "@/components/dispatch-admin/driver-workload-card";
+import { FulfillmentOverview } from "@/components/dispatch-admin/fulfillment-overview";
 import { ErrorFallback } from "@/components/error-fallback";
 import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
 import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
@@ -22,19 +18,7 @@ export function FulfillmentListWorkspace({
 }) {
 	return (
 		<div className="flex flex-col gap-6">
-			<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
-				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Suspense fallback={<DispatchSummaryCardsSkeleton />}>
-						<DispatchSummaryCards />
-					</Suspense>
-				</ErrorBoundary>
-			</div>
-
-			<ErrorBoundary errorComponent={ErrorFallback}>
-				<Suspense fallback={null}>
-					<DispatchOverdueBanner />
-				</Suspense>
-			</ErrorBoundary>
+			<FulfillmentOverview />
 
 			<AdminDispatchHeader />
 

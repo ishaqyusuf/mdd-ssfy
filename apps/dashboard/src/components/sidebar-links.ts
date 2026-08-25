@@ -419,8 +419,9 @@ export const linkModules = [
 				_perm.is("editDelivery"),
 				_perm.isNot("editOrders"),
 			).data,
-			_link("Fulfillment", "dispatch", "/sales-book/fulfillment")
-				.access(_perm.is("editOrders")).data,
+			_link("Fulfillment", "dispatch", "/sales-book/fulfillment/v2")
+				.access(_perm.is("editOrders"))
+				.childPaths("/sales-book/fulfillment").data,
 		]),
 		_section("", "", [
 			_link("Customers", "customers", "/sales-book/customers")

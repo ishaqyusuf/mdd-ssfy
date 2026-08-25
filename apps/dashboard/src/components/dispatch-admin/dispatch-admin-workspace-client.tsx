@@ -25,7 +25,7 @@ export function DispatchAdminWorkspaceClient({
 }) {
 	const { filters } = useDispatchFilterParams();
 	let content: React.ReactNode;
-	if (filters.section === "dashboard") {
+	if (["dashboard", "dispatches"].includes(filters.section)) {
 		content = <DispatchDashboardView initialSettings={initialSettings} />;
 	} else if (filters.section === "backlog") {
 		content = <DispatchBacklogView />;
@@ -47,7 +47,7 @@ export function DispatchAdminWorkspaceClient({
 					fallback={
 						filters.section === "calendar" ? (
 							<DispatchCalendarSkeleton />
-						) : filters.section === "dispatches" ? (
+						) : ["dashboard", "dispatches"].includes(filters.section) ? (
 							<SalesDispatchSkeleton initialSettings={initialSettings} />
 						) : (
 							<Skeleton className="h-[480px] rounded-xl" />

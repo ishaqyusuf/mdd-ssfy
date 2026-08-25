@@ -59,6 +59,26 @@ describe("workflow selection actions", () => {
 		expect(result?.activeStepIndex).toBe(1);
 	});
 
+	it("initializes one product row when Shelf Items is selected", () => {
+		const result = selectWorkflowRootComponent({
+			routeData,
+			line: {
+				uid: "line-1",
+				title: "New Line",
+				formSteps: [],
+				shelfItems: [],
+			},
+			component: {
+				id: 12,
+				uid: "rootA",
+				title: "Shelf Items",
+			},
+		});
+
+		expect(result?.linePatch.shelfItems).toHaveLength(1);
+		expect(result?.linePatch.shelfItems?.[0]?.qty).toBe(1);
+	});
+
 	it("saves a single selected item-type component and advances to the route", () => {
 		const result = saveWorkflowSelectedComponent({
 			routeData,

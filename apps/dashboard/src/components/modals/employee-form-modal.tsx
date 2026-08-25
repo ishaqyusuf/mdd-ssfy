@@ -93,6 +93,18 @@ export function EmployeeFormModal() {
 		[organizations],
 	);
 	const defaultRoleId = roleOptions[0]?.id ?? 0;
+	const requestedRoleId = useMemo(() => {
+		if (!params.employeeRole) return defaultRoleId;
+		const requested = params.employeeRole.trim().toLowerCase();
+		const preferredNames = [requested, "driver", "dispatch", "delivery"];
+		return (
+			preferredNames
+				.map((name) =>
+					roleOptions.find((role) => role.name.trim().toLowerCase() === name),
+				)
+				.find(Boolean)?.id ?? defaultRoleId
+		);
+	}, [defaultRoleId, params.employeeRole, roleOptions]);
 	const defaultOrganizationId = organizationOptions[0]?.id ?? 0;
 	const selectedPermissionIds = watch("permissionIds") || [];
 	const permissionRows = useMemo(
@@ -135,10 +147,10 @@ export function EmployeeFormModal() {
 			return;
 		}
 
-		if (!defaultRoleId || !defaultOrganizationId) return;
+		if (!requestedRoleId || !defaultOrganizationId) return;
 		reset({
 			...getEmployeeFormDefaults(),
-			roleId: defaultRoleId,
+			roleId: requestedRoleId,
 			organizationId: defaultOrganizationId,
 		});
 	}, [
@@ -146,7 +158,7 @@ export function EmployeeFormModal() {
 		params?.editEmployeeId,
 		employeeFormData,
 		defaultOrganizationId,
-		defaultRoleId,
+		requestedRoleId,
 		reset,
 	]);
 	function onSubmit(values: z.infer<typeof employeeFormSchema>) {

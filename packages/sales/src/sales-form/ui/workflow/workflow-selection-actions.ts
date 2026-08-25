@@ -19,10 +19,16 @@ import {
 	type WorkflowLineItemRecord,
 	type WorkflowStepRecord,
 } from "./workflow-records";
+import { buildInitialWorkflowShelfPatch } from "./workflow-sync-patches";
 
 export type WorkflowSelectionPatch = {
 	formSteps: WorkflowStepRecord[];
 	title?: string | null;
+	shelfItems?: Array<Record<string, unknown>>;
+	qty?: number;
+	unitPrice?: number;
+	lineTotal?: number;
+	meta?: Record<string, unknown>;
 };
 
 export type WorkflowSelectionActionResult = {
@@ -274,15 +280,26 @@ export function selectWorkflowRootComponent(
 		toSelectedComponent(input.component),
 	) as WorkflowStepRecord[];
 
+	const linePatch: WorkflowSelectionPatch = {
+		formSteps: routedSteps,
+		title:
+			normalizeTitle(input.line.title).startsWith("new line") ||
+			!String(input.line.title || "").trim()
+				? input.component.title || input.line.title || null
+				: input.line.title || null,
+	};
+	const initialShelfPatch = buildInitialWorkflowShelfPatch({
+		...input.line,
+		...linePatch,
+	});
+
 	return {
-		linePatch: {
-			formSteps: routedSteps,
-			title:
-				normalizeTitle(input.line.title).startsWith("new line") ||
-				!String(input.line.title || "").trim()
-					? input.component.title || input.line.title || null
-					: input.line.title || null,
-		},
+		linePatch: initialShelfPatch
+			? {
+					...linePatch,
+					...initialShelfPatch.linePatch,
+				}
+			: linePatch,
 		activeStepIndex: firstPendingStepIndex(routedSteps),
 	};
 }

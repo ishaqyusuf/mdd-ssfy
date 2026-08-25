@@ -81,6 +81,13 @@ export const dispatchBacklogSchema = paginationSchema.extend({
 
 export type DispatchBacklogInput = z.infer<typeof dispatchBacklogSchema>;
 
+export const createDispatchesSchema = z.object({
+	salesIds: z.array(z.number().int().positive()).min(1).max(50),
+	deliveryMode: z.enum(["delivery", "pickup"]),
+	dueDate: z.date(),
+	driverId: z.number().int().positive().nullable().optional(),
+});
+
 export const dispatchExceptionListSchema = paginationSchema.extend({
 	status: z.enum(["open", "resolved"]).optional().default("open"),
 	reasonCodes: z

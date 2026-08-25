@@ -1,5 +1,13 @@
 # Progress
 
+- 2026-08-25: Temporarily expanded the existing `monitor-gnd-vercel-cost`
+  heartbeat into a combined hourly Preview `getOrders` canary and daily Vercel
+  cost monitor. Codex permits one heartbeat per thread, so the combined monitor
+  preserves the 09:00 cost check while collecting 24 read-only Sales Orders
+  search samples through 07:00 Africa/Lagos on 2026-08-26. The final run must
+  publish `.brain/reports/2026-08-25-preview-getorders-24h-canary.md` and restore
+  the original daily cost-only automation.
+
 - 2026-08-24: Repaired the canonical Fulfillment page hydration path. The
   Pending list and Calendar now await their server prefetches, the list hydrates
   its shared dispatch summary, and workspace-only URL defaults are removed from
@@ -11747,3 +11755,124 @@
   errors are unrelated expired-session 401s on Fulfillment/Dispatch routes;
   there are no legacy-adaptation or new-sales-save runtime errors in the
   reviewed window.
+
+## 2026-08-24 — Repaired 09433PC adjustment projection and save semantics
+
+- Reproduced the `newSalesForm.saveDraft` 500 on order `09433PC` and captured
+  the exact `SALES_RELATIONAL_REVIEW_REQUIRED` cause without exposing the
+  customer payload in the failure companion.
+- Confirmed the previously approved adjustment updated its snapshot/header and
+  parent item but left HPT door membership stale. Reconciled the approved rows
+  under exact order-version and adjustment-status guards, then saved the user's
+  requested result: Item 1 `2-8 x 8-0` LH `0` / RH `1`; Item 2 retains only
+  `2-6 x 8-0` LH `0` / RH `1`.
+- Browser verification showed `All changes saved` at 11:49:31 PM. Direct DB
+  read-back confirmed those two active door rows and the new content version.
+- Adjustment application now projects approved HPT door arrays, including
+  same-quantity LH/RH changes, and retires omitted rows. The migration guard
+  compares approved snapshots with hydrated relational commercial rows rather
+  than raw parent totals.
+- Existing document Save/autosave now preserves status, while new drafts still
+  receive `Draft` and Finalize writes `Active`. The accidental `09433PC` Draft
+  assignment was restored to its exact pre-save legacy null status.
+- Focused API regressions pass. Scoped Biome passes for the adjustment worker
+  and save diagnostics. Jobs package typecheck remains blocked by pre-existing
+  missing `react/jsx-runtime` email diagnostics and the known unrelated
+  `sales-control/actions.ts:113` assignment-id mismatch; it reports no changed
+  adjustment-task diagnostic.
+
+## 2026-08-25 — Tightened HPT Swing and action-column spacing
+
+- Removed the visible Actions header from House Package Tool size tables while
+  retaining its screen-reader-only name and every row-level repair/remove
+  control.
+- Reduced the fixed action column from 96px to 56px, widened Swing from 80px to
+  112px, and made the Swing selector fill its own cell without overflowing into
+  the adjacent LH quantity control.
+- Focused HPT render validation passes 4 tests / 11 assertions. Authenticated
+  in-app browser proof on order `09433PC` confirms the label is visually absent,
+  the trash control remains, and Swing/LH render with clear separation.
+
+## 2026-08-25 — Spaced invoice-item titles from line totals
+
+- Added a desktop-only 12px inset after each invoice-item title input so its
+  border no longer sits tightly against the line-total/actions group.
+- Preserved the existing 10/2 grid allocation, total alignment, action controls,
+  and mobile stacked layout.
+- Focused workflow-line rendering passes 3 tests / 14 assertions, authenticated
+  in-app browser proof passed on `09433PC`, and no order data was changed.
+
+## 2026-08-25 — Standardized workflow pills to all caps
+
+- Applied all-caps presentation to every invoice-item workflow pill without
+  rewriting its label, accessible name, selected state, or persisted value.
+- Focused workflow-line rendering passes 3 tests / 15 assertions. Authenticated
+  in-app browser proof on `09433PC` confirms all visible pills use consistent
+  uppercase text, and no order data was changed.
+
+## 2026-08-25 — Strengthened the active workflow-pill state
+
+- Replaced the active pill's pale primary tint with a solid primary background,
+  primary-foreground text, a 50%-opacity foreground border, and a subtle shadow.
+  Inactive and disabled pill states remain unchanged.
+- Focused workflow-line rendering passes 3 tests / 16 assertions. Authenticated
+  in-app browser proof on `09433PC` confirms the selected House Package Tool
+  pills are visually distinct, and no order data was changed.
+
+## 2026-08-25 — Kept Fulfillment overview visible in Calendar
+
+- Extracted the seven dispatch summary cards and overdue-dispatch alert into a
+  shared Fulfillment overview used by both list and Calendar workspaces.
+- Calendar now prefetches the shared summary with its visible date range while
+  keeping list-only search/table/admin controls and driver workload excluded.
+- Authenticated in-app browser verification on the canonical Calendar URL
+  confirmed all seven cards, the overdue alert, and the Week calendar render
+  together with no browser errors. Scoped whitespace validation passes.
+
+## 2026-08-25 — Initialized Shelf Items and removed the double price border
+
+- Root-component selection now includes the canonical one-row Shelf patch in
+  the same state update, so both dashboard workflow variants open Shelf Items
+  with row 1 ready instead of requiring Add New Line.
+- Legacy, V1, and V2 Shelf price menus now use the visible price button as the
+  dropdown trigger rather than nesting that button inside the shared menu's
+  generated button. This removes the double border and invalid hydration markup.
+- Focused validation passes 42 tests / 154 assertions. Authenticated in-app
+  browser QA passes in both workflow variants with one automatic row, one price
+  button, a working Edit Shelf Price menu, and no new console errors. No sale was
+  saved. The Sales package typecheck remains blocked only by the known unrelated
+  `sales-control/actions.ts:113` assignment-id mismatch.
+
+## 2026-08-25 — Moved Add New Line below the item stack
+
+- Replaced the compact workflow add control above populated invoice items with
+  a full-width secondary `Add New Line` button and plus icon after the final
+  item. Empty-state behavior and the existing add-line callback are preserved.
+- Focused workflow rendering passes 3 tests / 18 assertions; scoped Biome and
+  whitespace checks pass. Sales typecheck remains blocked by the known
+  unrelated `sales-control/actions.ts:113` assignment-id mismatch.
+- An isolated in-app browser tab confirmed the active local server is still
+  serving its pre-change bundle; it did not modify or save order `09433PC`.
+  Live visual proof remains pending a local Next process restart and page load.
+
+## 2026-08-25 — Cut over the Fulfillment link to V2
+
+- Changed the order-editor Fulfillment sidebar destination to
+  `/sales-book/fulfillment/v2` and aligned the V2 page guard with `editOrders`.
+- Reduced V2 navigation to All, counted Backlog, Calendar, Drivers, and
+  Exceptions. Removed the duplicate table/calendar selector, auto-refresh, and
+  CSV export actions; added semantic filter icons, colored analytics, and a
+  warning-toned overdue alert.
+- Unified the V2 overdue count with the previous Fulfillment query predicate so
+  both surfaces count the same active statuses past due.
+- Added an `editEmployee`-guarded first driver tile that opens the employee
+  dialog with the existing Driver/Dispatch/Delivery role fallback preselected.
+- Replaced the Create Dispatch sheet with a modal whose server-backed search
+  shows order name/number, customer, delivery mode, and status; selected order
+  numbers remain removable pills. The new manager-only
+  `dispatch.createDispatches` command caps batches at 50, rechecks eligibility,
+  and creates all selected dispatches atomically.
+- Added focused source contracts and updated sidebar/permission parity
+  contracts. Per the Bun monorepo command discipline, no dev server, build,
+  typecheck, test suite, or browser QA was run; scoped whitespace and source
+  audits are the validation evidence for this pass.

@@ -3691,6 +3691,8 @@ describe("new-sales-form relational parity", () => {
     expect((loaded.form as any).taxCode).toBe("GST");
     expect(loaded.summary.taxRate).toBe(7.5);
     expect(loaded.summary.taxTotal).toBe(7.5);
+		expect(state.orders[0]?.status).toBe("Draft");
+		state.orders[0]!.status = "Pending";
 
     const autosaved = await saveDraftNewSalesForm(ctx, {
       ...createPayload,
@@ -3702,6 +3704,7 @@ describe("new-sales-form relational parity", () => {
     } as any);
     expect(autosaved.orderId).toBe(saved.orderId);
     expect(state.orders[0]?.orderId).toBe(saved.orderId);
+		expect(state.orders[0]?.status).toBe("Pending");
 
     const finalized = await saveFinalNewSalesForm(ctx, {
       ...createPayload,
@@ -3713,6 +3716,7 @@ describe("new-sales-form relational parity", () => {
     } as any);
     expect(finalized.orderId).toBe(saved.orderId);
     expect(state.orders[0]?.orderId).toBe(saved.orderId);
+		expect(state.orders[0]?.status).toBe("Active");
     expect(state.activities).toHaveLength(2);
     expect(state.activities[0]).toMatchObject({
       subject: "Sale autosaved",

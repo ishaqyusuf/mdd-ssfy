@@ -391,7 +391,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 									<tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
 										<th className="whitespace-nowrap px-3 py-2">Size</th>
 										{props.hasSwing ? (
-											<th className="w-20 px-2 py-2">Swing</th>
+											<th className="w-28 px-2 py-2">Swing</th>
 										) : null}
 										{props.noHandle ? (
 											<th className="w-36 px-2 py-2 text-center">Qty</th>
@@ -404,7 +404,9 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 										)}
 										<th className="w-24 px-2 py-2 text-right">Estimate</th>
 										<th className="w-24 px-3 py-2 text-right">Line</th>
-										<th className="w-24 px-2 py-2 text-right">Actions</th>
+										<th className="w-14 px-1 py-2 text-right">
+											<span className="sr-only">Actions</span>
+										</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -448,13 +450,16 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 													<td className="px-2 py-2">
 														{props.swingOptions ? (
 															<Select
-															value={normalizeDoorSwingValue(row.swing) || undefined}
+																value={
+																	normalizeDoorSwingValue(row.swing) ||
+																	undefined
+																}
 																onValueChange={(swing) =>
 																	props.onPatchRow(row, { swing })
 																}
 																disabled={!props.pricingReady}
 															>
-																<SelectTrigger className="h-8 w-28 rounded-md border-slate-200 text-xs">
+																<SelectTrigger className="h-8 w-full min-w-0 rounded-md border-slate-200 text-xs">
 																	<SelectValue placeholder="Select swing" />
 																</SelectTrigger>
 																<SelectContent>
@@ -476,7 +481,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																		swing: event.target.value,
 																	})
 																}
-																className="h-8 w-16 rounded-md border-slate-200 text-xs"
+																className="h-8 w-full min-w-0 rounded-md border-slate-200 text-xs"
 																disabled={!props.pricingReady}
 																placeholder="LH/RH"
 															/>
@@ -767,7 +772,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 														</Card>
 													</Menu>
 												</td>
-												<td className="px-2 py-2 text-right">
+												<td className="w-14 px-1 py-2 text-right">
 													<>
 														<div className="flex items-center justify-end gap-1">
 															{props.canEditPricing && profilePriceDrift ? (

@@ -2,7 +2,6 @@
 
 import { DispatchContent } from "@/components/dispatch-admin/dispatch-content";
 import { DispatchSheetHeader } from "@/components/dispatch-admin/dispatch-sheet-header";
-import { DispatchFormContext } from "@/components/dispatch-admin/dispatch/form-context";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { Sheet, SheetContent } from "@gnd/ui/sheet";
@@ -14,8 +13,7 @@ export function DispatchSheet() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const { filters, setFilters } = useDispatchFilterParams();
-	const isCreate = filters.sheetMode === "create";
-	const open = Boolean(isCreate || filters.dispatchId);
+	const open = Boolean(filters.dispatchId);
 	const detail = useQuery(
 		trpc.dispatch.detail.queryOptions(
 			{ dispatchId: filters.dispatchId || 0 },
@@ -48,7 +46,7 @@ export function DispatchSheet() {
 						</div>
 					}
 				>
-					{detail.isPending && !isCreate ? (
+					{detail.isPending ? (
 						<div className="flex flex-col gap-4 p-5">
 							{["one", "two", "three", "four"].map((key) => (
 								<Skeleton key={key} className="h-20 w-full" />
@@ -58,10 +56,6 @@ export function DispatchSheet() {
 						<div className="p-5 text-sm text-destructive">
 							{detail.error.message}
 						</div>
-					) : isCreate ? (
-						<DispatchFormContext salesId={filters.dispatchSalesId}>
-							<DispatchContent />
-						</DispatchFormContext>
 					) : (
 						<DispatchContent detail={detail.data} />
 					)}

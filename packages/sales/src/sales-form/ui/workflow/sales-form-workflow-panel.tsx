@@ -1674,18 +1674,6 @@ export function SalesFormWorkflowPanel<
 
 	return (
 		<div className={props.className}>
-			{actions.addLineItem ? (
-				<div className="flex items-center justify-end border-b bg-card px-4 py-3">
-					<Button
-						type="button"
-						size="sm"
-						variant="outline"
-						onClick={actions.addLineItem}
-					>
-						Add Item
-					</Button>
-				</div>
-			) : null}
 			{routeScopedLineItems.length ? (
 				<WorkflowLineList
 					items={routeScopedLineItems.map((line, index) => ({ line, index }))}
@@ -1722,6 +1710,7 @@ export function SalesFormWorkflowPanel<
 					onStepChange={(line, stepIndex) =>
 						setActiveStep(String(line.uid || ""), stepIndex)
 					}
+					onAddLine={actions.addLineItem}
 					renderPanel={(line, steps, activeIndex, activeItemStep) =>
 						renderPanel(
 							line,
@@ -2437,7 +2426,7 @@ function DefaultShelfPanel(props: {
 													<Menu
 														noSize
 														Icon={null}
-														label={
+														Trigger={
 															<Button
 																type="button"
 																variant="outline"

@@ -161,6 +161,15 @@
   keeping focus in the selected product input. The picker uses the combobox's
   focus-aware opening contract, so the library's post-selection focus restore
   cannot reopen the popup; focusing a closed picker directly still opens it.
+- Selecting the Shelf Items root component atomically creates one blank product
+  row in the same shared workflow-selection patch. Both the legacy dashboard
+  host and package workflow therefore open Shelf Items with row 1 ready for
+  product search, without relying on a later render effect or an extra Add New
+  Line click.
+- Editable Shelf Price cells provide their existing price button directly as
+  the dropdown trigger in legacy, V1, and V2 editors. The trigger retains one
+  border and one accessible button while eliminating invalid button-inside-
+  button markup and its hydration warning.
 - Shelf product discovery uses one package-owned compiled deep-search grammar
   across the shared dashboard/dealership picker, Shelf V1, and the typed API
   fallback. Product words can be reordered; door dimensions such as
@@ -211,6 +220,19 @@
   three-digit values. Their table minimum widths and fixed quantity columns
   absorb the added space inside existing horizontal overflow boundaries instead
   of squeezing the numeric inputs or overlapping adjacent cells.
+- HPT size tables keep their row-level repair/remove controls in a fixed compact
+  action column without a visible header label. The accessible Actions name is
+  retained for assistive technology, while Swing receives a wider fixed column
+  and its selector stays within that cell instead of crowding the LH control.
+- Desktop invoice-item headers reserve an additional 12px after the title input
+  before the line-total/actions column. Mobile stacking and the existing total
+  alignment remain unchanged.
+- Selected and available workflow-step pills use all-caps presentation across
+  every invoice item. Their underlying labels, accessible names, selection
+  state, truncation, and persisted values remain unchanged. The current pill
+  uses a solid primary background, primary-foreground text, a translucent
+  foreground border, and a subtle shadow so selection is unmistakable without
+  hiding the pill edge.
 - Component search/action bars now use the component picker itself as their
   boundary. They float above the editor footer while a long component list is
   active, anchor at the end of that list, and disappear when the picker leaves
@@ -261,6 +283,24 @@
   numeric input areas from 38px to 54px while preserving table layout; the
   Moulding proof retained values `30` and `18`, then returned the temporary QA
   tab to Sales Orders without submitting an input or save event.
+- 2026-08-25 focused HPT render coverage passes 4 tests / 11 assertions for the
+  accessible-only Actions heading, compact action width, wider Swing column,
+  and contained Swing selector. Authenticated in-app browser proof on order
+  `09433PC` confirms the visible Actions label is gone, row controls remain,
+  and the Swing selector no longer crowds the LH quantity control.
+- 2026-08-25 focused workflow-line rendering passes 3 tests / 14 assertions,
+  including the desktop title-to-total spacing contract. Authenticated in-app
+  browser proof on `09433PC` confirms the input is inset from the amount while
+  totals and row actions retain their alignment.
+- 2026-08-25 focused workflow-line rendering passes 3 tests / 15 assertions for
+  all-caps workflow-pill presentation. Authenticated in-app browser proof on
+  `09433PC` confirms mixed-case labels such as Door, Sill Type, Cutdown Height,
+  Casing, and House Package Tool now render consistently in uppercase.
+- 2026-08-25 focused workflow-line rendering passes 3 tests / 16 assertions for
+  the filled active-pill state. Authenticated in-app browser proof on `09433PC`
+  confirms the current House Package Tool pill has a strong primary fill,
+  high-contrast foreground text, visible light border, and unchanged inactive
+  pills.
 - API sales-form transaction/parity tests: 29 tests / 237 assertions, plus 3
   bounded post-save tests / 8 assertions.
 - Shelf Decimal projection, render-stability, and print-data regression slice:
@@ -369,6 +409,12 @@
   selected input retained the product with `aria-expanded="false"` while the
   listbox was no longer visible. The focused Shelf editor regression passes
   5 tests / 18 assertions.
+- 2026-08-25 focused Shelf initialization, pricing-trigger, search, and row
+  regression coverage passes 42 tests / 154 assertions. Authenticated in-app
+  browser QA confirms both the legacy and package workflow variants render one
+  blank product row immediately after Shelf Items is selected. Their editable
+  `$0.00` Price control contains no descendant button, renders one border, and
+  opens the Edit Shelf Price menu without browser errors. No sale was saved.
 - 2026-08-06 authenticated in-app browser QA navigated an Interior pre-hung
   configuration to the priced `Jamb Size` step and confirmed standard-only
   default cards, no `Enable Custom` menu item, the eligible bottom Custom action,
@@ -487,6 +533,9 @@ for phase ownership and rollout requirements.
 - Save uses a serializable, revision-checked relational diff. Retained items,
   steps, shelves, HPT rows, doors, and costs keep durable IDs; omitted rows alone
   are retired. The response is a fresh canonical relational reload.
+- Ordinary Save/autosave preserves the status of an existing order or quote.
+  `Draft` is assigned only when a new draft is created; Finalize remains the
+  explicit transition to `Active`.
 - Active door identity is component plus normalized dimension. Duplicate input
   is rejected before writes, historical duplicates collapse without summing,
   and the bounded repair command records before/after evidence in `SalesHistory`.
@@ -505,3 +554,18 @@ for phase ownership and rollout requirements.
 - Authenticated in-app browser acceptance on `03523PC` confirms one target row,
   quantity `1`, estimate `$355.67`, line `$355.67`, and no error page after the
   Tier 2 pricing profile finishes loading.
+
+## 2026-08-25 End-of-list add-line action
+
+- When a workflow has one or more invoice items, its add action now appears
+  after the complete item stack as a full-width secondary `Add New Line`
+  button with a leading plus icon. The former compact action above the list is
+  removed; the empty-state add action and the existing line-insertion behavior
+  remain unchanged.
+- Focused workflow rendering passes 3 tests / 18 assertions, scoped Biome and
+  whitespace validation pass, and Sales package typecheck remains blocked by
+  the known unrelated `sales-control/actions.ts:113` assignment-id mismatch.
+- Browser inspection used an isolated copy of order `09433PC` and made no data
+  changes. The long-running local Next process continued serving its stale
+  pre-change bundle, so fresh live visual proof requires that process to be
+  restarted before the page is reloaded.

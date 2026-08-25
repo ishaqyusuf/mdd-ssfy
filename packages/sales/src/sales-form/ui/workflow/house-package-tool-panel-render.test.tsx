@@ -8,6 +8,7 @@ function renderPanel(options?: {
 	doorSalesUnitPrice?: number;
 	canEditPricing?: boolean;
 	imageSrc?: string | null;
+	hasSwing?: boolean;
 }) {
 	const doorSalesUnitPrice = options?.doorSalesUnitPrice ?? 5_500;
 	const row = {
@@ -18,6 +19,7 @@ function renderPanel(options?: {
 		lineTotal: doorSalesUnitPrice + 500,
 		jambSizePrice: doorSalesUnitPrice,
 		stepProductId: 10,
+		swing: options?.hasSwing ? "outswing" : "",
 		meta: {
 			baseUnitPrice: 4_500,
 			doorSalesUnitPrice,
@@ -51,7 +53,15 @@ function renderPanel(options?: {
 			]}
 			pricedSteps={[]}
 			noHandle
-			hasSwing={false}
+			hasSwing={options?.hasSwing ?? false}
+			swingOptions={
+				options?.hasSwing
+					? [
+							{ value: "inswing", label: "In-Swing" },
+							{ value: "outswing", label: "Out-Swing" },
+						]
+					: null
+			}
 			sharedDoorSurcharge={500}
 			profileCoefficient={1}
 			canSwapDoor={false}
@@ -71,6 +81,17 @@ function renderPanel(options?: {
 }
 
 describe("HousePackageToolPanel repair action", () => {
+	it("keeps the actions heading accessible-only and reserves the freed width for Swing", () => {
+		const html = renderPanel({ hasSwing: true });
+
+		expect(html).toContain('<th class="w-28 px-2 py-2">Swing</th>');
+		expect(html).toContain('<span class="sr-only">Actions</span>');
+		expect(html).toContain(
+			"h-8 w-full min-w-0 rounded-md border-slate-200 text-xs",
+		);
+		expect(html).not.toContain(">Actions</th>");
+	});
+
 	it("makes the active door avatar an accessible image preview trigger", () => {
 		const html = renderPanel({ imageSrc: "door-a.png" });
 

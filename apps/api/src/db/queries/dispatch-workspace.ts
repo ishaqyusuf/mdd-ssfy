@@ -18,14 +18,12 @@ const activeDispatchStatuses = [
 ];
 
 export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
-	const now = new Date();
-	const [dispatches, backlog, openExceptions] = await Promise.all([
+	const [dispatches, backlog, openExceptions, overdue] = await Promise.all([
 		ctx.db.orderDelivery.findMany({
 			where: { deletedAt: null },
 			select: {
 				status: true,
 				driverId: true,
-				dueDate: true,
 			},
 		}),
 		ctx.db.salesOrders.count({
@@ -45,6 +43,13 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		ctx.db.dispatchException.count({
 			where: { status: "open", deletedAt: null },
 		}),
+		ctx.db.orderDelivery.count({
+			where: {
+				deletedAt: null,
+				status: { in: ["queue", "packing queue", "in progress", "packed"] },
+				dueDate: { lt: new Date() },
+			},
+		}),
 	]);
 
 	const byStage = {
@@ -57,9 +62,8 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		fulfilled: 0,
 		cancelled: 0,
 	};
-	let overdue = 0;
 	for (const row of dispatches) {
-		const { stage, isActive } = projectDispatchLifecycle(row);
+		const { stage } = projectDispatchLifecycle(row);
 		if (stage === "ready_to_assign") byStage.readyToAssign += 1;
 		else if (stage === "assigned") byStage.assigned += 1;
 		else if (stage === "packing") byStage.packing += 1;
@@ -68,9 +72,6 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		else if (stage === "in_transit") byStage.inTransit += 1;
 		else if (stage === "fulfilled") byStage.fulfilled += 1;
 		else if (stage === "cancelled") byStage.cancelled += 1;
-		if (isActive && row.dueDate && row.dueDate.getTime() < now.getTime()) {
-			overdue += 1;
-		}
 	}
 
 	return {
@@ -104,6 +105,9 @@ export async function getDispatchBacklog(
 			? {
 					OR: [
 						{ orderId: { contains: input.q } },
+						{ title: { contains: input.q } },
+						{ status: { contains: input.q } },
+						{ deliveryOption: { contains: input.q } },
 						{ customer: { name: { contains: input.q } } },
 						{ customer: { businessName: { contains: input.q } } },
 						{ shippingAddress: { address1: { contains: input.q } } },
@@ -124,6 +128,8 @@ export async function getDispatchBacklog(
 		select: {
 			id: true,
 			orderId: true,
+			title: true,
+			status: true,
 			createdAt: true,
 			deliveryOption: true,
 			priority: true,

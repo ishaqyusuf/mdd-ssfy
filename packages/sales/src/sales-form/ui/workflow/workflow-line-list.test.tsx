@@ -71,6 +71,7 @@ describe("WorkflowLineList", () => {
 				onRemoveLine={() => undefined}
 				onDuplicateLine={() => undefined}
 				onMoveLine={() => undefined}
+				onAddLine={() => undefined}
 				onStepChange={() => undefined}
 				renderPanel={(line, _steps, _activeIndex, activeStep, isActive) => (
 					<div
@@ -90,10 +91,19 @@ describe("WorkflowLineList", () => {
 		expect(html).toContain('data-line="line-2" data-active="true"');
 		expect(html).toContain('value="First line"');
 		expect(html).toContain("text-sm uppercase");
+		expect(html).toContain("md:col-span-10 md:pr-3");
+		expect(html).toContain(
+			"block overflow-hidden text-ellipsis whitespace-nowrap uppercase",
+		);
+		expect(html).toContain(
+			"border-primary-foreground/50 bg-primary text-primary-foreground shadow-sm",
+		);
 		expect(html).toContain('id="sales-form-item-line-2"');
 		expect(html).toContain('aria-label="Item 1 actions"');
 		expect(html).toContain('aria-label="Item 2 actions"');
 		expect(html).toContain("transition-[grid-template-rows,opacity,transform]");
 		expect(html).toContain("motion-reduce:transition-none");
+		expect(html).toContain("w-full gap-2 uppercase");
+		expect(html).toContain("Add New Line");
 	});
 });

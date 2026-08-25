@@ -5,7 +5,7 @@ import { FormProvider } from "react-hook-form";
 import { z } from "zod";
 
 export const dispatchCreateFormSchema = z.object({
-	salesId: z.number().int().positive("Select an order"),
+	salesIds: z.array(z.number().int().positive()).min(1, "Select at least one order"),
 	deliveryMode: z.enum(["delivery", "pickup"]),
 	dueDate: z.string().min(1, "Delivery date is required"),
 	driverId: z.number().int().positive().nullable(),
@@ -22,7 +22,7 @@ export function DispatchFormContext({
 }) {
 	const form = useZodForm(dispatchCreateFormSchema, {
 		defaultValues: {
-			salesId: salesId || 0,
+			salesIds: salesId ? [salesId] : [],
 			deliveryMode: "delivery",
 			dueDate: new Date().toISOString().slice(0, 10),
 			driverId: null,

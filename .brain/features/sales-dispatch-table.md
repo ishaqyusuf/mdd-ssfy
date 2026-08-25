@@ -1,6 +1,27 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-25: Fulfillment V2 is now the sidebar destination for order editors
+  and uses the same `editOrders` page boundary as the former linked
+  Fulfillment page. Its navigation is reduced to generated `All`, counted
+  `Backlog`, Calendar, Drivers, and Exceptions tabs; the duplicate Dashboard
+  and Dispatches tabs are removed. All retains the analytics, warning-toned
+  overdue alert, and active dispatch table. Filter controls now use semantic
+  Stage/Schedule/Delivery/Risk/Driver icons, while the duplicate table/calendar
+  selector, auto-refresh, and CSV export controls are removed. V2 overdue
+  counts now use the exact legacy Fulfillment status/date predicate. Summary
+  cards reuse the established colored Fulfillment presentation. Drivers starts
+  with an `editEmployee`-guarded Add driver tile that opens the employee dialog
+  with Driver/Dispatch/Delivery role fallback selection. Create Dispatch is now
+  a dialog with server-backed rich order search, removable order-number pills,
+  and an atomic manager-only multi-order create command capped at 50 orders.
+- 2026-08-25: Fulfillment Calendar now retains the shared seven-card dispatch
+  summary and overdue-dispatch alert above its tabs and Week/Month calendar.
+  List-only search/filter controls, column settings, refresh/auto-refresh,
+  export, deleted/sweeper actions, table, and driver workload remain excluded.
+  The list and Calendar workspaces consume one shared overview component, and
+  the Calendar route prefetches its summary alongside the visible calendar
+  period.
 - 2026-08-23: Standardized Sales Overview packing and its Production handoff
   around shared Sales-package policies. Pack All now uses published
   deliverable/listed/available capacity and never falls back to ordered
@@ -89,12 +110,12 @@
   filter-options query on initial load, or participate in Clear filters. Tabs,
   calendar state, sheet state, and workspace routing remain URL-owned.
 - 2026-08-21: Fulfillment Calendar is now a first-class `PageTabs` workspace
-  beside Pending, All, and Completed. The Calendar tab owns its composition, so
-  list summaries, the overdue banner, search/filter controls, column settings,
-  refresh/auto-refresh, export, deleted/sweeper actions, and driver workload do
-  not render there. Calendar state is URL-backed with Week and Month modes plus
-  a date anchor, and the month mode displays complete Monday-Sunday calendar
-  weeks. Legacy `?view=calendar` links redirect to the canonical Calendar tab.
+  beside Pending, All, and Completed. The Calendar tab owns its composition.
+  It originally omitted list summaries and the overdue banner as well as
+  list-only controls; the summary/banner omission was superseded on 2026-08-25.
+  Calendar state is URL-backed with Week and Month modes plus a date anchor,
+  and the month mode displays complete Monday-Sunday calendar weeks. Legacy
+  `?view=calendar` links redirect to the canonical Calendar tab.
 - 2026-08-21: The Fulfillment Calendar period title is now a centered clickable
   picker. Week mode offers ten weeks before and after the selected anchor, and
   Month mode offers four months before and after it; both accept unrestricted
@@ -145,23 +166,28 @@
 - 2026-07-17: Dispatch density and content-fit widths were tightened against the Sales Orders/Midday invoices standard while keeping the interactive dispatch controls readable.
 - 2026-07-27: Admin dispatch single-row and batch menus now reuse the canonical Sales Orders `Mark as` workflow for production completion and fulfillment.
 
-## Fulfillment v2 Workspace (2026-08-18)
+## Fulfillment v2 Workspace (updated 2026-08-25)
 
-- `/sales-book/fulfillment/v2` is the unlinked replacement workspace selected by the
-  `section` URL parameter: `dashboard | backlog | dispatches | calendar |
-  drivers | exceptions`.
+- `/sales-book/fulfillment/v2` is the linked Fulfillment workspace for
+  `editOrders`. User-visible sections are All, Backlog, Calendar, Drivers, and
+  Exceptions. All maps to the internal `dispatches` section key; `dashboard`
+  remains an accepted compatibility value for old bookmarked URLs but is no
+  longer exposed as a tab.
 - Lifecycle filters project legacy storage into `ready_to_assign`, `assigned`,
   `packing`, `packing_blocked`, `ready_to_load`, `in_transit`, `fulfilled`, and
   `cancelled` without rewriting historical rows.
 - The admin route is a thin server composition boundary. It loads URL/sort
   state and table settings, prefetches only the active section, then hydrates
   the client workspace and always-mounted dispatch sheet.
-- The title and five compact summary cards follow Sales Finance. Search,
-  filters, PageTabs, table/calendar switching, column tools, and administrative
-  overflow share one Midday-style toolbar.
-- The URL-owned sheet supports create-from-backlog, assign/reassign, schedule,
-  durable exception report/resolve, and detail tabs for overview, packing,
-  route/contact, proof, and activity.
+- The title and five colored summary cards follow the established Fulfillment
+  visual language. Search, semantic filters, PageTabs, table column tools, and
+  administrative overflow share one Midday-style toolbar. Calendar is selected
+  only through its page tab; automatic refresh and CSV export are intentionally
+  absent.
+- The URL-owned create mode opens a dialog with server-backed multi-order
+  search and removable order-number pills. Assign/reassign, schedule, durable
+  exception report/resolve, and detail tabs for overview, packing,
+  route/contact, proof, and activity remain in the detail sheet.
 - Packing execution still belongs to `/sales/packing-list`. Fulfillment
   displays readiness and deep-links into that accepted workflow.
 - The workspace table removes unrestricted trip status selection. Assignment,
@@ -175,8 +201,9 @@
   (`editOrders`). Calendar accepts `calendarView=week|month` and
   `calendarDate=YYYY-MM-DD`; legacy `?view=calendar` redirects to the Calendar
   tab.
-- Replacement workspace: `/sales-book/fulfillment/v2` (Super Admin plus
-  `editOrders`; retained for direct access but not linked from the sidebar)
+- Linked Fulfillment workspace: `/sales-book/fulfillment/v2` (`editOrders`)
+- Previous Fulfillment composition: `/sales-book/fulfillment` (`editOrders`;
+  retained as a child path while V2 is the sidebar destination)
 - Driver task route: `/sales-book/dispatch-task` (`editDelivery` without
   `editOrders`)
 
@@ -226,6 +253,10 @@ The table uses the shared `tables-2` domain pattern with typed columns, stable r
 - Existing `SalesMenu.MarkAs` workflow for inventory preflight, production completion, fulfillment, task monitoring, and query invalidation
 - Added protected admin projections: `dispatch.workspaceSummary`, `backlog`,
   `list`, `calendar`, `driverWorkload`, `exceptions`, and `detail`.
+- Added manager-only `dispatch.createDispatches`, accepting 1-50 unique eligible
+  order ids plus one shared delivery mode, date, and optional driver. It
+  rechecks backlog eligibility and creates every dispatch in one transaction;
+  any stale or ineligible order rejects the whole batch.
 - Added the bounded manager-only `dispatch.fulfillmentCalendar` projection for
   active scheduled dispatches in the requested 7-42 day visible range plus a
   bounded unscheduled queue. The accepted v2 `dispatch.calendar` projection is
@@ -242,11 +273,12 @@ cancelled rows, the standard dispatch route, and the driver task route do not
 receive them. The dispatch trip status menu remains separate and continues to
 own queue/packed/in-progress/completed trip transitions.
 
-The replacement remains available at `/sales-book/fulfillment/v2` while the
-Fulfillment dashboard at `/sales-book/fulfillment` is the canonical route. Both
-routes share the
-existing dispatch, Packing List, inventory, and proof authorities; the split is
-only a page-composition and rollout boundary.
+The sidebar now targets `/sales-book/fulfillment/v2`; the previous
+`/sales-book/fulfillment` composition remains directly addressable as a child
+path. Both routes share the existing dispatch, Packing List, inventory, and
+proof authorities; V2 changes the page composition and adds an atomic
+multi-order dispatch-create surface without changing those downstream
+authorities.
 
 ## 2026-08-18 Route Split Validation
 

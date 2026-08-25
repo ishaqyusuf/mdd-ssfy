@@ -199,8 +199,14 @@
 - `dispatch.workspaceSummary` returns backlog, overdue, open-exception, and
   per-stage counts used by the five actionable admin summaries.
 - `dispatch.backlog` returns eligible delivery/pickup orders with no active
-  non-cancelled dispatch. Creating a dispatch therefore always starts from a
-  real order.
+  non-cancelled dispatch. Rows include order title/number, customer,
+  delivery-mode, and status metadata for the Fulfillment selector.
+- `dispatch.createDispatches` accepts 1-50 positive order ids, one delivery
+  mode, one due date, and an optional driver. It deduplicates ids, applies the
+  existing dispatch-manager and Special Order checks, rechecks that every order
+  still satisfies backlog eligibility inside the database transaction, and
+  creates one dispatch per order atomically. One stale/ineligible order rejects
+  the complete batch.
 - `dispatch.driverManifest` ignores caller driver scope, applies the
   authenticated user id, and returns `{ queue, summary, nextStop }`.
 - `dispatch.reportException` accepts a positive dispatch id, bounded reason,

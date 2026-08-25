@@ -26,6 +26,8 @@
   paginated work queue, global summary, and next stop in one projection.
 - Assigned-driver-or-manager mutation: `dispatch.reportException`.
 - Manager mutation: `dispatch.resolveException`.
+- Manager mutation: `dispatch.createDispatches`, the atomic 1-50 order command
+  used by the Fulfillment V2 create dialog.
 - Existing create, assignment, due-date, packing, inventory preparation,
   start-trip, proof completion, cancellation, and restore endpoints remain the
   command authorities; the workspace endpoints do not duplicate them.

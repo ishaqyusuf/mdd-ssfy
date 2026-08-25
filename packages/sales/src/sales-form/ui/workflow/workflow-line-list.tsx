@@ -3,6 +3,8 @@
 
 import { type ReactNode, useEffect, useRef } from "react";
 
+import { Button } from "@gnd/ui/button";
+import { Icon } from "@gnd/ui/icons";
 import {
 	InvoiceItemCard,
 	type WorkflowStepUiRecord,
@@ -36,6 +38,7 @@ export type WorkflowLineListProps<TLine extends WorkflowLineListItem> = {
 	onRemoveLine: (line: TLine) => void;
 	onDuplicateLine?: (line: TLine) => void;
 	onMoveLine?: (line: TLine, targetIndex: number) => void;
+	onAddLine?: () => void;
 	onStepChange: (line: TLine, stepIndex: number) => void;
 	renderPanel: (
 		line: TLine,
@@ -154,6 +157,19 @@ export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 					);
 				})}
 			</div>
+			{props.onAddLine ? (
+				<div className="border-t border-border/40 p-4">
+					<Button
+						type="button"
+						variant="secondary"
+						className="w-full gap-2 uppercase"
+						onClick={props.onAddLine}
+					>
+						<Icon name="Plus" className="size-4" />
+						Add New Line
+					</Button>
+				</div>
+			) : null}
 		</section>
 	);
 }

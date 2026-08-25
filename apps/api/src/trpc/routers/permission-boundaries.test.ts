@@ -116,6 +116,7 @@ describe("high-risk tRPC permission boundaries", () => {
 			"resolveDuplicateGroup",
 			"prepareNonProduceablePacking",
 			"createDispatch",
+			"createDispatches",
 			"deleteDispatch",
 			"debugLog",
 			"bulkAssignDriver",

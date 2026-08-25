@@ -1,10 +1,11 @@
 import { AuthGuard } from "@/components/auth-guard";
+import { CreateDispatchDialog } from "@/components/dispatch-admin/create-dispatch-dialog";
 import { DispatchAdminTitle } from "@/components/dispatch-admin/dispatch-admin-title";
 import { DispatchAdminWorkspaceClient } from "@/components/dispatch-admin/dispatch-admin-workspace-client";
 import { DispatchSheet } from "@/components/dispatch-admin/dispatch-sheet";
 import PageShell from "@/components/page-shell";
 import { ScrollableContent } from "@/components/scrollable-content";
-import { _perm, _role } from "@/components/sidebar-links";
+import { _perm } from "@/components/sidebar-links";
 import { loadDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { loadSortParams } from "@/hooks/use-sort-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
@@ -16,7 +17,7 @@ import type { SearchParams } from "nuqs";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-	return constructMetadata({ title: "Fulfillment v2 | GND" });
+	return constructMetadata({ title: "Fulfillment | GND" });
 }
 
 type Props = { searchParams: Promise<SearchParams> };
@@ -26,6 +27,14 @@ export default async function DispatchAdminPage({ searchParams }: Props) {
 	const filters = loadDispatchFilterParams(params);
 	const { sort } = loadSortParams(params);
 	const initialSettings = await getInitialTableSettings("sales-dispatch");
+	const activeDispatchStages = [
+		"ready_to_assign",
+		"assigned",
+		"packing",
+		"packing_blocked",
+		"ready_to_load",
+		"in_transit",
+	] as const;
 	const listInput = {
 		q: filters.q,
 		stages: filters.stages,
@@ -81,17 +90,11 @@ export default async function DispatchAdminPage({ searchParams }: Props) {
 	} else {
 		await batchPrefetch([
 			trpc.dispatch.list.infiniteQueryOptions(
-				filters.section === "dashboard"
+				["dashboard", "dispatches"].includes(filters.section) &&
+					!filters.stages?.length
 					? {
 							...listInput,
-							stages: [
-								"ready_to_assign",
-								"assigned",
-								"packing",
-								"packing_blocked",
-								"ready_to_load",
-								"in_transit",
-							],
+							stages: [...activeDispatchStages],
 						}
 					: listInput,
 				{
@@ -106,10 +109,10 @@ export default async function DispatchAdminPage({ searchParams }: Props) {
 		<PageShell className="pt-4">
 			<HydrateClient>
 				<AuthGuard
-					rules={[_role.is("Super Admin"), _perm.is("editOrders")]}
+					rules={[_perm.is("editOrders")]}
 					Fallback={
 						<div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
-							You do not have permission to access Fulfillment v2.
+							You do not have permission to access Fulfillment.
 						</div>
 					}
 				>
@@ -120,6 +123,7 @@ export default async function DispatchAdminPage({ searchParams }: Props) {
 						</div>
 					</ScrollableContent>
 					<DispatchSheet />
+					<CreateDispatchDialog />
 				</AuthGuard>
 			</HydrateClient>
 		</PageShell>

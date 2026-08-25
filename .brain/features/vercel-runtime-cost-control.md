@@ -43,6 +43,22 @@ avoidable Function Duration and invocation amplification.
   memory, cold-start, timeout, Prisma-connection, and cost evidence. CPU size,
   region, and query behavior must not be changed in the same experiment.
 
+## Temporary Preview getOrders Hourly Canary (2026-08-25)
+
+- The existing `monitor-gnd-vercel-cost` thread heartbeat is temporarily running
+  hourly because Codex permits only one heartbeat automation per thread.
+- Each hourly run performs read-only Preview Sales Orders checks for broad search
+  `APA` and exact order `09379PC`, records timings and browser evidence under
+  `.gstack/canary-reports/`, and alerts only on a confirmed retry failure,
+  authentication loss, or untrustworthy evidence.
+- The normal Vercel cost snapshot still runs only at 09:00 Africa/Lagos during
+  this window. Hourly browser checks do not run the usage command.
+- The canary ends at 07:00 Africa/Lagos on 2026-08-26. It must write
+  `.brain/reports/2026-08-25-preview-getorders-24h-canary.md`, report the result,
+  and restore `monitor-gnd-vercel-cost` to its original daily 09:00 schedule and
+  cost-only prompt. The temporary hourly rule includes one extra recovery
+  occurrence so restoration can retry if the final run fails.
+
 ## References
 
 - Plan: `.brain/plans/2026-08-21-feature-vercel-function-cost-reduction-and-trigger-offload.md`

@@ -59,7 +59,7 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(taskRoute.includes("<DataTable driver")).toBe(true);
 	});
 
-	it("keeps the legacy admin dashboard canonical and the new workspace isolated at v2", () => {
+	it("keeps the V2 workspace as the permission-aligned fulfillment destination", () => {
 		const adminRoute = readSource(
 			"app/(sidebar)/(sales)/sales-book/fulfillment/page.tsx",
 		);
@@ -80,7 +80,8 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(adminRoute.includes("DispatchAdminWorkspaceClient")).toBe(false);
 		expect(adminV2Route.includes("DispatchAdminWorkspaceClient")).toBe(true);
 		expect(adminV2Route.includes("DispatchSheet")).toBe(true);
-		expect(adminV2Route.includes('_role.is("Super Admin")')).toBe(true);
+		expect(adminV2Route.includes('rules={[_perm.is("editOrders")]}')).toBe(true);
+		expect(adminV2Route.includes('_role.is("Super Admin")')).toBe(false);
 		expect(
 			workspaceClient.includes("dispatch-calendar-view-v2"),
 		).toBe(true);
@@ -152,12 +153,18 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(taskRoute.includes("enableSalesMarkAs")).toBe(false);
 	});
 
-	it("gives Calendar a tab-owned workspace without list analytics or actions", () => {
+	it("keeps the shared overview in Calendar without list-only actions", () => {
 		const adminRoute = readSource(
 			"app/(sidebar)/(sales)/sales-book/fulfillment/page.tsx",
 		);
 		const calendarWorkspace = readSource(
 			"components/dispatch-admin/fulfillment-calendar-workspace.tsx",
+		);
+		const listWorkspace = readSource(
+			"components/dispatch-admin/fulfillment-list-workspace.tsx",
+		);
+		const overview = readSource(
+			"components/dispatch-admin/fulfillment-overview.tsx",
 		);
 		const tabs = readSource("components/dispatch-admin/fulfillment-tabs.ts");
 
@@ -169,8 +176,10 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(adminRoute.includes("fulfillmentCalendar.queryOptions")).toBe(true);
 		expect(calendarWorkspace.includes("FulfillmentPageTabs")).toBe(true);
 		expect(calendarWorkspace.includes("DispatchCalendarView")).toBe(true);
-		expect(calendarWorkspace.includes("DispatchSummaryCards")).toBe(false);
-		expect(calendarWorkspace.includes("DispatchOverdueBanner")).toBe(false);
+		expect(calendarWorkspace.includes("FulfillmentOverview")).toBe(true);
+		expect(listWorkspace.includes("FulfillmentOverview")).toBe(true);
+		expect(overview.includes("DispatchSummaryCards")).toBe(true);
+		expect(overview.includes("DispatchOverdueBanner")).toBe(true);
 		expect(calendarWorkspace.includes("DispatchSearchFilter")).toBe(false);
 		expect(calendarWorkspace.includes("DispatchAutoRefresh")).toBe(false);
 		expect(calendarWorkspace.includes("SalesDispatchColumnVisibility")).toBe(

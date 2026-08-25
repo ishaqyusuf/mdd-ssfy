@@ -111,7 +111,7 @@ describe("sidebar role access", () => {
 		expect(links.linksNameMap["/sales-book/dispatch-task"]?.hasAccess).toBe(
 			true,
 		);
-		expect(links.linksNameMap["/sales-book/fulfillment"]?.hasAccess).toBe(
+		expect(links.linksNameMap["/sales-book/fulfillment/v2"]?.hasAccess).toBe(
 			false,
 		);
 		expect(visibleDispatchLinks.map((link) => link.href)).toEqual([
@@ -132,10 +132,10 @@ describe("sidebar role access", () => {
 		expect(links.linksNameMap["/sales-book/dispatch-task"]?.hasAccess).toBe(
 			false,
 		);
-		expect(links.linksNameMap["/sales-book/fulfillment"]?.hasAccess).toBe(
+		expect(links.linksNameMap["/sales-book/fulfillment/v2"]?.hasAccess).toBe(
 			true,
 		);
-		expect(links.linksNameMap["/sales-book/fulfillment/v2"]).toBeUndefined();
+		expect(links.linksNameMap["/sales-book/fulfillment"]?.hasAccess).toBe(true);
 	});
 
 	test("shows fulfillment as a single top-level link to super admins", () => {
@@ -147,10 +147,10 @@ describe("sidebar role access", () => {
 			}),
 		);
 
-		expect(links.linksNameMap["/sales-book/fulfillment"]?.hasAccess).toBe(
+		expect(links.linksNameMap["/sales-book/fulfillment/v2"]?.hasAccess).toBe(
 			true,
 		);
-		expect(links.linksNameMap["/sales-book/fulfillment/v2"]).toBeUndefined();
+		expect(links.linksNameMap["/sales-book/fulfillment"]?.hasAccess).toBe(true);
 	});
 
 	test("keeps the fulfillment page guard aligned with navigation", () => {
@@ -171,9 +171,8 @@ describe("sidebar role access", () => {
 			),
 			"utf8",
 		);
-		expect(v2Source).toContain(
-			'rules={[_role.is("Super Admin"), _perm.is("editOrders")]}',
-		);
+		expect(v2Source).toContain('rules={[_perm.is("editOrders")]}');
+		expect(v2Source).not.toContain('_role.is("Super Admin")');
 	});
 
 	test("marks the storefront workspace as work in progress", () => {

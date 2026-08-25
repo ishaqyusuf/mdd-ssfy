@@ -1061,6 +1061,45 @@ describe("new-sales-form multi-line mixed parity", () => {
 			}),
 		).rejects.toThrow("SALES_RELATIONAL_REVIEW_REQUIRED");
 
+		Object.assign(state.items.find((item) => item.id === 50), {
+			qty: 3,
+			rate: 178.33,
+			total: 535,
+		});
+		Object.assign(state.hpts.find((hpt) => hpt.id === 500), {
+			totalDoors: 3,
+			totalPrice: 535,
+		});
+		Object.assign(state.doors.find((door) => door.id === 501), {
+			deletedAt: new Date(),
+		});
+		Object.assign(state.doors.find((door) => door.id === 503), {
+			lhQty: 0,
+			rhQty: 2,
+			totalQty: 2,
+			lineTotal: 360,
+		});
+		const loadedAfterProjection = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "order-09140db",
+		});
+		await expect(
+			saveDraftNewSalesForm(ctx, {
+				type: "order",
+				salesId: loadedAfterProjection.salesId,
+				slug: loadedAfterProjection.slug,
+				version: loadedAfterProjection.version,
+				autosave: false,
+				commitIntent: "draft",
+				specialOrderDeclaration:
+					loadedAfterProjection.specialOrder.declaration,
+				meta: loadedAfterProjection.form,
+				lineItems: loadedAfterProjection.lineItems,
+				extraCosts: loadedAfterProjection.extraCosts,
+				summary: loadedAfterProjection.summary,
+			}),
+		).resolves.toMatchObject({ salesId: 5 });
+
 		const persistedDoorItem = state.items.find(
 			(item) => item.meta?.uid === "line-interior-door",
 		);

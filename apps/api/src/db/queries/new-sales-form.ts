@@ -94,6 +94,7 @@ import { generateRandomString } from "@gnd/utils";
 import { TRPCError } from "@trpc/server";
 import { getNewSalesFormCommitmentSnapshot } from "./new-sales-form-adjustments";
 import {
+	captureNewSalesFormSaveFailure,
 	captureNewSalesFormSavePayload,
 	logNewSalesFormSaveDiagnostic,
 } from "./new-sales-form-debug";
@@ -378,22 +379,75 @@ function roundCurrency(value: number) {
 
 function hasUnprojectedApprovedCommercialSnapshot(
 	meta: NewSalesFormContainer,
-	items: Array<{ total: number | null }>,
+	canonicalLines: NewSalesFormLineItem[],
 ) {
 	const persisted = meta.newSalesForm;
 	if (!persisted?.approvedAdjustmentId || !persisted.lineItems?.length) {
 		return false;
 	}
-	const snapshotTotal = roundCurrency(
-		persisted.lineItems.reduce(
-			(total, line) => total + Number(line.lineTotal || 0),
-			0,
-		),
+	return (
+		JSON.stringify(commercialProjection(persisted.lineItems)) !==
+		JSON.stringify(commercialProjection(canonicalLines))
 	);
-	const relationalTotal = roundCurrency(
-		items.reduce((total, item) => total + Number(item.total || 0), 0),
-	);
-	return Math.abs(snapshotTotal - relationalTotal) >= 0.01;
+}
+
+function commercialProjection(lines: unknown[]) {
+	return lines
+		.map((value) => {
+			const line = safeRecord(value);
+			const hpt = safeRecord(line.housePackageTool);
+			const doors = Array.isArray(hpt.doors) ? hpt.doors : [];
+			const shelves = Array.isArray(line.shelfItems) ? line.shelfItems : [];
+			return {
+				key:
+					Number(line.id || 0) > 0
+						? `id:${Number(line.id)}`
+						: `uid:${String(line.uid || "")}`,
+				qty: Number(line.qty || 0),
+				lineTotal: roundCurrency(Number(line.lineTotal || 0)),
+				doors: doors
+					.map((doorValue) => {
+						const door = safeRecord(doorValue);
+						return {
+							key:
+								Number(door.id || 0) > 0
+									? `id:${Number(door.id)}`
+									: [
+											normalizeSalesDoorDimension(
+												String(door.dimension || ""),
+											),
+											Number(door.stepProductId || 0),
+										].join("|"),
+							dimension: normalizeSalesDoorDimension(
+								String(door.dimension || ""),
+							),
+							lhQty: Number(door.lhQty || 0),
+							rhQty: Number(door.rhQty || 0),
+							totalQty: Number(door.totalQty || 0),
+							lineTotal: roundCurrency(Number(door.lineTotal || 0)),
+						};
+					})
+					.sort((left, right) => left.key.localeCompare(right.key)),
+				shelves: shelves
+					.map((shelfValue) => {
+						const shelf = safeRecord(shelfValue);
+						return {
+							key:
+								Number(shelf.id || 0) > 0
+									? `id:${Number(shelf.id)}`
+									: [
+											Number(shelf.categoryId || 0),
+											Number(shelf.productId || 0),
+											String(shelf.description || ""),
+										].join("|"),
+							qty: Number(shelf.qty || 0),
+							totalPrice: roundCurrency(Number(shelf.totalPrice || 0)),
+						};
+					})
+					.sort((left, right) => left.key.localeCompare(right.key)),
+			};
+		})
+		.sort((left, right) => left.key.localeCompare(right.key));
 }
 
 function uniquePositiveNumbers(values: Array<unknown>) {
@@ -665,7 +719,7 @@ function normalizedPo(value: unknown) {
 function isLegacyPoOnlySave(input: {
 	currentMeta: NewSalesFormContainer;
 	currentStatus: string | null;
-	nextStatus: string;
+	nextStatus: string | null;
 	payload: SaveDraftNewSalesFormSchema | SaveFinalNewSalesFormSchema;
 	before: {
 		form: NewSalesFormMeta;
@@ -2984,6 +3038,7 @@ async function saveNewSalesFormInternal(
 		storefrontPricing?: unknown;
 		storefrontInquiryId?: string;
 		storefrontInquiryReference?: string;
+		preserveExistingStatus?: boolean;
 	},
 ) {
 	const newDraftKey =
@@ -3282,6 +3337,9 @@ async function saveNewSalesFormInternal(
 				}
 				currentId = order.id;
 			}
+			const nextOrderStatus =
+				order && origin?.preserveExistingStatus ? order.status : status;
+			const hasExternalOrigin = Boolean(origin?.salesChannel);
 
 			if (order?.dealerAuthId && payload.meta.customerId !== order.customerId) {
 				throw new TRPCError({
@@ -3316,7 +3374,7 @@ async function saveNewSalesFormInternal(
 				}
 			}
 
-			const isInternalDashboardOrder = !origin && !order?.dealerAuthId;
+			const isInternalDashboardOrder = !hasExternalOrigin && !order?.dealerAuthId;
 			const enrollmentAccess = isInternalDashboardOrder
 				? await getSpecialOrderEnrollmentAccess(
 						tx as unknown as TRPCContext["db"],
@@ -3433,16 +3491,6 @@ async function saveNewSalesFormInternal(
 						"This form changed elsewhere. Reload the latest version before saving.",
 				});
 			}
-			if (
-				order &&
-				hasUnprojectedApprovedCommercialSnapshot(currentMeta, order.items)
-			) {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message:
-						"SALES_RELATIONAL_REVIEW_REQUIRED: An approved adjustment was not projected into the relational sales rows. This document is locked until the migration review reconciles it.",
-				});
-			}
 			let canonicalBefore: Awaited<ReturnType<typeof getNewSalesForm>> | null =
 				null;
 			if (
@@ -3460,10 +3508,24 @@ async function saveNewSalesFormInternal(
 			if (
 				order &&
 				canonicalBefore &&
+				hasUnprojectedApprovedCommercialSnapshot(
+					currentMeta,
+					canonicalBefore.lineItems,
+				)
+			) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"SALES_RELATIONAL_REVIEW_REQUIRED: An approved adjustment was not projected into the relational sales rows. This document is locked until the migration review reconciles it.",
+				});
+			}
+			if (
+				order &&
+				canonicalBefore &&
 				isLegacyPoOnlySave({
 					currentMeta,
 					currentStatus: order.status,
-					nextStatus: status,
+					nextStatus: nextOrderStatus,
 					payload,
 					before: canonicalBefore,
 					normalizedLines,
@@ -3677,11 +3739,11 @@ async function saveNewSalesFormInternal(
 				const created = await tx.salesOrders.create({
 					data: {
 						orderId: identity.orderId,
-						slug: origin ? identity.slug : identity.orderId,
+						slug: hasExternalOrigin ? identity.slug : identity.orderId,
 						type: payload.type,
-						status,
+						status: nextOrderStatus,
 						isDyke: true,
-						salesRepId: origin ? null : ctx.userId,
+						salesRepId: hasExternalOrigin ? null : ctx.userId,
 						customerId: payload.meta.customerId || null,
 						customerProfileId: payload.meta.customerProfileId || null,
 						billingAddressId: payload.meta.billingAddressId || null,
@@ -3721,7 +3783,7 @@ async function saveNewSalesFormInternal(
 				currentId = created.id;
 				order = {
 					...created,
-					status,
+					status: nextOrderStatus,
 					meta: nextMeta,
 					inventoryStatus:
 						payload.type === "order" ? payload.inventoryStatus || null : null,
@@ -3750,7 +3812,7 @@ async function saveNewSalesFormInternal(
 						id: order.id,
 					},
 					data: {
-						status,
+						status: nextOrderStatus,
 						customerId: payload.meta.customerId || null,
 						customerProfileId: payload.meta.customerProfileId || null,
 						billingAddressId: payload.meta.billingAddressId || null,
@@ -4352,7 +4414,7 @@ async function saveNewSalesFormInternal(
 						copy: buildSalesFormUpdateActivity({
 							salesType: payload.type,
 							orderId: order!.orderId,
-							status,
+							status: nextOrderStatus || "Unspecified",
 							autosave: payload.autosave,
 							beforeGrandTotal: Number(order!.grandTotal || 0),
 							afterGrandTotal: persistedSummary.grandTotal,
@@ -4408,7 +4470,7 @@ async function saveNewSalesFormInternal(
 				extraCosts: hydratedExtraCosts,
 				summary,
 				settings,
-				status,
+				status: nextOrderStatus,
 				_saveScope: "full" as const,
 				specialOrder: {
 					declaration: nextSpecialOrderDeclaration,
@@ -4556,7 +4618,7 @@ export async function saveDraftNewSalesForm(
 		startedAt,
 		payload,
 	});
-	await captureNewSalesFormSavePayload({
+	const capturePath = await captureNewSalesFormSavePayload({
 		action: "save-draft",
 		payload,
 		userId: ctx.userId,
@@ -4570,7 +4632,28 @@ export async function saveDraftNewSalesForm(
 		startedAt,
 		payload,
 	});
-	const result = await saveNewSalesFormInternal(ctx, payload, "Draft");
+	let result: Awaited<ReturnType<typeof saveNewSalesFormInternal>>;
+	try {
+		result = await saveNewSalesFormInternal(ctx, payload, "Draft", {
+			preserveExistingStatus: true,
+		});
+	} catch (error) {
+		logNewSalesFormSaveDiagnostic({
+			action: "save-draft",
+			stage: "failed",
+			requestId: ctx.requestId,
+			clientRequestId: payload.clientRequestId,
+			startedAt,
+			payload,
+			error,
+		});
+		await captureNewSalesFormSaveFailure({
+			capturePath,
+			error,
+			requestId: ctx.requestId,
+		});
+		throw error;
+	}
 	logNewSalesFormSaveDiagnostic({
 		action: "save-draft",
 		stage: "core-complete",
@@ -4606,7 +4689,7 @@ export async function saveFinalNewSalesForm(
 		startedAt,
 		payload,
 	});
-	await captureNewSalesFormSavePayload({
+	const capturePath = await captureNewSalesFormSavePayload({
 		action: "save-final",
 		payload,
 		userId: ctx.userId,
@@ -4620,7 +4703,26 @@ export async function saveFinalNewSalesForm(
 		startedAt,
 		payload,
 	});
-	const result = await saveNewSalesFormInternal(ctx, payload, "Active");
+	let result: Awaited<ReturnType<typeof saveNewSalesFormInternal>>;
+	try {
+		result = await saveNewSalesFormInternal(ctx, payload, "Active");
+	} catch (error) {
+		logNewSalesFormSaveDiagnostic({
+			action: "save-final",
+			stage: "failed",
+			requestId: ctx.requestId,
+			clientRequestId: payload.clientRequestId,
+			startedAt,
+			payload,
+			error,
+		});
+		await captureNewSalesFormSaveFailure({
+			capturePath,
+			error,
+			requestId: ctx.requestId,
+		});
+		throw error;
+	}
 	logNewSalesFormSaveDiagnostic({
 		action: "save-final",
 		stage: "core-complete",

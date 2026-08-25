@@ -53,6 +53,7 @@ export default async function Page(props: Props) {
 			filter.calendarView,
 		);
 		await batchPrefetch([
+			trpc.dispatch.dispatchSummary.queryOptions(),
 			trpc.dispatch.fulfillmentCalendar.queryOptions({
 				from: period.from,
 				to: period.to,

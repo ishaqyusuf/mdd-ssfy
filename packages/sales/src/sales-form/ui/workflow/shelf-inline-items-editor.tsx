@@ -622,7 +622,7 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 											<Menu
 												noSize
 												Icon={null}
-												label={
+												Trigger={
 													<Button
 														type="button"
 														variant="outline"

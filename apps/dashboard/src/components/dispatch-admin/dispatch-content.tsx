@@ -1,5 +1,6 @@
 "use client";
 
+import { invalidateDispatchWorkspace } from "@/components/dispatch-admin/dispatch-query-invalidation";
 import { useDriversList } from "@/hooks/use-data-list";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useTRPC } from "@/trpc/client";
@@ -28,16 +29,10 @@ import {
 import { Separator } from "@gnd/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { Textarea } from "@gnd/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@gnd/ui/toggle-group";
-import {
-	useMutation,
-	useQueryClient,
-	useSuspenseInfiniteQuery,
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ExternalLink, PackageCheck } from "lucide-react";
-import { Controller, useFormContext } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import { toast } from "sonner";
-import type { DispatchCreateFormValues } from "./dispatch/form-context";
 
 type Detail = RouterOutputs["dispatch"]["detail"];
 type DispatchAddress = {
@@ -49,174 +44,6 @@ type DispatchAddress = {
 	state?: string | null;
 	meta?: { lat?: unknown; lng?: unknown; placeId?: unknown } | null;
 };
-
-function invalidateDispatchWorkspace(
-	queryClient: ReturnType<typeof useQueryClient>,
-	trpc: ReturnType<typeof useTRPC>,
-) {
-	queryClient.invalidateQueries({ queryKey: trpc.dispatch.list.pathKey() });
-	queryClient.invalidateQueries({ queryKey: trpc.dispatch.index.pathKey() });
-	queryClient.invalidateQueries({
-		queryKey: trpc.dispatch.workspaceSummary.queryKey(),
-	});
-	queryClient.invalidateQueries({ queryKey: trpc.dispatch.backlog.pathKey() });
-	queryClient.invalidateQueries({ queryKey: trpc.dispatch.detail.pathKey() });
-	queryClient.invalidateQueries({
-		queryKey: trpc.dispatch.exceptions.pathKey(),
-	});
-	queryClient.invalidateQueries({
-		queryKey: trpc.dispatch.driverWorkload.queryKey(),
-	});
-}
-
-function CreateDispatchForm() {
-	const trpc = useTRPC();
-	const queryClient = useQueryClient();
-	const { filters, setFilters } = useDispatchFilterParams();
-	const drivers = useDriversList(true);
-	const form = useFormContext<DispatchCreateFormValues>();
-	const backlog = useSuspenseInfiniteQuery(
-		trpc.dispatch.backlog.infiniteQueryOptions(
-			{ size: 100 },
-			{
-				getNextPageParam: ({ meta }) =>
-					(meta as { cursor?: string | number | null } | undefined)?.cursor,
-			},
-		),
-	);
-	const orders = backlog.data.pages.flatMap((page) => page.data);
-	const mutation = useMutation(
-		trpc.dispatch.createDispatch.mutationOptions({
-			onSuccess(dispatch) {
-				invalidateDispatchWorkspace(queryClient, trpc);
-				toast.success("Dispatch created");
-				void setFilters({
-					dispatchId: dispatch.id,
-					dispatchSalesId: null,
-					sheetMode: "details",
-					section: "dispatches",
-				});
-			},
-			onError(error) {
-				toast.error(error.message || "Unable to create dispatch");
-			},
-		}),
-	);
-	const submit = form.handleSubmit((values) => {
-		mutation.mutate({
-			salesId: values.salesId,
-			deliveryMode: values.deliveryMode,
-			dueDate: new Date(`${values.dueDate}T12:00:00`),
-			driverId: values.driverId,
-			status: "queue",
-		});
-	});
-	return (
-		<form onSubmit={submit} className="flex flex-col gap-6 p-5">
-			<FieldGroup>
-				<Field data-invalid={Boolean(form.formState.errors.salesId)}>
-					<FieldLabel htmlFor="dispatch-order">Order</FieldLabel>
-					<Controller
-						control={form.control}
-						name="salesId"
-						render={({ field }) => (
-							<Select
-								value={field.value ? String(field.value) : undefined}
-								onValueChange={(value) => field.onChange(Number(value))}
-							>
-								<SelectTrigger
-									id="dispatch-order"
-									aria-invalid={Boolean(form.formState.errors.salesId)}
-								>
-									<SelectValue placeholder="Select an eligible order" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										{orders.map((order) => (
-											<SelectItem key={order.id} value={String(order.id)}>
-												{order.orderId} ·{" "}
-												{order.customer?.businessName ||
-													order.customer?.name ||
-													"Customer"}
-											</SelectItem>
-										))}
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-						)}
-					/>
-					<FieldError errors={[form.formState.errors.salesId]} />
-				</Field>
-				<Field>
-					<FieldLabel>Delivery mode</FieldLabel>
-					<Controller
-						control={form.control}
-						name="deliveryMode"
-						render={({ field }) => (
-							<ToggleGroup
-								type="single"
-								variant="outline"
-								value={field.value}
-								onValueChange={(value) => value && field.onChange(value)}
-							>
-								<ToggleGroupItem value="delivery">Delivery</ToggleGroupItem>
-								<ToggleGroupItem value="pickup">Pickup</ToggleGroupItem>
-							</ToggleGroup>
-						)}
-					/>
-				</Field>
-				<Field data-invalid={Boolean(form.formState.errors.dueDate)}>
-					<FieldLabel htmlFor="dispatch-date">Delivery date</FieldLabel>
-					<Input
-						id="dispatch-date"
-						type="date"
-						aria-invalid={Boolean(form.formState.errors.dueDate)}
-						{...form.register("dueDate")}
-					/>
-					<FieldError errors={[form.formState.errors.dueDate]} />
-				</Field>
-				<Field>
-					<FieldLabel htmlFor="dispatch-driver">Driver</FieldLabel>
-					<FieldDescription>
-						Optional now; unassigned work remains in Ready to assign.
-					</FieldDescription>
-					<Controller
-						control={form.control}
-						name="driverId"
-						render={({ field }) => (
-							<Select
-								value={field.value ? String(field.value) : "unassigned"}
-								onValueChange={(value) =>
-									field.onChange(value === "unassigned" ? null : Number(value))
-								}
-							>
-								<SelectTrigger id="dispatch-driver">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectItem value="unassigned">Unassigned</SelectItem>
-										{drivers.map((driver) => (
-											<SelectItem key={driver.id} value={String(driver.id)}>
-												{driver.name || "Unnamed driver"}
-											</SelectItem>
-										))}
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-						)}
-					/>
-				</Field>
-			</FieldGroup>
-			<Button
-				type="submit"
-				disabled={mutation.isPending || !form.formState.isValid}
-			>
-				{mutation.isPending ? "Creating..." : "Create dispatch"}
-			</Button>
-		</form>
-	);
-}
 
 function AssignmentForm({ detail }: { detail: Detail }) {
 	const trpc = useTRPC();
@@ -646,9 +473,7 @@ export function DispatchContent({ detail }: { detail?: Detail }) {
 	const { filters } = useDispatchFilterParams();
 	return (
 		<ScrollArea className="min-h-0 flex-1">
-			{filters.sheetMode === "create" ? (
-				<CreateDispatchForm />
-			) : !detail ? (
+			{!detail ? (
 				<div className="p-5 text-sm text-muted-foreground">
 					Dispatch not found.
 				</div>

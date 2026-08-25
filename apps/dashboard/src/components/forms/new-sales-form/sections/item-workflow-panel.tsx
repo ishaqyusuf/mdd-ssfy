@@ -2192,7 +2192,7 @@ export function ItemWorkflowPanel() {
 																				<Menu
 																					noSize
 																					Icon={null}
-																					label={
+																					Trigger={
 																						<Button
 																							variant="outline"
 																							className="h-10 w-full justify-end text-xs font-semibold"

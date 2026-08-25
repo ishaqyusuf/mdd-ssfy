@@ -13,6 +13,8 @@ const source = readFileSync(
 describe("Shelf V2 Inline Items Price Form", () => {
 	test("includes Edit Shelf Price Menu with Base Price and Custom Price form inputs", () => {
 		expect(source).toContain("<Menu");
+		expect(source).toContain("Trigger={");
+		expect(source).not.toMatch(/<Menu[\s\S]{0,150}label=\{/);
 		expect(source).toContain("Edit Shelf Price");
 		expect(source).toContain("Base Price");
 		expect(source).toContain("Calculated Sales");

@@ -73,6 +73,10 @@
 - Workspace summary, backlog, list, calendar, driver workload, exception list,
   and exception resolution require the existing dispatch-manager capability
   boundary (`editPickup`, `editOrders`, or `viewPacking`).
+- `dispatch.createDispatches` uses the same manager boundary and repeats the
+  existing per-order Special Order enforcement before its eligibility-checked
+  atomic transaction. The linked V2 dashboard itself remains restricted to
+  `editOrders` users.
 - Dispatch detail and exception reporting require either that manager boundary
   or a live `OrderDelivery.driverId` match to the authenticated user.
 - Driver manifest access requires dispatch-worker capability and always

@@ -1,8 +1,6 @@
 "use client";
 
-import { DispatchAutoRefresh } from "@/components/dispatch-admin/dispatch-auto-refresh";
 import { DispatchDeletedPanel } from "@/components/dispatch-admin/dispatch-deleted-panel";
-import { DispatchExportButton } from "@/components/dispatch-admin/dispatch-export-button";
 import { dispatchAdminPageTabs } from "@/components/dispatch-admin/dispatch-tabs";
 import type { FilterDefinition } from "@/components/midday-search-filter/filter-definitions";
 import { SearchFilterTRPC } from "@/components/midday-search-filter/search-filter-trpc";
@@ -14,6 +12,7 @@ import {
 	useDispatchFilterParams,
 } from "@/hooks/use-dispatch-filter-params";
 import { SearchFilterProvider } from "@/hooks/use-search-filter";
+import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import {
 	DropdownMenu,
@@ -22,12 +21,12 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
-import { ToggleGroup, ToggleGroupItem } from "@gnd/ui/toggle-group";
 import {
 	getDeliveryFilterOptionColor,
 	getStatusFilterOptionColor,
 } from "@gnd/utils/filter-option-colors";
-import { CalendarDays, MoreHorizontal, Table2, Trash2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { MoreHorizontal, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 const baseDefinitions = [
@@ -35,6 +34,7 @@ const baseDefinitions = [
 	{
 		key: "stages",
 		label: "Stage",
+		icon: "Status",
 		type: "multi-select",
 		options: [
 			{ label: "Ready to assign", value: "ready_to_assign" },
@@ -52,6 +52,7 @@ const baseDefinitions = [
 	{
 		key: "dueBuckets",
 		label: "Schedule",
+		icon: "calendar",
 		type: "multi-select",
 		options: [
 			{ label: "Overdue", value: "overdue" },
@@ -67,6 +68,7 @@ const baseDefinitions = [
 	{
 		key: "deliveryModes",
 		label: "Delivery mode",
+		icon: "dispatch",
 		type: "multi-select",
 		options: [
 			{ label: "Delivery", value: "delivery" },
@@ -79,6 +81,7 @@ const baseDefinitions = [
 	{
 		key: "risks",
 		label: "Risk",
+		icon: "warning",
 		type: "multi-select",
 		options: [
 			{ label: "Overdue", value: "overdue" },
@@ -94,8 +97,14 @@ const baseDefinitions = [
 ] satisfies FilterDefinition[];
 
 export function DispatchAdminHeader() {
+	const trpc = useTRPC();
 	const { filters, setFilters } = useDispatchFilterParams();
 	const drivers = useDriversList(true);
+	const summary = useQuery(
+		trpc.dispatch.workspaceSummary.queryOptions(undefined, {
+			staleTime: 30_000,
+		}),
+	);
 	const [deletedOpen, setDeletedOpen] = useState(false);
 	const definitions = useMemo<FilterDefinition[]>(
 		() => [
@@ -103,6 +112,7 @@ export function DispatchAdminHeader() {
 			{
 				key: "driversId",
 				label: "Driver",
+				icon: "user",
 				type: "multi-select",
 				options: drivers.map((driver) => ({
 					label: driver.name || "Unnamed driver",
@@ -112,7 +122,18 @@ export function DispatchAdminHeader() {
 		],
 		[drivers],
 	);
-	const showsTableTools = ["dashboard", "dispatches"].includes(filters.section);
+	const tabs = useMemo(
+		() =>
+			dispatchAdminPageTabs.map((tab) =>
+				tab.params?.section === "backlog"
+					? { ...tab, count: summary.data?.backlog }
+					: tab,
+			),
+		[summary.data?.backlog],
+	);
+	const activeSection =
+		filters.section === "dashboard" ? "dispatches" : filters.section;
+	const showsTableTools = activeSection === "dispatches";
 
 	return (
 		<div className="min-w-0">
@@ -125,35 +146,15 @@ export function DispatchAdminHeader() {
 					pageTabs={
 						<PageTabs
 							portal={false}
-							tabs={dispatchAdminPageTabs}
+							tabs={tabs}
+							allActiveParam={{ key: "section", value: "dispatches" }}
+							activeParams={{ section: activeSection }}
 							maxVisible={{ base: 3, lg: 6, "2xl": 6 }}
 						/>
 					}
 					toolbarActions={
 						<>
-							<ToggleGroup
-								type="single"
-								variant="outline"
-								size="sm"
-								value={filters.section === "calendar" ? "calendar" : "table"}
-								onValueChange={(value) => {
-									if (value === "calendar") {
-										void setFilters({ section: "calendar" });
-									} else if (value === "table") {
-										void setFilters({ section: "dispatches" });
-									}
-								}}
-							>
-								<ToggleGroupItem value="table" aria-label="Table view">
-									<Table2 />
-								</ToggleGroupItem>
-								<ToggleGroupItem value="calendar" aria-label="Calendar view">
-									<CalendarDays />
-								</ToggleGroupItem>
-							</ToggleGroup>
 							{showsTableTools ? <SalesDispatchColumnVisibility /> : null}
-							<DispatchAutoRefresh />
-							<DispatchExportButton />
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button

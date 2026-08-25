@@ -14,6 +14,12 @@ type CaptureNewSalesFormSavePayloadOptions = {
 	now?: Date;
 };
 
+type CaptureNewSalesFormSaveFailureInput = {
+	capturePath: string | null;
+	error: unknown;
+	requestId?: string | null;
+};
+
 const DEBUG_SAVE_DIR = "debug/new-sales-form-save-payloads";
 
 export async function captureNewSalesFormSavePayload(
@@ -68,6 +74,47 @@ export async function captureNewSalesFormSavePayload(
 		return filePath;
 	} catch (error) {
 		console.error("Unable to capture new sales form save payload", error);
+		return null;
+	}
+}
+
+export async function captureNewSalesFormSaveFailure(
+	input: CaptureNewSalesFormSaveFailureInput,
+) {
+	if (!input.capturePath) return null;
+
+	try {
+		const error = asRecord(input.error);
+		const filePath = `${input.capturePath}.error.json`;
+		await writeFile(
+			filePath,
+			`${JSON.stringify(
+				{
+					capturedAt: new Date().toISOString(),
+					requestId: input.requestId ?? null,
+					error: {
+						name:
+							input.error instanceof Error
+								? input.error.name
+								: typeof error.name === "string"
+									? error.name
+									: "UnknownError",
+						message:
+							input.error instanceof Error
+								? input.error.message
+								: String(input.error),
+						code: typeof error.code === "string" ? error.code : null,
+						meta: asRecord(error.meta),
+					},
+				},
+				jsonReplacer,
+				2,
+			)}\n`,
+			"utf8",
+		);
+		return filePath;
+	} catch (error) {
+		console.error("Unable to capture new sales form save failure", error);
 		return null;
 	}
 }

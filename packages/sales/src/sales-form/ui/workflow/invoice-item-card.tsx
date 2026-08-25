@@ -240,7 +240,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 			}}
 		>
 			<div className="-mx-4 -mt-4 grid gap-3 bg-muted p-4 md:grid-cols-12">
-				<div className="min-w-0 md:col-span-10">
+				<div className="min-w-0 md:col-span-10 md:pr-3">
 					<InputGroup
 						className="h-10 bg-card"
 						onClick={(event) => event.stopPropagation()}
@@ -331,7 +331,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 								aria-label={`Open ${stepLabel}`}
 								className={`max-w-full rounded-full border px-3 py-1 text-xs transition-colors duration-200 motion-reduce:transition-none sm:max-w-56 ${
 									props.activeIndex === stepIndex
-										? "border-primary bg-primary/10 text-primary"
+										? "border-primary-foreground/50 bg-primary text-primary-foreground shadow-sm"
 										: props.isRedirectDisabledStep(step)
 											? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
 											: "text-muted-foreground hover:bg-muted-foreground hover:text-muted"
@@ -343,7 +343,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 									props.onStepChange(stepIndex);
 								}}
 							>
-								<span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+								<span className="block overflow-hidden text-ellipsis whitespace-nowrap uppercase">
 									{stepPillLabel}
 								</span>
 							</button>

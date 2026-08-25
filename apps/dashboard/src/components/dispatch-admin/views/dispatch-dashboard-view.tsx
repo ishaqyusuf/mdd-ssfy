@@ -21,7 +21,7 @@ export function DispatchDashboardView({
 	initialSettings?: Partial<TableSettings>;
 }) {
 	const trpc = useTRPC();
-	const { setFilters } = useDispatchFilterParams();
+	const { filters, setFilters } = useDispatchFilterParams();
 	const { data } = useSuspenseQuery(
 		trpc.dispatch.workspaceSummary.queryOptions(undefined, {
 			staleTime: 30_000,
@@ -33,8 +33,8 @@ export function DispatchDashboardView({
 				<DispatchAdminSummary />
 			</Suspense>
 			{data.overdue > 0 ? (
-				<Alert>
-					<AlertTriangle />
+				<Alert className="border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+					<AlertTriangle className="text-amber-700 dark:text-amber-300" />
 					<AlertTitle>{data.overdue} overdue dispatches</AlertTitle>
 					<AlertDescription className="flex flex-wrap items-center justify-between gap-3">
 						<span>
@@ -61,16 +61,20 @@ export function DispatchDashboardView({
 				<DataTable
 					workspace
 					initialSettings={initialSettings}
-					defaultFilters={{
-						stages: [
-							"ready_to_assign",
-							"assigned",
-							"packing",
-							"packing_blocked",
-							"ready_to_load",
-							"in_transit",
-						],
-					}}
+					defaultFilters={
+						filters.stages?.length
+							? undefined
+							: {
+									stages: [
+										"ready_to_assign",
+										"assigned",
+										"packing",
+										"packing_blocked",
+										"ready_to_load",
+										"in_transit",
+									],
+								}
+					}
 				/>
 			</Suspense>
 		</div>

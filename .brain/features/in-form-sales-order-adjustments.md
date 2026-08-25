@@ -81,6 +81,10 @@ orders in the new sales form.
   inbound disposition in one database transaction, synchronously repairs the
   Sales inventory projection, and only then marks the adjustment applied.
   History and document warming remain non-critical follow-up work.
+- Application also projects every approved house-package door array, not only
+  parent items whose top-level quantity changed. Same-quantity LH/RH moves are
+  persisted, retained door ids are reused when possible, and omitted active
+  door rows are retired before the adjustment is marked applied.
 - Creating a new approved adjustment also writes one actor-attributed Sales
   Activity entry in the same transaction. Quantity reductions show the affected
   item titles, previous/new quantities, and previous/new order total. Replaying
@@ -107,6 +111,10 @@ orders in the new sales form.
   builds form rows and totals. Retained relational rows remain available for
   audit/presentation enrichment, but cannot restore an approved-removed size or
   overwrite approved quantity, price, or summary values.
+- The new-form relational review guard compares the approved commercial shape
+  with the hydrated relational form (including door and shelf membership). It
+  does not sum raw parent `SalesOrderItems.total`, because HPT and grouped lines
+  may store their totals in relational children.
 - The new-form edit loader, legacy edit loaders, and print projection now call
   the same package-owned retained-door matcher for approved snapshots; their
   compatibility adapters no longer own separate approved-row matching rules.

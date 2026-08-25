@@ -58,6 +58,7 @@ import {
 } from "@api/db/queries/dispatch-workspace";
 import { auth } from "@api/db/queries/user";
 import {
+	createDispatchesSchema,
 	dispatchBacklogSchema,
 	dispatchExceptionListSchema,
 	dispatchWorkspaceDetailSchema,
@@ -127,6 +128,41 @@ function getDispatchNotificationService(ctx: TRPCContext) {
 		db: ctx.db,
 		userId: ctx.userId,
 	});
+}
+
+type CreatedDispatchNotification = {
+	id: number;
+	driverId: number | null;
+	dueDate: Date | null;
+	order: { orderId: string | null } | null;
+};
+
+async function sendDispatchCreatedNotifications(
+	ctx: TRPCContext,
+	dispatch: CreatedDispatchNotification,
+	deliveryMode: DeliveryOption,
+) {
+	await getDispatchNotificationService(ctx).send("sales_dispatch_created", {
+		payload: {
+			orderNo: dispatch.order?.orderId,
+			dispatchId: dispatch.id,
+			deliveryMode,
+			dueDate: dispatch.dueDate || undefined,
+			driverId: dispatch.driverId || undefined,
+		},
+	});
+	if (!dispatch.driverId) return;
+	await getDispatchNotificationService(ctx)
+		.setEmployeeRecipients(dispatch.driverId)
+		.send("sales_dispatch_assigned", {
+			payload: {
+				orderNo: dispatch.order?.orderId,
+				dispatchId: dispatch.id,
+				deliveryMode,
+				dueDate: dispatch.dueDate || undefined,
+				driverId: dispatch.driverId,
+			},
+		});
 }
 
 function normalizeDispatchDeliveryMode(value: string | null | undefined) {
@@ -2218,33 +2254,77 @@ export const dispatchRouters = createTRPCRouter({
 			// } catch {
 			//   // Do not block dispatch creation if pre-pack preparation fails.
 			// }
-			await getDispatchNotificationService(props.ctx).send(
-				"sales_dispatch_created",
-				{
-					payload: {
-						orderNo: dispatch.order?.orderId,
-						dispatchId: dispatch.id,
-						deliveryMode,
-						dueDate: dispatch.dueDate || undefined,
-						driverId: dispatch.driverId || undefined,
-					},
-				},
-			);
-			if (dispatch.driverId) {
-				await getDispatchNotificationService(props.ctx)
-					.setEmployeeRecipients(dispatch.driverId)
-					.send("sales_dispatch_assigned", {
-						payload: {
-							orderNo: dispatch.order?.orderId,
-							dispatchId: dispatch.id,
-							deliveryMode,
-							dueDate: dispatch.dueDate || undefined,
-							driverId: dispatch.driverId,
-						},
-					});
-			}
+			await sendDispatchCreatedNotifications(props.ctx, dispatch, deliveryMode);
 			// await tasks.
 			return dispatch;
+		}),
+	createDispatches: protectedProcedure
+		.input(createDispatchesSchema)
+		.mutation(async (props) => {
+			await requireDispatchManager(props.ctx);
+			const salesIds = [...new Set(props.input.salesIds)];
+			for (const salesId of salesIds) {
+				await enforceSpecialOrderForSale(
+					props.ctx,
+					salesId,
+					"DISPATCH",
+					"api.dispatch.create-many",
+				);
+			}
+
+			const deliveryMode = props.input.deliveryMode as DeliveryOption;
+			const dispatches = await props.ctx.db.$transaction(async (tx) => {
+				const eligibleOrders = await tx.salesOrders.findMany({
+					where: {
+						id: { in: salesIds },
+						deletedAt: null,
+						type: "order",
+						deliveryOption: { in: ["delivery", "pickup"] },
+						deliveredAt: null,
+						deliveries: {
+							none: {
+								deletedAt: null,
+								status: { notIn: ["cancelled"] },
+							},
+						},
+					},
+					select: { id: true },
+				});
+				if (eligibleOrders.length !== salesIds.length) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"One or more orders are no longer eligible for dispatch. Refresh the order selection and try again.",
+					});
+				}
+				return Promise.all(
+					salesIds.map((salesId) =>
+						tx.orderDelivery.create({
+							data: {
+								deliveryMode,
+								createdBy: { connect: { id: props.ctx.userId } },
+								driver: props.input.driverId
+									? { connect: { id: props.input.driverId } }
+									: undefined,
+								status: "queue" as SalesDispatchStatus,
+								dueDate: props.input.dueDate,
+								meta: {},
+								order: { connect: { id: salesId } },
+							},
+							include: { order: { select: { orderId: true } } },
+						}),
+					),
+				);
+			});
+
+			for (const dispatch of dispatches) {
+				await sendDispatchCreatedNotifications(
+					props.ctx,
+					dispatch,
+					deliveryMode,
+				);
+			}
+			return { count: dispatches.length, dispatches };
 		}),
 	deleteDispatch: protectedProcedure
 		.input(
