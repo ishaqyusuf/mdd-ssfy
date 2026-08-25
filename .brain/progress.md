@@ -12078,3 +12078,29 @@
 - The local Trigger.dev CLI reported that optional skill discovery was skipped
   during bundling, but the task code and remote production image both built and
   deployed successfully.
+
+## 2026-08-25 — Repaired production 09468PC no-change save failure
+
+- Reproduced the no-change Save failure on the authenticated production editor.
+  Vercel recorded the exact `newSalesForm.saveDraft` request as HTTP `500` on
+  deployment `dpl_DnJWrP5M9gu2SAx1Ak1dp7jTbQxY`.
+- Traced the target to an editable duplicate of adjusted order `09467PC`. The
+  duplicate inherited the source's approved adjustment marker, revision,
+  snapshot line identities, and previously malformed grouped relational rows,
+  so the relational authority guard correctly rejected the save.
+- Changed editable sales copies to retain only reusable form/nested metadata
+  defaults with autosave disabled. Adjustment authority, canonical snapshots,
+  and persisted sales-item/HPT identities no longer cross into the new order;
+  immutable history copies retain their complete source metadata.
+- Repaired `09468PC` under exact production guards using its own row/HPT IDs and
+  the approved row-level quantities `55 + 110 + 7 + 2`. Reload showed subtotal
+  `$3,916.72`, tax `$274.17`, and the intended grouped total `$1,367.80`.
+- A second no-change Save completed and navigated to Sales Overview; Vercel
+  recorded HTTP `200`, and final database proof retained the repaired rows with
+  no foreign adjustment marker. Focused and combined suites pass 15 tests / 62
+  assertions; scoped whitespace validation passes.
+- Vercel production deployment `dpl_DFDVxPpApEFiyvbezwtF43o6kbyT` then
+  promoted commit `7ea27383b` with the editable-copy sanitizer. A concurrently
+  changed editor version produced the intended out-of-date warning; after a
+  reload, the current server version saved unchanged, showed `All changes
+  saved`, and navigated to Sales Overview without the original generic error.

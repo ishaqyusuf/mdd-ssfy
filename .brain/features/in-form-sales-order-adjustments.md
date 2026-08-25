@@ -178,6 +178,10 @@ orders in the new sales form.
 - Guarded save integration: `apps/api/src/db/queries/new-sales-form.ts`
 - Sales Activity copy and persistence:
   `apps/api/src/db/queries/sales-form-activity.ts`
+- Editable order and quote copies retain reusable form defaults but must discard
+  source adjustment authority, revision state, canonical line snapshots, and
+  persisted sales-item/HPT identities. History snapshots preserve source
+  metadata because they are immutable audit records rather than editable sales.
 - Apply job: `packages/jobs/src/tasks/sales/apply-sales-order-adjustment.ts`
 - Grouped apply projection:
   `packages/jobs/src/tasks/sales/sales-adjustment-grouped-projection.ts`

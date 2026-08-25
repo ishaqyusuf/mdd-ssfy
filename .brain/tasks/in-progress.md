@@ -355,6 +355,11 @@ Tracks the active work queue. Keep this focused and execution-ready.
   snapshots now project each persisted sibling and matching HPT row instead of
   writing the aggregate group quantity onto the primary item. `09455PC` was
   reconciled under exact guards and saved with casing `25` and baseboard `22`.
+  Production duplicate `09468PC` was then repaired and saved after tracing its
+  no-change `500` to copied source adjustment authority and row identities; the
+  editable copy path now preserves only reusable form defaults. Historical
+  source `09467PC` still needs a separately approved exact-guard repair if it
+  must be edited.
   Remaining gates are Preview handoff
   verification, `All staff` enrollment rollout, and live order `09403DB` proof. See
   `.brain/plans/2026-08-24-bug-fix-pablo-sales-form-save-and-vercel-errors.md`.

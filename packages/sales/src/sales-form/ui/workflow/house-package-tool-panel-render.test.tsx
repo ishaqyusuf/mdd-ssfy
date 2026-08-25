@@ -9,14 +9,17 @@ function renderPanel(options?: {
 	canEditPricing?: boolean;
 	imageSrc?: string | null;
 	hasSwing?: boolean;
+	authoritativeLineTotal?: number;
 }) {
 	const doorSalesUnitPrice = options?.doorSalesUnitPrice ?? 5_500;
+	const authoritativeLineTotal =
+		options?.authoritativeLineTotal ?? doorSalesUnitPrice + 500;
 	const row = {
 		id: 1,
 		dimension: "3-0 x 6-8",
 		totalQty: 1,
 		unitPrice: doorSalesUnitPrice + 500,
-		lineTotal: doorSalesUnitPrice + 500,
+		lineTotal: authoritativeLineTotal,
 		jambSizePrice: doorSalesUnitPrice,
 		stepProductId: 10,
 		swing: options?.hasSwing ? "outswing" : "",
@@ -81,6 +84,17 @@ function renderPanel(options?: {
 }
 
 describe("HousePackageToolPanel repair action", () => {
+	it("keeps the displayed estimate aligned with the authoritative persisted line total", () => {
+		const html = renderPanel({
+			doorSalesUnitPrice: 4_500,
+			authoritativeLineTotal: 6_000,
+		});
+
+		expect(html).not.toContain("$5,000.00");
+		expect(html).toContain("$6,000.00");
+		expect(html).toContain("$6000.00");
+	});
+
 	it("keeps the actions heading accessible-only and reserves the freed width for Swing", () => {
 		const html = renderPanel({ hasSwing: true });
 

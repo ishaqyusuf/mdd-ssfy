@@ -41,7 +41,10 @@ import {
 	cloneElement,
 	isValidElement,
 } from "react";
-import { multiplyMoney } from "../../../payment-system/domain/money";
+import {
+	divideMoney,
+	multiplyMoney,
+} from "../../../payment-system/domain/money";
 import {
 	getHptDoorSalesUnitPrice,
 	resolveHptDoorUnitPriceBreakdown,
@@ -415,9 +418,12 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											row,
 											{
 												sharedDoorSurcharge: props.sharedDoorSurcharge,
-												profileCoefficient: props.profileCoefficient,
 											},
 										);
+										const persistedUnitPrice =
+											Number(row.totalQty || 0) > 0
+												? divideMoney(row.lineTotal, row.totalQty)
+												: unitBreakdown.unitPrice;
 										const profilePriceDrift = getDoorRowProfilePriceDrift(
 											row,
 											props.profileCoefficient,
@@ -553,13 +559,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 													<DoorPriceCell
 														row={row}
 														profileCoefficient={props.profileCoefficient}
-														displayPrice={unitBreakdown.unitPrice}
+														displayPrice={persistedUnitPrice}
 														priceBreakdown={{
 															...props.priceBreakdown,
-															displayUnitPrice: getHptDoorSalesUnitPrice(row, {
-																sharedDoorSurcharge: props.sharedDoorSurcharge,
-																profileCoefficient: props.profileCoefficient,
-															}),
+															displayUnitPrice: persistedUnitPrice,
 														}}
 														readOnly={
 															!props.canEditPricing || !props.pricingReady
@@ -624,8 +627,6 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																				getHptDoorSalesUnitPrice(row, {
 																					sharedDoorSurcharge:
 																						props.sharedDoorSurcharge,
-																					profileCoefficient:
-																						props.profileCoefficient,
 																				}),
 																			) || "$0.00"}
 																		</dd>
@@ -681,15 +682,14 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																			</span>
 																			<span className="font-semibold">
 																				{props.formatMoney(
-																					unitBreakdown.unitPrice,
+																					persistedUnitPrice,
 																				) || "$0.00"}
 																			</span>
 																		</div>
 																	) : (
 																		<span className="font-semibold">
-																			{props.formatMoney(
-																				unitBreakdown.unitPrice,
-																			) || "$0.00"}
+																			{props.formatMoney(persistedUnitPrice) ||
+																				"$0.00"}
 																		</span>
 																	)}
 																</div>
