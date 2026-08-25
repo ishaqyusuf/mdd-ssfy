@@ -35,9 +35,31 @@ describe("sales form quantity stepper", () => {
 		);
 
 		expect(source).toContain(
-			'className="sticky top-0 z-10 whitespace-nowrap bg-slate-50 px-4 py-3 shadow-sm"',
+			'className="sticky top-0 z-10 whitespace-nowrap border-b bg-slate-50 px-2 py-1.5"',
 		);
-		expect(source).toContain('className="whitespace-nowrap px-4 py-3"');
+		expect(source).toContain('className="whitespace-nowrap px-2 py-1"');
+	});
+
+	it("keeps the door size dialog controls compact and divided", () => {
+		const source = readFileSync(
+			new URL("./modals/door-size-qty-dialog.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source).toContain(
+			'className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b px-4 py-2"',
+		);
+		expect(source).toContain(
+			'className="h-8 rounded-md bg-white text-xs font-medium"',
+		);
+		expect(source).toContain(
+			'className="flex shrink-0 items-center justify-end gap-4 border-t bg-muted/20 px-4 py-2 text-xs"',
+		);
+		expect(source).toContain(
+			'<table className="min-w-full table-fixed text-sm">',
+		);
+		expect(source.match(/<col className="w-28" \/>/g)).toHaveLength(2);
+		expect(source).toContain('className="h-8 w-28 rounded-md"');
 	});
 
 	it("keeps three-digit moulding, service, and shelf quantities visible", () => {

@@ -1,5 +1,63 @@
 # Progress
 
+- 2026-08-25: Locked the compact door-size table's numeric column geometry with
+  a responsive fixed-layout colgroup. Price and Line Total are each 112px,
+  LH/RH are each 128px to contain the restored full-width steppers, and Size
+  absorbs the remaining width. Focused validation passes 6 tests / 32
+  assertions. Authenticated in-app browser measurement confirmed the exact
+  112/128/128/112px numeric widths. The temporary quantity validation state was
+  discarded by cancelling and reopening the dialog; it now shows Doors 0 and
+  Total $0.00, with nothing applied or saved.
+
+- 2026-08-25: Corrected the compact door-size table width balance after live
+  review. Desktop quantity steppers retain the compact 32px height but restore
+  their full 112px width so two-digit values remain clear, while the price
+  column is explicitly constrained instead. The focused contract now passes 6
+  tests / 31 assertions. Authenticated in-app browser proof temporarily entered
+  LH quantity `12`, confirmed the 38px input content fits without overflow, and
+  restored the quantity to zero without applying or saving the dialog.
+
+- 2026-08-25: Implemented the approved direct density pass for the new Sales
+  Form door-size quantity dialog. The supplier card is removed in favor of a
+  compact top strip with a bottom divider; desktop table chrome is flat and
+  cells now use 8px horizontal / 4px vertical padding; quantity controls are
+  32px high; mobile entries use flat divided sections; the totals summary is a
+  single compact line; and footer actions use small controls. Focused validation
+  passes 6 tests / 29 assertions plus a clean scoped whitespace check.
+  Authenticated in-app browser verification on the open create-order flow shows
+  all nine size rows simultaneously with table client height and scroll height
+  both at 449px. No order was saved and no pricing, quantity, supplier, apply,
+  API, permission, database, or migration behavior changed.
+
+- 2026-08-25: Added a second persistent GStack comparison with three materially
+  denser door-size selector directions at
+  `~/.gstack/projects/gnd/designs/door-size-selector-compact-options-20260825/comparison.html`.
+  Compact Bar uses a 52px header, 48px selector strip, 39px table rows, and 30px
+  footer actions; Dense Ledger reduces the shell and rows further with a dark
+  spreadsheet header; Chip Rail keeps selected sizes in a 20px scan line above
+  the table. All three retain the blank-first `+ Size` workflow, show all nine
+  available sizes in a scroll-free 3x3 menu, and reveal only selected rows.
+  In-app browser verification rendered all three tabs and proved `32\" x 80\"`
+  selection reveals its price and LH/RH quantity controls. This remains a design
+  artifact only; no sales-form source, pricing, persistence, API, permission,
+  database, or migration behavior changed.
+
+- 2026-08-25: Generated a persistent interactive GStack comparison for the new
+  Sales Form door-size selector at
+  `~/.gstack/projects/gnd/designs/door-size-selector-options-20260825/comparison.html`.
+  Five compact desktop directions start with a blank quantity table, expose all
+  nine sizes from a top `+ Size` selector without menu scrolling, and reveal
+  only chosen sizes as editable table rows. Authenticated in-app browser
+  inspection supplied the current labels, prices, quantities, and 1280x720
+  viewport constraint. Browser verification confirmed all five comparison
+  screens fit without page scrolling; the tested Option A path adds `32\" x
+  80\"` and reveals its LH/RH quantity row. A hidden-panel text-layout bug that
+  initially pushed Options B-E below the viewport was corrected by deferring
+  measurement until each panel becomes visible; browser retesting now renders
+  all five tab bodies and their size controls. This is a design artifact only; no
+  sales-form code, pricing, persistence, API, permission, database, or migration
+  behavior changed.
+
 - 2026-08-25: Restored legacy-compatible door-size price persistence in the new
   Sales Form. The fresh component query now bypasses stale workflow cache,
   current catalog buckets override saved component snapshots, size-price writes

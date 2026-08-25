@@ -257,29 +257,27 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 				onOpenAutoFocus={(event) => event.preventDefault()}
 				className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0"
 			>
-				<DialogHeader className="shrink-0 border-b bg-gradient-to-r from-slate-50 to-white px-4 py-4 sm:px-5">
-					<DialogTitle className="uppercase">
+				<DialogHeader className="shrink-0 border-b px-4 py-3">
+					<DialogTitle className="text-base uppercase">
 						{props.component.title || "Door"} SIZE SELECT
 					</DialogTitle>
-					<DialogDescription>
+					<DialogDescription className="text-xs">
 						Select size, price, and quantity for this door option.
 					</DialogDescription>
 				</DialogHeader>
-				<div className="flex min-h-0 flex-1 flex-col gap-4 px-4 py-4 sm:px-5">
-					<div className="flex shrink-0 flex-col gap-3 rounded-xl border bg-slate-50/70 p-3 sm:flex-row sm:items-end sm:justify-between">
-						<div className="shrink-0">
-							<p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-								Door Supplier
-							</p>
-						</div>
-						<div className="w-full sm:w-[260px]">
-							<Select
+				<div className="flex min-h-0 flex-1 flex-col">
+					<div className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b px-4 py-2">
+						<p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+							Door Supplier
+						</p>
+						<div className="w-full sm:ml-auto sm:w-[240px]">
+											<Select
 								value={props.supplierUid || "default"}
 								onValueChange={(value) =>
 									props.onSupplierChange?.(value === "default" ? null : value)
 								}
 							>
-								<SelectTrigger className="h-10 rounded-xl bg-white text-sm font-medium">
+								<SelectTrigger className="h-8 rounded-md bg-white text-xs font-medium">
 									<SelectValue placeholder="Select supplier" />
 								</SelectTrigger>
 								<SelectContent>
@@ -297,15 +295,15 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 					</div>
 
 					<div className="flex min-h-0 flex-1 flex-col">
-						<div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1 md:hidden">
+						<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:hidden">
 							{rows.map((row, index) => (
 								<div
 									key={`door-size-card-${index}`}
-									className="space-y-3 rounded-2xl border bg-white p-4 shadow-sm"
+									className="space-y-2 border-b bg-white px-4 py-3"
 								>
-									<div className="flex items-start justify-between gap-3">
+									<div className="flex items-start justify-between gap-2">
 										<div>
-											<p className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+											<p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
 												Size
 											</p>
 											<p className="text-sm font-semibold text-foreground">
@@ -315,7 +313,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 												{row.dimension || "--"}
 											</p>
 										</div>
-										<div className="min-w-[120px]">
+										<div className="min-w-[104px]">
 											<DoorPriceCell
 												row={row}
 												basePrice={storedDoorSizeBasePrice(
@@ -333,7 +331,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 										</div>
 									</div>
 									{props.routeConfig?.hasSwing ? (
-										<div className="space-y-2">
+										<div className="space-y-1.5">
 											<Label>Swing</Label>
 											{swingOptions ? (
 												<Select
@@ -351,7 +349,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 														)
 													}
 												>
-													<SelectTrigger>
+													<SelectTrigger className="h-8 rounded-md">
 														<SelectValue placeholder="Select swing" />
 													</SelectTrigger>
 													<SelectContent>
@@ -378,17 +376,18 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 														)
 													}
 													placeholder="LH/RH"
+													className="h-8 rounded-md"
 												/>
 											)}
 										</div>
 									) : null}
 									{props.routeConfig?.noHandle ? (
-										<div className="space-y-2">
+										<div className="space-y-1.5">
 											<Label>Qty</Label>
 											<SalesFormQuantityStepper
 												label={`Quantity for ${formatDoorSizeTitle(row.dimension)}`}
 												value={row.totalQty}
-												className="w-full"
+												className="h-8 w-full rounded-md"
 												onChange={(value) =>
 													setRows((prev) =>
 														prev.map((item, ri) =>
@@ -408,13 +407,13 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 											/>
 										</div>
 									) : (
-										<div className="grid grid-cols-2 gap-3">
-											<div className="space-y-2">
+										<div className="grid grid-cols-2 gap-2">
+											<div className="space-y-1.5">
 												<Label>LH</Label>
 												<SalesFormQuantityStepper
 													label={`LH quantity for ${formatDoorSizeTitle(row.dimension)}`}
 													value={row.lhQty}
-													className="w-full"
+													className="h-8 w-full rounded-md"
 													onChange={(value) =>
 														setRows((prev) =>
 															prev.map((item, ri) =>
@@ -431,12 +430,12 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 													min={0}
 												/>
 											</div>
-											<div className="space-y-2">
+											<div className="space-y-1.5">
 												<Label>RH</Label>
 												<SalesFormQuantityStepper
 													label={`RH quantity for ${formatDoorSizeTitle(row.dimension)}`}
 													value={row.rhQty}
-													className="w-full"
+													className="h-8 w-full rounded-md"
 													onChange={(value) =>
 														setRows((prev) =>
 															prev.map((item, ri) =>
@@ -459,36 +458,51 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 							))}
 						</div>
 
-						<div className="hidden min-h-0 flex-1 overflow-auto overscroll-contain rounded-2xl border md:block">
-							<table className="min-w-full text-sm">
+						<div className="hidden min-h-0 flex-1 overflow-auto overscroll-contain md:block">
+							<table className="min-w-full table-fixed text-sm">
+								<colgroup>
+									<col />
+									<col className="w-28" />
+									{props.routeConfig?.hasSwing ? (
+										<col className="w-40" />
+									) : props.routeConfig?.noHandle ? (
+										<col className="w-32" />
+									) : (
+										<>
+											<col className="w-32" />
+											<col className="w-32" />
+										</>
+									)}
+									<col className="w-28" />
+								</colgroup>
 								<thead className="bg-slate-50">
-									<tr className="text-left text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-										<th className="sticky top-0 z-10 whitespace-nowrap bg-slate-50 px-4 py-3 shadow-sm">
+									<tr className="text-left text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+										<th className="sticky top-0 z-10 whitespace-nowrap border-b bg-slate-50 px-2 py-1.5">
 											Size
 										</th>
-										<th className="sticky top-0 z-10 bg-slate-50 px-4 py-3 shadow-sm">
+										<th className="sticky top-0 z-10 border-b bg-slate-50 px-2 py-1.5">
 											{props.pricingLabels?.doorPrice || "Price"}
 										</th>
 										{props.routeConfig?.hasSwing ? (
-											<th className="sticky top-0 z-10 bg-slate-50 px-4 py-3 shadow-sm">
+											<th className="sticky top-0 z-10 border-b bg-slate-50 px-2 py-1.5">
 												Swing
 											</th>
 										) : null}
 										{props.routeConfig?.noHandle ? (
-											<th className="sticky top-0 z-10 bg-slate-50 px-4 py-3 shadow-sm">
+											<th className="sticky top-0 z-10 border-b bg-slate-50 px-2 py-1.5">
 												Qty
 											</th>
 										) : (
 											<>
-												<th className="sticky top-0 z-10 bg-slate-50 px-4 py-3 shadow-sm">
+												<th className="sticky top-0 z-10 border-b bg-slate-50 px-2 py-1.5">
 													LH
 												</th>
-												<th className="sticky top-0 z-10 bg-slate-50 px-4 py-3 shadow-sm">
+												<th className="sticky top-0 z-10 border-b bg-slate-50 px-2 py-1.5">
 													RH
 												</th>
 											</>
 										)}
-										<th className="sticky top-0 z-10 bg-slate-50 px-4 py-3 text-right shadow-sm">
+										<th className="sticky top-0 z-10 border-b bg-slate-50 px-2 py-1.5 text-right">
 											Line Total
 										</th>
 									</tr>
@@ -496,8 +510,8 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 								<tbody>
 									{rows.map((row, index) => (
 										<tr key={`door-size-row-${index}`} className="border-t">
-											<td className="whitespace-nowrap px-4 py-3">
-												<div className="space-y-1">
+											<td className="whitespace-nowrap px-2 py-1">
+												<div className="space-y-0.5">
 													<p className="font-semibold text-foreground">
 														{formatDoorSizeTitle(row.dimension)}
 													</p>
@@ -506,7 +520,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 													</p>
 												</div>
 											</td>
-											<td className="px-4 py-3">
+											<td className="px-2 py-1">
 												<DoorPriceCell
 													row={row}
 													basePrice={storedDoorSizeBasePrice(
@@ -523,7 +537,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 												/>
 											</td>
 											{props.routeConfig?.hasSwing ? (
-												<td className="px-4 py-3">
+												<td className="px-2 py-1">
 													{swingOptions ? (
 														<Select
 															value={normalizeDoorSwingValue(row.swing) || undefined}
@@ -537,7 +551,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 																)
 															}
 														>
-															<SelectTrigger className="h-10 rounded-xl">
+															<SelectTrigger className="h-8 rounded-md">
 																<SelectValue placeholder="Select swing" />
 															</SelectTrigger>
 															<SelectContent>
@@ -567,13 +581,13 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 																)
 															}
 															placeholder="LH/RH"
-															className="h-10 rounded-xl"
+															className="h-8 rounded-md"
 														/>
 													)}
 												</td>
 											) : null}
 											{props.routeConfig?.noHandle ? (
-												<td className="px-4 py-3">
+												<td className="px-2 py-1">
 													<SalesFormQuantityStepper
 														label={`Quantity for ${formatDoorSizeTitle(row.dimension)}`}
 														value={row.totalQty}
@@ -591,14 +605,14 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 																),
 															)
 														}
-														className="w-28"
+														className="h-8 w-28 rounded-md"
 														disabled={isDoorRowPriceMissing(row)}
 														min={0}
 													/>
 												</td>
 											) : (
 												<>
-													<td className="px-4 py-3">
+													<td className="px-2 py-1">
 														<SalesFormQuantityStepper
 															label={`LH quantity for ${formatDoorSizeTitle(row.dimension)}`}
 															value={row.lhQty}
@@ -614,12 +628,12 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 																	),
 																)
 															}
-															className="w-28"
+															className="h-8 w-28 rounded-md"
 															disabled={isDoorRowPriceMissing(row)}
 															min={0}
 														/>
 													</td>
-													<td className="px-4 py-3">
+													<td className="px-2 py-1">
 														<SalesFormQuantityStepper
 															label={`RH quantity for ${formatDoorSizeTitle(row.dimension)}`}
 															value={row.rhQty}
@@ -635,14 +649,14 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 																	),
 																)
 															}
-															className="w-28"
+															className="h-8 w-28 rounded-md"
 															disabled={isDoorRowPriceMissing(row)}
 															min={0}
 														/>
 													</td>
 												</>
 											)}
-											<td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">
+											<td className="px-2 py-1 text-right text-sm font-semibold text-slate-900">
 												{currency(row.lineTotal)}
 											</td>
 										</tr>
@@ -652,22 +666,21 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 						</div>
 					</div>
 				</div>
-				<div className="shrink-0 border-t bg-muted/20 px-4 py-3 sm:px-5">
-					<div className="flex items-center gap-3 rounded-lg border bg-background p-3 text-sm">
-						<p className="ml-auto">
-							Doors: <span className="font-semibold">{totals.totalDoors}</span>
-						</p>
-						<p>
-							Total:{" "}
-							<span className="font-semibold">
-								{currency(totals.totalPrice)}
-							</span>
-						</p>
-					</div>
+				<div className="flex shrink-0 items-center justify-end gap-4 border-t bg-muted/20 px-4 py-2 text-xs">
+					<p>
+						Doors: <span className="font-semibold">{totals.totalDoors}</span>
+					</p>
+					<p>
+						Total:{" "}
+						<span className="font-semibold">
+							{currency(totals.totalPrice)}
+						</span>
+					</p>
 				</div>
-				<DialogFooter className="shrink-0 border-t px-4 py-4 sm:px-5">
+				<DialogFooter className="shrink-0 border-t px-4 py-3">
 					<Button
 						variant="destructive"
+						size="sm"
 						onClick={() => {
 							props.onRemoveSelection?.();
 							persistSelection([], false);
@@ -678,6 +691,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 					</Button>
 					<Button
 						variant="secondary"
+						size="sm"
 						onClick={() => {
 							if (!persistSelection()) return;
 							props.onNextStep?.();
@@ -686,10 +700,15 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 					>
 						Next Step
 					</Button>
-					<Button variant="outline" onClick={() => props.onOpenChange(false)}>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => props.onOpenChange(false)}
+					>
 						Cancel
 					</Button>
 					<Button
+						size="sm"
 						onClick={() => {
 							if (!persistSelection()) return;
 							props.onOpenChange(false);

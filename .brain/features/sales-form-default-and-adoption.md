@@ -69,6 +69,16 @@ available as a reversible per-user fallback.
 - Component cards omit their price row when every component in the current step
   has no positive sales or base price. If at least one component in that step is
   priced, the calculated sales-cost display remains available for the step.
+- The door-size quantity dialog uses a compact, divider-led layout. Supplier
+  selection is a 32px top strip instead of a padded card; desktop table chrome
+  is flat, with 8px horizontal and 4px vertical body-cell padding; quantity
+  steppers are 32px high but retain their full 112px width for multi-digit
+  values; Price and Line Total use fixed 112px columns; LH/RH use fixed 128px
+  columns; and the totals summary is a single compact border-top row. At the
+  canonical desktop viewport all nine configured door sizes fit
+  without scrolling. Mobile size entries use flat divided sections instead of
+  rounded shadow cards. Pricing, quantity calculation, supplier selection, and
+  apply/remove behavior are unchanged.
 
 ## Adoption Analytics
 
@@ -110,6 +120,10 @@ available as a reversible per-user fallback.
 - Focused regressions cover customer-picker dismissal, guarded form switching,
   in-form switch placement, and step-level price visibility. Authenticated
   browser proof covers both switch directions and the all-unpriced root grid.
+- The compact door-size dialog source contract passes 6 focused tests / 29
+  assertions. Authenticated in-app browser verification confirms its nine-row
+  desktop table has equal 449px client and scroll heights, so every size is
+  visible without scrolling.
 - The 2026-08-05 legacy deep-link regression covers query normalization and
   forwarding on both create routes plus office-customer hydration. Authenticated
   browser proof with customer `2302` confirmed the legacy order form renders
