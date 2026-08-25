@@ -53,3 +53,24 @@ compare hydrated commercial shapes instead of storage-layer parent totals.
 - `apps/api/src/db/queries/new-sales-form-debug.test.ts`
 - `.brain/features/in-form-sales-order-adjustments.md`
 - `.brain/features/sales-form-system-hardening.md`
+
+## 2026-08-25 Production Verification
+
+- Vercel production deployment `dpl_9uVM5hEkBNAxLmP7G8tXJtBqRMEF` was already
+  serving the repaired web commit, but the Trigger production worker was still
+  on the older `20260824.5` task image. The fixed adjustment projector was
+  therefore present in the web save/review boundary but absent from the worker
+  that applies an approved snapshot.
+- Trigger production version `20260825.2` was deployed with all 49 tasks after
+  one remote builder failure on the first attempt. A production save on order
+  `09433PC` then completed the review/application flow without a 500.
+- Production Item 1 now persists `2-8 x 8-0` at LH `0` / RH `1`. Item 2 now
+  persists only `2-8 x 8-0` at LH `1` / RH `4`; the omitted `2-6 x 8-0`,
+  `2-0 x 8-0`, and `2-4 x 8-0` rows remain absent after a hard reload. Items 3
+  through 7 were not edited.
+- The line-scoped inbound guard correctly omitted both disposition choices
+  because the reduced Item 2 had no active linked inbound shipment. The review
+  sheet still displayed the order-wide aggregate `Inbound 9`, however, which
+  made unrelated activity look applicable to the changed line. The sheet now
+  renders `Open inbound` only when the same affected-line guard requires a
+  disposition, and the acknowledgement uses neutral operational-activity copy.

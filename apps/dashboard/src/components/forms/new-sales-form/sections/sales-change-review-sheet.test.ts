@@ -23,9 +23,7 @@ describe("sales change review", () => {
 	it("interrupts saving only for the focused sales-rep review boundary", () => {
 		expect(formSource).toContain("requiresSalesRepApproval");
 		expect(formSource).toContain("hasSalesRepApprovalChange");
-		expect(formSource).toContain(
-			"Approved change is still applying",
-		);
+		expect(formSource).toContain("Approved change is still applying");
 		expect(formSource).toContain(
 			"if (!opened && intent) setPendingCommittedChangeSaveIntent(null)",
 		);
@@ -34,7 +32,15 @@ describe("sales change review", () => {
 	it("requires a downstream acknowledgement and an explicit inbound disposition", () => {
 		expect(sheetSource).toContain("Cancel open inbound quantity");
 		expect(sheetSource).toContain("Keep for warehouse stock");
+		expect(sheetSource).toContain("review.requiresInboundDisposition ? (");
+		expect(sheetSource).toContain("Open inbound");
+		expect(sheetSource).not.toContain(
+			"Inbound {review.commitments.inboundQty}",
+		);
 		expect(sheetSource).toContain("acknowledgeOperationalImpact");
+		expect(sheetSource).toContain(
+			"I understand this sale already has operational activity.",
+		);
 		expect(sheetSource).toContain("Preserve that evidence");
 		expect(sheetSource).not.toContain("This change cannot be submitted.");
 		expect(formSource).toContain("acknowledgeOperationalImpact:");

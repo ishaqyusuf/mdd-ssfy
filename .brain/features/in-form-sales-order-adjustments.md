@@ -181,3 +181,15 @@ orders in the new sales form.
   disposition of already produced or fulfilled goods need separate policies.
 - The repository's older master-password migration ordering must be repaired or
   baselined before a clean shadow-database replay can validate the full history.
+
+## 2026-08-25 Production Line-Scoped Inbound Review
+
+- Review badges now follow the same affected-line boundary as inbound
+  disposition. Order-wide inbound totals no longer appear when the reduced line
+  has no active linked inbound shipment.
+- When disposition is required, the review shows a concise `Open inbound`
+  badge plus the two explicit choices. When only allocation or another
+  downstream commitment applies, the acknowledgement says operational activity
+  instead of implying inbound activity.
+- Production order `09433PC` verified the no-disposition path and completed the
+  approved reduction under Trigger worker version `20260825.2`.

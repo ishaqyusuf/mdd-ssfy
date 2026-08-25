@@ -120,10 +120,8 @@ export function SalesChangeReviewSheet(props: {
 									{money(review.commitments.paymentTotal)} paid
 								</Badge>
 							) : null}
-							{review.commitments.inboundQty > 0 ? (
-								<Badge variant="secondary">
-									Inbound {review.commitments.inboundQty}
-								</Badge>
+							{review.requiresInboundDisposition ? (
+								<Badge variant="secondary">Open inbound</Badge>
 							) : null}
 							{review.commitments.allocatedQty > 0 ? (
 								<Badge variant="secondary">
@@ -266,9 +264,9 @@ export function SalesChangeReviewSheet(props: {
 									}
 								/>
 								<span className="text-sm">
-									I understand this sale already has inventory, inbound,
-									production, or fulfillment activity. Preserve that evidence
-									and apply this correction under my account.
+									I understand this sale already has operational activity.
+									Preserve that evidence and apply this correction under my
+									account.
 								</span>
 							</Label>
 						) : null}

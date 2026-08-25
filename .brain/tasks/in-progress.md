@@ -345,13 +345,13 @@ Tracks the active work queue. Keep this focused and execution-ready.
 - [ ] New sales form parity hotfix/repro batch: grouped component edit/image/redirect, door pricing, HPT estimate/add-size, and moulding outside-click paths are implemented in code; the HPT `Add Door` action now returns to Door multi-select without changing configured rows. Remaining work is authenticated runtime proof for the parity matrix and any fixture-specific discrepancies (API + UI + Validation)
 - [ ] 2026-08-24 Pablo sales-form save follow-up: repository fix widens
   `DykeStepForm.value` to `TEXT` with additive migration and passing focused
-  coverage; local migration apply is complete. Native WhatsApp video review
+  coverage; local and Production schema apply are complete. Native WhatsApp video review
   also confirmed the fulfillment resolver permission mismatch on `09403DB`;
   the scoped authorization change awaits explicit approval. Production Special Order
-  enrollment is confirmed still set to `Super Admin only`. Remaining gates are
-  clean-worktree build/Preview proof, Preview handoff migration verification,
-  guarded Production migration/deploy, `All staff` enrollment rollout, and live
-  orders `09403DB` / `09433PC` proof. See
+  enrollment is confirmed still set to `Super Admin only`. Production web and
+  Trigger deployments are complete, and live order `09433PC` now saves and
+  reloads with the approved HPT reduction. Remaining gates are Preview handoff
+  verification, `All staff` enrollment rollout, and live order `09403DB` proof. See
   `.brain/plans/2026-08-24-bug-fix-pablo-sales-form-save-and-vercel-errors.md`.
 - [ ] 2026-08-24 Headless legacy inventory adaptation: implementation and 71
   focused tests are complete. Order `09405PC` is confirmed locally as the
