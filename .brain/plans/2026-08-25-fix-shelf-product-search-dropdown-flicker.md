@@ -4,13 +4,34 @@
 UX bug fix
 
 ## Status
-Proposed
+Done
 
 ## Created Date
 2026-08-25
 
 ## Last Updated
 2026-08-25
+
+## Completion Evidence
+- Implemented in the package-owned Shelf V2 product cell used by the shared
+  cached-index workflow and the legacy dashboard query workflow.
+- Search refreshes now render the last settled visible-result count as
+  non-interactive skeleton rows, with five rows on first load, one row after an
+  empty result, and the existing 50-row rendering cap.
+- Focused Shelf validation passes 12 tests / 50 assertions and scoped Biome,
+  including direct contracts for both dashboard wiring paths.
+- Authenticated in-app browser QA on an unsaved disposable Shelf row for order
+  `09408PC` proved a five-option list changed to five skeletons while busy,
+  settled to one option, then changed to one skeleton before the stable
+  `No product found` state. `aria-expanded` stayed true during both searches,
+  Arrow/Enter selected the latest result, Escape closed the popup, and the
+  console had no warnings or errors. At a 390x844 viewport, the one-row busy and
+  settled states stayed height-stable without document overflow. A later
+  five-row busy state settled to 20 `door` results inside the existing 320px
+  scroll boundary (962px scroll height), covering a result-count increase.
+- `@gnd/sales` typecheck remains red only on the pre-existing
+  `sales-control/actions.ts` assignment-id diagnostic; the changed Shelf files
+  produced no TypeScript diagnostic.
 
 ## Objective
 Keep the Shelf Items V2 product combobox open and visually stable while its

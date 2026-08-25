@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { productBreadcrumb } from "./shelf-inline-items-editor";
+import {
+	productBreadcrumb,
+	resolveShelfProductLoadingRowCount,
+} from "./shelf-inline-items-editor";
 
 describe("shelf inline product categories", () => {
 	it("uses the product category path as the selected-row subtitle", () => {
@@ -76,5 +79,64 @@ describe("shelf inline product categories", () => {
 		expect(source).toContain("openOnFocus");
 		expect(source).not.toContain("onFocus={() =>");
 		expect(source).toContain("setOpen(false);");
+	});
+});
+
+describe("shelf inline product search refresh", () => {
+	it("preserves the last settled result footprint while searching", () => {
+		expect(
+			resolveShelfProductLoadingRowCount({
+				isSearching: true,
+				lastSettledResultCount: null,
+			}),
+		).toBe(5);
+		expect(
+			resolveShelfProductLoadingRowCount({
+				isSearching: true,
+				lastSettledResultCount: 1,
+			}),
+		).toBe(1);
+		expect(
+			resolveShelfProductLoadingRowCount({
+				isSearching: true,
+				lastSettledResultCount: 20,
+			}),
+		).toBe(20);
+		expect(
+			resolveShelfProductLoadingRowCount({
+				isSearching: true,
+				lastSettledResultCount: 80,
+			}),
+		).toBe(50);
+	});
+
+	it("keeps one row after an empty result and no loading rows when settled", () => {
+		expect(
+			resolveShelfProductLoadingRowCount({
+				isSearching: true,
+				lastSettledResultCount: 0,
+			}),
+		).toBe(1);
+		expect(
+			resolveShelfProductLoadingRowCount({
+				isSearching: false,
+				lastSettledResultCount: 20,
+			}),
+		).toBe(0);
+	});
+
+	it("uses non-interactive skeleton rows instead of clearing the popup", () => {
+		const source = readFileSync(
+			new URL("./shelf-inline-items-editor.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source).not.toContain("if (props.isSearchingProducts) return [];");
+		expect(source).toContain('data-shelf-product-search-skeleton="true"');
+		expect(source).toContain("aria-busy={props.isSearchingProducts}");
+		expect(source).toContain("Searching products...");
+		expect(source).toContain(
+			"!props.isSearchingProducts && visibleProducts.length === 0",
+		);
 	});
 });

@@ -1,5 +1,27 @@
 # Progress
 
+- 2026-08-25: Removed the Shelf V2 product-search dropdown flicker in both the
+  shared cached-index workflow and legacy dashboard query workflow. The shared
+  product cell now remembers its last settled visible result count and renders
+  the same number of non-interactive skeleton rows while search is busy, using
+  five rows before the first result, one row after an empty result, and the
+  existing 50-row cap. The combobox stays open, stale options cannot be
+  selected, `aria-busy` and polite status text describe refreshes, and the
+  explicit empty state keeps the one-row footprint. Focused Shelf validation
+  passes 12 tests / 50 assertions and scoped Biome, including direct contracts
+  for both dashboard wiring paths. Authenticated in-app browser
+  QA on an unsaved disposable Shelf row for order `09408PC` proved 5 options ->
+  5 skeletons -> 1 option -> 1 skeleton -> `No product found`, with
+  `aria-expanded` staying true during refresh, Arrow/Enter selecting the latest
+  result, and Escape closing normally. A 390x844 check kept the one-row busy and
+  settled heights stable without document overflow, and the console had no
+  warnings/errors. A five-row busy state also settled to 20 `door` results
+  inside the existing 320px bounded scroller (962px scroll height), proving a
+  result-count increase. `@gnd/sales` typecheck remains blocked only by its
+  pre-existing `sales-control/actions.ts` assignment-id diagnostic. No sale was
+  saved, and no API, permission, database, migration, pricing, or persistence
+  contract changed.
+
 - 2026-08-25: Temporarily expanded the existing `monitor-gnd-vercel-cost`
   heartbeat into a combined hourly Preview `getOrders` canary and daily Vercel
   cost monitor. Codex permits one heartbeat per thread, so the combined monitor

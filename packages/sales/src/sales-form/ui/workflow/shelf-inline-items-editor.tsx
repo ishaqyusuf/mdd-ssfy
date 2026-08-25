@@ -6,7 +6,6 @@ import {
 	Combobox,
 	ComboboxAnchor,
 	ComboboxContent,
-	ComboboxEmpty,
 	ComboboxInput,
 	ComboboxItem,
 	ComboboxTrigger,
@@ -16,7 +15,8 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { Skeleton } from "@gnd/ui/skeleton";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
 	multiplyMoney,
 	roundMoney,
@@ -59,6 +59,27 @@ type InlineRowEntry = {
 	row: ShelfRowDraft;
 	rowIndex: number;
 };
+
+const INITIAL_SHELF_PRODUCT_RESULT_COUNT = 5;
+const MAX_RENDERED_SHELF_PRODUCT_RESULT_COUNT = 50;
+const SHELF_PRODUCT_SEARCH_SKELETON_IDS = Array.from(
+	{ length: MAX_RENDERED_SHELF_PRODUCT_RESULT_COUNT },
+	(_, index) => `shelf-product-search-skeleton-${index + 1}`,
+);
+
+export function resolveShelfProductLoadingRowCount(input: {
+	isSearching: boolean;
+	lastSettledResultCount: number | null;
+}) {
+	if (!input.isSearching) return 0;
+	if (input.lastSettledResultCount === null) {
+		return INITIAL_SHELF_PRODUCT_RESULT_COUNT;
+	}
+	return Math.min(
+		MAX_RENDERED_SHELF_PRODUCT_RESULT_COUNT,
+		Math.max(1, Math.trunc(input.lastSettledResultCount)),
+	);
+}
 
 export type ShelfInlineItemsEditorProps = {
 	sections: ShelfSectionDraft[];
@@ -267,6 +288,23 @@ function deleteSectionRow(
 	});
 }
 
+function ShelfProductSearchSkeletonRow(props: { id: string }) {
+	return (
+		<div
+			aria-hidden="true"
+			className="min-h-12 rounded-sm px-2 py-1.5"
+			data-shelf-product-search-skeleton="true"
+			data-shelf-product-search-skeleton-id={props.id}
+		>
+			<Skeleton className="h-4 w-3/4 rounded-sm" />
+			<div className="mt-1 flex items-center gap-2">
+				<Skeleton className="h-3 w-14 rounded-sm" />
+				<Skeleton className="h-3 w-2/5 rounded-sm" />
+			</div>
+		</div>
+	);
+}
+
 function ShelfInlineProductCell(props: {
 	row: ShelfRowDraft;
 	products: ShelfProductOption[];
@@ -295,10 +333,21 @@ function ShelfInlineProductCell(props: {
 	const breadcrumb = selectedProduct
 		? productBreadcrumb(selectedProduct, props.categories)
 		: categoryBreadcrumb(categoryIds, props.categories);
-	const filteredProducts = useMemo(() => {
-		if (props.isSearchingProducts) return [];
-		return props.products.slice(0, 50);
-	}, [props.isSearchingProducts, props.products]);
+	const visibleProducts = useMemo(
+		() => props.products.slice(0, MAX_RENDERED_SHELF_PRODUCT_RESULT_COUNT),
+		[props.products],
+	);
+	const lastSettledResultCountRef = useRef<number | null>(null);
+
+	useEffect(() => {
+		if (props.isSearchingProducts) return;
+		lastSettledResultCountRef.current = visibleProducts.length;
+	}, [props.isSearchingProducts, visibleProducts.length]);
+
+	const loadingRowCount = resolveShelfProductLoadingRowCount({
+		isSearching: Boolean(props.isSearchingProducts),
+		lastSettledResultCount: lastSettledResultCountRef.current,
+	});
 	const editableProduct =
 		selectedProduct ||
 		(props.row.productId
@@ -366,37 +415,58 @@ function ShelfInlineProductCell(props: {
 						)}
 					</ComboboxAnchor>
 					<ComboboxContent
+						aria-busy={props.isSearchingProducts}
 						className="relative overflow-y-auto overflow-x-hidden overscroll-contain"
 						style={{ maxHeight: "20rem" }}
 					>
-						<ComboboxEmpty>
-							{props.isSearchingProducts ? "Searching..." : "No product found"}
-						</ComboboxEmpty>
-						{filteredProducts.map((product) => {
-							const breadcrumbText = productBreadcrumb(
-								product,
-								props.categories,
-							);
-							return (
-								<ComboboxItem
-									key={`shelf-inline-product-${product.id}`}
-									value={String(product.id)}
-									outset
-								>
-									<div className="min-w-0">
-										<p className="truncate text-sm font-medium">
-											{product.title}
-										</p>
-										<div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-											<span>
-												{props.formatMoney(product.unitPrice) || "$0.00"}
-											</span>
-											{breadcrumbText ? <span>{breadcrumbText}</span> : null}
+						{!props.isSearchingProducts && visibleProducts.length === 0 ? (
+							<output
+								aria-live="polite"
+								className="flex min-h-12 items-center justify-center text-sm"
+							>
+								No product found
+							</output>
+						) : null}
+						{props.isSearchingProducts ? (
+							<output aria-live="polite" className="block">
+								<span className="sr-only">Searching products...</span>
+								{SHELF_PRODUCT_SEARCH_SKELETON_IDS.slice(
+									0,
+									loadingRowCount,
+								).map((skeletonId) => (
+									<ShelfProductSearchSkeletonRow
+										key={skeletonId}
+										id={skeletonId}
+									/>
+								))}
+							</output>
+						) : (
+							visibleProducts.map((product) => {
+								const breadcrumbText = productBreadcrumb(
+									product,
+									props.categories,
+								);
+								return (
+									<ComboboxItem
+										key={`shelf-inline-product-${product.id}`}
+										value={String(product.id)}
+										outset
+									>
+										<div className="min-w-0">
+											<p className="truncate text-sm font-medium">
+												{product.title}
+											</p>
+											<div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+												<span>
+													{props.formatMoney(product.unitPrice) || "$0.00"}
+												</span>
+												{breadcrumbText ? <span>{breadcrumbText}</span> : null}
+											</div>
 										</div>
-									</div>
-								</ComboboxItem>
-							);
-						})}
+									</ComboboxItem>
+								);
+							})
+						)}
 					</ComboboxContent>
 				</Combobox>
 				{props.onEditProduct && editableProduct ? (
@@ -661,7 +731,8 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 																	patchShelfRowBasePrice({
 																		row: entry.row,
 																		basePrice: Number(event.target.value || 0),
-																		profileCoefficient: props.profileCoefficient,
+																		profileCoefficient:
+																			props.profileCoefficient,
 																	}),
 																)
 															}

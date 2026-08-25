@@ -140,6 +140,14 @@
   without creating a render feedback loop.
 - Shelf product search results render inside a dedicated bounded scroll region,
   so long product matches no longer grow the new-sales-form popup and page.
+- Shelf V2 keeps its product dropdown mounted and open while deferred or
+  API-backed search results refresh. It remembers the last settled visible
+  result count and temporarily renders that exact number of non-interactive,
+  accessibility-hidden skeleton rows; first load uses five rows, an empty
+  result preserves one row, and the existing 50-row UI cap still applies. The
+  search input remains enabled, stale product options are not selectable, the
+  listbox exposes its busy state, and the settled empty message retains the
+  same one-row footprint.
 - Shelf V2 applies its 20rem result cap as an inline listbox style instead of a
   Tailwind arbitrary-value class. This guarantees the runtime CSS includes the
   height boundary even when the consuming app does not generate package-owned

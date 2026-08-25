@@ -42,11 +42,9 @@ describe("shelf product picker", () => {
 		expect(v1Source).toContain("searchCompiledShelfProductIndex(");
 		expect(workflowSource).toContain("compileShelfProductSearchIndex(");
 		expect(workflowSource).toContain("searchCompiledShelfProductIndex(");
-		expect(workflowSource).toContain(
-			"useDeferredValue(shelfProductSearch)",
-		);
+		expect(workflowSource).toContain("useDeferredValue(shelfProductSearch)");
 		expect(inlineEditorSource).toContain(
-			"if (props.isSearchingProducts) return [];",
+			"resolveShelfProductLoadingRowCount({",
 		);
 	});
 });
