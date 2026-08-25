@@ -494,7 +494,7 @@ describe("getPrintData", () => {
 
 		mouldingItem.multiDyke = true;
 		mouldingItem.multiDykeUid = "moulding-group-1";
-		(mouldingItem as any).housePackageTool = {
+		mouldingItem.housePackageTool = {
 			doorType: "Moulding",
 			molding: null,
 			stepProduct: {

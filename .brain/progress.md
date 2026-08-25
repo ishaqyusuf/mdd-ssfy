@@ -12104,3 +12104,20 @@
   changed editor version produced the intended out-of-date warning; after a
   reload, the current server version saved unchanged, showed `All changes
   saved`, and navigated to Sales Overview without the original generic error.
+
+## 2026-08-25 — Fixed duplicate grouped moulding names in sales print
+
+- Reproduced quote `03557PC` with distinct casing/baseboard rows in the editor
+  but duplicate casing names in HTML preview and the shared print-data payload.
+- Traced the defect to HPT-backed grouped mouldings bypassing
+  `meta.mouldingRows`; both sibling HPT records then resolved the same stale
+  `stepProductId` even though their row UIDs, HPT IDs, descriptions, quantities,
+  and totals were distinct.
+- Print composition now treats grouped moulding metadata as authoritative even
+  when HPT relations exist, suppresses the retained legacy sibling rows, and
+  displays the saved row description before component/HPT label fallbacks.
+- The exact local quote payload and the opened HTML preview now show one casing
+  and one baseboard. Focused print coverage passes 13 tests / 77 assertions;
+  the broader print suite has one unrelated inventory packing expectation
+  failure, and package typecheck remains blocked by the known unrelated
+  `sales-control/actions.ts` assignment-id diagnostic.

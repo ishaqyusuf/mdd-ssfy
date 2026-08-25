@@ -392,6 +392,10 @@ The stored-document phase should answer these operational rules explicitly:
   grouped metadata rows render once and legacy siblings cannot reappear through
   either the grouped fallback or generic line-item table. Legacy groups without
   authoritative metadata remain supported.
+- 2026-08-25: HPT-backed grouped mouldings also use `meta.mouldingRows` as the
+  authoritative print projection. Preview and PDF display each row's saved
+  description before selected-component or HPT product fallbacks, so sibling
+  HPT rows that share a stale `stepProductId` cannot print as the same moulding.
 - 2026-08-20: Print section ordering now treats the new sales form's persisted
   `itemIndex` as authoritative, before legacy `lineIndex` aliases. HTML preview
   and PDF rendering share this composer, so both follow the saved form sequence
