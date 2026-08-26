@@ -1,3 +1,4 @@
+import { Env } from "@/components/env";
 import { InboundNeedsAttentionProviderLazy } from "@/components/inventory/inbound-needs-attention-provider-lazy";
 import { GlobalModalsProvider } from "@/components/modals/global-modals-provider";
 import { GlobalSheetsProvider } from "@/components/sheets/global-sheets-provider";
@@ -48,7 +49,9 @@ export default async function Layout({ children }) {
                 <GlobalSheetsProvider />
                 <GlobalModalsProvider />
                 <TaskNotificationProvider />
-                <InboundNeedsAttentionProviderLazy />
+                <Env isDev>
+                    <InboundNeedsAttentionProviderLazy />
+                </Env>
 
                 {/* <GlobalTimerProvider />
                 <TimezoneDetector /> */}

@@ -76,8 +76,11 @@ A permission-scoped floating action appears on the right side of the dashboard
 when one or more Received inbounds still need application. Its modal shows order
 number, author, Received status/date, and `Needs x of y`; operators can apply one
 row or select up to 100 rows and use the floating batch action. The action hides
-when the queue is empty. Page-level floating controls use a lower stacking layer
-than shared modal and sheet overlays, so they do not display above open dialogs.
+when the queue is empty. The global attention action is explicitly mounted behind
+the shared `<Env isDev>` flag, so it is available for development reconciliation
+but is not rendered or queried in production. Page-level floating controls use a
+lower stacking layer than shared modal and sheet overlays, so they do not display
+above open dialogs.
 
 ## Validation
 
