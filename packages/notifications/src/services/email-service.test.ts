@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { shouldMockEmail, shouldSkipEmail } from "@gnd/utils/envs";
 import {
+	EmailService,
 	resolveEmailRecipients,
 	transactionalEmailRequestOptions,
 } from "./email-service";
@@ -10,6 +11,7 @@ const originalNodeEnv = process.env.NODE_ENV;
 const originalTestEmails = process.env.TEST_EMAILS;
 const originalSkipEmail = process.env.SKIP_EMAIL;
 const originalMockEmailSends = process.env.MOCK_EMAIL_SENDS;
+const originalResendApiKey = process.env.RESEND_API_KEY;
 const originalVercelEnv = process.env.VERCEL_ENV;
 
 afterEach(() => {
@@ -29,6 +31,11 @@ afterEach(() => {
 		process.env.MOCK_EMAIL_SENDS = undefined;
 	} else {
 		process.env.MOCK_EMAIL_SENDS = originalMockEmailSends;
+	}
+	if (originalResendApiKey === undefined) {
+		process.env.RESEND_API_KEY = undefined;
+	} else {
+		process.env.RESEND_API_KEY = originalResendApiKey;
 	}
 });
 
@@ -109,5 +116,53 @@ describe("shouldMockEmail", () => {
 		process.env.VERCEL_ENV = "production";
 
 		expect(shouldMockEmail()).toBe(false);
+	});
+});
+
+describe("dispatch email templates", () => {
+	test("renders the dispatch-assigned template before a mocked send", async () => {
+		process.env.NODE_ENV = "development";
+		process.env.VERCEL_ENV = undefined;
+		process.env.MOCK_EMAIL_SENDS = "true";
+		process.env.RESEND_API_KEY = "re_test_dispatch_template";
+
+		const result = await new EmailService(
+			{} as never,
+		).sendTransactionalWithResult({
+			to: "driver@example.com",
+			subject: "New Dispatch Assigned: Order 09406DB",
+			template: "sales-dispatch-assigned",
+			data: {
+				orderNo: "09406DB",
+				dispatchId: 4515,
+				deliveryMode: "delivery",
+			},
+		});
+
+		expect(result.status).toBe("sent");
+		expect(result.providerStatus).toBe("mocked_by_environment");
+	});
+
+	test("renders the dispatch-created template before a mocked send", async () => {
+		process.env.NODE_ENV = "development";
+		process.env.VERCEL_ENV = undefined;
+		process.env.MOCK_EMAIL_SENDS = "true";
+		process.env.RESEND_API_KEY = "re_test_dispatch_template";
+
+		const result = await new EmailService(
+			{} as never,
+		).sendTransactionalWithResult({
+			to: "sales@example.com",
+			subject: "New Dispatch Created: Order 09406DB",
+			template: "sales-dispatch-created",
+			data: {
+				orderNo: "09406DB",
+				dispatchId: 4515,
+				deliveryMode: "delivery",
+			},
+		});
+
+		expect(result.status).toBe("sent");
+		expect(result.providerStatus).toBe("mocked_by_environment");
 	});
 });

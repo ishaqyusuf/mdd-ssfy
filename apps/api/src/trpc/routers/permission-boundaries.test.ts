@@ -166,7 +166,7 @@ describe("high-risk tRPC permission boundaries", () => {
 		}
 	});
 
-	test("sales status dependency resolution requires order, inbound, and production permissions", () => {
+	test("sales status dependency resolution lets the dedicated fulfillment capability override sub-permissions", () => {
 		const inventories = source("inventories.route.ts");
 		expectProtectedMutation(
 			inventories,
@@ -180,9 +180,19 @@ describe("high-risk tRPC permission boundaries", () => {
 		expect(mutationSource).toContain(
 			"await requireSalesOrderMarkAsPermission(props.ctx, props.input.action)",
 		);
-		expect(mutationSource).toContain('"editOrders"');
-		expect(mutationSource).toContain('"editInboundOrder"');
-		expect(mutationSource).toContain('"editProduction"');
+		expect(mutationSource).toContain(
+			'if (props.input.action === "production_completed")',
+		);
+		const productionPermissionStart = mutationSource.indexOf(
+			'if (props.input.action === "production_completed")',
+		);
+		const productionPermissionBlock = mutationSource.slice(
+			productionPermissionStart,
+			productionPermissionStart + 1200,
+		);
+		expect(productionPermissionBlock).toContain('"editOrders"');
+		expect(productionPermissionBlock).toContain('"editInboundOrder"');
+		expect(productionPermissionBlock).toContain('"editProduction"');
 	});
 
 	test("Mark as Fulfilled uses a dedicated permission at API boundaries", () => {

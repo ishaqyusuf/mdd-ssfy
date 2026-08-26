@@ -179,6 +179,7 @@ import { getInventoryReconciliationReport } from "@gnd/sales/inventory-reconcili
 import { fulfillSalesInventoryNeedsManually as fulfillSalesInventoryNeedsManuallyMutation } from "@gnd/sales/manual-fulfill-sales-inventory-needs";
 import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
 import {
+	type InventoryFulfillmentCompletionHook,
 	allocateReceivedInboundToBackorders,
 	assignInventoryDispatchAllocations,
 	fulfillInventoryDispatch,
@@ -212,7 +213,9 @@ import {
 	resolveSalesStatusMarkAsDependenciesForContinue,
 } from "@gnd/sales/sales-status-mark-as-resolution";
 import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
+import { recognizeSalesTaxForFulfilledOrder } from "@gnd/sales/tax-system";
 import { salesDeliveryOptionSchema } from "@gnd/utils/sales";
+import { resetSalesAction } from "@sales/sales-control/actions";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
@@ -241,6 +244,21 @@ import {
 // } from "@sales/shipping";
 export const inventoryPositiveIdSchema = z.number().int().positive();
 const inventoryPositiveIdsSchema = z.array(inventoryPositiveIdSchema);
+
+const recognizeInventoryFulfillmentTax: InventoryFulfillmentCompletionHook =
+	async (tx, input) => {
+		await resetSalesAction(
+			tx as Parameters<typeof resetSalesAction>[0],
+			input.salesOrderId,
+		);
+		await recognizeSalesTaxForFulfilledOrder(tx, {
+			salesOrderId: input.salesOrderId,
+			source: input.deliveryMode === "pickup" ? "PICKUP" : "DELIVERY",
+			sourceId: input.deliveryId,
+			createdById: input.createdByUserId ?? null,
+			reason: "Recognized after inventory fulfillment completion.",
+		});
+	};
 
 async function requireInventoryFulfillmentOperator(ctx: TRPCContext) {
 	return requireAnyOperationalPermission(
@@ -1350,21 +1368,23 @@ export const inventoriesRouter = createTRPCRouter({
 		)
 		.mutation(async (props) => {
 			await requireSalesOrderMarkAsPermission(props.ctx, props.input.action);
-			await requireAnyOperationalPermission(
-				props.ctx,
-				["editOrders"],
-				"You do not have permission to resolve inventory for sales status changes.",
-			);
-			await requireAnyOperationalPermission(
-				props.ctx,
-				["editInboundOrder"],
-				"You do not have permission to receive inbound materials.",
-			);
-			await requireAnyOperationalPermission(
-				props.ctx,
-				["editProduction"],
-				"You do not have permission to approve production material reviews.",
-			);
+			if (props.input.action === "production_completed") {
+				await requireAnyOperationalPermission(
+					props.ctx,
+					["editOrders"],
+					"You do not have permission to resolve inventory for sales status changes.",
+				);
+				await requireAnyOperationalPermission(
+					props.ctx,
+					["editInboundOrder"],
+					"You do not have permission to receive inbound materials.",
+				);
+				await requireAnyOperationalPermission(
+					props.ctx,
+					["editProduction"],
+					"You do not have permission to approve production material reviews.",
+				);
+			}
 			for (const salesOrderId of props.input.salesOrderIds) {
 				await assertSpecialOrderOperationAllowedForApi(props.ctx.db, {
 					salesOrderId,
@@ -1616,11 +1636,15 @@ export const inventoriesRouter = createTRPCRouter({
 				source: "api.inventory.ship-available",
 			});
 			try {
-				const result = await shipAvailableSalesInventory(props.ctx.db, {
-					...props.input,
-					createdByUserId: session.id,
-					authorName: inventoryOperatorName(session),
-				});
+				const result = await shipAvailableSalesInventory(
+					props.ctx.db,
+					{
+						...props.input,
+						createdByUserId: session.id,
+						authorName: inventoryOperatorName(session),
+					},
+					recognizeInventoryFulfillmentTax,
+				);
 				return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
 			} catch (error) {
 				throwInventoryFulfillmentApiError(error);
@@ -1707,12 +1731,16 @@ export const inventoriesRouter = createTRPCRouter({
 				source: "api.inventory.fulfill-dispatch",
 			});
 			try {
-				const result = await fulfillInventoryDispatch(props.ctx.db, {
-					...props.input,
-					createdByUserId: session.id,
-					authorName: inventoryOperatorName(session),
-					note: props.input.note || "Fulfilled by inventory dispatch mode.",
-				});
+				const result = await fulfillInventoryDispatch(
+					props.ctx.db,
+					{
+						...props.input,
+						createdByUserId: session.id,
+						authorName: inventoryOperatorName(session),
+						note: props.input.note || "Fulfilled by inventory dispatch mode.",
+					},
+					recognizeInventoryFulfillmentTax,
+				);
 				return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
 			} catch (error) {
 				throwInventoryFulfillmentApiError(error);

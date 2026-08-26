@@ -538,16 +538,22 @@ export function hydrateSalesFormRecord<TRecord extends SalesFormRecordLike>(
 		form.paymentMethod,
 		record.settings?.cccPercentage,
 	);
+	const hydratedSummary = record.salesId
+		? {
+				...summary,
+				...record.summary,
+			}
+		: {
+				...record.summary,
+				...summary,
+			};
 
 	return {
 		...record,
 		form,
 		lineItems,
 		extraCosts,
-		summary: {
-			...record.summary,
-			...summary,
-		},
+		summary: hydratedSummary,
 	};
 }
 

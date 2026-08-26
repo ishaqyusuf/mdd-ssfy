@@ -15,6 +15,7 @@ import {
 	type SalesCheckoutSuccessTags,
 	type SalesDispatchAssignedTags,
 	type SalesDispatchCompletedTags,
+	type SalesDispatchCreatedTags,
 	type SalesDispatchDateUpdatedTags,
 	type SalesDispatchDuplicateAlertTags,
 	type SalesDispatchInProgressTags,
@@ -44,6 +45,7 @@ import {
 	salesCheckoutSuccessTags,
 	salesDispatchAssignedTags,
 	salesDispatchCompletedTags,
+	salesDispatchCreatedTags,
 	salesDispatchDateUpdatedTags,
 	salesDispatchDuplicateAlertTags,
 	salesDispatchInProgressTags,
@@ -111,6 +113,7 @@ type NotificationActionPayloadMap = {
 		"type"
 	>;
 	sales_dispatch_assigned: Omit<SalesDispatchAssignedTags, "type">;
+	sales_dispatch_created: Omit<SalesDispatchCreatedTags, "type">;
 	sales_dispatch_unassigned: Omit<SalesDispatchUnassignedTags, "type">;
 	sales_dispatch_queued: Omit<SalesDispatchQueuedTags, "type">;
 	sales_dispatch_packed: Omit<SalesDispatchPackedTags, "type">;
@@ -404,6 +407,16 @@ function parseAction(
 		if (!parsed.success) return undefined;
 		return {
 			type: "sales_dispatch_assigned",
+			label: "Open Dispatch",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "sales_dispatch_created") {
+		const parsed = salesDispatchCreatedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "sales_dispatch_created",
 			label: "Open Dispatch",
 			data: parsed.data,
 		};

@@ -1,5 +1,18 @@
 # Database Relationships
 
+## Sales Tax Recognition Ownership (2026-08-26)
+
+- `SalesOrders.salesTaxLedgerEntries` owns many immutable recognition/correction
+  snapshots; each `SalesTaxLedgerEntry.salesOrderId` points to the canonical
+  sale used to create the snapshot.
+- Delivery, pickup, and order-status source ids are logical audit evidence in
+  `sourceType`/`sourceId`. Operational fulfillment records remain canonical and
+  are not copied or re-parented into the ledger.
+- Payment, refund, and accounts-receivable records have no relationship to tax
+  recognition. They cannot create a second sale entry or move its period.
+- `reversesEntryId` is a reserved logical pointer for a future approved
+  correction workflow; no automatic cascade or inferred reversal exists.
+
 ## Material And Production Sales Handoff Epoch Ownership (2026-08-23)
 
 - `SalesHandoffActionEpoch.salesOrderId` has a required Restrict relation to the

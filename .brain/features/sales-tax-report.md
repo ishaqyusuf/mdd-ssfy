@@ -2,74 +2,79 @@
 
 ## Goal
 
-Let authorized Sales users download a simple monthly accounting export of
-persisted order totals and tax without scheduling delivery or navigating away
-from the current Sales page.
+Let authorized Sales users download a Florida-oriented accrual accounting
+workbook based on when a taxable sale is completed, independent of when the
+customer pays.
 
-## Scope
+## Recognition Policy
 
-- Manual Excel generation from the shared Sales Reports menu.
-- The modal opens with an inclusive range preselected from the first day of the
-  current `America/New_York` business month through the current business day.
-- The user can replace that default with any non-future inclusive date range,
-  including a range that crosses month boundaries.
-- Business-date boundaries use `America/New_York` and become a UTC
-  `[from, toExclusive)` query range.
-- Included records are fully paid, non-deleted `SalesOrders` with `type = order`
-  and persisted `amountDue <= 0`, including overpayments. Partially paid and
-  unpaid orders, quotes, and deleted orders are excluded; order status and tax
-  amount do not filter rows.
-- The export uses persisted `SalesOrders.grandTotal` and `SalesOrders.tax`.
-  Refunds are not netted and tax is not recalculated from current tax settings.
-- Scheduled delivery, direct government filing, and immutable filing archives
-  are out of scope.
+- Order creation and payment dates are not tax points.
+- An active `type=order` sale is recognized once the order is fully fulfilled:
+  canonical `dispatchCompleted >= 100%` or a terminal completed/delivered/
+  fulfilled status, plus an actual delivery, pickup, or order-delivered time.
+- The taxable-sale date is the latest available fulfillment evidence. A live
+  completion command supplies its exact event time; historical reconciliation
+  never falls back to `createdAt`, `updatedAt`, or a payment date.
+- A 50%-paid, unpaid, credit, or installment sale is included in full once
+  fulfilled. A draft/open order is excluded even if it has a deposit. Later
+  payment is accounts-receivable activity and never creates another tax row.
+- Cancelled orders are not newly recognized. An already recognized immutable
+  entry is not silently deleted by later operational edits.
+- This is an accounting export, not direct Florida filing, CPA advice, or a
+  submitted government return.
 
-## Flow
+## Durable Data
 
-1. A user with `generateSalesPerformanceReport` opens Reports and selects
-   **Sales Tax Report** under Performance Excel.
-2. The modal opens with the current New York month-to-date range selected and
-   **Generate Excel** enabled. Wide screens show two adjacent months; screens
-   below 768px show one month so the calendar remains within the viewport.
-3. The user can select any complete non-future range. The **From** and **To**
-   summaries follow the range, and generation is disabled while it is partial.
-4. The protected API derives the authoritative period, loads at most 10,000
-   orders in deterministic creation/id order, and returns workbook sheets.
-5. The browser downloads `sales-tax-<from>-to-<to>.xlsx`. Empty periods and
-   invalid/oversized requests show an error without downloading a partial file.
-
-## Data And Workbook Contract
-
-- `Report Context`: period start/end, business timezone, and generation time.
-- `Summary`: order count, cent-safe sales total, and cent-safe tax total.
-- `Sales Tax`: exactly `Order #`, `Customer Name`, `Total`, and `Tax`.
-- Customer display fallback is business name, personal name, billing name,
+- `SalesTaxLedgerEntry` is an append-only tax-recognition snapshot related to
+  `SalesOrders`. The initial sale key is `sale:<salesOrderId>:initial`, making
+  retries idempotent.
+- The current writer creates `SALE` entries. The schema reserves `ADJUSTMENT`
+  and `REVERSAL` for a separately approved correction workflow; it does not
+  infer corrections from payments or mutable order headers.
+- Snapshots store order/customer display values plus invoice total, gross,
+  exempt, taxable, state-tax, surtax, and total-tax cents. County code `A` is
+  treated as surtax and the remaining stored tax as state tax.
+- Customer fallback is business name, personal name, billing-address name,
   then `Walk-in customer`.
-- Historical reruns reflect the order values currently persisted at generation
-  time; this workbook is an accounting export, not an immutable filing record.
 
-## API And Permissions
+## User Flow
 
-- `salesDashboard.salesTaxReport({ from: YYYY-MM-DD, to: YYYY-MM-DD })` is a
-  protected query; both dates are inclusive business dates.
-- It requires the normal sales-report viewer boundary plus
-  `generateSalesPerformanceReport`, matching existing performance exports.
-- The server rejects malformed dates, invalid calendar dates, reversed ranges,
-  future business dates, and reports exceeding 10,000 source orders.
+1. A user with normal Sales reporting access and
+   `generateSalesPerformanceReport` chooses **Sales Tax Report** under
+   Performance Excel.
+2. The modal defaults to the first day of the current New York business month
+   through today. The user may replace it with any complete non-future range.
+3. Screens at least 768px wide show two adjacent calendars; narrower screens
+   show one month. From/To summaries and Cancel/Generate Excel remain visible.
+4. The server converts inclusive `America/New_York` dates to a UTC
+   `[from, toExclusive)` recognition-time query, deterministically ordered by
+   `recognizedAt`, then ledger id, with a 10,000-entry completeness guard.
+5. The browser downloads `sales-tax-<from>-to-<to>.xlsx` without navigation.
+
+## Workbook Contract
+
+- `Report Context`: period, recognition-date basis, payment-independent policy,
+  timezone, policy version, and generated time.
+- `Florida Summary`: unique order count, invoice total, gross sales, exempt
+  sales, taxable amount, state tax, surtax, and total tax.
+- `Sales Tax`: exactly `Order #`, `Customer Name`, `Total`, and `Tax`.
+- `Recognition Audit`: taxable-sale time, source, entry type, tax bases,
+  state/surtax split, tax code, and tax due.
+
+## Historical Reconciliation
+
+- `bun run sales-tax:reconcile` is a bounded dry run by default.
+- Optional `--from`/`--to`, `--after-id`, and `--limit` filters support review.
+- Apply mode requires `--confirm-review` and explicit
+  `--sales-order-ids`; missing tax-point evidence remains excluded.
+- The 2026-08-26 local cutover reviewed and created 51 entries for August 1–26.
+  A repeat dry run classified all 51 as already recognized and found no
+  remaining eligible rows in that period.
 
 ## Validation
 
-- Domain coverage includes DST-aware boundaries, leap-day/month-end dates,
-  reversed/future rejection, cent-safe totals, and exact workbook columns.
-- API coverage includes the paid-only order scope, deterministic ordering,
-  persisted money, customer-name fallbacks, null amounts, and the row-limit
-  guard.
-- Dashboard coverage includes the New York month-to-date default, non-future
-  selectable dates, responsive month count, menu/modal wiring, and
-  deterministic tax-report filenames.
-
-## Follow Up
-
-- A future CPA-approved requirement may add refund/void adjustments,
-  jurisdiction-specific columns, scheduled delivery, or immutable snapshots;
-  none should be inferred from this manual export.
+- Tests cover DST/leap/month boundaries, future/reversed ranges, recognition
+  evidence, credit-sale inclusion without payment access, partial-fulfillment
+  exclusion, customer/null-money fallback, cent snapshots, deterministic
+  ledger ordering, row limits, permission wiring, responsive calendars, exact
+  detail columns, and dry-run/apply argument safety.

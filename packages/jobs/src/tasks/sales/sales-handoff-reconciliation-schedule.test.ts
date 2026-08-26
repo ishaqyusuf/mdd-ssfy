@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { reconcileSalesHandoffPolicyAfterCommit } from "@gnd/sales/sales-handoff";
 import {
+	SALES_HANDOFF_RECONCILIATION_ACTOR_USER_ID,
 	SALES_HANDOFF_RECONCILIATION_BATCH_LIMIT,
-	configuredSalesHandoffReconciliationActorId,
 	runSalesHandoffReconciliation,
 	selectSalesHandoffReconciliationBatch,
 } from "./sales-handoff-reconciliation-schedule";
@@ -575,11 +575,7 @@ describe("Sales Handoff recurring reconciliation", () => {
 		).toBe(false);
 	});
 
-	test("requires an explicitly configured positive system actor", () => {
-		expect(() => configuredSalesHandoffReconciliationActorId("0")).toThrow();
-		expect(() =>
-			configuredSalesHandoffReconciliationActorId("worker"),
-		).toThrow();
-		expect(configuredSalesHandoffReconciliationActorId("9")).toBe(9);
+	test("uses the designated system actor", () => {
+		expect(SALES_HANDOFF_RECONCILIATION_ACTOR_USER_ID).toBe(1);
 	});
 });

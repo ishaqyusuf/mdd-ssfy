@@ -1,4 +1,8 @@
 import {
+	divideMoney,
+	roundMoney,
+} from "../../../payment-system/domain/money";
+import {
 	findLineStepByTitle,
 	flattenShelfSections,
 	getRouteConfigForLine,
@@ -13,13 +17,12 @@ import {
 	normalizeStoredDoorRows,
 } from "./door-utils";
 import {
-	createShelfSectionDraft,
 	type DoorStoredRow,
 	type ShelfRowDraft,
 	type WorkflowComponentRecord,
 	type WorkflowLineItemRecord,
+	createShelfSectionDraft,
 } from "./workflow-records";
-import { divideMoney, roundMoney } from "../../../payment-system/domain/money";
 
 type LinePatch = Record<string, unknown>;
 
@@ -52,7 +55,25 @@ function roundCurrency(value: unknown) {
 
 function getShelfRows(line: WorkflowLineItemRecord | null | undefined) {
 	const rows = (line as any)?.shelfItems;
-	return Array.isArray(rows) ? rows : [];
+	return Array.isArray(rows) ? (rows as ShelfRowDraft[]) : [];
+}
+
+function shelfRowsNeedSync(
+	currentRows: ShelfRowDraft[],
+	normalizedRows: ShelfRowDraft[],
+) {
+	if (currentRows.length !== normalizedRows.length) return true;
+	return currentRows.some((row, index) => {
+		const normalized = normalizedRows[index];
+		if (!normalized) return true;
+		return (
+			Number(row?.qty || 0) !== Number(normalized?.qty || 0) ||
+			roundCurrency(row?.unitPrice) !==
+				roundCurrency(normalized?.unitPrice) ||
+			roundCurrency(row?.totalPrice) !==
+				roundCurrency(normalized?.totalPrice)
+		);
+	});
 }
 
 function getDoorRows(line: WorkflowLineItemRecord | null | undefined) {
@@ -83,8 +104,7 @@ export function buildWorkflowShelfSyncPatch(
 	if (!currentRows.length) return null;
 
 	const summary = summarizeShelfRows(currentRows, profileCoefficient);
-	const rowsChanged =
-		JSON.stringify(currentRows) !== JSON.stringify(summary.rows);
+	const rowsChanged = shelfRowsNeedSync(currentRows, summary.rows);
 	const qtyChanged =
 		Number((line as any).qty || 0) !== Number(summary.qtyTotal || 0);
 	const unitPriceChanged =

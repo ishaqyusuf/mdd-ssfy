@@ -927,6 +927,16 @@ export const salesDispatchAssignedTags = actityTagsSchema.extend({
 export type SalesDispatchAssignedTags = z.infer<
   typeof salesDispatchAssignedTags
 >;
+export const salesDispatchCreatedTags = actityTagsSchema.extend({
+  dispatchId: z.number(),
+  orderNo: z.string().optional(),
+  deliveryMode: z.enum(["pickup", "delivery", "ship"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
+});
+export type SalesDispatchCreatedTags = z.infer<
+  typeof salesDispatchCreatedTags
+>;
 export const salesProductionAssignedSchema = z.object({
   salesId: z.number(),
   orderNo: z.string().optional(),

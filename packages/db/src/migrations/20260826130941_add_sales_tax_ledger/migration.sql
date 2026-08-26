@@ -1,0 +1,33 @@
+-- CreateTable
+CREATE TABLE `SalesTaxLedgerEntry` (
+    `id` VARCHAR(191) NOT NULL,
+    `salesOrderId` INTEGER NOT NULL,
+    `entryType` ENUM('SALE', 'ADJUSTMENT', 'REVERSAL') NOT NULL DEFAULT 'SALE',
+    `recognitionSource` ENUM('DELIVERY', 'PICKUP', 'ORDER_STATUS', 'MANUAL_BACKFILL') NOT NULL,
+    `sourceKey` VARCHAR(191) NOT NULL,
+    `sourceType` VARCHAR(64) NULL,
+    `sourceId` VARCHAR(191) NULL,
+    `recognizedAt` TIMESTAMP(0) NOT NULL,
+    `orderNo` VARCHAR(255) NOT NULL,
+    `customerName` VARCHAR(255) NOT NULL,
+    `invoiceTotalCents` INTEGER NOT NULL,
+    `grossSalesCents` INTEGER NOT NULL,
+    `exemptSalesCents` INTEGER NOT NULL,
+    `taxableAmountCents` INTEGER NOT NULL,
+    `stateTaxCents` INTEGER NOT NULL,
+    `surtaxCents` INTEGER NOT NULL DEFAULT 0,
+    `taxDueCents` INTEGER NOT NULL,
+    `taxCode` VARCHAR(64) NULL,
+    `createdById` INTEGER NULL,
+    `reason` TEXT NULL,
+    `reversesEntryId` VARCHAR(191) NULL,
+    `meta` JSON NULL,
+    `createdAt` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `SalesTaxLedgerEntry_sourceKey_key`(`sourceKey`),
+    INDEX `SalesTaxLedgerEntry_recognizedAt_entryType_idx`(`recognizedAt`, `entryType`),
+    INDEX `SalesTaxLedgerEntry_salesOrderId_recognizedAt_idx`(`salesOrderId`, `recognizedAt`),
+    INDEX `SalesTaxLedgerEntry_reversesEntryId_idx`(`reversesEntryId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

@@ -82,6 +82,15 @@ function validDateTimestamp(value: Date | null | undefined) {
 	return Number.isFinite(timestamp) ? timestamp : null;
 }
 
+function isStatusCompletionSubmission(meta: unknown) {
+	return (
+		Boolean(meta) &&
+		typeof meta === "object" &&
+		!Array.isArray(meta) &&
+		(meta as Record<string, unknown>).source === "sales_mark_as_completed"
+	);
+}
+
 function productionPayrollUid(salesOrderId: number, submissionId: number) {
 	return `oid:${salesOrderId},submissionId:${submissionId}`;
 }
@@ -262,6 +271,7 @@ export async function decideProductionSubmissionMaterialReview(
 							assignmentId: true,
 							materialReviewId: true,
 							submittedById: true,
+							meta: true,
 							assignment: {
 								select: {
 									id: true,
@@ -413,6 +423,9 @@ export async function decideProductionSubmissionMaterialReview(
 				const assignedRhQty = Number(assignment.rhQty || 0);
 				const currentControlUid =
 					assignment.salesItemControlUid || `item-${assignment.itemId}`;
+				const statusCompletionSubmission = isStatusCompletionSubmission(
+					submission.meta,
+				);
 				return [
 					review.submittedById !== submission.submittedById
 						? `submission:${submission.id}:reporter`
@@ -433,7 +446,7 @@ export async function decideProductionSubmissionMaterialReview(
 						? `submission:${submission.id}:rh_qty`
 						: null,
 					assignment.deletedAt ? `assignment:${assignment.id}:deleted` : null,
-					assignment.assignedToId == null
+					assignment.assignedToId == null && !statusCompletionSubmission
 						? `assignment:${assignment.id}:unassigned`
 						: null,
 					assignment.orderId !== review.salesOrderId
@@ -447,8 +460,7 @@ export async function decideProductionSubmissionMaterialReview(
 						? `assignment:${assignment.id}:control`
 						: null,
 					scopeMode === "modern" &&
-					(snapshot.assignedToId == null ||
-						assignment.assignedToId !== snapshot.assignedToId)
+					assignment.assignedToId !== snapshot.assignedToId
 						? `assignment:${assignment.id}:owner`
 						: null,
 					scopeMode === "modern" &&

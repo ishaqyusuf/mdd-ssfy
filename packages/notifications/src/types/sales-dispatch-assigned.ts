@@ -1,6 +1,6 @@
 import type { NotificationHandler, UserData } from "../base";
 import {
-  SalesDispatchAssignedInput,
+  type SalesDispatchAssignedInput,
   type SalesDispatchAssignedTags,
   salesDispatchAssignedSchema,
 } from "../schemas";
@@ -10,7 +10,7 @@ export const salesDispatchAssigned: NotificationHandler = {
   createActivity(
     data: SalesDispatchAssignedInput,
     author: UserData,
-    contact: UserData,
+    _contact: UserData,
   ) {
     const { orderNo, dispatchId, deliveryMode, dueDate, driverId } = data;
     const payload: SalesDispatchAssignedTags = {
@@ -27,19 +27,25 @@ export const salesDispatchAssigned: NotificationHandler = {
     return {
       type: "sales_dispatch_assigned",
       source: "user",
-      subject: `Dispatch assigned`,
+      subject: "Dispatch assigned",
       headline: `Dispatch ${dispatchId} for order ${orderNo} has been assigned to you. Delivery mode: ${deliveryMode}.`,
       authorId: author.id,
       tags: payload,
     };
   },
-  createEmail(data, author, user, args) {
+  createEmail(data, _author, user, args) {
     return {
       ...args,
       template: "sales-dispatch-assigned",
       to: [user.email],
       subject: `New Dispatch Assigned: Order ${data.orderNo}`,
-      data: {},
+      data: {
+        orderNo: data.orderNo,
+        dispatchId: data.dispatchId,
+        deliveryMode: data.deliveryMode,
+        dueDate: data.dueDate,
+        recipientName: user.name,
+      },
     };
   },
   createWhatsApp(data) {

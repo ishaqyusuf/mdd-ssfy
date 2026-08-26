@@ -7,7 +7,7 @@ import { overallStatus } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
 import {
 	buildOfficeCustomerVisibilityWhere,
-	listSalesTaxReportOrders,
+	listSalesTaxReportEntries,
 } from "@gnd/db/queries";
 import { repairSalesInvoiceCccDisplay } from "@gnd/sales/payment-system";
 import {
@@ -420,7 +420,7 @@ export async function getSalesTaxReport(
 					: "Invalid sales tax report period.",
 		});
 	}
-	const rows = await listSalesTaxReportOrders(ctx.db, {
+	const rows = await listSalesTaxReportEntries(ctx.db, {
 		from: period.from,
 		toExclusive: period.toExclusive,
 		limit: SALES_REPORT_ROW_LIMIT,
@@ -429,17 +429,27 @@ export async function getSalesTaxReport(
 	if (rows.length > SALES_REPORT_ROW_LIMIT) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `This report contains more than ${SALES_REPORT_ROW_LIMIT.toLocaleString()} orders. Choose a shorter period and try again.`,
+			message: `This report contains more than ${SALES_REPORT_ROW_LIMIT.toLocaleString()} tax ledger entries. Choose a shorter period and try again.`,
 		});
 	}
 
 	return buildSalesTaxReport({
 		period,
-		orders: rows.map((order) => ({
-			orderNo: order.orderId,
-			customerName: reportCustomerName(order),
-			total: order.grandTotal,
-			tax: order.tax,
+		entries: rows.map((entry) => ({
+			salesOrderId: entry.salesOrderId,
+			orderNo: entry.orderNo,
+			customerName: entry.customerName,
+			recognizedAt: entry.recognizedAt.toISOString(),
+			entryType: entry.entryType,
+			recognitionSource: entry.recognitionSource,
+			taxCode: entry.taxCode,
+			total: entry.invoiceTotalCents / 100,
+			grossSales: entry.grossSalesCents / 100,
+			exemptSales: entry.exemptSalesCents / 100,
+			taxableAmount: entry.taxableAmountCents / 100,
+			stateTax: entry.stateTaxCents / 100,
+			surtax: entry.surtaxCents / 100,
+			tax: entry.taxDueCents / 100,
 		})),
 	});
 }

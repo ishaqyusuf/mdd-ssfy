@@ -6,18 +6,7 @@ import { logger, schedules } from "@trigger.dev/sdk/v3";
 
 const SCAN_LIMIT = 50;
 const CHANNEL = "sales_handoff_action_escalation" as const;
-
-export function configuredSalesHandoffNotificationActorId(
-	value = process.env.SALES_HANDOFF_NOTIFICATION_ACTOR_USER_ID,
-) {
-	const id = Number(value);
-	if (!Number.isInteger(id) || id <= 0) {
-		throw new Error(
-			"SALES_HANDOFF_NOTIFICATION_ACTOR_USER_ID must identify the designated active system notification user.",
-		);
-	}
-	return id;
-}
+export const SALES_HANDOFF_NOTIFICATION_ACTOR_USER_ID = 1 as const;
 
 export async function runSalesHandoffEscalationScan(
 	database: Db,
@@ -33,7 +22,7 @@ export async function runSalesHandoffEscalationScan(
 ) {
 	const now = input.now ?? new Date();
 	const actorUserId =
-		input.actorUserId ?? configuredSalesHandoffNotificationActorId();
+		input.actorUserId ?? SALES_HANDOFF_NOTIFICATION_ACTOR_USER_ID;
 	const dependencies = input.dependencies ?? {
 		getAdmins: getActiveSalesHandoffSuperAdmins,
 		getContact: getSubscriberAccount,

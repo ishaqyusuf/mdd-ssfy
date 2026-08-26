@@ -9,6 +9,9 @@ const packDispatchItemsActionMock = mock(async () => ({
 const resetSalesActionMock = mock(async () => ({}));
 const createSalesAssignmentActionMock = mock(async () => ({}));
 const autoReviewSalesPaymentsForOrderActionMock = mock(async () => ({}));
+const recognizeSalesTaxForFulfilledOrderMock = mock(async () => ({
+  status: "recognized" as const,
+}));
 const prepareProductionSubmissionMaterialReviewMock = mock(async () => ({
   state: "finalized",
   reason: null,
@@ -65,6 +68,10 @@ mock.module("../payment-system/application/payment-review", () => ({
     autoReviewSalesPaymentsForOrderActionMock,
 }));
 
+mock.module("../tax-system", () => ({
+  recognizeSalesTaxForFulfilledOrder: recognizeSalesTaxForFulfilledOrderMock,
+}));
+
 mock.module("./settings", () => ({
   getSalesSetting: getSalesSettingMock,
 }));
@@ -79,6 +86,7 @@ describe("sales-control task transactions", () => {
     resetSalesActionMock.mockClear();
     createSalesAssignmentActionMock.mockClear();
     autoReviewSalesPaymentsForOrderActionMock.mockClear();
+    recognizeSalesTaxForFulfilledOrderMock.mockClear();
     prepareProductionSubmissionMaterialReviewMock.mockClear();
     getSalesSettingMock.mockClear();
     saveNoteMock.mockClear();

@@ -9,7 +9,10 @@ import {
 	resolveSalesFormTaxRateByCode,
 	salesFormPaymentMethods,
 } from "./overview-options";
-import { hasSalesFormSummaryDrift } from "./overview-summary";
+import {
+	hasSalesFormSummaryDrift,
+	resolveSalesFormOverviewSummary,
+} from "./overview-summary";
 
 describe("sales form overview options", () => {
 	it("includes Zelle in the shared sales-form payment methods", () => {
@@ -57,6 +60,43 @@ describe("sales form overview options", () => {
 });
 
 describe("sales form overview summary", () => {
+	it("keeps persisted financial authority until the user edits the sale", () => {
+		const persisted = {
+			subTotal: 4516.72,
+			adjustedSubTotal: 4516.72,
+			taxRate: 7,
+			taxTotal: 313.26,
+			grandTotal: 4788.38,
+			ccc: 143.65,
+			totalWithCcc: 4932.03,
+		};
+		const computed = {
+			...persisted,
+			subTotal: 4516.73,
+			taxTotal: 316.17,
+			grandTotal: 4832.9,
+			ccc: 144.99,
+			totalWithCcc: 4977.89,
+		};
+
+		expect(
+			resolveSalesFormOverviewSummary({
+				persisted,
+				computed,
+				isPersistedSale: true,
+				dirty: false,
+			}),
+		).toEqual(persisted);
+		expect(
+			resolveSalesFormOverviewSummary({
+				persisted,
+				computed,
+				isPersistedSale: true,
+				dirty: true,
+			}),
+		).toEqual(computed);
+	});
+
 	it("detects summary drift across displayed totals", () => {
 		expect(
 			hasSalesFormSummaryDrift(

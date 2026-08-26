@@ -3,9 +3,32 @@ import type { Db } from "@gnd/db";
 
 import {
 	type SalesStatusMarkAsPreflightResult,
+	buildAutomaticProductionStatusMarkIdempotencyKey,
 	getSalesStatusMarkAsPreflight,
 	resolveSalesStatusMarkAsDependenciesForContinue,
 } from "./sales-status-mark-as-resolution";
+
+test("automatic production retries after the latest material review without duplicating a concurrent attempt", () => {
+	const input = {
+		salesOrderId: 26490,
+		itemUids: ["door-2", "door-1", "door-2"],
+		latestReviewId: 190,
+	};
+	const first = buildAutomaticProductionStatusMarkIdempotencyKey(input);
+
+	expect(first).toBe(
+		buildAutomaticProductionStatusMarkIdempotencyKey({
+			...input,
+			itemUids: ["door-1", "door-2"],
+		}),
+	);
+	expect(first).not.toBe(
+		buildAutomaticProductionStatusMarkIdempotencyKey({
+			...input,
+			latestReviewId: 191,
+		}),
+	);
+});
 
 function makePreflight(
 	overrides: Partial<SalesStatusMarkAsPreflightResult> = {},
@@ -195,6 +218,113 @@ describe("resolveSalesStatusMarkAsDependenciesForContinue", () => {
 		expect(result).toMatchObject({
 			continueAllowed: true,
 			approvedProductionReviewCount: 1,
+		});
+	});
+
+	test("re-prepares production after cancelling a stale review in the same fulfillment attempt", async () => {
+		const events: string[] = [];
+		const initialPreflight = makePreflight({
+			blockedSaleCount: 0,
+			blockers: [],
+		});
+		const remainingPreflight = makePreflight({
+			ok: true,
+			blockedSaleCount: 0,
+			blockers: [],
+			automation: {
+				...initialPreflight.automation,
+				pendingProductionReviewCount: 0,
+				pendingProductionSubmissionCount: 0,
+				pendingProductionQty: 0,
+				autoPaymentReview: false,
+			},
+		});
+		const staleReview = {
+			id: 162,
+			salesOrderId: 26388,
+			updatedAt: new Date("2026-08-26T15:07:59.000Z"),
+			submissions: [{ id: 12778, qty: 3 }],
+		};
+		const replacementReview = {
+			id: 163,
+			salesOrderId: 26388,
+			updatedAt: new Date("2026-08-26T15:08:01.000Z"),
+			submissions: [{ id: 12781, qty: 3 }],
+		};
+		const prepareProduction = mock()
+			.mockImplementationOnce(async () => {
+				events.push("prepare-existing-production");
+				return {
+					preparedProductionSubmissionCount: 0,
+					preparedProductionQty: 0,
+				};
+			})
+			.mockImplementationOnce(async () => {
+				events.push("prepare-replacement-production");
+				return {
+					preparedProductionSubmissionCount: 1,
+					preparedProductionQty: 3,
+				};
+			});
+		const getPendingReviews = mock()
+			.mockResolvedValueOnce([staleReview])
+			.mockResolvedValueOnce([replacementReview]);
+		const decideReview = mock()
+			.mockImplementationOnce(async () => {
+				events.push("cancel-stale-review");
+				return {
+					reviewId: staleReview.id,
+					status: "CANCELLED" as const,
+					staleAssignmentScope: true,
+				};
+			})
+			.mockImplementationOnce(async () => {
+				events.push("approve-replacement-review");
+				return {
+					reviewId: replacementReview.id,
+					status: "APPROVED" as const,
+				};
+			});
+
+		const result = await resolveSalesStatusMarkAsDependenciesForContinue(
+			{} as Db,
+			{
+				salesOrderIds: [26388],
+				action: "fulfilled",
+				authorName: "Admin",
+				triggeredByUserId: 1,
+			},
+			{
+				getStatusPreflight: mock()
+					.mockResolvedValueOnce(initialPreflight)
+					.mockResolvedValueOnce(remainingPreflight) as never,
+				loadContext: mock(async () => ({
+					reviews: [],
+					inboundDemands: [],
+				})) as never,
+				prepareProduction: prepareProduction as never,
+				getPendingReviews: getPendingReviews as never,
+				getReviewDetail: mock(async () => ({
+					currentEvidence: {
+						classification: { state: "finalized" },
+						materialSnapshot: [],
+					},
+				})) as never,
+				decideReview: decideReview as never,
+			},
+		);
+
+		expect(events).toEqual([
+			"prepare-existing-production",
+			"cancel-stale-review",
+			"prepare-replacement-production",
+			"approve-replacement-review",
+		]);
+		expect(result).toMatchObject({
+			continueAllowed: true,
+			approvedProductionReviewCount: 1,
+			preparedProductionSubmissionCount: 1,
+			preparedProductionQty: 3,
 		});
 	});
 

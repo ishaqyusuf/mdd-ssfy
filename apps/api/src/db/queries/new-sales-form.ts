@@ -901,6 +901,8 @@ function toBootstrapPayload(
 		}>;
 		taxes: Array<{
 			taxCode: string;
+			taxxable: number;
+			tax: number;
 			taxConfig: {
 				percentage: number;
 			} | null;
@@ -1222,12 +1224,12 @@ function toBootstrapPayload(
 			deliveryOption: DEFAULT_DELIVERY_OPTION,
 		},
 	});
-	const baseHydratedSummary = {
-		...summary,
-		grandTotal: hasComputedSummary
-			? Number(storedOrderSummary(summary).grandTotal || 0)
-			: Number(order.grandTotal ?? summary.grandTotal),
-	};
+	const baseHydratedSummary = hasComputedSummary
+		? resolvePersistedHydratedSalesSummary(summary, order)
+		: {
+				...summary,
+				grandTotal: Number(order.grandTotal ?? summary.grandTotal),
+			};
 	const displayHydratedSummary = displayOrderSummary(baseHydratedSummary, {
 		paymentMethod,
 		cccPercentage: settings.cccPercentage,
@@ -1288,11 +1290,14 @@ function toBootstrapPayload(
 			taxxable: cost.taxxable,
 		})),
 		summary: {
-			subTotal: Number(summary.subTotal),
-			adjustedSubTotal: Number(summary.adjustedSubTotal ?? summary.subTotal),
-			taxableSubTotal: Number(summary.taxableSubTotal || 0),
+			subTotal: Number(displayHydratedSummary.subTotal),
+			adjustedSubTotal: Number(
+				displayHydratedSummary.adjustedSubTotal ??
+					displayHydratedSummary.subTotal,
+			),
+			taxableSubTotal: Number(displayHydratedSummary.taxableSubTotal || 0),
 			taxRate,
-			taxTotal: Number(summary.taxTotal),
+			taxTotal: Number(displayHydratedSummary.taxTotal),
 			grandTotal: Number(displayHydratedSummary.grandTotal || 0),
 			totalWithCcc: Number(displayHydratedSummary.totalWithCcc || 0),
 			discount: Number(summary.discount || 0),
@@ -1303,6 +1308,66 @@ function toBootstrapPayload(
 			otherCosts: Number(summary.otherCosts || 0),
 			ccc: Number(displayHydratedSummary.ccc || 0),
 		},
+	};
+}
+
+export function resolvePersistedHydratedSalesSummary<
+	TSummary extends {
+		subTotal: number;
+		adjustedSubTotal?: number;
+		taxableSubTotal?: number;
+		taxTotal: number;
+		grandTotal: number;
+	},
+>(
+	computed: TSummary,
+	order: {
+		subTotal?: number | null;
+		tax?: number | null;
+		grandTotal?: number | null;
+		taxes?: Array<{ taxxable?: number | null; tax?: number | null }>;
+		items?: Array<{ total?: number | null }>;
+	},
+) {
+	const relationalItems = order.items || [];
+	const hasCompleteRelationalItemTotals =
+		relationalItems.length > 0 &&
+		relationalItems.every(
+			(item) => item.total != null && Number.isFinite(Number(item.total)),
+		);
+	const relationalSubTotal = hasCompleteRelationalItemTotals
+		? roundMoney(sumMoney(relationalItems.map((item) => Number(item.total))))
+		: null;
+	const storedRelationalDrift =
+		relationalSubTotal != null &&
+		order.subTotal != null &&
+		relationalSubTotal !== roundMoney(order.subTotal);
+	if (storedRelationalDrift) return computed;
+
+	const storedSubTotal =
+		order.subTotal == null ? computed.subTotal : Number(order.subTotal);
+	const storedTaxTotal =
+		order.tax == null ? computed.taxTotal : Number(order.tax);
+	const matchingTax = order.taxes?.find(
+		(row) => roundMoney(row.tax) === roundMoney(storedTaxTotal),
+	);
+	const adjustedDelta = roundMoney(
+		Number(computed.adjustedSubTotal ?? computed.subTotal) - computed.subTotal,
+	);
+
+	return {
+		...storedOrderSummary(computed),
+		subTotal: roundMoney(storedSubTotal),
+		adjustedSubTotal: addMoney(storedSubTotal, adjustedDelta),
+		taxableSubTotal:
+			matchingTax?.taxxable == null
+				? computed.taxableSubTotal
+				: roundMoney(matchingTax.taxxable),
+		taxTotal: roundMoney(storedTaxTotal),
+		grandTotal:
+			order.grandTotal == null
+				? roundMoney(computed.grandTotal)
+				: roundMoney(order.grandTotal),
 	};
 }
 
@@ -1461,6 +1526,8 @@ export async function getNewSalesForm(
 					},
 					select: {
 						taxCode: true,
+						taxxable: true,
+						tax: true,
 						taxConfig: {
 							select: {
 								percentage: true,

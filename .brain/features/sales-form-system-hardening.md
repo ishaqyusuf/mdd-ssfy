@@ -536,6 +536,111 @@
 See [`../sales-form-system-hardening-plan.md`](../sales-form-system-hardening-plan.md)
 for phase ownership and rollout requirements.
 
+## 2026-08-26 Copy graph Shelf-child preservation
+
+- Quote conversion and editable sales copies preserve each active relational
+  `ShelfItem` child, including category, product, description, quantity, unit
+  price, total price, and metadata, while allocating fresh target identities.
+- A priced `Shelf Items` parent without those children is not semantically
+  equivalent: the editor loses its selected shelf product and print falls back
+  to a generic line-item section even when header totals still match.
+- The shared `packages/sales` copy layer owns this behavior for quote-to-order,
+  quote-to-quote, and order-copy flows. Focused coverage passes 7 tests.
+
+## 2026-08-26 Pristine persisted-summary authority
+
+- Loading an existing order or quote preserves its stored subtotal, matching
+  tax-row authority, principal, C.C.C., and payment-channel total while the form
+  is pristine. Relational lines are still normalized, but inferred current tax
+  behavior cannot silently replace a saved document before a user action.
+- Once a real edit makes the record dirty, the existing live summary calculator
+  resumes and the next save persists the edited commercial graph. This keeps
+  initial editor/print parity without freezing calculations during editing.
+- Historical source `08731DB` and isolated copy `09472PC` are the regression
+  oracle: `$4,516.72` subtotal, `$313.26` tax, `$4,788.38` principal, `$143.65`
+  C.C.C., and `$4,932.03` card total. Focused API/application/overview coverage
+  passes 16 tests.
+
+## 2026-08-26 Approved-adjustment relational completeness
+
+- Applying an approved sales-order adjustment projects the complete approved
+  commercial graph, including relational Shelf children and the matching tax
+  row. Header totals cannot be advanced while those dependent rows remain at
+  their previous values.
+- Shelf projection retains valid approved child identities, creates fresh rows
+  for approved additions, and retires omitted children. Product/category
+  fallback consumes a persisted row at most once, preserving separate identity
+  when an approved proposal contains the same Shelf product twice. Tax
+  projection replaces stale rows with the approved tax code, taxable subtotal,
+  and tax total.
+- Disposable order `09472PC` is retained as pre-fix evidence of the incomplete
+  projection. Focused adjustment projection coverage passes 3 tests / 10
+  assertions. Fresh allocation-backed verification on disposable order
+  `09473PC` passes: one approved adjustment changes a Shelf child and an HPT
+  door quantity, finishes `APPLIED_WITH_REVIEW`, and leaves editor, relational
+  Shelf/HPT/tax rows, order header, and regenerated preview equal at `$5,724.31`
+  principal. Retrying approval does not create a duplicate adjustment.
+
+## 2026-08-26 Shelf synchronization equality
+
+- Activating a persisted Shelf line must not mark an otherwise pristine editor
+  dirty merely because normalized rows expose derived pricing fields at both
+  top level and inside metadata.
+- Passive Shelf synchronization compares row count and commercial values
+  (quantity, unit price, and total) instead of full JSON object shape. Genuine
+  pricing/profile changes still produce a patch; equivalent hydration does not.
+- Disposable order `09473PC` verifies the contract after moving Shelf to Item 1:
+  the reordered graph and preview persist, and a clean browser reload remains
+  `Idle`. Focused workflow synchronization passes 6 tests / 23 assertions.
+
+## 2026-08-26 Moulding synchronization equality
+
+- Passive hydration of a persisted Moulding row must not mark a pristine form
+  dirty only because derived `estimateUnit` and `unit` display values were not
+  stored on a legacy row.
+- Moulding synchronization compares durable identity, labels, quantity,
+  addon/custom/base/sales price, and line total. Derived display values are
+  recalculated for rendering but do not independently constitute an edit.
+- Quotes `03566PC` and `03567PC` verify the contract in the local browser: both
+  reload `Idle` with their persisted Moulding quantities and totals intact.
+  The focused Moulding synchronization/action/calculator suite passes 15 tests
+  / 44 assertions.
+
+## 2026-08-26 Full local-browser component edit matrix
+
+- Disposable mixed quote `03566PC` proves that Moulding custom price and piece
+  calculator, Service tax/production flags, Shelf custom price, Door addon and
+  custom price, Delivery, Discount, and Flat Labor Cost all travel through the
+  editor, relational save graph, and regenerated print preview with equal values.
+- After each reversible scenario, the browser restored the original values. The
+  quote reloads `Idle` at subtotal `$308.61`, tax `$21.60`, and total `$330.21`;
+  its four parent rows and HPT Door relation also match the original quantities,
+  rates, and totals. Zero-value Discount and Flat Labor rows are retained until
+  the confirmation-gated cleanup pass.
+- Profile changes immediately normalize and reprice active HPT rows. Returning
+  from Wholesale 80% to Builder/Contractor 75% restored the original Door and
+  summary values; a clean reload remained pristine. No recent persisted Door
+  drift fixture exposed the conditional row-level Repair control, so that branch
+  retains focused unit coverage while live removal/re-add/duplicate cleanup is
+  still pending explicit deletion confirmation.
+
+## 2026-08-26 Grouped line duplication identity
+
+- Duplicating a grouped Service or Moulding line creates a new persistence
+  identity at every owned level: parent line, group UID, row UID, relational id,
+  and nested relation ids. Clearing numeric ids without rekeying the row UID is
+  insufficient because the save path legitimately falls back to an existing
+  active item by row UID.
+- When every active relational item exposes a numeric total, that complete graph
+  guards against a contradictory stored header during hydration. If the graph is
+  incomplete, as in older HPT documents with null parent totals, persisted
+  header/tax authority remains intact.
+- Quote `03566PC` is the live regression fixture. The pre-fix duplicate produced
+  a five-item header over four relations. After the fix, Service items `172433`
+  and `172581` have distinct row/group UIDs; five active totals sum to `$383.61`,
+  regenerated print shows both Service sections in order, and reload is `Idle`.
+  Expanded focused validation passes 73 tests / 319 assertions across 12 files.
+
 ## 2026-08-24 Step-value storage hardening
 
 - Free-form persisted workflow step titles now map to MySQL `TEXT` instead of

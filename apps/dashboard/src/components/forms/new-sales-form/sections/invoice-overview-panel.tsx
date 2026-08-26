@@ -16,6 +16,7 @@ import {
 	countSalesFormDeliveryCosts,
 	getDefaultSalesFormCustomerProfile,
 	hasSalesFormSummaryDrift,
+	resolveSalesFormOverviewSummary,
 	normalizeSalesFormPaymentTerm,
 	normalizeSalesFormTaxOptions,
 	resolveSalesFormProfilePaymentTerm,
@@ -75,6 +76,7 @@ function formDateValue(value: string | null) {
 export function InvoiceOverviewPanel(props: Props) {
 	const { setParams: setCreateCustomerParams } = useCreateCustomerParams();
 	const record = useNewSalesFormStore((s) => s.record);
+	const dirty = useNewSalesFormStore((s) => s.dirty);
 	const setMeta = useNewSalesFormStore((s) => s.setMeta);
 	const setDeliveryOption = useNewSalesFormStore((s) => s.setDeliveryOption);
 	const setCustomerProfileMeta = useNewSalesFormStore(
@@ -303,7 +305,7 @@ export function InvoiceOverviewPanel(props: Props) {
 		String(record?.form.paymentMethod || "")
 			.trim()
 			.toLowerCase() === "credit card";
-	const liveSummary = useMemo(
+	const computedSummary = useMemo(
 		() =>
 			computeSummary(
 				record?.lineItems || [],
@@ -320,6 +322,12 @@ export function InvoiceOverviewPanel(props: Props) {
 			record?.summary?.taxRate,
 		],
 	);
+	const liveSummary = resolveSalesFormOverviewSummary({
+		persisted: record?.summary || computedSummary,
+		computed: computedSummary,
+		isPersistedSale: Boolean(record?.salesId),
+		dirty,
+	});
 
 	useEffect(() => {
 		if (!record) return;

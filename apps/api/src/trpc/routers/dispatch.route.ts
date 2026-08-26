@@ -1585,7 +1585,6 @@ export const dispatchRouters = createTRPCRouter({
 							type: "order",
 						},
 						select: {
-							orderId: true,
 							deliveryOption: true,
 							deliveries: {
 								where: { deletedAt: null },
@@ -1602,7 +1601,7 @@ export const dispatchRouters = createTRPCRouter({
 						return !["completed", "cancelled", "delivered"].includes(status);
 					});
 					if (existing) {
-						return { created: false, dispatchId: existing.id };
+						return { dispatchId: existing.id };
 					}
 
 					const dueDate = new Date();
@@ -1620,29 +1619,11 @@ export const dispatchRouters = createTRPCRouter({
 						select: { id: true },
 					});
 					return {
-						created: true,
-						deliveryMode,
 						dispatchId: dispatch.id,
-						dueDate,
-						orderNo: sale.orderId,
 					};
 				},
 				{ isolationLevel: "Serializable" },
 			);
-
-			if (resolved.created) {
-				await getDispatchNotificationService(props.ctx).send(
-					"sales_dispatch_created",
-					{
-						payload: {
-							orderNo: resolved.orderNo,
-							dispatchId: resolved.dispatchId,
-							deliveryMode: resolved.deliveryMode,
-							dueDate: resolved.dueDate,
-						},
-					},
-				);
-			}
 
 			return { id: resolved.dispatchId };
 		}),

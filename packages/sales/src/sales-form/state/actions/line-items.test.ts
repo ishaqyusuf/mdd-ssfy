@@ -252,14 +252,18 @@ describe("sales form state line item actions", () => {
 		expect(copy?.housePackageTool?.doors?.[0]?.id).toBe(null);
 		expect(copyMeta.serviceRows?.[0]).toMatchObject({
 			id: null,
+			groupUid: copy?.uid,
 			salesItemId: null,
 			hptId: null,
 		});
+		expect(copyMeta.serviceRows?.[0]?.uid).not.toBe("service-1");
 		expect(copyMeta.mouldingRows?.[0]).toMatchObject({
 			id: null,
+			groupUid: copy?.uid,
 			salesItemId: null,
 			hptId: null,
 		});
+		expect(copyMeta.mouldingRows?.[0]?.uid).not.toBe("moulding-1");
 		expect(copy?.formSteps).not.toBe(source.formSteps);
 		expect(copy?.housePackageTool).not.toBe(source.housePackageTool);
 		expect(next.editor.activeItem).toBe(copy?.uid);

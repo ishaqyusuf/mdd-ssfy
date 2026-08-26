@@ -1,5 +1,22 @@
 # In Progress
 
+### Full Local-Browser Sales QA
+
+- Priority: High
+- Description: F1-F4 and F6 are complete. Six defects affecting persisted
+  summary authority, Shelf copy/projection, tax projection, and pristine
+  Shelf/Moulding synchronization plus grouped duplicate identity are fixed and
+  browser/database verified. The
+  safe component edit matrix now covers pricing, quantities, flags, calculator,
+  invoice costs, profile repricing, duplicate identity, and print parity.
+  Remaining F5 work is the confirmation-gated remove/re-add and cleanup matrix,
+  followed by F7 final review and report closure.
+- Related Feature: New Sales Form System Hardening
+- Status: Blocked — explicit confirmation required immediately before local
+  delete/re-add and cleanup actions
+- Plan File: `.brain/plans/2026-08-26-sales-full-local-browser-qa.md`
+- Updated Date: 2026-08-26
+
 ### Headless Legacy Inventory Adaptation
 
 - Priority: High
@@ -74,9 +91,12 @@
 - Priority: High
 - Description: Steps 1-3 are active: repository and daily cost monitoring are
   live, the database-free liveness endpoint is preview-verified, and Fluid
-  Compute is deployed to an isolated preview. Remaining gates are authenticated
-  Sentry cutover, 12-24 hours of canary evidence, and explicit production
-  promotion before later optimization and Trigger.dev migration phases. A
+  Compute is deployed to an isolated preview. The qualified 24-hour Preview
+  `getOrders` canary is complete: 20 of 24 scheduled attempts were recorded,
+  14 produced trustworthy Chrome samples, exact-result correctness was 14/14,
+  and one repeated list-load slowdown was confirmed. The next gate is a small,
+  reversible production cohort with procedure-level timing and the legacy
+  fallback retained; broad production promotion remains held. A
   supplied authenticated session completed the main Sales/Customers replay and
   a bounded concurrent replay without timeout or application errors. Production
   promotion remains held while statement PDF latency/error behavior and
@@ -393,8 +413,11 @@ Tracks the active work queue. Keep this focused and execution-ready.
   chain, global five-minute enqueue idempotency, and passing local parity across
   seven representative fixtures. Remaining gates are controlled Trigger task
   deployment, production/preview migration-ledger reconciliation and backfill,
-  production shadow evidence, and measured cohort cost/latency proof. Read mode
-  remains `off`. Trigger project `GND` currently has no staging environment;
+  production shadow evidence, and measured cohort cost/latency proof. The
+  qualified Preview canary is complete and supports only the next narrow,
+  reversible production gate; it does not support broad enablement because one
+  repeated list-load slowdown was confirmed and request-level timing was not
+  exposed by Chrome. Read mode remains `off`. Trigger project `GND` currently has no staging environment;
   the repository's only deployment shortcut loads production configuration and
   deploys to production. Before continuing, initialize Trigger staging and set
   its non-production `DATABASE_URL` plus required worker credentials. Do not

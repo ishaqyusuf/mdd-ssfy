@@ -1147,7 +1147,7 @@ function SalesMenuMarkAs({
 			completedTaskStartsRef.current = 0;
 			taskStartedToastShownRef.current = false;
 			for (const salesId of salesIds) {
-				salesControlTask.trigger(
+				await salesControlTask.trigger(
 					{
 						taskName: "update-sales-control",
 						payload: {
@@ -1188,7 +1188,7 @@ function SalesMenuMarkAs({
 			taskStartedToastShownRef.current = false;
 			for (const salesId of salesIds) {
 				const dispatchId = await resolveDispatchId(salesId);
-				salesControlTask.trigger(
+				await salesControlTask.trigger(
 					{
 						taskName: "update-sales-control",
 						payload: {

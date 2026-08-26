@@ -20,9 +20,11 @@ The long-term source of truth for overview, print, production, deployment, fulfi
 - Action-aware inventory preflight and continuation preserve the same
   inventory projection and blocker rules while rejecting unauthorized
   fulfillment before writes.
-- Existing inbound receipt and production approval permissions remain required
-  when resolving blockers. The dedicated grant does not expand inventory
-  administration, packing, shipping, or stock authority.
+- For `fulfilled`, the dedicated capability overrides the Orders, Inbound Order,
+  and Production sub-permission checks inside the scoped dependency resolver.
+  It does not grant those broader workspaces or authorize unrelated inventory,
+  production, packing, shipping, or stock operations. `production_completed`
+  retains the three existing workspace permission requirements.
 - Terminal `update-sales-control` execution reloads the actor's effective role
   and employee-specific permissions before calling the existing inventory and
   dispatch completion logic.
@@ -800,3 +802,18 @@ Last updated: 2026-08-17
   and exposes Retry instead of restoring an endless spinner.
 
 Last updated: 2026-08-24
+
+## 2026-08-26 Bounded stale-review convergence
+
+- A fulfilled dependency-resolution request treats a production review
+  cancellation caused by stale assignment scope as a repair transition, not a
+  terminal failure. It regenerates the production submission and evaluates the
+  replacement review within the same request.
+- Resolution is bounded to three preparation/decision passes. Any unrelated
+  cancellation or repeated stale scope still fails visibly, preserving the
+  review boundary and preventing unbounded retry loops.
+- Authenticated Chrome validation completed 20 consecutive Sales Orders. The
+  one reproduced stale-review failure on `09430DB` succeeded after the fix, and
+  all 20 resulting dispatches persisted as completed.
+
+Last updated: 2026-08-26

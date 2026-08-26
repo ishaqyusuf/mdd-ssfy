@@ -1,5 +1,196 @@
 # Progress
 
+- 2026-08-26: Removed the misleading New Dispatch Created notification from
+  the Mark as Fulfilled continuation. The internal queue dispatch remains the
+  terminal task artifact, but `ensureSalesOrderFulfillmentDispatch` no longer
+  announces it. Genuine dispatch creation and driver-assignment notification
+  paths remain intact; focused source regression coverage protects both sides.
+
+- 2026-08-26: Fixed dispatch notification email delivery after the Trigger
+  worker failed `sales_dispatch_created` with `Unknown email template:
+  sales-dispatch-assigned`. Registered and implemented the dispatch email
+  templates, populated their runtime data, and split dispatch-created from the
+  driver-assigned handler so subscribers no longer receive assignment wording.
+  The exact standalone reproduction now returns mocked `sent`; focused coverage
+  passes 12 tests / 43 assertions and targeted Biome/diff checks pass. Package
+  typechecks remain blocked by existing React declaration and unrelated
+  inventory/sales diagnostics.
+
+- 2026-08-26: Repaired the one-click fulfillment terminal-task handoff. Live
+  Chrome reproduction on `09406DB` showed inventory/review resolution and
+  dispatch creation could complete without registering `update-sales-control`,
+  leaving the row in production. Both status paths now await monitored task
+  acceptance; the regression was red before the fix and passes 8 tests / 17
+  assertions after it. Targeted Biome and whitespace checks pass. Chrome then
+  showed `Sales status update started`, and persisted verification confirms the
+  new run succeeded, dispatch `4515` completed, and the row is `Fulfilled`.
+
+- 2026-08-26: Fixed the Trigger local-worker email bundling warning by declaring
+  `@gnd/tsconfig` as a workspace dev dependency of `@gnd/email`. Replaying the
+  exact esbuild path that previously reported `Cannot find base config file
+  "@gnd/tsconfig/base.json"` now completes silently. Confirmed separately that
+  neither the repository nor its environment wrapper supplies
+  `--localstorage-file`; that non-blocking warning is emitted by the current
+  Trigger.dev runtime, and the worker still reaches `Local worker ready`.
+
+- 2026-08-26: Implemented the approved dedicated Mark Sales Order Fulfilled
+  authority override. `fulfilled` dependency resolution now relies on
+  `viewMarkSalesOrderFulfilled` for every scoped resolver substep without also
+  requiring Orders, Inbound Order, or Production grants; `production_completed`
+  retains all three broader checks. Order scope, Special Order enforcement,
+  canonical receiving/review behavior, audits, task authorization, and terminal
+  job rechecks remain. The regression went red before the fix and green after;
+  focused validation passes 52 tests / 412 assertions and targeted Biome.
+
+- 2026-08-26: Exhausted all non-destructive work in the full local-browser Sales
+  QA campaign. `ISSUE-006` is fixed, the expanded 73-test / 319-assertion gate is
+  green, current scoped relations have zero Shelf/HPT/Door/Step orphans and zero
+  duplicate Door identities, and reports/Brain are current. F5 and dependent F7
+  are now blocked only at the required explicit-confirmation boundary for local
+  delete/re-add and fixture cleanup actions on `03566PC` and `09473PC`.
+
+- 2026-08-26: F5 duplicate-line testing exposed and fixed high-severity
+  `ISSUE-006`. Pre-fix Service `Make Copy` showed five browser items and saved
+  `$410.46`, but the duplicated grouped row reused the source UID, so persistence
+  updated item `172433` and left only four active relations totaling `$308.61`.
+  Grouped duplicates now receive fresh Service/Moulding row UIDs along with
+  cleared persistence ids and a fresh group UID. Persisted-summary hydration now
+  also uses a complete relational item graph when its summed total contradicts
+  a stored header, while retaining saved authority for incomplete legacy graphs.
+  The damaged fixture self-recovered to `$330.21`; the fixed browser rerun then
+  created independent item `172581`. Five active relations now sum to `$383.61`,
+  print renders two ordered Service sections, tax is `$26.85`, total is `$410.46`,
+  and reload is `Idle`. The expanded campaign gate passes 73 tests / 319
+  assertions across 12 files; targeted seven-file Biome and `git diff --check`
+  pass. Package typechecks still report only unrelated existing diagnostics.
+  F5 remains open only for confirmation-gated remove/re-add and local cleanup.
+
+- 2026-08-26: Extended F5 safe, reversible component coverage on disposable
+  quote `03566PC`. Authenticated editor, local relational database, and regenerated
+  preview agreed for Moulding custom pricing and the piece calculator, Service
+  tax/production flags, Shelf custom price, Door addon/custom price, Delivery,
+  Discount, and Flat Labor Cost. Each scenario was restored and the quote now
+  hard-reloads `Idle` at its baseline `$308.61 + $21.60 = $330.21`; Discount and
+  Flat Labor remain as zero-value rows pending confirmation-gated cleanup. A
+  temporary profile transition repriced HPT rows and restored without a write.
+  No explicit Repair action appeared because the live row normalized to current
+  profile pricing, and 1,000 recent active local Door rows contained no persisted
+  profile-price drift fixture. F5 remains open for destructive remove/re-add,
+  duplicate/cleanup, and final print-order proof. The then-current focused run
+  passed 47 tests / 152 assertions across 10 files; targeted five-file Biome and
+  `git diff --check` pass.
+
+- 2026-08-26: Completed F6 reliability and integrity for exhaustive local-
+  browser new-sales QA (5/7, 71%). A two-tab edit on disposable quote `03566PC`
+  advanced one revision and correctly rejected the stale competing save without
+  writing its PO; the original marker was restored. The test exposed medium
+  `ISSUE-005`: passive Moulding synchronization treated absent derived
+  `estimateUnit`/`unit` display values as an edit. A failing regression now
+  passes after limiting equality to durable identity and commercial values;
+  the focused Moulding suite passes 15/15, and quotes `03566PC`/`03567PC` reload
+  `Idle`. A missing-customer create left `SalesOrders` unchanged at `26,345`.
+  Reload-to-idle measured about `0.9s`, preview readiness about `3.2s`, and
+  scoped passing-fixture ownership/uniqueness scans found no Shelf, HPT, Door,
+  or Step orphans, duplicates, or adjustment retry duplication. F5 remains open
+  for the destructive remove/re-add and local cleanup actions awaiting
+  explicit local deletion confirmation; F7 review and closure follow.
+  Sales-only review additionally found and fixed duplicate-product Shelf
+  fallback reuse in the adjustment projector. That focused campaign command
+  passed 47 tests / 152 assertions; targeted new-file Biome and
+  `git diff --check` pass. Sales/Jobs package typechecks remain blocked only by
+  existing inbound-demand nullability, sales-control assignment-id, and Email
+  JSX-runtime diagnostics outside the changed files.
+
+- 2026-08-26: Continued F5 of exhaustive local-browser new-sales QA. Reviewed
+  Door, Moulding, Service, and Shelf edits on disposable order `09472PC` exposed
+  high-severity `ISSUE-003`: approved adjustment application advanced grouped
+  rows and header totals but omitted Shelf children and tax rows. The adjustment
+  job now projects both; focused coverage passes 3/3, including the review-found
+  requirement that duplicate approved Shelf products consume a persisted
+  fallback identity once and create a fresh second row. Clean order `09473PC`
+  passed direct Shelf persistence and two taxable Service-row additions in
+  editor/database/preview, plus a second Shelf product and Door/HPT product/size.
+  Moving Shelf to Item 1 exposed `ISSUE-004`, a false-dirty reload caused by raw
+  JSON equality against normalized derived pricing shape. Economic Shelf-row
+  equality now keeps the reordered reload `Idle`; focused coverage passes 6/6.
+  A fresh allocation-backed reviewed edit on `09473PC` then changed Shelf line
+  2 to quantity `2` and an existing HPT size to LH `3`. One idempotent adjustment
+  reached `APPLIED_WITH_REVIEW`; the idle editor, relational Shelf/HPT/tax rows,
+  header, and regenerated preview agree on `$5,350.19` subtotal, `$374.12` tax,
+  `$5,724.31` principal, and `$5,896.04` card total. The browser's generic
+  connectivity error is isolated to an invalid local Trigger public token; the
+  already-approved application handler was invoked directly without changing
+  secrets. All four High defects are now fixed and browser/database verified.
+  F5 remains active, with temporary-row removal awaiting explicit local deletion
+  confirmation.
+
+- 2026-08-26: Completed F4 of exhaustive local-browser new-sales QA (4/7,
+  57%). Browser copy `09472PC` / id `26567` is value-equivalent to frozen source
+  `08731DB` / id `23820`: ID-independent hashes match for eight items, 38 steps,
+  one Shelf row, six HPT records, eight doors, and two tax rows; target identities
+  are fresh, adjustment authority was not inherited, and the source was not
+  mutated. `ISSUE-001` reproduced on the unpaid copy, proving pristine editor
+  hydration replaced persisted authority with inferred live tax. The fix keeps
+  stored financials until a real edit makes the form dirty, then resumes normal
+  calculation. Focused tests pass 16/16; the idle editor and preview now match
+  `$4,516.72` subtotal, `$313.26` tax, `$4,788.38` principal, `$143.65` card fee,
+  and `$4,932.03` card total. F5 component edit matrix is active.
+
+- 2026-08-26: Completed F3 of exhaustive local-browser new-sales QA (3/7,
+  43%). `ISSUE-002` is fixed and verified: copied quote `03567PC` / id `26564`
+  and converted order `09471PC` / id `26565` each retain four parent items,
+  19 steps, one Shelf child, two HPT records, one door, and totals of `$308.61`
+  subtotal, `$21.60` tax, and `$330.21` order total. Shelf identities are fresh
+  (`389` to `390`), editor and preview retain the exact product, the source
+  stayed unchanged, and retry left one live target plus its expected `order-hx`
+  history snapshot. F4 historical-sale copy/isolation is active.
+
+- 2026-08-26: During F3 of exhaustive local-browser new-sales QA, quote
+  `03566PC` converted exactly once to order `09470PC`, and retry idempotency,
+  fresh copied identities, and source immutability passed. Semantic graph and
+  print comparison found high-severity `ISSUE-002`: the target retained the
+  `$145.33` Shelf parent total but lost its relational Shelf child, degrading
+  editor and print semantics. The shared copy layer now selects and recreates
+  active shelf children. Its new regression passes with the complete focused
+  copy suite (7/7); fresh local-browser re-verification is in progress.
+
+- 2026-08-26: Completed F2 of the Goal-backed exhaustive local-browser
+  new-sales QA campaign (2/7 milestones, 29%). Browser-created quote `03566PC`
+  / database id `26560` persisted Moulding, taxable Service, Shelf, and
+  Door/HPT families plus PO `NSF-MIXED-001-LOCAL-20260826`, delivery fulfillment,
+  and 7% tax. After save and reopen, editor, relational database, and preview
+  matched subtotal `$308.61`, tax `$21.60`, and total `$330.21`. The initially
+  empty Height selector was verified as transient loading, not a defect.
+  `ISSUE-001` now has a deterministic local loop and is decomposed into a
+  `$44.52` recalculated base drift plus a recalculated `$144.99` card charge
+  versus the paid historical print authority. F3 quote-to-sale conversion is
+  active; the historical source remains read-only.
+
+- 2026-08-26: Started the Goal-backed exhaustive local-browser new-sales QA
+  campaign and completed F1 baseline at 97/100 health. Authenticated local
+  Sales Orders produced zero console errors; quote `03565PC` retained exact
+  editor/preview price parity. Historical source `08731DB` was selected and
+  frozen because it contains Door/HPT, Moulding, Service, Shelf, and flat lines.
+  F1 exposed high-severity `ISSUE-001`: its authoritative database and preview
+  total is `$4,788.38`, while the new editor reproducibly shows `$4,977.89`
+  before any edit. The live plan and report are
+  `.brain/plans/2026-08-26-sales-full-local-browser-qa.md` and
+  `.gstack/qa-reports/sales-full-2026-08-26/qa-report.md`. F2 full-component
+  quote work is now active; the historical source remains read-only.
+
+- 2026-08-26: Completed the qualified 24-hour Preview `sales.getOrders` canary
+  and published `.brain/reports/2026-08-25-preview-getorders-24h-canary.md`.
+  The monitor recorded 20 of 24 planned scheduled attempts: 14 trustworthy
+  Chrome successes and 6 authentication/connector failures. Exact order
+  correctness was 14/14 with zero successful-sample console errors; effective
+  exact-search p95 was 5.99 seconds and effective `APA` p95 was 2.89 seconds.
+  One list-load anomaly was confirmed at 29.09 seconds with a 32.37-second
+  retry, so the result supports only a narrow reversible production cohort,
+  not broad enablement. Final Vercel context was $5.63 infrastructure,
+  $0.80/day burn, and a $24.93 projection; this is whole-cycle cost, not
+  isolated `getOrders` cost. The temporary hourly heartbeat was restored to
+  the original daily 09:00 Africa/Lagos cost-only monitor.
+
 - 2026-08-26: Implemented reversible inbound-to-material-Needs application
   while preserving the existing Received lifecycle control and physical
   `Receive stock` workflow. Selecting Received now applies guarded linked
@@ -12171,3 +12362,82 @@
   future dates, a successful July 20–August 10 API request and download, one
   overflow-free calendar at 375×812, and two overflow-free calendars at both
   768×1024 and 1280×720.
+
+## 2026-08-26 — Moved Sales Tax to taxable-sale recognition
+
+- Replaced the paid-order/creation-date source with an immutable
+  `SalesTaxLedgerEntry` snapshot recognized from actual full-fulfillment
+  delivery, pickup, or completion evidence. Payment balance and payment date
+  are no longer read by tax recognition or report selection.
+- Wired idempotent recognition into canonical dispatch, sales-control, and
+  inventory-fulfillment completion transactions. Open/partial/cancelled orders
+  and records without a defensible tax-point time fail closed.
+- Expanded the workbook with Florida Summary and Recognition Audit sheets while
+  preserving the exact four requested Sales Tax detail columns.
+- Generated/applied local migration `20260826130941_add_sales_tax_ledger`,
+  verified schema parity with `db:push`, and added a bounded dry-run-first
+  reconciliation command requiring explicit reviewed IDs for writes.
+- Reviewed and created 51 local August 1–26 entries; the repeat dry run reports
+  all 51 already recognized with zero remaining eligible rows.
+- Fixed invalid `resetSalesAction` imports that broke the opened dashboard,
+  stabilized the calendar's derived props to remove a React update loop, and
+  narrowly repaired concurrent inbound module syntax/export settling that was
+  blocking every dashboard API route.
+- All 44 focused tax/report/calendar/menu/permission/transaction/reconciliation
+  tests pass, scoped Biome and diff checks pass, and the DB package typecheck
+  passes. Sales/API/Dashboard package checks remain blocked by unrelated
+  existing inventory/dispatch/control and baseline typing failures; none point
+  at the tax-report paths. The direct local report smoke returns 51 rows and all
+  four workbook sheets. Authenticated browser QA confirms the opened Sales page
+  compiles after a fresh Prisma-aware restart, the report endpoint returns 200,
+  and the responsive modal fits with one calendar on narrow screens and two on
+  the restored desktop viewport.
+
+## 2026-08-26 — Completed sales fulfillment permission and retry repair
+
+- Made `Mark Sales Order Fulfilled` the complete authorization boundary for its
+  scoped resolver path while preserving the broad grant requirements for
+  Production Completed.
+- Fixed one-click automatic production reviews so unchanged unassigned
+  status-completion submissions are approvable and retries after a closed review
+  receive a new concurrency-safe idempotency key.
+- Focused permission coverage passed 52 tests / 412 assertions; focused sales
+  resolver, decision, and transaction coverage passed 48 tests / 145
+  assertions. Existing package typecheck failures are unchanged.
+- Authenticated Chrome verification completed order `09454DB`; its Sales Orders
+  status now reads `Fulfilled`.
+
+## 2026-08-26 — Removed Sales Handoff notification actor environment setting
+
+- Replaced `SALES_HANDOFF_NOTIFICATION_ACTOR_USER_ID` with the explicitly
+  designated code constant user ID `1` and removed the obsolete jobs environment
+  example entry. The worker retains active-user and notification-contact checks.
+- Local read-only verification confirms user ID `1` is active and owns a valid
+  notification contact. The focused escalation schedule suite passes 4 tests /
+  10 assertions.
+
+## 2026-08-26 — Completed the 20-order fulfillment stress run
+
+- Used the authenticated Sales-team Chrome tab to fulfill 20 orders
+  sequentially. Dispatches `4518` through `4537` all completed, every
+  `update-sales-control` task succeeded, and persisted delivery timestamps
+  confirm 20/20 completion.
+- Reproduced the recurring `Unable to resolve inventory` failure on `09430DB`.
+  Legacy review `162` was correctly cancelled for stale assignment revisions,
+  but the resolver stopped before regenerating production. Fulfilled resolution
+  now converges through at most three prepare/decision passes; replacement
+  review `227` was approved in the same retry and dispatch `4523` completed.
+- Removed the remaining Sales Handoff reconciliation actor environment setting
+  and aligned the scheduler with the designated code constant user ID `1`,
+  retaining the active-user check and durable failure evidence.
+- Focused resolver and reconciliation suites pass 16 tests / 51 assertions;
+  targeted Biome and `git diff --check` pass. Package typechecks still report
+  only existing inbound-demand, sales assignment, and Email JSX-runtime
+  diagnostics outside the changed files.
+- The first real post-actor-fix reconciliation tick attributed work to user ID
+  `1`, reconciled 43 of 200 candidates, and then failed closed on 157 existing
+  source-projection repair cases: 152 missing payment projections and five
+  unavailable inventory projections. This confirms the env/config failure is
+  fixed while preserving the documented no-invented-evidence contract. The
+  full campaign ledger and runtime classification are recorded in
+  `.brain/reports/2026-08-26-sales-fulfillment-20-order-stress-run.md`.

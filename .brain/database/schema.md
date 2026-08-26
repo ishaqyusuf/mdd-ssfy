@@ -1,5 +1,21 @@
 # Database Schema
 
+## Sales Tax Recognition Ledger (2026-08-26)
+
+- `SalesTaxLedgerEntry` is an additive, append-only recognition snapshot for a
+  completed taxable sale. A unique `sourceKey` makes the initial sale entry
+  retry-safe; recognition-time and order/time indexes support period exports
+  and order audits.
+- Amounts are persisted as integer cents: invoice total, gross sales, exempt
+  sales, taxable amount, state tax, surtax, and total tax. Order/customer/tax
+  code and recognition source are snapshots, so later order or customer edits
+  do not rewrite a previously reported taxable sale.
+- `entryType` supports `SALE | ADJUSTMENT | REVERSAL`; current fulfillment and
+  reconciliation writers create only `SALE`. `recognitionSource` supports
+  delivery, pickup, order status, and reviewed manual backfill evidence.
+- The model records logical actor/source/reversal identities and versioned
+  policy metadata. It does not store payment dates or balances.
+
 ## Material And Production Sales Handoff Action Epochs (2026-08-23)
 
 - `SalesHandoffActionEpoch` is an additive independent operational ledger for

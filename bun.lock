@@ -627,6 +627,7 @@
         "responsive-react-email": "^0.0.5",
       },
       "devDependencies": {
+        "@gnd/tsconfig": "workspace:*",
         "@react-email/preview-server": "5.0.6",
         "@types/bun": "^1.2.17",
         "@types/node": "^25.2.3",

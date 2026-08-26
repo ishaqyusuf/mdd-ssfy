@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { Db } from "@gnd/db";
 import { receiveInboundShipment } from "@gnd/inventory/inbound";
 import { hasQty } from "@gnd/utils/sales";
@@ -116,6 +118,8 @@ const ACTIVE_INBOUND_STATUSES = [
 	"issue_open",
 ] as const;
 
+const MAX_PRODUCTION_REVIEW_RESOLUTION_PASSES = 3;
+
 function normalizeSalesOrderIds(salesOrderIds: number[]) {
 	return Array.from(new Set(salesOrderIds)).filter(
 		(id) => Number.isInteger(id) && id > 0,
@@ -131,6 +135,18 @@ function submissionQty(qty: unknown) {
 	};
 	const total = Number(value.qty || 0);
 	return total > 0 ? total : Number(value.lh || 0) + Number(value.rh || 0);
+}
+
+export function buildAutomaticProductionStatusMarkIdempotencyKey(input: {
+	salesOrderId: number;
+	itemUids: string[];
+	latestReviewId: number | null;
+}) {
+	const scopeFingerprint = createHash("sha256")
+		.update(JSON.stringify(Array.from(new Set(input.itemUids)).sort()))
+		.digest("hex")
+		.slice(0, 16);
+	return `sales-mark-as-completed:${input.salesOrderId}:${scopeFingerprint}:after-review:${input.latestReviewId ?? 0}`;
 }
 
 async function getPendingAutomaticProductionWork(
@@ -190,6 +206,12 @@ async function prepareAutomaticProductionForStatusMark(
 
 	for (const item of work) {
 		if (!item.itemUids.length) continue;
+		const latestReview =
+			await db.salesProductionSubmissionMaterialReview.findFirst({
+				where: { salesOrderId: item.salesOrderId },
+				orderBy: { id: "desc" },
+				select: { id: true },
+			});
 		await submitAllTask(
 			db,
 			{
@@ -201,6 +223,11 @@ async function prepareAutomaticProductionForStatusMark(
 				},
 				submitAll: {
 					itemUids: item.itemUids,
+					idempotencyKey: buildAutomaticProductionStatusMarkIdempotencyKey({
+						salesOrderId: item.salesOrderId,
+						itemUids: item.itemUids,
+						latestReviewId: latestReview?.id ?? null,
+					}),
 					submissionSource: "sales_mark_as_completed",
 				},
 			},
@@ -507,55 +534,80 @@ export async function resolveSalesStatusMarkAsDependenciesForContinue(
 
 	let preparedProductionSubmissionCount = 0;
 	let preparedProductionQty = 0;
-	if (input.action === "fulfilled") {
-		const prepared = await prepareProduction(db, {
-			salesOrderIds,
-			authorId: actor.id,
-			authorName: actor.name,
-		});
-		preparedProductionSubmissionCount =
-			prepared.preparedProductionSubmissionCount;
-		preparedProductionQty = prepared.preparedProductionQty;
-	}
-
 	let approvedProductionReviewCount = 0;
-	const pendingReviews = await findPendingReviews(db, salesOrderIds);
-	for (const review of pendingReviews) {
-		const detail = await getReviewDetail(db, review.id);
-		const unresolvedComponentIds = unresolvedReviewComponentIds(
-			detail.currentEvidence.materialSnapshot,
-		);
-		const action =
-			detail.currentEvidence.classification.state === "finalized"
-				? ("RECHECK_AND_APPROVE" as const)
-				: detail.currentEvidence.classification.reason === "NOT_CONFIGURED" &&
-						!unresolvedComponentIds.length
-					? ("APPROVE_CONFIGURATION_EXCEPTION" as const)
-					: ("MARK_AVAILABLE_AND_APPROVE" as const);
-		if (
-			action === "MARK_AVAILABLE_AND_APPROVE" &&
-			!unresolvedComponentIds.length
-		) {
-			throw new Error(
-				`Production material review #${review.id} is still pending without resolvable inventory components.`,
-			);
+	for (
+		let pass = 1;
+		pass <= MAX_PRODUCTION_REVIEW_RESOLUTION_PASSES;
+		pass += 1
+	) {
+		if (input.action === "fulfilled") {
+			const prepared = await prepareProduction(db, {
+				salesOrderIds,
+				authorId: actor.id,
+				authorName: actor.name,
+			});
+			preparedProductionSubmissionCount +=
+				prepared.preparedProductionSubmissionCount;
+			preparedProductionQty += prepared.preparedProductionQty;
 		}
-		const result = await decideReview(
-			db,
-			{
-				reviewId: review.id,
-				expectedUpdatedAt: review.updatedAt,
-				action,
-				note: "Approved automatically by the one-click sales status completion flow.",
-			},
-			actor,
-		);
-		if (result.status !== "APPROVED") {
+
+		const pendingReviews = await findPendingReviews(db, salesOrderIds);
+		if (!pendingReviews.length) break;
+
+		let cancelledStaleReview = false;
+		for (const review of pendingReviews) {
+			const detail = await getReviewDetail(db, review.id);
+			const unresolvedComponentIds = unresolvedReviewComponentIds(
+				detail.currentEvidence.materialSnapshot,
+			);
+			const action =
+				detail.currentEvidence.classification.state === "finalized"
+					? ("RECHECK_AND_APPROVE" as const)
+					: detail.currentEvidence.classification.reason === "NOT_CONFIGURED" &&
+							!unresolvedComponentIds.length
+						? ("APPROVE_CONFIGURATION_EXCEPTION" as const)
+						: ("MARK_AVAILABLE_AND_APPROVE" as const);
+			if (
+				action === "MARK_AVAILABLE_AND_APPROVE" &&
+				!unresolvedComponentIds.length
+			) {
+				throw new Error(
+					`Production material review #${review.id} is still pending without resolvable inventory components.`,
+				);
+			}
+			const result = await decideReview(
+				db,
+				{
+					reviewId: review.id,
+					expectedUpdatedAt: review.updatedAt,
+					action,
+					note: "Approved automatically by the one-click sales status completion flow.",
+				},
+				actor,
+			);
+			if (result.status === "APPROVED") {
+				approvedProductionReviewCount += 1;
+				continue;
+			}
+			if (
+				result.status === "CANCELLED" &&
+				"staleAssignmentScope" in result &&
+				result.staleAssignmentScope
+			) {
+				cancelledStaleReview = true;
+				continue;
+			}
 			throw new Error(
 				`Production material review #${review.id} still needs material resolution.`,
 			);
 		}
-		approvedProductionReviewCount += 1;
+
+		if (!cancelledStaleReview) break;
+		if (pass === MAX_PRODUCTION_REVIEW_RESOLUTION_PASSES) {
+			throw new Error(
+				"Production material reviews remained stale after automatic regeneration.",
+			);
+		}
 	}
 
 	const remainingPreflight = await getStatusPreflight(db, {

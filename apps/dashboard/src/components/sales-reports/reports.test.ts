@@ -97,7 +97,7 @@ describe("Sales Reports export menu", () => {
 		);
 		expect(salesTaxDialog).toContain("report.rowCount === 0");
 		expect(salesTaxDialog).toContain("downloadSalesExcelWorkbook(report)");
-		expect(salesTaxDialog).toContain("Only fully paid orders are");
+		expect(salesTaxDialog).toContain("regardless of payment status");
 		expect(salesTaxDialog).toContain('mode="range"');
 		expect(salesTaxDialog).toContain("numberOfMonths={isWideCalendar ? 2 : 1}");
 		expect(salesTaxDialog).toContain("isSelectableSalesTaxReportDate");

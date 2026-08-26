@@ -30,6 +30,10 @@ import {
 	resolveSalesAdjustmentApplyRecovery,
 } from "./sales-adjustment-apply-recovery";
 import { projectApprovedGroupedSalesLine } from "./sales-adjustment-grouped-projection";
+import {
+	projectApprovedSalesTaxes,
+	projectApprovedShelfSalesLine,
+} from "./sales-adjustment-relational-projection";
 
 function record(value: unknown): Record<string, unknown> {
 	return value && typeof value === "object" && !Array.isArray(value)
@@ -559,6 +563,11 @@ export async function runApplySalesOrderAdjustment(
 						),
 					},
 				});
+				await projectApprovedShelfSalesLine({
+					tx,
+					salesOrderItemId,
+					line: proposedLine,
+				});
 				await projectApprovedHousePackageLine({
 					tx,
 					salesOrderId: adjustment.salesOrderId,
@@ -591,6 +600,12 @@ export async function runApplySalesOrderAdjustment(
 					amountDue: Number(adjustment.amountDueAfter),
 					meta: nextMeta,
 				},
+			});
+			await projectApprovedSalesTaxes({
+				tx,
+				salesOrderId: adjustment.salesOrderId,
+				proposal: proposed,
+				summary,
 			});
 
 			let walletTransactionId: number | null = null;

@@ -12,6 +12,7 @@ import { logger, schedules } from "@trigger.dev/sdk/v3";
 export const SALES_HANDOFF_RECONCILIATION_EVENT =
 	"sales-handoff-reconciliation-schedule";
 export const SALES_HANDOFF_RECONCILIATION_BATCH_LIMIT = 200;
+export const SALES_HANDOFF_RECONCILIATION_ACTOR_USER_ID = 1 as const;
 const REPAIR_MARKER_LIMIT = 100;
 const OPEN_EPOCH_LIMIT = 50;
 const WORKER_REPAIR_SCOPE = "sales_handoff_reconciliation_worker";
@@ -110,18 +111,6 @@ function parseCursorState(
 		openEpoch: openedAt && epochId ? { openedAt, id: epochId } : null,
 		policyRevisionInProgress: positiveInteger(cursor.policyRevisionInProgress),
 	};
-}
-
-export function configuredSalesHandoffReconciliationActorId(
-	value = process.env.SALES_HANDOFF_RECONCILIATION_ACTOR_USER_ID,
-) {
-	const id = positiveInteger(value);
-	if (!id) {
-		throw new Error(
-			"SALES_HANDOFF_RECONCILIATION_ACTOR_USER_ID must identify the designated active Sales Handoff system actor.",
-		);
-	}
-	return id;
 }
 
 async function readCursorState(database: Db) {
@@ -376,7 +365,7 @@ export async function runSalesHandoffReconciliation(
 	> | null = null;
 	let historyWritten = false;
 	try {
-		actorUserId ??= configuredSalesHandoffReconciliationActorId();
+		actorUserId ??= SALES_HANDOFF_RECONCILIATION_ACTOR_USER_ID;
 		const actor = await database.users.findFirst({
 			where: {
 				id: actorUserId,

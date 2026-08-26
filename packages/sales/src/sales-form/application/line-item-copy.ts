@@ -19,16 +19,22 @@ function cloneJsonValue<T>(value: T): T {
 function clearGroupedRowPersistenceIds(
 	value: unknown,
 	groupUid?: string | null,
+	rowKind?: "moulding" | "service",
 ) {
 	if (!Array.isArray(value)) return value;
-	return value.map((row) => {
+	return value.map((row, index) => {
 		if (!row || typeof row !== "object" || Array.isArray(row)) return row;
 		return {
 			...cloneJsonValue(row),
 			id: null,
 			salesItemId: null,
 			hptId: null,
-			...(groupUid ? { groupUid } : {}),
+			...(groupUid
+				? {
+						groupUid,
+						uid: `${groupUid}-${rowKind || "row"}-${index + 1}`,
+					}
+				: {}),
 		};
 	});
 }
@@ -72,10 +78,12 @@ export function clearSalesFormLineItemPersistenceIds(
 			mouldingRows: clearGroupedRowPersistenceIds(
 				sourceMeta.mouldingRows,
 				groupUid,
+				"moulding",
 			),
 			serviceRows: clearGroupedRowPersistenceIds(
 				sourceMeta.serviceRows,
 				groupUid,
+				"service",
 			),
 		},
 		formSteps: (line.formSteps || []).map((step) =>

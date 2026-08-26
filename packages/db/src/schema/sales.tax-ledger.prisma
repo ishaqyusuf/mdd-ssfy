@@ -1,0 +1,44 @@
+enum SalesTaxLedgerEntryType {
+    SALE
+    ADJUSTMENT
+    REVERSAL
+}
+
+enum SalesTaxRecognitionSource {
+    DELIVERY
+    PICKUP
+    ORDER_STATUS
+    MANUAL_BACKFILL
+}
+
+model SalesTaxLedgerEntry {
+    id                 String                    @id @default(cuid())
+    salesOrderId       Int
+    entryType          SalesTaxLedgerEntryType   @default(SALE)
+    recognitionSource  SalesTaxRecognitionSource
+    sourceKey          String                    @unique @db.VarChar(191)
+    sourceType         String?                   @db.VarChar(64)
+    sourceId           String?                   @db.VarChar(191)
+    recognizedAt       DateTime                  @db.Timestamp(0)
+    orderNo            String                    @db.VarChar(255)
+    customerName       String                    @db.VarChar(255)
+    invoiceTotalCents  Int
+    grossSalesCents    Int
+    exemptSalesCents   Int
+    taxableAmountCents Int
+    stateTaxCents      Int
+    surtaxCents        Int                       @default(0)
+    taxDueCents        Int
+    taxCode            String?                   @db.VarChar(64)
+    createdById        Int?
+    reason             String?                   @db.Text
+    reversesEntryId    String?                   @db.VarChar(191)
+    meta               Json?                     @db.Json
+    createdAt          DateTime                  @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime                  @updatedAt
+    order              SalesOrders               @relation(fields: [salesOrderId], references: [id])
+
+    @@index([recognizedAt, entryType])
+    @@index([salesOrderId, recognizedAt])
+    @@index([reversesEntryId])
+}

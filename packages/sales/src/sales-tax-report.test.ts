@@ -62,7 +62,7 @@ describe("sales tax report period", () => {
 });
 
 describe("sales tax workbook", () => {
-	it("builds context, summary, and the exact requested detail columns", () => {
+	it("builds accrual context, Florida summary, detail, and recognition audit", () => {
 		const report = buildSalesTaxReport({
 			generatedAt: new Date("2026-04-01T12:00:00.000Z"),
 			period: resolveSalesTaxReportPeriod({
@@ -70,17 +70,37 @@ describe("sales tax workbook", () => {
 				to: "2026-03-31",
 				now: new Date("2026-04-01T12:00:00.000Z"),
 			}),
-			orders: [
+			entries: [
 				{
+					salesOrderId: 1,
 					orderNo: "SO-1",
 					customerName: "Acme",
+					recognizedAt: "2026-03-12T16:00:00.000Z",
+					entryType: "SALE",
+					recognitionSource: "DELIVERY",
+					taxCode: "A,B",
 					total: 100.105,
+					grossSales: 93.85,
+					exemptSales: 0,
+					taxableAmount: 93.85,
+					stateTax: 5.63,
+					surtax: 0.625,
 					tax: 6.255,
 				},
 				{
+					salesOrderId: 2,
 					orderNo: "SO-2",
 					customerName: "Walk-in customer",
+					recognizedAt: "2026-03-20T18:00:00.000Z",
+					entryType: "SALE",
+					recognitionSource: "PICKUP",
+					taxCode: null,
 					total: 25.2,
+					grossSales: 25.2,
+					exemptSales: 25.2,
+					taxableAmount: 0,
+					stateTax: 0,
+					surtax: 0,
 					tax: 0,
 				},
 			],
@@ -91,12 +111,18 @@ describe("sales tax workbook", () => {
 		expect(report.rowCount).toBe(2);
 		expect(report.sheets.map((sheet) => sheet.name)).toEqual([
 			"Report Context",
-			"Summary",
+			"Florida Summary",
 			"Sales Tax",
+			"Recognition Audit",
 		]);
 		expect(report.sheets[1]?.rows[0]).toEqual({
 			orders: 2,
-			salesTotal: 125.31,
+			invoiceTotal: 125.31,
+			grossSales: 119.05,
+			exemptSales: 25.2,
+			taxableAmount: 93.85,
+			stateTax: 5.63,
+			surtax: 0.63,
 			taxTotal: 6.26,
 		});
 		expect(report.sheets[2]?.columns.map((column) => column.label)).toEqual([
@@ -114,5 +140,11 @@ describe("sales tax workbook", () => {
 				tax: 0,
 			},
 		]);
+		expect(report.sheets[3]?.rows[0]).toMatchObject({
+			recognizedAt: "2026-03-12T16:00:00.000Z",
+			orderNo: "SO-1",
+			entryType: "SALE",
+			recognitionSource: "DELIVERY",
+		});
 	});
 });

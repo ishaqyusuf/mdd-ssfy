@@ -171,6 +171,69 @@ describe("copySalesInTransaction", () => {
     });
   });
 
+  it("copies relational shelf rows from a quote into the created order", async () => {
+    const { db, calls } = createTransactionLikeDb({
+      items: [
+        {
+          description: "Shelf Items",
+          discount: null,
+          discountPercentage: null,
+          dykeDescription: "Shelf Items",
+          dykeProduction: false,
+          multiDyke: false,
+          multiDykeUid: null,
+          qty: 1,
+          rate: 145.33,
+          formSteps: [],
+          shelfItems: [
+            {
+              categoryId: 23,
+              productId: 766,
+              description: "3 0X8 0 POCKET DOOR FRAME BUILT UP 4-9/16",
+              qty: 1,
+              unitPrice: 145.33,
+              totalPrice: 145.33,
+              meta: { section: "Pocket Door Frames" },
+            },
+          ],
+          housePackageTool: null,
+          meta: {},
+          price: 145.33,
+          swing: null,
+          total: 145.33,
+          taxPercenatage: 7,
+          tax: 10.17,
+        },
+      ],
+    });
+
+    await copySalesInTransaction({
+      db: db as unknown as CopySalesInTransactionProps["db"],
+      salesUid: "00010PC",
+      as: "order",
+      type: "quote",
+      author: { id: 7, name: "Pablo Cruz" },
+    });
+
+    expect(calls.createdItems[0]).toMatchObject({
+      shelfItems: {
+        createMany: {
+          data: [
+            {
+              categoryId: 23,
+              productId: 766,
+              description: "3 0X8 0 POCKET DOOR FRAME BUILT UP 4-9/16",
+              qty: 1,
+              unitPrice: 145.33,
+              totalPrice: 145.33,
+              meta: { section: "Pocket Door Frames" },
+            },
+          ],
+        },
+      },
+    });
+  });
+
   it("does not copy adjustment authority or persisted row identities into an editable duplicate", async () => {
     const { db, calls } = createTransactionLikeDb({
       type: "order",

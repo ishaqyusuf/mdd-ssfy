@@ -66,7 +66,8 @@ mutation was performed.
   overdue work. Notification status and acknowledgement commit atomically.
 - Organization inference fails closed unless the order owns an organization or
   the responsible representative has exactly one active organization. The
-  sender is the explicitly configured active system notification user.
+  sender is the code-designated system notification user ID `1`; the worker
+  verifies that user and its notification contact are active before sending.
 - Notification and alert deep links open Material or the snapshotted Production
   control through the ordinary protected Sales Overview flow.
 - Escalation activities store the canonical notification type in their runtime

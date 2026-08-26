@@ -1,35 +1,40 @@
 import type { Database } from "../index";
 
-type SalesTaxReportQueryDb = Pick<Database, "salesOrders">;
+type SalesTaxReportQueryDb = Pick<Database, "salesTaxLedgerEntry">;
 
-export type ListSalesTaxReportOrdersInput = {
+export type ListSalesTaxReportEntriesInput = {
 	from: Date;
 	toExclusive: Date;
 	limit: number;
 };
 
-const FULLY_PAID_ORDER_BALANCE = { lte: 0 } as const;
-
-export function listSalesTaxReportOrders(
+export function listSalesTaxReportEntries(
 	db: SalesTaxReportQueryDb,
-	input: ListSalesTaxReportOrdersInput,
+	input: ListSalesTaxReportEntriesInput,
 ) {
-	return db.salesOrders.findMany({
+	return db.salesTaxLedgerEntry.findMany({
 		where: {
-			amountDue: FULLY_PAID_ORDER_BALANCE,
-			deletedAt: null,
-			type: "order",
-			createdAt: { gte: input.from, lt: input.toExclusive },
+			recognizedAt: { gte: input.from, lt: input.toExclusive },
+			entryType: { in: ["SALE", "ADJUSTMENT", "REVERSAL"] },
 		},
-		orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+		orderBy: [{ recognizedAt: "asc" }, { id: "asc" }],
 		take: input.limit + 1,
 		select: {
 			id: true,
-			orderId: true,
-			grandTotal: true,
-			tax: true,
-			customer: { select: { businessName: true, name: true } },
-			billingAddress: { select: { name: true } },
+			salesOrderId: true,
+			entryType: true,
+			recognitionSource: true,
+			recognizedAt: true,
+			orderNo: true,
+			customerName: true,
+			invoiceTotalCents: true,
+			grossSalesCents: true,
+			exemptSalesCents: true,
+			taxableAmountCents: true,
+			stateTaxCents: true,
+			surtaxCents: true,
+			taxDueCents: true,
+			taxCode: true,
 		},
 	});
 }

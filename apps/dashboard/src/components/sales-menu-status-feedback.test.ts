@@ -35,6 +35,12 @@ describe("sales menu status feedback", () => {
 		expect(source).toContain("if (statusActionInFlightRef.current) return;");
 	});
 
+	it("waits for each monitored status task to be accepted before finishing the handoff", () => {
+		const awaitedTaskStarts =
+			source.match(/await salesControlTask\.trigger\(/g) ?? [];
+		expect(awaitedTaskStarts).toHaveLength(2);
+	});
+
 	it("shows visible feedback as soon as a monitored status task starts", () => {
 		expect(source).toContain('title: "Sales status update started"');
 		expect(source).toContain(

@@ -1,21 +1,21 @@
 // @ts-expect-error packages/db typecheck does not include Bun test types.
 import { describe, expect, it } from "bun:test";
 
-import { listSalesTaxReportOrders } from "./sales-tax-report";
+import { listSalesTaxReportEntries } from "./sales-tax-report";
 
-describe("listSalesTaxReportOrders", () => {
-	it("applies the complete order scope, deterministic ordering, and overflow row", async () => {
+describe("listSalesTaxReportEntries", () => {
+	it("filters by taxable-sale recognition time with deterministic ordering", async () => {
 		let capturedArgs: unknown;
 		const db = {
-			salesOrders: {
+			salesTaxLedgerEntry: {
 				findMany: async (args: unknown) => {
 					capturedArgs = args;
 					return [];
 				},
 			},
-		} as unknown as Parameters<typeof listSalesTaxReportOrders>[0];
+		} as unknown as Parameters<typeof listSalesTaxReportEntries>[0];
 
-		await listSalesTaxReportOrders(db, {
+		await listSalesTaxReportEntries(db, {
 			from: new Date("2026-03-01T05:00:00.000Z"),
 			toExclusive: new Date("2026-04-01T04:00:00.000Z"),
 			limit: 10_000,
@@ -23,16 +23,16 @@ describe("listSalesTaxReportOrders", () => {
 
 		expect(capturedArgs).toMatchObject({
 			where: {
-				amountDue: { lte: 0 },
-				deletedAt: null,
-				type: "order",
-				createdAt: {
+				recognizedAt: {
 					gte: new Date("2026-03-01T05:00:00.000Z"),
 					lt: new Date("2026-04-01T04:00:00.000Z"),
 				},
+				entryType: { in: ["SALE", "ADJUSTMENT", "REVERSAL"] },
 			},
-			orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+			orderBy: [{ recognizedAt: "asc" }, { id: "asc" }],
 			take: 10_001,
 		});
+		expect(JSON.stringify(capturedArgs)).not.toContain("amountDue");
+		expect(JSON.stringify(capturedArgs)).not.toContain("createdAt");
 	});
 });

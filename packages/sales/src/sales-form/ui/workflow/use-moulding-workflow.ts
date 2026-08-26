@@ -60,8 +60,6 @@ function normalizeMouldingStoredRows(rows: WorkflowComponent[]) {
 				: Number(row.customPrice || 0),
 		salesPrice: Number(row?.salesPrice || 0),
 		basePrice: Number(row?.basePrice || 0),
-		estimateUnit: roundMoney(Number(row?.estimateUnit || 0)),
-		unit: roundMoney(Number(row?.unit || 0)),
 		lineTotal: roundMoney(Number(row?.lineTotal || 0)),
 	}));
 }

@@ -1,5 +1,18 @@
 # Database Migrations
 
+## 2026-08-26: Sales Tax Recognition Ledger
+
+- Prisma generated and applied additive migration
+  `20260826130941_add_sales_tax_ledger` to local `gnd-prisma2`, creating the
+  recognition/correction enums, `SalesTaxLedgerEntry`, unique source identity,
+  and reporting/audit indexes.
+- `bun run db:push` then reported the local database already in sync and
+  regenerated Prisma Client 6.19.2. No reset, destructive flag, manual SQL, or
+  hosted database write was used.
+- A dry-run-first local reconciliation reviewed actual fulfillment timestamps
+  and created 51 explicit August 1–26 sale entries. Open orders and completed
+  records without a defensible tax-point timestamp were not backfilled.
+
 ## 2026-08-24: Production schema synchronization
 
 - Ran the guarded root command `bun run db:push --prod` against the verified

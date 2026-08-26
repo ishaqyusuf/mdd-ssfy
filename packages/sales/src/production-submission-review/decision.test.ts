@@ -530,6 +530,70 @@ describe("production submission material review decision", () => {
 		expect(onApproved).toHaveBeenCalledTimes(1);
 	});
 
+	it("approves an unchanged unassigned completion submission created by one-click fulfillment", async () => {
+		const review = pendingReview();
+		const submission = review.submissions[0];
+		if (!submission) throw new Error("Expected a submission fixture.");
+		const assignmentScope = review.assignmentScope[0];
+		if (!assignmentScope)
+			throw new Error("Expected an assignment scope fixture.");
+		submission.assignment.assignedToId = null;
+		review.assignmentScope = [
+			{
+				...assignmentScope,
+				assignedToId: null,
+			},
+		];
+		const completionSubmission = {
+			...submission,
+			meta: { source: "sales_mark_as_completed" },
+		};
+		review.submissions = [completionSubmission];
+		const onApproved = mock(async () => {});
+		const tx = {
+			salesProductionSubmissionMaterialReview: {
+				findUniqueOrThrow: mock(async () => review),
+				updateMany: mock(async () => ({ count: 1 })),
+			},
+			salesHistory: { create: mock(async () => ({})) },
+		};
+		const evidence = {
+			classification: {
+				state: "pending_material_review" as const,
+				reason: "NOT_CONFIGURED" as const,
+			},
+			materialSnapshot: [{ componentId: null, readiness: "not_configured" }],
+			materialRevision: "configuration-missing",
+		};
+
+		const result = await decideProductionSubmissionMaterialReview(
+			{
+				$transaction: async (
+					callback: (client: typeof tx) => Promise<unknown>,
+				) => callback(tx),
+			} as never,
+			{
+				reviewId: 55,
+				expectedUpdatedAt: review.updatedAt,
+				action: "APPROVE_CONFIGURATION_EXCEPTION",
+				note: "Approved by one-click fulfillment.",
+			},
+			{ id: 9, name: "Admin" },
+			{
+				evaluateEvidence: mock(async () => evidence) as never,
+				resetSales: mock(async () => {}) as never,
+				onApproved,
+			},
+		);
+
+		expect(result).toEqual({
+			reviewId: 55,
+			status: "APPROVED",
+			materialRevision: "configuration-missing",
+		});
+		expect(onApproved).toHaveBeenCalledTimes(1);
+	});
+
 	it("rejects a configuration exception for a configured material blocker", async () => {
 		const updateMany = mock(async () => ({ count: 1 }));
 		const tx = {

@@ -78,43 +78,45 @@ describe("sales dashboard date filters", () => {
 });
 
 describe("sales tax report query", () => {
-	it("preserves stored totals and customer-name fallbacks", async () => {
+	it("exports immutable recognition snapshots without consulting payments", async () => {
 		const ctx = {
 			db: {
-				salesOrders: {
+				salesTaxLedgerEntry: {
 					findMany: async () => {
 						return [
 							{
-								id: 4,
-								orderId: "SO-4",
-								grandTotal: 240.5,
-								tax: 15.25,
-								customer: { businessName: "Acme", name: "Ada" },
-								billingAddress: { name: "Billing name" },
+								id: "tax-4",
+								salesOrderId: 4,
+								entryType: "SALE",
+								recognitionSource: "DELIVERY",
+								recognizedAt: new Date("2026-03-12T15:00:00Z"),
+								orderNo: "SO-4",
+								customerName: "Acme",
+								invoiceTotalCents: 24_050,
+								grossSalesCents: 22_525,
+								exemptSalesCents: 0,
+								taxableAmountCents: 22_525,
+								stateTaxCents: 1_352,
+								surtaxCents: 173,
+								taxDueCents: 1_525,
+								taxCode: "A,B",
 							},
 							{
-								id: 5,
-								orderId: "SO-5",
-								grandTotal: 20,
-								tax: 1,
-								customer: { businessName: null, name: "Ada Customer" },
-								billingAddress: { name: "Billing name" },
-							},
-							{
-								id: 6,
-								orderId: "SO-6",
-								grandTotal: 10,
-								tax: 0,
-								customer: null,
-								billingAddress: { name: "Billing customer" },
-							},
-							{
-								id: 7,
-								orderId: "SO-7",
-								grandTotal: null,
-								tax: null,
-								customer: null,
-								billingAddress: null,
+								id: "tax-5",
+								salesOrderId: 5,
+								entryType: "SALE",
+								recognitionSource: "PICKUP",
+								recognizedAt: new Date("2026-03-20T16:00:00Z"),
+								orderNo: "SO-5",
+								customerName: "Walk-in customer",
+								invoiceTotalCents: 2_000,
+								grossSalesCents: 2_000,
+								exemptSalesCents: 2_000,
+								taxableAmountCents: 0,
+								stateTaxCents: 0,
+								surtaxCents: 0,
+								taxDueCents: 0,
+								taxCode: null,
 							},
 						];
 					},
@@ -132,37 +134,35 @@ describe("sales tax report query", () => {
 			{ orderNo: "SO-4", customerName: "Acme", total: 240.5, tax: 15.25 },
 			{
 				orderNo: "SO-5",
-				customerName: "Ada Customer",
-				total: 20,
-				tax: 1,
-			},
-			{
-				orderNo: "SO-6",
-				customerName: "Billing customer",
-				total: 10,
-				tax: 0,
-			},
-			{
-				orderNo: "SO-7",
 				customerName: "Walk-in customer",
-				total: 0,
+				total: 20,
 				tax: 0,
 			},
 		]);
+		expect(JSON.stringify(report)).not.toContain("amountDue");
 	});
 
-	it("rejects a report that would silently truncate source orders", async () => {
+	it("rejects a report that would silently truncate tax ledger entries", async () => {
 		const ctx = {
 			db: {
-				salesOrders: {
+				salesTaxLedgerEntry: {
 					findMany: async () =>
 						Array.from({ length: 10_001 }, (_, index) => ({
-							id: index + 1,
-							orderId: `SO-${index + 1}`,
-							grandTotal: 1,
-							tax: 0,
-							customer: null,
-							billingAddress: null,
+							id: `tax-${index + 1}`,
+							salesOrderId: index + 1,
+							entryType: "SALE",
+							recognitionSource: "MANUAL_BACKFILL",
+							recognizedAt: new Date("2026-03-20T16:00:00Z"),
+							orderNo: `SO-${index + 1}`,
+							customerName: "Walk-in customer",
+							invoiceTotalCents: 100,
+							grossSalesCents: 100,
+							exemptSalesCents: 100,
+							taxableAmountCents: 0,
+							stateTaxCents: 0,
+							surtaxCents: 0,
+							taxDueCents: 0,
+							taxCode: null,
 						})),
 				},
 			},
@@ -174,6 +174,6 @@ describe("sales tax report query", () => {
 				{ from: "2026-03-01", to: "2026-03-31" },
 				new Date("2026-04-01T12:00:00.000Z"),
 			),
-		).rejects.toThrow("more than 10,000 orders");
+		).rejects.toThrow("more than 10,000 tax ledger entries");
 	});
 });

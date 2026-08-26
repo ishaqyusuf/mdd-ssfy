@@ -567,6 +567,16 @@ export type FulfillInventoryDispatchInput = {
 	note?: string | null;
 };
 
+export type InventoryFulfillmentCompletionHook = (
+	tx: TransactionClient,
+	input: {
+		salesOrderId: number;
+		deliveryId: number;
+		deliveryMode: DeliveryOption;
+		createdByUserId?: number | null;
+	},
+) => Promise<void>;
+
 export type PlanReceivedBackorderAllocationInput = {
 	requiredQty?: number | null;
 	allocatedQty?: number | null;
@@ -3574,6 +3584,7 @@ export async function setSalesInventoryLineFulfillmentHold(
 export async function shipAvailableSalesInventory(
 	db: Db,
 	input: ShipAvailableSalesInventoryInput,
+	onCompletedDelivery?: InventoryFulfillmentCompletionHook,
 ): Promise<ShipAvailableSalesInventoryResult> {
 	const lineItemFilter = input.lineItemIds?.length
 		? {
@@ -3831,6 +3842,12 @@ export async function shipAvailableSalesInventory(
 						backorderedQty: decision.backorderedQty,
 					},
 				})),
+			});
+			await onCompletedDelivery?.(tx, {
+				salesOrderId: sale.id,
+				deliveryId: delivery.id,
+				deliveryMode,
+				createdByUserId: input.createdByUserId,
 			});
 		}
 
@@ -4402,6 +4419,7 @@ export async function releaseInventoryDispatchAllocations(
 export async function fulfillInventoryDispatch(
 	db: Db,
 	input: FulfillInventoryDispatchInput,
+	onCompletedDelivery?: InventoryFulfillmentCompletionHook,
 ): Promise<ShipAvailableSalesInventoryResult> {
 	const lineItemFilter = input.lineItemIds?.length
 		? {
@@ -4604,6 +4622,12 @@ export async function fulfillInventoryDispatch(
 						backorderedQty: plan.backorderedQty,
 					},
 				})),
+			});
+			await onCompletedDelivery?.(tx, {
+				salesOrderId: sale.id,
+				deliveryId: delivery.id,
+				deliveryMode,
+				createdByUserId: input.createdByUserId,
 			});
 		}
 

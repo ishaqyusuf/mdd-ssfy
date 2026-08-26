@@ -99,6 +99,39 @@ describe("workflow sync patches", () => {
 		expect((patch?.linePatch as any)?.shelfItems?.[0]?.unitPrice).toBe(20);
 	});
 
+	it("does not mark a persisted shelf row dirty when derived pricing metadata is already equivalent", () => {
+		const patch = buildWorkflowShelfSyncPatch(
+			{
+				uid: "sales-item-172483",
+				qty: 2,
+				unitPrice: 144.62,
+				lineTotal: 289.24,
+				formSteps: [shelfItemStep],
+				shelfItems: [
+					{
+						id: 394,
+						categoryId: 379,
+						productId: 755,
+						description:
+							"2 0X6 8 POCKET DOOR FRAME BUILT UP 4-9/16",
+						qty: 2,
+						unitPrice: 144.62,
+						totalPrice: 289.24,
+						meta: {
+							basePrice: 94,
+							salesPrice: 144.62,
+							customPrice: null,
+							productRowUid: "shelf-product-1",
+						},
+					},
+				],
+			},
+			0.65,
+		);
+
+		expect(patch).toBeNull();
+	});
+
 	it("builds an initial shelf patch only for empty shelf item lines", () => {
 		const patch = buildInitialWorkflowShelfPatch({
 			uid: "line-1",

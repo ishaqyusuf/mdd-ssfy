@@ -1,5 +1,16 @@
 import type { SalesFormSummaryRecord } from "../../application";
 
+export function resolveSalesFormOverviewSummary(input: {
+	persisted: SalesFormSummaryRecord;
+	computed: SalesFormSummaryRecord;
+	isPersistedSale: boolean;
+	dirty: boolean;
+}) {
+	return input.isPersistedSale && !input.dirty
+		? input.persisted
+		: input.computed;
+}
+
 export function hasSalesFormSummaryDrift(
 	currentSummary: SalesFormSummaryRecord | null | undefined,
 	nextSummary: SalesFormSummaryRecord | null | undefined,

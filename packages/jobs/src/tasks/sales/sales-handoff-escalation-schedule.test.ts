@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { transformNotifications } from "@notifications/notification-center";
 import { explodeTagEntries, mergeTagRows } from "@notifications/tag-values";
 import {
-	configuredSalesHandoffNotificationActorId,
+	SALES_HANDOFF_NOTIFICATION_ACTOR_USER_ID,
 	runSalesHandoffEscalationScan,
 } from "./sales-handoff-escalation-schedule";
 
@@ -61,10 +61,8 @@ function escalationDb() {
 }
 
 describe("Sales Handoff escalation schedule", () => {
-	test("fails visibly without a designated system actor", () => {
-		expect(() => configuredSalesHandoffNotificationActorId("")).toThrow(
-			"SALES_HANDOFF_NOTIFICATION_ACTOR_USER_ID",
-		);
+	test("uses the designated notification user without environment configuration", () => {
+		expect(SALES_HANDOFF_NOTIFICATION_ACTOR_USER_ID).toBe(1);
 	});
 
 	test("claims an overdue epoch once and writes one durable row per active admin", async () => {

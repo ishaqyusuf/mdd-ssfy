@@ -70,6 +70,7 @@ import { salesCustomerRefundCompleted } from "./types/sales-customer-refund-comp
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
 import { salesDispatchCompleted } from "./types/sales-dispatch-completed";
+import { salesDispatchCreated } from "./types/sales-dispatch-created";
 import { salesDispatchDateUpdated } from "./types/sales-dispatch-date-updated";
 import { salesDispatchDuplicateAlert } from "./types/sales-dispatch-duplicate-alert";
 import { salesDispatchInProgress } from "./types/sales-dispatch-in-progress";
@@ -149,7 +150,7 @@ const handlers = {
 	community_unit_production_completed: communityUnitProductionCompleted,
 	community_unit_production_batch_updated: communityUnitProductionBatchUpdated,
 	sales_dispatch_assigned: salesDispatchAssigned,
-	sales_dispatch_created: salesDispatchAssigned,
+	sales_dispatch_created: salesDispatchCreated,
 	sales_dispatch_queued: salesDispatchQueued,
 	sales_dispatch_cancelled: salesDispatchCancelled,
 	sales_dispatch_completed: salesDispatchCompleted,

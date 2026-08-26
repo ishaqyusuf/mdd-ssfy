@@ -25,7 +25,7 @@ import { Icons } from "@gnd/ui/icons";
 import { useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 
 const Calendar = dynamic(
@@ -59,6 +59,20 @@ export function SalesTaxReportDialog({
 		getDefaultSalesTaxReportRange(),
 	);
 	const [isGenerating, setIsGenerating] = useState(false);
+	const calendarDefaultMonth = useMemo(() => {
+		if (!selectedRange.to) return undefined;
+		return isWideCalendar
+			? new Date(
+					selectedRange.to.getFullYear(),
+					selectedRange.to.getMonth() - 1,
+					1,
+				)
+			: selectedRange.to;
+	}, [isWideCalendar, selectedRange.to]);
+	const isDateDisabled = useCallback(
+		(date: Date) => !isSelectableSalesTaxReportDate(date),
+		[],
+	);
 	const resetDates = useCallback(() => {
 		setSelectedRange(getDefaultSalesTaxReportRange());
 	}, []);
@@ -92,7 +106,7 @@ export function SalesTaxReportDialog({
 					variant: "error",
 					title: "No report rows",
 					description:
-						"No fully paid sales orders match the selected date range.",
+						"No taxable sales were recognized in the selected date range.",
 				});
 				return;
 			}
@@ -121,8 +135,8 @@ export function SalesTaxReportDialog({
 				<DialogHeader className="border-b bg-muted/20 px-5 py-4">
 					<DialogTitle>Sales Tax Report</DialogTitle>
 					<DialogDescription>
-						Choose any non-future date range. Only fully paid orders are
-						included.
+						Choose any non-future date range. Fulfilled taxable sales are
+						included regardless of payment status.
 					</DialogDescription>
 				</DialogHeader>
 				<div className="min-h-0 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
@@ -148,20 +162,12 @@ export function SalesTaxReportDialog({
 						<Calendar
 							key={isWideCalendar ? "wide" : "narrow"}
 							mode="range"
-							defaultMonth={
-								isWideCalendar && selectedRange.to
-									? new Date(
-											selectedRange.to.getFullYear(),
-											selectedRange.to.getMonth() - 1,
-											1,
-										)
-									: selectedRange.to
-							}
+							defaultMonth={calendarDefaultMonth}
 							selected={selectedRange}
 							onSelect={(range) => {
 								if (range) setSelectedRange(range);
 							}}
-							disabled={(date) => !isSelectableSalesTaxReportDate(date)}
+							disabled={isDateDisabled}
 							numberOfMonths={isWideCalendar ? 2 : 1}
 							showOutsideDays={false}
 							initialFocus

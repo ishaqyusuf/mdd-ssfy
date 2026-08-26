@@ -80,6 +80,18 @@ const SALES_COPY_SOURCE_SELECT = {
           priceId: true,
         },
       },
+      shelfItems: {
+        where: { deletedAt: null },
+        select: {
+          categoryId: true,
+          productId: true,
+          description: true,
+          qty: true,
+          unitPrice: true,
+          totalPrice: true,
+          meta: true,
+        },
+      },
       housePackageTool: {
         where: { deletedAt: null },
         select: {
@@ -350,6 +362,7 @@ export async function copySalesInTransaction(
         qty,
         rate,
         formSteps,
+        shelfItems,
         housePackageTool: hpt,
         meta,
         price,
@@ -396,6 +409,31 @@ export async function copySalesInTransaction(
                         stepId,
                         value,
                         salesId: newSales.id,
+                      }),
+                    ),
+                  },
+                } as never),
+            shelfItems: !shelfItems?.length
+              ? undefined
+              : ({
+                  createMany: {
+                    data: shelfItems.map(
+                      ({
+                        categoryId,
+                        productId,
+                        description,
+                        qty,
+                        unitPrice,
+                        totalPrice,
+                        meta,
+                      }) => ({
+                        categoryId,
+                        productId,
+                        description,
+                        qty,
+                        unitPrice,
+                        totalPrice,
+                        meta,
                       }),
                     ),
                   },

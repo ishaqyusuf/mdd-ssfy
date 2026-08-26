@@ -1,6 +1,19 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-26: Mark as Fulfilled no longer emits `sales_dispatch_created` when
+  `ensureSalesOrderFulfillmentDispatch` creates its internal queue dispatch.
+  That dispatch exists only to complete the terminal fulfillment workflow and
+  is not a newly assigned operational dispatch. Genuine dispatch creation and
+  driver-assignment paths retain their existing notifications.
+- 2026-08-26: Repaired dispatch-created notification delivery. The
+  `sales_dispatch_created` channel now has its own activity/email/WhatsApp
+  handler instead of reusing driver-assignment wording, while
+  `sales_dispatch_assigned` remains the direct driver event. Both React Email
+  templates are registered with the notification email service and receive
+  order, dispatch, delivery-mode, due-date, and recipient context. This removes
+  the `Unknown email template: sales-dispatch-assigned` worker failure and
+  preserves separate created-versus-assigned notification semantics.
 - 2026-08-25: Simplified Sales Overview dispatch mode to two meaningful tabs:
   `Productions` and `Overview`. The empty `General` tab was removed and the
   admin-facing `Packing List` label became `Overview`, while its established

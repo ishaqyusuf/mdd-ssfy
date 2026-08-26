@@ -103,6 +103,45 @@ describe("record-normalization application", () => {
 		expect(record.summary.taxTotal).toBe(5);
 	});
 
+	it("preserves persisted financial authority while normalizing saved lines", () => {
+		const record = hydrateSalesFormRecord({
+			type: "order",
+			salesId: 23820,
+			slug: "08731DB",
+			form: { customerId: 101, paymentMethod: "Credit Card" },
+			lineItems: [
+				{
+					uid: "legacy-line",
+					title: "Legacy line",
+					qty: 1,
+					unitPrice: 100,
+					lineTotal: 100,
+					taxxable: true,
+				},
+			],
+			extraCosts: [],
+			settings: { cccPercentage: 3 },
+			summary: {
+				subTotal: 99.99,
+				adjustedSubTotal: 99.99,
+				taxRate: 7,
+				taxTotal: 6.5,
+				grandTotal: 106.49,
+				ccc: 3.19,
+				totalWithCcc: 109.68,
+			},
+		});
+
+		expect(record.lineItems[0]?.lineTotal).toBe(100);
+		expect(record.summary).toMatchObject({
+			subTotal: 99.99,
+			taxTotal: 6.5,
+			grandTotal: 106.49,
+			ccc: 3.19,
+			totalWithCcc: 109.68,
+		});
+	});
+
 	it("hydrates service rows from grouped row quantities and totals", () => {
 		const record = hydrateSalesFormRecord({
 			type: "order",

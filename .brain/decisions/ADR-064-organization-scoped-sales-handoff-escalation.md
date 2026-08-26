@@ -18,9 +18,10 @@ acknowledgement is recorded independently from action resolution. The mandatory
 in-app channel is included in notification-center reads regardless of ordinary
 preferences and has no email, SMS, push, or WhatsApp delivery handler.
 
-Notifications use the explicitly configured active
-`SALES_HANDOFF_NOTIFICATION_ACTOR_USER_ID`. Missing or invalid configuration is
-a visible job failure; an arbitrary administrator is never used as sender.
+Notifications use the project-designated system notification user ID `1`, held
+as a code constant by the scheduler. The worker still verifies that user is
+active and has a notification contact before sending; an arbitrary
+administrator is never selected as sender.
 
 Representative transfer updates ownership on the same epoch without changing
 its open or escalation clock. Resolution cancels unsent escalation. A genuine
@@ -45,5 +46,6 @@ Material or Production deep-link action from the exact stored payload.
 - Sales Orders can filter/count exact distinct affected orders through the
   required `SalesOrders.handoffActionEpochs` relation and one actor-derived
   open-epoch where fragment.
-- Deployment requires the combined schema migration and a designated system
-  notification user configuration before enabling the schedule.
+- Deployment requires the combined schema migration and active notification
+  contact data for the designated system notification user ID `1` before
+  enabling the schedule; no notification-actor environment variable is used.

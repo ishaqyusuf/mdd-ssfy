@@ -100,9 +100,36 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
   duplicate empty dispatch from cached data.
 - Preflight displays affected orders, inbound shipment and remaining quantity,
   production-review count, residual component checks, and the final production
-  or dispatch action. The one-click resolver requires `editOrders`,
+  or dispatch action. For Fulfilled, `viewMarkSalesOrderFulfilled` authorizes
+  every scoped resolver substep without additional Orders, Inbound Order, or
+  Production grants. Production completed still requires `editOrders`,
   `editInboundOrder`, and `editProduction` together.
 - The `Inbound` status cell uses the same non-button, button-variant visual treatment and retains the inbound status tone. Existing manual-inbound and inventory-inbound click behavior remains unchanged.
+
+## 2026-08-26 One-click fulfillment retry hardening
+
+- Automatic `sales_mark_as_completed` submissions may intentionally retain an
+  unassigned production assignment when a privileged status-completion flow is
+  submitting all remaining work. Material-review scope validation now accepts
+  that exact provenance when the current null owner still matches the recorded
+  null owner; ordinary unassigned submissions remain stale and cancelled.
+- Automatic completion idempotency keys include a stable item-scope fingerprint
+  and the latest material-review ID. Concurrent retries share one key, while a
+  retry after a cancelled or rejected review creates a new review instead of
+  replaying the closed key.
+- Authenticated Chrome verification fulfilled local order `09454DB`. The
+  dependency resolver approved the replacement unconfigured-material review,
+  queued `update-sales-control`, and the Sales Orders row refreshed to
+  `Fulfilled` after the local jobs worker completed the run.
+- The status menu now awaits each monitored `update-sales-control` task-start
+  promise before completing its production or fulfillment handoff. This keeps
+  the component mounted long enough to register the run, surface start failure,
+  and retain the status-action lock until Trigger accepts the task.
+- Authenticated Chrome verification on `09406DB` reproduced dependency
+  resolution and dispatch creation without a registered terminal task before
+  the fix. After hot reload, the same flow showed `Sales status update started`,
+  registered a successful `update-sales-control` run, completed dispatch `4515`,
+  and refreshed the Sales Orders row to `Fulfilled`.
 
 ## Saved Query Counts
 
@@ -110,6 +137,12 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 - Saved page-tab list/default queries refetch inactive cache entries as well as active ones. A saved filter such as production complete plus fulfillment pending therefore updates its count after an order is fulfilled without a page reload.
 
 ## Validation
+
+- 2026-08-26 one-click fulfillment review/retry coverage passed 48 tests / 145
+  assertions across status resolution, material-review decisions, and
+  transactional sales-control tasks. The Sales package typecheck remains red
+  only on the existing inbound-demand nullability and sales-control assignment
+  ID diagnostics.
 
 - 2026-08-07 fulfillment-created-review regression coverage passed 38 tests /
   117 assertions; Sales and API typechecks passed. Read-only live preflight on

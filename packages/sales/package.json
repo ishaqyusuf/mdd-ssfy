@@ -110,6 +110,7 @@
 		"./sales-control/task-authorization": "./src/sales-control/task-authorization.ts",
 		"./reporting": "./src/reporting.ts",
 		"./sales-tax-report": "./src/sales-tax-report.ts",
+		"./tax-system": "./src/tax-system/index.ts",
 		"./sales-workbook": "./src/sales-workbook.ts",
 		"./performance-reports": "./src/sales-performance-reports.ts"
 	},

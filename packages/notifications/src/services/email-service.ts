@@ -15,6 +15,10 @@ import DealerProgramStatusEmail from "@gnd/email/emails/dealer-program-status";
 import DealerSalesRequestEmail from "@gnd/email/emails/dealer-sales-request";
 import DealerSalesRequestApprovedEmail from "@gnd/email/emails/dealer-sales-request-approved";
 import DealerSalesRequestRejectedEmail from "@gnd/email/emails/dealer-sales-request-rejected";
+import {
+	DispatchCreatedEmail,
+	DispatchDriver,
+} from "@gnd/email/emails/dispatch-driver";
 import { JobApprovedEmail } from "@gnd/email/emails/job-approved";
 import { JobAssignedEmail } from "@gnd/email/emails/job-assigned";
 import { JobPaymentSentEmail } from "@gnd/email/emails/job-payment-sent";
@@ -512,6 +516,8 @@ export class EmailService {
 
 	#getTemplate(templateName: string) {
 		const templates = {
+			"sales-dispatch-assigned": DispatchDriver,
+			"sales-dispatch-created": DispatchCreatedEmail,
 			"sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
 			"sales-customer-payment-received": SalesCustomerPaymentReceivedEmail,
 			"sales-customer-refund-completed": SalesCustomerRefundCompletedEmail,

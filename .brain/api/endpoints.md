@@ -85,16 +85,18 @@
 - Protected manual tax workbook read:
   `salesDashboard.salesTaxReport({ from: YYYY-MM-DD, to: YYYY-MM-DD })`. The
   server uses inclusive New York business dates and rejects malformed,
-  reversed, future, and more-than-10,000-order requests.
+  reversed, future, and more-than-10,000-ledger-entry requests.
 - All reads share date-only `from`/`to`, optional `salesRepIds`, and optional
   `salesChannels` filter semantics.
 - `salesDashboard.report` accepts one of `performance-summary`,
   `orders-ledger`, `sales-reps`, `products`, `quote-activity`, or `customers`.
   It returns typed workbook metadata and sheets for client-side `.xlsx`
   generation and rejects more than 10,000 relevant source records.
-- `salesDashboard.salesTaxReport` returns `Report Context`, `Summary`, and
-  `Sales Tax` sheets from persisted fully paid, non-deleted order `grandTotal`
-  and `tax`; the detail sheet contains Order #, Customer Name, Total, and Tax.
+- `salesDashboard.salesTaxReport` queries immutable `SalesTaxLedgerEntry`
+  snapshots by taxable-sale recognition time, not order creation or payment
+  time. It returns `Report Context`, `Florida Summary`, `Sales Tax`, and
+  `Recognition Audit`; the detail sheet remains exactly Order #, Customer Name,
+  Total, and Tax.
 - The dashboard consumes `salesFinance.summary` separately for canonical net
   collections and review counts when the viewer has Finance access.
 

@@ -43,6 +43,7 @@ import { normalizeLegacyDispatchManifestItem } from "@gnd/sales/dispatch-manifes
 import { projectDispatchLifecycle } from "@gnd/sales/dispatch-manifest/status";
 import { projectDispatchRisks } from "@gnd/sales/dispatch-manifest/workspace";
 import { releaseDispatchBoundInventory } from "@gnd/sales/sales-fulfillment-plan";
+import { recognizeSalesTaxForFulfilledOrder } from "@gnd/sales/tax-system";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import { noteTag } from "@gnd/utils/note";
 import { composeQueryData } from "@gnd/utils/query-response";
@@ -56,6 +57,7 @@ import {
 	packDispatchItemTask,
 	submitDispatchTask,
 } from "@sales/exports";
+import { resetSalesAction } from "@sales/sales-control/actions";
 import type { UpdateSalesControl } from "@sales/schema";
 import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
 import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
@@ -1799,6 +1801,19 @@ export async function updateDispatchStatus(
 				throw new TRPCError({
 					code: "CONFLICT",
 					message: "CONFLICT_STALE_STATUS",
+				});
+			}
+			if (newStatus === "completed") {
+				await resetSalesAction(
+					tx as Parameters<typeof resetSalesAction>[0],
+					dispatch.salesOrderId,
+				);
+				await recognizeSalesTaxForFulfilledOrder(tx, {
+					salesOrderId: dispatch.salesOrderId,
+					source: dispatch.deliveryMode === "pickup" ? "PICKUP" : "DELIVERY",
+					sourceId: dispatch.id,
+					createdById: ctx.userId,
+					reason: "Recognized after dispatch completion.",
 				});
 			}
 		},

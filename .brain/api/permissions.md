@@ -14,15 +14,14 @@
   role-derived mode boundary. Production-only workers remain in their
   authorization-derived `production-tasks` mode; the alert never auto-assigns.
 - Escalation recipients are re-read as active, non-revoked Super Admins inside
-  the epoch organization. The scheduler uses only the explicitly configured
-  active system notification actor and fails visibly if it is absent; it never
-  attributes system activity to an arbitrary admin.
+  the epoch organization. The scheduler uses only designated system
+  notification user ID `1`, verifies its active user/contact state, and never
+  attributes system activity to a dynamically selected administrator.
 - Recurring repair has no user-callable API and accepts no representative,
-  organization, worker, or role scope. It requires the explicitly configured
-  `SALES_HANDOFF_RECONCILIATION_ACTOR_USER_ID`, verifies that user remains
-  active/non-revoked before scanning, and attributes every reconciliation to
-  that actor. Invalid actor configuration fails the task with durable worker
-  repair and schedule-history evidence.
+  organization, worker, or role scope. It uses designated system actor user ID
+  `1`, verifies that user remains active/non-revoked before scanning, and
+  attributes every reconciliation to that actor. An inactive actor fails the
+  task with durable worker repair and schedule-history evidence.
 
 ## Role Permission Session Revocation (2026-08-20)
 
@@ -32,7 +31,7 @@
   permission snapshot.
 - Creating a role or changing only its name leaves existing sessions intact.
 
-## Mark Sales Order Fulfilled Permission (updated 2026-08-24)
+## Mark Sales Order Fulfilled Permission (updated 2026-08-26)
 
 - `viewMarkSalesOrderFulfilled` is the dedicated capability for the Sales
   Orders Mark as Fulfilled action. It is available to roles and
@@ -50,9 +49,12 @@
   permissions are unchanged.
 - Fulfillment preflight and ordinary continuation enforce the capability only
   when `action = fulfilled`; Production completed keeps its existing boundary.
-- Dependency resolution that receives inbound material or approves production
-  requires `viewMarkSalesOrderFulfilled` plus the existing `editOrders`,
-  `editInboundOrder`, and `editProduction` checks.
+- When `action = fulfilled`, the dedicated capability authorizes the complete
+  scoped, audited dependency-resolution orchestration, including canonical
+  inbound receipt and production-review approval required for that order. The
+  broader `editOrders`, `editInboundOrder`, and `editProduction` grants are not
+  additionally required. `production_completed` continues to require all three
+  broader workspace capabilities.
 - The Dashboard hides both Sales menu Fulfilled and dispatch-list Mark as
   completed without the grant. The protected task-start action and the
   `update-sales-control` job independently recheck the authenticated actor
@@ -462,10 +464,9 @@ Tracks authentication and authorization patterns across API surfaces.
 - The Sales Reports UI hides performance and sales-tax workbook actions without
   the export scope, while each protected endpoint repeats both the sales-read
   and export checks.
-- Authorization does not broaden payment visibility: the sales-tax query
-  exposes only fully paid order headers (`amountDue <= 0`, including
-  overpayments) within the requested business-date range and does not return
-  payment or allocation records.
+- Authorization does not broaden payment visibility: the sales-tax query reads
+  payment-independent recognition snapshots and does not return payment,
+  allocation, or accounts-receivable records.
 - Net collections and payment review counts remain behind the separate Sales
   Finance read boundary (`viewOrderPayment`, `editOrderPayment`, or
   `viewSales`).

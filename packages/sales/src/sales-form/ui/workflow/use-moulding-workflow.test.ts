@@ -27,6 +27,16 @@ describe("moulding workflow row synchronization", () => {
 		).toBe(false);
 	});
 
+	test("does not mark a persisted row dirty when only derived display prices are absent", () => {
+		const {
+			estimateUnit: _estimateUnit,
+			unit: _unit,
+			...persistedRow
+		} = storedRow;
+
+		expect(mouldingRowsNeedSync([persistedRow], [storedRow])).toBe(false);
+	});
+
 	test("requests synchronization when a calculated row value changes", () => {
 		expect(
 			mouldingRowsNeedSync(

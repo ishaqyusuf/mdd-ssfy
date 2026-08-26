@@ -20,10 +20,20 @@ export type SalesTaxReportPeriod = {
 	timezone: string;
 };
 
-export type SalesTaxReportOrder = {
+export type SalesTaxReportEntry = {
+	salesOrderId: number;
 	orderNo: string;
 	customerName: string;
+	recognizedAt: string;
+	entryType: "SALE" | "ADJUSTMENT" | "REVERSAL";
+	recognitionSource: "DELIVERY" | "PICKUP" | "ORDER_STATUS" | "MANUAL_BACKFILL";
+	taxCode: string | null;
 	total: number | null | undefined;
+	grossSales: number | null | undefined;
+	exemptSales: number | null | undefined;
+	taxableAmount: number | null | undefined;
+	stateTax: number | null | undefined;
+	surtax: number | null | undefined;
 	tax: number | null | undefined;
 };
 
@@ -170,7 +180,12 @@ const contextColumns: SalesWorkbookColumn[] = [
 
 const summaryColumns: SalesWorkbookColumn[] = [
 	{ key: "orders", label: "Orders", type: "integer", width: 12 },
-	{ key: "salesTotal", label: "Sales Total", type: "money", width: 18 },
+	{ key: "invoiceTotal", label: "Invoice Total", type: "money", width: 18 },
+	{ key: "grossSales", label: "Gross Sales", type: "money", width: 18 },
+	{ key: "exemptSales", label: "Exempt Sales", type: "money", width: 18 },
+	{ key: "taxableAmount", label: "Taxable Amount", type: "money", width: 18 },
+	{ key: "stateTax", label: "State Tax", type: "money", width: 18 },
+	{ key: "surtax", label: "Surtax", type: "money", width: 18 },
 	{ key: "taxTotal", label: "Tax Total", type: "money", width: 18 },
 ];
 
@@ -181,32 +196,84 @@ const detailColumns: SalesWorkbookColumn[] = [
 	{ key: "tax", label: "Tax", type: "money", width: 18 },
 ];
 
+const auditColumns: SalesWorkbookColumn[] = [
+	{
+		key: "recognizedAt",
+		label: "Taxable Sale Date",
+		type: "date-time",
+		width: 22,
+	},
+	{ key: "orderNo", label: "Order #", type: "text", width: 18 },
+	{ key: "entryType", label: "Entry Type", type: "text", width: 16 },
+	{
+		key: "recognitionSource",
+		label: "Recognition Source",
+		type: "text",
+		width: 22,
+	},
+	{ key: "grossSales", label: "Gross Sales", type: "money", width: 18 },
+	{ key: "exemptSales", label: "Exempt Sales", type: "money", width: 18 },
+	{ key: "taxableAmount", label: "Taxable Amount", type: "money", width: 18 },
+	{ key: "stateTax", label: "State Tax", type: "money", width: 18 },
+	{ key: "surtax", label: "Surtax", type: "money", width: 18 },
+	{ key: "tax", label: "Tax Due", type: "money", width: 18 },
+	{ key: "taxCode", label: "Tax Code", type: "text", width: 14 },
+];
+
 export function buildSalesTaxReport({
 	period,
-	orders,
+	entries,
 	generatedAt = new Date(),
 }: {
 	period: SalesTaxReportPeriod;
-	orders: SalesTaxReportOrder[];
+	entries: SalesTaxReportEntry[];
 	generatedAt?: Date;
 }): SalesTaxWorkbookReport {
-	const rows = orders.map((order) => ({
-		orderNo: order.orderNo,
-		customerName: order.customerName,
-		total: roundMoney(order.total),
-		tax: roundMoney(order.tax),
+	const normalizedEntries = entries.map((entry) => ({
+		...entry,
+		total: roundMoney(entry.total),
+		grossSales: roundMoney(entry.grossSales),
+		exemptSales: roundMoney(entry.exemptSales),
+		taxableAmount: roundMoney(entry.taxableAmount),
+		stateTax: roundMoney(entry.stateTax),
+		surtax: roundMoney(entry.surtax),
+		tax: roundMoney(entry.tax),
 	}));
-	const salesTotal = addMoney(...rows.map((row) => row.total));
-	const taxTotal = addMoney(...rows.map((row) => row.tax));
+	const rows = normalizedEntries.map((entry) => ({
+		orderNo: entry.orderNo,
+		customerName: entry.customerName,
+		total: entry.total,
+		tax: entry.tax,
+	}));
+	const uniqueOrderCount = new Set(
+		normalizedEntries.map((entry) => entry.salesOrderId),
+	).size;
+	const invoiceTotal = addMoney(
+		...normalizedEntries.map((entry) => entry.total),
+	);
+	const grossSales = addMoney(
+		...normalizedEntries.map((entry) => entry.grossSales),
+	);
+	const exemptSales = addMoney(
+		...normalizedEntries.map((entry) => entry.exemptSales),
+	);
+	const taxableAmount = addMoney(
+		...normalizedEntries.map((entry) => entry.taxableAmount),
+	);
+	const stateTax = addMoney(
+		...normalizedEntries.map((entry) => entry.stateTax),
+	);
+	const surtax = addMoney(...normalizedEntries.map((entry) => entry.surtax));
+	const taxTotal = addMoney(...normalizedEntries.map((entry) => entry.tax));
 
 	return {
 		type: "sales-tax",
 		title: "Sales Tax Report",
 		description:
-			"Current persisted fully paid sales order totals and tax for the selected business-date period.",
+			"Taxable sales recognized in the selected business-date period, independent of customer payment timing.",
 		fileSlug: `tax-${period.fromDate}-to-${period.toDate}`,
 		generatedAt,
-		rowCount: rows.length,
+		rowCount: normalizedEntries.length,
 		sheets: [
 			{
 				name: "Report Context",
@@ -214,19 +281,50 @@ export function buildSalesTaxReport({
 				rows: [
 					{ field: "Period start", value: period.fromDate },
 					{ field: "Period end", value: period.toDate },
+					{ field: "Date basis", value: "Taxable sale recognition date" },
+					{ field: "Payment treatment", value: "Payment-independent accrual" },
+					{ field: "Recognition policy", value: "Florida fulfilled sale v1" },
 					{ field: "Business timezone", value: period.timezone },
 					{ field: "Generated at", value: generatedAt.toISOString() },
 				],
 			},
 			{
-				name: "Summary",
+				name: "Florida Summary",
 				columns: summaryColumns,
-				rows: [{ orders: rows.length, salesTotal, taxTotal }],
+				rows: [
+					{
+						orders: uniqueOrderCount,
+						invoiceTotal,
+						grossSales,
+						exemptSales,
+						taxableAmount,
+						stateTax,
+						surtax,
+						taxTotal,
+					},
+				],
 			},
 			{
 				name: "Sales Tax",
 				columns: detailColumns,
 				rows,
+			},
+			{
+				name: "Recognition Audit",
+				columns: auditColumns,
+				rows: normalizedEntries.map((entry) => ({
+					recognizedAt: entry.recognizedAt,
+					orderNo: entry.orderNo,
+					entryType: entry.entryType,
+					recognitionSource: entry.recognitionSource,
+					grossSales: entry.grossSales,
+					exemptSales: entry.exemptSales,
+					taxableAmount: entry.taxableAmount,
+					stateTax: entry.stateTax,
+					surtax: entry.surtax,
+					tax: entry.tax,
+					taxCode: entry.taxCode,
+				})),
 			},
 		],
 	};
