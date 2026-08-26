@@ -1,4 +1,11 @@
 import { addMoney, roundMoney } from "./payment-system/domain/money";
+import type {
+	SalesWorkbookCell,
+	SalesWorkbookColumn,
+	SalesWorkbookReport,
+	SalesWorkbookRow,
+	SalesWorkbookSheet,
+} from "./sales-workbook";
 
 export const SALES_PERFORMANCE_REPORT_TYPES = [
 	"performance-summary",
@@ -12,24 +19,10 @@ export const SALES_PERFORMANCE_REPORT_TYPES = [
 export type SalesPerformanceReportType =
 	(typeof SALES_PERFORMANCE_REPORT_TYPES)[number];
 
-export type SalesPerformanceReportColumn = {
-	key: string;
-	label: string;
-	type: "text" | "integer" | "number" | "money" | "date-time";
-	width: number;
-};
-
-export type SalesPerformanceReportCell = string | number | null;
-export type SalesPerformanceReportRow = Record<
-	string,
-	SalesPerformanceReportCell
->;
-
-export type SalesPerformanceReportSheet = {
-	name: string;
-	columns: SalesPerformanceReportColumn[];
-	rows: SalesPerformanceReportRow[];
-};
+export type SalesPerformanceReportColumn = SalesWorkbookColumn;
+export type SalesPerformanceReportCell = SalesWorkbookCell;
+export type SalesPerformanceReportRow = SalesWorkbookRow;
+export type SalesPerformanceReportSheet = SalesWorkbookSheet;
 
 export type SalesPerformanceOrderSource = {
 	id: number;
@@ -103,15 +96,8 @@ export type SalesPerformanceReportInput = {
 	}>;
 };
 
-export type SalesPerformanceWorkbookReport = {
-	type: SalesPerformanceReportType;
-	title: string;
-	description: string;
-	fileSlug: string;
-	generatedAt: Date;
-	rowCount: number;
-	sheets: SalesPerformanceReportSheet[];
-};
+export type SalesPerformanceWorkbookReport =
+	SalesWorkbookReport<SalesPerformanceReportType>;
 
 const definitions: Record<
 	SalesPerformanceReportType,

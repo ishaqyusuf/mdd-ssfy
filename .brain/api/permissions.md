@@ -455,11 +455,13 @@ Tracks authentication and authorization patterns across API surfaces.
 - Every `salesDashboard` endpoint is a protected procedure.
 - Read access requires at least one of `viewOrders`, `editOrders`, `viewSales`,
   `viewEstimates`, or `editEstimates`.
-- `salesDashboard.report` additionally requires the dedicated
+- `salesDashboard.report` and `salesDashboard.salesTaxReport` additionally
+  require the dedicated
   `generateSalesPerformanceReport` scope. Super Admin receives the scope
   through role behavior; other roles must be assigned it explicitly.
-- The Sales Reports UI hides the workbook menu without the export scope, while
-  the protected endpoint repeats both the sales-read and export checks.
+- The Sales Reports UI hides performance and sales-tax workbook actions without
+  the export scope, while each protected endpoint repeats both the sales-read
+  and export checks.
 - Net collections and payment review counts remain behind the separate Sales
   Finance read boundary (`viewOrderPayment`, `editOrderPayment`, or
   `viewSales`).

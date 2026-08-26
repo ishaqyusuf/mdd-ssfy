@@ -1,6 +1,7 @@
 import {
 	salesDashboardFilterSchema,
 	salesPerformanceReportSchema,
+	salesTaxReportSchema,
 } from "@api/schemas/sales-dashboard";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import {
@@ -10,6 +11,7 @@ import {
 	getSalesChannelBreakdown,
 	getSalesPerformanceReport,
 	getSalesRepLeaderboard,
+	getSalesTaxReport,
 	getTopProducts,
 } from "../../db/queries/sales-dashboard";
 import { createTRPCRouter, protectedProcedure } from "../init";
@@ -29,6 +31,17 @@ async function requireSalesReportingAccess(
 		ctx,
 		SALES_REPORTING_READ_PERMISSIONS,
 		"You do not have permission to view sales reporting.",
+	);
+}
+
+async function requireSalesPerformanceExportAccess(
+	ctx: Parameters<typeof requireAnyOperationalPermission>[0],
+) {
+	await requireSalesReportingAccess(ctx);
+	return requireAnyOperationalPermission(
+		ctx,
+		["generateSalesPerformanceReport"],
+		"You do not have permission to generate sales performance reports.",
 	);
 }
 
@@ -78,12 +91,14 @@ export const salesDashboardRouter = createTRPCRouter({
 	report: protectedProcedure
 		.input(salesPerformanceReportSchema)
 		.query(async ({ ctx, input }) => {
-			await requireSalesReportingAccess(ctx);
-			await requireAnyOperationalPermission(
-				ctx,
-				["generateSalesPerformanceReport"],
-				"You do not have permission to generate sales performance reports.",
-			);
+			await requireSalesPerformanceExportAccess(ctx);
 			return getSalesPerformanceReport(ctx, input);
+		}),
+
+	salesTaxReport: protectedProcedure
+		.input(salesTaxReportSchema)
+		.query(async ({ ctx, input }) => {
+			await requireSalesPerformanceExportAccess(ctx);
+			return getSalesTaxReport(ctx, input);
 		}),
 });

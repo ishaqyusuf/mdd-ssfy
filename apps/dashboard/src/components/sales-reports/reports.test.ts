@@ -22,6 +22,10 @@ const accountingHeader = readFileSync(
 	new URL("../sales-accounting-header.tsx", import.meta.url),
 	"utf8",
 );
+const salesTaxDialog = readFileSync(
+	new URL("../modals/sales-tax-report-dialog.tsx", import.meta.url),
+	"utf8",
+);
 
 describe("Sales Reports export menu", () => {
 	it("offers every governed sales-performance workbook", () => {
@@ -75,5 +79,19 @@ describe("Sales Reports export menu", () => {
 		expect(unifiedMenu).toMatch(
 			/variant === "nav"[\s\S]{0,260}variant: "secondary"/,
 		);
+	});
+
+	it("opens a permission-gated sales tax date dialog from Performance Excel", () => {
+		expect(unifiedMenu).toContain("Sales Tax Report");
+		expect(unifiedMenu).toContain("setSalesTaxReportOpen(true)");
+		expect(salesTaxDialog).toContain("salesDashboard.salesTaxReport");
+		expect(salesTaxDialog).toContain("formatSalesTaxCalendarDate(selectedTo)");
+		expect(salesTaxDialog).toContain("Generate Excel");
+		expect(salesTaxDialog).toContain("!selectedTo || isGenerating");
+		expect(salesTaxDialog).toContain("report.rowCount === 0");
+		expect(salesTaxDialog).toContain("downloadSalesExcelWorkbook(report)");
+		expect(salesTaxDialog).toContain("Report starts on the first day");
+		expect(salesTaxDialog).toContain('mode="single"');
+		expect(salesTaxDialog).toContain("isSelectableSalesTaxReportEndDate");
 	});
 });

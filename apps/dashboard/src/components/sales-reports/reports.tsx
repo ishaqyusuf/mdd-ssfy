@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
-import { downloadSalesPerformanceExcel } from "@/lib/sales-performance-export";
+import { downloadSalesExcelWorkbook } from "@/lib/sales-workbook-export";
 import { useTRPC } from "@/trpc/client";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import type {
@@ -99,7 +99,7 @@ export function useSalesPerformanceReportMenuState() {
 				return;
 			}
 
-			await downloadSalesPerformanceExcel(report);
+			await downloadSalesExcelWorkbook(report);
 			toast({
 				title: "Excel report downloaded",
 				description: `${report.title} includes ${report.rowCount.toLocaleString()} source record${report.rowCount === 1 ? "" : "s"}.`,

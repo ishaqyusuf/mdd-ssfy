@@ -5,6 +5,7 @@ import {
 	formatSalesDashboardDate,
 	getRevenueOverTime,
 	getSalesDashboardCreatedAtRange,
+	getSalesTaxReport,
 } from "./sales-dashboard";
 
 describe("sales dashboard date filters", () => {
@@ -73,5 +74,106 @@ describe("sales dashboard date filters", () => {
 				revenue: 100,
 			},
 		]);
+	});
+});
+
+describe("sales tax report query", () => {
+	it("preserves stored totals and customer-name fallbacks", async () => {
+		const ctx = {
+			db: {
+				salesOrders: {
+					findMany: async () => {
+						return [
+							{
+								id: 4,
+								orderId: "SO-4",
+								grandTotal: 240.5,
+								tax: 15.25,
+								customer: { businessName: "Acme", name: "Ada" },
+								billingAddress: { name: "Billing name" },
+							},
+							{
+								id: 5,
+								orderId: "SO-5",
+								grandTotal: 20,
+								tax: 1,
+								customer: { businessName: null, name: "Ada Customer" },
+								billingAddress: { name: "Billing name" },
+							},
+							{
+								id: 6,
+								orderId: "SO-6",
+								grandTotal: 10,
+								tax: 0,
+								customer: null,
+								billingAddress: { name: "Billing customer" },
+							},
+							{
+								id: 7,
+								orderId: "SO-7",
+								grandTotal: null,
+								tax: null,
+								customer: null,
+								billingAddress: null,
+							},
+						];
+					},
+				},
+			},
+		};
+
+		const report = await getSalesTaxReport(
+			ctx as unknown as TRPCContext,
+			{ to: "2026-03-31" },
+			new Date("2026-04-01T12:00:00.000Z"),
+		);
+
+		expect(report.sheets[2]?.rows).toEqual([
+			{ orderNo: "SO-4", customerName: "Acme", total: 240.5, tax: 15.25 },
+			{
+				orderNo: "SO-5",
+				customerName: "Ada Customer",
+				total: 20,
+				tax: 1,
+			},
+			{
+				orderNo: "SO-6",
+				customerName: "Billing customer",
+				total: 10,
+				tax: 0,
+			},
+			{
+				orderNo: "SO-7",
+				customerName: "Walk-in customer",
+				total: 0,
+				tax: 0,
+			},
+		]);
+	});
+
+	it("rejects a report that would silently truncate source orders", async () => {
+		const ctx = {
+			db: {
+				salesOrders: {
+					findMany: async () =>
+						Array.from({ length: 10_001 }, (_, index) => ({
+							id: index + 1,
+							orderId: `SO-${index + 1}`,
+							grandTotal: 1,
+							tax: 0,
+							customer: null,
+							billingAddress: null,
+						})),
+				},
+			},
+		};
+
+		await expect(
+			getSalesTaxReport(
+				ctx as unknown as TRPCContext,
+				{ to: "2026-03-31" },
+				new Date("2026-04-01T12:00:00.000Z"),
+			),
+		).rejects.toThrow("more than 10,000 orders");
 	});
 });

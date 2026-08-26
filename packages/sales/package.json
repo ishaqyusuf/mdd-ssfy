@@ -109,6 +109,8 @@
 		"./packing-report-review": "./src/packing-report-review/index.ts",
 		"./sales-control/task-authorization": "./src/sales-control/task-authorization.ts",
 		"./reporting": "./src/reporting.ts",
+		"./sales-tax-report": "./src/sales-tax-report.ts",
+		"./sales-workbook": "./src/sales-workbook.ts",
 		"./performance-reports": "./src/sales-performance-reports.ts"
 	},
 	"dependencies": {

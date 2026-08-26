@@ -1,8 +1,14 @@
-import type { SalesPerformanceReportInput } from "@api/schemas/sales-dashboard";
+import type {
+	SalesPerformanceReportInput,
+	SalesTaxReportInput,
+} from "@api/schemas/sales-dashboard";
 import type { TRPCContext } from "@api/trpc/init";
 import { overallStatus } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
-import { buildOfficeCustomerVisibilityWhere } from "@gnd/db/queries";
+import {
+	buildOfficeCustomerVisibilityWhere,
+	listSalesTaxReportOrders,
+} from "@gnd/db/queries";
 import { repairSalesInvoiceCccDisplay } from "@gnd/sales/payment-system";
 import {
 	type SalesPerformanceLineItemSource,
@@ -18,6 +24,10 @@ import {
 	getSalesReportingGranularity,
 	resolveSalesReportingPeriod,
 } from "@gnd/sales/reporting";
+import {
+	buildSalesTaxReport,
+	resolveSalesTaxReportPeriod,
+} from "@gnd/sales/sales-tax-report";
 import type { SalesType } from "@sales/types";
 import { TRPCError } from "@trpc/server";
 import {
@@ -387,7 +397,48 @@ export async function getSalesChannelBreakdown(
 	}));
 }
 
-const SALES_PERFORMANCE_REPORT_ROW_LIMIT = 10_000;
+const SALES_REPORT_ROW_LIMIT = 10_000;
+
+export async function getSalesTaxReport(
+	ctx: TRPCContext,
+	input: SalesTaxReportInput,
+	now = new Date(),
+) {
+	let period: ReturnType<typeof resolveSalesTaxReportPeriod>;
+	try {
+		period = resolveSalesTaxReportPeriod({ to: input.to, now });
+	} catch (error) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				error instanceof Error
+					? error.message
+					: "Invalid sales tax report period.",
+		});
+	}
+	const rows = await listSalesTaxReportOrders(ctx.db, {
+		from: period.from,
+		toExclusive: period.toExclusive,
+		limit: SALES_REPORT_ROW_LIMIT,
+	});
+
+	if (rows.length > SALES_REPORT_ROW_LIMIT) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `This report contains more than ${SALES_REPORT_ROW_LIMIT.toLocaleString()} orders. Choose a shorter period and try again.`,
+		});
+	}
+
+	return buildSalesTaxReport({
+		period,
+		orders: rows.map((order) => ({
+			orderNo: order.orderId,
+			customerName: reportCustomerName(order),
+			total: order.grandTotal,
+			tax: order.tax,
+		})),
+	});
+}
 
 function reportCustomerName(row: {
 	customer?: {
@@ -425,7 +476,7 @@ export async function getSalesPerformanceReport(
 		input.reportType,
 	);
 	const needsLineItems = input.reportType === "products";
-	const reportTake = SALES_PERFORMANCE_REPORT_ROW_LIMIT + 1;
+	const reportTake = SALES_REPORT_ROW_LIMIT + 1;
 
 	const [kpis, orderRows, quoteRows, lineItemRows, selectedReps] =
 		await Promise.all([
@@ -521,10 +572,10 @@ export async function getSalesPerformanceReport(
 					? orderRows.length + quoteRows.length
 					: orderRows.length;
 
-	if (sourceCount > SALES_PERFORMANCE_REPORT_ROW_LIMIT) {
+	if (sourceCount > SALES_REPORT_ROW_LIMIT) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `This report contains more than ${SALES_PERFORMANCE_REPORT_ROW_LIMIT.toLocaleString()} source records. Narrow the period or filters and try again.`,
+			message: `This report contains more than ${SALES_REPORT_ROW_LIMIT.toLocaleString()} source records. Narrow the period or filters and try again.`,
 		});
 	}
 

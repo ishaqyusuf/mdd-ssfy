@@ -1,10 +1,8 @@
 import { SALES_PERFORMANCE_REPORT_TYPES } from "@gnd/sales/performance-reports";
 import { z } from "zod";
 
-const dateOnlySchema = z
-	.string()
-	.regex(/^\d{4}-\d{2}-\d{2}$/)
-	.optional();
+const dateOnlyValueSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const dateOnlySchema = dateOnlyValueSchema.optional();
 
 export const salesDashboardFilterSchema = z.object({
 	from: dateOnlySchema,
@@ -32,3 +30,9 @@ export const salesPerformanceReportSchema = salesDashboardFilterSchema.extend({
 export type SalesPerformanceReportInput = z.infer<
 	typeof salesPerformanceReportSchema
 >;
+
+export const salesTaxReportSchema = z.object({
+	to: dateOnlyValueSchema,
+});
+
+export type SalesTaxReportInput = z.infer<typeof salesTaxReportSchema>;

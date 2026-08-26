@@ -361,14 +361,23 @@ describe("high-risk tRPC permission boundaries", () => {
 
 	test("sales performance exports require their dedicated permission", () => {
 		const dashboard = source("sales-dashboard.route.ts");
-		const start = dashboard.indexOf("report: protectedProcedure");
-		expect(start).toBeGreaterThanOrEqual(0);
-		expect(dashboard.slice(start, start + 900)).toContain(
+		const guardStart = dashboard.indexOf(
+			"async function requireSalesPerformanceExportAccess",
+		);
+		expect(guardStart).toBeGreaterThanOrEqual(0);
+		expect(dashboard.slice(guardStart, guardStart + 700)).toContain(
 			'["generateSalesPerformanceReport"]',
 		);
-		expect(dashboard.slice(start, start + 900)).toContain(
+		expect(dashboard.slice(guardStart, guardStart + 700)).toContain(
 			"await requireSalesReportingAccess(ctx)",
 		);
+		for (const procedure of ["report", "salesTaxReport"]) {
+			const start = dashboard.indexOf(`${procedure}: protectedProcedure`);
+			expect(start).toBeGreaterThanOrEqual(0);
+			expect(dashboard.slice(start, start + 900)).toContain(
+				"await requireSalesPerformanceExportAccess(ctx)",
+			);
+		}
 	});
 
 	test("job assignment, review, payment, and creation writes are permission-shaped", () => {

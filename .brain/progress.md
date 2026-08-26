@@ -12121,3 +12121,22 @@
   the broader print suite has one unrelated inventory packing expectation
   failure, and package typecheck remains blocked by the known unrelated
   `sales-control/actions.ts` assignment-id diagnostic.
+
+## 2026-08-25 — Added the manual Sales Tax Report
+
+- Added a `generateSalesPerformanceReport`-guarded Sales Tax Report action to
+  the shared Sales Reports menu. Its modal derives the first of the selected
+  month and permits an inclusive end date from the 25th through the actual
+  non-future month end.
+- Added `salesDashboard.salesTaxReport({ to })`, with authoritative
+  `America/New_York` `[from, toExclusive)` boundaries, non-deleted order-only
+  scope, deterministic ordering, customer-name fallbacks, and a 10,000-order
+  completeness guard.
+- Added the client-generated Excel workbook with Report Context, Summary, and
+  Sales Tax sheets. Detail columns are Order #, Customer Name, Total, and Tax;
+  money uses persisted order header values and cent-safe aggregation.
+- Updated docs: `.brain/features/sales-tax-report.md`, `.brain/api/endpoints.md`,
+  `.brain/api/contracts.md`, `.brain/api/permissions.md`, and
+  `.brain/progress.md`.
+- Focused automated validation passes for the sales-domain period/workbook,
+  API query/permissions, dashboard calendar/menu, and Excel exporter seams.

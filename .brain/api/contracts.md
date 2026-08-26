@@ -371,6 +371,18 @@
   labels a truncated workbook as complete.
 - Payment, refund, application, collection, and receivables workbooks remain
   owned by the separate Sales Finance contracts.
+- `salesDashboard.salesTaxReport({ to })` is a separate manual workbook query
+  because its range contract is intentionally narrower than performance
+  filters. `to` is an inclusive date-only value from the 25th through the
+  month's actual end and cannot be a future `America/New_York` business date;
+  the server derives day 1 and queries `[from, nextDay(to))` in UTC.
+- Tax report source rows are non-deleted `type=order` sales in deterministic
+  `createdAt`, then `id`, order. Payment/status/tax amount do not filter rows;
+  quotes, deleted orders, payment allocations, and refunds are excluded.
+- The workbook uses persisted header `grandTotal` and `tax` values and returns
+  `Report Context`, `Summary`, and `Sales Tax`. The detail columns are exactly
+  Order #, Customer Name, Total, and Tax; the 10,000-order completeness guard
+  rejects rather than truncates.
 
 ## Sales Finance
 

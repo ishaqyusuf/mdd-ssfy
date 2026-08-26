@@ -1,16 +1,47 @@
 import type {
-	SalesPerformanceReportCell,
-	SalesPerformanceReportSheet,
-	SalesPerformanceWorkbookReport,
-} from "@gnd/sales/performance-reports";
+	SalesWorkbookCell,
+	SalesWorkbookReport,
+	SalesWorkbookSheet,
+} from "@gnd/sales/sales-workbook";
 import type { WorkSheet } from "xlsx-js-style";
 
 const MONEY_FORMAT = "$#,##0.00;[Red]-$#,##0.00";
 const DATE_TIME_FORMAT = "m/d/yyyy h:mm";
 
-export function getSalesPerformanceReportFileName(
-	report: Pick<SalesPerformanceWorkbookReport, "fileSlug" | "generatedAt">,
+export type BrowserSalesWorkbookReport = Omit<
+	SalesWorkbookReport,
+	"generatedAt"
+> & {
+	generatedAt: Date | string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return !!value && typeof value === "object";
+}
+
+export function isSalesWorkbookReport(
+	value: unknown,
+): value is BrowserSalesWorkbookReport {
+	if (!isRecord(value)) return false;
+	const report = value;
+	return (
+		typeof report.type === "string" &&
+		typeof report.title === "string" &&
+		typeof report.description === "string" &&
+		typeof report.fileSlug === "string" &&
+		(report.generatedAt instanceof Date ||
+			typeof report.generatedAt === "string") &&
+		typeof report.rowCount === "number" &&
+		Array.isArray(report.sheets)
+	);
+}
+
+export function getSalesWorkbookFileName(
+	report: Pick<BrowserSalesWorkbookReport, "type" | "fileSlug" | "generatedAt">,
 ) {
+	if (report.type === "sales-tax") {
+		return `sales-${report.fileSlug}.xlsx`;
+	}
 	const generatedAt = new Date(report.generatedAt);
 	const stamp = Number.isNaN(generatedAt.getTime())
 		? "report"
@@ -20,8 +51,8 @@ export function getSalesPerformanceReportFileName(
 }
 
 function excelCellValue(
-	value: SalesPerformanceReportCell,
-	type: SalesPerformanceReportSheet["columns"][number]["type"],
+	value: SalesWorkbookCell,
+	type: SalesWorkbookSheet["columns"][number]["type"],
 ) {
 	if (type !== "date-time" || typeof value !== "string" || !value) {
 		return value ?? "";
@@ -30,9 +61,7 @@ function excelCellValue(
 	return Number.isNaN(date.getTime()) ? value : date;
 }
 
-export function toSalesPerformanceSheetMatrix(
-	sheet: SalesPerformanceReportSheet,
-) {
+export function toSalesWorkbookSheetMatrix(sheet: SalesWorkbookSheet) {
 	return [
 		sheet.columns.map((column) => column.label),
 		...sheet.rows.map((row) =>
@@ -46,7 +75,7 @@ export function toSalesPerformanceSheetMatrix(
 function styleWorksheet(
 	utils: typeof import("xlsx-js-style").utils,
 	worksheet: WorkSheet,
-	sheet: SalesPerformanceReportSheet,
+	sheet: SalesWorkbookSheet,
 ) {
 	worksheet["!cols"] = sheet.columns.map((column) => ({ wch: column.width }));
 	worksheet["!freeze"] = { xSplit: 0, ySplit: 1 };
@@ -98,8 +127,8 @@ function styleWorksheet(
 	}
 }
 
-export async function downloadSalesPerformanceExcel(
-	report: SalesPerformanceWorkbookReport,
+export async function downloadSalesExcelWorkbook(
+	report: BrowserSalesWorkbookReport,
 ) {
 	const { utils, writeFile } = await import("xlsx-js-style");
 	const workbook = utils.book_new();
@@ -111,13 +140,13 @@ export async function downloadSalesPerformanceExcel(
 	};
 
 	for (const sheet of report.sheets) {
-		const worksheet = utils.aoa_to_sheet(toSalesPerformanceSheetMatrix(sheet), {
+		const worksheet = utils.aoa_to_sheet(toSalesWorkbookSheetMatrix(sheet), {
 			cellDates: true,
 		});
 		styleWorksheet(utils, worksheet, sheet);
 		utils.book_append_sheet(workbook, worksheet, sheet.name.slice(0, 31));
 	}
-	writeFile(workbook, getSalesPerformanceReportFileName(report), {
+	writeFile(workbook, getSalesWorkbookFileName(report), {
 		compression: true,
 	});
 }

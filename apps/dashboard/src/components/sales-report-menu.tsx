@@ -1,5 +1,6 @@
 "use client";
 
+import { SalesTaxReportDialog } from "@/components/modals/sales-tax-report-dialog";
 import {
 	SalesPerformanceReportMenuItems,
 	useSalesPerformanceReportMenuState,
@@ -141,6 +142,7 @@ export function useSalesReportMenuState() {
 		statementCustomerId: parseAsInteger,
 		statementStatus: parseAsString,
 	});
+	const [salesTaxReportOpen, setSalesTaxReportOpen] = useState(false);
 	const allowedReportMenuItems = reportMenuItems.filter((item) => {
 		if (item.roles?.includes(auth.roleTitle || "")) return true;
 		if (item.requiredPermission && !auth.can?.[item.requiredPermission]) {
@@ -179,6 +181,8 @@ export function useSalesReportMenuState() {
 		customerStatementsOpen,
 		performance,
 		reportParams,
+		salesTaxReportOpen,
+		setSalesTaxReportOpen,
 		setCustomerStatementsReportOpen,
 		setReportParams,
 	};
@@ -222,6 +226,18 @@ export function SalesReportMenuContent({
 								Performance Excel
 							</DropdownMenuLabel>
 							<SalesPerformanceReportMenuItems state={state.performance} />
+							<DropdownMenuItem
+								className="h-full items-start gap-3 rounded-md p-3"
+								onSelect={() => state.setSalesTaxReportOpen(true)}
+							>
+								<ReceiptText className="mt-0.5 size-4 shrink-0" />
+								<span className="min-w-0">
+									<span className="block font-medium">Sales Tax Report</span>
+									<span className="mt-0.5 block text-xs text-muted-foreground">
+										Order totals and stored tax for a selected monthly period.
+									</span>
+								</span>
+							</DropdownMenuItem>
 						</DropdownMenuGroup>
 					) : null}
 					{hasWorkspaceReports ? (
@@ -289,12 +305,18 @@ export function SalesReportMenuDialog({
 	state: SalesReportMenuState;
 }) {
 	return (
-		<CustomerStatementsReportDialog
-			open={state.customerStatementsOpen}
-			onOpenChange={state.setCustomerStatementsReportOpen}
-			params={state.reportParams}
-			setParams={state.setReportParams}
-		/>
+		<>
+			<CustomerStatementsReportDialog
+				open={state.customerStatementsOpen}
+				onOpenChange={state.setCustomerStatementsReportOpen}
+				params={state.reportParams}
+				setParams={state.setReportParams}
+			/>
+			<SalesTaxReportDialog
+				open={state.salesTaxReportOpen}
+				onOpenChange={state.setSalesTaxReportOpen}
+			/>
+		</>
 	);
 }
 
