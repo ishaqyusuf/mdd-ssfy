@@ -1,5 +1,19 @@
 # Progress
 
+- 2026-08-26: Implemented reversible inbound-to-material-Needs application
+  while preserving the existing Received lifecycle control and physical
+  `Receive stock` workflow. Selecting Received now applies guarded linked
+  demand and recomputes components in the same transaction. Historical
+  Received rows expose Apply; applied rows expose confirmation-gated Unapply,
+  which restores versioned Event snapshots without changing physical stock.
+  Shared controls now appear in Sales Inbounds, Inventory Receiving, Sales
+  Overview Inbounds, and the global inbound sheet. Focused domain, API,
+  route-schema, and query-event validation passes 60 tests / 237 assertions,
+  and the client module import check passes. The broad inventory test file
+  retains its eight documented pre-existing fixture mismatches. Typecheck,
+  build, and browser validation were deferred under the fast Bun monorepo
+  command discipline. No database schema or migration changed.
+
 - 2026-08-25: Locked the compact door-size table's numeric column geometry with
   a responsive fixed-layout colgroup. Price and Line Total are each 112px,
   LH/RH are each 128px to contain the restored full-width steppers, and Size

@@ -265,6 +265,9 @@ export const MUTATION_QUERY_EVENTS = {
 	"inventories.updateCategoryProductKind": ["inventory.catalog.changed"],
 	"inventories.updateCategoryStockMode": ["inventory.catalog.changed"],
 	"inventories.updateInboundShipmentStatus": ["inventory.inbound.changed"],
+	"inventories.updateInboundShipmentNeedsApplication": [
+		"inventory.inbound.changed",
+	],
 	"inventories.reduceInboundShipmentDemand": ["inventory.inbound.changed"],
 	"inventories.updateSubCategory": ["inventory.catalog.changed"],
 	"inventories.updateSubComponent": ["inventory.catalog.changed"],

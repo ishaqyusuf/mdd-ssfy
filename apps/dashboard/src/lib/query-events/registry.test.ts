@@ -8,7 +8,7 @@ import {
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(88);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(89);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(15);
 	});
 
@@ -134,6 +134,13 @@ describe("query event mutation registry", () => {
 		expect(
 			resolveMutationQueryEvents({
 				mutationKey: [["inventories", "fulfillSalesInventoryNeedsManually"]],
+			}),
+		).toEqual([{ name: "inventory.inbound.changed" }]);
+		expect(
+			resolveMutationQueryEvents({
+				mutationKey: [
+					["inventories", "updateInboundShipmentNeedsApplication"],
+				],
 			}),
 		).toEqual([{ name: "inventory.inbound.changed" }]);
 

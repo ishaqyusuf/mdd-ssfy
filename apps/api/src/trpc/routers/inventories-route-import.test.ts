@@ -134,6 +134,18 @@ describe("inventoriesRouter", () => {
 				note: "Supplier confirmed the cancellation.",
 			}).success,
 		).toBe(true);
+		expect(
+			mod.updateInboundShipmentNeedsApplicationSchema.safeParse({
+				inboundId: 1,
+				operation: "apply",
+			}).success,
+		).toBe(true);
+		expect(
+			mod.updateInboundShipmentNeedsApplicationSchema.safeParse({
+				inboundId: 1,
+				operation: "unapply",
+			}).success,
+		).toBe(true);
 
 		for (const input of [
 			{ inboundId: 0, status: "cancelled" },
@@ -143,6 +155,16 @@ describe("inventoriesRouter", () => {
 		]) {
 			expect(
 				mod.updateInboundShipmentStatusSchema.safeParse(input).success,
+			).toBe(false);
+		}
+
+		for (const input of [
+			{ inboundId: 0, operation: "apply" },
+			{ inboundId: 1.25, operation: "unapply" },
+			{ inboundId: 1, operation: "cancel" },
+		]) {
+			expect(
+				mod.updateInboundShipmentNeedsApplicationSchema.safeParse(input).success,
 			).toBe(false);
 		}
 	});

@@ -3,6 +3,7 @@
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { ActivityHistory as ChatActivityHistory } from "@/components/chat";
+import { InboundNeedsApplicationActions } from "@/components/inventory/inbound-needs-application-actions";
 import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { SalesInboundsColumnVisibility } from "@/components/tables-2/sales-inbounds/column-visibility";
 import { DataTable as SalesInboundsTable } from "@/components/tables-2/sales-inbounds/data-table";
@@ -522,6 +523,10 @@ export function SalesInboundsWorkspace({
 									<Icons.Warehouse className="mr-2 size-4" />
 									Receive stock
 								</Button>
+								<InboundNeedsApplicationActions
+									inboundId={selectedShipment.id}
+									onChanged={() => refreshInbound(selectedShipment.id)}
+								/>
 							</div>
 						</div>
 

@@ -13,6 +13,7 @@ import type { Db, Prisma, TransactionClient } from "@gnd/db";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
 import {
 	type NewInboundShipmentStatus,
+	applyInboundShipmentToNeeds,
 	assignInboundDemandsToShipment,
 	createInboundShipment,
 	createInboundShipmentFromDemands,
@@ -23,6 +24,7 @@ import {
 	receiveInboundShipment,
 	reduceInboundShipmentDemand,
 	releaseCancelledInboundShipmentDemand,
+	unapplyInboundShipmentFromNeeds,
 } from "@gnd/inventory";
 import { Notifications } from "@gnd/notifications";
 import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
@@ -1055,6 +1057,7 @@ export async function updateInboundShipmentStatusQuery(
 		syncSalesInventoryProjection?: typeof runSalesInventoryProjectionSync;
 		createActivity?: typeof createInboundActivity;
 		reconcileSalesHandoffOrders?: typeof reconcileSalesHandoffOrders;
+		applyNeeds?: typeof applyInboundShipmentToNeeds;
 	} = {},
 ) {
 	const actor = await getInboundActor(ctx);
@@ -1092,7 +1095,7 @@ export async function updateInboundShipmentStatusQuery(
 		data.progress = 0;
 	}
 
-	const { updated, releasedDemand, orderNos, salesOrderIds } =
+	const { updated, releasedDemand, orderNos, salesOrderIds, needsApplication } =
 		await ctx.db.$transaction(async (tx) => {
 			const linkedOrderRows = await tx.inboundDemand.findMany({
 				where: {
@@ -1179,12 +1182,20 @@ export async function updateInboundShipmentStatusQuery(
 				input.status === "cancelled"
 					? await releaseCancelledInboundShipmentDemand(tx, input.inboundId)
 					: null;
+			const needsApplication =
+				input.status === "completed"
+					? await (deps.applyNeeds ?? applyInboundShipmentToNeeds)(tx, {
+							inboundId: input.inboundId,
+							actorUserId: ctx.userId ?? null,
+						})
+					: null;
 
 			return {
 				updated,
 				releasedDemand,
 				orderNos,
 				salesOrderIds,
+				needsApplication,
 			};
 		});
 
@@ -1228,6 +1239,9 @@ export async function updateInboundShipmentStatusQuery(
 			releasedDemandCount: releasedDemand?.releasedDemandCount ?? 0,
 			recomputedComponentCount: releasedDemand?.recomputedComponentCount ?? 0,
 			repairedSalesOrderCount: salesOrderIds.length,
+			needsApplicationChanged: needsApplication?.changed ?? false,
+			needsApplicationDemandCount:
+				needsApplication?.updatedDemandCount ?? 0,
 		},
 	});
 
@@ -1238,7 +1252,34 @@ export async function updateInboundShipmentStatusQuery(
 		releasedDemandCount: releasedDemand?.releasedDemandCount ?? 0,
 		recomputedComponentCount: releasedDemand?.recomputedComponentCount ?? 0,
 		repairedSalesOrderCount: salesOrderIds.length,
+		needsApplication,
 	};
+}
+
+export async function updateInboundShipmentNeedsApplicationQuery(
+	ctx: TRPCContext,
+	input: {
+		inboundId: number;
+		operation: "apply" | "unapply";
+	},
+) {
+	const result = await ctx.db.$transaction((tx) =>
+		input.operation === "apply"
+			? applyInboundShipmentToNeeds(tx, {
+					inboundId: input.inboundId,
+					actorUserId: ctx.userId ?? null,
+				})
+			: unapplyInboundShipmentFromNeeds(tx, {
+					inboundId: input.inboundId,
+					actorUserId: ctx.userId ?? null,
+				}),
+	);
+	await reconcileSalesHandoffAfterCommit(ctx.db, {
+		salesOrderIds: result.affectedSalesOrderIds,
+		actorUserId: ctx.userId ?? 1,
+		source: `api.inbound.needs-${input.operation}`,
+	});
+	return result;
 }
 
 export async function reduceInboundShipmentDemandQuery(

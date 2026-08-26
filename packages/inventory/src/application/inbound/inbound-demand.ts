@@ -356,6 +356,55 @@ export type ReceiveInboundShipmentResult = {
   inventoryVariantIds: number[];
 };
 
+export type InboundNeedsApplicationOperation = "apply" | "unapply";
+
+export type InboundNeedsApplicationResult = {
+  inboundId: number;
+  operation: InboundNeedsApplicationOperation;
+  changed: boolean;
+  updatedDemandCount: number;
+  recomputedComponentCount: number;
+  affectedSalesOrderIds: number[];
+  applicationEventId: number | null;
+};
+
+export type InboundNeedsApplicationState = {
+  state: "not_received" | "not_applicable" | "not_applied" | "applied";
+  canApply: boolean;
+  canUnapply: boolean;
+  linkedDemandCount: number;
+  appliedDemandQty: number;
+  openDemandQty: number;
+  activeApplicationEventId: number | null;
+};
+
+type InboundNeedsApplicationSnapshot = {
+  version: 1;
+  inboundId: number;
+  items: Array<{
+    id: number;
+    qtyGood: number;
+    qtyIssue: number;
+  }>;
+  demands: Array<{
+    id: number;
+    lineItemComponentId: number;
+    salesOrderId: number | null;
+    orderId: string | null;
+    beforeQtyReceived: number;
+    beforeStatus: InboundDemandQueueStatus;
+    afterQtyReceived: number;
+    afterStatus: InboundDemandQueueStatus;
+  }>;
+};
+
+const INBOUND_NEEDS_APPLIED_EVENT = "inventory_inbound_needs_applied";
+const INBOUND_NEEDS_UNAPPLIED_EVENT = "inventory_inbound_needs_unapplied";
+const INBOUND_NEEDS_APPLICATION_EVENT_TYPES = [
+  INBOUND_NEEDS_APPLIED_EVENT,
+  INBOUND_NEEDS_UNAPPLIED_EVENT,
+] as const;
+
 export type PlanInboundReceiptDeltaInput = {
   plannedQty?: number | null;
   previousGoodQty?: number | null;
@@ -1348,7 +1397,7 @@ export async function getInboundShipmentDetail(
   db: DbLike,
   input: InboundShipmentDetailInput,
 ) {
-  return db.inboundShipment.findUniqueOrThrow({
+  const shipmentPromise = db.inboundShipment.findUniqueOrThrow({
     where: {
       id: input.inboundId,
     },
@@ -1460,6 +1509,23 @@ export async function getInboundShipmentDetail(
       },
     },
   });
+
+  const latestApplicationEventPromise = findLatestInboundNeedsApplicationEvent(
+    db,
+    input.inboundId,
+  );
+  const [shipment, latestApplicationEvent] = await Promise.all([
+    shipmentPromise,
+    latestApplicationEventPromise,
+  ]);
+
+  return {
+    ...shipment,
+    needsApplication: projectInboundNeedsApplicationState(
+      shipment,
+      latestApplicationEvent,
+    ),
+  };
 }
 
 type DemandState = {
@@ -1629,6 +1695,642 @@ async function recomputeLineItemComponentDemandState(
   if (updatedComponent.count <= 0) return null;
 
   return nextState;
+}
+
+type InboundNeedsApplicationShipment = {
+  id: number;
+  status: string;
+  items: Array<{
+    id: number;
+    qty?: number | null;
+    qtyGood?: number | null;
+    qtyIssue?: number | null;
+    inboundDemands: Array<{
+      id: number;
+      qty?: number | null;
+      qtyReceived?: number | null;
+      status: string;
+      lineItemComponentId: number;
+      lineItemComponent?: {
+        parent?: {
+          sale?: {
+            id: number;
+            orderId: string;
+          } | null;
+        } | null;
+      } | null;
+    }>;
+  }>;
+};
+
+type InboundNeedsApplicationEvent = {
+  id: number;
+  type: string;
+  data: unknown;
+};
+
+const inboundNeedsApplicationShipmentSelect = {
+  id: true,
+  status: true,
+  items: {
+    where: { deletedAt: null },
+    orderBy: { createdAt: "asc" as const },
+    select: {
+      id: true,
+      qty: true,
+      qtyGood: true,
+      qtyIssue: true,
+      inboundDemands: {
+        where: {
+          deletedAt: null,
+          status: { not: "cancelled" as const },
+        },
+        orderBy: { createdAt: "asc" as const },
+        select: {
+          id: true,
+          qty: true,
+          qtyReceived: true,
+          status: true,
+          lineItemComponentId: true,
+          lineItemComponent: {
+            select: {
+              parent: {
+                select: {
+                  sale: {
+                    select: {
+                      id: true,
+                      orderId: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+} as const;
+
+async function findLatestInboundNeedsApplicationEvent(
+  db: DbLike,
+  inboundId: number,
+): Promise<InboundNeedsApplicationEvent | null> {
+  return db.event.findFirst({
+    where: {
+      type: { in: [...INBOUND_NEEDS_APPLICATION_EVENT_TYPES] },
+      deletedAt: null,
+      data: {
+        path: "$.inboundId",
+        equals: inboundId,
+      },
+    },
+    orderBy: { id: "desc" },
+    select: {
+      id: true,
+      type: true,
+      data: true,
+    },
+  }) as Promise<InboundNeedsApplicationEvent | null>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseInboundNeedsApplicationSnapshot(
+  event: InboundNeedsApplicationEvent | null,
+): InboundNeedsApplicationSnapshot | null {
+  if (!event || event.type !== INBOUND_NEEDS_APPLIED_EVENT) return null;
+  if (!isRecord(event.data)) return null;
+  const data = event.data;
+  if (data.version !== 1 || !isPositiveInteger(data.inboundId)) {
+    return null;
+  }
+  if (
+    !Array.isArray(data.items) ||
+    data.items.length === 0 ||
+    !data.items.every(isInboundNeedsApplicationSnapshotItem) ||
+    !hasUniqueSnapshotIds(data.items) ||
+    !Array.isArray(data.demands) ||
+    data.demands.length === 0 ||
+    !data.demands.every(isInboundNeedsApplicationSnapshotDemand) ||
+    !hasUniqueSnapshotIds(data.demands)
+  ) {
+    return null;
+  }
+
+  return {
+    version: 1,
+    inboundId: data.inboundId,
+    items: data.items,
+    demands: data.demands,
+  };
+}
+
+function hasUniqueSnapshotIds(values: Array<{ id: number }>) {
+  return new Set(values.map((value) => value.id)).size === values.length;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function isInboundDemandQueueStatus(
+  value: unknown,
+): value is InboundDemandQueueStatus {
+  return (
+    value === "pending" ||
+    value === "ordered" ||
+    value === "partially_received" ||
+    value === "received" ||
+    value === "cancelled"
+  );
+}
+
+function isInboundNeedsApplicationSnapshotItem(
+  value: unknown,
+): value is InboundNeedsApplicationSnapshot["items"][number] {
+  return (
+    isRecord(value) &&
+    isPositiveInteger(value.id) &&
+    isNonNegativeFiniteNumber(value.qtyGood) &&
+    isNonNegativeFiniteNumber(value.qtyIssue)
+  );
+}
+
+function isInboundNeedsApplicationSnapshotDemand(
+  value: unknown,
+): value is InboundNeedsApplicationSnapshot["demands"][number] {
+  return (
+    isRecord(value) &&
+    isPositiveInteger(value.id) &&
+    isPositiveInteger(value.lineItemComponentId) &&
+    (value.salesOrderId === null || isPositiveInteger(value.salesOrderId)) &&
+    (value.orderId === null || typeof value.orderId === "string") &&
+    isNonNegativeFiniteNumber(value.beforeQtyReceived) &&
+    isInboundDemandQueueStatus(value.beforeStatus) &&
+    isNonNegativeFiniteNumber(value.afterQtyReceived) &&
+    isInboundDemandQueueStatus(value.afterStatus)
+  );
+}
+
+function summarizeInboundNeedsApplicationItem(
+  item: InboundNeedsApplicationShipment["items"][number],
+) {
+  const linkedDemandQty = item.inboundDemands.reduce(
+    (sum, demand) => sum + positiveNumber(demand.qty),
+    0,
+  );
+  const appliedDemandQty = item.inboundDemands.reduce(
+    (sum, demand) =>
+      sum + Math.min(positiveNumber(demand.qty), positiveNumber(demand.qtyReceived)),
+    0,
+  );
+  const applicationCapacityQty = Math.min(
+    positiveNumber(item.qty),
+    linkedDemandQty,
+  );
+
+  return {
+    applicationCapacityQty,
+    openApplicationQty: Math.max(0, applicationCapacityQty - appliedDemandQty),
+  };
+}
+
+function demandStatusForReceivedQty(
+  qtyReceived: number,
+  demandQty: number,
+): InboundDemandQueueStatus {
+  if (qtyReceived <= 0) return "ordered";
+  return qtyReceived >= demandQty ? "received" : "partially_received";
+}
+
+function buildExistingInboundNeedsApplicationSnapshot(
+  shipment: InboundNeedsApplicationShipment,
+): InboundNeedsApplicationSnapshot | null {
+  const demands: InboundNeedsApplicationSnapshot["demands"] = [];
+
+  for (const item of shipment.items) {
+    let remainingAppliedQty = summarizeInboundNeedsApplicationItem(
+      item,
+    ).applicationCapacityQty;
+    for (const demand of item.inboundDemands) {
+      if (remainingAppliedQty <= 0) break;
+      const afterQtyReceived = positiveNumber(demand.qtyReceived);
+      const demandQty = positiveNumber(demand.qty);
+      const appliedQty = Math.min(
+        afterQtyReceived,
+        demandQty,
+        remainingAppliedQty,
+      );
+      if (appliedQty <= 0) continue;
+      const beforeQtyReceived = afterQtyReceived - appliedQty;
+      const sale = demand.lineItemComponent?.parent?.sale ?? null;
+      demands.push({
+        id: demand.id,
+        lineItemComponentId: demand.lineItemComponentId,
+        salesOrderId: sale?.id ?? null,
+        orderId: sale?.orderId ?? null,
+        beforeQtyReceived,
+        beforeStatus: demandStatusForReceivedQty(beforeQtyReceived, demandQty),
+        afterQtyReceived,
+        afterStatus: demand.status as InboundDemandQueueStatus,
+      });
+      remainingAppliedQty -= appliedQty;
+    }
+    if (remainingAppliedQty > 0) return null;
+  }
+
+  if (!demands.length) return null;
+  return {
+    version: 1,
+    inboundId: shipment.id,
+    items: shipment.items.map((item) => ({
+      id: item.id,
+      qtyGood: positiveNumber(item.qtyGood),
+      qtyIssue: positiveNumber(item.qtyIssue),
+    })),
+    demands,
+  };
+}
+
+function inboundNeedsApplicationSnapshotIsReversible(
+  shipment: InboundNeedsApplicationShipment,
+  snapshot: InboundNeedsApplicationSnapshot,
+) {
+  if (shipment.id !== snapshot.inboundId) return false;
+  if (shipment.items.length !== snapshot.items.length) return false;
+  const itemsById = new Map(shipment.items.map((item) => [item.id, item]));
+  for (const baseline of snapshot.items) {
+    const item = itemsById.get(baseline.id);
+    if (!item) return false;
+    if (
+      positiveNumber(item.qtyGood) !== baseline.qtyGood ||
+      positiveNumber(item.qtyIssue) !== baseline.qtyIssue
+    ) {
+      return false;
+    }
+  }
+
+  const demandsById = new Map(
+    shipment.items.flatMap((item) => item.inboundDemands).map((demand) => [demand.id, demand]),
+  );
+  return snapshot.demands.every((baseline) => {
+    const demand = demandsById.get(baseline.id);
+    return (
+      demand != null &&
+      Number(demand.qtyReceived || 0) === baseline.afterQtyReceived &&
+      demand.status === baseline.afterStatus
+    );
+  });
+}
+
+function inboundNeedsApplicationSnapshotMatchesShipment(
+  shipment: InboundNeedsApplicationShipment,
+  snapshot: InboundNeedsApplicationSnapshot | null,
+): snapshot is InboundNeedsApplicationSnapshot {
+  if (!snapshot || shipment.id !== snapshot.inboundId) return false;
+  if (shipment.items.length !== snapshot.items.length) return false;
+  const shipmentItemIds = new Set(shipment.items.map((item) => item.id));
+  return snapshot.items.every((item) => shipmentItemIds.has(item.id));
+}
+
+function projectInboundNeedsApplicationState(
+  shipment: InboundNeedsApplicationShipment,
+  latestEvent: InboundNeedsApplicationEvent | null,
+): InboundNeedsApplicationState {
+  const demands = shipment.items.flatMap((item) => item.inboundDemands);
+  const linkedDemandCount = demands.length;
+  const appliedDemandQty = demands.reduce(
+    (sum, demand) =>
+      sum + Math.min(positiveNumber(demand.qty), positiveNumber(demand.qtyReceived)),
+    0,
+  );
+  const openDemandQty = demands.reduce(
+    (sum, demand) =>
+      sum + Math.max(0, positiveNumber(demand.qty) - positiveNumber(demand.qtyReceived)),
+    0,
+  );
+  const applicationSummary = shipment.items.reduce(
+    (summary, item) => {
+      const itemSummary = summarizeInboundNeedsApplicationItem(item);
+      summary.capacityQty += itemSummary.applicationCapacityQty;
+      summary.openQty += itemSummary.openApplicationQty;
+      return summary;
+    },
+    { capacityQty: 0, openQty: 0 },
+  );
+  const parsedSnapshot = parseInboundNeedsApplicationSnapshot(latestEvent);
+  const activeSnapshot = inboundNeedsApplicationSnapshotMatchesShipment(
+    shipment,
+    parsedSnapshot,
+  )
+    ? parsedSnapshot
+    : null;
+  const hasFullyAppliedInbound =
+    applicationSummary.capacityQty > 0 && applicationSummary.openQty <= 0;
+  const canUnapply = activeSnapshot
+    ? inboundNeedsApplicationSnapshotIsReversible(shipment, activeSnapshot)
+    : shipment.status === "completed" && hasFullyAppliedInbound;
+
+  const state: InboundNeedsApplicationState["state"] =
+    linkedDemandCount === 0 || applicationSummary.capacityQty <= 0
+      ? "not_applicable"
+      : activeSnapshot || hasFullyAppliedInbound
+        ? "applied"
+        : shipment.status === "completed"
+          ? "not_applied"
+          : "not_received";
+
+  return {
+    state,
+    canApply:
+      shipment.status === "completed" &&
+      linkedDemandCount > 0 &&
+      activeSnapshot == null &&
+      applicationSummary.openQty > 0,
+    canUnapply,
+    linkedDemandCount,
+    appliedDemandQty,
+    openDemandQty,
+    activeApplicationEventId: activeSnapshot ? latestEvent?.id ?? null : null,
+  };
+}
+
+export async function applyInboundShipmentToNeeds(
+  db: DbLike,
+  input: {
+    inboundId: number;
+    actorUserId?: number | null;
+  },
+): Promise<InboundNeedsApplicationResult> {
+  const [latestEvent, shipment] = await Promise.all([
+    findLatestInboundNeedsApplicationEvent(db, input.inboundId),
+    db.inboundShipment.findFirstOrThrow({
+      where: { id: input.inboundId, deletedAt: null },
+      select: inboundNeedsApplicationShipmentSelect,
+    }) as Promise<InboundNeedsApplicationShipment>,
+  ]);
+  const parsedSnapshot = parseInboundNeedsApplicationSnapshot(latestEvent);
+  const activeSnapshot = inboundNeedsApplicationSnapshotMatchesShipment(
+    shipment,
+    parsedSnapshot,
+  )
+    ? parsedSnapshot
+    : null;
+  if (activeSnapshot) {
+    return {
+      inboundId: input.inboundId,
+      operation: "apply",
+      changed: false,
+      updatedDemandCount: 0,
+      recomputedComponentCount: 0,
+      affectedSalesOrderIds: Array.from(
+        new Set(
+          activeSnapshot.demands
+            .map((demand) => demand.salesOrderId)
+            .filter((id): id is number => Number.isInteger(id)),
+        ),
+      ),
+      applicationEventId: latestEvent?.id ?? null,
+    };
+  }
+
+  if (shipment.status !== "completed") {
+    throw new Error(
+      `Inbound shipment #${shipment.id} must be marked Received before it can be applied to material needs.`,
+    );
+  }
+
+  const snapshot: InboundNeedsApplicationSnapshot = {
+    version: 1,
+    inboundId: shipment.id,
+    items: shipment.items.map((item) => ({
+      id: item.id,
+      qtyGood: positiveNumber(item.qtyGood),
+      qtyIssue: positiveNumber(item.qtyIssue),
+    })),
+    demands: [],
+  };
+  const touchedComponentIds = new Set<number>();
+  const affectedSalesOrderIds = new Set<number>();
+
+  for (const item of shipment.items) {
+    const alreadyAppliedQty = item.inboundDemands.reduce(
+      (sum, demand) =>
+        sum + Math.min(positiveNumber(demand.qty), positiveNumber(demand.qtyReceived)),
+      0,
+    );
+    let remainingQty = Math.max(0, positiveNumber(item.qty) - alreadyAppliedQty);
+    for (const demand of item.inboundDemands) {
+      if (remainingQty <= 0) break;
+      const beforeQtyReceived = positiveNumber(demand.qtyReceived);
+      const demandQty = positiveNumber(demand.qty);
+      const outstandingQty = Math.max(0, demandQty - beforeQtyReceived);
+      if (outstandingQty <= 0) continue;
+      const appliedQty = Math.min(outstandingQty, remainingQty);
+      const afterQtyReceived = beforeQtyReceived + appliedQty;
+      const afterStatus: InboundDemandQueueStatus =
+        afterQtyReceived >= demandQty ? "received" : "partially_received";
+      const committed = await db.inboundDemand.updateMany({
+        where: {
+          id: demand.id,
+          deletedAt: null,
+          qtyReceived: demand.qtyReceived,
+          status: demand.status as InboundDemandQueueStatus,
+          inboundShipmentItem: {
+            inboundId: shipment.id,
+            deletedAt: null,
+            inbound: { deletedAt: null, status: "completed" },
+          },
+        },
+        data: {
+          qtyReceived: afterQtyReceived,
+          status: afterStatus,
+        },
+      });
+      if (committed.count <= 0) {
+        throw new Error(
+          `Inbound demand #${demand.id} changed before it could be applied to material needs.`,
+        );
+      }
+
+      const sale = demand.lineItemComponent?.parent?.sale ?? null;
+      snapshot.demands.push({
+        id: demand.id,
+        lineItemComponentId: demand.lineItemComponentId,
+        salesOrderId: sale?.id ?? null,
+        orderId: sale?.orderId ?? null,
+        beforeQtyReceived,
+        beforeStatus: demand.status as InboundDemandQueueStatus,
+        afterQtyReceived,
+        afterStatus,
+      });
+      touchedComponentIds.add(demand.lineItemComponentId);
+      if (sale?.id) affectedSalesOrderIds.add(sale.id);
+      remainingQty -= appliedQty;
+    }
+  }
+
+  let recomputedComponentCount = 0;
+  for (const componentId of touchedComponentIds) {
+    const recomputed = await recomputeLineItemComponentDemandState(db, componentId);
+    if (recomputed) recomputedComponentCount += 1;
+  }
+
+  if (!snapshot.demands.length) {
+    return {
+      inboundId: shipment.id,
+      operation: "apply",
+      changed: false,
+      updatedDemandCount: 0,
+      recomputedComponentCount,
+      affectedSalesOrderIds: Array.from(affectedSalesOrderIds),
+      applicationEventId: null,
+    };
+  }
+
+  const applicationEvent = await db.event.create({
+    data: {
+      type: INBOUND_NEEDS_APPLIED_EVENT,
+      data: snapshot as never,
+      userId: input.actorUserId ?? null,
+    },
+    select: { id: true },
+  });
+
+  return {
+    inboundId: shipment.id,
+    operation: "apply",
+    changed: true,
+    updatedDemandCount: snapshot.demands.length,
+    recomputedComponentCount,
+    affectedSalesOrderIds: Array.from(affectedSalesOrderIds),
+    applicationEventId: applicationEvent.id,
+  };
+}
+
+export async function unapplyInboundShipmentFromNeeds(
+  db: DbLike,
+  input: {
+    inboundId: number;
+    actorUserId?: number | null;
+  },
+): Promise<InboundNeedsApplicationResult> {
+  const latestEvent = await findLatestInboundNeedsApplicationEvent(
+    db,
+    input.inboundId,
+  );
+  const shipment = (await db.inboundShipment.findFirstOrThrow({
+    where: { id: input.inboundId, deletedAt: null },
+    select: inboundNeedsApplicationShipmentSelect,
+  })) as InboundNeedsApplicationShipment;
+  const parsedSnapshot = parseInboundNeedsApplicationSnapshot(latestEvent);
+  const activeSnapshot = inboundNeedsApplicationSnapshotMatchesShipment(
+    shipment,
+    parsedSnapshot,
+  )
+    ? parsedSnapshot
+    : null;
+  const applicationSummary = shipment.items.reduce(
+    (summary, item) => {
+      const itemSummary = summarizeInboundNeedsApplicationItem(item);
+      summary.capacityQty += itemSummary.applicationCapacityQty;
+      summary.openQty += itemSummary.openApplicationQty;
+      return summary;
+    },
+    { capacityQty: 0, openQty: 0 },
+  );
+  const hasFullyAppliedInbound =
+    applicationSummary.capacityQty > 0 && applicationSummary.openQty <= 0;
+  const snapshot: InboundNeedsApplicationSnapshot | null = activeSnapshot ??
+    (shipment.status === "completed" && hasFullyAppliedInbound
+      ? buildExistingInboundNeedsApplicationSnapshot(shipment)
+      : null);
+  if (!snapshot) {
+    throw new Error(
+      `Inbound shipment #${input.inboundId} has no applied material needs to unapply.`,
+    );
+  }
+  if (!inboundNeedsApplicationSnapshotIsReversible(shipment, snapshot)) {
+    throw new Error(
+      `Inbound shipment #${input.inboundId} changed or was physically received after it was applied. Review it before unapplying material needs.`,
+    );
+  }
+
+  const currentDemandsById = new Map(
+    shipment.items.flatMap((item) => item.inboundDemands).map((demand) => [demand.id, demand]),
+  );
+  const touchedComponentIds = new Set<number>();
+  const affectedSalesOrderIds = new Set<number>();
+  for (const baseline of snapshot.demands) {
+    const current = currentDemandsById.get(baseline.id);
+    if (!current) {
+      throw new Error(
+        `Inbound demand #${baseline.id} is no longer available to unapply.`,
+      );
+    }
+    const committed = await db.inboundDemand.updateMany({
+      where: {
+        id: baseline.id,
+        deletedAt: null,
+        qtyReceived: baseline.afterQtyReceived,
+        status: baseline.afterStatus,
+        inboundShipmentItem: {
+          inboundId: shipment.id,
+          deletedAt: null,
+          inbound: { deletedAt: null },
+        },
+      },
+      data: {
+        qtyReceived: baseline.beforeQtyReceived,
+        status: baseline.beforeStatus,
+      },
+    });
+    if (committed.count <= 0) {
+      throw new Error(
+        `Inbound demand #${baseline.id} changed before it could be unapplied.`,
+      );
+    }
+    touchedComponentIds.add(baseline.lineItemComponentId);
+    if (baseline.salesOrderId) affectedSalesOrderIds.add(baseline.salesOrderId);
+  }
+
+  let recomputedComponentCount = 0;
+  for (const componentId of touchedComponentIds) {
+    const recomputed = await recomputeLineItemComponentDemandState(db, componentId);
+    if (recomputed) recomputedComponentCount += 1;
+  }
+
+  const applicationEvent = await db.event.create({
+    data: {
+      type: INBOUND_NEEDS_UNAPPLIED_EVENT,
+      data: {
+        version: 1,
+        inboundId: shipment.id,
+        appliedEventId: activeSnapshot ? latestEvent?.id ?? null : null,
+        source: activeSnapshot ? "needs_application" : "existing_receipt",
+        demandIds: snapshot.demands.map((demand) => demand.id),
+      },
+      userId: input.actorUserId ?? null,
+    },
+    select: { id: true },
+  });
+
+  return {
+    inboundId: shipment.id,
+    operation: "unapply",
+    changed: snapshot.demands.length > 0,
+    updatedDemandCount: snapshot.demands.length,
+    recomputedComponentCount,
+    affectedSalesOrderIds: Array.from(affectedSalesOrderIds),
+    applicationEventId: applicationEvent.id,
+  };
 }
 
 export async function reduceInboundShipmentDemand(

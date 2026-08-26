@@ -1,18 +1,499 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+	applyInboundShipmentToNeeds,
 	applyOrderInboundStatusToInventoryDemand,
 	assignInboundDemandsToShipment,
 	buildInboundStatusDemandReconciliation,
 	createInboundShipmentFromDemands,
 	ensureSelectedInboundDemandQuantities,
+	getInboundShipmentDetail,
 	markSalesOrdersAvailableWhenInboundDemandResolved,
 	planInboundReceiptDelta,
 	releaseCancelledInboundShipmentDemand,
 	receiveInboundShipment,
 	reconcileSalesAdjustmentInboundDemands,
 	reduceInboundShipmentDemand,
+	unapplyInboundShipmentFromNeeds,
 } from "./inbound-demand";
+
+describe("inbound needs application", () => {
+	test("applies a received inbound to linked material needs with durable evidence", async () => {
+		let demand = { qtyReceived: 0, status: "ordered" };
+		const demandUpdates: unknown[] = [];
+		const componentUpdates: unknown[] = [];
+		const events: Array<{ type: string; data: unknown; userId?: number | null }> = [];
+		const result = await applyInboundShipmentToNeeds(
+			{
+				inboundShipment: {
+					findFirstOrThrow: async () => ({
+						id: 70,
+						status: "completed",
+						items: [
+							{
+								id: 80,
+								qty: 5,
+								qtyGood: 0,
+								qtyIssue: 0,
+								inboundDemands: [
+									{
+										id: 90,
+										qty: 5,
+										qtyReceived: demand.qtyReceived,
+										status: demand.status,
+										lineItemComponentId: 100,
+										lineItemComponent: {
+											parent: {
+												sale: { id: 110, orderId: "TEST-ORDER" },
+											},
+										},
+									},
+								],
+							},
+						],
+					}),
+				},
+				inboundDemand: {
+					updateMany: async (input: { data: typeof demand }) => {
+						demandUpdates.push(input);
+						const { data } = input;
+						demand = { ...demand, ...data };
+						return { count: 1 };
+					},
+				},
+				lineItemComponents: {
+					findFirst: async () => ({
+						id: 100,
+						qty: 5,
+						stockAllocations: [],
+						inboundDemands: [{ qty: 5, qtyReceived: demand.qtyReceived }],
+					}),
+					updateMany: async (input: unknown) => {
+						componentUpdates.push(input);
+						return { count: 1 };
+					},
+				},
+				event: {
+					findFirst: async () => null,
+					create: async ({ data }: { data: (typeof events)[number] }) => {
+						events.push(data);
+						return { id: 120 };
+					},
+				},
+			} as any,
+			{ inboundId: 70, actorUserId: 7 },
+		);
+
+		expect(result).toMatchObject({
+			inboundId: 70,
+			operation: "apply",
+			changed: true,
+			updatedDemandCount: 1,
+			recomputedComponentCount: 1,
+			affectedSalesOrderIds: [110],
+			applicationEventId: 120,
+		});
+		expect(demand).toEqual({ qtyReceived: 5, status: "received" });
+		expect(demandUpdates[0]).toMatchObject({
+			where: {
+				inboundShipmentItem: {
+					inbound: { deletedAt: null, status: "completed" },
+				},
+			},
+		});
+		expect(componentUpdates).toHaveLength(1);
+		expect(events[0]).toMatchObject({
+			type: "inventory_inbound_needs_applied",
+			userId: 7,
+			data: {
+				inboundId: 70,
+				demands: [
+					{
+						id: 90,
+						beforeQtyReceived: 0,
+						afterQtyReceived: 5,
+					},
+				],
+			},
+		});
+	});
+
+	test("treats a historical inbound as applied when its own capacity is exhausted", async () => {
+		const result = await getInboundShipmentDetail(
+			{
+				inboundShipment: {
+					findUniqueOrThrow: async () => ({
+						id: 70,
+						status: "completed",
+						items: [
+							{
+								id: 80,
+								qty: 5,
+								qtyGood: 5,
+								qtyIssue: 0,
+								inboundDemands: [
+									{
+										id: 90,
+										qty: 8,
+										qtyReceived: 5,
+										status: "partially_received",
+										lineItemComponentId: 100,
+									},
+								],
+							},
+						],
+					}),
+				},
+				event: { findFirst: async () => null },
+			} as any,
+			{ inboundId: 70 },
+		);
+
+		expect(result.needsApplication).toEqual({
+			state: "applied",
+			canApply: false,
+			canUnapply: true,
+			linkedDemandCount: 1,
+			appliedDemandQty: 5,
+			openDemandQty: 3,
+			activeApplicationEventId: null,
+		});
+	});
+
+	test("ignores malformed application snapshots instead of trusting event JSON", async () => {
+		const result = await getInboundShipmentDetail(
+			{
+				inboundShipment: {
+					findUniqueOrThrow: async () => ({
+						id: 70,
+						status: "completed",
+						items: [
+							{
+								id: 80,
+								qty: 5,
+								qtyGood: 0,
+								qtyIssue: 0,
+								inboundDemands: [
+									{
+										id: 90,
+										qty: 5,
+										qtyReceived: 0,
+										status: "ordered",
+										lineItemComponentId: 100,
+									},
+								],
+							},
+						],
+					}),
+				},
+				event: {
+					findFirst: async () => ({
+						id: 120,
+						type: "inventory_inbound_needs_applied",
+						data: {
+							version: 1,
+							inboundId: 70,
+							items: [{ id: "invalid" }],
+							demands: [{}],
+						},
+					}),
+				},
+			} as any,
+			{ inboundId: 70 },
+		);
+
+		expect(result.needsApplication).toMatchObject({
+			state: "not_applied",
+			canApply: true,
+			canUnapply: false,
+			activeApplicationEventId: null,
+		});
+	});
+
+	test("ignores an application snapshot that omits a shipment item", async () => {
+		const result = await getInboundShipmentDetail(
+			{
+				inboundShipment: {
+					findUniqueOrThrow: async () => ({
+						id: 70,
+						status: "completed",
+						items: [
+							{
+								id: 80,
+								qty: 5,
+								qtyGood: 0,
+								qtyIssue: 0,
+								inboundDemands: [
+									{
+										id: 90,
+										qty: 5,
+										qtyReceived: 0,
+										status: "ordered",
+										lineItemComponentId: 100,
+									},
+								],
+							},
+							{
+								id: 81,
+								qty: 1,
+								qtyGood: 1,
+								qtyIssue: 0,
+								inboundDemands: [],
+							},
+						],
+					}),
+				},
+				event: {
+					findFirst: async () => ({
+						id: 120,
+						type: "inventory_inbound_needs_applied",
+						data: {
+							version: 1,
+							inboundId: 70,
+							items: [{ id: 80, qtyGood: 0, qtyIssue: 0 }],
+							demands: [
+								{
+									id: 90,
+									lineItemComponentId: 100,
+									salesOrderId: null,
+									orderId: null,
+									beforeQtyReceived: 0,
+									beforeStatus: "ordered",
+									afterQtyReceived: 0,
+									afterStatus: "ordered",
+								},
+							],
+						},
+					}),
+				},
+			} as any,
+			{ inboundId: 70 },
+		);
+
+		expect(result.needsApplication).toMatchObject({
+			state: "not_applied",
+			canApply: true,
+			canUnapply: false,
+			activeApplicationEventId: null,
+		});
+	});
+
+	test("unapplies only the exact needs-only application snapshot", async () => {
+		let demand = { qtyReceived: 5, status: "received" };
+		const createdEvents: Array<{ type: string; data: unknown }> = [];
+		const applyEvent = {
+			id: 120,
+			type: "inventory_inbound_needs_applied",
+			data: {
+				version: 1,
+				inboundId: 70,
+				items: [{ id: 80, qtyGood: 0, qtyIssue: 0 }],
+				demands: [
+					{
+						id: 90,
+						lineItemComponentId: 100,
+						salesOrderId: null,
+						orderId: null,
+						beforeQtyReceived: 0,
+						beforeStatus: "ordered",
+						afterQtyReceived: 5,
+						afterStatus: "received",
+					},
+				],
+			},
+		};
+		const result = await unapplyInboundShipmentFromNeeds(
+			{
+				inboundShipment: {
+					findFirstOrThrow: async () => ({
+						id: 70,
+						status: "completed",
+						items: [
+							{
+								id: 80,
+								qtyGood: 0,
+								qtyIssue: 0,
+								inboundDemands: [
+									{
+										id: 90,
+										qtyReceived: demand.qtyReceived,
+										status: demand.status,
+										lineItemComponentId: 100,
+										lineItemComponent: {
+											parent: {
+												sale: { id: 110, orderId: "TEST-ORDER" },
+											},
+										},
+									},
+								],
+							},
+						],
+					}),
+				},
+				inboundDemand: {
+					updateMany: async ({ data }: { data: typeof demand }) => {
+						demand = { ...demand, ...data };
+						return { count: 1 };
+					},
+				},
+				lineItemComponents: {
+					findFirst: async () => ({
+						id: 100,
+						qty: 5,
+						stockAllocations: [],
+						inboundDemands: [{ qty: 5, qtyReceived: demand.qtyReceived }],
+					}),
+					updateMany: async () => ({ count: 1 }),
+				},
+				event: {
+					findFirst: async () => applyEvent,
+					create: async ({ data }: { data: (typeof createdEvents)[number] }) => {
+						createdEvents.push(data);
+						return { id: 121 };
+					},
+				},
+			} as any,
+			{ inboundId: 70, actorUserId: 8 },
+		);
+
+		expect(result).toMatchObject({
+			operation: "unapply",
+			changed: true,
+			updatedDemandCount: 1,
+			applicationEventId: 121,
+		});
+		expect(demand).toEqual({ qtyReceived: 0, status: "ordered" });
+		expect(createdEvents[0]).toMatchObject({
+			type: "inventory_inbound_needs_unapplied",
+			data: { inboundId: 70, appliedEventId: 120 },
+		});
+	});
+
+	test("refuses to unapply after physical receipt evidence changes", async () => {
+		await expect(
+			unapplyInboundShipmentFromNeeds(
+				{
+					event: {
+						findFirst: async () => ({
+							id: 120,
+							type: "inventory_inbound_needs_applied",
+							data: {
+								version: 1,
+								inboundId: 70,
+								items: [{ id: 80, qtyGood: 0, qtyIssue: 0 }],
+								demands: [
+									{
+										id: 90,
+										lineItemComponentId: 100,
+										salesOrderId: null,
+										orderId: null,
+										beforeQtyReceived: 0,
+										beforeStatus: "ordered",
+										afterQtyReceived: 5,
+										afterStatus: "received",
+									},
+								],
+							},
+						}),
+					},
+					inboundShipment: {
+						findFirstOrThrow: async () => ({
+							id: 70,
+							status: "completed",
+							items: [
+								{
+									id: 80,
+									qtyGood: 1,
+									qtyIssue: 0,
+									inboundDemands: [
+										{
+											id: 90,
+											qtyReceived: 5,
+											status: "received",
+											lineItemComponentId: 100,
+										},
+									],
+								},
+							],
+						}),
+					},
+				} as any,
+				{ inboundId: 70, actorUserId: 8 },
+			),
+		).rejects.toThrow("physically received");
+	});
+
+	test("can unapply an existing capacity-applied Received inbound without reversing stock", async () => {
+		let demand = { qtyReceived: 5, status: "partially_received" };
+		let stockWrites = 0;
+		const result = await unapplyInboundShipmentFromNeeds(
+			{
+				event: {
+					findFirst: async () => null,
+					create: async () => ({ id: 130 }),
+				},
+				inboundShipment: {
+					findFirstOrThrow: async () => ({
+						id: 70,
+						status: "completed",
+						items: [
+							{
+								id: 80,
+								qty: 5,
+								qtyGood: 5,
+								qtyIssue: 0,
+								inboundDemands: [
+									{
+										id: 90,
+										qty: 8,
+										qtyReceived: demand.qtyReceived,
+										status: demand.status,
+										lineItemComponentId: 100,
+										lineItemComponent: {
+											parent: {
+												sale: { id: 110, orderId: "TEST-ORDER" },
+											},
+										},
+									},
+								],
+							},
+						],
+					}),
+				},
+				inboundDemand: {
+					updateMany: async ({ data }: { data: typeof demand }) => {
+						demand = { ...demand, ...data };
+						return { count: 1 };
+					},
+				},
+				lineItemComponents: {
+					findFirst: async () => ({
+						id: 100,
+						qty: 8,
+						stockAllocations: [],
+						inboundDemands: [{ qty: 8, qtyReceived: demand.qtyReceived }],
+					}),
+					updateMany: async () => ({ count: 1 }),
+				},
+				inventoryStock: {
+					updateMany: async () => {
+						stockWrites += 1;
+						return { count: 1 };
+					},
+				},
+			} as any,
+			{ inboundId: 70, actorUserId: 8 },
+		);
+
+		expect(result).toMatchObject({
+			operation: "unapply",
+			changed: true,
+			applicationEventId: 130,
+		});
+		expect(demand).toEqual({ qtyReceived: 0, status: "ordered" });
+		expect(stockWrites).toBe(0);
+	});
+});
 
 describe("mark available demand persistence", () => {
 	test("splits partial demand quantities inside the inventory package", async () => {

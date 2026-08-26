@@ -12,6 +12,7 @@ import {
 	listInboundSuppliers,
 	listOrderInboundShipmentsQuery,
 	reduceInboundShipmentDemandQuery,
+	updateInboundShipmentNeedsApplicationQuery,
 	updateInboundShipmentStatusQuery,
 	uploadInboundDocumentsQuery,
 } from "@api/db/queries/inbound-receiving";
@@ -505,6 +506,11 @@ export const updateInboundShipmentStatusSchema = z.object({
 	note: z.string().trim().max(2000).optional().nullable(),
 });
 
+export const updateInboundShipmentNeedsApplicationSchema = z.object({
+	inboundId: inventoryPositiveIdSchema,
+	operation: z.enum(["apply", "unapply"]),
+});
+
 export const reduceInboundShipmentDemandSchema = z.object({
 	inboundId: inventoryPositiveIdSchema,
 	demandId: inventoryPositiveIdSchema,
@@ -888,7 +894,24 @@ export const inventoriesRouter = createTRPCRouter({
 	updateInboundShipmentStatus: protectedProcedure
 		.input(updateInboundShipmentStatusSchema)
 		.mutation(async (props) => {
+			if (props.input.status === "completed") {
+				await requireAnyOperationalPermission(
+					props.ctx,
+					["editInboundOrder"],
+					"You do not have permission to receive inbound material needs.",
+				);
+			}
 			return updateInboundShipmentStatusQuery(props.ctx, props.input);
+		}),
+	updateInboundShipmentNeedsApplication: protectedProcedure
+		.input(updateInboundShipmentNeedsApplicationSchema)
+		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to apply inbound receipts to material needs.",
+			);
+			return updateInboundShipmentNeedsApplicationQuery(props.ctx, props.input);
 		}),
 	reduceInboundShipmentDemand: protectedProcedure
 		.input(reduceInboundShipmentDemandSchema)

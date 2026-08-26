@@ -1,6 +1,7 @@
 "use client";
 
 import { DocumentUploader } from "@/components/common/document-uploader";
+import { InboundNeedsApplicationActions } from "@/components/inventory/inbound-needs-application-actions";
 import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { InventoryInboundsColumnVisibility } from "@/components/tables-2/inventory-inbounds/column-visibility";
 import { DataTable } from "@/components/tables-2/inventory-inbounds/data-table";
@@ -490,22 +491,30 @@ export function InboundReceivingPage({ initialSettings }: Props) {
 												Reference {selectedShipment.reference || "None on file"}
 											</p>
 										</div>
-										<Button
-											variant="outline"
-											onClick={() => {
-												if (!selectedDemandIds.length) {
-													toast.error("Select demand rows to assign");
-													return;
+										<div className="flex flex-wrap gap-2">
+											<InboundNeedsApplicationActions
+												inboundId={selectedShipment.id}
+												onChanged={() =>
+													refreshInboundData(selectedShipment.id)
 												}
-												assignDemandsMutation.mutate({
-													inboundId: selectedShipment.id,
-													demandIds: selectedDemandIds,
-												});
-											}}
-											disabled={assignDemandsMutation.isPending}
-										>
-											Assign Selected Orders
-										</Button>
+											/>
+							<Button
+								variant="outline"
+								onClick={() => {
+									if (!selectedDemandIds.length) {
+										toast.error("Select demand rows to assign");
+										return;
+									}
+									assignDemandsMutation.mutate({
+										inboundId: selectedShipment.id,
+										demandIds: selectedDemandIds,
+									});
+								}}
+												disabled={assignDemandsMutation.isPending}
+											>
+												Assign Selected Orders
+											</Button>
+										</div>
 									</div>
 
 									<div className="grid gap-3 sm:grid-cols-3">

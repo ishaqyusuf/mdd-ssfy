@@ -3,6 +3,7 @@
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
+import { InboundNeedsApplicationActions } from "@/components/inventory/inbound-needs-application-actions";
 import { useTRPC } from "@/trpc/client";
 import type { NewInboundShipmentStatus } from "@gnd/inventory";
 import { isSalesInventoryLegacyProjectionActivelySyncing } from "@gnd/sales/sales-inventory-legacy-task";
@@ -1744,6 +1745,10 @@ function InventoryInboundShipmentRow({
 							>
 								Receive stock
 							</Button>
+							<InboundNeedsApplicationActions
+								inboundId={shipment.id}
+								disabled={isReadOnly}
+							/>
 						</div>
 					</div>
 					<div className="mt-4 space-y-2">

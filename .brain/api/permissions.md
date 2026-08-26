@@ -519,6 +519,17 @@ Tracks authentication and authorization patterns across API surfaces.
   a reason, not an author field; Sales and inbound activity use the server-resolved
   employee contact.
 
+## Inbound Needs application permissions (2026-08-26)
+
+- Changing an inbound lifecycle status to `completed` / Received requires the
+  existing `editInboundOrder` operational permission because the transition now
+  applies linked material Needs transactionally.
+- `inventories.updateInboundShipmentNeedsApplication` requires
+  `editInboundOrder` for both apply and unapply.
+- Actor identity is server-derived and persisted in the application Event. The
+  operation changes demand/component coverage only; physical receiving retains
+  its existing authorization and stock-ledger behavior.
+
 ## Staff Sales Payment Date permissions (2026-08-21)
 
 - Existing payment authorization continues to govern who may apply a payment.

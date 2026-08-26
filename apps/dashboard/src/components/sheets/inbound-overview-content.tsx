@@ -1,6 +1,7 @@
 "use client";
 
 import { env } from "@/env.mjs";
+import { InboundNeedsApplicationActions } from "@/components/inventory/inbound-needs-application-actions";
 import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { formatInventoryItemSubtitle } from "@/components/sales-overview-system/lib/inventory-display";
 import { ActivityHistory, type ActivityHistoryNode } from "@/components/chat/activity-history";
@@ -477,6 +478,10 @@ export function InboundOverviewContent({ inboundId }: { inboundId: number }) {
 								<Icons.Warehouse className="mr-2 size-4" />
 								Receive stock
 							</Button>
+							<InboundNeedsApplicationActions
+								inboundId={inboundId}
+								onChanged={refresh}
+							/>
 						</div>
 					</CardContent>
 				</Card>

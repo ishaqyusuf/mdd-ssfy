@@ -503,6 +503,79 @@ describe("countOrderInboundShipmentsQuery", () => {
 });
 
 describe("updateInboundShipmentStatusQuery", () => {
+	test("applies a Received status change to linked material needs in the same transaction", async () => {
+		const appliedInboundIds: number[] = [];
+		const transaction = {
+			inboundDemand: {
+				findMany: async () => [
+					{
+						lineItemComponent: {
+							parent: {
+								sale: { id: 100, orderId: "TEST-ORDER" },
+							},
+						},
+					},
+				],
+			},
+			inboundShipment: {
+				updateMany: async () => ({ count: 1 }),
+				findFirstOrThrow: async () => ({
+					id: 70,
+					status: "completed",
+					progress: 100,
+					receivedAt: new Date(),
+				}),
+			},
+		};
+		const ctx = {
+			userId: 1,
+			db: {
+				users: {
+					findFirstOrThrow: async () => ({ id: 1, name: "Ops" }),
+				},
+				inboundShipment: {
+					findFirstOrThrow: async () => ({
+						id: 70,
+						status: "in_progress",
+						supplierId: null,
+						reference: null,
+						supplier: null,
+					}),
+				},
+				$transaction: async <T>(
+					callback: (tx: typeof transaction) => Promise<T>,
+				) => callback(transaction),
+			},
+		} as any;
+
+		const result = await updateInboundShipmentStatusQuery(
+			ctx,
+			{ inboundId: 70, status: "completed" },
+			{
+				createActivity: async () => undefined,
+				reconcileSalesHandoffOrders: async () => [],
+				applyNeeds: async (_db, input) => {
+					appliedInboundIds.push(input.inboundId);
+					return {
+						inboundId: input.inboundId,
+						operation: "apply",
+						changed: true,
+						updatedDemandCount: 1,
+						recomputedComponentCount: 1,
+						affectedSalesOrderIds: [100],
+						applicationEventId: 120,
+					};
+				},
+			},
+		);
+
+		expect(appliedInboundIds).toEqual([70]);
+		expect(result.needsApplication).toMatchObject({
+			changed: true,
+			updatedDemandCount: 1,
+		});
+	});
+
 	test("repairs each affected sales projection and rediscovers released targets on retry", async () => {
 		const repairedSalesOrderIds: number[] = [];
 		const transaction = {
