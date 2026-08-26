@@ -48,10 +48,15 @@ export default async function Layout({ children }) {
 
                 <GlobalSheetsProvider />
                 <GlobalModalsProvider />
-                <TaskNotificationProvider />
-                <Env isDev>
-                    <InboundNeedsAttentionProviderLazy />
-                </Env>
+                <div
+                    data-dashboard-floating-stack
+                    className="fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2"
+                >
+                    <Env isDev>
+                        <InboundNeedsAttentionProviderLazy />
+                    </Env>
+                    <TaskNotificationProvider />
+                </div>
 
                 {/* <GlobalTimerProvider />
                 <TimezoneDetector /> */}

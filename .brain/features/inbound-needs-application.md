@@ -78,9 +78,13 @@ number, author, Received status/date, and `Needs x of y`; operators can apply on
 row or select up to 100 rows and use the floating batch action. The action hides
 when the queue is empty. The global attention action is explicitly mounted behind
 the shared `<Env isDev>` flag, so it is available for development reconciliation
-but is not rendered or queried in production. Page-level floating controls use a
-lower stacking layer than shared modal and sheet overlays, so they do not display
-above open dialogs.
+but is not rendered or queried in production. It shares a bottom-right content
+stack with the background-task status: the compact yellow count FAB occupies the
+normal bottom position by itself and moves above task status only while that
+status is rendered. Hover or keyboard focus expands the FAB to reveal its current
+Needs state; leaving or focusing elsewhere collapses it. Page-level floating
+controls use a lower stacking layer than shared modal and sheet overlays, so they
+do not display above open dialogs.
 
 ## Validation
 

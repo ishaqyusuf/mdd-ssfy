@@ -102,13 +102,16 @@ export function InboundNeedsAttentionProvider() {
 			<DialogTrigger asChild>
 				<Button
 					type="button"
-					className="fixed top-1/2 right-4 z-40 h-auto max-w-[min(22rem,calc(100vw-2rem))] -translate-y-1/2 justify-start gap-3 rounded-full border border-amber-300 bg-amber-50 px-4 py-3 text-left text-amber-950 shadow-lg hover:bg-amber-100 hover:text-amber-950"
+					className="group relative h-14 w-14 max-w-[min(22rem,calc(100vw-2rem))] shrink-0 justify-start overflow-hidden rounded-full border border-amber-300 bg-amber-50 p-0 text-left text-amber-950 shadow-2xl transition-[width,background-color,color,box-shadow] duration-300 ease-out hover:w-[min(22rem,calc(100vw-2rem))] hover:bg-amber-100 hover:text-amber-950 focus-visible:w-[min(22rem,calc(100vw-2rem))] focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 motion-reduce:transition-none"
 					aria-label={`${attentionCount} received inbounds need application`}
 				>
-					<span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">
-						<Icons.AlertTriangle className="size-4" />
+					<span className="relative flex size-14 shrink-0 items-center justify-center bg-amber-500 text-white">
+						<Icons.AlertTriangle className="size-5" />
+						<span className="absolute top-1 right-1 flex min-w-5 justify-center rounded-full border-2 border-amber-500 bg-amber-50 px-1 text-[10px] font-semibold leading-4 text-amber-900 shadow-sm">
+							{attentionCount}
+						</span>
 					</span>
-					<span className="min-w-0">
+					<span className="pointer-events-none min-w-0 translate-x-2 whitespace-nowrap pr-4 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none">
 						<span className="block text-xs font-semibold uppercase tracking-wide text-amber-700">
 							Needs attention
 						</span>
@@ -117,9 +120,6 @@ export function InboundNeedsAttentionProvider() {
 							{attentionCount === 1 ? "" : "s"} not applied
 						</span>
 					</span>
-					<Badge className="shrink-0 rounded-full bg-amber-600 text-white">
-						{attentionCount}
-					</Badge>
 				</Button>
 			</DialogTrigger>
 

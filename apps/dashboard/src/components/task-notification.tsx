@@ -101,7 +101,7 @@ export function TaskNotification() {
 			))}
 
 			{visibleCount > 0 ? (
-				<div className="fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2">
+				<div className="flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2">
 					{open && canOpenMonitor ? (
 						<div className="w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-lg border bg-background shadow-2xl">
 							<div className="flex items-center justify-between gap-3 border-b px-3 py-2">
