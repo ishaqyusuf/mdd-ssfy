@@ -1744,6 +1744,12 @@ const inboundNeedsApplicationShipmentSelect = {
         where: {
           deletedAt: null,
           status: { not: "cancelled" as const },
+          lineItemComponent: {
+            parent: {
+              deletedAt: null,
+              sale: { deletedAt: null },
+            },
+          },
         },
         orderBy: { createdAt: "asc" as const },
         select: {
@@ -2143,6 +2149,12 @@ export async function applyInboundShipmentToNeeds(
           deletedAt: null,
           qtyReceived: demand.qtyReceived,
           status: demand.status as InboundDemandQueueStatus,
+          lineItemComponent: {
+            parent: {
+              deletedAt: null,
+              sale: { deletedAt: null },
+            },
+          },
           inboundShipmentItem: {
             inboundId: shipment.id,
             deletedAt: null,

@@ -1,5 +1,6 @@
 import {
 	applyInboundExtractionQuery,
+	applyInboundNeedsApplicationAttentionQuery,
 	assignInboundDemandsQuery,
 	countOrderInboundShipmentsQuery,
 	createInboundShipmentFromDemandsQuery,
@@ -7,7 +8,9 @@ import {
 	extractInboundDocumentsQuery,
 	getInboundActivityQuery,
 	getInboundExtractionsQuery,
+	getInboundNeedsApplicationAttentionSummaryQuery,
 	listInboundDocumentsQuery,
+	listInboundNeedsApplicationAttentionQuery,
 	listInboundShipmentsQuery,
 	listInboundSuppliers,
 	listOrderInboundShipmentsQuery,
@@ -511,6 +514,16 @@ export const updateInboundShipmentNeedsApplicationSchema = z.object({
 	operation: z.enum(["apply", "unapply"]),
 });
 
+export const applyInboundNeedsApplicationAttentionSchema = z.object({
+	inboundIds: z
+		.array(inventoryPositiveIdSchema)
+		.min(1)
+		.max(100)
+		.refine((ids) => new Set(ids).size === ids.length, {
+			message: "Select each inbound only once.",
+		}),
+});
+
 export const reduceInboundShipmentDemandSchema = z.object({
 	inboundId: inventoryPositiveIdSchema,
 	demandId: inventoryPositiveIdSchema,
@@ -690,6 +703,26 @@ export const inventoriesRouter = createTRPCRouter({
 		)
 		.query(async (props) => {
 			return listInboundShipmentsQuery(props.ctx, props.input);
+		}),
+	inboundNeedsApplicationAttentionSummary: protectedProcedure.query(
+		async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to apply inbound receipts to material needs.",
+			);
+			return getInboundNeedsApplicationAttentionSummaryQuery(props.ctx);
+		},
+	),
+	inboundNeedsApplicationAttention: protectedProcedure
+		.input(z.object({ take: z.number().int().min(1).max(100).default(100) }))
+		.query(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to apply inbound receipts to material needs.",
+			);
+			return listInboundNeedsApplicationAttentionQuery(props.ctx, props.input);
 		}),
 	orderInboundShipments: protectedProcedure
 		.input(
@@ -912,6 +945,16 @@ export const inventoriesRouter = createTRPCRouter({
 				"You do not have permission to apply inbound receipts to material needs.",
 			);
 			return updateInboundShipmentNeedsApplicationQuery(props.ctx, props.input);
+		}),
+	applyInboundNeedsApplicationAttention: protectedProcedure
+		.input(applyInboundNeedsApplicationAttentionSchema)
+		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to apply inbound receipts to material needs.",
+			);
+			return applyInboundNeedsApplicationAttentionQuery(props.ctx, props.input);
 		}),
 	reduceInboundShipmentDemand: protectedProcedure
 		.input(reduceInboundShipmentDemandSchema)

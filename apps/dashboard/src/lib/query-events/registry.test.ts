@@ -8,7 +8,7 @@ import {
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(89);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(90);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(15);
 	});
 
@@ -138,9 +138,12 @@ describe("query event mutation registry", () => {
 		).toEqual([{ name: "inventory.inbound.changed" }]);
 		expect(
 			resolveMutationQueryEvents({
-				mutationKey: [
-					["inventories", "updateInboundShipmentNeedsApplication"],
-				],
+				mutationKey: [["inventories", "updateInboundShipmentNeedsApplication"]],
+			}),
+		).toEqual([{ name: "inventory.inbound.changed" }]);
+		expect(
+			resolveMutationQueryEvents({
+				mutationKey: [["inventories", "applyInboundNeedsApplicationAttention"]],
 			}),
 		).toEqual([{ name: "inventory.inbound.changed" }]);
 
@@ -149,6 +152,10 @@ describe("query event mutation registry", () => {
 		);
 		expect(routes).toContain("sales.getOrders");
 		expect(routes).toContain("notes.activityTree");
+		expect(routes).toContain("inventories.inboundNeedsApplicationAttention");
+		expect(routes).toContain(
+			"inventories.inboundNeedsApplicationAttentionSummary",
+		);
 	});
 
 	it("scopes a reviewed payment event to its sale overview", () => {

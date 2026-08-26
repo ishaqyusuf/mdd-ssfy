@@ -114,6 +114,8 @@ const inventoryInboundTargets = [
 	pathTarget("inventories.orderInboundShipments"),
 	pathTarget("inventories.orderInboundShipmentCount"),
 	pathTarget("inventories.inboundShipments"),
+	pathTarget("inventories.inboundNeedsApplicationAttention"),
+	pathTarget("inventories.inboundNeedsApplicationAttentionSummary"),
 	pathTarget("inventories.inboundDemandQueue"),
 	pathTarget("inventories.supplierReorderSuggestions"),
 	pathTarget("inventories.inboundStatusDemandReconciliation"),
@@ -266,6 +268,9 @@ export const MUTATION_QUERY_EVENTS = {
 	"inventories.updateCategoryStockMode": ["inventory.catalog.changed"],
 	"inventories.updateInboundShipmentStatus": ["inventory.inbound.changed"],
 	"inventories.updateInboundShipmentNeedsApplication": [
+		"inventory.inbound.changed",
+	],
+	"inventories.applyInboundNeedsApplicationAttention": [
 		"inventory.inbound.changed",
 	],
 	"inventories.reduceInboundShipmentDemand": ["inventory.inbound.changed"],

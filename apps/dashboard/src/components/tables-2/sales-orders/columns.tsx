@@ -550,7 +550,11 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 				}}
 				onPointerDown={(event) => event.stopPropagation()}
 			>
-				<Icons.LockKeyhole className="size-3 shrink-0" />
+				{legacyStatus === "AVAILABLE" ? (
+					<Icons.CheckCircle2 className="size-3 shrink-0" />
+				) : (
+					<Icons.LockKeyhole className="size-3 shrink-0" />
+				)}
 				<span className="truncate">{legacyStatus}</span>
 			</span>
 		);

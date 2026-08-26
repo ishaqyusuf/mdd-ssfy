@@ -2,8 +2,8 @@
 
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 
-import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { InboundNeedsApplicationActions } from "@/components/inventory/inbound-needs-application-actions";
+import { formatInventoryInboundStatusLabel } from "@/components/sales-inbound-status-badge";
 import { useTRPC } from "@/trpc/client";
 import type { NewInboundShipmentStatus } from "@gnd/inventory";
 import { isSalesInventoryLegacyProjectionActivelySyncing } from "@gnd/sales/sales-inventory-legacy-task";
@@ -660,6 +660,8 @@ function LegacyInventoryStatusLockedState({
 									<Icons.AlertTriangle />
 								) : isBackgroundAdaptation || isResolving ? (
 									<Icons.Loader2 className="animate-spin" />
+								) : legacyStatus === "AVAILABLE" ? (
+									<Icons.CheckCircle2 />
 								) : (
 									<Icons.History />
 								)}
@@ -689,7 +691,7 @@ function LegacyInventoryStatusLockedState({
 						</div>
 						<Badge
 							variant="outline"
-							className="w-fit border-amber-200 bg-amber-50 text-amber-700"
+							className="w-fit whitespace-nowrap border-amber-200 bg-amber-50 text-amber-700"
 						>
 							{hasFailed
 								? "Review required"
@@ -775,7 +777,7 @@ function LegacyInventoryStatusLockedState({
 									</ItemDescription>
 								</ItemContent>
 								<ItemActions>
-									<Badge variant="outline">
+									<Badge variant="outline" className="whitespace-nowrap">
 										{isBackgroundAdaptation || isResolving
 											? "Working"
 											: hasFailed

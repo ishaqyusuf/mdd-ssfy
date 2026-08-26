@@ -6,13 +6,18 @@
 - Description: Kept the existing Received status workflow while making the
   transition apply linked inbound demand to material Needs transactionally.
   Historical Received shipments can be applied explicitly, and applied Needs
-  can be unapplied through guarded Event snapshots without reversing stock.
+  can be unapplied through guarded Event snapshots without reversing stock. A
+  global floating attention queue now identifies Received-but-unapplied legacy
+  gaps and supports row or bounded batch application. Page-level floating
+  controls remain beneath modal and sheet overlays.
 - Related Feature: Inbound Needs Application
 - Status: Done
 - Feature File: `.brain/features/inbound-needs-application.md`
 - Decision: `.brain/decisions/ADR-071-reversible-inbound-needs-application.md`
-- Validation: 60 focused tests / 237 assertions plus a client-module import
-  check; broad typecheck/build/browser validation deferred by command policy.
+- Validation: focused domain/API/UI/query-event tests pass; authenticated local
+  browser validation covered the four historical gaps, modal details, selection
+  action, and successful `09437PC` legacy adaptation. Broad typecheck/build
+  validation remained deferred by command policy.
 - Completed Date: 2026-08-26
 
 ### Unassigned Inbound Demand Quantity-Reduction Prompt

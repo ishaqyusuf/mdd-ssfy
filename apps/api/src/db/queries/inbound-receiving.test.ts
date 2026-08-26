@@ -1,12 +1,59 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+	applyInboundNeedsApplicationAttentionQuery,
 	assignInboundDemandsQuery,
 	countOrderInboundShipmentsQuery,
 	createInboundShipmentFromDemandsQuery,
 	reduceInboundShipmentDemandQuery,
 	updateInboundShipmentStatusQuery,
 } from "./inbound-receiving";
+
+describe("applyInboundNeedsApplicationAttentionQuery", () => {
+	test("applies each selected inbound once and reconciles affected sales together", async () => {
+		const appliedIds: number[] = [];
+		const reconciliations: unknown[] = [];
+		const ctx = makeCtx({});
+
+		const result = await applyInboundNeedsApplicationAttentionQuery(
+			ctx,
+			{ inboundIds: [70, 90] },
+			{
+				applyNeeds: async (_db, input) => {
+					appliedIds.push(input.inboundId);
+					return {
+						inboundId: input.inboundId,
+						operation: "apply",
+						changed: true,
+						updatedDemandCount: 2,
+						recomputedComponentCount: 2,
+						affectedSalesOrderIds: [input.inboundId + 100],
+						applicationEventId: input.inboundId + 1000,
+					};
+				},
+				reconcileAfterCommit: async (_db, input) => {
+					reconciliations.push(input);
+					return [];
+				},
+			},
+		);
+
+		expect(appliedIds).toEqual([70, 90]);
+		expect(reconciliations).toEqual([
+			{
+				salesOrderIds: [170, 190],
+				actorUserId: 1,
+				source: "api.inbound.needs-apply-attention",
+			},
+		]);
+		expect(result).toEqual({
+			inboundIds: [70, 90],
+			changedCount: 2,
+			updatedDemandCount: 4,
+			affectedSalesOrderIds: [170, 190],
+		});
+	});
+});
 
 function makeCtx(tx: Record<string, unknown>) {
 	const transactionCalls: unknown[] = [];

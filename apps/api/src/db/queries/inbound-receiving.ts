@@ -1,6 +1,6 @@
 import {
 	reconcileSalesHandoffAfterCommit,
-	reconcileSalesHandoffOrders,
+	type reconcileSalesHandoffOrders,
 } from "@api/db/queries/sales-handoff-actions";
 import type { TRPCContext } from "@api/trpc/init";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
@@ -9,17 +9,19 @@ import {
 	createStoredDocumentRegistry,
 	normalizeStoredDocument,
 } from "@api/utils/stored-documents";
-import type { Db, Prisma, TransactionClient } from "@gnd/db";
+import { type Db, Prisma, type TransactionClient } from "@gnd/db";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
 import {
 	type NewInboundShipmentStatus,
 	applyInboundShipmentToNeeds,
 	assignInboundDemandsToShipment,
+	countReceivedInboundNeedsAttention,
 	createInboundShipment,
 	createInboundShipmentFromDemands,
 	ensureSelectedInboundDemandQuantities,
 	getInboundShipmentDetail,
 	listInboundShipments,
+	listReceivedInboundNeedsAttention,
 	markSalesOrdersAvailableWhenInboundDemandResolved,
 	receiveInboundShipment,
 	reduceInboundShipmentDemand,
@@ -1240,8 +1242,7 @@ export async function updateInboundShipmentStatusQuery(
 			recomputedComponentCount: releasedDemand?.recomputedComponentCount ?? 0,
 			repairedSalesOrderCount: salesOrderIds.length,
 			needsApplicationChanged: needsApplication?.changed ?? false,
-			needsApplicationDemandCount:
-				needsApplication?.updatedDemandCount ?? 0,
+			needsApplicationDemandCount: needsApplication?.updatedDemandCount ?? 0,
 		},
 	});
 
@@ -1280,6 +1281,164 @@ export async function updateInboundShipmentNeedsApplicationQuery(
 		source: `api.inbound.needs-${input.operation}`,
 	});
 	return result;
+}
+
+function toStringList(value: unknown) {
+	if (Array.isArray(value)) return value.map(String).filter(Boolean);
+	return value == null || value === "" ? [] : [String(value)];
+}
+
+export async function listInboundNeedsApplicationAttentionQuery(
+	ctx: TRPCContext,
+	input: { take?: number } = {},
+) {
+	const candidates = await listReceivedInboundNeedsAttention(ctx.db, input);
+	if (!candidates.length) return [];
+
+	const inboundIds = candidates.map((candidate) => candidate.inboundId);
+	const activities = await ctx.db.notePad.findMany({
+		where: {
+			deletedAt: null,
+			tags: {
+				some: {
+					tagName: "inboundId",
+					tagValue: { in: inboundIds.map(String) },
+				},
+			},
+		},
+		orderBy: { createdAt: "asc" },
+		select: {
+			createdAt: true,
+			senderContact: {
+				select: { name: true, profileId: true },
+			},
+			tags: {
+				where: { deletedAt: null },
+				select: { tagName: true, tagValue: true },
+			},
+		},
+	});
+	const profileIds = Array.from(
+		new Set(
+			activities
+				.map((activity) => activity.senderContact?.profileId)
+				.filter((id): id is number => Number.isInteger(id)),
+		),
+	);
+	const users = profileIds.length
+		? await ctx.db.users.findMany({
+				where: { id: { in: profileIds }, deletedAt: null },
+				select: { id: true, name: true },
+			})
+		: [];
+	const userNames = new Map(users.map((user) => [user.id, user.name]));
+	const orderRows = await ctx.db.$queryRaw<
+		Array<{ inboundId: number; orderId: string }>
+	>(Prisma.sql`
+		SELECT DISTINCT isi.inboundId, so.orderId
+		FROM InboundShipmentItem isi
+		INNER JOIN InboundDemand demand ON demand.inboundShipmentItemId = isi.id
+		INNER JOIN LineItemComponents component ON component.id = demand.lineItemComponentId
+		INNER JOIN LineItem lineItem ON lineItem.id = component.lineItemId
+		INNER JOIN SalesOrders so ON so.id = lineItem.saleId
+		WHERE isi.inboundId IN (${Prisma.join(inboundIds)})
+			AND isi.deletedAt IS NULL
+			AND demand.deletedAt IS NULL
+			AND lineItem.deletedAt IS NULL
+			AND so.deletedAt IS NULL
+	`);
+	const orderNumbersByInboundId = new Map<number, string[]>();
+	for (const row of orderRows) {
+		const current = orderNumbersByInboundId.get(row.inboundId) ?? [];
+		if (!current.includes(row.orderId)) current.push(row.orderId);
+		orderNumbersByInboundId.set(row.inboundId, current);
+	}
+	const activityByInboundId = new Map<
+		number,
+		{
+			author: string;
+			orderNumbers: string[];
+		}
+	>();
+
+	for (const activity of activities) {
+		const tags = mergeTagRows(activity.tags);
+		const inboundId = Number(toStringList(tags.inboundId)[0]);
+		if (!inboundIds.includes(inboundId)) continue;
+		const existing = activityByInboundId.get(inboundId);
+		const author =
+			existing?.author ||
+			activity.senderContact?.name ||
+			(activity.senderContact?.profileId
+				? userNames.get(activity.senderContact.profileId)
+				: null) ||
+			"Unknown";
+		const orderNumbers = Array.from(
+			new Set([
+				...(existing?.orderNumbers ?? []),
+				...(orderNumbersByInboundId.get(inboundId) ?? []),
+				...toStringList(tags.orderNos),
+			]),
+		);
+		activityByInboundId.set(inboundId, { author, orderNumbers });
+	}
+
+	return candidates.map((candidate) => ({
+		...candidate,
+		author: activityByInboundId.get(candidate.inboundId)?.author ?? "Unknown",
+		orderNumbers:
+			activityByInboundId.get(candidate.inboundId)?.orderNumbers ??
+			orderNumbersByInboundId.get(candidate.inboundId) ??
+			[],
+	}));
+}
+
+export async function getInboundNeedsApplicationAttentionSummaryQuery(
+	ctx: TRPCContext,
+) {
+	return { count: await countReceivedInboundNeedsAttention(ctx.db) };
+}
+
+export async function applyInboundNeedsApplicationAttentionQuery(
+	ctx: TRPCContext,
+	input: { inboundIds: number[] },
+	deps: {
+		applyNeeds?: typeof applyInboundShipmentToNeeds;
+		reconcileAfterCommit?: typeof reconcileSalesHandoffAfterCommit;
+	} = {},
+) {
+	const results = await ctx.db.$transaction(async (tx) => {
+		const applied = [];
+		for (const inboundId of input.inboundIds) {
+			applied.push(
+				await (deps.applyNeeds ?? applyInboundShipmentToNeeds)(tx, {
+					inboundId,
+					actorUserId: ctx.userId ?? null,
+				}),
+			);
+		}
+		return applied;
+	});
+	const salesOrderIds = Array.from(
+		new Set(results.flatMap((result) => result.affectedSalesOrderIds)),
+	);
+	await (deps.reconcileAfterCommit ?? reconcileSalesHandoffAfterCommit)(
+		ctx.db,
+		{
+			salesOrderIds,
+			actorUserId: ctx.userId ?? 1,
+			source: "api.inbound.needs-apply-attention",
+		},
+	);
+	return {
+		inboundIds: input.inboundIds,
+		changedCount: results.filter((result) => result.changed).length,
+		updatedDemandCount: results.reduce(
+			(sum, result) => sum + result.updatedDemandCount,
+			0,
+		),
+		affectedSalesOrderIds: salesOrderIds,
+	};
 }
 
 export async function reduceInboundShipmentDemandQuery(

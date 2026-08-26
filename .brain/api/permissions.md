@@ -530,6 +530,11 @@ Tracks authentication and authorization patterns across API surfaces.
   applies linked material Needs transactionally.
 - `inventories.updateInboundShipmentNeedsApplication` requires
   `editInboundOrder` for both apply and unapply.
+- `inventories.inboundNeedsApplicationAttentionSummary`,
+  `inventories.inboundNeedsApplicationAttention`, and
+  `inventories.applyInboundNeedsApplicationAttention` require
+  `editInboundOrder`; unauthorized users cannot read the global repair count or
+  detail rows and cannot submit row/batch application.
 - Actor identity is server-derived and persisted in the application Event. The
   operation changes demand/component coverage only; physical receiving retains
   its existing authorization and stock-ledger behavior.

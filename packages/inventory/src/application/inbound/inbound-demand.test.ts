@@ -22,11 +22,14 @@ describe("inbound needs application", () => {
 		let demand = { qtyReceived: 0, status: "ordered" };
 		const demandUpdates: unknown[] = [];
 		const componentUpdates: unknown[] = [];
+		const shipmentReads: unknown[] = [];
 		const events: Array<{ type: string; data: unknown; userId?: number | null }> = [];
 		const result = await applyInboundShipmentToNeeds(
 			{
 				inboundShipment: {
-					findFirstOrThrow: async () => ({
+					findFirstOrThrow: async (input: unknown) => {
+						shipmentReads.push(input);
+						return {
 						id: 70,
 						status: "completed",
 						items: [
@@ -51,7 +54,8 @@ describe("inbound needs application", () => {
 								],
 							},
 						],
-					}),
+						};
+					},
 				},
 				inboundDemand: {
 					updateMany: async (input: { data: typeof demand }) => {
@@ -94,8 +98,32 @@ describe("inbound needs application", () => {
 			applicationEventId: 120,
 		});
 		expect(demand).toEqual({ qtyReceived: 5, status: "received" });
+		expect(shipmentReads[0]).toMatchObject({
+			select: {
+				items: {
+					select: {
+						inboundDemands: {
+							where: {
+								lineItemComponent: {
+									parent: {
+										deletedAt: null,
+										sale: { deletedAt: null },
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		});
 		expect(demandUpdates[0]).toMatchObject({
 			where: {
+				lineItemComponent: {
+					parent: {
+						deletedAt: null,
+						sale: { deletedAt: null },
+					},
+				},
 				inboundShipmentItem: {
 					inbound: { deletedAt: null, status: "completed" },
 				},
