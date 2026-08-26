@@ -9,13 +9,16 @@ from the current Sales page.
 ## Scope
 
 - Manual Excel generation from the shared Sales Reports menu.
-- The user selects one inclusive end date from the 25th through the actual end
-  of a historical/current month; the start is always that month's first day.
+- The modal opens with an inclusive range preselected from the first day of the
+  current `America/New_York` business month through the current business day.
+- The user can replace that default with any non-future inclusive date range,
+  including a range that crosses month boundaries.
 - Business-date boundaries use `America/New_York` and become a UTC
   `[from, toExclusive)` query range.
-- Included records are non-deleted `SalesOrders` with `type = order`, regardless
-  of payment state, order status, or tax amount. Quotes and deleted orders are
-  excluded.
+- Included records are fully paid, non-deleted `SalesOrders` with `type = order`
+  and persisted `amountDue <= 0`, including overpayments. Partially paid and
+  unpaid orders, quotes, and deleted orders are excluded; order status and tax
+  amount do not filter rows.
 - The export uses persisted `SalesOrders.grandTotal` and `SalesOrders.tax`.
   Refunds are not netted and tax is not recalculated from current tax settings.
 - Scheduled delivery, direct government filing, and immutable filing archives
@@ -25,10 +28,11 @@ from the current Sales page.
 
 1. A user with `generateSalesPerformanceReport` opens Reports and selects
    **Sales Tax Report** under Performance Excel.
-2. The modal opens on the current month once its 25th has arrived; before then,
-   it opens on the previous month. No end date is preselected.
-3. The user selects the 25th through the month's final non-future day. The UI
-   displays the derived first day and enables **Generate Excel**.
+2. The modal opens with the current New York month-to-date range selected and
+   **Generate Excel** enabled. Wide screens show two adjacent months; screens
+   below 768px show one month so the calendar remains within the viewport.
+3. The user can select any complete non-future range. The **From** and **To**
+   summaries follow the range, and generation is disabled while it is partial.
 4. The protected API derives the authoritative period, loads at most 10,000
    orders in deterministic creation/id order, and returns workbook sheets.
 5. The browser downloads `sales-tax-<from>-to-<to>.xlsx`. Empty periods and
@@ -46,21 +50,23 @@ from the current Sales page.
 
 ## API And Permissions
 
-- `salesDashboard.salesTaxReport({ to: YYYY-MM-DD })` is a protected query.
+- `salesDashboard.salesTaxReport({ from: YYYY-MM-DD, to: YYYY-MM-DD })` is a
+  protected query; both dates are inclusive business dates.
 - It requires the normal sales-report viewer boundary plus
   `generateSalesPerformanceReport`, matching existing performance exports.
-- The server rejects malformed dates, invalid calendar dates, dates before the
-  25th, future business dates, and reports exceeding 10,000 source orders.
+- The server rejects malformed dates, invalid calendar dates, reversed ranges,
+  future business dates, and reports exceeding 10,000 source orders.
 
 ## Validation
 
-- Domain coverage includes DST-aware March boundaries, leap-day/month-end
-  dates, future and pre-25th rejection, cent-safe totals, and exact workbook
-  columns.
-- API coverage includes query scope, deterministic ordering, persisted money,
-  customer-name fallbacks, null amounts, and the row-limit guard.
-- Dashboard coverage includes initial-month policy, selectable dates, menu and
-  modal wiring, and deterministic tax-report filenames.
+- Domain coverage includes DST-aware boundaries, leap-day/month-end dates,
+  reversed/future rejection, cent-safe totals, and exact workbook columns.
+- API coverage includes the paid-only order scope, deterministic ordering,
+  persisted money, customer-name fallbacks, null amounts, and the row-limit
+  guard.
+- Dashboard coverage includes the New York month-to-date default, non-future
+  selectable dates, responsive month count, menu/modal wiring, and
+  deterministic tax-report filenames.
 
 ## Follow Up
 

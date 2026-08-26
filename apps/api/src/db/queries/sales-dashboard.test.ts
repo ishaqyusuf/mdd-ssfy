@@ -124,7 +124,7 @@ describe("sales tax report query", () => {
 
 		const report = await getSalesTaxReport(
 			ctx as unknown as TRPCContext,
-			{ to: "2026-03-31" },
+			{ from: "2026-03-10", to: "2026-03-31" },
 			new Date("2026-04-01T12:00:00.000Z"),
 		);
 
@@ -171,7 +171,7 @@ describe("sales tax report query", () => {
 		await expect(
 			getSalesTaxReport(
 				ctx as unknown as TRPCContext,
-				{ to: "2026-03-31" },
+				{ from: "2026-03-01", to: "2026-03-31" },
 				new Date("2026-04-01T12:00:00.000Z"),
 			),
 		).rejects.toThrow("more than 10,000 orders");

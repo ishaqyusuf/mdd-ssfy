@@ -2,9 +2,8 @@
 
 import {
 	formatSalesTaxCalendarDate,
-	getInitialSalesTaxReportMonth,
-	getSalesTaxReportStartDate,
-	isSelectableSalesTaxReportEndDate,
+	getDefaultSalesTaxReportRange,
+	isSelectableSalesTaxReportDate,
 } from "@/lib/sales-tax-report-date";
 import {
 	downloadSalesExcelWorkbook,
@@ -21,11 +20,13 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
+import { useMediaQuery } from "@gnd/ui/hooks";
 import { Icons } from "@gnd/ui/icons";
 import { useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
+import type { DateRange } from "react-day-picker";
 
 const Calendar = dynamic(
 	() => import("@gnd/ui/calendar").then((module) => module.Calendar),
@@ -53,15 +54,13 @@ export function SalesTaxReportDialog({
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const [calendarMonth, setCalendarMonth] = useState(() =>
-		getInitialSalesTaxReportMonth(),
+	const isWideCalendar = useMediaQuery("(min-width: 768px)");
+	const [selectedRange, setSelectedRange] = useState<DateRange>(() =>
+		getDefaultSalesTaxReportRange(),
 	);
-	const [selectedTo, setSelectedTo] = useState<Date>();
 	const [isGenerating, setIsGenerating] = useState(false);
-	const from = getSalesTaxReportStartDate(selectedTo || calendarMonth);
 	const resetDates = useCallback(() => {
-		setCalendarMonth(getInitialSalesTaxReportMonth());
-		setSelectedTo(undefined);
+		setSelectedRange(getDefaultSalesTaxReportRange());
 	}, []);
 	const handleOpenChange = (nextOpen: boolean) => {
 		if (!nextOpen) resetDates();
@@ -74,12 +73,13 @@ export function SalesTaxReportDialog({
 	}, [open, resetDates]);
 
 	async function generateReport() {
-		if (!selectedTo || isGenerating) return;
+		if (!selectedRange.from || !selectedRange.to || isGenerating) return;
 		setIsGenerating(true);
 		toast({ variant: "spinner", title: "Preparing sales tax report..." });
 		try {
 			const input = {
-				to: formatSalesTaxCalendarDate(selectedTo),
+				from: formatSalesTaxCalendarDate(selectedRange.from),
+				to: formatSalesTaxCalendarDate(selectedRange.to),
 			} satisfies RouterInputs["salesDashboard"]["salesTaxReport"];
 			const report = await queryClient.fetchQuery(
 				trpc.salesDashboard.salesTaxReport.queryOptions(input),
@@ -91,7 +91,8 @@ export function SalesTaxReportDialog({
 				toast({
 					variant: "error",
 					title: "No report rows",
-					description: "No sales orders match the selected month period.",
+					description:
+						"No fully paid sales orders match the selected date range.",
 				});
 				return;
 			}
@@ -116,38 +117,52 @@ export function SalesTaxReportDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogContent className="max-w-[min(96vw,420px)] gap-0 overflow-hidden p-0">
+			<DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[44rem] gap-0 overflow-hidden p-0">
 				<DialogHeader className="border-b bg-muted/20 px-5 py-4">
 					<DialogTitle>Sales Tax Report</DialogTitle>
 					<DialogDescription>
-						Report starts on the first day of the selected month. Choose an end
-						date from the 25th through month-end.
+						Choose any non-future date range. Only fully paid orders are
+						included.
 					</DialogDescription>
 				</DialogHeader>
-				<div className="space-y-4 px-5 py-4">
+				<div className="min-h-0 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
 					<dl className="grid grid-cols-2 gap-3">
 						<div className="rounded-md border bg-muted/20 px-3 py-2">
 							<dt className="text-xs text-muted-foreground">From</dt>
-							<dd className="mt-1 text-sm font-medium">{displayDate(from)}</dd>
+							<dd className="mt-1 text-sm font-medium">
+								{selectedRange.from
+									? displayDate(selectedRange.from)
+									: "Select a date"}
+							</dd>
 						</div>
 						<div className="rounded-md border bg-muted/20 px-3 py-2">
 							<dt className="text-xs text-muted-foreground">To</dt>
 							<dd className="mt-1 text-sm font-medium">
-								{selectedTo ? displayDate(selectedTo) : "Select a date"}
+								{selectedRange.to
+									? displayDate(selectedRange.to)
+									: "Select a date"}
 							</dd>
 						</div>
 					</dl>
-					<div className="flex justify-center rounded-md border">
+					<div className="flex min-w-0 justify-center overflow-hidden rounded-md border">
 						<Calendar
-							mode="single"
-							month={calendarMonth}
-							selected={selectedTo}
-							onMonthChange={(month) => {
-								setCalendarMonth(getSalesTaxReportStartDate(month));
-								setSelectedTo(undefined);
+							key={isWideCalendar ? "wide" : "narrow"}
+							mode="range"
+							defaultMonth={
+								isWideCalendar && selectedRange.to
+									? new Date(
+											selectedRange.to.getFullYear(),
+											selectedRange.to.getMonth() - 1,
+											1,
+										)
+									: selectedRange.to
+							}
+							selected={selectedRange}
+							onSelect={(range) => {
+								if (range) setSelectedRange(range);
 							}}
-							onSelect={setSelectedTo}
-							disabled={(date) => !isSelectableSalesTaxReportEndDate(date)}
+							disabled={(date) => !isSelectableSalesTaxReportDate(date)}
+							numberOfMonths={isWideCalendar ? 2 : 1}
 							showOutsideDays={false}
 							initialFocus
 						/>
@@ -164,7 +179,7 @@ export function SalesTaxReportDialog({
 					</Button>
 					<Button
 						type="button"
-						disabled={!selectedTo || isGenerating}
+						disabled={!selectedRange.from || !selectedRange.to || isGenerating}
 						onClick={() => void generateReport()}
 					>
 						{isGenerating ? (

@@ -234,7 +234,7 @@ export function SalesReportMenuContent({
 								<span className="min-w-0">
 									<span className="block font-medium">Sales Tax Report</span>
 									<span className="mt-0.5 block text-xs text-muted-foreground">
-										Order totals and stored tax for a selected monthly period.
+										Paid order totals and stored tax for a selected date range.
 									</span>
 								</span>
 							</DropdownMenuItem>

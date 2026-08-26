@@ -406,7 +406,11 @@ export async function getSalesTaxReport(
 ) {
 	let period: ReturnType<typeof resolveSalesTaxReportPeriod>;
 	try {
-		period = resolveSalesTaxReportPeriod({ to: input.to, now });
+		period = resolveSalesTaxReportPeriod({
+			from: input.from,
+			to: input.to,
+			now,
+		});
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",

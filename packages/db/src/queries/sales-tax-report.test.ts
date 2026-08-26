@@ -23,6 +23,7 @@ describe("listSalesTaxReportOrders", () => {
 
 		expect(capturedArgs).toMatchObject({
 			where: {
+				amountDue: { lte: 0 },
 				deletedAt: null,
 				type: "order",
 				createdAt: {

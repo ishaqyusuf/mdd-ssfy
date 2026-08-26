@@ -13,23 +13,14 @@ export function formatSalesTaxCalendarDate(date: Date) {
 	].join("-");
 }
 
-export function getSalesTaxReportStartDate(endDate: Date) {
-	return new Date(endDate.getFullYear(), endDate.getMonth(), 1);
-}
-
-export function getInitialSalesTaxReportMonth(now = new Date()) {
+export function getDefaultSalesTaxReportRange(now = new Date()) {
 	const current = parseDateOnly(getSalesTaxBusinessDate(now));
-	return current.day >= 25
-		? new Date(current.year, current.month - 1, 1)
-		: new Date(current.year, current.month - 2, 1);
+	return {
+		from: new Date(current.year, current.month - 1, 1),
+		to: new Date(current.year, current.month - 1, current.day),
+	};
 }
 
-export function isSelectableSalesTaxReportEndDate(
-	date: Date,
-	now = new Date(),
-) {
-	return (
-		date.getDate() >= 25 &&
-		formatSalesTaxCalendarDate(date) <= getSalesTaxBusinessDate(now)
-	);
+export function isSelectableSalesTaxReportDate(date: Date, now = new Date()) {
+	return formatSalesTaxCalendarDate(date) <= getSalesTaxBusinessDate(now);
 }

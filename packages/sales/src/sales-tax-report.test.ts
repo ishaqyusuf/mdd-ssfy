@@ -8,6 +8,7 @@ import {
 describe("sales tax report period", () => {
 	it("derives the first day through an exclusive next-day boundary across DST", () => {
 		const period = resolveSalesTaxReportPeriod({
+			from: "2026-03-01",
 			to: "2026-03-31",
 			now: new Date("2026-04-01T16:00:00.000Z"),
 		});
@@ -19,45 +20,44 @@ describe("sales tax report period", () => {
 		expect(period.timezone).toBe("America/New_York");
 	});
 
-	it("accepts valid month-end dates and rejects invalid report cutoffs", () => {
+	it("accepts arbitrary non-future ranges and rejects invalid boundaries", () => {
 		for (const to of ["2025-02-28", "2024-02-29", "2026-04-30", "2026-05-31"]) {
 			expect(
 				resolveSalesTaxReportPeriod({
+					from: to,
 					to,
 					now: new Date("2026-06-01T12:00:00.000Z"),
 				}).toDate,
 			).toBe(to);
 		}
-		expect(
-			resolveSalesTaxReportPeriod({
-				to: "2026-02-25",
-				now: new Date("2026-03-01T12:00:00.000Z"),
-			}).toDate,
-		).toBe("2026-02-25");
 		expect(() =>
 			resolveSalesTaxReportPeriod({
-				to: "2026-02-24",
-				now: new Date("2026-03-01T12:00:00.000Z"),
-			}),
-		).toThrow("25th");
-		expect(() =>
-			resolveSalesTaxReportPeriod({
+				from: "2026-02-01",
 				to: "2026-02-30",
 				now: new Date("2026-03-01T12:00:00.000Z"),
 			}),
 		).toThrow("valid calendar date");
 		expect(() =>
 			resolveSalesTaxReportPeriod({
+				from: "2026-04-01",
 				to: "2026-04-25",
 				now: new Date("2026-04-24T12:00:00.000Z"),
 			}),
 		).toThrow("future");
 		expect(() =>
 			resolveSalesTaxReportPeriod({
+				from: "2026-04-01",
 				to: "04/25/2026",
 				now: new Date("2026-05-01T12:00:00.000Z"),
 			}),
 		).toThrow("YYYY-MM-DD");
+		expect(() =>
+			resolveSalesTaxReportPeriod({
+				from: "2026-04-26",
+				to: "2026-04-25",
+				now: new Date("2026-05-01T12:00:00.000Z"),
+			}),
+		).toThrow("start date must be on or before");
 	});
 });
 
@@ -66,6 +66,7 @@ describe("sales tax workbook", () => {
 		const report = buildSalesTaxReport({
 			generatedAt: new Date("2026-04-01T12:00:00.000Z"),
 			period: resolveSalesTaxReportPeriod({
+				from: "2026-03-01",
 				to: "2026-03-31",
 				now: new Date("2026-04-01T12:00:00.000Z"),
 			}),

@@ -134,22 +134,26 @@ export function getSalesTaxBusinessDate(
 }
 
 export function resolveSalesTaxReportPeriod({
+	from,
 	to,
 	now = new Date(),
 	timezone = SALES_TAX_REPORT_TIME_ZONE,
 }: {
+	from: string;
 	to: string;
 	now?: Date;
 	timezone?: string;
 }): SalesTaxReportPeriod {
+	const start = parseDateOnly(from);
 	const end = parseDateOnly(to);
-	if (end.day < 25) {
-		throw new Error("Sales tax report end date must be on or after the 25th.");
+	if (from > to) {
+		throw new Error(
+			"Sales tax report start date must be on or before the end date.",
+		);
 	}
 	if (to > getSalesTaxBusinessDate(now, timezone)) {
 		throw new Error("Sales tax report end date cannot be in the future.");
 	}
-	const start = { year: end.year, month: end.month, day: 1 };
 	return {
 		from: zonedStartOfDay(start, timezone),
 		toExclusive: zonedStartOfDay(addCalendarDays(end, 1), timezone),
@@ -199,7 +203,7 @@ export function buildSalesTaxReport({
 		type: "sales-tax",
 		title: "Sales Tax Report",
 		description:
-			"Current persisted sales order totals and tax for the selected business-date period.",
+			"Current persisted fully paid sales order totals and tax for the selected business-date period.",
 		fileSlug: `tax-${period.fromDate}-to-${period.toDate}`,
 		generatedAt,
 		rowCount: rows.length,

@@ -85,13 +85,21 @@ describe("Sales Reports export menu", () => {
 		expect(unifiedMenu).toContain("Sales Tax Report");
 		expect(unifiedMenu).toContain("setSalesTaxReportOpen(true)");
 		expect(salesTaxDialog).toContain("salesDashboard.salesTaxReport");
-		expect(salesTaxDialog).toContain("formatSalesTaxCalendarDate(selectedTo)");
+		expect(salesTaxDialog).toContain(
+			"formatSalesTaxCalendarDate(selectedRange.from)",
+		);
+		expect(salesTaxDialog).toContain(
+			"formatSalesTaxCalendarDate(selectedRange.to)",
+		);
 		expect(salesTaxDialog).toContain("Generate Excel");
-		expect(salesTaxDialog).toContain("!selectedTo || isGenerating");
+		expect(salesTaxDialog).toContain(
+			"!selectedRange.from || !selectedRange.to",
+		);
 		expect(salesTaxDialog).toContain("report.rowCount === 0");
 		expect(salesTaxDialog).toContain("downloadSalesExcelWorkbook(report)");
-		expect(salesTaxDialog).toContain("Report starts on the first day");
-		expect(salesTaxDialog).toContain('mode="single"');
-		expect(salesTaxDialog).toContain("isSelectableSalesTaxReportEndDate");
+		expect(salesTaxDialog).toContain("Only fully paid orders are");
+		expect(salesTaxDialog).toContain('mode="range"');
+		expect(salesTaxDialog).toContain("numberOfMonths={isWideCalendar ? 2 : 1}");
+		expect(salesTaxDialog).toContain("isSelectableSalesTaxReportDate");
 	});
 });

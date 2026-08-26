@@ -83,9 +83,9 @@
   `getSalesChannelBreakdown`.
 - Protected workbook read: `salesDashboard.report`.
 - Protected manual tax workbook read:
-  `salesDashboard.salesTaxReport({ to: YYYY-MM-DD })`. The server derives the
-  selected month's first day, uses inclusive New York business dates, and
-  rejects end dates before the 25th, future dates, and more than 10,000 orders.
+  `salesDashboard.salesTaxReport({ from: YYYY-MM-DD, to: YYYY-MM-DD })`. The
+  server uses inclusive New York business dates and rejects malformed,
+  reversed, future, and more-than-10,000-order requests.
 - All reads share date-only `from`/`to`, optional `salesRepIds`, and optional
   `salesChannels` filter semantics.
 - `salesDashboard.report` accepts one of `performance-summary`,
@@ -93,8 +93,8 @@
   It returns typed workbook metadata and sheets for client-side `.xlsx`
   generation and rejects more than 10,000 relevant source records.
 - `salesDashboard.salesTaxReport` returns `Report Context`, `Summary`, and
-  `Sales Tax` sheets from persisted non-deleted order `grandTotal` and `tax`;
-  the detail sheet contains Order #, Customer Name, Total, and Tax.
+  `Sales Tax` sheets from persisted fully paid, non-deleted order `grandTotal`
+  and `tax`; the detail sheet contains Order #, Customer Name, Total, and Tax.
 - The dashboard consumes `salesFinance.summary` separately for canonical net
   collections and review counts when the viewer has Finance access.
 

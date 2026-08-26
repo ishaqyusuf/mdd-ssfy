@@ -462,6 +462,10 @@ Tracks authentication and authorization patterns across API surfaces.
 - The Sales Reports UI hides performance and sales-tax workbook actions without
   the export scope, while each protected endpoint repeats both the sales-read
   and export checks.
+- Authorization does not broaden payment visibility: the sales-tax query
+  exposes only fully paid order headers (`amountDue <= 0`, including
+  overpayments) within the requested business-date range and does not return
+  payment or allocation records.
 - Net collections and payment review counts remain behind the separate Sales
   Finance read boundary (`viewOrderPayment`, `editOrderPayment`, or
   `viewSales`).

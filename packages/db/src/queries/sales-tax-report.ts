@@ -8,12 +8,15 @@ export type ListSalesTaxReportOrdersInput = {
 	limit: number;
 };
 
+const FULLY_PAID_ORDER_BALANCE = { lte: 0 } as const;
+
 export function listSalesTaxReportOrders(
 	db: SalesTaxReportQueryDb,
 	input: ListSalesTaxReportOrdersInput,
 ) {
 	return db.salesOrders.findMany({
 		where: {
+			amountDue: FULLY_PAID_ORDER_BALANCE,
 			deletedAt: null,
 			type: "order",
 			createdAt: { gte: input.from, lt: input.toExclusive },

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { salesPerformanceReportSchema } from "./sales-dashboard";
+import {
+	salesPerformanceReportSchema,
+	salesTaxReportSchema,
+} from "./sales-dashboard";
 
 describe("salesPerformanceReportSchema", () => {
 	it("accepts governed report types with active sales filters", () => {
@@ -26,5 +29,17 @@ describe("salesPerformanceReportSchema", () => {
 				reportType: "payments-ledger",
 			}),
 		).toThrow();
+	});
+});
+
+describe("salesTaxReportSchema", () => {
+	it("requires an explicit inclusive date range", () => {
+		expect(
+			salesTaxReportSchema.parse({
+				from: "2026-08-01",
+				to: "2026-08-26",
+			}),
+		).toEqual({ from: "2026-08-01", to: "2026-08-26" });
+		expect(() => salesTaxReportSchema.parse({ to: "2026-08-26" })).toThrow();
 	});
 });

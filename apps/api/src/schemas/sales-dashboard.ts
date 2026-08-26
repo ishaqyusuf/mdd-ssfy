@@ -32,6 +32,7 @@ export type SalesPerformanceReportInput = z.infer<
 >;
 
 export const salesTaxReportSchema = z.object({
+	from: dateOnlyValueSchema,
 	to: dateOnlyValueSchema,
 });
 

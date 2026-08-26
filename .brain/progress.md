@@ -12154,3 +12154,20 @@
   `.brain/progress.md`.
 - Focused automated validation passes for the sales-domain period/workbook,
   API query/permissions, dashboard calendar/menu, and Excel exporter seams.
+
+## 2026-08-26 — Made the Sales Tax Report range-based and paid-only
+
+- Replaced the end-date-only contract with inclusive `{ from, to }` New York
+  business dates. The server now accepts arbitrary non-future ranges, rejects
+  reversed ranges, and preserves exclusive UTC next-day query boundaries.
+- Restricted source rows to fully paid active orders using the existing
+  `SalesOrders.amountDue <= 0` definition, including overpayments;
+  partial/unpaid orders remain excluded while stored `grandTotal` and `tax`
+  continue to drive the workbook.
+- The modal now defaults to the current New York month through today, supports
+  editable range selection, shows two adjacent months on wide screens and one
+  on small screens, and keeps generation disabled for incomplete ranges.
+- Authenticated browser QA verified the default August 1–26 range, disabled
+  future dates, a successful July 20–August 10 API request and download, one
+  overflow-free calendar at 375×812, and two overflow-free calendars at both
+  768×1024 and 1280×720.
