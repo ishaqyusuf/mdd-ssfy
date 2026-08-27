@@ -1,22 +1,5 @@
 # In Progress
 
-### Full Local-Browser Sales QA
-
-- Priority: High
-- Description: F1-F4 and F6 are complete. Six defects affecting persisted
-  summary authority, Shelf copy/projection, tax projection, and pristine
-  Shelf/Moulding synchronization plus grouped duplicate identity are fixed and
-  browser/database verified. The
-  safe component edit matrix now covers pricing, quantities, flags, calculator,
-  invoice costs, profile repricing, duplicate identity, and print parity.
-  Remaining F5 work is the confirmation-gated remove/re-add and cleanup matrix,
-  followed by F7 final review and report closure.
-- Related Feature: New Sales Form System Hardening
-- Status: Blocked — explicit confirmation required immediately before local
-  delete/re-add and cleanup actions
-- Plan File: `.brain/plans/2026-08-26-sales-full-local-browser-qa.md`
-- Updated Date: 2026-08-26
-
 ### Headless Legacy Inventory Adaptation
 
 - Priority: High

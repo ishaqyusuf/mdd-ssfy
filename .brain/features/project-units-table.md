@@ -22,6 +22,22 @@ The `/community/project-units` route now renders through `apps/dashboard/src/com
 - The old `apps/dashboard/src/components/tables/project-units/*` files were removed on 2026-07-17 after import scans confirmed there were no live source consumers outside Brain notes and negative audit assertions.
 
 ## Validation
+- 2026-08-27 Installation-link regression and authenticated browser proof:
+  - Added focused Project Units coverage that pins the Contractor Jobs
+    `unitId` URL, accessible label, click-propagation guard, and reuse of the
+    Installation column by both the standalone and Project Overview column
+    sets.
+  - Added a focused jobs-query test proving numeric `unitId` maps to active
+    `Jobs.homeId` filtering while retaining `deletedAt: null`.
+  - Authenticated local browser QA confirmed unit `09/03` with `0 submitted`
+    navigates to `/hrm/contractors/jobs?unitId=17367` and renders the filtered
+    `No results` state. With `installation=has installation`, unit `26/01` with
+    `1 submitted` navigates to `?unitId=17310` and renders exactly its submitted
+    job with Project / Unit `26/01`; browser Back returns to the same filtered
+    Project Units URL.
+  - The combined focused suite passed with 6 tests / 53 assertions; targeted
+    Biome and whitespace checks passed. Dashboard and API typechecks remain
+    blocked only by unrelated existing baseline diagnostics.
 - 2026-07-17 authenticated browser proof:
   - Claimed the existing Codex in-app browser GND tab, navigated to `https://gndprodesk.localhost/community/project-units`, then restored the tab to its original Sales Orders URL after measurement.
   - Runtime table measurement confirmed the restarted table renders one table with exact `64px` data rows, a `45px` header, sticky Select / Lot-Block / Actions cells, `scrollWidth 1604` vs `clientWidth 1353`, `scrollHeight 3885` vs `clientHeight 653`, and no document-level horizontal overflow.

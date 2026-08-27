@@ -2,7 +2,7 @@
 
 Date: 2026-08-26
 Owner: Sales Form Team
-Status: Blocked awaiting explicit local deletion confirmation
+Status: Complete
 
 ## Objective
 
@@ -46,7 +46,7 @@ sales test proves a direct regression that requires adding them.
 
 ## Goal Checklist
 
-Roadmap: 5/7 non-deferred done (71%).
+Roadmap: 7/7 non-deferred done (100%).
 
 | ID | Outcome | Status | Exit evidence |
 | --- | --- | --- | --- |
@@ -54,9 +54,9 @@ Roadmap: 5/7 non-deferred done (71%).
 | F2 | Full-component quote creation and editing | Done | Quote `03566PC` saved/reopened with every item family; editor, DB, and preview all match `$308.61 + $21.60 = $330.21` |
 | F3 | Quote-to-sale conversion and comparison | Done | Fixed conversion order `09471PC` has one independent target; source unchanged; editor/DB/preview graph matches |
 | F4 | Historical-sale copy and isolation | Done | Legacy order `08731DB` copied to `09472PC`; semantic hashes match, identities are fresh, source unchanged, editor/preview parity fixed |
-| F5 | Component edit matrix | Blocked | Safe add/edit/reprice/flag/calculator/reorder/duplicate paths pass; destructive remove/re-add and cleanup require explicit confirmation |
+| F5 | Component edit matrix | Done | Authorized local remove/re-add and cleanup passed on `03566PC` and `09473PC`; editor, relational database, and regenerated print agree |
 | F6 | Reliability and integrity gates | Done | Two-tab stale conflict, missing-data no-write, retry idempotency, clean reload/preview, timing, and scoped orphan/duplicate scans pass |
-| F7 | Fixes, regressions, review, final report, Brain, and commits | Blocked | Depends on F5 cleanup confirmation and final post-cleanup verification |
+| F7 | Fixes, regressions, review, final report, Brain, and handoff | Done | Nine defects fixed; 139 tests / 475 assertions pass; targeted Biome, UI typecheck, scoped typecheck review, diff, browser, and database integrity gates pass |
 
 Every non-deferred feature must be Done before this Goal is complete.
 
@@ -130,9 +130,9 @@ The exact historical source and generated local IDs are recorded once selected.
 | Severity | Found | Fixed | Verified | Deferred |
 | --- | ---: | ---: | ---: | ---: |
 | Critical | 0 | 0 | 0 | 0 |
-| High | 5 | 5 | 5 | 0 |
-| Medium | 1 | 1 | 1 | 0 |
-| Low | 0 | 0 | 0 | 0 |
+| High | 6 | 6 | 6 | 0 |
+| Medium | 2 | 2 | 2 | 0 |
+| Low | 1 | 1 | 1 | 0 |
 
 ## Evidence And Reporting
 
@@ -275,6 +275,30 @@ The exact historical source and generated local IDs are recorded once selected.
   groups, and matching `$383.61 + $26.85 = $410.46`; reload is `Idle`. Expanded
   regression coverage passes 73 tests / 319 assertions across 12 files. F5 now
   remains open only for confirmation-gated remove/re-add and cleanup actions.
+- 2026-08-27: The user authorized deletion and re-addition of disposable local
+  rows on `03566PC` and `09473PC`. Quote `03566PC` completed Service, Shelf,
+  Moulding, and HPT/Door removal/re-addition, retained the requested print order,
+  and returned to its four-item `$308.61 + $21.60 = $330.21` baseline. Order
+  `09473PC` removed its temporary Shelf, Service, and Door/HPT additions through
+  reviewed adjustment `cmtb5vv4q001c9ko89la17ma3` and settled at eight items,
+  `$4,861.21 + $340.28 = $5,201.49`. That reduction exposed high-severity
+  `ISSUE-007`: approved grouped reduction omitted sibling Service rows from the
+  proposal but left them active. The worker now retires omitted grouped parents
+  and their HPT/Door dependents; an exact-guarded local repair retired only the
+  two stale QA Service rows. Editor, database, and regenerated preview now agree.
+- 2026-08-27: Closed low-severity `ISSUE-008` by replacing blocking native
+  Service deletion confirmation with the shared two-step button and exposing an
+  explicit armed accessible label for every `ConfirmBtn`. Live Chrome proved
+  first-click arming, second-click removal, no JavaScript dialog, and clean
+  reload for Service and Shelf controls. Closed medium `ISSUE-009` by polling
+  for a refreshed sale after an uncertain adjustment-create response: if the
+  post-commit task response fails but the sale version advances, the UI now
+  continues as success; a genuine failure with no refreshed version is still
+  rethrown. Final validation passes 139 tests / 475 assertions across 14 files,
+  targeted Biome and `@gnd/ui` typecheck, changed-path typecheck review, and
+  `git diff --check`. The exact-fixture integrity scan found no header/item
+  mismatch, Shelf/HPT/Door/Step orphan, duplicate active Door identity, or
+  duplicate current document type. F5 and F7 are complete.
 
 ## Frozen Historical Source Baseline
 

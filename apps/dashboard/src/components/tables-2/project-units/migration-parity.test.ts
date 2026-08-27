@@ -78,6 +78,32 @@ describe("Project Units Sales Orders table migration parity", () => {
 		expect(configSource.includes('style: "compact"')).toBe(true);
 	});
 
+	it("links the Installation count to Contractor Jobs filtered by unit", () => {
+		const columnsSource = readSource(
+			"components/tables-2/project-units/columns.tsx",
+		);
+
+		expect(
+			columnsSource.includes(
+				"return `/hrm/contractors/jobs?unitId=${unitId}`;",
+			),
+		).toBe(true);
+		expect(columnsSource.includes("href={getUnitJobsHref(unit.id)}")).toBe(
+			true,
+		);
+		expect(
+			columnsSource.includes(
+				"aria-label={`Open jobs filtered to unit ${unit.lotBlock || unit.id}`}",
+			),
+		).toBe(true);
+		expect(
+			columnsSource.includes("onClick={(event) => event.stopPropagation()}"),
+		).toBe(true);
+		expect(
+			(columnsSource.match(/installationColumn,/g)?.length ?? 0) >= 2,
+		).toBe(true);
+	});
+
 	it("keeps Project Units registered and keeps all Project Overview tabs off legacy tables", () => {
 		const settingsSource = readSource("utils/table-settings.ts");
 		const overviewSource = readSource(

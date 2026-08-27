@@ -54,9 +54,10 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
   ledger.
 - Cancelled dispatch controls no longer project the parent order as terminal
   `Cancelled`. An explicitly cancelled sales order remains terminal.
-- Ready-to-fulfill rows expose guarded production and fulfillment reviews even
-  when legacy production/dispatch projections lag; the server preview is the
-  eligibility authority.
+- Ready-to-fulfill rows expose guarded production review when legacy production
+  projections lag. `Cancel Fulfillment` is exposed only after the lifecycle
+  shows that fulfillment has started; production completion alone never implies
+  a reversible dispatch. The server preview remains the execution authority.
 
 - The Sales Orders `Status` cell is a keyboard-accessible dropdown trigger styled with the shared ghost button variant while retaining the lifecycle status tone.
 - The inline Status dropdown has no redundant `Mark as` label. Its first two
@@ -137,6 +138,15 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 - Saved page-tab list/default queries refetch inactive cache entries as well as active ones. A saved filter such as production complete plus fulfillment pending therefore updates its count after an order is fulfilled without a page reload.
 
 ## Validation
+
+- 2026-08-27 production diagnosis on `09382LM` confirmed one completed
+  production row, fulfillment pending at zero percent, and no active dispatch.
+  The status-menu regression now excludes `Cancel Fulfillment` from
+  `ready_to_fulfill` while retaining it for fulfillment-queued, packing, packed,
+  in-transit, and fulfilled lifecycle states. Focused status/cancellation and
+  status-feedback coverage passed 28 tests / 59 assertions; the exact mismatch
+  harness, targeted Biome, and whitespace checks passed. Dashboard typecheck
+  remains red on unrelated repository-wide baseline diagnostics.
 
 - 2026-08-26 one-click fulfillment review/retry coverage passed 48 tests / 145
   assertions across status resolution, material-review decisions, and

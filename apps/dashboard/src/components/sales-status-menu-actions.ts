@@ -31,19 +31,8 @@ const FULFILLMENT_STARTED_LIFECYCLE_STATUSES =
 		"fulfilled",
 	]);
 
-const COMPLETED_PRODUCTION_STATUSES = new Set([
-	"complete",
-	"completed",
-	"ready",
-]);
-
-function normalizeStatus(status?: string | null) {
-	return status?.trim().toLowerCase() || "";
-}
-
 export function getSalesOrderStatusMenuActions({
 	status,
-	productionStatus,
 }: {
 	status: SalesOrderLifecycleStatus;
 	productionStatus?: string | null;
@@ -71,11 +60,7 @@ export function getSalesOrderStatusMenuActions({
 		});
 	}
 
-	if (
-		fulfillmentStarted ||
-		(status === "ready_to_fulfill" &&
-			COMPLETED_PRODUCTION_STATUSES.has(normalizeStatus(productionStatus)))
-	) {
+	if (fulfillmentStarted) {
 		actions.push({
 			action: "cancel_fulfillment",
 			label: "Cancel Fulfillment",

@@ -28,17 +28,18 @@ describe("sales order status menu actions", () => {
 			},
 			{ action: "fulfilled", label: "Fulfilled" },
 			{ action: "cancel_production", label: "Cancel Production" },
-			{ action: "cancel_fulfillment", label: "Cancel Fulfillment" },
 		]);
 	});
 
-	it("offers guarded fulfillment cancellation when legacy projections lag", () => {
+	it("does not offer fulfillment cancellation before fulfillment starts", () => {
 		const actions = getSalesOrderStatusMenuActions({
 			status: "ready_to_fulfill",
 			productionStatus: "completed",
 		});
 
-		expect(actions.map(({ action }) => action)).toContain("cancel_fulfillment");
+		expect(actions.map(({ action }) => action)).not.toContain(
+			"cancel_fulfillment",
+		);
 	});
 
 	it("lets the server review automatic production when legacy production metadata lags", () => {

@@ -1,13 +1,11 @@
 # Latest Daily GND Codebase Review
 
-Latest report: [2026-08-26](./2026-08-26.md)
+Latest report: [2026-08-27](./2026-08-27.md)
 
 ## Executive Summary
 
-This was a read-only operational codebase review for Ishaq using the Africa/Lagos date. The active project Brain remains `.brain/`; there is still no top-level `brain/` directory, so this report continues the existing `.brain/reports/daily-codebase-review/` history.
+This was a read-only operational review for Ishaq using the Africa/Lagos date. The active project Brain remains `.brain/`; no top-level `brain/` directory exists, so this report continues `.brain/reports/daily-codebase-review/`.
 
-The strongest improvement since the previous daily review is that the old generic public task-triggering risk is no longer the same issue: `apps/api/src/trpc/routers/task-trigger.route.ts` now exposes a protected, narrow `trigger` mutation for `update-sales-control`, and `task-events` public route declarations are backed by query-layer `requireSuperAdmin` checks. That said, the remaining high-risk surface is still broad public sales/payment/customer-account access.
+The strongest current risks are payment/API boundary issues, not basic route discovery. Several previously public task controls now have query-layer Super Admin checks, but `squareTest.test` is still mounted on the main API router as a public mutation that creates a Square Terminal checkout, and several sales/payment/customer-account flows remain public or account-identifier driven.
 
-The highest operational risks today are: public sales/payment/supplier/configuration procedures in the sales router, a public customer pay-portal lookup that returns broad payment/contact/order context from account identifiers, and inventory correctness evidence that is still not release-clean while repairs remain stopped by user request. Typecheck is still red in `@gnd/email`, so the current dirty worktree cannot be broadly proven by the normal monorepo gate.
-
-From a door-manufacturing perspective, the product keeps moving in the right direction around inbound Needs application, fulfillment V2, driver proof, and dealer guidance. The gaps that still matter most for mixed-skill teams are clear protected handoffs for paid orders, material readiness, production readiness, packed status, out-for-delivery status, and customer/dealer-visible proof.
+From a door-manufacturing workflow perspective, recent work improved inbound Needs application, dispatch/driver proof, dealer quote approval, and production/fulfillment guidance. The remaining product gaps are mostly release-readiness and usability gaps: inventory is still not release-clean, dealers still see coarse fulfillment language rather than manufacturing readiness, mobile invoice creation still carries mock/default workflow paths, and mixed-skill workers need clearer protected handoffs from payment to material, production, packing, delivery/pickup, and proof.

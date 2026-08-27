@@ -19,13 +19,19 @@ export async function runCommittedChangeSubmission<TRecord>(input: {
 	createAdjustment: () => Promise<void>;
 	pollForRefreshedRecord: () => Promise<TRecord | null>;
 }) {
+	let creationError: unknown;
 	if (
 		resolveCommittedChangeSubmissionAction(input.alreadyCreated) ===
 		"create-and-poll"
 	) {
-		await input.createAdjustment();
+		try {
+			await input.createAdjustment();
+		} catch (error) {
+			creationError = error;
+		}
 	}
 	const refreshedRecord = await input.pollForRefreshedRecord();
+	if (creationError && refreshedRecord === null) throw creationError;
 	return {
 		alreadyCreated: refreshedRecord === null,
 		refreshedRecord,

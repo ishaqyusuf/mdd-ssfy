@@ -1,5 +1,24 @@
 # Done
 
+### Full Local-Browser Sales QA
+
+- Priority: High
+- Description: Completed authenticated local-database QA for Pablo's persisted
+  price problem, full-component quote creation/editing, quote-to-sale conversion,
+  historical-sale copy, Door/HPT/Moulding/Shelf/Service add/edit/remove/re-add,
+  duplicate/reorder, reviewed adjustments, print parity, stale conflict, retry,
+  invalid input, timing, console health, and relational integrity. Nine defects
+  were fixed, including final grouped-reduction cleanup, accessible non-blocking
+  delete confirmation, and uncertain post-commit response recovery.
+- Related Feature: New Sales Form System Hardening
+- Status: Done
+- Plan File: `.brain/plans/2026-08-26-sales-full-local-browser-qa.md`
+- QA Report: `.gstack/qa-reports/sales-full-2026-08-26/qa-report.md`
+- Validation: authenticated Chrome/editor/preview proof; exact local fixture
+  database audit; 139 tests / 475 assertions across 14 files; targeted Biome;
+  `@gnd/ui` typecheck; changed-path typecheck review; `git diff --check`.
+- Completed Date: 2026-08-27
+
 ### Reversible Inbound Needs Application
 
 - Priority: High

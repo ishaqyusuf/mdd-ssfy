@@ -641,6 +641,43 @@ for phase ownership and rollout requirements.
   regenerated print shows both Service sections in order, and reload is `Idle`.
   Expanded focused validation passes 73 tests / 319 assertions across 12 files.
 
+## 2026-08-27 Approved grouped-reduction completeness
+
+- An approved grouped Service or Moulding proposal is a complete snapshot of
+  the retained group rows. Persisted siblings omitted from that snapshot must be
+  soft-retired; updating only the retained rows leaves a contradictory active
+  relational graph under the approved header.
+- The adjustment worker tracks retained `SalesOrderItems.id` values per group
+  UID, retires active Door and HPT dependents for omitted siblings, releases
+  active Door identity, and then retires the omitted parent items. Missing
+  persisted row or group identity still fails closed.
+- Disposable order `09473PC` exposed the gap during authorized cleanup. Exact-
+  guarded repair retired only QA Service rows `172484` and `172494`. Its idle
+  editor, active relational rows, and regenerated preview now agree at subtotal
+  `$4,861.21`, tax `$340.28`, and principal `$5,201.49`. Focused grouped
+  projection coverage passes 5 tests / 22 assertions.
+
+## 2026-08-27 Sales-row deletion confirmation
+
+- Service deletion uses the shared non-blocking two-click `ConfirmBtn` instead
+  of a native JavaScript confirmation. Every shared confirmation button exposes
+  its armed state through a `Confirm ...` accessible label and title and keeps
+  caller-disabled state while pending.
+- Authenticated Chrome validation proved first-click arming and second-click
+  removal for a temporary Service row, no JavaScript dialog, and the same armed
+  accessible state for Shelf deletion. Reload restored the intended rows and an
+  `Idle` editor.
+
+## 2026-08-27 Uncertain adjustment-response recovery
+
+- Sales adjustment creation commits before task dispatch. A failed or ambiguous
+  response after that commit does not prove the adjustment failed. The form now
+  polls for the refreshed sale even when creation reports an error; an advanced
+  version continues the successful workflow, while no refreshed version
+  rethrows the original error unchanged.
+- This keeps the UI aligned with durable state without suppressing real
+  failures. Save-continuation coverage passes 11 tests / 26 assertions.
+
 ## 2026-08-24 Step-value storage hardening
 
 - Free-form persisted workflow step titles now map to MySQL `TEXT` instead of

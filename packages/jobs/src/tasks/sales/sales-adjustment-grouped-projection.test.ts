@@ -7,14 +7,26 @@ type UpdateCall = {
 	data: Record<string, unknown>;
 };
 
+type UpdateManyCall = {
+	where: Record<string, unknown>;
+	data: Record<string, unknown>;
+};
+
 function createTransactionMock() {
 	const salesItemUpdates: UpdateCall[] = [];
 	const hptUpdates: UpdateCall[] = [];
+	const salesItemRetirements: UpdateManyCall[] = [];
+	const hptRetirements: UpdateManyCall[] = [];
+	const doorRetirements: UpdateManyCall[] = [];
 	const tx = {
 		salesOrderItems: {
 			update: async (args: UpdateCall) => {
 				salesItemUpdates.push(args);
 				return { id: args.where.id };
+			},
+			updateMany: async (args: UpdateManyCall) => {
+				salesItemRetirements.push(args);
+				return { count: 0 };
 			},
 		},
 		housePackageTools: {
@@ -26,9 +38,26 @@ function createTransactionMock() {
 				hptUpdates.push(args);
 				return { id: args.where.id };
 			},
+			updateMany: async (args: UpdateManyCall) => {
+				hptRetirements.push(args);
+				return { count: 0 };
+			},
+		},
+		dykeSalesDoors: {
+			updateMany: async (args: UpdateManyCall) => {
+				doorRetirements.push(args);
+				return { count: 0 };
+			},
 		},
 	};
-	return { tx, salesItemUpdates, hptUpdates };
+	return {
+		tx,
+		salesItemUpdates,
+		hptUpdates,
+		salesItemRetirements,
+		hptRetirements,
+		doorRetirements,
+	};
 }
 
 describe("approved grouped sales adjustment projection", () => {
@@ -154,6 +183,46 @@ describe("approved grouped sales adjustment projection", () => {
 			salesItemUpdates.map((update) => update.data.dykeProduction),
 		).toEqual([false, true]);
 		expect(hptUpdates).toHaveLength(0);
+	});
+
+	it("retires persisted grouped siblings omitted from an approved reduction", async () => {
+		const { tx, salesItemRetirements, hptRetirements, doorRetirements } =
+			createTransactionMock();
+		const handled = await projectApprovedGroupedSalesLine({
+			tx: tx as unknown as TransactionClient,
+			salesOrderId: 26569,
+			persistedItemIds: new Set([172482, 172484, 172494]),
+			line: {
+				uid: "service-group",
+				title: "Services",
+				meta: {
+					serviceRows: [
+						{
+							uid: "bypass-track",
+							salesItemId: 172482,
+							primaryGroupItem: true,
+							service: "BYPASS TRACK 5-0 HEAVY DUTY",
+							groupUid: "service-group",
+							qty: 2,
+							unitPrice: 140,
+							lineTotal: 280,
+						},
+					],
+				},
+			},
+		});
+
+		expect(handled).toBe(true);
+		expect(salesItemRetirements).toHaveLength(1);
+		expect(salesItemRetirements[0]?.where).toMatchObject({
+			salesOrderId: 26569,
+			multiDykeUid: "service-group",
+			deletedAt: null,
+			id: { notIn: [172482] },
+		});
+		expect(salesItemRetirements[0]?.data.deletedAt).toBeInstanceOf(Date);
+		expect(hptRetirements).toHaveLength(1);
+		expect(doorRetirements).toHaveLength(1);
 	});
 
 	it("fails closed when an approved grouped row lost its persisted identity", async () => {

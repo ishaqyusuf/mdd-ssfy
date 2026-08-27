@@ -1,5 +1,51 @@
 # Progress
 
+- 2026-08-27: Closed the Project Units Installation-link verification gap. The
+  existing Installation badge already targeted
+  `/hrm/contractors/jobs?unitId=<unitId>` and the jobs query already mapped that
+  value to `Jobs.homeId`, so application code was preserved. Added focused UI
+  contract and query regressions; the combined suite passes 6 tests / 53
+  assertions, targeted Biome and whitespace checks pass, and broad Dashboard /
+  API typechecks retain only unrelated baseline failures. Authenticated HTTPS
+  browser QA proved zero-count unit `09/03` reaches filtered `No results` at
+  `unitId=17367`, while one-job unit `26/01` reaches `unitId=17310` and displays
+  exactly its submitted job.
+
+- 2026-08-27: Fixed the `09382LM` Ready-to-fulfill status-menu mismatch.
+  Production Chrome evidence showed one completed production row and no active
+  dispatch, while the client still exposed `Cancel Fulfillment` and the guarded
+  preview correctly returned `NO_REVERSIBLE_FULFILLMENT`. The status menu now
+  exposes fulfillment cancellation only after the lifecycle indicates started
+  fulfillment; ready-to-fulfill retains production rollback and the normal
+  fulfillment-completion action subject to its dedicated permission. The exact
+  mismatch harness, 28 focused tests / 59 assertions, targeted Biome, and
+  whitespace checks pass. Dashboard typecheck retains unrelated baseline
+  diagnostics.
+
+- 2026-08-27: Completed the seven-milestone exhaustive local-browser Sales QA
+  campaign after the user authorized deletion/re-addition of disposable rows on
+  `03566PC` and `09473PC`. Quote `03566PC` completed Service, Shelf, Moulding,
+  and HPT/Door remove/re-add plus print-order proof, then returned to four active
+  items and `$308.61 + $21.60 = $330.21`. Order `09473PC` removed its temporary
+  Shelf, Service, and Door/HPT additions through a reviewed reduction and now
+  has eight active items at `$4,861.21 + $340.28 = $5,201.49`. The cleanup found
+  and fixed high-severity `ISSUE-007`: approved grouped reductions now retire
+  omitted sibling parent rows and their HPT/Door dependents. Exact-guarded local
+  repair retired only stale QA Service rows `172484` and `172494`.
+- 2026-08-27: Closed final UX/reliability issues from the live pass. Service row
+  deletion now uses the shared two-click in-page confirmation; `ConfirmBtn`
+  exposes an accessible armed label/title and preserves disabled state. Chrome
+  proved Service first-click/second-click behavior, no native dialog, Shelf armed
+  state, clean reload, and zero console errors. Reviewed-change continuation now
+  polls after an uncertain create response and accepts an advanced sale version,
+  while preserving a real error when no refresh appears. Final regression gate
+  passes 139 tests / 475 assertions across 14 files; targeted Biome, `@gnd/ui`
+  typecheck, changed-path typecheck review, and `git diff --check` pass. Exact
+  fixture scan across ids `26560`, `26564`, `26565`, `26567`, and `26569` found
+  zero header/item mismatch, Shelf/HPT/Door/Step orphan, duplicate active Door
+  identity, or duplicate current document type. Sales/Jobs/Dashboard broad
+  typechecks retain only existing unrelated baseline diagnostics.
+
 - 2026-08-26: Removed the misleading New Dispatch Created notification from
   the Mark as Fulfilled continuation. The internal queue dispatch remains the
   terminal task artifact, but `ensureSalesOrderFulfillmentDispatch` no longer

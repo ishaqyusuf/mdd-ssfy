@@ -3,7 +3,7 @@
 
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
-import { Icons } from "@gnd/ui/icons";
+import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { Input } from "@gnd/ui/input";
 import { InputGroup } from "@gnd/ui/namespace";
 import { SalesFormQuantityStepper } from "./sales-form-quantity-stepper";
@@ -164,24 +164,20 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 									{props.formatMoney(row.lineTotal) || "$0.00"}
 								</td>
 								<td className="px-3 py-2 text-right">
-									<Button
+									<ConfirmBtn
 										type="button"
 										size="icon"
 										variant="ghost"
+										trash
 										className="size-7 text-muted-foreground hover:text-destructive"
 										aria-label={`Delete service line ${index + 1}`}
-										onClick={() => {
-											const confirmed = window.confirm(
-												`Delete service line ${index + 1}?`,
-											);
-											if (!confirmed) return;
+										confirmLabel={`Confirm delete service line ${index + 1}`}
+										onClick={() =>
 											props.onRowsChange(
 												props.rows.filter((_item, i) => i !== index),
-											);
-										}}
-									>
-										<Icons.Trash2 className="size-4" />
-									</Button>
+											)
+										}
+									/>
 								</td>
 							</tr>
 						))}

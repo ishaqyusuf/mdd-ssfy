@@ -84,16 +84,27 @@ export async function projectApprovedGroupedSalesLine(input: {
 }) {
 	const expanded = expandGroupedLineForLegacySave(input.line);
 	if (!expanded.some((entry) => entry.kind != null)) return false;
+	const retainedItemIdsByGroup = new Map<string, Set<number>>();
 
 	for (const entry of expanded) {
 		if (!entry.kind || !entry.row) continue;
 		const row = record(entry.row);
+		const groupUid = String(entry.groupUid || "").trim();
+		if (!groupUid) {
+			throw new Error(
+				`Approved grouped ${entry.kind} row is missing its persisted group identity.`,
+			);
+		}
 		const salesOrderItemId = Number(row.salesItemId || 0);
 		if (!input.persistedItemIds.has(salesOrderItemId)) {
 			throw new Error(
 				`Approved grouped ${entry.kind} row is missing its persisted sales-item identity.`,
 			);
 		}
+		const retainedItemIds =
+			retainedItemIdsByGroup.get(groupUid) || new Set<number>();
+		retainedItemIds.add(salesOrderItemId);
+		retainedItemIdsByGroup.set(groupUid, retainedItemIds);
 
 		const qty = Number(row.qty || 0);
 		const rate = groupedRowUnitPrice(entry.kind, row);
@@ -110,7 +121,7 @@ export async function projectApprovedGroupedSalesLine(input: {
 				qty,
 				rate,
 				total,
-				multiDykeUid: entry.groupUid,
+				multiDykeUid: groupUid,
 				multiDyke: entry.primaryGroupItem,
 				dykeProduction:
 					entry.kind === "service" ? Boolean(row.produceable) : false,
@@ -133,6 +144,34 @@ export async function projectApprovedGroupedSalesLine(input: {
 				rowTotal: total,
 			});
 		}
+	}
+
+	const retiredAt = new Date();
+	for (const [groupUid, retainedItemIds] of retainedItemIdsByGroup) {
+		const omittedItemFilter = {
+			salesOrderId: input.salesOrderId,
+			multiDykeUid: groupUid,
+			deletedAt: null,
+			id: { notIn: [...retainedItemIds] },
+		};
+		await input.tx.dykeSalesDoors.updateMany({
+			where: {
+				deletedAt: null,
+				salesOrderItem: omittedItemFilter,
+			},
+			data: { deletedAt: retiredAt, activeIdentity: null },
+		});
+		await input.tx.housePackageTools.updateMany({
+			where: {
+				deletedAt: null,
+				salesOrderItem: omittedItemFilter,
+			},
+			data: { deletedAt: retiredAt },
+		});
+		await input.tx.salesOrderItems.updateMany({
+			where: omittedItemFilter,
+			data: { deletedAt: retiredAt },
+		});
 	}
 
 	return true;

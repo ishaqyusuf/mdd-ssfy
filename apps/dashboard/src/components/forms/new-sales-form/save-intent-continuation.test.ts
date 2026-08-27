@@ -51,6 +51,34 @@ describe("new sales form save intent continuation", () => {
 		});
 	});
 
+	test("recovers when adjustment creation reports an error after the sale version advances", async () => {
+		const result = await runCommittedChangeSubmission({
+			alreadyCreated: false,
+			createAdjustment: async () => {
+				throw new Error("task dispatch response failed");
+			},
+			pollForRefreshedRecord: async () => ({ version: "v2" }),
+		});
+
+		expect(result).toEqual({
+			alreadyCreated: false,
+			refreshedRecord: { version: "v2" },
+		});
+	});
+
+	test("preserves a real creation error when no refreshed sale appears", async () => {
+		const error = new Error("adjustment was not created");
+		await expect(
+			runCommittedChangeSubmission({
+				alreadyCreated: false,
+				createAdjustment: async () => {
+					throw error;
+				},
+				pollForRefreshedRecord: async () => null,
+			}),
+		).rejects.toBe(error);
+	});
+
 	test("resumes Save & Close with the refreshed record after change review", async () => {
 		const calls: string[] = [];
 		const refreshedRecord = { version: "v2" };
