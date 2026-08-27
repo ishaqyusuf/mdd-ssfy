@@ -767,7 +767,12 @@ const TABLE_CONFIG_BASES: Record<TableId, Omit<TableConfig, "fillColumnId">> = {
 			project: "project",
 			lotBlock: "lotBlock",
 		},
-		nonReorderableColumns: new Set(["select", "lotBlock", "actions"]),
+		nonReorderableColumns: new Set([
+			"select",
+			"lotBlock",
+			"installation",
+			"actions",
+		]),
 		rowHeight: 64,
 		headerHeight: 45,
 		style: "compact",

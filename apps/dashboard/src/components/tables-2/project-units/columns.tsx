@@ -361,7 +361,10 @@ const installationColumn: Column = {
 		preventDefault: true,
 		skeleton: { type: "badge" },
 		headerLabel: "Installation",
-		className: sizeClass(sizes.custom(140, 220, 160)),
+		className: cn(
+			sizeClass(sizes.custom(140, 220, 160)),
+			"md:sticky md:right-[124px] z-20 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary",
+		),
 	},
 	cell: ({ row }) => {
 		const unit = row.original;

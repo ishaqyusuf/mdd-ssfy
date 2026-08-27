@@ -79,9 +79,13 @@ describe("Project Units Sales Orders table migration parity", () => {
 	});
 
 	it("links the Installation count to Contractor Jobs filtered by unit", () => {
+		const headerSource = readSource(
+			"components/tables-2/project-units/table-header.tsx",
+		);
 		const columnsSource = readSource(
 			"components/tables-2/project-units/columns.tsx",
 		);
+		const configSource = readSource("utils/table-configs.ts");
 
 		expect(
 			columnsSource.includes(
@@ -101,6 +105,13 @@ describe("Project Units Sales Orders table migration parity", () => {
 		).toBe(true);
 		expect(
 			(columnsSource.match(/installationColumn,/g)?.length ?? 0) >= 2,
+		).toBe(true);
+		expect(columnsSource.includes("md:right-[124px]")).toBe(true);
+		expect(headerSource.includes("md:right-[124px]")).toBe(true);
+		expect(
+			/nonReorderableColumns:\s*new Set\(\[\s*"select",\s*"lotBlock",\s*"installation",\s*"actions",?\s*\]\)/.test(
+				configSource,
+			),
 		).toBe(true);
 	});
 

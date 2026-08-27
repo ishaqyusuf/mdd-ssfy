@@ -22,6 +22,22 @@ The `/community/project-units` route now renders through `apps/dashboard/src/com
 - The old `apps/dashboard/src/components/tables/project-units/*` files were removed on 2026-07-17 after import scans confirmed there were no live source consumers outside Brain notes and negative audit assertions.
 
 ## Validation
+- 2026-08-27 production Chrome diagnosis and responsive click fix:
+  - Chrome reproduced that a pointer click on the Installation badge stayed on
+    `/community/project-units`, even though the anchor href correctly targeted
+    `/hrm/contractors/jobs?unitId=17386`.
+  - Browser hit-testing at the 1512px production viewport showed the sticky
+    124px Actions cell covering the Installation badge: Actions occupied
+    x=1363–1487 while the badge occupied x=1437–1518. Keyboard activation still
+    reached the filtered Jobs page, isolating the defect to table layout rather
+    than routing or query filtering.
+  - Installation is now right-sticky immediately before Actions and both
+    columns are non-reorderable, preserving a stable, non-overlapping target.
+  - Authenticated local Chrome acceptance passed at the same viewport: the
+    Installation cell occupied x=1203–1363, Actions began at x=1363, hit-testing
+    resolved inside the link, and a pointer click navigated to
+    `/hrm/contractors/jobs?unitId=17367`; the Jobs page rendered the `17367`
+    filter token and its filtered no-results state.
 - 2026-08-27 Installation-link regression and authenticated browser proof:
   - Added focused Project Units coverage that pins the Contractor Jobs
     `unitId` URL, accessible label, click-propagation guard, and reuse of the

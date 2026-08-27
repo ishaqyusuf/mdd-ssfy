@@ -92,6 +92,7 @@ export function DataTableHeader<TData>({
 								| undefined;
 							const isSticky = meta?.sticky ?? false;
 							const isActions = columnId === "actions";
+							const isInstallation = columnId === "installation";
 							const canReorder =
 								!tableConfig.nonReorderableColumns.has(columnId);
 
@@ -142,7 +143,12 @@ export function DataTableHeader<TData>({
 												HEADER_BACKGROUND_CLASS,
 												showRightDivider && "border-r",
 											)
-									: cn(stickyClass, HEADER_BACKGROUND_CLASS, "z-10");
+									: cn(
+											stickyClass,
+											HEADER_BACKGROUND_CLASS,
+											"z-10",
+											isInstallation && "md:sticky md:right-[124px]",
+										);
 
 								return (
 									<TableHead
