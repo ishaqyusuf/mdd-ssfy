@@ -12542,3 +12542,11 @@
   need to ordered coverage without claiming fulfillment.
 - Focused overview, dashboard source-contract, and coverage-helper suites pass
   56 tests / 158 assertions.
+
+## 2026-08-28 — Restored Available terminology for fulfilled inventory needs
+
+- Kept the corrected allocated-plus-received availability calculation while
+  changing the Inventory Needs badge from `COVERED` back to the operator-facing
+  `AVAILABLE` terminology. Marking stock available and receiving/applying an
+  inbound now present the same `AVAILABLE x OF y` result; unapplied open inbound
+  remains separately represented as `ORDERED x OF y`.

@@ -45,11 +45,11 @@ describe("sales inventory automatic synchronization UI", () => {
 		);
 	});
 
-	test("shows separate covered and ordered coverage on flat divided rows", () => {
+	test("shows separate available and ordered coverage on flat divided rows", () => {
 		expect(inventoryTabSource).toContain("resolveInventoryCoverageDisplay");
 		expect(inventoryTabSource).toContain("coverage.showCovered");
 		expect(inventoryTabSource).toContain("coverage.showOrdered");
-		expect(inventoryTabSource).toContain("COVERED:");
+		expect(inventoryTabSource).toContain("AVAILABLE:");
 		expect(inventoryTabSource).toContain("ORDERED:");
 		expect(inventoryTabSource).toContain("border-b border-border");
 		expect(inventoryTabSource).toContain("hover:bg-muted/50");
