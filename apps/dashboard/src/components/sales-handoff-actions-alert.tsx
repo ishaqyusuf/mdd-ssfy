@@ -7,6 +7,7 @@ import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
 	SALES_NEEDS_ACTION_HREF,
 	getSalesNeedsActionLabel,
@@ -52,6 +53,7 @@ export function SalesHandoffActionsAlertContent({ count }: { count: number }) {
 
 export function SalesHandoffActionsAlert() {
 	const trpc = useTRPC();
+	const [isHydrated, setIsHydrated] = useState(false);
 	const scopeQuery = useQuery(
 		trpc.sales.getOpenSalesHandoffOrderScope.queryOptions(
 			{ limit: 200 },
@@ -61,8 +63,13 @@ export function SalesHandoffActionsAlert() {
 			},
 		),
 	);
+	useEffect(() => {
+		setIsHydrated(true);
+	}, []);
 
-	if (scopeQuery.isPending) return <SalesHandoffActionsAlertSkeleton />;
+	if (!isHydrated || scopeQuery.isPending) {
+		return <SalesHandoffActionsAlertSkeleton />;
+	}
 	if (scopeQuery.isError) {
 		return (
 			<Alert

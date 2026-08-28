@@ -34,11 +34,21 @@ describe("Sales Handoff alert hydration boundary", () => {
 	test("retains compact client loading and explicit retry behavior", () => {
 		expect(alertSource).toContain("const scopeQuery = useQuery(");
 		expect(alertSource).toContain("getOpenSalesHandoffOrderScope");
-		expect(alertSource).toContain("if (scopeQuery.isPending)");
+		expect(alertSource).toContain("scopeQuery.isPending");
 		expect(alertSource).toContain("<SalesHandoffActionsAlertSkeleton />");
 		expect(alertSource).toContain("Unable to load paid sales actions");
 		expect(alertSource).toContain("scopeQuery.refetch()");
 		expect(alertSource).toContain("Retry");
 		expect(alertSource).toContain("scopeQuery.data.uniqueOrderCount");
+	});
+
+	test("keeps the first client render aligned with the server skeleton", () => {
+		expect(alertSource).toContain(
+			"const [isHydrated, setIsHydrated] = useState(false)",
+		);
+		expect(alertSource).toContain("setIsHydrated(true)");
+		expect(alertSource).toContain(
+			"if (!isHydrated || scopeQuery.isPending)",
+		);
 	});
 });

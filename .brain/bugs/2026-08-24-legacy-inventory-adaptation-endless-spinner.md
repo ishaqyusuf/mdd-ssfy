@@ -57,6 +57,13 @@ without another sync/history write. Received-backorder allocation recognizes
 pending-review coverage before reserving again, preventing the duplicate
 suggestion/reservation chain observed during the reproduction.
 
+Live unapply verification on inbound `#262` exposed an invalid Prisma guard
+added during the hardening pass: `LineItemComponents` has no `deletedAt` field.
+Component recompute now guards the related parent `LineItem.deletedAt` instead.
+The authorized retry restored two linked demands for `09495PC`, changed them
+from Received `1/1` to Ordered `0/1`, and returned the order to awaiting inbound
+without reversing stock.
+
 ## Related Files
 
 - `packages/sales/src/sales-inventory-projection-state.ts`

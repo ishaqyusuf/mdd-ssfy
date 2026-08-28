@@ -12511,3 +12511,21 @@
 - The separate Sales Handoff reconciliation failure remains the documented
   fail-closed source-projection repair signal; this change does not weaken or
   reinterpret that worker contract.
+
+## 2026-08-28 — Browser-verified inbound unapply and Sales alert hydration
+
+- Reproduced inbound `#262` unapply for order `09495PC` failing with Prisma
+  `Unknown argument deletedAt` during line-item component recompute.
+- Corrected the schema guard from nonexistent `LineItemComponents.deletedAt`
+  to the active parent `LineItem.deletedAt` relation and changed the package
+  regression mocks so unsupported component fields fail instead of passing
+  silently.
+- Retried the authorized live mutation successfully: two linked material needs
+  were restored from Received `1/1` to Ordered `0/1`, readiness changed to
+  awaiting inbound, physical stock remained unchanged, and post-commit Sales
+  Handoff reconciliation returned successfully.
+- Stabilized `SalesHandoffActionsAlert` hydration so the server and first client
+  render both use the compact skeleton even when the shared client query cache
+  already contains the 616-order action result. A reload after the fix produced
+  no new hydration error; the only captured error preceded the fix.
+- Focused inbound and alert coverage passes 69 tests / 193 assertions.

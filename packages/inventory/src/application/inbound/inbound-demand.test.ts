@@ -365,13 +365,23 @@ describe("inbound needs application", () => {
 					},
 				},
 				lineItemComponents: {
-					findFirst: async () => ({
-						id: 100,
-						qty: 5,
-						stockAllocations: [],
-						inboundDemands: [{ qty: 5, qtyReceived: demand.qtyReceived }],
-					}),
-					updateMany: async () => ({ count: 1 }),
+					findFirst: async ({ where }: { where: Record<string, unknown> }) => {
+						if ("deletedAt" in where) {
+							throw new Error('Unknown argument `deletedAt`');
+						}
+						return {
+							id: 100,
+							qty: 5,
+							stockAllocations: [],
+							inboundDemands: [{ qty: 5, qtyReceived: demand.qtyReceived }],
+						};
+					},
+					updateMany: async ({ where }: { where: Record<string, unknown> }) => {
+						if ("deletedAt" in where) {
+							throw new Error('Unknown argument `deletedAt`');
+						}
+						return { count: 1 };
+					},
 				},
 				event: {
 					findFirst: async () => applyEvent,
@@ -2035,7 +2045,7 @@ describe("receiveInboundShipment", () => {
 			{
 				where: {
 					id: 8502,
-					deletedAt: null,
+					parent: { deletedAt: null },
 				},
 				select: {
 					id: true,
@@ -2070,7 +2080,7 @@ describe("receiveInboundShipment", () => {
 			{
 				where: {
 					id: 8502,
-					deletedAt: null,
+					parent: { deletedAt: null },
 				},
 				data: {
 					qtyAllocated: 0,
@@ -2720,7 +2730,7 @@ describe("applyOrderInboundStatusToInventoryDemand", () => {
 			{
 				where: {
 					id: 901,
-					deletedAt: null,
+					parent: { deletedAt: null },
 				},
 				data: {
 					qtyAllocated: 0,
@@ -2732,7 +2742,7 @@ describe("applyOrderInboundStatusToInventoryDemand", () => {
 			{
 				where: {
 					id: 902,
-					deletedAt: null,
+					parent: { deletedAt: null },
 				},
 				data: {
 					qtyAllocated: 0,
@@ -3835,7 +3845,7 @@ describe("releaseCancelledInboundShipmentDemand", () => {
 			{
 				where: {
 					id: 401,
-					deletedAt: null,
+					parent: { deletedAt: null },
 				},
 				data: {
 					qtyAllocated: 0,
@@ -4023,7 +4033,7 @@ describe("releaseCancelledInboundShipmentDemand", () => {
 			{
 				where: {
 					id: 403,
-					deletedAt: null,
+					parent: { deletedAt: null },
 				},
 				data: {
 					qtyAllocated: 0,
@@ -4073,7 +4083,7 @@ describe("releaseCancelledInboundShipmentDemand", () => {
 			{
 				where: {
 					id: 405,
-					deletedAt: null,
+					parent: { deletedAt: null },
 				},
 				data: {
 					qtyAllocated: 0,

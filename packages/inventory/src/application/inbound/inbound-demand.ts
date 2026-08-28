@@ -1634,7 +1634,7 @@ async function recomputeLineItemComponentDemandState(
   const component = await db.lineItemComponents.findFirst({
     where: {
       id: lineItemComponentId,
-      deletedAt: null,
+      parent: { deletedAt: null },
     },
     select: {
       id: true,
@@ -1690,7 +1690,7 @@ async function recomputeLineItemComponentDemandState(
   const updatedComponent = await db.lineItemComponents.updateMany({
     where: {
       id: component.id,
-      deletedAt: null,
+      parent: { deletedAt: null },
     },
     data: nextState,
   });
