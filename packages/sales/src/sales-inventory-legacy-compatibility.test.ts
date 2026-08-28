@@ -65,6 +65,18 @@ describe("resolveSalesInventoryLegacyCompatibility", () => {
 		).toBe("terminal");
 	});
 
+	test("keeps completed linked inbound evidence ahead of adaptation", () => {
+		expect(
+			resolveSalesInventoryLegacyCompatibility({
+				legacyStatus: "ORDERED",
+				lifecycleStatus: "awaiting_production",
+				inventoryRowCount: 1,
+				linkedInboundCount: 1,
+				activeLinkedInboundCount: 0,
+			}).state,
+		).toBe("legacy_reconciled");
+	});
+
 	test("keeps ORDERED actionable when needs exist but no inbound represents it", () => {
 		expect(
 			resolveSalesInventoryLegacyCompatibility({
@@ -80,7 +92,21 @@ describe("resolveSalesInventoryLegacyCompatibility", () => {
 		});
 	});
 
-	test("reconciles AVAILABLE only from a durable ready zero-need projection", () => {
+	test("keeps a successfully projected ORDERED order reconciled after its inbound is received", () => {
+		expect(
+			resolveSalesInventoryLegacyCompatibility({
+				legacyStatus: "ORDERED",
+				lifecycleStatus: "awaiting_production",
+				inventoryRowCount: 3,
+				projectionStatus: "ready",
+				projectionNeedCount: 3,
+				projectionSource: "legacy-status",
+				activeLinkedInboundCount: 0,
+			}).state,
+		).toBe("legacy_reconciled");
+	});
+
+	test("reconciles AVAILABLE from any durable ready projection", () => {
 		expect(
 			resolveSalesInventoryLegacyCompatibility({
 				legacyStatus: "AVAILABLE",
@@ -98,7 +124,7 @@ describe("resolveSalesInventoryLegacyCompatibility", () => {
 				projectionStatus: "ready",
 				projectionNeedCount: 2,
 			}).state,
-		).toBe("legacy_locked");
+		).toBe("legacy_reconciled");
 		expect(
 			resolveSalesInventoryLegacyCompatibility({
 				legacyStatus: "AVAILABLE",

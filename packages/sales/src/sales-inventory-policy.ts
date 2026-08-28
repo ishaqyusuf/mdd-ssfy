@@ -107,6 +107,7 @@ export function resolveSalesInventoryOverviewSetupMode(input: {
 	) {
 		return "not_applicable";
 	}
+	if (input.projectionStatus === "ready") return "active";
 	if (hasPassedInventoryTrackingRepairBoundary(input.lifecycleStatus)) {
 		return "completed_readonly";
 	}

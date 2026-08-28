@@ -21,6 +21,18 @@ describe("sales inventory automatic synchronization UI", () => {
 		expect(inventoryTabSource).toContain("Synchronize inventory");
 	});
 
+	test("uses canonical compatibility instead of stale setup mode for legacy prompts", () => {
+		expect(inventoryTabSource).toContain(
+			'overview.inventoryLegacyCompatibility.state === "legacy_locked"',
+		);
+		expect(inventoryTabSource).not.toContain(
+			'overview?.setupMode === "legacy_status_locked"',
+		);
+		expect(inventoryTabSource).not.toContain(
+			'overview.setupMode === "legacy_status_locked" ||',
+		);
+	});
+
 	test("refreshes the infinite orders table when synchronization completes", () => {
 		expect(inventoryTabSource).toContain(
 			"trpc.sales.getOrders.infiniteQueryKey()",

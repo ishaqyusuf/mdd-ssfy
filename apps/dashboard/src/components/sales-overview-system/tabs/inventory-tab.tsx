@@ -2644,7 +2644,6 @@ function SalesOverviewInventoryContentBody({
 	};
 	useEffect(() => {
 		const isLegacyLocked =
-			overview?.setupMode === "legacy_status_locked" ||
 			overview?.inventoryLegacyCompatibility.state === "legacy_locked";
 		if (
 			isLegacyLocked ||
@@ -2669,7 +2668,6 @@ function SalesOverviewInventoryContentBody({
 		overview?.capabilities.canSync,
 		overview?.inventoryApplicability.canManualSync,
 		overview?.inventoryLegacyCompatibility.state,
-		overview?.setupMode,
 		syncInventory.mutate,
 	]);
 	const groups = overview?.groups ?? [];
@@ -2749,10 +2747,7 @@ function SalesOverviewInventoryContentBody({
 		return <InventoryNotApplicableState overview={overview} />;
 	}
 
-	if (
-		overview.setupMode === "legacy_status_locked" ||
-		overview.inventoryLegacyCompatibility.state === "legacy_locked"
-	) {
+	if (overview.inventoryLegacyCompatibility.state === "legacy_locked") {
 		return <LegacyInventoryStatusLockedState overview={overview} />;
 	}
 

@@ -258,6 +258,7 @@ export type SalesOverviewInventoryLine = {
 	supplierNames: string[];
 	hasSupplierPrice: boolean;
 	inboundDemandIds: number[];
+	linkedInboundDemandIds: number[];
 	pendingInboundDemandIds: number[];
 	pendingStockAllocationIds: number[];
 	actions: SalesOverviewInventoryLineAction[];
@@ -600,6 +601,11 @@ export function buildSalesOverviewInventoryGroups(
 				const inboundDemandIds = uniqueNumbers(
 					inboundDemands.map((demand) => demand.id ?? null),
 				);
+				const linkedInboundDemandIds = uniqueNumbers(
+					inboundDemands
+						.filter((demand) => demand.inboundShipmentItemId != null)
+						.map((demand) => demand.id ?? null),
+				);
 				const pendingInboundDemandIds = uniqueNumbers(
 					inboundDemands
 						.filter((demand) => {
@@ -674,6 +680,7 @@ export function buildSalesOverviewInventoryGroups(
 							supplierVariant.salesPrice != null,
 					),
 					inboundDemandIds,
+					linkedInboundDemandIds,
 					pendingInboundDemandIds,
 					pendingStockAllocationIds,
 					actions: resolveLineActions({
@@ -854,6 +861,9 @@ export function buildSalesOverviewInventoryMergedRows(
 					hasSupplierPrice: rows.some((row) => row.hasSupplierPrice),
 					inboundDemandIds: uniqueNumbers(
 						rows.flatMap((row) => row.inboundDemandIds),
+					),
+					linkedInboundDemandIds: uniqueNumbers(
+						rows.flatMap((row) => row.linkedInboundDemandIds),
 					),
 					pendingInboundDemandIds: uniqueNumbers(
 						rows.flatMap((row) => row.pendingInboundDemandIds),
@@ -1420,6 +1430,18 @@ export async function getSalesInventoryOverview(
 									status: {
 										not: "cancelled",
 									},
+									OR: [
+										{ inboundShipmentItemId: null },
+										{
+											inboundShipmentItem: {
+												deletedAt: null,
+												inbound: {
+													deletedAt: null,
+													status: { not: "cancelled" },
+												},
+											},
+										},
+									],
 								},
 								select: {
 									id: true,
@@ -1474,6 +1496,11 @@ export async function getSalesInventoryOverview(
 	)
 		? 1
 		: 0;
+	const linkedInboundCount = rows.some(
+		(row) => row.linkedInboundDemandIds.length > 0,
+	)
+		? 1
+		: 0;
 
 	return {
 		...saleSnapshot,
@@ -1493,6 +1520,7 @@ export async function getSalesInventoryOverview(
 			projectionStatus: sale.inventoryProjection?.status,
 			projectionNeedCount: sale.inventoryProjection?.needCount,
 			projectionSource: sale.inventoryProjection?.source,
+			linkedInboundCount,
 			activeLinkedInboundCount,
 		}),
 		setupMode,

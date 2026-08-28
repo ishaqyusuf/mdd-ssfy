@@ -1199,7 +1199,7 @@ async function normalizeOrders(
 				projectionStatus: inventoryProjection?.status,
 				projectionNeedCount: inventoryProjection?.needCount,
 				projectionSource: inventoryProjection?.source,
-				activeLinkedInboundCount:
+				linkedInboundCount:
 					lifecycleRow.inventoryInboundOwnership?.linkedInboundCount ?? 0,
 			}),
 		};

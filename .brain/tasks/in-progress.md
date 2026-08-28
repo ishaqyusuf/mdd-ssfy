@@ -3,15 +3,16 @@
 ### Headless Legacy Inventory Adaptation
 
 - Priority: High
-- Description: Save-triggered legacy inventory adaptation is implemented and
-  deployed. Trigger production version `20260824.5` and the matching Vercel
-  production release are active; the first post-deploy error canary is clear.
-  Continue bounded monitoring of task terminal projection state and only close
-  this entry after a real recognized-legacy save produces a production task run
-  with terminal durable evidence.
+- Description: Save-triggered legacy inventory adaptation is deployed. The
+  2026-08-28 post-receipt recurrence fix is implemented locally: durable ready
+  projections and completed linked inbound evidence remain reconciled, final
+  receipt uses guarded order availability normalization, replay is write-free,
+  and received-backorder allocation respects pending-review coverage. Focused
+  automated coverage is green; deployment and authenticated receive/reopen
+  browser proof remain before closure.
 - Related Feature: Inventory-backed Sales Fulfillment
-- Status: Canary Monitoring
-- Updated Date: 2026-08-24
+- Status: Fix Implemented — Deployment And Browser Proof Pending
+- Updated Date: 2026-08-28
 
 ### Driver Dashboard Command Center
 

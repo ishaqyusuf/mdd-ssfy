@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	buildSalesOverviewInventoryGroups,
 	buildSalesOverviewInventoryMergedRows,
+	getSalesInventoryOverview,
 	hasPassedInventoryTrackingRepairBoundary,
 	resolveSalesInventoryOperationPolicy,
 	resolveSalesInventoryOverviewSetupMode,
@@ -49,6 +50,18 @@ describe("resolveSalesInventoryOverviewSetupMode", () => {
 		).toBe("not_applicable");
 	});
 
+	test("treats a ready projection with needs as configured even when rows are temporarily absent", () => {
+		expect(
+			resolveSalesInventoryOverviewSetupMode({
+				lifecycleStatus: "awaiting_production",
+				inventoryRowCount: 0,
+				inventoryStatus: "ORDERED",
+				projectionStatus: "ready",
+				projectionNeedCount: 3,
+			}),
+		).toBe("active");
+	});
+
 	test("locks active orders with a manual inbound status before inventory setup", () => {
 		expect(
 			resolveSalesInventoryOverviewSetupMode({
@@ -66,6 +79,51 @@ describe("resolveSalesInventoryOverviewSetupMode", () => {
 				inventoryRowCount: 1,
 			}),
 		).toBe("active");
+	});
+});
+
+describe("getSalesInventoryOverview inbound evidence", () => {
+	test("excludes cancelled and soft-deleted inbound ownership from detail evidence", async () => {
+		let query: Record<string, unknown> | undefined;
+		const db = {
+			salesOrders: {
+				findUnique: async (input: Record<string, unknown>) => {
+					query = input;
+					return null;
+				},
+			},
+		};
+
+		await getSalesInventoryOverview(db as never, { salesOrderId: 7 });
+
+		expect(query).toMatchObject({
+			select: {
+				lineItems: {
+					select: {
+						components: {
+							select: {
+								inboundDemands: {
+									where: {
+										OR: [
+											{ inboundShipmentItemId: null },
+											{
+												inboundShipmentItem: {
+													deletedAt: null,
+													inbound: {
+														deletedAt: null,
+														status: { not: "cancelled" },
+													},
+												},
+											},
+										],
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		});
 	});
 });
 
@@ -472,8 +530,8 @@ describe("buildSalesOverviewInventoryMergedRows", () => {
 								id: 703,
 								qty: 1,
 								qtyReceived: 1,
-								status: "pending",
-								inboundShipmentItemId: null,
+								status: "received",
+								inboundShipmentItemId: 901,
 								inventoryVariantId: 501,
 							},
 						],
@@ -486,6 +544,7 @@ describe("buildSalesOverviewInventoryMergedRows", () => {
 
 		expect(rows[0]).toMatchObject({
 			inboundDemandIds: [701, 702, 703],
+			linkedInboundDemandIds: [702, 703],
 			pendingInboundDemandIds: [701],
 		});
 	});

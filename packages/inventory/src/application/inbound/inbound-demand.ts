@@ -1632,9 +1632,10 @@ async function recomputeLineItemComponentDemandState(
   lineItemComponentId: number,
 ) {
   const component = await db.lineItemComponents.findFirst({
-		where: {
-			id: lineItemComponentId,
-		},
+    where: {
+      id: lineItemComponentId,
+      deletedAt: null,
+    },
     select: {
       id: true,
       qty: true,
@@ -1687,9 +1688,10 @@ async function recomputeLineItemComponentDemandState(
   });
 
   const updatedComponent = await db.lineItemComponents.updateMany({
-		where: {
-			id: component.id,
-		},
+    where: {
+      id: component.id,
+      deletedAt: null,
+    },
     data: nextState,
   });
   if (updatedComponent.count <= 0) return null;
@@ -3170,6 +3172,13 @@ export async function receiveInboundShipment(
               qty: true,
               qtyReceived: true,
               lineItemComponentId: true,
+              lineItemComponent: {
+                select: {
+                  parent: {
+                    select: { saleId: true },
+                  },
+                },
+              },
             },
             orderBy: {
               createdAt: "asc",
@@ -3207,8 +3216,10 @@ export async function receiveInboundShipment(
       item.inboundShipmentItemId,
       {
         qtyReceived: asPositiveNumber(item.qtyReceived, 0),
-        qtyGood: asPositiveNumber(item.qtyGood, 0),
-        qtyIssue: asPositiveNumber(item.qtyIssue, 0),
+        qtyGood:
+          item.qtyGood == null ? null : asPositiveNumber(item.qtyGood, 0),
+        qtyIssue:
+          item.qtyIssue == null ? null : asPositiveNumber(item.qtyIssue, 0),
         unitPrice:
           item.unitPrice == null ? null : Number(item.unitPrice || 0),
         issueType: item.issueType ?? null,
@@ -3239,6 +3250,7 @@ export async function receiveInboundShipment(
   let hasOpenIssues = false;
   const touchedLineItemComponentIds = new Set<number>();
   const touchedInventoryVariantIds = new Set<number>();
+  const touchedSalesOrderIds = new Set<number>();
 
   for (const item of shipment.items) {
     if (item.issues.length > 0) {
@@ -3440,6 +3452,8 @@ export async function receiveInboundShipment(
       remainingQty -= appliedQty;
       touchedComponentIds.add(demand.lineItemComponentId);
       touchedLineItemComponentIds.add(demand.lineItemComponentId);
+      const salesOrderId = demand.lineItemComponent.parent.saleId;
+      if (salesOrderId) touchedSalesOrderIds.add(salesOrderId);
     }
 
     if (qtyGood > 0 && stock) {
@@ -3509,6 +3523,11 @@ export async function receiveInboundShipment(
       `Inbound shipment #${shipment.id} is no longer receivable.`,
     );
   }
+
+  await markSalesOrdersAvailableWhenInboundDemandResolved(
+    db,
+    Array.from(touchedSalesOrderIds),
+  );
 
   return {
     inboundId: shipment.id,

@@ -12487,3 +12487,27 @@
   fixed while preserving the documented no-invented-evidence contract. The
   full campaign ledger and runtime classification are recorded in
   `.brain/reports/2026-08-26-sales-fulfillment-20-order-stress-run.md`.
+
+## 2026-08-28 — Closed post-receipt legacy inventory adaptation recurrence
+
+- Reproduced recent orders `09405PC` and `09495PC` resolving back to legacy
+  adaptation despite durable ready projections; `09495PC` additionally relocked
+  immediately after its final linked inbound was received.
+- Made durable `ready` projection state authoritative for every recognized
+  compatibility value and preserved completed linked inbound demand as canonical
+  list/detail evidence while excluding cancelled or soft-deleted inbound
+  ownership. Ready compatibility now overrides stale setup locks in both the UI
+  and migration service; successful replay returns `already_migrated` without
+  repeating inventory sync or Sales History writes.
+- Extended canonical inbound receipt to set affected orders `AVAILABLE` only
+  through the guarded no-active-demand predicate after shipment completion,
+  preserved `qtyReceived`-only payload behavior, and restored active-component
+  soft-delete guards during recompute.
+- Prevented received-backorder allocation from creating duplicate reservations
+  when pending-review allocation coverage already exists.
+- Focused inventory, compatibility, overview, adaptation, received-backorder,
+  API projection, and dashboard source-contract suites pass 141 tests / 364
+  assertions.
+- The separate Sales Handoff reconciliation failure remains the documented
+  fail-closed source-projection repair signal; this change does not weaken or
+  reinterpret that worker contract.

@@ -3436,7 +3436,13 @@ export async function allocateReceivedInboundToBackorders(
 						where: {
 							deletedAt: null,
 							status: {
-								in: ["approved", "reserved", "picked", "consumed"],
+								in: [
+									"pending_review",
+									"approved",
+									"reserved",
+									"picked",
+									"consumed",
+								],
 							},
 						},
 						select: {

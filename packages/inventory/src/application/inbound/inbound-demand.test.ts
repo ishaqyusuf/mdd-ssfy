@@ -1877,6 +1877,7 @@ describe("receiveInboundShipment", () => {
 		const componentLookups: unknown[] = [];
 		const componentUpdates: unknown[] = [];
 		const shipmentUpdates: unknown[] = [];
+		const salesOrderUpdates: unknown[] = [];
 
 		const result = await receiveInboundShipment(
 			{
@@ -1904,12 +1905,14 @@ describe("receiveInboundShipment", () => {
 										qty: 2,
 										qtyReceived: 0,
 										lineItemComponentId: 8501,
+										lineItemComponent: { parent: { saleId: 95 } },
 									},
 									{
 										id: 9602,
 										qty: 2,
 										qtyReceived: 0,
 										lineItemComponentId: 8502,
+										lineItemComponent: { parent: { saleId: 95 } },
 									},
 								],
 							},
@@ -1963,6 +1966,12 @@ describe("receiveInboundShipment", () => {
 						return { count: 1 };
 					},
 				},
+				salesOrders: {
+					updateMany: async (input: unknown) => {
+						salesOrderUpdates.push(input);
+						return { count: 1 };
+					},
+				},
 			} as any,
 			{
 				inboundId: 57,
@@ -1986,6 +1995,11 @@ describe("receiveInboundShipment", () => {
 			alreadyReceivedQty: 0,
 			lineItemComponentIds: [8502],
 			inventoryVariantIds: [707],
+		});
+		expect(salesOrderUpdates).toHaveLength(1);
+		expect(salesOrderUpdates[0]).toMatchObject({
+			where: { id: { in: [95] } },
+			data: { inventoryStatus: "AVAILABLE" },
 		});
 		expect(demandUpdates).toEqual([
 			{

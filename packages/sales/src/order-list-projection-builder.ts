@@ -584,8 +584,7 @@ export async function refreshSalesOrderListProjections(
 				projectionStatus: inventoryProjection?.status,
 				projectionNeedCount: inventoryProjection?.needCount,
 				projectionSource: inventoryProjection?.source,
-				activeLinkedInboundCount:
-					row.inventoryInboundOwnership.linkedInboundCount,
+				linkedInboundCount: row.inventoryInboundOwnership.linkedInboundCount,
 			}),
 		};
 	});

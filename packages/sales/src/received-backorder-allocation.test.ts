@@ -40,8 +40,9 @@ describe("allocateReceivedInboundToBackorders", () => {
 		expect(result).toMatchObject({ ok: false, processedDemandCount: 0 });
 	});
 
-	test("skips received demand that is already covered by active allocations", async () => {
+	test("skips received demand that is already covered by active or pending-review allocations", async () => {
 		const calls: string[] = [];
+		const componentReads: unknown[] = [];
 		const tx = {
 			inboundDemand: {
 				findMany: async () => [
@@ -55,11 +56,14 @@ describe("allocateReceivedInboundToBackorders", () => {
 				],
 			},
 			lineItemComponents: {
-				findFirst: async () => ({
-					id: 101,
-					qty: 4,
-					stockAllocations: [{ qty: 4 }],
-				}),
+				findFirst: async (input: unknown) => {
+					componentReads.push(input);
+					return {
+						id: 101,
+						qty: 4,
+						stockAllocations: [{ qty: 4 }],
+					};
+				},
 				updateMany: async () => {
 					calls.push("lineItemComponents.updateMany");
 					return { count: 1 };
@@ -100,6 +104,23 @@ describe("allocateReceivedInboundToBackorders", () => {
 			allocations: [],
 		});
 		expect(calls).toEqual([]);
+		expect(componentReads[0]).toMatchObject({
+			select: {
+				stockAllocations: {
+					where: {
+						status: {
+							in: [
+								"pending_review",
+								"approved",
+								"reserved",
+								"picked",
+								"consumed",
+							],
+						},
+					},
+				},
+			},
+		});
 	});
 
 	test("reserves only the uncovered quantity for partially covered demand", async () => {

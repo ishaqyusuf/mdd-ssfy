@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Db } from "@gnd/db";
 
+import { resolveSalesInventoryLegacyCompatibility } from "./sales-inventory-legacy-compatibility";
 import { resolveSalesInventoryLegacyStatusSetup } from "./sales-inventory-legacy-status-setup";
 
 function makeDb(tx: Record<string, unknown>) {
@@ -61,6 +62,44 @@ describe("resolveSalesInventoryLegacyStatusSetup", () => {
 			result: "already_migrated",
 			legacyStatus: "AVAILABLE",
 			nextSegment: "stock",
+		});
+	});
+
+	test("replays a ready ORDERED migration after completed receipt without writing even when setup mode is stale", async () => {
+		const result = await resolveSalesInventoryLegacyStatusSetup(
+			{
+				$transaction: async () => {
+					throw new Error("completed receipt replay must not write");
+				},
+			} as unknown as Db,
+			{
+				salesOrderId: 26674,
+				action: "continue",
+				legacyStatus: "ORDERED",
+			},
+			{
+				getOverview: async () => ({
+					setupMode: "legacy_status_locked",
+					inventoryStatus: "ORDERED",
+					hasInventoryIntegration: true,
+					inventoryLegacyCompatibility:
+						resolveSalesInventoryLegacyCompatibility({
+							legacyStatus: "ORDERED",
+							lifecycleStatus: "awaiting_production",
+							inventoryRowCount: 3,
+							projectionStatus: "ready",
+							projectionNeedCount: 3,
+							projectionSource: "legacy-status",
+							activeLinkedInboundCount: 0,
+						}),
+				}),
+			} as never,
+		);
+
+		expect(result).toMatchObject({
+			result: "already_migrated",
+			legacyStatus: "ORDERED",
+			nextSegment: "inbounds",
 		});
 	});
 

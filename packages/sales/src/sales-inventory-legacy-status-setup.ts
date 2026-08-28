@@ -174,9 +174,11 @@ export async function resolveSalesInventoryLegacyStatusMigration(
 		throw new Error("Inventory inbound status changed before setup could run.");
 	}
 
+	const compatibilityState = overview.inventoryLegacyCompatibility?.state;
 	const needsMigration =
-		overview.setupMode === "legacy_status_locked" ||
-		overview.inventoryLegacyCompatibility?.state === "legacy_locked";
+		compatibilityState === "legacy_locked" ||
+		(compatibilityState == null &&
+			overview.setupMode === "legacy_status_locked");
 	if (!needsMigration) {
 		if (
 			action === "continue" &&

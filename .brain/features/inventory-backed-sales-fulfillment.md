@@ -790,9 +790,11 @@ Last updated: 2026-08-17
 - `SalesInventoryProjectionState` is the durable lifecycle contract:
   `syncing` while work runs, `ready` with authoritative need totals on success,
   and `failed` with bounded error evidence. A zero-requirement `AVAILABLE`
-  adaptation persists `ready/0`; positive legacy adaptations use
-  `source=legacy-status` so compatibility resolution can distinguish them from
-  an ordinary form projection.
+  adaptation persists `ready/0`; positive legacy adaptations retain
+  `source=legacy-status` as provenance. Any durable `ready` projection is now
+  authoritative compatibility evidence, so a current order projected by the
+  normal sales form cannot be mislabeled as legacy merely because its preserved
+  `SalesOrders.inventoryStatus` is `AVAILABLE`, `ORDERED`, or `PENDING ORDER`.
 - The persisted task-monitor intent is `sales.adapt-legacy-inventory` version
   1. Completion and failure invalidate order, overview, inventory, inbound, and
   Sales Orders reads after navigation. Failed jobs remain visible.
@@ -800,8 +802,22 @@ Last updated: 2026-08-17
   module-level attempt map and auto-on-open mutation were removed. A legacy
   `syncing` projection older than five minutes is treated as an abandoned task
   and exposes Retry instead of restoring an endless spinner.
+- Completed inbound ownership remains canonical compatibility evidence even
+  after its outstanding linked quantity reaches zero. Sales list and detail
+  projections now use the same completed-or-active linked-demand evidence and
+  both exclude cancelled or soft-deleted shipment ownership. A ready projection
+  also outranks stale `legacy_status_locked` setup state in policy, UI, and
+  migration replay; replay returns `already_migrated` without another
+  synchronization or history write.
+- Canonical receipt applies the legacy-facing `AVAILABLE` value only through
+  the existing guarded no-active-demand predicate after the shipment status is
+  committed. Partial receipt retains `ORDERED`; a completed final receipt no
+  longer reopens legacy adaptation.
+- Received-backorder allocation counts existing `pending_review` suggestions as
+  component coverage before reserving stock, preventing receipt automation from
+  creating a second allocation over the same suggested quantity.
 
-Last updated: 2026-08-24
+Last updated: 2026-08-28
 
 ## 2026-08-26 Bounded stale-review convergence
 
