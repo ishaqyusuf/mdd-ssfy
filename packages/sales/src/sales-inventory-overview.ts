@@ -232,6 +232,7 @@ export type SalesOverviewInventoryLine = {
 	qtyRequired: number;
 	qtyInStock: number;
 	qtyAllocated: number;
+	qtyReceived: number;
 	qtyPending: number;
 	qtyInboundOpen: number;
 	qtyInboundLinkedOpen: number;
@@ -650,6 +651,7 @@ export function buildSalesOverviewInventoryGroups(
 					qtyRequired,
 					qtyInStock,
 					qtyAllocated,
+					qtyReceived,
 					qtyPending,
 					qtyInboundOpen,
 					qtyInboundLinkedOpen,
@@ -803,6 +805,7 @@ export function buildSalesOverviewInventoryMergedRows(
 			if (!base) return [];
 			const qtyRequired = sumBy(rows, (row) => row.qtyRequired);
 			const qtyAllocated = sumBy(rows, (row) => row.qtyAllocated);
+			const qtyReceived = sumBy(rows, (row) => row.qtyReceived);
 			const qtyPending = sumBy(rows, (row) => row.qtyPending);
 			const qtyInboundOpen = sumBy(rows, (row) => row.qtyInboundOpen);
 			const qtyInboundLinkedOpen = sumBy(
@@ -830,6 +833,7 @@ export function buildSalesOverviewInventoryMergedRows(
 					qtyRequired,
 					qtyInStock,
 					qtyAllocated,
+					qtyReceived,
 					qtyPending,
 					qtyInboundOpen,
 					qtyInboundLinkedOpen,

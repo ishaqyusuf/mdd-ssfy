@@ -12529,3 +12529,16 @@
   already contains the 616-order action result. A reload after the fix produced
   no new hydration error; the only captured error preceded the fix.
 - Focused inbound and alert coverage passes 69 tests / 193 assertions.
+
+## 2026-08-28 — Corrected received inbound coverage on Inventory Needs
+
+- Fixed the Sales Overview Inventory Needs metric that displayed received,
+  applied inbound demand as `AVAILABLE 0 OF 1`. The row projection now carries
+  received quantity through merged inventory rows, and the shared coverage
+  calculation counts allocated plus received quantity, clamped to the need.
+- Renamed the badge to `COVERED` so it accurately represents both stock
+  allocation and applied inbound receipts. Open linked demand remains a separate
+  `ORDERED` metric against only the uncovered remainder, so unapply returns the
+  need to ordered coverage without claiming fulfillment.
+- Focused overview, dashboard source-contract, and coverage-helper suites pass
+  56 tests / 158 assertions.

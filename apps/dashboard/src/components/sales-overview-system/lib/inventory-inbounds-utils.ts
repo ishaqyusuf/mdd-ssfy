@@ -8,24 +8,26 @@ export type InventoryAvailabilityState = "empty" | "partial" | "complete";
 
 export type InventoryCoverageDisplay = {
 	requiredQty: number;
-	availableQty: number;
+	coveredQty: number;
 	orderedQty: number;
 	orderedOfQty: number;
-	showAvailable: boolean;
+	showCovered: boolean;
 	showOrdered: boolean;
 };
 
 export function resolveInventoryCoverageDisplay(input: {
 	qtyRequired?: number | null;
 	qtyAllocated?: number | null;
+	qtyReceived?: number | null;
 	qtyInboundLinkedOpen?: number | null;
 }): InventoryCoverageDisplay {
 	const requiredQty = Math.max(0, Number(input.qtyRequired || 0));
-	const availableQty = Math.min(
+	const coveredQty = Math.min(
 		requiredQty,
-		Math.max(0, Number(input.qtyAllocated || 0)),
+		Math.max(0, Number(input.qtyAllocated || 0)) +
+			Math.max(0, Number(input.qtyReceived || 0)),
 	);
-	const orderedOfQty = Math.max(0, requiredQty - availableQty);
+	const orderedOfQty = Math.max(0, requiredQty - coveredQty);
 	const orderedQty = Math.min(
 		orderedOfQty,
 		Math.max(0, Number(input.qtyInboundLinkedOpen || 0)),
@@ -33,22 +35,22 @@ export function resolveInventoryCoverageDisplay(input: {
 
 	return {
 		requiredQty,
-		availableQty,
+		coveredQty,
 		orderedQty,
 		orderedOfQty,
-		showAvailable: availableQty > 0 || orderedQty === 0,
+		showCovered: coveredQty > 0 || orderedQty === 0,
 		showOrdered: orderedQty > 0,
 	};
 }
 
 export function resolveInventoryAvailabilityState(input: {
-	qtyAllocated?: number | null;
+	qtyCovered?: number | null;
 	qtyRequired?: number | null;
 }): InventoryAvailabilityState {
 	const required = Math.max(0, Number(input.qtyRequired || 0));
-	const allocated = Math.max(0, Number(input.qtyAllocated || 0));
-	if (required > 0 && allocated >= required) return "complete";
-	if (allocated > 0) return "partial";
+	const covered = Math.max(0, Number(input.qtyCovered || 0));
+	if (required > 0 && covered >= required) return "complete";
+	if (covered > 0) return "partial";
 	return "empty";
 }
 

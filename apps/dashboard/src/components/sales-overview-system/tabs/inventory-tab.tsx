@@ -2047,10 +2047,11 @@ function InventoryLineRow({
 	const coverage = resolveInventoryCoverageDisplay({
 		qtyRequired: row.qtyRequired,
 		qtyAllocated: row.qtyAllocated,
+		qtyReceived: row.qtyReceived,
 		qtyInboundLinkedOpen: row.qtyInboundLinkedOpen,
 	});
 	const availabilityState = resolveInventoryAvailabilityState({
-		qtyAllocated: coverage.availableQty,
+		qtyCovered: coverage.coveredQty,
 		qtyRequired: coverage.requiredQty,
 	});
 
@@ -2086,7 +2087,7 @@ function InventoryLineRow({
 					</ItemActions>
 				</ItemHeader>
 				<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-					{isNeed && coverage.showAvailable ? (
+					{isNeed && coverage.showCovered ? (
 						<Badge
 							variant="outline"
 							className={cn(
@@ -2099,7 +2100,7 @@ function InventoryLineRow({
 									"border-emerald-200 bg-emerald-50 text-emerald-700",
 							)}
 						>
-							AVAILABLE: {formatQty(coverage.availableQty)} OF{" "}
+							COVERED: {formatQty(coverage.coveredQty)} OF{" "}
 							{formatQty(coverage.requiredQty)}
 						</Badge>
 					) : null}

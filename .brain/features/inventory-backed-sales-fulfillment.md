@@ -80,14 +80,15 @@ The long-term source of truth for overview, print, production, deployment, fulfi
 - The merged component list uses shadcn `Item` primitives instead of a table. Each item shows the uppercase component name and category/step subtitle plus the human-readable variant name when available in a vertically scroll-friendly layout. Door width/height variants normalize to the standard Dyke size display, such as `2-8 x 8-0`, even when the stored inventory variant UID is the imported `w2_8-h8_0` shape. Raw variant UIDs remain internal identity data and are not used as item subtitle text.
 - Needs items now use a flat row with an explicit `border-border` bottom divider
   and a muted hover background. The metric strip keeps plain cost and sales
-  facts and separates current stock coverage from linked ordered inbound.
-  `AVAILABLE: x OF y` compares allocated quantity with total required quantity
-  and is red at zero coverage, amber for partial coverage, and green when fully
-  covered. `ORDERED: x OF y` is blue and compares linked open inbound with the
-  remaining requirement after available stock. When ordered inbound exists but
-  available quantity is zero, the redundant zero-available badge is hidden and
-  Ordered uses the full required quantity as its denominator. When neither
-  source covers the need, the zero-available badge remains visible. Quantity,
+  facts and separates fulfilled coverage from linked ordered inbound.
+  `COVERED: x OF y` compares allocated plus received inbound quantity with total
+  required quantity, clamps duplicate evidence to the requirement, and is red
+  at zero coverage, amber for partial coverage, and green when fully covered.
+  `ORDERED: x OF y` is blue and compares linked open inbound with the remaining
+  requirement after covered quantity. When ordered inbound exists but covered
+  quantity is zero, the redundant zero-covered badge is hidden and Ordered uses
+  the full required quantity as its denominator. When neither source covers the
+  need, the zero-covered badge remains visible. Quantity,
   on-hand, allocated, pending, and tracking/lifecycle pills remain omitted
   because they duplicate these coverage signals or the active segment context.
 - Rootless house-package-tool lines use their unique `Item Type` form step as the parent inventory mapping when the persisted HPT relation has no `stepProduct`. Detailed HPT door-size candidates remain required; an overlapping generic Door form-step candidate is retained only as an optional pricing/identity snapshot. Optional snapshots create no mutable inventory demand, do not affect readiness or requirement counts, and remain outside the Needs segment.

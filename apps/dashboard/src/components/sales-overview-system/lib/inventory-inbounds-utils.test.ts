@@ -21,7 +21,25 @@ import {
 } from "./inventory-inbounds-utils";
 
 describe("sales overview inventory inbound helpers", () => {
-	it("separates available stock from ordered inbound coverage", () => {
+	it("counts applied inbound receipt as covered need quantity", () => {
+		expect(
+			resolveInventoryCoverageDisplay({
+				qtyRequired: 1,
+				qtyAllocated: 0,
+				qtyReceived: 1,
+				qtyInboundLinkedOpen: 0,
+			}),
+		).toEqual({
+			requiredQty: 1,
+			coveredQty: 1,
+			orderedQty: 0,
+			orderedOfQty: 0,
+			showCovered: true,
+			showOrdered: false,
+		});
+	});
+
+	it("separates covered quantity from ordered inbound coverage", () => {
 		expect(
 			resolveInventoryCoverageDisplay({
 				qtyRequired: 12,
@@ -30,10 +48,10 @@ describe("sales overview inventory inbound helpers", () => {
 			}),
 		).toEqual({
 			requiredQty: 12,
-			availableQty: 1,
+			coveredQty: 1,
 			orderedQty: 5,
 			orderedOfQty: 11,
-			showAvailable: true,
+			showCovered: true,
 			showOrdered: true,
 		});
 
@@ -45,10 +63,10 @@ describe("sales overview inventory inbound helpers", () => {
 			}),
 		).toEqual({
 			requiredQty: 12,
-			availableQty: 0,
+			coveredQty: 0,
 			orderedQty: 5,
 			orderedOfQty: 12,
-			showAvailable: false,
+			showCovered: false,
 			showOrdered: true,
 		});
 	});
@@ -62,10 +80,10 @@ describe("sales overview inventory inbound helpers", () => {
 			}),
 		).toEqual({
 			requiredQty: 12,
-			availableQty: 12,
+			coveredQty: 12,
 			orderedQty: 0,
 			orderedOfQty: 0,
-			showAvailable: true,
+			showCovered: true,
 			showOrdered: false,
 		});
 
@@ -76,22 +94,22 @@ describe("sales overview inventory inbound helpers", () => {
 				qtyInboundLinkedOpen: 0,
 			}),
 		).toMatchObject({
-			availableQty: 0,
+			coveredQty: 0,
 			orderedQty: 0,
-			showAvailable: true,
+			showCovered: true,
 			showOrdered: false,
 		});
 	});
 
-	it("uses availability as the single stock coverage signal", () => {
+	it("uses covered quantity as the fulfillment signal", () => {
 		expect(
-			resolveInventoryAvailabilityState({ qtyAllocated: 0, qtyRequired: 4 }),
+			resolveInventoryAvailabilityState({ qtyCovered: 0, qtyRequired: 4 }),
 		).toBe("empty");
 		expect(
-			resolveInventoryAvailabilityState({ qtyAllocated: 2, qtyRequired: 4 }),
+			resolveInventoryAvailabilityState({ qtyCovered: 2, qtyRequired: 4 }),
 		).toBe("partial");
 		expect(
-			resolveInventoryAvailabilityState({ qtyAllocated: 4, qtyRequired: 4 }),
+			resolveInventoryAvailabilityState({ qtyCovered: 4, qtyRequired: 4 }),
 		).toBe("complete");
 	});
 
