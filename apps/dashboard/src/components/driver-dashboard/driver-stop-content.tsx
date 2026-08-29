@@ -114,20 +114,26 @@ export function DriverStopContent({
 	onCompleted: () => void;
 }) {
 	const { params, setParams } = useDriverDashboardParams();
-	const status = detail.dispatch?.status;
-	const canCaptureProof = status === "in progress";
-	const canReportException = !["completed", "cancelled"].includes(
-		String(status),
-	);
+	const capabilities = detail.mobileLifecycle.capabilities;
+	const canCaptureProof = capabilities.canComplete;
+	const canReportException = capabilities.canReportException;
+	const canEditPacking = capabilities.canEditPacking;
 
 	useEffect(() => {
 		if (
 			(params.mode === "proof" && !canCaptureProof) ||
-			(params.mode === "help" && !canReportException)
+			(params.mode === "help" && !canReportException) ||
+			(params.mode === "packing" && !canEditPacking)
 		) {
 			void setParams({ mode: "details" }, DRIVER_STOP_URL_OPTIONS);
 		}
-	}, [canCaptureProof, canReportException, params.mode, setParams]);
+	}, [
+		canCaptureProof,
+		canEditPacking,
+		canReportException,
+		params.mode,
+		setParams,
+	]);
 
 	if (params.mode === "proof" && detail.dispatch && canCaptureProof) {
 		return (

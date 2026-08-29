@@ -1,7 +1,6 @@
 "use client";
 
 import { useDriverDashboardParams } from "@/hooks/use-driver-dashboard-params";
-import { useDriverDispatchActions } from "@/hooks/use-driver-dispatch-actions";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -19,7 +18,6 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
-import { toast } from "sonner";
 import { DriverDashboardEmptyState } from "./empty-states";
 import { DriverCommandHeader } from "./header";
 import {
@@ -145,7 +143,6 @@ export function DriverDashboardWorkspace() {
 	const trpc = useTRPC();
 	const { params, setParams } = useDriverDashboardParams();
 	const router = useRouter();
-	const actions = useDriverDispatchActions();
 	const input = getDriverManifestInput({
 		view: params.view,
 		search: params.q,
@@ -177,27 +174,12 @@ export function DriverDashboardWorkspace() {
 		router.push(`/sales-book/dispatch-task/${stop.id}${query}`);
 	};
 
-	const primaryStopAction = async (stop: DriverStop) => {
+	const primaryStopAction = (stop: DriverStop) => {
 		if (stop.status === "in progress") {
 			openStop(stop, "proof");
 			return;
 		}
-		if (stop.status !== "packed") {
-			openStop(stop);
-			return;
-		}
-		try {
-			await actions.onStartTrip({
-				dispatchId: stop.id,
-				salesId: stop.order.id,
-			});
-			toast.success("Trip started.");
-			openStop(stop);
-		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Unable to start this trip.",
-			);
-		}
+		openStop(stop);
 	};
 
 	return (
@@ -227,7 +209,7 @@ export function DriverDashboardWorkspace() {
 									1,
 									stops.findIndex((stop) => stop.id === nextStop.id) + 1,
 								)}
-								onPrimary={() => void primaryStopAction(nextStop)}
+								onPrimary={() => primaryStopAction(nextStop)}
 							/>
 						) : null}
 
@@ -254,7 +236,7 @@ export function DriverDashboardWorkspace() {
 													sequence={
 														stops.findIndex((item) => item.id === stop.id) + 1
 													}
-													onPrimary={() => void primaryStopAction(stop)}
+													onPrimary={() => primaryStopAction(stop)}
 												/>
 											))}
 										</div>

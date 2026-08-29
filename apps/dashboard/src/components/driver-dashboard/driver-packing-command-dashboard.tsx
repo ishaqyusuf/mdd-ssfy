@@ -24,6 +24,7 @@ import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { PackingSideSheetSkeleton } from "../dispatch-packing-overview/packing-side-sheet";
 import type { DriverStopDetail } from "./driver-stop-types";
+import { getDriverPrimaryAction } from "./model";
 
 const DispatchPackingOverview = dynamic(
     () =>
@@ -150,11 +151,13 @@ function CommandMetric({
 function PackingList({
     detail,
     onPack,
-    readOnly = false,
+    canEditPacking,
+    showPackAction = true,
 }: {
     detail: DriverStopDetail;
     onPack: () => void;
-    readOnly?: boolean;
+    canEditPacking: boolean;
+    showPackAction?: boolean;
 }) {
     return (
         <section className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -166,7 +169,7 @@ function PackingList({
                         packed.
                     </p>
                 </div>
-                {!readOnly ? (
+                {canEditPacking && showPackAction ? (
                     <Button
                         variant="outline"
                         onClick={onPack}
@@ -218,7 +221,7 @@ function PackingList({
                                     {status.label}
                                 </Badge>
                             </div>
-                            {!readOnly ? (
+                            {canEditPacking ? (
                                 <Button
                                     variant="outline"
                                     onClick={onPack}
@@ -226,8 +229,12 @@ function PackingList({
                                 >
                                     {packed > 0 ? "Edit" : "Pack"}
                                 </Button>
-                            ) : (
+                            ) : status.label === "Packed" ? (
                                 <CheckCircle2 className="size-5 text-emerald-600" />
+                            ) : (
+                                <span className="text-xs text-muted-foreground">
+                                    Read only
+                                </span>
                             )}
                         </article>
                     );
@@ -267,22 +274,55 @@ export function DriverPackingCommandDashboard({
     const pending = Math.max(0, Number(detail.summary.pending || 0));
     const remaining = Math.max(0, total - packed);
     const packedPercent = total ? Math.round((packed / total) * 100) : 0;
-    const status = String(dispatch?.status || "queue");
-    const inProgress = status === "in progress";
-    const complete = status === "completed";
+    const lifecycle = detail.mobileLifecycle;
+    const capabilities = lifecycle.capabilities;
+    const stage = String(lifecycle.stage || "queue").toLowerCase();
+    const inProgress = stage === "in progress";
+    const complete = ["completed", "delivered"].includes(stage);
+    const cancelled = ["cancelled", "canceled"].includes(stage);
     const inventoryBlocked =
         detail.dispatchReadiness.inventoryBlockingItems.length > 0;
-    const canDispatch = detail.dispatchReadiness.canDispatch;
+    const canDispatch = capabilities.canStartTrip;
     const packingOpen = params.mode === "packing";
     const openPacking = () =>
         void setParams({ mode: "packing" }, DRIVER_STOP_URL_OPTIONS);
-    const dispatchState = complete
+    const openHelp = () =>
+        void setParams({ mode: "help" }, DRIVER_STOP_URL_OPTIONS);
+    const primaryAction = getDriverPrimaryAction({
+        stage,
+        packed,
+        total,
+        canEditPacking: capabilities.canEditPacking,
+        canStartTrip: capabilities.canStartTrip,
+        canComplete: capabilities.canComplete,
+        startTripBlockers: lifecycle.blockers.startTrip,
+        packingBlockers: lifecycle.blockers.packing,
+        readinessState: detail.dispatchReadiness.state,
+    });
+    const dispatchState = cancelled
+        ? { value: "Cancelled", note: "Stop closed" }
+        : complete
         ? { value: "Completed", note: "Proof saved" }
         : inProgress
           ? { value: "In progress", note: "Complete with proof" }
           : canDispatch
             ? { value: "Ready to load", note: "All gates passed" }
-            : { value: "Packing", note: "Departure blocked" };
+            : remaining === 0 && total > 0
+              ? { value: "Packing complete", note: "Departure blocked" }
+              : { value: "Packing", note: "Departure blocked" };
+    const loadNote = cancelled
+        ? "Stop cancelled"
+        : complete
+        ? "Delivered"
+        : inProgress
+          ? "Trip in progress"
+          : canDispatch
+            ? "Ready for departure"
+            : remaining > 0
+              ? "Finish packing"
+              : inventoryBlocked
+                ? "Inventory verification pending"
+                : "Departure review required";
     const startTrip = async () => {
         if (!dispatch) return;
         try {
@@ -320,7 +360,7 @@ export function DriverPackingCommandDashboard({
                         <Button variant="outline" onClick={onCompleted}>
                             Back to route
                         </Button>
-                        {inProgress ? (
+                        {primaryAction.kind === "proof" ? (
                             <Button
                                 onClick={() =>
                                     void setParams(
@@ -332,7 +372,7 @@ export function DriverPackingCommandDashboard({
                                 <CheckCircle2 className="mr-2 size-4" />{" "}
                                 Complete with proof
                             </Button>
-                        ) : !complete && canDispatch ? (
+                        ) : primaryAction.kind === "start" ? (
                             <Button
                                 disabled={actions.startTrip.isPending}
                                 onClick={startTrip}
@@ -343,12 +383,29 @@ export function DriverPackingCommandDashboard({
                                     ? "Starting trip…"
                                     : "Start trip"}
                             </Button>
-                        ) : !complete ? (
+                        ) : primaryAction.kind === "pack" ? (
                             <Button
                                 onClick={openPacking}
                                 className="bg-emerald-700 text-white hover:bg-emerald-800"
                             >
                                 Pack items
+                            </Button>
+                        ) : primaryAction.kind === "blocked" ? (
+                            <Button
+                                variant="outline"
+                                disabled={!capabilities.canReportException}
+                                onClick={
+                                    capabilities.canReportException
+                                        ? openHelp
+                                        : undefined
+                                }
+                            >
+                                <CircleHelp className="mr-2 size-4" />
+                                {primaryAction.label}
+                            </Button>
+                        ) : primaryAction.kind === "cancelled" ? (
+                            <Button variant="secondary" disabled>
+                                {primaryAction.label}
                             </Button>
                         ) : null}
                     </div>
@@ -403,9 +460,9 @@ export function DriverPackingCommandDashboard({
                         }
                     />
                     <CommandMetric
-                        label="Driver load"
-                        value={`${inProgress || complete ? packed : 0} / ${total}`}
-                        note={complete ? "Delivered" : "Verify after packing"}
+                        label="Load status"
+                        value={`${packed} / ${total}`}
+                        note={loadNote}
                     />
                 </section>
 
@@ -413,7 +470,8 @@ export function DriverPackingCommandDashboard({
                     <PackingList
                         detail={detail}
                         onPack={openPacking}
-                        readOnly={complete}
+                        canEditPacking={capabilities.canEditPacking}
+                        showPackAction={primaryAction.kind === "pack"}
                     />
 
                     <aside className="grid content-start gap-4">
@@ -564,7 +622,7 @@ export function DriverPackingCommandDashboard({
                 >
                     <Route className="size-4" />
                 </Button>
-                {inProgress ? (
+                {primaryAction.kind === "proof" ? (
                     <Button
                         onClick={() =>
                             void setParams(
@@ -576,12 +634,16 @@ export function DriverPackingCommandDashboard({
                         <CheckCircle2 className="mr-2 size-4" /> Complete with
                         proof
                     </Button>
-                ) : complete ? (
+                ) : primaryAction.kind === "completed" ? (
                     <Button variant="secondary" disabled>
                         <CheckCircle2 className="mr-2 size-4" /> Delivery
                         completed
                     </Button>
-                ) : canDispatch ? (
+                ) : primaryAction.kind === "cancelled" ? (
+                    <Button variant="secondary" disabled>
+                        {primaryAction.label}
+                    </Button>
+                ) : primaryAction.kind === "start" ? (
                     <Button
                         disabled={!dispatch || actions.startTrip.isPending}
                         onClick={startTrip}
@@ -591,17 +653,30 @@ export function DriverPackingCommandDashboard({
                             ? "Starting trip…"
                             : "Start trip"}
                     </Button>
-                ) : (
+                ) : primaryAction.kind === "pack" ? (
                     <Button
                         onClick={openPacking}
                         className="bg-emerald-700 text-white hover:bg-emerald-800"
                     >
                         <PackageCheck className="mr-2 size-4" /> Pack items
                     </Button>
+                ) : (
+                    <Button
+                        variant="outline"
+                        disabled={!capabilities.canReportException}
+                        onClick={
+                            capabilities.canReportException
+                                ? openHelp
+                                : undefined
+                        }
+                    >
+                        <CircleHelp className="mr-2 size-4" />
+                        {primaryAction.label}
+                    </Button>
                 )}
             </div>
 
-            {!complete ? (
+            {!complete && capabilities.canReportException ? (
                 <Button
                     variant="outline"
                     className="fixed bottom-5 right-5 z-10 hidden shadow-sm sm:flex"

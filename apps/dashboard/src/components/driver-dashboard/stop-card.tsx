@@ -19,6 +19,7 @@ import {
 	getDriverStopAction,
 	getDriverStopAddress,
 	getDriverStopCustomer,
+	getDriverStopLabel,
 	getDriverStopPhone,
 	getStopReadiness,
 	isDriverStopBlocked,
@@ -54,6 +55,11 @@ export function DriverStopCard({
 	const phone = getDriverStopPhone(stop);
 	const readiness = getStopReadiness(stop);
 	const blocked = isDriverStopBlocked(stop);
+	const inventoryLabel = ["in progress", "completed"].includes(stop.status)
+		? "Verified"
+		: stop.status === "packed" || stop.workspace?.stage === "ready_to_load"
+			? "Review on stop"
+			: "Pending review";
 
 	if (featured) {
 		return (
@@ -66,7 +72,7 @@ export function DriverStopCard({
 						</p>
 					</div>
 					<Badge variant={blocked ? "destructive" : "secondary"}>
-						{blocked ? "Needs review" : stop.workspace?.label || stop.status}
+						{blocked ? "Needs review" : getDriverStopLabel(stop)}
 					</Badge>
 				</header>
 				<div className="space-y-4 p-4 sm:p-5">
@@ -137,16 +143,12 @@ export function DriverStopCard({
 							<p className="mt-1 text-sm font-semibold">
 								{readiness.total
 									? `${readiness.packed} of ${readiness.total} packed`
-									: stop.workspace?.label || "Review required"}
+									: getDriverStopLabel(stop) || "Review required"}
 							</p>
 						</div>
 						<div className="rounded-lg bg-muted/60 p-3">
 							<p className="text-xs text-muted-foreground">Inventory</p>
-							<p className="mt-1 text-sm font-semibold">
-								{stop.status === "packed" || stop.status === "in progress"
-									? "Verified"
-									: "Pending review"}
-							</p>
+							<p className="mt-1 text-sm font-semibold">{inventoryLabel}</p>
 						</div>
 						<div
 							className={`rounded-lg p-3 ${address ? "bg-muted/60" : "bg-amber-50 text-amber-950 dark:bg-amber-950 dark:text-amber-100"}`}
@@ -210,7 +212,7 @@ export function DriverStopCard({
 				) : (
 					<PackageCheck className="mr-1 size-3" />
 				)}
-				{stop.workspace?.label || stop.status}
+				{getDriverStopLabel(stop)}
 			</Badge>
 			<ArrowRight className="size-4 text-muted-foreground" />
 		</Link>

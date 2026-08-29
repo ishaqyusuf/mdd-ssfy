@@ -28,9 +28,9 @@ export function DriverDashboardSummary({
 			icon: ClipboardList,
 		},
 		{
-			label: "Ready to load",
+			label: "Packed stops",
 			value: summary?.byStatus.packed || 0,
-			note: "Warehouse verified",
+			note: "Review before departure",
 			icon: Truck,
 		},
 		{

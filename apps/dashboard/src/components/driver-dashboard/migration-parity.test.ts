@@ -28,6 +28,7 @@ const detailLoadingSource = source(
 );
 const workspaceSource = source("./workspace.tsx");
 const commandHeaderSource = source("./header.tsx");
+const summarySource = source("./summary.tsx");
 const modalSource = source("./driver-stop-modal.tsx");
 const stopRouteSource = source("./driver-stop-route.tsx");
 const stopWorkspaceSource = source("./driver-stop-workspace.tsx");
@@ -97,6 +98,9 @@ describe("driver dashboard Midday migration contract", () => {
 		expect(modalSource.includes("h-[100dvh]")).toBe(true);
 		expect(modalSource.includes("router.back()")).toBe(true);
 		expect(stopRouteSource.includes("batchPrefetch")).toBe(true);
+		expect(stopRouteSource.includes("dispatch.manifest.queryOptions")).toBe(
+			true,
+		);
 		expect(stopRouteSource.includes("dispatchOverviewV2.queryOptions")).toBe(
 			true,
 		);
@@ -116,7 +120,11 @@ describe("driver dashboard Midday migration contract", () => {
 		expect(packingCommandSource.includes("Stop packing dashboard")).toBe(true);
 		expect(packingCommandSource.includes("Packing progress")).toBe(true);
 		expect(packingCommandSource.includes("Available now")).toBe(true);
-		expect(packingCommandSource.includes("Driver load")).toBe(true);
+		expect(packingCommandSource.includes("Load status")).toBe(true);
+		expect(packingCommandSource.includes("getDriverPrimaryAction")).toBe(true);
+		expect(workspaceSource.includes("actions.onStartTrip")).toBe(false);
+		expect(summarySource.includes("Packed stops")).toBe(true);
+		expect(summarySource.includes("Ready to load")).toBe(false);
 		expect(packingCommandSource.includes('surface="driver"')).toBe(true);
 		expect(packingCommandSource.includes("PackingSideSheetSkeleton")).toBe(
 			true,

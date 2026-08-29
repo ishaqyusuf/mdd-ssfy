@@ -1,5 +1,21 @@
 # In Progress
 
+### Fulfillment V2 Status And Queue Parity
+
+- Priority: High
+- Description: The canonical Sales Mark As workflow now refreshes Fulfillment
+  projections; All includes terminal dispatches; Backlog retains its
+  undispatched-order meaning and is the first tab with the standard selectable
+  virtualized table; Drivers shows its permission-aware count; and Exceptions
+  combines driver reports with guarded-packing review history. Admin and Miguel
+  browser QA confirms table pagination, selection, terminal-stage visibility,
+  matching packing totals, and the unified exception history. Remaining work is
+  broad weak-network/device coverage and cleanup of unrelated package-wide
+  typecheck baselines.
+- Related Feature: Sales Dispatch Table / Driver Dashboard Command Center
+- Status: Feature Slice Implemented And Browser-Verified
+- Updated Date: 2026-08-29
+
 ### Headless Legacy Inventory Adaptation
 
 - Priority: High
@@ -33,17 +49,24 @@
   geometry-matched loading skeletons, and the reused packing drawer preserves
   its own shell while its code or data loads. Standalone stop pages now rely on
   the standard application header only; the contextual stop header is retained
-  for intercepted modal navigation and direct proof/help subflows.
+  for intercepted modal navigation and direct proof/help subflows. A 2026-08-29
+  diagnosis found that packed-but-inventory-blocked stops could appear `Ready to
+  load` in the route list while detail fell back to `Pack items` even at `7 / 7
+  packed`. The next-action consistency slice is implemented: detail separates
+  packing completion from departure readiness using the existing server-owned
+  `dispatch.manifest.mobileLifecycle` capabilities, blocked stops expose inventory
+  review, and the route list fails closed to `Packed` plus authoritative detail
+  review instead of starting a trip from status-only data.
   Remaining work is reversible proof/retry evidence, real weak-network/device
   validation, driver/dispatcher review, performance measurement, and explicit
   pilot/cutover approval.
 - Related Feature: Driver Platform Revival and inventory-backed fulfillment
 - Status: In Progress
-- Plan Status: In Progress — Responsive Web And Selected-Stop Packing Slices Implemented
-- Plan File: `.brain/plans/2026-08-23-feature-driver-dashboard-command-center.md`
+- Plan Status: In Progress — Packed-Stop Next-Action Fix Implemented; Broader Pilot Gates Remain
+- Plan Files: `.brain/plans/2026-08-23-feature-driver-dashboard-command-center.md`; `.brain/plans/2026-08-29-bug-fix-driver-packed-stop-next-action.md`
 - Decision: `.brain/decisions/ADR-065-route-command-as-driver-dashboard-visual-base.md`
 - Stop Workspace Decision: `.brain/decisions/ADR-066-intercepted-driver-stop-workspace.md`
-- Updated Date: 2026-08-23
+- Updated Date: 2026-08-29
 
 ### Sales Production Worker Workspace Modernization
 

@@ -309,3 +309,32 @@ pilot handoff are tracked in `.scratch/driver-platform-revival-closeout/`.
   changed dispatch runtime paths add no focused diagnostics. Android/device UI
   review is intentionally held for the user's next-phase permission.
 - Decision: `.brain/decisions/ADR-069-atomic-revision-bound-mobile-dispatch-commands.md`.
+
+### 2026-08-29 Packed-stop next-action consistency
+
+- The responsive web driver stop now treats packing completion and departure
+  readiness as separate facts. Incomplete stops offer Pack Items, ready stops
+  offer Start Trip, in-progress stops offer proof completion, and fully packed
+  blocked stops expose their review requirement without prompting another pack.
+- The selected-stop web workspace consumes the existing protected
+  `dispatch.manifest.mobileLifecycle` projection. Its desktop and mobile actions, proof/help
+  subflows, and packing correction affordances are gated by the same
+  server-owned `mobileLifecycle.capabilities` used by the mobile driver flow.
+- Packing-complete inventory holds show `Inventory review required`, preserve
+  the exact packed total in Load status, and keep item-level Edit available as a
+  secondary correction path.
+- The route list no longer attempts Start Trip from its status-only projection.
+  A projected ready-to-load row fails closed to `Packed` and opens the selected
+  stop, where the authoritative departure readiness controls the next action.
+- The route summary labels its status-only count `Packed stops` with
+  `Review before departure`; it no longer claims those rows are warehouse
+  verified. Packing and review mutations invalidate the authoritative manifest
+  so the next capability is refreshed in-place.
+- Authenticated Chrome verification on `09176PC` / dispatch `4403` confirmed the
+  corrected route card and selected-stop state at `7 / 7 packed`. Focused
+  driver-dashboard, lifecycle, and inventory-readiness suites pass 15 tests / 112
+  expectations.
+- Implementation plan:
+  `.brain/plans/2026-08-29-bug-fix-driver-packed-stop-next-action.md`.
+- No API, permission, database, migration, or canonical Start Trip mutation
+  contract changed.
