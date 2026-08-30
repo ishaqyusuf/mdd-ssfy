@@ -399,6 +399,41 @@ describe("Sales Handoff reconciliation batch", () => {
 });
 
 describe("Sales Handoff recurring reconciliation", () => {
+	test("records lifecycle-review candidates as skipped without resolving their source repair", async () => {
+		const { db, scheduleRows, resolvedCases } = selectionDb({
+			repairs: [
+				{
+					id: "repair-41",
+					scopeId: "41",
+					scopeType: "sales_handoff_reconciliation",
+				},
+			],
+		});
+
+		await runSalesHandoffReconciliation(db as never, {
+			actorUserId: 9,
+			dependencies: {
+				reconcileOrder: async () => ({ status: "LIFECYCLE_REVIEW" }) as never,
+				recordOrderRepair: async () => ({ recorded: true, salesOrderIds: [] }),
+				resolveOrderRepairs: async () => ({ count: 0 }),
+			},
+		});
+
+		expect(
+			resolvedCases.some((raw) => {
+				const where = (raw as { where?: { id?: { in?: string[] } } }).where;
+				return where?.id?.in?.includes("repair-41") ?? false;
+			}),
+		).toBe(false);
+		expect(scheduleRows[0]?.meta).toMatchObject({
+			status: "COMPLETED",
+			scanned: 1,
+			reconciled: 0,
+			failed: 0,
+			skippedLifecycleReview: 1,
+		});
+	});
+
 	test("leaves routine discovery unmarked so later evidence loss opens at reconciliation time", async () => {
 		const { db } = selectionDb({ activeOrderIds: [12] });
 		const milestones: unknown[] = [];
@@ -454,6 +489,7 @@ describe("Sales Handoff recurring reconciliation", () => {
 			scanned: 1,
 			reconciled: 0,
 			failed: 1,
+			failureCategoryCounts: { PAYMENT: 1 },
 		});
 	});
 

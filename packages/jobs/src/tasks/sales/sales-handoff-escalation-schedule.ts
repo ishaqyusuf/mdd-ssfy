@@ -1,5 +1,9 @@
 import { type Db, db } from "@gnd/db";
-import { getActiveSalesHandoffSuperAdmins } from "@gnd/sales/sales-handoff";
+import {
+	getActiveSalesHandoffSuperAdmins,
+	getOpenSalesHandoffLifecycleReviewOrderIds,
+	isSalesHandoffLifecycleReviewOpen,
+} from "@gnd/sales/sales-handoff";
 import { createActivity } from "@notifications/activities";
 import { getSubscriberAccount } from "@notifications/channel-subscribers";
 import { logger, schedules } from "@trigger.dev/sdk/v3";
@@ -59,24 +63,48 @@ export async function runSalesHandoffEscalationScan(
 		);
 		return { scanned: 0, results: [] };
 	}
-	const candidates = await database.salesHandoffActionEpoch.findMany({
-		where: {
-			organizationId: { in: recipientOrganizationIds },
-			resolvedAt: null,
-			openKey: { not: null },
-			escalatedAt: null,
-			escalationDueAt: { lte: now },
-		},
-		select: { id: true },
-		orderBy: [{ escalationDueAt: "asc" }, { id: "asc" }],
-		take: SCAN_LIMIT,
-	});
+	const eligibleCandidates: Array<{ id: string; salesOrderId: number }> = [];
+	let scanned = 0;
+	let skippedLifecycleReview = 0;
+	let cursor: { id: string } | undefined;
+	while (eligibleCandidates.length < SCAN_LIMIT) {
+		const page = await database.salesHandoffActionEpoch.findMany({
+			where: {
+				organizationId: { in: recipientOrganizationIds },
+				resolvedAt: null,
+				openKey: { not: null },
+				escalatedAt: null,
+				escalationDueAt: { lte: now },
+			},
+			select: { id: true, salesOrderId: true },
+			orderBy: [{ escalationDueAt: "asc" }, { id: "asc" }],
+			...(cursor ? { cursor, skip: 1 } : {}),
+			take: SCAN_LIMIT,
+		});
+		if (!page.length) break;
+		scanned += page.length;
+		const lifecycleReviewOrderIds =
+			await getOpenSalesHandoffLifecycleReviewOrderIds(
+				database,
+				page.map((candidate) => candidate.salesOrderId),
+			);
+		for (const candidate of page) {
+			if (lifecycleReviewOrderIds.has(candidate.salesOrderId)) {
+				skippedLifecycleReview += 1;
+			} else if (eligibleCandidates.length < SCAN_LIMIT) {
+				eligibleCandidates.push(candidate);
+			}
+		}
+		if (page.length < SCAN_LIMIT) break;
+		cursor = { id: page.at(-1)?.id ?? "" };
+	}
+	if (!scanned) return { scanned: 0, results: [] };
 	const results: Array<{
 		id: string;
 		status: "STALE" | "MISSING_ORGANIZATION" | "NO_RECIPIENTS" | "NOTIFIED";
 		recipients?: number;
 	}> = [];
-	for (const candidate of candidates) {
+	for (const candidate of eligibleCandidates) {
 		const result = await database.$transaction(
 			async (tx) => {
 				const transactionDb = tx as unknown as Db;
@@ -90,6 +118,14 @@ export async function runSalesHandoffEscalationScan(
 					},
 				});
 				if (!epoch) return { id: candidate.id, status: "STALE" as const };
+				if (
+					await isSalesHandoffLifecycleReviewOpen(
+						transactionDb,
+						epoch.salesOrderId,
+					)
+				) {
+					return { id: epoch.id, status: "LIFECYCLE_REVIEW" as const };
+				}
 				if (epoch.organizationId == null) {
 					logger.error(
 						"Sales Handoff escalation skipped without organization",
@@ -207,9 +243,17 @@ export async function runSalesHandoffEscalationScan(
 			},
 			{ isolationLevel: "Serializable" },
 		);
-		results.push(result);
+		if (result.status === "LIFECYCLE_REVIEW") {
+			skippedLifecycleReview += 1;
+		} else {
+			results.push(result);
+		}
 	}
-	return { scanned: candidates.length, results };
+	return {
+		scanned,
+		skippedLifecycleReview,
+		results,
+	};
 }
 
 export const salesHandoffEscalationSchedule = schedules.task({

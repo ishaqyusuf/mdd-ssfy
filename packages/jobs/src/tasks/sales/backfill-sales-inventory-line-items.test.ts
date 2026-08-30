@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
-import { getBackfillSalesInventoryLineItemsTake } from "./backfill-sales-inventory-line-items";
+import {
+	getBackfillSalesInventoryLineItemsTake,
+	getSalesInventoryBackfillFailure,
+} from "./backfill-sales-inventory-line-items";
 
 describe("getBackfillSalesInventoryLineItemsTake", () => {
 	test("uses the explicit id count for targeted backfills", () => {
@@ -18,5 +21,25 @@ describe("getBackfillSalesInventoryLineItemsTake", () => {
 				batchSize: 25,
 			}),
 		).toBe(25);
+	});
+});
+
+describe("getSalesInventoryBackfillFailure", () => {
+	test("treats a normally returned failed projection as a failed backfill", () => {
+		expect(
+			getSalesInventoryBackfillFailure({
+				projection: { status: "failed", lastError: "mapping missing" },
+				warnings: ["deterministic mapping unavailable"],
+			}),
+		).toBe("deterministic mapping unavailable");
+	});
+
+	test("accepts only durable ready projections", () => {
+		expect(
+			getSalesInventoryBackfillFailure({
+				projection: { status: "ready", lastError: null },
+				warnings: [],
+			}),
+		).toBeNull();
 	});
 });

@@ -37,5 +37,6 @@ export * from "./sales-handoff/material";
 export * from "./sales-handoff/production";
 export * from "./sales-handoff/repair";
 export * from "./sales-handoff/service";
+export * from "./sales-handoff/source-repair";
 export * from "./schema";
 export * from "./special-order";

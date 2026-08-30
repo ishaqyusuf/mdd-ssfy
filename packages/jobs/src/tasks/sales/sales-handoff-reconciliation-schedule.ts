@@ -349,6 +349,13 @@ function message(error: unknown) {
 	return error instanceof Error ? error.message : String(error);
 }
 
+function failureCategory(reason: string) {
+	const normalized = reason.toLowerCase();
+	if (normalized.includes("payment projection")) return "PAYMENT" as const;
+	if (normalized.includes("inventory projection")) return "INVENTORY" as const;
+	return "OTHER" as const;
+}
+
 export async function runSalesHandoffReconciliation(
 	database: Db,
 	input: {
@@ -390,12 +397,13 @@ export async function runSalesHandoffReconciliation(
 			durableRepairRecorded: boolean;
 		}> = [];
 		let reconciled = 0;
+		let skippedLifecycleReview = 0;
 		for (const candidate of batch.candidates) {
 			const policyExposure =
 				candidate.policyExposure ??
 				(candidate.source === "ACTIVE_CURSOR" ? batch.policyExposure : null);
 			try {
-				await dependencies.reconcileOrder(database, {
+				const result = await dependencies.reconcileOrder(database, {
 					salesOrderId: candidate.salesOrderId,
 					actorUserId,
 					now,
@@ -405,6 +413,14 @@ export async function runSalesHandoffReconciliation(
 					initialExposurePolicyChangedAt:
 						policyExposure?.initialExposurePolicyChangedAt,
 				});
+				if (
+					!Array.isArray(result) &&
+					"status" in result &&
+					result.status === "LIFECYCLE_REVIEW"
+				) {
+					skippedLifecycleReview += 1;
+					continue;
+				}
 				await dependencies.resolveOrderRepairs(database, [
 					candidate.salesOrderId,
 				]);
@@ -465,6 +481,14 @@ export async function runSalesHandoffReconciliation(
 			},
 			{ REPAIR: 0, OPEN_EPOCH: 0, ACTIVE_CURSOR: 0 },
 		);
+		const failureCategoryCounts = failures.reduce<Record<string, number>>(
+			(result, failure) => {
+				const category = failureCategory(failure.reason);
+				result[category] = (result[category] ?? 0) + 1;
+				return result;
+			},
+			{},
+		);
 		const historyMeta = {
 			status: failures.length ? "FAILED" : "COMPLETED",
 			actorUserId,
@@ -473,7 +497,9 @@ export async function runSalesHandoffReconciliation(
 			batchLimit: SALES_HANDOFF_RECONCILIATION_BATCH_LIMIT,
 			scanned: batch.candidates.length,
 			reconciled,
+			skippedLifecycleReview,
 			failed: failures.length,
+			failureCategoryCounts,
 			candidateCounts: counts,
 			cursorBefore: batch.cursorBefore,
 			cursorAfter: batch.cursorAfter,

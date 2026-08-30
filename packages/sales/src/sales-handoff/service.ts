@@ -21,8 +21,12 @@ import {
 	projectProductionSalesHandoff,
 } from "./production";
 import {
+	getOpenSalesHandoffLifecycleReviewOrderIds,
+	isSalesHandoffLifecycleReviewOpen,
+	recordSalesHandoffLifecycleReview,
 	recordSalesHandoffPolicyReconciliationRepair,
 	recordSalesHandoffReconciliationRepair,
+	requiresSalesHandoffLifecycleReview,
 	resolveSalesHandoffReconciliationRepairs,
 } from "./repair";
 
@@ -69,6 +73,7 @@ const salesHandoffOrderSelect = {
 	id: true,
 	orgId: true,
 	orderId: true,
+	createdAt: true,
 	updatedAt: true,
 	type: true,
 	status: true,
@@ -953,27 +958,29 @@ export async function getSalesHandoffActions(
 		).values(),
 	);
 	const orderIds = orders.map((order) => order.id);
-	const [policy, projectionGroups, timelines] = await Promise.all([
-		getSalesHandoffTriggerSettings(db),
-		orderIds.length
-			? Promise.all(
-					chunks(orderIds).map((salesOrderIdChunk) =>
-						db.paymentProjection.findMany({
-							where: { salesOrderId: { in: salesOrderIdChunk } },
-							select: {
-								salesOrderId: true,
-								totalAllocated: true,
-								totalRefunded: true,
-								totalVoided: true,
-								amountDue: true,
-								version: true,
-							},
-						}),
-					),
-				)
-			: [],
-		paymentTimelines(db, orderIds),
-	]);
+	const [policy, projectionGroups, timelines, lifecycleReviewOrderIds] =
+		await Promise.all([
+			getSalesHandoffTriggerSettings(db),
+			orderIds.length
+				? Promise.all(
+						chunks(orderIds).map((salesOrderIdChunk) =>
+							db.paymentProjection.findMany({
+								where: { salesOrderId: { in: salesOrderIdChunk } },
+								select: {
+									salesOrderId: true,
+									totalAllocated: true,
+									totalRefunded: true,
+									totalVoided: true,
+									amountDue: true,
+									version: true,
+								},
+							}),
+						),
+					)
+				: [],
+			paymentTimelines(db, orderIds),
+			getOpenSalesHandoffLifecycleReviewOrderIds(db, orderIds),
+		]);
 	const projections = projectionGroups.flat();
 	const projectionByOrder = new Map(
 		projections.map(
@@ -991,6 +998,25 @@ export async function getSalesHandoffActions(
 	>();
 
 	for (const order of orders) {
+		if (lifecycleReviewOrderIds.has(order.id)) continue;
+		if (requiresSalesHandoffLifecycleReview(order)) {
+			await recordSalesHandoffLifecycleReview(db, {
+				salesOrderId: order.id,
+				actorUserId: input.actorUserId,
+				source: "sales-handoff-protected-read",
+				orderCreatedAt: order.createdAt,
+				orderStatus: order.status,
+				reason: "Pre-2026 order has blank lifecycle status.",
+				sourceSnapshot: {
+					orderId: order.orderId,
+					status: order.status,
+					createdAt: order.createdAt?.toISOString() ?? null,
+					deletedAt: order.deletedAt?.toISOString() ?? null,
+					deliveredAt: order.deliveredAt?.toISOString() ?? null,
+				},
+			});
+			continue;
+		}
 		const paymentProjection = projectionByOrder.get(order.id);
 		const reconciliation = await projectAndReconcileSalesHandoffOrder(db, {
 			order,
@@ -1218,6 +1244,7 @@ export async function reconcileMaterialSalesHandoffOrder(
 		initialExposureMilestone?: SalesHandoffInitialExposureMilestone | null;
 		initialExposurePolicyRevision?: number | null;
 		initialExposurePolicyChangedAt?: string | null;
+		lifecycleReviewRelease?: boolean;
 	},
 ) {
 	const order = await db.salesOrders.findFirst({
@@ -1225,6 +1252,38 @@ export async function reconcileMaterialSalesHandoffOrder(
 		select: salesHandoffOrderSelect,
 	});
 	if (!order) return resolveMissingSalesHandoffOrder(db, input);
+	const lifecycleReviewOpen = await isSalesHandoffLifecycleReviewOpen(
+		db,
+		input.salesOrderId,
+	);
+	const lifecycleReviewRequired = requiresSalesHandoffLifecycleReview(order);
+	if (!lifecycleReviewOpen && lifecycleReviewRequired) {
+		await recordSalesHandoffLifecycleReview(db, {
+			salesOrderId: order.id,
+			actorUserId: input.actorUserId,
+			source: "sales-handoff-exact-reconciliation",
+			orderCreatedAt: order.createdAt,
+			orderStatus: order.status,
+			reason: "Pre-2026 order has blank lifecycle status.",
+			sourceSnapshot: {
+				orderId: order.orderId,
+				status: order.status,
+				createdAt: order.createdAt?.toISOString() ?? null,
+				deletedAt: order.deletedAt?.toISOString() ?? null,
+				deliveredAt: order.deliveredAt?.toISOString() ?? null,
+			},
+		});
+	}
+	if (
+		(lifecycleReviewOpen || lifecycleReviewRequired) &&
+		!input.lifecycleReviewRelease
+	) {
+		return {
+			status: "LIFECYCLE_REVIEW" as const,
+			transitions: [],
+			productionTarget: null,
+		};
+	}
 	const [policy, paymentProjection, timelines] = await Promise.all([
 		getSalesHandoffTriggerSettings(db),
 		db.paymentProjection.findFirst({

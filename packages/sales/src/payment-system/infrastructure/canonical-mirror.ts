@@ -68,6 +68,44 @@ function makeMirrorId(prefix: string) {
 	return `${prefix}_${crypto.randomUUID().replace(/-/g, "")}`;
 }
 
+export function projectCanonicalLegacySalesPaymentSource(input: {
+	grandTotal: number | null | undefined;
+	payments: Array<{
+		amount: number | null | undefined;
+		status?: string | null;
+		deletedAt?: Date | null;
+	}>;
+}) {
+	const successfulPayments = input.payments.filter(
+		(payment) =>
+			!payment.deletedAt &&
+			String(payment.status === undefined ? "success" : payment.status)
+				.trim()
+				.toLowerCase() === "success",
+	);
+	const totalRecorded = sumMoney(
+		successfulPayments
+			.filter((payment) => Number(payment.amount || 0) > 0)
+			.map((payment) => payment.amount),
+	);
+	const totalRefunded = sumMoney(
+		successfulPayments
+			.filter((payment) => Number(payment.amount || 0) < 0)
+			.map((payment) => Math.abs(Number(payment.amount || 0))),
+	);
+	const grandTotal = Number(input.grandTotal || 0);
+	return {
+		totalRecorded,
+		totalAllocated: totalRecorded,
+		totalRefunded,
+		totalVoided: 0,
+		amountDue: Math.max(
+			subtractMoney(grandTotal, subtractMoney(totalRecorded, totalRefunded)),
+			0,
+		),
+	};
+}
+
 async function syncPaymentProjection(db: MirrorDb, salesId: number) {
 	if (!(await hasTable(db, "PaymentProjection"))) return;
 
@@ -80,31 +118,21 @@ async function syncPaymentProjection(db: MirrorDb, salesId: number) {
 			payments: {
 				where: {
 					deletedAt: null,
-					status: "success",
 				},
 				select: {
 					amount: true,
+					status: true,
+					deletedAt: true,
 				},
 			},
 		},
 	});
 	if (!order) return;
 
-	const positive = sumMoney(
-		order.payments
-			.filter((payment) => (payment.amount || 0) > 0)
-			.map((payment) => payment.amount),
-	);
-	const refunded = sumMoney(
-		order.payments
-			.filter((payment) => (payment.amount || 0) < 0)
-			.map((payment) => Math.abs(payment.amount || 0)),
-	);
-	const grandTotal = order.grandTotal || 0;
-	const amountDue = Math.max(
-		subtractMoney(grandTotal, subtractMoney(positive, refunded)),
-		0,
-	);
+	const projection = projectCanonicalLegacySalesPaymentSource({
+		grandTotal: order.grandTotal,
+		payments: order.payments,
+	});
 
 	await db.$executeRaw(
 		Prisma.sql`
@@ -122,11 +150,11 @@ async function syncPaymentProjection(db: MirrorDb, salesId: number) {
         updatedAt
       ) VALUES (
         ${salesId},
-        ${positive},
-        ${positive},
-        ${refunded},
-        ${0},
-        ${amountDue},
+		${projection.totalRecorded},
+		${projection.totalAllocated},
+		${projection.totalRefunded},
+		${projection.totalVoided},
+		${projection.amountDue},
         ${"active"},
         ${1},
         NOW(),

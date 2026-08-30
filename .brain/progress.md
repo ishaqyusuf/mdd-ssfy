@@ -12550,3 +12550,27 @@
   `AVAILABLE` terminology. Marking stock available and receiving/applying an
   inbound now present the same `AVAILABLE x OF y` result; unapplied open inbound
   remains separately represented as `ORDERED x OF y`.
+
+## 2026-08-30 — Sales Handoff source-projection repair
+
+- Added a package-owned, fail-closed repair service and local-only CLI with
+  read-only Markdown/JSON reporting, bounded cursors, explicit IDs, category
+  filters, double confirmation, before/after evidence, and audited lifecycle
+  review release.
+- Canonical payment recovery now filters non-deleted successful legacy rows in
+  the shared projection helper. Inventory backfill and repair accept only a
+  durable `ready` result; deterministic mapping failures remain in a separate
+  manifest.
+- Added the pre-2026 blank/null lifecycle quarantine across protected reads,
+  exact and recurring reconciliation, and escalation. Existing epochs are
+  preserved; current-year behavior is unchanged.
+- The reviewed 13-order local canary preserved every order balance and legacy
+  payment row, created matching canonical payment projections, repaired two
+  representative inventory states, quarantined historical order `13098`, and
+  retained deterministic mapping failures. A rerun was idempotent and created
+  no escalation.
+- Focused tests pass. Sales and Jobs typechecks contain no diagnostics in the
+  touched repair/scheduler files; both remain blocked by unrelated existing
+  inbound-demand and sales-control assignment errors.
+- The required real local 200-row tick wrote ScheduleHistory `4271`: 51
+  reconciled, 149 failed, 145 payment failures, 4 inventory failures, and 0

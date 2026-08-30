@@ -290,6 +290,29 @@ coverage or has not completed production assignment.
   Items in the canonical secondary pane without replacing the existing sheet
   URL mode. Assignment-only packers can submit but cannot see reviewer actions.
 
+## Source-Projection Repair And Historical Lifecycle Quarantine (2026-08-30)
+
+- The internal `sales-handoff:source-repair` command owns bounded recovery of
+  open Sales Handoff source markers. Dry-run Markdown is the default; JSON,
+  cursors, explicit order IDs, and payment/inventory categories are supported.
+  Mutation requires `--apply --confirm-review` and is restricted to the local
+  GND database profile.
+- Payment recovery reuses the canonical mirror over non-deleted successful
+  legacy payments and verifies projection totals without changing stored order
+  balances, payment rows, ledgers, or allocations.
+- Inventory recovery reuses the canonical synchronizer with source `repair`.
+  Only durable `ready` is success; warnings and returned/thrown failures retain
+  the marker and deterministic mapping manifest.
+- Missing or terminal orders use exact reconciliation without unnecessary source
+  projection writes. A newly discovered source failure reclassifies the durable
+  marker so staged repair can continue idempotently.
+- A non-terminal pre-2026 order with blank/null lifecycle status enters
+  `sales_handoff_lifecycle_review`. Reads, recurring reconciliation, and
+  escalation preserve existing epochs but perform no transitions while review
+  is open. Current-year blank/null status keeps active-order semantics.
+- Release requires an audited active-order approval or corrected canonical
+  lifecycle status and immediately invokes exact reconciliation. See ADR-077.
+
 ## Ticket 06 API/job boundary hardening (2026-08-23)
 
 - Packing and dispatch mutations reached through the mobile Trigger bridge are

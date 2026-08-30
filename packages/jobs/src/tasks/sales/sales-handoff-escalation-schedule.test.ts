@@ -6,7 +6,7 @@ import {
 	runSalesHandoffEscalationScan,
 } from "./sales-handoff-escalation-schedule";
 
-function escalationDb() {
+function escalationDb(input: { quarantined?: boolean } = {}) {
 	const epoch = {
 		id: "epoch-1",
 		salesOrderId: 91,
@@ -24,9 +24,11 @@ function escalationDb() {
 	const ledger: unknown[] = [];
 	const candidateQueries: unknown[] = [];
 	const model = {
-		findMany: async (input: unknown) => {
-			candidateQueries.push(input);
-			return epoch.resolvedAt || epoch.escalatedAt ? [] : [{ id: epoch.id }];
+		findMany: async (query: unknown) => {
+			candidateQueries.push(query);
+			return epoch.resolvedAt || epoch.escalatedAt
+				? []
+				: [{ id: epoch.id, salesOrderId: epoch.salesOrderId }];
 		},
 		findFirst: async () =>
 			epoch.resolvedAt || epoch.escalatedAt ? null : { ...epoch },
@@ -37,6 +39,10 @@ function escalationDb() {
 		},
 	};
 	const db = {
+		resolutionCase: {
+			findMany: async () =>
+				input.quarantined ? [{ scopeId: String(epoch.salesOrderId) }] : [],
+		},
 		modelHasRoles: {
 			findMany: async () => [{ organizationId: 4 }],
 		},
@@ -63,6 +69,22 @@ function escalationDb() {
 describe("Sales Handoff escalation schedule", () => {
 	test("uses the designated notification user without environment configuration", () => {
 		expect(SALES_HANDOFF_NOTIFICATION_ACTOR_USER_ID).toBe(1);
+	});
+
+	test("does not escalate an epoch whose order is in lifecycle review", async () => {
+		const { db, epoch, ledger } = escalationDb({ quarantined: true });
+		const result = await runSalesHandoffEscalationScan(db as never, {
+			now: new Date("2026-08-24T14:01:00.000Z"),
+			actorUserId: 99,
+		});
+
+		expect(result).toMatchObject({
+			scanned: 1,
+			skippedLifecycleReview: 1,
+			results: [],
+		});
+		expect(epoch.escalatedAt).toBeNull();
+		expect(ledger).toHaveLength(0);
 	});
 
 	test("claims an overdue epoch once and writes one durable row per active admin", async () => {

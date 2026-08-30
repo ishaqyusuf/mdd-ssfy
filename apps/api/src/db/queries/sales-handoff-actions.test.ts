@@ -144,6 +144,9 @@ function epochDb(initial: Row[] = []) {
 		},
 	};
 	const db = {
+		resolutionCase: {
+			findMany: async () => [],
+		},
 		users: {
 			findFirst: async () => ({
 				id: 17,
@@ -1156,6 +1159,94 @@ function exactPaidOrderDb(epochRepositoryDb: unknown, order: unknown) {
 }
 
 describe("exact affected-order reconciliation", () => {
+	test("creates lifecycle review before reconciling a historical blank-status order", async () => {
+		const { db: epochRepositoryDb, rows } = epochDb();
+		const reviews: unknown[] = [];
+		let paymentReads = 0;
+		const db = {
+			...(epochRepositoryDb as Record<string, unknown>),
+			salesOrders: {
+				findFirst: async () => ({
+					...exactActionableOrder(),
+					status: null,
+					createdAt: new Date("2025-12-31T23:59:59.000Z"),
+				}),
+			},
+			resolutionCase: {
+				findMany: async () => [],
+				upsert: async (input: unknown) => {
+					reviews.push(input);
+					return input;
+				},
+			},
+			paymentProjection: {
+				findFirst: async () => {
+					paymentReads += 1;
+					return null;
+				},
+			},
+		};
+
+		const result = await reconcileMaterialSalesHandoffOrder(db as never, {
+			salesOrderId: 999,
+			actorUserId: 41,
+		});
+
+		expect(result).toMatchObject({ status: "LIFECYCLE_REVIEW" });
+		expect(reviews).toHaveLength(1);
+		expect(paymentReads).toBe(0);
+		expect(rows).toHaveLength(0);
+	});
+
+	test("preserves existing epochs while lifecycle review quarantines reconciliation", async () => {
+		const openedAt = new Date("2026-08-22T10:00:00.000Z");
+		const { db: epochRepositoryDb, rows } = epochDb([
+			{
+				id: "material-open",
+				salesOrderId: 999,
+				orderId: "EXACT-999",
+				actionType: "MATERIAL",
+				epoch: 1,
+				openKey: "MATERIAL:999",
+				responsibleRepId: 17,
+				policyRevision: 1,
+				evidenceRevision: "known-before-review",
+				uncoveredQty: 3,
+				qualifiedAt: openedAt,
+				openedAt,
+				resolvedAt: null,
+			},
+		]);
+		let paymentReads = 0;
+		const db = {
+			...(epochRepositoryDb as Record<string, unknown>),
+			salesOrders: { findFirst: async () => exactActionableOrder() },
+			resolutionCase: {
+				findMany: async () => [{ scopeId: "999" }],
+			},
+			paymentProjection: {
+				findFirst: async () => {
+					paymentReads += 1;
+					return null;
+				},
+			},
+		};
+
+		const result = await reconcileMaterialSalesHandoffOrder(db as never, {
+			salesOrderId: 999,
+			actorUserId: 41,
+		});
+
+		expect(result).toMatchObject({ status: "LIFECYCLE_REVIEW" });
+		expect(paymentReads).toBe(0);
+		expect(rows).toHaveLength(1);
+		expect(rows[0]).toMatchObject({
+			id: "material-open",
+			openKey: "MATERIAL:999",
+			resolvedAt: null,
+		});
+	});
+
 	test("replays a durable policy exposure at its original policy time", async () => {
 		const policyChangedAt = "2026-08-24T09:00:00.000Z";
 		const { db: epochRepositoryDb, rows } = epochDb();
