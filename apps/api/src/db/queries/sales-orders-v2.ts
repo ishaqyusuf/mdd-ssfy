@@ -54,6 +54,13 @@ import {
 	emptySalesInventoryInboundOwnership,
 	getSalesInventoryInboundOwnershipMap,
 } from "./sales-inventory-inbound-ownership";
+import {
+	type SalesOrderListReadModelMode,
+	type SalesOrdersPerformanceTracker,
+	createSalesOrdersPerformanceTracker,
+	resolveSalesOrderReadModelCohort,
+	salesOrderReadModelCohortPercentage,
+} from "./sales-orders-performance";
 
 const ordersV2InvoiceStatus = ["paid", "outstanding"] as const;
 const PAYMENT_REVIEW_SORT_FIELD = "latestPaymentAt";
@@ -501,8 +508,6 @@ function legacyCompatibleOrdersQuery(query: GetOrdersSchema): GetOrdersSchema {
 	return cursor ? { ...query, cursor: String(cursor.offset) } : query;
 }
 
-type SalesOrderListReadModelMode = "off" | "shadow" | "read";
-
 type ProjectionRecord = {
 	salesOrderId: number;
 	sourceUpdatedAt: Date;
@@ -559,7 +564,10 @@ function projectionRepository(db: TRPCContext["db"]): ProjectionRepository {
 async function getOrdersFromProjection(
 	ctx: TRPCContext,
 	query: GetOrdersSchema,
+	performance?: SalesOrdersPerformanceTracker,
 ) {
+	const measure = <T>(stage: string, operation: () => Promise<T>) =>
+		performance ? performance.measure(stage, operation) : operation();
 	if (query.paymentReview === "needs_review") {
 		return { hit: false as const, reason: "unsupported_payment_review" };
 	}
@@ -593,16 +601,6 @@ async function getOrdersFromProjection(
 			const size = query.size ? Number(query.size) : 20;
 			const scopedWhere = applyOrdersSoftDeleteScope(query, baseWhere);
 			const cursorDate = keysetCursor ? new Date(keysetCursor.createdAt) : null;
-			const createdAtBoundary = cursorDate
-				? direction === "asc"
-					? { gt: cursorDate }
-					: { lt: cursorDate }
-				: null;
-			const idBoundary = keysetCursor
-				? direction === "asc"
-					? { gt: keysetCursor.id }
-					: { lt: keysetCursor.id }
-				: null;
 			const pageWhere: Prisma.SalesOrdersWhereInput = cursorDate
 				? {
 						AND: [
@@ -610,11 +608,17 @@ async function getOrdersFromProjection(
 							{
 								OR: [
 									{
-										createdAt: createdAtBoundary!,
+										createdAt:
+											direction === "asc"
+												? { gt: cursorDate }
+												: { lt: cursorDate },
 									},
 									{
 										createdAt: cursorDate,
-										id: idBoundary!,
+										id:
+											direction === "asc"
+												? { gt: keysetCursor?.id ?? 0 }
+												: { lt: keysetCursor?.id ?? 0 },
 									},
 								],
 							},
@@ -622,13 +626,17 @@ async function getOrdersFromProjection(
 					}
 				: scopedWhere;
 			const [count, candidates] = await Promise.all([
-				ctx.db.salesOrders.count({ where: scopedWhere }),
-				ctx.db.salesOrders.findMany({
-					where: pageWhere,
-					orderBy: [{ createdAt: direction }, { id: direction }],
-					take: size + 1,
-					select: { id: true, createdAt: true, updatedAt: true },
-				}),
+				measure("count", () =>
+					ctx.db.salesOrders.count({ where: scopedWhere }),
+				),
+				measure("rows", () =>
+					ctx.db.salesOrders.findMany({
+						where: pageWhere,
+						orderBy: [{ createdAt: direction }, { id: direction }],
+						take: size + 1,
+						select: { id: true, createdAt: true, updatedAt: true },
+					}),
+				),
 			]);
 			const hasMore = candidates.length > size;
 			sourceRows = candidates.slice(0, size);
@@ -650,17 +658,21 @@ async function getOrdersFromProjection(
 				query: process.env.NODE_ENV === "production" ? undefined : query,
 			});
 		} else {
-			const composed = await composeQueryData(
-				legacyCompatibleOrdersQuery(query),
-				baseWhere,
-				ctx.db.salesOrders,
-				{ sortFn: ordersV2Sort },
+			const composed = await measure("count", () =>
+				composeQueryData(
+					legacyCompatibleOrdersQuery(query),
+					baseWhere,
+					ctx.db.salesOrders,
+					{ sortFn: ordersV2Sort },
+				),
 			);
-			sourceRows = await ctx.db.salesOrders.findMany({
-				where: composed.where,
-				...composed.searchMeta,
-				select: { id: true, createdAt: true, updatedAt: true },
-			});
+			sourceRows = await measure("rows", () =>
+				ctx.db.salesOrders.findMany({
+					where: composed.where,
+					...composed.searchMeta,
+					select: { id: true, createdAt: true, updatedAt: true },
+				}),
+			);
 			response = composed.response;
 		}
 		if (!sourceRows.length) {
@@ -670,21 +682,23 @@ async function getOrdersFromProjection(
 			};
 		}
 
-		const projections = await projectionRepository(ctx.db).findMany({
-			where: {
-				salesOrderId: {
-					in: sourceRows.map((row) => row.id),
+		const projections = await measure("projection_rows", () =>
+			projectionRepository(ctx.db).findMany({
+				where: {
+					salesOrderId: {
+						in: sourceRows.map((row) => row.id),
+					},
 				},
-			},
-			select: {
-				salesOrderId: true,
-				sourceUpdatedAt: true,
-				version: true,
-				state: true,
-				payload: true,
-				projectedAt: true,
-			},
-		});
+				select: {
+					salesOrderId: true,
+					sourceUpdatedAt: true,
+					version: true,
+					state: true,
+					payload: true,
+					projectedAt: true,
+				},
+			}),
+		);
 		const projectionsById = new Map(
 			projections.map((projection) => [projection.salesOrderId, projection]),
 		);
@@ -712,9 +726,13 @@ async function getOrdersFromProjection(
 			return { hit: false as const, reason: "missing_or_stale" };
 		}
 
-		const data = orderedProjections.map((projection) =>
-			hydrateSalesOrderListRow<Record<string, unknown>>(projection!.payload),
-		);
+		const data = orderedProjections
+			.filter((projection): projection is NonNullable<typeof projection> =>
+				Boolean(projection),
+			)
+			.map((projection) =>
+				hydrateSalesOrderListRow<Record<string, unknown>>(projection.payload),
+			);
 		return {
 			hit: true as const,
 			response: response(data),
@@ -788,12 +806,16 @@ function deferSalesOrderListProjectionWarm(
 	);
 }
 
-async function getOrdersLegacy(ctx: TRPCContext, query: GetOrdersSchema) {
-	query = legacyCompatibleOrdersQuery(query);
+async function getOrdersLegacy(
+	ctx: TRPCContext,
+	query: GetOrdersSchema,
+	performance: SalesOrdersPerformanceTracker,
+) {
+	const legacyCompatibleQuery = legacyCompatibleOrdersQuery(query);
 	const { db } = ctx;
-	const legacyQuery = toLegacyOrdersQuery(query, ctx.userId);
+	const legacyQuery = toLegacyOrdersQuery(legacyCompatibleQuery, ctx.userId);
 	let baseWhere = whereSales(legacyQuery);
-	if (query.needsAction === "open") {
+	if (legacyCompatibleQuery.needsAction === "open") {
 		const epochWhere = ctx.userId
 			? (await getOpenSalesHandoffEpochWhere(db, ctx.userId)).where
 			: null;
@@ -806,10 +828,10 @@ async function getOrdersLegacy(ctx: TRPCContext, query: GetOrdersSchema) {
 			],
 		};
 	}
-	const { sort, sortOrder } = parsePrimarySort(query);
+	const { sort, sortOrder } = parsePrimarySort(legacyCompatibleQuery);
 
-	if (query.paymentReview === "needs_review") {
-		const hasExplicitSort = Boolean(query.sort?.[0]);
+	if (legacyCompatibleQuery.paymentReview === "needs_review") {
+		const hasExplicitSort = Boolean(legacyCompatibleQuery.sort?.[0]);
 		const usePaymentReceivedSort =
 			!hasExplicitSort || sort === PAYMENT_REVIEW_SORT_FIELD;
 		const direction: Prisma.SortOrder =
@@ -817,15 +839,17 @@ async function getOrdersLegacy(ctx: TRPCContext, query: GetOrdersSchema) {
 				? "asc"
 				: "desc";
 		const where = baseWhere ?? {};
-		if (query.bin) {
+		if (legacyCompatibleQuery.bin) {
 			where.deletedAt = {
 				lte: new Date(),
 			};
 		} else {
 			where.deletedAt = null;
 		}
-		const take = query.size ? Number(query.size) : 20;
-		const skip = Number(query.cursor || 0);
+		const take = legacyCompatibleQuery.size
+			? Number(legacyCompatibleQuery.size)
+			: 20;
+		const skip = Number(legacyCompatibleQuery.cursor || 0);
 		const paymentWhere = {
 			deletedAt: null,
 			reviewStatus: "needs_review",
@@ -836,30 +860,36 @@ async function getOrdersLegacy(ctx: TRPCContext, query: GetOrdersSchema) {
 		} satisfies Prisma.SalesPaymentsWhereInput;
 
 		if (!usePaymentReceivedSort) {
-			const groups = await db.salesPayments.groupBy({
-				by: ["orderId"],
-				where: paymentWhere,
-			});
+			const groups = await performance.measure("count", () =>
+				db.salesPayments.groupBy({
+					by: ["orderId"],
+					where: paymentWhere,
+				}),
+			);
 			const orderIds = groups.map((group) => group.orderId);
 			const rows = orderIds.length
-				? await db.salesOrders.findMany({
-						where: {
-							AND: [
-								where,
-								{
-									id: {
-										in: orderIds,
+				? await performance.measure("rows", () =>
+						db.salesOrders.findMany({
+							where: {
+								AND: [
+									where,
+									{
+										id: {
+											in: orderIds,
+										},
 									},
-								},
-							],
-						},
-						orderBy: ordersV2Sort(sort, sortOrder),
-						skip,
-						take,
-						include: SalesListInclude,
-					})
+								],
+							},
+							orderBy: ordersV2Sort(sort, sortOrder),
+							skip,
+							take,
+							include: SalesListInclude,
+						}),
+					)
 				: [];
-			const data = await normalizeOrders(ctx, rows);
+			const data = await performance.measure("enrichment", () =>
+				normalizeOrders(ctx, rows),
+			);
 			const cursor = skip + take;
 
 			return {
@@ -875,47 +905,55 @@ async function getOrdersLegacy(ctx: TRPCContext, query: GetOrdersSchema) {
 		}
 
 		const [groups, totalGroups] = await Promise.all([
-			db.salesPayments.groupBy({
-				by: ["orderId"],
-				where: paymentWhere,
-				_max: {
-					createdAt: true,
-				},
-				orderBy: [
-					{
-						_max: {
-							createdAt: direction,
+			performance.measure("rows", () =>
+				db.salesPayments.groupBy({
+					by: ["orderId"],
+					where: paymentWhere,
+					_max: {
+						createdAt: true,
+					},
+					orderBy: [
+						{
+							_max: {
+								createdAt: direction,
+							},
 						},
-					},
-					{
-						orderId: direction,
-					},
-				],
-				skip,
-				take,
-			}),
-			db.salesPayments.groupBy({
-				by: ["orderId"],
-				where: paymentWhere,
-			}),
+						{
+							orderId: direction,
+						},
+					],
+					skip,
+					take,
+				}),
+			),
+			performance.measure("count", () =>
+				db.salesPayments.groupBy({
+					by: ["orderId"],
+					where: paymentWhere,
+				}),
+			),
 		]);
 		const paymentGroups = groups as Array<{ orderId: number }>;
 		const orderIds = paymentGroups.map((group) => group.orderId);
 		const rows = orderIds.length
-			? await db.salesOrders.findMany({
-					where: {
-						id: {
-							in: orderIds,
+			? await performance.measure("rows", () =>
+					db.salesOrders.findMany({
+						where: {
+							id: {
+								in: orderIds,
+							},
 						},
-					},
-					include: SalesListInclude,
-				})
+						include: SalesListInclude,
+					}),
+				)
 			: [];
 		const rowsById = new Map(rows.map((row) => [row.id, row]));
 		const orderedRows = orderIds
 			.map((orderId) => rowsById.get(orderId))
 			.filter((row): row is NonNullable<typeof row> => Boolean(row));
-		const data = await normalizeOrders(ctx, orderedRows);
+		const data = await performance.measure("enrichment", () =>
+			normalizeOrders(ctx, orderedRows),
+		);
 		const cursor = skip + take;
 
 		return {
@@ -930,20 +968,25 @@ async function getOrdersLegacy(ctx: TRPCContext, query: GetOrdersSchema) {
 		};
 	}
 
-	const { response, searchMeta, where } = await composeQueryData(
-		query,
-		baseWhere,
-		db.salesOrders,
-		{ sortFn: ordersV2Sort },
+	const { response, searchMeta, where } = await performance.measure(
+		"count",
+		() =>
+			composeQueryData(legacyCompatibleQuery, baseWhere, db.salesOrders, {
+				sortFn: ordersV2Sort,
+			}),
 	);
 
-	const rows = await db.salesOrders.findMany({
-		where,
-		...searchMeta,
-		include: SalesListInclude,
-	});
+	const rows = await performance.measure("rows", () =>
+		db.salesOrders.findMany({
+			where,
+			...searchMeta,
+			include: SalesListInclude,
+		}),
+	);
 
-	const data = await normalizeOrders(ctx, rows);
+	const data = await performance.measure("enrichment", () =>
+		normalizeOrders(ctx, rows),
+	);
 	return response(data);
 }
 
@@ -953,52 +996,97 @@ export async function getOrders(
 	ctx: TRPCContext,
 	query: GetOrdersSchema,
 ): Promise<GetOrdersResponse> {
-	const mode = salesOrderListReadModelMode();
+	const configuredMode = salesOrderListReadModelMode();
+	const cohort = resolveSalesOrderReadModelCohort({
+		configuredMode,
+		userId: ctx.userId,
+		percentage: salesOrderReadModelCohortPercentage(),
+	});
+	const mode = cohort.effectiveMode;
+	const performance = createSalesOrdersPerformanceTracker({
+		procedure: "sales.getOrders",
+		requestId: ctx.requestId,
+		configuredMode,
+		effectiveMode: mode,
+		cohortPercentage: cohort.percentage,
+		cohortIncluded: cohort.included,
+		query,
+	});
+	let selectedPath: "projection" | "legacy" =
+		mode === "read" ? "projection" : "legacy";
+	let fallbackReason =
+		configuredMode === "read" && mode !== "read"
+			? "cohort_excluded"
+			: undefined;
 
-	if (mode === "read") {
-		const projection = await getOrdersFromProjection(ctx, query);
-		if (projection.hit) return projection.response as GetOrdersResponse;
-	}
+	try {
+		if (mode === "read") {
+			const projection = await getOrdersFromProjection(ctx, query, performance);
+			if (projection.hit) {
+				performance.finish({
+					selectedPath: "projection",
+					status: "ok",
+					resultSize: projection.response.data.length,
+				});
+				return projection.response as GetOrdersResponse;
+			}
+			selectedPath = "legacy";
+			fallbackReason = projection.reason;
+		}
 
-	const legacy = await getOrdersLegacy(ctx, query);
-	const legacyRows = legacy.data as Array<Record<string, unknown>>;
-	const sampleShadow = mode === "shadow" && shouldSampleProjectionShadow();
+		const legacy = await getOrdersLegacy(ctx, query, performance);
+		const legacyRows = legacy.data as Array<Record<string, unknown>>;
+		const sampleShadow = mode === "shadow" && shouldSampleProjectionShadow();
 
-	if (mode === "read" || sampleShadow) {
-		deferSalesOrderListProjectionWarm(ctx, legacyRows);
-	}
+		if (mode === "read" || sampleShadow) {
+			deferSalesOrderListProjectionWarm(ctx, legacyRows);
+		}
 
-	if (sampleShadow) {
-		waitUntil(
-			getOrdersFromProjection(ctx, query)
-				.then((projection) => {
-					if (!projection.hit) {
-						console.info("Sales order list projection shadow miss", {
-							reason: projection.reason,
+		if (sampleShadow) {
+			waitUntil(
+				getOrdersFromProjection(ctx, query)
+					.then((projection) => {
+						if (!projection.hit) {
+							console.info("Sales order list projection shadow miss", {
+								reason: projection.reason,
+							});
+							return;
+						}
+
+						const comparison = compareSalesOrderListRows(
+							legacyRows,
+							projection.response.data as Array<Record<string, unknown>>,
+						);
+						console.info("Sales order list projection shadow comparison", {
+							matches: comparison.matches,
+							legacyIds: comparison.legacyIds,
+							projectionIds: comparison.projectionIds,
+							mismatchedIds: comparison.mismatchedIds,
 						});
-						return;
-					}
+					})
+					.catch((error) => {
+						console.error("Sales order list projection shadow failed", {
+							error: error instanceof Error ? error.message : String(error),
+						});
+					}),
+			);
+		}
 
-					const comparison = compareSalesOrderListRows(
-						legacyRows,
-						projection.response.data as Array<Record<string, unknown>>,
-					);
-					console.info("Sales order list projection shadow comparison", {
-						matches: comparison.matches,
-						legacyIds: comparison.legacyIds,
-						projectionIds: comparison.projectionIds,
-						mismatchedIds: comparison.mismatchedIds,
-					});
-				})
-				.catch((error) => {
-					console.error("Sales order list projection shadow failed", {
-						error: error instanceof Error ? error.message : String(error),
-					});
-				}),
-		);
+		performance.finish({
+			selectedPath: "legacy",
+			fallbackReason,
+			status: "ok",
+			resultSize: legacyRows.length,
+		});
+		return legacy;
+	} catch (error) {
+		performance.finish({
+			selectedPath,
+			fallbackReason,
+			status: "error",
+		});
+		throw error;
 	}
-
-	return legacy;
 }
 
 async function normalizeOrders(
@@ -1212,63 +1300,99 @@ export async function getOrdersSummary(
 	query: GetOrdersSummarySchema,
 ) {
 	const { db } = ctx;
-	let where = applyOrdersSoftDeleteScope(
+	const performance = createSalesOrdersPerformanceTracker({
+		procedure: "sales.getOrdersSummary",
+		requestId: ctx.requestId,
+		configuredMode: "off",
+		effectiveMode: "off",
+		cohortPercentage: 0,
+		cohortIncluded: false,
 		query,
-		whereSales(toLegacyOrdersQuery(query, ctx.userId)) ?? {},
-	);
-	if (query.needsAction === "open") {
-		const epochWhere = ctx.userId
-			? (await getOpenSalesHandoffEpochWhere(db, ctx.userId)).where
-			: null;
-		where = {
-			AND: [
-				where,
-				epochWhere
-					? { handoffActionEpochs: { some: epochWhere } }
-					: { id: { in: [] } },
-			],
+	});
+
+	try {
+		let where = applyOrdersSoftDeleteScope(
+			query,
+			whereSales(toLegacyOrdersQuery(query, ctx.userId)) ?? {},
+		);
+		if (query.needsAction === "open") {
+			const epochWhere = ctx.userId
+				? await performance.measure("summary_scope", () =>
+						getOpenSalesHandoffEpochWhere(db, ctx.userId as number),
+					)
+				: null;
+			where = {
+				AND: [
+					where,
+					epochWhere
+						? { handoffActionEpochs: { some: epochWhere.where } }
+						: { id: { in: [] } },
+				],
+			};
+		}
+
+		const [
+			totalOrders,
+			invoiceValue,
+			outstandingBalance,
+			paidOrders,
+			evaluatingOrders,
+		] = await Promise.all([
+			performance.measure("summary_total_orders", () =>
+				db.salesOrders.count({ where }),
+			),
+			performance.measure("summary_invoice_value", () =>
+				db.salesOrders.aggregate({
+					where,
+					_sum: {
+						grandTotal: true,
+					},
+				}),
+			),
+			performance.measure("summary_outstanding_balance", () =>
+				db.salesOrders.aggregate({
+					where,
+					_sum: {
+						amountDue: true,
+					},
+				}),
+			),
+			performance.measure("summary_paid_orders", () =>
+				db.salesOrders.count({
+					where: {
+						AND: [where, { amountDue: 0 }],
+					},
+				}),
+			),
+			performance.measure("summary_evaluating_orders", () =>
+				db.salesOrders.count({
+					where: {
+						AND: [where, { status: "Evaluating" }],
+					},
+				}),
+			),
+		]);
+
+		const result = {
+			totalOrders,
+			invoiceValue: invoiceValue._sum.grandTotal ?? 0,
+			outstandingBalance: outstandingBalance._sum.amountDue ?? 0,
+			paidOrders,
+			evaluatingOrders,
 		};
+		performance.finish({
+			selectedPath: "summary",
+			status: "ok",
+			resultSize: totalOrders,
+		});
+		return result;
+	} catch (error) {
+		performance.finish({
+			selectedPath: "summary",
+			status: "error",
+		});
+		throw error;
 	}
-
-	const [
-		totalOrders,
-		invoiceValue,
-		outstandingBalance,
-		paidOrders,
-		evaluatingOrders,
-	] = await Promise.all([
-		db.salesOrders.count({ where }),
-		db.salesOrders.aggregate({
-			where,
-			_sum: {
-				grandTotal: true,
-			},
-		}),
-		db.salesOrders.aggregate({
-			where,
-			_sum: {
-				amountDue: true,
-			},
-		}),
-		db.salesOrders.count({
-			where: {
-				AND: [where, { amountDue: 0 }],
-			},
-		}),
-		db.salesOrders.count({
-			where: {
-				AND: [where, { status: "Evaluating" }],
-			},
-		}),
-	]);
-
-	return {
-		totalOrders,
-		invoiceValue: invoiceValue._sum.grandTotal ?? 0,
-		outstandingBalance: outstandingBalance._sum.amountDue ?? 0,
-		paidOrders,
-		evaluatingOrders,
-	};
 }
 
 export async function getOrdersCount(ctx: TRPCContext, query: GetOrdersSchema) {

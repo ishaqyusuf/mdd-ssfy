@@ -4,6 +4,7 @@ const SUBSCRIPTION_SERVICES = new Set([
 	"Additional Team Seats",
 	"Pro",
 	"Speed Insights",
+	"Speed Insights Plus",
 ]);
 
 export interface VercelUsageService {
@@ -111,7 +112,10 @@ function parseDate(value: string, option: string) {
 	}
 
 	const date = new Date(`${value}T00:00:00.000Z`);
-	if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+	if (
+		Number.isNaN(date.getTime()) ||
+		date.toISOString().slice(0, 10) !== value
+	) {
 		throw new Error(`${option} must be a valid calendar date`);
 	}
 

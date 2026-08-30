@@ -1,12 +1,55 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import {
 	decodeSalesOrderListKeysetCursor,
 	encodeSalesOrderListKeysetCursor,
+	getOrders,
 	getOrdersCount,
 	getOrdersSchema,
+	getOrdersSummary,
 	normalizeOrderRow,
 	resolveSpecialOrderLinkState,
 } from "./sales-orders-v2";
+
+const READ_MODEL_ENV_KEYS = [
+	"GND_SALES_ORDERS_READ_MODEL_MODE",
+	"GND_SALES_ORDERS_READ_MODEL_COHORT_PERCENTAGE",
+	"GND_SALES_ORDERS_PERFORMANCE_SAMPLE_RATE",
+] as const;
+
+async function withReadModelEnv(
+	values: Partial<Record<(typeof READ_MODEL_ENV_KEYS)[number], string>>,
+	operation: () => Promise<void>,
+) {
+	const previous = Object.fromEntries(
+		READ_MODEL_ENV_KEYS.map((key) => [key, process.env[key]]),
+	);
+	for (const key of READ_MODEL_ENV_KEYS) {
+		const value = values[key];
+		if (value === undefined) process.env[key] = undefined;
+		else process.env[key] = value;
+	}
+	try {
+		await operation();
+	} finally {
+		for (const key of READ_MODEL_ENV_KEYS) {
+			const value = previous[key];
+			if (value === undefined) process.env[key] = undefined;
+			else process.env[key] = value;
+		}
+	}
+}
+
+function emptyOrderReadDb() {
+	return {
+		salesOrders: {
+			count: async () => 0,
+			findMany: async () => [],
+		},
+		salesInventoryProjectionState: { findMany: async () => [] },
+		lineItem: { findMany: async () => [] },
+		specialOrderApprovalRequest: { findMany: async () => [] },
+	};
+}
 
 function makeOrder(overrides: Record<string, unknown> = {}) {
 	return {
@@ -45,6 +88,237 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 }
 
 describe("sales orders default query contract", () => {
+	it("keeps cohort-excluded read requests on legacy and emits one safe event", async () => {
+		await withReadModelEnv(
+			{
+				GND_SALES_ORDERS_READ_MODEL_MODE: "read",
+				GND_SALES_ORDERS_READ_MODEL_COHORT_PERCENTAGE: "0",
+				GND_SALES_ORDERS_PERFORMANCE_SAMPLE_RATE: "1",
+			},
+			async () => {
+				const events: unknown[][] = [];
+				const consoleInfo = spyOn(console, "info").mockImplementation(
+					(...args) => {
+						events.push(args);
+					},
+				);
+				try {
+					const result = await getOrders(
+						{
+							userId: 42,
+							requestId: "cohort-excluded",
+							db: emptyOrderReadDb(),
+						} as unknown as Parameters<typeof getOrders>[0],
+						{ q: "private search", size: 20 },
+					);
+
+					expect(result.data).toEqual([]);
+					const performanceEvents = events.filter(
+						(event) => event[0] === "[sales-orders-performance]",
+					);
+					expect(performanceEvents).toHaveLength(1);
+					expect(performanceEvents[0]?.[1]).toMatchObject({
+						selectedPath: "legacy",
+						fallbackReason: "cohort_excluded",
+						status: "ok",
+						searchKind: "broad",
+					});
+					expect(JSON.stringify(performanceEvents)).not.toContain(
+						"private search",
+					);
+				} finally {
+					consoleInfo.mockRestore();
+				}
+			},
+		);
+	});
+
+	it("emits exactly one error event when the legacy query fails", async () => {
+		await withReadModelEnv(
+			{
+				GND_SALES_ORDERS_READ_MODEL_MODE: "off",
+				GND_SALES_ORDERS_PERFORMANCE_SAMPLE_RATE: "1",
+			},
+			async () => {
+				const events: unknown[][] = [];
+				const consoleInfo = spyOn(console, "info").mockImplementation(
+					(...args) => {
+						events.push(args);
+					},
+				);
+				try {
+					const db = emptyOrderReadDb();
+					db.salesOrders.count = async () => {
+						throw new Error("database unavailable");
+					};
+
+					await expect(
+						getOrders(
+							{
+								userId: 42,
+								requestId: "legacy-error",
+								db,
+							} as unknown as Parameters<typeof getOrders>[0],
+							{ size: 20 },
+						),
+					).rejects.toThrow("database unavailable");
+
+					const performanceEvents = events.filter(
+						(event) => event[0] === "[sales-orders-performance]",
+					);
+					expect(performanceEvents).toHaveLength(1);
+					expect(performanceEvents[0]?.[1]).toMatchObject({
+						selectedPath: "legacy",
+						status: "error",
+					});
+				} finally {
+					consoleInfo.mockRestore();
+				}
+			},
+		);
+	});
+
+	it("falls back once after a projection read error and records the reason", async () => {
+		await withReadModelEnv(
+			{
+				GND_SALES_ORDERS_READ_MODEL_MODE: "read",
+				GND_SALES_ORDERS_READ_MODEL_COHORT_PERCENTAGE: "100",
+				GND_SALES_ORDERS_PERFORMANCE_SAMPLE_RATE: "1",
+			},
+			async () => {
+				let findManyCalls = 0;
+				const events: unknown[][] = [];
+				const consoleInfo = spyOn(console, "info").mockImplementation(
+					(...args) => {
+						events.push(args);
+					},
+				);
+				const consoleError = spyOn(console, "error").mockImplementation(
+					() => {},
+				);
+				try {
+					const db = {
+						...emptyOrderReadDb(),
+						salesOrders: {
+							count: async () => 1,
+							findMany: async () => {
+								findManyCalls += 1;
+								return findManyCalls === 1
+									? [
+											{
+												id: 99,
+												createdAt: new Date("2026-08-30T00:00:00.000Z"),
+												updatedAt: new Date("2026-08-30T00:00:00.000Z"),
+											},
+										]
+									: [];
+							},
+						},
+						salesOrderListProjection: {
+							findMany: async () => {
+								throw new Error("projection unavailable");
+							},
+						},
+					};
+					const result = await getOrders(
+						{
+							userId: 42,
+							requestId: "projection-error",
+							db,
+						} as unknown as Parameters<typeof getOrders>[0],
+						{ size: 20 },
+					);
+
+					expect(result.data).toEqual([]);
+					expect(findManyCalls).toBe(2);
+					const performanceEvents = events.filter(
+						(event) => event[0] === "[sales-orders-performance]",
+					);
+					expect(performanceEvents).toHaveLength(1);
+					expect(performanceEvents[0]?.[1]).toMatchObject({
+						selectedPath: "legacy",
+						fallbackReason: "read_error",
+						status: "ok",
+					});
+				} finally {
+					consoleInfo.mockRestore();
+					consoleError.mockRestore();
+				}
+			},
+		);
+	});
+
+	it("records one projection-independent summary event", async () => {
+		await withReadModelEnv(
+			{
+				GND_SALES_ORDERS_READ_MODEL_MODE: "read",
+				GND_SALES_ORDERS_READ_MODEL_COHORT_PERCENTAGE: "100",
+				GND_SALES_ORDERS_PERFORMANCE_SAMPLE_RATE: "1",
+			},
+			async () => {
+				let countCalls = 0;
+				const events: unknown[][] = [];
+				const consoleInfo = spyOn(console, "info").mockImplementation(
+					(...args) => {
+						events.push(args);
+					},
+				);
+				try {
+					const result = await getOrdersSummary(
+						{
+							userId: 42,
+							requestId: "summary",
+							db: {
+								salesOrders: {
+									count: async () => {
+										countCalls += 1;
+										return countCalls === 1 ? 2 : 1;
+									},
+									aggregate: async (input: {
+										_sum: Record<string, boolean>;
+									}) => ({
+										_sum: input._sum.grandTotal
+											? { grandTotal: 500 }
+											: { amountDue: 125 },
+									}),
+								},
+							},
+						} as unknown as Parameters<typeof getOrdersSummary>[0],
+						{},
+					);
+
+					expect(result).toEqual({
+						totalOrders: 2,
+						invoiceValue: 500,
+						outstandingBalance: 125,
+						paidOrders: 1,
+						evaluatingOrders: 1,
+					});
+					const performanceEvents = events.filter(
+						(event) => event[0] === "[sales-orders-performance]",
+					);
+					expect(performanceEvents).toHaveLength(1);
+					expect(performanceEvents[0]?.[1]).toMatchObject({
+						configuredMode: "off",
+						effectiveMode: "off",
+						cohortIncluded: false,
+						selectedPath: "summary",
+						status: "ok",
+						stageDurationsMs: {
+							summary_total_orders: expect.any(Number),
+							summary_invoice_value: expect.any(Number),
+							summary_outstanding_balance: expect.any(Number),
+							summary_paid_orders: expect.any(Number),
+							summary_evaluating_orders: expect.any(Number),
+						},
+					});
+				} finally {
+					consoleInfo.mockRestore();
+				}
+			},
+		);
+	});
+
 	it("uses the actor-derived handoff relation without an implicit current-rep filter", async () => {
 		const countQueries: unknown[] = [];
 		const ctx = {

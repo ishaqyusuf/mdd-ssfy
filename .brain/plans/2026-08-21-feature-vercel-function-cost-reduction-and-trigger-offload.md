@@ -183,7 +183,7 @@ flowchart TD
    - Compare 12-hour, 24-hour, and seven-day windows; do not extrapolate a
      deployment or traffic anomaly as normal monthly usage.
 
-2. **Endpoint implemented and preview-verified; Sentry cutover pending.** Remove
+2. **Completed 2026-08-30.** Remove
    Sentry liveness fan-out.
    - Add dashboard `GET /api/health/live` that performs no authentication,
      database access, external request, redirect, or same-origin fetch.
@@ -196,6 +196,9 @@ flowchart TD
    - Validate from Vercel logs that one liveness check causes one invocation
      and that Sentry no longer reaches `/`, `/login/v2`, or
      `/api/auth-session`.
+   - Current state: the production monitor now targets `/api/health/live` every
+     five minutes in the `production` environment and its immediate test
+     passed. Historical fan-out remains visible only as pre-cutover evidence.
 
 3. **Preview canary deployed; measurement and production promotion pending.**
    Run a controlled Fluid Compute canary.
@@ -234,6 +237,12 @@ flowchart TD
      list, summary, or metadata into extra Vercel invocations solely to hide a
      timeout; change batching only when measured reliability benefit outweighs
      the added invocation and connection cost.
+
+   Current state (2026-08-30): privacy-safe `sales.getOrders` and
+   `sales.getOrdersSummary` stage telemetry is implemented. The list read path
+   also has a deterministic authenticated-user cohort percentage with legacy
+   fallback and mode `off` rollback. Client request-lock, sentinel, query-key,
+   and superseded-request work remains a separate incomplete part of this step.
    - Target at least a 60% reduction in tRPC Function Duration attributable to
      Sales Orders, list p75 below 750 ms, p95 below two seconds, and no timeouts.
 
@@ -410,6 +419,9 @@ flowchart TD
 - Read modes: `off` (default), `shadow`, and `read`. Shadow comparisons are
   sampled and log ids only. Read mode falls back on missing, stale, wrong-version,
   unsupported, or failed projection reads.
+- Read cohorts: `GND_SALES_ORDERS_READ_MODEL_COHORT_PERCENTAGE` deterministically
+  selects authenticated users only in `read` mode. Users outside the cohort use
+  legacy, and `off` remains the rollback.
 - Freshness: the default five-minute maximum age bounds relation-only changes
   that do not advance `SalesOrders.updatedAt`. Expired rows use legacy output and
   enqueue a canonical rebuild.

@@ -29,6 +29,18 @@ keyset pagination for the default created-date sort and retains the numeric
 offset inside the opaque cursor so a legacy fallback can continue the same page.
 Custom sorts retain current offset behavior.
 
+Read mode also accepts a stable authenticated-user percentage cohort through
+`GND_SALES_ORDERS_READ_MODEL_COHORT_PERCENTAGE`. Users outside the cohort take
+the legacy path, and changing the percentage is reversible without changing
+data or the projection contract. This control does not bypass the production
+activation gates below.
+
+The list and summary procedures emit one privacy-safe structured timing event
+per request. List events identify the projection/legacy path, fallback reason,
+result size, and count/row/projection/enrichment durations. Summary events are
+projection-independent. Telemetry records filter shape rather than filter
+values and never includes search text or row/customer payloads.
+
 Projection refresh is idempotent and revision checked before and after the
 worker reloads canonical data. Related-table freshness is bounded by a default
 five-minute maximum age; expiration falls back to legacy and queues another
@@ -55,6 +67,8 @@ still reject commercially meaningful numeric differences.
 - The projection duplicates presentation data intentionally and must be
   versioned whenever the list-row contract changes.
 - The legacy query remains the rollback path until parity and cost goals hold.
+- Cohort percentage and telemetry sampling are operational controls; mode
+  `off` remains the authoritative one-setting rollback.
 
 ## Rejected alternatives
 
