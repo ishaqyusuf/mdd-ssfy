@@ -13787,3 +13787,22 @@
   30 assertions, email typecheck, and scoped Biome across 29 files. Jobs
   typecheck retains only the two existing unrelated inventory/sales errors.
 - Review: `.brain/reports/email-design-review-2026-08-30.md`.
+
+## 2026-08-31 — Production release and jobs-deploy follow-up
+
+- Committed and pushed the consolidated sales production, fulfillment, jobs,
+  and supporting work to `master` through commit `862e923be`. The local branch
+  and `gnd-prodesk/master` were verified at exact parity with a clean worktree.
+- Applied the production Prisma schema successfully to the confirmed
+  `gndprodesk` target. The Sales Handoff recurring schedule remains disabled;
+  enabling it still requires the separately documented production dry run and
+  approval gate.
+- The Trigger bundle compiled successfully twice, but both production jobs
+  deployment attempts stalled in Depot's remote container-build stage without
+  returning a deployment version. The first attempt was observed for about 40
+  minutes and the controlled retry for about 15 minutes before their idle
+  clients were stopped. Production jobs deployment therefore remains
+  unconfirmed and needs a later retry or Trigger/Depot support investigation.
+- A local process diagnostic exposed the production Trigger and database
+  credentials in tool output. No values are recorded here; rotate both affected
+  credentials before treating the release environment as secure.

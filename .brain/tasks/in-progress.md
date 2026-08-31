@@ -426,8 +426,10 @@ Tracks the active work queue. Keep this focused and execution-ready.
   CLI, lifecycle quarantine/release, categorized schedule diagnostics, and the
   13-order canary are complete. Continue reviewed local batches of 100 payment
   and 25 inventory candidates; deterministic mapping failures and lifecycle
-  reviews remain dedicated manual queues. The Trigger task now deploys without
-  a recurring schedule by default; production currently has
+  reviews remain dedicated manual queues. The Trigger task is configured to
+  deploy without a recurring schedule by default; the 2026-08-31 production
+  deployment compiled locally but remained unconfirmed after two remote Depot
+  build stalls. Production currently has
   `SALES_HANDOFF_RECONCILIATION_SCHEDULE_ENABLED` disabled. Enabling its
   15-minute cron still requires a separate fingerprint-confirmed production dry
   run and approval.
