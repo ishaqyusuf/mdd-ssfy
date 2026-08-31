@@ -7,6 +7,14 @@ import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@gnd/ui/select";
 import type { SalesFormSelectOption } from "./invoice-pricing-overview";
 import { normalizeSalesFormPaymentTerm } from "./overview-options";
 import { SalesFormSummarySectionHeader } from "./summary-section-header";
@@ -14,22 +22,18 @@ import { SalesFormSummarySectionHeader } from "./summary-section-header";
 export type SalesFormInvoiceDetailsPanelProps = {
 	type?: "order" | "quote";
 	po?: string | null;
-	createdAt?: string | null;
 	paymentTerm: string;
 	paymentTerms: SalesFormSelectOption[];
 	paymentDueDate?: string | null;
 	goodUntil?: string | null;
 	prodDueDate?: string | null;
-	deliveryDueDate?: string | null;
 	deliveryOption: string;
 	deliveryOptions: SalesFormSelectOption[];
 	onPoChange?: (value: string) => void;
-	onCreatedAtChange?: (value: string | null) => void;
 	onPaymentTermChange?: (value: string) => void;
 	onPaymentDueDateChange?: (value: string | null) => void;
 	onGoodUntilChange?: (value: string | null) => void;
 	onProdDueDateChange?: (value: string | null) => void;
-	onDeliveryDueDateChange?: (value: string | null) => void;
 	onDeliveryOptionChange?: (value: string) => void;
 };
 
@@ -89,6 +93,7 @@ function DateInputField(props: {
 	value?: string | null;
 	onChange?: (value: string | null) => void;
 	disabled?: boolean;
+	highlightToday?: boolean;
 }) {
 	const selectedDate = datePickerValue(props.value);
 	return (
@@ -110,6 +115,11 @@ function DateInputField(props: {
 				</PopoverTrigger>
 				<PopoverContent align="start" className="w-auto p-0">
 					<Calendar
+						classNames={
+							props.highlightToday
+								? { today: "rounded-full bg-accent/30" }
+								: undefined
+						}
 						mode="single"
 						selected={selectedDate}
 						onSelect={(date) =>
@@ -130,85 +140,101 @@ export function SalesFormInvoiceDetailsPanel(
 	const hasAutomaticOrderDueDate =
 		!isQuote && normalizeSalesFormPaymentTerm(props.paymentTerm) !== "None";
 	return (
-		<section className="border-b border-border/70 pb-6">
-			<SalesFormSummarySectionHeader
-				description="Purchase order, payment terms, due dates, and fulfillment."
-				icon={<Icons.Info size={18} />}
-				title="Global Invoice Details"
-			/>
-			<div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
-				<div className="grid gap-1.5">
-					<FieldLabel htmlFor="invoice-po">P.O. Number</FieldLabel>
-					<Input
-						id="invoice-po"
-						value={props.po || ""}
-						onChange={(event) => props.onPoChange?.(event.target.value)}
-						className="h-10 bg-background text-xs font-bold"
-						placeholder="Purchase order number"
-					/>
-				</div>
-				{isQuote ? null : (
-					<div className="grid gap-1.5">
-						<FieldLabel htmlFor="invoice-payment-term">Net</FieldLabel>
-						<select
-							id="invoice-payment-term"
-							value={normalizeSalesFormPaymentTerm(props.paymentTerm)}
-							onChange={(event) =>
-								props.onPaymentTermChange?.(event.target.value)
-							}
-							className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring"
-						>
-							{props.paymentTerms.map((term) => (
-								<option key={term.value} value={term.value}>
-									{term.label}
-								</option>
-							))}
-						</select>
-					</div>
-				)}
-				<DateInputField
-					id="invoice-payment-due-date"
-					label={isQuote ? "Good Until" : "Due"}
-					value={isQuote ? props.goodUntil : props.paymentDueDate}
-					onChange={
-						isQuote ? props.onGoodUntilChange : props.onPaymentDueDateChange
-					}
-					disabled={hasAutomaticOrderDueDate}
+		<>
+			<section className="border-b border-border/70 pb-6">
+				<SalesFormSummarySectionHeader
+					description="Purchase order, payment terms, and fulfillment."
+					icon={<Icons.Info size={18} />}
+					title="Global Invoice Details"
 				/>
-				{isQuote ? null : (
-					<DateInputField
-						id="invoice-production-due-date"
-						label="Production Due Date"
-						value={props.prodDueDate}
-						onChange={props.onProdDueDateChange}
-					/>
-				)}
-				{isQuote ? null : (
-					<DateInputField
-						id="invoice-delivery-due-date"
-						label="Delivery Due Date"
-						value={props.deliveryDueDate}
-						onChange={props.onDeliveryDueDateChange}
-					/>
-				)}
-				<div className="grid gap-1.5">
-					<FieldLabel htmlFor="invoice-fulfillment">Fulfillment</FieldLabel>
-					<select
-						id="invoice-fulfillment"
-						value={props.deliveryOption}
-						onChange={(event) =>
-							props.onDeliveryOptionChange?.(event.target.value)
-						}
-						className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring"
-					>
-						{props.deliveryOptions.map((mode) => (
-							<option key={mode.value} value={mode.value}>
-								{mode.label}
-							</option>
-						))}
-					</select>
+				<div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
+					<div className="grid gap-1.5">
+						<FieldLabel htmlFor="invoice-po">P.O. Number</FieldLabel>
+						<Input
+							id="invoice-po"
+							value={props.po || ""}
+							onChange={(event) => props.onPoChange?.(event.target.value)}
+							className="h-10 bg-background text-xs font-bold"
+							placeholder="Purchase order number"
+						/>
+					</div>
+					{isQuote ? null : (
+						<div className="grid gap-1.5">
+							<FieldLabel htmlFor="invoice-payment-term">Net</FieldLabel>
+							<select
+								id="invoice-payment-term"
+								value={normalizeSalesFormPaymentTerm(props.paymentTerm)}
+								onChange={(event) =>
+									props.onPaymentTermChange?.(event.target.value)
+								}
+								className="h-10 w-full rounded-md border border-border bg-background px-3 text-xs font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							>
+								{props.paymentTerms.map((term) => (
+									<option key={term.value} value={term.value}>
+										{term.label}
+									</option>
+								))}
+							</select>
+						</div>
+					)}
+					{isQuote ? (
+						<DateInputField
+							id="invoice-good-until"
+							label="Good Until"
+							value={props.goodUntil}
+							onChange={props.onGoodUntilChange}
+						/>
+					) : null}
+					<div className="grid gap-1.5">
+						<FieldLabel htmlFor="invoice-fulfillment">Fulfillment</FieldLabel>
+						<Select
+							value={props.deliveryOption}
+							onValueChange={(value) => props.onDeliveryOptionChange?.(value)}
+						>
+							<SelectTrigger
+								id="invoice-fulfillment"
+								className="h-10 bg-background text-xs font-bold"
+							>
+								<SelectValue placeholder="Select fulfillment" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{props.deliveryOptions.map((mode) => (
+										<SelectItem key={mode.value} value={mode.value}>
+											{mode.label}
+										</SelectItem>
+									))}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					</div>
 				</div>
-			</div>
-		</section>
+			</section>
+			{isQuote ? null : (
+				<section className="border-b border-border/70 py-6">
+					<SalesFormSummarySectionHeader
+						description="Production and fulfillment target dates for this order."
+						icon={<Icons.CalendarIcon size={18} />}
+						title="Due Dates"
+					/>
+					<div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
+						<DateInputField
+							highlightToday
+							id="invoice-production-due-date"
+							label="Production"
+							value={props.prodDueDate}
+							onChange={props.onProdDueDateChange}
+						/>
+						<DateInputField
+							disabled={hasAutomaticOrderDueDate}
+							id="invoice-payment-due-date"
+							label="Fulfillment"
+							value={props.paymentDueDate}
+							onChange={props.onPaymentDueDateChange}
+						/>
+					</div>
+				</section>
+			)}
+		</>
 	);
 }

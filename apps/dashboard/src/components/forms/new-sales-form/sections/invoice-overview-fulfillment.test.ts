@@ -30,4 +30,17 @@ describe("invoice overview fulfillment confirmation", () => {
 		expect(source).toContain("Delivery additional costs");
 		expect(source).toContain("from this sale.");
 	});
+
+	it("mirrors every order due-date change into the delivery planning date", () => {
+		expect(source).toContain("paymentDueDate: dueDate");
+		expect(source).toContain("deliveryDueDate: dueDate");
+		expect(source).not.toContain("onDeliveryDueDateChange=");
+	});
+
+	it("recalculates both fulfillment dates when the order creation date changes", () => {
+		expect(source).toContain("previousCreatedAtRef");
+		expect(source).toContain("if (previousCreatedAtRef.current === createdAt)");
+		expect(source).toContain("calculateLegacyPaymentDueDate(");
+		expect(source).toContain("deliveryDueDate: dueDate");
+	});
 });

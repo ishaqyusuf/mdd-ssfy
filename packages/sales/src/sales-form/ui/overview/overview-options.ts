@@ -1,3 +1,5 @@
+import { SALES_DELIVERY_OPTIONS } from "@gnd/utils/sales";
+
 export type SalesFormSelectOption = {
 	value: string;
 	label: string;
@@ -34,7 +36,9 @@ function paymentTermKey(value?: string | null) {
 		.replace(/[^a-z0-9]/g, "");
 }
 
-export const salesFormDeliveryOptions = [...SALES_DELIVERY_OPTIONS];
+export const salesFormDeliveryOptions = SALES_DELIVERY_OPTIONS.filter(
+	(option) => option !== "ship",
+);
 
 export const salesFormPaymentMethods = [
 	"None",
@@ -157,4 +161,3 @@ export function getDefaultSalesFormCustomerProfile<
 		null
 	);
 }
-import { SALES_DELIVERY_OPTIONS } from "@gnd/utils/sales";

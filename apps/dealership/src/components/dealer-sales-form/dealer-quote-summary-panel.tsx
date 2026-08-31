@@ -113,6 +113,7 @@ export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
 				onProfileChange={props.onProfileChange}
 			/>
 			<SalesFormInvoiceDetailsPanel
+				type="quote"
 				deliveryOption={props.deliveryOption || "pickup"}
 				deliveryOptions={deliveryOptions}
 				goodUntil={props.goodUntil}

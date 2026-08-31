@@ -574,7 +574,14 @@ export function toSalesFormSaveDraftPayload<
 		}),
 	);
 	const extraCosts = normalizeSalesFormExtraCosts(source.extraCosts || []);
-	const meta = normalizeSalesFormRecordMeta(source);
+	const normalizedMeta = normalizeSalesFormRecordMeta(source);
+	const meta =
+		source.type === "order"
+			? {
+					...normalizedMeta,
+					deliveryDueDate: normalizedMeta.paymentDueDate,
+				}
+			: normalizedMeta;
 	const summary = computeSalesFormSummary(
 		lineItems,
 		source.summary?.taxRate || 0,

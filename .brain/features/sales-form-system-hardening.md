@@ -1,16 +1,19 @@
 # Sales Form System Hardening
 
-## Operational due-date defaults (2026-08-30)
+## Due dates, fulfillment, and standard save (2026-08-31)
 
-- The new order form exposes explicit `Production Due Date` and `Delivery Due
-  Date` calendar controls in Global Invoice Details. Quotes do not expose these
-  operational dates.
-- Both values persist through the canonical relational Sales Order save and
-  bootstrap contract. Production continues to use `SalesOrders.prodDueDate`;
-  delivery planning uses the additive nullable
-  `SalesOrders.deliveryDueDate`.
-- The nested new-form metadata retains compatibility snapshots, but the scalar
-  Sales Order columns are authoritative when an existing order is reopened.
+- Orders render a dedicated Due Dates section with independent Production and
+  Fulfillment calendars. The Production calendar gives today's date a faint
+  accent; quotes keep Good Until and do not render the order-only section.
+- Fulfillment uses the existing payment due/Net-term behavior and mirrors every
+  change into the order-level delivery planning default. The shared save
+  composer also normalizes `deliveryDueDate` from `paymentDueDate`, so reopened
+  records with older divergent values converge on their next save.
+- The Fulfillment mode uses the shared shadcn Select and offers Pickup and
+  Delivery only. Historical Ship compatibility remains outside order entry.
+- The invoice-summary primary Save action uses the standard final/Active save
+  path and its canonical saved-order navigation. Save Draft remains available
+  only as the explicitly labeled menu action.
 
 ## Current behavior (2026-08-12)
 

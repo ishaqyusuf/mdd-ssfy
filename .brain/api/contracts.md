@@ -245,6 +245,9 @@
 
 - New Sales Form order payloads accept nullable ISO-compatible
   `meta.prodDueDate` and `meta.deliveryDueDate` values.
+- The shared New Sales Form payload composer treats `meta.paymentDueDate` as
+  the visible Fulfillment due date for orders and copies it into
+  `meta.deliveryDueDate` before save. The external payload shape is unchanged.
 - Save writes the values to `SalesOrders.prodDueDate` and
   `SalesOrders.deliveryDueDate`, and bootstrap returns those scalar values ahead
   of any stale compatibility metadata.

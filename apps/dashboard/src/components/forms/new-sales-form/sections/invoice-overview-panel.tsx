@@ -97,6 +97,7 @@ export function InvoiceOverviewPanel(props: Props) {
 	const initialEditTaxCodeRef = useRef<string | null | undefined>(undefined);
 	const initialCustomerResolutionHandledRef = useRef(false);
 	const lastResolvedCustomerDefaultsIdRef = useRef<number | null>(null);
+	const previousCreatedAtRef = useRef<string | null | undefined>(undefined);
 
 	const [isCustomerSelectorOpen, setIsCustomerSelectorOpen] = useState(false);
 	const [pendingDeliveryOption, setPendingDeliveryOption] = useState<
@@ -125,6 +126,10 @@ export function InvoiceOverviewPanel(props: Props) {
 	const billingAddressId = record?.form.billingAddressId ?? null;
 	const shippingAddressId = record?.form.shippingAddressId ?? null;
 	const paymentTerm = record?.form.paymentTerm ?? "None";
+	const createdAt = record?.form.createdAt ?? null;
+	const paymentDueDate = record?.form.paymentDueDate ?? null;
+	const deliveryDueDate = record?.form.deliveryDueDate ?? null;
+	const hasRecord = Boolean(record);
 	const taxCode = record?.form.taxCode ?? null;
 	const summaryTaxRate = Number(record?.summary?.taxRate || 0);
 	const billingLines = ((resolvedCustomer.data as any)?.billing?.lines ||
@@ -148,6 +153,39 @@ export function InvoiceOverviewPanel(props: Props) {
 		initialEditCustomerIdRef.current = customerId;
 		initialEditTaxCodeRef.current = taxCode;
 	}, [customerId, props.mode, record, taxCode]);
+
+	useEffect(() => {
+		if (!hasRecord) return;
+		if (previousCreatedAtRef.current === undefined) {
+			previousCreatedAtRef.current = createdAt;
+			return;
+		}
+		if (previousCreatedAtRef.current === createdAt) return;
+		previousCreatedAtRef.current = createdAt;
+		if (props.type !== "order" || props.historyRestoreActive) return;
+		const normalizedPaymentTerm = normalizeSalesFormPaymentTerm(paymentTerm);
+		if (normalizedPaymentTerm === "None") return;
+		const dueDate = calculateLegacyPaymentDueDate(
+			normalizedPaymentTerm,
+			createdAt,
+		);
+		if (dueDate === paymentDueDate && dueDate === deliveryDueDate) {
+			return;
+		}
+		setMeta({
+			paymentDueDate: dueDate,
+			deliveryDueDate: dueDate,
+		});
+	}, [
+		createdAt,
+		deliveryDueDate,
+		hasRecord,
+		paymentDueDate,
+		paymentTerm,
+		props.historyRestoreActive,
+		props.type,
+		setMeta,
+	]);
 
 	function getProfileCoefficient(profileId?: number | null) {
 		if (profileId == null) return null;
@@ -528,6 +566,13 @@ export function InvoiceOverviewPanel(props: Props) {
 
 	if (!record) return null;
 	const dealerProfileCard = (record as any).dealerProfileCard || null;
+	const setOrderDueDate = (value: string | null) => {
+		const dueDate = formDateValue(value);
+		setMeta({
+			paymentDueDate: dueDate,
+			deliveryDueDate: dueDate,
+		});
+	};
 
 	return (
 		<section className="space-y-6">
@@ -676,30 +721,11 @@ export function InvoiceOverviewPanel(props: Props) {
 
 			<SalesFormInvoiceDetailsPanel
 				type={props.type}
-				createdAt={record.form.createdAt}
 				deliveryOption={record.form.deliveryOption || "pickup"}
 				deliveryOptions={deliveryOptions}
 				goodUntil={record.form.goodUntil}
 				paymentDueDate={record.form.paymentDueDate}
 				prodDueDate={record.form.prodDueDate}
-				deliveryDueDate={record.form.deliveryDueDate}
-				onCreatedAtChange={(value) => {
-					const createdAt = formDateValue(value);
-					const normalizedPaymentTerm = normalizeSalesFormPaymentTerm(
-						record.form.paymentTerm,
-					);
-					setMeta({
-						createdAt,
-						...(props.type === "order" && normalizedPaymentTerm !== "None"
-							? {
-									paymentDueDate: calculateLegacyPaymentDueDate(
-										normalizedPaymentTerm,
-										createdAt,
-									),
-								}
-							: {}),
-					});
-				}}
 				onDeliveryOptionChange={(value) => {
 					if (value !== "delivery" && value !== "pickup") return;
 					if (value === record.form.deliveryOption) return;
@@ -714,33 +740,26 @@ export function InvoiceOverviewPanel(props: Props) {
 						goodUntil: formDateValue(value),
 					})
 				}
-				onPaymentDueDateChange={(value) =>
-					setMeta({
-						paymentDueDate: formDateValue(value),
-					})
-				}
+				onPaymentDueDateChange={setOrderDueDate}
 				onPaymentTermChange={(value) => {
 					const paymentTerm = normalizeSalesFormPaymentTerm(value);
+					const dueDate =
+						paymentTerm === "None"
+							? record.form.paymentDueDate
+							: calculateLegacyPaymentDueDate(
+									paymentTerm,
+									record.form.createdAt,
+								);
 					setMeta({
 						paymentTerm,
-						paymentDueDate:
-							paymentTerm === "None"
-								? record.form.paymentDueDate
-								: calculateLegacyPaymentDueDate(
-										paymentTerm,
-										record.form.createdAt,
-									),
+						paymentDueDate: dueDate,
+						deliveryDueDate: dueDate,
 					});
 				}}
 				onPoChange={(value) => setMeta({ po: value })}
 				onProdDueDateChange={(value) =>
 					setMeta({
 						prodDueDate: formDateValue(value),
-					})
-				}
-				onDeliveryDueDateChange={(value) =>
-					setMeta({
-						deliveryDueDate: formDateValue(value),
 					})
 				}
 				paymentTerm={record.form.paymentTerm || "None"}

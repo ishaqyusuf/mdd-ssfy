@@ -22,7 +22,10 @@ describe("sales summary flat layout", () => {
 
 	it("keeps each summary section self-explanatory", () => {
 		expect(detailsSource).toContain(
-			"Purchase order, payment terms, due dates, and fulfillment.",
+			"Purchase order, payment terms, and fulfillment.",
+		);
+		expect(detailsSource).toContain(
+			"Production and fulfillment target dates for this order.",
 		);
 		expect(pricingSource).toContain(
 			"Invoice-wide charges, tax, and payment settings.",
@@ -33,14 +36,25 @@ describe("sales summary flat layout", () => {
 		expect(pricingSource).toContain("No additional costs added.");
 	});
 
-	it("matches the legacy order and quote payment-date controls", () => {
+	it("keeps quote validity and groups order planning dates separately", () => {
 		expect(detailsSource).toContain("hasAutomaticOrderDueDate");
 		expect(detailsSource).toContain("disabled={hasAutomaticOrderDueDate}");
-		expect(detailsSource).toContain("{isQuote ? null : (");
-		expect(detailsSource).toContain('label={isQuote ? "Good Until" : "Due"}');
-		expect(detailsSource).toContain('label="Production Due Date"');
-		expect(detailsSource).toContain('label="Delivery Due Date"');
-		expect(detailsSource).toContain("props.onDeliveryDueDateChange");
+		expect(detailsSource).toContain('title="Due Dates"');
+		expect(detailsSource).toContain('label="Production"');
+		expect(detailsSource).toContain('label="Fulfillment"');
+		expect(detailsSource).toContain('label="Good Until"');
+		expect(detailsSource).not.toContain('label="Delivery Due Date"');
+		expect(detailsSource).not.toContain("props.onDeliveryDueDateChange");
+		expect(detailsSource).toContain("highlightToday");
+	});
+
+	it("uses the shared shadcn select for fulfillment", () => {
+		expect(detailsSource).toContain('from "@gnd/ui/select"');
+		expect(detailsSource).toContain("<SelectGroup>");
+		expect(detailsSource).toContain("<SelectItem");
+		expect(detailsSource).not.toContain(
+			'<select\n\t\t\t\t\t\tid="invoice-fulfillment"',
+		);
 	});
 
 	it("shows an accessible P.O. control and keeps invoice date hidden", () => {

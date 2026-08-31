@@ -7,6 +7,7 @@ import {
 	normalizeSalesFormTaxOptions,
 	resolveSalesFormProfilePaymentTerm,
 	resolveSalesFormTaxRateByCode,
+	salesFormDeliveryOptions,
 	salesFormPaymentMethods,
 } from "./overview-options";
 import {
@@ -17,6 +18,10 @@ import {
 describe("sales form overview options", () => {
 	it("includes Zelle in the shared sales-form payment methods", () => {
 		expect(salesFormPaymentMethods).toContain("Zelle");
+	});
+
+	it("offers only pickup and delivery fulfillment", () => {
+		expect(salesFormDeliveryOptions).toEqual(["pickup", "delivery"]);
 	});
 
 	it("selects tier 1 as the default customer profile", () => {

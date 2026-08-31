@@ -7,6 +7,10 @@
 - `SalesOrders.deliveryDueDate` is a nullable order-level default for new
   dispatch plans. It does not replace `OrderDelivery.dueDate`, which remains the
   canonical schedule of a created dispatch.
+- New Sales Form orders use the visible `SalesOrders.paymentDueDate` as the
+  shared Fulfillment commitment and mirror it into `deliveryDueDate` when the
+  order is saved. The columns remain separate for compatibility and operational
+  queries; no schema migration is required.
 - Both defaults may exist before operational assignment/delivery rows and do
   not create those rows by themselves.
 

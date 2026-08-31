@@ -30,7 +30,7 @@ export type SalesFormSummarySidebarProps = {
 	summaryPanel: React.ReactNode;
 	historyPanel?: React.ReactNode;
 	onClose: () => void;
-	onSave: () => void;
+	onSaveDraft: () => void;
 	onSaveClose: () => void;
 	onSaveNew: () => void;
 	onSaveFinal: () => void;
@@ -123,8 +123,8 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 						<div className="flex items-center gap-2">
 							<Button
 								className="flex-1"
-								onClick={props.onSave}
-								disabled={props.isSaving || !props.permissions.canSaveDraft}
+								onClick={props.onSaveFinal}
+								disabled={props.isSaving || !props.permissions.canFinalize}
 							>
 								{props.isSaving ? "Saving..." : "Save"}
 							</Button>
@@ -142,7 +142,7 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 									<DropdownMenuItem
 										onSelect={(event) => {
 											event.preventDefault();
-											props.onSave();
+											props.onSaveDraft();
 										}}
 										disabled={props.isSaving || !props.permissions.canSaveDraft}
 									>

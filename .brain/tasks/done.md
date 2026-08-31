@@ -1,5 +1,19 @@
 # Done
 
+### New Sales Form Due Dates And Standard Summary Save
+
+- Priority: High
+- Description: Consolidated order-entry Due and Delivery Due into one
+  Net-driven Fulfillment date, retained independent Production planning,
+  limited fulfillment choices to Pickup and Delivery with the shared shadcn
+  Select, and corrected the invoice-summary primary Save to use the standard
+  final/Active save path and canonical navigation.
+- Related Feature: New Sales Form / Sales Fulfillment
+- Status: Done
+- Validation: Focused sales-form UI, option, payload, and save-continuation
+  regression coverage.
+- Completed Date: 2026-08-31
+
 ### Sales Production Assignment Ledger Accordion
 
 - Priority: Normal

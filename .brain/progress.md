@@ -1,5 +1,14 @@
 # Progress
 
+- 2026-08-31: Updated New Sales Form order dates, fulfillment, and summary-save
+  behavior. Orders now group Production and Fulfillment in a dedicated Due
+  Dates section, faintly mark today in the Production calendar, mirror the
+  visible Net-driven Fulfillment date into `deliveryDueDate`, and normalize the
+  same invariant in the shared save payload. Fulfillment now uses the shared
+  shadcn Select with Pickup and Delivery only. The invoice-summary primary Save
+  now invokes the standard final/Active path while the explicit Save Draft menu
+  action remains separate, restoring canonical post-create navigation.
+
 - 2026-08-31: Completed the combined release-safety pass before the pending
   production rollout. Direct production-assignment create, delete, and batch
   actions now require `editProduction`; single-assignment deletion is scoped to

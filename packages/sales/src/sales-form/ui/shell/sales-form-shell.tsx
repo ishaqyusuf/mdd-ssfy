@@ -206,7 +206,7 @@ export function SalesFormShell(props: SalesFormShellProps) {
 									? slots.SalesHistoryPanel
 									: undefined
 							}
-							onSave={() => void props.onSaveDraft?.()}
+							onSaveDraft={() => void props.onSaveDraft?.()}
 							onSaveClose={() => void props.onSaveClose?.()}
 							onSaveNew={() => void props.onSaveNew?.()}
 							onSaveFinal={() => void props.onSaveFinal?.()}

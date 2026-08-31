@@ -41,8 +41,9 @@ stored balances without payment evidence continue through canonical
 reconciliation rather than silently replacing calculated truth.
 
 - Customer resolution is `businessName`, personal `name`, then billing name.
-- `paymentDueDate` is the aging date. An invoice without one remains explicit
-  Current / due date not set.
+- `paymentDueDate` is the aging date. New Sales Form orders also present it as
+  the Fulfillment commitment and mirror it to the order-level dispatch default;
+  an invoice without one remains explicit Current / due date not set.
 - Aging buckets are Current, 1-30, 31-60, 61-90, and 90+ calendar days.
 - A balance difference of less than one cent is reconciled.
 - The workspace is read-only; it does not change invoices or payments.

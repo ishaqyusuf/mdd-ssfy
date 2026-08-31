@@ -60,6 +60,26 @@ describe("record-normalization application", () => {
 		expect(payload.summary.totalWithCcc).toBe(103.5);
 	});
 
+	it("uses the visible order due date as the fulfillment planning date", () => {
+		const payload = toSalesFormSaveDraftPayload(
+			{
+				type: "order",
+				form: {
+					customerId: 101,
+					paymentDueDate: "2026-09-15T00:00:00.000Z",
+					deliveryDueDate: "2026-09-20T00:00:00.000Z",
+				},
+				lineItems: [{ uid: "line-1", title: "Door", qty: 1 }],
+				extraCosts: [],
+				summary: { taxRate: 0 },
+			},
+			false,
+		);
+
+		expect(payload.meta.paymentDueDate).toBe("2026-09-15T00:00:00.000Z");
+		expect(payload.meta.deliveryDueDate).toBe("2026-09-15T00:00:00.000Z");
+	});
+
 	it("hydrates shelf rows from row totals instead of stale line totals", () => {
 		const record = hydrateSalesFormRecord({
 			type: "order",
