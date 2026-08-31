@@ -1,5 +1,6 @@
 "use client";
 
+import { useDispatchAssignmentAddressGuard } from "@/components/dispatch-assignment/address-guard";
 import { SalesMenu } from "@/components/sales-menu";
 import { useDriversList } from "@/hooks/use-data-list";
 import { useTRPC } from "@/trpc/client";
@@ -80,7 +81,10 @@ export function BottomBar({ data, enableSalesMarkAs = false }: Props) {
 									</Button>
 								}
 							>
-								<SalesMenu.MarkAs asSubmenu={false} />
+								<SalesMenu.MarkAs
+									asSubmenu={false}
+									onStatusActionSettled={() => setRowSelection({})}
+								/>
 							</SalesMenu>
 						) : null}
 						<BulkAssignDriver
@@ -109,6 +113,7 @@ function BulkAssignDriver({
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const drivers = useDriversList(true);
+	const assignmentAddressGuard = useDispatchAssignmentAddressGuard();
 	const bulkAssign = useMutation(
 		trpc.dispatch.bulkAssignDriver.mutationOptions({
 			onSuccess(data) {
@@ -140,7 +145,8 @@ function BulkAssignDriver({
 	);
 
 	return (
-		<Menu
+		<>
+			<Menu
 			Trigger={
 				<Button
 					variant="ghost"
@@ -155,23 +161,6 @@ function BulkAssignDriver({
 				</Button>
 			}
 		>
-			{drivers.length ? (
-				drivers.map((driver) => (
-					<Menu.Item
-						key={driver.id}
-						onClick={() =>
-							bulkAssign.mutate({
-								dispatchIds: selectedIds,
-								newDriverId: driver.id,
-							})
-						}
-					>
-						{driver.name}
-					</Menu.Item>
-				))
-			) : (
-				<Menu.Item disabled>No drivers found</Menu.Item>
-			)}
 			<Menu.Item
 				className="text-muted-foreground"
 				onClick={() =>
@@ -183,7 +172,30 @@ function BulkAssignDriver({
 			>
 				Unassign driver
 			</Menu.Item>
-		</Menu>
+			{drivers.length ? (
+				drivers.map((driver) => (
+					<Menu.Item
+						key={driver.id}
+						onClick={() =>
+							void assignmentAddressGuard.guardAssignment(
+								{ dispatchIds: selectedIds },
+								() =>
+									bulkAssign.mutate({
+										dispatchIds: selectedIds,
+										newDriverId: driver.id,
+									}),
+							)
+						}
+					>
+						{driver.name}
+					</Menu.Item>
+				))
+			) : (
+				<Menu.Item disabled>No drivers found</Menu.Item>
+			)}
+			</Menu>
+			{assignmentAddressGuard.dialog}
+		</>
 	);
 }
 

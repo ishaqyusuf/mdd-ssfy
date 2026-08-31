@@ -36,7 +36,17 @@ export function useSalesPreview() {
 		setParams,
 		close() {
 			requestRef.current += 1;
-			setParams(null);
+			setParams({
+				salesPreviewId: null,
+				salesPreviewCustomerEmail: null,
+				salesPreviewCustomerName: null,
+				salesPreviewError: null,
+				salesPreviewRequest: null,
+				salesPreviewToken: null,
+				salesPreviewUrl: null,
+				salesPreviewType: null,
+				previewMode: null,
+			});
 		},
 		async preview(
 			salesId: number | null | undefined,
@@ -64,7 +74,9 @@ export function useSalesPreview() {
 				salesPreviewUrl: null,
 				salesPreviewError: null,
 				previewMode,
-				dispatchId: options?.dispatchId ?? null,
+				...(options?.dispatchId !== undefined
+					? { dispatchId: options.dispatchId }
+					: {}),
 			});
 
 			try {

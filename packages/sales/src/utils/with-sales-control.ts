@@ -1,4 +1,5 @@
 import type { Db } from "@gnd/db";
+import { isCurrentDispatchPackingAllocation } from "../dispatch-packing-totals";
 import type { SalesDispatchStatus, SalesStatStatus } from "../types";
 
 export type QtyStat = {
@@ -429,6 +430,7 @@ function buildDispatchListedMap(
     qty: number;
     lhQty: number | null;
     rhQty: number | null;
+    packingStatus: string | null;
   }[],
 ): Map<number, QtyStat> {
   const deliveryStatusById = new Map<number, string | null>();
@@ -441,6 +443,7 @@ function buildDispatchListedMap(
     if (!item.orderDeliveryId) continue;
     const deliveryStatus = deliveryStatusById.get(item.orderDeliveryId);
     if (deliveryStatus === "cancelled") continue;
+    if (!isCurrentDispatchPackingAllocation(item)) continue;
 
     const current = listedMap.get(item.orderDeliveryId) ?? emptyQtyStat();
     listedMap.set(
@@ -692,6 +695,7 @@ export async function withDispatchControl<
 }
 
 export const __withSalesControlTestUtils = {
+  buildDispatchListedMap,
   deriveDispatchStatusFromControls,
   deriveProductionStatus,
   toStatistic,

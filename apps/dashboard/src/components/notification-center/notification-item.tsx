@@ -7,7 +7,7 @@ import { Icons } from "@gnd/ui/icons";
 import type { TransformedNotification } from "@notifications/notification-center";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getNotificationIcon } from "./notification-icons";
+import { NotificationIcon } from "./notification-icons";
 import { NotificationLink } from "./notification-link";
 
 interface Props {
@@ -69,11 +69,7 @@ export function NotificationItem({
 
 	const notificationContent = (
 		<div className="flex flex-1 items-start gap-4">
-			<div className="shrink-0">
-				<div className="h-9 w-9 flex items-center justify-center border rounded-full">
-					{getNotificationIcon(activity.type)}
-				</div>
-			</div>
+			<NotificationIcon type={activity.type} />
 			<div className="min-w-0 flex-1">
 				<p
 					className={cn(

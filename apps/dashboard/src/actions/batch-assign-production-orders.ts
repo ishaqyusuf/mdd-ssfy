@@ -1,9 +1,9 @@
 "use server";
 
-import { serverSession } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import { actionClient } from "./safe-action";
+import { Notifications } from "@gnd/notifications";
 import {
 	assertSpecialOrderOperationAllowed,
 	createAssignmentsTask,
@@ -14,6 +14,8 @@ import {
 	type SpecialOrderOperationalDecision,
 } from "@gnd/sales/special-order";
 import { z } from "zod";
+import { getLoggedInProfile } from "./cache/get-loggedin-profile";
+import { requireProductionAssignmentAuthority } from "./production-submission-authority";
 
 const batchAssignProductionOrdersSchema = z.object({
 	salesIds: z.array(z.number()).min(1),
@@ -28,8 +30,10 @@ export const batchAssignProductionOrdersAction = actionClient
 		track: {},
 	})
 		.action(async ({ parsedInput: input }) => {
-			const session = await serverSession();
-			const actorUserId = Number(session.user.id);
+			const actor = await getLoggedInProfile();
+			if (!actor.userId) throw new Error("Authentication is required.");
+			requireProductionAssignmentAuthority(actor);
+			const actorUserId = actor.userId;
 		let ordersUpdated = 0;
 		let assignmentsQueued = 0;
 		const operationalDecisions: SpecialOrderOperationalDecision[] = [];
@@ -40,7 +44,7 @@ export const batchAssignProductionOrdersAction = actionClient
 					salesOrderId: salesId,
 					operation: "PRODUCTION",
 						actorUserId,
-					authorName: session.user.name || "Unknown",
+					authorName: actor.name || "Unknown",
 					source: "dashboard.batch-assign-production-orders",
 				}),
 			);
@@ -68,8 +72,8 @@ export const batchAssignProductionOrdersAction = actionClient
 				await createAssignmentsTask(prisma as any, {
 				meta: {
 					salesId,
-					authorId: Number(session.user.id),
-					authorName: session.user.name || "Unknown",
+					authorId: actorUserId,
+					authorName: actor.name || "Unknown",
 				},
 				createAssignments: {
 					retries: 0,
@@ -83,6 +87,43 @@ export const batchAssignProductionOrdersAction = actionClient
 					actorUserId,
 					source: "dashboard.production.batch-assign",
 				});
+			if (input.assignedToId) {
+				try {
+					const order = await prisma.salesOrders.findFirst({
+						where: { id: salesId, deletedAt: null },
+						select: { orderId: true },
+					});
+					await new Notifications(prisma).create(
+						"sales_production_assigned",
+						{
+							salesId,
+							orderNo: order?.orderId || undefined,
+							assignedToId: input.assignedToId,
+							assignedQty: selections.reduce(
+								(total, selection) =>
+									total + Number(selection.qty?.qty || 0),
+								0,
+							),
+							itemCount: selections.length,
+							dueDate: input.dueDate || undefined,
+						},
+						{
+							author: { id: actorUserId, role: "employee" },
+							recipients: [
+								{ ids: [input.assignedToId], role: "employee" },
+							],
+							includeChannelSubscribers: false,
+							allowFallbackRecipient: false,
+							forceInAppRecipients: true,
+						},
+					);
+				} catch (error) {
+					console.warn(
+						"Batch production assignment was saved, but its notification failed.",
+						{ error, salesId },
+					);
+				}
+			}
 			ordersUpdated += 1;
 			assignmentsQueued += selections.length;
 		}

@@ -7,12 +7,14 @@ import {
 	resolveSalesHandoffReconciliationRepairs,
 } from "@gnd/sales/sales-handoff";
 import { getSalesHandoffTriggerSettings } from "@gnd/settings";
-import { logger, schedules } from "@trigger.dev/sdk/v3";
+import { logger, schedules, task } from "@trigger.dev/sdk/v3";
 
 export const SALES_HANDOFF_RECONCILIATION_EVENT =
 	"sales-handoff-reconciliation-schedule";
 export const SALES_HANDOFF_RECONCILIATION_BATCH_LIMIT = 200;
 export const SALES_HANDOFF_RECONCILIATION_ACTOR_USER_ID = 1 as const;
+export const SALES_HANDOFF_RECONCILIATION_SCHEDULE_ENV =
+	"SALES_HANDOFF_RECONCILIATION_SCHEDULE_ENABLED";
 const REPAIR_MARKER_LIMIT = 100;
 const OPEN_EPOCH_LIMIT = 50;
 const WORKER_REPAIR_SCOPE = "sales_handoff_reconciliation_worker";
@@ -570,10 +572,25 @@ export async function runSalesHandoffReconciliation(
 	}
 }
 
-export const salesHandoffReconciliationSchedule = schedules.task({
+export function isSalesHandoffReconciliationScheduleEnabled(
+	value: string | undefined,
+) {
+	return value?.trim().toLowerCase() === "true";
+}
+
+const salesHandoffReconciliationTaskDefinition = {
 	id: SALES_HANDOFF_RECONCILIATION_EVENT,
-	cron: { pattern: "*/15 * * * *", timezone: "America/New_York" },
 	maxDuration: 300,
 	queue: { concurrencyLimit: 1 },
 	run: () => runSalesHandoffReconciliation(db),
-});
+};
+
+export const salesHandoffReconciliationSchedule =
+	isSalesHandoffReconciliationScheduleEnabled(
+		process.env[SALES_HANDOFF_RECONCILIATION_SCHEDULE_ENV],
+	)
+		? schedules.task({
+				...salesHandoffReconciliationTaskDefinition,
+				cron: { pattern: "*/15 * * * *", timezone: "America/New_York" },
+			})
+		: task(salesHandoffReconciliationTaskDefinition);

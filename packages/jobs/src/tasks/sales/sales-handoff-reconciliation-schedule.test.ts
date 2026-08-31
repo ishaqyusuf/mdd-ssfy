@@ -3,6 +3,7 @@ import { reconcileSalesHandoffPolicyAfterCommit } from "@gnd/sales/sales-handoff
 import {
 	SALES_HANDOFF_RECONCILIATION_ACTOR_USER_ID,
 	SALES_HANDOFF_RECONCILIATION_BATCH_LIMIT,
+	isSalesHandoffReconciliationScheduleEnabled,
 	runSalesHandoffReconciliation,
 	selectSalesHandoffReconciliationBatch,
 } from "./sales-handoff-reconciliation-schedule";
@@ -129,6 +130,12 @@ function selectionDb(input: {
 }
 
 describe("Sales Handoff reconciliation batch", () => {
+	test("keeps the recurring schedule disabled until production is explicitly approved", () => {
+		expect(isSalesHandoffReconciliationScheduleEnabled(undefined)).toBe(false);
+		expect(isSalesHandoffReconciliationScheduleEnabled("false")).toBe(false);
+		expect(isSalesHandoffReconciliationScheduleEnabled("TRUE")).toBe(true);
+	});
+
 	test("retries transient policy-marker persistence without repeating the immediate pass", async () => {
 		let markerAttempts = 0;
 		let immediateRuns = 0;

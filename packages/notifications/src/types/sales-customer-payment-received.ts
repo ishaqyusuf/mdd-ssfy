@@ -42,7 +42,7 @@ export const salesCustomerPaymentReceived: NotificationHandler = {
 			tags: payload,
 		};
 	},
-	createEmail(data, _author, _user, args) {
+	createEmail(data, author, _user, args) {
 		return {
 			...args,
 			template: "sales-customer-payment-received",
@@ -51,7 +51,10 @@ export const salesCustomerPaymentReceived: NotificationHandler = {
 			attachments: data.invoicePdfAttachment
 				? [data.invoicePdfAttachment]
 				: undefined,
-			data,
+			data: {
+				...data,
+				salesRepName: author.name,
+			},
 		};
 	},
 };

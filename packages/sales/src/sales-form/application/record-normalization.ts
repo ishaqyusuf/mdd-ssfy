@@ -392,6 +392,7 @@ export function normalizeSalesFormMeta(meta: Partial<SalesFormMetaRecord>) {
 		paymentDueDate: meta.paymentDueDate ?? null,
 		goodUntil: meta.goodUntil ?? null,
 		prodDueDate: meta.prodDueDate ?? null,
+		deliveryDueDate: meta.deliveryDueDate ?? null,
 		po: meta.po ?? "",
 		notes: meta.notes ?? "",
 		deliveryOption: meta.deliveryOption ?? "pickup",

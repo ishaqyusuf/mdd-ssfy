@@ -46,6 +46,7 @@ function Content({ pageTabs, toolbarActions }: DispatchSearchFilterProps) {
 				placeholder="Search dispatch information"
 				filterList={trpcFilterData}
 				loading={shouldFetch && isFetching}
+				pageTabsLayout={pageTabs ? "adaptive" : undefined}
 				pageTabs={pageTabs}
 				toolbarActions={toolbarActions}
 			/>

@@ -62,3 +62,11 @@ export default function DealerSalesRequestRejectedEmail({
 		</EmailThemeProvider>
 	);
 }
+
+DealerSalesRequestRejectedEmail.PreviewProps = {
+	dealerName: "Northside Millwork",
+	quoteNo: "Q-10482",
+	customerName: "Jordan Lee",
+	reason:
+		"The quote needs an updated delivery address before it can be approved.",
+} satisfies Props;

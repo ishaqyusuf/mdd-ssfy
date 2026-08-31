@@ -1,5 +1,5 @@
 import { userHasPermission } from "@gnd/auth/utils";
-import { type Db, db } from "@gnd/db";
+import { type Db, type Prisma, db } from "@gnd/db";
 import {
   type LegacyUpdateSalesControlAction,
   type UpdateSalesControl,
@@ -24,7 +24,6 @@ import {
   updateSubmissionsTask,
 } from "@gnd/sales";
 import { Notifications } from "@gnd/notifications";
-import type { NotificationJobInput } from "@notifications/schemas";
 import { NotificationService } from "@notifications/services/triggers";
 import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
 import type { TaskName } from "../../schema";
@@ -318,22 +317,9 @@ async function sendProductionAssignedNotification(input: UpdateSalesControl) {
     0,
   );
 
-  const notification = new NotificationService(tasks, {
-    db,
-    userId: input.meta.authorId,
-  });
-  const payload = {
-    author: {
-      id: input.meta.authorId,
-      role: "employee",
-    },
-    recipients: [
-      {
-        ids: [assignedToId],
-        role: "employee",
-      },
-    ],
-    payload: {
+  await new Notifications(db).create(
+    "sales_production_assigned",
+    {
       salesId: order.id,
       orderNo: order.orderId || undefined,
       assignedToId,
@@ -341,11 +327,147 @@ async function sendProductionAssignedNotification(input: UpdateSalesControl) {
       itemCount: input.createAssignments?.selections?.length || undefined,
       dueDate: input.createAssignments?.dueDate || undefined,
     },
-  } satisfies Omit<
-    Extract<NotificationJobInput, { channel: "sales_production_assigned" }>,
-    "channel"
-  >;
-  await notification.send("sales_production_assigned", payload);
+    {
+      author: { id: input.meta.authorId, role: "employee" },
+      recipients: [{ ids: [assignedToId], role: "employee" }],
+      includeChannelSubscribers: false,
+      allowFallbackRecipient: false,
+      forceInAppRecipients: true,
+    },
+  );
+}
+
+type ProductionUnassignmentEvidence = {
+  id: number;
+  assignedToId: number;
+  assignedQty?: number;
+  salesId: number;
+  orderNo?: string;
+};
+
+async function loadProductionUnassignmentEvidence(
+  input: UpdateSalesControl,
+): Promise<ProductionUnassignmentEvidence[]> {
+  const args = input.deleteAssignments;
+  if (!args) return [];
+  const selectors: Prisma.OrderItemProductionAssignmentsWhereInput[] = [];
+  if (args.assignmentIds?.length) {
+    selectors.push({ id: { in: args.assignmentIds } });
+  }
+  if (args.itemIds?.length) selectors.push({ itemId: { in: args.itemIds } });
+  if (args.itemControlUids?.length) {
+    selectors.push({ salesItemControlUid: { in: args.itemControlUids } });
+  }
+  if (args.allBySalesId) selectors.push({ orderId: args.allBySalesId });
+  if (!selectors.length) return [];
+  const assignments = await db.orderItemProductionAssignments.findMany({
+    where: {
+      orderId: input.meta.salesId,
+      deletedAt: null,
+      assignedToId: { not: null },
+      OR: selectors,
+    },
+    select: {
+      id: true,
+      assignedToId: true,
+      qtyAssigned: true,
+      lhQty: true,
+      rhQty: true,
+      order: { select: { id: true, orderId: true } },
+    },
+  });
+  return assignments.flatMap((assignment) =>
+    assignment.assignedToId
+      ? [
+          {
+            id: assignment.id,
+            assignedToId: assignment.assignedToId,
+            assignedQty:
+              assignment.qtyAssigned ||
+              Number(assignment.lhQty || 0) + Number(assignment.rhQty || 0) ||
+              undefined,
+            salesId: assignment.order.id,
+            orderNo: assignment.order.orderId || undefined,
+          },
+        ]
+      : [],
+  );
+}
+
+async function sendProductionUnassignedNotifications(
+  input: UpdateSalesControl,
+  evidence: ProductionUnassignmentEvidence[],
+) {
+  const notifications = new Notifications(db);
+  for (const assignment of evidence) {
+    await notifications.create(
+      "sales_production_unassigned",
+      {
+        salesId: assignment.salesId,
+        orderNo: assignment.orderNo,
+        assignmentId: assignment.id,
+        assignedToId: assignment.assignedToId,
+        assignedQty: assignment.assignedQty,
+      },
+      {
+        author: { id: input.meta.authorId, role: "employee" },
+        recipients: [
+          { ids: [assignment.assignedToId], role: "employee" },
+        ],
+        includeChannelSubscribers: false,
+        allowFallbackRecipient: false,
+        forceInAppRecipients: true,
+      },
+    );
+  }
+}
+
+async function sendProductionSubmittedNotification(
+  input: UpdateSalesControl,
+  response: unknown,
+) {
+  if (
+    !input.submitAll ||
+    !response ||
+    typeof response !== "object" ||
+    (response as any).idempotentReplay === true
+  ) {
+    return;
+  }
+  const reviewId = Number((response as any).reviewId || 0);
+  const order = await db.salesOrders.findFirst({
+    where: { id: input.meta.salesId, deletedAt: null },
+    select: { id: true, orderId: true, salesRepId: true },
+  });
+  if (!order?.salesRepId) return;
+  const submissions = reviewId
+    ? await db.orderProductionSubmissions.findMany({
+        where: { materialReviewId: reviewId, deletedAt: null },
+        select: { qty: true },
+      })
+    : [];
+  const submittedQty = submissions.reduce(
+    (total, submission) => total + Number(submission.qty || 0),
+    0,
+  );
+  await new Notifications(db).create(
+    "sales_production_submitted",
+    {
+      salesId: order.id,
+      orderNo: order.orderId || undefined,
+      salesRepId: order.salesRepId,
+      submittedById: input.meta.authorId,
+      submittedByName: input.meta.authorName || undefined,
+      submittedQty,
+    },
+    {
+      author: { id: input.meta.authorId, role: "employee" },
+      recipients: [{ ids: [order.salesRepId], role: "employee" }],
+      includeChannelSubscribers: false,
+      allowFallbackRecipient: false,
+      forceInAppRecipients: true,
+    },
+  );
 }
 
 async function sendProductionMaterialReviewNotification(
@@ -440,6 +562,9 @@ export const updateSalesControl = schemaTask({
     const action = resolveActionHandler(authorizedInput);
     if (action) {
       await enforceSpecialOrderForAction(authorizedInput);
+      const unassignmentEvidence = authorizedInput.deleteAssignments
+        ? await loadProductionUnassignmentEvidence(authorizedInput)
+        : [];
       const response = await action(db, authorizedInput);
       if (
         shouldSyncInventoryProductionLifecycleForSalesControl(authorizedInput)
@@ -469,10 +594,31 @@ export const updateSalesControl = schemaTask({
         await sendDispatchCompletedNotification(authorizedInput);
       }
       if (authorizedInput.createAssignments) {
-        await sendProductionAssignedNotification(authorizedInput);
+        try {
+          await sendProductionAssignedNotification(authorizedInput);
+        } catch (error) {
+          logger.error(
+            "Production assignment committed, but its notification failed.",
+            { error, salesId: authorizedInput.meta.salesId },
+          );
+        }
+      }
+      if (authorizedInput.deleteAssignments && unassignmentEvidence.length) {
+        try {
+          await sendProductionUnassignedNotifications(
+            authorizedInput,
+            unassignmentEvidence,
+          );
+        } catch (error) {
+          logger.error(
+            "Production unassignment committed, but its notification failed.",
+            { error, salesId: authorizedInput.meta.salesId },
+          );
+        }
       }
       if (authorizedInput.submitAll) {
         try {
+          await sendProductionSubmittedNotification(authorizedInput, response);
           await sendProductionMaterialReviewNotification(
             authorizedInput,
             response,

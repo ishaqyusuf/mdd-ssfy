@@ -92,3 +92,12 @@ export default function DealerSalesRequestEmail({
 		</EmailThemeProvider>
 	);
 }
+
+DealerSalesRequestEmail.PreviewProps = {
+	recipientName: "Sales Team",
+	dealerName: "Northside Millwork",
+	quoteNo: "Q-10482",
+	customerName: "Jordan Lee",
+	requestedAt: "August 29, 2026 at 10:42 AM WAT",
+	requestUrl: "https://gndprodesk.com/dealer-requests/preview",
+} satisfies Props;

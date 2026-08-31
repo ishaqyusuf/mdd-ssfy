@@ -1,5 +1,6 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { Notifications } from "@gnd/notifications";
+import { guardedPackingPolicyFromEvidenceSnapshot } from "@gnd/settings";
 
 export async function sendPackingReportNotification(
 	ctx: TRPCContext,
@@ -15,11 +16,13 @@ export async function sendPackingReportNotification(
 				id: true,
 				orderDeliveryId: true,
 				salesOrderItemId: true,
+				salesItemControlUid: true,
 				submittedById: true,
 				qty: true,
 				lhQty: true,
 				rhQty: true,
 				note: true,
+				evidenceSnapshot: true,
 				order: { select: { orderId: true, salesRepId: true } },
 				item: { select: { description: true, dykeDescription: true } },
 				productionSubmission: {
@@ -30,10 +33,34 @@ export async function sendPackingReportNotification(
 			},
 		});
 		if (!report) return { sent: false as const, reason: "REPORT_NOT_FOUND" };
+		if (
+			status === "PENDING" &&
+			!guardedPackingPolicyFromEvidenceSnapshot(report.evidenceSnapshot)
+				.notifySalesRep
+		) {
+			return { sent: false as const, reason: "POLICY_NOTIFICATION_DISABLED" };
+		}
+		if (status === "PENDING") {
+			const existingBatchReport = await ctx.db.salesPackingReport.findFirst({
+				where: {
+					id: { lt: report.id },
+					orderDeliveryId: report.orderDeliveryId,
+					submittedById: authorId,
+					status: "PENDING",
+				},
+				select: { id: true },
+			});
+			if (existingBatchReport) {
+				return { sent: false as const, reason: "BATCH_NOTIFICATION_EXISTS" };
+			}
+		}
 		const recipientId =
 			status === "PENDING" ? report.order.salesRepId : report.submittedById;
 		if (!recipientId) {
 			return { sent: false as const, reason: "RECIPIENT_NOT_FOUND" };
+		}
+		if (recipientId === authorId) {
+			return { sent: false as const, reason: "SELF_NOTIFICATION_SUPPRESSED" };
 		}
 		const notification = new Notifications(ctx.db);
 		await notification.create(
@@ -46,7 +73,8 @@ export async function sendPackingReportNotification(
 				reviewerName,
 				salesItemId: report.salesOrderItemId,
 				itemUid:
-					report.productionSubmission.assignment?.salesItemControlUid ||
+					report.salesItemControlUid ||
+					report.productionSubmission?.assignment?.salesItemControlUid ||
 					`item-${report.salesOrderItemId}`,
 				itemName:
 					report.item.description ||

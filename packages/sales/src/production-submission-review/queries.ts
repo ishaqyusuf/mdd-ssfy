@@ -1,7 +1,7 @@
 import type { Db } from "../types";
 import {
-	evaluateProductionSubmissionMaterialEvidence,
 	type ProductionSubmissionItemScope,
+	evaluateProductionSubmissionMaterialEvidence,
 } from "./service";
 
 function parseItemScope(value: unknown): ProductionSubmissionItemScope[] {
@@ -156,7 +156,6 @@ export async function getProductionSubmissionMaterialReviewDetail(
 					select: { id: true, name: true },
 				},
 				submissions: {
-					where: { deletedAt: null },
 					select: {
 						id: true,
 						assignmentId: true,
@@ -165,10 +164,17 @@ export async function getProductionSubmissionMaterialReviewDetail(
 						lhQty: true,
 						rhQty: true,
 						createdAt: true,
+						deletedAt: true,
 					},
 				},
 			},
 		});
+	const activeSubmissions = review.submissions.filter(
+		(submission) => !submission.deletedAt,
+	);
+	const retractedSubmissions = review.submissions.filter((submission) =>
+		Boolean(submission.deletedAt),
+	);
 	const itemScope = parseItemScope(review.assignmentScope);
 	const currentEvidence = await evaluateProductionSubmissionMaterialEvidence(
 		db,
@@ -177,6 +183,28 @@ export async function getProductionSubmissionMaterialReviewDetail(
 			itemScope,
 		},
 	);
+	const productionItemControls = itemScope.length
+		? await db.salesItemControl.findMany({
+				where: {
+					uid: { in: itemScope.map((item) => item.controlUid) },
+					salesId: review.salesOrderId,
+					deletedAt: null,
+				},
+				select: {
+					uid: true,
+					orderItemId: true,
+					title: true,
+					subtitle: true,
+					sectionTitle: true,
+					item: {
+						select: {
+							description: true,
+							swing: true,
+						},
+					},
+				},
+			})
+		: [];
 	const componentIds = Array.isArray(currentEvidence.materialSnapshot)
 		? currentEvidence.materialSnapshot.flatMap((material) =>
 				material && typeof material === "object"
@@ -249,7 +277,28 @@ export async function getProductionSubmissionMaterialReviewDetail(
 	const linkedInboundReceipts = Array.from(linkedInboundReceiptMap.values());
 	return {
 		...review,
+		submissions: activeSubmissions,
+		retractedSubmissions,
+		hasRetractedSubmissions: retractedSubmissions.length > 0,
 		itemScope,
+		productionItems: productionItemControls.map((item) => ({
+			controlUid: item.uid,
+			salesItemId: item.orderItemId,
+			title: item.title || item.item?.description || "Production item",
+			description:
+				[
+					item.sectionTitle &&
+					!item.subtitle
+						?.toLowerCase()
+						.includes(item.sectionTitle.toLowerCase())
+						? item.sectionTitle
+						: null,
+					item.subtitle,
+					item.subtitle ? null : item.item?.swing,
+				]
+					.filter(Boolean)
+					.join(" | ") || null,
+		})),
 		currentEvidence,
 		linkedInboundReceipts,
 		isStale: currentEvidence.materialRevision !== review.materialRevision,

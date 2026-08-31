@@ -1,5 +1,28 @@
 # Database Schema
 
+## Sales Order operational date defaults (2026-08-30)
+
+- `SalesOrders.prodDueDate` is the order-level default for new production
+  assignments.
+- `SalesOrders.deliveryDueDate` is a nullable order-level default for new
+  dispatch plans. It does not replace `OrderDelivery.dueDate`, which remains the
+  canonical schedule of a created dispatch.
+- Both defaults may exist before operational assignment/delivery rows and do
+  not create those rows by themselves.
+
+## Configurable Guarded Packing Identity (2026-08-28)
+
+- `SalesPackingReport.orderProductionSubmissionId` is nullable so a physical
+  packing report can exist before a production submission has been recorded.
+- `SalesPackingReport.salesItemControlUid` optionally binds that report to the
+  exact canonical sales-item control and is indexed with report status.
+- `SalesPackingReportReason.AWAITING_PRODUCTION_SUBMISSION` distinguishes this
+  guarded state from pending or stale material evidence.
+- The report's existing JSON evidence snapshot stores the revisioned Sales
+  guarded-packing policy that governed submission. The organization-wide policy
+  remains in `Settings(type="sales-settings").meta.guardedPacking`; no separate
+  settings table was added.
+
 ## Sales Tax Recognition Ledger (2026-08-26)
 
 - `SalesTaxLedgerEntry` is an additive, append-only recognition snapshot for a

@@ -13,6 +13,7 @@ import {
 	type JobTaskConfigureRequestTags,
 	type QuoteAcceptedTags,
 	type SalesCheckoutSuccessTags,
+	type SalesDispatchApprovalPendingReleasedTags,
 	type SalesDispatchAssignedTags,
 	type SalesDispatchCompletedTags,
 	type SalesDispatchCreatedTags,
@@ -43,6 +44,7 @@ import {
 	jobTaskConfigureRequestTags,
 	quoteAcceptedTags,
 	salesCheckoutSuccessTags,
+	salesDispatchApprovalPendingReleasedTags,
 	salesDispatchAssignedTags,
 	salesDispatchCompletedTags,
 	salesDispatchCreatedTags,
@@ -113,6 +115,10 @@ type NotificationActionPayloadMap = {
 		"type"
 	>;
 	sales_dispatch_assigned: Omit<SalesDispatchAssignedTags, "type">;
+	sales_dispatch_approval_pending_released: Omit<
+		SalesDispatchApprovalPendingReleasedTags,
+		"type"
+	>;
 	sales_dispatch_created: Omit<SalesDispatchCreatedTags, "type">;
 	sales_dispatch_unassigned: Omit<SalesDispatchUnassignedTags, "type">;
 	sales_dispatch_queued: Omit<SalesDispatchQueuedTags, "type">;
@@ -407,6 +413,16 @@ function parseAction(
 		if (!parsed.success) return undefined;
 		return {
 			type: "sales_dispatch_assigned",
+			label: "Open Dispatch",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "sales_dispatch_approval_pending_released") {
+		const parsed = salesDispatchApprovalPendingReleasedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "sales_dispatch_approval_pending_released",
 			label: "Open Dispatch",
 			data: parsed.data,
 		};

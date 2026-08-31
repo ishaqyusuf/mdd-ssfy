@@ -1,9 +1,12 @@
 "use client";
 
+import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
 import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
 import { useId, useRef, useState } from "react";
 
+import { getProductionDispatchMutationPolicy } from "@gnd/sales/production-dispatch-policy";
+import { Accordion } from "@gnd/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -21,14 +24,6 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
 import {
-	Item,
-	ItemActions,
-	ItemContent,
-	ItemDescription,
-	ItemGroup,
-	ItemTitle,
-} from "@gnd/ui/item";
-import {
 	Select,
 	SelectContent,
 	SelectGroup,
@@ -38,9 +33,14 @@ import {
 } from "@gnd/ui/select";
 import { Separator } from "@gnd/ui/separator";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { getProductionDispatchMutationPolicy } from "@gnd/sales/production-dispatch-policy";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 
-import { useProduction } from "../../context";
+import { useSaleOverview } from "../../context";
 import { ProductionAssignmentForm } from "../../production-assignment-form";
 import {
 	ProductionAssignmentRow,
@@ -50,12 +50,10 @@ import {
 	ProductionItemAssignmentsProvider,
 	useProductionAssignments,
 } from "../../production-assignments";
+import { ProductionDeletionLockNotice } from "../../production-deletion-lock-notice";
 import { useProductionItem } from "../../production-item-context";
 import { ProductionSubmitForm } from "../../production-submit-form";
-import {
-	getWorkerProductionSubmissionProgress,
-	shouldWarnWorkerProductionItemMaterialReview,
-} from "../../production-worker-policy";
+import { getWorkerProductionSubmissionProgress } from "../../production-worker-policy";
 import { getProductionConfigKey } from "./production-item-presentation";
 import {
 	getEligibleProductionSubmissionAssignments,
@@ -63,13 +61,18 @@ import {
 	resolveProductionSubmissionAssignmentIndex,
 } from "./production-submission-selection";
 
-function ProductionV2CreateAction() {
+function ProductionV2RecordsSection() {
 	const { item, queryCtx } = useProductionItem();
-	const { data } = useProductionAssignments();
-	const production = useProduction();
+	const saleOverview = useSaleOverview();
+	const { data, error, refreshAssignments } = useProductionAssignments();
 	const workerMode = Boolean(queryCtx.assignedTo);
-	const [open, setOpen] = useState(false);
-	const triggerRef = useRef<HTMLButtonElement>(null);
+	const orderFulfilled =
+		getSalesOverviewDocumentStatus(saleOverview.data).status === "fulfilled";
+	const label = workerMode ? "Submissions" : "Assignments";
+	const submissionProgress = getWorkerProductionSubmissionProgress(item);
+	const headingId = useId();
+	const [createOpen, setCreateOpen] = useState(false);
+	const createTriggerRef = useRef<HTMLButtonElement>(null);
 	const [requestedAssignmentIndex, setRequestedAssignmentIndex] = useState<
 		number | null
 	>(null);
@@ -80,11 +83,11 @@ function ProductionV2CreateAction() {
 		eligibleAssignments,
 		requestedAssignmentIndex,
 	);
-	const materialReviewExpected = shouldWarnWorkerProductionItemMaterialReview({
-		itemId: item.itemId,
-		readiness: production.readiness,
-		readinessUnavailable: production.readinessUnavailable,
-	});
+	const hasWorkerSubmissions = Boolean(
+		data?.assignments?.some((assignment) => assignment.submissions?.length),
+	);
+	const workerSubmissionEmpty =
+		workerMode && Boolean(data?.uid) && !hasWorkerSubmissions;
 	const hasPendingAssignmentQuantity = hasPendingProductionQuantity(
 		item.analytics?.assignment?.pending,
 	);
@@ -93,72 +96,107 @@ function ProductionV2CreateAction() {
 		hasPendingAssignmentQuantity,
 		hasPendingSubmissionQuantity: selectedAssignmentIndex !== null,
 	});
-	const disabled = workerMode
+	const createDisabled = workerMode
 		? !mutationPolicy.canSubmitExistingAssignment
 		: !mutationPolicy.canCreateAssignment;
-	const label = workerMode ? "Create submission" : "Create assignment";
-	const disabledReason = workerMode && selectedAssignmentIndex === null
+	const createDisabledReason = workerMode
+		? selectedAssignmentIndex === null
 			? "No assignment has a pending quantity available to submit."
-			: !workerMode && queryCtx.dispatchMode
-				? "New production assignments are locked while this order is in dispatch mode. Existing assignments can still be submitted."
-				: !workerMode && !hasPendingAssignmentQuantity
+			: queryCtx.dispatchMode
+				? "Submissions are locked while this order is in dispatch mode."
+				: null
+		: queryCtx.dispatchMode
+			? "New production assignments are locked while this order is in dispatch mode. Existing assignments can still be submitted."
+			: !hasPendingAssignmentQuantity
 				? "All production quantity for this item is already assigned."
 				: null;
-	const closeForm = () => {
-		setOpen(false);
-		triggerRef.current?.focus();
+	const closeCreateForm = () => {
+		setCreateOpen(false);
+		refreshAssignments();
+		createTriggerRef.current?.focus();
 	};
+	const createButtonLabel = createOpen
+		? `Close ${workerMode ? "submission" : "assignment"} form`
+		: `Create ${workerMode ? "submission" : "assignment"}`;
+	const compactWorkerButton = workerMode && hasWorkerSubmissions;
+	const createButton = (
+		<CollapsibleTrigger asChild>
+			<Button
+				ref={createTriggerRef}
+				type="button"
+				size={compactWorkerButton || !workerMode ? "icon-sm" : "sm"}
+				variant={createOpen ? "outline" : "default"}
+				disabled={createDisabled}
+				aria-label={createButtonLabel}
+				className={compactWorkerButton || !workerMode ? "rounded-xl" : "w-full"}
+			>
+				{createOpen ? <Icons.Close /> : <Icons.Add />}
+				{compactWorkerButton || !workerMode
+					? null
+					: createOpen
+						? "Close"
+						: "Create submission"}
+			</Button>
+		</CollapsibleTrigger>
+	);
+	const createButtonWithTooltip = createDisabledReason ? (
+		<TooltipProvider delayDuration={100}>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<span
+						aria-label={`Create unavailable: ${createDisabledReason}`}
+						aria-disabled="true"
+						tabIndex={0}
+						className={
+							compactWorkerButton || !workerMode ? "inline-flex" : "block"
+						}
+					>
+						{createButton}
+					</span>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" className="max-w-xs">
+					<p className="font-medium">Create unavailable</p>
+					<p className="text-muted-foreground">{createDisabledReason}</p>
+				</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
+	) : (
+		createButton
+	);
 
 	return (
-		<section className="px-4 py-4 sm:px-5" aria-label={label}>
-			<Collapsible open={open} onOpenChange={setOpen}>
-				<ItemGroup>
-					<Item className="border-0 p-0">
-						<ItemContent>
-							<ItemTitle>{label}</ItemTitle>
-							<ItemDescription>
-								{workerMode
-									? "Record completed production for this item."
-									: "Assign the remaining quantity to a production worker."}
-							</ItemDescription>
-						</ItemContent>
-						<ItemActions>
-							<CollapsibleTrigger asChild>
-								<Button
-									ref={triggerRef}
-									type="button"
-									size="sm"
-									variant={open ? "outline" : "default"}
-									disabled={disabled}
-								>
-									{open ? (
-										<Icons.Close data-icon="inline-start" />
-									) : (
-										<Icons.Add data-icon="inline-start" />
-									)}
-									{open ? "Close" : label}
-								</Button>
-							</CollapsibleTrigger>
-						</ItemActions>
-					</Item>
-				</ItemGroup>
-				{materialReviewExpected && workerMode ? (
-					<Alert variant="warning" className="mt-3">
-						<Icons.AlertTriangle />
-						<AlertTitle>Material verification required</AlertTitle>
-						<AlertDescription>
-							You can report completed work now. It will remain awaiting admin
-							approval until the material record is resolved.
-						</AlertDescription>
-					</Alert>
-				) : disabledReason ? (
-					<Alert className="mt-3">
-						<Icons.Info />
-						<AlertTitle>Create unavailable</AlertTitle>
-						<AlertDescription>{disabledReason}</AlertDescription>
-					</Alert>
+		<section className="px-4 py-5 sm:px-5" aria-labelledby={headingId}>
+			<Collapsible open={createOpen} onOpenChange={setCreateOpen}>
+				<div className="mb-3 flex min-h-9 items-center justify-between gap-3 pr-8">
+					<h3 id={headingId} className="text-sm font-semibold">
+						{label}
+					</h3>
+					<div className="flex items-center gap-2">
+						<Badge variant="secondary">
+							{workerMode
+								? `${submissionProgress.submitted}/${submissionProgress.assigned} submitted`
+								: `${data?.assignments?.length || 0} total`}
+						</Badge>
+						{workerMode
+							? hasWorkerSubmissions
+								? createButtonWithTooltip
+								: null
+							: createButtonWithTooltip}
+					</div>
+				</div>
+				{orderFulfilled ? (
+					<div className="pb-4">
+						<ProductionDeletionLockNotice>
+							{workerMode
+								? "This order is fulfilled. Submission records can no longer be deleted."
+								: "This order is fulfilled. Assignment and submission records can no longer be deleted."}
+						</ProductionDeletionLockNotice>
+					</div>
 				) : null}
-				<CollapsibleContent className="pt-4">
+				{workerSubmissionEmpty ? (
+					<div className="pb-4">{createButtonWithTooltip}</div>
+				) : null}
+				<CollapsibleContent className="pb-4">
 					{workerMode ? (
 						selectedAssignmentIndex === null ? (
 							<Empty className="min-h-32 p-4">
@@ -212,39 +250,15 @@ function ProductionV2CreateAction() {
 								<ProductionAssignmentRowProvider
 									args={[selectedAssignmentIndex]}
 								>
-									<ProductionSubmitForm afterSuccess={closeForm} />
+									<ProductionSubmitForm afterSuccess={closeCreateForm} />
 								</ProductionAssignmentRowProvider>
 							</div>
 						)
 					) : (
-						<ProductionAssignmentForm closeForm={closeForm} />
+						<ProductionAssignmentForm closeForm={closeCreateForm} />
 					)}
 				</CollapsibleContent>
 			</Collapsible>
-		</section>
-	);
-}
-
-function ProductionV2RecordsSection() {
-	const { item, queryCtx } = useProductionItem();
-	const { data, error } = useProductionAssignments();
-	const workerMode = Boolean(queryCtx.assignedTo);
-	const label = workerMode ? "Submissions" : "Assignments";
-	const submissionProgress = getWorkerProductionSubmissionProgress(item);
-	const headingId = useId();
-
-	return (
-		<section className="px-4 py-5 sm:px-5" aria-labelledby={headingId}>
-			<div className="mb-3 flex items-center justify-between gap-3">
-				<h3 id={headingId} className="text-sm font-semibold">
-					{label}
-				</h3>
-				<Badge variant="secondary">
-					{workerMode
-						? `${submissionProgress.submitted}/${submissionProgress.assigned} submitted`
-						: `${data?.assignments?.length || 0} total`}
-				</Badge>
-			</div>
 			{error ? (
 				<Alert>
 					<Icons.AlertTriangle />
@@ -260,18 +274,36 @@ function ProductionV2RecordsSection() {
 					<Skeleton className="h-16 w-full" />
 				</div>
 			) : data.assignments?.length ? (
-				<div>
-					{data.assignments.map((assignment, index) => (
-						<ProductionAssignmentRow
-							key={assignment.id}
-							index={index}
-							view={workerMode ? "submissions" : "assignments"}
-							showCreateAction={!workerMode}
-							showRecordHeading={!workerMode}
-							presentation="document"
-						/>
-					))}
-				</div>
+				workerMode ? (
+					<div>
+						{data.assignments.map((assignment, index) => (
+							<ProductionAssignmentRow
+								key={assignment.id}
+								index={index}
+								view="submissions"
+								showCreateAction={false}
+								showRecordHeading={false}
+								presentation="document"
+							/>
+						))}
+					</div>
+				) : (
+					<Accordion
+						type="multiple"
+						defaultValue={
+							data.assignments[0]?.id ? [String(data.assignments[0].id)] : []
+						}
+						className="border-t border-border"
+					>
+						{data.assignments.map((assignment, index) => (
+							<ProductionAssignmentRow
+								key={assignment.id}
+								index={index}
+								presentation="document"
+							/>
+						))}
+					</Accordion>
+				)
 			) : null}
 		</section>
 	);
@@ -348,8 +380,6 @@ export function ProductionV2ItemDocument() {
 	return (
 		<ProductionItemAssignmentsProvider args={[]}>
 			<div>
-				<ProductionV2CreateAction />
-				<Separator />
 				<ProductionV2RecordsSection />
 				<Separator />
 				<ProductionV2DetailsSection />

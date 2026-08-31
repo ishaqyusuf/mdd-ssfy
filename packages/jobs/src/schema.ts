@@ -66,6 +66,8 @@ export const taskNames = [
 	"sync-dyke-step-to-inventory",
 	"sync-inventory-to-dyke",
 	"update-sales-control",
+	"bulk-mark-sales-production-completed",
+	"bulk-mark-sales-fulfilled",
 	"attach-signed-dispatch-pdf",
 	"sales-commission",
 	"reset-sales-control",
@@ -113,6 +115,50 @@ const author = z.object({
 	id: z.number(),
 	name: z.string(),
 });
+
+const bulkFulfillmentSalesIdsSchema = z
+	.array(z.number().int().positive())
+	.min(1)
+	.transform((salesIds) => Array.from(new Set(salesIds)))
+	.refine((salesIds) => salesIds.length <= 40, {
+		message: "Bulk fulfillment is limited to 40 orders.",
+	});
+
+export const bulkMarkSalesFulfilledRequestSchema = z.object({
+	requestId: z.string().uuid(),
+	salesIds: bulkFulfillmentSalesIdsSchema,
+});
+
+export const bulkMarkSalesFulfilledSchema =
+	bulkMarkSalesFulfilledRequestSchema.extend({
+		actor: author,
+	});
+
+export type BulkMarkSalesFulfilledPayload = z.infer<
+	typeof bulkMarkSalesFulfilledSchema
+>;
+
+const bulkProductionCompletionSalesIdsSchema = z
+	.array(z.number().int().positive())
+	.min(1)
+	.transform((salesIds) => Array.from(new Set(salesIds)))
+	.refine((salesIds) => salesIds.length <= 40, {
+		message: "Bulk production completion is limited to 40 orders.",
+	});
+
+export const bulkMarkSalesProductionCompletedRequestSchema = z.object({
+	requestId: z.string().uuid(),
+	salesIds: bulkProductionCompletionSalesIdsSchema,
+});
+
+export const bulkMarkSalesProductionCompletedSchema =
+	bulkMarkSalesProductionCompletedRequestSchema.extend({
+		actor: author,
+	});
+
+export type BulkMarkSalesProductionCompletedPayload = z.infer<
+	typeof bulkMarkSalesProductionCompletedSchema
+>;
 export const createSalesDispatchSchemaTask = z.object({
 	delivery: createSalesDispatchSchema,
 	itemData: createSalesDispatchItemsSchema,

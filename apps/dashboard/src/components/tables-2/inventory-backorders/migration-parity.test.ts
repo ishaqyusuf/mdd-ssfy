@@ -72,14 +72,17 @@ describe("inventory backorders tables-2 migration", () => {
 		expect(tableSource.includes("InventoryShipAvailableDialog")).toBe(true);
 		expect(tableSource.includes("<BottomBar data={tableData} />")).toBe(true);
 		expect(headerSource.includes("DraggableHeader")).toBe(true);
+		expect(headerSource.includes("flexRender")).toBe(true);
+		expect(headerSource.includes('columnId === "select"')).toBe(true);
 		expect(columnsSource.includes("sizes.custom(160, 280, 190)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(104, 150, 118)")).toBe(true);
 		expect(columnsSource.includes("blockers.slice(0, 1)")).toBe(true);
 		expect(columnsSource.includes('id: "delivery"')).toBe(true);
 		expect(columnsSource.includes('id: "select"')).toBe(true);
+		expect(columnsSource.includes("sticky: true")).toBe(true);
 		expect(columnsSource.includes('className="h-8 px-2 text-xs"')).toBe(true);
 		expect(
-			/"inventory-backorders": \{[\s\S]*sizes\.custom\(160, 280, 190\)[\s\S]*rowHeight: 56/.test(
+			/"inventory-backorders": \{[\s\S]*id: "select"[\s\S]*sizes\.custom\(160, 280, 190\)[\s\S]*nonReorderableColumns: new Set\(\["select", "order", "actions"\]\)[\s\S]*rowHeight: 56/.test(
 				configSource,
 			),
 		).toBe(true);

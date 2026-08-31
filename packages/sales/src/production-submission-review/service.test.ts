@@ -2,9 +2,28 @@ import { describe, expect, it, mock } from "bun:test";
 
 import {
   createPendingMaterialReview,
-  prepareProductionSubmissionMaterialReview,
+  prepareProductionSubmissionMaterialReview as prepareProductionSubmissionMaterialReviewImpl,
   refreshProductionSubmissionAssignmentScope,
 } from "./service";
+
+function prepareProductionSubmissionMaterialReview(
+	db: Parameters<typeof prepareProductionSubmissionMaterialReviewImpl>[0],
+	input: Parameters<typeof prepareProductionSubmissionMaterialReviewImpl>[1],
+	dependencies: Parameters<
+		typeof prepareProductionSubmissionMaterialReviewImpl
+	>[2] = {},
+) {
+	return prepareProductionSubmissionMaterialReviewImpl(db, input, {
+		repairReceivedInboundNeeds: async () => ({
+			inboundIds: [],
+			changedCount: 0,
+			updatedDemandCount: 0,
+			recomputedComponentCount: 0,
+			affectedSalesOrderIds: [],
+		}),
+		...dependencies,
+	});
+}
 
 type ReviewUpsertArgs = {
   create: {
@@ -14,11 +33,64 @@ type ReviewUpsertArgs = {
     status: "PENDING" | "APPROVED";
     classificationReason: string | null;
     materialRevision: string | null;
+    reviewedById?: number;
+    resolution?: unknown;
   };
 };
 
 describe("production submission material review service", () => {
-  it("auto-approves ready submissions while retaining an idempotent batch", async () => {
+	it("repairs received inbound application before evaluating submission materials", async () => {
+		const calls: string[] = [];
+		const repairReceivedInboundNeeds = mock(async () => {
+			calls.push("repair");
+			return {
+				inboundIds: [70],
+				changedCount: 1,
+				updatedDemandCount: 1,
+				recomputedComponentCount: 1,
+				affectedSalesOrderIds: [42],
+			};
+		});
+		const upsert = mock(async ({ create }: ReviewUpsertArgs) => ({
+			id: 88,
+			salesOrderId: create.salesOrderId,
+			submittedById: create.submittedById,
+			assignmentScope: create.assignmentScope,
+			status: create.status,
+			classificationReason: create.classificationReason,
+			materialRevision: create.materialRevision,
+		}));
+
+		await prepareProductionSubmissionMaterialReview(
+			{ salesProductionSubmissionMaterialReview: { upsert } } as never,
+			{
+				salesOrderId: 42,
+				submittedById: 7,
+				idempotencyKey: "repair-42",
+				itemScope: [{ controlUid: "door-1", salesItemId: 10 }],
+			},
+			{
+				repairReceivedInboundNeeds,
+				loadMaterials: mock(async () => {
+					calls.push("load");
+					return {
+						state: "available" as const,
+						materials: [
+							{ salesItemId: 10, readiness: "ready_for_production" },
+						],
+					};
+				}) as never,
+			} as never,
+		);
+
+		expect(calls).toEqual(["repair", "load"]);
+		expect(repairReceivedInboundNeeds).toHaveBeenCalledWith(
+			expect.anything(),
+			{ salesOrderId: 42, actorUserId: 7 },
+		);
+	});
+
+	it("auto-approves ready submissions while retaining an idempotent batch", async () => {
     const upsert = mock(async ({ create }: ReviewUpsertArgs) => ({
       id: 88,
       salesOrderId: create.salesOrderId,
@@ -163,6 +235,61 @@ describe("production submission material review service", () => {
         materialRevision: true,
       },
     });
+  });
+
+  it("approves unresolved evidence when an authorized operator submits on behalf", async () => {
+    const upsert = mock(async ({ create }: ReviewUpsertArgs) => ({
+      id: 94,
+      salesOrderId: create.salesOrderId,
+      submittedById: create.submittedById,
+      assignmentScope: create.assignmentScope,
+      status: create.status,
+      classificationReason: create.classificationReason,
+      materialRevision: create.materialRevision,
+    }));
+    const result = await prepareProductionSubmissionMaterialReview(
+      {
+        salesProductionSubmissionMaterialReview: { upsert },
+      } as never,
+      {
+        salesOrderId: 42,
+        submittedById: 7,
+        idempotencyKey: "operator-approved-42",
+        itemScope: [{ controlUid: "door-1", salesItemId: 10 }],
+        approvedByAuthorizedOperator: true,
+      },
+      {
+        loadMaterials: mock(async () => ({
+          state: "available" as const,
+          materials: [
+            {
+              salesItemId: 10,
+              readiness: "awaiting_inbound",
+            },
+          ],
+        })) as never,
+      },
+    );
+
+    expect(result).toEqual({
+      state: "finalized",
+      reason: null,
+      reviewId: 94,
+      materialRevision: expect.any(String),
+    });
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: "APPROVED",
+          classificationReason: "AWAITING_INBOUND",
+          reviewedById: 7,
+          resolution: {
+            action: "AUTHORIZED_OPERATOR_APPROVED_ON_SUBMISSION",
+            classificationReason: "AWAITING_INBOUND",
+          },
+        }),
+      }),
+    );
   });
 
   for (const scenario of [

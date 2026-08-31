@@ -14,8 +14,11 @@ export type ResponsivePageTabLimit = {
 	"2xl": number;
 };
 
-export function shouldStackPageTabs(resolvedTabCount: number) {
-	return resolvedTabCount >= 3;
+export function shouldStackPageTabs(
+	resolvedTabCount: number,
+	hasCustomPageTabs = false,
+) {
+	return hasCustomPageTabs || resolvedTabCount >= 3;
 }
 
 export function composePageTabSources<T>({

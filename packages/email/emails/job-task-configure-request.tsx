@@ -82,4 +82,13 @@ export function JobTaskConfigureRequestEmail(
   );
 }
 
+JobTaskConfigureRequestEmail.PreviewProps = {
+  recipientName: "Operations Team",
+  contractorName: "Taylor Brooks",
+  contractorId: 812,
+  modelName: "Cambridge Shaker",
+  projectName: "Market Street Renovation",
+  builderName: "Northside Builders",
+} satisfies JobTaskConfigureRequestEmailProps;
+
 export default JobTaskConfigureRequestEmail;

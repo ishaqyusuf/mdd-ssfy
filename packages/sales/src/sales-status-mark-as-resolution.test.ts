@@ -4,9 +4,40 @@ import type { Db } from "@gnd/db";
 import {
 	type SalesStatusMarkAsPreflightResult,
 	buildAutomaticProductionStatusMarkIdempotencyKey,
+	getSalesStatusMarkAsEligibleSalesOrderIds,
 	getSalesStatusMarkAsPreflight,
 	resolveSalesStatusMarkAsDependenciesForContinue,
 } from "./sales-status-mark-as-resolution";
+
+test("filters fulfilled delivery evidence before production dependency work", async () => {
+	const db = {
+		salesOrders: {
+			findMany: mock(async () => [
+				{
+					id: 10,
+					status: null,
+					prodStatus: "in progress",
+					stat: [],
+					deliveries: [{ status: "Completed", _count: { items: 1 } }],
+				},
+				{
+					id: 11,
+					status: null,
+					prodStatus: "in progress",
+					stat: [],
+					deliveries: [],
+				},
+			]),
+		},
+	};
+
+	await expect(
+		getSalesStatusMarkAsEligibleSalesOrderIds(db as unknown as Db, {
+			salesOrderIds: [10, 11],
+			action: "production_completed",
+		}),
+	).resolves.toEqual([11]);
+});
 
 test("automatic production retries after the latest material review without duplicating a concurrent attempt", () => {
 	const input = {
@@ -90,6 +121,66 @@ function makePreflight(
 }
 
 describe("resolveSalesStatusMarkAsDependenciesForContinue", () => {
+	test("runs dependency work only for the authoritative eligible subset", async () => {
+		const eligibleInputs: number[][] = [];
+		const contextInputs: number[][] = [];
+		const preflight = makePreflight({
+			action: "production_completed",
+			ok: true,
+			blockedSaleCount: 0,
+			blockers: [],
+			automation: {
+				...makePreflight().automation,
+				pendingProductionReviewCount: 0,
+				pendingProductionSubmissionCount: 0,
+				pendingProductionQty: 0,
+			},
+		});
+		const db = {
+			salesOrders: {
+				findMany: mock(async () => [
+					{
+						id: 10,
+						status: null,
+						prodStatus: "in progress",
+						stat: [],
+						deliveries: [{ status: "Completed", _count: { items: 1 } }],
+					},
+					{
+						id: 11,
+						status: null,
+						prodStatus: "in progress",
+						stat: [],
+						deliveries: [],
+					},
+				]),
+			},
+		};
+
+		const result = await resolveSalesStatusMarkAsDependenciesForContinue(
+			db as unknown as Db,
+			{
+				salesOrderIds: [10, 11],
+				action: "production_completed",
+			},
+			{
+				getStatusPreflight: mock(async (_db, input) => {
+					eligibleInputs.push(input.salesOrderIds);
+					return preflight;
+				}) as never,
+				loadContext: mock(async (_db, salesOrderIds) => {
+					contextInputs.push(salesOrderIds);
+					return { reviews: [], inboundDemands: [] };
+				}) as never,
+				getPendingReviews: mock(async () => []) as never,
+			} as never,
+		);
+
+		expect(eligibleInputs).toEqual([[11], [11]]);
+		expect(contextInputs).toEqual([[11]]);
+		expect(result.continueAllowed).toBe(true);
+	});
+
 	test("blocks direct fulfillment when production still needs implicit submission", async () => {
 		const { automation: _automation, ...inventoryPreflight } = makePreflight({
 			ok: true,
@@ -101,6 +192,9 @@ describe("resolveSalesStatusMarkAsDependenciesForContinue", () => {
 			{} as Db,
 			{ salesOrderIds: [25583], action: "fulfilled" },
 			{
+				getEligibleSalesOrderIds: mock(
+					async (_db, input) => input.salesOrderIds,
+				) as never,
 				getInventoryPreflight: mock(async () => inventoryPreflight) as never,
 				loadContext: mock(async () => ({
 					reviews: [],
@@ -190,6 +284,9 @@ describe("resolveSalesStatusMarkAsDependenciesForContinue", () => {
 				triggeredByUserId: 1,
 			},
 			{
+				getEligibleSalesOrderIds: mock(
+					async (_db, input) => input.salesOrderIds,
+				) as never,
 				getStatusPreflight: mock()
 					.mockResolvedValueOnce(initialPreflight)
 					.mockResolvedValueOnce(remainingPreflight) as never,
@@ -295,6 +392,9 @@ describe("resolveSalesStatusMarkAsDependenciesForContinue", () => {
 				triggeredByUserId: 1,
 			},
 			{
+				getEligibleSalesOrderIds: mock(
+					async (_db, input) => input.salesOrderIds,
+				) as never,
 				getStatusPreflight: mock()
 					.mockResolvedValueOnce(initialPreflight)
 					.mockResolvedValueOnce(remainingPreflight) as never,
@@ -436,6 +536,9 @@ describe("resolveSalesStatusMarkAsDependenciesForContinue", () => {
 				triggeredByUserId: 1,
 			},
 			{
+				getEligibleSalesOrderIds: mock(
+					async (_db, input) => input.salesOrderIds,
+				) as never,
 				getStatusPreflight: getStatusPreflight as never,
 				loadContext: loadContext as never,
 				getPendingReviews: getPendingReviews as never,

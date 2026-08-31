@@ -1,5 +1,381 @@
 # Progress
 
+- 2026-08-31: Completed the combined release-safety pass before the pending
+  production rollout. Direct production-assignment create, delete, and batch
+  actions now require `editProduction`; single-assignment deletion is scoped to
+  the expected order and item. Production submissions lock the assignment row
+  before computing remaining quantity, and guarded-packing rejection demotes a
+  falsely released `packed` dispatch when the rejected report removes required
+  coverage. The Sales Handoff reconciliation task now deploys unscheduled by
+  default and registers its 15-minute cron only when
+  `SALES_HANDOFF_RECONCILIATION_SCHEDULE_ENABLED=true`; the production profile
+  is currently disabled, so the documented production dry-run/approval gate is
+  preserved. The production Google Places probe returned HTTP 200. All 129
+  changed test files pass in isolated processes; `@gnd/sales` and `@gnd/jobs`
+  typechecks pass, while broad API/Dashboard checks retain unrelated baseline
+  diagnostics with none in the release-safety implementation files. The
+  isolated production build reproduced the documented local Turbopack behavior:
+  it reached optimized compilation and created output, then stopped progressing
+  without a diagnostic; the temporary output was preserved under `/private/tmp`
+  and the shared dev server was left untouched.
+
+- 2026-08-30: Completed the next guarded Vercel/getOrders cost-control slice in
+  commit `4dd6938e2`. The Vercel snapshot now classifies the fixed Speed
+  Insights Plus base license separately from metered infrastructure; the live
+  cycle reads $6.86 infrastructure, $0.62/day burn, and a $19.33 projection.
+  Production Sentry now checks `/api/health/live` every five minutes and its
+  immediate test passed. `sales.getOrders` and `sales.getOrdersSummary` now emit
+  privacy-safe stage timings, while `read` mode requires an explicit stable
+  cohort percentage and fails closed to legacy at 0% by default. Focused
+  validation passes 27 tests / 65 assertions, scoped Biome and diff checks are
+  clean, and a two-axis review's rollout-safety findings were resolved. The
+  commit is not pushed because local `master` already contains six earlier
+  unpushed commits; production remains `off` pending a deliberate combined
+  release or branch reconciliation, Trigger deployment/backfill, and shadow
+  evidence. The optional Speed Insights Plus downgrade also remains at its
+  final confirmation boundary.
+
+- 2026-08-30: Fixed the recurring bulk fulfillment approval failure reported
+  from `Receive, approve and continue`. The live request had been stopped by a
+  missing Sales Handoff lifecycle-review export before dependency resolution
+  could run. The export contract now loads under focused source-repair tests,
+  and the one-click status resolver uses the shared public-error envelope so
+  opaque failures always show operator direction plus a traceable reference
+  instead of blank raw exception text. Focused validation passes 21 tests / 47
+  assertions; no live fulfillment command was resubmitted against the selected
+  operational orders.
+
+- 2026-08-30: Made Production deletion locks visible before interaction in the
+  Sales Overview Command Document. Worker submission rows now show a compact
+  reason and disable deletion for shipped, pending-review, or dispatch-locked
+  records; operator assignment rows use the same treatment once an assignment
+  has submissions, its order is fulfilled, or dispatch mode is active. The old
+  shipped-submission click-time error path was removed. Focused Production
+  coverage passes 22 tests, scoped Biome and whitespace checks pass, and the
+  broad Dashboard typecheck retains unrelated baseline failures with no
+  diagnostics in the changed implementation files. The isolated headless
+  browser reached the local login screen but had no worker session, so
+  authenticated visual proof remains pending without touching the admin
+  browser.
+
+- 2026-08-30: Restored the approved Route Command header hierarchy on the
+  responsive driver dashboard. The generic `Driver command center` eyebrow and
+  `Dispatch Tasks` content heading were replaced by a business-time greeting
+  using the authenticated driver's first name. The former timeless manifest
+  badge now reports the real query sync age, updates while the page remains
+  open, resets on refresh, and preserves offline state. Focused driver model
+  and migration-parity coverage passes 16 tests / 142 assertions; no API,
+  permission, database, migration, or dispatch lifecycle contract changed.
+
+- 2026-08-30: Corrected the Sales Overview production assignment detail layout:
+  assignment fact columns now top-align, submission rows reserve the same right
+  action gutter as their heading, and the submission delete action uses the
+  compact icon scale. Added a focused layout regression test and verified the
+  expanded assignment live in the production side sheet.
+
+- 2026-08-30: Added explicit Production Due Date and Delivery Due Date planning
+  to the new Sales Form. Production continues to persist through
+  `SalesOrders.prodDueDate`; the new additive `SalesOrders.deliveryDueDate`
+  column supplies Split Desk dispatch defaults without creating a dispatch.
+  Production assignment and dispatch schedules remain independently editable.
+  The local migration and Prisma generation completed, focused contract tests
+  passed, and authenticated desktop/mobile browser QA confirmed the paired form
+  fields, aligned shadcn calendar, successful Fulfillment search, and the legacy
+  current-day fallback for an order without a saved delivery date.
+
+- 2026-08-30: Corrected the shared shadcn calendar after browser verification
+  exposed a collapsed intrinsic-width regression. The calendar now follows the
+  upstream React DayPicker v9 proportional grid through `month_grid`, `flex-1`
+  weekday headings, full-width aspect-square date cells, and valid Tailwind v4
+  `-(--cell-size)` utilities. Live desktop and 390px measurements show seven
+  matching 32px weekday/date columns. The Sales Overview Production Create
+  Assignment form reuses the Sales Form plus/minus quantity stepper, aligns
+  Assign To with Due Date, and stacks below `sm` to prevent narrow-sheet label
+  collisions. Focused tests and `@gnd/ui` typecheck pass; the Dashboard-wide
+  typecheck retains unrelated baseline errors.
+
+- 2026-08-29: Added channel-specific color treatments to notification-center
+  icons. Inbox and Archive rows now use semantic colored glyphs with faint
+  tinted circular backgrounds and subtle matching borders, including distinct
+  states within dispatch and community-production channels. Unknown future
+  channels receive a stable fallback accent derived from their channel name.
+
+- 2026-08-29: Quieted the Split Desk planner. Delivery/Pickup now lives inside
+  Orders; the former planning instruction row and redundant section subtitles,
+  route alert, driver guidance, and footer summary were removed. Order entry is
+  now a search-to-add command input with asynchronous suggestions and no
+  selected-value chips. Pickup immediately resets Driver to Unassigned and
+  disables all driver choices. Authenticated browser checks confirmed suggestion
+  selection adds to the list, clears the search, retains row removal, and applies
+  the Pickup driver lock.
+
+- 2026-08-29: Aligned Sales Overview Production assignment actions to one
+  consistent right gutter. Assignment and submission heading plus buttons now
+  align with the row delete action, both heading rows are vertically centered,
+  and the accordion chevron remains at the extreme outer edge. Fixed the shared
+  loading-toast cleanup so successful or failed deletes dismiss the tracked
+  infinite `Deleting...` notice instead of leaving it onscreen. Focused
+  validation passed 7 tests.
+
+- 2026-08-29: Fixed stale Sales Overview Production assignment submissions
+  after successful mutations. The item assignment provider now exposes one
+  explicit refresh boundary, and successful submission, assignment creation,
+  assignment deletion, and submission deletion rerun its local server-action
+  loader while retaining the canonical Production query event. A focused
+  regression check reproduced the missing refresh before the fix and passes
+  afterward with 1 test / 4 assertions.
+
+- 2026-08-29: Removed the remaining inset around the unified Split Desk Card.
+  The white content surface now runs flush from the Delivery/Pickup header to
+  the action footer, with the content-shell padding and duplicate outer Card
+  border removed while internal panel padding and separators remain intact.
+
+- 2026-08-29: Consolidated the Split Desk Orders, Proposed Route, and Choose
+  Driver panel shells into one shared white Card. The existing panel content and
+  1/5–3/5–1/5 desktop proportions remain intact, with shadcn Separators between
+  work areas vertically on desktop and horizontally in the stacked responsive
+  layout.
+
+- 2026-08-29: Refined the Sales Overview Production assignment accordion after
+  the approved Option A rollout. Admin assignment creation now opens from a
+  small rounded plus beside the Assignments total, while the worker creation
+  path remains unchanged. Calendar and guarded assignment deletion controls
+  are independent siblings immediately before the chevron; submission content
+  is flat and indented, reports `X of Y`, and keeps only a small rounded add
+  action. The calendar is a centered rounded-xl ghost icon. Existing mutation,
+  dispatch, permission, material-review, and fulfilled-order guards remain.
+
+- 2026-08-29: Moved the Split Desk into the existing predefined `7xl` custom
+  modal and replaced fixed side widths with a five-track desktop composition:
+  Orders and Choose Driver each own one track, while Proposed Route spans the
+  remaining three. Tablet and mobile remain full-width and stacked. Side-panel
+  titles, recommendation badges, and workload metrics reflow where necessary.
+  The focused Fulfillment contract, scoped Biome, whitespace check, and
+  authenticated desktop browser inspection passed.
+
+- 2026-08-29: Implemented the selected Option A Split Desk Create Dispatch
+  planner with existing shadcn modal primitives and Midday-style query/state
+  boundaries. Operators can search and remove eligible orders, edit every
+  individual delivery date, apply one batch override that strikes through but
+  preserves those values, clear the override to restore them, review the exact
+  stop sequence, and compare permission-aware driver workload before one atomic
+  batch creation. Focused domain/schema/UI/permission coverage passed 40 tests
+  / 450 assertions; scoped Biome passed, filtered Dashboard typecheck produced
+  no changed-file diagnostics, and API/Sales broad typechecks retained only
+  unrelated baseline failures. Authenticated in-app-browser QA covered two
+  orders, individual edit, override, edit-under-override, clear/restore, driver
+  selection, Backlog-preserving close, desktop/768px/390px responsiveness, and
+  zero console errors without submitting a live dispatch mutation. No database
+  schema or migration changed.
+
+- 2026-08-29: Implemented the selected Option A driver route pipeline: opt-in
+  route map, warehouse/current-location stop directions, dispatch-scoped Google
+  destination preflight, and Active Trip workspace. The customer address remains
+  primary; differing verified routing data is secondary and assignment-locked.
+  Nonblocking guarded physical verification now passes canonical trip
+  start/completion inventory assertions while strict review and unrelated stock
+  shortages remain blocked. Live Chrome QA covered a 15-stop route, two-stop
+  Ready Rail, batch modal, stop map, pickup behavior, clickable metrics, and the
+  removal of repeated `QTY: 12` copy; the admin browser confirmed the requested
+  guarded-packing policy and sales-rep notification settings. Focused validation
+  passed 67 tests / 212 assertions with no changed-file TypeScript diagnostics.
+  Google Places API (New) was disabled during this 2026-08-29 browser pass; a
+  production-key probe later returned HTTP 200 on 2026-08-31 and cleared that
+  configuration gate. Decision:
+  `.brain/decisions/ADR-074-dispatch-scoped-google-route-destination.md`.
+
+- 2026-08-29: Approved `A — Ledger Accordion` for the Sales Overview Production
+  assignment-to-submission disclosure and implemented it with the existing
+  `@gnd/ui` shadcn accordion. Collapsed assignment triggers now show assignee,
+  assigned-by/date, due date, progress, state, pending review, and submission
+  count; expanded panels preserve submit, due-date, guarded deletion, dispatch,
+  and material-review behavior while presenting submissions as a responsive
+  ledger. The global personal coding rules and GND Brain route React/Next.js
+  work through `midday`, rebuilds through `midday-migration-planner`, mobile
+  work through `react-native-best-practices`, and web UI through shadcn rather
+  than Chakra. Focused validation passed 15 tests / 26 assertions; scoped
+  Biome and whitespace checks passed, and filtered Dashboard typecheck output
+  contained no changed-file diagnostics. Authenticated QA on `09488AD` and
+  `09396PC` covered empty and completed submission states, pointer disclosure,
+  submit/cancel, guarded actions, desktop/768px/390px responsiveness, zero
+  horizontal overflow, and a clean final browser log.
+
+- 2026-08-29: Inspected the live Sales Overview Production assignment section
+  for order `09488AD` and produced five interactive GStack HTML directions for
+  the assignment-to-submission disclosure: Ledger Accordion, Worker Timeline,
+  Split Inspector, Progress Stack, and Command Rows. Every assignment trigger
+  exposes owner, due date, progress, state, and submission count before opening
+  nested submission records and guarded actions. The comparison page passed
+  1440px, 768px, and 390px overflow checks; all 12 disclosure targets resolve,
+  the split inspector changes records correctly, and mobile actions meet the
+  44px touch-target floor. The artifact is saved under
+  `~/.gstack/projects/gnd/designs/sales-production-assignments-20260829/`.
+  No production application code changed.
+
+- 2026-08-29: Raised the Bulk Production Completed and Bulk Fulfillment task
+  contract from 20 to 40 unique Sales Orders. Shared Sales normalization, Jobs
+  request validation, actionable task-start messages, focused contracts, and
+  the API and Production/Fulfillment feature documentation now agree on the
+  40-order maximum; paginated list requests remain independently bounded to 20
+  records.
+
+- 2026-08-29: Standardized Production and Fulfillment operational pagination
+  on 20 records per request, including Production queues, Fulfillment lists,
+  Backlog, Exceptions, driver manifests, and dispatch-order search. Bulk
+  Production Completed and Bulk Fulfillment now accept at most 20 unique Sales
+  Orders. Task-start validation and intentional permission/conflict messages
+  remain actionable in production UI, while unknown errors stay sanitized.
+  Focused validation passed 34 tests / 111 assertions; scoped Biome and
+  whitespace checks passed for the changed slice. Authenticated Production QA
+  refreshed the page, selected all 40 loaded rows, and confirmed the exact
+  `Bulk production completion is limited to 20 orders.` toast before any task
+  was enqueued or record changed. The broad Dashboard typecheck retains its
+  existing unrelated repository diagnostics; filtered output contained no
+  changed-file diagnostics.
+
+- 2026-08-29: Matched the Production workspace header to the Sales Orders
+  adaptive composition. The custom Production tab rail now owns one complete
+  row, with search, active filters, and column controls beneath it; narrow
+  layouts keep one tab line and move excess destinations into the existing
+  overflow menu. Extended the shared adaptive layout without changing default
+  callers. Focused validation passed 24 tests / 51 assertions, scoped Biome and
+  whitespace checks passed, and authenticated desktop plus 900-pixel browser QA
+  confirmed the two-row geometry.
+
+- 2026-08-29: Added read-only invoice visibility to the admin Production table
+  and mobile cards, with total plus Paid, Outstanding, or Not set status while
+  keeping production-worker views finance-free. Production now shares the
+  applicable Sales Orders filters for customer, phone, P.O., sales rep, order
+  number, item, and invoice status; list and summary queries preserve the same
+  URL contract. Replaced generic search icons for Assigned To, Queue state, Due
+  date, Material state, and Sort with semantic glyphs. Focused validation passed
+  39 tests / 119 assertions; scoped Biome and whitespace checks passed.
+  Authenticated UI QA confirmed the new column, Paid states, expanded menu, and
+  distinct icons before an unrelated dispatch-manifest build error blocked a
+  subsequent reload.
+
+- 2026-08-29: Fixed Production Mark All completion aborts caused by legacy rows
+  whose production statistics lag a completed delivery. The Production read
+  model, status dependency resolver, and durable bulk parent now derive
+  fulfillment from canonical delivery evidence and skip terminal orders before
+  inventory/review mutations or child task dispatch. The exact fulfilled row
+  `07471PC` dropped from the pending queue; authenticated QA selected all 40
+  loaded Past Due rows, completed one monitored run, and verified the count
+  decreased from 1,058 to 1,018. Focused validation passed 35 tests / 69
+  assertions; scoped Biome and whitespace validation passed. Sales/Jobs
+  typechecks retain unrelated baseline errors in inbound nullability,
+  sales-control assignment typing, and email JSX runtime resolution.
+
+- 2026-08-29: Made the shared Sales Orders / Sales Production `Inventory and
+  production need attention` dialog dismissible by clicking its backdrop while
+  preserving the existing close lock during dependency resolution. Added an
+  opt-in overlay-props seam to the shared alert dialog and a focused regression
+  for the idle/resolving behavior. Five focused tests (13 assertions), scoped
+  formatting, and whitespace validation passed. Authenticated Production-page
+  QA opened the real blocked-order dialog, closed it from the backdrop without
+  starting the batch action, cleared the temporary selection, and found no
+  browser console errors.
+
+- 2026-08-29: Added the missing tri-state Mark All checkbox to the admin Sales
+  Production table and replaced per-order Production Completed task starts with
+  one monitored `bulk-mark-sales-production-completed` parent run. The parent
+  rechecks lifecycle status, skips orders already past production, uses bounded
+  idempotent child runs, and distinguishes completed, awaiting-review, skipped,
+  and failed outcomes before one terminal query refresh. Authenticated local QA
+  refreshed the overdue queue, selected all 40 loaded rows, ran the canonical
+  dependency resolver and Production Completed action, then verified Past Due
+  decreased exactly from 1,099 to 1,059 with zero browser console errors.
+  Focused validation passed 18 tests / 51 assertions; scoped Biome and
+  whitespace validation passed. Broad Jobs typecheck retains unrelated
+  repository baseline errors in email JSX runtime, inventory nullability, and
+  sales-control assignment typing.
+
+- 2026-08-29: Unified Guarded packing and its post-verification policy into one
+  Sales Operations card with a true footer; disabling the master switch now
+  leaves dependent controls visible and disabled. Strict-to-nonblocking policy
+  changes preserve pending approvals and immutable report snapshots, reconcile
+  fully verified dispatches to packed readiness, apply the current policy in
+  driver/canonical trip guards, and send assigned drivers a dedicated in-app
+  notification that opens the dispatch. The policy write, readiness transition,
+  and direct in-app notification are serializable and roll back together; older
+  strict reports remain reviewable during trips released by the current policy.
+  Actual unpicked inventory still blocks Start Trip. Direct policy,
+  reconciliation, guard, notification, settings, and driver-model coverage
+  passes; targeted Biome and whitespace checks pass.
+  Broad typechecks retain unrelated baseline diagnostics, and live browser
+  verification is blocked by the existing jobs-schema `actor is not defined`
+  runtime error.
+
+- 2026-08-29: Added admin Sales Production row selection on desktop and mobile,
+  a Sales Orders-style floating batch bar, and canonical shared Mark-as row and
+  batch actions. Sales Orders and Production now remove already production-
+  completed or fulfilled rows from the action subset before inventory preflight,
+  dependency resolution, dispatch creation, or monitored task start. Production
+  list rows expose additive lifecycle status for that decision; worker routes
+  remain selection-free. Focused validation passed 38 tests / 79 assertions,
+  targeted Biome and whitespace checks passed, and filtered broad typecheck
+  review found no changed-file diagnostics despite existing repository baseline
+  failures. Authenticated in-app browser QA confirmed the Select column, `1
+  selected` bar, Deselect all, both canonical status actions, and zero console
+  errors without submitting a live mutation.
+
+- 2026-08-28: Finished live end-to-end guarded-packing and dispatch lifecycle QA
+  for order `09439PC`, dispatch `4602`. Chrome driver Miguel packed all 19 units,
+  including 6 awaiting-production units; the admin received one review, approved
+  it, and the overview reached 19/19 with Pending `0`. The packed dispatch can
+  start its trip. Assignment, unassignment, and date-change notifications all
+  landed in Miguel's inbox and opened the exact dispatch. Dispatch Details shows
+  driver, date, mode, and status; Unassign is first and Update driver has a
+  right-side chevron. A managed `bun run dev -- -f dashboard jobs` stack is live:
+  dashboard is ready and the Trigger.dev worker is ready. Authenticated reload
+  produced no repeat `dispatch.list` 401/client-render fallback after query-key
+  alignment. Focused validation passes 88 tests / 234 assertions. The managed
+  jobs log separately exposed the existing Sales Handoff repair backlog: the
+  latest 200-row reconciliation handled 50 rows and retained durable repair
+  markers for 150 legacy rows missing canonical payment projections or usable
+  inventory applicability; this is data-projection repair work, not a guarded
+  packing or dispatch-notification regression.
+
+- 2026-08-28: Replaced the guarded-packing confirmation's repeated item cards
+  with the standard divider-list composition already used by Pack Items. Chrome
+  verified one semantic list containing all six selected lines and seven units,
+  with quantities aligned as row actions and the final Proceed gate intact. No
+  live packing mutation was submitted during this visual correction.
+
+- 2026-08-28: Implemented configurable guarded packing across Sales settings,
+  admin Dispatch Overview, and the shared driver packing workflow. Awaiting
+  production and material-review lines are policy-selectable, pending reviews
+  can either hold delivery or remain audit-only, notification and production
+  evidence behavior are snapshotted per report, and self-notifications are
+  suppressed. Added driver assignment controls to the admin overview and
+  retained the intercepted-stop/direct-page loading skeleton contract. The
+  additive local migration `20260828163603_guarded_packing_awaiting_production`
+  was generated and applied; focused settings, packing, notification,
+  permissions, transaction, UI-model, and route-parity suites pass. Browser QA
+  verified 19-of-19 admin selection, seven guarded driver units, settings
+  discard behavior, the driver loading skeleton, and removal of the settings
+  export build error. A real driver submission remains intentionally gated at
+  the final confirmation because it will write report/activity/notification
+  data.
+
+- 2026-08-28: Replaced the rejected five-concept dispatch overview exploration
+  with three light-touch HTML directions that stay close to the current Sales
+  Overview sheet. Polished Current keeps the existing stack, Balanced Split
+  uses desktop width more efficiently, and Clean Ledger removes extra framing.
+  All three preserve the current actions and operational facts and were
+  visually verified at 390px, 768px, and 1440px. The comparison board is saved
+  under
+  `~/.gstack/projects/gnd/designs/dispatch-packing-overview-refined-20260828/`.
+  No production application code changed.
+
+- 2026-08-28: Captured the canonical Sales Overview dispatch Packing screen on
+  desktop and 390px mobile, traced its current `dispatchOverviewV2` data, and
+  produced five responsive GStack HTML concepts for selection. The concepts
+  replace repeated metric cards with clearer readiness, blockers, lifecycle,
+  ready-versus-waiting item groups, packing history, and route/contact actions.
+  All 15 variant/viewport combinations passed horizontal-overflow checks at
+  390px, 768px, and 1440px. No production application code changed.
+
 - 2026-08-27: Closed the Project Units Installation-link verification gap. The
   existing Installation badge already targeted
   `/hrm/contractors/jobs?unitId=<unitId>` and the jobs query already mapped that
@@ -12551,6 +12927,602 @@
   inbound now present the same `AVAILABLE x OF y` result; unapplied open inbound
   remains separately represented as `ORDERED x OF y`.
 
+## 2026-08-28 — Closed historical received-inbound application gaps
+
+- Added an order-scoped Needs alert for received inbound shipments with unapplied
+  demand. The underlined inbound number opens the existing secondary inbound pane,
+  and Apply uses the existing protected canonical mutation.
+- Added one reusable inventory-package repair boundary and invoked it before
+  production assignment, production-submission material evaluation, production
+  material-review approval, and guarded packing approval. Guarded packing
+  rejection remains inventory read-only.
+- Focused inventory, production-review, packing-report, and dashboard suites pass
+  151 tests / 465 assertions. The broader inbound API test module remains blocked
+  before tests load by the unrelated missing `resolveSalesPaymentOrigin` export.
+- Updated `.brain/features/inventory-backed-sales-fulfillment.md`,
+  `.brain/api/contracts.md`, and `.brain/progress.md`; no database or migration
+  documentation changed because the repair reuses existing inbound demand,
+  shipment, component, application-event, and sales-order fields.
+
+## 2026-08-28 — Stabilized packing review approval, SSR auth, and mini-logo rendering
+
+- Qualified the received-inbound attention derived-table ordering and made sales
+  control rebuilds audit-safe by upserting active controls and pruning only stale,
+  unreferenced controls. Guarded-packing reports and all restrictive audit
+  relations remain intact.
+- Deduplicated zero-argument server session resolution with React's request cache
+  and moved the root layout onto the same path used by protected layouts and
+  server tRPC context. Explicit-header route-handler behavior remains supported.
+- Added proportional mini-logo sizing and corrected the square asset declaration
+  to `48x48`.
+- Focused validation passes 29 tests / 85 assertions; `@gnd/ui` and
+  `@gnd/site-nav` typechecks pass, while filtered inventory, sales, and dashboard
+  output contains no touched-file diagnostics amid their unrelated baselines.
+- Authenticated browser reload of `/settings/sales/operations` stayed on the
+  protected server-rendered page with no fresh auth fallback or image warning.
+  Disposable local guarded-packing report `#20` approved successfully and its
+  retry returned an idempotent success; its audit/control identity, 28 rebuilt
+  quantity controls, and 6 sales-stat rows remain queryable.
+- Added
+  `.brain/bugs/2026-08-28-packing-review-approval-runtime-failures.md`. No database,
+  migration, public API, contract, or permission documentation changed.
+
+## 2026-08-28 — Completed 12-order fulfillment and driver QA matrix
+
+- Exercised 12 local orders across Mark Fulfilled, queued cancellation and
+  same-order requeue, single/bulk driver changes, packing, inventory holds,
+  trip start, recipient proof, signature, and completed delivery. Dispatch
+  `4604` completed end to end in Miguel's Chrome session and was confirmed as
+  terminal in the admin Fulfillment modal.
+- Address delivery `09239PC` / dispatch `4476` also completed end to end: 18/18
+  packed, trip started, doorstep recipient and note captured, signature drawn,
+  proof saved, and Delivered state confirmed.
+- Fixed shared packing-command parity, historical inventory migration scope,
+  repeated-item packing intent, revision noise, error presentation, newest
+  delivery selection, delivery-popover clipping, bulk assignment notifications,
+  cancellation preview, and bulk-menu ordering.
+- Fixed the signed-packing-slip SVG decoder warning by hydrating the validated
+  stored signature path and rendering native vector content in both PDF
+  templates. The PDF package typecheck and focused signature/proof tests pass.
+- Corrected duplicate-dispatch table progress to use dispatch-scoped control
+  before order fallback; browser verification on `07276DB` changed the current
+  row from borrowed 34/34 progress to its own 0/0 state.
+- The focused fulfillment suite passes 50 tests. Global Jobs typecheck still stops on existing
+  Email JSX-runtime, inbound-demand, and sales-assignment errors outside this
+  change.
+- Detailed evidence and the remaining duplicate-dispatch/address-fixture concerns
+  are recorded in
+  `.gstack/qa-reports/qa-report-gndprodesk-localhost-2026-08-28.md`.
+
+## 2026-08-28 — Simplified the dispatch packing overview
+
+- Restored the visible dispatch status text by replacing the solid same-color
+  status capsule with the existing colored-dot-and-label presentation.
+- Replaced the overview's stacked outer cards with compact semantic sections and
+  horizontal dividers; packing items now sit in one border-and-divider list.
+- Focused presentation and item tests pass 6/6. Authenticated browser QA on
+  `09439PC` / dispatch `4602` confirmed the `PACKED` label, section dividers,
+  and divider-separated item rows after HMR.
+- No database, migration, API, contract, or permission documentation changed;
+  this was a dashboard-only presentation correction.
+
+## 2026-08-29 — Unified fulfillment packing totals
+
+- Added one package-owned packing-total resolver and routed fulfillment table
+  rows plus dispatch overview summaries through its listed-first,
+  ordered-remaining fallback semantics.
+- Dispatch overview reads now include unpacked allocations; legacy allocation
+  mapping falls back to `orderItemId`, preventing pending quantities from being
+  dropped when submission/control linkage is incomplete.
+- Packing progress consumes the authoritative overview summary and reports a
+  genuine `0%` for zero packed quantity instead of the previous `12%` fallback.
+- Focused regressions pass 8/8. Authenticated browser QA confirmed `09439PC` at
+  `19/21` on both surfaces and `09455PC` at `0/53` on both surfaces. Sampled
+  remaining `0/0` rows had matching zero-total overviews.
+- Updated `.brain/features/sales-dispatch-table.md`, `.brain/api/contracts.md`,
+  and `.brain/progress.md`. No database, migration, or permission documentation
+  changed because the fix only corrects existing read projections.
+
+## 2026-08-29 — Diagnosed packed driver stop next-action inconsistency
+
+- Authenticated Chrome reproduction on `09176PC` / dispatch `4403` confirmed
+  that the route list reports `7 / 7 packed` and `Ready to load`, while the
+  selected stop reports packing complete, inventory review, departure blocked,
+  and still offers the top-level `Pack items` action.
+- The rendered payload preserves all seven packed units but has persisted
+  dispatch status `queue` and inventory-backed component rows without
+  dispatch-bound picked allocations. Start Trip therefore remains correctly
+  blocked; the driver should see a truthful inventory-review next action rather
+  than another packing prompt.
+- Code tracing found that the route list derives readiness from effective
+  status/control alone, while detail checks inventory departure readiness, and
+  the detail action fallback maps every non-dispatchable state to `Pack items`.
+- Existing focused lifecycle, inventory-readiness, dashboard-model, and
+  migration-contract suites pass 13 tests / 97 expectations but do not cover
+  the packed-plus-blocked combination.
+- Added
+  `.brain/plans/2026-08-29-bug-fix-driver-packed-stop-next-action.md`. No
+  application source, API contract, database, migration, permission, or runtime
+  data changed during this diagnosis and planning pass.
+
+## 2026-08-29 — Implemented packed driver stop next-action consistency
+
+- Added a tested driver action-state model that separates incomplete packing,
+  packed-but-blocked review, ready departure, in-progress proof, and terminal
+  completion.
+- Wired the selected-stop web workspace to the existing protected
+  `dispatch.manifest.mobileLifecycle` capability and blocker projection, including
+  proof/help/direct-packing subflow guards and per-line packing edit access.
+- Renamed the status-only route summary to `Packed stops / Review before
+  departure` and invalidated the authoritative manifest after packing writes or
+  review decisions so capability changes refresh in place.
+- Selected-stop desktop and mobile actions now hide the top-level Pack prompt at
+  full packing, show the exact inventory-review blocker, preserve item-level
+  correction, and report the packed Load status truthfully.
+- Status-only route rows now fail closed to `Packed` and open authoritative
+  detail instead of attempting Start Trip directly. The canonical Start Trip
+  mutation and all server departure guards remain unchanged.
+- Authenticated Chrome verification on `09176PC` / dispatch `4403` confirmed the
+  corrected `7 / 7 packed` route card and detail state. Focused validation passes
+  15 tests / 112 expectations; scoped Biome and whitespace checks pass.
+- Updated `.brain/features/driver-platform-revival.md`,
+  `.brain/plans/2026-08-29-bug-fix-driver-packed-stop-next-action.md`,
+  `.brain/tasks/in-progress.md`, and `.brain/progress.md`. No API, permission,
+  database, or migration documentation changed because the implementation
+  consumes the existing protected manifest contract without changing it.
+
+## 2026-08-29 — Closed Fulfillment V2 queue, status, and scroll gaps
+
+- Kept Backlog as the delivery/pickup order queue without an active
+  non-cancelled dispatch, moved it before All, and replaced its bespoke cards
+  with the standard divider-based virtualized table, row selection, direct
+  dispatch creation, and canonical batch Mark As menu.
+- All now includes fulfilled and cancelled lifecycle projections. Canonical
+  Sales Mark As actions invalidate every related dispatch list, summary,
+  backlog, detail, overview, exception, and driver-workload query so Fulfillment
+  reflects status changes without a second confirmation.
+- Repaired shared infinite loading by measuring remaining scroll geometry in
+  the native event, added the permission-aware Drivers count, and projected
+  guarded packing review batches into the same open/resolved Exceptions history
+  as native driver reports.
+- Focused dashboard coverage passes 18 tests. API and Dashboard package
+  typechecks report only documented baseline failures outside the changed
+  fulfillment sources; the older dispatch-notification regression still
+  expects the superseded direct notification channel instead of the existing
+  lifecycle helper.
+- Authenticated admin browser QA proved All and Backlog each doubled their
+  loaded scroll height on the first bottom scroll, Backlog selection exposed
+  Mark As, All displayed Fulfilled rows and correct `19/21` plus `0/53` totals,
+  Drivers displayed 3, and resolved Exceptions showed guarded-packing reviews
+  for `09439PC` and `09176PC`. Miguel's Chrome session showed `09176PC` as
+  `7/7` in both route and detail views and opened the shared dispatch-level Pack
+  Items form without application errors.
+- Updated `.brain/features/sales-dispatch-table.md`, `.brain/api/contracts.md`,
+  `.brain/tasks/in-progress.md`, and `.brain/progress.md`. No database,
+  migration, or permission documentation changed because this slice changes
+  query projections, invalidation, and UI composition only.
+
+## 2026-08-29 — Corrected Backlog Created-date sorting
+
+- Split the Backlog Created column from the All-table due-date identity, wired
+  its header to `createdAt`, forwarded the sort through server prefetch and the
+  client infinite query, and made the API apply ascending/descending Created
+  order with a stable id tie-breaker.
+- Backlog remains oldest-first by default and clears an unrelated due-date sort
+  inherited from All. The focused Fulfillment V2 contract suite passes 7 tests.
+- Updated `.brain/features/sales-dispatch-table.md`, `.brain/api/contracts.md`,
+  and `.brain/progress.md`. No database, migration, or permission documentation
+  changed because this is a read-ordering and URL-state correction.
+
+## 2026-08-29 — Made Backlog's default sort state explicit
+
+- Corrected the apparent first-click no-op: Backlog was already ascending while
+  the header and URL had no active sort, so choosing Created ascending produced
+  the same rows. Backlog now normalizes missing or unrelated sort state to
+  `createdAt.asc`; the header displays that state and the first click switches
+  immediately to `createdAt.desc`.
+- Added focused coverage for missing, descending, and inherited due-date sort
+  inputs. No API, database, migration, or permission contract changed.
+
+## 2026-08-29 — Connected Backlog header sorting to its live query
+
+- Live browser testing found that the Created header changed the URL but its
+  independent sort hook did not refresh the Backlog infinite query until a full
+  reload. A descending reload returned the correct newest records, confirming
+  the server ordering was already correct.
+- Backlog now supplies one controlled sort state to the shared table header and
+  uses the same state for its tRPC input. Clicking Created therefore changes the
+  URL and query data together without requiring a reload.
+
+## 2026-08-29 — Retained Fulfillment analytics on Backlog
+
+- Backlog now renders the shared Fulfillment analytics cards above its own
+  tabs/search toolbar, matching the All workspace hierarchy while preserving
+  the existing Backlog table, selection, filtering, and sorting behavior.
+- Added a focused composition contract covering the analytics, toolbar, and
+  table order. No API, database, migration, or permission contract changed.
+
+## 2026-08-29 — Made All the query-free Fulfillment route
+
+- The All tab now links to the bare `/sales-book/fulfillment/v2` route and
+  clears stale Backlog, Exceptions, sorting, modal, and filter query state when
+  selected. The existing filter default continues mapping that URL to the
+  internal `dispatches` section.
+- All-specific summary and overdue actions no longer emit `section=dispatches`;
+  they retain only their meaningful filter query. No API, database, migration,
+  or permission contract changed.
+
+## 2026-08-29 — Planned 50-order Backlog fulfillment QA
+
+- Traced the current Backlog `Mark as -> Fulfilled` path before mutation. It
+  performs one selection preflight but then resolves dispatches and triggers 50
+  independent `update-sales-control` jobs through a browser-owned sequential
+  loop, so it lacks a durable aggregate batch boundary.
+- Added the approval-gated plan at
+  `.brain/plans/2026-08-29-qa-bulk-backlog-fulfillment.md`. The recommended gate
+  moves the fan-out into one capped, idempotent, observable background batch
+  before using the selected 50 historical local records for end-to-end QA.
+- No runtime process was started and no application or database data changed.
+
+## 2026-08-29 — Corrected unpacked-history quantities and dispatch overview tools
+
+- Diagnosed order `09439PC` / dispatch `4602` against local relational data and
+  the authenticated Fulfillment UI. Two superseded `unpacked` allocations for
+  the same one-unit production submission were being summed as current listed
+  quantity, creating the false `19/21` total and `Partially packed 1/3` row.
+- Centralized current-allocation filtering across dispatch list controls,
+  Dispatch Packing Overview, cross-dispatch coverage, and packing-slip
+  composition while preserving unpacked rows in packing history. The live
+  overview now reports `19/19`, the disputed row is `Packed 1/1`, and the
+  generated packing slip prints `1 RH` rather than `3 RH`.
+- Added Inventory to Sales Overview dispatch mode and added a filtered packing
+  footer whose Preview action generates the packing list for the selected
+  dispatch. Authenticated browser QA confirmed the Inventory actions and the
+  dispatch-scoped Packing Slip preview.
+- Focused regression coverage passes 13 tests. Repository and package
+  typechecks remain blocked by baseline errors outside the touched paths,
+  including missing React declarations in `@gnd/email`, inbound-demand and
+  sales-control typing failures, and the dashboard's existing broad test/type
+  declarations.
+- Updated `.brain/features/sales-dispatch-table.md`, `.brain/api/contracts.md`,
+  and `.brain/progress.md`. No database, migration, or permission documentation
+  changed because the data model and access boundaries are unchanged.
+
+## 2026-08-29 — Preserved dispatch Overview after closing Preview
+
+- Fixed a URL-state ownership collision in `useSalesPreview`: closing the
+  overlay no longer clears the dispatch sheet's `dispatchId`, and opening an
+  ordinary preview no longer nulls an existing dispatch context.
+- Added a focused two-case regression contract. Authenticated in-app browser QA
+  on `09439PC` / dispatch `4602` confirmed that Preview opens, closes, retains
+  `dispatchId=4602`, and leaves the `19/19` Dispatch Packing Overview rendered.
+- Updated `.brain/features/sales-dispatch-table.md` and `.brain/progress.md`.
+  No API, database, migration, or permission documentation changed because this
+  is a dashboard-only query-state correction.
+
+## 2026-08-29 — Planned driver Ready route start and manifest cleanup
+
+- Traced the responsive driver route, selected-stop packing dashboard,
+  driver-work summary, protected manifest projection, canonical Start Trip
+  command, and current packed-stop consistency fix.
+- Confirmed the driver UI still consumes a composite Production subtitle that
+  can include repeated item type/size/handing/quantity plus `$ .../qty labor`
+  or `no labor cost`, while the dashboard also renders those facts separately.
+- Confirmed the route summary currently exposes status-only Packed counts and
+  the list intentionally fails closed to selected-stop review because it does
+  not yet have bounded list-wide `canStartTrip` capability data.
+- Added the approval-gated plan at
+  `.brain/plans/2026-08-29-feature-driver-ready-route-start-and-manifest-cleanup.md`.
+  The recommended approach adds server-side driver-safe item projection,
+  list-wide Ready capability, one idempotent batch Start Trip command,
+  clickable URL-backed metrics, and three GStack HTML concepts after approval.
+- No application source, API contract, database data/schema, permission, or
+  runtime state changed during this planning pass.
+
+## 2026-08-29 — Driver Ready dashboard concepts ready for selection
+
+- Completed the approved design exploration with three responsive HTML
+  concepts: A Ready Rail (recommended), B Departure Deck, and C Ready Board.
+- Every concept preserves the same operational contract: clickable metrics,
+  Ready before Needs Attention, one guarded route-level Start Trip action,
+  explicit included stops, packed-but-blocked exclusion, batch confirmation,
+  and a partial-result state.
+- Added a cleaned packing preview that displays each physical product, type,
+  size, handing, and packing quantity/progress once and contains no financial
+  copy.
+- Verified desktop and phone renders, JavaScript syntax, metric/action hooks,
+  dialog states, and horizontal overflow; fixed prototype label spacing and
+  dialog event handling found during the pass.
+- Saved the comparison board and source artifacts under
+  `~/.gstack/projects/gnd/designs/driver-ready-dashboard-20260829/`.
+- No production application source, API contract, database schema/data,
+  permission, or runtime state changed. The next gate is explicit A/B/C design
+  selection before implementation.
+
+## 2026-08-29 — Implemented Option A Ready Rail
+
+- Added a protected batched readiness projection and placed the approved Ready
+  Rail before Needs Attention. Packed stops blocked by inventory or review stay
+  visible but are excluded from Ready.
+- Added one shadcn confirmation flow backed by `dispatch.startReadyRoute`; it
+  submits only the displayed stop ids, revalidates canonical Start Trip guards,
+  and reports started, already-active, blocked, partial, and retryable failure
+  outcomes.
+- Made driver analytics clickable URL-backed controls with stable totals and
+  preserved existing stop navigation into the Packing Command Sheet.
+- Redacted labor/financial content from assigned-driver manifest responses and
+  shared the presentation formatter across API and packing UI so type, size,
+  handing, description, and quantity do not repeat.
+- Focused validation passed 47 tests / 473 assertions and scoped Biome. API and
+  Sales package typechecks remain blocked only by pre-existing unrelated
+  inbound/sales-control diagnostics; filtered Dashboard diagnostics contain no
+  changed-path errors. Authenticated browser/read QA confirmed the rail,
+  metrics, blocked exclusion, disabled zero-ready action, and stop-sheet link.
+- Updated the driver feature, API contract/permission, implementation plan,
+  task, and progress records. No database, migration, or ADR update was needed.
+
+## 2026-08-29 — Hardened packing and ran the Miguel batch matrix
+
+- Fixed four related packing failures: cached submit revisions, absent legacy
+  production flags, invalid combined total plus LH/RH command quantities, and
+  generic/misleading precondition copy.
+- The original `09499LM` 12-unit pack succeeds in authenticated Chrome. A
+  12-order admin-assigned Miguel matrix produced four normal packs, two guarded
+  review outcomes, and six truthful inventory-shortage blocks; the handled
+  62-unit order now reaches the correct inventory guard.
+- Server-owned departure/completion gates correctly prevented mutation for
+  missing destinations/schedules, inventory review, and pending packing review.
+  No operational evidence or proof requirement was bypassed.
+- Focused validation passes 12 tests / 43 assertions. The interactive Option A
+  follow-up pipeline passed view transitions and 1440/768/375 overflow checks
+  and is saved under
+  `~/.gstack/projects/gnd/designs/driver-route-pipeline-20260829/`.
+- Updated driver feature, API contract, bug memory, plan, task, and progress
+  records. No schema, migration, permission, or ADR change was required.
+
+## 2026-08-29 — Completed 50-order Backlog fulfillment hardening and QA
+
+- Replaced browser-owned fulfillment fan-out with one capped, observable,
+  idempotent Trigger parent and canonical per-order sales-control children.
+- The approved original 50 historical local orders all completed successfully
+  in parent run `run_06g4pc7urgb7odev1goojn2l01` (about 2.2 seconds). Database
+  reconciliation found 50 completed dispatches with packed lines, 50 completion
+  activities, no active leftovers, and no duplicate non-cancelled dispatches.
+  Backlog moved from 4,612 to 4,562.
+- Sales Orders date-range QA sampled the first, middle, production-null,
+  production-started, and last orders; canonical database projection confirmed
+  all 50 as Fulfilled.
+- Fixed the live analytics race discovered with separately identified canaries
+  by returning the final canonical Backlog count from the job and applying it
+  after terminal invalidation. Canary `23-1101-628` updated 4,558 to 4,557,
+  removed its row, and cleared selection without reload; the database count was
+  also 4,557.
+- Focused suites passed 42 tests / 104 assertions; scoped Biome and whitespace
+  checks passed. Sales/Jobs typechecks remain blocked only by existing inbound,
+  assignment, and email JSX-runtime baseline diagnostics outside this work.
+- Updated the Sales Dispatch, Sales status-action, API contract, plan, QA
+  report, and progress Brain records. No database/migration documentation
+  changed because the schema and relationships are unchanged.
+
+## 2026-08-29 — Standardized Tables V2 selection checkbox alignment
+
+- Moved checkbox centering into the shared default/compact table-cell padding
+  contract, eliminating the asymmetric right-padding behavior that made header
+  and row checkboxes drift across table modules.
+- Added a repository audit covering all 24 Tables V2 modules with selection
+  columns; every selection column must remain sticky and non-reorderable.
+- Restored the actual select-all header controls and canonical sticky ordering
+  for Inventory Backorders and Partial Shipments.
+- Focused coverage passed 19 tests / 164 assertions, scoped Biome passed, and
+  authenticated browser QA confirmed Production and Backorders alignment. The
+  broader Tables V2 suite passed 337/349, with 12 unrelated stale parity
+  assertions; Dashboard typecheck remains on its existing broad baseline.
+- No API, database, migration, permission, or ADR documentation changed because
+  this is a shared dashboard table-layout correction only.
+
+## 2026-08-29 — Fulfillment Backlog/Active/All parity
+
+- Added Sales Orders-compatible Invoice and Status cells to Backlog, Active,
+  and All; extracted the Sales Orders implementation so all three surfaces share
+  finance colors, payment review markers, status tones, and Mark As behavior.
+- Added `editOrders` presentation guards: authorized actors can apply payments
+  and change status, while other readers see the same values without mutation
+  controls.
+- Added the counted Active tab for non-terminal dispatches, removed Trip/Risk
+  from All, made overdue schedule dates red, retained analytics on Calendar,
+  and fixed Create Dispatch close behavior so Backlog remains selected.
+- Focused fulfillment contracts pass 10 tests / 90 assertions. Scoped Biome
+  passes. Filtered API and Dashboard typecheck output contains no diagnostics
+  for the changed files; package-wide typechecks remain blocked by existing
+  unrelated baselines.
+- Authenticated in-app browser QA confirmed Backlog columns/actions, canonical
+  invoice/status values, modal URL preservation, All/Active columns and rows,
+  red overdue dates, accurate rendered tab counts, and Calendar analytics.
+- Updated Sales Dispatch feature, API contract, API permission, in-progress,
+  and progress records. No database, migration, or ADR update was required.
+
+## 2026-08-29 — Delivered five Create Dispatch planner concepts
+
+- Built one interactive comparison board containing Split Desk, Map First,
+  Driver Lanes, Comparison Matrix, and Guided Planner options for batching
+  multiple Backlog orders and matching them to a driver.
+- The prototype includes realistic GND fulfillment data, order add/remove
+  affordances, driver selection, workload and route-fit evidence, route
+  optimization, draft saving, and a dynamically reconciled confirmation step.
+- Verified all five concepts in the in-app browser, including desktop
+  interaction checks and 1440/768/375 responsive and overflow checks. Dark-mode
+  contrast and mobile navigation polish were corrected during visual QA.
+- Published the selectable board under
+  `~/.gstack/projects/gnd/designs/dispatch-assignment-planner-20260829/`.
+  No production source, API, permission, database, migration, or ADR change was
+  made; implementation is intentionally waiting for the user's concept choice.
+
+## 2026-08-29 — Compacted the Production create-unavailable state
+
+- Removed the full-width `Create unavailable` alert from the Sales Overview
+  Production item while keeping Create Assignment disabled under the existing
+  production mutation policy.
+- Composed the installed `@gnd/ui` shadcn tooltip around the disabled control so
+  hovering it explains that all production quantity is already assigned. The
+  separate material-verification warning remains unchanged.
+- Thirteen focused Production tests pass, scoped Biome and changed-file
+  whitespace checks pass, and filtered Dashboard typecheck output contains no
+  diagnostics for the touched files. The package-wide typecheck and whitespace
+  scan retain unrelated repository baseline failures.
+- Authenticated in-app browser QA on `09488AD` confirms the alert is absent,
+  the button remains disabled, the complete reason appears on hover, and the
+  assignment ledger occupies the reclaimed space.
+
+## 2026-08-29 — Silent production submission review and on-behalf approval
+
+- Removed material-verification warning alerts and the special pending-review
+  success copy from all Production submission surfaces; successful saves now
+  use the standard `Submitted` feedback.
+- Preserved pending review for workers submitting their own assignments when
+  material evidence is unresolved.
+- Added immediate, auditable approval when an admin, production editor, or the
+  sales representative assigned to the exact order submits for another worker.
+  The review snapshot and classification remain stored with the authenticated
+  operator as reviewer.
+- Focused authority, domain, review-service, and UI policy coverage passes 33
+  tests / 61 assertions. Sales typecheck reached only two unrelated existing
+  inbound/assignment diagnostics; scoped formatting reports legacy formatting
+  drift in already-modified files rather than a behavior failure.
+- No database, migration, or API response-contract update was required. Updated
+  production feature and permission documentation and added ADR-075.
+
+## 2026-08-29 — Bounded the Production Review sidebar
+
+- Changed the canonical Sales Production Review queue from 50-row pages with a
+  document-length side list to 20-row cursor pages inside a viewport-aware,
+  keyboard-focusable scroll region.
+- Added automatic next-page loading near the sidebar bottom while preserving
+  the explicit Load more fallback for non-standalone legacy panel usages.
+- Focused Production material-review UI coverage passes 3 tests / 11
+  assertions, and the scoped whitespace check passes. The package-wide
+  Dashboard typecheck remains blocked by the existing unrelated baseline.
+- Authenticated in-app browser QA confirmed 20 initial rows, internal overflow
+  at 514px within a 994px viewport, automatic growth to 40 rows after internal
+  scrolling, no document scroll, the selected review remaining visible, and no
+  new runtime errors after the final reload.
+- Updated the Sales Production feature and progress records. No API, database,
+  migration, permission, or ADR documentation changed because the existing
+  cursor contract was reused unchanged.
+
+## 2026-08-29 — Sales email reference design
+
+- Fixed the sales email's unreadable light presentation by moving it onto an
+  isolated standard-email foundation with explicit light defaults and scoped
+  dark-client fallbacks.
+- Redesigned only the standard quote/invoice sales email around a document-first
+  hierarchy, GND cypress/brass maker's rail, financial summary, secure actions,
+  and a reusable personalized sales signature.
+- Preserved payment, quote acceptance, PDF attachment/fallback, dealer banner,
+  and Special Order approval behavior. Other email families remain on their
+  current designs pending explicit approval.
+- Email typecheck, 15 focused tests, and scoped Biome checks pass. Browser QA
+  covers desktop light, desktop dark, and mobile light gallery presentations.
+
+## 2026-08-30 — Required map-ready address before driver assignment
+
+- Added one shared assignment-destination preflight and correction dialog to
+  Create Dispatch, inline dispatch assignment, Packing Overview, and bulk
+  assignment. Missing delivery addresses are corrected through Google
+  autocomplete before the original assignment resumes.
+- Added server enforcement to single/batch dispatch creation, reassignment, and
+  bulk assignment. Bulk validation runs before writes; pickup and unassignment
+  are intentionally exempt.
+- Admin normalization resolves Google place data server-side and links a new
+  sale-scoped shipping address while preserving recipient contact fields and the
+  customer master record. The driver's dispatch-scoped route correction remains
+  available for later route-specific differences.
+- Focused domain, API, permission, bulk-atomicity, and UI-boundary coverage passes
+  34 tests / 370 assertions. Scoped whitespace checks pass; repository-wide
+  whitespace remains affected by unrelated notification-file edits.
+- Authenticated in-app browser QA confirmed delivery filtering, a live delivery
+  with no address, and the existing driver-reassignment confirmation. The check
+  canceled before its final action, leaving Miguel assigned and avoiding an
+  operational data change.
+
+## 2026-08-30 — Fulfillment page tabs moved above search
+
+- Enabled the shared adaptive PageTabs layout on both Fulfillment V2 header
+  paths, matching the established Sales Orders and Sales Production treatment.
+- The page bar now owns a full-width row; search, filters, chips, column settings,
+  and overflow actions render beneath it. The legacy dispatch header without the
+  Fulfillment page bar retains its previous layout.
+- Focused Fulfillment and PageTabs coverage passes 32 tests / 152 assertions,
+  and all three touched components bundle successfully.
+- Authenticated in-app browser QA confirmed separate desktop rows at 1440px and
+  safe wrapping at 390px with no page-level horizontal overflow.
+
+## 2026-08-30 — Contextual Production Order Date column
+
+- Added the sales order creation date as a mandatory Order Date column directly
+  after Due Date on the Active and Unscheduled admin Production table tabs.
+- Kept Order Date hidden on Due Today, Past Due, Completed, Review, Calendar,
+  and worker views. Saved column visibility/order still controls the remaining
+  configurable columns but cannot move or expose this context-owned column.
+- Focused column-layout coverage passes 3 tests / 9 assertions, scoped Biome
+  passes, and filtered Dashboard typecheck output contains no diagnostics for
+  the changed files. The package-wide typecheck and one unrelated Production
+  calendar migration assertion remain blocked by existing baselines.
+- Authenticated in-app browser QA confirmed `Due Date → Order Date` on Active
+  and Unscheduled and confirmed Order Date is absent on Past Due and Completed.
+
+## 2026-08-30 — Stabilized the Production item action dropdown
+
+- Removed the item-level Production dropdown's fixed 185px menu cap and reused
+  the footer action menu's intrinsic-width behavior.
+- Assign All, Submit All, Delete Submissions, and Delete Assignments now reserve
+  a 250px action row, keep their quantity labels on one line, and use
+  non-shrinking 16px icons. The icon-only trigger also has an accessible label.
+- Focused menu-layout coverage passes 1 test / 3 assertions, and the new test
+  passes scoped Biome. Filtered Dashboard typecheck output contains no
+  diagnostics for the changed files; the legacy menu file retains unrelated
+  existing lint/format debt.
+- Authenticated in-app browser measurement confirmed a 260px rendered menu,
+  four 32px single-line rows, single-line quantity labels, and 16x16 icons
+  without flex shrink. No new runtime errors were introduced.
+
+## 2026-08-30 — Production item sheet auto-scroll
+
+- Production item clicks now measure the item's starting position against the
+  Sales Overview sheet's internal scroll viewport. Items beginning below the
+  viewport midpoint smoothly align near the top after the single-open accordion
+  transition; upper-half items and URL-restored items stay put.
+- The behavior scrolls only the sheet viewport, preserves page scroll, honors
+  reduced-motion preferences, and safely clamps the aligned scroll position.
+- Focused auto-scroll coverage passes 2 tests / 4 assertions and scoped Biome
+  passes. The Dashboard package-wide typecheck remains blocked by the existing
+  unrelated API, form, and test-matcher baselines.
+- Authenticated in-app browser inspection confirmed the sheet uses a dedicated
+  705px Radix scroll viewport and that `window.scrollY` remains unchanged while
+  Production item navigation updates the sheet scroll position.
+
+## 2026-08-30 — Production worker V2 submissions detail
+
+- Cut production-only worker order details over to the V2 Production Command
+  Document without changing the office-wide Sales Overview General rollout.
+- Kept the worker sheet's Productions and Notes tabs, scoped visible items to
+  the authenticated worker, and added an explicit assigned-quantity badge to
+  every visible production item.
+- Removed the separate worker Create Submission section. The Submissions
+  heading now owns the existing bounded form: populated histories use a compact
+  plus beside `X/Y submitted`, while an empty history gets one full-width
+  `Create submission` button below the heading.
+- Reused the admin assignment expansion's responsive submission ledger for the
+  worker history so owner/date, quantity, evidence, material state, and delete
+  controls wrap cleanly instead of crowding one line.
+- Focused Production coverage passes 17 tests / 75 assertions; scoped Biome and
+  changed-file whitespace checks pass. Dashboard typecheck remains blocked by
+  the repository's existing broad API, form, and test-matcher baseline.
+- Local browser QA remains pending: the standard dashboard launcher timed out
+  on its Docker readiness check despite healthy running GND containers, and the
+  package-only launcher attempted to start a new Portless proxy instead of
+  reusing the shared one. No proxy reconfiguration or admin-browser access was
+  performed.
+
 ## 2026-08-30 — Sales Handoff source-projection repair
 
 - Added a package-owned, fail-closed repair service and local-only CLI with
@@ -12574,3 +13546,244 @@
   inbound-demand and sales-control assignment errors.
 - The required real local 200-row tick wrote ScheduleHistory `4271`: 51
   reconciled, 149 failed, 145 payment failures, 4 inventory failures, and 0
+  lifecycle-review skips. The remaining backlog is still intentionally
+  fail-closed and awaits the documented reviewed batches.
+
+## 2026-08-30 — Driver route-list tab placement restored
+
+- Preserved the established driver-dashboard design and moved the existing
+  three counted `PageTabs` controls beside the stop-list title. Today, All
+  stops, and Completed update the title while retaining the surrounding map,
+  next stop, Ready, attention, Active Trip, summary, and stop-action features.
+- Kept driver search hidden as requested, removed the route-list subtitle, and
+  rendered Route activity with the approved connected event timeline.
+- Authenticated Chrome QA verified Today, All stops, and Completed, including
+  accurate counts (16 / 142 / 85), retained map behavior, and no application
+  runtime errors. Focused coverage passes 19 tests / 158 assertions; scoped
+  Biome and whitespace validation also pass. Dashboard typecheck reports no
+  diagnostics in the touched driver-dashboard files, while the package-wide
+  command remains blocked by unrelated existing API, form, and matcher errors.
+
+## 2026-08-30 — Fulfillment Active and Completed workspace plan
+
+- Planned a first-class Completed tab and a canonical Active scope for the
+  admin Fulfillment V2 workspace. Live inspection showed that Active currently
+  includes Unassigned rows and rows displayed as Fulfilled because database
+  filtering occurs before the control-backed lifecycle projection.
+- The recommended contract makes one lifecycle projection authoritative for
+  membership, counts, pagination, filters, and mutation transitions. Active is
+  assigned nonterminal delivery work plus an explicit open-pickup exception;
+  Completed is fulfilled-only, All remains the audit view, and cancelled work
+  remains outside Completed.
+- The initial plan uses bounded server-side projection scanning and adds no
+  schema migration. A stored indexed projection is deferred until measured p95
+  performance requires it. See
+  `.brain/plans/2026-08-30-feature-fulfillment-active-completed-workspaces.md`.
+
+## 2026-08-30 — Production workflow stages and live-item eligibility
+
+- Replaced the production table's aggregate-only `Pending` presentation with a
+  shared workflow-stage generator covering assignment, active production,
+  review, completion, and non-applicable states while keeping progress as its
+  own measurement.
+- Required a live, produceable, positive-quantity item control across Production
+  queue and summary queries. Authenticated Unscheduled QA dropped from 103 to
+  92 records and showed direct `Assigned` and `Awaiting review` stages that
+  matched the expanded assignment records.
+- Consolidated fulfilled deletion guidance into one section notice: Assignments
+  for admins and Submissions for workers, with row-level duplicates suppressed.
+- Focused tests pass 31/31 and scoped Biome passes. One broader, unrelated
+  calendar migration assertion still expects a removed `<CardHeader>` marker.
+- The Sales package typecheck reports only the existing unrelated
+  `inbound-demand.ts` nullable-quantity error and `sales-control/actions.ts`
+  assignment-id error; it reports no diagnostics in the production files
+  changed here.
+
+## 2026-08-30 — Production readiness notices stop after work begins
+
+- Centralized the Production readiness-notice eligibility rule: show inventory
+  guidance only for untouched production work with no assigned or submitted
+  quantity, and disable the readiness query after either activity begins.
+- Authenticated browser QA confirmed active legacy order `09488AD` no longer
+  shows Material Pending or Review Inventory, while untouched order `09216PC`
+  retains exactly one Material Pending notice and its Inventory action. The
+  final active-order reload produced no new runtime errors.
+- Focused policy coverage passes 5 tests / 10 assertions, the context/banner
+  integration assertion passes, and the new policy plus context files pass
+  scoped Biome. Dashboard typecheck remains blocked by the existing broad API,
+  form, and test-matcher baseline; filtered output contains no diagnostics for
+  the readiness policy, banner, or context files changed here.
+
+## 2026-08-30 — Inventory ready icon semantics repaired
+
+- Repaired the shared `ShieldCheck` alias, which referenced the nonexistent
+  `ShieldDoneIcon` and therefore rendered the icon registry's search fallback.
+  The alias now resolves to Hugeicons' `SecurityCheckIcon`, giving Inventory
+  ready and the other successful security states a real shield/check glyph.
+- Added a shared icon regression test that fails if `ShieldCheck` renders as
+  Search. Focused Bun coverage passes 4 tests / 6 assertions and scoped Biome
+  passes. Authenticated browser verification on the Sales Orders Paid summary
+  confirmed the live icon has the expected shield outline and check-mark paths;
+  the user's Production and Sales Overview URLs were restored after QA.
+
+## 2026-08-30 — Assignment calendar today state
+
+- Restored a visible today marker in the shared shadcn calendar by replacing
+  the transparent DayPicker today modifier with a faint semantic accent. The
+  selected due date remains the primary-filled circle and visually overrides
+  the today background when both states apply.
+- Focused calendar coverage passes 2 tests / 8 assertions and `@gnd/ui`
+  typecheck passes. Authenticated Sales Overview QA opened a new assignment,
+  confirmed August 30 as the faint today state beside the primary-selected
+  August 31 due date, captured visual proof, and restored the original item URL
+  without submitting an assignment.
+
+## 2026-08-30 — Production assignment date and notification lifecycle repair
+
+- Diagnosed order `09480AD` assignment `14290`: selecting August 30 in WAT was
+  persisted as `2026-08-29T23:00:00Z`, then compared with process/business day
+  boundaries and rendered as an hour countdown. This put Carlos's work in Past
+  Due instead of Due Today.
+- Added the shared production calendar-date compatibility domain, normalized
+  every active assignment entry/edit path, aligned exact and queue filters, and
+  changed the table to calendar labels.
+- Added direct forced in-app lifecycle delivery for assignment, unassignment,
+  and production submission. The sales-overview direct actions, batch action,
+  and Trigger task path now target the named worker or order sales rep without
+  depending on channel subscription.
+- Classified assignment, unassignment, and submission as mandatory operational
+  in-app channels so forced recipients are not subsequently hidden by inbox
+  preference filtering.
+- Focused coverage passes 43 tests / 141 assertions. Dashboard and Jobs
+  typechecks report no diagnostics in the touched files but remain red from the
+  existing broad baseline. After explicit operator confirmation, authenticated
+  admin QA deleted assignment `14290`, Carlos received the unassignment notice,
+  and the same quantity-two assignment was recreated for August 30. Carlos's
+  Due Today count moved from 0 to 1, order `09480AD` displays `Today`, the order
+  is absent from Past Due, and Carlos received the new assignment notice.
+
+## 2026-08-30 — Production worker table column alignment
+
+- Removed the hidden admin selection-column offset from the production worker
+  table's sticky layout. Header and body now consume the same sticky-column set
+  derived from the active worker columns.
+- Focused column-layout coverage passes and scoped Biome validation is clean.
+  Authenticated Carlos QA measured every Due Today and Past Due header/cell pair
+  at identical x-positions and widths; the prior 50px Due Date offset is 0px.
+
+## 2026-08-30 — Fulfillment Active/Completed workspace split
+
+- Added the counted Completed workspace beside Active and made both list
+  membership and summary counts use one canonical Sales-package lifecycle
+  helper. Active now excludes fulfilled, cancelled, and unassigned delivery
+  rows while retaining the deliberate no-driver pickup exception.
+- Moved section authority into `dispatch.list`, added bounded post-projection
+  pagination, stopped the Active view from injecting a client stage preset, and
+  added completion-time presentation plus section-aware empty/filter behavior.
+- Focused verification passes 21 tests / 156 assertions and scoped Biome passes
+  12 touched UI/domain files. API typecheck reports no diagnostics in the
+  changed dispatch query; the broad typecheck remains red only from existing
+  unrelated inventory, sales-control, inbound, DTO, and legacy dashboard
+  errors.
+- Authenticated in-app browser QA confirmed counts for all actionable tabs,
+  Active and Completed direct routing, fulfilled-only Completed rows, the
+  Completed timestamp column, retained Packing actions, and no new runtime
+  errors.
+
+## 2026-08-30 — Counted Due Today and Past Due dispatch workspaces
+
+- Added Due Today and Past Due between Active and Completed as counted,
+  shareable fulfillment sections. Both are canonical Active subsets and use the
+  existing business-timezone due-date buckets.
+- Added exact `dueToday` and `pastDue` summary counts, server-owned bounded
+  pagination, section-specific empty states, and explicit due-date sort links.
+  The list query prefilters due-date candidates before lifecycle enrichment to
+  avoid scanning the full completed history.
+- Focused coverage passes 26 tests / 187 assertions and scoped Biome is clean.
+  Authenticated browser QA observed Due Today `0`, Past Due `39`, the expected
+  Due Today empty state, populated overdue-labelled Past Due rows, retained
+  Packing actions, and no runtime errors. API typecheck reports no touched-file
+  diagnostics and remains blocked only by the existing unrelated baseline.
+
+## 2026-08-30 — Inline production material review lifecycle
+
+- Embedded the canonical material-review panel at the top of the admin order's
+  Production tab, scoped it to the open order number, clarified the recheck
+  action, and added same-session event refresh plus a five-second cross-session
+  refresh for open assignment/review data.
+- Focused production decision, permission, synchronization, and UI coverage
+  passes 21 tests / 59 assertions. The broad Dashboard typecheck remains red
+  from the existing unrelated DTO, dispatch, legacy form, and test-typing
+  baseline; scoped Biome reports only pre-existing issues in the large shared
+  production component.
+- With the operator's explicit approval, live QA rejected the stale review,
+  deleted the old assignment, recreated a 2-LH assignment for Carlos due August
+  30, submitted it from Carlos's Chrome session, and resolved all three material
+  needs from the inline admin panel. Admin now shows `LH: 2 completed`, `Ready
+  to fulfill`, and `Materials approved`; Carlos shows `Materials approved`, and
+	his notification count increased when the approval decision was delivered.
+
+## 2026-08-30 — Worker submission retraction across material review states
+
+- Removed the pending-material-review delete lock for an authenticated
+	production worker's own unshipped submission while preserving shipped and
+	dispatch-mode restrictions plus the existing editor override.
+- Added transactional review reconciliation and audit history. Retraction
+	soft-deletes the submission and unpaid pending payroll; a shared pending review
+	narrows to active assignment scope, while a zero-active review records
+	`SUBMISSION_RETRACTED` and remains available for inventory-only resolution.
+- Material-review detail now distinguishes active and retracted submissions.
+	Notification actions route to the exact review id, and the shared Review UI
+	shows a durable `Retracted` state with five-second cross-session detail refresh.
+- Focused verification passes 42 tests / 144 assertions before the final UI
+	copy refinement, plus 22 tests / 65 assertions for the final domain/UI slice.
+	Sales and Dashboard typechecks remain red from the existing unrelated
+	inventory, sales-control, DTO, dispatch, legacy-form, and test-matcher baseline;
+	filtered diagnostics contain no new errors in the touched files.
+- Authenticated live QA on order `09480AD` deleted an approved Carlos submission,
+	recreated a pending-material submission, and deleted it again. Carlos updated
+	to `0/2 submitted` without refresh. Admin updated to `Retracted`, retained the
+	material-resolution controls, and a live `Recheck material status` remained
+	pending without restoring production quantity.
+
+## 2026-08-30 — Submission rows hide material-review status
+
+- Removed pending and approved material-review badges from production
+  submission rows in worker and admin presentations. Submission presence,
+  quantity, date, note, and submitted counts remain the worker-facing record.
+- Kept the material-review lifecycle and the dedicated admin review controls
+  unchanged. The older worker detail now uses neutral `All assigned work
+  submitted` confirmation instead of material-approval messaging.
+- The order-scoped inline reconciliation now uses the full content width and
+  omits the redundant pending-order queue. The standalone Reviews workspace
+  keeps its queue and selected-detail layout.
+- Material evidence and `Mark available` selection now form one flat checklist.
+  Rows include canonical production descriptions, readiness, and quantities;
+  only directly resolvable needs enable selection. The standalone queue and
+  detail sections were flattened to remove nested-card repetition.
+- Focused verification passes 28 tests / 107 assertions, scoped Biome is clean,
+  and diff whitespace validation passes.
+- Authenticated UI checks used completed submissions on worker order `09430DB`
+  and admin order `09396PC`. Both show submission records without material
+  badges. Order `09480AD` shows reconciliation content and decision controls
+  without the adjacent queue. Its single checklist displays all three distinct
+  `INTERIOR PRE-HUNG` sizes. The standalone Reviews workspace retains its
+  pending-review list and shows the same flat detail design.
+
+## 2026-08-30 — Priority email design system rollout (1–20)
+
+- Migrated the approved ranked set of 20 production-priority templates to one
+  reusable React Email system with explicit light defaults, scoped dark-mode
+  presentation, responsive panels, consistent actions, and departmental
+  signatures.
+- Preserved production payloads, delivery routes, attachments, and conditional
+  behavior. The daily sales payment report moved from inline job HTML to a
+  gallery-visible React template without changing its schedule or workbook
+  delivery.
+- Captured desktop and mobile screenshots for every template and completed a
+  final in-app gallery sweep: 20/20 routes rendered at both widths with no
+  horizontal overflow.
+- Verification passes 19 email tests / 62 assertions, 14 notification tests /
+  30 assertions, email typecheck, and scoped Biome across 29 files. Jobs
+  typecheck retains only the two existing unrelated inventory/sales errors.
+- Review: `.brain/reports/email-design-review-2026-08-30.md`.

@@ -1,7 +1,12 @@
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { generateToken } from "@/actions/token-action";
+import { invalidateDispatchWorkspace } from "@/components/dispatch-admin/dispatch-query-invalidation";
 import Link from "@/components/link";
 import { CustomerEmailRequiredDialog } from "@/components/modals/customer-email-required-dialog";
+import {
+	type SalesBatchStatusCandidate,
+	resolveSalesBatchStatusSelection,
+} from "@/components/sales-batch-status-selection";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
 import { getSalesOrderStatusMenuActions } from "@/components/sales-status-menu-actions";
@@ -15,12 +20,17 @@ import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { openLink } from "@/lib/open-link";
 import type { SalesQueryRef } from "@/lib/query-events/types";
 import { createSalesEmailContinuation } from "@/lib/sales-email-continuation";
+import { getSalesStatusResolutionErrorPresentation } from "@/lib/sales-status-resolution-error";
 import { resolveSalesPrintMode } from "@/modules/sales-print/application/sales-print-service";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
+import type {
+	BulkFulfillmentResult,
+	BulkProductionCompletionResult,
+} from "@gnd/sales";
 import type { SalesOrderLifecycleStatus } from "@gnd/sales/order-status";
 import type {
 	SalesInventoryMarkAsAction,
@@ -34,7 +44,6 @@ import { AlertDialog, DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
 import type { QuoteAcceptanceTokenSchema } from "@gnd/utils/tokenizer";
-import type { UpdateSalesControl } from "@sales/schema";
 import { useMutation } from "@tanstack/react-query";
 import { addDays } from "date-fns";
 import {
@@ -419,8 +428,11 @@ type MarkAsProps = ActionProps & {
 	asSubmenu?: boolean;
 	includePaymentReviewed?: boolean;
 	onPaymentReviewed?: () => void;
+	onStatusActionSettled?: () => void;
 	currentStatus?: SalesOrderLifecycleStatus;
 	productionStatus?: string | null;
+	hasFulfillmentDispatch?: boolean;
+	statusCandidates?: readonly SalesBatchStatusCandidate[];
 };
 
 const markAsActionLabels: Record<SalesInventoryMarkAsAction, string> = {
@@ -994,8 +1006,11 @@ function SalesMenuMarkAs({
 	asSubmenu = true,
 	includePaymentReviewed = false,
 	onPaymentReviewed,
+	onStatusActionSettled,
 	currentStatus,
 	productionStatus,
+	hasFulfillmentDispatch,
+	statusCandidates,
 }: MarkAsProps) {
 	const { state, actions } = useSalesMenuContext();
 	const auth = useAuth();
@@ -1007,10 +1022,8 @@ function SalesMenuMarkAs({
 	const [preflightLoadingAction, setPreflightLoadingAction] =
 		useState<SalesInventoryMarkAsAction | null>(null);
 	const isDisabled = disabled || !salesIds.length;
-	const expectedTaskStartsRef = useRef(0);
-	const completedTaskStartsRef = useRef(0);
-	const taskStartedToastShownRef = useRef(false);
 	const statusActionInFlightRef = useRef(false);
+	const statusActionSalesIdsRef = useRef<number[]>([]);
 	const [statusActionPending, setStatusActionPending] = useState(false);
 	const beginStatusAction = () => {
 		if (statusActionInFlightRef.current) return false;
@@ -1022,17 +1035,13 @@ function SalesMenuMarkAs({
 		statusActionInFlightRef.current = false;
 		setStatusActionPending(false);
 	};
-	const ensureFulfillmentDispatchMutation = useMutation(
-		trpc.dispatch.ensureSalesOrderFulfillmentDispatch.mutationOptions({
-			meta: {
-				queryEventScope: {
-					sales: state.salesRefs,
-				},
-			},
-		}),
-	);
 	const resolveInventoryMarkAsMutation = useMutation(
-		trpc.inventories.overrideSalesInventoryMarkAsAvailabilityForContinue.mutationOptions(),
+		trpc.inventories.overrideSalesInventoryMarkAsAvailabilityForContinue.mutationOptions(
+			{
+				// This workflow owns a more specific retry-safe error toast below.
+				onError: () => undefined,
+			},
+		),
 	);
 	const markPaymentsReviewedMutation = useMutation(
 		trpc.sales.markPaymentsReviewed.mutationOptions({
@@ -1045,49 +1054,92 @@ function SalesMenuMarkAs({
 		await Promise.all([
 			sq.invalidate.salesList(),
 			sq.invalidate.productionOverview(),
+			invalidateDispatchWorkspace(sq.qc, trpc),
 		]);
 	};
-	const closeMenuAfterExpectedTaskStarts = () => {
-		completedTaskStartsRef.current += 1;
-
-		if (
-			expectedTaskStartsRef.current > 0 &&
-			completedTaskStartsRef.current >= expectedTaskStartsRef.current
-		) {
-			expectedTaskStartsRef.current = 0;
-			completedTaskStartsRef.current = 0;
-			actions.closeMenu();
-			releaseStatusAction();
-		}
-	};
-	const salesControlTask = useTaskTrigger({
-		successToast: "Sales control updated",
-		errorToast: "Unable to update sales control",
-		executingToast: "Updating sales control...",
+	const bulkProductionCompletionTask = useTaskTrigger({
+		errorToast: "Unable to mark the selected orders production completed",
+		executingToast: "Starting bulk production completion...",
 		monitor: true,
 		onStarted() {
-			closeMenuAfterExpectedTaskStarts();
-			if (!taskStartedToastShownRef.current) {
-				taskStartedToastShownRef.current = true;
-				toast({
-					title: "Sales status update started",
-					description: "You can keep working while the order status updates.",
-				});
-			}
-		},
-		onSuccess() {
-			void invalidateOrders();
+			actions.closeMenu();
 			toast({
-				title: "Sales status updated",
-				description: "The order list and saved tab counts are refreshing.",
-				variant: "success",
+				title: "Bulk production completion started",
+				description: "You can keep working while all selected orders update.",
+			});
+		},
+		onSuccess(run) {
+			void invalidateOrders().finally(() => {
+				releaseStatusAction();
+				onStatusActionSettled?.();
+			});
+			const result = (
+				run as { output?: BulkProductionCompletionResult } | undefined
+			)?.output;
+			if (!result) {
+				toast({
+					title: "Bulk production completion finished",
+					description: "The production queue and counts are refreshing.",
+					variant: "success",
+				});
+				return;
+			}
+			toast({
+				title: result.failed
+					? "Bulk production completion finished with issues"
+					: "Bulk production completion finished",
+				description: `${result.succeeded} completed, ${result.alreadyCompleted} already completed, ${result.awaitingReview} awaiting review, ${result.failed} failed.`,
+				variant: result.failed ? "destructive" : "success",
 			});
 		},
 		onError() {
-			expectedTaskStartsRef.current = 0;
-			completedTaskStartsRef.current = 0;
+			void invalidateOrders().finally(() => {
+				releaseStatusAction();
+				onStatusActionSettled?.();
+			});
 			actions.closeMenu();
-			releaseStatusAction();
+		},
+	});
+	const bulkFulfillmentTask = useTaskTrigger({
+		errorToast: "Unable to mark the selected orders fulfilled",
+		executingToast: "Starting bulk fulfillment...",
+		monitor: true,
+		onStarted() {
+			actions.closeMenu();
+			toast({
+				title: "Bulk fulfillment started",
+				description: "You can keep working while all selected orders update.",
+			});
+		},
+		onSuccess(run) {
+			void invalidateOrders().finally(() => {
+				releaseStatusAction();
+				onStatusActionSettled?.();
+			});
+			const result = (run as { output?: BulkFulfillmentResult } | undefined)
+				?.output;
+			if (!result) {
+				toast({
+					title: "Bulk fulfillment completed",
+					description: "The fulfillment lists and counts are refreshing.",
+					variant: "success",
+				});
+				return;
+			}
+			toast({
+				title: result.failed
+					? "Bulk fulfillment completed with issues"
+					: "Bulk fulfillment completed",
+				description: `${result.succeeded} fulfilled, ${result.alreadyFulfilled} already fulfilled, ${result.failed} failed.`,
+				variant: result.failed ? "destructive" : "success",
+			});
+		},
+		onError() {
+			void invalidateOrders().finally(() => {
+				releaseStatusAction();
+				onStatusActionSettled?.();
+			});
+			actions.closeMenu();
 		},
 	});
 
@@ -1095,21 +1147,16 @@ function SalesMenuMarkAs({
 		return null;
 	}
 
-	const getTaskMeta = (salesId: number) => ({
-		salesId,
-		authorId: Number(auth.id || 0),
-		authorName: auth.name || "System",
-	});
-
 	const runInventoryMarkAsPreflight = async (
 		action: SalesInventoryMarkAsAction,
+		targetSalesIds: readonly number[],
 	) => {
 		setPreflightLoadingAction(action);
 		try {
 			const preflight = await sq.qc.fetchQuery(
 				trpc.inventories.salesInventoryMarkAsPreflight.queryOptions(
 					{
-						salesOrderIds: salesIds,
+						salesOrderIds: [...targetSalesIds],
 						action,
 					},
 					{ staleTime: 0 },
@@ -1134,44 +1181,30 @@ function SalesMenuMarkAs({
 		}
 	};
 
-	const resolveDispatchId = async (salesId: number) => {
-		const dispatch = await ensureFulfillmentDispatchMutation.mutateAsync({
-			salesId,
-		});
-		return dispatch.id;
-	};
-
 	const startMarkProductionCompletedTask = async () => {
+		const targetSalesIds = statusActionSalesIdsRef.current;
 		try {
-			expectedTaskStartsRef.current = salesIds.length;
-			completedTaskStartsRef.current = 0;
-			taskStartedToastShownRef.current = false;
-			for (const salesId of salesIds) {
-				await salesControlTask.trigger(
-					{
-						taskName: "update-sales-control",
-						payload: {
-							meta: getTaskMeta(salesId),
-							submitAll: {
-								submissionSource: "sales_mark_as_completed",
-							},
-						} as UpdateSalesControl,
+			await bulkProductionCompletionTask.trigger(
+				{
+					taskName: "bulk-mark-sales-production-completed",
+					payload: {
+						requestId: crypto.randomUUID(),
+						salesIds: targetSalesIds,
 					},
-					{
-						intent: {
-							name: "sales.mark-as-production-completed",
-							version: 1,
-							args: {
-								salesIds: [salesId],
-								sales: state.salesRefs.filter(
-									(sale) => sale.salesId === salesId,
-								),
-							},
+				},
+				{
+					intent: {
+						name: "sales.mark-as-production-completed",
+						version: 1,
+						args: {
+							salesIds: targetSalesIds,
+							sales: state.salesRefs.filter((sale) =>
+								targetSalesIds.includes(sale.salesId),
+							),
 						},
 					},
-				);
-			}
-			await invalidateOrders();
+				},
+			);
 		} catch {
 			releaseStatusAction();
 			toast({
@@ -1182,40 +1215,29 @@ function SalesMenuMarkAs({
 	};
 
 	const startMarkFulfilledTask = async () => {
+		const targetSalesIds = statusActionSalesIdsRef.current;
 		try {
-			expectedTaskStartsRef.current = salesIds.length;
-			completedTaskStartsRef.current = 0;
-			taskStartedToastShownRef.current = false;
-			for (const salesId of salesIds) {
-				const dispatchId = await resolveDispatchId(salesId);
-				await salesControlTask.trigger(
-					{
-						taskName: "update-sales-control",
-						payload: {
-							meta: getTaskMeta(salesId),
-							markAsCompleted: {
-								dispatchId,
-								receivedBy: auth.name || "System",
-								receivedDate: new Date(),
-							},
-						} as UpdateSalesControl,
+			await bulkFulfillmentTask.trigger(
+				{
+					taskName: "bulk-mark-sales-fulfilled",
+					payload: {
+						requestId: crypto.randomUUID(),
+						salesIds: targetSalesIds,
 					},
-					{
-						intent: {
-							name: "sales.mark-as-fulfilled",
-							version: 1,
-							args: {
-								salesIds: [salesId],
-								sales: state.salesRefs.filter(
-									(sale) => sale.salesId === salesId,
-								),
-								dispatchIds: [dispatchId],
-							},
+				},
+				{
+					intent: {
+						name: "sales.mark-as-fulfilled",
+						version: 1,
+						args: {
+							salesIds: targetSalesIds,
+							sales: state.salesRefs.filter((sale) =>
+								targetSalesIds.includes(sale.salesId),
+							),
 						},
 					},
-				);
-			}
-			await invalidateOrders();
+				},
+			);
 		} catch {
 			releaseStatusAction();
 			toast({
@@ -1225,10 +1247,40 @@ function SalesMenuMarkAs({
 		}
 	};
 
+	const prepareStatusAction = (action: SalesInventoryMarkAsAction) => {
+		const selection = resolveSalesBatchStatusSelection({
+			action,
+			salesIds,
+			candidates: statusCandidates,
+		});
+		const skippedCount = selection.skippedSalesIds.length;
+
+		if (skippedCount > 0) {
+			toast({
+				title: `${skippedCount} order${skippedCount === 1 ? "" : "s"} skipped`,
+				description:
+					action === "production_completed"
+						? "Already production-completed or fulfilled orders will not be updated again."
+						: "Already fulfilled orders will not be updated again.",
+			});
+		}
+
+		if (selection.eligibleSalesIds.length === 0) {
+			actions.closeMenu();
+			return null;
+		}
+
+		statusActionSalesIdsRef.current = selection.eligibleSalesIds;
+		return selection.eligibleSalesIds;
+	};
+
 	const markProductionCompleted = async () => {
+		const targetSalesIds = prepareStatusAction("production_completed");
+		if (!targetSalesIds) return;
 		if (!beginStatusAction()) return;
 		const inventoryReady = await runInventoryMarkAsPreflight(
 			"production_completed",
+			targetSalesIds,
 		);
 		if (!inventoryReady) {
 			releaseStatusAction();
@@ -1248,8 +1300,13 @@ function SalesMenuMarkAs({
 			return;
 		}
 		if (statusActionInFlightRef.current) return;
+		const targetSalesIds = prepareStatusAction("fulfilled");
+		if (!targetSalesIds) return;
 		if (!beginStatusAction()) return;
-		const inventoryReady = await runInventoryMarkAsPreflight("fulfilled");
+		const inventoryReady = await runInventoryMarkAsPreflight(
+			"fulfilled",
+			targetSalesIds,
+		);
 		if (!inventoryReady) {
 			releaseStatusAction();
 			return;
@@ -1302,10 +1359,12 @@ function SalesMenuMarkAs({
 
 	const resolveInventoryAndContinue = async () => {
 		if (!inventoryPreflight) return;
+		const targetSalesIds = statusActionSalesIdsRef.current;
+		if (!targetSalesIds.length) return;
 
 		try {
 			const result = await resolveInventoryMarkAsMutation.mutateAsync({
-				salesOrderIds: salesIds,
+				salesOrderIds: targetSalesIds,
 				action: inventoryPreflight.action,
 			});
 
@@ -1337,12 +1396,11 @@ function SalesMenuMarkAs({
 			}
 		} catch (error) {
 			releaseStatusAction();
+			const presentation = getSalesStatusResolutionErrorPresentation(error);
 			toast({
-				title: "Unable to resolve inventory",
-				description:
-					error instanceof Error
-						? error.message
-						: "The inventory and production dependencies could not be resolved.",
+				title: presentation.title,
+				description: presentation.description,
+				duration: 8000,
 				variant: "destructive",
 			});
 		}
@@ -1353,6 +1411,7 @@ function SalesMenuMarkAs({
 			? getSalesOrderStatusMenuActions({
 					status: currentStatus,
 					productionStatus,
+					hasFulfillmentDispatch,
 				})
 			: [
 					{
@@ -1429,10 +1488,16 @@ function SalesMenuMarkAs({
 		<AlertDialog
 			open={Boolean(inventoryPreflight)}
 			onOpenChange={(open) => {
-				if (!open) setInventoryPreflight(null);
+				if (!open && !isResolvingInventory) setInventoryPreflight(null);
 			}}
 		>
-			<AlertDialog.Content>
+			<AlertDialog.Content
+				overlayProps={{
+					onPointerDown: () => {
+						if (!isResolvingInventory) setInventoryPreflight(null);
+					},
+				}}
+			>
 				<AlertDialog.Header>
 					<AlertDialog.Title>
 						Inventory and production need attention

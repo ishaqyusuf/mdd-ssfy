@@ -84,6 +84,7 @@ export async function getSalesItemAssignments(
 			const pending = qtyMatrixDifference(qty, aggregates.reported);
             const data = {
                 id: assignment.id,
+                orderId: assignment.orderId,
                 assignedTo: assignment.assignedTo?.name,
                 assignedToId: assignment.assignedToId,
                 dueDate: assignment.dueDate,

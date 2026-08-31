@@ -51,8 +51,12 @@ const selectColumn: Column = {
 	enableHiding: false,
 	meta: {
 		preventDefault: true,
+		sticky: true,
 		headerLabel: "Select",
-		className: sizeClass(sizes.custom(40, 40, 40)),
+		className: sizeClass(
+			sizes.custom(40, 40, 40),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20 justify-center",
+		),
 		contentClassName: "flex items-center justify-center",
 	},
 };

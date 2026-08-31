@@ -3,6 +3,30 @@ import { describe, expect, it } from "bun:test";
 import { __withSalesControlTestUtils } from "./with-sales-control";
 
 describe("with-sales-control status and statistic helpers", () => {
+  it("excludes unpacked audit rows from dispatch listed totals", () => {
+    const listed = __withSalesControlTestUtils.buildDispatchListedMap(
+      [{ id: 4602, status: "packed" }],
+      [
+        {
+          orderDeliveryId: 4602,
+          qty: 1,
+          lhQty: 0,
+          rhQty: 1,
+          packingStatus: "packed",
+        },
+        {
+          orderDeliveryId: 4602,
+          qty: 1,
+          lhQty: 0,
+          rhQty: 1,
+          packingStatus: "unpacked",
+        },
+      ],
+    );
+
+    expect(listed.get(4602)?.total).toBe(1);
+  });
+
   it("derives production status correctly", () => {
     expect(__withSalesControlTestUtils.deriveProductionStatus(0, 0)).toBe(
       "unknown",

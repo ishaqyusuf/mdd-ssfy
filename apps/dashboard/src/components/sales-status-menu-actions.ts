@@ -33,9 +33,11 @@ const FULFILLMENT_STARTED_LIFECYCLE_STATUSES =
 
 export function getSalesOrderStatusMenuActions({
 	status,
+	hasFulfillmentDispatch = false,
 }: {
 	status: SalesOrderLifecycleStatus;
 	productionStatus?: string | null;
+	hasFulfillmentDispatch?: boolean;
 }): SalesOrderStatusMenuItem[] {
 	const productionCompleted =
 		PRODUCTION_COMPLETED_LIFECYCLE_STATUSES.has(status);
@@ -60,7 +62,7 @@ export function getSalesOrderStatusMenuActions({
 		});
 	}
 
-	if (fulfillmentStarted) {
+	if (fulfillmentStarted || hasFulfillmentDispatch) {
 		actions.push({
 			action: "cancel_fulfillment",
 			label: "Cancel Fulfillment",

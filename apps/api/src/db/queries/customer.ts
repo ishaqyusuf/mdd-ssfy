@@ -985,6 +985,9 @@ export async function assignSalesAddress(
 		const requestedAddressId = input.addressId ?? currentAddressId;
 		const addressData = {
 			name: input.name,
+			phoneNo: input.phoneNo,
+			phoneNo2: input.phoneNo2,
+			email: input.email,
 			address1: input.address1,
 			address2: input.address2,
 			country: input.country,

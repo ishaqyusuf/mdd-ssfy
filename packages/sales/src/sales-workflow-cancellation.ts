@@ -471,9 +471,14 @@ export function buildSalesWorkflowCancellationPreview(
 		0,
 	);
 
+	const controlProductionStatus = normalizeStatus(
+		state.controlProductionStatus,
+	);
 	const currentProductionStatus = automaticSubmissions.length
 		? "completed"
-		: state.controlProductionStatus || state.prodStatus;
+		: controlProductionStatus && controlProductionStatus !== "unknown"
+			? state.controlProductionStatus
+			: state.prodStatus;
 	const currentLifecycle = lifecycle({
 		orderStatus: state.status,
 		productionStatus: currentProductionStatus,

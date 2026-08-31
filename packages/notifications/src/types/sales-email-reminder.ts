@@ -8,8 +8,8 @@ import {
 	salesEmailReminderSchema,
 	salesPdfAttachmentSchema,
 } from "../schemas";
-import { buildSalesPdfAttachmentFromToken } from "./sales-pdf-attachment";
 import { resolveSalesEmailDealerProgramBanner } from "./dealer-recruitment-banner";
+import { buildSalesPdfAttachmentFromToken } from "./sales-pdf-attachment";
 
 type ResolvedSalesEmailReminderInput = SalesEmailReminderInput & {
 	pdfAttachment?: z.infer<typeof salesPdfAttachmentSchema> | null;
@@ -90,6 +90,7 @@ export const salesEmailReminder: NotificationHandler = {
 			data: {
 				isQuote,
 				customerName: data.customerName,
+				salesRepName: data.salesRep,
 				note: data.note || undefined,
 				paymentLink: paymentLink || undefined,
 				hasPdfAttachment: Boolean(data.pdfAttachment),

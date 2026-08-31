@@ -64,4 +64,10 @@ export function JobApprovedEmail(props: JobApprovedEmailProps) {
   );
 }
 
+JobApprovedEmail.PreviewProps = {
+  recipientName: "Taylor Brooks",
+  reviewerName: "Morgan Reed",
+  jobId: 4821,
+} satisfies JobApprovedEmailProps;
+
 export default JobApprovedEmail;

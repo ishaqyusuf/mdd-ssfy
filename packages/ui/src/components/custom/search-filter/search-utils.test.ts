@@ -30,6 +30,14 @@ describe("search filter icons", () => {
 		expect(searchIcons.specialOrder).toBe("PenTool");
 	});
 
+	it("maps every Production workspace filter without the Search fallback", () => {
+		expect(searchIcons.assignedToId).toBe("user");
+		expect(searchIcons.queue).toBe("tasks");
+		expect(searchIcons.due).toBe("calendar");
+		expect(searchIcons.material).toBe("products");
+		expect(searchIcons.sort).toBe("Sort");
+	});
+
 	it("maps Sales Finance filters without the generic search fallback", () => {
 		expect(searchIcons.paymentMethods).toBe("payment");
 		expect(searchIcons.statuses).toBe("Status");

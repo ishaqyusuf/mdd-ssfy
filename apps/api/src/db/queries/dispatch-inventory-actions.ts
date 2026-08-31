@@ -83,10 +83,14 @@ export async function prepareAndPickDispatchInventoryInTransaction(
 		throw new Error("INVENTORY_DISPATCH_INVALID_ITEM_QUANTITY");
 	}
 
-	await lockAndAssertNoPendingPackingReports(tx, {
-		dispatchId: input.orderDeliveryId,
-		salesOrderId: input.salesOrderId,
-	});
+	await lockAndAssertNoPendingPackingReports(
+		tx,
+		{
+			dispatchId: input.orderDeliveryId,
+			salesOrderId: input.salesOrderId,
+		},
+		{ allowDeliveryWhilePending: true },
+	);
 	const delivery = await tx.orderDelivery.findFirst({
 		where: {
 			id: input.orderDeliveryId,

@@ -73,6 +73,7 @@ export type FulfillmentCalendarInput = z.infer<
 >;
 
 export const dispatchBacklogSchema = paginationSchema.extend({
+	ids: z.array(z.number().int().positive()).max(50).optional().nullable(),
 	deliveryModes: z
 		.array(z.enum(["delivery", "pickup"]))
 		.optional()
@@ -82,11 +83,68 @@ export const dispatchBacklogSchema = paginationSchema.extend({
 export type DispatchBacklogInput = z.infer<typeof dispatchBacklogSchema>;
 
 export const createDispatchesSchema = z.object({
-	salesIds: z.array(z.number().int().positive()).min(1).max(50),
+	orders: z
+		.array(
+			z.object({
+				salesId: z.number().int().positive(),
+				dueDate: z.date(),
+			}),
+		)
+		.min(1)
+		.max(50)
+		.superRefine((orders, ctx) => {
+			const salesIds = new Set<number>();
+			for (const [index, order] of orders.entries()) {
+				if (salesIds.has(order.salesId)) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Each order can appear only once in a dispatch batch",
+						path: [index, "salesId"],
+					});
+				}
+				salesIds.add(order.salesId);
+			}
+		}),
 	deliveryMode: z.enum(["delivery", "pickup"]),
-	dueDate: z.date(),
+	overrideDueDate: z.date().nullable().optional(),
 	driverId: z.number().int().positive().nullable().optional(),
 });
+
+export const dispatchAssignmentDestinationPreflightSchema = z
+	.object({
+		dispatchIds: z.array(z.number().int().positive()).max(50).optional(),
+		salesIds: z.array(z.number().int().positive()).max(50).optional(),
+		deliveryMode: z.enum(["delivery", "pickup"]).optional(),
+	})
+	.superRefine((value, ctx) => {
+		const hasDispatches = Boolean(value.dispatchIds?.length);
+		const hasSales = Boolean(value.salesIds?.length);
+		if (hasDispatches === hasSales) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Choose dispatches or sales orders for address verification.",
+			});
+		}
+		if (hasSales && !value.deliveryMode) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Delivery mode is required for sales-order verification.",
+				path: ["deliveryMode"],
+			});
+		}
+	});
+
+export type DispatchAssignmentDestinationPreflightInput = z.infer<
+	typeof dispatchAssignmentDestinationPreflightSchema
+>;
+
+export const normalizeDispatchAssignmentDestinationSchema = z
+	.object({
+		salesId: z.number().int().positive(),
+		placeId: z.string().trim().min(3).max(255),
+		sessionToken: z.string().uuid().optional(),
+	})
+	.strict();
 
 export const dispatchExceptionListSchema = paginationSchema.extend({
 	status: z.enum(["open", "resolved"]).optional().default("open"),

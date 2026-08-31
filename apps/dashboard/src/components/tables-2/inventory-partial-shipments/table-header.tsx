@@ -21,7 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { cn } from "@gnd/ui/cn";
 import { TableHead, TableHeader, TableRow } from "@gnd/ui/table";
-import type { Header, Table } from "@tanstack/react-table";
+import { type Header, type Table, flexRender } from "@tanstack/react-table";
 import { useMemo } from "react";
 
 interface Props<TData> {
@@ -183,6 +183,9 @@ function renderHeaderContent<TData>(
 	const meta = header.column.columnDef.meta as TableColumnMeta | undefined;
 	const label = meta?.headerLabel ?? getHeaderLabel(header.column.columnDef);
 	const isRightAligned = meta?.className?.split(/\s+/).includes("text-right");
+	if (columnId === "select") {
+		return flexRender(header.column.columnDef.header, header.getContext());
+	}
 	const content = (
 		<span
 			className={cn(

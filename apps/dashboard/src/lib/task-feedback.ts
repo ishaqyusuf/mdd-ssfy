@@ -162,6 +162,11 @@ export function getTaskFailureToastMessage(input: FailureMessageInput) {
 	return DEFAULT_TASK_FAILURE_TOAST_MESSAGE;
 }
 
+/** A server-action task-start error has already been sanitized on the server. */
+export function getTaskStartFailureToastMessage(input: FailureMessageInput) {
+	return getTaskFailureMessage(input);
+}
+
 export function getTaskFailureTitle(input: FailureMessageInput) {
 	if (isSalesEmailTask(input)) return "Document delivery failed";
 	return "Task failed";

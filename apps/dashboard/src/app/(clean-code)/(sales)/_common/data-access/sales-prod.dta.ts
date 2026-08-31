@@ -117,7 +117,13 @@ export async function submitAssignmentDta(
 				"Production submission requires an assignment, order item, and authenticated worker.",
 			);
 		}
-		const authority = requireProductionSubmissionAuthority(actor);
+		const representedOrder = await prisma.salesOrders.findFirst({
+			where: { id: salesOrderId, salesRepId: actor.userId },
+			select: { id: true },
+		});
+		const authority = requireProductionSubmissionAuthority(actor, {
+			isOrderSalesRep: Boolean(representedOrder),
+		});
 			const result = await submitProductionAssignment(prisma as any, {
 			salesOrderId,
 			salesOrderItemId,

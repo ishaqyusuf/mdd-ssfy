@@ -18,5 +18,11 @@ const ProductionMaterialReviewPanel = dynamic(
 export function SalesProductionReviews() {
 	const { filters } = useSalesProductionFilterParams();
 
-	return <ProductionMaterialReviewPanel standalone search={filters.q} />;
+	return (
+		<ProductionMaterialReviewPanel
+			standalone
+			search={filters.q}
+			requestedReviewId={filters.reviewId}
+		/>
+	);
 }

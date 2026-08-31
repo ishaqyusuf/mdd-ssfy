@@ -9,6 +9,10 @@ export {
 	normalizeSalesPageBreakMode,
 } from "./registry";
 export { renderSalesPdfBuffer } from "./render";
+export {
+	extractSignaturePathFromSvg,
+	isSvgImageSource,
+} from "./shared/signature-source";
 export type {
 	SalesPageBreakMode,
 	SalesPdfTemplateRenderer,

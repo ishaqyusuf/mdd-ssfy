@@ -1187,6 +1187,7 @@ enum SalesPackingReportStatus {
 enum SalesPackingReportReason {
     UPSTREAM_PRODUCTION_REVIEW
     STALE_UPSTREAM_EVIDENCE
+    AWAITING_PRODUCTION_SUBMISSION
 }
 
 model SalesPackingReport {
@@ -1194,8 +1195,9 @@ model SalesPackingReport {
     salesOrderId                Int
     orderDeliveryId             Int
     salesOrderItemId            Int
-    orderProductionSubmissionId Int
+    orderProductionSubmissionId Int?
     dispatchAllocationItemId    Int
+    salesItemControlUid          String?
     submittedById               Int
     reviewedById                Int?
     status                      SalesPackingReportStatus @default(PENDING)
@@ -1219,8 +1221,9 @@ model SalesPackingReport {
     order                       SalesOrders              @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
     delivery                    OrderDelivery            @relation(fields: [orderDeliveryId], references: [id], onDelete: Restrict)
     item                        SalesOrderItems           @relation(fields: [salesOrderItemId], references: [id], onDelete: Restrict)
-    productionSubmission        OrderProductionSubmissions @relation(fields: [orderProductionSubmissionId], references: [id], onDelete: Restrict)
+    productionSubmission        OrderProductionSubmissions? @relation(fields: [orderProductionSubmissionId], references: [id], onDelete: Restrict)
     dispatchAllocationItem      OrderItemDelivery        @relation(fields: [dispatchAllocationItemId], references: [id], onDelete: Restrict)
+    itemControl                 SalesItemControl?         @relation(fields: [salesItemControlUid], references: [uid], onDelete: Restrict)
     submittedBy                 Users                    @relation(name: "packingReportsSubmitted", fields: [submittedById], references: [id], onDelete: Restrict)
     reviewedBy                  Users?                   @relation(name: "packingReportsReviewed", fields: [reviewedById], references: [id], onDelete: Restrict)
 
@@ -1230,6 +1233,7 @@ model SalesPackingReport {
     @@index([salesOrderId, status])
     @@index([salesOrderItemId, status])
     @@index([orderProductionSubmissionId, status])
+    @@index([salesItemControlUid, status])
     @@index([dispatchAllocationItemId])
     @@index([submittedById, status])
     @@index([reviewedById])
@@ -1369,6 +1373,7 @@ model SalesItemControl {
     qtyControls QtyControl[]
     assignments OrderItemProductionAssignments[]
     payroll     Payroll[]
+    packingReports SalesPackingReport[]
 
     @@index([salesId])
     @@index([orderItemId])
@@ -6973,4 +6978,3 @@ model SalesPickup {
 
     @@index([pickupApprovedBy])
 }
-

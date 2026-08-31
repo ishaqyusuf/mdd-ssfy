@@ -88,3 +88,9 @@ export default function DealerOnboardingEmail({
 		</EmailThemeProvider>
 	);
 }
+
+DealerOnboardingEmail.PreviewProps = {
+	dealerName: "Northside Millwork",
+	onboardingLink: "https://dealership.gndprodesk.com/onboarding/preview",
+	expiresAt: "September 5, 2026",
+} satisfies Props;

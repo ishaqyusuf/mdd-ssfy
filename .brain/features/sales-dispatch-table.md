@@ -1,6 +1,99 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-08-31: Guarded-packing rejection now re-evaluates dispatch coverage while
+  holding the dispatch lock. If a nonblocking pending report was the only reason
+  a pre-trip dispatch became `packed`, rejection restores its snapshotted
+  pre-packed status and refreshes canonical sales controls. Other accepted or
+  pending coverage is preserved, and in-progress/terminal deliveries are not
+  demoted.
+- 2026-08-30: New Sales Form orders now persist a nullable order-level Delivery
+  Due Date. Fulfillment backlog rows expose that value to Split Desk, and adding
+  an order initializes its individual dispatch date from the saved default.
+  Existing operator edits win, a batch override retains its prior semantics,
+  and legacy orders without a default continue to initialize to today.
+- 2026-08-30: Fulfillment V2 now uses the same adaptive PageTabs header layout
+  as Sales Orders and Sales Production. Backlog, Active, All, Calendar, Drivers,
+  and Exceptions stay together on a dedicated full-width row; search, active
+  filter chips, column controls, and other toolbar actions render below without
+  competing for the tab row. The opt-in covers both Fulfillment header paths
+  while leaving the legacy dispatch search header unchanged.
+- 2026-08-29: Implemented the selected Split Desk Create Dispatch planner with
+  three concurrent work surfaces: selected orders and their destinations,
+  proposed stop sequence and schedule, and permission-aware driver workload.
+  Every order owns an editable individual delivery date. An optional batch
+  date temporarily overrides and strikes through those dates without mutating
+  them; clearing the override immediately restores the latest individual
+  values. The standard shadcn dialog remains URL-owned and closes without
+  leaving Backlog. Creation still writes one atomic dispatch per eligible
+  order through the manager-only command.
+- 2026-08-29: Standardized paginated Fulfillment, Backlog, Exceptions, Driver
+  manifest, and dispatch-creation search reads on 20 records per request.
+  Infinite scroll may append later 20-record pages. Bulk Fulfillment and Bulk
+  Production Completed both accept at most 40 unique Sales Order ids; an
+  oversized task-start request returns its exact safe limit message before a
+  Trigger run is created.
+- 2026-08-29: Consolidated Guarded packing and After a quantity is verified into
+  one Sales Operations card with a card footer. Turning off the master switch
+  now leaves every dependent control visible but disabled. A strict-to-
+  nonblocking policy change keeps existing approval requests pending and their
+  policy snapshots immutable, while the current policy releases fully verified
+  dispatches to packed readiness and sends each assigned driver a dedicated
+  in-app `Dispatch can continue` notification in the same serializable settings
+  transaction. Released approvals remain reviewable during an in-progress trip.
+  Canonical inventory readiness remains an independent Start Trip requirement.
+- 2026-08-28: Completed live admin/driver guarded-packing validation on order
+  `09439PC`, dispatch `4602`. Miguel selected all 19 units, the final Pack action
+  produced one confirmation and one sales-rep review, approval completed the
+  dispatch at 19/19, and the packed dispatch retained an enabled Start Trip
+  action. The overview no longer double-counts overlapping ready/listed coverage,
+  so Pending now renders `0` instead of `-7`.
+- 2026-08-28: Dispatch Details now includes assigned driver, dispatch date,
+  delivery mode, and dispatch status. Update driver uses a right-side down
+  chevron, and Unassign driver is the first dropdown action. Assignment,
+  unassignment, and date changes notify the affected driver's in-app inbox and
+  open the exact dispatch; Chrome validation confirmed all three for Miguel.
+- 2026-08-28: Fulfillment v2 aligns its server and client dispatch-list query
+  keys. Authenticated reload now stays server-rendered without the earlier
+  `dispatch.list` 401/client-render fallback.
+- 2026-08-28: Aligned the guarded-packing confirmation dialog with the shared
+  Pack Items list language. Confirmed lines now render as one compact,
+  scroll-bounded `ItemGroup` with divider-separated rows and right-aligned
+  quantities instead of giving every item a separate bordered card. Submission
+  behavior, selected quantities, approval policy, and final confirmation remain
+  unchanged.
+- 2026-08-28: Made guarded dispatch packing configurable from Super Admin
+  Sales Operations settings. Admin and driver Pack Items forms can now select
+  permitted `Awaiting production submission` and pending-material-review
+  quantities, and Select All includes them. Each pending report snapshots the
+  policy that governed submission: strict approval hold or nonblocking delivery,
+  sales-rep notification, and optional production-evidence creation on approval.
+  Self-notifications are suppressed; another actor's report targets the order's
+  sales representative and opens the existing Sales Overview packing review.
+  Late terminal decisions are read-only. Dispatch Overview now exposes Dispatch
+  Details with assign, update, and unassign controls. The URL-owned driver stop,
+  full-page fallback, shared packing sheet, and loading skeleton remain aligned
+  with the Midday migration contract.
+- 2026-08-28: Reworked the dispatch Packing overview exploration after the
+  first five concepts were rejected as too ambitious. The replacement round
+  contains exactly three restrained, responsive evolutions of the current
+  white-sheet UI: Polished Current, Balanced Split, and Clean Ledger. They
+  preserve the existing information, `Start trip` and `Pack items` actions,
+  and familiar section hierarchy while improving spacing, summary density,
+  desktop balance, and mobile stacking. The selection board lives at
+  `~/.gstack/projects/gnd/designs/dispatch-packing-overview-refined-20260828/`.
+  Preview customer contact details are anonymized. No application UI was
+  changed; operator selection remains the implementation gate.
+- 2026-08-28: Added a new selection-gated GStack HTML exploration for the
+  canonical Sales Overview dispatch Packing overview. Five responsive concepts
+  live at
+  `~/.gstack/projects/gnd/designs/dispatch-packing-overview-20260828/`:
+  Action Brief, Operations Ledger, Stage Path, Two Queues, and Dispatch
+  Briefing. All reuse dispatch `4602`'s current 19-piece information shape and
+  expose the readiness, blocker, lifecycle, packing-history, and contact/action
+  context that the existing `dispatchOverviewV2` projection already supports
+  or can derive. No application UI was changed; operator selection remains the
+  gate before implementation.
 - 2026-08-26: Mark as Fulfilled no longer emits `sales_dispatch_created` when
   `ensureSalesOrderFulfillmentDispatch` creates its internal queue dispatch.
   That dispatch exists only to complete the terminal fulfillment workflow and
@@ -201,13 +294,38 @@
 - 2026-07-17: Dispatch density and content-fit widths were tightened against the Sales Orders/Midday invoices standard while keeping the interactive dispatch controls readable.
 - 2026-07-27: Admin dispatch single-row and batch menus now reuse the canonical Sales Orders `Mark as` workflow for production completion and fulfillment.
 
-## Fulfillment v2 Workspace (updated 2026-08-25)
+## Fulfillment v2 Workspace (updated 2026-08-29)
 
 - `/sales-book/fulfillment/v2` is the linked Fulfillment workspace for
-  `editOrders`. User-visible sections are All, Backlog, Calendar, Drivers, and
-  Exceptions. All maps to the internal `dispatches` section key; `dashboard`
-  remains an accepted compatibility value for old bookmarked URLs but is no
-  longer exposed as a tab.
+  `editOrders`. User-visible sections are Backlog, All, Calendar, Drivers, and
+  Exceptions. Backlog stays the queue of delivery/pickup orders without an
+  active non-cancelled dispatch; it is not an overdue or partial-delivery
+  synonym. All uses the bare `/sales-book/fulfillment/v2` URL and clears stale
+  section-specific query state when selected; the filter loader maps that
+  query-free route to the internal `dispatches` section. `dashboard` remains an
+  accepted compatibility value for old bookmarked URLs but is no longer
+  exposed as a tab.
+- Backlog uses the same divider-based, virtualized table interaction model as
+  All, including infinite scroll, row checkboxes, direct Create Dispatch, and
+  the canonical batch Mark As menu. It retains the shared Fulfillment analytics
+  cards above its tabs and search toolbar so queue context remains visible while
+  operators work the backlog. All includes terminal Fulfilled and Cancelled
+  projections so order-level status actions are visible without a second
+  dispatch-specific confirmation.
+- Backlog's date column is independently identified as Created and sorts the
+  undispatched-order queue by `SalesOrders.createdAt`. Oldest-first is the
+  explicit default; clicking Created toggles between `createdAt.asc` and
+  `createdAt.desc`. A due-date sort carried from All is replaced with the
+  Backlog ascending default when Backlog opens.
+- The Drivers tab count is the permission-aware driver population used by the
+  driver selector. Exceptions combines native driver reports with guarded
+  packing review batches and preserves open/resolved history at dispatch level.
+- Infinite loading uses scroll geometry rather than virtual-row snapshots from
+  the same native scroll event, preventing the first bottom-of-list scroll from
+  stalling before the virtualizer updates.
+- Every paginated list slice requests 20 rows. Bulk Fulfillment is independently
+  capped at 40 unique orders, so loading more rows never expands one task beyond
+  the durable job contract.
 - Lifecycle filters project legacy storage into `ready_to_assign`, `assigned`,
   `packing`, `packing_blocked`, `ready_to_load`, `in_transit`, `fulfilled`, and
   `cancelled` without rewriting historical rows.
@@ -377,3 +495,193 @@ Removed after import scans:
   - Focused dispatch selection and migration parity coverage was added for distinct orders, duplicate dispatch rows, terminal/invalid rows, and admin-only route wiring.
   - The final scoped diff check passed.
   - The final focused suite, browser QA, and package typecheck were not run under the explicitly requested fast Bun monorepo command discipline.
+
+## 2026-08-28 Fulfillment lifecycle browser QA
+
+- A 12-order admin/driver matrix verified queued cancellation and same-order
+  requeue, assignment, packing, trip start, completion proof, customer
+  signature, terminal delivery state, and completed-dispatch cancellation
+  protection. Order `09510PC` / dispatch `4604` completed the full route with
+  Miguel as driver and remained read-only after delivery.
+- Bulk driver changes now route every changed dispatch through the same
+  notification-aware update boundary as a single assignment. Chrome verification
+  confirmed five unassignment notices followed by five assignment notices;
+  single assignment and due-date-change notices were also confirmed.
+- The bulk menu places Unassign driver before named drivers. The delivery option
+  selector opens inside the viewport, and current delivery details select the
+  newest active delivery record.
+- Dispatch table packing totals prefer dispatch-scoped control (including an
+  explicit zero) before any order-level fallback. Browser verification on
+  duplicate order `07276DB` now shows current dispatch `4567` as 0/0 instead of
+  borrowing another dispatch's order-wide 34/34 progress.
+- Address delivery `09239PC` / dispatch `4476` was packed 18/18 in Chrome,
+  started, completed through the doorstep proof form with recipient, note, and
+  drawn signature, and finished as Delivered with proof saved.
+
+## 2026-08-28 Dispatch packing overview presentation
+
+- The admin Dispatch Packing Overview now renders its dispatch status as a
+  readable colored-dot label. The former solid badge used the same color for
+  its foreground and background, which left only an unlabeled color capsule.
+- The overview, shipping, dispatch, actions, and items surfaces no longer use
+  independent outer cards. Semantic sections are separated by single horizontal
+  rules, and item rows use one shared list with line dividers.
+- Authenticated browser verification on order `09439PC` / dispatch `4602`
+  confirmed the visible `PACKED` label and the divider-based item list.
+
+## 2026-08-29 Canonical packing totals and dispatch overview tools
+
+- Fulfillment list rows and Dispatch Packing Overview now share one packing-total
+  rule. Current listed allocations define the target after packing begins;
+  before that, remaining order quantity defines the target without borrowing
+  historical packed quantity from another dispatch. Rows explicitly marked
+  `unpacked` remain audit history and no longer inflate current totals.
+- Live diagnosis of `09439PC` / dispatch `4602` found two superseded unpacked
+  rows (`3681`, `3682`) for submission `13119`. The sales lines, item controls,
+  production submissions, active packing rows, and packing selector all agree
+  at 19 units; the former `19/21` and second-line `1/3` displays were therefore
+  stale-history projection errors. Browser verification now shows `19/19`,
+  `Packed 1/1`, and a packing-slip row of `1 RH`.
+- Dispatch overview continues to load unpacked rows for packing history and
+  falls back to the sales-item link for legacy allocations whose production or
+  control linkage is missing; only current quantity calculations exclude them.
+- Sales Overview dispatch mode now exposes `Productions`, `Overview`, and
+  `Inventory`. The Overview footer keeps a filtered More menu and a primary
+  Preview action that opens a freshly generated packing list scoped to the
+  selected dispatch id.
+- Live verification corrected `09455PC` / dispatch `4509` from `0/0` to `0/53`
+  with `53 left` and `0%`.
+- Remaining sampled `0/0` rows (`08163DB` and `08647DB`) also show `TOTAL 0` in
+  their overviews, confirming they are genuine empty packing scopes rather than
+  projection mismatches.
+
+## 2026-08-29 Dispatch preview query-state ownership
+
+- The Sales Preview overlay clears only its own `salesPreview*` and
+  `previewMode` query state when it closes. It does not clear the dispatch-owned
+  `dispatchId`, so the Sales Overview remains bound to the selected dispatch.
+- Opening a preview without an explicit dispatch override also preserves any
+  existing dispatch context instead of writing `dispatchId=null`.
+- Authenticated browser verification on `09439PC` / dispatch `4602` confirmed
+  that closing the packing-slip preview retains `dispatchId=4602` and leaves the
+  `19 of 19 Items packed` Dispatch Packing Overview visible.
+
+## 2026-08-29 Durable Backlog bulk fulfillment
+
+- Backlog `Mark as -> Fulfilled` sends one capped 1-40 order parent job rather
+  than resolving dispatches and starting one top-level job per order in the
+  browser. The selection stays owned by the status action until the monitored
+  parent reaches a terminal result.
+- Dispatch resolution is idempotent per order: an active dispatch is reused, a
+  completed dispatch is an `already_fulfilled` outcome, and a new queue
+  dispatch is created inside a short serializable transaction with bounded
+  conflict retry. The 40 orders are never wrapped in one database transaction.
+- Parent and child idempotency keys make retries safe, while the aggregate
+  result preserves per-order succeeded, already-fulfilled, and failed outcomes.
+- Backlog list and workspace analytics use the same package-owned predicate.
+  The parent returns the authoritative post-run Backlog count; after terminal
+  invalidation the task watcher writes this exact count into every cached
+  workspace summary. Rows, tab count, and analytics therefore reconcile
+  without a manual reload even when query responses complete out of order.
+
+## 2026-08-29 Fulfillment queue finance/status parity
+
+- Backlog columns are now Created, Order/Customer, Destination, Invoice,
+  Status, and Actions. It intentionally has no schedule, driver, packing,
+  delivery-mode, trip, or risk column because those concepts do not exist until
+  dispatch planning begins.
+- All and Active use Schedule, Order/Customer, Destination, Driver, Packing,
+  Invoice, Status, and Actions. Trip and Risk were removed; overdue schedule
+  dates render red while the existing risk filter remains available.
+- Invoice and order-status cells are shared with Sales Orders. `editOrders`
+  actors may apply payment or run Mark As; other readers receive the same
+  finance and lifecycle presentation without mutation controls.
+- Active is the canonical non-terminal dispatch queue. It includes ready to
+  assign, assigned, packing, packing blocked, ready to load, and in transit,
+  and excludes fulfilled and cancelled. Its tab count is computed from the
+  same lifecycle projection as its table stages.
+- Calendar retains the fulfillment analytics cards above its tabs and calendar.
+  Closing Create Dispatch clears only dialog-owned query keys, preserving the
+  selected Backlog tab.
+
+## 2026-08-29 Create Dispatch Split Desk
+
+- Produced five interactive, responsive concepts for the next Create Dispatch
+  planning experience: Split Desk, Map First, Driver Lanes, Comparison Matrix,
+  and Guided Planner.
+- Every concept uses the same operational contract: select multiple orders,
+  review complete destinations, compare driver workload and route impact,
+  optimize the proposed sequence, save a draft, and confirm one dispatch per
+  order under a shared planned route.
+- Split Desk is the recommended default because orders, route, and driver
+  evidence remain visible together. Map First favors geographic planning;
+  Driver Lanes favors high-volume reassignment; Comparison Matrix favors
+  auditable driver decisions; Guided Planner favors occasional users.
+- Split Desk was selected and is now the production Create Dispatch dialog.
+  The implementation uses existing `@gnd/ui` shadcn Dialog, Card, Field,
+  Popover, Calendar, ToggleGroup, RadioGroup, ScrollArea, and Button primitives.
+  The planner uses the existing custom modal system at its predefined `7xl`
+  size. Its desktop grid has five equal tracks: Orders owns one, Choose Driver
+  owns one, and Proposed Route spans the remaining three. Tablet and mobile
+  retain the full-width stacked composition. The three work areas share one
+  white Card surface rather than rendering as separate cards; semantic
+  Separators divide them vertically on desktop and horizontally when stacked.
+  The shared surface is flush with the fulfillment-mode header and action
+  footer, with no inset content-shell padding or duplicate outer card border.
+  The fulfillment-mode toggle now lives in the Orders work area. Order entry is
+  a quiet search-to-add command input: suggestions appear while typing, a
+  selected result is added to the existing order list, and the input clears
+  without retaining selection chips. Pickup always clears the driver assignment
+  to Unassigned and disables every driver radio because pickup dispatches do not
+  require a driver. Redundant instructional descriptions, override alerts, and
+  footer summaries are intentionally omitted from the planner surface.
+  Side-panel headers,
+  recommendation badges, and workload metrics reflow where necessary so the
+  compact tracks do not clip operational text.
+  Backlog results, an exact selected-order lookup, driver records, and workload
+  run as parallel TanStack queries; selected-order maps and workload ranking are
+  memoized. The UI never invents route mileage or an optimization score: it
+  shows the current stop sequence and saved destinations supported by existing
+  data.
+- Each selected order keeps an individual draft delivery date. The optional
+  batch override is an overlay: active rows display the individual value with
+  a strike-through and the effective batch value beside it. Individual dates
+  remain editable while the override is active, and clearing it restores the
+  latest individual values. Submission sends both the individual date set and
+  optional override; the server resolves one effective due date per dispatch
+  inside the existing atomic batch command.
+- The selectable comparison board is saved at
+  `~/.gstack/projects/gnd/designs/dispatch-assignment-planner-20260829/finalized.html`.
+  It remains the historical concept record; Split Desk is the implemented
+  selection.
+
+## 2026-08-30 Canonical Active and Completed workspaces
+
+- Fulfillment now orders its operational tabs as Backlog, Active, Completed,
+  All, Calendar, Drivers, and Exceptions. Completed, All, and Exceptions expose
+  authoritative global counts alongside the existing Backlog, Active, and
+  Drivers counts.
+- Active membership is server-owned and evaluated after the canonical dispatch
+  control projection: assigned nonterminal deliveries belong to Active, while
+  fulfilled, cancelled, and unassigned deliveries do not. Open pickup
+  dispatches remain Active without a driver because pickup deliberately has no
+  driver assignment.
+- Completed uses the same membership authority and contains only canonically
+  fulfilled dispatches. Its table replaces Schedule with Completed and renders
+  `deliveredAt`, falling back to the last operational update for repaired legacy
+  records.
+- Section filtering happens before the final infinite-scroll page is returned.
+  The repository scans ordered candidates in bounded chunks so projected
+  filtering does not produce short intermediary pages or client-side leakage.
+- Empty-state copy is section-specific and clearing table filters preserves the
+  selected workspace. Existing Sales Overview Packing actions and the shared
+  fulfillment table visual system remain unchanged.
+- Due Today and Past Due are counted, URL-addressable subsets of canonical
+  Active. Due Today requires the business-timezone `today` bucket; Past Due
+  requires `overdue`. Both inherit the assigned-delivery/open-pickup rule and
+  therefore cannot broaden into completed, cancelled, or unassigned delivery
+  work.
+- Their list query first narrows database candidates with the existing due-date
+  boundary helper, then applies canonical lifecycle membership before final
+  pagination. This avoids scanning historical completed dispatches while
+  keeping lifecycle projection authoritative.

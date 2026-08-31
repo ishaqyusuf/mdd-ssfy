@@ -22,6 +22,7 @@ describe("legacy sales form metadata", () => {
 				paymentDueDate: new Date("2026-02-05T00:00:00.000Z"),
 				goodUntil: null,
 				prodDueDate: new Date("2026-02-10T00:00:00.000Z"),
+				deliveryDueDate: new Date("2026-02-15T00:00:00.000Z"),
 				paymentTerm: "None",
 				deliveryOption: "pickup",
 			},
@@ -34,6 +35,7 @@ describe("legacy sales form metadata", () => {
 			createdAt: "2026-02-01T00:00:00.000Z",
 			paymentDueDate: "2026-02-05T00:00:00.000Z",
 			prodDueDate: "2026-02-10T00:00:00.000Z",
+			deliveryDueDate: "2026-02-15T00:00:00.000Z",
 			deliveryOption: "pickup",
 			notes: "Keep me",
 		});
@@ -56,6 +58,7 @@ describe("legacy sales form metadata", () => {
 				createdAt: new Date("2026-02-01T00:00:00.000Z"),
 				paymentDueDate: new Date("2026-02-05T00:00:00.000Z"),
 				prodDueDate: new Date("2026-02-10T00:00:00.000Z"),
+				deliveryDueDate: new Date("2026-02-15T00:00:00.000Z"),
 				paymentTerm: "None",
 			},
 		});
@@ -66,6 +69,7 @@ describe("legacy sales form metadata", () => {
 			createdAt: "2026-02-01T00:00:00.000Z",
 			paymentDueDate: "2026-02-05T00:00:00.000Z",
 			prodDueDate: "2026-02-10T00:00:00.000Z",
+			deliveryDueDate: "2026-02-15T00:00:00.000Z",
 		});
 	});
 

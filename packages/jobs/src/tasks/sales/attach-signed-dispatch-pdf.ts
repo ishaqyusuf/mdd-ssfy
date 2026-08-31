@@ -9,8 +9,13 @@ import {
 	createVercelBlobProvider,
 } from "@gnd/documents";
 import { appendActivityTags } from "@gnd/notifications/activities";
-import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
+import {
+	extractSignaturePathFromSvg,
+	isSvgImageSource,
+	renderSalesPdfBuffer,
+} from "@gnd/pdf/sales-v2";
 import { getPrintDocumentData } from "@gnd/sales/print";
+import type { PrintPage } from "@gnd/sales/print/types";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
 import { put } from "@vercel/blob";
 import { type TaskName, attachSignedDispatchPdfSchema } from "../../schema";
@@ -131,6 +136,43 @@ async function resolveCompletionActivityIds(input: {
 	return activities.map((activity) => activity.id);
 }
 
+async function hydratePdfSignaturePaths(pages: PrintPage[]) {
+	const pathByUrl = new Map<string, Promise<string | null>>();
+	const resolvePath = (url: string) => {
+		const cached = pathByUrl.get(url);
+		if (cached) return cached;
+		const pending = fetch(url)
+			.then(async (response) => {
+				if (!response.ok) return null;
+				return extractSignaturePathFromSvg(await response.text());
+			})
+			.catch(() => null);
+		pathByUrl.set(url, pending);
+		return pending;
+	};
+
+	return Promise.all(
+		pages.map(async (page) => {
+			const signatureUrl = page.signing?.signatureUrl;
+			if (!page.signing || !isSvgImageSource(signatureUrl)) return page;
+			const signaturePath = await resolvePath(signatureUrl || "");
+			if (!signaturePath) {
+				logger.warn("Unable to hydrate dispatch signature for PDF", {
+					dispatchId: page.signing.dispatchId,
+				});
+				return page;
+			}
+			return {
+				...page,
+				signing: {
+					...page.signing,
+					signaturePath,
+				},
+			};
+		}),
+	);
+}
+
 export const attachSignedDispatchPdf = schemaTask({
 	id: "attach-signed-dispatch-pdf" as TaskName,
 	schema: attachSignedDispatchPdfSchema,
@@ -174,8 +216,9 @@ export const attachSignedDispatchPdf = schemaTask({
 			);
 		}
 
+		const pages = await hydratePdfSignaturePaths(documentData.pages);
 		const buffer = await renderSalesPdfBuffer({
-			pages: documentData.pages,
+			pages,
 			title: documentData.title,
 			templateId: payload.templateId,
 			companyAddress: documentData.companyAddress,
@@ -191,7 +234,7 @@ export const attachSignedDispatchPdf = schemaTask({
 		});
 		const documentService = createDocumentService(
 			createVercelBlobProvider({
-			put: (pathname, body, options) =>
+				put: (pathname, body, options) =>
 					put(pathname, body as Buffer, {
 						...options,
 						access: options?.access ?? "public",

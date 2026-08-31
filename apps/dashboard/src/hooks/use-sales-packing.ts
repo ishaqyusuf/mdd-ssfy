@@ -29,17 +29,20 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 qc.invalidateQueries({
                     queryKey: trpc.dispatch.dispatchOverviewV2.queryKey(),
                 }),
-				qc.invalidateQueries({
-					queryKey: trpc.dispatch.driverManifest.pathKey(),
-				}),
-				qc.invalidateQueries({
-					queryKey: trpc.dispatch.driverWorkQueueSummary.pathKey(),
-				}),
-				qc.invalidateQueries({
-					queryKey: trpc.dispatch.manifest.pathKey(),
-				}),
+                qc.invalidateQueries({
+                    queryKey: trpc.dispatch.driverManifest.pathKey(),
+                }),
+                qc.invalidateQueries({
+                    queryKey: trpc.dispatch.driverWorkQueueSummary.pathKey(),
+                }),
+                qc.invalidateQueries({
+                    queryKey: trpc.dispatch.manifest.pathKey(),
+                }),
             ]);
         const isQueue = data?.dispatch?.status === "queue";
+        const canStartDispatch = ["queue", "packed"].includes(
+            data?.dispatch?.status,
+        );
         const isInProgress = data?.dispatch?.status === "in progress";
         const isCancelled = data?.dispatch?.status === "cancelled";
         const auth = useAuth();
@@ -283,6 +286,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             packItemUid,
             setPackItemUid,
             isQueue,
+            canStartDispatch,
             isInProgress,
             isCancelled,
             isCancelling: cancelDispatch.isPending,

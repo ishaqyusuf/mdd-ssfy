@@ -338,3 +338,120 @@ pilot handoff are tracked in `.scratch/driver-platform-revival-closeout/`.
   `.brain/plans/2026-08-29-bug-fix-driver-packed-stop-next-action.md`.
 - No API, permission, database, migration, or canonical Start Trip mutation
   contract changed.
+
+### 2026-08-29 Pending-approval policy relaxation
+
+- The current organization guarded-packing policy now owns the effective
+  pending-approval trip gate. Historical report snapshots and `PENDING` review
+  state remain immutable audit evidence.
+- Relaxing Wait for approval to Allow delivery while approval is pending
+  reconciles fully physically verified dispatches to packed readiness without
+  approving their reports. Assigned drivers receive a dedicated in-app action
+  that opens the released dispatch.
+- The protected driver manifest and canonical downstream guards apply the same
+  current policy. Actual dispatch-bound inventory that is not picked remains a
+  separate blocker and continues to render Inventory review required.
+
+### 2026-08-29 Ready Rail and batch departure
+
+- The responsive driver dashboard implements the approved Option A Ready Rail
+  before Needs Attention. Ready membership is a protected server projection of
+  assignment, packed state, destination, review policy, and inventory readiness;
+  a packed label alone never grants departure.
+- One `Start trip · N stops` action opens a shadcn confirmation dialog, displays
+  the exact included stops and blocked-stop exclusion, revalidates each stop at
+  submission, and renders partial outcomes without hiding failures.
+- Summary analytics are accessible URL-backed controls. Stable totals remain
+  visible while Assigned, Packed, In Progress, Attention, and Ready select the
+  corresponding work view.
+- Selecting any stop still opens the existing Packing Command Sheet. Driver
+  item projection now strips labor and financial descriptions at the API
+  boundary and shares one idempotent formatter so item type, size, handing,
+  and quantity are not recomposed twice.
+- The feature adds no durable route record or new lifecycle state; each dispatch
+  remains the canonical unit of Start Trip authority.
+
+### 2026-08-29 Packing-command reliability and batch QA
+
+- Submit-time packing reads bypass the normal fresh cache and obtain the latest
+  command revision before every mutation.
+- Legacy shippable items with an absent production flag follow canonical Sales
+  behavior and may materialize through the non-production path. Explicit
+  production items retain their existing evidence requirements.
+- Command transport represents handled quantities with LH/RH only; the total is
+  never sent simultaneously. Single-quantity items keep the scalar quantity.
+- Inventory shortages and pending packing-review guards remain hard server
+  gates, but driver feedback now names the actual blocker instead of presenting
+  a stale-record or generic validation error.
+- Authenticated batch QA assigned 12 orders to Miguel and exercised four normal
+  packing successes, two guarded-review outcomes, and six truthful inventory
+  blocks. Completion gates correctly held for missing destination/schedule,
+  inventory review, or pending approval.
+
+### 2026-08-29 Route pipeline, address preflight, and active trip
+
+- Option A now includes an opt-in Google route map above the sequenced stop list,
+  a warehouse/current-location map in stop detail, and a dedicated Active Trip
+  workspace reached from the In Progress metric or a successful batch start.
+- A packed stop whose only blocker is destination identity remains a Ready start
+  candidate. Start Trip first walks the driver through Google autocomplete for
+  each affected stop, persists a dispatch-scoped verified route destination,
+  then runs the unchanged canonical per-dispatch start guards.
+- The customer's primary shipping address is never overwritten. A differing
+  verified destination appears secondarily; a match renders once. Pickup stops
+  route to the applicable warehouse without address review.
+- Map loading is explicit so route addresses are not sent to Google until the
+  driver asks to load the map or open directions.
+- Nonblocking guarded packing is enforced through list readiness, detail
+  capability, Start Trip inventory assertion, and completion consumption. A
+  fully physically verified packed stop may continue while sales review remains
+  pending; strict review mode and unrelated inventory shortages still block.
+- Live QA verified a 15-stop route, clickable metrics, two-stop Ready Rail,
+  batch confirmation, pickup map/detail behavior, and zero application runtime
+  errors. The packing sheet no longer repeats `QTY: 12` beneath a `12 / 12` row.
+- Decision: `.brain/decisions/ADR-074-dispatch-scoped-google-route-destination.md`.
+
+### 2026-08-30 Admin assignment address gate
+
+- Driver assignment now requires a Google-verified, map-ready order shipping
+  address at the assignment boundary. The rule covers dispatch creation with a
+  driver, inline reassignment, Packing Overview assignment, and bulk assignment.
+- Missing delivery addresses open one reusable admin review flow. The admin
+  selects a Google autocomplete result for each affected order; the server
+  resolves the place and saves a sale-scoped shipping address before resuming
+  the original assignment.
+- The customer master address remains unchanged. Recipient name, phone numbers,
+  and email are preserved on the sale-scoped address replacement.
+- Pickup dispatches remain exempt because their route destination is the
+  warehouse. Unassigning a driver is also unaffected.
+- Every assignment mutation repeats the readiness check server-side. Bulk
+  assignment validates the full batch before any driver write so one invalid
+  order cannot leave a partially assigned batch.
+
+### 2026-08-30 Route Command header parity
+
+- The responsive driver dashboard header restores the approved personal
+  hierarchy: a dispatch-business-time greeting followed by the authenticated
+  driver's first name. The redundant `Driver command center` eyebrow is no
+  longer rendered.
+- Sync feedback is derived from the driver manifest query's actual update
+  timestamp. It starts at `Synced just now`, advances through minute/hour/day
+  relative labels while the dashboard remains open, resets after a successful
+  refresh, and retains explicit offline feedback.
+- The dashboard receives the authenticated name and a server-stable initial
+  clock value from the route so the first server and client render agree. No
+  dispatch lifecycle, API, permission, database, or migration contract changed.
+
+### 2026-08-30 Route-list tab placement and activity parity
+
+- The existing `PageTabs` presentation is retained and moved from the dashboard
+  toolbar to the stop-list heading. The visible route tabs are Today, All stops,
+  and Completed, with counts from unpaginated driver summary projections.
+- The stop-list title follows the active tab (`Today’s route`, `All stops`, or
+  `Completed stops`) and the former list subtitle is removed. Driver search is
+  intentionally hidden for now.
+- The approved connected Route activity timeline replaces the former loose
+  event rows without redesigning the surrounding cards.
+- Existing map, next-stop, Ready, Needs attention, Active Trip, stop actions,
+  summary controls, and empty-state behavior remain available. No lifecycle,
+  API, permission, database, or migration contract changed.

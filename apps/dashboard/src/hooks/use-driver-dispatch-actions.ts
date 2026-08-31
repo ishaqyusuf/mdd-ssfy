@@ -1,13 +1,11 @@
 "use client";
 
-import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useDriverDispatchActions() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const auth = useAuth();
 
 	const invalidate = async () => {
 		await Promise.all([
@@ -36,7 +34,15 @@ export function useDriverDispatchActions() {
 	};
 
 	const startTrip = useMutation(
-		trpc.dispatch.startDispatch.mutationOptions({ onSuccess: invalidate }),
+		trpc.dispatch.startTrip.mutationOptions({ onSuccess: invalidate }),
+	);
+	const startReadyRoute = useMutation(
+		trpc.dispatch.startReadyRoute.mutationOptions({ onSuccess: invalidate }),
+	);
+	const normalizeDestination = useMutation(
+		trpc.dispatch.normalizeDestination.mutationOptions({
+			onSuccess: invalidate,
+		}),
 	);
 	const completeWithProof = useMutation(
 		trpc.dispatch.completeDispatchWithProof.mutationOptions({
@@ -49,17 +55,15 @@ export function useDriverDispatchActions() {
 
 	return {
 		startTrip,
+		startReadyRoute,
+		normalizeDestination,
 		completeWithProof,
 		reportException,
 		invalidate,
-		onStartTrip(input: { dispatchId: number; salesId: number }) {
+		onStartTrip(input: { dispatchId: number }) {
 			return startTrip.mutateAsync({
-				meta: {
-					salesId: input.salesId,
-					authorId: Number(auth.id || 0),
-					authorName: auth.name || "Driver",
-				},
-				startDispatch: { dispatchId: input.dispatchId },
+				dispatchId: input.dispatchId,
+				requestId: crypto.randomUUID(),
 			});
 		},
 	};

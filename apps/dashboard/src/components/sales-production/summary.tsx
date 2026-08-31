@@ -24,6 +24,13 @@ export function SalesProductionSummary() {
 		trpc.sales.productionSummary.queryOptions({
 			q: filters.q,
 			assignedToId: filters.assignedToId,
+			"customer.name": filters["customer.name"],
+			phone: filters.phone,
+			po: filters.po,
+			item: filters.item,
+			"sales.rep": filters["sales.rep"],
+			invoice: filters.invoice,
+			salesNo: filters.salesNo,
 			priority: filters.priority,
 		}),
 	) as { data: Summary };
@@ -34,9 +41,7 @@ export function SalesProductionSummary() {
 			title: "Unassigned",
 			value: data.summary.unassignedCount,
 			description: "Needs an owner",
-			icon: (
-				<Icons.user className="h-4 w-4 text-blue-700 dark:text-blue-400" />
-			),
+			icon: <Icons.user className="h-4 w-4 text-blue-700 dark:text-blue-400" />,
 			active: isActiveQueue && filters.queue === "unassigned",
 			onClick: () => activateQueue({ queue: "unassigned" }),
 		},

@@ -1,16 +1,18 @@
-import { composeQuery } from "@gnd/utils/query-response";
-import type { Prisma, QtyControlType } from "../types";
-import { SalesDispatchStatus } from "./constants";
 import {
 	anyDateQuery,
-	dateEquals,
 	transformFilterDateToQuery,
 } from "@gnd/utils";
 import { orderInboundStatuses } from "@gnd/utils/constants";
-import dayjs from "@gnd/utils/dayjs";
-import type { SalesQueryParamsSchema } from "../schema";
-import { normalizeSalesPriority } from "../priority";
+import { composeQuery } from "@gnd/utils/query-response";
 import { SALES_HAS_FILTER_LABELS } from "../filter-constants";
+import { normalizeSalesPriority } from "../priority";
+import {
+	getProductionDateRange,
+	getProductionQueueBoundaries,
+} from "../production-date";
+import type { SalesQueryParamsSchema } from "../schema";
+import type { Prisma, QtyControlType } from "../types";
+import { SalesDispatchStatus } from "./constants";
 
 type SalesHasFilter = NonNullable<SalesQueryParamsSchema["has"]>;
 type SalesInboundFilter = NonNullable<SalesQueryParamsSchema["inbound"]>;
@@ -277,6 +279,24 @@ function buildPendingStatWhere(
 	} satisfies Prisma.SalesOrdersWhereInput;
 }
 
+export function buildProductionEligibleWhere(): Prisma.SalesOrdersWhereInput {
+	return {
+		itemControls: {
+			some: {
+				deletedAt: null,
+				produceable: true,
+				qtyControls: {
+					some: {
+						deletedAt: null,
+						type: "qty" as QtyControlType,
+						total: { gt: 0 },
+					},
+				},
+			},
+		},
+	};
+}
+
 export function whereSales(query: SalesQueryParamsSchema) {
 	const where: Prisma.SalesOrdersWhereInput[] = [];
 	const assignedToId = query["production.assignedToId"];
@@ -383,7 +403,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
 						some: {
 							deletedAt: null,
 							assignedToId: assignedToId || undefined,
-							dueDate: dateEquals(v as string),
+							dueDate: getProductionDateRange(v as string),
 						},
 					},
 				});
@@ -619,7 +639,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
 		}
 	});
 	const prodStatus = query["production.status"];
-	const production = query["production"];
+	const productionDateBoundaries = getProductionQueueBoundaries();
+	const production = query.production;
+	if (production || prodStatus || query["production.assignment"]) {
+		where.push(buildProductionEligibleWhere());
+	}
 	switch (production) {
 		case "pending":
 			where.push(
@@ -698,7 +722,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
 					some: {
 						assignedToId: assignedToId || undefined,
 						deletedAt: null,
-						dueDate: dateEquals(dayjs().format("YYYY-MM-DD")),
+						dueDate: productionDateBoundaries.today,
 					},
 				},
 			});
@@ -718,7 +742,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
 					some: {
 						assignedToId: assignedToId || undefined,
 						deletedAt: null,
-						dueDate: dateEquals(dayjs().add(1, "day").format("YYYY-MM-DD")),
+						dueDate: productionDateBoundaries.tomorrow,
 					},
 				},
 			});
@@ -737,9 +761,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
 					some: {
 						assignedToId: assignedToId || undefined,
 						deletedAt: null,
-						dueDate: {
-							lt: dayjs().startOf("day").toISOString(),
-						},
+						dueDate: productionDateBoundaries.pastDue,
 					},
 				},
 			});
@@ -758,9 +780,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
 					some: {
 						assignedToId: assignedToId || undefined,
 						deletedAt: null,
-						dueDate: {
-							gte: dayjs().add(1, "day").startOf("day").toISOString(),
-						},
+						dueDate: productionDateBoundaries.future,
 					},
 				},
 			});

@@ -38,6 +38,9 @@ describe("sales summary flat layout", () => {
 		expect(detailsSource).toContain("disabled={hasAutomaticOrderDueDate}");
 		expect(detailsSource).toContain("{isQuote ? null : (");
 		expect(detailsSource).toContain('label={isQuote ? "Good Until" : "Due"}');
+		expect(detailsSource).toContain('label="Production Due Date"');
+		expect(detailsSource).toContain('label="Delivery Due Date"');
+		expect(detailsSource).toContain("props.onDeliveryDueDateChange");
 	});
 
 	it("shows an accessible P.O. control and keeps invoice date hidden", () => {

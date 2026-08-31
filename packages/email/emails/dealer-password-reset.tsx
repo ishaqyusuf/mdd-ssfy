@@ -81,3 +81,9 @@ export default function DealerPasswordResetEmail({
 		</EmailThemeProvider>
 	);
 }
+
+DealerPasswordResetEmail.PreviewProps = {
+	dealerName: "Northside Millwork",
+	resetLink: "https://dealership.gndprodesk.com/auth/reset-password/preview",
+	expiresInMinutes: 30,
+} satisfies Props;

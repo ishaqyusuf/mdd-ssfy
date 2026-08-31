@@ -682,6 +682,7 @@ export function InvoiceOverviewPanel(props: Props) {
 				goodUntil={record.form.goodUntil}
 				paymentDueDate={record.form.paymentDueDate}
 				prodDueDate={record.form.prodDueDate}
+				deliveryDueDate={record.form.deliveryDueDate}
 				onCreatedAtChange={(value) => {
 					const createdAt = formDateValue(value);
 					const normalizedPaymentTerm = normalizeSalesFormPaymentTerm(
@@ -735,6 +736,11 @@ export function InvoiceOverviewPanel(props: Props) {
 				onProdDueDateChange={(value) =>
 					setMeta({
 						prodDueDate: formDateValue(value),
+					})
+				}
+				onDeliveryDueDateChange={(value) =>
+					setMeta({
+						deliveryDueDate: formDateValue(value),
 					})
 				}
 				paymentTerm={record.form.paymentTerm || "None"}

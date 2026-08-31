@@ -12,7 +12,10 @@ import {
 	normalizeInventoryFulfillmentDeliveryMode,
 	resolveInventoryFulfillmentDeliveryMode,
 } from "./inventory-fulfillment-policy";
-import { assertNoPendingPackingReports } from "./packing-report-review";
+import {
+	assertNoPendingPackingReports,
+	pendingPackingReviewAllowsDelivery,
+} from "./packing-report-review";
 import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 
 const COMMITTED_ALLOCATION_STATUSES = new Set([
@@ -4162,10 +4165,37 @@ export async function assertDispatchInventoryReadyToStart(
 	db: DbLike,
 	input: { orderDeliveryId: number; salesOrderId: number },
 ) {
-	await assertNoPendingPackingReports(db, {
-		dispatchId: input.orderDeliveryId,
-		salesOrderId: input.salesOrderId,
-	});
+	await assertNoPendingPackingReports(
+		db,
+		{
+			dispatchId: input.orderDeliveryId,
+			salesOrderId: input.salesOrderId,
+		},
+		{ allowDeliveryWhilePending: true },
+	);
+	const guardedPhysicalVerification = await pendingPackingReviewAllowsDelivery(
+		db,
+		{
+			dispatchId: input.orderDeliveryId,
+			salesOrderId: input.salesOrderId,
+		},
+	);
+	if (guardedPhysicalVerification) {
+		const delivery = await db.orderDelivery.findFirst({
+			where: {
+				id: input.orderDeliveryId,
+				salesOrderId: input.salesOrderId,
+				deletedAt: null,
+			},
+			select: { status: true },
+		});
+		if (delivery?.status === "packed") {
+			return {
+				executionMode: "guarded_physical_verification" as const,
+				componentCount: 0,
+			};
+		}
+	}
 	const deliveryItems = await db.orderItemDelivery.findMany({
 		where: {
 			orderDeliveryId: input.orderDeliveryId,

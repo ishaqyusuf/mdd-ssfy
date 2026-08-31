@@ -81,3 +81,9 @@ export default function DealerMagicLoginLinkEmail({
 		</EmailThemeProvider>
 	);
 }
+
+DealerMagicLoginLinkEmail.PreviewProps = {
+	dealerName: "Northside Millwork",
+	loginLink: "https://dealership.gndprodesk.com/auth/magic-link/preview",
+	expiresInMinutes: 10,
+} satisfies Props;

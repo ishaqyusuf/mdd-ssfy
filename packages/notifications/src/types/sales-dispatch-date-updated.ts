@@ -16,7 +16,7 @@ export const salesDispatchDateUpdated: NotificationHandler = {
 		const payload: SalesDispatchDateUpdatedTags = {
 			type: "sales_dispatch_date_updated",
 			source: "user",
-			priority: 5,
+			priority: 2,
 			dispatchId,
 			orderNo,
 			deliveryMode,

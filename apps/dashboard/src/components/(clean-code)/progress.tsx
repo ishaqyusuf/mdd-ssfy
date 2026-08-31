@@ -77,7 +77,7 @@ function ProgressBar({
     score,
     total,
 }: ProgressBarProps) {
-    const value = percent(score, total, 12);
+    const value = percent(score, total, 0);
     return (
         <div className={cn(className, "space-y-2")}>
             {(!showPercent && !label) || (

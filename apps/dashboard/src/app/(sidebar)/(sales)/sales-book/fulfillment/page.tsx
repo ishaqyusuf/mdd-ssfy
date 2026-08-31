@@ -1,9 +1,9 @@
 import { AuthGuard } from "@/components/auth-guard";
-import { FulfillmentCalendarWorkspace } from "@/components/dispatch-admin/fulfillment-calendar-workspace";
 import {
 	getFulfillmentCalendarPeriod,
 	resolveFulfillmentCalendarDate,
 } from "@/components/dispatch-admin/fulfillment-calendar-range";
+import { FulfillmentCalendarWorkspace } from "@/components/dispatch-admin/fulfillment-calendar-workspace";
 import { FulfillmentListWorkspace } from "@/components/dispatch-admin/fulfillment-list-workspace";
 import PageShell from "@/components/page-shell";
 import { _perm } from "@/components/sidebar-links";
@@ -76,7 +76,7 @@ export default async function Page(props: Props) {
 		} = filter;
 		const { sort } = loadSortParams(searchParams);
 		const initialSettings = await getInitialTableSettings("sales-dispatch");
-		const queryInput = { ...dispatchFilter, sort } as DispatchInput;
+		const queryInput = { ...dispatchFilter, sort, size: 20 } as DispatchInput;
 		await batchPrefetch([
 			trpc.dispatch.index.infiniteQueryOptions(queryInput, {
 				getNextPageParam: ({ meta }) =>

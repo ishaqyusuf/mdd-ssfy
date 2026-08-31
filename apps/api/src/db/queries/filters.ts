@@ -889,15 +889,35 @@ function transformFilter<T extends { key: string; value: any }>(
 }
 
 export async function getSalesProductionFilters(ctx: TRPCContext) {
-  const baseFilters = await getSalesOrderFilters(ctx);
+  const baseFilters = await getSalesOrderFilters(ctx, true);
   type T = keyof SalesProductionQueryParams;
-  type TOrdersFilter = keyof SalesQueryParamsSchema;
   type FilterData = PageFilterData<T>;
+  const inheritedFilterKeys = new Set<string>([
+    "q",
+    "customer.name",
+    "phone",
+    "po",
+    "sales.rep",
+    "salesNo",
+    "item",
+  ]);
 
   const resp: FilterData[] = [
-    ...(baseFilters.filter((a) =>
-      (["q", "salesNo"] as TOrdersFilter[]).includes(a.value as any),
-    ) as any),
+    ...baseFilters
+      .filter((filter) => inheritedFilterKeys.has(String(filter.value)))
+      .map((filter) => ({ ...filter, value: filter.value as T })),
+    optionFilter<T>("invoice", "Invoice Status", [
+      {
+        label: "Paid",
+        value: "paid",
+        color: getStatusFilterOptionColor("paid"),
+      },
+      {
+        label: "Outstanding",
+        value: "pending",
+        color: getStatusFilterOptionColor("pending"),
+      },
+    ]),
     {
       value: "production",
       type: "checkbox",

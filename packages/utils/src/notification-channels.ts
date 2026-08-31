@@ -40,6 +40,7 @@ export const channelNames = [
 	"sales_reminder_schedule_admin_notification",
 	"sales_daily_payment_report",
 	"sales_dispatch_assigned",
+	"sales_dispatch_approval_pending_released",
 	"sales_dispatch_cancelled",
 	"sales_dispatch_completed",
 	"sales_dispatch_packed",

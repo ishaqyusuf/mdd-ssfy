@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { Prisma, TransactionClient } from "@gnd/db";
 import { runDbTransaction } from "@gnd/db/transactions";
+import { repairReceivedInboundNeedsForSalesOrder } from "@gnd/inventory/inbound";
 import type { RenturnTypeAsync } from "@gnd/utils";
 import type { NoteTagTypes } from "@gnd/utils/constants";
 import { type SaveNoteSchema, noteTag, saveNote } from "@gnd/utils/note";
@@ -24,7 +25,11 @@ import type {
 	DispatchItemPackingStatus,
 	SalesDispatchStatus,
 } from "../types";
-import { pickQtyFrom, recomposeQty } from "../utils/sales-control";
+import {
+	pickQtyFrom,
+	recomposeQty,
+	transformQtyHandle,
+} from "../utils/sales-control";
 import {
 	type CreateSalesAssignmentProps,
 	buildProductionSubmissionPlan,
@@ -198,6 +203,7 @@ export async function createAssignmentsTask(
 			revision: string;
 			lineItemUids: string[] | null;
 		};
+		repairReceivedInboundNeeds?: typeof repairReceivedInboundNeedsForSalesOrder;
 	},
 ) {
 	const payload = data.createAssignments;
@@ -254,6 +260,13 @@ export async function createAssignmentsTask(
 			profile: "workflow",
 		},
 		async (tx) => {
+			await (
+				options?.repairReceivedInboundNeeds ??
+				repairReceivedInboundNeedsForSalesOrder
+			)(tx as any, {
+				salesOrderId: data.meta.salesId,
+				actorUserId: data.meta.authorId,
+			});
 			await createSalesAssignmentAction(tx as any, {
 				items: createAssignments,
 				salesId: data.meta.salesId,
@@ -528,10 +541,14 @@ export async function startDispatchTask(
 		if (!orderDeliveryId) {
 			throw new Error("Unable to start fulfillment without a dispatch.");
 		}
-		await lockAndAssertNoPendingPackingReports(tx as Db, {
-			dispatchId: orderDeliveryId,
-			salesOrderId: data.meta.salesId,
-		});
+		await lockAndAssertNoPendingPackingReports(
+			tx as Db,
+			{
+				dispatchId: orderDeliveryId,
+				salesOrderId: data.meta.salesId,
+			},
+			{ allowDeliveryWhilePending: true },
+		);
 		await internal?.assertInventoryReady?.(tx as TransactionClient, {
 			orderDeliveryId,
 			salesOrderId: data.meta.salesId,
@@ -572,7 +589,7 @@ export async function submitDispatchTask(
 				note?: string | null;
 			},
 		) => Promise<{
-			executionMode: "inventory" | "legacy";
+			executionMode: "inventory" | "legacy" | "guarded_physical_verification";
 			allocationIds: number[];
 			consumedQty: number;
 		}>;
@@ -608,10 +625,14 @@ export async function submitDispatchTask(
 			if (currentDispatch.salesOrderId !== data.meta.salesId) {
 				throw new Error("Dispatch does not belong to this sales order.");
 			}
-			await lockAndAssertNoPendingPackingReports(tx as Db, {
-				dispatchId: task.dispatchId!,
-				salesOrderId: currentDispatch.salesOrderId,
-			});
+			await lockAndAssertNoPendingPackingReports(
+				tx as Db,
+				{
+					dispatchId: task.dispatchId!,
+					salesOrderId: currentDispatch.salesOrderId,
+				},
+				{ allowDeliveryWhilePending: true },
+			);
 
 			const completionRequestId = task.completionRequestId?.trim();
 			const currentMeta = asJsonRecord(currentDispatch.meta);
@@ -874,6 +895,7 @@ function buildSelectionPackingLinesFromRequestedItems(
 	requestedItems: NonNullable<
 		NonNullable<UpdateSalesControl["packItems"]>["requestedItems"]
 	>,
+	reusableDispatchId?: number,
 ) {
 	const packingLines: NonNullable<
 		NonNullable<UpdateSalesControl["packItems"]>["packingLines"]
@@ -896,8 +918,26 @@ function buildSelectionPackingLinesFromRequestedItems(
 		}
 
 		let pending = recomposeQty(enteredQty as any);
-		const deliverables = (matchedItem.deliverables || []).filter(
-			(deliverable) => hasQty(deliverable.qty as any),
+		const reusableDeliverables = reusableDispatchId
+			? (info.deliveries || [])
+					.filter((delivery) => delivery.id === reusableDispatchId)
+					.flatMap((delivery) => delivery.items || [])
+					.filter(
+						(item) =>
+							item.submission?.assignment?.salesItemControlUid ===
+							matchedItem.controlUid,
+					)
+					.map((item) => ({
+						submissionId: item.orderProductionSubmissionId,
+						qty: transformQtyHandle(item),
+					}))
+			: [];
+		const deliverables = [
+			...(matchedItem.deliverables || []),
+			...reusableDeliverables,
+		].filter(
+			(deliverable) =>
+				Boolean(deliverable.submissionId) && hasQty(deliverable.qty as any),
 		);
 
 		for (const deliverable of deliverables) {
@@ -1021,6 +1061,7 @@ export async function packDispatchItemTask(
 		let built = buildSelectionPackingLinesFromRequestedItems(
 			info,
 			data.packItems!.requestedItems!,
+			data.packItems?.replaceExisting ? dispatchId : undefined,
 		);
 
 		if (built.insufficient.length) {
@@ -1037,6 +1078,7 @@ export async function packDispatchItemTask(
 			built = buildSelectionPackingLinesFromRequestedItems(
 				refreshed,
 				data.packItems!.requestedItems!,
+				data.packItems?.replaceExisting ? dispatchId : undefined,
 			);
 			if (built.insufficient.length) {
 				throw new Error(

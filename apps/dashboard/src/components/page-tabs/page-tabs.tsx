@@ -79,6 +79,7 @@ function buildTabHref(
 	tab: PageTabItem,
 ) {
 	const basePath = tab.url || tab.page || pathname;
+	if (tab.clearQuery) return normalizePagePath(basePath);
 
 	if (tab.query !== undefined) {
 		return buildPageTabHref(basePath, tab.query, tab.title);
@@ -162,6 +163,7 @@ export function PageTabs({
 	const searchParams = useSearchParams();
 	const isLg = useMediaQuery(screens.lg);
 	const is2xl = useMediaQuery(screens["2xl"]);
+	const [responsiveReady, setResponsiveReady] = useState(false);
 	const trpc = useTRPC();
 	const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
 	const [manageOpen, setManageOpen] = useState(false);
@@ -194,6 +196,7 @@ export function PageTabs({
 		if (!portal) return;
 		setPortalNode(document.getElementById("pageTab"));
 	}, [portal]);
+	useEffect(() => setResponsiveReady(true), []);
 
 	const resolvedTabs = useMemo(() => {
 		const currentSearch = new URLSearchParams(searchParams.toString());
@@ -254,8 +257,8 @@ export function PageTabs({
 	]);
 	const selectedResolvedTabIndex = resolvedTabs.findIndex((tab) => tab.active);
 	const visibleTabLimit = getResponsivePageTabLimit(maxVisible, {
-		isLg,
-		is2xl,
+		isLg: responsiveReady && isLg,
+		is2xl: responsiveReady && is2xl,
 	});
 	const { visibleTabs, overflowTabs } = splitPageTabs(
 		resolvedTabs,

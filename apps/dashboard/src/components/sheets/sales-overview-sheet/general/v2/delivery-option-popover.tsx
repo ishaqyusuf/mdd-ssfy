@@ -14,8 +14,8 @@ import {
 import { Icons } from "@gnd/ui/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Spinner } from "@gnd/ui/spinner";
-import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { ToggleGroup, ToggleGroupItem } from "@gnd/ui/toggle-group";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -102,7 +102,9 @@ export function DeliveryOptionPopover({
 				setOpen(false);
 				await Promise.all([
 					queryClient.invalidateQueries({
-						queryKey: trpc.dispatch.salesDeliveryInfo.queryKey({ salesId }),
+						queryKey: trpc.dispatch.salesDeliveryInfo.queryKey({
+							salesId,
+						}),
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.sales.getSaleOverview.queryKey({
@@ -174,7 +176,12 @@ export function DeliveryOptionPopover({
 					/>
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent align="start" className="w-80">
+			<PopoverContent
+				side="left"
+				align="center"
+				collisionPadding={16}
+				className="w-80"
+			>
 				<h3 className="text-sm font-semibold">Delivery option</h3>
 				<FieldGroup className="mt-4 gap-4">
 					<FieldSet className="gap-2">

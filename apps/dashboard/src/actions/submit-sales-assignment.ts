@@ -20,7 +20,13 @@ export const submitSalesAssignmentAction = actionClient
     .action(async ({ parsedInput: input }) => {
         const actor = await getLoggedInProfile();
         if (!actor.userId) throw new Error("Authentication is required.");
-        const authority = requireProductionSubmissionAuthority(actor);
+        const representedOrder = await prisma.salesOrders.findFirst({
+            where: { id: input.salesId, salesRepId: actor.userId },
+            select: { id: true },
+        });
+        const authority = requireProductionSubmissionAuthority(actor, {
+            isOrderSalesRep: Boolean(representedOrder),
+        });
         if (!input.qty.qty) input.qty.qty = sum([input.qty.lh, input.qty.rh]);
         const result = await submitProductionAssignment(prisma as any, {
             salesOrderId: input.salesId,
@@ -41,6 +47,42 @@ export const submitSalesAssignmentAction = actionClient
             actorUserId: actor.userId,
             source: "dashboard.production.submit-assignment",
         });
+        if (!result.idempotentReplay) {
+            try {
+                const order = await prisma.salesOrders.findFirst({
+                    where: { id: input.salesId, deletedAt: null },
+                    select: { id: true, orderId: true, salesRepId: true },
+                });
+                if (order?.salesRepId) {
+                    await new Notifications(prisma).create(
+                        "sales_production_submitted",
+                        {
+                            salesId: order.id,
+                            orderNo: order.orderId || undefined,
+                            salesRepId: order.salesRepId,
+                            submittedById: actor.userId,
+                            submittedByName: actor.name || undefined,
+                            submittedQty: input.qty.qty,
+                            assignmentId: input.assignmentId,
+                        },
+                        {
+                            author: { id: actor.userId, role: "employee" },
+                            recipients: [
+                                { ids: [order.salesRepId], role: "employee" },
+                            ],
+                            includeChannelSubscribers: false,
+                            allowFallbackRecipient: false,
+                            forceInAppRecipients: true,
+                        },
+                    );
+                }
+            } catch (error) {
+                console.warn(
+                    "Production submission was saved, but its sales rep notification failed.",
+                    { error, submissionId: result.submissionId },
+                );
+            }
+        }
         if (
             result.state === "pending_material_review" &&
             !result.idempotentReplay

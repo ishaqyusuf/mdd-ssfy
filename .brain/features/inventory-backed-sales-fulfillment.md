@@ -820,6 +820,22 @@ Last updated: 2026-08-17
 
 Last updated: 2026-08-28
 
+## 2026-08-28 Fulfillment packing migration boundary
+
+- Admin Fulfillment and driver Dispatch Task packing now submit through the
+  same canonical `dispatch.confirmPacking` command. Presentation rows that
+  repeat one sales item are combined before inventory intent is evaluated, and
+  the submit handler refreshes the command revision immediately before writing.
+- Historical component-only rows remain on the legacy packing path unless the
+  order has active stock-allocation or inbound-demand evidence. Once that
+  operational evidence exists, inventory shortage remains a real blocking
+  precondition and is shown to the operator as an inventory action rather than
+  a permission failure.
+- Canonical revision hashing excludes timestamp-only derived-state writes, so
+  harmless overview refreshes do not invalidate an otherwise unchanged pack.
+
+Last updated: 2026-08-28
+
 ## 2026-08-26 Bounded stale-review convergence
 
 - A fulfilled dependency-resolution request treats a production review
@@ -834,3 +850,31 @@ Last updated: 2026-08-28
   all 20 resulting dispatches persisted as completed.
 
 Last updated: 2026-08-26
+
+## 2026-08-28 Received inbound application gap repair
+
+- The Sales Overview Inventory `Needs` segment shows an order-scoped alert
+  immediately below the Needs/Inbounds/Not Needed tabs when a completed inbound
+  still owns more received capacity than has been applied to its linked needs.
+- Each alert identifies the inbound, opens the existing secondary inbound detail
+  pane from its underlined inbound number, and applies that exact inbound through
+  the canonical guarded application mutation. The alert is permission-aware,
+  remains available on read-only historical orders because it is a repair action,
+  and disappears after the affected inventory queries are refreshed.
+- `repairReceivedInboundNeedsForSalesOrder` is the reusable package boundary for
+  historical gaps. It detects completed inbound shipments attached to one sales
+  order, then delegates every candidate to the canonical inbound-to-needs
+  application service so demand, component readiness, audit events, and affected
+  order identities keep the same semantics as an explicit operator Apply. A
+  shipment shared by several orders remains one shipment-wide application and
+  one reversible audit snapshot, but automatic repair prioritizes the triggering
+  order's linked demands before distributing any remaining capacity.
+- Production assignment, production-submission material preparation, production
+  material-review approval, and guarded packing approval invoke this repair before
+  evaluating material evidence. A received inbound that closes the gap therefore
+  resolves silently without requiring a stale manual mark-available action.
+- Packing-report rejection deliberately does not repair inventory. Approval
+  repairs first and reloads packing evidence in the same transaction before
+  canonical packing continues.
+
+Last updated: 2026-08-28

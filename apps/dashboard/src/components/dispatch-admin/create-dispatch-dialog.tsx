@@ -1,106 +1,208 @@
 "use client";
 
 import { invalidateDispatchWorkspace } from "@/components/dispatch-admin/dispatch-query-invalidation";
+import { useDispatchAssignmentAddressGuard } from "@/components/dispatch-assignment/address-guard";
 import {
-	DispatchFormContext,
 	type DispatchCreateFormValues,
+	DispatchFormContext,
 } from "@/components/dispatch-admin/dispatch/form-context";
-import { useDriversList } from "@/hooks/use-data-list";
+import { CustomModal } from "@/components/modals/custom-modal";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useTRPC } from "@/trpc/client";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@gnd/ui/dialog";
-import {
-	Field,
-	FieldDescription,
-	FieldError,
-	FieldGroup,
-	FieldLabel,
-} from "@gnd/ui/field";
-import { Input } from "@gnd/ui/input";
-import MultipleSelector, { type Option } from "@gnd/ui/multiple-selector";
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@gnd/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@gnd/ui/toggle-group";
-import {
-	useMutation,
-	useQuery,
-	useQueryClient,
-} from "@tanstack/react-query";
+import { Card } from "@gnd/ui/card";
+import { DialogFooter } from "@gnd/ui/dialog";
+import type { Option } from "@gnd/ui/multiple-selector";
+import { Separator } from "@gnd/ui/separator";
+import { Spinner } from "@gnd/ui/spinner";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Controller, useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { toast } from "sonner";
+import {
+	buildDispatchOrderDates,
+	parseDateInput,
+	reconcileOrderDueDates,
+	todayDateInput,
+	toDateInput,
+} from "./create-dispatch/date-model";
+import { DispatchDriverPanel } from "./create-dispatch/driver-panel";
+import { DispatchOrderPanel } from "./create-dispatch/order-panel";
+import { DispatchRoutePanel } from "./create-dispatch/route-panel";
+import {
+	type BacklogOrder,
+	type DriverChoice,
+	type DriverWorkload,
+	getBacklogCustomerName,
+} from "./create-dispatch/types";
 
-type BacklogOrder = RouterOutputs["dispatch"]["backlog"]["data"][number];
 const emptyBacklogOrders: BacklogOrder[] = [];
+
+function mergeBacklogOrders(current: BacklogOrder[], incoming: BacklogOrder[]) {
+	const merged = new Map(current.map((order) => [order.id, order]));
+	for (const order of incoming) merged.set(order.id, order);
+	return [...merged.values()];
+}
 
 function toOrderOptions(orders: BacklogOrder[]): Option[] {
 	return orders.map((order) => ({
 		value: String(order.id),
 		label: order.orderId || `Order ${order.id}`,
 		orderName: order.title || order.orderId || `Order ${order.id}`,
-		customerName:
-			order.customer?.businessName ||
-			order.customer?.name ||
-			order.shippingAddress?.name ||
-			"Customer",
+		customerName: getBacklogCustomerName(order),
 		status: order.status || "Ready",
 		deliveryMode: order.deliveryOption || "delivery",
 	}));
 }
 
-function CreateDispatchForm({ onCreated }: { onCreated: () => void }) {
+function CreateDispatchForm({
+	initialSalesId,
+	onCreated,
+	onCancel,
+}: {
+	initialSalesId?: number | null;
+	onCreated: () => void;
+	onCancel: () => void;
+}) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const drivers = useDriversList(true);
 	const form = useFormContext<DispatchCreateFormValues>();
-	const backlog = useQuery(
-		trpc.dispatch.backlog.queryOptions({ size: 100 }),
+	const salesIds = useWatch({ control: form.control, name: "salesIds" });
+	const orderDueDates = useWatch({
+		control: form.control,
+		name: "orderDueDates",
+	});
+	const batchDueDate = useWatch({
+		control: form.control,
+		name: "batchDueDate",
+	});
+	const deliveryMode = useWatch({
+		control: form.control,
+		name: "deliveryMode",
+	});
+	const driverId = useWatch({ control: form.control, name: "driverId" });
+	const assignmentAddressGuard = useDispatchAssignmentAddressGuard();
+
+	const backlog = useQuery(trpc.dispatch.backlog.queryOptions({ size: 20 }));
+	const initialOrder = useQuery(
+		trpc.dispatch.backlog.queryOptions(
+			{ ids: initialSalesId ? [initialSalesId] : [], size: 1 },
+			{ enabled: Boolean(initialSalesId) },
+		),
 	);
-	const orders = backlog.data?.data ?? emptyBacklogOrders;
-	const orderOptions = useMemo<Option[]>(
-		() => toOrderOptions(orders),
-		[orders],
+	const employees = useQuery(
+		trpc.hrm.getEmployees.queryOptions({
+			can: ["viewDelivery"],
+			cannot: ["editOrders"],
+		}),
 	);
-	const [knownOptions, setKnownOptions] = useState<Option[]>([]);
+	const driverWorkload = useQuery(
+		trpc.dispatch.driverWorkload.queryOptions(undefined),
+	);
+	const [knownOrders, setKnownOrders] = useState<BacklogOrder[]>([]);
+
 	useEffect(() => {
-		setKnownOptions((current) => {
-			const merged = new Map(current.map((option) => [option.value, option]));
-			for (const option of orderOptions) merged.set(option.value, option);
-			return [...merged.values()];
-		});
-	}, [orderOptions]);
+		const incoming = [
+			...(backlog.data?.data ?? emptyBacklogOrders),
+			...(initialOrder.data?.data ?? emptyBacklogOrders),
+		];
+		setKnownOrders((current) => mergeBacklogOrders(current, incoming));
+	}, [backlog.data?.data, initialOrder.data?.data]);
+
+	const orderOptions = useMemo(
+		() => toOrderOptions(knownOrders),
+		[knownOrders],
+	);
+	const orderById = useMemo(
+		() => new Map(knownOrders.map((order) => [order.id, order])),
+		[knownOrders],
+	);
+	const defaultDueDates = useMemo(
+		() =>
+			Object.fromEntries(
+				knownOrders
+					.map((order) => [String(order.id), toDateInput(order.deliveryDueDate)])
+					.filter((entry) => Boolean(entry[1])),
+			),
+		[knownOrders],
+	);
+	const selectedOrders = useMemo(
+		() =>
+			salesIds
+				.map((salesId) => orderById.get(salesId))
+				.filter((order): order is BacklogOrder => Boolean(order)),
+		[orderById, salesIds],
+	);
+	const updateSelectedOrderIds = useCallback(
+		(nextSalesIds: number[]) => {
+			form.setValue("salesIds", nextSalesIds, {
+				shouldDirty: true,
+				shouldValidate: true,
+			});
+			form.setValue(
+				"orderDueDates",
+				reconcileOrderDueDates(
+					nextSalesIds,
+					orderDueDates,
+					todayDateInput(),
+					defaultDueDates,
+				),
+				{ shouldDirty: true, shouldValidate: true },
+			);
+		},
+		[defaultDueDates, form, orderDueDates],
+	);
+	const addOrder = useCallback(
+		(option: Option) => {
+			const salesId = Number(option.value);
+			if (!salesId || salesIds.includes(salesId)) return;
+			updateSelectedOrderIds([...salesIds, salesId]);
+		},
+		[salesIds, updateSelectedOrderIds],
+	);
+
 	const searchOrders = useCallback(
 		async (search: string) => {
 			const query = search.trim();
 			if (!query) return orderOptions;
 			const result = await queryClient.fetchQuery(
-				trpc.dispatch.backlog.queryOptions({ q: query, size: 50 }),
+				trpc.dispatch.backlog.queryOptions({ q: query, size: 20 }),
 			);
-			const options = toOrderOptions(result.data);
-			setKnownOptions((current) => {
-				const merged = new Map(current.map((option) => [option.value, option]));
-				for (const option of options) merged.set(option.value, option);
-				return [...merged.values()];
-			});
-			return options;
+			setKnownOrders((current) => mergeBacklogOrders(current, result.data));
+			return toOrderOptions(result.data);
 		},
 		[orderOptions, queryClient, trpc.dispatch.backlog],
 	);
+
+	const workloadByDriver = useMemo(
+		() =>
+			new Map((driverWorkload.data ?? []).map((item) => [item.driverId, item])),
+		[driverWorkload.data],
+	);
+	const drivers = useMemo<DriverChoice[]>(() => {
+		return (employees.data?.data ?? [])
+			.map((employee) => {
+				const workload = workloadByDriver.get(employee.id) as
+					| DriverWorkload
+					| undefined;
+				return {
+					id: employee.id,
+					name: employee.name || "Unnamed driver",
+					active: workload?.active ?? 0,
+					inTransit: workload?.inTransit ?? 0,
+					readyToLoad: workload?.readyToLoad ?? 0,
+					openExceptions: workload?.openExceptions ?? 0,
+				};
+			})
+			.sort(
+				(a, b) =>
+					a.openExceptions - b.openExceptions ||
+					a.active - b.active ||
+					a.inTransit - b.inTransit ||
+					a.name.localeCompare(b.name),
+			);
+	}, [employees.data?.data, workloadByDriver]);
+
 	const mutation = useMutation(
 		trpc.dispatch.createDispatches.mutationOptions({
 			onSuccess(result) {
@@ -118,160 +220,165 @@ function CreateDispatchForm({ onCreated }: { onCreated: () => void }) {
 		}),
 	);
 	const submit = form.handleSubmit((values) => {
-		mutation.mutate({
-			salesIds: values.salesIds,
-			deliveryMode: values.deliveryMode,
-			dueDate: new Date(`${values.dueDate}T12:00:00`),
-			driverId: values.driverId,
-		});
+		const createDispatches = () =>
+			mutation.mutate({
+				orders: buildDispatchOrderDates(values.salesIds, values.orderDueDates),
+				deliveryMode: values.deliveryMode,
+				overrideDueDate: values.batchDueDate
+					? parseDateInput(values.batchDueDate)
+					: null,
+				driverId: values.driverId,
+			});
+		if (values.deliveryMode === "delivery" && values.driverId) {
+			void assignmentAddressGuard.guardAssignment(
+				{
+					salesIds: values.salesIds,
+					deliveryMode: values.deliveryMode,
+				},
+				createDispatches,
+			);
+			return;
+		}
+		createDispatches();
 	});
+	const selectedDetailsLoading = selectedOrders.length !== salesIds.length;
+
+	useEffect(() => {
+		const nextDueDates = reconcileOrderDueDates(
+			salesIds,
+			orderDueDates,
+			todayDateInput(),
+			defaultDueDates,
+		);
+		const changed =
+			Object.keys(nextDueDates).length !== Object.keys(orderDueDates).length ||
+			Object.entries(nextDueDates).some(
+				([salesId, value]) => orderDueDates[salesId] !== value,
+			);
+		if (!changed) return;
+		form.setValue("orderDueDates", nextDueDates, {
+			shouldDirty: false,
+			shouldValidate: true,
+		});
+	}, [defaultDueDates, form, orderDueDates, salesIds]);
+
+	useEffect(() => {
+		if (deliveryMode !== "pickup" || driverId === null) return;
+		form.setValue("driverId", null, {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+	}, [deliveryMode, driverId, form]);
 
 	return (
-		<form onSubmit={submit} className="flex flex-col gap-6 px-6 pb-6">
-			<FieldGroup>
-				<Field data-invalid={Boolean(form.formState.errors.salesIds)}>
-					<FieldLabel htmlFor="dispatch-orders">Orders</FieldLabel>
-					<FieldDescription>
-						Search by order number, customer, delivery mode, or status.
-					</FieldDescription>
-					<Controller
-						control={form.control}
-						name="salesIds"
-						render={({ field }) => (
-							<MultipleSelector
-								value={knownOptions.filter((option) =>
-									field.value.includes(Number(option.value)),
-								)}
-								onChange={(options) => {
-									setKnownOptions((current) => {
-										const merged = new Map(
-											current.map((option) => [option.value, option]),
-										);
-										for (const option of options) merged.set(option.value, option);
-										return [...merged.values()];
-									});
-									field.onChange(options.map((option) => Number(option.value)));
-								}}
-								onSearch={searchOrders}
-								triggerSearchOnFocus
-								delay={100}
-								maxSelected={50}
-								onMaxSelected={() =>
-									toast.error("You can create up to 50 dispatches at a time")
-								}
-								placeholder="Search eligible orders..."
-								emptyIndicator={
-									<p className="py-3 text-center text-sm text-muted-foreground">
-										No eligible orders found.
-									</p>
-								}
-								inputProps={{
-									id: "dispatch-orders",
-									"aria-invalid": Boolean(form.formState.errors.salesIds),
-								}}
-								renderOption={(option) => (
-									<div className="flex w-full items-start justify-between gap-3 py-1">
-										<div className="min-w-0">
-											<p className="font-medium">
-												{String(option.orderName)}
-											</p>
-											<p className="truncate text-xs text-muted-foreground">
-												{option.label} · {String(option.customerName)} ·{" "}
-												<span className="capitalize">
-													{String(option.deliveryMode)}
-												</span>
-											</p>
-										</div>
-										<Badge variant="outline" className="shrink-0 capitalize">
-											{String(option.status)}
-										</Badge>
-									</div>
-								)}
-							/>
-						)}
+		<>
+			<form
+				onSubmit={submit}
+				className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden"
+			>
+			<div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-background lg:overflow-hidden">
+				<Card className="grid min-h-0 min-w-0 border-0 bg-background lg:h-full lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,3fr)_auto_minmax(0,1fr)] lg:overflow-hidden">
+					<DispatchOrderPanel
+						selectedIds={salesIds}
+						selectedOrders={selectedOrders}
+						deliveryMode={deliveryMode}
+						onDeliveryModeChange={(value) => {
+							form.setValue("deliveryMode", value, {
+								shouldDirty: true,
+								shouldValidate: true,
+							});
+							if (value === "pickup") {
+								form.setValue("driverId", null, {
+									shouldDirty: true,
+									shouldValidate: true,
+								});
+							}
+						}}
+						onSearch={searchOrders}
+						onAdd={addOrder}
+						onRemove={(salesId) =>
+							updateSelectedOrderIds(
+								salesIds.filter((selectedId) => selectedId !== salesId),
+							)
+						}
+						orderDueDates={orderDueDates}
+						overrideDueDate={batchDueDate}
+						onOrderDueDateChange={(salesId, value) => {
+							if (!value) {
+								toast.error("Each order needs an individual delivery date");
+								return;
+							}
+							form.setValue(
+								"orderDueDates",
+								{ ...orderDueDates, [String(salesId)]: value },
+								{ shouldDirty: true, shouldValidate: true },
+							);
+						}}
+						error={form.formState.errors.salesIds}
 					/>
-					<FieldError errors={[form.formState.errors.salesIds]} />
-				</Field>
-				<div className="grid gap-5 sm:grid-cols-2">
-					<Field>
-						<FieldLabel>Delivery mode</FieldLabel>
-						<Controller
-							control={form.control}
-							name="deliveryMode"
-							render={({ field }) => (
-								<ToggleGroup
-									type="single"
-									variant="outline"
-									value={field.value}
-									onValueChange={(value) => value && field.onChange(value)}
-								>
-									<ToggleGroupItem value="delivery">Delivery</ToggleGroupItem>
-									<ToggleGroupItem value="pickup">Pickup</ToggleGroupItem>
-								</ToggleGroup>
-							)}
-						/>
-					</Field>
-					<Field data-invalid={Boolean(form.formState.errors.dueDate)}>
-						<FieldLabel htmlFor="dispatch-date">Delivery date</FieldLabel>
-						<Input
-							id="dispatch-date"
-							type="date"
-							aria-invalid={Boolean(form.formState.errors.dueDate)}
-							{...form.register("dueDate")}
-						/>
-						<FieldError errors={[form.formState.errors.dueDate]} />
-					</Field>
-				</div>
-				<Field>
-					<FieldLabel htmlFor="dispatch-driver">Driver</FieldLabel>
-					<FieldDescription>
-						Optional; unassigned work remains ready to assign.
-					</FieldDescription>
-					<Controller
-						control={form.control}
-						name="driverId"
-						render={({ field }) => (
-							<Select
-								value={field.value ? String(field.value) : "unassigned"}
-								onValueChange={(value) =>
-									field.onChange(value === "unassigned" ? null : Number(value))
-								}
-							>
-								<SelectTrigger id="dispatch-driver">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectItem value="unassigned">Unassigned</SelectItem>
-										{drivers.map((driver) => (
-											<SelectItem key={driver.id} value={String(driver.id)}>
-												{driver.name || "Unnamed driver"}
-											</SelectItem>
-										))}
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-						)}
+					<Separator className="lg:hidden" />
+					<Separator
+						orientation="vertical"
+						className="hidden h-full lg:block"
 					/>
-				</Field>
-			</FieldGroup>
-			<div className="flex items-center justify-between gap-3 border-t pt-5">
-				<p className="text-xs text-muted-foreground">
-					{form.watch("salesIds").length} order
-					{form.watch("salesIds").length === 1 ? "" : "s"} selected
-				</p>
+					<DispatchRoutePanel
+						orders={selectedOrders}
+						orderDueDates={orderDueDates}
+						overrideDueDate={batchDueDate}
+						onOverrideDueDateChange={(value) =>
+							form.setValue("batchDueDate", value, {
+								shouldDirty: true,
+								shouldValidate: true,
+							})
+						}
+					/>
+					<Separator className="lg:hidden" />
+					<Separator
+						orientation="vertical"
+						className="hidden h-full lg:block"
+					/>
+					<DispatchDriverPanel
+						drivers={drivers}
+						selectedDriverId={driverId}
+						disabled={deliveryMode === "pickup"}
+						onDriverChange={(value) =>
+							form.setValue("driverId", value, {
+								shouldDirty: true,
+								shouldValidate: true,
+							})
+						}
+						isLoading={employees.isLoading || driverWorkload.isLoading}
+					/>
+				</Card>
+			</div>
+
+			<DialogFooter className="grid grid-cols-2 items-center gap-2 border-t bg-background px-4 py-3 sm:flex sm:justify-end sm:space-x-0 sm:px-6 sm:py-4">
+				<Button
+					type="button"
+					variant="outline"
+					onClick={onCancel}
+					className="w-full sm:w-auto"
+				>
+					Cancel
+				</Button>
 				<Button
 					type="submit"
-					disabled={mutation.isPending || !form.formState.isValid}
+					className="w-full sm:w-auto"
+					disabled={
+						mutation.isPending ||
+						assignmentAddressGuard.isChecking ||
+						!form.formState.isValid ||
+						selectedDetailsLoading ||
+						salesIds.length === 0
+					}
 				>
-					{mutation.isPending
-						? "Creating..."
-						: form.watch("salesIds").length > 1
-							? "Create dispatches"
-							: "Create dispatch"}
+					{mutation.isPending ? <Spinner /> : null}
+					{salesIds.length > 1 ? "Create dispatches" : "Create dispatch"}
 				</Button>
-			</div>
-		</form>
+			</DialogFooter>
+			</form>
+			{assignmentAddressGuard.dialog}
+		</>
 	);
 }
 
@@ -282,23 +389,26 @@ export function CreateDispatchDialog() {
 		setFilters({
 			sheetMode: null,
 			dispatchSalesId: null,
-			dispatchId: null,
-			section: "dispatches",
 		});
+
 	return (
-		<Dialog open={open} onOpenChange={(next) => !next && void close()}>
-			<DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-0">
-				<DialogHeader className="px-6 pt-6">
-					<DialogTitle>Create dispatch</DialogTitle>
-					<DialogDescription>
-						Choose one or more eligible orders. Each order becomes its own
-						dispatch with the shared schedule and driver assignment.
-					</DialogDescription>
-				</DialogHeader>
-				<DispatchFormContext salesId={filters.dispatchSalesId}>
-					<CreateDispatchForm onCreated={() => void close()} />
-				</DispatchFormContext>
-			</DialogContent>
-		</Dialog>
+		<CustomModal
+			open={open}
+			onOpenChange={(next) => !next && void close()}
+			size="7xl"
+			height="lg"
+			title="Plan dispatch batch"
+			description="Select orders and create dispatches."
+			descriptionAsChild
+			className="max-h-[94vh] gap-0 overflow-hidden p-0 [&>div:first-child]:border-b [&>div:first-child]:px-6 [&>div:first-child]:py-4 [&>div:first-child]:pr-12"
+		>
+			<DispatchFormContext salesId={filters.dispatchSalesId}>
+				<CreateDispatchForm
+					initialSalesId={filters.dispatchSalesId}
+					onCreated={() => void close()}
+					onCancel={() => void close()}
+				/>
+			</DispatchFormContext>
+		</CustomModal>
 	);
 }

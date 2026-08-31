@@ -6,6 +6,20 @@ import {
 import { getDispatchInventoryReadiness } from "@gnd/sales/dispatch-manifest/inventory-readiness";
 import { buildDispatchManifestRevision } from "@gnd/sales/dispatch-manifest/revision";
 
+export function hasOperationalInventoryEvidence(line: {
+	components: Array<{
+		stockAllocations: Array<{ status?: string | null }>;
+		inboundDemands: unknown[];
+	}>;
+}) {
+	return line.components.some(
+		(component) =>
+			component.stockAllocations.some(
+				(allocation) => allocation.status !== "cancelled",
+			) || component.inboundDemands.length > 0,
+	);
+}
+
 export async function getDispatchInventoryManifest(
 	db: TRPCContext["db"],
 	input: {
@@ -70,6 +84,13 @@ export async function getDispatchInventoryManifest(
 			},
 		},
 	});
+	// Existing sales lines predate the inventory-allocation rollout. A product or
+	// component link alone does not mean inventory control is active: the line
+	// must have allocation or inbound evidence before strict inventory gates own
+	// packing. This keeps unmigrated orders on the legacy path during cutover.
+	const inventoryControlledLines = lines.filter(
+		hasOperationalInventoryEvidence,
+	);
 	const deliveryItems = input.orderDeliveryId
 		? await db.orderItemDelivery.findMany({
 				where: {
@@ -82,7 +103,9 @@ export async function getDispatchInventoryManifest(
 			})
 		: [];
 	const inventorySalesItemIds = new Set(
-		lines.flatMap((line) => (line.salesItemId ? [line.salesItemId] : [])),
+		inventoryControlledLines.flatMap((line) =>
+			line.salesItemId ? [line.salesItemId] : [],
+		),
 	);
 	const hasExplicitInventoryDeliveryItems = deliveryItems.some((item) =>
 		inventorySalesItemIds.has(item.orderItemId),
@@ -121,7 +144,7 @@ export async function getDispatchInventoryManifest(
 		activeDispatchIds,
 	});
 	const scopedSalesItemIds = new Set(scope.salesItemIds);
-	const scopedLines = lines.filter(
+	const scopedLines = inventoryControlledLines.filter(
 		(line) => line.salesItemId && scopedSalesItemIds.has(line.salesItemId),
 	);
 
@@ -217,7 +240,7 @@ export async function getDispatchInventoryManifest(
 		scope: {
 			source: scope.source,
 			resolved: scope.resolved,
-			inventoryLineCount: lines.length,
+			inventoryLineCount: inventoryControlledLines.length,
 			scopedLineCount: manifestLines.length,
 		},
 		lines: manifestLines,

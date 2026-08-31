@@ -33,6 +33,7 @@ describe("dispatch packing notification actions", () => {
 	test("turns current dispatch lifecycle events into typed stop actions", () => {
 		const channels = [
 			"sales_dispatch_created",
+			"sales_dispatch_approval_pending_released",
 			"sales_dispatch_unassigned",
 			"sales_dispatch_queued",
 			"sales_dispatch_packed",

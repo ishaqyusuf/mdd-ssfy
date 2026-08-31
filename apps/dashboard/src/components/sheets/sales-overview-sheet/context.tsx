@@ -1,8 +1,6 @@
 import { useState } from "react";
 
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
-import { getProductionTabItemCount } from "@/components/sales-overview-system/lib/production-items";
-
 import {
 	createSalesDispatchItemsSchema,
 	createSalesDispatchSchema,
@@ -16,6 +14,8 @@ import createContextFactory from "@/utils/context-factory";
 import { useQuery } from "@gnd/ui/tanstack";
 import { useAsyncMemo } from "use-async-memo";
 import z from "zod";
+
+import { shouldShowProductionReadiness } from "./production-readiness-visibility";
 
 const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
 	createContextFactory(() => {
@@ -115,14 +115,14 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
 				},
 			),
 		);
-		const hasProductionItems = getProductionTabItemCount(data?.items) > 0;
+		const showProductionReadiness = shouldShowProductionReadiness(data?.items);
 		const readinessQuery = useQuery(
 			trpc.sales.productionReadiness.queryOptions(
 				{
 					salesOrderId: data?.orderId || 0,
 				},
 				{
-					enabled: Boolean(data?.orderId && hasProductionItems),
+					enabled: Boolean(data?.orderId && showProductionReadiness),
 				},
 			),
 		);
@@ -137,9 +137,10 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
 			refetch,
 			readiness: readinessQuery.data,
 			readinessLoading: Boolean(
-				data?.orderId && hasProductionItems && readinessQuery.isPending,
+				data?.orderId && showProductionReadiness && readinessQuery.isPending,
 			),
-			readinessUnavailable: hasProductionItems && readinessQuery.isError,
+			readinessUnavailable: showProductionReadiness && readinessQuery.isError,
 			refetchReadiness: readinessQuery.refetch,
+			showProductionReadiness,
 		};
 	});

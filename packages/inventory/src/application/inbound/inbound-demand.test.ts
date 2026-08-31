@@ -146,6 +146,73 @@ describe("inbound needs application", () => {
 		});
 	});
 
+	test("prioritizes the triggering order when a received inbound is shared", async () => {
+		const updatedDemandIds: number[] = [];
+		const result = await applyInboundShipmentToNeeds(
+			{
+				inboundShipment: {
+					findFirstOrThrow: async () => ({
+						id: 70,
+						status: "completed",
+						items: [
+							{
+								id: 80,
+								qty: 1,
+								qtyGood: 1,
+								qtyIssue: 0,
+								inboundDemands: [
+									{
+										id: 90,
+										qty: 1,
+										qtyReceived: 0,
+										status: "ordered",
+										lineItemComponentId: 100,
+										lineItemComponent: {
+											parent: { sale: { id: 220, orderId: "OTHER" } },
+										},
+									},
+									{
+										id: 91,
+										qty: 1,
+										qtyReceived: 0,
+										status: "ordered",
+										lineItemComponentId: 101,
+										lineItemComponent: {
+											parent: { sale: { id: 110, orderId: "TARGET" } },
+										},
+									},
+								],
+							},
+						],
+					}),
+				},
+				inboundDemand: {
+					updateMany: async ({ where }: { where: { id: number } }) => {
+						updatedDemandIds.push(where.id);
+						return { count: 1 };
+					},
+				},
+				lineItemComponents: { findFirst: async () => null },
+				event: {
+					findFirst: async () => null,
+					create: async () => ({ id: 120 }),
+				},
+			} as any,
+			{
+				inboundId: 70,
+				actorUserId: 7,
+				prioritizeSalesOrderId: 110,
+			},
+		);
+
+		expect(updatedDemandIds).toEqual([91]);
+		expect(result).toMatchObject({
+			changed: true,
+			updatedDemandCount: 1,
+			affectedSalesOrderIds: [110],
+		});
+	});
+
 	test("treats a historical inbound as applied when its own capacity is exhausted", async () => {
 		const result = await getInboundShipmentDetail(
 			{

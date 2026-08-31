@@ -21,6 +21,7 @@ const workspaceFilters = [
 	{
 		key: "queue",
 		label: "Queue state",
+		icon: "tasks",
 		type: "single-select",
 		options: [
 			{ label: "All open", value: "all" },
@@ -36,6 +37,7 @@ const workspaceFilters = [
 	{
 		key: "due",
 		label: "Due date",
+		icon: "calendar",
 		type: "single-select",
 		options: [
 			{ label: "Overdue", value: "overdue" },
@@ -50,6 +52,7 @@ const workspaceFilters = [
 	{
 		key: "material",
 		label: "Material state",
+		icon: "products",
 		type: "single-select",
 		options: [
 			{ label: "Available", value: "available" },
@@ -64,6 +67,7 @@ const workspaceFilters = [
 	{
 		key: "sort",
 		label: "Sort",
+		icon: "Sort",
 		type: "single-select",
 		options: [
 			{ label: "Priority", value: "priority" },
@@ -93,6 +97,13 @@ export function SalesProductionHeader() {
 		trpc.sales.productionSummary.queryOptions({
 			q: filters.q,
 			assignedToId: filters.assignedToId,
+			"customer.name": filters["customer.name"],
+			phone: filters.phone,
+			po: filters.po,
+			item: filters.item,
+			"sales.rep": filters["sales.rep"],
+			invoice: filters.invoice,
+			salesNo: filters.salesNo,
 			priority: filters.priority,
 		}),
 	) as { data: DashboardSummary };
@@ -100,7 +111,18 @@ export function SalesProductionHeader() {
 		trpc.filters.salesProductions.queryOptions(),
 	);
 	const supportedServerFilters = (serverFilters || []).filter((filter) =>
-		["q", "assignedToId", "priority"].includes(String(filter.value)),
+		[
+			"q",
+			"customer.name",
+			"phone",
+			"po",
+			"sales.rep",
+			"salesNo",
+			"item",
+			"invoice",
+			"assignedToId",
+			"priority",
+		].includes(String(filter.value)),
 	) as PageFilterData[];
 	const resolved = resolveSalesProductionWorkspaceQuery(filters);
 	const pageTabs = createSalesProductionPageTabs(dashboard.summary);
@@ -115,7 +137,13 @@ export function SalesProductionHeader() {
 						["material", "sort"].includes(key),
 					)
 				: workspaceFilters;
-	const activeServerFilters = isReview ? [] : supportedServerFilters;
+	const activeServerFilters = isReview
+		? []
+		: isCalendar
+			? supportedServerFilters.filter((filter) =>
+					["q", "assignedToId", "priority"].includes(String(filter.value)),
+				)
+			: supportedServerFilters;
 	const hiddenFilterKeys = [
 		"tab",
 		"view",
@@ -124,6 +152,13 @@ export function SalesProductionHeader() {
 		"production",
 		...(isReview
 			? [
+					"customer.name",
+					"phone",
+					"po",
+					"item",
+					"sales.rep",
+					"invoice",
+					"salesNo",
 					"assignedToId",
 					"priority",
 					"queue",
@@ -135,9 +170,24 @@ export function SalesProductionHeader() {
 					"show",
 					"label",
 				]
-			: isCompleted
-				? ["queue", "due", "date", "productionDueDate", "show", "label"]
-				: []),
+			: isCalendar
+				? [
+						"customer.name",
+						"phone",
+						"po",
+						"item",
+						"sales.rep",
+						"invoice",
+						"salesNo",
+						"queue",
+						"due",
+						"date",
+						"material",
+						"sort",
+					]
+				: isCompleted
+					? ["queue", "due", "date", "productionDueDate", "show", "label"]
+					: []),
 	];
 	return (
 		<div className="min-w-0">
@@ -148,6 +198,7 @@ export function SalesProductionHeader() {
 					placeholder="Search order, customer, or sales number..."
 					filterList={[...activeServerFilters, ...activeWorkspaceFilters]}
 					hiddenFilterKeys={hiddenFilterKeys}
+					pageTabsLayout="adaptive"
 					pageTabs={
 						<PageTabs
 							portal={false}

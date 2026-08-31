@@ -1,19 +1,14 @@
 /** @jsxImportSource react */
+import { Section, Text } from "@react-email/components";
+
 import {
-	Body,
-	Container,
-	Heading,
-	Preview,
-	Section,
-	Text,
-} from "@react-email/components";
-import { Logo } from "../components/logo";
-import {
-	Button,
-	EmailThemeProvider,
-	getEmailInlineStyles,
-	getEmailThemeClasses,
-} from "../components/theme";
+	StandardEmailButton,
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 type Props = {
 	preview: string;
@@ -34,52 +29,75 @@ export default function DealerProgramStatusEmail({
 	actionUrl,
 	note,
 }: Props) {
-	const themeClasses = getEmailThemeClasses();
-	const lightStyles = getEmailInlineStyles("light");
-
 	return (
-		<EmailThemeProvider preview={<Preview>{preview}</Preview>}>
-			<Body className={themeClasses.body} style={lightStyles.body}>
-				<Container
-					className={`my-[40px] mx-auto p-[24px] max-w-[600px] ${themeClasses.container}`}
+		<StandardEmailLayout previewText={preview}>
+			<StandardEmailHeader
+				documentLabel="GND update"
+				documentMeta="Account & orders"
+			/>
+
+			<StandardEmailHero
+				eyebrow="Status update"
+				recipientName={recipientName || "there"}
+				title={heading}
+			>
+				<Text
+					className="gnd-standard-text m-0 mt-[10px] text-[15px] leading-[24px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					{message}
+				</Text>
+			</StandardEmailHero>
+
+			{note ? (
+				<Section
+					className="gnd-standard-panel gnd-standard-soft gnd-standard-border gnd-standard-brass-border mx-[36px] mt-[26px] rounded-[6px] border border-solid px-[20px] py-[17px]"
 					style={{
-						border: `1px solid ${lightStyles.container.borderColor}`,
-						borderRadius: 12,
+						backgroundColor: standardEmailColors.soft,
+						borderColor: standardEmailColors.border,
+						borderLeft: `4px solid ${standardEmailColors.brass}`,
 					}}
 				>
-					<Logo />
-					<Heading
-						className={`mt-[28px] text-[24px] ${themeClasses.heading}`}
-						style={{ color: lightStyles.text.color }}
+					<Text
+						className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+						style={{ color: standardEmailColors.muted }}
 					>
-						{heading}
-					</Heading>
-					<Text className={themeClasses.text} style={lightStyles.text}>
-						Hi {recipientName || "there"},
+						Additional note
 					</Text>
-					<Text className={themeClasses.text} style={lightStyles.text}>
-						{message}
+					<Text
+						className="gnd-standard-text m-0 mt-[7px] text-[14px] leading-[22px]"
+						style={{ color: standardEmailColors.ink }}
+					>
+						{note}
 					</Text>
-					{note ? (
-						<Section
-							className="my-[20px] p-[14px]"
-							style={{
-								backgroundColor: "#f8fafc",
-								borderRadius: 8,
-							}}
-						>
-							<Text className="m-0 text-[14px]" style={lightStyles.text}>
-								{note}
-							</Text>
-						</Section>
-					) : null}
-					{actionLabel && actionUrl ? (
-						<Section className="mt-[28px]">
-							<Button href={actionUrl}>{actionLabel}</Button>
-						</Section>
-					) : null}
-				</Container>
-			</Body>
-		</EmailThemeProvider>
+				</Section>
+			) : null}
+
+			{actionLabel && actionUrl ? (
+				<Section className="gnd-standard-content px-[36px] pb-[34px] pt-[26px]">
+					<StandardEmailButton href={actionUrl}>
+						{actionLabel}
+					</StandardEmailButton>
+				</Section>
+			) : (
+				<Section className="pb-[34px]" />
+			)}
+
+			<StandardEmailSignature
+				department="Customer operations · GND Millwork"
+				senderName="GND Millwork Team"
+			/>
+		</StandardEmailLayout>
 	);
 }
+
+DealerProgramStatusEmail.PreviewProps = {
+	preview: "Your GND dealer program application was approved",
+	heading: "Welcome to the GND Dealer Program",
+	recipientName: "Jordan Lee",
+	message:
+		"Your dealer profile is active. You can now sign in and begin managing orders.",
+	actionLabel: "Open dealer portal",
+	actionUrl: "https://dealership.gndprodesk.com",
+	note: "Reply to this email if you need help getting started.",
+} satisfies Props;

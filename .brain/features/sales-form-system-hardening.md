@@ -1,5 +1,17 @@
 # Sales Form System Hardening
 
+## Operational due-date defaults (2026-08-30)
+
+- The new order form exposes explicit `Production Due Date` and `Delivery Due
+  Date` calendar controls in Global Invoice Details. Quotes do not expose these
+  operational dates.
+- Both values persist through the canonical relational Sales Order save and
+  bootstrap contract. Production continues to use `SalesOrders.prodDueDate`;
+  delivery planning uses the additive nullable
+  `SalesOrders.deliveryDueDate`.
+- The nested new-form metadata retains compatibility snapshots, but the scalar
+  Sales Order columns are authoritative when an existing order is reopened.
+
 ## Current behavior (2026-08-12)
 
 - Quote-to-invoice conversion uses a copy-specific source projection instead

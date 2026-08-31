@@ -53,9 +53,9 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(canonical.includes("ProductionWorkspace")).toBe(true);
 		expect(canonical.includes("productionCalendarTasks")).toBe(true);
 		expect(canonical.includes("defaultTableFilters={tableFilter}")).toBe(true);
-		expect(
-			legacy.includes("redirect(`/production/dashboard${suffix}`)"),
-		).toBe(true);
+		expect(legacy.includes("redirect(`/production/dashboard${suffix}`)")).toBe(
+			true,
+		);
 		expect(legacy.includes("ProductionWorkspace")).toBe(false);
 		expect(
 			redirectEngine.includes(
@@ -132,7 +132,9 @@ describe("Sales Production Sales Orders table migration parity", () => {
 			table.includes('workerMode ? "production-tasks" : "sales-production"'),
 		).toBe(true);
 		expect(table.includes('className="md:hidden"')).toBe(true);
-		expect(columns.includes("timeAgo(dueDate)")).toBe(true);
+		expect(columns.includes("getProductionDueDatePresentation(dueDate)")).toBe(
+			true,
+		);
 		expect(columns.includes('item.alert?.text || "Open"')).toBe(false);
 		expect(columns.includes("function AssignedToBadge")).toBe(true);
 		expect(
@@ -152,10 +154,10 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(calendar.includes('value="week"')).toBe(true);
 		expect(calendar.includes('value="month"')).toBe(true);
 		expect(calendar.includes("<Card")).toBe(true);
-		expect(calendar.includes("<CardHeader")).toBe(true);
+		expect(calendar.includes('<Card className="overflow-auto">')).toBe(true);
 		expect(calendar.includes("<CardContent")).toBe(true);
 		expect(calendar.includes('"sales-production"')).toBe(true);
-		expect(calendar.includes("Unscheduled (")).toBe(true);
+		expect(calendar.includes("period.days.map((day)")).toBe(true);
 	});
 
 	it("keeps the production workspace on the new tables-2 surface with compact table padding", () => {
@@ -187,10 +189,13 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(source.includes('id="sales-production-table-dnd"')).toBe(true);
 		expect(source.includes("collisionDetection={closestCenter}")).toBe(true);
 		expect(source.includes("useTableScroll")).toBe(true);
-		expect(source.includes("startFromColumn: 1")).toBe(true);
+		expect(source.includes("startFromColumn: workerMode ? 1 : 2")).toBe(true);
 		expect(source.includes("trpc.sales.productionTasks")).toBe(true);
 		expect(source.includes("trpc.sales.productions")).toBe(true);
 		expect(source.includes("rowHeight={tableConfig.rowHeight}")).toBe(true);
+		expect(source.includes("onRowSelectionChange: setRowSelection")).toBe(true);
+		expect(source.includes("<BottomBar data={tableData} />")).toBe(true);
+		expect(source.includes("!workerMode && showBottomBar")).toBe(true);
 		expect(source.includes("estimateSize: () => tableConfig.rowHeight")).toBe(
 			true,
 		);
@@ -202,6 +207,27 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		).toBe(true);
 	});
 
+	it("reuses Sales Orders status actions for admin production batches only", () => {
+		const columnsSource = readSource(
+			"components/tables-2/sales-production/columns.tsx",
+		);
+		const bottomBarSource = readSource(
+			"components/tables-2/sales-production/bottom-bar.tsx",
+		);
+		const storeSource = readSource(
+			"components/tables-2/sales-production/store.ts",
+		);
+
+		expect(columnsSource.includes('id: "select"')).toBe(true);
+		expect(columnsSource.includes('header: "Mark all"')).toBe(true);
+		expect(columnsSource.includes("<SalesMenu.MarkAs")).toBe(true);
+		expect(bottomBarSource.includes("<SalesMenu.MarkAs")).toBe(true);
+		expect(
+			bottomBarSource.includes("statusCandidates={statusCandidates}"),
+		).toBe(true);
+		expect(storeSource.includes("rowSelection: RowSelectionState")).toBe(true);
+	});
+
 	it("keeps compact draggable headers, horizontal pagination, and resize handles", () => {
 		const source = readSource(
 			"components/tables-2/sales-production/table-header.tsx",
@@ -211,6 +237,8 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(source.includes("horizontalListSortingStrategy")).toBe(true);
 		expect(source.includes("DraggableHeader")).toBe(true);
 		expect(source.includes("HorizontalPagination")).toBe(true);
+		expect(source.includes("Mark all loaded production orders")).toBe(true);
+		expect(source.includes("table.toggleAllRowsSelected")).toBe(true);
 		expect(source.includes("getTableCellPaddingClass(tableConfig.style)")).toBe(
 			true,
 		);

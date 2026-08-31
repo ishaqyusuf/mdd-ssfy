@@ -36,3 +36,15 @@ Describes how the monorepo is organized so contributors can place code and docs 
 - `app/[...slug]/page.tsx`: only for intentionally slug-driven pages.
 - `(sidebar)/layout.tsx`: sidebar route group layout.
 - `(sidebar)/error.tsx`: sidebar route group error boundary.
+
+<!-- personal-coding-rules:start -->
+## Global Personal Coding Rules
+
+Agents must treat these global coding rule references as non-negotiable:
+
+- `/Users/M1PRO/.me/coding-standards/global.md`
+- `/Users/M1PRO/.me/coding-standards/nextjs.md`
+- `/Users/M1PRO/.me/coding-standards/expo.md`
+
+Project-specific exceptions require an ADR in `.brain/decisions/` before agents may diverge.
+<!-- personal-coding-rules:end -->

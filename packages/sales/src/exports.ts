@@ -6,6 +6,11 @@ export * from "./sales-control/get-sale-information";
 export * from "./sales-control/settings";
 export * from "./sales-control/tasks";
 export * from "./sales-control/task-authorization";
+export * from "./sales-control/ensure-fulfillment-dispatch";
+export * from "./bulk-fulfillment";
+export * from "./dispatch-backlog";
+export * from "./dispatch-batch-plan";
+export * from "./bulk-production-completion";
 export * from "./control";
 export {
 	withDispatchControl,

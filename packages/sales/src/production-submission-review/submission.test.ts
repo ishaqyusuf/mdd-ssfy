@@ -1,6 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
 
-import { submitProductionAssignmentInTransaction } from "./submission";
+import {
+	isAuthorizedProductionSubmissionOnBehalf,
+	submitProductionAssignmentInTransaction,
+} from "./submission";
 
 function input(overrides: Record<string, unknown> = {}) {
 	return {
@@ -17,23 +20,32 @@ function input(overrides: Record<string, unknown> = {}) {
 }
 
 function dbWithAssignment(overrides: Record<string, unknown> = {}) {
+	const operationOrder: string[] = [];
 	return {
+		operationOrder,
+		$queryRaw: mock(async () => {
+			operationOrder.push("lock");
+			return [{ id: 77 }];
+		}),
 		orderItemProductionAssignments: {
-			findUniqueOrThrow: mock(async () => ({
-				id: 77,
-				orderId: 42,
-				itemId: 10,
-				assignedToId: 7,
-				deletedAt: null,
-				laborCost: 25,
-				salesItemControlUid: "door-1",
-				qtyAssigned: 1,
-				lhQty: 0,
-				rhQty: 1,
-				updatedAt: new Date("2026-08-23T12:00:00.000Z"),
-				submissions: [],
-				...overrides,
-			})),
+			findUniqueOrThrow: mock(async () => {
+				operationOrder.push("read");
+				return {
+					id: 77,
+					orderId: 42,
+					itemId: 10,
+					assignedToId: 7,
+					deletedAt: null,
+					laborCost: 25,
+					salesItemControlUid: "door-1",
+					qtyAssigned: 1,
+					lhQty: 0,
+					rhQty: 1,
+					updatedAt: new Date("2026-08-23T12:00:00.000Z"),
+					submissions: [],
+					...overrides,
+				};
+			}),
 		},
 		salesProductionSubmissionMaterialReview: {
 			findUnique: mock(async () => null),
@@ -42,6 +54,30 @@ function dbWithAssignment(overrides: Record<string, unknown> = {}) {
 }
 
 describe("submitProductionAssignmentInTransaction", () => {
+	it("treats only an authorized submission for another assignee as approval", () => {
+		expect(
+			isAuthorizedProductionSubmissionOnBehalf({
+				allowSubmitForOthers: true,
+				assignedToId: 99,
+				submittedById: 7,
+			}),
+		).toBe(true);
+		expect(
+			isAuthorizedProductionSubmissionOnBehalf({
+				allowSubmitForOthers: true,
+				assignedToId: 7,
+				submittedById: 7,
+			}),
+		).toBe(false);
+		expect(
+			isAuthorizedProductionSubmissionOnBehalf({
+				allowSubmitForOthers: false,
+				assignedToId: 99,
+				submittedById: 7,
+			}),
+		).toBe(false);
+	});
+
 	it("does not let a worker submit an unassigned job", async () => {
 		await expect(
 			submitProductionAssignmentInTransaction(
@@ -55,9 +91,9 @@ describe("submitProductionAssignmentInTransaction", () => {
 		await expect(
 			submitProductionAssignmentInTransaction(
 				dbWithAssignment({ assignedToId: 99 }) as never,
-				input({ allowSubmitForOthers: true }),
+				input({ allowSubmitForOthers: true, qty: 0, rhQty: 0 }),
 			),
-		).rejects.not.toThrow("assigned to you");
+		).rejects.toThrow("must be greater than zero");
 	});
 
 	it("does not trust a quantity larger than the remaining assignment", async () => {
@@ -77,6 +113,14 @@ describe("submitProductionAssignmentInTransaction", () => {
 				input(),
 			),
 		).rejects.toThrow("exceeds the remaining assignment quantity");
+	});
+
+	it("locks the assignment before reading remaining quantity", async () => {
+		const db = dbWithAssignment({ assignedToId: null });
+		await expect(
+			submitProductionAssignmentInTransaction(db as never, input()),
+		).rejects.toThrow("active assigned worker");
+		expect(db.operationOrder).toEqual(["lock", "read"]);
 	});
 
 	it("does not accept a submission for a deleted assignment", async () => {

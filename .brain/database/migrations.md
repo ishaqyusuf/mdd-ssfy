@@ -1,5 +1,26 @@
 # Database Migrations
 
+## 2026-08-30: Sales order delivery due-date default
+
+- Added and locally applied additive migration
+  `20260830110000_add_sales_delivery_due_date`.
+- The migration adds nullable `SalesOrders.deliveryDueDate TIMESTAMP(0)`; it
+  does not backfill existing orders or modify `OrderDelivery.dueDate`.
+- `bun run db:generate` and the named local migration completed successfully.
+  No reset, destructive flag, preview write, or production write was used.
+
+## 2026-08-28: Guarded Packing Awaiting Production
+
+- Prisma generated and applied additive migration
+  `20260828163603_guarded_packing_awaiting_production` to the local development
+  database. It makes `SalesPackingReport.orderProductionSubmissionId` nullable,
+  adds optional `salesItemControlUid`, adds the
+  `AWAITING_PRODUCTION_SUBMISSION` reason, and creates the control/status index.
+- `bun run db:generate`, the named local migration, and `bun run db:push`
+  completed successfully; the final push reported the local schema in sync.
+- No reset, destructive flag, manual SQL, preview write, or production write was
+  used. Hosted environments still require the normal deploy migration workflow.
+
 ## 2026-08-26: Sales Tax Recognition Ledger
 
 - Prisma generated and applied additive migration

@@ -1,5 +1,7 @@
 import { type Db, Prisma, type TransactionClient } from "@gnd/db";
 
+import { applyInboundShipmentToNeeds } from "./inbound-demand";
+
 type DbLike = Db | TransactionClient;
 
 export type ReceivedInboundNeedsAttentionItem = {
@@ -13,20 +15,15 @@ export type ReceivedInboundNeedsAttentionItem = {
 	capacityQty: number;
 };
 
-const receivedInboundNeedsAttentionQuery = Prisma.sql`
-	SELECT
-		inbound.id AS inboundId,
-		inbound.status,
-		inbound.createdAt,
-		inbound.receivedAt,
-		inbound.reference,
-		SUM(demandTotals.linkedNeedCount) AS linkedNeedCount,
-		SUM(LEAST(LEAST(item.qty, demandTotals.linkedQty), demandTotals.appliedQty)) AS appliedQty,
-		SUM(LEAST(item.qty, demandTotals.linkedQty)) AS capacityQty
-	FROM InboundShipment inbound
-	INNER JOIN InboundShipmentItem item
-		ON item.inboundId = inbound.id AND item.deletedAt IS NULL
-	INNER JOIN (
+type ReceivedInboundNeedsAttentionInput = {
+	take?: number;
+	salesOrderId?: number;
+};
+
+function receivedInboundNeedsAttentionQuery(
+	input: Pick<ReceivedInboundNeedsAttentionInput, "salesOrderId"> = {},
+) {
+	const demandTotals = (salesOrderId?: number) => Prisma.sql`
 		SELECT
 			demand.inboundShipmentItemId,
 			COUNT(*) AS linkedNeedCount,
@@ -41,8 +38,66 @@ const receivedInboundNeedsAttentionQuery = Prisma.sql`
 			ON sale.id = lineItem.saleId AND sale.deletedAt IS NULL
 		WHERE demand.deletedAt IS NULL
 			AND demand.status <> 'cancelled'
+			${salesOrderId ? Prisma.sql`AND sale.id = ${salesOrderId}` : Prisma.sql``}
 		GROUP BY demand.inboundShipmentItemId
-	) demandTotals ON demandTotals.inboundShipmentItemId = item.id
+	`;
+	const allDemandTotals = demandTotals();
+	if (input.salesOrderId) {
+		const scopedDemandTotals = demandTotals(input.salesOrderId);
+		return Prisma.sql`
+			SELECT
+				inbound.id AS inboundId,
+				inbound.status,
+				inbound.createdAt,
+				inbound.receivedAt,
+				inbound.reference,
+				SUM(scopedDemandTotals.linkedNeedCount) AS linkedNeedCount,
+				SUM(scopedDemandTotals.appliedQty) AS appliedQty,
+				SUM(
+					scopedDemandTotals.appliedQty + LEAST(
+						GREATEST(
+							0,
+							LEAST(item.qty, allDemandTotals.linkedQty) - allDemandTotals.appliedQty
+						),
+						GREATEST(
+							0,
+							scopedDemandTotals.linkedQty - scopedDemandTotals.appliedQty
+						)
+					)
+				) AS capacityQty
+			FROM InboundShipment inbound
+			INNER JOIN InboundShipmentItem item
+				ON item.inboundId = inbound.id AND item.deletedAt IS NULL
+			INNER JOIN (${allDemandTotals}) allDemandTotals
+				ON allDemandTotals.inboundShipmentItemId = item.id
+			INNER JOIN (${scopedDemandTotals}) scopedDemandTotals
+				ON scopedDemandTotals.inboundShipmentItemId = item.id
+			WHERE inbound.deletedAt IS NULL
+				AND inbound.status = 'completed'
+			GROUP BY
+				inbound.id,
+				inbound.status,
+				inbound.createdAt,
+				inbound.receivedAt,
+				inbound.reference
+			HAVING capacityQty > appliedQty
+		`;
+	}
+	return Prisma.sql`
+	SELECT
+		inbound.id AS inboundId,
+		inbound.status,
+		inbound.createdAt,
+		inbound.receivedAt,
+		inbound.reference,
+		SUM(demandTotals.linkedNeedCount) AS linkedNeedCount,
+		SUM(LEAST(LEAST(item.qty, demandTotals.linkedQty), demandTotals.appliedQty)) AS appliedQty,
+		SUM(LEAST(item.qty, demandTotals.linkedQty)) AS capacityQty
+	FROM InboundShipment inbound
+	INNER JOIN InboundShipmentItem item
+		ON item.inboundId = inbound.id AND item.deletedAt IS NULL
+	INNER JOIN (${allDemandTotals}) demandTotals
+		ON demandTotals.inboundShipmentItemId = item.id
 	WHERE inbound.deletedAt IS NULL
 		AND inbound.status = 'completed'
 	GROUP BY
@@ -53,10 +108,11 @@ const receivedInboundNeedsAttentionQuery = Prisma.sql`
 		inbound.reference
 	HAVING capacityQty > appliedQty
 `;
+}
 
 export async function listReceivedInboundNeedsAttention(
 	db: DbLike,
-	input: { take?: number } = {},
+	input: ReceivedInboundNeedsAttentionInput = {},
 ): Promise<ReceivedInboundNeedsAttentionItem[]> {
 	type RawAttentionRow = Omit<
 		ReceivedInboundNeedsAttentionItem,
@@ -66,9 +122,13 @@ export async function listReceivedInboundNeedsAttention(
 		appliedQty: bigint | number;
 		capacityQty: bigint | number;
 	};
+	const attentionQuery = receivedInboundNeedsAttentionQuery(input);
 	const orderedAttentionQuery = Prisma.sql`
-		${receivedInboundNeedsAttentionQuery}
-		ORDER BY COALESCE(receivedAt, createdAt) DESC, inboundId DESC
+		SELECT attention.*
+		FROM (${attentionQuery}) attention
+		ORDER BY
+			COALESCE(attention.receivedAt, attention.createdAt) DESC,
+			attention.inboundId DESC
 	`;
 	const rows = input.take
 		? await db.$queryRaw<RawAttentionRow[]>(
@@ -85,11 +145,56 @@ export async function listReceivedInboundNeedsAttention(
 }
 
 export async function countReceivedInboundNeedsAttention(db: DbLike) {
+	const attentionQuery = receivedInboundNeedsAttentionQuery();
 	const rows = await db.$queryRaw<Array<{ count: bigint | number }>>(
 		Prisma.sql`
 			SELECT COUNT(*) AS count
-			FROM (${receivedInboundNeedsAttentionQuery}) attention
+			FROM (${attentionQuery}) attention
 		`,
 	);
 	return Number(rows[0]?.count ?? 0);
+}
+
+export async function repairReceivedInboundNeedsForSalesOrder(
+	db: DbLike,
+	input: {
+		salesOrderId: number;
+		actorUserId?: number | null;
+	},
+	dependencies: {
+		listAttention?: typeof listReceivedInboundNeedsAttention;
+		applyNeeds?: typeof applyInboundShipmentToNeeds;
+	} = {},
+) {
+	const candidates = await (
+		dependencies.listAttention ?? listReceivedInboundNeedsAttention
+	)(db, {
+		salesOrderId: input.salesOrderId,
+	});
+	const results: Awaited<ReturnType<typeof applyInboundShipmentToNeeds>>[] = [];
+	for (const candidate of candidates) {
+		results.push(
+			await (dependencies.applyNeeds ?? applyInboundShipmentToNeeds)(db, {
+				inboundId: candidate.inboundId,
+				actorUserId: input.actorUserId ?? null,
+				prioritizeSalesOrderId: input.salesOrderId,
+			}),
+		);
+	}
+
+	return {
+		inboundIds: candidates.map((candidate) => candidate.inboundId),
+		changedCount: results.filter((result) => result.changed).length,
+		updatedDemandCount: results.reduce(
+			(total, result) => total + result.updatedDemandCount,
+			0,
+		),
+		recomputedComponentCount: results.reduce(
+			(total, result) => total + result.recomputedComponentCount,
+			0,
+		),
+		affectedSalesOrderIds: Array.from(
+			new Set(results.flatMap((result) => result.affectedSalesOrderIds)),
+		),
+	};
 }

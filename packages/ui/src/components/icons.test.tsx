@@ -26,4 +26,11 @@ describe("Icons", () => {
 		expect(editMarkup).toBe(slantedPencilMarkup);
 		expect(legacyEditMarkup).toBe(slantedPencilMarkup);
 	});
+
+	it("uses a shield check glyph for successful security states", () => {
+		const shieldCheckMarkup = renderToStaticMarkup(<Icons.ShieldCheck />);
+		const searchMarkup = renderToStaticMarkup(<Icons.Search />);
+
+		expect(shieldCheckMarkup).not.toBe(searchMarkup);
+	});
 });

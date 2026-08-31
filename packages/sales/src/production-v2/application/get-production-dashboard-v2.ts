@@ -1,10 +1,10 @@
 import type { Db } from "@gnd/db";
 
-import type { ProductionV2ListQuery } from "../contracts";
 import {
 	getSalesProductionDashboard,
 	getSalesProductions,
 } from "../../sales-production";
+import type { ProductionV2ListQuery } from "../contracts";
 
 export async function getProductionDashboardV2(
 	db: Db,
@@ -22,7 +22,7 @@ export async function getProductionDashboardV2(
 			...filters,
 			workerId: resolvedWorkerId,
 			production: "completed",
-			size: 50,
+			size: 20,
 		}),
 	]);
 	const safeSummary = summary ?? {

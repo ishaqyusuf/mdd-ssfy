@@ -2056,6 +2056,7 @@ describe("new-sales-form relational parity", () => {
         paymentDueDate: "2026-02-02T00:00:00.000Z",
         goodUntil: null,
         prodDueDate: "2026-02-20T00:00:00.000Z",
+        deliveryDueDate: "2026-02-25T00:00:00.000Z",
         po: "PO-NEW",
         notes: null,
         deliveryOption: "delivery",
@@ -2096,6 +2097,9 @@ describe("new-sales-form relational parity", () => {
     expect(row?.createdAt.toISOString()).toBe("2026-02-01T00:00:00.000Z");
     expect(row?.paymentDueDate.toISOString()).toBe("2026-03-03T00:00:00.000Z");
     expect(row?.prodDueDate.toISOString()).toBe("2026-02-20T00:00:00.000Z");
+    expect(row?.deliveryDueDate.toISOString()).toBe(
+      "2026-02-25T00:00:00.000Z",
+    );
     expect(row?.deliveryOption).toBe("delivery");
 
     const loaded = await getNewSalesForm(ctx, {
@@ -2109,6 +2113,9 @@ describe("new-sales-form relational parity", () => {
       "2026-03-03T00:00:00.000Z",
     );
     expect((loaded.form as any).prodDueDate).toBe("2026-02-20T00:00:00.000Z");
+    expect((loaded.form as any).deliveryDueDate).toBe(
+      "2026-02-25T00:00:00.000Z",
+    );
   });
 
   it("reuses one order for repeated autosaves from the same new draft", async () => {

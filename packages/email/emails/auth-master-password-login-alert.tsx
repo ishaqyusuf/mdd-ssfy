@@ -1,18 +1,13 @@
 /** @jsxImportSource react */
+import { Column, Row, Section, Text } from "@react-email/components";
+
 import {
-	Body,
-	Container,
-	Heading,
-	Preview,
-	Section,
-	Text,
-} from "@react-email/components";
-import { Logo } from "../components/logo";
-import {
-	EmailThemeProvider,
-	getEmailInlineStyles,
-	getEmailThemeClasses,
-} from "../components/theme";
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 interface Props {
 	accountName?: string | null;
@@ -41,102 +36,178 @@ export default function AuthMasterPasswordLoginAlertEmail({
 	actorLabel,
 	supportEmail,
 }: Props) {
-	const themeClasses = getEmailThemeClasses();
-	const lightStyles = getEmailInlineStyles("light");
-	const previewText = "Master password login activity";
-
 	return (
-		<EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
-			<Body
-				className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-				style={lightStyles.body}
+		<StandardEmailLayout previewText="Master password login activity">
+			<StandardEmailHeader
+				documentLabel="Privileged access"
+				documentMeta={formatSurface(appSurface)}
+			/>
+
+			<StandardEmailHero
+				eyebrow="Security monitoring"
+				title="Master Password Login Activity"
 			>
-				<Container
-					className={`my-[40px] mx-auto p-[20px] max-w-[600px] ${themeClasses.container}`}
-					style={{
-						borderStyle: "solid",
-						borderWidth: 1,
-						borderColor: lightStyles.container.borderColor,
-					}}
+				<Text
+					className="gnd-standard-text m-0 mt-[14px] text-[15px] leading-[24px]"
+					style={{ color: standardEmailColors.ink }}
 				>
-					<Logo />
-					<Heading
-						className={`text-[21px] font-normal text-center p-0 my-[30px] mx-0 ${themeClasses.heading}`}
-						style={{ color: lightStyles.text.color }}
-					>
-						Master password login activity
-					</Heading>
+					A {formatSurface(appSurface)} account was accessed using{" "}
+					{actorLabel || "Master password"}.
+				</Text>
+			</StandardEmailHero>
 
-					<Text
-						className={themeClasses.text}
-						style={{ color: lightStyles.text.color }}
+			<Section
+				className="gnd-standard-panel gnd-standard-border mx-[36px] mt-[28px] rounded-[6px] border border-solid p-[20px]"
+				style={{ borderColor: standardEmailColors.border }}
+			>
+				<Row>
+					<Column
+						className="gnd-standard-mobile-stack"
+						style={{ width: "56%" }}
 					>
-						A {formatSurface(appSurface)} account was accessed using{" "}
-						{actorLabel || "Master password"}.
-					</Text>
+						<Text
+							className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+							style={{ color: standardEmailColors.muted }}
+						>
+							Account
+						</Text>
+						<Text
+							className="gnd-standard-text m-0 mt-[6px] text-[15px] font-semibold"
+							style={{ color: standardEmailColors.ink }}
+						>
+							{accountName || "Unnamed account"}
+						</Text>
+						<Text
+							className="gnd-standard-muted m-0 mt-[3px] text-[12px] leading-[18px]"
+							style={{
+								color: standardEmailColors.muted,
+								wordBreak: "break-word",
+							}}
+						>
+							{accountEmail}
+						</Text>
+					</Column>
+					<Column
+						className="gnd-standard-mobile-stack"
+						style={{ width: "44%" }}
+					>
+						<Text
+							className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+							style={{ color: standardEmailColors.muted }}
+						>
+							IP address
+						</Text>
+						<Text
+							className="gnd-standard-text m-0 mt-[6px] text-[14px] font-semibold"
+							style={{ color: standardEmailColors.ink }}
+						>
+							{ipAddress || "Unavailable"}
+						</Text>
+					</Column>
+				</Row>
 
-					<Section
-						className="my-[28px] rounded-[12px] p-[18px]"
-						style={{
-							backgroundColor: "#f8fafc",
-							borderColor: "#e2e8f0",
-							borderStyle: "solid",
-							borderWidth: 1,
-						}}
+				<Row style={{ marginTop: 18 }}>
+					<Column
+						className="gnd-standard-mobile-stack"
+						style={{ width: "56%" }}
 					>
 						<Text
-							className="m-0 text-[14px]"
-							style={{ color: lightStyles.text.color }}
+							className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+							style={{ color: standardEmailColors.muted }}
 						>
-							<strong>Account:</strong> {accountName || "Unnamed account"}
+							When
 						</Text>
 						<Text
-							className="m-0 mt-[8px] text-[14px]"
-							style={{ color: lightStyles.text.color }}
+							className="gnd-standard-text m-0 mt-[5px] text-[14px] leading-[21px]"
+							style={{ color: standardEmailColors.ink }}
 						>
-							<strong>Email:</strong> {accountEmail}
+							{loginAt}
+						</Text>
+					</Column>
+					<Column
+						className="gnd-standard-mobile-stack"
+						style={{ width: "44%" }}
+					>
+						<Text
+							className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+							style={{ color: standardEmailColors.muted }}
+						>
+							Surface
 						</Text>
 						<Text
-							className="m-0 mt-[8px] text-[14px]"
-							style={{ color: lightStyles.text.color }}
+							className="gnd-standard-text m-0 mt-[5px] text-[14px] font-semibold"
+							style={{ color: standardEmailColors.ink }}
 						>
-							<strong>Surface:</strong> {formatSurface(appSurface)}
+							{formatSurface(appSurface)}
 						</Text>
-						<Text
-							className="m-0 mt-[8px] text-[14px]"
-							style={{ color: lightStyles.text.color }}
-						>
-							<strong>When:</strong> {loginAt}
-						</Text>
-						<Text
-							className="m-0 mt-[8px] text-[14px]"
-							style={{ color: lightStyles.text.color }}
-						>
-							<strong>IP address:</strong> {ipAddress || "Unavailable"}
-						</Text>
-						<Text
-							className="m-0 mt-[8px] text-[14px]"
-							style={{ color: lightStyles.text.color }}
-						>
-							<strong>Session ID:</strong> {sessionId}
-						</Text>
-						<Text
-							className="m-0 mt-[8px] text-[12px] leading-[18px]"
-							style={{ color: "#64748b" }}
-						>
-							{userAgent || "User agent unavailable"}
-						</Text>
-					</Section>
+					</Column>
+				</Row>
 
-					<Text
-						className="text-[12px] leading-tight text-gray-500"
-						style={{ color: lightStyles.text.color }}
-					>
-						This message is for security monitoring recipients. If this access
-						was not expected, contact {supportEmail}.
-					</Text>
-				</Container>
-			</Body>
-		</EmailThemeProvider>
+				<Text
+					className="gnd-standard-muted m-0 mt-[18px] text-[12px] font-semibold uppercase tracking-[0.8px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Session ID
+				</Text>
+				<Text
+					className="gnd-standard-text m-0 mt-[5px] text-[13px] leading-[20px]"
+					style={{ color: standardEmailColors.ink, wordBreak: "break-word" }}
+				>
+					{sessionId}
+				</Text>
+
+				<Text
+					className="gnd-standard-muted m-0 mt-[18px] text-[12px] font-semibold uppercase tracking-[0.8px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Browser details
+				</Text>
+				<Text
+					className="gnd-standard-muted m-0 mt-[5px] text-[12px] leading-[18px]"
+					style={{ color: standardEmailColors.muted, wordBreak: "break-word" }}
+				>
+					{userAgent || "User agent unavailable"}
+				</Text>
+			</Section>
+
+			<Section
+				className="gnd-standard-panel gnd-standard-soft-danger gnd-standard-border mx-[36px] mb-[34px] mt-[18px] rounded-[6px] border border-solid px-[20px] py-[17px]"
+				style={{
+					backgroundColor: standardEmailColors.softDanger,
+					borderColor: standardEmailColors.border,
+				}}
+			>
+				<Text
+					className="gnd-standard-danger-text m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+					style={{ color: standardEmailColors.danger }}
+				>
+					Monitoring notice
+				</Text>
+				<Text
+					className="gnd-standard-text m-0 mt-[7px] text-[14px] leading-[22px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					This message is for security monitoring recipients. If this access was
+					not expected, contact {supportEmail}.
+				</Text>
+			</Section>
+
+			<StandardEmailSignature
+				department="Privileged access monitoring · GND Millwork"
+				senderName="GND Millwork Security"
+			/>
+		</StandardEmailLayout>
 	);
 }
+
+AuthMasterPasswordLoginAlertEmail.PreviewProps = {
+	accountName: "GND Demo Admin",
+	accountEmail: "admin@example.invalid",
+	appSurface: "www",
+	loginAt: "August 29, 2026 at 10:42 AM WAT",
+	ipAddress: "203.0.113.24",
+	userAgent: "Chrome 140 on macOS",
+	sessionId: "session_preview_01",
+	actorLabel: "GND support administrator",
+	supportEmail: "support@gndprodesk.com",
+} satisfies Props;

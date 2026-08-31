@@ -2,6 +2,8 @@ import type { Db, Prisma } from "@gnd/db";
 import { sum } from "@gnd/utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
 import { type PageDataMeta, composeQueryData } from "@gnd/utils/query-response";
+import { hasCompletedProductionLifecycle } from "./bulk-production-completion";
+import { getSalesOrderLifecycleStatusInfo } from "./order-status";
 import {
 	getSalesPriorityLabel,
 	getSalesPriorityRank,
@@ -14,8 +16,10 @@ import {
 	summarizeProductionMaterials,
 	unavailableProductionMaterialSummary,
 } from "./production-v2/application/production-materials";
+import { resolveProductionWorkflowStatus } from "./production-workflow-status";
 import { resolveSalesProductionWorkspaceQuery } from "./production-workspace-query";
 import { getSalesProductionPlan } from "./sales-fulfillment-plan";
+import { resolveSalesInventoryFulfillmentStatus } from "./sales-inventory-policy";
 import type {
 	SalesProductionCalendarQuery,
 	SalesProductionQueryParams,
@@ -129,6 +133,13 @@ export async function getSalesProductionDashboard(
 	const assignedToId = query.workerId || query.assignedToId;
 	const baseQuery: SalesProductionQueryParams = {
 		q: query.q,
+		"customer.name": query["customer.name"],
+		phone: query.phone,
+		po: query.po,
+		item: query.item,
+		"sales.rep": query["sales.rep"],
+		invoice: query.invoice,
+		salesNo: query.salesNo,
 		priority: query.priority,
 		assignedToId,
 		workerId: query.workerId,
@@ -200,6 +211,13 @@ export async function getSalesProductionSummary(
 	const assignedToId = query.workerId || query.assignedToId;
 	const baseQuery: SalesProductionQueryParams = {
 		q: query.q,
+		"customer.name": query["customer.name"],
+		phone: query.phone,
+		po: query.po,
+		item: query.item,
+		"sales.rep": query["sales.rep"],
+		invoice: query.invoice,
+		salesNo: query.salesNo,
 		priority: query.priority,
 		assignedToId,
 		workerId: query.workerId,
@@ -1079,12 +1097,23 @@ const select = (whereAssignments?) =>
 		billingAddress: true,
 		id: true,
 		orderId: true,
+		status: true,
+		prodStatus: true,
 		createdAt: true,
 		priority: true,
+		grandTotal: true,
+		amountDue: true,
 		salesRep: {
 			select: { name: true },
 		},
 		stat: true,
+		deliveries: {
+			where: { deletedAt: null },
+			select: {
+				status: true,
+				_count: { select: { items: true } },
+			},
+		},
 		itemControls: {
 			select: {
 				qtyControls: true,
@@ -1148,6 +1177,17 @@ function transformProductionList(
 		item.assignments.map((p) => p.qtyAssigned || sum([p.lhQty, p.rhQty])),
 	);
 	const stats = composeSalesStatKeyValue(item.stat);
+	const status = overallStatus(item.stat);
+	const lifecycleStatus = getSalesOrderLifecycleStatusInfo({
+		orderStatus: item.status,
+		legacyProductionStatus: item.prodStatus,
+		productionStatus: status.production.status,
+		fulfillmentStatus:
+			resolveSalesInventoryFulfillmentStatus({
+				deliveries: item.deliveries,
+				stats: item.stat,
+			}) ?? status.delivery.status,
+	});
 
 	const totalCompleted = sum(
 		item.assignments.map((a) =>
@@ -1173,15 +1213,28 @@ function transformProductionList(
 				return productionQty?.itemTotal || fallbackQty?.itemTotal || 0;
 			}),
 	);
-	const completed = isProductionCompleted({
-		productionStat: stats.prodCompleted,
-		totalAssigned,
-		totalCompleted,
-		totalProductionQty,
-		assignmentCompleted:
-			item.assignments.length > 0 &&
-			item.assignments.every((assignment) => !!assignment.completedAt),
-		useAssignmentCompletion: options?.useAssignmentCompletion,
+	const completed =
+		hasCompletedProductionLifecycle(lifecycleStatus.status) ||
+		isProductionCompleted({
+			productionStat: stats.prodCompleted,
+			totalAssigned,
+			totalCompleted,
+			totalProductionQty,
+			assignmentCompleted:
+				item.assignments.length > 0 &&
+				item.assignments.every((assignment) => !!assignment.completedAt),
+			useAssignmentCompletion: options?.useAssignmentCompletion,
+		});
+	const hasPendingReview = item.assignments.some((assignment) =>
+		assignment.submissions.some(
+			(submission) => submission.materialReview?.status === "PENDING",
+		),
+	);
+	const workflowStatus = resolveProductionWorkflowStatus({
+		assignment: status.assignment,
+		production: status.production,
+		hasPendingReview,
+		completed,
 	});
 	// if (completed) alert.date = null;
 
@@ -1196,6 +1249,16 @@ function transformProductionList(
 		priorityLabel: getSalesPriorityLabel(item.priority),
 		alert,
 		customer: item.customer?.name || item.customer?.businessName,
+		invoice: {
+			total: item.grandTotal == null ? null : Number(item.grandTotal),
+			amountDue: item.amountDue == null ? null : Number(item.amountDue),
+			status:
+				item.amountDue == null
+					? "unknown"
+					: Number(item.amountDue) <= 0
+						? "paid"
+						: "outstanding",
+		},
 
 		salesRep: item?.salesRep?.name,
 		assignedTo: Array.from(
@@ -1207,7 +1270,14 @@ function transformProductionList(
 		id: item.id,
 		createdAt: item.createdAt,
 		stats,
-		status: overallStatus(item.stat),
+		status: {
+			...status,
+			production: {
+				...status.production,
+				workflow: workflowStatus,
+			},
+		},
+		lifecycleStatus: lifecycleStatus.status,
 	};
 }
 

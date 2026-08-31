@@ -32,4 +32,16 @@ describe("production submission authentication boundary", () => {
         expect(source.includes("forceInAppRecipients: true")).toBe(true);
         expect(source.includes("includeChannelSubscribers: false")).toBe(true);
     });
+
+	it("derives the on-behalf sales-rep exception from order ownership", () => {
+		const source = readFileSync(
+			new URL("./submit-sales-assignment.ts", import.meta.url),
+			"utf8",
+		);
+
+		expect(source.includes("salesRepId: actor.userId")).toBe(true);
+		expect(source.includes("isOrderSalesRep: Boolean(representedOrder)")).toBe(
+			true,
+		);
+	});
 });

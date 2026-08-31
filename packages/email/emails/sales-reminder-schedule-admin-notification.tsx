@@ -1,22 +1,15 @@
 /** @jsxImportSource react */
-import {
-	Body,
-	Column,
-	Container,
-	Heading,
-	Preview,
-	Row,
-	Section,
-	Text,
-} from "@react-email/components";
+import { Column, Row, Section, Text } from "@react-email/components";
 import { format } from "date-fns";
-import { Footer } from "../components/footer";
-import { Logo } from "../components/logo";
+
 import {
-	EmailThemeProvider,
-	getEmailInlineStyles,
-	getEmailThemeClasses,
-} from "../components/theme";
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailMetric,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 type SalesRow = {
 	saleId: number;
@@ -102,300 +95,392 @@ export function SalesReminderScheduleAdminNotificationEmail({
 	skippedSalesTruncated = 0,
 }: Props) {
 	const previewText = `Sales reminder ${label(triggerType)} run: ${deliveredGroupCount} delivered`;
-	const themeClasses = getEmailThemeClasses();
-	const lightStyles = getEmailInlineStyles("light");
+	const needsAttention = failedGroupCount + skippedSalesCount > 0;
 
 	return (
-		<EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
-			<Body
-				className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-				style={lightStyles.body}
-			>
-				<Container
-					className={`my-[28px] mx-auto p-[20px] max-w-[700px] ${themeClasses.container}`}
-					style={{
-						borderStyle: "solid",
-						borderWidth: 1,
-						borderColor: lightStyles.container.borderColor,
-						borderRadius: 12,
-					}}
-				>
-					<Logo />
-					<Heading
-						className={`text-[24px] leading-[30px] mb-[8px] ${themeClasses.heading}`}
-						style={{ color: lightStyles.text.color }}
-					>
-						Sales Reminder Schedule Summary
-					</Heading>
-					<Text className={`m-0 mb-[12px] ${themeClasses.text}`}>
-						Hi {recipientName}, this is the {label(triggerType)} run summary
-						from {authorName}.
-					</Text>
+		<StandardEmailLayout previewText={previewText}>
+			<StandardEmailHeader
+				documentLabel="Reminder run"
+				documentMeta={`${label(triggerType)} · ${label(statusUsed)}`}
+			/>
 
+			<StandardEmailHero
+				eyebrow="Sales automation"
+				recipientName={recipientName}
+				title="Sales Reminder Run Summary"
+			>
+				<Text
+					className="gnd-standard-text m-0 mt-[10px] text-[15px] leading-[24px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					This is the {label(triggerType).toLowerCase()} run summary from{" "}
+					{authorName}. Delivery results and any skipped sales are listed below.
+				</Text>
+			</StandardEmailHero>
+
+			<Section
+				className={`gnd-standard-panel gnd-standard-border mx-[36px] mt-[28px] rounded-[6px] border border-solid p-[20px] ${needsAttention ? "gnd-standard-soft-danger" : "gnd-standard-soft-green"}`}
+				style={{
+					backgroundColor: needsAttention
+						? standardEmailColors.softDanger
+						: standardEmailColors.softGreen,
+					borderColor: standardEmailColors.border,
+				}}
+			>
+				<Row>
+					<StandardEmailMetric
+						emphasis
+						label="Delivered"
+						value={String(deliveredGroupCount)}
+					/>
+					<StandardEmailMetric
+						label="Failed"
+						value={String(failedGroupCount)}
+					/>
+					<StandardEmailMetric
+						label="Skipped sales"
+						value={String(skippedSalesCount)}
+					/>
+				</Row>
+			</Section>
+
+			<Section
+				className="gnd-standard-panel gnd-standard-border mx-[36px] mt-[16px] rounded-[6px] border border-solid p-[20px]"
+				style={{ borderColor: standardEmailColors.border }}
+			>
+				<Row>
+					<StandardEmailMetric
+						label="Sales found"
+						value={String(foundSalesCount)}
+					/>
+					<StandardEmailMetric
+						label="Valid sales"
+						value={String(validSalesCount)}
+					/>
+					<StandardEmailMetric
+						label="Recipient groups"
+						value={String(groupedRecipientCount)}
+					/>
+				</Row>
+				<Row style={{ marginTop: 18 }}>
+					<Column
+						className="gnd-standard-mobile-stack"
+						style={{ width: "50%" }}
+					>
+						<Text
+							className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+							style={{ color: standardEmailColors.muted }}
+						>
+							Total pending
+						</Text>
+						<Text
+							className="gnd-standard-text m-0 mt-[6px] text-[16px] font-semibold"
+							style={{ color: standardEmailColors.ink }}
+						>
+							{currency(totalPendingAmount)}
+						</Text>
+					</Column>
+					<Column
+						className="gnd-standard-mobile-stack"
+						style={{ width: "50%" }}
+					>
+						<Text
+							className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+							style={{ color: standardEmailColors.muted }}
+						>
+							Total sales value
+						</Text>
+						<Text
+							className="gnd-standard-text m-0 mt-[6px] text-[16px] font-semibold"
+							style={{ color: standardEmailColors.ink }}
+						>
+							{currency(totalSalesAmount)}
+						</Text>
+					</Column>
+				</Row>
+			</Section>
+
+			<Section className="gnd-standard-content px-[36px] pb-[3px] pt-[30px]">
+				<Text
+					className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[1.1px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Successful recipients · {successfulRecipients.length}
+				</Text>
+			</Section>
+
+			{successfulRecipients.length ? (
+				successfulRecipients.map((recipient) => (
 					<Section
-						className="mb-[16px] p-[14px]"
+						className="gnd-standard-panel gnd-standard-border mx-[36px] mt-[12px] rounded-[6px] border border-solid p-[20px]"
+						key={`${recipient.recipientRole}-${recipient.recipientId}`}
+						style={{ borderColor: standardEmailColors.border }}
+					>
+						<Text
+							className="gnd-standard-text m-0 text-[15px] font-semibold leading-[22px]"
+							style={{ color: standardEmailColors.ink }}
+						>
+							{recipient.recipientName}
+						</Text>
+						<Text
+							className="gnd-standard-muted m-0 mt-[3px] text-[12px] leading-[18px]"
+							style={{
+								color: standardEmailColors.muted,
+								wordBreak: "break-word",
+							}}
+						>
+							{recipient.recipientEmail} · {label(recipient.recipientRole)} ·{" "}
+							{recipient.salesCount} sale
+							{recipient.salesCount === 1 ? "" : "s"}
+						</Text>
+						<Row style={{ marginTop: 14 }}>
+							<Column
+								className="gnd-standard-mobile-stack"
+								style={{ width: "50%" }}
+							>
+								<Text
+									className="gnd-standard-muted m-0 text-[12px] uppercase tracking-[0.7px]"
+									style={{ color: standardEmailColors.muted }}
+								>
+									Pending
+								</Text>
+								<Text
+									className="gnd-standard-text m-0 mt-[4px] text-[14px] font-semibold"
+									style={{ color: standardEmailColors.ink }}
+								>
+									{currency(recipient.totalPendingAmount)}
+								</Text>
+							</Column>
+							<Column
+								className="gnd-standard-mobile-stack"
+								style={{ width: "50%" }}
+							>
+								<Text
+									className="gnd-standard-muted m-0 text-[12px] uppercase tracking-[0.7px]"
+									style={{ color: standardEmailColors.muted }}
+								>
+									Sales value
+								</Text>
+								<Text
+									className="gnd-standard-text m-0 mt-[4px] text-[14px] font-semibold"
+									style={{ color: standardEmailColors.ink }}
+								>
+									{currency(recipient.totalSalesAmount)}
+								</Text>
+							</Column>
+						</Row>
+
+						{recipient.sales.map((sale) => (
+							<Section
+								className="gnd-standard-soft gnd-standard-border mt-[12px] rounded-[5px] border border-solid px-[14px] py-[12px]"
+								key={sale.saleId}
+								style={{
+									backgroundColor: standardEmailColors.soft,
+									borderColor: standardEmailColors.border,
+								}}
+							>
+								<Row>
+									<Column
+										className="gnd-standard-mobile-stack"
+										style={{ width: "70%" }}
+									>
+										<Text
+											className="gnd-standard-text m-0 text-[13px] font-semibold"
+											style={{ color: standardEmailColors.ink }}
+										>
+											{sale.orderId} · {formatDate(sale.date)}
+										</Text>
+										<Text
+											className="gnd-standard-muted m-0 mt-[3px] text-[12px]"
+											style={{ color: standardEmailColors.muted }}
+										>
+											PO {sale.po || "—"}
+										</Text>
+									</Column>
+									<Column
+										align="right"
+										className="gnd-standard-mobile-stack"
+										style={{ width: "30%" }}
+									>
+										<Text
+											className="gnd-standard-muted m-0 text-[12px] uppercase"
+											style={{ color: standardEmailColors.muted }}
+										>
+											Due
+										</Text>
+										<Text
+											className="gnd-standard-text m-0 mt-[3px] text-[13px] font-semibold"
+											style={{ color: standardEmailColors.ink }}
+										>
+											{currency(sale.due)}
+										</Text>
+									</Column>
+								</Row>
+							</Section>
+						))}
+					</Section>
+				))
+			) : (
+				<Section className="gnd-standard-content px-[36px] pt-[9px]">
+					<Text
+						className="gnd-standard-muted m-0 text-[14px]"
+						style={{ color: standardEmailColors.muted }}
+					>
+						No reminder emails were delivered in this run.
+					</Text>
+				</Section>
+			)}
+
+			{successfulRecipientsTruncated > 0 ? (
+				<Section className="gnd-standard-content px-[36px] pt-[10px]">
+					<Text
+						className="gnd-standard-muted m-0 text-[12px]"
+						style={{ color: standardEmailColors.muted }}
+					>
+						+ {successfulRecipientsTruncated} more recipient groups omitted.
+					</Text>
+				</Section>
+			) : null}
+
+			<Section className="gnd-standard-content px-[36px] pb-[3px] pt-[30px]">
+				<Text
+					className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[1.1px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Skipped sales · {skippedSales.length}
+				</Text>
+			</Section>
+
+			{skippedSales.length ? (
+				skippedSales.map((sale) => (
+					<Section
+						className="gnd-standard-panel gnd-standard-soft-danger gnd-standard-border mx-[36px] mt-[12px] rounded-[6px] border border-solid p-[18px]"
+						key={sale.saleId}
 						style={{
-							borderStyle: "solid",
-							borderWidth: 1,
-							borderColor: lightStyles.container.borderColor,
-							borderRadius: 10,
-							backgroundColor: "#f8fafc",
+							backgroundColor: standardEmailColors.softDanger,
+							borderColor: standardEmailColors.border,
 						}}
 					>
 						<Row>
-							<Column style={{ width: "25%" }}>
-								<Text className={`m-0 text-[12px] ${themeClasses.mutedText}`}>
-									Status
+							<Column
+								className="gnd-standard-mobile-stack"
+								style={{ width: "72%" }}
+							>
+								<Text
+									className="gnd-standard-text m-0 text-[14px] font-semibold"
+									style={{ color: standardEmailColors.ink }}
+								>
+									{sale.orderId} ·{" "}
+									{sale.customerName || "Customer not provided"}
 								</Text>
 								<Text
-									className={`m-0 mt-[2px] text-[15px] font-semibold ${themeClasses.text}`}
+									className="gnd-standard-danger-text m-0 mt-[6px] text-[13px] leading-[20px]"
+									style={{ color: standardEmailColors.danger }}
 								>
-									{label(statusUsed)}
+									{sale.reasons.join(", ")}
 								</Text>
 							</Column>
-							<Column style={{ width: "25%" }}>
-								<Text className={`m-0 text-[12px] ${themeClasses.mutedText}`}>
-									Delivered
+							<Column
+								align="right"
+								className="gnd-standard-mobile-stack"
+								style={{ width: "28%" }}
+							>
+								<Text
+									className="gnd-standard-muted m-0 text-[12px] uppercase"
+									style={{ color: standardEmailColors.muted }}
+								>
+									Due
 								</Text>
 								<Text
-									className={`m-0 mt-[2px] text-[15px] font-semibold ${themeClasses.text}`}
+									className="gnd-standard-danger-text m-0 mt-[3px] text-[14px] font-semibold"
+									style={{ color: standardEmailColors.danger }}
 								>
-									{deliveredGroupCount}
-								</Text>
-							</Column>
-							<Column style={{ width: "25%" }}>
-								<Text className={`m-0 text-[12px] ${themeClasses.mutedText}`}>
-									Failed
-								</Text>
-								<Text
-									className={`m-0 mt-[2px] text-[15px] font-semibold ${themeClasses.text}`}
-								>
-									{failedGroupCount}
-								</Text>
-							</Column>
-							<Column style={{ width: "25%" }}>
-								<Text className={`m-0 text-[12px] ${themeClasses.mutedText}`}>
-									Skipped Sales
-								</Text>
-								<Text
-									className={`m-0 mt-[2px] text-[15px] font-semibold ${themeClasses.text}`}
-								>
-									{skippedSalesCount}
+									{currency(sale.amountDue)}
 								</Text>
 							</Column>
 						</Row>
 					</Section>
-
-					<Section className="mb-[18px]">
-						<Text className={`m-0 ${themeClasses.text}`}>
-							Found sales: <strong>{foundSalesCount}</strong> | Valid sales:{" "}
-							<strong>{validSalesCount}</strong> | Recipient groups:{" "}
-							<strong>{groupedRecipientCount}</strong>
-						</Text>
-						<Text className={`m-0 mt-[4px] ${themeClasses.text}`}>
-							Total pending: <strong>{currency(totalPendingAmount)}</strong> |
-							Total sales value: <strong>{currency(totalSalesAmount)}</strong>
-						</Text>
-					</Section>
-
-					<Heading
-						className={`text-[18px] mb-[8px] ${themeClasses.heading}`}
-						style={{ color: lightStyles.text.color }}
+				))
+			) : (
+				<Section className="gnd-standard-content px-[36px] pt-[9px]">
+					<Text
+						className="gnd-standard-muted m-0 text-[14px]"
+						style={{ color: standardEmailColors.muted }}
 					>
-						Successful Recipients ({successfulRecipients.length})
-					</Heading>
-					{successfulRecipients.length === 0 ? (
-						<Text className={`mt-[6px] ${themeClasses.text}`}>
-							No reminder emails were delivered in this run.
-						</Text>
-					) : (
-						successfulRecipients.map((recipient) => (
-							<Section
-								key={`${recipient.recipientRole}-${recipient.recipientId}`}
-								className="mb-[14px] p-[12px]"
-								style={{
-									borderStyle: "solid",
-									borderWidth: 1,
-									borderColor: lightStyles.container.borderColor,
-									borderRadius: 10,
-								}}
-							>
-								<Text
-									className={`m-0 text-[14px] font-semibold ${themeClasses.text}`}
-								>
-									{recipient.recipientName} ({recipient.recipientEmail})
-								</Text>
-								<Text
-									className={`m-0 mt-[2px] text-[13px] ${themeClasses.mutedText}`}
-								>
-									Role: {recipient.recipientRole} | Sales:{" "}
-									{recipient.salesCount} | Pending:{" "}
-									{currency(recipient.totalPendingAmount)} | Total:{" "}
-									{currency(recipient.totalSalesAmount)}
-								</Text>
-								<table style={{ width: "100%", marginTop: 8 }}>
-									<thead>
-										<tr>
-											<th align="left">
-												<Text
-													className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-												>
-													Date
-												</Text>
-											</th>
-											<th align="left">
-												<Text
-													className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-												>
-													Order
-												</Text>
-											</th>
-											<th align="left">
-												<Text
-													className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-												>
-													PO
-												</Text>
-											</th>
-											<th align="left">
-												<Text
-													className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-												>
-													Due
-												</Text>
-											</th>
-										</tr>
-									</thead>
-									<tbody>
-										{recipient.sales.map((sale) => (
-											<tr key={sale.saleId}>
-												<td>
-													<Text
-														className={`m-0 text-[13px] ${themeClasses.text}`}
-													>
-														{formatDate(sale.date)}
-													</Text>
-												</td>
-												<td>
-													<Text
-														className={`m-0 text-[13px] ${themeClasses.text}`}
-													>
-														{sale.orderId}
-													</Text>
-												</td>
-												<td>
-													<Text
-														className={`m-0 text-[13px] ${themeClasses.text}`}
-													>
-														{sale.po || "-"}
-													</Text>
-												</td>
-												<td>
-													<Text
-														className={`m-0 text-[13px] ${themeClasses.text}`}
-													>
-														{currency(sale.due)}
-													</Text>
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</Section>
-						))
-					)}
-					{successfulRecipientsTruncated > 0 ? (
-						<Text
-							className={`m-0 mt-[6px] text-[12px] ${themeClasses.mutedText}`}
-						>
-							+ {successfulRecipientsTruncated} more recipient groups omitted.
-						</Text>
-					) : null}
+						No sales were skipped due to missing emails.
+					</Text>
+				</Section>
+			)}
 
-					<Heading
-						className={`text-[18px] mt-[10px] mb-[8px] ${themeClasses.heading}`}
-						style={{ color: lightStyles.text.color }}
+			{skippedSalesTruncated > 0 ? (
+				<Section className="gnd-standard-content px-[36px] pb-[10px] pt-[10px]">
+					<Text
+						className="gnd-standard-muted m-0 text-[12px]"
+						style={{ color: standardEmailColors.muted }}
 					>
-						Skipped Sales ({skippedSales.length})
-					</Heading>
-					{skippedSales.length === 0 ? (
-						<Text className={`mt-[6px] ${themeClasses.text}`}>
-							No sales were skipped due to missing emails.
-						</Text>
-					) : (
-						<table style={{ width: "100%" }}>
-							<thead>
-								<tr>
-									<th align="left">
-										<Text
-											className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-										>
-											Order
-										</Text>
-									</th>
-									<th align="left">
-										<Text
-											className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-										>
-											Customer
-										</Text>
-									</th>
-									<th align="left">
-										<Text
-											className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-										>
-											Reasons
-										</Text>
-									</th>
-									<th align="left">
-										<Text
-											className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-										>
-											Due
-										</Text>
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{skippedSales.map((sale) => (
-									<tr key={sale.saleId}>
-										<td>
-											<Text className={`m-0 text-[13px] ${themeClasses.text}`}>
-												{sale.orderId}
-											</Text>
-										</td>
-										<td>
-											<Text className={`m-0 text-[13px] ${themeClasses.text}`}>
-												{sale.customerName || "-"}
-											</Text>
-										</td>
-										<td>
-											<Text className={`m-0 text-[13px] ${themeClasses.text}`}>
-												{sale.reasons.join(", ")}
-											</Text>
-										</td>
-										<td>
-											<Text className={`m-0 text-[13px] ${themeClasses.text}`}>
-												{currency(sale.amountDue)}
-											</Text>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					)}
-					{skippedSalesTruncated > 0 ? (
-						<Text
-							className={`m-0 mt-[6px] text-[12px] ${themeClasses.mutedText}`}
-						>
-							+ {skippedSalesTruncated} more skipped sales omitted.
-						</Text>
-					) : null}
-					<Footer />
-				</Container>
-			</Body>
-		</EmailThemeProvider>
+						+ {skippedSalesTruncated} more skipped sales omitted.
+					</Text>
+				</Section>
+			) : null}
+
+			<Section className="pb-[30px]" />
+			<StandardEmailSignature
+				department="Sales automation · GND Millwork"
+				senderName={authorName}
+			/>
+		</StandardEmailLayout>
 	);
 }
+
+SalesReminderScheduleAdminNotificationEmail.PreviewProps = {
+	recipientName: "Sales Admin",
+	authorName: "GND Scheduler",
+	triggerType: "scheduled",
+	statusUsed: "active",
+	foundSalesCount: 3,
+	validSalesCount: 2,
+	groupedRecipientCount: 1,
+	deliveredGroupCount: 1,
+	failedGroupCount: 0,
+	skippedSalesCount: 1,
+	totalPendingAmount: 1240,
+	totalSalesAmount: 2480,
+	successfulRecipients: [
+		{
+			recipientRole: "customer",
+			recipientId: 2048,
+			recipientName: "Jordan Lee",
+			recipientEmail: "jordan@example.invalid",
+			salesCount: 1,
+			totalPendingAmount: 1240,
+			totalSalesAmount: 2480,
+			sales: [
+				{
+					saleId: 10482,
+					orderId: "GND-10482",
+					po: "PO-7731",
+					date: "2026-08-29T09:00:00.000Z",
+					due: 1240,
+					total: 2480,
+				},
+			],
+		},
+	],
+	skippedSales: [
+		{
+			saleId: 10483,
+			orderId: "GND-10483",
+			customerName: "Sample Customer",
+			customerEmail: null,
+			addressEmail: null,
+			salesRepEmail: "alex@example.invalid",
+			reasons: ["Customer email is missing"],
+			amountDue: 320,
+			grandTotal: 640,
+		},
+	],
+	successfulRecipientsTruncated: 0,
+	skippedSalesTruncated: 0,
+} satisfies Props;
 
 export default SalesReminderScheduleAdminNotificationEmail;

@@ -1,41 +1,21 @@
 "use client";
 
+import {
+	SalesOrderInvoiceCell,
+	SalesOrderStatusCell,
+} from "@/components/tables-2/sales-orders/order-finance-status-cells";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
+import { cn } from "@gnd/ui/cn";
 import { Progress } from "@gnd/ui/progress";
 import type { ColumnDef } from "@tanstack/react-table";
 import { PackageCheck } from "lucide-react";
 import type { SalesDispatch } from "./columns";
+import { getDispatchPackingTotals } from "./packing-totals";
 
 type Column = ColumnDef<SalesDispatch>;
-
-function getPackingTotals(item: SalesDispatch) {
-	const row = item as SalesDispatch & {
-		control?: {
-			packed?: { total?: number };
-			pendingPacking?: { total?: number };
-		};
-		statistic?: {
-			packed?: { total?: number };
-			pendingPacking?: { total?: number };
-		};
-	};
-	const packed = Number(
-		row.order?.control?.packed?.total ||
-			row.control?.packed?.total ||
-			row.statistic?.packed?.total ||
-			0,
-	);
-	const pending = Number(
-		row.order?.control?.pendingPacking?.total ||
-			row.control?.pendingPacking?.total ||
-			row.statistic?.pendingPacking?.total ||
-			0,
-	);
-	return { packed, pending, total: packed + pending };
-}
 
 function formatDate(value: Date | string | null | undefined) {
 	if (!value) return "Unscheduled";
@@ -103,7 +83,13 @@ export const workspaceColumns: Column[] = [
 		},
 		cell: ({ row }) => (
 			<div className="flex min-w-0 flex-col gap-1">
-				<span className="truncate font-medium">
+				<span
+					className={cn(
+						"truncate font-medium",
+						row.original.workspace?.risks?.includes("overdue") &&
+							"text-red-600",
+					)}
+				>
 					{formatDate(row.original.dueDate)}
 				</span>
 				<span className="truncate text-xs text-muted-foreground">
@@ -206,7 +192,7 @@ export const workspaceColumns: Column[] = [
 			className: "w-[150px] min-w-[130px]",
 		},
 		cell: ({ row }) => {
-			const { packed, pending, total } = getPackingTotals(row.original);
+			const { packed, pending, total } = getDispatchPackingTotals(row.original);
 			const percentage = total > 0 ? Math.round((packed / total) * 100) : 0;
 			return (
 				<div className="flex min-w-0 flex-col gap-2">
@@ -222,51 +208,42 @@ export const workspaceColumns: Column[] = [
 		},
 	},
 	{
-		id: "status",
-		header: "Trip",
-		accessorFn: (row) => row.workspace?.stage,
-		size: 130,
-		minSize: 112,
+		id: "invoice",
+		header: "Invoice",
+		accessorFn: (row) => row.order?.invoiceTotal,
+		size: 124,
+		minSize: 110,
 		maxSize: 180,
 		meta: {
-			skeleton: { type: "badge", width: "w-24" },
-			headerLabel: "Trip",
-			className: "w-[130px] min-w-[112px]",
+			skeleton: { type: "text", width: "w-20" },
+			headerLabel: "Invoice",
+			className: "w-[124px] min-w-[110px] text-right",
 		},
-		cell: ({ row }) => (
-			<Badge
-				variant={row.original.workspace?.isTerminal ? "secondary" : "outline"}
-			>
-				{row.original.workspace?.label || row.original.status || "Queued"}
-			</Badge>
-		),
+		cell: ({ row }) =>
+			row.original.order ? (
+				<SalesOrderInvoiceCell item={row.original.order} />
+			) : (
+				<span className="text-muted-foreground">—</span>
+			),
 	},
 	{
-		id: "risk",
-		header: "Risk",
-		size: 140,
-		minSize: 116,
-		maxSize: 220,
+		id: "status",
+		header: "Status",
+		accessorFn: (row) => row.order?.status,
+		size: 150,
+		minSize: 120,
+		maxSize: 210,
 		meta: {
-			skeleton: { type: "badge", width: "w-20" },
-			headerLabel: "Risk",
-			className: "w-[140px] min-w-[116px]",
+			skeleton: { type: "badge", width: "w-24" },
+			headerLabel: "Status",
+			className: "w-[150px] min-w-[120px]",
 		},
-		cell: ({ row }) => {
-			const risks = row.original.workspace?.risks || [];
-			if (!risks.length)
-				return <span className="text-muted-foreground">—</span>;
-			return (
-				<div className="flex items-center gap-2">
-					<Badge variant="destructive">
-						{String(risks[0]).replaceAll("_", " ")}
-					</Badge>
-					{risks.length > 1 ? (
-						<Badge variant="outline">+{risks.length - 1}</Badge>
-					) : null}
-				</div>
-			);
-		},
+		cell: ({ row }) =>
+			row.original.order ? (
+				<SalesOrderStatusCell item={row.original.order} />
+			) : (
+				<span className="text-muted-foreground">—</span>
+			),
 	},
 	{
 		id: "actions",
@@ -285,3 +262,30 @@ export const workspaceColumns: Column[] = [
 		cell: ({ row }) => <WorkspaceActions item={row.original} />,
 	},
 ];
+
+const completedDateColumn: Column = {
+	id: "completedAt",
+	header: "Completed",
+	accessorKey: "deliveredAt",
+	size: 132,
+	minSize: 118,
+	maxSize: 180,
+	meta: {
+		skeleton: { type: "text", width: "w-24" },
+		headerLabel: "Completed",
+		sortField: "deliveredAt",
+		className: "w-[132px] min-w-[118px]",
+	},
+	cell: ({ row }) => (
+		<div className="flex min-w-0 flex-col gap-1">
+			<span className="truncate font-medium">
+				{formatDate(row.original.deliveredAt || row.original.updatedAt)}
+			</span>
+			<span className="truncate text-xs text-muted-foreground">Fulfilled</span>
+		</div>
+	),
+};
+
+export const completedWorkspaceColumns: Column[] = workspaceColumns.map(
+	(column) => (column.id === "dueDate" ? completedDateColumn : column),
+);

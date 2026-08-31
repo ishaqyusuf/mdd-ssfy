@@ -27,7 +27,10 @@ import { type SalesDispatch, getSalesDispatchColumns } from "./columns";
 import { EmptyState, NoResults } from "./empty-states";
 import { useSalesDispatchTableStore } from "./store";
 import { DataTableHeader } from "./table-header";
-import { workspaceColumns } from "./workspace-columns";
+import {
+	completedWorkspaceColumns,
+	workspaceColumns,
+} from "./workspace-columns";
 
 const TABLE_ID = "sales-dispatch";
 const NON_CLICKABLE_COLUMNS = new Set([
@@ -43,7 +46,7 @@ const compactTableConfig = {
 	rowHeight: TABLE_CONFIGS["sales-orders"].rowHeight,
 };
 
-type DispatchInput = RouterInputs["dispatch"]["index"];
+type DispatchInput = Exclude<RouterInputs["dispatch"]["index"], void>;
 type DispatchPage = {
 	data?: SalesDispatch[];
 	meta?: {
@@ -79,13 +82,15 @@ export function DataTable({
 	const tableColumns = useMemo(
 		() =>
 			workspace
-				? workspaceColumns
+				? filters.section === "completed"
+					? completedWorkspaceColumns
+					: workspaceColumns
 				: getSalesDispatchColumns({
 						driverMode: driver,
 						enableSalesMarkAs,
 						compact,
 					}),
-		[compact, driver, enableSalesMarkAs, workspace],
+		[compact, driver, enableSalesMarkAs, filters.section, workspace],
 	);
 	const columnIds = useMemo(() => getColumnIds(tableColumns), [tableColumns]);
 	const { rowSelection, setRowSelection, setColumns } =
@@ -132,6 +137,7 @@ export function DataTable({
 		...routeFilters,
 		...(defaultFilters || {}),
 		sort: params.sort,
+		size: 20,
 	} as DispatchInput;
 
 	const infiniteQueryOptions = driver
@@ -142,8 +148,20 @@ export function DataTable({
 		: workspace
 			? trpc.dispatch.list.infiniteQueryOptions(
 					{
-						...queryInput,
-						section: "dispatches",
+						q: defaultFilters?.q ?? filters.q,
+						stages: defaultFilters?.stages?.length
+							? defaultFilters.stages
+							: filters.stages,
+						driversId: defaultFilters?.driversId ?? filters.driversId,
+						dueBuckets: defaultFilters?.dueBuckets ?? filters.dueBuckets,
+						deliveryModes:
+							defaultFilters?.deliveryModes ?? filters.deliveryModes,
+						risks: defaultFilters?.risks ?? filters.risks,
+						scheduleRange:
+							defaultFilters?.scheduleRange ?? filters.scheduleRange,
+						sort: params.sort,
+						section: filters.section,
+						size: 20,
 					},
 					{
 						getNextPageParam: ({ meta }) =>

@@ -20,6 +20,8 @@ export function ProductionReadinessBanner() {
 	const query = useSalesOverviewQuery();
 	const workerMode = Boolean(query.assignedTo);
 	const reviewInventory = () => query.setParams({ salesTab: "inventory" });
+	if (!production.showProductionReadiness) return null;
+
 	if (workerMode) {
 		if (production.readinessLoading) return null;
 		if (production.readinessUnavailable) {

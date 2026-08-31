@@ -52,6 +52,37 @@ describe("sales production workspace query", () => {
 		});
 	});
 
+	it("preserves applicable Sales Orders and invoice filters", () => {
+		expect(
+			resolveSalesProductionWorkspaceQuery({
+				"customer.name": "ACME",
+				phone: "555-0100",
+				po: "PO-42",
+				"sales.rep": "Pablo Cruz",
+				salesNo: "09439PC",
+				item: "Door",
+				invoice: "pending",
+			}),
+		).toEqual({
+			tab: "queue",
+			view: "table",
+			list: {
+				"customer.name": "ACME",
+				phone: "555-0100",
+				po: "PO-42",
+				"sales.rep": "Pablo Cruz",
+				salesNo: "09439PC",
+				item: "Door",
+				invoice: "pending",
+				production: "pending",
+			},
+		});
+
+		expect(
+			salesProductionQueryParamsSchema.safeParse({ invoice: "paid" }).success,
+		).toBe(true);
+	});
+
 	it("keeps supported material and sort controls on the completed queue", () => {
 		expect(
 			resolveSalesProductionWorkspaceQuery({

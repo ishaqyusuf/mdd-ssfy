@@ -85,6 +85,29 @@ function compactQuantity(value: DispatchPackingQuantity) {
 		: { qty: Math.max(0, Number(value.qty || 0)), lh: 0, rh: 0 };
 }
 
+export function combineInventoryPackingRequests(
+	items: ConfirmDispatchPackingInput["items"],
+) {
+	const combined = new Map<
+		number,
+		{ salesItemId: number; qty: number; lhQty: number; rhQty: number }
+	>();
+	for (const item of items) {
+		const qty = compactQuantity(item.qty);
+		const current = combined.get(item.salesItemId) || {
+			salesItemId: item.salesItemId,
+			qty: 0,
+			lhQty: 0,
+			rhQty: 0,
+		};
+		current.qty += qty.qty;
+		current.lhQty += qty.lh;
+		current.rhQty += qty.rh;
+		combined.set(item.salesItemId, current);
+	}
+	return [...combined.values()];
+}
+
 export function commandFingerprint(input: ConfirmDispatchPackingInput) {
 	return createHash("sha256")
 		.update(
@@ -195,13 +218,12 @@ export async function getDispatchPackingCommandRevision(
 				lhQty: true,
 				rhQty: true,
 				packingStatus: true,
-				updatedAt: true,
 			},
 		}),
 		db.salesPackingReport.findMany({
 			where: { orderDeliveryId: dispatch.id, status: "PENDING" },
 			orderBy: { id: "asc" },
-			select: { id: true, status: true, updatedAt: true },
+			select: { id: true, status: true },
 		}),
 	]);
 	return createHash("sha256")
@@ -230,6 +252,12 @@ function findSaleItem(
 			? info.items.find((item) => item.controlUid === request.itemUid)
 			: null) || info.items.find((item) => item.itemId === request.salesItemId)
 	);
+}
+
+export function canMaterializeLegacyPackingItem(item: {
+	itemConfig?: { production?: boolean | null } | null;
+}) {
+	return item.itemConfig?.production !== true;
 }
 
 async function buildLegacyPlan(
@@ -274,7 +302,7 @@ async function buildLegacyPlan(
 	let result = await plan();
 	const canMaterialize = requests.some((request) => {
 		const item = findSaleItem(info, request);
-		return item && item.itemConfig?.production === false;
+		return item && canMaterializeLegacyPackingItem(item);
 	});
 	if (result.unavailable.length && canMaterialize) {
 		await submitNonProductionsAction(tx as never, {
@@ -442,32 +470,19 @@ export async function confirmDispatchPacking(
 			}
 
 			if (inventoryRequests.length) {
-				const duplicateIds = inventoryRequests
-					.map((item) => item.salesItemId)
-					.filter((id, index, values) => values.indexOf(id) !== index);
-				if (duplicateIds.length) {
-					throw new DispatchPackingCommandError(
-						"INVALID_SCOPE",
-						"Inventory-backed packing contains duplicate sales items.",
-					);
-				}
 				const inventory = await prepareAndPickDispatchInventoryInTransaction(
 					tx,
 					{
 						salesOrderId: dispatch.salesOrderId,
 						orderDeliveryId: dispatch.id,
-						items: inventoryRequests.map((item) => ({
-							salesItemId: item.salesItemId,
-							qty: compactQuantity(item.qty).qty,
-							lhQty: compactQuantity(item.qty).lh,
-							rhQty: compactQuantity(item.qty).rh,
-						})),
+						items: combineInventoryPackingRequests(inventoryRequests),
 					},
 				);
 				packedLineCount += inventory.pickedCount;
 			}
 
 			const pendingReportIds: number[] = [];
+			let pendingReportsBlockDelivery = false;
 			for (const [index, guarded] of guardedLines.entries()) {
 				const context = await getPackingReportContext(
 					tx as TRPCContext["db"],
@@ -476,7 +491,8 @@ export async function confirmDispatchPacking(
 				const currentLine = context.reportableLines.find(
 					(line) =>
 						line.productionSubmissionId === guarded.productionSubmissionId &&
-						line.salesOrderItemId === guarded.salesOrderItemId,
+						line.salesOrderItemId === guarded.salesOrderItemId &&
+						line.itemUid === guarded.itemUid,
 				);
 				if (!currentLine) {
 					throw new DispatchPackingCommandError(
@@ -489,6 +505,7 @@ export async function confirmDispatchPacking(
 					{
 						dispatchId: dispatch.id,
 						productionSubmissionId: guarded.productionSubmissionId,
+						salesItemControlUid: currentLine.itemUid,
 						dispatchAllocationKey: currentLine.dispatchAllocationKey,
 						manifestRevision: context.manifestRevision,
 						idempotencyKey: `${input.requestId}:guarded:${index}`,
@@ -501,15 +518,29 @@ export async function confirmDispatchPacking(
 					actor,
 				);
 				pendingReportIds.push(report.reportId);
+				pendingReportsBlockDelivery ||=
+					context.policy.reviewMode === "BLOCK_DELIVERY_UNTIL_APPROVED";
 			}
 
+			const guardedDispatchStatus = pendingReportIds.length
+				? await tx.orderDelivery.findUniqueOrThrow({
+						where: { id: dispatch.id },
+						select: { status: true },
+					})
+				: null;
+			await resetSalesAction(tx as never, dispatch.salesOrderId);
 			if (pendingReportIds.length) {
 				await tx.orderDelivery.update({
 					where: { id: dispatch.id },
-					data: { status: "missing items" },
+					data: {
+						status: pendingReportsBlockDelivery
+							? "missing items"
+							: guardedDispatchStatus?.status === "packed"
+								? "packed"
+								: undefined,
+					},
 				});
 			}
-			await resetSalesAction(tx as never, dispatch.salesOrderId);
 			const records = commandRecords(dispatch.meta)
 				.filter((record) => record.requestId !== input.requestId)
 				.slice(-19);

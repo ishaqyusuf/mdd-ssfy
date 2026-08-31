@@ -14,13 +14,11 @@ import { SalesMenu } from "@/components/sales-menu";
 import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
-import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useSalesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatCurrency } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { getSalesOrderLifecycleStatusBadgeClassName } from "@gnd/sales/order-status";
 import { Badge } from "@gnd/ui/badge";
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -44,29 +42,24 @@ import {
 import { toast } from "@gnd/ui/use-toast";
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
 	getDealerSaleOrderCellClassName,
 	getDealerSaleOrderNumberClassName,
 } from "./dealer-sale-style";
+import {
+	SalesOrderInvoiceCell,
+	SalesOrderStatusCell,
+} from "./order-finance-status-cells";
 import { resolveSalesOrderSpecialOrderIndicator } from "./special-order-indicator";
 
 export type SalesOrder = RouterOutputs["sales"]["getOrders"]["data"][number];
 
 type Column = ColumnDef<SalesOrder>;
 
-function baseInvoiceTotal(item: SalesOrder) {
-	return item.baseInvoiceTotal ?? item.invoiceTotal;
-}
-
-function amountTone(item: SalesOrder) {
-	if (item.amountDue === baseInvoiceTotal(item)) return "text-red-600";
-	if (item.amountDue > 0) return "text-violet-600";
-	return "text-emerald-600";
-}
-
 function paymentHint(item: SalesOrder) {
-	if (item.amountDue === baseInvoiceTotal(item)) return "Unpaid";
+	if (item.amountDue === (item.baseInvoiceTotal ?? item.invoiceTotal))
+		return "Unpaid";
 	if (item.amountDue > 0) return `Due ${formatCurrency.format(item.amountDue)}`;
 	return "Paid";
 }
@@ -202,52 +195,8 @@ const statusColumn: Column = {
 		sortField: "status",
 		className: sizeClass(sizes.custom(110, 180, 130)),
 	},
-	cell: ({ row }) => <SalesOrderStatusMenu item={row.original} />,
+	cell: ({ row }) => <SalesOrderStatusCell item={row.original} />,
 };
-
-function SalesOrderStatusMenu({ item }: { item: SalesOrder }) {
-	return (
-		<SalesMenu
-			id={item.id}
-			slug={item.slug}
-			type="order"
-			orderNo={item.orderId}
-			customerEmail={item.email}
-			customerPhone={item.customerPhone}
-			customerName={item.customerName}
-			align="start"
-			contentClassName="min-w-56"
-			trigger={
-				<span
-					aria-label={`Change status for ${item.orderId}`}
-					// biome-ignore lint/a11y/useSemanticElements: Product design requires the status badge to remain a non-button trigger.
-					role="button"
-					tabIndex={0}
-					className={cn(
-						buttonVariants({
-							variant: "ghost",
-							size: "sm",
-						}),
-						"h-7 max-w-full cursor-pointer justify-start gap-1.5 whitespace-nowrap border-0 px-2 font-medium shadow-none",
-						getSalesOrderLifecycleStatusBadgeClassName(item.status),
-					)}
-					onClick={(event) => event.stopPropagation()}
-					onKeyDown={(event) => event.stopPropagation()}
-					onPointerDown={(event) => event.stopPropagation()}
-				>
-					<span className="truncate">{item.statusLabel}</span>
-					<Icons.ChevronDown className="size-3 shrink-0 opacity-70" />
-				</span>
-			}
-		>
-			<SalesMenu.MarkAs
-				asSubmenu={false}
-				currentStatus={item.status}
-				productionStatus={item.productionState}
-			/>
-		</SalesMenu>
-	);
-}
 
 const salesDateColumn: Column = {
 	id: "salesDate",
@@ -662,7 +611,7 @@ const invoiceTotalColumn: Column = {
 		defaultSortDirection: "desc",
 		className: sizeClass(sizes.sm, "text-right"),
 	},
-	cell: ({ row }) => <InvoiceCell item={row.original} />,
+	cell: ({ row }) => <SalesOrderInvoiceCell item={row.original} />,
 };
 
 const amountDueColumn: Column = {
@@ -813,153 +762,6 @@ export const columns: Column[] = [
 	salesRepColumn,
 	actionsColumn,
 ];
-
-function InvoiceCell({ item }: { item: SalesOrder }) {
-	const [opened, setOpened] = useState(false);
-	const buttonRef = useRef<HTMLButtonElement>(null);
-	const pending = item.amountDue;
-	const total = item.invoiceTotal;
-	const baseTotal = baseInvoiceTotal(item);
-	const ccc = item.displayCcc || 0;
-	const paid = Math.max(baseTotal - pending, 0);
-	const hasPendingBalance = pending > 0;
-	const paymentReview = item.latestPaymentReview;
-	const amountContent = formatCurrency.format(total);
-
-	const amountElement = (
-		<span
-			className={cn(
-				"block truncate text-right font-mono font-medium",
-				amountTone(item),
-			)}
-		>
-			{amountContent}
-		</span>
-	);
-
-	if (!hasPendingBalance) {
-		return (
-			<div className="flex min-w-0 flex-col items-end gap-0.5">
-				{amountElement}
-				<PaymentReviewBadge paymentReview={paymentReview} />
-			</div>
-		);
-	}
-
-	return (
-		<div className="relative z-10 flex min-w-0 flex-col items-end gap-0.5 text-right">
-			<SalesPaymentProcessor
-				phoneNo={item.accountNo || item.customerPhone}
-				selectedIds={[item.id]}
-				customerId={item.customerId}
-			>
-				<button
-					ref={buttonRef}
-					type="button"
-					className="hidden"
-					onClick={(event) => event.stopPropagation()}
-				/>
-			</SalesPaymentProcessor>
-			<TooltipProvider delayDuration={70}>
-				<Tooltip open={opened} onOpenChange={setOpened}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							className={cn(
-								"block w-full truncate text-right font-mono font-medium",
-								amountTone(item),
-							)}
-							onClick={(event) => {
-								event.preventDefault();
-								event.stopPropagation();
-							}}
-						>
-							{amountContent}
-						</button>
-					</TooltipTrigger>
-					<TooltipContent
-						align="end"
-						side="left"
-						sideOffset={10}
-						className="relative z-[999] w-52 space-y-3 px-3 py-2 text-xs"
-						onClick={(event) => {
-							event.preventDefault();
-							event.stopPropagation();
-						}}
-					>
-						<div className="space-y-2">
-							<InvoiceBreakdownLine label="Base Total" value={baseTotal} />
-							{ccc > 0 ? (
-								<InvoiceBreakdownLine label="C.C.C" value={ccc} />
-							) : null}
-							<InvoiceBreakdownLine label="Pending" value={pending} />
-							<InvoiceBreakdownLine label="Paid" value={paid} />
-							<InvoiceBreakdownLine label="Total" value={total} />
-							{paymentReview ? (
-								<InvoiceBreakdownLine
-									label="Latest payment"
-									value={paymentReview.amount}
-								/>
-							) : null}
-						</div>
-						<Button
-							className="w-full"
-							disabled={!item.due}
-							size="sm"
-							onClick={(event) => {
-								event.preventDefault();
-								event.stopPropagation();
-								setOpened(false);
-								buttonRef.current?.click();
-							}}
-						>
-							Apply Payment
-						</Button>
-					</TooltipContent>
-				</Tooltip>
-			</TooltipProvider>
-			<PaymentReviewBadge paymentReview={paymentReview} />
-		</div>
-	);
-}
-
-function PaymentReviewBadge({
-	paymentReview,
-}: {
-	paymentReview: SalesOrder["latestPaymentReview"];
-}) {
-	if (!paymentReview) return null;
-
-	return (
-		<Badge
-			variant="outline"
-			className="h-4 max-w-full gap-1 rounded-full border-amber-200 bg-amber-50 px-1.5 text-[9px] font-semibold uppercase text-amber-700"
-			title={`${paymentReview.origin || "office"} payment needs review`}
-		>
-			<Icons.CheckCircle className="size-2.5 shrink-0" />
-			<span className="truncate">
-				{paymentReview.origin === "online" ? "Online" : "Office"}
-			</span>
-		</Badge>
-	);
-}
-
-function InvoiceBreakdownLine({
-	label,
-	value,
-}: {
-	label: string;
-	value: number;
-}) {
-	return (
-		<div className="flex items-center justify-between gap-4">
-			<span className="font-medium text-muted-foreground">{label}</span>
-			<span className="font-mono font-medium">
-				{formatCurrency.format(value)}
-			</span>
-		</div>
-	);
-}
 
 function ActionCell({ item }: { item: SalesOrder }) {
 	const trpc = useTRPC();

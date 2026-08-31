@@ -32,6 +32,10 @@ export function BottomBar({ data }: Props) {
 		salesId: order.id,
 		salesType: "order" as const,
 	}));
+	const statusCandidates = selectedOrders.map((order) => ({
+		salesId: order.id,
+		status: order.status,
+	}));
 	const orderIds = selectedOrders.map((order) => order.orderId);
 	const firstOrder = selectedOrders[0];
 	const selectedCount = selectedOrders.length;
@@ -136,6 +140,8 @@ export function BottomBar({ data }: Props) {
 								asSubmenu={false}
 								includePaymentReviewed={isPaymentReviewMode}
 								onPaymentReviewed={() => setRowSelection({})}
+								onStatusActionSettled={() => setRowSelection({})}
+								statusCandidates={statusCandidates}
 							/>
 						</SalesMenu>
 

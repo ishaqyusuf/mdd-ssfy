@@ -72,4 +72,11 @@ export function JobRejectedEmail(props: JobRejectedEmailProps) {
   );
 }
 
+JobRejectedEmail.PreviewProps = {
+  recipientName: "Taylor Brooks",
+  reviewerName: "Morgan Reed",
+  jobId: 4821,
+  note: "Please add the completion photos and resubmit the job.",
+} satisfies JobRejectedEmailProps;
+
 export default JobRejectedEmail;

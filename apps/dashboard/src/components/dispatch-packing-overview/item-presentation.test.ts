@@ -6,19 +6,19 @@ import {
 } from "./item-presentation";
 
 describe("dispatch packing item presentation", () => {
-	test("keeps the exact Production subtitle when replacing a legacy item title", () => {
+	test("replaces a legacy item title without repeating structured details", () => {
 		expect(
 			getDispatchPackingItemPresentation({
 				title: "Sales Item 167295",
 				subtitle: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
 				itemType: "Door",
-				size: '30\" × 80\"',
+				size: '30" × 80"',
 				handingLabel: "LH × 7",
 				totalQty: { lh: 7 },
 			}),
 		).toEqual({
 			title: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
-			description: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
+			description: 'Door · 30" × 80" · LH',
 		});
 	});
 
@@ -34,25 +34,49 @@ describe("dispatch packing item presentation", () => {
 			}),
 		).toEqual({
 			title: "BASEBOARD 5180 FJ",
-			description: "Moulding | Primed finger-jointed pine | 16 ft",
+			description: "Moulding · Primed finger-jointed pine · 16 ft",
 		});
 	});
 
-	test("preserves the canonical Production subtitle when it is available", () => {
+	test("removes labor, price, and repeated quantity details", () => {
 		expect(
 			getDispatchPackingItemPresentation({
 				title: "H.C 2pnl sqr top (Carrara) 1-3/8",
-				subtitle:
-					'Pre-hung door | 30\" × 80\" | LH | 7 LH | $ 12.00/qty labor',
+				subtitle: 'Pre-hung door | 30" × 80" | LH | 7 LH | $ 12.00/qty labor',
 				itemType: "Pre-hung door",
-				size: '30\" × 80\"',
+				size: '30" × 80"',
 				handingLabel: "LH × 7",
 				totalQty: { lh: 7 },
 			}),
 		).toEqual({
 			title: "H.C 2PNL SQR TOP (CARRARA) 1-3/8",
-			description:
-				'Pre-hung door | 30\" × 80\" | LH | 7 LH | $ 12.00/qty labor',
+			description: 'Pre-hung door · 30" × 80" · LH',
+		});
+		expect(
+			/labor|cost|\$|7 LH/i.test(
+				JSON.stringify(
+					getDispatchPackingItemPresentation({
+						title: "Door",
+						subtitle: "$ 12.00/qty labor | 7 LH",
+					}),
+				),
+			),
+		).toBe(false);
+	});
+
+	test("keeps an API-sanitized driver description idempotent", () => {
+		expect(
+			getDispatchPackingItemPresentation({
+				title: "Garage door",
+				subtitle: "Garage door · 2-6 x 6-8 · LH",
+				itemType: "Garage door",
+				size: "2-6 x 6-8",
+				handingLabel: "LH × 1",
+				totalQty: { lh: 1 },
+			}),
+		).toEqual({
+			title: "GARAGE DOOR",
+			description: "2-6 x 6-8 · LH",
 		});
 	});
 

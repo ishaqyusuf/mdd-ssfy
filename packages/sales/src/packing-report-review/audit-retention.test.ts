@@ -12,7 +12,7 @@ describe("packing report audit retention", () => {
 			schema.indexOf("model SalesHistory"),
 		);
 		expect(model.includes("onDelete: Cascade")).toBe(false);
-		expect((model.match(/onDelete: Restrict/g) || []).length).toBe(7);
+		expect((model.match(/onDelete: Restrict/g) || []).length).toBe(8);
 		expect(model.includes("dispatchAllocationItemId")).toBe(true);
 	});
 });

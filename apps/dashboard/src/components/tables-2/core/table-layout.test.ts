@@ -5,6 +5,20 @@ import {
 	getTableHeaderLayoutStyle,
 	resolveTableFillColumnId,
 } from "./table-sizes";
+import { getTableCellPaddingClass } from "./table-style";
+
+describe("tables-2 selection cell alignment", () => {
+	it.each(["default", "compact"] as const)(
+		"centers checkbox descendants for %s density",
+		(style) => {
+			const className = getTableCellPaddingClass(style);
+
+			expect(className).toContain("[&:has([role=checkbox])]:px-0");
+			expect(className).toContain("[&:has([role=checkbox])]:justify-center");
+			expect(className).toContain("[&:has([role=checkbox])]:text-center");
+		},
+	);
+});
 
 describe("responsive table column resolution", () => {
 	const columns = [

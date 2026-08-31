@@ -30,13 +30,16 @@ export const salesCustomerPaymentFailed: NotificationHandler = {
 			tags: payload,
 		};
 	},
-	createEmail(data, _author, _user, args) {
+	createEmail(data, author, _user, args) {
 		return {
 			...args,
 			template: "sales-customer-payment-failed",
 			to: [data.customerEmail],
 			subject: `Payment attempt incomplete for order${data.sales.length > 1 ? "s" : ""} ${data.sales.map((sale) => sale.orderNo).join(", ")}`,
-			data,
+			data: {
+				...data,
+				salesRepName: author.name,
+			},
 		};
 	},
 };

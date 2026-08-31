@@ -1,66 +1,131 @@
 /** @jsxImportSource react */
-import {
-  Body,
-  Container,
-  Heading,
-  Preview,
-  Text,
-} from "@react-email/components";
+import { Section, Text } from "@react-email/components";
 
 import { formatCurrency } from "@gnd/utils/format";
 import {
-  EmailThemeProvider,
-  getEmailInlineStyles,
-  getEmailThemeClasses,
-} from "../components/theme";
-import { Logo } from "../components/logo";
-import { Footer } from "../components/footer";
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailMetric,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
-export function SalesRepOnlinePaymentReceived(props: any) {
-  const {
-    ordersNo = ["ABC"],
-    amount = 100,
-    repName = "Pablo Cruz",
-    customerName = "Ishaq Yusuf",
-  } = props;
-  const themeClasses = getEmailThemeClasses();
-  const lightStyles = getEmailInlineStyles("light");
-  const previewText = `Payment Received - Order${ordersNo?.length > 0 ? "s" : ""} #
-        ${ordersNo.join(", ")}`;
-  return (
-    <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
-      <Body
-        className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-        style={lightStyles.body}
-      >
-        <Container
-          className={`my-[40px] mx-auto p-[20px] max-w-[600px] ${themeClasses.container}`}
-          style={{
-            borderStyle: "solid",
-            borderWidth: 1,
-            borderColor: lightStyles.container.borderColor,
-          }}
-        >
-          <Logo />
-          <Heading
-            className={`text-[21px] font-normal text-center p-0 my-[30px] mx-0 ${themeClasses.heading}`}
-            style={{ color: lightStyles.text.color }}
-          >
-            Payment Received
-          </Heading>
-          <Text>Hi {repName},</Text>
-          <Text>
-            A payment of <strong>{formatCurrency.format(amount)}</strong> has
-            been received from {customerName} for Order{" "}
-            <strong>#{ordersNo.join(", ")}</strong>.
-          </Text>
-          <Text>Please verify the transaction in your sales dashboard.</Text>
-          <Text>Best regards,</Text>
-          <Text>Sales Team</Text>
-          <br />
-          <Footer />
-        </Container>
-      </Body>
-    </EmailThemeProvider>
-  );
+interface Props {
+	ordersNo: string[];
+	amount: number;
+	repName: string;
+	customerName: string;
 }
+
+export function SalesRepOnlinePaymentReceived({
+	ordersNo = ["GND-10482"],
+	amount = 1240,
+	repName = "Alex Morgan",
+	customerName = "Jordan Lee",
+}: Props) {
+	const orderLabel = `${ordersNo.length} order${ordersNo.length === 1 ? "" : "s"}`;
+	const previewText = `Payment received for order${ordersNo.length > 1 ? "s" : ""} ${ordersNo.join(", ")}`;
+
+	return (
+		<StandardEmailLayout previewText={previewText}>
+			<StandardEmailHeader
+				documentLabel="Payment received"
+				documentMeta={orderLabel}
+			/>
+
+			<StandardEmailHero
+				eyebrow="Online payment"
+				recipientName={repName}
+				title="Customer Payment Received"
+			>
+				<Text
+					className="gnd-standard-text m-0 mt-[10px] text-[15px] leading-[24px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					A customer payment has been recorded for your sales orders. Review the
+					summary below and verify the transaction in the sales dashboard.
+				</Text>
+			</StandardEmailHero>
+
+			<Section
+				className="gnd-standard-panel gnd-standard-soft-green gnd-standard-border mx-[36px] mt-[28px] rounded-[6px] border border-solid p-[20px]"
+				style={{
+					backgroundColor: standardEmailColors.softGreen,
+					borderColor: standardEmailColors.border,
+				}}
+			>
+				<table cellPadding="0" cellSpacing="0" style={{ width: "100%" }}>
+					<tbody>
+						<tr>
+							<StandardEmailMetric
+								emphasis
+								label="Amount received"
+								value={formatCurrency.format(amount)}
+							/>
+							<StandardEmailMetric
+								label="Customer"
+								value={customerName || "Not provided"}
+							/>
+							<StandardEmailMetric label="Applied to" value={orderLabel} />
+						</tr>
+					</tbody>
+				</table>
+			</Section>
+
+			<Section className="gnd-standard-content px-[36px] pb-[8px] pt-[30px]">
+				<Text
+					className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[1.1px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Affected orders
+				</Text>
+			</Section>
+
+			{ordersNo.map((orderNo, index) => (
+				<Section
+					className={`gnd-standard-panel gnd-standard-border mx-[36px] mt-[10px] rounded-[6px] border border-solid px-[20px] py-[15px] ${index % 2 === 1 ? "gnd-standard-row-alt" : "gnd-standard-row"}`}
+					key={orderNo}
+					style={{
+						backgroundColor:
+							index % 2 === 1
+								? standardEmailColors.soft
+								: standardEmailColors.card,
+						borderColor: standardEmailColors.border,
+					}}
+				>
+					<Text
+						className="gnd-standard-text m-0 text-[15px] font-semibold"
+						style={{ color: standardEmailColors.ink }}
+					>
+						{orderNo}
+					</Text>
+				</Section>
+			))}
+
+			<Section className="gnd-standard-content px-[36px] pb-[34px] pt-[24px]">
+				<Text
+					className="gnd-standard-text m-0 text-[14px] leading-[23px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					This message confirms receipt only. Use the sales dashboard as the
+					source of truth for allocation and order-balance details.
+				</Text>
+			</Section>
+
+			<StandardEmailSignature
+				department="Payment operations · GND Millwork"
+				senderName="GND Millwork Payments"
+			/>
+		</StandardEmailLayout>
+	);
+}
+
+SalesRepOnlinePaymentReceived.PreviewProps = {
+	ordersNo: ["GND-10482", "GND-10491"],
+	amount: 1240,
+	repName: "Alex Morgan",
+	customerName: "Jordan Lee",
+} satisfies Props;
+
+export default SalesRepOnlinePaymentReceived;

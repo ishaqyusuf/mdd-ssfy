@@ -24,6 +24,11 @@ import {
 	updateDispatchStatus,
 	updateSalesDeliveryOption,
 } from "@api/db/queries/dispatch";
+import {
+	assertDispatchAssignmentDestinations,
+	getDispatchAssignmentDestinationPreflight,
+	saveDispatchAssignmentDestination,
+} from "@api/db/queries/dispatch-assignment-destination";
 import { prepareAndPickDispatchInventory } from "@api/db/queries/dispatch-inventory-actions";
 import {
 	backfillDispatchInventoryBindings,
@@ -56,14 +61,19 @@ import {
 	reportDispatchException,
 	resolveDispatchException,
 } from "@api/db/queries/dispatch-workspace";
+import { saveDriverRouteDestination } from "@api/db/queries/driver-route-destination";
+import { getDriverRouteCapabilities } from "@api/db/queries/driver-route-readiness";
+import { resolveStorefrontPlace } from "@api/db/queries/google-place";
 import { auth } from "@api/db/queries/user";
 import {
 	createDispatchesSchema,
+	dispatchAssignmentDestinationPreflightSchema,
 	dispatchBacklogSchema,
 	dispatchExceptionListSchema,
 	dispatchWorkspaceDetailSchema,
 	dispatchWorkspaceListSchema,
 	fulfillmentCalendarSchema,
+	normalizeDispatchAssignmentDestinationSchema,
 	reportDispatchExceptionSchema,
 	resolveDispatchExceptionSchema,
 } from "@api/schemas/dispatch-workspace";
@@ -83,6 +93,7 @@ import {
 	updateDispatchStatusSchema,
 	updateSalesDeliveryOptionSchema,
 } from "@api/schemas/sales";
+import { sendDispatchLifecycleNotification } from "@api/utils/dispatch-lifecycle-notification";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { sendPackingReportNotification } from "@api/utils/packing-report-notification";
@@ -93,12 +104,21 @@ import { decodeValidatedDocumentBase64 } from "@api/utils/upload-validation";
 import type { Db, TransactionClient } from "@gnd/db";
 import type { DevLogEntry } from "@gnd/dev-logger";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
+import { AppError } from "@gnd/errors";
+import { resolveDriverRouteDestination } from "@gnd/sales/dispatch-manifest/driver-destination";
+import { getDriverManifestItemPresentation } from "@gnd/sales/dispatch-manifest/driver-item-presentation";
+import { PackingReportError } from "@gnd/sales/packing-report-review";
+import { resolveSalesCompanyAddress } from "@gnd/sales/print";
 import {
 	assertDispatchInventoryReadyToStart,
 	consumeDispatchBoundInventory,
 	releaseDispatchBoundInventory,
 } from "@gnd/sales/sales-fulfillment-plan";
 import { isDispatchProgressionTransition } from "@gnd/sales/special-order";
+import {
+	getGuardedPackingSettings,
+	guardedPackingReviewBlocksDelivery,
+} from "@gnd/settings";
 import type { DeliveryOption } from "@gnd/utils/sales";
 import { NotificationService } from "@notifications/services/triggers";
 import {
@@ -106,9 +126,11 @@ import {
 	createDispatchSchema,
 	deletePackingItem,
 	deletePackingSchema,
+	ensureSalesOrderFulfillmentDispatch,
 	getSalesDispatchOverview,
 	normalizeSalesControlTaskActor,
 	packDispatchItemTask,
+	resolveDispatchBatchDueDates,
 	startDispatchTask,
 	submitDispatchTask,
 	submitNonProductionsTask,
@@ -144,25 +166,27 @@ async function sendDispatchCreatedNotifications(
 ) {
 	await getDispatchNotificationService(ctx).send("sales_dispatch_created", {
 		payload: {
-			orderNo: dispatch.order?.orderId,
+			orderNo: dispatch.order?.orderId || undefined,
 			dispatchId: dispatch.id,
-			deliveryMode,
+			deliveryMode: normalizeDispatchDeliveryMode(deliveryMode),
 			dueDate: dispatch.dueDate || undefined,
 			driverId: dispatch.driverId || undefined,
 		},
 	});
 	if (!dispatch.driverId) return;
-	await getDispatchNotificationService(ctx)
-		.setEmployeeRecipients(dispatch.driverId)
-		.send("sales_dispatch_assigned", {
-			payload: {
-				orderNo: dispatch.order?.orderId,
-				dispatchId: dispatch.id,
-				deliveryMode,
-				dueDate: dispatch.dueDate || undefined,
-				driverId: dispatch.driverId,
-			},
-		});
+	await sendDispatchLifecycleNotification(
+		ctx.db,
+		ctx.userId!,
+		dispatch.driverId,
+		"sales_dispatch_assigned",
+		{
+			orderNo: dispatch.order?.orderId || undefined,
+			dispatchId: dispatch.id,
+			deliveryMode: normalizeDispatchDeliveryMode(deliveryMode),
+			dueDate: dispatch.dueDate || undefined,
+			driverId: dispatch.driverId,
+		},
+	);
 }
 
 function normalizeDispatchDeliveryMode(value: string | null | undefined) {
@@ -237,14 +261,78 @@ const startDispatchTripSchema = z
 	})
 	.strict();
 
+const startReadyRouteSchema = z
+	.object({
+		dispatchIds: z.array(z.number().int().positive()).min(1).max(50),
+		requestId: z.string().trim().min(8).max(128),
+	})
+	.strict();
+
+const normalizeDriverDestinationSchema = z
+	.object({
+		dispatchId: z.number().int().positive(),
+		placeId: z.string().trim().min(3).max(255),
+		sessionToken: z.string().uuid().optional(),
+	})
+	.strict();
+
 function dispatchPackingTrpcError(error: unknown): never {
+	if (
+		error instanceof Error &&
+		error.message.startsWith("INVENTORY_DISPATCH_STOCK_SHORTAGE")
+	) {
+		throw new AppError({
+			code: "VALIDATION_FAILED",
+			cause: error,
+			publicMessage:
+				"Inventory stock is not ready for every selected item. Reserve or receive the missing components before packing.",
+			transportCode: "PRECONDITION_FAILED",
+		});
+	}
+	if (error instanceof PackingReportError) {
+		if (error.code === "FORBIDDEN") {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: error.message,
+				cause: error,
+			});
+		}
+		if (
+			error.code === "NOT_REPORTABLE" ||
+			error.code === "PHYSICAL_SHORTAGE" ||
+			error.code === "INVALID_QUANTITY" ||
+			error.code === "OVER_REPORT"
+		) {
+			throw new AppError({
+				code: "VALIDATION_FAILED",
+				cause: error,
+				publicMessage: error.message,
+				transportCode: "PRECONDITION_FAILED",
+			});
+		}
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: error.message,
+			cause: error,
+		});
+	}
 	if (!(error instanceof DispatchPackingCommandError)) throw error;
+	if (
+		error.code === "INVALID_SCOPE" ||
+		error.code === "TERMINAL_DISPATCH" ||
+		error.code === "UNAVAILABLE_QUANTITY"
+	) {
+		throw new AppError({
+			code: "VALIDATION_FAILED",
+			cause: error,
+			publicMessage: error.message,
+			transportCode: "PRECONDITION_FAILED",
+		});
+	}
 	const code =
-		error.code === "INVALID_SCOPE"
-			? "FORBIDDEN"
-			: error.code === "TERMINAL_DISPATCH"
-				? "PRECONDITION_FAILED"
-				: "CONFLICT";
+		error.code === "STALE_MANIFEST" || error.code === "IDEMPOTENCY_CONFLICT"
+			? "CONFLICT"
+			: "INTERNAL_SERVER_ERROR";
 	throw new TRPCError({ code, message: error.message, cause: error });
 }
 
@@ -263,22 +351,42 @@ async function getMobileDispatchProjection(
 	dispatchId: number,
 	session: Awaited<ReturnType<typeof auth>>,
 ) {
+	const overview = await getDispatchOverviewV2(ctx, { dispatchId });
 	const [
-		overview,
 		packingCommandRevision,
-		pendingReportCount,
+		pendingReports,
 		openExceptionCount,
+		guardedPackingPolicy,
+		deliveryRouteRecord,
 	] = await Promise.all([
-		getDispatchOverviewV2(ctx, { dispatchId }),
 		getDispatchPackingCommandRevision(ctx.db, dispatchId),
-		ctx.db.salesPackingReport.count({
+		ctx.db.salesPackingReport.findMany({
 			where: { orderDeliveryId: dispatchId, status: "PENDING" },
+			select: { evidenceSnapshot: true },
 		}),
 		ctx.db.dispatchException.count({
 			where: { orderDeliveryId: dispatchId, status: "open", deletedAt: null },
 		}),
+		getGuardedPackingSettings(ctx.db),
+		ctx.db.orderDelivery.findFirst({
+			where: { id: dispatchId, deletedAt: null },
+			select: { meta: true },
+		}),
 	]);
+	const pendingReportCount = pendingReports.length;
+	const blockingPendingReportCount = pendingReports.filter((report) =>
+		guardedPackingReviewBlocksDelivery(
+			report.evidenceSnapshot,
+			guardedPackingPolicy,
+		),
+	).length;
 	const dispatch = overview.dispatch;
+	const destination = resolveDriverRouteDestination({
+		primaryAddress: overview.address,
+		deliveryMeta: deliveryRouteRecord?.meta,
+		deliveryMode: dispatch?.deliveryMode,
+	});
+	const companyAddress = resolveSalesCompanyAddress(overview.order.orderId);
 	const status = String(dispatch?.status || "");
 	const assigned = Number(dispatch?.driver?.id || 0) === ctx.userId;
 	const manager = Boolean(session.can.editPickup || session.can.editOrders);
@@ -295,11 +403,22 @@ async function getMobileDispatchProjection(
 		"missing items",
 		"packed",
 	].includes(status);
-	const readinessBlocked = overview.dispatchReadiness?.canDispatch === false;
+	const guardedPhysicalVerification =
+		status === "packed" &&
+		pendingReportCount > 0 &&
+		blockingPendingReportCount === 0;
+	const readinessBlocked =
+		overview.dispatchReadiness?.canDispatch === false &&
+		!guardedPhysicalVerification;
+	const destinationBlocked =
+		dispatch?.deliveryMode !== "pickup" &&
+		!hasDriverDestination(overview.address) &&
+		!destination.verified;
 	const startBlockers = [
 		...(status !== "packed" ? ["TRIP_NOT_READY"] : []),
-		...(pendingReportCount ? ["PACKING_REVIEW_PENDING"] : []),
+		...(blockingPendingReportCount ? ["PACKING_REVIEW_PENDING"] : []),
 		...(readinessBlocked ? ["DISPATCH_NOT_READY"] : []),
+		...(destinationBlocked ? ["DESTINATION_REQUIRED"] : []),
 		...(!assigned && !manager ? ["NOT_ASSIGNED"] : []),
 	];
 	const packingBlockers = [
@@ -311,6 +430,7 @@ async function getMobileDispatchProjection(
 	];
 	const completionBlockers = [
 		...(status !== "in progress" ? ["TRIP_NOT_IN_PROGRESS"] : []),
+		...(blockingPendingReportCount ? ["PACKING_REVIEW_PENDING"] : []),
 		...(!activeActor ? ["NOT_ASSIGNED"] : []),
 	];
 	const risks = [
@@ -319,8 +439,42 @@ async function getMobileDispatchProjection(
 		...(status === "missing items" ? ["missing_items"] : []),
 		...(openExceptionCount ? ["open_exception"] : []),
 	];
+	const driverDispatchItems = overview.dispatchItems
+		.filter((item) => item.shippable !== false)
+		.map((item) => {
+			const presentation = getDriverManifestItemPresentation(item);
+			const itemConfig =
+				item.itemConfig && typeof item.itemConfig === "object"
+					? {
+							production:
+								(item.itemConfig as { production?: boolean | null })
+									.production ?? null,
+							shipping:
+								(item.itemConfig as { shipping?: boolean | null }).shipping ??
+								null,
+						}
+					: null;
+			return {
+				...item,
+				title: presentation.title,
+				productTitle: presentation.title,
+				subtitle:
+					presentation.description === "Packing item"
+						? ""
+						: presentation.description,
+				itemConfig,
+			};
+		});
 	return {
 		...overview,
+		dispatchItems: driverDispatchItems,
+		destination,
+		routing: {
+			origin: [companyAddress.address1, companyAddress.address2]
+				.filter(Boolean)
+				.join(", "),
+			provider: "google" as const,
+		},
 		packingCommandRevision,
 		mobileLifecycle: {
 			stage: status || "unknown",
@@ -329,7 +483,10 @@ async function getMobileDispatchProjection(
 			capabilities: {
 				canStartTrip:
 					activeActor && status === "packed" && startBlockers.length === 0,
-				canComplete: activeActor && status === "in progress",
+				canComplete:
+					activeActor &&
+					status === "in progress" &&
+					completionBlockers.length === 0,
 				canReportException: activeActor && !terminal,
 				canEditPacking: packingActor && packingBlockers.length === 0,
 				canResetPacking: manager && packingBlockers.length === 0,
@@ -341,6 +498,161 @@ async function getMobileDispatchProjection(
 				completion: completionBlockers,
 			},
 		},
+	};
+}
+
+type DriverQueuePage = Awaited<ReturnType<typeof getDispatches>>;
+
+function hasDriverDestination(address: unknown) {
+	const value = (address || {}) as Record<string, unknown>;
+	return Boolean(
+		value.address1 ||
+			value.address2 ||
+			value.city ||
+			value.state ||
+			value.country,
+	);
+}
+
+async function withDriverRouteCapabilities(
+	ctx: TRPCContext,
+	queue: DriverQueuePage,
+) {
+	const capabilities = await getDriverRouteCapabilities(
+		ctx.db,
+		Number(ctx.userId || 0),
+		queue.data.map((row) => ({
+			id: row.id,
+			salesOrderId: row.order.id,
+			status: row.dispatchRecordStatus || row.status,
+			driverId: row.driverId,
+			deliveryMode: row.deliveryMode,
+			dueBucket: row.dueBucket,
+			hasOpenException: row._count.exceptions > 0,
+			hasDestination:
+				hasDriverDestination(row.order.shippingAddress) ||
+				row.routeDestination.verified,
+		})),
+	);
+	return {
+		...queue,
+		data: queue.data.map((row) => ({
+			...row,
+			routeCapability: capabilities.get(row.id) || null,
+		})),
+	};
+}
+
+function driverStartBlockerMessage(blockers: readonly string[]) {
+	if (blockers.includes("PACKING_REVIEW_PENDING")) {
+		return "Packing review is still pending.";
+	}
+	if (blockers.includes("DISPATCH_NOT_READY")) {
+		return "Inventory review is required before departure.";
+	}
+	if (blockers.includes("DESTINATION_REQUIRED")) {
+		return "The delivery destination needs review.";
+	}
+	if (blockers.includes("NOT_ASSIGNED")) {
+		return "This stop is not assigned to you.";
+	}
+	return "This stop is not ready to start.";
+}
+
+async function executeDriverTripStart(
+	ctx: TRPCContext & { userId: number },
+	actor: Awaited<ReturnType<typeof auth>>,
+	input: { dispatchId: number; requestId: string; assignedOnly?: boolean },
+) {
+	const projection = await getMobileDispatchProjection(
+		ctx,
+		input.dispatchId,
+		actor,
+	);
+	const dispatch = projection.dispatch;
+	if (!dispatch) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Dispatch not found.",
+		});
+	}
+	if (
+		input.assignedOnly &&
+		Number(dispatch.driver?.id || 0) !== Number(ctx.userId)
+	) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "This stop is not assigned to you.",
+		});
+	}
+	if (dispatch.status === "in progress") {
+		return {
+			result: null,
+			requestId: input.requestId,
+			status: dispatch.status,
+			idempotent: true,
+			notificationFailed: false,
+		};
+	}
+	if (!projection.mobileLifecycle.capabilities.canStartTrip) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: driverStartBlockerMessage(
+				projection.mobileLifecycle.blockers.startTrip,
+			),
+		});
+	}
+
+	await enforceSpecialOrderForSale(
+		ctx,
+		projection.order.id,
+		"DISPATCH",
+		"api.dispatch.start-trip",
+	);
+	const taskInput = withAuthenticatedSalesControlActor(
+		{
+			meta: {
+				salesId: projection.order.id,
+				authorId: actor.id,
+				authorName: actor.name || `User ${ctx.userId}`,
+			},
+			startDispatch: { dispatchId: dispatch.id },
+		},
+		actor,
+	);
+	const response = await startDispatchTask(ctx.db, taskInput, {
+		assertInventoryReady: assertDispatchInventoryReadyToStart,
+	});
+	const current = await ctx.db.orderDelivery.findFirst({
+		where: { id: dispatch.id, deletedAt: null },
+		select: { status: true },
+	});
+	let notificationFailed = false;
+	if (current?.status === "in progress") {
+		try {
+			await getDispatchNotificationService(ctx).send(
+				"sales_dispatch_in_progress",
+				{
+					payload: {
+						orderNo: projection.order.orderId || undefined,
+						dispatchId: dispatch.id,
+						deliveryMode: normalizeDispatchDeliveryMode(dispatch.deliveryMode),
+						dueDate: dispatch.dueDate || undefined,
+						driverId: dispatch.driver?.id || undefined,
+					},
+				},
+			);
+		} catch (error) {
+			notificationFailed = true;
+			console.error("Trip start committed, but notification failed.", error);
+		}
+	}
+	return {
+		result: response ?? null,
+		requestId: input.requestId,
+		status: current?.status || dispatch.status,
+		idempotent: false,
+		notificationFailed,
 	};
 }
 
@@ -480,8 +792,7 @@ export const dispatchRouters = createTRPCRouter({
 		.input(dispatchWorkspaceListSchema)
 		.query(async (props) => {
 			await requireDispatchManager(props.ctx);
-			const { section: _section, ...input } = props.input;
-			return getDispatches(props.ctx, input);
+			return getDispatches(props.ctx, props.input);
 		}),
 	calendar: protectedProcedure
 		.input(dispatchWorkspaceListSchema)
@@ -534,14 +845,14 @@ export const dispatchRouters = createTRPCRouter({
 				...props.input,
 				driversId: [props.ctx.userId],
 			};
-			const [queue, summary] = await Promise.all([
-				getDispatches(props.ctx, input),
-				getDriverWorkQueueSummary(props.ctx, input),
-			]);
+			const queue = await withDriverRouteCapabilities(
+				props.ctx,
+				await getDispatches(props.ctx, input),
+			);
 			const nextStop = queue.data.find(
 				(row) => !["completed", "cancelled"].includes(String(row.status)),
 			);
-			return { queue, summary, nextStop: nextStop || null };
+			return { queue, nextStop: nextStop || null };
 		}),
 	reportException: protectedProcedure
 		.input(reportDispatchExceptionSchema)
@@ -574,10 +885,13 @@ export const dispatchRouters = createTRPCRouter({
 		.input(driverWorkQueueQuerySchema)
 		.query(async (props) => {
 			await requireDispatchWorker(props.ctx);
-			return getDispatches(props.ctx, {
-				...props.input,
-				driversId: [props.ctx.userId],
-			});
+			return withDriverRouteCapabilities(
+				props.ctx,
+				await getDispatches(props.ctx, {
+					...props.input,
+					driversId: [props.ctx.userId],
+				}),
+			);
 		}),
 	driverWorkQueueSummary: protectedProcedure
 		.input(driverWorkQueueQuerySchema)
@@ -735,90 +1049,109 @@ export const dispatchRouters = createTRPCRouter({
 				props.ctx,
 				props.input.dispatchId,
 			);
-			const dispatch = await props.ctx.db.orderDelivery.findFirst({
-				where: { id: props.input.dispatchId, deletedAt: null },
-				select: {
-					id: true,
-					salesOrderId: true,
-					status: true,
-					dueDate: true,
-					deliveryMode: true,
-					driverId: true,
-					order: { select: { orderId: true } },
-				},
-			});
-			if (!dispatch) {
+			return executeDriverTripStart(props.ctx, actor, props.input);
+		}),
+	normalizeDestination: protectedProcedure
+		.input(normalizeDriverDestinationSchema)
+		.mutation(async (props) => {
+			const actor = await requireAssignedDispatchOrManager(
+				props.ctx,
+				props.input.dispatchId,
+			);
+			let address: Awaited<ReturnType<typeof resolveStorefrontPlace>>;
+			try {
+				address = await resolveStorefrontPlace({
+					placeId: props.input.placeId,
+					sessionToken: props.input.sessionToken,
+				});
+			} catch (error) {
 				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Dispatch not found.",
+					code: "PRECONDITION_FAILED",
+					message:
+						error instanceof Error
+							? error.message
+							: "Google could not verify this delivery address.",
+					cause: error,
 				});
 			}
-			if (dispatch.status === "in progress") {
-				return {
-					result: null,
-					requestId: props.input.requestId,
-					status: dispatch.status,
-					idempotent: true,
-				};
+			if (!Number.isFinite(address.lat) || !Number.isFinite(address.lng)) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Choose an address with a valid map location.",
+				});
 			}
-			await enforceSpecialOrderForSale(
-				props.ctx,
-				dispatch.salesOrderId,
-				"DISPATCH",
-				"api.dispatch.start-trip",
-			);
-			const input = withAuthenticatedSalesControlActor(
-				{
-					meta: {
-						salesId: dispatch.salesOrderId,
-						authorId: actor.id,
-						authorName: actor.name || `User ${props.ctx.userId}`,
-					},
-					startDispatch: { dispatchId: dispatch.id },
+			return saveDriverRouteDestination(props.ctx.db, {
+				dispatchId: props.input.dispatchId,
+				actorId: props.ctx.userId,
+				manager: Boolean(actor.can.editPickup || actor.can.editOrders),
+				address,
+			});
+		}),
+	startReadyRoute: protectedProcedure
+		.input(startReadyRouteSchema)
+		.mutation(async (props) => {
+			const actor = await requireDispatchWorker(props.ctx);
+			const dispatchIds = [...new Set(props.input.dispatchIds)];
+			const assigned = await props.ctx.db.orderDelivery.findMany({
+				where: {
+					id: { in: dispatchIds },
+					driverId: props.ctx.userId,
+					deletedAt: null,
 				},
-				actor,
-			);
-			const response = await startDispatchTask(props.ctx.db, input, {
-				assertInventoryReady: assertDispatchInventoryReadyToStart,
+				select: { id: true },
 			});
-			const current = await props.ctx.db.orderDelivery.findFirst({
-				where: { id: dispatch.id, deletedAt: null },
-				select: { status: true },
-			});
-			let notificationFailed = false;
-			if (
-				current?.status === "in progress" &&
-				dispatch.status !== "in progress"
-			) {
+			const assignedIds = new Set(assigned.map((dispatch) => dispatch.id));
+			const results: Array<{
+				dispatchId: number;
+				outcome: "started" | "already_started" | "blocked";
+				status?: string | null;
+				reason?: string;
+				notificationFailed?: boolean;
+			}> = [];
+
+			for (const dispatchId of dispatchIds) {
+				if (!assignedIds.has(dispatchId)) {
+					results.push({
+						dispatchId,
+						outcome: "blocked",
+						reason: "This stop is not assigned to you.",
+					});
+					continue;
+				}
 				try {
-					await getDispatchNotificationService(props.ctx).send(
-						"sales_dispatch_in_progress",
-						{
-							payload: {
-								orderNo: dispatch.order?.orderId || undefined,
-								dispatchId: dispatch.id,
-								deliveryMode: normalizeDispatchDeliveryMode(
-									dispatch.deliveryMode,
-								),
-								dueDate: dispatch.dueDate || undefined,
-								driverId: dispatch.driverId || undefined,
-							},
-						},
-					);
+					const result = await executeDriverTripStart(props.ctx, actor, {
+						dispatchId,
+						requestId: `${props.input.requestId}:${dispatchId}`,
+						assignedOnly: true,
+					});
+					results.push({
+						dispatchId,
+						outcome: result.idempotent ? "already_started" : "started",
+						status: result.status,
+						notificationFailed: result.notificationFailed,
+					});
 				} catch (error) {
-					notificationFailed = true;
-					console.error(
-						"Trip start committed, but notification failed.",
-						error,
-					);
+					results.push({
+						dispatchId,
+						outcome: "blocked",
+						reason:
+							error instanceof TRPCError
+								? error.message
+								: "This stop changed and needs review.",
+					});
 				}
 			}
+
 			return {
-				result: response ?? null,
 				requestId: props.input.requestId,
-				status: current?.status || dispatch.status,
-				idempotent: false,
-				notificationFailed,
+				startedCount: results.filter((result) => result.outcome === "started")
+					.length,
+				alreadyStartedCount: results.filter(
+					(result) => result.outcome === "already_started",
+				).length,
+				blockedCount: results.filter((result) => result.outcome === "blocked")
+					.length,
+				results,
 			};
 		}),
 	confirmPacking: protectedProcedure
@@ -1533,6 +1866,43 @@ export const dispatchRouters = createTRPCRouter({
 			await requireDispatchManager(props.ctx);
 			return updateDispatchDriver(props.ctx, props.input);
 		}),
+	assignmentDestinationPreflight: protectedProcedure
+		.input(dispatchAssignmentDestinationPreflightSchema)
+		.query(async (props) => {
+			await requireDispatchManager(props.ctx);
+			return getDispatchAssignmentDestinationPreflight(props.ctx, props.input);
+		}),
+	normalizeAssignmentDestination: protectedProcedure
+		.input(normalizeDispatchAssignmentDestinationSchema)
+		.mutation(async (props) => {
+			await requireDispatchManager(props.ctx);
+			let address: Awaited<ReturnType<typeof resolveStorefrontPlace>>;
+			try {
+				address = await resolveStorefrontPlace({
+					placeId: props.input.placeId,
+					sessionToken: props.input.sessionToken,
+				});
+			} catch (error) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						error instanceof Error
+							? error.message
+							: "Google could not verify this delivery address.",
+					cause: error,
+				});
+			}
+			if (!Number.isFinite(address.lat) || !Number.isFinite(address.lng)) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Choose an address with a valid map location.",
+				});
+			}
+			return saveDispatchAssignmentDestination(props.ctx, {
+				salesId: props.input.salesId,
+				address,
+			});
+		}),
 	updateDispatchDueDate: protectedProcedure
 		.input(updateDispatchDueDateSchema)
 		.mutation(async (props) => {
@@ -1565,6 +1935,12 @@ export const dispatchRouters = createTRPCRouter({
 	ensureSalesOrderFulfillmentDispatch: protectedProcedure
 		.input(z.object({ salesId: z.number().int().positive() }))
 		.mutation(async (props) => {
+			if (!props.ctx.userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Authentication is required.",
+				});
+			}
 			await requireAnyOperationalPermission(
 				props.ctx,
 				["viewMarkSalesOrderFulfilled"],
@@ -1577,54 +1953,16 @@ export const dispatchRouters = createTRPCRouter({
 				"api.dispatch.ensure-sales-order-fulfillment",
 			);
 
-			const resolved = await props.ctx.db.$transaction(
-				async (tx) => {
-					const sale = await tx.salesOrders.findFirstOrThrow({
-						where: {
-							id: props.input.salesId,
-							type: "order",
-						},
-						select: {
-							deliveryOption: true,
-							deliveries: {
-								where: { deletedAt: null },
-								orderBy: [{ dueDate: "desc" }, { id: "desc" }],
-								select: {
-									id: true,
-									status: true,
-								},
-							},
-						},
-					});
-					const existing = sale.deliveries.find((dispatch) => {
-						const status = String(dispatch.status || "").toLowerCase();
-						return !["completed", "cancelled", "delivered"].includes(status);
-					});
-					if (existing) {
-						return { dispatchId: existing.id };
-					}
-
-					const dueDate = new Date();
-					const deliveryMode = (sale.deliveryOption ||
-						"delivery") as DeliveryOption;
-					const dispatch = await tx.orderDelivery.create({
-						data: {
-							deliveryMode,
-							createdBy: { connect: { id: props.ctx.userId } },
-							status: "queue" as SalesDispatchStatus,
-							dueDate,
-							meta: {},
-							order: { connect: { id: props.input.salesId } },
-						},
-						select: { id: true },
-					});
-					return {
-						dispatchId: dispatch.id,
-					};
-				},
-				{ isolationLevel: "Serializable" },
-			);
-
+			const resolved = await ensureSalesOrderFulfillmentDispatch(props.ctx.db, {
+				salesId: props.input.salesId,
+				createdById: props.ctx.userId,
+			});
+			if (!resolved.dispatchId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This sales order is already fulfilled.",
+				});
+			}
 			return { id: resolved.dispatchId };
 		}),
 	orderDispatchOverview: protectedProcedure
@@ -1662,7 +2000,15 @@ export const dispatchRouters = createTRPCRouter({
 				props.input.dispatchId,
 				{ allowPackingOperator: true },
 			);
-			return getDispatchOverviewV2(props.ctx, props.input);
+			// The overview keeps unpacked allocations as audit history, not current quantity.
+			const overview = await getDispatchOverviewV2(props.ctx, props.input);
+			const packingCommandRevision = props.input.dispatchId
+				? await getDispatchPackingCommandRevision(
+						props.ctx.db,
+						props.input.dispatchId,
+					)
+				: null;
+			return { ...overview, packingCommandRevision };
 		}),
 	manifest: protectedProcedure
 		.input(salesDispatchOverviewSchema)
@@ -2189,6 +2535,12 @@ export const dispatchRouters = createTRPCRouter({
 			);
 			const deliveryMode = (_deliverMode || "delivery") as DeliveryOption;
 			if (driverId) driverId = Number(driverId);
+			if (driverId) {
+				await assertDispatchAssignmentDestinations(props.ctx, {
+					salesIds: [salesId],
+					deliveryMode,
+				});
+			}
 			const dispatch = await props.ctx.db.orderDelivery.create({
 				data: {
 					deliveryMode,
@@ -2243,7 +2595,14 @@ export const dispatchRouters = createTRPCRouter({
 		.input(createDispatchesSchema)
 		.mutation(async (props) => {
 			await requireDispatchManager(props.ctx);
-			const salesIds = [...new Set(props.input.salesIds)];
+			const plan = resolveDispatchBatchDueDates({
+				orders: props.input.orders,
+				overrideDueDate: props.input.overrideDueDate,
+			});
+			const salesIds = plan.map((order) => order.salesId);
+			const dueDateBySalesId = new Map(
+				plan.map((order) => [order.salesId, order.dueDate]),
+			);
 			for (const salesId of salesIds) {
 				await enforceSpecialOrderForSale(
 					props.ctx,
@@ -2254,6 +2613,12 @@ export const dispatchRouters = createTRPCRouter({
 			}
 
 			const deliveryMode = props.input.deliveryMode as DeliveryOption;
+			if (props.input.driverId) {
+				await assertDispatchAssignmentDestinations(props.ctx, {
+					salesIds,
+					deliveryMode,
+				});
+			}
 			const dispatches = await props.ctx.db.$transaction(async (tx) => {
 				const eligibleOrders = await tx.salesOrders.findMany({
 					where: {
@@ -2288,7 +2653,7 @@ export const dispatchRouters = createTRPCRouter({
 									? { connect: { id: props.input.driverId } }
 									: undefined,
 								status: "queue" as SalesDispatchStatus,
-								dueDate: props.input.dueDate,
+								dueDate: dueDateBySalesId.get(salesId),
 								meta: {},
 								order: { connect: { id: salesId } },
 							},

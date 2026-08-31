@@ -406,6 +406,12 @@ export const salesProductionQueryParamsSchema = z
 	.object({
 		assignedToId: z.number().optional().nullable(),
 		workerId: z.number().optional().nullable(),
+		"customer.name": z.string().optional().nullable(),
+		phone: z.string().optional().nullable(),
+		po: z.string().optional().nullable(),
+		item: z.string().optional().nullable(),
+		"sales.rep": z.string().optional().nullable(),
+		invoice: z.enum(["paid", "pending"]).optional().nullable(),
 		tab: z
 			.enum(["queue", "reviews", "calendar", "completed"])
 			.optional()

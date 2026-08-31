@@ -13,6 +13,21 @@ const sale = {
 };
 
 describe("sales email attachment actions", () => {
+	it("renders explicit light colors and the resolved sales signature", async () => {
+		const html = await render(
+			<SalesEmail
+				customerName="Acme Millwork"
+				sales={[sale]}
+				salesRepName="Jordan Lee"
+			/>,
+		);
+
+		expect(html).toContain("#17211d");
+		expect(html).toContain("#fffefa");
+		expect(html).toContain("Jordan Lee");
+		expect(html).toContain("Sales · GND Millwork");
+	});
+
 	it("hides invoice download actions when the PDF is attached", async () => {
 		const html = await render(
 			<SalesEmail

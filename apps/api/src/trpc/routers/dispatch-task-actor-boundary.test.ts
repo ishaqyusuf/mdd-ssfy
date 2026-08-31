@@ -13,4 +13,12 @@ describe("direct dispatch task actor boundary", () => {
 		expect(source).toContain("startDispatchTask(props.ctx.db, input");
 		expect(source).toContain("submitDispatchTask(props.ctx.db, input)");
 	});
+
+	it("revalidates every batch trip start through the canonical guarded helper", () => {
+		expect(source).toContain("startReadyRoute: protectedProcedure");
+		expect(source).toContain("await requireDispatchWorker(props.ctx)");
+		expect(source).toContain("assignedOnly: true");
+		expect(source).toContain("executeDriverTripStart(props.ctx, actor");
+		expect(source).toContain("projection.mobileLifecycle.capabilities.canStartTrip");
+	});
 });

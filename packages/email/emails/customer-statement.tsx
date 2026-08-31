@@ -1,25 +1,19 @@
 /** @jsxImportSource react */
+import { Column, Heading, Row, Section, Text } from "@react-email/components";
 import {
-	Body,
-	Column,
-	Container,
-	Heading,
-	Preview,
-	Row,
-	Section,
-	Text,
-} from "@react-email/components";
-import { Footer } from "../components/footer";
-import { Logo } from "../components/logo";
-import {
-	EmailThemeProvider,
-	getEmailInlineStyles,
-	getEmailThemeClasses,
-} from "../components/theme";
+	StandardEmailButton,
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailMetric,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 interface Props {
 	customerEmail: string;
 	customerName: string;
+	salesRepName?: string | null;
 	statementTotal: number;
 	accountNo?: string | null;
 	message?: string | null;
@@ -44,304 +38,305 @@ const formatCurrency = (value: number) =>
 		currency: "USD",
 	}).format(value || 0);
 
+function StatementAmount({
+	label,
+	value,
+	emphasis = false,
+}: {
+	label: string;
+	value: number;
+	emphasis?: boolean;
+}) {
+	return (
+		<Column style={{ paddingRight: 10, verticalAlign: "top", width: "33.33%" }}>
+			<Text
+				className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.7px]"
+				style={{ color: standardEmailColors.muted }}
+			>
+				{label}
+			</Text>
+			<Text
+				className="gnd-standard-text m-0 mt-[5px] text-[14px] font-semibold leading-[20px]"
+				style={{
+					color: emphasis
+						? standardEmailColors.cypress
+						: standardEmailColors.ink,
+				}}
+			>
+				{formatCurrency(value)}
+			</Text>
+		</Column>
+	);
+}
+
 export function CustomerStatementEmail({
 	customerEmail,
 	customerName,
+	salesRepName,
 	statementTotal,
 	accountNo,
 	message,
 	paymentLink,
 	lines,
 }: Props) {
-	const themeClasses = getEmailThemeClasses();
-	const lightStyles = getEmailInlineStyles("light");
-	const previewText = `Statement for ${customerName} - ${formatCurrency(statementTotal)} due`;
+	const previewText = `Statement for ${customerName} — ${formatCurrency(statementTotal)} due`;
 	const intro =
-		message ||
-		`Good morning ${customerName}, please see below statement for the account.`;
+		message || "Please review the current statement for your account below.";
+	const documentMeta =
+		accountNo || `${lines.length} open order${lines.length === 1 ? "" : "s"}`;
 
 	return (
-		<EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
-			<Body
-				className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-				style={lightStyles.body}
+		<StandardEmailLayout previewText={previewText}>
+			<StandardEmailHeader
+				documentLabel="Account statement"
+				documentMeta={documentMeta}
+			/>
+
+			<StandardEmailHero
+				eyebrow="Customer account"
+				recipientName={customerName}
+				title="Your Account Statement"
 			>
-				<Container
-					className={`my-[28px] mx-auto p-[20px] max-w-[720px] ${themeClasses.container}`}
+				<Text
+					className="gnd-standard-text m-0 mt-[9px] text-[16px] leading-[25px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					{intro}
+				</Text>
+			</StandardEmailHero>
+
+			<Section
+				className="gnd-standard-panel gnd-standard-soft-green gnd-standard-border gnd-standard-content mx-[36px] mt-[28px] px-[20px] py-[18px]"
+				style={{
+					backgroundColor: standardEmailColors.softGreen,
+					border: `1px solid ${standardEmailColors.border}`,
+					borderRadius: 6,
+				}}
+			>
+				<Row>
+					<StandardEmailMetric
+						emphasis
+						label="Total due"
+						value={formatCurrency(statementTotal)}
+					/>
+					<StandardEmailMetric
+						label="Open orders"
+						value={String(lines.length)}
+					/>
+					<StandardEmailMetric
+						label="Account"
+						value={accountNo || "Not assigned"}
+					/>
+				</Row>
+			</Section>
+
+			{paymentLink ? (
+				<Section
+					className="gnd-standard-panel gnd-standard-soft gnd-standard-border gnd-standard-content mx-[36px] mt-[28px] px-[22px] py-[22px]"
 					style={{
-						borderStyle: "solid",
-						borderWidth: 1,
-						borderColor: lightStyles.container.borderColor,
-						borderRadius: 12,
-						backgroundColor: lightStyles.body.backgroundColor,
+						backgroundColor: standardEmailColors.soft,
+						border: `1px solid ${standardEmailColors.border}`,
+						borderRadius: 6,
 					}}
 				>
-					<Logo />
-
-					<Section
-						className="mt-[20px] mb-[20px] p-[20px]"
+					<Text
+						className="gnd-standard-accent-text m-0 text-[12px] font-semibold uppercase tracking-[1px]"
+						style={{ color: standardEmailColors.cypress }}
+					>
+						Payment options
+					</Text>
+					<Heading
+						className="gnd-standard-heading m-0 mt-[8px] text-[20px] font-normal leading-[27px]"
 						style={{
-							backgroundColor: "#f8fafc",
-							borderStyle: "solid",
-							borderWidth: 1,
-							borderColor: lightStyles.container.borderColor,
-							borderRadius: 10,
+							color: standardEmailColors.ink,
+							fontFamily: "Georgia, 'Times New Roman', serif",
 						}}
 					>
-						<Text
-							className={`m-0 text-[12px] uppercase tracking-[1.6px] ${themeClasses.mutedText}`}
-							style={{ color: "#64748b" }}
-						>
-							Statement
-						</Text>
-						<Heading
-							className={`text-[28px] leading-[34px] font-semibold p-0 mt-[8px] mb-[10px] ${themeClasses.heading}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							Account statement
-						</Heading>
-						<Text
-							className={`m-0 text-[15px] leading-[24px] ${themeClasses.text}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							{intro}
-						</Text>
-					</Section>
-
-					<Section
-						className="mb-[18px] p-[14px]"
-						style={{
-							borderStyle: "solid",
-							borderWidth: 1,
-							borderColor: lightStyles.container.borderColor,
-							borderRadius: 10,
-							backgroundColor: "#fcfcfd",
-						}}
+						Choose what you would like to pay
+					</Heading>
+					<Text
+						className="gnd-standard-text m-0 mt-[8px] mb-[16px] text-[14px] leading-[22px]"
+						style={{ color: standardEmailColors.ink }}
 					>
-						<Row>
-							<Column style={{ width: "33.3%" }}>
-								<Text
-									className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-									style={{ color: "#64748b" }}
-								>
-									Customer email
-								</Text>
-								<Text
-									className={`m-0 mt-[3px] text-[14px] font-semibold ${themeClasses.text}`}
-								>
-									{customerEmail}
-								</Text>
-							</Column>
-							<Column style={{ width: "33.3%" }}>
-								<Text
-									className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-									style={{ color: "#64748b" }}
-								>
-									Account
-								</Text>
-								<Text
-									className={`m-0 mt-[3px] text-[14px] font-semibold ${themeClasses.text}`}
-								>
-									{accountNo || "-"}
-								</Text>
-							</Column>
-							<Column style={{ width: "33.3%" }}>
-								<Text
-									className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-									style={{ color: "#64748b" }}
-								>
-									Total due
-								</Text>
-								<Text
-									className={`m-0 mt-[3px] text-[16px] font-semibold ${themeClasses.text}`}
-								>
-									{formatCurrency(statementTotal)}
-								</Text>
-							</Column>
-						</Row>
-					</Section>
+						Pay all open items or select individual orders in the secure payment
+						portal.
+					</Text>
+					<StandardEmailButton href={paymentLink}>
+						Open payment portal
+					</StandardEmailButton>
+				</Section>
+			) : null}
 
-					{paymentLink ? (
+			<Section className="gnd-standard-content px-[36px] py-[30px]">
+				<Text
+					className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[1px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Open order details
+				</Text>
+
+				{lines.length ? (
+					lines.map((line, index) => (
 						<Section
-							className="mb-[18px] p-[16px]"
+							key={`${line.salesId}-${line.orderNo}`}
+							className={`${index % 2 ? "gnd-standard-row-alt" : "gnd-standard-row"} gnd-standard-border mt-[10px] px-[16px] py-[16px]`}
 							style={{
-								borderStyle: "solid",
-								borderWidth: 1,
-								borderColor: "#bfdbfe",
-								borderRadius: 10,
-								backgroundColor: "#eff6ff",
+								backgroundColor:
+									index % 2
+										? standardEmailColors.soft
+										: standardEmailColors.card,
+								border: `1px solid ${standardEmailColors.border}`,
+								borderRadius: 6,
 							}}
 						>
-							<Text
-								className={`m-0 text-[14px] leading-[22px] ${themeClasses.text}`}
-								style={{ color: "#1e3a8a" }}
-							>
-								You can pay all open items or select specific orders from the
-								secure payment portal.
-							</Text>
-							<Text className="m-0 mt-[12px]">
-								<a
-									href={paymentLink}
-									style={{
-										display: "inline-block",
-										backgroundColor: "#0f172a",
-										color: "#ffffff",
-										borderRadius: 8,
-										padding: "10px 14px",
-										fontSize: 14,
-										fontWeight: 600,
-										textDecoration: "none",
-									}}
+							<Row>
+								<Column
+									className="gnd-standard-mobile-stack"
+									style={{ verticalAlign: "top", width: "60%" }}
 								>
-									Open payment portal
-								</a>
-							</Text>
-						</Section>
-					) : null}
-
-					<table
-						style={{
-							width: "100%",
-							minWidth: "100%",
-							borderCollapse: "collapse",
-						}}
-					>
-						<thead style={{ backgroundColor: "#f8fafc" }}>
-							<tr>
-								{[
-									"Sn",
-									"Date",
-									"Order #",
-									"P.O.",
-									"Invoice",
-									"Paid",
-									"Pending",
-									"Customer",
-									"Phone",
-									"Address",
-								].map((heading) => (
-									<th
-										key={heading}
-										align={
-											["Invoice", "Paid", "Pending"].includes(heading)
-												? "right"
-												: "left"
-										}
+									<Text
+										className="gnd-standard-text m-0 text-[15px] font-semibold leading-[21px]"
+										style={{ color: standardEmailColors.ink }}
+									>
+										Order #{line.orderNo}
+									</Text>
+									<Text
+										className="gnd-standard-muted m-0 mt-[4px] text-[13px] leading-[19px]"
+										style={{ color: standardEmailColors.muted }}
+									>
+										{line.date} · P.O. {line.poNo || "—"}
+									</Text>
+								</Column>
+								<Column
+									align="right"
+									className="gnd-standard-mobile-stack"
+									style={{ verticalAlign: "top", width: "40%" }}
+								>
+									<Text
+										className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.7px]"
+										style={{ color: standardEmailColors.muted }}
+									>
+										Balance due
+									</Text>
+									<Text
+										className="gnd-standard-heading m-0 mt-[4px] text-[18px] font-semibold leading-[23px]"
 										style={{
-											borderBottom: `1px solid ${lightStyles.container.borderColor}`,
-											padding: "9px 6px",
+											color: standardEmailColors.cypress,
+											fontFamily: "Georgia, 'Times New Roman', serif",
 										}}
 									>
-										<Text
-											className={`text-[11px] uppercase tracking-[0.6px] font-semibold m-0 ${themeClasses.mutedText}`}
-											style={{ color: "#64748b" }}
-										>
-											{heading}
-										</Text>
-									</th>
-								))}
-							</tr>
-						</thead>
-						<tbody>
-							{lines.map((line, index) => (
-								<tr key={`${line.salesId}-${line.orderNo}`}>
-									<td style={{ padding: "10px 6px", verticalAlign: "top" }}>
-										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
-											{index + 1}.
-										</Text>
-									</td>
-									<td style={{ padding: "10px 6px", verticalAlign: "top" }}>
-										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
-											{line.date}
-										</Text>
-									</td>
-									<td style={{ padding: "10px 6px", verticalAlign: "top" }}>
-										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
-											{line.orderNo}
-										</Text>
-									</td>
-									<td style={{ padding: "10px 6px", verticalAlign: "top" }}>
-										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
-											{line.poNo || "-"}
-										</Text>
-									</td>
-									<td
-										align="right"
-										style={{ padding: "10px 6px", verticalAlign: "top" }}
-									>
-										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
-											{formatCurrency(line.invoice)}
-										</Text>
-									</td>
-									<td
-										align="right"
-										style={{ padding: "10px 6px", verticalAlign: "top" }}
-									>
-										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
-											{formatCurrency(line.paid)}
-										</Text>
-									</td>
-									<td
-										align="right"
-										style={{ padding: "10px 6px", verticalAlign: "top" }}
-									>
-										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
-											{formatCurrency(line.pending)}
-										</Text>
-									</td>
-									<td style={{ padding: "10px 6px", verticalAlign: "top" }}>
-										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
-											{line.customer}
-										</Text>
-									</td>
-									<td style={{ padding: "10px 6px", verticalAlign: "top" }}>
-										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
-											{line.phone || "-"}
-										</Text>
-									</td>
-									<td style={{ padding: "10px 6px", verticalAlign: "top" }}>
-										<Text className={`m-0 text-[12px] ${themeClasses.text}`}>
-											{line.address || "-"}
-										</Text>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+										{formatCurrency(line.pending)}
+									</Text>
+								</Column>
+							</Row>
 
-					<Section className="mt-[16px]">
-						<Row>
-							<Column style={{ width: "70%" }} />
-							<Column style={{ width: "30%" }}>
-								<Text
-									className={`m-0 text-[12px] uppercase tracking-[0.8px] ${themeClasses.mutedText}`}
-									style={{ color: "#64748b", textAlign: "right" }}
-								>
-									Total
-								</Text>
-								<Text
-									className={`m-0 mt-[4px] text-[20px] font-semibold ${themeClasses.text}`}
-									style={{ textAlign: "right" }}
-								>
-									{formatCurrency(statementTotal)}
-								</Text>
-							</Column>
-						</Row>
-					</Section>
+							<Section
+								className="gnd-standard-border mt-[14px] pt-[14px]"
+								style={{ borderTop: `1px solid ${standardEmailColors.border}` }}
+							>
+								<Row>
+									<StatementAmount label="Invoice" value={line.invoice} />
+									<StatementAmount label="Paid" value={line.paid} />
+									<StatementAmount
+										emphasis
+										label="Pending"
+										value={line.pending}
+									/>
+								</Row>
+							</Section>
 
-					<Text
-						className={`mt-[20px] text-[14px] leading-[22px] ${themeClasses.text}`}
-						style={{ color: lightStyles.text.color }}
+							<Text
+								className="gnd-standard-muted m-0 mt-[13px] text-[12px] leading-[19px]"
+								style={{ color: standardEmailColors.muted }}
+							>
+								{line.customer}
+								{line.phone ? ` · ${line.phone}` : ""}
+								{line.address ? (
+									<>
+										<br />
+										{line.address}
+									</>
+								) : null}
+							</Text>
+						</Section>
+					))
+				) : (
+					<Section
+						className="gnd-standard-soft gnd-standard-border mt-[10px] px-[18px] py-[18px]"
+						style={{
+							backgroundColor: standardEmailColors.soft,
+							border: `1px solid ${standardEmailColors.border}`,
+							borderRadius: 6,
+						}}
 					>
-						If you have any questions about this statement, reply to this email
-						and our team will help.
-					</Text>
+						<Text
+							className="gnd-standard-text m-0 text-[14px] leading-[22px]"
+							style={{ color: standardEmailColors.ink }}
+						>
+							There are no open orders on this statement.
+						</Text>
+					</Section>
+				)}
 
-					<Footer />
-				</Container>
-			</Body>
-		</EmailThemeProvider>
+				<Text
+					className="gnd-standard-text m-0 mt-[20px] text-[14px] leading-[22px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					Statement recipient: {customerEmail}. If you have questions about an
+					order or balance, reply directly to this email.
+				</Text>
+			</Section>
+
+			<StandardEmailSignature senderName={salesRepName} />
+		</StandardEmailLayout>
 	);
 }
+
+CustomerStatementEmail.PreviewProps = {
+	customerEmail: "jordan@example.invalid",
+	customerName: "Jordan Lee",
+	salesRepName: "Taylor Morgan",
+	statementTotal: 1975,
+	accountNo: "ACCT-2048",
+	message: "Please see the current statement for your account.",
+	paymentLink: "https://gndprodesk.com/pay/preview",
+	lines: [
+		{
+			salesId: 10482,
+			orderNo: "GND-10482",
+			poNo: "PO-7731",
+			date: "Aug 29, 2026",
+			invoice: 2480,
+			paid: 1240,
+			pending: 1240,
+			customer: "Jordan Lee",
+			phone: "+1 (555) 010-2048",
+			address: "1200 Market Street, Philadelphia, PA",
+		},
+		{
+			salesId: 10461,
+			orderNo: "GND-10461",
+			poNo: "PO-7684",
+			date: "Aug 18, 2026",
+			invoice: 980,
+			paid: 490,
+			pending: 490,
+			customer: "Jordan Lee",
+			phone: "+1 (555) 010-2048",
+			address: "1200 Market Street, Philadelphia, PA",
+		},
+		{
+			salesId: 10394,
+			orderNo: "GND-10394",
+			date: "Aug 4, 2026",
+			invoice: 735,
+			paid: 490,
+			pending: 245,
+			customer: "Jordan Lee",
+			phone: "+1 (555) 010-2048",
+			address: "1200 Market Street, Philadelphia, PA",
+		},
+	],
+} satisfies Props;
 
 export default CustomerStatementEmail;

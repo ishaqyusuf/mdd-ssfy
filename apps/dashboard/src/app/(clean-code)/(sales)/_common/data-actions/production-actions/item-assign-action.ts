@@ -142,7 +142,13 @@ export async function submitItemAssignmentAction({
 }) {
 	const actor = await getLoggedInProfile();
 	if (!actor.userId) throw new Error("Authentication is required.");
-	const authority = requireProductionSubmissionAuthority(actor);
+	const representedOrder = await prisma.salesOrders.findFirst({
+		where: { id: salesId, salesRepId: actor.userId },
+		select: { id: true },
+	});
+	const authority = requireProductionSubmissionAuthority(actor, {
+		isOrderSalesRep: Boolean(representedOrder),
+	});
 	const result = await submitProductionAssignment(prisma as any, {
 		salesOrderId: salesId,
 		salesOrderItemId: salesItemId,

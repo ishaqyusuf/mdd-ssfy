@@ -1,25 +1,17 @@
 /** @jsxImportSource react */
+import { Column, Row, Section, Text } from "@react-email/components";
 import {
-	Body,
-	Column,
-	Container,
-	Heading,
-	Preview,
-	Row,
-	Section,
-	Text,
-} from "@react-email/components";
-import { Footer } from "../components/footer";
-import { Logo } from "../components/logo";
-import {
-	Button,
-	EmailThemeProvider,
-	getEmailInlineStyles,
-	getEmailThemeClasses,
-} from "../components/theme";
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailMetric,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 interface Props {
 	customerName: string;
+	salesRepName?: string | null;
 	paymentMethod: string;
 	totalAmount: number;
 	note?: string | null;
@@ -38,204 +30,189 @@ const formatCurrency = (value: number) =>
 	}).format(value || 0);
 
 export function SalesCustomerPaymentReceivedEmail(props: Props) {
-	const themeClasses = getEmailThemeClasses();
-	const lightStyles = getEmailInlineStyles("light");
 	const previewText = `Payment received for order${props.sales.length > 1 ? "s" : ""} ${props.sales.map((sale) => sale.orderNo).join(", ")}`;
+	const documentMeta =
+		props.sales.length === 1
+			? `#${props.sales[0]?.orderNo ?? ""}`
+			: `${props.sales.length} orders`;
 
 	return (
-		<EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
-			<Body
-				className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-				style={lightStyles.body}
+		<StandardEmailLayout previewText={previewText}>
+			<StandardEmailHeader
+				documentLabel="Payment receipt"
+				documentMeta={documentMeta}
+			/>
+
+			<StandardEmailHero
+				eyebrow="Payment confirmation"
+				recipientName={props.customerName}
+				title="Payment Received"
 			>
-				<Container
-					className={`my-[28px] mx-auto p-[20px] max-w-[640px] ${themeClasses.container}`}
+				<Text
+					className="gnd-standard-text m-0 mt-[9px] text-[16px] leading-[25px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					We received your payment of{" "}
+					<strong>{formatCurrency(props.totalAmount)}</strong> via{" "}
+					{props.paymentMethod}. The allocation is shown below for your records.
+				</Text>
+			</StandardEmailHero>
+
+			<Section
+				className="gnd-standard-panel gnd-standard-soft-green gnd-standard-border gnd-standard-content mx-[36px] mt-[28px] px-[20px] py-[18px]"
+				style={{
+					backgroundColor: standardEmailColors.softGreen,
+					border: `1px solid ${standardEmailColors.border}`,
+					borderRadius: 6,
+				}}
+			>
+				<Row>
+					<StandardEmailMetric
+						emphasis
+						label="Amount received"
+						value={formatCurrency(props.totalAmount)}
+					/>
+					<StandardEmailMetric
+						label="Payment method"
+						value={props.paymentMethod}
+					/>
+					<StandardEmailMetric
+						label="Orders"
+						value={String(props.sales.length)}
+					/>
+				</Row>
+			</Section>
+
+			{props.note ? (
+				<Section
+					className="gnd-standard-panel gnd-standard-soft gnd-standard-border gnd-standard-content mx-[36px] mt-[24px] px-[18px] py-[16px]"
 					style={{
-						borderStyle: "solid",
-						borderWidth: 1,
-						borderColor: lightStyles.container.borderColor,
-						borderRadius: 12,
-						backgroundColor: lightStyles.body.backgroundColor,
+						backgroundColor: standardEmailColors.soft,
+						border: `1px solid ${standardEmailColors.border}`,
+						borderRadius: 6,
 					}}
 				>
-					<Logo />
-
-					<Section
-						className="mt-[20px] mb-[20px] p-[20px]"
-						style={{
-							backgroundColor: "#f0fdf4",
-							borderStyle: "solid",
-							borderWidth: 1,
-							borderColor: "#bbf7d0",
-							borderRadius: 10,
-						}}
+					<Text
+						className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.9px]"
+						style={{ color: standardEmailColors.muted }}
 					>
-						<Text
-							className={`m-0 text-[12px] uppercase tracking-[1.6px] ${themeClasses.mutedText}`}
-							style={{ color: "#15803d" }}
-						>
-							Payment Receipt
-						</Text>
-						<Heading
-							className={`text-[28px] leading-[34px] font-semibold p-0 mt-[8px] mb-[10px] ${themeClasses.heading}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							Payment received
-						</Heading>
-						<Text
-							className={`m-0 text-[15px] leading-[24px] ${themeClasses.text}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							Hi {props.customerName}, we received your payment of{" "}
-							<strong>{formatCurrency(props.totalAmount)}</strong> via{" "}
-							{props.paymentMethod}.
-						</Text>
-					</Section>
+						Payment note
+					</Text>
+					<Text
+						className="gnd-standard-text m-0 mt-[8px] text-[14px] leading-[22px]"
+						style={{ color: standardEmailColors.ink }}
+					>
+						{props.note}
+					</Text>
+				</Section>
+			) : null}
 
-					{props.note ? (
-						<Section
-							className="mb-[16px] p-[12px]"
-							style={{
-								borderStyle: "solid",
-								borderWidth: 1,
-								borderColor: lightStyles.container.borderColor,
-								borderRadius: 10,
-								backgroundColor: "#f8fafc",
-							}}
-						>
-							<Text
-								className={`m-0 mb-[4px] text-[12px] uppercase tracking-[0.8px] ${themeClasses.mutedText}`}
-								style={{ color: "#64748b" }}
-							>
-								Note
-							</Text>
-							<Text
-								className={`m-0 text-[14px] leading-[22px] ${themeClasses.text}`}
-								style={{ color: lightStyles.text.color }}
-							>
-								{props.note}
-							</Text>
-						</Section>
-					) : null}
-
+			<Section className="gnd-standard-content px-[36px] py-[30px]">
+				<Text
+					className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[1px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Payment allocation
+				</Text>
+				{props.sales.map((sale, index) => (
 					<Section
-						className="mb-[18px] p-[14px]"
+						key={sale.orderNo}
+						className={`${index % 2 ? "gnd-standard-row-alt" : "gnd-standard-row"} gnd-standard-border mt-[10px] px-[16px] py-[15px]`}
 						style={{
-							borderStyle: "solid",
-							borderWidth: 1,
-							borderColor: lightStyles.container.borderColor,
-							borderRadius: 10,
-							backgroundColor: "#fcfcfd",
+							backgroundColor:
+								index % 2 ? standardEmailColors.soft : standardEmailColors.card,
+							border: `1px solid ${standardEmailColors.border}`,
+							borderRadius: 6,
 						}}
 					>
 						<Row>
-							<Column style={{ width: "50%" }}>
+							<Column style={{ verticalAlign: "top", width: "38%" }}>
 								<Text
-									className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-									style={{ color: "#64748b" }}
+									className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.7px]"
+									style={{ color: standardEmailColors.muted }}
 								>
-									Orders
+									Order
 								</Text>
 								<Text
-									className={`m-0 mt-[3px] text-[16px] font-semibold ${themeClasses.text}`}
+									className="gnd-standard-text m-0 mt-[5px] text-[15px] font-semibold leading-[21px]"
+									style={{ color: standardEmailColors.ink }}
 								>
-									{props.sales.length}
+									#{sale.orderNo}
 								</Text>
 							</Column>
-							<Column style={{ width: "50%" }}>
+							<Column style={{ verticalAlign: "top", width: "31%" }}>
 								<Text
-									className={`m-0 text-[12px] ${themeClasses.mutedText}`}
-									style={{ color: "#64748b" }}
+									className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.7px]"
+									style={{ color: standardEmailColors.muted }}
 								>
-									Amount received
+									Applied
 								</Text>
 								<Text
-									className={`m-0 mt-[3px] text-[16px] font-semibold ${themeClasses.text}`}
+									className="gnd-standard-text m-0 mt-[5px] text-[14px] font-semibold leading-[20px]"
+									style={{ color: standardEmailColors.ink }}
 								>
-									{formatCurrency(props.totalAmount)}
+									{sale.amountApplied == null
+										? "Recorded"
+										: formatCurrency(sale.amountApplied)}
+								</Text>
+							</Column>
+							<Column
+								align="right"
+								style={{ verticalAlign: "top", width: "31%" }}
+							>
+								<Text
+									className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.7px]"
+									style={{ color: standardEmailColors.muted }}
+								>
+									Balance
+								</Text>
+								<Text
+									className="gnd-standard-text m-0 mt-[5px] text-[14px] font-semibold leading-[20px]"
+									style={{ color: standardEmailColors.ink }}
+								>
+									{formatCurrency(Number(sale.remainingDue || 0))}
 								</Text>
 							</Column>
 						</Row>
 					</Section>
+				))}
 
-					<table style={{ width: "100%", minWidth: "100%" }}>
-						<thead style={{ width: "100%", backgroundColor: "#f8fafc" }}>
-							<tr>
-								<th align="left">
-									<Text
-										className={`text-[12px] uppercase tracking-[0.8px] font-semibold m-0 ${themeClasses.mutedText}`}
-										style={{ color: "#64748b" }}
-									>
-										Order
-									</Text>
-								</th>
-								<th align="left">
-									<Text
-										className={`text-[12px] uppercase tracking-[0.8px] font-semibold m-0 ${themeClasses.mutedText}`}
-										style={{ color: "#64748b" }}
-									>
-										Applied
-									</Text>
-								</th>
-								<th align="right">
-									<Text
-										className={`text-[12px] uppercase tracking-[0.8px] font-semibold m-0 ${themeClasses.mutedText}`}
-										style={{ color: "#64748b" }}
-									>
-										Balance
-									</Text>
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{props.sales.map((sale) => (
-								<tr key={sale.orderNo}>
-									<td style={{ padding: "12px 0" }}>
-										<Text className={`m-0 ${themeClasses.text}`}>
-											{sale.orderNo}
-										</Text>
-									</td>
-									<td style={{ padding: "12px 0" }}>
-										<Text className={`m-0 ${themeClasses.text}`}>
-											{sale.amountApplied == null
-												? "Recorded"
-												: formatCurrency(sale.amountApplied)}
-										</Text>
-									</td>
-									<td style={{ padding: "12px 0" }} align="right">
-										<Text className={`m-0 ${themeClasses.text}`}>
-											{formatCurrency(Number(sale.remainingDue || 0))}
-										</Text>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-
-					{props.invoicePdfAttachment ? (
-						<Section className="mt-[20px] p-[14px]">
-							<Text
-								className={`m-0 text-[14px] leading-[22px] ${themeClasses.text}`}
-								style={{ color: lightStyles.text.color }}
-							>
-								{props.sales.length > 1
-									? "The invoice PDFs are attached to this email for your reference."
-									: "The invoice PDF is attached to this email for your reference."}
-							</Text>
-						</Section>
-					) : null}
-
+				{props.invoicePdfAttachment ? (
 					<Text
-						className={`mt-[20px] text-[14px] leading-[22px] ${themeClasses.text}`}
-						style={{ color: lightStyles.text.color }}
+						className="gnd-standard-muted m-0 mt-[14px] text-[12px] leading-[19px]"
+						style={{ color: standardEmailColors.muted }}
 					>
-						If you have any questions about this payment, reply to this email
-						and our team will help.
+						{props.sales.length > 1
+							? "The invoice PDFs are attached for your records."
+							: "The invoice PDF is attached for your records."}
 					</Text>
+				) : null}
 
-					<Footer />
-				</Container>
-			</Body>
-		</EmailThemeProvider>
+				<Text
+					className="gnd-standard-text m-0 mt-[20px] text-[14px] leading-[22px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					If you have questions about this payment or its allocation, reply
+					directly to this email.
+				</Text>
+			</Section>
+
+			<StandardEmailSignature senderName={props.salesRepName} />
+		</StandardEmailLayout>
 	);
 }
+
+SalesCustomerPaymentReceivedEmail.PreviewProps = {
+	customerName: "Jordan Lee",
+	salesRepName: "Taylor Morgan",
+	paymentMethod: "Visa ending in 4242",
+	totalAmount: 1240,
+	note: "Deposit applied across the two open order balances.",
+	invoicePdfAttachment: { preview: true },
+	sales: [
+		{ orderNo: "GND-10482", amountApplied: 900, remainingDue: 1580 },
+		{ orderNo: "GND-10461", amountApplied: 340, remainingDue: 640 },
+	],
+} satisfies Props;
+
+export default SalesCustomerPaymentReceivedEmail;

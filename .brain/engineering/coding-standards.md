@@ -41,12 +41,18 @@ Repository-level implementation rules that recur across active workstreams.
   - use existing in-repo reference patterns from `apps/dashboard/src/(midday)` and `ai/midday-example` only as secondary examples
 
 ## Midday Implementation Standards
+- Load and apply the `midday` skill before React/Next.js implementation or review. For an existing page, route, screen, or feature rebuild, also use `midday-migration-planner` in implementation mode and complete its migration contract and conformance audit.
 - Prefer Midday's shadcn component usage, table composition, sheets, modals, sidebar layout, and page-level composition before inventing new UI structures.
+- Use the existing `@gnd/ui` shadcn wrappers and theme tokens first for web UI. Do not introduce Chakra UI as a default or parallel component system.
 - Place global sheet registration in `components/sheets/global-sheets.tsx` and provide it through `components/sheets/global-sheets-provider.tsx` when a surface uses the global sheet pattern.
 - Place reusable sheet implementations under `components/sheets/` and reusable modal implementations under `components/modals/`.
 - Keep table primitives and shared behaviors under `components/tables/core`; put domain-specific table implementations under `components/tables/<domain>/`.
 - Put form composition under `components/forms/`, onboarding flows under `components/onboarding/`, sidebar composition in `components/sidebar.tsx`, and sign-out controls in `components/sign-out.tsx` when those files are part of the app surface.
 - Route files should compose sections and providers; business rules, validation, pricing, inventory, permissions, and document behavior should live in the appropriate app feature boundary or shared package.
+
+## React Native Implementation Standards
+- Load and apply `react-native-best-practices` before Expo or React Native implementation and review.
+- For performance work, measure first, optimize the diagnosed bottleneck, re-measure, and validate on the relevant platform rather than applying speculative optimizations.
 
 <!-- personal-coding-rules:start -->
 ## Global Personal Coding Rules

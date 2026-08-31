@@ -9,9 +9,46 @@ import {
 	transitionInventoryDispatchAllocations,
 } from "./sales-fulfillment-plan";
 
+function noPendingPackingReports() {
+	return { salesPackingReport: { findMany: async () => [] } };
+}
+
 describe("assertDispatchInventoryReadyToStart", () => {
+	test("allows a packed trip whose physical quantity is released while approval is pending", async () => {
+		const evidenceSnapshot = {
+			policy: {
+				enabled: true,
+				allowAwaitingProductionSubmission: true,
+				allowPendingMaterialReview: true,
+				reviewMode: "ALLOW_DELIVERY_WHILE_PENDING",
+				notifySalesRep: true,
+				createProductionEvidenceOnApproval: true,
+				revision: 3,
+				changedAt: "2026-08-29T12:00:00.000Z",
+			},
+		};
+		const db = {
+			salesPackingReport: {
+				findMany: async () => [{ evidenceSnapshot }],
+			},
+			orderDelivery: {
+				findFirst: async () => ({ status: "packed" }),
+			},
+		};
+
+		await expect(
+			assertDispatchInventoryReadyToStart(db as any, {
+				orderDeliveryId: 77,
+				salesOrderId: 500,
+			}),
+		).resolves.toMatchObject({
+			executionMode: "guarded_physical_verification",
+		});
+	});
+
 	test("blocks an inventory-backed trip until every required component is picked", async () => {
 		const db = {
+			...noPendingPackingReports(),
 			orderItemDelivery: {
 				findMany: async () => [{ orderItemId: 44, qty: 2, lhQty: 0, rhQty: 0 }],
 			},
@@ -37,6 +74,7 @@ describe("assertDispatchInventoryReadyToStart", () => {
 
 	test("allows legacy trips and fully picked inventory trips", async () => {
 		const legacyDb = {
+			...noPendingPackingReports(),
 			orderItemDelivery: { findMany: async () => [] },
 			lineItemComponents: { findMany: async () => [] },
 			lineItem: { findFirst: async () => null },
@@ -49,6 +87,7 @@ describe("assertDispatchInventoryReadyToStart", () => {
 		).resolves.toMatchObject({ executionMode: "legacy" });
 
 		const inventoryDb = {
+			...noPendingPackingReports(),
 			orderItemDelivery: {
 				findMany: async () => [{ orderItemId: 44, qty: 2, lhQty: 0, rhQty: 0 }],
 			},
@@ -73,6 +112,7 @@ describe("assertDispatchInventoryReadyToStart", () => {
 
 	test("blocks an inventory-backed trip whose exact item scope has not been created", async () => {
 		const db = {
+			...noPendingPackingReports(),
 			orderItemDelivery: { findMany: async () => [] },
 			lineItemComponents: { findMany: async () => [] },
 			lineItem: { findFirst: async () => ({ id: 9 }) },
@@ -88,6 +128,7 @@ describe("assertDispatchInventoryReadyToStart", () => {
 
 	test("requires only this trip's proportional component quantity", async () => {
 		const db = {
+			...noPendingPackingReports(),
 			orderItemDelivery: {
 				findMany: async () => [{ orderItemId: 44, qty: 1, lhQty: 0, rhQty: 0 }],
 			},
@@ -115,6 +156,7 @@ describe("assertDispatchInventoryReadyToStart", () => {
 describe("consumeDispatchBoundInventory", () => {
 	test("does not downgrade an inventory-backed trip with no bound stock to legacy", async () => {
 		const tx = {
+			...noPendingPackingReports(),
 			stockAllocation: { findMany: async () => [] },
 			orderItemDelivery: {
 				findMany: async () => [{ orderItemId: 44, qty: 1, lhQty: 0, rhQty: 0 }],

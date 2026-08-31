@@ -81,6 +81,8 @@ export interface PrintSigningData {
 	packedBy: string | null;
 	receivedBy: string | null;
 	signatureUrl: string | null;
+	/** Validated SVG path hydrated for PDF renderers that cannot decode SVG images. */
+	signaturePath?: string | null;
 	signedAt: string | null;
 	deliveredAt: string | null;
 }

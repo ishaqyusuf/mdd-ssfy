@@ -77,10 +77,14 @@ function FeaturedStopSkeleton() {
 
 function RouteListSkeleton() {
 	return (
-		<section className="space-y-3">
-			<div className="space-y-2">
+		<section className="flex flex-col gap-3">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 				<Skeleton className="h-4 w-24" />
-				<Skeleton className="h-3 w-64 max-w-[80%]" />
+				<div className="flex gap-1 rounded-2xl border p-1">
+					{[1, 2, 3].map((tab) => (
+						<Skeleton key={tab} className="h-9 w-24 rounded-xl" />
+					))}
+				</div>
 			</div>
 			<div className="overflow-hidden rounded-xl border bg-card shadow-sm">
 				<div className="border-b bg-muted/35 px-4 py-2">
@@ -151,15 +155,6 @@ export function DriverDashboardSkeleton() {
 				</div>
 			</header>
 
-			<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-				<div className="grid h-9 grid-cols-4 gap-1 rounded-md bg-muted/50 p-1 lg:w-[390px]">
-					{[1, 2, 3, 4].map((tab) => (
-						<Skeleton key={tab} className="h-7 rounded-sm" />
-					))}
-				</div>
-				<Skeleton className="h-9 w-full rounded-md lg:w-80" />
-			</div>
-
 			<SummarySkeleton />
 
 			<div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,.72fr)]">
@@ -168,6 +163,7 @@ export function DriverDashboardSkeleton() {
 					<RouteListSkeleton />
 				</div>
 				<aside className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+					<SideCardSkeleton rows={2} />
 					<SideCardSkeleton rows={2} />
 					<SideCardSkeleton />
 				</aside>

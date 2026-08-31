@@ -4,31 +4,32 @@ import { useDriverDashboardParams } from "@/hooks/use-driver-dashboard-params";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Separator } from "@gnd/ui/separator";
 import {
 	useSuspenseInfiniteQuery,
 	useSuspenseQuery,
 } from "@tanstack/react-query";
-import {
-	AlertTriangle,
-	CheckCircle2,
-	History,
-	PackageOpen,
-	Route,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, PackageOpen } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { DriverActiveTrip } from "./active-trip";
 import { DriverDashboardEmptyState } from "./empty-states";
+import { GoogleRouteMap } from "./google-route-map";
 import { DriverCommandHeader } from "./header";
 import {
 	type DriverStop,
 	buildDriverStopSections,
+	getDriverFirstName,
 	getDriverManifestInput,
 	getDriverNextCursor,
+	getDriverRouteListTitle,
 	getDriverStopCustomer,
 	isDriverStopBlocked,
+	isDriverStopReady,
 } from "./model";
-import { DriverDashboardSearchFilter } from "./search-filter";
+import { DriverReadyPanel } from "./ready-panel";
+import { DriverRouteListTabs } from "./route-list-tabs";
 import { DriverStopCard } from "./stop-card";
 import { DriverDashboardSummary } from "./summary";
 
@@ -81,65 +82,96 @@ function DriverAttention({ stops }: { stops: readonly DriverStop[] }) {
 	);
 }
 
-function DriverActivity({ stops }: { stops: readonly DriverStop[] }) {
+function DriverActivity({
+	stops,
+	driverName,
+	readyCount,
+	totalStops,
+}: {
+	stops: readonly DriverStop[];
+	driverName?: string | null;
+	readyCount: number;
+	totalStops: number;
+}) {
 	const completed = stops.filter((stop) => stop.status === "completed").length;
 	const active = stops.find((stop) => stop.status === "in progress");
-	const events = [
-		active && {
-			label: `Trip in progress · ${getDriverStopCustomer(active)}`,
-			note: active.dueStatusLabel || "Active stop",
-			icon: Route,
-		},
-		completed > 0 && {
-			label: `${completed} ${completed === 1 ? "stop" : "stops"} completed`,
-			note: "Delivery proof is recorded",
-			icon: CheckCircle2,
-		},
+	const events: Array<{ label: string; note: string; meta: string }> = [
 		{
 			label: "Manifest synchronized",
 			note: `${stops.length} stops on this view`,
-			icon: History,
+			meta: "Latest",
 		},
-	].filter(Boolean) as Array<{
-		label: string;
-		note: string;
-		icon: typeof Route;
-	}>;
+	];
+	if (active) {
+		events.push({
+			label: "Trip in progress",
+			note: `${getDriverStopCustomer(active)} · ${active.order?.orderId || active.id}`,
+			meta: "Live",
+		});
+	}
+	if (completed > 0) {
+		events.push({
+			label: `${completed} ${completed === 1 ? "stop" : "stops"} completed`,
+			note: "Signature and delivery proof recorded",
+			meta: "Done",
+		});
+	}
+	if (readyCount > 0) {
+		events.push({
+			label: "Vehicle load ready",
+			note: `${readyCount} ${readyCount === 1 ? "stop is" : "stops are"} cleared for departure`,
+			meta: "Ready",
+		});
+	}
+	events.push({
+		label: "Route assigned",
+		note: `${totalStops} stops · ${getDriverFirstName(driverName)}`,
+		meta: "Current",
+	});
+	const visibleEvents = events.slice(0, 3);
 
 	return (
 		<article className="rounded-xl border bg-card shadow-sm">
 			<header className="border-b px-4 py-4">
 				<h2 className="font-semibold">Route activity</h2>
 				<p className="mt-1 text-xs text-muted-foreground">
-					Current assignment and device events.
+					Recent driver and warehouse events.
 				</p>
 			</header>
-			<div className="px-4 py-2">
-				{events.map((event) => {
-					const Icon = event.icon;
-					return (
-						<div
-							key={event.label}
-							className="flex gap-3 border-b py-3 last:border-b-0"
-						>
-							<span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
-								<Icon className="size-3.5 text-muted-foreground" />
-							</span>
-							<div>
-								<p className="text-sm font-medium">{event.label}</p>
-								<p className="mt-1 text-xs text-muted-foreground">
-									{event.note}
-								</p>
-							</div>
+			<ol className="px-4 py-2">
+				{visibleEvents.map((event, index) => (
+					<li
+						key={event.label}
+						className="grid grid-cols-[14px_minmax(0,1fr)_auto] gap-2.5 py-3"
+					>
+						<span className="relative flex justify-center" aria-hidden="true">
+							<span className="mt-1 size-3 rounded-full border-[3px] border-primary/20 bg-primary" />
+							{index < visibleEvents.length - 1 ? (
+								<Separator
+									orientation="vertical"
+									className="absolute top-5 h-[calc(100%+0.5rem)]"
+								/>
+							) : null}
+						</span>
+						<div className="min-w-0">
+							<p className="text-sm font-medium">{event.label}</p>
+							<p className="mt-1 text-xs text-muted-foreground">{event.note}</p>
 						</div>
-					);
-				})}
-			</div>
+						<span className="text-xs text-muted-foreground">{event.meta}</span>
+					</li>
+				))}
+			</ol>
 		</article>
 	);
 }
 
-export function DriverDashboardWorkspace() {
+export function DriverDashboardWorkspace({
+	driverName,
+	initialNow,
+}: {
+	driverName?: string | null;
+	initialNow: number;
+}) {
 	const trpc = useTRPC();
 	const { params, setParams } = useDriverDashboardParams();
 	const router = useRouter();
@@ -153,18 +185,62 @@ export function DriverDashboardWorkspace() {
 		}),
 	);
 	const summaryQuery = useSuspenseQuery(
-		trpc.dispatch.driverWorkQueueSummary.queryOptions(input),
+		trpc.dispatch.driverWorkQueueSummary.queryOptions(
+			getDriverManifestInput({ view: "all", search: params.q }),
+		),
 	);
-	const stops = useMemo<DriverStop[]>(
+	const todaySummaryQuery = useSuspenseQuery(
+		trpc.dispatch.driverWorkQueueSummary.queryOptions(
+			getDriverManifestInput({ view: "today", search: params.q }),
+		),
+	);
+	const readyQuery = useSuspenseQuery(
+		trpc.dispatch.driverWorkQueue.queryOptions(
+			getDriverManifestInput({ view: "packed", search: params.q }),
+		),
+	);
+	const unfilteredStops = useMemo<DriverStop[]>(
 		() => query.data.pages.flatMap((page) => page.queue.data) as DriverStop[],
 		[query.data.pages],
 	);
+	const stops = useMemo(
+		() =>
+			params.view === "attention"
+				? unfilteredStops.filter((stop) => stop.routeCapability?.needsAttention)
+				: unfilteredStops,
+		[params.view, unfilteredStops],
+	);
+	const packedStops = readyQuery.data.data as DriverStop[];
+	const readyStops = packedStops.filter(isDriverStopReady);
+	const packedBlockedCount = packedStops.length - readyStops.length;
 	const summary = summaryQuery.data;
-	const nextStop = query.data.pages[0]?.nextStop as
+	const routeTabCounts = {
+		today: todaySummaryQuery.data.total,
+		all: summary.total,
+		completed: summary.byStatus.completed || 0,
+	};
+	const routeListTitle = getDriverRouteListTitle(params.view);
+	const projectedNextStop = query.data.pages[0]?.nextStop as
 		| DriverStop
 		| null
 		| undefined;
+	const nextStop = stops.some((stop) => stop.id === projectedNextStop?.id)
+		? projectedNextStop
+		: null;
 	const sections = useMemo(() => buildDriverStopSections(stops), [stops]);
+	const mapStops = useMemo(
+		() =>
+			stops.map((stop) => ({
+				id: stop.id,
+				label: getDriverStopCustomer(stop),
+				address:
+					(stop.deliveryMode === "pickup" ? stop.routeOrigin : "") ||
+					stop.routeDestination?.route.formattedAddress ||
+					String(stop.routeDestination?.route.address1 || "") ||
+					String(stop.order?.shippingAddress?.address1 || ""),
+			})),
+		[stops],
+	);
 
 	const openStop = (
 		stop: DriverStop,
@@ -185,21 +261,46 @@ export function DriverDashboardWorkspace() {
 	return (
 		<div className="min-w-0 space-y-4 pb-20 sm:space-y-5 sm:pb-8">
 			<DriverCommandHeader
+				driverName={driverName}
+				initialNow={initialNow}
+				lastSyncedAt={query.dataUpdatedAt}
 				stops={stops}
 				isFetching={query.isFetching}
 				onRefresh={() => void query.refetch()}
 			/>
-			<DriverDashboardSearchFilter />
-			<DriverDashboardSummary summary={summary} />
+			<DriverDashboardSummary
+				summary={summary}
+				view={params.view}
+				onSelect={(view) => void setParams({ view, q: null })}
+			/>
 
 			{stops.length === 0 ? (
-				<DriverDashboardEmptyState
-					filtered={Boolean(params.q || params.view !== "today")}
-					onClear={() => setParams({ q: null, view: "today" })}
+				<section className="flex flex-col gap-3">
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+						<h2 className="font-semibold">{routeListTitle}</h2>
+						<DriverRouteListTabs counts={routeTabCounts} view={params.view} />
+					</div>
+					<DriverDashboardEmptyState
+						filtered={Boolean(params.q || params.view !== "today")}
+						onClear={() => setParams({ q: null, view: "today" })}
+					/>
+				</section>
+			) : params.view === "in_progress" ? (
+				<DriverActiveTrip
+					stops={stops}
+					onOpenStop={(stop) => openStop(stop, "proof")}
 				/>
 			) : (
 				<div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,.72fr)]">
 					<div className="min-w-0 space-y-4">
+						{params.view !== "exceptions" && mapStops.length ? (
+							<GoogleRouteMap
+								title="Today&apos;s route"
+								description="Warehouse departure and sequenced delivery stops."
+								origin={stops[0]?.routeOrigin}
+								destinations={mapStops}
+							/>
+						) : null}
 						{nextStop && params.view !== "exceptions" ? (
 							<DriverStopCard
 								stop={nextStop}
@@ -213,12 +314,13 @@ export function DriverDashboardWorkspace() {
 							/>
 						) : null}
 
-						<section className="space-y-3">
-							<div>
-								<h2 className="font-semibold">Your route</h2>
-								<p className="mt-1 text-xs text-muted-foreground">
-									Sequenced by delivery window and readiness.
-								</p>
+						<section className="flex flex-col gap-3">
+							<div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+								<h2 className="font-semibold">{routeListTitle}</h2>
+								<DriverRouteListTabs
+									counts={routeTabCounts}
+									view={params.view}
+								/>
 							</div>
 
 							<div className="overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -263,8 +365,20 @@ export function DriverDashboardWorkspace() {
 					</div>
 
 					<aside className="grid gap-4 md:grid-cols-2 xl:sticky xl:top-4 xl:grid-cols-1">
+						<DriverReadyPanel
+							readyStops={readyStops}
+							blockedCount={packedBlockedCount}
+							onOpenActiveTrip={() =>
+								void setParams({ view: "in_progress", q: null })
+							}
+						/>
 						<DriverAttention stops={stops} />
-						<DriverActivity stops={stops} />
+						<DriverActivity
+							stops={stops}
+							driverName={driverName}
+							readyCount={readyStops.length}
+							totalStops={summary.total}
+						/>
 					</aside>
 				</div>
 			)}

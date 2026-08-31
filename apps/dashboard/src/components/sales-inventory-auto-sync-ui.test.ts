@@ -12,6 +12,13 @@ const inboundCreatePaneSource = readFileSync(
 	),
 	"utf8",
 );
+const receivedInboundAlertSource = readFileSync(
+	new URL(
+		"./sales-overview-system/received-inbound-needs-application-alert.tsx",
+		import.meta.url,
+	),
+	"utf8",
+);
 
 describe("sales inventory automatic synchronization UI", () => {
 	test("runs a guarded background sync and keeps a manual retry", () => {
@@ -53,6 +60,29 @@ describe("sales inventory automatic synchronization UI", () => {
 		expect(inventoryTabSource).toContain("ORDERED:");
 		expect(inventoryTabSource).toContain("border-b border-border");
 		expect(inventoryTabSource).toContain("hover:bg-muted/50");
+	});
+
+	test("shows order-scoped received inbound repair above Needs actions", () => {
+		expect(inventoryTabSource).toContain(
+			"ReceivedInboundNeedsApplicationAlert",
+		);
+		expect(inventoryTabSource).toContain("onViewInbound={onViewInbound}");
+		expect(inventoryTabSource).toContain("salesOrderId={normalizedSalesOrderId}");
+		expect(inventoryTabSource).not.toContain(
+			"disabled={overview.isInventoryReadOnly}",
+		);
+		expect(receivedInboundAlertSource).toContain(
+			"inboundNeedsApplicationAttention.queryOptions",
+		);
+		expect(receivedInboundAlertSource).toContain(
+			"Received inbound pending application",
+		);
+		expect(receivedInboundAlertSource).toContain(
+			"setInboundViewParams({ viewInboundId: row.inboundId })",
+		);
+		expect(receivedInboundAlertSource).toContain(
+			"applyInboundNeedsApplicationAttention",
+		);
 	});
 
 	test("uses flat item-to-order rows with grouped bounded quantity controls", () => {

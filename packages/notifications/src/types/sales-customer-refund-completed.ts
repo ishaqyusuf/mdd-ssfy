@@ -41,13 +41,16 @@ export const salesCustomerRefundCompleted: NotificationHandler = {
 			tags,
 		};
 	},
-	createEmail(data, _author, _user, args) {
+	createEmail(data, author, _user, args) {
 		return {
 			...args,
 			template: "sales-customer-refund-completed",
 			to: [data.customerEmail],
 			subject: `Refund completed for order${data.sales.length > 1 ? "s" : ""} ${data.sales.map((sale) => sale.orderNo).join(", ")}`,
-			data,
+			data: {
+				...data,
+				salesRepName: author.name,
+			},
 		};
 	},
 };

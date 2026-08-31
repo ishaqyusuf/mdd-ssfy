@@ -7,6 +7,7 @@ import {
 	getTaskFailureTitle,
 	getTaskFailureToastMessage,
 	getTaskStartFailureTitle,
+	getTaskStartFailureToastMessage,
 } from "@/lib/task-feedback";
 import {
 	type TaskMonitorIntent,
@@ -27,7 +28,7 @@ interface Props {
 	taskTitle?: string;
 	taskDescription?: string;
 	onError?: (message?: string) => void;
-	onSuccess?: () => void;
+	onSuccess?: (run?: unknown) => void;
 	onStarted?: () => void;
 	debug?: boolean;
 	silent?: boolean;
@@ -79,6 +80,8 @@ export function useTaskTrigger(props?: Props) {
 	const pendingTriggersRef = useRef<PendingTrigger[]>([]);
 	const activeTriggerRef = useRef<PendingTrigger | null>(null);
 	const handledFailureRef = useRef(false);
+	const trustedStartFailureRef = useRef(false);
+	const handledSuccessRef = useRef(false);
 	const executingToastRef = useRef<ReturnType<typeof toast> | null>(null);
 	useEffect(() => {
 		return () => {
@@ -135,12 +138,18 @@ export function useTaskTrigger(props?: Props) {
 								input: activeTriggerRef.current?.input,
 							}),
 					description:
-						getTaskFailureToastMessage({
-							input: activeTriggerRef.current?.input,
-							errorMessage: message,
-						}) || errorToast,
+						trustedStartFailureRef.current && !failedRunId
+							? getTaskStartFailureToastMessage({
+									input: activeTriggerRef.current?.input,
+									errorMessage: message,
+								})
+							: getTaskFailureToastMessage({
+									input: activeTriggerRef.current?.input,
+									errorMessage: message,
+								}) || errorToast,
 				});
 			}
+			trustedStartFailureRef.current = false;
 			activeTriggerRef.current = null;
 			onError?.(message);
 		}
@@ -156,6 +165,7 @@ export function useTaskTrigger(props?: Props) {
 	]);
 	useEffect(() => {
 		if (error) {
+			trustedStartFailureRef.current = false;
 			setCompletionError(
 				getTaskFailureMessage({
 					input: activeTriggerRef.current?.input,
@@ -180,6 +190,7 @@ export function useTaskTrigger(props?: Props) {
 		}
 
 		if (terminalState === "COMPLETED") {
+			if (handledSuccessRef.current) return;
 			const outputFailure = getRunTaskOutputFailureMessage({
 				input: activeTriggerRef.current?.input,
 				run,
@@ -190,10 +201,11 @@ export function useTaskTrigger(props?: Props) {
 				return;
 			}
 
+			handledSuccessRef.current = true;
 			setCompletionError(null);
 			setStatus("COMPLETED");
 			activeTriggerRef.current = null;
-			onSuccess?.();
+			onSuccess?.(run);
 		}
 	}, [error, onSuccess, run]);
 	useEffect(() => {
@@ -229,9 +241,11 @@ export function useTaskTrigger(props?: Props) {
 	}, [shouldShowSuccessToast, status, successToast]);
 	const _action = useAction(triggerTask, {
 		onExecute() {
+			trustedStartFailureRef.current = false;
 			setStatus("SYNCING");
 			setCompletionError(null);
 			handledFailureRef.current = false;
+			handledSuccessRef.current = false;
 			if (executingToast && !silent) {
 				executingToastRef.current?.dismiss();
 				executingToastRef.current = toast({
@@ -248,6 +262,7 @@ export function useTaskTrigger(props?: Props) {
 				const errorMessage = (data as { errorMessage?: string } | undefined)
 					?.errorMessage;
 				activeTriggerRef.current = pending || null;
+				trustedStartFailureRef.current = Boolean(errorMessage?.trim());
 				setRunId(undefined);
 				setAccessToken(undefined);
 				setCompletionError(
@@ -285,6 +300,7 @@ export function useTaskTrigger(props?: Props) {
 		onError(e) {
 			const pending = pendingTriggersRef.current.shift();
 			activeTriggerRef.current = pending || null;
+			trustedStartFailureRef.current = false;
 			setRunId(undefined);
 			setAccessToken(undefined);
 			setCompletionError(e?.error?.serverError || null);

@@ -17,13 +17,18 @@ const SalesOverviewGeneralV2Include = {
 	...SalesOverviewGeneralV2BaseInclude,
 	deliveries: {
 		where: { deletedAt: null },
-		orderBy: { id: "asc" as const },
+		orderBy: { id: "desc" as const },
 		take: 1,
 		select: {
 			id: true,
 			deliveryMode: true,
 			dueDate: true,
 			status: true,
+			_count: {
+				select: {
+					items: true,
+				},
+			},
 		},
 	},
 };

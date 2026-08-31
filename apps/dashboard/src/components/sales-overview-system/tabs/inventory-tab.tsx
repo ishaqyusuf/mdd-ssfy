@@ -100,6 +100,7 @@ import {
 	shouldShowInventoryNeedsActions,
 } from "../lib/inventory-inbounds-utils";
 import { OrderInventoryRepairPanel } from "../order-inventory-repair-panel";
+import { ReceivedInboundNeedsApplicationAlert } from "../received-inbound-needs-application-alert";
 import { OverviewEmptyState } from "../section-primitives";
 
 type InventoryOverview = RouterOutputs["inventories"]["salesInventoryOverview"];
@@ -2824,6 +2825,12 @@ function SalesOverviewInventoryContentBody({
 					)}
 				</div>
 			</div>
+			{stockFilter === "stock" ? (
+				<ReceivedInboundNeedsApplicationAlert
+					salesOrderId={normalizedSalesOrderId}
+					onViewInbound={onViewInbound}
+				/>
+			) : null}
 			{canRunInventorySync &&
 			(applicabilityState === "not_synced" ||
 				applicabilityState === "failed") ? (

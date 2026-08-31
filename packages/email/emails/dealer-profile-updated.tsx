@@ -101,3 +101,11 @@ export default function DealerProfileUpdatedEmail({
 		</EmailThemeProvider>
 	);
 }
+
+DealerProfileUpdatedEmail.PreviewProps = {
+	dealerName: "Northside Millwork",
+	previousProfileName: "Standard Dealer",
+	newProfileName: "Preferred Dealer",
+	effectiveAt: "2026-08-29T10:42:00.000Z",
+	dealershipUrl: "https://dealership.gndprodesk.com",
+} satisfies Props;

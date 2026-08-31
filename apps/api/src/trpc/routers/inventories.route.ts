@@ -542,6 +542,11 @@ export const applyInboundNeedsApplicationAttentionSchema = z.object({
 		}),
 });
 
+export const inboundNeedsApplicationAttentionSchema = z.object({
+	take: z.number().int().min(1).max(100).default(100),
+	salesOrderId: inventoryPositiveIdSchema.optional(),
+});
+
 export const reduceInboundShipmentDemandSchema = z.object({
 	inboundId: inventoryPositiveIdSchema,
 	demandId: inventoryPositiveIdSchema,
@@ -733,7 +738,7 @@ export const inventoriesRouter = createTRPCRouter({
 		},
 	),
 	inboundNeedsApplicationAttention: protectedProcedure
-		.input(z.object({ take: z.number().int().min(1).max(100).default(100) }))
+		.input(inboundNeedsApplicationAttentionSchema)
 		.query(async (props) => {
 			await requireAnyOperationalPermission(
 				props.ctx,

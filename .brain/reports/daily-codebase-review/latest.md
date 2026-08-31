@@ -1,11 +1,11 @@
 # Latest Daily GND Codebase Review
 
-Latest report: [2026-08-27](./2026-08-27.md)
+Latest report: [2026-08-31](./2026-08-31.md)
 
 ## Executive Summary
 
-This was a read-only operational review for Ishaq using the Africa/Lagos date. The active project Brain remains `.brain/`; no top-level `brain/` directory exists, so this report continues `.brain/reports/daily-codebase-review/`.
+This was a read-only operational review for Ishaq using the Africa/Lagos date. The active project Brain is `.brain/`; the requested top-level `brain/` directory is not present in this workspace, so this report follows the established `.brain/reports/daily-codebase-review/` location.
 
-The strongest current risks are payment/API boundary issues, not basic route discovery. Several previously public task controls now have query-layer Super Admin checks, but `squareTest.test` is still mounted on the main API router as a public mutation that creates a Square Terminal checkout, and several sales/payment/customer-account flows remain public or account-identifier driven.
+The highest risk remains concentrated around public money/customer/operations API surfaces and the still-red monorepo typecheck. The generic `taskTrigger` risk has materially improved since older reviews: `apps/api/src/trpc/routers/task-trigger.route.ts` is now protected and limited to `update-sales-control`. However, `squareTest`, `taskEvents`, organization list/create, checkout/quote actions, and the customer pay-portal data boundary still expose operational behavior through public procedures.
 
-From a door-manufacturing workflow perspective, recent work improved inbound Needs application, dispatch/driver proof, dealer quote approval, and production/fulfillment guidance. The remaining product gaps are mostly release-readiness and usability gaps: inventory is still not release-clean, dealers still see coarse fulfillment language rather than manufacturing readiness, mobile invoice creation still carries mock/default workflow paths, and mixed-skill workers need clearer protected handoffs from payment to material, production, packing, delivery/pickup, and proof.
+From a door-manufacturing operations perspective, the strongest product direction is the recent Fulfillment V2, driver command center, production worker, material review, and dealer guidance work. The remaining product gap is translation: sales reps, dealers, warehouse workers, drivers, production staff, and customers still need fewer hidden states and more plain-language readiness proof around dimensions, swing/handing, materials, packing, delivery, payments, and ownership.

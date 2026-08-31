@@ -3,15 +3,18 @@ import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
 import { createAssignmentSchema } from "@/actions/schema";
 import { DatePicker } from "@/components/(clean-code)/custom/controlled/date-picker";
 import FormSelect from "@/components/common/controls/form-select";
-import { NumberInput } from "@/components/currency-input";
 import { SubmitButton } from "@/components/submit-button";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { timeout } from "@/lib/timeout";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { SalesFormQuantityStepper } from "@sales/sales-form";
+import {
+    createProductionDueDate,
+    productionCalendarPartsFromLocalDate,
+} from "@sales/production-date";
 import { useAction } from "next-safe-action/hooks";
 import { useController, useForm, useFormContext } from "react-hook-form";
-import { NumericFormatProps } from "react-number-format";
 import { useAsyncMemo } from "use-async-memo";
 import z from "zod";
 
@@ -87,16 +90,26 @@ export function ProductionAssignmentForm({ closeForm }) {
                             title: "Creating assignment",
                             duration: Number.POSITIVE_INFINITY,
                         });
-                        createAssignment.execute(e);
+                        createAssignment.execute({
+                            ...e,
+                            dueDate: e.dueDate
+                                ? createProductionDueDate(
+                                      productionCalendarPartsFromLocalDate(
+                                          e.dueDate,
+                                      ),
+                                  )
+                                : null,
+                        });
                     })}
                 >
                     <div className="mt-4 flex flex-col gap-3 border border-border p-3 duration-300 animate-in fade-in-50 slide-in-from-top-5">
                         <h5 className="text-sm font-medium">
                             Create New Assignment
                         </h5>
-                        <FieldGroup className="grid grid-cols-2 items-end gap-4">
+                        <FieldGroup className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                             <Field>
                                 <FormSelect
+                                    className="mx-0"
                                     size="sm"
                                     options={data?.productionTeams || []}
                                     label={"Assign To"}
@@ -124,7 +137,7 @@ export function ProductionAssignmentForm({ closeForm }) {
                             ) : (
                                 <>
                                     <QtyInput name="qty" />
-                                    <div />
+                                    <div className="hidden sm:block" />
                                 </>
                             )}
                             <Field>
@@ -150,45 +163,40 @@ export function ProductionAssignmentForm({ closeForm }) {
         </DataSkeletonProvider>
     );
 }
-function QtyInput({
-    className,
-    name,
-    // label,
-    ...props
-}: Omit<NumericFormatProps, "value" | "onChange"> & {
-    name: "lh" | "rh" | "qty";
-    // label: string;
-}) {
-    const { control, getValues } = useFormContext();
-    const pendingQty = getValues(`pending.${name}`);
+function QtyInput({ name }: { name: "lh" | "rh" | "qty" }) {
+    const { control, getValues, setValue } =
+        useFormContext<z.infer<typeof createAssignmentSchema>>();
+    const fieldName = `qty.${name}` as const;
+    const pendingQty = Number(getValues(`pending.${name}`) || 0);
     const {
-        field: { value, onChange, onBlur },
+        field: { value },
     } = useController({
-        name: `qty.${name}`,
+        name: fieldName,
         control,
     });
+    const label = name === "qty" ? "Quantity" : `${name.toUpperCase()} quantity`;
+
     return (
         <Field>
             <FieldLabel className="flex justify-between uppercase">
-                <span>
-                    {name}
-                    {name !== "qty" ? " qty" : ""}
-                </span>
+                <span>{label}</span>
                 <span className="text-muted-foreground">
                     {pendingQty || 0} available
                 </span>
             </FieldLabel>
-            <NumberInput
-                onValueChange={(e) => {
-                    const value = e.floatValue || null;
-                    onChange(value, { shouldValidate: true });
-                }}
+            <SalesFormQuantityStepper
+                label={label}
                 value={value}
+                min={0}
+                max={pendingQty}
                 disabled={!pendingQty}
-                max={2}
-                className=""
-                suffix={`/${pendingQty}`}
-                {...props}
+                className="w-full"
+                onChange={(nextValue) => {
+                    setValue(fieldName, nextValue, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                    });
+                }}
             />
         </Field>
     );

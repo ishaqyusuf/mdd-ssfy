@@ -8,7 +8,7 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { timeout } from "@/lib/timeout";
 import createContextFactory from "@/utils/context-factory";
 import { skeletonListData } from "@/utils/format";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAsyncMemo } from "use-async-memo";
 
 import { Button } from "@gnd/ui/button";
@@ -21,6 +21,10 @@ import { Icons } from "@gnd/ui/icons";
 
 import { AccessBased } from "./access-based";
 import { ProductionAssignmentForm } from "./production-assignment-form";
+import {
+	PRODUCTION_ASSIGNMENT_REFRESH_INTERVAL_MS,
+	subscribeProductionAssignmentRefresh,
+} from "./production-assignment-refresh";
 import { ProductionAssignmentRow } from "./production-assignment-row";
 import { useProductionItem } from "./production-item-context";
 
@@ -30,6 +34,28 @@ export const {
 } = createContextFactory(() => {
 	const ctx = useProductionItem();
 	const { queryCtx, item } = ctx;
+	const orderNo = queryCtx.params["sales-overview-id"];
+	const [assignmentRevision, setAssignmentRevision] = useState(0);
+	const refreshAssignments = useCallback(() => {
+		setAssignmentRevision((revision) => revision + 1);
+	}, []);
+	useEffect(
+		() =>
+			subscribeProductionAssignmentRefresh({
+				orderNo,
+				refresh: refreshAssignments,
+			}),
+		[orderNo, refreshAssignments],
+	);
+	useEffect(() => {
+		if (!orderNo) return;
+
+		const interval = window.setInterval(
+			refreshAssignments,
+			PRODUCTION_ASSIGNMENT_REFRESH_INTERVAL_MS,
+		);
+		return () => window.clearInterval(interval);
+	}, [orderNo, refreshAssignments]);
 	const result = useAsyncMemo(async () => {
 		await timeout(100);
 		try {
@@ -45,8 +71,13 @@ export const {
 		} catch {
 			return { data: undefined, error: true };
 		}
-	}, [item.controlUid]);
-	return { data: result?.data, error: result?.error || false, item };
+	}, [item.controlUid, assignmentRevision]);
+	return {
+		data: result?.data,
+		error: result?.error || false,
+		item,
+		refreshAssignments,
+	};
 });
 
 export function ProductionItemAssignments({
@@ -113,7 +144,12 @@ function Content({ view }: { view: "assignments" | "submissions" }) {
 							</AccessBased>
 						</div>
 						<CollapsibleContent>
-							<ProductionAssignmentForm closeForm={() => setOpen(false)} />
+							<ProductionAssignmentForm
+								closeForm={() => {
+									setOpen(false);
+									ctx.refreshAssignments();
+								}}
+							/>
 						</CollapsibleContent>
 					</Collapsible>
 				)}

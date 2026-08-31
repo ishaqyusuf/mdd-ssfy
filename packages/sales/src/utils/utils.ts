@@ -336,6 +336,7 @@ export const FullSalesSelect = {
   id: true,
   priority: true,
   prodDueDate: true,
+  deliveryDueDate: true,
   amountDue: true,
   grandTotal: true,
   customer: true,

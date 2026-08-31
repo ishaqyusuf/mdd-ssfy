@@ -9,7 +9,6 @@ import { useAction } from "next-safe-action/hooks";
 import { type Control, useController, useFormContext } from "react-hook-form";
 import type z from "zod";
 
-import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import {
@@ -19,24 +18,22 @@ import {
 } from "@gnd/ui/collapsible";
 import { Field, FieldGroup, FieldLabel } from "@gnd/ui/field";
 import { Form } from "@gnd/ui/form";
-import { Icons } from "@gnd/ui/icons";
 
-import { useProduction } from "./context";
 import { useAssignmentRow } from "./production-assignment-row";
 import { useProductionItem } from "./production-item-context";
-import { shouldWarnWorkerProductionItemMaterialReview } from "./production-worker-policy";
 
 type ProductionSubmissionFormValues = z.infer<typeof createSubmissionSchema>;
 
 export function ProductionSubmitForm({
 	afterSuccess,
+	presentation = "card",
 }: {
 	afterSuccess?: () => void;
+	presentation?: "card" | "inline";
 } = {}) {
 	const ctx = useAssignmentRow();
 	const pending = ctx.assignment.pending;
 	const { item, queryCtx } = useProductionItem();
-	const production = useProduction();
 	const workerMode = Boolean(queryCtx.assignedTo);
 	const form = useZodForm(createSubmissionSchema, {
 		defaultValues: {
@@ -56,17 +53,11 @@ export function ProductionSubmitForm({
 	const formData = form.watch();
 	const toast = useLoadingToast();
 	const createSubmit = useAction(submitSalesAssignmentAction, {
-		onSuccess(args) {
-			if (args.data?.state === "pending_material_review") {
-				toast.success("Submitted for admin verification", {
-					description:
-						"Your completed work is saved. An admin will verify the pending material record before production is finalized.",
-				});
-			} else {
-				toast.success("Submitted");
-			}
+		onSuccess() {
+			toast.success("Submitted");
 			toast.clearToastId();
 			ctx.setOpenSubmitForm(false);
+			ctx.refreshAssignments();
 			afterSuccess?.();
 			queryCtx.salesQuery.productionUpdated();
 		},
@@ -77,24 +68,12 @@ export function ProductionSubmitForm({
 			});
 		},
 	});
-	const workerMaterialReviewExpected =
-		workerMode &&
-		shouldWarnWorkerProductionItemMaterialReview({
-			itemId: item.itemId,
-			readiness: production.readiness,
-			readinessUnavailable: production.readinessUnavailable,
-		});
-	const materialReviewExpected = workerMode
-		? workerMaterialReviewExpected
-		: production.readinessUnavailable ||
-			(production.readiness && production.readiness.state !== "ready");
-
 	return (
 		<Form {...form}>
 			<form
 				onSubmit={form.handleSubmit((values) => {
 					toast.display({
-						title: "Creating assignment",
+						title: "Submitting work",
 						duration: Number.POSITIVE_INFINITY,
 					});
 					createSubmit.execute(createSubmissionSchema.parse(values));
@@ -103,23 +82,16 @@ export function ProductionSubmitForm({
 				<div
 					className={cn(
 						"flex flex-col gap-4 duration-300 animate-in fade-in-50 slide-in-from-top-5",
-						workerMode ? "mt-2" : "mt-4 border border-border p-3",
+						workerMode
+							? "mt-2"
+							: presentation === "inline"
+								? "pt-4"
+								: "mt-4 border border-border p-3",
 					)}
 				>
 					{workerMode ? null : (
 						<h5 className="text-sm font-medium">Submit Assignment</h5>
 					)}
-					{materialReviewExpected ? (
-						<Alert variant="warning">
-							<Icons.AlertTriangle />
-							<AlertTitle>Material verification is still pending</AlertTitle>
-							<AlertDescription>
-								You can submit this completed work now. It will be saved and
-								sent for admin approval while the material or inbound record is
-								verified.
-							</AlertDescription>
-						</Alert>
-					) : null}
 					<FieldGroup className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
 						{formData.pending?.lh || formData.pending?.rh ? (
 							<>

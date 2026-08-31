@@ -164,6 +164,7 @@ export const salesFormMetaSchema = z.object({
   paymentDueDate: z.string().optional().nullable(),
   goodUntil: z.string().optional().nullable(),
   prodDueDate: z.string().optional().nullable(),
+  deliveryDueDate: z.string().optional().nullable(),
   po: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   deliveryOption: z.string().optional().nullable(),

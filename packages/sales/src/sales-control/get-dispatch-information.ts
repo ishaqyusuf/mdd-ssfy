@@ -114,12 +114,55 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
     })),
   });
 
+  const deliveryIds = overview.deliveries.map((delivery) => delivery.id);
+  const deliveryItems = deliveryIds.length
+    ? await db.orderItemDelivery.findMany({
+        where: {
+          orderDeliveryId: { in: deliveryIds },
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          orderDeliveryId: true,
+          orderItemId: true,
+          packingStatus: true,
+          qty: true,
+          lhQty: true,
+          rhQty: true,
+          orderProductionSubmissionId: true,
+          submission: {
+            select: {
+              assignment: {
+                select: {
+                  salesItemControlUid: true,
+                },
+              },
+            },
+          },
+          status: true,
+          createdAt: true,
+          packedBy: true,
+          packingUid: true,
+        },
+      })
+    : [];
+  const deliveryItemsByDispatch = new Map<
+    number,
+    typeof deliveryItems
+  >();
+  for (const item of deliveryItems) {
+    if (!item.orderDeliveryId) continue;
+    const current = deliveryItemsByDispatch.get(item.orderDeliveryId) || [];
+    current.push(item);
+    deliveryItemsByDispatch.set(item.orderDeliveryId, current);
+  }
+
   const deliveries = overview.deliveries.map((delivery) => {
     return {
       ...delivery,
       status: delivery.status as SalesDispatchStatus,
       dispatchNumber: `DISP-${padStart(delivery.id?.toString(), 5, "0")}`,
-      items: delivery.items.map((item) => {
+      items: (deliveryItemsByDispatch.get(delivery.id) || []).map((item) => {
         const directControlUid =
           item.submission?.assignment?.salesItemControlUid || null;
         const _item =
@@ -128,7 +171,8 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
             i?.analytics?.submissionIds.includes(
               item.orderProductionSubmissionId!,
             ),
-          );
+          ) ||
+          overview.items.find((i) => i.itemId === item.orderItemId);
         const { controlUid, title, sectionTitle, subtitle } = _item || {};
         return {
           ...item,

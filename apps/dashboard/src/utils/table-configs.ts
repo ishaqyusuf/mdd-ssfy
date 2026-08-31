@@ -896,9 +896,17 @@ const TABLE_CONFIG_BASES: Record<TableId, Omit<TableConfig, "fillColumnId">> = {
 	},
 	"sales-production": {
 		tableId: "sales-production",
-		stickyColumns: [{ id: "dueDate", width: sizes.custom(140, 200, 160).size }],
+		stickyColumns: [
+			{ id: "select", width: sizes.xs.size },
+			{ id: "dueDate", width: sizes.custom(140, 200, 160).size },
+		],
 		sortFieldMap: {},
-		nonReorderableColumns: new Set(["dueDate", "actions"]),
+		nonReorderableColumns: new Set([
+			"select",
+			"dueDate",
+			"orderDate",
+			"actions",
+		]),
 		rowHeight: 40,
 		headerHeight: 45,
 		style: "compact",
@@ -985,9 +993,12 @@ const TABLE_CONFIG_BASES: Record<TableId, Omit<TableConfig, "fillColumnId">> = {
 	},
 	"inventory-backorders": {
 		tableId: "inventory-backorders",
-		stickyColumns: [{ id: "order", width: sizes.custom(160, 280, 190).size }],
+		stickyColumns: [
+			{ id: "select", width: sizes.custom(40, 40, 40).size },
+			{ id: "order", width: sizes.custom(160, 280, 190).size },
+		],
 		sortFieldMap: {},
-		nonReorderableColumns: new Set(["order", "actions"]),
+		nonReorderableColumns: new Set(["select", "order", "actions"]),
 		rowHeight: 56,
 		headerHeight: 45,
 		style: "compact",
@@ -1003,9 +1014,12 @@ const TABLE_CONFIG_BASES: Record<TableId, Omit<TableConfig, "fillColumnId">> = {
 	},
 	"inventory-partial-shipments": {
 		tableId: "inventory-partial-shipments",
-		stickyColumns: [{ id: "order", width: sizes.custom(160, 280, 190).size }],
+		stickyColumns: [
+			{ id: "select", width: sizes.custom(40, 40, 40).size },
+			{ id: "order", width: sizes.custom(160, 280, 190).size },
+		],
 		sortFieldMap: {},
-		nonReorderableColumns: new Set(["order", "hold", "actions"]),
+		nonReorderableColumns: new Set(["select", "order", "hold", "actions"]),
 		rowHeight: 56,
 		headerHeight: 45,
 		style: "compact",

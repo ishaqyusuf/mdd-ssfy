@@ -1,6 +1,26 @@
 import { describe, expect, it, mock } from "bun:test";
 
-import { decideProductionSubmissionMaterialReview } from "./decision";
+import { decideProductionSubmissionMaterialReview as decideProductionSubmissionMaterialReviewImpl } from "./decision";
+
+function decideProductionSubmissionMaterialReview(
+	db: Parameters<typeof decideProductionSubmissionMaterialReviewImpl>[0],
+	input: Parameters<typeof decideProductionSubmissionMaterialReviewImpl>[1],
+	actor: Parameters<typeof decideProductionSubmissionMaterialReviewImpl>[2],
+	dependencies: Parameters<
+		typeof decideProductionSubmissionMaterialReviewImpl
+	>[3] = {},
+) {
+	return decideProductionSubmissionMaterialReviewImpl(db, input, actor, {
+		repairReceivedInboundNeeds: async () => ({
+			inboundIds: [],
+			changedCount: 0,
+			updatedDemandCount: 0,
+			recomputedComponentCount: 0,
+			affectedSalesOrderIds: [],
+		}),
+		...dependencies,
+	});
+}
 
 function pendingReview(options: { legacyScope?: boolean } = {}) {
 	return {
@@ -54,6 +74,120 @@ function pendingReview(options: { legacyScope?: boolean } = {}) {
 }
 
 describe("production submission material review decision", () => {
+	it("resolves material evidence for a retracted submission without restoring production work", async () => {
+		const review = {
+			...pendingReview(),
+			submissions: [],
+			resolution: {
+				action: "RECHECK_AND_APPROVE",
+				submissionRetraction: {
+					action: "SUBMISSION_RETRACTED",
+					retractedSubmissionIds: [91],
+				},
+			},
+		};
+		const onApproved = mock(async () => {});
+		const tx = {
+			salesProductionSubmissionMaterialReview: {
+				findUniqueOrThrow: mock(async () => review),
+				updateMany: mock(async () => ({ count: 1 })),
+			},
+			salesHistory: { create: mock(async () => ({})) },
+		};
+
+		const result = await decideProductionSubmissionMaterialReview(
+			{
+				$transaction: async (
+					callback: (client: typeof tx) => Promise<unknown>,
+				) => callback(tx),
+			} as never,
+			{
+				reviewId: 55,
+				expectedUpdatedAt: review.updatedAt,
+				action: "RECHECK_AND_APPROVE",
+				note: "Materials resolved after worker retraction",
+			},
+			{ id: 9, name: "Admin" },
+			{
+				evaluateEvidence: mock(async () => ({
+					classification: { state: "finalized" as const, reason: null },
+					materialSnapshot: [],
+					materialRevision: "ready-after-retraction",
+				})) as never,
+				resetSales: mock(async () => {}) as never,
+				onApproved,
+			},
+		);
+
+		expect(result).toMatchObject({ reviewId: 55, status: "APPROVED" });
+		expect(onApproved).toHaveBeenCalledWith(
+			tx,
+			expect.objectContaining({ submissions: [] }),
+		);
+	});
+
+	it("applies received inbound before approval and skips a stale manual material action when it resolves the review", async () => {
+		const review = pendingReview();
+		const updateMany = mock(async () => ({ count: 1 }));
+		const repairReceivedInboundNeeds = mock(async () => ({
+			inboundIds: [70],
+			changedCount: 1,
+			updatedDemandCount: 1,
+			recomputedComponentCount: 1,
+			affectedSalesOrderIds: [42],
+		}));
+		const manualFulfill = mock(async () => ({}));
+		const onApproved = mock(async () => {});
+		const tx = {
+			salesProductionSubmissionMaterialReview: {
+				findUniqueOrThrow: mock(async () => review),
+				updateMany,
+			},
+			salesHistory: { create: mock(async () => ({})) },
+		};
+
+		const result = await decideProductionSubmissionMaterialReview(
+			{
+				$transaction: async (
+					callback: (client: typeof tx) => Promise<unknown>,
+				) => callback(tx),
+			} as never,
+			{
+				reviewId: 55,
+				expectedUpdatedAt: review.updatedAt,
+				action: "MARK_AVAILABLE_AND_APPROVE",
+				note: "Approve",
+			},
+			{ id: 9, name: "Admin" },
+			{
+				repairReceivedInboundNeeds,
+				evaluateEvidence: mock(async () => ({
+					classification: {
+						state: "finalized" as const,
+						reason: null,
+					},
+					materialSnapshot: [],
+					materialRevision: "ready-after-repair",
+				})) as never,
+				manualFulfill,
+				resetSales: mock(async () => {}) as never,
+				onApproved,
+			} as never,
+		);
+
+		expect(repairReceivedInboundNeeds).toHaveBeenCalledWith(tx, {
+			salesOrderId: 42,
+			actorUserId: 9,
+		});
+		expect(manualFulfill).not.toHaveBeenCalled();
+		expect(onApproved).toHaveBeenCalledTimes(1);
+		expect(result).toEqual({
+			reviewId: 55,
+			status: "APPROVED",
+			materialRevision: "ready-after-repair",
+		});
+	});
+
 	it("backfills a valid legacy scope and pays its revalidated assignment owner", async () => {
 		const review = pendingReview({ legacyScope: true });
 		const submission = review.submissions[0];

@@ -1,6 +1,11 @@
 "use client";
 
-import type { Column, Updater, VisibilityState } from "@tanstack/react-table";
+import type {
+	Column,
+	RowSelectionState,
+	Updater,
+	VisibilityState,
+} from "@tanstack/react-table";
 import type { Dispatch, SetStateAction } from "react";
 import { create } from "zustand";
 
@@ -9,6 +14,8 @@ import type { SalesProductionRow } from "./columns";
 interface SalesProductionTableState {
 	columns: Column<SalesProductionRow, unknown>[];
 	setColumns: (columns: Column<SalesProductionRow, unknown>[]) => void;
+	rowSelection: RowSelectionState;
+	setRowSelection: (updater: Updater<RowSelectionState>) => void;
 	columnVisibility: VisibilityState;
 	setColumnVisibility: (updater: Updater<VisibilityState>) => void;
 	showColumnDividers: boolean;
@@ -24,6 +31,7 @@ export const useSalesProductionTableStore = create<SalesProductionTableState>(
 	(set) => ({
 		columns: [],
 		columnVisibility: {},
+		rowSelection: {},
 		showColumnDividers: false,
 		setColumns: (columns) => set({ columns }),
 		setColumnVisibility: (updater) =>
@@ -32,6 +40,11 @@ export const useSalesProductionTableStore = create<SalesProductionTableState>(
 					typeof updater === "function"
 						? updater(state.columnVisibility)
 						: updater,
+			})),
+		setRowSelection: (updater) =>
+			set((state) => ({
+				rowSelection:
+					typeof updater === "function" ? updater(state.rowSelection) : updater,
 			})),
 		setShowColumnDividers: (updater) =>
 			set((state) => {

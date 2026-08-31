@@ -75,6 +75,8 @@ describe("inventory partial shipments tables-2 migration", () => {
 		expect(tableSource.includes("useInfiniteScroll")).toBe(true);
 		expect(tableSource.includes("<BottomBar")).toBe(true);
 		expect(headerSource.includes("DraggableHeader")).toBe(true);
+		expect(headerSource.includes("flexRender")).toBe(true);
+		expect(headerSource.includes('columnId === "select"')).toBe(true);
 		expect(columnsSource.includes("sizes.custom(160, 280, 190)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(200, 360, 240)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(124, 190, 140)")).toBe(true);
@@ -82,6 +84,7 @@ describe("inventory partial shipments tables-2 migration", () => {
 		expect(columnsSource.includes("blockers.slice(0, 1)")).toBe(true);
 		expect(columnsSource.includes('id: "delivery"')).toBe(true);
 		expect(columnsSource.includes('id: "select"')).toBe(true);
+		expect(columnsSource.includes("sticky: true")).toBe(true);
 		expect(columnsSource.includes('className="h-8 px-2 text-xs"')).toBe(true);
 	});
 
@@ -94,7 +97,7 @@ describe("inventory partial shipments tables-2 migration", () => {
 			),
 		).toBe(true);
 		expect(
-			/"inventory-partial-shipments": \{[\s\S]*?rowHeight: 56/.test(
+			/"inventory-partial-shipments": \{[\s\S]*?id: "select"[\s\S]*?nonReorderableColumns: new Set\(\[\s*"select",\s*"order",\s*"hold",\s*"actions",?\s*\]\)[\s\S]*?rowHeight: 56/.test(
 				configSource,
 			),
 		).toBe(true);

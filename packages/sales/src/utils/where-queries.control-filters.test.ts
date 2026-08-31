@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import dayjs from "@gnd/utils/dayjs";
+import { getProductionQueueBoundaries } from "../production-date";
 import { salesQueryParamsSchema } from "../schema";
 import { whereSales } from "./where-queries";
 
@@ -35,7 +35,7 @@ describe("whereSales stat filters", () => {
 		expect(json).toContain('"stat"');
 		expect(json).toContain('"type":"prodCompleted"');
 		expect(json).toContain('"percentage":100');
-		expect(json).not.toContain('"qtyControls"');
+		expect(json).toContain('"qtyControls"');
 	});
 
 	it("builds dispatch backorder filter from dispatchCompleted stat percentage range", () => {
@@ -109,8 +109,8 @@ describe("whereSales stat filters", () => {
 		expect(json).toContain('"type":"prodCompleted"');
 		expect(json).not.toContain('"type":"dispatchCompleted"');
 		expect(json).toContain('"dueDate":{"lt":');
-		expect(pastDueClause?.assignments.some.dueDate.lt).toBe(
-			dayjs().startOf("day").toISOString(),
+		expect(pastDueClause?.assignments.some.dueDate.lt).toEqual(
+			getProductionQueueBoundaries().pastDue.lt,
 		);
 	});
 
@@ -125,8 +125,8 @@ describe("whereSales stat filters", () => {
 		);
 
 		expect(futureClause?.assignments.some.assignedToId).toBe(17);
-		expect(futureClause?.assignments.some.dueDate.gte).toBe(
-			dayjs().add(1, "day").startOf("day").toISOString(),
+		expect(futureClause?.assignments.some.dueDate.gte).toEqual(
+			getProductionQueueBoundaries().future.gte,
 		);
 	});
 

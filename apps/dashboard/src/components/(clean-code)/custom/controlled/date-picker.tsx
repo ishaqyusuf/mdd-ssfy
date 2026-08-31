@@ -77,15 +77,17 @@ export function DatePicker<
                                                 {placeholder || "Pick a date"}
                                             </span>
                                         )}
-                                        <Icons.Calendar className="ml-auto h-4 w-4 opacity-50" />
+                                        <Icons.Calendar
+                                            data-icon="inline-end"
+                                            className="ml-auto opacity-50"
+                                        />
                                     </Button>
                                 )}
                             </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent className="p-0" align="start">
+                        <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                                 mode="single"
-                                className="w-full"
                                 selected={field.value}
                                 onSelect={(e) => {
                                     field.onChange(e);

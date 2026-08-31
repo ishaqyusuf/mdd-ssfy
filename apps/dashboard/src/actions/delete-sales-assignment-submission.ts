@@ -2,6 +2,7 @@
 
 import { type Prisma, prisma } from "@/db";
 import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
+import { reconcileMaterialReviewsAfterSubmissionRetraction } from "@sales/production-submission-review";
 import { resetSalesAction } from "@sales/sales-control/actions";
 import type z from "zod";
 
@@ -13,6 +14,7 @@ async function deleteSalesAssignmentSubmission(
 	data: z.infer<typeof deleteSalesAssignmentSubmissionSchema>,
 	actor: {
 		userId: number;
+		name: string;
 		allowDeleteForOthers: boolean;
 	},
 	tx: typeof prisma = prisma,
@@ -44,6 +46,8 @@ async function deleteSalesAssignmentSubmission(
 		where,
 		select: {
 			id: true,
+			assignmentId: true,
+			materialReviewId: true,
 			qty: true,
 			lhQty: true,
 			rhQty: true,
@@ -73,6 +77,25 @@ async function deleteSalesAssignmentSubmission(
 			deletedAt: new Date(),
 		},
 	});
+	await tx.payroll.updateMany({
+		where: {
+			productionSubmissionId: {
+				in: submissions.map((submission) => submission.id),
+			},
+			status: "PENDING",
+			payoutId: null,
+			deletedAt: null,
+		},
+		data: { deletedAt: new Date() },
+	});
+	await reconcileMaterialReviewsAfterSubmissionRetraction(tx, {
+		salesOrderId: data.salesId,
+		retractedSubmissions: submissions,
+		actor: {
+			id: actor.userId,
+			name: actor.name,
+		},
+	});
 	return submissions;
 }
 
@@ -90,6 +113,7 @@ export const deleteSalesAssignmentSubmissionAction = actionClient
 				input,
 				{
 					userId: profile.userId,
+					name: profile.name || "Production worker",
 					allowDeleteForOthers: Boolean(profile.can?.editProduction),
 				},
 				tx,

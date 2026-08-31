@@ -15,7 +15,7 @@ export type GetSalesItemControllables = RenturnTypeAsync<
 export async function getSalesItemControllablesInfoAction(
   //   ctx: TRPCContext,
   prisma: Db,
-  salesId: any
+  salesId: any,
 ) {
   //   const prisma = ctx.db;
   const order = await prisma.salesOrders.findFirstOrThrow({
@@ -184,7 +184,7 @@ export async function getSalesItemControllablesInfoAction(
             ...s,
             itemDeliveries: s.itemDeliveries
               .filter((s) =>
-                order.deliveries.some((a) => a.id == s.orderDeliveryId)
+                order.deliveries.some((a) => a.id == s.orderDeliveryId),
               )
               .map((d) => {
                 return {
@@ -225,23 +225,23 @@ export async function updateSalesStatControlAction(db: Db, salesId) {
         produceable: a.produceable,
         shippable: a.shippable,
         type: c.type as QtyControlType,
-      }))
+      })),
     )
     .flat();
 
   const totalProduceable = sum(
     qtyControls.filter((t) => t.produceable && t.type == "prodAssigned"),
-    "itemTotal"
+    "itemTotal",
   );
   const totalShippable = sum(
     qtyControls.filter((t) => t.shippable && t.type == "dispatchAssigned"),
-    "itemTotal"
+    "itemTotal",
   );
 
   async function createStat(type: QtyControlType, total) {
     const score = sum(
       qtyControls.filter((a) => a.type == type),
-      "total"
+      "total",
     );
     const percentage = percent(score, total);
     await db.salesStat.upsert({
@@ -312,13 +312,24 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
       },
     },
   });
+  const activeControlUids = controls.map((control) => control.uid);
   await tx.salesItemControl.deleteMany({
     where: {
       salesId: order.id,
+      ...(activeControlUids.length
+        ? {
+            uid: {
+              notIn: activeControlUids,
+            },
+          }
+        : {}),
+      packingReports: {
+        none: {},
+      },
     },
   });
 
-	const arr: Awaited<ReturnType<typeof tx.salesItemControl.create>>[] = [];
+  const arr: Awaited<ReturnType<typeof tx.salesItemControl.create>>[] = [];
   for (const c of controls) {
     const qtyControlData = Array.from(
       c.qtyControlData.reduce((map, row) => {
@@ -328,9 +339,21 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
     ).map(([, row]) => row);
 
     arr.push(
-      await tx.salesItemControl.create({
-        data: {
+      await tx.salesItemControl.upsert({
+        where: {
           uid: c.uid,
+        },
+        create: {
+          uid: c.uid,
+          ...(c.controlData as any),
+          item: {
+            connect: { id: c.itemId },
+          },
+          sales: {
+            connect: { id: c.orderId },
+          },
+        },
+        update: {
           ...(c.controlData as any),
           item: {
             connect: { id: c.itemId },

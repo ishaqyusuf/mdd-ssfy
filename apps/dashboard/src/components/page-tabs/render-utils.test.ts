@@ -211,6 +211,10 @@ describe("page tab render utils", () => {
 		expect(shouldStackPageTabs(8)).toBe(true);
 	});
 
+	it("stacks custom page-tab content in adaptive headers", () => {
+		expect(shouldStackPageTabs(0, true)).toBe(true);
+	});
+
 	it("resolves adaptive tab limits for mobile, desktop, and 2xl", () => {
 		const adaptiveLimits = {
 			base: 3,

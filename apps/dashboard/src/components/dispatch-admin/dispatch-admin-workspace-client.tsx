@@ -1,11 +1,11 @@
 "use client";
 
 import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-header";
-import {
-	DispatchCalendarSkeleton,
-	DispatchCalendarView,
-} from "@/components/dispatch-admin/dispatch-calendar-view-v2";
+import { DispatchCalendarSkeleton } from "@/components/dispatch-admin/dispatch-calendar-view-v2";
+import { DispatchActiveView } from "@/components/dispatch-admin/views/dispatch-active-view";
 import { DispatchBacklogView } from "@/components/dispatch-admin/views/dispatch-backlog-view";
+import { DispatchCalendarSection } from "@/components/dispatch-admin/views/dispatch-calendar-section";
+import { DispatchCompletedView } from "@/components/dispatch-admin/views/dispatch-completed-view";
 import { DispatchDashboardView } from "@/components/dispatch-admin/views/dispatch-dashboard-view";
 import { DispatchDriversView } from "@/components/dispatch-admin/views/dispatch-drivers-view";
 import { DispatchExceptionsView } from "@/components/dispatch-admin/views/dispatch-exceptions-view";
@@ -25,13 +25,31 @@ export function DispatchAdminWorkspaceClient({
 }) {
 	const { filters } = useDispatchFilterParams();
 	const showsOverview = ["dashboard", "dispatches"].includes(filters.section);
+	const ownsHeader =
+		showsOverview ||
+		[
+			"backlog",
+			"active",
+			"due-today",
+			"past-due",
+			"completed",
+			"calendar",
+		].includes(filters.section);
 	let content: React.ReactNode;
 	if (showsOverview) {
 		content = <DispatchDashboardView initialSettings={initialSettings} />;
 	} else if (filters.section === "backlog") {
 		content = <DispatchBacklogView />;
+	} else if (
+		filters.section === "active" ||
+		filters.section === "due-today" ||
+		filters.section === "past-due"
+	) {
+		content = <DispatchActiveView initialSettings={initialSettings} />;
+	} else if (filters.section === "completed") {
+		content = <DispatchCompletedView initialSettings={initialSettings} />;
 	} else if (filters.section === "calendar") {
-		content = <DispatchCalendarView />;
+		content = <DispatchCalendarSection />;
 	} else if (filters.section === "drivers") {
 		content = <DispatchDriversView />;
 	} else if (filters.section === "exceptions") {
@@ -42,7 +60,7 @@ export function DispatchAdminWorkspaceClient({
 
 	return (
 		<div className="flex flex-col gap-4">
-			{showsOverview ? null : <DispatchAdminHeader />}
+			{ownsHeader ? null : <DispatchAdminHeader />}
 			<ErrorBoundary errorComponent={ErrorFallback}>
 				<Suspense
 					fallback={

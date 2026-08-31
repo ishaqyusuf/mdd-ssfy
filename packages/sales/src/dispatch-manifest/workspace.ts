@@ -1,8 +1,13 @@
+import type { DispatchDueBucket } from "./driver-work-queue";
 import type { DispatchWorkspaceStage } from "./status";
 
 export const dispatchWorkspaceSections = [
 	"dashboard",
 	"backlog",
+	"active",
+	"due-today",
+	"past-due",
+	"completed",
 	"dispatches",
 	"calendar",
 	"drivers",
@@ -30,6 +35,35 @@ export type DispatchRiskInput = {
 	proofSyncFailed?: boolean;
 	now?: Date;
 };
+
+export type DispatchWorkspaceMembershipInput = {
+	section: DispatchWorkspaceSection;
+	stage: DispatchWorkspaceStage;
+	driverId?: number | null;
+	deliveryMode?: string | null;
+	dueBucket?: DispatchDueBucket | null;
+};
+
+export function isDispatchWorkspaceSectionMatch(
+	input: DispatchWorkspaceMembershipInput,
+) {
+	if (input.section === "completed") return input.stage === "fulfilled";
+	if (
+		input.section !== "active" &&
+		input.section !== "due-today" &&
+		input.section !== "past-due"
+	) {
+		return true;
+	}
+	if (input.stage === "fulfilled" || input.stage === "cancelled") return false;
+
+	const isActive = input.deliveryMode === "pickup" || Boolean(input.driverId);
+	if (!isActive) return false;
+	if (input.section === "due-today") return input.dueBucket === "today";
+	if (input.section === "past-due") return input.dueBucket === "overdue";
+
+	return true;
+}
 
 export function projectDispatchRisks(input: DispatchRiskInput) {
 	const risks: DispatchRiskCode[] = [];

@@ -6,11 +6,8 @@ import { Progress } from "@gnd/ui/progress";
 import {
 	ArrowRight,
 	CalendarClock,
-	CheckCircle2,
 	MapPin,
-	PackageCheck,
 	Phone,
-	TriangleAlert,
 } from "lucide-react";
 import Link from "next/link";
 import type { MouseEvent } from "react";
@@ -25,12 +22,19 @@ import {
 	isDriverStopBlocked,
 } from "./model";
 
-function stopStatusVariant(stop: DriverStop) {
-	if (stop.status === "completed") return "secondary" as const;
-	if (isDriverStopBlocked(stop) || stop.dueBucket === "overdue") {
-		return "destructive" as const;
+function dueStatusClassName(stop: DriverStop) {
+	switch (stop.dueBucket) {
+		case "overdue":
+			return "text-destructive";
+		case "today":
+			return "text-amber-700 dark:text-amber-400";
+		case "tomorrow":
+			return "text-sky-700 dark:text-sky-400";
+		case "upcoming":
+			return "text-emerald-700 dark:text-emerald-400";
+		default:
+			return "text-muted-foreground";
 	}
-	return "outline" as const;
 }
 
 function openExternal(event: MouseEvent, url: string) {
@@ -177,7 +181,7 @@ export function DriverStopCard({
 	return (
 		<Link
 			href={href}
-			className="grid min-h-20 w-full grid-cols-[40px_minmax(0,1fr)_auto_20px] items-center gap-3 border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:grid-cols-[48px_minmax(0,1fr)_150px_120px_20px]"
+			className="grid min-h-20 w-full grid-cols-[40px_minmax(0,1fr)_20px] items-center gap-3 border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:grid-cols-[48px_minmax(0,1fr)_150px_20px]"
 		>
 			<span
 				className={`flex size-9 items-center justify-center rounded-full text-sm font-semibold ${stop.status === "in progress" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
@@ -188,7 +192,9 @@ export function DriverStopCard({
 				<strong className="block truncate text-sm">
 					{getDriverStopCustomer(stop)} · {stop.order?.orderId || stop.id}
 				</strong>
-				<small className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground">
+				<small
+					className={`mt-1 flex items-center gap-1 truncate text-xs font-medium ${dueStatusClassName(stop)}`}
+				>
 					<CalendarClock className="size-3.5 shrink-0" />
 					{stop.dueStatusLabel || "Schedule required"}
 				</small>
@@ -201,19 +207,6 @@ export function DriverStopCard({
 						: "Manifest review"}
 				</small>
 			</span>
-			<Badge
-				variant={stopStatusVariant(stop)}
-				className="max-w-[116px] truncate"
-			>
-				{blocked ? (
-					<TriangleAlert className="mr-1 size-3" />
-				) : stop.status === "completed" ? (
-					<CheckCircle2 className="mr-1 size-3" />
-				) : (
-					<PackageCheck className="mr-1 size-3" />
-				)}
-				{getDriverStopLabel(stop)}
-			</Badge>
 			<ArrowRight className="size-4 text-muted-foreground" />
 		</Link>
 	);

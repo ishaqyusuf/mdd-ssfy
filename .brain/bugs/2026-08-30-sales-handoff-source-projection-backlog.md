@@ -55,6 +55,17 @@ without an explicit review.
   review skips. The 25-row sample remains bounded while aggregate categories are
   complete.
 
+## Production Activation Gate
+
+- Trigger deploys the reconciliation worker as an unscheduled task unless
+  `SALES_HANDOFF_RECONCILIATION_SCHEDULE_ENABLED=true` is present in the target
+  environment.
+- The production profile is currently disabled. A jobs deployment therefore
+  cannot start the 15-minute repair loop before the required production dry run
+  and explicit approval.
+- Enabling the recurring cron is a separate rollout step after the backlog
+  evidence is reviewed; it is not implied by an ordinary jobs deployment.
+
 ## Documentation Impact
 
 No database schema, migration, public API contract, or permission documentation

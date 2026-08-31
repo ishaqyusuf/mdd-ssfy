@@ -13,8 +13,12 @@ Operational rules for AI agents contributing to this repository.
 - Local Portless-backed workspace scripts reuse the active shared HTTPS wildcard proxy. Do not set `PORTLESS_PORT` or `PORTLESS_HTTPS` in app dev scripts, and do not reconfigure the machine-wide proxy merely to change a displayed URL without explicit user approval.
 - When a task updates Prisma models/schema, run `bun run db:migrate` and `bun run db:push`; do not manually create migration files.
 - For Next.js work in `apps/dashboard`, `apps/dealership`, or shared React UI consumed by either app, always use the repository's React/Next.js UI skill set before implementing or reviewing:
+  - `midday`
   - `vercel-react-best-practices`
   - `agency-engineering` with the Frontend Developer specialist by default
+- When migrating or rebuilding an existing React/Next.js page, route, screen, or feature, also use `midday-migration-planner` in implementation mode and complete its migration contract and conformance audit.
+- For Expo or React Native implementation and review, always load and apply `react-native-best-practices`; use its measure, optimize, re-measure, and validate workflow for performance-sensitive work.
+- For web UI, reuse the existing `@gnd/ui` shadcn wrappers and primitives before adding abstractions. Do not introduce Chakra UI as a default or parallel component system.
 - Treat that React/Next.js UI skill set as mandatory for dealership quote/new-sales-form UI migration work, including shared `@gnd/sales/sales-form` package UI that feeds `apps/dashboard` or `apps/dealership`.
 - Follow Midday-style architecture by default wherever it fits the feature:
   - when building or refactoring a page, workspace, dashboard, sheet-heavy flow, or route tree, study the real Midday repo first and let it teach the architecture before writing code

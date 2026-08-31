@@ -64,4 +64,10 @@ export function JobAssignedEmail(props: JobAssignedEmailProps) {
   );
 }
 
+JobAssignedEmail.PreviewProps = {
+  id: 4821,
+  assignedToName: "Taylor Brooks",
+  authorContactName: "Morgan Reed",
+} satisfies JobAssignedEmailProps;
+
 export default JobAssignedEmail;

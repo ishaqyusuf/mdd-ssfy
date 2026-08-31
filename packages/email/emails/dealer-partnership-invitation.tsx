@@ -91,3 +91,14 @@ export default function DealerPartnershipInvitationEmail({
 		</EmailThemeProvider>
 	);
 }
+
+DealerPartnershipInvitationEmail.PreviewProps = {
+	recipientName: "Jordan Lee",
+	headline: "Grow your business with GND",
+	benefitText:
+		"Join the GND dealer program for preferred pricing, sales tools, and dedicated support.",
+	ctaLabel: "Review partnership invitation",
+	invitationUrl: "https://dealership.gndprodesk.com/invitations/preview",
+	imageUrl: "https://gndprodesk.com/images/dealer-program.png",
+	accentColor: "#111827",
+} satisfies Props;

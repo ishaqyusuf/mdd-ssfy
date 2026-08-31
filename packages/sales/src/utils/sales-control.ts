@@ -13,8 +13,8 @@ import { getItemStatConfig, qtyControlsByType } from "./utils";
 import { GetSalesItemControllables } from "../sales-control";
 import { SalesInfoData } from "../exports";
 import {
-	isActiveReportedSubmission,
-	isFinalizedProductionSubmission,
+  isActiveReportedSubmission,
+  isFinalizedProductionSubmission,
 } from "../production-submission-review/policy";
 
 function isControlDebugEnabled() {
@@ -104,6 +104,40 @@ export function qtyMatrixDifference(a: Qty, b: Qty) {
   ["rh", "lh", "qty"].map((k) => (res[k] = sum([a[k], b[k] * -1])));
   return res;
 }
+export function qtyMatrixRemainingAfterCoverage(
+  total: Qty,
+  ...coverageCandidates: Qty[]
+) {
+  const normalizedTotal = recomposeQty(total);
+  const normalizedCoverage = coverageCandidates
+    .filter(Boolean)
+    .map((candidate) => recomposeQty(candidate));
+  const greatestCoverage = normalizedCoverage.reduce<Qty>(
+    (greatest, candidate) => ({
+      noHandle: normalizedTotal.noHandle,
+      lh: Math.max(Number(greatest.lh || 0), Number(candidate.lh || 0)),
+      rh: Math.max(Number(greatest.rh || 0), Number(candidate.rh || 0)),
+      qty: Math.max(Number(greatest.qty || 0), Number(candidate.qty || 0)),
+    }),
+    { noHandle: normalizedTotal.noHandle, lh: 0, rh: 0, qty: 0 },
+  );
+
+  return recomposeQty({
+    noHandle: normalizedTotal.noHandle,
+    lh: Math.max(
+      0,
+      Number(normalizedTotal.lh || 0) - Number(greatestCoverage.lh || 0),
+    ),
+    rh: Math.max(
+      0,
+      Number(normalizedTotal.rh || 0) - Number(greatestCoverage.rh || 0),
+    ),
+    qty: Math.max(
+      0,
+      Number(normalizedTotal.qty || 0) - Number(greatestCoverage.qty || 0),
+    ),
+  });
+}
 export function qtyMatrixSum(...qties: Qty[]): Qty {
   qties = qties
     ?.filter(Boolean)
@@ -179,11 +213,7 @@ export function composeSalesItemControlStat({
   order,
   ...props
 }: ComposeSalesItemControlStatProps) {
-	const {
-		controlUid: uid,
-		qty,
-		itemConfig: { production } = {},
-	} = props;
+  const { controlUid: uid, qty, itemConfig: { production } = {} } = props;
   // const order = _order as Prisma.SalesOrdersGetPayload<{
   //   select: {
   //     deliveries: {
@@ -242,56 +272,56 @@ export function composeSalesItemControlStat({
       qty,
     })),
   );
-	const reportedSubmissions = assignments.flatMap((assignment) =>
-		assignment.submissions.filter(isActiveReportedSubmission),
-	);
-	const finalizedSubmissions = assignments.flatMap((assignment) =>
-		assignment.submissions.filter(isFinalizedProductionSubmission),
-	);
-	const reportedSubmitted = qtyMatrixSum(
-		...reportedSubmissions.map(({ lhQty: lh, rhQty: rh, qty }) => ({
-			lh,
-			rh,
-			qty,
-		})),
-	);
+  const reportedSubmissions = assignments.flatMap((assignment) =>
+    assignment.submissions.filter(isActiveReportedSubmission),
+  );
+  const finalizedSubmissions = assignments.flatMap((assignment) =>
+    assignment.submissions.filter(isFinalizedProductionSubmission),
+  );
+  const reportedSubmitted = qtyMatrixSum(
+    ...reportedSubmissions.map(({ lhQty: lh, rhQty: rh, qty }) => ({
+      lh,
+      rh,
+      qty,
+    })),
+  );
   const submitted = qtyMatrixSum(
-		...finalizedSubmissions.map(({ lhQty: lh, rhQty: rh, qty }) => ({
-          lh,
-          rh,
-          qty,
-        })),
+    ...finalizedSubmissions.map(({ lhQty: lh, rhQty: rh, qty }) => ({
+      lh,
+      rh,
+      qty,
+    })),
   );
   const deliverables = assignments
     .map((assignment) => {
-			return assignment.submissions
-				.filter(isFinalizedProductionSubmission)
-				.map((s) => {
-        let submitted = transformQtyHandle(s);
-        const delivered = qtyMatrixSum(
-          ...order.deliveries
-            .filter((d) => (d.status as SalesDispatchStatus) !== "cancelled")
-            .map((d) =>
-              qtyMatrixSum(
-                ...d.items
-                  .filter((i) => i.orderProductionSubmissionId == s.id)
-                  .map(transformQtyHandle),
-              ),
-            )
-            .flat(),
-        );
-        return {
-          submissionId: s.id,
-          submitted,
-          delivered,
-          available: qtyMatrixDifference(submitted, delivered),
-        };
-      });
+      return assignment.submissions
+        .filter(isFinalizedProductionSubmission)
+        .map((s) => {
+          let submitted = transformQtyHandle(s);
+          const delivered = qtyMatrixSum(
+            ...order.deliveries
+              .filter((d) => (d.status as SalesDispatchStatus) !== "cancelled")
+              .map((d) =>
+                qtyMatrixSum(
+                  ...d.items
+                    .filter((i) => i.orderProductionSubmissionId == s.id)
+                    .map(transformQtyHandle),
+                ),
+              )
+              .flat(),
+          );
+          return {
+            submissionId: s.id,
+            submitted,
+            delivered,
+            available: qtyMatrixDifference(submitted, delivered),
+          };
+        });
     })
     .flat();
   const pendingAssignment = qtyMatrixDifference(qty, assigned);
-	const pendingProduction = qtyMatrixDifference(assigned, reportedSubmitted);
-	const submissionIds = finalizedSubmissions.map((submission) => submission.id);
+  const pendingProduction = qtyMatrixDifference(assigned, reportedSubmitted);
+  const submissionIds = finalizedSubmissions.map((submission) => submission.id);
   const deliveries = order.deliveries
     .map((d) =>
       d.items
@@ -307,9 +337,9 @@ export function composeSalesItemControlStat({
     .flat();
   const dispatch = {
     queued: qtyMatrixSum(
-			...(deliveries.filter(
-          (a) => a.status == "queue" || a.status == "packing queue",
-			) as any),
+      ...(deliveries.filter(
+        (a) => a.status == "queue" || a.status == "packing queue",
+      ) as any),
     ),
     inProgress: qtyMatrixSum(
       ...(deliveries.filter((a) => a.status == "in progress") as any),
@@ -339,13 +369,13 @@ export function composeSalesItemControlStat({
           qty: assignment.qtyAssigned,
         },
         qtyMatrixSum(
-					...assignment.submissions
-						.filter(isActiveReportedSubmission)
-						.map((s) => ({
-            lh: s.lhQty,
-            rh: s.rhQty,
-            qty: s.qty,
-          })),
+          ...assignment.submissions
+            .filter(isActiveReportedSubmission)
+            .map((s) => ({
+              lh: s.lhQty,
+              rh: s.rhQty,
+              qty: s.qty,
+            })),
         ),
       );
       return {
@@ -375,7 +405,7 @@ export function composeSalesItemControlStat({
     qty,
     assigned,
     submitted,
-		reportedSubmitted,
+    reportedSubmitted,
     submissionIds,
     dispatch,
     pendingAssignment,
@@ -399,8 +429,8 @@ export function composeSalesItemControlStat({
       stats.dispatchInProgress,
     )?.qty,
     submitQty: submitted.qty,
-		reportedSubmitQty: reportedSubmitted.qty,
-		pendingMaterialReview: qtyMatrixDifference(reportedSubmitted, submitted),
+    reportedSubmitQty: reportedSubmitted.qty,
+    pendingMaterialReview: qtyMatrixDifference(reportedSubmitted, submitted),
     pendingSubmissions,
     assignment: {
       pending: pendingAssignment,
@@ -774,7 +804,7 @@ export function composeControls(order: GetSalesItemControllables) {
           },
         },
       });
-		} else {
+    } else {
       const qtyControlData = dedupeQtyControlsByType(control.qtyControls).map(
         (cont) => {
           const { itemControlUid, ...rest } = cont;

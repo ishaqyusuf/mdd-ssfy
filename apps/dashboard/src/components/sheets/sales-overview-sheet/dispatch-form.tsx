@@ -17,15 +17,27 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 export function DispatchForm() {
     const ctx = useDispatch();
     const { setParams } = useSalesOverviewQuery();
+    const orderDeliveryDueDate = ctx.data?.order?.deliveryDueDate
+        ? new Date(ctx.data.order.deliveryDueDate)
+        : new Date();
     const form = useZodForm(createDispatchSchema, {
         defaultValues: {
             deliveryMode: "delivery",
-            dueDate: new Date(),
+            dueDate: orderDeliveryDueDate,
             driverId: undefined,
             salesId: ctx.data?.id,
             status: "queue",
         },
     });
+    useEffect(() => {
+        if (
+            !ctx.data?.order?.deliveryDueDate ||
+            form.formState.dirtyFields.dueDate
+        ) {
+            return;
+        }
+        form.setValue("dueDate", new Date(ctx.data.order.deliveryDueDate));
+    }, [ctx.data?.order?.deliveryDueDate, form]);
     // const { form } = useDispatch();
     // const [driverId]
     const { createDispatch, isCreating } = useSalesCreateDispatch({

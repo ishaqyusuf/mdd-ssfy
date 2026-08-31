@@ -26,6 +26,7 @@ export function useLoadingToast() {
         setToastData,
         toastId,
         clearToastId() {
+            if (toastId) dismiss(toastId);
             setToastId(null);
         },
         description(description, data: Data = {}) {

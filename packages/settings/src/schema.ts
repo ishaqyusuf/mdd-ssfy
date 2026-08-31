@@ -186,6 +186,112 @@ export function reviseSalesHandoffTriggerPolicy(input: {
 	};
 }
 
+export const GUARDED_PACKING_REVIEW_MODES = [
+	"BLOCK_DELIVERY_UNTIL_APPROVED",
+	"ALLOW_DELIVERY_WHILE_PENDING",
+] as const;
+
+export const guardedPackingReviewModeSchema = z.enum(
+	GUARDED_PACKING_REVIEW_MODES,
+);
+
+const guardedPackingPolicyBaseSchema = z.object({
+	enabled: z.boolean(),
+	allowAwaitingProductionSubmission: z.boolean(),
+	allowPendingMaterialReview: z.boolean(),
+	reviewMode: guardedPackingReviewModeSchema,
+	notifySalesRep: z.boolean(),
+	createProductionEvidenceOnApproval: z.boolean(),
+});
+
+export const guardedPackingPolicyInputSchema = guardedPackingPolicyBaseSchema;
+export type GuardedPackingPolicyInput = z.infer<
+	typeof guardedPackingPolicyInputSchema
+>;
+
+export const guardedPackingPolicySchema = guardedPackingPolicyBaseSchema.extend(
+	{
+		revision: z.number().int().min(0),
+		changedAt: z.string().datetime().nullable(),
+	},
+);
+export type GuardedPackingPolicy = z.infer<typeof guardedPackingPolicySchema>;
+
+export const DEFAULT_GUARDED_PACKING_POLICY: GuardedPackingPolicy = {
+	enabled: true,
+	allowAwaitingProductionSubmission: true,
+	allowPendingMaterialReview: true,
+	reviewMode: "BLOCK_DELIVERY_UNTIL_APPROVED",
+	notifySalesRep: true,
+	createProductionEvidenceOnApproval: true,
+	revision: 0,
+	changedAt: null,
+};
+
+export function normalizeGuardedPackingPolicy(
+	value?: unknown,
+): GuardedPackingPolicy {
+	const parsed = guardedPackingPolicySchema.safeParse(value);
+	return parsed.success ? parsed.data : DEFAULT_GUARDED_PACKING_POLICY;
+}
+
+export function guardedPackingPolicyFromEvidenceSnapshot(
+	value?: unknown,
+): GuardedPackingPolicy {
+	const snapshot =
+		value && typeof value === "object" && !Array.isArray(value)
+			? (value as Record<string, unknown>)
+			: {};
+	return normalizeGuardedPackingPolicy(snapshot.policy);
+}
+
+export function guardedPackingReviewBlocksDelivery(
+	value?: unknown,
+	effectivePolicy?: unknown,
+) {
+	return (
+		(effectivePolicy
+			? normalizeGuardedPackingPolicy(effectivePolicy)
+			: guardedPackingPolicyFromEvidenceSnapshot(value)
+		).reviewMode === "BLOCK_DELIVERY_UNTIL_APPROVED"
+	);
+}
+
+export function isSameGuardedPackingPolicy(
+	current: GuardedPackingPolicy,
+	next: GuardedPackingPolicyInput,
+) {
+	return (
+		current.enabled === next.enabled &&
+		current.allowAwaitingProductionSubmission ===
+			next.allowAwaitingProductionSubmission &&
+		current.allowPendingMaterialReview === next.allowPendingMaterialReview &&
+		current.reviewMode === next.reviewMode &&
+		current.notifySalesRep === next.notifySalesRep &&
+		current.createProductionEvidenceOnApproval ===
+			next.createProductionEvidenceOnApproval
+	);
+}
+
+export function reviseGuardedPackingPolicy(input: {
+	current?: unknown;
+	next: GuardedPackingPolicyInput;
+	changedAt: string;
+}): { policy: GuardedPackingPolicy; changed: boolean } {
+	const current = normalizeGuardedPackingPolicy(input.current);
+	if (isSameGuardedPackingPolicy(current, input.next)) {
+		return { policy: current, changed: false };
+	}
+	return {
+		policy: {
+			...input.next,
+			revision: current.revision + 1,
+			changedAt: input.changedAt,
+		},
+		changed: true,
+	};
+}
+
 export const specialOrderEnforcementModeSchema = z.enum([
 	"WARNING_ONLY",
 	"BLOCK_PURCHASING_AND_PRODUCTION",

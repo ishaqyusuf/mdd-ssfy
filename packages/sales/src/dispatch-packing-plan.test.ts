@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildGuardedPackingPlan,
 	buildPackAllTarget,
+	removeGuardedQuantitiesFromPackingRequests,
 } from "./dispatch-packing-plan";
 
 describe("dispatch packing plan", () => {
@@ -46,6 +47,19 @@ describe("dispatch packing plan", () => {
 		).toEqual({ qty: 5, lh: 0, rh: 0 });
 	});
 
+	it("caps scalar availability at the ordered quantity", () => {
+		expect(
+			buildPackAllTarget(
+				{
+					totalQty: { qty: 1 },
+					availableQty: { qty: 2 },
+					deliverables: [],
+				},
+				true,
+			),
+		).toEqual({ qty: 1, lh: 0, rh: 0 });
+	});
+
 	it("preserves handed availability without converting it to scalar quantity", () => {
 		expect(
 			buildPackAllTarget(
@@ -57,6 +71,19 @@ describe("dispatch packing plan", () => {
 				false,
 			),
 		).toEqual({ qty: 0, lh: 2, rh: 1 });
+	});
+
+	it("caps handed availability at each ordered hand", () => {
+		expect(
+			buildPackAllTarget(
+				{
+					totalQty: { lh: 5, rh: 1 },
+					availableQty: { lh: 7, rh: 2 },
+					deliverables: [],
+				},
+				false,
+			),
+		).toEqual({ qty: 0, lh: 5, rh: 1 });
 	});
 
 	it("uses listed quantity when editing existing packing", () => {
@@ -345,5 +372,47 @@ describe("dispatch packing plan", () => {
 
 		expect(plan.unavailable[0]?.qty.lh).toBe(1);
 		expect(plan.unavailable[0]?.qty.rh).toBe(0);
+	});
+
+	it("keeps normal requests while removing only guarded quantities", () => {
+		expect(
+			removeGuardedQuantitiesFromPackingRequests(
+				[
+					{
+						salesItemId: 10,
+						itemUid: "door-10",
+						title: "Door",
+						qty: { lh: 5, rh: 2 },
+					},
+					{
+						salesItemId: 20,
+						itemUid: "stock-20",
+						title: "Bifold",
+						qty: { qty: 7 },
+					},
+				],
+				[
+					{
+						productionSubmissionId: null,
+						salesOrderItemId: 10,
+						itemUid: "door-10",
+						dispatchAllocationKey: "dispatch:1:door-10",
+						title: "Door",
+						qty: 0,
+						lhQty: 5,
+						rhQty: 1,
+					},
+				],
+			),
+		).toEqual([
+			expect.objectContaining({
+				itemUid: "door-10",
+				qty: expect.objectContaining({ lh: 0, rh: 1 }),
+			}),
+			expect.objectContaining({
+				itemUid: "stock-20",
+				qty: expect.objectContaining({ qty: 7 }),
+			}),
+		]);
 	});
 });

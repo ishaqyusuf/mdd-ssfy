@@ -25,6 +25,7 @@ export default async function SalesBookPage(props: Props) {
 	unstable_noStore();
 	const searchParams = await props.searchParams;
 	const filter = loadSalesProductionFilterParams(searchParams);
+	const queryInput = { ...filter, size: 20 };
 	const initialTableSettings =
 		await getInitialTableSettings("sales-production");
 
@@ -33,7 +34,7 @@ export default async function SalesBookPage(props: Props) {
 			priority: filter.priority || undefined,
 		}),
 		trpc.filters.salesProductions.queryOptions(),
-		trpc.sales.productionTasks.infiniteQueryOptions(filter, {
+		trpc.sales.productionTasks.infiniteQueryOptions(queryInput, {
 			getNextPageParam: ({ meta }) =>
 				(meta as { cursor?: string | number | null } | undefined)?.cursor,
 		}),

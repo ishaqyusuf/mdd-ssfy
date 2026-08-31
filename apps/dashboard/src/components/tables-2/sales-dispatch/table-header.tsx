@@ -33,6 +33,11 @@ interface Props<TData> {
 	loading?: boolean;
 	tableScroll?: TableScrollState;
 	showColumnDividers?: boolean;
+	sortState?: {
+		sortColumn?: string;
+		sortValue?: string;
+		createSortQuery: (field: string) => void;
+	};
 }
 
 const HEADER_BACKGROUND_CLASS = "!bg-sidebar-accent";
@@ -50,8 +55,11 @@ export function DataTableHeader<TData>({
 	loading,
 	tableScroll,
 	showColumnDividers = false,
+	sortState,
 }: Props<TData>) {
-	const { sortColumn, sortValue, createSortQuery } = useSortQuery();
+	const internalSortState = useSortQuery();
+	const { sortColumn, sortValue, createSortQuery } =
+		sortState ?? internalSortState;
 	const { getStickyStyle, getStickyClassName, isVisible } = useStickyColumns({
 		table,
 		loading,

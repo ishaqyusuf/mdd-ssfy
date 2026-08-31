@@ -1,19 +1,14 @@
 /** @jsxImportSource react */
+import { Column, Row, Section, Text } from "@react-email/components";
+
 import {
-	Body,
-	Container,
-	Heading,
-	Preview,
-	Section,
-	Text,
-} from "@react-email/components";
-import { Footer } from "../components/footer";
-import { Logo } from "../components/logo";
-import {
-	EmailThemeProvider,
-	getEmailInlineStyles,
-	getEmailThemeClasses,
-} from "../components/theme";
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailMetric,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 interface Props {
 	customerName: string;
@@ -24,6 +19,7 @@ interface Props {
 		orderNo: string;
 		remainingDue?: number | null;
 	}[];
+	salesRepName?: string | null;
 }
 
 const formatCurrency = (value: number) =>
@@ -33,116 +29,161 @@ const formatCurrency = (value: number) =>
 	}).format(value || 0);
 
 export function SalesCustomerPaymentFailedEmail(props: Props) {
-	const themeClasses = getEmailThemeClasses();
-	const lightStyles = getEmailInlineStyles("light");
+	const orderLabel = `${props.sales.length} order${props.sales.length === 1 ? "" : "s"}`;
 	const previewText = `Payment attempt incomplete for order${props.sales.length > 1 ? "s" : ""} ${props.sales.map((sale) => sale.orderNo).join(", ")}`;
 
 	return (
-		<EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
-			<Body
-				className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-				style={lightStyles.body}
+		<StandardEmailLayout previewText={previewText}>
+			<StandardEmailHeader
+				documentLabel="Payment update"
+				documentMeta={orderLabel}
+			/>
+
+			<StandardEmailHero
+				eyebrow="Payment issue"
+				recipientName={props.customerName}
+				title="Payment Could Not Be Processed"
 			>
-				<Container
-					className={`my-[28px] mx-auto p-[20px] max-w-[640px] ${themeClasses.container}`}
+				<Text
+					className="gnd-standard-text m-0 mt-[10px] text-[15px] leading-[24px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					We were unable to complete your recent payment attempt. Your orders
+					remain open, and no successful payment was recorded from this attempt.
+				</Text>
+			</StandardEmailHero>
+
+			<Section
+				className="gnd-standard-panel gnd-standard-soft-danger gnd-standard-border mx-[36px] mt-[28px] rounded-[6px] border border-solid p-[20px]"
+				style={{
+					backgroundColor: standardEmailColors.softDanger,
+					borderColor: standardEmailColors.border,
+				}}
+			>
+				<Row>
+					<StandardEmailMetric
+						emphasis
+						label="Attempted amount"
+						value={
+							props.totalAmount != null
+								? formatCurrency(props.totalAmount)
+								: "Not available"
+						}
+					/>
+					<StandardEmailMetric
+						label="Payment method"
+						value={props.paymentMethod || "Not provided"}
+					/>
+					<StandardEmailMetric label="Affected" value={orderLabel} />
+				</Row>
+			</Section>
+
+			{props.reason ? (
+				<Section
+					className="gnd-standard-panel gnd-standard-border mx-[36px] mt-[16px] rounded-[6px] border border-solid px-[20px] py-[17px]"
+					style={{ borderColor: standardEmailColors.border }}
+				>
+					<Text
+						className="gnd-standard-danger-text m-0 text-[12px] font-semibold uppercase tracking-[0.9px]"
+						style={{ color: standardEmailColors.danger }}
+					>
+						What happened
+					</Text>
+					<Text
+						className="gnd-standard-text m-0 mt-[7px] text-[14px] leading-[22px]"
+						style={{ color: standardEmailColors.ink }}
+					>
+						{props.reason}
+					</Text>
+				</Section>
+			) : null}
+
+			<Section className="gnd-standard-content px-[36px] pb-[8px] pt-[30px]">
+				<Text
+					className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[1.1px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Outstanding balance
+				</Text>
+			</Section>
+
+			{props.sales.map((sale, index) => (
+				<Section
+					className={`gnd-standard-panel gnd-standard-border mx-[36px] mt-[10px] rounded-[6px] border border-solid px-[20px] py-[16px] ${index % 2 === 1 ? "gnd-standard-row-alt" : "gnd-standard-row"}`}
+					key={sale.orderNo}
 					style={{
-						borderStyle: "solid",
-						borderWidth: 1,
-						borderColor: lightStyles.container.borderColor,
-						borderRadius: 12,
-						backgroundColor: lightStyles.body.backgroundColor,
+						backgroundColor:
+							index % 2 === 1
+								? standardEmailColors.soft
+								: standardEmailColors.card,
+						borderColor: standardEmailColors.border,
 					}}
 				>
-					<Logo />
-
-					<Section
-						className="mt-[20px] mb-[20px] p-[20px]"
-						style={{
-							backgroundColor: "#fff7ed",
-							borderStyle: "solid",
-							borderWidth: 1,
-							borderColor: "#fed7aa",
-							borderRadius: 10,
-						}}
-					>
-						<Text
-							className={`m-0 text-[12px] uppercase tracking-[1.6px] ${themeClasses.mutedText}`}
-							style={{ color: "#c2410c" }}
+					<Row>
+						<Column
+							className="gnd-standard-mobile-stack"
+							style={{ width: "55%" }}
 						>
-							Payment Update
-						</Text>
-						<Heading
-							className={`text-[28px] leading-[34px] font-semibold p-0 mt-[8px] mb-[10px] ${themeClasses.heading}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							Payment was not completed
-						</Heading>
-						<Text
-							className={`m-0 text-[15px] leading-[24px] ${themeClasses.text}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							Hi {props.customerName}, we could not complete your payment
-							attempt for the order{props.sales.length > 1 ? "s" : ""} below.
-						</Text>
-					</Section>
-
-					{props.totalAmount != null || props.paymentMethod ? (
-						<Text
-							className={`m-0 mb-[16px] text-[14px] leading-[22px] ${themeClasses.text}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							{props.totalAmount != null
-								? `Attempted amount: ${formatCurrency(props.totalAmount)}. `
-								: ""}
-							{props.paymentMethod ? `Payment method: ${props.paymentMethod}.` : ""}
-						</Text>
-					) : null}
-
-					{props.reason ? (
-						<Text
-							className={`m-0 mb-[16px] text-[14px] leading-[22px] ${themeClasses.text}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							Reason: {props.reason}
-						</Text>
-					) : null}
-
-					{props.sales.map((sale) => (
-						<Section
-							key={sale.orderNo}
-							className="mb-[12px] p-[12px]"
-							style={{
-								borderStyle: "solid",
-								borderWidth: 1,
-								borderColor: lightStyles.container.borderColor,
-								borderRadius: 10,
-								backgroundColor: "#fcfcfd",
-							}}
-						>
-							<Text className={`m-0 font-semibold ${themeClasses.text}`}>
-								{sale.orderNo}
+							<Text
+								className="gnd-standard-muted m-0 text-[12px] uppercase tracking-[0.7px]"
+								style={{ color: standardEmailColors.muted }}
+							>
+								Order
 							</Text>
 							<Text
-								className={`m-0 mt-[4px] text-[14px] ${themeClasses.text}`}
-								style={{ color: lightStyles.text.color }}
+								className="gnd-standard-text m-0 mt-[5px] text-[15px] font-semibold"
+								style={{ color: standardEmailColors.ink }}
 							>
-								Outstanding balance:{" "}
+								{sale.orderNo}
+							</Text>
+						</Column>
+						<Column
+							align="right"
+							className="gnd-standard-mobile-stack"
+							style={{ width: "45%" }}
+						>
+							<Text
+								className="gnd-standard-muted m-0 text-[12px] uppercase tracking-[0.7px]"
+								style={{ color: standardEmailColors.muted }}
+							>
+								Remaining due
+							</Text>
+							<Text
+								className="gnd-standard-danger-text m-0 mt-[5px] text-[15px] font-semibold"
+								style={{ color: standardEmailColors.danger }}
+							>
 								{formatCurrency(Number(sale.remainingDue || 0))}
 							</Text>
-						</Section>
-					))}
+						</Column>
+					</Row>
+				</Section>
+			))}
 
-					<Text
-						className={`mt-[20px] text-[14px] leading-[22px] ${themeClasses.text}`}
-						style={{ color: lightStyles.text.color }}
-					>
-						Please retry your payment or contact our team if you need help
-						completing it.
-					</Text>
+			<Section className="gnd-standard-content px-[36px] pb-[34px] pt-[26px]">
+				<Text
+					className="gnd-standard-text m-0 text-[14px] leading-[23px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					Please retry your payment when convenient. If the issue continues,
+					reply to this email and our sales team will help you complete it.
+				</Text>
+			</Section>
 
-					<Footer />
-				</Container>
-			</Body>
-		</EmailThemeProvider>
+			<StandardEmailSignature senderName={props.salesRepName} />
+		</StandardEmailLayout>
 	);
 }
+
+SalesCustomerPaymentFailedEmail.PreviewProps = {
+	customerName: "Jordan Lee",
+	paymentMethod: "Visa ending in 4242",
+	totalAmount: 1240,
+	reason: "The card issuer declined the transaction.",
+	sales: [
+		{ orderNo: "GND-10482", remainingDue: 840 },
+		{ orderNo: "GND-10491", remainingDue: 400 },
+	],
+	salesRepName: "Maya Thompson",
+} satisfies Props;
+
+export default SalesCustomerPaymentFailedEmail;

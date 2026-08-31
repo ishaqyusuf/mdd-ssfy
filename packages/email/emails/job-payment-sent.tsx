@@ -84,4 +84,12 @@ export function JobPaymentSentEmail(props: JobPaymentSentEmailProps) {
 	);
 }
 
+JobPaymentSentEmail.PreviewProps = {
+	recipientName: "Taylor Brooks",
+	paymentId: 7294,
+	jobCount: 3,
+	amount: 1840,
+	paymentMethod: "ACH",
+} satisfies JobPaymentSentEmailProps;
+
 export default JobPaymentSentEmail;

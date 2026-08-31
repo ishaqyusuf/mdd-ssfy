@@ -1,18 +1,13 @@
 /** @jsxImportSource react */
+import { Column, Row, Section, Text } from "@react-email/components";
+
 import {
-	Body,
-	Container,
-	Heading,
-	Preview,
-	Section,
-	Text,
-} from "@react-email/components";
-import { Logo } from "../components/logo";
-import {
-	EmailThemeProvider,
-	getEmailInlineStyles,
-	getEmailThemeClasses,
-} from "../components/theme";
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 interface Props {
 	accountName?: string | null;
@@ -41,96 +36,143 @@ export default function AuthNewDeviceLoginEmail({
 	supportEmail,
 	securityMessage,
 }: Props) {
-	const themeClasses = getEmailThemeClasses();
-	const lightStyles = getEmailInlineStyles("light");
-	const previewText = "New device login to your GND account";
-
 	return (
-		<EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
-			<Body
-				className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-				style={lightStyles.body}
+		<StandardEmailLayout previewText="New device login to your GND account">
+			<StandardEmailHeader
+				documentLabel="Security alert"
+				documentMeta={formatSurface(appSurface)}
+			/>
+
+			<StandardEmailHero
+				eyebrow="New device detected"
+				recipientName={accountName || accountEmail}
+				title="New Device Login"
 			>
-				<Container
-					className={`my-[40px] mx-auto p-[20px] max-w-[600px] ${themeClasses.container}`}
-					style={{
-						borderStyle: "solid",
-						borderWidth: 1,
-						borderColor: lightStyles.container.borderColor,
-					}}
+				<Text
+					className="gnd-standard-text m-0 mt-[10px] text-[15px] leading-[24px]"
+					style={{ color: standardEmailColors.ink }}
 				>
-					<Logo />
-					<Heading
-						className={`text-[21px] font-normal text-center p-0 my-[30px] mx-0 ${themeClasses.heading}`}
-						style={{ color: lightStyles.text.color }}
-					>
-						New device login
-					</Heading>
+					Your {formatSurface(appSurface)} account was just accessed from a
+					device we have not seen before.
+				</Text>
+			</StandardEmailHero>
 
-					<Text
-						className={`font-medium ${themeClasses.text}`}
-						style={{ color: lightStyles.text.color }}
+			<Section
+				className="gnd-standard-panel gnd-standard-border mx-[36px] mt-[28px] rounded-[6px] border border-solid p-[20px]"
+				style={{ borderColor: standardEmailColors.border }}
+			>
+				<Row>
+					<Column
+						className="gnd-standard-mobile-stack"
+						style={{ width: "56%" }}
 					>
-						Hi {accountName || accountEmail},
-					</Text>
-					<Text
-						className={themeClasses.text}
-						style={{ color: lightStyles.text.color }}
+						<Text
+							className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+							style={{ color: standardEmailColors.muted }}
+						>
+							Device
+						</Text>
+						<Text
+							className="gnd-standard-text m-0 mt-[6px] text-[15px] font-semibold"
+							style={{ color: standardEmailColors.ink }}
+						>
+							{deviceLabel}
+						</Text>
+					</Column>
+					<Column
+						className="gnd-standard-mobile-stack"
+						style={{ width: "44%" }}
 					>
-						Your {formatSurface(appSurface)} account was just accessed from a
-						device we have not seen before.
-					</Text>
+						<Text
+							className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+							style={{ color: standardEmailColors.muted }}
+						>
+							IP address
+						</Text>
+						<Text
+							className="gnd-standard-text m-0 mt-[6px] text-[14px] font-semibold"
+							style={{ color: standardEmailColors.ink }}
+						>
+							{ipAddress || "Unavailable"}
+						</Text>
+					</Column>
+				</Row>
 
-					<Section
-						className="my-[28px] rounded-[12px] p-[18px]"
-						style={{
-							backgroundColor: "#f8fafc",
-							borderColor: "#e2e8f0",
-							borderStyle: "solid",
-							borderWidth: 1,
-						}}
-					>
-						<Text
-							className="m-0 text-[14px]"
-							style={{ color: lightStyles.text.color }}
-						>
-							<strong>Device:</strong> {deviceLabel}
-						</Text>
-						<Text
-							className="m-0 mt-[8px] text-[14px]"
-							style={{ color: lightStyles.text.color }}
-						>
-							<strong>When:</strong> {loginAt}
-						</Text>
-						<Text
-							className="m-0 mt-[8px] text-[14px]"
-							style={{ color: lightStyles.text.color }}
-						>
-							<strong>IP address:</strong> {ipAddress || "Unavailable"}
-						</Text>
-						<Text
-							className="m-0 mt-[8px] text-[12px] leading-[18px]"
-							style={{ color: "#64748b" }}
-						>
-							{userAgent || "User agent unavailable"}
-						</Text>
-					</Section>
+				<Text
+					className="gnd-standard-muted m-0 mt-[18px] text-[12px] font-semibold uppercase tracking-[0.8px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					When
+				</Text>
+				<Text
+					className="gnd-standard-text m-0 mt-[5px] text-[14px] leading-[21px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					{loginAt}
+				</Text>
 
-					<Text
-						className={themeClasses.text}
-						style={{ color: lightStyles.text.color }}
-					>
-						{securityMessage}
-					</Text>
-					<Text
-						className="text-[12px] leading-tight"
-						style={{ color: "#64748b" }}
-					>
-						This security alert was sent to {accountEmail}. Support contact:{" "}
-						{supportEmail}.
-					</Text>
-				</Container>
-			</Body>
-		</EmailThemeProvider>
+				<Text
+					className="gnd-standard-muted m-0 mt-[18px] text-[12px] font-semibold uppercase tracking-[0.8px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Browser details
+				</Text>
+				<Text
+					className="gnd-standard-muted m-0 mt-[5px] text-[12px] leading-[18px]"
+					style={{ color: standardEmailColors.muted, wordBreak: "break-word" }}
+				>
+					{userAgent || "User agent unavailable"}
+				</Text>
+			</Section>
+
+			<Section
+				className="gnd-standard-panel gnd-standard-soft-danger gnd-standard-border mx-[36px] mt-[18px] rounded-[6px] border border-solid px-[20px] py-[17px]"
+				style={{
+					backgroundColor: standardEmailColors.softDanger,
+					borderColor: standardEmailColors.border,
+				}}
+			>
+				<Text
+					className="gnd-standard-danger-text m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+					style={{ color: standardEmailColors.danger }}
+				>
+					If this was not you
+				</Text>
+				<Text
+					className="gnd-standard-text m-0 mt-[7px] text-[14px] leading-[22px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					{securityMessage}
+				</Text>
+			</Section>
+
+			<Section className="gnd-standard-content px-[36px] pb-[34px] pt-[22px]">
+				<Text
+					className="gnd-standard-muted m-0 text-[12px] leading-[19px]"
+					style={{ color: standardEmailColors.muted, wordBreak: "break-word" }}
+				>
+					This alert was sent to {accountEmail}. Support contact: {supportEmail}
+					.
+				</Text>
+			</Section>
+
+			<StandardEmailSignature
+				department="Account security · GND Millwork"
+				senderName="GND Millwork Security"
+			/>
+		</StandardEmailLayout>
 	);
 }
+
+AuthNewDeviceLoginEmail.PreviewProps = {
+	accountName: "Jordan Lee",
+	accountEmail: "jordan@example.invalid",
+	appSurface: "dealership",
+	deviceLabel: "Chrome on macOS",
+	ipAddress: "203.0.113.24",
+	userAgent: "Chrome 140 on macOS",
+	loginAt: "August 29, 2026 at 10:42 AM WAT",
+	supportEmail: "support@gndprodesk.com",
+	securityMessage:
+		"If this was not you, reset your password and contact support immediately.",
+} satisfies Props;

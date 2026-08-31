@@ -15,15 +15,10 @@ function qtyCount(qty: {
 export function PackingProgress() {
     const { data } = usePacking();
     const { packedTotal, orderTotal } = useMemo(() => {
-        const controlPacked = Number(data?.order?.control?.packed?.total || 0);
-        const controlPending = Number(
-            data?.order?.control?.pendingPacking?.total || 0,
-        );
-        const controlTotal = controlPacked + controlPending;
-        if (controlTotal > 0) {
+        if (data?.summary) {
             return {
-                packedTotal: controlPacked,
-                orderTotal: controlTotal,
+                packedTotal: Number(data.summary.packed || 0),
+                orderTotal: Number(data.summary.total || 0),
             };
         }
 
@@ -46,7 +41,7 @@ export function PackingProgress() {
             packedTotal,
             orderTotal,
         };
-    }, [data.dispatchItems]);
+    }, [data.dispatchItems, data.summary]);
 
     return (
         <Progress>

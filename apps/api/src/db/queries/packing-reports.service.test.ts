@@ -6,31 +6,68 @@ import {
 
 const packCanonical = mock(async () => ({ created: 1, skipped: 0 }));
 const resetSales = mock(async () => undefined);
+const createProductionEvidence = mock(async () => undefined);
+const createTimelineActivity = mock(async () => ({ id: 1 }));
+const resolveTimelineSender = mock(async () => 99);
+const repairReceivedInboundNeeds = mock(async () => ({
+	inboundIds: [],
+	changedCount: 0,
+	updatedDemandCount: 0,
+	recomputedComponentCount: 0,
+	affectedSalesOrderIds: [],
+}));
+let saleInformation: any = { order: { id: 91 }, items: [] };
 const allocationKey = buildPackingDispatchAllocationKey({
 	dispatchId: 41,
 	productionSubmissionId: 72,
 	salesOrderItemId: 81,
 });
+const defaultGuardedPolicy = {
+	enabled: true,
+	allowAwaitingProductionSubmission: true,
+	allowPendingMaterialReview: true,
+	reviewMode: "BLOCK_DELIVERY_UNTIL_APPROVED" as const,
+	notifySalesRep: true,
+	createProductionEvidenceOnApproval: true,
+	revision: 1,
+	changedAt: "2026-08-28T12:00:00.000Z",
+};
 
 mock.module("@sales/sales-control/actions", () => ({
+	createSalesAssignmentAction: createProductionEvidence,
 	packDispatchItemsAction: packCanonical,
 	resetSalesAction: resetSales,
 	submitNonProductionsAction: mock(async () => undefined),
 }));
 mock.module("@sales/sales-control/get-sale-information", () => ({
-	getSaleInformation: async () => ({ order: { id: 91 }, items: [] }),
+	getSaleInformation: async () => saleInformation,
+}));
+mock.module("./sales-form-activity", () => ({
+	createSalesFormTimelineActivity: createTimelineActivity,
+	getSalesActivitySenderContactId: resolveTimelineSender,
+}));
+mock.module("@gnd/inventory/inbound", () => ({
+	repairReceivedInboundNeedsForSalesOrder: repairReceivedInboundNeeds,
 }));
 
-const { decidePackingReport, getPackingReportContext, submitPackingReport } =
-	await import("./packing-reports");
+const {
+	decidePackingReport,
+	getPackingReportContext,
+	reconcilePendingGuardedPackingDispatches,
+	submitPackingReport,
+} = await import("./packing-reports");
 
-function evidenceDb() {
+function evidenceDb(policy?: unknown) {
 	const reports: any[] = [];
 	const transactionOptions: any[] = [];
 	let driverId = 7;
 	let dispatchStatus = "queue";
 	const now = new Date("2026-08-23T10:00:00.000Z");
 	const db: any = {
+		settings: {
+			findFirst: async () =>
+				policy ? { meta: { guardedPacking: policy } } : null,
+		},
 		$queryRaw: async () => [{ id: 41 }],
 		$transaction: async (fn: (tx: any) => unknown, options?: unknown) => {
 			transactionOptions.push(options);
@@ -45,6 +82,9 @@ function evidenceDb() {
 				updatedAt: now,
 				order: { orderId: "09100PC" },
 			}),
+			update: async ({ data }: any) => {
+				if (data.status) dispatchStatus = data.status;
+			},
 		},
 		orderItemDelivery: {
 			findMany: async () => [
@@ -70,6 +110,7 @@ function evidenceDb() {
 					lhQty: 0,
 					rhQty: 0,
 					updatedAt: now,
+					assignment: { salesItemControlUid: "door-81" },
 					materialReview: { id: 61, status: "PENDING", updatedAt: now },
 					item: { description: "Door", dykeDescription: null },
 					itemDeliveries: [],
@@ -80,7 +121,12 @@ function evidenceDb() {
 			],
 		},
 		salesPackingReport: {
-			findMany: async () => reports,
+			findMany: async ({ where }: any = {}) =>
+				where?.orderProductionSubmissionId === null
+					? reports.filter(
+							(report) => report.orderProductionSubmissionId === null,
+						)
+					: reports,
 			findUnique: async ({ where }: any) =>
 				reports.find(
 					(report) =>
@@ -106,7 +152,130 @@ function evidenceDb() {
 		setDispatchStatus: (value: string) => {
 			dispatchStatus = value;
 		},
+		getDispatchStatus: () => dispatchStatus,
 	};
+}
+
+function awaitingSubmissionDb(policy?: unknown) {
+	const reports: any[] = [];
+	const allocations: any[] = [];
+	const now = new Date("2026-08-23T10:00:00.000Z");
+	const item = {
+		itemConfig: { production: true, shipping: true },
+		itemId: 81,
+		controlUid: "door-81",
+		title: "Entry Door",
+		qty: { qty: 3, lh: 0, rh: 0 },
+		deliverables: [] as Array<{
+			submissionId: number;
+			qty: { qty: number; lh: number; rh: number };
+		}>,
+	};
+	saleInformation = { order: { id: 91 }, items: [item] };
+	const dispatch = {
+		id: 41,
+		salesOrderId: 91,
+		status: "queue",
+		driverId: 7,
+		updatedAt: now,
+		order: { orderId: "09100PC" },
+	};
+	const db: any = {
+		settings: {
+			findFirst: async () =>
+				policy ? { meta: { guardedPacking: policy } } : null,
+		},
+		$queryRaw: async () => [{ id: 41 }],
+		$transaction: async (fn: (tx: any) => unknown) => fn(db),
+		orderDelivery: {
+			findFirst: async () => dispatch,
+			update: async ({ data }: any) => Object.assign(dispatch, data),
+		},
+		orderItemDelivery: {
+			findMany: async () => allocations.filter((row) => !row.deletedAt),
+			create: async ({ data }: any) => {
+				const allocation = {
+					id: 701,
+					updatedAt: now,
+					deletedAt: null,
+					...data,
+				};
+				allocations.push(allocation);
+				return { id: allocation.id };
+			},
+			update: async ({ where, data }: any) => {
+				Object.assign(
+					allocations.find((row) => row.id === where.id),
+					data,
+				);
+			},
+		},
+		orderProductionSubmissions: { findMany: async () => [] },
+		salesPackingReport: {
+			findMany: async ({ where }: any = {}) => {
+				if (where?.orderProductionSubmissionId === null) {
+					return reports
+						.filter(
+							(report) =>
+								report.orderProductionSubmissionId === null &&
+								report.status === "PENDING",
+						)
+						.map((report) => ({
+							id: report.id,
+							salesOrderItemId: report.salesOrderItemId,
+							salesItemControlUid: report.salesItemControlUid,
+							qty: report.qty,
+							lhQty: report.lhQty,
+							rhQty: report.rhQty,
+							updatedAt: report.updatedAt,
+						}));
+				}
+				return reports;
+			},
+			findUnique: async ({ where }: any) =>
+				reports.find(
+					(report) =>
+						(where.idempotencyKey &&
+							report.idempotencyKey === where.idempotencyKey) ||
+						(where.openKey && report.openKey === where.openKey),
+				) || null,
+			findUniqueOrThrow: async ({ where }: any) => {
+				const report = reports.find((candidate) => candidate.id === where.id);
+				if (!report) throw new Error("Report not found");
+				return {
+					...report,
+					delivery: { status: dispatch.status, deletedAt: null },
+				};
+			},
+			create: async ({ data }: any) => {
+				const report = {
+					id: 1,
+					createdAt: now,
+					updatedAt: now,
+					reviewedAt: null,
+					...data,
+				};
+				reports.push(report);
+				return { id: report.id, status: report.status };
+			},
+			updateMany: async ({ where, data }: any) => {
+				const report = reports.find(
+					(candidate) =>
+						candidate.id === where.id && candidate.status === where.status,
+				);
+				if (!report) return { count: 0 };
+				Object.assign(report, data);
+				return { count: 1 };
+			},
+			update: async ({ where, data }: any) => {
+				Object.assign(
+					reports.find((candidate) => candidate.id === where.id),
+					data,
+				);
+			},
+		},
+	};
+	return { db, reports, allocations, item, now, dispatch };
 }
 
 function approvalEvidence(materialReviewStatus: "PENDING" | "APPROVED") {
@@ -183,6 +352,8 @@ function packingDecisionDb(input: {
 	evidence: ReturnType<typeof approvalEvidence>;
 	reportRevision?: string;
 	qty?: number;
+	reportPolicy?: unknown;
+	effectivePolicy?: unknown;
 }) {
 	const updates: unknown[] = [];
 	const { evidence } = input;
@@ -204,7 +375,7 @@ function packingDecisionDb(input: {
 		lhQty: 0,
 		rhQty: 0,
 		manifestRevision: input.reportRevision ?? evidence.revision,
-		evidenceSnapshot: {},
+		evidenceSnapshot: input.reportPolicy ? { policy: input.reportPolicy } : {},
 		note: null,
 		decisionNote: null,
 		submittedAt: evidence.now,
@@ -213,9 +384,15 @@ function packingDecisionDb(input: {
 		cancelledAt: null,
 		createdAt: evidence.now,
 		updatedAt: evidence.now,
-		delivery: { status: "queue", deletedAt: null },
+		delivery: { status: evidence.dispatch.status, deletedAt: null },
 	};
 	const tx = {
+		settings: {
+			findFirst: async () =>
+				input.effectivePolicy
+					? { meta: { guardedPacking: input.effectivePolicy } }
+					: null,
+		},
 		$queryRaw: async () => [{ id: 41 }],
 		orderDelivery: { findFirst: async () => evidence.dispatch },
 		orderItemDelivery: {
@@ -226,6 +403,7 @@ function packingDecisionDb(input: {
 			findMany: async () => evidence.submissions,
 		},
 		salesPackingReport: {
+			findMany: async () => [],
 			findUniqueOrThrow: async () => report,
 			update: async ({ data }: { data: unknown }) => updates.push(data),
 			updateMany: async ({ data }: { data: unknown }) => {
@@ -247,6 +425,11 @@ describe("packing report application service", () => {
 	beforeEach(() => {
 		packCanonical.mockClear();
 		resetSales.mockClear();
+		createProductionEvidence.mockClear();
+		createTimelineActivity.mockClear();
+		resolveTimelineSender.mockClear();
+		repairReceivedInboundNeeds.mockClear();
+		saleInformation = { order: { id: 91 }, items: [] };
 	});
 
 	it("stores pending evidence with the authenticated actor and replays idempotently", async () => {
@@ -286,10 +469,320 @@ describe("packing report application service", () => {
 			idempotentReplay: true,
 		});
 		expect(reports).toHaveLength(1);
+		expect(createTimelineActivity).toHaveBeenCalledTimes(1);
 		expect(transactionOptions).toEqual([
 			{ isolationLevel: "Serializable" },
 			{ isolationLevel: "Serializable" },
 		]);
+	});
+
+	it("applies the master toggle and each eligible blocker setting", async () => {
+		saleInformation = {
+			order: { id: 91 },
+			items: [
+				{
+					itemConfig: { production: true, shipping: true },
+					itemId: 81,
+					controlUid: "door-81",
+					title: "Door",
+					qty: { qty: 3, lh: 0, rh: 0 },
+					deliverables: [],
+				},
+			],
+		};
+		const disabled = await getPackingReportContext(
+			evidenceDb({ ...defaultGuardedPolicy, enabled: false }).db,
+			41,
+		);
+		expect(disabled.reportableLines).toEqual([]);
+
+		const noMaterial = await getPackingReportContext(
+			evidenceDb({
+				...defaultGuardedPolicy,
+				allowPendingMaterialReview: false,
+			}).db,
+			41,
+		);
+		expect(noMaterial.reportableLines).toEqual([]);
+
+		const noAwaiting = await getPackingReportContext(
+			awaitingSubmissionDb({
+				...defaultGuardedPolicy,
+				allowAwaitingProductionSubmission: false,
+			}).db,
+			41,
+		);
+		expect(noAwaiting.reportableLines).toEqual([]);
+	});
+
+	it("marks a fully covered dispatch ready under the non-blocking review mode", async () => {
+		saleInformation = {
+			order: { id: 91 },
+			items: [
+				{
+					itemConfig: { production: true, shipping: true },
+					itemId: 81,
+					controlUid: "door-81",
+					title: "Door",
+					qty: { qty: 3, lh: 0, rh: 0 },
+					deliverables: [],
+				},
+			],
+		};
+		const fixture = evidenceDb({
+			...defaultGuardedPolicy,
+			reviewMode: "ALLOW_DELIVERY_WHILE_PENDING",
+		});
+		const context = await getPackingReportContext(fixture.db, 41);
+		const line = context.reportableLines[0];
+		if (!line) throw new Error("Expected reportable packing line");
+		await submitPackingReport(
+			fixture.db,
+			{
+				dispatchId: 41,
+				productionSubmissionId: 72,
+				salesItemControlUid: "door-81",
+				dispatchAllocationKey: line.dispatchAllocationKey,
+				qty: 3,
+				lhQty: 0,
+				rhQty: 0,
+				manifestRevision: context.manifestRevision,
+				idempotencyKey: "packing-nonblocking",
+				physicallyVerified: true,
+			},
+			{ id: 7, scope: "assignment" },
+		);
+		expect(fixture.getDispatchStatus()).toBe("packed");
+	});
+
+	it("demotes a non-blocking dispatch when its covering report is rejected", async () => {
+		saleInformation = {
+			order: { id: 91 },
+			items: [
+				{
+					itemConfig: { production: true, shipping: true },
+					itemId: 81,
+					controlUid: "door-81",
+					title: "Door",
+					qty: { qty: 3, lh: 0, rh: 0 },
+					deliverables: [],
+				},
+			],
+		};
+		const fixture = awaitingSubmissionDb({
+			...defaultGuardedPolicy,
+			reviewMode: "ALLOW_DELIVERY_WHILE_PENDING",
+		});
+		const context = await getPackingReportContext(fixture.db, 41);
+		const line = context.reportableLines[0];
+		if (!line) throw new Error("Expected reportable packing line");
+		await submitPackingReport(
+			fixture.db,
+			{
+				dispatchId: 41,
+				productionSubmissionId: null,
+				salesItemControlUid: "door-81",
+				dispatchAllocationKey: line.dispatchAllocationKey,
+				qty: 3,
+				lhQty: 0,
+				rhQty: 0,
+				manifestRevision: context.manifestRevision,
+				idempotencyKey: "packing-nonblocking-reject",
+				physicallyVerified: true,
+			},
+			{ id: 7, scope: "assignment" },
+		);
+		expect(fixture.dispatch.status).toBe("packed");
+		await decidePackingReport(
+			fixture.db,
+			{
+				reportId: fixture.reports[0].id,
+				expectedUpdatedAt: fixture.reports[0].updatedAt,
+				action: "REJECT",
+				note: "Not physically verified",
+			},
+			{ id: 20, name: "Manager" },
+		);
+		expect(fixture.dispatch.status).toBe("queue");
+		expect(resetSales).toHaveBeenCalledTimes(1);
+	});
+
+	it("makes an existing fully verified pending dispatch ready when the policy is relaxed", async () => {
+		const policy = { ...defaultGuardedPolicy } as {
+			reviewMode:
+				| "BLOCK_DELIVERY_UNTIL_APPROVED"
+				| "ALLOW_DELIVERY_WHILE_PENDING";
+			[key: string]: unknown;
+		};
+		saleInformation = {
+			order: { id: 91 },
+			items: [
+				{
+					itemConfig: { production: true, shipping: true },
+					itemId: 81,
+					controlUid: "door-81",
+					title: "Door",
+					qty: { qty: 3, lh: 0, rh: 0 },
+					deliverables: [],
+				},
+			],
+		};
+		const fixture = evidenceDb(policy);
+		const context = await getPackingReportContext(fixture.db, 41);
+		const line = context.reportableLines[0];
+		if (!line) throw new Error("Expected reportable packing line");
+		await submitPackingReport(
+			fixture.db,
+			{
+				dispatchId: 41,
+				productionSubmissionId: 72,
+				dispatchAllocationKey: line.dispatchAllocationKey,
+				qty: 3,
+				lhQty: 0,
+				rhQty: 0,
+				manifestRevision: context.manifestRevision,
+				idempotencyKey: "packing-relaxed-after-submit",
+				physicallyVerified: true,
+			},
+			{ id: 7, scope: "assignment" },
+		);
+		fixture.setDispatchStatus("missing items");
+		policy.reviewMode = "ALLOW_DELIVERY_WHILE_PENDING";
+
+		await expect(
+			reconcilePendingGuardedPackingDispatches(fixture.db, [41]),
+		).resolves.toEqual({ readyDispatchIds: [41] });
+		expect(fixture.getDispatchStatus()).toBe("packed");
+		expect(fixture.reports).toHaveLength(1);
+		expect(fixture.reports[0]?.status).toBe("PENDING");
+	});
+
+	it("reports awaiting-production quantities and creates canonical evidence on approval", async () => {
+		const fixture = awaitingSubmissionDb();
+		const context = await getPackingReportContext(fixture.db, 41);
+		const line = context.reportableLines[0];
+		expect(line).toMatchObject({
+			productionSubmissionId: null,
+			salesOrderItemId: 81,
+			itemUid: "door-81",
+			remaining: { qty: 3, lhQty: 0, rhQty: 0 },
+		});
+		if (!line) throw new Error("Expected awaiting-production packing line");
+
+		const submitted = await submitPackingReport(
+			fixture.db,
+			{
+				dispatchId: 41,
+				productionSubmissionId: null,
+				salesItemControlUid: "door-81",
+				dispatchAllocationKey: line.dispatchAllocationKey,
+				qty: 2,
+				lhQty: 0,
+				rhQty: 0,
+				manifestRevision: context.manifestRevision,
+				idempotencyKey: "packing-awaiting-production",
+				physicallyVerified: true,
+			},
+			{ id: 7, scope: "assignment" },
+		);
+		expect(submitted).toMatchObject({ status: "PENDING" });
+		expect(fixture.reports[0]).toMatchObject({
+			reason: "AWAITING_PRODUCTION_SUBMISSION",
+			salesItemControlUid: "door-81",
+			orderProductionSubmissionId: null,
+		});
+
+		createProductionEvidence.mockImplementationOnce(async () => {
+			fixture.item.deliverables = [
+				{
+					submissionId: 72,
+					qty: { qty: 2, lh: 0, rh: 0 },
+				},
+			];
+		});
+		await expect(
+			decidePackingReport(
+				fixture.db,
+				{
+					reportId: 1,
+					expectedUpdatedAt: fixture.now,
+					action: "APPROVE",
+					note: "Confirmed complete",
+				},
+				{ id: 20, name: "Sales Manager" },
+			),
+		).resolves.toMatchObject({ status: "APPROVED" });
+		expect(createProductionEvidence).toHaveBeenCalledWith(
+			fixture.db,
+			expect.objectContaining({
+				salesId: 91,
+				authorId: 20,
+				submit: true,
+				submissionMeta: {
+					source: "packing_review_approval",
+					packingReportId: 1,
+				},
+			}),
+		);
+		expect(packCanonical.mock.calls[0]?.[0]).toBe(fixture.db);
+		expect(packCanonical.mock.calls[0]?.[1]).toMatchObject({
+			approvedPackingReportId: 1,
+			packItems: {
+				packingLines: [
+					{
+						salesItemId: 81,
+						submissionId: 72,
+						qty: { qty: 2, lh: 0, rh: 0 },
+					},
+				],
+			},
+		});
+		expect(createTimelineActivity).toHaveBeenCalledTimes(2);
+	});
+
+	it("approves an awaiting-production report without creating evidence when configured", async () => {
+		const fixture = awaitingSubmissionDb({
+			...defaultGuardedPolicy,
+			createProductionEvidenceOnApproval: false,
+		});
+		const context = await getPackingReportContext(fixture.db, 41);
+		const line = context.reportableLines[0];
+		if (!line) throw new Error("Expected awaiting-production packing line");
+		await submitPackingReport(
+			fixture.db,
+			{
+				dispatchId: 41,
+				productionSubmissionId: null,
+				salesItemControlUid: "door-81",
+				dispatchAllocationKey: line.dispatchAllocationKey,
+				qty: 3,
+				lhQty: 0,
+				rhQty: 0,
+				manifestRevision: context.manifestRevision,
+				idempotencyKey: "packing-no-production-evidence",
+				physicallyVerified: true,
+			},
+			{ id: 7, scope: "assignment" },
+		);
+		await expect(
+			decidePackingReport(
+				fixture.db,
+				{
+					reportId: 1,
+					expectedUpdatedAt: fixture.now,
+					action: "APPROVE",
+					note: "Verified without generated production evidence",
+				},
+				{ id: 20, name: "Sales Manager" },
+			),
+		).resolves.toMatchObject({ status: "APPROVED" });
+		expect(createProductionEvidence).not.toHaveBeenCalled();
+		expect(packCanonical).not.toHaveBeenCalled();
+		expect(fixture.allocations[0]).toMatchObject({
+			packingStatus: "packed",
+			packedBy: "Sales Manager",
+			deletedAt: null,
+		});
 	});
 
 	it("rejects a stale manifest revision before writing", async () => {
@@ -396,10 +889,13 @@ describe("packing report application service", () => {
 			{ id: 20, name: "Manager" },
 		);
 		expect(packCanonical).not.toHaveBeenCalled();
+		expect(repairReceivedInboundNeeds).not.toHaveBeenCalled();
 		expect(rejected.updates[0]).toMatchObject({
 			status: "REJECTED",
 			openKey: null,
 		});
+		expect(resetSales).toHaveBeenCalledTimes(1);
+		resetSales.mockClear();
 
 		const approved = packingDecisionDb({ evidence });
 		await decidePackingReport(
@@ -413,6 +909,10 @@ describe("packing report application service", () => {
 			{ id: 20, name: "Manager" },
 		);
 		expect(packCanonical).toHaveBeenCalledTimes(1);
+		expect(repairReceivedInboundNeeds).toHaveBeenCalledWith(expect.anything(), {
+			salesOrderId: 91,
+			actorUserId: 20,
+		});
 		expect(packCanonical.mock.calls[0]?.[1]).toMatchObject({
 			approvedPackingReportId: 1,
 			authorId: 20,
@@ -547,5 +1047,105 @@ describe("packing report application service", () => {
 			),
 		).rejects.toThrow("use normal packing");
 		expect(packCanonical).not.toHaveBeenCalled();
+	});
+
+	it("keeps blocking-policy decisions read-only after the trip starts", async () => {
+		const evidence = approvalEvidence("PENDING");
+		evidence.dispatch.status = "in progress";
+		const late = packingDecisionDb({ evidence });
+		await expect(
+			decidePackingReport(
+				late.db,
+				{
+					reportId: 1,
+					expectedUpdatedAt: evidence.now,
+					action: "REJECT",
+					note: "Too late",
+				},
+				{ id: 20, name: "Manager" },
+			),
+		).rejects.toThrow("passed the packing review stage");
+		expect(late.updates).toHaveLength(0);
+	});
+
+	it("allows a non-blocking review decision while the trip is in progress", async () => {
+		const evidence = approvalEvidence("PENDING");
+		evidence.dispatch.status = "in progress";
+		const nonBlockingPolicy = {
+			...defaultGuardedPolicy,
+			reviewMode: "ALLOW_DELIVERY_WHILE_PENDING" as const,
+		};
+		const active = packingDecisionDb({
+			evidence,
+			reportPolicy: nonBlockingPolicy,
+			effectivePolicy: nonBlockingPolicy,
+		});
+		await expect(
+			decidePackingReport(
+				active.db,
+				{
+					reportId: 1,
+					expectedUpdatedAt: evidence.now,
+					action: "APPROVE",
+					note: "Reviewed during the trip",
+				},
+				{ id: 20, name: "Manager" },
+			),
+		).resolves.toMatchObject({ status: "APPROVED" });
+		expect(packCanonical).not.toHaveBeenCalled();
+	});
+
+	it("keeps an older strict report reviewable after the current policy releases the trip", async () => {
+		const evidence = approvalEvidence("PENDING");
+		evidence.dispatch.status = "in progress";
+		const active = packingDecisionDb({
+			evidence,
+			reportPolicy: defaultGuardedPolicy,
+			effectivePolicy: {
+				...defaultGuardedPolicy,
+				reviewMode: "ALLOW_DELIVERY_WHILE_PENDING",
+				revision: 1,
+			},
+		});
+		await expect(
+			decidePackingReport(
+				active.db,
+				{
+					reportId: 1,
+					expectedUpdatedAt: evidence.now,
+					action: "REJECT",
+					note: "Reviewed after policy release",
+				},
+				{ id: 20, name: "Manager" },
+			),
+		).resolves.toMatchObject({ status: "REJECTED" });
+	});
+
+	it("makes non-blocking reviews read-only after delivery is complete", async () => {
+		const evidence = approvalEvidence("PENDING");
+		evidence.dispatch.status = "completed";
+		const completed = packingDecisionDb({
+			evidence,
+			reportPolicy: {
+				...defaultGuardedPolicy,
+				reviewMode: "ALLOW_DELIVERY_WHILE_PENDING",
+			},
+			effectivePolicy: {
+				...defaultGuardedPolicy,
+				reviewMode: "ALLOW_DELIVERY_WHILE_PENDING",
+			},
+		});
+		await expect(
+			decidePackingReport(
+				completed.db,
+				{
+					reportId: 1,
+					expectedUpdatedAt: evidence.now,
+					action: "REJECT",
+					note: "Too late",
+				},
+				{ id: 20, name: "Manager" },
+			),
+		).rejects.toThrow("passed the packing review stage");
 	});
 });

@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import type { PrintSigningData } from "@gnd/sales/print/types";
-import { Image, Text, View } from "@react-pdf/renderer";
+import { Image, Path, Svg, Text, View } from "@react-pdf/renderer";
+import { isSvgImageSource } from "../../../shared/signature-source";
 import { resolveDocumentImageSrc } from "../../../shared/utils";
 
 // ─── Design tokens ─────────────────────────────────────────
@@ -18,7 +19,13 @@ export function SignatureBlock({
 	signing,
 	baseUrl,
 }: SignatureBlockProps) {
-	const signatureUrl = resolveDocumentImageSrc(signing?.signatureUrl, baseUrl);
+	const resolvedSignatureUrl = resolveDocumentImageSrc(
+		signing?.signatureUrl,
+		baseUrl,
+	);
+	const signatureUrl = isSvgImageSource(resolvedSignatureUrl)
+		? null
+		: resolvedSignatureUrl;
 	const lineHeight = 52;
 
 	return (
@@ -35,7 +42,27 @@ export function SignatureBlock({
 							position: "relative",
 						}}
 					>
-						{signatureUrl ? (
+						{signing?.signaturePath ? (
+							<Svg
+								viewBox="0 0 320 160"
+								style={{
+									position: "absolute",
+									left: 0,
+									bottom: 0,
+									height: 44,
+									width: "100%",
+								}}
+							>
+								<Path
+									d={signing.signaturePath}
+									fill="none"
+									stroke="#111827"
+									strokeWidth={2}
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								/>
+							</Svg>
+						) : signatureUrl ? (
 							<Image
 								src={signatureUrl}
 								style={{

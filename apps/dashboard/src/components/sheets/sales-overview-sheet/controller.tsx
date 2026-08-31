@@ -132,6 +132,17 @@ export function createLegacySalesOverviewTabs({
 						/>
 					),
 				},
+				{
+					value: "inventory",
+					label: "Inventory",
+					content: (
+						<LegacySalesOverviewInventoryTab
+							onCreateInbound={onCreateInbound}
+							onViewInbound={onViewInbound}
+							inboundCreateOpen={inboundCreateOpen}
+						/>
+					),
+				},
 			];
 		default:
 			return [

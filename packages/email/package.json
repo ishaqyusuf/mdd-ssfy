@@ -11,11 +11,10 @@
   "scripts": {
     "--build": "email build",
     "clean": "rm -rf .turbo node_modules",
-    "dev": "bun run patch:preview-server && email dev -p 3013",
+    "dev": "node ./node_modules/react-email/dist/index.mjs dev -p 3013",
     "format": "biome format --write .",
     "lint": "biome check .",
-    "patch:preview-server": "node ./scripts/patch-react-email-preview-server.mjs",
-    "start": "bun run patch:preview-server && email start",
+    "start": "node ./node_modules/react-email/dist/index.mjs start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -26,16 +25,17 @@
     "@react-email/tailwind": "2.0.1",
     "class-variance-authority": "^0.7.1",
     "date-fns": "^4.1.0",
-    "react-email": "5.0.6",
+    "react-email": "5.2.10",
     "react": "catalog:",
     "react-dom": "catalog:",
     "responsive-react-email": "^0.0.5"
   },
-	"devDependencies": {
-		"@gnd/tsconfig": "workspace:*",
-		"@types/bun": "^1.2.17",
-    "@react-email/preview-server": "5.0.6",
+  "devDependencies": {
+    "@gnd/tsconfig": "workspace:*",
+    "@types/bun": "^1.2.17",
+    "@react-email/preview-server": "5.2.10",
     "@types/react-dom": "^19.2.3",
+    "@types/react": "^19.2.17",
     "@types/node": "^25.2.3",
     "typescript": "^5.9.3"
   }

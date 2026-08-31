@@ -1,6 +1,7 @@
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { AuthGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
+import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
 import { SendForPackingMenuItem } from "@/components/sales/send-for-packing-button";
 import { _perm } from "@/components/sidebar-links";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,6 +11,7 @@ import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
+import type { SalesOrderLifecycleStatus } from "@gnd/sales/order-status";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { useSaleOverview } from "./context";
@@ -30,9 +32,28 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 			customerPhone?: string | null;
 			displayName?: string | null;
 			inboundStatus?: string | null;
+			orderStatus?: string | null;
+			prodStatus?: string | null;
+			deliveryStatus?: string | null;
+			status?: {
+				assignment?: { status?: string | null } | null;
+				production?: { status?: string | null } | null;
+				delivery?: { status?: string | null } | null;
+			} | null;
+			control?: {
+				productionStatus?: string | null;
+				dispatchStatus?: string | null;
+			} | null;
+			dispatchList?: Array<{ id?: number | null }> | null;
 		};
 	};
 	const isQuote = data?.type === "quote";
+	const currentOrderStatus = isQuote
+		? undefined
+		: (getSalesOverviewDocumentStatus(data)
+				.status as SalesOrderLifecycleStatus);
+	const productionStatus =
+		data?.control?.productionStatus ?? data?.status?.production?.status;
 	const sPreview = useSalesPreview();
 	const auth = useAuth();
 	const canSendForPacking =
@@ -131,7 +152,11 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 							</>
 						) : null}
 						<SalesMenu.SalesEmailMenuItems />
-						<SalesMenu.MarkAs />
+						<SalesMenu.MarkAs
+							currentStatus={currentOrderStatus}
+							productionStatus={productionStatus}
+							hasFulfillmentDispatch={Boolean(data?.dispatchList?.length)}
+						/>
 						<SalesMenu.Separator />
 						<SalesMenu.Share />
 						<SalesMenu.SalesPrintMenuItems />

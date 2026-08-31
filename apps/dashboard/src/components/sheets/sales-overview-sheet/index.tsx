@@ -159,12 +159,6 @@ function Content() {
         setPane({ kind: "packing" });
         setPaneOpened(true);
     };
-	useEffect(() => {
-		if (!query.packingReview || !query.dispatchId || !data?.id) return;
-		setPane({ kind: "packing" });
-		setPaneOpened(true);
-		query.setParams({ packingReview: null });
-	}, [data?.id, query.dispatchId, query.packingReview, query.setParams]);
     const handlePaneExited = () => {
         setPane(null);
         const trigger = paneTriggerRef.current;

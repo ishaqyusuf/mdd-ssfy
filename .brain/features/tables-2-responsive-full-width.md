@@ -126,6 +126,21 @@ These nine configurations use `null` and remain on `LegacyFormDataTable` with
 `sales-form-service-lines`, `clean-code-sales-form-service-lines`, and
 `sales-form-shelf-items`.
 
+## Selection Column Alignment
+
+- The shared table-cell padding contract owns selection alignment for both
+  default and compact tables. A cell containing a `[role=checkbox]` removes
+  asymmetric horizontal padding and centers the control, so custom table
+  modules do not need page-specific offsets.
+- A restarted table that declares `id: "select"` must register that column as
+  both sticky and non-reorderable. The repository audit currently covers all 24
+  selection-enabled Tables V2 modules.
+- Custom draggable headers must render the selection column's TanStack header
+  definition with `flexRender`; substituting `headerLabel` text removes the
+  select-all control and breaks header/body parity.
+- Inventory Backorders and Partial Shipments follow this contract, including a
+  40-pixel sticky selection column before their sticky Order column.
+
 ## Acceptance Evidence
 
 - Registry audit: 84 non-null core mappings, nine null legacy mappings, every ID
@@ -137,3 +152,7 @@ These nine configurations use `null` and remain on `LegacyFormDataTable` with
 - Browser proof on `/sales-book/orders` at 760, 1280, 1440, and 1920 pixels shows
   one matching fill header/body cell, zero-pixel edge drift, no document overflow,
   table-owned narrow overflow, and `scrollWidth === clientWidth` at 1920 pixels.
+- Selection-alignment regressions cover both table densities and audit all 24
+  selection-enabled modules. Authenticated browser proof on Sales Production
+  and Inventory Backorders shows each header checkbox on the same vertical axis
+  as its row checkboxes.

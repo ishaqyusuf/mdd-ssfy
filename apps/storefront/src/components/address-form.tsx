@@ -27,7 +27,6 @@ export function AddressForm(props: Props) {
     };
   }, [props.formKey]);
   const onAddress = (address) => {
-    console.log({ address });
     Object.entries(paths).map(([k, v]) => {
       if (address?.[k] || k in address) form.setValue(v, address[k]);
     });

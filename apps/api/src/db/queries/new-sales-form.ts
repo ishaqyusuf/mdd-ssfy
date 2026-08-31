@@ -891,6 +891,7 @@ function toBootstrapPayload(
 		paymentDueDate: Date | null;
 		goodUntil: Date | null;
 		prodDueDate: Date | null;
+		deliveryDueDate: Date | null;
 		deliveryOption: string | null;
 		extraCosts: Array<{
 			id: number;
@@ -1216,6 +1217,7 @@ function toBootstrapPayload(
 			paymentDueDate: order.paymentDueDate,
 			goodUntil: order.goodUntil,
 			prodDueDate: order.prodDueDate,
+			deliveryDueDate: order.deliveryDueDate,
 			paymentTerm: order.paymentTerm,
 			deliveryOption: order.deliveryOption,
 		},
@@ -1270,6 +1272,7 @@ function toBootstrapPayload(
 			paymentDueDate: null,
 			goodUntil: null,
 			prodDueDate: null,
+			deliveryDueDate: null,
 			po: "",
 			notes: null,
 			deliveryOption: DEFAULT_DELIVERY_OPTION,
@@ -1441,6 +1444,7 @@ export async function bootstrapNewSalesForm(
 			paymentDueDate: null,
 			goodUntil: null,
 			prodDueDate: null,
+			deliveryDueDate: null,
 			po: null,
 			notes: null,
 			deliveryOption: DEFAULT_DELIVERY_OPTION,
@@ -1507,6 +1511,7 @@ export async function getNewSalesForm(
 				paymentDueDate: true,
 				goodUntil: true,
 				prodDueDate: true,
+				deliveryDueDate: true,
 				deliveryOption: true,
 				extraCosts: {
 					select: {
@@ -3326,6 +3331,7 @@ async function saveNewSalesFormInternal(
 				paymentDueDate: Date | null;
 				goodUntil: Date | null;
 				prodDueDate: Date | null;
+				deliveryDueDate: Date | null;
 				customerId: number | null;
 				dealerAuthId: number | null;
 				salesChannel: string | null;
@@ -3368,6 +3374,7 @@ async function saveNewSalesFormInternal(
 						paymentDueDate: true,
 						goodUntil: true,
 						prodDueDate: true,
+						deliveryDueDate: true,
 						customerId: true,
 						dealerAuthId: true,
 						salesChannel: true,
@@ -3737,6 +3744,8 @@ async function saveNewSalesFormInternal(
 				paymentDueDate: nextPaymentDueDate?.toISOString() || null,
 				goodUntil: safeDate(payload.meta.goodUntil)?.toISOString() || null,
 				prodDueDate: safeDate(payload.meta.prodDueDate)?.toISOString() || null,
+				deliveryDueDate:
+					safeDate(payload.meta.deliveryDueDate)?.toISOString() || null,
 			};
 			const legacyMeta = projectSalesFormMetaToLegacyMeta({
 				existingMeta: currentMeta,
@@ -3820,6 +3829,7 @@ async function saveNewSalesFormInternal(
 						paymentDueDate: nextPaymentDueDate,
 						goodUntil: safeDate(payload.meta.goodUntil),
 						prodDueDate: safeDate(payload.meta.prodDueDate),
+						deliveryDueDate: safeDate(payload.meta.deliveryDueDate),
 						deliveryOption:
 							payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
 						inventoryStatus:
@@ -3866,6 +3876,7 @@ async function saveNewSalesFormInternal(
 					paymentDueDate: nextPaymentDueDate,
 					goodUntil: safeDate(payload.meta.goodUntil),
 					prodDueDate: safeDate(payload.meta.prodDueDate),
+					deliveryDueDate: safeDate(payload.meta.deliveryDueDate),
 					customerId: payload.meta.customerId || null,
 					dealerAuthId: null,
 					salesChannel: origin?.salesChannel || null,
@@ -3892,6 +3903,7 @@ async function saveNewSalesFormInternal(
 						paymentDueDate: nextPaymentDueDate,
 						goodUntil: safeDate(payload.meta.goodUntil),
 						prodDueDate: safeDate(payload.meta.prodDueDate),
+						deliveryDueDate: safeDate(payload.meta.deliveryDueDate),
 						deliveryOption:
 							payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
 						inventoryStatus:
@@ -4873,6 +4885,7 @@ export async function saveStorefrontSalesOrder(
 			paymentDueDate: null,
 			goodUntil: null,
 			prodDueDate: null,
+			deliveryDueDate: null,
 			po: null,
 			notes: `Storefront checkout ${input.checkoutId}`,
 			deliveryOption: input.deliveryOption,

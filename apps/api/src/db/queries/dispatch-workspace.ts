@@ -1,3 +1,4 @@
+import { whereEmployees } from "@api/prisma-where";
 import type {
 	DispatchBacklogInput,
 	DispatchExceptionListInput,
@@ -5,9 +6,21 @@ import type {
 	ResolveDispatchExceptionInput,
 } from "@api/schemas/dispatch-workspace";
 import type { TRPCContext } from "@api/trpc/init";
+import type { Prisma } from "@gnd/db";
+import {
+	buildSalesDispatchBacklogWhere,
+	withDispatchListControl,
+	withSalesListControl,
+} from "@gnd/sales";
+import { getDispatchDueBucket } from "@gnd/sales/dispatch-manifest/driver-work-queue";
 import { projectDispatchLifecycle } from "@gnd/sales/dispatch-manifest/status";
+import { isDispatchWorkspaceSectionMatch } from "@gnd/sales/dispatch-manifest/workspace";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { TRPCError } from "@trpc/server";
+import {
+	dispatchOrderPresentationSelect,
+	projectDispatchOrderPresentation,
+} from "./dispatch-order-presentation";
 
 const activeDispatchStatuses = [
 	"queue",
@@ -18,40 +31,51 @@ const activeDispatchStatuses = [
 ];
 
 export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
-	const [dispatches, backlog, openExceptions, overdue] = await Promise.all([
+	const [
+		dispatches,
+		backlog,
+		driverExceptions,
+		packingExceptionDispatches,
+		driverCount,
+	] = await Promise.all([
 		ctx.db.orderDelivery.findMany({
 			where: { deletedAt: null },
 			select: {
+				id: true,
+				salesOrderId: true,
 				status: true,
 				driverId: true,
+				deliveryMode: true,
+				dueDate: true,
 			},
 		}),
 		ctx.db.salesOrders.count({
-			where: {
-				deletedAt: null,
-				type: "order",
-				deliveryOption: { in: ["delivery", "pickup"] },
-				deliveredAt: null,
-				deliveries: {
-					none: {
-						deletedAt: null,
-						status: { notIn: ["cancelled"] },
-					},
-				},
-			},
+			where: buildSalesDispatchBacklogWhere(),
 		}),
 		ctx.db.dispatchException.count({
 			where: { status: "open", deletedAt: null },
 		}),
-		ctx.db.orderDelivery.count({
+		ctx.db.salesPackingReport.groupBy({
+			by: ["orderDeliveryId"],
+			where: { status: "PENDING" },
+		}),
+		ctx.db.users.count({
 			where: {
+				...(whereEmployees({
+					can: ["viewDelivery"],
+					cannot: ["editOrders"],
+				}) || {}),
 				deletedAt: null,
-				status: { in: ["queue", "packing queue", "in progress", "packed"] },
-				dueDate: { lt: new Date() },
 			},
 		}),
 	]);
 
+	const dispatchesWithControl = await withDispatchListControl(
+		dispatches,
+		ctx.db as any,
+	);
+	const timeZone =
+		process.env.BUSINESS_TIME_ZONE || process.env.TZ || "America/New_York";
 	const byStage = {
 		readyToAssign: 0,
 		assigned: 0,
@@ -62,8 +86,62 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		fulfilled: 0,
 		cancelled: 0,
 	};
-	for (const row of dispatches) {
-		const { stage } = projectDispatchLifecycle(row);
+	let active = 0;
+	let dueToday = 0;
+	let pastDue = 0;
+	let completed = 0;
+	for (const row of dispatchesWithControl) {
+		const control = row.control;
+		const lifecycle = projectDispatchLifecycle({
+			status: control.dispatchStatus || row.status,
+			driverId: row.driverId,
+			packedTotal: control.packed?.total,
+			pendingPackingTotal: control.pendingPacking?.total,
+		});
+		const { stage } = lifecycle;
+		const dueBucket = getDispatchDueBucket(row.dueDate, { timeZone });
+		if (
+			isDispatchWorkspaceSectionMatch({
+				section: "active",
+				stage,
+				driverId: row.driverId,
+				deliveryMode: row.deliveryMode,
+			})
+		) {
+			active += 1;
+		}
+		if (
+			isDispatchWorkspaceSectionMatch({
+				section: "due-today",
+				stage,
+				driverId: row.driverId,
+				deliveryMode: row.deliveryMode,
+				dueBucket,
+			})
+		) {
+			dueToday += 1;
+		}
+		if (
+			isDispatchWorkspaceSectionMatch({
+				section: "past-due",
+				stage,
+				driverId: row.driverId,
+				deliveryMode: row.deliveryMode,
+				dueBucket,
+			})
+		) {
+			pastDue += 1;
+		}
+		if (
+			isDispatchWorkspaceSectionMatch({
+				section: "completed",
+				stage,
+				driverId: row.driverId,
+				deliveryMode: row.deliveryMode,
+			})
+		) {
+			completed += 1;
+		}
 		if (stage === "ready_to_assign") byStage.readyToAssign += 1;
 		else if (stage === "assigned") byStage.assigned += 1;
 		else if (stage === "packing") byStage.packing += 1;
@@ -76,8 +154,14 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 
 	return {
 		backlog,
-		openExceptions,
-		overdue,
+		active,
+		dueToday,
+		pastDue,
+		completed,
+		all: dispatchesWithControl.length,
+		openExceptions: driverExceptions + packingExceptionDispatches.length,
+		overdue: pastDue,
+		driverCount,
 		byStage,
 	};
 }
@@ -86,21 +170,13 @@ export async function getDispatchBacklog(
 	ctx: TRPCContext,
 	input: DispatchBacklogInput,
 ) {
-	const where = {
-		deletedAt: null,
-		type: "order",
-		deliveryOption: {
-			in: input.deliveryModes?.length
+	const where: Prisma.SalesOrdersWhereInput = {
+		...buildSalesDispatchBacklogWhere(
+			input.deliveryModes?.length
 				? input.deliveryModes
 				: ["delivery", "pickup"],
-		},
-		deliveredAt: null,
-		deliveries: {
-			none: {
-				deletedAt: null,
-				status: { notIn: ["cancelled"] },
-			},
-		},
+		),
+		...(input.ids?.length ? { id: { in: input.ids } } : {}),
 		...(input.q
 			? {
 					OR: [
@@ -121,23 +197,27 @@ export async function getDispatchBacklog(
 		where,
 		ctx.db.salesOrders,
 	);
+	const createdAtSort = input.sort?.[0] === "createdAt.desc" ? "desc" : "asc";
 	const data = await ctx.db.salesOrders.findMany({
 		where,
 		...searchMeta,
-		orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+		orderBy: [{ createdAt: createdAtSort }, { id: createdAtSort }],
 		select: {
 			id: true,
+			...dispatchOrderPresentationSelect,
 			orderId: true,
 			title: true,
-			status: true,
 			createdAt: true,
 			deliveryOption: true,
+			deliveryDueDate: true,
 			priority: true,
 			customer: {
 				select: {
+					id: true,
 					name: true,
 					businessName: true,
 					phoneNo: true,
+					email: true,
 				},
 			},
 			shippingAddress: {
@@ -153,14 +233,34 @@ export async function getDispatchBacklog(
 			},
 		},
 	});
-	return response(data);
+	const rowsWithControl = await withSalesListControl(
+		data.map((row) => ({ id: row.id })),
+		ctx.db as any,
+		[
+			"productionStatus",
+			"dispatchStatus",
+			"packed",
+			"pendingPacking",
+			"pendingDispatch",
+			"packables",
+		] as any,
+	);
+	const controlById = new Map(
+		rowsWithControl.map((row) => [row.id, (row as any).control]),
+	);
+	return response(
+		data.map((row) => ({
+			...row,
+			...projectDispatchOrderPresentation(row, controlById.get(row.id) || null),
+		})),
+	);
 }
 
 export async function getDispatchExceptions(
 	ctx: TRPCContext,
 	input: DispatchExceptionListInput,
 ) {
-	const where = {
+	const driverWhere: Prisma.DispatchExceptionWhereInput = {
 		deletedAt: null,
 		status: input.status,
 		...(input.reasonCodes?.length
@@ -184,46 +284,119 @@ export async function getDispatchExceptions(
 				}
 			: {}),
 	};
-	const { response, searchMeta } = await composeQueryData(
-		input,
-		where,
-		ctx.db.dispatchException,
-	);
-	const data = await ctx.db.dispatchException.findMany({
-		where,
-		...searchMeta,
-		orderBy: [{ reportedAt: "desc" }, { id: "desc" }],
-		select: {
-			id: true,
-			reasonCode: true,
-			notes: true,
-			status: true,
-			tripAction: true,
-			reportedById: true,
-			resolvedById: true,
-			resolutionNote: true,
-			reportedAt: true,
-			resolvedAt: true,
-			delivery: {
-				select: {
-					id: true,
-					status: true,
-					dueDate: true,
-					driver: { select: { id: true, name: true } },
-					order: {
-						select: {
-							id: true,
-							orderId: true,
-							customer: {
-								select: { name: true, businessName: true },
+	const packingWhere: Prisma.SalesPackingReportWhereInput = {
+		status:
+			input.status === "open"
+				? "PENDING"
+				: { in: ["APPROVED", "REJECTED", "CANCELLED"] },
+		...(input.driversId?.length
+			? { delivery: { driverId: { in: input.driversId } } }
+			: {}),
+		...(input.q
+			? {
+					OR: [
+						{ note: { contains: input.q } },
+						{ decisionNote: { contains: input.q } },
+						{ order: { orderId: { contains: input.q } } },
+						{ order: { customer: { name: { contains: input.q } } } },
+						{
+							order: {
+								customer: { businessName: { contains: input.q } },
 							},
 						},
-					},
-				},
+					],
+				}
+			: {}),
+	};
+	const offset = Math.max(0, Number(input.cursor || 0));
+	const size = Math.max(1, Number(input.size || 20));
+	const sourceTake = offset + size + 1;
+	const deliverySelect = {
+		id: true,
+		status: true,
+		dueDate: true,
+		driver: { select: { id: true, name: true } },
+		order: {
+			select: {
+				id: true,
+				orderId: true,
+				customer: { select: { name: true, businessName: true } },
 			},
 		},
-	});
-	return response(data);
+	} as const;
+	const [driverRows, packingRows] = await Promise.all([
+		ctx.db.dispatchException.findMany({
+			where: driverWhere,
+			orderBy: [{ reportedAt: "desc" }, { id: "desc" }],
+			take: sourceTake,
+			select: {
+				id: true,
+				reasonCode: true,
+				notes: true,
+				status: true,
+				tripAction: true,
+				reportedById: true,
+				resolvedById: true,
+				resolutionNote: true,
+				reportedAt: true,
+				resolvedAt: true,
+				delivery: { select: deliverySelect },
+			},
+		}),
+		ctx.db.salesPackingReport.findMany({
+			where: packingWhere,
+			orderBy: [{ submittedAt: "desc" }, { id: "desc" }],
+			distinct: ["orderDeliveryId"],
+			take: sourceTake,
+			select: {
+				id: true,
+				reason: true,
+				note: true,
+				decisionNote: true,
+				status: true,
+				submittedById: true,
+				reviewedById: true,
+				submittedAt: true,
+				reviewedAt: true,
+				delivery: { select: deliverySelect },
+			},
+		}),
+	]);
+	const allRows = [
+		...driverRows.map((row) => ({
+			...row,
+			rowKey: `driver:${row.id}`,
+			source: "driver_report" as const,
+		})),
+		...packingRows.map((row) => ({
+			id: row.id,
+			rowKey: `packing:${row.id}`,
+			source: "guarded_packing" as const,
+			reasonCode: row.reason.toLowerCase(),
+			notes: row.note,
+			status: input.status,
+			tripAction: "keep_assigned" as const,
+			reportedById: row.submittedById,
+			resolvedById: row.reviewedById,
+			resolutionNote: row.decisionNote,
+			reportedAt: row.submittedAt,
+			resolvedAt: row.reviewedAt,
+			delivery: row.delivery,
+		})),
+	].sort(
+		(a, b) =>
+			new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime(),
+	);
+	const data = allRows.slice(offset, offset + size);
+	const nextOffset = offset + data.length;
+
+	return {
+		data,
+		meta: {
+			size,
+			cursor: allRows.length > nextOffset ? String(nextOffset) : null,
+		},
+	};
 }
 
 export async function reportDispatchException(

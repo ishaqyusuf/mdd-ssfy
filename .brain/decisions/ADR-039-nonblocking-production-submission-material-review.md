@@ -25,7 +25,13 @@ database-unique so concurrent retries cannot create duplicate submissions:
 - pending quantity counts as reported for assignment progress and duplicate
   prevention, but only approved or legacy no-review quantity is finalized;
 - pending quantity is excluded from payroll, packing, dispatch, production
-  completion, and completion-dependent payment review.
+	completion, and completion-dependent payment review.
+- The reporting worker may retract their own unshipped submission regardless of
+	material-review state. Retraction removes the production quantity and unpaid
+	pending payroll, but preserves the material-review audit. A pending review with
+	no active submission remains available for inventory-only resolution under an
+	explicit `SUBMISSION_RETRACTED` marker; approval receives no submissions and
+	cannot restore quantity or payroll.
 
 The admin decision command re-reads the exact submission scope and supports a
 non-mutating recheck, confirmed receipt of one or more linked inbound items,
@@ -44,6 +50,12 @@ may perform canonical inbound receipt/material resolution and approve every
 pending review before starting packing or fulfillment. Direct completion tasks
 remain blocked while a review is pending.
 
+ADR-075 adds a second narrow exception: an authenticated administrator,
+production editor, or the sales representative assigned to the order may
+approve unresolved evidence by submitting on behalf of another assignment
+owner. The approved review record, material snapshot, classification reason,
+reviewer identity, and explicit resolution are retained for audit.
+
 ## Consequences
 
 - Production planning and reporting continue even when inventory administration
@@ -52,6 +64,9 @@ remain blocked while a review is pending.
   services.
 - Admin review is auditable, retry-safe, and optimistic-concurrency protected.
 - Existing active submissions without a review remain finalized for backward
-  compatibility.
+	compatibility.
+- Notification deep links remain durable after retraction: review detail exposes
+	the deleted submission as audit evidence while keeping active production
+	projections empty.
 - ADR-035 remains authoritative for assignment and is superseded here only for
   its former strict submission-gate statement.

@@ -95,3 +95,13 @@ export default function DealerSalesRequestApprovedEmail({
 		</EmailThemeProvider>
 	);
 }
+
+DealerSalesRequestApprovedEmail.PreviewProps = {
+	dealerName: "Northside Millwork",
+	quoteNo: "Q-10482",
+	orderNo: "GND-10482",
+	customerName: "Jordan Lee",
+	total: 2480,
+	orderUrl: "https://dealership.gndprodesk.com/orders/preview",
+	paymentUrl: "https://gndprodesk.com/pay/preview",
+} satisfies Props;

@@ -67,6 +67,7 @@ import { salesCheckoutSuccess } from "./types/sales-checkout-success";
 import { salesCustomerPaymentFailed } from "./types/sales-customer-payment-failed";
 import { salesCustomerPaymentReceived } from "./types/sales-customer-payment-received";
 import { salesCustomerRefundCompleted } from "./types/sales-customer-refund-completed";
+import { salesDispatchApprovalPendingReleased } from "./types/sales-dispatch-approval-pending-released";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
 import { salesDispatchCompleted } from "./types/sales-dispatch-completed";
@@ -89,6 +90,8 @@ import { salesPaymentRecorded } from "./types/sales-payment-recorded";
 import { salesPaymentRefunded } from "./types/sales-payment-refunded";
 import { salesProductionAllCompleted } from "./types/sales-production-all-completed";
 import { salesProductionAssigned } from "./types/sales-production-assigned";
+import { salesProductionSubmitted } from "./types/sales-production-submitted";
+import { salesProductionUnassigned } from "./types/sales-production-unassigned";
 import {
 	salesProductionSubmissionMaterialApproved,
 	salesProductionSubmissionMaterialRejected,
@@ -150,6 +153,8 @@ const handlers = {
 	community_unit_production_completed: communityUnitProductionCompleted,
 	community_unit_production_batch_updated: communityUnitProductionBatchUpdated,
 	sales_dispatch_assigned: salesDispatchAssigned,
+	sales_dispatch_approval_pending_released:
+		salesDispatchApprovalPendingReleased,
 	sales_dispatch_created: salesDispatchCreated,
 	sales_dispatch_queued: salesDispatchQueued,
 	sales_dispatch_cancelled: salesDispatchCancelled,
@@ -179,6 +184,8 @@ const handlers = {
 	sales_payment_recorded: salesPaymentRecorded,
 	sales_payment_refunded: salesPaymentRefunded,
 	sales_production_assigned: salesProductionAssigned,
+	sales_production_unassigned: salesProductionUnassigned,
+	sales_production_submitted: salesProductionSubmitted,
 	sales_production_submission_material_review:
 		salesProductionSubmissionMaterialReview,
 	sales_production_submission_material_approved:
@@ -510,13 +517,12 @@ export class Notifications {
 			);
 			return activity ? [activity] : [];
 		}
-		console.log("++++++++++++++++++++");
-		console.log("Creating activities for users:", contacts);
+
 		const activityPromises = await Promise.all(
 			(contacts || [])
 				.filter((user) => user.inAppNotification)
 				.map(async (user: UserData) => {
-					console.log("Creating activity for user:", user);
+
 					const rawActivityInput = handler.createActivity(
 						validatedData,
 						author,

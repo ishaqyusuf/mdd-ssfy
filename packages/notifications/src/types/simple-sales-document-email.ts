@@ -376,6 +376,7 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 			data: {
 				isQuote,
 				customerName: data.customerName,
+				salesRepName: data.salesRep,
 				note: data.note || undefined,
 				acceptQuoteLink: data.acceptQuoteLink || undefined,
 				paymentLink: data.paymentLink || undefined,

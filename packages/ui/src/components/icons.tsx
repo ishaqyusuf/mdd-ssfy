@@ -490,7 +490,15 @@ export const IconsBase = {
 };
 const IconsStatic = {
 	...IconsBase,
-  Logo: () => <Image alt="" src="/logo_mini.png" width={48} height={49} />,
+  Logo: () => (
+    <Image
+      alt=""
+      className="h-auto max-w-full"
+      src="/logo_mini.png"
+      width={48}
+      height={48}
+    />
+  ),
   LogoLg: () => <Image alt="" src="/logo.png" height={48} width={120} />,
   logoLg: ({ width = 120 }: { width?: number }) => (
     <Link href="/">
@@ -499,7 +507,13 @@ const IconsStatic = {
   ),
   logo: () => (
     <Link href="/">
-      <Image alt="" src="/logo_mini.png" width={48} height={49} />
+      <Image
+        alt=""
+        className="h-auto max-w-full"
+        src="/logo_mini.png"
+        width={48}
+        height={48}
+      />
     </Link>
   ),
   PrintLogo: () => (
@@ -1233,7 +1247,7 @@ const dynamicHugeIconAliases = {
   Share2: "Share08Icon",
   Shield: "Shield01Icon",
   ShieldAlert: "Shield01Icon",
-  ShieldCheck: "ShieldDoneIcon",
+  ShieldCheck: "SecurityCheckIcon",
   ShieldOff: "ShieldBlockIcon",
   ShieldQuestion: "ShieldQuestionIcon",
   ShoppingCart: "ShoppingBag",

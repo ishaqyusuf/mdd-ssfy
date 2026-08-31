@@ -16,7 +16,7 @@ export const salesDispatchUnassigned: NotificationHandler = {
 		const payload: SalesDispatchUnassignedTags = {
 			type: "sales_dispatch_unassigned",
 			source: "user",
-			priority: 5,
+			priority: 2,
 			dispatchId,
 			orderNo,
 			deliveryMode,

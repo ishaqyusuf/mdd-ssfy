@@ -29,4 +29,17 @@ describe("update-sales-control permissions", () => {
     expect(helper).toContain("forceInAppRecipients: true");
     expect(helper).toContain("includeChannelSubscribers: false");
   });
+
+  it("delivers production lifecycle alerts directly to the named people", () => {
+    const assignedStart = source.indexOf(
+      "async function sendProductionAssignedNotification",
+    );
+    const assigned = source.slice(assignedStart, assignedStart + 2600);
+
+    expect(assigned).toContain("new Notifications(db)");
+    expect(assigned).toContain("forceInAppRecipients: true");
+    expect(assigned).toContain("includeChannelSubscribers: false");
+    expect(source).toContain('"sales_production_unassigned"');
+    expect(source).toContain('"sales_production_submitted"');
+  });
 });

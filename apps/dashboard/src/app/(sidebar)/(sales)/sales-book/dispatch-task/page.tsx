@@ -9,6 +9,7 @@ import PageShell from "@/components/page-shell";
 import { ScrollableContent } from "@/components/scrollable-content";
 import { loadDriverDashboardParams } from "@/hooks/use-driver-dashboard-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { getServerAuthSession } from "@/lib/auth/session";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
@@ -26,9 +27,26 @@ export async function generateMetadata() {
 type Props = { searchParams: Promise<SearchParams> };
 
 export default async function DriverDashboardPage({ searchParams }: Props) {
-	const params = loadDriverDashboardParams(await searchParams);
+	const [session, resolvedSearchParams] = await Promise.all([
+		getServerAuthSession(),
+		searchParams,
+	]);
+	const params = loadDriverDashboardParams(resolvedSearchParams);
+	const initialNow = Date.now();
 	const input = getDriverManifestInput({
 		view: params.view,
+		search: params.q,
+	});
+	const summaryInput = getDriverManifestInput({
+		view: "all",
+		search: params.q,
+	});
+	const readyInput = getDriverManifestInput({
+		view: "packed",
+		search: params.q,
+	});
+	const todaySummaryInput = getDriverManifestInput({
+		view: "today",
 		search: params.q,
 	});
 
@@ -36,7 +54,9 @@ export default async function DriverDashboardPage({ searchParams }: Props) {
 		trpc.dispatch.driverManifest.infiniteQueryOptions(input, {
 			getNextPageParam: getDriverNextCursor,
 		}),
-		trpc.dispatch.driverWorkQueueSummary.queryOptions(input),
+		trpc.dispatch.driverWorkQueueSummary.queryOptions(summaryInput),
+		trpc.dispatch.driverWorkQueueSummary.queryOptions(todaySummaryInput),
+		trpc.dispatch.driverWorkQueue.queryOptions(readyInput),
 	]);
 
 	return (
@@ -46,7 +66,10 @@ export default async function DriverDashboardPage({ searchParams }: Props) {
 					<PageTitle>Dispatch Tasks</PageTitle>
 					<ErrorBoundary errorComponent={ErrorFallback}>
 						<Suspense fallback={<DriverDashboardSkeleton />}>
-							<DriverDashboardWorkspace />
+							<DriverDashboardWorkspace
+								driverName={session?.user?.name}
+								initialNow={initialNow}
+							/>
 						</Suspense>
 					</ErrorBoundary>
 				</ScrollableContent>

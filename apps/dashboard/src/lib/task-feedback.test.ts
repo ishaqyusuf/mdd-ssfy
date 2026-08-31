@@ -9,6 +9,7 @@ import {
 	getSalesEmailOutputFailure,
 	getTaskFailureMessage,
 	getTaskOutputFailureMessage,
+	getTaskStartFailureToastMessage,
 	isSalesEmailTaskInput,
 	isSalesEmailTaskMetadata,
 	isTaskRealtimeAccessError,
@@ -135,6 +136,14 @@ describe("task feedback", () => {
 		expect(getTaskFailureMessage({ errorMessage: null })).toBe(
 			DEFAULT_TASK_FAILURE_MESSAGE,
 		);
+	});
+
+	test("shows a sanitized task-start failure without replacing its direction", () => {
+		expect(
+			getTaskStartFailureToastMessage({
+				errorMessage: "Bulk production completion is limited to 40 orders.",
+			}),
+		).toBe("Bulk production completion is limited to 40 orders.");
 	});
 
 	test("extracts hard Trigger run failure state and error messages", () => {

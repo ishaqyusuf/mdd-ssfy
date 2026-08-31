@@ -1,10 +1,11 @@
 "use client";
 
+import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-header";
 import {
 	DispatchAdminSummary,
 	DispatchAdminSummarySkeleton,
 } from "@/components/dispatch-admin/dispatch-admin-summary";
-import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-header";
+import { allDispatchStages } from "@/components/dispatch-admin/dispatch-list-presets";
 import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
 import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
@@ -46,7 +47,7 @@ export function DispatchDashboardView({
 							size="sm"
 							onClick={() =>
 								setFilters({
-									section: "dispatches",
+									section: null,
 									risks: ["overdue"],
 								})
 							}
@@ -67,16 +68,10 @@ export function DispatchDashboardView({
 						filters.stages?.length
 							? undefined
 							: {
-									stages: [
-										"ready_to_assign",
-										"assigned",
-										"packing",
-										"packing_blocked",
-										"ready_to_load",
-										"in_transit",
-									],
+									stages: allDispatchStages,
 								}
 					}
+					enableSalesMarkAs
 				/>
 			</Suspense>
 		</div>

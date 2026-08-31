@@ -1,5 +1,6 @@
-import type { PrintSalesData } from "../query";
 import { sum } from "@gnd/utils";
+import { isCurrentDispatchPackingAllocation } from "../../dispatch-packing-totals";
+import type { PrintSalesData } from "../query";
 
 /**
  * Resolve packing/shipping quantity info for a specific item+door in a dispatch.
@@ -25,6 +26,7 @@ export function packingInfo(
   if (!items) return "N/A";
 
   const filtered = items.filter((item) => {
+    if (!isCurrentDispatchPackingAllocation(item)) return false;
     const checks = [item.orderItemId === itemId];
     if (doorId)
       checks.push(item.submission?.assignment?.salesDoorId === doorId);

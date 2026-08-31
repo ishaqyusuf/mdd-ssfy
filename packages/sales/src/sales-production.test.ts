@@ -18,12 +18,17 @@ function productionRow(id: number, priority: string) {
 	return {
 		id,
 		orderId: `ORDER-${id}`,
+		status: null,
+		prodStatus: null,
 		createdAt: new Date(`2026-07-${String(id).padStart(2, "0")}T12:00:00Z`),
 		priority,
+		grandTotal: 1250,
+		amountDue: 250,
 		customer: null,
 		billingAddress: null,
 		salesRep: null,
 		stat: [],
+		deliveries: [],
 		itemControls: [],
 		assignments: [],
 	};
@@ -173,6 +178,20 @@ describe("sales production priority sorting", () => {
 		expect(serialized).toContain('"percentage":100');
 	});
 
+	it("requires a live positive-quantity production control for production queues", () => {
+		const serialized = JSON.stringify(
+			whereSales({
+				production: "pending",
+				"production.status": "unscheduled",
+			}),
+		);
+
+		expect(serialized).toContain('"itemControls"');
+		expect(serialized).toContain('"produceable":true');
+		expect(serialized).toContain('"type":"qty"');
+		expect(serialized).toContain('"total":{"gt":0}');
+	});
+
 	it("treats null-owner assignment rows as Unassigned", () => {
 		const serialized = JSON.stringify(
 			whereSales({
@@ -217,6 +236,77 @@ describe("sales production priority sorting", () => {
 		});
 
 		expect(result.data[0]?.materials.state).toBe("unavailable");
+	});
+
+	it("projects lifecycle status for batch completion eligibility", async () => {
+		const db = {
+			salesOrders: {
+				count: async () => 1,
+				findMany: async () => [
+					{
+						...productionRow(43, "NORMAL"),
+						status: "Completed",
+					},
+				],
+			},
+		};
+
+		const result = await getSalesProductions(db as unknown as Db, {
+			production: "completed",
+			includeMaterials: false,
+			size: 20,
+		});
+
+		expect(result.data[0]?.lifecycleStatus).toBe("fulfilled");
+	});
+
+	it("projects a read-only invoice total and payment status", async () => {
+		const db = {
+			salesOrders: {
+				count: async () => 1,
+				findMany: async () => [
+					{
+						...productionRow(45, "NORMAL"),
+						grandTotal: 1250,
+						amountDue: 0,
+					},
+				],
+			},
+		};
+
+		const result = await getSalesProductions(db as unknown as Db, {
+			production: "completed",
+			includeMaterials: false,
+			size: 20,
+		});
+
+		expect(result.data[0]?.invoice).toEqual({
+			total: 1250,
+			amountDue: 0,
+			status: "paid",
+		});
+	});
+
+	it("excludes fulfilled deliveries when legacy production stats are stale", async () => {
+		const db = {
+			salesOrders: {
+				findMany: async () => [
+					{
+						...productionRow(44, "NORMAL"),
+						prodStatus: "in progress",
+						deliveries: [{ status: "Completed", _count: { items: 1 } }],
+					},
+				],
+			},
+		};
+
+		const result = await getSalesProductions(db as unknown as Db, {
+			production: "pending",
+			includeMaterials: false,
+			size: 20,
+		});
+
+		expect(result.data).toEqual([]);
 	});
 
 	it("returns work completed by the authenticated worker before the full order completes", async () => {

@@ -4,6 +4,7 @@ import { HorizontalPagination } from "@/components/horizontal-pagination";
 import {
 	ACTIONS_FULL_WIDTH_HEADER_CLASS,
 	ACTIONS_STICKY_HEADER_CLASS,
+	type StickyColumnConfig,
 	type TableColumnMeta,
 	type TableScrollState,
 	getHeaderLabel,
@@ -21,6 +22,7 @@ import {
 	horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Button } from "@gnd/ui/button";
+import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import { TableHead, TableHeader, TableRow } from "@gnd/ui/table";
 import type { Header, Table } from "@tanstack/react-table";
@@ -32,6 +34,7 @@ interface Props<TData> {
 	loading?: boolean;
 	tableScroll?: TableScrollState;
 	showColumnDividers?: boolean;
+	stickyColumns?: StickyColumnConfig[];
 }
 
 const HEADER_BACKGROUND_CLASS = "!bg-sidebar-accent";
@@ -49,12 +52,13 @@ export function DataTableHeader<TData>({
 	loading,
 	tableScroll,
 	showColumnDividers = false,
+	stickyColumns = tableConfig.stickyColumns,
 }: Props<TData>) {
 	const { sortColumn, sortValue, createSortQuery } = useSortQuery();
 	const { getStickyStyle, getStickyClassName, isVisible } = useStickyColumns({
 		table,
 		loading,
-		stickyColumns: tableConfig.stickyColumns,
+		stickyColumns,
 	});
 	const sortableColumnIds = useMemo(() => {
 		if (!table) return [];
@@ -211,6 +215,23 @@ function renderHeaderContent<TData>(
 	const sortDirection = isSorted ? sortValue : undefined;
 
 	if (header.isPlaceholder) return null;
+	if (columnId === "select") {
+		return (
+			<Checkbox
+				aria-label="Mark all loaded production orders"
+				checked={
+					table.getIsAllRowsSelected()
+						? true
+						: table.getIsSomeRowsSelected()
+							? "indeterminate"
+							: false
+				}
+				onCheckedChange={(checked) => {
+					table.toggleAllRowsSelected(checked === true);
+				}}
+			/>
+		);
+	}
 
 	if (columnId === "actions") {
 		return (

@@ -35,7 +35,7 @@ export function DispatchExceptionsView() {
 				status: filters.exceptionStatus,
 				q: filters.q,
 				driversId: filters.driversId,
-				size: 50,
+				size: 20,
 			},
 			{
 				getNextPageParam: ({ meta }) =>
@@ -70,6 +70,7 @@ export function DispatchExceptionsView() {
 								<TableHead>Reported</TableHead>
 								<TableHead>Order</TableHead>
 								<TableHead>Reason</TableHead>
+								<TableHead>Source</TableHead>
 								<TableHead>Driver</TableHead>
 								<TableHead>Status</TableHead>
 								<TableHead className="text-right">Action</TableHead>
@@ -77,7 +78,7 @@ export function DispatchExceptionsView() {
 						</TableHeader>
 						<TableBody>
 							{rows.map((row) => (
-								<TableRow key={row.id}>
+								<TableRow key={row.rowKey}>
 									<TableCell>
 										{new Date(row.reportedAt).toLocaleDateString()}
 									</TableCell>
@@ -86,6 +87,13 @@ export function DispatchExceptionsView() {
 									</TableCell>
 									<TableCell className="capitalize">
 										{row.reasonCode.replaceAll("_", " ")}
+									</TableCell>
+									<TableCell>
+										<Badge variant="outline">
+											{row.source === "guarded_packing"
+												? "Packing review"
+												: "Driver report"}
+										</Badge>
 									</TableCell>
 									<TableCell>
 										{row.delivery.driver?.name || "Unassigned"}
@@ -111,7 +119,9 @@ export function DispatchExceptionsView() {
 												)
 											}
 										>
-											Open Packing
+											{row.source === "guarded_packing"
+												? "Review packing"
+												: "Open Packing"}
 										</Button>
 									</TableCell>
 								</TableRow>

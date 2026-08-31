@@ -1,5 +1,18 @@
 # API Permissions
 
+## Production Assignment Mutation Boundary (2026-08-31)
+
+- Direct Dashboard create, delete, and batch production-assignment mutations
+  require the authenticated profile's `editProduction` capability. Read-only
+  `viewProduction`, order ownership, and authentication alone do not authorize
+  assignment management.
+- Single-assignment deletion binds the requested assignment id to the expected
+  Sales Order id and sales-item control uid before soft deletion. A valid id
+  from another order or item cannot be used as a cross-scope mutation.
+- Production-worker submission authority remains separate. Supervisors may
+  submit for another worker only through the existing production-submission
+  authority boundary.
+
 ## Sales Handoff Action Read Boundary (2026-08-23)
 
 - `sales.getSalesHandoffActions`, its exact open-epoch where fragment, and its
@@ -484,11 +497,19 @@ Tracks authentication and authorization patterns across API surfaces.
 - Background and direct worker submissions replace client-supplied author
   identity with the authenticated employee. Without `editProduction`, the
   server restricts submission scope to assignments owned by that employee.
-- Direct production-only actors (`viewProduction` without `viewOrders`) must
-  also pass the scoped material-availability evaluation. Configured unresolved
-  or unreadable evidence rejects the submission server-side; missing material
-  configuration remains eligible for material review. Admin/supervisor
-  submissions retain the nonblocking review workflow.
+- The sales representative assigned to the exact order may submit for another
+  assignment owner without global `editProduction`. Order ownership is re-read
+  from the database using the authenticated user id; the exception grants no
+  cross-order or cross-representative authority.
+- An admin, production editor, or assigned order sales representative submitting
+  on behalf is treated as the approving operator. Unresolved material evidence
+  is retained in an immediately approved review record with the authenticated
+  reviewer id and explicit operator-approval resolution. Worker self-submission
+  remains pending under unresolved evidence.
+- Direct production-only actors (`viewProduction` without `viewOrders`) remain
+  limited to their own assignment scope. Ready evidence finalizes immediately;
+  unresolved, unreadable, or missing material evidence saves a pending review
+  and does not expose finalized production effects until approval.
 - Production submission deletion always binds the requested submission to the
   supplied sale. Without `editProduction`, the authenticated employee must be
   both the submission author and the current assignment owner. An empty or
@@ -661,3 +682,48 @@ Tracks authentication and authorization patterns across API surfaces.
   stay in manager workflows.
 - Warehouse Packing navigation requires packing or manager capability and is
   also suppressed when the reversible mobile packing-command flag is disabled.
+
+## Fulfillment finance and status presentation (2026-08-29)
+
+- Fulfillment Backlog, Active, and All may present invoice totals, balance, and
+  canonical order status to actors already authorized to read the workspace.
+- Applying payment and running Sales Mark As remain gated by `editOrders`.
+  Without it, shared invoice/status cells are read-only and do not render the
+  payment processor, Apply Payment action, status menu, or row Mark As menu.
+- This UI guard does not replace server authorization; existing payment and
+  sales-status mutations continue to enforce their protected boundaries.
+
+## Driver Ready route start boundary (2026-08-29)
+
+- `dispatch.startReadyRoute` requires an authenticated assigned driver for
+  every requested stop. The command does not grant list-wide or cross-driver
+  dispatch authority.
+- Every stop is reloaded and passed through the same assignment, lifecycle,
+  review-policy, inventory, destination, and idempotency guards as canonical
+  single-stop Start Trip. Client-projected `ready` values are never treated as
+  authorization tokens.
+- Batch partial success is intentional: eligible owned stops may start while
+  stale or newly blocked stops return privacy-safe blocked outcomes.
+
+## Driver route destination boundary (2026-08-29)
+
+- `dispatch.normalizeDestination` requires the live assigned driver or an actor
+  with `editPickup` or `editOrders`. Assignment is rechecked after the dispatch
+  lock before routing metadata is written.
+- The caller supplies only the Google place id. Google address fields and
+  coordinates are resolved server-side, and the mutation writes only the
+  selected dispatch metadata.
+- This command grants no customer or Address Book edit authority. The original
+  customer shipping address remains immutable from the driver workflow.
+
+## Admin assignment destination boundary (2026-08-30)
+
+- `dispatch.assignmentDestinationPreflight` and
+  `dispatch.normalizeAssignmentDestination` require an authenticated dispatch
+  manager with `editPickup` or `editOrders`, matching the assignment workspace.
+- The normalization caller supplies only a Sales id and Google place id. Place
+  details are resolved server-side, the active order/customer relationship is
+  reloaded, and the write is limited to that order's shipping address linkage.
+- Driver assignment mutations independently repeat destination readiness after
+  their own protected boundary. A successful UI preflight is never treated as
+  an authorization token.

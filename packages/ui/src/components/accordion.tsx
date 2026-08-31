@@ -24,28 +24,45 @@ const AccordionTrigger = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger> & {
     chevronBefore?: boolean;
+    actions?: React.ReactNode;
+    actionsClassName?: string;
   }
->(({ className, children, chevronBefore, ...props }, ref) => (
-  <AccordionPrimitive.Header className="flex w-full">
-    <AccordionPrimitive.Trigger
-      ref={ref}
-      className={cn(
-        "flex flex-1 items-center justify-between py-4 font-medium transition-all [&[data-state=open]>svg]:rotate-180",
-        chevronBefore && "[&[data-state=open]>svg]:rotate-0",
-        className,
-      )}
-      {...props}
-    >
-      {chevronBefore && (
-        <Icons.ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 -rotate-90" />
-      )}
-      {children}
-      {!chevronBefore && (
-        <Icons.ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-      )}
-    </AccordionPrimitive.Trigger>
-  </AccordionPrimitive.Header>
-));
+>(
+  (
+    { className, children, chevronBefore, actions, actionsClassName, ...props },
+    ref,
+  ) => (
+    <AccordionPrimitive.Header className="relative flex w-full">
+      <AccordionPrimitive.Trigger
+        ref={ref}
+        className={cn(
+          "flex flex-1 items-center justify-between py-4 font-medium transition-all [&[data-state=open]>svg]:rotate-180",
+          chevronBefore && "[&[data-state=open]>svg]:rotate-0",
+          className,
+        )}
+        {...props}
+      >
+        {chevronBefore && (
+          <Icons.ChevronDown className="h-4 w-4 shrink-0 -rotate-90 transition-transform duration-200" />
+        )}
+        {children}
+        {!chevronBefore && (
+          <Icons.ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+        )}
+      </AccordionPrimitive.Trigger>
+      {actions ? (
+        <div
+          className={cn(
+            "absolute right-8 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1",
+            actionsClassName,
+          )}
+        >
+          {actions}
+        </div>
+      ) : null}
+    </AccordionPrimitive.Header>
+  ),
+);
 AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 
 const AccordionContent = React.forwardRef<

@@ -56,6 +56,12 @@ type WorkspaceInput = {
 	label?: string | null;
 	q?: string | null;
 	assignedToId?: number | null;
+	"customer.name"?: string | null;
+	phone?: string | null;
+	po?: string | null;
+	item?: string | null;
+	"sales.rep"?: string | null;
+	invoice?: string | null;
 	priority?: string | null;
 	production?: string | null;
 	productionDueDate?: string | null;
@@ -97,6 +103,12 @@ export function resolveSalesProductionWorkspaceQuery(input: WorkspaceInput) {
 
 	copyString(list, "q", input.q);
 	copyNumber(list, "assignedToId", input.assignedToId);
+	copyString(list, "customer.name", input["customer.name"]);
+	copyString(list, "phone", input.phone);
+	copyString(list, "po", input.po);
+	copyString(list, "item", input.item);
+	copyString(list, "sales.rep", input["sales.rep"]);
+	copyString(list, "invoice", input.invoice);
 	copyString(list, "priority", input.priority);
 	copyString(list, "salesNo", input.salesNo);
 	copyNumber(list, "size", input.size);

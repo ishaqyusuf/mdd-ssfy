@@ -110,13 +110,21 @@ export async function createSalesAssignmentAction(
       salesId: args.salesId,
       materialReviewId: args.materialReviewId,
       submissionMeta: args.submissionMeta,
-      items: args.items.map((data) => ({
-        assignmentId: assignments.find(
+      items: args.items.map((data) => {
+        const assignmentId = assignments.find(
           (a) => a.salesItemControlUid === data.itemInfo.controlUid,
-        )?.id,
-        itemInfo: data.itemInfo,
-        qty: data.qty,
-      })),
+        )?.id;
+        if (!assignmentId) {
+          throw new Error(
+            `Production assignment was not created for sales item ${data.itemInfo.controlUid}.`,
+          );
+        }
+        return {
+          assignmentId,
+          itemInfo: data.itemInfo,
+          qty: data.qty,
+        };
+      }),
     });
   }
 }
@@ -285,7 +293,7 @@ export async function packDispatchItemsAction(
   const uniqueSubmissionIds = Array.from(new Set(submissionIds));
   let approvedPackingReport: {
     salesOrderItemId: number;
-    orderProductionSubmissionId: number;
+    orderProductionSubmissionId: number | null;
     qty: number;
     lhQty: number;
     rhQty: number;
@@ -312,10 +320,13 @@ export async function packDispatchItemsAction(
       const reportLine = packingLines[0];
       if (
         !report ||
-        packingLines.length !== 1 ||
         !reportLine ||
-        reportLine.salesItemId !== report.salesOrderItemId ||
-        reportLine.submissionId !== report.orderProductionSubmissionId
+        packingLines.some(
+          (line) => line.salesItemId !== report.salesOrderItemId,
+        ) ||
+        (report.orderProductionSubmissionId !== null &&
+          (packingLines.length !== 1 ||
+            reportLine.submissionId !== report.orderProductionSubmissionId))
       ) {
         throw new Error(
           "Approved packing report does not authorize this packing command.",
@@ -365,6 +376,7 @@ export async function packDispatchItemsAction(
       { qty: number; lh: number; rh: number }
     >();
     for (const report of approvedGuardedReports) {
+      if (!report.orderProductionSubmissionId) continue;
       const normalizedReportQty = recomposeQty({
         qty: report.qty,
         lh: report.lhQty,
@@ -443,18 +455,28 @@ export async function packDispatchItemsAction(
   }
 
   if (approvedPackingReport) {
-    const reportLine = packingLines[0]!;
-    const requested = recomposeQty(reportLine.qty as any);
     const authorized = recomposeQty(transformQtyHandle(approvedPackingReport));
-    const existing = packedBySubmission.get(reportLine.submissionId) || {
-      lh: 0,
-      rh: 0,
-      qty: 0,
-    };
+    const requestedDelta = packingLines.reduce(
+      (total, reportLine) => {
+        const requested = recomposeQty(reportLine.qty as any);
+        const existing = packedBySubmission.get(reportLine.submissionId) || {
+          lh: 0,
+          rh: 0,
+          qty: 0,
+        };
+        return {
+          qty:
+            total.qty + Math.max(0, Number(requested.qty || 0) - existing.qty),
+          lh: total.lh + Math.max(0, Number(requested.lh || 0) - existing.lh),
+          rh: total.rh + Math.max(0, Number(requested.rh || 0) - existing.rh),
+        };
+      },
+      { qty: 0, lh: 0, rh: 0 },
+    );
     if (
-      Number(requested.qty || 0) - existing.qty !== authorized.qty ||
-      Number(requested.lh || 0) - existing.lh !== authorized.lh ||
-      Number(requested.rh || 0) - existing.rh !== authorized.rh
+      requestedDelta.qty !== authorized.qty ||
+      requestedDelta.lh !== authorized.lh ||
+      requestedDelta.rh !== authorized.rh
     ) {
       throw new Error(
         "Approved packing report does not authorize this packing command.",

@@ -16,6 +16,7 @@ export type LegacySalesOrderDates = {
 	paymentDueDate?: Date | string | null;
 	goodUntil?: Date | string | null;
 	prodDueDate?: Date | string | null;
+	deliveryDueDate?: Date | string | null;
 };
 
 function safeRecord(value: unknown): Record<string, unknown> {
@@ -167,6 +168,9 @@ export function readLegacySalesFormMeta(input: {
 		),
 		prodDueDate: toIsoDate(
 			firstDefined(order.prodDueDate, persistedForm.prodDueDate),
+		),
+		deliveryDueDate: toIsoDate(
+			firstDefined(order.deliveryDueDate, persistedForm.deliveryDueDate),
 		),
 		po: firstString(legacyMeta.po, persistedForm.po) || "",
 		deliveryOption:

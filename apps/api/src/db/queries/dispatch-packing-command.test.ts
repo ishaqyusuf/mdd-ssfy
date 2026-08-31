@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import {
 	DispatchPackingCommandError,
 	assertPackingManifestRevision,
+	canMaterializeLegacyPackingItem,
+	combineInventoryPackingRequests,
 	commandFingerprint,
 	isPackingCommandReplay,
 } from "./dispatch-packing-command";
@@ -91,5 +93,46 @@ describe("dispatch packing command guards", () => {
 			);
 		}
 		expect(() => assertPackingManifestRevision("same", "same")).not.toThrow();
+	});
+
+	test("combines repeated presentation rows for one inventory sales item", () => {
+		expect(
+			combineInventoryPackingRequests([
+				{ salesItemId: 9, itemUid: "size-a", qty: { qty: 2 } },
+				{ salesItemId: 9, itemUid: "size-b", qty: { qty: 1 } },
+				{ salesItemId: 10, itemUid: "handled", qty: { lh: 1, rh: 2 } },
+			]),
+		).toEqual([
+			{ salesItemId: 9, qty: 3, lhQty: 0, rhQty: 0 },
+			{ salesItemId: 10, qty: 0, lhQty: 1, rhQty: 2 },
+		]);
+	});
+
+	test("materializes legacy shipping items when production is absent or false", () => {
+		expect(
+			canMaterializeLegacyPackingItem({ itemConfig: { shipping: true } }),
+		).toBe(true);
+		expect(
+			canMaterializeLegacyPackingItem({
+				itemConfig: { shipping: true, production: false },
+			}),
+		).toBe(true);
+		expect(
+			canMaterializeLegacyPackingItem({
+				itemConfig: { shipping: true, production: true },
+			}),
+		).toBe(false);
+	});
+
+	test("revision ignores benign timestamp-only derived-state writes", () => {
+		const source = readFileSync(
+			new URL("./dispatch-packing-command.ts", import.meta.url),
+			"utf8",
+		);
+		const revision = source.slice(
+			source.indexOf("export async function getDispatchPackingCommandRevision"),
+			source.indexOf("function findSaleItem"),
+		);
+		expect(revision).not.toContain("updatedAt: true");
 	});
 });

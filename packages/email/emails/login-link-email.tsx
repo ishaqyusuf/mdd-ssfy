@@ -1,100 +1,90 @@
 /** @jsxImportSource react */
+import { Section, Text } from "@react-email/components";
+
 import {
-  Body,
-  Container,
-  Heading,
-  Preview,
-  Section,
-  Text,
-} from "@react-email/components";
-import {
-  EmailThemeProvider,
-  getEmailInlineStyles,
-  getEmailThemeClasses,
-  Button,
-} from "../components/theme";
-import { Logo } from "../components/logo";
+	StandardEmailButton,
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 interface Props {
-  customerName: string;
-  loginLink: string;
-  revokeLink?: string | null;
+	customerName: string;
+	loginLink: string;
+	revokeLink?: string | null;
 }
 
-const LoginEmail = ({ customerName, loginLink, revokeLink }: Props) => {
-  const themeClasses = getEmailThemeClasses();
-  const lightStyles = getEmailInlineStyles("light");
+const LoginEmail = ({ customerName, loginLink, revokeLink }: Props) => (
+	<StandardEmailLayout previewText="Your GND Millwork login link">
+		<StandardEmailHeader
+			documentLabel="Account security"
+			documentMeta="Secure sign-in"
+		/>
 
-  const previewText = `Your GND Millwork login link`;
+		<StandardEmailHero
+			eyebrow="Passwordless access"
+			recipientName={customerName}
+			title="Log In to GND Millwork"
+		>
+			<Text
+				className="gnd-standard-text m-0 mt-[10px] text-[15px] leading-[24px]"
+				style={{ color: standardEmailColors.ink }}
+			>
+				Use the secure button below to log in to your account. This link will
+				expire shortly for your security.
+			</Text>
+		</StandardEmailHero>
 
-  return (
-    <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
-      <Body
-        className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-        style={lightStyles.body}
-      >
-        <Container
-          className={`my-[40px] mx-auto p-[20px] max-w-[600px] ${themeClasses.container}`}
-          style={{
-            borderStyle: "solid",
-            borderWidth: 1,
-            borderColor: lightStyles.container.borderColor,
-          }}
-        >
-          <Logo />
-          <Heading
-            className={`text-[21px] font-normal text-center p-0 my-[30px] mx-0 ${themeClasses.heading}`}
-            style={{ color: lightStyles.text.color }}
-          >
-            Log In to GND Millwork
-          </Heading>
-          <Text
-            className={`font-medium ${themeClasses.text}`}
-            style={{ color: lightStyles.text.color }}
-          >
-            Hi {customerName},
-          </Text>
-          <Text
-            className={themeClasses.text}
-            style={{ color: lightStyles.text.color }}
-          >
-            Use the secure button below to log in to your account. This link
-            will expire shortly for your security.
-          </Text>
+		<Section className="gnd-standard-content px-[36px] pb-[24px] pt-[26px]">
+			<StandardEmailButton href={loginLink}>Log in now</StandardEmailButton>
+		</Section>
 
-          <Section className="text-center mt-[40px] mb-[50px]">
-            <Button href={loginLink}>Log In Now</Button>
-          </Section>
+		<Section
+			className={`gnd-standard-panel gnd-standard-border gnd-standard-brass-border mx-[36px] mb-[34px] rounded-[6px] border border-solid px-[20px] py-[17px] ${revokeLink ? "gnd-standard-soft-danger" : "gnd-standard-soft"}`}
+			style={{
+				backgroundColor: revokeLink
+					? standardEmailColors.softDanger
+					: standardEmailColors.soft,
+				borderColor: standardEmailColors.border,
+				borderLeft: `4px solid ${standardEmailColors.brass}`,
+			}}
+		>
+			<Text
+				className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.8px]"
+				style={{ color: standardEmailColors.muted }}
+			>
+				Did not request this?
+			</Text>
+			<Text
+				className="gnd-standard-text m-0 mt-[7px] text-[14px] leading-[22px]"
+				style={{ color: standardEmailColors.ink }}
+			>
+				{revokeLink
+					? "Destroy this request to prevent unauthorized access."
+					: "You can safely ignore this email."}
+			</Text>
+			{revokeLink ? (
+				<Section className="mt-[15px]">
+					<StandardEmailButton href={revokeLink} variant="danger">
+						Destroy this request
+					</StandardEmailButton>
+				</Section>
+			) : null}
+		</Section>
 
-          {revokeLink ? (
-            <Text
-              className="text-[12px] leading-tight text-gray-500"
-              style={{ color: lightStyles.text.color }}
-            >
-              If you did not request this login link, you can{" "}
-              <a
-                href={revokeLink}
-                style={{
-                  color: "#d92d20",
-                  textDecoration: "underline",
-                }}
-              >
-                destroy this request
-              </a>{" "}
-              and prevent unauthorized access.
-            </Text>
-          ) : (
-            <Text
-              className="text-[12px] leading-tight text-gray-500"
-              style={{ color: lightStyles.text.color }}
-            >
-              If you did not request this login link, you can safely ignore this
-              email.
-            </Text>
-          )}
-        </Container>
-      </Body>
-    </EmailThemeProvider>
-  );
-};
+		<StandardEmailSignature
+			department="Account support · GND Millwork"
+			senderName="GND Millwork Support"
+		/>
+	</StandardEmailLayout>
+);
+
+LoginEmail.PreviewProps = {
+	customerName: "Jordan Lee",
+	loginLink: "https://gndprodesk.com/auth/login-link/preview",
+	revokeLink: "https://gndprodesk.com/auth/login-link/preview/revoke",
+} satisfies Props;
+
 export default LoginEmail;

@@ -24,6 +24,17 @@ export type SubmitProductionAssignmentInput = {
   allowSubmitForOthers?: boolean;
 };
 
+export function isAuthorizedProductionSubmissionOnBehalf(input: {
+  allowSubmitForOthers?: boolean;
+  assignedToId: number;
+  submittedById: number;
+}) {
+  return Boolean(
+    input.allowSubmitForOthers &&
+      input.assignedToId !== input.submittedById,
+  );
+}
+
 export async function submitProductionAssignmentInTransaction(
   tx: Db,
   input: SubmitProductionAssignmentInput,
@@ -101,6 +112,7 @@ export async function submitProductionAssignmentInTransaction(
       idempotentReplay: true,
     };
   }
+  await tx.$queryRaw`SELECT id FROM OrderItemProductionAssignments WHERE id = ${input.assignmentId} FOR UPDATE`;
   const assignment = await tx.orderItemProductionAssignments.findUniqueOrThrow({
     where: { id: input.assignmentId },
     select: {
@@ -206,6 +218,11 @@ export async function submitProductionAssignmentInTransaction(
     submittedById: input.submittedById,
     idempotencyKey: input.idempotencyKey,
     itemScope,
+    approvedByAuthorizedOperator: isAuthorizedProductionSubmissionOnBehalf({
+      allowSubmitForOthers: input.allowSubmitForOthers,
+      assignedToId: assignment.assignedToId,
+      submittedById: input.submittedById,
+    }),
   });
   if (!review.reviewId) {
     throw new Error("Production material review batch was not created.");

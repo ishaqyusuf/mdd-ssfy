@@ -36,13 +36,38 @@ test("routes every Production surface through the V2 gateway", () => {
 
 test("keeps Production V2 lazy and the legacy Production tab as fallback", () => {
 	expect(gatewaySource).toContain('import("./v2/production-tab-v2")');
+	expect(gatewaySource).toContain("Boolean(query.assignedTo)");
+	expect(gatewaySource).toContain("workerMode ||");
 	expect(gatewaySource).toContain('generalViewVersion === "v2"');
 	expect(gatewaySource).toContain("return <ProductionTab />");
 });
 
+test("gives production workers the V2 submissions-only item experience", () => {
+	expect(controllerSource).toContain('case "assigned-production"');
+	expect(controllerSource).toContain('label: "Productions"');
+	expect(controllerSource).toContain('label: "Notes"');
+	expect(productionV2Source).toContain(
+		"Assigned quantity: {workerProgress.assigned}",
+	);
+	expect(productionDocumentSource).toContain(
+		'const label = workerMode ? "Submissions" : "Assignments"',
+	);
+	expect(productionDocumentSource).toContain('view="submissions"');
+	expect(productionDocumentSource).toContain("showCreateAction={false}");
+	expect(productionDocumentSource).not.toContain(
+		"Record completed production for this item.",
+	);
+	expect(productionDocumentSource).not.toContain("ProductionV2CreateAction");
+	expect(productionDocumentSource).toContain(
+		"const compactWorkerButton = workerMode && hasWorkerSubmissions",
+	);
+	expect(productionDocumentSource).toContain("workerSubmissionEmpty");
+	expect(productionDocumentSource).toContain('"Create submission"');
+	expect(productionDocumentSource).toContain("<Icons.Add />");
+});
+
 test("renders the approved single-view command document in order", () => {
 	const sections = [
-		"ProductionV2CreateAction",
 		"ProductionV2RecordsSection",
 		"ProductionV2DetailsSection",
 		"ProductionV2NotesSection",
@@ -61,9 +86,9 @@ test("uses the Midday content split and shadcn composition primitives", () => {
 	expect(productionV2Source).toContain(
 		'import { ProductionV2ItemDocument } from "./production-item-document";',
 	);
-	expect(productionDocumentSource).toContain("<ItemGroup>");
+	expect(productionDocumentSource).toContain("<Collapsible");
 	expect(productionDocumentSource).toContain("<SelectGroup>");
-	expect(productionDocumentSource).toContain('<Alert variant="warning"');
+	expect(productionDocumentSource).toContain("<Alert>");
 	expect(productionDocumentSource).toContain("<Empty");
 	expect(productionDocumentSource).toContain("<Separator />");
 	expect(productionDocumentSource).not.toMatch(/space-[xy]-/);
@@ -78,7 +103,7 @@ test("keeps exactly one V2 production item open and restores it from the URL", (
 
 test("preserves role actions, mutation surfaces, and legacy compatibility", () => {
 	expect(productionDocumentSource).toContain(
-		'workerMode ? "Create submission" : "Create assignment"',
+		'`Create ${workerMode ? "submission" : "assignment"}`',
 	);
 	expect(productionDocumentSource).toContain("<ProductionAssignmentForm");
 	expect(productionDocumentSource).toContain("<ProductionSubmitForm");
@@ -92,7 +117,8 @@ test("preserves role actions, mutation surfaces, and legacy compatibility", () =
 	expect(productionDocumentSource).toContain(
 		'noteTagFilter("salesId", item.salesId)',
 	);
-	expect(expansionSource).toContain("itemUids.slice(0, 1)");
+	expect(expansionSource).toContain("getInitialProductionItemExpansion");
+	expect(expansionSource).toContain("singleOpen");
 	expect(productionV2Source).toContain('<ItemTitle className="uppercase">');
 	expect(productionV2Source).toContain(
 		'<ItemDescription className="uppercase">',
@@ -105,7 +131,9 @@ test("preserves role actions, mutation surfaces, and legacy compatibility", () =
 });
 
 test("keeps empty assignment and submission sections compact", () => {
-	expect(productionDocumentSource).toContain('`${data?.assignments?.length || 0} total`');
+	expect(productionDocumentSource).toContain(
+		"`${data?.assignments?.length || 0} total`",
+	);
 	expect(productionDocumentSource).not.toContain(
 		"Create the first assignment for this production item.",
 	);

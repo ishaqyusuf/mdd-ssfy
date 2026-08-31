@@ -94,6 +94,21 @@ describe("query event mutation registry", () => {
 		expect(routes).toContain("notes.activityTree");
 	});
 
+	it("refreshes the Fulfillment workspace after fulfillment completes", () => {
+		const routes = QUERY_EVENTS["inventory.fulfillment.changed"].targets.map(
+			(target) => target.route,
+		);
+
+		expect(routes).toContain("dispatch.backlog");
+		expect(routes).toContain("dispatch.workspaceSummary");
+		expect(routes).toContain("dispatch.list");
+		expect(
+			QUERY_EVENTS["inventory.fulfillment.changed"].targets.find(
+				(target) => target.route === "dispatch.workspaceSummary",
+			)?.refetchType,
+		).toBe("all");
+	});
+
 	it("reconciles the Material handoff queue after every canonical evidence family", () => {
 		for (const event of [
 			"sales.order.changed",

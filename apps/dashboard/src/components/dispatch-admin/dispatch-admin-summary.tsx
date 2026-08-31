@@ -37,7 +37,7 @@ export function DispatchAdminSummary() {
 			value: data.byStage.readyToAssign,
 			icon: UserRoundPlus,
 			onClick: () =>
-				setFilters({ section: "dispatches", stages: ["ready_to_assign"] }),
+				setFilters({ section: null, stages: ["ready_to_assign"] }),
 			color: "#cdeb60d9",
 		},
 		{
@@ -46,7 +46,7 @@ export function DispatchAdminSummary() {
 			value: data.byStage.readyToLoad,
 			icon: PackageCheck,
 			onClick: () =>
-				setFilters({ section: "dispatches", stages: ["ready_to_load"] }),
+				setFilters({ section: null, stages: ["ready_to_load"] }),
 			color: "#a78bfad9",
 		},
 		{
@@ -55,7 +55,7 @@ export function DispatchAdminSummary() {
 			value: data.byStage.inTransit,
 			icon: Truck,
 			onClick: () =>
-				setFilters({ section: "dispatches", stages: ["in_transit"] }),
+				setFilters({ section: null, stages: ["in_transit"] }),
 			color: "#60a5fad9",
 		},
 		{

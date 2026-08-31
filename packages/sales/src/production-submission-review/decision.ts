@@ -1,4 +1,7 @@
-import { receiveInboundShipment } from "@gnd/inventory/inbound";
+import {
+	receiveInboundShipment,
+	repairReceivedInboundNeedsForSalesOrder,
+} from "@gnd/inventory/inbound";
 
 import { fulfillSalesInventoryNeedsManuallyInTransaction } from "../manual-fulfill-sales-inventory-needs";
 import { autoReviewSalesPaymentsForOrderAction } from "../payment-system/application/payment-review";
@@ -19,6 +22,7 @@ type ReviewDecisionActor = {
 
 type ReviewDecisionDependencies = {
 	evaluateEvidence?: typeof evaluateProductionSubmissionMaterialEvidence;
+	repairReceivedInboundNeeds?: typeof repairReceivedInboundNeedsForSalesOrder;
 	manualFulfill?: typeof fulfillSalesInventoryNeedsManuallyInTransaction;
 	receiveInbound?: typeof receiveInboundShipment;
 	resetSales?: typeof resetSalesAction;
@@ -313,7 +317,23 @@ export async function decideProductionSubmissionMaterialReview(
 				"This production material review changed. Refresh it before deciding.",
 			);
 		}
-		if (!review.submissions.length) {
+		const storedResolution =
+			review.resolution &&
+			typeof review.resolution === "object" &&
+			!Array.isArray(review.resolution)
+				? (review.resolution as Record<string, unknown>)
+				: null;
+		const nestedRetraction =
+			storedResolution?.submissionRetraction &&
+			typeof storedResolution.submissionRetraction === "object" &&
+			!Array.isArray(storedResolution.submissionRetraction)
+				? (storedResolution.submissionRetraction as Record<string, unknown>)
+				: null;
+		const retractedWithoutActiveSubmissions =
+			!review.submissions.length &&
+			(storedResolution?.action === "SUBMISSION_RETRACTED" ||
+				nestedRetraction?.action === "SUBMISSION_RETRACTED");
+		if (!review.submissions.length && !retractedWithoutActiveSubmissions) {
 			throw new Error(
 				"This production material review has no active submissions.",
 			);
@@ -391,7 +411,8 @@ export async function decideProductionSubmissionMaterialReview(
 		);
 		const staleReasons = [
 			...(scopeMode === "invalid" ? ["review:assignment_scope_shape"] : []),
-			...(assignmentScope.length !== review.submissions.length
+			...(!retractedWithoutActiveSubmissions &&
+			assignmentScope.length !== review.submissions.length
 				? ["review:assignment_scope_count"]
 				: []),
 			...(new Set(scopeAssignmentIds).size !== scopeAssignmentIds.length
@@ -560,19 +581,39 @@ export async function decideProductionSubmissionMaterialReview(
 			legacyAssignmentScopeBackfilled = true;
 		}
 
+		const receivedInboundRepair = await (
+			dependencies.repairReceivedInboundNeeds ??
+			repairReceivedInboundNeedsForSalesOrder
+		)(tx as Db, {
+			salesOrderId: review.salesOrderId,
+			actorUserId: actor.id,
+		});
 		const before = await evaluateEvidence(tx as Db, {
 			salesOrderId: review.salesOrderId,
 			itemScope,
 		});
 		const componentIds = unresolvedComponentIds(before.materialSnapshot);
+		const receivedInboundRepairResolved =
+			receivedInboundRepair.changedCount > 0 &&
+			before.classification.state === "finalized";
 		let resolution: Record<string, unknown> = {
 			action: input.action,
 			componentIds,
+			receivedInboundRepair,
+			...(retractedWithoutActiveSubmissions
+				? {
+						submissionRetraction:
+							nestedRetraction || storedResolution || undefined,
+					}
+				: {}),
 			...(legacyAssignmentScopeBackfilled
 				? { legacyAssignmentScopeBackfilled: true }
 				: {}),
 		};
-		if (input.action === "APPROVE_CONFIGURATION_EXCEPTION") {
+		if (
+			input.action === "APPROVE_CONFIGURATION_EXCEPTION" &&
+			!receivedInboundRepairResolved
+		) {
 			if (
 				before.classification.state !== "pending_material_review" ||
 				before.classification.reason !== "NOT_CONFIGURED"
@@ -588,7 +629,10 @@ export async function decideProductionSubmissionMaterialReview(
 			};
 		}
 
-		if (input.action === "MARK_AVAILABLE_AND_APPROVE") {
+		if (
+			input.action === "MARK_AVAILABLE_AND_APPROVE" &&
+			!receivedInboundRepairResolved
+		) {
 			if (!componentIds.length) {
 				throw new Error(
 					"No scoped inventory needs are available to mark fulfilled.",
@@ -610,7 +654,10 @@ export async function decideProductionSubmissionMaterialReview(
 			};
 		}
 
-		if (input.action === "RECEIVE_INBOUND_AND_APPROVE") {
+		if (
+			input.action === "RECEIVE_INBOUND_AND_APPROVE" &&
+			!receivedInboundRepairResolved
+		) {
 			if (!input.receipt) {
 				throw new Error("Inbound receipt details are required.");
 			}
@@ -625,7 +672,10 @@ export async function decideProductionSubmissionMaterialReview(
 			};
 		}
 
-		if (input.action === "RESOLVE_AND_APPROVE") {
+		if (
+			input.action === "RESOLVE_AND_APPROVE" &&
+			!receivedInboundRepairResolved
+		) {
 			const receipts = input.resolutions?.receipts || [];
 			const markAvailableComponentIds = Array.from(
 				new Set(input.resolutions?.markAvailableComponentIds || []),

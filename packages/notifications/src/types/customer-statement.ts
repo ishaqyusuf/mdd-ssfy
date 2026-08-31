@@ -64,7 +64,9 @@ export const customerStatement: NotificationHandler = {
 			tags: payload,
 		};
 	},
-	createDirectEmailContact(data: CustomerStatementInput): import("../base").UserData {
+	createDirectEmailContact(
+		data: CustomerStatementInput,
+	): import("../base").UserData {
 		return {
 			id: data.customerId || 0,
 			profileId: 0,
@@ -76,13 +78,16 @@ export const customerStatement: NotificationHandler = {
 			whatsAppNotification: false,
 		};
 	},
-	createEmail(data, _author, _user, args) {
+	createEmail(data, author, _user, args) {
 		return {
 			...args,
 			template: "customer-statement",
 			to: [data.customerEmail],
 			subject: `Statement for ${data.customerName} - $${data.statementTotal.toFixed(2)} due`,
-			data,
+			data: {
+				...data,
+				salesRepName: author.name,
+			},
 		};
 	},
 };

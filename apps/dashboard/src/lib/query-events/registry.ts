@@ -69,8 +69,17 @@ const salesProductionTargets = [
 
 const salesDispatchTargets = [
 	...salesOrderTargets,
+	pathTarget("dispatch.list"),
 	pathTarget("dispatch.index"),
 	pathTarget("dispatch.dispatchSummary"),
+	{
+		...pathTarget("dispatch.workspaceSummary"),
+		refetchType: "all",
+	},
+	pathTarget("dispatch.backlog"),
+	pathTarget("dispatch.detail"),
+	pathTarget("dispatch.exceptions"),
+	pathTarget("dispatch.driverWorkload"),
 	pathTarget("dispatch.orderDispatchOverview"),
 	pathTarget("dispatch.dispatchOverviewV2"),
 	pathTarget("dispatch.assignedDispatch"),

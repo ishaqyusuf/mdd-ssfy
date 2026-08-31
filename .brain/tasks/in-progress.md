@@ -6,7 +6,10 @@
 - Description: The canonical Sales Mark As workflow now refreshes Fulfillment
   projections; All includes terminal dispatches; Backlog retains its
   undispatched-order meaning and is the first tab with the standard selectable
-  virtualized table; Drivers shows its permission-aware count; and Exceptions
+  virtualized table; Active provides the counted non-terminal queue; Backlog,
+  Active, and All share Sales Orders invoice/status presentation with read-only
+  permission fallback; Calendar retains analytics; Drivers shows its
+  permission-aware count; and Exceptions
   combines driver reports with guarded-packing review history. Admin and Miguel
   browser QA confirms table pagination, selection, terminal-stage visibility,
   matching packing totals, and the unified exception history. Remaining work is
@@ -57,14 +60,22 @@
   `dispatch.manifest.mobileLifecycle` capabilities, blocked stops expose inventory
   review, and the route list fails closed to `Packed` plus authoritative detail
   review instead of starting a trip from status-only data.
+  A 2026-08-29 policy-relaxation slice also makes existing pending guarded
+  reports obey the current nonblocking delivery policy without auto-approval,
+  reconciles fully verified stops to packed readiness, and notifies assigned
+  drivers that the approval hold was released. The selected Option A route
+  pipeline now adds route/stop maps, dispatch-scoped Google destination repair,
+  destination preflight, and an Active Trip workspace. Nonblocking physical
+  verification now passes the canonical start/completion inventory assertion;
+  unrelated inventory shortages remain authoritative.
   Remaining work is reversible proof/retry evidence, real weak-network/device
   validation, driver/dispatcher review, performance measurement, and explicit
   pilot/cutover approval.
 - Related Feature: Driver Platform Revival and inventory-backed fulfillment
 - Status: In Progress
-- Plan Status: In Progress — Packed-Stop Next-Action Fix Implemented; Broader Pilot Gates Remain
+- Plan Status: In Progress — Route Pipeline Implemented And Browser-Verified; Broader Pilot Gates Remain
 - Plan Files: `.brain/plans/2026-08-23-feature-driver-dashboard-command-center.md`; `.brain/plans/2026-08-29-bug-fix-driver-packed-stop-next-action.md`
-- Decision: `.brain/decisions/ADR-065-route-command-as-driver-dashboard-visual-base.md`
+- Decision: `.brain/decisions/ADR-065-route-command-as-driver-dashboard-visual-base.md`; `.brain/decisions/ADR-074-dispatch-scoped-google-route-destination.md`
 - Stop Workspace Decision: `.brain/decisions/ADR-066-intercepted-driver-stop-workspace.md`
 - Updated Date: 2026-08-29
 
@@ -87,11 +98,18 @@
   Overview V2 as `A — Command Document`; it replaces item-level
   Details/Notes/Assignments-or-Submissions tabs with one role-aware document
   while preserving the legacy fallback and all existing mutations and guards.
+  Production-only workers now select that V2 Production document regardless of
+  the office General V2 rollout, see assigned quantity per item, and work from a
+  single Submissions section. The section reuses the assignment ledger row
+  presentation, owns its inline form, places a compact plus beside populated
+  submission analytics, and uses a full-width create action when empty. Shipped
+  or review-locked submissions and progressed assignments now show their lock
+  reason inline before interaction and keep deletion visibly disabled.
 - Related Feature: Sales Production Workspace
 - Status: In Progress
 - Plan Status: In Progress - Worker Tabs/Analytics/Calendar Complete; Production Item Single View Implemented; Worker Actions Pending
 - Plan Files: `.brain/plans/sales-system-page-by-page-modernization/04-sales-production-admin-and-worker-plan.md`; `.brain/plans/2026-08-21-feature-production-worker-global-search.md`; `.brain/plans/2026-08-22-feature-sales-overview-production-item-single-view.md`
-- Updated Date: 2026-08-22
+- Updated Date: 2026-08-30
 
 ### Vercel Function Cost Reduction And Trigger Offload
 
@@ -101,9 +119,11 @@
   Compute is deployed to an isolated preview. The qualified 24-hour Preview
   `getOrders` canary is complete: 20 of 24 scheduled attempts were recorded,
   14 produced trustworthy Chrome samples, exact-result correctness was 14/14,
-  and one repeated list-load slowdown was confirmed. The next gate is a small,
-  reversible production cohort with procedure-level timing and the legacy
-  fallback retained; broad production promotion remains held. A
+  and one repeated list-load slowdown was confirmed. Privacy-safe procedure
+  timing and a deterministic, fail-closed user cohort are now implemented with
+  legacy fallback retained. The next gate is production Trigger deployment,
+  ledger reconciliation/backfill, and `shadow` parity evidence before a small
+  `read` cohort; broad production promotion remains held. A
   supplied authenticated session completed the main Sales/Customers replay and
   a bounded concurrent replay without timeout or application errors. Production
   promotion remains held while statement PDF latency/error behavior and
@@ -397,12 +417,43 @@ Tracks the active work queue. Keep this focused and execution-ready.
 - [ ] Sales Orders V2: build the clean `sales-book` orders workspace on dedicated v2 query/filter contracts, summary widgets, reusable invoice-style table shell, and unified funnel status system (`brain/features/sales-orders-v2.md`)
 - [ ] Pickup packing funnel: `Send for Pickup` now routes packing work into queued pickup deliveries with `sales-packing-list` notification membership, the canonical warehouse page lives at `/sales/packing-list` under the sidebar tree with `Current` / `Completed` / admin-only `Cancelled` tabs, signing/completion happens on `/p/sales-invoice-v2` in `packing-slip` mode, and Expo now exposes a separate mobile warehouse workspace at `/(drivers)/warehouse-packing` from Settings backed by `dispatch.packingList` with packing-aware detail routing into the existing dispatch detail screen; next slice is notification deep-link polish, broader browser/device validation, and finishing the new control-engine migration for packing/dispatch writes while cleaning remaining legacy status helpers that still mention `packing queue` (API + UI + Notifications + Print + Control)
 - [x] Make old sales form updates refresh inventory line items and stock demand synchronously after save, matching the new sales form behavior.
+- [x] Bulk fulfillment approval error recovery: repaired the Sales Handoff
+  lifecycle-review export contract that prevented the fulfillment API bundle
+  from loading, and replaced raw `Receive, approve and continue` exception text
+  with a specific shared error presentation and traceable reference. Focused
+  coverage passes 21 tests / 47 assertions.
 - [ ] Sales Handoff source-projection backlog: package repair service, local-only
   CLI, lifecycle quarantine/release, categorized schedule diagnostics, and the
   13-order canary are complete. Continue reviewed local batches of 100 payment
   and 25 inventory candidates; deterministic mapping failures and lifecycle
-  reviews remain dedicated manual queues. Production requires a separate
-  fingerprint-confirmed dry run and approval.
+  reviews remain dedicated manual queues. The Trigger task now deploys without
+  a recurring schedule by default; production currently has
+  `SALES_HANDOFF_RECONCILIATION_SCHEDULE_ENABLED` disabled. Enabling its
+  15-minute cron still requires a separate fingerprint-confirmed production dry
+  run and approval.
+
+## Driver Ready Route Start And Manifest Cleanup
+
+- [x] Option A Ready Rail implemented: driver manifests exclude labor/pricing
+  content and repeated facts, the server-authoritative Ready section appears
+  before Needs Attention, one guarded/idempotent Start Trip command handles all
+  explicit eligible current-route stops, and summary metrics are URL-backed
+  controls. Focused tests and authenticated browser/read validation are
+  complete; the local fixture had only packed-but-blocked stops, so the enabled
+  modal result path is covered by contract tests. Plan:
+  `.brain/plans/2026-08-29-feature-driver-ready-route-start-and-manifest-cleanup.md`.
+- [ ] Packing lifecycle QA closeout: the original conflict and handled-quantity
+  defects are fixed, focused tests pass, 12 additional Miguel assignments have
+  been exercised, and the follow-up desktop pipeline is finalized. Remaining
+  live action is the explicitly requested reset/repack/reset verification for
+  `09499LM`; completion of the broader cohort is intentionally held by real
+  destination, schedule, inventory, and packing-review gates.
+- [x] Admin assignment address gate: all dispatch-create, inline, Packing
+  Overview, and bulk driver-assignment paths now preflight Google route identity,
+  offer a sale-scoped address correction flow, and repeat the rule server-side.
+  Pickup and unassignment remain exempt. Focused coverage passes 34 tests / 370
+  assertions; live dashboard QA reached the existing reassignment confirmation
+  on a delivery with no address and exited without changing the assigned driver.
 # Sales Decimal/Rounding Corrections — implementation complete, deployment pending
 
 - Shared decimal-safe calculations, legacy/new parity, grouped authoritative
@@ -429,8 +480,9 @@ Tracks the active work queue. Keep this focused and execution-ready.
   production shadow evidence, and measured cohort cost/latency proof. The
   qualified Preview canary is complete and supports only the next narrow,
   reversible production gate; it does not support broad enablement because one
-  repeated list-load slowdown was confirmed and request-level timing was not
-  exposed by Chrome. Read mode remains `off`. Trigger project `GND` currently has no staging environment;
+  repeated list-load slowdown was confirmed. Request-level timing is now
+  emitted by the server, but its production baseline has not been collected.
+  Read mode remains `off`. Trigger project `GND` currently has no staging environment;
   the repository's only deployment shortcut loads production configuration and
   deploys to production. Before continuing, initialize Trigger staging and set
   its non-production `DATABASE_URL` plus required worker credentials. Do not

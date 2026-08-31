@@ -20,6 +20,7 @@ export type SalesFormInvoiceDetailsPanelProps = {
 	paymentDueDate?: string | null;
 	goodUntil?: string | null;
 	prodDueDate?: string | null;
+	deliveryDueDate?: string | null;
 	deliveryOption: string;
 	deliveryOptions: SalesFormSelectOption[];
 	onPoChange?: (value: string) => void;
@@ -28,6 +29,7 @@ export type SalesFormInvoiceDetailsPanelProps = {
 	onPaymentDueDateChange?: (value: string | null) => void;
 	onGoodUntilChange?: (value: string | null) => void;
 	onProdDueDateChange?: (value: string | null) => void;
+	onDeliveryDueDateChange?: (value: string | null) => void;
 	onDeliveryOptionChange?: (value: string) => void;
 };
 
@@ -176,9 +178,17 @@ export function SalesFormInvoiceDetailsPanel(
 				{isQuote ? null : (
 					<DateInputField
 						id="invoice-production-due-date"
-						label="Prod"
+						label="Production Due Date"
 						value={props.prodDueDate}
 						onChange={props.onProdDueDateChange}
+					/>
+				)}
+				{isQuote ? null : (
+					<DateInputField
+						id="invoice-delivery-due-date"
+						label="Delivery Due Date"
+						value={props.deliveryDueDate}
+						onChange={props.onDeliveryDueDateChange}
 					/>
 				)}
 				<div className="grid gap-1.5">

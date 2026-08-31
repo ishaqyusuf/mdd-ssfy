@@ -1,29 +1,24 @@
 /** @jsxImportSource react */
-import {
-	Body,
-	Container,
-	Heading,
-	Preview,
-	Section,
-	Text,
-} from "@react-email/components";
+import { Column, Heading, Row, Section, Text } from "@react-email/components";
 import { format } from "date-fns";
 import {
 	DealerProgramBanner,
 	type DealerProgramBannerProps,
 } from "../components/dealer-program-banner";
-import { Footer } from "../components/footer";
-import { Logo } from "../components/logo";
 import {
-	Button,
-	EmailThemeProvider,
-	getEmailInlineStyles,
-	getEmailThemeClasses,
-} from "../components/theme";
+	StandardEmailButton,
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailMetric,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 type Props = {
 	subject: string;
 	customerName: string;
+	salesRepName?: string | null;
 	message?: string;
 	paymentLink?: string;
 	pdfLink?: string;
@@ -56,6 +51,7 @@ const formatCurrency = (value: number) =>
 export default function ComposedSalesDocumentEmail({
 	subject,
 	customerName,
+	salesRepName,
 	message,
 	paymentLink,
 	pdfLink,
@@ -64,9 +60,12 @@ export default function ComposedSalesDocumentEmail({
 	dealerProgramBanner,
 	specialOrderApprovals = [],
 }: Props) {
-	const themeClasses = getEmailThemeClasses();
-	const lightStyles = getEmailInlineStyles("light");
+	const totalAmount = sales.reduce((acc, sale) => acc + (sale.total || 0), 0);
 	const totalDue = sales.reduce((acc, sale) => acc + (sale.due || 0), 0);
+	const documentMeta =
+		sales.length === 1
+			? `#${sales[0]?.orderId ?? ""}`
+			: `${sales.length} documents`;
 	const messageLineCounts = new Map<string, number>();
 	const messageLines = (message || "")
 		.split(/\r?\n/)
@@ -83,197 +82,248 @@ export default function ComposedSalesDocumentEmail({
 		});
 
 	return (
-		<EmailThemeProvider preview={<Preview>{subject}</Preview>}>
-			<Body
-				className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-				style={lightStyles.body}
+		<StandardEmailLayout previewText={subject}>
+			<StandardEmailHeader
+				documentLabel="Sales document"
+				documentMeta={documentMeta}
+			/>
+
+			{dealerProgramBanner?.placement === "TOP" ? (
+				<Section className="gnd-standard-content px-[36px]">
+					<DealerProgramBanner {...dealerProgramBanner} />
+				</Section>
+			) : null}
+
+			<StandardEmailHero
+				eyebrow="A note from your sales representative"
+				recipientName={customerName}
+				title={subject}
 			>
-				<Container
-					className={`my-[28px] mx-auto p-[20px] max-w-[640px] ${themeClasses.container}`}
-					style={{
-						borderStyle: "solid",
-						borderWidth: 1,
-						borderColor: lightStyles.container.borderColor,
-						borderRadius: 12,
-						backgroundColor: lightStyles.body.backgroundColor,
-					}}
-				>
-					<Logo />
-					{dealerProgramBanner?.placement === "TOP" ? (
-						<DealerProgramBanner {...dealerProgramBanner} />
-					) : null}
-
-					<Section
-						className="mt-[20px] mb-[20px] p-[20px]"
-						style={{
-							backgroundColor: "#f8fafc",
-							borderStyle: "solid",
-							borderWidth: 1,
-							borderColor: lightStyles.container.borderColor,
-							borderRadius: 10,
-						}}
-					>
-						<Text
-							className={`m-0 text-[12px] uppercase tracking-[1.6px] ${themeClasses.mutedText}`}
-							style={{ color: "#64748b" }}
-						>
-							GND Millwork
-						</Text>
-						<Heading
-							className={`text-[28px] leading-[34px] font-semibold p-0 mt-[8px] mb-[10px] ${themeClasses.heading}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							{subject}
-						</Heading>
-						<Text
-							className={`m-0 text-[15px] leading-[24px] ${themeClasses.text}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							Hi {customerName},
-						</Text>
+				{messageLines.length ? (
+					<Section className="mt-[8px]">
+						{messageLines.map(({ key, line }) => (
+							<Text
+								key={key}
+								className="gnd-standard-text m-0 mt-[9px] text-[16px] leading-[25px]"
+								style={{ color: standardEmailColors.ink }}
+							>
+								{line}
+							</Text>
+						))}
 					</Section>
+				) : (
+					<Text
+						className="gnd-standard-text m-0 mt-[9px] text-[16px] leading-[25px]"
+						style={{ color: standardEmailColors.ink }}
+					>
+						Please review the details below. Reply directly to this email if you
+						have any questions.
+					</Text>
+				)}
+			</StandardEmailHero>
 
-					{messageLines.length ? (
-						<Section className="mb-[18px]">
-							{messageLines.map(({ key, line }) => (
-								<Text
-									key={key}
-									className={`m-0 mb-[12px] text-[15px] leading-[24px] ${themeClasses.text}`}
-									style={{ color: lightStyles.text.color }}
-								>
-									{line}
-								</Text>
-							))}
-						</Section>
-					) : (
-						<Text
-							className={`m-0 mb-[18px] text-[15px] leading-[24px] ${themeClasses.text}`}
-							style={{ color: lightStyles.text.color }}
-						>
-							Please review the details below. Reply directly to this email if
-							you have any questions.
-						</Text>
-					)}
+			<Section
+				className="gnd-standard-panel gnd-standard-soft-green gnd-standard-border gnd-standard-content mx-[36px] mt-[28px] px-[20px] py-[18px]"
+				style={{
+					backgroundColor: standardEmailColors.softGreen,
+					border: `1px solid ${standardEmailColors.border}`,
+					borderRadius: 6,
+				}}
+			>
+				<Row>
+					<StandardEmailMetric
+						emphasis
+						label="Outstanding balance"
+						value={formatCurrency(totalDue)}
+					/>
+					<StandardEmailMetric
+						label="Document total"
+						value={formatCurrency(totalAmount)}
+					/>
+					<StandardEmailMetric label="Documents" value={String(sales.length)} />
+				</Row>
+			</Section>
 
+			<Section className="gnd-standard-content px-[36px] pt-[28px]">
+				<Text
+					className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[1px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Document summary
+				</Text>
+				{sales.map((sale, index) => (
 					<Section
-						className="mb-[18px] p-[16px]"
+						key={sale.orderId}
+						className={`${index % 2 ? "gnd-standard-row-alt" : "gnd-standard-row"} gnd-standard-border mt-[10px] px-[16px] py-[15px]`}
 						style={{
-							borderStyle: "solid",
-							borderWidth: 1,
-							borderColor: lightStyles.container.borderColor,
-							borderRadius: 10,
-							backgroundColor: "#fcfcfd",
+							backgroundColor:
+								index % 2 ? standardEmailColors.soft : standardEmailColors.card,
+							border: `1px solid ${standardEmailColors.border}`,
+							borderRadius: 6,
 						}}
 					>
-						<Text
-							className={`m-0 mb-[10px] text-[12px] uppercase tracking-[0.8px] ${themeClasses.mutedText}`}
-							style={{ color: "#64748b" }}
-						>
-							Sales Summary
-						</Text>
-						{sales.map((sale) => (
-							<Section key={sale.orderId} className="mb-[12px] last:mb-0">
+						<Row>
+							<Column
+								className="gnd-standard-mobile-stack"
+								style={{ verticalAlign: "top", width: "58%" }}
+							>
 								<Text
-									className={`m-0 text-[15px] font-semibold ${themeClasses.text}`}
-									style={{ color: lightStyles.text.color }}
+									className="gnd-standard-text m-0 text-[15px] font-semibold leading-[21px]"
+									style={{ color: standardEmailColors.ink }}
 								>
 									#{sale.orderId}
 								</Text>
 								<Text
-									className={`m-0 mt-[4px] text-[14px] ${themeClasses.text}`}
-									style={{ color: lightStyles.text.color }}
+									className="gnd-standard-muted m-0 mt-[4px] text-[13px] leading-[19px]"
+									style={{ color: standardEmailColors.muted }}
 								>
-									Date: {format(sale.date, "MMM d, yyyy")}
+									{format(sale.date, "MMM d, yyyy")}
+									{sale.po ? ` · PO ${sale.po}` : ""}
 								</Text>
-								{sale.po ? (
-									<Text
-										className={`m-0 mt-[2px] text-[14px] ${themeClasses.text}`}
-										style={{ color: lightStyles.text.color }}
-									>
-										P.O.: {sale.po}
-									</Text>
-								) : null}
+							</Column>
+							<Column
+								align="right"
+								className="gnd-standard-mobile-stack"
+								style={{ verticalAlign: "top", width: "42%" }}
+							>
 								<Text
-									className={`m-0 mt-[2px] text-[14px] ${themeClasses.text}`}
-									style={{ color: lightStyles.text.color }}
+									className="gnd-standard-text m-0 text-[15px] font-semibold leading-[21px]"
+									style={{ color: standardEmailColors.ink }}
 								>
-									Total: {formatCurrency(sale.total)}
+									{formatCurrency(sale.total)}
 								</Text>
 								<Text
-									className={`m-0 mt-[2px] text-[14px] ${themeClasses.text}`}
-									style={{ color: lightStyles.text.color }}
+									className="gnd-standard-muted m-0 mt-[4px] text-[12px] leading-[18px]"
+									style={{ color: standardEmailColors.muted }}
 								>
-									Balance Due: {formatCurrency(sale.due)}
+									{formatCurrency(sale.due)} due
 								</Text>
-							</Section>
-						))}
+							</Column>
+						</Row>
 					</Section>
+				))}
+				{hasPdfAttachment ? (
+					<Text
+						className="gnd-standard-muted m-0 mt-[12px] text-[12px] leading-[19px]"
+						style={{ color: standardEmailColors.muted }}
+					>
+						The PDF is attached for your records.
+					</Text>
+				) : null}
+			</Section>
 
-					{pdfLink && !hasPdfAttachment ? (
-						<Section className="mb-[22px]">
-							<Text
-								className={`m-0 mb-[12px] text-[14px] ${themeClasses.text}`}
-								style={{ color: lightStyles.text.color }}
-							>
-								Download a PDF copy of this document for your records.
-							</Text>
-							<Button href={pdfLink} variant="secondary">
-								Download PDF
-							</Button>
-						</Section>
-					) : null}
-
+			{(paymentLink && totalDue > 0) || (pdfLink && !hasPdfAttachment) ? (
+				<Section
+					className="gnd-standard-panel gnd-standard-soft gnd-standard-border gnd-standard-content mx-[36px] my-[30px] px-[22px] py-[22px]"
+					style={{
+						backgroundColor: standardEmailColors.soft,
+						border: `1px solid ${standardEmailColors.border}`,
+						borderRadius: 6,
+					}}
+				>
+					<Text
+						className="gnd-standard-accent-text m-0 text-[12px] font-semibold uppercase tracking-[1px]"
+						style={{ color: standardEmailColors.cypress }}
+					>
+						Next step
+					</Text>
+					<Heading
+						className="gnd-standard-heading m-0 mt-[8px] text-[20px] font-normal leading-[27px]"
+						style={{
+							color: standardEmailColors.ink,
+							fontFamily: "Georgia, 'Times New Roman', serif",
+						}}
+					>
+						Review this sales document
+					</Heading>
 					{paymentLink && totalDue > 0 ? (
-						<Section className="mb-[22px]">
+						<Section className="mt-[18px]">
 							<Text
-								className={`m-0 mb-[12px] text-[14px] ${themeClasses.text}`}
-								style={{ color: lightStyles.text.color }}
+								className="gnd-standard-text m-0 mb-[12px] text-[14px] leading-[22px]"
+								style={{ color: standardEmailColors.ink }}
 							>
-								You can use the secure payment button below to pay the current
-								outstanding balance.
+								Pay the current outstanding balance using GND’s secure checkout.
 							</Text>
-							<Button href={paymentLink}>Make Payment</Button>
+							<StandardEmailButton href={paymentLink}>
+								Make payment
+							</StandardEmailButton>
 						</Section>
 					) : null}
+					{pdfLink && !hasPdfAttachment ? (
+						<Section className="mt-[18px]">
+							<Text
+								className="gnd-standard-text m-0 mb-[12px] text-[14px] leading-[22px]"
+								style={{ color: standardEmailColors.ink }}
+							>
+								Download a PDF copy for your records.
+							</Text>
+							<StandardEmailButton href={pdfLink} variant="secondary">
+								Download PDF
+							</StandardEmailButton>
+						</Section>
+					) : null}
+				</Section>
+			) : null}
 
+			{specialOrderApprovals.length ? (
+				<Section className="gnd-standard-content px-[36px] pb-[30px]">
 					{specialOrderApprovals.map((approval) => (
 						<Section
 							key={approval.orderId}
-							className="mb-[22px] p-[18px]"
+							className="gnd-standard-soft gnd-standard-border mb-[14px] p-[18px]"
 							style={{
-								borderStyle: "solid",
-								borderWidth: 1,
-								borderColor: "#f59e0b",
-								borderRadius: 12,
-								backgroundColor: "#fffbeb",
+								backgroundColor: standardEmailColors.soft,
+								border: `1px solid ${standardEmailColors.border}`,
+								borderRadius: 6,
 							}}
 						>
 							<Text
-								className="m-0 text-[12px] uppercase tracking-[0.8px]"
-								style={{ color: "#92400e" }}
+								className="gnd-standard-accent-text m-0 text-[12px] font-semibold uppercase tracking-[0.9px]"
+								style={{ color: standardEmailColors.cypress }}
 							>
 								Special Order · #{approval.orderId}
 							</Text>
 							<Text
-								className="m-0 mt-[8px] mb-[14px] text-[15px] leading-[24px]"
-								style={{ color: "#451a03" }}
+								className="gnd-standard-text m-0 mt-[8px] mb-[14px] text-[15px] leading-[24px]"
+								style={{ color: standardEmailColors.ink }}
 							>
 								Review the complete order and non-returnable policy, then
 								approve or decline this revision. This secure link expires{" "}
 								{format(approval.expiresAt, "MMM d, yyyy")}.
 							</Text>
-							<Button href={approval.approvalUrl}>
+							<StandardEmailButton href={approval.approvalUrl}>
 								Review &amp; Approve Special Order
-							</Button>
+							</StandardEmailButton>
 						</Section>
 					))}
+				</Section>
+			) : null}
 
-					{dealerProgramBanner?.placement === "BOTTOM" ? (
-						<DealerProgramBanner {...dealerProgramBanner} />
-					) : null}
-					<Footer />
-				</Container>
-			</Body>
-		</EmailThemeProvider>
+			{dealerProgramBanner?.placement === "BOTTOM" ? (
+				<Section className="gnd-standard-content px-[36px] pb-[30px]">
+					<DealerProgramBanner {...dealerProgramBanner} />
+				</Section>
+			) : null}
+			<StandardEmailSignature senderName={salesRepName} />
+		</StandardEmailLayout>
 	);
 }
+
+ComposedSalesDocumentEmail.PreviewProps = {
+	subject: "Your GND invoice is ready",
+	customerName: "Jordan Lee",
+	salesRepName: "Taylor Morgan",
+	message: "Thank you for your order. Please review the invoice details below.",
+	paymentLink: "https://gndprodesk.com/pay/preview",
+	pdfLink: "https://gndprodesk.com/documents/preview",
+	hasPdfAttachment: true,
+	sales: [
+		{
+			orderId: "GND-10482",
+			po: "PO-7731",
+			date: new Date("2026-08-29T09:00:00.000Z"),
+			total: 2480,
+			due: 1240,
+		},
+	],
+} satisfies Props;

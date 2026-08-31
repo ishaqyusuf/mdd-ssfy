@@ -1,19 +1,21 @@
 import {
 	decidePackingReport,
+	decidePackingReports,
 	getPackingReportContext,
 	submitPackingReport,
 } from "@api/db/queries/packing-reports";
 import { auth } from "@api/db/queries/user";
 import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
-import { sendPackingReportNotification } from "@api/utils/packing-report-notification";
 import {
 	authorizePackingReportActor,
 	authorizePackingReportReviewer,
 	packingReportReviewerCapability,
 } from "@api/utils/packing-report-authority";
+import { sendPackingReportNotification } from "@api/utils/packing-report-notification";
 import {
 	PackingReportError,
 	decidePackingReportSchema,
+	decidePackingReportsSchema,
 	packingReportContextSchema,
 	submitPackingReportSchema,
 } from "@gnd/sales/packing-report-review";
@@ -137,6 +139,30 @@ export const packingReportsRouter = createTRPCRouter({
 						ctx,
 						result.reportId,
 						result.status,
+						ctx.userId,
+						session.name || "Packing reviewer",
+					);
+				}
+				return result;
+			} catch (error) {
+				packingReportTrpcError(error);
+			}
+		}),
+	decideBatch: protectedProcedure
+		.input(decidePackingReportsSchema)
+		.mutation(async ({ ctx, input }) => {
+			const session = await requirePackingReviewer(ctx);
+			try {
+				const result = await decidePackingReports(ctx.db, input, {
+					id: ctx.userId,
+					name: session.name || "Packing reviewer",
+				});
+				const decided = result.results.find((item) => !item.idempotentReplay);
+				if (decided) {
+					await sendPackingReportNotification(
+						ctx,
+						decided.reportId,
+						decided.status,
 						ctx.userId,
 						session.name || "Packing reviewer",
 					);

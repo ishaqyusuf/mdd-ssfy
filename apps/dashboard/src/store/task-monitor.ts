@@ -270,8 +270,8 @@ function getTaskMonitorMetadata(
 			: {};
 	const dispatchId = asTaskEntityId(
 		data.dispatchId ??
-		nestedObjectValue(data.packItems, "dispatchId") ??
-		nestedObjectValue(data.clearPackings, "dispatchId") ??
+			nestedObjectValue(data.packItems, "dispatchId") ??
+			nestedObjectValue(data.clearPackings, "dispatchId") ??
 			nestedObjectValue(data.submitDispatch, "dispatchId"),
 	);
 
@@ -312,6 +312,20 @@ function getTaskMonitorMetadata(
 				: dispatchId
 					? `dispatch #${dispatchId}`
 					: null,
+		};
+	}
+
+	if (
+		taskName === "bulk-mark-sales-production-completed" ||
+		taskName === "bulk-mark-sales-fulfilled"
+	) {
+		return {
+			taskName,
+			type: "sales-control",
+			entityId: salesIds?.[0] ?? null,
+			entityLabel: salesIds?.length
+				? `${salesIds.length} order${salesIds.length === 1 ? "" : "s"}`
+				: null,
 		};
 	}
 
@@ -387,6 +401,10 @@ function getTaskNameLabel(taskName?: TaskName | string) {
 			return "Sending notification";
 		case "update-sales-control":
 			return "Updating sales control";
+		case "bulk-mark-sales-production-completed":
+			return "Completing sales production";
+		case "bulk-mark-sales-fulfilled":
+			return "Fulfilling sales orders";
 		case "reset-sales-control":
 			return "Resetting sales control";
 		case "create-sales-history":

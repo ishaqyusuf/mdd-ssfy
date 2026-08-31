@@ -24,6 +24,12 @@ describe("task monitor query events", () => {
 
 	it("uses the fulfillment event for fulfilled sales tasks", () => {
 		expect(source.includes("sq.events.fulfillmentUpdated(sales)")).toBe(true);
+		expect(source).toContain("waitForFulfillmentProjection");
+		expect(
+			source.match(/sq\.events\.fulfillmentUpdated\(sales\)/g),
+		).toHaveLength(2);
+		expect(source).toContain("getBacklogCount(output)");
+		expect(source).toContain("workspaceSummary.pathKey()");
 	});
 
 	it("invalidates persisted inventory and order state after legacy adaptation", () => {

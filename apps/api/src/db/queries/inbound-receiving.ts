@@ -1290,7 +1290,7 @@ function toStringList(value: unknown) {
 
 export async function listInboundNeedsApplicationAttentionQuery(
 	ctx: TRPCContext,
-	input: { take?: number } = {},
+	input: { take?: number; salesOrderId?: number } = {},
 ) {
 	const candidates = await listReceivedInboundNeedsAttention(ctx.db, input);
 	if (!candidates.length) return [];

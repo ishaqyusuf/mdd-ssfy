@@ -25,6 +25,7 @@ const sheetContentVariant = cva("flex w-full flex-col", {
 			lg: "sm:h-[85vh]",
 		},
 		size: {
+			"7xl": "sm:max-w-7xl",
 			"5xl": "sm:max-w-5xl",
 			"4xl": "sm:max-w-4xl",
 			"3xl": "sm:max-w-3xl",

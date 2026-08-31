@@ -3,554 +3,561 @@ import { channelNames } from "@gnd/utils/notification-channels";
 export { channelNames } from "@gnd/utils/notification-channels";
 export type ChannelName = (typeof channelNames)[number];
 export const priorityStrings = [
-  "Low",
-  "Medium",
-  "High",
-  "Critical",
-  "Urgent",
+	"Low",
+	"Medium",
+	"High",
+	"Critical",
+	"Urgent",
 ] as const;
 export type PriorityString = (typeof priorityStrings)[number];
 
 export const channelCategories = [
-  "Community",
-  "Sales",
-  "Inventory",
-  "Security",
+	"Community",
+	"Sales",
+	"Inventory",
+	"Security",
 ] as const;
 export type ChannelCategory = (typeof channelCategories)[number];
 
 export type ChannelConfig = {
-  name: string;
-  description: string;
-  priority: number;
-  category: ChannelCategory;
-  published?: boolean;
+	name: string;
+	description: string;
+	priority: number;
+	category: ChannelCategory;
+	published?: boolean;
 };
 
 export const channelsConfig: Partial<{
-  [key in ChannelName]: ChannelConfig;
+	[key in ChannelName]: ChannelConfig;
 }> = {
-  job_assigned: {
-    name: "Job Assigned",
-    description: "Send when a job is assigned to a contractor.",
-    priority: 5,
-    category: "Community",
-  },
-  job_install_tasks_qty_request: {
-    name: "Install Task Quantity Requested",
-    description:
-      "Send when a contractor requests an install task quantity update.",
-    priority: 5,
-    category: "Community",
-  },
-  job_task_configure_request: {
-    name: "Task Configuration Requested",
-    description:
-      "Send when a contractor cannot submit a job because install tasks are missing.",
-    priority: 5,
-    category: "Community",
-  },
-  job_task_configured: {
-    name: "Task Configuration Completed",
-    description: "Send when requested job task configuration is completed.",
-    priority: 5,
-    category: "Community",
-  },
-  employee_document_review: {
-    name: "Employee Document Review",
-    description:
-      "Send when an employee uploads an insurance document for review.",
-    priority: 5,
-    category: "Community",
-  },
-  employee_access_revoked: {
-    name: "Employee Access Revoked",
-    description: "Send when a Super Admin revokes an employee's access.",
-    priority: 8,
-    category: "Community",
-  },
-  community_documents: {
-    name: "Community Documents",
-    description:
-      "Send when documents are uploaded to a community project overview.",
-    priority: 5,
-    category: "Community",
-  },
-  inventory_inbound: {
-    name: "Inventory Inbound",
-    description:
-      "Send when a user adds an inventory inbound note or receipt update.",
-    priority: 5,
-    category: "Inventory",
-  },
-  inventory_inbound_activity: {
-    name: "Inventory Inbound Activity",
-    description:
-      "Send when inbound receipts, extraction, assignment, or receiving activity occurs.",
-    priority: 5,
-    category: "Inventory",
-  },
-  community_unit_production_started: {
-    name: "Unit Production Started",
-    description: "Send when a unit production task is started.",
-    priority: 5,
-    category: "Community",
-  },
-  community_unit_production_stopped: {
-    name: "Unit Production Stopped",
-    description: "Send when a unit production task is stopped.",
-    priority: 5,
-    category: "Community",
-  },
-  community_unit_production_completed: {
-    name: "Unit Production Completed",
-    description: "Send when a unit production task is completed.",
-    priority: 5,
-    category: "Community",
-  },
-  community_unit_production_batch_updated: {
-    name: "Unit Production Batch Updated",
-    description:
-      "Send when multiple unit production tasks are updated together.",
-    priority: 5,
-    category: "Community",
-  },
-  job_submitted: {
-    name: "Job Submitted",
-    description: "Send when a contractor submits a job for review.",
-    priority: 5,
-    category: "Community",
-  },
-  job_approved: {
-    name: "Job Approved",
-    description: "Send when a submitted job is approved.",
-    priority: 5,
-    category: "Community",
-  },
-  job_rejected: {
-    name: "Job Rejected",
-    description: "Send when a submitted job is rejected.",
-    priority: 5,
-    category: "Community",
-  },
-  job_review_requested: {
-    name: "Job Review Requested",
-    description: "Send when a reviewer requests changes on a submitted job.",
-    priority: 5,
-    category: "Community",
-  },
-  job_deleted: {
-    name: "Job Deleted",
-    description: "Send when a job is deleted.",
-    priority: 5,
-    category: "Community",
-  },
-  job_payment_sent: {
-    name: "Job Payment Sent",
-    description: "Send when a contractor payout has been created.",
-    priority: 5,
-    category: "Community",
-  },
-  payout_cancelled: {
-    name: "Payout Cancelled",
-    description: "Send when a contractor payout has been cancelled.",
-    priority: 5,
-    category: "Community",
-  },
-  payout_reversed: {
-    name: "Payout Reversed",
-    description: "Send when a cancelled contractor payout is restored.",
-    priority: 5,
-    category: "Community",
-  },
-  payout_issues: {
-    name: "Payout Issues",
-    description:
-      "Send when a contractor payout has integrity issues and cannot be reversed.",
-    priority: 5,
-    category: "Community",
-  },
-  sales_checkout_success: {
-    name: "Sales Checkout Successful",
-    description: "Send when a sales checkout succeeds.",
-    priority: 5,
-    category: "Sales",
-  },
-  quote_accepted: {
-    name: "Quote Accepted",
-    description: "Send when a customer accepts a sales quote.",
-    priority: 5,
-    category: "Sales",
-  },
-  dealer_sales_request: {
-    name: "Dealer Sales Request",
-    description:
-      "Send when a dealer asks a sales rep to approve a quote as an order.",
-    priority: 4,
-    category: "Sales",
-  },
-  dealer_profile_updated: {
-    name: "Dealer Profile Updated",
-    description:
-      "Send when a dealer's assigned GND dealership profile is assigned or updated.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_payment_recorded: {
-    name: "Sales Payment Recorded",
-    description: "Send when a payment is recorded against a sales order.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_payment_refunded: {
-    name: "Sales Payment Refunded",
-    description: "Send when a refund is recorded against a sales order.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_customer_payment_received: {
-    name: "Customer Payment Received",
-    description: "Send a receipt email to a customer after payment succeeds.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_customer_refund_completed: {
-    name: "Customer Refund Completed",
-    description:
-      "Email a customer only after Square reports a completed refund.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_customer_payment_failed: {
-    name: "Customer Payment Failed",
-    description: "Send a failure notice to a customer after payment fails.",
-    priority: 5,
-    category: "Sales",
-  },
-  dealer_onboarding: {
-    name: "Dealer Onboarding",
-    description: "Send when a dealer account setup guide is created.",
-    priority: 5,
-    category: "Sales",
-  },
-  auth_new_device_login: {
-    name: "New Device Login",
-    description: "Send when an account signs in from a new browser or device.",
-    priority: 8,
-    category: "Security",
-  },
-  auth_master_password_login_alert: {
-    name: "Master Password Login Alert",
-    description: "Send when an account is accessed with a master password.",
-    priority: 9,
-    category: "Security",
-  },
-  dealer_magic_login_link: {
-    name: "Dealer Magic Login Link",
-    description: "Send a passwordless login link to an active dealer account.",
-    priority: 8,
-    category: "Security",
-  },
-  dealer_password_reset: {
-    name: "Dealer Password Reset",
-    description: "Send a password reset link to an active dealer account.",
-    priority: 8,
-    category: "Security",
-  },
-  sales_daily_payment_report: {
-    name: "Sales Daily Payment Report",
-    description:
-      "Send the daily accounting report of payments received with an Excel attachment.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_info: {
-    name: "Sales Info",
-    description: "Send sales notes and info updates.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_item_info: {
-    name: "Sales Item Info",
-    description: "Send sales item notes and info updates.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_info: {
-    name: "Sales Dispatch Info",
-    description: "Send sales dispatch notes and info updates.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_email_reminder: {
-    name: "Sales Email Reminder",
-    description: "Send when a sales reminder email is sent.",
-    priority: 5,
-    category: "Sales",
-  },
-  composed_sales_document_email: {
-    name: "Composed Sales Document Email",
-    description:
-      "Send a custom sales document email with optional PDF attachment and payment CTA.",
-    priority: 5,
-    category: "Sales",
-  },
-  simple_sales_document_email: {
-    name: "Sales Document Email",
-    description:
-      "Send invoice and quote emails from the shared notification system.",
-    priority: 5,
-    category: "Sales",
-  },
-  simple_sales_email_reminder: {
-    name: "Simple Sales Email Reminder",
-    description:
-      "Send reminder email from minimal sales input and enrich payload server-side.",
-    priority: 5,
-    category: "Sales",
-  },
-  customer_statement: {
-    name: "Customer Statement",
-    description:
-      "Send a customer account statement with open invoice balances.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_reminder_schedule_admin_notification: {
-    name: "Sales Reminder Schedule Admin Notification",
-    description:
-      "Send schedule run summary to admins including delivery stats and skipped sales.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_assigned: {
-    name: "Dispatch Assigned",
-    description: "Send when a dispatch is assigned to a driver.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_unassigned: {
-    name: "Dispatch Unassigned",
-    description: "Send when a dispatch is unassigned from a driver.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_date_updated: {
-    name: "Dispatch Date Updated",
-    description: "Send when a dispatch due date is updated.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_queued: {
-    name: "Dispatch Queued",
-    description: "Send when a dispatch is queued.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_cancelled: {
-    name: "Dispatch Cancelled",
-    description: "Send when a dispatch is cancelled.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_completed: {
-    name: "Dispatch Completed",
-    description: "Send when a dispatch is completed.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_packed: {
-    name: "Dispatch Packed",
-    description: "Send when dispatch packing is updated.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_packing_reset: {
-    name: "Dispatch Packing Reset",
-    description:
-      "Send when dispatch packing is reset and status returns to queue.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_in_progress: {
-    name: "Dispatch In Progress",
-    description: "Send when a dispatch moves to in progress.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_trip_canceled: {
-    name: "Dispatch Trip Canceled",
-    description: "Send when an active dispatch trip is canceled.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_created: {
-    name: "Dispatch Created",
-    description: "Send when a dispatch is created.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_back_order: {
-    name: "Sales Back Order",
-    description: "Send when a sales order is moved to back order.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_dispatch_late: {
-    name: "Dispatch Late",
-    description: "Send when a dispatch becomes late.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_production_assigned: {
-    name: "Production Assigned",
-    description: "Send when production work is assigned.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_production_submission_material_review: {
-    name: "Production Material Review",
-    description:
-      "Send when production is submitted while material needs still require admin verification.",
-    priority: 2,
-    category: "Sales",
-  },
-  sales_production_submission_material_approved: {
-    name: "Production Material Review Approved",
-    description:
-      "Send to the production worker when a pending material review is approved.",
-    priority: 2,
-    category: "Sales",
-  },
-  sales_production_submission_material_rejected: {
-    name: "Production Material Review Rejected",
-    description:
-      "Send to the production worker when a pending material review is rejected.",
-    priority: 2,
-    category: "Sales",
-  },
-  sales_production_unassigned: {
-    name: "Production Unassigned",
-    description: "Send when production work is unassigned.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_production_started: {
-    name: "Production Started",
-    description: "Send when production starts.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_production_submitted: {
-    name: "Production Submitted",
-    description: "Send when production is submitted.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_production_item_completed: {
-    name: "Production Item Completed",
-    description: "Send when a production item is completed.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_production_submission_cancelled: {
-    name: "Production Submission Cancelled",
-    description: "Send when a production submission is cancelled.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_production_all_completed: {
-    name: "Production All Completed",
-    description: "Send when all production items are completed.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_marked_as_production_completed: {
-    name: "Sales Marked Production Completed",
-    description: "Send when a sales order is marked as production completed.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_request_packing: {
-    name: "Packing Requested",
-    description: "Send when a driver requests unavailable packing items.",
-    priority: 5,
-    category: "Sales",
-  },
-  "sales-packing-list": {
-    name: "Sales Packing List",
-    description:
-      "Tracks deliveries that entered the warehouse packing-list workflow.",
-    priority: 5,
-    category: "Sales",
-  },
-  dispatch_packing_delay: {
-    name: "Dispatch Packing Delay",
-    description:
-      "Send when a pending production item is marked ready but not yet updated in the system.",
-    priority: 2,
-    category: "Sales",
-  },
-  sales_dispatch_duplicate_alert: {
-    name: "Dispatch Duplicate Alert",
-    description:
-      "Send when a driver reports duplicate dispatch rows that need admin resolution.",
-    priority: 5,
-    category: "Sales",
-  },
-  sales_handoff_action_escalation: {
-    name: "Sales Handoff Escalation",
-    description:
-      "Mandatory in-app escalation for a Material or Production action open longer than one New York business day.",
-    priority: 8,
-    category: "Sales",
-    published: true,
-  },
+	job_assigned: {
+		name: "Job Assigned",
+		description: "Send when a job is assigned to a contractor.",
+		priority: 5,
+		category: "Community",
+	},
+	job_install_tasks_qty_request: {
+		name: "Install Task Quantity Requested",
+		description:
+			"Send when a contractor requests an install task quantity update.",
+		priority: 5,
+		category: "Community",
+	},
+	job_task_configure_request: {
+		name: "Task Configuration Requested",
+		description:
+			"Send when a contractor cannot submit a job because install tasks are missing.",
+		priority: 5,
+		category: "Community",
+	},
+	job_task_configured: {
+		name: "Task Configuration Completed",
+		description: "Send when requested job task configuration is completed.",
+		priority: 5,
+		category: "Community",
+	},
+	employee_document_review: {
+		name: "Employee Document Review",
+		description:
+			"Send when an employee uploads an insurance document for review.",
+		priority: 5,
+		category: "Community",
+	},
+	employee_access_revoked: {
+		name: "Employee Access Revoked",
+		description: "Send when a Super Admin revokes an employee's access.",
+		priority: 8,
+		category: "Community",
+	},
+	community_documents: {
+		name: "Community Documents",
+		description:
+			"Send when documents are uploaded to a community project overview.",
+		priority: 5,
+		category: "Community",
+	},
+	inventory_inbound: {
+		name: "Inventory Inbound",
+		description:
+			"Send when a user adds an inventory inbound note or receipt update.",
+		priority: 5,
+		category: "Inventory",
+	},
+	inventory_inbound_activity: {
+		name: "Inventory Inbound Activity",
+		description:
+			"Send when inbound receipts, extraction, assignment, or receiving activity occurs.",
+		priority: 5,
+		category: "Inventory",
+	},
+	community_unit_production_started: {
+		name: "Unit Production Started",
+		description: "Send when a unit production task is started.",
+		priority: 5,
+		category: "Community",
+	},
+	community_unit_production_stopped: {
+		name: "Unit Production Stopped",
+		description: "Send when a unit production task is stopped.",
+		priority: 5,
+		category: "Community",
+	},
+	community_unit_production_completed: {
+		name: "Unit Production Completed",
+		description: "Send when a unit production task is completed.",
+		priority: 5,
+		category: "Community",
+	},
+	community_unit_production_batch_updated: {
+		name: "Unit Production Batch Updated",
+		description:
+			"Send when multiple unit production tasks are updated together.",
+		priority: 5,
+		category: "Community",
+	},
+	job_submitted: {
+		name: "Job Submitted",
+		description: "Send when a contractor submits a job for review.",
+		priority: 5,
+		category: "Community",
+	},
+	job_approved: {
+		name: "Job Approved",
+		description: "Send when a submitted job is approved.",
+		priority: 5,
+		category: "Community",
+	},
+	job_rejected: {
+		name: "Job Rejected",
+		description: "Send when a submitted job is rejected.",
+		priority: 5,
+		category: "Community",
+	},
+	job_review_requested: {
+		name: "Job Review Requested",
+		description: "Send when a reviewer requests changes on a submitted job.",
+		priority: 5,
+		category: "Community",
+	},
+	job_deleted: {
+		name: "Job Deleted",
+		description: "Send when a job is deleted.",
+		priority: 5,
+		category: "Community",
+	},
+	job_payment_sent: {
+		name: "Job Payment Sent",
+		description: "Send when a contractor payout has been created.",
+		priority: 5,
+		category: "Community",
+	},
+	payout_cancelled: {
+		name: "Payout Cancelled",
+		description: "Send when a contractor payout has been cancelled.",
+		priority: 5,
+		category: "Community",
+	},
+	payout_reversed: {
+		name: "Payout Reversed",
+		description: "Send when a cancelled contractor payout is restored.",
+		priority: 5,
+		category: "Community",
+	},
+	payout_issues: {
+		name: "Payout Issues",
+		description:
+			"Send when a contractor payout has integrity issues and cannot be reversed.",
+		priority: 5,
+		category: "Community",
+	},
+	sales_checkout_success: {
+		name: "Sales Checkout Successful",
+		description: "Send when a sales checkout succeeds.",
+		priority: 5,
+		category: "Sales",
+	},
+	quote_accepted: {
+		name: "Quote Accepted",
+		description: "Send when a customer accepts a sales quote.",
+		priority: 5,
+		category: "Sales",
+	},
+	dealer_sales_request: {
+		name: "Dealer Sales Request",
+		description:
+			"Send when a dealer asks a sales rep to approve a quote as an order.",
+		priority: 4,
+		category: "Sales",
+	},
+	dealer_profile_updated: {
+		name: "Dealer Profile Updated",
+		description:
+			"Send when a dealer's assigned GND dealership profile is assigned or updated.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_payment_recorded: {
+		name: "Sales Payment Recorded",
+		description: "Send when a payment is recorded against a sales order.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_payment_refunded: {
+		name: "Sales Payment Refunded",
+		description: "Send when a refund is recorded against a sales order.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_customer_payment_received: {
+		name: "Customer Payment Received",
+		description: "Send a receipt email to a customer after payment succeeds.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_customer_refund_completed: {
+		name: "Customer Refund Completed",
+		description:
+			"Email a customer only after Square reports a completed refund.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_customer_payment_failed: {
+		name: "Customer Payment Failed",
+		description: "Send a failure notice to a customer after payment fails.",
+		priority: 5,
+		category: "Sales",
+	},
+	dealer_onboarding: {
+		name: "Dealer Onboarding",
+		description: "Send when a dealer account setup guide is created.",
+		priority: 5,
+		category: "Sales",
+	},
+	auth_new_device_login: {
+		name: "New Device Login",
+		description: "Send when an account signs in from a new browser or device.",
+		priority: 8,
+		category: "Security",
+	},
+	auth_master_password_login_alert: {
+		name: "Master Password Login Alert",
+		description: "Send when an account is accessed with a master password.",
+		priority: 9,
+		category: "Security",
+	},
+	dealer_magic_login_link: {
+		name: "Dealer Magic Login Link",
+		description: "Send a passwordless login link to an active dealer account.",
+		priority: 8,
+		category: "Security",
+	},
+	dealer_password_reset: {
+		name: "Dealer Password Reset",
+		description: "Send a password reset link to an active dealer account.",
+		priority: 8,
+		category: "Security",
+	},
+	sales_daily_payment_report: {
+		name: "Sales Daily Payment Report",
+		description:
+			"Send the daily accounting report of payments received with an Excel attachment.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_info: {
+		name: "Sales Info",
+		description: "Send sales notes and info updates.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_item_info: {
+		name: "Sales Item Info",
+		description: "Send sales item notes and info updates.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_info: {
+		name: "Sales Dispatch Info",
+		description: "Send sales dispatch notes and info updates.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_email_reminder: {
+		name: "Sales Email Reminder",
+		description: "Send when a sales reminder email is sent.",
+		priority: 5,
+		category: "Sales",
+	},
+	composed_sales_document_email: {
+		name: "Composed Sales Document Email",
+		description:
+			"Send a custom sales document email with optional PDF attachment and payment CTA.",
+		priority: 5,
+		category: "Sales",
+	},
+	simple_sales_document_email: {
+		name: "Sales Document Email",
+		description:
+			"Send invoice and quote emails from the shared notification system.",
+		priority: 5,
+		category: "Sales",
+	},
+	simple_sales_email_reminder: {
+		name: "Simple Sales Email Reminder",
+		description:
+			"Send reminder email from minimal sales input and enrich payload server-side.",
+		priority: 5,
+		category: "Sales",
+	},
+	customer_statement: {
+		name: "Customer Statement",
+		description:
+			"Send a customer account statement with open invoice balances.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_reminder_schedule_admin_notification: {
+		name: "Sales Reminder Schedule Admin Notification",
+		description:
+			"Send schedule run summary to admins including delivery stats and skipped sales.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_assigned: {
+		name: "Dispatch Assigned",
+		description: "Send when a dispatch is assigned to a driver.",
+		priority: 2,
+		category: "Sales",
+	},
+	sales_dispatch_approval_pending_released: {
+		name: "Dispatch Approval No Longer Blocking",
+		description:
+			"Send when a policy change lets a driver continue while packing approval remains pending.",
+		priority: 2,
+		category: "Sales",
+	},
+	sales_dispatch_unassigned: {
+		name: "Dispatch Unassigned",
+		description: "Send when a dispatch is unassigned from a driver.",
+		priority: 2,
+		category: "Sales",
+	},
+	sales_dispatch_date_updated: {
+		name: "Dispatch Date Updated",
+		description: "Send when a dispatch due date is updated.",
+		priority: 2,
+		category: "Sales",
+	},
+	sales_dispatch_queued: {
+		name: "Dispatch Queued",
+		description: "Send when a dispatch is queued.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_cancelled: {
+		name: "Dispatch Cancelled",
+		description: "Send when a dispatch is cancelled.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_completed: {
+		name: "Dispatch Completed",
+		description: "Send when a dispatch is completed.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_packed: {
+		name: "Dispatch Packed",
+		description: "Send when dispatch packing is updated.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_packing_reset: {
+		name: "Dispatch Packing Reset",
+		description:
+			"Send when dispatch packing is reset and status returns to queue.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_in_progress: {
+		name: "Dispatch In Progress",
+		description: "Send when a dispatch moves to in progress.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_trip_canceled: {
+		name: "Dispatch Trip Canceled",
+		description: "Send when an active dispatch trip is canceled.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_created: {
+		name: "Dispatch Created",
+		description: "Send when a dispatch is created.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_back_order: {
+		name: "Sales Back Order",
+		description: "Send when a sales order is moved to back order.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_late: {
+		name: "Dispatch Late",
+		description: "Send when a dispatch becomes late.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_production_assigned: {
+		name: "Production Assigned",
+		description: "Send when production work is assigned.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_production_submission_material_review: {
+		name: "Production Material Review",
+		description:
+			"Send when production is submitted while material needs still require admin verification.",
+		priority: 2,
+		category: "Sales",
+	},
+	sales_production_submission_material_approved: {
+		name: "Production Material Review Approved",
+		description:
+			"Send to the production worker when a pending material review is approved.",
+		priority: 2,
+		category: "Sales",
+	},
+	sales_production_submission_material_rejected: {
+		name: "Production Material Review Rejected",
+		description:
+			"Send to the production worker when a pending material review is rejected.",
+		priority: 2,
+		category: "Sales",
+	},
+	sales_production_unassigned: {
+		name: "Production Unassigned",
+		description: "Send when production work is unassigned.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_production_started: {
+		name: "Production Started",
+		description: "Send when production starts.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_production_submitted: {
+		name: "Production Submitted",
+		description: "Send when production is submitted.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_production_item_completed: {
+		name: "Production Item Completed",
+		description: "Send when a production item is completed.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_production_submission_cancelled: {
+		name: "Production Submission Cancelled",
+		description: "Send when a production submission is cancelled.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_production_all_completed: {
+		name: "Production All Completed",
+		description: "Send when all production items are completed.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_marked_as_production_completed: {
+		name: "Sales Marked Production Completed",
+		description: "Send when a sales order is marked as production completed.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_request_packing: {
+		name: "Packing Requested",
+		description: "Send when a driver requests unavailable packing items.",
+		priority: 5,
+		category: "Sales",
+	},
+	"sales-packing-list": {
+		name: "Sales Packing List",
+		description:
+			"Tracks deliveries that entered the warehouse packing-list workflow.",
+		priority: 5,
+		category: "Sales",
+	},
+	dispatch_packing_delay: {
+		name: "Dispatch Packing Delay",
+		description:
+			"Send when a pending production item is marked ready but not yet updated in the system.",
+		priority: 2,
+		category: "Sales",
+	},
+	sales_dispatch_duplicate_alert: {
+		name: "Dispatch Duplicate Alert",
+		description:
+			"Send when a driver reports duplicate dispatch rows that need admin resolution.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_handoff_action_escalation: {
+		name: "Sales Handoff Escalation",
+		description:
+			"Mandatory in-app escalation for a Material or Production action open longer than one New York business day.",
+		priority: 8,
+		category: "Sales",
+		published: true,
+	},
 };
 
 export type ChannelOption = {
-  label: string;
-  value: ChannelName;
-  description: string;
-  disabled?: boolean;
+	label: string;
+	value: ChannelName;
+	description: string;
+	disabled?: boolean;
 };
 
 type ChannelOptionsInput = {
-  names?: readonly string[];
-  channel?: string | ChannelName | null;
+	names?: readonly string[];
+	channel?: string | ChannelName | null;
 };
 
 const channelNameSet = new Set<string>(channelNames);
 
 export function isChannelName(value: string): value is ChannelName {
-  return channelNameSet.has(value);
+	return channelNameSet.has(value);
 }
 
 function toTitleCase(value: string) {
-  return value
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+	return value
+		.split("_")
+		.filter(Boolean)
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join(" ");
 }
 
 export function getChannelsOptionList(input: ChannelOptionsInput = {}) {
-  const { names, channel } = input;
-  const selectedChannels =
-    channel && isChannelName(channel)
-      ? ([channel] as const)
-      : (names || channelNames).filter((name): name is ChannelName =>
-          isChannelName(name),
-        );
+	const { names, channel } = input;
+	const selectedChannels =
+		channel && isChannelName(channel)
+			? ([channel] as const)
+			: (names || channelNames).filter((name): name is ChannelName =>
+					isChannelName(name),
+				);
 
-  return selectedChannels.map<ChannelOption>((value) => {
-    const config = channelsConfig[value];
-    return {
-      value,
-      label: config?.name || toTitleCase(value),
-      description: config?.description || `Send ${toTitleCase(value)} updates.`,
-    };
-  });
+	return selectedChannels.map<ChannelOption>((value) => {
+		const config = channelsConfig[value];
+		return {
+			value,
+			label: config?.name || toTitleCase(value),
+			description: config?.description || `Send ${toTitleCase(value)} updates.`,
+		};
+	});
 }
 
 export const channelsOptionList = getChannelsOptionList();

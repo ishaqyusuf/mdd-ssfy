@@ -10,6 +10,7 @@ import { Icons } from "@gnd/ui/icons";
 import { ArrowLeft, CircleHelp, X } from "lucide-react";
 import Link from "next/link";
 import type { DriverStopDetail } from "./driver-stop-types";
+import { formatDriverCustomerName } from "./model";
 
 export function DriverStopHeader({
 	detail,
@@ -86,7 +87,7 @@ export function DriverStopHeader({
 				</div>
 				<p className="mt-1 truncate text-sm text-muted-foreground">
 					{order
-						? `${order.orderId} · ${order.customer?.businessName || order.customer?.name || "Customer"}`
+						? `${order.orderId} · ${formatDriverCustomerName(order.customer?.businessName || order.customer?.name)}`
 						: "Review this assigned stop and its guarded delivery workflow."}
 				</p>
 			</div>

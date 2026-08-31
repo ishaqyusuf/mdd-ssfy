@@ -1,11 +1,28 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+	requireProductionAssignmentAuthority,
 	requireProductionSubmissionAuthority,
 	resolveProductionSubmissionAuthority,
 } from "./production-submission-authority";
 
 describe("production submission authority", () => {
+	it("requires editProduction for assignment mutations", () => {
+		let deniedMessage = "";
+		try {
+			requireProductionAssignmentAuthority({
+				can: { viewProduction: true, editProduction: false },
+			});
+		} catch (error) {
+			deniedMessage = error instanceof Error ? error.message : String(error);
+		}
+		expect(deniedMessage).toBe(
+			"You do not have permission to manage production work.",
+		);
+		requireProductionAssignmentAuthority({
+			can: { editProduction: true },
+		});
+	});
 	it("allows an assigned production worker without submit-for-others authority", () => {
 		expect(
 			resolveProductionSubmissionAuthority({
@@ -44,5 +61,20 @@ describe("production submission authority", () => {
 		expect(message).toBe(
 			"Production access is required to report completed work.",
 		);
+	});
+
+	it("allows the order sales rep to submit on behalf without global production edit access", () => {
+		expect(
+			resolveProductionSubmissionAuthority(
+				{
+					role: "Sales Rep",
+					can: { viewProduction: false, editProduction: false },
+				},
+				{ isOrderSalesRep: true },
+			),
+		).toEqual({
+			canSubmitProduction: true,
+			allowSubmitForOthers: true,
+		});
 	});
 });

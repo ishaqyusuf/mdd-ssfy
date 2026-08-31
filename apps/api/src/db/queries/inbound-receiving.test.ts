@@ -5,9 +5,32 @@ import {
 	assignInboundDemandsQuery,
 	countOrderInboundShipmentsQuery,
 	createInboundShipmentFromDemandsQuery,
+	listInboundNeedsApplicationAttentionQuery,
 	reduceInboundShipmentDemandQuery,
 	updateInboundShipmentStatusQuery,
 } from "./inbound-receiving";
+
+describe("listInboundNeedsApplicationAttentionQuery", () => {
+	test("scopes attention candidates to the selected sales order", async () => {
+		const queries: Array<{ sql: string; values: unknown[] }> = [];
+		const result = await listInboundNeedsApplicationAttentionQuery(
+			{
+				db: {
+					$queryRaw: async (query: { sql: string; values: unknown[] }) => {
+						queries.push(query);
+						return [];
+					},
+				},
+				userId: 1,
+			} as never,
+			{ salesOrderId: 42, take: 20 },
+		);
+
+		expect(result).toEqual([]);
+		expect(queries[0]?.sql).toContain("sale.id = ?");
+		expect(queries[0]?.values).toContain(42);
+	});
+});
 
 describe("applyInboundNeedsApplicationAttentionQuery", () => {
 	test("applies each selected inbound once and reconciles affected sales together", async () => {

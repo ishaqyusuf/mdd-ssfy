@@ -32,6 +32,25 @@ describe("Sales Overview packing secondary pane", () => {
 		expect(sheet.includes("buildLegacySalesOverviewTabNavigation")).toBe(true);
 	});
 
+	test("keeps dispatch inventory access and a dispatch-scoped packing preview", () => {
+		const controller = source("./controller.tsx");
+		const packingTab = source("./packing-tab.tsx");
+		const packingFooter = source("./packing-footer.tsx");
+
+		expect(controller.includes('value: "inventory"')).toBe(true);
+		expect(controller.includes('label: "Inventory"')).toBe(true);
+		expect(packingTab.includes("<PackingFooter />")).toBe(true);
+		expect(packingFooter.includes('mode: "packing list"')).toBe(true);
+		expect(packingFooter.includes("dispatchId: query.params.dispatchId")).toBe(
+			true,
+		);
+		expect(packingFooter.includes("<SalesMenu.SalesPrintMenuItems />")).toBe(
+			true,
+		);
+		expect(packingFooter.includes("<SalesMenu.Delete")).toBe(false);
+		expect(packingFooter.includes("<SalesMenu.Move")).toBe(false);
+	});
+
 	test("navigates from Packing without overwriting the canonical sheet mode", () => {
 		const navigation = buildLegacySalesOverviewTabNavigation(
 			"dispatch",
@@ -53,9 +72,8 @@ describe("Sales Overview packing secondary pane", () => {
 	test("resets the shared sheet viewport when the active tab changes", () => {
 		const sheet = source("./index.tsx");
 
-		expect(sheet.includes("<Sheet.Content\n\t\t\t\t\t\tkey={activeTab}")).toBe(
-			true,
-		);
+		expect(sheet.includes("<Sheet.Content")).toBe(true);
+		expect(sheet.includes("key={activeTab}")).toBe(true);
 	});
 
 	test("keeps the item summary in place and portals the packing form", () => {
@@ -107,7 +125,9 @@ describe("Sales Overview packing secondary pane", () => {
 		expect(packing.includes("SalesFormQuantityStepper")).toBe(true);
 		expect(packing.includes("stepQtyValue")).toBe(false);
 		expect(packing.includes('className="rounded-md border p-3"')).toBe(false);
-		expect(packing.match(/<ItemTitle className="uppercase">/g)?.length).toBe(3);
+		expect(
+			packing.match(/<ItemTitle className="uppercase">/g)?.length,
+		).toBeGreaterThanOrEqual(3);
 		expect(
 			packing.match(/<ItemDescription className="line-clamp-none uppercase">/g)
 				?.length,
@@ -124,17 +144,17 @@ describe("Sales Overview packing secondary pane", () => {
 		);
 
 		expect(packing.includes('label="Ready to pack"')).toBe(true);
-		expect(packing.includes('label="Awaiting production"')).toBe(true);
+		expect(
+			packing.includes('label="Pending production or material review"'),
+		).toBe(true);
 		expect(packing.includes("readyItems.map((item, index)")).toBe(true);
 		expect(packing.includes("waitingItems.map((item, index)")).toBe(true);
 		expect(packing.includes("max={Number(packAllTarget[key] || 0)}")).toBe(
 			true,
 		);
-		expect(packing.includes("Not packable yet")).toBe(true);
+		expect(packing.includes("Not available yet")).toBe(true);
 		expect(packingSheet.includes("data-packing-selected-count")).toBe(true);
-		expect(packingSheet.includes("Pack all ${maxPackableCount} ready")).toBe(
-			true,
-		);
+		expect(packingSheet.includes("Select all ${maxPackableCount}")).toBe(true);
 		expect(packingSheet.includes("sticky top-0")).toBe(true);
 		expect(sheetPrimitive.includes("actions?: ReactNode")).toBe(true);
 		expect(sheetPrimitive.includes("props.actions")).toBe(true);

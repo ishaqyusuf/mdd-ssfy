@@ -34,7 +34,7 @@ export default async function RootLayout({
 }) {
     const prodDB = env.DATABASE_URL?.includes("pscale");
     const headersList = await headers();
-    const initialSession = await getServerAuthSession(headersList);
+    const initialSession = await getServerAuthSession();
     const serverTrpcUrl = getServerTrpcUrl(headersList);
 
     return (

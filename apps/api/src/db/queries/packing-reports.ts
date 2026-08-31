@@ -1,5 +1,7 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { Prisma, type TransactionClient } from "@gnd/db";
+import { repairReceivedInboundNeedsForSalesOrder } from "@gnd/inventory/inbound";
+import { buildGuardedPackingPlan } from "@gnd/sales/dispatch-packing-plan";
 import {
 	type DecidePackingReportInput,
 	PackingReportError,
@@ -13,11 +15,21 @@ import {
 	remainingPackingQty,
 } from "@gnd/sales/packing-report-review";
 import {
+	type GuardedPackingPolicy,
+	getGuardedPackingSettings,
+	normalizeGuardedPackingPolicy,
+} from "@gnd/settings";
+import {
+	createSalesAssignmentAction,
 	packDispatchItemsAction,
 	resetSalesAction,
 } from "@sales/sales-control/actions";
 import { getSaleInformation } from "@sales/sales-control/get-sale-information";
 import type { SalesDispatchStatus } from "@sales/types";
+import {
+	createSalesFormTimelineActivity,
+	getSalesActivitySenderContactId,
+} from "./sales-form-activity";
 
 type Db = TRPCContext["db"];
 type PackingDb = Db | TransactionClient;
@@ -44,6 +56,63 @@ function canonicalQty(row: {
 		: { qty: Number(row.qty || 0), lhQty: 0, rhQty: 0 };
 }
 
+function canonicalControlQty(row: {
+	qty?: number | null;
+	lh?: number | null;
+	rh?: number | null;
+}) {
+	const lhQty = Number(row.lh || 0);
+	const rhQty = Number(row.rh || 0);
+	return lhQty > 0 || rhQty > 0
+		? { qty: 0, lhQty, rhQty }
+		: { qty: Number(row.qty || 0), lhQty: 0, rhQty: 0 };
+}
+
+function packingQuantityLabel(row: {
+	qty: number;
+	lhQty: number;
+	rhQty: number;
+}) {
+	const parts = [
+		row.qty ? `${row.qty}` : null,
+		row.lhQty ? `${row.lhQty} LH` : null,
+		row.rhQty ? `${row.rhQty} RH` : null,
+	].filter(Boolean);
+	return parts.join(" & ") || "0";
+}
+
+async function createPackingTimelineActivity(
+	db: PackingDb,
+	input: {
+		salesId: number;
+		orderNo: string;
+		actorId: number;
+		activityType:
+			| "dispatch_packing_reported"
+			| "dispatch_packing_approved"
+			| "dispatch_packing_rejected";
+		subject: string;
+		headline: string;
+		note: string;
+	},
+) {
+	const senderContactId = await getSalesActivitySenderContactId(
+		db as Db,
+		input.actorId,
+	);
+	await createSalesFormTimelineActivity(db as Db, {
+		salesId: input.salesId,
+		orderId: input.orderNo,
+		senderContactId,
+		copy: {
+			activityType: input.activityType,
+			subject: input.subject,
+			headline: input.headline,
+			note: input.note,
+		},
+	});
+}
+
 async function loadPackingEvidence(db: PackingDb, dispatchId: number) {
 	const dispatch = await db.orderDelivery.findFirst({
 		where: { id: dispatchId, deletedAt: null },
@@ -60,13 +129,18 @@ async function loadPackingEvidence(db: PackingDb, dispatchId: number) {
 		throw new PackingReportError("STALE_SCOPE", "Dispatch was not found.");
 	}
 
-	const [dispatchAllocations, submissions] = await Promise.all([
+	const [
+		dispatchAllocations,
+		submissions,
+		sales,
+		pendingUnsubmittedReports,
+		policy,
+	] = await Promise.all([
 		db.orderItemDelivery.findMany({
 			where: {
 				orderDeliveryId: dispatch.id,
 				orderId: dispatch.salesOrderId,
 				deletedAt: null,
-				orderProductionSubmissionId: { not: null },
 			},
 			orderBy: { id: "asc" },
 			select: {
@@ -96,7 +170,9 @@ async function loadPackingEvidence(db: PackingDb, dispatchId: number) {
 				rhQty: true,
 				updatedAt: true,
 				assignment: { select: { salesItemControlUid: true } },
-				materialReview: { select: { id: true, status: true, updatedAt: true } },
+				materialReview: {
+					select: { id: true, status: true, updatedAt: true },
+				},
 				item: { select: { description: true, dykeDescription: true } },
 				itemDeliveries: {
 					where: {
@@ -118,7 +194,46 @@ async function loadPackingEvidence(db: PackingDb, dispatchId: number) {
 				},
 			},
 		}),
+		getSaleInformation(
+			db as Db,
+			{ salesId: dispatch.salesOrderId },
+			{ persistDerivedState: false },
+		),
+		db.salesPackingReport.findMany({
+			where: {
+				salesOrderId: dispatch.salesOrderId,
+				orderDeliveryId: dispatch.id,
+				status: "PENDING",
+				orderProductionSubmissionId: null,
+			},
+			select: {
+				id: true,
+				salesOrderItemId: true,
+				salesItemControlUid: true,
+				qty: true,
+				lhQty: true,
+				rhQty: true,
+				updatedAt: true,
+			},
+		}),
+		getGuardedPackingSettings(db as Db),
 	]);
+
+	const productionItems = sales.items
+		.filter(
+			(item) =>
+				item.itemConfig?.production &&
+				item.itemId &&
+				item.controlUid &&
+				item.itemConfig?.shipping !== false,
+		)
+		.map((item) => ({
+			salesOrderItemId: Number(item.itemId),
+			itemUid: String(item.controlUid),
+			title: item.title || `Item #${item.itemId}`,
+			total: canonicalControlQty(item.qty || {}),
+			deliverables: item.deliverables || [],
+		}));
 
 	const snapshot = {
 		dispatch: {
@@ -135,18 +250,130 @@ async function loadPackingEvidence(db: PackingDb, dispatchId: number) {
 			lhQty: submission.lhQty,
 			rhQty: submission.rhQty,
 			updatedAt: submission.updatedAt,
+			itemUid: submission.assignment?.salesItemControlUid || null,
 			materialReview: submission.materialReview,
 			packed: submission.itemDeliveries,
 		})),
+		productionItems,
+		pendingUnsubmittedReports,
+		policy,
 	};
 
 	return {
 		dispatch,
 		dispatchAllocations,
 		submissions,
+		sales,
+		productionItems,
+		pendingUnsubmittedReports,
+		policy,
 		snapshot,
 		revision: buildPackingEvidenceRevision(snapshot),
 	};
+}
+
+function unsubmittedReportableLines(
+	evidence: Awaited<ReturnType<typeof loadPackingEvidence>>,
+) {
+	return evidence.productionItems.flatMap((item) => {
+		const submitted = evidence.submissions
+			.filter(
+				(submission) =>
+					submission.salesOrderItemId === item.salesOrderItemId &&
+					submission.assignment?.salesItemControlUid === item.itemUid,
+			)
+			.map(canonicalQty);
+		const pending = evidence.pendingUnsubmittedReports
+			.filter(
+				(report) =>
+					report.salesOrderItemId === item.salesOrderItemId &&
+					report.salesItemControlUid === item.itemUid,
+			)
+			.map(canonicalQty);
+		const remaining = remainingPackingQty(item.total, ...submitted, ...pending);
+		if (remaining.qty + remaining.lhQty + remaining.rhQty <= 0) return [];
+		return [
+			{
+				productionSubmissionId: null,
+				salesOrderItemId: item.salesOrderItemId,
+				itemUid: item.itemUid,
+				dispatchAllocationKey: buildPackingDispatchAllocationKey({
+					dispatchId: evidence.dispatch.id,
+					salesOrderItemId: item.salesOrderItemId,
+					salesItemControlUid: item.itemUid,
+					scope: "awaiting_production_submission",
+				}),
+				title: item.title,
+				remaining,
+			},
+		];
+	});
+}
+
+function guardedPackingCoversDispatch(
+	evidence: Awaited<ReturnType<typeof loadPackingEvidence>>,
+) {
+	const shippableItems = evidence.sales.items.filter(
+		(item) =>
+			item.itemId && item.controlUid && item.itemConfig?.shipping !== false,
+	);
+	return (
+		shippableItems.length > 0 &&
+		shippableItems.every((item) => {
+			const total = canonicalControlQty(item.qty || {});
+			const submissionCoverage = evidence.submissions
+				.filter(
+					(submission) =>
+						submission.salesOrderItemId === Number(item.itemId) &&
+						submission.assignment?.salesItemControlUid === item.controlUid,
+				)
+				.flatMap((submission) => [
+					...submission.itemDeliveries.map(canonicalQty),
+					...submission.packingReports.map(canonicalQty),
+				]);
+			const unsubmittedCoverage = evidence.pendingUnsubmittedReports
+				.filter(
+					(report) =>
+						report.salesOrderItemId === Number(item.itemId) &&
+						report.salesItemControlUid === item.controlUid,
+				)
+				.map(canonicalQty);
+			const covered = addPackingQty(
+				...submissionCoverage,
+				...unsubmittedCoverage,
+			);
+			return (
+				covered.qty >= total.qty &&
+				covered.lhQty >= total.lhQty &&
+				covered.rhQty >= total.rhQty
+			);
+		})
+	);
+}
+
+function packingPolicyFromSnapshot(value: unknown): GuardedPackingPolicy {
+	const snapshot =
+		value && typeof value === "object" && !Array.isArray(value)
+			? (value as Record<string, unknown>)
+			: {};
+	return normalizeGuardedPackingPolicy(snapshot.policy);
+}
+
+function prePackedDispatchStatusFromSnapshot(value: unknown) {
+	const snapshot =
+		value && typeof value === "object" && !Array.isArray(value)
+			? (value as Record<string, unknown>)
+			: {};
+	const dispatch =
+		snapshot.dispatch &&
+		typeof snapshot.dispatch === "object" &&
+		!Array.isArray(snapshot.dispatch)
+			? (snapshot.dispatch as Record<string, unknown>)
+			: {};
+	const status = typeof dispatch.status === "string" ? dispatch.status : null;
+	return status && status !== "packed" && activeDispatchStatus(status)
+		? (status as SalesDispatchStatus)
+		: ("queue" as SalesDispatchStatus);
 }
 
 function reportableLine(
@@ -196,6 +423,10 @@ function reportableLine(
 	return {
 		submission,
 		salesOrderItemId: submission.salesOrderItemId,
+		title:
+			submission.item?.description ||
+			submission.item?.dykeDescription ||
+			`Item #${submission.salesOrderItemId}`,
 		available,
 		remaining: remainingPackingQty(available, ...canonical, ...pending),
 		dispatchAllocationKey,
@@ -212,6 +443,7 @@ export async function getPackingReportContext(db: Db, dispatchId: number) {
 		select: {
 			id: true,
 			salesOrderItemId: true,
+			salesItemControlUid: true,
 			status: true,
 			reason: true,
 			qty: true,
@@ -219,6 +451,7 @@ export async function getPackingReportContext(db: Db, dispatchId: number) {
 			rhQty: true,
 			note: true,
 			decisionNote: true,
+			evidenceSnapshot: true,
 			submittedAt: true,
 			reviewedAt: true,
 			updatedAt: true,
@@ -236,49 +469,94 @@ export async function getPackingReportContext(db: Db, dispatchId: number) {
 
 	return {
 		dispatch: evidence.dispatch,
+		policy: evidence.policy,
 		manifestRevision: evidence.revision,
-		reportableLines: evidence.submissions.flatMap((submission) => {
-			if (
-				!submission.salesOrderItemId ||
-				submission.materialReview?.status !== "PENDING" ||
-				submission.packingReports.length > 0
-			) {
-				return [];
-			}
-			let line: ReturnType<typeof reportableLine>;
-			try {
-				line = reportableLine(evidence, submission.id);
-			} catch (error) {
-				if (
-					error instanceof PackingReportError &&
-					error.code === "STALE_SCOPE"
-				) {
-					return [];
-				}
-				throw error;
-			}
-			if (
-				line.remaining.qty + line.remaining.lhQty + line.remaining.rhQty <=
-				0
-			) {
-				return [];
-			}
-			return [
-				{
-					productionSubmissionId: submission.id,
-					salesOrderItemId: submission.salesOrderItemId,
-					itemUid: submission.assignment?.salesItemControlUid || null,
-					dispatchAllocationKey: line.dispatchAllocationKey,
-					title:
-						submission.item?.description ||
-						submission.item?.dykeDescription ||
-						`Item #${submission.salesOrderItemId}`,
-					remaining: line.remaining,
-				},
-			];
-		}),
-		reports,
+		reportableLines: [
+			...(evidence.policy.enabled && evidence.policy.allowPendingMaterialReview
+				? evidence.submissions.flatMap((submission) => {
+						if (
+							!submission.salesOrderItemId ||
+							submission.materialReview?.status !== "PENDING" ||
+							submission.packingReports.length > 0
+						) {
+							return [];
+						}
+						let line: ReturnType<typeof reportableLine>;
+						try {
+							line = reportableLine(evidence, submission.id);
+						} catch (error) {
+							if (
+								error instanceof PackingReportError &&
+								error.code === "STALE_SCOPE"
+							) {
+								return [];
+							}
+							throw error;
+						}
+						if (
+							line.remaining.qty +
+								line.remaining.lhQty +
+								line.remaining.rhQty <=
+							0
+						) {
+							return [];
+						}
+						return [
+							{
+								productionSubmissionId: submission.id,
+								salesOrderItemId: submission.salesOrderItemId,
+								itemUid: submission.assignment?.salesItemControlUid || null,
+								dispatchAllocationKey: line.dispatchAllocationKey,
+								title: line.title,
+								remaining: line.remaining,
+							},
+						];
+					})
+				: []),
+			...(evidence.policy.enabled &&
+			evidence.policy.allowAwaitingProductionSubmission
+				? unsubmittedReportableLines(evidence)
+				: []),
+		],
+		reports: reports.map(({ evidenceSnapshot, ...report }) => ({
+			...report,
+			reviewMode: packingPolicyFromSnapshot(evidenceSnapshot).reviewMode,
+		})),
 	};
+}
+
+export async function reconcilePendingGuardedPackingDispatchesInTransaction(
+	tx: TransactionClient,
+	dispatchIds: readonly number[],
+) {
+	const readyDispatchIds: number[] = [];
+	for (const dispatchId of [...new Set(dispatchIds)].sort((a, b) => a - b)) {
+		await lockPackingDispatchScope(tx, dispatchId);
+		const evidence = await loadPackingEvidence(tx, dispatchId);
+		const ready =
+			evidence.policy.reviewMode === "ALLOW_DELIVERY_WHILE_PENDING" &&
+			activeDispatchStatus(evidence.dispatch.status) &&
+			guardedPackingCoversDispatch(evidence);
+		if (ready && evidence.dispatch.status !== "packed") {
+			await tx.orderDelivery.update({
+				where: { id: evidence.dispatch.id },
+				data: { status: "packed", deliveredAt: null },
+			});
+		}
+		if (ready) readyDispatchIds.push(dispatchId);
+	}
+	return { readyDispatchIds };
+}
+
+export async function reconcilePendingGuardedPackingDispatches(
+	db: Db,
+	dispatchIds: readonly number[],
+) {
+	return db.$transaction(
+		(tx) =>
+			reconcilePendingGuardedPackingDispatchesInTransaction(tx, dispatchIds),
+		{ isolationLevel: "Serializable" },
+	);
 }
 
 type PackingReportActor = { id: number; scope: "role" | "assignment" };
@@ -291,7 +569,13 @@ function replayPackingReport(
 	const matches =
 		existing.submittedById === actor.id &&
 		existing.orderDeliveryId === input.dispatchId &&
-		existing.orderProductionSubmissionId === input.productionSubmissionId &&
+		existing.orderProductionSubmissionId ===
+			(input.productionSubmissionId || null) &&
+		(input.productionSubmissionId !== null &&
+		input.productionSubmissionId !== undefined
+			? true
+			: (existing.salesItemControlUid || null) ===
+				(input.salesItemControlUid || null)) &&
 		existing.dispatchAllocationKey === input.dispatchAllocationKey &&
 		existing.qty === input.qty &&
 		existing.lhQty === input.lhQty &&
@@ -353,14 +637,43 @@ export async function submitPackingReportInTransaction(
 			"Packing evidence changed. Refresh before reporting verified quantity.",
 		);
 	}
-	const line = reportableLine(evidence, input.productionSubmissionId);
+	if (
+		!evidence.policy.enabled ||
+		(input.productionSubmissionId &&
+			!evidence.policy.allowPendingMaterialReview) ||
+		(!input.productionSubmissionId &&
+			!evidence.policy.allowAwaitingProductionSubmission)
+	) {
+		throw new PackingReportError(
+			"NOT_REPORTABLE",
+			"Guarded packing is disabled for this production state in Sales delivery settings.",
+		);
+	}
+	const submissionLine = input.productionSubmissionId
+		? reportableLine(evidence, input.productionSubmissionId)
+		: null;
+	const awaitingSubmissionLine = !input.productionSubmissionId
+		? unsubmittedReportableLines(evidence).find(
+				(candidate) => candidate.itemUid === input.salesItemControlUid,
+			)
+		: null;
+	const line = submissionLine || awaitingSubmissionLine;
+	if (!line) {
+		throw new PackingReportError(
+			"NOT_REPORTABLE",
+			"This item is no longer awaiting production evidence. Refresh the packing form.",
+		);
+	}
 	if (line.dispatchAllocationKey !== input.dispatchAllocationKey) {
 		throw new PackingReportError(
 			"STALE_SCOPE",
 			"Packing allocation belongs to another dispatch or changed. Refresh before reporting.",
 		);
 	}
-	if (line.submission.materialReview?.status !== "PENDING") {
+	if (
+		submissionLine &&
+		submissionLine.submission.materialReview?.status !== "PENDING"
+	) {
 		throw new PackingReportError(
 			"NOT_REPORTABLE",
 			"This quantity is not blocked by unresolved upstream evidence. Use normal packing.",
@@ -377,7 +690,7 @@ export async function submitPackingReportInTransaction(
 			"A packing report is already pending for this dispatch allocation.",
 		);
 	}
-	let allocationItemId = line.dispatchAllocationItemId;
+	let allocationItemId = submissionLine?.dispatchAllocationItemId || null;
 	let reportEvidence = evidence;
 	if (!allocationItemId) {
 		const allocation = await tx.orderItemDelivery.create({
@@ -385,7 +698,7 @@ export async function submitPackingReportInTransaction(
 				orderId: evidence.dispatch.salesOrderId,
 				orderItemId: line.salesOrderItemId,
 				orderDeliveryId: evidence.dispatch.id,
-				orderProductionSubmissionId: line.submission.id,
+				orderProductionSubmissionId: submissionLine?.submission.id || null,
 				qty: input.qty || input.lhQty + input.rhQty,
 				lhQty: input.lhQty,
 				rhQty: input.rhQty,
@@ -395,6 +708,12 @@ export async function submitPackingReportInTransaction(
 				meta: {
 					source: "guarded_packing_report",
 					idempotencyKey: input.idempotencyKey,
+					salesItemControlUid:
+						input.salesItemControlUid ||
+						submissionLine?.submission.assignment?.salesItemControlUid ||
+						null,
+					policyRevision: evidence.policy.revision,
+					reviewMode: evidence.policy.reviewMode,
 				},
 				note: input.note,
 			},
@@ -408,12 +727,18 @@ export async function submitPackingReportInTransaction(
 			salesOrderId: evidence.dispatch.salesOrderId,
 			orderDeliveryId: evidence.dispatch.id,
 			salesOrderItemId: line.salesOrderItemId,
-			orderProductionSubmissionId: line.submission.id,
+			orderProductionSubmissionId: submissionLine?.submission.id || null,
+			salesItemControlUid:
+				input.salesItemControlUid ||
+				submissionLine?.submission.assignment?.salesItemControlUid ||
+				null,
 			dispatchAllocationKey: line.dispatchAllocationKey,
 			dispatchAllocationItemId: allocationItemId,
 			submittedById: actor.id,
 			status: "PENDING",
-			reason: "UPSTREAM_PRODUCTION_REVIEW",
+			reason: submissionLine
+				? "UPSTREAM_PRODUCTION_REVIEW"
+				: "AWAITING_PRODUCTION_SUBMISSION",
 			idempotencyKey: input.idempotencyKey,
 			openKey,
 			qty: input.qty,
@@ -425,6 +750,29 @@ export async function submitPackingReportInTransaction(
 		},
 		select: { id: true, status: true },
 	});
+	const quantity = packingQuantityLabel(input);
+	await createPackingTimelineActivity(tx, {
+		salesId: evidence.dispatch.salesOrderId,
+		orderNo:
+			evidence.dispatch.order?.orderId ||
+			String(evidence.dispatch.salesOrderId),
+		actorId: actor.id,
+		activityType: "dispatch_packing_reported",
+		subject: "Packing availability reported",
+		headline: `${quantity} of ${line.title} was physically verified for dispatch #${evidence.dispatch.id}.`,
+		note: submissionLine
+			? "Production or material evidence is awaiting review. The quantity is not counted as packed until approved."
+			: "Production submission is still missing. The quantity is recorded for review and is not counted as packed until approved.",
+	});
+	if (evidence.policy.reviewMode === "ALLOW_DELIVERY_WHILE_PENDING") {
+		const coverage = await loadPackingEvidence(tx, input.dispatchId);
+		if (guardedPackingCoversDispatch(coverage)) {
+			await tx.orderDelivery.update({
+				where: { id: evidence.dispatch.id },
+				data: { status: "packed", deliveredAt: null },
+			});
+		}
+	}
 	return {
 		reportId: report.id,
 		status: report.status,
@@ -455,120 +803,165 @@ export async function submitPackingReport(
 	}
 }
 
-export async function decidePackingReport(
+async function decidePackingReportInTransaction(
 	db: Db,
 	input: DecidePackingReportInput,
 	actor: { id: number; name: string },
 ) {
-	return db.$transaction(
-		async (tx) => {
-			let report = await tx.salesPackingReport.findUniqueOrThrow({
-				where: { id: input.reportId },
-				include: { delivery: { select: { status: true, deletedAt: true } } },
+	const tx = db;
+	let report = await tx.salesPackingReport.findUniqueOrThrow({
+		where: { id: input.reportId },
+		include: { delivery: { select: { status: true, deletedAt: true } } },
+	});
+	await lockPackingDispatchScope(tx, report.orderDeliveryId);
+	report = await tx.salesPackingReport.findUniqueOrThrow({
+		where: { id: input.reportId },
+		include: { delivery: { select: { status: true, deletedAt: true } } },
+	});
+	const reportPolicy = packingPolicyFromSnapshot(report.evidenceSnapshot);
+	if (report.status !== "PENDING") {
+		if (
+			(report.status === "APPROVED" && input.action === "APPROVE") ||
+			(report.status === "REJECTED" && input.action === "REJECT")
+		) {
+			return {
+				reportId: report.id,
+				status: report.status,
+				idempotentReplay: true,
+			};
+		}
+		throw new PackingReportError(
+			"STALE_SCOPE",
+			`Packing report is already ${report.status.toLowerCase()}.`,
+		);
+	}
+	if (report.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) {
+		throw new PackingReportError(
+			"STALE_EVIDENCE",
+			"Packing report changed. Refresh before deciding.",
+		);
+	}
+	let freshEvidence = await loadPackingEvidence(
+		tx as Db,
+		report.orderDeliveryId,
+	);
+	const canDecideInCurrentStage =
+		activeDispatchStatus(report.delivery.status) ||
+		(report.delivery.status === "in progress" &&
+			freshEvidence.policy.reviewMode === "ALLOW_DELIVERY_WHILE_PENDING");
+	if (report.delivery.deletedAt || !canDecideInCurrentStage) {
+		throw new PackingReportError(
+			"STALE_SCOPE",
+			"Delivery has already passed the packing review stage. This report is now read-only.",
+		);
+	}
+	if (input.action === "REJECT") {
+		await tx.orderItemDelivery.update({
+			where: { id: report.dispatchAllocationItemId },
+			data: {
+				packingStatus: "packing review rejected",
+				deletedAt: new Date(),
+			},
+		});
+		await tx.salesPackingReport.update({
+			where: { id: report.id },
+			data: {
+				status: "REJECTED",
+				openKey: null,
+				reviewedById: actor.id,
+				decisionNote: input.note,
+				reviewedAt: new Date(),
+				rejectedAt: new Date(),
+			},
+		});
+		const rejectedEvidence = await loadPackingEvidence(
+			tx as Db,
+			report.orderDeliveryId,
+		);
+		if (
+			report.delivery.status === "packed" &&
+			!guardedPackingCoversDispatch(rejectedEvidence)
+		) {
+			await tx.orderDelivery.update({
+				where: { id: report.orderDeliveryId },
+				data: {
+					status: prePackedDispatchStatusFromSnapshot(
+						report.evidenceSnapshot,
+					),
+					deliveredAt: null,
+				},
 			});
-			await lockPackingDispatchScope(tx, report.orderDeliveryId);
-			report = await tx.salesPackingReport.findUniqueOrThrow({
-				where: { id: input.reportId },
-				include: { delivery: { select: { status: true, deletedAt: true } } },
-			});
-			if (report.status !== "PENDING") {
-				if (
-					(report.status === "APPROVED" && input.action === "APPROVE") ||
-					(report.status === "REJECTED" && input.action === "REJECT")
-				) {
-					return {
-						reportId: report.id,
-						status: report.status,
-						idempotentReplay: true,
-					};
-				}
-				throw new PackingReportError(
-					"STALE_SCOPE",
-					`Packing report is already ${report.status.toLowerCase()}.`,
-				);
-			}
-			if (report.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()) {
-				throw new PackingReportError(
-					"STALE_EVIDENCE",
-					"Packing report changed. Refresh before deciding.",
-				);
-			}
-			if (input.action === "REJECT") {
-				await tx.orderItemDelivery.update({
-					where: { id: report.dispatchAllocationItemId },
-					data: {
-						packingStatus: "packing review rejected",
-						deletedAt: new Date(),
-					},
-				});
-				await tx.salesPackingReport.update({
-					where: { id: report.id },
-					data: {
-						status: "REJECTED",
-						openKey: null,
-						reviewedById: actor.id,
-						decisionNote: input.note,
-						reviewedAt: new Date(),
-						rejectedAt: new Date(),
-					},
-				});
-				return {
-					reportId: report.id,
-					status: "REJECTED" as const,
-					idempotentReplay: false,
-				};
-			}
+		}
+		await resetSalesAction(tx as Db, report.salesOrderId);
+		await createPackingTimelineActivity(tx, {
+			salesId: report.salesOrderId,
+			orderNo:
+				freshEvidence.dispatch.order?.orderId || String(report.salesOrderId),
+			actorId: actor.id,
+			activityType: "dispatch_packing_rejected",
+			subject: "Packing availability rejected",
+			headline: `${packingQuantityLabel(report)} for dispatch #${report.orderDeliveryId} was rejected.`,
+			note: input.note,
+		});
+		return {
+			reportId: report.id,
+			status: "REJECTED" as const,
+			idempotentReplay: false,
+		};
+	}
+	await repairReceivedInboundNeedsForSalesOrder(tx, {
+		salesOrderId: report.salesOrderId,
+		actorUserId: actor.id,
+	});
+	freshEvidence = await loadPackingEvidence(tx as Db, report.orderDeliveryId);
+	const dispatchWasCovered = guardedPackingCoversDispatch(freshEvidence);
 
-			if (
-				report.delivery.deletedAt ||
-				!activeDispatchStatus(report.delivery.status)
-			) {
-				throw new PackingReportError(
-					"STALE_SCOPE",
-					"Dispatch scope is no longer active. Reject this report instead.",
-				);
-			}
-			const freshEvidence = await loadPackingEvidence(
-				tx as Db,
-				report.orderDeliveryId,
+	let finalizeWithCanonicalPacking = false;
+	let packingLines: Array<{
+		salesItemId: number;
+		submissionId: number;
+		qty: { qty: number; lh: number; rh: number };
+		note?: string;
+	}> = [];
+	if (report.orderProductionSubmissionId) {
+		const submission = freshEvidence.submissions.find(
+			(row) =>
+				row.id === report.orderProductionSubmissionId &&
+				row.salesOrderItemId === report.salesOrderItemId,
+		);
+		if (!submission) {
+			throw new PackingReportError(
+				"STALE_SCOPE",
+				"Packing allocation is no longer active.",
 			);
-			const submission = freshEvidence.submissions.find(
-				(row) =>
-					row.id === report.orderProductionSubmissionId &&
-					row.salesOrderItemId === report.salesOrderItemId,
+		}
+		if (submission.materialReview?.status !== "PENDING") {
+			throw new PackingReportError(
+				"STALE_EVIDENCE",
+				submission.materialReview?.status === "APPROVED"
+					? "Upstream production review is now approved. Reject this stale report and use normal packing."
+					: "Upstream production evidence no longer supports this packing report.",
 			);
-			if (!submission) {
-				throw new PackingReportError(
-					"STALE_SCOPE",
-					"Packing allocation is no longer active.",
-				);
-			}
-			if (submission.materialReview?.status !== "PENDING") {
-				throw new PackingReportError(
-					"STALE_EVIDENCE",
-					submission.materialReview?.status === "APPROVED"
-						? "Upstream production review is now approved. Reject this stale report and use normal packing."
-						: "Upstream production evidence no longer supports this packing report.",
-				);
-			}
-			const freshLine = reportableLine(
-				freshEvidence,
-				report.orderProductionSubmissionId,
+		}
+		const freshLine = reportableLine(
+			freshEvidence,
+			report.orderProductionSubmissionId,
+		);
+		if (freshLine.dispatchAllocationKey !== report.dispatchAllocationKey) {
+			throw new PackingReportError(
+				"STALE_SCOPE",
+				"Packing allocation moved to another dispatch or changed after reporting.",
 			);
-			if (freshLine.dispatchAllocationKey !== report.dispatchAllocationKey) {
-				throw new PackingReportError(
-					"STALE_SCOPE",
-					"Packing allocation moved to another dispatch or changed after reporting.",
-				);
-			}
-			if (
-				freshLine.dispatchAllocationItemId !== report.dispatchAllocationItemId
-			) {
-				throw new PackingReportError(
-					"STALE_SCOPE",
-					"Packing allocation identity changed after reporting.",
-				);
-			}
+		}
+		if (
+			freshLine.dispatchAllocationItemId !== report.dispatchAllocationItemId
+		) {
+			throw new PackingReportError(
+				"STALE_SCOPE",
+				"Packing allocation identity changed after reporting.",
+			);
+		}
+		if (reportPolicy.reviewMode === "BLOCK_DELIVERY_UNTIL_APPROVED") {
 			const existingCanonical = addPackingQty(
 				...submission.itemDeliveries.map(canonicalQty),
 			);
@@ -577,70 +970,267 @@ export async function decidePackingReport(
 				existingCanonical,
 			);
 			assertPackingQtyWithinRemaining(report, remaining);
-
-			const claimed = await tx.salesPackingReport.updateMany({
-				where: {
-					id: report.id,
-					status: "PENDING",
-					updatedAt: report.updatedAt,
+			packingLines = [
+				{
+					salesItemId: report.salesOrderItemId,
+					submissionId: report.orderProductionSubmissionId,
+					qty: {
+						qty: existingCanonical.qty + report.qty,
+						lh: existingCanonical.lhQty + report.lhQty,
+						rh: existingCanonical.rhQty + report.rhQty,
+					},
+					note: report.note || undefined,
 				},
-				data: {
-					status: "APPROVED",
-					openKey: null,
-					reviewedById: actor.id,
-					decisionNote: input.note,
-					reviewedAt: new Date(),
+			];
+			finalizeWithCanonicalPacking = report.delivery.status !== "in progress";
+		}
+	} else {
+		if (!report.salesItemControlUid) {
+			throw new PackingReportError(
+				"STALE_SCOPE",
+				"Packing report item identity is missing.",
+			);
+		}
+		const allocation = freshEvidence.dispatchAllocations.find(
+			(row) =>
+				row.id === report.dispatchAllocationItemId &&
+				row.orderItemId === report.salesOrderItemId &&
+				row.orderProductionSubmissionId === null &&
+				row.packingStatus === "packing review",
+		);
+		const expectedKey = buildPackingDispatchAllocationKey({
+			dispatchId: report.orderDeliveryId,
+			salesOrderItemId: report.salesOrderItemId,
+			salesItemControlUid: report.salesItemControlUid,
+			scope: "awaiting_production_submission",
+		});
+		if (!allocation || expectedKey !== report.dispatchAllocationKey) {
+			throw new PackingReportError(
+				"STALE_SCOPE",
+				"Packing allocation identity changed after reporting.",
+			);
+		}
+		const item = freshEvidence.sales.items.find(
+			(candidate) =>
+				candidate.itemId === report.salesOrderItemId &&
+				candidate.controlUid === report.salesItemControlUid,
+		);
+		if (!item) {
+			throw new PackingReportError(
+				"STALE_SCOPE",
+				"Packing item is no longer active on this sale.",
+			);
+		}
+		if (reportPolicy.createProductionEvidenceOnApproval) {
+			await createSalesAssignmentAction(tx as Db, {
+				salesId: report.salesOrderId,
+				authorId: actor.id,
+				updateStats: true,
+				submit: true,
+				submissionMeta: {
+					source: "packing_review_approval",
+					packingReportId: report.id,
 				},
+				items: [
+					{
+						itemInfo: item,
+						qty: {
+							qty: report.qty,
+							lh: report.lhQty,
+							rh: report.rhQty,
+						},
+					},
+				],
 			});
-			if (claimed.count !== 1) {
-				throw new PackingReportError(
-					"STALE_EVIDENCE",
-					"Packing report was decided concurrently. Refresh before retrying.",
-				);
-			}
-			await tx.orderItemDelivery.update({
-				where: { id: report.dispatchAllocationItemId },
-				data: {
-					packingStatus: "packing review approved",
-					deletedAt: new Date(),
-				},
-			});
-			const sales = await getSaleInformation(
+			const refreshedSales = await getSaleInformation(
 				tx as Db,
 				{ salesId: report.salesOrderId },
 				{ persistDerivedState: true },
 			);
-			await packDispatchItemsAction(tx as Db, {
-				data: sales,
-				authorId: actor.id,
-				authorName: actor.name,
-				approvedPackingReportId: report.id,
-				update: true,
-				packItems: {
-					dispatchId: report.orderDeliveryId,
-					dispatchStatus:
-						(report.delivery.status as SalesDispatchStatus | null) || "queue",
-					packMode: "selection",
-					packingLines: [
-						{
-							salesItemId: report.salesOrderItemId,
-							submissionId: report.orderProductionSubmissionId,
-							qty: {
-								qty: existingCanonical.qty + report.qty,
-								lh: existingCanonical.lhQty + report.lhQty,
-								rh: existingCanonical.rhQty + report.rhQty,
-							},
-							note: report.note || undefined,
+			const refreshedItem = refreshedSales.items.find(
+				(candidate) =>
+					candidate.itemId === report.salesOrderItemId &&
+					candidate.controlUid === report.salesItemControlUid,
+			);
+			if (!refreshedItem) {
+				throw new PackingReportError(
+					"STALE_SCOPE",
+					"Packing item changed while production evidence was being created.",
+				);
+			}
+			const plan = buildGuardedPackingPlan(
+				[
+					{
+						salesItemId: report.salesOrderItemId,
+						itemUid: report.salesItemControlUid,
+						title: refreshedItem.title || `Item #${report.salesOrderItemId}`,
+						requested: {
+							qty: report.qty,
+							lh: report.lhQty,
+							rh: report.rhQty,
 						},
-					],
-				},
+						deliverables: (refreshedItem.deliverables || []).map(
+							(deliverable) => ({
+								submissionId: Number(deliverable.submissionId),
+								qty: deliverable.qty,
+							}),
+						),
+						note: report.note || undefined,
+					},
+				],
+				[],
+			);
+			if (plan.unavailable.length || !plan.packingLines.length) {
+				throw new PackingReportError(
+					"STALE_EVIDENCE",
+					"Approved production evidence could not satisfy the verified packing quantity. Refresh and try again.",
+				);
+			}
+			packingLines = plan.packingLines;
+			finalizeWithCanonicalPacking = report.delivery.status !== "in progress";
+		}
+	}
+
+	const claimed = await tx.salesPackingReport.updateMany({
+		where: {
+			id: report.id,
+			status: "PENDING",
+			updatedAt: report.updatedAt,
+		},
+		data: {
+			status: "APPROVED",
+			openKey: null,
+			reviewedById: actor.id,
+			decisionNote: input.note,
+			reviewedAt: new Date(),
+		},
+	});
+	if (claimed.count !== 1) {
+		throw new PackingReportError(
+			"STALE_EVIDENCE",
+			"Packing report was decided concurrently. Refresh before retrying.",
+		);
+	}
+	if (finalizeWithCanonicalPacking) {
+		await tx.orderItemDelivery.update({
+			where: { id: report.dispatchAllocationItemId },
+			data: {
+				packingStatus: "packing review approved",
+				deletedAt: new Date(),
+			},
+		});
+		const sales = await getSaleInformation(
+			tx as Db,
+			{ salesId: report.salesOrderId },
+			{ persistDerivedState: true },
+		);
+		await packDispatchItemsAction(tx as Db, {
+			data: sales,
+			authorId: actor.id,
+			authorName: actor.name,
+			approvedPackingReportId: report.id,
+			update: true,
+			packItems: {
+				dispatchId: report.orderDeliveryId,
+				dispatchStatus:
+					(report.delivery.status as SalesDispatchStatus | null) || "queue",
+				packMode: "selection",
+				packingLines,
+			},
+		});
+	} else {
+		await tx.orderItemDelivery.update({
+			where: { id: report.dispatchAllocationItemId },
+			data: {
+				packingStatus: "packed",
+				packedBy: actor.name,
+				deletedAt: null,
+			},
+		});
+	}
+	await resetSalesAction(tx as Db, report.salesOrderId);
+	if (
+		!finalizeWithCanonicalPacking &&
+		dispatchWasCovered &&
+		report.delivery.status !== "in progress"
+	) {
+		await tx.orderDelivery.update({
+			where: { id: report.orderDeliveryId },
+			data: { status: "packed", deliveredAt: null },
+		});
+	}
+	await createPackingTimelineActivity(tx, {
+		salesId: report.salesOrderId,
+		orderNo:
+			freshEvidence.dispatch.order?.orderId || String(report.salesOrderId),
+		actorId: actor.id,
+		activityType: "dispatch_packing_approved",
+		subject: "Packing availability approved",
+		headline: `${packingQuantityLabel(report)} for dispatch #${report.orderDeliveryId} was approved${finalizeWithCanonicalPacking ? " and finalized" : ""}.`,
+		note: input.note,
+	});
+	return {
+		reportId: report.id,
+		status: "APPROVED" as const,
+		idempotentReplay: false,
+	};
+}
+
+export async function decidePackingReport(
+	db: Db,
+	input: DecidePackingReportInput,
+	actor: { id: number; name: string },
+) {
+	return db.$transaction(
+		(tx) => decidePackingReportInTransaction(tx as Db, input, actor),
+		{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+	);
+}
+
+export async function decidePackingReports(
+	db: Db,
+	input: {
+		reports: Array<{ reportId: number; expectedUpdatedAt: Date }>;
+		action: "APPROVE" | "REJECT";
+		note: string;
+	},
+	actor: { id: number; name: string },
+) {
+	return db.$transaction(
+		async (tx) => {
+			const reportScopes = await tx.salesPackingReport.findMany({
+				where: { id: { in: input.reports.map((report) => report.reportId) } },
+				select: { id: true, orderDeliveryId: true },
 			});
-			await resetSalesAction(tx as Db, report.salesOrderId);
-			return {
-				reportId: report.id,
-				status: "APPROVED" as const,
-				idempotentReplay: false,
-			};
+			if (reportScopes.length !== input.reports.length) {
+				throw new PackingReportError(
+					"STALE_SCOPE",
+					"One or more packing reports no longer exist. Refresh before deciding.",
+				);
+			}
+			const dispatchIds = new Set(
+				reportScopes.map((report) => report.orderDeliveryId),
+			);
+			if (dispatchIds.size !== 1) {
+				throw new PackingReportError(
+					"STALE_SCOPE",
+					"A packing review batch must belong to one dispatch.",
+				);
+			}
+
+			const results: Awaited<
+				ReturnType<typeof decidePackingReportInTransaction>
+			>[] = [];
+			for (const report of input.reports) {
+				results.push(
+					await decidePackingReportInTransaction(
+						tx as Db,
+						{ ...report, action: input.action, note: input.note },
+						actor,
+					),
+				);
+			}
+			return { results };
 		},
 		{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
 	);

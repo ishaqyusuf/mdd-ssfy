@@ -1,5 +1,120 @@
 # Done
 
+### Sales Production Assignment Ledger Accordion
+
+- Priority: Normal
+- Description: Replaced the admin Production assignment row with the approved
+  Option A shadcn Ledger Accordion. Collapsed rows expose operational metadata;
+  expanded panels preserve the existing assignment/submission mutations and
+  guards while presenting submission evidence as a responsive ledger.
+- Related Feature: Sales Production Workspace / Sales Overview Production V2
+- Status: Done
+- Validation: 15 focused tests / 26 assertions; scoped Biome and whitespace;
+  filtered Dashboard typecheck with no changed-file diagnostics; authenticated
+  QA on `09488AD` and `09396PC` at desktop, 768px, and 390px with clean final
+  browser logs.
+- Follow-up: Replaced the disabled create-action alert with a compact shadcn
+  hover tooltip while preserving the disabled action and the separate material
+  verification warning. The admin create action now lives as a small rounded
+  plus beside the assignment total; assignment calendar/delete actions sit
+  independently before the chevron; the expanded area is a flat indented
+  `Submissions (X of Y)` region with only its small rounded add button. The
+  calendar uses a centered ghost treatment. A follow-up repaired live list
+  refresh after assignment/submission mutations by refreshing the provider's
+  local server-action snapshot as well as the broader Production queries. The
+  final alignment pass establishes one right action gutter for heading pluses
+  and row actions with the chevron at the outer edge, and the shared loading
+  toast now dismisses completed delete notices correctly. The assignment form
+  now reuses the Sales Form plus/minus quantity stepper, top-aligns Assign To
+  with Due Date, and relies on a corrected shared calendar grid whose weekday
+  headings and dates resolve to equal proportional columns. The form stacks on
+  narrow sheets so quantity labels and availability counts remain separate.
+- Completed Date: 2026-08-29
+
+### Production/Fulfillment 20-Record Query And Batch Limits
+
+- Priority: High
+- Description: Standardized Production and Fulfillment operational reads on
+  20-record requests, capped both bulk status tasks at 20 unique orders, and
+  preserved actionable server-classified task-start errors in production UI.
+- Related Feature: Sales Production Workspace / Sales Dispatch Table
+- Status: Done
+- Validation: 34 focused tests / 111 assertions; scoped Biome and whitespace
+  checks; authenticated Production QA selected 40 loaded rows and received the
+  exact 20-order limit before any Trigger run or record mutation.
+- Completed Date: 2026-08-29
+
+### Production Mark-All Terminal-Order Skip Repair
+
+- Priority: High
+- Description: Corrected stale Production lifecycle projection and made
+  dependency resolution plus the durable parent reload completed-delivery
+  evidence, so fulfilled/already-completed orders are skipped without aborting
+  eligible selections or being submitted again.
+- Related Feature: Sales Production Workspace / Sales Order Status Actions
+- Status: Done
+- Validation: 35 focused tests / 69 assertions; scoped Biome and whitespace
+  checks; authenticated 40-row batch completion reduced Past Due exactly from
+  1,058 to 1,018.
+- Completed Date: 2026-08-29
+
+### Inventory Attention Dialog Backdrop Dismissal
+
+- Priority: Normal
+- Description: Allowed the shared Sales status dependency-attention modal to
+  close from a backdrop click while keeping dismissal locked during active
+  inventory and production resolution.
+- Related Feature: Sales Order Status Actions / Sales Production Workspace
+- Status: Done
+- Validation: 5 focused tests / 13 assertions; scoped formatting and whitespace
+  checks; authenticated Production-page outside-click QA with no live batch
+  action and no console errors.
+
+### Production Mark-All and Single-Run Completion Batch
+
+- Priority: High
+- Description: Added a tri-state Mark All checkbox for loaded admin Production
+  rows and moved Production Completed from one task start per order to one
+  durable monitored bulk parent with server lifecycle rechecks, bounded
+  idempotent children, and truthful per-outcome summaries.
+- Related Feature: Sales Production Workspace / Sales Order Status Actions
+- Status: Done
+- Validation: 18 focused tests / 51 assertions; scoped Biome and whitespace
+  checks. Authenticated local QA selected 40 loaded overdue rows and verified
+  Past Due decreased exactly from 1,099 to 1,059 after the terminal run.
+- Completed Date: 2026-08-29
+
+### Guarded Packing Policy Relaxation And Driver Notification
+
+- Priority: High
+- Description: Unified guarded-packing settings into one card with visible
+  disabled dependent controls, made the current policy authoritative for
+  pending-review delivery gating, retained immutable pending approval evidence,
+  reconciled fully verified dispatches, and notified assigned drivers when a
+  strict approval hold is relaxed.
+- Related Feature: Sales Dispatch Table / Driver Platform Revival
+- Status: Done
+- Validation: 33 direct policy/reconciliation/notification tests pass; the
+  expanded focused run passes 65 tests with five pre-existing inventory-fixture
+  failures caused by missing packing-report mocks. Targeted Biome and whitespace
+  checks pass. Browser verification is blocked by the existing
+  `packages/jobs/src/schema.ts` `actor is not defined` runtime error.
+- Completed Date: 2026-08-29
+
+### Shared Sales/Production Batch Status Actions
+
+- Priority: High
+- Description: Added admin Production row/card selection and a floating batch
+  status bar that reuses the canonical Sales Orders Mark-as workflow. Both
+  Sales Orders and Production batches now skip orders already past production
+  completion or fulfillment before any preflight or task write.
+- Related Feature: Sales Production Workspace / Sales Order Status Actions
+- Status: Done
+- Validation: 38 focused tests / 79 assertions; targeted Biome and whitespace
+  checks; changed-file typecheck filtering; authenticated in-app browser proof
+  with no live mutation submitted.
+- Completed Date: 2026-08-29
+
 ### Full Local-Browser Sales QA
 
 - Priority: High
@@ -1540,3 +1655,68 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   repository-wide Dashboard typecheck remains on its existing baseline, with
   no touched migration-file diagnostic.
 - Completed Date: 2026-08-21
+
+### Standardize Tables V2 Selection Checkbox Alignment
+
+- Priority: High
+- Description: Centered header and row checkboxes through the shared Tables V2
+  cell contract, audited all 24 selection-enabled table modules, and restored
+  select-all rendering/sticky ordering in Inventory Backorders and Partial
+  Shipments.
+- Status: Done
+- Validation: 19 focused tests / 164 assertions and scoped Biome pass;
+  authenticated Production and Backorders browser QA confirms alignment. The
+  broader suite retains 12 unrelated stale parity failures, and Dashboard
+  typecheck remains on its existing repository baseline.
+- Completed Date: 2026-08-29
+
+### Add Production Invoice Visibility And Expanded Filters
+
+- Priority: High
+- Description: Added admin-only read-only invoice totals/status to Production,
+  carried applicable Sales Orders customer/order/payment filters through list
+  and summary reads, and replaced generic Production filter icons with semantic
+  glyphs.
+- Status: Done
+- Validation: 39 focused tests / 119 assertions, scoped Biome, whitespace
+  validation, and authenticated browser proof for the column, row states,
+  expanded filter menu, and distinct icons. A later reload was blocked by an
+  unrelated dispatch-manifest module-resolution error.
+- Completed Date: 2026-08-29
+
+### Align Production Tabs Above Filters
+
+- Priority: Medium
+- Description: Extended the shared adaptive search/filter header for custom tab
+  content and enabled it on Production so tabs remain in one row above search,
+  active filters, and column controls.
+- Status: Done
+- Validation: 24 focused tests / 51 assertions, scoped Biome and whitespace
+  checks, plus authenticated desktop and 900-pixel browser geometry/screenshots.
+- Completed Date: 2026-08-29
+
+### Make Production Submission Review Silent And Approve Authorized On-Behalf Work
+
+- Priority: High
+- Description: Removed material-review warning/status copy from submission UI,
+  retained silent pending review for worker self-submissions, and made
+  admin/production-editor/order-sales-rep submissions for another assignee
+  immediately approved with a complete review audit record.
+- Status: Done
+- Validation: 33 focused tests / 61 assertions pass. Sales typecheck is blocked
+  only by two existing unrelated inbound-demand and assignment-shape errors.
+- Decision: `.brain/decisions/ADR-075-authorized-on-behalf-production-submission-approval.md`
+- Completed Date: 2026-08-29
+
+### Standardize Priority Production Emails 1–20
+
+- Priority: High
+- Description: Migrated the approved ranked priority set to a reusable GND
+  email design system, including the job-owned daily sales payment report,
+  while preserving production data and delivery contracts.
+- Status: Done
+- Validation: 19 email tests / 62 assertions, 14 notification tests / 30
+  assertions, email typecheck, scoped Biome across 29 files, and 40 live
+  desktop/mobile gallery states with no horizontal overflow.
+- Review: `.brain/reports/email-design-review-2026-08-30.md`
+- Completed Date: 2026-08-30

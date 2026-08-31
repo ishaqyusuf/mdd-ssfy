@@ -3,6 +3,37 @@
 ## Goal
 Provide a cleaner production operations surface for both admins and production workers with fast due-date triage, clear urgency alerts, and a more usable daily queue.
 
+## Release safety hardening (2026-08-31)
+
+- Assignment create, delete, and batch assignment require `editProduction` at
+  the server action, independent of UI visibility.
+- Assignment deletion is scoped to the expected order and item identity.
+- Submission quantity validation locks the assignment before re-reading active
+  submissions, so concurrent idempotency keys cannot both consume the same
+  remaining quantity.
+
+## Order-level assignment default (2026-08-30)
+
+- New Sales Overview production assignments initialize their Due Date from the
+  order's saved `SalesOrders.prodDueDate`.
+- The assignment retains its own editable due date after creation; changing an
+  assignment schedule does not rewrite the Sales Form's order-level planning
+  default.
+- Assignment date pickers use the shared shadcn calendar's semantic day states:
+  today receives a faint accent background for orientation, while the selected
+  due date retains the stronger primary-filled treatment. When today is also
+  selected, the selected treatment remains visually dominant.
+
+## Assignment detail alignment (2026-08-30)
+
+- Sales Overview assignment facts are top-aligned so assignee, due date, and
+  progress headings share a stable baseline even when progress wraps.
+- Assignment and submission rows reserve the same compact right action gutter.
+  Calendar, delete, and add-submission icon buttons remain aligned and clear of
+  the accordion chevron instead of crowding or clipping against the sheet edge.
+- Submission records retain their nested ledger treatment, with vertically
+  centered content and compact icon actions.
+
 ## Canonical Admin Workspace (2026-08-18)
 
 - Canonical route: `/sales-book/productions`.
@@ -126,7 +157,11 @@ Provide a cleaner production operations surface for both admins and production w
   - persisted column visibility, sizing, order, and dividers under `sales-production`
   - sticky Due Date column
   - worker mode columns: Due Date, Sales, Sales Rep, Status, Progress, Actions
-  - admin mode columns: Due Date, Assigned To, Customer, Order #, Sales Rep, Status, Progress, Actions
+  - admin mode columns: Due Date, context-owned Order Date, Assigned To,
+    Customer, Order #, Invoice, Sales Rep, Materials, Status, Progress, Actions
+  - Order Date is mandatory immediately after Due Date on the Active and
+    Unscheduled admin table tabs; it is hidden on Due Today, Past Due, and
+    Completed regardless of saved column visibility/order preferences
   - sticky Actions column
   - compact 40px rows matching the Sales Orders table, with tighter
     content-tailored widths instead of the old `@gnd/ui/data-table` shell
@@ -213,6 +248,12 @@ Provide a cleaner production operations surface for both admins and production w
   every role; opening another item closes the previous one and writes the new
   item identity to `prod-item-view` so refresh and browser navigation restore
   the same item.
+- Clicking a Production item whose top begins below the midpoint of the Sales
+  Overview sheet's internal content viewport waits for the single-open
+  accordion transition, then smoothly aligns that item near the viewport top.
+  Items already in the upper half do not move, direct URL restoration does not
+  trigger a jump, reduced-motion preferences are respected, and the page scroll
+  position is never used for this repositioning.
 - `Details` is the default Production item tab for every role. Admins retain
   `Details`, `Notes`, and `Assignments`; production-only users receive
   `Details`, `Notes`, and `Submissions (X/Y)`, where X is reported submission
@@ -346,6 +387,83 @@ Provide a cleaner production operations surface for both admins and production w
   - worker submission UX is optimized for fast repetitive entry
   - row-level detail expansion replaces the older nested accordion feel for production items
 
+## Admin batch status actions (2026-08-29)
+
+- The canonical admin table now has a sticky checkbox column and a Sales
+  Orders-style floating selection bar. Responsive admin cards expose the same
+  accessible checkbox selection; production-worker tables and cards do not.
+- The floating bar and row overflow actions reuse `SalesMenu.MarkAs`, including
+  fulfillment permission checks, inventory preflight/resolution, monitored task
+  handoff, query invalidation, and feedback.
+- Production rows expose canonical lifecycle status in addition to production
+  completion evidence. Batch production completion skips rows already complete
+  or fulfilled, while batch fulfillment skips rows already fulfilled before
+  any mutation boundary.
+- Authenticated in-app browser proof on the Past Due table confirmed the Select
+  column, `1 selected` bar, Deselect all control, canonical Production completed
+  and Fulfilled actions, and zero console errors. No status action was submitted.
+- The select-column header is now a tri-state Mark All checkbox over every row
+  currently loaded into the infinite admin table. Production Completed starts
+  one monitored `bulk-mark-sales-production-completed` parent run for the
+  eligible selection instead of one top-level browser task per order.
+- The parent reloads current lifecycle state, skips orders already at or past
+  production completion, and runs at most 40 deduplicated orders through
+  bounded seven-day-idempotent child updates. Terminal feedback separates
+  actual completions, already-completed skips, material-review outcomes, and
+  failures before one Production/list refresh and selection reset.
+- Authenticated execution proof refreshed Past Due, selected all 40 loaded
+  rows, completed the canonical dependency-resolution flow, and verified a
+  terminal count change from 1,099 to 1,059 with zero console errors.
+- Production list and worker-task infinite queries request 20 rows per page.
+  Infinite scroll may combine several pages in the table, but each network
+  request remains bounded to 20 records.
+- Mark All continues to select every currently loaded row. If that selection
+  exceeds the 40-order task contract, the server blocks the task before
+  enqueueing and the UI shows the exact safe direction: `Bulk production
+  completion is limited to 40 orders.` Unknown task-start/runtime errors remain
+  sanitized.
+- Production queue lifecycle projection now prefers actual completed-delivery
+  evidence over stale legacy production/order statistics. Rows already past
+  production completion are filtered from pending queues, and the shared
+  dependency resolver plus durable parent repeat that eligibility check at
+  their mutation boundaries.
+- Regression QA reproduced the prior all-selection failure on fulfilled legacy
+  order `07471PC`, verified it no longer appeared after refresh, selected all 40
+  loaded rows, and completed one parent run. Past Due decreased from 1,058 to
+  1,018 exactly.
+
+## Admin invoice visibility and expanded filters (2026-08-29)
+
+- Admin table and responsive-card rows expose read-only invoice total and a
+  compact Paid, Outstanding, or Not set status. Production-worker surfaces do
+  not receive finance presentation.
+- Production list and summary reads accept the applicable Sales Orders search
+  fields: customer, phone, P.O., sales rep, order number, item, and invoice
+  status. Invoice filtering is intentionally limited to Paid and Outstanding;
+  payment creation and editing remain owned by Sales Orders and Sales Overview.
+- Calendar retains only search, assignment, and priority filters. Review and
+  Calendar navigation clear incompatible order/payment filters rather than
+  carrying hidden URL state into those projections.
+- The filter menu uses semantic icons for assignment, queue state, due date,
+  material state, and sort instead of the generic search fallback.
+- Authenticated Past Due QA confirmed the Invoice column, Paid row states, the
+  expanded filter menu, and distinct semantic filter icons. A later reload was
+  blocked by the unrelated existing dispatch-manifest module-resolution error.
+
+## Two-row tabs and filter header (2026-08-29)
+
+- Production uses the shared adaptive search/filter header composition already
+  established by Sales Orders. The tab rail occupies the complete first row;
+  search, active filter chips, and column controls start on the second row.
+- The tab rail never wraps into multiple lines. Wide layouts show all seven
+  Production tabs, while narrower layouts preserve the active tab and place
+  excess destinations in the existing overflow menu.
+- The adaptive behavior remains opt-in. Other custom-tab workspaces retain
+  their previous layout unless they request the adaptive composition.
+- Authenticated QA confirmed all seven desktop tabs on one baseline with search
+  below. At 900 pixels, three tabs remained inline, four moved into `+4`, and
+  the full-width search/filter row remained directly beneath the rail.
+
 ## Submit-All Action Integrity (2026-08-18)
 
 - The Sales Overview production menu passes the `submit` action directly when
@@ -353,6 +471,10 @@ Provide a cleaner production operations surface for both admins and production w
   that previously dispatched an actionless Trigger payload.
 - The legacy update-sales-control command resolver rejects payloads with zero
   actions before command execution, while retaining its one-action-only rule.
+- The Production item action dropdown reuses the footer action menu's
+  intrinsic-width behavior. Assign All, Submit All, Delete Submissions, and
+  Delete Assignments stay on one line with their quantity labels, and every
+  action icon has a non-shrinking standard 16px footprint.
 
 ## Sales Overview Production Item Single-View Design Review (2026-08-22)
 
@@ -393,13 +515,14 @@ Provide a cleaner production operations surface for both admins and production w
 
 ## Sales Overview Production Item Single View — V2 Implementation (2026-08-22)
 
-- The approved Command Document is implemented only when the Sales Overview is
-  in V2 mode. A dynamic Production gateway uses the same rollout selection as
-  General V2 and retains the previous Production item tabs as the legacy
-  fallback.
-- Expanded V2 items render the role-aware create action and inline form first,
-  followed by Assignments/Submissions, Details, and Notes & activity. The
-  information sections do not collapse and no item-level tab state is written.
+- The approved Command Document remains rollout-selected with General V2 for
+  admin/order-capable users. Production-only workers always use the V2
+  Production document even while the office-wide General surface remains on
+  V1; the previous Production item tabs remain the admin V1 fallback.
+- Expanded V2 items render Assignments for admins or Submissions for workers,
+  followed by Details and Notes & activity. Create forms expand inside the
+  corresponding records section; the information sections do not collapse and
+  no item-level tab state is written.
 - Admin assignment creation, editable due dates, assignment submission, nested
   submissions, material states, and guarded deletion continue through the
   existing mutation components. Production workers retain server-filtered own
@@ -418,9 +541,9 @@ Provide a cleaner production operations surface for both admins and production w
 - Focused Production validation passes 20 tests / 48 assertions; new V2 files
   pass scoped Biome. Broad dashboard typecheck and authenticated browser QA were
   not run under the fast Bun command discipline.
-- When an item has no assignments or submissions, the V2 section stops after
-  its role-specific heading and count badge. Redundant empty-state panels are
-  omitted for both admins and production workers.
+- When an admin item has no assignments, the V2 section stops after its heading
+  and count badge. A worker item with no submissions instead shows one
+  full-width `Create submission` action directly below the Submissions heading.
 - The admin material-pending readiness alert is compact: it shows only
   `Material Pending` and the `Review Inventory` action. Detailed blocker and
   inbound copy remains available on the Inventory surface reached by that CTA.
@@ -443,3 +566,288 @@ Provide a cleaner production operations surface for both admins and production w
   state, and worker notification. Evidence is in
   `artifacts/dispatch-lifecycle-20260823/`.
 - Decision: `.brain/decisions/ADR-068-guarded-fulfillment-and-production-review-authority.md`.
+
+## Assignment Ledger Accordion (2026-08-29)
+
+- `A — Ledger Accordion` is the approved replacement for the admin assignment listing inside the Sales Overview Production item. The surrounding Production item single-view UI remains unchanged.
+- Each assignment is an accessible disclosure trigger. Before expansion it shows
+  the assignee, due date, assigned-by/date metadata, and quantity progress. The
+  redundant assignment-state and submission-count badges are omitted because
+  progress and the expanded quantity heading communicate those states.
+- Due-date editing and guarded assignment deletion are independent icon actions
+  immediately before the disclosure chevron, so using either control does not
+  expand or collapse the assignment. Fulfilled orders lock both actions.
+- Expanding one assignment reveals an indented, background-free submission
+  region headed `Submissions (X of Y)`. Its only header action is an icon-only
+  add-submission button, which disables after the full assigned quantity is
+  submitted or the order is fulfilled. Submission rows use dividers rather
+  than another card or ledger header strip; the empty explanatory copy is
+  omitted.
+- Implementation must reuse the current queries, mutations, permission checks, dispatch locks, and material-review rules. This is a presentation and interaction migration, not a new assignment domain workflow.
+- Use GND's `@gnd/ui` shadcn `Accordion` or `Collapsible` primitives with existing buttons, badges, item composition, and theme tokens. Chakra UI must not be introduced.
+- Before application code changes, use the `midday` and `midday-migration-planner` skills to record the reference comparison, migration contract, state ownership, accessibility behavior, and conformance audit.
+- The approved design reference is `/Users/M1PRO/.gstack/projects/gnd/designs/sales-production-assignments-20260829/comparison.html#concept-a-title`; approval metadata is stored beside it in `approved.json`.
+- The implementation uses one multi-value `@gnd/ui` accordion with stable assignment ids. The first assignment opens by default, while opening another assignment does not discard the current inspection context.
+- The expanded ledger renders submission owner/date, quantity, evidence, and
+  guarded deletion. Material-review state is intentionally omitted from each
+  submission row. The submit form begins below a
+  separator without a nested card and retains the existing quantity, note,
+  submit, and cancel behavior.
+- Admin assignment creation is no longer a standalone section. A small primary
+  rounded-xl plus button follows the total badge in the `Assignments` heading
+  and opens the same existing form. Its unavailable reason remains in a
+  tooltip. Worker submission creation now follows the same section-owned
+  pattern instead of using a separate top section.
+- The submission plus is also small, primary, and rounded-xl. The assignment
+  due-date control is a centered small ghost calendar button with the same
+  rounded-xl shape.
+- Assignment rows use one consistent right-side action gutter: the disclosure
+  chevron sits at the outer content edge, calendar/delete actions sit one slot
+  before it, and both the Assignments-heading plus and Submissions-heading plus
+  reserve the same right gutter. Both headings vertically center their labels,
+  badges, and action buttons.
+- Assignment records are owned by the item-level assignment provider. Create,
+  submit, assignment-delete, and submission-delete success callbacks refresh
+  that provider snapshot immediately in addition to emitting the broader
+  Production query event, so counts and submission rows update without a page
+  reload.
+- Production deletion loading notices use the shared loading-toast lifecycle;
+  clearing the tracked toast now dismisses the active infinite-duration notice
+  before forgetting its id, so successful or failed deletes cannot leave a
+  stale `Deleting...` notification behind.
+- Compact layouts keep the complete assigned-by/date metadata, wrap state and progress safely, and use 44px action targets. Desktop, 768px, and 390px authenticated checks found no horizontal overflow.
+- Authenticated QA covered the empty-submission assignment on `09488AD` and the completed one-submission/material-approved assignment on `09396PC`. Pointer disclosure and submit/cancel passed, and a clean final reload produced no browser warnings or errors.
+- The disabled create action no longer renders a full-width `Create unavailable`
+  alert. Its current policy reason is exposed from the disabled shadcn button
+  through a compact hover tooltip instead.
+- The inline Create Assignment form reuses the Sales Form quantity stepper for
+  bounded plus/minus entry. Assign To and Due Date top-align their labels and
+  controls, with the legacy select inset explicitly removed for this grid. The
+  form stacks to one column below `sm` so labels, availability counts, steppers,
+  and actions do not collide on narrow sheets.
+- The shared shadcn calendar uses React DayPicker's v9 `month_grid` slot and the
+  upstream proportional grid: weekday headings use `flex-1`, week rows remain
+  full-width, and date cells fill an equal aspect-square column. Tailwind v4
+  variable utilities use the shadcn `-(--cell-size)` syntax, and date popovers
+  size to the calendar content.
+- Material-review warnings are silent across the create-submission and expanded
+  submission surfaces. Successful submissions use the standard `Submitted`
+  feedback even when a worker submission is saved for pending review.
+- Worker self-submissions retain pending-review behavior for unresolved
+  evidence. Admins, production editors, and the sales representative assigned
+  to the exact order automatically approve when they submit on behalf of a
+  different assignment owner. The review snapshot, unresolved classification,
+  reviewer identity, and operator-approval resolution remain auditable.
+- Guarded-packing controls under Sales Operations remain separate downstream
+  settings; they do not change production submission classification or
+  on-behalf approval authority.
+- No API, database, migration, or dependency contract changed. The production
+  permission boundary changed as documented in ADR-075. The
+  shared shadcn accordion trigger gained an optional, backward-compatible
+  sibling-actions slot so row actions can remain outside the disclosure button.
+
+## Production Worker V2 Detail Cutover (2026-08-30)
+
+- Production-only worker Sales Overview sheets retain the top-level Productions
+  and Notes tabs, but the Productions tab now selects the V2 Command Document
+  independently of the office-wide General V2 rollout setting.
+- Worker items remain server-scoped to the authenticated worker. Each visible
+  item shows an explicit assigned-quantity badge beneath its title and exposes
+  only the worker's submissions; assignment creation, ownership controls, and
+  the admin assignment ledger remain hidden.
+- Worker submission rows reuse the same responsive ledger presentation shown
+  beneath an expanded admin assignment, preventing owner, date, quantity,
+  evidence, and delete controls from collapsing into one crowded line.
+- Submission creation belongs to the Submissions heading. When submissions
+  exist, a compact rounded plus button sits beside `X/Y submitted`; when none
+  exist, one full-width `Create submission` button appears immediately below
+  the heading. Both expand the existing assignment-bounded submission form in
+  place, with no separate create section or helper subtitle.
+- This is a presentation and worker cutover change only. Existing submission
+  authority, quantity bounds, dispatch locks, material review, queries, API
+  contracts, and database schema are unchanged.
+
+## Production deletion lock visibility (2026-08-30)
+
+- Submission rows derive one visible deletion restriction before interaction.
+	Shipped submissions and submissions viewed during dispatch show a compact
+	informational notice and retain a disabled delete control instead of reporting
+	the restriction only after a click. Material-review state does not restrict
+	the submitting worker from retracting unshipped work.
+- Assignment rows use the same treatment when the order is fulfilled, the
+  assignment already contains submissions, or the order is in dispatch mode.
+  The admin accordion keeps the restriction at the top of its expanded record,
+  while the existing action tooltip exposes the same reason from the collapsed
+  heading.
+- The restriction copy is centralized in a pure presentation policy so worker
+	and operator surfaces use the same reason priority. Mutation authorization,
+	soft-delete behavior, API contracts, and database schema are unchanged.
+
+## Production submission retraction during material review (2026-08-30)
+
+- A production worker may retract their own unshipped submission regardless of
+	whether its material review is pending, approved, or absent. Production editors
+	retain their existing submit-for-others deletion authority; ownership remains
+	server-enforced for ordinary workers.
+- Retraction soft-deletes the submission, removes any unpaid pending payroll
+	created from it, rebuilds canonical sales controls, and refreshes the
+	inventory/production lifecycle. Deleted quantity immediately stops counting as
+	reported or finalized production.
+- A pending material review remains actionable after its last submission is
+	retracted. Its resolution records `SUBMISSION_RETRACTED`, and an administrator
+	may still receive inbound or resolve inventory evidence. A later material
+	approval receives an empty submission set, so it cannot restore production
+	quantity or create worker payroll.
+- For a shared review with other active submissions, only the retracted
+	assignment scope is removed and the remaining review continues normally.
+- Review detail returns active submissions separately from
+	`retractedSubmissions` and exposes `hasRetractedSubmissions`. Notification
+	links carry the exact `reviewId`; the Review panel shows `Retracted` instead of
+	`Qty 0`, explains the audit state, and continues five-second detail refresh in
+	the embedded admin order.
+- No database migration or permission expansion was required. The existing
+	soft-delete field, review resolution JSON, authenticated ownership boundary,
+	and material-review decision authority remain canonical.
+
+## Submission-row material status visibility (2026-08-30)
+
+- Worker and admin submission rows do not render pending or approved material
+  review badges. A recorded submission is communicated by its presence, date,
+  quantity, note, and the section's submitted count.
+- Material review remains a domain and admin-workflow concern. Pending reviews,
+  decision controls, notifications, inventory evidence, and finalization rules
+  are unchanged and continue to render in the dedicated admin review surfaces.
+- Older production-detail presentations follow the same rule. Workers receive
+  neutral submitted-work confirmation rather than material-approval messaging.
+- This is a presentation-only change with no API, database, permission, or
+  material-review lifecycle changes.
+
+## Canonical production workflow status and queue eligibility (2026-08-30)
+
+- Production tables describe the current workflow stage independently from
+  quantity progress. The canonical stages are `Not assigned`,
+  `Partially assigned`, `Assigned`, `In production`, `Awaiting review`, and
+  `Production completed`; a zero production target resolves to
+  `No production required` and is not a production-queue candidate.
+- Assignment coverage determines the pre-production stages, accepted
+  submission quantities determine active progress, unresolved material review
+  takes precedence as `Awaiting review`, and the canonical completed lifecycle
+  determines `Production completed`. The progress column remains a separate
+  completed/target measurement.
+- Every production list and summary query requires at least one active,
+  produceable item control with an active positive production quantity. Stale
+  aggregate production statistics cannot make an order with no live production
+  work appear in Unscheduled or another Production queue.
+- Fulfilled-order deletion guidance is section-scoped rather than repeated per
+  row. Admins see one notice before the Assignments list covering assignments
+  and submissions; production workers see one notice in their Submissions
+  section. The underlying delete controls remain disabled by the existing
+  policy.
+- This change is an additive read projection and query-boundary correction. It
+  does not change database schema, mutation authorization, material-review
+  decisions, or assignment/submission storage.
+
+## Production readiness notice lifecycle (2026-08-30)
+
+- Inventory and material readiness notices are pre-work guidance. They render
+  only when an order has at least one production item and every production item
+  still has zero assigned quantity and zero submitted quantity.
+- As soon as assignment or submission activity exists, the Production surface
+  suppresses Material Pending, Inventory ready, readiness-unavailable, and
+  related inventory notices. The readiness query is disabled at the same
+  boundary so old orders and active work do not request or flash irrelevant
+  setup guidance.
+- Non-production line activity does not suppress guidance for a separate,
+  untouched production line. Legacy handed quantities are recognized even when
+  their aggregate `qty` field is zero.
+- The successful `Inventory ready` notice uses the shared shield-and-check
+  glyph. Its `ShieldCheck` alias resolves to Hugeicons' valid
+  `SecurityCheckIcon`, preventing the shared missing-icon fallback from
+  presenting a search glyph for a completed readiness state.
+- This is presentation and query-enablement behavior only. Material evidence,
+  pending-review records, approval decisions, Inventory tab data, assignment
+  authority, and submission persistence are unchanged.
+
+## Production calendar-date normalization (2026-08-30)
+
+- Production assignment due dates are operational calendar days, not elapsed
+  timestamps. New and edited assignment dates are normalized before transport,
+  queue predicates use one New York business-date boundary helper, and table
+  presentation uses `Today`, `Tomorrow`, and day-overdue labels instead of hour
+  countdowns from midnight.
+- Single-item, menu, inline, and batch assignment entry points share the same
+  normalization. Exact-date, due-today, tomorrow, future, and past-due queries
+  share half-open date ranges rather than process-local `startOf("day")` calls.
+- The compatibility representation remains a canonical UTC-anchored `DateTime`
+  until a system-wide calendar-date migration can move calendar-only database
+  fields and API contracts to `DATE` / `YYYY-MM-DD`. Historical timestamps are
+  not rewritten without a field-level timezone audit because their original
+  calendar intent can be ambiguous.
+- Assignment, unassignment, and submission are mandatory operational in-app
+  channels. Direct forced recipients remain visible even when ordinary channel
+  preferences exclude optional notifications.
+- Focused date, query, and notification tests pass. With explicit operator
+  approval, live assignment `14290` on order `09480AD` was deleted and recreated
+  for Carlos at quantity two with an August 30 due date. Authenticated worker QA
+  confirms `Today`, Due Today count 1, no Past Due match, and both lifecycle
+  notifications in Carlos's inbox.
+
+## Production worker table alignment (2026-08-30)
+
+- Worker tables derive sticky columns from their active column definition. The
+  admin-only selection column is not reserved when it is absent from worker
+  mode, and the same derived sticky layout is supplied to the header and body.
+- Authenticated Due Today and Past Due checks confirm all seven visible header
+  and row cells share identical horizontal positions and widths. The former
+  50px Due Date displacement is eliminated without changing the admin checkbox
+  column or mobile card layout.
+
+## Review Queue Sidebar Pagination (2026-08-29)
+
+- The canonical Review tab loads pending material reviews in bounded 20-row
+  cursor pages instead of presenting the full queue as one document-length
+  list.
+- The standalone review sidebar has a viewport-aware fixed height, its own
+  keyboard-focusable vertical scroll region, and overscroll containment. The
+  selected material-review detail remains visible while an operator browses
+  the queue.
+- Scrolling near the bottom automatically requests the next page through the
+  existing `nextCursor` contract. Embedded legacy uses of the shared panel keep
+  their explicit Load more fallback because they do not own an internal scroll
+  container.
+- No API, database, permission, migration, or ADR contract changed; this reuses
+  the existing material-review cursor query.
+
+## Inline order material review and cross-session refresh (2026-08-30)
+
+- Sales Overview's admin Production tab embeds the canonical pending-material
+  review workflow above the order items. The panel is scoped by the open sales
+  number, renders only when that order has a pending review, and reuses the
+  existing permission-guarded decision mutation rather than adding a second
+  approval path.
+- The order-scoped panel renders only that order's reconciliation detail. It
+  omits the pending-review queue because the surrounding Sales Overview already
+  supplies the order context. The standalone Reviews workspace retains its
+  searchable, paginated queue beside the selected review.
+- Material evidence and manual availability selection share one flat checklist
+  instead of repeating the same needs in summary and action cards. Each row
+  includes the canonical production description (such as item type and size),
+  readiness, and available/required quantities. Directly resolvable rows have an
+  enabled checkbox; linked-inbound and already-resolved rows remain visible and
+  read-only.
+- Both inline and standalone review detail use one outer shadcn Card with flat
+  divided sections. The standalone queue uses divided rows rather than a stack
+  of nested cards.
+- The review copy distinguishes a status recheck from an approval. `Recheck
+  material status` may correctly remain pending; the resulting message directs
+  the operator to receive linked inbound items or select independently verified
+  needs before approval.
+- Open assignment/submission ledgers listen for same-session production query
+  events and use a bounded five-second refresh while mounted. The embedded
+  review query uses the same bounded interval. This closes the different-browser
+  gap between a worker submission, an admin decision, and the other user's open
+  order without refreshing the entire page.
+- The canonical decision still owns inventory evidence updates, final review
+  state, production progress, payroll/completion effects, and direct worker
+  notification. No database schema, API contract, permission rule, or durable
+  architecture decision changed.

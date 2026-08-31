@@ -2,6 +2,7 @@
 
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { DispatchCompletionDecisionModal } from "@/components/dispatch-completion-decision-modal";
+import { useDispatchAssignmentAddressGuard } from "@/components/dispatch-assignment/address-guard";
 import { SalesMenu } from "@/components/sales-menu";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useAuth } from "@/hooks/use-auth";
@@ -27,27 +28,13 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
 
 import { isPendingDispatchStatus } from "./sales-selection";
+import { getDispatchPackingTotals } from "./packing-totals";
 
 export type SalesDispatch = RouterOutputs["dispatch"]["index"]["data"][number];
 
 type Column = ColumnDef<SalesDispatch>;
 type DispatchStatus = NonNullable<SalesDispatch["status"]>;
 type DateValue = string | number | Date | null | undefined;
-type PackingTotal = {
-	total?: number | string | null;
-};
-type PackingControl = {
-	packed?: PackingTotal | null;
-	pendingPacking?: PackingTotal | null;
-};
-type DispatchWithPacking = SalesDispatch & {
-	control?: PackingControl | null;
-	statistic?: PackingControl | null;
-	order?: SalesDispatch["order"] & {
-		control?: PackingControl | null;
-	};
-};
-
 const selectColumn: Column = {
 	id: "select",
 	...sizes.custom(50, 50),
@@ -204,7 +191,7 @@ function createProgressColumn(compact = false): Column {
 	return {
 		id: "packingProgress",
 		header: "Progress",
-		accessorFn: (row) => getPackingTotals(row).packed,
+		accessorFn: (row) => getDispatchPackingTotals(row).packed,
 		...sizes.custom(118, 180, 132),
 		enableResizing: true,
 		meta: {
@@ -381,6 +368,7 @@ function AssignedDriverCell({ item }: { item: SalesDispatch }) {
 		(typeof drivers)[number] | null
 	>(null);
 	const [confirmOpen, setConfirmOpen] = useState(false);
+	const assignmentAddressGuard = useDispatchAssignmentAddressGuard();
 	const updateDriver = useMutation(
 		trpc.dispatch.updateDispatchDriver.mutationOptions({
 			onSuccess() {
@@ -412,11 +400,20 @@ function AssignedDriverCell({ item }: { item: SalesDispatch }) {
 		const currentDriverId = (item.driver as { id?: number } | null)?.id ?? null;
 		if (currentDriverId === driverId) return;
 
-		updateDriver.mutate({
-			dispatchId: item.id,
-			oldDriverId: currentDriverId,
-			newDriverId: driverId,
-		});
+		const update = () =>
+			updateDriver.mutate({
+				dispatchId: item.id,
+				oldDriverId: currentDriverId,
+				newDriverId: driverId,
+			});
+		if (driverId) {
+			void assignmentAddressGuard.guardAssignment(
+				{ dispatchIds: [item.id] },
+				update,
+			);
+			return;
+		}
+		update();
 	};
 
 	return (
@@ -473,6 +470,7 @@ function AssignedDriverCell({ item }: { item: SalesDispatch }) {
 					</AlertDialog.Footer>
 				</AlertDialog.Content>
 			</AlertDialog>
+			{assignmentAddressGuard.dialog}
 		</>
 	);
 }
@@ -484,7 +482,7 @@ function PackingProgressCell({
 	item: SalesDispatch;
 	compact?: boolean;
 }) {
-	const { packed, pending, total } = getPackingTotals(item);
+	const { packed, pending, total } = getDispatchPackingTotals(item);
 	const ratio = total <= 0 ? 0 : packed / total;
 	const colorClass =
 		ratio >= 1
@@ -516,7 +514,7 @@ function PackingProgressCell({
 function DispatchStatusCell({ item }: { item: SalesDispatch }) {
 	const [status, setStatus] = useState(item.status);
 	const [completionDialogOpen, setCompletionDialogOpen] = useState(false);
-	const { packed, pending } = getPackingTotals(item);
+	const { packed, pending } = getDispatchPackingTotals(item);
 	const hasPendingPackings = pending > 0;
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -777,28 +775,6 @@ function getCustomerName(item: SalesDispatch) {
 
 function getCustomerPhone(item: SalesDispatch) {
 	return item.order?.shippingAddress?.phoneNo || item.order?.customer?.phoneNo;
-}
-
-function getPackingTotals(item: SalesDispatch) {
-	const source = item as DispatchWithPacking;
-	const packed = Number(
-		source.order?.control?.packed?.total ||
-			source.control?.packed?.total ||
-			source.statistic?.packed?.total ||
-			0,
-	);
-	const pending = Number(
-		source.order?.control?.pendingPacking?.total ||
-			source.control?.pendingPacking?.total ||
-			source.statistic?.pendingPacking?.total ||
-			0,
-	);
-
-	return {
-		packed,
-		pending,
-		total: packed + pending,
-	};
 }
 
 function toDate(value: DateValue) {

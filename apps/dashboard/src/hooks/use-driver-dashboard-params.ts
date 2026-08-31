@@ -4,6 +4,9 @@ import { createLoader, parseAsString, parseAsStringLiteral } from "nuqs/server";
 export const driverDashboardViews = [
 	"today",
 	"all",
+	"packed",
+	"in_progress",
+	"attention",
 	"exceptions",
 	"completed",
 ] as const;

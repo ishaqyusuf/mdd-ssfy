@@ -1,5 +1,20 @@
 # API Contracts
 
+## Bulk Production Completion Task (2026-08-29)
+
+- `bulk-mark-sales-production-completed` accepts a server-stamped actor plus a
+  UUID request id and 1-40 deduplicated positive Sales Order ids. Browser
+  callers provide only the request id and ids; the task trigger derives the
+  authenticated actor and rejects users without Production access.
+- One durable parent reloads current lifecycle state, skips orders already past
+  production completion, runs eligible canonical sales-control children with
+  request/order idempotency, and returns totals for `succeeded`,
+  `alreadyCompleted`, `awaitingReview`, and `failed` plus per-order outcomes.
+- Task-start schema messages are trusted application-authored messages. The
+  dashboard returns and displays their first validation issue (including the
+  40-order limit), while unknown exceptions still pass through the shared
+  public-error classifier and remain generic.
+
 ## Material And Production Sales Handoff Actions (2026-08-23)
 
 - Protected `sales.getSalesHandoffActions({ limit? })` accepts only an optional
@@ -196,17 +211,45 @@
 - Workspace list inputs add URL-compatible lifecycle stages, driver ids, due
   buckets, delivery modes, schedule range, and risk filters. List rows expose a
   shared lifecycle projection plus risk codes while retaining legacy status.
-- `dispatch.workspaceSummary` returns backlog, overdue, open-exception, and
-  per-stage counts used by the five actionable admin summaries.
+- `dispatch.workspaceSummary` returns backlog, overdue, open-exception,
+  permission-aware driver, and per-stage counts used by the admin workspace.
+  Open exceptions count native open driver reports plus distinct dispatches
+  with pending guarded-packing review batches.
 - `dispatch.backlog` returns eligible delivery/pickup orders with no active
   non-cancelled dispatch. Rows include order title/number, customer,
-  delivery-mode, and status metadata for the Fulfillment selector.
-- `dispatch.createDispatches` accepts 1-50 positive order ids, one delivery
-  mode, one due date, and an optional driver. It deduplicates ids, applies the
-  existing dispatch-manager and Special Order checks, rechecks that every order
-  still satisfies backlog eligibility inside the database transaction, and
-  creates one dispatch per order atomically. One stale/ineligible order rejects
-  the complete batch.
+  delivery-mode, nullable order-level `deliveryDueDate`, and status metadata
+  for the Fulfillment selector. `deliveryDueDate` initializes a new plan only;
+  it is not an existing dispatch schedule. Backlog
+  sorting accepts `createdAt.asc` or `createdAt.desc`, defaults to oldest-first,
+  and treats unrelated sort fields as the default rather than applying dispatch
+  due-date semantics to Sales Orders.
+- `dispatch.exceptions` returns one chronological projection of native driver
+  reports and guarded-packing review batches. Each row exposes a stable
+  source-qualified key and `source = driver_report | guarded_packing`; pending
+  packing reviews map to Open and approved, rejected, or cancelled reviews map
+  to Resolved.
+- `dispatch.backlog` optionally accepts up to 50 positive `ids` for exact
+  hydration of URL-prefilled planner selections while retaining the canonical
+  backlog eligibility predicate.
+- `dispatch.createDispatches` accepts 1-50 unique `{ salesId, dueDate }` order
+  plans, one delivery mode, an optional batch `overrideDueDate`, and an optional
+  driver. Every individual date remains explicit in the request. When an
+  override is present, the server resolves it as the effective date for every
+  created dispatch; otherwise each dispatch receives its individual date. The
+  command applies the existing dispatch-manager and Special Order checks,
+  rechecks that every order still satisfies backlog eligibility inside the
+  database transaction, and creates one dispatch per order atomically. One
+  duplicate, stale, or ineligible order rejects the complete batch.
+
+## New Sales Form operational dates (2026-08-30)
+
+- New Sales Form order payloads accept nullable ISO-compatible
+  `meta.prodDueDate` and `meta.deliveryDueDate` values.
+- Save writes the values to `SalesOrders.prodDueDate` and
+  `SalesOrders.deliveryDueDate`, and bootstrap returns those scalar values ahead
+  of any stale compatibility metadata.
+- Quotes keep both operational dates null. Neither field creates a production
+  assignment or dispatch as a side effect of saving the commercial document.
 - `dispatch.driverManifest` ignores caller driver scope, applies the
   authenticated user id, and returns `{ queue, summary, nextStop }`.
 - `dispatch.reportException` accepts a positive dispatch id, bounded reason,
@@ -1453,8 +1496,24 @@ Tracks important request/response contracts and shared schema boundaries.
   the canonical approval completion effects. It cannot bypass configured stock,
   inbound, or availability blockers.
 - If blockers remain after a valid resolution, inventory changes commit, the
-  review stays pending with refreshed evidence, and the exact unresolved
-  snapshot is returned. Final decisions are idempotent.
+	review stays pending with refreshed evidence, and the exact unresolved
+	snapshot is returned. Final decisions are idempotent.
+- Submission retraction is independent of material-review status. The
+	authenticated worker may soft-delete their own unshipped submission while a
+	review is pending; editors retain the established elevated boundary. The
+	detail query returns active `submissions`, `retractedSubmissions`, and
+	`hasRetractedSubmissions` so stale notification targets remain explainable.
+- Material-review detail also returns scoped `productionItems` with the
+  canonical item title and composed production description. The description
+  combines section/type and subtitle metadata without duplicating an existing
+  section prefix, allowing repeated material names to remain distinguishable by
+  configuration and size.
+- When the final active submission is retracted, the pending review records a
+	`SUBMISSION_RETRACTED` resolution and remains available for inventory-only
+	resolution. Decision commands accept that audited zero-active-submission
+	state, but approval passes an empty production submission set and therefore
+	cannot recreate quantity or payroll. A partial batch retraction narrows the
+	review assignment scope to its remaining active submissions.
 
 ## Manual activity note audit contract (2026-08-04)
 
@@ -1877,3 +1936,274 @@ implementation phase is approved and released.
   supported operational channels. It ignores caller author and recipient data,
   reloads the job or dispatch, authorizes that entity, and derives canonical
   scope and recipients before sending.
+
+## Received inbound application attention contract (2026-08-28)
+
+- `inventories.inboundNeedsApplicationAttention` accepts `{ take, salesOrderId? }`.
+  `take` remains bounded to 1–100; `salesOrderId`, when supplied, must be a
+  positive integer and scopes candidates through the linked demand's sales order.
+- The response remains the existing received-inbound attention row contract. The
+  optional order scope lets Sales Overview render only repair candidates owned by
+  the currently open order without introducing another endpoint.
+- Explicit Apply continues through
+  `inventories.applyInboundNeedsApplicationAttention` and the canonical
+  inbound-to-needs application service. Production and guarded packing workflows
+  may invoke the same package service internally before evaluating readiness;
+  those internal repairs are order-scoped for discovery and prioritization,
+  actor-attributed, idempotent, and use no new API or database contract. Applying
+  a shipment remains shipment-wide so shared inbound capacity retains one
+  canonical reversible application event.
+
+## Configurable guarded packing and dispatch lifecycle contract (2026-08-28)
+
+- `packingReports.submit` accepts one dispatch-level selection containing normal
+  and policy-eligible guarded quantities. Normal quantities continue through the
+  canonical packing command; guarded quantities are grouped into one immutable
+  review batch and one notification destination rather than item-level approvers.
+- `packingReports.decideBatch` approves or rejects the pending rows for that
+  dispatch atomically. Approval applies the exact snapshotted quantities and
+  optional evidence policy; rejection changes no delivery fact. Nonblocking
+  policy permits trip progress while review is pending, and completed, delivered,
+  or cancelled dispatches expose the decision as read-only history.
+- `sales.updateGuardedPackingSettings` preserves the immutable policy snapshot
+  on every existing report, but a strict-to-nonblocking transition re-evaluates
+  all pending dispatches against the new effective delivery gate. Fully covered
+  dispatches move to packed readiness without changing report status, and the
+  response includes pending, ready, notified-driver, and notification-failure
+  counts. Policy persistence, dispatch reconciliation, and direct in-app driver
+  activity creation execute inside one serializable transaction; a failed
+  reconciliation or assigned-driver notification rolls back the policy change.
+  The serializable transition is bounded to 100 distinct pending dispatches and
+  a 60-second timeout; exceeding the bound rejects before persistence.
+- The direct trip-start, status, inventory, and driver-manifest guards read the
+  current guarded-packing policy when deciding whether pending approval blocks
+  delivery. The historical report snapshot remains audit and approval authority;
+  true dispatch-bound inventory readiness remains an independent mandatory gate.
+  Pending reviews remain decidable while a trip is in progress whenever that
+  current policy is nonblocking, including reports whose immutable snapshot was
+  created under the older strict policy.
+- Driver assignment, unassignment, and due-date changes create explicit in-app
+  lifecycle notifications for the affected driver. These mandatory operational
+  channels remain visible even when ordinary channel preferences exclude them,
+  and their action payload opens the exact dispatch. Driver update responses
+  include notification delivery results so the dashboard can surface a genuine
+  inbox-delivery failure.
+- `sales_dispatch_approval_pending_released` is the direct in-app driver channel
+  for a fully verified pending dispatch released by a policy change. Its typed
+  action opens the exact dispatch; reports remain `PENDING` and are not
+  auto-approved.
+- The Fulfillment v2 server prefetch and client dispatch-list query use the same
+  normalized filter and page-size contract. This prevents an unauthenticated
+  server-side HTTP refetch during hydration while preserving client refetches.
+- Canonical Sales Mark As completion invalidates the dispatch list, index,
+  summary, backlog, detail, overview, exceptions, and driver workload queries
+  in addition to Sales queries. Fulfilled orders therefore move across
+  Fulfillment views without a second dispatch-only update.
+
+## Canonical fulfillment hardening contract (2026-08-28)
+
+- Admin and driver packing use `dispatch.confirmPacking`. The overview response
+  returns the packing command revision after the overview projection is loaded,
+  and clients refresh that revision at submit time. Repeated presentation lines
+  for one `salesItemId` are combined before the command reaches inventory.
+- `bulkAssignDriver` applies the notification-aware single-dispatch updater to
+  every changed row. Assignment and unassignment therefore create the same
+  mandatory in-app lifecycle records in single and bulk flows; unchanged rows
+  remain no-ops.
+- General delivery reads order active delivery records newest-first. Queued
+  fulfillment cancellation ignores an `unknown` control fallback and derives
+  the post-cancel production state from canonical workflow evidence.
+- Completed delivery signatures remain stored as SVG proof documents. The
+  signed-packing-slip job fetches and validates the stored path and passes it to
+  the PDF templates as native vector content; SVG URLs are never sent to the
+  raster-only PDF image decoder.
+- Dispatch-list packing totals prefer the row's dispatch control. When an
+  unstarted dispatch has no listed or packed rows, only the order's remaining
+  packing quantity supplies its denominator; historical order-level packed
+  quantity is never borrowed. This shows genuine `0/n` work without making a
+  duplicate or replacement dispatch inherit another dispatch's packed total.
+
+## Canonical dispatch packing-total contract (2026-08-29)
+
+- `dispatch.list` and `dispatch.dispatchOverviewV2` resolve totals through the
+  same package-owned rule: current listed dispatch quantity is authoritative
+  once an allocation exists; otherwise ordered/remaining quantity is the
+  target; the denominator can never be lower than packed quantity.
+- `OrderItemDelivery` rows with `packingStatus = unpacked` are retained as
+  immutable packing history but are not current allocations. Dispatch list
+  controls, overview item/summary quantities, cross-dispatch coverage, and
+  packing-slip composition all exclude those audit rows. Packed, pending-review,
+  and legacy null-status rows remain current according to the existing workflow.
+- Dispatch overview reads still include every non-deleted allocation so packing
+  history remains complete. Legacy rows fall back from submission or control
+  UID linkage to their sales-item id when current quantity is projected.
+- The response shape is unchanged. `summary.total`, `summary.listed`, and
+  `summary.packed` now agree with the fulfillment-list numerator and denominator.
+  A true empty/non-shippable dispatch remains `0/0`; an unstarted 53-unit
+  dispatch reports `0/53`.
+
+## Sales production batch lifecycle contract (2026-08-29)
+
+- `sales.productions` and authenticated-worker `sales.productionTasks` rows now
+  include `lifecycleStatus`, derived from the stored order status plus canonical
+  production and delivery projections.
+- The field uses the existing Sales order lifecycle vocabulary. It is additive;
+  existing production `completed` and `status` fields are unchanged.
+- Admin batch status actions combine `lifecycleStatus` with the existing
+  production-completion boolean to exclude orders already past the requested
+  transition before preflight or task dispatch. Worker surfaces consume the
+  additive field but expose no admin selection action.
+
+## Backlog bulk fulfillment contract (2026-08-29)
+
+- The dashboard task trigger accepts `bulk-mark-sales-fulfilled` with a stable
+  request id and 1-40 unique positive Sales ids. The server ignores client actor
+  claims and stamps the authenticated actor before enqueueing one parent run.
+- The parent job rechecks fulfillment permission, resolves dispatches
+  idempotently, invokes canonical sales-control children with per-order global
+  idempotency, and returns aggregate counts plus privacy-safe per-order outcomes.
+- `BulkFulfillmentResult.backlogCount` is the authoritative canonical Backlog
+  count measured after every child reaches terminal state. Dashboard consumers
+  may use it to reconcile cached Fulfillment analytics after invalidation.
+- `dispatch.workspaceSummary` and `dispatch.backlog` share
+  `buildSalesDispatchBacklogWhere`; Backlog means a non-deleted delivery/pickup
+  Sales order with no order-level delivery completion and no non-cancelled,
+  non-deleted dispatch.
+- No schema, migration, response removal, or permission expansion was made.
+
+## Sales production invoice and filter contract (2026-08-29)
+
+- `sales.productions` accepts the additive URL-compatible filters
+  `customer.name`, `phone`, `po`, `sales.rep`, `salesNo`, `item`, and `invoice`.
+  Production invoice values are restricted to `paid` and `pending`, where
+  `pending` is presented to operators as Outstanding.
+- Production list and summary queries preserve the same filter values so queue
+  rows and summary counts remain consistent. Calendar and review projections
+  intentionally omit incompatible order/payment filters.
+- Admin production list rows add a read-only `invoice` projection containing
+  nullable `total`, nullable `amountDue`, and status `paid`, `outstanding`, or
+  `unknown`. Existing production, lifecycle, permission, and mutation contracts
+  are unchanged.
+
+## Fulfillment queue presentation contract (2026-08-29)
+
+- `dispatch.backlog` and `dispatch.list` add the Sales Orders-compatible order
+  presentation required by fulfillment tables: customer identity, repaired
+  invoice/CCC totals, balance, latest payment-review marker, production state,
+  and canonical order lifecycle status.
+- The projection is additive. Existing dispatch lifecycle, packing, driver,
+  destination, and pagination fields remain unchanged.
+- `dispatch.workspaceSummary.active` is the authoritative count of non-terminal
+  dispatch lifecycle rows. It excludes both fulfilled and cancelled stages and
+  uses the same canonical lifecycle projection as the Active table preset.
+
+## Driver Ready route and safe-manifest contract (2026-08-29)
+
+- `dispatch.driverWorkQueue` adds a server-owned route capability per assigned
+  stop. `ready` requires canonical packed state, a destination, no blocking
+  manifest/packing/inventory review, and inventory departure readiness.
+- `dispatch.driverWorkQueueSummary` adds stable `ready`, `packedBlocked`, and
+  `needsAttention` counts. Dashboard view selection does not change those
+  summary totals.
+- `dispatch.startReadyRoute` accepts 1-50 unique explicit dispatch ids plus a
+  request id. It reuses the canonical single-stop transition and returns
+  per-stop `started`, `already_started`, or `blocked` results with aggregate
+  counts. It never starts hidden or inferred stops.
+- Assigned-driver manifest responses expose only shippable, driver-safe item
+  presentation. Labor, rate, cost, price, and line-total content is excluded;
+  type, size, handing, and quantity are normalized so each fact appears once.
+- Existing single-stop Start Trip, proof, packing, and selected-stop contracts
+  remain available and authoritative.
+
+## Dispatch packing-command reliability contract (2026-08-29)
+
+- `dispatch.confirmPacking` clients must fetch the current overview revision at
+  submission time without accepting the normal query freshness window.
+- A handled request uses `qty = 0` with positive `lh` and/or `rh`; a
+  single-quantity request uses positive `qty` with `lh = rh = 0`. Sending both
+  representations is invalid.
+- Legacy shipping rows may materialize through non-production Sales control
+  when production is absent or explicitly false. Explicit production rows
+  continue to require canonical production/material evidence.
+- Genuine stale manifest and idempotency reuse remain conflict responses.
+  Inventory shortage, unavailable quantity, terminal/scope validation, and
+  packing-review preconditions preserve an actionable public message with
+  `PRECONDITION_FAILED` transport semantics.
+
+## Driver route destination contract (2026-08-29)
+
+- Driver list and manifest projections expose `routeDestination` with sanitized
+  `primary`, `route`, `verified`, `requiresNormalization`, and
+  `displaySecondary` fields plus the applicable warehouse `routeOrigin`.
+- `dispatch.normalizeDestination` accepts a positive `dispatchId`, Google
+  `placeId`, and optional session token. The server resolves place details and
+  persists versioned dispatch-scoped routing evidence; callers cannot submit
+  coordinates or normalized address fields directly.
+- Customer shipping data remains unchanged. Start Trip accepts either an
+  existing textual customer destination or a verified dispatch route
+  destination; pickup uses the warehouse destination.
+- A packed capability blocked only by `DESTINATION_REQUIRED` is a Start Trip
+  candidate for UI preflight, not departure authority. The start mutation still
+  reloads the saved destination and all other canonical guards.
+
+## Dispatch assignment destination contract (2026-08-30)
+
+- `dispatch.assignmentDestinationPreflight` accepts either dispatch ids or
+  Sales ids plus delivery mode and returns ordered `ready` and `missing`
+  destinations. A delivery destination is ready only when the order shipping
+  address carries Google place identity and coordinates; pickup is ready through
+  its warehouse destination.
+- `dispatch.normalizeAssignmentDestination` accepts a positive Sales id, Google
+  place id, and optional session token. The server resolves the place and saves
+  it as a sale-scoped shipping address; clients cannot submit trusted coordinates
+  or normalized address fields.
+- `createDispatch`, `createDispatches`, `updateDispatchDriver`, and
+  `bulkAssignDriver` enforce the same rule when assigning a non-null driver.
+  Bulk assignment performs the complete address preflight before its first
+  write. Unassignment does not require address readiness.
+- Address normalization preserves the existing sale recipient contact fields
+  and does not update the customer's master address.
+
+## Sales production workflow projection (2026-08-30)
+
+- `sales.productions` rows add `status.production.workflow` as an additive,
+  read-only projection with `code`, `label`, `score`, `total`, and
+  `percentage`. `code` is one of `not_applicable`, `not_assigned`,
+  `partially_assigned`, `assigned`, `in_production`, `awaiting_review`, or
+  `production_completed`.
+- The existing `status.production.status` remains available for legacy
+  lifecycle and mutation compatibility. Consumers must use `workflow.label`
+  for the operator-facing stage and `workflow.percentage` for progress.
+- Production list and summary filters now require one active produceable item
+  control with an active positive `qty` control. This keeps queue rows and
+  summary counts aligned and excludes orders that have no live production
+  work.
+- No request shape, mutation contract, permission, database schema, or
+  migration changed.
+
+## Fulfillment workspace section contract (2026-08-30)
+
+- `dispatchWorkspaceSections` and `dispatch.list` accept `completed` as a
+  first-class section. The router forwards `section` to the repository instead
+  of treating it as presentation-only query state.
+- `dispatch.list(section: "active")` returns canonically nonterminal dispatches
+  that have a driver, plus open pickup dispatches. It excludes unassigned
+  deliveries, fulfilled dispatches, and cancelled dispatches even when the raw
+  `OrderDelivery.status` disagrees with Sales control.
+- `dispatch.list(section: "completed")` returns only canonical `fulfilled`
+  lifecycle rows. Section membership is applied before the final page and
+  cursor are emitted.
+- `dispatch.workspaceSummary` returns `backlog`, `active`, `completed`, `all`,
+  `openExceptions`, `overdue`, `driverCount`, and `byStage`. Active, Completed,
+  and stage totals are calculated from the same enriched lifecycle projection
+  as list membership.
+- Dispatch list rows include additive `updatedAt` and `deliveredAt` timestamps.
+  No mutation input, permission boundary, database schema, or migration changed.
+- `dispatch.list` also accepts `due-today` and `past-due`. They are canonical
+  Active subsets using the existing business-timezone due buckets `today` and
+  `overdue`, respectively. Database due boundaries narrow candidates before
+  enrichment; canonical section membership still decides the returned page.
+- `dispatch.workspaceSummary.dueToday` and `.pastDue` are exact global counts
+  from the same enriched records and membership helper. The legacy-compatible
+  `.overdue` summary value now aliases `.pastDue` so dashboard alerts and the
+  Past Due tab reconcile.

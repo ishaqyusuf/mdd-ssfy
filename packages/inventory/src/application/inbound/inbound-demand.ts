@@ -2075,6 +2075,7 @@ export async function applyInboundShipmentToNeeds(
   input: {
     inboundId: number;
     actorUserId?: number | null;
+    prioritizeSalesOrderId?: number | null;
   },
 ): Promise<InboundNeedsApplicationResult> {
   const [latestEvent, shipment] = await Promise.all([
@@ -2135,7 +2136,21 @@ export async function applyInboundShipmentToNeeds(
       0,
     );
     let remainingQty = Math.max(0, positiveNumber(item.qty) - alreadyAppliedQty);
-    for (const demand of item.inboundDemands) {
+    const orderedDemands = input.prioritizeSalesOrderId
+      ? [
+          ...item.inboundDemands.filter(
+            (demand) =>
+              demand.lineItemComponent?.parent?.sale?.id ===
+              input.prioritizeSalesOrderId,
+          ),
+          ...item.inboundDemands.filter(
+            (demand) =>
+              demand.lineItemComponent?.parent?.sale?.id !==
+              input.prioritizeSalesOrderId,
+          ),
+        ]
+      : item.inboundDemands;
+    for (const demand of orderedDemands) {
       if (remainingQty <= 0) break;
       const beforeQtyReceived = positiveNumber(demand.qtyReceived);
       const demandQty = positiveNumber(demand.qty);
@@ -2149,7 +2164,7 @@ export async function applyInboundShipmentToNeeds(
         where: {
           id: demand.id,
           deletedAt: null,
-          qtyReceived: demand.qtyReceived,
+          qtyReceived: beforeQtyReceived,
           status: demand.status as InboundDemandQueueStatus,
           lineItemComponent: {
             parent: {

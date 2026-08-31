@@ -122,4 +122,14 @@ export function AppDownloadExpiryReminderEmail({
   );
 }
 
+AppDownloadExpiryReminderEmail.PreviewProps = {
+  recipientName: "Operations Team",
+  version: "2.8.0",
+  expiresAt: "2026-09-05T17:00:00.000Z",
+  downloadApiUrl: "https://gndprodesk.com/api/app/download",
+  sourceUrl: "https://downloads.gndprodesk.com/gnd-mobile.apk",
+  settingsUrl: "https://gndprodesk.com/settings/app-download",
+  notes: "Confirm the replacement build before extending this link.",
+} satisfies AppDownloadExpiryReminderEmailProps;
+
 export default AppDownloadExpiryReminderEmail;

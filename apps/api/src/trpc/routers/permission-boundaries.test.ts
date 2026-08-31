@@ -104,11 +104,13 @@ describe("high-risk tRPC permission boundaries", () => {
 			"cancelDispatch",
 			"startDispatch",
 			"startTrip",
+			"startReadyRoute",
 			"submitDispatch",
 			"completeDispatchWithProof",
 			"reportException",
 			"updateSalesDeliveryOption",
 			"updateDispatchDriver",
+			"normalizeAssignmentDestination",
 			"updateDispatchDueDate",
 			"updateDispatchStatus",
 			"sendSaleForPickup",
@@ -341,6 +343,8 @@ describe("high-risk tRPC permission boundaries", () => {
 		for (const procedure of [
 			"getSalesHandoffTrigger",
 			"updateSalesHandoffTrigger",
+			"getGuardedPackingSettings",
+			"updateGuardedPackingSettings",
 		]) {
 			const start = sales.indexOf(`${procedure}: protectedProcedure`);
 			expect(start).toBeGreaterThanOrEqual(0);

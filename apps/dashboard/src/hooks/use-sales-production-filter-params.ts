@@ -29,7 +29,14 @@ const parseAsProductionDate = createParser({
 
 export const salesProductionFilterParamsSchema = {
 	q: parseAsString,
+	reviewId: parseAsInteger,
 	assignedToId: parseAsInteger,
+	"customer.name": parseAsString,
+	phone: parseAsString,
+	po: parseAsString,
+	item: parseAsString,
+	"sales.rep": parseAsString,
+	invoice: parseAsStringLiteral(["paid", "pending"] as const),
 	tab: parseAsStringLiteral(SALES_PRODUCTION_WORKSPACE_TAB_PARAMS),
 	view: parseAsStringLiteral(SALES_PRODUCTION_WORKSPACE_VIEWS),
 	calendarView: parseAsStringLiteral(operationsCalendarViews).withDefault(

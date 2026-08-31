@@ -1,152 +1,170 @@
 /** @jsxImportSource react */
+import { Heading, Link, Section, Text } from "@react-email/components";
+
 import {
-  Body,
-  Container,
-  Font,
-  Head,
-  Html,
-  Link,
-  Preview,
-  Tailwind,
-  Text,
-} from "@react-email/components";
-import { cva } from "class-variance-authority";
-
-import { cn } from "@gnd/ui/cn";
-
-import { Footer } from "../components/footer";
-import { Logo } from "../components/logo";
+	StandardEmailButton,
+	StandardEmailHeader,
+	StandardEmailLayout,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 type EmailLineStyle = {
-  heading?: boolean;
+	heading?: boolean;
 };
 
 type EmailTextLine = {
-  type: "text";
-  text: string;
-  style?: EmailLineStyle;
+	type: "text";
+	text: string;
+	style?: EmailLineStyle;
 };
 
 type EmailLinkLine = {
-  type: "link";
-  href: string;
-  text: string;
-  style?: EmailLineStyle;
+	type: "link";
+	href: string;
+	text: string;
+	style?: EmailLineStyle;
 };
 
 type EmailTableLine = {
-  type: "table";
-  lines: EmailLine[][];
-  style?: EmailLineStyle;
-  bodyStyle?: EmailLineStyle;
-  trStyle?: EmailLineStyle;
-  tdStyle?: EmailLineStyle;
+	type: "table";
+	lines: EmailLine[][];
+	style?: EmailLineStyle;
+	bodyStyle?: EmailLineStyle;
+	trStyle?: EmailLineStyle;
+	tdStyle?: EmailLineStyle;
 };
 
 type EmailLine = EmailTextLine | EmailLinkLine | EmailTableLine;
 type EmailStack = {
-  lines: EmailLine[];
+	lines: EmailLine[];
 };
 
 type ComposedEmailTemplateProps = {
-  emailStack: EmailStack;
-  preview: string;
+	emailStack: EmailStack;
+	preview: string;
 };
 
-const variants = cva("", {
-  variants: {
-    heading: {
-      true: "text-[#121212] text-[21px] font-normal text-center p-0 my-[30px] mx-0",
-    },
-  },
-});
-const RenderLine = ({ line }: { line: EmailLine }) => {
-  const style = cn(variants(line.style));
-  if (line.type === "text") {
-    return <Text className={style}>{line.text}</Text>;
-  }
-  if (line.type === "link") {
-    return (
-      <Link href={line.href} className={style}>
-        {line.text}
-      </Link>
-    );
-  }
-  if (line.type === "table") {
-    return (
-      <table className={style}>
-        <tbody className={cn(variants(line.bodyStyle))}>
-          {line.lines.map((rows, index) => (
-            <tr className={cn(variants(line.trStyle))} key={index}>
-              {rows?.map((row, rId) => (
-                <td className={cn(variants(line.tdStyle))} key={rId}>
-                  <RenderLine line={row} />
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    );
-  }
-  return null;
-};
+const lineKey = (line: EmailLine) =>
+	line.type === "table"
+		? `table:${JSON.stringify(line.lines)}`
+		: `${line.type}:${line.type === "link" ? line.href : ""}:${line.text}`;
 
-const RenderStack = ({ stack }: { stack: EmailStack }) => {
-  return (
-    <>
-      {stack.lines.map((line, index) => (
-        <RenderLine key={index} line={line} />
-      ))}
-    </>
-  );
-};
+function RenderLine({ line }: { line: EmailLine }) {
+	if (line.type === "text") {
+		return line.style?.heading ? (
+			<Heading
+				className="gnd-standard-heading m-0 mb-[18px] text-[30px] font-normal leading-[38px]"
+				style={{
+					color: standardEmailColors.ink,
+					fontFamily: "Georgia, 'Times New Roman', serif",
+				}}
+			>
+				{line.text}
+			</Heading>
+		) : (
+			<Text
+				className="gnd-standard-text m-0 mb-[14px] text-[15px] leading-[24px]"
+				style={{ color: standardEmailColors.ink }}
+			>
+				{line.text}
+			</Text>
+		);
+	}
+
+	if (line.type === "link") {
+		return line.style?.heading ? (
+			<StandardEmailButton href={line.href}>{line.text}</StandardEmailButton>
+		) : (
+			<Link
+				className="gnd-standard-accent-text text-[14px] font-semibold leading-[22px]"
+				href={line.href}
+				style={{ color: standardEmailColors.cypress }}
+			>
+				{line.text}
+			</Link>
+		);
+	}
+
+	return (
+		<table
+			cellPadding="0"
+			cellSpacing="0"
+			style={{ marginBottom: 14, width: "100%" }}
+		>
+			<tbody>
+				{line.lines.map((row) => (
+					<tr key={JSON.stringify(row)}>
+						{row.map((cell) => (
+							<td
+								key={lineKey(cell)}
+								style={{ padding: "4px 10px 4px 0", verticalAlign: "top" }}
+							>
+								<RenderLine line={cell} />
+							</td>
+						))}
+					</tr>
+				))}
+			</tbody>
+		</table>
+	);
+}
+
+function RenderStack({ stack }: { stack: EmailStack }) {
+	return stack.lines.map((line) => (
+		<RenderLine key={lineKey(line)} line={line} />
+	));
+}
+
 export const composeEmailTemplate = (props: ComposedEmailTemplateProps) => (
-  <EmailTemplate {...props} />
+	<EmailTemplate {...props} />
 );
-export const EmailTemplate = ({
-  emailStack,
-  preview,
-}: ComposedEmailTemplateProps) => {
-  return (
-    <Html>
-      <Tailwind>
-        <Head>
-          <Font
-            fontFamily="Geist"
-            fallbackFontFamily="Helvetica"
-            webFont={{
-              url: "https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.0.1/files/geist-sans-latin-400-normal.woff2",
-              format: "woff2",
-            }}
-            fontWeight={400}
-            fontStyle="normal"
-          />
-          <Font
-            fontFamily="Geist"
-            fallbackFontFamily="Helvetica"
-            webFont={{
-              url: "https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.0.1/files/geist-sans-latin-500-normal.woff2",
-              format: "woff2",
-            }}
-            fontWeight={500}
-            fontStyle="normal"
-          />
-        </Head>
-        <Preview>{preview}</Preview>
-        <Body className="mx-auto my-auto bg-[#fff] font-sans">
-          <Container
-            className="mx-auto my-[40px] max-w-[600px] border-transparent p-[20px] md:border-[#E8E7E1]"
-            style={{ borderStyle: "solid", borderWidth: 1 }}
-          >
-            <Logo />
-            <RenderStack stack={emailStack} /> <br />
-            <Footer />
-          </Container>
-        </Body>
-      </Tailwind>
-    </Html>
-  );
-};
+
+export function EmailTemplate({
+	emailStack,
+	preview,
+}: ComposedEmailTemplateProps) {
+	return (
+		<StandardEmailLayout previewText={preview}>
+			<StandardEmailHeader
+				documentLabel="GND message"
+				documentMeta="Direct communication"
+			/>
+
+			<Section className="gnd-standard-content px-[36px] pb-[34px] pt-[40px]">
+				<RenderStack stack={emailStack} />
+			</Section>
+
+			<StandardEmailSignature
+				department="Customer operations · GND Millwork"
+				senderName="GND Millwork Team"
+			/>
+		</StandardEmailLayout>
+	);
+}
+
+EmailTemplate.PreviewProps = {
+	preview: "A message from GND",
+	emailStack: {
+		lines: [
+			{
+				type: "text",
+				text: "A Message from GND",
+				style: { heading: true },
+			},
+			{ type: "text", text: "Hi Jordan," },
+			{
+				type: "text",
+				text: "Your requested information is ready to review.",
+			},
+			{
+				type: "link",
+				text: "Open GND Pro Desk",
+				href: "https://gndprodesk.com",
+				style: { heading: true },
+			},
+		],
+	},
+} satisfies ComposedEmailTemplateProps;
 
 export default EmailTemplate;

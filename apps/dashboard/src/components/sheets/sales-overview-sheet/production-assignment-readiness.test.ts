@@ -18,12 +18,20 @@ const productionItemExpansionSource = readFileSync(
 	new URL("./use-production-item-expansion.ts", import.meta.url),
 	"utf8",
 );
+const productionItemExpansionPolicySource = readFileSync(
+	new URL("./production-item-expansion-policy.ts", import.meta.url),
+	"utf8",
+);
 const productionItemDetailSource = readFileSync(
 	new URL("./production-item-detail.tsx", import.meta.url),
 	"utf8",
 );
 const productionSubmitFormSource = readFileSync(
 	new URL("./production-submit-form.tsx", import.meta.url),
+	"utf8",
+);
+const productionAssignmentFormSource = readFileSync(
+	new URL("./production-assignment-form.tsx", import.meta.url),
 	"utf8",
 );
 const productionAssignmentRowSource = readFileSync(
@@ -76,18 +84,27 @@ describe("production assignment inventory readiness", () => {
 		assert.doesNotMatch(productionColumnsSource, /Expected/);
 	});
 
-	it("shows and loads readiness only when actual production lines exist", () => {
+	it("defaults new assignments from the saved order production due date", () => {
+		assert.match(productionAssignmentFormSource, /order\?\.prodDueDate/);
+		assert.match(productionAssignmentFormSource, /dueDate: orderProdDueDate/);
+	});
+
+	it("shows and loads readiness only for untouched production work", () => {
 		assert.match(
 			productionTabSource,
 			/itemCount > 0 \? <ProductionReadinessBanner \/> : null/,
 		);
 		assert.match(
 			productionContextSource,
-			/getProductionTabItemCount\(data\?\.items\) > 0/,
+			/shouldShowProductionReadiness\(data\?\.items\)/,
 		);
 		assert.match(
 			productionContextSource,
-			/enabled: Boolean\(data\?\.orderId && hasProductionItems\)/,
+			/enabled: Boolean\(data\?\.orderId && showProductionReadiness\)/,
+		);
+		assert.match(
+			readinessBannerSource,
+			/if \(!production\.showProductionReadiness\) return null/,
 		);
 	});
 
@@ -96,7 +113,14 @@ describe("production assignment inventory readiness", () => {
 	});
 
 	it("keeps worker production focused on immediate item work", () => {
-		assert.match(productionItemExpansionSource, /itemUids\.slice\(0, 1\)/);
+		assert.match(
+			productionItemExpansionSource,
+			/getInitialProductionItemExpansion/,
+		);
+		assert.match(
+			productionItemExpansionPolicySource,
+			/singleOpen \|\| workerMode \? itemUids\.slice\(0, 1\) : \[\]/,
+		);
 		assert.doesNotMatch(productionItemExpansionSource, /itemUids\.length < 4/);
 		assert.match(
 			productionTabSource,
@@ -137,5 +161,17 @@ describe("production assignment inventory readiness", () => {
 			/border-border border-b py-3 text-xs last:border-b-0/,
 		);
 		assert.match(productionTabSource, /Toggle production item/);
+	});
+
+	it("reuses the Sales Form stepper and top-aligns assignment fields", () => {
+		assert.match(productionAssignmentFormSource, /SalesFormQuantityStepper/);
+		assert.doesNotMatch(productionAssignmentFormSource, /NumberInput/);
+		assert.match(productionAssignmentFormSource, /items-start/);
+		assert.match(
+			productionAssignmentFormSource,
+			/grid-cols-1 items-start gap-4 sm:grid-cols-2/,
+		);
+		assert.match(productionAssignmentFormSource, /className="mx-0"/);
+		assert.match(productionAssignmentFormSource, /max=\{pendingQty\}/);
 	});
 });

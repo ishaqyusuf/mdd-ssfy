@@ -1,19 +1,13 @@
 /** @jsxImportSource react */
+import { Section, Text } from "@react-email/components";
+
 import {
-	Body,
-	Container,
-	Heading,
-	Preview,
-	Section,
-	Text,
-} from "@react-email/components";
-import { Footer } from "../components/footer";
-import { Logo } from "../components/logo";
-import {
-	EmailThemeProvider,
-	getEmailInlineStyles,
-	getEmailThemeClasses,
-} from "../components/theme";
+	StandardEmailHeader,
+	StandardEmailHero,
+	StandardEmailLayout,
+	StandardEmailSignature,
+	standardEmailColors,
+} from "../components/standard-email";
 
 type Props = {
 	preview: string;
@@ -30,39 +24,59 @@ export default function SpecialOrderStatusNotificationEmail({
 	orderNo,
 	message,
 }: Props) {
-	const themeClasses = getEmailThemeClasses();
-	const lightStyles = getEmailInlineStyles("light");
 	return (
-		<EmailThemeProvider preview={<Preview>{preview}</Preview>}>
-			<Body
-				className={`my-auto mx-auto font-sans ${themeClasses.body}`}
-				style={lightStyles.body}
+		<StandardEmailLayout previewText={preview}>
+			<StandardEmailHeader
+				documentLabel="Status update"
+				documentMeta={`Order ${orderNo}`}
+			/>
+
+			<StandardEmailHero
+				eyebrow="Special Order"
+				recipientName={recipientName}
+				title={headline}
 			>
-				<Container
-					className={`my-[28px] mx-auto p-[20px] max-w-[640px] ${themeClasses.container}`}
+				<Text
+					className="gnd-standard-text m-0 mt-[10px] text-[15px] leading-[24px]"
+					style={{ color: standardEmailColors.ink }}
 				>
-					<Logo />
-					<Section className="mt-[20px] mb-[18px] rounded-[12px] border border-solid border-[#f59e0b] bg-[#fffbeb] p-[20px]">
-						<Text className="m-0 text-[12px] uppercase tracking-[1.4px] text-[#92400e]">
-							Special Order · #{orderNo}
-						</Text>
-						<Heading className="m-0 mt-[8px] text-[26px] leading-[32px] font-semibold text-[#451a03]">
-							{headline}
-						</Heading>
-					</Section>
-					<Text
-						className={`m-0 mb-[12px] text-[15px] leading-[24px] ${themeClasses.text}`}
-					>
-						Hi {recipientName},
-					</Text>
-					<Text
-						className={`m-0 mb-[20px] text-[15px] leading-[24px] ${themeClasses.text}`}
-					>
-						{message}
-					</Text>
-					<Footer />
-				</Container>
-			</Body>
-		</EmailThemeProvider>
+					There is a new update on your Special Order. The latest status and
+					next step are summarized below.
+				</Text>
+			</StandardEmailHero>
+
+			<Section
+				className="gnd-standard-panel gnd-standard-soft gnd-standard-border gnd-standard-brass-border mx-[36px] mb-[34px] mt-[28px] rounded-[6px] border border-solid px-[20px] py-[20px]"
+				style={{
+					backgroundColor: standardEmailColors.soft,
+					borderColor: standardEmailColors.border,
+					borderLeft: `4px solid ${standardEmailColors.brass}`,
+				}}
+			>
+				<Text
+					className="gnd-standard-muted m-0 text-[12px] font-semibold uppercase tracking-[0.9px]"
+					style={{ color: standardEmailColors.muted }}
+				>
+					Order {orderNo} · What this means
+				</Text>
+				<Text
+					className="gnd-standard-text m-0 mt-[9px] text-[15px] leading-[24px]"
+					style={{ color: standardEmailColors.ink }}
+				>
+					{message}
+				</Text>
+			</Section>
+
+			<StandardEmailSignature />
+		</StandardEmailLayout>
 	);
 }
+
+SpecialOrderStatusNotificationEmail.PreviewProps = {
+	preview: "Your Special Order is ready for production",
+	recipientName: "Jordan Lee",
+	headline: "Special Order Approved",
+	orderNo: "GND-10482",
+	message:
+		"We received your approval and will notify you again when production begins.",
+} satisfies Props;

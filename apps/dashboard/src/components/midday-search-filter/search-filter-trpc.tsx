@@ -54,8 +54,8 @@ import {
 	buildOptionLabelLookup,
 	normalizeFilterDefinitions,
 } from "./filter-definitions";
-import { shouldShowFilterMenu } from "./filter-menu-visibility";
 import { FilterList } from "./filter-list";
+import { shouldShowFilterMenu } from "./filter-menu-visibility";
 import { isSearchKey, searchIcons } from "./search-utils";
 import {
 	getClearableFilterUpdate,
@@ -199,13 +199,13 @@ export function SearchFilterTRPC({
 		() => new Set([...lockedKeys, ...hiddenFilterKeys]),
 		[hiddenFilterKeys, lockedKeys],
 	);
-	const usesAdaptivePageTabs =
-		pageTabsLayout === "adaptive" && pageTabs === undefined;
+	const usesAdaptivePageTabs = pageTabsLayout === "adaptive";
 	const pageTabContentCount = savedPageTabs.length + fixedPageTabs.length;
 	const resolvedPageTabCount =
 		pageTabContentCount > 0 ? pageTabContentCount + 1 : 0;
 	const stackPageTabs =
-		usesAdaptivePageTabs && shouldStackPageTabs(resolvedPageTabCount);
+		usesAdaptivePageTabs &&
+		shouldStackPageTabs(resolvedPageTabCount, pageTabs !== undefined);
 
 	const clearEditableFilters = () => {
 		if (excludedFilterKeys.size === 0) {
@@ -319,6 +319,12 @@ export function SearchFilterTRPC({
 			/>
 		);
 	const pageTabsContent = pageTabs === undefined ? defaultPageTabs : pageTabs;
+	const stackedPageTabsContent =
+		pageTabs === undefined ? (
+			pageTabsContent
+		) : (
+			<div className="w-full min-w-0 lg:basis-full">{pageTabsContent}</div>
+		);
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -328,7 +334,7 @@ export function SearchFilterTRPC({
 					usesAdaptivePageTabs && "lg:flex-wrap",
 				)}
 			>
-				{usesAdaptivePageTabs && stackPageTabs ? pageTabsContent : null}
+				{usesAdaptivePageTabs && stackPageTabs ? stackedPageTabsContent : null}
 				{usesAdaptivePageTabs ? null : pageTabsContent}
 				<form className="relative w-full lg:w-auto" onSubmit={handleSubmit}>
 					<Icons.Search className="pointer-events-none absolute left-3 top-[11px] size-4" />

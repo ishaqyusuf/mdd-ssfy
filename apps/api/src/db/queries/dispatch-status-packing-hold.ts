@@ -19,7 +19,9 @@ export async function assertDispatchStatusPackingAllowed(
 	},
 ) {
 	if (!PACKING_REPORT_HELD_STATUSES.has(input.newStatus)) return;
-	await lockAndAssertNoPendingPackingReports(db, input);
+	await lockAndAssertNoPendingPackingReports(db, input, {
+		allowDeliveryWhilePending: true,
+	});
 }
 
 export async function assertDispatchDeletionPackingAllowed(

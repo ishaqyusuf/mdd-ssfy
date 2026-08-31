@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { Prisma } from "@gnd/db";
+import { repairReceivedInboundNeedsForSalesOrder } from "@gnd/inventory/inbound";
 
 import {
   type ProductionMaterialStatus,
@@ -26,6 +27,7 @@ type PrepareProductionSubmissionMaterialReviewInput = {
   submittedById: number;
   idempotencyKey: string;
   itemScope: ProductionSubmissionItemScope[];
+  approvedByAuthorizedOperator?: boolean;
 };
 
 type MaterialProjection = Awaited<
@@ -33,6 +35,7 @@ type MaterialProjection = Awaited<
 >;
 
 type ProductionSubmissionMaterialReviewDependencies = {
+  repairReceivedInboundNeeds?: typeof repairReceivedInboundNeedsForSalesOrder;
   loadMaterials?: (
     db: Db,
     input: {
@@ -57,6 +60,7 @@ type CreatePendingMaterialReviewInput = {
   materialRevision: string | null;
   reason: ProductionSubmissionMaterialReviewReason | null;
   status?: "PENDING" | "APPROVED";
+  approvedByAuthorizedOperator?: boolean;
 };
 
 function normalizeDate(value: Date | string | null | undefined) {
@@ -148,10 +152,18 @@ export async function createPendingMaterialReview(
       assignmentScope: normalizedScope,
       materialSnapshot: input.materialSnapshot,
       materialRevision: input.materialRevision,
+      reviewedById: input.approvedByAuthorizedOperator
+        ? input.submittedById
+        : undefined,
       reviewedAt: input.status === "APPROVED" ? new Date() : undefined,
       resolution:
         input.status === "APPROVED"
-          ? { action: "AUTO_APPROVED_READY" }
+          ? input.approvedByAuthorizedOperator
+            ? {
+                action: "AUTHORIZED_OPERATOR_APPROVED_ON_SUBMISSION",
+                classificationReason: input.reason,
+              }
+            : { action: "AUTO_APPROVED_READY" }
           : undefined,
     },
     update: {},
@@ -242,6 +254,13 @@ export async function prepareProductionSubmissionMaterialReview(
   input: PrepareProductionSubmissionMaterialReviewInput,
   dependencies: ProductionSubmissionMaterialReviewDependencies = {},
 ) {
+  await (
+    dependencies.repairReceivedInboundNeeds ??
+    repairReceivedInboundNeedsForSalesOrder
+  )(db, {
+    salesOrderId: input.salesOrderId,
+    actorUserId: input.submittedById,
+  });
   const evidence = await evaluateProductionSubmissionMaterialEvidence(
     db,
     input,
@@ -253,7 +272,11 @@ export async function prepareProductionSubmissionMaterialReview(
     materialSnapshot,
     materialRevision,
     reason: classification.reason,
-    status: classification.state === "finalized" ? "APPROVED" : "PENDING",
+    status:
+      classification.state === "finalized" ||
+      input.approvedByAuthorizedOperator
+        ? "APPROVED"
+        : "PENDING",
   });
   if (review.status === "REJECTED" || review.status === "CANCELLED") {
     throw new Error(

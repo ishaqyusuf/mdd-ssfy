@@ -184,10 +184,12 @@ export function TaskNotification() {
 										: "border-muted-foreground/40",
 							)}
 						/>
-						{IS_PRODUCTION_TASK_FEEDBACK ? hasFailures ? (
-							<Icons.AlertCircle className="relative size-5" />
-						) : (
-							<Icons.Loader2 className="relative size-5 animate-spin" />
+						{IS_PRODUCTION_TASK_FEEDBACK ? (
+							hasFailures ? (
+								<Icons.AlertCircle className="relative size-5" />
+							) : (
+								<Icons.Loader2 className="relative size-5 animate-spin" />
+							)
 						) : (
 							<span className="relative text-base font-bold">
 								{visibleCount}
@@ -299,7 +301,7 @@ function TaskNotificationWatcher({
 			stop?.();
 		};
 
-		const completeTask = async (shouldFinalize = true) => {
+		const completeTask = async (shouldFinalize = true, output?: unknown) => {
 			const currentTask =
 				useTaskMonitorStore
 					.getState()
@@ -332,6 +334,7 @@ function TaskNotificationWatcher({
 							completedAt,
 						},
 						"success",
+						output,
 					);
 				} catch (effectError) {
 					console.error("Unable to run task success effect", {
@@ -431,7 +434,7 @@ function TaskNotificationWatcher({
 				return;
 			}
 
-			void completeTask();
+			void completeTask(true, run?.output);
 			return;
 		}
 

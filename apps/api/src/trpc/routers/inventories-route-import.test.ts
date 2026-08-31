@@ -126,6 +126,18 @@ describe("inventoriesRouter", () => {
 
 	test("guards inbound status ids as positive integers", async () => {
 		const mod = await import("./inventories.route");
+		expect(
+			mod.inboundNeedsApplicationAttentionSchema.safeParse({
+				take: 20,
+				salesOrderId: 42,
+			}).success,
+		).toBe(true);
+		expect(
+			mod.inboundNeedsApplicationAttentionSchema.safeParse({
+				take: 20,
+				salesOrderId: 0,
+			}).success,
+		).toBe(false);
 
 		expect(
 			mod.updateInboundShipmentStatusSchema.safeParse({

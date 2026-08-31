@@ -1,3 +1,291 @@
+# Production/Fulfillment 20-Record Query And Batch Limits (2026-08-29)
+
+Status: Completed
+
+## Goal
+
+- Cap one Production Completed batch at 20 orders.
+- Make Production and Fulfillment list pagination request 20 records per query.
+- Surface the exact actionable server validation message when a task cannot
+  start, while keeping unknown runtime failures sanitized.
+
+## Implementation
+
+- [x] Add a red regression for Production batches above 20 orders.
+- [x] Change Production and Fulfillment page-size defaults from 50 to 20.
+- [x] Preserve sanitized task errors while exposing trusted start-validation
+  messages to the user.
+- [x] Run focused contract/UI tests and authenticated browser QA.
+- [x] Reconcile Brain feature, API, task, and progress documentation.
+
+## Risk
+
+- Production and Fulfillment use infinite queries in multiple tabs. Change the
+  page size without changing cursor semantics or server-wide counts.
+- Do not expose raw Trigger/runtime errors; only server-classified start errors
+  may bypass the generic production toast.
+
+## Result
+
+- Production and Fulfillment operational list/search requests are bounded to
+  20 records while preserving cursor-based infinite loading.
+- Both durable bulk status contracts reject more than 20 unique Sales Order
+  ids before enqueueing.
+- Schema-owned task-start errors and explicit application errors retain their
+  actionable public text; unknown failures stay on the shared generic message.
+- Authenticated QA selected 40 loaded Production orders and received the exact
+  20-order limit with no Trigger run or data mutation.
+
+---
+
+# Production Two-Row Tabs And Filters Header (2026-08-29)
+
+Status: Completed
+
+## Goal
+
+- Keep the Production workspace tabs together on one horizontal row.
+- Place search, active filters, and table actions on the row below, matching
+  the established Sales Orders adaptive header composition.
+
+## Implementation
+
+- [x] Add regression coverage for adaptive custom page tabs.
+- [x] Extend the shared search/filter header to stack custom tabs correctly.
+- [x] Enable the adaptive layout on the Production header.
+- [x] Run scoped validation, authenticated browser QA, and Brain reconciliation.
+
+## Risk
+
+- The shared search/filter header is used across multiple workspaces. Preserve
+  the current layout unless a caller explicitly opts into adaptive page tabs.
+
+## Result
+
+- The adaptive header now supports caller-supplied page-tab content while
+  retaining the existing saved-tab behavior for Sales Orders.
+- Production opts into that layout: its tab rail owns the first row, while
+  search, active filters, and column controls render below it.
+- Desktop QA showed all seven tabs at `y=282` and search at `y=334`. At a
+  900-pixel viewport, the three visible tabs stayed at `y=398`, the remaining
+  four moved into the existing overflow control, and search started at `y=446`.
+- Focused validation passed 24 tests / 51 assertions; scoped Biome and
+  whitespace checks passed.
+
+---
+
+# Production Invoice Visibility and Filters (2026-08-29)
+
+Status: Completed
+
+## Goal
+
+- Add a read-only Invoice column to the admin Production table so operators can
+  see total and paid/outstanding status without leaving the queue.
+- Add Invoice Status plus the applicable Sales Orders customer/order filters to
+  the Production filter menu and preserve them through the production query.
+- Replace generic Search fallbacks for Assigned To, Queue state, Due date,
+  Material state, and Sort with semantic icons.
+
+## Implementation
+
+- [x] Add focused query/projection/filter/icon regressions.
+- [x] Extend the production list contract and projection with invoice fields.
+- [x] Add the admin Invoice column and responsive-card payment status.
+- [x] Expose applicable Sales Orders filters through the Production toolbar and
+  keep summary/list queries filter-consistent.
+- [x] Run scoped validation, authenticated UI QA, and Brain reconciliation.
+
+## Risk
+
+- Production and Sales query files contain unrelated active work. Preserve
+  existing batch, inventory, lifecycle, and dispatch behavior while changing
+  only the read/filter projection.
+- Payment status is read-only on Production; payment mutations remain owned by
+  Sales Orders and Sales Overview.
+
+## Result
+
+- Admin Production rows now show invoice total plus Paid, Outstanding, or Not
+  set status on table and mobile-card layouts; production-worker views remain
+  finance-free.
+- Production supports Customer, Phone, P.O., Sales Rep, Order #, Item, and
+  Invoice Status filters in addition to its operational filters. Paid and
+  Outstanding filter through the same URL/query contract used by list and
+  summary reads.
+- Assigned To, Queue state, Due date, Material state, and Sort now render
+  semantic icons instead of the generic Search fallback.
+- Focused validation passed 39 tests / 119 assertions, scoped Biome passed for
+  the changed production/UI files, and whitespace validation passed.
+- Authenticated browser QA confirmed the Invoice column, Paid row states, the
+  expanded filter menu, and distinct filter icons. A subsequent reload exposed
+  an unrelated pre-existing missing dispatch-manifest module, so the final
+  Outstanding click-through could not be repeated after reload.
+
+---
+
+# Tables-2 Selection Checkbox Alignment (2026-08-29)
+
+Status: Completed
+
+## Goal
+
+- Match every restarted `tables-2` selection column to the canonical Sales
+  Orders V2 header/body checkbox alignment.
+- Keep selection columns fixed, centered, and non-reorderable without adding
+  page-specific offsets.
+
+## Implementation
+
+- [x] Add a shared alignment regression for default and compact table density.
+- [x] Center checkbox descendants through the shared table-cell padding
+  contract used by headers and virtual rows.
+- [x] Repair selection-column ordering/stickiness in inventory Backorders and
+  Partial Shipments.
+- [x] Run the restarted-table suite, scoped formatting/type validation, browser
+  QA, and Brain documentation reconciliation.
+
+## Risk
+
+- The worktree contains unrelated Sales/Production changes. Restrict edits to
+  the table-core alignment seam, the two inconsistent inventory table configs,
+  focused tests, and documentation.
+
+## Result
+
+- The shared table-cell contract centers checkbox descendants and removes their
+  asymmetric horizontal padding in both default and compact density.
+- All 24 restarted tables that declare a selection column are now audited to
+  keep that column sticky and non-reorderable.
+- Inventory Backorders and Partial Shipments now render their actual select-all
+  controls through their custom headers and keep header/body selection cells in
+  one vertical line.
+- Focused validation passed 19 tests / 164 assertions. The broader Tables V2
+  run passed 337 of 349 tests; its 12 failures are existing stale route/count
+  parity assertions outside these files. Dashboard typecheck also remains on
+  the repository's existing broad baseline.
+- Authenticated browser QA confirmed aligned header/body checkboxes on
+  Production and Inventory Backorders without mutating selection or records.
+
+---
+
+# Production Mark-All Terminal Order Skip Fix (2026-08-29)
+
+Status: Completed
+
+## Goal
+
+- Allow Production `Mark all` → `Production completed` to finish even when a
+  selected legacy row has already been fulfilled.
+- Use canonical delivery evidence consistently in the Production queue,
+  dependency resolver, and durable parent task.
+- Skip orders already past production completion before any inventory,
+  inbound, or production-review mutation.
+
+## Implementation
+
+- [x] Add focused regressions for stale production stats plus completed delivery
+  evidence and authoritative dependency filtering.
+- [x] Correct the Production read model and shared completion predicate.
+- [x] Filter dependency work and parent-task candidates using canonical
+  fulfillment evidence.
+- [x] Run focused tests, type checks, authenticated batch QA, and reconcile Brain
+  documentation.
+
+## Root cause
+
+- Order `07471PC` is still projected as `in_production` from legacy order/stat
+  fields, while its actual completed delivery makes inventory read-only.
+- The one-click dependency resolver therefore attempts to mark inventory
+  available for an already fulfilled order and aborts the entire selected set.
+
+## Result
+
+- Production queue projection, dependency resolution, and the durable bulk
+  parent now use canonical completed-delivery evidence.
+- Already-completed or fulfilled orders are removed before inventory and review
+  work; the parent independently rechecks the same evidence before child runs.
+- Authenticated QA selected all 40 loaded Past Due rows and completed the batch
+  in one monitored run. Past Due refreshed from 1,058 to 1,018.
+- 35 focused tests / 69 assertions, scoped Biome, and whitespace validation
+  passed. Sales/Jobs typechecks retain only unrelated repository baseline
+  diagnostics.
+
+---
+
+# Inventory Attention Dialog Outside Dismissal (2026-08-29)
+
+Status: Completed
+
+## Goal
+
+- Allow the shared `Inventory and production need attention` modal to close when
+  the user clicks outside it.
+- Preserve the existing in-flight lock while dependency resolution is running.
+
+## Implementation
+
+- [x] Add scoped backdrop dismissal to the shared Sales Mark-as dialog.
+- [x] Cover idle dismissal and the resolving guard with a focused regression.
+- [x] Verify backdrop dismissal on the authenticated Production page.
+- [x] Record Brain documentation impact and validation.
+
+## Result
+
+- The shared alert-dialog content now supports optional overlay props, and the
+  inventory-attention flow opts into backdrop pointer dismissal.
+- Outside dismissal remains disabled while `Receive, approve and continue` is
+  resolving inventory and production dependencies.
+- Focused regressions, scoped formatting, whitespace validation, and
+  authenticated browser QA passed without starting a live batch action.
+
+---
+
+# Shared Sales/Production Batch Status Actions
+
+Date: 2026-08-29
+Status: Completed
+
+Plan:
+- Add admin-only row selection to the canonical Sales Production table and its
+  responsive cards.
+- Reuse the canonical Sales Orders `SalesMenu.MarkAs` workflow from the
+  Production batch bar and row actions.
+- Resolve an eligible order subset per batch action so production-completed or
+  fulfilled orders are skipped before inventory preflight and task dispatch.
+- Apply the same skip policy to Sales Orders batch actions.
+- Add focused selection, table-parity, and production-lifecycle coverage, then
+  update Brain documentation.
+
+Validation:
+- Focused dashboard batch-selection and Sales Production table tests.
+- `packages/sales/src/sales-production.test.ts`.
+- Targeted Biome/typecheck where practical and `git diff --check`.
+
+Progress:
+- [x] Read the existing Production table, Sales Orders bottom bar, canonical
+  Mark-as workflow, lifecycle model, and relevant Brain documentation.
+- [x] Add failing focused coverage for batch eligibility and Production parity.
+- [x] Implement shared skip behavior and Production selection UI.
+- [x] Run validation and reconcile Brain documentation.
+
+Risks:
+- The worktree contains unrelated in-progress dispatch/packing changes,
+  including changes in `sales-menu.tsx`; preserve those edits exactly.
+- Production-worker routes must not gain admin batch controls.
+- Skipped terminal orders must never reach inventory preflight, dispatch
+  creation, or sales-control task dispatch.
+
+Result:
+- Admin Production supports accessible desktop and mobile selection with a
+  floating shared status-action bar; worker tables remain unchanged.
+- Sales Orders and Production use one eligible-subset policy before preflight
+  and monitored task dispatch.
+- Focused tests, targeted Biome, whitespace checks, changed-path typecheck
+  review, and authenticated no-mutation browser QA passed.
+
+---
+
 # View-Prefixed Mark Sales Order Fulfilled Permission
 
 Date: 2026-08-24
@@ -836,3 +1124,34 @@ Status: Complete
   user-visible behavior changed.
 - Full production-build proof remains an environment limitation, not an
   implementation follow-up.
+# Production Mark-All and Single-Run Completion Batch (2026-08-29)
+
+Status: Completed
+
+## Goal
+
+- Add an accessible select-all checkbox to the admin Production table.
+- Replace per-order Production Completed task starts with one canonical bulk run, matching the recent bulk Fulfilled approach.
+- Refresh and execute the authenticated overdue Production queue flow, then verify the queue decreases by the successfully completed count.
+
+## Implementation
+
+- [x] Add a tri-state header checkbox for all currently loaded Production rows.
+- [x] Extend the shared bulk task contract/store for Production Completed.
+- [x] Add one server task that skips already-completed/fulfilled orders and returns per-order outcomes.
+- [x] Route the shared Mark-as UI through that one batch task.
+- [x] Add focused contract and UI tests.
+- [x] Refresh the local page, select all loaded rows, run Production Completed, and reconcile before/after counts.
+- [x] Update Brain documentation and validation evidence.
+
+## Risks
+
+- The overdue queue may contain more records than the currently loaded page; the header checkbox must accurately mean all loaded rows unless the API supplies a server-wide selection token.
+- Live local mutation is explicitly requested, so before/after counts and skipped/failed outcomes must be recorded rather than assuming every selected row changed state.
+
+## Result
+
+- Mark All selected 40 loaded overdue rows after refresh.
+- The canonical dependency resolver handled 36 affected orders, then one monitored bulk Production Completed parent run processed the selection.
+- After terminal completion and a clean refresh, Past Due decreased from 1,099 to 1,059: exactly 40 rows.
+- Focused validation passed 18 tests / 51 assertions; scoped Biome and `git diff --check` passed.

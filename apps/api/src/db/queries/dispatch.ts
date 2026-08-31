@@ -1,6 +1,14 @@
 import { getDispatchInventoryManifest } from "@api/db/queries/dispatch-inventory";
+import {
+	dispatchOrderPresentationSelect,
+	projectDispatchOrderPresentation,
+} from "@api/db/queries/dispatch-order-presentation";
+import { getDriverRouteCapabilities } from "@api/db/queries/driver-route-readiness";
 import { whereDispatch } from "@api/prisma-where";
-import type { FulfillmentCalendarInput } from "@api/schemas/dispatch-workspace";
+import type {
+	DispatchWorkspaceListInput,
+	FulfillmentCalendarInput,
+} from "@api/schemas/dispatch-workspace";
 import type {
 	BulkAssignDriverSchema,
 	BulkCancelDispatchSchema,
@@ -21,6 +29,7 @@ import type {
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import type { QtyControlType } from "@api/type";
+import { sendDispatchLifecycleNotification } from "@api/utils/dispatch-lifecycle-notification";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
 import type { Prisma } from "@gnd/db";
@@ -35,13 +44,27 @@ import {
 	withSalesListControl,
 } from "@gnd/sales";
 import {
+	isDriverAssignmentDestinationReady,
+	resolveDriverRouteDestination,
+} from "@gnd/sales/dispatch-manifest/driver-destination";
+import { isDriverRouteStartCandidate } from "@gnd/sales/dispatch-manifest/driver-route-readiness";
+import {
+	getDispatchDueBucket,
 	getDispatchDuePresentation,
 	summarizeDriverWorkQueue,
 } from "@gnd/sales/dispatch-manifest/driver-work-queue";
 import { resolvePackedLegacyInventoryReadiness } from "@gnd/sales/dispatch-manifest/inventory-readiness";
 import { normalizeLegacyDispatchManifestItem } from "@gnd/sales/dispatch-manifest/normalize-legacy-item";
 import { projectDispatchLifecycle } from "@gnd/sales/dispatch-manifest/status";
-import { projectDispatchRisks } from "@gnd/sales/dispatch-manifest/workspace";
+import {
+	isDispatchWorkspaceSectionMatch,
+	projectDispatchRisks,
+} from "@gnd/sales/dispatch-manifest/workspace";
+import {
+	isCurrentDispatchPackingAllocation,
+	resolveDispatchPackingTotals,
+} from "@gnd/sales/dispatch-packing-totals";
+import { resolveSalesCompanyAddress } from "@gnd/sales/print";
 import { releaseDispatchBoundInventory } from "@gnd/sales/sales-fulfillment-plan";
 import { recognizeSalesTaxForFulfilledOrder } from "@gnd/sales/tax-system";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
@@ -59,8 +82,13 @@ import {
 } from "@sales/exports";
 import { resetSalesAction } from "@sales/sales-control/actions";
 import type { UpdateSalesControl } from "@sales/schema";
-import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
-import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
+import {
+	qtyMatrixDifference,
+	qtyMatrixRemainingAfterCoverage,
+	qtyMatrixSum,
+	recomposeQty,
+	transformQtyHandle,
+} from "@sales/utils/sales-control";
 import {
 	assertDispatchDeletionPackingAllowed,
 	assertDispatchStatusPackingAllowed,
@@ -442,12 +470,14 @@ function dispatchKeepScore(dispatch: {
 	);
 }
 
-export async function getDispatches(
+async function getDispatchPage(
 	ctx: TRPCContext,
 	query: DispatchQueryParamsSchema,
 ) {
 	const { db } = ctx;
-	query.sort = ["dueDate", "createdAt"];
+	query.sort = query.sort?.length
+		? query.sort
+		: ["dueDate.asc", "createdAt.asc"];
 	const { response, searchMeta, where } = await composeQueryData(
 		query,
 		whereDispatch(query),
@@ -458,8 +488,11 @@ export async function getDispatches(
 		...searchMeta,
 		select: {
 			id: true,
+			meta: true,
 			status: true,
 			createdAt: true,
+			updatedAt: true,
+			deliveredAt: true,
 			dueDate: true,
 			deliveryMode: true,
 			driverId: true,
@@ -472,6 +505,7 @@ export async function getDispatches(
 			},
 			order: {
 				select: {
+					...dispatchOrderPresentationSelect,
 					stat: {
 						where: {
 							type: "dispatchCompleted" as QtyControlType,
@@ -486,9 +520,11 @@ export async function getDispatches(
 					id: true,
 					customer: {
 						select: {
+							id: true,
 							name: true,
 							businessName: true,
 							phoneNo: true,
+							email: true,
 						},
 					},
 					shippingAddress: {
@@ -520,7 +556,14 @@ export async function getDispatches(
 			).values(),
 		],
 		db as any,
-		["packed", "pendingPacking", "dispatchStatus"] as any,
+		[
+			"productionStatus",
+			"dispatchStatus",
+			"packed",
+			"pendingPacking",
+			"pendingDispatch",
+			"packables",
+		] as any,
 	);
 	const orderControlById = new Map(
 		orderControlRows.map((row) => [row.id, (row as any).control]),
@@ -574,8 +617,13 @@ export async function getDispatches(
 
 		return await response(
 			rowsWithControl.map((a) => {
-				const { salesOrderId, ...rest } = a as typeof a & {
+				const {
+					salesOrderId,
+					meta: deliveryMeta,
+					...rest
+				} = a as typeof a & {
 					salesOrderId: number;
+					meta: unknown;
 				};
 				const control = (a as any).control || null;
 				const effectiveStatus = control?.dispatchStatus || (rest as any).status;
@@ -587,6 +635,18 @@ export async function getDispatches(
 				});
 				return withDriverDuePresentation({
 					...rest,
+					routeDestination: resolveDriverRouteDestination({
+						primaryAddress: (rest.order as any)?.shippingAddress,
+						deliveryMeta,
+						deliveryMode: rest.deliveryMode,
+					}),
+					routeOrigin: (() => {
+						const address = resolveSalesCompanyAddress(rest.order.orderId);
+						return [address.address1, address.address2]
+							.filter(Boolean)
+							.join(", ");
+					})(),
+					dispatchRecordStatus: rest.status,
 					status: effectiveStatus,
 					workspace: {
 						...lifecycle,
@@ -598,6 +658,11 @@ export async function getDispatches(
 					},
 					order: {
 						...rest.order,
+						...projectDispatchOrderPresentation(
+							rest.order,
+							orderControlById.get(rest.order.id) || null,
+							effectiveStatus,
+						),
 						shippingAddress: normalizeShippingAddress(
 							(rest.order as any)?.shippingAddress,
 						),
@@ -619,37 +684,140 @@ export async function getDispatches(
 	);
 	return await response(
 		rowsWithStatistic.map((a) => {
+			const { meta: deliveryMeta, ...safeRow } = a as typeof a & {
+				meta: unknown;
+			};
 			const effectiveStatus =
-				(a as any)?.statistic?.dispatchStatus || (a as any)?.status;
-			const control = (a as any)?.statistic;
+				(safeRow as any)?.statistic?.dispatchStatus || (safeRow as any)?.status;
+			const control = (safeRow as any)?.statistic;
 			const lifecycle = projectDispatchLifecycle({
 				status: effectiveStatus,
-				driverId: (a as any).driverId,
+				driverId: (safeRow as any).driverId,
 				packedTotal: control?.packed?.total,
 				pendingPackingTotal: control?.pendingPacking?.total,
 			});
 			return withDriverDuePresentation({
-				...a,
+				...safeRow,
+				routeDestination: resolveDriverRouteDestination({
+					primaryAddress: (safeRow as any)?.order?.shippingAddress,
+					deliveryMeta,
+					deliveryMode: (safeRow as any).deliveryMode,
+				}),
+				routeOrigin: (() => {
+					const address = resolveSalesCompanyAddress(
+						(safeRow as any)?.order?.orderId,
+					);
+					return [address.address1, address.address2]
+						.filter(Boolean)
+						.join(", ");
+				})(),
+				dispatchRecordStatus: (safeRow as any).status,
 				status: effectiveStatus,
 				workspace: {
 					...lifecycle,
 					risks: projectDispatchRisks({
 						stage: lifecycle.stage,
-						dueDate: (a as any).dueDate,
-						hasOpenException: (a as any)._count?.exceptions > 0,
+						dueDate: (safeRow as any).dueDate,
+						hasOpenException: (safeRow as any)._count?.exceptions > 0,
 					}),
 				},
 				order: {
-					...(a as any).order,
-					shippingAddress: normalizeShippingAddress(
-						(a as any)?.order?.shippingAddress,
+					...(safeRow as any).order,
+					...projectDispatchOrderPresentation(
+						(safeRow as any).order,
+						orderControlById.get((safeRow as any).order?.id) || null,
+						effectiveStatus,
 					),
-					control: orderControlById.get((a as any).order?.id) || null,
+					shippingAddress: normalizeShippingAddress(
+						(safeRow as any)?.order?.shippingAddress,
+					),
+					control: orderControlById.get((safeRow as any).order?.id) || null,
 				},
-				uid: String(a.id),
+				uid: String(safeRow.id),
 			});
 		}),
 	);
+}
+
+export async function getDispatches(
+	ctx: TRPCContext,
+	query: DispatchQueryParamsSchema &
+		Partial<Pick<DispatchWorkspaceListInput, "section">>,
+) {
+	const section = query.section;
+	if (
+		section !== "active" &&
+		section !== "due-today" &&
+		section !== "past-due" &&
+		section !== "completed"
+	) {
+		return getDispatchPage(ctx, { ...query });
+	}
+
+	const size = Math.max(1, Math.min(100, Number(query.size || 20)));
+	const chunkSize = Math.max(100, size * 5);
+	const firstOffset = Math.max(0, Number(query.cursor || 0));
+	let scanOffset = firstOffset;
+	let nextCursor: string | null = null;
+	let exhausted = false;
+	type DispatchPageRow = Awaited<
+		ReturnType<typeof getDispatchPage>
+	>["data"][number];
+	const page: DispatchPageRow[] = [];
+
+	while (!exhausted && nextCursor === null) {
+		const chunkStart = scanOffset;
+		const chunk = await getDispatchPage(ctx, {
+			...query,
+			section: undefined,
+			dueBuckets:
+				section === "due-today"
+					? ["today"]
+					: section === "past-due"
+						? ["overdue"]
+						: query.dueBuckets,
+			stages: query.stages?.length ? query.stages : undefined,
+			tab: query.stages?.length ? query.tab : "all",
+			sort: query.sort?.length
+				? query.sort
+				: section === "completed"
+					? ["deliveredAt.desc", "updatedAt.desc", "id.desc"]
+					: ["dueDate.asc", "createdAt.asc", "id.asc"],
+			cursor: String(chunkStart),
+			size: chunkSize,
+		} as DispatchQueryParamsSchema);
+
+		if (!chunk.data.length) break;
+		for (const [index, row] of chunk.data.entries()) {
+			if (
+				!isDispatchWorkspaceSectionMatch({
+					section,
+					stage: row.workspace.stage,
+					driverId: row.driverId,
+					deliveryMode: row.deliveryMode,
+					dueBucket: row.dueBucket,
+				})
+			) {
+				continue;
+			}
+			if (page.length === size) {
+				nextCursor = String(chunkStart + index);
+				break;
+			}
+			page.push(row);
+		}
+
+		scanOffset = Number(chunk.meta.cursor || chunkStart + chunk.data.length);
+		exhausted = chunk.meta.cursor == null;
+	}
+
+	return {
+		data: page,
+		meta: {
+			size,
+			cursor: nextCursor,
+		},
+	};
 }
 
 export async function getDriverWorkQueueSummary(
@@ -663,14 +831,77 @@ export async function getDriverWorkQueueSummary(
 			deletedAt: null,
 		},
 		select: {
+			id: true,
+			meta: true,
+			salesOrderId: true,
 			dueDate: true,
 			status: true,
+			driverId: true,
+			deliveryMode: true,
+			_count: {
+				select: {
+					exceptions: {
+						where: { status: "open", deletedAt: null },
+					},
+				},
+			},
+			order: {
+				select: {
+					shippingAddress: {
+						select: {
+							address1: true,
+							address2: true,
+							city: true,
+							state: true,
+							country: true,
+							meta: true,
+						},
+					},
+				},
+			},
 		},
 	});
-	return summarizeDriverWorkQueue(rows, {
-		timeZone:
-			process.env.BUSINESS_TIME_ZONE || process.env.TZ || "America/New_York",
-	});
+	const timeZone =
+		process.env.BUSINESS_TIME_ZONE || process.env.TZ || "America/New_York";
+	const capabilities = await getDriverRouteCapabilities(
+		ctx.db,
+		Number(ctx.userId || 0),
+		rows.map((row) => ({
+			id: row.id,
+			salesOrderId: row.salesOrderId,
+			status: row.status,
+			driverId: row.driverId,
+			deliveryMode: row.deliveryMode,
+			dueBucket: getDispatchDueBucket(row.dueDate, { timeZone }),
+			hasOpenException: row._count.exceptions > 0,
+			hasDestination:
+				Boolean(
+					row.order.shippingAddress?.address1 ||
+						row.order.shippingAddress?.address2 ||
+						row.order.shippingAddress?.city ||
+						row.order.shippingAddress?.state ||
+						row.order.shippingAddress?.country,
+				) ||
+				resolveDriverRouteDestination({
+					primaryAddress: row.order.shippingAddress,
+					deliveryMeta: row.meta,
+					deliveryMode: row.deliveryMode,
+				}).verified,
+		})),
+	);
+	const summary = summarizeDriverWorkQueue(rows, { timeZone });
+	const projected = rows.map((row) => capabilities.get(row.id));
+	return {
+		...summary,
+		ready: projected.filter(isDriverRouteStartCandidate).length,
+		packedBlocked: rows.filter(
+			(row) =>
+				row.status === "packed" &&
+				!isDriverRouteStartCandidate(capabilities.get(row.id)),
+		).length,
+		needsAttention: projected.filter((capability) => capability?.needsAttention)
+			.length,
+	};
 }
 
 export async function findDuplicateDispatchGroups(ctx: TRPCContext) {
@@ -920,6 +1151,9 @@ export async function getSalesDeliveryInfo(ctx: TRPCContext, salesId) {
 			deliveries: {
 				where: {
 					deletedAt: null,
+				},
+				orderBy: {
+					id: "desc",
 				},
 				select: {
 					id: true,
@@ -1496,32 +1730,17 @@ async function sendDispatchNotification(
 		driverId?: number | null;
 	},
 ) {
-	if (!recipientId) return;
-
-	const notification = new NotificationService(tasks, {
+	return sendDispatchLifecycleNotification(
 		db,
-		userId: authorId,
-	}).setEmployeeRecipients(recipientId);
-
-	await notification.send(
-		channel as any,
-		{
-			author: {
-				id: authorId,
-				role: "employee",
-			},
-			payload: {
-				orderNo: payload.orderNo || undefined,
-				dispatchId: payload.dispatchId,
-				deliveryMode: payload.deliveryMode || undefined,
-				dueDate: payload.dueDate || undefined,
-				driverId: payload.driverId || undefined,
-			},
-		} as any,
+		authorId,
+		recipientId,
+		channel,
+		payload,
 	);
 }
 
 type DispatchSelect = {
+	assignmentDestinationReady: boolean;
 	id: number;
 	salesOrderId: number;
 	status: string | null;
@@ -1559,6 +1778,16 @@ async function getDispatchForUpdate(
 				select: {
 					id: true,
 					orderId: true,
+					shippingAddress: {
+						select: {
+							address1: true,
+							address2: true,
+							city: true,
+							state: true,
+							country: true,
+							meta: true,
+						},
+					},
 				},
 			},
 			items: {
@@ -1585,6 +1814,10 @@ async function getDispatchForUpdate(
 	).length;
 
 	return {
+		assignmentDestinationReady: isDriverAssignmentDestinationReady({
+			primaryAddress: dispatch.order.shippingAddress,
+			deliveryMode: dispatch.deliveryMode,
+		}),
 		id: dispatch.id,
 		salesOrderId: dispatch.order.id,
 		status: dispatch.status,
@@ -1631,6 +1864,12 @@ export async function updateDispatchDriver(
 			message: "NO_OP_DRIVER_UPDATE",
 		});
 	}
+	if (newDriverId && !dispatch.assignmentDestinationReady) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: `Verify the delivery address before assigning a driver to Order ${dispatch.orderNo || dispatch.orderId}.`,
+		});
+	}
 
 	await ctx.db.orderDelivery.update({
 		where: {
@@ -1643,7 +1882,7 @@ export async function updateDispatchDriver(
 		},
 	});
 
-	await sendDispatchNotification(
+	const unassignedNotification = await sendDispatchNotification(
 		ctx.db,
 		ctx.userId!,
 		oldDriverId,
@@ -1656,7 +1895,7 @@ export async function updateDispatchDriver(
 			driverId: oldDriverId,
 		},
 	);
-	await sendDispatchNotification(
+	const assignedNotification = await sendDispatchNotification(
 		ctx.db,
 		ctx.userId!,
 		newDriverId,
@@ -1683,6 +1922,10 @@ export async function updateDispatchDriver(
 			oldDriverId ? "sales_dispatch_unassigned" : null,
 			newDriverId ? "sales_dispatch_assigned" : null,
 		].filter(Boolean),
+		notificationResults: {
+			unassigned: unassignedNotification,
+			assigned: assignedNotification,
+		},
 	};
 }
 
@@ -2202,8 +2445,11 @@ export async function getDispatchOverviewV2(
 	const legacyDispatchItems = legacyDispatchItemSources.map(
 		({ dispatchable, item }) => {
 			const uid = dispatchable?.uid ?? item!.uid;
-			const listedItems = dispatch?.items.filter(
+			const allocationItems = dispatch?.items.filter(
 				(a) => a.item?.controlUid === uid,
+			);
+			const listedItems = allocationItems?.filter(
+				isCurrentDispatchPackingAllocation,
 			);
 			const packedItems = listedItems?.filter(
 				(a) => !("packingStatus" in a) || a.packingStatus === "packed",
@@ -2214,7 +2460,11 @@ export async function getDispatchOverviewV2(
 						.filter((d) => d.status !== "cancelled")
 						.flatMap((d) =>
 							d.items
-								.filter((i) => i.item.controlUid === uid)
+								.filter(
+									(i) =>
+										i.item.controlUid === uid &&
+										isCurrentDispatchPackingAllocation(i),
+								)
 								.flatMap(transformQtyHandle),
 						),
 				),
@@ -2229,14 +2479,13 @@ export async function getDispatchOverviewV2(
 			const deliverableQty = recomposeQty(
 				qtyMatrixSum(...(dispatchable?.deliverables?.map((a) => a.qty) || [])),
 			);
-			const nonDeliverableQty = recomposeQty(
-				qtyMatrixDifference(
-					dispatchable?.totalQty!,
-					qtyMatrixSum(availableQty, totalListedAllDispatches),
-				),
+			const nonDeliverableQty = qtyMatrixRemainingAfterCoverage(
+				dispatchable?.totalQty!,
+				availableQty,
+				totalListedAllDispatches,
 			);
 
-			let packingHistory = (listedItems || []).map((a) => ({
+			let packingHistory = (allocationItems || []).map((a) => ({
 				qty: toQtyMatrix(transformQtyHandle(a)),
 				date: a.createdAt,
 				note: "",
@@ -2476,10 +2725,15 @@ export async function getDispatchOverviewV2(
 
 	const summary = dispatchItems.reduce(
 		(acc, item) => {
-			acc.total += qtyTotal(item.totalQty);
+			const packing = resolveDispatchPackingTotals({
+				ordered: qtyTotal(item.totalQty),
+				listed: qtyTotal(item.listedQty),
+				packed: qtyTotal(item.packedQty),
+			});
+			acc.total += packing.total;
 			acc.deliverable += qtyTotal(item.deliverableQty);
 			acc.listed += qtyTotal(item.listedQty);
-			acc.packed += qtyTotal(item.packedQty);
+			acc.packed += packing.packed;
 			acc.pending += qtyTotal(item.nonDeliverableQty);
 			acc.available += qtyTotal(item.availableQty);
 			return acc;
@@ -2757,25 +3011,64 @@ export async function bulkAssignDispatchDriver(
 	input: BulkAssignDriverSchema,
 ) {
 	const { db } = ctx;
+	if (input.newDriverId) {
+		const dispatches = await Promise.all(
+			[...new Set(input.dispatchIds)].map((dispatchId) =>
+				getDispatchForUpdate(ctx, dispatchId),
+			),
+		);
+		const missing = dispatches.filter(
+			(dispatch) => !dispatch.assignmentDestinationReady,
+		);
+		if (missing.length) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message: `Verify delivery addresses before assigning a driver: ${missing
+					.map((dispatch) => `Order ${dispatch.orderNo || dispatch.orderId}`)
+					.join(", ")}.`,
+			});
+		}
+	}
 	const results: Array<{
 		dispatchId: number;
 		ok: boolean;
 		reason?: string;
+		notificationResults?: Awaited<
+			ReturnType<typeof updateDispatchDriver>
+		>["notificationResults"];
 	}> = [];
 	for (const dispatchId of [...new Set(input.dispatchIds)]) {
-		const updated = await db.orderDelivery.updateMany({
-			where: {
-				id: dispatchId,
-				deletedAt: null,
-				status: { notIn: ["in progress", "completed", "cancelled"] },
-			},
-			data: { driverId: input.newDriverId },
-		});
-		results.push(
-			updated.count === 1
-				? { dispatchId, ok: true }
-				: { dispatchId, ok: false, reason: "DISPATCH_NOT_ASSIGNABLE" },
-		);
+		try {
+			const dispatch = await getDispatchForUpdate(ctx, dispatchId);
+			if (
+				["in progress", "completed", "cancelled"].includes(
+					String(dispatch.status),
+				)
+			) {
+				throw new Error("DISPATCH_NOT_ASSIGNABLE");
+			}
+			if ((dispatch.driverId ?? null) === (input.newDriverId ?? null)) {
+				results.push({ dispatchId, ok: true, reason: "NO_OP" });
+				continue;
+			}
+			const updated = await updateDispatchDriver(ctx, {
+				dispatchId,
+				oldDriverId: dispatch.driverId ?? null,
+				newDriverId: input.newDriverId ?? null,
+			});
+			results.push({
+				dispatchId,
+				ok: true,
+				notificationResults: updated.notificationResults,
+			});
+		} catch (error) {
+			results.push({
+				dispatchId,
+				ok: false,
+				reason:
+					error instanceof Error ? error.message : "DISPATCH_NOT_ASSIGNABLE",
+			});
+		}
 	}
 	return {
 		ok: results.every((result) => result.ok),
@@ -2859,7 +3152,8 @@ export async function getFulfillmentCalendar(
 	const toExclusive = new Date(`${input.to}T00:00:00.000Z`);
 	toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
 
-	const activeWhere = whereDispatch({ statuses: fulfillmentCalendarStatuses });
+	const activeWhere =
+		whereDispatch({ statuses: fulfillmentCalendarStatuses }) || {};
 	const select = {
 		id: true,
 		status: true,
@@ -2879,18 +3173,16 @@ export async function getFulfillmentCalendar(
 	const [scheduledRows, unscheduledRows] = await Promise.all([
 		db.orderDelivery.findMany({
 			where: {
-				AND: [
-					activeWhere,
-					{ deletedAt: null },
-					{ dueDate: { gte: from, lt: toExclusive } },
-				],
+				...activeWhere,
+				deletedAt: null,
+				dueDate: { gte: from, lt: toExclusive },
 			},
 			orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
 			take: 1_500,
 			select,
 		}),
 		db.orderDelivery.findMany({
-			where: { AND: [activeWhere, { deletedAt: null }, { dueDate: null }] },
+			where: { ...activeWhere, deletedAt: null, dueDate: null },
 			orderBy: { createdAt: "desc" },
 			take: 250,
 			select,

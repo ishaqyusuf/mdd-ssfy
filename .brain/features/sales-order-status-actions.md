@@ -6,6 +6,28 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 
 ## Behavior
 
+### One-click dependency-resolution errors (2026-08-30)
+
+- `Receive, approve and continue` reports failures through the shared public
+  error envelope instead of rendering raw exception text.
+- The operator always receives a clear title, safe next-step copy, and a
+  traceable error reference. The workflow owns this toast so the global
+  mutation cache does not show a second generic error for the same failure.
+- Sales Handoff source-repair imports are covered alongside the fulfillment
+  resolver so a missing lifecycle-review export cannot silently take the API
+  route down again.
+
+### Inventory-attention backdrop dismissal (2026-08-29)
+
+- The shared `Inventory and production need attention` dialog used by Sales
+  Orders and Sales Production closes when its dimmed backdrop is clicked.
+- Backdrop and controlled-open dismissal remain locked while the one-click
+  inventory and production dependency resolver is running, preventing the
+  in-flight action from being hidden or interrupted.
+- The shared alert-dialog content accepts optional overlay props so backdrop
+  behavior is explicitly enabled for this flow without changing every alert
+  dialog in the application.
+
 ### Dedicated Mark as Fulfilled permission (updated 2026-08-24)
 
 - Sales Orders fulfillment now uses the action-specific
@@ -132,6 +154,44 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
   registered a successful `update-sales-control` run, completed dispatch `4515`,
   and refreshed the Sales Orders row to `Fulfilled`.
 
+## 2026-08-29 Shared batch eligibility
+
+- The Sales Orders and admin Sales Production batch bars use the same
+  `SalesMenu.MarkAs` workflow. Production row actions also use that canonical
+  workflow instead of the retired direct batch hook.
+- Each selected order carries its current lifecycle evidence into the shared
+  action. `Production completed` removes orders that are already production
+  complete or fulfilled; `Fulfilled` removes orders that are already fulfilled.
+- The eligible subset alone reaches inventory preflight, one-click dependency
+  resolution, fulfillment-dispatch creation, and monitored sales-control task
+  dispatch. Unknown candidates remain eligible so older callers retain their
+  server-authoritative behavior.
+- A mixed batch reports the number skipped and continues with eligible orders.
+  An all-skipped batch closes as a no-op. It does not open per-order warning
+  gates or resubmit terminal orders.
+- Production Completed now queues one durable parent run, consistent with bulk
+  Fulfilled, rather than triggering and monitoring one top-level run per order.
+  The parent performs a server-side lifecycle recheck and reports `succeeded`,
+  `already_completed`, `awaiting_review`, and `failed` outcomes. Canonical child
+  updates retain sales-control authorization, special-order enforcement,
+  inventory lifecycle sync, and seven-day idempotency.
+
+## 2026-08-29 Canonical terminal-order filtering
+
+- Status dependency preflight and one-click resolution now reload canonical
+  delivery evidence before inventory, inbound, or production-review work.
+  Orders already fulfilled are excluded from `Production completed` and
+  `Fulfilled`; lifecycle states already past production are excluded from
+  `Production completed`.
+- This server-side subset is authoritative even when a browser selection is
+  stale. The durable production-completion parent independently applies the
+  same delivery-aware lifecycle projection and reports terminal candidates as
+  already completed instead of starting child work again.
+- The correction prevents one legacy order whose production statistics lag its
+  completed delivery from aborting every eligible order in the batch.
+- Authenticated Production QA resolved the formerly failing 40-row selection
+  in one monitored run and refreshed Past Due from 1,058 to 1,018.
+
 ## Saved Query Counts
 
 - Production, fulfillment, dispatch, and other registered Sales Orders domain events include the saved page-tab query targets.
@@ -195,3 +255,16 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
   Status menu labels, the uppercase blocker presentation, and an enabled `Mark
   available and continue` action for both production completion and
   fulfillment. The continue button was not submitted during validation.
+
+## 2026-08-29 Bulk Fulfilled execution boundary
+
+- `Fulfilled` now has one observable `bulk-mark-sales-fulfilled` parent for up
+  to 40 unique positive Sales ids. Actor identity is stamped by the dashboard
+  server action and the worker rechecks `viewMarkSalesOrderFulfilled`.
+- Each ready order is delegated to the canonical `update-sales-control` child
+  task with a seven-day request/order idempotency key. Failures are isolated by
+  order and returned in an aggregate result rather than hidden behind browser
+  fan-out.
+- Terminal success invalidates Sales Orders and Fulfillment projections before
+  selection is released. The task output also carries the exact canonical
+  Backlog count to close client query-order races.

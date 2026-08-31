@@ -559,6 +559,7 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 			data: {
 				subject: data.subject,
 				customerName: data.customerName,
+				salesRepName: data.salesRep,
 				message: data.message || undefined,
 				paymentLink: data.paymentLink || undefined,
 				pdfLink: data.pdfLink || undefined,

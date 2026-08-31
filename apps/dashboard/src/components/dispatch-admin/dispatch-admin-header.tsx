@@ -124,16 +124,30 @@ export function DispatchAdminHeader() {
 	);
 	const tabs = useMemo(
 		() =>
-			dispatchAdminPageTabs.map((tab) =>
-				tab.params?.section === "backlog"
-					? { ...tab, count: summary.data?.backlog }
-					: tab,
-			),
-		[summary.data?.backlog],
+			dispatchAdminPageTabs.map((tab) => {
+				const countBySection = {
+					backlog: summary.data?.backlog,
+					active: summary.data?.active,
+					"due-today": summary.data?.dueToday,
+					"past-due": summary.data?.pastDue,
+					completed: summary.data?.completed,
+					drivers: summary.data?.driverCount,
+					exceptions: summary.data?.openExceptions,
+				} as const;
+				const section = tab.params?.section;
+				if (section === null) return { ...tab, count: summary.data?.all };
+				if (!section || !(section in countBySection)) return tab;
+				return {
+					...tab,
+					count: countBySection[section as keyof typeof countBySection],
+				};
+			}),
+		[summary.data],
 	);
-	const activeSection =
-		filters.section === "dashboard" ? "dispatches" : filters.section;
-	const showsTableTools = activeSection === "dispatches";
+	const activeSection = ["dashboard", "dispatches"].includes(filters.section)
+		? null
+		: filters.section;
+	const showsTableTools = ["dashboard", "dispatches"].includes(filters.section);
 
 	return (
 		<div className="min-w-0">
@@ -143,13 +157,14 @@ export function DispatchAdminHeader() {
 				<SearchFilterTRPC
 					placeholder="Search order, customer, address, phone, or driver..."
 					filterList={definitions}
+					pageTabsLayout="adaptive"
 					pageTabs={
 						<PageTabs
 							portal={false}
 							tabs={tabs}
-							allActiveParam={{ key: "section", value: "dispatches" }}
+							showAll={false}
 							activeParams={{ section: activeSection }}
-							maxVisible={{ base: 3, lg: 6, "2xl": 6 }}
+							maxVisible={{ base: 3, lg: 7, "2xl": 9 }}
 						/>
 					}
 					toolbarActions={

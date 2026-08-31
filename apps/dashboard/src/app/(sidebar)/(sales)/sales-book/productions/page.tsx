@@ -30,7 +30,10 @@ export default async function SalesProductionsPage({ searchParams }: Props) {
 	const rawSearchParams = await searchParams;
 	const filters = await loadSalesProductionFilterParams(rawSearchParams);
 	const resolved = resolveSalesProductionWorkspaceQuery(filters);
-	const listInput = resolved.list as RouterInputs["sales"]["productions"];
+	const listInput = {
+		...resolved.list,
+		size: 20,
+	} as RouterInputs["sales"]["productions"];
 	const initialTableSettings =
 		await getInitialTableSettings("sales-production");
 
@@ -38,6 +41,13 @@ export default async function SalesProductionsPage({ searchParams }: Props) {
 		trpc.sales.productionSummary.queryOptions({
 			q: filters.q,
 			assignedToId: filters.assignedToId,
+			"customer.name": filters["customer.name"],
+			phone: filters.phone,
+			po: filters.po,
+			item: filters.item,
+			"sales.rep": filters["sales.rep"],
+			invoice: filters.invoice,
+			salesNo: filters.salesNo,
 			priority: filters.priority,
 		}),
 		trpc.filters.salesProductions.queryOptions(),

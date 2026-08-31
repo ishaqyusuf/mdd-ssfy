@@ -1,19 +1,20 @@
 "use client";
 
+import { SalesMenu } from "@/components/sales-menu";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
-import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import { Menu } from "@gnd/ui/custom/menu";
+import { Checkbox } from "@gnd/ui/checkbox";
 import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
-import { timeAgo } from "@gnd/utils/dayjs";
+import { formatDate } from "@gnd/utils/dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
+import { getProductionDueDatePresentation } from "@sales/production-date";
 
 import { getSalesProductionDueDateClassName } from "./due-date-tone";
 
@@ -25,6 +26,33 @@ type Column = ColumnDef<SalesProductionRow>;
 export function getSalesProductionRowId(item: SalesProductionRow) {
 	return item.uuid || String(item.id);
 }
+
+const selectColumn: Column = {
+	id: "select",
+	header: "Mark all",
+	...sizes.xs,
+	enableResizing: false,
+	enableHiding: false,
+	enableSorting: false,
+	meta: {
+		sticky: true,
+		skeleton: { type: "checkbox" },
+		className: sizeClass(
+			sizes.xs,
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20 justify-center",
+		),
+		contentClassName: "flex items-center justify-center",
+	},
+	cell: ({ row }) => (
+		<Checkbox
+			aria-label={`Select ${row.original.orderId}`}
+			checked={row.getIsSelected()}
+			onCheckedChange={(checked) => {
+				row.toggleSelected(checked === "indeterminate" ? undefined : checked);
+			}}
+		/>
+	),
+};
 
 const dueDateColumn: Column = {
 	id: "dueDate",
@@ -43,6 +71,26 @@ const dueDateColumn: Column = {
 		),
 	},
 	cell: ({ row }) => <DueDateCell item={row.original} />,
+};
+
+const orderDateColumn: Column = {
+	id: "orderDate",
+	header: "Order Date",
+	accessorKey: "createdAt",
+	...sizes.custom(104, 150, 118),
+	enableResizing: true,
+	enableHiding: false,
+	enableSorting: false,
+	meta: {
+		skeleton: { type: "text", width: "w-20" },
+		headerLabel: "Order Date",
+		className: sizeClass(sizes.custom(104, 150, 118)),
+	},
+	cell: ({ row }) => (
+		<span className="truncate text-muted-foreground">
+			{row.original.createdAt ? formatDate(row.original.createdAt) : "-"}
+		</span>
+	),
 };
 
 const orderColumn: Column = {
@@ -147,11 +195,59 @@ const salesRepColumn: Column = {
 	),
 };
 
+const invoiceColumn: Column = {
+	id: "invoice",
+	header: "Invoice",
+	accessorFn: (row) => row.invoice.total,
+	...sizes.custom(150, 230, 180),
+	enableResizing: true,
+	enableSorting: false,
+	meta: {
+		skeleton: { type: "text", width: "w-28" },
+		headerLabel: "Invoice",
+		className: sizeClass(sizes.custom(150, 230, 180), "text-right"),
+	},
+	cell: ({ row }) => {
+		const invoice = row.original.invoice;
+		const isPaid = invoice.status === "paid";
+		const statusLabel =
+			invoice.status === "unknown"
+				? "Not set"
+				: isPaid
+					? "Paid"
+					: "Outstanding";
+
+		return (
+			<div
+				className="flex min-w-0 items-center justify-end gap-2"
+				aria-label={`Invoice ${statusLabel}`}
+			>
+				<span className="truncate font-mono text-sm font-medium">
+					{invoice.total == null ? "-" : formatCurrency.format(invoice.total)}
+				</span>
+				<Badge
+					variant="outline"
+					className={cn(
+						"h-5 shrink-0 rounded-full px-1.5 text-[9px] font-semibold uppercase",
+						isPaid
+							? "border-emerald-200 bg-emerald-50 text-emerald-700"
+							: invoice.status === "outstanding"
+								? "border-amber-200 bg-amber-50 text-amber-700"
+								: "text-muted-foreground",
+					)}
+				>
+					{statusLabel}
+				</Badge>
+			</div>
+		);
+	},
+};
+
 const statusColumn: Column = {
 	id: "productionStatus",
 	header: "Status",
 	accessorFn: (row) =>
-		row.status?.production?.scoreStatus || row.status?.production?.status,
+		row.status?.production?.workflow?.label || row.status?.production?.status,
 	...sizes.custom(120, 190, 140),
 	enableResizing: true,
 	meta: {
@@ -165,7 +261,7 @@ const statusColumn: Column = {
 		return (
 			<Progress>
 				<Progress.Status badge>
-					{production?.scoreStatus || production?.status || "Pending"}
+					{production?.workflow?.label || production?.status || "Not assigned"}
 				</Progress.Status>
 			</Progress>
 		);
@@ -256,10 +352,13 @@ const actionsColumn: Column = {
 };
 
 export const columns: Column[] = [
+	selectColumn,
 	dueDateColumn,
+	orderDateColumn,
 	assignedToColumn,
 	customerColumn,
 	orderColumn,
+	invoiceColumn,
 	salesRepColumn,
 	materialsColumn,
 	statusColumn,
@@ -279,6 +378,7 @@ export const workerColumns: Column[] = [
 
 function DueDateCell({ item }: { item: SalesProductionRow }) {
 	const dueDate = item.dueDate || item.alert?.date;
+	const presentation = getProductionDueDatePresentation(dueDate);
 
 	return (
 		<p
@@ -287,7 +387,7 @@ function DueDateCell({ item }: { item: SalesProductionRow }) {
 				getSalesProductionDueDateClassName(dueDate, item.completed),
 			)}
 		>
-			{dueDate ? timeAgo(dueDate) : "No due date"}
+			{presentation.label}
 		</p>
 	);
 }
@@ -306,53 +406,38 @@ function AssignedToBadge({ assignedTo }: { assignedTo?: string | null }) {
 }
 
 function Actions({ item }: { item: SalesProductionRow }) {
-	const produceable = !!item.stats?.prodCompleted?.total;
-	const batchSales = useBatchSales();
 	const isMobile = useIsMobile();
 
 	return (
-		<div className="relative z-10 flex items-center justify-end">
-			<Menu
-				triggerSize={isMobile ? "default" : "xs"}
-				Trigger={
-					<Button
-						className={cn(isMobile || "size-7 p-0")}
-						variant="ghost"
-						onClick={(event) => event.stopPropagation()}
-					>
-						<Icons.MoreHoriz className="size-4" />
-						<span className="sr-only">Production actions</span>
-					</Button>
-				}
-			>
-				<Menu.Item
-					SubMenu={
-						<>
-							<Menu.Item
-								disabled={!produceable}
-								onClick={(event) => {
-									event.preventDefault();
-									event.stopPropagation();
-									batchSales.markAsProductionCompleted(item.id);
-								}}
-							>
-								Production Complete
-							</Menu.Item>
-							<Menu.Item
-								onClick={(event) => {
-									event.preventDefault();
-									event.stopPropagation();
-									batchSales.markAsFulfilled(item.id);
-								}}
-							>
-								Fulfillment Complete
-							</Menu.Item>
-						</>
-					}
+		<SalesMenu
+			id={item.id}
+			type="order"
+			orderNo={item.orderId}
+			align="end"
+			trigger={
+				<Button
+					className={cn(isMobile || "size-7 p-0")}
+					size={isMobile ? "default" : "xs"}
+					variant="ghost"
+					onClick={(event) => event.stopPropagation()}
 				>
-					Mark as
-				</Menu.Item>
-			</Menu>
-		</div>
+					<Icons.MoreHoriz className="size-4" />
+					<span className="sr-only">Production actions</span>
+				</Button>
+			}
+		>
+			<SalesMenu.MarkAs
+				asSubmenu={false}
+				currentStatus={item.lifecycleStatus}
+				productionStatus={item.status?.production?.status}
+				statusCandidates={[
+					{
+						salesId: item.id,
+						status: item.lifecycleStatus,
+						productionCompleted: item.completed,
+					},
+				]}
+			/>
+		</SalesMenu>
 	);
 }

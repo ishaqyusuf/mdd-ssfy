@@ -15,10 +15,18 @@ import { Calendar } from "@gnd/ui/calendar";
 import { useAuth } from "@/hooks/use-auth";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { UpdateSalesControl } from "@sales/schema";
+import {
+    createProductionDueDate,
+    productionCalendarPartsFromLocalDate,
+} from "@sales/production-date";
 import { Separator } from "@gnd/ui/separator";
 import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "@gnd/ui/use-toast";
+
+const productionActionItemClassName =
+    "min-w-[250px] whitespace-nowrap [&>svg]:size-4 [&>svg]:shrink-0";
+
 export function ProductionItemMenu({}) {
     const ctx = useProductionItem();
     const { queryCtx, item } = ctx;
@@ -26,9 +34,11 @@ export function ProductionItemMenu({}) {
     const [opened, setOpened] = useState(false);
     return (
         <Menu
+            noSize
             Trigger={
 				<Button disabled={queryCtx.dispatchMode} variant="ghost" size="icon">
-                    <Icons.MoreVertical className="h-4 w-4" />
+                    <Icons.MoreVertical className="size-4" />
+					<span className="sr-only">Production item actions</span>
                 </Button>
             }
         >
@@ -211,7 +221,11 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     pl.createAssignments = {
                         retries: 0,
                         assignedToId,
-                        dueDate,
+                        dueDate: dueDate
+                            ? createProductionDueDate(
+                                  productionCalendarPartsFromLocalDate(dueDate),
+                              )
+                            : null,
                         selections: items?.map((i) => ({
                             uid: i.uid,
                             qty: i.meta.qty,
@@ -282,7 +296,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         Icon={Icons.UserPlus}
                         disabled={!pendingQty}
                         shortCut={`QTY: ${pendingQty}`}
-                        className="max-h-none overflow-hidden"
+                        className={productionActionItemClassName}
                     >
                         Assign All
                     </Menu.Item>
@@ -290,6 +304,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         shortCut={`QTY: ${submitTotal}`}
                         disabled={!submitTotal}
                         Icon={Icons.CheckCircle}
+						className={productionActionItemClassName}
                         onClick={(e) => {
                             e.preventDefault();
                             setAction("submit");
@@ -311,6 +326,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         disabled={!deleteSubmitQty}
                         // disabled
                         shortCut={`QTY: ${deleteSubmitQty}`}
+						className={productionActionItemClassName}
                     >
                         Delete Submissions
                     </Menu.Item>
@@ -322,6 +338,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         }}
                         disabled={!deleteAssignmentQty}
                         shortCut={`QTY: ${deleteAssignmentQty}`}
+						className={productionActionItemClassName}
                     >
                         Delete Assignments
                     </Menu.Item>

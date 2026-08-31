@@ -4,7 +4,9 @@ import type { Db } from "@gnd/db";
 import { receiveInboundShipment } from "@gnd/inventory/inbound";
 import { hasQty } from "@gnd/utils/sales";
 
+import { hasCompletedProductionLifecycle } from "./bulk-production-completion";
 import { fulfillSalesInventoryNeedsManually } from "./manual-fulfill-sales-inventory-needs";
+import { getSalesOrderLifecycleStatus } from "./order-status";
 import {
 	decideProductionSubmissionMaterialReview,
 	getProductionSubmissionMaterialReviewDetail,
@@ -17,6 +19,8 @@ import {
 	getSalesInventoryMarkAsPreflight,
 	overrideSalesInventoryMarkAsAvailabilityForContinue,
 } from "./sales-inventory-mark-as-preflight";
+import { resolveSalesInventoryFulfillmentStatus } from "./sales-inventory-policy";
+import { overallStatus } from "./utils/utils";
 
 type ResolutionActor = {
 	id: number;
@@ -88,6 +92,7 @@ export type ResolveSalesStatusMarkAsDependenciesResult = {
 };
 
 type ResolutionDependencies = {
+	getEligibleSalesOrderIds?: typeof getSalesStatusMarkAsEligibleSalesOrderIds;
 	getStatusPreflight?: typeof getSalesStatusMarkAsPreflight;
 	loadContext?: typeof loadAutomationContext;
 	getPendingReviews?: typeof getPendingReviews;
@@ -100,6 +105,7 @@ type ResolutionDependencies = {
 };
 
 type StatusPreflightDependencies = {
+	getEligibleSalesOrderIds?: typeof getSalesStatusMarkAsEligibleSalesOrderIds;
 	getInventoryPreflight?: typeof getSalesInventoryMarkAsPreflight;
 	loadContext?: typeof loadAutomationContext;
 	getPendingProductionWork?: typeof getPendingAutomaticProductionWork;
@@ -124,6 +130,66 @@ function normalizeSalesOrderIds(salesOrderIds: number[]) {
 	return Array.from(new Set(salesOrderIds)).filter(
 		(id) => Number.isInteger(id) && id > 0,
 	);
+}
+
+export async function getSalesStatusMarkAsEligibleSalesOrderIds(
+	db: Db,
+	input: {
+		salesOrderIds: number[];
+		action: SalesInventoryMarkAsAction;
+	},
+) {
+	const salesOrderIds = normalizeSalesOrderIds(input.salesOrderIds);
+	if (!salesOrderIds.length) return [];
+
+	const rows = await db.salesOrders.findMany({
+		where: {
+			id: { in: salesOrderIds },
+			deletedAt: null,
+			type: "order",
+		},
+		select: {
+			id: true,
+			status: true,
+			prodStatus: true,
+			stat: true,
+			deliveries: {
+				where: { deletedAt: null },
+				select: {
+					status: true,
+					_count: { select: { items: true } },
+				},
+			},
+		},
+	});
+	const eligibleIds = new Set(
+		rows.flatMap((row) => {
+			const status = overallStatus(row.stat);
+			const lifecycleStatus = getSalesOrderLifecycleStatus({
+				orderStatus: row.status,
+				legacyProductionStatus: row.prodStatus,
+				productionStatus: status.production.status,
+				fulfillmentStatus:
+					resolveSalesInventoryFulfillmentStatus({
+						deliveries: row.deliveries,
+						stats: row.stat,
+					}) ?? status.delivery.status,
+			});
+			if (lifecycleStatus === "cancelled") return [];
+			if (
+				input.action === "production_completed" &&
+				hasCompletedProductionLifecycle(lifecycleStatus)
+			) {
+				return [];
+			}
+			if (input.action === "fulfilled" && lifecycleStatus === "fulfilled") {
+				return [];
+			}
+			return [row.id];
+		}),
+	);
+
+	return salesOrderIds.filter((salesOrderId) => eligibleIds.has(salesOrderId));
 }
 
 function submissionQty(qty: unknown) {
@@ -352,7 +418,10 @@ export async function getSalesStatusMarkAsPreflight(
 	},
 	dependencies: StatusPreflightDependencies = {},
 ): Promise<SalesStatusMarkAsPreflightResult> {
-	const salesOrderIds = normalizeSalesOrderIds(input.salesOrderIds);
+	const getEligibleSalesOrderIds =
+		dependencies.getEligibleSalesOrderIds ??
+		getSalesStatusMarkAsEligibleSalesOrderIds;
+	const salesOrderIds = await getEligibleSalesOrderIds(db, input);
 	const getInventoryPreflight =
 		dependencies.getInventoryPreflight ?? getSalesInventoryMarkAsPreflight;
 	const loadContext = dependencies.loadContext ?? loadAutomationContext;
@@ -471,7 +540,10 @@ export async function resolveSalesStatusMarkAsDependenciesForContinue(
 	},
 	dependencies: ResolutionDependencies = {},
 ): Promise<ResolveSalesStatusMarkAsDependenciesResult> {
-	const salesOrderIds = normalizeSalesOrderIds(input.salesOrderIds);
+	const getEligibleSalesOrderIds =
+		dependencies.getEligibleSalesOrderIds ??
+		getSalesStatusMarkAsEligibleSalesOrderIds;
+	const salesOrderIds = await getEligibleSalesOrderIds(db, input);
 	const actor: ResolutionActor = {
 		id: Number(input.triggeredByUserId || 0),
 		name: input.authorName || "System",

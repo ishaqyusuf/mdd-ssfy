@@ -57,7 +57,7 @@ export default async function Page(props: Props) {
 	unstable_noStore();
 	const searchParams = await props.searchParams;
 	const filter = await loadSalesProductionFilterParams(searchParams);
-	const tableFilter = withDefaultProductionQueue(filter);
+	const tableFilter = { ...withDefaultProductionQueue(filter), size: 20 };
 	const calendarSelected =
 		filter.tab === "calendar" || filter.view === "calendar";
 	const initialTableSettings =
