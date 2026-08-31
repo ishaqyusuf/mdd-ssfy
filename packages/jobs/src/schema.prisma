@@ -756,6 +756,7 @@ model SalesOrders {
     invoiceStatus     String?                          @db.VarChar(255)
     prodStatus        String?                          @db.VarChar(255)
     prodDueDate       DateTime?                        @db.Timestamp(0)
+    deliveryDueDate   DateTime?                        @db.Timestamp(0)
     paymentDueDate    DateTime?                        @db.Timestamp(0)
     deliveredAt       DateTime?
     deliveryOption    String?
@@ -6978,3 +6979,4 @@ model SalesPickup {
 
     @@index([pickupApprovedBy])
 }
+
