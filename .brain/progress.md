@@ -13806,3 +13806,12 @@
 - A local process diagnostic exposed the production Trigger and database
   credentials in tool output. No values are recorded here; rotate both affected
   credentials before treating the release environment as secure.
+
+## 2026-08-31 — Vercel dashboard frozen-lockfile repair
+
+- The `gndprodesk` production deployment for `apps/dashboard` failed before the
+  Next.js build because `packages/email/package.json` required React Email
+  `5.2.10` while the committed Bun lockfile still resolved `5.0.6`.
+- Regenerated `bun.lock` with Bun `1.3.14`, matching Vercel's build runtime. The
+  exact filtered dashboard frozen install now passes, and the following Prisma
+  CI client-generation step also passes with a non-secret validation URL.
