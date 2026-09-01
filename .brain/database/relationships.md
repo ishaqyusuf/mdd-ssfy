@@ -363,3 +363,18 @@ Planning only; no schema relationship changed yet.
 - Every report identity relation is delete-restricted so an audit record cannot
   disappear through physical deletion of its order, dispatch, line, submission,
   allocation row, submitter, or reviewer.
+
+## Planned Sales Completion Record links (2026-09-01)
+
+Planning only; no relationship has been added to Prisma.
+
+- `SalesOrders 1:N SalesCompletionRecord`; records retain active and cancelled
+  completion history for one order.
+- `SalesCompletionRecord.recordedById -> Users.id` and nullable
+  `cancelledById -> Users.id` preserve authenticated actor attribution.
+- `SalesCompletionRecord` has no ownership or mutation relationship to
+  `SalesStat`, `QtyControl`, production assignments/submissions,
+  `OrderDelivery`, dispatch proof, inventory ledgers, accounting, tax,
+  notification, commission, or payout rows.
+- The shared completion resolver joins the record as a separate authority and
+  never rewrites operational relationships from its presence.

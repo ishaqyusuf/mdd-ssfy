@@ -13,8 +13,8 @@ import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
 import { formatDate } from "@gnd/utils/dayjs";
-import type { ColumnDef } from "@tanstack/react-table";
 import { getProductionDueDatePresentation } from "@sales/production-date";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import { getSalesProductionDueDateClassName } from "./due-date-tone";
 
@@ -429,6 +429,7 @@ function Actions({ item }: { item: SalesProductionRow }) {
 		>
 			<SalesMenu.MarkAs
 				asSubmenu={false}
+				showUnavailableFulfilled
 				currentStatus={item.lifecycleStatus}
 				productionStatus={item.status?.production?.status}
 				statusCandidates={[

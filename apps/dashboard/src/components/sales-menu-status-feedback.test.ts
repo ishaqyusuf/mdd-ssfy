@@ -19,15 +19,25 @@ describe("sales menu status feedback", () => {
 		expect(source.slice(callStart, callStart + 500)).toContain("staleTime: 0");
 	});
 
-	it("gates fulfillment and resolves its dispatch through the narrow endpoint", () => {
+	it("gates fulfillment and hands it to the monitored bulk workflow", () => {
 		expect(source).toContain("auth.can.viewMarkSalesOrderFulfilled");
 		expect(dispatchMenuSource).toContain(
 			"auth.can.viewMarkSalesOrderFulfilled",
 		);
-		expect(source).toContain("ensureSalesOrderFulfillmentDispatch");
+		expect(source).toContain('taskName: "bulk-mark-sales-fulfilled"');
 		expect(source).not.toContain(
 			"trpc.dispatch.createDispatch.mutationOptions",
 		);
+	});
+
+	it("shows distinct production-complete and fulfilled status icons", () => {
+		expect(source).toContain(
+			'<Icons.Factory className="mr-2 size-4 text-emerald-600" />',
+		);
+		expect(source).toContain(
+			'<Icons.Truck className="mr-2 size-4 text-blue-600" />',
+		);
+		expect(source).toContain("showUnavailableFulfilled");
 	});
 
 	it("keeps a fulfillment start locked until its task is accepted", () => {
@@ -37,22 +47,20 @@ describe("sales menu status feedback", () => {
 
 	it("waits for each monitored status task to be accepted before finishing the handoff", () => {
 		const awaitedTaskStarts =
-			source.match(/await salesControlTask\.trigger\(/g) ?? [];
+			source.match(
+				/await (?:bulkProductionCompletionTask|bulkFulfillmentTask)\.trigger\(/g,
+			) ?? [];
 		expect(awaitedTaskStarts).toHaveLength(2);
 	});
 
 	it("shows visible feedback as soon as a monitored status task starts", () => {
-		expect(source).toContain('title: "Sales status update started"');
-		expect(source).toContain(
-			'description: "You can keep working while the order status updates."',
-		);
+		expect(source).toContain('title: "Bulk production completion started"');
+		expect(source).toContain('title: "Bulk fulfillment started"');
 	});
 
 	it("shows visible feedback when a monitored status task completes", () => {
-		expect(source).toContain('title: "Sales status updated"');
-		expect(source).toContain(
-			'description: "The order list and saved tab counts are refreshing."',
-		);
+		expect(source).toContain('title: "Bulk production completion finished"');
+		expect(source).toContain('title: "Bulk fulfillment completed"');
 	});
 
 	it("keeps portal menu selections from opening the underlying sales row", () => {

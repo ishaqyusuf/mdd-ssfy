@@ -3,6 +3,55 @@
 ## Goal
 Provide a cleaner production operations surface for both admins and production workers with fast due-date triage, clear urgency alerts, and a more usable daily queue.
 
+## Worker production item header refinement (2026-09-01)
+
+- Worker Production items remove the quantity segment from the item subtitle so
+  the order-wide/general quantity cannot be confused with the authenticated
+  worker's assignment.
+- The worker-scoped assigned quantity now sits inline after the remaining item
+  description in one primary badge. It uses the compact `QTY <value>` label and
+  adds `LH <value>` / `RH <value>` segments when the assignment is handed.
+- Production item headers use a muted hover state. The expanded header retains
+  a stronger muted state, and the divider on the immediately preceding item is
+  suppressed so the expanded item's full outline is the only adjacent border.
+- The existing order-level worker inbound summary remains in place until the
+  proposed per-item inbound banner statuses, copy, and semantic colors receive
+  product approval. No inbound presentation or data-contract change is part of
+  this slice.
+- Focused worker presentation coverage passes 17 tests. In-app browser QA at
+  768x1024 and 390x844 verifies the shared Production V2 sheet's full-width
+  geometry, internal scrolling, zero horizontal overflow, hover/open states,
+  and adjacent-border behavior. The authenticated Sales/Admin browser account
+  correctly redirects away from `/production/dashboard`, so the worker-only
+  quantity branch is automated-test verified pending a worker-authenticated
+  browser session.
+
+## Production workspace completion (2026-09-01)
+
+- Completed assignments remain on admin and worker calendars and use the green
+  completed semantic without an overdue treatment.
+- Admin and worker analytics use work-state semantics: Unassigned amber, Past
+  due red, Due today orange, future blue, Awaiting review violet, and Completed
+  green. Due Today and Past Due tabs automatically sort earliest due date first.
+- Selected admin rows support permission-checked batch assign/reassign,
+  unassign, reschedule, clear date, Production completed, and Fulfilled actions.
+  Batch labels do not wrap and date selection uses the shared shadcn calendar.
+- Worker search follows the tabs on small/tablet screens and shares their row
+  above `lg`. Production subtitles have stronger hierarchy, worker detail shows
+  supplier/order-source and arrival information, and worker Sales Overview uses
+  a full-screen tablet sheet with an independently scrolling content viewport.
+- Historical produceable controls remain valid production evidence even when a
+  current control UID or product setting changed. The detail projection falls
+  back to the linked order item, while queue eligibility still requires a live,
+  non-deleted linked line item and positive production quantity.
+- The Completed table hides Materials by default because readiness is no longer
+  actionable after production completion. Active and Unscheduled work retain
+  the Materials default, and an explicit saved user choice to show Materials on
+  Completed remains supported.
+- Phone (390px), tablet (768x1024), and desktop in-app browser QA passed,
+  including batch menus, calendar input, tablet scrolling, V2 order detail,
+  horizontal desktop tabs/search, and absence of phone horizontal overflow.
+
 ## Release safety hardening (2026-08-31)
 
 - Assignment create, delete, and batch assignment require `editProduction` at

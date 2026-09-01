@@ -69,7 +69,9 @@ describe("sales production priority sorting", () => {
 			to: "2026-09-07",
 		});
 
-		expect(JSON.stringify(capturedWhere)).not.toContain('"type":"prodCompleted"');
+		expect(JSON.stringify(capturedWhere)).not.toContain(
+			'"type":"prodCompleted"',
+		);
 		expect(result.scheduled).toHaveLength(1);
 		expect(result.scheduled[0]).toMatchObject({
 			orderNo: "ORDER-42",
@@ -229,6 +231,7 @@ describe("sales production priority sorting", () => {
 		);
 
 		expect(serialized).toContain('"itemControls"');
+		expect(serialized).toContain('"item":{"is":{"deletedAt":null}}');
 		expect(serialized).toContain('"produceable":true');
 		expect(serialized).toContain('"type":"qty"');
 		expect(serialized).toContain('"total":{"gt":0}');

@@ -59,9 +59,10 @@ function ProductionChip({
 }) {
 	const overview = useSalesOverviewQuery();
 	const colorClass = STATUS_COLORS[item.status] ?? STATUS_COLORS.assigned;
-	const isOverdue = item.dueDate
-		? isPast(startOfDay(new Date(item.dueDate)))
-		: false;
+	const isOverdue =
+		item.status !== "completed" && item.dueDate
+			? isPast(startOfDay(new Date(item.dueDate)))
+			: false;
 
 	return (
 		<button

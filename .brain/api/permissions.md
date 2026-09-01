@@ -202,11 +202,14 @@ Tracks authentication and authorization patterns across API surfaces.
   or packing viewers; `sales.productionOverview` accepts order, production,
   delivery, pickup, or packing viewers. UI tab visibility is not the
   authorization boundary, and both queries are side-effect-free.
-- Sales Overview General rollout management is Super Admin-only.
+- Sales Overview General rollout settings management remains Super Admin-only.
   `sales.getSalesOverviewViewSettings` and
   `sales.updateSalesOverviewViewSettings` repeat the active-role check at the
-  API boundary. Other overview viewers receive only their resolved V1/V2 value
-  through `sales.getSaleOverview`, never the office or pilot policy.
+  API boundary. These compatibility settings no longer choose the renderer;
+  every authorized `sales.getSaleOverview` caller receives V2.
+- `sales.productionMaterials` uses the same Production Overview viewer boundary
+  as production detail. It is read-only and does not grant assignment,
+  submission, review, inventory, inbound, or fulfillment mutation authority.
 - Production queue, dashboard, worker-task, and v2 order-detail reads require an
   authenticated user with an order, production, delivery, pickup, or packing
   viewing capability. Worker routes always replace caller scope with the
@@ -727,3 +730,26 @@ Tracks authentication and authorization patterns across API surfaces.
 - Driver assignment mutations independently repeat destination readiness after
   their own protected boundary. A successful UI preflight is never treated as
   an authorization token.
+
+## Planned Status-only sales completion permissions (2026-09-01)
+
+- The canonical resource identifier is `status_only_sales_completion`; the
+  resource entry is `StatusOnlySalesCompletion`.
+- The permission catalog must persist exactly `view status only sales
+  completion` and `edit status only sales completion`. Existing normalization
+  maps them to `viewStatusOnlySalesCompletion` and
+  `editStatusOnlySalesCompletion`.
+- `viewStatusOnlySalesCompletion` controls the Status-only choice and governed
+  provenance presentation. It grants no mutation authority.
+- `editStatusOnlySalesCompletion` is required server-side to create or cancel a
+  Status-only `SalesCompletionRecord`. UI hiding is not an authorization
+  boundary.
+- Existing Production and Fulfillment permissions continue to govern Full
+  workflow operations. The new capability never grants inventory, dispatch,
+  packing, proof, accounting, tax, notification, or reversal authority.
+- Super Admin retains the existing implicit all-permissions behavior. Other
+  roles require explicit assignment of each persisted row.
+- A single persisted `status_only_sales_completion` row is not a compatibility
+  grant and must not authorize either runtime capability.
+- This section is an approved implementation contract; no permission rows or
+  application constants were changed during planning.

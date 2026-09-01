@@ -222,10 +222,7 @@ function Content() {
         currentTab: query?.params?.salesTab,
         tabs,
     });
-    const isGeneralV2 =
-        activeTab === "general" &&
-        (data as { generalViewVersion?: "v1" | "v2" } | undefined)
-            ?.generalViewVersion === "v2";
+    const isGeneralV2 = activeTab === "general";
     const setActiveTab = (tab: LegacySalesOverviewTabId) => {
         const navigation = buildLegacySalesOverviewTabNavigation(
             tab,
@@ -259,6 +256,7 @@ function Content() {
             secondaryOpened={paneOpened}
             onCloseSecondary={closePane}
             onSecondaryExited={handlePaneExited}
+            tabletFullscreen={Boolean(query.assignedTo)}
         >
             <Sheet.MultiContent>
                 <Sheet.PrimaryContent>

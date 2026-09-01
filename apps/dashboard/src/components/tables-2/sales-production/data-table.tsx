@@ -33,8 +33,8 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { BottomBar } from "./bottom-bar";
 import {
 	getActiveSalesProductionStickyColumns,
+	getSalesProductionColumnVisibility,
 	placeOrderDateAfterDueDate,
-	shouldShowSalesProductionOrderDate,
 } from "./column-layout";
 import {
 	type SalesProductionRow,
@@ -105,10 +105,14 @@ export function DataTable({
 	});
 
 	const resolvedFilters = resolveSalesProductionWorkspaceQuery(filters);
-	const showOrderDate = shouldShowSalesProductionOrderDate(resolvedFilters);
 	const effectiveColumnVisibility = useMemo(
-		() => ({ ...columnVisibility, orderDate: !workerMode && showOrderDate }),
-		[columnVisibility, showOrderDate, workerMode],
+		() =>
+			getSalesProductionColumnVisibility({
+				columnVisibility,
+				context: resolvedFilters,
+				workerMode,
+			}),
+		[columnVisibility, resolvedFilters, workerMode],
 	);
 	const effectiveColumnOrder = useMemo(
 		() =>

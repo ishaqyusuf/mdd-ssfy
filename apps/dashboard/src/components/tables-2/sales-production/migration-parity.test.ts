@@ -153,6 +153,9 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(calendar.includes("grid-cols-7")).toBe(true);
 		expect(calendar.includes('value="week"')).toBe(true);
 		expect(calendar.includes('value="month"')).toBe(true);
+		expect(calendar.includes('item.status !== "completed"')).toBe(true);
+		expect(calendar.includes("completed:")).toBe(true);
+		expect(calendar.includes("bg-emerald-100")).toBe(true);
 		expect(calendar.includes("<Card")).toBe(true);
 		expect(calendar.includes('<Card className="overflow-auto">')).toBe(true);
 		expect(calendar.includes("<CardContent")).toBe(true);
@@ -221,7 +224,12 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(columnsSource.includes('id: "select"')).toBe(true);
 		expect(columnsSource.includes('header: "Mark all"')).toBe(true);
 		expect(columnsSource.includes("<SalesMenu.MarkAs")).toBe(true);
+		expect(columnsSource.includes("showUnavailableFulfilled")).toBe(true);
 		expect(bottomBarSource.includes("<SalesMenu.MarkAs")).toBe(true);
+		expect(bottomBarSource.includes("showUnavailableFulfilled")).toBe(true);
+		expect(bottomBarSource.includes('className="whitespace-nowrap"')).toBe(
+			true,
+		);
 		expect(
 			bottomBarSource.includes("statusCandidates={statusCandidates}"),
 		).toBe(true);

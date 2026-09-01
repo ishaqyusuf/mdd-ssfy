@@ -34,21 +34,19 @@ test("routes every Production surface through the V2 gateway", () => {
 	expect(controllerSource).not.toContain("<ProductionTab />");
 });
 
-test("keeps Production V2 lazy and the legacy Production tab as fallback", () => {
+test("keeps Production V2 lazy and routes every user to it", () => {
 	expect(gatewaySource).toContain('import("./v2/production-tab-v2")');
-	expect(gatewaySource).toContain("Boolean(query.assignedTo)");
-	expect(gatewaySource).toContain("workerMode ||");
-	expect(gatewaySource).toContain('generalViewVersion === "v2"');
-	expect(gatewaySource).toContain("return <ProductionTab />");
+	expect(gatewaySource).toContain("return <ProductionTabV2 />");
+	expect(gatewaySource).not.toContain("return <ProductionTab />");
 });
 
 test("gives production workers the V2 submissions-only item experience", () => {
 	expect(controllerSource).toContain('case "assigned-production"');
 	expect(controllerSource).toContain('label: "Productions"');
 	expect(controllerSource).toContain('label: "Notes"');
-	expect(productionV2Source).toContain(
-		"Assigned quantity: {workerProgress.assigned}",
-	);
+	expect(productionV2Source).toContain("<span>QTY</span>");
+	expect(productionV2Source).toContain("getWorkerProductionItemPresentation");
+	expect(productionV2Source).not.toContain("Assigned quantity:");
 	expect(productionDocumentSource).toContain(
 		'const label = workerMode ? "Submissions" : "Assignments"',
 	);
@@ -101,6 +99,16 @@ test("keeps exactly one V2 production item open and restores it from the URL", (
 	expect(productionV2Source).not.toContain('type="multiple"');
 });
 
+test("distinguishes hovered and opened items without an adjacent double border", () => {
+	expect(productionV2Source).toContain('"hover:bg-muted/50"');
+	expect(productionV2Source).toContain(
+		'"border-b bg-muted/70 hover:bg-muted/80"',
+	);
+	expect(productionV2Source).toContain(
+		'followedByOpened && "border-b-transparent"',
+	);
+});
+
 test("preserves role actions, mutation surfaces, and legacy compatibility", () => {
 	expect(productionDocumentSource).toContain(
 		'`Create ${workerMode ? "submission" : "assignment"}`',
@@ -121,7 +129,7 @@ test("preserves role actions, mutation surfaces, and legacy compatibility", () =
 	expect(expansionSource).toContain("singleOpen");
 	expect(productionV2Source).toContain('<ItemTitle className="uppercase">');
 	expect(productionV2Source).toContain(
-		'<ItemDescription className="uppercase">',
+		'<ItemDescription className="mt-1 w-fit rounded-md border border-border/80 bg-muted/70 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/85">',
 	);
 	expect(productionV2Source).toContain(
 		"<ProductionItemStatusBadges item={item} />",

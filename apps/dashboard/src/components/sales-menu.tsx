@@ -9,7 +9,10 @@ import {
 } from "@/components/sales-batch-status-selection";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
-import { getSalesOrderStatusMenuActions } from "@/components/sales-status-menu-actions";
+import {
+	type SalesOrderStatusMenuAction,
+	getSalesOrderStatusMenuActions,
+} from "@/components/sales-status-menu-actions";
 import { SalesWorkflowCancellationDialog } from "@/components/sales-workflow-cancellation-dialog";
 import { reviewSelectedPayments } from "@/components/tables-2/sales-orders/review-selected-payments";
 import { useAuth } from "@/hooks/use-auth";
@@ -427,6 +430,7 @@ type ActionProps = {
 type MarkAsProps = ActionProps & {
 	asSubmenu?: boolean;
 	includePaymentReviewed?: boolean;
+	showUnavailableFulfilled?: boolean;
 	onPaymentReviewed?: () => void;
 	onStatusActionSettled?: () => void;
 	currentStatus?: SalesOrderLifecycleStatus;
@@ -434,6 +438,20 @@ type MarkAsProps = ActionProps & {
 	hasFulfillmentDispatch?: boolean;
 	statusCandidates?: readonly SalesBatchStatusCandidate[];
 };
+
+function SalesMarkAsActionIcon({
+	action,
+}: {
+	action: SalesOrderStatusMenuAction;
+}) {
+	if (action === "production_completed") {
+		return <Icons.Factory className="mr-2 size-4 text-emerald-600" />;
+	}
+	if (action === "fulfilled") {
+		return <Icons.Truck className="mr-2 size-4 text-blue-600" />;
+	}
+	return <Icons.Ban className="mr-2 size-4 text-destructive" />;
+}
 
 const markAsActionLabels: Record<SalesInventoryMarkAsAction, string> = {
 	production_completed: "Production completed",
@@ -1005,6 +1023,7 @@ function SalesMenuMarkAs({
 	disabled,
 	asSubmenu = true,
 	includePaymentReviewed = false,
+	showUnavailableFulfilled = false,
 	onPaymentReviewed,
 	onStatusActionSettled,
 	currentStatus,
@@ -1426,7 +1445,9 @@ function SalesMenuMarkAs({
 	)
 		.filter(
 			(item) =>
-				item.action !== "fulfilled" || auth.can.viewMarkSalesOrderFulfilled,
+				item.action !== "fulfilled" ||
+				auth.can.viewMarkSalesOrderFulfilled ||
+				showUnavailableFulfilled,
 		)
 		.filter(
 			(item) =>
@@ -1439,9 +1460,12 @@ function SalesMenuMarkAs({
 			{statusMenuActions.map((item) => (
 				<SalesMenuItem
 					key={item.action}
+					className="whitespace-nowrap"
 					disabled={
 						isDisabled ||
 						item.disabled ||
+						(item.action === "fulfilled" &&
+							!auth.can.viewMarkSalesOrderFulfilled) ||
 						preflightLoadingAction !== null ||
 						statusActionPending ||
 						salesIds.length === 0
@@ -1463,6 +1487,7 @@ function SalesMenuMarkAs({
 						actions.openWorkflowCancellation("fulfillment");
 					}}
 				>
+					<SalesMarkAsActionIcon action={item.action} />
 					{item.label}
 				</SalesMenuItem>
 			))}
@@ -1474,6 +1499,7 @@ function SalesMenuMarkAs({
 						void markPaymentReviewed();
 					}}
 				>
+					<Icons.ClipboardCheck className="mr-2 size-4 text-emerald-600" />
 					Reviewed
 				</SalesMenuItem>
 			) : null}

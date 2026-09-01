@@ -1,5 +1,20 @@
 # In Progress
 
+### Status-only Sales Completion
+
+- Priority: High
+- Description: The Wayfinder and GND compatibility review are decision-complete.
+  Status-only Fulfillment is a separately labelled Administrative Completion,
+  canonical Fulfilled remains proof/commit-bound, planned
+  `SalesCompletionRecord` owns durable provenance, `SalesStat` remains
+  recomputed progress, and the exact two-row view/edit permission mapping is
+  fixed. No implementation has started.
+- Related Feature: Status-only Sales Completion
+- Status: Specification Ready For Separate Implementation Handoff
+- Plan File: `.brain/plans/2026-09-01-feature-status-only-sales-completion.md`
+- Decision: `.brain/decisions/ADR-081-administrative-sales-completion-authority.md`
+- Updated Date: 2026-09-01
+
 ### Fulfillment V2 Status And Queue Parity
 
 - Priority: High
@@ -97,19 +112,24 @@
   Sales Overview Production item single view is now implemented for Sales
   Overview V2 as `A — Command Document`; it replaces item-level
   Details/Notes/Assignments-or-Submissions tabs with one role-aware document
-  while preserving the legacy fallback and all existing mutations and guards.
-  Production-only workers now select that V2 Production document regardless of
-  the office General V2 rollout, see assigned quantity per item, and work from a
+  while preserving all existing mutations and guards. Every authorized Sales
+  Overview user now selects the V2 General, header, and Production surfaces;
+  production-only workers see assigned quantity per item and work from a
   single Submissions section. The section reuses the assignment ledger row
   presentation, owns its inline form, places a compact plus beside populated
   submission analytics, and uses a full-width create action when empty. Shipped
   or review-locked submissions and progressed assignments now show their lock
-  reason inline before interaction and keep deletion visibly disabled.
+  reason inline before interaction and keep deletion visibly disabled. The
+  2026-09-01 header refinement removes general quantity from worker subtitles,
+  moves worker-scoped QTY/LH/RH into one inline primary badge, and adds muted
+  hover/open states without adjacent double borders. The next product gate is
+  approval of the per-item inbound banner status model; the existing inbound
+  summary remains until that replacement is approved.
 - Related Feature: Sales Production Workspace
 - Status: In Progress
-- Plan Status: In Progress - Worker Tabs/Analytics/Calendar Complete; Production Item Single View Implemented; Worker Actions Pending
+- Plan Status: In Progress - Worker Tabs/Analytics/Calendar/Batch Enhancements Complete; Sales Overview V2 Rolled Out; Remaining Worker Actions Pending
 - Plan Files: `.brain/plans/sales-system-page-by-page-modernization/04-sales-production-admin-and-worker-plan.md`; `.brain/plans/2026-08-21-feature-production-worker-global-search.md`; `.brain/plans/2026-08-22-feature-sales-overview-production-item-single-view.md`
-- Updated Date: 2026-08-30
+- Updated Date: 2026-09-01
 
 ### Vercel Function Cost Reduction And Trigger Offload
 

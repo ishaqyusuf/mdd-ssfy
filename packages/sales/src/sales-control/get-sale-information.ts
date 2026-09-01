@@ -44,6 +44,34 @@ export function composeFullSalesSelect(assignedToId?: number | null) {
   };
 }
 
+export function preserveHistoricalProductionCapability<
+  T extends { production?: boolean | null },
+>(itemConfig: T, persistedProduceable?: boolean | null): T {
+  if (itemConfig.production || !persistedProduceable) return itemConfig;
+
+  return {
+    ...itemConfig,
+    production: true,
+  };
+}
+
+export function hasHistoricalProductionCapability(props: {
+  controls: Array<{
+    uid: string;
+    orderItemId?: number | null;
+    produceable?: boolean | null;
+  }>;
+  controlUid: string;
+  itemId: number;
+}) {
+  return props.controls.some(
+    (control) =>
+      !!control.produceable &&
+      (control.uid === props.controlUid ||
+        control.orderItemId === props.itemId),
+  );
+}
+
 export async function salesInformationData(
   db: Db,
   params: GetFullSalesDataSchema,
@@ -178,7 +206,7 @@ export function composeSalesItemControl(
     )
     .flat()!;
   const prodOverride = doorMeta?.prodOverride;
-  const itemConfig = getItemStatConfig({
+  const computedItemConfig = getItemStatConfig({
     isDyke: !!order.isDyke,
     formSteps: baseItem.formSteps,
     setting: setting.data,
@@ -186,6 +214,14 @@ export function composeSalesItemControl(
     swing: baseItem.swing,
     prodOverride,
   });
+  const itemConfig = preserveHistoricalProductionCapability(
+    computedItemConfig,
+    hasHistoricalProductionCapability({
+      controls: order.itemControls,
+      controlUid: itemControlUid,
+      itemId: item.id,
+    }),
+  );
 
   const composed = {
     salesId: order.id,

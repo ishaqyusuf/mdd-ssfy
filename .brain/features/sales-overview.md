@@ -69,17 +69,14 @@ opening production, dispatch, packing, or inventory workflows.
 - Production reads are pure by default.
 - Production mutations may opt into derived-state persistence explicitly.
 
-## General Tab V1/V2 Rollout (2026-08-21)
+## General Tab V2 Rollout (updated 2026-09-01)
 
-- The canonical sheet may temporarily select between two General renderers;
-  this does not create another Sales Overview route, sheet, provider, tab
-  registry, or open contract.
-- Sales Settings owns `officeDefault: v1 | v2` and
-  `superAdminPreview: inherit | v1 | v2`.
-- Missing or invalid policy preserves V1 for the office and resolves V2 for an
-  active Super Admin pilot. `inherit` makes Super Admin use the office default.
-- Only Super Admin manages the policy. Ordinary overview callers receive only
-  their resolved General version.
+- Every authenticated Sales Overview viewer now receives the V2 server
+  projection and the canonical sheet always renders the V2 header, General tab,
+  and Production tab. Role/version gates no longer select legacy renderers.
+- The existing Sales Settings rollout fields remain readable for compatibility
+  and rollback tooling, but they do not control the active overview renderer.
+  New/malformed settings default to `officeDefault: v2`.
 - V1 preserves the current General behavior. V2 implements the approved Split
   Command Center with bounded customer, order, financial, operations, and
   delivery sections, a dedicated skeleton, direct P.O. editing, address reveal,
@@ -96,8 +93,8 @@ opening production, dispatch, packing, or inventory workflows.
   statuses, inventory ownership, and document readiness. It excludes
   Product/configuration, Sales Profile, delivery-item counts, and legacy control
   enrichment that General V2 does not render.
-- The rollout gateway and V1 must be retired after V2 office acceptance and its
-  rollback window.
+- Legacy components remain in the repository for bounded rollback/reference,
+  but are unreachable through the canonical gateway.
 
 ## Multi-Pane Sheet Contract
 

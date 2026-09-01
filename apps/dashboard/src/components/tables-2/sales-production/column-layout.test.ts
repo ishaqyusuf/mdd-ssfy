@@ -2,11 +2,45 @@ import { describe, expect, it } from "bun:test";
 
 import {
 	getActiveSalesProductionStickyColumns,
+	getSalesProductionColumnVisibility,
 	placeOrderDateAfterDueDate,
 	shouldShowSalesProductionOrderDate,
 } from "./column-layout";
 
 describe("Sales Production column layout", () => {
+	it("hides Materials by default only for completed work", () => {
+		expect(
+			getSalesProductionColumnVisibility({
+				columnVisibility: {},
+				context: {
+					tab: "completed",
+					view: "table",
+					list: { production: "completed" },
+				},
+			}),
+		).toMatchObject({ materials: false });
+
+		expect(
+			getSalesProductionColumnVisibility({
+				columnVisibility: {},
+				context: { tab: "queue", view: "table", list: {} },
+			}),
+		).toMatchObject({ materials: undefined });
+	});
+
+	it("honors an explicit Materials visibility choice on completed work", () => {
+		expect(
+			getSalesProductionColumnVisibility({
+				columnVisibility: { materials: true },
+				context: {
+					tab: "completed",
+					view: "table",
+					list: { production: "completed" },
+				},
+			}),
+		).toMatchObject({ materials: true });
+	});
+
 	it("does not reserve the admin selection column in worker tables", () => {
 		const stickyColumns = [
 			{ id: "select", width: 50 },

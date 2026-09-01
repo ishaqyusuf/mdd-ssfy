@@ -150,7 +150,6 @@ import {
 	getSettingAction,
 	guardedPackingPolicyInputSchema,
 	normalizeSalesPrintSettings,
-	resolveSalesOverviewGeneralVersion,
 	salesHandoffTriggerInputSchema,
 	salesOverviewViewSettingsSchema,
 	salesPrintSettingsSchema,
@@ -164,6 +163,7 @@ import { getAppUrl } from "@gnd/utils/envs";
 import { createNoteAction } from "@notifications/note";
 import {
 	getProductionReadiness,
+	loadProductionMaterialStatuses,
 	productionV2DetailQuerySchema,
 	productionV2ListQuerySchema,
 	salesProductionCalendarQuerySchema,
@@ -859,14 +859,7 @@ export const salesRouter = createTRPCRouter({
 		.input(getSaleOverviewSchema)
 		.query(async (props) => {
 			await requireSalesOverviewViewer(props.ctx);
-			const [viewSettings, superAdmin] = await Promise.all([
-				getSalesOverviewViewSettings(props.ctx.db),
-				isSuperAdmin(props.ctx),
-			]);
-			const generalViewVersion = resolveSalesOverviewGeneralVersion({
-				isSuperAdmin: Boolean(superAdmin),
-				settings: viewSettings,
-			});
+			const generalViewVersion = "v2" as const;
 			const overview = await getSaleOverviewLoader(generalViewVersion)(
 				props.ctx,
 				props.input,
@@ -931,6 +924,16 @@ export const salesRouter = createTRPCRouter({
 		.query(async (props) => {
 			await requireProductionOverviewViewer(props.ctx);
 			return getProductionReadiness(props.ctx.db, props.input);
+		}),
+	productionMaterials: protectedProcedure
+		.input(productionReadinessSchema)
+		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
+			return loadProductionMaterialStatuses(props.ctx.db, {
+				salesOrderId: props.input.salesOrderId,
+				lineItemUids: props.input.lineItemUids,
+				completeOrder: true,
+			});
 		}),
 	setProductionReadinessOverride: protectedProcedure
 		.input(setProductionReadinessOverrideSchema)

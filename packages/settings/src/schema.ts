@@ -64,7 +64,7 @@ export type SalesOverviewViewSettings = z.infer<
 >;
 
 export const DEFAULT_SALES_OVERVIEW_VIEW_SETTINGS: SalesOverviewViewSettings = {
-	officeDefault: "v1",
+	officeDefault: "v2",
 	superAdminPreview: "v2",
 };
 

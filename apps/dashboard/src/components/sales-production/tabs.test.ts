@@ -44,4 +44,15 @@ describe("sales production page tabs", () => {
 		});
 		expect(tabs[3]?.count).toBe(120);
 	});
+
+	it("sorts due-today and past-due tabs by the earliest due date", () => {
+		expect(tabs[0]?.params).toMatchObject({
+			due: "today",
+			sort: "due-asc",
+		});
+		expect(tabs[4]?.params).toMatchObject({
+			due: "overdue",
+			sort: "due-asc",
+		});
+	});
 });

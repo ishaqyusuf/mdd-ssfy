@@ -67,7 +67,7 @@ describe("sales handoff trigger settings", () => {
 });
 
 describe("sales overview view settings", () => {
-	test("pilots V2 for Super Admin while the office remains on V1", () => {
+	test("defaults every Sales Overview user to V2", () => {
 		expect(normalizeSalesOverviewViewSettings()).toEqual(
 			DEFAULT_SALES_OVERVIEW_VIEW_SETTINGS,
 		);
@@ -80,7 +80,7 @@ describe("sales overview view settings", () => {
 			resolveSalesOverviewGeneralVersion({
 				isSuperAdmin: false,
 			}),
-		).toBe("v1");
+		).toBe("v2");
 	});
 
 	test("lets Super Admin inherit the office default", () => {
@@ -114,7 +114,7 @@ describe("sales overview view settings", () => {
 				isSuperAdmin: false,
 				settings: { officeDefault: "v3" },
 			}),
-		).toBe("v1");
+		).toBe("v2");
 	});
 });
 

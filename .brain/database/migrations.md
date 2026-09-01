@@ -1,5 +1,24 @@
 # Database Migrations
 
+## Planned: Status-only sales completion (2026-09-01)
+
+- No migration was generated or applied during Wayfinder planning.
+- The future additive migration creates `SalesCompletionRecord`, its enums or
+  bounded string contracts, actor/order relations, active-record uniqueness,
+  and query indexes.
+- It also idempotently ensures the permission rows `view status only sales
+  completion` and `edit status only sales completion` through the project's
+  established permission-catalog path.
+- It must not infer completion records from `SalesStat`, `SalesOrders.status`,
+  `SalesOrders.prodStatus`, `deliveredAt`, completed dispatches, or missing
+  workflow records. GND has no existing dedicated completion rows to backfill.
+- Verification must prove unchanged `SalesStat` counts/values, no inferred
+  completion records, exactly one active record per order/milestone under
+  concurrent writes, idempotent permission creation, and no lifecycle change
+  caused solely by the additive schema.
+- Any named historical exception requires a separately reviewed, auditable
+  migration.
+
 ## 2026-08-30: Sales order delivery due-date default
 
 - Added and locally applied additive migration

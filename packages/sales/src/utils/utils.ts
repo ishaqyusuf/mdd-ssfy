@@ -577,6 +577,7 @@ export const FullSalesSelect = {
       sectionTitle: true,
       title: true,
       uid: true,
+      orderItemId: true,
       qtyControls: {
         where: {
           deletedAt: null,

@@ -41,7 +41,10 @@ export function SalesProductionSummary() {
 			title: "Unassigned",
 			value: data.summary.unassignedCount,
 			description: "Needs an owner",
-			icon: <Icons.user className="h-4 w-4 text-blue-700 dark:text-blue-400" />,
+			color: "#fde68ad9",
+			icon: (
+				<Icons.user className="h-4 w-4 text-amber-800 dark:text-amber-300" />
+			),
 			active: isActiveQueue && filters.queue === "unassigned",
 			onClick: () => activateQueue({ queue: "unassigned" }),
 		},
@@ -49,6 +52,7 @@ export function SalesProductionSummary() {
 			title: "Past due",
 			value: data.summary.pastDueCount,
 			description: "Needs attention",
+			color: "#fca5a5d9",
 			icon: (
 				<Icons.warning className="h-4 w-4 text-rose-700 dark:text-rose-400" />
 			),
@@ -59,6 +63,7 @@ export function SalesProductionSummary() {
 			title: "Due today",
 			value: data.summary.dueTodayCount,
 			description: "Due before close",
+			color: "#fdba74d9",
 			icon: (
 				<Icons.time className="h-4 w-4 text-amber-700 dark:text-amber-400" />
 			),
@@ -69,6 +74,7 @@ export function SalesProductionSummary() {
 			title: "Awaiting review",
 			value: data.summary.awaitingReviewCount,
 			description: "Material decisions",
+			color: "#c4b5fdd9",
 			icon: (
 				<Icons.copyDone className="h-4 w-4 text-violet-700 dark:text-violet-400" />
 			),
@@ -94,6 +100,8 @@ export function SalesProductionSummary() {
 			queue: update.queue ?? null,
 			due: update.due ?? null,
 			date: null,
+			sort:
+				update.due === "overdue" || update.due === "today" ? "due-asc" : null,
 			production: null,
 			productionDueDate: null,
 			show: null,

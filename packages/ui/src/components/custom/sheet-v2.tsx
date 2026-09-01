@@ -38,6 +38,7 @@ interface Props extends Omit<SheetContentProps, "children"> {
 	secondaryOpened?: boolean;
 	secondarySize?: CustomSheetV2Size;
 	sheetName: string;
+	tabletFullscreen?: boolean;
 }
 
 type CustomSheetContextValue = {
@@ -136,6 +137,7 @@ function CustomSheetBase({
 	secondaryOpened: _secondaryOpened,
 	secondarySize: _secondarySize,
 	sheetName: _sheetName,
+	tabletFullscreen,
 	style,
 	...props
 }: Props) {
@@ -225,6 +227,8 @@ function CustomSheetBase({
 				className={cn(
 					"flex h-dvh max-w-none flex-col gap-0 overflow-hidden border-0 bg-transparent p-0 shadow-none sm:max-w-none",
 					"[--sheet-frame-width:0rem] md:[--sheet-frame-width:2rem] md:p-4",
+					tabletFullscreen &&
+						"md:max-lg:!w-dvw md:max-lg:[--sheet-frame-width:0rem] md:max-lg:p-0",
 					"transition-[width] ease-out motion-reduce:transition-none",
 					"data-[state=open]:duration-300 data-[state=closed]:duration-200",
 				)}
@@ -233,6 +237,8 @@ function CustomSheetBase({
 					data-slot="custom-sheet-surface"
 					className={cn(
 						"relative flex h-full w-full min-w-0 flex-col overflow-hidden border bg-background p-4 shadow-lg md:rounded-[10px] md:p-6",
+						tabletFullscreen &&
+							"md:max-lg:rounded-none md:max-lg:border-0 md:max-lg:p-4",
 						className,
 					)}
 				>

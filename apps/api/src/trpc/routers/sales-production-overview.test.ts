@@ -57,7 +57,7 @@ describe("sales production overview query boundary", () => {
 		);
 		expect(providerSource).toContain("readiness: readinessQuery.data");
 		expect(providerSource).toContain(
-			"readinessUnavailable: hasProductionItems && readinessQuery.isError",
+			"readinessUnavailable: showProductionReadiness && readinessQuery.isError",
 		);
 	});
 
@@ -69,6 +69,7 @@ describe("sales production overview query boundary", () => {
 			"productionsV2",
 			"productionDashboardV2",
 			"productionOrderDetailV2",
+			"productionMaterials",
 		]) {
 			const routeStart = routerSource.indexOf(`\t${route}: protectedProcedure`);
 			expect(routeStart, route).toBeGreaterThan(-1);
@@ -79,5 +80,21 @@ describe("sales production overview query boundary", () => {
 				route,
 			).toBe(true);
 		}
+	});
+
+	it("routes every Sales Overview viewer through the V2 loader", () => {
+		const overviewStart = routerSource.indexOf("\tgetSaleOverview:");
+		const transactionsStart = routerSource.indexOf(
+			"\tgetSaleTransactions:",
+			overviewStart,
+		);
+		const overviewRoute = routerSource.slice(overviewStart, transactionsStart);
+
+		expect(overviewRoute).toContain('const generalViewVersion = "v2" as const');
+		expect(overviewRoute).toContain(
+			"getSaleOverviewLoader(generalViewVersion)",
+		);
+		expect(overviewRoute).not.toContain("isSuperAdmin");
+		expect(overviewRoute).not.toContain("getSalesOverviewViewSettings");
 	});
 });

@@ -6,7 +6,7 @@ function source(path: string) {
 }
 
 describe("Sales Overview General rollout boundary", () => {
-	test("keeps one canonical sheet and gates only the General tab", () => {
+	test("keeps one canonical sheet and routes every user to General V2", () => {
 		const controller = source("../controller.tsx");
 		const gateway = source("./general-tab-gateway.tsx");
 
@@ -14,7 +14,8 @@ describe("Sales Overview General rollout boundary", () => {
 		expect(controller.match(/GeneralTabGateway/g)?.length).toBe(2);
 		expect(controller.includes("<TransactionsTab")).toBe(true);
 		expect(controller.includes("<ProductionTab")).toBe(true);
-		expect(gateway.includes('generalViewVersion === "v2"')).toBe(true);
+		expect(gateway.includes("return <GeneralTabV2")).toBe(true);
+		expect(gateway.includes("return <GeneralTab ")).toBe(false);
 		expect(gateway.includes("dynamic(")).toBe(true);
 		expect(gateway.includes("GeneralTabV2Skeleton")).toBe(true);
 	});
@@ -63,8 +64,9 @@ describe("Sales Overview General rollout boundary", () => {
 		expect(deliveryPopover.includes("open && canEdit")).toBe(true);
 		expect(deliveryPopover.includes("fallbackFulfillmentDate")).toBe(true);
 		expect(
-			deliveryPopover.includes("salesDeliveryInfo.queryKey({ salesId })"),
+			deliveryPopover.includes("salesDeliveryInfo.queryKey({"),
 		).toBe(true);
+		expect(deliveryPopover.includes("salesId,")).toBe(true);
 	});
 
 	test("keeps the V2 command surface continuous and gives finance a borderless rail", () => {
@@ -85,7 +87,7 @@ describe("Sales Overview General rollout boundary", () => {
 		const layout = source("../layout.tsx");
 		const actionBar = source("../general-action-bar.tsx");
 
-		expect(layout.includes('generalViewVersion === "v2"')).toBe(true);
+		expect(layout.includes("const isV2Header = true")).toBe(true);
 		expect(layout.includes("Sales overview ·")).toBe(true);
 		expect(layout.includes("documentStatus.label")).toBe(true);
 		expect(layout.includes("Updated {data.salesDate}")).toBe(true);
@@ -109,7 +111,7 @@ describe("Sales Overview General rollout boundary", () => {
 
 		expect(sheet.includes('className="-mt-4"')).toBe(false);
 		expect(
-			sheet.includes('contentClassName={isGeneralV2 ? "pb-0 sm:pb-0"'),
+			sheet.includes('isGeneralV2 ? "pb-0 sm:pb-0"'),
 		).toBe(true);
 		expect(layout.includes('className="w-full border-b border-border"')).toBe(
 			true,
@@ -221,7 +223,7 @@ describe("Sales Overview General rollout boundary", () => {
 		expect(paymentPane.includes("overflow-x-hidden")).toBe(true);
 		expect(processor.includes("SalesPaymentProcessorContent")).toBe(true);
 		expect(processor.includes("createPortal(paymentActions")).toBe(true);
-		expect(processor.match(/placeholder="Payment Method"/g)?.length).toBe(1);
+		expect(processor.match(/<SalesPaymentMethodControl/g)?.length).toBe(1);
 	});
 
 	test("uses a quiet receipt list instead of analytics cards", () => {

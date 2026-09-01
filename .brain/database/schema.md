@@ -553,3 +553,27 @@ The canonical plan is
   recipientUserId)` identity plus notification-activity and recipient/ack
   indexes.
 - The open organization queue and due/unresolved scan have dedicated indexes.
+
+## Planned Sales Completion Record (2026-09-01)
+
+Planning only; no Prisma model or database table has been created.
+
+- Add a dedicated non-aggregate `SalesCompletionRecord` for durable completion
+  provenance. Minimum fields are sales-order identity, milestone
+  (`PRODUCTION_COMPLETED | FULFILLMENT_COMPLETED`), completion method
+  (`STATUS_ONLY | FULL_WORKFLOW`), state (`ACTIVE | CANCELLED`), optional
+  effective time, system recording time, authenticated recorder, cancellation
+  actor/time/reason, and timestamps.
+- Enforce at most one active record per `(salesOrderId, milestone)` with a
+  database-backed active identity, such as a nullable unique `activeKey` that
+  is cleared on cancellation. Application-only duplicate checks are not
+  sufficient.
+- Keep `SalesStat` unchanged as the unique `(salesId, type)` progress aggregate
+  recomputed from `QtyControl`. It receives no completion override or
+  provenance columns.
+- A Status-only Fulfillment record uses milestone `FULFILLMENT_COMPLETED`, not
+  `FULFILLED`, and does not write `SalesOrders.status`, `prodStatus`,
+  `deliveredAt`, delivery proof, dispatch status, or inventory state.
+- Add indexes for active order/milestone resolution, completion method and
+  recorded/effective reporting, and cancellation history as selected by the
+  implementation plan.

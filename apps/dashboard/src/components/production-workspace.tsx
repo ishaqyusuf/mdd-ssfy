@@ -353,7 +353,7 @@ export function ProductionWorkspace({
 									value={dashboard.summary.dueTodayCount}
 									description="Assigned to your account and due today."
 									icon={<Icons.Clock3 className="h-4 w-4" />}
-									color="#cdeb60d9"
+									color="#fdba74d9"
 									onClick={() => applyWorkerView("due-today")}
 								/>
 								<SalesProductionAnalyticsCard
@@ -362,7 +362,7 @@ export function ProductionWorkspace({
 									value={dashboard.summary.pastDueCount}
 									description="Your overdue assignments needing attention."
 									icon={<Icons.AlertTriangle className="h-4 w-4" />}
-									color="#fb923cd9"
+									color="#fca5a5d9"
 									onClick={() => applyWorkerView("past-due")}
 								/>
 								<SalesProductionAnalyticsCard
@@ -386,7 +386,7 @@ export function ProductionWorkspace({
 							</>
 						)}
 					</section>
-					<section className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+					<section className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
 						<PageTabs
 							portal={false}
 							showAll={false}
@@ -404,9 +404,9 @@ export function ProductionWorkspace({
 									: undefined
 							}
 							maxVisible={{ base: 6, lg: 6, "2xl": 6 }}
-							className="lg:flex-1"
+							className="xl:flex-1"
 						/>
-						<div className="min-w-0 lg:ml-auto lg:w-auto">
+						<div className="min-w-0 w-full xl:ml-auto xl:w-auto xl:min-w-[360px]">
 							<SalesProductionSearchFilter workerMode showSavedViews={false} />
 						</div>
 					</section>
@@ -433,7 +433,7 @@ export function ProductionWorkspace({
 								value={dashboard.summary.queueCount}
 								description="All open production records in the active queue."
 								icon={<Icons.Package className="h-4 w-4" />}
-								color="#66c8bfd9"
+								color="#fde68ad9"
 								onClick={() =>
 									applyPreset({
 										production: "pending",
@@ -446,7 +446,7 @@ export function ProductionWorkspace({
 								value={dashboard.summary.pastDueCount}
 								description="Needs attention first before more work slips."
 								icon={<Icons.AlertTriangle className="h-4 w-4" />}
-								color="#fb923cd9"
+								color="#fca5a5d9"
 								onClick={() =>
 									applyPreset({
 										show: "past-due",
@@ -459,7 +459,7 @@ export function ProductionWorkspace({
 								value={dashboard.summary.dueTodayCount}
 								description="What must move now before the day closes."
 								icon={<Icons.Clock3 className="h-4 w-4" />}
-								color="#cdeb60d9"
+								color="#fdba74d9"
 								onClick={() =>
 									applyPreset({
 										show: "due-today",

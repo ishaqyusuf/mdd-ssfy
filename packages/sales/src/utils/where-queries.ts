@@ -285,6 +285,11 @@ export function buildProductionEligibleWhere(): Prisma.SalesOrdersWhereInput {
 			some: {
 				deletedAt: null,
 				produceable: true,
+				item: {
+					is: {
+						deletedAt: null,
+					},
+				},
 				qtyControls: {
 					some: {
 						deletedAt: null,

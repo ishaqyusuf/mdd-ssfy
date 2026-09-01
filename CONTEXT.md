@@ -170,4 +170,27 @@ _Avoid_: Fulfilled
 **Fulfilled**:
 The terminal result in which delivery proof and required inventory/dispatch
 completion have both been committed successfully.
-_Avoid_: Delivered, manually completed
+An Administrative Completion never produces this state by itself.
+_Avoid_: Delivered, manually completed, administratively completed
+
+**Administrative Completion**:
+An authorized, audited declaration that a Sales Order milestone happened in
+the real world while its intermediate GND workflow evidence is missing. It may
+satisfy order-level completion queues and locks, but it does not create or
+assert production, delivery-proof, inventory, dispatch, accounting, or other
+operational facts.
+_Avoid_: Fulfilled, forced fulfillment, workflow completion
+
+**Status-only Fulfillment Completion**:
+An Administrative Completion for the Fulfillment milestone. It implies
+Production Completion only in the administrative completion resolver and must
+be displayed with Status-only provenance. It is never canonical Fulfilled
+unless the independent delivery-proof and committed inventory/dispatch
+requirements are also true.
+_Avoid_: Fulfilled, Delivered, manual dispatch completion
+
+**Sales Completion Record**:
+The planned durable, non-aggregate record of a Production Completion or Fulfillment
+Completion decision and its `STATUS_ONLY` or `FULL_WORKFLOW` provenance. It is
+separate from recomputed `SalesStat` progress.
+_Avoid_: SalesStat override, percentage completion flag

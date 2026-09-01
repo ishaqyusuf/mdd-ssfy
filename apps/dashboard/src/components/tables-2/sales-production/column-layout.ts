@@ -1,4 +1,5 @@
 import type { StickyColumnConfig } from "@/components/tables-2/core";
+import type { VisibilityState } from "@tanstack/react-table";
 
 type SalesProductionColumnContext = {
 	tab: string;
@@ -24,6 +25,26 @@ export function shouldShowSalesProductionOrderDate({
 		view === "table" &&
 		(!list.show || list.show === "unscheduled")
 	);
+}
+
+export function getSalesProductionColumnVisibility(props: {
+	columnVisibility: VisibilityState;
+	context: SalesProductionColumnContext;
+	workerMode?: boolean;
+}) {
+	const completed =
+		props.context.tab === "completed" ||
+		props.context.list.production === "completed";
+
+	return {
+		...props.columnVisibility,
+		orderDate:
+			!props.workerMode && shouldShowSalesProductionOrderDate(props.context),
+		materials:
+			completed && props.columnVisibility.materials === undefined
+				? false
+				: props.columnVisibility.materials,
+	};
 }
 
 export function placeOrderDateAfterDueDate(

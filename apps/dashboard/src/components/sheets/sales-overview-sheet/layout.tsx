@@ -11,11 +11,11 @@ import {
 import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
 import { SalesPrioritySelect } from "@/components/sales-priority-control";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import {
 	DataSkeletonProvider,
 	type useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -65,7 +65,7 @@ export function LegacySalesOverviewHeader({
 		loading: !data?.id,
 	} as unknown as ReturnType<typeof useCreateDataSkeletonCtx>;
 	const showInboundStatus = !!data?.id && data?.type !== "quote";
-	const isV2Header = data?.generalViewVersion === "v2";
+	const isV2Header = true;
 	const isQuote = data?.type === "quote";
 	const documentStatus = getSalesOverviewDocumentStatus(data);
 	const hasInventoryInbound =

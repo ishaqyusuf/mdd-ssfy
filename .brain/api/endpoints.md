@@ -549,6 +549,13 @@ Tracks notable API surfaces and where they are implemented.
 
 ## Production assignment and readiness (updated 2026-07-28)
 
+- `sales.getSaleOverview` always selects the V2 overview loader and returns
+  `generalViewVersion: v2` for every authorized viewer.
+- `sales.productionMaterials` is a protected, permission-checked material and
+  inbound projection for the selected order/lines. It includes supplier/order
+  source, outstanding inbound quantity, expected arrival, and availability
+  state without changing assignments or inventory.
+
 - `sales.productionReadiness` returns the current order or selected-line
   readiness projection, blocker sample, revision, summary, and active
   confirmation evidence.

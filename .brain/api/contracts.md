@@ -2229,3 +2229,33 @@ implementation phase is approved and released.
   from the same enriched records and membership helper. The legacy-compatible
   `.overdue` summary value now aliases `.pastDue` so dashboard alerts and the
   Past Due tab reconcile.
+
+## Planned Status-only sales completion contract (2026-09-01)
+
+- A shared backend resolver must expose operational lifecycle truth separately
+  from order-level completion satisfaction. Minimum normalized fields are
+  `operationalProductionCompleted`, `canonicalFulfilled`,
+  `productionCompletionSatisfied`, `fulfillmentCompletionSatisfied`,
+  `fulfillmentDisposition`, completion source/method/date provenance, and
+  server-calculated available actions.
+- `fulfillmentDisposition` is `FULFILLED` only when accepted delivery proof and
+  required inventory/dispatch completion are committed. An active Status-only
+  Fulfillment record produces `ADMINISTRATIVELY_COMPLETED`; otherwise it is
+  `PENDING`.
+- If a temporary compatibility field named `fulfilled` remains, it means
+  `canonicalFulfilled` only. Completion queues must explicitly consume
+  `fulfillmentCompletionSatisfied` rather than reinterpret the compatibility
+  field.
+- Mark and cancel inputs identify one positive Sales Order, one milestone, an
+  idempotency identity, and optional effective date or cancellation reason.
+  Actor identity, recording time, current state, permissions, and available
+  actions are server-derived and transactionally revalidated.
+- Status-only mutations create or cancel only `SalesCompletionRecord` plus
+  audit evidence and internal read-model invalidation. They return the refreshed
+  normalized completion projection and never return fabricated operational
+  records.
+- Permission failure, stale state, invalid transition, duplicate/idempotent
+  success, and persistence failure remain distinguishable for clients.
+- Endpoint names and transport placement are selected in the separate
+  implementation handoff; this section fixes their domain contract only. No API
+  implementation changed during planning.

@@ -1,5 +1,28 @@
 # Progress
 
+- 2026-09-01: Hid the Sales Production Materials column by default on the
+  Completed tab so terminal rows no longer emphasize stale or missing readiness
+  setup. Active and Unscheduled tables retain Materials, and an explicit user
+  visibility choice still overrides the Completed default. Added focused column
+  policy coverage (16 tests passing) and verified in the authenticated in-app
+  browser that Completed omits Materials while Active still displays it. No API,
+  database, permission, or production lifecycle behavior changed.
+
+- 2026-09-01: Completed the Production workspace enhancement batch and the
+  all-user Sales Overview V2 rollout. Completed calendar work remains visible
+  with green semantics; analytics colors now encode queue meaning; Due Today
+  and Past Due auto-sort earliest first; selected orders support batch
+  assign/reassign/unassign, reschedule/clear date, Production completed, and
+  Fulfilled; worker item subtitles, inbound source/arrival context, responsive
+  tab/search layout, and full-screen tablet scrolling were improved. Historical
+  orders now recover production capability from linked persisted controls when
+  control UIDs/settings changed, while queue eligibility requires a live linked
+  item. The API and frontend gateways now always choose Sales Overview V2 for
+  every authorized user. In-app QA passed at 390px, 768x1024, and desktop,
+  including order `23-0509-0021`; 112 focused tests passed and Sales/UI
+  typechecks passed. Settings typecheck remains blocked by pre-existing
+  `@gnd/errors` NodeNext extension errors; changed Settings tests pass.
+
 - 2026-09-01: Fixed `/sales-book/productions` failing at server module
   evaluation after the new date-range filters imported `parseAsArrayOf` from
   the client `nuqs` entrypoint. The shared production filter schema now follows
@@ -13929,3 +13952,47 @@
   removed developer toggle. The HPT suite passes 9 tests; the combined
   capability run also exposed one unrelated pre-existing source-contract
   failure for a missing tooltip wrapper.
+
+## 2026-09-01 — Status-only sales completion GND boundary approved
+
+- Closed the transferred Wayfinder compatibility ticket without implementing
+  the feature or changing Prisma/application code.
+- Preserved canonical Fulfilled as accepted delivery proof plus committed
+  inventory/dispatch completion. Status-only Fulfillment now resolves as an
+  explicitly labelled Administrative Completion that may satisfy order-level
+  completion queues and action locks without creating operational evidence.
+- Selected planned `SalesCompletionRecord` as the non-aggregate provenance
+  authority and kept `SalesStat` exclusively recomputed from `QtyControl`.
+- Fixed the permission contract to resource identifier
+  `status_only_sales_completion`, resource `StatusOnlySalesCompletion`,
+  persisted rows `view status only sales completion` / `edit status only sales
+  completion`, and exact runtime capabilities
+  `viewStatusOnlySalesCompletion` / `editStatusOnlySalesCompletion`.
+- Updated GND domain language, the Wayfinder ticket/map/specification, feature
+  and plan records, ADR-081, and planned API contract, permission,
+  database/migration documentation.
+- Validation for this planning-only slice is documentation consistency and diff
+  review; no tests, Prisma generation, or database command is applicable.
+
+## 2026-09-01 — Production worker item quantity and interaction refinement
+
+- Removed quantity tokens from worker-only Production item subtitles and moved
+  the authenticated worker's scoped assignment into one inline primary badge:
+  `QTY`, with `LH` and `RH` segments for handed assignments. Admin Production
+  item subtitles and progressive status badges remain unchanged.
+- Added muted item-header hover and expanded states, plus adjacent-divider
+  suppression so an expanded item's full outline does not visually double with
+  the item above it.
+- Preserved the current order-level inbound summary while the replacement
+  per-item banner status language, colors, and supplier/arrival layout await
+  explicit product approval.
+- Focused Production coverage passes 17 tests / 88 assertions and scoped Biome
+  is clean. Dashboard typecheck remains red from the established broad
+  baseline; filtered output contains no diagnostics in the changed Production
+  item files.
+- In-app browser QA at 768x1024 and 390x844 confirmed full-width sheet geometry,
+  an independently scrolling content viewport, no horizontal overflow, muted
+  hover/open backgrounds, and a transparent divider before the opened item.
+  The Sales/Admin session correctly redirected `/production/dashboard` to
+  `/sales-rep`, so true worker-session browser proof remains unavailable in the
+  current in-app account; worker-only presentation is covered by focused tests.

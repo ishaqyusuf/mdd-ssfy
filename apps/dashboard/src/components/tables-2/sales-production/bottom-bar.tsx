@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { BatchProductionEdit } from "./batch-production-edit";
 import type { SalesProductionRow } from "./columns";
 import { getSalesProductionRowId } from "./columns";
 import { useSalesProductionTableStore } from "./store";
@@ -68,12 +69,21 @@ export function BottomBar({ data }: Props) {
 							Deselect all
 						</Button>
 
+						<BatchProductionEdit
+							salesIds={salesIds}
+							onSuccess={() => setRowSelection({})}
+						/>
+
 						<SalesMenu
 							type="order"
 							salesIds={salesIds}
 							salesRefs={salesRefs}
 							trigger={
-								<Button variant="ghost" disabled={!salesIds.length}>
+								<Button
+									variant="ghost"
+									className="whitespace-nowrap"
+									disabled={!salesIds.length}
+								>
 									<Icons.CheckCheck className="mr-2 size-4" />
 									Mark as
 									<Icons.ChevronDown className="ml-1 size-3.5" />
@@ -82,6 +92,7 @@ export function BottomBar({ data }: Props) {
 						>
 							<SalesMenu.MarkAs
 								asSubmenu={false}
+								showUnavailableFulfilled
 								onStatusActionSettled={() => setRowSelection({})}
 								statusCandidates={statusCandidates}
 							/>
