@@ -2,7 +2,10 @@
 
 ## Status
 
-Decision-complete specification; implementation not started.
+In progress. Ticket 03 delivers approved Status-only Production Completion.
+Status-only Fulfillment, Full-workflow provenance backfill,
+cross-consumer projection parity, and exhaustive release verification remain in
+Tickets 04-07.
 
 ## Outcome
 
@@ -47,3 +50,20 @@ permissions remain unchanged.
 
 This feature does not bulk-complete orders, infer uncertain historical work,
 fabricate operational evidence, or redesign the existing Full workflow.
+
+## Delivered: Status-only Production Completion
+
+- `SalesCompletionRecord` now persists Production administrative completion
+  provenance, optional effective time, automatic recording time, authenticated
+  actor, cancellation provenance, and one active record per order/milestone.
+- The shared projection exposes operational Production truth separately from
+  completion satisfaction, source, method, dates, history, and server-owned
+  action locks. Canonical Fulfilled remains operational evidence only.
+- Protected mark/cancel commands use serializable transactions, request
+  idempotency, revision checks, database uniqueness, and same-transaction Sales
+  History audit events. They write no operational workflow model.
+- The Sales confirmation defaults to Full workflow. The Status-only choice is
+  single-order and view-permission gated, requires edit permission to submit,
+  warns about skipped effects and recent orders, and preserves method-aware
+  cancellation history.
+- Status-only Fulfillment is deliberately not exposed or writable in Ticket 03.

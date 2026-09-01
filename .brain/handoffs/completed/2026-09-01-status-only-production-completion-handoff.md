@@ -151,7 +151,24 @@ Do not move linked tasks to `done`. `brain-review-handoff` owns final approval.
 
 ## Completion Notes
 
-- Changed files:
-- Checks run:
-- Brain docs updated:
-- Unresolved issues:
+- Changed files: added the `SalesCompletionRecord` Prisma model/migration and
+  contract test; registered exact permission constants/rows and role-form
+  projection; added `@gnd/sales/sales-completion` projection/commands/tests;
+  added protected Sales router endpoints and negative authorization tests; and
+  integrated the Production confirmation, Status-only warning/provenance, and
+  method-aware cancellation UI with focused presentation tests.
+- Checks run: local migration and live table/permission invariants; Prisma
+  generation; 33 focused tests / 90 assertions; `@gnd/db` typecheck;
+  `@gnd/sales` typecheck; focused Biome; `git diff --check`; broad Dashboard
+  typecheck with an 8 GiB heap plus a filtered diagnostic pass (repository
+  baseline fails, but no new completion files report errors; the only shared
+  `sales-menu.tsx` diagnostic is the pre-existing `Icons.ClipboardCheck`
+  registration error).
+- Brain docs updated: `.brain/progress.md`, feature behavior, API endpoints,
+  contracts, permissions, database schema, relationships, migrations, active
+  plan, and in-progress task state. ADR-081 remains accurate and did not need a
+  change.
+- Unresolved issues: none within Ticket 03. Status-only Fulfillment,
+  Full-workflow provenance, consumer parity, authenticated cross-device QA, and
+  exhaustive release verification remain intentionally assigned to Tickets
+  04-07.

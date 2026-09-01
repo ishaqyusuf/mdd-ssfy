@@ -1,5 +1,19 @@
 # API Permissions
 
+## Status-only Sales Completion (2026-09-01)
+
+- The exact persisted rows are `view status only sales completion` and `edit
+  status only sales completion`. They normalize independently to
+  `viewStatusOnlySalesCompletion` and `editStatusOnlySalesCompletion`; no raw
+  snake-case compatibility grant exists.
+- View controls the dedicated completion projection and Status-only choice /
+  provenance presentation. Edit independently guards mark and cancel mutations
+  before the domain layer is reached. A view-only user cannot mutate through a
+  direct API request.
+- Backend commands derive actor id/name from the authenticated context and do
+  not accept caller-selected actor identity. Existing Full workflow permissions
+  and behavior are unchanged.
+
 ## Production Assignment Mutation Boundary (2026-08-31)
 
 - Direct Dashboard create, delete, and batch production-assignment mutations

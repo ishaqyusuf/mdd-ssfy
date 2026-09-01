@@ -146,6 +146,15 @@ import {
 	salesWorkflowCancellationPreviewSchema,
 } from "@gnd/sales/sales-workflow-cancellation";
 import {
+	SalesCompletionError,
+	cancelProductionCompletionStatusOnly,
+	cancelProductionCompletionStatusOnlySchema,
+	getSalesCompletionProjection,
+	markProductionCompletionStatusOnly,
+	markProductionCompletionStatusOnlySchema,
+	salesCompletionProjectionInputSchema,
+} from "@gnd/sales/sales-completion";
+import {
 	getGuardedPackingSettings,
 	getSettingAction,
 	guardedPackingPolicyInputSchema,
@@ -318,6 +327,35 @@ function toWorkflowCancellationTrpcError(error: unknown): never {
 				? "CONFLICT"
 				: "PRECONDITION_FAILED";
 	throw new TRPCError({ code, message: error.message, cause: error });
+}
+
+function toSalesCompletionTrpcError(error: unknown): never {
+	if (!(error instanceof SalesCompletionError)) throw error;
+	const code =
+		error.code === "NOT_FOUND"
+			? "NOT_FOUND"
+			: error.code === "STALE_STATE" || error.code === "IDEMPOTENCY_CONFLICT"
+				? "CONFLICT"
+				: error.code === "PERSISTENCE_FAILURE"
+					? "INTERNAL_SERVER_ERROR"
+					: "PRECONDITION_FAILED";
+	throw new TRPCError({ code, message: error.message, cause: error });
+}
+
+async function requireStatusOnlySalesCompletionViewer(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["viewStatusOnlySalesCompletion"],
+		"You do not have permission to view status-only sales completion.",
+	);
+}
+
+async function requireStatusOnlySalesCompletionEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editStatusOnlySalesCompletion"],
+		"You do not have permission to change status-only sales completion.",
+	);
 }
 
 async function requireProductionReviewResolutionPermissions(
@@ -502,6 +540,50 @@ function resolveCccPercentageFromMeta(meta: Record<string, unknown> | null) {
 }
 
 export const salesRouter = createTRPCRouter({
+	salesCompletionProjection: protectedProcedure
+		.input(salesCompletionProjectionInputSchema)
+		.query(async (props) => {
+			await requireStatusOnlySalesCompletionViewer(props.ctx);
+			try {
+				return await getSalesCompletionProjection(props.ctx.db, props.input);
+			} catch (error) {
+				return toSalesCompletionTrpcError(error);
+			}
+		}),
+	markProductionCompletionStatusOnly: protectedProcedure
+		.input(markProductionCompletionStatusOnlySchema)
+		.mutation(async (props) => {
+			const actor = await requireStatusOnlySalesCompletionEditor(props.ctx);
+			try {
+				return await markProductionCompletionStatusOnly(
+					props.ctx.db,
+					props.input,
+					{
+						id: actor.id,
+						name: actor.name || `User ${actor.id}`,
+					},
+				);
+			} catch (error) {
+				return toSalesCompletionTrpcError(error);
+			}
+		}),
+	cancelProductionCompletionStatusOnly: protectedProcedure
+		.input(cancelProductionCompletionStatusOnlySchema)
+		.mutation(async (props) => {
+			const actor = await requireStatusOnlySalesCompletionEditor(props.ctx);
+			try {
+				return await cancelProductionCompletionStatusOnly(
+					props.ctx.db,
+					props.input,
+					{
+						id: actor.id,
+						name: actor.name || `User ${actor.id}`,
+					},
+				);
+			} catch (error) {
+				return toSalesCompletionTrpcError(error);
+			}
+		}),
 	workflowCancellationPreview: protectedProcedure
 		.input(salesWorkflowCancellationPreviewSchema)
 		.query(async (props) => {

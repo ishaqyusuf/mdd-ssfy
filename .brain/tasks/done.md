@@ -1,5 +1,23 @@
 # Done
 
+### Status-only Production Completion
+
+- Priority: High
+- Description: Added the dedicated Sales completion ledger, exact view/edit
+  permission contract, evidence-safe normalized resolver, transactional and
+  idempotent audited Production mark/cancel commands, protected API routes, and
+  permission-aware confirmation/history/cancellation UI while preserving every
+  operational workflow authority.
+- Related Feature: Status-only Sales Completion
+- Status: Done
+- Review: `.brain/reviews/2026-09-01-status-only-production-completion-review-v2.md`
+- Validation: Local migration and invariants, Prisma generation, 33 focused
+  tests / 90 assertions, DB and Sales typechecks, scoped Biome, diff integrity,
+  and filtered Dashboard diagnostics. The first review's P1 canonical-evidence
+  finding was fixed and regression-tested across legacy and split-dispatch
+  scenarios.
+- Completed Date: 2026-09-01
+
 ### New Sales Form Due Dates And Standard Summary Save
 
 - Priority: High

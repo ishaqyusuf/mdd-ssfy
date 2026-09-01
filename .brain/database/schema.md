@@ -1,5 +1,23 @@
 # Database Schema
 
+## Sales Completion Record (2026-09-01)
+
+- `SalesCompletionRecord` is the additive, non-aggregate ledger for one Sales
+  completion declaration. It stores request/cancellation idempotency identities,
+  Sales order, milestone, method, active/cancelled state, nullable active key,
+  optional effective time, automatic recording time, recording/cancelling
+  actors, cancellation reason, and audit timestamps.
+- A unique nullable `activeKey` enforces one active record per Sales order and
+  milestone while cancelled records remain durable. Unique request identities
+  prevent duplicate mark/cancel processing. Order/state/milestone,
+  method/recorded-time, milestone/effective-time, state/cancelled-time, and
+  actor/time indexes support projection, history, and future reporting reads.
+- Ticket 03 writes only `PRODUCTION_COMPLETED` + `STATUS_ONLY`. Fulfillment and
+  Full-workflow enum values are additive contract space for successor tickets;
+  the migration creates no inferred completion rows.
+- `SalesStat`, `QtyControl`, production assignment/submission, inventory,
+  dispatch, payment, tax, and other operational schemas are unchanged.
+
 ## QtyControl incremental-sync cursor (2026-09-01)
 
 - `QtyControl.updatedAt` is a required millisecond timestamp with a creation

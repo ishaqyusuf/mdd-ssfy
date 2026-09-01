@@ -1,5 +1,25 @@
 # API Contracts
 
+## Status-only Production Completion (2026-09-01)
+
+- Projection input is `{ salesOrderId: positiveInt }`. The response separates
+  `operationalProductionCompleted` and `canonicalFulfilled` from
+  `productionCompletionSatisfied` / `fulfillmentCompletionSatisfied`, exposes
+  source and method, keeps effective and recorded dates distinct, returns active
+  records plus immutable history, and includes a SHA-256 revision and
+  server-owned available actions.
+- Mark input is `{ salesOrderId, requestId: uuid, expectedRevision,
+  effectiveAt?: Date | null }`. Cancel input is `{ salesOrderId, requestId:
+  uuid, expectedRevision, reason?: string | null }`; reasons are trimmed and
+  capped at 500 characters.
+- Mark and cancel are serializable, request-idempotent, and protected by a
+  database-unique active identity. Revision mismatches are conflicts;
+  invalid/method-mismatched transitions are precondition failures; persistence
+  failures remain internal errors. Record and Sales History audit writes share
+  one transaction.
+- Ticket 03 exposes Production commands only. The shared enum/projection shapes
+  reserve Fulfillment without creating a Fulfillment mutation or UI path.
+
 ## Bulk Production Completion Task (2026-08-29)
 
 - `bulk-mark-sales-production-completed` accepts a server-stamped actor plus a

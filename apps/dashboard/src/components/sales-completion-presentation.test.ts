@@ -1,0 +1,113 @@
+import { describe, expect, test } from "bun:test";
+
+import type { SalesCompletionProjection } from "@gnd/sales/sales-completion";
+
+import {
+	applyProductionCompletionProjection,
+	canShowStatusOnlyCompletionChoice,
+	getDefaultSalesCompletionChoice,
+} from "./sales-completion-presentation";
+
+const actions = [
+	{ action: "production_completed" as const, label: "Production completed" },
+	{ action: "fulfilled" as const, label: "Fulfilled" },
+];
+
+function projection(
+	overrides: Partial<SalesCompletionProjection> = {},
+): SalesCompletionProjection {
+	return {
+		salesOrderId: 91,
+		orderNo: "091LRG",
+		orderCreatedAt: null,
+		isRecentOrder: false,
+		revision: "0".repeat(64),
+		operationalProductionCompleted: false,
+		canonicalFulfilled: false,
+		productionCompletionSatisfied: true,
+		fulfillmentCompletionSatisfied: false,
+		fulfillmentDisposition: "PENDING",
+		productionCompletionSource: "STATUS_ONLY",
+		fulfillmentCompletionSource: "NONE",
+		productionCompletionMethod: "STATUS_ONLY",
+		fulfillmentMethod: null,
+		productionEffectiveAt: null,
+		fulfillmentEffectiveAt: null,
+		productionRecordedAt: new Date("2026-08-01T12:00:00.000Z"),
+		fulfillmentRecordedAt: null,
+		availableActions: {
+			markProductionStatusOnly: false,
+			cancelProductionStatusOnly: true,
+			productionCancellationBlockedReason: null,
+		},
+		activeProductionRecord: {
+			id: "completion-1",
+			requestId: "00000000-0000-4000-8000-000000000001",
+			cancellationRequestId: null,
+			salesOrderId: 91,
+			milestone: "PRODUCTION_COMPLETED",
+			completionMethod: "STATUS_ONLY",
+			state: "ACTIVE",
+			effectiveAt: null,
+			recordedAt: new Date("2026-08-01T12:00:00.000Z"),
+			recordedBy: { id: 7, name: "Admin" },
+			cancelledAt: null,
+			cancelledBy: null,
+			cancellationReason: null,
+			updatedAt: new Date("2026-08-01T12:00:00.000Z"),
+		},
+		activeFulfillmentRecord: null,
+		history: [],
+		...overrides,
+	};
+}
+
+describe("Sales completion confirmation presentation", () => {
+	test("always starts on Full workflow", () => {
+		expect(getDefaultSalesCompletionChoice()).toBe("FULL_WORKFLOW");
+	});
+
+	test("hides status-only from users without view capability and from bulk actions", () => {
+		expect(
+			canShowStatusOnlyCompletionChoice({ canView: false, salesOrderCount: 1 }),
+		).toBe(false);
+		expect(
+			canShowStatusOnlyCompletionChoice({ canView: true, salesOrderCount: 2 }),
+		).toBe(false);
+		expect(
+			canShowStatusOnlyCompletionChoice({ canView: true, salesOrderCount: 1 }),
+		).toBe(true);
+	});
+
+	test("shows provenance, locks repeat marking, and offers method-aware cancellation", () => {
+		const result = applyProductionCompletionProjection(
+			actions,
+			projection(),
+			true,
+		);
+
+		expect(
+			result.find((item) => item.action === "production_completed"),
+		).toEqual({
+			action: "production_completed",
+			label: "Production completed — status only",
+			disabled: true,
+		});
+		expect(result.find((item) => item.action === "cancel_production")).toEqual({
+			action: "cancel_production",
+			label: "Cancel Production status only",
+			disabled: false,
+		});
+	});
+
+	test("view-only users see provenance but cannot cancel", () => {
+		const result = applyProductionCompletionProjection(
+			actions,
+			projection(),
+			false,
+		);
+		expect(
+			result.find((item) => item.action === "cancel_production")?.disabled,
+		).toBe(true);
+	});
+});

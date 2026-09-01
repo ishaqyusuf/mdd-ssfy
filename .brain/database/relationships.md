@@ -1,5 +1,18 @@
 # Database Relationships
 
+## Sales Completion Provenance (2026-09-01)
+
+- `SalesOrders.completionRecords` owns the administrative/full-workflow
+  provenance history for that sale; each record has a required Restrict relation
+  through `salesOrderId`.
+- `Users.recordedSalesCompletionRecords` and
+  `Users.cancelledSalesCompletionRecords` identify authenticated actors through
+  separate Restrict relations. Cancellation actor is nullable until cancelled.
+- The project uses Prisma relation mode, so migration SQL stores indexed scalar
+  identities without physical foreign keys. The completion ledger has no
+  ownership relation to `SalesStat`, `QtyControl`, production, inventory,
+  dispatch, finance, or notification models.
+
 ## Sales Tax Recognition Ownership (2026-08-26)
 
 - `SalesOrders.salesTaxLedgerEntries` owns many immutable recognition/correction

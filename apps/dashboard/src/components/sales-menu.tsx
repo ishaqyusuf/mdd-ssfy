@@ -7,10 +7,18 @@ import {
 	type SalesBatchStatusCandidate,
 	resolveSalesBatchStatusSelection,
 } from "@/components/sales-batch-status-selection";
+import {
+	applyProductionCompletionProjection,
+	canShowStatusOnlyCompletionChoice,
+	getDefaultSalesCompletionChoice,
+	type SalesCompletionChoice,
+} from "@/components/sales-completion-presentation";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
+import { SalesProductionCompletionDialogs } from "@/components/sales-production-completion-dialogs";
 import {
 	type SalesOrderStatusMenuAction,
+	type SalesOrderStatusMenuItem,
 	getSalesOrderStatusMenuActions,
 } from "@/components/sales-status-menu-actions";
 import { SalesWorkflowCancellationDialog } from "@/components/sales-workflow-cancellation-dialog";
@@ -48,7 +56,7 @@ import { AlertDialog, DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
 import type { QuoteAcceptanceTokenSchema } from "@gnd/utils/tokenizer";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { addDays } from "date-fns";
 import {
 	type ComponentProps,
@@ -1037,6 +1045,30 @@ function SalesMenuMarkAs({
 	const trpc = useTRPC();
 	const sq = useSalesQueryClient(state.salesRefs);
 	const salesIds = state.salesIds;
+	const statusOnlyPresentationVisible = canShowStatusOnlyCompletionChoice({
+		canView: auth.can.viewStatusOnlySalesCompletion,
+		salesOrderCount: salesIds.length,
+	});
+	const salesCompletionProjectionQuery = useQuery(
+		trpc.sales.salesCompletionProjection.queryOptions(
+			{ salesOrderId: salesIds[0] ?? 0 },
+			{
+				enabled: state.type === "order" && statusOnlyPresentationVisible,
+				staleTime: 0,
+				refetchOnWindowFocus: true,
+			},
+		),
+	);
+	const completionProjection = salesCompletionProjectionQuery.data;
+	const [productionConfirmationOpen, setProductionConfirmationOpen] =
+		useState(false);
+	const [productionCompletionChoice, setProductionCompletionChoice] =
+		useState<SalesCompletionChoice>(getDefaultSalesCompletionChoice);
+	const [productionEffectiveDate, setProductionEffectiveDate] = useState("");
+	const [statusOnlyCancellationOpen, setStatusOnlyCancellationOpen] =
+		useState(false);
+	const [statusOnlyCancellationReason, setStatusOnlyCancellationReason] =
+		useState("");
 	const [inventoryPreflight, setInventoryPreflight] =
 		useState<SalesStatusMarkAsPreflightResult | null>(null);
 	const [inventoryResolutionError, setInventoryResolutionError] = useState<{
@@ -1073,6 +1105,12 @@ function SalesMenuMarkAs({
 				queryEvents: false,
 			},
 		}),
+	);
+	const markProductionStatusOnlyMutation = useMutation(
+		trpc.sales.markProductionCompletionStatusOnly.mutationOptions(),
+	);
+	const cancelProductionStatusOnlyMutation = useMutation(
+		trpc.sales.cancelProductionCompletionStatusOnly.mutationOptions(),
 	);
 	const invalidateOrders = async () => {
 		await Promise.all([
@@ -1299,8 +1337,9 @@ function SalesMenuMarkAs({
 		return selection.eligibleSalesIds;
 	};
 
-	const markProductionCompleted = async () => {
-		const targetSalesIds = prepareStatusAction("production_completed");
+	const markProductionCompleted = async (preparedSalesIds?: number[]) => {
+		const targetSalesIds =
+			preparedSalesIds ?? prepareStatusAction("production_completed");
 		if (!targetSalesIds) return;
 		if (!beginStatusAction()) return;
 		const inventoryReady = await runInventoryMarkAsPreflight(
@@ -1312,6 +1351,106 @@ function SalesMenuMarkAs({
 			return;
 		}
 		await startMarkProductionCompletedTask();
+	};
+
+	const openProductionCompletionConfirmation = () => {
+		const targetSalesIds = prepareStatusAction("production_completed");
+		if (!targetSalesIds) return;
+		setProductionCompletionChoice(getDefaultSalesCompletionChoice());
+		setProductionEffectiveDate("");
+		setProductionConfirmationOpen(true);
+	};
+
+	const submitProductionCompletion = async () => {
+		if (productionCompletionChoice === "FULL_WORKFLOW") {
+			setProductionConfirmationOpen(false);
+			await markProductionCompleted(statusActionSalesIdsRef.current);
+			return;
+		}
+		if (!auth.can.editStatusOnlySalesCompletion) {
+			toast({
+				title: "Update status only is not permitted",
+				description:
+					"Ask an administrator for edit access to Status-only Sales Completion.",
+				variant: "destructive",
+			});
+			return;
+		}
+		const salesOrderId = statusActionSalesIdsRef.current[0];
+		if (!salesOrderId || !completionProjection?.revision) {
+			toast({
+				title: "Completion status is still loading",
+				description: "Wait for the current order state and try again.",
+				variant: "destructive",
+			});
+			return;
+		}
+		try {
+			await markProductionStatusOnlyMutation.mutateAsync({
+				salesOrderId,
+				requestId: crypto.randomUUID(),
+				expectedRevision: completionProjection.revision,
+				effectiveAt: productionEffectiveDate
+					? new Date(`${productionEffectiveDate}T12:00:00.000Z`)
+					: null,
+			});
+			setProductionConfirmationOpen(false);
+			setProductionCompletionChoice(getDefaultSalesCompletionChoice());
+			setProductionEffectiveDate("");
+			actions.closeMenu();
+			await Promise.all([
+				invalidateOrders(),
+				salesCompletionProjectionQuery.refetch(),
+			]);
+			onStatusActionSettled?.();
+			toast({
+				title: "Production completed — status only",
+				description:
+					"The administrative milestone was recorded without running production or business workflow effects.",
+				variant: "success",
+			});
+		} catch (error) {
+			toast({
+				title: "Unable to update Production status",
+				description:
+					error instanceof Error ? error.message : "Refresh and try again.",
+				variant: "destructive",
+			});
+		}
+	};
+
+	const submitStatusOnlyProductionCancellation = async () => {
+		const salesOrderId = salesIds[0];
+		if (!salesOrderId || !completionProjection?.revision) return;
+		try {
+			await cancelProductionStatusOnlyMutation.mutateAsync({
+				salesOrderId,
+				requestId: crypto.randomUUID(),
+				expectedRevision: completionProjection.revision,
+				reason: statusOnlyCancellationReason.trim() || null,
+			});
+			setStatusOnlyCancellationOpen(false);
+			setStatusOnlyCancellationReason("");
+			actions.closeMenu();
+			await Promise.all([
+				invalidateOrders(),
+				salesCompletionProjectionQuery.refetch(),
+			]);
+			onStatusActionSettled?.();
+			toast({
+				title: "Production status-only completion cancelled",
+				description:
+					"The administrative record remains in history; no operational reversal was run.",
+				variant: "success",
+			});
+		} catch (error) {
+			toast({
+				title: "Unable to cancel Production completion",
+				description:
+					error instanceof Error ? error.message : "Refresh and try again.",
+				variant: "destructive",
+			});
+		}
 	};
 
 	const markFulfilled = async () => {
@@ -1439,23 +1578,26 @@ function SalesMenuMarkAs({
 		}
 	};
 
-	const statusMenuActions = (
-		currentStatus
-			? getSalesOrderStatusMenuActions({
-					status: currentStatus,
-					productionStatus,
-					hasFulfillmentDispatch,
-				})
-			: [
-					{
-						action: "production_completed" as const,
-						label: "Production completed",
-					},
-					{
-						action: "fulfilled" as const,
-						label: "Fulfilled",
-					},
-				]
+	const baseStatusMenuActions: SalesOrderStatusMenuItem[] = currentStatus
+		? getSalesOrderStatusMenuActions({
+				status: currentStatus,
+				productionStatus,
+				hasFulfillmentDispatch,
+			})
+		: [
+				{
+					action: "production_completed" as const,
+					label: "Production completed",
+				},
+				{
+					action: "fulfilled" as const,
+					label: "Fulfilled",
+				},
+			];
+	const statusMenuActions = applyProductionCompletionProjection(
+		baseStatusMenuActions,
+		completionProjection,
+		auth.can.editStatusOnlySalesCompletion,
 	)
 		.filter(
 			(item) =>
@@ -1487,7 +1629,7 @@ function SalesMenuMarkAs({
 					onSelect={(event) => {
 						event.preventDefault();
 						if (item.action === "production_completed") {
-							void markProductionCompleted();
+							openProductionCompletionConfirmation();
 							return;
 						}
 						if (item.action === "fulfilled") {
@@ -1495,6 +1637,14 @@ function SalesMenuMarkAs({
 							return;
 						}
 						if (item.action === "cancel_production") {
+							if (
+								completionProjection?.activeProductionRecord
+									?.completionMethod === "STATUS_ONLY"
+							) {
+								setStatusOnlyCancellationReason("");
+								setStatusOnlyCancellationOpen(true);
+								return;
+							}
 							actions.openWorkflowCancellation("production");
 							return;
 						}
@@ -1744,12 +1894,44 @@ function SalesMenuMarkAs({
 			</AlertDialog.Content>
 		</AlertDialog>
 	);
+	const completionDialogs = (
+		<SalesProductionCompletionDialogs
+			projection={completionProjection}
+			showStatusOnly={statusOnlyPresentationVisible}
+			canEditStatusOnly={auth.can.editStatusOnlySalesCompletion}
+			projectionPending={salesCompletionProjectionQuery.isPending}
+			confirmationOpen={productionConfirmationOpen}
+			choice={productionCompletionChoice}
+			effectiveDate={productionEffectiveDate}
+			markPending={markProductionStatusOnlyMutation.isPending}
+			onConfirmationOpenChange={(open) => {
+				setProductionConfirmationOpen(open);
+				if (!open) {
+					setProductionCompletionChoice(getDefaultSalesCompletionChoice());
+					setProductionEffectiveDate("");
+				}
+			}}
+			onChoiceChange={setProductionCompletionChoice}
+			onEffectiveDateChange={setProductionEffectiveDate}
+			onConfirm={() => void submitProductionCompletion()}
+			cancellationOpen={statusOnlyCancellationOpen}
+			cancellationReason={statusOnlyCancellationReason}
+			cancelPending={cancelProductionStatusOnlyMutation.isPending}
+			onCancellationOpenChange={(open) => {
+				setStatusOnlyCancellationOpen(open);
+				if (!open) setStatusOnlyCancellationReason("");
+			}}
+			onCancellationReasonChange={setStatusOnlyCancellationReason}
+			onCancelCompletion={() => void submitStatusOnlyProductionCancellation()}
+		/>
+	);
 
 	if (!asSubmenu) {
 		return (
 			<>
 				{items}
 				{dialog}
+				{completionDialogs}
 			</>
 		);
 	}
@@ -1764,6 +1946,7 @@ function SalesMenuMarkAs({
 				<SalesMenuSubContent>{items}</SalesMenuSubContent>
 			</SalesMenuSub>
 			{dialog}
+			{completionDialogs}
 		</>
 	);
 }

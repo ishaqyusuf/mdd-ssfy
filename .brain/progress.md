@@ -1,5 +1,39 @@
 # Progress
 
+- 2026-09-01: Ticket 03 Status-only Production Completion passed its final
+  post-reconciliation Brain review and landed on `master`. The landing preserves
+  the parallel Production assignment timestamp and QtyControl sync-cursor work;
+  Prisma generation, DB/Sales typechecks, 112 combined focused tests, the
+  33-test Ticket 03 suite, scoped Biome, and diff integrity pass on the merged
+  checkout. Ticket 04 is the next ordered stack item.
+
+- 2026-09-01: Resolved Ticket 03 review finding P1. The completion resolver no
+  longer accepts legacy terminal order/fulfillment strings as canonical
+  Fulfilled or Production evidence. Canonical Fulfilled now requires an active
+  completed dispatch with persisted completed proof; that state is committed by
+  the existing atomic dispatch completion/inventory transaction. Operational
+  Production is derived independently from Production evidence, and every
+  item-bearing split dispatch must satisfy the proof/commit boundary. Five focused
+  negative/positive regressions pass, along with the Sales typecheck, scoped
+  Biome, and diff check. No dispatch, inventory, proof, schema, API, or
+  permission contract was mutated by the fix.
+
+- 2026-09-01: Implemented Ticket 03 of Status-only Sales Completion in its
+  isolated review unit. Authorized users can record and cancel an audited
+  Production administrative completion with Full workflow still selected by
+  default. The additive completion ledger, exact view/edit permissions,
+  normalized projection, transactional/idempotent commands, API enforcement,
+  and permission-aware Sales UI are complete without changing `SalesStat`,
+  `QtyControl`, assignments, submissions, inventory, dispatch, finance,
+  notifications, commissions, payouts, or external integrations. Migration
+  `20260901200350_add_sales_completion_record` was applied only to the verified
+  local database; Prisma generation and live permission/table invariant checks
+  passed. Focused validation passes 33 tests, `@gnd/db` and `@gnd/sales`
+  typechecks, scoped Biome, and `git diff --check`. The broad Dashboard
+  typecheck retains repository baseline diagnostics and reports no new
+  completion-surface diagnostics. Ticket 03 passed its second Brain review and
+  pre-landing conflict reconciliation; Tickets 04-07 remain ordered successors.
+
 - 2026-09-01: Clarified workerless Production assignments in Sales Overview.
   Assignment records and worker ownership are now presented separately: the
   item badge says `Worker Not Assigned`, the assignment section reports

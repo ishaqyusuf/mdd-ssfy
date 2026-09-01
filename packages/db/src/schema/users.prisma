@@ -71,6 +71,8 @@ model Users {
     submittedPackingReports           SalesPackingReport[] @relation(name: "packingReportsSubmitted")
     reviewedPackingReports            SalesPackingReport[] @relation(name: "packingReportsReviewed")
     performedSalesWorkflowCancellations SalesWorkflowCancellation[] @relation(name: "salesWorkflowCancellationsPerformed")
+    recordedSalesCompletionRecords SalesCompletionRecord[] @relation(name: "salesCompletionRecordsRecorded")
+    cancelledSalesCompletionRecords SalesCompletionRecord[] @relation(name: "salesCompletionRecordsCancelled")
     sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
     taskRunDiagnosticsStarted   TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticActor")

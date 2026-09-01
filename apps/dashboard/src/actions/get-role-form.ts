@@ -1,60 +1,17 @@
 "use server";
 
 import { prisma } from "@/db";
-import { addSpacesToCamelCase } from "@/lib/utils";
-import { PERMISSIONS } from "@gnd/utils/constants";
 import { revalidateTag } from "next/cache";
 import { getPermissions } from "./cached-hrm";
 import type { CreateRoleForm } from "./create-role-action";
+import {
+	getRolePermissionRows,
+	getStaticRolePermissionNames,
+} from "./role-permission-rows";
 
-const staticPermissions = PERMISSIONS.map((permission) =>
-	addSpacesToCamelCase(permission).toLocaleLowerCase(),
-);
+const staticPermissions = getStaticRolePermissionNames();
 const legacyMarkFulfilledPermission = "mark sales order fulfilled";
 const viewMarkFulfilledPermission = "view mark sales order fulfilled";
-
-export type RolePermissionRow = {
-	permission: string;
-	kind: "direct" | "scoped" | "view-only";
-};
-
-function getRolePermissionRows(
-	permissions: Array<{ name: string }>,
-): RolePermissionRow[] {
-	const rows = new Map<
-		string,
-		{ direct: boolean; view: boolean; edit: boolean }
-	>();
-
-	for (const { name } of permissions) {
-		const normalizedName = name.toLocaleLowerCase();
-		const permission = normalizedName
-			.replace(/^edit /, "")
-			.replace(/^view /, "")
-			.replace(/^review /, "");
-		const row = rows.get(permission) ?? {
-			direct: false,
-			view: false,
-			edit: false,
-		};
-		if (normalizedName.startsWith("view ")) row.view = true;
-		else if (normalizedName.startsWith("edit ")) row.edit = true;
-		else row.direct = true;
-		rows.set(permission, row);
-	}
-
-	return Array.from(rows.entries())
-		.map(([permission, actions]): RolePermissionRow => ({
-			permission,
-			kind:
-				actions.view && !actions.edit
-					? "view-only"
-					: actions.view || actions.edit
-						? "scoped"
-						: "direct",
-		}))
-		.sort((a, b) => a.permission.localeCompare(b.permission));
-}
 
 async function getUpdatedPermissions() {
 	const permissions = await getPermissions();

@@ -1,8 +1,8 @@
 # Ship Status-only Production Completion end to end
 
 Type: implementation
-Status: ready-for-agent
-Label: ready-for-agent
+Status: done
+Label: approved
 Blocked by: None
 Parent: [`../map.md`](../map.md)
 Source specification: [`../spec.md`](../spec.md)
