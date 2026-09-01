@@ -27,6 +27,18 @@ export function shouldShowSalesProductionOrderDate({
 	);
 }
 
+export function shouldShowSalesProductionAssignedAt({
+	tab,
+	view,
+	list,
+}: SalesProductionColumnContext) {
+	return (
+		tab === "queue" &&
+		view === "table" &&
+		(!list.show || list.show === "past-due")
+	);
+}
+
 export function getSalesProductionColumnVisibility(props: {
 	columnVisibility: VisibilityState;
 	context: SalesProductionColumnContext;
@@ -38,6 +50,10 @@ export function getSalesProductionColumnVisibility(props: {
 
 	return {
 		...props.columnVisibility,
+		assignedAt: props.workerMode
+			? false
+			: (props.columnVisibility.assignedAt ??
+				shouldShowSalesProductionAssignedAt(props.context)),
 		orderDate:
 			!props.workerMode && shouldShowSalesProductionOrderDate(props.context),
 		materials:
@@ -45,6 +61,25 @@ export function getSalesProductionColumnVisibility(props: {
 				? false
 				: props.columnVisibility.materials,
 	};
+}
+
+export function includeAssignedAtAfterAssignedTo(
+	columnOrder: string[],
+	columnIds: string[],
+) {
+	const sourceOrder = columnOrder.length > 0 ? columnOrder : columnIds;
+	if (sourceOrder.includes("assignedAt") || !columnIds.includes("assignedAt")) {
+		return sourceOrder;
+	}
+
+	const assignedToIndex = sourceOrder.indexOf("assignedTo");
+	if (assignedToIndex === -1) return [...sourceOrder, "assignedAt"];
+
+	return [
+		...sourceOrder.slice(0, assignedToIndex + 1),
+		"assignedAt",
+		...sourceOrder.slice(assignedToIndex + 1),
+	];
 }
 
 export function placeOrderDateAfterDueDate(

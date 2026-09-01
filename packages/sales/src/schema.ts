@@ -440,7 +440,15 @@ export const salesProductionQueryParamsSchema = z
 		production: z.custom<SalesProductionStatusFilter>().optional().nullable(),
 		productionDueDate: productionCalendarDateSchema.optional().nullable(),
 		productionSort: z
-			.enum(["priority", "dueDateAsc", "dueDateDesc", "newest", "oldest"])
+			.enum([
+				"priority",
+				"dueDateAsc",
+				"dueDateDesc",
+				"assignedAtAsc",
+				"assignedAtDesc",
+				"newest",
+				"oldest",
+			])
 			.optional()
 			.nullable(),
 		"production.assignment": z
@@ -458,7 +466,15 @@ export const salesProductionQueryParamsSchema = z
 	.extend({
 		...paginationSchema.shape,
 		sort: z
-			.enum(["priority", "due-asc", "due-desc", "newest", "oldest"])
+			.enum([
+				"priority",
+				"due-asc",
+				"due-desc",
+				"assigned-asc",
+				"assigned-desc",
+				"newest",
+				"oldest",
+			])
 			.optional()
 			.nullable(),
 		size: z.number().int().min(1).max(100).optional().nullable(),

@@ -57,7 +57,6 @@ export function TableHeader({}) {
     } else {
       __setParams({ sort: [name, "asc"]?.join(".") });
     }
-    // console.log(newSort);
     const revSort = JSON.parse(JSON.stringify(newSort)).reverse();
     const ns = !newSort?.length
       ? null

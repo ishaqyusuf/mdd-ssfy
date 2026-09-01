@@ -484,7 +484,6 @@ export function transformNotifications(
 		const type = parseType(tags);
 		const action = parseAction(tags);
 		const createdAt = item.createdAt ?? item.created_at ?? null;
-		// console.log("Transforming notifications:", { action, tags });
 
 		return {
 			id: item.id,

@@ -34,7 +34,6 @@ function Content() {
     const ctx = useTemplateSchemaContext();
     const inv = useInventoryParams();
     // useAfterState(inv.productId, () => {
-    //     console.log("FINISHED");
     // });
     const { templateEditMode } = ctx;
     const { fields, swap } = useFieldArray({

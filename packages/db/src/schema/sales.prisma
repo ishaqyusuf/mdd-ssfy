@@ -693,6 +693,7 @@ model QtyControl {
     percentage     Float?
     autoComplete   Boolean?
     deletedAt      DateTime?        @db.Timestamp(0)
+    updatedAt      DateTime         @default(now()) @updatedAt
     itemControl    SalesItemControl @relation(fields: [itemControlUid], references: [uid])
 
     // @@index([uid])
@@ -1139,6 +1140,7 @@ model OrderItemProductionAssignments {
     note                String?
     salesDoorId         Int?
     startedAt           DateTime?                    @db.Timestamp(0)
+    assignedAt          DateTime?                    @db.Timestamp(0)
     dueDate             DateTime?                    @db.Timestamp(0)
     deletedAt           DateTime?                    @db.Timestamp(0)
     createdAt           DateTime?                    @default(now()) @db.Timestamp(0)

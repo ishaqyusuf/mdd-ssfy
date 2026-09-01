@@ -51,4 +51,3 @@ method-aware path.
 - Do not redesign the existing Full workflow.
 - Do not infer Status-only history from missing operational records.
 - Do not relax existing workflow permissions or reversal requirements.
-

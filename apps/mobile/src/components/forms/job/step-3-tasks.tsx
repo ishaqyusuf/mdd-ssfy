@@ -115,18 +115,11 @@ export function Step3Tasks() {
     values.type = role == "1099 Contractor" ? "installation" : "punchout";
     form.reset(values);
     setTimeout(() => {
-      form.handleSubmit(
-        (e) => {
-          consoleLog("SUBMITTING>>", e);
-          ctx.saveJob(e);
-        },
-        (errs) => {
-          console.log(errs);
-          console.log(values);
-        }
-      )();
+      form.handleSubmit((e) => {
+        consoleLog("SUBMITTING>>", e);
+        ctx.saveJob(e);
+      })();
       // form.trigger().then((e) => {
-      //   console.log({ e });
       // });
       // ctx.setTab("meta");
       // consoleLog("Form value", values);
@@ -167,7 +160,6 @@ export function Step3Tasks() {
                   placeholder="Qty"
                   // onBlur={onBlur}
                   onChangeText={(e) => {
-                    console.log(e);
                     // onChange(+e);
                     store.update(`form.${qtyName}` as any, +e);
                   }}
@@ -217,7 +209,6 @@ export function Step3Tasks() {
             size={"lg"}
             onPress={handleSubmit}
             // onPress={form.handleSubmit(handleSubmit, (errors) => {
-            //   console.log(errors);
             //   if (!errors.tasks) {
             //     handleSubmit();
             //   }

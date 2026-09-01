@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { unstable_noStore } from "next/cache";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
+import { Suspense } from "react";
 
 import { ErrorFallback } from "@/components/error-fallback";
 import {
@@ -9,12 +10,17 @@ import {
 	resolveOperationsCalendarDate,
 } from "@/components/operations-calendar/range";
 import PageShell from "@/components/page-shell";
-import { ProductionWorkspace } from "@/components/production-workspace";
+import {
+	ProductionWorkspace,
+	ProductionWorkspaceSkeleton,
+} from "@/components/production-workspace";
 import { ScrollableContent } from "@/components/scrollable-content";
 import { loadSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+import { resolveSalesProductionWorkspaceQuery } from "@sales/production-workspace-query";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +37,7 @@ type Props = {
 type SalesProductionFilter = Awaited<
 	ReturnType<typeof loadSalesProductionFilterParams>
 >;
+type SalesProductionInput = RouterInputs["sales"]["productions"];
 
 function withDefaultProductionQueue(filter: SalesProductionFilter) {
 	const hasExplicitQueue =
@@ -57,7 +64,11 @@ export default async function Page(props: Props) {
 	unstable_noStore();
 	const searchParams = await props.searchParams;
 	const filter = await loadSalesProductionFilterParams(searchParams);
-	const tableFilter = { ...withDefaultProductionQueue(filter), size: 20 };
+	const tableFilter = withDefaultProductionQueue(filter);
+	const tableQueryInput = {
+		...resolveSalesProductionWorkspaceQuery(tableFilter).list,
+		size: 20,
+	} as SalesProductionInput;
 	const calendarSelected =
 		filter.tab === "calendar" || filter.view === "calendar";
 	const initialTableSettings =
@@ -88,13 +99,12 @@ export default async function Page(props: Props) {
 		]);
 	} else {
 		batchPrefetch([
-			trpc.sales.productionTasks.infiniteQueryOptions(tableFilter, {
+			trpc.sales.productionTasks.infiniteQueryOptions(tableQueryInput, {
 				getNextPageParam: ({ meta }) =>
 					(meta as { cursor?: string | number | null } | undefined)?.cursor,
 			}),
 		]);
 	}
-
 	return (
 		<PageShell>
 			<HydrateClient>
@@ -102,11 +112,20 @@ export default async function Page(props: Props) {
 					<div className="flex flex-col gap-6">
 						<PageTitle>Production</PageTitle>
 						<ErrorBoundary errorComponent={ErrorFallback}>
-							<ProductionWorkspace
-								mode="worker"
-								initialTableSettings={initialTableSettings}
-								defaultTableFilters={tableFilter}
-							/>
+							<Suspense
+								fallback={
+									<ProductionWorkspaceSkeleton
+										mode="worker"
+										initialTableSettings={initialTableSettings}
+									/>
+								}
+							>
+								<ProductionWorkspace
+									mode="worker"
+									initialTableSettings={initialTableSettings}
+									defaultTableFilters={tableQueryInput}
+								/>
+							</Suspense>
 						</ErrorBoundary>
 					</div>
 				</ScrollableContent>

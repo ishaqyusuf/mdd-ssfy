@@ -20,8 +20,7 @@ export function InventoryShelfCategory({ categoryId }) {
     const qc = useQueryClient();
     const mut = useMutation(
         trpc.inventories.upsertShelfProducts.mutationOptions({
-            onSuccess(data, variables, context) {
-                console.log({ data });
+            onSuccess() {
                 toast({
                     variant: "success",
                     title: "Indexed",
@@ -31,8 +30,7 @@ export function InventoryShelfCategory({ categoryId }) {
                         trpc.inventories.getInventoryTypeByShelfId.queryKey(),
                 });
             },
-            onError(error, variables, context) {
-                console.log({ error });
+            onError() {
                 toast({
                     variant: "error",
                     title: "Error",
@@ -68,4 +66,3 @@ export function InventoryShelfCategory({ categoryId }) {
         </Env>
     );
 }
-

@@ -31,9 +31,11 @@ import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { BottomBar } from "./bottom-bar";
+import { getSalesProductionAssignedToLabel } from "./assigned-to-label";
 import {
 	getActiveSalesProductionStickyColumns,
 	getSalesProductionColumnVisibility,
+	includeAssignedAtAfterAssignedTo,
 	placeOrderDateAfterDueDate,
 } from "./column-layout";
 import {
@@ -118,7 +120,10 @@ export function DataTable({
 		() =>
 			workerMode
 				? columnOrder
-				: placeOrderDateAfterDueDate(columnOrder, columnIds),
+				: includeAssignedAtAfterAssignedTo(
+						placeOrderDateAfterDueDate(columnOrder, columnIds),
+						columnIds,
+					),
 		[columnIds, columnOrder, workerMode],
 	);
 	const hasExplicitWorkerView = Boolean(
@@ -298,7 +303,7 @@ export function DataTable({
 										/>
 										<MobileCardField
 											label="Assigned"
-											value={item.assignedTo || "Unassigned"}
+											value={getSalesProductionAssignedToLabel(item)}
 										/>
 										<MobileCardField
 											label="Materials"

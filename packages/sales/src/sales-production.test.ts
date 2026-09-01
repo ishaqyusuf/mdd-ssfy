@@ -36,6 +36,21 @@ function productionRow(id: number, priority: string) {
 }
 
 describe("sales production priority sorting", () => {
+	it("sorts assignment ownership timestamps with unassigned rows last", () => {
+		const rows = [
+			{ id: 1, assignedAt: new Date("2026-08-01T12:00:00.000Z") },
+			{ id: 2, assignedAt: null },
+			{ id: 3, assignedAt: new Date("2026-09-01T12:00:00.000Z") },
+		];
+
+		expect(
+			sortProductionListByPriority(rows, "assignedAtDesc").map((row) => row.id),
+		).toEqual([3, 1, 2]);
+		expect(
+			sortProductionListByPriority(rows, "assignedAtAsc").map((row) => row.id),
+		).toEqual([1, 3, 2]);
+	});
+
 	it("keeps completed assignments on the production calendar", async () => {
 		let capturedWhere: unknown;
 		const completedAt = new Date("2026-09-01T12:00:00.000Z");
@@ -222,7 +237,7 @@ describe("sales production priority sorting", () => {
 		expect(serialized).toContain('"percentage":100');
 	});
 
-	it("requires a live positive-quantity production control for production queues", () => {
+	it("accepts live control quantity or positive assignment quantity for production queues", () => {
 		const serialized = JSON.stringify(
 			whereSales({
 				production: "pending",
@@ -235,6 +250,8 @@ describe("sales production priority sorting", () => {
 		expect(serialized).toContain('"produceable":true');
 		expect(serialized).toContain('"type":"qty"');
 		expect(serialized).toContain('"total":{"gt":0}');
+		expect(serialized).toContain('"items"');
+		expect(serialized).toContain('"qtyAssigned":{"gt":0}');
 	});
 
 	it("treats null-owner assignment rows as Unassigned", () => {

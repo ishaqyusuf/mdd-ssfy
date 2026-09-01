@@ -13,10 +13,6 @@ import { useState } from "react";
 
 import { getProductionDispatchMutationPolicy } from "@gnd/sales/production-dispatch-policy";
 import {
-	createProductionDueDate,
-	productionCalendarPartsFromLocalDate,
-} from "@sales/production-date";
-import {
 	AccordionContent,
 	AccordionItem,
 	AccordionTrigger,
@@ -36,6 +32,10 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
+import {
+	createProductionDueDate,
+	productionCalendarPartsFromLocalDate,
+} from "@sales/production-date";
 
 import { AccessBased } from "./access-based";
 import { useSaleOverview } from "./context";
@@ -125,9 +125,11 @@ function Content({
 		const normalizedDueDate = createProductionDueDate(
 			productionCalendarPartsFromLocalDate(e),
 		);
-		updateAssignmentDueDateUseCase(assignment.id, normalizedDueDate).then(() => {
-			toast.success("Updated");
-		});
+		updateAssignmentDueDateUseCase(assignment.id, normalizedDueDate).then(
+			() => {
+				toast.success("Updated");
+			},
+		);
 	}
 	const hasPendingSubmissionQuantity = hasPendingProductionQuantity(
 		assignment?.pending,
@@ -184,6 +186,11 @@ function Content({
 	if (presentation === "document") {
 		const submittedQuantity = getQuantityMatrixTotal(assignment.reported);
 		const assignedQuantity = getQuantityMatrixTotal(assignment.qty);
+		const assignedWorkerLabel =
+			assignment.assignedTo ||
+			(assignment.assignedToId
+				? "Assigned worker unavailable"
+				: "Worker not assigned");
 		const hasPendingReview = Number(assignment.pendingReview?.qty || 0) > 0;
 		const assignmentComplete =
 			assignment.status === "completed" || !hasPendingSubmissionQuantity;
@@ -255,10 +262,10 @@ function Content({
 														description: "Deleting...",
 														duration: Number.POSITIVE_INFINITY,
 													});
-									deleteAction.execute({
-										assignmentId: assignment.id,
-										salesId: assignment.orderId,
-										itemUid: itemCtx.item.controlUid,
+													deleteAction.execute({
+														assignmentId: assignment.id,
+														salesId: assignment.orderId,
+														itemUid: itemCtx.item.controlUid,
 													});
 												}}
 												aria-label="Delete assignment"
@@ -278,7 +285,7 @@ function Content({
 					<div className="grid min-w-0 flex-1 grid-cols-1 items-start gap-3 pr-28 md:grid-cols-[minmax(9rem,1.25fr)_minmax(6rem,0.7fr)_minmax(7rem,0.85fr)]">
 						<div className="min-w-0">
 							<p className="break-words text-sm font-semibold uppercase sm:truncate">
-								{assignment.assignedTo || "Unassigned"}
+								{assignedWorkerLabel}
 							</p>
 							<p className="mt-1 text-xs font-normal text-muted-foreground sm:truncate">
 								Assigned by {assignment.assignedBy || "Unknown"}

@@ -110,11 +110,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                     });
                     setMainTab("main");
                 },
-                onError(error, variables, context) {
-                    console.log({
-                        error,
-                        variables,
-                    });
+                onError() {
                     toast({
                         title: "Dispatch Failed",
                         variant: "error",
@@ -131,9 +127,6 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 onSuccess() {
                     invalidate();
                 },
-                onError(error, variables, context) {
-                    console.log({ error });
-                },
                 meta: {
                     queryEventScope,
                 },
@@ -143,9 +136,6 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             trpc.dispatch.cancelDispatch.mutationOptions({
                 onSuccess() {
                     invalidate();
-                },
-                onError(error, variables, context) {
-                    console.log({ error });
                 },
                 meta: {
                     queryEventScope,

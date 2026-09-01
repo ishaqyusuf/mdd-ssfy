@@ -59,6 +59,7 @@ export async function createSalesAssignmentAction(
           rhQty: item.qty.rh,
           qtyAssigned: item.qty.qty || sum([item.qty.lh, item.qty.rh]),
           assignedToId: args.assignedToId || undefined,
+          assignedAt: args.assignedToId ? new Date() : null,
           dueDate: args.dueDate,
           assignedById: args.authorId,
           itemId: item.itemInfo.itemId!,
@@ -663,9 +664,6 @@ export async function submitNonProductionsAction(
       ),
     );
 
-    console.log(
-      `${item.title} - ${item.itemConfig?.production} : ${pendingProds.qty}`,
-    );
     // const pendingProds = item.analytics?.production!;
     const deliverables = item.deliverables;
 
@@ -685,8 +683,6 @@ export async function submitNonProductionsAction(
       }
     }
   }
-  console.log(`Assignments created: ${createAssignments.length}`);
-  console.log(`Submissions created: ${createSubmissions.length}`);
   await createSalesAssignmentAction(db, {
     items: createAssignments,
     submit: true,

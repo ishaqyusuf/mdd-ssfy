@@ -61,6 +61,11 @@ Pass
 - Dashboard package typecheck: repository baseline failure; filtered changed
   completion files have no new error, and the shared Sales menu retains only
   its pre-existing icon-registration diagnostic.
+- Pre-landing conflict reconciliation: Pass. Both parallel schema additions
+  (`QtyControl.updatedAt` and production-assignment `assignedAt`) and Ticket 03
+  were preserved; Prisma generation, DB/Sales typechecks, 112 combined focused
+  tests / 296 assertions, the 33-test Ticket 03 suite, scoped Biome, and staged
+  diff integrity pass on the combined branch.
 
 ## Brain Update Check
 

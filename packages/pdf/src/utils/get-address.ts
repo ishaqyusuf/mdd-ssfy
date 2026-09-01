@@ -1,5 +1,4 @@
 export function getAddress(sale) {
-  console.log(sale.order?.orderId);
   const [miami, lakeWales] = [
     {
       address1: "13285 SW 131 ST",

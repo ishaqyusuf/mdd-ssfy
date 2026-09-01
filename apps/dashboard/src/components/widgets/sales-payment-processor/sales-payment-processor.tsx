@@ -393,8 +393,6 @@ function Content(
 		[data.pendingSales],
 	);
 	useEffect(() => {
-		console.log(data.error);
-
 		if (terminalPaymentsEnabled && data.error.terminal) {
 			toast({
 				title: "Unable to load PoS",

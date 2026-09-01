@@ -5,7 +5,7 @@ import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
 
 export function FormDebugBtn({}) {
-  const { trigger, formState } = useFormContext();
+  const { trigger } = useFormContext();
   if (process.env.NODE_ENV === "production") return null;
   return (
     // <Env isDev>
@@ -24,10 +24,6 @@ export function FormDebugBtn({}) {
                 title: "Error",
                 variant: "destructive",
               });
-            const { errors } = formState;
-            console.log({
-              errors,
-            });
           });
         }}
       >

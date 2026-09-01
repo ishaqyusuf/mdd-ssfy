@@ -125,6 +125,19 @@ describe("sales production workspace query", () => {
 		});
 	});
 
+	it("maps assigned-on sorting to the production list contract", () => {
+		expect(
+			resolveSalesProductionWorkspaceQuery({ sort: "assigned-desc" }),
+		).toMatchObject({
+			list: { productionSort: "assignedAtDesc" },
+		});
+		expect(
+			resolveSalesProductionWorkspaceQuery({ sort: "assigned-asc" }),
+		).toMatchObject({
+			list: { productionSort: "assignedAtAsc" },
+		});
+	});
+
 	it("maps queue, due, date, material, and sort values to legacy list inputs", () => {
 		expect(
 			resolveSalesProductionWorkspaceQuery({
@@ -175,6 +188,27 @@ describe("sales production workspace query", () => {
 			list: {
 				production: "pending",
 				productionDueDate: "2026-08-20",
+			},
+		});
+	});
+
+	it("removes null URL fields from the canonical list query key", () => {
+		expect(
+			resolveSalesProductionWorkspaceQuery({
+				q: null,
+				assignedToId: null,
+				"customer.name": null,
+				production: "pending",
+				show: "due-today",
+				size: 20,
+			}),
+		).toEqual({
+			tab: "queue",
+			view: "table",
+			list: {
+				production: "pending",
+				show: "due-today",
+				size: 20,
 			},
 		});
 	});

@@ -40,8 +40,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                 });
                 setParams(null);
             },
-            onError(error, variables, context) {
-                console.log({ error, variables, model });
+            onError() {
                 toast({
                     title: "Unable to complete",
                     variant: "destructive",

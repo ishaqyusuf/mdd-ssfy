@@ -51,4 +51,3 @@ consumers continue to use canonical evidence.
 - Do not reinterpret canonical Fulfilled or operational terminal states.
 - Do not hide unresolved operational work merely because completion is satisfied.
 - Do not change unrelated report definitions.
-

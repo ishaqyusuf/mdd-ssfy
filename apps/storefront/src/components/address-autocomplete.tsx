@@ -58,7 +58,6 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
       },
     ),
   );
-  // console.log({ fData, trpcError, selectedPlaceId });
   // const { data: fData, isLoading } = useSWR(
   //   // For real use case: /api/address/place?placeId=${selectedPlaceId}
   //   selectedPlaceId === ""

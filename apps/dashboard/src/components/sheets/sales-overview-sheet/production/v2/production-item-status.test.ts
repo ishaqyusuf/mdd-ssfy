@@ -5,14 +5,15 @@ import {
 	getQuantityMatrixTotal,
 } from "./production-item-status";
 
-const labels = (
-	status: Parameters<typeof getProductionItemStatusBadges>[0],
-) => getProductionItemStatusBadges(status).map((badge) => badge.label);
+const labels = (status: Parameters<typeof getProductionItemStatusBadges>[0]) =>
+	getProductionItemStatusBadges(status).map((badge) => badge.label);
 
 const status = (overrides: Partial<Parameters<typeof labels>[0]> = {}) => ({
+	assignmentCount: 0,
 	assigned: 0,
 	fulfilled: 0,
 	shippable: true,
+	staffedAssignmentCount: 0,
 	submitted: 0,
 	total: 3,
 	...overrides,
@@ -29,22 +30,49 @@ describe("production item progressive status", () => {
 		expect(labels(status({ assigned: 3, submitted: 3 }))).toEqual([
 			"READY TO FULFILL",
 		]);
+		expect(labels(status({ assigned: 3, fulfilled: 2, submitted: 3 }))).toEqual(
+			["2 OF 3 FULFILLED"],
+		);
+		expect(labels(status({ assigned: 3, fulfilled: 3, submitted: 3 }))).toEqual(
+			["FULFILLED"],
+		);
+	});
+
+	test("distinguishes assignment quantity from worker staffing", () => {
 		expect(
-			labels(status({ assigned: 3, fulfilled: 2, submitted: 3 })),
-		).toEqual(["2 OF 3 FULFILLED"]);
+			labels(
+				status({
+					assigned: 3,
+					assignmentCount: 1,
+					staffedAssignmentCount: 0,
+				}),
+			),
+		).toEqual(["WORKER NOT ASSIGNED"]);
 		expect(
-			labels(status({ assigned: 3, fulfilled: 3, submitted: 3 })),
-		).toEqual(["FULFILLED"]);
+			labels(
+				status({
+					assigned: 3,
+					assignmentCount: 2,
+					staffedAssignmentCount: 1,
+				}),
+			),
+		).toEqual(["1 OF 2 STAFFED"]);
+		expect(
+			labels(
+				status({
+					assigned: 3,
+					assignmentCount: 1,
+					staffedAssignmentCount: 0,
+					submitted: 3,
+				}),
+			),
+		).toEqual(["READY TO FULFILL"]);
 	});
 
 	test("keeps partial upstream stages visible during overlapping work", () => {
-		expect(
-			labels(status({ assigned: 2, fulfilled: 1, submitted: 1 })),
-		).toEqual([
-			"2 OF 3 ASSIGNED",
-			"1 OF 3 SUBMITTED",
-			"1 OF 3 FULFILLED",
-		]);
+		expect(labels(status({ assigned: 2, fulfilled: 1, submitted: 1 }))).toEqual(
+			["2 OF 3 ASSIGNED", "1 OF 3 SUBMITTED", "1 OF 3 FULFILLED"],
+		);
 	});
 
 	test("uses production completed for non-shippable items", () => {

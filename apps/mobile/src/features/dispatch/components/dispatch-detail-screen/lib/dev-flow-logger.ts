@@ -36,11 +36,6 @@ const logger = createDevFlowLogger({
       flag: process.env.EXPO_PUBLIC_DEBUG_LOGGER,
     }),
   emit: (entry) => {
-    try {
-      console.log("[dispatch-debug]", JSON.stringify(entry));
-    } catch {
-      // Ignore console serialization failure.
-    }
     void sendToApi(entry);
   },
 });

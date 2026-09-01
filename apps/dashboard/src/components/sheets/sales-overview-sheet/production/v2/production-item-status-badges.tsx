@@ -1,5 +1,6 @@
 import { Badge } from "@gnd/ui/badge";
 
+import { useProduction } from "../../context";
 import type { ProductionItem } from "../../production-item-context";
 import {
 	getProductionItemStatusBadges,
@@ -11,11 +12,21 @@ export function ProductionItemStatusBadges({
 }: {
 	item: ProductionItem;
 }) {
+	const { data } = useProduction();
 	const stats = item.analytics?.stats;
+	const assignments =
+		data?.order.assignments.filter(
+			(assignment) => assignment.salesItemControlUid === item.controlUid,
+		) || [];
+	const assignmentCount = assignments.length;
+	const staffedAssignmentCount =
+		assignments.filter((assignment) => assignment.assignedTo?.id).length || 0;
 	const badges = getProductionItemStatusBadges({
+		assignmentCount,
 		assigned: getQuantityMatrixTotal(stats?.prodAssigned),
 		fulfilled: getQuantityMatrixTotal(stats?.dispatchCompleted),
 		shippable: Boolean(item.itemConfig?.shipping),
+		staffedAssignmentCount,
 		submitted: getQuantityMatrixTotal(stats?.prodCompleted),
 		total: getQuantityMatrixTotal(item.qty),
 	});

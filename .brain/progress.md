@@ -24,8 +24,52 @@
   passed. Focused validation passes 33 tests, `@gnd/db` and `@gnd/sales`
   typechecks, scoped Biome, and `git diff --check`. The broad Dashboard
   typecheck retains repository baseline diagnostics and reports no new
-  completion-surface diagnostics. Ticket 03 is ready for Brain review; Tickets
-  04-07 remain dependency-blocked.
+  completion-surface diagnostics. Ticket 03 passed its second Brain review and
+  pre-landing conflict reconciliation; Tickets 04-07 remain ordered successors.
+
+- 2026-09-01: Clarified workerless Production assignments in Sales Overview.
+  Assignment records and worker ownership are now presented separately: the
+  item badge says `Worker Not Assigned`, the assignment section reports
+  `X of Y staffed`, and each ownerless row says `Worker not assigned`. This
+  prevents assigned quantity from being mistaken for a staffed assignment.
+  Authenticated in-app QA verified the collapsed and expanded states on order
+  `08363AD`; 21 focused Production tests pass. No database, API, permission, or
+  mutation contract changed.
+
+- 2026-09-01: Made the Sales Production `Order Date` column sortable through
+  the existing URL-backed `newest` / `oldest` server ordering, including a
+  third activation that restores the default production sort. Repaired the
+  visible worker-notification delay: direct and batch assignment mutations
+  already created targeted mandatory `sales_production_assigned` activities,
+  but an already-open worker session never refreshed its notification cache.
+  The active inbox and unread count now refresh every 15 seconds while the tab
+  is foregrounded, with no background polling. Focused Production sort,
+  notification recipient, refresh, workspace-query, and list-sort validation
+  passes 46 tests; targeted Biome passes. No database, permission, or mutation
+  contract changed.
+
+- 2026-09-01: Fixed Sales Production orders with valid persisted assignments
+  disappearing from Due Today, Past Due, Active, and summary counts when a
+  stale regenerated `QtyControl.qty.total` projection was zero. Queue
+  eligibility now preserves the live-control rule and adds positive assignment
+  quantity linked through a live Sales order item. A read-only replay against
+  production order `09488AD` changed the current-code result from no match / Due
+  Today count 0 to a direct match / count 1 while retaining the saved September
+  1 noon-UTC due dates. Added `QtyControl.updatedAt` through generated local
+  migration `20260901195324_add_qty_control_sync_cursor`, so the table is now an
+  incremental local-sync source instead of a silently skipped mutable
+  projection. The migration and schema push completed locally; no production
+  schema or data write occurred. Focused queue and sync contract tests pass.
+
+- 2026-09-01: Added a sortable `Assigned At` column to the Sales Production
+  admin queue. Current ownership now has a dedicated nullable assignment
+  timestamp; ownership changes refresh or clear it while schedule-only edits
+  preserve it, and historical assignments fall back to creation time. Active
+  and Past Due tables show the optional column after Assigned To; worker tables
+  exclude it. Browser QA verified newest/oldest/default URL sort cycling with
+  no page error. The additive local migration was applied and the schema push
+  is in sync; 51 focused tests plus DB and Sales typechecks pass. Dashboard-wide
+  typecheck remains blocked by unrelated baseline diagnostics.
 
 - 2026-09-01: Repaired one-click fulfillment for Sales order `09543PC`. The
   dependency resolver now accepts handle-aware submissions whose legacy raw

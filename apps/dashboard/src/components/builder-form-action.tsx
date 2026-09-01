@@ -41,14 +41,9 @@ export function BuilderFormAction() {
 			<SubmitButton
 				isSubmitting={isPending}
 				type="button"
-				onClick={form.handleSubmit(
-					(data) => {
-						saveBuilder(data);
-					},
-					(e) => {
-						console.log("Form errors:", e);
-					},
-				)}
+				onClick={form.handleSubmit((data) => {
+					saveBuilder(data);
+				})}
 			>
 				Save Form
 			</SubmitButton>

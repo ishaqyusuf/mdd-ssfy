@@ -600,7 +600,6 @@ export class InventoryImportService {
       const str = ps.dependenciesUid!;
       if (/^\d+-\d+ x \d+-\d+$/.test(str)) {
         const [w, h] = str?.replaceAll("-", "_").split(" x ");
-        // console.log("Width:", w, "Height:", h);
         ps.dependenciesUid = `w${w}-h${h}`;
         widthUids.push(`w${w}`);
         heightUids.push(`h${h}`);

@@ -1471,7 +1471,6 @@ export const communityRouters = createTRPCRouter({
 			const { db } = props.ctx;
 			const { id, name, address, tasks } = props.input;
 			let result;
-			console.log({ address });
 			if (id) {
 				result = await db.builders.update({
 					where: { id },
@@ -1483,7 +1482,6 @@ export const communityRouters = createTRPCRouter({
 
 				const newTasks = tasks.filter((t) => !t.id);
 				const existingTasks = tasks.filter((t) => t.id);
-				console.log(newTasks);
 				await Promise.all([
 					...existingTasks.map((t) =>
 						db.builderTask.update({

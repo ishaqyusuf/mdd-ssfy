@@ -41,7 +41,7 @@ describe("Production assignment Ledger Accordion", () => {
 		);
 		const triggerSource = assignmentRowSource.slice(triggerStart, triggerEnd);
 
-		assert.match(triggerSource, /assignment\.assignedTo/);
+		assert.match(triggerSource, /assignedWorkerLabel/);
 		assert.match(triggerSource, /Assigned by/);
 		assert.match(triggerSource, /formatDate\(date/);
 		assert.match(triggerSource, /AssignmentQuantityProgress/);
@@ -86,6 +86,16 @@ describe("Production assignment Ledger Accordion", () => {
 			/<ProductionAssignmentForm closeForm=\{closeCreateForm\} \/>/,
 		);
 		assert.match(productionDocumentSource, /workerMode \? \(/);
+	});
+
+	test("distinguishes assignment records from staffed assignments", () => {
+		assert.match(productionDocumentSource, /staffedAssignmentCount/);
+		assert.match(
+			productionDocumentSource,
+			/\$\{staffedAssignmentCount\} of \$\{assignmentCount\} staffed/,
+		);
+		assert.match(assignmentRowSource, /Worker not assigned/);
+		assert.match(assignmentRowSource, /assignment\.assignedToId/);
 	});
 
 	test("uses one aligned right-side action gutter", () => {

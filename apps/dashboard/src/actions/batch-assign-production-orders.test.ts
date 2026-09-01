@@ -59,4 +59,13 @@ describe("batch production assignment", () => {
 		assert.match(productionUiSource, /getSpecialOrderOperationWarnings/);
 		assert.match(productionUiSource, /formatSpecialOrderOperationWarning/);
 	});
+
+	it("targets the assigned worker with an in-app notification", () => {
+		for (const assignmentSource of [source, directAssignmentSource]) {
+			assert.match(assignmentSource, /sales_production_assigned/);
+			assert.match(assignmentSource, /ids: \[[^\]]*assignedToId[^\]]*\]/);
+			assert.match(assignmentSource, /includeChannelSubscribers: false/);
+			assert.match(assignmentSource, /forceInAppRecipients: true/);
+		}
+	});
 });

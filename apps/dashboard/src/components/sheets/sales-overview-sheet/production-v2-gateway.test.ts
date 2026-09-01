@@ -140,7 +140,7 @@ test("preserves role actions, mutation surfaces, and legacy compatibility", () =
 
 test("keeps empty assignment and submission sections compact", () => {
 	expect(productionDocumentSource).toContain(
-		"`${data?.assignments?.length || 0} total`",
+		"`${staffedAssignmentCount} of ${assignmentCount} staffed`",
 	);
 	expect(productionDocumentSource).not.toContain(
 		"Create the first assignment for this production item.",

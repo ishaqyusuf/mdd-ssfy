@@ -28,10 +28,6 @@ export function ProductActions() {
   const qc = useQueryClient();
   const addToCart = useMutation(
     trpc.storefront.addToCart.mutationOptions({
-      onError(error, variables, context) {
-        console.log({ error, variables });
-      },
-
       onSuccess(data, variables, context) {
         qc.invalidateQueries({
           queryKey: trpc.storefront.getCartCount.queryKey(),

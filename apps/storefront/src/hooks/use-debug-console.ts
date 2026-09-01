@@ -1,10 +1,3 @@
-import { useEffect } from "react";
-
-export function useDebugConsole(...deps) {
-    useEffect(() => {
-        console.log({
-            ...deps,
-        });
-    }, deps);
+export function useDebugConsole(..._deps: unknown[]) {
+    return;
 }
-

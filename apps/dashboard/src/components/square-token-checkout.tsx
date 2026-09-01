@@ -37,14 +37,7 @@ export function SquareTokenCheckout(props: Props) {
         mutate,
     } = useMutation(
         trpc.checkout.verifyPayment.mutationOptions({
-            onSuccess(data) {
-                console.log({ data });
-            },
-            onError(error, variables, context) {
-                console.log({
-                    error,
-                    variables,
-                });
+            onError(_error, variables) {
                 let v = variables as any;
                 if (v.attempts < 3) {
                     setTimeout(() => {

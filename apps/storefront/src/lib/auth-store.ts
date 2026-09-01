@@ -132,8 +132,6 @@ export const useAuthStore = create<AuthStore>()(
 
         const user = mockUsers.find((u) => u.email === email);
         if (user) {
-          // In a real app, this would send an email
-          console.log(`Password reset email sent to ${email}`);
           return { success: true };
         }
         return { success: false, error: "Email not found" };

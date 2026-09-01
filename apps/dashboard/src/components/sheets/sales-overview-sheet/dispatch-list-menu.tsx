@@ -36,7 +36,6 @@ export function DispatchListMenu({ dispatch }: Props) {
 			invalidateQuery("dispatch.orderDispatchOverview", {
 				salesNo,
 			});
-			console.log("triggered fallback");
 		},
 	});
 	const { mutate: mutateDeleteDispatch, isPending: isDeleting } = useMutation(

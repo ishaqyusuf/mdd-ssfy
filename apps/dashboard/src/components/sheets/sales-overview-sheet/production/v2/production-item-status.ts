@@ -10,9 +10,11 @@ export type ProductionItemStatusBadge = {
 };
 
 export type ProductionItemStatus = {
+	assignmentCount: number;
 	assigned: number;
 	fulfilled: number;
 	shippable: boolean;
+	staffedAssignmentCount: number;
 	submitted: number;
 	total: number;
 };
@@ -30,9 +32,11 @@ export function getQuantityMatrixTotal(quantity?: QuantityMatrix | null) {
 }
 
 export function getProductionItemStatusBadges({
+	assignmentCount,
 	assigned,
 	fulfilled,
 	shippable,
+	staffedAssignmentCount,
 	submitted,
 	total,
 }: ProductionItemStatus): ProductionItemStatusBadge[] {
@@ -42,6 +46,18 @@ export function getProductionItemStatusBadges({
 
 	if (assigned <= 0) {
 		badges.push({ label: "NOT ASSIGNED", variant: "outline" });
+	} else if (
+		assignmentCount > 0 &&
+		staffedAssignmentCount < assignmentCount &&
+		submitted < total
+	) {
+		badges.push({
+			label:
+				staffedAssignmentCount > 0
+					? `${staffedAssignmentCount} OF ${assignmentCount} STAFFED`
+					: "WORKER NOT ASSIGNED",
+			variant: "outline",
+		});
 	} else if (assigned < total) {
 		badges.push({
 			label: `${assigned} OF ${total} ASSIGNED`,

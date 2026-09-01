@@ -16,6 +16,7 @@ import { formatDate } from "@gnd/utils/dayjs";
 import { getProductionDueDatePresentation } from "@sales/production-date";
 import type { ColumnDef } from "@tanstack/react-table";
 
+import { getSalesProductionAssignedToLabel } from "./assigned-to-label";
 import { getSalesProductionDueDateClassName } from "./due-date-tone";
 
 export type SalesProductionRow =
@@ -81,10 +82,10 @@ const orderDateColumn: Column = {
 	...sizes.custom(104, 150, 118),
 	enableResizing: true,
 	enableHiding: false,
-	enableSorting: false,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Order Date",
+		sortField: "orderDate",
 		className: sizeClass(sizes.custom(104, 150, 118)),
 	},
 	cell: ({ row }) => (
@@ -174,7 +175,31 @@ const assignedToColumn: Column = {
 		headerLabel: "Assigned To",
 		className: sizeClass(sizes.custom(130, 220, 160)),
 	},
-	cell: ({ row }) => <AssignedToBadge assignedTo={row.original.assignedTo} />,
+	cell: ({ row }) => (
+		<AssignedToBadge
+			assignedTo={row.original.assignedTo}
+			totalAssigned={row.original.totalAssigned}
+		/>
+	),
+};
+
+const assignedAtColumn: Column = {
+	id: "assignedAt",
+	header: "Assigned At",
+	accessorKey: "assignedAt",
+	...sizes.custom(104, 150, 118),
+	enableResizing: true,
+	meta: {
+		skeleton: { type: "text", width: "w-20" },
+		headerLabel: "Assigned At",
+		sortField: "assignedAt",
+		className: sizeClass(sizes.custom(104, 150, 118)),
+	},
+	cell: ({ row }) => (
+		<span className="truncate text-muted-foreground">
+			{row.original.assignedAt ? formatDate(row.original.assignedAt) : "-"}
+		</span>
+	),
 };
 
 const salesRepColumn: Column = {
@@ -357,6 +382,7 @@ export const columns: Column[] = [
 	dueDateColumn,
 	orderDateColumn,
 	assignedToColumn,
+	assignedAtColumn,
 	customerColumn,
 	orderColumn,
 	invoiceColumn,
@@ -393,8 +419,14 @@ function DueDateCell({ item }: { item: SalesProductionRow }) {
 	);
 }
 
-function AssignedToBadge({ assignedTo }: { assignedTo?: string | null }) {
-	const label = assignedTo || "Unassigned";
+function AssignedToBadge({
+	assignedTo,
+	totalAssigned,
+}: {
+	assignedTo?: string | null;
+	totalAssigned?: number | null;
+}) {
+	const label = getSalesProductionAssignedToLabel({ assignedTo, totalAssigned });
 
 	return (
 		<Badge

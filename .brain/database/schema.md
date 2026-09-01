@@ -18,6 +18,25 @@
 - `SalesStat`, `QtyControl`, production assignment/submission, inventory,
   dispatch, payment, tax, and other operational schemas are unchanged.
 
+## QtyControl incremental-sync cursor (2026-09-01)
+
+- `QtyControl.updatedAt` is a required millisecond timestamp with a creation
+  default and Prisma `@updatedAt` behavior.
+- The field is synchronization metadata for a mutable production/dispatch
+  projection. It lets the generic database sync classify `QtyControl` as
+  incremental instead of skipping it for having no `createdAt` or `updatedAt`.
+- The existing composite identity `(itemControlUid, type)` remains unchanged.
+
+## Production assignment ownership timestamp (2026-09-01)
+
+- `OrderItemProductionAssignments.assignedAt` is a nullable second-precision
+  timestamp for the start of the current ownership period.
+- Assignment creation with an owner initializes the timestamp. Reassignment
+  replaces it, unassignment clears it, and schedule-only changes preserve it.
+- The field is intentionally separate from `createdAt`, `updatedAt`, and
+  `startedAt`: those represent row history, any mutation, and production work
+  start respectively.
+
 ## Sales Order operational date defaults (2026-08-30)
 
 - `SalesOrders.prodDueDate` is the order-level default for new production

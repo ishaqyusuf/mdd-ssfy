@@ -36,6 +36,8 @@ export type ProductionListSort =
 	| "priority"
 	| "dueDateAsc"
 	| "dueDateDesc"
+	| "assignedAtAsc"
+	| "assignedAtDesc"
 	| "newest"
 	| "oldest";
 
@@ -836,7 +838,12 @@ async function getFilteredProductionPage(
 					AND: whereAssignments.length > 1 ? whereAssignments : undefined,
 					...(whereAssignments.length === 1 ? whereAssignments[0] : {}),
 				},
-				select: { dueDate: true },
+				select: {
+					assignedAt: true,
+					assignedToId: true,
+					createdAt: true,
+					dueDate: true,
+				},
 			},
 		},
 	});
@@ -844,6 +851,13 @@ async function getFilteredProductionPage(
 		? sortProductionListByPriority(
 				candidates.map((candidate) => ({
 					...candidate,
+					assignedAt: latestDate(
+						candidate.assignments
+							.filter((assignment) => assignment.assignedToId != null)
+							.map(
+								(assignment) => assignment.assignedAt || assignment.createdAt,
+							),
+					),
 					dueDate: earliestDate(
 						candidate.assignments.map((assignment) => assignment.dueDate),
 					),
@@ -991,6 +1005,12 @@ function earliestDate(dates: Array<Date | null>) {
 		.sort((left, right) => left.getTime() - right.getTime())[0];
 }
 
+function latestDate(dates: Array<Date | null>) {
+	return dates
+		.filter((date): date is Date => date != null)
+		.sort((left, right) => right.getTime() - left.getTime())[0];
+}
+
 function matchesMaterialFilter(state: string, filter: string) {
 	if (filter === "available") return state === "ready";
 	if (filter === "review") return state === "not_configured";
@@ -1004,6 +1024,7 @@ export function sortProductionListByPriority<
 		id?: number | null;
 		priority?: string | null;
 		dueDate?: string | Date | null;
+		assignedAt?: string | Date | null;
 		createdAt?: string | Date | null;
 	},
 >(items: T[], sort: ProductionListSort | null = "priority") {
@@ -1011,6 +1032,8 @@ export function sortProductionListByPriority<
 	return [...items].sort((a, b) => {
 		if (sortMode === "dueDateAsc") return compareDueDate(a, b);
 		if (sortMode === "dueDateDesc") return compareDueDateDesc(a, b);
+		if (sortMode === "assignedAtAsc") return compareAssignedAt(a, b);
+		if (sortMode === "assignedAtDesc") return compareAssignedAtDesc(a, b);
 		if (sortMode === "newest") return compareCreatedAtDesc(a, b);
 		if (sortMode === "oldest") return compareCreatedAt(a, b);
 
@@ -1020,6 +1043,36 @@ export function sortProductionListByPriority<
 
 		return compareDueDate(a, b);
 	});
+}
+
+function compareAssignedAt<
+	T extends {
+		id?: number | null;
+		priority?: string | null;
+		dueDate?: string | Date | null;
+		assignedAt?: string | Date | null;
+		createdAt?: string | Date | null;
+	},
+>(a: T, b: T) {
+	const assignedAtRank = dateRank(a.assignedAt) - dateRank(b.assignedAt);
+	if (assignedAtRank !== 0) return assignedAtRank;
+
+	return compareDueDate(a, b);
+}
+
+function compareAssignedAtDesc<
+	T extends {
+		id?: number | null;
+		priority?: string | null;
+		dueDate?: string | Date | null;
+		assignedAt?: string | Date | null;
+		createdAt?: string | Date | null;
+	},
+>(a: T, b: T) {
+	const assignedAtRank = compareDateDesc(a.assignedAt, b.assignedAt);
+	if (assignedAtRank !== 0) return assignedAtRank;
+
+	return compareDueDate(a, b);
 }
 
 function compareDueDate<
@@ -1130,6 +1183,9 @@ const select = (whereAssignments?) =>
 				...(whereAssignments?.length === 1 ? whereAssignments[0] : {}),
 			},
 			select: {
+				assignedAt: true,
+				assignedToId: true,
+				createdAt: true,
 				submissions: {
 					where: {
 						deletedAt: null,
@@ -1169,6 +1225,11 @@ function transformProductionList(
 ) {
 	// item.assignments;
 	const dueDate = item.assignments.map((d) => d.dueDate).filter(Boolean);
+	const assignedAt = latestDate(
+		item.assignments
+			.filter((assignment) => assignment.assignedToId != null)
+			.map((assignment) => assignment.assignedAt || assignment.createdAt),
+	);
 
 	const alert = dueDateAlert(dueDate);
 
@@ -1239,6 +1300,7 @@ function transformProductionList(
 
 	return {
 		completed,
+		assignedAt: assignedAt || null,
 		totalAssigned,
 		totalCompleted,
 		dueDate: alert?.date || null,

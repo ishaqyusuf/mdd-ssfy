@@ -186,9 +186,6 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
         });
         setTab("completed");
       },
-      onError(error, variables, onMutateResult, context) {
-        console.log({ error, variables });
-      },
       meta: {
         toastTitle: {
           error: "Unable to complete",
@@ -208,7 +205,6 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       form.reset({});
       // reset form
     }
-    // console.log("Job Form Changed: ", e);
   };
   // const [unit,setUnit] = useStat
   const selectUnit = (unit, onSelect) => {
@@ -308,7 +304,6 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
   const { data: jobSettings } = useQuery(
     useTRPC().settings.getJobSettings.queryOptions(),
   );
-  // console.log({ jobSettings });
   return {
     ...props,
     state: {

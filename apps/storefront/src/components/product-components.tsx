@@ -184,7 +184,6 @@ function ComponentProductsSelect({ catId, selectedVariantId }) {
               setFilter({
                 subComponent: value,
               });
-              console.log(value);
             }}
             size="sm"
             className={cn("relative  p-0 flex  gap-2", grid && "w-full h-auto")}

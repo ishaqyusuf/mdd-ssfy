@@ -52,4 +52,3 @@ false unless independent proof and committed inventory/dispatch evidence exist.
 - Do not weaken canonical Fulfilled or tax-recognition evidence requirements.
 - Do not close or mutate operational dispatch/inventory/proof records.
 - Do not add bulk Status-only completion.
-

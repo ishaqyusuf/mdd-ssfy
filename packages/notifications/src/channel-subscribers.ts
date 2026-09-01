@@ -683,7 +683,6 @@ export async function getSubscribersAccount(
       };
     }
 
-    // console.log(new Date().toISOString(), "DEBUG", { result });
     results.push(result);
   }
   return results;

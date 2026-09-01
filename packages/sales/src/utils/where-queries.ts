@@ -281,24 +281,45 @@ function buildPendingStatWhere(
 
 export function buildProductionEligibleWhere(): Prisma.SalesOrdersWhereInput {
 	return {
-		itemControls: {
-			some: {
-				deletedAt: null,
-				produceable: true,
-				item: {
-					is: {
-						deletedAt: null,
-					},
-				},
-				qtyControls: {
+		OR: [
+			{
+				itemControls: {
 					some: {
 						deletedAt: null,
-						type: "qty" as QtyControlType,
-						total: { gt: 0 },
+						produceable: true,
+						item: {
+							is: {
+								deletedAt: null,
+							},
+						},
+						qtyControls: {
+							some: {
+								deletedAt: null,
+								type: "qty" as QtyControlType,
+								total: { gt: 0 },
+							},
+						},
 					},
 				},
 			},
-		},
+			{
+				items: {
+					some: {
+						deletedAt: null,
+						assignments: {
+							some: {
+								deletedAt: null,
+								OR: [
+									{ qtyAssigned: { gt: 0 } },
+									{ lhQty: { gt: 0 } },
+									{ rhQty: { gt: 0 } },
+								],
+							},
+						},
+					},
+				},
+			},
+		],
 	};
 }
 

@@ -39,7 +39,6 @@ export function ProductCard({ data, onAddToCart }: ProductCardProps) {
     e.stopPropagation();
 
     if (!isHydrated) {
-      console.log("Store not hydrated yet");
       return;
     }
 

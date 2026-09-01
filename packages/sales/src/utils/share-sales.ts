@@ -8,7 +8,6 @@ export async function shareSales(props: Props) {
     const file = new File([blob], "invoice.pdf", {
       type: "application/pdf",
     });
-    console.log("FILE>>>");
     return;
   } catch (error) {}
   const msg = `Here's your invoice: ${props.url}`;

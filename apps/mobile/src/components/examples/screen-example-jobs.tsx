@@ -179,8 +179,7 @@ const JobCard = ({ job }: { job: (typeof JOBS)[0] }) => {
   const router = useRouter();
   return (
     <Pressable
-      onPress={(e) => {
-        console.log("PRESS");
+      onPress={() => {
         router.push("/job-overview");
       }}
       className={`bg-card rounded-2xl p-5 border ${
