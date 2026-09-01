@@ -345,6 +345,50 @@ describe("sales print data cache", () => {
 		expect(state.printData[0]?.errorMessage).toBe("print failed");
 	});
 
+	it("retries transient financial reconciliation failures before marking print data failed", async () => {
+		const { db, state } = createMockDb();
+		let attempts = 0;
+
+		const result = await createOrRefreshSalesPrintData(db, {
+			salesOrderId: 10,
+			mode: "quote",
+			loadPrintDocumentData: (async () => {
+				attempts += 1;
+				if (attempts === 1) {
+					throw new Error(
+						"Sales item 173242 door rows do not reconcile with its saved quantity and total. Save or repair this sale before printing.",
+					);
+				}
+				return loadPrintDocumentData();
+			}) as any,
+		});
+
+		expect(attempts).toBe(2);
+		expect(result.record.status).toBe("ready");
+		expect(state.printData[0]?.status).toBe("ready");
+	});
+
+	it("still fails closed when financial reconciliation remains invalid after retry", async () => {
+		const { db, state } = createMockDb();
+		let attempts = 0;
+
+		await expect(
+			createOrRefreshSalesPrintData(db, {
+				salesOrderId: 10,
+				mode: "quote",
+				loadPrintDocumentData: (async () => {
+					attempts += 1;
+					throw new Error(
+						"Sales item 173242 form-step revisions do not reconcile. Save or repair this sale before printing.",
+					);
+				}) as any,
+			}),
+		).rejects.toThrow("form-step revisions do not reconcile");
+
+		expect(attempts).toBe(2);
+		expect(state.printData[0]?.status).toBe("failed");
+	});
+
 	it("expires ready rows matching document prefixes", async () => {
 		const { db, state } = createMockDb({
 			printData: [

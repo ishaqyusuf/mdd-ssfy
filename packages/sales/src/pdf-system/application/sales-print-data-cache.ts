@@ -9,6 +9,7 @@ import { isSalesSourceStale } from "./source-freshness";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
 const DEALER_PRICING_CACHE_VERSION = "v3";
+const RECONCILIATION_RETRY_DELAY_MS = 250;
 
 export const SALES_PRINT_DOCUMENT_BASE_TYPES = {
 	invoice: "invoice_pdf",
@@ -277,12 +278,27 @@ export async function createOrRefreshSalesPrintData(
 		const loadPrintDocumentData =
 			input.loadPrintDocumentData ?? getPrintDocumentData;
 		const printDataStart = Date.now();
-		const documentData = await loadPrintDocumentData(db, {
+		const printDataInput = {
 			ids: [input.salesOrderId],
 			mode: input.mode,
 			pricingMode: input.pricingMode ?? undefined,
 			dispatchId: input.dispatchId ?? null,
-		});
+		};
+		let documentData: Awaited<ReturnType<typeof getPrintDocumentData>>;
+		try {
+			documentData = await loadPrintDocumentData(db, printDataInput);
+		} catch (error) {
+			if (!isTransientFinancialReconciliationError(error)) throw error;
+
+			logSalesPrintCache("reconciliationRetry", {
+				salesOrderId: input.salesOrderId,
+				documentType,
+				templateId,
+				delayMs: RECONCILIATION_RETRY_DELAY_MS,
+			});
+			await delay(RECONCILIATION_RETRY_DELAY_MS);
+			documentData = await loadPrintDocumentData(db, printDataInput);
+		}
 		logSalesPrintCache("getPrintDocumentData", {
 			salesOrderId: input.salesOrderId,
 			documentType,
@@ -590,4 +606,15 @@ function logSalesPrintCache(
 
 function sanitizePrintTitle(value: string) {
 	return value.replace(/[^\w\-]+/g, "_");
+}
+
+function isTransientFinancialReconciliationError(error: unknown) {
+	if (!(error instanceof Error)) return false;
+	return /(?:door rows|form-step revisions) do not reconcile/i.test(
+		error.message,
+	);
+}
+
+function delay(milliseconds: number) {
+	return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 }

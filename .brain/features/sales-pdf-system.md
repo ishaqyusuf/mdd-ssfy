@@ -417,3 +417,10 @@ The stored-document phase should answer these operational rules explicitly:
   matches the editor for Jamb `5-1/2`, Matte Black hinge, door rows `$743.88`,
   `$76.27`, and `$179.70`, subtotal `$2,336.53`, tax `$169.51`, and grand total
   `$2,591.04`; the stale `$438.66` row and Brushed Brass configuration are gone.
+- 2026-09-01: Sales print-data generation retries once after 250 ms when an
+  invoice or quote composition attempt encounters the specific door-row or
+  form-step reconciliation errors produced by a short in-flight sales-form
+  persistence window. The retry is shared by HTML preview, Print, PDF snapshot,
+  and download generation. A second mismatch still fails closed and records the
+  failed print-data state, so persistent contradictory financial data is never
+  rendered by the compatibility fallback.
