@@ -7,6 +7,7 @@ export function SalesProductionAnalyticsCard({
 	value,
 	description,
 	icon,
+	color,
 	active,
 	onClick,
 }: {
@@ -14,6 +15,7 @@ export function SalesProductionAnalyticsCard({
 	value: number;
 	description: string;
 	icon: ReactNode;
+	color?: string;
 	active?: boolean;
 	onClick: () => void;
 }) {
@@ -22,13 +24,14 @@ export function SalesProductionAnalyticsCard({
 			type="button"
 			aria-pressed={active}
 			onClick={onClick}
+			style={color ? { backgroundColor: color } : undefined}
 			className={cn(
-				"group min-h-24 rounded-xl border bg-card p-3 text-left shadow-sm transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-[104px] sm:p-4",
-				active && "border-foreground bg-muted/40",
+				"group min-h-24 rounded-xl border bg-card p-3 text-left shadow-sm transition-[transform,box-shadow,border-color] hover:scale-[1.01] hover:shadow-md active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-[104px] sm:p-4",
+				active && "border-foreground ring-1 ring-foreground/30",
 			)}
 		>
 			<div className="mb-3 flex items-center justify-between gap-3">
-				<p className="truncate text-xs font-medium text-muted-foreground">
+				<p className="truncate text-xs font-medium text-foreground/75">
 					{title}
 				</p>
 				{icon}
@@ -37,7 +40,7 @@ export function SalesProductionAnalyticsCard({
 				<p className="font-mono text-xl font-semibold tracking-tight tabular-nums">
 					{value}
 				</p>
-				<p className="hidden truncate text-[11px] text-muted-foreground sm:block">
+				<p className="hidden truncate text-[11px] text-foreground/65 sm:block">
 					{description}
 				</p>
 			</div>

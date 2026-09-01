@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { Db } from "@gnd/db";
 
 import {
+	getSalesProductionCalendar,
 	getSalesProductions,
 	isProductionCompleted,
 	sortProductionListByPriority,
@@ -35,6 +36,47 @@ function productionRow(id: number, priority: string) {
 }
 
 describe("sales production priority sorting", () => {
+	it("keeps completed assignments on the production calendar", async () => {
+		let capturedWhere: unknown;
+		const completedAt = new Date("2026-09-01T12:00:00.000Z");
+		const dueDate = new Date("2026-09-01T09:00:00.000Z");
+		const db = {
+			orderItemProductionAssignments: {
+				findMany: async (args: { where?: unknown }) => {
+					capturedWhere = args.where;
+					return [
+						{
+							id: 91,
+							assignedToId: 17,
+							startedAt: dueDate,
+							completedAt,
+							dueDate,
+							assignedTo: { name: "Worker" },
+							order: {
+								id: 42,
+								orderId: "ORDER-42",
+								priority: "NORMAL",
+								customer: { name: "Acme", businessName: null },
+							},
+						},
+					];
+				},
+			},
+		};
+
+		const result = await getSalesProductionCalendar(db as unknown as Db, {
+			from: "2026-09-01",
+			to: "2026-09-07",
+		});
+
+		expect(JSON.stringify(capturedWhere)).not.toContain('"type":"prodCompleted"');
+		expect(result.scheduled).toHaveLength(1);
+		expect(result.scheduled[0]).toMatchObject({
+			orderNo: "ORDER-42",
+			status: "completed",
+		});
+	});
+
 	it("loads the global candidate set before applying a production sort", async () => {
 		const findManyCalls: SalesFindManyArgs[] = [];
 		const db = {

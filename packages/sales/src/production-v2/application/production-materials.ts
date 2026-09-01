@@ -13,6 +13,7 @@ export type ProductionMaterialStatus = {
 	salesItemId: number | null;
 	componentId: number | null;
 	name: string;
+	supplierName: string | null;
 	readiness: SalesProductionReadiness;
 	stockStatus: SalesProductionStockStatus;
 	requiredQty: number;
@@ -29,6 +30,7 @@ type ProductionMaterialSource = Pick<
 	| "componentId"
 	| "componentName"
 	| "inventoryVariantSku"
+	| "supplierName"
 	| "readiness"
 	| "stockStatus"
 	| "orderedQty"
@@ -89,6 +91,7 @@ export function buildProductionMaterialStatuses(
 			component.componentName ||
 			component.inventoryVariantSku ||
 			"Required material",
+		supplierName: component.supplierName?.trim() || null,
 		readiness: component.readiness,
 		stockStatus: component.stockStatus,
 		requiredQty: component.orderedQty,

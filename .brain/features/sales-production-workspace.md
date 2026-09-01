@@ -37,6 +37,9 @@ Provide a cleaner production operations surface for both admins and production w
   `production.dueDate`; order-date ranges filter `SalesOrders.createdAt`
   through the existing `dateRange` contract. Review and Calendar workspaces do
   not retain these table-only filters.
+- The shared production filter schema is evaluated by both client components
+  and server route loaders, so its `nuqs` parser factories and parser values
+  come from `nuqs/server`; only `useQueryStates` comes from the client entrypoint.
 
 ## Assignment detail alignment (2026-08-30)
 

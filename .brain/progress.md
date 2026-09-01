@@ -1,5 +1,14 @@
 # Progress
 
+- 2026-09-01: Fixed `/sales-book/productions` failing at server module
+  evaluation after the new date-range filters imported `parseAsArrayOf` from
+  the client `nuqs` entrypoint. The shared production filter schema now follows
+  the existing server-loader pattern: all parsers come from `nuqs/server` and
+  only `useQueryStates` comes from `nuqs`. Reloading the same authenticated
+  in-app browser tab removed the Runtime Error overlay and rendered the full
+  Sales Production summaries, filters, and table. No API, database, permission,
+  or production workflow contract changed.
+
 - 2026-09-01: Removed the submission-stage deletion restriction from Production
   assignments. An assignment with existing submissions can again use the
   existing authenticated assignment-delete action; fulfilled-order and

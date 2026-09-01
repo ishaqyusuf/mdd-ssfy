@@ -301,7 +301,6 @@ export async function getSalesProductionCalendar(
 	const exclusiveEnd = end.add(1, "day");
 	const orderWhere = whereSales({
 		salesType: "order",
-		production: "pending",
 		q: input.q,
 		"sales.priority": input.priority,
 	} as SalesQueryParamsSchema);
