@@ -196,8 +196,7 @@ flowchart TD
 - `packages/sales/src/print/*`
 - `packages/sales/src/pdf-system/*`
 - `packages/sales/src/resolution-system/*`
-- `packages/sales/src/sales-form/domain/*` readiness revision and canonical digest ownership
-- `packages/sales/src/sales-form/domain/*`
+- `packages/sales/src/sales-form/domain/*` — readiness revision and canonical digest ownership
 - `apps/api/src/utils/sales-document-access.ts`
 - `apps/api/src/trpc/routers/print.route.ts`
 - `apps/api/src/trpc/routers/sales.route.ts`
