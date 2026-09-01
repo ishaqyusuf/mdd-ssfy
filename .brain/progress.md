@@ -1,5 +1,11 @@
 # Progress
 
+- 2026-09-01: Reconciled Ticket 04 with concurrent main Brain documentation
+  after the guarded landing merge conflicted in append-only progress history.
+  Both histories, the Sales document preflight plan/roadmap update, and the
+  Ticket 04 implementation are preserved. Post-reconciliation validation again
+  passes 38 focused tests / 115 assertions, Sales typecheck, and diff integrity.
+
 - 2026-09-01: Proposed a shared Sales document preflight and guided-repair
   workflow for HTML preview, print, PDF generation, regeneration, and simple or
   composed Sales delivery. The plan stages immutable narrow repair diffs,
