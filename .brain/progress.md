@@ -1,5 +1,18 @@
 # Progress
 
+- 2026-09-01: Proposed a shared Sales document preflight and guided-repair
+  workflow for HTML preview, print, PDF generation, regeneration, and simple or
+  composed Sales delivery. The plan stages immutable narrow repair diffs,
+  compares saved and candidate financial authorities in cents, permits a
+  confirmed direct apply only for zero-commercial-delta repairs, routes
+  financial or ambiguous changes through the new Sales Form, and adds a
+  hydration-time saved-versus-recalculated warning. The motivating local order
+  `08574PC` reconciles to the existing `$9,335.27` subtotal, `$653.47` tax, and
+  `$9,988.74` grand total, while the current relational audit reports no
+  duplicate-door or form-step conflicts. This turn changed documentation only;
+  no application code, schema, permissions, document output, or Sales data was
+  changed.
+
 - 2026-09-01: Ticket 03 Status-only Production Completion passed its final
   post-reconciliation Brain review and landed on `master`. The landing preserves
   the parallel Production assignment timestamp and QtyControl sync-cursor work;
