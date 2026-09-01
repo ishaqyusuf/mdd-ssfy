@@ -2,7 +2,7 @@
 
 ## Run
 
-- Generated: 2026-09-01T21:23:12.322Z
+- Generated: 2026-09-01T21:53:25.327Z
 - Dataset: local MySQL `gnd-prisma2`
 - Mode: read-only
 - Command: `bun run sales-document:readiness-audit --limit 20`
@@ -18,9 +18,9 @@
 | Financial review | 0 |
 | Manual review | 0 |
 
-Every evaluated order had a candidate subtotal equal to its saved subtotal. The audit did not write or repair any record.
+Every evaluated order had candidate subtotal, tax, grand total, and amount due equal to its saved values. The audit did not write or repair any record.
 
-`08574PC` classified as `repair_required` with five `sync_door_group_totals` operations. Saved and candidate subtotal were both `$9,335.27`; difference was `$0.00`. The proposed operation does not write the saved `$653.47` tax, `$9,988.74` grand total, payment records, or balance.
+`08574PC` classified as `repair_required` with five `sync_door_group_totals` operations. Saved and candidate subtotal were both `$9,335.27`; subtotal, tax, grand-total, and amount-due differences were all `$0.00`. The proposed operation does not write the saved `$653.47` tax, `$9,988.74` grand total, payment records, or balance.
 
 ## Order detail
 

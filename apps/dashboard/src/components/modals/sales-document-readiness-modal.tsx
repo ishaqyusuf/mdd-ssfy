@@ -34,6 +34,9 @@ export function SalesDocumentReadinessModal() {
 	const continuation = useSalesDocumentReadinessStore(
 		(state) => state.continuation,
 	);
+	const cancellation = useSalesDocumentReadinessStore(
+		(state) => state.cancellation,
+	);
 	const close = useSalesDocumentReadinessStore((state) => state.close);
 	const [isRepairing, setIsRepairing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -44,6 +47,38 @@ export function SalesDocumentReadinessModal() {
 		Boolean(readiness.proposalId) &&
 		!readiness.financial.totalChanged;
 	const needsFinancialReview = readiness.status === "financial_review";
+	const financialRows = [
+		{
+			label: "Subtotal",
+			saved: readiness.financial.saved.subTotalCents,
+			candidate: readiness.financial.candidate.subTotalCents,
+			delta: readiness.financial.subTotalDeltaCents,
+		},
+		{
+			label: "Taxable subtotal",
+			saved: readiness.financial.saved.taxableSubTotalCents,
+			candidate: readiness.financial.candidate.taxableSubTotalCents,
+			delta: readiness.financial.taxableSubTotalDeltaCents,
+		},
+		{
+			label: "Tax",
+			saved: readiness.financial.saved.taxCents,
+			candidate: readiness.financial.candidate.taxCents,
+			delta: readiness.financial.taxDeltaCents,
+		},
+		{
+			label: "Grand total",
+			saved: readiness.financial.saved.grandTotalCents,
+			candidate: readiness.financial.candidate.grandTotalCents,
+			delta: readiness.financial.grandTotalDeltaCents,
+		},
+		{
+			label: "Amount due",
+			saved: readiness.financial.saved.amountDueCents,
+			candidate: readiness.financial.candidate.amountDueCents,
+			delta: readiness.financial.amountDueDeltaCents,
+		},
+	];
 	const title = canRepair
 		? "Repair needed before continuing"
 		: needsFinancialReview
@@ -80,8 +115,10 @@ export function SalesDocumentReadinessModal() {
 				await discardSalesDocumentReadinessProposalAction({
 					salesOrderId: readiness.salesOrderId,
 					proposalId: readiness.proposalId,
+					disposition: "open_order",
 				});
 			}
+			await cancellation?.();
 			const href = salesFormUrl(readiness.salesType, readiness.orderNo, true);
 			close();
 			router.push(href);
@@ -96,11 +133,35 @@ export function SalesDocumentReadinessModal() {
 		}
 	}
 
+	async function cancelAndClose() {
+		setIsRepairing(true);
+		setError(null);
+		try {
+			if (readiness.proposalId) {
+				await discardSalesDocumentReadinessProposalAction({
+					salesOrderId: readiness.salesOrderId,
+					proposalId: readiness.proposalId,
+					disposition: "cancelled",
+				});
+			}
+			await cancellation?.();
+			close();
+		} catch (cause) {
+			setError(
+				cause instanceof Error
+					? cause.message
+					: "Unable to clear this repair proposal. Please try again.",
+			);
+		} finally {
+			setIsRepairing(false);
+		}
+	}
+
 	return (
 		<Dialog
 			open
 			onOpenChange={(open) => {
-				if (!open && !isRepairing) close();
+				if (!open && !isRepairing) void cancelAndClose();
 			}}
 		>
 			<DialogContent className="sm:max-w-2xl">
@@ -126,31 +187,32 @@ export function SalesDocumentReadinessModal() {
 					</AlertDescription>
 				</Alert>
 
-				<div className="grid gap-3 rounded-lg border bg-muted/20 p-4 sm:grid-cols-3">
-					<div>
-						<p className="text-xs text-muted-foreground">Saved subtotal</p>
-						<p className="font-medium">
-							{money(readiness.financial.saved.subTotalCents)}
-						</p>
+				<div className="overflow-x-auto rounded-lg border bg-muted/20 text-sm">
+					<div className="grid min-w-[34rem] grid-cols-4 gap-2 border-b px-4 py-2 text-xs font-medium text-muted-foreground">
+						<span>Amount</span>
+						<span>Saved</span>
+						<span>Reconciled</span>
+						<span>Difference</span>
 					</div>
-					<div>
-						<p className="text-xs text-muted-foreground">Reconciled subtotal</p>
-						<p className="font-medium">
-							{money(readiness.financial.candidate.subTotalCents)}
-						</p>
-					</div>
-					<div>
-						<p className="text-xs text-muted-foreground">Difference</p>
-						<p
-							className={
-								readiness.financial.totalChanged
-									? "font-semibold text-destructive"
-									: "font-medium text-emerald-700"
-							}
+					{financialRows.map((row) => (
+						<div
+							key={row.label}
+							className="grid min-w-[34rem] grid-cols-4 gap-2 border-b px-4 py-2 last:border-b-0"
 						>
-							{money(readiness.financial.subTotalDeltaCents)}
-						</p>
-					</div>
+							<span className="font-medium">{row.label}</span>
+							<span>{money(row.saved)}</span>
+							<span>{money(row.candidate)}</span>
+							<span
+								className={
+									row.delta === 0
+										? "font-medium text-emerald-700"
+										: "font-semibold text-destructive"
+								}
+							>
+								{money(row.delta)}
+							</span>
+						</div>
+					))}
 				</div>
 
 				{readiness.findings.length ? (
@@ -175,7 +237,11 @@ export function SalesDocumentReadinessModal() {
 				) : null}
 
 				<DialogFooter>
-					<Button variant="ghost" onClick={close} disabled={isRepairing}>
+					<Button
+						variant="ghost"
+						onClick={cancelAndClose}
+						disabled={isRepairing}
+					>
 						Cancel
 					</Button>
 					<Button variant="outline" onClick={openOrder} disabled={isRepairing}>

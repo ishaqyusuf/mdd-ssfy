@@ -1,5 +1,21 @@
 # Done
 
+### Sales Document Readiness And Guided Repair
+
+- Priority: High
+- Description: Replaced generic Sales preview/print/PDF/email preparation failures
+  with a shared attested preflight, staged narrow repair, exact financial
+  comparison, guarded transactional apply, audit history, and guided modal.
+- Related Feature: Sales Document Readiness And Guided Repair
+- Status: Done
+- Validation: 53 focused tests / 161 assertions, Sales and Dashboard typechecks,
+  scoped Biome and diff integrity, a read-only 20-order audit, and authenticated
+  desktop/mobile browser QA for `08574PC`. API, Jobs, and Notifications broad
+  checks retain unrelated existing baselines.
+- Database Impact: No schema or migration change; existing Sales meta and
+  resolution-system records are reused.
+- Completed Date: 2026-09-01
+
 ### Status-only Fulfillment Completion
 
 - Priority: High

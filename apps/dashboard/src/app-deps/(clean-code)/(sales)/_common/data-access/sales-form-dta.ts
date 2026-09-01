@@ -4,6 +4,7 @@ import { dealerSession, user, userId } from "@/app-deps/(v1)/_actions/utils";
 import { salesFormData } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/get-sales-form";
 import { ComponentPrice, prisma, Prisma } from "@/db";
 import { projectApprovedAdjustmentLegacyOrder } from "@gnd/sales/sales-form/application/approved-adjustment-projection";
+import { invalidateSalesDocumentReadiness } from "@gnd/sales/document-readiness";
 import dayjs from "dayjs";
 
 import { SalesMeta, SalesType, StepComponentMeta } from "../../types";
@@ -210,12 +211,17 @@ async function formatForm(
         data.order?.id,
         options?.initialTaxCode ?? ctx?.defaultProfile?.meta?.taxCode,
     );
-    const [, dealerMode, superAdmin, _taxForm] = await Promise.all([
+	const [deletedDoorsResult, dealerMode, superAdmin, _taxForm] = await Promise.all([
         deleteDoorsPromise,
         dealerModePromise,
         superAdminPromise,
         _taxFormPromise,
     ]);
+	if (deletedDoorsResult?.count && data.order?.id) {
+		await invalidateSalesDocumentReadiness(prisma, {
+			salesOrderId: data.order.id,
+		});
+	}
 
     return {
         ...result,

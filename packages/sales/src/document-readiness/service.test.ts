@@ -1,6 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
 import { buildSalesDocumentReadinessSignature } from "./meta";
-import { prepareSalesDocumentReadiness } from "./service";
+import {
+	applySalesDocumentReadinessRepair,
+	prepareSalesDocumentReadiness,
+} from "./service";
 import {
 	SALES_DOCUMENT_READINESS_VALIDATOR_VERSION,
 	type SalesDocumentReadinessEvaluation,
@@ -18,17 +21,23 @@ describe("prepareSalesDocumentReadiness", () => {
 			financial: {
 				saved: {
 					subTotalCents: 10_000,
+					taxableSubTotalCents: 10_000,
 					taxCents: 700,
 					grandTotalCents: 10_700,
 					amountDueCents: 10_700,
 				},
 				candidate: {
 					subTotalCents: 10_000,
+					taxableSubTotalCents: 10_000,
 					taxCents: 700,
 					grandTotalCents: 10_700,
 					amountDueCents: 10_700,
 				},
 				subTotalDeltaCents: 0,
+				taxableSubTotalDeltaCents: 0,
+				taxDeltaCents: 0,
+				grandTotalDeltaCents: 0,
+				amountDueDeltaCents: 0,
 				totalChanged: false,
 			},
 			findings: [],
@@ -62,5 +71,129 @@ describe("prepareSalesDocumentReadiness", () => {
 		expect(result.source).toBe("attestation");
 		expect(findUnique).toHaveBeenCalledTimes(1);
 		expect(update).not.toHaveBeenCalled();
+	});
+
+	it("stages and applies a zero-financial-delta repair with audit evidence", async () => {
+		const sale = {
+			id: 77,
+			orderId: "00077AA",
+			type: "order",
+			updatedAt: new Date("2026-09-01T12:00:00.000Z"),
+			meta: {},
+			subTotal: 5022.11,
+			tax: 351.55,
+			grandTotal: 5373.66,
+			amountDue: 5373.66,
+			taxPercentage: 7,
+			paymentMethod: null,
+			extraCosts: [],
+			taxes: [{ taxxable: 5022.11 }],
+			items: [
+				{
+					id: 501,
+					qty: null as number | null,
+					total: null as number | null,
+					meta: {},
+					formSteps: [],
+					housePackageTool: {
+						id: 601,
+						totalDoors: 0,
+						totalPrice: 0,
+						doors: [
+							{
+								id: 701,
+								totalQty: 19,
+								lhQty: 9,
+								rhQty: 10,
+								unitPrice: 264.321578,
+								lineTotal: 5022.11,
+							},
+						],
+					},
+				},
+			],
+		};
+		const mutableItem = sale.items[0];
+		if (!mutableItem) throw new Error("Expected repair fixture item.");
+		let stagedProposal: Record<string, unknown> | null = null;
+		const resolutionActionCreate = mock(async () => null);
+		const salesHistoryCreate = mock(async () => null);
+		const printDataUpdateMany = mock(async () => ({ count: 1 }));
+		const transaction = {
+			salesOrders: {
+				findUnique: mock(async () => sale),
+				updateMany: mock(
+					async ({ data }: { data: Record<string, unknown> }) => {
+						if (data.meta) sale.meta = data.meta as never;
+						if (data.updatedAt) sale.updatedAt = data.updatedAt as Date;
+						return { count: 1 };
+					},
+				),
+				update: mock(async ({ data }: { data: Record<string, unknown> }) => {
+					if (data.meta) sale.meta = data.meta as never;
+					if (data.updatedAt) sale.updatedAt = data.updatedAt as Date;
+					return sale;
+				}),
+			},
+			resolutionCase: {
+				updateMany: mock(async () => ({ count: 0 })),
+				upsert: mock(async ({ create }: { create: { meta: unknown } }) => {
+					stagedProposal = create.meta as Record<string, unknown>;
+					return create;
+				}),
+				findUnique: mock(async () => null),
+				update: mock(async () => null),
+			},
+			salesOrderItems: {
+				updateMany: mock(
+					async ({ data }: { data: { qty: number; total: number } }) => {
+						mutableItem.qty = data.qty;
+						mutableItem.total = data.total;
+						return { count: 1 };
+					},
+				),
+			},
+			housePackageTools: {
+				updateMany: mock(
+					async ({
+						data,
+					}: { data: { totalDoors: number; totalPrice: number } }) => {
+						mutableItem.housePackageTool.totalDoors = data.totalDoors;
+						mutableItem.housePackageTool.totalPrice = data.totalPrice;
+						return { count: 1 };
+					},
+				),
+			},
+			salesPrintData: { updateMany: printDataUpdateMany },
+			resolutionAction: { create: resolutionActionCreate },
+			salesHistory: { create: salesHistoryCreate },
+		};
+		const database = {
+			$transaction: async (callback: (tx: typeof transaction) => unknown) =>
+				callback(transaction),
+		} as never;
+
+		const proposal = await prepareSalesDocumentReadiness(database, {
+			salesOrderId: sale.id,
+			forceEvaluate: true,
+			stageProposal: true,
+		});
+		expect(proposal.status).toBe("repair_required");
+		expect(stagedProposal).not.toBeNull();
+		if (proposal.status !== "repair_required" || !proposal.proposalId) return;
+
+		const result = await applySalesDocumentReadinessRepair(database, {
+			salesOrderId: sale.id,
+			proposalId: proposal.proposalId,
+			actorId: 9,
+			actorName: "Test Operator",
+		});
+
+		expect(result.status).toBe("ready");
+		expect(sale.items[0]?.qty).toBe(19);
+		expect(sale.items[0]?.total).toBe(5022.11);
+		expect(printDataUpdateMany).toHaveBeenCalledTimes(1);
+		expect(resolutionActionCreate).toHaveBeenCalledTimes(1);
+		expect(salesHistoryCreate).toHaveBeenCalledTimes(1);
 	});
 });

@@ -24,6 +24,7 @@ const readinessInclude = {
 			id: true,
 			qty: true,
 			total: true,
+			meta: true,
 			formSteps: {
 				where: { deletedAt: null },
 				select: {
@@ -32,6 +33,7 @@ const readinessInclude = {
 					componentId: true,
 					prodUid: true,
 					value: true,
+					step: { select: { title: true } },
 				},
 			},
 			housePackageTool: {
@@ -116,6 +118,14 @@ async function loadSalesDocumentReadinessInput(
 			tax: true,
 			grandTotal: true,
 			amountDue: true,
+			taxPercentage: true,
+			extraCosts: {
+				select: { type: true, amount: true, taxxable: true },
+			},
+			taxes: {
+				where: { deletedAt: null },
+				select: { taxxable: true },
+			},
 			...readinessInclude,
 		},
 	});
@@ -159,7 +169,11 @@ async function persistResolutionCase(
 	});
 }
 
-export async function prepareSalesDocumentReadiness(
+function isRootDatabase(db: Database): db is Db {
+	return "$transaction" in db && typeof db.$transaction === "function";
+}
+
+async function prepareSalesDocumentReadinessInTransaction(
 	db: Database,
 	input: {
 		salesOrderId: number;
@@ -215,15 +229,41 @@ export async function prepareSalesDocumentReadiness(
 			data: { status: "resolved" },
 		});
 	}
-	await db.salesOrders.update({
-		where: { id: sale.id },
+	const stamped = await db.salesOrders.updateMany({
+		where: { id: sale.id, updatedAt: sale.updatedAt },
 		data: {
 			meta: mergeSalesDocumentReadinessMeta(sale.meta, readiness),
 			updatedAt: stampAt,
 		},
 	});
+	if (stamped.count !== 1) {
+		throw new Error(
+			"This sales order changed during document validation. Run the check again.",
+		);
+	}
 
 	return preflightFromMeta(readiness, "evaluated");
+}
+
+export async function prepareSalesDocumentReadiness(
+	db: Database,
+	input: {
+		salesOrderId: number;
+		forceEvaluate?: boolean;
+		stageProposal?: boolean;
+	},
+): Promise<SalesDocumentReadinessPreflight> {
+	if (!isRootDatabase(db)) {
+		return prepareSalesDocumentReadinessInTransaction(db, input);
+	}
+	return db.$transaction(
+		(tx) => prepareSalesDocumentReadinessInTransaction(tx, input),
+		{
+			isolationLevel: "Serializable",
+			maxWait: 5_000,
+			timeout: 30_000,
+		},
+	);
 }
 
 export async function assertSalesDocumentsReady(
@@ -245,18 +285,67 @@ export async function assertSalesDocumentsReady(
 	}
 }
 
+async function invalidateSalesDocumentReadinessInTransaction(
+	db: Database,
+	input: { salesOrderId: number },
+) {
+	const order = await db.salesOrders.findUnique({
+		where: { id: input.salesOrderId },
+		select: { id: true, updatedAt: true, meta: true },
+	});
+	if (!order) throw new Error("Sales order not found.");
+	const invalidated = await db.salesOrders.updateMany({
+		where: { id: order.id, updatedAt: order.updatedAt },
+		data: {
+			meta: clearSalesDocumentReadinessMeta(order.meta),
+			updatedAt: new Date(),
+		},
+	});
+	if (invalidated.count !== 1) {
+		throw new Error(
+			"This sales order changed during readiness invalidation. Try again.",
+		);
+	}
+	await db.resolutionCase.updateMany({
+		where: {
+			scopeType: "sales_document_readiness",
+			scopeId: String(order.id),
+			status: "open",
+		},
+		data: { status: "cancelled" },
+	});
+}
+
+export async function invalidateSalesDocumentReadiness(
+	db: Database,
+	input: { salesOrderId: number },
+) {
+	if (!isRootDatabase(db)) {
+		return invalidateSalesDocumentReadinessInTransaction(db, input);
+	}
+	return db.$transaction(
+		(tx) => invalidateSalesDocumentReadinessInTransaction(tx, input),
+		{
+			isolationLevel: "Serializable",
+			maxWait: 5_000,
+			timeout: 30_000,
+		},
+	);
+}
+
 export async function discardSalesDocumentReadinessProposal(
 	db: Db,
 	input: {
 		salesOrderId: number;
 		proposalId: string;
 		actorId: number;
+		disposition?: "cancelled" | "open_order";
 	},
 ) {
 	return db.$transaction(async (tx) => {
 		const order = await tx.salesOrders.findUnique({
 			where: { id: input.salesOrderId },
-			select: { id: true, meta: true },
+			select: { id: true, meta: true, updatedAt: true },
 		});
 		if (!order) throw new Error("Sales order not found.");
 		const readiness = readSalesDocumentReadinessMeta(order.meta);
@@ -270,19 +359,27 @@ export async function discardSalesDocumentReadinessProposal(
 			data: { status: "cancelled" },
 		});
 		const discardedAt = new Date();
-		await tx.salesOrders.update({
-			where: { id: order.id },
+		const cleared = await tx.salesOrders.updateMany({
+			where: { id: order.id, updatedAt: order.updatedAt },
 			data: {
 				meta: clearSalesDocumentReadinessMeta(order.meta),
 				updatedAt: discardedAt,
 			},
 		});
+		if (cleared.count !== 1) {
+			throw new Error(
+				"This order changed while the proposal was being cleared. Reopen it and try again.",
+			);
+		}
 		if (cancelled.count) {
 			await tx.resolutionAction.create({
 				data: {
 					id: randomUUID(),
 					resolutionCaseId: input.proposalId,
-					actionType: "open_sales_document_for_manual_repair",
+					actionType:
+						input.disposition === "cancelled"
+							? "cancel_sales_document_readiness_proposal"
+							: "open_sales_document_for_manual_repair",
 					status: "completed",
 					actorId: input.actorId,
 					beforeState: readiness.proposal as unknown as Prisma.InputJsonValue,

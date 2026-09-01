@@ -12,6 +12,10 @@ function createSale(overrides: Record<string, unknown> = {}) {
 		tax: 653.47,
 		grandTotal: 9988.74,
 		amountDue: 0,
+		taxPercentage: 7,
+		paymentMethod: null,
+		extraCosts: [],
+		taxes: [{ taxxable: 9335.27 }],
 		items: [
 			{
 				id: 162865,
@@ -71,6 +75,7 @@ describe("evaluateSalesDocumentReadiness", () => {
 		expect(result.financial.totalChanged).toBe(false);
 		expect(result.financial.saved).toEqual({
 			subTotalCents: 933527,
+			taxableSubTotalCents: 933527,
 			taxCents: 65347,
 			grandTotalCents: 998874,
 			amountDueCents: 0,
@@ -135,7 +140,73 @@ describe("evaluateSalesDocumentReadiness", () => {
 		if (result.status !== "financial_review") return;
 		expect(result.financial.totalChanged).toBe(true);
 		expect(result.financial.subTotalDeltaCents).toBe(3527);
+		expect(result.financial.grandTotalDeltaCents).toBe(3527);
 		expect(result.operations).toHaveLength(1);
+	});
+
+	it("blocks a zero-subtotal repair when taxable allocation changes tax and grand total", () => {
+		const itemTypeStep = {
+			id: 1,
+			stepId: 1,
+			value: "Service",
+			step: { title: "Item Type" },
+		};
+		const result = evaluateSalesDocumentReadiness(
+			createSale({
+				subTotal: 1000,
+				tax: 28,
+				grandTotal: 1028,
+				amountDue: 1028,
+				taxes: [{ taxxable: 400 }],
+				items: [
+					{
+						id: 1,
+						total: 400,
+						meta: { taxxable: true },
+						formSteps: [itemTypeStep],
+						housePackageTool: {
+							id: 11,
+							totalDoors: 1,
+							totalPrice: 400,
+							doors: [
+								{
+									id: 101,
+									totalQty: 1,
+									unitPrice: 500,
+									lineTotal: 500,
+								},
+							],
+						},
+					},
+					{
+						id: 2,
+						total: 600,
+						meta: { taxxable: false },
+						formSteps: [{ ...itemTypeStep, id: 2 }],
+						housePackageTool: {
+							id: 12,
+							totalDoors: 1,
+							totalPrice: 600,
+							doors: [
+								{
+									id: 102,
+									totalQty: 1,
+									unitPrice: 500,
+									lineTotal: 500,
+								},
+							],
+						},
+					},
+				],
+			}),
+		);
+
+		expect(result.status).toBe("financial_review");
+		expect(result.financial.subTotalDeltaCents).toBe(0);
+		expect(result.financial.taxableSubTotalDeltaCents).toBe(10000);
+		expect(result.financial.taxDeltaCents).toBe(700);
+		expect(result.financial.grandTotalDeltaCents).toBe(700);
+		expect(result.financial.amountDueDeltaCents).toBe(700);
 	});
 
 	it("requires manual review for conflicting active form-step revisions", () => {
