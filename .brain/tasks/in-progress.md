@@ -1,19 +1,5 @@
 # In Progress
 
-### Status-only Sales Completion
-
-- Priority: High
-- Description: The approved five-ticket implementation stack is published.
-  Tickets 03-06 are approved and landed. Ticket 07 exhaustive acceptance,
-  runtime, migration, and release verification is now active. Canonical Fulfilled, `SalesStat`, and
-  the exact two-row permission contract retain their approved boundaries.
-- Related Feature: Status-only Sales Completion
-- Status: In Progress — Ticket 07 Handoff Ready
-- Plan File: `.brain/plans/2026-09-01-feature-status-only-sales-completion.md`
-- Decision: `.brain/decisions/ADR-081-administrative-sales-completion-authority.md`
-- Active Handoff: `.brain/handoffs/ready/2026-09-01-status-only-sales-completion-release-verification-handoff.md`
-- Updated Date: 2026-09-01
-
 ### Fulfillment V2 Status And Queue Parity
 
 - Priority: High

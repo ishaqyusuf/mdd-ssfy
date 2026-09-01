@@ -2,11 +2,11 @@
 
 ## Status
 
-Release Verification Complete — Final Review Pending. Tickets 03-06 are
-approved and landed in order. Ticket 07 has direct evidence for all 23 scenarios,
-affected-scope health, authenticated runtime behavior, local migration safety,
-and broad baseline isolation. Product intent, Q1–Q15 acceptance decisions, and
-the closed GND compatibility boundary remain the implementation authority.
+Done. Tickets 03-06 are approved and landed in order, and Ticket 07 passed final
+Brain review with direct evidence for all 23 scenarios, affected-scope health,
+authenticated runtime behavior, local migration safety, and broad baseline
+isolation. Product intent, Q1–Q15 acceptance decisions, and the closed GND
+compatibility boundary remain the implementation authority.
 
 ## Canonical artifacts
 
@@ -36,8 +36,9 @@ the closed GND compatibility boundary remain the implementation authority.
 
 ## Next step
 
-Approve and land Ticket 07, then close the active Codex Goal only after the
-queue item and final Brain records are reconciled.
+No implementation ticket remains. Preserve the approved authority boundary in
+future Sales completion work and consult the release report for regression
+coverage.
 
 ## Release evidence
 

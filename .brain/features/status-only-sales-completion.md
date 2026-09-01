@@ -2,11 +2,11 @@
 
 ## Status
 
-Release verification complete; final Brain review pending. Tickets 03-06 are
-approved and landed. Ticket 07 proves all 23 acceptance scenarios, affected
-package health, local migration safety, authenticated Production/Fulfillment
-runtime behavior, permission boundaries, cancellation auditability, queue and
-reporting parity, and operational non-effects.
+Done. Tickets 03-06 are approved and landed, and Ticket 07 passed final Brain
+review. All 23 acceptance scenarios, affected package health, local migration
+safety, authenticated Production/Fulfillment runtime behavior, permission
+boundaries, cancellation auditability, queue/reporting parity, and operational
+non-effects have direct release evidence.
 
 ## Outcome
 
