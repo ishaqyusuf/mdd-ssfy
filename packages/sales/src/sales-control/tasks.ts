@@ -18,6 +18,7 @@ import {
 	prepareProductionSubmissionMaterialReview,
 	refreshProductionSubmissionAssignmentScope,
 } from "../production-submission-review/service";
+import { recordFullWorkflowCompletionIfProven } from "../sales-completion";
 import type { DeletePackingSchema, UpdateSalesControl } from "../schema";
 import { recognizeSalesTaxForFulfilledOrder } from "../tax-system";
 import type {
@@ -51,6 +52,7 @@ async function getPaymentReviewSettings(db: Db) {
 type SubmitAllTaskDependencies = {
 	prepareMaterialReview?: typeof prepareProductionSubmissionMaterialReview;
 	refreshAssignmentScope?: typeof refreshProductionSubmissionAssignmentScope;
+	recordFullWorkflowCompletion?: typeof recordFullWorkflowCompletionIfProven;
 };
 
 type SubmitAllTaskOptions = {
@@ -193,6 +195,19 @@ export async function submitAllTask(
 			};
 		},
 	);
+	if (resp.state === "finalized") {
+		await (
+			dependencies.recordFullWorkflowCompletion ??
+			recordFullWorkflowCompletionIfProven
+		)(db as never, {
+			salesOrderId: data.meta.salesId,
+			milestone: "PRODUCTION_COMPLETED",
+			actor: {
+				id: data.meta.authorId,
+				name: data.meta.authorName || `User ${data.meta.authorId}`,
+			},
+		});
+	}
 	return resp;
 }
 export async function createAssignmentsTask(
@@ -577,6 +592,7 @@ export async function submitDispatchTask(
 	internal?: {
 		allowCompletedResign?: boolean;
 		saveNoteAction?: typeof saveNote;
+		recordFullWorkflowCompletion?: typeof recordFullWorkflowCompletionIfProven;
 		packingSignoff?: {
 			requestId: string;
 			documentId: string;
@@ -778,6 +794,18 @@ export async function submitDispatchTask(
 			};
 		},
 	);
+	await (
+		internal?.recordFullWorkflowCompletion ??
+		recordFullWorkflowCompletionIfProven
+	)(db as never, {
+		salesOrderId: data.meta.salesId,
+		milestone: "FULFILLMENT_COMPLETED",
+		actor: {
+			id: data.meta.authorId,
+			name: data.meta.authorName || `User ${data.meta.authorId}`,
+		},
+		effectiveAt: task.receivedDate ?? null,
+	});
 	return response;
 }
 

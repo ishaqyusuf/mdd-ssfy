@@ -1,4 +1,6 @@
 import { describe, expect, mock, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
 
 import type { Database } from "@gnd/db";
 
@@ -7,11 +9,13 @@ import {
 	type SalesCompletionRecordView,
 	buildSalesCompletionActiveKey,
 	cancelFulfillmentCompletionStatusOnly,
+	cancelFullWorkflowCompletionInTransaction,
 	cancelProductionCompletionStatusOnly,
 	getSalesCompletionProjection,
 	hasCanonicalSalesFulfillmentEvidence,
 	markFulfillmentCompletionStatusOnly,
 	markProductionCompletionStatusOnly,
+	recordFullWorkflowCompletionIfProven,
 	resolveSalesCompletionProjection,
 } from "./sales-completion";
 
@@ -747,5 +751,207 @@ describe("status-only Fulfillment commands", () => {
 				{ id: 7, name: "Admin" },
 			),
 		).rejects.toMatchObject({ code: "METHOD_MISMATCH" });
+	});
+});
+
+describe("full-workflow completion provenance", () => {
+	test("schema migration creates provenance storage without inferring historical rows", () => {
+		const migration = readFileSync(
+			resolvePath(
+				import.meta.dir,
+				"../../db/src/migrations/20260901200350_add_sales_completion_record/migration.sql",
+			),
+			"utf8",
+		);
+
+		expect(migration).toContain("CREATE TABLE `SalesCompletionRecord`");
+		expect(migration).not.toMatch(/INSERT\s+INTO\s+`?SalesCompletionRecord`?/i);
+		expect(migration).not.toMatch(
+			/UPDATE\s+`?(SalesOrders|SalesStat|QtyControl)`?/i,
+		);
+	});
+
+	test("does not persist provenance until canonical operational evidence exists", async () => {
+		const fixture = createCompletionDb([], {
+			status: "fulfilled",
+			prodStatus: "completed",
+		});
+
+		const result = await recordFullWorkflowCompletionIfProven(fixture.db, {
+			salesOrderId: 91,
+			milestone: "PRODUCTION_COMPLETED",
+			actor: { id: 7, name: "Operator" },
+		});
+
+		expect(result).toMatchObject({
+			recorded: false,
+			idempotentReplay: false,
+			reason: "EVIDENCE_NOT_PROVEN",
+			record: null,
+		});
+		expect(fixture.records).toHaveLength(0);
+		expect(fixture.history).toHaveLength(0);
+	});
+
+	test("records Production provenance after evidence and replays by active milestone", async () => {
+		const fixture = createCompletionDb([], {
+			stat: [{ type: "prodCompleted", percentage: 100, score: 1, total: 1 }],
+		});
+		const input = {
+			salesOrderId: 91,
+			milestone: "PRODUCTION_COMPLETED" as const,
+			actor: { id: 7, name: "Operator" },
+			requestId: "00000000-0000-4000-8000-000000000031",
+		};
+
+		const result = await recordFullWorkflowCompletionIfProven(
+			fixture.db,
+			input,
+		);
+		const replay = await recordFullWorkflowCompletionIfProven(
+			fixture.db,
+			input,
+		);
+
+		expect(result).toMatchObject({ recorded: true, reason: "RECORDED" });
+		expect(result.record).toMatchObject({
+			milestone: "PRODUCTION_COMPLETED",
+			completionMethod: "FULL_WORKFLOW",
+		});
+		expect(replay).toMatchObject({
+			recorded: true,
+			idempotentReplay: true,
+			reason: "ALREADY_RECORDED",
+		});
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(1);
+		expect(fixture.db.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+			isolationLevel: "Serializable",
+		});
+	});
+
+	test("treats a concurrent Full-workflow active-record race as a replay", async () => {
+		const active = completionRecord({ completionMethod: "FULL_WORKFLOW" });
+		const fixture = createCompletionDb([active], {
+			stat: [{ type: "prodCompleted", percentage: 100, score: 1, total: 1 }],
+		});
+		fixture.db.$transaction = mock(async () => {
+			throw Object.assign(new Error("duplicate"), { code: "P2002" });
+		}) as never;
+
+		const result = await recordFullWorkflowCompletionIfProven(fixture.db, {
+			salesOrderId: 91,
+			milestone: "PRODUCTION_COMPLETED",
+			actor: { id: 7, name: "Operator" },
+		});
+
+		expect(result).toMatchObject({
+			recorded: true,
+			idempotentReplay: true,
+			reason: "ALREADY_RECORDED",
+			record: { id: active.id, completionMethod: "FULL_WORKFLOW" },
+		});
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(0);
+	});
+
+	test("records Fulfillment provenance only from completed item-bearing dispatch proof", async () => {
+		const fixture = createCompletionDb([], {
+			deliveries: [
+				{
+					status: "completed",
+					meta: { dispatchCompletion: { status: "completed" } },
+					_count: { items: 1 },
+				},
+			],
+		});
+
+		const result = await recordFullWorkflowCompletionIfProven(fixture.db, {
+			salesOrderId: 91,
+			milestone: "FULFILLMENT_COMPLETED",
+			actor: { id: 7, name: "Driver" },
+			effectiveAt: new Date("2026-08-01T10:30:00.000Z"),
+		});
+
+		expect(result).toMatchObject({ recorded: true, reason: "RECORDED" });
+		expect(result.record).toMatchObject({
+			milestone: "FULFILLMENT_COMPLETED",
+			completionMethod: "FULL_WORKFLOW",
+			effectiveAt: new Date("2026-08-01T10:30:00.000Z"),
+		});
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(1);
+	});
+
+	test("retains an active status-only declaration instead of replacing its provenance", async () => {
+		const statusOnly = completionRecord();
+		const fixture = createCompletionDb([statusOnly], {
+			stat: [{ type: "prodCompleted", percentage: 100, score: 1, total: 1 }],
+		});
+
+		const result = await recordFullWorkflowCompletionIfProven(fixture.db, {
+			salesOrderId: 91,
+			milestone: "PRODUCTION_COMPLETED",
+			actor: { id: 7, name: "Operator" },
+		});
+
+		expect(result).toMatchObject({
+			recorded: false,
+			idempotentReplay: false,
+			reason: "ACTIVE_STATUS_ONLY",
+			record: { id: statusOnly.id, completionMethod: "STATUS_ONLY" },
+		});
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(0);
+	});
+
+	test("workflow-aware cancellation cancels Full provenance and its audit atomically", async () => {
+		const full = completionRecord({ completionMethod: "FULL_WORKFLOW" });
+		const fixture = createCompletionDb([full]);
+		const cancelledAt = new Date("2026-09-01T15:00:00.000Z");
+
+		const result = await cancelFullWorkflowCompletionInTransaction(
+			fixture.tx as never,
+			{
+				salesOrderId: 91,
+				milestone: "PRODUCTION_COMPLETED",
+				requestId: "00000000-0000-4000-8000-000000000032",
+				reason: "Workflow reversal",
+				cancelledAt,
+				actor: { id: 7, name: "Operator" },
+			},
+		);
+
+		expect(result).toMatchObject({
+			id: full.id,
+			state: "CANCELLED",
+			cancellationReason: "Workflow reversal",
+		});
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(1);
+		expect(fixture.calls).toContain("salesCompletionRecord.update");
+		expect(fixture.calls).toContain("salesHistory.create");
+	});
+
+	test("workflow-aware cancellation never cancels status-only provenance", async () => {
+		const statusOnly = completionRecord();
+		const fixture = createCompletionDb([statusOnly]);
+
+		const result = await cancelFullWorkflowCompletionInTransaction(
+			fixture.tx as never,
+			{
+				salesOrderId: 91,
+				milestone: "PRODUCTION_COMPLETED",
+				requestId: "00000000-0000-4000-8000-000000000033",
+				reason: "Workflow reversal",
+				cancelledAt: new Date("2026-09-01T15:00:00.000Z"),
+				actor: { id: 7, name: "Operator" },
+			},
+		);
+
+		expect(result).toBeNull();
+		expect(statusOnly.state).toBe("ACTIVE");
+		expect(fixture.history).toHaveLength(0);
+		expect(fixture.calls).not.toContain("salesCompletionRecord.update");
 	});
 });

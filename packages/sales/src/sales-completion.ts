@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import type { Database, Prisma, TransactionClient } from "@gnd/db";
 import { z } from "zod";
@@ -923,4 +923,184 @@ export async function cancelFulfillmentCompletionStatusOnly(
 			"PERSISTENCE_FAILURE",
 		);
 	}
+}
+
+export type RecordFullWorkflowCompletionInput = {
+	salesOrderId: number;
+	milestone: SalesCompletionMilestone;
+	actor: { id: number; name: string };
+	requestId?: string;
+	effectiveAt?: Date | null;
+};
+
+function hasFullWorkflowEvidence(
+	projection: SalesCompletionProjection,
+	milestone: SalesCompletionMilestone,
+) {
+	return milestone === "PRODUCTION_COMPLETED"
+		? projection.operationalProductionCompleted
+		: projection.canonicalFulfilled;
+}
+
+export async function recordFullWorkflowCompletionIfProven(
+	db: Database,
+	input: RecordFullWorkflowCompletionInput,
+) {
+	const requestId = input.requestId ?? randomUUID();
+	try {
+		return await runSerializable(db, async (tx) => {
+			const projection = await getSalesCompletionProjection(tx, {
+				salesOrderId: input.salesOrderId,
+			});
+			if (!hasFullWorkflowEvidence(projection, input.milestone)) {
+				return {
+					record: null,
+					projection,
+					recorded: false,
+					idempotentReplay: false,
+					reason: "EVIDENCE_NOT_PROVEN" as const,
+				};
+			}
+			const activeRecord =
+				input.milestone === "PRODUCTION_COMPLETED"
+					? projection.activeProductionRecord
+					: projection.activeFulfillmentRecord;
+			if (activeRecord) {
+				return {
+					record: activeRecord,
+					projection,
+					recorded: activeRecord.completionMethod === "FULL_WORKFLOW",
+					idempotentReplay: activeRecord.completionMethod === "FULL_WORKFLOW",
+					reason:
+						activeRecord.completionMethod === "FULL_WORKFLOW"
+							? ("ALREADY_RECORDED" as const)
+							: ("ACTIVE_STATUS_ONLY" as const),
+				};
+			}
+			const recordedAt = new Date();
+			const record = await tx.salesCompletionRecord.create({
+				data: {
+					requestId,
+					salesOrderId: input.salesOrderId,
+					milestone: input.milestone,
+					completionMethod: "FULL_WORKFLOW",
+					state: "ACTIVE",
+					activeKey: buildSalesCompletionActiveKey({
+						salesOrderId: input.salesOrderId,
+						milestone: input.milestone,
+					}),
+					effectiveAt: input.effectiveAt ?? null,
+					recordedAt,
+					recordedById: input.actor.id,
+				},
+				select: completionRecordSelect,
+			});
+			await tx.salesHistory.create({
+				data: {
+					salesId: input.salesOrderId,
+					name: `${input.milestone === "PRODUCTION_COMPLETED" ? "Production" : "Fulfillment"} completed — full workflow`,
+					authorName: input.actor.name,
+					data: {
+						event: "SALES_COMPLETION_MARKED",
+						recordId: record.id,
+						requestId,
+						milestone: input.milestone,
+						completionMethod: "FULL_WORKFLOW",
+						recordedAt: recordedAt.toISOString(),
+						effectiveAt: input.effectiveAt?.toISOString() ?? null,
+						actorId: input.actor.id,
+					} satisfies Prisma.InputJsonObject,
+				},
+			});
+			return {
+				record,
+				projection: await getSalesCompletionProjection(tx, {
+					salesOrderId: input.salesOrderId,
+				}),
+				recorded: true,
+				idempotentReplay: false,
+				reason: "RECORDED" as const,
+			};
+		});
+	} catch (error) {
+		if (error instanceof SalesCompletionError) throw error;
+		if (hasPrismaCode(error, ["P2002"])) {
+			const projection = await getSalesCompletionProjection(db, {
+				salesOrderId: input.salesOrderId,
+			});
+			const activeRecord =
+				input.milestone === "PRODUCTION_COMPLETED"
+					? projection.activeProductionRecord
+					: projection.activeFulfillmentRecord;
+			if (activeRecord) {
+				return {
+					record: activeRecord,
+					projection,
+					recorded: activeRecord.completionMethod === "FULL_WORKFLOW",
+					idempotentReplay: activeRecord.completionMethod === "FULL_WORKFLOW",
+					reason:
+						activeRecord.completionMethod === "FULL_WORKFLOW"
+							? ("ALREADY_RECORDED" as const)
+							: ("ACTIVE_STATUS_ONLY" as const),
+				};
+			}
+		}
+		throw new SalesCompletionError(
+			"Full-workflow completion provenance could not be saved.",
+			"PERSISTENCE_FAILURE",
+		);
+	}
+}
+
+export async function cancelFullWorkflowCompletionInTransaction(
+	tx: TransactionClient,
+	input: {
+		salesOrderId: number;
+		milestone: SalesCompletionMilestone;
+		requestId: string;
+		reason: string;
+		cancelledAt: Date;
+		actor: { id: number; name: string };
+	},
+) {
+	const record = await tx.salesCompletionRecord.findUnique({
+		where: {
+			activeKey: buildSalesCompletionActiveKey({
+				salesOrderId: input.salesOrderId,
+				milestone: input.milestone,
+			}),
+		},
+		select: completionRecordSelect,
+	});
+	if (!record || record.completionMethod !== "FULL_WORKFLOW") return null;
+	const cancelled = await tx.salesCompletionRecord.update({
+		where: { id: record.id },
+		data: {
+			state: "CANCELLED",
+			activeKey: null,
+			cancellationRequestId: input.requestId,
+			cancelledAt: input.cancelledAt,
+			cancelledById: input.actor.id,
+			cancellationReason: input.reason,
+		},
+		select: completionRecordSelect,
+	});
+	await tx.salesHistory.create({
+		data: {
+			salesId: input.salesOrderId,
+			name: `${input.milestone === "PRODUCTION_COMPLETED" ? "Production" : "Fulfillment"} full-workflow completion provenance cancelled`,
+			authorName: input.actor.name,
+			data: {
+				event: "SALES_COMPLETION_CANCELLED",
+				recordId: cancelled.id,
+				requestId: input.requestId,
+				milestone: input.milestone,
+				completionMethod: "FULL_WORKFLOW",
+				cancelledAt: input.cancelledAt.toISOString(),
+				cancellationReason: input.reason,
+				actorId: input.actor.id,
+			} satisfies Prisma.InputJsonObject,
+		},
+	});
+	return cancelled;
 }

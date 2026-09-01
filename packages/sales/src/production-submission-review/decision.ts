@@ -5,6 +5,7 @@ import {
 
 import { fulfillSalesInventoryNeedsManuallyInTransaction } from "../manual-fulfill-sales-inventory-needs";
 import { autoReviewSalesPaymentsForOrderAction } from "../payment-system/application/payment-review";
+import { recordFullWorkflowCompletionIfProven } from "../sales-completion";
 import { resetSalesAction } from "../sales-control/actions";
 import { getSalesSetting } from "../sales-control/settings";
 import type { Db } from "../types";
@@ -26,6 +27,7 @@ type ReviewDecisionDependencies = {
 	manualFulfill?: typeof fulfillSalesInventoryNeedsManuallyInTransaction;
 	receiveInbound?: typeof receiveInboundShipment;
 	resetSales?: typeof resetSalesAction;
+	recordFullWorkflowCompletion?: typeof recordFullWorkflowCompletionIfProven;
 	onApproved?: (
 		tx: Db,
 		input: {
@@ -253,8 +255,9 @@ export async function decideProductionSubmissionMaterialReview(
 	const receiveInbound = dependencies.receiveInbound ?? receiveInboundShipment;
 	const resetSales = dependencies.resetSales ?? resetSalesAction;
 	const onApproved = dependencies.onApproved ?? runApprovalCompletionEffects;
+	let completedSalesOrderId: number | null = null;
 
-	return db.$transaction(async (tx) => {
+	const result = await db.$transaction(async (tx) => {
 		const review =
 			await tx.salesProductionSubmissionMaterialReview.findUniqueOrThrow({
 				where: { id: input.reviewId },
@@ -301,6 +304,9 @@ export async function decideProductionSubmissionMaterialReview(
 				(review.status === "APPROVED" && approvingAction) ||
 				(review.status === "REJECTED" && input.action === "REJECT")
 			) {
+				if (review.status === "APPROVED") {
+					completedSalesOrderId = review.salesOrderId;
+				}
 				return {
 					reviewId: review.id,
 					status: review.status,
@@ -829,10 +835,22 @@ export async function decideProductionSubmissionMaterialReview(
 				},
 			},
 		});
+		completedSalesOrderId = review.salesOrderId;
 		return {
 			reviewId: review.id,
 			status: "APPROVED" as const,
 			materialRevision: after.materialRevision,
 		};
 	});
+	if (result.status === "APPROVED" && completedSalesOrderId) {
+		await (
+			dependencies.recordFullWorkflowCompletion ??
+			recordFullWorkflowCompletionIfProven
+		)(db as never, {
+			salesOrderId: completedSalesOrderId,
+			milestone: "PRODUCTION_COMPLETED",
+			actor,
+		});
+	}
+	return result;
 }

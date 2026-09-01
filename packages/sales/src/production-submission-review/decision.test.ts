@@ -18,6 +18,7 @@ function decideProductionSubmissionMaterialReview(
 			recomputedComponentCount: 0,
 			affectedSalesOrderIds: [],
 		}),
+		recordFullWorkflowCompletion: async () => ({ recorded: true }) as never,
 		...dependencies,
 	});
 }
@@ -87,6 +88,11 @@ describe("production submission material review decision", () => {
 			},
 		};
 		const onApproved = mock(async () => {});
+		let transactionCommitted = false;
+		const recordFullWorkflowCompletion = mock(async () => {
+			expect(transactionCommitted).toBe(true);
+			return { recorded: true } as never;
+		});
 		const tx = {
 			salesProductionSubmissionMaterialReview: {
 				findUniqueOrThrow: mock(async () => review),
@@ -99,7 +105,11 @@ describe("production submission material review decision", () => {
 			{
 				$transaction: async (
 					callback: (client: typeof tx) => Promise<unknown>,
-				) => callback(tx),
+				) => {
+					const result = await callback(tx);
+					transactionCommitted = true;
+					return result;
+				},
 			} as never,
 			{
 				reviewId: 55,
@@ -116,6 +126,7 @@ describe("production submission material review decision", () => {
 				})) as never,
 				resetSales: mock(async () => {}) as never,
 				onApproved,
+				recordFullWorkflowCompletion,
 			},
 		);
 
@@ -123,6 +134,14 @@ describe("production submission material review decision", () => {
 		expect(onApproved).toHaveBeenCalledWith(
 			tx,
 			expect.objectContaining({ submissions: [] }),
+		);
+		expect(recordFullWorkflowCompletion).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				salesOrderId: 42,
+				milestone: "PRODUCTION_COMPLETED",
+				actor: { id: 9, name: "Admin" },
+			}),
 		);
 	});
 

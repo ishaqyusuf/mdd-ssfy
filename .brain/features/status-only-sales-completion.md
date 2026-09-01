@@ -2,9 +2,10 @@
 
 ## Status
 
-In progress. Tickets 03-04 deliver approved Status-only Production and
-Fulfillment Completion. Full-workflow provenance backfill, cross-consumer
-projection parity, and exhaustive release verification remain in Tickets 05-07.
+In progress. Tickets 03-05 deliver approved Status-only Production and
+Fulfillment Completion plus evidence-gated Full-workflow provenance.
+Cross-consumer projection parity and exhaustive release verification remain in
+Tickets 06-07.
 
 ## Outcome
 
@@ -87,3 +88,23 @@ fabricate operational evidence, or redesign the existing Full workflow.
   Status-only cancellation command.
 - Ticket 04 adds no schema or migration; it reuses the Ticket 03 ledger and
   exact view/edit permission rows.
+
+## Implemented: Full-workflow Provenance And Cancellation
+
+- New Production and Fulfillment operational completions record
+  `FULL_WORKFLOW` provenance only after the corresponding canonical evidence
+  has committed. The provenance record remains non-authoritative and cannot
+  manufacture Production or Fulfillment truth.
+- Production submission finalization and material-review approval both attempt
+  evidence-gated provenance after their operational transaction. Dispatch
+  completion preserves its request-bound proof metadata, then records
+  Fulfillment provenance with an independent globally unique ledger identity.
+- Retries and active-record races replay the one active milestone record.
+  Existing active Status-only provenance is retained rather than rewritten when
+  canonical evidence later appears.
+- Existing workflow-aware reversal now cancels an active Full-workflow record
+  and writes its audit inside the same reversal transaction. Status-only
+  cancellation continues to reject Full provenance, and workflow cancellation
+  never cancels a Status-only declaration.
+- Existing operational orders continue to normalize as Full workflow directly
+  from canonical evidence without fabricated historical ledger rows.

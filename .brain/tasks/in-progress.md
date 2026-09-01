@@ -4,15 +4,15 @@
 
 - Priority: High
 - Description: The approved five-ticket implementation stack is published.
-  Tickets 03-04 are approved and landed. Ticket 05, Full-workflow provenance
-  and method-aware cancellation, is the next ordered review unit; Tickets 06-07
-  remain dependency-blocked. Canonical Fulfilled, `SalesStat`, and the exact
-  two-row permission contract retain their approved boundaries.
+  Tickets 03-05 are approved and landed. Ticket 06, cross-consumer projection,
+  queue, filter, counter, and reporting parity, is the next ordered review unit;
+  Ticket 07 remains dependency-blocked. Canonical Fulfilled, `SalesStat`, and
+  the exact two-row permission contract retain their approved boundaries.
 - Related Feature: Status-only Sales Completion
-- Status: In Progress — Ticket 05 Next
+- Status: In Progress — Ticket 06 Next
 - Plan File: `.brain/plans/2026-09-01-feature-status-only-sales-completion.md`
 - Decision: `.brain/decisions/ADR-081-administrative-sales-completion-authority.md`
-- Active Handoff: None; Ticket 05 handoff is generated after Ticket 04 approval.
+- Active Handoff: Not yet generated for Ticket 06
 - Updated Date: 2026-09-01
 
 ### Fulfillment V2 Status And Queue Parity

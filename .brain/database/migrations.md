@@ -45,6 +45,11 @@
   fields from the main checkout; the review unit intentionally excludes those
   unrelated migrations and did not rerun a destructive push after restoring
   its scoped schema. No Preview or Production write occurred.
+- Ticket 05 adds no migration. Contract coverage verifies the existing migration
+  creates the ledger but contains no historical `SalesCompletionRecord`
+  insert and no `SalesOrders`, `SalesStat`, or `QtyControl` update.
+  Existing canonical operational evidence normalizes as Full workflow at read
+  time without a fabricated row.
 
 ## 2026-08-30: Sales order delivery due-date default
 

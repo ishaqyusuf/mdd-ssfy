@@ -12,9 +12,10 @@
   prevent duplicate mark/cancel processing. Order/state/milestone,
   method/recorded-time, milestone/effective-time, state/cancelled-time, and
   actor/time indexes support projection, history, and future reporting reads.
-- Ticket 03 writes only `PRODUCTION_COMPLETED` + `STATUS_ONLY`. Fulfillment and
-  Full-workflow enum values are additive contract space for successor tickets;
-  the migration creates no inferred completion rows.
+- Tickets 03-04 write Status-only Production and Fulfillment milestones.
+  Ticket 05 also writes `FULL_WORKFLOW` provenance after canonical operational
+  evidence commits. Full records remain non-authoritative, and the migration
+  creates no inferred historical completion rows.
 - `SalesStat`, `QtyControl`, production assignment/submission, inventory,
   dispatch, payment, tax, and other operational schemas are unchanged.
 

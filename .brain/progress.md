@@ -1,5 +1,28 @@
 # Progress
 
+- 2026-09-01: Ticket 05 Full-workflow Sales completion provenance passed final
+  Brain review and landed. The approved review unit preserves evidence-first
+  operational authority, method-aware cancellation, retry/race idempotency,
+  no-backfill migration compatibility, and the bulk Fulfillment request-identity
+  correction. Final focused validation passes 100 tests / 302 assertions;
+  Sales and Jobs typechecks and diff integrity pass. Ticket 06 is the next
+  ordered stack item.
+
+- 2026-09-01: Implemented Ticket 05 Full-workflow Sales completion provenance.
+  Production submission finalization, approved material review, and canonical
+  dispatch completion now attempt a non-authoritative `FULL_WORKFLOW` ledger
+  write only after operational evidence commits. Fulfillment retains
+  request-bound dispatch proof while using an independent completion-record
+  identity, preventing multi-order bulk collisions. Workflow-aware reversal
+  cancels Full provenance and its audit atomically and never cancels
+  Status-only provenance. Migration verification confirms no historical
+  completion-row backfill or legacy status/progress mutation. Focused
+  validation passes 100 tests / 302 assertions across completion,
+  Production/review, dispatch, cancellation, and Jobs contracts; Sales and Jobs
+  typechecks pass. API, DB, and Dashboard broad checks retain unrelated
+  repository baselines, with Dashboard requiring an increased heap to complete
+  diagnostics. Ticket 05 is ready for final Brain review.
+
 - 2026-09-01: Extended the proposed Sales document preflight plan with a
   revisioned readiness-attestation fast path. Valid new saves stamp readiness
   transactionally, repaired legacy orders stamp it after post-write invariant
