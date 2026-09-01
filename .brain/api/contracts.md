@@ -48,6 +48,11 @@
   `effectiveAt`, and `recordedAt` independently; implied Production remains
   labelled as implied and recording time never replaces an unknown effective
   time.
+- Ticket 07 maps every approved scenario to direct automated evidence. The
+  13-file release suite passes 134 tests / 702 assertions, including
+  idempotency/races, stale revisions, cancellation restoration/rejection,
+  canonical-evidence precedence, queue parity, reporting scope, and operational
+  non-effects.
 
 ## Bulk Production Completion Task (2026-08-29)
 

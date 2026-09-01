@@ -2,10 +2,11 @@
 
 ## Status
 
-In Progress. Tickets 03-05 are approved and landed in order. Ticket 06 passed
-its stack-item review and is approved for landing. Product intent,
-Q1–Q15 acceptance decisions, and the closed GND compatibility boundary remain
-the implementation authority.
+Release Verification Complete — Final Review Pending. Tickets 03-06 are
+approved and landed in order. Ticket 07 has direct evidence for all 23 scenarios,
+affected-scope health, authenticated runtime behavior, local migration safety,
+and broad baseline isolation. Product intent, Q1–Q15 acceptance decisions, and
+the closed GND compatibility boundary remain the implementation authority.
 
 ## Canonical artifacts
 
@@ -35,6 +36,16 @@ the implementation authority.
 
 ## Next step
 
-Land Ticket 06, then execute Ticket 07 exhaustive release
-verification. The active Codex Goal remains open until all five review units
-are approved, documented, and reconciled.
+Approve and land Ticket 07, then close the active Codex Goal only after the
+queue item and final Brain records are reconciled.
+
+## Release evidence
+
+- Matrix/report: `.brain/reports/2026-09-01-status-only-sales-completion-release-verification.md`
+- Focused suite: 134 tests / 702 assertions, 0 failures
+- Authenticated runtime: Production `09535DB`; Fulfillment `09541AD`; exact
+  temporary records cancelled with durable audit history and no operational
+  reversal
+- Local database: generate/migrate/push passed; no Preview or Production write
+- Broad checks: executed with unrelated repository baselines explicitly
+  isolated; all feature-related and affected-scope failures repaired

@@ -1,5 +1,19 @@
 # Progress
 
+- 2026-09-01: Completed Ticket 07 exhaustive Status-only Sales Completion
+  release verification. All 23 approved scenarios map to direct evidence; the
+  focused release suite passes 134 tests / 702 assertions, affected Sales/DB/
+  Utils typechecks pass, and the scoped permission regression passes Biome,
+  tests, and typecheck. Authenticated local QA proved Full as the default plus
+  authorized Status-only Production and Fulfillment warnings, provenance,
+  cancellation presentation, and operational non-effects on orders `09535DB`
+  and `09541AD`; exact cleanup cancellations preserved audit history. Local
+  Prisma generate/migrate/push passed with no hosted write. Repository-wide
+  test/typecheck/lint/build baselines were executed and isolated without masking
+  a feature failure. The evidence matrix is in
+  `.brain/reports/2026-09-01-status-only-sales-completion-release-verification.md`;
+  Ticket 07 is ready for final Brain review.
+
 - 2026-09-01: Ticket 05 Full-workflow Sales completion provenance passed final
   Brain review and landed. The approved review unit preserves evidence-first
   operational authority, method-aware cancellation, retry/race idempotency,

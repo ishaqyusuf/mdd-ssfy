@@ -4,15 +4,14 @@
 
 - Priority: High
 - Description: The approved five-ticket implementation stack is published.
-  Tickets 03-05 are approved and landed. Ticket 06 cross-consumer projection,
-  queue, filter, counter, and reporting parity is approved for landing. Ticket
-  07 remains dependency-blocked until Ticket 06 lands. Canonical Fulfilled, `SalesStat`, and
+  Tickets 03-06 are approved and landed. Ticket 07 exhaustive acceptance,
+  runtime, migration, and release verification is now active. Canonical Fulfilled, `SalesStat`, and
   the exact two-row permission contract retain their approved boundaries.
 - Related Feature: Status-only Sales Completion
-- Status: In Progress — Ticket 06 Approved For Landing
+- Status: In Progress — Ticket 07 Handoff Ready
 - Plan File: `.brain/plans/2026-09-01-feature-status-only-sales-completion.md`
 - Decision: `.brain/decisions/ADR-081-administrative-sales-completion-authority.md`
-- Completed Handoff: `.brain/handoffs/completed/2026-09-01-completion-projections-queues-reporting-handoff.md`
+- Active Handoff: `.brain/handoffs/ready/2026-09-01-status-only-sales-completion-release-verification-handoff.md`
 - Updated Date: 2026-09-01
 
 ### Fulfillment V2 Status And Queue Parity
