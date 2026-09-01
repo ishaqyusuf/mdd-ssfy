@@ -16,6 +16,10 @@
 - The mutations call the package-owned transactional completion commands. They
   do not invoke production, proof, inventory, dispatch, shipment, tax, finance,
   notification, commission, payout, or external workflow endpoints.
+- Ticket 07 authenticated local verification exercised both mark endpoints and
+  inspected both governed cancellation actions. Cleanup used the same
+  package-owned cancel commands with expected revisions; final projections
+  retained cancelled provenance and unchanged operational states.
 
 ## Fulfillment Calendar Projection (2026-08-21)
 

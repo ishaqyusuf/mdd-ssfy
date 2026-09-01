@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, it } from "bun:test";
 
 import {
 	PERMISSIONS,
@@ -7,7 +7,7 @@ import {
 } from "./constants";
 
 describe("status-only sales completion permissions", () => {
-	test("registers the canonical view/edit resource without a raw compatibility scope", () => {
+	it("registers the canonical view/edit resource without a raw compatibility scope", () => {
 		expect(PERMISSION_NAMES_PASCAL).toContain("StatusOnlySalesCompletion");
 		expect(
 			PERMISSIONS.filter((permission) =>
@@ -17,10 +17,12 @@ describe("status-only sales completion permissions", () => {
 			"viewStatusOnlySalesCompletion",
 			"editStatusOnlySalesCompletion",
 		]);
-		expect(PERMISSIONS).not.toContain("status_only_sales_completion" as never);
+		expect(PERMISSIONS.includes("status_only_sales_completion" as never)).toBe(
+			false,
+		);
 	});
 
-	test("normalizes the exact persisted rows to independent runtime capabilities", () => {
+	it("normalizes the exact persisted rows to independent runtime capabilities", () => {
 		const viewOnly = generatePermissions("Sales", [
 			{ name: "view status only sales completion" },
 		]);
@@ -34,7 +36,7 @@ describe("status-only sales completion permissions", () => {
 		expect(editOnly.editStatusOnlySalesCompletion).toBe(true);
 	});
 
-	test("does not grant either capability from a single snake-case row", () => {
+	it("does not grant either capability from a single snake-case row", () => {
 		const can = generatePermissions("Sales", [
 			{ name: "status_only_sales_completion" },
 		]);

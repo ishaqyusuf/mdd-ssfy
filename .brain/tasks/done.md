@@ -1,5 +1,26 @@
 # Done
 
+### Status-only Sales Completion
+
+- Priority: High
+- Description: Completed the approved five-ticket implementation stack:
+  administrative Production/Fulfillment mark and cancellation, evidence-gated
+  Full-workflow provenance, shared list/detail/queue/report projections, exact
+  permission enforcement, local migration safety, and exhaustive release
+  verification while canonical Fulfilled, `SalesStat`, and all operational
+  workflow authorities remain evidence-bound.
+- Related Feature: Status-only Sales Completion
+- Status: Done
+- Plan: `.brain/plans/2026-09-01-feature-status-only-sales-completion.md`
+- Decision: `.brain/decisions/ADR-081-administrative-sales-completion-authority.md`
+- Final Review: `.brain/reviews/2026-09-01-status-only-sales-completion-release-verification-review.md`
+- Release Report: `.brain/reports/2026-09-01-status-only-sales-completion-release-verification.md`
+- Validation: All 23 scenarios directly evidenced; 134 focused tests / 702
+  assertions; affected Sales/DB/Utils typechecks; Dashboard production build;
+  authenticated Production/Fulfillment runtime proof; local Prisma
+  generate/migrate/push; broad repository baselines isolated.
+- Completed Date: 2026-09-01
+
 ### Sales Document Readiness And Guided Repair
 
 - Priority: High

@@ -2,10 +2,11 @@
 
 ## Status
 
-In progress. Tickets 03-05 deliver approved Status-only Production and
-Fulfillment Completion plus evidence-gated Full-workflow provenance. Ticket 06
-implements cross-consumer projection, completion-queue, and reporting parity;
-exhaustive release verification remains in Ticket 07.
+Done. Tickets 03-06 are approved and landed, and Ticket 07 passed final Brain
+review. All 23 acceptance scenarios, affected package health, local migration
+safety, authenticated Production/Fulfillment runtime behavior, permission
+boundaries, cancellation auditability, queue/reporting parity, and operational
+non-effects have direct release evidence.
 
 ## Outcome
 
@@ -129,3 +130,23 @@ fabricate operational evidence, or redesign the existing Full workflow.
   Intentional administrative scope may include Status-only rows and keeps
   source, method, effective date, and recorded date as separate fields so
   Fulfillment-implied Production is never presented as its own declaration.
+
+## Release Verification
+
+- The focused 13-file release suite passes 134 tests / 702 assertions and maps
+  directly to all 23 approved scenarios.
+- Affected Sales, DB, and Utils typechecks pass. The exact permission test also
+  passes scoped Biome, 3 tests / 9 assertions, and typecheck after correcting
+  its local `bun:test` declaration usage without weakening the assertion.
+- Authenticated local browser/runtime proof marked and inspected one Production
+  and one Fulfillment Status-only declaration. Full workflow remained the
+  default, warnings named skipped effects, provenance remained visible, and
+  operational rows stayed `Awaiting production` / `Ready to fulfill`. Exact
+  cleanup cancellations preserved audit history and performed no operational
+  reversal.
+- Local Prisma generation, migrate, and push passed against fingerprint
+  `mysql://127.0.0.1:3307/gnd-prisma2#identity=4813494d`; no hosted database was
+  targeted.
+- Repository-wide failures were run and isolated as unrelated baselines. Full
+  command evidence and the scenario matrix live in
+  `.brain/reports/2026-09-01-status-only-sales-completion-release-verification.md`.

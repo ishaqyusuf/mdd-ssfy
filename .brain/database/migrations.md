@@ -50,6 +50,10 @@
   insert and no `SalesOrders`, `SalesStat`, or `QtyControl` update.
   Existing canonical operational evidence normalizes as Full workflow at read
   time without a fabricated row.
+- Ticket 07 reran Prisma generation, migrate, and push against verified local
+  fingerprint `mysql://127.0.0.1:3307/gnd-prisma2#identity=4813494d`. Migrate
+  reported no pending migration and push reported the database already in sync.
+  No Preview/Production write, reset, data-loss flag, manual SQL, or sync ran.
 
 ## 2026-08-30: Sales order delivery due-date default
 

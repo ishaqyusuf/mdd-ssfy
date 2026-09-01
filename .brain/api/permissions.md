@@ -16,6 +16,11 @@
 - The Fulfillment Status-only choice uses this same exact view/edit boundary.
   The Full-workflow choice independently retains
   `viewMarkSalesOrderFulfilled`; neither permission implies the other.
+- Final verification proves the two exact rows normalize independently, a lone
+  `status_only_sales_completion` compatibility row grants neither capability,
+  view-only callers cannot mutate, and callers without view cannot see the
+  governed choice/provenance. The authenticated local editor path passed for
+  both milestones.
 
 ## Production Assignment Mutation Boundary (2026-08-31)
 
