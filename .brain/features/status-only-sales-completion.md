@@ -2,10 +2,9 @@
 
 ## Status
 
-In progress. Ticket 03 delivers approved Status-only Production Completion.
-Status-only Fulfillment, Full-workflow provenance backfill,
-cross-consumer projection parity, and exhaustive release verification remain in
-Tickets 04-07.
+In progress. Tickets 03-04 deliver approved Status-only Production and
+Fulfillment Completion. Full-workflow provenance backfill, cross-consumer
+projection parity, and exhaustive release verification remain in Tickets 05-07.
 
 ## Outcome
 
@@ -67,3 +66,24 @@ fabricate operational evidence, or redesign the existing Full workflow.
   warns about skipped effects and recent orders, and preserves method-aware
   cancellation history.
 - Status-only Fulfillment is deliberately not exposed or writable in Ticket 03.
+
+## Implemented: Status-only Fulfillment Completion
+
+- A single-order Fulfillment confirmation retains Full workflow as the default
+  and adds the exact-permission Status-only path. The administrative warning
+  explicitly names delivery proof, inventory commitment, dispatch, shipment,
+  tax, accounting, notifications, commission, payout, and integrations as
+  skipped effects.
+- Status-only Fulfillment writes only an audited `FULFILLMENT_COMPLETED`
+  completion record. It yields `ADMINISTRATIVELY_COMPLETED`, implies Production
+  satisfaction without manufacturing a Production record, and never changes
+  proof-bound `canonicalFulfilled`.
+- Independent canonical evidence wins Fulfillment disposition presentation
+  while administrative history remains visible. Cancellation preserves the
+  record and restores explicit Status-only Production, independent operational
+  Production, or unresolved state according to the surviving evidence.
+- Mark/cancel use the same serializable, revision-aware, request-idempotent
+  command boundary as Production. Full-workflow provenance is rejected by the
+  Status-only cancellation command.
+- Ticket 04 adds no schema or migration; it reuses the Ticket 03 ledger and
+  exact view/edit permission rows.

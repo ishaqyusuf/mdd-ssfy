@@ -12,9 +12,11 @@ import { RadioGroup, RadioGroupItem } from "@gnd/ui/radio-group";
 import { Textarea } from "@gnd/ui/textarea";
 
 type SalesProductionCompletionDialogsProps = {
+	milestone?: "Production" | "Fulfillment";
 	projection?: SalesCompletionProjectionPresentation;
 	showStatusOnly: boolean;
 	canEditStatusOnly: boolean;
+	canRunFullWorkflow?: boolean;
 	projectionPending: boolean;
 	confirmationOpen: boolean;
 	choice: SalesCompletionChoice;
@@ -35,14 +37,29 @@ type SalesProductionCompletionDialogsProps = {
 export function SalesProductionCompletionDialogs(
 	props: SalesProductionCompletionDialogsProps,
 ) {
+	const milestone = props.milestone ?? "Production";
+	const isFulfillment = milestone === "Fulfillment";
+	const idPrefix = milestone.toLowerCase();
 	const statusOnlyAvailable =
 		props.canEditStatusOnly &&
 		!props.projectionPending &&
-		Boolean(props.projection?.availableActions?.markProductionStatusOnly);
+		Boolean(
+			isFulfillment
+				? props.projection?.availableActions?.markFulfillmentStatusOnly
+				: props.projection?.availableActions?.markProductionStatusOnly,
+		);
+	const completionRecord = isFulfillment
+		? props.projection?.activeFulfillmentRecord
+		: props.projection?.activeProductionRecord;
 	const activeRecord =
-		props.projection?.activeProductionRecord?.completionMethod === "STATUS_ONLY"
-			? props.projection.activeProductionRecord
+		completionRecord?.completionMethod === "STATUS_ONLY"
+			? completionRecord
 			: null;
+	const cancellationAvailable = Boolean(
+		isFulfillment
+			? props.projection?.availableActions?.cancelFulfillmentStatusOnly
+			: props.projection?.availableActions?.cancelProductionStatusOnly,
+	);
 
 	return (
 		<>
@@ -54,9 +71,9 @@ export function SalesProductionCompletionDialogs(
 			>
 				<AlertDialog.Content>
 					<AlertDialog.Header>
-						<AlertDialog.Title>Mark Production completed</AlertDialog.Title>
+						<AlertDialog.Title>Mark {milestone} completed</AlertDialog.Title>
 						<AlertDialog.Description>
-							Choose how GND should record Production completion. Full workflow
+							Choose how GND should record {milestone} completion. Full workflow
 							is selected by default.
 						</AlertDialog.Description>
 					</AlertDialog.Header>
@@ -70,31 +87,37 @@ export function SalesProductionCompletionDialogs(
 						className="gap-3"
 					>
 						<label
-							htmlFor="production-completion-full-workflow"
+							htmlFor={`${idPrefix}-completion-full-workflow`}
 							className="flex cursor-pointer items-start gap-3 rounded-md border p-4 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-muted/40"
 						>
 							<RadioGroupItem
-								id="production-completion-full-workflow"
+								id={`${idPrefix}-completion-full-workflow`}
 								value="FULL_WORKFLOW"
 								className="mt-0.5"
+								disabled={props.canRunFullWorkflow === false}
 							/>
 							<span>
 								<span className="block text-sm font-medium">
 									Complete full workflow
 								</span>
 								<span className="mt-1 block text-sm text-muted-foreground">
-									Run the existing stage-wise Production process and all
+									Run the existing stage-wise {milestone} process and all
 									applicable business effects.
 								</span>
+								{props.canRunFullWorkflow === false ? (
+									<span className="mt-2 block text-xs text-amber-700 dark:text-amber-300">
+										Full-workflow permission is required for this choice.
+									</span>
+								) : null}
 							</span>
 						</label>
 						{props.showStatusOnly ? (
 							<label
-								htmlFor="production-completion-status-only"
+								htmlFor={`${idPrefix}-completion-status-only`}
 								className="flex cursor-pointer items-start gap-3 rounded-md border p-4 has-[[data-state=checked]]:border-amber-500 has-[[data-state=checked]]:bg-amber-50/60 has-[[data-disabled]]:cursor-not-allowed has-[[data-disabled]]:opacity-60 dark:has-[[data-state=checked]]:bg-amber-950/20"
 							>
 								<RadioGroupItem
-									id="production-completion-status-only"
+									id={`${idPrefix}-completion-status-only`}
 									value="STATUS_ONLY"
 									className="mt-0.5"
 									disabled={!statusOnlyAvailable}
@@ -105,7 +128,8 @@ export function SalesProductionCompletionDialogs(
 									</span>
 									<span className="mt-1 block text-sm text-muted-foreground">
 										Record work that happened outside GND without creating
-										missing assignments or Production records.
+										missing operational assignments or {milestone} workflow
+										records.
 									</span>
 									{!props.canEditStatusOnly ? (
 										<span className="mt-2 block text-xs text-amber-700 dark:text-amber-300">
@@ -124,10 +148,9 @@ export function SalesProductionCompletionDialogs(
 									This records an administrative milestone only
 								</AlertTitle>
 								<AlertDescription>
-									No inventory, accounting, notification, commission, payout,
-									dispatch, or external-integration operation will run. Use this
-									only when Production really finished but its workflow history
-									is absent.
+									{isFulfillment
+										? "No delivery proof, inventory commitment, dispatch, shipment, tax, accounting, notification, commission, payout, or external-integration operation will run. Use this only when real-world fulfillment happened outside GND."
+										: "No inventory, accounting, notification, commission, payout, dispatch, or external-integration operation will run. Use this only when Production really finished but its workflow history is absent."}
 								</AlertDescription>
 							</Alert>
 							{props.projection?.isRecentOrder ? (
@@ -136,19 +159,19 @@ export function SalesProductionCompletionDialogs(
 									<AlertTitle>This is a recent order</AlertTitle>
 									<AlertDescription>
 										Confirm that the work happened outside GND before bypassing
-										the normal Production workflow.
+										the normal {milestone} workflow.
 									</AlertDescription>
 								</Alert>
 							) : null}
 							<label
 								className="block space-y-1.5"
-								htmlFor="production-effective-date"
+								htmlFor={`${idPrefix}-effective-date`}
 							>
 								<span className="text-sm font-medium">
 									Effective completion date (optional)
 								</span>
 								<Input
-									id="production-effective-date"
+									id={`${idPrefix}-effective-date`}
 									type="date"
 									value={props.effectiveDate}
 									onChange={(event) =>
@@ -169,6 +192,8 @@ export function SalesProductionCompletionDialogs(
 						<AlertDialog.Action
 							disabled={
 								props.markPending ||
+								(props.choice === "FULL_WORKFLOW" &&
+									props.canRunFullWorkflow === false) ||
 								(props.choice === "STATUS_ONLY" && !statusOnlyAvailable)
 							}
 							onClick={(event) => {
@@ -195,7 +220,7 @@ export function SalesProductionCompletionDialogs(
 				<AlertDialog.Content>
 					<AlertDialog.Header>
 						<AlertDialog.Title>
-							Cancel Production status-only completion?
+							Cancel {milestone} status-only completion?
 						</AlertDialog.Title>
 						<AlertDialog.Description>
 							This preserves the declaration and adds cancellation provenance.
@@ -205,7 +230,7 @@ export function SalesProductionCompletionDialogs(
 					{activeRecord ? (
 						<div className="rounded-md border bg-muted/30 p-3 text-sm">
 							<div className="font-medium">
-								Production completed — status only
+								{milestone} completed — status only
 							</div>
 							<div className="mt-1 text-muted-foreground">
 								Recorded by{" "}
@@ -235,7 +260,8 @@ export function SalesProductionCompletionDialogs(
 							placeholder="Why is this administrative declaration being cancelled?"
 						/>
 					</label>
-					{props.projection?.availableActions
+					{!isFulfillment &&
+					props.projection?.availableActions
 						?.productionCancellationBlockedReason ? (
 						<Alert variant="destructive">
 							<Icons.AlertTriangle />
@@ -256,7 +282,7 @@ export function SalesProductionCompletionDialogs(
 							disabled={
 								props.cancelPending ||
 								!props.canEditStatusOnly ||
-								!props.projection?.availableActions?.cancelProductionStatusOnly
+								!cancellationAvailable
 							}
 							onClick={(event) => {
 								event.preventDefault();

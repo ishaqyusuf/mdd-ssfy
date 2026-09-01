@@ -1,5 +1,29 @@
 # Progress
 
+- 2026-09-01: Ticket 04 Status-only Fulfillment Completion passed final Brain
+  review after its focused provenance fix. The approved landing includes 38
+  focused tests / 115 assertions, Sales typecheck, filtered API/Dashboard
+  diagnostics, scoped Biome, diff integrity, and explicit no-database-impact
+  documentation. Ticket 05 is the next ordered stack item.
+
+- 2026-09-01: Applied Ticket 04 review fix 1. Existing lifecycle-provided
+  Fulfillment cancellation actions now adopt the explicit Status-only label and
+  server-owned edit/action lock whenever administrative provenance is active,
+  including after canonical evidence appears. The shared dialog copy is fully
+  milestone-specific and distinguishes skipped operational workflow records
+  from the administrative completion ledger. Focused regressions pass.
+
+- 2026-09-01: Implemented Ticket 04 Status-only Fulfillment Completion in its
+  isolated review unit. The serializable/idempotent audited commands, protected
+  API routes, evidence-safe implication/cancellation projection, permission-aware
+  Full-vs-Status-only confirmation, explicit skipped-effect warning,
+  administrative provenance, refresh, and method-aware cancellation are ready
+  for Brain review. Status-only writes only the completion ledger and Sales
+  History; canonical Fulfilled remains completed-proof/committed-dispatch bound.
+  Focused validation passes 38 tests / 112 assertions and the Sales typecheck;
+  filtered API/Dashboard diagnostics show only unrelated repository baselines.
+  Ticket 04 adds no database schema or migration.
+
 - 2026-09-01: Ticket 03 Status-only Production Completion passed its final
   post-reconciliation Brain review and landed on `master`. The landing preserves
   the parallel Production assignment timestamp and QtyControl sync-cursor work;

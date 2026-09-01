@@ -54,6 +54,9 @@ describe("status-only Sales completion route permissions", () => {
 		await expect(
 			caller.markProductionCompletionStatusOnly(markInput),
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		await expect(
+			caller.markFulfillmentCompletionStatusOnly(markInput),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 	});
 
 	test("rejects direct mark and cancel requests before domain access", async () => {
@@ -64,6 +67,12 @@ describe("status-only Sales completion route permissions", () => {
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		await expect(
 			caller.cancelProductionCompletionStatusOnly(cancelInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markFulfillmentCompletionStatusOnly(markInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.cancelFulfillmentCompletionStatusOnly(cancelInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
 
@@ -78,6 +87,12 @@ describe("status-only Sales completion route permissions", () => {
 		await expect(
 			caller.cancelProductionCompletionStatusOnly(cancelInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markFulfillmentCompletionStatusOnly(markInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.cancelFulfillmentCompletionStatusOnly(cancelInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
 
 	test("a raw snake-case row authorizes neither presentation nor editing", async () => {
@@ -90,6 +105,9 @@ describe("status-only Sales completion route permissions", () => {
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		await expect(
 			caller.markProductionCompletionStatusOnly(markInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markFulfillmentCompletionStatusOnly(markInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
 });

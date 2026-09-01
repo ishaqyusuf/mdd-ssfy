@@ -1,6 +1,6 @@
 # API Contracts
 
-## Status-only Production Completion (2026-09-01)
+## Status-only Sales Completion (2026-09-01)
 
 - Projection input is `{ salesOrderId: positiveInt }`. The response separates
   `operationalProductionCompleted` and `canonicalFulfilled` from
@@ -17,8 +17,12 @@
   invalid/method-mismatched transitions are precondition failures; persistence
   failures remain internal errors. Record and Sales History audit writes share
   one transaction.
-- Ticket 03 exposes Production commands only. The shared enum/projection shapes
-  reserve Fulfillment without creating a Fulfillment mutation or UI path.
+- Ticket 04 exposes the parallel Fulfillment mark/cancel inputs and commands.
+  Status-only Fulfillment implies Production satisfaction without creating a
+  Production record, returns `ADMINISTRATIVELY_COMPLETED`, and cannot set
+  `canonicalFulfilled`. Cancellation restores surviving explicit or operational
+  Production evidence, otherwise unresolved state. The Status-only cancel
+  command rejects Full-workflow provenance.
 
 ## Bulk Production Completion Task (2026-08-29)
 

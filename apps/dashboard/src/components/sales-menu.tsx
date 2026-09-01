@@ -8,12 +8,14 @@ import {
 	resolveSalesBatchStatusSelection,
 } from "@/components/sales-batch-status-selection";
 import {
+	type SalesCompletionChoice,
+	applyFulfillmentCompletionProjection,
 	applyProductionCompletionProjection,
 	canShowStatusOnlyCompletionChoice,
 	getDefaultSalesCompletionChoice,
-	type SalesCompletionChoice,
 } from "@/components/sales-completion-presentation";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
+import { SalesFulfillmentCompletionDialogs } from "@/components/sales-fulfillment-completion-dialogs";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
 import { SalesProductionCompletionDialogs } from "@/components/sales-production-completion-dialogs";
 import {
@@ -1065,10 +1067,27 @@ function SalesMenuMarkAs({
 	const [productionCompletionChoice, setProductionCompletionChoice] =
 		useState<SalesCompletionChoice>(getDefaultSalesCompletionChoice);
 	const [productionEffectiveDate, setProductionEffectiveDate] = useState("");
-	const [statusOnlyCancellationOpen, setStatusOnlyCancellationOpen] =
+	const [
+		productionStatusOnlyCancellationOpen,
+		setProductionStatusOnlyCancellationOpen,
+	] = useState(false);
+	const [
+		productionStatusOnlyCancellationReason,
+		setProductionStatusOnlyCancellationReason,
+	] = useState("");
+	const [fulfillmentConfirmationOpen, setFulfillmentConfirmationOpen] =
 		useState(false);
-	const [statusOnlyCancellationReason, setStatusOnlyCancellationReason] =
-		useState("");
+	const [fulfillmentCompletionChoice, setFulfillmentCompletionChoice] =
+		useState<SalesCompletionChoice>(getDefaultSalesCompletionChoice);
+	const [fulfillmentEffectiveDate, setFulfillmentEffectiveDate] = useState("");
+	const [
+		fulfillmentStatusOnlyCancellationOpen,
+		setFulfillmentStatusOnlyCancellationOpen,
+	] = useState(false);
+	const [
+		fulfillmentStatusOnlyCancellationReason,
+		setFulfillmentStatusOnlyCancellationReason,
+	] = useState("");
 	const [inventoryPreflight, setInventoryPreflight] =
 		useState<SalesStatusMarkAsPreflightResult | null>(null);
 	const [inventoryResolutionError, setInventoryResolutionError] = useState<{
@@ -1111,6 +1130,12 @@ function SalesMenuMarkAs({
 	);
 	const cancelProductionStatusOnlyMutation = useMutation(
 		trpc.sales.cancelProductionCompletionStatusOnly.mutationOptions(),
+	);
+	const markFulfillmentStatusOnlyMutation = useMutation(
+		trpc.sales.markFulfillmentCompletionStatusOnly.mutationOptions(),
+	);
+	const cancelFulfillmentStatusOnlyMutation = useMutation(
+		trpc.sales.cancelFulfillmentCompletionStatusOnly.mutationOptions(),
 	);
 	const invalidateOrders = async () => {
 		await Promise.all([
@@ -1427,10 +1452,10 @@ function SalesMenuMarkAs({
 				salesOrderId,
 				requestId: crypto.randomUUID(),
 				expectedRevision: completionProjection.revision,
-				reason: statusOnlyCancellationReason.trim() || null,
+				reason: productionStatusOnlyCancellationReason.trim() || null,
 			});
-			setStatusOnlyCancellationOpen(false);
-			setStatusOnlyCancellationReason("");
+			setProductionStatusOnlyCancellationOpen(false);
+			setProductionStatusOnlyCancellationReason("");
 			actions.closeMenu();
 			await Promise.all([
 				invalidateOrders(),
@@ -1453,7 +1478,7 @@ function SalesMenuMarkAs({
 		}
 	};
 
-	const markFulfilled = async () => {
+	const markFulfilled = async (preparedSalesIds?: number[]) => {
 		if (!auth.can.viewMarkSalesOrderFulfilled) {
 			toast({
 				title: "Mark as Fulfilled is not permitted",
@@ -1464,7 +1489,7 @@ function SalesMenuMarkAs({
 			return;
 		}
 		if (statusActionInFlightRef.current) return;
-		const targetSalesIds = prepareStatusAction("fulfilled");
+		const targetSalesIds = preparedSalesIds ?? prepareStatusAction("fulfilled");
 		if (!targetSalesIds) return;
 		if (!beginStatusAction()) return;
 		const inventoryReady = await runInventoryMarkAsPreflight(
@@ -1476,6 +1501,106 @@ function SalesMenuMarkAs({
 			return;
 		}
 		await startMarkFulfilledTask();
+	};
+
+	const openFulfillmentCompletionConfirmation = () => {
+		const targetSalesIds = prepareStatusAction("fulfilled");
+		if (!targetSalesIds) return;
+		setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
+		setFulfillmentEffectiveDate("");
+		setFulfillmentConfirmationOpen(true);
+	};
+
+	const submitFulfillmentCompletion = async () => {
+		if (fulfillmentCompletionChoice === "FULL_WORKFLOW") {
+			setFulfillmentConfirmationOpen(false);
+			await markFulfilled(statusActionSalesIdsRef.current);
+			return;
+		}
+		if (!auth.can.editStatusOnlySalesCompletion) {
+			toast({
+				title: "Update status only is not permitted",
+				description:
+					"Ask an administrator for edit access to Status-only Sales Completion.",
+				variant: "destructive",
+			});
+			return;
+		}
+		const salesOrderId = statusActionSalesIdsRef.current[0];
+		if (!salesOrderId || !completionProjection?.revision) {
+			toast({
+				title: "Completion status is still loading",
+				description: "Wait for the current order state and try again.",
+				variant: "destructive",
+			});
+			return;
+		}
+		try {
+			await markFulfillmentStatusOnlyMutation.mutateAsync({
+				salesOrderId,
+				requestId: crypto.randomUUID(),
+				expectedRevision: completionProjection.revision,
+				effectiveAt: fulfillmentEffectiveDate
+					? new Date(`${fulfillmentEffectiveDate}T12:00:00.000Z`)
+					: null,
+			});
+			setFulfillmentConfirmationOpen(false);
+			setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
+			setFulfillmentEffectiveDate("");
+			actions.closeMenu();
+			await Promise.all([
+				invalidateOrders(),
+				salesCompletionProjectionQuery.refetch(),
+			]);
+			onStatusActionSettled?.();
+			toast({
+				title: "Fulfillment completed — status only",
+				description:
+					"The administrative milestone was recorded without delivery proof, dispatch, inventory, or business workflow effects.",
+				variant: "success",
+			});
+		} catch (error) {
+			toast({
+				title: "Unable to update Fulfillment status",
+				description:
+					error instanceof Error ? error.message : "Refresh and try again.",
+				variant: "destructive",
+			});
+		}
+	};
+
+	const submitStatusOnlyFulfillmentCancellation = async () => {
+		const salesOrderId = salesIds[0];
+		if (!salesOrderId || !completionProjection?.revision) return;
+		try {
+			await cancelFulfillmentStatusOnlyMutation.mutateAsync({
+				salesOrderId,
+				requestId: crypto.randomUUID(),
+				expectedRevision: completionProjection.revision,
+				reason: fulfillmentStatusOnlyCancellationReason.trim() || null,
+			});
+			setFulfillmentStatusOnlyCancellationOpen(false);
+			setFulfillmentStatusOnlyCancellationReason("");
+			actions.closeMenu();
+			await Promise.all([
+				invalidateOrders(),
+				salesCompletionProjectionQuery.refetch(),
+			]);
+			onStatusActionSettled?.();
+			toast({
+				title: "Fulfillment status-only completion cancelled",
+				description:
+					"The administrative record remains in history; no operational reversal was run.",
+				variant: "success",
+			});
+		} catch (error) {
+			toast({
+				title: "Unable to cancel Fulfillment completion",
+				description:
+					error instanceof Error ? error.message : "Refresh and try again.",
+				variant: "destructive",
+			});
+		}
 	};
 
 	const markPaymentReviewed = async () => {
@@ -1594,8 +1719,12 @@ function SalesMenuMarkAs({
 					label: "Fulfilled",
 				},
 			];
-	const statusMenuActions = applyProductionCompletionProjection(
-		baseStatusMenuActions,
+	const statusMenuActions = applyFulfillmentCompletionProjection(
+		applyProductionCompletionProjection(
+			baseStatusMenuActions,
+			completionProjection,
+			auth.can.editStatusOnlySalesCompletion,
+		),
 		completionProjection,
 		auth.can.editStatusOnlySalesCompletion,
 	)
@@ -1603,6 +1732,7 @@ function SalesMenuMarkAs({
 			(item) =>
 				item.action !== "fulfilled" ||
 				auth.can.viewMarkSalesOrderFulfilled ||
+				statusOnlyPresentationVisible ||
 				showUnavailableFulfilled,
 		)
 		.filter(
@@ -1621,7 +1751,8 @@ function SalesMenuMarkAs({
 						isDisabled ||
 						item.disabled ||
 						(item.action === "fulfilled" &&
-							!auth.can.viewMarkSalesOrderFulfilled) ||
+							!auth.can.viewMarkSalesOrderFulfilled &&
+							!auth.can.editStatusOnlySalesCompletion) ||
 						preflightLoadingAction !== null ||
 						statusActionPending ||
 						salesIds.length === 0
@@ -1633,7 +1764,7 @@ function SalesMenuMarkAs({
 							return;
 						}
 						if (item.action === "fulfilled") {
-							void markFulfilled();
+							openFulfillmentCompletionConfirmation();
 							return;
 						}
 						if (item.action === "cancel_production") {
@@ -1641,11 +1772,19 @@ function SalesMenuMarkAs({
 								completionProjection?.activeProductionRecord
 									?.completionMethod === "STATUS_ONLY"
 							) {
-								setStatusOnlyCancellationReason("");
-								setStatusOnlyCancellationOpen(true);
+								setProductionStatusOnlyCancellationReason("");
+								setProductionStatusOnlyCancellationOpen(true);
 								return;
 							}
 							actions.openWorkflowCancellation("production");
+							return;
+						}
+						if (
+							completionProjection?.activeFulfillmentRecord
+								?.completionMethod === "STATUS_ONLY"
+						) {
+							setFulfillmentStatusOnlyCancellationReason("");
+							setFulfillmentStatusOnlyCancellationOpen(true);
 							return;
 						}
 						actions.openWorkflowCancellation("fulfillment");
@@ -1914,15 +2053,47 @@ function SalesMenuMarkAs({
 			onChoiceChange={setProductionCompletionChoice}
 			onEffectiveDateChange={setProductionEffectiveDate}
 			onConfirm={() => void submitProductionCompletion()}
-			cancellationOpen={statusOnlyCancellationOpen}
-			cancellationReason={statusOnlyCancellationReason}
+			cancellationOpen={productionStatusOnlyCancellationOpen}
+			cancellationReason={productionStatusOnlyCancellationReason}
 			cancelPending={cancelProductionStatusOnlyMutation.isPending}
 			onCancellationOpenChange={(open) => {
-				setStatusOnlyCancellationOpen(open);
-				if (!open) setStatusOnlyCancellationReason("");
+				setProductionStatusOnlyCancellationOpen(open);
+				if (!open) setProductionStatusOnlyCancellationReason("");
 			}}
-			onCancellationReasonChange={setStatusOnlyCancellationReason}
+			onCancellationReasonChange={setProductionStatusOnlyCancellationReason}
 			onCancelCompletion={() => void submitStatusOnlyProductionCancellation()}
+		/>
+	);
+	const fulfillmentCompletionDialogs = (
+		<SalesFulfillmentCompletionDialogs
+			projection={completionProjection}
+			showStatusOnly={statusOnlyPresentationVisible}
+			canEditStatusOnly={auth.can.editStatusOnlySalesCompletion}
+			canRunFullWorkflow={auth.can.viewMarkSalesOrderFulfilled}
+			projectionPending={salesCompletionProjectionQuery.isPending}
+			confirmationOpen={fulfillmentConfirmationOpen}
+			choice={fulfillmentCompletionChoice}
+			effectiveDate={fulfillmentEffectiveDate}
+			markPending={markFulfillmentStatusOnlyMutation.isPending}
+			onConfirmationOpenChange={(open) => {
+				setFulfillmentConfirmationOpen(open);
+				if (!open) {
+					setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
+					setFulfillmentEffectiveDate("");
+				}
+			}}
+			onChoiceChange={setFulfillmentCompletionChoice}
+			onEffectiveDateChange={setFulfillmentEffectiveDate}
+			onConfirm={() => void submitFulfillmentCompletion()}
+			cancellationOpen={fulfillmentStatusOnlyCancellationOpen}
+			cancellationReason={fulfillmentStatusOnlyCancellationReason}
+			cancelPending={cancelFulfillmentStatusOnlyMutation.isPending}
+			onCancellationOpenChange={(open) => {
+				setFulfillmentStatusOnlyCancellationOpen(open);
+				if (!open) setFulfillmentStatusOnlyCancellationReason("");
+			}}
+			onCancellationReasonChange={setFulfillmentStatusOnlyCancellationReason}
+			onCancelCompletion={() => void submitStatusOnlyFulfillmentCancellation()}
 		/>
 	);
 
@@ -1932,6 +2103,7 @@ function SalesMenuMarkAs({
 				{items}
 				{dialog}
 				{completionDialogs}
+				{fulfillmentCompletionDialogs}
 			</>
 		);
 	}
@@ -1947,6 +2119,7 @@ function SalesMenuMarkAs({
 			</SalesMenuSub>
 			{dialog}
 			{completionDialogs}
+			{fulfillmentCompletionDialogs}
 		</>
 	);
 }

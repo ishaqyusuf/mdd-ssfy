@@ -40,6 +40,12 @@ export const cancelProductionCompletionStatusOnlySchema =
 		reason: z.string().trim().max(500).optional().nullable(),
 	});
 
+export const markFulfillmentCompletionStatusOnlySchema =
+	markProductionCompletionStatusOnlySchema;
+
+export const cancelFulfillmentCompletionStatusOnlySchema =
+	cancelProductionCompletionStatusOnlySchema;
+
 export type SalesCompletionSource =
 	| "OPERATIONAL_WORKFLOW"
 	| "STATUS_ONLY"
@@ -91,6 +97,8 @@ export type SalesCompletionProjection = {
 		markProductionStatusOnly: boolean;
 		cancelProductionStatusOnly: boolean;
 		productionCancellationBlockedReason: string | null;
+		markFulfillmentStatusOnly: boolean;
+		cancelFulfillmentStatusOnly: boolean;
 	};
 	activeProductionRecord: SalesCompletionRecordView | null;
 	activeFulfillmentRecord: SalesCompletionRecordView | null;
@@ -310,6 +318,10 @@ export function resolveSalesCompletionProjection(input: {
 				activeProductionRecord?.completionMethod === "STATUS_ONLY" &&
 				!cancellationBlockedReason,
 			productionCancellationBlockedReason: cancellationBlockedReason,
+			markFulfillmentStatusOnly:
+				!input.isCancelled && !fulfillmentCompletionSatisfied,
+			cancelFulfillmentStatusOnly:
+				activeFulfillmentRecord?.completionMethod === "STATUS_ONLY",
 		},
 		activeProductionRecord,
 		activeFulfillmentRecord,
@@ -663,6 +675,251 @@ export async function cancelProductionCompletionStatusOnly(
 		}
 		throw new SalesCompletionError(
 			"The status-only Production cancellation could not be saved.",
+			"PERSISTENCE_FAILURE",
+		);
+	}
+}
+
+async function findFulfillmentMarkReplay(
+	db: CompletionDb,
+	input: z.infer<typeof markFulfillmentCompletionStatusOnlySchema>,
+) {
+	const byRequest = await db.salesCompletionRecord.findUnique({
+		where: { requestId: input.requestId },
+		select: completionRecordSelect,
+	});
+	if (byRequest) {
+		if (
+			byRequest.salesOrderId !== input.salesOrderId ||
+			byRequest.milestone !== "FULFILLMENT_COMPLETED" ||
+			byRequest.completionMethod !== "STATUS_ONLY"
+		) {
+			throw new SalesCompletionError(
+				"That idempotency identity belongs to a different completion command.",
+				"IDEMPOTENCY_CONFLICT",
+			);
+		}
+		return byRequest;
+	}
+	return db.salesCompletionRecord.findUnique({
+		where: {
+			activeKey: buildSalesCompletionActiveKey({
+				salesOrderId: input.salesOrderId,
+				milestone: "FULFILLMENT_COMPLETED",
+			}),
+		},
+		select: completionRecordSelect,
+	});
+}
+
+export async function markFulfillmentCompletionStatusOnly(
+	db: Database,
+	input: z.infer<typeof markFulfillmentCompletionStatusOnlySchema>,
+	actor: { id: number; name: string },
+) {
+	try {
+		return await runSerializable(db, async (tx) => {
+			const replay = await findFulfillmentMarkReplay(tx, input);
+			if (replay) {
+				if (replay.state !== "ACTIVE") {
+					throw new SalesCompletionError(
+						"The earlier completion was cancelled; start a new confirmation.",
+						"INVALID_TRANSITION",
+					);
+				}
+				return {
+					record: replay,
+					projection: await getSalesCompletionProjection(tx, input),
+					idempotentReplay: true,
+				};
+			}
+			const projection = await getSalesCompletionProjection(tx, input);
+			assertExpectedRevision(projection, input.expectedRevision);
+			if (!projection.availableActions.markFulfillmentStatusOnly) {
+				throw new SalesCompletionError(
+					"Fulfillment completion is already satisfied or this order cannot transition.",
+					"INVALID_TRANSITION",
+				);
+			}
+			const recordedAt = new Date();
+			const record = await tx.salesCompletionRecord.create({
+				data: {
+					requestId: input.requestId,
+					salesOrderId: input.salesOrderId,
+					milestone: "FULFILLMENT_COMPLETED",
+					completionMethod: "STATUS_ONLY",
+					state: "ACTIVE",
+					activeKey: buildSalesCompletionActiveKey({
+						salesOrderId: input.salesOrderId,
+						milestone: "FULFILLMENT_COMPLETED",
+					}),
+					effectiveAt: input.effectiveAt ?? null,
+					recordedAt,
+					recordedById: actor.id,
+				},
+				select: completionRecordSelect,
+			});
+			await tx.salesHistory.create({
+				data: {
+					salesId: input.salesOrderId,
+					name: "Fulfillment completed — status only",
+					authorName: actor.name,
+					data: {
+						event: "SALES_COMPLETION_MARKED",
+						recordId: record.id,
+						requestId: input.requestId,
+						milestone: "FULFILLMENT_COMPLETED",
+						completionMethod: "STATUS_ONLY",
+						recordedAt: recordedAt.toISOString(),
+						effectiveAt: input.effectiveAt?.toISOString() ?? null,
+						actorId: actor.id,
+					} satisfies Prisma.InputJsonObject,
+				},
+			});
+			return {
+				record,
+				projection: await getSalesCompletionProjection(tx, input),
+				idempotentReplay: false,
+			};
+		});
+	} catch (error) {
+		if (error instanceof SalesCompletionError) throw error;
+		if (hasPrismaCode(error, ["P2002"])) {
+			const replay = await findFulfillmentMarkReplay(db, input);
+			if (replay?.state === "ACTIVE") {
+				return {
+					record: replay,
+					projection: await getSalesCompletionProjection(db, input),
+					idempotentReplay: true,
+				};
+			}
+		}
+		throw new SalesCompletionError(
+			"The status-only Fulfillment completion could not be saved.",
+			"PERSISTENCE_FAILURE",
+		);
+	}
+}
+
+async function findFulfillmentCancellationReplay(
+	db: CompletionDb,
+	input: z.infer<typeof cancelFulfillmentCompletionStatusOnlySchema>,
+) {
+	return db.salesCompletionRecord.findUnique({
+		where: { cancellationRequestId: input.requestId },
+		select: completionRecordSelect,
+	});
+}
+
+export async function cancelFulfillmentCompletionStatusOnly(
+	db: Database,
+	input: z.infer<typeof cancelFulfillmentCompletionStatusOnlySchema>,
+	actor: { id: number; name: string },
+) {
+	try {
+		return await runSerializable(db, async (tx) => {
+			const requestReplay = await findFulfillmentCancellationReplay(tx, input);
+			if (requestReplay) {
+				if (
+					requestReplay.salesOrderId !== input.salesOrderId ||
+					requestReplay.milestone !== "FULFILLMENT_COMPLETED" ||
+					requestReplay.completionMethod !== "STATUS_ONLY"
+				) {
+					throw new SalesCompletionError(
+						"That idempotency identity belongs to a different cancellation command.",
+						"IDEMPOTENCY_CONFLICT",
+					);
+				}
+				return {
+					record: requestReplay,
+					projection: await getSalesCompletionProjection(tx, input),
+					idempotentReplay: true,
+				};
+			}
+			const projection = await getSalesCompletionProjection(tx, input);
+			const activeRecord = projection.activeFulfillmentRecord;
+			if (!activeRecord) {
+				const latestCancelled = projection.history.find(
+					(record) =>
+						record.milestone === "FULFILLMENT_COMPLETED" &&
+						record.completionMethod === "STATUS_ONLY" &&
+						record.state === "CANCELLED",
+				);
+				if (latestCancelled) {
+					return {
+						record: latestCancelled,
+						projection,
+						idempotentReplay: true,
+					};
+				}
+				throw new SalesCompletionError(
+					"No active status-only Fulfillment completion exists.",
+					"INVALID_TRANSITION",
+				);
+			}
+			if (activeRecord.completionMethod !== "STATUS_ONLY") {
+				throw new SalesCompletionError(
+					"Full workflow completion must use workflow-aware cancellation.",
+					"METHOD_MISMATCH",
+				);
+			}
+			assertExpectedRevision(projection, input.expectedRevision);
+			if (!projection.availableActions.cancelFulfillmentStatusOnly) {
+				throw new SalesCompletionError(
+					"Fulfillment completion cannot be cancelled from the current state.",
+					"INVALID_TRANSITION",
+				);
+			}
+			const cancelledAt = new Date();
+			const record = await tx.salesCompletionRecord.update({
+				where: { id: activeRecord.id },
+				data: {
+					state: "CANCELLED",
+					activeKey: null,
+					cancellationRequestId: input.requestId,
+					cancelledAt,
+					cancelledById: actor.id,
+					cancellationReason: input.reason?.trim() || null,
+				},
+				select: completionRecordSelect,
+			});
+			await tx.salesHistory.create({
+				data: {
+					salesId: input.salesOrderId,
+					name: "Fulfillment status-only completion cancelled",
+					authorName: actor.name,
+					data: {
+						event: "SALES_COMPLETION_CANCELLED",
+						recordId: record.id,
+						requestId: input.requestId,
+						milestone: "FULFILLMENT_COMPLETED",
+						completionMethod: "STATUS_ONLY",
+						cancelledAt: cancelledAt.toISOString(),
+						cancellationReason: input.reason?.trim() || null,
+						actorId: actor.id,
+					} satisfies Prisma.InputJsonObject,
+				},
+			});
+			return {
+				record,
+				projection: await getSalesCompletionProjection(tx, input),
+				idempotentReplay: false,
+			};
+		});
+	} catch (error) {
+		if (error instanceof SalesCompletionError) throw error;
+		if (hasPrismaCode(error, ["P2002"])) {
+			const replay = await findFulfillmentCancellationReplay(db, input);
+			if (replay) {
+				return {
+					record: replay,
+					projection: await getSalesCompletionProjection(db, input),
+					idempotentReplay: true,
+				};
+			}
+		}
+		throw new SalesCompletionError(
+			"The status-only Fulfillment cancellation could not be saved.",
 			"PERSISTENCE_FAILURE",
 		);
 	}

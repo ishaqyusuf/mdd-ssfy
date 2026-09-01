@@ -139,21 +139,25 @@ import {
 	normalizeSalesPaymentReviewSettings,
 } from "@gnd/sales/payment-system";
 import {
+	SalesCompletionError,
+	cancelFulfillmentCompletionStatusOnly,
+	cancelFulfillmentCompletionStatusOnlySchema,
+	cancelProductionCompletionStatusOnly,
+	cancelProductionCompletionStatusOnlySchema,
+	getSalesCompletionProjection,
+	markFulfillmentCompletionStatusOnly,
+	markFulfillmentCompletionStatusOnlySchema,
+	markProductionCompletionStatusOnly,
+	markProductionCompletionStatusOnlySchema,
+	salesCompletionProjectionInputSchema,
+} from "@gnd/sales/sales-completion";
+import {
 	SalesWorkflowCancellationError,
 	cancelSalesWorkflowLayer,
 	cancelSalesWorkflowLayerSchema,
 	getSalesWorkflowCancellationPreview,
 	salesWorkflowCancellationPreviewSchema,
 } from "@gnd/sales/sales-workflow-cancellation";
-import {
-	SalesCompletionError,
-	cancelProductionCompletionStatusOnly,
-	cancelProductionCompletionStatusOnlySchema,
-	getSalesCompletionProjection,
-	markProductionCompletionStatusOnly,
-	markProductionCompletionStatusOnlySchema,
-	salesCompletionProjectionInputSchema,
-} from "@gnd/sales/sales-completion";
 import {
 	getGuardedPackingSettings,
 	getSettingAction,
@@ -573,6 +577,40 @@ export const salesRouter = createTRPCRouter({
 			const actor = await requireStatusOnlySalesCompletionEditor(props.ctx);
 			try {
 				return await cancelProductionCompletionStatusOnly(
+					props.ctx.db,
+					props.input,
+					{
+						id: actor.id,
+						name: actor.name || `User ${actor.id}`,
+					},
+				);
+			} catch (error) {
+				return toSalesCompletionTrpcError(error);
+			}
+		}),
+	markFulfillmentCompletionStatusOnly: protectedProcedure
+		.input(markFulfillmentCompletionStatusOnlySchema)
+		.mutation(async (props) => {
+			const actor = await requireStatusOnlySalesCompletionEditor(props.ctx);
+			try {
+				return await markFulfillmentCompletionStatusOnly(
+					props.ctx.db,
+					props.input,
+					{
+						id: actor.id,
+						name: actor.name || `User ${actor.id}`,
+					},
+				);
+			} catch (error) {
+				return toSalesCompletionTrpcError(error);
+			}
+		}),
+	cancelFulfillmentCompletionStatusOnly: protectedProcedure
+		.input(cancelFulfillmentCompletionStatusOnlySchema)
+		.mutation(async (props) => {
+			const actor = await requireStatusOnlySalesCompletionEditor(props.ctx);
+			try {
+				return await cancelFulfillmentCompletionStatusOnly(
 					props.ctx.db,
 					props.input,
 					{

@@ -13,6 +13,9 @@
 - Backend commands derive actor id/name from the authenticated context and do
   not accept caller-selected actor identity. Existing Full workflow permissions
   and behavior are unchanged.
+- The Fulfillment Status-only choice uses this same exact view/edit boundary.
+  The Full-workflow choice independently retains
+  `viewMarkSalesOrderFulfilled`; neither permission implies the other.
 
 ## Production Assignment Mutation Boundary (2026-08-31)
 

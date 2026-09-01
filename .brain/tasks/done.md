@@ -1,5 +1,23 @@
 # Done
 
+### Status-only Fulfillment Completion
+
+- Priority: High
+- Description: Added administrative Fulfillment mark/cancel commands and UI,
+  implied Production satisfaction without a synthetic record, canonical-proof
+  precedence, restoration after cancellation, exact permission enforcement,
+  explicit skipped-effect warnings, and method-aware provenance while leaving
+  dispatch, proof, inventory, tax, accounting, notification, commission, payout,
+  shipment, and integration authorities untouched.
+- Related Feature: Status-only Sales Completion
+- Status: Done
+- Review: `.brain/reviews/2026-09-01-status-only-fulfillment-completion-review-v2.md`
+- Validation: 38 focused tests / 115 assertions, Sales typecheck, filtered
+  API/Dashboard typechecks, scoped Biome, and diff integrity. The first review's
+  cancellation-provenance wording finding was fixed and regression-tested.
+- Database Impact: No schema or migration change; Ticket 04 reuses the Ticket 03 ledger.
+- Completed Date: 2026-09-01
+
 ### Status-only Production Completion
 
 - Priority: High
