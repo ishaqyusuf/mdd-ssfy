@@ -14,6 +14,7 @@ import {
 	SALES_SPECIAL_ORDER_SHOW_OPTIONS,
 } from "@sales/filter-constants";
 import { SALES_PRIORITY_VALUES } from "@sales/priority";
+import { SALES_COMPLETION_FILTER_OPTIONS } from "@sales/sales-completion";
 import { useQueryStates } from "nuqs";
 import {
 	createLoader,
@@ -44,6 +45,12 @@ export const salesOrdersV2FilterParams = {
 		PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
 	),
 	"dispatch.status": parseAsStringLiteral(SALES_DISPATCH_FILTER_OPTIONS),
+	"completion.production": parseAsStringLiteral(
+		SALES_COMPLETION_FILTER_OPTIONS,
+	),
+	"completion.fulfillment": parseAsStringLiteral(
+		SALES_COMPLETION_FILTER_OPTIONS,
+	),
 	priority: parseAsStringLiteral(SALES_PRIORITY_VALUES),
 	"sales.priority": parseAsStringLiteral(SALES_PRIORITY_VALUES),
 	"sales.rep": parseAsString,

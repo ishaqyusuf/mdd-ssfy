@@ -16,6 +16,13 @@ export const salesCompletionMethodSchema = z.enum([
 	"FULL_WORKFLOW",
 ]);
 export const salesCompletionRecordStateSchema = z.enum(["ACTIVE", "CANCELLED"]);
+export const SALES_COMPLETION_FILTER_OPTIONS = [
+	"pending",
+	"completed",
+] as const;
+export const salesCompletionSatisfactionFilterSchema = z.enum(
+	SALES_COMPLETION_FILTER_OPTIONS,
+);
 
 export type SalesCompletionMilestone = z.infer<
 	typeof salesCompletionMilestoneSchema
@@ -123,7 +130,7 @@ export class SalesCompletionError extends Error {
 
 type CompletionDb = Database | TransactionClient;
 
-const completionRecordSelect = {
+export const salesCompletionRecordSelect = {
 	id: true,
 	requestId: true,
 	cancellationRequestId: true,
@@ -139,6 +146,122 @@ const completionRecordSelect = {
 	cancellationReason: true,
 	updatedAt: true,
 } satisfies Prisma.SalesCompletionRecordSelect;
+
+export type SalesCompletionOrderRow = {
+	id: number;
+	orderId: string;
+	createdAt: Date | null;
+	updatedAt: Date | null;
+	status: string | null;
+	prodStatus: string | null;
+	stat: Array<{
+		type: string;
+		percentage: number | null;
+		score: number | null;
+		total: number | null;
+		deletedAt?: Date | null;
+	}>;
+	deliveries: Array<{
+		status?: string | null;
+		meta?: unknown;
+		_count?: { items?: number | null } | null;
+	}>;
+	completionRecords: SalesCompletionRecordView[];
+};
+
+export function salesCompletionProjectionSourceRevision(input: {
+	createdAt: Date | null;
+	updatedAt: Date | null;
+	completionRecords?: Array<{ updatedAt: Date }>;
+}) {
+	return [
+		input.updatedAt,
+		input.createdAt,
+		...(input.completionRecords ?? []).map((record) => record.updatedAt),
+	]
+		.filter((value): value is Date => Boolean(value))
+		.reduce(
+			(latest, value) => (value.getTime() > latest.getTime() ? value : latest),
+			new Date(0),
+		);
+}
+
+export function buildSalesCompletionSatisfactionWhere(
+	milestone: SalesCompletionMilestone,
+	satisfied: boolean,
+): Prisma.SalesOrdersWhereInput {
+	const itemBearingDelivery = {
+		deletedAt: null,
+		items: { some: { deletedAt: null } },
+	} satisfies Prisma.OrderDeliveryWhereInput;
+	const canonicalFulfillment = {
+		AND: [
+			{ deliveries: { some: itemBearingDelivery } },
+			{
+				deliveries: {
+					none: {
+						...itemBearingDelivery,
+						OR: [
+							{ status: { not: "completed" } },
+							{
+								NOT: {
+									meta: {
+										path: "$.dispatchCompletion.status",
+										equals: "completed",
+									},
+								},
+							},
+						],
+					},
+				},
+			},
+		],
+	} satisfies Prisma.SalesOrdersWhereInput;
+	const administrativeMilestones =
+		milestone === "PRODUCTION_COMPLETED"
+			? (["PRODUCTION_COMPLETED", "FULFILLMENT_COMPLETED"] as const)
+			: (["FULFILLMENT_COMPLETED"] as const);
+	const alternatives: Prisma.SalesOrdersWhereInput[] = [
+		canonicalFulfillment,
+		{
+			completionRecords: {
+				some: {
+					state: "ACTIVE",
+					completionMethod: "STATUS_ONLY",
+					milestone: { in: [...administrativeMilestones] },
+				},
+			},
+		},
+	];
+	if (milestone === "PRODUCTION_COMPLETED") {
+		alternatives.push(
+			{
+				stat: {
+					some: {
+						deletedAt: null,
+						type: "prodCompleted",
+						OR: [{ percentage: 100 }, { percentage: 0, total: 0 }],
+					},
+				},
+			},
+			{
+				prodStatus: {
+					in: [
+						"completed",
+						"complete",
+						"ready",
+						"N/A",
+						"na",
+						"not applicable",
+						"none",
+					],
+				},
+			},
+		);
+	}
+	const where = { OR: alternatives } satisfies Prisma.SalesOrdersWhereInput;
+	return satisfied ? where : { NOT: where };
+}
 
 function completionRevision(input: {
 	id: number;
@@ -329,6 +452,55 @@ export function resolveSalesCompletionProjection(input: {
 	};
 }
 
+export function resolveSalesCompletionProjectionFromOrder(
+	order: SalesCompletionOrderRow,
+	options?: { now?: Date },
+) {
+	const aggregateStatus = overallStatus((order.stat ?? []) as never[]);
+	const productionLifecycle = getSalesOrderLifecycleStatus({
+		legacyProductionStatus: order.prodStatus,
+		productionStatus: aggregateStatus.production.status,
+	});
+	const orderLifecycle = getSalesOrderLifecycleStatus({
+		orderStatus: order.status,
+	});
+	return resolveSalesCompletionProjection({
+		salesOrderId: order.id,
+		orderNo: order.orderId,
+		orderCreatedAt: order.createdAt,
+		orderUpdatedAt: order.updatedAt,
+		orderStatus: order.status,
+		legacyProductionStatus: order.prodStatus,
+		operationalProductionCompleted:
+			hasCompletedProductionLifecycle(productionLifecycle),
+		canonicalFulfilled: hasCanonicalSalesFulfillmentEvidence(
+			order.deliveries ?? [],
+		),
+		isCancelled: orderLifecycle === "cancelled",
+		records: order.completionRecords ?? [],
+		now: options?.now,
+	});
+}
+
+export function salesCompletionLabels(projection: SalesCompletionProjection) {
+	return {
+		production:
+			projection.productionCompletionSource === "STATUS_ONLY"
+				? "Completed — status only"
+				: projection.productionCompletionSource === "IMPLIED_BY_FULFILLMENT"
+					? "Completed — implied by Fulfillment status only"
+					: projection.productionCompletionSatisfied
+						? "Completed"
+						: "Pending",
+		fulfillment:
+			projection.fulfillmentDisposition === "ADMINISTRATIVELY_COMPLETED"
+				? "Administratively completed"
+				: projection.fulfillmentDisposition === "FULFILLED"
+					? "Fulfilled"
+					: "Pending",
+	};
+}
+
 export async function getSalesCompletionProjection(
 	db: CompletionDb,
 	input: z.infer<typeof salesCompletionProjectionInputSchema>,
@@ -355,7 +527,7 @@ export async function getSalesCompletionProjection(
 			},
 			completionRecords: {
 				orderBy: [{ recordedAt: "desc" }, { id: "desc" }],
-				select: completionRecordSelect,
+				select: salesCompletionRecordSelect,
 			},
 		},
 	});
@@ -365,31 +537,7 @@ export async function getSalesCompletionProjection(
 			"NOT_FOUND",
 		);
 	}
-	const aggregateStatus = overallStatus(order.stat);
-	const productionLifecycle = getSalesOrderLifecycleStatus({
-		legacyProductionStatus: order.prodStatus,
-		productionStatus: aggregateStatus.production.status,
-	});
-	const orderLifecycle = getSalesOrderLifecycleStatus({
-		orderStatus: order.status,
-	});
-	const canonicalFulfilled = hasCanonicalSalesFulfillmentEvidence(
-		order.deliveries,
-	);
-
-	return resolveSalesCompletionProjection({
-		salesOrderId: order.id,
-		orderNo: order.orderId,
-		orderCreatedAt: order.createdAt,
-		orderUpdatedAt: order.updatedAt,
-		orderStatus: order.status,
-		legacyProductionStatus: order.prodStatus,
-		operationalProductionCompleted:
-			hasCompletedProductionLifecycle(productionLifecycle),
-		canonicalFulfilled,
-		isCancelled: orderLifecycle === "cancelled",
-		records: order.completionRecords,
-	});
+	return resolveSalesCompletionProjectionFromOrder(order);
 }
 
 function hasPrismaCode(error: unknown, codes: readonly string[]) {
@@ -440,7 +588,7 @@ async function findMarkReplay(
 ) {
 	const byRequest = await db.salesCompletionRecord.findUnique({
 		where: { requestId: input.requestId },
-		select: completionRecordSelect,
+		select: salesCompletionRecordSelect,
 	});
 	if (byRequest) {
 		if (
@@ -462,7 +610,7 @@ async function findMarkReplay(
 				milestone: "PRODUCTION_COMPLETED",
 			}),
 		},
-		select: completionRecordSelect,
+		select: salesCompletionRecordSelect,
 	});
 }
 
@@ -511,7 +659,7 @@ export async function markProductionCompletionStatusOnly(
 					recordedAt,
 					recordedById: actor.id,
 				},
-				select: completionRecordSelect,
+				select: salesCompletionRecordSelect,
 			});
 			await tx.salesHistory.create({
 				data: {
@@ -561,7 +709,7 @@ async function findCancellationReplay(
 ) {
 	return db.salesCompletionRecord.findUnique({
 		where: { cancellationRequestId: input.requestId },
-		select: completionRecordSelect,
+		select: salesCompletionRecordSelect,
 	});
 }
 
@@ -636,7 +784,7 @@ export async function cancelProductionCompletionStatusOnly(
 					cancelledById: actor.id,
 					cancellationReason: input.reason?.trim() || null,
 				},
-				select: completionRecordSelect,
+				select: salesCompletionRecordSelect,
 			});
 			await tx.salesHistory.create({
 				data: {
@@ -686,7 +834,7 @@ async function findFulfillmentMarkReplay(
 ) {
 	const byRequest = await db.salesCompletionRecord.findUnique({
 		where: { requestId: input.requestId },
-		select: completionRecordSelect,
+		select: salesCompletionRecordSelect,
 	});
 	if (byRequest) {
 		if (
@@ -708,7 +856,7 @@ async function findFulfillmentMarkReplay(
 				milestone: "FULFILLMENT_COMPLETED",
 			}),
 		},
-		select: completionRecordSelect,
+		select: salesCompletionRecordSelect,
 	});
 }
 
@@ -757,7 +905,7 @@ export async function markFulfillmentCompletionStatusOnly(
 					recordedAt,
 					recordedById: actor.id,
 				},
-				select: completionRecordSelect,
+				select: salesCompletionRecordSelect,
 			});
 			await tx.salesHistory.create({
 				data: {
@@ -807,7 +955,7 @@ async function findFulfillmentCancellationReplay(
 ) {
 	return db.salesCompletionRecord.findUnique({
 		where: { cancellationRequestId: input.requestId },
-		select: completionRecordSelect,
+		select: salesCompletionRecordSelect,
 	});
 }
 
@@ -881,7 +1029,7 @@ export async function cancelFulfillmentCompletionStatusOnly(
 					cancelledById: actor.id,
 					cancellationReason: input.reason?.trim() || null,
 				},
-				select: completionRecordSelect,
+				select: salesCompletionRecordSelect,
 			});
 			await tx.salesHistory.create({
 				data: {
@@ -993,7 +1141,7 @@ export async function recordFullWorkflowCompletionIfProven(
 					recordedAt,
 					recordedById: input.actor.id,
 				},
-				select: completionRecordSelect,
+				select: salesCompletionRecordSelect,
 			});
 			await tx.salesHistory.create({
 				data: {
@@ -1070,7 +1218,7 @@ export async function cancelFullWorkflowCompletionInTransaction(
 				milestone: input.milestone,
 			}),
 		},
-		select: completionRecordSelect,
+		select: salesCompletionRecordSelect,
 	});
 	if (!record || record.completionMethod !== "FULL_WORKFLOW") return null;
 	const cancelled = await tx.salesCompletionRecord.update({
@@ -1083,7 +1231,7 @@ export async function cancelFullWorkflowCompletionInTransaction(
 			cancelledById: input.actor.id,
 			cancellationReason: input.reason,
 		},
-		select: completionRecordSelect,
+		select: salesCompletionRecordSelect,
 	});
 	await tx.salesHistory.create({
 		data: {

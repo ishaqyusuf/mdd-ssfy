@@ -34,12 +34,13 @@ import {
   SALES_HAS_FILTER_OPTIONS,
   SALES_INBOUND_FILTER_LABELS,
   SALES_INBOUND_FILTER_OPTIONS,
-	SALES_SPECIAL_ORDER_FILTER_LABELS,
-	SALES_SPECIAL_ORDER_FILTER_OPTIONS,
-	SALES_SPECIAL_ORDER_SHOW_LABELS,
-	SALES_SPECIAL_ORDER_SHOW_OPTIONS,
+  SALES_SPECIAL_ORDER_FILTER_LABELS,
+  SALES_SPECIAL_ORDER_FILTER_OPTIONS,
+  SALES_SPECIAL_ORDER_SHOW_LABELS,
+  SALES_SPECIAL_ORDER_SHOW_OPTIONS,
 } from "@sales/filter-constants";
 import { SALES_PRIORITY_OPTIONS } from "@sales/priority";
+import { SALES_COMPLETION_FILTER_OPTIONS } from "@sales/sales-completion";
 import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
 import type { GetBacklogsSchema } from "./backlogs";
 import {
@@ -773,8 +774,26 @@ export async function getSalesOrderFilters(
     ),
     optionFilter<T>("item", "Item", itemOptions),
     optionFilter<T>(
+      "completion.fulfillment",
+      "Fulfillment completion",
+      SALES_COMPLETION_FILTER_OPTIONS.map((status) => ({
+        label: status,
+        value: status,
+        color: getStatusFilterOptionColor(status),
+      })),
+    ),
+    optionFilter<T>(
+      "completion.production",
+      "Production completion",
+      SALES_COMPLETION_FILTER_OPTIONS.map((status) => ({
+        label: status,
+        value: status,
+        color: getStatusFilterOptionColor(status),
+      })),
+    ),
+    optionFilter<T>(
       "dispatch.status",
-      "Fullfilment",
+      "Operational fulfillment",
       SALES_DISPATCH_FILTER_OPTIONS.map((status) => ({
         label: status,
         value: status,
@@ -799,7 +818,7 @@ export async function getSalesOrderFilters(
     ]),
     optionFilter<T>(
       "production",
-      "Production",
+      "Operational production",
       PRODUCTION_FILTER_OPTIONS.map((status) => ({
         label: `${status}`,
         value: status,

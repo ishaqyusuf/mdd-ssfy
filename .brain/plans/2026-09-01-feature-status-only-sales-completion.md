@@ -2,7 +2,8 @@
 
 ## Status
 
-In Progress. Tickets 03-05 are approved and landed in order. Product intent,
+In Progress. Tickets 03-05 are approved and landed in order. Ticket 06 passed
+its stack-item review and is approved for landing. Product intent,
 Q1–Q15 acceptance decisions, and the closed GND compatibility boundary remain
 the implementation authority.
 
@@ -34,7 +35,6 @@ the implementation authority.
 
 ## Next step
 
-Generate the Ticket 06 handoff for cross-consumer projection, queue, filter,
-counter, and reporting parity. Each successor starts only after its predecessor
-is approved. The active Codex Goal remains open until all five review units are
-approved, documented, and reconciled.
+Land Ticket 06, then execute Ticket 07 exhaustive release
+verification. The active Codex Goal remains open until all five review units
+are approved, documented, and reconciled.

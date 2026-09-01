@@ -88,6 +88,35 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 }
 
 describe("sales orders default query contract", () => {
+	it("projects administrative completion without mutating operational lifecycle state", () => {
+		const row = normalizeOrderRow(
+			makeOrder({
+				completionRecords: [
+					{
+						id: "completion-1",
+						requestId: "00000000-0000-4000-8000-000000000001",
+						cancellationRequestId: null,
+						salesOrderId: 1,
+						milestone: "FULFILLMENT_COMPLETED",
+						completionMethod: "STATUS_ONLY",
+						state: "ACTIVE",
+						effectiveAt: null,
+						recordedAt: new Date("2026-08-01T12:00:00.000Z"),
+						recordedBy: { id: 7, name: "Admin" },
+						cancelledAt: null,
+						cancelledBy: null,
+						cancellationReason: null,
+						updatedAt: new Date("2026-08-01T12:00:00.000Z"),
+					},
+				],
+			}),
+		);
+		expect(row.productionState).toBe("unknown");
+		expect(row.fulfillmentState).toBe("N/A");
+		expect(row.productionLabel).toContain("implied by Fulfillment");
+		expect(row.fulfillmentLabel).toBe("Administratively completed");
+		expect(row.completion.fulfillmentEffectiveAt).toBeNull();
+	});
 	it("keeps cohort-excluded read requests on legacy and emits one safe event", async () => {
 		await withReadModelEnv(
 			{
@@ -422,6 +451,8 @@ describe("sales orders default query contract", () => {
 				inbound: "in_progress",
 				specialOrderScope: "special_orders",
 				specialOrder: "expired",
+				"completion.production": "completed",
+				"completion.fulfillment": "pending",
 				sort: ["grandTotal.desc"],
 			}),
 		).toEqual({
@@ -436,6 +467,8 @@ describe("sales orders default query contract", () => {
 			inbound: "in_progress",
 			specialOrderScope: "special_orders",
 			specialOrder: "expired",
+			"completion.production": "completed",
+			"completion.fulfillment": "pending",
 			sort: ["grandTotal.desc"],
 		});
 	});

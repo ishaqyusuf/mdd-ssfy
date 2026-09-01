@@ -14187,3 +14187,26 @@
   suites pass. `@gnd/sales` typecheck passes; broader dashboard/jobs/notification
   typechecks retain established unrelated baseline failures, with no diagnostics
   in the touched readiness paths after filtering.
+
+## 2026-09-01 — Sales completion projection and reporting parity
+
+- Unified Sales list, detail, and persisted projection consumers on the shared
+  completion resolver while retaining independent operational lifecycle state.
+- Added explicit order-level Production and Fulfillment completion filters that
+  share one satisfaction predicate across list, summary, and count queries.
+  Operational Production, dispatch, inventory, packing, proof, tax, and
+  exception filters remain unchanged.
+- Bumped the persisted list projection contract to version 3 and included the
+  newest completion-record update in projection freshness and warm-task
+  identities.
+- Added an operational-default completion reporting contract that excludes
+  Status-only declarations; administrative scope preserves method and distinct
+  nullable effective/recorded dates.
+- Focused parity coverage passes 107 tests / 318 assertions. A further 61
+  Production, Fulfillment, inventory, dispatch-proof, packing, and tax
+  regressions pass. Sales typecheck and diff validation pass; API typecheck
+  reports only existing unrelated inbound, Special Order, and dispatch typing
+  baselines. Dashboard typecheck required a higher-memory rerun after its
+  default 4 GB process exhausted the heap.
+- No database schema, migration, or permission change was required for Ticket
+  06; it consumes the Ticket 03-05 ledger and permission contracts.

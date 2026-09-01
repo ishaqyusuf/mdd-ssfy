@@ -10,6 +10,12 @@ import {
 import { getSalesOrderLifecycleStatusInfo } from "./order-status";
 import { repairSalesInvoiceCccDisplay } from "./payment-system";
 import { getSalesPriorityLabel, normalizeSalesPriority } from "./priority";
+import {
+	resolveSalesCompletionProjectionFromOrder,
+	salesCompletionLabels,
+	salesCompletionProjectionSourceRevision,
+	salesCompletionRecordSelect,
+} from "./sales-completion";
 import { readSalesFormPo } from "./sales-form/application/legacy-metadata";
 import { resolveSalesInventoryApplicability } from "./sales-inventory-applicability";
 import { resolveSalesInventoryLegacyCompatibility } from "./sales-inventory-legacy-compatibility";
@@ -65,8 +71,9 @@ function emptyInboundOwnership(): InventoryInboundOwnership {
 function sourceRevision(row: {
 	updatedAt: Date | null;
 	createdAt: Date | null;
+	completionRecords?: Array<{ updatedAt: Date }>;
 }) {
-	return row.updatedAt ?? row.createdAt ?? new Date(0);
+	return salesCompletionProjectionSourceRevision(row);
 }
 
 function titleCaseStatus(status?: string | null) {
@@ -332,8 +339,13 @@ export async function refreshSalesOrderListProjections(
 				where: { deletedAt: null },
 				select: {
 					status: true,
+					meta: true,
 					_count: { select: { items: { where: { deletedAt: null } } } },
 				},
+			},
+			completionRecords: {
+				orderBy: [{ recordedAt: "desc" }, { id: "desc" }],
+				select: salesCompletionRecordSelect,
 			},
 			inventoryProjection: {
 				select: {
@@ -447,6 +459,8 @@ export async function refreshSalesOrderListProjections(
 			prioritizedDelivery?.status === "completed"
 				? "completed"
 				: statStatus(dispatchStat(order.stat));
+		const completion = resolveSalesCompletionProjectionFromOrder(order);
+		const completionLabels = salesCompletionLabels(completion);
 		const customerName =
 			order.customer?.businessName ||
 			order.customer?.name ||
@@ -530,9 +544,14 @@ export async function refreshSalesOrderListProjections(
 			orderStatus: order.status || null,
 			prodStatus: order.prodStatus || null,
 			productionState,
-			productionLabel: productionLabel(productionState),
+			productionLabel: completion.productionCompletionSatisfied
+				? completionLabels.production
+				: productionLabel(productionState),
 			fulfillmentState,
-			fulfillmentLabel: titleCaseStatus(fulfillmentState),
+			fulfillmentLabel: completion.fulfillmentCompletionSatisfied
+				? completionLabels.fulfillment
+				: titleCaseStatus(fulfillmentState),
+			completion,
 			inventoryInboundOwnership:
 				inboundOwnership.get(order.id) ?? emptyInboundOwnership(),
 			inventoryProjection: order.inventoryProjection,
@@ -566,9 +585,13 @@ export async function refreshSalesOrderListProjections(
 		return {
 			...payload,
 			productionState,
-			productionLabel: productionLabel(productionState),
+			productionLabel: row.completion.productionCompletionSatisfied
+				? row.productionLabel
+				: productionLabel(productionState),
 			fulfillmentState,
-			fulfillmentLabel: titleCaseStatus(fulfillmentState),
+			fulfillmentLabel: row.completion.fulfillmentCompletionSatisfied
+				? row.fulfillmentLabel
+				: titleCaseStatus(fulfillmentState),
 			status: lifecycle.status,
 			statusLabel: lifecycle.label,
 			statusTone: lifecycle.tone,
@@ -598,7 +621,15 @@ export async function refreshSalesOrderListProjections(
 		const revision = sourceRevision(order);
 		const latestSource = await db.salesOrders.findUnique({
 			where: { id: order.id },
-			select: { createdAt: true, updatedAt: true },
+			select: {
+				createdAt: true,
+				updatedAt: true,
+				completionRecords: {
+					orderBy: { updatedAt: "desc" },
+					take: 1,
+					select: { updatedAt: true },
+				},
+			},
 		});
 		if (
 			!latestSource ||

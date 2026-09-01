@@ -21,6 +21,8 @@ import {
 	isReviewableSalesPaymentStatus,
 	repairSalesInvoiceCccDisplay,
 } from "@gnd/sales/payment-system";
+import { salesCompletionProjectionSourceRevision } from "@gnd/sales/sales-completion";
+import { salesCompletionSatisfactionFilterSchema } from "@gnd/sales/sales-completion";
 import { resolveSalesInventoryApplicability } from "@gnd/sales/sales-inventory-applicability";
 import { resolveSalesInventoryLegacyCompatibility } from "@gnd/sales/sales-inventory-legacy-compatibility";
 import { resolveSalesInventoryTrackingPolicy } from "@gnd/sales/sales-inventory-tracking-policy";
@@ -94,6 +96,12 @@ const ordersV2FilterShape = {
 		.enum(SALES_DISPATCH_FILTER_OPTIONS)
 		.optional()
 		.nullable(),
+	"completion.production": salesCompletionSatisfactionFilterSchema
+		.optional()
+		.nullable(),
+	"completion.fulfillment": salesCompletionSatisfactionFilterSchema
+		.optional()
+		.nullable(),
 	priority: salesPrioritySchema.optional().nullable(),
 	"sales.priority": salesPrioritySchema.optional().nullable(),
 	"sales.rep": z.string().optional().nullable(),
@@ -157,6 +165,8 @@ function toLegacyOrdersQuery(
 		"production.status": query["production.status"],
 		"production.assignment": query["production.assignment"],
 		"dispatch.status": query["dispatch.status"],
+		"completion.production": query["completion.production"],
+		"completion.fulfillment": query["completion.fulfillment"],
 		"sales.priority": query["sales.priority"] ?? query.priority,
 		"sales.rep": query["sales.rep"],
 		has: query.has,
@@ -299,6 +309,7 @@ export function normalizeOrderRow(
 	const displayCcc = repairedInvoiceTotal.ccc;
 	const productionState = dto.status?.production?.status || "pending";
 	const fulfillmentState = dto.deliveryStatus || "pending";
+	const completion = dto.completion;
 	const lifecycleStatus = getSalesOrderLifecycleStatusInfo({
 		orderStatus: row.status,
 		legacyProductionStatus: row.prodStatus,
@@ -354,12 +365,14 @@ export function normalizeOrderRow(
 		orderStatus: row.status || null,
 		prodStatus: row.prodStatus || null,
 		productionState,
-		productionLabel: toProductionLabel(
-			productionState,
-			dto.status?.production?.scoreStatus,
-		),
+		productionLabel: completion.productionCompletionSatisfied
+			? dto.completionLabels.production
+			: toProductionLabel(productionState, dto.status?.production?.scoreStatus),
 		fulfillmentState,
-		fulfillmentLabel: toFulfillmentLabel(fulfillmentState),
+		fulfillmentLabel: completion.fulfillmentCompletionSatisfied
+			? dto.completionLabels.fulfillment
+			: toFulfillmentLabel(fulfillmentState),
+		completion,
 		status: lifecycleStatus.status,
 		statusLabel: lifecycleStatus.label,
 		statusTone: lifecycleStatus.tone,
@@ -406,9 +419,13 @@ function applyControlAwareLifecycle(row: ControlAwareOrderRow) {
 	return {
 		...row,
 		productionState: productionStatus,
-		productionLabel: toProductionLabel(productionStatus),
+		productionLabel: row.completion.productionCompletionSatisfied
+			? row.productionLabel
+			: toProductionLabel(productionStatus),
 		fulfillmentState: fulfillmentStatus,
-		fulfillmentLabel: toFulfillmentLabel(fulfillmentStatus),
+		fulfillmentLabel: row.completion.fulfillmentCompletionSatisfied
+			? row.fulfillmentLabel
+			: toFulfillmentLabel(fulfillmentStatus),
 		status: lifecycleStatus.status,
 		statusLabel: lifecycleStatus.label,
 		statusTone: lifecycleStatus.tone,
@@ -517,6 +534,12 @@ type ProjectionRecord = {
 	projectedAt: Date;
 };
 
+const completionRevisionSelect = {
+	orderBy: { updatedAt: "desc" as const },
+	take: 1,
+	select: { updatedAt: true },
+};
+
 type ProjectionRepository = {
 	findMany(args: {
 		where: { salesOrderId: { in: number[] } };
@@ -588,6 +611,7 @@ async function getOrdersFromProjection(
 			id: number;
 			createdAt: Date | null;
 			updatedAt: Date | null;
+			completionRecords: Array<{ updatedAt: Date }>;
 		}>;
 		let response: (data: Array<Record<string, unknown>>) => {
 			meta: { count?: number; size?: number; cursor?: string | null };
@@ -634,7 +658,12 @@ async function getOrdersFromProjection(
 						where: pageWhere,
 						orderBy: [{ createdAt: direction }, { id: direction }],
 						take: size + 1,
-						select: { id: true, createdAt: true, updatedAt: true },
+						select: {
+							id: true,
+							createdAt: true,
+							updatedAt: true,
+							completionRecords: completionRevisionSelect,
+						},
 					}),
 				),
 			]);
@@ -670,7 +699,12 @@ async function getOrdersFromProjection(
 				ctx.db.salesOrders.findMany({
 					where: composed.where,
 					...composed.searchMeta,
-					select: { id: true, createdAt: true, updatedAt: true },
+					select: {
+						id: true,
+						createdAt: true,
+						updatedAt: true,
+						completionRecords: completionRevisionSelect,
+					},
 				}),
 			);
 			response = composed.response;
@@ -705,8 +739,7 @@ async function getOrdersFromProjection(
 		const orderedProjections = sourceRows.map((source) => {
 			const projection = projectionsById.get(source.id);
 			if (!projection) return null;
-			const sourceUpdatedAt =
-				source.updatedAt ?? source.createdAt ?? new Date(0);
+			const sourceUpdatedAt = salesCompletionProjectionSourceRevision(source);
 			if (
 				!isSalesOrderListProjectionFresh({
 					state: projection.state,
@@ -760,16 +793,14 @@ async function queueSalesOrderListProjectionWarm(
 			id: true,
 			createdAt: true,
 			updatedAt: true,
+			completionRecords: completionRevisionSelect,
 		},
 	});
 	const taskOrders = sourceRows
 		.map((source) => ({
 			salesOrderId: source.id,
-			sourceUpdatedAt: (
-				source.updatedAt ??
-				source.createdAt ??
-				new Date(0)
-			).toISOString(),
+			sourceUpdatedAt:
+				salesCompletionProjectionSourceRevision(source).toISOString(),
 		}))
 		.sort((left, right) => left.salesOrderId - right.salesOrderId);
 	if (!taskOrders.length) return;

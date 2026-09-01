@@ -1,7 +1,4 @@
-import {
-	anyDateQuery,
-	transformFilterDateToQuery,
-} from "@gnd/utils";
+import { anyDateQuery, transformFilterDateToQuery } from "@gnd/utils";
 import { orderInboundStatuses } from "@gnd/utils/constants";
 import { composeQuery } from "@gnd/utils/query-response";
 import { SALES_HAS_FILTER_LABELS } from "../filter-constants";
@@ -10,6 +7,7 @@ import {
 	getProductionDateRange,
 	getProductionQueueBoundaries,
 } from "../production-date";
+import { buildSalesCompletionSatisfactionWhere } from "../sales-completion";
 import type { SalesQueryParamsSchema } from "../schema";
 import type { Prisma, QtyControlType } from "../types";
 import { SalesDispatchStatus } from "./constants";
@@ -440,9 +438,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
 						some: {
 							deletedAt: null,
 							assignedToId: assignedToId || undefined,
-							dueDate: transformFilterDateToQuery(
-								query["production.dueDate"]!,
-							),
+							dueDate: transformFilterDateToQuery(query["production.dueDate"]!),
 						},
 					},
 				});
@@ -928,6 +924,22 @@ export function whereSales(query: SalesQueryParamsSchema) {
 				},
 			});
 			break;
+	}
+	if (query["completion.production"]) {
+		where.push(
+			buildSalesCompletionSatisfactionWhere(
+				"PRODUCTION_COMPLETED",
+				query["completion.production"] === "completed",
+			),
+		);
+	}
+	if (query["completion.fulfillment"]) {
+		where.push(
+			buildSalesCompletionSatisfactionWhere(
+				"FULFILLMENT_COMPLETED",
+				query["completion.fulfillment"] === "completed",
+			),
+		);
 	}
 	if (query["account.no"])
 		where.push({

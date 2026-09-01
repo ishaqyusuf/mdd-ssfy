@@ -19,6 +19,7 @@ import {
 	SALES_SPECIAL_ORDER_SHOW_OPTIONS,
 } from "@sales/filter-constants";
 import { salesPrioritySchema } from "@sales/priority";
+import { salesCompletionSatisfactionFilterSchema } from "@sales/sales-completion";
 import { z } from "zod";
 
 export const dispatchDueBucketSchema = z.enum([
@@ -139,6 +140,12 @@ export const salesQueryParamsSchema = z
 		orderNo: z.string().optional().nullable(),
 		"dispatch.status": z
 			.enum(SALES_DISPATCH_FILTER_OPTIONS)
+			.optional()
+			.nullable(),
+		"completion.production": salesCompletionSatisfactionFilterSchema
+			.optional()
+			.nullable(),
+		"completion.fulfillment": salesCompletionSatisfactionFilterSchema
 			.optional()
 			.nullable(),
 		"production.dueDate": z.array(z.any()).optional().nullable(),

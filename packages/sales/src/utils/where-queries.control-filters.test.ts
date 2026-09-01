@@ -9,6 +9,24 @@ function toClauses(where: any) {
 }
 
 describe("whereSales stat filters", () => {
+	it("uses dedicated completion predicates while leaving operational filters distinct", () => {
+		const completion = JSON.stringify(
+			toClauses(
+				whereSales({
+					"completion.fulfillment": "completed",
+				} as any),
+			),
+		);
+		const operational = JSON.stringify(
+			toClauses(whereSales({ "dispatch.status": "completed" } as any)),
+		);
+
+		expect(completion).toContain('"completionRecords"');
+		expect(completion).toContain('"completionMethod":"STATUS_ONLY"');
+		expect(completion).toContain('"$.dispatchCompletion.status"');
+		expect(operational).toContain('"type":"dispatchCompleted"');
+		expect(operational).not.toContain('"completionRecords"');
+	});
 	it("keeps assignment-backed production eligible when control quantity is stale", () => {
 		const json = JSON.stringify(buildProductionEligibleWhere());
 

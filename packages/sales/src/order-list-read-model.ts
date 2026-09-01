@@ -1,6 +1,6 @@
 import { isControlReadV2Enabled } from "./control/application/feature-flags";
 
-export const SALES_ORDER_LIST_PROJECTION_VERSION = 2;
+export const SALES_ORDER_LIST_PROJECTION_VERSION = 3;
 const SALES_ORDER_LIST_PROJECTION_LEGACY_CONTROL_VERSION = 1;
 
 export function salesOrderListProjectionVersion() {
@@ -32,8 +32,7 @@ export function isSalesOrderListProjectionFresh(input: {
 		input.version === salesOrderListProjectionVersion() &&
 		input.sourceUpdatedAt.getTime() ===
 			input.projectionSourceUpdatedAt.getTime() &&
-		input.projectedAt.getTime() >=
-			(input.now ?? Date.now()) - input.maxAgeMs
+		input.projectedAt.getTime() >= (input.now ?? Date.now()) - input.maxAgeMs
 	);
 }
 
@@ -43,6 +42,15 @@ const DATE_FIELDS = new Set([
 	"receivedAt",
 	"currentRequestExpiresAt",
 	"lastSyncedAt",
+	"orderCreatedAt",
+	"effectiveAt",
+	"recordedAt",
+	"updatedAt",
+	"cancelledAt",
+	"productionEffectiveAt",
+	"fulfillmentEffectiveAt",
+	"productionRecordedAt",
+	"fulfillmentRecordedAt",
 ]);
 
 function jsonSafe(value: unknown): unknown {
@@ -117,7 +125,8 @@ export function compareSalesOrderListRows(
 	const mismatchedIds = legacyRows.flatMap((legacyRow, index) => {
 		const projectionRow = projectionRows[index];
 		if (!projectionRow) return [Number(legacyRow.id)];
-		return stableJson(jsonSafe(legacyRow)) === stableJson(jsonSafe(projectionRow))
+		return stableJson(jsonSafe(legacyRow)) ===
+			stableJson(jsonSafe(projectionRow))
 			? []
 			: [Number(legacyRow.id)];
 	});

@@ -1,4 +1,4 @@
-import { statToKeyValueDto, type Item } from "@api/dto/sales-dto";
+import { type Item, statToKeyValueDto } from "@api/dto/sales-dto";
 import type { SalesQueryParamsSchema } from "@api/schemas/sales";
 import type {
 	AddressBookMeta,
@@ -8,6 +8,7 @@ import type {
 	SalesStatStatus,
 } from "@api/type";
 import type { Prisma } from "@gnd/db";
+import { salesCompletionRecordSelect } from "@gnd/sales/sales-completion";
 import { consoleLog, sumArrayKeys } from "@gnd/utils";
 import dayjs from "@gnd/utils/dayjs";
 import type { DispatchItemPackingStatus } from "@sales/types";
@@ -17,8 +18,8 @@ export function salesAddressLines(
 	address: Prisma.AddressBooksGetPayload<{}>,
 	customer?: Prisma.CustomersGetPayload<{}>,
 ) {
-	let meta = address?.meta as any as AddressBookMeta;
-	let cMeta = customer?.meta as any as CustomerMeta;
+	const meta = address?.meta as any as AddressBookMeta;
+	const cMeta = customer?.meta as any as CustomerMeta;
 	return [
 		address?.name || customer?.businessName || customer?.name,
 		address?.phoneNo || customer?.phoneNo || customer?.phoneNo2,
@@ -37,7 +38,7 @@ export function composeSalesStat(stats: Prisma.SalesStatGetPayload<{}>[]) {
 			isValid,
 		};
 	});
-	let validStat = statDateCheck.every((a) => a.isValid);
+	const validStat = statDateCheck.every((a) => a.isValid);
 	const _stat: { [id in QtyControlType]: (typeof stats)[number] } = {} as any;
 	stats.map((s) => (_stat[s.type] = s));
 	return {
@@ -136,7 +137,7 @@ export function statStatus(stat: Prisma.SalesStatGetPayload<{}>): {
 export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
 	const mainStep = props.formSteps?.[0];
 	const stepConfigUid = mainStep?.prodUid;
-	let config = setting?.route?.[stepConfigUid]?.config;
+	const config = setting?.route?.[stepConfigUid]?.config;
 
 	const isService = mainStep?.value?.toLowerCase() == "services";
 
@@ -189,6 +190,10 @@ export const SalesListInclude = {
 		},
 	},
 	stat: true,
+	completionRecords: {
+		orderBy: [{ recordedAt: "desc" }, { id: "desc" }],
+		select: salesCompletionRecordSelect,
+	},
 	extraCosts: true,
 	productionGate: {
 		select: {

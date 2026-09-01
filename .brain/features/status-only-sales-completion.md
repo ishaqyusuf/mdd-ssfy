@@ -3,9 +3,9 @@
 ## Status
 
 In progress. Tickets 03-05 deliver approved Status-only Production and
-Fulfillment Completion plus evidence-gated Full-workflow provenance.
-Cross-consumer projection parity and exhaustive release verification remain in
-Tickets 06-07.
+Fulfillment Completion plus evidence-gated Full-workflow provenance. Ticket 06
+implements cross-consumer projection, completion-queue, and reporting parity;
+exhaustive release verification remains in Ticket 07.
 
 ## Outcome
 
@@ -108,3 +108,24 @@ fabricate operational evidence, or redesign the existing Full workflow.
   never cancels a Status-only declaration.
 - Existing operational orders continue to normalize as Full workflow directly
   from canonical evidence without fabricated historical ledger rows.
+
+## Implemented: Completion Projection, Queue, And Reporting Parity
+
+- Sales list, detail, and persisted list read models now consume the shared
+  completion resolver. Their payloads retain operational lifecycle state while
+  exposing completion satisfaction, disposition, source, method, separate
+  effective/recorded dates, available actions, active records, and history.
+- Production and Fulfillment completion labels distinguish `Completed — status
+  only`, Fulfillment-implied Production, and `Administratively completed` from
+  canonical workflow completion. Unknown effective dates remain null.
+- The list projection contract is version 3. Its source revision and warm-task
+  identity include the newest completion-record update, so administrative mark
+  or cancellation cannot leave a current-looking stale row.
+- Explicit `completion.production` and `completion.fulfillment` filters use the
+  same shared satisfaction predicate for list, summary, and count queries.
+  Existing Production, dispatch, packing, inventory, proof, tax, and exception
+  filters retain operational semantics.
+- Completion reporting defaults to operational Full-workflow evidence only.
+  Intentional administrative scope may include Status-only rows and keeps
+  source, method, effective date, and recorded date as separate fields so
+  Fulfillment-implied Production is never presented as its own declaration.
