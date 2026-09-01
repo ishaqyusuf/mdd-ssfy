@@ -18,7 +18,8 @@ Stack item; Ticket 04; dependency Ticket 03 approved.
 
 ## Landing
 
-Ready for retry after reconciling `master` snapshot `0003fff0b`.
+Ready for retry after reconciling `master` snapshots `0003fff0b` and
+`c1194e707`.
 
 ## Source Plan
 
@@ -30,9 +31,9 @@ Pass
 
 ## Findings
 
-- None. The only landing conflict was concurrent append-only Brain progress;
-  both histories and the concurrent Sales document preflight plan/roadmap update
-  are preserved.
+- None. The landing conflicts were concurrent append-only Brain progress;
+  both histories and both revisions of the concurrent Sales document preflight
+  plan/roadmap update are preserved.
 
 ## Acceptance Criteria Check
 
