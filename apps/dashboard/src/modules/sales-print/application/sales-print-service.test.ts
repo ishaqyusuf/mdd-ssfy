@@ -9,6 +9,7 @@ import {
 	openSalesPrintDocument,
 	prepareSalesHtmlPreview,
 	regenerateSalesPrintDocument,
+	SalesDocumentPreflightRequiredError,
 	resolveSalesHtmlPreviewAccess,
 	resolveSalesPrintAccess,
 	resolveSalesPrintMode,
@@ -1243,5 +1244,51 @@ describe("sales print service", () => {
 		expect(calls).toBe(1);
 		expect(first).toBe(response);
 		expect(second).toBe(response);
+	});
+
+	it("surfaces a typed repair interruption before opening a document", async () => {
+		const readiness = {
+			status: "repair_required",
+			source: "evaluated",
+			salesOrderId: 23288,
+			orderNo: "08574PC",
+			salesType: "order",
+			validatorVersion: "sales-document-readiness-v1",
+			signature: "signature",
+			proposalId: "proposal-1",
+			validatedSourceUpdatedAt: "2026-09-01T10:00:00.000Z",
+			createdAt: "2026-09-01T10:00:00.000Z",
+			financial: {
+				saved: {
+					subTotalCents: 933527,
+					taxCents: 65347,
+					grandTotalCents: 998874,
+					amountDueCents: 0,
+				},
+				candidate: {
+					subTotalCents: 933527,
+					taxCents: 65347,
+					grandTotalCents: 998874,
+					amountDueCents: 0,
+				},
+				subTotalDeltaCents: 0,
+				totalChanged: false,
+			},
+			findings: [],
+			operations: [],
+		};
+		const dependencies = {
+			resolveAccess: async () => ({ kind: "preflight", readiness }),
+			resolveHtmlPreviewAccess: async () => ({ kind: "preflight", readiness }),
+			openLink: () => undefined,
+			getBaseUrl: () => "https://app.example.com",
+		};
+
+		await expect(
+			prepareSalesHtmlPreview(
+				{ salesIds: [23288], mode: "invoice" },
+				dependencies,
+			),
+		).rejects.toBeInstanceOf(SalesDocumentPreflightRequiredError);
 	});
 });

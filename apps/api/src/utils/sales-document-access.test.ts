@@ -73,7 +73,7 @@ function createMockDb(input: {
 }
 
 describe("resolveSalesDocumentAccess", () => {
-	it("force-refreshes print data before issuing employee HTML preview access", async () => {
+	it("reuses current print data after readiness before issuing employee HTML preview access", async () => {
 		const calls: Array<Record<string, unknown>> = [];
 		await expect(
 			resolveSalesDocumentHtmlPreviewAccess(
@@ -95,7 +95,7 @@ describe("resolveSalesDocumentAccess", () => {
 		expect(calls).toEqual([
 			expect.objectContaining({
 				salesOrderId: 25435,
-				forceRefresh: true,
+				forceRefresh: false,
 				reason: "html_preview_access",
 			}),
 		]);

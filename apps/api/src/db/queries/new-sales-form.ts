@@ -49,6 +49,7 @@ import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
 import { assertDealerSaleOfficeAccess } from "@gnd/db/queries";
 import { projectLegacyOrderPayments } from "@gnd/sales";
 import { analyzeSalesFormChange } from "@gnd/sales/adjustment-system";
+import { prepareSalesDocumentReadiness } from "@gnd/sales/document-readiness";
 import {
 	addMoney,
 	resolveSalesDisplayCcc,
@@ -1238,6 +1239,27 @@ function toBootstrapPayload(
 		cccPercentage: settings.cccPercentage,
 		meta: container,
 	});
+	const savedFinancialSummary = {
+		subTotal: roundMoney(order.subTotal ?? 0),
+		taxTotal: roundMoney(order.tax ?? 0),
+		grandTotal: roundMoney(order.grandTotal ?? 0),
+	};
+	const recalculatedFinancialSummary = {
+		subTotal: roundMoney(summary.subTotal ?? 0),
+		taxTotal: roundMoney(summary.taxTotal ?? 0),
+		grandTotal: roundMoney(summary.grandTotal ?? 0),
+	};
+	const financialDifference = {
+		subTotal: roundMoney(
+			recalculatedFinancialSummary.subTotal - savedFinancialSummary.subTotal,
+		),
+		taxTotal: roundMoney(
+			recalculatedFinancialSummary.taxTotal - savedFinancialSummary.taxTotal,
+		),
+		grandTotal: roundMoney(
+			recalculatedFinancialSummary.grandTotal - savedFinancialSummary.grandTotal,
+		),
+	};
 
 	return {
 		salesId: order.id,
@@ -1267,6 +1289,14 @@ function toBootstrapPayload(
 		paymentTotal,
 		paymentCount: order.payments?.length || 0,
 		paymentMethodReviewDismissed,
+		financialReconciliation: {
+			hasDifference: Object.values(financialDifference).some(
+				(value) => value !== 0,
+			),
+			saved: savedFinancialSummary,
+			recalculated: recalculatedFinancialSummary,
+			difference: financialDifference,
+		},
 		form: {
 			paymentTerm: DEFAULT_PAYMENT_TERM,
 			createdAt: null,
@@ -4540,6 +4570,12 @@ async function saveNewSalesFormInternal(
 					);
 				}
 			}
+
+			await prepareSalesDocumentReadiness(tx, {
+				salesOrderId: currentId,
+				forceEvaluate: true,
+				stageProposal: true,
+			});
 
 			return {
 				salesId: currentId,

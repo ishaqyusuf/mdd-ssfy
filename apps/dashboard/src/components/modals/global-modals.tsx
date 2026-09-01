@@ -17,6 +17,7 @@ import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useLaborCostModal } from "@/hooks/use-labor-cost-modal";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useSalesQuickPay } from "@/hooks/use-sales-quick-pay";
+import { useSalesDocumentReadinessStore } from "@/store/sales-document-readiness";
 import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import dynamic from "next/dynamic";
 import { SuperAdminGuard } from "../auth-guard";
@@ -52,6 +53,11 @@ const SalesPreviewModal = dynamic(() =>
 );
 const SalesQuickPayModal = dynamic(() =>
     import("./sales-quick-pay-modal").then((mod) => mod.SalesQuickPayModal),
+);
+const SalesDocumentReadinessModal = dynamic(() =>
+    import("./sales-document-readiness-modal").then(
+        (mod) => mod.SalesDocumentReadinessModal,
+    ),
 );
 
 const CommunityTemplateModal = dynamic(() =>
@@ -101,6 +107,9 @@ export function GlobalModals() {
     const { opened: jobOverviewOpen } = useJobParams();
     const { opened: salesPreviewOpen } = useSalesPreview();
     const { params: salesQuickPayParams } = useSalesQuickPay();
+    const salesDocumentReadiness = useSalesDocumentReadinessStore(
+        (state) => state.readiness,
+    );
     const { isOpened: inboundStatusOpen } = useInboundStatusModal();
     const { isOpened: dispatchStatusOpen } = useDispatchstatusModal();
     const { opened: documentReviewOpen } = useDocumentReviewParams();
@@ -120,6 +129,7 @@ export function GlobalModals() {
             {documentReviewOpen ? <DocumentReviewModal /> : null}
             {employeeFormOpen ? <EmployeeFormModal /> : null}
             {salesPreviewOpen ? <SalesPreviewModal /> : null}
+            {salesDocumentReadiness ? <SalesDocumentReadinessModal /> : null}
 
             {createTemplate || !!templateId ? <CommunityTemplateModal /> : null}
             {createModelCost ? <CreateCommunityModelCostModal /> : null}

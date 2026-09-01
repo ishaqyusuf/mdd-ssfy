@@ -163,6 +163,13 @@ function getErrorMessage(error: unknown, fallback: string) {
     return fallback;
 }
 
+function formatSalesFormMoney(value: number) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+	}).format(value);
+}
+
 const PACKAGE_WORKFLOW_PANEL_STORAGE_KEY =
     "gnd:new-sales-form:package-workflow-panel";
 const SHOW_LOCAL_RECOVERY_ALERT = false;
@@ -500,6 +507,10 @@ export function NewSalesForm(props: Props) {
         !record.form.customerId &&
         !customerPromptDismissed;
     const isSaved = Boolean(record?.salesId && record?.orderId);
+	const financialReconciliation = record?.financialReconciliation;
+	const hasSavedFinancialDrift = Boolean(
+		financialReconciliation?.hasDifference,
+	);
     const isOrder = props.type === "order";
     const salesFormCapabilities = useSalesFormCapabilities(props.type);
     const salesFormPermissions = useSalesFormPermissions(props.type);
@@ -2010,8 +2021,49 @@ export function NewSalesForm(props: Props) {
                         restoredHistoryEntry ||
 						(SHOW_LOCAL_RECOVERY_ALERT && recoverySnapshot) ||
 						hasSalesRepApprovalChange ||
-						activeAdjustment ? (
+						activeAdjustment ||
+						hasSavedFinancialDrift ? (
                             <div className="m-4 space-y-2 sm:m-6 lg:m-8">
+								{hasSavedFinancialDrift && financialReconciliation ? (
+									<output className="block rounded-lg border border-rose-400 bg-rose-50 p-3 text-sm text-rose-950 shadow-sm">
+										<div className="flex items-start gap-2">
+											<Icons.AlertCircle className="mt-0.5 size-4 shrink-0" />
+											<div className="min-w-0 flex-1">
+												<p className="font-semibold">
+													Saved and recalculated totals are different
+												</p>
+												<p className="mt-1 text-xs opacity-80">
+													Review the affected line items before saving. Opening this
+													form did not change or autosave the order.
+												</p>
+												<div className="mt-3 grid gap-2 sm:grid-cols-3">
+													{(
+														[
+															["Subtotal", "subTotal"],
+															["Tax", "taxTotal"],
+															["Grand total", "grandTotal"],
+														] as const
+													).map(([label, key]) => (
+														<div key={key} className="rounded-md border border-rose-200 bg-white/70 p-2">
+															<p className="text-[11px] font-medium uppercase tracking-wide opacity-70">
+																{label}
+															</p>
+															<p className="mt-1 text-xs">
+																Saved {formatSalesFormMoney(financialReconciliation.saved[key])}
+															</p>
+															<p className="text-xs">
+																Recalculated {formatSalesFormMoney(financialReconciliation.recalculated[key])}
+															</p>
+															<p className="text-xs font-semibold">
+																Difference {formatSalesFormMoney(financialReconciliation.difference[key])}
+															</p>
+														</div>
+													))}
+												</div>
+											</div>
+										</div>
+									</output>
+								) : null}
 								{loadedChangeProtection && hasSalesRepApprovalChange ? (
 									<output className="flex flex-col gap-3 rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950 shadow-sm md:flex-row md:items-center md:justify-between">
 										<div className="min-w-0">

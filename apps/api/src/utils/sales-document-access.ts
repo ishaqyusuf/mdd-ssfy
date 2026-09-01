@@ -608,7 +608,7 @@ export async function resolveSalesDocumentHtmlPreviewAccess(
 			documentType: buildSalesDocumentTypeKey(input),
 			dispatchId: input.dispatchId ?? null,
 			templateId: printConfig.templateId,
-			forceRefresh: true,
+			forceRefresh: false,
 			reason: "html_preview_access",
 		});
 	}

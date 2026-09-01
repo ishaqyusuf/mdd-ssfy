@@ -2,8 +2,10 @@
 
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
+import { preflightSalesDocumentAction } from "@/actions/resolve-sales-document-access";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
+import { openSalesDocumentReadiness } from "@/store/sales-document-readiness";
 import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import { isValidCustomerPhoneNumber } from "@gnd/notifications/phone-number";
@@ -75,6 +77,7 @@ export function SalesDocumentEmailDialog({
 	const [subject, setSubject] = useState(buildDefaultSubject(orderNo));
 	const [message, setMessage] = useState("");
 	const [sendError, setSendError] = useState<string | null>(null);
+	const [isPreflighting, setIsPreflighting] = useState(false);
 	const open = controlledOpen ?? internalOpen;
 	const setOpen = onOpenChange ?? setInternalOpen;
 	const auth = useAuth();
@@ -116,6 +119,7 @@ export function SalesDocumentEmailDialog({
 	const canSend =
 		!disabled &&
 		!isSending &&
+		!isPreflighting &&
 		!!salesOrderId &&
 		channels.length > 0 &&
 		(!wantsEmail || (isEmailValid && subject.trim().length > 0)) &&
@@ -126,6 +130,38 @@ export function SalesDocumentEmailDialog({
 		}
 		return "Choose a delivery channel and enter the customer contact details.";
 	}, [customerName]);
+
+	async function sendDocument() {
+		if (!salesOrderId) return;
+		setSendError(null);
+		setIsPreflighting(true);
+		try {
+			const readiness = await preflightSalesDocumentAction({ salesOrderId });
+			if (readiness.status !== "ready") {
+				openSalesDocumentReadiness(readiness, sendDocument);
+				return;
+			}
+			notification.composedSalesDocumentEmail({
+				printType: isQuote ? "quote" : "order",
+				salesIds: [salesOrderId],
+				customerEmail: email.trim() || undefined,
+				customerPhone: phone.trim() || undefined,
+				customerName: customerName?.trim() || undefined,
+				subject: subject.trim(),
+				message: message.trim() || undefined,
+				channels,
+				testEmailMode: wantsEmail && shouldUseTestEmailMode,
+			});
+		} catch (cause) {
+			setSendError(
+				cause instanceof Error
+					? cause.message
+					: "Unable to verify this document before sending.",
+			);
+		} finally {
+			setIsPreflighting(false);
+		}
+	}
 	const defaultTrigger = (
 		<Button
 			variant="outline"
@@ -347,23 +383,9 @@ export function SalesDocumentEmailDialog({
 						<Button
 							type="button"
 							disabled={!canSend}
-							onClick={() => {
-								if (!salesOrderId) return;
-								setSendError(null);
-								notification.composedSalesDocumentEmail({
-									printType: isQuote ? "quote" : "order",
-									salesIds: [salesOrderId],
-									customerEmail: email.trim() || undefined,
-									customerPhone: phone.trim() || undefined,
-									customerName: customerName?.trim() || undefined,
-									subject: subject.trim(),
-									message: message.trim() || undefined,
-									channels,
-									testEmailMode: wantsEmail && shouldUseTestEmailMode,
-								});
-							}}
+							onClick={() => void sendDocument()}
 						>
-							{isSending ? (
+							{isSending || isPreflighting ? (
 								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
 							) : (
 								<Icons.Send className="mr-2 size-4" />

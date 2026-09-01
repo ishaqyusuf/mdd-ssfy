@@ -106,6 +106,7 @@
 		"./payment-system/refunds": "./src/payment-system/refunds/index.ts",
 		"./pdf-system": "./src/pdf-system/index.ts",
 		"./resolution-system": "./src/resolution-system/index.ts",
+		"./document-readiness": "./src/document-readiness/index.ts",
 		"./print/types": "./src/print/types.ts",
 		"./print/modes": "./src/print/modes.ts",
 		"./print/payment-footer-state": "./src/print/compose/payment-footer-state.ts",

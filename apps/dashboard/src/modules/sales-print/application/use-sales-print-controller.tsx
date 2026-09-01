@@ -1,6 +1,7 @@
 "use client";
 
 import { openLink } from "@/lib/open-link";
+import { openSalesDocumentReadiness } from "@/store/sales-document-readiness";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
@@ -11,6 +12,7 @@ import {
 	type SalesPrintStage,
 	type SalesPrintStageDetails,
 	downloadSalesPrintDocument,
+	isSalesDocumentPreflightRequiredError,
 	openSalesPrintDocument,
 	regenerateSalesPrintDocument,
 	resolveSalesPrintMode,
@@ -349,6 +351,11 @@ export function useSalesPrintController() {
 			};
 
 			const onAccessError = (error: unknown) => {
+				if (isSalesDocumentPreflightRequiredError(error)) {
+					activeToast?.dismiss();
+					openSalesDocumentReadiness(error.readiness, reprint);
+					return;
+				}
 				updateToast(
 					{
 						title: "Unable to prepare print",
@@ -455,6 +462,13 @@ export function useSalesPrintController() {
 				} as ToastUpdateInput);
 				dismissToastAfter(downloadToast, 2500);
 			} catch (error) {
+				if (isSalesDocumentPreflightRequiredError(error)) {
+					downloadToast.dismiss();
+					openSalesDocumentReadiness(error.readiness, () =>
+						downloadPdf(input),
+					);
+					return;
+				}
 				downloadToast.update({
 					title: "Unable to download PDF",
 					description: buildErrorDescription(error, "Please try again."),
@@ -504,6 +518,13 @@ export function useSalesPrintController() {
 				dismissToastAfter(regenerateToast, 2500);
 				return access;
 			} catch (error) {
+				if (isSalesDocumentPreflightRequiredError(error)) {
+					regenerateToast.dismiss();
+					openSalesDocumentReadiness(error.readiness, () =>
+						regenerate(input, options),
+					);
+					return null;
+				}
 				regenerateToast.update({
 					title: "Unable to regenerate PDF",
 					description: buildErrorDescription(error, "Please try again."),

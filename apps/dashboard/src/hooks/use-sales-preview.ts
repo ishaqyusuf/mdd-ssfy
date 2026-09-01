@@ -1,5 +1,9 @@
 import type { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
-import { prepareSalesHtmlPreview } from "@/modules/sales-print/application/sales-print-service";
+import {
+	isSalesDocumentPreflightRequiredError,
+	prepareSalesHtmlPreview,
+} from "@/modules/sales-print/application/sales-print-service";
+import { openSalesDocumentReadiness } from "@/store/sales-document-readiness";
 import type { IOrderPrintMode } from "@/types/sales";
 import {
 	parseAsInteger,
@@ -30,6 +34,68 @@ export function useSalesPreview() {
 		dispatchId: parseAsInteger,
 	});
 	const opened = !!params.salesPreviewId && !!params.salesPreviewType;
+
+	async function preview(
+		salesId: number | null | undefined,
+		salesPreviewType: typeof params.salesPreviewType,
+		options?: {
+			mode?: IOrderPrintMode;
+			dispatchId?: number | null;
+			customerEmail?: string | null;
+			customerName?: string | null;
+		},
+	) {
+		if (!salesId || !salesPreviewType) return;
+
+		requestRef.current += 1;
+		const requestId = `${Date.now()}-${requestRef.current}`;
+		const previewMode = options?.mode ?? (salesPreviewType as IOrderPrintMode);
+
+		setParams({
+			salesPreviewId: salesId,
+			salesPreviewCustomerEmail: options?.customerEmail ?? null,
+			salesPreviewCustomerName: options?.customerName ?? null,
+			salesPreviewType,
+			salesPreviewRequest: requestId,
+			salesPreviewUrl: null,
+			salesPreviewError: null,
+			previewMode,
+			...(options?.dispatchId !== undefined
+				? { dispatchId: options.dispatchId }
+				: {}),
+		});
+
+		try {
+			const previewUrl = await prepareSalesHtmlPreview({
+				salesIds: [salesId],
+				mode: previewMode,
+				dispatchId: options?.dispatchId ?? null,
+			});
+
+			if (!isCurrentPreviewRequest(requestId)) return;
+
+			setParams({
+				salesPreviewUrl: previewUrl,
+				salesPreviewError: null,
+			});
+		} catch (error) {
+			if (!isCurrentPreviewRequest(requestId)) return;
+			if (isSalesDocumentPreflightRequiredError(error)) {
+				openSalesDocumentReadiness(error.readiness, () =>
+					preview(salesId, salesPreviewType, options),
+				);
+				return;
+			}
+
+			setParams({
+				salesPreviewError:
+					error instanceof Error
+						? error.message
+						: "Unable to prepare this preview.",
+			});
+		}
+	}
+
 	return {
 		params,
 		opened,
@@ -48,58 +114,7 @@ export function useSalesPreview() {
 				previewMode: null,
 			});
 		},
-		async preview(
-			salesId: number | null | undefined,
-			salesPreviewType: typeof params.salesPreviewType,
-			options?: {
-				mode?: IOrderPrintMode;
-				dispatchId?: number | null;
-				customerEmail?: string | null;
-				customerName?: string | null;
-			},
-		) {
-			if (!salesId || !salesPreviewType) return;
-
-			requestRef.current += 1;
-			const requestId = `${Date.now()}-${requestRef.current}`;
-			const previewMode =
-				options?.mode ?? (salesPreviewType as IOrderPrintMode);
-
-			setParams({
-				salesPreviewId: salesId,
-				salesPreviewCustomerEmail: options?.customerEmail ?? null,
-				salesPreviewCustomerName: options?.customerName ?? null,
-				salesPreviewType,
-				salesPreviewRequest: requestId,
-				salesPreviewUrl: null,
-				salesPreviewError: null,
-				previewMode,
-				...(options?.dispatchId !== undefined
-					? { dispatchId: options.dispatchId }
-					: {}),
-			});
-
-			try {
-				const previewUrl = await prepareSalesHtmlPreview({
-					salesIds: [salesId],
-					mode: previewMode,
-					dispatchId: options?.dispatchId ?? null,
-				});
-
-				if (!isCurrentPreviewRequest(requestId)) return;
-
-				setParams({
-					salesPreviewUrl: previewUrl,
-					salesPreviewError: null,
-				});
-			} catch {
-				if (!isCurrentPreviewRequest(requestId)) return;
-
-				setParams({
-					salesPreviewError: "Unable to prepare this preview.",
-				});
-			}
-		},
+		preview,
 	};
 }
 

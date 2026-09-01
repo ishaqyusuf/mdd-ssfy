@@ -1,4 +1,5 @@
 import {
+	type ResolveSalesDocumentAccessActionResult,
 	resolveSalesDocumentAccessAction,
 	resolveSalesDocumentHtmlPreviewAccessAction,
 } from "@/actions/resolve-sales-document-access";
@@ -10,6 +11,7 @@ import { getBaseUrl } from "@/lib/base-url";
 import { openLink } from "@/lib/open-link";
 import type { IOrderPrintMode } from "@/types/sales";
 import type { ResolveSalesDocumentAccessResult } from "@gnd/api/utils/sales-document-access";
+import type { SalesDocumentReadinessPreflight } from "@gnd/sales/document-readiness";
 import {
 	DEFAULT_SALES_PAGE_BREAK_MODE,
 	type SalesPageBreakMode,
@@ -66,7 +68,7 @@ type SalesPrintDependencies = {
 		printConfig?: Partial<SalesPrintSettings> | null;
 		baseUrl?: string | null;
 		forceRegenerate?: boolean;
-	}): Promise<ResolveSalesDocumentAccessResult>;
+	}): Promise<ResolveSalesDocumentAccessActionResult>;
 	resolveHtmlPreviewAccess(input: {
 		salesIds: number[];
 		mode: PrintMode;
@@ -75,7 +77,7 @@ type SalesPrintDependencies = {
 		templateId?: string | null;
 		printConfig?: Partial<SalesPrintSettings> | null;
 		baseUrl?: string | null;
-	}): Promise<ResolveSalesDocumentAccessResult>;
+	}): Promise<ResolveSalesDocumentAccessActionResult>;
 	openLink: typeof openLink;
 	openViewerShell: typeof openViewerShell;
 	closeViewerShell?: typeof closeViewerShell;
@@ -130,6 +132,35 @@ const inflightHtmlPreviewRequests = new Map<
 	string,
 	Promise<ResolveSalesDocumentAccessResult>
 >();
+
+export class SalesDocumentPreflightRequiredError extends Error {
+	readonly readiness: SalesDocumentReadinessPreflight;
+
+	constructor(readiness: SalesDocumentReadinessPreflight) {
+		super(
+			readiness.status === "repair_required"
+				? "This sales document needs a safe data repair before continuing."
+				: "This sales document needs financial review before continuing.",
+		);
+		this.name = "SalesDocumentPreflightRequiredError";
+		this.readiness = readiness;
+	}
+}
+
+export function isSalesDocumentPreflightRequiredError(
+	error: unknown,
+): error is SalesDocumentPreflightRequiredError {
+	return error instanceof SalesDocumentPreflightRequiredError;
+}
+
+function requireReadySalesDocumentAccess(
+	result: ResolveSalesDocumentAccessActionResult,
+): ResolveSalesDocumentAccessResult {
+	if (result.kind === "preflight") {
+		throw new SalesDocumentPreflightRequiredError(result.readiness);
+	}
+	return result;
+}
 
 export function resolveSalesPrintMode(
 	mode?: SalesPrintRequestMode,
@@ -311,6 +342,7 @@ export async function resolveSalesPrintAccess(
 			baseUrl,
 			forceRegenerate: request.forceRegenerate ?? false,
 		})
+		.then(requireReadySalesDocumentAccess)
 		.finally(() => {
 			inflightAccessRequests.delete(accessKey);
 		});
@@ -347,6 +379,7 @@ export async function resolveSalesHtmlPreviewAccess(
 			printConfig,
 			baseUrl,
 		})
+		.then(requireReadySalesDocumentAccess)
 		.finally(() => {
 			inflightHtmlPreviewRequests.delete(accessKey);
 		});
