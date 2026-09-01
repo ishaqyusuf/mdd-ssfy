@@ -2,7 +2,7 @@
 
 ## Status
 
-Submitted for review
+Completed — approved for landing
 
 ## Source Plan
 
