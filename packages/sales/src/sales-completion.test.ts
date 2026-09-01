@@ -6,9 +6,11 @@ import {
 	SalesCompletionError,
 	type SalesCompletionRecordView,
 	buildSalesCompletionActiveKey,
+	cancelFulfillmentCompletionStatusOnly,
 	cancelProductionCompletionStatusOnly,
 	getSalesCompletionProjection,
 	hasCanonicalSalesFulfillmentEvidence,
+	markFulfillmentCompletionStatusOnly,
 	markProductionCompletionStatusOnly,
 	resolveSalesCompletionProjection,
 } from "./sales-completion";
@@ -213,6 +215,22 @@ describe("sales completion projection", () => {
 			projection.availableActions.productionCancellationBlockedReason,
 		).toContain("Cancel Fulfillment");
 	});
+
+	test("gives canonical evidence precedence without rewriting administrative history", () => {
+		const fulfillment = completionRecord({
+			id: "completion-fulfillment",
+			milestone: "FULFILLMENT_COMPLETED",
+		});
+		const projection = resolve({
+			records: [fulfillment],
+			canonicalFulfilled: true,
+		});
+
+		expect(projection.fulfillmentDisposition).toBe("FULFILLED");
+		expect(projection.fulfillmentCompletionSource).toBe("OPERATIONAL_WORKFLOW");
+		expect(projection.history).toEqual([fulfillment]);
+		expect(projection.availableActions.cancelFulfillmentStatusOnly).toBe(true);
+	});
 });
 
 function createCompletionDb(
@@ -275,6 +293,9 @@ function createCompletionDb(
 					id: `completion-${records.length + 1}`,
 					requestId: String(data.requestId),
 					salesOrderId: Number(data.salesOrderId),
+					milestone: data.milestone as SalesCompletionRecordView["milestone"],
+					completionMethod:
+						data.completionMethod as SalesCompletionRecordView["completionMethod"],
 					effectiveAt: (data.effectiveAt as Date | null) ?? null,
 					recordedAt: data.recordedAt as Date,
 					recordedBy: { id: Number(data.recordedById), name: "Admin" },
@@ -508,5 +529,223 @@ describe("status-only Production commands", () => {
 				{ id: 7, name: "Admin" },
 			),
 		).rejects.toBeInstanceOf(SalesCompletionError);
+	});
+});
+
+describe("status-only Fulfillment commands", () => {
+	test("marks only Fulfillment completion and audit while implying Production", async () => {
+		const fixture = createCompletionDb();
+		const before = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+		fixture.calls.length = 0;
+
+		const result = await markFulfillmentCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000021",
+				expectedRevision: before.revision,
+				effectiveAt: null,
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result.idempotentReplay).toBe(false);
+		expect(result.record.milestone).toBe("FULFILLMENT_COMPLETED");
+		expect(result.projection).toMatchObject({
+			canonicalFulfilled: false,
+			fulfillmentCompletionSatisfied: true,
+			fulfillmentDisposition: "ADMINISTRATIVELY_COMPLETED",
+			productionCompletionSatisfied: true,
+			productionCompletionSource: "IMPLIED_BY_FULFILLMENT",
+			activeProductionRecord: null,
+		});
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(1);
+		expect(Object.keys(fixture.tx).sort()).toEqual([
+			"salesCompletionRecord",
+			"salesHistory",
+			"salesOrders",
+		]);
+	});
+
+	test("replays duplicate Fulfillment marks without a second record or audit", async () => {
+		const fixture = createCompletionDb();
+		const before = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+		const input = {
+			salesOrderId: 91,
+			requestId: "00000000-0000-4000-8000-000000000022",
+			expectedRevision: before.revision,
+			effectiveAt: null,
+		};
+
+		await markFulfillmentCompletionStatusOnly(fixture.db, input, {
+			id: 7,
+			name: "Admin",
+		});
+		const replay = await markFulfillmentCompletionStatusOnly(
+			fixture.db,
+			input,
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(replay.idempotentReplay).toBe(true);
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(1);
+	});
+
+	test("treats a concurrent active Fulfillment record as an idempotent success", async () => {
+		const active = completionRecord({
+			id: "completion-fulfillment",
+			requestId: "00000000-0000-4000-8000-000000000098",
+			milestone: "FULFILLMENT_COMPLETED",
+		});
+		const fixture = createCompletionDb([active]);
+		fixture.db.$transaction = mock(async () => {
+			throw Object.assign(new Error("duplicate"), { code: "P2002" });
+		}) as never;
+
+		const result = await markFulfillmentCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000023",
+				expectedRevision: "0".repeat(64),
+				effectiveAt: null,
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result.idempotentReplay).toBe(true);
+		expect(result.record.id).toBe(active.id);
+	});
+
+	test("cancelling Fulfillment restores an explicit Production declaration", async () => {
+		const production = completionRecord();
+		const fulfillment = completionRecord({
+			id: "completion-fulfillment",
+			requestId: "00000000-0000-4000-8000-000000000024",
+			milestone: "FULFILLMENT_COMPLETED",
+		});
+		const fixture = createCompletionDb([production, fulfillment]);
+		const before = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+
+		const result = await cancelFulfillmentCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000025",
+				expectedRevision: before.revision,
+				reason: "Correct the historical declaration",
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result.record.state).toBe("CANCELLED");
+		expect(result.projection).toMatchObject({
+			fulfillmentCompletionSatisfied: false,
+			fulfillmentDisposition: "PENDING",
+			productionCompletionSatisfied: true,
+			productionCompletionSource: "STATUS_ONLY",
+			activeProductionRecord: { id: production.id },
+		});
+		expect(fixture.records).toHaveLength(2);
+		expect(fixture.history).toHaveLength(1);
+	});
+
+	test("cancelling Fulfillment returns to unresolved when no Production evidence remains", async () => {
+		const fixture = createCompletionDb([
+			completionRecord({
+				id: "completion-fulfillment",
+				milestone: "FULFILLMENT_COMPLETED",
+			}),
+		]);
+		const before = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+
+		const result = await cancelFulfillmentCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000026",
+				expectedRevision: before.revision,
+				reason: null,
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result.projection).toMatchObject({
+			productionCompletionSatisfied: false,
+			fulfillmentCompletionSatisfied: false,
+			productionCompletionSource: "NONE",
+			fulfillmentCompletionSource: "NONE",
+		});
+	});
+
+	test("cancelling Fulfillment restores independent operational Production evidence", async () => {
+		const fixture = createCompletionDb(
+			[
+				completionRecord({
+					id: "completion-fulfillment",
+					milestone: "FULFILLMENT_COMPLETED",
+				}),
+			],
+			{
+				stat: [{ type: "prodCompleted", percentage: 100, score: 1, total: 1 }],
+			},
+		);
+		const before = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+
+		const result = await cancelFulfillmentCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000027",
+				expectedRevision: before.revision,
+				reason: null,
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result.projection).toMatchObject({
+			operationalProductionCompleted: true,
+			productionCompletionSatisfied: true,
+			productionCompletionSource: "OPERATIONAL_WORKFLOW",
+			fulfillmentCompletionSatisfied: false,
+		});
+	});
+
+	test("requires workflow-aware cancellation for Full workflow Fulfillment provenance", async () => {
+		const fixture = createCompletionDb([
+			completionRecord({
+				id: "completion-fulfillment",
+				milestone: "FULFILLMENT_COMPLETED",
+				completionMethod: "FULL_WORKFLOW",
+			}),
+		]);
+		const before = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+
+		await expect(
+			cancelFulfillmentCompletionStatusOnly(
+				fixture.db,
+				{
+					salesOrderId: 91,
+					requestId: "00000000-0000-4000-8000-000000000028",
+					expectedRevision: before.revision,
+					reason: null,
+				},
+				{ id: 7, name: "Admin" },
+			),
+		).rejects.toMatchObject({ code: "METHOD_MISMATCH" });
 	});
 });

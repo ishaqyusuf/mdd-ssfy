@@ -2,10 +2,9 @@
 
 ## Status
 
-In Progress. The approved five-ticket ordered stack is published. Ticket 03 is
-reviewed and approved as the completed first stack item. Product intent,
-Q1–Q15 acceptance decisions, and the closed GND compatibility boundary remain
-the implementation authority for Tickets 04-07.
+In Progress. Tickets 03-04 are approved and landed; Ticket 05 is the next
+ordered stack item. Product intent, Q1–Q15 acceptance decisions, and the closed
+GND compatibility boundary remain the implementation authority.
 
 ## Canonical artifacts
 
@@ -35,7 +34,7 @@ the implementation authority for Tickets 04-07.
 
 ## Next step
 
-Create and implement the Ticket 04 stack-item handoff from the landed Ticket 03
-state. Each successor starts only after its predecessor is approved. The active
-Codex Goal remains open until all five review units are approved, documented,
-and reconciled.
+Generate the Ticket 05 handoff, implement Full-workflow provenance and
+method-aware cancellation, then review, land, and approve it. Each successor
+starts only after its predecessor is approved. The active Codex Goal remains
+open until all five review units are approved, documented, and reconciled.

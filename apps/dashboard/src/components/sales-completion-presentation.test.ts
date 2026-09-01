@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import type { SalesCompletionProjection } from "@gnd/sales/sales-completion";
 
 import {
+	applyFulfillmentCompletionProjection,
 	applyProductionCompletionProjection,
 	canShowStatusOnlyCompletionChoice,
 	getDefaultSalesCompletionChoice,
@@ -39,6 +40,8 @@ function projection(
 			markProductionStatusOnly: false,
 			cancelProductionStatusOnly: true,
 			productionCancellationBlockedReason: null,
+			markFulfillmentStatusOnly: true,
+			cancelFulfillmentStatusOnly: false,
 		},
 		activeProductionRecord: {
 			id: "completion-1",
@@ -109,5 +112,84 @@ describe("Sales completion confirmation presentation", () => {
 		expect(
 			result.find((item) => item.action === "cancel_production")?.disabled,
 		).toBe(true);
+	});
+
+	test("shows administrative Fulfillment provenance and method-aware cancellation", () => {
+		const result = applyFulfillmentCompletionProjection(
+			actions,
+			projection({
+				fulfillmentCompletionSatisfied: true,
+				fulfillmentDisposition: "ADMINISTRATIVELY_COMPLETED",
+				availableActions: {
+					markProductionStatusOnly: false,
+					cancelProductionStatusOnly: false,
+					productionCancellationBlockedReason:
+						"Cancel Fulfillment completion first.",
+					markFulfillmentStatusOnly: false,
+					cancelFulfillmentStatusOnly: true,
+				},
+				activeFulfillmentRecord: {
+					...projection().activeProductionRecord!,
+					milestone: "FULFILLMENT_COMPLETED",
+					completionMethod: "STATUS_ONLY",
+					recordedAt: new Date("2026-08-01T12:00:00.000Z"),
+					recordedBy: { id: 7, name: "Admin" },
+				},
+			}),
+			true,
+		);
+
+		expect(result.find((item) => item.action === "fulfilled")).toEqual({
+			action: "fulfilled",
+			label: "Fulfillment completed — status only",
+			disabled: true,
+		});
+		expect(result.find((item) => item.action === "cancel_fulfillment")).toEqual(
+			{
+				action: "cancel_fulfillment",
+				label: "Cancel Fulfillment status only",
+				disabled: false,
+			},
+		);
+	});
+
+	test("canonical Fulfillment takes presentation precedence without hiding status-only cancellation", () => {
+		const result = applyFulfillmentCompletionProjection(
+			[
+				...actions,
+				{
+					action: "cancel_fulfillment" as const,
+					label: "Cancel fulfillment",
+				},
+			],
+			projection({
+				fulfillmentCompletionSatisfied: true,
+				fulfillmentDisposition: "FULFILLED",
+				availableActions: {
+					markProductionStatusOnly: false,
+					cancelProductionStatusOnly: false,
+					productionCancellationBlockedReason:
+						"Cancel Fulfillment completion first.",
+					markFulfillmentStatusOnly: false,
+					cancelFulfillmentStatusOnly: true,
+				},
+				activeFulfillmentRecord: {
+					...projection().activeProductionRecord!,
+					milestone: "FULFILLMENT_COMPLETED",
+					completionMethod: "STATUS_ONLY",
+				},
+			}),
+			false,
+		);
+
+		expect(result.find((item) => item.action === "fulfilled")?.label).toBe(
+			"Fulfilled",
+		);
+		expect(
+			result.find((item) => item.action === "cancel_fulfillment")?.disabled,
+		).toBe(true);
+		expect(
+			result.find((item) => item.action === "cancel_fulfillment")?.label,
+		).toBe("Cancel Fulfillment status only");
 	});
 });
