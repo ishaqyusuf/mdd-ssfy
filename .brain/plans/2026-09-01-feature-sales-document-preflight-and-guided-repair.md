@@ -17,7 +17,7 @@ Implemented — initial guarded release
 - Shared readiness evaluation, Sales-meta attestation, staged `ResolutionCase` proposal, serializable guarded apply, print-cache invalidation, Sales History, and resolution action evidence are implemented.
 - Preview, print, PDF download/regeneration, and simple/composed email paths use the shared gate. Notification builders repeat the server-side assertion.
 - The modal supports `Cancel`, `Open order`, and zero-delta `Repair & continue`; opening the editor cancels and clears the staged proposal.
-- Canonical Sales Form saves, copied Sales, approved adjustments, and guided repairs stamp readiness. The hydrated Sales Form shows saved/recalculated subtotal, tax, and grand-total drift without autosaving.
+- Canonical Sales Form saves, copied Sales, approved adjustments, and guided repairs stamp readiness. The hydrated Sales Form shows saved/recalculated subtotal, tax, grand-total, and amount-due drift without autosaving.
 - A read-only 20-order local audit classified 10 ready and 10 zero-delta repair candidates, with no financial/manual cases and no writes. `08574PC` requires five operations with a `$0.00` subtotal delta.
 - This release uses `SalesOrders.updatedAt` plus the meta attestation rather than new revision columns, so it requires application-owned child writers to refresh/invalidate readiness. Batch grouping, proposal expiry, metrics, and a schema-backed monotonic revision remain follow-up hardening rather than release blockers for the requested single-record flow.
 

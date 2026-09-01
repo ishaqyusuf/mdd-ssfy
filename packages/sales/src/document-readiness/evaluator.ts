@@ -1,3 +1,4 @@
+import { calculateSalesFormSummary } from "../sales-form/domain/costing";
 import {
 	SALES_DOCUMENT_READINESS_VALIDATOR_VERSION,
 	type SalesDocumentFinancialComparison,
@@ -13,6 +14,7 @@ type FormStepInput = {
 	componentId?: number | null;
 	prodUid?: string | null;
 	value?: string | null;
+	step?: { title?: string | null } | null;
 };
 
 type DoorInput = {
@@ -28,6 +30,7 @@ type SalesItemInput = {
 	id: number;
 	qty?: number | null;
 	total?: number | null;
+	meta?: unknown;
 	formSteps?: FormStepInput[] | null;
 	housePackageTool?: {
 		id: number;
@@ -47,6 +50,14 @@ export type SalesDocumentReadinessInput = {
 	tax?: number | null;
 	grandTotal?: number | null;
 	amountDue?: number | null;
+	taxPercentage?: number | null;
+	paymentMethod?: string | null;
+	extraCosts?: Array<{
+		type?: string | null;
+		amount?: number | null;
+		taxxable?: boolean | null;
+	}>;
+	taxes?: Array<{ taxxable?: number | null }>;
 	items: SalesItemInput[];
 };
 
@@ -62,6 +73,12 @@ function finiteNumber(value: unknown): number | null {
 function cents(value: unknown): number | null {
 	const number = finiteNumber(value);
 	return number === null ? null : Math.round(number * 100);
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: null;
 }
 
 function doorQuantity(door: DoorInput) {
@@ -82,8 +99,14 @@ function doorTotalCents(door: DoorInput) {
 function financialSnapshot(
 	sale: SalesDocumentReadinessInput,
 ): SalesDocumentFinancialSnapshot {
+	const taxableValues = (sale.taxes ?? [])
+		.map((tax) => finiteNumber(tax.taxxable))
+		.filter((value): value is number => value !== null);
 	return {
 		subTotalCents: cents(sale.subTotal),
+		taxableSubTotalCents: taxableValues.length
+			? cents(taxableValues.reduce((total, value) => total + value, 0))
+			: null,
 		taxCents: cents(sale.tax),
 		grandTotalCents: cents(sale.grandTotal),
 		amountDueCents: cents(sale.amountDue),
@@ -92,20 +115,158 @@ function financialSnapshot(
 
 function buildFinancialComparison(
 	saved: SalesDocumentFinancialSnapshot,
-	candidateSubTotalCents: number | null,
+	candidate: SalesDocumentFinancialSnapshot,
 ): SalesDocumentFinancialComparison {
-	const subTotalDeltaCents =
-		saved.subTotalCents === null || candidateSubTotalCents === null
-			? null
-			: candidateSubTotalCents - saved.subTotalCents;
+	const delta = (before: number | null, after: number | null) =>
+		before === null || after === null ? null : after - before;
+	const subTotalDeltaCents = delta(
+		saved.subTotalCents,
+		candidate.subTotalCents,
+	);
+	const taxableSubTotalDeltaCents = delta(
+		saved.taxableSubTotalCents,
+		candidate.taxableSubTotalCents,
+	);
+	const taxDeltaCents = delta(saved.taxCents, candidate.taxCents);
+	const grandTotalDeltaCents = delta(
+		saved.grandTotalCents,
+		candidate.grandTotalCents,
+	);
+	const amountDueDeltaCents = delta(
+		saved.amountDueCents,
+		candidate.amountDueCents,
+	);
+	const requiredDeltas: Array<number | null> = [
+		subTotalDeltaCents,
+		taxDeltaCents,
+		grandTotalDeltaCents,
+		amountDueDeltaCents,
+	];
+	if (taxableSubTotalDeltaCents !== null) {
+		requiredDeltas.push(taxableSubTotalDeltaCents);
+	}
 	return {
 		saved,
-		candidate: {
-			...saved,
-			subTotalCents: candidateSubTotalCents,
-		},
+		candidate,
 		subTotalDeltaCents,
-		totalChanged: subTotalDeltaCents !== 0,
+		taxableSubTotalDeltaCents,
+		taxDeltaCents,
+		grandTotalDeltaCents,
+		amountDueDeltaCents,
+		totalChanged: requiredDeltas.some((value) => value === null || value !== 0),
+	};
+}
+
+function candidateFinancialSnapshot(
+	sale: SalesDocumentReadinessInput,
+	candidateItemTotalsCents: Array<number | null>,
+): SalesDocumentFinancialSnapshot {
+	const saved = financialSnapshot(sale);
+	if (candidateItemTotalsCents.some((value) => value === null)) {
+		return {
+			subTotalCents: null,
+			taxableSubTotalCents: null,
+			taxCents: null,
+			grandTotalCents: null,
+			amountDueCents: null,
+		};
+	}
+	const candidateSubTotalCents = candidateItemTotalsCents.reduce<number>(
+		(total, value) => total + (value ?? 0),
+		0,
+	);
+	const subTotalDeltaCents =
+		saved.subTotalCents === null
+			? null
+			: candidateSubTotalCents - saved.subTotalCents;
+	const currentItemTotalsCents = sale.items.map((item) => cents(item.total));
+	const currentTotalsAreComplete = currentItemTotalsCents.every(
+		(value): value is number => value !== null,
+	);
+	const currentSubTotalCents = currentTotalsAreComplete
+		? currentItemTotalsCents.reduce((total, value) => total + value, 0)
+		: null;
+	const currentLineTotalsMatchSaved =
+		currentSubTotalCents !== null &&
+		currentSubTotalCents === saved.subTotalCents;
+	const effectiveTaxRate = (() => {
+		const persistedRate = finiteNumber(sale.taxPercentage);
+		if (persistedRate !== null && persistedRate > 0) return persistedRate;
+		if (
+			saved.taxCents !== null &&
+			saved.taxableSubTotalCents !== null &&
+			saved.taxableSubTotalCents > 0
+		) {
+			return (saved.taxCents / saved.taxableSubTotalCents) * 100;
+		}
+		return saved.taxCents === 0 ? 0 : null;
+	})();
+	const calculateSummary = (itemTotalsCents: number[]) =>
+		calculateSalesFormSummary({
+			strategy: "legacy",
+			taxRate: effectiveTaxRate,
+			paymentMethod: sale.paymentMethod,
+			lineItems: sale.items.map((item, index) => ({
+				lineTotal: (itemTotalsCents[index] ?? 0) / 100,
+				meta: record(item.meta),
+				formSteps: item.formSteps,
+			})),
+			extraCosts: (sale.extraCosts ?? []).map((cost) => ({
+				type: String(cost.type ?? ""),
+				amount: cost.amount,
+				taxxable: cost.taxxable,
+			})),
+		});
+	let taxableDeltaCents: number | null = null;
+	if (currentLineTotalsMatchSaved) {
+		const currentSummary = calculateSummary(currentItemTotalsCents as number[]);
+		const candidateSummary = calculateSummary(
+			candidateItemTotalsCents as number[],
+		);
+		taxableDeltaCents =
+			(cents(candidateSummary.taxableSubTotal) ?? 0) -
+			(cents(currentSummary.taxableSubTotal) ?? 0);
+	} else if (saved.taxableSubTotalCents !== null) {
+		const candidateSummary = calculateSummary(
+			candidateItemTotalsCents as number[],
+		);
+		taxableDeltaCents =
+			(cents(candidateSummary.taxableSubTotal) ?? 0) -
+			saved.taxableSubTotalCents;
+	} else if (subTotalDeltaCents === 0) {
+		// Historical records may have missing/stale line aggregates even though the
+		// saved invoice subtotal is correct. A zero invoice-level delta means the
+		// aggregate repair itself does not alter taxability.
+		taxableDeltaCents = 0;
+	}
+	const taxDeltaCents =
+		taxableDeltaCents === 0
+			? 0
+			: taxableDeltaCents === null || effectiveTaxRate === null
+				? null
+				: Math.round((taxableDeltaCents * effectiveTaxRate) / 100);
+	const grandTotalDeltaCents =
+		subTotalDeltaCents === null || taxDeltaCents === null
+			? null
+			: subTotalDeltaCents + taxDeltaCents;
+	return {
+		subTotalCents: candidateSubTotalCents,
+		taxableSubTotalCents:
+			saved.taxableSubTotalCents === null || taxableDeltaCents === null
+				? null
+				: saved.taxableSubTotalCents + taxableDeltaCents,
+		taxCents:
+			saved.taxCents === null || taxDeltaCents === null
+				? null
+				: saved.taxCents + taxDeltaCents,
+		grandTotalCents:
+			saved.grandTotalCents === null || grandTotalDeltaCents === null
+				? null
+				: saved.grandTotalCents + grandTotalDeltaCents,
+		amountDueCents:
+			saved.amountDueCents === null || grandTotalDeltaCents === null
+				? null
+				: saved.amountDueCents + grandTotalDeltaCents,
 	};
 }
 
@@ -136,8 +297,7 @@ export function evaluateSalesDocumentReadiness(
 ): SalesDocumentReadinessEvaluation {
 	const operations: SalesDocumentRepairOperation[] = [];
 	const findings: SalesDocumentReadinessFinding[] = [];
-	let candidateSubTotalCents = 0;
-	let hasCompleteCandidateSubTotal = sale.items.length > 0;
+	const candidateItemTotalsCents: Array<number | null> = [];
 	let requiresManualReview = false;
 
 	for (const item of sale.items) {
@@ -226,7 +386,6 @@ export function evaluateSalesDocumentReadiness(
 		}
 
 		if (candidateItemTotalCents === null) {
-			hasCompleteCandidateSubTotal = false;
 			if (!hpt || !doors.length) {
 				requiresManualReview = true;
 				findings.push({
@@ -235,14 +394,14 @@ export function evaluateSalesDocumentReadiness(
 					message: `Item ${item.id} does not have a deterministic saved total.`,
 				});
 			}
-		} else {
-			candidateSubTotalCents += candidateItemTotalCents;
 		}
+		candidateItemTotalsCents.push(candidateItemTotalCents);
 	}
 
+	const savedFinancial = financialSnapshot(sale);
 	const financial = buildFinancialComparison(
-		financialSnapshot(sale),
-		hasCompleteCandidateSubTotal ? candidateSubTotalCents : null,
+		savedFinancial,
+		candidateFinancialSnapshot(sale, candidateItemTotalsCents),
 	);
 	const base = {
 		salesOrderId: sale.id,

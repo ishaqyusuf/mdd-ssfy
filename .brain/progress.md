@@ -14203,13 +14203,15 @@
   form independently displays saved-versus-recalculated financial drift without
   dirtying or autosaving the record.
 - The read-only 20-order audit classified 10 orders ready and 10 as deterministic
-  zero-subtotal-delta repairs. `08574PC` requires five parent-summary operations;
-  its saved and candidate subtotal are both `$9,335.27`, so the repair does not
-  write tax, grand total, payments, refunds, or balance.
-- Focused evaluator, attestation, copy, access, print-controller, and notification
-  suites pass. `@gnd/sales` typecheck passes; broader dashboard/jobs/notification
-  typechecks retain established unrelated baseline failures, with no diagnostics
-  in the touched readiness paths after filtering.
+  zero-financial-delta repairs. `08574PC` requires five parent-summary operations;
+  its saved/candidate subtotal, taxable subtotal, tax, grand total, and amount due
+  are identical, and the repair does not write order-level financial authorities.
+- Focused evaluator, attestation, copy, access, and print-controller coverage
+  passes 53 tests / 161 assertions. `@gnd/sales` and Dashboard typechecks pass;
+  API, Jobs, and Notifications retain established unrelated baselines.
+- Authenticated in-app browser QA on `08574PC` confirms the guided modal at
+  desktop and 390x844, precise five-item findings, all-zero financial differences,
+  and cancellation that clears both the staged proposal and pending preview UI.
 
 ## 2026-09-01 — Sales completion projection and reporting parity
 

@@ -2036,12 +2036,13 @@ export function NewSalesForm(props: Props) {
 													Review the affected line items before saving. Opening this
 													form did not change or autosave the order.
 												</p>
-												<div className="mt-3 grid gap-2 sm:grid-cols-3">
+								<div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
 													{(
 														[
 															["Subtotal", "subTotal"],
-															["Tax", "taxTotal"],
-															["Grand total", "grandTotal"],
+													["Tax", "taxTotal"],
+													["Grand total", "grandTotal"],
+													["Amount due", "amountDue"],
 														] as const
 													).map(([label, key]) => (
 														<div key={key} className="rounded-md border border-rose-200 bg-white/70 p-2">

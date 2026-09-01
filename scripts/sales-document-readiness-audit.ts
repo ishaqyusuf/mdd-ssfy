@@ -56,12 +56,21 @@ const readinessSelect = {
 	tax: true,
 	grandTotal: true,
 	amountDue: true,
+	taxPercentage: true,
+	extraCosts: {
+		select: { type: true, amount: true, taxxable: true },
+	},
+	taxes: {
+		where: { deletedAt: null },
+		select: { taxxable: true },
+	},
 	items: {
 		where: { deletedAt: null },
 		select: {
 			id: true,
 			qty: true,
 			total: true,
+			meta: true,
 			formSteps: {
 				where: { deletedAt: null },
 				select: {
@@ -70,6 +79,7 @@ const readinessSelect = {
 					componentId: true,
 					prodUid: true,
 					value: true,
+					step: { select: { title: true } },
 				},
 			},
 			housePackageTool: {
@@ -135,6 +145,9 @@ async function main() {
 				savedSubtotal: evaluation.financial.saved.subTotalCents,
 				candidateSubtotal: evaluation.financial.candidate.subTotalCents,
 				subtotalDelta: evaluation.financial.subTotalDeltaCents,
+				grandTotalDelta: evaluation.financial.grandTotalDeltaCents,
+				taxDelta: evaluation.financial.taxDeltaCents,
+				amountDueDelta: evaluation.financial.amountDueDeltaCents,
 			};
 		});
 		const statusCounts: Record<string, number> = {};

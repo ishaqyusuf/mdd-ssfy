@@ -3,6 +3,7 @@ export const SALES_DOCUMENT_READINESS_VALIDATOR_VERSION =
 
 export type SalesDocumentFinancialSnapshot = {
 	subTotalCents: number | null;
+	taxableSubTotalCents: number | null;
 	taxCents: number | null;
 	grandTotalCents: number | null;
 	amountDueCents: number | null;
@@ -12,6 +13,10 @@ export type SalesDocumentFinancialComparison = {
 	saved: SalesDocumentFinancialSnapshot;
 	candidate: SalesDocumentFinancialSnapshot;
 	subTotalDeltaCents: number | null;
+	taxableSubTotalDeltaCents: number | null;
+	taxDeltaCents: number | null;
+	grandTotalDeltaCents: number | null;
+	amountDueDeltaCents: number | null;
 	totalChanged: boolean;
 };
 

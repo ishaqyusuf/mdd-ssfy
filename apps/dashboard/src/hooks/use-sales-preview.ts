@@ -34,6 +34,20 @@ export function useSalesPreview() {
 		dispatchId: parseAsInteger,
 	});
 	const opened = !!params.salesPreviewId && !!params.salesPreviewType;
+	function close() {
+		requestRef.current += 1;
+		return setParams({
+			salesPreviewId: null,
+			salesPreviewCustomerEmail: null,
+			salesPreviewCustomerName: null,
+			salesPreviewError: null,
+			salesPreviewRequest: null,
+			salesPreviewToken: null,
+			salesPreviewUrl: null,
+			salesPreviewType: null,
+			previewMode: null,
+		});
+	}
 
 	async function preview(
 		salesId: number | null | undefined,
@@ -81,8 +95,10 @@ export function useSalesPreview() {
 		} catch (error) {
 			if (!isCurrentPreviewRequest(requestId)) return;
 			if (isSalesDocumentPreflightRequiredError(error)) {
-				openSalesDocumentReadiness(error.readiness, () =>
-					preview(salesId, salesPreviewType, options),
+				openSalesDocumentReadiness(
+					error.readiness,
+					() => preview(salesId, salesPreviewType, options),
+					close,
 				);
 				return;
 			}
@@ -100,20 +116,7 @@ export function useSalesPreview() {
 		params,
 		opened,
 		setParams,
-		close() {
-			requestRef.current += 1;
-			setParams({
-				salesPreviewId: null,
-				salesPreviewCustomerEmail: null,
-				salesPreviewCustomerName: null,
-				salesPreviewError: null,
-				salesPreviewRequest: null,
-				salesPreviewToken: null,
-				salesPreviewUrl: null,
-				salesPreviewType: null,
-				previewMode: null,
-			});
-		},
+		close,
 		preview,
 	};
 }

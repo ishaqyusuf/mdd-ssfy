@@ -4,6 +4,7 @@ import { dealerSession, user, userId } from "@/app-deps/(v1)/_actions/utils";
 import { salesFormData } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/get-sales-form";
 import { ComponentPrice, prisma, Prisma } from "@/db";
 import { projectApprovedAdjustmentLegacyOrder } from "@gnd/sales/sales-form/application/approved-adjustment-projection";
+import { invalidateSalesDocumentReadiness } from "@gnd/sales/document-readiness";
 import dayjs from "dayjs";
 import { SalesMeta, SalesType, StepComponentMeta } from "../../types";
 import { SalesBookFormIncludes } from "../utils/db-utils";
@@ -142,13 +143,19 @@ export async function createSalesBookFormDataDta(
 async function formatForm(data: GetSalesBookFormDataDta) {
     const result = transformSalesBookForm(data);
     const { deleteDoors } = result;
-    if (deleteDoors?.length)
-        await prisma.dykeSalesDoors.updateMany({
+	if (deleteDoors?.length) {
+		const deleted = await prisma.dykeSalesDoors.updateMany({
             where: { id: { in: deleteDoors }, salesOrderId: data.order?.id },
             data: {
                 deletedAt: new Date(),
             },
         });
+		if (deleted.count && data.order?.id) {
+			await invalidateSalesDocumentReadiness(prisma, {
+				salesOrderId: data.order.id,
+			});
+		}
+	}
     const ctx = await salesFormData(true);
     const _taxForm = await salesTaxForm(
         data.order.taxes as any,

@@ -5,6 +5,7 @@ import {
 	DealerQuoteEditLockedError,
 	saveDealerPortalQuote as saveDealerPortalQuoteQuery,
 } from "@gnd/db/queries";
+import { prepareSalesDocumentReadiness } from "@gnd/sales/document-readiness";
 import { TRPCError } from "@trpc/server";
 
 /**
@@ -19,11 +20,17 @@ export async function saveDealerPortalQuote(
 	input: DealerPortalSaveQuoteSchema,
 ) {
 	try {
-		return await saveDealerPortalQuoteQuery(
+		const result = await saveDealerPortalQuoteQuery(
 			ctx.db,
 			dealerId,
 			input as DealerPortalSaveQuoteInput,
 		);
+		await prepareSalesDocumentReadiness(ctx.db, {
+			salesOrderId: result.id,
+			forceEvaluate: true,
+			stageProposal: true,
+		});
+		return result;
 	} catch (error) {
 		if (error instanceof DealerQuoteEditLockedError) {
 			throw new TRPCError({

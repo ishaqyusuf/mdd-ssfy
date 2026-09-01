@@ -914,6 +914,7 @@ function toBootstrapPayload(
 		subTotal: number | null;
 		tax: number | null;
 		grandTotal: number | null;
+		amountDue: number | null;
 		updatedAt: Date | null;
 		items: Array<{
 			id: number;
@@ -1243,11 +1244,13 @@ function toBootstrapPayload(
 		subTotal: roundMoney(order.subTotal ?? 0),
 		taxTotal: roundMoney(order.tax ?? 0),
 		grandTotal: roundMoney(order.grandTotal ?? 0),
+		amountDue: roundMoney(order.amountDue ?? 0),
 	};
 	const recalculatedFinancialSummary = {
 		subTotal: roundMoney(summary.subTotal ?? 0),
 		taxTotal: roundMoney(summary.taxTotal ?? 0),
 		grandTotal: roundMoney(summary.grandTotal ?? 0),
+		amountDue: roundMoney((summary.grandTotal ?? 0) - paymentTotal),
 	};
 	const financialDifference = {
 		subTotal: roundMoney(
@@ -1258,6 +1261,9 @@ function toBootstrapPayload(
 		),
 		grandTotal: roundMoney(
 			recalculatedFinancialSummary.grandTotal - savedFinancialSummary.grandTotal,
+		),
+		amountDue: roundMoney(
+			recalculatedFinancialSummary.amountDue - savedFinancialSummary.amountDue,
 		),
 	};
 
@@ -1579,6 +1585,7 @@ export async function getNewSalesForm(
 				subTotal: true,
 				tax: true,
 				grandTotal: true,
+				amountDue: true,
 				updatedAt: true,
 				meta: true,
 				payments: {
