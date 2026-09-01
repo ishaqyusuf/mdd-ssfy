@@ -6,6 +6,7 @@ import {
 	type SalesOrderLifecycleStatus,
 	getSalesOrderLifecycleStatusInfo,
 } from "./order-status";
+import { cancelFullWorkflowCompletionInTransaction } from "./sales-completion";
 import { resetSalesAction } from "./sales-control/actions";
 import { withSalesControl } from "./utils/with-sales-control";
 
@@ -794,6 +795,17 @@ export async function cancelSalesWorkflowLayer(
 					parsed.salesOrderId,
 				);
 			}
+			await cancelFullWorkflowCompletionInTransaction(tx, {
+				salesOrderId: parsed.salesOrderId,
+				milestone:
+					parsed.action === "production"
+						? "PRODUCTION_COMPLETED"
+						: "FULFILLMENT_COMPLETED",
+				requestId: parsed.requestId,
+				reason: parsed.reason,
+				cancelledAt,
+				actor,
+			});
 
 			const result: SalesWorkflowCancellationResult = {
 				requestId: parsed.requestId,

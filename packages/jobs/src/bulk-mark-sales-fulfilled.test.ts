@@ -45,5 +45,6 @@ describe("bulk mark sales fulfilled task contract", () => {
 			"bulk-mark-sales-fulfilled:${input.requestId}:${item.salesId}",
 		);
 		expect(source).toContain('idempotencyKeyTTL: "7d"');
+		expect(source).toContain("completionRequestId: input.requestId");
 	});
 });

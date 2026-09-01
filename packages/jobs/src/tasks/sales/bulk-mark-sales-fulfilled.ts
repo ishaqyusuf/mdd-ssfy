@@ -91,6 +91,7 @@ export const bulkMarkSalesFulfilled = schemaTask({
 						},
 						markAsCompleted: {
 							dispatchId: item.dispatchId,
+							completionRequestId: input.requestId,
 							receivedBy: input.actor.name,
 							receivedDate: new Date(),
 						},

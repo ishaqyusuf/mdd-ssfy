@@ -23,6 +23,17 @@
   `canonicalFulfilled`. Cancellation restores surviving explicit or operational
   Production evidence, otherwise unresolved state. The Status-only cancel
   command rejects Full-workflow provenance.
+- Ticket 05 adds an internal evidence-gated Full-workflow provenance service.
+  Production accepts only the shared operational Production projection;
+  Fulfillment accepts only completed proof on every item-bearing dispatch.
+  It writes one `FULL_WORKFLOW` completion record plus Sales History in a
+  serializable transaction after the operational commit, replays active records
+  under retries/races, and retains an active Status-only record without
+  rewriting its method.
+- Existing workflow-aware cancellation cancels matching Full provenance inside
+  its guarded reversal transaction. It ignores Status-only records; public
+  Status-only cancellation continues to reject Full provenance. No public input,
+  permission, or operational side-effect contract is relaxed.
 
 ## Bulk Production Completion Task (2026-08-29)
 

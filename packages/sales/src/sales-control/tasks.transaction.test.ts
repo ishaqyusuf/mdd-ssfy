@@ -20,11 +20,15 @@ const prepareProductionSubmissionMaterialReviewMock = mock(async () => ({
 }));
 const getSalesSettingMock = mock(async () => ({ data: {} }));
 const saveNoteMock = mock(async () => ({}));
+const recordFullWorkflowCompletionMock = mock(async () => ({
+	recorded: true,
+}));
 const getSaleInformationMock = mock(async () => ({
 	order: { id: 9001 },
 	items: [],
 }));
 const actualActions = await import("./actions");
+const actualSalesCompletion = await import("../sales-completion");
 
 function withNoPendingPackingReport<T extends Record<string, unknown>>(
 	target: T,
@@ -59,6 +63,11 @@ mock.module("./actions", () => ({
 	createSalesAssignmentAction: createSalesAssignmentActionMock,
 }));
 
+mock.module("../sales-completion", () => ({
+	...actualSalesCompletion,
+	recordFullWorkflowCompletionIfProven: recordFullWorkflowCompletionMock,
+}));
+
 mock.module("./get-sale-information", () => ({
 	getSaleInformation: getSaleInformationMock,
 }));
@@ -90,6 +99,7 @@ describe("sales-control task transactions", () => {
 		prepareProductionSubmissionMaterialReviewMock.mockClear();
 		getSalesSettingMock.mockClear();
 		saveNoteMock.mockClear();
+		recordFullWorkflowCompletionMock.mockClear();
 		getSaleInformationMock.mockClear();
 	});
 
@@ -172,6 +182,17 @@ describe("sales-control task transactions", () => {
 				}),
 			}),
 		);
+		expect(recordFullWorkflowCompletionMock).toHaveBeenCalledWith(
+			db,
+			expect.objectContaining({
+				salesOrderId: 500,
+				milestone: "FULFILLMENT_COMPLETED",
+				actor: { id: 12, name: "Driver" },
+			}),
+		);
+		expect(
+			recordFullWorkflowCompletionMock.mock.calls[0]?.[1],
+		).not.toHaveProperty("requestId");
 	});
 
 	it("submits pending-material work atomically and defers completion side effects", async () => {
@@ -247,6 +268,7 @@ describe("sales-control task transactions", () => {
 		);
 		expect(refreshAssignmentScope).toHaveBeenCalledWith(tx, 55);
 		expect(autoReviewSalesPaymentsForOrderActionMock).not.toHaveBeenCalled();
+		expect(recordFullWorkflowCompletionMock).not.toHaveBeenCalled();
 		expect(result).toEqual({
 			state: "pending_material_review",
 			reason: "AWAITING_INBOUND",
@@ -337,6 +359,14 @@ describe("sales-control task transactions", () => {
 			}),
 		);
 		expect(autoReviewSalesPaymentsForOrderActionMock).toHaveBeenCalledTimes(1);
+		expect(recordFullWorkflowCompletionMock).toHaveBeenCalledWith(
+			db,
+			expect.objectContaining({
+				salesOrderId: 9001,
+				milestone: "PRODUCTION_COMPLETED",
+				actor: { id: 12, name: "User 12" },
+			}),
+		);
 		expect(result).toEqual({
 			state: "finalized",
 			reason: null,
