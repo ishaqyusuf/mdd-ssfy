@@ -1,23 +1,24 @@
 # Database Migrations
 
-## Planned: Status-only sales completion (2026-09-01)
+## Status-only sales completion (2026-09-01)
 
-- No migration was generated or applied during Wayfinder planning.
-- The future additive migration creates `SalesCompletionRecord`, its enums or
-  bounded string contracts, actor/order relations, active-record uniqueness,
-  and query indexes.
-- It also idempotently ensures the permission rows `view status only sales
-  completion` and `edit status only sales completion` through the project's
-  established permission-catalog path.
-- It must not infer completion records from `SalesStat`, `SalesOrders.status`,
-  `SalesOrders.prodStatus`, `deliveredAt`, completed dispatches, or missing
-  workflow records. GND has no existing dedicated completion rows to backfill.
-- Verification must prove unchanged `SalesStat` counts/values, no inferred
-  completion records, exactly one active record per order/milestone under
-  concurrent writes, idempotent permission creation, and no lifecycle change
-  caused solely by the additive schema.
-- Any named historical exception requires a separately reviewed, auditable
-  migration.
+- Generated and locally applied additive migration
+  `20260901200350_add_sales_completion_record` against verified local database
+  `gnd-prisma2`. It creates `SalesCompletionRecord`, bounded enums, unique
+  request/cancellation/active identities, and projection/reporting indexes.
+- The migration idempotently inserts exactly `view status only sales
+  completion` and `edit status only sales completion` without assigning them to
+  any role. Live local checks found one active row for each permission and zero
+  seeded completion records.
+- The migration contains no insert/update/delete/alter against `SalesStat`,
+  `QtyControl`, production, inventory, dispatch, or `SalesOrders`, and does not
+  infer historical completion from legacy state. Contract tests enforce these
+  boundaries.
+- Prisma Client generation passed. The local schema push reported in sync while
+  the shared local database also contained two unrelated in-progress schema
+  fields from the main checkout; the review unit intentionally excludes those
+  unrelated migrations and did not rerun a destructive push after restoring
+  its scoped schema. No Preview or Production write occurred.
 
 ## 2026-08-30: Sales order delivery due-date default
 

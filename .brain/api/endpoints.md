@@ -1,5 +1,19 @@
 # API Endpoints
 
+## Status-only Production Completion (2026-09-01)
+
+- `sales.salesCompletionProjection` is a protected single-order read guarded by
+  `viewStatusOnlySalesCompletion`. It returns normalized operational and
+  administrative completion truth, provenance/history, revision, and
+  server-calculated actions.
+- `sales.markProductionCompletionStatusOnly` and
+  `sales.cancelProductionCompletionStatusOnly` are protected mutations guarded
+  by `editStatusOnlySalesCompletion`. Actor identity always comes from the
+  authenticated server context.
+- The mutations call the package-owned transactional completion commands. They
+  do not invoke production, inventory, dispatch, finance, notification,
+  commission, payout, or external workflow endpoints.
+
 ## Fulfillment Calendar Projection (2026-08-21)
 
 - `dispatch.fulfillmentCalendar` is a protected manager read used by the

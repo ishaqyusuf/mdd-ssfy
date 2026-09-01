@@ -1,5 +1,32 @@
 # Progress
 
+- 2026-09-01: Resolved Ticket 03 review finding P1. The completion resolver no
+  longer accepts legacy terminal order/fulfillment strings as canonical
+  Fulfilled or Production evidence. Canonical Fulfilled now requires an active
+  completed dispatch with persisted completed proof; that state is committed by
+  the existing atomic dispatch completion/inventory transaction. Operational
+  Production is derived independently from Production evidence, and every
+  item-bearing split dispatch must satisfy the proof/commit boundary. Five focused
+  negative/positive regressions pass, along with the Sales typecheck, scoped
+  Biome, and diff check. No dispatch, inventory, proof, schema, API, or
+  permission contract was mutated by the fix.
+
+- 2026-09-01: Implemented Ticket 03 of Status-only Sales Completion in its
+  isolated review unit. Authorized users can record and cancel an audited
+  Production administrative completion with Full workflow still selected by
+  default. The additive completion ledger, exact view/edit permissions,
+  normalized projection, transactional/idempotent commands, API enforcement,
+  and permission-aware Sales UI are complete without changing `SalesStat`,
+  `QtyControl`, assignments, submissions, inventory, dispatch, finance,
+  notifications, commissions, payouts, or external integrations. Migration
+  `20260901200350_add_sales_completion_record` was applied only to the verified
+  local database; Prisma generation and live permission/table invariant checks
+  passed. Focused validation passes 33 tests, `@gnd/db` and `@gnd/sales`
+  typechecks, scoped Biome, and `git diff --check`. The broad Dashboard
+  typecheck retains repository baseline diagnostics and reports no new
+  completion-surface diagnostics. Ticket 03 is ready for Brain review; Tickets
+  04-07 remain dependency-blocked.
+
 - 2026-09-01: Repaired one-click fulfillment for Sales order `09543PC`. The
   dependency resolver now accepts handle-aware submissions whose legacy raw
   aggregate quantity is negative, production/read projections reject linked

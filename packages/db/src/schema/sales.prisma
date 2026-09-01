@@ -109,6 +109,7 @@ model SalesOrders {
     packingReports    SalesPackingReport[]
     adjustments       SalesOrderAdjustment[]
     workflowCancellations SalesWorkflowCancellation[]
+    completionRecords SalesCompletionRecord[]
     specialOrderRequests SpecialOrderApprovalRequest[]
     specialOrderEvidence SpecialOrderApprovalEvidence[] @relation(name: "SpecialOrderEvidence")
     handoffActionEpochs SalesHandoffActionEpoch[]
@@ -552,6 +553,50 @@ model SalesHistory {
     deletedAt  DateTime?    @db.Timestamp(0)
 
     @@index([salesId])
+}
+
+enum SalesCompletionMilestone {
+    PRODUCTION_COMPLETED
+    FULFILLMENT_COMPLETED
+}
+
+enum SalesCompletionMethod {
+    STATUS_ONLY
+    FULL_WORKFLOW
+}
+
+enum SalesCompletionRecordState {
+    ACTIVE
+    CANCELLED
+}
+
+model SalesCompletionRecord {
+    id                    String                     @id @default(cuid())
+    requestId             String                     @unique @db.VarChar(64)
+    cancellationRequestId String?                    @unique @db.VarChar(64)
+    salesOrderId          Int
+    milestone             SalesCompletionMilestone
+    completionMethod      SalesCompletionMethod
+    state                 SalesCompletionRecordState @default(ACTIVE)
+    activeKey             String?                    @unique @db.VarChar(191)
+    effectiveAt           DateTime?                  @db.Timestamp(0)
+    recordedAt            DateTime                   @default(now()) @db.Timestamp(0)
+    recordedById          Int
+    cancelledAt           DateTime?                  @db.Timestamp(0)
+    cancelledById         Int?
+    cancellationReason    String?                    @db.Text
+    createdAt             DateTime                   @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime                   @updatedAt
+    order                 SalesOrders                @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+    recordedBy            Users                      @relation(name: "salesCompletionRecordsRecorded", fields: [recordedById], references: [id], onDelete: Restrict)
+    cancelledBy           Users?                     @relation(name: "salesCompletionRecordsCancelled", fields: [cancelledById], references: [id], onDelete: Restrict)
+
+    @@index([salesOrderId, state, milestone])
+    @@index([completionMethod, recordedAt])
+    @@index([milestone, effectiveAt])
+    @@index([state, cancelledAt])
+    @@index([recordedById, recordedAt])
+    @@index([cancelledById, cancelledAt])
 }
 
 enum SalesPriority {

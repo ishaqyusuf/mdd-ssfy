@@ -2,11 +2,10 @@
 
 ## Status
 
-Approved for end-to-end implementation on 2026-09-01. Product intent and
-Q1–Q15 acceptance decisions are preserved, the GND lifecycle-compatibility
-ticket is closed, and the candidate specification is the implementation
-authority. Ticket breakdown approval remains the required checkpoint before
-publishing the implementation review units.
+In Progress. The approved five-ticket ordered stack is published. Ticket 03 is
+reviewed and approved as the completed first stack item. Product intent,
+Q1–Q15 acceptance decisions, and the closed GND compatibility boundary remain
+the implementation authority for Tickets 04-07.
 
 ## Canonical artifacts
 
@@ -36,8 +35,7 @@ publishing the implementation review units.
 
 ## Next step
 
-Approve and publish the tracer-bullet ticket breakdown, then create ordered
-Brain handoffs and queue items. Implementation order remains Schema -> API ->
-UI -> Validation -> Polish inside each applicable slice. The active Codex Goal
-remains open until every selected review unit is approved, landed, documented,
+Create and implement the Ticket 04 stack-item handoff from the landed Ticket 03
+state. Each successor starts only after its predecessor is approved. The active
+Codex Goal remains open until all five review units are approved, documented,
 and reconciled.
