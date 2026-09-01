@@ -25,7 +25,7 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ### Sales Document Preflight And Guided Repair
 - Priority: High
-- Description: Track the shared preview/print/PDF/email preflight, staged repair proposal, zero-commercial-delta guided apply, financial-drift editor handoff, and new Sales Form saved-versus-recalculated warning in `.brain/plans/2026-09-01-feature-sales-document-preflight-and-guided-repair.md`.
+- Description: Track the revisioned readiness-attestation fast path, shared preview/print/PDF/email preflight, staged repair proposal, zero-commercial-delta guided apply, financial-drift editor handoff, and new Sales Form saved-versus-recalculated warning in `.brain/plans/2026-09-01-feature-sales-document-preflight-and-guided-repair.md`.
 - Related Feature: Sales document generation, delivery, and relational repair
 - Status: Roadmap
 - Plan Status: Proposed

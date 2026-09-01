@@ -1,5 +1,17 @@
 # Progress
 
+- 2026-09-01: Extended the proposed Sales document preflight plan with a
+  revisioned readiness-attestation fast path. Valid new saves stamp readiness
+  transactionally, repaired legacy orders stamp it after post-write invariant
+  checks, and repeated preview/print/PDF/email actions use one bounded order-row
+  gate instead of rerunning the deep relational evaluator. Matching unresolved
+  revisions reuse their existing staged proposal; commercial mutations or a
+  validator-version bump force a fresh evaluation. The preferred design uses
+  explicit scalar revision/version gate fields with detailed evidence in
+  `SalesOrders.meta`, subject to a complete writer audit; a JSON-only gate is
+  retained as a no-schema alternative. No application code, schema, or Sales
+  data changed in this planning update.
+
 - 2026-09-01: Reconciled Ticket 04 with concurrent main Brain documentation
   after the guarded landing merge conflicted in append-only progress history.
   Both histories, the Sales document preflight plan/roadmap update, and the
