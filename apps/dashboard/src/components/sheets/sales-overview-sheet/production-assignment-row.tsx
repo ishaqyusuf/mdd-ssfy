@@ -137,13 +137,11 @@ function Content({
 		hasPendingAssignmentQuantity: false,
 		hasPendingSubmissionQuantity,
 	});
-	const hasSubmissions = Boolean(assignment.submissions?.length);
 	const orderFulfilled =
 		getSalesOverviewDocumentStatus(saleOverview.data).status === "fulfilled";
 	const assignmentDeletionRestriction =
 		getProductionAssignmentDeleteRestriction({
 			orderFulfilled,
-			hasSubmissions,
 			dispatchMode: Boolean(queryCtx.dispatchMode),
 		});
 	if (view === "submissions") {

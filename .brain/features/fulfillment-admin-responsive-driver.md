@@ -63,8 +63,13 @@ may Ticket 01 be marked complete and Ticket 02 become the active frontier.
 - The canonical `/sales-book/fulfillment/v2` summary now derives lifecycle
   stages from `OrderDelivery.status` instead of rebuilding all historical item
   controls for every request. The full control fan-out consumed roughly 12
-  seconds across 3,518 production dispatches and intermittently drove
-  `dispatch.workspaceSummary` to HTTP 500.
+  seconds across 3,518 production dispatches; it was a material latency
+  regression but not the observed exception.
+- Sentry confirmed the HTTP 500 root cause was production `TZ=:UTC` being passed
+  directly to `Intl.DateTimeFormat`. The shared Dispatch date boundary now
+  normalizes POSIX-style zones, validates the result, and safely falls back to
+  the canonical business timezone. The repair covers both
+  `dispatch.workspaceSummary` and `dispatch.list`, including due/risk filters.
 - Explicit dispatch states are authoritative. In particular, `missing items`
   remains Packing blocked instead of being masked by a legacy `unknown` control
   projection.
@@ -74,7 +79,8 @@ may Ticket 01 be marked complete and Ticket 02 become the active frontier.
 - Tab count badges appear after hydration so a streamed summary cannot create a
   server/client markup mismatch. Summary cards and the overdue alert share one
   query consumer.
-- Focused validation passes 13 tests / 154 assertions. Authenticated local
+- Focused validation passes 19 tests / 168 assertions; `@gnd/sales` typecheck
+  passes. Authenticated local
   browser QA confirmed summary cards, overdue alert, tabs/filter toolbar, and
   table with no visible fallback and no console error. Production deployment
   and post-deploy Vercel/Sentry monitoring remain pending.

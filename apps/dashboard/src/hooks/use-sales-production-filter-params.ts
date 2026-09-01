@@ -8,7 +8,12 @@ import {
 	SALES_PRODUCTION_WORKSPACE_TAB_PARAMS,
 	SALES_PRODUCTION_WORKSPACE_VIEWS,
 } from "@sales/production-workspace-query";
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
+import {
+	parseAsArrayOf,
+	parseAsInteger,
+	parseAsString,
+	useQueryStates,
+} from "nuqs";
 import { createLoader, createParser, parseAsStringLiteral } from "nuqs/server";
 
 import { operationsCalendarViews } from "@/components/operations-calendar/range";
@@ -37,6 +42,8 @@ export const salesProductionFilterParamsSchema = {
 	item: parseAsString,
 	"sales.rep": parseAsString,
 	invoice: parseAsStringLiteral(["paid", "pending"] as const),
+	dateRange: parseAsArrayOf(parseAsString),
+	"production.dueDate": parseAsArrayOf(parseAsString),
 	tab: parseAsStringLiteral(SALES_PRODUCTION_WORKSPACE_TAB_PARAMS),
 	view: parseAsStringLiteral(SALES_PRODUCTION_WORKSPACE_VIEWS),
 	calendarView: parseAsStringLiteral(operationsCalendarViews).withDefault(

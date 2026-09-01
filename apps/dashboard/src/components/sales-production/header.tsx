@@ -36,7 +36,7 @@ const workspaceFilters = [
 	},
 	{
 		key: "due",
-		label: "Due date",
+		label: "Due status",
 		icon: "calendar",
 		type: "single-select",
 		options: [
@@ -48,6 +48,18 @@ const workspaceFilters = [
 			...option,
 			color: getStatusFilterOptionColor(option.value),
 		})),
+	},
+	{
+		key: "production.dueDate",
+		label: "Production due date",
+		icon: "calendar",
+		type: "date-range",
+	},
+	{
+		key: "dateRange",
+		label: "Order date",
+		icon: "calendar",
+		type: "date-range",
 	},
 	{
 		key: "material",
@@ -66,7 +78,7 @@ const workspaceFilters = [
 	},
 	{
 		key: "sort",
-		label: "Sort",
+		label: "Sort by",
 		icon: "Sort",
 		type: "single-select",
 		options: [
@@ -134,7 +146,12 @@ export function SalesProductionHeader() {
 			? []
 			: isCompleted
 				? workspaceFilters.filter(({ key }) =>
-						["material", "sort"].includes(key),
+						[
+							"production.dueDate",
+							"dateRange",
+							"material",
+							"sort",
+						].includes(key),
 					)
 				: workspaceFilters;
 	const activeServerFilters = isReview
@@ -164,8 +181,10 @@ export function SalesProductionHeader() {
 					"queue",
 					"due",
 					"date",
+					"dateRange",
 					"material",
 					"sort",
+					"production.dueDate",
 					"productionDueDate",
 					"show",
 					"label",
@@ -182,8 +201,10 @@ export function SalesProductionHeader() {
 						"queue",
 						"due",
 						"date",
+						"dateRange",
 						"material",
 						"sort",
+						"production.dueDate",
 					]
 				: isCompleted
 					? ["queue", "due", "date", "productionDueDate", "show", "label"]
@@ -217,8 +238,10 @@ export function SalesProductionHeader() {
 											queue: null,
 											due: null,
 											date: null,
+											dateRange: null,
 											material: null,
 											sort: null,
+											"production.dueDate": null,
 											assignedToId: null,
 											priority: null,
 										}

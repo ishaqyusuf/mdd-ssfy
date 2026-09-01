@@ -223,6 +223,12 @@
   lifecycle projector's queue/assignment fallback. Response fields,
   dispatch-manager authorization, backlog authority, driver permission filter,
   and guarded-packing exception count are unchanged.
+- Dispatch due-date APIs accept runtime timezone configuration through the
+  shared date boundary. POSIX-style names with a leading colon are normalized
+  (for example, `:UTC` becomes `UTC`), recognized zones are retained, and empty
+  or invalid values fall back to `America/New_York`. Invalid deployment
+  configuration must not turn `dispatch.workspaceSummary`, `dispatch.list`, or
+  their due/risk filters into transport errors.
 - `dispatch.backlog` returns eligible delivery/pickup orders with no active
   non-cancelled dispatch. Rows include order title/number, customer,
   delivery-mode, nullable order-level `deliveryDueDate`, and status metadata
@@ -829,7 +835,12 @@ Tracks important request/response contracts and shared schema boundaries.
     `calendarDate: "YYYY-MM-DD"` URL state
   - `queue`, `due`, `material`, and `sort` workspace filters mapped by the
     shared `@gnd/sales/production-workspace-query` resolver to the existing
-    production list input
+    production list input; `sort=due-asc|due-desc` is also controlled by the
+    Due Date table header
+  - table calendar ranges use `production.dueDate` for active assignment due
+    dates and `dateRange` for Sales order creation dates. Worker production
+    due-date ranges retain authenticated assignee scoping; both ranges reuse
+    the existing shared date-preset and explicit-range input shape
   - `show: "due-today" | "due-tomorrow" | "past-due" | "future" | "unscheduled"` for focused list slices; `future` means incomplete assignments due from tomorrow forward, `unscheduled` means incomplete assignments whose due date is null, and combined views retain the canonical search, queue, material, sort, and cursor inputs
   - `date` and `productionDueDate` accept real ISO `YYYY-MM-DD` values only; invalid legacy URL values normalize away before calendar rendering
   - `sales.productionSummary` returns the canonical page's bounded queue, completed, assignment, due, and review counts without loading alert rows or calendar data

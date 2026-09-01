@@ -12,6 +12,21 @@ type DueDateOptions = {
 	timeZone?: string;
 };
 
+export function resolveDispatchTimeZone(timeZone?: string | null) {
+	const configured = timeZone?.trim();
+	const candidate = configured?.startsWith(":")
+		? configured.slice(1)
+		: configured;
+	if (!candidate) return DEFAULT_DISPATCH_TIME_ZONE;
+
+	try {
+		new Intl.DateTimeFormat("en-US", { timeZone: candidate });
+		return candidate;
+	} catch {
+		return DEFAULT_DISPATCH_TIME_ZONE;
+	}
+}
+
 function dateParts(value: Date, timeZone: string) {
 	const parts = new Intl.DateTimeFormat("en-CA", {
 		timeZone,
@@ -63,7 +78,7 @@ function zonedMidnightUtc(
 
 export function getDispatchDateBoundaries(options: DueDateOptions = {}) {
 	const now = options.now ?? new Date();
-	const timeZone = options.timeZone ?? DEFAULT_DISPATCH_TIME_ZONE;
+	const timeZone = resolveDispatchTimeZone(options.timeZone);
 	const current = dateParts(now, timeZone);
 	const calendarDay = (offset: number) => {
 		const value = new Date(
@@ -88,19 +103,27 @@ function parseDueDate(value: Date | string | null | undefined) {
 	return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function getDispatchDueBucket(
-	dueDate: Date | string | null | undefined,
-	options: DueDateOptions = {},
+function getDispatchDueBucketInTimeZone(
+	due: Date | null,
+	now: Date,
+	timeZone: string,
 ): DispatchDueBucket {
-	const due = parseDueDate(dueDate);
 	if (!due) return "unscheduled";
-	const now = options.now ?? new Date();
-	const timeZone = options.timeZone ?? DEFAULT_DISPATCH_TIME_ZONE;
 	const difference = dayNumber(due, timeZone) - dayNumber(now, timeZone);
 	if (difference < 0) return "overdue";
 	if (difference === 0) return "today";
 	if (difference === 1) return "tomorrow";
 	return "upcoming";
+}
+
+export function getDispatchDueBucket(
+	dueDate: Date | string | null | undefined,
+	options: DueDateOptions = {},
+): DispatchDueBucket {
+	const due = parseDueDate(dueDate);
+	const now = options.now ?? new Date();
+	const timeZone = resolveDispatchTimeZone(options.timeZone);
+	return getDispatchDueBucketInTimeZone(due, now, timeZone);
 }
 
 export function getDispatchDuePresentation(
@@ -109,8 +132,8 @@ export function getDispatchDuePresentation(
 ) {
 	const due = parseDueDate(dueDate);
 	const now = options.now ?? new Date();
-	const timeZone = options.timeZone ?? DEFAULT_DISPATCH_TIME_ZONE;
-	const bucket = getDispatchDueBucket(due, { now, timeZone });
+	const timeZone = resolveDispatchTimeZone(options.timeZone);
+	const bucket = getDispatchDueBucketInTimeZone(due, now, timeZone);
 	if (!due) {
 		return {
 			bucket,
@@ -142,6 +165,8 @@ export function summarizeDriverWorkQueue(
 	}>,
 	options: DueDateOptions = {},
 ) {
+	const timeZone = resolveDispatchTimeZone(options.timeZone);
+	const now = options.now ?? new Date();
 	const byDueBucket: Record<DispatchDueBucket, number> = {
 		overdue: 0,
 		today: 0,
@@ -151,7 +176,9 @@ export function summarizeDriverWorkQueue(
 	};
 	const byStatus: Record<string, number> = {};
 	for (const row of rows) {
-		byDueBucket[getDispatchDueBucket(row.dueDate, options)] += 1;
+		byDueBucket[
+			getDispatchDueBucketInTimeZone(parseDueDate(row.dueDate), now, timeZone)
+		] += 1;
 		const status = row.status?.trim();
 		if (status) byStatus[status] = (byStatus[status] || 0) + 1;
 	}

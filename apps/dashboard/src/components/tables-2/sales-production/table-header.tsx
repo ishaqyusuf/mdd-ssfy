@@ -13,7 +13,7 @@ import {
 } from "@/components/tables-2/core";
 import { DraggableHeader } from "@/components/tables-2/draggable-header";
 import { ResizeHandle } from "@/components/tables-2/resize-handle";
-import { useSortQuery } from "@/hooks/use-sort-query";
+import { useSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import type { TableId } from "@/utils/table-settings";
@@ -27,7 +27,7 @@ import { cn } from "@gnd/ui/cn";
 import { TableHead, TableHeader, TableRow } from "@gnd/ui/table";
 import type { Header, Table } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 interface Props<TData> {
 	table?: Table<TData>;
@@ -54,7 +54,32 @@ export function DataTableHeader<TData>({
 	showColumnDividers = false,
 	stickyColumns = tableConfig.stickyColumns,
 }: Props<TData>) {
-	const { sortColumn, sortValue, createSortQuery } = useSortQuery();
+	const { filters, setFilters } = useSalesProductionFilterParams();
+	const sortColumn =
+		filters.sort === "due-asc" || filters.sort === "due-desc"
+			? "dueDate"
+			: undefined;
+	const sortValue =
+		filters.sort === "due-asc"
+			? "asc"
+			: filters.sort === "due-desc"
+				? "desc"
+				: undefined;
+	const createSortQuery = useCallback(
+		(field: string) => {
+			if (field !== "dueDate") return;
+
+			void setFilters({
+				sort:
+					filters.sort === "due-asc"
+						? "due-desc"
+						: filters.sort === "due-desc"
+							? null
+							: "due-asc",
+			});
+		},
+		[filters.sort, setFilters],
+	);
 	const { getStickyStyle, getStickyClassName, isVisible } = useStickyColumns({
 		table,
 		loading,

@@ -62,6 +62,8 @@ type WorkspaceInput = {
 	item?: string | null;
 	"sales.rep"?: string | null;
 	invoice?: string | null;
+	dateRange?: string[] | null;
+	"production.dueDate"?: string[] | null;
 	priority?: string | null;
 	production?: string | null;
 	productionDueDate?: string | null;
@@ -73,7 +75,7 @@ type WorkspaceInput = {
 	size?: number | null;
 };
 
-type ProductionListInput = Record<string, string | number>;
+type ProductionListInput = Record<string, string | number | string[]>;
 
 const SORT_MAP: Record<string, string> = {
 	priority: "priority",
@@ -109,6 +111,8 @@ export function resolveSalesProductionWorkspaceQuery(input: WorkspaceInput) {
 	copyString(list, "item", input.item);
 	copyString(list, "sales.rep", input["sales.rep"]);
 	copyString(list, "invoice", input.invoice);
+	copyArray(list, "dateRange", input.dateRange);
+	copyArray(list, "production.dueDate", input["production.dueDate"]);
 	copyString(list, "priority", input.priority);
 	copyString(list, "salesNo", input.salesNo);
 	copyNumber(list, "size", input.size);
@@ -202,4 +206,12 @@ function copyNumber(
 	value: number | null | undefined,
 ) {
 	if (value != null) target[key] = value;
+}
+
+function copyArray(
+	target: ProductionListInput,
+	key: string,
+	value: string[] | null | undefined,
+) {
+	if (value?.length) target[key] = value;
 }

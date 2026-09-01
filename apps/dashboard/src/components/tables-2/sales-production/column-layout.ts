@@ -3,7 +3,7 @@ import type { StickyColumnConfig } from "@/components/tables-2/core";
 type SalesProductionColumnContext = {
 	tab: string;
 	view: string;
-	list: Record<string, string | number>;
+	list: Record<string, unknown>;
 };
 
 export function getActiveSalesProductionStickyColumns(

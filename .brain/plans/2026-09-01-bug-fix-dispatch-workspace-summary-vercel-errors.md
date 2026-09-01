@@ -22,18 +22,25 @@ sales, payment, inventory, employee, or request-input data.
 - Deployment `dpl_GmE68nty8FKG5UMmyPi3WoU26oYi`, created at 10:12:03 WAT,
   serves `www.gndprodesk.com` and contains current `master` at `75e3fd963`,
   including the fulfillment expansion in `529b8490c`.
-- Vercel request logs do not include the exception body for the Dispatch 500s.
-  The exact public reference is not indexed there. Both project-local Sentry
-  token profiles were tested through the read-only API on 2026-09-01 and
-  returned HTTP 403 for `gnd-52/gnd-prodesk-web`; they do not provide the
-  required project/event read access. The underlying exception therefore
-  remains unconfirmed until a properly scoped token or a privacy-safe stage
-  probe identifies it.
+- Vercel request logs do not include the exception body for the Dispatch 500s,
+  and the screenshot's public reference is not indexed there. A user-provided
+  local read-only Sentry token confirmed the exception without exposing event
+  request or identity context.
 - The production database must remain read-only during diagnosis unless a
   separate guarded migration action is explicitly approved.
 
 ## Implementation Outcome
 
+- Sentry confirms the primary exception is `TRPCError: Invalid time zone
+  specified: :UTC` at `dateParts` in
+  `packages/sales/src/dispatch-manifest/driver-work-queue.ts`. Production Node
+  exposes the valid POSIX-style value `:UTC`, but `Intl.DateTimeFormat` requires
+  `UTC` or another recognized IANA identifier.
+- The shared Dispatch date boundary now trims configuration, removes the POSIX
+  leading colon, validates the resulting zone with `Intl.DateTimeFormat`, and
+  falls back to the canonical `America/New_York` business zone for an empty or
+  malformed value. This one boundary protects `dispatch.workspaceSummary`,
+  `dispatch.list`, list risk/due filters, driver due labels, and queue summaries.
 - A bounded read-only production probe reproduced a successful summary over
   3,518 dispatches and isolated `withDispatchListControl` as the dominant stage:
   roughly 11.9-12.2 seconds of a 16.4-second request. The five base reads were
@@ -55,7 +62,9 @@ sales, payment, inventory, employee, or request-input data.
 - Summary and overdue presentation share one query consumer. Count badges wait
   until client hydration before appearing, preventing streamed data from
   changing the first client markup.
-- Focused API and cutover coverage passes 13 tests / 154 assertions. Scoped
+- Focused sales-domain, API, and cutover coverage passes 19 tests / 168
+  assertions, including `:UTC` and malformed-zone regression cases. The
+  `@gnd/sales` typecheck and scoped checks for the new timezone code pass. Scoped
   Biome checks and `git diff --check` pass. Authenticated local-browser QA shows
   the summary, overdue alert, tabs/filter toolbar, and table with zero visible
   error fallbacks and zero console errors.
@@ -102,18 +111,33 @@ sales, payment, inventory, employee, or request-input data.
 
 ### P0: Dispatch workspace failure
 
-- Final snapshot count: 16 HTTP 500 responses.
+- Latest Vercel snapshot at 13:42:51 WAT: 27 direct HTTP 500 responses and two
+  batched HTTP 207 responses containing `dispatch.workspaceSummary`.
 - Route: `GET /api/trpc/dispatch.workspaceSummary`.
 - Environment/branch: production / `master`.
-- Deployment: `dpl_GmE68nty8FKG5UMmyPi3WoU26oYi` only.
+- Deployments: 19 direct 500s on `dpl_GmE68nty8FKG5UMmyPi3WoU26oYi`; eight
+  direct 500s and two batched 207 responses on the newer
+  `dpl_BwRZqUygon1m3muoyRiCp8GCgnod`.
 - First occurrence: 12:20:04 WAT.
-- Last occurrence in the snapshot: 12:37:56 WAT.
+- Last occurrence in the snapshot: 13:42:51 WAT. The error remains active in
+  production until this local repair is deployed.
 - Two initial retry clusters were visible at 12:20:04-12:20:18 and
   12:27:46-12:29:15 WAT; later retries raised the count from 12 to 16.
 - No other production 5xx route appeared in the same Lagos-day window.
 - Vercel classified the request rows as `info` with empty messages despite the
   500 status. `--level error --level fatal` returned no exception event.
 - Searching Vercel for `ERR-F583F79ACC` returned no result.
+- Sentry issue
+  [GND-PRODESK-WEB-3T](https://gnd-52.sentry.io/issues/7704376387/) confirms 22
+  events between 12:20:07 and 13:30:59 WAT with the exception
+  `TRPCError: Invalid time zone specified: :UTC`, application frame
+  `dateParts(packages/sales/src/dispatch-manifest/driver-work-queue)`, and
+  production releases including `75e3fd963`.
+- The same root affects `dispatch.list`: Sentry issue
+  [GND-PRODESK-WEB-3N](https://gnd-52.sentry.io/issues/7697667326/) had 210
+  cumulative events and was still receiving production occurrences at
+  13:40:47 WAT. A shared-domain repair is therefore required; a summary-only
+  catch would leave the primary table broken.
 
 ### P1: obsolete Server Action request storm
 
@@ -127,25 +151,18 @@ sales, payment, inventory, employee, or request-input data.
   action did not execute; stale tabs or cached clients are continuously
   retrying a server-reference hash absent from the current build.
 
-## Regression Boundary And Leading Hypotheses
+## Confirmed Root Cause And Contributory Regression
 
-Commit `529b8490c` changed `getDispatchWorkspaceSummary` from four simple reads
-and an in-memory lifecycle projection to five concurrent reads followed by a
-second database-backed control projection. The new failure candidates are:
+The direct cause is deterministic: API callers select
+`BUSINESS_TIME_ZONE || TZ || "America/New_York"`; production supplies `TZ=:UTC`;
+the shared Dispatch date utility passed that POSIX spelling directly to
+`Intl.DateTimeFormat`, which throws a `RangeError` that tRPC surfaces as a 500.
 
-1. `salesPackingReport.groupBy({ by: ["orderDeliveryId"] })`.
-2. `users.count()` using `whereEmployees({ can: ["viewDelivery"], cannot:
-   ["editOrders"] })`.
-3. `withDispatchListControl()`, which fans out through sales item controls,
-   quantity controls, dispatches, and delivery items before projecting summary
-   stages.
-4. Production schema compatibility for the guarded-packing and delivery-date
-   migrations. Schema drift is plausible because the Brain records a
-   production synchronization on 2026-08-24, while later migrations were
-   applied locally and documented as still requiring the normal hosted
-   workflow. It is not yet proven to be the failing branch.
-5. Production-data scale or one legacy record shape triggering the new control
-   projection. There is no focused test for `workspaceSummary` today.
+Commit `529b8490c` also introduced a second database-backed control projection
+that fans out through historical sales item and quantity control graphs. It is
+not the observed exception, but a bounded production probe measured roughly
+12 seconds over 3,518 dispatches. Removing it remains a valid, independently
+tested latency and lifecycle-authority repair.
 
 ## Detailed Execution Plan
 
@@ -172,13 +189,13 @@ still unknown; do not guess which Promise branch failed.
 
 ### Phase 1: Recover the hidden exception safely
 
-- [ ] Replace or separately configure the current 403-returning Sentry tooling
+- [x] Replace or separately configure the current 403-returning Sentry tooling
   token with a local read-only token containing `project:read`, `event:read`,
   and `org:read`; never paste or commit the token.
-- [ ] Search the `gnd-52/gnd-prodesk-web` production project for
+- [x] Search the `gnd-52/gnd-prodesk-web` production project for
   `ERR-F583F79ACC`, the 12:20-12:38 WAT window, release `75e3fd963`, and route
   `dispatch.workspaceSummary`.
-- [ ] Record only the exception type, symbolicated application frame, release,
+- [x] Record only the exception type, symbolicated application frame, release,
   environment, and occurrence count; redact user, email, IP, URL query, and
   request context.
 - [ ] If Sentry has no matching event, add temporary privacy-safe stage
@@ -190,72 +207,59 @@ still unknown; do not guess which Promise branch failed.
 - [ ] Remove or downgrade temporary high-volume diagnostics after confirmation;
   retain the bounded correlation log permanently.
 
-Validation gate: one failing request must resolve to exactly one named summary
-stage and one searchable reference before the permanent fix is selected.
+Validation gate met: the failing request resolves to shared `dateParts` and
+Sentry issues `GND-PRODESK-WEB-3T`/`GND-PRODESK-WEB-3N`.
 
 ### Phase 2: Isolate the failing summary dependency
 
-- [ ] Add a focused test harness for `getDispatchWorkspaceSummary` with each
-  database dependency independently injectable or mockable.
-- [ ] Run the existing baseline reads first:
-  - active `OrderDelivery` projection;
-  - Sales backlog count;
-  - open `DispatchException` count.
-- [ ] Probe each newly introduced dependency separately:
-  - pending `SalesPackingReport` groups;
-  - delivery-capable non-manager driver count;
-  - `withDispatchListControl` enrichment.
-- [ ] For the control enrichment, measure and label its internal reads:
-  `SalesItemControl`, `QtyControl`, `OrderDelivery`, and `OrderItemDelivery`.
-- [ ] Reproduce against Preview's production-like fixture first. If the failure
-  requires production-only data, request separate approval for a bounded,
-  read-only production probe using counts and schema metadata only.
-- [ ] Add cases for zero dispatches, dispatches without item controls, nullable
-  legacy control flags, cancelled rows, pickup rows, missing due dates, and a
-  representative high row count.
+- [x] Correlate the symbolicated Sentry frame with both affected tRPC routes and
+  verify both call the same Dispatch date boundary.
+- [x] Trace runtime selection to
+  `BUSINESS_TIME_ZONE || TZ || "America/New_York"` and confirm the production
+  value captured in the exception is `:UTC`.
+- [x] Reproduce the throw at the shared utility boundary and add a direct API
+  summary success harness.
+- [x] Separately measure the historical control enrichment over representative
+  production scale; retain its removal as a performance/authority fix, not as
+  the exception diagnosis.
+- [x] Search all Dispatch due-bucket, presentation, boundary, and summary call
+  paths so the fix protects list filters as well as summary cards.
 
-Decision point: select exactly one root-cause branch below based on the observed
-exception and stage; avoid shipping several speculative changes together.
+Decision point resolved: repair timezone parsing at the shared domain boundary.
 
 ### Phase 3: Verify production schema compatibility
 
-- [ ] Run a credential-safe, read-only schema diff/status check against the
-  guarded production fingerprint.
-- [ ] Verify table/column/index compatibility for:
-  - `DispatchException` from `20260818110000_dispatch_exceptions`;
-  - `SalesPackingReport` from
-    `20260823100000_paid_sales_operational_handoff`;
-  - nullable production-submission and `salesItemControlUid` changes from
-    `20260828163603_guarded_packing_awaiting_production`;
-  - `SalesOrders.deliveryDueDate` from
-    `20260830110000_add_sales_delivery_due_date`.
-- [ ] If production is behind, generate no handwritten SQL. Use the repository's
-  guarded `bun run db:migrate --prod`/`db:push --prod` workflow, verify the
-  printed target fingerprint, and obtain explicit confirmation before the
-  production write.
-- [ ] Re-run read-only schema status after any approved migration and record the
-  result in `.brain/database/migrations.md`.
-
-Validation gate: the deployed Prisma Client and production schema must agree
-before testing application-level query changes.
+- [x] Close the schema-drift branch for this incident: Sentry identifies an
+  application-only `Intl.DateTimeFormat` exception before schema-dependent
+  result handling, and the repair changes no database query or model.
+- [x] Require no migration, production data write, or environment mutation for
+  the timezone repair.
+- [ ] Reopen the guarded schema checklist only if Preview or post-deploy evidence
+  reveals an independent Prisma/schema error.
 
 ### Phase 4: Implement the smallest permanent Dispatch fix
 
+- [x] Normalize POSIX-style runtime zones (`:UTC` -> `UTC`) at the shared
+  Dispatch date boundary, validate configured zones, and use the documented
+  business-zone fallback for malformed configuration.
+- [x] Add regression cases proving `:UTC` does not throw, preserves UTC calendar
+  semantics, and malformed values fall back deterministically.
 - [ ] If `SalesPackingReport.groupBy` is the failure, replace it with a bounded,
   indexed count/group query compatible with the deployed schema and add the
   exact database regression case.
 - [ ] If `whereEmployees` is the failure, replace the ambiguous `cannot` role
   relation filter with a tested permission query that counts each eligible
   driver once and preserves `requireDispatchManager` behavior.
-- [ ] If `withDispatchListControl` is the failure, create a summary-specific
+- [x] Independently remove `withDispatchListControl` from the summary and create
+  a summary-specific
   aggregate read instead of enriching every dispatch through full control
   graphs. Keep lifecycle truth in `@gnd/sales` and bound query count/payload.
 - [ ] If one non-authoritative metric is unavailable, render the operational
   list and primary actions while showing that metric as unavailable. Do not
   silently coerce authoritative backlog, packing, or lifecycle truth to zero.
-- [ ] Split the page's summary from list/calendar error boundaries so an
+- [x] Split the page's summary from list/calendar error boundaries so an
   optional summary-card error cannot blank the full Dispatch workspace.
-- [ ] Preserve current authorization, dispatch lifecycle, packing authority,
+- [x] Preserve current authorization, dispatch lifecycle, packing authority,
   inventory authority, and driver-assignment rules.
 
 ### Phase 5: Stop obsolete Server Action retries
@@ -276,9 +280,9 @@ before testing application-level query changes.
 
 ### Phase 6: Validation and release gates
 
-- [ ] Add direct `workspaceSummary` success coverage and per-stage failure
-  coverage; assert the public error envelope retains a searchable reference.
-- [ ] Run the narrow API/Dispatch tests, scoped lint/format checks, and
+- [x] Add direct `workspaceSummary` success coverage and shared timezone
+  regression coverage.
+- [x] Run the narrow API/Dispatch tests, scoped lint/format checks, and
   `@gnd/sales` plus relevant Dashboard/API typechecks.
 - [ ] Run a production-shaped Preview build using the same Bun, Prisma Client,
   Vercel config, and environment contract as production.
@@ -302,9 +306,9 @@ before testing application-level query changes.
 
 - `vercel-deploy`: supplied Vercel project/deployment workflow context while
   the live investigation used authenticated read-only CLI log queries.
-- `sentry`: defined and attempted the privacy-safe, read-only correlation path
-  for the public error reference; both configured profiles returned HTTP 403,
-  so execution is pending a properly scoped local token.
+- `sentry`: supplied the privacy-safe, read-only correlation path that confirmed
+  the exact exception, application frame, affected routes, releases, and event
+  counts after the local token was replaced with a properly scoped token.
 - `plan`: structured the incident response into explicit dependencies,
   decision points, validation gates, and implementation checklists.
 - Project Brain integration: aligned the plan with GND's dispatch authority,
@@ -312,8 +316,9 @@ before testing application-level query changes.
 
 ## Risks and Mitigations
 
-- **Wrong root cause due to hidden exception:** require Sentry or named-stage
-  evidence before editing.
+- **Wrong root cause due to hidden exception:** mitigated by the symbolicated
+  Sentry application frame and matching route/release timestamps; require zero
+  new occurrences after deployment before resolving either issue.
 - **Production schema mutation during diagnosis:** use read-only status/diff
   first and require a separate confirmed guarded command for writes.
 - **Masking correctness failures with fallback zeros:** degrade only explicitly

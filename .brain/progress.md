@@ -1,26 +1,48 @@
 # Progress
 
+- 2026-09-01: Removed the submission-stage deletion restriction from Production
+  assignments. An assignment with existing submissions can again use the
+  existing authenticated assignment-delete action; fulfilled-order and
+  dispatch-mode deletion locks remain unchanged. Updated the focused deletion
+  policy coverage. No API, database, permission, or mutation contract changed.
+
+- 2026-09-01: Added production queue date controls. The Due Date table header
+  now cycles the canonical earliest/latest/default server ordering, and Active
+  plus Completed tables expose URL-backed calendar-range filters for Production
+  due date and Order date. Due-date ranges stay scoped to active assignments
+  (and the authenticated assignee on worker reads), while order-date ranges use
+  the existing Sales order creation-date contract. Review and Calendar views
+  clear or hide the table-only date ranges. Added focused workspace-query
+  contract coverage; no database, migration, permission, or mutation behavior
+  changed.
+
 - 2026-09-01: Inspected authenticated Vercel production logs for the Lagos-day
   window after a Dispatch screenshot reported `ERR-F583F79ACC`. Deployment
-  `dpl_GmE68nty8FKG5UMmyPi3WoU26oYi` produced 16 HTTP 500 responses exclusively
-  from `dispatch.workspaceSummary` between 12:20:04 and 12:37:56 WAT. Vercel
+  `dpl_GmE68nty8FKG5UMmyPi3WoU26oYi` and its successor produced 27 direct HTTP
+  500 responses plus two batched 207 responses containing
+  `dispatch.workspaceSummary` between 12:20:04 and 13:42:51 WAT. Vercel
   retained no exception message or searchable public reference for those rows.
-  Follow-up read-only Sentry API attempts through both locally configured token
-  profiles returned HTTP 403 for `gnd-52/gnd-prodesk-web`, so a token with
-  `project:read`, `event:read`, and `org:read` remains an explicit evidence
-  gate. The same deployment
-  also produced at least 1,000 capped 404 warnings from stale clients posting a
-  missing Server Action hash to `/sales-book/orders`. Added the read-only
+  A replacement local read-only Sentry token confirmed
+  `TRPCError: Invalid time zone specified: :UTC` at shared Dispatch `dateParts`:
+  issue `GND-PRODESK-WEB-3T` had 22 summary events, while related issue
+  `GND-PRODESK-WEB-3N` had 210 cumulative `dispatch.list` events and remained
+  active at 13:40:47 WAT. Added shared timezone normalization and validation so
+  POSIX `:UTC` becomes `UTC` and malformed configuration falls back safely;
+  this protects summary, list, date filtering, labels, and queue aggregates.
+  The deployment also produced at least 1,000 capped 404 warnings from stale
+  clients posting a missing Server Action hash to `/sales-book/orders`. Added the read-only
   evidence and phased fix checklist in
   `.brain/plans/2026-09-01-bug-fix-dispatch-workspace-summary-vercel-errors.md`.
   A subsequent bounded production probe isolated the historical dispatch
-  control projection at roughly 12 seconds across 3,518 rows. Repaired the
+  control projection at roughly 12 seconds across 3,518 rows. Although this was
+  not the Sentry-confirmed exception, repaired the
   summary to use canonical `OrderDelivery` lifecycle state, preserved explicit
   Packing blocked status, made summary/section prefetches concurrent, split
   summary and operational data into independent error/Suspense boundaries, and
-  stabilized tab counts across hydration. Focused validation passes 13 tests /
-  154 assertions; authenticated local-browser QA shows the complete workspace
-  with no visible fallback or console error. Production deployment and
+  stabilized tab counts across hydration. Focused validation passes 19 tests /
+  168 assertions and the `@gnd/sales` typecheck passes; authenticated
+  local-browser QA shows the complete workspace with no visible fallback or
+  console error. Production deployment and
   monitoring remain pending, and no database, migration, configuration, or
   production data write was performed. The stale Server Action loop remains a
   separately scoped P1 follow-up.

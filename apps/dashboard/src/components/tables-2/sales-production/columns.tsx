@@ -65,6 +65,7 @@ const dueDateColumn: Column = {
 		sticky: true,
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Due Date",
+		sortField: "dueDate",
 		className: sizeClass(
 			sizes.custom(140, 200, 160),
 			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",

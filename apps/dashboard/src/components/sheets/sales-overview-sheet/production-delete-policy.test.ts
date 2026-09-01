@@ -38,19 +38,20 @@ describe("production delete restrictions", () => {
 		);
 	});
 
-	test("locks progressed or fulfilled assignments", () => {
-		assert.match(
+	test("allows assignments to be deleted before fulfillment or dispatch", () => {
+		assert.equal(
 			getProductionAssignmentDeleteRestriction({
 				orderFulfilled: false,
-				hasSubmissions: true,
 				dispatchMode: false,
-			}) || "",
-			/moved to the submission stage/,
+			}),
+			null,
 		);
+	});
+
+	test("locks fulfilled assignments", () => {
 		assert.match(
 			getProductionAssignmentDeleteRestriction({
 				orderFulfilled: true,
-				hasSubmissions: true,
 				dispatchMode: true,
 			}) || "",
 			/fulfilled order/,
@@ -68,7 +69,6 @@ describe("production delete restrictions", () => {
 		assert.equal(
 			getProductionAssignmentDeleteRestriction({
 				orderFulfilled: false,
-				hasSubmissions: false,
 				dispatchMode: false,
 			}),
 			null,

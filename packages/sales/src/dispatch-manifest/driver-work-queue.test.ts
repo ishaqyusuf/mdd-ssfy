@@ -2,9 +2,10 @@ import { describe, expect, it } from "bun:test";
 
 import {
 	DEFAULT_DISPATCH_TIME_ZONE,
-	getDispatchDueBucket,
 	getDispatchDateBoundaries,
+	getDispatchDueBucket,
 	getDispatchDuePresentation,
+	resolveDispatchTimeZone,
 	summarizeDriverWorkQueue,
 } from "./driver-work-queue";
 
@@ -18,15 +19,15 @@ describe("driver work queue due dates", () => {
 				timeZone: DEFAULT_DISPATCH_TIME_ZONE,
 			}),
 		).toBe("overdue");
-		expect(
-			getDispatchDueBucket("2026-08-06T18:00:00.000Z", { now }),
-		).toBe("today");
-		expect(
-			getDispatchDueBucket("2026-08-07T18:00:00.000Z", { now }),
-		).toBe("tomorrow");
-		expect(
-			getDispatchDueBucket("2026-08-12T18:00:00.000Z", { now }),
-		).toBe("upcoming");
+		expect(getDispatchDueBucket("2026-08-06T18:00:00.000Z", { now })).toBe(
+			"today",
+		);
+		expect(getDispatchDueBucket("2026-08-07T18:00:00.000Z", { now })).toBe(
+			"tomorrow",
+		);
+		expect(getDispatchDueBucket("2026-08-12T18:00:00.000Z", { now })).toBe(
+			"upcoming",
+		);
 		expect(getDispatchDueBucket(null, { now })).toBe("unscheduled");
 	});
 
@@ -34,10 +35,10 @@ describe("driver work queue due dates", () => {
 		expect(
 			getDispatchDuePresentation("2026-07-30T16:00:00.000Z", { now }),
 		).toEqual({
-				bucket: "overdue",
-				dateLabel: "Delivery due Jul 30",
-				statusLabel: "7 days overdue",
-			});
+			bucket: "overdue",
+			dateLabel: "Delivery due Jul 30",
+			statusLabel: "7 days overdue",
+		});
 	});
 
 	it("summarizes the complete server result instead of one paginated page", () => {
@@ -76,5 +77,27 @@ describe("driver work queue due dates", () => {
 		expect(boundaries.startAfterTomorrow.toISOString()).toBe(
 			"2026-08-08T04:00:00.000Z",
 		);
+	});
+
+	it("normalizes POSIX-style UTC from the runtime environment", () => {
+		expect(resolveDispatchTimeZone(":UTC")).toBe("UTC");
+		expect(
+			getDispatchDueBucket("2026-08-07T00:30:00.000Z", {
+				now: new Date("2026-08-06T23:30:00.000Z"),
+				timeZone: ":UTC",
+			}),
+		).toBe("tomorrow");
+	});
+
+	it("falls back to the business timezone for invalid configuration", () => {
+		expect(resolveDispatchTimeZone("not/a-time-zone")).toBe(
+			DEFAULT_DISPATCH_TIME_ZONE,
+		);
+		expect(() =>
+			getDispatchDateBoundaries({
+				now,
+				timeZone: "not/a-time-zone",
+			}),
+		).not.toThrow();
 	});
 });

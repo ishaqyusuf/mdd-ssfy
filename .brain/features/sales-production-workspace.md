@@ -24,6 +24,20 @@ Provide a cleaner production operations surface for both admins and production w
   due date retains the stronger primary-filled treatment. When today is also
   selected, the selected treatment remains visually dominant.
 
+## Queue date controls (2026-09-01)
+
+- The production table's Due Date header is connected to the canonical
+  production sort. Repeated activation cycles through earliest due date,
+  latest due date, and the default ordering.
+- Active and Completed production tables expose shared calendar-range filters
+  for Production due date and Order date. The controls retain the existing
+  date presets and write their values to URL state so filtered queues survive
+  refresh and can be shared.
+- Production due-date ranges filter active assignment due dates through
+  `production.dueDate`; order-date ranges filter `SalesOrders.createdAt`
+  through the existing `dateRange` contract. Review and Calendar workspaces do
+  not retain these table-only filters.
+
 ## Assignment detail alignment (2026-08-30)
 
 - Sales Overview assignment facts are top-aligned so assignee, due date, and
@@ -109,6 +123,9 @@ Provide a cleaner production operations surface for both admins and production w
   tablet/desktop widths.
 - Search, queue, due, assignee, priority, material, sort, and column controls
   appear only where their underlying view supports them.
+- Table filters include calendar ranges for Production due date and Order date;
+  the Due Date column header uses the same URL-owned sort state as the Sort by
+  menu.
 - Ready requires 100% assigned production quantity, at least one active owned
   assignment, no active unowned assignment, and available materials.
   Unassigned includes null-owner assignment rows. Combined due views preserve
@@ -209,8 +226,9 @@ Provide a cleaner production operations surface for both admins and production w
     internally to the queue-backed calendar workspace
   - `view=table|calendar`
   - `calendarView=week|month` and `calendarDate=YYYY-MM-DD`
-  - `queue`, `q`, `assignedToId`, `priority`, `due`, `date`, `material`, and
-    `sort`; `due=unscheduled` selects orders with an active undated assignment
+  - `queue`, `q`, `assignedToId`, `priority`, `due`, `date`, `dateRange`,
+    `production.dueDate`, `material`, and `sort`; `due=unscheduled` selects
+    orders with an active undated assignment
 - Legacy `production`, `show`, `productionDueDate`, `salesNo`, `label`, and
   `date` values are normalized by
   `@gnd/sales/production-workspace-query`.
@@ -577,6 +595,9 @@ Provide a cleaner production operations surface for both admins and production w
 - Due-date editing and guarded assignment deletion are independent icon actions
   immediately before the disclosure chevron, so using either control does not
   expand or collapse the assignment. Fulfilled orders lock both actions.
+  Existing submissions do not lock assignment deletion; assignment deletion
+  remains unavailable once the order is fulfilled or while dispatch mode is
+  active.
 - Expanding one assignment reveals an indented, background-free submission
   region headed `Submissions (X of Y)`. Its only header action is an icon-only
   add-submission button, which disables after the full assigned quantity is

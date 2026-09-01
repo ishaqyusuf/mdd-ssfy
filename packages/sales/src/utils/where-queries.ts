@@ -408,6 +408,19 @@ export function whereSales(query: SalesQueryParamsSchema) {
 					},
 				});
 				break;
+			case "production.dueDate":
+				where.push({
+					assignments: {
+						some: {
+							deletedAt: null,
+							assignedToId: assignedToId || undefined,
+							dueDate: transformFilterDateToQuery(
+								query["production.dueDate"]!,
+							),
+						},
+					},
+				});
+				break;
 		}
 	});
 

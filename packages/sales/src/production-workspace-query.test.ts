@@ -83,6 +83,30 @@ describe("sales production workspace query", () => {
 		).toBe(true);
 	});
 
+	it("preserves production due-date and order-date calendar ranges", () => {
+		expect(
+			resolveSalesProductionWorkspaceQuery({
+				dateRange: ["2026-08-01", "2026-08-31"],
+				"production.dueDate": ["2026-09-01", "2026-09-15"],
+			}),
+		).toEqual({
+			tab: "queue",
+			view: "table",
+			list: {
+				dateRange: ["2026-08-01", "2026-08-31"],
+				"production.dueDate": ["2026-09-01", "2026-09-15"],
+				production: "pending",
+			},
+		});
+
+		expect(
+			salesProductionQueryParamsSchema.safeParse({
+				dateRange: ["2026-08-01", "2026-08-31"],
+				"production.dueDate": ["2026-09-01", "2026-09-15"],
+			}).success,
+		).toBe(true);
+	});
+
 	it("keeps supported material and sort controls on the completed queue", () => {
 		expect(
 			resolveSalesProductionWorkspaceQuery({
