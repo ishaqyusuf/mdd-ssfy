@@ -13824,3 +13824,52 @@
 - Regenerated `bun.lock` with Bun `1.3.14`, matching Vercel's build runtime. The
   exact filtered dashboard frozen install now passes, and the following Prisma
   CI client-generation step also passes with a non-secret validation URL.
+
+## 2026-08-31 — Repaired recurring quote/editor/Preview divergence
+
+- Reproduced quote `03523PC` with three simultaneous authorities: editor-visible
+  collapsed rows, stale persisted header totals, and print-selected legacy
+  relational revisions. A targeted relational audit found duplicate active form
+  steps; direct read-back proved the parent HPT/item totals referenced a door
+  row absent from the active relational children.
+- Added red regressions for canonical collapsed-summary precedence, one-row-per-
+  logical-step hydration, financial door reconciliation, and conflicting print
+  step revisions. The focused suite is green at 11 tests / 17 assertions.
+- Save normalization now collapses workflow steps by logical step before the
+  identity-preserving relational diff. Hydration no longer trusts stored totals
+  when canonical collapsed lines disagree, and financial quote/invoice print
+  fails closed instead of emitting an internally inconsistent document.
+- Used the already-open form's guarded Save, reloaded through the canonical
+  relational loader, and saved once more to retire the alternate Jamb/Hinge
+  rows and persist the recalculated HPT row. Direct database read-back and HTML
+  Preview now agree on Item 1 `$999.85`, subtotal `$2,336.53`, tax `$169.51`,
+  and grand total `$2,591.04`; Preview contains no `$438.66` legacy row or
+  Brushed Brass configuration.
+- No schema, migration, permission, production deployment, email, or external
+  integration change was made.
+
+## 2026-08-31 — Sales save-choice delay
+
+- Extended the visible Save choice window from three seconds to five seconds
+  before it defaults to Draft.
+- Desktop floating actions and the mobile sales-form shell now derive their
+  countdown and timeout from the same shared timing contract.
+- Background Autosave remains a separate opt-in feature and its debounce was
+  not changed.
+
+## 2026-09-01 — Visible multi-door House Package Tool sections
+
+- Rechecked quote `03523PC` in the authenticated editor and generated Preview.
+  Both agree on Item 1 `$999.85`, subtotal `$2,336.53`, tax `$169.51`, Delivery
+  `$85.00`, and total `$2,591.04`; Preview also shows the corrected 1LITE row at
+  `$76.27`.
+- Removed the obsolete lower-left package-workflow developer checkbox without
+  changing the existing environment, URL, or stored rollback selection.
+- Replaced the HPT host-level single-active-door presentation with stacked
+  panels. Each selected door now renders through an independently scoped card,
+  preserving its image, actions, available sizes, price resolution, and row
+  mutations in both the dashboard-local and shared package workflow hosts.
+- Added focused source regressions for stacked multi-door rendering and the
+  removed developer toggle. The HPT suite passes 9 tests; the combined
+  capability run also exposed one unrelated pre-existing source-contract
+  failure for a missing tooltip wrapper.

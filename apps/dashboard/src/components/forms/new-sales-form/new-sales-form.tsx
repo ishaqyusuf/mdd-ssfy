@@ -3,7 +3,6 @@
 import { triggerEvent } from "@/actions/events";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
-import { Env } from "@/components/env";
 import type { SalesHistoryEntry } from "@/components/sales-hx";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
@@ -189,37 +188,6 @@ function resolveInitialPackageWorkflowPanelEnabled() {
     if (stored === "package") return true;
     if (stored === "legacy") return false;
     return envDefault;
-}
-
-function persistPackageWorkflowPanelPreference(enabled: boolean) {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(
-        PACKAGE_WORKFLOW_PANEL_STORAGE_KEY,
-        enabled ? "package" : "legacy",
-    );
-}
-
-function PackageWorkflowPanelDevToggle({
-    enabled,
-    onChange,
-}: {
-    enabled: boolean;
-    onChange: (enabled: boolean) => void;
-}) {
-    return (
-        <Env isDev>
-            <div className="fixed bottom-3 left-3 z-50 rounded-lg border bg-background/95 p-2 text-xs shadow-lg">
-                <label className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        checked={enabled}
-                        onChange={(event) => onChange(event.target.checked)}
-                    />
-                    <span>Package workflow panel</span>
-                </label>
-            </div>
-        </Env>
-    );
 }
 
 function getLineTitlePlaceholder(line: {
@@ -476,13 +444,9 @@ export function NewSalesForm(props: Props) {
         useState<SalesHistoryEntry | null>(null);
     const [busyHistoryId, setBusyHistoryId] = useState<number | null>(null);
 	const legacyInventoryAdaptation = useLegacyInventoryAdaptationTask();
-    const [usePackageWorkflowPanel, setUsePackageWorkflowPanelState] = useState(
+    const [usePackageWorkflowPanel] = useState(
         resolveInitialPackageWorkflowPanelEnabled,
     );
-    const setUsePackageWorkflowPanel = useCallback((enabled: boolean) => {
-        setUsePackageWorkflowPanelState(enabled);
-        persistPackageWorkflowPanelPreference(enabled);
-    }, []);
     const record = useNewSalesFormStore((s) => s.record);
     const dirty = useNewSalesFormStore((s) => s.dirty);
     const saveStatus = useNewSalesFormStore((s) => s.saveStatus);
@@ -1942,10 +1906,6 @@ export function NewSalesForm(props: Props) {
                 surface="new"
                 type={props.type}
                 mode={props.mode}
-            />
-            <PackageWorkflowPanelDevToggle
-                enabled={usePackageWorkflowPanel}
-                onChange={setUsePackageWorkflowPanel}
             />
 			<SalesChangeReviewSheet
 				open={changeReviewOpen}

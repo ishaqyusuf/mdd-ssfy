@@ -21,8 +21,9 @@ flag back to legacy.
 - Per-browser override:
   - URL: `?packageWorkflowPanel=legacy`
   - Local storage key: `gnd:new-sales-form:package-workflow-panel`
-- Dev UI:
-  - Uncheck the package workflow panel dev toggle.
+
+The temporary package-workflow developer checkbox was removed on 2026-09-01;
+operators should use the environment or URL override for rollback.
 
 ## Rollback Triggers
 

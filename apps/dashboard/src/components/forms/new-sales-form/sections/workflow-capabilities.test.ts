@@ -188,12 +188,23 @@ describe("Dashboard sales form workflow capabilities", () => {
 		);
 
 		expect(source).toContain("onAddDoor={");
-		expect(source).toContain("[line.uid]: doorStepIndex");
+		expect(source).toContain("activateLineStep(line.uid, doorStepIndex)");
 		expect(hptSource).toContain('aria-label="Add door"');
 		expect(hptSource).toContain("onClick={props.onAddDoor}");
 		expect(sharedWorkflowPanelSource).toContain("onAddDoor={");
 		expect(sharedWorkflowPanelSource).toContain(
 			'setActiveStep(String(line.uid || ""), doorStepIndex)',
 		);
+	});
+
+	test("does not render the package workflow developer toggle", () => {
+		const source = readFileSync(
+			new URL("../new-sales-form.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source).not.toContain("PackageWorkflowPanelDevToggle");
+		expect(source).not.toContain("Package workflow panel</span>");
+		expect(source).toContain("usePackageWorkflowPanel");
 	});
 });

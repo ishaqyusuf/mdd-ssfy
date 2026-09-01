@@ -37,8 +37,9 @@ Browser/runtime QA remains intentionally later in the roadmap.
 - Operator override:
   - URL: `?packageWorkflowPanel=package` or `?packageWorkflowPanel=legacy`.
   - Local storage key: `gnd:new-sales-form:package-workflow-panel`.
-- Dev toggle:
-  - The existing dev-only checkbox still switches the same local preference.
+- The temporary dev-only panel checkbox was removed on 2026-09-01. Runtime
+  selection remains controlled by the environment, URL, or an existing stored
+  preference.
 - Rollback:
   - `brain/dashboard-new-sales-form-rollback-plan.md`
 

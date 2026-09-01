@@ -47,7 +47,10 @@ function isNewerRevision(
 	);
 }
 
-export function getLatestFormSteps(item: PrintSalesItem): PrintFormStep[] {
+export function getLatestFormSteps(
+	item: PrintSalesItem,
+	options: { requireSingleRevision?: boolean } = {},
+): PrintFormStep[] {
 	const latestByStep = new Map<
 		string,
 		{ index: number; step: PrintFormStep }
@@ -62,6 +65,16 @@ export function getLatestFormSteps(item: PrintSalesItem): PrintFormStep[] {
 			? String(stepIdentity)
 			: `form-step:${String(step.id)}`;
 		const current = latestByStep.get(key);
+		if (
+			current &&
+			options.requireSingleRevision &&
+			formStepRevisionSignature(step) !==
+				formStepRevisionSignature(current.step)
+		) {
+			throw new Error(
+				`Sales item ${item.id} form-step revisions do not reconcile. Save or repair this sale before printing.`,
+			);
+		}
 
 		if (!current || isNewerRevision(step, current.step)) {
 			latestByStep.set(key, { index, step });
@@ -71,6 +84,14 @@ export function getLatestFormSteps(item: PrintSalesItem): PrintFormStep[] {
 	return [...latestByStep.values()]
 		.sort((left, right) => left.index - right.index)
 		.map(({ step }) => step);
+}
+
+function formStepRevisionSignature(step: PrintFormStep) {
+	return JSON.stringify({
+		componentId: getNumber(step.componentId),
+		prodUid: String(step.prodUid || "").trim(),
+		value: String(step.value || "").trim(),
+	});
 }
 
 function getDoorQuantity(door: PrintDoor) {
@@ -95,12 +116,19 @@ function getDoorTotalCents(door: PrintDoor) {
  * only when the newest rows reconcile exactly to the persisted item quantity
  * and total; otherwise preserve every row rather than guessing.
  */
-export function getCurrentHousePackageDoors(item: PrintSalesItem): PrintDoor[] {
+export function getCurrentHousePackageDoors(
+	item: PrintSalesItem,
+	options: { requireReconciliation?: boolean } = {},
+): PrintDoor[] {
 	const doors = item.housePackageTool?.doors || [];
 	const targetQty = getNumber(item.qty);
 	const targetTotal = getNumber(item.total);
 
-	if (doors.length < 2 || targetQty === null || targetTotal === null) {
+	if (!doors.length) return doors;
+	if (targetQty === null || targetTotal === null) {
+		if (options.requireReconciliation) {
+			throwUnreconciledDoorRows(item);
+		}
 		return doors;
 	}
 
@@ -133,7 +161,12 @@ export function getCurrentHousePackageDoors(item: PrintSalesItem): PrintDoor[] {
 
 	for (const candidate of newestFirst) {
 		const doorTotalCents = getDoorTotalCents(candidate.door);
-		if (doorTotalCents === null) return doors;
+		if (doorTotalCents === null) {
+			if (options.requireReconciliation) {
+				throwUnreconciledDoorRows(item);
+			}
+			return doors;
+		}
 
 		selected.push(candidate);
 		selectedQty += getDoorQuantity(candidate.door);
@@ -146,11 +179,23 @@ export function getCurrentHousePackageDoors(item: PrintSalesItem): PrintDoor[] {
 		}
 
 		if (selectedQty > targetQty || selectedTotalCents > targetTotalCents) {
+			if (options.requireReconciliation) {
+				throwUnreconciledDoorRows(item);
+			}
 			return doors;
 		}
 	}
 
+	if (options.requireReconciliation) {
+		throwUnreconciledDoorRows(item);
+	}
 	return doors;
+}
+
+function throwUnreconciledDoorRows(item: PrintSalesItem): never {
+	throw new Error(
+		`Sales item ${item.id} door rows do not reconcile with its saved quantity and total. Save or repair this sale before printing.`,
+	);
 }
 
 function findStep(item: PrintSalesItem, title: string) {

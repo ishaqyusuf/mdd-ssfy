@@ -18,6 +18,10 @@ import {
 } from "react";
 import type { MouseEvent, ReactElement, ReactNode } from "react";
 import type { SalesFormCapabilities, SalesFormPermissions } from "../contracts";
+import {
+	SALES_FORM_SAVE_CHOICE_DELAY_MS,
+	SALES_FORM_SAVE_CHOICE_DELAY_SECONDS,
+} from "./save-choice-timing";
 
 export type SalesFormFloatingActionsVisibilityInput = {
 	isSaved?: boolean;
@@ -144,7 +148,9 @@ function FloatingSaveChoice({
 	onSaveNew?: () => Promise<void> | void;
 }) {
 	const [optionsOpen, setOptionsOpen] = useState(false);
-	const [countdown, setCountdown] = useState(3);
+	const [countdown, setCountdown] = useState(
+		SALES_FORM_SAVE_CHOICE_DELAY_SECONDS,
+	);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -181,12 +187,15 @@ function FloatingSaveChoice({
 	const openOptions = () => {
 		if (isSaving) return;
 		clearTimers();
-		setCountdown(3);
+		setCountdown(SALES_FORM_SAVE_CHOICE_DELAY_SECONDS);
 		setOptionsOpen(true);
 		intervalRef.current = setInterval(() => {
 			setCountdown((current) => Math.max(1, current - 1));
 		}, 1000);
-		timeoutRef.current = setTimeout(() => runSave("draft"), 3000);
+		timeoutRef.current = setTimeout(
+			() => runSave("draft"),
+			SALES_FORM_SAVE_CHOICE_DELAY_MS,
+		);
 	};
 
 	useEffect(() => clearTimers, []);

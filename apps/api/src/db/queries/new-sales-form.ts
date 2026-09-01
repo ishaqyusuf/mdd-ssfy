@@ -493,14 +493,15 @@ function legacyShelfMeta(shelf: any, index: number) {
 }
 
 function salesFormStepIdentity(step: any) {
-	return [
-		Number(step?.stepId || step?.step?.id || 0),
-		Number(step?.componentId || 0),
-		String(step?.prodUid || "").trim(),
-	].join("|");
+	const stepId = Number(step?.stepId || step?.step?.id || 0);
+	if (stepId > 0) return `step:${stepId}`;
+	const title = normalizeSalesFormTitle(step?.step?.title);
+	return title ? `title:${title}` : `row:${Number(step?.id || 0)}`;
 }
 
-function collapseDuplicateRelationalFormSteps<T extends { id?: number | null }>(
+export function collapseDuplicateRelationalFormSteps<
+	T extends { id?: number | null },
+>(
 	steps: T[],
 ) {
 	const rows = new Map<string, T>();
@@ -1345,7 +1346,11 @@ export function resolvePersistedHydratedSalesSummary<
 		relationalSubTotal != null &&
 		order.subTotal != null &&
 		relationalSubTotal !== roundMoney(order.subTotal);
-	if (storedRelationalDrift) return computed;
+	const canonicalSubTotalDrift =
+		relationalItems.length > 0 &&
+		order.subTotal != null &&
+		roundMoney(computed.subTotal) !== roundMoney(order.subTotal);
+	if (storedRelationalDrift || canonicalSubTotalDrift) return computed;
 
 	const storedSubTotal =
 		order.subTotal == null ? computed.subTotal : Number(order.subTotal);
@@ -3168,13 +3173,17 @@ async function saveNewSalesFormInternal(
 				: null
 			: null;
 	const normalizedLines = normalizeLineItems(payload.lineItems).map((line) => {
+		const normalizedLine = {
+			...line,
+			formSteps: collapseDuplicateRelationalFormSteps(line.formSteps || []),
+		};
 		const doors = line.housePackageTool?.doors || [];
 		return !doors.length
-			? line
+			? normalizedLine
 			: {
-					...line,
+					...normalizedLine,
 					housePackageTool: {
-						...line.housePackageTool!,
+						...normalizedLine.housePackageTool!,
 						doors: doors.map((door) => ({
 							...door,
 							dimension: normalizeSalesDoorDimension(door.dimension),

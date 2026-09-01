@@ -17,7 +17,7 @@
 7. Extract `WorkflowProvider` from `SalesFormWorkflowPanel` to own active item/step, search, custom-component mode, door tab state, route/component queries, and derived workflow data.
 8. Split workflow rendering into compound panels for root picker, step component picker, door, HPT, shelf, moulding, service, flat-line editor, and dialogs.
 9. Move `www`-only admin workflow behavior into a host provider for component editing, uploads, door-size variants, supplier mutations, redirects, and step meta updates.
-10. Remove the legacy `ItemWorkflowPanel` and package-panel dev toggle once package workflow parity is validated.
+10. Remove the legacy `ItemWorkflowPanel` once package workflow parity is validated. The package-panel developer toggle was removed on 2026-09-01; environment, URL, and stored overrides remain available for rollback.
 11. Validate after each slice with focused sales-form tests, `bun run test:new-sales-form-migration`, and manual smoke for create/edit quote/order, autosave/recovery, print/preview, payment, packing, and workflow step families.
 
 ### Resume Prompt

@@ -36,7 +36,9 @@ export function composeDoorSections(
     if (!item.housePackageTool) continue;
     if (seen.has(item.id)) continue;
 
-    const currentFormSteps = getLatestFormSteps(item);
+    const currentFormSteps = getLatestFormSteps(item, {
+      requireSingleRevision: config.showPrices,
+    });
     const currentItem = { ...item, formSteps: currentFormSteps };
     const doorType = getSalesItemType(currentItem);
     if (!doorType) continue;
@@ -127,9 +129,13 @@ export function composeDoorSections(
     const rows: DoorRow[] = [];
     let rowNum = 0;
     for (const m of multis) {
-      const currentDoors = getCurrentHousePackageDoors(m);
+      const currentDoors = getCurrentHousePackageDoors(m, {
+        requireReconciliation: config.showPrices,
+      });
       if (!currentDoors.length) continue;
-      const currentMultiFormSteps = getLatestFormSteps(m);
+      const currentMultiFormSteps = getLatestFormSteps(m, {
+        requireSingleRevision: config.showPrices,
+      });
       for (const door of currentDoors) {
         rowNum++;
         const doorTitle =

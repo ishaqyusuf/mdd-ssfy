@@ -4,6 +4,10 @@
 import { Button } from "@gnd/ui/button";
 import { useEffect, useRef, useState } from "react";
 import type { SalesFormComposition } from "../../contracts";
+import {
+	SALES_FORM_SAVE_CHOICE_DELAY_MS,
+	SALES_FORM_SAVE_CHOICE_DELAY_SECONDS,
+} from "../save-choice-timing";
 import { SalesFormSummarySidebar } from "../summary/invoice-summary-sidebar";
 
 function currency(value?: number | null) {
@@ -31,7 +35,9 @@ function MobileCountdownSave({
 	onSaveNew?: () => Promise<void> | void;
 }) {
 	const [optionsOpen, setOptionsOpen] = useState(false);
-	const [countdown, setCountdown] = useState(3);
+	const [countdown, setCountdown] = useState(
+		SALES_FORM_SAVE_CHOICE_DELAY_SECONDS,
+	);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -68,12 +74,15 @@ function MobileCountdownSave({
 	const openOptions = () => {
 		if (disabled || isSaving) return;
 		clearTimers();
-		setCountdown(3);
+		setCountdown(SALES_FORM_SAVE_CHOICE_DELAY_SECONDS);
 		setOptionsOpen(true);
 		intervalRef.current = setInterval(() => {
 			setCountdown((current) => Math.max(1, current - 1));
 		}, 1000);
-		timeoutRef.current = setTimeout(() => runSave("save"), 3000);
+		timeoutRef.current = setTimeout(
+			() => runSave("save"),
+			SALES_FORM_SAVE_CHOICE_DELAY_MS,
+		);
 	};
 
 	useEffect(() => clearTimers, []);

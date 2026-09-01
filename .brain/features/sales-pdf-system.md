@@ -409,3 +409,11 @@ The stored-document phase should answer these operational rules explicitly:
   Delivery details stored there, including gate codes, render in both HTML
   preview and PDF output. Immutable Special Order document snapshots follow the
   same rule.
+- 2026-08-31: Financial invoice and quote composition now fails closed when
+  active House Package Tool door quantity/line totals do not reconcile to the
+  saved parent item, or when active revisions of one logical configuration step
+  conflict. Production and packing modes retain their non-price compatibility
+  fallback. After the guarded relational repair of quote `03523PC`, HTML Preview
+  matches the editor for Jamb `5-1/2`, Matte Black hinge, door rows `$743.88`,
+  `$76.27`, and `$179.70`, subtotal `$2,336.53`, tax `$169.51`, and grand total
+  `$2,591.04`; the stale `$438.66` row and Brushed Brass configuration are gone.

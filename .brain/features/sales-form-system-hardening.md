@@ -73,6 +73,16 @@
   created and hydrated records. Forms start in deliberate manual-save mode;
   the editor toggle still lets a user enable autosave for the current form
   session.
+- The manual Save action opens its Draft, Save & Close, and Save & New choice
+  window for five seconds before defaulting to Draft. Desktop and mobile use
+  one shared timing contract so their countdown and timeout remain aligned.
+- The obsolete lower-left package-workflow developer checkbox is no longer
+  rendered. Existing environment, URL, and stored panel selection remain
+  available for rollback without exposing a user-facing development control.
+- House Package Tool multi-door selections render as stacked door sections
+  instead of tabs. Every selected door keeps its own image, header, actions,
+  size menu, and editable size table visible at the same time in both workflow
+  hosts.
 - Autosave timer cleanup is limited to cancelling pending work. Component
   rerenders and unmount cleanup do not invoke another save, so saving-state
   updates cannot recursively create a save storm.
@@ -764,3 +774,25 @@ for phase ownership and rollout requirements.
 - Focused HPT rendering and compatibility coverage passes 20 tests / 75
   assertions. Authenticated local-browser verification confirmed editor/preview
   parity for all four oracle rows with no error surface.
+
+## 2026-08-31 Quote/preview relational parity enforcement
+
+- Relational form-step hydration and save normalization now retain one stable
+  row per logical workflow step. A stale component revision for the same step
+  can no longer remain active beside the editor-visible selection and later win
+  in print composition.
+- Persisted header totals no longer override a freshly computed summary when
+  canonical collapsed lines disagree, even when raw compatibility siblings sum
+  to the stale header amount.
+- Quote `03523PC` reproduced both defects after its earlier repair: duplicate
+  Jamb/Hinge generations, a door row present only in the JSON snapshot, and
+  parent totals that included the missing relational row. Two guarded manual
+  saves projected the editor selection into the relational graph and then
+  removed the alternate step revisions.
+- Final relational and browser evidence agrees on Item 1 `$999.85`, subtotal
+  `$2,336.53`, tax `$169.51`, Delivery `$85.00`, and grand total `$2,591.04`.
+  The previously duplicated step generation had inflated the 1LITE row by
+  `$48.74`; its canonical saved unit/line amount is `$76.27`.
+- Focused summary, step-hydration, and print-helper coverage passes 11 tests / 17
+  assertions. No schema, migration, permission, or customer data contract
+  changed.

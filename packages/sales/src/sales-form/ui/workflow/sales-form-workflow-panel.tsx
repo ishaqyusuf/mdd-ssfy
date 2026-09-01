@@ -180,7 +180,7 @@ export function SalesFormWorkflowPanel<
 	const [doorSectionTabByLine, setDoorSectionTabByLine] = useState<
 		Record<string, DoorStepPanelTab>
 	>({});
-	const [activeHptDoorUidByLine, setActiveHptDoorUidByLine] = useState<
+	const [, setActiveHptDoorUidByLine] = useState<
 		Record<string, string>
 	>({});
 	const [doorSizeModal, setDoorSizeModal] = useState<{
@@ -712,38 +712,6 @@ export function SalesFormWorkflowPanel<
 					},
 			);
 		}
-		const activeDoorUid =
-			activeHptDoorUidByLine[String(line.uid || "")] ||
-			String(selectedDoorComponents[0]?.uid || "");
-		const activeDoorComponent =
-			selectedDoorComponents.find(
-				(component) => String(component.uid || "") === activeDoorUid,
-			) ||
-			selectedDoorComponents[0] ||
-			null;
-		const routeConfig = getRouteConfigForLine({
-			routeData,
-			line,
-			step,
-			component: activeDoorComponent,
-		});
-		const noHandle = !!routeConfig?.noHandle;
-		const hasSwing = !!routeConfig?.hasSwing;
-		const summary = summarizeDoors(rows, { noHandle, hasSwing });
-		const focusedRows = activeDoorComponent
-			? summary.rows.filter(
-					(row) =>
-						Number(row?.stepProductId || 0) ===
-						Number(activeDoorComponent?.id || 0),
-				)
-			: summary.rows;
-		const displayedRows =
-			activeDoorComponent &&
-			!focusedRows.length &&
-			selectedDoorComponents.length === 1 &&
-			summary.rows.length
-				? summary.rows
-				: focusedRows;
 		const sharedDoorSurcharge = computeSharedDoorSurcharge(line);
 		const doorStep = getWorkflowSteps(line).find((candidate) =>
 			isDoorStepTitle(candidate?.step?.title),
@@ -752,33 +720,6 @@ export function SalesFormWorkflowPanel<
 			isDoorStepTitle(candidate?.step?.title),
 		);
 		const supplier = getDoorSupplierMeta(doorStep);
-		const swapDoorCandidates = visibleDoorComponents.filter(
-			(component) =>
-				String(component?.uid || "") !== String(activeDoorComponent?.uid || ""),
-		);
-		const availableSizeOptions = (() => {
-			if (!activeDoorComponent) return [];
-			const sizes = deriveDoorSizeCandidates(
-				line,
-				activeDoorComponent?.pricing || {},
-				routeData,
-				{ ignorePersistedVariations: true },
-			);
-			return sizes.map((size) => {
-				const pricing = resolveSizePricing(size);
-				const selected = displayedRows.some(
-					(row) =>
-						String(row?.dimension || "")
-							.trim()
-							.toLowerCase() === String(size).trim().toLowerCase(),
-				);
-				return {
-					size,
-					doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
-					selected,
-				};
-			});
-		})();
 		const pricedSteps = getWorkflowSteps(line).filter((candidate) => {
 			const title = normalizeTitle(candidate?.step?.title);
 			return (
@@ -789,158 +730,228 @@ export function SalesFormWorkflowPanel<
 				title !== "hpt"
 			);
 		});
-
-		function applyRows(nextRows: DoorStoredRow[]) {
-			const next = buildWorkflowDoorRowsPatch({
-				line,
-				rows: nextRows,
-				sharedDoorSurcharge,
-				noHandle,
-				hasSwing,
-				profileCoefficient: activeDisplayProfileCoefficient,
-			});
-			updateLine(line, next.linePatch as unknown as Partial<TLine>);
-		}
-
-		function patchRow(
-			sourceRow: DoorStoredRow,
-			patch: Record<string, unknown>,
-		) {
-			applyRows(
-				summary.rows.map((row) =>
-					row === sourceRow
-						? {
-								...row,
-								...patch,
-							}
-						: row,
-				),
-			);
-		}
-		function addSizeRow(size: string) {
-			if (!activeDoorComponent) return;
-			const pricing = resolveSizePricing(size);
-			applyRows([
-				...summary.rows,
-				{
-					id: null,
-					dimension: size,
-					swing: "",
-					doorType: "",
-					doorPrice: 0,
-					jambSizePrice: pricing.doorSalesUnitPrice,
-					casingPrice: 0,
-					unitPrice: pricing.unitPrice,
-					lhQty: 0,
-					rhQty: 0,
-					totalQty: 0,
-					lineTotal: 0,
-					stepProductId: activeDoorComponent.id || null,
-					meta: {
-						baseUnitPrice: pricing.basePrice,
-						doorSalesUnitPrice: pricing.doorSalesUnitPrice,
-						sharedDoorSurcharge,
-						priceMissing: !pricing.hasPrice,
-					},
-				},
-			]);
-		}
-		function resolveSizePricing(size: string) {
-			if (!activeDoorComponent) {
-				return {
-					hasPrice: false,
-					basePrice: 0,
-					doorSalesUnitPrice: 0,
-					unitPrice: 0,
-				};
-			}
-			return resolveWorkflowDoorSizePricing({
-				component: activeDoorComponent,
-				size,
-				supplierUid: supplier.supplierUid,
-				salesMultiplier: activeSalesMultiplier,
-				sharedDoorSurcharge,
-			});
-		}
-		function deleteDoorOption() {
-			if (!activeDoorComponent || doorStepIndex < 0) return;
-			const result = removeWorkflowHptDoorOption({
-				routeData,
-				line,
-				stepIndex: doorStepIndex,
-				component: activeDoorComponent,
-			});
-			if (!result) return;
-			updateLine(line, result.linePatch as unknown as Partial<TLine>);
-			setActiveHptDoorUidByLine((prev) => {
-				const next = { ...prev };
-				if (result.activeDoorUid) {
-					next[String(line.uid || "")] = result.activeDoorUid;
-				} else {
-					delete next[String(line.uid || "")];
-				}
-				return next;
-			});
-		}
+		const doorPanels = selectedDoorComponents.length
+			? selectedDoorComponents
+			: [null];
 
 		return (
-			<HousePackageToolPanel
-				selectedDoorComponents={selectedDoorComponents}
-				activeDoorUid={activeDoorUid}
-				activeDoorComponent={activeDoorComponent}
-				focusedRows={displayedRows}
-				summary={summary}
-				availableSizeOptions={availableSizeOptions}
-				pricedSteps={pricedSteps}
-				supplierName={supplier.supplierName}
-				noHandle={noHandle}
-				hasSwing={hasSwing}
-				swingOptions={getDoorSwingOptions(line)}
-				sharedDoorSurcharge={sharedDoorSurcharge}
-				profileCoefficient={activeDisplayProfileCoefficient}
-				pricingReady={activePricingReady}
-				priceBreakdown={dealerDoorPriceBreakdown}
-				canSwapDoor={Boolean(swapDoorCandidates.length)}
-				canEditPricing={workflowCapabilities.canEditLinePricing}
-				pricingLabels={pricingLabels}
-				formatMoney={(value) => moneyIfPositive(Number(value || 0)) || "$0.00"}
-				componentLabel={componentLabel}
-				resolveImageSrc={(src) =>
-					dataSource.resolveImageSrc?.(src) || src || null
-				}
-				onActiveDoorChange={(uid) =>
-					setActiveHptDoorUidByLine((prev) => ({
-						...prev,
-						[String(line.uid || "")]: uid,
-					}))
-				}
-				onAddDoor={
-					doorStepIndex >= 0
-						? () => setActiveStep(String(line.uid || ""), doorStepIndex)
-						: undefined
-				}
-				onAddSize={addSizeRow}
-				onConfigureSizes={() =>
-					activeDoorComponent
-						? openDoorSizeModal(line, activeDoorComponent)
-						: undefined
-				}
-				onSwapDoor={() =>
-					setDoorSwapModal({
-						open: true,
-						lineUid: String(line.uid || ""),
-						sourceUid: activeDoorComponent?.uid
-							? String(activeDoorComponent.uid)
-							: null,
-					})
-				}
-				onDeleteDoor={deleteDoorOption}
-				onPatchRow={patchRow}
-				onRemoveSizeRow={(row) =>
-					applyRows(summary.rows.filter((candidate) => candidate !== row))
-				}
-			/>
+			<div>
+				{doorPanels.map((doorComponent, doorIndex) => (
+					<div
+						key={`hpt-door-panel-${String(doorComponent?.uid || doorComponent?.id || doorIndex)}`}
+					>
+						{renderDoorPanel(doorComponent, doorIndex)}
+					</div>
+				))}
+			</div>
 		);
+
+		function renderDoorPanel(
+			activeDoorComponent: WorkflowComponentRecord | null,
+			doorIndex: number,
+		) {
+			const routeConfig = getRouteConfigForLine({
+				routeData,
+				line,
+				step,
+				component: activeDoorComponent,
+			});
+			const noHandle = !!routeConfig?.noHandle;
+			const hasSwing = !!routeConfig?.hasSwing;
+			const summary = summarizeDoors(rows, { noHandle, hasSwing });
+			const focusedRows = activeDoorComponent
+				? summary.rows.filter(
+						(row) =>
+							Number(row?.stepProductId || 0) ===
+							Number(activeDoorComponent.id || 0),
+					)
+				: summary.rows;
+			const displayedRows =
+				activeDoorComponent &&
+				!focusedRows.length &&
+				selectedDoorComponents.length === 1 &&
+				summary.rows.length
+					? summary.rows
+					: focusedRows;
+			const availableSizeOptions = activeDoorComponent
+				? deriveDoorSizeCandidates(
+						line,
+						activeDoorComponent.pricing || {},
+						routeData,
+						{ ignorePersistedVariations: true },
+					).map((size) => {
+						const pricing = resolveSizePricing(size);
+						const selected = displayedRows.some(
+							(row) =>
+								String(row?.dimension || "")
+									.trim()
+									.toLowerCase() ===
+								String(size).trim().toLowerCase(),
+						);
+						return {
+							size,
+							doorPrice: pricing.hasPrice
+								? pricing.doorSalesUnitPrice
+								: null,
+							selected,
+						};
+					})
+				: [];
+			const swapDoorCandidates = visibleDoorComponents.filter(
+				(component) =>
+					String(component?.uid || "") !==
+					String(activeDoorComponent?.uid || ""),
+			);
+
+			return (
+				<HousePackageToolPanel
+					selectedDoorComponents={
+						activeDoorComponent ? [activeDoorComponent] : []
+					}
+					activeDoorUid={String(activeDoorComponent?.uid || "")}
+					activeDoorComponent={activeDoorComponent}
+					focusedRows={displayedRows}
+					summary={summary}
+					availableSizeOptions={availableSizeOptions}
+					pricedSteps={pricedSteps}
+					supplierName={supplier.supplierName}
+					noHandle={noHandle}
+					hasSwing={hasSwing}
+					swingOptions={getDoorSwingOptions(line)}
+					sharedDoorSurcharge={sharedDoorSurcharge}
+					profileCoefficient={activeDisplayProfileCoefficient}
+					pricingReady={activePricingReady}
+					priceBreakdown={dealerDoorPriceBreakdown}
+					canSwapDoor={Boolean(swapDoorCandidates.length)}
+					canEditPricing={workflowCapabilities.canEditLinePricing}
+					pricingLabels={pricingLabels}
+					formatMoney={(value) =>
+						moneyIfPositive(Number(value || 0)) || "$0.00"
+					}
+					componentLabel={componentLabel}
+					resolveImageSrc={(src) =>
+						dataSource.resolveImageSrc?.(src) || src || null
+					}
+					onActiveDoorChange={() => undefined}
+					onAddDoor={
+						doorIndex === 0 && doorStepIndex >= 0
+							? () => setActiveStep(String(line.uid || ""), doorStepIndex)
+							: undefined
+					}
+					onAddSize={addSizeRow}
+					onConfigureSizes={() =>
+						activeDoorComponent
+							? openDoorSizeModal(line, activeDoorComponent)
+							: undefined
+					}
+					onSwapDoor={() =>
+						setDoorSwapModal({
+							open: true,
+							lineUid: String(line.uid || ""),
+							sourceUid: activeDoorComponent?.uid
+								? String(activeDoorComponent.uid)
+								: null,
+						})
+					}
+					onDeleteDoor={deleteDoorOption}
+					onPatchRow={patchRow}
+					onRemoveSizeRow={(row) =>
+						applyRows(summary.rows.filter((candidate) => candidate !== row))
+					}
+				/>
+			);
+
+			function applyRows(nextRows: DoorStoredRow[]) {
+				const next = buildWorkflowDoorRowsPatch({
+					line,
+					rows: nextRows,
+					sharedDoorSurcharge,
+					noHandle,
+					hasSwing,
+					profileCoefficient: activeDisplayProfileCoefficient,
+				});
+				updateLine(line, next.linePatch as unknown as Partial<TLine>);
+			}
+
+			function patchRow(
+				sourceRow: DoorStoredRow,
+				patch: Record<string, unknown>,
+			) {
+				applyRows(
+					summary.rows.map((row) =>
+						row === sourceRow ? { ...row, ...patch } : row,
+					),
+				);
+			}
+
+			function addSizeRow(size: string) {
+				if (!activeDoorComponent) return;
+				const pricing = resolveSizePricing(size);
+				applyRows([
+					...summary.rows,
+					{
+						id: null,
+						dimension: size,
+						swing: "",
+						doorType: "",
+						doorPrice: 0,
+						jambSizePrice: pricing.doorSalesUnitPrice,
+						casingPrice: 0,
+						unitPrice: pricing.unitPrice,
+						lhQty: 0,
+						rhQty: 0,
+						totalQty: 0,
+						lineTotal: 0,
+						stepProductId: activeDoorComponent.id || null,
+						meta: {
+							baseUnitPrice: pricing.basePrice,
+							doorSalesUnitPrice: pricing.doorSalesUnitPrice,
+							sharedDoorSurcharge,
+							priceMissing: !pricing.hasPrice,
+						},
+					},
+				]);
+			}
+
+			function resolveSizePricing(size: string) {
+				if (!activeDoorComponent) {
+					return {
+						hasPrice: false,
+						basePrice: 0,
+						doorSalesUnitPrice: 0,
+						unitPrice: 0,
+					};
+				}
+				return resolveWorkflowDoorSizePricing({
+					component: activeDoorComponent,
+					size,
+					supplierUid: supplier.supplierUid,
+					salesMultiplier: activeSalesMultiplier,
+					sharedDoorSurcharge,
+				});
+			}
+
+			function deleteDoorOption() {
+				if (!activeDoorComponent || doorStepIndex < 0) return;
+				const result = removeWorkflowHptDoorOption({
+					routeData,
+					line,
+					stepIndex: doorStepIndex,
+					component: activeDoorComponent,
+				});
+				if (!result) return;
+				updateLine(line, result.linePatch as unknown as Partial<TLine>);
+				setActiveHptDoorUidByLine((prev) => {
+					const next = { ...prev };
+					if (result.activeDoorUid) {
+						next[String(line.uid || "")] = result.activeDoorUid;
+					} else {
+						delete next[String(line.uid || "")];
+					}
+					return next;
+				});
+			}
+		}
 	}
 
 	function selectRoot(line: TLine, component: WorkflowComponentRecord) {

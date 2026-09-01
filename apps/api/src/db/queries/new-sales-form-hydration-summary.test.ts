@@ -57,4 +57,29 @@ describe("persisted new-sales-form summary hydration", () => {
 			}),
 		).toEqual(computed);
 	});
+
+	it("uses the canonical collapsed lines when raw compatibility rows match stale headers", () => {
+		const computed = {
+			subTotal: 2385.27,
+			adjustedSubTotal: 2470.27,
+			taxableSubTotal: 2470.27,
+			taxTotal: 172.92,
+			grandTotal: 2643.19,
+		};
+
+		expect(
+			resolvePersistedHydratedSalesSummary(computed, {
+				subTotal: 2776.35,
+				tax: 200.29,
+				grandTotal: 3061.64,
+				items: [
+					{ total: 1439.67 },
+					{ total: 401.22 },
+					{ total: 182.1 },
+					{ total: 206.67 },
+					{ total: 546.69 },
+				],
+			}),
+		).toEqual(computed);
+	});
 });

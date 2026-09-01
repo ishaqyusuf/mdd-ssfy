@@ -104,6 +104,25 @@ describe("HPT add-size parity", () => {
 		}
 	});
 
+	it("renders every selected door as its own stacked panel", () => {
+		for (const host of [
+			"./sales-form-workflow-panel.tsx",
+			"../../../../../../apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx",
+		]) {
+			const hostSource = readFileSync(new URL(host, import.meta.url), "utf8");
+
+			expect(hostSource).toContain(
+				"const doorPanels = selectedDoorComponents.length",
+			);
+			expect(hostSource).toContain(
+				"doorPanels.map((doorComponent, doorIndex)",
+			);
+			expect(hostSource).toMatch(
+				/selectedDoorComponents=\{\s*activeDoorComponent \? \[activeDoorComponent\] : \[\]\s*\}/,
+			);
+		}
+	});
+
 	it("offers a permission-gated row repair action only when price drift exists", () => {
 		const source = readFileSync(
 			new URL("./house-package-tool-panel.tsx", import.meta.url),
