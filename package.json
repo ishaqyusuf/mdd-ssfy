@@ -63,6 +63,7 @@
 		"inventory:reconciliation-repair": "bun ./scripts/inventory-reconciliation-repair.ts",
 		"inventory:fulfillment-repair": "bun ./scripts/inventory-fulfillment-repair.ts",
 		"sales-form:relational-repair": "bun ./scripts/sales-form-relational-repair.ts",
+		"sales-document:readiness-audit": "bun ./scripts/sales-document-readiness-audit.ts",
 		"sales-tax:reconcile": "bun ./scripts/sales-tax-ledger-reconciliation.ts",
 		"sales-handoff:source-repair": "bun ./scripts/sales-handoff-source-repair.ts",
 		"inventory:validation-fixtures": "bun ./scripts/inventory-validation-fixture-report.ts",

@@ -2300,3 +2300,23 @@ implementation phase is approved and released.
 - Endpoint names and transport placement are selected in the separate
   implementation handoff; this section fixes their domain contract only. No API
   implementation changed during planning.
+
+## Sales document readiness contract (2026-09-01)
+
+- Dashboard document-access actions return either the existing resolved access
+  result or `{ kind: "preflight", readiness }`. The readiness payload contains
+  `ready`, `repair_required`, `financial_review`, or `manual_review`, findings,
+  cents-based saved/candidate financial evidence, narrow repair operations, a
+  server signature, and a staged proposal id when applicable.
+- Preview, print, PDF download/regeneration, and Sales email initiation all use
+  this typed interruption. No document URL, PDF snapshot, or delivery is
+  produced while the result is non-ready.
+- `applySalesDocumentReadinessRepairAction` requires `editOrders`, accepts only
+  Sales order id plus proposal id, and revalidates all source evidence inside a
+  serializable server transaction. Client-provided repair data is not accepted.
+- `discardSalesDocumentReadinessProposalAction` requires `editOrders`, cancels
+  the active proposal, clears its Sales-meta attestation, and allows the Sales
+  Form to recalculate from live data.
+- Simple and composed notification builders repeat readiness validation before
+  constructing document links or attachments, preventing direct server/job
+  callers from bypassing the client preflight.

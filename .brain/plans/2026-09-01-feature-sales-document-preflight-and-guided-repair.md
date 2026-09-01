@@ -4,13 +4,22 @@
 Feature
 
 ## Status
-Proposed
+Implemented — initial guarded release
 
 ## Created Date
 2026-09-01
 
 ## Last Updated
 2026-09-01
+
+## Implementation Outcome
+
+- Shared readiness evaluation, Sales-meta attestation, staged `ResolutionCase` proposal, serializable guarded apply, print-cache invalidation, Sales History, and resolution action evidence are implemented.
+- Preview, print, PDF download/regeneration, and simple/composed email paths use the shared gate. Notification builders repeat the server-side assertion.
+- The modal supports `Cancel`, `Open order`, and zero-delta `Repair & continue`; opening the editor cancels and clears the staged proposal.
+- Canonical Sales Form saves, copied Sales, approved adjustments, and guided repairs stamp readiness. The hydrated Sales Form shows saved/recalculated subtotal, tax, and grand-total drift without autosaving.
+- A read-only 20-order local audit classified 10 ready and 10 zero-delta repair candidates, with no financial/manual cases and no writes. `08574PC` requires five operations with a `$0.00` subtotal delta.
+- This release uses `SalesOrders.updatedAt` plus the meta attestation rather than new revision columns, so it requires application-owned child writers to refresh/invalidate readiness. Batch grouping, proposal expiry, metrics, and a schema-backed monotonic revision remain follow-up hardening rather than release blockers for the requested single-record flow.
 
 ## Goal Or Problem
 Every price-bearing Sales document action must detect relational inconsistencies before preview, print, PDF generation, or customer delivery. Repairable inconsistencies should produce a staged, reviewable proposal; zero-commercial-delta proposals may be applied with one confirmation and then resume the original action, while price-changing or ambiguous proposals must route through the new Sales Form with explicit before/after evidence.

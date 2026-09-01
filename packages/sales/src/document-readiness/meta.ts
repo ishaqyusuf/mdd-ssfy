@@ -74,4 +74,3 @@ export function clearSalesDocumentReadinessMeta(
 	const { salesDocumentReadiness: _readiness, ...remaining } = current;
 	return remaining as Prisma.InputJsonValue;
 }
-

@@ -8,6 +8,7 @@ import {
 	resolveSalesAdjustmentApplyClaim,
 	resolveSalesAdjustmentStaleReason,
 } from "@gnd/sales/adjustment-system";
+import { prepareSalesDocumentReadiness } from "@gnd/sales/document-readiness";
 import {
 	createLegacyWalletCreditTransaction,
 	mirrorLegacyRefundSalesPayment,
@@ -606,6 +607,11 @@ export async function runApplySalesOrderAdjustment(
 				salesOrderId: adjustment.salesOrderId,
 				proposal: proposed,
 				summary,
+			});
+			await prepareSalesDocumentReadiness(tx, {
+				salesOrderId: adjustment.salesOrderId,
+				forceEvaluate: true,
+				stageProposal: true,
 			});
 
 			let walletTransactionId: number | null = null;

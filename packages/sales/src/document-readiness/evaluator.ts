@@ -187,46 +187,40 @@ export function evaluateSalesDocumentReadiness(
 					hptTotalPriceCents === candidateDoorTotalCents;
 
 				if (!itemMatches || !hptMatches) {
-					const canRepairMissingAggregates =
+					const hasOnlyMissingAggregates =
 						(itemMatches ||
 							(isMissingAggregate(persistedItemQty) &&
 								isMissingAggregate(persistedItemTotalCents))) &&
 						(hptMatches ||
 							(isMissingAggregate(hptTotalDoors) &&
 								isMissingAggregate(hptTotalPriceCents)));
-
-					if (canRepairMissingAggregates) {
-						operations.push({
-							kind: "sync_door_group_totals",
-							salesOrderItemId: item.id,
-							housePackageToolId: hpt.id,
-							before: {
-								itemQty: persistedItemQty,
-								itemTotalCents: persistedItemTotalCents,
-								hptTotalDoors,
-								hptTotalPriceCents,
-							},
-							after: {
-								itemQty: candidateQty,
-								itemTotalCents: candidateDoorTotalCents,
-								hptTotalDoors: candidateQty,
-								hptTotalPriceCents: candidateDoorTotalCents,
-							},
-							doorIds: doors.map((door) => door.id),
-						});
-						findings.push({
-							kind: "missing_door_group_totals",
-							salesOrderItemId: item.id,
-							message: `Item ${item.id} is missing its saved door quantity or total summary.`,
-						});
-					} else {
-						requiresManualReview = true;
-						findings.push({
-							kind: "conflicting_door_group_totals",
-							salesOrderItemId: item.id,
-							message: `Item ${item.id} has non-zero door summaries that conflict with its active rows.`,
-						});
-					}
+					operations.push({
+						kind: "sync_door_group_totals",
+						salesOrderItemId: item.id,
+						housePackageToolId: hpt.id,
+						before: {
+							itemQty: persistedItemQty,
+							itemTotalCents: persistedItemTotalCents,
+							hptTotalDoors,
+							hptTotalPriceCents,
+						},
+						after: {
+							itemQty: candidateQty,
+							itemTotalCents: candidateDoorTotalCents,
+							hptTotalDoors: candidateQty,
+							hptTotalPriceCents: candidateDoorTotalCents,
+						},
+						doorIds: doors.map((door) => door.id),
+					});
+					findings.push({
+						kind: hasOnlyMissingAggregates
+							? "missing_door_group_totals"
+							: "conflicting_door_group_totals",
+						salesOrderItemId: item.id,
+						message: hasOnlyMissingAggregates
+							? `Item ${item.id} is missing its saved door quantity or total summary.`
+							: `Item ${item.id} has stale door summaries that conflict with its active rows.`,
+					});
 				}
 			}
 		}
@@ -271,4 +265,3 @@ export function evaluateSalesDocumentReadiness(
 	}
 	return { ...base, status: "ready", operations: [] };
 }
-

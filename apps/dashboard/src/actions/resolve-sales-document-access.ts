@@ -7,9 +7,10 @@ import {
 } from "@gnd/api/utils/sales-document-access";
 import { db } from "@gnd/db";
 import {
-	applySalesDocumentReadinessRepair,
-	prepareSalesDocumentReadiness,
 	type SalesDocumentReadinessPreflight,
+	applySalesDocumentReadinessRepair,
+	discardSalesDocumentReadinessProposal,
+	prepareSalesDocumentReadiness,
 } from "@gnd/sales/document-readiness";
 import type { PrintMode } from "@gnd/sales/print/types";
 import {
@@ -24,6 +25,13 @@ export type ResolveSalesDocumentAccessActionResult =
 			kind: "preflight";
 			readiness: SalesDocumentReadinessPreflight;
 	  };
+
+async function requireSalesDocumentActor() {
+	const { authUser } = await import("@/app-deps/(v1)/_actions/utils");
+	const actor = await authUser();
+	if (!actor?.id) throw new Error("You must sign in to access sales documents.");
+	return actor;
+}
 
 async function getBlockingSalesDocumentReadiness(salesIds: number[]) {
 	for (const salesOrderId of [...new Set(salesIds)]) {
@@ -60,6 +68,7 @@ export async function resolveSalesDocumentAccessAction(input: {
 	baseUrl?: string | null;
 	forceRegenerate?: boolean;
 }): Promise<ResolveSalesDocumentAccessActionResult> {
+	await requireSalesDocumentActor();
 	const readiness = await getBlockingSalesDocumentReadiness(input.salesIds);
 	if (readiness) return { kind: "preflight", readiness };
 	const printConfig = await resolveConfiguredSalesPrintSettings(input);
@@ -84,6 +93,7 @@ export async function resolveSalesDocumentHtmlPreviewAccessAction(input: {
 	printConfig?: Partial<SalesPrintSettings> | null;
 	baseUrl?: string | null;
 }): Promise<ResolveSalesDocumentAccessActionResult> {
+	await requireSalesDocumentActor();
 	const readiness = await getBlockingSalesDocumentReadiness(input.salesIds);
 	if (readiness) return { kind: "preflight", readiness };
 	const printConfig = await resolveConfiguredSalesPrintSettings(input);
@@ -101,6 +111,7 @@ export async function resolveSalesDocumentHtmlPreviewAccessAction(input: {
 export async function preflightSalesDocumentAction(input: {
 	salesOrderId: number;
 }): Promise<SalesDocumentReadinessPreflight> {
+	await requireSalesDocumentActor();
 	return prepareSalesDocumentReadiness(db, {
 		salesOrderId: input.salesOrderId,
 		stageProposal: true,
@@ -111,8 +122,7 @@ export async function applySalesDocumentReadinessRepairAction(input: {
 	salesOrderId: number;
 	proposalId: string;
 }): Promise<SalesDocumentReadinessPreflight> {
-	const { authUser } = await import("@/app-deps/(v1)/_actions/utils");
-	const actor = await authUser();
+	const actor = await requireSalesDocumentActor();
 	if (!actor?.id || !actor.can?.editOrders) {
 		throw new Error("You do not have permission to repair sales documents.");
 	}
@@ -120,5 +130,19 @@ export async function applySalesDocumentReadinessRepairAction(input: {
 		...input,
 		actorId: actor.id,
 		actorName: actor.name || "Employee",
+	});
+}
+
+export async function discardSalesDocumentReadinessProposalAction(input: {
+	salesOrderId: number;
+	proposalId: string;
+}) {
+	const actor = await requireSalesDocumentActor();
+	if (!actor?.id || !actor.can?.editOrders) {
+		throw new Error("You do not have permission to repair sales documents.");
+	}
+	return discardSalesDocumentReadinessProposal(db, {
+		...input,
+		actorId: actor.id,
 	});
 }

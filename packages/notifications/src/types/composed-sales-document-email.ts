@@ -1,5 +1,6 @@
 import type { Db } from "@gnd/db";
 import { logger } from "@gnd/logger";
+import { assertSalesDocumentsReady } from "@gnd/sales/document-readiness";
 import {
 	ensureSpecialOrderEmailApprovalAction,
 	recordSpecialOrderApprovalDelivery,
@@ -269,6 +270,9 @@ export async function buildComposedSalesDocumentEmailData(
 			"No eligible sales found for composed sales document email",
 		);
 	}
+	await assertSalesDocumentsReady(db, {
+		salesOrderIds: sales.map((sale) => sale.id),
+	});
 
 	const [primarySale] = sales;
 	if (!primarySale) {

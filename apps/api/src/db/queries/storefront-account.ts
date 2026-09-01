@@ -5,6 +5,7 @@ import type {
 } from "@api/schemas/storefront-account";
 import type { TRPCContext } from "@api/trpc/init";
 import { resolveSalesDocumentAccess } from "@api/utils/sales-document-access";
+import { assertSalesDocumentsReady } from "@gnd/sales/document-readiness";
 import { TRPCError } from "@trpc/server";
 
 type CustomerStorefrontContext = TRPCContext & {
@@ -627,6 +628,7 @@ export async function createStorefrontInvoiceAccess(
 	orderId: string,
 ) {
 	const order = await findOwnedStorefrontOrder(ctx, orderId);
+	await assertSalesDocumentsReady(ctx.db, { salesOrderIds: [order.id] });
 	const baseUrl = (
 		process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3010"
 	).replace(/\/$/, "");

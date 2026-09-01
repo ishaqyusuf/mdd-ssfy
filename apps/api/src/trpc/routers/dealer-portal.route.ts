@@ -70,6 +70,7 @@ import {
   updateDealerPortalCustomerPayment,
 } from "@gnd/db/queries";
 import { NotificationService } from "@gnd/notifications/services/triggers";
+import { assertSalesDocumentsReady } from "@gnd/sales/document-readiness";
 import { getCustomerWallet } from "@gnd/sales/wallet";
 import { type SalesPaymentTokenSchema, tokenize } from "@gnd/utils/tokenizer";
 import { tasks } from "@trigger.dev/sdk/v3";
@@ -275,6 +276,10 @@ export const dealerPortalRouter = createTRPCRouter({
       if (!sale) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
+
+      await assertSalesDocumentsReady(ctx.db, {
+        salesOrderIds: [sale.id],
+      });
 
       return resolveSalesDocumentHtmlPreviewAccess({
         db: ctx.db,

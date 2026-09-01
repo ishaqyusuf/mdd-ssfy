@@ -6,6 +6,10 @@ import {
   copySalesInTransaction,
 } from "./copy-sales";
 
+const readinessDependencies = {
+  prepareDocumentReadiness: mock(async () => ({}) as never),
+};
+
 function createTransactionLikeDb(
   sourceOverrides: Record<string, unknown> = {},
   existingTarget: Record<string, unknown> | null = null,
@@ -122,16 +126,19 @@ describe("copySalesInTransaction", () => {
 
     expect("$transaction" in db).toBe(false);
 
-    const result = await copySalesInTransaction({
-      db: db as unknown as CopySalesInTransactionProps["db"],
-      salesUid: "00010PC",
-      as: "order",
-      type: "quote",
-      author: {
-        id: 7,
-        name: "Pablo Cruz",
+    const result = await copySalesInTransaction(
+      {
+        db: db as unknown as CopySalesInTransactionProps["db"],
+        salesUid: "00010PC",
+        as: "order",
+        type: "quote",
+        author: {
+          id: 7,
+          name: "Pablo Cruz",
+        },
       },
-    });
+      readinessDependencies,
+    );
 
     expect(result).toEqual({
       id: 900,
@@ -169,6 +176,14 @@ describe("copySalesInTransaction", () => {
       salesOrderId: 900,
       total: 400,
     });
+    expect(readinessDependencies.prepareDocumentReadiness).toHaveBeenCalledWith(
+      db,
+      {
+        salesOrderId: 900,
+        forceEvaluate: true,
+        stageProposal: true,
+      },
+    );
   });
 
   it("copies relational shelf rows from a quote into the created order", async () => {
@@ -207,13 +222,16 @@ describe("copySalesInTransaction", () => {
       ],
     });
 
-    await copySalesInTransaction({
-      db: db as unknown as CopySalesInTransactionProps["db"],
-      salesUid: "00010PC",
-      as: "order",
-      type: "quote",
-      author: { id: 7, name: "Pablo Cruz" },
-    });
+    await copySalesInTransaction(
+      {
+        db: db as unknown as CopySalesInTransactionProps["db"],
+        salesUid: "00010PC",
+        as: "order",
+        type: "quote",
+        author: { id: 7, name: "Pablo Cruz" },
+      },
+      readinessDependencies,
+    );
 
     expect(calls.createdItems[0]).toMatchObject({
       shelfItems: {
@@ -265,13 +283,16 @@ describe("copySalesInTransaction", () => {
       },
     });
 
-    await copySalesInTransaction({
-      db: db as unknown as CopySalesInTransactionProps["db"],
-      salesUid: "00010PC",
-      as: "order",
-      type: "order",
-      author: { id: 7, name: "Pablo Cruz" },
-    });
+    await copySalesInTransaction(
+      {
+        db: db as unknown as CopySalesInTransactionProps["db"],
+        salesUid: "00010PC",
+        as: "order",
+        type: "order",
+        author: { id: 7, name: "Pablo Cruz" },
+      },
+      readinessDependencies,
+    );
 
     expect(calls.createdSales[0]?.meta).toEqual({
       source: "order",
@@ -290,16 +311,19 @@ describe("copySalesInTransaction", () => {
       type: "order",
     });
 
-    const result = await copySalesInTransaction({
-      db: db as unknown as CopySalesInTransactionProps["db"],
-      salesUid: "00010PC",
-      as: "order-hx",
-      type: "order",
-      author: {
-        id: 7,
-        name: "Pablo Cruz",
+    const result = await copySalesInTransaction(
+      {
+        db: db as unknown as CopySalesInTransactionProps["db"],
+        salesUid: "00010PC",
+        as: "order-hx",
+        type: "order",
+        author: {
+          id: 7,
+          name: "Pablo Cruz",
+        },
       },
-    });
+      readinessDependencies,
+    );
 
     expect(result.slug).toBe("00010PC-hx01");
     expect(calls.createdSales[0]).toMatchObject({
@@ -407,8 +431,8 @@ describe("copySalesInTransaction", () => {
     };
 
     const results = await Promise.all([
-      copySalesInTransaction(props),
-      copySalesInTransaction(props),
+      copySalesInTransaction(props, readinessDependencies),
+      copySalesInTransaction(props, readinessDependencies),
     ]);
 
     expect(results.map((result) => result.slug).sort()).toEqual([

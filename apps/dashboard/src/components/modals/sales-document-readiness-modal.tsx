@@ -1,6 +1,9 @@
 "use client";
 
-import { applySalesDocumentReadinessRepairAction } from "@/actions/resolve-sales-document-access";
+import {
+	applySalesDocumentReadinessRepairAction,
+	discardSalesDocumentReadinessProposalAction,
+} from "@/actions/resolve-sales-document-access";
 import { useSalesDocumentReadinessStore } from "@/store/sales-document-readiness";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
@@ -69,14 +72,28 @@ export function SalesDocumentReadinessModal() {
 		}
 	}
 
-	function openOrder() {
-		const href = salesFormUrl(
-			readiness.salesType,
-			readiness.orderNo,
-			true,
-		);
-		close();
-		router.push(href);
+	async function openOrder() {
+		setIsRepairing(true);
+		setError(null);
+		try {
+			if (readiness.proposalId) {
+				await discardSalesDocumentReadinessProposalAction({
+					salesOrderId: readiness.salesOrderId,
+					proposalId: readiness.proposalId,
+				});
+			}
+			const href = salesFormUrl(readiness.salesType, readiness.orderNo, true);
+			close();
+			router.push(href);
+		} catch (cause) {
+			setError(
+				cause instanceof Error
+					? cause.message
+					: "Unable to open this sales document for repair.",
+			);
+		} finally {
+			setIsRepairing(false);
+		}
 	}
 
 	return (
@@ -90,8 +107,8 @@ export function SalesDocumentReadinessModal() {
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 					<DialogDescription>
-						Sales {readiness.orderNo} has saved details that do not fully
-						match its item records.
+						Sales {readiness.orderNo} has saved details that do not fully match
+						its item records.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -104,7 +121,7 @@ export function SalesDocumentReadinessModal() {
 					</AlertTitle>
 					<AlertDescription>
 						{canRepair
-							? "The repair only restores missing item quantity and total summaries. It will not change the saved subtotal, tax, grand total, amount paid, or balance."
+							? "The repair synchronizes item quantity and total summaries with their active rows. It will not change the saved subtotal, tax, grand total, amount paid, or balance."
 							: "The current item calculation does not match the saved financial summary. Open the order to review the exact items and recalculate before saving."}
 					</AlertDescription>
 				</Alert>
@@ -117,9 +134,7 @@ export function SalesDocumentReadinessModal() {
 						</p>
 					</div>
 					<div>
-						<p className="text-xs text-muted-foreground">
-							Reconciled subtotal
-						</p>
+						<p className="text-xs text-muted-foreground">Reconciled subtotal</p>
 						<p className="font-medium">
 							{money(readiness.financial.candidate.subTotalCents)}
 						</p>
@@ -143,7 +158,9 @@ export function SalesDocumentReadinessModal() {
 						<p className="text-sm font-medium">What was found</p>
 						<ul className="space-y-1 text-sm text-muted-foreground">
 							{readiness.findings.map((finding, index) => (
-								<li key={`${finding.kind}-${finding.salesOrderItemId ?? index}`}>
+								<li
+									key={`${finding.kind}-${finding.salesOrderItemId ?? index}`}
+								>
 									• {finding.message}
 								</li>
 							))}
@@ -177,4 +194,3 @@ export function SalesDocumentReadinessModal() {
 		</Dialog>
 	);
 }
-

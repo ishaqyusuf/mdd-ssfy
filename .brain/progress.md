@@ -14166,3 +14166,24 @@
   The Sales/Admin session correctly redirected `/production/dashboard` to
   `/sales-rep`, so true worker-session browser proof remains unavailable in the
   current in-app account; worker-only presentation is covered by focused tests.
+
+## 2026-09-01 — Sales document readiness and guided repair
+
+- Added a shared Sales document readiness evaluator, SHA-256 Sales-meta
+  attestation fast path, staged resolution proposal, guarded serializable apply,
+  audit/history evidence, and print-cache invalidation.
+- Preview, print, PDF download/regeneration, and Sales email now surface a typed
+  repair/review modal instead of a generic preparation error. Notification
+  builders repeat the gate so direct delivery calls fail closed.
+- Canonical Sales Form saves, copies, approved adjustments, and repairs refresh
+  readiness. Opening the Sales Form cancels and clears the staged proposal; the
+  form independently displays saved-versus-recalculated financial drift without
+  dirtying or autosaving the record.
+- The read-only 20-order audit classified 10 orders ready and 10 as deterministic
+  zero-subtotal-delta repairs. `08574PC` requires five parent-summary operations;
+  its saved and candidate subtotal are both `$9,335.27`, so the repair does not
+  write tax, grand total, payments, refunds, or balance.
+- Focused evaluator, attestation, copy, access, print-controller, and notification
+  suites pass. `@gnd/sales` typecheck passes; broader dashboard/jobs/notification
+  typechecks retain established unrelated baseline failures, with no diagnostics
+  in the touched readiness paths after filtering.

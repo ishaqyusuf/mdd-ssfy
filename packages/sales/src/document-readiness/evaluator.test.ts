@@ -54,6 +54,14 @@ function createSale(overrides: Record<string, unknown> = {}) {
 	};
 }
 
+function requireDoorItem(sale: ReturnType<typeof createSale>) {
+	const item = sale.items[0];
+	if (!item?.housePackageTool) {
+		throw new Error("Expected a door item fixture.");
+	}
+	return { item, housePackageTool: item.housePackageTool };
+}
+
 describe("evaluateSalesDocumentReadiness", () => {
 	it("stages only parent aggregate repairs when door rows preserve the invoice total", () => {
 		const result = evaluateSalesDocumentReadiness(createSale());
@@ -91,15 +99,31 @@ describe("evaluateSalesDocumentReadiness", () => {
 
 	it("accepts a fully reconciled document", () => {
 		const sale = createSale();
-		const first = sale.items[0]!;
-		first.qty = 19;
-		first.total = 5022.11;
-		first.housePackageTool!.totalDoors = 19;
-		first.housePackageTool!.totalPrice = 5022.11;
+		const { item, housePackageTool } = requireDoorItem(sale);
+		item.qty = 19;
+		item.total = 5022.11;
+		housePackageTool.totalDoors = 19;
+		housePackageTool.totalPrice = 5022.11;
 
 		const result = evaluateSalesDocumentReadiness(sale);
 
 		expect(result.status).toBe("ready");
+	});
+
+	it("stages stale non-zero parent summaries when the invoice total is unchanged", () => {
+		const sale = createSale();
+		const { item, housePackageTool } = requireDoorItem(sale);
+		item.qty = 18;
+		item.total = 5000;
+		housePackageTool.totalDoors = 18;
+		housePackageTool.totalPrice = 5000;
+
+		const result = evaluateSalesDocumentReadiness(sale);
+
+		expect(result.status).toBe("repair_required");
+		expect(result.financial.totalChanged).toBe(false);
+		expect(result.operations).toHaveLength(1);
+		expect(result.findings[0]?.kind).toBe("conflicting_door_group_totals");
 	});
 
 	it("requires financial review when repaired line totals do not match the saved subtotal", () => {
@@ -116,7 +140,8 @@ describe("evaluateSalesDocumentReadiness", () => {
 
 	it("requires manual review for conflicting active form-step revisions", () => {
 		const sale = createSale();
-		sale.items[0]!.formSteps = [
+		const { item } = requireDoorItem(sale);
+		item.formSteps = [
 			{ id: 1, stepId: 9, componentId: 10, prodUid: "a", value: "A" },
 			{ id: 2, stepId: 9, componentId: 11, prodUid: "b", value: "B" },
 		];

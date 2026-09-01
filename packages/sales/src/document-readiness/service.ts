@@ -3,6 +3,7 @@ import type { Db, Prisma, TransactionClient } from "@gnd/db";
 import { evaluateSalesDocumentReadiness } from "./evaluator";
 import {
 	buildSalesDocumentReadinessSignature,
+	clearSalesDocumentReadinessMeta,
 	mergeSalesDocumentReadinessMeta,
 	readSalesDocumentReadinessMeta,
 } from "./meta";
@@ -124,6 +125,15 @@ async function persistResolutionCase(
 	db: Database,
 	proposal: SalesDocumentReadinessProposal,
 ) {
+	await db.resolutionCase.updateMany({
+		where: {
+			scopeType: "sales_document_readiness",
+			scopeId: String(proposal.salesOrderId),
+			status: "open",
+			id: { not: proposal.proposalId },
+		},
+		data: { status: "cancelled" },
+	});
 	await db.resolutionCase.upsert({
 		where: { id: proposal.proposalId },
 		create: {
@@ -190,11 +200,20 @@ export async function prepareSalesDocumentReadiness(
 					proposalId: `sales-doc-${sale.id}-${signature.slice(0, 24)}`,
 					validatedSourceUpdatedAt: timestamp,
 					createdAt: timestamp,
-				}) satisfies SalesDocumentReadinessProposal;
+				} satisfies SalesDocumentReadinessProposal);
 	const readiness = buildReadinessMeta({ evaluation, stampAt, proposal });
 
 	if (proposal && input.stageProposal !== false) {
 		await persistResolutionCase(db, proposal);
+	} else if (!proposal) {
+		await db.resolutionCase.updateMany({
+			where: {
+				scopeType: "sales_document_readiness",
+				scopeId: String(sale.id),
+				status: "open",
+			},
+			data: { status: "resolved" },
+		});
 	}
 	await db.salesOrders.update({
 		where: { id: sale.id },
@@ -205,6 +224,75 @@ export async function prepareSalesDocumentReadiness(
 	});
 
 	return preflightFromMeta(readiness, "evaluated");
+}
+
+export async function assertSalesDocumentsReady(
+	db: Database,
+	input: { salesOrderIds: number[] },
+) {
+	for (const salesOrderId of [...new Set(input.salesOrderIds)]) {
+		const readiness = await prepareSalesDocumentReadiness(db, {
+			salesOrderId,
+			stageProposal: true,
+		});
+		if (readiness.status !== "ready") {
+			throw new Error(
+				readiness.status === "repair_required"
+					? `Sales ${readiness.orderNo} requires a zero-total-delta repair before delivery.`
+					: `Sales ${readiness.orderNo} requires financial review before delivery.`,
+			);
+		}
+	}
+}
+
+export async function discardSalesDocumentReadinessProposal(
+	db: Db,
+	input: {
+		salesOrderId: number;
+		proposalId: string;
+		actorId: number;
+	},
+) {
+	return db.$transaction(async (tx) => {
+		const order = await tx.salesOrders.findUnique({
+			where: { id: input.salesOrderId },
+			select: { id: true, meta: true },
+		});
+		if (!order) throw new Error("Sales order not found.");
+		const readiness = readSalesDocumentReadinessMeta(order.meta);
+		if (readiness?.proposal?.proposalId !== input.proposalId) {
+			throw new Error(
+				"This review proposal is no longer current. Reopen the sales document and try again.",
+			);
+		}
+		const cancelled = await tx.resolutionCase.updateMany({
+			where: { id: input.proposalId, status: "open" },
+			data: { status: "cancelled" },
+		});
+		const discardedAt = new Date();
+		await tx.salesOrders.update({
+			where: { id: order.id },
+			data: {
+				meta: clearSalesDocumentReadinessMeta(order.meta),
+				updatedAt: discardedAt,
+			},
+		});
+		if (cancelled.count) {
+			await tx.resolutionAction.create({
+				data: {
+					id: randomUUID(),
+					resolutionCaseId: input.proposalId,
+					actionType: "open_sales_document_for_manual_repair",
+					status: "completed",
+					actorId: input.actorId,
+					beforeState: readiness.proposal as unknown as Prisma.InputJsonValue,
+					meta: {
+						discardedAt: discardedAt.toISOString(),
+					} as Prisma.InputJsonValue,
+				},
+			});
+		}
+	});
 }
 
 function exactValue(value: number | null) {
@@ -395,4 +483,3 @@ export async function applySalesDocumentReadinessRepair(
 		},
 	);
 }
-

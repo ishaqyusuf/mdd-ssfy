@@ -1,4 +1,5 @@
 import type { Db, TransactionClient } from "@gnd/db";
+import { prepareSalesDocumentReadiness } from "./document-readiness";
 import { queueSalesInventoryLineItemsSync } from "./sales-inventory-sync-job";
 import type { SalesType } from "./types";
 import { generateSalesSlug } from "./utils/utils";
@@ -136,6 +137,14 @@ export type CopySalesInTransactionProps = Omit<Props, "db"> & {
   db: CopySalesWriteClient;
 };
 
+export type CopySalesInTransactionDependencies = {
+  prepareDocumentReadiness: typeof prepareSalesDocumentReadiness;
+};
+
+const copySalesInTransactionDependencies: CopySalesInTransactionDependencies = {
+  prepareDocumentReadiness: prepareSalesDocumentReadiness,
+};
+
 async function getNextHistorySlugSequence(
   salesOrders: SalesOrdersDelegate,
   slug: string,
@@ -209,6 +218,8 @@ function editableCopyMeta(value: unknown) {
 
 export async function copySalesInTransaction(
   props: CopySalesInTransactionProps,
+  dependencies: CopySalesInTransactionDependencies =
+    copySalesInTransactionDependencies,
 ): Promise<CopySalesResult> {
   const { db, salesUid, as } = props;
   const sale = await db.salesOrders.findFirstOrThrow({
@@ -487,6 +498,12 @@ export async function copySalesInTransaction(
       },
     ),
   );
+
+  await dependencies.prepareDocumentReadiness(db, {
+    salesOrderId: newSales.id,
+    forceEvaluate: true,
+    stageProposal: true,
+  });
 
   return {
     id: newSales.id,

@@ -464,9 +464,7 @@ export function useSalesPrintController() {
 			} catch (error) {
 				if (isSalesDocumentPreflightRequiredError(error)) {
 					downloadToast.dismiss();
-					openSalesDocumentReadiness(error.readiness, () =>
-						downloadPdf(input),
-					);
+					openSalesDocumentReadiness(error.readiness, () => downloadPdf(input));
 					return;
 				}
 				downloadToast.update({
@@ -520,9 +518,9 @@ export function useSalesPrintController() {
 			} catch (error) {
 				if (isSalesDocumentPreflightRequiredError(error)) {
 					regenerateToast.dismiss();
-					openSalesDocumentReadiness(error.readiness, () =>
-						regenerate(input, options),
-					);
+					openSalesDocumentReadiness(error.readiness, async () => {
+						await regenerate(input, options);
+					});
 					return null;
 				}
 				regenerateToast.update({

@@ -11,11 +11,11 @@ import { getBaseUrl } from "@/lib/base-url";
 import { openLink } from "@/lib/open-link";
 import type { IOrderPrintMode } from "@/types/sales";
 import type { ResolveSalesDocumentAccessResult } from "@gnd/api/utils/sales-document-access";
-import type { SalesDocumentReadinessPreflight } from "@gnd/sales/document-readiness";
 import {
 	DEFAULT_SALES_PAGE_BREAK_MODE,
 	type SalesPageBreakMode,
 } from "@gnd/pdf/sales-v2";
+import type { SalesDocumentReadinessPreflight } from "@gnd/sales/document-readiness";
 import type { PrintMode } from "@gnd/sales/print/types";
 import {
 	type SalesPrintSettings,
@@ -303,10 +303,16 @@ export function buildSalesPdfDownloadUrlFromQuery(input: {
 	return `${url.pathname}${url.search}`;
 }
 
-function getSalesPrintConfigOverrides(request: SalesPrintRequest) {
-	const printConfig = {
+function getSalesPrintConfigOverrides(
+	request: SalesPrintRequest,
+): Partial<SalesPrintSettings> | null {
+	const templateId =
+		request.templateId === "template-1" || request.templateId === "template-2"
+			? request.templateId
+			: undefined;
+	const printConfig: Partial<SalesPrintSettings> = {
 		...(request.printConfig || {}),
-		...(request.templateId ? { templateId: request.templateId } : {}),
+		...(templateId ? { templateId } : {}),
 		...(request.pageBreakMode ? { pageBreakMode: request.pageBreakMode } : {}),
 	};
 	return Object.keys(printConfig).length ? printConfig : null;

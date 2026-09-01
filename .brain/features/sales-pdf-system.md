@@ -427,3 +427,10 @@ The stored-document phase should answer these operational rules explicitly:
   uses the saved HPT `totalDoors` and `totalPrice` aggregates when the legacy
   parent item omits either field. Explicit parent values still take precedence,
   and the selected aggregate must still match the active door rows exactly.
+- 2026-09-01: Price-bearing Sales preview, print, PDF generation/regeneration,
+  and email delivery now pass through `@gnd/sales/document-readiness` before
+  document access is resolved. A current Sales-meta attestation skips the deep
+  relational evaluator; a deterministic zero-subtotal-delta inconsistency opens
+  the shared guided-repair modal, while financial/manual findings remain
+  fail-closed. Successful repair invalidates active `SalesPrintData` before the
+  original action resumes.
