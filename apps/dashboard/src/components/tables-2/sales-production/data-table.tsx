@@ -30,8 +30,8 @@ import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
-import { BottomBar } from "./bottom-bar";
 import { getSalesProductionAssignedToLabel } from "./assigned-to-label";
+import { BottomBar } from "./bottom-bar";
 import {
 	getActiveSalesProductionStickyColumns,
 	getSalesProductionColumnVisibility,

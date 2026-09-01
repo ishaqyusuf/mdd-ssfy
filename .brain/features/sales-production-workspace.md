@@ -214,8 +214,11 @@ Provide a cleaner production operations surface for both admins and production w
   menu.
 - Ready requires 100% assigned production quantity, at least one active owned
   assignment, no active unowned assignment, and available materials.
-  Unassigned includes null-owner assignment rows. Combined due views preserve
-  all supported filters and pagination state.
+  Unassigned includes null-owner assignment rows. In the queue's `Assigned To`
+  column and responsive cards, positive assigned quantity without an owner is
+  labeled `Worker not assigned`; rows with no assignment quantity remain
+  `Unassigned`. Combined due views preserve all supported filters and
+  pagination state.
 
 ## Shared Worker/Legacy Queue UX
 - Worker routes now expose URL-owned PageTabs in this order: `Due Today`,
