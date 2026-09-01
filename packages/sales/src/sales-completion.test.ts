@@ -8,6 +8,7 @@ import {
 	SalesCompletionError,
 	type SalesCompletionRecordView,
 	buildSalesCompletionActiveKey,
+	buildSalesCompletionSatisfactionWhere,
 	cancelFulfillmentCompletionStatusOnly,
 	cancelFullWorkflowCompletionInTransaction,
 	cancelProductionCompletionStatusOnly,
@@ -17,6 +18,9 @@ import {
 	markProductionCompletionStatusOnly,
 	recordFullWorkflowCompletionIfProven,
 	resolveSalesCompletionProjection,
+	resolveSalesCompletionProjectionFromOrder,
+	salesCompletionLabels,
+	salesCompletionProjectionSourceRevision,
 } from "./sales-completion";
 
 const recordedAt = new Date("2026-08-01T12:00:00.000Z");
@@ -66,6 +70,66 @@ function resolve(
 }
 
 describe("sales completion projection", () => {
+	test("resolves order rows once and labels status-only completion explicitly", () => {
+		const projection = resolveSalesCompletionProjectionFromOrder({
+			id: 91,
+			orderId: "091LRG",
+			createdAt: new Date("2026-07-01T00:00:00.000Z"),
+			updatedAt,
+			status: null,
+			prodStatus: null,
+			stat: [],
+			deliveries: [],
+			completionRecords: [completionRecord()],
+		});
+		expect(projection.productionCompletionSatisfied).toBe(true);
+		expect(projection.operationalProductionCompleted).toBe(false);
+		expect(salesCompletionLabels(projection).production).toBe(
+			"Completed — status only",
+		);
+	});
+
+	test("uses the latest completion record revision for persisted projection freshness", () => {
+		expect(
+			salesCompletionProjectionSourceRevision({
+				createdAt: new Date("2026-08-01T00:00:00.000Z"),
+				updatedAt: new Date("2026-08-02T00:00:00.000Z"),
+				completionRecords: [
+					{ updatedAt: new Date("2026-08-03T00:00:00.000Z") },
+				],
+			}),
+		).toEqual(new Date("2026-08-03T00:00:00.000Z"));
+	});
+
+	test("builds explicit completion predicates without changing operational filters", () => {
+		const completed = buildSalesCompletionSatisfactionWhere(
+			"FULFILLMENT_COMPLETED",
+			true,
+		);
+		expect(completed).toMatchObject({
+			OR: expect.arrayContaining([
+				{
+					completionRecords: {
+						some: {
+							state: "ACTIVE",
+							completionMethod: "STATUS_ONLY",
+							milestone: { in: ["FULFILLMENT_COMPLETED"] },
+						},
+					},
+				},
+			]),
+		});
+		expect(
+			buildSalesCompletionSatisfactionWhere("PRODUCTION_COMPLETED", true),
+		).toMatchObject({
+			OR: expect.arrayContaining([
+				{ prodStatus: { in: expect.arrayContaining(["completed", "N/A"]) } },
+			]),
+		});
+		expect(
+			buildSalesCompletionSatisfactionWhere("FULFILLMENT_COMPLETED", false),
+		).toEqual({ NOT: completed });
+	});
 	test("requires completed dispatch proof instead of legacy terminal status", () => {
 		expect(
 			hasCanonicalSalesFulfillmentEvidence([

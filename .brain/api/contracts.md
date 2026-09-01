@@ -34,6 +34,19 @@
   its guarded reversal transaction. It ignores Status-only records; public
   Status-only cancellation continues to reject Full provenance. No public input,
   permission, or operational side-effect contract is relaxed.
+- Ticket 06 makes `salesOrderDto`, Sales list normalization, and persisted list
+  projection payloads return the same shared completion projection alongside
+  unchanged operational lifecycle fields. Persisted projection version 3 and
+  warm identities use the latest of order or completion-record revisions.
+- Sales order queries accept `completion.production` and
+  `completion.fulfillment` with `pending | completed`. List, summary, and count
+  paths route both through the same shared Prisma satisfaction predicate.
+  Existing `production`, `production.status`, and `dispatch.status` remain
+  operational filters and do not consume administrative records.
+- Completion reporting defaults to `OPERATIONAL` and omits Status-only rows.
+  Explicit `ADMINISTRATIVE` scope returns `method`, nullable `effectiveAt`, and
+  `recordedAt` independently; it never substitutes recording time for an
+  unknown effective time.
 
 ## Bulk Production Completion Task (2026-08-29)
 

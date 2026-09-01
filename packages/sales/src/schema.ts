@@ -23,6 +23,7 @@ import {
 	SALES_SPECIAL_ORDER_SHOW_OPTIONS,
 } from "./filter-constants";
 import { salesPrioritySchema } from "./priority";
+import { salesCompletionSatisfactionFilterSchema } from "./sales-completion";
 import { SALES_DISPATCH_STATUS } from "./utils/constants";
 export const getFullSalesDataSchema = z.object({
 	salesId: z.number().optional().nullable(),
@@ -247,6 +248,12 @@ export const salesQueryParamsSchema = z
 		orderNo: z.string().optional().nullable(),
 		"dispatch.status": z
 			.enum(SALES_DISPATCH_FILTER_OPTIONS)
+			.optional()
+			.nullable(),
+		"completion.production": salesCompletionSatisfactionFilterSchema
+			.optional()
+			.nullable(),
+		"completion.fulfillment": salesCompletionSatisfactionFilterSchema
 			.optional()
 			.nullable(),
 		defaultSearch: z.boolean().optional().nullable(),

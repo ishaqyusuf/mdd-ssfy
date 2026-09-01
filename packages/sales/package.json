@@ -57,6 +57,7 @@
 		"./sales-inventory-mark-as-preflight": "./src/sales-inventory-mark-as-preflight.ts",
 		"./sales-status-mark-as-resolution": "./src/sales-status-mark-as-resolution.ts",
 		"./sales-completion": "./src/sales-completion.ts",
+		"./sales-completion-reporting": "./src/sales-completion-reporting.ts",
 		"./sales-workflow-cancellation": "./src/sales-workflow-cancellation.ts",
 		"./sales-inventory-repair-policy": "./src/sales-inventory-repair-policy.ts",
 		"./sales-inventory-policy": "./src/sales-inventory-policy.ts",

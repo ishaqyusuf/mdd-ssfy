@@ -15,6 +15,17 @@ describe("sales order list read model", () => {
 			latestPaymentReview: {
 				receivedAt: new Date("2026-08-21T07:00:00.000Z"),
 			},
+			completion: {
+				productionEffectiveAt: null,
+				productionRecordedAt: new Date("2026-08-21T07:30:00.000Z"),
+				history: [
+					{
+						effectiveAt: null,
+						recordedAt: new Date("2026-08-21T07:30:00.000Z"),
+						updatedAt: new Date("2026-08-21T07:31:00.000Z"),
+					},
+				],
+			},
 		};
 
 		const hydrated = hydrateSalesOrderListRow<typeof row>(
@@ -25,9 +36,16 @@ describe("sales order list read model", () => {
 		expect(hydrated.latestPaymentReview.receivedAt).toEqual(
 			row.latestPaymentReview.receivedAt,
 		);
-		expect("missing" in serializeSalesOrderListRow({ missing: undefined })).toBe(
-			false,
+		expect(hydrated.completion.productionEffectiveAt).toBeNull();
+		expect(hydrated.completion.productionRecordedAt).toEqual(
+			row.completion.productionRecordedAt,
 		);
+		expect(hydrated.completion.history[0]?.updatedAt).toEqual(
+			row.completion.history[0]?.updatedAt,
+		);
+		expect(
+			"missing" in serializeSalesOrderListRow({ missing: undefined }),
+		).toBe(false);
 	});
 
 	it("reports only rows whose normalized payload changed", () => {

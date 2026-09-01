@@ -24,6 +24,10 @@ import {
 } from "@gnd/sales/payment-system";
 import { getPrintPaymentFooterState } from "@gnd/sales/print/payment-footer-state";
 import { deriveOrderProductionGateState } from "@gnd/sales/production-gate";
+import {
+	resolveSalesCompletionProjectionFromOrder,
+	salesCompletionLabels,
+} from "@gnd/sales/sales-completion";
 import { resolvePersistedSalesLineDoorRouteConfig } from "@gnd/sales/sales-form";
 import { readSalesFormPo } from "@gnd/sales/sales-form/application/legacy-metadata";
 import { getSpecialOrderStatusLabel } from "@gnd/sales/special-order";
@@ -118,6 +122,8 @@ export function salesOrderDto(data: Item, bin?: boolean) {
 	} else {
 		deliveryStatus = status.delivery?.status as any;
 	}
+	const completion = resolveSalesCompletionProjectionFromOrder(data);
+	const completionLabels = salesCompletionLabels(completion);
 
 	// if (data.orderId == "04780AD") {
 
@@ -137,6 +143,8 @@ export function salesOrderDto(data: Item, bin?: boolean) {
 		due,
 		stats: statToKeyValueDto(data.stat),
 		status,
+		completion,
+		completionLabels,
 		addressData: getSalesAddressData(data),
 		statList: data.stat,
 	};
@@ -431,7 +439,7 @@ function commonListData(data: Item, bin?: boolean) {
 			amountCents: moneyToCents(line.totalAmount ?? line.amount),
 		})),
 		taxes: data.taxes.map((line, index) => ({
-			key: `tax-${line.id ?? index}`,
+			key: `tax-${line.taxCode || index}`,
 			label: line.taxConfig?.title || line.taxCode || "Tax",
 			amountCents: moneyToCents(line.tax),
 		})),
