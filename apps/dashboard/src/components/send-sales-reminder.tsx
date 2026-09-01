@@ -355,11 +355,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
 					})}
 					<AlertDialog.Footer>
 						<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-						<form
-							onSubmit={form.handleSubmit(submit, (error) => {
-								console.log(error);
-							})}
-						>
+						<form onSubmit={form.handleSubmit(submit)}>
 							<AlertDialog.Action
 								type="submit"
 								onClick={(event) => {

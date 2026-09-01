@@ -90,14 +90,12 @@ export function useTaskTrigger(props?: Props) {
                     });
         },
         onSuccess({ data }) {
-            if (props?.debug) console.log({ data });
             if (data) {
                 setRunId(data.id);
                 setAccessToken(data.publicAccessToken);
             }
         },
         onError(e) {
-            if (props?.debug) console.log({ e });
             setRunId(undefined);
             setStatus("FAILED");
             if (!props.silent)

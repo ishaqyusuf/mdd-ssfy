@@ -3,16 +3,16 @@
 ### Status-only Sales Completion
 
 - Priority: High
-- Description: The Wayfinder and GND compatibility review are decision-complete.
-  Status-only Fulfillment is a separately labelled Administrative Completion,
-  canonical Fulfilled remains proof/commit-bound, planned
-  `SalesCompletionRecord` owns durable provenance, `SalesStat` remains
-  recomputed progress, and the exact two-row view/edit permission mapping is
-  fixed. No implementation has started.
+- Description: The approved five-ticket implementation stack is published.
+  Ticket 03, Status-only Production Completion, is the active isolated Brain
+  review unit; later tickets remain dependency-blocked. Canonical Fulfilled,
+  `SalesStat`, and the exact two-row permission contract retain their approved
+  boundaries.
 - Related Feature: Status-only Sales Completion
-- Status: Specification Ready For Separate Implementation Handoff
+- Status: In Progress — Ticket 03 Handoff Ready
 - Plan File: `.brain/plans/2026-09-01-feature-status-only-sales-completion.md`
 - Decision: `.brain/decisions/ADR-081-administrative-sales-completion-authority.md`
+- Active Handoff: `.brain/handoffs/ready/2026-09-01-status-only-production-completion-handoff.md`
 - Updated Date: 2026-09-01
 
 ### Fulfillment V2 Status And Queue Parity

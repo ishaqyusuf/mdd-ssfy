@@ -41,6 +41,8 @@ export const SALES_PRODUCTION_SORTS = [
 	"priority",
 	"due-asc",
 	"due-desc",
+	"assigned-asc",
+	"assigned-desc",
 	"newest",
 	"oldest",
 ] as const;
@@ -81,6 +83,8 @@ const SORT_MAP: Record<string, string> = {
 	priority: "priority",
 	"due-asc": "dueDateAsc",
 	"due-desc": "dueDateDesc",
+	"assigned-asc": "assignedAtAsc",
+	"assigned-desc": "assignedAtDesc",
 	newest: "newest",
 	oldest: "oldest",
 };

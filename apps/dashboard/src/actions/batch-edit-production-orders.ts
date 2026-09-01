@@ -55,20 +55,54 @@ export const batchEditProductionOrdersAction = actionClient
 				}),
 			);
 
-			const assignmentData = {
-				...(input.assignedToId !== undefined
-					? { assignedToId: input.assignedToId }
-					: {}),
-				...(input.dueDate !== undefined ? { dueDate: input.dueDate } : {}),
+			const activeAssignmentWhere = {
+				orderId: salesId,
+				deletedAt: null,
+				completedAt: null,
 			};
-			const updated = await prisma.orderItemProductionAssignments.updateMany({
-				where: {
-					orderId: salesId,
-					deletedAt: null,
-					completedAt: null,
-				},
-				data: assignmentData,
-			});
+			let updatedCount = 0;
+			if (input.assignedToId !== undefined) {
+				const ownershipUpdated =
+					await prisma.orderItemProductionAssignments.updateMany({
+						where: {
+							...activeAssignmentWhere,
+							OR:
+								input.assignedToId == null
+									? [{ assignedToId: { not: null } }]
+									: [
+											{ assignedToId: null },
+											{ assignedToId: { not: input.assignedToId } },
+										],
+						},
+						data: {
+							assignedToId: input.assignedToId,
+							assignedAt: input.assignedToId == null ? null : new Date(),
+							...(input.dueDate !== undefined
+								? { dueDate: input.dueDate }
+								: {}),
+						},
+					});
+				updatedCount += ownershipUpdated.count;
+
+				if (input.dueDate !== undefined) {
+					const scheduleUpdated =
+						await prisma.orderItemProductionAssignments.updateMany({
+							where: {
+								...activeAssignmentWhere,
+								assignedToId: input.assignedToId,
+							},
+							data: { dueDate: input.dueDate },
+						});
+					updatedCount += scheduleUpdated.count;
+				}
+			} else if (input.dueDate !== undefined) {
+				const scheduleUpdated =
+					await prisma.orderItemProductionAssignments.updateMany({
+						where: activeAssignmentWhere,
+						data: { dueDate: input.dueDate },
+					});
+				updatedCount = scheduleUpdated.count;
+			}
 
 			let createdForOrder = 0;
 			if (typeof input.assignedToId === "number") {
@@ -106,9 +140,9 @@ export const batchEditProductionOrdersAction = actionClient
 				}
 			}
 
-			if (updated.count || createdForOrder) {
+			if (updatedCount || createdForOrder) {
 				ordersUpdated += 1;
-				assignmentsUpdated += updated.count;
+				assignmentsUpdated += updatedCount;
 				assignmentsCreated += createdForOrder;
 				await reconcileSalesHandoffAfterCommit(prisma, {
 					salesOrderIds: [salesId],
@@ -119,7 +153,7 @@ export const batchEditProductionOrdersAction = actionClient
 
 			if (
 				typeof input.assignedToId === "number" &&
-				(updated.count || createdForOrder)
+				(updatedCount || createdForOrder)
 			) {
 				try {
 					const order = await prisma.salesOrders.findFirst({
@@ -132,7 +166,7 @@ export const batchEditProductionOrdersAction = actionClient
 							salesId,
 							orderNo: order?.orderId || undefined,
 							assignedToId: input.assignedToId,
-							itemCount: updated.count + createdForOrder,
+							itemCount: updatedCount + createdForOrder,
 							dueDate: input.dueDate || undefined,
 						},
 						{

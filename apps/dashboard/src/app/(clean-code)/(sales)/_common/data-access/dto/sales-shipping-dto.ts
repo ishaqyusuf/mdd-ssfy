@@ -68,7 +68,6 @@ export function salesShippingDto(
                     .map((assignment) => {
                         return assignment.submissions
                             .map((sub) => {
-                                // console.log(sub.)
                                 let pendingDelivery = sub.qty;
 
                                 assignment.deliveries

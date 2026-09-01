@@ -229,7 +229,6 @@ export async function getEmployees(
 			},
 		},
 	});
-	// console.log("Fetched employees", { count: data.length, data });
 	const userPermissionCounts = data.length
 		? await ctx.db.modelHasPermissions.groupBy({
 				by: ["modelId"],

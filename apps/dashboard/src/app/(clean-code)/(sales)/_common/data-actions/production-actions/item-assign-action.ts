@@ -52,6 +52,7 @@ export async function createItemAssignmentAction({
                           connect: { id: assignedToId },
                       }
                     : undefined,
+                assignedAt: assignedToId ? new Date() : null,
                 item: {
                     connect: { id: salesItemId },
                 },
@@ -189,6 +190,7 @@ export async function updateAssignmentAssignedToAction(
         },
         data: {
 			assignedToId,
+			assignedAt: assignedToId ? new Date() : null,
 	        },
 		select: { orderId: true },
 	    });

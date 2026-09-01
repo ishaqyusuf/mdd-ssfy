@@ -14,7 +14,6 @@ export type AuthSnapshot = {
 type SessionLike = Pick<AppSession, "user" | "role" | "can">;
 
 export function toAuthSnapshot(source?: SessionLike | null) {
-    // console.log("toAuthSnapshot", { source });
     if (!source?.user?.id) {
         return null;
     }

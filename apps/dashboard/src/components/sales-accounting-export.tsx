@@ -47,7 +47,6 @@ export function SalesAccountingExport() {
 			const {
 				data: { data },
 			} = await refetch();
-			// console.log(result);
 			const title = `sales-accounting-report-export-${dayjs().format(
 				"DD-MM-YYYY",
 			)}`;

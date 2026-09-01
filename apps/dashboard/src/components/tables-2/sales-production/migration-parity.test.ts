@@ -26,6 +26,9 @@ describe("Sales Production Sales Orders table migration parity", () => {
 				source.includes('getInitialTableSettings("sales-production")'),
 			).toBe(true);
 			expect(source.includes("ProductionWorkspace")).toBe(true);
+			expect(source.includes("resolveSalesProductionWorkspaceQuery")).toBe(
+				true,
+			);
 			expect(
 				source.includes("initialTableSettings={initialTableSettings}"),
 			).toBe(true);
@@ -52,7 +55,9 @@ describe("Sales Production Sales Orders table migration parity", () => {
 
 		expect(canonical.includes("ProductionWorkspace")).toBe(true);
 		expect(canonical.includes("productionCalendarTasks")).toBe(true);
-		expect(canonical.includes("defaultTableFilters={tableFilter}")).toBe(true);
+		expect(canonical.includes("defaultTableFilters={tableQueryInput}")).toBe(
+			true,
+		);
 		expect(legacy.includes("redirect(`/production/dashboard${suffix}`)")).toBe(
 			true,
 		);

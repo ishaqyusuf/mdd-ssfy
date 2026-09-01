@@ -976,8 +976,6 @@ export class Notifications {
 						validatedData as SalesEmailResolvedData,
 					);
 				} else {
-					console.log("📨 Email inputs for team:", emailInputs.length);
-
 					const emailResult = await this.#emailService.sendBulk(
 						emailInputs,
 						type as string,
@@ -993,12 +991,6 @@ export class Notifications {
 						emailResult,
 						validatedData as SalesEmailResolvedData,
 					);
-
-					console.log("📨 Email result for team:", {
-						sent: emails.sent,
-						skipped: emails.skipped,
-						failed: emails.failed || 0,
-					});
 				}
 				if (emailDeliveryResult && handler.afterEmailDelivery) {
 					await handler.afterEmailDelivery(

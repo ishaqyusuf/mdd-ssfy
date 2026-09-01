@@ -3,6 +3,37 @@
 ## Goal
 Provide a cleaner production operations surface for both admins and production workers with fast due-date triage, clear urgency alerts, and a more usable daily queue.
 
+## Assignment-backed queue eligibility and control sync (2026-09-01)
+
+- Production queue eligibility retains the canonical live produceable-control
+  quantity check and now also accepts positive active assignment quantity linked
+  through a live, non-deleted Sales order item. Persisted assignments therefore
+  remain visible in Active, Due Today, Past Due, Future, Unscheduled, and summary
+  reads when a regenerated or stale `QtyControl.qty.total` projection is zero.
+- The assignment fallback recognizes aggregate `qtyAssigned` and handed `lhQty`
+  or `rhQty`. Deleted assignments and assignments linked only through deleted
+  order items do not make an order queue-eligible.
+- Calendar and queue reads still have different presentation responsibilities,
+  but a valid scheduled assignment no longer appears only on Calendar because
+  its control projection was reset to zero.
+- `QtyControl.updatedAt` makes the mutable control projection eligible for the
+  normal incremental production-to-local database sync. Existing rows receive
+  the migration timestamp, producing one deliberate first-sync catch-up after
+  deployment rather than remaining silently stale.
+
+## Assignment ownership timestamp (2026-09-01)
+
+- The admin Active and Past Due production tables show `Assigned At`
+  immediately after `Assigned To`. The column remains optional through saved
+  table visibility and is excluded from worker tables.
+- `Assigned At` represents when the current assignment owner was selected.
+  Reassigning or unassigning changes the timestamp; changing only the due date
+  preserves it. Historical active assignments fall back to their creation time
+  until ownership changes.
+- The column header owns a URL-backed, server-side three-state sort: newest
+  assignment first (`assigned-desc`), oldest first (`assigned-asc`), then the
+  default production ordering. Unassigned rows remain last in either direction.
+
 ## Worker production item header refinement (2026-09-01)
 
 - Worker Production items remove the quantity segment from the item subtitle so
@@ -78,6 +109,9 @@ Provide a cleaner production operations surface for both admins and production w
 - The production table's Due Date header is connected to the canonical
   production sort. Repeated activation cycles through earliest due date,
   latest due date, and the default ordering.
+- The context-owned Order Date header is also connected to the canonical
+  server sort. Repeated activation cycles through newest order, oldest order,
+  and the default production ordering while preserving the sort in URL state.
 - Active and Completed production tables expose shared calendar-range filters
   for Production due date and Order date. The controls retain the existing
   date presets and write their values to URL state so filtered queues survive
@@ -359,10 +393,13 @@ Provide a cleaner production operations surface for both admins and production w
   shadow.
 - In the V2 admin view, each production item's fixed Assigned / Production /
   Fulfilled progress strip is replaced by compact shadcn badges beneath the
-  subtitle. Zero assignment shows `Not Assigned`; partial work shows `X of Y`
-  for every active overlapping stage; a completed upstream stage disappears
-  once the next stage starts. Fully assigned work shows `Assigned` until the
-  first submission, fully submitted non-shippable work shows
+  subtitle. Zero assignment shows `Not Assigned`. An assignment record with no
+  worker shows `Worker Not Assigned`, and partially staffed assignment sets show
+  `X of Y Staffed`; assignment quantity alone must not imply worker ownership.
+  Partial work shows `X of Y` for every active overlapping stage; a completed
+  upstream stage disappears once the next stage starts. Fully staffed and fully
+  assigned work shows `Assigned` until the first submission, while fully
+  submitted non-shippable work shows
   `Production Completed`, fully submitted shippable work shows
   `Ready to Fulfill`, and completed dispatch shows `Fulfilled`. Production and
   fulfillment badges remain absent until their stage has actual progress.
@@ -679,6 +716,10 @@ Provide a cleaner production operations surface for both admins and production w
   before it, and both the Assignments-heading plus and Submissions-heading plus
   reserve the same right gutter. Both headings vertically center their labels,
   badges, and action buttons.
+- The Assignments heading reports `X of Y staffed`, where staffing means the
+  assignment has a worker owner. Workerless assignment rows use the explicit
+  `Worker not assigned` label; `N/A` is reserved for fields where worker
+  ownership does not apply.
 - Assignment records are owned by the item-level assignment provider. Create,
   submit, assignment-delete, and submission-delete success callbacks refresh
   that provider snapshot immediately in addition to emitting the broader
@@ -859,6 +900,10 @@ Provide a cleaner production operations surface for both admins and production w
 - Assignment, unassignment, and submission are mandatory operational in-app
   channels. Direct forced recipients remain visible even when ordinary channel
   preferences exclude optional notifications.
+- The active notification inbox and unread-count queries refresh every 15
+  seconds while the worker's browser tab is in the foreground. This makes
+  assignment notifications created by another signed-in session visible
+  without requiring a page reload; background tabs do not poll.
 - Focused date, query, and notification tests pass. With explicit operator
   approval, live assignment `14290` on order `09480AD` was deleted and recreated
   for Carlos at quantity two with an August 30 due date. Authenticated worker QA

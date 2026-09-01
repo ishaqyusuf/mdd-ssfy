@@ -76,7 +76,6 @@ export class NotificationService {
       channel,
       author: await this.buildAuthor(input.author),
     } as NotificationEvent<TChannel>;
-    console.log("Emitting notification with payload:", payload);
     return this.tasks.trigger("notification", payload);
   }
 

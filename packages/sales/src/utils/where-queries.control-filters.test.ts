@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { getProductionQueueBoundaries } from "../production-date";
 import { salesQueryParamsSchema } from "../schema";
-import { whereSales } from "./where-queries";
+import { buildProductionEligibleWhere, whereSales } from "./where-queries";
 
 function toClauses(where: any) {
 	if (!where) return [];
@@ -9,6 +9,18 @@ function toClauses(where: any) {
 }
 
 describe("whereSales stat filters", () => {
+	it("keeps assignment-backed production eligible when control quantity is stale", () => {
+		const json = JSON.stringify(buildProductionEligibleWhere());
+
+		expect(json).toContain('"itemControls"');
+		expect(json).toContain('"qtyControls"');
+		expect(json).toContain('"items"');
+		expect(json).toContain('"assignments"');
+		expect(json).toContain('"qtyAssigned":{"gt":0}');
+		expect(json).toContain('"lhQty":{"gt":0}');
+		expect(json).toContain('"rhQty":{"gt":0}');
+	});
+
 	it("searches customer, billing, and shipping address text", () => {
 		const where = whereSales({
 			q: "123 Main",

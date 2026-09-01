@@ -74,10 +74,8 @@ export function ProductionAssignmentForm({ closeForm }) {
 
             closeForm();
         },
-        onError(e) {
+        onError() {
             toast.error("Unable to complete!");
-
-            console.log(e);
         },
     });
 

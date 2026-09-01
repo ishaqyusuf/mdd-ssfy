@@ -105,7 +105,6 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
 	useEffect(() => {
 		if (blockInput) {
 			form.reset(blockInput as any);
-			console.log({ communityTemplate, schm, blockInput });
 			if (!schm.modelSlug) return;
 			const tfs = new TemplateFormService(
 				schm.schemaData,
@@ -118,7 +117,6 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
 				...blockInput,
 				inputConfigs: modelForm,
 			});
-			// console.log({ modelForm });
 		}
 	}, [blockInput]);
 	const { fields, swap } = useFieldArray({
@@ -186,8 +184,6 @@ export const createTemplateSchemaInputContext = (props: BlockInputProps) => {
 		valueId: dotObject.pick(ctx.valueIdPath, store),
 		setValue: (v) => {
 			store.update(ctx.valuePath as any, +v);
-			// console.log(dotObject.pick(ctx.valuePath, store));
-			// console.log(dotObject.pick(configPath, store), props.input.index);
 		},
 		setValueId: (id) => store.update(ctx.valueIdPath as any, id),
 	};

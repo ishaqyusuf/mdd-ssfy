@@ -7,6 +7,8 @@ export const productionV2SortSchema = z.enum([
 	"priority",
 	"dueDateAsc",
 	"dueDateDesc",
+	"assignedAtAsc",
+	"assignedAtDesc",
 	"newest",
 	"oldest",
 ]);

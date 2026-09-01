@@ -75,7 +75,6 @@ export function InputField<
               onChange={(e) => {
                 if (props.type !== "number") return field.onChange(e);
                 const input = e.target.value;
-                // console.log({ input });
                 // setRawValue(input);
 
                 // Check if input can be parsed as a valid number

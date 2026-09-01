@@ -64,7 +64,6 @@ export function CommunityTemplateForm({ data }: Props) {
     async function onSubmit(
         formData: z.infer<typeof communityTemplateFormSchema>,
     ) {
-        // console.log(formData);
         formData.projectName = projectList.find(
             (p) => formData.projectId === +p.id,
         )?.label;

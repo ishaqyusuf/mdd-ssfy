@@ -58,25 +58,57 @@ export function DataTableHeader<TData>({
 	const sortColumn =
 		filters.sort === "due-asc" || filters.sort === "due-desc"
 			? "dueDate"
-			: undefined;
+			: filters.sort === "assigned-asc" || filters.sort === "assigned-desc"
+				? "assignedAt"
+				: filters.sort === "newest" || filters.sort === "oldest"
+					? "orderDate"
+					: undefined;
 	const sortValue =
 		filters.sort === "due-asc"
 			? "asc"
 			: filters.sort === "due-desc"
 				? "desc"
-				: undefined;
+				: filters.sort === "assigned-asc"
+					? "asc"
+					: filters.sort === "assigned-desc"
+						? "desc"
+						: filters.sort === "newest"
+							? "desc"
+							: filters.sort === "oldest"
+								? "asc"
+								: undefined;
 	const createSortQuery = useCallback(
 		(field: string) => {
-			if (field !== "dueDate") return;
-
-			void setFilters({
-				sort:
-					filters.sort === "due-asc"
-						? "due-desc"
-						: filters.sort === "due-desc"
-							? null
-							: "due-asc",
-			});
+			if (field === "dueDate") {
+				void setFilters({
+					sort:
+						filters.sort === "due-asc"
+							? "due-desc"
+							: filters.sort === "due-desc"
+								? null
+								: "due-asc",
+				});
+			}
+			if (field === "assignedAt") {
+				void setFilters({
+					sort:
+						filters.sort === "assigned-desc"
+							? "assigned-asc"
+							: filters.sort === "assigned-asc"
+								? null
+								: "assigned-desc",
+				});
+			}
+			if (field === "orderDate") {
+				void setFilters({
+					sort:
+						filters.sort === "newest"
+							? "oldest"
+							: filters.sort === "oldest"
+								? null
+								: "newest",
+				});
+			}
 		},
 		[filters.sort, setFilters],
 	);

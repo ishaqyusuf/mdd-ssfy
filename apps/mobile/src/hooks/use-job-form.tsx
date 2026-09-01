@@ -14,7 +14,6 @@ export const JobFormContext = createContext<JobFormContextType>(
 export const JobFormProvider = JobFormContext.Provider;
 export const useCreateJobFormContext = (ref) => {
   //   const onDismiss = () => {
-  //     console.log("Job Form Dismissed");
   //   };
   const form = useZodForm(createJobSchema, {
     defaultValues: {
@@ -58,7 +57,6 @@ export const useCreateJobFormContext = (ref) => {
   const formData = store.form;
   // const formData = useMemo(() => __formData, [__formData]);
   // useEffect(() => {
-  //   console.log(formData);
   // }, [formData]);
   const {
     projectId,
@@ -104,7 +102,6 @@ export const useCreateJobFormContext = (ref) => {
       form.reset({});
       // reset form
     }
-    console.log("Job Form Changed: ", e);
   };
   // const [unit,setUnit] = useStat
   const selectUnit = (unit, onSelect) => {
@@ -132,13 +129,11 @@ export const useCreateJobFormContext = (ref) => {
     // setTab("tasks");
   };
   const selectProject = (project, onSelect) => {
-    // console.log(projectId);
     const oldProjectId = store.form.projectId; //form.getValues("projectId");
     store.update("form.projectId", project.id);
     store.update("form.title", project.title);
     // form.setValue("projectId", project.id);
     // form.setValue("title", project.title);
-    // console.log({ project });
     if (oldProjectId !== project.id) {
       // form.setValue("homeId", null);
       store.update("form.homeId", null);

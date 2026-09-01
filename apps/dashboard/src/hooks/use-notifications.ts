@@ -13,11 +13,13 @@ import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 
 type RawNotificationItems = Parameters<typeof transformNotifications>[0];
+const NOTIFICATION_REFRESH_INTERVAL_MS = 15_000;
 
 function useNotificationFeed(
 	status: Array<"unread" | "read" | "archived">,
 	enabled = true,
 	type?: string | null,
+	poll = false,
 ) {
 	const auth = useAuth();
 	const trpc = useTRPC();
@@ -33,6 +35,8 @@ function useNotificationFeed(
 			{
 				enabled: enabled && auth.enabled,
 				getNextPageParam: (lastPage) => lastPage?.meta?.cursor,
+				refetchInterval: poll ? NOTIFICATION_REFRESH_INTERVAL_MS : false,
+				refetchIntervalInBackground: false,
 			},
 		),
 	);
@@ -76,6 +80,8 @@ function useNotificationUnreadCount(enabled = true) {
 			{},
 			{
 				enabled: enabled && auth.enabled,
+				refetchInterval: NOTIFICATION_REFRESH_INTERVAL_MS,
+				refetchIntervalInBackground: false,
 			},
 		),
 	);
@@ -93,7 +99,12 @@ export function useNotifications({
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const inboxQuery = useNotificationFeed(["unread", "read"], enabled, type);
+	const inboxQuery = useNotificationFeed(
+		["unread", "read"],
+		enabled,
+		type,
+		true,
+	);
 	const archivedQuery = useNotificationFeed(
 		["archived"],
 		enabled && includeArchive,

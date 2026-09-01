@@ -18,6 +18,7 @@ export async function createItemAssignmentDta(
 ) {
     if (!data.qtyAssigned) data.qtyAssigned = sum([data.lhQty, data.rhQty]);
     if (!data.assignedTo?.connect?.id) data.assignedTo = undefined;
+    if (data.assignedTo?.connect?.id) data.assignedAt = new Date();
 
     const assignment = await prisma.orderItemProductionAssignments.create({
         data,

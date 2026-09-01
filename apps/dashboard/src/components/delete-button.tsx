@@ -41,14 +41,6 @@ export function DeleteButton<R extends Routes>(props: Props<R>) {
                 // invalidateQuery(props.route, props.input);
                 props?.onDelete();
             },
-            onError(error, variables, onMutateResult, context) {
-                console.log("Failed to delete item", {
-                    error,
-                    variables,
-                    onMutateResult,
-                    context,
-                });
-            },
             meta: {
                 toastTitle: {
                     error: "Failed to delete item",

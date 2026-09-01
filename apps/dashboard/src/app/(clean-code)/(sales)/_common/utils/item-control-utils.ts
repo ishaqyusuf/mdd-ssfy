@@ -158,7 +158,6 @@ function composeQtyControl(props: ComposeQtyControlProps) {
             //     : deliveries.find((del) => del.id == d.orderDeliveryId)
             //           ?.status == status;
         });
-        if (dispatchItems.length) console.log(dispatchItems);
         controls[controlType] = {
             lh: sum(dispatchItems, "lhQty"),
             rh: sum(dispatchItems, "rhQty"),

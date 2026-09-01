@@ -257,7 +257,6 @@ export function useTaskTrigger(props?: Props) {
 		},
 		onSuccess({ data }) {
 			const pending = pendingTriggersRef.current.shift();
-			// if (props?.debug) console.log({ data });
 			if (!data?.id || !data?.publicAccessToken) {
 				const errorMessage = (data as { errorMessage?: string } | undefined)
 					?.errorMessage;

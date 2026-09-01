@@ -24,47 +24,8 @@ type FlowEvent = {
     error?: unknown;
 };
 
-const DEV_ENABLED = process.env.NODE_ENV === "development";
-
-function safeSerialize(value: unknown) {
-    try {
-        return JSON.parse(JSON.stringify(value));
-    } catch {
-        return value;
-    }
-}
-
-function writeLog(flow: FlowHandle, event: FlowEvent) {
-    if (!DEV_ENABLED) return;
-    try {
-        console.log(
-            JSON.stringify({
-                logId: `${flow.feature}-${event.eventType}`,
-                timestamp: new Date().toISOString(),
-                threadContext: flow.threadContext,
-                feature: flow.feature,
-                correlationId: flow.flowId,
-                eventType: event.eventType,
-                stage: event.stage,
-                inputs: safeSerialize(event.inputs || {}),
-                derived: safeSerialize(event.derived || {}),
-                outputs: safeSerialize(event.outputs || {}),
-                error: event.error
-                    ? safeSerialize({
-                          message:
-                              event.error instanceof Error
-                                  ? event.error.message
-                                  : String(event.error),
-                          stack:
-                              event.error instanceof Error
-                                  ? event.error.stack
-                                  : undefined,
-                      })
-                    : undefined,
-                tags: flow.tags,
-            }),
-        );
-    } catch {}
+function writeLog(_flow: FlowHandle, _event: FlowEvent) {
+    return;
 }
 
 export function startFlow(meta: FlowMeta): FlowHandle {

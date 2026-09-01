@@ -320,7 +320,6 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
   };
   const dateValue = (filter, index) => {
     const f = filters?.[filter.value];
-    console.log({ f });
     if (Array.isArray(f) && f?.length > index) {
       const dates = transformFilterDateToQuery(f);
       const dv = dates[index];
@@ -377,7 +376,6 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
         }}
         className=""
         onSelect={(range) => {
-          // console.log({ range });
           const [_from, _to] = [dateValue(filter, 0), dateValue(filter, 1)];
 
           let value = [

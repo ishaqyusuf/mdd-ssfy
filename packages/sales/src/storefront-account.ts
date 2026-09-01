@@ -210,8 +210,6 @@ export async function signup(db: Db, data: Signup) {
       ],
     },
   });
-  console.log({ devMode, e });
-
   if (devMode && e) {
     return await db.users.update({
       where: {

@@ -24,6 +24,16 @@ describe("batch production assignment editing", () => {
 		expect(source.includes("dueDate: input.dueDate")).toBe(true);
 	});
 
+	it("changes Assigned At only when assignment ownership changes", () => {
+		expect(
+			source.includes(
+				"assignedAt: input.assignedToId == null ? null : new Date()",
+			),
+		).toBe(true);
+		expect(source.includes("OR:")).toBe(true);
+		expect(source.includes("data: { dueDate: input.dueDate }")).toBe(true);
+	});
+
 	it("creates remaining production assignments when a worker is selected", () => {
 		expect(source.includes('typeof input.assignedToId === "number"')).toBe(
 			true,

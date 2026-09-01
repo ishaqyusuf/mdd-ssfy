@@ -3,11 +3,69 @@ import { describe, expect, it } from "bun:test";
 import {
 	getActiveSalesProductionStickyColumns,
 	getSalesProductionColumnVisibility,
+	includeAssignedAtAfterAssignedTo,
 	placeOrderDateAfterDueDate,
 	shouldShowSalesProductionOrderDate,
 } from "./column-layout";
 
 describe("Sales Production column layout", () => {
+	it("shows Assigned At by default for Active and Past Due admin tables", () => {
+		for (const context of [
+			{ tab: "queue", view: "table", list: { production: "pending" } },
+			{
+				tab: "queue",
+				view: "table",
+				list: { production: "pending", show: "past-due" },
+			},
+		]) {
+			expect(
+				getSalesProductionColumnVisibility({
+					columnVisibility: {},
+					context,
+				}),
+			).toMatchObject({ assignedAt: true });
+		}
+	});
+
+	it("keeps Assigned At optional and out of worker tables", () => {
+		expect(
+			getSalesProductionColumnVisibility({
+				columnVisibility: { assignedAt: false },
+				context: { tab: "queue", view: "table", list: {} },
+			}),
+		).toMatchObject({ assignedAt: false });
+		expect(
+			getSalesProductionColumnVisibility({
+				columnVisibility: { assignedAt: true },
+				context: { tab: "queue", view: "table", list: {} },
+				workerMode: true,
+			}),
+		).toMatchObject({ assignedAt: false });
+	});
+
+	it("adds Assigned At after Assigned To for saved layouts created before it", () => {
+		expect(
+			includeAssignedAtAfterAssignedTo(
+				["select", "dueDate", "assignedTo", "customer", "actions"],
+				[
+					"select",
+					"dueDate",
+					"assignedTo",
+					"assignedAt",
+					"customer",
+					"actions",
+				],
+			),
+		).toEqual([
+			"select",
+			"dueDate",
+			"assignedTo",
+			"assignedAt",
+			"customer",
+			"actions",
+		]);
+	});
+
 	it("hides Materials by default only for completed work", () => {
 		expect(
 			getSalesProductionColumnVisibility({

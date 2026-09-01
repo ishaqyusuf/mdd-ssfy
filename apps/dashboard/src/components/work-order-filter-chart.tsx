@@ -56,17 +56,6 @@ export function WorkOrderFilterChart() {
   const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false);
-      if (selection.startIndex !== null && selection.endIndex !== null) {
-        const start = Math.min(selection.startIndex, selection.endIndex);
-        const end = Math.max(selection.startIndex, selection.endIndex);
-        const selectedData = data.slice(start, end + 1);
-        console.log("Selected date range:", {
-          from: selectedData[0].date,
-          to: selectedData[selectedData.length - 1].date,
-        });
-        // To clear selection, you could add a button or another interaction
-        // For now, a new drag action will create a new selection.
-      }
     }
   };
 

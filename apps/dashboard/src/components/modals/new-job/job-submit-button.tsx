@@ -64,14 +64,6 @@ export function JobSubmitButton({
 					});
 				}
 			},
-			onError(error, variables, onMutateResult, context) {
-				console.log("Failed to save job details", {
-					error,
-					variables,
-					onMutateResult,
-					context,
-				});
-			},
 			meta: {
 				toastTitle: {
 					error: "Failed to save job details",
@@ -162,10 +154,6 @@ export function JobSubmitButton({
 					// setParams({
 					//     step: 3, // Move to the next step, e.g., review/confirm
 					// });
-				},
-				(e) => {
-					console.log("Form Errors:", e);
-					console.log("default values", defaultValues);
 				},
 			)}
 		>

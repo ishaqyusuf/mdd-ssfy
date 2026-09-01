@@ -37,7 +37,6 @@ async function generateMissingStatsDta(salesId) {
     const overview = salesOverviewDto(data);
     // await Promise.all(
     // Object.values(overview.stat.calculatedStats).map(async (stat) => {
-    //     // console.log(stat);
     //     if (!stat.id)
     //         await createSalesProgressDta(
     //             stat.salesId,

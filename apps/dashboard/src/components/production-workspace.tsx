@@ -3,7 +3,7 @@
 import { Icons } from "@gnd/ui/icons";
 import dynamic from "next/dynamic";
 
-import { useQuery } from "@gnd/ui/tanstack";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Suspense, useEffect } from "react";
@@ -133,6 +133,28 @@ function ProductionTableSkeleton({
 	);
 }
 
+export function ProductionWorkspaceSkeleton({
+	mode,
+	initialTableSettings,
+}: Pick<Props, "mode" | "initialTableSettings">) {
+	const workerMode = mode === "worker";
+
+	return (
+		<div className="flex flex-col gap-6">
+			<section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+				{Array.from({ length: 4 }).map((_, index) => (
+					<SalesProductionAnalyticsCardSkeleton key={index.toString()} />
+				))}
+			</section>
+			<Skeleton className="h-10 w-full rounded-md" />
+			<ProductionTableSkeleton
+				initialSettings={initialTableSettings}
+				workerMode={workerMode}
+			/>
+		</div>
+	);
+}
+
 function WorkerCalendarSkeleton() {
 	return (
 		<div className="flex flex-col gap-3">
@@ -164,7 +186,7 @@ export function ProductionWorkspace({
 	const overviewQuery = useSalesOverviewQuery();
 	const { filters, setFilters } = useSalesProductionFilterParams();
 
-	const dashboardQuery = useQuery(
+	const dashboardQuery = useSuspenseQuery(
 		workerMode
 			? trpc.sales.productionDashboardTasks.queryOptions({
 					priority: filters.priority || undefined,

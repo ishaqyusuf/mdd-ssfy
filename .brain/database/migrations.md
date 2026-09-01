@@ -1,5 +1,31 @@
 # Database Migrations
 
+## 2026-09-01: QtyControl incremental-sync cursor
+
+- Prisma generated and locally applied additive migration
+  `20260901195324_add_qty_control_sync_cursor`.
+- The migration adds required `QtyControl.updatedAt DATETIME(3)` with
+  `CURRENT_TIMESTAMP(3)` as its initial/default value. Existing rows therefore
+  become visible to the first incremental sync after the migration reaches the
+  source environment.
+- The named local migration and `bun run db:push` completed successfully; the
+  final push reported the local schema already in sync and regenerated Prisma
+  Client. No preview write, production migration, production data mutation, or
+  destructive database action was performed.
+
+## 2026-09-01: Production assignment ownership timestamp
+
+- Prisma generated and locally applied additive migration
+  `20260901193928_add_production_assignment_assigned_at`.
+- The migration adds nullable
+  `OrderItemProductionAssignments.assignedAt TIMESTAMP(0)` without backfilling
+  historical rows; the read model uses `createdAt` as the legacy display/sort
+  fallback.
+- The named local migration and `bun run db:push` completed successfully; the
+  final push reported the local schema already in sync and regenerated Prisma
+  Client. No reset, destructive flag, manual SQL, preview write, or production
+  write was used.
+
 ## Planned: Status-only sales completion (2026-09-01)
 
 - No migration was generated or applied during Wayfinder planning.

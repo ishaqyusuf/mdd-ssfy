@@ -3017,12 +3017,10 @@ export async function getUnitJobs(ctx: TRPCContext, query: GetUnitJobsSchema) {
     )
       return;
 
-    // if (isTestUnit) console.log(unit);
     let template: any = unit.homeTemplate as any;
     let communityTemplate: any = project.communityModels.find(
       (m) => m.modelName == unit.modelName,
     ) as any;
-    // if (isTestUnit) console.log(communityTemplate);
     // if (jobType == "punchout") {
     //     ls.push({
     //         id: unit.id,

@@ -203,18 +203,6 @@ function Content() {
 										label="Terminal"
 									/>
 									<div className="col-span-2 flex justify-end">
-										<Env isDev>
-											<Button
-												type="button"
-												onClick={(e) => {
-													form.trigger().then((e) => {
-														console.log(form.formState.errors);
-													});
-												}}
-											>
-												AAA
-											</Button>
-										</Env>
 										<SubmitButton
 											isSubmitting={
 												makePayment.isExecuting || !!terminalPaymentSession

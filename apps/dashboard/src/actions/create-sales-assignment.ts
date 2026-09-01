@@ -47,6 +47,7 @@ async function createSalesAssignment(
                       connect: { id: +data.assignedToId },
                   }
                 : undefined,
+            assignedAt: data.assignedToId ? new Date() : null,
             dueDate: data.dueDate,
             assignedBy: {
                 connect: {

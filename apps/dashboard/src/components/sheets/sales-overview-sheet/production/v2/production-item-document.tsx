@@ -70,6 +70,10 @@ function ProductionV2RecordsSection() {
 		getSalesOverviewDocumentStatus(saleOverview.data).status === "fulfilled";
 	const label = workerMode ? "Submissions" : "Assignments";
 	const submissionProgress = getWorkerProductionSubmissionProgress(item);
+	const assignmentCount = data?.assignments?.length || 0;
+	const staffedAssignmentCount =
+		data?.assignments?.filter((assignment) => assignment.assignedToId).length ||
+		0;
 	const headingId = useId();
 	const [createOpen, setCreateOpen] = useState(false);
 	const createTriggerRef = useRef<HTMLButtonElement>(null);
@@ -175,7 +179,7 @@ function ProductionV2RecordsSection() {
 						<Badge variant="secondary">
 							{workerMode
 								? `${submissionProgress.submitted}/${submissionProgress.assigned} submitted`
-								: `${data?.assignments?.length || 0} total`}
+								: `${staffedAssignmentCount} of ${assignmentCount} staffed`}
 						</Badge>
 						{workerMode
 							? hasWorkerSubmissions

@@ -20,7 +20,6 @@ export default function SplashScreenComponent() {
         loop={false}
         style={{ flex: 1 }}
         onAnimationFinish={() => {
-          console.log('Animation finished')
           router.replace('/onboarding')
         }}
       />

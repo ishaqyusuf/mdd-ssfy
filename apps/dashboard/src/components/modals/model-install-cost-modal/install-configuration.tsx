@@ -254,12 +254,9 @@ function Line({
             communityModelId: modelId,
             installCostModelId: task.installCostModelId,
         };
-        // console.log(formData);
         // return;
         mutate(formData);
-        // console.log({ v });
         // const scoreData = scores?.[scoreKey];
-        // // console.log(v, scoreData, scores, scoreKey, student);
         // // return;
         // mutate({
         //     ...scoreData,

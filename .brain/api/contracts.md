@@ -836,7 +836,8 @@ Tracks important request/response contracts and shared schema boundaries.
   - `queue`, `due`, `material`, and `sort` workspace filters mapped by the
     shared `@gnd/sales/production-workspace-query` resolver to the existing
     production list input; `sort=due-asc|due-desc` is also controlled by the
-    Due Date table header
+    Due Date table header, while `sort=newest|oldest` is controlled by the
+    Order Date table header
   - table calendar ranges use `production.dueDate` for active assignment due
     dates and `dateRange` for Sales order creation dates. Worker production
     due-date ranges retain authenticated assignee scoping; both ranges reuse
@@ -844,6 +845,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - `show: "due-today" | "due-tomorrow" | "past-due" | "future" | "unscheduled"` for focused list slices; `future` means incomplete assignments due from tomorrow forward, `unscheduled` means incomplete assignments whose due date is null, and combined views retain the canonical search, queue, material, sort, and cursor inputs
   - `date` and `productionDueDate` accept real ISO `YYYY-MM-DD` values only; invalid legacy URL values normalize away before calendar rendering
   - `sales.productionSummary` returns the canonical page's bounded queue, completed, assignment, due, and review counts without loading alert rows or calendar data
+  - production list and summary eligibility accepts either a live produceable
+    control with positive canonical `qty` or positive persisted assignment
+    quantity linked through a live Sales order item. This prevents a stale zero
+    `QtyControl` projection from hiding otherwise valid scheduled work while
+    continuing to reject deleted assignments and deleted linked items
   - legacy `sales.productionDashboard` retains `summary`, `alerts`, `calendar`, and `spotlight` buckets for remaining legacy consumers
   - `sales.productionDashboardTasks(input?)` ignores caller worker scope and
     returns the legacy summary/alerts/calendar/spotlight projection for the

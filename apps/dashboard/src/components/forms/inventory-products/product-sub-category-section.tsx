@@ -169,8 +169,7 @@ function SubCategoryValues({ index }) {
             categoryId,
             valueInventoryId: Number(valueInventoryId),
             inventoryId: ctx.inventoryId,
-        }).then((result) => {
-            console.log(result);
+        }).then(() => {
             callback();
             // subCatUpdated(index, {
             //     id: result.id,

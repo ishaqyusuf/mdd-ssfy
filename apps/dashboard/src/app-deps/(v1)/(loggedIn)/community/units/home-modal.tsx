@@ -39,7 +39,6 @@ export function useHomeModal() {
     const modal = useModal();
     return {
         open(home?) {
-            // console.log()
             modal.openModal(<HomeModal home={home} />);
         },
     };
