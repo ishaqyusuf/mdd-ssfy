@@ -1,5 +1,13 @@
 # Progress
 
+- 2026-09-01: Reconciled Ticket 07 with concurrent main commit `0ba1907ec`
+  after the first guarded landing attempt correctly aborted on one Brain-only
+  `.brain/tasks/done.md` conflict. Both Status-only completion and Sales-document
+  readiness Done histories are preserved; no application-code conflict
+  occurred. The exact reconciled tree passes 137 focused tests / 711 assertions,
+  Sales/DB/Utils typechecks, Dashboard production build, and diff integrity and
+  is approved for a fresh guarded landing attempt.
+
 - 2026-09-01: Ticket 07 Status-only Sales Completion release verification
   passed final Brain review with no findings. The approved five-ticket stack
   now has direct evidence for all 23 scenarios, 134 focused tests / 702

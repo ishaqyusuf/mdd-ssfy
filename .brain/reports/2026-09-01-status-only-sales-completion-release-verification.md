@@ -165,6 +165,16 @@ reversal. Browser cancellation stopped at the destructive confirmation gate;
 the exact scoped cleanup used the package-owned command instead of bypassing
 that confirmation policy.
 
+## Pre-landing reconciliation
+
+Concurrent main commit `0ba1907ec` completed Sales-document readiness work
+after Ticket 07's initial review. The first guarded landing attempt was aborted
+on a Brain-only `.brain/tasks/done.md` conflict. Reconciliation retained both
+completed-task histories and introduced no application-code conflict. On the
+exact reconciled tree, the combined Status-only suite passes 137 tests / 711
+assertions, Sales/DB/Utils typechecks pass, Dashboard production build passes,
+and diff integrity passes.
+
 ## Documentation impact
 
 The release updates the feature status, plan, task ledgers, progress, API and

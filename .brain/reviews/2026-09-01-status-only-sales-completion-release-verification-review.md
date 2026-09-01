@@ -62,6 +62,12 @@ Pass
 - Root production build: Baseline isolated — DB and Web passed, unrelated Storefront Prisma client-browser import failed.
 - Local `db:generate`, `db:migrate`, `db:push`: Pass.
 - `git diff --check ff29e0016..c25ac8f4e`: Pass.
+- Post-conflict reconciliation with concurrent main `0ba1907ec`: Pass — both
+  Done-task histories retained; no application-code conflict.
+- Post-reconciliation combined focused suite: Pass — 137 tests / 711 assertions.
+- Post-reconciliation Sales/DB/Utils typechecks: Pass.
+- Post-reconciliation Dashboard production build: Pass — optimized build and
+  31/31 static pages.
 
 ## Brain Update Check
 
