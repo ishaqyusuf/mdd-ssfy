@@ -423,4 +423,7 @@ The stored-document phase should answer these operational rules explicitly:
   persistence window. The retry is shared by HTML preview, Print, PDF snapshot,
   and download generation. A second mismatch still fails closed and records the
   failed print-data state, so persistent contradictory financial data is never
-  rendered by the compatibility fallback.
+  rendered by the compatibility fallback. Financial HPT reconciliation also
+  uses the saved HPT `totalDoors` and `totalPrice` aggregates when the legacy
+  parent item omits either field. Explicit parent values still take precedence,
+  and the selected aggregate must still match the active door rows exactly.

@@ -121,6 +121,27 @@ describe("financial print door reconciliation", () => {
 			getCurrentHousePackageDoors(item, { requireReconciliation: true }),
 		).toEqual(doors);
 	});
+
+	it("uses exact HPT aggregates when the legacy parent quantity is unset", () => {
+		const doors = [
+			{ id: 66774, totalQty: 6, lineTotal: 777.12 },
+			{ id: 66775, totalQty: 3, lineTotal: 428.91 },
+		];
+		const item = {
+			id: 173242,
+			qty: null,
+			total: 1206.03,
+			housePackageTool: {
+				totalDoors: 9,
+				totalPrice: 1206.03,
+				doors,
+			},
+		} as never;
+
+		expect(
+			getCurrentHousePackageDoors(item, { requireReconciliation: true }),
+		).toEqual(doors);
+	});
 });
 
 describe("financial print form-step reconciliation", () => {

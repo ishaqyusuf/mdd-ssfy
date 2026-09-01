@@ -121,8 +121,10 @@ export function getCurrentHousePackageDoors(
 	options: { requireReconciliation?: boolean } = {},
 ): PrintDoor[] {
 	const doors = item.housePackageTool?.doors || [];
-	const targetQty = getNumber(item.qty);
-	const targetTotal = getNumber(item.total);
+	const targetQty =
+		getNumber(item.qty) ?? getNumber(item.housePackageTool?.totalDoors);
+	const targetTotal =
+		getNumber(item.total) ?? getNumber(item.housePackageTool?.totalPrice);
 
 	if (!doors.length) return doors;
 	if (targetQty === null || targetTotal === null) {
