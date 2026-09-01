@@ -437,6 +437,7 @@ export const FullSalesSelect = {
         },
         select: {
           id: true,
+          salesOrderId: true,
           createdAt: true,
           note: true,
           qty: true,

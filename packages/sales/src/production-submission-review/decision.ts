@@ -439,6 +439,7 @@ export async function decideProductionSubmissionMaterialReview(
 				const qty = Number(submission.qty);
 				const lhQty = Number(submission.lhQty || 0);
 				const rhQty = Number(submission.rhQty || 0);
+				const effectiveQty = lhQty > 0 || rhQty > 0 ? lhQty + rhQty : qty;
 				const assignedQty = Number(assignment.qtyAssigned || 0);
 				const assignedLhQty = Number(assignment.lhQty || 0);
 				const assignedRhQty = Number(assignment.rhQty || 0);
@@ -457,7 +458,10 @@ export async function decideProductionSubmissionMaterialReview(
 					submission.salesOrderId !== review.salesOrderId
 						? `submission:${submission.id}:order`
 						: null,
-					!Number.isFinite(qty) || qty <= 0 || qty > assignedQty
+					!Number.isFinite(qty) ||
+					!Number.isFinite(effectiveQty) ||
+					effectiveQty <= 0 ||
+					effectiveQty > assignedQty
 						? `submission:${submission.id}:qty`
 						: null,
 					!Number.isFinite(lhQty) || lhQty < 0 || lhQty > assignedLhQty

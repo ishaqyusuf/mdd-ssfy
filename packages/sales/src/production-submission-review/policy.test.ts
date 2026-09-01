@@ -3,7 +3,9 @@ import { describe, expect, test } from "bun:test";
 import {
 	classifyProductionSubmissionMaterials,
 	isActiveReportedSubmission,
+	isActiveReportedSubmissionForSalesOrder,
 	isFinalizedProductionSubmission,
+	isFinalizedProductionSubmissionForSalesOrder,
 } from "./policy";
 
 describe("production submission material review policy", () => {
@@ -93,5 +95,38 @@ describe("production submission material review policy", () => {
 				materialReview: null,
 			}),
 		).toBe(false);
+	});
+
+	test("a finalized submission cannot become deliverable for another sales order", () => {
+		expect(
+			isActiveReportedSubmissionForSalesOrder(
+				{
+					deletedAt: null,
+					materialReview: { status: "PENDING" },
+					salesOrderId: 25619,
+				},
+				26869,
+			),
+		).toBe(false);
+		expect(
+			isFinalizedProductionSubmissionForSalesOrder(
+				{
+					deletedAt: null,
+					materialReview: null,
+					salesOrderId: 25619,
+				},
+				26869,
+			),
+		).toBe(false);
+		expect(
+			isFinalizedProductionSubmissionForSalesOrder(
+				{
+					deletedAt: null,
+					materialReview: { status: "APPROVED" },
+					salesOrderId: 26869,
+				},
+				26869,
+			),
+		).toBe(true);
 	});
 });

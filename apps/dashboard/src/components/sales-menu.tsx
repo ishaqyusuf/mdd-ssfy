@@ -41,6 +41,7 @@ import type {
 } from "@gnd/sales/sales-inventory-mark-as-preflight";
 import type { SalesStatusMarkAsPreflightResult } from "@gnd/sales/sales-status-mark-as-resolution";
 import type { SalesWorkflowCancellationAction } from "@gnd/sales/sales-workflow-cancellation";
+import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { AlertDialog, DropdownMenu } from "@gnd/ui/namespace";
@@ -1038,6 +1039,10 @@ function SalesMenuMarkAs({
 	const salesIds = state.salesIds;
 	const [inventoryPreflight, setInventoryPreflight] =
 		useState<SalesStatusMarkAsPreflightResult | null>(null);
+	const [inventoryResolutionError, setInventoryResolutionError] = useState<{
+		description: string;
+		title: string;
+	} | null>(null);
 	const [preflightLoadingAction, setPreflightLoadingAction] =
 		useState<SalesInventoryMarkAsAction | null>(null);
 	const isDisabled = disabled || !salesIds.length;
@@ -1170,6 +1175,7 @@ function SalesMenuMarkAs({
 		action: SalesInventoryMarkAsAction,
 		targetSalesIds: readonly number[],
 	) => {
+		setInventoryResolutionError(null);
 		setPreflightLoadingAction(action);
 		try {
 			const preflight = await sq.qc.fetchQuery(
@@ -1380,6 +1386,7 @@ function SalesMenuMarkAs({
 		if (!inventoryPreflight) return;
 		const targetSalesIds = statusActionSalesIdsRef.current;
 		if (!targetSalesIds.length) return;
+		setInventoryResolutionError(null);
 
 		try {
 			const result = await resolveInventoryMarkAsMutation.mutateAsync({
@@ -1389,6 +1396,11 @@ function SalesMenuMarkAs({
 
 			if (!result.continueAllowed) {
 				setInventoryPreflight(result.remainingPreflight);
+				setInventoryResolutionError({
+					title: "Inventory still needs review",
+					description:
+						"The availability override could not be saved for every selected order.",
+				});
 				toast({
 					title: "Inventory still needs review",
 					description:
@@ -1399,6 +1411,7 @@ function SalesMenuMarkAs({
 			}
 
 			setInventoryPreflight(null);
+			setInventoryResolutionError(null);
 			toast({
 				title: "Inventory and production resolved",
 				description:
@@ -1416,6 +1429,7 @@ function SalesMenuMarkAs({
 		} catch (error) {
 			releaseStatusAction();
 			const presentation = getSalesStatusResolutionErrorPresentation(error);
+			setInventoryResolutionError(presentation);
 			toast({
 				title: presentation.title,
 				description: presentation.description,
@@ -1514,7 +1528,10 @@ function SalesMenuMarkAs({
 		<AlertDialog
 			open={Boolean(inventoryPreflight)}
 			onOpenChange={(open) => {
-				if (!open && !isResolvingInventory) setInventoryPreflight(null);
+				if (!open && !isResolvingInventory) {
+					setInventoryPreflight(null);
+					setInventoryResolutionError(null);
+				}
 			}}
 		>
 			<AlertDialog.Content
@@ -1536,6 +1553,20 @@ function SalesMenuMarkAs({
 				</AlertDialog.Header>
 				{inventoryPreflight ? (
 					<div className="space-y-3">
+						{inventoryResolutionError ? (
+							<Alert variant="destructive">
+								<Icons.AlertTriangle />
+								<AlertTitle>{inventoryResolutionError.title}</AlertTitle>
+								<AlertDescription className="space-y-1">
+									<p>{inventoryResolutionError.description}</p>
+									<p>
+										{inventoryPreflight.action === "fulfilled"
+											? "The fulfillment job did not start."
+											: "The production-completion job did not start."}
+									</p>
+								</AlertDescription>
+							</Alert>
+						) : null}
 						<div className="grid gap-2 sm:grid-cols-3">
 							<div className="rounded-md border bg-muted/30 px-3 py-2">
 								<div className="text-[11px] uppercase text-muted-foreground">

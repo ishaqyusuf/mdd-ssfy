@@ -23,7 +23,7 @@ import {
 import { formatCurrency, RenturnTypeAsync, sum } from "@gnd/utils";
 import { hasQty } from "@gnd/utils/sales";
 import { deriveOrderProductionGateState } from "../production-gate";
-import { isFinalizedProductionSubmission } from "../production-submission-review/policy";
+import { isFinalizedProductionSubmissionForSalesOrder } from "../production-submission-review/policy";
 
 export type SalesInfoData = RenturnTypeAsync<typeof salesInformationData>;
 type SalesInfoDataItem = SalesInfoData["order"]["items"][number];
@@ -180,7 +180,9 @@ export function composeSalesItemControl(
   const deliverables = order.assignments
     .map((a) =>
       a.submissions
-				.filter(isFinalizedProductionSubmission)
+        .filter((submission) =>
+          isFinalizedProductionSubmissionForSalesOrder(submission, order.id),
+        )
         .map((s) => {
           const submissionQty = transformQtyHandle(s);
           const dispatchQty = qtyMatrixSum(

@@ -92,6 +92,10 @@ type SubmissionReviewState = {
 	} | null;
 };
 
+type SalesOrderSubmissionReviewState = SubmissionReviewState & {
+	salesOrderId?: number | null;
+};
+
 export function isActiveReportedSubmission(
 	submission: SubmissionReviewState,
 ): boolean {
@@ -100,10 +104,30 @@ export function isActiveReportedSubmission(
 	return !status || status === "PENDING" || status === "APPROVED";
 }
 
+export function isActiveReportedSubmissionForSalesOrder(
+	submission: SalesOrderSubmissionReviewState,
+	salesOrderId: number,
+): boolean {
+	return (
+		submission.salesOrderId === salesOrderId &&
+		isActiveReportedSubmission(submission)
+	);
+}
+
 export function isFinalizedProductionSubmission(
 	submission: SubmissionReviewState,
 ): boolean {
 	if (submission.deletedAt) return false;
 	const status = submission.materialReview?.status;
 	return !status || status === "APPROVED";
+}
+
+export function isFinalizedProductionSubmissionForSalesOrder(
+	submission: SalesOrderSubmissionReviewState,
+	salesOrderId: number,
+): boolean {
+	return (
+		submission.salesOrderId === salesOrderId &&
+		isFinalizedProductionSubmission(submission)
+	);
 }

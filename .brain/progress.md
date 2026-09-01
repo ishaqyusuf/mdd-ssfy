@@ -1,5 +1,19 @@
 # Progress
 
+- 2026-09-01: Repaired one-click fulfillment for Sales order `09543PC`. The
+  dependency resolver now accepts handle-aware submissions whose legacy raw
+  aggregate quantity is negative, production/read projections reject linked
+  submissions owned by another sales order, and automatic non-production
+  cleanup cancels an empty pending material review atomically. The dependency
+  modal now keeps a classified, referenced failure visible and states when the
+  downstream job did not start. Local fulfillment completed delivery `4659`
+  at 39/39 after generating the two genuinely missing units. Added the phased
+  reusable translated action-error plan in
+  `.brain/plans/2026-09-01-reusable-translated-action-errors.md`; 63 focused
+  tests and the Sales typecheck passed. The broad dashboard typecheck retains
+  its unrelated baseline errors and reports none in the changed Sales menu. No
+  schema, migration, or permission contract changed.
+
 - 2026-09-01: Hid the Sales Production Materials column by default on the
   Completed tab so terminal rows no longer emphasize stale or missing readiness
   setup. Active and Unscheduled tables retain Materials, and an explicit user

@@ -268,3 +268,31 @@ Implemented on 2026-07-27 for the canonical Sales Orders table.
 - Terminal success invalidates Sales Orders and Fulfillment projections before
   selection is released. The task output also carries the exact canonical
   Backlog count to close client query-order races.
+
+## 2026-09-01 Fulfillment dependency consistency and inline failure feedback
+
+- One-click production review decisions validate the logical submitted quantity.
+  Handle-aware rows use `lhQty + rhQty` when either handle count is present, so
+  a legacy negative aggregate `qty` does not cause a newly generated submission
+  to be cancelled as stale.
+- Production projections and packing eligibility now count a submission only
+  when its `salesOrderId` matches the order being calculated. An assignment
+  linked to an older submission from another order cannot inflate production
+  completion or become a dispatch deliverable for its current order.
+- Automatic fulfillment can detach non-production submissions from a pending
+  `NOT_CONFIGURED` material review. If that leaves the review empty, the same
+  transaction cancels it with an explicit resolution so the packing guard does
+  not block on an orphaned review.
+- A failed `Receive, approve and continue` attempt remains inside the dependency
+  modal and renders the safe classified title, message, and reference. The
+  modal explicitly says whether the fulfillment or production-completion job
+  did not start; the existing toast remains secondary feedback.
+- Authenticated local verification on order `09543PC` identified assignments
+  created on September 1 that referenced submissions created August 28-29 for
+  `09239PC` and `23-0508-0014`. The exact legacy rebinding path is not proven by
+  available audit history. The repair ignored those cross-order submissions,
+  created the two units genuinely missing for `09543PC`, approved review `539`,
+  completed delivery `4659`, and persisted dispatch completion at 39/39.
+- Focused validation passed 63 tests / 190 assertions and the `@gnd/sales`
+  typecheck passed. The broad dashboard typecheck remains red on its existing
+  repository-wide baseline; it reports no diagnostic in the changed Sales menu.

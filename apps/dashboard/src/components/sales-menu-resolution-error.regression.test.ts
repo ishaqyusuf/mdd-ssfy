@@ -15,8 +15,15 @@ describe("sales menu dependency-resolution error feedback", () => {
 		expect(resolutionBlock).toContain(
 			"getSalesStatusResolutionErrorPresentation(error)",
 		);
+		expect(resolutionBlock).toContain(
+			"setInventoryResolutionError(presentation)",
+		);
 		expect(resolutionBlock).toContain("duration: 8000");
 		expect(resolutionBlock).not.toContain("error.message");
+		expect(source).toContain("The fulfillment job did not start.");
+		expect(source).toContain(
+			"<AlertTitle>{inventoryResolutionError.title}</AlertTitle>",
+		);
 
 		const mutationStart = source.indexOf(
 			"const resolveInventoryMarkAsMutation",

@@ -841,6 +841,7 @@ async function releaseAutomaticNonProductionMaterialReviews(
 		},
 		select: {
 			id: true,
+			materialReviewId: true,
 			meta: true,
 		},
 	});
@@ -851,6 +852,13 @@ async function releaseAutomaticNonProductionMaterialReviews(
 		)
 		.map((submission) => submission.id);
 	if (!submissionIds.length) return 0;
+	const materialReviewIds = Array.from(
+		new Set(
+			candidates.flatMap((submission) =>
+				submission.materialReviewId ? [submission.materialReviewId] : [],
+			),
+		),
+	);
 
 	return runDbTransaction(
 		{
@@ -871,6 +879,28 @@ async function releaseAutomaticNonProductionMaterialReviews(
 				data: { materialReviewId: null },
 			});
 			if (!released.count) return 0;
+
+			if (materialReviewIds.length) {
+				await tx.salesProductionSubmissionMaterialReview.updateMany({
+					where: {
+						id: { in: materialReviewIds },
+						status: "PENDING",
+						classificationReason: "NOT_CONFIGURED",
+						submissions: { none: { deletedAt: null } },
+					},
+					data: {
+						status: "CANCELLED",
+						reviewedById: data.meta.authorId,
+						cancelledAt: new Date(),
+						decisionNote:
+							"Automatic non-production submissions do not require material review.",
+						resolution: {
+							action: "RELEASE_AUTOMATIC_NON_PRODUCTION_SUBMISSIONS",
+							submissionIds,
+						},
+					},
+				});
+			}
 
 			await tx.salesHistory.create({
 				data: {

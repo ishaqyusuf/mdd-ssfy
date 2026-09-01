@@ -1064,9 +1064,13 @@ describe("sales-control task transactions", () => {
 				findMany: mock(async () => [
 					{
 						id: 501,
+						materialReviewId: 81,
 						meta: { source: "sales_mark_as_completed" },
 					},
 				]),
+				updateMany: mock(async () => ({ count: 1 })),
+			},
+			salesProductionSubmissionMaterialReview: {
 				updateMany: mock(async () => ({ count: 1 })),
 			},
 			salesHistory: {
@@ -1098,6 +1102,14 @@ describe("sales-control task transactions", () => {
 
 		expect(tx.orderProductionSubmissions.updateMany).toHaveBeenCalledWith(
 			expect.objectContaining({ data: { materialReviewId: null } }),
+		);
+		expect(
+			tx.salesProductionSubmissionMaterialReview.updateMany,
+		).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({ id: { in: [81] } }),
+				data: expect.objectContaining({ status: "CANCELLED" }),
+			}),
 		);
 		expect(tx.salesHistory.create).toHaveBeenCalledTimes(1);
 		expect(packDispatchItemsActionMock).toHaveBeenCalledWith(

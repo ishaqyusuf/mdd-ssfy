@@ -13,8 +13,8 @@ import { getItemStatConfig, qtyControlsByType } from "./utils";
 import { GetSalesItemControllables } from "../sales-control";
 import { SalesInfoData } from "../exports";
 import {
-  isActiveReportedSubmission,
-  isFinalizedProductionSubmission,
+  isActiveReportedSubmissionForSalesOrder,
+  isFinalizedProductionSubmissionForSalesOrder,
 } from "../production-submission-review/policy";
 
 function isControlDebugEnabled() {
@@ -273,10 +273,14 @@ export function composeSalesItemControlStat({
     })),
   );
   const reportedSubmissions = assignments.flatMap((assignment) =>
-    assignment.submissions.filter(isActiveReportedSubmission),
+    assignment.submissions.filter((submission) =>
+      isActiveReportedSubmissionForSalesOrder(submission, order.id),
+    ),
   );
   const finalizedSubmissions = assignments.flatMap((assignment) =>
-    assignment.submissions.filter(isFinalizedProductionSubmission),
+    assignment.submissions.filter((submission) =>
+      isFinalizedProductionSubmissionForSalesOrder(submission, order.id),
+    ),
   );
   const reportedSubmitted = qtyMatrixSum(
     ...reportedSubmissions.map(({ lhQty: lh, rhQty: rh, qty }) => ({
@@ -295,7 +299,9 @@ export function composeSalesItemControlStat({
   const deliverables = assignments
     .map((assignment) => {
       return assignment.submissions
-        .filter(isFinalizedProductionSubmission)
+        .filter((submission) =>
+          isFinalizedProductionSubmissionForSalesOrder(submission, order.id),
+        )
         .map((s) => {
           let submitted = transformQtyHandle(s);
           const delivered = qtyMatrixSum(
@@ -370,7 +376,9 @@ export function composeSalesItemControlStat({
         },
         qtyMatrixSum(
           ...assignment.submissions
-            .filter(isActiveReportedSubmission)
+            .filter((submission) =>
+              isActiveReportedSubmissionForSalesOrder(submission, order.id),
+            )
             .map((s) => ({
               lh: s.lhQty,
               rh: s.rhQty,
