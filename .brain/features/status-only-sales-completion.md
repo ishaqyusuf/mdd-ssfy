@@ -127,4 +127,5 @@ fabricate operational evidence, or redesign the existing Full workflow.
   filters retain operational semantics.
 - Completion reporting defaults to operational Full-workflow evidence only.
   Intentional administrative scope may include Status-only rows and keeps
-  method, effective date, and recorded date as separate fields.
+  source, method, effective date, and recorded date as separate fields so
+  Fulfillment-implied Production is never presented as its own declaration.

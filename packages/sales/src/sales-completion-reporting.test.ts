@@ -55,6 +55,7 @@ describe("sales completion reporting", () => {
 				orderNo: "091LRG",
 				milestone: "PRODUCTION_COMPLETED",
 				method: "STATUS_ONLY",
+				source: "STATUS_ONLY",
 				effectiveAt: null,
 				recordedAt: new Date("2026-08-01T12:00:00.000Z"),
 			},
@@ -72,5 +73,24 @@ describe("sales completion reporting", () => {
 				}),
 			]),
 		).toHaveLength(1);
+	});
+
+	test("labels Fulfillment-implied Production instead of fabricating a declaration", () => {
+		const rows = buildSalesCompletionReportRows(
+			[
+				projection({
+					productionCompletionSource: "IMPLIED_BY_FULFILLMENT",
+					fulfillmentCompletionSatisfied: true,
+					fulfillmentDisposition: "ADMINISTRATIVELY_COMPLETED",
+					fulfillmentCompletionSource: "STATUS_ONLY",
+					fulfillmentMethod: "STATUS_ONLY",
+				}),
+			],
+			"ADMINISTRATIVE",
+		);
+		expect(rows.map((row) => [row.milestone, row.source])).toEqual([
+			["PRODUCTION_COMPLETED", "IMPLIED_BY_FULFILLMENT"],
+			["FULFILLMENT_COMPLETED", "STATUS_ONLY"],
+		]);
 	});
 });

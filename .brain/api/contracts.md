@@ -44,9 +44,10 @@
   Existing `production`, `production.status`, and `dispatch.status` remain
   operational filters and do not consume administrative records.
 - Completion reporting defaults to `OPERATIONAL` and omits Status-only rows.
-  Explicit `ADMINISTRATIVE` scope returns `method`, nullable `effectiveAt`, and
-  `recordedAt` independently; it never substitutes recording time for an
-  unknown effective time.
+  Explicit `ADMINISTRATIVE` scope returns `source`, `method`, nullable
+  `effectiveAt`, and `recordedAt` independently; implied Production remains
+  labelled as implied and recording time never replaces an unknown effective
+  time.
 
 ## Bulk Production Completion Task (2026-08-29)
 

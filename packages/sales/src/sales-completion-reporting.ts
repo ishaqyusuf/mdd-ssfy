@@ -2,6 +2,7 @@ import type {
 	SalesCompletionMethod,
 	SalesCompletionMilestone,
 	SalesCompletionProjection,
+	SalesCompletionSource,
 } from "./sales-completion";
 
 export type SalesCompletionReportScope = "OPERATIONAL" | "ADMINISTRATIVE";
@@ -11,6 +12,7 @@ export type SalesCompletionReportRow = {
 	orderNo: string;
 	milestone: SalesCompletionMilestone;
 	method: SalesCompletionMethod;
+	source: SalesCompletionSource;
 	effectiveAt: Date | null;
 	recordedAt: Date | null;
 };
@@ -31,6 +33,7 @@ export function buildSalesCompletionReportRows(
 				milestone: "PRODUCTION_COMPLETED" as const,
 				satisfied: projection.productionCompletionSatisfied,
 				method: projection.productionCompletionMethod,
+				source: projection.productionCompletionSource,
 				effectiveAt: projection.productionEffectiveAt,
 				recordedAt: projection.productionRecordedAt,
 			},
@@ -38,6 +41,7 @@ export function buildSalesCompletionReportRows(
 				milestone: "FULFILLMENT_COMPLETED" as const,
 				satisfied: projection.fulfillmentCompletionSatisfied,
 				method: projection.fulfillmentMethod,
+				source: projection.fulfillmentCompletionSource,
 				effectiveAt: projection.fulfillmentEffectiveAt,
 				recordedAt: projection.fulfillmentRecordedAt,
 			},
@@ -52,6 +56,7 @@ export function buildSalesCompletionReportRows(
 				orderNo: projection.orderNo,
 				milestone: milestone.milestone,
 				method: milestone.method,
+				source: milestone.source,
 				effectiveAt: milestone.effectiveAt,
 				recordedAt: milestone.recordedAt,
 			});
