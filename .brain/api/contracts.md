@@ -215,6 +215,14 @@
   permission-aware driver, and per-stage counts used by the admin workspace.
   Open exceptions count native open driver reports plus distinct dispatches
   with pending guarded-packing review batches.
+- As of 2026-09-01, lifecycle stage counts project directly from canonical
+  `OrderDelivery.status`, driver, delivery mode, and due date. The summary does
+  not rebuild the historical sales item/quantity control graph. Explicit
+  statuses such as `missing items`, `packed`, `in progress`, `completed`, and
+  `cancelled` therefore remain authoritative; a null legacy status retains the
+  lifecycle projector's queue/assignment fallback. Response fields,
+  dispatch-manager authorization, backlog authority, driver permission filter,
+  and guarded-packing exception count are unchanged.
 - `dispatch.backlog` returns eligible delivery/pickup orders with no active
   non-cancelled dispatch. Rows include order title/number, customer,
   delivery-mode, nullable order-level `deliveryDueDate`, and status metadata

@@ -58,6 +58,27 @@ Record representative admin and driver feedback on terminology, density,
 exception handling, and the primary-action progression. Only after that review
 may Ticket 01 be marked complete and Ticket 02 become the active frontier.
 
+## 2026-09-01 Dispatch Summary Reliability Repair
+
+- The canonical `/sales-book/fulfillment/v2` summary now derives lifecycle
+  stages from `OrderDelivery.status` instead of rebuilding all historical item
+  controls for every request. The full control fan-out consumed roughly 12
+  seconds across 3,518 production dispatches and intermittently drove
+  `dispatch.workspaceSummary` to HTTP 500.
+- Explicit dispatch states are authoritative. In particular, `missing items`
+  remains Packing blocked instead of being masked by a legacy `unknown` control
+  projection.
+- Summary and selected-section data now prefetch concurrently and render through
+  independent Suspense/error boundaries. Summary-card failure cannot remove the
+  tabs, filters, operational table, calendar, or actions.
+- Tab count badges appear after hydration so a streamed summary cannot create a
+  server/client markup mismatch. Summary cards and the overdue alert share one
+  query consumer.
+- Focused validation passes 13 tests / 154 assertions. Authenticated local
+  browser QA confirmed summary cards, overdue alert, tabs/filter toolbar, and
+  table with no visible fallback and no console error. Production deployment
+  and post-deploy Vercel/Sentry monitoring remain pending.
+
 ## 2026-08-23 Mobile Authority Reconciliation
 
 - Expo now consumes the same server-owned dispatch revision, readiness,

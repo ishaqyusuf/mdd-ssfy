@@ -1,64 +1,27 @@
 "use client";
 
-import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-header";
 import {
-	DispatchAdminSummary,
-	DispatchAdminSummarySkeleton,
-} from "@/components/dispatch-admin/dispatch-admin-summary";
+	DispatchAdminSummaryBoundary,
+	DispatchDataBoundary,
+} from "@/components/dispatch-admin/dispatch-admin-boundaries";
+import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-header";
 import { allDispatchStages } from "@/components/dispatch-admin/dispatch-list-presets";
 import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
 import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
-import { useTRPC } from "@/trpc/client";
 import type { TableSettings } from "@/utils/table-settings";
-import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
-import { Button } from "@gnd/ui/button";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { AlertTriangle } from "lucide-react";
-import { Suspense } from "react";
 
 export function DispatchDashboardView({
 	initialSettings,
 }: {
 	initialSettings?: Partial<TableSettings>;
 }) {
-	const trpc = useTRPC();
-	const { filters, setFilters } = useDispatchFilterParams();
-	const { data } = useSuspenseQuery(
-		trpc.dispatch.workspaceSummary.queryOptions(undefined, {
-			staleTime: 30_000,
-		}),
-	);
+	const { filters } = useDispatchFilterParams();
 	return (
 		<div className="flex flex-col gap-4">
-			<Suspense fallback={<DispatchAdminSummarySkeleton />}>
-				<DispatchAdminSummary />
-			</Suspense>
-			{data.overdue > 0 ? (
-				<Alert className="border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-					<AlertTriangle className="text-amber-700 dark:text-amber-300" />
-					<AlertTitle>{data.overdue} overdue dispatches</AlertTitle>
-					<AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-						<span>
-							Review schedules or resolve the blockers holding these trips.
-						</span>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() =>
-								setFilters({
-									section: null,
-									risks: ["overdue"],
-								})
-							}
-						>
-							Review overdue
-						</Button>
-					</AlertDescription>
-				</Alert>
-			) : null}
+			<DispatchAdminSummaryBoundary showOverdueAlert />
 			<DispatchAdminHeader />
-			<Suspense
+			<DispatchDataBoundary
 				fallback={<SalesDispatchSkeleton initialSettings={initialSettings} />}
 			>
 				<DataTable
@@ -73,7 +36,7 @@ export function DispatchDashboardView({
 					}
 					enableSalesMarkAs
 				/>
-			</Suspense>
+			</DispatchDataBoundary>
 		</div>
 	);
 }

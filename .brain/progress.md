@@ -1,5 +1,30 @@
 # Progress
 
+- 2026-09-01: Inspected authenticated Vercel production logs for the Lagos-day
+  window after a Dispatch screenshot reported `ERR-F583F79ACC`. Deployment
+  `dpl_GmE68nty8FKG5UMmyPi3WoU26oYi` produced 16 HTTP 500 responses exclusively
+  from `dispatch.workspaceSummary` between 12:20:04 and 12:37:56 WAT. Vercel
+  retained no exception message or searchable public reference for those rows.
+  Follow-up read-only Sentry API attempts through both locally configured token
+  profiles returned HTTP 403 for `gnd-52/gnd-prodesk-web`, so a token with
+  `project:read`, `event:read`, and `org:read` remains an explicit evidence
+  gate. The same deployment
+  also produced at least 1,000 capped 404 warnings from stale clients posting a
+  missing Server Action hash to `/sales-book/orders`. Added the read-only
+  evidence and phased fix checklist in
+  `.brain/plans/2026-09-01-bug-fix-dispatch-workspace-summary-vercel-errors.md`.
+  A subsequent bounded production probe isolated the historical dispatch
+  control projection at roughly 12 seconds across 3,518 rows. Repaired the
+  summary to use canonical `OrderDelivery` lifecycle state, preserved explicit
+  Packing blocked status, made summary/section prefetches concurrent, split
+  summary and operational data into independent error/Suspense boundaries, and
+  stabilized tab counts across hydration. Focused validation passes 13 tests /
+  154 assertions; authenticated local-browser QA shows the complete workspace
+  with no visible fallback or console error. Production deployment and
+  monitoring remain pending, and no database, migration, configuration, or
+  production data write was performed. The stale Server Action loop remains a
+  separately scoped P1 follow-up.
+
 - 2026-08-31: Updated New Sales Form order dates, fulfillment, and summary-save
   behavior. Orders now group Production and Fulfillment in a dedicated Due
   Dates section, faintly mark today in the Production calendar, mirror the

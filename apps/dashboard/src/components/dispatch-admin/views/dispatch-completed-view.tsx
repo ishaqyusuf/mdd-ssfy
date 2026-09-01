@@ -1,10 +1,10 @@
 "use client";
 
+import { DispatchDataBoundary } from "@/components/dispatch-admin/dispatch-admin-boundaries";
 import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-header";
 import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
 import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
 import type { TableSettings } from "@/utils/table-settings";
-import { Suspense } from "react";
 
 export function DispatchCompletedView({
 	initialSettings,
@@ -14,11 +14,11 @@ export function DispatchCompletedView({
 	return (
 		<div className="flex flex-col gap-4">
 			<DispatchAdminHeader />
-			<Suspense
+			<DispatchDataBoundary
 				fallback={<SalesDispatchSkeleton initialSettings={initialSettings} />}
 			>
 				<DataTable workspace initialSettings={initialSettings} />
-			</Suspense>
+			</DispatchDataBoundary>
 		</div>
 	);
 }

@@ -1,10 +1,10 @@
 "use client";
 
+import { DispatchDataBoundary } from "@/components/dispatch-admin/dispatch-admin-boundaries";
 import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-header";
 import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
 import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
 import type { TableSettings } from "@/utils/table-settings";
-import { Suspense } from "react";
 
 export function DispatchActiveView({
 	initialSettings,
@@ -14,7 +14,7 @@ export function DispatchActiveView({
 	return (
 		<div className="flex flex-col gap-4">
 			<DispatchAdminHeader />
-			<Suspense
+			<DispatchDataBoundary
 				fallback={<SalesDispatchSkeleton initialSettings={initialSettings} />}
 			>
 				<DataTable
@@ -22,7 +22,7 @@ export function DispatchActiveView({
 					initialSettings={initialSettings}
 					enableSalesMarkAs
 				/>
-			</Suspense>
+			</DispatchDataBoundary>
 		</div>
 	);
 }

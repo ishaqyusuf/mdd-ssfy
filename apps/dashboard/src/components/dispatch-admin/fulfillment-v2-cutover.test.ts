@@ -35,7 +35,7 @@ describe("fulfillment V2 cutover contracts", () => {
 			"components/dispatch-admin/dispatch-admin-header.tsx",
 		);
 		expect(header).toContain("showAll={false}");
-		expect(header).toContain("summary.data?.driverCount");
+		expect(header).toContain("summaryData?.driverCount");
 	});
 
 	it("uses the standard selectable infinite table for backlog", () => {
@@ -55,9 +55,9 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(backlog).toContain("sort: backlogSort");
 		expect(backlog).toContain("sortState={{");
 		expect(backlog).toContain("createSortQuery: handleSort");
-		expect(backlogView.indexOf("<DispatchAdminSummary />")).toBeLessThan(
-			backlogView.indexOf("<DispatchAdminHeader />"),
-		);
+		expect(
+			backlogView.indexOf("<DispatchAdminSummaryBoundary />"),
+		).toBeLessThan(backlogView.indexOf("<DispatchAdminHeader />"));
 		expect(backlogView.indexOf("<DispatchAdminHeader />")).toBeLessThan(
 			backlogView.indexOf("<DataTable />"),
 		);
@@ -76,7 +76,8 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(header).not.toContain("DispatchAutoRefresh");
 		expect(header).not.toContain("DispatchExportButton");
 		expect(header).not.toContain("ToggleGroup");
-		expect(header).toContain("summary.data?.backlog");
+		expect(header).toContain("summaryData?.backlog");
+		expect(header).toContain("isHydrated ? summary.data : undefined");
 	});
 
 	it("places tabs and search immediately above the All table", () => {
@@ -84,8 +85,36 @@ describe("fulfillment V2 cutover contracts", () => {
 			"components/dispatch-admin/views/dispatch-dashboard-view.tsx",
 		);
 		const headerPosition = dashboard.indexOf("<DispatchAdminHeader />");
-		expect(headerPosition).toBeGreaterThan(dashboard.indexOf("data.overdue"));
+		expect(headerPosition).toBeGreaterThan(
+			dashboard.indexOf("<DispatchAdminSummaryBoundary showOverdueAlert />"),
+		);
 		expect(headerPosition).toBeLessThan(dashboard.indexOf("<DataTable"));
+	});
+
+	it("streams independent prefetches and isolates summary and table failures", () => {
+		const page = readDashboard(
+			"app/(sidebar)/(sales)/sales-book/fulfillment/v2/page.tsx",
+		);
+		const boundaries = readDashboard(
+			"components/dispatch-admin/dispatch-admin-boundaries.tsx",
+		);
+		const dashboard = readDashboard(
+			"components/dispatch-admin/views/dispatch-dashboard-view.tsx",
+		);
+
+		expect(page).toContain(
+			"void batchPrefetch([trpc.dispatch.workspaceSummary.queryOptions()]);",
+		);
+		expect(page).not.toContain(
+			"await batchPrefetch([trpc.dispatch.workspaceSummary.queryOptions()]);",
+		);
+		expect(boundaries).toContain("DispatchAdminSummaryBoundary");
+		expect(boundaries).toContain("DispatchDataBoundary");
+		expect(boundaries).toContain("errorComponent={DispatchSummaryError}");
+		expect(dashboard).toContain(
+			"<DispatchAdminSummaryBoundary showOverdueAlert />",
+		);
+		expect(dashboard).toContain("<DispatchDataBoundary");
 	});
 
 	it("keeps fulfillment page tabs on their own row above search controls", () => {
@@ -314,10 +343,10 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(tabs.indexOf('title: "Past Due"')).toBeLessThan(
 			tabs.indexOf('title: "Completed"'),
 		);
-		expect(header).toContain("summary.data?.active");
-		expect(header).toContain("summary.data?.dueToday");
-		expect(header).toContain("summary.data?.pastDue");
-		expect(header).toContain("summary.data?.completed");
+		expect(header).toContain("summaryData?.active");
+		expect(header).toContain("summaryData?.dueToday");
+		expect(header).toContain("summaryData?.pastDue");
+		expect(header).toContain("summaryData?.completed");
 		expect(workspace).toContain('filters.section === "active"');
 		expect(workspace).toContain('filters.section === "due-today"');
 		expect(workspace).toContain('filters.section === "past-due"');
@@ -337,9 +366,9 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(dispatchQuery).toContain('["today"]');
 		expect(dispatchQuery).toContain('["overdue"]');
 		expect(workspace).toContain("<DispatchCalendarSection");
-		expect(calendarView.indexOf("<DispatchAdminSummary />")).toBeLessThan(
-			calendarView.indexOf("<DispatchAdminHeader />"),
-		);
+		expect(
+			calendarView.indexOf("<DispatchAdminSummaryBoundary />"),
+		).toBeLessThan(calendarView.indexOf("<DispatchAdminHeader />"));
 		expect(calendarView.indexOf("<DispatchAdminHeader />")).toBeLessThan(
 			calendarView.indexOf("<DispatchCalendarView />"),
 		);

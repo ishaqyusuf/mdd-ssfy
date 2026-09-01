@@ -9,7 +9,6 @@ import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
 import {
 	buildSalesDispatchBacklogWhere,
-	withDispatchListControl,
 	withSalesListControl,
 } from "@gnd/sales";
 import { getDispatchDueBucket } from "@gnd/sales/dispatch-manifest/driver-work-queue";
@@ -70,10 +69,6 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		}),
 	]);
 
-	const dispatchesWithControl = await withDispatchListControl(
-		dispatches,
-		ctx.db as any,
-	);
 	const timeZone =
 		process.env.BUSINESS_TIME_ZONE || process.env.TZ || "America/New_York";
 	const byStage = {
@@ -90,13 +85,14 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 	let dueToday = 0;
 	let pastDue = 0;
 	let completed = 0;
-	for (const row of dispatchesWithControl) {
-		const control = row.control;
+	for (const row of dispatches) {
+		// OrderDelivery is the canonical dispatch lifecycle record. Rebuilding
+		// status from every historical item control made this summary unbounded
+		// and could mask explicit states (for example, "missing items") with the
+		// legacy "unknown" projection.
 		const lifecycle = projectDispatchLifecycle({
-			status: control.dispatchStatus || row.status,
+			status: row.status,
 			driverId: row.driverId,
-			packedTotal: control.packed?.total,
-			pendingPackingTotal: control.pendingPacking?.total,
 		});
 		const { stage } = lifecycle;
 		const dueBucket = getDispatchDueBucket(row.dueDate, { timeZone });
@@ -158,7 +154,7 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		dueToday,
 		pastDue,
 		completed,
-		all: dispatchesWithControl.length,
+		all: dispatches.length,
 		openExceptions: driverExceptions + packingExceptionDispatches.length,
 		overdue: pastDue,
 		driverCount,

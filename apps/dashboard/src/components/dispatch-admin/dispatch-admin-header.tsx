@@ -27,7 +27,7 @@ import {
 } from "@gnd/utils/filter-option-colors";
 import { useQuery } from "@tanstack/react-query";
 import { MoreHorizontal, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const baseDefinitions = [
 	{ key: "q", label: "Search", type: "search" },
@@ -105,7 +105,9 @@ export function DispatchAdminHeader() {
 			staleTime: 30_000,
 		}),
 	);
+	const [isHydrated, setIsHydrated] = useState(false);
 	const [deletedOpen, setDeletedOpen] = useState(false);
+	useEffect(() => setIsHydrated(true), []);
 	const definitions = useMemo<FilterDefinition[]>(
 		() => [
 			...baseDefinitions,
@@ -125,24 +127,25 @@ export function DispatchAdminHeader() {
 	const tabs = useMemo(
 		() =>
 			dispatchAdminPageTabs.map((tab) => {
+				const summaryData = isHydrated ? summary.data : undefined;
 				const countBySection = {
-					backlog: summary.data?.backlog,
-					active: summary.data?.active,
-					"due-today": summary.data?.dueToday,
-					"past-due": summary.data?.pastDue,
-					completed: summary.data?.completed,
-					drivers: summary.data?.driverCount,
-					exceptions: summary.data?.openExceptions,
+					backlog: summaryData?.backlog,
+					active: summaryData?.active,
+					"due-today": summaryData?.dueToday,
+					"past-due": summaryData?.pastDue,
+					completed: summaryData?.completed,
+					drivers: summaryData?.driverCount,
+					exceptions: summaryData?.openExceptions,
 				} as const;
 				const section = tab.params?.section;
-				if (section === null) return { ...tab, count: summary.data?.all };
+				if (section === null) return { ...tab, count: summaryData?.all };
 				if (!section || !(section in countBySection)) return tab;
 				return {
 					...tab,
 					count: countBySection[section as keyof typeof countBySection],
 				};
 			}),
-		[summary.data],
+		[isHydrated, summary.data],
 	);
 	const activeSection = ["dashboard", "dispatches"].includes(filters.section)
 		? null
