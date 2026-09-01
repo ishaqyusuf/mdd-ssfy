@@ -34,6 +34,23 @@ Create one deep Sales document preflight and repair module inside `packages/sale
 5. The client displays one shared guided-repair modal and preserves the initiating action in memory. A successful zero-delta repair resumes that exact action; cancellation does not generate, print, download, or send anything.
 6. The new Sales Form performs the same comparison immediately after hydration and before user edits. It shows saved versus recalculated values without marking the form dirty or autosaving. Price-changing drift requires explicit review before save.
 
+### Readiness Attestation Fast Path
+- Add a server-owned Sales document readiness attestation so repeated preview, print, PDF, and delivery actions do not rerun the deep relational evaluator when the commercial graph is unchanged.
+- The preferred gate is a monotonic `commercialRevision` paired with a `validatedCommercialRevision`, `validatorVersion`, status, and canonical digest. Store detailed evidence in `SalesOrders.meta.salesDocumentReadiness`; use dedicated scalar columns for the revision/version gate if the mutation-path audit confirms that JSON-only updates would be too easy to clobber or bypass.
+- A no-schema fallback may keep both revision and attestation under server-owned `SalesOrders.meta` keys, but every commercial writer must use one shared helper that increments the revision and clears or replaces readiness in the same transaction.
+- The attestation is a server-generated SHA-256 canonical digest, not a client-provided flag. Its safety comes from complete mutation invalidation plus validator-version matching; cryptographic signing does not replace those requirements.
+- The cheap gate loads only the order id, commercial revision, attestation status/version/revision, and current proposal reference. This remains one small database read; a trustworthy zero-database-read decision is not possible unless every mutation also maintains an external cache with reliable invalidation.
+- Fast-path outcomes:
+  - matching `ready` attestation -> skip deep reconciliation and continue;
+  - matching `needs_repair` attestation with a current staged proposal -> reuse the proposal/modal without recomputing;
+  - missing, stale, unknown-version, or mismatched attestation -> run the deep evaluator once;
+  - changed commercial revision -> invalidate any prior proposal and evaluate again.
+- Canonical new-order/new-quote save computes and stamps readiness from the already normalized transactional save data, avoiding a second post-save graph read. A successful zero-delta repair or reviewed Sales Form save stamps the new revision in the same transaction.
+- Relevant legacy/direct writers must increment or invalidate the commercial revision. Presentation-only changes such as a P.O. or address may invalidate document cache freshness without forcing a full commercial reconciliation; the implementation must classify mutation types explicitly.
+- Payment/refund changes must refresh document output, but they should not automatically invalidate structural line readiness. The fast gate keeps commercial readiness separate from ordinary document-cache freshness and verifies any cheap financial projection needed by the active intent.
+- Bump `validatorVersion` whenever reconciliation rules or canonical costing semantics change. Older attestations then miss the gate and receive one new evaluation; they must never be accepted under newer logic.
+- Batch actions fetch readiness gates for all selected orders in one bounded query. Concurrent misses for the same revision are deduplicated so only one deep evaluation/staging operation runs.
+
 ### Repair Classification
 
 | Status | Required evidence | Operator experience | Allowed continuation |
@@ -82,21 +99,23 @@ Create one deep Sales document preflight and repair module inside `packages/sale
 ## Visual Plan
 ```mermaid
 flowchart TD
-  A["Preview / Print / PDF / Send"] --> B["Shared server preflight"]
-  B --> C{"Readiness status"}
-  C -->|Ready| D["Generate or deliver document"]
-  C -->|Zero financial delta| E["Stage immutable narrow repair diff"]
+  A["Preview / Print / PDF / Send"] --> B["Read readiness attestation"]
+  B --> C{"Current revision and validator?"}
+  C -->|Ready attestation| D["Generate or deliver document"]
+  C -->|Current repair proposal| F["Guided repair modal"]
+  C -->|Missing or stale| P["Deep relational preflight"]
+  P -->|Ready| Q["Stamp ready attestation"]
+  Q --> D
+  P -->|Zero financial delta| E["Stage diff + needs-repair attestation"]
   E --> F["Guided repair modal"]
-  F -->|Repair & continue| G["Revalidate fingerprint in transaction"]
-  G --> H["Apply diff + audit + invalidate cache"]
+  F -->|Repair & continue| H["Revalidate + apply + audit + stamp"]
   H --> B
   F -->|Open order| I["New Sales Form drift review"]
-  C -->|Financial change| J["Critical before/after warning"]
+  P -->|Financial change| J["Critical before/after warning"]
   J --> I
-  C -->|Ambiguous| K["Manual resolution details"]
+  P -->|Ambiguous| K["Manual resolution details"]
   K --> I
-  I --> L["Explicit reviewed save"]
-  L --> B
+  I -->|Explicit reviewed save| B
 ```
 
 ## Implementation Steps
@@ -107,6 +126,14 @@ flowchart TD
 3. Define typed readiness, finding, financial-comparison, field-diff, proposal, and apply-result contracts in `packages/sales`.
 4. Validate the proposed resolution-system reuse. If existing generic records cannot enforce active-proposal lookup or retention efficiently, document the alternative schema in an ADR before changing Prisma.
 5. Validation gate: pure evaluator tests prove each fixture receives exactly one classification and no evaluation path writes data.
+
+### Phase 1B: Define Revision And Attestation Ownership
+1. Inventory every commercial and document-affecting writer: canonical and legacy Sales Form save, quote/order conversion, copy, adjustments, taxes, extra costs, direct line/HPT edits, payments/refunds, customer/address/rep/P.O. changes, repair scripts, and sync jobs.
+2. Classify each writer as `commercial_revision`, `document_freshness_only`, or `unrelated`.
+3. Choose the persisted gate after the audit: dedicated revision/attestation scalar columns are preferred for correctness and cheap selection; server-owned `meta` keys remain the no-schema alternative.
+4. Add one shared server helper for incrementing commercial revision, clearing stale readiness/proposals, and stamping a freshly validated revision.
+5. Define `validatorVersion` rollout rules and a canonical digest serializer whose output is stable across key ordering, null/default representation, and cents conversion.
+6. Validation gate: contract tests prove every commercial writer invalidates or replaces readiness and every presentation-only writer follows its declared cache policy.
 
 ### Phase 2: Build The Pure Evaluator And Narrow Repair Diff
 1. Extract reconciliation detection from print-only throwing helpers into a pure module that returns structured findings while preserving the strict print behavior for unprepared callers.
@@ -124,8 +151,15 @@ flowchart TD
 6. Mark cancel, editor-open, expiry, mutation, and stale-apply outcomes without deleting audit evidence.
 7. Validation gate: concurrency, repeated apply, stale proposal, rollback, cache invalidation, and audit tests pass.
 
+### Phase 3B: Stamp New And Repaired Sales
+1. Stamp new orders and quotes as ready during their canonical successful save, using the normalized relational result already available in the transaction.
+2. Stamp zero-delta repair results and explicitly reviewed Sales Form saves only after post-write invariants pass.
+3. Persist a matching `needs_repair` attestation and proposal reference for unchanged unresolved orders so repeated clicks reuse the same modal evidence.
+4. Supersede ready and needs-repair attestations when their commercial revision changes or their validator version is retired.
+5. Validation gate: a newly created valid sale and a once-repaired legacy sale both take the one-row fast path on every later document action.
+
 ### Phase 4: Put One Preflight In Every Document Path
-1. Add a server preflight preparation operation before `resolveSalesDocumentHtmlPreviewAccess`, print access, PDF download/regeneration, and any snapshot creation used by Sales delivery.
+1. Add the cheap readiness-attestation gate before the server preflight preparation operation used by `resolveSalesDocumentHtmlPreviewAccess`, print access, PDF download/regeneration, and any snapshot creation used by Sales delivery.
 2. Return typed preflight outcomes instead of converting known reconciliation failures into generic exceptions.
 3. Update `useSalesPreview`, the shared print controller, PDF controller, and Sales menu to use one continuation contract.
 4. Gate both composed and simple Sales email initiation, then repeat the readiness check inside the notification/job path immediately before link/attachment generation and delivery.
@@ -154,13 +188,15 @@ flowchart TD
 2. Do not bulk-apply committed-order repairs. Use bounded, reviewed batches only for zero-delta candidates if a later operational decision approves them.
 3. Emit structured metrics for preflight status, proposal staging, apply, stale rejection, financial-change routing, manual resolution, and document continuation success.
 4. Roll out first to internal HTML preview for one role/cohort, then print/PDF, then composed/simple Sales email, then batch actions.
-5. Update the Sales PDF feature documentation, API contracts/permissions if changed, database docs if Prisma changes, and add an ADR for the durable preflight/proposal/apply seam.
-6. Final gate: authenticated browser proof for `08574PC`, one financial-delta fixture, one ambiguous fixture, one stale proposal, one batch action, and one email delivery with no premature external send.
+5. Backfill no readiness flags blindly. Existing orders earn an attestation only after the evaluator classifies their current revision; optionally run bounded read-only warming for likely document users after the interactive path is stable.
+6. Update the Sales PDF feature documentation, API contracts/permissions if changed, database docs if Prisma changes, and add an ADR for the durable attestation/preflight/proposal/apply seam.
+7. Final gate: authenticated browser proof for `08574PC`, one newly created attested sale, one repeated fast-path preview/print/PDF request, one validator-version miss, one financial-delta fixture, one ambiguous fixture, one stale proposal, one batch action, and one email delivery with no premature external send.
 
 ## Affected Files Or Areas
 - `packages/sales/src/print/*`
 - `packages/sales/src/pdf-system/*`
 - `packages/sales/src/resolution-system/*`
+- `packages/sales/src/sales-form/domain/*` readiness revision and canonical digest ownership
 - `packages/sales/src/sales-form/domain/*`
 - `apps/api/src/utils/sales-document-access.ts`
 - `apps/api/src/trpc/routers/print.route.ts`
@@ -176,6 +212,7 @@ flowchart TD
 - `packages/notifications/src/types/composed-sales-document-email.ts`
 - `packages/notifications/src/types/simple-sales-document-email.ts`
 - `packages/jobs/src/tasks/sales/*`
+- `packages/db/src/schema/sales.prisma` or the current `SalesOrders` schema fragment if dedicated readiness/revision columns are approved
 - `packages/db/src/schema/sales.payment-system.prisma` only if existing resolution storage is insufficient
 - `.brain/features/sales-pdf-system.md`
 - `.brain/features/sales-form-system-hardening.md`
@@ -193,11 +230,17 @@ flowchart TD
 - `08574PC` can be repaired through the zero-delta path with subtotal `$9,335.27`, tax `$653.47`, grand total `$9,988.74`, paid `$9,988.74`, and balance `$0.00` unchanged.
 - Every applied, superseded, cancelled, expired, stale, and failed proposal retains actor-attributed audit evidence.
 - Public/unauthenticated document access cannot stage or apply repairs.
+- A current ready attestation skips the deep relational evaluator through one bounded Sales-order gate read.
+- A current needs-repair attestation reuses its staged proposal instead of recomputing the same repair on every click.
+- Valid new orders and quotes are stamped during canonical save; repaired legacy orders are stamped after successful transactional repair.
+- Any commercial mutation or validator-version change invalidates the fast path before another document can be generated or delivered.
 
 ## Test Plan
 - Pure evaluator fixture matrix for all readiness classifications and every financial comparison field.
 - Property/fuzz coverage for cent arithmetic, line ordering, repeated rows, null/zero aggregates, and stable fingerprints.
 - Repository tests for proposal lifecycle, expiry, uniqueness, and terminal status preservation.
+- Attestation tests for canonical digest stability, commercial revision invalidation, validator-version rollover, ready and needs-repair cache hits, and concurrent miss deduplication.
+- Mutation-matrix contract tests proving every commercial writer increments/invalidates the readiness revision.
 - Transaction tests for optimistic concurrency, idempotency, re-evaluation, rollback, audit, and cache invalidation.
 - Application tests proving preview/print/download/regenerate all use the same preflight and resume once.
 - Notification/job tests proving neither simple nor composed delivery can bypass readiness or send before repair confirmation.
@@ -217,6 +260,9 @@ flowchart TD
 - **Legacy rounding:** exact cents are required for automatic repair; documented compatibility rounding must be explicit and tested, otherwise route to review.
 - **Proposal storage growth:** expire active proposals, retain compact terminal evidence, and add retention/archival policy before broad rollout.
 - **Multiple pricing modes:** include pricing mode and relevant configuration in fingerprints so customer/dealer/internal proposals cannot be mixed.
+- **False-ready signature:** mitigate with server-only stamping, monotonic commercial revision, exhaustive writer invalidation tests, and validator-version rollover. A digest without revision invalidation is not accepted as safe.
+- **JSON metadata races:** prefer dedicated scalar revision/version gate fields when the writer audit shows multiple independent metadata writers; if JSON is retained, route every update through one merge-safe transactional helper.
+- **Cache invalidation gaps:** keep attestation readiness separate from print snapshot freshness, classify every writer, and recheck on the server/job path rather than trusting client state.
 
 ## Open Questions
 - TODO: Confirm the exact permission for applying zero-delta document repairs; reuse an existing Sales edit permission or add a dedicated repair permission.
@@ -225,6 +271,8 @@ flowchart TD
 - TODO: Decide whether batch users may remove blocked orders and continue with the remainder or must resolve the full selection.
 - TODO: Confirm whether non-price production/packing output should continue when only price reconciliation is affected.
 - TODO: Validate that existing resolution-system tables and indexes are sufficient before choosing any Prisma change.
+- TODO: Decide between preferred dedicated readiness/revision gate columns and a no-schema `SalesOrders.meta` implementation after completing the mutation-path audit.
+- TODO: Confirm the first `validatorVersion` and whether rollout should include a bounded background evaluator for frequently printed historical orders.
 
 ## Linked Task
 - Task Title: Sales Document Preflight And Guided Repair
