@@ -30,7 +30,10 @@ import {
 	dueDateAlert,
 	overallStatus,
 } from "./utils/utils";
-import { whereSales } from "./utils/where-queries";
+import {
+	buildProductionEligibleWhere,
+	whereSales,
+} from "./utils/where-queries";
 
 export type ProductionListSort =
 	| "priority"
@@ -47,6 +50,14 @@ type SalesProductionListQuery = SalesProductionQueryParams & {
 	"production.assignedToId"?: number | null;
 	"production.status"?: SalesQueryParamsSchema["production.status"];
 };
+
+function usesLegacyProductionCompletionFilter(
+	query: Pick<SalesProductionListQuery, "production" | "completion.production">,
+) {
+	return (
+		query.production === "pending" && query["completion.production"] == null
+	);
+}
 
 export async function getSalesProductions(
 	db: Db,
@@ -68,20 +79,21 @@ export async function getSalesProductions(
 		status: NonNullable<SalesQueryParamsSchema["production.status"]>,
 	) => {
 		const { show: _show, ...dueQuery } = productionQuery;
-		return filterCompletedProductions(
-			await getProductionListAction(
-				db,
-				{
-					...dueQuery,
-					salesType: "order",
-					"production.status": status,
-					"sales.priority": query.priority || query["sales.priority"],
-				},
-				{
-					includeMaterials: query.includeMaterials,
-				},
-			),
+		const dueQueue = await getProductionListAction(
+			db,
+			{
+				...dueQuery,
+				salesType: "order",
+				"production.status": status,
+				"sales.priority": query.priority || query["sales.priority"],
+			},
+			{
+				includeMaterials: query.includeMaterials,
+			},
 		);
+		return usesLegacyProductionCompletionFilter(dueQuery)
+			? filterCompletedProductions(dueQueue)
+			: dueQueue;
 	};
 	const getDueToday = async () => getDueQueue("due today");
 	const getPastDue = async () => getDueQueue("past due");
@@ -117,7 +129,7 @@ export async function getSalesProductions(
 			workerCompletion: workerCompleted ? "completed" : undefined,
 		},
 	);
-	return query.production === "pending"
+	return usesLegacyProductionCompletionFilter(query)
 		? filterCompletedProductions(response)
 		: response;
 	//   const others = prodList.filter((p) => !excludesIds?.includes(p.id));
@@ -146,6 +158,7 @@ export async function getSalesProductionDashboard(
 		assignedToId,
 		workerId: query.workerId,
 		production: "pending",
+		"completion.production": "pending",
 	};
 
 	const [
@@ -224,6 +237,7 @@ export async function getSalesProductionSummary(
 		assignedToId,
 		workerId: query.workerId,
 		production: "pending",
+		"completion.production": "pending",
 	};
 	const [
 		queueCount,
@@ -271,7 +285,7 @@ export async function getSalesProductionSummary(
 					q: baseQuery.q,
 					priority: baseQuery.priority,
 					assignedToId,
-					production: "completed",
+					"completion.production": "completed",
 				}),
 		db.salesProductionSubmissionMaterialReview.count({
 			where: { status: "PENDING" },
@@ -438,18 +452,45 @@ async function countProductionOrders(
 	query: SalesProductionListQuery & Record<string, unknown>,
 ) {
 	const { sort: _canonicalSort, ...countQuery } = query;
-	return db.salesOrders.count({
-		where: whereSales({
-			...countQuery,
-			salesType: "order",
-			"production.assignedToId":
-				query["production.assignedToId"] ||
-				query.workerId ||
-				query.assignedToId ||
-				undefined,
-			"sales.priority": query.priority || query["sales.priority"],
-		} as SalesQueryParamsSchema),
-	});
+	const normalizedQuery = {
+		...countQuery,
+		salesType: "order",
+		"production.assignedToId":
+			query["production.assignedToId"] ||
+			query.workerId ||
+			query.assignedToId ||
+			undefined,
+		"sales.priority": query.priority || query["sales.priority"],
+	} as SalesQueryParamsSchema;
+	const where = buildProductionWorkspaceWhere(normalizedQuery);
+	return db.salesOrders.count({ where });
+}
+
+function buildProductionWorkspaceWhere(query: SalesQueryParamsSchema) {
+	const where = whereSales(query) || {};
+	return query["completion.production"]
+		? { AND: [where, buildProductionEligibleWhere()] }
+		: where;
+}
+
+function getProductionAssignmentFilters(where: Prisma.SalesOrdersWhereInput) {
+	const whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[] =
+		[];
+	const visit = (condition: Prisma.SalesOrdersWhereInput) => {
+		const assignmentWhere = condition.assignments?.some;
+		if (assignmentWhere) whereAssignments.push(assignmentWhere);
+
+		const nestedAnd = condition.AND;
+		if (Array.isArray(nestedAnd)) {
+			for (const nested of nestedAnd) {
+				if (typeof nested !== "string") visit(nested);
+			}
+		} else if (nestedAnd && typeof nestedAnd !== "string") {
+			visit(nestedAnd);
+		}
+	};
+	visit(where);
+	return whereAssignments;
 }
 
 async function countWorkerCompletedProductionOrders(
@@ -571,7 +612,7 @@ async function getProductionListAction(
 		workerCompletion?: "completed";
 	} = {},
 ) {
-	const where = whereSales(query) || {};
+	const where = buildProductionWorkspaceWhere(query);
 	const requestedTake =
 		options.includeMaterials === false
 			? Math.max(Number(query.size || 20), 1)
@@ -581,16 +622,7 @@ async function getProductionListAction(
 		size: requestedTake,
 	};
 
-	const whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[] =
-		[];
-	if (Array.isArray(where?.AND)) {
-		for (const condition of where.AND) {
-			const assignmentWhere = condition.assignments?.some;
-			if (assignmentWhere) whereAssignments.push(assignmentWhere);
-		}
-	} else if (where?.assignments?.some) {
-		whereAssignments.push(where.assignments.some);
-	}
+	const whereAssignments = getProductionAssignmentFilters(where);
 	if (query.material || query.productionSort) {
 		if (query.material && !query.productionSort) {
 			return getMaterialFilteredProductionPage(
@@ -660,6 +692,7 @@ async function getProductionListAction(
 	const rows = data.map((item) => ({
 		...transformProductionList(item, {
 			useAssignmentCompletion: !!query.workerId || !!query["production.status"],
+			completionSatisfaction: query["completion.production"],
 		}),
 		materials: materialState.unavailable
 			? unavailableProductionMaterialSummary()
@@ -711,7 +744,7 @@ async function getDatabaseSortedProductionPage(
 				useAssignmentCompletion:
 					!!query.workerId || !!query["production.status"],
 			}).completed;
-			if (query.production === "pending" && completed) {
+			if (usesLegacyProductionCompletionFilter(query) && completed) {
 				continue;
 			}
 			if (options.workerCompletion === "completed" && !completed) {
@@ -778,7 +811,7 @@ async function getMaterialFilteredProductionPage(
 		for (const item of records) {
 			rawCursor += 1;
 			if (
-				query.production === "pending" &&
+				usesLegacyProductionCompletionFilter(query) &&
 				transformProductionList(item, {
 					useAssignmentCompletion:
 						!!query.workerId || !!query["production.status"],
@@ -886,7 +919,7 @@ async function getFilteredProductionPage(
 		});
 		const recordsById = new Map(records.map((item) => [item.id, item]));
 		const activeRecords = records.filter((item) => {
-			if (query.production !== "pending") return true;
+			if (!usesLegacyProductionCompletionFilter(query)) return true;
 			return !transformProductionList(item, {
 				useAssignmentCompletion:
 					!!query.workerId || !!query["production.status"],
@@ -903,7 +936,7 @@ async function getFilteredProductionPage(
 			const item = recordsById.get(candidate.id);
 			if (!item) continue;
 			if (
-				query.production === "pending" &&
+				usesLegacyProductionCompletionFilter(query) &&
 				transformProductionList(item, {
 					useAssignmentCompletion:
 						!!query.workerId || !!query["production.status"],
@@ -962,6 +995,7 @@ function attachMaterialSummary(
 	return {
 		...transformProductionList(item, {
 			useAssignmentCompletion: !!query.workerId || !!query["production.status"],
+			completionSatisfaction: query["completion.production"],
 		}),
 		materials: materialState.unavailable
 			? unavailableProductionMaterialSummary()
@@ -1220,6 +1254,7 @@ function transformProductionList(
 	}>,
 	options?: {
 		useAssignmentCompletion?: boolean;
+		completionSatisfaction?: "pending" | "completed" | null;
 	},
 	//RenturnTypeAsync<typeof getProductionListAction>[number]
 ) {
@@ -1273,7 +1308,7 @@ function transformProductionList(
 				return productionQty?.itemTotal || fallbackQty?.itemTotal || 0;
 			}),
 	);
-	const completed =
+	const operationallyCompleted =
 		hasCompletedProductionLifecycle(lifecycleStatus.status) ||
 		isProductionCompleted({
 			productionStat: stats.prodCompleted,
@@ -1285,6 +1320,12 @@ function transformProductionList(
 				item.assignments.every((assignment) => !!assignment.completedAt),
 			useAssignmentCompletion: options?.useAssignmentCompletion,
 		});
+	const completed =
+		options?.completionSatisfaction === "completed"
+			? true
+			: options?.completionSatisfaction === "pending"
+				? false
+				: operationallyCompleted;
 	const hasPendingReview = item.assignments.some((assignment) =>
 		assignment.submissions.some(
 			(submission) => submission.materialReview?.status === "PENDING",
@@ -1300,6 +1341,7 @@ function transformProductionList(
 
 	return {
 		completed,
+		productionCompletionSatisfied: completed,
 		assignedAt: assignedAt || null,
 		totalAssigned,
 		totalCompleted,

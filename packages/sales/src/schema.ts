@@ -445,6 +445,9 @@ export const salesProductionQueryParamsSchema = z
 			.nullable(),
 		label: z.string().optional().nullable(),
 		production: z.custom<SalesProductionStatusFilter>().optional().nullable(),
+		"completion.production": salesCompletionSatisfactionFilterSchema
+			.optional()
+			.nullable(),
 		productionDueDate: productionCalendarDateSchema.optional().nullable(),
 		productionSort: z
 			.enum([

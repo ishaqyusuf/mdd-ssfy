@@ -70,16 +70,19 @@ describe("Sales completion confirmation presentation", () => {
 		expect(getDefaultSalesCompletionChoice()).toBe("FULL_WORKFLOW");
 	});
 
-	test("hides status-only from users without view capability and from bulk actions", () => {
+	test("shows status-only for authorized single and bulk selections", () => {
 		expect(
 			canShowStatusOnlyCompletionChoice({ canView: false, salesOrderCount: 1 }),
 		).toBe(false);
 		expect(
 			canShowStatusOnlyCompletionChoice({ canView: true, salesOrderCount: 2 }),
-		).toBe(false);
+		).toBe(true);
 		expect(
 			canShowStatusOnlyCompletionChoice({ canView: true, salesOrderCount: 1 }),
 		).toBe(true);
+		expect(
+			canShowStatusOnlyCompletionChoice({ canView: true, salesOrderCount: 0 }),
+		).toBe(false);
 	});
 
 	test("shows provenance, locks repeat marking, and offers method-aware cancellation", () => {

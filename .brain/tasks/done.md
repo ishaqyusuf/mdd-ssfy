@@ -1,5 +1,23 @@
 # Done
 
+### Bounded Bulk Status-only Sales Completion
+
+- Priority: High
+- Description: Extended the quick **Update status only** choice to 1-100
+  selected Production or Fulfillment orders through one protected request,
+  sequential conflict-safe execution, stable per-order idempotency, isolated outcomes,
+  and list invalidation while preserving the unchanged Full workflow default.
+- Related Feature: Status-only Sales Completion
+- Status: Done
+- Validation: 181 focused tests / 809 assertions, Sales package typecheck,
+  authenticated browser proof that seven paid Past Due Fulfillment declarations
+  and the remaining three Production declarations leave the filtered queue at
+  zero through the bulk **Update status only** path, Completed-tab lookup proof,
+  and two-pass diff review.
+- Database Impact: No schema or migration change; the existing completion
+  ledger and Sales History audit are reused.
+- Completed Date: 2026-09-02
+
 ### Status-only Sales Completion
 
 - Priority: High

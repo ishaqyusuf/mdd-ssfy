@@ -50,6 +50,18 @@ export const cancelProductionCompletionStatusOnlySchema =
 export const markFulfillmentCompletionStatusOnlySchema =
 	markProductionCompletionStatusOnlySchema;
 
+export const markSalesCompletionStatusOnlyBulkSchema = z.object({
+	salesOrderIds: z.array(z.number().int().positive()).min(1).max(100),
+	requestId: z.string().uuid(),
+	effectiveAt: z.coerce.date().optional().nullable(),
+});
+
+export const markProductionCompletionStatusOnlyBulkSchema =
+	markSalesCompletionStatusOnlyBulkSchema;
+
+export const markFulfillmentCompletionStatusOnlyBulkSchema =
+	markSalesCompletionStatusOnlyBulkSchema;
+
 export const cancelFulfillmentCompletionStatusOnlySchema =
 	cancelProductionCompletionStatusOnlySchema;
 
@@ -63,6 +75,22 @@ export type SalesFulfillmentDisposition =
 	| "FULFILLED"
 	| "ADMINISTRATIVELY_COMPLETED"
 	| "PENDING";
+
+export type SalesCompletionStatusOnlyBulkItem = {
+	salesOrderId: number;
+	status: "completed" | "replayed" | "skipped" | "failed";
+	code: SalesCompletionError["code"] | null;
+	message: string | null;
+};
+
+export type SalesCompletionStatusOnlyBulkResult = {
+	requested: number;
+	completed: number;
+	replayed: number;
+	skipped: number;
+	failed: number;
+	items: SalesCompletionStatusOnlyBulkItem[];
+};
 
 export type SalesCompletionRecordView = {
 	id: string;
@@ -947,6 +975,135 @@ export async function markFulfillmentCompletionStatusOnly(
 			"PERSISTENCE_FAILURE",
 		);
 	}
+}
+
+// MySQL's serializable completion writes can acquire overlapping range locks
+// through the shared projection. Keep the batch sequential so independent
+// orders cannot repeatedly deadlock one another.
+const SALES_COMPLETION_STATUS_ONLY_BATCH_CONCURRENCY = 1;
+
+function buildBatchItemRequestId(input: {
+	batchRequestId: string;
+	milestone: SalesCompletionMilestone;
+	salesOrderId: number;
+}) {
+	const digest = createHash("sha256")
+		.update(`${input.batchRequestId}:${input.milestone}:${input.salesOrderId}`)
+		.digest("hex");
+	const uuidHex = `${digest.slice(0, 12)}5${digest.slice(13, 16)}8${digest.slice(17, 32)}`;
+	return [
+		uuidHex.slice(0, 8),
+		uuidHex.slice(8, 12),
+		uuidHex.slice(12, 16),
+		uuidHex.slice(16, 20),
+		uuidHex.slice(20, 32),
+	].join("-");
+}
+
+async function markSalesCompletionStatusOnlyBatch(
+	db: Database,
+	input: z.infer<typeof markSalesCompletionStatusOnlyBulkSchema>,
+	actor: { id: number; name: string },
+	milestone: SalesCompletionMilestone,
+): Promise<SalesCompletionStatusOnlyBulkResult> {
+	const salesOrderIds = Array.from(new Set(input.salesOrderIds));
+	const items: SalesCompletionStatusOnlyBulkItem[] = [];
+
+	for (
+		let offset = 0;
+		offset < salesOrderIds.length;
+		offset += SALES_COMPLETION_STATUS_ONLY_BATCH_CONCURRENCY
+	) {
+		const batch = salesOrderIds.slice(
+			offset,
+			offset + SALES_COMPLETION_STATUS_ONLY_BATCH_CONCURRENCY,
+		);
+		const batchItems = await Promise.all(
+			batch.map(
+				async (salesOrderId): Promise<SalesCompletionStatusOnlyBulkItem> => {
+					try {
+						const projection = await getSalesCompletionProjection(db, {
+							salesOrderId,
+						});
+						const markInput = {
+							salesOrderId,
+							requestId: buildBatchItemRequestId({
+								batchRequestId: input.requestId,
+								milestone,
+								salesOrderId,
+							}),
+							expectedRevision: projection.revision,
+							effectiveAt: input.effectiveAt ?? null,
+						};
+						const result =
+							milestone === "PRODUCTION_COMPLETED"
+								? await markProductionCompletionStatusOnly(db, markInput, actor)
+								: await markFulfillmentCompletionStatusOnly(
+										db,
+										markInput,
+										actor,
+									);
+						return {
+							salesOrderId,
+							status: result.idempotentReplay ? "replayed" : "completed",
+							code: null,
+							message: null,
+						};
+					} catch (error) {
+						const completionError =
+							error instanceof SalesCompletionError ? error : null;
+						return {
+							salesOrderId,
+							status:
+								completionError?.code === "INVALID_TRANSITION"
+									? "skipped"
+									: "failed",
+							code: completionError?.code ?? "PERSISTENCE_FAILURE",
+							message:
+								completionError?.message ??
+								"The status-only completion could not be saved.",
+						};
+					}
+				},
+			),
+		);
+		items.push(...batchItems);
+	}
+
+	return {
+		requested: salesOrderIds.length,
+		completed: items.filter((item) => item.status === "completed").length,
+		replayed: items.filter((item) => item.status === "replayed").length,
+		skipped: items.filter((item) => item.status === "skipped").length,
+		failed: items.filter((item) => item.status === "failed").length,
+		items,
+	};
+}
+
+export async function markProductionCompletionStatusOnlyBulk(
+	db: Database,
+	input: z.infer<typeof markProductionCompletionStatusOnlyBulkSchema>,
+	actor: { id: number; name: string },
+) {
+	return markSalesCompletionStatusOnlyBatch(
+		db,
+		input,
+		actor,
+		"PRODUCTION_COMPLETED",
+	);
+}
+
+export async function markFulfillmentCompletionStatusOnlyBulk(
+	db: Database,
+	input: z.infer<typeof markFulfillmentCompletionStatusOnlyBulkSchema>,
+	actor: { id: number; name: string },
+) {
+	return markSalesCompletionStatusOnlyBatch(
+		db,
+		input,
+		actor,
+		"FULFILLMENT_COMPLETED",
+	);
 }
 
 async function findFulfillmentCancellationReplay(

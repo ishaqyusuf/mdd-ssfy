@@ -10,10 +10,11 @@ non-effects have direct release evidence.
 
 ## Outcome
 
-An authorized user may choose **Update status only** for one Sales Order's
-Production Completion or Fulfillment Completion when the real-world milestone
-happened but the intermediate GND workflow history is absent. Full workflow
-remains selected by default and retains all current side effects.
+An authorized user may choose **Update status only** for one Sales Order or a
+selection of up to 100 Sales Orders at Production Completion or Fulfillment
+Completion when the real-world milestone happened but the intermediate GND
+workflow history is absent. Full workflow remains selected by default and
+retains all current side effects.
 
 ## GND Authority Boundary
 
@@ -49,8 +50,38 @@ permissions remain unchanged.
 
 ## Scope Boundary
 
-This feature does not bulk-complete orders, infer uncertain historical work,
-fabricate operational evidence, or redesign the existing Full workflow.
+The status-only mark action supports bounded bulk selection. It does not infer
+uncertain historical work, fabricate operational evidence, bulk-cancel records,
+or redesign the existing Full workflow.
+
+## Implemented: Bounded Bulk Status-only Completion
+
+- The existing Sales batch confirmation now exposes **Update status only** for
+  authorized multi-order selections while keeping **Full workflow** selected by
+  default.
+- Production and Fulfillment each use one protected bulk mutation for 1-100
+  selected orders. The server deduplicates ids and executes the existing
+  revision-aware, serializable, audited single-order command sequentially to
+  avoid MySQL serializable range-lock conflicts.
+- Each order commits independently and returns `completed`, `replayed`,
+  `skipped`, or `failed`; one invalid or missing order does not roll back valid
+  selections. A shared optional effective date is applied to the batch.
+- The quick path bypasses dependency preparation and background Full workflow
+  jobs. It writes only the completion ledger and Sales History, then refreshes
+  list/count projections so satisfied orders leave completion queues.
+- Production queue list and summary queries always add the shared pending
+  Production-completion predicate for completion-queue tabs. Due, invoice,
+  assignment, material, and sort filters compose with that predicate; Past Due
+  and Due Today default to earliest due date. The Completed tab uses the shared
+  completed predicate so administrative completions remain discoverable, while
+  operational Reviews stays evidence-driven and retains unresolved review work.
+- Summary totals remain database-side counts. Production rows project the
+  canonical filter result as `productionCompletionSatisfied`, and nested
+  assignment constraints are preserved when eligibility and completion
+  predicates are composed, keeping list presentation, selection, and counts on
+  the same authority. Resolved Completed queries are idempotent across the page
+  prefetch and API boundary, so Status-only records remain visible in the
+  Completed table.
 
 ## Delivered: Status-only Production Completion
 
@@ -64,7 +95,8 @@ fabricate operational evidence, or redesign the existing Full workflow.
   idempotency, revision checks, database uniqueness, and same-transaction Sales
   History audit events. They write no operational workflow model.
 - The Sales confirmation defaults to Full workflow. The Status-only choice is
-  single-order and view-permission gated, requires edit permission to submit,
+  view-permission gated for single or bounded bulk selection, requires edit
+  permission to submit,
   warns about skipped effects and recent orders, and preserves method-aware
   cancellation history.
 - Status-only Fulfillment is deliberately not exposed or writable in Ticket 03.

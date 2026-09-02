@@ -12,6 +12,13 @@
   effectiveAt?: Date | null }`. Cancel input is `{ salesOrderId, requestId:
   uuid, expectedRevision, reason?: string | null }`; reasons are trimmed and
   capped at 500 characters.
+- Bulk mark input is `{ salesOrderIds: positiveInt[1..100], requestId: uuid,
+  effectiveAt?: Date | null }`. The server deduplicates ids, derives stable
+  per-order request identities, reloads each order's current projection, and
+  executes isolated serializable commands sequentially. The result
+  reports `requested`, `completed`, `replayed`, `skipped`, `failed`, and one
+  outcome per unique order. An invalid transition skips only that order; a
+  persistence or lookup failure fails only that order.
 - Mark and cancel are serializable, request-idempotent, and protected by a
   database-unique active identity. Revision mismatches are conflicts;
   invalid/method-mismatched transitions are precondition failures; persistence
@@ -43,6 +50,14 @@
   paths route both through the same shared Prisma satisfaction predicate.
   Existing `production`, `production.status`, and `dispatch.status` remain
   operational filters and do not consume administrative records.
+- Active Production workspace list and summary reads now compose
+  `completion.production = pending` with their existing operational queue and
+  due predicates. This removes Status-only Production and Fulfillment
+  satisfaction from Past Due/active queue counts without changing invoice,
+  assignment, or material semantics. Past Due and Due Today default to
+  `dueDateAsc`; explicit sorts still win. The Completed tab uses
+  `completion.production = completed`, while the operational Reviews tab does
+  not consume administrative completion satisfaction.
 - Completion reporting defaults to `OPERATIONAL` and omits Status-only rows.
   Explicit `ADMINISTRATIVE` scope returns `source`, `method`, nullable
   `effectiveAt`, and `recordedAt` independently; implied Production remains

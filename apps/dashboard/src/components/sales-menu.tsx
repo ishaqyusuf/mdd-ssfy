@@ -1055,7 +1055,10 @@ function SalesMenuMarkAs({
 		trpc.sales.salesCompletionProjection.queryOptions(
 			{ salesOrderId: salesIds[0] ?? 0 },
 			{
-				enabled: state.type === "order" && statusOnlyPresentationVisible,
+				enabled:
+					state.type === "order" &&
+					statusOnlyPresentationVisible &&
+					salesIds.length === 1,
 				staleTime: 0,
 				refetchOnWindowFocus: true,
 			},
@@ -1099,6 +1102,7 @@ function SalesMenuMarkAs({
 	const isDisabled = disabled || !salesIds.length;
 	const statusActionInFlightRef = useRef(false);
 	const statusActionSalesIdsRef = useRef<number[]>([]);
+	const statusActionWasBulkRef = useRef(false);
 	const [statusActionPending, setStatusActionPending] = useState(false);
 	const beginStatusAction = () => {
 		if (statusActionInFlightRef.current) return false;
@@ -1128,11 +1132,17 @@ function SalesMenuMarkAs({
 	const markProductionStatusOnlyMutation = useMutation(
 		trpc.sales.markProductionCompletionStatusOnly.mutationOptions(),
 	);
+	const markProductionStatusOnlyBulkMutation = useMutation(
+		trpc.sales.markProductionCompletionStatusOnlyBulk.mutationOptions(),
+	);
 	const cancelProductionStatusOnlyMutation = useMutation(
 		trpc.sales.cancelProductionCompletionStatusOnly.mutationOptions(),
 	);
 	const markFulfillmentStatusOnlyMutation = useMutation(
 		trpc.sales.markFulfillmentCompletionStatusOnly.mutationOptions(),
+	);
+	const markFulfillmentStatusOnlyBulkMutation = useMutation(
+		trpc.sales.markFulfillmentCompletionStatusOnlyBulk.mutationOptions(),
 	);
 	const cancelFulfillmentStatusOnlyMutation = useMutation(
 		trpc.sales.cancelFulfillmentCompletionStatusOnly.mutationOptions(),
@@ -1140,7 +1150,10 @@ function SalesMenuMarkAs({
 	const invalidateOrders = async () => {
 		await Promise.all([
 			sq.invalidate.salesList(),
-			sq.invalidate.productionOverview(),
+			sq.productionUpdated(),
+			sq.qc.invalidateQueries({
+				queryKey: trpc.sales.productionSummary.pathKey(),
+			}),
 			invalidateDispatchWorkspace(sq.qc, trpc),
 		]);
 	};
@@ -1359,6 +1372,7 @@ function SalesMenuMarkAs({
 		}
 
 		statusActionSalesIdsRef.current = selection.eligibleSalesIds;
+		statusActionWasBulkRef.current = salesIds.length > 1;
 		return selection.eligibleSalesIds;
 	};
 
@@ -1401,7 +1415,40 @@ function SalesMenuMarkAs({
 			});
 			return;
 		}
-		const salesOrderId = statusActionSalesIdsRef.current[0];
+		const targetSalesIds = statusActionSalesIdsRef.current;
+		const effectiveAt = productionEffectiveDate
+			? new Date(`${productionEffectiveDate}T12:00:00.000Z`)
+			: null;
+		if (statusActionWasBulkRef.current) {
+			try {
+				const result = await markProductionStatusOnlyBulkMutation.mutateAsync({
+					salesOrderIds: targetSalesIds,
+					requestId: crypto.randomUUID(),
+					effectiveAt,
+				});
+				const recordedCount = result.completed + result.replayed;
+				setProductionConfirmationOpen(false);
+				setProductionCompletionChoice(getDefaultSalesCompletionChoice());
+				setProductionEffectiveDate("");
+				actions.closeMenu();
+				await invalidateOrders();
+				onStatusActionSettled?.();
+				toast({
+					title: "Production completed — status only",
+					description: `${recordedCount} order${recordedCount === 1 ? "" : "s"} recorded without production or business workflow effects.${result.skipped ? ` ${result.skipped} skipped.` : ""}${result.failed ? ` ${result.failed} failed.` : ""}`,
+					variant: result.failed ? "destructive" : "success",
+				});
+			} catch (error) {
+				toast({
+					title: "Unable to update Production status",
+					description:
+						error instanceof Error ? error.message : "Refresh and try again.",
+					variant: "destructive",
+				});
+			}
+			return;
+		}
+		const salesOrderId = targetSalesIds[0];
 		if (!salesOrderId || !completionProjection?.revision) {
 			toast({
 				title: "Completion status is still loading",
@@ -1415,9 +1462,7 @@ function SalesMenuMarkAs({
 				salesOrderId,
 				requestId: crypto.randomUUID(),
 				expectedRevision: completionProjection.revision,
-				effectiveAt: productionEffectiveDate
-					? new Date(`${productionEffectiveDate}T12:00:00.000Z`)
-					: null,
+				effectiveAt,
 			});
 			setProductionConfirmationOpen(false);
 			setProductionCompletionChoice(getDefaultSalesCompletionChoice());
@@ -1526,7 +1571,40 @@ function SalesMenuMarkAs({
 			});
 			return;
 		}
-		const salesOrderId = statusActionSalesIdsRef.current[0];
+		const targetSalesIds = statusActionSalesIdsRef.current;
+		const effectiveAt = fulfillmentEffectiveDate
+			? new Date(`${fulfillmentEffectiveDate}T12:00:00.000Z`)
+			: null;
+		if (statusActionWasBulkRef.current) {
+			try {
+				const result = await markFulfillmentStatusOnlyBulkMutation.mutateAsync({
+					salesOrderIds: targetSalesIds,
+					requestId: crypto.randomUUID(),
+					effectiveAt,
+				});
+				const recordedCount = result.completed + result.replayed;
+				setFulfillmentConfirmationOpen(false);
+				setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
+				setFulfillmentEffectiveDate("");
+				actions.closeMenu();
+				await invalidateOrders();
+				onStatusActionSettled?.();
+				toast({
+					title: "Fulfillment completed — status only",
+					description: `${recordedCount} order${recordedCount === 1 ? "" : "s"} recorded without delivery proof, dispatch, inventory, or business workflow effects.${result.skipped ? ` ${result.skipped} skipped.` : ""}${result.failed ? ` ${result.failed} failed.` : ""}`,
+					variant: result.failed ? "destructive" : "success",
+				});
+			} catch (error) {
+				toast({
+					title: "Unable to update Fulfillment status",
+					description:
+						error instanceof Error ? error.message : "Refresh and try again.",
+					variant: "destructive",
+				});
+			}
+			return;
+		}
+		const salesOrderId = targetSalesIds[0];
 		if (!salesOrderId || !completionProjection?.revision) {
 			toast({
 				title: "Completion status is still loading",
@@ -1540,9 +1618,7 @@ function SalesMenuMarkAs({
 				salesOrderId,
 				requestId: crypto.randomUUID(),
 				expectedRevision: completionProjection.revision,
-				effectiveAt: fulfillmentEffectiveDate
-					? new Date(`${fulfillmentEffectiveDate}T12:00:00.000Z`)
-					: null,
+				effectiveAt,
 			});
 			setFulfillmentConfirmationOpen(false);
 			setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
@@ -2038,11 +2114,15 @@ function SalesMenuMarkAs({
 			projection={completionProjection}
 			showStatusOnly={statusOnlyPresentationVisible}
 			canEditStatusOnly={auth.can.editStatusOnlySalesCompletion}
+			salesOrderCount={salesIds.length}
 			projectionPending={salesCompletionProjectionQuery.isPending}
 			confirmationOpen={productionConfirmationOpen}
 			choice={productionCompletionChoice}
 			effectiveDate={productionEffectiveDate}
-			markPending={markProductionStatusOnlyMutation.isPending}
+			markPending={
+				markProductionStatusOnlyMutation.isPending ||
+				markProductionStatusOnlyBulkMutation.isPending
+			}
 			onConfirmationOpenChange={(open) => {
 				setProductionConfirmationOpen(open);
 				if (!open) {
@@ -2070,11 +2150,15 @@ function SalesMenuMarkAs({
 			showStatusOnly={statusOnlyPresentationVisible}
 			canEditStatusOnly={auth.can.editStatusOnlySalesCompletion}
 			canRunFullWorkflow={auth.can.viewMarkSalesOrderFulfilled}
+			salesOrderCount={salesIds.length}
 			projectionPending={salesCompletionProjectionQuery.isPending}
 			confirmationOpen={fulfillmentConfirmationOpen}
 			choice={fulfillmentCompletionChoice}
 			effectiveDate={fulfillmentEffectiveDate}
-			markPending={markFulfillmentStatusOnlyMutation.isPending}
+			markPending={
+				markFulfillmentStatusOnlyMutation.isPending ||
+				markFulfillmentStatusOnlyBulkMutation.isPending
+			}
 			onConfirmationOpenChange={(open) => {
 				setFulfillmentConfirmationOpen(open);
 				if (!open) {

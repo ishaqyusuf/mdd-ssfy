@@ -36,7 +36,10 @@ compatibility boundary remain the implementation authority.
 
 ## Next step
 
-No implementation ticket remains. Preserve the approved authority boundary in
+The 2026-09-02 bounded-bulk follow-up is complete: multi-order Production and
+Fulfillment actions may use the same administrative authority through one
+protected request, while Full workflow remains the default and unchanged. No
+implementation ticket remains. Preserve the approved authority boundary in
 future Sales completion work and consult the release report for regression
 coverage.
 

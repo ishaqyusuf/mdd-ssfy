@@ -7,6 +7,22 @@ import {
 import { resolveSalesProductionWorkspaceQuery } from "./production-workspace-query";
 
 describe("sales production workspace query", () => {
+	it("excludes administratively completed orders from every active queue", () => {
+		expect(
+			resolveSalesProductionWorkspaceQuery({
+				tab: "queue",
+				due: "overdue",
+			}),
+		).toMatchObject({
+			list: {
+				production: "pending",
+				"completion.production": "pending",
+				show: "past-due",
+				productionSort: "dueDateAsc",
+			},
+		});
+	});
+
 	it("accepts only real, forward calendar date ranges", () => {
 		expect(
 			salesProductionCalendarQuerySchema.safeParse({
@@ -47,9 +63,16 @@ describe("sales production workspace query", () => {
 				q: "03471",
 				assignedToId: 12,
 				priority: "HIGH",
-				production: "completed",
+				"completion.production": "completed",
 			},
 		});
+	});
+
+	it("keeps an already-resolved Completed list query stable at the API boundary", () => {
+		const first = resolveSalesProductionWorkspaceQuery({ tab: "completed" });
+		const second = resolveSalesProductionWorkspaceQuery(first.list);
+
+		expect(second).toEqual(first);
 	});
 
 	it("preserves applicable Sales Orders and invoice filters", () => {
@@ -75,6 +98,7 @@ describe("sales production workspace query", () => {
 				item: "Door",
 				invoice: "pending",
 				production: "pending",
+				"completion.production": "pending",
 			},
 		});
 
@@ -96,6 +120,7 @@ describe("sales production workspace query", () => {
 				dateRange: ["2026-08-01", "2026-08-31"],
 				"production.dueDate": ["2026-09-01", "2026-09-15"],
 				production: "pending",
+				"completion.production": "pending",
 			},
 		});
 
@@ -118,7 +143,7 @@ describe("sales production workspace query", () => {
 			tab: "completed",
 			view: "table",
 			list: {
-				production: "completed",
+				"completion.production": "completed",
 				material: "available",
 				productionSort: "oldest",
 			},
@@ -152,6 +177,7 @@ describe("sales production workspace query", () => {
 			view: "calendar",
 			list: {
 				production: "pending",
+				"completion.production": "pending",
 				"production.assignment": "not assigned",
 				productionDueDate: "2026-08-18",
 				material: "blocked",
@@ -166,19 +192,29 @@ describe("sales production workspace query", () => {
 		).toEqual({
 			tab: "completed",
 			view: "table",
-			list: { production: "completed" },
+			list: { "completion.production": "completed" },
 		});
 		expect(resolveSalesProductionWorkspaceQuery({ show: "past-due" })).toEqual({
 			tab: "queue",
 			view: "table",
-			list: { production: "pending", show: "past-due" },
+			list: {
+				production: "pending",
+				"completion.production": "pending",
+				show: "past-due",
+				productionSort: "dueDateAsc",
+			},
 		});
 		expect(
 			resolveSalesProductionWorkspaceQuery({ label: "due-today" }),
 		).toEqual({
 			tab: "queue",
 			view: "table",
-			list: { production: "pending", show: "due-today" },
+			list: {
+				production: "pending",
+				"completion.production": "pending",
+				show: "due-today",
+				productionSort: "dueDateAsc",
+			},
 		});
 		expect(
 			resolveSalesProductionWorkspaceQuery({ date: "2026-08-20" }),
@@ -187,6 +223,7 @@ describe("sales production workspace query", () => {
 			view: "calendar",
 			list: {
 				production: "pending",
+				"completion.production": "pending",
 				productionDueDate: "2026-08-20",
 			},
 		});
@@ -207,7 +244,9 @@ describe("sales production workspace query", () => {
 			view: "table",
 			list: {
 				production: "pending",
+				"completion.production": "pending",
 				show: "due-today",
+				productionSort: "dueDateAsc",
 				size: 20,
 			},
 		});
@@ -222,7 +261,12 @@ describe("sales production workspace query", () => {
 		).toEqual({
 			tab: "queue",
 			view: "table",
-			list: { production: "pending", show: "due-today" },
+			list: {
+				production: "pending",
+				"completion.production": "pending",
+				show: "due-today",
+				productionSort: "dueDateAsc",
+			},
 		});
 		expect(
 			resolveSalesProductionWorkspaceQuery({
@@ -232,7 +276,12 @@ describe("sales production workspace query", () => {
 		).toEqual({
 			tab: "queue",
 			view: "table",
-			list: { production: "pending", show: "past-due" },
+			list: {
+				production: "pending",
+				"completion.production": "pending",
+				show: "past-due",
+				productionSort: "dueDateAsc",
+			},
 		});
 		expect(
 			resolveSalesProductionWorkspaceQuery({
@@ -242,7 +291,11 @@ describe("sales production workspace query", () => {
 		).toEqual({
 			tab: "queue",
 			view: "table",
-			list: { production: "pending", show: "unscheduled" },
+			list: {
+				production: "pending",
+				"completion.production": "pending",
+				show: "unscheduled",
+			},
 		});
 	});
 
@@ -262,6 +315,7 @@ describe("sales production workspace query", () => {
 			view: "table",
 			list: {
 				production: "pending",
+				"completion.production": "pending",
 				"production.assignment": "all assigned",
 				material: "available",
 			},
@@ -277,12 +331,18 @@ describe("sales production workspace query", () => {
 		).toEqual({
 			tab: "queue",
 			view: "calendar",
-			list: { production: "pending" },
+			list: {
+				production: "pending",
+				"completion.production": "pending",
+			},
 		});
 		expect(resolveSalesProductionWorkspaceQuery({ tab: "calendar" })).toEqual({
 			tab: "queue",
 			view: "calendar",
-			list: { production: "pending" },
+			list: {
+				production: "pending",
+				"completion.production": "pending",
+			},
 		});
 	});
 });

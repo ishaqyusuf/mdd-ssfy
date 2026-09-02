@@ -68,6 +68,7 @@ type WorkspaceInput = {
 	"production.dueDate"?: string[] | null;
 	priority?: string | null;
 	production?: string | null;
+	"completion.production"?: "pending" | "completed" | null;
 	productionDueDate?: string | null;
 	productionSort?: string | null;
 	salesNo?: string | null;
@@ -123,7 +124,7 @@ export function resolveSalesProductionWorkspaceQuery(input: WorkspaceInput) {
 	if (input.cursor != null && input.cursor !== "") list.cursor = input.cursor;
 
 	if (tab === "completed") {
-		list.production = "completed";
+		list["completion.production"] = "completed";
 		copyString(list, "material", input.material);
 		copyString(
 			list,
@@ -133,6 +134,9 @@ export function resolveSalesProductionWorkspaceQuery(input: WorkspaceInput) {
 		return { tab, view, list };
 	}
 
+	if (tab === "queue") {
+		list["completion.production"] = "pending";
+	}
 	list.production =
 		input.production === "in progress" ? "in progress" : "pending";
 
@@ -159,7 +163,12 @@ export function resolveSalesProductionWorkspaceQuery(input: WorkspaceInput) {
 	}
 
 	copyString(list, "material", input.material);
-	const productionSort = SORT_MAP[input.sort || ""] || input.productionSort;
+	const defaultDueSort =
+		list.show === "past-due" || list.show === "due-today"
+			? "dueDateAsc"
+			: undefined;
+	const productionSort =
+		SORT_MAP[input.sort || ""] || input.productionSort || defaultDueSort;
 	copyString(list, "productionSort", productionSort);
 
 	return { tab, view, list };
@@ -176,7 +185,11 @@ function resolveTab(input: WorkspaceInput): SalesProductionWorkspaceTab {
 	if (input.queue === "awaiting-review" || input.label === "material-review") {
 		return "reviews";
 	}
-	if (input.production === "completed" || input.label === "completed") {
+	if (
+		input.production === "completed" ||
+		input.label === "completed" ||
+		input["completion.production"] === "completed"
+	) {
 		return "completed";
 	}
 	return "queue";

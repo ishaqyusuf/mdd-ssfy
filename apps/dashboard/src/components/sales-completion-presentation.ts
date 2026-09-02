@@ -93,7 +93,7 @@ export function canShowStatusOnlyCompletionChoice(input: {
 	canView: boolean;
 	salesOrderCount: number;
 }) {
-	return input.canView && input.salesOrderCount === 1;
+	return input.canView && input.salesOrderCount > 0;
 }
 
 export function applyProductionCompletionProjection(

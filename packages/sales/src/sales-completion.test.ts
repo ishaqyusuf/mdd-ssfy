@@ -15,7 +15,10 @@ import {
 	getSalesCompletionProjection,
 	hasCanonicalSalesFulfillmentEvidence,
 	markFulfillmentCompletionStatusOnly,
+	markFulfillmentCompletionStatusOnlyBulk,
 	markProductionCompletionStatusOnly,
+	markProductionCompletionStatusOnlyBulk,
+	markSalesCompletionStatusOnlyBulkSchema,
 	recordFullWorkflowCompletionIfProven,
 	resolveSalesCompletionProjection,
 	resolveSalesCompletionProjectionFromOrder,
@@ -409,6 +412,202 @@ function createCompletionDb(
 	};
 	return { db: db as unknown as Database, tx, records, calls, history };
 }
+
+function createBulkCompletionDb(orderIds: number[]) {
+	const records: SalesCompletionRecordView[] = [];
+	const history: unknown[] = [];
+	let activeTransactions = 0;
+	let maxActiveTransactions = 0;
+	const orderIdSet = new Set(orderIds);
+	const orderRow = (salesOrderId: number) => ({
+		id: salesOrderId,
+		orderId: `ORDER-${salesOrderId}`,
+		createdAt: new Date("2025-01-01T00:00:00.000Z"),
+		updatedAt,
+		status: null,
+		prodStatus: null,
+		stat: [],
+		deliveries: [],
+		completionRecords: records
+			.filter((record) => record.salesOrderId === salesOrderId)
+			.toReversed(),
+	});
+	const tx = {
+		salesOrders: {
+			findFirst: mock(async ({ where }: { where: { id: number } }) =>
+				orderIdSet.has(where.id) ? orderRow(where.id) : null,
+			),
+		},
+		salesCompletionRecord: {
+			findUnique: mock(async ({ where }: { where: Record<string, string> }) => {
+				if (where.requestId) {
+					return (
+						records.find((record) => record.requestId === where.requestId) ??
+						null
+					);
+				}
+				return (
+					records.find(
+						(record) =>
+							record.state === "ACTIVE" &&
+							buildSalesCompletionActiveKey({
+								salesOrderId: record.salesOrderId,
+								milestone: record.milestone,
+							}) === where.activeKey,
+					) ?? null
+				);
+			}),
+			create: mock(async ({ data }: { data: Record<string, unknown> }) => {
+				const record = completionRecord({
+					id: `completion-${records.length + 1}`,
+					requestId: String(data.requestId),
+					salesOrderId: Number(data.salesOrderId),
+					milestone: data.milestone as SalesCompletionRecordView["milestone"],
+					completionMethod: "STATUS_ONLY",
+					effectiveAt: (data.effectiveAt as Date | null) ?? null,
+					recordedAt: data.recordedAt as Date,
+					recordedBy: { id: Number(data.recordedById), name: "Admin" },
+					updatedAt: data.recordedAt as Date,
+				});
+				records.push(record);
+				return record;
+			}),
+		},
+		salesHistory: {
+			create: mock(async (payload: unknown) => {
+				history.push(payload);
+				return payload;
+			}),
+		},
+	};
+	const db = {
+		...tx,
+		$transaction: mock(
+			async (operation: (transaction: typeof tx) => Promise<unknown>) => {
+				activeTransactions += 1;
+				maxActiveTransactions = Math.max(
+					maxActiveTransactions,
+					activeTransactions,
+				);
+				try {
+					return await operation(tx);
+				} finally {
+					activeTransactions -= 1;
+				}
+			},
+		),
+	};
+	return {
+		db: db as unknown as Database,
+		records,
+		history,
+		maxActiveTransactions: () => maxActiveTransactions,
+	};
+}
+
+describe("status-only completion batches", () => {
+	test("bounds the batch contract to 100 selected orders", () => {
+		expect(
+			markSalesCompletionStatusOnlyBulkSchema.safeParse({
+				salesOrderIds: Array.from({ length: 100 }, (_, index) => index + 1),
+				requestId: "00000000-0000-4000-8000-000000000100",
+				effectiveAt: null,
+			}).success,
+		).toBe(true);
+		expect(
+			markSalesCompletionStatusOnlyBulkSchema.safeParse({
+				salesOrderIds: Array.from({ length: 101 }, (_, index) => index + 1),
+				requestId: "00000000-0000-4000-8000-000000000101",
+				effectiveAt: null,
+			}).success,
+		).toBe(false);
+	});
+
+	test("marks unique Production orders and replays the same batch idempotently", async () => {
+		const fixture = createBulkCompletionDb([91, 92]);
+		const input = {
+			salesOrderIds: [91, 92, 91],
+			requestId: "00000000-0000-4000-8000-000000000201",
+			effectiveAt: null,
+		};
+
+		const first = await markProductionCompletionStatusOnlyBulk(
+			fixture.db,
+			input,
+			{ id: 7, name: "Admin" },
+		);
+		const replay = await markProductionCompletionStatusOnlyBulk(
+			fixture.db,
+			input,
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(first).toMatchObject({
+			requested: 2,
+			completed: 2,
+			replayed: 0,
+			skipped: 0,
+			failed: 0,
+		});
+		expect(replay).toMatchObject({
+			requested: 2,
+			completed: 0,
+			replayed: 2,
+			skipped: 0,
+			failed: 0,
+		});
+		expect(fixture.records).toHaveLength(2);
+		expect(fixture.history).toHaveLength(2);
+	});
+
+	test("isolates missing Fulfillment orders while completing valid selections", async () => {
+		const fixture = createBulkCompletionDb([91]);
+		const result = await markFulfillmentCompletionStatusOnlyBulk(
+			fixture.db,
+			{
+				salesOrderIds: [91, 999],
+				requestId: "00000000-0000-4000-8000-000000000202",
+				effectiveAt: null,
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result).toMatchObject({
+			requested: 2,
+			completed: 1,
+			replayed: 0,
+			skipped: 0,
+			failed: 1,
+		});
+		expect(result.items).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ salesOrderId: 91, status: "completed" }),
+				expect.objectContaining({
+					salesOrderId: 999,
+					status: "failed",
+					code: "NOT_FOUND",
+				}),
+			]),
+		);
+	});
+
+	test("serializes status-only writes to avoid MySQL range-lock conflicts", async () => {
+		const fixture = createBulkCompletionDb([91, 92, 93, 94, 95]);
+		const result = await markFulfillmentCompletionStatusOnlyBulk(
+			fixture.db,
+			{
+				salesOrderIds: [91, 92, 93, 94, 95],
+				requestId: "00000000-0000-4000-8000-000000000203",
+				effectiveAt: null,
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result.completed).toBe(5);
+		expect(result.failed).toBe(0);
+		expect(fixture.maxActiveTransactions()).toBe(1);
+	});
+});
 
 describe("status-only Production commands", () => {
 	test("marks only the completion record and audit in one serializable transaction", async () => {

@@ -29,7 +29,8 @@ The sales-order completion confirmation supports two deliberate paths:
 
 The feature applies to both **Production Completion** and **Fulfillment**. It must provide a safe way to close historical orders without pretending that missing assignments, production work, fulfillment work, inventory operations, or other workflow effects were performed by the current system.
 
-The first release operates on one sales order at a time. Bulk completion is excluded.
+The current release supports one order or a bounded selection of up to 100
+orders. Bulk cancellation remains excluded.
 
 ## 2. Canonical concepts
 
@@ -165,6 +166,22 @@ The persistence rules are:
 - Canonical Production Completion and Fulfilled projections continue to be
   derived from their existing operational authorities, not from the presence of
   a `FULL_WORKFLOW` record alone.
+
+### 6.1 Bounded bulk Status-only marking
+
+- A user may mark 1-100 selected Sales Orders as Production Completed or
+  Fulfillment Completed through one Status-only request.
+- Full workflow remains selected by default for a multi-order confirmation.
+- The server deduplicates selected ids and applies the same optional effective
+  date to every order.
+- Each order uses the existing authenticated, serializable, revision-aware,
+  request-idempotent mark command and commits independently with bounded
+  execution. Orders are processed sequentially to prevent overlapping MySQL
+  serializable range locks. The response identifies completed, replayed,
+  skipped, and failed orders.
+- The bulk Status-only path must not run Full workflow dependency resolution or
+  enqueue its background tasks.
+- Bulk cancellation is not included.
 
 ## 7. Canonical completion resolver
 
@@ -388,10 +405,19 @@ The implementation is not complete until automated tests cover at least:
     the required runtime keys.
 23. A single persisted `status_only_sales_completion` row does not authorize
     viewing or editing.
+24. An authorized multi-order confirmation keeps Full workflow selected by
+    default and exposes Update status only without requiring a single-order
+    projection.
+25. A bulk Status-only request is bounded to 100 unique selected orders,
+    deduplicates ids, and replays idempotently without duplicate records or
+    audits.
+26. A missing or invalid order produces an isolated failed or skipped outcome
+    while valid selected orders complete, and the path invokes no Full workflow
+    dependency or background-task authority.
 
 ## 15. Explicitly excluded from this release
 
-- Bulk or batch Status-only completion.
+- Bulk cancellation of Status-only completion records.
 - Automatic eligibility based solely on order age.
 - Generic forced closure when real-world completion is unknown.
 - Automatic inference that historical records are Status-only.
@@ -412,7 +438,9 @@ The implementation is not complete until automated tests cover at least:
 6. **Completion provenance:** Persist milestone `type` separately from `completion_method`, using `STATUS_ONLY` and `FULL_WORKFLOW` methods.
 7. **Access control:** Use the exact permission `status_only_sales_completion` through `viewStatusOnlySalesCompletion` and `editStatusOnlySalesCompletion` under the established role-permission standard.
 8. **Completion dates:** Record `recorded_at` automatically and accept an optional `effective_at`; never invent an unknown historical date.
-9. **First-release scope:** Support one order at a time; exclude bulk completion.
+9. **Current scope:** Support one order or a bounded batch of up to 100 orders;
+   bulk cancellation remains excluded. This supersedes the original
+   single-order first-release decision.
 10. **Status cancellation:** Preserve cancelled history with actor, time, and optional reason; never delete the original status or run nonexistent business reversals.
 11. **Actions and locking:** Follow the approved effective-state matrix, keep Fulfillment available after Production Completion, lock both marking actions after Fulfillment, and require Fulfillment cancellation before Production Completion cancellation.
 12. **Query consistency:** Use one canonical backend resolver and make all affected Angular pages consume its normalized state and actions.

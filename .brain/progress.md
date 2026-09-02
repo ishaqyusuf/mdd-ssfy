@@ -1,5 +1,34 @@
 # Progress
 
+- 2026-09-02: Extended **Update status only** to bounded Production and
+  Fulfillment batch selections. One protected request accepts up to 100 Sales
+  Orders, deduplicates ids, derives stable per-order request identities, and
+  runs the existing serializable audited command sequentially to avoid MySQL
+  range-lock conflicts, with
+  isolated completed/replayed/skipped/failed outcomes. The UI retains Full
+  workflow as the default; the quick path bypasses dependency preparation and
+  background operational jobs. No schema or permission change was required.
+  Authenticated browser QA exposed and repaired both MySQL parallel
+  serializable write conflicts and the missing Production queue completion
+  predicate. Seven paid Past Due orders were then recorded through the
+  Fulfillment Status-only dialog and disappeared on a fresh list read. The
+  final authority/parity repair kept summary counts database-side, recursively
+  preserved assignment filters, and projected canonical completion satisfaction
+  into Production rows. That exposed the remaining three paid Past Due orders;
+  they were recorded through the Production **Update status only** dialog, and
+  the refreshed filtered queue reached zero. A final browser lookup caught and
+  repaired non-idempotent Completed-query resolution between page prefetch and
+  the API; order `24-0520-1604` now appears in Completed with the
+  `Production completed` presentation. The expanded 15-file suite passes 181
+  tests / 809 assertions, Sales typecheck passes, and root typecheck stops on
+  the pre-existing `@gnd/settings` NodeNext extension baseline.
+  Two independent code-review passes additionally caught and repaired explicit
+  Production list/summary invalidation, the default earliest-due sort, Reviews
+  separation, Completed-tab discoverability, a one-eligible-order bulk edge
+  case, bulk recent-order warning coverage, stale single-order wording,
+  database-side count performance, nested assignment-filter preservation, and
+  canonical Completed-row presentation and discoverability.
+
 - 2026-09-01: Reconciled Ticket 07 with concurrent main commit `0ba1907ec`
   after the first guarded landing attempt correctly aborted on one Brain-only
   `.brain/tasks/done.md` conflict. Both Status-only completion and Sales-document

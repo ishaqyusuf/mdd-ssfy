@@ -37,6 +37,12 @@ const markInput = {
 	effectiveAt: null,
 };
 
+const bulkMarkInput = {
+	salesOrderIds: [91, 92],
+	requestId: "00000000-0000-4000-8000-000000000093",
+	effectiveAt: null,
+};
+
 const cancelInput = {
 	salesOrderId: 91,
 	requestId: "00000000-0000-4000-8000-000000000092",
@@ -57,6 +63,12 @@ describe("status-only Sales completion route permissions", () => {
 		await expect(
 			caller.markFulfillmentCompletionStatusOnly(markInput),
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		await expect(
+			caller.markProductionCompletionStatusOnlyBulk(bulkMarkInput),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		await expect(
+			caller.markFulfillmentCompletionStatusOnlyBulk(bulkMarkInput),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 	});
 
 	test("rejects direct mark and cancel requests before domain access", async () => {
@@ -70,6 +82,12 @@ describe("status-only Sales completion route permissions", () => {
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		await expect(
 			caller.markFulfillmentCompletionStatusOnly(markInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markProductionCompletionStatusOnlyBulk(bulkMarkInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markFulfillmentCompletionStatusOnlyBulk(bulkMarkInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		await expect(
 			caller.cancelFulfillmentCompletionStatusOnly(cancelInput),
@@ -91,6 +109,12 @@ describe("status-only Sales completion route permissions", () => {
 			caller.markFulfillmentCompletionStatusOnly(markInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		await expect(
+			caller.markProductionCompletionStatusOnlyBulk(bulkMarkInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markFulfillmentCompletionStatusOnlyBulk(bulkMarkInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
 			caller.cancelFulfillmentCompletionStatusOnly(cancelInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
@@ -108,6 +132,12 @@ describe("status-only Sales completion route permissions", () => {
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		await expect(
 			caller.markFulfillmentCompletionStatusOnly(markInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markProductionCompletionStatusOnlyBulk(bulkMarkInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markFulfillmentCompletionStatusOnlyBulk(bulkMarkInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
 });

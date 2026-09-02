@@ -22,12 +22,12 @@ describe("Status-only Fulfillment completion UI contract", () => {
 	});
 
 	test("warns that Status-only cannot fabricate proof or business effects", () => {
-		expect(dialogSource).toContain(
-			"record {milestone} completion. Full workflow",
-		);
+		expect(dialogSource).toContain("record {milestone} completion");
+		expect(dialogSource).toContain("Full workflow is selected by default.");
 		expect(dialogSource).toContain(
 			"missing operational assignments or {milestone} workflow",
 		);
+		expect(dialogSource).toContain("This selection may include recent orders");
 		for (const phrase of [
 			"No delivery proof",
 			"inventory commitment",
@@ -48,6 +48,9 @@ describe("Status-only Fulfillment completion UI contract", () => {
 
 	test("uses dedicated mark, cancel, provenance, and refresh paths", () => {
 		expect(menuSource).toContain("markFulfillmentCompletionStatusOnly");
+		expect(menuSource).toContain("markFulfillmentCompletionStatusOnlyBulk");
+		expect(menuSource).toContain("statusActionWasBulkRef.current");
+		expect(menuSource).toContain("trpc.sales.productionSummary.pathKey()");
 		expect(menuSource).toContain("cancelFulfillmentCompletionStatusOnly");
 		expect(menuSource).toContain("activeFulfillmentRecord");
 		expect(menuSource).toContain(

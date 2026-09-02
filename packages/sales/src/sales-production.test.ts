@@ -3,6 +3,7 @@ import type { Db } from "@gnd/db";
 
 import {
 	getSalesProductionCalendar,
+	getSalesProductionSummary,
 	getSalesProductions,
 	isProductionCompleted,
 	sortProductionListByPriority,
@@ -32,6 +33,7 @@ function productionRow(id: number, priority: string) {
 		deliveries: [],
 		itemControls: [],
 		assignments: [],
+		completionRecords: [],
 	};
 }
 
@@ -200,7 +202,7 @@ describe("sales production priority sorting", () => {
 		expect(result.meta.cursor).toBe("1");
 	});
 
-	it("preserves search and cursor when a canonical due filter is active", async () => {
+	it("applies search and completion predicates before canonical due sorting", async () => {
 		const findManyCalls: Array<SalesFindManyArgs & { where?: unknown }> = [];
 		const db = {
 			salesOrders: {
@@ -219,8 +221,56 @@ describe("sales production priority sorting", () => {
 			cursor: "40",
 		});
 
-		expect(findManyCalls[0]?.skip).toBe(40);
-		expect(JSON.stringify(findManyCalls[0]?.where)).toContain("needle");
+		expect(findManyCalls[0]?.skip).toBeUndefined();
+		const serializedWhere = JSON.stringify(findManyCalls[0]?.where);
+		expect(serializedWhere).toContain("needle");
+		expect(serializedWhere).toContain('"completionRecords"');
+		expect(serializedWhere).toContain('"completionMethod":"STATUS_ONLY"');
+		expect(serializedWhere).toContain('"milestone"');
+	});
+
+	it("keeps assignment filters when completion eligibility adds an outer predicate", async () => {
+		let capturedSelect: unknown;
+		const db = {
+			salesOrders: {
+				findMany: async (args: { select?: unknown }) => {
+					capturedSelect = args.select;
+					return [];
+				},
+			},
+		};
+
+		await getSalesProductions(db as unknown as Db, {
+			assignedToId: 17,
+			production: "pending",
+			"completion.production": "pending",
+			includeMaterials: false,
+			size: 20,
+		});
+
+		expect(JSON.stringify(capturedSelect)).toContain('"assignedToId":17');
+	});
+
+	it("keeps production summary counts database-side", async () => {
+		let countCalls = 0;
+		const db = {
+			salesOrders: {
+				count: async () => {
+					countCalls += 1;
+					return 0;
+				},
+				findMany: async () => {
+					throw new Error("summary counts must not load production rows");
+				},
+			},
+			salesProductionSubmissionMaterialReview: {
+				count: async () => 0,
+			},
+		};
+
+		await getSalesProductionSummary(db as unknown as Db, {});
+
+		expect(countCalls).toBe(8);
 	});
 
 	it("requires every active assignment to have an owner for Ready", () => {
@@ -322,6 +372,26 @@ describe("sales production priority sorting", () => {
 		expect(result.data[0]?.lifecycleStatus).toBe("fulfilled");
 	});
 
+	it("projects canonical completion satisfaction for status-only completed rows", async () => {
+		const db = {
+			salesOrders: {
+				count: async () => 1,
+				findMany: async () => [productionRow(46, "NORMAL")],
+			},
+		};
+
+		const result = await getSalesProductions(db as unknown as Db, {
+			production: "completed",
+			includeMaterials: false,
+			size: 20,
+		});
+
+		expect(result.data[0]).toMatchObject({
+			completed: true,
+			productionCompletionSatisfied: true,
+		});
+	});
+
 	it("projects a read-only invoice total and payment status", async () => {
 		const db = {
 			salesOrders: {
@@ -349,16 +419,14 @@ describe("sales production priority sorting", () => {
 		});
 	});
 
-	it("excludes fulfilled deliveries when legacy production stats are stale", async () => {
+	it("excludes fulfilled deliveries in the canonical pending query", async () => {
+		let capturedWhere: unknown;
 		const db = {
 			salesOrders: {
-				findMany: async () => [
-					{
-						...productionRow(44, "NORMAL"),
-						prodStatus: "in progress",
-						deliveries: [{ status: "Completed", _count: { items: 1 } }],
-					},
-				],
+				findMany: async (args: { where?: unknown }) => {
+					capturedWhere = args.where;
+					return [];
+				},
 			},
 		};
 
@@ -369,6 +437,10 @@ describe("sales production priority sorting", () => {
 		});
 
 		expect(result.data).toEqual([]);
+		const serializedWhere = JSON.stringify(capturedWhere);
+		expect(serializedWhere).toContain('"completionRecords"');
+		expect(serializedWhere).toContain('"deliveries"');
+		expect(serializedWhere).toContain('"STATUS_ONLY"');
 	});
 
 	it("returns work completed by the authenticated worker before the full order completes", async () => {

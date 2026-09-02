@@ -146,8 +146,12 @@ import {
 	cancelProductionCompletionStatusOnlySchema,
 	getSalesCompletionProjection,
 	markFulfillmentCompletionStatusOnly,
+	markFulfillmentCompletionStatusOnlyBulk,
+	markFulfillmentCompletionStatusOnlyBulkSchema,
 	markFulfillmentCompletionStatusOnlySchema,
 	markProductionCompletionStatusOnly,
+	markProductionCompletionStatusOnlyBulk,
+	markProductionCompletionStatusOnlyBulkSchema,
 	markProductionCompletionStatusOnlySchema,
 	salesCompletionProjectionInputSchema,
 } from "@gnd/sales/sales-completion";
@@ -571,6 +575,15 @@ export const salesRouter = createTRPCRouter({
 				return toSalesCompletionTrpcError(error);
 			}
 		}),
+	markProductionCompletionStatusOnlyBulk: protectedProcedure
+		.input(markProductionCompletionStatusOnlyBulkSchema)
+		.mutation(async (props) => {
+			const actor = await requireStatusOnlySalesCompletionEditor(props.ctx);
+			return markProductionCompletionStatusOnlyBulk(props.ctx.db, props.input, {
+				id: actor.id,
+				name: actor.name || `User ${actor.id}`,
+			});
+		}),
 	cancelProductionCompletionStatusOnly: protectedProcedure
 		.input(cancelProductionCompletionStatusOnlySchema)
 		.mutation(async (props) => {
@@ -604,6 +617,19 @@ export const salesRouter = createTRPCRouter({
 			} catch (error) {
 				return toSalesCompletionTrpcError(error);
 			}
+		}),
+	markFulfillmentCompletionStatusOnlyBulk: protectedProcedure
+		.input(markFulfillmentCompletionStatusOnlyBulkSchema)
+		.mutation(async (props) => {
+			const actor = await requireStatusOnlySalesCompletionEditor(props.ctx);
+			return markFulfillmentCompletionStatusOnlyBulk(
+				props.ctx.db,
+				props.input,
+				{
+					id: actor.id,
+					name: actor.name || `User ${actor.id}`,
+				},
+			);
 		}),
 	cancelFulfillmentCompletionStatusOnly: protectedProcedure
 		.input(cancelFulfillmentCompletionStatusOnlySchema)

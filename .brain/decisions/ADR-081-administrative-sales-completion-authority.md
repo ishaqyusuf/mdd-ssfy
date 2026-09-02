@@ -65,3 +65,15 @@ completion`, which normalize to `viewStatusOnlySalesCompletion` and
 
 This ADR records planning only. No Prisma schema, permission row, resolver, API,
 or UI implementation was changed when it was accepted.
+
+### 2026-09-02 bounded-bulk amendment
+
+Administrative Completion may be declared for a bounded selection of up to 100
+Sales Orders in one request. This changes only command orchestration: each order
+still uses the existing isolated serializable, idempotent, audited authority and
+returns its own outcome. Commands run sequentially because concurrent MySQL
+serializable projections acquire overlapping range locks. The batch path must
+not invoke dependency preparation,
+background Full workflow jobs, or any operational side effect. Full workflow
+remains the default UI choice, and cancellation remains single-record and
+revision-aware.

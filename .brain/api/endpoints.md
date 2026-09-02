@@ -13,6 +13,12 @@
 - `sales.markFulfillmentCompletionStatusOnly` and
   `sales.cancelFulfillmentCompletionStatusOnly` use the same guard and
   server-derived actor boundary for administrative Fulfillment only.
+- `sales.markProductionCompletionStatusOnlyBulk` and
+  `sales.markFulfillmentCompletionStatusOnlyBulk` accept 1-100 selected Sales
+  Order ids in one protected request. They run the same per-order audited
+  command sequentially to avoid MySQL range-lock conflicts and return isolated completed,
+  replayed, skipped, or failed outcomes; they never enqueue the Full workflow
+  jobs or dependency resolver.
 - The mutations call the package-owned transactional completion commands. They
   do not invoke production, proof, inventory, dispatch, shipment, tax, finance,
   notification, commission, payout, or external workflow endpoints.

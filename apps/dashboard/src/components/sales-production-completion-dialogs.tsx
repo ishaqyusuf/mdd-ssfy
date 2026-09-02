@@ -17,6 +17,7 @@ type SalesProductionCompletionDialogsProps = {
 	showStatusOnly: boolean;
 	canEditStatusOnly: boolean;
 	canRunFullWorkflow?: boolean;
+	salesOrderCount: number;
 	projectionPending: boolean;
 	confirmationOpen: boolean;
 	choice: SalesCompletionChoice;
@@ -39,15 +40,17 @@ export function SalesProductionCompletionDialogs(
 ) {
 	const milestone = props.milestone ?? "Production";
 	const isFulfillment = milestone === "Fulfillment";
+	const isBulk = props.salesOrderCount > 1;
 	const idPrefix = milestone.toLowerCase();
 	const statusOnlyAvailable =
 		props.canEditStatusOnly &&
-		!props.projectionPending &&
-		Boolean(
-			isFulfillment
-				? props.projection?.availableActions?.markFulfillmentStatusOnly
-				: props.projection?.availableActions?.markProductionStatusOnly,
-		);
+		(isBulk ||
+			(!props.projectionPending &&
+				Boolean(
+					isFulfillment
+						? props.projection?.availableActions?.markFulfillmentStatusOnly
+						: props.projection?.availableActions?.markProductionStatusOnly,
+				)));
 	const completionRecord = isFulfillment
 		? props.projection?.activeFulfillmentRecord
 		: props.projection?.activeProductionRecord;
@@ -73,8 +76,9 @@ export function SalesProductionCompletionDialogs(
 					<AlertDialog.Header>
 						<AlertDialog.Title>Mark {milestone} completed</AlertDialog.Title>
 						<AlertDialog.Description>
-							Choose how GND should record {milestone} completion. Full workflow
-							is selected by default.
+							Choose how GND should record {milestone} completion
+							{isBulk ? ` for ${props.salesOrderCount} selected orders` : ""}.
+							Full workflow is selected by default.
 						</AlertDialog.Description>
 					</AlertDialog.Header>
 					<RadioGroup
@@ -145,7 +149,7 @@ export function SalesProductionCompletionDialogs(
 							<Alert variant="destructive">
 								<Icons.AlertTriangle />
 								<AlertTitle>
-									This records an administrative milestone only
+									This records administrative milestone{isBulk ? "s" : ""} only
 								</AlertTitle>
 								<AlertDescription>
 									{isFulfillment
@@ -153,10 +157,14 @@ export function SalesProductionCompletionDialogs(
 										: "No inventory, accounting, notification, commission, payout, dispatch, or external-integration operation will run. Use this only when Production really finished but its workflow history is absent."}
 								</AlertDescription>
 							</Alert>
-							{props.projection?.isRecentOrder ? (
+							{isBulk || props.projection?.isRecentOrder ? (
 								<Alert>
 									<Icons.AlertTriangle />
-									<AlertTitle>This is a recent order</AlertTitle>
+									<AlertTitle>
+										{isBulk
+											? "This selection may include recent orders"
+											: "This is a recent order"}
+									</AlertTitle>
 									<AlertDescription>
 										Confirm that the work happened outside GND before bypassing
 										the normal {milestone} workflow.
