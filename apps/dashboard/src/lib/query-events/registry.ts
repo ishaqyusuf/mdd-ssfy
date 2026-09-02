@@ -309,6 +309,7 @@ export const MUTATION_QUERY_EVENTS = {
 	"sales.moveSale": ["sales.order.changed", "sales.quote.changed"],
 	"sales.resolvePayment": ["sales.payment.changed"],
 	"sales.reviewProductionSubmission": ["sales.production.changed"],
+	"sales.setSalesOrdersArchived": ["sales.order.changed"],
 	"sales.transferSalesRep": ["sales.order.changed"],
 	"sales.updateSalesHandoffTrigger": ["sales.order.changed"],
 	"sales.updatePaymentMethod": ["sales.payment.changed"],

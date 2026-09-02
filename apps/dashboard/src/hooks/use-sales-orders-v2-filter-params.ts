@@ -59,6 +59,7 @@ export const salesOrdersV2FilterParams = {
 	inbound: parseAsStringLiteral(SALES_INBOUND_FILTER_OPTIONS),
 	specialOrderScope: parseAsStringLiteral(SALES_SPECIAL_ORDER_SHOW_OPTIONS),
 	specialOrder: parseAsStringLiteral(SALES_SPECIAL_ORDER_FILTER_OPTIONS),
+	archiveScope: parseAsStringLiteral(["archived"] as const),
 	showing: parseAsString,
 } satisfies Partial<Record<FilterKeys, unknown>>;
 

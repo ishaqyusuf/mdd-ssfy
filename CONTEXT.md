@@ -41,6 +41,12 @@ A standard GND sales order created through the storefront and identified by its
 sales channel.
 _Avoid_: Web order, separate e-commerce order
 
+**Archived Sales Order**:
+A Sales Order intentionally hidden from the default Sales Orders workspace
+without changing its commercial or operational lifecycle. It remains distinct
+from a Sales Order in Sales Bin and can be restored.
+_Avoid_: Deleted order, cancelled order, completed order
+
 **Customer Order View**:
 The customer-safe projection of a Storefront Order, its payment, documents, and
 fulfillment progress.

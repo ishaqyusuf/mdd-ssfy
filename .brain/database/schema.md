@@ -1,5 +1,16 @@
 # Database Schema
 
+## Sales Order workspace archiving (2026-09-02)
+
+- `SalesOrders.archivedAt` is a nullable second-precision timestamp. A null
+  value means the live order is visible in the default Sales Orders workspace;
+  a non-null value means it is archived from that workspace only.
+- `idx_sales_orders_workspace_archive` indexes
+  `(type, deletedAt, archivedAt, createdAt, id)` for canonical active/archived
+  list filtering and default newest-first pagination. It does not alter
+  Sales Bin deletion, lifecycle, finance, inventory, dispatch, or production
+  state.
+
 ## Sales Completion Record (2026-09-01)
 
 - `SalesCompletionRecord` is the additive, non-aggregate ledger for one Sales

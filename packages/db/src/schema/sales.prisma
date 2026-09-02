@@ -37,6 +37,7 @@ model SalesOrders {
     status            String?                          @db.VarChar(255)
     inventoryStatus   String?                          @db.VarChar(255)
     deletedAt         DateTime?                        @db.Timestamp(0)
+	archivedAt        DateTime?                        @db.Timestamp(0)
     createdAt         DateTime?                        @default(now()) @db.Timestamp(0)
     updatedAt         DateTime?                        @updatedAt
     orderId           String                           @db.VarChar(255)
@@ -121,6 +122,7 @@ model SalesOrders {
     @@unique([orderId, type])
     @@index([orgId])
     @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
+	@@index([type, deletedAt, archivedAt, createdAt, id], name: "idx_sales_orders_workspace_archive")
     @@index([customerProfileId])
     @@index([dealerAuthId])
     @@index([dealerSalesProfileId])

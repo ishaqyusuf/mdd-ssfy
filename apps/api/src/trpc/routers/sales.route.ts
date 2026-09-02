@@ -62,6 +62,7 @@ import {
 	updateSalesHandoffTriggerSettings,
 } from "@api/db/queries/sales-handoff-trigger-settings";
 import { getSalesHx, getSalesHxSchema } from "@api/db/queries/sales-hx";
+import { setSalesOrdersArchived } from "@api/db/queries/sales-order-archive";
 import {
 	getOrders,
 	getOrdersSchema,
@@ -105,6 +106,7 @@ import {
 	salesQueryParamsSchema,
 	salesRepOptionsSchema,
 	saveOrderProductionGateSchema,
+	setSalesOrdersArchivedSchema,
 	startNewSalesSchema,
 	transferSalesRepSchema,
 	updateSalesPaymentMethodSchema,
@@ -311,6 +313,14 @@ async function requireProductionEditor(ctx: TRPCContext) {
 		ctx,
 		["editProduction"],
 		"You do not have permission to override production readiness.",
+	);
+}
+
+async function requireSalesOrderEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editOrders"],
+		"You do not have permission to archive sales orders.",
 	);
 }
 
@@ -1122,6 +1132,12 @@ export const salesRouter = createTRPCRouter({
 		.input(transferSalesRepSchema)
 		.mutation(async (props) => {
 			return transferSalesRep(props.ctx, props.input);
+		}),
+	setSalesOrdersArchived: protectedProcedure
+		.input(setSalesOrdersArchivedSchema)
+		.mutation(async (props) => {
+			const actor = await requireSalesOrderEditor(props.ctx);
+			return setSalesOrdersArchived(props.ctx, props.input, actor.name);
 		}),
 	getOrders: publicProcedure.input(getOrdersSchema).query(async (props) => {
 		return getOrders(props.ctx, props.input);

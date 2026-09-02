@@ -818,6 +818,17 @@ Tracks important request/response contracts and shared schema boundaries.
   - Saved-tab navigation appends the metadata-only `tabName` query value. It is excluded from normalization, equality checks, count inputs, and persistence. A named tab remains selected only while its complete saved baseline is present in the URL; stale, renamed, deleted, or deactivated selections clear `tabName` through a shallow replace.
   - Search fields are never a valid saved baseline. WWW excludes `q`, `search`, `_q*`, and the page-configured search key, hides the save action as soon as search is non-empty, and the create/update API rejects requests that still contain an active search field. Existing stored tabs containing search remain readable for compatibility.
 - Sales Orders filter contract:
+  - `archiveScope=archived` scopes the canonical list, summary, count, saved
+    tab, and filtered export input to non-deleted rows with
+    `SalesOrders.archivedAt` set. With no archive scope, the same surfaces use
+    non-deleted rows with `archivedAt=null`. Sales Bin remains deletion-only and
+    ignores archive scope.
+  - `sales.setSalesOrdersArchived({ salesIds, archived })` accepts 1-100 unique
+    positive IDs and is protected by `editOrders`. It changes only non-deleted
+    order-type rows, returns `{ changed, skipped }`, and classifies unavailable
+    rows as `missing`, `deleted`, `already_archived`, or `already_active`.
+    Changed rows write Sales History transactionally; repeat commands are
+    idempotent and produce no extra history.
   - `sales.getOrders`, `sales.getOrdersSummary`, and `filters.salesOrders` accept `paymentReview=needs_review` as an explicit filter for the clean-payment review queue.
   - `sales.getOrders`, `sales.getOrdersSummary`, and the shared sales query accept `inbound=none | AVAILABLE | ORDERED | PENDING ORDER | pending | in_progress | completed | issue_open | closed`. Manual statuses match only when no active inventory shipment owns the order; inventory statuses match through active, non-cancelled demand/shipment links. `filters.salesOrders` exposes the same values and labels.
   - `sales.getOrders.data[].inventoryApplicability` prefers the durable `SalesInventoryProjectionState` marker, but a missing marker no longer means `not_synced` when active inventory sale lines already contain required positive-quantity components. In that legacy/backfill shape, the current component count supplies conservative applicability evidence; rows with neither a marker nor required component evidence remain `not_synced`.

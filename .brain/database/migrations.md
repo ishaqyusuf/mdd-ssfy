@@ -1,5 +1,17 @@
 # Database Migrations
 
+## 2026-09-02: Sales Order workspace archive
+
+- Generated and locally applied additive migration
+  `20260902135057_add_sales_order_archiving` to `gnd-prisma2`. It adds nullable
+  `SalesOrders.archivedAt TIMESTAMP(0)` and the named
+  `idx_sales_orders_workspace_archive` composite index. Existing orders remain
+  active because the column defaults to null.
+- `bun run db:generate`, `bun run db:migrate -- -- --name
+  add_sales_order_archiving`, and `bun run db:push` completed successfully.
+  No reset, destructive flag, manual SQL, preview write, or production write
+  was used.
+
 ## 2026-09-01: QtyControl incremental-sync cursor
 
 - Prisma generated and locally applied additive migration

@@ -268,6 +268,7 @@ Tracks notable API surfaces and where they are implemented.
     Settings metadata.
   - `sales.salesRepOptions`: protected active-sales-user option list for the sales overview transfer control
   - `sales.transferSalesRep`: protected owner-only order/quote sales rep transfer mutation that accepts account- or master-password confirmation, changes `SalesOrders.salesRepId`, writes `SalesHistory`, and atomically records master-password transfer usage when applicable
+  - `sales.setSalesOrdersArchived`: protected `editOrders` order-only archive or restore command for 1-100 unique order IDs; it returns changed IDs plus structured skips and writes one Sales History event per changed row within the same transaction
 - Sales print routes now include:
   - `print.salesV2`: canonical sales print data route for invoice, quote, production, packing-slip, and order-packing preview/download payloads, backed by `packages/sales/src/print/*` and `@gnd/pdf/sales-v2`
   - `/p/sales-document-v2`: canonical signed HTML sales document preview route

@@ -1825,3 +1825,15 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   desktop/mobile gallery states with no horizontal overflow.
 - Review: `.brain/reports/email-design-review-2026-08-30.md`
 - Completed Date: 2026-08-30
+### Sales Order Archiving
+
+- Priority: Medium
+- Description: Added reversible Sales Order workspace archiving: active orders
+  are the default scope, `Show > Archived` exposes the archive, and deletion
+  and operational lifecycles remain independent.
+- Status: Done
+- Validation: 47 focused tests / 118 assertions, scoped Biome, Prisma
+  generation plus the named local migration and `db:push`, and authenticated
+  browser proof of the default and `Show > Archived` views passed.
+- Decision: `.brain/decisions/ADR-083-reversible-sales-order-workspace-archiving.md`
+- Completed Date: 2026-09-02

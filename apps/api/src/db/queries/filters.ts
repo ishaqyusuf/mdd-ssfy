@@ -853,12 +853,18 @@ export async function getSalesOrderFilters(
     ),
     optionFilter<T>(
       "specialOrderScope",
-      "Show",
+      "Special Order scope",
       SALES_SPECIAL_ORDER_SHOW_OPTIONS.map((value) => ({
         label: SALES_SPECIAL_ORDER_SHOW_LABELS[value],
         value,
       })),
     ),
+		optionFilter<T>("archiveScope", "Show", [
+			{
+				label: "Archived",
+				value: "archived",
+			},
+		]),
     optionFilter<T>(
       "specialOrder",
       "Special Order",

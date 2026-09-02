@@ -167,6 +167,7 @@ export const salesQueryParamsSchema = z
 			.enum(SALES_SPECIAL_ORDER_FILTER_OPTIONS)
 			.optional()
 			.nullable(),
+		archiveScope: z.enum(["archived"]).optional().nullable(),
 		invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
 		paymentReview: z.enum(["needs_review"]).optional().nullable(),
 		needsAction: z.enum(["open"]).optional().nullable(),
@@ -175,6 +176,19 @@ export const salesQueryParamsSchema = z
 	})
 	.extend(paginationSchema.shape);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;
+
+export const setSalesOrdersArchivedSchema = z
+	.object({
+		salesIds: z.array(z.number().int().positive()).min(1).max(100),
+		archived: z.boolean(),
+	})
+	.refine((input) => new Set(input.salesIds).size === input.salesIds.length, {
+		message: "Each Sales Order can only be selected once.",
+		path: ["salesIds"],
+	});
+export type SetSalesOrdersArchivedSchema = z.infer<
+	typeof setSalesOrdersArchivedSchema
+>;
 
 export const getSaleOverviewSchema = z.object({
 	orderNo: z.string().optional().nullable(),

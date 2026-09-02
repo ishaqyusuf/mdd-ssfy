@@ -14,6 +14,7 @@ import { SalesMenu } from "@/components/sales-menu";
 import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
+import { useAuth } from "@/hooks/use-auth";
 import { useSalesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatCurrency } from "@/lib/utils";
@@ -766,6 +767,7 @@ export const columns: Column[] = [
 function ActionCell({ item }: { item: SalesOrder }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const auth = useAuth();
 	const overviewQuery = useSalesOverviewQuery();
 	const { filters } = useSalesOrdersV2FilterParams();
 	const [paymentLinkOpen, setPaymentLinkOpen] = useState(false);
@@ -774,6 +776,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
 		orderId: string | null;
 		amountDue: number;
 	} | null>(null);
+	const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 	const markPaymentReviewed = useMutation(
 		trpc.sales.markLatestPaymentReviewed.mutationOptions({
 			onSuccess() {
@@ -811,9 +814,79 @@ function ActionCell({ item }: { item: SalesOrder }) {
 		}),
 	);
 	const isPaymentReviewMode = filters.paymentReview === "needs_review";
+	const isArchivedMode = filters.archiveScope === "archived";
+	const hasActiveOperationalWork =
+		item.status !== "fulfilled" && item.status !== "cancelled";
+	const setArchived = useMutation(
+		trpc.sales.setSalesOrdersArchived.mutationOptions({
+			onSuccess(result) {
+				setArchiveDialogOpen(false);
+				toast({
+					duration: 2000,
+					variant: "success",
+					title: isArchivedMode ? "Order restored" : "Order archived",
+					description: result.changed.length
+						? undefined
+						: "The order was already in that workspace state.",
+				});
+			},
+			onError(error) {
+				toast({
+					duration: 3000,
+					variant: "error",
+					title: "Order not updated",
+					description: error.message || "Unable to update the order workspace.",
+				});
+			},
+			meta: {
+				queryEventScope: {
+					sales: [
+						{ salesId: item.id, orderNo: item.orderId, salesType: "order" },
+					],
+				},
+			},
+		}),
+	);
 
 	return (
 		<>
+			<Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>
+							{isArchivedMode ? "Restore order" : "Archive order"}
+						</DialogTitle>
+					</DialogHeader>
+					<p className="text-sm text-muted-foreground">
+						{isArchivedMode
+							? "This returns the order to the default Sales Orders workspace."
+							: hasActiveOperationalWork
+								? "Operational work continues after archiving. This only hides the order from the default Sales Orders workspace; it remains available through Show > Archived and direct links, and does not change the Sales Bin or operational status."
+								: "This hides the order from the default Sales Orders workspace. It remains available through Show > Archived and direct links; it does not change the Sales Bin or operational status."}
+					</p>
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setArchiveDialogOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							disabled={setArchived.isPending}
+							onClick={() =>
+								setArchived.mutate({
+									salesIds: [item.id],
+									archived: !isArchivedMode,
+								})
+							}
+						>
+							{isArchivedMode ? "Restore order" : "Archive order"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 			<PaymentLinkDialog
 				open={paymentLinkOpen}
 				onOpenChange={setPaymentLinkOpen}
@@ -920,7 +993,22 @@ function ActionCell({ item }: { item: SalesOrder }) {
 					<SalesMenu.SalesPrintMenuItems />
 					<SalesMenu.Copy />
 					<SalesMenu.Move />
-					<SalesMenu.Separator />
+					{auth.can.editOrders ? (
+						<>
+							<SalesMenu.Separator />
+							<SalesMenu.Item
+								disabled={!item.id || setArchived.isPending}
+								onSelect={(event) => {
+									event.preventDefault();
+									setArchiveDialogOpen(true);
+								}}
+							>
+								<Icons.Archive className="mr-2 size-4 text-muted-foreground/70" />
+								{isArchivedMode ? "Restore to active orders" : "Archive order"}
+							</SalesMenu.Item>
+							<SalesMenu.Separator />
+						</>
+					) : null}
 					<SalesMenu.Delete
 						onDeleted={async () => {
 							await Promise.all([

@@ -1,5 +1,12 @@
 # Database Relationships
 
+## Sales Order workspace archive boundary (2026-09-02)
+
+- `SalesOrders.archivedAt` is an order-local workspace visibility scalar, not a
+  relation or lifecycle owner. Sales History provides append-only archive and
+  restore evidence, while payments, inventory, production, dispatch,
+  fulfillment, accounting, and Sales Bin keep their existing ownership.
+
 ## Sales Completion Provenance (2026-09-01)
 
 - `SalesOrders.completionRecords` owns the administrative/full-workflow

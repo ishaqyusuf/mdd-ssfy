@@ -1,5 +1,6 @@
 import { describe, expect, it, spyOn } from "bun:test";
 import {
+	applyOrdersWorkspaceScope,
 	decodeSalesOrderListKeysetCursor,
 	encodeSalesOrderListKeysetCursor,
 	getOrders,
@@ -88,6 +89,36 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 }
 
 describe("sales orders default query contract", () => {
+	it("keeps active workspace rows non-deleted and non-archived by default", () => {
+		expect(applyOrdersWorkspaceScope({}, { type: "order" })).toEqual({
+			deletedAt: null,
+			archivedAt: null,
+			type: "order",
+		});
+	});
+
+	it("shows archived rows without changing Sales Bin semantics", () => {
+		expect(
+			applyOrdersWorkspaceScope(
+				{ archiveScope: "archived" },
+				{ type: "order" },
+			),
+		).toEqual({
+			deletedAt: null,
+			archivedAt: { not: null },
+			type: "order",
+		});
+		expect(
+			applyOrdersWorkspaceScope(
+				{ bin: true, archiveScope: "archived" },
+				{ type: "order" },
+			),
+		).toEqual({
+			deletedAt: { lte: expect.any(Date) },
+			type: "order",
+		});
+	});
+
 	it("projects administrative completion without mutating operational lifecycle state", () => {
 		const row = normalizeOrderRow(
 			makeOrder({
@@ -449,6 +480,7 @@ describe("sales orders default query contract", () => {
 				paymentReview: "needs_review",
 				salesChannel: "dealership",
 				inbound: "in_progress",
+				archiveScope: "archived",
 				specialOrderScope: "special_orders",
 				specialOrder: "expired",
 				"completion.production": "completed",
@@ -465,6 +497,7 @@ describe("sales orders default query contract", () => {
 			paymentReview: "needs_review",
 			salesChannel: "dealership",
 			inbound: "in_progress",
+			archiveScope: "archived",
 			specialOrderScope: "special_orders",
 			specialOrder: "expired",
 			"completion.production": "completed",

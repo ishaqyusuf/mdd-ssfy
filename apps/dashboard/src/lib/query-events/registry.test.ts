@@ -8,7 +8,7 @@ import {
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(90);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(91);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(15);
 	});
 
@@ -42,6 +42,11 @@ describe("query event mutation registry", () => {
 				mutationKey: [["sales", "markLatestPaymentReviewed"]],
 			}),
 		).toEqual([{ name: "sales.payment.changed" }]);
+		expect(
+			resolveMutationQueryEvents({
+				mutationKey: [["sales", "setSalesOrdersArchived"]],
+			}),
+		).toEqual([{ name: "sales.order.changed" }]);
 	});
 
 	it("publishes customer changes after customer and address saves", () => {

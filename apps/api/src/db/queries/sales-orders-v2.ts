@@ -68,6 +68,7 @@ const ordersV2InvoiceStatus = ["paid", "outstanding"] as const;
 const PAYMENT_REVIEW_SORT_FIELD = "latestPaymentAt";
 const paymentReviewFilterOptions = ["needs_review"] as const;
 const needsActionFilterOptions = ["open"] as const;
+const archiveScopeFilterOptions = ["archived"] as const;
 
 const ordersV2FilterShape = {
 	q: z.string().optional().nullable(),
@@ -116,6 +117,7 @@ const ordersV2FilterShape = {
 		.enum(SALES_SPECIAL_ORDER_FILTER_OPTIONS)
 		.optional()
 		.nullable(),
+	archiveScope: z.enum(archiveScopeFilterOptions).optional().nullable(),
 	showing: z.enum(["all sales"]).optional().nullable(),
 };
 
@@ -202,8 +204,8 @@ function toLegacyOrdersQuery(
 	return legacyQuery as SalesQueryParamsSchema;
 }
 
-function applyOrdersSoftDeleteScope(
-	query: { bin?: boolean | null },
+export function applyOrdersWorkspaceScope(
+	query: { bin?: boolean | null; archiveScope?: "archived" | null },
 	where: Prisma.SalesOrdersWhereInput,
 ): Prisma.SalesOrdersWhereInput {
 	if (query.bin) {
@@ -215,12 +217,9 @@ function applyOrdersSoftDeleteScope(
 		};
 	}
 
-	if (Object.hasOwn(where, "deletedAt")) {
-		return where;
-	}
-
 	return {
 		deletedAt: null,
+		archivedAt: query.archiveScope === "archived" ? { not: null } : null,
 		...where,
 	};
 }
@@ -623,7 +622,7 @@ async function getOrdersFromProjection(
 		if (useKeyset) {
 			const direction = sortOrder === "asc" ? "asc" : "desc";
 			const size = query.size ? Number(query.size) : 20;
-			const scopedWhere = applyOrdersSoftDeleteScope(query, baseWhere);
+			const scopedWhere = applyOrdersWorkspaceScope(query, baseWhere);
 			const cursorDate = keysetCursor ? new Date(keysetCursor.createdAt) : null;
 			const pageWhere: Prisma.SalesOrdersWhereInput = cursorDate
 				? {
@@ -687,10 +686,11 @@ async function getOrdersFromProjection(
 				query: process.env.NODE_ENV === "production" ? undefined : query,
 			});
 		} else {
+			const scopedWhere = applyOrdersWorkspaceScope(query, baseWhere);
 			const composed = await measure("count", () =>
 				composeQueryData(
 					legacyCompatibleOrdersQuery(query),
-					baseWhere,
+					scopedWhere,
 					ctx.db.salesOrders,
 					{ sortFn: ordersV2Sort },
 				),
@@ -859,6 +859,7 @@ async function getOrdersLegacy(
 			],
 		};
 	}
+	baseWhere = applyOrdersWorkspaceScope(legacyCompatibleQuery, baseWhere ?? {});
 	const { sort, sortOrder } = parsePrimarySort(legacyCompatibleQuery);
 
 	if (legacyCompatibleQuery.paymentReview === "needs_review") {
@@ -1342,7 +1343,7 @@ export async function getOrdersSummary(
 	});
 
 	try {
-		let where = applyOrdersSoftDeleteScope(
+		let where = applyOrdersWorkspaceScope(
 			query,
 			whereSales(toLegacyOrdersQuery(query, ctx.userId)) ?? {},
 		);
@@ -1429,7 +1430,7 @@ export async function getOrdersSummary(
 export async function getOrdersCount(ctx: TRPCContext, query: GetOrdersSchema) {
 	const { db } = ctx;
 	const legacyQuery = toLegacyOrdersQuery(query, ctx.userId);
-	let baseWhere = applyOrdersSoftDeleteScope(
+	let baseWhere = applyOrdersWorkspaceScope(
 		query,
 		whereSales(legacyQuery) ?? {},
 	);
