@@ -2,6 +2,41 @@ import type { SalesOrderStatusMenuItem } from "./sales-status-menu-actions";
 
 export type SalesCompletionChoice = "FULL_WORKFLOW" | "STATUS_ONLY";
 
+const SALES_COMPLETION_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export function toSalesCompletionDateValue(date = new Date()) {
+	return [
+		date.getFullYear(),
+		String(date.getMonth() + 1).padStart(2, "0"),
+		String(date.getDate()).padStart(2, "0"),
+	].join("-");
+}
+
+export function fromSalesCompletionDateValue(value: string) {
+	if (!SALES_COMPLETION_DATE_PATTERN.test(value)) return undefined;
+	const [year, month, day] = value.split("-").map(Number);
+	const date = new Date(year, month - 1, day);
+	if (
+		Number.isNaN(date.getTime()) ||
+		date.getFullYear() !== year ||
+		date.getMonth() !== month - 1 ||
+		date.getDate() !== day
+	) {
+		return undefined;
+	}
+	return date;
+}
+
+export function formatSalesCompletionDate(value: string) {
+	const date = fromSalesCompletionDateValue(value);
+	if (!date) return "Pick a date";
+	return new Intl.DateTimeFormat("en-US", {
+		day: "numeric",
+		month: "short",
+		year: "numeric",
+	}).format(date);
+}
+
 export type SalesCompletionProjectionPresentation = {
 	isRecentOrder?: boolean;
 	revision?: string;

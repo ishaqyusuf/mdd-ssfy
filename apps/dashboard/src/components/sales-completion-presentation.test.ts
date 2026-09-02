@@ -6,7 +6,10 @@ import {
 	applyFulfillmentCompletionProjection,
 	applyProductionCompletionProjection,
 	canShowStatusOnlyCompletionChoice,
+	formatSalesCompletionDate,
+	fromSalesCompletionDateValue,
 	getDefaultSalesCompletionChoice,
+	toSalesCompletionDateValue,
 } from "./sales-completion-presentation";
 
 const actions = [
@@ -68,6 +71,16 @@ function projection(
 describe("Sales completion confirmation presentation", () => {
 	test("always starts on Full workflow", () => {
 		expect(getDefaultSalesCompletionChoice()).toBe("FULL_WORKFLOW");
+	});
+
+	test("uses the current local calendar date for Fulfillment completion", () => {
+		const localDate = new Date(2026, 8, 2, 23, 45);
+		expect(toSalesCompletionDateValue(localDate)).toBe("2026-09-02");
+		expect(fromSalesCompletionDateValue("2026-09-02")).toEqual(
+			new Date(2026, 8, 2),
+		);
+		expect(formatSalesCompletionDate("2026-09-02")).toBe("Sep 2, 2026");
+		expect(fromSalesCompletionDateValue("2026-02-31")).toBeUndefined();
 	});
 
 	test("shows status-only for authorized single and bulk selections", () => {

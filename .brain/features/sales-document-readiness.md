@@ -15,7 +15,7 @@ Prevent preview, print, PDF generation, regeneration, and Sales email delivery f
 - All currency comparisons use integer cents.
 - A deterministic item/HPT summary mismatch produces a narrow `sync_door_group_totals` operation. It never rewrites order-level subtotal, tax, grand total, payment, refund, or amount-due fields.
 - The candidate financial state isolates only the delta introduced by the narrow repair. Historical taxes, extra costs, payments, and other saved authorities remain the baseline rather than being silently repriced under current rules.
-- If subtotal, taxable subtotal, tax, grand total, and amount due remain equal to their saved values, the status is `repair_required` and the modal may offer `Repair & continue`.
+- If subtotal, taxable subtotal, tax, grand total, and amount due remain equal to their saved values, the status is `repair_required`; guarded document access automatically applies the narrow repair and continues without interrupting the operator.
 - If any comparable financial authority differs or cannot be safely derived, the status is `financial_review`; the document action is blocked and direct repair is unavailable.
 - Conflicting active form-step revisions or incomplete row totals produce `manual_review`.
 - A successful repair re-evaluates inside the same serializable transaction and must finish in `ready` state or the transaction rolls back.
@@ -39,16 +39,16 @@ Canonical new Sales Form saves, copied Sales, approved Sales adjustments, and su
 
 - Non-ready evaluations are staged in `ResolutionCase` under scope `sales_document_readiness` with a deterministic proposal id derived from the order and signature.
 - Apply re-reads the live order, validates the source timestamp and signature, uses guarded `updateMany` writes for the exact before-state, and rejects stale proposals.
-- Apply records a `ResolutionAction`, a Sales History entry, resolves the case, and invalidates active `SalesPrintData`.
+- Apply records a `ResolutionAction`, a Sales History entry, resolves the case, and invalidates active `SalesPrintData`. Audit metadata distinguishes `automatic` from `manual` application and records the guarded entry path.
 - `Cancel` and `Open order` both cancel the active resolution case, record the operator disposition, and clear the readiness proposal from Sales meta. `Open order` then opens the new Sales Form, which recalculates from live data and never commits the staged proposal as a full snapshot.
 
 ## User experience
 
-- Preview, print, PDF download/regeneration, and Sales email all surface the same readiness modal.
-- A zero-delta modal shows saved/reconciled subtotal, tax, grand total, amount due, and each difference. `Repair & continue` applies the narrow repair and resumes the initiating action once.
+- Dashboard preview, print, PDF/regeneration, Sales delivery, dealer portal, and customer storefront guards automatically repair deterministic zero-delta aggregate drift, then continue the initiating action once.
 - Financial/manual states show a critical warning and only allow cancellation or opening the Sales record for review.
 - Email recipients, channels, subject, and message remain local while repair is resolved. Server-side notification builders repeat the readiness assertion before constructing links or attachments.
 - The new Sales Form shows saved, recalculated, and difference values for subtotal, tax, grand total, and amount due immediately after hydration. This warning does not mark the form dirty or autosave.
+- Automatic repair is system maintenance at the authenticated document boundary and does not require the requesting principal to have `editOrders`; the existing explicit repair action remains permission-gated as a fallback. Public token consumption remains read-only.
 
 ## Operational audit
 

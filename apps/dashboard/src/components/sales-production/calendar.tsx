@@ -4,6 +4,7 @@ import { OperationsCalendarPeriodPicker } from "@/components/operations-calendar
 import {
 	type OperationsCalendarView,
 	getOperationsCalendarPeriod,
+	isOperationsCalendarDatePastDue,
 	moveOperationsCalendarDate,
 	resolveOperationsCalendarDate,
 } from "@/components/operations-calendar/range";
@@ -61,7 +62,7 @@ function ProductionChip({
 	const colorClass = STATUS_COLORS[item.status] ?? STATUS_COLORS.assigned;
 	const isOverdue =
 		item.status !== "completed" && item.dueDate
-			? isPast(startOfDay(new Date(item.dueDate)))
+			? isOperationsCalendarDatePastDue(new Date(item.dueDate))
 			: false;
 
 	return (

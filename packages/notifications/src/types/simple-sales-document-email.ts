@@ -144,6 +144,11 @@ async function buildSalesDocumentEmailData(
 	}
 	await assertSalesDocumentsReady(db, {
 		salesOrderIds: sales.map((sale) => sale.id),
+		autoRepair: {
+			source: "sales_document_delivery",
+			actorId: author.id,
+			actorName: author.name,
+		},
 	});
 
 	const [primarySale] = sales;

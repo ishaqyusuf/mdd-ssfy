@@ -336,7 +336,12 @@ export async function getSalesProductionCalendar(
 			select: {
 				id: true,
 				orderId: true,
+				status: true,
+				prodStatus: true,
 				priority: true,
+				stat: {
+					where: { deletedAt: null, type: "prodCompleted" },
+				},
 				customer: { select: { name: true, businessName: true } },
 			},
 		},
@@ -350,25 +355,37 @@ export async function getSalesProductionCalendar(
 		take: 1_500,
 		select: calendarSelect,
 	});
-	const toCalendarRow = (row: (typeof scheduledRows)[number]) => ({
-		id: row.id,
-		orderId: row.order.id,
-		orderNo: row.order.orderId,
-		customer:
-			row.order.customer?.businessName ||
-			row.order.customer?.name ||
-			"Customer unavailable",
-		priority: normalizeSalesPriority(row.order.priority),
-		assignedTo: row.assignedTo?.name || null,
-		dueDate: row.dueDate?.toISOString() || null,
-		status: row.completedAt
-			? "completed"
-			: row.startedAt
-				? "in progress"
-				: row.assignedToId
-					? "assigned"
-					: "unassigned",
-	});
+	const toCalendarRow = (row: (typeof scheduledRows)[number]) => {
+		const productionStatus = overallStatus(row.order.stat).production.status;
+		const lifecycleStatus = getSalesOrderLifecycleStatusInfo({
+			orderStatus: row.order.status,
+			legacyProductionStatus: row.order.prodStatus,
+			productionStatus,
+		}).status;
+		const completed =
+			Boolean(row.completedAt) ||
+			hasCompletedProductionLifecycle(lifecycleStatus);
+
+		return {
+			id: row.id,
+			orderId: row.order.id,
+			orderNo: row.order.orderId,
+			customer:
+				row.order.customer?.businessName ||
+				row.order.customer?.name ||
+				"Customer unavailable",
+			priority: normalizeSalesPriority(row.order.priority),
+			assignedTo: row.assignedTo?.name || null,
+			dueDate: row.dueDate?.toISOString() || null,
+			status: completed
+				? "completed"
+				: row.startedAt
+					? "in progress"
+					: row.assignedToId
+						? "assigned"
+						: "unassigned",
+		};
+	};
 	const collapseCalendarRows = (rows: typeof scheduledRows) => {
 		const groups = new Map<
 			string,

@@ -1,5 +1,34 @@
 # Progress
 
+- 2026-09-02: Aligned Production calendar colors with the canonical Sales Order
+  lifecycle. Scheduled assignments now render Completed when either their own
+  completion timestamp exists or the order's production stat/lifecycle is
+  already complete, covering fulfilled legacy orders whose assignment
+  `completedAt` was not backfilled. Past-due rings now compare whole calendar
+  days so today's assignments are not marked overdue after midnight. The
+  calendar query remains bounded and selects only the active `prodCompleted`
+  stat. Focused Sales production and operations-calendar suites pass 32 tests /
+  68 assertions; no schema, mutation, permission, or migration change was
+  required.
+
+- 2026-09-02: Restored the Sales Orders-style two-row header on the canonical
+  Sales Production page. Production's seven work-state tabs now occupy their
+  own full-width first row, while search, filters, active chips, and column
+  controls render beneath them. Desktop keeps all seven tabs visible; narrower
+  layouts retain the shared overflow behavior. The focused Sales Production
+  header/parity suite passes 13 tests / 160 assertions. No API, database,
+  permission, or query-contract change was required.
+
+- 2026-09-02: Smoothed the **Mark Fulfillment completed** confirmation by
+  defaulting its Status-only effective completion date to the user's current
+  local date whenever the modal opens. Replaced the browser-native date input
+  with the repository's standard shadcn Calendar/Popover/Field composition,
+  including date selection and an explicit clear action for unknown historical
+  dates. The saved `YYYY-MM-DD` contract and noon-UTC command conversion remain
+  unchanged; Production completion retains its prior empty default. Focused
+  presentation and source-contract regression coverage passes 17 tests / 42
+  assertions. No API, database, or permission change was required.
+
 - 2026-09-02: Extended **Update status only** to bounded Production and
   Fulfillment batch selections. One protected request accepts up to 100 Sales
   Orders, deduplicates ids, derives stable per-order request identities, and
@@ -14272,3 +14301,35 @@
   default 4 GB process exhausted the heap.
 - No database schema, migration, or permission change was required for Ticket
   06; it consumes the Ticket 03-05 ledger and permission contracts.
+
+## 2026-09-02 — Sales Order workspace archiving
+
+- Implemented reversible `SalesOrders.archivedAt` workspace visibility with a
+  canonical default active scope and `Show > Archived` scope. Sales Bin,
+  lifecycle, finance, inventory, production, dispatch, and fulfillment remain
+  independent.
+- Added the protected, idempotent, transactional `editOrders` archive/restore
+  command, structured skips, Sales History audit evidence, row action modal,
+  batch confirmation action, URL/filter metadata, and cache/query-event
+  centralized invalidation. Focused API and query-event coverage passes 47
+  tests / 118 assertions.
+- Prisma Client generation, the named local migration, and `db:push` passed
+  against `gnd-prisma2`; no manual schema operation or hosted write was used.
+  Touched-file typecheck scans are clean. Authenticated local browser QA
+  confirmed active default, `Show > Archived`, canonical URL scope, and
+  clearing back to active orders without mutating an order.
+
+## 2026-09-02 — Automatic zero-delta Sales document repair
+
+- Guarded Dashboard preview/print/PDF/regeneration, Sales delivery, dealer
+  portal, and customer storefront access now automatically apply the existing
+  `repair_required` aggregate repair when subtotal, taxable subtotal, tax,
+  grand total, and amount due remain exactly unchanged.
+- Automatic application reuses the existing serializable revalidation, exact
+  before-state writes, post-repair readiness assertion, print-cache
+  invalidation, resolution action, and Sales History evidence. Audit metadata
+  records automatic/manual mode and the triggering document path.
+- Financial and manual findings remain fail-closed, public token rendering stays
+  read-only, and explicit manual repair remains available as a permission-gated
+  fallback. No schema, migration, endpoint wire shape, or PDF renderer change
+  was required.

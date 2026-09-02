@@ -434,3 +434,10 @@ The stored-document phase should answer these operational rules explicitly:
   the shared guided-repair modal, while financial/manual findings remain
   fail-closed. Successful repair invalidates active `SalesPrintData` before the
   original action resumes.
+- 2026-09-02: Guarded Dashboard, dealer portal, customer storefront, and Sales
+  delivery entrypoints automatically apply `repair_required` proposals when all
+  comparable subtotal, taxable subtotal, tax, grand-total, and amount-due deltas
+  are exactly zero. The transaction still revalidates exact quantity/total
+  source rows, invalidates cached print data, and writes resolution/history
+  evidence before document generation continues. Financial and manual findings
+  remain blocked and public token rendering remains read-only.

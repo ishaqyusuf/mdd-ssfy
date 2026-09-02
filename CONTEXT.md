@@ -47,6 +47,20 @@ without changing its commercial or operational lifecycle. It remains distinct
 from a Sales Order in Sales Bin and can be restored.
 _Avoid_: Deleted order, cancelled order, completed order
 
+**Sales Pipeline**:
+The complete progress of a Sales Order across commercial acceptance, payment,
+material and inventory readiness, production, fulfillment, dispatch, and
+terminal outcome. It is shared across Sales Orders, Sales Overview, Production,
+Fulfillment, and every other consuming surface.
+_Avoid_: Production pipeline, fulfillment-only status, page-specific workflow
+
+**Canonical Sales Lifecycle Authority**:
+The single shared boundary in `@gnd/sales` that interprets authoritative Sales
+Pipeline evidence, governs lifecycle transitions, and supplies the predicates
+used for list membership, filters, summaries, and counts. Consuming apps may
+choose their presentation but must not recreate lifecycle logic locally.
+_Avoid_: UI status helper, page-specific resolver, SalesStat authority
+
 **Customer Order View**:
 The customer-safe projection of a Storefront Order, its payment, documents, and
 fulfillment progress.

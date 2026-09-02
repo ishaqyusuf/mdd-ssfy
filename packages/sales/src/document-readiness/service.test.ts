@@ -73,7 +73,7 @@ describe("prepareSalesDocumentReadiness", () => {
 		expect(update).not.toHaveBeenCalled();
 	});
 
-	it("stages and applies a zero-financial-delta repair with audit evidence", async () => {
+	it("automatically applies a zero-financial-delta repair with audit evidence", async () => {
 		const sale = {
 			id: 77,
 			orderId: "00077AA",
@@ -116,6 +116,8 @@ describe("prepareSalesDocumentReadiness", () => {
 		const mutableItem = sale.items[0];
 		if (!mutableItem) throw new Error("Expected repair fixture item.");
 		let stagedProposal: Record<string, unknown> | null = null;
+		let stagedProposalId: string | null = null;
+		let resolutionStatus = "open";
 		const resolutionActionCreate = mock(async () => null);
 		const salesHistoryCreate = mock(async () => null);
 		const printDataUpdateMany = mock(async () => ({ count: 1 }));
@@ -139,10 +141,17 @@ describe("prepareSalesDocumentReadiness", () => {
 				updateMany: mock(async () => ({ count: 0 })),
 				upsert: mock(async ({ create }: { create: { meta: unknown } }) => {
 					stagedProposal = create.meta as Record<string, unknown>;
+					const proposalId = stagedProposal.proposalId;
+					stagedProposalId =
+						typeof proposalId === "string" ? proposalId : null;
+					resolutionStatus = "open";
 					return create;
 				}),
-				findUnique: mock(async () => null),
-				update: mock(async () => null),
+				findUnique: mock(async () => ({ status: resolutionStatus })),
+				update: mock(async () => {
+					resolutionStatus = "resolved";
+					return null;
+				}),
 			},
 			salesOrderItems: {
 				updateMany: mock(
@@ -173,27 +182,42 @@ describe("prepareSalesDocumentReadiness", () => {
 				callback(transaction),
 		} as never;
 
-		const proposal = await prepareSalesDocumentReadiness(database, {
+		const result = await prepareSalesDocumentReadiness(database, {
 			salesOrderId: sale.id,
 			forceEvaluate: true,
 			stageProposal: true,
-		});
-		expect(proposal.status).toBe("repair_required");
-		expect(stagedProposal).not.toBeNull();
-		if (proposal.status !== "repair_required" || !proposal.proposalId) return;
-
-		const result = await applySalesDocumentReadinessRepair(database, {
-			salesOrderId: sale.id,
-			proposalId: proposal.proposalId,
-			actorId: 9,
-			actorName: "Test Operator",
+			autoRepair: {
+				source: "dashboard_document_access",
+				actorId: 9,
+				actorName: "Test Operator",
+			},
 		});
 
 		expect(result.status).toBe("ready");
+		expect(stagedProposal).not.toBeNull();
 		expect(sale.items[0]?.qty).toBe(19);
 		expect(sale.items[0]?.total).toBe(5022.11);
 		expect(printDataUpdateMany).toHaveBeenCalledTimes(1);
-		expect(resolutionActionCreate).toHaveBeenCalledTimes(1);
+		expect(resolutionActionCreate).toHaveBeenCalledWith({
+			data: expect.objectContaining({
+				meta: expect.objectContaining({
+					applicationMode: "automatic",
+					source: "dashboard_document_access",
+				}),
+			}),
+		});
 		expect(salesHistoryCreate).toHaveBeenCalledTimes(1);
+
+		if (!stagedProposalId) {
+			throw new Error("Expected a staged proposal id.");
+		}
+		const repeated = await applySalesDocumentReadinessRepair(database, {
+			salesOrderId: sale.id,
+			proposalId: stagedProposalId,
+			actorId: 9,
+			actorName: "Test Operator",
+		});
+		expect(repeated.status).toBe("ready");
+		expect(resolutionActionCreate).toHaveBeenCalledTimes(1);
 	});
 });

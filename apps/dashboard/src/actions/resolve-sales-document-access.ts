@@ -75,12 +75,20 @@ async function requireSalesDocumentScope(
 	return actor;
 }
 
-async function getBlockingSalesDocumentReadiness(salesIds: number[]) {
+async function getBlockingSalesDocumentReadiness(
+	salesIds: number[],
+	actor: { id: number; name?: string | null },
+) {
 	let blocking: SalesDocumentReadinessPreflight | null = null;
 	for (const salesOrderId of [...new Set(salesIds)]) {
 		const readiness = await prepareSalesDocumentReadiness(db, {
 			salesOrderId,
 			stageProposal: true,
+			autoRepair: {
+				source: "dashboard_document_access",
+				actorId: actor.id,
+				actorName: actor.name,
+			},
 		});
 		if (!blocking && readiness.status !== "ready") blocking = readiness;
 	}
@@ -111,8 +119,11 @@ export async function resolveSalesDocumentAccessAction(input: {
 	baseUrl?: string | null;
 	forceRegenerate?: boolean;
 }): Promise<ResolveSalesDocumentAccessActionResult> {
-	await requireSalesDocumentScope(input.salesIds);
-	const readiness = await getBlockingSalesDocumentReadiness(input.salesIds);
+	const actor = await requireSalesDocumentScope(input.salesIds);
+	const readiness = await getBlockingSalesDocumentReadiness(
+		input.salesIds,
+		actor,
+	);
 	if (readiness) return { kind: "preflight", readiness };
 	const printConfig = await resolveConfiguredSalesPrintSettings(input);
 	return resolveSalesDocumentAccess({
@@ -136,8 +147,11 @@ export async function resolveSalesDocumentHtmlPreviewAccessAction(input: {
 	printConfig?: Partial<SalesPrintSettings> | null;
 	baseUrl?: string | null;
 }): Promise<ResolveSalesDocumentAccessActionResult> {
-	await requireSalesDocumentScope(input.salesIds);
-	const readiness = await getBlockingSalesDocumentReadiness(input.salesIds);
+	const actor = await requireSalesDocumentScope(input.salesIds);
+	const readiness = await getBlockingSalesDocumentReadiness(
+		input.salesIds,
+		actor,
+	);
 	if (readiness) return { kind: "preflight", readiness };
 	const printConfig = await resolveConfiguredSalesPrintSettings(input);
 	return resolveSalesDocumentHtmlPreviewAccess({
@@ -154,10 +168,15 @@ export async function resolveSalesDocumentHtmlPreviewAccessAction(input: {
 export async function preflightSalesDocumentAction(input: {
 	salesOrderId: number;
 }): Promise<SalesDocumentReadinessPreflight> {
-	await requireSalesDocumentScope([input.salesOrderId]);
+	const actor = await requireSalesDocumentScope([input.salesOrderId]);
 	return prepareSalesDocumentReadiness(db, {
 		salesOrderId: input.salesOrderId,
 		stageProposal: true,
+		autoRepair: {
+			source: "dashboard_document_preflight",
+			actorId: actor.id,
+			actorName: actor.name,
+		},
 	});
 }
 

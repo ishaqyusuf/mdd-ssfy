@@ -9,6 +9,7 @@ import {
 } from "./meta";
 import {
 	SALES_DOCUMENT_READINESS_VALIDATOR_VERSION,
+	type SalesDocumentAutoRepairContext,
 	type SalesDocumentReadinessEvaluation,
 	type SalesDocumentReadinessMeta,
 	type SalesDocumentReadinessPreflight,
@@ -16,6 +17,22 @@ import {
 } from "./types";
 
 type Database = Db | TransactionClient;
+
+type PrepareSalesDocumentReadinessInput = {
+	salesOrderId: number;
+	forceEvaluate?: boolean;
+	stageProposal?: boolean;
+	autoRepair?: SalesDocumentAutoRepairContext;
+};
+
+type ApplySalesDocumentReadinessRepairInput = {
+	salesOrderId: number;
+	proposalId: string;
+	actorId: number | null;
+	actorName: string;
+	applicationMode: "automatic" | "manual";
+	source?: SalesDocumentAutoRepairContext["source"];
+};
 
 const readinessInclude = {
 	items: {
@@ -175,11 +192,7 @@ function isRootDatabase(db: Database): db is Db {
 
 async function prepareSalesDocumentReadinessInTransaction(
 	db: Database,
-	input: {
-		salesOrderId: number;
-		forceEvaluate?: boolean;
-		stageProposal?: boolean;
-	},
+	input: PrepareSalesDocumentReadinessInput,
 ): Promise<SalesDocumentReadinessPreflight> {
 	const gate = await db.salesOrders.findUnique({
 		where: { id: input.salesOrderId },
@@ -197,6 +210,20 @@ async function prepareSalesDocumentReadinessInTransaction(
 		currentMeta &&
 		currentMeta.validatedSourceUpdatedAt === sourceUpdatedAt(gate.updatedAt)
 	) {
+		if (
+			input.autoRepair &&
+			currentMeta.status === "repair_required" &&
+			currentMeta.proposal
+		) {
+			return applySalesDocumentReadinessRepairInTransaction(db, {
+				salesOrderId: gate.id,
+				proposalId: currentMeta.proposal.proposalId,
+				actorId: input.autoRepair.actorId ?? null,
+				actorName: input.autoRepair.actorName?.trim() || "System",
+				applicationMode: "automatic",
+				source: input.autoRepair.source,
+			});
+		}
 		return preflightFromMeta(currentMeta, "attestation");
 	}
 
@@ -217,7 +244,7 @@ async function prepareSalesDocumentReadinessInTransaction(
 				} satisfies SalesDocumentReadinessProposal);
 	const readiness = buildReadinessMeta({ evaluation, stampAt, proposal });
 
-	if (proposal && input.stageProposal !== false) {
+	if (proposal && (input.stageProposal !== false || input.autoRepair)) {
 		await persistResolutionCase(db, proposal);
 	} else if (!proposal) {
 		await db.resolutionCase.updateMany({
@@ -241,17 +268,23 @@ async function prepareSalesDocumentReadinessInTransaction(
 			"This sales order changed during document validation. Run the check again.",
 		);
 	}
+	if (proposal?.status === "repair_required" && input.autoRepair) {
+		return applySalesDocumentReadinessRepairInTransaction(db, {
+			salesOrderId: sale.id,
+			proposalId: proposal.proposalId,
+			actorId: input.autoRepair.actorId ?? null,
+			actorName: input.autoRepair.actorName?.trim() || "System",
+			applicationMode: "automatic",
+			source: input.autoRepair.source,
+		});
+	}
 
 	return preflightFromMeta(readiness, "evaluated");
 }
 
 export async function prepareSalesDocumentReadiness(
 	db: Database,
-	input: {
-		salesOrderId: number;
-		forceEvaluate?: boolean;
-		stageProposal?: boolean;
-	},
+	input: PrepareSalesDocumentReadinessInput,
 ): Promise<SalesDocumentReadinessPreflight> {
 	if (!isRootDatabase(db)) {
 		return prepareSalesDocumentReadinessInTransaction(db, input);
@@ -268,12 +301,20 @@ export async function prepareSalesDocumentReadiness(
 
 export async function assertSalesDocumentsReady(
 	db: Database,
-	input: { salesOrderIds: number[] },
+	input: {
+		salesOrderIds: number[];
+		autoRepair?: SalesDocumentAutoRepairContext;
+	},
 ) {
 	for (const salesOrderId of [...new Set(input.salesOrderIds)]) {
 		const readiness = await prepareSalesDocumentReadiness(db, {
 			salesOrderId,
 			stageProposal: true,
+			autoRepair: input.autoRepair ?? {
+				source: "server_document_assertion",
+				actorId: null,
+				actorName: "System",
+			},
 		});
 		if (readiness.status !== "ready") {
 			throw new Error(
@@ -396,6 +437,178 @@ function exactValue(value: number | null) {
 	return value === null ? null : value;
 }
 
+async function applySalesDocumentReadinessRepairInTransaction(
+	db: Database,
+	input: ApplySalesDocumentReadinessRepairInput,
+): Promise<SalesDocumentReadinessPreflight> {
+	const tx = db;
+	const order = await tx.salesOrders.findUnique({
+		where: { id: input.salesOrderId },
+		select: {
+			id: true,
+			orderId: true,
+			updatedAt: true,
+			meta: true,
+		},
+	});
+	if (!order) throw new Error("Sales order not found.");
+	const readiness = readSalesDocumentReadinessMeta(order.meta);
+	if (readiness?.status === "ready") {
+		const resolved = await tx.resolutionCase.findUnique({
+			where: { id: input.proposalId },
+			select: { status: true },
+		});
+		if (resolved?.status === "resolved") {
+			return preflightFromMeta(readiness, "attestation");
+		}
+	}
+	const proposal = readiness?.proposal;
+	if (
+		!proposal ||
+		proposal.proposalId !== input.proposalId ||
+		proposal.status !== "repair_required" ||
+		proposal.financial.totalChanged
+	) {
+		throw new Error(
+			"This repair proposal is no longer available. Run the document check again.",
+		);
+	}
+	if (readiness.validatedSourceUpdatedAt !== sourceUpdatedAt(order.updatedAt)) {
+		throw new Error(
+			"This order changed after the repair was prepared. Run the document check again.",
+		);
+	}
+
+	const liveSale = await loadSalesDocumentReadinessInput(tx, order.id);
+	if (!liveSale) throw new Error("Sales order not found.");
+	const liveEvaluation = evaluateSalesDocumentReadiness(liveSale);
+	if (
+		liveEvaluation.status !== "repair_required" ||
+		buildSalesDocumentReadinessSignature(liveEvaluation) !== readiness.signature
+	) {
+		throw new Error(
+			"The current order no longer matches this repair proposal. Run the document check again.",
+		);
+	}
+
+	for (const operation of proposal.operations) {
+		const itemUpdate = await tx.salesOrderItems.updateMany({
+			where: {
+				id: operation.salesOrderItemId,
+				salesOrderId: order.id,
+				deletedAt: null,
+				qty: exactValue(operation.before.itemQty),
+				total:
+					operation.before.itemTotalCents === null
+						? null
+						: operation.before.itemTotalCents / 100,
+			},
+			data: {
+				qty: operation.after.itemQty,
+				total: operation.after.itemTotalCents / 100,
+			},
+		});
+		const hptUpdate = await tx.housePackageTools.updateMany({
+			where: {
+				id: operation.housePackageToolId,
+				orderItemId: operation.salesOrderItemId,
+				salesOrderId: order.id,
+				deletedAt: null,
+				totalDoors: exactValue(operation.before.hptTotalDoors),
+				totalPrice:
+					operation.before.hptTotalPriceCents === null
+						? null
+						: operation.before.hptTotalPriceCents / 100,
+			},
+			data: {
+				totalDoors: operation.after.hptTotalDoors,
+				totalPrice: operation.after.hptTotalPriceCents / 100,
+			},
+		});
+		if (itemUpdate.count !== 1 || hptUpdate.count !== 1) {
+			throw new Error(
+				"The order changed while the repair was being applied. No repair was saved.",
+			);
+		}
+	}
+
+	const repairedSale = await loadSalesDocumentReadinessInput(tx, order.id);
+	if (!repairedSale) throw new Error("Sales order not found.");
+	const repairedEvaluation = evaluateSalesDocumentReadiness(repairedSale);
+	if (repairedEvaluation.status !== "ready") {
+		throw new Error(
+			"The repaired order did not pass the final document check. No repair was saved.",
+		);
+	}
+
+	const stampAt = new Date();
+	const nextReadiness = buildReadinessMeta({
+		evaluation: repairedEvaluation,
+		stampAt,
+	});
+	await tx.salesOrders.update({
+		where: { id: order.id },
+		data: {
+			meta: mergeSalesDocumentReadinessMeta(repairedSale.meta, nextReadiness),
+			updatedAt: stampAt,
+		},
+	});
+	await tx.salesPrintData.updateMany({
+		where: { salesOrderId: order.id, deletedAt: null },
+		data: {
+			status: "stale",
+			invalidatedAt: stampAt,
+			reason: "sales_document_readiness_repair",
+		},
+	});
+	await tx.resolutionCase.update({
+		where: { id: proposal.proposalId },
+		data: {
+			status: "resolved",
+			meta: {
+				...proposal,
+				resolvedAt: stampAt.toISOString(),
+				resolvedById: input.actorId,
+				applicationMode: input.applicationMode,
+				...(input.source ? { source: input.source } : {}),
+			} as unknown as Prisma.InputJsonValue,
+		},
+	});
+	await tx.resolutionAction.create({
+		data: {
+			id: randomUUID(),
+			resolutionCaseId: proposal.proposalId,
+			actionType: "apply_sales_document_readiness_repair",
+			status: "completed",
+			actorId: input.actorId,
+			beforeState: proposal as unknown as Prisma.InputJsonValue,
+			afterState: repairedEvaluation as unknown as Prisma.InputJsonValue,
+			meta: {
+				validatorVersion: SALES_DOCUMENT_READINESS_VALIDATOR_VERSION,
+				financialTotalChanged: false,
+				applicationMode: input.applicationMode,
+				...(input.source ? { source: input.source } : {}),
+			} as Prisma.InputJsonValue,
+		},
+	});
+	await tx.salesHistory.create({
+		data: {
+			salesId: order.id,
+			name: "Sales document data repaired",
+			authorName: input.actorName,
+			data: {
+				proposalId: proposal.proposalId,
+				operations: proposal.operations,
+				financial: proposal.financial,
+				applicationMode: input.applicationMode,
+				...(input.source ? { source: input.source } : {}),
+			} as unknown as Prisma.InputJsonValue,
+		},
+	});
+
+	return preflightFromMeta(nextReadiness, "evaluated");
+}
+
 export async function applySalesDocumentReadinessRepair(
 	db: Db,
 	input: {
@@ -406,173 +619,11 @@ export async function applySalesDocumentReadinessRepair(
 	},
 ): Promise<SalesDocumentReadinessPreflight> {
 	return db.$transaction(
-		async (tx) => {
-			const order = await tx.salesOrders.findUnique({
-				where: { id: input.salesOrderId },
-				select: {
-					id: true,
-					orderId: true,
-					updatedAt: true,
-					meta: true,
-				},
-			});
-			if (!order) throw new Error("Sales order not found.");
-			const readiness = readSalesDocumentReadinessMeta(order.meta);
-			if (readiness?.status === "ready") {
-				const resolved = await tx.resolutionCase.findUnique({
-					where: { id: input.proposalId },
-					select: { status: true },
-				});
-				if (resolved?.status === "resolved") {
-					return preflightFromMeta(readiness, "attestation");
-				}
-			}
-			const proposal = readiness?.proposal;
-			if (
-				!proposal ||
-				proposal.proposalId !== input.proposalId ||
-				proposal.status !== "repair_required" ||
-				proposal.financial.totalChanged
-			) {
-				throw new Error(
-					"This repair proposal is no longer available. Run the document check again.",
-				);
-			}
-			if (
-				readiness.validatedSourceUpdatedAt !== sourceUpdatedAt(order.updatedAt)
-			) {
-				throw new Error(
-					"This order changed after the repair was prepared. Run the document check again.",
-				);
-			}
-
-			const liveSale = await loadSalesDocumentReadinessInput(tx, order.id);
-			if (!liveSale) throw new Error("Sales order not found.");
-			const liveEvaluation = evaluateSalesDocumentReadiness(liveSale);
-			if (
-				liveEvaluation.status !== "repair_required" ||
-				buildSalesDocumentReadinessSignature(liveEvaluation) !==
-					readiness.signature
-			) {
-				throw new Error(
-					"The current order no longer matches this repair proposal. Run the document check again.",
-				);
-			}
-
-			for (const operation of proposal.operations) {
-				const itemUpdate = await tx.salesOrderItems.updateMany({
-					where: {
-						id: operation.salesOrderItemId,
-						salesOrderId: order.id,
-						deletedAt: null,
-						qty: exactValue(operation.before.itemQty),
-						total:
-							operation.before.itemTotalCents === null
-								? null
-								: operation.before.itemTotalCents / 100,
-					},
-					data: {
-						qty: operation.after.itemQty,
-						total: operation.after.itemTotalCents / 100,
-					},
-				});
-				const hptUpdate = await tx.housePackageTools.updateMany({
-					where: {
-						id: operation.housePackageToolId,
-						orderItemId: operation.salesOrderItemId,
-						salesOrderId: order.id,
-						deletedAt: null,
-						totalDoors: exactValue(operation.before.hptTotalDoors),
-						totalPrice:
-							operation.before.hptTotalPriceCents === null
-								? null
-								: operation.before.hptTotalPriceCents / 100,
-					},
-					data: {
-						totalDoors: operation.after.hptTotalDoors,
-						totalPrice: operation.after.hptTotalPriceCents / 100,
-					},
-				});
-				if (itemUpdate.count !== 1 || hptUpdate.count !== 1) {
-					throw new Error(
-						"The order changed while the repair was being applied. No repair was saved.",
-					);
-				}
-			}
-
-			const repairedSale = await loadSalesDocumentReadinessInput(tx, order.id);
-			if (!repairedSale) throw new Error("Sales order not found.");
-			const repairedEvaluation = evaluateSalesDocumentReadiness(repairedSale);
-			if (repairedEvaluation.status !== "ready") {
-				throw new Error(
-					"The repaired order did not pass the final document check. No repair was saved.",
-				);
-			}
-
-			const stampAt = new Date();
-			const nextReadiness = buildReadinessMeta({
-				evaluation: repairedEvaluation,
-				stampAt,
-			});
-			await tx.salesOrders.update({
-				where: { id: order.id },
-				data: {
-					meta: mergeSalesDocumentReadinessMeta(
-						repairedSale.meta,
-						nextReadiness,
-					),
-					updatedAt: stampAt,
-				},
-			});
-			await tx.salesPrintData.updateMany({
-				where: { salesOrderId: order.id, deletedAt: null },
-				data: {
-					status: "stale",
-					invalidatedAt: stampAt,
-					reason: "sales_document_readiness_repair",
-				},
-			});
-			await tx.resolutionCase.update({
-				where: { id: proposal.proposalId },
-				data: {
-					status: "resolved",
-					meta: {
-						...proposal,
-						resolvedAt: stampAt.toISOString(),
-						resolvedById: input.actorId,
-					} as unknown as Prisma.InputJsonValue,
-				},
-			});
-			await tx.resolutionAction.create({
-				data: {
-					id: randomUUID(),
-					resolutionCaseId: proposal.proposalId,
-					actionType: "apply_sales_document_readiness_repair",
-					status: "completed",
-					actorId: input.actorId,
-					beforeState: proposal as unknown as Prisma.InputJsonValue,
-					afterState: repairedEvaluation as unknown as Prisma.InputJsonValue,
-					meta: {
-						validatorVersion: SALES_DOCUMENT_READINESS_VALIDATOR_VERSION,
-						financialTotalChanged: false,
-					} as Prisma.InputJsonValue,
-				},
-			});
-			await tx.salesHistory.create({
-				data: {
-					salesId: order.id,
-					name: "Sales document data repaired",
-					authorName: input.actorName,
-					data: {
-						proposalId: proposal.proposalId,
-						operations: proposal.operations,
-						financial: proposal.financial,
-					} as unknown as Prisma.InputJsonValue,
-				},
-			});
-
-			return preflightFromMeta(nextReadiness, "evaluated");
-		},
+		(tx) =>
+			applySalesDocumentReadinessRepairInTransaction(tx, {
+				...input,
+				applicationMode: "manual",
+			}),
 		{
 			isolationLevel: "Serializable",
 			maxWait: 5_000,

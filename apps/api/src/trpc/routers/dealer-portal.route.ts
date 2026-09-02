@@ -279,6 +279,11 @@ export const dealerPortalRouter = createTRPCRouter({
 
       await assertSalesDocumentsReady(ctx.db, {
         salesOrderIds: [sale.id],
+        autoRepair: {
+          source: "dealer_portal_document_access",
+          actorId: null,
+          actorName: "Dealer portal",
+        },
       });
 
       return resolveSalesDocumentHtmlPreviewAccess({

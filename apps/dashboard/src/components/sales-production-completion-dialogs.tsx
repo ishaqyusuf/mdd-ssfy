@@ -1,15 +1,22 @@
 "use client";
 
-import type {
-	SalesCompletionChoice,
-	SalesCompletionProjectionPresentation,
+import {
+	type SalesCompletionChoice,
+	type SalesCompletionProjectionPresentation,
+	formatSalesCompletionDate,
+	fromSalesCompletionDateValue,
+	toSalesCompletionDateValue,
 } from "@/components/sales-completion-presentation";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
+import { Button } from "@gnd/ui/button";
+import { Calendar } from "@gnd/ui/calendar";
+import { Field, FieldDescription, FieldLabel } from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
-import { Input } from "@gnd/ui/input";
 import { AlertDialog } from "@gnd/ui/namespace";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@gnd/ui/radio-group";
 import { Textarea } from "@gnd/ui/textarea";
+import { useState } from "react";
 
 type SalesProductionCompletionDialogsProps = {
 	milestone?: "Production" | "Fulfillment";
@@ -34,6 +41,79 @@ type SalesProductionCompletionDialogsProps = {
 	onCancellationReasonChange: (value: string) => void;
 	onCancelCompletion: () => void;
 };
+
+function EffectiveCompletionDateField({
+	effectiveDate,
+	idPrefix,
+	isFulfillment,
+	milestone,
+	onEffectiveDateChange,
+}: {
+	effectiveDate: string;
+	idPrefix: string;
+	isFulfillment: boolean;
+	milestone: "Production" | "Fulfillment";
+	onEffectiveDateChange: (value: string) => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const selectedDate = fromSalesCompletionDateValue(effectiveDate);
+
+	return (
+		<Field>
+			<FieldLabel htmlFor={`${idPrefix}-effective-date`}>
+				Effective completion date
+			</FieldLabel>
+			<div className="flex items-center gap-2">
+				<Popover open={open} onOpenChange={setOpen}>
+					<PopoverTrigger asChild>
+						<Button
+							id={`${idPrefix}-effective-date`}
+							type="button"
+							variant="outline"
+							className="flex-1 justify-start text-left font-normal"
+						>
+							<Icons.Calendar
+								data-icon="inline-start"
+								aria-hidden="true"
+							/>
+							{formatSalesCompletionDate(effectiveDate)}
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent className="w-auto p-0" align="start">
+						<Calendar
+							mode="single"
+							aria-label={`${milestone} effective completion date`}
+							defaultMonth={selectedDate}
+							selected={selectedDate}
+							onSelect={(date) => {
+								onEffectiveDateChange(
+									date ? toSalesCompletionDateValue(date) : "",
+								);
+								if (date) setOpen(false);
+							}}
+							initialFocus
+						/>
+					</PopoverContent>
+				</Popover>
+				{effectiveDate ? (
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						onClick={() => onEffectiveDateChange("")}
+						aria-label="Clear effective completion date"
+					>
+						<Icons.X aria-hidden="true" />
+					</Button>
+				) : null}
+			</div>
+			<FieldDescription>
+				{isFulfillment ? "Defaults to today. " : ""}Clear the date when the
+				real-world date is unknown; GND keeps the recording time separate.
+			</FieldDescription>
+		</Field>
+	);
+}
 
 export function SalesProductionCompletionDialogs(
 	props: SalesProductionCompletionDialogsProps,
@@ -171,26 +251,13 @@ export function SalesProductionCompletionDialogs(
 									</AlertDescription>
 								</Alert>
 							) : null}
-							<label
-								className="block space-y-1.5"
-								htmlFor={`${idPrefix}-effective-date`}
-							>
-								<span className="text-sm font-medium">
-									Effective completion date (optional)
-								</span>
-								<Input
-									id={`${idPrefix}-effective-date`}
-									type="date"
-									value={props.effectiveDate}
-									onChange={(event) =>
-										props.onEffectiveDateChange(event.target.value)
-									}
-								/>
-								<span className="block text-xs text-muted-foreground">
-									Leave empty when the real-world date is unknown. GND keeps the
-									recording time separate.
-								</span>
-							</label>
+							<EffectiveCompletionDateField
+								effectiveDate={props.effectiveDate}
+								idPrefix={idPrefix}
+								isFulfillment={isFulfillment}
+								milestone={milestone}
+								onEffectiveDateChange={props.onEffectiveDateChange}
+							/>
 						</div>
 					) : null}
 					<AlertDialog.Footer>

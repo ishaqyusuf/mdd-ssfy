@@ -565,6 +565,9 @@ Provide a cleaner production operations surface for both admins and production w
 - Production uses the shared adaptive search/filter header composition already
   established by Sales Orders. The tab rail occupies the complete first row;
   search, active filter chips, and column controls start on the second row.
+- The 2026-09-02 regression repair restored the missing adaptive-layout opt-in
+  on the canonical Production header and keeps all seven work-state tabs visible
+  at desktop widths before the existing narrow-screen overflow behavior applies.
 - The tab rail never wraps into multiple lines. Wide layouts show all seven
   Production tabs, while narrower layouts preserve the active tab and place
   excess destinations in the existing overflow menu.
@@ -922,6 +925,21 @@ Provide a cleaner production operations surface for both admins and production w
   and row cells share identical horizontal positions and widths. The former
   50px Due Date displacement is eliminated without changing the admin checkbox
   column or mobile card layout.
+
+## Calendar completion status alignment (2026-09-02)
+
+- Calendar cards retain scheduled assignments after completion and now derive
+  their completed color from either the assignment completion timestamp or the
+  canonical order production lifecycle. A completed production stat and later
+  lifecycle states such as Fulfilled therefore remain emerald even when legacy
+  assignment rows do not have `completedAt` backfilled.
+- The calendar read stays bounded and loads only the active `prodCompleted`
+  Sales Stat needed for lifecycle projection; it does not load submission
+  ledgers merely to choose a card color.
+- Past-due highlighting compares calendar days rather than the current time
+  against midnight, so work due today is not outlined as overdue.
+- Focused Sales production and operations-calendar suites pass 32 tests / 68
+  assertions. No schema, mutation, permission, or migration contract changed.
 
 ## Review Queue Sidebar Pagination (2026-08-29)
 

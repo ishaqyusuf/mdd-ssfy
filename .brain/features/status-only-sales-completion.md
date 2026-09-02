@@ -108,6 +108,12 @@ or redesign the existing Full workflow.
   explicitly names delivery proof, inventory commitment, dispatch, shipment,
   tax, accounting, notifications, commission, payout, and integrations as
   skipped effects.
+- Opening the Fulfillment completion confirmation now initializes its shared
+  Status-only effective date to the user's current local calendar date. The
+  date control uses the standard shadcn Popover and Calendar composition, lets
+  the user choose another date, and retains an explicit clear action for an
+  unknown real-world completion date. Production completion retains its
+  existing optional-date default.
 - Status-only Fulfillment writes only an audited `FULFILLMENT_COMPLETED`
   completion record. It yields `ADMINISTRATIVELY_COMPLETED`, implies Production
   satisfaction without manufacturing a Production record, and never changes

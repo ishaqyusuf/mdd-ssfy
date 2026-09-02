@@ -779,3 +779,19 @@ Tracks authentication and authorization patterns across API surfaces.
   grant and must not authorize either runtime capability.
 - This section is an approved implementation contract; no permission rows or
   application constants were changed during planning.
+
+## Automatic Sales document readiness repair (2026-09-02)
+
+- A caller must first pass the existing document-access boundary for the exact
+  Sales order: employee Sales/document view scope plus dealer-office checks,
+  dealer ownership, customer storefront ownership, or trusted notification
+  execution.
+- Once that boundary passes, an exact zero-financial-delta aggregate repair is
+  system maintenance and does not additionally require `editOrders`. The shared
+  service accepts no client-authored operation or replacement values; it derives
+  and revalidates the narrow repair from live relational rows.
+- The explicit manual repair action remains employee-only and requires
+  `editOrders`. Financial/manual findings never inherit the maintenance
+  exception and remain blocked for reviewed Sales Form correction.
+- Public signed-token preview/download consumption remains read-only and cannot
+  stage or apply a repair.

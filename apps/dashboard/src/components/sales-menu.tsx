@@ -13,6 +13,7 @@ import {
 	applyProductionCompletionProjection,
 	canShowStatusOnlyCompletionChoice,
 	getDefaultSalesCompletionChoice,
+	toSalesCompletionDateValue,
 } from "@/components/sales-completion-presentation";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesFulfillmentCompletionDialogs } from "@/components/sales-fulfillment-completion-dialogs";
@@ -1552,7 +1553,7 @@ function SalesMenuMarkAs({
 		const targetSalesIds = prepareStatusAction("fulfilled");
 		if (!targetSalesIds) return;
 		setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
-		setFulfillmentEffectiveDate("");
+		setFulfillmentEffectiveDate(toSalesCompletionDateValue());
 		setFulfillmentConfirmationOpen(true);
 	};
 

@@ -628,7 +628,14 @@ export async function createStorefrontInvoiceAccess(
 	orderId: string,
 ) {
 	const order = await findOwnedStorefrontOrder(ctx, orderId);
-	await assertSalesDocumentsReady(ctx.db, { salesOrderIds: [order.id] });
+	await assertSalesDocumentsReady(ctx.db, {
+		salesOrderIds: [order.id],
+		autoRepair: {
+			source: "storefront_document_access",
+			actorId: null,
+			actorName: "Customer storefront",
+		},
+	});
 	const baseUrl = (
 		process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3010"
 	).replace(/\/$/, "");

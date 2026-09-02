@@ -72,6 +72,9 @@ describe("sales production priority sorting", () => {
 							order: {
 								id: 42,
 								orderId: "ORDER-42",
+								status: null,
+								prodStatus: null,
+								stat: [],
 								priority: "NORMAL",
 								customer: { name: "Acme", businessName: null },
 							},
@@ -92,6 +95,43 @@ describe("sales production priority sorting", () => {
 		expect(result.scheduled).toHaveLength(1);
 		expect(result.scheduled[0]).toMatchObject({
 			orderNo: "ORDER-42",
+			status: "completed",
+		});
+	});
+
+	it("uses canonical order completion when assignment timestamps are stale", async () => {
+		const dueDate = new Date("2026-09-02T09:00:00.000Z");
+		const db = {
+			orderItemProductionAssignments: {
+				findMany: async () => [
+					{
+						id: 92,
+						assignedToId: 17,
+						startedAt: null,
+						completedAt: null,
+						dueDate,
+						assignedTo: { name: "Worker" },
+						order: {
+							id: 43,
+							orderId: "ORDER-43",
+							status: "Fulfilled",
+							prodStatus: null,
+							stat: [],
+							priority: "NORMAL",
+							customer: { name: "Acme", businessName: null },
+						},
+					},
+				],
+			},
+		};
+
+		const result = await getSalesProductionCalendar(db as unknown as Db, {
+			from: "2026-09-01",
+			to: "2026-09-07",
+		});
+
+		expect(result.scheduled[0]).toMatchObject({
+			orderNo: "ORDER-43",
 			status: "completed",
 		});
 	});

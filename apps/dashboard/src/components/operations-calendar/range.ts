@@ -5,8 +5,10 @@ import {
 	endOfMonth,
 	endOfWeek,
 	format,
+	isBefore,
 	isValid,
 	parseISO,
+	startOfDay,
 	startOfMonth,
 	startOfWeek,
 } from "date-fns";
@@ -24,6 +26,13 @@ export function resolveOperationsCalendarDate(value?: string | null) {
 	}
 
 	return new Date();
+}
+
+export function isOperationsCalendarDatePastDue(
+	date: Date,
+	today = new Date(),
+) {
+	return isBefore(startOfDay(date), startOfDay(today));
 }
 
 export function getOperationsCalendarPeriod(

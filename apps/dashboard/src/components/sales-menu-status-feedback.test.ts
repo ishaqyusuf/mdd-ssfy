@@ -9,6 +9,9 @@ const dispatchMenuSource = await Bun.file(
 		import.meta.url,
 	),
 ).text();
+const completionDialogSource = await Bun.file(
+	new URL("./sales-production-completion-dialogs.tsx", import.meta.url),
+).text();
 
 describe("sales menu status feedback", () => {
 	it("uses fresh safety reads before starting fulfillment", () => {
@@ -73,5 +76,17 @@ describe("sales menu status feedback", () => {
 	it("routes fulfillment cancellation through the guarded review dialog", () => {
 		expect(source).toContain("SalesWorkflowCancellationDialog");
 		expect(source).toContain('actions.openWorkflowCancellation("fulfillment")');
+	});
+
+	it("defaults Fulfillment completion to today and uses the shadcn calendar", () => {
+		expect(source).toContain(
+			"setFulfillmentEffectiveDate(toSalesCompletionDateValue());",
+		);
+		expect(completionDialogSource).toContain(
+			'import { Calendar } from "@gnd/ui/calendar";',
+		);
+		expect(completionDialogSource).toContain("<PopoverTrigger asChild>");
+		expect(completionDialogSource).toContain("<Calendar");
+		expect(completionDialogSource).not.toContain('type="date"');
 	});
 });

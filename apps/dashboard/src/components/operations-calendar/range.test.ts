@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import {
 	formatOperationsCalendarPeriodLabel,
 	getOperationsCalendarPeriodOptions,
+	isOperationsCalendarDatePastDue,
 	resolveOperationsCalendarDate,
 } from "./range";
 
@@ -33,5 +34,22 @@ describe("operations calendar period options", () => {
 		expect(formatOperationsCalendarPeriodLabel(selectedDate, "month")).toBe(
 			"August 2026",
 		);
+	});
+
+	it("does not mark work due today as past due", () => {
+		const today = new Date(2026, 8, 2, 15);
+
+		expect(
+			isOperationsCalendarDatePastDue(
+				new Date(2026, 8, 2, 9),
+				today,
+			),
+		).toBe(false);
+		expect(
+			isOperationsCalendarDatePastDue(
+				new Date(2026, 8, 1, 23, 59, 59),
+				today,
+			),
+		).toBe(true);
 	});
 });

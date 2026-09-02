@@ -2356,6 +2356,17 @@ implementation phase is approved and released.
 - Preview, print, PDF download/regeneration, and Sales email initiation all use
   this typed interruption. No document URL, PDF snapshot, or delivery is
   produced while the result is non-ready.
+- Guarded document entrypoints pass an auto-repair audit context into the shared
+  readiness service. A `repair_required` proposal is applied automatically only
+  when every comparable financial delta is exactly zero; the service returns
+  `ready` after transactional revalidation, guarded aggregate writes, final
+  evaluation, cache invalidation, and audit persistence. `financial_review` and
+  `manual_review` still return or throw as blockers without repair writes.
+- `SalesDocumentAutoRepairContext` identifies the guarded source and accepts an
+  optional employee actor. Dashboard and Sales delivery paths preserve the
+  employee id/name; dealer and storefront access record a system-maintenance
+  source with no employee id. `assertSalesDocumentsReady` enables this safe
+  behavior by default for trusted server-side document guards.
 - `applySalesDocumentReadinessRepairAction` requires `editOrders`, accepts only
   Sales order id plus proposal id, and revalidates all source evidence inside a
   serializable server transaction. Client-provided repair data is not accepted.

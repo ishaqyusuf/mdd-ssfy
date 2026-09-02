@@ -216,6 +216,7 @@ export function SalesProductionHeader() {
 					placeholder="Search order, customer, or sales number..."
 					filterList={[...activeServerFilters, ...activeWorkspaceFilters]}
 					hiddenFilterKeys={hiddenFilterKeys}
+					pageTabsLayout="adaptive"
 					pageTabs={
 						<PageTabs
 							portal={false}
@@ -246,7 +247,7 @@ export function SalesProductionHeader() {
 										: {}),
 							}}
 							tabs={pageTabs}
-							maxVisible={{ base: 3, lg: 5, "2xl": 7 }}
+							maxVisible={{ base: 3, lg: 7, "2xl": 7 }}
 						/>
 					}
 					toolbarActions={

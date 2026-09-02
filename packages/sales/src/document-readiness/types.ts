@@ -104,3 +104,17 @@ export type SalesDocumentReadinessMeta = {
 	evaluation: SalesDocumentReadinessEvaluation;
 	proposal?: SalesDocumentReadinessProposal | null;
 };
+
+export type SalesDocumentAutoRepairSource =
+	| "dashboard_document_access"
+	| "dashboard_document_preflight"
+	| "dealer_portal_document_access"
+	| "storefront_document_access"
+	| "sales_document_delivery"
+	| "server_document_assertion";
+
+export type SalesDocumentAutoRepairContext = {
+	source: SalesDocumentAutoRepairSource;
+	actorId?: number | null;
+	actorName?: string | null;
+};
