@@ -1,5 +1,6 @@
 # Daily Codebase Review Index
 
+- [2026-09-02](./2026-09-02.md) - Typecheck still fails in `@gnd/settings`; top risks are public Square/task-events/customer-pay routes, public organization/filter metadata, and mobile/dealer manufacturing-readiness gaps.
 - [2026-09-01](./2026-09-01.md) - Typecheck still fails in `@gnd/settings`; top risks are public Square/task-events/payment/customer routes, organization scoping exposure, and mobile/dealer readiness gaps.
 - [2026-08-31](./2026-08-31.md) - Typecheck still fails in `@gnd/settings`; top risks are public Square/task-events/payment/customer routes, office scoping exposure, and dealer/mobile manufacturing-readiness gaps.
 - [2026-08-30](./2026-08-30.md) - Typecheck now fails in `@gnd/settings` from `@gnd/errors` NodeNext exports; top risks are public Square/sales/payment/customer routes, inventory release evidence, and dealer/mobile readiness gaps.
