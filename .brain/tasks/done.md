@@ -1,5 +1,20 @@
 # Done
 
+### Sales Reporting Consistency Fixes
+
+- Priority: High
+- Description: Aligned Sales order workbooks to canonical Pipeline lifecycle
+  labels, normalized Sales Finance relative-month filters for date-only APIs,
+  fixed the Dashboard `All time` boundary at `2016-01-01`, and separated
+  Dashboard Booked Sales from tax-recognized totals in the Sales Tax workbook.
+- Related Features: Sales Dashboard Reporting, Sales Finance, Shared Date
+  Filters, Sales Tax Report
+- Status: Done
+- Validation: 66 focused tests / 383 assertions, scoped Biome checks, diff
+  integrity, and two-pass code review with all findings resolved.
+- Database Impact: No schema, migration, permission, or ledger mutation change.
+- Completed Date: 2026-09-03
+
 ### Bounded Bulk Status-only Sales Completion
 
 - Priority: High

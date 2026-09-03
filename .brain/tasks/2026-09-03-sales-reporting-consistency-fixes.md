@@ -1,7 +1,7 @@
 # Task: Sales Reporting Consistency Fixes
 
 ## Status
-In Progress
+Done
 
 ## Priority
 High
@@ -22,8 +22,8 @@ Finance, a fixed 2016 Sales Dashboard all-time boundary, and dual booked versus
 tax-recognized totals in the Sales Tax workbook.
 
 ## Implementation Progress
-- Completion: 96%
-- Current Checklist: 8/8 — Complete code review, scoped commit, and final verification
+- Completion: 100%
+- Current Checklist: Complete
 - Blockers: None
 
 ## Implementation Checklist
@@ -34,7 +34,7 @@ tax-recognized totals in the Sales Tax workbook.
 - [x] Add dashboard booked sales alongside tax-recognized totals.
 - [x] Run focused validation and resolve regressions.
 - [x] Update Brain feature, API contract, task, and progress documentation.
-- [ ] Complete code review, scoped commit, and final verification.
+- [x] Complete code review, scoped commit, and final verification.
 
 ## Validation Evidence
 - Confirmed before implementation that `from: "last 6 months"` fails the
@@ -58,3 +58,4 @@ tax-recognized totals in the Sales Tax workbook.
 - The shared Sales package now owns the `2016-01-01` business-data boundary;
   API-schema compatibility tests remain inside the API package, and every
   canonical headline label is exercised across each order-source workbook.
+- Implementation commit: `e0092cad3` (`fix: align sales reporting contracts`).
