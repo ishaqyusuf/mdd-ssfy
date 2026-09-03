@@ -1,6 +1,6 @@
+import { SALES_REPORTING_ALL_TIME_FROM } from "@gnd/sales/reporting";
 import {
     addMonths,
-    addYears,
     endOfDay,
     endOfMonth,
     format,
@@ -8,7 +8,6 @@ import {
     parse,
     startOfDay,
     startOfMonth,
-    startOfYear,
     subDays,
     subMonths,
 } from "date-fns";
@@ -83,10 +82,16 @@ export function getSalesDashboardPeriodOptions(now = new Date()) {
             },
         },
         {
-            label: "All Time",
+            label: "All time",
             value: "all_time",
             range: {
-                from: startOfYear(addYears(startOfMonth(now), -10)),
+                from: startOfDay(
+                    parse(
+                        SALES_REPORTING_ALL_TIME_FROM,
+                        salesDashboardDateParamFormat,
+                        now,
+                    ),
+                ),
                 to: endOfDay(now),
             },
         },

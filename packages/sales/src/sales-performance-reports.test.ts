@@ -34,7 +34,8 @@ const baseInput = {
 			salesRepId: 201,
 			salesRepName: "Ada Rep",
 			salesChannel: "direct",
-			status: "pending",
+			lifecycleStatusCode: "in_production",
+			lifecycleStatusLabel: "In production",
 			priority: "HIGH",
 			bookedSales: 1_000,
 		},
@@ -47,7 +48,8 @@ const baseInput = {
 			salesRepId: 201,
 			salesRepName: "Ada Rep",
 			salesChannel: "direct",
-			status: "completed",
+			lifecycleStatusCode: "fulfilled",
+			lifecycleStatusLabel: "Fulfilled",
 			priority: "NORMAL",
 			bookedSales: 500,
 		},
@@ -90,6 +92,24 @@ const baseInput = {
 	],
 } satisfies Omit<SalesPerformanceReportInput, "type">;
 
+const canonicalHeadlines = [
+	["cancelled", "Cancelled"],
+	["conflict", "Lifecycle conflict"],
+	["awaiting_production", "Awaiting production"],
+	["production_queued", "Production queued"],
+	["in_production", "In production"],
+	["awaiting_production_review", "Awaiting production review"],
+	["ready_to_fulfill", "Ready to fulfill"],
+	["fulfillment_queued", "Fulfillment queued"],
+	["packing", "Packing"],
+	["packed", "Packed"],
+	["in_transit", "In transit"],
+	["partially_fulfilled", "Partially fulfilled"],
+	["administratively_completed", "Administratively completed"],
+	["fulfilled", "Fulfilled"],
+	["unknown", "Status unavailable"],
+] as const;
+
 describe("sales performance Excel reports", () => {
 	it("builds every advertised report with context and summary sheets", () => {
 		for (const type of SALES_PERFORMANCE_REPORT_TYPES) {
@@ -121,6 +141,44 @@ describe("sales performance Excel reports", () => {
 			averageOrderValue: 750,
 		});
 		expect(report.sheets.at(-1)?.name).toBe("Source Quotes");
+	});
+
+	it("exports canonical lifecycle labels for order-based source sheets", () => {
+		const orders = canonicalHeadlines.map(([code, label], index) => ({
+			...baseInput.orders[0],
+			id: index + 1,
+			orderNo: `SO-${index + 1}`,
+			lifecycleStatusCode: code,
+			lifecycleStatusLabel: label,
+		}));
+
+		for (const type of [
+			"orders-ledger",
+			"performance-summary",
+			"sales-reps",
+			"customers",
+		] as const) {
+			const report = buildSalesPerformanceReport({
+				...baseInput,
+				orders,
+				type,
+			});
+			const sheetName =
+				type === "orders-ledger" ? "Orders Ledger" : "Source Orders";
+			const orderSheet = report.sheets.find(
+				(sheet) => sheet.name === sheetName,
+			);
+
+			expect(
+				orderSheet?.columns.find((column) => column.key === "lifecycleStatus")
+					?.label,
+			).toBe("Lifecycle Status");
+			expect(orderSheet?.rows.map((row) => row.lifecycleStatus)).toEqual(
+				canonicalHeadlines.map(([, label]) => label),
+			);
+			expect(JSON.stringify(orderSheet)).not.toContain('"status":"pending"');
+			expect(JSON.stringify(orderSheet)).not.toContain('"status":"completed"');
+		}
 	});
 
 	it("groups customers, representatives, and products by stable identity", () => {

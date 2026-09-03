@@ -60,6 +60,9 @@ The fixed dashboard provides:
 - direct navigation to Sales Finance and Sales Reports.
 
 The selected period is URL-backed and shared across every dashboard query.
+The visible `All time` / URL `all_time` preset is anchored to the known
+business-data start on `2016-01-01` and ends on the current day; it does not use
+a rolling-year window or add an earliest-sale lookup.
 
 ## Reports Workspace
 
@@ -85,6 +88,12 @@ reports retain auditable source sheets where aggregation would otherwise hide
 the originating order or line-item records. Excel dates are real date cells and
 money/count values remain numeric. The report endpoint rejects requests above
 10,000 relevant source records instead of returning a partial workbook.
+
+Order-based workbook sheets label status as `Lifecycle Status` and resolve it
+from the canonical Sales Pipeline headline in bounded 250-order batches. They
+never export the legacy `SalesOrders.status` as lifecycle meaning. Quote status
+remains the factual quote status because quotes do not participate in the order
+pipeline.
 
 Quote Activity reports only factual quote counts, values, status, validity, rep,
 customer, and channel evidence. They do not infer conversion without a

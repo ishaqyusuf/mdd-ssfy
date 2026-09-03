@@ -65,6 +65,7 @@ describe("sales tax workbook", () => {
 	it("builds accrual context, Florida summary, detail, and recognition audit", () => {
 		const report = buildSalesTaxReport({
 			generatedAt: new Date("2026-04-01T12:00:00.000Z"),
+			dashboardBookedSales: 180.42,
 			period: resolveSalesTaxReportPeriod({
 				from: "2026-03-01",
 				to: "2026-03-31",
@@ -116,14 +117,19 @@ describe("sales tax workbook", () => {
 			"Recognition Audit",
 		]);
 		expect(report.sheets[1]?.rows[0]).toEqual({
-			orders: 2,
-			invoiceTotal: 125.31,
+			taxRecognizedOrders: 2,
+			dashboardBookedSales: 180.42,
+			taxRecognizedInvoiceTotal: 125.31,
 			grossSales: 119.05,
 			exemptSales: 25.2,
 			taxableAmount: 93.85,
 			stateTax: 5.63,
 			surtax: 0.63,
 			taxTotal: 6.26,
+		});
+		expect(report.sheets[0]?.rows).toContainEqual({
+			field: "Dashboard comparison",
+			value: "Booked by order creation date; tax totals use recognition date",
 		});
 		expect(report.sheets[2]?.columns.map((column) => column.label)).toEqual([
 			"Order #",
@@ -145,6 +151,25 @@ describe("sales tax workbook", () => {
 			orderNo: "SO-1",
 			entryType: "SALE",
 			recognitionSource: "DELIVERY",
+		});
+	});
+
+	it("keeps the dashboard comparison when no tax sale was recognized", () => {
+		const report = buildSalesTaxReport({
+			dashboardBookedSales: 450,
+			period: resolveSalesTaxReportPeriod({
+				from: "2026-03-01",
+				to: "2026-03-31",
+				now: new Date("2026-04-01T12:00:00.000Z"),
+			}),
+			entries: [],
+		});
+
+		expect(report.rowCount).toBe(0);
+		expect(report.sheets[1]?.rows[0]).toMatchObject({
+			dashboardBookedSales: 450,
+			taxRecognizedOrders: 0,
+			taxRecognizedInvoiceTotal: 0,
 		});
 	});
 });

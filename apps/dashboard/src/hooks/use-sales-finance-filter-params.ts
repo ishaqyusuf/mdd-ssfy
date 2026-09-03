@@ -1,3 +1,5 @@
+import { transformFilterDateToQuery } from "@gnd/utils";
+import { format } from "date-fns";
 import { useQueryStates } from "nuqs";
 import {
 	createLoader,
@@ -8,6 +10,33 @@ import {
 } from "nuqs/server";
 
 const financeTabs = ["all", "review", "receivables", "resolution"] as const;
+const DATE_ONLY_FORMAT = "yyyy-MM-dd";
+
+type SalesFinanceDateFilterParams = {
+	dateRange?: readonly (string | null | undefined)[] | null;
+	from?: string | null;
+	to?: string | null;
+};
+
+function formatDateOnly(value: string) {
+	return format(new Date(value), DATE_ONLY_FORMAT);
+}
+
+export function resolveSalesFinanceDateFilters(
+	params: SalesFinanceDateFilterParams,
+) {
+	if (!params.dateRange?.length) {
+		return { from: params.from, to: params.to };
+	}
+
+	const range = transformFilterDateToQuery(params.dateRange);
+	if (!range) return { from: null, to: null };
+
+	return {
+		from: range.gte ? formatDateOnly(range.gte) : null,
+		to: range.lte ? formatDateOnly(range.lte) : null,
+	};
+}
 
 export const salesFinanceFilterParams = {
 	q: parseAsString,
@@ -61,11 +90,14 @@ export function useSalesFinanceFilterParams() {
 		dueDateRange,
 		agingBuckets,
 	} = params;
-	const [rangeFrom, rangeTo] = dateRange || [];
+	const normalizedDateFilters = resolveSalesFinanceDateFilters({
+		dateRange,
+		from,
+		to,
+	});
 	const filters = {
 		q,
-		from: rangeFrom && rangeFrom !== "-" ? rangeFrom : from,
-		to: rangeTo && rangeTo !== "-" ? rangeTo : to,
+		...normalizedDateFilters,
 		paymentMethods,
 		statuses,
 		exceptionCodes,

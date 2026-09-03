@@ -10,6 +10,7 @@ import {
 } from "date-fns";
 
 export const SALES_REPORTING_DATE_FORMAT = "yyyy-MM-dd";
+export const SALES_REPORTING_ALL_TIME_FROM = "2016-01-01" as const;
 
 export type SalesReportingGranularity = "day" | "week" | "month";
 

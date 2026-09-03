@@ -60,6 +60,9 @@
   legacy/canonical mode. `sales-pipeline:cutover-check` fails closed unless
   unexplained membership and unsafe-transition differences are zero, latency is
   acceptable, conflict sampling is complete, and operator approval is explicit.
+- Sales performance order workbooks resolve bounded canonical snapshots and
+  export the canonical headline label as `Lifecycle Status`. Missing canonical
+  resolution fails the report instead of falling back to a legacy status.
 
 ## Status-only Sales Completion (2026-09-01)
 
@@ -579,6 +582,11 @@
   truncates.
 
 ## Sales Finance
+
+- Dashboard URL payment-date presets are normalized through the shared date
+  filter before calling the existing date-only Sales Finance API inputs. Table,
+  summary, analytics, and report callers consume the same normalized range;
+  the API schema remains unchanged.
 
 - `salesFinance.transactions`, `salesFinance.summary`,
   `salesFinance.analytics`, `salesFinance.report`, and

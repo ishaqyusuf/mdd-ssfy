@@ -72,6 +72,11 @@ The shared parser is used by Jobs, Unit Invoices, Unit Production, Project
 Units, Product Report, Sales Accounting, Customer Service, shared Sales query
 helpers, and both dashboard search-filter implementations.
 
+Sales Finance retains date-only API fields. Its URL hook converts shared preset
+values through this parser before constructing the common table, summary,
+analytics, and report input, so preset text is never sent to the date-only
+schema.
+
 ## Validation
 - Deterministic shared utility coverage locks recent and cutoff boundaries,
   aliases, explicit ranges, invalid inputs, year rollover, and leap-year

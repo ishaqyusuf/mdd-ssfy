@@ -54,12 +54,23 @@ customer pays.
 ## Workbook Contract
 
 - `Report Context`: period, recognition-date basis, payment-independent policy,
-  timezone, policy version, and generated time.
-- `Florida Summary`: unique order count, invoice total, gross sales, exempt
+  timezone, policy version, generated time, and the separate Dashboard booked
+  sales comparison basis.
+- `Florida Summary`: Dashboard Booked Sales for non-deleted orders created in
+  the selected dates under the existing office visibility rule, plus
+  Tax-recognized Orders, Tax-recognized Invoice Total, gross sales, exempt
   sales, taxable amount, state tax, surtax, and total tax.
 - `Sales Tax`: exactly `Order #`, `Customer Name`, `Total`, and `Tax`.
 - `Recognition Audit`: taxable-sale time, source, entry type, tax bases,
   state/surtax split, tax code, and tax due.
+
+Dashboard Booked Sales and tax-recognized totals are intentionally separate:
+the former uses mutable order totals and order creation date, while the latter
+uses immutable ledger snapshots and taxable-sale recognition date. The tax
+report remains company-wide apart from its selected dates; Sales Dashboard rep
+and channel filters are not applied. A workbook remains downloadable when no
+tax rows were recognized so the booked-sales comparison and zero recognition
+evidence remain auditable.
 
 ## Historical Reconciliation
 

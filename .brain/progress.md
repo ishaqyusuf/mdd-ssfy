@@ -1,5 +1,15 @@
 # Progress
 
+- 2026-09-03: Implemented Sales reporting consistency fixes. Order-based sales
+  workbooks now export bounded, canonical Sales Pipeline lifecycle labels;
+  Sales Finance converts singular/plural relative-month URLs into date-only API
+  ranges; Sales Dashboard `All time` is fixed at January 1, 2016; and the Sales
+  Tax workbook shows Dashboard Booked Sales separately from immutable
+  tax-recognized totals while allowing zero-recognition downloads. The focused
+  Sales/API/Dashboard/date suite passes 66 tests with 383 assertions. No
+  database schema, migration, permission, payment, fulfillment, or tax-ledger
+  mutation was introduced.
+
 - 2026-09-03: Began the user-authorized direct production rollout with Preview
   explicitly waived. Verified Vercel target `gndprodesk/gndprodesk`
   (`prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr`, root `apps/dashboard`) and production DB

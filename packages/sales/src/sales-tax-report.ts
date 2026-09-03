@@ -179,8 +179,24 @@ const contextColumns: SalesWorkbookColumn[] = [
 ];
 
 const summaryColumns: SalesWorkbookColumn[] = [
-	{ key: "orders", label: "Orders", type: "integer", width: 12 },
-	{ key: "invoiceTotal", label: "Invoice Total", type: "money", width: 18 },
+	{
+		key: "taxRecognizedOrders",
+		label: "Tax-recognized Orders",
+		type: "integer",
+		width: 22,
+	},
+	{
+		key: "dashboardBookedSales",
+		label: "Dashboard Booked Sales",
+		type: "money",
+		width: 24,
+	},
+	{
+		key: "taxRecognizedInvoiceTotal",
+		label: "Tax-recognized Invoice Total",
+		type: "money",
+		width: 28,
+	},
 	{ key: "grossSales", label: "Gross Sales", type: "money", width: 18 },
 	{ key: "exemptSales", label: "Exempt Sales", type: "money", width: 18 },
 	{ key: "taxableAmount", label: "Taxable Amount", type: "money", width: 18 },
@@ -223,10 +239,12 @@ const auditColumns: SalesWorkbookColumn[] = [
 export function buildSalesTaxReport({
 	period,
 	entries,
+	dashboardBookedSales,
 	generatedAt = new Date(),
 }: {
 	period: SalesTaxReportPeriod;
 	entries: SalesTaxReportEntry[];
+	dashboardBookedSales: number;
 	generatedAt?: Date;
 }): SalesTaxWorkbookReport {
 	const normalizedEntries = entries.map((entry) => ({
@@ -281,6 +299,11 @@ export function buildSalesTaxReport({
 				rows: [
 					{ field: "Period start", value: period.fromDate },
 					{ field: "Period end", value: period.toDate },
+					{
+						field: "Dashboard comparison",
+						value:
+							"Booked by order creation date; tax totals use recognition date",
+					},
 					{ field: "Date basis", value: "Taxable sale recognition date" },
 					{ field: "Payment treatment", value: "Payment-independent accrual" },
 					{ field: "Recognition policy", value: "Florida fulfilled sale v1" },
@@ -293,8 +316,9 @@ export function buildSalesTaxReport({
 				columns: summaryColumns,
 				rows: [
 					{
-						orders: uniqueOrderCount,
-						invoiceTotal,
+						taxRecognizedOrders: uniqueOrderCount,
+						dashboardBookedSales: roundMoney(dashboardBookedSales),
+						taxRecognizedInvoiceTotal: invoiceTotal,
 						grossSales,
 						exemptSales,
 						taxableAmount,

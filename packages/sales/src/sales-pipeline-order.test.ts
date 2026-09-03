@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { resolveSalesPipelineSnapshotFromOrder } from "./sales-pipeline-order";
+import {
+	getSalesPipelineSnapshots,
+	resolveSalesPipelineSnapshotFromOrder,
+} from "./sales-pipeline-order";
 
 function order(overrides: Record<string, unknown> = {}) {
 	return {
@@ -104,5 +107,26 @@ describe("resolveSalesPipelineSnapshotFromOrder", () => {
 
 		expect(snapshot.fulfillment.state).toBe("fulfilled");
 		expect(snapshot.fulfillment.dispatchIds).toEqual([9]);
+	});
+});
+
+describe("getSalesPipelineSnapshots", () => {
+	it("loads report-sized status inputs in bounded batches", async () => {
+		const batches: number[][] = [];
+		const db = {
+			salesOrders: {
+				findMany: async ({ where }: { where: { id: { in: number[] } } }) => {
+					batches.push(where.id.in);
+					return [];
+				},
+			},
+		};
+
+		await getSalesPipelineSnapshots(
+			db as never,
+			Array.from({ length: 251 }, (_, index) => index + 1),
+		);
+
+		expect(batches.map((batch) => batch.length)).toEqual([250, 1]);
 	});
 });

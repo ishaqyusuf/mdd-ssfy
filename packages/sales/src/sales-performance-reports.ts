@@ -1,4 +1,5 @@
 import { addMoney, roundMoney } from "./payment-system/domain/money";
+import type { SalesPipelineHeadlineCode } from "./sales-pipeline";
 import type {
 	SalesWorkbookCell,
 	SalesWorkbookColumn,
@@ -33,7 +34,8 @@ export type SalesPerformanceOrderSource = {
 	salesRepId: number | null;
 	salesRepName: string;
 	salesChannel: string;
-	status: string;
+	lifecycleStatusCode: SalesPipelineHeadlineCode;
+	lifecycleStatusLabel: string;
 	priority: string;
 	bookedSales: number;
 };
@@ -190,7 +192,12 @@ const ordersColumns: SalesPerformanceReportColumn[] = [
 	{ key: "salesRepId", label: "Sales Rep ID", type: "integer", width: 14 },
 	{ key: "salesRep", label: "Sales Rep", type: "text", width: 24 },
 	{ key: "channel", label: "Channel", type: "text", width: 16 },
-	{ key: "status", label: "Status", type: "text", width: 16 },
+	{
+		key: "lifecycleStatus",
+		label: "Lifecycle Status",
+		type: "text",
+		width: 26,
+	},
 	{ key: "priority", label: "Priority", type: "text", width: 14 },
 	{ key: "bookedSales", label: "Booked Sales", type: "money", width: 18 },
 ];
@@ -271,7 +278,7 @@ function orderRows(orders: SalesPerformanceOrderSource[]) {
 		salesRepId: order.salesRepId,
 		salesRep: order.salesRepName,
 		channel: order.salesChannel,
-		status: order.status,
+		lifecycleStatus: order.lifecycleStatusLabel,
 		priority: order.priority,
 		bookedSales: roundMoney(order.bookedSales),
 	}));

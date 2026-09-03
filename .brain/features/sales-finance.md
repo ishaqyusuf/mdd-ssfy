@@ -439,6 +439,10 @@ Intentional GND deviations:
 - `bun --filter @gnd/sales typecheck` passed.
 - `@gnd/api` and `@gnd/dashboard` typechecks passed for the Receivables slice.
 - Focused Sales Finance tests and Biome pass.
+- Relative payment-date presets are normalized through the shared date-filter
+  contract before Sales Finance constructs its date-only API inputs. Singular
+  and plural six-month URLs therefore drive transactions, summary, analytics,
+  and exports with the same valid complete-month boundaries.
 - Focused Biome passed after formatting.
 - Authenticated browser proof on real data confirmed:
   - 351 payments in the default period

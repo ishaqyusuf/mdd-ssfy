@@ -24,6 +24,7 @@ import {
 	getSalesReportingGranularity,
 	resolveSalesReportingPeriod,
 } from "@gnd/sales/reporting";
+import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
 import { observeSalesPipelineReadProjection } from "@gnd/sales/sales-pipeline-rollout";
 import {
@@ -87,21 +88,30 @@ async function getPeriodSummary(
 	const salesWhere = getWhereClause(filter, "order", range);
 	const quotesWhere = getWhereClause(filter, "quote", range);
 	const [bookedSales, orderCount, quoteCount] = await Promise.all([
-		ctx.db.salesOrders.aggregate({
-			_sum: { grandTotal: true },
-			where: salesWhere,
-		}),
+		getBookedSales(ctx, filter, range),
 		ctx.db.salesOrders.count({ where: salesWhere }),
 		ctx.db.salesOrders.count({ where: quotesWhere }),
 	]);
-	const bookedSalesValue = bookedSales._sum.grandTotal ?? 0;
 
 	return {
-		bookedSales: bookedSalesValue,
+		bookedSales,
 		orderCount,
 		quoteCount,
-		averageOrderValue: orderCount ? bookedSalesValue / orderCount : 0,
+		averageOrderValue: orderCount ? bookedSales / orderCount : 0,
 	};
+}
+
+async function getBookedSales(
+	ctx: TRPCContext,
+	filter: SalesDashboardFilter,
+	range: { gte: Date; lte: Date },
+) {
+	const result = await ctx.db.salesOrders.aggregate({
+		_sum: { grandTotal: true },
+		where: getWhereClause(filter, "order", range),
+	});
+
+	return result._sum.grandTotal ?? 0;
 }
 
 export async function getKpis(ctx: TRPCContext, filter: SalesDashboardFilter) {
@@ -422,11 +432,21 @@ export async function getSalesTaxReport(
 					: "Invalid sales tax report period.",
 		});
 	}
-	const rows = await listSalesTaxReportEntries(ctx.db, {
-		from: period.from,
-		toExclusive: period.toExclusive,
-		limit: SALES_REPORT_ROW_LIMIT,
-	});
+	const [rows, dashboardBookedSales] = await Promise.all([
+		listSalesTaxReportEntries(ctx.db, {
+			from: period.from,
+			toExclusive: period.toExclusive,
+			limit: SALES_REPORT_ROW_LIMIT,
+		}),
+		getBookedSales(
+			ctx,
+			{ from: input.from, to: input.to },
+			getSalesDashboardCreatedAtRange({
+				from: input.from,
+				to: input.to,
+			}),
+		),
+	]);
 
 	if (rows.length > SALES_REPORT_ROW_LIMIT) {
 		throw new TRPCError({
@@ -437,6 +457,7 @@ export async function getSalesTaxReport(
 
 	return buildSalesTaxReport({
 		period,
+		dashboardBookedSales,
 		entries: rows.map((entry) => ({
 			salesOrderId: entry.salesOrderId,
 			orderNo: entry.orderNo,
@@ -510,7 +531,6 @@ export async function getSalesPerformanceReport(
 							customerId: true,
 							salesRepId: true,
 							salesChannel: true,
-							status: true,
 							priority: true,
 							customer: {
 								select: { businessName: true, name: true },
@@ -594,25 +614,42 @@ export async function getSalesPerformanceReport(
 			message: `This report contains more than ${SALES_REPORT_ROW_LIMIT.toLocaleString()} source records. Narrow the period or filters and try again.`,
 		});
 	}
-
+	const pipelineSnapshots = needsOrders
+		? await getSalesPipelineSnapshots(
+				ctx.db,
+				orderRows.map((order) => order.id),
+			)
+		: new Map<number, SalesPipelineSnapshot>();
 	const trend =
 		input.reportType === "performance-summary"
 			? await getRevenueOverTime(ctx, filter)
 			: [];
 
-	const orders: SalesPerformanceOrderSource[] = orderRows.map((order) => ({
-		id: order.id,
-		orderNo: order.orderId,
-		createdAt: order.createdAt,
-		customerId: order.customerId,
-		customerName: reportCustomerName(order),
-		salesRepId: order.salesRepId,
-		salesRepName: reportSalesRepName(order),
-		salesChannel: order.salesChannel || "direct",
-		status: order.status || "unknown",
-		priority: order.priority || "NORMAL",
-		bookedSales: order.grandTotal ?? 0,
-	}));
+	const orders: SalesPerformanceOrderSource[] = orderRows.map((order) => {
+		const pipeline = pipelineSnapshots.get(order.id);
+		if (!pipeline) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message:
+					"A canonical lifecycle status could not be resolved. Please retry the report.",
+			});
+		}
+
+		return {
+			id: order.id,
+			orderNo: order.orderId,
+			createdAt: order.createdAt,
+			customerId: order.customerId,
+			customerName: reportCustomerName(order),
+			salesRepId: order.salesRepId,
+			salesRepName: reportSalesRepName(order),
+			salesChannel: order.salesChannel || "direct",
+			lifecycleStatusCode: pipeline.headline.code,
+			lifecycleStatusLabel: pipeline.headline.label,
+			priority: order.priority || "NORMAL",
+			bookedSales: order.grandTotal ?? 0,
+		};
+	});
 	const quotes: SalesPerformanceQuoteSource[] = quoteRows.map((quote) => ({
 		id: quote.id,
 		quoteNo: quote.orderId,

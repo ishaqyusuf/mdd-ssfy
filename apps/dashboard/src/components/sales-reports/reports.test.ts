@@ -95,7 +95,7 @@ describe("Sales Reports export menu", () => {
 		expect(salesTaxDialog).toContain(
 			"!selectedRange.from || !selectedRange.to",
 		);
-		expect(salesTaxDialog).toContain("report.rowCount === 0");
+		expect(salesTaxDialog).not.toContain("if (report.rowCount === 0)");
 		expect(salesTaxDialog).toContain("downloadSalesExcelWorkbook(report)");
 		expect(salesTaxDialog).toContain("regardless of payment status");
 		expect(salesTaxDialog).toContain('mode="range"');

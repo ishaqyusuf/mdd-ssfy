@@ -101,19 +101,13 @@ export function SalesTaxReportDialog({
 			if (!isSalesWorkbookReport(report) || report.type !== "sales-tax") {
 				throw new Error("The sales tax report response is invalid.");
 			}
-			if (report.rowCount === 0) {
-				toast({
-					variant: "error",
-					title: "No report rows",
-					description:
-						"No taxable sales were recognized in the selected date range.",
-				});
-				return;
-			}
 			await downloadSalesExcelWorkbook(report);
 			toast({
 				title: "Excel report downloaded",
-				description: `${report.rowCount.toLocaleString()} order${report.rowCount === 1 ? "" : "s"} included.`,
+				description:
+					report.rowCount === 0
+						? "No tax recognition entries; the booked-sales comparison is included."
+						: `${report.rowCount.toLocaleString()} tax recognition entr${report.rowCount === 1 ? "y" : "ies"} included.`,
 			});
 			handleOpenChange(false);
 		} catch (error) {
