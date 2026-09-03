@@ -1,5 +1,20 @@
 # Done
 
+### Hide Sales Orders P.O. Column
+
+- Priority: Medium
+- Description: Removed the shared Sales Orders table's standalone P.O. column
+  and rendered meaningful trimmed P.O. values as constrained, accessible badges
+  beside Order # while suppressing empty and `"-"` fallbacks.
+- Related Feature: Sales Orders V2
+- Status: Done
+- Validation: 20 focused Sales Orders/table-settings tests with 56 assertions,
+  scoped Biome and diff-integrity checks, plus authenticated desktop/mobile
+  browser verification of active and deleted-order tables.
+- Database/API Impact: None; search, filter, export, detail/edit, and document
+  contracts remain unchanged.
+- Completed Date: 2026-09-03
+
 ### Sales Reporting Consistency Fixes
 
 - Priority: High

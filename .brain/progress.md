@@ -1,5 +1,15 @@
 # Progress
 
+- 2026-09-03: Removed the standalone P.O. column from the shared active/deleted
+  Sales Orders table and moved meaningful trimmed P.O. values into compact,
+  truncated badges beside Order #. Empty, whitespace-only, null, and API `"-"`
+  fallbacks now render nothing; search, filters, exports, details/editing, and
+  documents remain unchanged. Added saved-layout pruning and value-normalizing
+  regressions (20 Sales Orders/table-settings tests, 56 assertions), passed the
+  scoped Biome check, and browser-verified the active and Bin tables at desktop
+  and mobile widths. Dashboard typecheck still reports the repository's
+  pre-existing broad baseline outside the touched files after an 8 GB retry.
+
 - 2026-09-03: Implemented Sales reporting consistency fixes. Order-based sales
   workbooks now export bounded, canonical Sales Pipeline lifecycle labels;
   Sales Finance converts singular/plural relative-month URLs into date-only API

@@ -52,6 +52,7 @@ import {
 	SalesOrderInvoiceCell,
 	SalesOrderStatusCell,
 } from "./order-finance-status-cells";
+import { getSalesOrderPoBadgeValue } from "./po-badge";
 import { resolveSalesOrderSpecialOrderIndicator } from "./special-order-indicator";
 
 export type SalesOrder = RouterOutputs["sales"]["getOrders"]["data"][number];
@@ -125,6 +126,7 @@ const orderIdColumn: Column = {
 			>
 				{row.original.orderId}
 			</span>
+			<SalesOrderPoBadge poNo={row.original.poNo} />
 			{row.original.isDealerSale ? (
 				<span className="sr-only">Dealer sale</span>
 			) : null}
@@ -153,6 +155,29 @@ const orderIdColumn: Column = {
 		</div>
 	),
 };
+
+function SalesOrderPoBadge({ poNo }: { poNo: string | null | undefined }) {
+	const value = getSalesOrderPoBadgeValue(poNo);
+	if (!value) return null;
+
+	const label = `P.O. ${value}`;
+	return (
+		<TooltipProvider delayDuration={100}>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Badge
+						aria-label={label}
+						className="h-5 min-w-0 max-w-[88px] shrink overflow-hidden rounded-full px-1.5 text-[10px] font-medium"
+						variant="secondary"
+					>
+						<span className="min-w-0 truncate">{value}</span>
+					</Badge>
+				</TooltipTrigger>
+				<TooltipContent className="max-w-xs break-all">{label}</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
+	);
+}
 
 function SpecialOrderIndicator({
 	specialOrder,
@@ -254,24 +279,6 @@ const phoneColumn: Column = {
 			className="max-w-full truncate text-muted-foreground"
 			text={row.original.customerPhone || "-"}
 		/>
-	),
-};
-
-const poColumn: Column = {
-	id: "poNo",
-	header: "P.O",
-	accessorKey: "poNo",
-	...sizes.custom(90, 180, 120),
-	enableResizing: true,
-	meta: {
-		skeleton: { type: "text", width: "w-16" },
-		headerLabel: "P.O",
-		className: sizeClass(sizes.custom(90, 180, 120)),
-	},
-	cell: ({ row }) => (
-		<span className="truncate text-muted-foreground">
-			{row.original.poNo || "-"}
-		</span>
 	),
 };
 
@@ -749,7 +756,6 @@ export const columns: Column[] = [
 	selectColumn,
 	orderIdColumn,
 	salesDateColumn,
-	poColumn,
 	inboundColumn,
 	customerColumn,
 	phoneColumn,

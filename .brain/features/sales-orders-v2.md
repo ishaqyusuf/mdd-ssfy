@@ -145,7 +145,6 @@
 - Columns
   - order number
   - date
-  - P.O.
   - inbound status
   - customer name
   - phone
@@ -154,6 +153,14 @@
   - delivery method
   - status
   - actions
+- Meaningful P.O. values render as compact secondary badges immediately after
+  the order number. Null, empty, whitespace-only, and the API's `"-"` fallback
+  render nothing. Long values are constrained to the existing Order # column,
+  with the full value retained in the badge's accessible label and tooltip.
+- The standalone P.O. column and visibility option are removed. Persisted
+  column orders silently prune the stale `poNo` id, while P.O. search, filters,
+  Excel exports, order details/editing, and documents keep their existing
+  contracts.
 - The former standalone Special Order column and visibility option are removed.
   Persisted column orders silently prune the stale `specialOrder` id.
 - Orders declared Yes render a compact PenTool beside the note badge in the
