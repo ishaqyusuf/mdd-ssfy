@@ -1,3 +1,4 @@
+import { divideMoney, sumMoney } from "../../../payment-system/domain/money";
 import {
 	buildShelfSections,
 	deriveMouldingRows,
@@ -16,16 +17,15 @@ import {
 	isDoorRowPriceMissing,
 } from "./door-utils";
 import {
-	getStoredMouldingRows,
-	getStoredServiceRows,
-	getWorkflowSteps,
 	type DoorStoredRow,
 	type MouldingRow,
 	type ServiceRow,
 	type ShelfSectionDraft,
 	type WorkflowLineItemRecord,
+	getStoredMouldingRows,
+	getStoredServiceRows,
+	getWorkflowSteps,
 } from "./workflow-records";
-import { divideMoney, sumMoney } from "../../../payment-system/domain/money";
 
 type LinePatch = Record<string, unknown>;
 
@@ -40,6 +40,10 @@ function removeSelectedUnpricedDoorRows(rows: DoorStoredRow[]) {
 	return rows
 		.filter((row) => selectedDoorQty(row) <= 0 || !isDoorRowPriceMissing(row))
 		.map(clearUnpricedDoorRowQty);
+}
+
+function preservePendingUnpricedDoorRows(rows: DoorStoredRow[]) {
+	return rows.map(clearUnpricedDoorRowQty);
 }
 
 export type WorkflowMouldingRowsContext = {
@@ -217,21 +221,41 @@ export function buildWorkflowDoorRowsPatch(input: {
 	noHandle?: boolean;
 	hasSwing?: boolean;
 	profileCoefficient?: number | null;
+	preserveUnpricedRows?: boolean;
+	skipRowNormalization?: boolean;
 }) {
-	const safeRows = removeSelectedUnpricedDoorRows(input.rows);
-	const normalizedRows = applySharedDoorSurcharge(
-		safeRows,
-		Number(input.sharedDoorSurcharge || 0),
-		input.profileCoefficient,
-		{
-			noHandle: !!input.noHandle,
-			hasSwing: input.hasSwing !== false,
-		},
-	);
-	const next = summarizeDoors(normalizedRows, {
-		noHandle: !!input.noHandle,
-		hasSwing: input.hasSwing !== false,
-	});
+	const safeRows = input.preserveUnpricedRows
+		? preservePendingUnpricedDoorRows(input.rows)
+		: removeSelectedUnpricedDoorRows(input.rows);
+	const normalizedRows = input.skipRowNormalization
+		? safeRows
+		: applySharedDoorSurcharge(
+				safeRows,
+				Number(input.sharedDoorSurcharge || 0),
+				input.profileCoefficient,
+				{
+					noHandle: !!input.noHandle,
+					hasSwing: input.hasSwing !== false,
+				},
+			);
+	const next = input.skipRowNormalization
+		? {
+				rows: normalizedRows,
+				totalDoors: normalizedRows.reduce(
+					(sum, row) =>
+						sum +
+						(Number(row.totalQty || 0) ||
+							Number(row.lhQty || 0) + Number(row.rhQty || 0)),
+					0,
+				),
+				totalPrice: sumMoney(
+					normalizedRows.map((row) => Number(row.lineTotal || 0)),
+				),
+			}
+		: summarizeDoors(normalizedRows, {
+				noHandle: !!input.noHandle,
+				hasSwing: input.hasSwing !== false,
+			});
 	const unitPrice =
 		next.totalDoors > 0 ? divideMoney(next.totalPrice, next.totalDoors) : 0;
 	return {

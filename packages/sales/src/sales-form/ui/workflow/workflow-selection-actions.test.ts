@@ -181,11 +181,7 @@ describe("workflow selection actions", () => {
 		const fullRouteData = {
 			composedRouter: {
 				rootA: {
-					routeSequence: [
-						{ uid: "stepB" },
-						{ uid: "stepC" },
-						{ uid: "stepD" },
-					],
+					routeSequence: [{ uid: "stepB" }, { uid: "stepC" }, { uid: "stepD" }],
 					route: {
 						rootStep: "stepB",
 						stepB: "stepC",
@@ -276,6 +272,117 @@ describe("workflow selection actions", () => {
 		]);
 		expect(result?.linePatch.formSteps[1]?.prodUid).toBe("height-80");
 		expect(result?.activeStepIndex).toBe(2);
+	});
+
+	it("hot swaps configured HPT rows when the selected height changes", () => {
+		const steps = [
+			{
+				stepId: 2,
+				step: { id: 2, uid: "stepB", title: "Door" },
+				prodUid: "door-a",
+				value: "Door A",
+				meta: {
+					selectedProdUids: ["door-a"],
+					selectedComponents: [
+						{
+							id: 21,
+							uid: "door-a",
+							title: "Door A",
+							pricing: { "2-4 x 8-0": 120 },
+						},
+					],
+				},
+			},
+			{
+				stepId: 4,
+				step: { id: 4, uid: "height", title: "Height" },
+				prodUid: "height-68",
+				value: "6-8",
+				meta: {},
+			},
+		];
+		const result = saveWorkflowSelectedComponent({
+			routeData: {},
+			line: {
+				uid: "line-1",
+				formSteps: steps,
+				housePackageTool: {
+					id: 1,
+					doors: [
+						{
+							id: 42,
+							stepProductId: 21,
+							dimension: "2-4 x 6-8",
+							lhQty: 1,
+							rhQty: 2,
+							totalQty: 3,
+							unitPrice: 100,
+							lineTotal: 300,
+							meta: { componentUid: "door-a" },
+						},
+					],
+					totalDoors: 3,
+					totalPrice: 300,
+				},
+			},
+			steps,
+			currentStepIndex: 1,
+			component: { id: 31, uid: "height-80", title: "8-0" },
+			visibleComponents: [],
+			activeStepTitle: "Height",
+			profileCoefficient: 1,
+		});
+
+		const row = (result?.linePatch.housePackageTool as any)?.doors?.[0];
+		expect(row).toMatchObject({
+			id: 42,
+			dimension: "2-4 x 8-0",
+			lhQty: 1,
+			rhQty: 2,
+			totalQty: 3,
+			unitPrice: 120,
+			lineTotal: 360,
+		});
+		expect(result?.linePatch).toMatchObject({
+			qty: 3,
+			unitPrice: 120,
+			lineTotal: 360,
+		});
+	});
+
+	it("waits for profile pricing before changing height on configured HPT rows", () => {
+		const steps = [
+			{
+				stepId: 4,
+				step: { id: 4, uid: "height", title: "Height" },
+				prodUid: "height-68",
+				value: "6-8",
+			},
+		];
+		const result = saveWorkflowSelectedComponent({
+			routeData: {},
+			line: {
+				uid: "line-1",
+				formSteps: steps,
+				housePackageTool: {
+					doors: [
+						{
+							stepProductId: 21,
+							dimension: "2-4 x 6-8",
+							totalQty: 3,
+						},
+					],
+				},
+			},
+			steps,
+			currentStepIndex: 0,
+			component: { id: 31, uid: "height-80", title: "8-0" },
+			visibleComponents: [],
+			activeStepTitle: "Height",
+			pricingReady: false,
+		});
+
+		expect(result).toBeNull();
 	});
 
 	it("proceeds a multi-select door step to the line item step", () => {
@@ -581,9 +688,9 @@ describe("workflow selection actions", () => {
 		});
 
 		expect(result?.linePatch.formSteps[0]?.meta?.preserved).toBe(true);
-		expect(Object.keys(result?.linePatch.formSteps[0]?.meta || {})).not.toContain(
-			"0",
-		);
+		expect(
+			Object.keys(result?.linePatch.formSteps[0]?.meta || {}),
+		).not.toContain("0");
 		expect(result?.linePatch.formSteps[0]?.meta?.redirectUid).toBe("stepC");
 		expect(
 			result?.linePatch.formSteps[0]?.meta?.selectedComponents?.[0]

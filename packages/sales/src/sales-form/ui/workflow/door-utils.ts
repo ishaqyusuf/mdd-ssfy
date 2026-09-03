@@ -1,22 +1,22 @@
 "use client";
 
 import {
-	deriveDoorSizeCandidates,
+	divideMoney,
+	multiplyMoney,
+	roundMoney,
+	sumMoney,
+} from "../../../payment-system/domain/money";
+import type { SalesFormLineItemRecord } from "../../application";
+import {
 	computeHptSharedDoorSurcharge,
+	deriveDoorSizeCandidates,
 	getSelectedDoorComponentsForLine,
 	hasDoorSizeVariationConfig,
 	normalizeHptDoorRowForLegacy,
 	readSalesFormObjectMetadata,
 	resolveDoorTierPricing,
 } from "../../domain";
-import type { SalesFormLineItemRecord } from "../../application";
 import { profileAdjustedDoorSalesPrice } from "./door-pricing";
-import {
-	divideMoney,
-	multiplyMoney,
-	roundMoney,
-	sumMoney,
-} from "../../../payment-system/domain/money";
 
 type WorkflowStep = NonNullable<SalesFormLineItemRecord["formSteps"]>[number];
 
@@ -99,8 +99,13 @@ export function isDoorRowPriceMissing(row?: DoorRow | null) {
 	return Boolean(readDoorRowMeta(row).priceMissing);
 }
 
+export function isPendingUnpricedSizeSwap(row?: DoorRow | null) {
+	return Boolean(readDoorRowMeta(row).pendingUnpricedSizeSwap);
+}
+
 export function clearUnpricedDoorRowQty<T extends DoorRow>(row: T): T {
 	if (!isDoorRowPriceMissing(row)) return row;
+	if (isPendingUnpricedSizeSwap(row)) return row;
 	return {
 		...row,
 		lhQty: 0,
@@ -165,10 +170,7 @@ export function repairDoorRowProfilePriceDrift<T extends DoorRow>(
 		hasSwing?: boolean;
 	},
 ): T | null {
-	const drift = getDoorRowProfilePriceDrift(
-		row,
-		context.profileCoefficient,
-	);
+	const drift = getDoorRowProfilePriceDrift(row, context.profileCoefficient);
 	if (!drift) return null;
 	return normalizeHptDoorRowForLegacy(
 		{

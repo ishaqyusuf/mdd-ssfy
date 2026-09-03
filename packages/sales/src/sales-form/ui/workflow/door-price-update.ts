@@ -1,10 +1,10 @@
-import { profileAdjustedDoorSalesPrice } from "./door-pricing";
-import { resolveHptDoorUnitPriceBreakdown } from "../../domain/hpt-compatibility";
 import {
 	multiplyMoney,
 	subtractMoney,
 	sumMoney,
 } from "../../../payment-system/domain/money";
+import { resolveHptDoorUnitPriceBreakdown } from "../../domain/hpt-compatibility";
+import { profileAdjustedDoorSalesPrice } from "./door-pricing";
 
 export type DoorPriceRow = {
 	dimension?: string | null;
@@ -113,6 +113,7 @@ export function updateDoorRowBasePrice<T extends DoorPriceRow>(
 			calculatedFinalUnitPrice: nextUnitPrice,
 			finalUnitPrice: nextUnitPrice,
 			priceMissing: false,
+			pendingUnpricedSizeSwap: false,
 		},
 	});
 }

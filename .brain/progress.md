@@ -1,5 +1,22 @@
 # Progress
 
+- 2026-09-03: Completed HPT size hot-swap and Height reconciliation across the
+  shared Sales package, Dashboard package/legacy panels, and Dealership. Every
+  size row has an accessible Repeat menu; manual and Height-driven swaps retain
+  door identity, swing, quantities, and add-ons while refreshing current
+  supplier/profile pricing, clearing custom overrides, preventing duplicates,
+  and recomputing canonical totals. Missing-price swaps remain visible in red
+  with quantity preserved; Dashboard autosave pauses, and explicit Dashboard
+  and Dealership saves require confirmation before removing only affected rows.
+  Verification passes 57 focused tests with 248 assertions, the complete Sales
+  Form suite at 480 tests with 1,644 assertions, and the Sales package typecheck.
+  Dealership has no touched-file TypeScript diagnostics; Dashboard remains on
+  its pre-existing broad record/adapter type baseline. Authenticated local
+  browser smoke reached the HPT workflow with no feature JavaScript error, but
+  the exact swap sequence could not be completed because the local workflow
+  selection reset during setup. No schema, migration, API, auth, or permission
+  contract changed.
+
 - 2026-09-03: Completed the two reopened Canonical Sales Pipeline
   implementation checks after updating Scratch first. Ticket 15 is done at
   14/14: Sales Order menus expose one Production-completed/Fulfilled action

@@ -2,7 +2,10 @@
 
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { HousePackageToolPanel } from "./house-package-tool-panel";
+import {
+	HousePackageToolPanel,
+	getHousePackageToolSwapSizeOptionState,
+} from "./house-package-tool-panel";
 
 function renderPanel(options?: {
 	doorSalesUnitPrice?: number;
@@ -12,6 +15,8 @@ function renderPanel(options?: {
 	authoritativeLineTotal?: number;
 	quantity?: number;
 	sharedDoorSurcharge?: number;
+	priceMissing?: boolean;
+	pricingReady?: boolean;
 }) {
 	const doorSalesUnitPrice = options?.doorSalesUnitPrice ?? 5_500;
 	const quantity = options?.quantity ?? 1;
@@ -32,6 +37,8 @@ function renderPanel(options?: {
 			baseUnitPrice: 4_500,
 			doorSalesUnitPrice,
 			sharedDoorSurcharge,
+			priceMissing: options?.priceMissing ?? false,
+			pendingUnpricedSizeSwap: options?.priceMissing ?? false,
 		},
 	};
 
@@ -62,6 +69,7 @@ function renderPanel(options?: {
 			}}
 			availableSizeOptions={[
 				{ size: "3-0 x 6-8", doorPrice: 4_500, selected: true },
+				{ size: "3-0 x 8-0", doorPrice: 5_000, selected: false },
 			]}
 			pricedSteps={[]}
 			noHandle
@@ -76,6 +84,7 @@ function renderPanel(options?: {
 			}
 			sharedDoorSurcharge={sharedDoorSurcharge}
 			profileCoefficient={1}
+			pricingReady={options?.pricingReady ?? true}
 			canSwapDoor={false}
 			canEditPricing={options?.canEditPricing ?? true}
 			formatMoney={(value) => `$${Number(value).toFixed(2)}`}
@@ -83,6 +92,7 @@ function renderPanel(options?: {
 			resolveImageSrc={(src) => (src ? `https://images.example/${src}` : null)}
 			onActiveDoorChange={() => undefined}
 			onAddSize={() => undefined}
+			onSwapSize={() => undefined}
 			onConfigureSizes={() => undefined}
 			onSwapDoor={() => undefined}
 			onDeleteDoor={() => undefined}
@@ -139,5 +149,55 @@ describe("HousePackageToolPanel repair action", () => {
 		expect(renderPanel({ canEditPricing: false })).not.toContain(
 			"Repair price for",
 		);
+	});
+
+	it("renders an accessible swap icon beside every size", () => {
+		const html = renderPanel();
+
+		expect(html).toContain('aria-label="Swap size 3-0 x 6-8"');
+		expect(html).toContain('title="Swap size 3-0 x 6-8"');
+	});
+
+	it("disables size swapping until profile pricing is ready", () => {
+		const html = renderPanel({ pricingReady: false });
+
+		expect(html).toContain('aria-label="Swap size 3-0 x 6-8"');
+		expect(html).toContain("disabled");
+	});
+
+	it("renders an unpriced swapped size in red", () => {
+		const html = renderPanel({ priceMissing: true });
+
+		expect(html).toContain('class="text-destructive">3-0 x 6-8</span>');
+		expect(html).toContain('aria-label="Swap size 3-0 x 6-8"');
+	});
+
+	it("disables current and sibling-selected sizes and labels unpriced choices", () => {
+		const formatMoney = (value: unknown) => `$${Number(value).toFixed(2)}`;
+		expect(
+			getHousePackageToolSwapSizeOptionState(
+				{ size: "3-0 x 6-8", doorPrice: 100, selected: true },
+				"3-0 x 6-8",
+				formatMoney,
+			),
+		).toEqual({ current: true, disabled: true, label: "Current" });
+		expect(
+			getHousePackageToolSwapSizeOptionState(
+				{ size: "3-0 x 7-0", doorPrice: 110, selected: true },
+				"3-0 x 6-8",
+				formatMoney,
+			),
+		).toEqual({ current: false, disabled: true, label: "Selected" });
+		expect(
+			getHousePackageToolSwapSizeOptionState(
+				{ size: "3-0 x 8-0", doorPrice: null, selected: false },
+				"3-0 x 6-8",
+				formatMoney,
+			),
+		).toEqual({
+			current: false,
+			disabled: false,
+			label: "Price unavailable",
+		});
 	});
 });

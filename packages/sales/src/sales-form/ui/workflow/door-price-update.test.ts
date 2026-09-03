@@ -75,6 +75,32 @@ describe("door price updates", () => {
 		expect(row.lineTotal).toBe(740.8);
 	});
 
+	it("clears missing-price swap state when a base price is repaired", () => {
+		const row = updateDoorRowBasePrice(
+			{
+				unitPrice: 0,
+				lhQty: 1,
+				rhQty: 2,
+				totalQty: 3,
+				lineTotal: 0,
+				meta: {
+					priceMissing: true,
+					pendingUnpricedSizeSwap: true,
+				},
+			},
+			120,
+			0.75,
+		);
+
+		expect(row.meta).toMatchObject({
+			baseUnitPrice: 120,
+			priceMissing: false,
+			pendingUnpricedSizeSwap: false,
+		});
+		expect(row.totalQty).toBe(3);
+		expect(row.lineTotal).toBeGreaterThan(0);
+	});
+
 	it("clears legacy custom-price metadata when returning to auto pricing", () => {
 		const row = patchDoorRowCustomPrice(
 			{

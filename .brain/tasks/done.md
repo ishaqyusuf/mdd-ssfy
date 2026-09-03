@@ -1,5 +1,23 @@
 # Done
 
+### HPT Size Hot-Swap And Height Reconciliation
+
+- Priority: High
+- Description: Added accessible per-row HPT size swap menus and automatic
+  Height-step reconciliation with current pricing, quantity/add-on preservation,
+  duplicate prevention, missing-price visibility, paused Dashboard autosave, and
+  confirmed unpriced-row removal across Dashboard and Dealership saves.
+- Related Feature: Sales Form System Hardening
+- Status: Done
+- Validation: 57 focused tests / 248 assertions, full Sales Form suite at 480
+  tests / 1,644 assertions, Sales package typecheck, affected Dealership
+  diagnostic, and three independent no-findings reviews. Authenticated local HPT
+  browser smoke passed, while the exact swap interaction remains covered by
+  pure/render tests because the local selection reset during setup.
+- Database/API Impact: None; existing record metadata and save contracts are
+  reused without schema, migration, endpoint, auth, or permission changes.
+- Completed Date: 2026-09-03
+
 ### Hide Sales Orders P.O. Column
 
 - Priority: Medium

@@ -13,13 +13,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import { CUSTOM_IMG_ID } from "@/utils/constants";
 import { moneyRatio, multiplyMoney } from "@gnd/sales/payment-system/money";
+import { toast } from "@gnd/ui/use-toast";
 import {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,
 	deriveDoorSizeCandidates,
 	findLineStepByTitle,
-	getRedirectableRoutes,
 	getDoorSwingOptions,
+	getRedirectableRoutes,
 	getSelectedDoorComponentsForLine,
 	getSelectedProdUids,
 	isComponentVisibleByRules,
@@ -105,11 +106,11 @@ import {
 	profileAdjustedDoorSalesPrice,
 	profileAdjustedSalesPrice,
 	removeWorkflowHptDoorOption,
-	resolveWorkflowDoorSizePricing,
 	removeWorkflowMouldingSelection,
 	resolveConfiguredRouteStepsForLine,
 	resolveInteractiveStepIndex,
 	resolveWorkflowCatalogComponents,
+	resolveWorkflowDoorSizePricing,
 	resolveWorkflowVisibleComponents,
 	saveWorkflowSelectedComponent,
 	selectAllWorkflowComponents,
@@ -117,6 +118,7 @@ import {
 	shouldRenderWorkflowStepPanel,
 	stepKey,
 	swapWorkflowDoorComponent,
+	swapWorkflowHptDoorRowSize,
 	updateWorkflowDoorSupplier,
 	useItemWorkflowController,
 	useMouldingWorkflow,
@@ -617,6 +619,12 @@ export function ItemWorkflowPanel() {
 		activeDoorStepComponentOverrides,
 		activeDoorStep,
 	]);
+	const activeDoorPricingReady =
+		activeProfileCoefficient != null &&
+		doorStepComponentsQuery.data != null &&
+		!doorStepComponentsQuery.isPending &&
+		!doorStepComponentsQuery.isFetching &&
+		!doorStepComponentsQuery.isError;
 	const activeDoorSync = useMemo(() => {
 		if (activeProfileCoefficient == null) return null;
 		return buildWorkflowDoorSyncPatch({
@@ -770,8 +778,29 @@ export function ItemWorkflowPanel() {
 			visibleComponents: visibleComponentsOverride || visibleComponents,
 			activeStepTitle: activeStep?.step?.title || "",
 			selectedOverride,
+			availableDoorComponents: visibleDoorComponents,
+			salesMultiplier:
+				Number.isFinite(activeProfileCoefficient) &&
+				activeProfileCoefficient > 0
+					? moneyRatio(1, activeProfileCoefficient)
+					: null,
+			profileCoefficient: activeProfileCoefficient,
+			pricingReady: activeDoorPricingReady,
 		});
-		if (!result) return;
+		if (!result) {
+			if (
+				normalizeTitle(steps[currentStepIndex]?.step?.title) === "height" &&
+				line.housePackageTool?.doors?.length
+			) {
+				toast({
+					title: "Height not changed",
+					description:
+						"Wait for current door pricing to load, or remove duplicate widths before trying again.",
+					variant: "destructive",
+				});
+			}
+			return;
+		}
 		updateLineItem(line.uid, result.linePatch as Partial<NewSalesFormLineItem>);
 		activateLineStep(line.uid, result.activeStepIndex);
 	}
@@ -1287,14 +1316,11 @@ export function ItemWorkflowPanel() {
 							(row) =>
 								String(row?.dimension || "")
 									.trim()
-									.toLowerCase() ===
-								String(size).trim().toLowerCase(),
+									.toLowerCase() === String(size).trim().toLowerCase(),
 						);
 						return {
 							size,
-							doorPrice: pricing.hasPrice
-								? pricing.doorSalesUnitPrice
-								: null,
+							doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
 							selected,
 						};
 					})
@@ -1322,7 +1348,7 @@ export function ItemWorkflowPanel() {
 					swingOptions={getDoorSwingOptions(line)}
 					sharedDoorSurcharge={sharedDoorSurcharge}
 					profileCoefficient={activeProfileCoefficient}
-					pricingReady={activeProfileCoefficient != null}
+					pricingReady={activeDoorPricingReady}
 					canSwapDoor={Boolean(swapDoorCandidates.length)}
 					canEditPricing={workflowAdminCapabilities.canEditLinePricing}
 					formatMoney={money}
@@ -1335,6 +1361,32 @@ export function ItemWorkflowPanel() {
 							: undefined
 					}
 					onAddSize={addSizeRow}
+					onSwapSize={(row, size) => {
+						if (!activeDoorComponent) return;
+						const result = swapWorkflowHptDoorRowSize({
+							line,
+							rows,
+							sourceRow: row,
+							targetSize: size,
+							component: activeDoorComponent,
+							supplierUid: supplier.supplierUid,
+							salesMultiplier:
+								Number.isFinite(activeProfileCoefficient) &&
+								activeProfileCoefficient > 0
+									? moneyRatio(1, activeProfileCoefficient)
+									: null,
+							profileCoefficient: activeProfileCoefficient,
+							sharedDoorSurcharge,
+							noHandle,
+							hasSwing,
+						});
+						if (result) {
+							updateLineItem(
+								line.uid,
+								result.linePatch as Partial<NewSalesFormLineItem>,
+							);
+						}
+					}}
 					onConfigureSizes={() =>
 						activeDoorComponent
 							? setDoorStepModal({
@@ -1372,6 +1424,7 @@ export function ItemWorkflowPanel() {
 					noHandle,
 					hasSwing,
 					profileCoefficient: activeProfileCoefficient,
+					preserveUnpricedRows: true,
 				});
 				updateLineItem(
 					line.uid,
@@ -2600,13 +2653,15 @@ export function ItemWorkflowPanel() {
 								onEnableCustomComponent={
 									workflowAdminCapabilities.canEnableCustomComponents
 										? () =>
-												componentAdmin.componentActions.onEnableCustomComponent?.({
-													routeData,
-													line,
-													steps,
-													step: activeItemStep,
-													stepIndex: activeIndex,
-												})
+												componentAdmin.componentActions.onEnableCustomComponent?.(
+													{
+														routeData,
+														line,
+														steps,
+														step: activeItemStep,
+														stepIndex: activeIndex,
+													},
+												)
 										: undefined
 								}
 								customComponentSlot={renderCustomComponentInlinePanel(

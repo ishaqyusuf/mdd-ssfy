@@ -40,6 +40,7 @@ export {
   deriveDoorSizeRows,
   getDoorSupplierMeta,
   isDoorRowPriceMissing,
+  isPendingUnpricedSizeSwap,
   normalizeStoredDoorRows,
   repricePersistedDoorRowsForSupplier,
   resolveWorkflowDoorSizePricing,
@@ -52,6 +53,7 @@ export type {
 } from "./invoice-item-card";
 export {
   HousePackageToolPanel,
+  getHousePackageToolSwapSizeOptionState,
   type HousePackageToolPanelProps,
   type HousePackageToolSizeOption,
 } from "./house-package-tool-panel";
@@ -181,6 +183,8 @@ export {
   addWorkflowHptDoorOption,
   removeWorkflowHptDoorOption,
   removeWorkflowSelectedComponent,
+  reconcileWorkflowHptRowsForHeightChange,
+  swapWorkflowHptDoorRowSize,
   swapWorkflowDoorComponent,
   updateWorkflowDoorSupplier,
   type WorkflowDoorActionPatch,

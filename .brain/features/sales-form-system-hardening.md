@@ -1,5 +1,29 @@
 # Sales Form System Hardening
 
+## HPT size hot-swap and height reconciliation (2026-09-03)
+
+- Every House Package Tool size row now has an accessible Repeat/swap control.
+  Its shared dropdown shows current pricing, labels unavailable prices, and
+  disables the current size plus sizes already selected for the same door.
+- Manual swaps and Height-step changes use one package-owned row replacement
+  path. They preserve the row, door, swing, LH/RH or total quantity, and
+  add-ons; clear custom price overrides; resolve the current catalogue,
+  supplier, customer-profile, and shared-surcharge price; and recompute HPT,
+  parent-line, and sale totals. For example, `2-4 x 6-8` with LH `1` and RH `2`
+  becomes `2-4 x 8-0` with the same three-door quantity when Height changes to
+  `8-0`.
+- An unavailable replacement price no longer erases the requested quantity.
+  The row changes size, is visibly red, carries a transient pending-swap marker,
+  and remains editable at zero price. Dashboard autosave pauses while any such
+  quantity-bearing row exists. Explicit Dashboard and Dealership saves identify
+  the affected door, size, and quantities, then require either cancellation or
+  confirmed removal of only those rows before continuing the original action.
+  Dashboard print, PDF, and preview also fail closed until the guarded save has
+  resolved the rows.
+- Pricing readiness is fail-closed in the package and legacy Dashboard panels,
+  so a height change cannot reconcile against a pending, refetching, failed, or
+  absent component catalogue. No database or API contract changed.
+
 ## Approved whole-line deletion (2026-09-03)
 
 - Approved paid-order adjustments treat a line omitted from the approved form

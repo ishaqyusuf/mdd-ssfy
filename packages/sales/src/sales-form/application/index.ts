@@ -1,5 +1,14 @@
 export { computeSalesFormSummary } from "./compute-summary";
 export {
+	findQuantityBearingUnpricedHptRows,
+	hasQuantityBearingUnpricedHptRows,
+	removeQuantityBearingUnpricedHptRows,
+	resolveUnpricedHptPersistence,
+	type SalesFormRecordWithLines,
+	type UnpricedHptPersistenceDecision,
+	type UnpricedHptSizeRowIssue,
+} from "./unpriced-hpt-rows";
+export {
 	clearSalesFormLineItemPersistenceIds,
 	duplicateSalesFormLineItemRecord,
 } from "./line-item-copy";

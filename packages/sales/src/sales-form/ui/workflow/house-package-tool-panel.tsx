@@ -89,6 +89,25 @@ export type HousePackageToolSizeOption = {
 	selected: boolean;
 };
 
+export function getHousePackageToolSwapSizeOptionState(
+	option: HousePackageToolSizeOption,
+	currentSize: string,
+	formatMoney: (value: unknown) => string,
+) {
+	const current = option.size === currentSize;
+	return {
+		current,
+		disabled: current || option.selected,
+		label: current
+			? "Current"
+			: option.selected
+				? "Selected"
+				: option.doorPrice == null
+					? "Price unavailable"
+					: formatMoney(option.doorPrice),
+	};
+}
+
 export type HousePackageToolPanelProps = {
 	selectedDoorComponents: WorkflowComponentRecord[];
 	activeDoorUid: string;
@@ -118,6 +137,7 @@ export type HousePackageToolPanelProps = {
 	onActiveDoorChange: (uid: string) => void;
 	onAddDoor?: () => void;
 	onAddSize: (size: string) => void;
+	onSwapSize: (row: DoorStoredRow, size: string) => void;
 	onConfigureSizes: () => void;
 	onSwapDoor: () => void;
 	onDeleteDoor: () => void;
@@ -137,6 +157,64 @@ export function getHousePackageToolRowKey(
 	if (persistedUid) return `hpt-row-${componentId}-saved-uid-${persistedUid}`;
 
 	return `hpt-row-${componentId}-draft-${String(row.stepProductId || "product")}-${String(row.dimension || "size")}-${rowIndex}`;
+}
+
+function HptSwapSizeMenu(props: {
+	componentId: number;
+	row: DoorStoredRow;
+	availableSizeOptions: HousePackageToolSizeOption[];
+	formatMoney: (value: unknown) => string;
+	onSwapSize: (row: DoorStoredRow, size: string) => void;
+	disabled?: boolean;
+}) {
+	const currentSize = String(props.row.dimension || "").trim();
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					className="size-7 shrink-0"
+					disabled={props.disabled}
+					aria-label={`Swap size ${currentSize || "door size"}`}
+					title={`Swap size ${currentSize || "door size"}`}
+				>
+					<Icons.Repeat className="size-3.5" />
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="start" className="w-60">
+				{props.availableSizeOptions.length ? (
+					props.availableSizeOptions.map((option) => {
+						const state = getHousePackageToolSwapSizeOptionState(
+							option,
+							currentSize,
+							props.formatMoney,
+						);
+						return (
+							<DropdownMenuItem
+								key={`swap-size-${props.componentId}-${currentSize}-${option.size}`}
+								disabled={state.disabled}
+								onClick={() => {
+									if (!state.disabled) {
+										props.onSwapSize(props.row, option.size);
+									}
+								}}
+								className="flex items-center justify-between gap-4"
+							>
+								<span>{option.size}</span>
+								<span className="text-xs tabular-nums text-muted-foreground">
+									{state.label}
+								</span>
+							</DropdownMenuItem>
+						);
+					})
+				) : (
+					<DropdownMenuItem disabled>No sizes available</DropdownMenuItem>
+				)}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
 }
 
 function HptHeaderActionTooltip({
@@ -318,9 +396,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 								alt={props.activeDoorComponent?.title || doorTitle}
 								className="size-12 rounded-md"
 								imageClassName="p-2"
-								fallback={
-									<Icons.Ruler size={15} className="text-slate-500" />
-								}
+								fallback={<Icons.Ruler size={15} className="text-slate-500" />}
 							/>
 							<div className="min-w-0">
 								<p className="truncate text-sm font-semibold text-slate-900">
@@ -450,7 +526,25 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 												className="border-b border-slate-100 last:border-0"
 											>
 												<td className="whitespace-nowrap px-3 py-2 font-medium text-slate-800">
-													{row.dimension || "--"}
+													<div className="flex items-center gap-1">
+														<span
+															className={
+																isDoorRowPriceMissing(row)
+																	? "text-destructive"
+																	: undefined
+															}
+														>
+															{row.dimension || "--"}
+														</span>
+														<HptSwapSizeMenu
+															componentId={componentId}
+															row={row}
+															availableSizeOptions={props.availableSizeOptions}
+															formatMoney={props.formatMoney}
+															onSwapSize={props.onSwapSize}
+															disabled={!props.pricingReady}
+														/>
+													</div>
 												</td>
 												{props.hasSwing ? (
 													<td className="px-2 py-2">

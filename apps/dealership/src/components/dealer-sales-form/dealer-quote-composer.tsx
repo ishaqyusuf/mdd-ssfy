@@ -11,7 +11,9 @@ import {
 	buildSalesFormTaxSelectOptions,
 	composeDealerSalesFormQuotePricing,
 	composeDealerSalesFormQuoteSaveInput,
+	findQuantityBearingUnpricedHptRows,
 	normalizeSalesFormTaxOptions,
+	resolveUnpricedHptPersistence,
 	resolveDealerSalesFormStructuredLineTotal,
 	resolveSalesFormTaxRateByCode,
 } from "@gnd/sales/sales-form";
@@ -269,6 +271,7 @@ export function DealerQuoteComposer({
 	const [pricingSnapshotChoice, setPricingSnapshotChoice] = useState<
 		"saved" | "current" | null
 	>(null);
+	const [unpricedSavePromptOpen, setUnpricedSavePromptOpen] = useState(false);
 	const [selectedCustomerOverride, setSelectedCustomerOverride] =
 		useState<DealerSalesFormCustomer | null>(null);
 	const defaultTaxCodeRef = useRef<string | null>(null);
@@ -667,13 +670,13 @@ export function DealerQuoteComposer({
 		router.push("/quotes/new");
 	}
 
-	function save() {
-		if (!record?.form.customerId) {
+	function validateSavePrerequisites(candidateRecord: DealerSalesFormRecord) {
+		if (!candidateRecord.form.customerId) {
 			toast({
 				title: "Select a customer first.",
 				variant: "destructive",
 			});
-			return;
+			return false;
 		}
 		if (!selectedProfile?.id) {
 			toast({
@@ -682,11 +685,24 @@ export function DealerQuoteComposer({
 					"This dealer needs a primary customer profile before quotes can be saved.",
 				variant: "destructive",
 			});
+			return false;
+		}
+		return true;
+	}
+
+	function persistRecord(
+		candidateRecord: DealerSalesFormRecord,
+		prerequisitesValidated = false,
+	) {
+		if (
+			!prerequisitesValidated &&
+			!validateSavePrerequisites(candidateRecord)
+		) {
 			return;
 		}
 
 		const payload = composeDealerSalesFormQuoteSaveInput({
-			record,
+			record: candidateRecord,
 			id: editingQuoteId,
 			customerProfileId: selectedProfile.id,
 			lineTotalsByUid,
@@ -697,6 +713,19 @@ export function DealerQuoteComposer({
 		});
 		if (!payload) return;
 		saveQuote.mutate(payload);
+	}
+
+	function save() {
+		if (!record) return;
+		if (!validateSavePrerequisites(record)) return;
+		if (
+			resolveUnpricedHptPersistence(record, "dealership-save")
+				.requiresConfirmation
+		) {
+			setUnpricedSavePromptOpen(true);
+			return;
+		}
+		persistRecord(record);
 	}
 
 	if (isInitialLoading || !record) return <DealerQuoteSkeleton />;
@@ -899,6 +928,64 @@ export function DealerQuoteComposer({
 				permissions={permissions}
 				type="quote"
 			/>
+			<Dialog
+				open={unpricedSavePromptOpen}
+				onOpenChange={setUnpricedSavePromptOpen}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Remove unpriced sizes before saving?</DialogTitle>
+						<DialogDescription>
+							These HPT sizes do not have a configured price. Continuing will
+							remove only these size rows from the quote.
+						</DialogDescription>
+					</DialogHeader>
+					<ul className="space-y-2 rounded-md border p-3 text-sm">
+						{findQuantityBearingUnpricedHptRows(record).map((issue) => (
+							<li
+								key={`${issue.lineUid}-${issue.componentTitle}-${issue.size}`}
+							>
+								<span className="font-medium">{issue.componentTitle}</span>
+								{" · "}
+								<span className="text-destructive">{issue.size}</span>
+								{" · "}
+								Qty {issue.quantity} (LH {issue.lhQty}, RH {issue.rhQty})
+							</li>
+						))}
+					</ul>
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setUnpricedSavePromptOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							variant="destructive"
+							disabled={saveQuote.isPending}
+							onClick={() => {
+								if (!validateSavePrerequisites(record)) return;
+								const sanitized = resolveUnpricedHptPersistence(
+									record,
+									"dealership-save",
+									true,
+								).record;
+								setUnpricedSavePromptOpen(false);
+								form.setState((current) => ({
+									...current,
+									record: sanitized,
+									dirty: true,
+								}));
+								persistRecord(sanitized, true);
+							}}
+						>
+							Remove sizes &amp; save
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 			<Dialog
 				open={hasPricingSnapshotChange && pricingSnapshotChoice == null}
 				onOpenChange={(open) => {

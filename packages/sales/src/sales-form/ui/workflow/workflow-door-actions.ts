@@ -1,28 +1,35 @@
+import { divideMoney } from "../../../payment-system/domain/money";
 import {
 	compactStepValue,
+	deriveDoorSizeCandidates,
 	getRouteConfigForLine,
+	getSelectedDoorComponentsForLine,
 	getSelectedProdUids,
+	normalizeHptDoorRowForLegacy,
 	readSalesFormObjectMetadata,
 	summarizeDoors,
 } from "../../domain";
 import { snapshotSelectedComponent } from "./component-utils";
 import {
+	computeSharedDoorSurcharge,
 	getDoorSupplierMeta,
 	repricePersistedDoorRowsForSupplier,
+	resolveWorkflowDoorSizePricing,
 } from "./door-utils";
 import {
-	getWorkflowSteps,
-	isMultiSelectStepTitle,
 	type DoorStoredRow,
 	type WorkflowComponentRecord,
+	type WorkflowHousePackageToolRecord,
 	type WorkflowLineItemRecord,
 	type WorkflowStepRecord,
+	getWorkflowSteps,
+	isMultiSelectStepTitle,
 } from "./workflow-records";
-import { divideMoney } from "../../../payment-system/domain/money";
+import { buildWorkflowDoorRowsPatch } from "./workflow-row-patches";
 
 export type WorkflowDoorActionPatch = {
 	formSteps?: WorkflowStepRecord[];
-	housePackageTool?: unknown;
+	housePackageTool?: WorkflowHousePackageToolRecord | null;
 	qty?: number | null;
 	unitPrice?: number | null;
 	lineTotal?: number | null;
@@ -41,6 +48,278 @@ function readSelectedComponents(step?: WorkflowStepRecord | null) {
 	return Array.isArray(meta.selectedComponents)
 		? (meta.selectedComponents as WorkflowComponentRecord[])
 		: [];
+}
+
+function replaceHptDoorRowSize(input: {
+	row: DoorStoredRow;
+	targetSize: string;
+	component: WorkflowComponentRecord;
+	supplierUid?: string | null;
+	salesMultiplier?: number | null;
+	profileCoefficient?: number | null;
+	sharedDoorSurcharge: number;
+	noHandle?: boolean;
+	hasSwing?: boolean;
+}) {
+	const pricing = resolveWorkflowDoorSizePricing({
+		component: input.component,
+		size: input.targetSize,
+		supplierUid: input.supplierUid,
+		salesMultiplier: input.salesMultiplier,
+		profileCoefficient: input.profileCoefficient,
+		sharedDoorSurcharge: input.sharedDoorSurcharge,
+	});
+	const meta = readSalesFormObjectMetadata(input.row.meta) || {};
+	const normalized = normalizeHptDoorRowForLegacy(
+		{
+			...input.row,
+			dimension: input.targetSize,
+			jambSizePrice: pricing.doorSalesUnitPrice,
+			unitPrice: pricing.unitPrice,
+			customPrice: null,
+			meta: {
+				...meta,
+				baseUnitPrice: pricing.basePrice,
+				doorSalesUnitPrice: pricing.doorSalesUnitPrice,
+				priceMissing: !pricing.hasPrice,
+				pendingUnpricedSizeSwap: !pricing.hasPrice,
+				overridePrice: null,
+				customPrice: null,
+				componentUid: meta.componentUid || input.component.uid || null,
+				componentTitle: meta.componentTitle || input.component.title || null,
+			},
+		},
+		{
+			profileCoefficient: input.profileCoefficient,
+			sharedDoorSurcharge: input.sharedDoorSurcharge,
+			noHandle: input.noHandle,
+			hasSwing: input.hasSwing,
+		},
+	) as DoorStoredRow;
+
+	if (pricing.hasPrice) return normalized;
+	return {
+		...normalized,
+		jambSizePrice: 0,
+		unitPrice: 0,
+		lineTotal: 0,
+		meta: {
+			...(normalized.meta || {}),
+			doorSalesUnitPrice: 0,
+			calculatedFinalUnitPrice: 0,
+			finalUnitPrice: 0,
+			priceMissing: true,
+			pendingUnpricedSizeSwap: true,
+		},
+	};
+}
+
+function isSameHptDoorRow(left: DoorStoredRow, right: DoorStoredRow) {
+	if (left.id != null && right.id != null) {
+		return String(left.id) === String(right.id);
+	}
+	return (
+		Number(left.stepProductId || 0) === Number(right.stepProductId || 0) &&
+		String(left.dimension || "")
+			.trim()
+			.toLowerCase() ===
+			String(right.dimension || "")
+				.trim()
+				.toLowerCase()
+	);
+}
+
+export function swapWorkflowHptDoorRowSize(input: {
+	line: WorkflowLineItemRecord;
+	rows: DoorStoredRow[];
+	sourceRow: DoorStoredRow;
+	targetSize: string;
+	component: WorkflowComponentRecord;
+	supplierUid?: string | null;
+	salesMultiplier?: number | null;
+	profileCoefficient?: number | null;
+	sharedDoorSurcharge: number;
+	noHandle?: boolean;
+	hasSwing?: boolean;
+}): { linePatch: WorkflowDoorActionPatch } | null {
+	const targetSize = String(input.targetSize || "").trim();
+	if (
+		!targetSize ||
+		targetSize === String(input.sourceRow.dimension || "").trim()
+	) {
+		return null;
+	}
+	const componentId = Number(
+		input.component.id || input.sourceRow.stepProductId || 0,
+	);
+	const duplicate = input.rows.some(
+		(row) =>
+			!isSameHptDoorRow(row, input.sourceRow) &&
+			Number(row.stepProductId || 0) === componentId &&
+			String(row.dimension || "")
+				.trim()
+				.toLowerCase() === targetSize.toLowerCase(),
+	);
+	if (duplicate) return null;
+
+	const nextRows = input.rows.map((row) =>
+		isSameHptDoorRow(row, input.sourceRow)
+			? replaceHptDoorRowSize({ ...input, row, targetSize })
+			: row,
+	);
+	const next = buildWorkflowDoorRowsPatch({
+		line: input.line,
+		rows: nextRows,
+		sharedDoorSurcharge: input.sharedDoorSurcharge,
+		noHandle: input.noHandle,
+		hasSwing: input.hasSwing,
+		profileCoefficient: input.profileCoefficient,
+		preserveUnpricedRows: true,
+		skipRowNormalization: true,
+	});
+	return { linePatch: next.linePatch };
+}
+
+function splitDoorDimension(value?: string | null) {
+	const [width = "", height = ""] = String(value || "")
+		.trim()
+		.split(/\s*[x×✕]\s*/i);
+	return { width: width.trim(), height: height.trim() };
+}
+
+export function reconcileWorkflowHptRowsForHeightChange(input: {
+	line: WorkflowLineItemRecord;
+	nextSteps: WorkflowStepRecord[];
+	routeData?: unknown;
+	availableDoorComponents?: WorkflowComponentRecord[];
+	salesMultiplier?: number | null;
+	profileCoefficient?: number | null;
+}): WorkflowDoorActionPatch | null {
+	const currentHeight = getWorkflowSteps(input.line).find(
+		(step) =>
+			String(step?.step?.title || "")
+				.trim()
+				.toLowerCase() === "height",
+	)?.value;
+	const nextHeight = input.nextSteps.find(
+		(step) =>
+			String(step?.step?.title || "")
+				.trim()
+				.toLowerCase() === "height",
+	)?.value;
+	if (
+		!String(nextHeight || "").trim() ||
+		String(currentHeight || "")
+			.trim()
+			.toLowerCase() ===
+			String(nextHeight || "")
+				.trim()
+				.toLowerCase()
+	) {
+		return null;
+	}
+
+	const rows = Array.isArray(input.line.housePackageTool?.doors)
+		? (input.line.housePackageTool?.doors as DoorStoredRow[])
+		: [];
+	if (!rows.length) return null;
+
+	const nextLine = { ...input.line, formSteps: input.nextSteps };
+	const selectedComponents = getSelectedDoorComponentsForLine(nextLine) as
+		| WorkflowComponentRecord[]
+		| undefined;
+	const resolvedComponents = [
+		...(selectedComponents || []),
+		...(input.availableDoorComponents || []),
+	];
+	const componentById = new Map(
+		resolvedComponents.map((component) => [
+			Number(component.id || 0),
+			component,
+		]),
+	);
+	const componentByUid = new Map(
+		resolvedComponents.map((component) => [
+			String(component.uid || ""),
+			component,
+		]),
+	);
+	const doorStep = input.nextSteps.find(
+		(step) =>
+			String(step?.step?.title || "")
+				.trim()
+				.toLowerCase() === "door",
+	);
+	const supplierUid = getDoorSupplierMeta(doorStep).supplierUid;
+	const sharedDoorSurcharge = computeSharedDoorSurcharge(nextLine);
+	const normalizedNextHeight = String(nextHeight || "").trim();
+	const plannedRows = rows.map((row) => {
+		const { width } = splitDoorDimension(row.dimension);
+		if (!width) return { row, targetSize: null, component: null };
+		const rowMeta = readSalesFormObjectMetadata(row.meta) || {};
+		const component = componentById.get(Number(row.stepProductId || 0)) ||
+			(rowMeta.componentUid
+				? componentByUid.get(String(rowMeta.componentUid))
+				: undefined) || {
+				id: row.stepProductId || null,
+				uid: rowMeta.componentUid || null,
+				title: rowMeta.componentTitle || "Saved Door",
+				pricing: {},
+			};
+		const candidates = deriveDoorSizeCandidates(
+			nextLine,
+			(component.pricing || {}) as Record<string, unknown>,
+			input.routeData,
+			{ ignorePersistedVariations: true },
+		);
+		const targetSize =
+			candidates.find((candidate) => {
+				const dimension = splitDoorDimension(candidate);
+				return (
+					dimension.width.toLowerCase() === width.toLowerCase() &&
+					dimension.height.toLowerCase() === normalizedNextHeight.toLowerCase()
+				);
+			}) || `${width} x ${normalizedNextHeight}`;
+		return { row, targetSize, component };
+	});
+	const targetIdentities = new Set<string>();
+	for (const plan of plannedRows) {
+		if (!plan.targetSize || !plan.component) continue;
+		const identity = `${Number(plan.component.id || plan.row.stepProductId || 0)}:${plan.targetSize.trim().toLowerCase()}`;
+		if (targetIdentities.has(identity)) return null;
+		targetIdentities.add(identity);
+	}
+	const nextRows = plannedRows.map(({ row, targetSize, component }) => {
+		if (!targetSize || !component) return row;
+		const routeConfig = getRouteConfigForLine({
+			routeData: input.routeData,
+			line: nextLine,
+			step: doorStep,
+			component,
+		});
+		return replaceHptDoorRowSize({
+			row,
+			targetSize,
+			component,
+			supplierUid,
+			salesMultiplier:
+				input.salesMultiplier ??
+				computeSalesMultiplier(input.profileCoefficient),
+			profileCoefficient: input.profileCoefficient,
+			sharedDoorSurcharge,
+			noHandle: Boolean(routeConfig?.noHandle),
+			hasSwing: routeConfig?.hasSwing !== false,
+		});
+	});
+	const next = buildWorkflowDoorRowsPatch({
+		line: nextLine,
+		rows: nextRows,
+		sharedDoorSurcharge,
+		profileCoefficient: input.profileCoefficient,
+		preserveUnpricedRows: true,
+		skipRowNormalization: true,
+	});
+	return next.linePatch;
 }
 
 export function updateWorkflowDoorSupplier(input: {

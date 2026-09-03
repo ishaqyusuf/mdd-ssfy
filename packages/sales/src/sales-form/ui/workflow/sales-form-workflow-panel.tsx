@@ -18,6 +18,7 @@ import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Textarea } from "@gnd/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@gnd/ui/tooltip";
+import { toast } from "@gnd/ui/use-toast";
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import {
 	addMoney,
@@ -54,13 +55,13 @@ import {
 	summarizeDoors,
 } from "../../domain";
 import {
-	compileShelfProductSearchIndex,
-	searchCompiledShelfProductIndex,
-} from "../../domain/shelf-product-search";
-import {
 	applyMultiSelectStepMutation,
 	applySingleSelectStepMutation,
 } from "../../domain/mutation-engine";
+import {
+	compileShelfProductSearchIndex,
+	searchCompiledShelfProductIndex,
+} from "../../domain/shelf-product-search";
 import {
 	type CostPriceBreakdownContext,
 	CostPriceBreakdownHover,
@@ -129,13 +130,14 @@ import {
 	profileAdjustedDoorSalesPrice,
 	profileAdjustedSalesPrice,
 	removeWorkflowHptDoorOption,
+	resolveInteractiveStepIndex,
 	resolveWorkflowCatalogComponents,
 	resolveWorkflowDoorSizePricing,
-	resolveInteractiveStepIndex,
 	saveWorkflowSelectedComponent,
 	selectWorkflowRootComponent,
 	stepKey,
 	swapWorkflowDoorComponent,
+	swapWorkflowHptDoorRowSize,
 	updateWorkflowDoorSupplier,
 	useItemWorkflowController,
 	useMouldingWorkflow,
@@ -180,9 +182,7 @@ export function SalesFormWorkflowPanel<
 	const [doorSectionTabByLine, setDoorSectionTabByLine] = useState<
 		Record<string, DoorStepPanelTab>
 	>({});
-	const [, setActiveHptDoorUidByLine] = useState<
-		Record<string, string>
-	>({});
+	const [, setActiveHptDoorUidByLine] = useState<Record<string, string>>({});
 	const [doorSizeModal, setDoorSizeModal] = useState<{
 		open: boolean;
 		lineUid: string | null;
@@ -347,7 +347,7 @@ export function SalesFormWorkflowPanel<
 		props.pricing?.profileCoefficient,
 		record?.form?.customerProfileId,
 	]);
-	const activePricingReady = useMemo(() => {
+	const activeProfilePricingReady = useMemo(() => {
 		const pricingCoefficient = Number(props.pricing?.profileCoefficient || 0);
 		if (Number.isFinite(pricingCoefficient) && pricingCoefficient > 0) {
 			return true;
@@ -457,6 +457,12 @@ export function SalesFormWorkflowPanel<
 		stepTitle: activeDoorStep?.step?.title || "Door",
 		enabled: Boolean(activeDoorStep),
 	});
+	const activePricingReady =
+		activeProfilePricingReady &&
+		doorComponentsQuery.data != null &&
+		!doorComponentsQuery.isPending &&
+		!doorComponentsQuery.isFetching &&
+		!doorComponentsQuery.isError;
 	const configuredRootComponentUids = useMemo(
 		() => new Set(Object.keys(routeData?.composedRouter || {})),
 		[routeData?.composedRouter],
@@ -785,14 +791,11 @@ export function SalesFormWorkflowPanel<
 							(row) =>
 								String(row?.dimension || "")
 									.trim()
-									.toLowerCase() ===
-								String(size).trim().toLowerCase(),
+									.toLowerCase() === String(size).trim().toLowerCase(),
 						);
 						return {
 							size,
-							doorPrice: pricing.hasPrice
-								? pricing.doorSalesUnitPrice
-								: null,
+							doorPrice: pricing.hasPrice ? pricing.doorSalesUnitPrice : null,
 							selected,
 						};
 					})
@@ -839,6 +842,25 @@ export function SalesFormWorkflowPanel<
 							: undefined
 					}
 					onAddSize={addSizeRow}
+					onSwapSize={(row, size) => {
+						if (!activeDoorComponent) return;
+						const result = swapWorkflowHptDoorRowSize({
+							line,
+							rows,
+							sourceRow: row,
+							targetSize: size,
+							component: activeDoorComponent,
+							supplierUid: supplier.supplierUid,
+							salesMultiplier: activeSalesMultiplier,
+							profileCoefficient: activeDisplayProfileCoefficient,
+							sharedDoorSurcharge,
+							noHandle,
+							hasSwing,
+						});
+						if (result) {
+							updateLine(line, result.linePatch as unknown as Partial<TLine>);
+						}
+					}}
 					onConfigureSizes={() =>
 						activeDoorComponent
 							? openDoorSizeModal(line, activeDoorComponent)
@@ -869,6 +891,7 @@ export function SalesFormWorkflowPanel<
 					noHandle,
 					hasSwing,
 					profileCoefficient: activeDisplayProfileCoefficient,
+					preserveUnpricedRows: true,
 				});
 				updateLine(line, next.linePatch as unknown as Partial<TLine>);
 			}
@@ -927,6 +950,7 @@ export function SalesFormWorkflowPanel<
 					size,
 					supplierUid: supplier.supplierUid,
 					salesMultiplier: activeSalesMultiplier,
+					profileCoefficient: activeDisplayProfileCoefficient,
 					sharedDoorSurcharge,
 				});
 			}
@@ -982,8 +1006,25 @@ export function SalesFormWorkflowPanel<
 			visibleComponents,
 			activeStepTitle: activeStep?.step?.title || "",
 			selectedOverride,
+			availableDoorComponents: visibleDoorComponents,
+			salesMultiplier: activeSalesMultiplier,
+			profileCoefficient: activeDisplayProfileCoefficient,
+			pricingReady: activePricingReady,
 		});
-		if (!result) return;
+		if (!result) {
+			if (
+				normalizeTitle(steps[stepIndex]?.step?.title) === "height" &&
+				line.housePackageTool?.doors?.length
+			) {
+				toast({
+					title: "Height not changed",
+					description:
+						"Wait for current door pricing to load, or remove duplicate widths before trying again.",
+					variant: "destructive",
+				});
+			}
+			return;
+		}
 		updateLine(line, result.linePatch as Partial<TLine>);
 		setActiveStep(String(line.uid || ""), result.activeStepIndex);
 	}

@@ -414,6 +414,28 @@ export function summarizeDoors(
 	const hasSwing = options?.hasSwing !== false;
 	const normalized = (rows || []).map((row) => {
 		const meta = readSalesFormObjectMetadata(row?.meta) || {};
+		if (meta.priceMissing && meta.pendingUnpricedSizeSwap) {
+			const handedQty = Number(row?.lhQty || 0) + Number(row?.rhQty || 0);
+			const totalQty = noHandle
+				? Number(row?.totalQty || handedQty)
+				: handedQty || Number(row?.totalQty || 0);
+			return {
+				...row,
+				swing: hasSwing ? row?.swing || "" : "",
+				lhQty: noHandle ? 0 : Number(row?.lhQty || 0),
+				rhQty: noHandle ? 0 : Number(row?.rhQty || 0),
+				totalQty,
+				jambSizePrice: 0,
+				unitPrice: 0,
+				lineTotal: 0,
+				meta: {
+					...meta,
+					doorSalesUnitPrice: 0,
+					calculatedFinalUnitPrice: 0,
+					finalUnitPrice: 0,
+				},
+			};
+		}
 		return normalizeHptDoorRowForLegacy(row, {
 			noHandle,
 			hasSwing,

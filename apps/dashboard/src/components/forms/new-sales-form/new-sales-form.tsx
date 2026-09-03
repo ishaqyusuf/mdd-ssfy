@@ -21,11 +21,22 @@ import {
     SalesFormFloatingActions,
     SalesFormHeaderActions,
     SalesFormShell,
+    findQuantityBearingUnpricedHptRows,
+    hasQuantityBearingUnpricedHptRows,
     normalizeSalesFormInitialCustomerId,
+	resolveUnpricedHptPersistence,
     salesFormPaymentMethods,
 } from "@gnd/sales/sales-form";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@gnd/ui/dialog";
 import { DropdownMenuItem } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
@@ -421,6 +432,8 @@ export function NewSalesForm(props: Props) {
     const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
     const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
 	const [changeReviewOpen, setChangeReviewOpen] = useState(false);
+	const [pendingUnpricedSaveIntent, setPendingUnpricedSaveIntent] =
+		useState<SaveIntent | null>(null);
 	const [changeReview, setChangeReview] =
 		useState<NewSalesFormAdjustmentPreview | null>(null);
 	const [isApplyingAdjustment, setIsApplyingAdjustment] = useState(false);
@@ -784,7 +797,11 @@ export function NewSalesForm(props: Props) {
     );
 
     const autosave = useNewSalesFormAutoSave({
-		enabled: !!record && editor.autosaveEnabled && !hasSalesRepApprovalChange,
+		enabled:
+			!!record &&
+			editor.autosaveEnabled &&
+			!hasSalesRepApprovalChange &&
+			!hasQuantityBearingUnpricedHptRows(record),
         dirty,
         payload,
         onSaving: () => {
@@ -1241,7 +1258,7 @@ export function NewSalesForm(props: Props) {
         }
     }
 
-    function validateBeforeSave() {
+    function validateBeforeSave(candidateRecord = record) {
         if (historyPreview) {
             toast({
                 title: "History preview is read-only",
@@ -1251,7 +1268,7 @@ export function NewSalesForm(props: Props) {
             });
             return false;
         }
-        if (!record?.form.customerId) {
+        if (!candidateRecord?.form.customerId) {
             toast({
                 title: "Customer required",
                 description: "Select a customer before saving.",
@@ -1259,7 +1276,7 @@ export function NewSalesForm(props: Props) {
             });
             return false;
         }
-        if (!record?.lineItems?.length) {
+        if (!candidateRecord?.lineItems?.length) {
             toast({
                 title: "Line item required",
                 description: "Add at least one line item before saving.",
@@ -1270,19 +1287,26 @@ export function NewSalesForm(props: Props) {
         return true;
     }
 
-	async function openCommittedChangeReview() {
-		if (!record?.salesId || !record.slug || !record.version) return false;
+	async function openCommittedChangeReview(
+		candidateRecord: NewSalesFormRecord = record as NewSalesFormRecord,
+	) {
+		if (
+			!candidateRecord?.salesId ||
+			!candidateRecord.slug ||
+			!candidateRecord.version
+		)
+			return false;
 		committedChangeContinuationGuardRef.current.status = "idle";
 		committedChangeCreatedRef.current = false;
 		setIsAwaitingCommittedChangeApplication(false);
 		setChangeReviewOpen(true);
 		try {
 			const review = await previewAdjustmentMutation.mutateAsync({
-				...toSaveDraftInput(record, false),
+				...toSaveDraftInput(candidateRecord, false),
 				type: "order",
-				salesId: record.salesId,
-				slug: record.slug,
-				version: record.version,
+				salesId: candidateRecord.salesId,
+				slug: candidateRecord.slug,
+				version: candidateRecord.version,
 				autosave: false,
 			});
 			setChangeReview(review);
@@ -1386,10 +1410,25 @@ export function NewSalesForm(props: Props) {
 
 	async function stopForCommittedChangeReview(
 		intent: SaveIntent | null = null,
+		candidateRecord: NewSalesFormRecord = record as NewSalesFormRecord,
 	) {
-		if (!hasSalesRepApprovalChange) return false;
+		const requiresReview =
+			candidateRecord === record
+				? hasSalesRepApprovalChange
+				: Boolean(
+						props.mode === "edit" &&
+						props.type === "order" &&
+						loadData &&
+						loadedChangeProtection &&
+						analyzeSalesFormChange({
+							before: loadData,
+							after: candidateRecord,
+							commitments: loadedChangeProtection,
+						}).requiresSalesRepApproval,
+					);
+		if (!requiresReview) return false;
 		if (intent) setPendingCommittedChangeSaveIntent(intent);
-		const opened = await openCommittedChangeReview();
+		const opened = await openCommittedChangeReview(candidateRecord);
 		if (!opened && intent) setPendingCommittedChangeSaveIntent(null);
 		return true;
 	}
@@ -1571,12 +1610,24 @@ export function NewSalesForm(props: Props) {
 		});
 	}
 
-    async function runRequestedSave(intent: SaveIntent) {
+    async function runRequestedSave(
+		intent: SaveIntent,
+		candidateRecord: NewSalesFormRecord = record as NewSalesFormRecord,
+		skipUnpricedGuard = false,
+	) {
         await runWithManualSaveLock(async () => {
-            if (!record || !validateBeforeSave()) return;
-            if (await stopForCommittedChangeReview(intent)) return;
-            if (promptForSpecialOrderDeclaration(intent)) return;
-            await executeSaveIntent(intent);
+			if (!candidateRecord || !validateBeforeSave(candidateRecord)) return;
+			const unpricedDecision = resolveUnpricedHptPersistence(candidateRecord, {
+				kind: "save" as const,
+				intent,
+			});
+			if (!skipUnpricedGuard && unpricedDecision.requiresConfirmation) {
+				setPendingUnpricedSaveIntent(intent);
+				return;
+			}
+			if (await stopForCommittedChangeReview(intent, candidateRecord)) return;
+			if (promptForSpecialOrderDeclaration(intent, candidateRecord)) return;
+			await executeSaveIntent(intent, candidateRecord);
         });
     }
 
@@ -1597,10 +1648,21 @@ export function NewSalesForm(props: Props) {
     }
 
     async function handlePrint(event?: ReactMouseEvent<HTMLButtonElement>) {
-        const openInNewTab = event?.shiftKey ?? false;
+		const openInNewTab = event?.shiftKey ?? false;
         await runWithManualSaveLock(async () => {
-            if (!record) return;
-            if (!validateBeforeSave()) return;
+			if (!record || !validateBeforeSave()) return;
+			const unpricedDecision = resolveUnpricedHptPersistence(record, {
+				kind: "print" as const,
+				openInNewTab,
+			});
+			if (unpricedDecision.requiresConfirmation) {
+				toast({
+					title: "Unpriced HPT sizes",
+					description: "Save the form and remove unpriced sizes before printing.",
+					variant: "destructive",
+				});
+				return;
+			}
 			if (await stopForCommittedChangeReview()) return;
             if (saveStatus === "stale") {
                 toast({
@@ -1611,11 +1673,11 @@ export function NewSalesForm(props: Props) {
                 return;
             }
 
-            let salesId = record.salesId;
+			let salesId = record.salesId;
             let shouldRegeneratePrint = false;
 
-            if (dirty) {
-                const resp = await autosave.flush("manual-flush");
+			if (dirty) {
+				const resp = await autosave.flush("manual-flush");
                 if (!resp?.salesId) {
                     toast({
                         title: "Unable to prepare print",
@@ -1650,8 +1712,18 @@ export function NewSalesForm(props: Props) {
 
     async function handleDownloadPdf() {
         await runWithManualSaveLock(async () => {
-            if (!record) return;
-            if (!validateBeforeSave()) return;
+			if (!record || !validateBeforeSave()) return;
+			const unpricedDecision = resolveUnpricedHptPersistence(record, {
+				kind: "download-pdf" as const,
+			});
+			if (unpricedDecision.requiresConfirmation) {
+				toast({
+					title: "Unpriced HPT sizes",
+					description: "Save the form and remove unpriced sizes before downloading.",
+					variant: "destructive",
+				});
+				return;
+			}
 			if (await stopForCommittedChangeReview()) return;
             if (saveStatus === "stale") {
                 toast({
@@ -1662,11 +1734,11 @@ export function NewSalesForm(props: Props) {
                 return;
             }
 
-            let salesId = record.salesId;
+			let salesId = record.salesId;
             let shouldRegeneratePdf = false;
 
-            if (dirty) {
-                const resp = await autosave.flush("manual-flush");
+			if (dirty) {
+				const resp = await autosave.flush("manual-flush");
                 if (!resp?.salesId) {
                     toast({
                         title: "Unable to prepare PDF",
@@ -1701,8 +1773,18 @@ export function NewSalesForm(props: Props) {
     async function handlePreview() {
         if (isPreviewing) return;
         await runWithManualSaveLock(async () => {
-            if (!record) return;
-            if (!validateBeforeSave()) return;
+			if (!record || !validateBeforeSave()) return;
+			const unpricedDecision = resolveUnpricedHptPersistence(record, {
+				kind: "preview" as const,
+			});
+			if (unpricedDecision.requiresConfirmation) {
+				toast({
+					title: "Unpriced HPT sizes",
+					description: "Save the form and remove unpriced sizes before previewing.",
+					variant: "destructive",
+				});
+				return;
+			}
 			if (await stopForCommittedChangeReview()) return;
             if (saveStatus === "stale") {
                 toast({
@@ -1715,11 +1797,11 @@ export function NewSalesForm(props: Props) {
 
             setIsPreviewing(true);
             try {
-                let salesId = record.salesId;
+				let salesId = record.salesId;
 
-                if (dirty || !salesId) {
+				if (dirty || !salesId) {
                     const resp = await autosave.flush("manual-flush", {
-                        force: !salesId,
+						force: !salesId,
                     });
                     if (!resp?.salesId) {
                         toast({
@@ -1743,7 +1825,7 @@ export function NewSalesForm(props: Props) {
                 }
 
                 await salesPreview.preview(salesId, props.type, {
-                    customerEmail: record.customer?.email ?? null,
+					customerEmail: record.customer?.email ?? null,
                     customerName:
 						record.customer?.businessName || record.customer?.name || null,
                 });
@@ -1907,6 +1989,7 @@ export function NewSalesForm(props: Props) {
             )}
         </SalesMenu>
     ) : null;
+	const unpricedHptRows = findQuantityBearingUnpricedHptRows(record);
 
     return (
         <>
@@ -1915,6 +1998,63 @@ export function NewSalesForm(props: Props) {
                 type={props.type}
                 mode={props.mode}
             />
+			<Dialog
+				open={pendingUnpricedSaveIntent != null}
+				onOpenChange={(open) => {
+					if (!open) setPendingUnpricedSaveIntent(null);
+				}}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Remove unpriced sizes before saving?</DialogTitle>
+						<DialogDescription>
+							These HPT sizes do not have a configured price. Continuing will
+							remove only these size rows from the sale.
+						</DialogDescription>
+					</DialogHeader>
+					<ul className="space-y-2 rounded-md border p-3 text-sm">
+						{unpricedHptRows.map((issue) => (
+							<li
+								key={`${issue.lineUid}-${issue.componentTitle}-${issue.size}`}
+							>
+								<span className="font-medium">{issue.componentTitle}</span>
+								{" · "}
+								<span className="text-destructive">{issue.size}</span>
+								{" · "}
+								Qty {issue.quantity} (LH {issue.lhQty}, RH {issue.rhQty})
+							</li>
+						))}
+					</ul>
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setPendingUnpricedSaveIntent(null)}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							variant="destructive"
+							disabled={!record || isSaveBusy}
+							onClick={() => {
+								const intent = pendingUnpricedSaveIntent;
+								if (!intent || !record) return;
+								const sanitized = resolveUnpricedHptPersistence(
+									record,
+									intent,
+									true,
+								).record;
+								setPendingUnpricedSaveIntent(null);
+								restoreLocalDraft(sanitized);
+								void runRequestedSave(intent, sanitized, true);
+							}}
+						>
+							Remove sizes &amp; save
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 			<SalesChangeReviewSheet
 				open={changeReviewOpen}
 				onOpenChange={(open) => {

@@ -1,9 +1,9 @@
 import {
 	applyMultiSelectStepMutation,
 	applySingleSelectStepMutation,
-	getSelectedProdUids,
 	buildConfiguredRouteSteps,
 	compactStepValue,
+	getSelectedProdUids,
 	isCustomSalesFormComponent,
 	mergeConfiguredSeriesWithExisting,
 	normalizeSalesFormTitle as normalizeTitle,
@@ -11,13 +11,16 @@ import {
 	rebuildStepsFromSelection,
 } from "../../domain";
 import { snapshotSelectedComponent } from "./component-utils";
+import { reconcileWorkflowHptRowsForHeightChange } from "./workflow-door-actions";
 import {
-	firstPendingStepIndex,
-	isMultiSelectStepTitle,
-	resolveInteractiveStepIndex,
 	type WorkflowComponentRecord,
+	type WorkflowHousePackageToolRecord,
 	type WorkflowLineItemRecord,
 	type WorkflowStepRecord,
+	firstPendingStepIndex,
+	getWorkflowSteps,
+	isMultiSelectStepTitle,
+	resolveInteractiveStepIndex,
 } from "./workflow-records";
 import { buildInitialWorkflowShelfPatch } from "./workflow-sync-patches";
 
@@ -25,10 +28,11 @@ export type WorkflowSelectionPatch = {
 	formSteps: WorkflowStepRecord[];
 	title?: string | null;
 	shelfItems?: Array<Record<string, unknown>>;
-	qty?: number;
-	unitPrice?: number;
-	lineTotal?: number;
+	qty?: number | null;
+	unitPrice?: number | null;
+	lineTotal?: number | null;
 	meta?: Record<string, unknown>;
+	housePackageTool?: WorkflowHousePackageToolRecord | null;
 };
 
 export type WorkflowSelectionActionResult = {
@@ -45,6 +49,10 @@ export type SaveWorkflowSelectedComponentInput = {
 	visibleComponents: WorkflowComponentRecord[];
 	activeStepTitle?: string | null;
 	selectedOverride?: boolean;
+	availableDoorComponents?: WorkflowComponentRecord[];
+	salesMultiplier?: number | null;
+	profileCoefficient?: number | null;
+	pricingReady?: boolean;
 };
 
 function readStepMeta(step?: WorkflowStepRecord | null) {
@@ -147,6 +155,16 @@ export function saveWorkflowSelectedComponent(
 	const selectedStepTitle = normalizeTitle(
 		singleMutationSteps[input.currentStepIndex]?.step?.title,
 	);
+	const hasConfiguredHptRows = Boolean(
+		input.line.housePackageTool?.doors?.length,
+	);
+	if (
+		selectedStepTitle === "height" &&
+		hasConfiguredHptRows &&
+		input.pricingReady === false
+	) {
+		return null;
+	}
 	const isItemTypeStep =
 		input.currentStepIndex === 0 || selectedStepTitle === "item type";
 	if (isItemTypeStep) {
@@ -197,9 +215,37 @@ export function saveWorkflowSelectedComponent(
 			? input.currentStepIndex + 1
 			: routed.activeIndex,
 	);
+	const heightPatch =
+		selectedStepTitle === "height"
+			? reconcileWorkflowHptRowsForHeightChange({
+					line: input.line,
+					nextSteps: routed.steps,
+					routeData: input.routeData,
+					availableDoorComponents: input.availableDoorComponents,
+					salesMultiplier: input.salesMultiplier,
+					profileCoefficient: input.profileCoefficient,
+				})
+			: null;
+	const currentHeight = getWorkflowSteps(input.line).find(
+		(step) => normalizeTitle(step?.step?.title) === "height",
+	)?.value;
+	const nextHeight = routed.steps.find(
+		(step) => normalizeTitle(step?.step?.title) === "height",
+	)?.value;
+	const heightActuallyChanged =
+		selectedStepTitle === "height" &&
+		String(currentHeight || "")
+			.trim()
+			.toLowerCase() !==
+			String(nextHeight || "")
+				.trim()
+				.toLowerCase();
+	if (heightActuallyChanged && hasConfiguredHptRows && !heightPatch)
+		return null;
 	return {
 		linePatch: {
 			formSteps: routed.steps,
+			...(heightPatch || {}),
 		},
 		activeStepIndex,
 	};
@@ -224,9 +270,7 @@ export function proceedWorkflowMultiSelectStep(
 		.map(
 			(uid) =>
 				input.visibleComponents.find((component) => component.uid === uid) ||
-				readSelectedComponents(step).find(
-					(component) => component.uid === uid,
-				),
+				readSelectedComponents(step).find((component) => component.uid === uid),
 		)
 		.filter(Boolean) as WorkflowComponentRecord[];
 	const primary = candidates[0];
@@ -238,7 +282,8 @@ export function proceedWorkflowMultiSelectStep(
 		startIndex: input.stepIndex,
 		selectedComponent: {
 			...toSelectedComponent(primary),
-			redirectUid: readStepMeta(step).redirectUid || primary.redirectUid || null,
+			redirectUid:
+				readStepMeta(step).redirectUid || primary.redirectUid || null,
 		},
 	});
 	const lineItemStepIndex = routed.steps.findIndex((step) =>
@@ -270,7 +315,9 @@ export function selectWorkflowRootComponent(
 	input: SelectWorkflowRootComponentInput,
 ): WorkflowSelectionActionResult | null {
 	const rootStep = (input.routeData as any)?.rootStepUid
-		? (input.routeData as any)?.stepsByUid?.[(input.routeData as any).rootStepUid]
+		? (input.routeData as any)?.stepsByUid?.[
+				(input.routeData as any).rootStepUid
+			]
 		: null;
 	if (!rootStep) return null;
 
