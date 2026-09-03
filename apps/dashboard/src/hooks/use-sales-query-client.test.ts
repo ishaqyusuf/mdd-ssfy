@@ -19,14 +19,12 @@ describe("useSalesQueryClient query events", () => {
 	});
 
 	it("routes sales lifecycle helpers through their canonical events", () => {
-		expect(
-			source.includes('emit("sales.production.changed"'),
-		).toBe(true);
-		expect(
-			source.includes('emit("sales.dispatch.changed"'),
-		).toBe(true);
+		expect(source.includes('emit("sales.production.changed"')).toBe(true);
+		expect(source.includes('emit("sales.dispatch.changed"')).toBe(true);
 		expect(source.includes("salesPaymentUpdated:")).toBe(true);
 		expect(source.includes("productionUpdated:")).toBe(true);
+		expect(source.includes("pipelineUpdated:")).toBe(true);
+		expect(source.includes('emit("sales.pipeline.changed"')).toBe(true);
 	});
 
 	it("retains typed one-off invalidation for compatibility methods", () => {
@@ -36,8 +34,8 @@ describe("useSalesQueryClient query events", () => {
 		expect(
 			source.includes('typedInvalidate.query("sales.getSaleOverview"'),
 		).toBe(true);
-		expect(source.includes('typedInvalidate.path("sales.getSaleOverview")')).toBe(
-			true,
-		);
+		expect(
+			source.includes('typedInvalidate.path("sales.getSaleOverview")'),
+		).toBe(true);
 	});
 });

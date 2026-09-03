@@ -10,12 +10,15 @@ describe("fulfillment dispatch notifications", () => {
 		const start = source.indexOf(
 			"ensureSalesOrderFulfillmentDispatch: protectedProcedure",
 		);
-		const end = source.indexOf("orderDispatchOverview: protectedProcedure", start);
+		const end = source.indexOf(
+			"orderDispatchOverview: protectedProcedure",
+			start,
+		);
 		const implementation = source.slice(start, end);
 
 		expect(start).toBeGreaterThanOrEqual(0);
 		expect(end).toBeGreaterThan(start);
-		expect(implementation).toContain("tx.orderDelivery.create");
+		expect(implementation).toContain("ensureSalesOrderFulfillmentDispatch(");
 		expect(implementation).not.toContain("sales_dispatch_created");
 		expect(implementation).not.toContain("getDispatchNotificationService");
 	});
@@ -25,11 +28,14 @@ describe("fulfillment dispatch notifications", () => {
 			new URL("./dispatch.route.ts", import.meta.url),
 			"utf8",
 		);
-		const start = source.indexOf("async function sendDispatchCreatedNotifications");
-		const implementation = source.slice(start, start + 1_100);
+		const start = source.indexOf(
+			"async function sendDispatchCreatedNotifications",
+		);
+		const implementation = source.slice(start, start + 1_500);
 
 		expect(start).toBeGreaterThanOrEqual(0);
 		expect(implementation).toContain('send("sales_dispatch_created"');
-		expect(implementation).toContain('send("sales_dispatch_assigned"');
+		expect(implementation).toContain('"sales_dispatch_assigned"');
+		expect(implementation).toContain("sendDispatchLifecycleNotification(");
 	});
 });

@@ -326,6 +326,7 @@ export function DriverPackingCommandDashboard({
 		try {
 			await actions.onStartTrip({
 				dispatchId: dispatch.id,
+				expectedPipelineRevision: detail.pipelineRevision,
 			});
 			toast.success("Trip started.");
 		} catch (error) {

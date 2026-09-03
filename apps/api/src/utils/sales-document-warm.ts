@@ -10,8 +10,27 @@ export type QueueSalesDocumentSnapshotWarmupInput = {
 	forceRegenerate?: boolean;
 };
 
+type SalesDocumentWarmupPayload = {
+	salesOrderId: number;
+	mode: PrintMode;
+	dispatchId: number | null;
+	templateId: string;
+	forceRegenerate: boolean;
+};
+
+type SalesDocumentWarmupTrigger = (
+	taskId: "warm-sales-document-snapshot",
+	payload: SalesDocumentWarmupPayload,
+) => Promise<unknown>;
+
+const triggerSalesDocumentWarmup: SalesDocumentWarmupTrigger = (
+	taskId,
+	payload,
+) => tasks.trigger(taskId, payload);
+
 export async function queueSalesDocumentSnapshotWarmup(
 	input: QueueSalesDocumentSnapshotWarmupInput,
+	triggerTask: SalesDocumentWarmupTrigger = triggerSalesDocumentWarmup,
 ) {
 	if (isSalesPdfSnapshotArtifactsDisabled()) {
 		return {
@@ -25,7 +44,7 @@ export async function queueSalesDocumentSnapshotWarmup(
 		};
 	}
 
-	return tasks.trigger("warm-sales-document-snapshot", {
+	return triggerTask("warm-sales-document-snapshot", {
 		salesOrderId: input.salesOrderId,
 		mode: input.mode,
 		dispatchId: input.dispatchId ?? null,
@@ -36,6 +55,7 @@ export async function queueSalesDocumentSnapshotWarmup(
 
 export async function queueSalesDocumentSnapshotWarmups(
 	inputs: QueueSalesDocumentSnapshotWarmupInput[],
+	triggerTask: SalesDocumentWarmupTrigger = triggerSalesDocumentWarmup,
 ) {
 	const uniqueInputs = Array.from(
 		new Map(
@@ -47,6 +67,8 @@ export async function queueSalesDocumentSnapshotWarmups(
 	);
 
 	return Promise.all(
-		uniqueInputs.map((input) => queueSalesDocumentSnapshotWarmup(input)),
+		uniqueInputs.map((input) =>
+			queueSalesDocumentSnapshotWarmup(input, triggerTask),
+		),
 	);
 }

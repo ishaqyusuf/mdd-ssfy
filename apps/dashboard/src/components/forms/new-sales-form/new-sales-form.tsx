@@ -624,20 +624,21 @@ export function NewSalesForm(props: Props) {
     const updateDispatchStatusMutation = useMutation(
         trpc.dispatch.updateDispatchStatus.mutationOptions(),
     );
-    const submitDispatchMutation = useMutation(
-        trpc.dispatch.submitDispatch.mutationOptions(),
-    );
     const packingTaskTrigger = useTaskTrigger({
         silent: true,
         monitor: true,
         onSuccess() {
             void invalidatePackingQueries(record?.salesId);
+            toast({
+                title: "Packing completed",
+                description: `${record?.orderId || "Order"} was auto-packed and completed.`,
+                variant: "success",
+            });
         },
     });
     const isPackingBusy =
         sendForPackingMutation.isPending ||
         updateDispatchStatusMutation.isPending ||
-        submitDispatchMutation.isPending ||
         packingTaskTrigger.isActionPending;
 
     useEffect(() => {
@@ -940,6 +941,20 @@ export function NewSalesForm(props: Props) {
         if (!record?.salesId) return;
         try {
             const dispatch = await ensurePackingDispatch();
+            const latest = await queryClient.fetchQuery(
+                trpc.dispatch.dispatchOverviewV2.queryOptions(
+                    {
+                        dispatchId: dispatch.id,
+                        salesNo: record.orderId || undefined,
+                    },
+                    { staleTime: 0 },
+                ),
+            );
+            if (!latest.pipelineRevision) {
+                throw new Error(
+                    "The current Sales Pipeline revision is unavailable. Refresh and try again.",
+                );
+            }
             packingTaskTrigger.trigger({
                 taskName: "update-sales-control",
                 payload: {
@@ -947,32 +962,14 @@ export function NewSalesForm(props: Props) {
                         authorId: actorId,
                         salesId: record.salesId,
                         authorName: actorName,
+                        pipelineRevision: latest.pipelineRevision,
                     },
-                    packItems: {
+                    markAsCompleted: {
                         dispatchId: dispatch.id,
-                        dispatchStatus: "completed",
-                        packMode: "all",
-                        replaceExisting: true,
+                        receivedBy: actorName,
+                        receivedDate: new Date(),
                     },
                 },
-            });
-            await submitDispatchMutation.mutateAsync({
-                meta: {
-                    salesId: record.salesId,
-                    authorId: actorId,
-                    authorName: actorName,
-                },
-                submitDispatch: {
-                    dispatchId: dispatch.id,
-                    receivedBy: actorName,
-                    receivedDate: new Date(),
-                },
-            });
-            await invalidatePackingQueries(record.salesId);
-            toast({
-                title: "Packing completed",
-                description: `${record.orderId || "Order"} was auto-packed and completed.`,
-                variant: "success",
             });
         } catch (error) {
             toast({
@@ -985,11 +982,11 @@ export function NewSalesForm(props: Props) {
         actorId,
         actorName,
         ensurePackingDispatch,
-        invalidatePackingQueries,
         packingTaskTrigger,
+        queryClient,
         record?.orderId,
         record?.salesId,
-        submitDispatchMutation,
+        trpc,
     ]);
     const handleOpenPacking = useCallback(() => {
         if (!record?.orderId) return;

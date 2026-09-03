@@ -1,16 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 
 const createNotification = mock(async () => ({ activities: 1 }));
-
-mock.module("@gnd/notifications", () => ({
-	Notifications: class {
-		create = createNotification;
-	},
-}));
-
-const { sendDispatchLifecycleNotification } = await import(
-	"./dispatch-lifecycle-notification"
-);
+import { sendDispatchLifecycleNotification } from "./dispatch-lifecycle-notification";
 
 describe("dispatch lifecycle notifications", () => {
 	beforeEach(() => createNotification.mockClear());
@@ -32,9 +23,10 @@ describe("dispatch lifecycle notifications", () => {
 					dispatchId: 4602,
 					deliveryMode: "delivery",
 					dueDate: new Date("2026-09-04T00:00:00.000Z"),
-					driverId: 55,
-				},
-			),
+						driverId: 55,
+					},
+					{ create: createNotification } as never,
+				),
 		).resolves.toMatchObject({ sent: true });
 		expect(createNotification).toHaveBeenCalledTimes(1);
 		expect(createNotification.mock.calls[0]?.[0]).toBe(channel);

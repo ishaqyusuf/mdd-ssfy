@@ -681,40 +681,24 @@ export function whereSales(query: SalesQueryParamsSchema) {
 	}
 	switch (production) {
 		case "pending":
-			where.push(
-				salesStatSome("prodCompleted" as QtyControlType, {
-					total: {
-						gt: 0,
-					},
-					percentage: {
-						lt: 100,
-					},
-				}),
-			);
 			break;
 		case "in progress":
-			where.push(
-				salesStatSome("prodCompleted" as QtyControlType, {
-					total: {
-						gt: 0,
+			where.push({
+				assignments: {
+					some: {
+						deletedAt: null,
+						completedAt: null,
+						OR: [
+							{ startedAt: { not: null } },
+							{ submissions: { some: { deletedAt: null } } },
+						],
 					},
-					AND: [
-						{
-							percentage: { gt: 0 },
-						},
-						{ percentage: { lt: 100 } },
-					],
-				}),
-			);
+				},
+			});
 			break;
 		case "completed":
 			where.push(
-				salesStatSome("prodCompleted" as QtyControlType, {
-					total: {
-						gt: 0,
-					},
-					percentage: 100,
-				}),
+				buildSalesCompletionSatisfactionWhere("PRODUCTION_COMPLETED", true),
 			);
 			break;
 	}
@@ -744,19 +728,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
 			break;
 		case "due today":
 			where.push({
-				stat: {
-					some: {
-						deletedAt: null,
-						type: "prodCompleted" as QtyControlType,
-						percentage: {
-							not: 100,
-						},
-					},
-				},
 				assignments: {
 					some: {
 						assignedToId: assignedToId || undefined,
 						deletedAt: null,
+						completedAt: null,
 						dueDate: productionDateBoundaries.today,
 					},
 				},
@@ -764,19 +740,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
 			break;
 		case "due tomorrow":
 			where.push({
-				stat: {
-					some: {
-						deletedAt: null,
-						type: "prodCompleted" as QtyControlType,
-						percentage: {
-							not: 100,
-						},
-					},
-				},
 				assignments: {
 					some: {
 						assignedToId: assignedToId || undefined,
 						deletedAt: null,
+						completedAt: null,
 						dueDate: productionDateBoundaries.tomorrow,
 					},
 				},
@@ -784,18 +752,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
 			break;
 		case "past due":
 			where.push({
-				...salesStatSome("prodCompleted" as QtyControlType, {
-					total: {
-						gt: 0,
-					},
-					percentage: {
-						not: 100,
-					},
-				}),
 				assignments: {
 					some: {
 						assignedToId: assignedToId || undefined,
 						deletedAt: null,
+						completedAt: null,
 						dueDate: productionDateBoundaries.pastDue,
 					},
 				},
@@ -803,18 +764,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
 			break;
 		case "future":
 			where.push({
-				...salesStatSome("prodCompleted" as QtyControlType, {
-					total: {
-						gt: 0,
-					},
-					percentage: {
-						not: 100,
-					},
-				}),
 				assignments: {
 					some: {
 						assignedToId: assignedToId || undefined,
 						deletedAt: null,
+						completedAt: null,
 						dueDate: productionDateBoundaries.future,
 					},
 				},
@@ -822,18 +776,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
 			break;
 		case "unscheduled":
 			where.push({
-				...salesStatSome("prodCompleted" as QtyControlType, {
-					total: {
-						gt: 0,
-					},
-					percentage: {
-						not: 100,
-					},
-				}),
 				assignments: {
 					some: {
 						assignedToId: assignedToId || undefined,
 						deletedAt: null,
+						completedAt: null,
 						dueDate: null,
 					},
 				},

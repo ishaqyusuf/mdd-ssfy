@@ -12,4 +12,25 @@ describe("sales overview document status", () => {
 			}),
 		).toMatchObject({ label: "Fulfilled", status: "fulfilled" });
 	});
+
+	it("preserves Administrative Completion provenance over contradictory legacy fields", () => {
+		expect(
+			getSalesOverviewDocumentStatus({
+				type: "order",
+				orderStatus: "Completed",
+				prodStatus: "N/A",
+				deliveryStatus: "completed",
+				pipeline: {
+					headline: {
+						code: "administratively_completed",
+						label: "Administratively completed",
+						tone: "violet",
+					},
+				} as never,
+			}),
+		).toMatchObject({
+			label: "Administratively completed",
+			status: "administratively_completed",
+		});
+	});
 });

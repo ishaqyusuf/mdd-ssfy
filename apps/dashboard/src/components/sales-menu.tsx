@@ -50,6 +50,7 @@ import type {
 	SalesInventoryMarkAsAction,
 	SalesInventoryMarkAsPreflightResult,
 } from "@gnd/sales/sales-inventory-mark-as-preflight";
+import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import type { SalesStatusMarkAsPreflightResult } from "@gnd/sales/sales-status-mark-as-resolution";
 import type { SalesWorkflowCancellationAction } from "@gnd/sales/sales-workflow-cancellation";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
@@ -449,6 +450,7 @@ type MarkAsProps = ActionProps & {
 	productionStatus?: string | null;
 	hasFulfillmentDispatch?: boolean;
 	statusCandidates?: readonly SalesBatchStatusCandidate[];
+	pipelineCapabilities?: SalesPipelineSnapshot["capabilities"];
 };
 
 function SalesMarkAsActionIcon({
@@ -1042,6 +1044,7 @@ function SalesMenuMarkAs({
 	productionStatus,
 	hasFulfillmentDispatch,
 	statusCandidates,
+	pipelineCapabilities,
 }: MarkAsProps) {
 	const { state, actions } = useSalesMenuContext();
 	const auth = useAuth();
@@ -1227,12 +1230,14 @@ function SalesMenuMarkAs({
 				});
 				return;
 			}
+			const reviewRequired = result.reviewRequired ?? 0;
 			toast({
-				title: result.failed
-					? "Bulk fulfillment completed with issues"
-					: "Bulk fulfillment completed",
-				description: `${result.succeeded} fulfilled, ${result.alreadyFulfilled} already fulfilled, ${result.failed} failed.`,
-				variant: result.failed ? "destructive" : "success",
+				title:
+					result.failed || reviewRequired
+						? "Bulk fulfillment completed with issues"
+						: "Bulk fulfillment completed",
+				description: `${result.succeeded} fulfilled, ${result.alreadyFulfilled} already fulfilled, ${reviewRequired} need review, ${result.failed} failed.`,
+				variant: result.failed || reviewRequired ? "destructive" : "success",
 			});
 		},
 		onError() {
@@ -1820,57 +1825,68 @@ function SalesMenuMarkAs({
 		);
 	const items = (
 		<>
-			{statusMenuActions.map((item) => (
-				<SalesMenuItem
-					key={item.action}
-					className="whitespace-nowrap"
-					disabled={
-						isDisabled ||
-						item.disabled ||
-						(item.action === "fulfilled" &&
-							!auth.can.viewMarkSalesOrderFulfilled &&
-							!auth.can.editStatusOnlySalesCompletion) ||
-						preflightLoadingAction !== null ||
-						statusActionPending ||
-						salesIds.length === 0
-					}
-					onSelect={(event) => {
-						event.preventDefault();
-						if (item.action === "production_completed") {
-							openProductionCompletionConfirmation();
-							return;
+			{statusMenuActions.map((item) => {
+				const capability =
+					item.action === "production_completed"
+						? pipelineCapabilities?.markProductionCompleted
+						: item.action === "fulfilled"
+							? pipelineCapabilities?.markFulfilled
+							: item.action === "cancel_production"
+								? pipelineCapabilities?.cancelProduction
+								: pipelineCapabilities?.cancelFulfillment;
+				return (
+					<SalesMenuItem
+						key={item.action}
+						className="whitespace-nowrap"
+						disabled={
+							isDisabled ||
+							item.disabled ||
+							capability?.allowed === false ||
+							(item.action === "fulfilled" &&
+								!auth.can.viewMarkSalesOrderFulfilled &&
+								!auth.can.editStatusOnlySalesCompletion) ||
+							preflightLoadingAction !== null ||
+							statusActionPending ||
+							salesIds.length === 0
 						}
-						if (item.action === "fulfilled") {
-							openFulfillmentCompletionConfirmation();
-							return;
-						}
-						if (item.action === "cancel_production") {
-							if (
-								completionProjection?.activeProductionRecord
-									?.completionMethod === "STATUS_ONLY"
-							) {
-								setProductionStatusOnlyCancellationReason("");
-								setProductionStatusOnlyCancellationOpen(true);
+						onSelect={(event) => {
+							event.preventDefault();
+							if (item.action === "production_completed") {
+								openProductionCompletionConfirmation();
 								return;
 							}
-							actions.openWorkflowCancellation("production");
-							return;
-						}
-						if (
-							completionProjection?.activeFulfillmentRecord
-								?.completionMethod === "STATUS_ONLY"
-						) {
-							setFulfillmentStatusOnlyCancellationReason("");
-							setFulfillmentStatusOnlyCancellationOpen(true);
-							return;
-						}
-						actions.openWorkflowCancellation("fulfillment");
-					}}
-				>
-					<SalesMarkAsActionIcon action={item.action} />
-					{item.label}
-				</SalesMenuItem>
-			))}
+							if (item.action === "fulfilled") {
+								openFulfillmentCompletionConfirmation();
+								return;
+							}
+							if (item.action === "cancel_production") {
+								if (
+									completionProjection?.activeProductionRecord
+										?.completionMethod === "STATUS_ONLY"
+								) {
+									setProductionStatusOnlyCancellationReason("");
+									setProductionStatusOnlyCancellationOpen(true);
+									return;
+								}
+								actions.openWorkflowCancellation("production");
+								return;
+							}
+							if (
+								completionProjection?.activeFulfillmentRecord
+									?.completionMethod === "STATUS_ONLY"
+							) {
+								setFulfillmentStatusOnlyCancellationReason("");
+								setFulfillmentStatusOnlyCancellationOpen(true);
+								return;
+							}
+							actions.openWorkflowCancellation("fulfillment");
+						}}
+					>
+						<SalesMarkAsActionIcon action={item.action} />
+						{item.label}
+					</SalesMenuItem>
+				);
+			})}
 			{includePaymentReviewed ? (
 				<SalesMenuItem
 					disabled={isDisabled || markPaymentsReviewedMutation.isPending}
@@ -1879,7 +1895,7 @@ function SalesMenuMarkAs({
 						void markPaymentReviewed();
 					}}
 				>
-					<Icons.ClipboardCheck className="mr-2 size-4 text-emerald-600" />
+					<Icons.copyDone className="mr-2 size-4 text-emerald-600" />
 					Reviewed
 				</SalesMenuItem>
 			) : null}

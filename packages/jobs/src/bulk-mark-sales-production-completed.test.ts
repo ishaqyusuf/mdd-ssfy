@@ -48,7 +48,8 @@ describe("bulk mark sales production completed task contract", () => {
 			"bulk-mark-sales-production-completed:${input.requestId}:${item.salesId}",
 		);
 		expect(source).toContain('idempotencyKeyTTL: "7d"');
-		expect(source).toContain("resolveSalesInventoryFulfillmentStatus");
-		expect(source).toContain("deliveries: {");
+		expect(source).toContain("getSalesPipelineSnapshots");
+		expect(source).toContain("evaluateSalesPipelineCommand");
+		expect(source).toContain("expectedRevision: snapshot.revision");
 	});
 });

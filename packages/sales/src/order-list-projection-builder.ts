@@ -20,12 +20,19 @@ import { readSalesFormPo } from "./sales-form/application/legacy-metadata";
 import { resolveSalesInventoryApplicability } from "./sales-inventory-applicability";
 import { resolveSalesInventoryLegacyCompatibility } from "./sales-inventory-legacy-compatibility";
 import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
+import { getSalesPipelineSnapshots } from "./sales-pipeline-order";
+import { selectSalesPipelineReadProjection } from "./sales-pipeline-rollout";
 import { getSpecialOrderStatusLabel } from "./special-order";
 import { withSalesControl } from "./utils/with-sales-control";
 
 export type RefreshSalesOrderListProjectionInput = {
 	salesOrderId: number;
 	sourceUpdatedAt: Date;
+};
+
+export type RefreshSalesOrderListProjectionOptions = {
+	runRead?: <T>(operation: () => Promise<T>) => Promise<T>;
+	serializeReads?: boolean;
 };
 
 type InventoryInboundSummary = {
@@ -282,11 +289,16 @@ async function getInboundOwnership(db: Db, salesOrderIds: number[]) {
 export async function refreshSalesOrderListProjections(
 	db: Db,
 	inputs: RefreshSalesOrderListProjectionInput[],
+	options: RefreshSalesOrderListProjectionOptions = {},
 ) {
+	const runRead =
+		options.runRead ??
+		(async <T>(operation: () => Promise<T>) => await operation());
 	const requestedById = new Map(
 		inputs.map((input) => [input.salesOrderId, input.sourceUpdatedAt]),
 	);
-	const orders = await db.salesOrders.findMany({
+	const orders = await runRead(() =>
+		db.salesOrders.findMany({
 		where: { id: { in: [...requestedById.keys()] } },
 		select: {
 			id: true,
@@ -356,11 +368,9 @@ export async function refreshSalesOrderListProjections(
 				},
 			},
 		},
-	});
-	const currentOrders = orders.filter((order) => {
-		const requestedRevision = requestedById.get(order.id);
-		return requestedRevision?.getTime() === sourceRevision(order).getTime();
-	});
+		}),
+	);
+	let currentOrders = orders;
 	if (!currentOrders.length) {
 		return {
 			requested: inputs.length,
@@ -372,50 +382,89 @@ export async function refreshSalesOrderListProjections(
 	const requestIds = currentOrders
 		.map((order) => order.currentSpecialOrderRequestId)
 		.filter((id): id is string => Boolean(id));
-	const [noteCounts, inboundOwnership, requirementRows, specialRequests] =
-		await Promise.all([
-			getNoteCounts(db, currentOrders),
-			getInboundOwnership(db, ids),
-			db.lineItem.findMany({
-				where: {
-					saleId: { in: ids },
-					deletedAt: null,
-					lineItemType: "SALE",
-					components: { some: { required: true, qty: { gt: 0 } } },
-				},
-				select: {
-					saleId: true,
-					components: {
-						where: { required: true, qty: { gt: 0 } },
-						select: {
-							inventoryId: true,
-							inventoryVariantId: true,
-							inventory: {
-								select: { id: true, productKind: true, stockMode: true },
-							},
-							inventoryVariant: { select: { id: true } },
-							inventoryCategory: {
-								select: { productKind: true, stockMode: true },
-							},
-							subComponent: {
-								select: {
-									defaultInventory: {
-										select: { id: true, productKind: true, stockMode: true },
-									},
-									inventoryCategory: {
-										select: { productKind: true, stockMode: true },
-									},
+	const loadNoteCounts = () => getNoteCounts(db, currentOrders);
+	const loadInboundOwnership = () => getInboundOwnership(db, ids);
+	const loadRequirementRows = () =>
+		db.lineItem.findMany({
+			where: {
+				saleId: { in: ids },
+				deletedAt: null,
+				lineItemType: "SALE",
+				components: { some: { required: true, qty: { gt: 0 } } },
+			},
+			select: {
+				saleId: true,
+				components: {
+					where: { required: true, qty: { gt: 0 } },
+					select: {
+						inventoryId: true,
+						inventoryVariantId: true,
+						inventory: {
+							select: { id: true, productKind: true, stockMode: true },
+						},
+						inventoryVariant: { select: { id: true } },
+						inventoryCategory: {
+							select: { productKind: true, stockMode: true },
+						},
+						subComponent: {
+							select: {
+								defaultInventory: {
+									select: { id: true, productKind: true, stockMode: true },
+								},
+								inventoryCategory: {
+									select: { productKind: true, stockMode: true },
 								},
 							},
 						},
 					},
 				},
-			}),
-			db.specialOrderApprovalRequest.findMany({
-				where: { id: { in: requestIds } },
-				select: { id: true, status: true, expiresAt: true },
-			}),
-		]);
+			},
+		});
+	const loadSpecialRequests = () =>
+		db.specialOrderApprovalRequest.findMany({
+			where: { id: { in: requestIds } },
+			select: { id: true, status: true, expiresAt: true },
+		});
+	const loadPipelineSnapshots = () => getSalesPipelineSnapshots(db, ids);
+	const prerequisiteResults = options.serializeReads
+		? ([
+				await runRead(loadNoteCounts),
+				await runRead(loadInboundOwnership),
+				await runRead(loadRequirementRows),
+				await runRead(loadSpecialRequests),
+				await runRead(loadPipelineSnapshots),
+			] as const)
+		: await Promise.all([
+				runRead(loadNoteCounts),
+				runRead(loadInboundOwnership),
+				runRead(loadRequirementRows),
+				runRead(loadSpecialRequests),
+				runRead(loadPipelineSnapshots),
+			]);
+	const [
+		noteCounts,
+		inboundOwnership,
+		requirementRows,
+		specialRequests,
+		pipelineSnapshots,
+	] = prerequisiteResults;
+	currentOrders = currentOrders.filter((order) => {
+		const requestedRevision = requestedById.get(order.id)?.getTime();
+		const pipelineRevision = pipelineSnapshots.get(order.id)?.freshness
+			.evidenceUpdatedAt;
+		return (
+			requestedRevision === sourceRevision(order).getTime() ||
+			(Boolean(pipelineRevision) &&
+				requestedRevision === new Date(pipelineRevision as string).getTime())
+		);
+	});
+	if (!currentOrders.length) {
+		return {
+			requested: inputs.length,
+			persisted: 0,
+			skippedAsStale: inputs.length,
+		};
+	}
 	const requirementCounts = new Map<number, number>();
 	for (const requirementRow of requirementRows) {
 		if (!requirementRow.saleId) continue;
@@ -558,9 +607,13 @@ export async function refreshSalesOrderListProjections(
 		};
 	});
 	const controlledRows = isControlReadV2Enabled()
-		? await withSalesListControl(baseRows, db)
-		: await withSalesControl(baseRows, db);
+		? await runRead(() => withSalesListControl(baseRows, db))
+		: await runRead(() => withSalesControl(baseRows, db));
 	const projectedRows = controlledRows.map((row) => {
+		const canonicalPipeline = pipelineSnapshots.get(row.id) ?? null;
+		const selectedPipeline = canonicalPipeline
+			? selectSalesPipelineReadProjection(canonicalPipeline)
+			: null;
 		const productionState =
 			row.control.productionStatus !== "unknown"
 				? row.control.productionStatus
@@ -584,17 +637,35 @@ export async function refreshSalesOrderListProjections(
 		const { inventoryProjection, ...payload } = row;
 		return {
 			...payload,
-			productionState,
+			pipeline: canonicalPipeline,
+			pipelineLegacyPresentation: {
+				status: lifecycle.status,
+				statusLabel: lifecycle.label,
+				statusTone: lifecycle.tone,
+				productionState,
+				productionLabel: row.productionLabel,
+				fulfillmentState,
+				fulfillmentLabel: row.fulfillmentLabel,
+			},
+			productionState: selectedPipeline?.production.state ?? productionState,
 			productionLabel: row.completion.productionCompletionSatisfied
 				? row.productionLabel
-				: productionLabel(productionState),
-			fulfillmentState,
+				: selectedPipeline?.production.state === "administratively_completed"
+					? "Administratively completed"
+					: productionLabel(
+							selectedPipeline?.production.state ?? productionState,
+						),
+			fulfillmentState: selectedPipeline?.fulfillment.state ?? fulfillmentState,
 			fulfillmentLabel: row.completion.fulfillmentCompletionSatisfied
 				? row.fulfillmentLabel
-				: titleCaseStatus(fulfillmentState),
-			status: lifecycle.status,
-			statusLabel: lifecycle.label,
-			statusTone: lifecycle.tone,
+				: selectedPipeline?.fulfillment.state === "administratively_completed"
+					? "Administratively completed"
+					: titleCaseStatus(
+							selectedPipeline?.fulfillment.state ?? fulfillmentState,
+						),
+			status: selectedPipeline?.headline.code ?? lifecycle.status,
+			statusLabel: selectedPipeline?.headline.label ?? lifecycle.label,
+			statusTone: selectedPipeline?.headline.tone ?? lifecycle.tone,
 			inventoryApplicability: resolveSalesInventoryApplicability({
 				lifecycleStatus: lifecycle.status,
 				projection: inventoryProjection,
@@ -613,31 +684,26 @@ export async function refreshSalesOrderListProjections(
 	});
 	const projectedById = new Map(projectedRows.map((row) => [row.id, row]));
 	const repository = projectionRepository(db);
+	const finalPipelineSnapshots = await runRead(() =>
+		getSalesPipelineSnapshots(db, ids),
+	);
 	let persisted = 0;
 	let skippedAsStale = inputs.length - currentOrders.length;
 	for (const order of currentOrders) {
 		const row = projectedById.get(order.id);
 		if (!row) continue;
-		const revision = sourceRevision(order);
-		const latestSource = await db.salesOrders.findUnique({
-			where: { id: order.id },
-			select: {
-				createdAt: true,
-				updatedAt: true,
-				completionRecords: {
-					orderBy: { updatedAt: "desc" },
-					take: 1,
-					select: { updatedAt: true },
-				},
-			},
-		});
+		const initialPipeline = pipelineSnapshots.get(order.id);
+		const finalPipeline = finalPipelineSnapshots.get(order.id);
 		if (
-			!latestSource ||
-			sourceRevision(latestSource).getTime() !== revision.getTime()
+			!initialPipeline ||
+			finalPipeline?.revision !== initialPipeline.revision
 		) {
 			skippedAsStale += 1;
 			continue;
 		}
+		const revision = initialPipeline.freshness.evidenceUpdatedAt
+			? new Date(initialPipeline.freshness.evidenceUpdatedAt)
+			: sourceRevision(order);
 		const projection = {
 			orgId: order.orgId,
 			salesRepId: order.salesRepId,
@@ -654,6 +720,14 @@ export async function refreshSalesOrderListProjections(
 			sourceUpdatedAt: revision,
 			version: salesOrderListProjectionVersion(),
 			state: "ready",
+			pipelineContractVersion: initialPipeline.version,
+			pipelineRevision: initialPipeline.revision,
+			pipelineHeadline: initialPipeline.headline.code,
+			pipelineProductionApplicability: initialPipeline.production.applicability,
+			pipelineProductionState: initialPipeline.production.state,
+			pipelineFulfillmentApplicability:
+				initialPipeline.fulfillment.applicability,
+			pipelineFulfillmentState: initialPipeline.fulfillment.state,
 			payload: serializeSalesOrderListRow(row),
 			lastError: null,
 			projectedAt: new Date(),

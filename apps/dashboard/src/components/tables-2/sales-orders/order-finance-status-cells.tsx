@@ -40,6 +40,7 @@ export type SalesOrderTablePresentation = Pick<
 	| "status"
 	| "statusLabel"
 	| "productionState"
+	| "pipeline"
 >;
 
 function baseInvoiceTotal(item: SalesOrderTablePresentation) {
@@ -106,6 +107,7 @@ export function SalesOrderStatusCell({
 				asSubmenu={false}
 				currentStatus={item.status}
 				productionStatus={item.productionState}
+				pipelineCapabilities={item.pipeline?.capabilities}
 			/>
 		</SalesMenu>
 	);

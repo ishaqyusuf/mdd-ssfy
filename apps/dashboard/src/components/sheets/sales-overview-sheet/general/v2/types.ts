@@ -1,3 +1,4 @@
+import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import type { SalesOverviewVersionedData } from "../../types";
 
 type ProgressValue = {
@@ -10,6 +11,7 @@ type StatusValue = {
 
 export type SalesOverviewData = SalesOverviewVersionedData & {
 	id: number;
+	pipeline?: SalesPipelineSnapshot | null;
 	inventoryInboundOwnership?: unknown;
 	stats?: {
 		dispatchCompleted?: ProgressValue | null;

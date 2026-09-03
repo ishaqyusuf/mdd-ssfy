@@ -178,6 +178,10 @@ function createMockContext() {
 					})),
 				};
 			},
+			findUnique: async ({ where }: any) => {
+				const order = findOrder(where);
+				return order ? getOrderGraph(order) : null;
+			},
 			create: async ({ data }: any) => {
 				const row = {
 					id: state.ids.order++,
@@ -193,6 +197,18 @@ function createMockContext() {
 				const row = state.orders.find((o) => o.id === where.id);
 				Object.assign(row, data, { updatedAt: now });
 				return row;
+			},
+			updateMany: async ({ where, data }: any) => {
+				const row = findOrder(where);
+				if (!row) return { count: 0 };
+				if (
+					where?.updatedAt &&
+					new Date(row.updatedAt).getTime() !== new Date(where.updatedAt).getTime()
+				) {
+					return { count: 0 };
+				}
+				Object.assign(row, data);
+				return { count: 1 };
 			},
 		},
 		salesOrderItems: {
@@ -432,6 +448,10 @@ function createMockContext() {
 				state.activities.push(row);
 				return row;
 			},
+		},
+		resolutionCase: {
+			updateMany: async () => ({ count: 0 }),
+			upsert: async ({ create }: any) => create,
 		},
 	};
 

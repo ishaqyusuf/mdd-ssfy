@@ -53,10 +53,12 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 			"detailTab",
 			"exceptionStatus",
 		]) {
-			expect(adminRoute.includes(`${routeOnlyKey}: _${routeOnlyKey}`)).toBe(true);
+			expect(adminRoute.includes(`${routeOnlyKey}: _${routeOnlyKey}`)).toBe(
+				true,
+			);
 		}
 		expect(adminCalendarWorkspace.includes("DispatchCalendarView")).toBe(true);
-		expect(taskRoute.includes("<DataTable driver")).toBe(true);
+		expect(taskRoute.includes("<DriverDashboardWorkspace")).toBe(true);
 	});
 
 	it("keeps the V2 workspace as the permission-aligned fulfillment destination", () => {
@@ -72,20 +74,24 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		const adminListWorkspace = readSource(
 			"components/dispatch-admin/fulfillment-list-workspace.tsx",
 		);
+		const fulfillmentOverview = readSource(
+			"components/dispatch-admin/fulfillment-overview.tsx",
+		);
 
 		expect(adminListWorkspace.includes("AdminDispatchHeader")).toBe(true);
-		expect(adminListWorkspace.includes("DispatchSummaryCards")).toBe(true);
+		expect(adminListWorkspace.includes("FulfillmentOverview")).toBe(true);
+		expect(fulfillmentOverview.includes("DispatchSummaryCards")).toBe(true);
 		expect(adminListWorkspace.includes("DriverWorkloadCard")).toBe(true);
 		expect(adminListWorkspace.includes("enableSalesMarkAs")).toBe(true);
 		expect(adminRoute.includes("DispatchAdminWorkspaceClient")).toBe(false);
 		expect(adminV2Route.includes("DispatchAdminWorkspaceClient")).toBe(true);
 		expect(adminV2Route.includes("DispatchSheet")).toBe(false);
 		expect(adminV2Route.includes("CreateDispatchDialog")).toBe(true);
-		expect(adminV2Route.includes('rules={[_perm.is("editOrders")]}')).toBe(true);
+		expect(adminV2Route.includes('rules={[_perm.is("editOrders")]}')).toBe(
+			true,
+		);
 		expect(adminV2Route.includes('_role.is("Super Admin")')).toBe(false);
-		expect(
-			workspaceClient.includes("dispatch-calendar-view-v2"),
-		).toBe(true);
+		expect(workspaceClient.includes("dispatch-calendar-view-v2")).toBe(true);
 	});
 
 	it("keeps the table-owned scroll, header offset, DnD, selection, and bottom-bar behavior from Sales Orders", () => {
@@ -140,9 +146,9 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(columnsSource.includes("isPendingDispatchStatus(item.status)")).toBe(
 			true,
 		);
-		expect(
-			bottomBarSource.includes("<SalesMenu.MarkAs asSubmenu={false} />"),
-		).toBe(true);
+		expect(bottomBarSource.includes("<SalesMenu.MarkAs")).toBe(true);
+		expect(bottomBarSource.includes("asSubmenu={false}")).toBe(true);
+		expect(bottomBarSource.includes("onStatusActionSettled")).toBe(true);
 		expect(
 			bottomBarSource.includes("getDispatchSalesSelection(selectedDispatches)"),
 		).toBe(true);
@@ -196,9 +202,9 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(
 			searchFilter.includes("filterSchema: dispatchFilterParamsSchema"),
 		).toBe(false);
-		expect(filterParams.includes("export const dispatchTableSearchFilterParams")).toBe(
-			true,
-		);
+		expect(
+			filterParams.includes("export const dispatchTableSearchFilterParams"),
+		).toBe(true);
 		for (const routeOnlyKey of [
 			"section",
 			"tab",
@@ -240,7 +246,9 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		);
 
 		expect(settingsSource.includes('| "sales-dispatch"')).toBe(true);
-		expect(dispatchConfigSource.includes('tableId: "sales-dispatch"')).toBe(true);
+		expect(dispatchConfigSource.includes('tableId: "sales-dispatch"')).toBe(
+			true,
+		);
 		expect(dispatchConfigSource.includes("rowHeight: 56")).toBe(true);
 		expect(dispatchConfigSource.includes('style: "compact"')).toBe(true);
 		expect(salesOrdersConfigSource.includes("rowHeight: 40")).toBe(true);
@@ -254,12 +262,12 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 				'rowHeight: TABLE_CONFIGS["sales-orders"].rowHeight',
 			),
 		).toBe(true);
-		expect(fulfillmentWorkspace.includes("<DataTable compact enableSalesMarkAs")).toBe(
-			true,
-		);
-		expect(fulfillmentWorkspace.includes("<SalesDispatchSkeleton compact")).toBe(
-			true,
-		);
+		expect(
+			fulfillmentWorkspace.includes("<DataTable compact enableSalesMarkAs"),
+		).toBe(true);
+		expect(
+			fulfillmentWorkspace.includes("<SalesDispatchSkeleton compact"),
+		).toBe(true);
 		expect(columnsSource.includes("if (compact)")).toBe(true);
 		expect(columnsSource.includes("getCustomerPhone")).toBe(true);
 		expect(columnsSource.includes("% ({pending} pending)")).toBe(true);

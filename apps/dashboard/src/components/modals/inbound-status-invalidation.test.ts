@@ -49,7 +49,7 @@ describe("inbound status query invalidation", () => {
 			"utf8",
 		);
 		const successHandler = modalSource.match(
-			/onSuccess:\s*\(\)\s*=>\s*\{([\s\S]*?)\n\s*\},\n\s*onError/,
+			/onSuccess:\s*\([^)]*\)\s*=>\s*\{([\s\S]*?)\n\s*\},\n\s*onError/,
 		)?.[1];
 
 		expect(

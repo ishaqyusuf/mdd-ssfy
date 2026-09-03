@@ -36,6 +36,7 @@ export async function enrollSpecialOrderFromOverview(
 	dependencies: Partial<EnrollmentDependencies> = {},
 ) {
 	if (!ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+	const userId = ctx.userId;
 	const reason = input.reason?.trim() || null;
 	if (reason && (reason.length < 3 || reason.length > 500)) {
 		throw new TRPCError({
@@ -88,7 +89,7 @@ export async function enrollSpecialOrderFromOverview(
 			}
 			const enrollmentAccess = await deps.getEnrollmentAccess(
 				tx as unknown as TRPCContext["db"],
-				ctx.userId,
+				userId,
 			);
 			if (!enrollmentAccess.canEnroll) {
 				throw new TRPCError({
@@ -168,7 +169,7 @@ export async function enrollSpecialOrderFromOverview(
 							})
 						: null,
 					tx.users.findFirst({
-						where: { id: ctx.userId, deletedAt: null },
+						where: { id: userId, deletedAt: null },
 						select: { name: true },
 					}),
 				]);
@@ -204,7 +205,7 @@ export async function enrollSpecialOrderFromOverview(
 				data: {
 					supersededAt: now,
 					supersededReason: "Special Order re-enrolled",
-					supersededByUserId: ctx.userId,
+					supersededByUserId: userId,
 				},
 			});
 			await tx.salesOrders.update({
@@ -219,7 +220,7 @@ export async function enrollSpecialOrderFromOverview(
 			});
 			const senderContactId = await deps.getActivitySenderContactId(
 				tx as unknown as TRPCContext["db"],
-				ctx.userId,
+				userId,
 			);
 			await deps.createTimelineActivity(
 				tx as unknown as TRPCContext["db"],

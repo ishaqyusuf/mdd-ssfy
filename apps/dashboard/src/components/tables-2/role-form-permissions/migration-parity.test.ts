@@ -77,13 +77,14 @@ describe("Role form permissions table migration parity", () => {
 
 	it("binds view-only actions to the canonical view-prefixed permission", () => {
 		const roleFormSource = readSource("actions/get-role-form.ts");
+		const roleRowsSource = readSource("actions/role-permission-rows.ts");
 		const columnsSource = readSource(
 			"components/tables-2/role-form-permissions/columns.tsx",
 		);
 
-		assertContains(roleFormSource, '"direct" | "scoped" | "view-only"');
-		assertContains(roleFormSource, 'actions.view && !actions.edit');
-		assertContains(roleFormSource, '"view-only"');
+		assertContains(roleRowsSource, '"direct" | "scoped" | "view-only"');
+		assertContains(roleRowsSource, 'actions.view && !actions.edit');
+		assertContains(roleRowsSource, '"view-only"');
 		assertContains(roleFormSource, '"view mark sales order fulfilled"');
 		assertContains(roleFormSource, "legacyGrant");
 		assertContains(

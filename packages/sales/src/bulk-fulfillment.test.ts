@@ -53,19 +53,21 @@ describe("bulk fulfillment", () => {
 		const result = summarizeBulkFulfillmentResult({
 			requestId: "request-1",
 			backlogCount: 42,
-			total: 3,
+			total: 4,
 			startedAt: Date.now(),
 			outcomes: [
 				{ salesId: 1, status: "succeeded" },
 				{ salesId: 2, status: "already_fulfilled" },
-				{ salesId: 3, status: "failed", error: "Blocked" },
+				{ salesId: 3, status: "review_required", error: "Conflict" },
+				{ salesId: 4, status: "failed", error: "Blocked" },
 			],
 		});
 		expect(result).toMatchObject({
 			backlogCount: 42,
-			total: 3,
+			total: 4,
 			succeeded: 1,
 			alreadyFulfilled: 1,
+			reviewRequired: 1,
 			failed: 1,
 		});
 	});

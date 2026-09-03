@@ -64,6 +64,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                     salesId: data?.order?.id,
                     authorId: auth?.id,
                     authorName: auth?.name,
+                    pipelineRevision: data?.pipelineRevision || undefined,
                 },
                 startDispatch: {
                     dispatchId: data?.dispatch?.id,
@@ -76,8 +77,9 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                     salesId: data?.order?.id,
                     authorId: auth?.id,
                     authorName: auth?.name,
+                    pipelineRevision: data?.pipelineRevision || undefined,
                 },
-                startDispatch: {
+                cancelDispatch: {
                     dispatchId: data?.dispatch?.id,
                 },
             });
@@ -89,6 +91,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                     salesId: data?.order?.id,
                     authorId: auth?.id,
                     authorName: auth?.name,
+                    pipelineRevision: data?.pipelineRevision || undefined,
                 },
                 submitDispatch: formData,
             });
@@ -155,19 +158,8 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             },
         });
         const completeAllTrigger = useTaskTrigger({
-            onStarted() {
-                submitDispatch.mutate({
-                    meta: {
-                        salesId: Number(data?.order?.id || 0),
-                        authorId: Number(auth?.id || 0),
-                        authorName: auth?.name || "System",
-                    },
-                    submitDispatch: {
-                        dispatchId: Number(data?.dispatch?.id || 0),
-                        receivedBy: auth?.name || "System",
-                        receivedDate: new Date(),
-                    },
-                });
+            onSuccess() {
+                invalidate();
             },
         });
         const onDeleteDispatch = () => {};
@@ -179,6 +171,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                         authorId: auth.id,
                         salesId: data?.order?.id,
                         authorName: auth.name,
+                        pipelineRevision: data?.pipelineRevision || undefined,
                     },
                     clearPackings: {
                         dispatchId: data?.dispatch.id,
@@ -194,6 +187,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                         authorId: Number(auth.id || 0),
                         salesId: Number(data?.order?.id || 0),
                         authorName: auth.name || "System",
+                        pipelineRevision: data?.pipelineRevision || undefined,
                     },
                     packItems: {
                         dispatchId: Number(data?.dispatch?.id || 0),
@@ -222,6 +216,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                     salesId: data?.order?.id,
                     authorId: auth?.id,
                     authorName: auth?.name,
+                    pipelineRevision: data?.pipelineRevision || undefined,
                 },
                 cancelDispatch: {
                     dispatchId: data?.dispatch.id,
@@ -246,12 +241,12 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                             authorId: Number(auth.id || 0),
                             salesId: Number(data?.order?.id || 0),
                             authorName: auth.name || "System",
+                            pipelineRevision: data?.pipelineRevision || undefined,
                         },
-                        packItems: {
+                        markAsCompleted: {
                             dispatchId: Number(data?.dispatch?.id || 0),
-                            dispatchStatus: "completed",
-                            packMode: "all",
-                            replaceExisting: true,
+                            receivedBy: auth?.name || "System",
+                            receivedDate: new Date(),
                         },
                     } as UpdateSalesControl,
                 });
@@ -262,6 +257,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                     salesId: Number(data?.order?.id || 0),
                     authorId: Number(auth?.id || 0),
                     authorName: auth?.name || "System",
+                    pipelineRevision: data?.pipelineRevision || undefined,
                 },
                 submitDispatch: {
                     dispatchId: Number(data?.dispatch?.id || 0),

@@ -1,30 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
+import { Prisma } from "@gnd/db";
 
 const notificationCalls: unknown[] = [];
-
-mock.module("@gnd/utils/note", () => ({
-	composeNote: () => ({
-		data: {},
-		set() {
-			return this;
-		},
-		color() {
-			return this;
-		},
-	}),
-	getSenderId: async () => 1,
-	getSubscribersAccount: async () => [],
-	noteTag: (tagName: string, tagValue: unknown) => ({
-		tagName,
-		tagValue: String(tagValue),
-	}),
-	saveNote: async () => null,
-	saveNoteSchema: {
-		parse: (value: unknown) => value,
-		safeParse: (value: unknown) => ({ success: true, data: value }),
-	},
-	transformNote: (note: unknown) => note,
-}));
 
 mock.module("@notifications/services/triggers", () => ({
 	NotificationService: class {
@@ -47,10 +24,6 @@ mock.module("@notifications/services/triggers", () => ({
 			return this;
 		}
 	},
-}));
-
-mock.module("@trigger.dev/sdk/v3", () => ({
-	tasks: {},
 }));
 
 const {
@@ -101,6 +74,33 @@ function createPayout(overrides: Record<string, unknown> = {}) {
 		...overrides,
 	};
 }
+
+function createPaymentResult(id: number, args: any) {
+	const timestamp = new Date("2026-07-03T16:52:58.000Z");
+	return {
+		id,
+		createdAt: timestamp,
+		amount: new Prisma.Decimal(String(args.data.amount || 0)),
+		adjustments: (args.data.adjustments?.create || []).map(
+			(entry: Record<string, unknown>, index: number) => ({
+				...entry,
+				id: index + 1,
+				amount: new Prisma.Decimal(String(entry.amount || 0)),
+				createdAt: timestamp,
+			}),
+		),
+	};
+}
+
+const accountingMocks = {
+	contractorAccountingPeriod: {
+		findFirst: async () => null,
+	},
+	contractorLedgerEntry: {
+		findUnique: async () => null,
+		create: async ({ data }: any) => ({ id: `ledger-${data.sourceKey}`, ...data }),
+	},
+};
 
 describe("contractor payout job descriptions", () => {
 	it("returns live paid job descriptions in payout overview data", async () => {
@@ -198,6 +198,7 @@ describe("contractor payout job descriptions", () => {
 		const createdPayments: any[] = [];
 		const updatedJobs: any[] = [];
 		const db = {
+			...accountingMocks,
 			jobs: {
 				findMany: async () => [
 					{
@@ -230,7 +231,7 @@ describe("contractor payout job descriptions", () => {
 			jobPayments: {
 				create: async (args: any) => {
 					createdPayments.push(args);
-					return { id: 2653 };
+					return createPaymentResult(2653, args);
 				},
 			},
 			$transaction: async (callback: (tx: unknown) => unknown) => callback(db),
@@ -246,6 +247,7 @@ describe("contractor payout job descriptions", () => {
 				adjustment: 0,
 				discount: 0,
 			},
+			{ saveNote: async () => ({}) as never },
 		);
 
 		expect(result.id).toBe(2653);
@@ -264,6 +266,7 @@ describe("contractor payout job descriptions", () => {
 	it("preserves cents when creating a discounted contractor payout", async () => {
 		const createdPayments: any[] = [];
 		const db = {
+			...accountingMocks,
 			jobs: {
 				findMany: async () => [
 					createPayoutJob({
@@ -285,7 +288,7 @@ describe("contractor payout job descriptions", () => {
 			jobPayments: {
 				create: async (args: any) => {
 					createdPayments.push(args);
-					return { id: 2654 };
+					return createPaymentResult(2654, args);
 				},
 			},
 			$transaction: async (callback: (tx: unknown) => unknown) => callback(db),
@@ -300,6 +303,7 @@ describe("contractor payout job descriptions", () => {
 				adjustment: 0,
 				discount: 4.01,
 			},
+			{ saveNote: async () => ({}) as never },
 		);
 
 		expect(result.totalPayout).toBe(96.24);

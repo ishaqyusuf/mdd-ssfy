@@ -2101,7 +2101,7 @@ function InventoryLineRow({
 									"border-emerald-200 bg-emerald-50 text-emerald-700",
 							)}
 						>
-							AVAILABLE: {formatQty(coverage.coveredQty)} OF{" "}
+							COVERED: {formatQty(coverage.coveredQty)} OF{" "}
 							{formatQty(coverage.requiredQty)}
 						</Badge>
 					) : null}

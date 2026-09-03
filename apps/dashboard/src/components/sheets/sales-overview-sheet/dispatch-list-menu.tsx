@@ -25,6 +25,7 @@ export function DispatchListMenu({ dispatch }: Props) {
 			salesId,
 			authorId,
 			authorName: auth.name || "Employee",
+			pipelineRevision: ctx.data?.pipelineRevision || undefined,
 		};
 	};
 	const { trigger } = useTaskTrigger({

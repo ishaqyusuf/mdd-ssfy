@@ -1854,6 +1854,10 @@ describe("dealer portal isolation", () => {
             customerProfileId: "45",
             paymentStatus: "due",
             invoiceStatus: "pending",
+        }, {
+            contractVersion: "sales-pipeline/v2",
+            projectionVersion: 5,
+            headlineIn: ["fulfilled"],
         });
         expect(capturedWhere).toMatchObject({
             dealerAuthId: 10,
@@ -1872,6 +1876,14 @@ describe("dealer portal isolation", () => {
             },
             deliveryOption: "delivery",
             invoiceStatus: "pending",
+            listProjection: {
+                is: {
+                    state: "ready",
+                    version: 5,
+                    pipelineContractVersion: "sales-pipeline/v2",
+                    pipelineHeadline: { in: ["fulfilled"] },
+                },
+            },
         });
     });
     it("loads dealer customer overview with scoped sales counts", async () => {

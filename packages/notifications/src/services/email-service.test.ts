@@ -121,6 +121,7 @@ describe("shouldMockEmail", () => {
 
 describe("dispatch email templates", () => {
 	test("renders the dispatch-assigned template before a mocked send", async () => {
+		delete process.env.SKIP_EMAIL;
 		process.env.NODE_ENV = "development";
 		process.env.VERCEL_ENV = undefined;
 		process.env.MOCK_EMAIL_SENDS = "true";
@@ -144,6 +145,7 @@ describe("dispatch email templates", () => {
 	});
 
 	test("renders the dispatch-created template before a mocked send", async () => {
+		delete process.env.SKIP_EMAIL;
 		process.env.NODE_ENV = "development";
 		process.env.VERCEL_ENV = undefined;
 		process.env.MOCK_EMAIL_SENDS = "true";

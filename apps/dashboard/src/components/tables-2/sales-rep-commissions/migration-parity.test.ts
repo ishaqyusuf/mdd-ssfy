@@ -33,14 +33,8 @@ describe("Sales Rep commissions table migration parity", () => {
 		].join("\n");
 
 		expect(source.includes("ScrollableContent")).toBe(true);
-		expect(
-			routeSource.includes(
-				'getInitialTableSettings("sales-rep-commission-payments")',
-			),
-		).toBe(true);
-		expect(
-			routeSource.includes('getInitialTableSettings("sales-rep-commissions")'),
-		).toBe(true);
+		expect(routeSource.includes("SalesRepDashboardWorkspace")).toBe(true);
+		expect(routeSource.includes("getInitialTableSettings")).toBe(false);
 		expect(
 			source.includes(
 				"components/tables-2/sales-rep-commission-payments/data-table",

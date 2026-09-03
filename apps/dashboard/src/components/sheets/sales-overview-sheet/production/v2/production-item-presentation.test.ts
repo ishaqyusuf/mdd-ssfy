@@ -1,10 +1,20 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 
 import {
 	getProductionConfigKey,
 	getProductionItemPresentation,
 	getWorkerProductionItemPresentation,
 } from "./production-item-presentation";
+
+const overviewSource = readFileSync(
+	new URL("./production-tab-v2.tsx", import.meta.url),
+	"utf8",
+);
+const workerSource = readFileSync(
+	new URL("../../../../production-v2/shared.tsx", import.meta.url),
+	"utf8",
+);
 
 describe("Production item presentation", () => {
 	test("capitalizes the title and full subtitle value", () => {
@@ -16,6 +26,13 @@ describe("Production item presentation", () => {
 		).toEqual({
 			title: "H.C 2PNL SQUARE SHAKER PRIMED 1-3/8",
 			subtitle: "INTERIOR PRE-HUNG | 2-6 X 6-8 | 1 LH & 4 RH | NO LABOR COST",
+			headlineSegments: [
+				"H.C 2PNL SQUARE SHAKER PRIMED 1-3/8",
+				"INTERIOR PRE-HUNG",
+				"2-6 X 6-8",
+				"1 LH & 4 RH",
+				"NO LABOR COST",
+			],
 		});
 	});
 
@@ -23,6 +40,7 @@ describe("Production item presentation", () => {
 		expect(getProductionItemPresentation({})).toEqual({
 			title: "UNTITLED ITEM",
 			subtitle: "",
+			headlineSegments: ["UNTITLED ITEM"],
 		});
 	});
 
@@ -38,6 +56,11 @@ describe("Production item presentation", () => {
 		).toEqual({
 			title: "SC HARDWARE FLUSH PRIME",
 			subtitle: "INTERIOR PRE-HUNG | 2-6 X 6-8",
+			headlineSegments: [
+				"SC HARDWARE FLUSH PRIME",
+				"INTERIOR PRE-HUNG",
+				"2-6 X 6-8",
+			],
 			assignedQuantity: { lh: 0, qty: 2, rh: 0 },
 		});
 	});
@@ -54,6 +77,7 @@ describe("Production item presentation", () => {
 		).toEqual({
 			title: "DOOR",
 			subtitle: "INTERIOR PRE-HUNG",
+			headlineSegments: ["DOOR", "INTERIOR PRE-HUNG"],
 			assignedQuantity: { lh: 1, qty: 3, rh: 2 },
 		});
 	});
@@ -68,5 +92,13 @@ describe("Production item presentation", () => {
 
 		expect(new Set(keys).size).toBe(repeatedConfigs.length);
 		expect(keys).toEqual(["Jamb Size-4-5/8-0", "Jamb Size-4-5/8-1"]);
+	});
+
+	test("uses the same wrapping headline and top alignment in overview and worker views", () => {
+		expect(overviewSource).toContain("flex-nowrap items-start");
+		expect(overviewSource).toContain("border-x-transparent");
+		expect(overviewSource).toContain("<ProductionItemHeadline");
+		expect(workerSource).toContain("<ProductionItemHeadline");
+		expect(overviewSource).not.toContain("<ItemDescription");
 	});
 });

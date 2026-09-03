@@ -1,5 +1,14 @@
 # Sales Form System Hardening
 
+## Approved whole-line deletion (2026-09-03)
+
+- Approved paid-order adjustments treat a line omitted from the approved form
+  snapshot as an intentional deletion only when the recorded proposed quantity
+  is zero. The apply worker retires the persisted sales item, grouped siblings,
+  and its active door, step, shelf, and House Package Tool projections before
+  committing the approved financial and inventory adjustment. Missing non-zero
+  proposal lines still fail closed as inconsistent approval data.
+
 ## Due dates, fulfillment, and standard save (2026-08-31)
 
 - Orders render a dedicated Due Dates section with independent Production and

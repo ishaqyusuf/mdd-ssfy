@@ -1,5 +1,159 @@
 # Progress
 
+- 2026-09-03: Began the user-authorized direct production rollout with Preview
+  explicitly waived. Verified Vercel target `gndprodesk/gndprodesk`
+  (`prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr`, root `apps/dashboard`) and production DB
+  fingerprint `mysql://aws.connect.psdb.cloud/gndprodesk#identity=ba57b207`.
+  The guarded `db:push --prod` completed in 20.20 seconds and Prisma reports the
+  production schema in sync; only seven nullable derived Sales Pipeline
+  projection fields and three indexes were added, with no reset or operational
+  row repair. A secret-free 59 MB production snapshot containing the current
+  157-file dirty-worktree payload was prepared, but the host safety reviewer
+  rejected the Vercel action before upload pending exact payload/destination
+  approval. The live application and production data remain otherwise
+  unchanged; shadow, dry-run, and bounded repair commands have not run.
+
+- 2026-09-03: Completed Canonical Sales Pipeline Ticket 09 at 10/10 and
+  synchronized Scratch first. Dev Quick Sign In authenticated the inner browser
+  as Izri, whose assignment scope includes order `09502PC`. Worker and admin
+  surfaces agree on all three exact-size door items, `MATERIAL READY` and
+  `AWAITING INBOUND`, and one grouped quantity-one inbound line per sibling
+  size. A full reload preserved `door-66291-2-0 x 6-8` and its expanded state.
+  The repeatable local worker harness passes at 390×844 and 768×1024 with no
+  horizontal overflow, reachable inline evidence, and an accessible close
+  control after scroll. The redundant worker-only top Inbound materials summary
+  was removed; item-level inline evidence remains authoritative and the admin
+  summary is unchanged. The focused presentation contract passes 9/9 tests
+  with 36 assertions. Ticket 14's combined automated/browser/device check is
+  now verified at 6/13. The queue is 128/136: 12 done, Ticket 11 in progress,
+  and Ticket 14 blocked on hosted rollout approvals and evidence.
+
+- 2026-09-03: Revalidated the two remaining external Canonical Sales Pipeline
+  acceptance boundaries and synchronized Scratch first. The inner browser had
+  only the crashed prior admin tab; reopening the worker route authenticated as
+  Pablo and redirected to Sales Rep, so no Chrome session was substituted and
+  Ticket 09 remains 8/10. The production shadow utility is demonstrably
+  read-only and bounded, but its production-profile connection was blocked
+  because explicit permission to copy production order/status evidence into a
+  local report is absent. No hosted read or write occurred. Ticket 11 adapter
+  retirement remains coupled to approved cutover, and the tracker remains
+  125/136 pending worker authentication and hosted authorization.
+
+- 2026-09-03: Completed the final local post-cleanup validation pass for the
+  Canonical Sales Pipeline without overstating the hosted acceptance gates.
+  Scratch was updated first. The material-review presentation seam passes
+  12/12 after replacing excessively deep Dashboard inference with explicit
+  boundary types. The Dashboard diagnostic returns to its documented 1,382
+  broad-baseline errors with no lifecycle/material-review diagnostic; the only
+  changed-file matches are the pre-existing New Sales Form snapshot errors.
+  The environment-backed repository matrix remains 4,470 passing, one
+  intentional live-database parity skip, and zero failing across 868 files;
+  Sales/API typechecks and diff integrity pass. The tracker remains 125/136
+  because authenticated responsive worker/device acceptance, Preview and
+  production shadow evidence, cohort rollout, and explicit operator approval
+  are still required.
+
+- 2026-09-03: Resolved the six Canonical Sales Pipeline checks reopened by code
+  review and synchronized Scratch first, then Brain. The ordinary membership
+  classifier is now falsifiable and its fresh 6,821-order local run reports 0
+  unexplained, 0 unsafe, and 0 stale differences. Sales Orders canonical
+  filters now reduce through indexed pipeline projections instead of enriching
+  the complete workspace; a read-only end-to-end benchmark of 36 post-warmup
+  Production/Fulfillment list, count, and summary calls passes the 500 ms gate
+  at 455.07 ms p95 and 465.04 ms maximum. Exact review deep links focus once;
+  batch assignment/edit and packing-slip completion use the locked canonical
+  executor; committed jobs isolate notification failures; material-review
+  timestamps/revisions participate in projection freshness; and stale
+  Production-completed reads fail visibly. The focused verification passes 90
+  lifecycle tests plus 30 query/notification tests with 0 failures. Tickets 02,
+  06, 07, and 12 are restored to done, Ticket 14 advances to 5/13, and the
+  authoritative tracker is 125/136: 11 done, 2 in progress, 1 blocked. The
+  environment-backed repository matrix now runs 4,471 tests across 868 files:
+  4,470 pass, one opt-in live-database parity test is intentionally skipped,
+  and zero fail.
+
+- 2026-09-02: Continued Canonical Sales Pipeline Ticket 14 full-matrix
+  verification. Scratch was updated first. The environment-backed repository
+  run improved from 4,323 passing / 78 failing / 13 setup errors to 4,429
+  passing / 36 failing / 0 setup errors across 4,466 runnable tests. Two
+  test-only partial Trigger.dev module mocks were replaced by an explicit
+  snapshot-warmup dispatcher seam, so unrelated Trigger task suites retain the
+  complete SDK contract. Nine repaired transaction and source-contract
+  harnesses pass together at 79/79 tests and 523 assertions. Remaining failures
+  are under independent-versus-order-dependent classification; Ticket 14 stays
+  5/13 and the overall tracker remains 125/136 until the full matrix and
+  authenticated worker/device gates genuinely pass.
+
+- 2026-09-02: Completed Canonical Sales Pipeline Ticket 04 at 12/12. Production
+  summary review counts no longer count every stored `PENDING` review; list,
+  order-scoped query, summary count, saved Review tab, exact notification deep
+  link/detail, and one-click dependency resolution now share the package-owned
+  current-evidence actionability boundary. Terminal, superseded, and
+  empty/retracted records remain reachable history without active-work count
+  inflation. The focused cross-surface seam passes 49/49 and `@gnd/sales`
+  typecheck passes. Scratch was updated first; Brain now mirrors 105/136 checks,
+  6 tickets done, 7 in progress, and Ticket 14 blocked.
+
+- 2026-09-02: Completed Canonical Sales Pipeline Ticket 13 at 12/12 and
+  advanced Ticket 04 to 11/12. The package query boundary now has direct proof
+  that current lifecycle/material evidence retains genuinely actionable review
+  work while terminal, superseded, and empty/retracted `PENDING` rows remain
+  audit history. The combined focused query, actionability, reconciliation,
+  service, and compare-and-set rollback seam passes 30/30; `@gnd/sales`
+  typecheck passes. Scratch was updated first and Brain now mirrors 104/136
+  verified checks: 5 tickets done, 8 in progress, and Ticket 14 blocked.
+
+- 2026-09-02: At this superseded checkpoint, paused implementation to reconcile
+  the full local Canonical Sales Pipeline ticket set against code, tests, QA
+  evidence, and Brain. Scratch was authoritative at 101/136 verified checks:
+  Tickets 01, 02, 03, and 05 were done; Tickets 04 and 06–13 were in progress;
+  Ticket 14 was blocked. Each open
+  ticket records its verified count and remaining proof. Brain feature/task/QA
+  claims were reduced to the same evidence-based state. The earlier
+  sub-millisecond shadow p95 is no longer accepted because it timed only
+  in-memory comparison work; the corrected report measures database/resolver
+  batches and requires a fresh run. Future milestones update Scratch first and
+  Brain immediately afterward. The newer entry above advances the queue to
+  104/136 after completing Ticket 13.
+
+- 2026-09-02: At this superseded checkpoint, corrected the Canonical Sales
+  Pipeline tracking ledger after the
+  Brain completion claim had moved ahead of the authoritative Scratch ticket.
+  Ticket 13 was in progress at 11/12 verified checks. Its read-only reports,
+  classifications, local bounded repair evidence, non-fabrication boundary,
+  authorization/audit requirements, stable rerun, material reporting,
+  provenance preservation, and three archetypes are verified. Compare-and-set
+  undo, current-evidence terminal/superseded classification, and the final
+  material repair safety rerun remain open. Scratch and Brain now record the
+  same state; future milestones update Scratch first and Brain immediately
+  afterward. The compare-and-set rollback seam is now implemented and directly
+  tested: version-2 backups carry the post-repair revision, newer projections
+  are skipped, and unsafe version-1 backups fail closed. The material repair
+  safety suite and Sales typecheck also pass; only current-evidence
+  terminal/superseded query integration proof remained for Ticket 13 and has
+  since passed in the newer entry above.
+
+- 2026-09-02: Implemented the local scope across Canonical Sales Pipeline
+  tickets on `master`, subject at that checkpoint to Ticket 13 safety checks and
+  Ticket 14 rollout gates. `@gnd/sales` now owns the
+  versioned lifecycle snapshot, exact workspace membership and filters,
+  action/capability evaluation, exact-size item material projection, review
+  actionability, rollout observation, and safe reconciliation. Production,
+  Fulfillment, Sales Orders/Overview, worker, driver/mobile, dealer/storefront,
+  jobs, notifications, and saved-view adapters consume the shared contract.
+  Order `09502PC` confirms sibling door sizes no longer share inbound evidence;
+  material detail is one grouped all-caps semantic row and the shared all-caps
+  item headline keeps identical wrap points when expanded. The broad Sales
+  suite passes 1,494 tests; focused API/DB, Dashboard, mobile, and jobs/script
+  suites pass 112 more tests; Sales/API typechecks, Prisma generation, local
+  migration status, and diff integrity pass. Final local reconciliation is
+  stable at 6,192 clean, 0 deterministic repair, 629 known compatibility, 1,316
+  review-required, and 0 unsafe. Material review is stable at 86 active and 0
+  proposed mutations. Ticket 14 remains intentionally open: the fail-closed
+  cutover gate rejects promotion because production/Preview evidence, conflict
+  sampling, and operator approval are not complete. Evidence and the approval
+  packet are in `.scratch/sales-pipeline-lifecycle-implementation/`.
+
 - 2026-09-02: Aligned Production calendar colors with the canonical Sales Order
   lifecycle. Scheduled assignments now render Completed when either their own
   completion timestamp exists or the order's production stat/lifecycle is
@@ -14319,6 +14473,44 @@
   confirmed active default, `Show > Archived`, canonical URL scope, and
   clearing back to active orders without mutating an order.
 
+## 2026-09-02 — Canonical Sales Pipeline lifecycle Wayfinder charted
+
+- Approved the destination of one Canonical Sales Lifecycle Authority in
+  `@gnd/sales` covering commercial order, payment, material/inventory,
+  Production, Fulfillment, packing, Dispatch, and terminal outcomes.
+- Approved one computed headline plus explicit dimensions, operational-evidence
+  precedence, domain-owned facts with Sales-owned orchestration, explicit stage
+  applicability, and exact membership parity across list, Calendar, filters,
+  saved tabs, summaries, counts, analytics, and exports.
+- Authenticated local browser inspection confirmed Due Today `0` while Calendar
+  showed five Assigned orders on September 2. Past Due also showed `0` despite
+  scheduled assignments on prior days; `09502PC` displayed `Awaiting production`
+  in Sales Overview while its Production items displayed `Assigned`.
+- Root-path inspection confirmed Calendar reads assignment due dates directly,
+  while Due Today/Past Due add `SalesStat`-based pending and completion gates.
+- The final canonical tracker is local at
+  `.scratch/sales-pipeline-lifecycle-wayfinder/map.md`, with ten structured
+  child issue files and explicit `Blocked by` metadata. Taxonomy/invariants and
+  the lifecycle authority/data-flow inventory are the two open frontier
+  tickets. An initially created GitHub map and its ten child issues were deleted
+  at the owner's request, together with the temporary label created for them.
+- Updated `CONTEXT.md` with Sales Pipeline, canonical authority, snapshot,
+  evidence precedence, applicability, workspace membership, and Production
+  schedule vocabulary. No application behavior or Sales data changed.
+
+## 2026-09-02 — Canonical Sales Pipeline local specification generated
+
+- Appended the product owner's approved proposed answers to all ten local
+  Wayfinder ticket comment sections without closing or claiming the tickets.
+- Published the ready-for-agent local specification at
+  `.scratch/sales-pipeline-lifecycle-wayfinder/spec.md`.
+- Locked the primary testing seam as normalized domain evidence through the
+  shared Sales Pipeline Snapshot and Canonical Workspace Membership authority,
+  followed by command/query integration and thin surface verification.
+- The next required checkpoint is approval of the dependency-ordered vertical
+  implementation ticket breakdown; no implementation files or runtime behavior
+  changed in this step.
+
 ## 2026-09-02 — Automatic zero-delta Sales document repair
 
 - Guarded Dashboard preview/print/PDF/regeneration, Sales delivery, dealer
@@ -14333,3 +14525,262 @@
   read-only, and explicit manual repair remains available as a permission-gated
   fallback. No schema, migration, endpoint wire shape, or PDF renderer change
   was required.
+
+## 2026-09-02 — Admin calendar rescheduling Wayfinder charted locally
+
+- Approved the focused direction for admin drag-and-drop rescheduling in Sales
+  Production and Fulfillment: reuse the existing DOM calendars and installed
+  `@dnd-kit/core`, not Chart.js or a calendar replacement.
+- Production moves target only the exact order/date assignment group; mixed
+  completed/incomplete groups fail closed; worker calendars remain read-only.
+  Fulfillment locks in-transit, fulfilled, and cancelled Dispatches. Past-date
+  moves require an explicit warning, and confirmed moves require attributable
+  evidence plus worker/driver notification.
+- Created the local planning-only map and six dependency-ordered decision
+  tickets under `.scratch/admin-calendar-rescheduling-wayfinder/`. No GitHub or
+  other external tracker issue was created or modified.
+- Drafted proposed-answer comments for the required approval checkpoint. No
+  application code, database schema, API behavior, or Sales data changed.
+
+## 2026-09-02 — Canonical lifecycle command atomicity reconciled
+
+- Reconciled Scratch first, then mirrored Brain: Tickets 07 and 08 advanced to
+  9/10 and 6/7, bringing the fourteen-ticket queue to 109/136 verified checks
+  (80%). Their only remaining acceptance check is complete affected-surface
+  refresh coverage.
+- Added a package-owned Sales Pipeline command executor that locks the Sales
+  order, recomputes canonical evidence, validates the expected revision, and
+  executes each Production, material-review, Fulfillment, packing, or Dispatch
+  mutation in one transaction. Exact replay is idempotent; stale, conflicting,
+  or review-required commands fail closed.
+- Routed the Sales control job, Production material-review decisions, and
+  direct Dispatch mutations through that boundary. Dashboard callers propagate
+  the current pipeline revision, and pack-all now uses one completion command
+  rather than racing two lifecycle writes.
+- Focused command, route, permission, task, packing, material, and caller
+  coverage passes 70 tests with 248 assertions. API typecheck passes. The
+  Dashboard's broad established typecheck baseline remains red, while the
+  touched lifecycle files have no filtered diagnostics.
+
+## 2026-09-02 — Canonical lifecycle refresh coverage completed
+
+- Reconciled Scratch first, then Brain: Tickets 07 and 08 are done at 10/10 and
+  7/7. The queue is now 111/136 verified checks (82%), with 8/14 tickets done,
+  5/14 in progress, and Ticket 14 blocked on its operational rollout gates.
+- Added one deduplicated `sales.pipeline.changed` query event spanning Sales
+  Orders/Overview, Production queue/summary/Calendar/worker tasks,
+  Fulfillment/Dispatch/packing/driver workspaces, and inventory projections.
+  Direct canonical Dispatch mutations and monitored Production/Fulfillment
+  tasks publish the same event; active queries refetch and inactive queries are
+  marked stale.
+- Focused command, route, permission, task, material, caller, and query-event
+  coverage passes 109 tests / 363 assertions; scoped Biome passes. The
+  high-memory Dashboard typecheck reaches the established broad baseline and
+  reports no non-test diagnostic in the newly changed query-event or task-effect
+  source files.
+
+## 2026-09-02 — Sales Overview material-review state matrix completed
+
+- Reconciled Scratch first, then Brain: Ticket 06 is done at 13/13, moving the
+  queue to 112/136 verified checks (82%): 9/14 done, 4/14 in progress, and
+  Ticket 14 blocked on operational rollout evidence and approval.
+- Material-review reads now allow every authorized Production viewer and return
+  explicit capabilities for review decisions, inbound receipt, and manual
+  availability. Mutation routes retain their independent production and
+  action-specific Inventory permission checks.
+- Exact deep links to closed, terminal, superseded, or empty reviews render
+  read-only audit history. Loading, query failure, unavailable evidence, stale
+  evidence, conflict, read-only, and partial-permission states are explicit and
+  fail safe.
+- The focused state and permission matrix passes 10 tests / 57 assertions; API
+  typecheck and diff validation pass. The changed Dashboard source produces no
+  filtered typecheck diagnostic; existing test-matcher baseline diagnostics
+  remain outside this slice.
+
+## 2026-09-02 — Production worker refresh and review-count parity verified
+
+- Reconciled Scratch first, then Brain: Ticket 09 advanced from 6/10 to 8/10,
+  moving the queue to 114/136 verified checks (84%).
+- The canonical Sales Pipeline event refreshes the authenticated worker queue,
+  dashboard, Calendar, and detail projections without a full-page reload.
+- Worker, admin Production, and Sales Overview review counts and exact-review
+  evaluation share the package-owned current-evidence membership seam. Focused
+  coverage passes 33 tests with 100 assertions.
+- Mobile/tablet interruption proof and authenticated admin/worker browser
+  parity remain open. The current local user is redirected from the worker
+  route, so those checks were not marked without evidence.
+
+## 2026-09-02 — Driver and mobile Fulfillment migration completed
+
+- Reconciled Scratch first, then Brain: Ticket 10 is done at 7/7 and the queue
+  is now 117/136 verified checks (86%): 10/14 done, 3/14 in progress, and
+  Ticket 14 blocked on its operational rollout gates.
+- Stable request identifiers make weak-network retries idempotent, manifest and
+  pipeline revisions prevent stale advancement, and persisted proof drafts can
+  be resumed without treating offline state as authorization.
+- Canonical pipeline events and centralized native-mobile invalidation converge
+  admin, browser-driver, and mobile projections after committed actions.
+- The focused transaction, route, responsive driver, native mobile, freshness,
+  proof, and query-event slice passes 56 tests with 284 assertions.
+
+## 2026-09-02 — Customer-safe material terminology verified
+
+- Reconciled Scratch first, then Brain: Ticket 11 advanced from 6/9 to 8/9,
+  bringing the queue to 119/136 verified checks (88%).
+- Table-driven coverage proves dealer/customer material labels derive from all
+  nine canonical item-material states, expose no internal component, inbound,
+  quantity, conflict, or review evidence, and reserve the ready claim solely
+  for approved `material_ready` evidence.
+- The broader channel, lifecycle, dealer-isolation, and notification slice
+  passes 84 tests with 337 assertions.
+- The only remaining Ticket 11 check is removal of its production-shadow legacy
+  adapter, which is intentionally coupled to Ticket 14's approved read cutover.
+
+## 2026-09-02 — Non-interactive actionability and invalidation centralized
+
+- Reconciled Scratch first, then Brain: Ticket 12 advanced from 5/10 to 8/10,
+  moving the queue to 122/136 verified checks (90%).
+- Production material-review notifications now re-evaluate the package-owned
+  current-evidence actionability predicate before sending and carry the current
+  classification, classification version, and material evidence revision.
+- The central query-event registry now refreshes review list/detail, Production
+  item detail, material, and readiness queries for Production commands and all
+  catalog, stock, inbound, allocation, and fulfillment evidence families.
+- Focused registry/material/UI tests pass 52 tests with 277 assertions; the
+  notification/actionability rerun passes 34 tests with 148 assertions. Jobs
+  typechecking has no changed-job diagnostic after correction, while the
+  repository's existing shared React-type baseline remains red.
+
+## 2026-09-02 — Non-interactive lifecycle migration completed
+
+- Reconciled Scratch first, then Brain: Ticket 12 is done at 10/10. The queue
+  is now 124/136 verified checks (91%): 11/14 done, 2/14 in progress, and
+  Ticket 14 blocked.
+- List, count, summary, saved-filter, and export consumers share one canonical
+  filter/status contract. Mobile dashboard Production and Fulfillment analytics
+  derive from selected canonical snapshots.
+- Document status prefers the canonical headline and retains Administrative
+  Completion wording even when legacy lifecycle fields disagree.
+- The closing report, export, document, query, notification, and registry slice
+  passes 69 tests with 257 assertions.
+
+## 2026-09-02 — Corrected local Sales Pipeline cutover timing captured
+
+- Ran the corrected read-only database/resolver shadow report against the
+  synchronized local database. It compared 6,821 orders with zero unsafe
+  differences, zero stale projections, 2,605 unclassified membership
+  differences, and 2,985 headline differences.
+- Measured p95 latency is 95.92 ms across 97 paged database-read and fresh
+  resolver-batch samples, passing the 500 ms latency threshold.
+- The automated gate remains correctly closed on unclassified membership,
+  incomplete conflict sampling, and absent operator approval. No hosted read,
+  hosted write, cohort activation, or acceptance check was claimed.
+
+## 2026-09-02 — Shadow membership differences classified
+
+- Reconciled Scratch first, then Brain: Ticket 14 advanced from 4/13 to 5/13,
+  bringing the queue to 125/136 verified checks (92%).
+- The read-only shadow classifier now distinguishes intentional canonical
+  applicability/terminal semantics, explicit operator-review cases, and truly
+  unexplained drift. Unknown applicability is review-required, not silently
+  accepted.
+- The fresh local report records 2,571 explained differences, 34
+  review-required cases with named orders/reasons, zero unexplained membership
+  differences, zero unsafe differences, zero stale projections, and 92.44 ms
+  p95 across 97 database/resolver samples.
+- The automated gate now fails only `CONFLICT_SAMPLE_INCOMPLETE` and
+  `OPERATOR_APPROVAL_REQUIRED`. No Preview/production access, write, cohort, or
+  retirement action was performed.
+
+## 2026-09-02 — Broad-suite lifecycle overlap triaged
+
+- Updated Scratch first, then Brain; verified progress remains 125/136 because
+  no operational acceptance gate was claimed.
+- The final repository-wide `bun test` audit ran 4,402 tests across 867 files:
+  4,315 passed, 1 skipped, 86 failed, and 13 setup/runtime errors.
+- Two stale source-contract assertions overlapped the lifecycle changes. They
+  now cover the inbound mutation callback with its response argument and the
+  canonical Fulfillment summary's deduplicated order-set counts.
+- Neither overlapping failure appears in the final broad rerun. The focused
+  lifecycle rerun passes 65 tests / 446 assertions. Ticket 14's
+  full-matrix check remains open because the unrelated broad baseline and
+  authenticated browser/device acceptance are not green.
+- The local in-app admin Production detail also preserved its order, tab, exact
+  Production item, and expanded state across reload. Ticket 09 remains 8/10:
+  the evidence is not a substitute for a responsive worker-authenticated run.
+
+## 2026-09-03 — Canonical lifecycle repository matrix green
+
+- Updated Scratch first, then Brain; verified acceptance remains 125/136 because
+  the Ticket 14 matrix check also requires authenticated responsive worker/device
+  acceptance.
+- The environment-backed repository run executes 4,465 tests across 867 files:
+  4,464 pass, 1 opt-in live-database parity test is intentionally skipped, 0
+  fail, and 0 setup/runtime errors remain.
+- Explicit dependency seams replaced globally leaking notification, Trigger.dev,
+  and environment-backed test doubles. Stale route, presentation, transaction,
+  and governance harnesses now verify their current production contracts.
+- No Preview or production read/write, rollout, cohort, adapter retirement, or
+  approval action was performed. Ticket 14 remains fail-closed on incomplete
+  conflict sampling and absent operator approval.
+
+## 2026-09-03 — Reopened non-falsifiable shadow parity check
+
+- Updated Scratch first, then Brain: Ticket 14 moved from 5/13 to 4/13 and the
+  authoritative queue moved from 125/136 to 124/136 verified checks.
+- Code review found that the ordinary membership-mismatch branch inherited an
+  `explained` default and no branch could assign `unexplained`. The prior zero
+  result was therefore structurally guaranteed rather than evidence.
+- The prior report's 92.44 ms p95 across 97 real database/resolver samples, zero
+  unsafe differences, zero stale projections, and 34 operator-review cases
+  remain valid. Its 2,571 ordinary differences must be reclassified by a
+  falsifiable rule and rerun before the parity check can close.
+
+## 2026-09-03 — Reconciled full code-review findings into Scratch
+
+- Updated Scratch first, then Brain: six additional acceptance checks were
+  reopened, moving the authoritative queue from 124/136 to 118/136.
+- Tickets 02, 06, 07, and 12 returned to in progress. The outstanding local
+  work is bounded canonical filter enrichment, literal deep-link focus,
+  canonical routing for remaining batch/packing-slip writers, concurrency-safe
+  revisions on those paths, post-commit job notification failure isolation,
+  and complete projection freshness/revision checks.
+- The repository-wide automated matrix remains green at 4,464 passing, zero
+  failing, and one intentional opt-in live-database parity skip. No hosted or
+  production action was performed.
+
+## 2026-09-03 — Direct production rollout and partial projection convergence
+
+- Updated Scratch first, then Brain. The user explicitly waived Preview and
+  approved the exact 59 MB/157-file Vercel payload, direct production rollout,
+  production schema synchronization, and bounded reconciliation/repair.
+- The guarded production `db:push` verified fingerprint
+  `mysql://aws.connect.psdb.cloud/gndprodesk#identity=ba57b207` and applied only
+  seven nullable derived-projection columns plus three indexes. No operational
+  row was reset or rewritten.
+- Vercel deployment `dpl_E2K1NQqDWTJqy5Vvgy1TqXs5AUQP` is READY and promoted
+  to `www.gndprodesk.com`; `/login` and `/sales-book/productions` both returned
+  HTTP 200.
+- The initial production projection dry run classified 6,886 deterministic
+  cache repairs, 1,264 review-required conflicts, and 0 unsafe across 8,150
+  orders. The authorized apply created a 1.1 MB rollback backup and completed
+  17 batches before a PlanetScale `P1001` read disconnect stopped the next
+  batch before upserts.
+- A successful read-only post-failure audit across 8,151 orders reports 1,638
+  clean, 62 known compatibility differences, 5,186 deterministic repairs
+  remaining, 1,265 review-required, and 0 unsafe. Production material-review
+  mutation has not started. The next step is a fresh-backup, smaller-batch
+  projection continuation followed by independent zero-drift verification.
+- The first 50-row continuation stopped during its pre-backup scan when the
+  original retry window exhausted; it created no backup/report and made no
+  mutation. The read-only retry window is now about 95 seconds, mutation calls
+  remain un-retried, and the focused runner suite passes 7/7 with diff
+  integrity clean.
+- The retried part-2 run created an 823 KB backup and converged 450 more rows
+  before a later prerequisite-read disconnect. Its read-only audit across
+  8,152 orders reports 2,073 clean, 77 known compatibility differences, 4,736
+  deterministic repairs remaining, 1,266 review-required, and 0 unsafe.
+- The projection builder now supports an opt-in reconciliation mode that
+  serializes and retries prerequisite/control/freshness reads while leaving
+  ordinary callers and the non-retried upsert loop unchanged. The focused
+  reconciliation suite passes 10/10 and `@gnd/sales` typecheck passes.

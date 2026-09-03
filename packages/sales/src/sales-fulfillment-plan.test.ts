@@ -700,6 +700,39 @@ describe("buildSalesProductionPlan", () => {
 		expect(plan.components[0]?.lineTitle).toBe("Door");
 		expect(plan.components[0]?.componentId).toBe(11);
 	});
+
+	test("evaluates an exact submitted item without widening normal production membership", () => {
+		const lines = [
+			{
+				id: 1,
+				title: "Historical production door",
+				qty: 1,
+				meta: { production: { produceable: false } },
+				salesItem: { id: 200, itemDeliveries: [] },
+				components: [
+					{
+						id: 10,
+						required: true,
+						qty: 1,
+						inventory: { id: 500, stockMode: "monitored" },
+						stockAllocations: [{ qty: 1, status: "approved" }],
+					},
+				],
+			},
+		];
+
+		expect(buildSalesProductionPlan(lines).components).toHaveLength(0);
+		const exact = buildSalesProductionPlan(lines, {
+			exactSalesItemIds: [200],
+		});
+		expect(exact.components).toEqual([
+			expect.objectContaining({
+				salesItemId: 200,
+				componentId: 10,
+				productionEligibilityConflict: true,
+			}),
+		]);
+	});
 });
 
 describe("planReceivedBackorderAllocation", () => {

@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 
 import {
   createPendingMaterialReview,
+	evaluateProductionSubmissionMaterialEvidence,
   prepareProductionSubmissionMaterialReview as prepareProductionSubmissionMaterialReviewImpl,
   refreshProductionSubmissionAssignmentScope,
 } from "./service";
@@ -39,6 +40,54 @@ type ReviewUpsertArgs = {
 };
 
 describe("production submission material review service", () => {
+	it("evaluates exact submitted items and exposes eligibility conflict provenance", async () => {
+		const loadMaterials = mock(async () => ({
+			state: "available" as const,
+			materials: [
+				{
+					salesOrderId: 42,
+					salesItemId: 10,
+					componentId: 501,
+					name: "Oak slab",
+					readiness: "ready_for_production" as const,
+					stockStatus: "allocated" as const,
+					requiredQty: 1,
+					availableQty: 1,
+					allocatedQty: 1,
+					pendingReviewQty: 0,
+					receivedQty: 1,
+					openInboundQty: 0,
+					expectedAt: null,
+					undatedOpenInboundQty: 0,
+					productionEligibilityConflict: true,
+				},
+			],
+		}));
+
+		const evidence = await evaluateProductionSubmissionMaterialEvidence(
+			{} as never,
+			{
+				salesOrderId: 42,
+				itemScope: [{ controlUid: "door-1", salesItemId: 10 }],
+			},
+			{ loadMaterials: loadMaterials as never },
+		);
+
+		expect(loadMaterials).toHaveBeenCalledWith(expect.anything(), {
+			salesOrderId: 42,
+			completeOrder: true,
+			exactSalesItemIds: [10],
+		});
+		expect(evidence.classification).toEqual({
+			state: "pending_material_review",
+			reason: "BLOCKED",
+		});
+		expect(evidence.itemMaterialStatuses[0]).toMatchObject({
+			code: "material_conflict",
+			provenance: { eligibilityConflict: true },
+		});
+	});
+
 	it("repairs received inbound application before evaluating submission materials", async () => {
 		const calls: string[] = [];
 		const repairReceivedInboundNeeds = mock(async () => {

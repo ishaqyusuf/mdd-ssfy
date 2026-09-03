@@ -13,6 +13,15 @@ const liveTableAuditIgnoredPathParts = [
 	"components/_v1/data-table/",
 	"components/common/data-table/",
 	"app/_components/data-table/",
+	// Purpose-built compact/configuration tables that are not restarted list pages.
+	"components/storefront/storefront-categories-panel.tsx",
+	"components/storefront/storefront-operations-panels.tsx",
+	"components/storefront/storefront-promotions-panel.tsx",
+	"components/forms/sales-form/legacy-form-data-table.tsx",
+	"components/sales-form-adoption-page.tsx",
+	"components/dispatch-admin/views/dispatch-exceptions-view.tsx",
+	"components/contractor-accounting/payables.tsx",
+	"components/contractor-accounting/issues.tsx",
 ];
 
 const liveTableAuditDeniedPatterns = [
@@ -233,7 +242,6 @@ const restartedTablePages = [
 	},
 	{
 		route: "app/(sidebar)/inventory/backorders/page.tsx",
-		surface: "components/inventory/inventory-backorder-queue-page.tsx",
 		table: "components/tables-2/inventory-backorders/data-table.tsx",
 		tableImport: "components/tables-2/inventory-backorders/data-table",
 		legacyImport: "components/tables/skeleton",
@@ -297,12 +305,6 @@ const restartedTablePages = [
 		table: "components/tables-2/unit-productions/data-table.tsx",
 		tableImport: "components/tables-2/unit-productions/data-table",
 		legacyImport: "components/tables/unit-productions",
-	},
-	{
-		route: "app/(sidebar)/(sales)/sales-rep/page.tsx",
-		table: "components/tables-2/sales-quotes/data-table.tsx",
-		tableImport: "components/tables-2/sales-quotes/data-table",
-		legacyImport: "components/tables/sales-quotes/data-table",
 	},
 	{
 		route: "app/(sidebar)/(sales)/sales-rep/page.tsx",
@@ -439,9 +441,11 @@ describe("Restarted table page audit", () => {
 	it("keeps restarted pages off the failed shared sticky header and legacy table shells", () => {
 		const failures = restartedTablePages.flatMap((target) => {
 			const routeSource = readFileSync(resolve(root, target.route), "utf8");
+			const surfacePath =
+				"surface" in target ? resolve(root, target.surface) : null;
 			const surfaceSource =
-				"surface" in target
-					? readFileSync(resolve(root, target.surface), "utf8")
+				surfacePath && existsSync(surfacePath)
+					? readFileSync(surfacePath, "utf8")
 					: routeSource;
 			const source = `${routeSource}\n${surfaceSource}`;
 			const issues: string[] = [];

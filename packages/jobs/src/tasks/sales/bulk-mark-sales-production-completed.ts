@@ -2,14 +2,16 @@ import { userHasPermission } from "@gnd/auth/utils";
 import { db } from "@gnd/db";
 import {
 	type BulkProductionCompletionOutcome,
+	type SalesPipelineSnapshot,
 	type UpdateSalesControl,
+	evaluateSalesPipelineCommand,
 	getSalesOrderLifecycleStatus,
+	getSalesPipelineSnapshots,
+	hasCompletedProductionLifecycle,
 	normalizeBulkProductionCompletionSalesIds,
-	prepareBulkProductionCompletion,
+	shouldEnforceCanonicalSalesPipelineCommands,
 	summarizeBulkProductionCompletionResult,
 } from "@gnd/sales";
-import { resolveSalesInventoryFulfillmentStatus } from "@gnd/sales/sales-inventory-policy";
-import { overallStatus } from "@gnd/sales/utils";
 import {
 	type TaskName,
 	bulkMarkSalesProductionCompletedSchema,
@@ -30,6 +32,21 @@ function safeErrorMessage(error: unknown) {
 		if (typeof message === "string" && message.trim()) return message;
 	}
 	return "The production completion operation failed.";
+}
+
+function legacyProductionLifecycle(snapshot: SalesPipelineSnapshot) {
+	const aggregate = snapshot.evidence.production.aggregate;
+	return getSalesOrderLifecycleStatus({
+		orderStatus: snapshot.evidence.legacy?.orderStatus,
+		legacyProductionStatus: snapshot.evidence.legacy?.productionStatus,
+		productionStatus:
+			aggregate && Number(aggregate.percentage || 0) >= 100
+				? "completed"
+				: aggregate && Number(aggregate.score || 0) > 0
+					? "in progress"
+					: null,
+		fulfillmentStatus: snapshot.evidence.legacy?.fulfillmentStatus,
+	});
 }
 
 export const bulkMarkSalesProductionCompleted = schemaTask({
@@ -56,62 +73,89 @@ export const bulkMarkSalesProductionCompleted = schemaTask({
 			.set("status", "resolving_orders")
 			.set("total", salesIds.length)
 			.set("completed", 0);
-		const rows = await db.salesOrders.findMany({
-			where: {
-				id: { in: salesIds },
-				deletedAt: null,
-				type: "order",
-			},
-			select: {
-				id: true,
-				orderId: true,
-				status: true,
-				prodStatus: true,
-				stat: true,
-				deliveries: {
-					where: { deletedAt: null },
-					select: {
-						status: true,
-						_count: { select: { items: true } },
-					},
-				},
-			},
-		});
-		const candidates = rows.map((row) => {
-			const status = overallStatus(row.stat);
-			return {
-				salesId: row.id,
-				orderNo: row.orderId || String(row.id),
-				lifecycleStatus: getSalesOrderLifecycleStatus({
-					orderStatus: row.status,
-					legacyProductionStatus: row.prodStatus,
-					productionStatus: status.production.status,
-					fulfillmentStatus:
-						resolveSalesInventoryFulfillmentStatus({
-							deliveries: row.deliveries,
-							stats: row.stat,
-						}) ?? status.delivery.status,
-				}),
-			};
-		});
-		const prepared = prepareBulkProductionCompletion({
-			salesIds,
-			candidates,
-		});
-		const outcomes: BulkProductionCompletionOutcome[] = [...prepared.outcomes];
+		const snapshots = await getSalesPipelineSnapshots(db, salesIds);
+		const ready: Array<{
+			salesId: number;
+			orderNo: string;
+			revision?: string;
+		}> = [];
+		const outcomes: BulkProductionCompletionOutcome[] = [];
+		for (const salesId of salesIds) {
+			const snapshot = snapshots.get(salesId);
+			if (!snapshot) {
+				outcomes.push({
+					salesId,
+					status: "failed",
+					error: "The sales order is no longer available.",
+				});
+				continue;
+			}
+			if (!shouldEnforceCanonicalSalesPipelineCommands(salesId)) {
+				const lifecycle = legacyProductionLifecycle(snapshot);
+				if (hasCompletedProductionLifecycle(lifecycle)) {
+					outcomes.push({
+						salesId,
+						orderNo: snapshot.evidence.orderNo,
+						status: "already_completed",
+					});
+				} else if (lifecycle === "cancelled") {
+					outcomes.push({
+						salesId,
+						orderNo: snapshot.evidence.orderNo,
+						status: "failed",
+						error: "Cancelled orders cannot be marked production completed.",
+					});
+				} else {
+					ready.push({ salesId, orderNo: snapshot.evidence.orderNo });
+				}
+				continue;
+			}
+			const decision = evaluateSalesPipelineCommand(snapshot, {
+				action: "production.complete",
+				authorized: true,
+				expectedRevision: snapshot.revision,
+			});
+			if (decision.status === "ready") {
+				ready.push({
+					salesId,
+					orderNo: snapshot.evidence.orderNo,
+					revision: snapshot.revision,
+				});
+			} else if (decision.status === "replay") {
+				outcomes.push({
+					salesId,
+					orderNo: snapshot.evidence.orderNo,
+					status: "already_completed",
+				});
+			} else if (decision.status === "review_required") {
+				outcomes.push({
+					salesId,
+					orderNo: snapshot.evidence.orderNo,
+					status: "awaiting_review",
+				});
+			} else {
+				outcomes.push({
+					salesId,
+					orderNo: snapshot.evidence.orderNo,
+					status: "failed",
+					error: decision.reasons.join(", "),
+				});
+			}
+		}
 
-		if (prepared.ready.length) {
+		if (ready.length) {
 			metadata
 				.set("status", "completing_production")
-				.set("queued", prepared.ready.length);
+				.set("queued", ready.length);
 			const batchItems = await Promise.all(
-				prepared.ready.map(async (item) => ({
+				ready.map(async (item) => ({
 					payload: {
 						meta: {
 							salesId: item.salesId,
 							authorId: input.actor.id,
 							authorName: input.actor.name,
 							allowProductionSubmissionForOthers: canEditProduction,
+							pipelineRevision: item.revision,
 						},
 						submitAll: {
 							submissionSource: "sales_mark_as_completed",
@@ -127,7 +171,7 @@ export const bulkMarkSalesProductionCompleted = schemaTask({
 				})),
 			);
 			const batch = await updateSalesControl.batchTriggerAndWait(batchItems);
-			for (const [index, item] of prepared.ready.entries()) {
+			for (const [index, item] of ready.entries()) {
 				const run = batch.runs[index];
 				if (run?.ok) {
 					const output = run.output as { state?: string } | undefined;

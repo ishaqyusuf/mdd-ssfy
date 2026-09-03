@@ -1408,7 +1408,9 @@ export async function applyInboundNeedsApplicationAttentionQuery(
 	} = {},
 ) {
 	const results = await ctx.db.$transaction(async (tx) => {
-		const applied = [];
+		const applied: Awaited<
+			ReturnType<typeof applyInboundShipmentToNeeds>
+		>[] = [];
 		for (const inboundId of input.inboundIds) {
 			applied.push(
 				await (deps.applyNeeds ?? applyInboundShipmentToNeeds)(tx, {

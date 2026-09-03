@@ -81,6 +81,11 @@ export function DriverDashboardDispatchItem({
 							</Text>
 						</View>
 					</View>
+					{item.pipeline ? (
+						<Text className="text-xs font-medium text-muted-foreground">
+							Sales pipeline: {item.pipeline.status.label}
+						</Text>
+					) : null}
 					<View className="gap-2">
 						<View className="flex-row items-start gap-2">
 							<Icon

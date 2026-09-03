@@ -9,9 +9,10 @@ describe("direct dispatch task actor boundary", () => {
 		expect(source).toContain("function withAuthenticatedSalesControlActor(");
 		expect(source).toContain("userId: actor.id");
 		expect(source).toContain("name: actor.name");
-		expect(source).toContain("cancelDispatchTask(props.ctx.db, input");
-		expect(source).toContain("startDispatchTask(props.ctx.db, input");
-		expect(source).toContain("submitDispatchTask(props.ctx.db, input)");
+		expect(source).toContain("cancelDispatchTask(transactionDb, input");
+		expect(source).toContain("startDispatchTask(transactionDb, input");
+		expect(source).toContain("submitDispatchTask(transactionDb, input)");
+		expect(source).toContain("runCanonicalDispatchCommand(");
 	});
 
 	it("revalidates every batch trip start through the canonical guarded helper", () => {
@@ -19,6 +20,8 @@ describe("direct dispatch task actor boundary", () => {
 		expect(source).toContain("await requireDispatchWorker(props.ctx)");
 		expect(source).toContain("assignedOnly: true");
 		expect(source).toContain("executeDriverTripStart(props.ctx, actor");
-		expect(source).toContain("projection.mobileLifecycle.capabilities.canStartTrip");
+		expect(source).toContain(
+			"projection.mobileLifecycle.capabilities.canStartTrip",
+		);
 	});
 });

@@ -28,6 +28,19 @@ describe("mobile dispatch proof completion", () => {
 		expect(screenSource).not.toContain("documents.uploadText");
 	});
 
+	test("binds weak-network retries to one request and pipeline revision", () => {
+		expect(actionsSource).toContain(
+			"startRequestIds.current.get(input.dispatchId)",
+		);
+		expect(actionsSource).toContain(
+			"startRequestIds.current.set(input.dispatchId, requestId)",
+		);
+		expect(actionsSource).toContain("expectedPipelineRevision");
+		expect(screenSource).toContain(
+			"expectedPipelineRevision: data?.pipelineRevision",
+		);
+	});
+
 	test("keeps a stable manifest-bound request and app-owned proof for restart retry", () => {
 		expect(formSource).toContain("useDispatchProofDraft");
 		expect(formSource).toContain("expectedManifestRevision");

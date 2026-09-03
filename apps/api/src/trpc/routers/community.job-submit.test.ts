@@ -168,7 +168,7 @@ describe("community.saveJobForm contractor submission", () => {
 			caller.saveJobForm(createSubmission({ userId: 99 })),
 		).rejects.toMatchObject({
 			code: "FORBIDDEN",
-			message: "You can only submit work for your own account.",
+			message: "You do not have permission to perform this action.",
 		});
 		expect(createdJobs).toHaveLength(0);
 	});
@@ -185,7 +185,7 @@ describe("community.saveJobForm contractor submission", () => {
 				}),
 			).rejects.toMatchObject({
 				code: "FORBIDDEN",
-				message: "You do not have permission to perform this job action.",
+				message: "You do not have permission to perform this action.",
 			});
 			expect(createdJobs).toHaveLength(0);
 		}
@@ -198,7 +198,7 @@ describe("community.saveJobForm contractor submission", () => {
 			caller.saveJobForm(createSubmission({ isCustom: true })),
 		).rejects.toMatchObject({
 			code: "FORBIDDEN",
-			message: "Custom job submission is not enabled for this account.",
+			message: "You do not have permission to perform this action.",
 		});
 		expect(createdJobs).toHaveLength(0);
 	});

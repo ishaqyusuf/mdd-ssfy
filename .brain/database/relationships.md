@@ -398,3 +398,12 @@ Planning only; no relationship has been added to Prisma.
   notification, commission, or payout rows.
 - The shared completion resolver joins the record as a separate authority and
   never rewrites operational relationships from its presence.
+
+## Canonical Sales Pipeline projection link (2026-09-02)
+
+- Canonical pipeline scalar columns and their JSON snapshot remain properties
+  of the existing `SalesOrders 1:0..1 SalesOrderListProjection` derived link.
+- They add no relation to Production, inventory, packing, Dispatch, payment, or
+  accounting tables. The projection builder reloads those domain-owned
+  relations from `SalesOrders`, and the cache may be rebuilt or restored
+  without rewriting them.

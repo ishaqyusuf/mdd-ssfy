@@ -1,7 +1,23 @@
 import { describe, expect, test } from "bun:test";
+import { projectDispatchLifecycle } from "./status";
 import { isDispatchWorkspaceSectionMatch } from "./workspace";
 
 describe("isDispatchWorkspaceSectionMatch", () => {
+	test("never admits a zero-item completed Dispatch into Fulfillment Completed", () => {
+		const lifecycle = projectDispatchLifecycle({
+			status: "completed",
+			itemCount: 0,
+			proofCompleted: true,
+			inventoryConsumed: true,
+		});
+		expect(lifecycle.stage).toBe("packing_blocked");
+		expect(
+			isDispatchWorkspaceSectionMatch({
+				section: "completed",
+				stage: lifecycle.stage,
+			}),
+		).toBe(false);
+	});
 	test("keeps assigned nonterminal delivery work in Active", () => {
 		for (const stage of [
 			"assigned",

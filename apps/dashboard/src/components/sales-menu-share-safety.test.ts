@@ -10,6 +10,8 @@ describe("sales menu sharing", () => {
 	test("does not embed a fixed customer recipient", () => {
 		expect(source).not.toContain("recipient:");
 		expect(source).not.toContain("8186877306");
-		expect(source).toContain("await share({");
+		expect(source).toContain("actions.openComposeEmail()");
+		expect(source).toContain("<SalesDocumentEmailDialog");
+		expect(source).toContain("customerPhone={state.customerPhone}");
 	});
 });

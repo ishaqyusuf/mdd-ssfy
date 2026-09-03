@@ -65,6 +65,10 @@ export type FulfillmentInboundDemandLike = {
 	inboundShipmentItem?: {
 		inbound?: {
 			expectedAt?: Date | string | null;
+			status?: string | null;
+			supplier?: {
+				name?: string | null;
+			} | null;
 		} | null;
 	} | null;
 };
@@ -103,6 +107,7 @@ export type FulfillmentComponentLike = {
 	} | null;
 	inventoryVariant?: {
 		id?: number | null;
+		uid?: string | null;
 		sku?: string | null;
 		description?: string | null;
 	} | null;
@@ -166,6 +171,7 @@ export type SalesFulfillmentComponentProjection =
 		inventoryStatus: string | null;
 		inventoryId: number | null;
 		inventoryVariantId: number | null;
+		inventoryVariantUid: string | null;
 		inventoryCategoryId: number | null;
 		subComponentId: number | null;
 		inventoryName: string | null;
@@ -187,6 +193,8 @@ export type SalesFulfillmentComponentProjection =
 			status: string | null;
 			inboundShipmentItemId: number | null;
 			expectedAt: Date | string | null;
+			shipmentStatus?: string | null;
+			supplierName?: string | null;
 		}>;
 	};
 
@@ -354,11 +362,13 @@ export type SalesProductionPlanComponent = SalesFulfillmentQuantitySnapshot & {
 	componentName: string | null;
 	inventoryId: number | null;
 	inventoryVariantId: number | null;
+	inventoryVariantUid: string | null;
 	inventoryCategoryId: number | null;
 	inventoryVariantSku: string | null;
 	supplierId: number | null;
 	supplierName: string | null;
 	required: boolean;
+	productionEligibilityConflict: boolean;
 	stockStatus: SalesProductionStockStatus;
 	readiness: SalesProductionReadiness;
 	lineReadiness: SalesProductionReadiness;
@@ -413,6 +423,7 @@ export type GetSalesProductionPlanInput = {
 	salesOrderId?: number | null;
 	salesOrderIds?: number[] | null;
 	lineItemUids?: string[] | null;
+	exactSalesItemIds?: number[] | null;
 	inventoryVariantId?: number | null;
 	supplierId?: number | null;
 	readinesses?: SalesProductionReadiness[] | null;
@@ -1009,6 +1020,7 @@ function summarizeComponent(
 		inventoryId: component.inventory?.id ?? component.inventoryId ?? null,
 		inventoryVariantId:
 			component.inventoryVariant?.id ?? component.inventoryVariantId ?? null,
+		inventoryVariantUid: component.inventoryVariant?.uid ?? null,
 		inventoryCategoryId:
 			component.inventoryCategory?.id ?? component.inventoryCategoryId ?? null,
 		subComponentId:
@@ -1036,6 +1048,10 @@ function summarizeComponent(
 			status: demand.status ?? null,
 			inboundShipmentItemId: demand.inboundShipmentItemId ?? null,
 			expectedAt: demand.inboundShipmentItem?.inbound?.expectedAt ?? null,
+			shipmentStatus:
+				demand.inboundShipmentItem?.inbound?.status ?? demand.status ?? null,
+			supplierName:
+				demand.inboundShipmentItem?.inbound?.supplier?.name?.trim() || null,
 		})),
 	};
 }
@@ -1689,7 +1705,7 @@ export function buildSalesProductionPlan(
 	lineItems: SalesProductionPlanLineLike[],
 	input: Pick<
 		GetSalesProductionPlanInput,
-		"readinesses" | "limit" | "completeOrder"
+		"readinesses" | "limit" | "completeOrder" | "exactSalesItemIds"
 	> = {},
 ): SalesProductionPlan {
 	const limit = input.completeOrder
@@ -1698,10 +1714,16 @@ export function buildSalesProductionPlan(
 	const requestedReadinesses = input.readinesses?.length
 		? new Set<SalesProductionReadiness>(input.readinesses)
 		: null;
+	const exactSalesItemIds = new Set(input.exactSalesItemIds || []);
 	const components: SalesProductionPlanComponent[] = [];
 
 	for (const sourceLine of lineItems) {
-		if (!isLineProductionEligible(sourceLine.meta)) continue;
+		const productionEligible = isLineProductionEligible(sourceLine.meta);
+		const exactScope = Boolean(
+			sourceLine.salesItem?.id &&
+				exactSalesItemIds.has(sourceLine.salesItem.id),
+		);
+		if (!productionEligible && !exactScope) continue;
 		const line = summarizeSalesFulfillmentPlan([sourceLine]).lines[0];
 		if (!line) continue;
 
@@ -1732,6 +1754,7 @@ export function buildSalesProductionPlan(
 				componentName: component.componentName,
 				inventoryId: component.inventoryId,
 				inventoryVariantId: component.inventoryVariantId,
+				inventoryVariantUid: component.inventoryVariantUid,
 				inventoryCategoryId: component.inventoryCategoryId,
 				inventoryVariantSku: component.inventoryVariantSku,
 				supplierId: component.supplierId,
@@ -1749,6 +1772,7 @@ export function buildSalesProductionPlan(
 				stockStatus,
 				readiness,
 				lineReadiness,
+				productionEligibilityConflict: !productionEligible && exactScope,
 				allocationEvidence: component.allocationEvidence,
 				inboundEvidence: component.inboundEvidence,
 			});
@@ -2657,6 +2681,9 @@ export async function getSalesProductionPlan(
 			sale: {
 				deletedAt: null,
 			},
+			salesItemId: input.exactSalesItemIds?.length
+				? { in: input.exactSalesItemIds }
+				: undefined,
 			components: {
 				some: {
 					status: {
@@ -2765,6 +2792,7 @@ export async function getSalesProductionPlan(
 					inventoryVariant: {
 						select: {
 							id: true,
+							uid: true,
 							sku: true,
 							description: true,
 						},
@@ -2829,6 +2857,12 @@ export async function getSalesProductionPlan(
 									inbound: {
 										select: {
 											expectedAt: true,
+											status: true,
+											supplier: {
+												select: {
+													name: true,
+												},
+											},
 										},
 									},
 								},
@@ -2844,6 +2878,7 @@ export async function getSalesProductionPlan(
 		readinesses: input.readinesses,
 		limit,
 		completeOrder: input.completeOrder,
+		exactSalesItemIds: input.exactSalesItemIds,
 	});
 }
 

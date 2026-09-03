@@ -6,7 +6,7 @@ export type BulkFulfillmentOutcome = {
 	salesId: number;
 	orderNo?: string;
 	dispatchId?: number | null;
-	status: "succeeded" | "already_fulfilled" | "failed";
+	status: "succeeded" | "already_fulfilled" | "review_required" | "failed";
 	error?: string;
 };
 
@@ -16,6 +16,7 @@ export type BulkFulfillmentResult = {
 	total: number;
 	succeeded: number;
 	alreadyFulfilled: number;
+	reviewRequired: number;
 	failed: number;
 	durationMs: number;
 	outcomes: BulkFulfillmentOutcome[];
@@ -90,6 +91,9 @@ export function summarizeBulkFulfillmentResult(input: {
 			.length,
 		alreadyFulfilled: input.outcomes.filter(
 			(item) => item.status === "already_fulfilled",
+		).length,
+		reviewRequired: input.outcomes.filter(
+			(item) => item.status === "review_required",
 		).length,
 		failed: input.outcomes.filter((item) => item.status === "failed").length,
 		durationMs: Math.max(0, Date.now() - input.startedAt),

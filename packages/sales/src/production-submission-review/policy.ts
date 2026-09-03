@@ -33,6 +33,7 @@ type MaterialProjection = {
 	state: "available" | "unavailable";
 	materials: Array<{
 		readiness: string;
+		productionEligibilityConflict?: boolean;
 	}>;
 };
 
@@ -51,6 +52,16 @@ export function classifyProductionSubmissionMaterials(
 		return {
 			state: "pending_material_review",
 			reason: "NOT_CONFIGURED",
+		};
+	}
+	if (
+		projection.materials.some(
+			(material) => material.productionEligibilityConflict,
+		)
+	) {
+		return {
+			state: "pending_material_review",
+			reason: "BLOCKED",
 		};
 	}
 

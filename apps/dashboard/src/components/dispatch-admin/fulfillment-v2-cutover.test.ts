@@ -356,10 +356,10 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(activeView).not.toContain("activeDispatchStages");
 		expect(completedView).toContain("<DataTable workspace");
 		expect(dataTable).toContain("section: filters.section");
-		expect(summaryQuery).toContain("active,");
-		expect(summaryQuery).toContain("dueToday,");
-		expect(summaryQuery).toContain("pastDue,");
-		expect(summaryQuery).toContain("completed,");
+		expect(summaryQuery).toContain("active: activeIds.size");
+		expect(summaryQuery).toContain("dueToday: dueTodayIds.size");
+		expect(summaryQuery).toContain("pastDue: pastDueIds.size");
+		expect(summaryQuery).toContain("completed: completedCount");
 		expect(dispatchQuery).toContain('section !== "due-today"');
 		expect(dispatchQuery).toContain('section !== "past-due"');
 		expect(dispatchQuery).toContain('section === "due-today"');

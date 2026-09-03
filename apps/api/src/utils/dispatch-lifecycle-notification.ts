@@ -26,11 +26,12 @@ export async function sendDispatchLifecycleNotification(
 	recipientId: number | null | undefined,
 	channel: DispatchLifecycleNotificationChannel,
 	payload: DispatchLifecycleNotificationPayload,
+	notificationClient?: Pick<Notifications, "create">,
 ) {
 	if (!recipientId) return { sent: false as const, reason: "NO_RECIPIENT" };
 
 	try {
-		const notifications = new Notifications(db);
+		const notifications = notificationClient ?? new Notifications(db);
 		const result = await notifications.create(
 			channel,
 			{

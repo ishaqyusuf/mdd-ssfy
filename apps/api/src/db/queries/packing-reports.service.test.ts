@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
 import {
 	buildPackingDispatchAllocationKey,
 	buildPackingEvidenceRevision,
@@ -7,8 +7,18 @@ import {
 const packCanonical = mock(async () => ({ created: 1, skipped: 0 }));
 const resetSales = mock(async () => undefined);
 const createProductionEvidence = mock(async () => undefined);
-const createTimelineActivity = mock(async () => ({ id: 1 }));
-const resolveTimelineSender = mock(async () => 99);
+const timelineActivityWrites: unknown[] = [];
+const activityDbMocks = {
+	notePadContacts: {
+		findFirst: async () => ({ id: 99 }),
+	},
+	notePad: {
+		create: async (input: unknown) => {
+			timelineActivityWrites.push(input);
+			return { id: timelineActivityWrites.length };
+		},
+	},
+};
 const repairReceivedInboundNeeds = mock(async () => ({
 	inboundIds: [],
 	changedCount: 0,
@@ -33,6 +43,14 @@ const defaultGuardedPolicy = {
 	changedAt: "2026-08-28T12:00:00.000Z",
 };
 
+const actualSalesControlActions = {
+	...(await import("@sales/sales-control/actions")),
+};
+const actualSaleInformation = {
+	...(await import("@sales/sales-control/get-sale-information")),
+};
+const actualInbound = { ...(await import("@gnd/inventory/inbound")) };
+
 mock.module("@sales/sales-control/actions", () => ({
 	createSalesAssignmentAction: createProductionEvidence,
 	packDispatchItemsAction: packCanonical,
@@ -42,13 +60,17 @@ mock.module("@sales/sales-control/actions", () => ({
 mock.module("@sales/sales-control/get-sale-information", () => ({
 	getSaleInformation: async () => saleInformation,
 }));
-mock.module("./sales-form-activity", () => ({
-	createSalesFormTimelineActivity: createTimelineActivity,
-	getSalesActivitySenderContactId: resolveTimelineSender,
-}));
 mock.module("@gnd/inventory/inbound", () => ({
 	repairReceivedInboundNeedsForSalesOrder: repairReceivedInboundNeeds,
 }));
+
+afterAll(() => {
+	mock.module("@sales/sales-control/actions", () => actualSalesControlActions);
+	mock.module("@sales/sales-control/get-sale-information", () =>
+		actualSaleInformation,
+	);
+	mock.module("@gnd/inventory/inbound", () => actualInbound);
+});
 
 const {
 	decidePackingReport,
@@ -64,6 +86,7 @@ function evidenceDb(policy?: unknown) {
 	let dispatchStatus = "queue";
 	const now = new Date("2026-08-23T10:00:00.000Z");
 	const db: any = {
+		...activityDbMocks,
 		settings: {
 			findFirst: async () =>
 				policy ? { meta: { guardedPacking: policy } } : null,
@@ -181,6 +204,7 @@ function awaitingSubmissionDb(policy?: unknown) {
 		order: { orderId: "09100PC" },
 	};
 	const db: any = {
+		...activityDbMocks,
 		settings: {
 			findFirst: async () =>
 				policy ? { meta: { guardedPacking: policy } } : null,
@@ -387,6 +411,7 @@ function packingDecisionDb(input: {
 		delivery: { status: evidence.dispatch.status, deletedAt: null },
 	};
 	const tx = {
+		...activityDbMocks,
 		settings: {
 			findFirst: async () =>
 				input.effectivePolicy
@@ -426,8 +451,7 @@ describe("packing report application service", () => {
 		packCanonical.mockClear();
 		resetSales.mockClear();
 		createProductionEvidence.mockClear();
-		createTimelineActivity.mockClear();
-		resolveTimelineSender.mockClear();
+		timelineActivityWrites.length = 0;
 		repairReceivedInboundNeeds.mockClear();
 		saleInformation = { order: { id: 91 }, items: [] };
 	});
@@ -469,7 +493,7 @@ describe("packing report application service", () => {
 			idempotentReplay: true,
 		});
 		expect(reports).toHaveLength(1);
-		expect(createTimelineActivity).toHaveBeenCalledTimes(1);
+		expect(timelineActivityWrites).toHaveLength(1);
 		expect(transactionOptions).toEqual([
 			{ isolationLevel: "Serializable" },
 			{ isolationLevel: "Serializable" },
@@ -737,7 +761,7 @@ describe("packing report application service", () => {
 				],
 			},
 		});
-		expect(createTimelineActivity).toHaveBeenCalledTimes(2);
+		expect(timelineActivityWrites).toHaveLength(2);
 	});
 
 	it("approves an awaiting-production report without creating evidence when configured", async () => {
@@ -969,6 +993,7 @@ describe("packing report application service", () => {
 			status: "PENDING",
 		};
 		const db: any = {
+			...activityDbMocks,
 			$transaction: async () => {
 				throw Object.assign(new Error("unique"), { code: "P2002" });
 			},

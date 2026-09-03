@@ -32,8 +32,10 @@ import {
 } from "./sales-adjustment-apply-recovery";
 import { projectApprovedGroupedSalesLine } from "./sales-adjustment-grouped-projection";
 import {
+	getApprovedRemovedSalesLines,
 	projectApprovedSalesTaxes,
 	projectApprovedShelfSalesLine,
+	retireApprovedSalesOrderLine,
 } from "./sales-adjustment-relational-projection";
 
 function record(value: unknown): Record<string, unknown> {
@@ -516,17 +518,17 @@ export async function runApplySalesOrderAdjustment(
 			const proposedByUid = new Map(
 				proposedLines.map((line) => [String(line.uid || ""), line]),
 			);
-			for (const line of adjustment.lines) {
-				if (!line.salesOrderItemId) {
-					throw new Error(
-						`Adjustment line ${line.lineUid} is not linked to a persisted sale item.`,
-					);
-				}
-				if (!proposedByUid.get(line.lineUid)) {
-					throw new Error(
-						`Adjustment line ${line.lineUid} is missing from its approved proposal.`,
-					);
-				}
+			const removedLines = getApprovedRemovedSalesLines({
+				lines: adjustment.lines,
+				proposedLineUids: new Set(proposedByUid.keys()),
+			});
+			for (const line of removedLines) {
+				await retireApprovedSalesOrderLine({
+					tx,
+					salesOrderId: adjustment.salesOrderId,
+					salesOrderItemId: line.salesOrderItemId,
+					lineUid: line.lineUid,
+				});
 			}
 			const persistedItemIds = new Set(
 				adjustment.order.items.map((item) => item.id),

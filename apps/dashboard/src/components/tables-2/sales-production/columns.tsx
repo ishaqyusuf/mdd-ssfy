@@ -5,7 +5,6 @@ import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn, formatCurrency } from "@/lib/utils";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -14,13 +13,15 @@ import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
 import { formatDate } from "@gnd/utils/dayjs";
 import { getProductionDueDatePresentation } from "@sales/production-date";
+import type { getSalesProductions } from "@sales/sales-production";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { getSalesProductionAssignedToLabel } from "./assigned-to-label";
 import { getSalesProductionDueDateClassName } from "./due-date-tone";
 
-export type SalesProductionRow =
-	RouterOutputs["sales"]["productions"]["data"][number];
+export type SalesProductionRow = Awaited<
+	ReturnType<typeof getSalesProductions>
+>["data"][number];
 
 type Column = ColumnDef<SalesProductionRow>;
 
@@ -273,7 +274,9 @@ const statusColumn: Column = {
 	id: "productionStatus",
 	header: "Status",
 	accessorFn: (row) =>
-		row.status?.production?.workflow?.label || row.status?.production?.status,
+		row.pipeline?.production.state ||
+		row.status?.production?.workflow?.label ||
+		row.status?.production?.status,
 	...sizes.custom(120, 190, 140),
 	enableResizing: true,
 	meta: {
@@ -283,11 +286,17 @@ const statusColumn: Column = {
 	},
 	cell: ({ row }) => {
 		const production = row.original.status?.production;
+		const pipeline = row.original.pipeline;
 
 		return (
 			<Progress>
 				<Progress.Status badge>
-					{production?.workflow?.label || production?.status || "Not assigned"}
+					{pipeline?.production.state
+						?.replaceAll("_", " ")
+						.replace(/\b\w/g, (letter) => letter.toUpperCase()) ||
+						production?.workflow?.label ||
+						production?.status ||
+						"Not assigned"}
 				</Progress.Status>
 			</Progress>
 		);
@@ -426,7 +435,10 @@ function AssignedToBadge({
 	assignedTo?: string | null;
 	totalAssigned?: number | null;
 }) {
-	const label = getSalesProductionAssignedToLabel({ assignedTo, totalAssigned });
+	const label = getSalesProductionAssignedToLabel({
+		assignedTo,
+		totalAssigned,
+	});
 
 	return (
 		<Badge
@@ -464,6 +476,7 @@ function Actions({ item }: { item: SalesProductionRow }) {
 				showUnavailableFulfilled
 				currentStatus={item.lifecycleStatus}
 				productionStatus={item.status?.production?.status}
+				pipelineCapabilities={item.pipeline?.capabilities}
 				statusCandidates={[
 					{
 						salesId: item.id,

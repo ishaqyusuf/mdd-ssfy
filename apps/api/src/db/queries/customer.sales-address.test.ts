@@ -41,6 +41,7 @@ async function runAssignment({
 			findUnique: async () => ({ dealerOwnerId }),
 		},
 		salesOrders: {
+			findMany: async () => [],
 			findFirst: async () =>
 				saleFound
 					? {
@@ -241,6 +242,7 @@ describe("sales address assignment", () => {
 				},
 			},
 			salesOrders: {
+				findMany: async () => [],
 				findFirst: async () => {
 					saleLookups += 1;
 					return null;

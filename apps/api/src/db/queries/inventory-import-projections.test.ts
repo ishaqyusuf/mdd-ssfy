@@ -1,11 +1,12 @@
-import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { TRPCContext } from "@api/trpc/init";
-import { tasks } from "@trigger.dev/sdk/v3";
 import {
 	getInventoryImportProjectionHistory,
 	recordInventoryImportProjectionAttempt,
 	retryInventoryImportProjection,
 } from "./inventory-import-projections";
+
+const queueSync = mock(async () => ({ id: "projection-retry-run" }));
 
 function createContext() {
 	const diagnosticUpsert = mock(async (args) => ({
@@ -68,11 +69,8 @@ function createContext() {
 
 describe("inventory import projection diagnostics", () => {
 	beforeEach(() => {
-		Reflect.set(
-			tasks,
-			"trigger",
-			mock(async () => ({ id: "projection-retry-run" })),
-		);
+		queueSync.mockClear();
+		queueSync.mockImplementation(async () => ({ id: "projection-retry-run" }));
 	});
 
 	it("records the queued post-disposition projection with actor and run identity", async () => {
@@ -187,7 +185,7 @@ describe("inventory import projection diagnostics", () => {
 
 		const result = await retryInventoryImportProjection(ctx, {
 			diagnosticId: "projection-failure",
-		});
+		}, queueSync);
 
 		expect(diagnosticUpdateMany).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -201,11 +199,9 @@ describe("inventory import projection diagnostics", () => {
 				}),
 			}),
 		);
-		expect(tasks.trigger).toHaveBeenCalledWith(
-			"sync-inventory-to-dyke",
+		expect(queueSync).toHaveBeenCalledWith(
 			expect.objectContaining({
 				inventoryId: 11,
-				mode: "sync",
 				source: "repair",
 			}),
 		);
@@ -232,49 +228,40 @@ describe("inventory import projection diagnostics", () => {
 
 		const result = await retryInventoryImportProjection(ctx, {
 			diagnosticId: "projection-failure",
-		});
+		}, queueSync);
 
 		expect(result).toEqual({
 			status: "skipped",
 			reason: "already_retried",
 		});
-		expect(tasks.trigger).not.toHaveBeenCalled();
+		expect(queueSync).not.toHaveBeenCalled();
 	});
 
 	it("records a new retryable failure when retry dispatch also fails", async () => {
 		const { ctx, diagnosticCreate } = createContext();
-		const consoleError = spyOn(console, "error").mockImplementation(() => {});
-		Reflect.set(
-			tasks,
-			"trigger",
-			mock(async () => {
-				throw new Error("Trigger unavailable");
-			}),
+		queueSync.mockImplementation(async () => null);
+
+		const result = await retryInventoryImportProjection(
+			ctx,
+			{ diagnosticId: "projection-failure" },
+			queueSync,
 		);
 
-		try {
-			const result = await retryInventoryImportProjection(ctx, {
-				diagnosticId: "projection-failure",
-			});
-
-			expect(diagnosticCreate).toHaveBeenCalledWith(
-				expect.objectContaining({
-					data: expect.objectContaining({
-						status: "START_FAILED",
-						metadata: expect.objectContaining({
-							retryOfDiagnosticId: "projection-failure",
-						}),
+		expect(diagnosticCreate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					status: "START_FAILED",
+					metadata: expect.objectContaining({
+						retryOfDiagnosticId: "projection-failure",
 					}),
 				}),
-			);
-			expect(result).toMatchObject({
-				status: "queue_failed",
-				inventoryId: 11,
-				runId: null,
-				projectionDiagnosticRecorded: true,
-			});
-		} finally {
-			consoleError.mockRestore();
-		}
+			}),
+		);
+		expect(result).toMatchObject({
+			status: "queue_failed",
+			inventoryId: 11,
+			runId: null,
+			projectionDiagnosticRecorded: true,
+		});
 	});
 });

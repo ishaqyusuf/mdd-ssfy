@@ -262,9 +262,13 @@ function PhotoField() {
 
 export function DriverProofForm({
     dispatchId,
+    expectedManifestRevision,
+    expectedPipelineRevision,
     onCompleted,
 }: {
     dispatchId: number;
+    expectedManifestRevision: string;
+    expectedPipelineRevision?: string | null;
     onCompleted: () => void;
 }) {
     const form = useFormContext<DriverProofFormValues>();
@@ -285,6 +289,8 @@ export function DriverProofForm({
             await actions.completeWithProof.mutateAsync({
                 dispatchId,
                 requestId: values.requestId,
+                expectedManifestRevision,
+                expectedPipelineRevision: expectedPipelineRevision || undefined,
                 receivedBy: values.receivedBy.trim() || undefined,
                 receivedDate: new Date(),
                 note: values.note.trim() || undefined,

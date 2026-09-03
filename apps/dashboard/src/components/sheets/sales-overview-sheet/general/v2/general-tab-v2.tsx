@@ -52,6 +52,7 @@ export function GeneralTabV2({
 							<OperationsSection
 								production={view.production}
 								fulfillment={view.fulfillment}
+								pipeline={view.pipeline}
 							/>
 						</>
 					) : null}

@@ -2,15 +2,7 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 
 const createNotification = mock(async () => ({ id: 1 }));
 
-mock.module("@gnd/notifications", () => ({
-	Notifications: class {
-		create = createNotification;
-	},
-}));
-
-const { sendPackingReportNotification } = await import(
-	"./packing-report-notification"
-);
+import { sendPackingReportNotification } from "./packing-report-notification";
 
 function context(input: {
 	salesRepId: number;
@@ -69,6 +61,8 @@ describe("packing report notifications", () => {
 				5,
 				"PENDING",
 				7,
+				undefined,
+				{ create: createNotification } as never,
 			),
 		).resolves.toEqual({
 			sent: false,
@@ -84,6 +78,8 @@ describe("packing report notifications", () => {
 				5,
 				"PENDING",
 				7,
+				undefined,
+				{ create: createNotification } as never,
 			),
 		).resolves.toEqual({ sent: true });
 		expect(createNotification).toHaveBeenCalledTimes(1);
@@ -108,6 +104,8 @@ describe("packing report notifications", () => {
 				5,
 				"PENDING",
 				7,
+				undefined,
+				{ create: createNotification } as never,
 			),
 		).resolves.toEqual({
 			sent: false,
@@ -123,6 +121,8 @@ describe("packing report notifications", () => {
 				5,
 				"PENDING",
 				7,
+				undefined,
+				{ create: createNotification } as never,
 			),
 		).resolves.toEqual({
 			sent: false,
@@ -139,6 +139,7 @@ describe("packing report notifications", () => {
 				"APPROVED",
 				20,
 				"Sales Manager",
+				{ create: createNotification } as never,
 			),
 		).resolves.toEqual({ sent: true });
 		expect(createNotification.mock.calls[0]?.[2]).toMatchObject({

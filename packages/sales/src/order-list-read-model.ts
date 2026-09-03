@@ -1,6 +1,6 @@
 import { isControlReadV2Enabled } from "./control/application/feature-flags";
 
-export const SALES_ORDER_LIST_PROJECTION_VERSION = 3;
+export const SALES_ORDER_LIST_PROJECTION_VERSION = 5;
 const SALES_ORDER_LIST_PROJECTION_LEGACY_CONTROL_VERSION = 1;
 
 export function salesOrderListProjectionVersion() {

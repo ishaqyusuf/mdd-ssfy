@@ -101,6 +101,7 @@ function inventoryShippedQty(line: SalesFulfillmentLineProjection) {
 
 function inventoryBackorderedQty(line: SalesFulfillmentLineProjection) {
 	const orderedQty = numberValue(line.orderedQty);
+	const remainingQty = Math.max(0, orderedQty - inventoryShippedQty(line));
 	const blockingComponents = getBlockingComponents(line);
 	const componentBackorderUnits = blockingComponents.length
 		? orderedQty -
@@ -109,7 +110,10 @@ function inventoryBackorderedQty(line: SalesFulfillmentLineProjection) {
 			)
 		: 0;
 
-	return Math.max(numberValue(line.backorderedQty), componentBackorderUnits, 0);
+	return Math.min(
+		remainingQty,
+		Math.max(numberValue(line.backorderedQty), componentBackorderUnits, 0),
+	);
 }
 
 function inventoryLineStatus(line: SalesFulfillmentLineProjection) {

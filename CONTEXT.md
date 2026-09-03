@@ -61,6 +61,63 @@ used for list membership, filters, summaries, and counts. Consuming apps may
 choose their presentation but must not recreate lifecycle logic locally.
 _Avoid_: UI status helper, page-specific resolver, SalesStat authority
 
+**Sales Pipeline Snapshot**:
+The canonical result returned by the Canonical Sales Lifecycle Authority. It
+contains one derived headline status plus explicit payment, material and
+inventory, production, fulfillment, packing, and dispatch dimensions together
+with their evidence, conflicts, blockers, and allowed actions.
+_Avoid_: Master status column, UI-composed status, SalesStat row
+
+**Lifecycle Evidence Precedence**:
+The rule that resolves contradictory Sales Pipeline inputs in this order:
+operational evidence, audited Administrative Completion, derived projections,
+then legacy status strings. Lower-precedence evidence cannot override stronger
+evidence.
+_Avoid_: Latest field wins, page-specific precedence, status-string authority
+
+**Stage Applicability**:
+The explicit `Required`, `Not required`, `Unknown`, or `Conflict` classification
+for an operational Sales Pipeline stage such as Production or Fulfillment.
+`Not required` work is excluded from that stage's operational workspace;
+contradictory applicability and operational evidence resolves to `Conflict`.
+_Avoid_: Zero progress means not applicable, missing SalesStat means not required
+
+**Canonical Workspace Membership**:
+The package-owned decision that determines whether a Sales Order belongs in an
+operational list, calendar, filter, summary, or count. Every representation of
+the same workspace scope uses this decision; presentation does not redefine
+membership.
+_Avoid_: Calendar-only membership, approximate count query, client-side status filter
+
+**Production Schedule Membership**:
+Order-level Production workspace membership derived from assignment-level
+evidence. An order appears once in a Due Today queue when at least one required,
+incomplete assignment is due today; its details identify the applicable
+assignments.
+_Avoid_: Count every assignment as an order, SalesStat-only due membership
+
+**Production Schedule Evidence**:
+The active Production assignment, its due date, ownership, progress, and
+completion evidence used to place required work on the Production schedule.
+The current Calendar is the most reliable consumer of this evidence, but the
+Calendar UI itself is not the authority.
+_Avoid_: Calendar row as source of truth, order-level SalesStat due date
+
+**Production Schedule Group**:
+The exact set of Production assignments for one Sales Order that share one
+calendar date and are represented by one order-grain Calendar card. Moving a
+Production Schedule Group changes only those assignments; it never moves the
+order's assignments on other dates or changes the Sales Order planning default.
+_Avoid_: Entire order schedule, Calendar card ID, Production due-date default
+
+**Schedule Move**:
+An attributable, server-authorized change from one operational calendar date to
+another after explicit admin confirmation. A drag before confirmation is only
+an intent and does not alter Production assignment or Dispatch schedule truth.
+Completed Production evidence and in-transit or terminal Dispatch history are
+not movable.
+_Avoid_: Drag result, optimistic date write, order due-date change
+
 **Customer Order View**:
 The customer-safe projection of a Storefront Order, its payment, documents, and
 fulfillment progress.

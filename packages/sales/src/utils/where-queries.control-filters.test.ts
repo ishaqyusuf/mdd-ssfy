@@ -55,17 +55,17 @@ describe("whereSales stat filters", () => {
 		expect(json).toContain('"state":{"contains":"123 Main"}');
 	});
 
-	it("builds production completed filter from sales stat predicates", () => {
+	it("builds Production completed from operational and audited completion evidence", () => {
 		const where = whereSales({
 			production: "completed",
 		} as any);
 		const clauses = toClauses(where);
 		const json = JSON.stringify(clauses);
 
-		expect(json).toContain('"stat"');
-		expect(json).toContain('"type":"prodCompleted"');
-		expect(json).toContain('"percentage":100');
-		expect(json).toContain('"qtyControls"');
+		expect(json).toContain('"assignments"');
+		expect(json).toContain('"completionRecords"');
+		expect(json).toContain('"completedAt":null');
+		expect(json).not.toContain('"type":"prodCompleted"');
 	});
 
 	it("builds dispatch backorder filter from dispatchCompleted stat percentage range", () => {
@@ -126,7 +126,7 @@ describe("whereSales stat filters", () => {
 		expect(json).not.toContain('"qtyControls"');
 	});
 
-	it("builds past due production filter from prodCompleted instead of dispatchCompleted", () => {
+	it("builds Past Due Production from active incomplete assignment evidence", () => {
 		const where = whereSales({
 			"production.status": "past due",
 		} as any);
@@ -136,7 +136,8 @@ describe("whereSales stat filters", () => {
 			(clause) => clause.assignments?.some?.dueDate?.lt,
 		);
 
-		expect(json).toContain('"type":"prodCompleted"');
+		expect(json).toContain('"completedAt":null');
+		expect(json).not.toContain('"type":"prodCompleted"');
 		expect(json).not.toContain('"type":"dispatchCompleted"');
 		expect(json).toContain('"dueDate":{"lt":');
 		expect(pastDueClause?.assignments.some.dueDate.lt).toEqual(
@@ -172,9 +173,7 @@ describe("whereSales stat filters", () => {
 
 		expect(unscheduledClause?.assignments.some.assignedToId).toBe(17);
 		expect(unscheduledClause?.assignments.some.deletedAt).toBeNull();
-		expect(JSON.stringify(unscheduledClause)).toContain(
-			'"type":"prodCompleted"',
-		);
+		expect(unscheduledClause?.assignments.some.completedAt).toBeNull();
 	});
 
 	it("keeps exact production dates aligned with the assigned-worker due queue", () => {

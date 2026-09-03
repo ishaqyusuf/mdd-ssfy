@@ -347,6 +347,13 @@ model SalesOrderListProjection {
     sourceUpdatedAt DateTime
     version         Int         @default(1)
     state           String      @default("ready") @db.VarChar(32)
+    pipelineContractVersion String? @db.VarChar(32)
+    pipelineRevision String? @db.VarChar(64)
+    pipelineHeadline String? @db.VarChar(64)
+    pipelineProductionApplicability String? @db.VarChar(32)
+    pipelineProductionState String? @db.VarChar(48)
+    pipelineFulfillmentApplicability String? @db.VarChar(32)
+    pipelineFulfillmentState String? @db.VarChar(48)
     payload         Json        @db.Json
     lastError       String?     @db.Text
     projectedAt     DateTime    @default(now()) @db.Timestamp(0)
@@ -357,6 +364,9 @@ model SalesOrderListProjection {
     @@index([orgId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_scope")
     @@index([salesRepId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_rep")
     @@index([state, version, projectedAt], name: "idx_sales_order_list_health")
+    @@index([state, version, pipelineHeadline, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_headline")
+    @@index([state, version, pipelineProductionApplicability, pipelineProductionState, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_production")
+    @@index([state, version, pipelineFulfillmentApplicability, pipelineFulfillmentState, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_fulfillment")
 }
 
 enum DealerSellerOfRecord {

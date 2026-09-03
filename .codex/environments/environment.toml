@@ -8,4 +8,4 @@ script = ""
 [[actions]]
 name = "Run"
 icon = "run"
-command = "bun run mobile-jobs"
+command = "bun run dev -f dashboard jobs"

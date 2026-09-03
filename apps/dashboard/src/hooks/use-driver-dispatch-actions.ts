@@ -2,10 +2,12 @@
 
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRef } from "react";
 
 export function useDriverDispatchActions() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const startRequestIds = useRef(new Map<number, string>());
 
 	const invalidate = async () => {
 		await Promise.all([
@@ -60,11 +62,21 @@ export function useDriverDispatchActions() {
 		completeWithProof,
 		reportException,
 		invalidate,
-		onStartTrip(input: { dispatchId: number }) {
-			return startTrip.mutateAsync({
+		async onStartTrip(input: {
+			dispatchId: number;
+			expectedPipelineRevision?: string | null;
+		}) {
+			const requestId =
+				startRequestIds.current.get(input.dispatchId) || crypto.randomUUID();
+			startRequestIds.current.set(input.dispatchId, requestId);
+			const result = await startTrip.mutateAsync({
 				dispatchId: input.dispatchId,
-				requestId: crypto.randomUUID(),
+				requestId,
+				expectedPipelineRevision:
+					input.expectedPipelineRevision || undefined,
 			});
+			startRequestIds.current.delete(input.dispatchId);
+			return result;
 		},
 	};
 }

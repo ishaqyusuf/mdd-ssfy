@@ -39,19 +39,19 @@ export function useTaskMonitorEffects() {
 			switch (task.intent.name) {
 				case "sales.mark-as-production-completed": {
 					const sales = task.intent.args.sales;
-					await sq.events.productionUpdated(sales);
+					await sq.events.pipelineUpdated(sales);
 					return;
 				}
 				case "sales.cancel-production-completion": {
 					const sales = task.intent.args.sales;
-					await sq.events.productionUpdated(sales);
+					await sq.events.pipelineUpdated(sales);
 					return;
 				}
 				case "sales.mark-as-fulfilled": {
 					const sales = task.intent.args.sales;
-					await sq.events.fulfillmentUpdated(sales);
+					await sq.events.pipelineUpdated(sales);
 					await waitForFulfillmentProjection();
-					await sq.events.fulfillmentUpdated(sales);
+					await sq.events.pipelineUpdated(sales);
 					const backlogCount = getBacklogCount(output);
 					if (backlogCount !== null) {
 						sq.qc.setQueriesData(

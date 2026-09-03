@@ -8,10 +8,8 @@ const source = readFileSync(
 
 describe("sales preview query-state ownership", () => {
 	it("closes only preview-owned params and preserves dispatch context", () => {
-		const closeBlock = source.slice(
-			source.indexOf("close()"),
-			source.indexOf("async preview("),
-		);
+		const closeBlock =
+			source.match(/function close\(\) \{([\s\S]*?)\n\t\}/)?.[1] ?? "";
 
 		expect(closeBlock).not.toContain("setParams(null)");
 		expect(closeBlock).toContain("salesPreviewId: null");
@@ -20,11 +18,10 @@ describe("sales preview query-state ownership", () => {
 	});
 
 	it("does not clear an existing dispatch when preview has no dispatch override", () => {
-		const previewBlock = source.slice(source.indexOf("async preview("));
-		const openParamsBlock = previewBlock.slice(
-			previewBlock.indexOf("setParams({"),
-			previewBlock.indexOf("try {"),
-		);
+		const previewStart = source.indexOf("async function preview(");
+		const setParamsStart = source.indexOf("setParams({", previewStart);
+		const setParamsEnd = source.indexOf("\n\t\t});", setParamsStart);
+		const openParamsBlock = source.slice(setParamsStart, setParamsEnd);
 
 		expect(openParamsBlock).toContain("...(options?.dispatchId !== undefined");
 		expect(openParamsBlock).not.toContain(

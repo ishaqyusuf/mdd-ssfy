@@ -14,10 +14,16 @@ export type DispatchWorkspaceStage = (typeof dispatchWorkspaceStages)[number];
 export type DispatchLifecycleInput = {
 	status?: string | null;
 	driverId?: number | null;
+	itemCount?: number | null;
 	packedTotal?: number | null;
 	pendingPackingTotal?: number | null;
 	inventoryConsumed?: boolean;
 	proofCompleted?: boolean;
+};
+
+export type DispatchOperationalRecordInput = DispatchLifecycleInput & {
+	meta?: unknown;
+	stockAllocationCount?: number | null;
 };
 
 export type DispatchLifecycleProjection = {
@@ -72,7 +78,15 @@ export function projectDispatchLifecycle(
 	if (status === "cancelled" || status === "canceled") {
 		stage = "cancelled";
 	} else if (status === "completed") {
-		stage = "fulfilled";
+		const hasItems = input.itemCount == null || Number(input.itemCount) > 0;
+		const proofSatisfied =
+			input.proofCompleted == null || input.proofCompleted === true;
+		const inventorySatisfied =
+			input.inventoryConsumed == null || input.inventoryConsumed === true;
+		stage =
+			hasItems && proofSatisfied && inventorySatisfied
+				? "fulfilled"
+				: "packing_blocked";
 	} else if (status === "in progress") {
 		stage = "in_transit";
 	} else if (status === "packed" || packingReady) {
@@ -103,6 +117,51 @@ export function projectDispatchLifecycle(
 		canStartTrip: stage === "ready_to_load" && Boolean(input.driverId),
 		canComplete: stage === "in_transit",
 	};
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+}
+
+/**
+ * Projects a persisted Dispatch record through the same proof boundary used by
+ * every fulfillment reader. A completed status is administrative evidence
+ * only until delivery proof exists and any allocated inventory was consumed.
+ */
+export function projectDispatchOperationalRecord(
+	input: DispatchOperationalRecordInput,
+) {
+	const meta = asRecord(input.meta);
+	const completion = asRecord(meta.dispatchCompletion);
+	const inventory = asRecord(meta.inventoryDispatch);
+	return projectDispatchLifecycle({
+		...input,
+		proofCompleted: completion.status === "completed",
+		inventoryConsumed:
+			Number(input.stockAllocationCount || 0) === 0 ||
+			inventory.status === "consumed",
+	});
+}
+
+export function projectDispatchOrderStage(
+	stages: DispatchWorkspaceStage[],
+): DispatchWorkspaceStage {
+	if (stages.length === 0) return "ready_to_assign";
+	if (stages.every((stage) => stage === "cancelled")) return "cancelled";
+	if (stages.every((stage) => stage === "fulfilled")) return "fulfilled";
+	for (const stage of [
+		"packing_blocked",
+		"in_transit",
+		"ready_to_load",
+		"packing",
+		"assigned",
+		"ready_to_assign",
+	] as const) {
+		if (stages.includes(stage)) return stage;
+	}
+	return stages[0] || "ready_to_assign";
 }
 
 export function isDispatchStageMatch(

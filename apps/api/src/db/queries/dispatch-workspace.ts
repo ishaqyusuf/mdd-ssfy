@@ -8,11 +8,18 @@ import type {
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
 import {
+	SALES_PIPELINE_CONTRACT_VERSION,
+	type SalesControlField,
 	buildSalesDispatchBacklogWhere,
+	salesOrderListProjectionVersion,
 	withSalesListControl,
 } from "@gnd/sales";
+import type { Db } from "@gnd/sales/types";
 import { getDispatchDueBucket } from "@gnd/sales/dispatch-manifest/driver-work-queue";
-import { projectDispatchLifecycle } from "@gnd/sales/dispatch-manifest/status";
+import {
+	projectDispatchOperationalRecord,
+	projectDispatchOrderStage,
+} from "@gnd/sales/dispatch-manifest/status";
 import { isDispatchWorkspaceSectionMatch } from "@gnd/sales/dispatch-manifest/workspace";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { TRPCError } from "@trpc/server";
@@ -32,24 +39,88 @@ const activeDispatchStatuses = [
 export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 	const [
 		dispatches,
-		backlog,
+		backlogCount,
+		completedCount,
+		allCount,
 		driverExceptions,
 		packingExceptionDispatches,
 		driverCount,
 	] = await Promise.all([
 		ctx.db.orderDelivery.findMany({
-			where: { deletedAt: null },
+			where: {
+				deletedAt: null,
+				order: {
+					listProjection: {
+						is: {
+							state: "ready",
+							version: salesOrderListProjectionVersion(),
+							pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
+							pipelineFulfillmentApplicability: "required",
+							pipelineFulfillmentState: {
+								notIn: ["fulfilled", "administratively_completed"],
+							},
+						},
+					},
+				},
+			},
 			select: {
 				id: true,
 				salesOrderId: true,
 				status: true,
+				meta: true,
 				driverId: true,
 				deliveryMode: true,
 				dueDate: true,
+				_count: {
+					select: {
+						items: { where: { deletedAt: null } },
+						stockAllocations: true,
+					},
+				},
 			},
 		}),
-		ctx.db.salesOrders.count({
-			where: buildSalesDispatchBacklogWhere(),
+		ctx.db.salesOrderListProjection.count({
+			where: {
+				state: "ready",
+				version: salesOrderListProjectionVersion(),
+				pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
+				pipelineFulfillmentApplicability: "required",
+				pipelineFulfillmentState: "backlog",
+				salesOrder: { is: buildSalesDispatchBacklogWhere() },
+			},
+		}),
+		ctx.db.salesOrderListProjection.count({
+			where: {
+				state: "ready",
+				version: salesOrderListProjectionVersion(),
+				pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
+				pipelineFulfillmentApplicability: "required",
+				pipelineFulfillmentState: {
+					in: ["fulfilled", "administratively_completed"],
+				},
+				salesOrder: {
+					is: {
+						deletedAt: null,
+						type: "order",
+						deliveryOption: { in: ["delivery", "pickup"] },
+					},
+				},
+			},
+		}),
+		ctx.db.salesOrderListProjection.count({
+			where: {
+				state: "ready",
+				version: salesOrderListProjectionVersion(),
+				pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
+				pipelineFulfillmentApplicability: "required",
+				salesOrder: {
+					is: {
+						deletedAt: null,
+						type: "order",
+						deliveryOption: { in: ["delivery", "pickup"] },
+					},
+				},
+			},
 		}),
 		ctx.db.dispatchException.count({
 			where: { status: "open", deletedAt: null },
@@ -81,20 +152,29 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		fulfilled: 0,
 		cancelled: 0,
 	};
-	let active = 0;
-	let dueToday = 0;
-	let pastDue = 0;
-	let completed = 0;
+	const activeIds = new Set<number>();
+	const dueTodayIds = new Set<number>();
+	const pastDueIds = new Set<number>();
+	const stageSets = new Map<
+		number,
+		Array<ReturnType<typeof projectDispatchOperationalRecord>["stage"]>
+	>();
 	for (const row of dispatches) {
 		// OrderDelivery is the canonical dispatch lifecycle record. Rebuilding
 		// status from every historical item control made this summary unbounded
 		// and could mask explicit states (for example, "missing items") with the
 		// legacy "unknown" projection.
-		const lifecycle = projectDispatchLifecycle({
+		const lifecycle = projectDispatchOperationalRecord({
 			status: row.status,
 			driverId: row.driverId,
+			itemCount: row._count.items,
+			stockAllocationCount: row._count.stockAllocations,
+			meta: row.meta,
 		});
 		const { stage } = lifecycle;
+		const stages = stageSets.get(row.salesOrderId) || [];
+		stages.push(stage);
+		stageSets.set(row.salesOrderId, stages);
 		const dueBucket = getDispatchDueBucket(row.dueDate, { timeZone });
 		if (
 			isDispatchWorkspaceSectionMatch({
@@ -104,7 +184,7 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 				deliveryMode: row.deliveryMode,
 			})
 		) {
-			active += 1;
+			activeIds.add(row.salesOrderId);
 		}
 		if (
 			isDispatchWorkspaceSectionMatch({
@@ -115,7 +195,7 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 				dueBucket,
 			})
 		) {
-			dueToday += 1;
+			dueTodayIds.add(row.salesOrderId);
 		}
 		if (
 			isDispatchWorkspaceSectionMatch({
@@ -126,37 +206,30 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 				dueBucket,
 			})
 		) {
-			pastDue += 1;
+			pastDueIds.add(row.salesOrderId);
 		}
-		if (
-			isDispatchWorkspaceSectionMatch({
-				section: "completed",
-				stage,
-				driverId: row.driverId,
-				deliveryMode: row.deliveryMode,
-			})
-		) {
-			completed += 1;
-		}
+	}
+	for (const [salesOrderId, stages] of stageSets) {
+		const stage = projectDispatchOrderStage(stages);
 		if (stage === "ready_to_assign") byStage.readyToAssign += 1;
 		else if (stage === "assigned") byStage.assigned += 1;
 		else if (stage === "packing") byStage.packing += 1;
 		else if (stage === "packing_blocked") byStage.packingBlocked += 1;
 		else if (stage === "ready_to_load") byStage.readyToLoad += 1;
 		else if (stage === "in_transit") byStage.inTransit += 1;
-		else if (stage === "fulfilled") byStage.fulfilled += 1;
 		else if (stage === "cancelled") byStage.cancelled += 1;
 	}
+	byStage.fulfilled = completedCount;
 
 	return {
-		backlog,
-		active,
-		dueToday,
-		pastDue,
-		completed,
-		all: dispatches.length,
+		backlog: backlogCount,
+		active: activeIds.size,
+		dueToday: dueTodayIds.size,
+		pastDue: pastDueIds.size,
+		completed: completedCount,
+		all: allCount,
 		openExceptions: driverExceptions + packingExceptionDispatches.length,
-		overdue: pastDue,
+		overdue: pastDueIds.size,
 		driverCount,
 		byStage,
 	};
@@ -231,7 +304,7 @@ export async function getDispatchBacklog(
 	});
 	const rowsWithControl = await withSalesListControl(
 		data.map((row) => ({ id: row.id })),
-		ctx.db as any,
+		ctx.db as unknown as Db,
 		[
 			"productionStatus",
 			"dispatchStatus",
@@ -239,10 +312,10 @@ export async function getDispatchBacklog(
 			"pendingPacking",
 			"pendingDispatch",
 			"packables",
-		] as any,
+		] satisfies SalesControlField[],
 	);
 	const controlById = new Map(
-		rowsWithControl.map((row) => [row.id, (row as any).control]),
+		rowsWithControl.map((row) => [row.id, row.control]),
 	);
 	return response(
 		data.map((row) => ({

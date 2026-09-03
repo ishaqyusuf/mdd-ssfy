@@ -557,6 +557,7 @@ function DispatchStatusCell({ item }: { item: SalesDispatch }) {
 				authorId: Number(auth.id || 0),
 				authorName: auth.name || "System",
 				salesId: Number(item.order?.id || 0),
+				pipelineRevision: item.pipeline?.revision || undefined,
 			},
 			submitDispatch: {
 				dispatchId: item.id,
@@ -567,12 +568,15 @@ function DispatchStatusCell({ item }: { item: SalesDispatch }) {
 	};
 
 	const trigger = useTaskTrigger({
-		onStarted() {
+		onSuccess() {
 			queryClient.invalidateQueries({
 				queryKey: trpc.dispatch.dispatchOverview.queryKey(),
 			});
+			queryClient.invalidateQueries({
+				queryKey: trpc.dispatch.index.pathKey(),
+			});
+			setStatus("completed" as DispatchStatus);
 			setCompletionDialogOpen(false);
-			completeDispatchPackedOnly();
 		},
 	});
 
@@ -673,11 +677,10 @@ function DispatchStatusCell({ item }: { item: SalesDispatch }) {
 					completeDispatchPackedOnly();
 				}}
 				onPackAllComplete={() => {
-					const packItems: UpdateSalesControl["packItems"] = {
+					const markAsCompleted: UpdateSalesControl["markAsCompleted"] = {
 						dispatchId: item.id,
-						packMode: "all",
-						dispatchStatus: "completed",
-						replaceExisting: true,
+						receivedBy: auth.name || "System",
+						receivedDate: new Date(),
 					};
 
 					trigger.trigger({
@@ -687,8 +690,9 @@ function DispatchStatusCell({ item }: { item: SalesDispatch }) {
 								authorId: Number(auth.id || 0),
 								authorName: auth.name || "System",
 								salesId: Number(item.order?.id || 0),
+								pipelineRevision: item.pipeline?.revision || undefined,
 							},
-							packItems,
+							markAsCompleted,
 						} as UpdateSalesControl,
 					});
 				}}

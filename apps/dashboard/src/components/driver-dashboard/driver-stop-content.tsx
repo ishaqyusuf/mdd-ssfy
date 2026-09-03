@@ -140,6 +140,8 @@ export function DriverStopContent({
 			<ScrollArea className="min-h-0 flex-1">
 				<DriverProofForm
 					dispatchId={detail.dispatch.id}
+					expectedManifestRevision={detail.manifestRevision}
+					expectedPipelineRevision={detail.pipelineRevision}
 					onCompleted={onCompleted}
 				/>
 			</ScrollArea>

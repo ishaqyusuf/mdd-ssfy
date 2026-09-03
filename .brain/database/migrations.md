@@ -786,3 +786,18 @@ Tracks notable migrations and migration strategy.
   `mysql://127.0.0.1:3307/gnd-prisma2#identity=4813494d`; the follow-up
   `db:push` reported the database already in sync. Preview and Production
   rollout remain pending.
+
+## 20260902183000_add_sales_pipeline_projection_indexes
+
+- Adds seven nullable lifecycle fields and three compound query indexes to the
+  existing derived `SalesOrderListProjection` table.
+- The migration is additive and does not modify operational Sales, Production,
+  inventory, packing, Dispatch, delivery-proof, payment, or accounting rows.
+- Applied and verified against local MySQL
+  `mysql://127.0.0.1:3307/gnd-prisma2#identity=4813494d`; `db:migrate` reports
+  the local schema in sync and `db:generate` passes.
+- On 2026-09-03 the guarded production push verified
+  `mysql://aws.connect.psdb.cloud/gndprodesk#identity=ba57b207` and completed in
+  20.20 seconds. Prisma reports production in sync. The operation was additive;
+  no reset or operational Sales, Production, inventory, packing, Dispatch,
+  payment, or accounting row rewrite occurred.

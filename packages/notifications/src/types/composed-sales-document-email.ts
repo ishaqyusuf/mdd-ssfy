@@ -181,7 +181,11 @@ async function loadSales(db: Db, input: ComposedSalesDocumentEmailInput) {
 		.filter((sale): sale is LoadedSale => sale !== null);
 }
 
-async function buildPaymentLink(db: Db, sales: LoadedSale[]) {
+async function buildPaymentLink(
+	db: Db,
+	sales: LoadedSale[],
+	tokenize: typeof tryTokenize,
+) {
 	const [primarySale] = sales;
 	if (!primarySale) return null;
 
@@ -208,7 +212,7 @@ async function buildPaymentLink(db: Db, sales: LoadedSale[]) {
 		);
 	}
 
-	const paymentToken = tryTokenize({
+	const paymentToken = tokenize({
 		salesIds: paymentEligibleSales.map((sale) => sale.id),
 		expiry,
 		walletId,
@@ -217,11 +221,15 @@ async function buildPaymentLink(db: Db, sales: LoadedSale[]) {
 	return paymentToken ? `${appUrl}/checkout/${paymentToken}/v2` : null;
 }
 
-function buildPdfLink(sales: LoadedSale[], type: "order" | "quote") {
+function buildPdfLink(
+	sales: LoadedSale[],
+	type: "order" | "quote",
+	tokenize: typeof tryTokenize,
+) {
 	const appUrl = getAppUrl();
 	if (!appUrl) return null;
 
-	const pdfToken = tryTokenize({
+	const pdfToken = tokenize({
 		salesIds: sales.map((sale) => sale.id),
 		expiry: addDays(new Date(), LINK_TTL_DAYS).toISOString(),
 		mode: type,
@@ -263,7 +271,11 @@ export async function buildComposedSalesDocumentEmailData(
 	db: Db,
 	input: ComposedSalesDocumentEmailInput,
 	author: UserData,
+	dependencies: {
+		tryTokenize?: typeof tryTokenize;
+	} = {},
 ) {
+	const tokenize = dependencies.tryTokenize ?? tryTokenize;
 	const sales = await loadSales(db, input);
 	if (!sales.length) {
 		throw new Error(
@@ -331,14 +343,14 @@ export async function buildComposedSalesDocumentEmailData(
 	}
 
 	const type = input.printType === "quote" ? "quote" : "order";
-	const paymentLink = await buildPaymentLink(db, sales);
-	const pdfLink = buildPdfLink(sales, type);
+	const paymentLink = await buildPaymentLink(db, sales, tokenize);
+	const pdfLink = buildPdfLink(sales, type, tokenize);
 	const acceptQuoteLink =
 		type !== "quote" || sales.length !== 1
 			? null
 			: (() => {
 					const appUrl = getAppUrl();
-					const token = tryTokenize({
+					const token = tokenize({
 						salesId: primarySale.id,
 						orderId: primarySale.orderId,
 						expiry: addDays(new Date(), 14).toISOString(),

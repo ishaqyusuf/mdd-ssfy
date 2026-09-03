@@ -276,6 +276,23 @@ function createDealerPortalSalesFormContext(
           }) || null,
           select,
         ),
+      findUnique: async ({ where }: QueryArgs) => {
+        const order = state.orders.find((entry) => entry.id === where?.id);
+        if (!order) return null;
+        return {
+          ...order,
+          updatedAt: (order.updatedAt as Date | undefined) || new Date(),
+          meta: order.meta || null,
+          subTotal: order.subTotal || 0,
+          tax: order.tax || 0,
+          grandTotal: order.grandTotal || 0,
+          amountDue: order.amountDue || 0,
+          taxPercentage: order.taxPercentage || 0,
+          extraCosts: [],
+          taxes: [],
+          items: [],
+        };
+      },
       create: async ({ data, select }: WriteArgs) => {
         state.createdOrderData = data;
         const row = {
@@ -292,6 +309,12 @@ function createDealerPortalSalesFormContext(
         if (!row) throw new Error("Dealer quote not found in test mock.");
         Object.assign(row, data);
         return pickSelected(row, select);
+      },
+      updateMany: async ({ where, data }: WriteArgs) => {
+        const row = state.orders.find((entry) => entry.id === where?.id);
+        if (!row) return { count: 0 };
+        Object.assign(row, data);
+        return { count: 1 };
       },
     },
     salesOrderItems: {
@@ -321,6 +344,10 @@ function createDealerPortalSalesFormContext(
         state.dealerSales.push(row);
         return row;
       },
+    },
+    resolutionCase: {
+      updateMany: async () => ({ count: 0 }),
+      upsert: async ({ create }: { create: Row }) => create,
     },
   };
   const db = {

@@ -155,6 +155,13 @@ export type DealerPortalSalesListInput = {
 	paymentStatus?: "due" | "paid" | "credit" | null;
 };
 
+export type DealerPortalSalesPipelineFilter = {
+	contractVersion: string;
+	projectionVersion: number;
+	headlineIn?: string[];
+	headlineNotIn?: string[];
+};
+
 export type DealerSalesRequestStatus = "pending" | "approved" | "rejected";
 export const DEALER_ORDER_REQUEST_TYPE = "make_order";
 
@@ -1329,6 +1336,7 @@ function getDealerSalesListWhere(
 	dealerId: number,
 	type: "order" | "quote",
 	input: DealerPortalSalesListInput = {},
+	pipelineFilter?: DealerPortalSalesPipelineFilter,
 ): Prisma.SalesOrdersWhereInput {
 	const customerId = Number(input.customerId || 0) || null;
 	const search = input.q?.trim();
@@ -1402,6 +1410,27 @@ function getDealerSalesListWhere(
 		...(invoiceStatus
 			? {
 					invoiceStatus,
+				}
+			: {}),
+		...(pipelineFilter
+			? {
+					listProjection: {
+						is: {
+							state: "ready",
+							version: pipelineFilter.projectionVersion,
+							pipelineContractVersion: pipelineFilter.contractVersion,
+							...(pipelineFilter.headlineIn?.length
+								? { pipelineHeadline: { in: pipelineFilter.headlineIn } }
+								: {}),
+							...(pipelineFilter.headlineNotIn?.length
+								? {
+										pipelineHeadline: {
+											notIn: pipelineFilter.headlineNotIn,
+										},
+									}
+								: {}),
+						},
+					},
 				}
 			: {}),
 		...(customerSearch || phoneSearch
@@ -1588,10 +1617,11 @@ export async function getDealerPortalSalesList(
 	dealerId: number,
 	type: "order" | "quote",
 	input: DealerPortalSalesListInput = {},
+	pipelineFilter?: DealerPortalSalesPipelineFilter,
 ) {
 	const size = Math.min(Math.max(Number(input.size || 25), 1), 100);
 	const cursor = Number(input.cursor || 0);
-	const where = getDealerSalesListWhere(dealerId, type, input);
+	const where = getDealerSalesListWhere(dealerId, type, input, pipelineFilter);
 	const [rawDocuments, count] = await Promise.all([
 		db.salesOrders.findMany({
 			where,

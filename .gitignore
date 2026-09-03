@@ -87,3 +87,9 @@ ios
 /outputs/
 /artifacts/
 **/screenshots/
+
+.scratch
+.local-db-sync
+.gstack
+debug
+artifacts

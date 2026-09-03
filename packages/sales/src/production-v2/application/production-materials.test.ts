@@ -3,6 +3,7 @@ import type { Db } from "@gnd/db";
 
 import { getSalesProductionPlan } from "../../sales-fulfillment-plan";
 import {
+	buildProductionItemMaterialStatus,
 	buildProductionMaterialStatuses,
 	loadProductionMaterialStatuses,
 	summarizeProductionMaterials,
@@ -19,6 +20,7 @@ describe("buildProductionMaterialStatuses", () => {
 				salesItemId: 101,
 				componentId: 501,
 				componentName: "Oak panels",
+				inventoryVariantUid: "w2_0-h6_8",
 				supplierName: "Dyke Industries",
 				readiness: "awaiting_inbound",
 				stockStatus: "awaiting_inbound",
@@ -35,6 +37,8 @@ describe("buildProductionMaterialStatuses", () => {
 						status: "ordered",
 						inboundShipmentItemId: 801,
 						expectedAt,
+						shipmentStatus: "in_progress",
+						supplierName: "Inbound Supplier",
 					},
 					{
 						id: 702,
@@ -54,17 +58,90 @@ describe("buildProductionMaterialStatuses", () => {
 				salesItemId: 101,
 				componentId: 501,
 				name: "Oak panels",
+				inventoryVariantUid: "w2_0-h6_8",
 				supplierName: "Dyke Industries",
 				readiness: "awaiting_inbound",
 				stockStatus: "awaiting_inbound",
 				requiredQty: 2,
 				availableQty: 0,
+				allocatedQty: 0,
+				pendingReviewQty: 0,
+				receivedQty: 0,
 				openInboundQty: 2,
 				expectedAt,
 				undatedOpenInboundQty: 1,
+				productionEligibilityConflict: false,
+				inbounds: [
+					{
+						id: 801,
+						status: "in_progress",
+						expectedAt,
+						supplierName: "Inbound Supplier",
+						quantity: 1,
+					},
+					{
+						id: 702,
+						status: "pending",
+						expectedAt: null,
+						supplierName: "Dyke Industries",
+						quantity: 1,
+					},
+				],
 			},
 		]);
 		expect(summarizeProductionMaterials(result).undatedPendingCount).toBe(1);
+	});
+
+	it("scopes repeated door designs to the exact production-item dimension", () => {
+		const material = {
+			salesOrderId: 42,
+			salesItemId: 101,
+			componentId: 501,
+			name: "Carrara door",
+			supplierName: "Dyke",
+			readiness: "awaiting_inbound" as const,
+			stockStatus: "awaiting_inbound" as const,
+			requiredQty: 1,
+			availableQty: 0,
+			allocatedQty: 0,
+			pendingReviewQty: 0,
+			receivedQty: 0,
+			openInboundQty: 1,
+			expectedAt: "2026-09-05T00:00:00.000Z",
+			undatedOpenInboundQty: 0,
+			productionEligibilityConflict: false,
+			inbounds: [
+				{
+					id: 1,
+					status: "in_progress",
+					expectedAt: "2026-09-05T00:00:00.000Z",
+					supplierName: "Dyke",
+					quantity: 1,
+				},
+			],
+		};
+		const result = buildProductionItemMaterialStatus({
+			salesOrderId: 42,
+			salesItemId: 101,
+			configuredProduction: true,
+			productionItemDimension: "2-0 x 6-8",
+			hasOperationalProduction: true,
+			reviewPending: false,
+			projectionState: "available",
+			materials: [
+				{ ...material, inventoryVariantUid: "w2_0-h6_8" },
+				{
+					...material,
+					componentId: 502,
+					inventoryVariantUid: "w2_4-h6_8",
+					inbounds: [{ ...material.inbounds[0]!, id: 2 }],
+				},
+			],
+		});
+
+		expect(result.inbounds).toHaveLength(1);
+		expect(result.inbounds[0]?.id).toBe(1);
+		expect(result.quantityGroups[0]?.openInbound).toBe(1);
 	});
 });
 

@@ -4,12 +4,13 @@ import {
 	QUERY_EVENTS,
 	getMutationRoute,
 	resolveMutationQueryEvents,
+	resolveQueryEventTargets,
 } from "./registry";
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(91);
-		expect(Object.keys(QUERY_EVENTS).length).toBe(15);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(99);
+		expect(Object.keys(QUERY_EVENTS).length).toBe(16);
 	});
 
 	it("refreshes production and dispatch projections after layered cancellation", () => {
@@ -17,10 +18,7 @@ describe("query event mutation registry", () => {
 			resolveMutationQueryEvents({
 				mutationKey: [["sales", "cancelWorkflowLayer"]],
 			}),
-		).toEqual([
-			{ name: "sales.production.changed" },
-			{ name: "sales.dispatch.changed" },
-		]);
+		).toEqual([{ name: "sales.pipeline.changed" }]);
 	});
 
 	it("reads the tRPC mutation route from its typed mutation key", () => {
@@ -114,6 +112,56 @@ describe("query event mutation registry", () => {
 		).toBe("all");
 	});
 
+	it("refreshes every canonical lifecycle surface after a pipeline command", () => {
+		const routes = QUERY_EVENTS["sales.pipeline.changed"].targets.map(
+			(target) => target.route,
+		);
+
+		for (const route of [
+			"sales.getOrders",
+			"sales.productionSummary",
+			"sales.productionCalendar",
+			"sales.productionCalendarTasks",
+			"sales.productionsV2",
+			"dispatch.backlog",
+			"dispatch.workspaceSummary",
+			"dispatch.calendar",
+			"dispatch.fulfillmentCalendar",
+			"dispatch.driverWorkQueue",
+			"dispatch.driverWorkQueueSummary",
+			"dispatch.packingList",
+			"inventories.pendingAllocations",
+		] as const) {
+			expect(routes).toContain(route);
+		}
+		expect(
+			resolveQueryEventTargets({
+				name: "sales.pipeline.changed",
+				scope: {
+					sales: [{ orderNo: "09502PC", salesId: 1, salesType: "order" }],
+				},
+			}).some((target) => target.route === "sales.getSaleOverview"),
+		).toBe(true);
+	});
+
+	it("registers every direct canonical lifecycle mutation", () => {
+		for (const mutation of [
+			"cancelDispatch",
+			"startDispatch",
+			"startTrip",
+			"confirmPacking",
+			"resetPacking",
+			"submitDispatch",
+			"completeDispatchWithProof",
+		] as const) {
+			expect(
+				resolveMutationQueryEvents({
+					mutationKey: [["dispatch", mutation]],
+				}),
+			).toEqual([{ name: "sales.pipeline.changed" }]);
+		}
+	});
+
 	it("reconciles the Material handoff queue after every canonical evidence family", () => {
 		for (const event of [
 			"sales.order.changed",
@@ -147,7 +195,29 @@ describe("query event mutation registry", () => {
 			resolveMutationQueryEvents({
 				mutationKey: [["sales", "reviewProductionSubmission"]],
 			}),
-		).toEqual([{ name: "sales.production.changed" }]);
+		).toEqual([{ name: "sales.pipeline.changed" }]);
+	});
+
+	it("invalidates every material-status and review projection after each evidence family", () => {
+		const materialRoutes = [
+			"sales.productionSubmissionMaterialReviews",
+			"sales.productionSubmissionMaterialReviewDetail",
+			"sales.productionOrderDetailV2",
+			"sales.productionMaterials",
+			"sales.productionReadiness",
+		] as const;
+		for (const event of [
+			"sales.production.changed",
+			"sales.pipeline.changed",
+			"inventory.catalog.changed",
+			"inventory.stock.changed",
+			"inventory.inbound.changed",
+			"inventory.allocation.changed",
+			"inventory.fulfillment.changed",
+		] as const) {
+			const routes = QUERY_EVENTS[event].targets.map((target) => target.route);
+			for (const route of materialRoutes) expect(routes).toContain(route);
+		}
 	});
 
 	it("refreshes inventory and sales order projections after manual need fulfillment", () => {

@@ -737,6 +737,7 @@ model SalesOrders {
     status            String?                          @db.VarChar(255)
     inventoryStatus   String?                          @db.VarChar(255)
     deletedAt         DateTime?                        @db.Timestamp(0)
+	archivedAt        DateTime?                        @db.Timestamp(0)
     createdAt         DateTime?                        @default(now()) @db.Timestamp(0)
     updatedAt         DateTime?                        @updatedAt
     orderId           String                           @db.VarChar(255)
@@ -809,6 +810,7 @@ model SalesOrders {
     packingReports    SalesPackingReport[]
     adjustments       SalesOrderAdjustment[]
     workflowCancellations SalesWorkflowCancellation[]
+    completionRecords SalesCompletionRecord[]
     specialOrderRequests SpecialOrderApprovalRequest[]
     specialOrderEvidence SpecialOrderApprovalEvidence[] @relation(name: "SpecialOrderEvidence")
     handoffActionEpochs SalesHandoffActionEpoch[]
@@ -820,6 +822,7 @@ model SalesOrders {
     @@unique([orderId, type])
     @@index([orgId])
     @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
+	@@index([type, deletedAt, archivedAt, createdAt, id], name: "idx_sales_orders_workspace_archive")
     @@index([customerProfileId])
     @@index([dealerAuthId])
     @@index([dealerSalesProfileId])
@@ -1044,6 +1047,13 @@ model SalesOrderListProjection {
     sourceUpdatedAt DateTime
     version         Int         @default(1)
     state           String      @default("ready") @db.VarChar(32)
+    pipelineContractVersion String? @db.VarChar(32)
+    pipelineRevision String? @db.VarChar(64)
+    pipelineHeadline String? @db.VarChar(64)
+    pipelineProductionApplicability String? @db.VarChar(32)
+    pipelineProductionState String? @db.VarChar(48)
+    pipelineFulfillmentApplicability String? @db.VarChar(32)
+    pipelineFulfillmentState String? @db.VarChar(48)
     payload         Json        @db.Json
     lastError       String?     @db.Text
     projectedAt     DateTime    @default(now()) @db.Timestamp(0)
@@ -1054,6 +1064,9 @@ model SalesOrderListProjection {
     @@index([orgId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_scope")
     @@index([salesRepId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_rep")
     @@index([state, version, projectedAt], name: "idx_sales_order_list_health")
+    @@index([state, version, pipelineHeadline, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_headline")
+    @@index([state, version, pipelineProductionApplicability, pipelineProductionState, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_production")
+    @@index([state, version, pipelineFulfillmentApplicability, pipelineFulfillmentState, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_fulfillment")
 }
 
 enum DealerSellerOfRecord {
@@ -1254,6 +1267,50 @@ model SalesHistory {
     @@index([salesId])
 }
 
+enum SalesCompletionMilestone {
+    PRODUCTION_COMPLETED
+    FULFILLMENT_COMPLETED
+}
+
+enum SalesCompletionMethod {
+    STATUS_ONLY
+    FULL_WORKFLOW
+}
+
+enum SalesCompletionRecordState {
+    ACTIVE
+    CANCELLED
+}
+
+model SalesCompletionRecord {
+    id                    String                     @id @default(cuid())
+    requestId             String                     @unique @db.VarChar(64)
+    cancellationRequestId String?                    @unique @db.VarChar(64)
+    salesOrderId          Int
+    milestone             SalesCompletionMilestone
+    completionMethod      SalesCompletionMethod
+    state                 SalesCompletionRecordState @default(ACTIVE)
+    activeKey             String?                    @unique @db.VarChar(191)
+    effectiveAt           DateTime?                  @db.Timestamp(0)
+    recordedAt            DateTime                   @default(now()) @db.Timestamp(0)
+    recordedById          Int
+    cancelledAt           DateTime?                  @db.Timestamp(0)
+    cancelledById         Int?
+    cancellationReason    String?                    @db.Text
+    createdAt             DateTime                   @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime                   @updatedAt
+    order                 SalesOrders                @relation(fields: [salesOrderId], references: [id], onDelete: Restrict)
+    recordedBy            Users                      @relation(name: "salesCompletionRecordsRecorded", fields: [recordedById], references: [id], onDelete: Restrict)
+    cancelledBy           Users?                     @relation(name: "salesCompletionRecordsCancelled", fields: [cancelledById], references: [id], onDelete: Restrict)
+
+    @@index([salesOrderId, state, milestone])
+    @@index([completionMethod, recordedAt])
+    @@index([milestone, effectiveAt])
+    @@index([state, cancelledAt])
+    @@index([recordedById, recordedAt])
+    @@index([cancelledById, cancelledAt])
+}
+
 enum SalesPriority {
     CRITICAL
     HIGH
@@ -1348,6 +1405,7 @@ model QtyControl {
     percentage     Float?
     autoComplete   Boolean?
     deletedAt      DateTime?        @db.Timestamp(0)
+    updatedAt      DateTime         @default(now()) @updatedAt
     itemControl    SalesItemControl @relation(fields: [itemControlUid], references: [uid])
 
     // @@index([uid])
@@ -1794,6 +1852,7 @@ model OrderItemProductionAssignments {
     note                String?
     salesDoorId         Int?
     startedAt           DateTime?                    @db.Timestamp(0)
+    assignedAt          DateTime?                    @db.Timestamp(0)
     dueDate             DateTime?                    @db.Timestamp(0)
     deletedAt           DateTime?                    @db.Timestamp(0)
     createdAt           DateTime?                    @default(now()) @db.Timestamp(0)
@@ -5063,6 +5122,8 @@ model Users {
     submittedPackingReports           SalesPackingReport[] @relation(name: "packingReportsSubmitted")
     reviewedPackingReports            SalesPackingReport[] @relation(name: "packingReportsReviewed")
     performedSalesWorkflowCancellations SalesWorkflowCancellation[] @relation(name: "salesWorkflowCancellationsPerformed")
+    recordedSalesCompletionRecords SalesCompletionRecord[] @relation(name: "salesCompletionRecordsRecorded")
+    cancelledSalesCompletionRecords SalesCompletionRecord[] @relation(name: "salesCompletionRecordsCancelled")
     sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
     taskRunDiagnosticsStarted   TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticActor")

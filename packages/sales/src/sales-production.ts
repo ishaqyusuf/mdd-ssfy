@@ -1,15 +1,21 @@
 import type { Db, Prisma } from "@gnd/db";
-import { sum } from "@gnd/utils";
+import { sum, transformFilterDateToQuery } from "@gnd/utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
 import { type PageDataMeta, composeQueryData } from "@gnd/utils/query-response";
 import { hasCompletedProductionLifecycle } from "./bulk-production-completion";
+import { salesOrderListProjectionVersion } from "./order-list-read-model";
 import { getSalesOrderLifecycleStatusInfo } from "./order-status";
 import {
 	getSalesPriorityLabel,
 	getSalesPriorityRank,
 	normalizeSalesPriority,
 } from "./priority";
+import {
+	getProductionDateRange,
+	getProductionQueueBoundaries,
+} from "./production-date";
 import { isFinalizedProductionSubmission } from "./production-submission-review/policy";
+import { countActionableProductionSubmissionMaterialReviews } from "./production-submission-review/queries";
 import {
 	type ProductionMaterialStatus,
 	buildProductionMaterialStatuses,
@@ -20,6 +26,17 @@ import { resolveProductionWorkflowStatus } from "./production-workflow-status";
 import { resolveSalesProductionWorkspaceQuery } from "./production-workspace-query";
 import { getSalesProductionPlan } from "./sales-fulfillment-plan";
 import { resolveSalesInventoryFulfillmentStatus } from "./sales-inventory-policy";
+import {
+	SALES_PIPELINE_CONTRACT_VERSION,
+	isProductionScheduleAssignmentOpen,
+	matchesCanonicalSalesPipelineFilter,
+	resolveCanonicalWorkspaceMembership,
+} from "./sales-pipeline";
+import { getSalesPipelineSnapshots } from "./sales-pipeline-order";
+import {
+	getSalesPipelineReadMode,
+	observeSalesPipelineReadProjection,
+} from "./sales-pipeline-rollout";
 import type {
 	SalesProductionCalendarQuery,
 	SalesProductionQueryParams,
@@ -52,10 +69,15 @@ type SalesProductionListQuery = SalesProductionQueryParams & {
 };
 
 function usesLegacyProductionCompletionFilter(
-	query: Pick<SalesProductionListQuery, "production" | "completion.production">,
+	query: Pick<
+		SalesProductionListQuery,
+		"production" | "completion.production" | "production.status"
+	>,
 ) {
 	return (
-		query.production === "pending" && query["completion.production"] == null
+		query.production === "pending" &&
+		query["completion.production"] == null &&
+		query["production.status"] == null
 	);
 }
 
@@ -78,7 +100,11 @@ export async function getSalesProductions(
 	const getDueQueue = async (
 		status: NonNullable<SalesQueryParamsSchema["production.status"]>,
 	) => {
-		const { show: _show, ...dueQuery } = productionQuery;
+		const {
+			show: _show,
+			"completion.production": _completion,
+			...dueQuery
+		} = productionQuery;
 		const dueQueue = await getProductionListAction(
 			db,
 			{
@@ -91,9 +117,7 @@ export async function getSalesProductions(
 				includeMaterials: query.includeMaterials,
 			},
 		);
-		return usesLegacyProductionCompletionFilter(dueQuery)
-			? filterCompletedProductions(dueQueue)
-			: dueQueue;
+		return dueQueue;
 	};
 	const getDueToday = async () => getDueQueue("due today");
 	const getPastDue = async () => getDueQueue("past due");
@@ -287,9 +311,7 @@ export async function getSalesProductionSummary(
 					assignedToId,
 					"completion.production": "completed",
 				}),
-		db.salesProductionSubmissionMaterialReview.count({
-			where: { status: "PENDING" },
-		}),
+		countActionableProductionSubmissionMaterialReviews(db),
 	]);
 	return {
 		summary: {
@@ -323,6 +345,12 @@ export async function getSalesProductionCalendar(
 	const activeWhere = {
 		deletedAt: null,
 		assignedToId: input.assignedToId || undefined,
+		completedAt:
+			input.scope === "completed"
+				? { not: null }
+				: input.scope === "all"
+					? undefined
+					: null,
 		order: orderWhere,
 	} satisfies Prisma.OrderItemProductionAssignmentsWhereInput;
 	const calendarSelect = {
@@ -331,6 +359,19 @@ export async function getSalesProductionCalendar(
 		startedAt: true,
 		completedAt: true,
 		dueDate: true,
+		qtyAssigned: true,
+		lhQty: true,
+		rhQty: true,
+		qtyCompleted: true,
+		submissions: {
+			where: { deletedAt: null },
+			select: {
+				qty: true,
+				lhQty: true,
+				rhQty: true,
+				materialReview: { select: { status: true } },
+			},
+		},
 		assignedTo: { select: { name: true } },
 		order: {
 			select: {
@@ -346,7 +387,7 @@ export async function getSalesProductionCalendar(
 			},
 		},
 	} satisfies Prisma.OrderItemProductionAssignmentsSelect;
-	const scheduledRows = await db.orderItemProductionAssignments.findMany({
+	const candidateRows = await db.orderItemProductionAssignments.findMany({
 		where: {
 			...activeWhere,
 			dueDate: { gte: start.toDate(), lt: exclusiveEnd.toDate() },
@@ -355,16 +396,44 @@ export async function getSalesProductionCalendar(
 		take: 1_500,
 		select: calendarSelect,
 	});
+	const calendarPipelineSnapshots = await getSalesPipelineSnapshots(
+		db,
+		Array.from(new Set(candidateRows.map((row) => row.order.id))),
+	);
+	const operationalDate = getProductionQueueBoundaries()
+		.today.gte.toISOString()
+		.slice(0, 10);
+	const scheduledRows = candidateRows.filter((row) => {
+		const open = isProductionAssignmentRowOpen(row);
+		const legacyIncluded =
+			input.scope === "completed" ? !open : input.scope === "all" || open;
+		if (!legacyIncluded) return false;
+		const snapshot = calendarPipelineSnapshots.get(row.order.id);
+		const selected = snapshot
+			? observeSalesPipelineReadProjection(snapshot, {
+					surface: "production.calendar.membership",
+					legacyProductionIncluded: legacyIncluded,
+				})
+			: null;
+		if (!selected) return true;
+		const membershipScope = open ? "calendar" : "completed";
+		return resolveCanonicalWorkspaceMembership(selected, {
+			workspace: "production",
+			scope: membershipScope,
+			operationalDate,
+			from: start.format("YYYY-MM-DD"),
+			to: end.format("YYYY-MM-DD"),
+		}).included;
+	});
 	const toCalendarRow = (row: (typeof scheduledRows)[number]) => {
-		const productionStatus = overallStatus(row.order.stat).production.status;
-		const lifecycleStatus = getSalesOrderLifecycleStatusInfo({
-			orderStatus: row.order.status,
-			legacyProductionStatus: row.order.prodStatus,
-			productionStatus,
-		}).status;
-		const completed =
-			Boolean(row.completedAt) ||
-			hasCompletedProductionLifecycle(lifecycleStatus);
+		const completed = !isProductionAssignmentRowOpen(row);
+		const pipelineSnapshot = calendarPipelineSnapshots.get(row.order.id);
+		const pipeline = pipelineSnapshot
+			? observeSalesPipelineReadProjection(pipelineSnapshot, {
+					surface: "production.calendar.row",
+					legacyProductionIncluded: !completed,
+				})
+			: null;
 
 		return {
 			id: row.id,
@@ -384,6 +453,7 @@ export async function getSalesProductionCalendar(
 					: row.assignedToId
 						? "assigned"
 						: "unassigned",
+			pipeline,
 		};
 	};
 	const collapseCalendarRows = (rows: typeof scheduledRows) => {
@@ -433,11 +503,13 @@ export async function getSalesProductionCalendar(
 		}));
 	};
 	const scheduled = collapseCalendarRows(scheduledRows);
-	const counts = new Map<string, number>();
+	const counts = new Map<string, Set<number>>();
 	for (const row of scheduledRows) {
 		if (!row.dueDate) continue;
 		const date = dayjs(row.dueDate).format("YYYY-MM-DD");
-		counts.set(date, (counts.get(date) || 0) + 1);
+		const orderIds = counts.get(date) || new Set<number>();
+		orderIds.add(row.order.id);
+		counts.set(date, orderIds);
 	}
 	const today = dayjs().format("YYYY-MM-DD");
 	const tomorrow = dayjs().add(1, "day").format("YYYY-MM-DD");
@@ -456,7 +528,7 @@ export async function getSalesProductionCalendar(
 			date,
 			label: current.format("ddd, MMM D"),
 			shortLabel: current.format("ddd"),
-			count: counts.get(date) || 0,
+			count: counts.get(date)?.size || 0,
 			isToday: date === today,
 			isTomorrow: date === tomorrow,
 		});
@@ -469,8 +541,12 @@ async function countProductionOrders(
 	query: SalesProductionListQuery & Record<string, unknown>,
 ) {
 	const { sort: _canonicalSort, ...countQuery } = query;
+	const scheduleScoped = Boolean(query["production.status"]);
 	const normalizedQuery = {
 		...countQuery,
+		"completion.production": scheduleScoped
+			? undefined
+			: query["completion.production"],
 		salesType: "order",
 		"production.assignedToId":
 			query["production.assignedToId"] ||
@@ -479,8 +555,115 @@ async function countProductionOrders(
 			undefined,
 		"sales.priority": query.priority || query["sales.priority"],
 	} as SalesQueryParamsSchema;
-	const where = buildProductionWorkspaceWhere(normalizedQuery);
+	const stageWhere = await buildCanonicalProductionStageMembershipWhere(
+		db,
+		normalizedQuery,
+		buildProductionWorkspaceWhere(normalizedQuery),
+	);
+	const where = await buildProductionScheduleMembershipWhere(
+		db,
+		normalizedQuery,
+		stageWhere,
+	);
 	return db.salesOrders.count({ where });
+}
+
+function isProductionAssignmentRowOpen(row: {
+	qtyAssigned?: number | null;
+	lhQty?: number | null;
+	rhQty?: number | null;
+	qtyCompleted?: number | null;
+	completedAt?: Date | null;
+	submissions?: Array<{
+		qty?: number | null;
+		lhQty?: number | null;
+		rhQty?: number | null;
+		materialReview?: { status?: string | null } | null;
+	}>;
+}) {
+	return isProductionScheduleAssignmentOpen({
+		assignedQty: Number(row.qtyAssigned || sum([row.lhQty, row.rhQty])),
+		completedQty: row.qtyCompleted,
+		completedAt: row.completedAt,
+		submissions: (row.submissions || []).map((submission) => ({
+			active: true,
+			quantity: Number(
+				submission.qty || sum([submission.lhQty, submission.rhQty]),
+			),
+			reviewStatus: submission.materialReview?.status,
+		})),
+	});
+}
+
+async function buildProductionScheduleMembershipWhere(
+	db: Db,
+	query: SalesQueryParamsSchema,
+	baseWhere: Prisma.SalesOrdersWhereInput,
+): Promise<Prisma.SalesOrdersWhereInput> {
+	const status = query["production.status"];
+	const boundaries = getProductionQueueBoundaries();
+	let dueDate: Prisma.OrderItemProductionAssignmentsWhereInput["dueDate"];
+	if (query.productionDueDate) {
+		dueDate = getProductionDateRange(query.productionDueDate);
+	} else if (query["production.dueDate"]?.length) {
+		dueDate = transformFilterDateToQuery(query["production.dueDate"]);
+	} else if (status === "due today") dueDate = boundaries.today;
+	else if (status === "due tomorrow") dueDate = boundaries.tomorrow;
+	else if (status === "past due") dueDate = boundaries.pastDue;
+	else if (status === "future") dueDate = boundaries.future;
+	else if (status === "unscheduled") dueDate = null;
+	else return baseWhere;
+
+	const assignments = await db.orderItemProductionAssignments.findMany({
+		where: {
+			deletedAt: null,
+			assignedToId: query["production.assignedToId"] || undefined,
+			dueDate,
+		},
+		select: {
+			orderId: true,
+			qtyAssigned: true,
+			lhQty: true,
+			rhQty: true,
+			qtyCompleted: true,
+			completedAt: true,
+			submissions: {
+				where: { deletedAt: null },
+				select: {
+					qty: true,
+					lhQty: true,
+					rhQty: true,
+					materialReview: { select: { status: true } },
+				},
+			},
+		},
+	});
+	const candidateOrderIds = Array.from(
+		new Set(
+			assignments
+				.filter(isProductionAssignmentRowOpen)
+				.map((assignment) => assignment.orderId),
+		),
+	);
+	const snapshots = await getSalesPipelineSnapshots(db, candidateOrderIds);
+	const operationalDate = boundaries.today.gte.toISOString().slice(0, 10);
+	const orderIds = candidateOrderIds.filter((orderId) => {
+		const snapshot = snapshots.get(orderId);
+		const selected = snapshot
+			? observeSalesPipelineReadProjection(snapshot, {
+					surface: "production.filter.membership",
+					legacyProductionIncluded: true,
+				})
+			: null;
+		return selected
+			? resolveCanonicalWorkspaceMembership(selected, {
+					workspace: "production",
+					scope: "queue",
+					operationalDate,
+				}).included
+			: true;
+	});
+	return { AND: [baseWhere, { id: { in: orderIds } }] };
 }
 
 function buildProductionWorkspaceWhere(query: SalesQueryParamsSchema) {
@@ -629,7 +812,16 @@ async function getProductionListAction(
 		workerCompletion?: "completed";
 	} = {},
 ) {
-	const where = buildProductionWorkspaceWhere(query);
+	const stageWhere = await buildCanonicalProductionStageMembershipWhere(
+		db,
+		query,
+		buildProductionWorkspaceWhere(query),
+	);
+	const where = await buildProductionScheduleMembershipWhere(
+		db,
+		query,
+		stageWhere,
+	);
 	const requestedTake =
 		options.includeMaterials === false
 			? Math.max(Number(query.size || 20), 1)
@@ -642,54 +834,69 @@ async function getProductionListAction(
 	const whereAssignments = getProductionAssignmentFilters(where);
 	if (query.material || query.productionSort) {
 		if (query.material && !query.productionSort) {
-			return getMaterialFilteredProductionPage(
+			return attachCanonicalProductionPipelines(
 				db,
-				query,
-				where,
-				whereAssignments,
-				requestedTake,
+				await getMaterialFilteredProductionPage(
+					db,
+					query,
+					where,
+					whereAssignments,
+					requestedTake,
+				),
 			);
 		}
 		if (
 			!query.material &&
 			(query.productionSort === "newest" || query.productionSort === "oldest")
 		) {
-			return getDatabaseSortedProductionPage(
+			return attachCanonicalProductionPipelines(
+				db,
+				await getDatabaseSortedProductionPage(
+					db,
+					query,
+					where,
+					whereAssignments,
+					requestedTake,
+					options,
+				),
+			);
+		}
+		return attachCanonicalProductionPipelines(
+			db,
+			await getFilteredProductionPage(
 				db,
 				query,
 				where,
 				whereAssignments,
 				requestedTake,
 				options,
-			);
-		}
-		return getFilteredProductionPage(
-			db,
-			query,
-			where,
-			whereAssignments,
-			requestedTake,
-			options,
+			),
 		);
 	}
 	if (options.workerCompletion) {
-		return getDatabaseSortedProductionPage(
+		return attachCanonicalProductionPipelines(
 			db,
-			{ ...query, productionSort: "newest" },
-			where,
-			whereAssignments,
-			requestedTake,
-			options,
+			await getDatabaseSortedProductionPage(
+				db,
+				{ ...query, productionSort: "newest" },
+				where,
+				whereAssignments,
+				requestedTake,
+				options,
+			),
 		);
 	}
 	if (query.production === "pending") {
-		return getDatabaseSortedProductionPage(
+		return attachCanonicalProductionPipelines(
 			db,
-			{ ...query, productionSort: "newest" },
-			where,
-			whereAssignments,
-			requestedTake,
-			options,
+			await getDatabaseSortedProductionPage(
+				db,
+				{ ...query, productionSort: "newest" },
+				where,
+				whereAssignments,
+				requestedTake,
+				options,
+			),
 		);
 	}
 	const { response, queryProps } = await composeQueryData(
@@ -718,7 +925,100 @@ async function getProductionListAction(
 				),
 	}));
 
-	return response(rows.slice(0, requestedTake));
+	return attachCanonicalProductionPipelines(
+		db,
+		response(rows.slice(0, requestedTake)),
+	);
+}
+
+async function buildCanonicalProductionStageMembershipWhere(
+	db: Db,
+	query: SalesQueryParamsSchema & { workerId?: number | null },
+	legacyWhere: Prisma.SalesOrdersWhereInput,
+): Promise<Prisma.SalesOrdersWhereInput> {
+	const completion = query["completion.production"];
+	if (
+		completion !== "completed" ||
+		query.workerId ||
+		getSalesPipelineReadMode() !== "canonical"
+	) {
+		return legacyWhere;
+	}
+
+	const { "completion.production": _completion, ...candidateQuery } = query;
+	const workspaceWhere = {
+		AND: [
+			whereSales(candidateQuery as SalesQueryParamsSchema) || {},
+			buildProductionEligibleWhere(),
+		],
+	} satisfies Prisma.SalesOrdersWhereInput;
+	const projections: Array<{
+		salesOrderId: number;
+		pipelineRevision: string | null;
+	}> = [];
+	let cursor: number | undefined;
+	for (;;) {
+		const page = await db.salesOrderListProjection.findMany({
+			where: {
+				state: "ready",
+				version: salesOrderListProjectionVersion(),
+				pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
+				pipelineProductionApplicability: "required",
+				pipelineProductionState: {
+					in: ["completed", "administratively_completed"],
+				},
+				salesOrder: { is: workspaceWhere },
+			},
+			select: { salesOrderId: true, pipelineRevision: true },
+			orderBy: { salesOrderId: "asc" },
+			take: 250,
+			...(cursor ? { cursor: { salesOrderId: cursor }, skip: 1 } : {}),
+		});
+		projections.push(...page);
+		cursor = page.at(-1)?.salesOrderId;
+		if (page.length < 250 || !cursor) break;
+	}
+	if (!projections.length) {
+		return { AND: [workspaceWhere, { id: { in: [] } }] };
+	}
+	const snapshots = await getSalesPipelineSnapshots(
+		db,
+		projections.map((projection) => projection.salesOrderId),
+	);
+	const completedIds = projections.map((projection) => {
+		const snapshot = snapshots.get(projection.salesOrderId);
+		if (!snapshot || projection.pipelineRevision !== snapshot.revision) {
+			throw new Error(
+				`Sales Pipeline projection is stale for order ${projection.salesOrderId}. Refresh and retry.`,
+			);
+		}
+		return projection.salesOrderId;
+	});
+	return { AND: [workspaceWhere, { id: { in: completedIds } }] };
+}
+
+async function attachCanonicalProductionPipelines<
+	T extends { data: Array<{ id: number }> },
+>(db: Db, response: T) {
+	const snapshots = await getSalesPipelineSnapshots(
+		db,
+		response.data.map((row) => row.id),
+	);
+	return {
+		...response,
+		data: response.data.map((row) => {
+			const snapshot = snapshots.get(row.id) ?? null;
+			return {
+				...row,
+				pipeline: snapshot
+					? observeSalesPipelineReadProjection(snapshot, {
+							surface: "production.list.row",
+							legacyProductionIncluded: true,
+						})
+					: null,
+			};
+		}),
+	};
 }
 
 type ProductionSelectedRow = Prisma.SalesOrdersGetPayload<{
@@ -1210,15 +1510,33 @@ const select = (whereAssignments?) =>
 			select: { name: true },
 		},
 		stat: true,
+		completionRecords: {
+			where: { state: "ACTIVE" },
+			select: {
+				id: true,
+				milestone: true,
+				completionMethod: true,
+				recordedAt: true,
+				effectiveAt: true,
+				recordedById: true,
+			},
+		},
 		deliveries: {
 			where: { deletedAt: null },
 			select: {
+				id: true,
 				status: true,
+				meta: true,
+				dueDate: true,
+				driverId: true,
 				_count: { select: { items: true } },
 			},
 		},
 		itemControls: {
+			where: { deletedAt: null },
 			select: {
+				produceable: true,
+				shippable: true,
 				qtyControls: true,
 				assignments: {
 					select: {
@@ -1234,6 +1552,7 @@ const select = (whereAssignments?) =>
 				...(whereAssignments?.length === 1 ? whereAssignments[0] : {}),
 			},
 			select: {
+				id: true,
 				assignedAt: true,
 				assignedToId: true,
 				createdAt: true,
@@ -1242,9 +1561,11 @@ const select = (whereAssignments?) =>
 						deletedAt: null,
 					},
 					select: {
+						id: true,
 						lhQty: true,
 						qty: true,
 						rhQty: true,
+						createdAt: true,
 						materialReview: {
 							select: {
 								status: true,
@@ -1255,6 +1576,7 @@ const select = (whereAssignments?) =>
 				lhQty: true,
 				rhQty: true,
 				qtyAssigned: true,
+				qtyCompleted: true,
 				completedAt: true,
 				dueDate: true,
 				assignedTo: {
@@ -1436,16 +1758,16 @@ export function isProductionCompleted({
 }
 
 function filterCompletedProductions<
-	T extends { completed?: boolean },
->(response: {
-	data: T[];
-	meta?: PageDataMeta;
-	filter?: unknown;
-	query?: unknown;
-}) {
+	TResponse extends {
+		data: Array<{ completed?: boolean }>;
+		meta?: PageDataMeta;
+		filter?: unknown;
+		query?: unknown;
+	},
+>(response: TResponse): TResponse {
 	const data = (response.data || []).filter((item) => !item.completed);
 	return {
 		...response,
 		data,
-	};
+	} as TResponse;
 }

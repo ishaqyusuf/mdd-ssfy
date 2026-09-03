@@ -1756,7 +1756,11 @@ export async function getJobsPrintData(
 export async function createPaymentPortal(
 	ctx: TRPCContext,
 	input: CreatePaymentPortalSchema,
+	dependencies: {
+		saveNote?: typeof saveNote;
+	} = {},
 ) {
+	const recordActivity = dependencies.saveNote ?? saveNote;
 	const payerId = ctx.userId;
 	if (!payerId) {
 		throw new Error("Unauthorized");
@@ -2001,7 +2005,7 @@ export async function createPaymentPortal(
 		return createdPayment;
 	});
 
-	await saveNote(
+	await recordActivity(
 		ctx.db,
 		{
 			headline: "Job Payment Created",

@@ -2,6 +2,7 @@ import {
 	type SalesOrderLifecycleStatus,
 	getSalesOrderLifecycleStatusInfo,
 } from "@gnd/sales/order-status";
+import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import { cn, cva } from "@gnd/ui/cn";
 
 type LifecycleQtySnapshot = {
@@ -44,6 +45,7 @@ type SalesOverviewStatusInput = {
 		pendingDispatch?: LifecycleQtySnapshot | null;
 		packables?: LifecycleQtySnapshot | null;
 	} | null;
+	pipeline?: SalesPipelineSnapshot | null;
 };
 
 type QuoteStatus = "quote_open" | "quote_part_paid" | "quote_paid";
@@ -56,11 +58,15 @@ export const salesOverviewDocumentStatusVariants = cva(
 				awaiting_production: "border-0 bg-slate-100 text-slate-700",
 				production_queued: "border-0 bg-amber-100 text-amber-700",
 				in_production: "border-0 bg-blue-100 text-blue-700",
+				awaiting_production_review: "border-0 bg-amber-100 text-amber-700",
 				ready_to_fulfill: "border-0 bg-violet-100 text-violet-700",
 				fulfillment_queued: "border-0 bg-indigo-100 text-indigo-700",
 				packing: "border-0 bg-cyan-100 text-cyan-700",
 				packed: "border-0 bg-teal-100 text-teal-700",
 				in_transit: "border-0 bg-sky-100 text-sky-700",
+				partially_fulfilled: "border-0 bg-sky-100 text-sky-700",
+				administratively_completed: "border-0 bg-violet-100 text-violet-700",
+				conflict: "border-0 bg-rose-100 text-rose-700",
 				fulfilled: "border-0 bg-emerald-100 text-emerald-700",
 				cancelled: "border-0 bg-rose-100 text-rose-700",
 				unknown: "border-0 bg-stone-100 text-stone-700",
@@ -109,6 +115,18 @@ export function getSalesOverviewDocumentStatus(
 			className: cn(
 				salesOverviewDocumentStatusVariants({
 					status: quoteStatus.status,
+				}),
+			),
+		};
+	}
+	if (data?.pipeline) {
+		return {
+			label: data.pipeline.headline.label,
+			labelText: "Order Status",
+			status: data.pipeline.headline.code,
+			className: cn(
+				salesOverviewDocumentStatusVariants({
+					status: data.pipeline.headline.code,
 				}),
 			),
 		};

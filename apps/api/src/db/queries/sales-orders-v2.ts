@@ -6,6 +6,8 @@ import { transformSalesFilterQuery } from "@api/utils/sales";
 import { SalesListInclude } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
 import {
+	SALES_PIPELINE_CONTRACT_VERSION,
+	buildCanonicalSalesPipelineFilterWhere,
 	compareSalesOrderListRows,
 	hydrateSalesOrderListRow,
 	isControlReadV2Enabled,
@@ -21,11 +23,23 @@ import {
 	isReviewableSalesPaymentStatus,
 	repairSalesInvoiceCccDisplay,
 } from "@gnd/sales/payment-system";
+import { getProductionQueueBoundaries } from "@gnd/sales/production-date";
 import { salesCompletionProjectionSourceRevision } from "@gnd/sales/sales-completion";
 import { salesCompletionSatisfactionFilterSchema } from "@gnd/sales/sales-completion";
 import { resolveSalesInventoryApplicability } from "@gnd/sales/sales-inventory-applicability";
 import { resolveSalesInventoryLegacyCompatibility } from "@gnd/sales/sales-inventory-legacy-compatibility";
 import { resolveSalesInventoryTrackingPolicy } from "@gnd/sales/sales-inventory-tracking-policy";
+import {
+	type CanonicalSalesPipelineFilter,
+	type SalesPipelineSnapshot,
+	matchesCanonicalSalesPipelineFilter,
+} from "@gnd/sales/sales-pipeline";
+import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
+import {
+	getSalesPipelineReadMode,
+	observeSalesPipelineReadProjection,
+	selectSalesPipelineReadProjection,
+} from "@gnd/sales/sales-pipeline-rollout";
 import {
 	INVOICE_FILTER_OPTIONS,
 	PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
@@ -202,6 +216,139 @@ function toLegacyOrdersQuery(
 	}
 
 	return legacyQuery as SalesQueryParamsSchema;
+}
+
+const canonicalLifecycleFilterKeys = [
+	"production",
+	"production.status",
+	"production.assignment",
+	"dispatch.status",
+	"completion.production",
+	"completion.fulfillment",
+] as const;
+
+function hasCanonicalLifecycleFilter(query: GetOrdersSummarySchema) {
+	return canonicalLifecycleFilterKeys.some((key) => Boolean(query[key]));
+}
+
+function withoutCanonicalLifecycleFilters<T extends GetOrdersSummarySchema>(
+	query: T,
+): T {
+	return {
+		...query,
+		production: null,
+		"production.status": null,
+		"production.assignment": null,
+		"dispatch.status": null,
+		"completion.production": null,
+		"completion.fulfillment": null,
+	};
+}
+
+function canonicalLifecycleFilter(
+	query: GetOrdersSummarySchema,
+): CanonicalSalesPipelineFilter {
+	return {
+		production: query.production,
+		productionStatus: query["production.status"],
+		productionAssignment: query["production.assignment"],
+		dispatchStatus: query["dispatch.status"],
+		productionCompletion: query["completion.production"],
+		fulfillmentCompletion: query["completion.fulfillment"],
+	};
+}
+
+async function buildOrdersWhere(
+	ctx: TRPCContext,
+	query: GetOrdersSummarySchema,
+	options: { lifecycleSuperset?: boolean } = {},
+) {
+	const sourceQuery = options.lifecycleSuperset
+		? withoutCanonicalLifecycleFilters(query)
+		: query;
+	const legacyQuery = toLegacyOrdersQuery(sourceQuery, ctx.userId);
+	if (options.lifecycleSuperset) legacyQuery.defaultSearch = false;
+	let where = applyOrdersWorkspaceScope(query, whereSales(legacyQuery) ?? {});
+	if (query.needsAction === "open") {
+		const epochWhere = ctx.userId
+			? (await getOpenSalesHandoffEpochWhere(ctx.db, ctx.userId)).where
+			: null;
+		where = {
+			AND: [
+				where,
+				epochWhere
+					? { handoffActionEpochs: { some: epochWhere } }
+					: { id: { in: [] } },
+			],
+		};
+	}
+	return where;
+}
+
+async function applyCanonicalLifecycleFilterWhere(
+	ctx: TRPCContext,
+	query: GetOrdersSummarySchema,
+	originalWhere: Prisma.SalesOrdersWhereInput,
+) {
+	if (
+		getSalesPipelineReadMode() !== "canonical" ||
+		!hasCanonicalLifecycleFilter(query)
+	) {
+		return originalWhere;
+	}
+
+	const workspaceWhere = await buildOrdersWhere(ctx, query, {
+		lifecycleSuperset: true,
+	});
+	const filter = canonicalLifecycleFilter(query);
+	const candidateWhere = {
+		AND: [workspaceWhere, buildCanonicalSalesPipelineFilterWhere(filter)],
+	} satisfies Prisma.SalesOrdersWhereInput;
+	// Every filter except Fulfillment "late" is exactly represented by the
+	// canonical projection columns plus indexed operational relations. Avoid
+	// rebuilding every matching snapshot on list/count/summary reads; freshness
+	// is monitored by the shadow gate and visible projection rows are revision
+	// checked before they are served.
+	if (filter.dispatchStatus !== "late") return candidateWhere;
+
+	const operationalDate = getProductionQueueBoundaries()
+		.today.gte.toISOString()
+		.slice(0, 10);
+	const matchingIds: number[] = [];
+	let cursor: number | undefined;
+	for (;;) {
+		const candidates = await ctx.db.salesOrders.findMany({
+			where: candidateWhere,
+			select: { id: true },
+			orderBy: { id: "asc" },
+			take: 250,
+			...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+		});
+		if (!candidates.length) break;
+		const snapshots = await getSalesPipelineSnapshots(
+			ctx.db,
+			candidates.map((candidate) => candidate.id),
+		);
+		for (const candidate of candidates) {
+			const snapshot = snapshots.get(candidate.id);
+			if (
+				snapshot &&
+				matchesCanonicalSalesPipelineFilter(snapshot, filter, operationalDate)
+			) {
+				matchingIds.push(candidate.id);
+			}
+		}
+		cursor = candidates.at(-1)?.id;
+		if (candidates.length < 250 || !cursor) break;
+	}
+	if (!matchingIds.length) {
+		return {
+			AND: [candidateWhere, { id: { in: [] } }],
+		} satisfies Prisma.SalesOrdersWhereInput;
+	}
+	return {
+		AND: [candidateWhere, { id: { in: matchingIds } }],
+	} satisfies Prisma.SalesOrdersWhereInput;
 }
 
 export function applyOrdersWorkspaceScope(
@@ -526,6 +673,8 @@ function legacyCompatibleOrdersQuery(query: GetOrdersSchema): GetOrdersSchema {
 
 type ProjectionRecord = {
 	salesOrderId: number;
+	pipelineRevision: string | null;
+	pipelineContractVersion: string | null;
 	sourceUpdatedAt: Date;
 	version: number;
 	state: string;
@@ -544,6 +693,8 @@ type ProjectionRepository = {
 		where: { salesOrderId: { in: number[] } };
 		select: {
 			salesOrderId: true;
+			pipelineRevision: true;
+			pipelineContractVersion: true;
 			sourceUpdatedAt: true;
 			version: true;
 			state: true;
@@ -595,6 +746,15 @@ async function getOrdersFromProjection(
 	}
 	if (query.needsAction === "open") {
 		return { hit: false as const, reason: "unsupported_needs_action" };
+	}
+	if (
+		getSalesPipelineReadMode() === "canonical" &&
+		hasCanonicalLifecycleFilter(query)
+	) {
+		return {
+			hit: false as const,
+			reason: "canonical_lifecycle_filter_requires_source_fallback",
+		};
 	}
 
 	try {
@@ -715,6 +875,12 @@ async function getOrdersFromProjection(
 				response: response([]),
 			};
 		}
+		const pipelineSnapshots = await measure("pipeline_freshness", () =>
+			getSalesPipelineSnapshots(
+				ctx.db,
+				sourceRows.map((row) => row.id),
+			),
+		);
 
 		const projections = await measure("projection_rows", () =>
 			projectionRepository(ctx.db).findMany({
@@ -725,6 +891,8 @@ async function getOrdersFromProjection(
 				},
 				select: {
 					salesOrderId: true,
+					pipelineRevision: true,
+					pipelineContractVersion: true,
 					sourceUpdatedAt: true,
 					version: true,
 					state: true,
@@ -739,7 +907,18 @@ async function getOrdersFromProjection(
 		const orderedProjections = sourceRows.map((source) => {
 			const projection = projectionsById.get(source.id);
 			if (!projection) return null;
-			const sourceUpdatedAt = salesCompletionProjectionSourceRevision(source);
+			const snapshot = pipelineSnapshots.get(source.id);
+			if (
+				!snapshot ||
+				projection.pipelineRevision !== snapshot.revision ||
+				projection.pipelineContractVersion !== SALES_PIPELINE_CONTRACT_VERSION
+			) {
+				return null;
+			}
+			const evidenceUpdatedAt = snapshot.freshness.evidenceUpdatedAt;
+			const sourceUpdatedAt = evidenceUpdatedAt
+				? new Date(evidenceUpdatedAt)
+				: salesCompletionProjectionSourceRevision(source);
 			if (
 				!isSalesOrderListProjectionFresh({
 					state: projection.state,
@@ -764,7 +943,9 @@ async function getOrdersFromProjection(
 				Boolean(projection),
 			)
 			.map((projection) =>
-				hydrateSalesOrderListRow<Record<string, unknown>>(projection.payload),
+				applyMaterializedSalesPipelineReadMode(
+					hydrateSalesOrderListRow<Record<string, unknown>>(projection.payload),
+				),
 			);
 		return {
 			hit: true as const,
@@ -776,6 +957,61 @@ async function getOrdersFromProjection(
 		});
 		return { hit: false as const, reason: "read_error" };
 	}
+}
+
+export function applyMaterializedSalesPipelineReadMode(
+	row: Record<string, unknown>,
+	env: Record<string, string | undefined> = process.env,
+): Record<string, unknown> {
+	const canonical = row.pipeline as SalesPipelineSnapshot | null | undefined;
+	const legacy =
+		row.pipelineLegacyPresentation &&
+		typeof row.pipelineLegacyPresentation === "object" &&
+		!Array.isArray(row.pipelineLegacyPresentation)
+			? (row.pipelineLegacyPresentation as Record<string, unknown>)
+			: {};
+	const selected = canonical
+		? observeSalesPipelineReadProjection(
+				canonical,
+				{
+					surface: "sales.orders.materialized",
+					legacyHeadline:
+						typeof legacy.status === "string" ? legacy.status : null,
+				},
+				env,
+			)
+		: null;
+	if (!selected) {
+		return {
+			...row,
+			...legacy,
+			pipeline: null,
+		};
+	}
+	return {
+		...row,
+		pipeline: selected,
+		status: selected.headline.code,
+		statusLabel: selected.headline.label,
+		statusTone: selected.headline.tone,
+		productionState: selected.production.state,
+		productionLabel:
+			selected.production.state === "administratively_completed"
+				? "Administratively completed"
+				: formatMaterializedStageLabel(selected.production.state),
+		fulfillmentState: selected.fulfillment.state,
+		fulfillmentLabel:
+			selected.fulfillment.state === "administratively_completed"
+				? "Administratively completed"
+				: formatMaterializedStageLabel(selected.fulfillment.state),
+	};
+}
+
+function formatMaterializedStageLabel(value: string) {
+	return value
+		.split("_")
+		.map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+		.join(" ");
 }
 
 async function queueSalesOrderListProjectionWarm(
@@ -796,10 +1032,12 @@ async function queueSalesOrderListProjectionWarm(
 			completionRecords: completionRevisionSelect,
 		},
 	});
+	const pipelineSnapshots = await getSalesPipelineSnapshots(ctx.db, ids);
 	const taskOrders = sourceRows
 		.map((source) => ({
 			salesOrderId: source.id,
 			sourceUpdatedAt:
+				pipelineSnapshots.get(source.id)?.freshness.evidenceUpdatedAt ??
 				salesCompletionProjectionSourceRevision(source).toISOString(),
 		}))
 		.sort((left, right) => left.salesOrderId - right.salesOrderId);
@@ -844,22 +1082,13 @@ async function getOrdersLegacy(
 ) {
 	const legacyCompatibleQuery = legacyCompatibleOrdersQuery(query);
 	const { db } = ctx;
-	const legacyQuery = toLegacyOrdersQuery(legacyCompatibleQuery, ctx.userId);
-	let baseWhere = whereSales(legacyQuery);
-	if (legacyCompatibleQuery.needsAction === "open") {
-		const epochWhere = ctx.userId
-			? (await getOpenSalesHandoffEpochWhere(db, ctx.userId)).where
-			: null;
-		baseWhere = {
-			AND: [
-				baseWhere ?? {},
-				epochWhere
-					? { handoffActionEpochs: { some: epochWhere } }
-					: { id: { in: [] } },
-			],
-		};
-	}
-	baseWhere = applyOrdersWorkspaceScope(legacyCompatibleQuery, baseWhere ?? {});
+	const originalWhere = await buildOrdersWhere(ctx, legacyCompatibleQuery);
+	const baseWhere: Prisma.SalesOrdersWhereInput =
+		await applyCanonicalLifecycleFilterWhere(
+			ctx,
+			legacyCompatibleQuery,
+			originalWhere,
+		);
 	const { sort, sortOrder } = parsePrimarySort(legacyCompatibleQuery);
 
 	if (legacyCompatibleQuery.paymentReview === "needs_review") {
@@ -1140,6 +1369,7 @@ async function normalizeOrders(
 		inventoryProjectionRows,
 		existingInventoryRequirementRows,
 		currentSpecialOrderRequests,
+		pipelineSnapshots,
 	] = await Promise.all([
 		salesNotesCount(
 			rows.map((sale) => ({
@@ -1238,6 +1468,7 @@ async function normalizeOrders(
 				expiresAt: true,
 			},
 		}),
+		getSalesPipelineSnapshots(db, salesOrderIds),
 	]);
 	const specialOrderRequestMap = new Map(
 		currentSpecialOrderRequests.map(
@@ -1302,11 +1533,31 @@ async function normalizeOrders(
 				} | null;
 			};
 		const lifecycleRow = applyControlAwareLifecycle(lifecycleInput);
+		const canonicalPipeline = pipelineSnapshots.get(lifecycleRow.id) ?? null;
+		const pipeline = canonicalPipeline
+			? selectSalesPipelineReadProjection(canonicalPipeline)
+			: null;
 		const existingInventoryNeedCount =
 			existingInventoryNeedCountMap.get(lifecycleRow.id) ?? 0;
 
 		return {
 			...lifecycleRow,
+			pipeline,
+			status: pipeline?.headline.code ?? lifecycleRow.status,
+			statusLabel: pipeline?.headline.label ?? lifecycleRow.statusLabel,
+			statusTone: pipeline?.headline.tone ?? lifecycleRow.statusTone,
+			productionState:
+				pipeline?.production.state ?? lifecycleRow.productionState,
+			productionLabel:
+				pipeline?.production.state === "administratively_completed"
+					? "Administratively completed"
+					: (pipeline?.production.state ?? lifecycleRow.productionLabel),
+			fulfillmentState:
+				pipeline?.fulfillment.state ?? lifecycleRow.fulfillmentState,
+			fulfillmentLabel:
+				pipeline?.fulfillment.state === "administratively_completed"
+					? "Administratively completed"
+					: (pipeline?.fulfillment.state ?? lifecycleRow.fulfillmentLabel),
 			inventoryApplicability: resolveSalesInventoryApplicability({
 				lifecycleStatus: lifecycleRow.status as SalesOrderLifecycleStatus,
 				projection: inventoryProjection,
@@ -1343,25 +1594,12 @@ export async function getOrdersSummary(
 	});
 
 	try {
-		let where = applyOrdersWorkspaceScope(
-			query,
-			whereSales(toLegacyOrdersQuery(query, ctx.userId)) ?? {},
+		const originalWhere = await performance.measure("summary_scope", () =>
+			buildOrdersWhere(ctx, query),
 		);
-		if (query.needsAction === "open") {
-			const epochWhere = ctx.userId
-				? await performance.measure("summary_scope", () =>
-						getOpenSalesHandoffEpochWhere(db, ctx.userId as number),
-					)
-				: null;
-			where = {
-				AND: [
-					where,
-					epochWhere
-						? { handoffActionEpochs: { some: epochWhere.where } }
-						: { id: { in: [] } },
-				],
-			};
-		}
+		const where = await performance.measure("summary_lifecycle", () =>
+			applyCanonicalLifecycleFilterWhere(ctx, query, originalWhere),
+		);
 
 		const [
 			totalOrders,
@@ -1429,24 +1667,9 @@ export async function getOrdersSummary(
 
 export async function getOrdersCount(ctx: TRPCContext, query: GetOrdersSchema) {
 	const { db } = ctx;
-	const legacyQuery = toLegacyOrdersQuery(query, ctx.userId);
-	let baseWhere = applyOrdersWorkspaceScope(
-		query,
-		whereSales(legacyQuery) ?? {},
-	);
-	if (query.needsAction === "open") {
-		const epochWhere = ctx.userId
-			? (await getOpenSalesHandoffEpochWhere(db, ctx.userId)).where
-			: null;
-		baseWhere = {
-			AND: [
-				baseWhere,
-				epochWhere
-					? { handoffActionEpochs: { some: epochWhere } }
-					: { id: { in: [] } },
-			],
-		};
-	}
+	const originalWhere = await buildOrdersWhere(ctx, query);
+	const baseWhere: Prisma.SalesOrdersWhereInput =
+		await applyCanonicalLifecycleFilterWhere(ctx, query, originalWhere);
 
 	if (query.paymentReview === "needs_review") {
 		const where = { ...baseWhere };

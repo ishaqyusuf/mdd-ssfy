@@ -127,10 +127,9 @@ test("preserves role actions, mutation surfaces, and legacy compatibility", () =
 	);
 	expect(expansionSource).toContain("getInitialProductionItemExpansion");
 	expect(expansionSource).toContain("singleOpen");
-	expect(productionV2Source).toContain('<ItemTitle className="uppercase">');
-	expect(productionV2Source).toContain(
-		'<ItemDescription className="mt-1 w-fit rounded-md border border-border/80 bg-muted/70 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/85">',
-	);
+	expect(productionV2Source).toContain("<ItemTitle>");
+	expect(productionV2Source).toContain("<ProductionItemHeadline");
+	expect(productionV2Source).not.toContain("<ItemDescription");
 	expect(productionV2Source).toContain(
 		"<ProductionItemStatusBadges item={item} />",
 	);

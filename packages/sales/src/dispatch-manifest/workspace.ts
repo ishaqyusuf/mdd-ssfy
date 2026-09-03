@@ -1,3 +1,4 @@
+import { resolveCanonicalDispatchWorkspaceMembership } from "../sales-pipeline";
 import type { DispatchDueBucket } from "./driver-work-queue";
 import type { DispatchWorkspaceStage } from "./status";
 
@@ -47,22 +48,7 @@ export type DispatchWorkspaceMembershipInput = {
 export function isDispatchWorkspaceSectionMatch(
 	input: DispatchWorkspaceMembershipInput,
 ) {
-	if (input.section === "completed") return input.stage === "fulfilled";
-	if (
-		input.section !== "active" &&
-		input.section !== "due-today" &&
-		input.section !== "past-due"
-	) {
-		return true;
-	}
-	if (input.stage === "fulfilled" || input.stage === "cancelled") return false;
-
-	const isActive = input.deliveryMode === "pickup" || Boolean(input.driverId);
-	if (!isActive) return false;
-	if (input.section === "due-today") return input.dueBucket === "today";
-	if (input.section === "past-due") return input.dueBucket === "overdue";
-
-	return true;
+	return resolveCanonicalDispatchWorkspaceMembership(input);
 }
 
 export function projectDispatchRisks(input: DispatchRiskInput) {

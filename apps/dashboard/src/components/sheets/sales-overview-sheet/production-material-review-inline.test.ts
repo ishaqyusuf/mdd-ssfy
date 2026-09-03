@@ -15,19 +15,23 @@ const notificationCenterSource = readFileSync(
 );
 
 describe("inline production material review", () => {
-	it("shows the canonical review workflow at the top of the admin order", () => {
+	it("shows the canonical review workflow as collapsed material attention", () => {
 		expect(productionTabSource).toContain("ProductionMaterialReviewPanel");
 		expect(productionTabSource).toContain("orderContext");
 		expect(productionTabSource).toContain(
 			'search={queryCtx.params["sales-overview-id"]}',
 		);
-		expect(reviewPanelSource).toContain(
-			"Production submissions need material approval",
+		expect(productionTabSource).toContain("salesOrderId={data.orderId}");
+		expect(productionTabSource).toContain(
+			"requestedReviewId={queryCtx.params.reviewId}",
 		);
+		expect(reviewPanelSource).toContain("MATERIAL ATTENTION ·");
+		expect(reviewPanelSource).toContain("CollapsibleTrigger asChild");
+		expect(reviewPanelSource).toContain("aria-live=\"polite\"");
 		expect(reviewPanelSource).toContain("Recheck material status");
 		expect(reviewPanelSource).toContain("MATERIAL_REVIEW_REFRESH_INTERVAL_MS");
 		expect(reviewPanelSource).toContain(
-			"const showReviewQueue = !orderContext",
+			"const showReviewQueue = !orderContext || attentionOpen",
 		);
 		expect(reviewPanelSource).toContain("{showReviewQueue ? (");
 	});

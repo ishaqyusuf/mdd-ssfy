@@ -7,7 +7,6 @@ const portlessApps = [
 	["apps/dashboard/package.json", "gndprodesk"],
 	["apps/dealership/package.json", "gnd-dealership"],
 	["apps/storefront/package.json", "gnd-storefront"],
-	["apps/gnd-backlog/package.json", "gnd-backlog"],
 ] as const;
 
 describe("Portless development configuration", () => {

@@ -56,12 +56,24 @@ const salesPaymentTargets = [
 	pathTarget("sales.accountingIndex"),
 ] as const;
 
+const salesMaterialReviewTargets = [
+	pathTarget("sales.productionSubmissionMaterialReviews"),
+	pathTarget("sales.productionSubmissionMaterialReviewDetail"),
+	pathTarget("sales.productionOrderDetailV2"),
+	pathTarget("sales.productionMaterials"),
+	pathTarget("sales.productionReadiness"),
+] as const;
+
 const salesProductionTargets = [
 	...salesOrderTargets,
+	...salesMaterialReviewTargets,
 	pathTarget("filters.salesProductions"),
 	pathTarget("sales.productionOverview"),
 	pathTarget("sales.productions"),
 	pathTarget("sales.productionsV2"),
+	pathTarget("sales.productionSummary"),
+	pathTarget("sales.productionCalendar"),
+	pathTarget("sales.productionCalendarTasks"),
 	pathTarget("sales.productionDashboard"),
 	pathTarget("sales.productionDashboardV2"),
 	pathTarget("sales.productionTasks"),
@@ -72,6 +84,8 @@ const salesDispatchTargets = [
 	pathTarget("dispatch.list"),
 	pathTarget("dispatch.index"),
 	pathTarget("dispatch.dispatchSummary"),
+	pathTarget("dispatch.calendar"),
+	pathTarget("dispatch.fulfillmentCalendar"),
 	{
 		...pathTarget("dispatch.workspaceSummary"),
 		refetchType: "all",
@@ -80,10 +94,15 @@ const salesDispatchTargets = [
 	pathTarget("dispatch.detail"),
 	pathTarget("dispatch.exceptions"),
 	pathTarget("dispatch.driverWorkload"),
+	pathTarget("dispatch.driverManifest"),
+	pathTarget("dispatch.driverWorkQueue"),
+	pathTarget("dispatch.driverWorkQueueSummary"),
 	pathTarget("dispatch.orderDispatchOverview"),
 	pathTarget("dispatch.dispatchOverviewV2"),
 	pathTarget("dispatch.assignedDispatch"),
+	pathTarget("dispatch.packingQueue"),
 	pathTarget("dispatch.packingList"),
+	pathTarget("dispatch.packingListSummary"),
 ] as const;
 
 const customerTargets = [
@@ -105,6 +124,7 @@ const inventoryCatalogTargets = [
 	pathTarget("inventories.inventoryCategories"),
 	pathTarget("inventories.inventorySuppliers"),
 	pathTarget("inventories.inventoryItemDashboard"),
+	...salesMaterialReviewTargets,
 ] as const;
 
 const inventoryStockTargets = [
@@ -133,6 +153,12 @@ const inventoryInboundTargets = [
 	pathTarget("sales.inboundIndex"),
 ] as const;
 
+const salesPipelineTargets = [
+	...salesProductionTargets,
+	...salesDispatchTargets,
+	...inventoryStockTargets,
+] as const;
+
 const jobsTargets = [
 	pathTarget("jobs.getJobs"),
 	pathTarget("jobs.overview"),
@@ -159,6 +185,10 @@ export const QUERY_EVENTS = {
 	"sales.dispatch.changed": {
 		includeSalesOverview: true,
 		targets: salesDispatchTargets,
+	},
+	"sales.pipeline.changed": {
+		includeSalesOverview: true,
+		targets: salesPipelineTargets,
 	},
 	"customer.changed": {
 		includeSalesOverview: true,
@@ -209,26 +239,31 @@ export type QueryEvent = {
 };
 
 export const MUTATION_QUERY_EVENTS = {
-	"sales.cancelWorkflowLayer": [
-		"sales.production.changed",
-		"sales.dispatch.changed",
-	],
+	"sales.cancelWorkflowLayer": ["sales.pipeline.changed"],
 	"customers.createCustomer": ["customer.changed"],
 	"customers.createCustomerAddress": ["customer.changed"],
 	"customers.assignSalesAddress": ["customer.changed"],
 	"dispatch.bulkAssignDriver": ["sales.dispatch.changed"],
-	"dispatch.bulkCancel": ["sales.dispatch.changed"],
-	"dispatch.cancelDispatch": ["sales.dispatch.changed"],
-	"dispatch.createDispatch": ["sales.dispatch.changed"],
-	"dispatch.deleteDispatch": ["sales.dispatch.changed"],
-	"dispatch.restore": ["sales.dispatch.changed"],
-	"dispatch.sendSaleForPickup": ["sales.dispatch.changed"],
-	"dispatch.signPackingSlip": ["sales.dispatch.changed"],
-	"dispatch.startDispatch": ["sales.dispatch.changed"],
-	"dispatch.submitDispatch": ["sales.dispatch.changed"],
+	"dispatch.bulkCancel": ["sales.pipeline.changed"],
+	"dispatch.cancelDispatch": ["sales.pipeline.changed"],
+	"dispatch.completeDispatchWithProof": ["sales.pipeline.changed"],
+	"dispatch.confirmPacking": ["sales.pipeline.changed"],
+	"dispatch.createDispatch": ["sales.pipeline.changed"],
+	"dispatch.createDispatches": ["sales.pipeline.changed"],
+	"dispatch.deleteDispatch": ["sales.pipeline.changed"],
+	"dispatch.ensureSalesOrderFulfillmentDispatch": ["sales.pipeline.changed"],
+	"dispatch.prepareInventoryForDispatch": ["sales.pipeline.changed"],
+	"dispatch.prepareNonProduceablePacking": ["sales.pipeline.changed"],
+	"dispatch.resetPacking": ["sales.pipeline.changed"],
+	"dispatch.restore": ["sales.pipeline.changed"],
+	"dispatch.sendSaleForPickup": ["sales.pipeline.changed"],
+	"dispatch.signPackingSlip": ["sales.pipeline.changed"],
+	"dispatch.startDispatch": ["sales.pipeline.changed"],
+	"dispatch.startTrip": ["sales.pipeline.changed"],
+	"dispatch.submitDispatch": ["sales.pipeline.changed"],
 	"dispatch.updateDispatchDriver": ["sales.dispatch.changed"],
 	"dispatch.updateDispatchDueDate": ["sales.dispatch.changed"],
-	"dispatch.updateDispatchStatus": ["sales.dispatch.changed"],
+	"dispatch.updateDispatchStatus": ["sales.pipeline.changed"],
 	"dispatch.updateSalesDeliveryOption": ["sales.dispatch.changed"],
 	"hrm.restoreEmployeeAccess": ["hrm.employee.changed"],
 	"hrm.revokeEmployee": ["hrm.employee.changed"],
@@ -308,7 +343,7 @@ export const MUTATION_QUERY_EVENTS = {
 	"sales.markPaymentsReviewed": ["sales.payment.changed"],
 	"sales.moveSale": ["sales.order.changed", "sales.quote.changed"],
 	"sales.resolvePayment": ["sales.payment.changed"],
-	"sales.reviewProductionSubmission": ["sales.production.changed"],
+	"sales.reviewProductionSubmission": ["sales.pipeline.changed"],
 	"sales.setSalesOrdersArchived": ["sales.order.changed"],
 	"sales.transferSalesRep": ["sales.order.changed"],
 	"sales.updateSalesHandoffTrigger": ["sales.order.changed"],

@@ -4,6 +4,8 @@ import type { TRPCContext } from "@api/trpc/init";
 import type { SalesType } from "@api/type";
 import { SalesOverviewInclude } from "@api/utils/sales";
 import { resolveSalesOverviewDocumentReadiness } from "@gnd/sales/pdf-system";
+import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
+import { observeSalesPipelineReadProjection } from "@gnd/sales/sales-pipeline-rollout";
 import { getSalesInventoryInboundOwnership } from "./sales-inventory-inbound-ownership";
 
 const {
@@ -55,29 +57,41 @@ export async function getSaleOverviewGeneralV2(
 	const overview = salesOverviewDto(sale as never, salesType);
 	if (salesType === "quote") return overview;
 
-	const [inventoryInboundOwnership, documentSnapshot] = await Promise.all([
-		getSalesInventoryInboundOwnership(ctx.db, sale.id),
-		ctx.db.salesDocumentSnapshot.findFirst({
-			where: {
-				salesOrderId: sale.id,
-				documentType: { startsWith: "invoice_pdf" },
-				isCurrent: true,
-				deletedAt: null,
-			},
-			orderBy: [{ generatedAt: "desc" }, { updatedAt: "desc" }],
-			select: {
-				id: true,
-				generationStatus: true,
-				storedDocumentId: true,
-				sourceUpdatedAt: true,
-				generatedAt: true,
-				errorMessage: true,
-			},
-		}),
-	]);
+	const [inventoryInboundOwnership, documentSnapshot, pipelineSnapshots] =
+		await Promise.all([
+			getSalesInventoryInboundOwnership(ctx.db, sale.id),
+			ctx.db.salesDocumentSnapshot.findFirst({
+				where: {
+					salesOrderId: sale.id,
+					documentType: { startsWith: "invoice_pdf" },
+					isCurrent: true,
+					deletedAt: null,
+				},
+				orderBy: [{ generatedAt: "desc" }, { updatedAt: "desc" }],
+				select: {
+					id: true,
+					generationStatus: true,
+					storedDocumentId: true,
+					sourceUpdatedAt: true,
+					generatedAt: true,
+					errorMessage: true,
+				},
+			}),
+			getSalesPipelineSnapshots(ctx.db, [sale.id]),
+		]);
+	const canonicalPipeline = pipelineSnapshots.get(sale.id) ?? null;
+	const pipeline = canonicalPipeline
+		? observeSalesPipelineReadProjection(canonicalPipeline, {
+				surface: "sales.overview.general",
+			})
+		: null;
 
 	return {
 		...overview,
+		pipeline,
+		canonicalStatus: pipeline?.headline.code ?? "unknown",
+		statusLabel: pipeline?.headline.label ?? "Unknown",
+		statusTone: pipeline?.headline.tone ?? "slate",
 		inventoryInboundOwnership,
 		documentReadiness: resolveSalesOverviewDocumentReadiness({
 			saleUpdatedAt: sale.updatedAt,

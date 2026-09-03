@@ -1,5 +1,98 @@
 # In Progress
 
+### Admin Production And Fulfillment Calendar Rescheduling Wayfinder
+
+- Priority: High
+- Description: A local planning-only Wayfinder maps safe admin drag-and-drop
+  schedule moves across the existing Sales Production and Fulfillment DOM
+  calendars. The approved charting direction reuses installed `@dnd-kit/core`,
+  moves exact Production order/date assignment groups, fails closed for mixed
+  completion, keeps worker calendars read-only, locks in-transit and terminal
+  Dispatches, warns on past dates, and requires attributable notification/audit
+  behavior. Six proposed-answer comments await approval before local spec and
+  implementation-ticket synthesis.
+- Status: Wayfinder Charted — Proposed Comments Awaiting Approval
+- Plan: `.brain/plans/2026-09-02-wayfinder-admin-calendar-rescheduling.md`
+- Tracker: `.scratch/admin-calendar-rescheduling-wayfinder/map.md`
+- Updated Date: 2026-09-02
+
+### Canonical End-to-End Sales Pipeline Lifecycle Wayfinder
+
+- Priority: Critical
+- Description: The local Wayfinder implementation now provides one shared
+  `@gnd/sales` lifecycle authority for commercial order, payment,
+  material/inventory, Production, Fulfillment, packing, Dispatch, and terminal
+  outcomes. The approved direction uses a computed headline plus explicit
+  dimensions, operational-evidence precedence, explicit stage applicability,
+  package-owned transition orchestration, and exact workspace membership
+  parity across lists, Calendar, filters, counts, summaries, and analytics.
+  The implementation spans lifecycle reads/commands, exact
+  Production and Fulfillment membership, worker/driver/mobile/channel adapters,
+  exact-size item material status, actionable material review, derived-cache
+  reconciliation, and fail-closed rollout controls. Authenticated local QA now
+  proves Due Today list/summary/Calendar parity, oldest-first Past Due, exact
+  `09502PC` sibling-size inbound scoping, collapsed material attention, and
+  stable expanded/collapsed headline wrapping. The final material dry run has
+  86 legitimate active reviews and zero proposed automatic changes; projection
+  reconciliation has zero remaining deterministic repair and zero unsafe.
+  The authoritative Scratch queue is at 128/136 verified checks: Tickets 01–10,
+  12, and 13 are done; Ticket 11 is in progress; Ticket 14 is in production
+  rollout. Tickets 07 and 08 use one transaction-owned command executor
+  that locks the order, recomputes canonical evidence, validates the expected
+  revision, and runs the Production/Fulfillment/Dispatch/review mutation before
+  commit. Client callers propagate revisions, and pack-all no longer races a
+  packing mutation with completion. One deduplicated pipeline query event now
+  refreshes or stales every affected Sales, Production, Fulfillment, Dispatch,
+  driver, packing, and inventory consumer. Ticket 13 is complete at 12/12:
+  compare-and-set projection undo,
+  material repair safety, and current-evidence terminal/superseded/empty review
+  membership pass focused tests. Ticket 14
+  remains the explicit Preview/production shadow, cohort, approval,
+  and legacy-retirement gate. The local cutover checker correctly rejects
+  promotion while 34 explicitly classified applicability cases await operator
+  sampling and operator approval is absent. The review findings are resolved:
+  the falsifiable classifier rerun reports 0 unexplained, 0 unsafe, and 0 stale
+  differences; canonical Sales Orders list/count/summary p95 is 455.07 ms;
+  exact review links receive literal focus; remaining batch/packing-slip paths
+  use the locked executor; post-commit notification failures are isolated; and
+  projection freshness includes material-review evidence. Ticket 14's environment-backed
+  broad verification now runs 4,471 tests across 868 files with 4,470 passing,
+  zero failing, one intentional opt-in live-database parity skip, and zero
+  setup/runtime errors. The automated matrix and authenticated responsive
+  worker/device acceptance are green: Dev Quick Sign In as Izri proves order
+  `09502PC` parity plus interruption recovery at 390×844 and 768×1024.
+  A final material-review presentation rerun passes 12/12, Sales/API
+  typechecks and diff integrity pass, and the Dashboard diagnostic contains no
+  lifecycle/material-review error beyond its documented broad baseline.
+  The redundant worker-only top inbound summary is removed while exact inline
+  item evidence remains available; the focused presentation seam passes 9/9.
+  The user subsequently waived Preview and authorized direct production
+  deployment plus bounded reconciliation/repair. The guarded production schema
+  push completed against the recorded fingerprint; only additive derived
+  projection fields/indexes changed. The explicitly approved 59 MB, 157-file
+  Vercel payload deployed successfully as
+  `dpl_E2K1NQqDWTJqy5Vvgy1TqXs5AUQP` and is live at
+  `www.gndprodesk.com`; production smoke checks pass. The first projection
+  apply created its rollback backup and converged 1,700 rows before a remote
+  read disconnect. Its clean post-failure audit reports 5,186 deterministic
+  repairs remaining, 1,265 review-required, and 0 unsafe across 8,151 orders.
+  Smaller-batch continuation, production shadow/cutover evidence, bounded
+  material repair, and final verification remain.
+  A first smaller-batch attempt stopped during its pre-backup scan and made no
+  mutation. The verified operational runner now allows a 95-second read-only
+  recovery window while continuing to forbid automatic mutation retry.
+  Part 2 then created its backup and converged 450 more rows before a later
+  prerequisite-read disconnect. Its audit reports 4,736 deterministic repairs
+  remaining and 0 unsafe across 8,152 orders. The projection builder now has an
+  opt-in serialized/retried read mode for reconciliation only; part 3 remains.
+- Status: 12/14 Done — 2/14 In Progress (128/136 checks)
+- Local Map: `.scratch/sales-pipeline-lifecycle-wayfinder/map.md`
+- Local Spec: `.scratch/sales-pipeline-lifecycle-wayfinder/spec.md`
+- Local Tickets: `.scratch/sales-pipeline-lifecycle-implementation/issues/`
+- Local QA: `.scratch/sales-pipeline-lifecycle-implementation/qa-report.md`
+- Approval Packet: `.scratch/sales-pipeline-lifecycle-implementation/production-approval-packet.md`
+- Updated Date: 2026-09-03
+
 ### Fulfillment V2 Status And Queue Parity
 
 - Priority: High

@@ -56,7 +56,8 @@ describe("sales inventory automatic synchronization UI", () => {
 		expect(inventoryTabSource).toContain("resolveInventoryCoverageDisplay");
 		expect(inventoryTabSource).toContain("coverage.showCovered");
 		expect(inventoryTabSource).toContain("coverage.showOrdered");
-		expect(inventoryTabSource).toContain("AVAILABLE:");
+		expect(inventoryTabSource).toContain("COVERED:");
+		expect(inventoryTabSource).not.toContain("AVAILABLE:");
 		expect(inventoryTabSource).toContain("ORDERED:");
 		expect(inventoryTabSource).toContain("border-b border-border");
 		expect(inventoryTabSource).toContain("hover:bg-muted/50");

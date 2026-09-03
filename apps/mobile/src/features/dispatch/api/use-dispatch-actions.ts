@@ -1,12 +1,14 @@
 import { _trpc } from "@/components/static-trpc";
 import type { UploadImageMimeType } from "@/lib/upload-image-mime";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRef } from "react";
 import { invalidateDispatchQueries } from "./dispatch-query-invalidation";
 
 type SubmitDispatchInput = {
 	dispatchId: number;
 	requestId: string;
 	expectedManifestRevision: string;
+	expectedPipelineRevision?: string | null;
 	receivedBy?: string | null;
 	note?: string;
 	signaturePath: string;
@@ -32,6 +34,7 @@ type ReportDispatchExceptionInput = {
 
 export function useDispatchActions() {
 	const queryClient = useQueryClient();
+	const startRequestIds = useRef(new Map<number, string>());
 
 	const invalidate = () => invalidateDispatchQueries(queryClient);
 
@@ -56,17 +59,27 @@ export function useDispatchActions() {
 		submitDispatch,
 		reportException,
 		invalidateDispatchQueries: invalidate,
-		onStartDispatch(input: { dispatchId: number }) {
-			return startDispatch.mutateAsync({
+		async onStartDispatch(input: {
+			dispatchId: number;
+			expectedPipelineRevision?: string | null;
+		}) {
+			const requestId =
+				startRequestIds.current.get(input.dispatchId) || crypto.randomUUID();
+			startRequestIds.current.set(input.dispatchId, requestId);
+			const result = await startDispatch.mutateAsync({
 				dispatchId: input.dispatchId,
-				requestId: crypto.randomUUID(),
+				requestId,
+				expectedPipelineRevision: input.expectedPipelineRevision || undefined,
 			});
+			startRequestIds.current.delete(input.dispatchId);
+			return result;
 		},
 		onSubmitDispatch(input: SubmitDispatchInput) {
 			return submitDispatch.mutateAsync({
 				dispatchId: input.dispatchId,
 				requestId: input.requestId,
 				expectedManifestRevision: input.expectedManifestRevision,
+				expectedPipelineRevision: input.expectedPipelineRevision || undefined,
 				receivedBy: input.receivedBy || undefined,
 				note: input.note,
 				signaturePath: input.signaturePath,

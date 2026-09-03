@@ -3,9 +3,17 @@
 import { batchAssignProductionOrdersAction } from "@/actions/batch-assign-production-orders";
 import Img from "@/components/(clean-code)/img";
 import {
+	ItemMaterialStatusBadge,
+	ItemMaterialStatusDetail,
+} from "@/components/production-v2/item-material-status-badge";
+import {
 	type ProductionMaterialStatus,
 	ProductionMaterialsNotice,
 } from "@/components/production-v2/materials-status";
+import {
+	ProductionItemHeadline,
+	getProductionItemHeadlineSegments,
+} from "@/components/production-v2/production-item-headline";
 import {
 	ProductionItemNotes,
 	ProductionOrderNotes,
@@ -23,6 +31,12 @@ import {
 import { cn } from "@/lib/utils";
 import { printProduction } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
+import type { ItemMaterialStatus } from "@gnd/sales/item-material-status";
+import type {
+	DecideProductionSubmissionMaterialReviewInput,
+	ProductionMaterialReviewActionability,
+	ProductionSubmissionMaterialReviewStatus,
+} from "@gnd/sales/production-submission-review";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -37,7 +51,6 @@ import {
 	CardTitle,
 } from "@gnd/ui/card";
 import { Checkbox } from "@gnd/ui/checkbox";
-import { toast } from "@gnd/ui/use-toast";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -61,6 +74,7 @@ import { Separator } from "@gnd/ui/separator";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { toast } from "@gnd/ui/use-toast";
 import {
 	activityAnd,
 	activityOr,
@@ -70,17 +84,25 @@ import {
 	SALES_PRIORITY_VALUES,
 	type SalesPriorityValue,
 } from "@sales/priority";
-import type { ProductionV2Sort } from "@sales/production-v2";
 import {
 	createProductionDueDate,
 	productionCalendarPartsFromLocalDate,
 } from "@sales/production-date";
+import type { ProductionV2Sort } from "@sales/production-v2";
 import type { UpdateSalesControl } from "@sales/schema";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import type { UseMutationOptions } from "@tanstack/react-query";
 import { useAction } from "next-safe-action/hooks";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import type { ReactNode, UIEvent } from "react";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import {
+	useCallback,
+	useDeferredValue,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useInView } from "react-intersection-observer";
 
 type Scope = "worker" | "admin";
@@ -91,6 +113,57 @@ type ReviewProductionItem = {
 	description: string | null;
 };
 
+type ProductionMaterialReviewDetail = {
+	id: number;
+	status: ProductionSubmissionMaterialReviewStatus;
+	updatedAt: Date | string;
+	order: { orderId: string };
+	submittedBy: { name: string | null };
+	isStale: boolean;
+	hasRetractedSubmissions: boolean;
+	submissions: unknown[];
+	pipelineRevision: string | null;
+	productionItems: unknown[];
+	currentEvidence: {
+		materialSnapshot: unknown;
+		classification: {
+			state: "finalized" | "pending_material_review";
+			reason: string | null;
+		};
+	};
+	actionability: ProductionMaterialReviewActionability;
+	linkedInboundReceipts: Array<{
+		inboundId: number;
+		inboundShipmentItemId: number;
+		lineItemComponentIds: number[];
+		plannedQty: number;
+		receivedQty: number;
+	}>;
+	capabilities: {
+		canReview: boolean;
+		canReceiveInbound: boolean;
+		canMarkAvailable: boolean;
+	};
+};
+
+type ProductionMaterialReviewDecisionResult = {
+	status: "PENDING" | "APPROVED" | "REJECTED";
+};
+
+type ProductionMaterialReviewMutation = {
+	mutationOptions: (
+		options: UseMutationOptions<
+			ProductionMaterialReviewDecisionResult,
+			Error,
+			DecideProductionSubmissionMaterialReviewInput
+		>,
+	) => UseMutationOptions<
+		ProductionMaterialReviewDecisionResult,
+		Error,
+		DecideProductionSubmissionMaterialReviewInput
+	>;
+};
+
 type ReviewMaterialRow = {
 	key: string;
 	componentId: number | null;
@@ -98,6 +171,8 @@ type ReviewMaterialRow = {
 	description: string | null;
 	readiness: string;
 	availableQty: number;
+	receivedQty: number;
+	allocatedQty: number;
 	requiredQty: number;
 	canMarkAvailable: boolean;
 	isResolved: boolean;
@@ -162,6 +237,8 @@ const PRODUCTION_V2_SORT_VALUES = [
 	"priority",
 	"dueDateAsc",
 	"dueDateDesc",
+	"assignedAtAsc",
+	"assignedAtDesc",
 	"newest",
 	"oldest",
 ] as const satisfies readonly ProductionV2Sort[];
@@ -169,6 +246,7 @@ const PRODUCTION_V2_SORT_VALUES = [
 type ProductionDetail = {
 	orderId: string;
 	salesId: number;
+	pipelineRevision?: string | null;
 	materialsState: "available" | "unavailable";
 	customer?: string | null;
 	salesRep?: string | null;
@@ -208,6 +286,7 @@ type ProductionDetail = {
 			};
 		} | null;
 		materials: ProductionMaterialStatus[];
+		materialStatus?: ItemMaterialStatus | null;
 		assignments?: {
 			id: number;
 			assignedTo?: string | null;
@@ -279,19 +358,26 @@ export function ProductionMaterialReviewPanel({
 	standalone = false,
 	search,
 	requestedReviewId,
+	salesOrderId,
 }: {
 	orderContext?: boolean;
 	standalone?: boolean;
 	search?: string | null;
 	requestedReviewId?: number | null;
+	salesOrderId?: number | null;
 } = {}) {
 	const trpc = useTRPC();
 	const reviewProductionSubmission = trpc.sales
-		.reviewProductionSubmission as any;
+		.reviewProductionSubmission as unknown as ProductionMaterialReviewMutation;
 	const queryClient = useQueryClient();
 	const loadingToast = useLoadingToast();
 	const [selectedReviewId, setSelectedReviewId] = useState<number | null>(
 		requestedReviewId || null,
+	);
+	const requestedReviewRegionRef = useRef<HTMLDivElement>(null);
+	const focusedRequestedReviewId = useRef<number | null>(null);
+	const [attentionOpen, setAttentionOpen] = useState(
+		Boolean(requestedReviewId),
 	);
 	const [decisionNote, setDecisionNote] = useState(
 		"Materials verified by production admin.",
@@ -300,12 +386,18 @@ export function ProductionMaterialReviewPanel({
 		Record<number, { good: string; issue: string }>
 	>({});
 	const [manualComponentIds, setManualComponentIds] = useState<number[]>([]);
+	const selectReview = useCallback((reviewId: number | null) => {
+		setSelectedReviewId(reviewId);
+		setReceiptQuantities({});
+		setManualComponentIds([]);
+	}, []);
 	const queueQuery = useInfiniteQuery(
 		trpc.sales.productionSubmissionMaterialReviews.infiniteQueryOptions(
 			{
 				status: "PENDING",
 				take: 20,
 				q: search || undefined,
+				salesOrderId: salesOrderId || undefined,
 			},
 			{
 				getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -316,7 +408,7 @@ export function ProductionMaterialReviewPanel({
 		),
 	);
 	const normalizedSearch = search?.trim().toLowerCase() || "";
-	const showReviewQueue = !orderContext;
+	const showReviewQueue = !orderContext || attentionOpen;
 	const rows = queueQuery.data?.pages.flatMap((page) => page.rows) || [];
 	const hasOnlyRetractedReviews =
 		rows.length > 0 && rows.every((review) => review.submittedQty === 0);
@@ -333,12 +425,12 @@ export function ProductionMaterialReviewPanel({
 			},
 		),
 	);
-	const decision: any = useMutation(
+	const decision = useMutation(
 		reviewProductionSubmission.mutationOptions({
 			onMutate: () => {
 				loadingToast.loading("Updating production material review...");
 			},
-			onSuccess: async (result: { status: string }) => {
+			onSuccess: async (result) => {
 				if (result.status === "PENDING") {
 					loadingToast.success(
 						"Materials are still unresolved. Select verified needs or receive linked inbound items, then approve.",
@@ -349,7 +441,7 @@ export function ProductionMaterialReviewPanel({
 							? "Production submission approved"
 							: "Production submission rejected",
 					);
-					setSelectedReviewId(null);
+					selectReview(null);
 				}
 				await Promise.all([
 					queryClient.invalidateQueries({
@@ -379,7 +471,7 @@ export function ProductionMaterialReviewPanel({
 					}),
 				]);
 			},
-			onError: (error: Error) => {
+			onError: (error) => {
 				loadingToast.error(error.message || "Unable to update material review");
 			},
 		}),
@@ -387,7 +479,12 @@ export function ProductionMaterialReviewPanel({
 
 	useEffect(() => {
 		if (requestedReviewId) {
-			setSelectedReviewId(requestedReviewId);
+			setAttentionOpen(true);
+			selectReview(requestedReviewId);
+			return;
+		}
+		if (orderContext && !attentionOpen) {
+			selectReview(null);
 			return;
 		}
 		if (
@@ -396,14 +493,52 @@ export function ProductionMaterialReviewPanel({
 		) {
 			return;
 		}
-		setSelectedReviewId(rows[0]?.id || null);
-	}, [requestedReviewId, rows, selectedReviewId]);
-	useEffect(() => {
-		setReceiptQuantities({});
-		setManualComponentIds([]);
-	}, [selectedReviewId]);
+		if (!requestedReviewId) selectReview(null);
+	}, [
+		attentionOpen,
+		orderContext,
+		requestedReviewId,
+		rows,
+		selectedReviewId,
+		selectReview,
+	]);
 
-	const detail: any = (detailQuery as unknown as { data?: unknown }).data;
+	const detail = detailQuery.data as unknown as
+		| ProductionMaterialReviewDetail
+		| undefined;
+	useEffect(() => {
+		if (
+			!requestedReviewId ||
+			!detail ||
+			detail.id !== requestedReviewId ||
+			focusedRequestedReviewId.current === requestedReviewId
+		) {
+			return;
+		}
+		focusedRequestedReviewId.current = requestedReviewId;
+		requestedReviewRegionRef.current?.focus({ preventScroll: true });
+		requestedReviewRegionRef.current?.scrollIntoView({
+			block: "nearest",
+			behavior: "smooth",
+		});
+	}, [detail, requestedReviewId]);
+	const capabilities = detail?.capabilities ??
+		queueQuery.data?.pages[0]?.capabilities ?? {
+			canReview: false,
+			canReceiveInbound: false,
+			canMarkAvailable: false,
+		};
+	const isReadOnly = !capabilities.canReview;
+	const isPermissionLimited =
+		capabilities.canReview &&
+		(!capabilities.canReceiveInbound || !capabilities.canMarkAvailable);
+	const actionability = detail?.actionability;
+	const isHistoryOnly = Boolean(
+		detail && (detail.status !== "PENDING" || !actionability?.actionable),
+	);
+	const isEvidenceConflict = ["eligibility_conflict", "ambiguous"].includes(
+		String(actionability?.classification || ""),
+	);
 	const materialSnapshot = Array.isArray(
 		detail?.currentEvidence.materialSnapshot,
 	)
@@ -411,7 +546,7 @@ export function ProductionMaterialReviewPanel({
 		: [];
 	const linkedComponentIds = new Set(
 		(detail?.linkedInboundReceipts || []).flatMap(
-			(receipt: any) => receipt.lineItemComponentIds,
+			(receipt) => receipt.lineItemComponentIds,
 		),
 	);
 	const productionItems: ReviewProductionItem[] = Array.isArray(
@@ -455,8 +590,11 @@ export function ProductionMaterialReviewPanel({
 						?.description || null,
 				readiness,
 				availableQty: Number(row.availableQty || 0),
+				receivedQty: Number(row.receivedQty || 0),
+				allocatedQty: Number(row.allocatedQty || 0),
 				requiredQty: Number(row.requiredQty || 0),
 				canMarkAvailable:
+					capabilities.canMarkAvailable &&
 					hasValidComponent &&
 					!linkedComponentIds.has(componentId as number) &&
 					!isResolved,
@@ -496,7 +634,14 @@ export function ProductionMaterialReviewPanel({
 			| "RESOLVE_AND_APPROVE"
 			| "REJECT",
 	) {
-		if (!detail || !decisionNote.trim()) return;
+		if (
+			!detail ||
+			!capabilities.canReview ||
+			isHistoryOnly ||
+			!decisionNote.trim()
+		) {
+			return;
+		}
 		const receipts = Array.from(
 			(detail.linkedInboundReceipts || []).reduce(
 				(
@@ -508,7 +653,7 @@ export function ProductionMaterialReviewPanel({
 							qtyIssue: number;
 						}>
 					>,
-					item: any,
+					item,
 				) => {
 					const quantities = receiptQuantities[item.inboundShipmentItemId];
 					if (
@@ -541,6 +686,7 @@ export function ProductionMaterialReviewPanel({
 		decision.mutate({
 			reviewId: detail.id,
 			expectedUpdatedAt: new Date(detail.updatedAt),
+			pipelineRevision: detail.pipelineRevision || undefined,
 			action,
 			note: decisionNote.trim(),
 			resolutions:
@@ -553,37 +699,69 @@ export function ProductionMaterialReviewPanel({
 		});
 	}
 
-	if (
-		requestedReviewId &&
-		detail &&
-		detail.status !== "PENDING" &&
-		detail.hasRetractedSubmissions
-	) {
+	if (requestedReviewId && detailQuery.isPending) {
+		return (
+			<Skeleton
+				aria-label="Loading material review"
+				className="h-32 rounded-xl"
+			/>
+		);
+	}
+	if (requestedReviewId && detailQuery.isError) {
+		return (
+			<Alert variant="destructive">
+				<Icons.AlertTriangle />
+				<AlertTitle>Material review unavailable</AlertTitle>
+				<AlertDescription>
+					The requested review could not be loaded. It may no longer exist, or
+					the review evidence may be temporarily unavailable.
+				</AlertDescription>
+			</Alert>
+		);
+	}
+	if (requestedReviewId && detail && isHistoryOnly) {
 		return (
 			<Alert>
 				<Icons.Info />
-				<AlertTitle>Submission retracted</AlertTitle>
+				<AlertTitle>Material review history</AlertTitle>
 				<AlertDescription className="space-y-2">
 					<p>
-						The production worker deleted this submission, possibly because it
-						was entered by mistake. Its quantity no longer counts toward
-						production completion.
+						{actionability?.reason ||
+							"This review is no longer actionable and remains available as audit history."}
 					</p>
 					<div className="flex flex-wrap items-center gap-2">
 						<Badge variant="outline">Order {detail.order.orderId}</Badge>
 						<Badge variant="secondary">
-							Material review {String(detail.status).toLowerCase()}
+							{String(detail.status).replaceAll("_", " ").toUpperCase()}
 						</Badge>
+						<Badge variant="outline">READ-ONLY HISTORY</Badge>
 					</div>
 				</AlertDescription>
 			</Alert>
 		);
 	}
-	if (requestedReviewId && detailQuery.isPending) {
-		return <Skeleton className="h-32 rounded-xl" />;
+	if (queueQuery.isError && !requestedReviewId) {
+		return (
+			<Alert variant="destructive">
+				<Icons.AlertTriangle />
+				<AlertTitle>Material reviews unavailable</AlertTitle>
+				<AlertDescription>
+					The review queue could not be loaded. No review state or action has
+					been assumed.
+				</AlertDescription>
+			</Alert>
+		);
+	}
+	if (!requestedReviewId && queueQuery.isPending) {
+		return (
+			<Skeleton
+				aria-label="Loading material reviews"
+				className="h-32 rounded-xl"
+			/>
+		);
 	}
 
-	if (!queueQuery.isPending && rows.length === 0) {
+	if (!requestedReviewId && !queueQuery.isPending && rows.length === 0) {
 		if (standalone) {
 			return (
 				<Card className="rounded-xl bg-card shadow-sm">
@@ -608,8 +786,28 @@ export function ProductionMaterialReviewPanel({
 		return null;
 	}
 
-	return (
+	const content = (
 		<div className="flex flex-col gap-3">
+			{isReadOnly ? (
+				<Alert>
+					<Icons.Lock />
+					<AlertTitle>Material review is read-only</AlertTitle>
+					<AlertDescription>
+						You can inspect current and historical evidence, but you do not have
+						permission to decide this review.
+					</AlertDescription>
+				</Alert>
+			) : isPermissionLimited ? (
+				<Alert variant="warning">
+					<Icons.AlertTriangle />
+					<AlertTitle>Some material actions are unavailable</AlertTitle>
+					<AlertDescription>
+						You can decide the review, but receiving inbound material or
+						manually marking inventory available requires the corresponding
+						Inventory permission.
+					</AlertDescription>
+				</Alert>
+			) : null}
 			{orderContext ? (
 				<Alert variant="warning">
 					<Icons.AlertTriangle />
@@ -678,7 +876,7 @@ export function ProductionMaterialReviewPanel({
 									<button
 										key={review.id}
 										type="button"
-										onClick={() => setSelectedReviewId(review.id)}
+										onClick={() => selectReview(review.id)}
 										className={cn(
 											"w-full border-b px-3 py-3 text-left transition-colors last:border-b-0",
 											selectedReviewId === review.id
@@ -692,9 +890,7 @@ export function ProductionMaterialReviewPanel({
 											</p>
 											<Badge
 												variant={
-													review.submittedQty === 0
-														? "secondary"
-														: "outline"
+													review.submittedQty === 0 ? "secondary" : "outline"
 												}
 												className="rounded-full"
 											>
@@ -732,9 +928,25 @@ export function ProductionMaterialReviewPanel({
 						</div>
 					) : null}
 
-					<div className="min-w-0">
+					<div
+						ref={requestedReviewRegionRef}
+						tabIndex={requestedReviewId ? -1 : undefined}
+						aria-label={
+							requestedReviewId ? "Requested material review" : undefined
+						}
+						className="min-w-0 focus-visible:outline-none"
+					>
 						{detailQuery.isPending ? (
 							<Skeleton className="h-52 rounded-lg" />
+						) : detailQuery.isError ? (
+							<Alert variant="destructive">
+								<Icons.AlertTriangle />
+								<AlertTitle>Material review unavailable</AlertTitle>
+								<AlertDescription>
+									The selected review could not be loaded. No decision is
+									available until its evidence can be refreshed.
+								</AlertDescription>
+							</Alert>
 						) : detail ? (
 							<div className="flex flex-col gap-4">
 								<div className="flex flex-wrap items-start justify-between gap-3">
@@ -747,14 +959,32 @@ export function ProductionMaterialReviewPanel({
 										</p>
 									</div>
 									{detail.isStale ? (
-										<Badge
-											variant="outline"
-											className="border-blue-200 bg-blue-50 text-blue-700"
-										>
-											Evidence changed
-										</Badge>
+										<Badge variant="outline">EVIDENCE CHANGED</Badge>
 									) : null}
 								</div>
+
+								{detail.isStale ? (
+									<Alert variant="warning">
+										<Icons.AlertTriangle />
+										<AlertTitle>Material evidence changed</AlertTitle>
+										<AlertDescription>
+											Review the current quantities and recheck material status
+											before making a decision. Stale writes are rejected by the
+											server.
+										</AlertDescription>
+									</Alert>
+								) : null}
+
+								{isEvidenceConflict ? (
+									<Alert variant="destructive">
+										<Icons.AlertTriangle />
+										<AlertTitle>Material evidence conflict</AlertTitle>
+										<AlertDescription>
+											{actionability?.reason ||
+												"Current evidence cannot safely resolve this review."}
+										</AlertDescription>
+									</Alert>
+								) : null}
 
 								{detail.hasRetractedSubmissions ? (
 									<Alert>
@@ -800,7 +1030,9 @@ export function ProductionMaterialReviewPanel({
 															id={checkboxId}
 															className="mt-0.5"
 															checked={material.isResolved || isSelected}
-															disabled={!material.canMarkAvailable}
+															disabled={
+																isReadOnly || !material.canMarkAvailable
+															}
 															onCheckedChange={(checked) => {
 																if (
 																	!material.canMarkAvailable ||
@@ -836,18 +1068,26 @@ export function ProductionMaterialReviewPanel({
 																	.replaceAll("_", " ")
 																	.toLowerCase()}
 																{" · "}
-																{material.availableQty} available /{" "}
-																{material.requiredQty} required
+																{material.receivedQty} received ·{" "}
+																{Math.max(
+																	material.receivedQty,
+																	material.allocatedQty,
+																)}{" "}
+																covered / {material.requiredQty} required
 															</span>
 														</span>
 													</label>
 												);
 											})
 										) : (
-											<p className="py-3 text-sm text-muted-foreground">
-												Material configuration is missing or temporarily
-												unavailable.
-											</p>
+											<Alert variant="warning" className="my-3">
+												<Icons.AlertTriangle />
+												<AlertTitle>Material evidence unavailable</AlertTitle>
+												<AlertDescription>
+													Material configuration is missing or current evidence
+													could not be resolved. No readiness has been assumed.
+												</AlertDescription>
+											</Alert>
 										)}
 									</div>
 								</section>
@@ -880,8 +1120,8 @@ export function ProductionMaterialReviewPanel({
 																	Inbound #{receipt.inboundId}
 																</p>
 																<p className="text-muted-foreground">
-																	Planned {receipt.plannedQty} · already received{" "}
-																	{receipt.receivedQty}
+																	Planned {receipt.plannedQty} · already
+																	received {receipt.receivedQty}
 																</p>
 															</div>
 															<Input
@@ -889,6 +1129,9 @@ export function ProductionMaterialReviewPanel({
 																min={0}
 																placeholder="Good qty"
 																aria-label={`Good quantity for inbound item ${receipt.inboundShipmentItemId}`}
+																disabled={
+																	isReadOnly || !capabilities.canReceiveInbound
+																}
 																value={quantities.good}
 																onChange={(event) =>
 																	setReceiptQuantities((current) => ({
@@ -905,6 +1148,9 @@ export function ProductionMaterialReviewPanel({
 																min={0}
 																placeholder="Issue qty"
 																aria-label={`Issue quantity for inbound item ${receipt.inboundShipmentItemId}`}
+																disabled={
+																	isReadOnly || !capabilities.canReceiveInbound
+																}
 																value={quantities.issue}
 																onChange={(event) =>
 																	setReceiptQuantities((current) => ({
@@ -941,51 +1187,58 @@ export function ProductionMaterialReviewPanel({
 									<Label htmlFor="production-review-note">Decision note</Label>
 									<Input
 										id="production-review-note"
+										disabled={isReadOnly}
 										value={decisionNote}
 										onChange={(event) => setDecisionNote(event.target.value)}
 									/>
 								</div>
 
-								<div className="flex flex-wrap gap-2">
-									{needsConfigurationException ? (
+								{isReadOnly ? null : (
+									<div className="flex flex-wrap gap-2">
+										{needsConfigurationException ? (
+											<Button
+												type="button"
+												disabled={decision.isPending}
+												onClick={() =>
+													submitDecision("APPROVE_CONFIGURATION_EXCEPTION")
+												}
+											>
+												Approve confirmed availability
+											</Button>
+										) : null}
 										<Button
 											type="button"
+											variant="outline"
 											disabled={decision.isPending}
-											onClick={() =>
-												submitDecision("APPROVE_CONFIGURATION_EXCEPTION")
-											}
+											onClick={() => submitDecision("RECHECK_AND_APPROVE")}
 										>
-											Approve confirmed availability
+											Recheck material status
 										</Button>
-									) : null}
-									<Button
-										type="button"
-										variant="outline"
-										disabled={decision.isPending}
-										onClick={() => submitDecision("RECHECK_AND_APPROVE")}
-									>
-										Recheck material status
-									</Button>
-									<Button
-										type="button"
-										disabled={
-											decision.isPending ||
-											!hasSelectedResolution ||
-											hasIncompleteReceiptQuantity
-										}
-										onClick={() => submitDecision("RESOLVE_AND_APPROVE")}
-									>
-										Apply selected resolutions & approve
-									</Button>
-									<Button
-										type="button"
-										variant="destructive"
-										disabled={decision.isPending}
-										onClick={() => submitDecision("REJECT")}
-									>
-										Reject
-									</Button>
-								</div>
+										<Button
+											type="button"
+											disabled={
+												decision.isPending ||
+												!hasSelectedResolution ||
+												hasIncompleteReceiptQuantity ||
+												(selectedReceiptQuantityRows.length > 0 &&
+													!capabilities.canReceiveInbound) ||
+												(manualComponentIds.length > 0 &&
+													!capabilities.canMarkAvailable)
+											}
+											onClick={() => submitDecision("RESOLVE_AND_APPROVE")}
+										>
+											Apply selected resolutions & approve
+										</Button>
+										<Button
+											type="button"
+											variant="destructive"
+											disabled={decision.isPending}
+											onClick={() => submitDecision("REJECT")}
+										>
+											Reject
+										</Button>
+									</div>
+								)}
 							</div>
 						) : (
 							<p className="text-sm text-muted-foreground">
@@ -996,6 +1249,53 @@ export function ProductionMaterialReviewPanel({
 				</CardContent>
 			</Card>
 		</div>
+	);
+	if (!orderContext) return content;
+
+	const totalReviews = queueQuery.data?.pages[0]?.total ?? rows.length;
+	const totalSubmittedQuantity =
+		queueQuery.data?.pages[0]?.totalSubmittedQty ??
+		rows.reduce((total, review) => total + Number(review.submittedQty || 0), 0);
+	const dominantMaterialStatus = rows[0]?.materialStatus;
+	return (
+		<Collapsible open={attentionOpen} onOpenChange={setAttentionOpen}>
+			<Card className="overflow-hidden rounded-xl border-amber-200 bg-amber-50/40 shadow-sm">
+				<CollapsibleTrigger asChild>
+					<button
+						type="button"
+						className="flex w-full items-start justify-between gap-4 px-4 py-4 text-left hover:bg-amber-50/70"
+						aria-label={`Material attention: ${totalReviews} reviews, ${totalSubmittedQuantity} units`}
+					>
+						<span>
+							<span className="block text-sm font-semibold tracking-[0.08em] text-amber-950">
+								MATERIAL ATTENTION · {totalReviews}{" "}
+								{totalReviews === 1 ? "review" : "reviews"} ·{" "}
+								{totalSubmittedQuantity} units
+							</span>
+							<span className="mt-1 block text-xs text-amber-800">
+								{dominantMaterialStatus?.label ||
+									"Material review requires attention"}
+							</span>
+						</span>
+						<Icons.ChevronDown
+							className={cn(
+								"mt-0.5 size-4 shrink-0 transition-transform",
+								attentionOpen && "rotate-180",
+							)}
+						/>
+					</button>
+				</CollapsibleTrigger>
+				<CollapsibleContent
+					id={`material-attention-${salesOrderId || "order"}`}
+					className="border-t border-amber-200 bg-background p-3"
+				>
+					<div aria-live="polite" className="sr-only">
+						{totalReviews} actionable material reviews available.
+					</div>
+					{content}
+				</CollapsibleContent>
+			</Card>
+		</Collapsible>
 	);
 }
 
@@ -1140,7 +1440,10 @@ function ProductionV2Board({
 		const assignedFilter = employeeFiltersQuery.data?.find(
 			(filter) => filter.value === "assignedToId",
 		);
-		return assignedFilter?.options || [];
+		return (assignedFilter?.options || []).map((option) => ({
+			label: option.label ? String(option.label) : undefined,
+			value: option.value == null ? undefined : String(option.value),
+		}));
 	}, [employeeFiltersQuery.data, scope]);
 	const allVisibleSelected =
 		!!items.length && items.every((item) => selectedIds.includes(item.id));
@@ -2046,6 +2349,7 @@ function ProductionOrderDetailInline({
 						</TabsList>
 						<ProductionOrderActionsMenu
 							scope={scope}
+							pipelineRevision={detail?.pipelineRevision}
 							assignOptions={assignOptions}
 							assignableSelections={assignableSelections}
 							submittableItemUids={submittableItemUids}
@@ -2070,6 +2374,7 @@ function ProductionOrderDetailInline({
 						<ProductionItemsGrid
 							scope={scope}
 							items={productionItems}
+							pipelineRevision={detail?.pipelineRevision}
 							defaultDueDate={defaultDueDate}
 							assignOptions={assignOptions}
 						/>
@@ -2105,11 +2410,13 @@ function ProductionOrderDetailInline({
 function ProductionItemsGrid({
 	scope,
 	items,
+	pipelineRevision,
 	defaultDueDate,
 	assignOptions,
 }: {
 	scope: Scope;
 	items: ProductionDetail["items"];
+	pipelineRevision?: string | null;
 	defaultDueDate?: string | null;
 	assignOptions: { label?: string; value?: string }[];
 }) {
@@ -2171,6 +2478,7 @@ function ProductionItemsGrid({
 										{isExpanded && productionItem.isProduction ? (
 											<ExpandedItemOverview
 												scope={scope}
+												pipelineRevision={pipelineRevision}
 												productionItem={productionItem}
 												defaultDueDate={defaultDueDate}
 												assignOptions={assignOptions}
@@ -2186,6 +2494,7 @@ function ProductionItemsGrid({
 						{expandedRowItem?.isProduction ? (
 							<ExpandedItemOverview
 								scope={scope}
+								pipelineRevision={pipelineRevision}
 								productionItem={expandedRowItem}
 								defaultDueDate={defaultDueDate}
 								assignOptions={assignOptions}
@@ -2204,6 +2513,7 @@ function ProductionItemsGrid({
 function ExpandedItemOverview({
 	scope,
 	productionItem,
+	pipelineRevision,
 	defaultDueDate,
 	assignOptions,
 	rowLength,
@@ -2212,6 +2522,7 @@ function ExpandedItemOverview({
 }: {
 	scope: Scope;
 	productionItem: ProductionDetail["items"][number];
+	pipelineRevision?: string | null;
 	defaultDueDate?: string | null;
 	assignOptions: { label?: string; value?: string }[];
 	rowLength: number;
@@ -2254,8 +2565,10 @@ function ExpandedItemOverview({
 					showSteppedJoin ? "mt-0 border-t-0" : "-mt-4 border-t-0 pt-6",
 				)}
 			>
+				<ItemMaterialStatusDetail status={productionItem.materialStatus} />
 				<ProductionItemDetailTabs
 					scope={scope}
+					pipelineRevision={pipelineRevision}
 					productionItem={productionItem}
 					defaultDueDate={defaultDueDate}
 					assignOptions={assignOptions}
@@ -2328,10 +2641,13 @@ function ProductionItemCard({
 										);
 									})()
 								: null}
-							<div className="flex min-w-0 items-center gap-2">
-								<p className="min-w-0 flex-1 truncate font-semibold uppercase tracking-[0.08em]">
-									{item.title}
-								</p>
+							<div className="flex min-w-0 items-start gap-2">
+								<ProductionItemHeadline
+									segments={getProductionItemHeadlineSegments(item, {
+										omitQuantitySegments: scope === "worker",
+									})}
+									className="min-w-0 flex-1 font-semibold tracking-[0.08em]"
+								/>
 								{!item.isProduction ? (
 									<Badge
 										variant="outline"
@@ -2341,9 +2657,10 @@ function ProductionItemCard({
 									</Badge>
 								) : null}
 							</div>
-							<p className="mt-1 truncate text-sm uppercase tracking-[0.08em] text-muted-foreground">
-								{item.subtitle || "NO SUBTITLE"}
-							</p>
+							<ItemMaterialStatusBadge
+								status={item.materialStatus}
+								className="mt-2"
+							/>
 						</div>
 					</div>
 					{scope === "admin" ? (
@@ -2460,11 +2777,13 @@ function OrderMetaBlock({
 function ProductionItemDetailTabs({
 	scope,
 	productionItem,
+	pipelineRevision,
 	defaultDueDate,
 	assignOptions,
 }: {
 	scope: Scope;
 	productionItem: ProductionDetail["items"][number];
+	pipelineRevision?: string | null;
 	defaultDueDate?: string | null;
 	assignOptions: { label?: string; value?: string }[];
 }) {
@@ -2610,6 +2929,7 @@ function ProductionItemDetailTabs({
 						{remainingAssignableQty > 0 ? (
 							<InlineAssignmentForm
 								assignOptions={assignOptions}
+								pipelineRevision={pipelineRevision}
 								remainingQty={remainingAssignableQty}
 								defaultDueDate={defaultDueDate}
 								controlUid={productionItem.controlUid}
@@ -2721,6 +3041,7 @@ function ProductionItemDetailTabs({
 									authorId={workerId}
 									authorName={auth.name || "System"}
 									salesId={productionItem.salesId}
+									pipelineRevision={pipelineRevision}
 									progress={assignmentProgressItem}
 									onSubmit={(payload) =>
 										actionTrigger.triggerWithAuth(
@@ -2734,6 +3055,7 @@ function ProductionItemDetailTabs({
 												salesId: productionItem.salesId,
 												authorId: Number(auth.id || 0),
 												authorName: auth.name || "System",
+												pipelineRevision: pipelineRevision || undefined,
 											},
 											deleteSubmissions: {
 												submissionIds: [submissionId],
@@ -2746,6 +3068,7 @@ function ProductionItemDetailTabs({
 												salesId: productionItem.salesId,
 												authorId: Number(auth.id || 0),
 												authorName: auth.name || "System",
+												pipelineRevision: pipelineRevision || undefined,
 											},
 											updateSubmissions: {
 												submissions: [
@@ -2807,12 +3130,12 @@ function ProductionItemOverviewTab({
 						<p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
 							Item overview
 						</p>
-						<h4 className="text-sm font-semibold uppercase tracking-[0.08em]">
-							{productionItem.title}
-						</h4>
-						<p className="text-sm text-muted-foreground">
-							{productionItem.subtitle || "No extra description"}
-						</p>
+						<ProductionItemHeadline
+							segments={getProductionItemHeadlineSegments(productionItem, {
+								omitQuantitySegments: scope === "worker",
+							})}
+							className="text-sm font-semibold tracking-[0.08em]"
+						/>
 					</div>
 					<div className="flex flex-wrap gap-2">
 						<OverviewChip
@@ -2918,6 +3241,7 @@ function OverviewRow({ label, value }: { label: string; value: string }) {
 function ProductionOrderActionsMenu({
 	scope,
 	salesId,
+	pipelineRevision,
 	assignOptions,
 	assignableSelections,
 	submittableItemUids,
@@ -2929,6 +3253,7 @@ function ProductionOrderActionsMenu({
 }: {
 	scope: Scope;
 	salesId?: number;
+	pipelineRevision?: string | null;
 	assignOptions: { label?: string; value?: string }[];
 	assignableSelections: { uid: string; qty: { qty: number } }[];
 	submittableItemUids: string[];
@@ -2954,6 +3279,7 @@ function ProductionOrderActionsMenu({
 		salesId,
 		authorId: Number(auth.id || 0),
 		authorName: auth.name || "System",
+		pipelineRevision: pipelineRevision || undefined,
 	};
 
 	return (
@@ -3168,6 +3494,7 @@ type AssignmentProgress = {
 
 function InlineAssignmentForm({
 	assignOptions,
+	pipelineRevision,
 	remainingQty,
 	defaultDueDate,
 	controlUid,
@@ -3177,6 +3504,7 @@ function InlineAssignmentForm({
 	onAssign,
 }: {
 	assignOptions: { label?: string; value?: string }[];
+	pipelineRevision?: string | null;
 	remainingQty: number;
 	defaultDueDate?: string | null;
 	controlUid: string;
@@ -3312,6 +3640,7 @@ function InlineAssignmentForm({
 								salesId,
 								authorId,
 								authorName,
+								pipelineRevision: pipelineRevision || undefined,
 							},
 							createAssignments: {
 								retries: 0,
@@ -3381,6 +3710,7 @@ function AssignmentSubmissionCard({
 	authorId,
 	authorName,
 	salesId,
+	pipelineRevision,
 	progress,
 	onSubmit,
 	onDeleteSubmission,
@@ -3391,6 +3721,7 @@ function AssignmentSubmissionCard({
 	authorId: number | null;
 	authorName: string;
 	salesId: number;
+	pipelineRevision?: string | null;
 	progress: AssignmentProgress;
 	onSubmit: (payload: UpdateSalesControl) => void;
 	onDeleteSubmission: (submissionId: number) => void;
@@ -3435,6 +3766,7 @@ function AssignmentSubmissionCard({
 				salesId,
 				authorId: Number(authorId || 0),
 				authorName,
+				pipelineRevision: pipelineRevision || undefined,
 			},
 			submitAll: {
 				idempotencyKey: crypto.randomUUID(),

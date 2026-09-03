@@ -1,3 +1,5 @@
+import { getProductionItemHeadlineSegments } from "@/components/production-v2/production-item-headline";
+
 type ProductionItemPresentationInput = {
 	title?: string | null;
 	subtitle?: string | null;
@@ -14,9 +16,6 @@ type ProductionAssignedQuantityInput = {
 	rh?: number | null;
 };
 
-const WORKER_QUANTITY_SUBTITLE_SEGMENT =
-	/^(?:QTY\s*:?\s*\d+(?:\.\d+)?|\d+(?:\.\d+)?\s*LH(?:\s*&\s*\d+(?:\.\d+)?\s*RH)?|\d+(?:\.\d+)?\s*RH)$/i;
-
 function uppercaseText(value: string | null | undefined) {
 	return value?.trim().toUpperCase() || "";
 }
@@ -27,6 +26,7 @@ export function getProductionItemPresentation(
 	return {
 		title: uppercaseText(item.title) || "UNTITLED ITEM",
 		subtitle: uppercaseText(item.subtitle),
+		headlineSegments: getProductionItemHeadlineSegments(item),
 	};
 }
 
@@ -46,13 +46,14 @@ export function getWorkerProductionItemPresentation(
 			qty: qty || lh + rh,
 			rh,
 		},
-		subtitle: presentation.subtitle
-			.split("|")
-			.map((segment) => segment.trim())
-			.filter(
-				(segment) => segment && !WORKER_QUANTITY_SUBTITLE_SEGMENT.test(segment),
-			)
+		subtitle: getProductionItemHeadlineSegments(item, {
+			omitQuantitySegments: true,
+		})
+			.slice(1)
 			.join(" | "),
+		headlineSegments: getProductionItemHeadlineSegments(item, {
+			omitQuantitySegments: true,
+		}),
 	};
 }
 

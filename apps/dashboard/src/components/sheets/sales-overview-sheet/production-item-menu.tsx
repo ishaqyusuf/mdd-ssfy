@@ -206,6 +206,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     authorId: auth.id,
                     salesId: prod.data.orderId,
                     authorName: auth.name,
+					pipelineRevision: prod.data.pipelineRevision || undefined,
                 },
             } as UpdateSalesControl;
 

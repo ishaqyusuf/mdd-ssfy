@@ -3,7 +3,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { reconcileMaterialReviewsAfterSubmissionRetraction } from "./retraction";
 
 describe("production submission material review retraction", () => {
-	it("keeps a pending material review actionable after its final submission is retracted", async () => {
+	it("cancels an empty material review after its final submission is retracted", async () => {
 		const updateMany = mock(async () => ({ count: 1 }));
 		const historyCreate = mock(async () => ({}));
 		const db = {
@@ -38,8 +38,10 @@ describe("production submission material review retraction", () => {
 			expect.objectContaining({
 				where: { id: 55, status: "PENDING" },
 				data: expect.objectContaining({
+					status: "CANCELLED",
+					cancelledAt: expect.any(Date),
 					resolution: expect.objectContaining({
-						action: "SUBMISSION_RETRACTED",
+						action: "EMPTY_RETRACTED_SCOPE_CANCELLED",
 					}),
 				}),
 			}),

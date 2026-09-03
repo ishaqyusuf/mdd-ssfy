@@ -40,15 +40,18 @@ export async function reconcileMaterialReviewsAfterSubmissionRetraction(
 		});
 		if (!review || review.salesOrderId !== input.salesOrderId) continue;
 
+		let reviewStatusAfter = review.status;
 		if (review.status === "PENDING" && !review.submissions.length) {
 			const refreshed =
 				await db.salesProductionSubmissionMaterialReview.updateMany({
 					where: { id: review.id, status: "PENDING" },
 					data: {
+						status: "CANCELLED",
+						cancelledAt: new Date(),
 						decisionNote:
-							"The production worker retracted the submitted work. Material resolution may continue without restoring production quantity.",
+							"The final active production submission was retracted. This material review is retained as audit history.",
 						resolution: {
-							action: "SUBMISSION_RETRACTED",
+							action: "EMPTY_RETRACTED_SCOPE_CANCELLED",
 							retractedSubmissionIds: retractedSubmissions.map(
 								(submission) => submission.id,
 							),
@@ -56,7 +59,10 @@ export async function reconcileMaterialReviewsAfterSubmissionRetraction(
 						},
 					},
 				});
-			if (refreshed.count === 1) refreshedReviewIds.push(review.id);
+			if (refreshed.count === 1) {
+				refreshedReviewIds.push(review.id);
+				reviewStatusAfter = "CANCELLED";
+			}
 		} else if (review.status === "PENDING") {
 			const activeAssignmentIds = new Set(
 				review.submissions.flatMap((submission) =>
@@ -87,7 +93,7 @@ export async function reconcileMaterialReviewsAfterSubmissionRetraction(
 					event: "production_submission_retracted",
 					reviewId: review.id,
 					reviewStatusBefore: review.status,
-					reviewStatusAfter: review.status,
+					reviewStatusAfter,
 					submissionIds: retractedSubmissions.map(
 						(submission) => submission.id,
 					),

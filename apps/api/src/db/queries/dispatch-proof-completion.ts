@@ -40,6 +40,7 @@ export const completeDispatchWithProofSchema = z
 		dispatchId: z.number().int().positive(),
 		requestId: requestIdSchema,
 		expectedManifestRevision: z.string().trim().min(16).max(128).optional(),
+		expectedPipelineRevision: z.string().trim().min(16).max(128).optional(),
 		receivedBy: z.string().trim().max(200).optional(),
 		receivedDate: z.coerce.date().optional(),
 		note: z.string().max(5_000).optional(),

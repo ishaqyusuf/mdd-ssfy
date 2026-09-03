@@ -6,8 +6,11 @@ import {
 	type UpdateSalesControl,
 	buildSalesDispatchBacklogWhere,
 	ensureSalesOrderFulfillmentDispatch,
+	evaluateSalesPipelineCommand,
+	getSalesPipelineSnapshots,
 	normalizeBulkFulfillmentSalesIds,
 	prepareBulkFulfillmentResolution,
+	shouldEnforceCanonicalSalesPipelineCommands,
 	summarizeBulkFulfillmentResult,
 } from "@gnd/sales";
 import { type TaskName, bulkMarkSalesFulfilledSchema } from "@jobs/schema";
@@ -57,8 +60,52 @@ export const bulkMarkSalesFulfilled = schemaTask({
 			.set("completed", 0);
 		const outcomes: BulkFulfillmentOutcome[] = [];
 		const resolutions: FulfillmentDispatchResolution[] = [];
+		const snapshots = await getSalesPipelineSnapshots(db, salesIds);
 		for (const salesId of salesIds) {
 			try {
+				const snapshot = snapshots.get(salesId);
+				if (!shouldEnforceCanonicalSalesPipelineCommands(salesId)) {
+					resolutions.push(
+						await ensureSalesOrderFulfillmentDispatch(db, {
+							salesId,
+							createdById: input.actor.id,
+						}),
+					);
+					continue;
+				}
+				if (!snapshot) {
+					outcomes.push({
+						salesId,
+						status: "failed",
+						error: "The sales order is no longer available.",
+					});
+					continue;
+				}
+				const decision = evaluateSalesPipelineCommand(snapshot, {
+					action: "fulfillment.complete",
+					authorized: true,
+					expectedRevision: snapshot.revision,
+				});
+				if (decision.status === "replay") {
+					outcomes.push({
+						salesId,
+						orderNo: snapshot.evidence.orderNo,
+						status: "already_fulfilled",
+					});
+					continue;
+				}
+				if (decision.status !== "ready") {
+					outcomes.push({
+						salesId,
+						orderNo: snapshot.evidence.orderNo,
+						status:
+							decision.status === "review_required"
+								? "review_required"
+								: "failed",
+						error: decision.reasons.join(", "),
+					});
+					continue;
+				}
 				resolutions.push(
 					await ensureSalesOrderFulfillmentDispatch(db, {
 						salesId,
@@ -81,6 +128,10 @@ export const bulkMarkSalesFulfilled = schemaTask({
 		outcomes.push(...prepared.outcomes);
 		if (prepared.ready.length) {
 			metadata.set("status", "fulfilling").set("queued", prepared.ready.length);
+			const executionSnapshots = await getSalesPipelineSnapshots(
+				db,
+				prepared.ready.map((item) => item.salesId),
+			);
 			const batchItems = await Promise.all(
 				prepared.ready.map(async (item) => ({
 					payload: {
@@ -88,6 +139,7 @@ export const bulkMarkSalesFulfilled = schemaTask({
 							salesId: item.salesId,
 							authorId: input.actor.id,
 							authorName: input.actor.name,
+							pipelineRevision: executionSnapshots.get(item.salesId)?.revision,
 						},
 						markAsCompleted: {
 							dispatchId: item.dispatchId,
@@ -150,11 +202,13 @@ export const bulkMarkSalesFulfilled = schemaTask({
 			.set("status", result.failed ? "completed_with_errors" : "completed")
 			.set("succeeded", result.succeeded)
 			.set("alreadyFulfilled", result.alreadyFulfilled)
+			.set("reviewRequired", result.reviewRequired)
 			.set("failed", result.failed)
 			.set("durationMs", result.durationMs);
 		metadata.set("backlogCount", result.backlogCount);
 		logger.info("Bulk sales fulfillment completed.", {
 			alreadyFulfilled: result.alreadyFulfilled,
+			reviewRequired: result.reviewRequired,
 			durationMs: result.durationMs,
 			failed: result.failed,
 			requestId: result.requestId,

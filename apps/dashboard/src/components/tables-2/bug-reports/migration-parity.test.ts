@@ -18,13 +18,10 @@ describe("Bug Reports Sales Orders table migration parity", () => {
 		);
 
 		expect(userNavSource.includes("BugReportButton")).toBe(true);
-		expect(userNavSource.includes("BugReportTrigger")).toBe(true);
 		expect(headerSource.includes("<UserNav links={linkModules} />")).toBe(true);
 		expect(userNavSource.includes("<BugReportButton />")).toBe(true);
-		expect(
-			userNavSource.includes("<BugReportTrigger") &&
-				userNavSource.includes('presentation="menu-item"'),
-		).toBe(true);
+		expect(userNavSource.includes("<HeaderActions />")).toBe(true);
+		expect(headerSource.includes("<HeaderActions />")).toBe(true);
 		expect(
 			userNavSource.indexOf("<SalesRepRequestBadge />") <
 				userNavSource.indexOf("<BugReportButton />"),

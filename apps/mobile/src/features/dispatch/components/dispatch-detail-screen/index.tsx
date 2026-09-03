@@ -436,7 +436,10 @@ function DispatchDetailScreenInner({
 	const onConfirmStartTrip = async () => {
 		if (!dispatch?.id || !canStartReady) return;
 		try {
-			await actions.onStartDispatch({ dispatchId: dispatch.id });
+			await actions.onStartDispatch({
+				dispatchId: dispatch.id,
+				expectedPipelineRevision: data?.pipelineRevision,
+			});
 			setStartTripConfirmOpen(false);
 			await overview.refetch();
 			Toast.show("Trip started", { type: "success" });
@@ -659,6 +662,7 @@ function DispatchDetailScreenInner({
 			await packing.onClearPackings({
 				dispatchId: dispatch.id,
 				expectedManifestRevision: packingCommandRevision,
+				expectedPipelineRevision: data?.pipelineRevision,
 			});
 			Toast.show("Packing reset", { type: "success" });
 		} catch (error: any) {
@@ -906,6 +910,7 @@ function DispatchDetailScreenInner({
 				await packing.onPackItemsSelection({
 					dispatchId: dispatch.id,
 					expectedManifestRevision: packingCommandRevision,
+					expectedPipelineRevision: data?.pipelineRevision,
 					replaceExisting: true,
 					requestedItems: selection.requestedItems as any,
 				});
@@ -918,6 +923,7 @@ function DispatchDetailScreenInner({
 				await packing.onClearPackings({
 					dispatchId: dispatch.id,
 					expectedManifestRevision: packingCommandRevision,
+					expectedPipelineRevision: data?.pipelineRevision,
 				});
 			}
 
@@ -991,6 +997,7 @@ function DispatchDetailScreenInner({
 				await packing.onPackItemsSelection({
 					dispatchId: dispatch.id,
 					expectedManifestRevision: packingCommandRevision,
+					expectedPipelineRevision: data?.pipelineRevision,
 					replaceExisting: true,
 					requestedItems: selection.requestedItems as any,
 				});
@@ -1003,6 +1010,7 @@ function DispatchDetailScreenInner({
 				await packing.onClearPackings({
 					dispatchId: dispatch.id,
 					expectedManifestRevision: packingCommandRevision,
+					expectedPipelineRevision: data?.pipelineRevision,
 				});
 			}
 			await overview.refetch();
@@ -1251,6 +1259,7 @@ function DispatchDetailScreenInner({
 									dispatchId: dispatch.id,
 									requestId: input.requestId,
 									expectedManifestRevision: input.expectedManifestRevision,
+									expectedPipelineRevision: data?.pipelineRevision,
 									receivedBy: input.receivedBy,
 									note: input.note,
 									signaturePath: input.signaturePath,

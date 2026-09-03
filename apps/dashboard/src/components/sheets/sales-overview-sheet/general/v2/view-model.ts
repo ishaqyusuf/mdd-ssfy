@@ -22,11 +22,19 @@ export function createGeneralTabV2ViewModel(data: SalesOverviewData) {
 				: 0,
 	);
 	const productionPercentage = percentage(
-		data.stats?.prodCompleted?.percentage,
+		data.pipeline?.production.requiredQty
+			? (data.pipeline.production.completedQty /
+					data.pipeline.production.requiredQty) *
+					100
+			: data.stats?.prodCompleted?.percentage,
 	);
 	const fulfillmentPercentage = percentage(
-		data.stats?.dispatchCompleted?.percentage ??
-			(data.status?.delivery?.status === "completed" ? 100 : 0),
+		data.pipeline?.fulfillment.requiredQty
+			? (data.pipeline.fulfillment.deliveredQty /
+					data.pipeline.fulfillment.requiredQty) *
+					100
+			: (data.stats?.dispatchCompleted?.percentage ??
+					(data.status?.delivery?.status === "completed" ? 100 : 0)),
 	);
 
 	return {
@@ -38,12 +46,18 @@ export function createGeneralTabV2ViewModel(data: SalesOverviewData) {
 		paymentStatus: financial.payableDueCents > 0 ? "Payment due" : "Settled",
 		paymentMethod:
 			data.paymentSummary?.methodLabel || data.paymentMethod || "Not selected",
+		pipeline: data.pipeline ?? null,
 		production: {
-			status: readableStatus(data.status?.production?.status, "Awaiting"),
+			status: readableStatus(
+				data.pipeline?.production.state ?? data.status?.production?.status,
+				"Awaiting",
+			),
 			percentage: productionPercentage,
 		},
 		fulfillment: {
-			status: readableStatus(data.status?.delivery?.status),
+			status: readableStatus(
+				data.pipeline?.fulfillment.state ?? data.status?.delivery?.status,
+			),
 			percentage: fulfillmentPercentage,
 		},
 	};

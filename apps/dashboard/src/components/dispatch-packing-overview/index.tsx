@@ -1409,6 +1409,7 @@ function PackItemsForm({
 			dispatchId: Number(dispatch.id),
 			requestId: crypto.randomUUID(),
 			expectedManifestRevision,
+			expectedPipelineRevision: latest.pipelineRevision || undefined,
 			replaceExisting: true,
 			items,
 		});

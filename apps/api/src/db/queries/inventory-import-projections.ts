@@ -202,6 +202,7 @@ export async function getInventoryImportProjectionHistory(
 export async function retryInventoryImportProjection(
 	ctx: TRPCContext,
 	input: InventoryImportProjectionRetry,
+	queueSync: typeof queueInventoryToDykeSync = queueInventoryToDykeSync,
 ) {
 	if (!ctx.userId) {
 		throw new TRPCError({
@@ -273,7 +274,7 @@ export async function retryInventoryImportProjection(
 		} as const;
 	}
 
-	const run = await queueInventoryToDykeSync({
+	const run = await queueSync({
 		inventoryId: inventory.id,
 		source: "repair",
 	});

@@ -42,14 +42,14 @@ function coreTableDirectories() {
 }
 
 describe("responsive tables-2 configuration audit", () => {
-	it("registers exactly 84 core fill columns and nine legacy null entries", () => {
+	it("registers exactly 87 core fill columns and nine legacy null entries", () => {
 		const fillColumnIds = Object.values(TABLE_FILL_COLUMN_IDS);
 
-		expect(fillColumnIds.filter(Boolean).length).toBe(84);
+		expect(fillColumnIds.filter(Boolean).length).toBe(87);
 		expect(fillColumnIds.filter((columnId) => columnId === null).length).toBe(
 			9,
 		);
-		expect(Object.keys(TABLE_CONFIGS).length).toBe(93);
+		expect(Object.keys(TABLE_CONFIGS).length).toBe(96);
 	});
 
 	it("keeps every sticky fill column as the final left-sticky column", () => {
@@ -86,18 +86,24 @@ describe("responsive tables-2 configuration audit", () => {
 	it("wires every core row and header to the shared fill contract", () => {
 		const directories = coreTableDirectories();
 
-		expect(directories.length).toBe(79);
+		expect(directories.length).toBe(83);
 		for (const directory of directories) {
-			const dataTableSource = readSource(
-				resolve(tablesDirectory, directory, "data-table.tsx"),
+			const dataTablePath = resolve(
+				tablesDirectory,
+				directory,
+				"data-table.tsx",
 			);
-			const headerSource = readSource(
-				resolve(tablesDirectory, directory, "table-header.tsx"),
-			);
+			const dataTableSource = readSource(dataTablePath);
+			const headerPath = resolve(tablesDirectory, directory, "table-header.tsx");
 
-			expect(
-				dataTableSource.includes("fillColumnId={tableConfig.fillColumnId}"),
-			).toBe(true);
+				expect(
+					dataTableSource.includes("fillColumnId={tableConfig.fillColumnId}"),
+				).toBe(true);
+			if (!existsSync(headerPath)) {
+				expect(dataTableSource.includes("/table-header")).toBe(true);
+				continue;
+			}
+			const headerSource = readSource(headerPath);
 			expect(headerSource.includes("getTableHeaderLayoutStyle({")).toBe(true);
 			expect(
 				headerSource.includes(

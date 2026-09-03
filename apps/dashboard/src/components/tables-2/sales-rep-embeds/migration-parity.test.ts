@@ -9,8 +9,8 @@ function readSource(path: string) {
 	return readFileSync(resolve(root, path), "utf8");
 }
 
-describe("Sales Rep dashboard table embed migration parity", () => {
-	it("renders recent sales as a bounded panel and keeps recent quotes on tables-2", () => {
+describe("Sales Rep dashboard migration parity", () => {
+	it("renders the bounded Sales command center without legacy table embeds", () => {
 		const source = readSource("app/(sidebar)/(sales)/sales-rep/page.tsx");
 
 		expect(source.includes("ScrollableContent")).toBe(true);
@@ -20,19 +20,15 @@ describe("Sales Rep dashboard table embed migration parity", () => {
 			false,
 		);
 		expect(source.includes('getInitialTableSettings("sales-quotes")')).toBe(
-			true,
+			false,
 		);
-		expect(source.includes("@/components/sales-rep/recent-sales-panel")).toBe(
-			true,
-		);
-		expect(source.includes("<RecentSalesPanel")).toBe(true);
-		expect(source.includes("<RecentSalesListSkeleton")).toBe(true);
+		expect(source.includes("SalesRepDashboardWorkspace")).toBe(true);
 		expect(
 			source.includes("@/components/tables-2/sales-orders/data-table"),
 		).toBe(false);
 		expect(
 			source.includes("@/components/tables-2/sales-quotes/data-table"),
-		).toBe(true);
+		).toBe(false);
 		expect(source.includes("components/tables/sales-orders/data-table")).toBe(
 			false,
 		);
@@ -45,19 +41,26 @@ describe("Sales Rep dashboard table embed migration parity", () => {
 		expect(source.includes("PageStickyHeader")).toBe(false);
 	});
 
-	it("keeps recent sales explicitly bounded and sales-rep scoped", () => {
+	it("keeps dashboard reads explicitly period-scoped and server-prefetched", () => {
 		const source = readSource("app/(sidebar)/(sales)/sales-rep/page.tsx");
-		const querySource = readSource(
-			"components/sales-rep/recent-sales-query.ts",
+		const workspaceSource = readSource(
+			"components/sales-rep-dashboard/workspace.tsx",
 		);
 
-		expect(source.includes("RECENT_SALES_QUERY_INPUT")).toBe(true);
-		expect(querySource.includes("showing: null")).toBe(true);
-		expect(querySource.includes("size: 5")).toBe(true);
-		expect(querySource.includes('sort: ["createdAt.desc"]')).toBe(true);
-		expect(source.includes("defaultFilters={recentQuoteFilters}")).toBe(true);
-		expect(source.includes("<RecentQuoteDataTable")).toBe(true);
-		expect(source.includes("<RecentSalesDataTable")).toBe(false);
+		expect(source.includes("resolveSalesDashboardParams")).toBe(true);
+		expect(source.includes("const input = { from: params.from, to: params.to }")).toBe(
+			true,
+		);
+		for (const query of ["overview", "trend", "activity"]) {
+			expect(source.includes(`salesRepDashboard.${query}.queryOptions(input)`)).toBe(
+				true,
+			);
+			expect(
+				workspaceSource.includes(
+					`salesRepDashboard.${query}.queryOptions(input)`,
+				),
+			).toBe(true);
+		}
 	});
 
 	it("keeps the canonical orders table workspace-only", () => {

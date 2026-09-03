@@ -2150,6 +2150,11 @@ describe("dealer portal isolation", () => {
 				paymentStatus: "due",
 				invoiceStatus: "pending",
 			},
+			{
+				contractVersion: "sales-pipeline/v2",
+				projectionVersion: 5,
+				headlineIn: ["fulfilled"],
+			},
 		);
 
 		expect(capturedWhere).toMatchObject({
@@ -2169,6 +2174,14 @@ describe("dealer portal isolation", () => {
 			},
 			deliveryOption: "delivery",
 			invoiceStatus: "pending",
+			listProjection: {
+				is: {
+					state: "ready",
+					version: 5,
+					pipelineContractVersion: "sales-pipeline/v2",
+					pipelineHeadline: { in: ["fulfilled"] },
+				},
+			},
 		});
 	});
 

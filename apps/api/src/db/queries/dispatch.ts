@@ -34,10 +34,15 @@ import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-a
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
 import type { Prisma } from "@gnd/db";
 import {
+	getSalesPipelineSnapshots,
 	isControlOverviewReadV2Enabled,
 	isControlReadV2Enabled,
+	observeSalesPipelineReadProjection,
 	projectDispatchListControl,
 	projectSalesListControl,
+	projectSalesPipelineForAudience,
+	runSalesPipelineCommandTransaction,
+	shouldEnforceCanonicalSalesPipelineCommands,
 	withDispatchControl,
 	withDispatchListControl,
 	withSalesControl,
@@ -55,7 +60,7 @@ import {
 } from "@gnd/sales/dispatch-manifest/driver-work-queue";
 import { resolvePackedLegacyInventoryReadiness } from "@gnd/sales/dispatch-manifest/inventory-readiness";
 import { normalizeLegacyDispatchManifestItem } from "@gnd/sales/dispatch-manifest/normalize-legacy-item";
-import { projectDispatchLifecycle } from "@gnd/sales/dispatch-manifest/status";
+import { projectDispatchOperationalRecord } from "@gnd/sales/dispatch-manifest/status";
 import {
 	isDispatchWorkspaceSectionMatch,
 	projectDispatchRisks,
@@ -498,6 +503,8 @@ async function getDispatchPage(
 			driverId: true,
 			_count: {
 				select: {
+					items: { where: { deletedAt: null } },
+					stockAllocations: true,
 					exceptions: {
 						where: { status: "open", deletedAt: null },
 					},
@@ -568,6 +575,22 @@ async function getDispatchPage(
 	const orderControlById = new Map(
 		orderControlRows.map((row) => [row.id, (row as any).control]),
 	);
+	const pipelineSnapshots = await getSalesPipelineSnapshots(
+		db,
+		data.map((row) => row.order.id),
+	);
+	const driverPipeline = (salesOrderId: number) => {
+		const snapshot = pipelineSnapshots.get(salesOrderId);
+		const selected = snapshot
+			? observeSalesPipelineReadProjection(snapshot, {
+					surface: "dispatch.driver-list",
+					legacyFulfillmentIncluded: true,
+				})
+			: null;
+		return selected
+			? projectSalesPipelineForAudience(selected, "driver")
+			: null;
+	};
 
 	if (isControlReadV2Enabled()) {
 		if (isControlReadParityEnabled()) {
@@ -627,14 +650,18 @@ async function getDispatchPage(
 				};
 				const control = (a as any).control || null;
 				const effectiveStatus = control?.dispatchStatus || (rest as any).status;
-				const lifecycle = projectDispatchLifecycle({
+				const lifecycle = projectDispatchOperationalRecord({
 					status: effectiveStatus,
 					driverId: rest.driverId,
+					itemCount: rest._count.items,
+					stockAllocationCount: rest._count.stockAllocations,
+					meta: deliveryMeta,
 					packedTotal: control?.packed?.total,
 					pendingPackingTotal: control?.pendingPacking?.total,
 				});
 				return withDriverDuePresentation({
 					...rest,
+					pipeline: driverPipeline(rest.order.id),
 					routeDestination: resolveDriverRouteDestination({
 						primaryAddress: (rest.order as any)?.shippingAddress,
 						deliveryMeta,
@@ -690,14 +717,18 @@ async function getDispatchPage(
 			const effectiveStatus =
 				(safeRow as any)?.statistic?.dispatchStatus || (safeRow as any)?.status;
 			const control = (safeRow as any)?.statistic;
-			const lifecycle = projectDispatchLifecycle({
+			const lifecycle = projectDispatchOperationalRecord({
 				status: effectiveStatus,
 				driverId: (safeRow as any).driverId,
+				itemCount: (safeRow as any)._count?.items,
+				stockAllocationCount: (safeRow as any)._count?.stockAllocations,
+				meta: deliveryMeta,
 				packedTotal: control?.packed?.total,
 				pendingPackingTotal: control?.pendingPacking?.total,
 			});
 			return withDriverDuePresentation({
 				...safeRow,
+				pipeline: driverPipeline((safeRow as any).order.id),
 				routeDestination: resolveDriverRouteDestination({
 					primaryAddress: (safeRow as any)?.order?.shippingAddress,
 					deliveryMeta,
@@ -1591,36 +1622,63 @@ export async function signPackingSlip(
 		authorName: packedBy,
 		salesId: dispatch.salesOrderId,
 	};
-
-	await packDispatchItemTask(ctx.db, {
-		meta,
-		packItems: {
-			dispatchId: dispatch.id,
-			dispatchStatus: "completed",
-			packMode: "all",
-			replaceExisting: true,
-		},
-	} as UpdateSalesControl);
-
-	await submitDispatchTask(
+	const snapshot = (
+		await getSalesPipelineSnapshots(ctx.db, [dispatch.salesOrderId])
+	).get(dispatch.salesOrderId);
+	if (!snapshot) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "The sales order is no longer available.",
+		});
+	}
+	await runSalesPipelineCommandTransaction(
 		ctx.db,
 		{
-			meta,
-			submitDispatch: {
-				dispatchId: dispatch.id,
-				receivedBy,
-				receivedDate: new Date(),
-				signature: input.signature,
-				note: input.note || "",
-				noteType: input.noteType || "pickup",
-			},
+			salesOrderId: dispatch.salesOrderId,
+			action: "fulfillment.sign_packing_slip",
+			authorized: true,
+			expectedRevision: snapshot.revision,
+			enforce: shouldEnforceCanonicalSalesPipelineCommands(
+				dispatch.salesOrderId,
+			),
+			executeOnReplay: true,
+			operation: "api.dispatch.sign-packing-slip",
 		},
-		{
-			allowCompletedResign: true,
-			packingSignoff: {
-				requestId: input.packingRequestId,
-				documentId: input.signatureDocumentId,
-			},
+		async (transactionDb) => {
+			const transactionMeta = {
+				...meta,
+				pipelineRevision: snapshot.revision,
+			};
+			await packDispatchItemTask(transactionDb, {
+				meta: transactionMeta,
+				packItems: {
+					dispatchId: dispatch.id,
+					dispatchStatus: "completed",
+					packMode: "all",
+					replaceExisting: true,
+				},
+			} as UpdateSalesControl);
+			await submitDispatchTask(
+				transactionDb,
+				{
+					meta: transactionMeta,
+					submitDispatch: {
+						dispatchId: dispatch.id,
+						receivedBy,
+						receivedDate: new Date(),
+						signature: input.signature,
+						note: input.note || "",
+						noteType: input.noteType || "pickup",
+					},
+				},
+				{
+					allowCompletedResign: true,
+					packingSignoff: {
+						requestId: input.packingRequestId,
+						documentId: input.signatureDocumentId,
+					},
+				},
+			);
 		},
 	);
 
@@ -2109,6 +2167,9 @@ export async function getDispatchOverview(
 	const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
 	const address = normalizeShippingAddress(result.order.shippingAddress as any);
 	const order = result.order;
+	const pipelineSnapshot = (
+		await getSalesPipelineSnapshots(ctx.db, [order.id])
+	).get(order.id);
 	const controlReadV2Enabled = isControlOverviewReadV2Enabled();
 
 	const orderRows = [{ id: order.id }];
@@ -2282,6 +2343,7 @@ export async function getDispatchOverview(
 			};
 		}),
 		address,
+		pipelineRevision: pipelineSnapshot?.revision ?? null,
 		// scheduleDate: dispatch?.dueDate,
 		order: {
 			orderId: order.orderId,
@@ -2887,6 +2949,18 @@ export async function getDispatchOverviewV2(
 			}),
 		),
 	});
+	const canonicalPipeline = (
+		await getSalesPipelineSnapshots(ctx.db, [order.id])
+	).get(order.id);
+	const selectedPipeline = canonicalPipeline
+		? observeSalesPipelineReadProjection(canonicalPipeline, {
+				surface: "dispatch.driver-detail",
+				legacyFulfillmentIncluded: dispatch?.status !== "completed",
+			})
+		: null;
+	const pipeline = selectedPipeline
+		? projectSalesPipelineForAudience(selectedPipeline, "driver")
+		: null;
 
 	return {
 		dispatch: dispatch
@@ -2920,6 +2994,8 @@ export async function getDispatchOverviewV2(
 				: null,
 		},
 		address,
+		pipeline,
+		pipelineRevision: pipeline?.revision ?? null,
 		manifestRevision: inventoryManifest.revision,
 		summary,
 		dispatchItems,

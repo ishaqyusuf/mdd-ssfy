@@ -1,6 +1,7 @@
 import { _trpc } from "@/components/static-trpc";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRef } from "react";
 import { invalidateDispatchQueries } from "./dispatch-query-invalidation";
 
 import type { DispatchDeliverable, QtyMatrix } from "../types/dispatch.types";
@@ -10,6 +11,7 @@ type ConfirmPackingInput = RouterInputs["dispatch"]["confirmPacking"];
 type PackItemInput = {
 	dispatchId: number;
 	expectedManifestRevision: string;
+	expectedPipelineRevision?: string | null;
 	salesItemId: number;
 	itemUid?: string | null;
 	title?: string | null;
@@ -21,6 +23,7 @@ type PackItemInput = {
 type PackItemsSelectionInput = {
 	dispatchId: number;
 	expectedManifestRevision: string;
+	expectedPipelineRevision?: string | null;
 	requestedItems: ConfirmPackingInput["items"];
 	replaceExisting?: boolean;
 };
@@ -28,6 +31,7 @@ type PackItemsSelectionInput = {
 type ResetPackingInput = {
 	dispatchId: number;
 	expectedManifestRevision: string;
+	expectedPipelineRevision?: string | null;
 };
 
 type DeletePackingInput = {
@@ -46,6 +50,7 @@ function toCommandQty(value: QtyMatrix) {
 
 export function useDispatchPacking() {
 	const queryClient = useQueryClient();
+	const requestIds = useRef(new Map<string, string>());
 
 	const invalidate = () => invalidateDispatchQueries(queryClient);
 
@@ -73,6 +78,16 @@ export function useDispatchPacking() {
 		...confirmPacking,
 		isPending: confirmPacking.isPending || resetPacking.isPending,
 	};
+	const runRetrySafe = async <T>(
+		key: string,
+		command: (requestId: string) => Promise<T>,
+	) => {
+		const requestId = requestIds.current.get(key) || crypto.randomUUID();
+		requestIds.current.set(key, requestId);
+		const result = await command(requestId);
+		requestIds.current.delete(key);
+		return result;
+	};
 
 	return {
 		taskTrigger,
@@ -80,10 +95,12 @@ export function useDispatchPacking() {
 		resetPacking,
 		invalidateDispatchQueries: invalidate,
 		onPackItem(input: PackItemInput) {
-			return confirmPacking.mutateAsync({
+			const key = `pack-item:${JSON.stringify(input)}`;
+			return runRetrySafe(key, (requestId) => confirmPacking.mutateAsync({
 				dispatchId: input.dispatchId,
-				requestId: crypto.randomUUID(),
+				requestId,
 				expectedManifestRevision: input.expectedManifestRevision,
+				expectedPipelineRevision: input.expectedPipelineRevision || undefined,
 				replaceExisting: false,
 				items: [
 					{
@@ -94,23 +111,27 @@ export function useDispatchPacking() {
 						note: input.note,
 					},
 				],
-			});
+			}));
 		},
 		onPackItemsSelection(input: PackItemsSelectionInput) {
-			return confirmPacking.mutateAsync({
+			const key = `pack-selection:${JSON.stringify(input)}`;
+			return runRetrySafe(key, (requestId) => confirmPacking.mutateAsync({
 				dispatchId: input.dispatchId,
-				requestId: crypto.randomUUID(),
+				requestId,
 				expectedManifestRevision: input.expectedManifestRevision,
+				expectedPipelineRevision: input.expectedPipelineRevision || undefined,
 				replaceExisting: input.replaceExisting ?? false,
 				items: input.requestedItems,
-			});
+			}));
 		},
 		onClearPackings(input: ResetPackingInput) {
-			return resetPacking.mutateAsync({
+			const key = `reset-packing:${JSON.stringify(input)}`;
+			return runRetrySafe(key, (requestId) => resetPacking.mutateAsync({
 				dispatchId: input.dispatchId,
-				requestId: crypto.randomUUID(),
+				requestId,
 				expectedManifestRevision: input.expectedManifestRevision,
-			});
+				expectedPipelineRevision: input.expectedPipelineRevision || undefined,
+			}));
 		},
 		onDeletePackingItem(input: DeletePackingInput) {
 			return deletePackingItem.mutateAsync({

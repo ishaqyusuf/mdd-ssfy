@@ -1,5 +1,6 @@
 import type { Db } from "@gnd/db";
 
+import { resolveItemMaterialStatus } from "../../item-material-status";
 import type {
 	GetSalesProductionPlanInput,
 	SalesProductionPlanComponent,
@@ -13,15 +14,82 @@ export type ProductionMaterialStatus = {
 	salesItemId: number | null;
 	componentId: number | null;
 	name: string;
+	inventoryVariantUid: string | null;
 	supplierName: string | null;
 	readiness: SalesProductionReadiness;
 	stockStatus: SalesProductionStockStatus;
 	requiredQty: number;
 	availableQty: number;
+	allocatedQty: number;
+	pendingReviewQty: number;
+	receivedQty: number;
 	openInboundQty: number;
 	expectedAt: Date | string | null;
 	undatedOpenInboundQty: number;
+	productionEligibilityConflict: boolean;
+	inbounds: Array<{
+		id: number | null;
+		status: string;
+		expectedAt: Date | string | null;
+		supplierName: string | null;
+		quantity: number;
+	}>;
 };
+
+export function buildProductionItemMaterialStatus(input: {
+	salesOrderId: number;
+	salesItemId: number;
+	configuredProduction?: boolean | null;
+	productionItemDimension?: string | null;
+	hasOperationalProduction: boolean;
+	reviewPending: boolean;
+	projectionState: "available" | "unavailable";
+	materials: ProductionMaterialStatus[];
+}) {
+	const salesItemMaterials = input.materials.filter(
+		(material) => material.salesItemId === input.salesItemId,
+	);
+	const dimension = input.productionItemDimension
+		?.trim()
+		.match(/^(\d+-\d+)\s*x\s*(\d+-\d+)$/i);
+	const expectedVariantUid = dimension
+		? `w${dimension[1]?.replaceAll("-", "_")}-h${dimension[2]?.replaceAll("-", "_")}`
+		: null;
+	const dimensionMaterials = expectedVariantUid
+		? salesItemMaterials.filter(
+				(material) => material.inventoryVariantUid === expectedVariantUid,
+			)
+		: [];
+	const itemMaterials = dimensionMaterials.length
+		? dimensionMaterials
+		: salesItemMaterials;
+	return resolveItemMaterialStatus({
+		salesOrderId: input.salesOrderId,
+		salesItemId: input.salesItemId,
+		applicability:
+			input.configuredProduction === true
+				? "required"
+				: input.hasOperationalProduction
+					? "conflict"
+					: input.configuredProduction === false
+						? "not_required"
+						: "unknown",
+		evidenceAvailable: input.projectionState === "available",
+		reviewPending: input.reviewPending,
+		components: itemMaterials.map((material) => ({
+			componentId: material.componentId,
+			name: material.name,
+			requiredQty: material.requiredQty,
+			receivedQty: material.receivedQty,
+			committedAllocatedQty: material.allocatedQty,
+			pendingAllocationQty: material.pendingReviewQty,
+			openInboundQty: material.openInboundQty,
+			readiness: material.readiness,
+			eligibilityConflict: material.productionEligibilityConflict,
+			inbounds: material.inbounds,
+		})),
+	});
+}
 
 type ProductionMaterialSource = Pick<
 	SalesProductionPlanComponent,
@@ -29,6 +97,7 @@ type ProductionMaterialSource = Pick<
 	| "salesItemId"
 	| "componentId"
 	| "componentName"
+	| "inventoryVariantUid"
 	| "inventoryVariantSku"
 	| "supplierName"
 	| "readiness"
@@ -37,6 +106,8 @@ type ProductionMaterialSource = Pick<
 	| "allocatedQty"
 	| "inboundQty"
 	| "receivedQty"
+	| "pendingReviewQty"
+	| "productionEligibilityConflict"
 	| "inboundEvidence"
 >;
 
@@ -91,14 +162,34 @@ export function buildProductionMaterialStatuses(
 			component.componentName ||
 			component.inventoryVariantSku ||
 			"Required material",
+		inventoryVariantUid: component.inventoryVariantUid,
 		supplierName: component.supplierName?.trim() || null,
 		readiness: component.readiness,
 		stockStatus: component.stockStatus,
 		requiredQty: component.orderedQty,
 		availableQty: Math.max(component.allocatedQty, component.receivedQty),
+		allocatedQty: Number(component.allocatedQty || 0),
+		pendingReviewQty: Number(component.pendingReviewQty || 0),
+		receivedQty: Number(component.receivedQty || 0),
 		openInboundQty: Math.max(0, component.inboundQty - component.receivedQty),
 		expectedAt: latestExpectedAt(component.inboundEvidence),
 		undatedOpenInboundQty: undatedOpenInboundQty(component.inboundEvidence),
+		productionEligibilityConflict:
+			component.productionEligibilityConflict === true,
+		inbounds: component.inboundEvidence.flatMap((evidence) => {
+			const quantity = Math.max(0, evidence.qty - evidence.qtyReceived);
+			if (quantity <= 0 || evidence.status === "cancelled") return [];
+			return [
+				{
+					id: evidence.inboundShipmentItemId ?? evidence.id,
+					status: evidence.shipmentStatus || evidence.status || "pending",
+					expectedAt: evidence.expectedAt,
+					supplierName:
+						evidence.supplierName || component.supplierName?.trim() || null,
+					quantity,
+				},
+			];
+		}),
 	}));
 }
 

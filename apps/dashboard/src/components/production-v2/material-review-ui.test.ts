@@ -3,14 +3,22 @@ import { describe, expect, it } from "bun:test";
 const source = await Bun.file(new URL("./shared.tsx", import.meta.url)).text();
 
 describe("production material review UI", () => {
-	it("shows a durable retracted state for a notification-linked review", () => {
+	it("shows retracted reviews only as durable notification-linked history", () => {
 		expect(source.includes("requestedReviewId")).toBe(true);
 		expect(source.includes("Submission retracted")).toBe(true);
 		expect(source.includes("hasRetractedSubmissions")).toBe(true);
-		expect(
-			source.includes("Retracted submissions still need material resolution"),
-		).toBe(true);
+		expect(source.includes("Submission retracted")).toBe(true);
 		expect(source.includes("refetchInterval: orderContext")).toBe(true);
+	});
+
+	it("keeps material attention collapsed while preserving all-review navigation", () => {
+		expect(source.includes("Boolean(requestedReviewId)")).toBe(true);
+		expect(source.includes("MATERIAL ATTENTION ·")).toBe(true);
+		expect(source.includes("CollapsibleContent")).toBe(true);
+		expect(source.includes("rows.map((review)")).toBe(true);
+		expect(
+			source.includes("pipelineRevision: detail.pipelineRevision || undefined"),
+		).toBe(true);
 	});
 
 	it("keeps the review sidebar bounded and loads cursor pages while it scrolls", () => {

@@ -157,6 +157,7 @@ function createQuoteAcceptanceContext() {
   }
 
   const tx = {
+    $queryRaw: async () => [{ id: state.quote.id }],
     salesOrders: {
       findFirst: async ({ where }: { where?: QueryWhere }) => {
         if (where?.id === state.quote.id) return selectedSale(state.quote);
@@ -176,10 +177,38 @@ function createQuoteAcceptanceContext() {
         }
         throw new Error("Sales order not found in test mock.");
       },
+      findUnique: async ({ where }: { where?: QueryWhere }) => {
+        const row =
+          where?.id === state.quote.id
+            ? state.quote
+            : where?.id === state.order?.id
+              ? state.order
+              : null;
+        if (!row) return null;
+        return {
+          ...row,
+          updatedAt: row.updatedAt ?? new Date("2026-09-02T12:00:00.000Z"),
+          subTotal: row.subTotal ?? row.grandTotal,
+          tax: row.tax ?? 0,
+          taxPercentage: row.taxPercentage ?? 0,
+          extraCosts: [],
+          taxes: [],
+          items:
+            row.id === state.order?.id
+              ? state.createdItems.map((item, index) => ({
+                  id: index + 201,
+                  ...item,
+                  formSteps: [],
+                  housePackageTool: null,
+                }))
+              : row.items,
+        };
+      },
       count: async ({ where }: { where?: QueryWhere }) =>
         where?.orderId ? 0 : 23,
       create: async ({ data }: { data: Row }) => {
         const created = {
+          ...data,
           id: 101,
           orderId: String(data.orderId),
           slug: String(data.slug),
@@ -194,6 +223,7 @@ function createQuoteAcceptanceContext() {
           salesRep: state.quote.salesRep,
           meta: isRecord(data.meta) ? data.meta : {},
           isDyke: data.isDyke === true,
+          updatedAt: new Date("2026-09-02T12:00:00.000Z"),
         } satisfies SalesRow;
         state.order = created;
         state.createdOrders.push(created);
@@ -220,6 +250,11 @@ function createQuoteAcceptanceContext() {
         }
         throw new Error("Update target not found in test mock.");
       },
+      updateMany: async ({ where, data }: { where?: QueryWhere; data: Row }) => {
+        if (!state.order || where?.id !== state.order.id) return { count: 0 };
+        state.order = { ...state.order, ...data } as SalesRow;
+        return { count: 1 };
+      },
     },
     salesOrderItems: {
       create: async ({ data }: { data: Row }) => {
@@ -229,6 +264,10 @@ function createQuoteAcceptanceContext() {
           ...data,
         };
       },
+    },
+    resolutionCase: {
+      updateMany: async () => ({ count: 0 }),
+      upsert: async ({ create }: { create: Row }) => create,
     },
   };
 

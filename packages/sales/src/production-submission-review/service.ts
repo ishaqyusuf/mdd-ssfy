@@ -8,6 +8,7 @@ import {
   loadProductionMaterialStatuses,
 } from "../production-v2/application/production-materials";
 import type { Db } from "../types";
+import { resolveItemMaterialStatus } from "../item-material-status";
 import {
   type ProductionSubmissionMaterialReviewReason,
   classifyProductionSubmissionMaterials,
@@ -49,6 +50,7 @@ export type ProductionSubmissionMaterialEvidence = {
   classification: ReturnType<typeof classifyProductionSubmissionMaterials>;
   materialSnapshot: Prisma.InputJsonArray;
   materialRevision: string | null;
+	itemMaterialStatuses: ReturnType<typeof resolveItemMaterialStatus>[];
 };
 
 type CreatePendingMaterialReviewInput = {
@@ -79,9 +81,13 @@ function snapshotMaterial(material: ProductionMaterialStatus) {
     stockStatus: material.stockStatus,
     requiredQty: material.requiredQty,
     availableQty: material.availableQty,
+		allocatedQty: material.allocatedQty,
+		pendingReviewQty: material.pendingReviewQty,
+		receivedQty: material.receivedQty,
     openInboundQty: material.openInboundQty,
     expectedAt: normalizeDate(material.expectedAt),
     undatedOpenInboundQty: material.undatedOpenInboundQty,
+		productionEligibilityConflict: material.productionEligibilityConflict,
   };
 }
 
@@ -310,6 +316,7 @@ export async function evaluateProductionSubmissionMaterialEvidence(
   )(db, {
     salesOrderId: input.salesOrderId,
     completeOrder: true,
+		exactSalesItemIds: input.itemScope.map((item) => item.salesItemId),
   });
   const scopedSalesItemIds = new Set(
     input.itemScope.map((item) => item.salesItemId),
@@ -367,10 +374,39 @@ export async function evaluateProductionSubmissionMaterialEvidence(
     projection.state,
     materialSnapshot as Prisma.InputJsonArray,
   );
+	const itemMaterialStatuses = Array.from(scopedSalesItemIds)
+		.sort((left, right) => left - right)
+		.map((salesItemId) => {
+			const components = scopedMaterials.filter(
+				(material) => material.salesItemId === salesItemId,
+			);
+			const eligibilityConflict = components.some(
+				(material) => material.productionEligibilityConflict,
+			);
+			return resolveItemMaterialStatus({
+				salesOrderId: input.salesOrderId,
+				salesItemId,
+				applicability: eligibilityConflict ? "conflict" : "required",
+				evidenceAvailable: projection.state === "available",
+				reviewPending: classification.state === "pending_material_review",
+				components: components.map((material) => ({
+					componentId: material.componentId,
+					name: material.name,
+					requiredQty: material.requiredQty,
+					receivedQty: material.receivedQty,
+					committedAllocatedQty: material.allocatedQty,
+					pendingAllocationQty: material.pendingReviewQty,
+					openInboundQty: material.openInboundQty,
+					readiness: material.readiness,
+					eligibilityConflict: material.productionEligibilityConflict,
+				})),
+			});
+		});
 
   return {
     classification,
     materialSnapshot: materialSnapshot as Prisma.InputJsonArray,
     materialRevision,
+		itemMaterialStatuses,
   };
 }

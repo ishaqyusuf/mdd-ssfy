@@ -1013,6 +1013,9 @@ export const salesProductionSubmissionMaterialReviewSchema = z.object({
 	workerName: z.string().optional(),
 	submittedQty: z.number(),
 	reason: z.string(),
+	classification: z.string(),
+	classificationVersion: z.string(),
+	evidenceRevision: z.string().optional().nullable(),
 	pendingMaterialCount: z.number().optional(),
 	expectedAt: z.string().optional().nullable(),
 });

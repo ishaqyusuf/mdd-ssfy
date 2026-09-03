@@ -11,7 +11,12 @@ describe("mobile dispatch packing command", () => {
 		expect(source).toContain("_trpc.dispatch.confirmPacking.mutationOptions");
 		expect(source).toContain("_trpc.dispatch.resetPacking.mutationOptions");
 		expect(source).toContain("expectedManifestRevision");
-		expect(source).toContain("requestId: crypto.randomUUID()");
+		expect(source).toContain("expectedPipelineRevision");
+		expect(source).toContain(
+			"requestIds.current.get(key) || crypto.randomUUID()",
+		);
+		expect(source).toContain("requestIds.current.set(key, requestId)");
+		expect(source).toContain("requestIds.current.delete(key)");
 		expect(source).not.toContain("useTaskTrigger");
 		expect(source).not.toContain("prepareInventoryForDispatch");
 		expect(source).not.toContain("updateDispatchStatus");

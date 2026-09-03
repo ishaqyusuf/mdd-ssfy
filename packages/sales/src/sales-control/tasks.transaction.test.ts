@@ -72,20 +72,16 @@ mock.module("./get-sale-information", () => ({
 	getSaleInformation: getSaleInformationMock,
 }));
 
-mock.module("../payment-system/application/payment-review", () => ({
-	autoReviewSalesPaymentsForOrderAction:
-		autoReviewSalesPaymentsForOrderActionMock,
-}));
-
-mock.module("../tax-system", () => ({
-	recognizeSalesTaxForFulfilledOrder: recognizeSalesTaxForFulfilledOrderMock,
-}));
-
 mock.module("./settings", () => ({
 	getSalesSetting: getSalesSettingMock,
 }));
 
 const tasksModule = await import("./tasks");
+
+const lifecycleSideEffectDependencies = {
+	autoReviewSalesPayments: autoReviewSalesPaymentsForOrderActionMock,
+	recognizeSalesTax: recognizeSalesTaxForFulfilledOrderMock,
+};
 
 describe("sales-control task transactions", () => {
 	beforeEach(() => {
@@ -161,6 +157,7 @@ describe("sales-control task transactions", () => {
 				},
 			} as any,
 			{
+				...lifecycleSideEffectDependencies,
 				saveNoteAction: saveNoteMock,
 				completeInventoryDispatch,
 			} as any,
@@ -242,6 +239,7 @@ describe("sales-control task transactions", () => {
 				},
 			} as any,
 			{
+				...lifecycleSideEffectDependencies,
 				prepareMaterialReview: prepareProductionSubmissionMaterialReviewMock,
 				refreshAssignmentScope,
 			},
@@ -340,6 +338,7 @@ describe("sales-control task transactions", () => {
 				},
 			} as any,
 			{
+				...lifecycleSideEffectDependencies,
 				prepareMaterialReview: prepareProductionSubmissionMaterialReviewMock,
 			},
 		);
@@ -422,6 +421,7 @@ describe("sales-control task transactions", () => {
 				},
 			} as any,
 			{
+				...lifecycleSideEffectDependencies,
 				prepareMaterialReview: prepareProductionSubmissionMaterialReviewMock,
 			},
 		);
@@ -487,6 +487,7 @@ describe("sales-control task transactions", () => {
 				},
 			} as any,
 			{
+				...lifecycleSideEffectDependencies,
 				productionReadinessOverride: {
 					revision: "revision-1",
 					lineItemUids: ["door-1"],
@@ -973,6 +974,7 @@ describe("sales-control task transactions", () => {
 				},
 			} as any,
 			{
+				...lifecycleSideEffectDependencies,
 				prepareMaterialReview: prepareProductionSubmissionMaterialReviewMock,
 				saveNoteAction: saveNoteMock,
 			},
@@ -1034,7 +1036,10 @@ describe("sales-control task transactions", () => {
 					note: "Delivered",
 				},
 			} as any,
-			{ saveNoteAction: saveNoteMock },
+			{
+				...lifecycleSideEffectDependencies,
+				saveNoteAction: saveNoteMock,
+			},
 		);
 
 		expect(submitAssignmentsActionMock).not.toHaveBeenCalled();
@@ -1127,7 +1132,10 @@ describe("sales-control task transactions", () => {
 					receivedBy: "Customer",
 				},
 			} as any,
-			{ saveNoteAction: saveNoteMock },
+			{
+				...lifecycleSideEffectDependencies,
+				saveNoteAction: saveNoteMock,
+			},
 		);
 
 		expect(tx.orderProductionSubmissions.updateMany).toHaveBeenCalledWith(

@@ -626,3 +626,19 @@ Planning only; no Prisma model or database table has been created.
 - Add indexes for active order/milestone resolution, completion method and
   recorded/effective reporting, and cancellation history as selected by the
   implementation plan.
+
+## Canonical Sales Pipeline list projection (2026-09-02)
+
+- `SalesOrderListProjection` adds nullable `pipelineContractVersion`,
+  `pipelineRevision`, `pipelineHeadline`,
+  `pipelineProductionApplicability`, `pipelineProductionState`,
+  `pipelineFulfillmentApplicability`, and `pipelineFulfillmentState` columns.
+- These are derived, rebuildable query dimensions. No new operational status,
+  completion, Production, inventory, packing, Dispatch, payment, or accounting
+  authority was created.
+- Three compound indexes cover headline, Production, and Fulfillment list
+  membership together with projection health/version and stable Sales date/id
+  ordering.
+- The additive projection columns and indexes were pushed to the verified
+  production database on 2026-09-03. Prisma reported the schema in sync; no
+  operational records were reset or repaired by the schema operation.

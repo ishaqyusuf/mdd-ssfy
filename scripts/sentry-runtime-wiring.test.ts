@@ -32,7 +32,10 @@ describe("Sentry runtime wiring", () => {
 		const instrument = read("apps/api/src/instrument.ts");
 
 		expect(index.trimStart().startsWith('import "./instrument";')).toBe(true);
-		expect(buildEntry).toContain('import { app } from "."');
+		expect(buildEntry).toContain('const appPromise = import(".")');
+		expect(buildEntry.indexOf('import(".")')).toBeLessThan(
+			buildEntry.indexOf("app.fetch(req)"),
+		);
 		expect(index).toContain("captureTrpcError");
 		expect(index).toContain("app.onError");
 		expect(instrument).toContain("beforeSend(event)");

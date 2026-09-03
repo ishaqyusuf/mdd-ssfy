@@ -74,6 +74,10 @@ export const updateSalesControlSchema = z.object({
 		authorId: z.number(),
 		authorName: z.string(),
 		allowProductionSubmissionForOthers: z.boolean().optional(),
+		pipelineRevision: z
+			.string()
+			.regex(/^[a-f0-9]{64}$/)
+			.optional(),
 	}),
 	cancelDispatch: z
 		.object({
@@ -500,6 +504,7 @@ export const salesProductionCalendarQuerySchema = z
 		q: z.string().optional().nullable(),
 		assignedToId: z.number().optional().nullable(),
 		priority: salesPrioritySchema.optional().nullable(),
+		scope: z.enum(["open", "completed", "all"]).optional(),
 	})
 	.superRefine((value, ctx) => {
 		const from = new Date(`${value.from}T00:00:00Z`);

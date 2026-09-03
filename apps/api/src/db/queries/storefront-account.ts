@@ -6,6 +6,9 @@ import type {
 import type { TRPCContext } from "@api/trpc/init";
 import { resolveSalesDocumentAccess } from "@api/utils/sales-document-access";
 import { assertSalesDocumentsReady } from "@gnd/sales/document-readiness";
+import { projectSalesPipelineForAudience } from "@gnd/sales/sales-pipeline";
+import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
+import { observeSalesPipelineReadProjection } from "@gnd/sales/sales-pipeline-rollout";
 import { TRPCError } from "@trpc/server";
 
 type CustomerStorefrontContext = TRPCContext & {
@@ -23,50 +26,40 @@ function toIso(value: Date | null | undefined) {
 	return value?.toISOString() || null;
 }
 
-function customerOrderStatus(order: {
-	status: string | null;
-	prodStatus: string | null;
-	deliveredAt: Date | null;
-	deliveries: Array<{ status: string | null; deliveredAt: Date | null }>;
+function legacyCustomerOrderStatus(order: {
+	status?: string | null;
+	deliveredAt?: Date | null;
+	deliveries?: Array<{ status?: string | null; deliveredAt?: Date | null }>;
 }) {
-	const raw = `${order.status || ""} ${order.prodStatus || ""}`.toLowerCase();
-	if (raw.includes("cancel") || raw.includes("refund"))
-		return "cancelled" as const;
+	const raw = String(order.status || "").toLowerCase();
+	if (raw.includes("cancel") || raw.includes("refund")) return "cancelled";
 	if (
 		order.deliveredAt ||
-		order.deliveries.some(
+		order.deliveries?.some(
 			(delivery) =>
 				delivery.deliveredAt ||
-				`${delivery.status || ""}`.toLowerCase().includes("delivered"),
+				String(delivery.status || "")
+					.toLowerCase()
+					.includes("delivered"),
 		)
 	) {
-		return "delivered" as const;
+		return "delivered";
 	}
 	if (
-		order.deliveries.some((delivery) =>
+		order.deliveries?.some((delivery) =>
 			/(dispatch|transit|shipped|out for delivery)/i.test(
 				delivery.status || "",
 			),
 		)
 	) {
-		return "in-transit" as const;
+		return "in-transit";
 	}
-	return "processing" as const;
+	return "processing";
 }
 
-function customerOrderStatusLabel(
-	status: ReturnType<typeof customerOrderStatus>,
-) {
-	switch (status) {
-		case "in-transit":
-			return "In transit";
-		case "delivered":
-			return "Delivered";
-		case "cancelled":
-			return "Cancelled";
-		default:
-			return "Processing";
-	}
+function legacyCustomerOrderStatusLabel(status: string) {
+	if (status === "in-transit") return "In transit";
+	return `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
 }
 
 const orderListSelect = {
@@ -111,15 +104,18 @@ function mapOrderListItem(
 		ReturnType<CustomerStorefrontContext["db"]["salesOrders"]["findFirst"]>
 	> &
 		Record<string, unknown>,
+	pipeline: ReturnType<typeof projectSalesPipelineForAudience> | null,
 ) {
 	const record = order as any;
-	const status = customerOrderStatus(record);
+	const legacyStatus = legacyCustomerOrderStatus(record);
 	return {
 		id: record.id as number,
 		orderId: record.orderId as string,
 		slug: record.slug as string,
-		status,
-		statusLabel: customerOrderStatusLabel(status),
+		status: pipeline?.status.code ?? legacyStatus,
+		statusLabel:
+			pipeline?.status.label ?? legacyCustomerOrderStatusLabel(legacyStatus),
+		pipeline,
 		officeStatus: record.status as string | null,
 		productionStatus: record.prodStatus as string | null,
 		invoiceStatus: record.invoiceStatus as string | null,
@@ -326,65 +322,63 @@ export async function deleteStorefrontAddress(
 	return { ok: true };
 }
 
-function orderStatusWhere(status: StorefrontOrderListInput["status"]) {
-	switch (status) {
-		case "delivered":
-			return {
-				OR: [
-					{ deliveredAt: { not: null } },
-					{ deliveries: { some: { deliveredAt: { not: null } } } },
-				],
-			};
-		case "cancelled":
-			return { status: { contains: "cancel" } };
-		case "in-transit":
-			return {
-				deliveries: {
-					some: {
-						status: { in: ["dispatch", "in-transit", "shipped"] },
-						deliveredAt: null,
-					},
-				},
-			};
-		case "processing":
-			return {
-				deliveredAt: null,
-				NOT: [{ status: { contains: "cancel" } }],
-			};
-		default:
-			return {};
-	}
-}
-
 export async function listStorefrontOrders(
 	ctx: CustomerStorefrontContext,
 	input: StorefrontOrderListInput,
 ) {
 	const query = input.query?.trim();
-	const rows = await ctx.db.salesOrders.findMany({
-		where: {
-			customerId: ctx.customerId,
-			type: "order",
-			deletedAt: null,
-			...(query
-				? {
-						OR: [
-							{ orderId: { contains: query } },
-							{ items: { some: { description: { contains: query } } } },
-						],
-					}
-				: {}),
-			...orderStatusWhere(input.status),
-		},
-		orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-		take: input.limit + 1,
-		...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
-		select: orderListSelect,
-	});
-	const hasMore = rows.length > input.limit;
-	const page = hasMore ? rows.slice(0, input.limit) : rows;
+	const projected: Array<ReturnType<typeof mapOrderListItem>> = [];
+	const batchSize = Math.min(250, Math.max(50, input.limit * 2));
+	let cursor = input.cursor ?? null;
+	let exhausted = false;
+	while (!exhausted && projected.length <= input.limit) {
+		const rows = await ctx.db.salesOrders.findMany({
+			where: {
+				customerId: ctx.customerId,
+				type: "order",
+				deletedAt: null,
+				...(query
+					? {
+							OR: [
+								{ orderId: { contains: query } },
+								{ items: { some: { description: { contains: query } } } },
+							],
+						}
+					: {}),
+			},
+			orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+			take: batchSize,
+			...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+			select: orderListSelect,
+		});
+		if (rows.length === 0) break;
+		cursor = rows.at(-1)?.id ?? null;
+		exhausted = rows.length < batchSize;
+		const snapshots = await getSalesPipelineSnapshots(
+			ctx.db,
+			rows.map((row) => row.id),
+		);
+		for (const order of rows) {
+			const snapshot = snapshots.get(order.id);
+			if (!snapshot) continue;
+			const legacyStatus = legacyCustomerOrderStatus(order);
+			const selected = observeSalesPipelineReadProjection(snapshot, {
+				surface: "storefront.orders",
+				legacyHeadline: legacyStatus,
+			});
+			const pipeline = selected
+				? projectSalesPipelineForAudience(selected, "customer")
+				: null;
+			const status = pipeline?.status.code ?? legacyStatus;
+			if (input.status && status !== input.status) continue;
+			projected.push(mapOrderListItem(order as any, pipeline));
+			if (projected.length > input.limit) break;
+		}
+	}
+	const hasMore = projected.length > input.limit;
+	const page = projected.slice(0, input.limit);
 	return {
-		items: page.map((order) => mapOrderListItem(order as any)),
+		items: page,
 		nextCursor: hasMore ? page.at(-1)?.id || null : null,
 	};
 }
@@ -508,7 +502,23 @@ export async function getStorefrontOrder(
 		},
 	});
 	const checkoutTotals = safeRecord(checkout?.totals);
-	const summary = mapOrderListItem(order as any);
+	const pipelineSnapshot = (
+		await getSalesPipelineSnapshots(ctx.db, [order.id])
+	).get(order.id);
+	if (!pipelineSnapshot) throw new TRPCError({ code: "NOT_FOUND" });
+	const selectedPipeline = observeSalesPipelineReadProjection(
+		pipelineSnapshot,
+		{
+			surface: "storefront.order-detail",
+			legacyHeadline: legacyCustomerOrderStatus(order),
+		},
+	);
+	const summary = mapOrderListItem(
+		order as any,
+		selectedPipeline
+			? projectSalesPipelineForAudience(selectedPipeline, "customer")
+			: null,
+	);
 	const timeline = [
 		{
 			key: "placed",

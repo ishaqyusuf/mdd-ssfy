@@ -122,13 +122,15 @@ describe("sales completion projection", () => {
 				},
 			]),
 		});
-		expect(
-			buildSalesCompletionSatisfactionWhere("PRODUCTION_COMPLETED", true),
-		).toMatchObject({
-			OR: expect.arrayContaining([
-				{ prodStatus: { in: expect.arrayContaining(["completed", "N/A"]) } },
-			]),
-		});
+		const production = buildSalesCompletionSatisfactionWhere(
+			"PRODUCTION_COMPLETED",
+			true,
+		);
+		const serializedProduction = JSON.stringify(production);
+		expect(serializedProduction).toContain('"assignments"');
+		expect(serializedProduction).toContain('"completedAt":null');
+		expect(serializedProduction).not.toContain('"prodStatus"');
+		expect(serializedProduction).not.toContain('"type":"prodCompleted"');
 		expect(
 			buildSalesCompletionSatisfactionWhere("FULFILLMENT_COMPLETED", false),
 		).toEqual({ NOT: completed });

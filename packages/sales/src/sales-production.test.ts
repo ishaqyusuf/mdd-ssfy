@@ -8,6 +8,7 @@ import {
 	isProductionCompleted,
 	sortProductionListByPriority,
 } from "./sales-production";
+import { resolveSalesPipelineSnapshotFromOrder } from "./sales-pipeline-order";
 import { salesProductionQueryParamsSchema } from "./schema";
 import { whereSales } from "./utils/where-queries";
 
@@ -34,6 +35,48 @@ function productionRow(id: number, priority: string) {
 		itemControls: [],
 		assignments: [],
 		completionRecords: [],
+	};
+}
+
+function completedProductionRow(id: number, priority: string) {
+	const row = {
+		...productionRow(id, priority),
+		itemControls: [
+			{
+				uid: `control-${id}`,
+				produceable: true,
+				shippable: false,
+				qtyControls: [
+					{
+						type: "qty",
+						total: 1,
+						itemTotal: 1,
+						qty: 1,
+						updatedAt: new Date("2026-07-01T12:00:00Z"),
+					},
+				],
+				assignments: [],
+			},
+		],
+		completionRecords: [
+			{
+				id: `completion-${id}`,
+				milestone: "PRODUCTION_COMPLETED",
+				completionMethod: "STATUS_ONLY",
+				recordedAt: new Date("2026-07-02T12:00:00Z"),
+				effectiveAt: null,
+				recordedById: 7,
+			},
+		],
+	};
+	return row;
+}
+
+function completedProjection(row: ReturnType<typeof completedProductionRow>) {
+	return {
+		salesOrderId: row.id,
+		pipelineRevision: resolveSalesPipelineSnapshotFromOrder(row as never)
+			.revision,
 	};
 }
 
@@ -68,6 +111,11 @@ describe("sales production priority sorting", () => {
 							startedAt: dueDate,
 							completedAt,
 							dueDate,
+							qtyAssigned: 1,
+							qtyCompleted: 1,
+							lhQty: 0,
+							rhQty: 0,
+							submissions: [],
 							assignedTo: { name: "Worker" },
 							order: {
 								id: 42,
@@ -82,11 +130,13 @@ describe("sales production priority sorting", () => {
 					];
 				},
 			},
+			salesOrders: { findMany: async () => [] },
 		};
 
 		const result = await getSalesProductionCalendar(db as unknown as Db, {
 			from: "2026-09-01",
 			to: "2026-09-07",
+			scope: "completed",
 		});
 
 		expect(JSON.stringify(capturedWhere)).not.toContain(
@@ -99,7 +149,7 @@ describe("sales production priority sorting", () => {
 		});
 	});
 
-	it("uses canonical order completion when assignment timestamps are stale", async () => {
+	it("does not let a legacy terminal order string complete open schedule evidence", async () => {
 		const dueDate = new Date("2026-09-02T09:00:00.000Z");
 		const db = {
 			orderItemProductionAssignments: {
@@ -110,6 +160,11 @@ describe("sales production priority sorting", () => {
 						startedAt: null,
 						completedAt: null,
 						dueDate,
+						qtyAssigned: 1,
+						qtyCompleted: 0,
+						lhQty: 0,
+						rhQty: 0,
+						submissions: [],
 						assignedTo: { name: "Worker" },
 						order: {
 							id: 43,
@@ -123,6 +178,7 @@ describe("sales production priority sorting", () => {
 					},
 				],
 			},
+			salesOrders: { findMany: async () => [] },
 		};
 
 		const result = await getSalesProductionCalendar(db as unknown as Db, {
@@ -132,13 +188,16 @@ describe("sales production priority sorting", () => {
 
 		expect(result.scheduled[0]).toMatchObject({
 			orderNo: "ORDER-43",
-			status: "completed",
+			status: "assigned",
 		});
 	});
 
 	it("loads the global candidate set before applying a production sort", async () => {
 		const findManyCalls: SalesFindManyArgs[] = [];
 		const db = {
+			orderItemProductionAssignments: {
+				findMany: async () => [],
+			},
 			salesOrders: {
 				count: async () => 1000,
 				findMany: async (args: SalesFindManyArgs) => {
@@ -163,6 +222,9 @@ describe("sales production priority sorting", () => {
 	it("bounds material-enriched production pages", async () => {
 		const findManyCalls: SalesFindManyArgs[] = [];
 		const db = {
+			orderItemProductionAssignments: {
+				findMany: async () => [],
+			},
 			salesOrders: {
 				count: async () => 1000,
 				findMany: async (args: SalesFindManyArgs) => {
@@ -242,9 +304,12 @@ describe("sales production priority sorting", () => {
 		expect(result.meta.cursor).toBe("1");
 	});
 
-	it("applies search and completion predicates before canonical due sorting", async () => {
+	it("applies search and canonical schedule membership before due sorting", async () => {
 		const findManyCalls: Array<SalesFindManyArgs & { where?: unknown }> = [];
 		const db = {
+			orderItemProductionAssignments: {
+				findMany: async () => [],
+			},
 			salesOrders: {
 				count: async () => 100,
 				findMany: async (args: SalesFindManyArgs & { where?: unknown }) => {
@@ -264,9 +329,9 @@ describe("sales production priority sorting", () => {
 		expect(findManyCalls[0]?.skip).toBeUndefined();
 		const serializedWhere = JSON.stringify(findManyCalls[0]?.where);
 		expect(serializedWhere).toContain("needle");
-		expect(serializedWhere).toContain('"completionRecords"');
-		expect(serializedWhere).toContain('"completionMethod":"STATUS_ONLY"');
-		expect(serializedWhere).toContain('"milestone"');
+		expect(serializedWhere).toContain('"id":{"in":[]');
+		expect(serializedWhere).toContain('"completedAt":null');
+		expect(serializedWhere).not.toContain('"completionRecords"');
 	});
 
 	it("keeps assignment filters when completion eligibility adds an outer predicate", async () => {
@@ -291,26 +356,35 @@ describe("sales production priority sorting", () => {
 		expect(JSON.stringify(capturedSelect)).toContain('"assignedToId":17');
 	});
 
-	it("keeps production summary counts database-side", async () => {
+	it("keeps open counts database-side and resolves Completed canonically", async () => {
 		let countCalls = 0;
+		let lifecycleReadCalls = 0;
 		const db = {
+			orderItemProductionAssignments: {
+				findMany: async () => [],
+			},
 			salesOrders: {
 				count: async () => {
 					countCalls += 1;
 					return 0;
 				},
 				findMany: async () => {
-					throw new Error("summary counts must not load production rows");
+					lifecycleReadCalls += 1;
+					return [];
 				},
 			},
 			salesProductionSubmissionMaterialReview: {
-				count: async () => 0,
+				findMany: async () => [],
+			},
+			salesOrderListProjection: {
+				findMany: async () => [],
 			},
 		};
 
 		await getSalesProductionSummary(db as unknown as Db, {});
 
 		expect(countCalls).toBe(8);
+		expect(lifecycleReadCalls).toBe(0);
 	});
 
 	it("requires every active assignment to have an owner for Ready", () => {
@@ -342,6 +416,35 @@ describe("sales production priority sorting", () => {
 		expect(serialized).toContain('"total":{"gt":0}');
 		expect(serialized).toContain('"items"');
 		expect(serialized).toContain('"qtyAssigned":{"gt":0}');
+	});
+
+	it("uses active incomplete assignments for Due Today without a SalesStat gate", () => {
+		const serialized = JSON.stringify(
+			whereSales({
+				production: "pending",
+				"completion.production": "pending",
+				"production.status": "due today",
+			}),
+		);
+
+		expect(serialized).toContain('"assignments"');
+		expect(serialized).toContain('"dueDate"');
+		expect(serialized).toContain('"completedAt":null');
+		expect(serialized).not.toContain('"type":"prodCompleted"');
+	});
+
+	it("uses the same active incomplete assignment rule for Past Due", () => {
+		const serialized = JSON.stringify(
+			whereSales({
+				production: "pending",
+				"completion.production": "pending",
+				"production.status": "past due",
+			}),
+		);
+
+		expect(serialized).toContain('"assignments"');
+		expect(serialized).toContain('"completedAt":null');
+		expect(serialized).not.toContain('"type":"prodCompleted"');
 	});
 
 	it("treats null-owner assignment rows as Unassigned", () => {
@@ -391,15 +494,17 @@ describe("sales production priority sorting", () => {
 	});
 
 	it("projects lifecycle status for batch completion eligibility", async () => {
+		const row = {
+			...completedProductionRow(43, "NORMAL"),
+			status: "Completed",
+		};
 		const db = {
 			salesOrders: {
 				count: async () => 1,
-				findMany: async () => [
-					{
-						...productionRow(43, "NORMAL"),
-						status: "Completed",
-					},
-				],
+				findMany: async () => [row],
+			},
+			salesOrderListProjection: {
+				findMany: async () => [completedProjection(row)],
 			},
 		};
 
@@ -413,10 +518,14 @@ describe("sales production priority sorting", () => {
 	});
 
 	it("projects canonical completion satisfaction for status-only completed rows", async () => {
+		const row = completedProductionRow(46, "NORMAL");
 		const db = {
 			salesOrders: {
 				count: async () => 1,
-				findMany: async () => [productionRow(46, "NORMAL")],
+				findMany: async () => [row],
+			},
+			salesOrderListProjection: {
+				findMany: async () => [completedProjection(row)],
 			},
 		};
 
@@ -433,16 +542,18 @@ describe("sales production priority sorting", () => {
 	});
 
 	it("projects a read-only invoice total and payment status", async () => {
+		const row = {
+			...completedProductionRow(45, "NORMAL"),
+			grandTotal: 1250,
+			amountDue: 0,
+		};
 		const db = {
 			salesOrders: {
 				count: async () => 1,
-				findMany: async () => [
-					{
-						...productionRow(45, "NORMAL"),
-						grandTotal: 1250,
-						amountDue: 0,
-					},
-				],
+				findMany: async () => [row],
+			},
+			salesOrderListProjection: {
+				findMany: async () => [completedProjection(row)],
 			},
 		};
 
@@ -457,6 +568,50 @@ describe("sales production priority sorting", () => {
 			amountDue: 0,
 			status: "paid",
 		});
+	});
+
+	it("exposes canonical Production applicability conflicts on list rows", async () => {
+		const row = {
+			...productionRow(47, "NORMAL"),
+			itemControls: [
+				{
+					produceable: false,
+					shippable: true,
+					qtyControls: [{ type: "qty", total: 1 }],
+					assignments: [{ id: 901 }],
+				},
+			],
+			assignments: [
+				{
+					id: 901,
+					assignedAt: new Date("2026-09-02T08:00:00.000Z"),
+					assignedToId: 17,
+					createdAt: new Date("2026-09-02T08:00:00.000Z"),
+					qtyAssigned: 1,
+					qtyCompleted: 0,
+					lhQty: 0,
+					rhQty: 0,
+					completedAt: null,
+					dueDate: new Date("2026-09-02T09:00:00.000Z"),
+					assignedTo: { name: "Worker" },
+					submissions: [],
+				},
+			],
+		};
+		const db = {
+			salesOrders: { findMany: async () => [row] },
+		};
+
+		const result = await getSalesProductions(db as unknown as Db, {
+			production: "pending",
+			includeMaterials: false,
+			size: 20,
+		});
+
+		expect(result.data[0]?.pipeline.production.applicability).toBe("conflict");
+		expect(
+			result.data[0]?.pipeline.capabilities.markProductionCompleted.allowed,
+		).toBe(false);
 	});
 
 	it("excludes fulfilled deliveries in the canonical pending query", async () => {

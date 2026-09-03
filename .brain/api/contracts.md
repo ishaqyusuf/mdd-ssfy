@@ -1,5 +1,66 @@
 # API Contracts
 
+## Canonical Sales Pipeline Lifecycle (2026-09-02)
+
+- `sales-pipeline/v2` is the shared lifecycle response contract. It includes an
+  evidence revision and freshness, canonical headline, explicit commercial,
+  payment, material, Production, Fulfillment, packing, and Dispatch dimensions,
+  applicability, blockers, conflicts, provenance, and server-owned action
+  capabilities.
+- Sales Orders, Sales Overview, Production, Fulfillment/Dispatch, worker/driver,
+  dealership, storefront, and customer adapters project from the same snapshot.
+  Audience adapters may reduce detail and wording but cannot reconstruct or
+  redefine lifecycle meaning.
+- Lifecycle list filters are evaluated through
+  `matchesCanonicalSalesPipelineFilter`. Candidate SQL may return a safe
+  superset, but list, count, summary, saved-tab, and export results use the same
+  exact canonical ID set. Production schedule membership uses the corresponding
+  assignment-level workspace predicate.
+- Production Completed membership requires canonical order-level Production
+  completion and Production applicability `required`; it does not admit
+  non-production orders or orders with remaining open assignments. Worker
+  assignment-completion history remains separately scoped.
+- Canonical command evaluation validates permission input, expected evidence
+  revision, applicability, blockers, conflicts, terminal/replay state, and
+  affected scopes before a domain command runs. Batch outcomes distinguish
+  success, replay, skip, review-required, and failure.
+- `SALES_PIPELINE_READ_MODE`, `SALES_PIPELINE_COMMAND_MODE`, and
+  `SALES_PIPELINE_COHORT_PERCENT` control shadow/canonical serving and bounded
+  enforcement. Production defaults to shadow; development defaults to
+  canonical.
+- Reconciliation dry-run returns a versioned run id, timestamps, classification
+  counts, reason codes, revisions, and samples. Apply additionally requires
+  actor and reason and can update only revision-checked
+  `SalesOrderListProjection` cache rows in bounded batches. Payment, inventory,
+  Production, packing, Dispatch, proof, and accounting facts are never repaired
+  by this command.
+- `item-material-status/v1` is the exact-production-item material contract. It
+  returns applicability, one approved status code/label/tone, explanation,
+  review state, quantity groups (`required`, `received`,
+  `committedAllocated`, `pendingAllocation`, and `openInbound`), blockers,
+  provenance, inbound facts, and evidence revision. The source adapter scopes
+  repeated door/HPT items by exact inventory variant UID and normalized
+  dimension before any parent-item compatibility fallback.
+- Customer/dealer material projections return only safe deterministic wording;
+  they never expose internal component, conflict, or review evidence and never
+  translate receipt/coverage alone into `MATERIAL READY`.
+- Production material-review list/count/detail, notification, saved-view,
+  deep-link, and order-scoped APIs share one current-actionability predicate.
+  Empty/retracted, terminal, and superseded records remain history-only.
+- A material-review notification is emitted only after the exact review is
+  reloaded and still satisfies that predicate. Its typed payload carries the
+  current `classification`, `classificationVersion`, and nullable
+  `evidenceRevision`, so stale notifications remain attributable instead of
+  becoming a second lifecycle authority.
+- The central browser query-event registry invalidates material review,
+  Production item detail, materials, and readiness projections after every
+  Production, catalog-metadata, stock, inbound, allocation, and Fulfillment
+  evidence family.
+- Shadow observers emit safe comparison evidence while serving the configured
+  legacy/canonical mode. `sales-pipeline:cutover-check` fails closed unless
+  unexplained membership and unsafe-transition differences are zero, latency is
+  acceptable, conflict sampling is complete, and operator approval is explicit.
+
 ## Status-only Sales Completion (2026-09-01)
 
 - Projection input is `{ salesOrderId: positiveInt }`. The response separates

@@ -779,7 +779,9 @@ export function dueDateAlert(dates): { text; color; date } {
     // }
   }
 
-  result.pastDues.sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
+  // The oldest missed assignment is the controlling Production due date. This
+  // keeps the displayed date aligned with the default due-date ascending sort.
+  result.pastDues.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
 
   // Sort futureDues in ascending order (soonest first)
   result.futureDues.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));

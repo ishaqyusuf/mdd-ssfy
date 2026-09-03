@@ -992,7 +992,7 @@ export async function getDealerPortalCustomerOverview(db, dealerId, id) {
         ...counts,
     };
 }
-function getDealerSalesListWhere(dealerId, type, input = {}) {
+function getDealerSalesListWhere(dealerId, type, input = {}, pipelineFilter) {
     const customerId = Number(input.customerId || 0) || null;
     const search = input.q?.trim();
     const customerName = input["customer.name"]?.trim();
@@ -1064,6 +1064,27 @@ function getDealerSalesListWhere(dealerId, type, input = {}) {
         ...(invoiceStatus
             ? {
                 invoiceStatus,
+            }
+            : {}),
+        ...(pipelineFilter
+            ? {
+                listProjection: {
+                    is: {
+                        state: "ready",
+                        version: pipelineFilter.projectionVersion,
+                        pipelineContractVersion: pipelineFilter.contractVersion,
+                        ...(pipelineFilter.headlineIn?.length
+                            ? { pipelineHeadline: { in: pipelineFilter.headlineIn } }
+                            : {}),
+                        ...(pipelineFilter.headlineNotIn?.length
+                            ? {
+                                pipelineHeadline: {
+                                    notIn: pipelineFilter.headlineNotIn,
+                                },
+                            }
+                            : {}),
+                    },
+                },
             }
             : {}),
         ...(customerSearch || phoneSearch
@@ -1177,10 +1198,10 @@ function nullableFiniteNumber(value) {
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
 }
-export async function getDealerPortalSalesList(db, dealerId, type, input = {}) {
+export async function getDealerPortalSalesList(db, dealerId, type, input = {}, pipelineFilter) {
     const size = Math.min(Math.max(Number(input.size || 25), 1), 100);
     const cursor = Number(input.cursor || 0);
-    const where = getDealerSalesListWhere(dealerId, type, input);
+    const where = getDealerSalesListWhere(dealerId, type, input, pipelineFilter);
     const [rawDocuments, count] = await Promise.all([
         db.salesOrders.findMany({
             where,

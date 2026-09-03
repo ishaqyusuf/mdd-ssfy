@@ -1,6 +1,11 @@
 "use client";
 
 import { getProductionTabItems } from "@/components/sales-overview-system/lib/production-items";
+import {
+	ItemMaterialStatusBadge,
+	ItemMaterialStatusDetail,
+} from "@/components/production-v2/item-material-status-badge";
+import { ProductionItemHeadline } from "@/components/production-v2/production-item-headline";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useAfterTaskTrigger } from "@/hooks/use-task-trigger";
 import { cn } from "@/lib/utils";
@@ -25,7 +30,6 @@ import {
 	Item,
 	ItemActions,
 	ItemContent,
-	ItemDescription,
 	ItemGroup,
 	ItemMedia,
 	ItemTitle,
@@ -42,7 +46,6 @@ import { ProductionReadinessBanner } from "../../production-readiness-banner";
 import { ProductionTabFooter } from "../../production-tab-footer";
 import { getWorkerProductionSubmissionProgress } from "../../production-worker-policy";
 import { useProductionItemExpansion } from "../../use-production-item-expansion";
-import { ProductionInboundSummary } from "./production-inbound-summary";
 import {
 	PRODUCTION_ITEM_ACCORDION_SETTLE_MS,
 	PRODUCTION_ITEM_SCROLL_VIEWPORT_SELECTOR,
@@ -169,7 +172,7 @@ function ProductionV2Item({
 					"overflow-hidden bg-background transition-[border-radius,border-color]",
 					opened
 						? "rounded-md border border-border"
-						: "rounded-none border-x-0 border-t-0 border-b border-border",
+						: "rounded-none border border-x-transparent border-t-transparent border-b-border",
 					followedByOpened && "border-b-transparent",
 					!item.itemConfig?.production && "hidden",
 				)}
@@ -183,7 +186,7 @@ function ProductionV2Item({
 					)}
 				>
 					<ItemGroup>
-						<Item className="relative flex-nowrap border-0 p-0">
+						<Item className="relative flex-nowrap items-start border-0 p-0">
 							<AccessBased>
 								<ItemMedia>
 									<Checkbox
@@ -198,23 +201,23 @@ function ProductionV2Item({
 								</ItemMedia>
 							</AccessBased>
 							<ItemContent className="relative min-w-0">
-								<ItemTitle className="uppercase">
+								<ItemTitle>
 									<button
 										type="button"
-										className="cursor-pointer text-left after:absolute after:inset-0"
+										className="block w-full cursor-pointer text-left after:absolute after:inset-0"
 										onClick={handleTitleToggle}
 										aria-expanded={opened}
 									>
-										{presentation.title}
+										<ProductionItemHeadline
+											segments={
+												workerPresentation?.headlineSegments ??
+												presentation.headlineSegments
+											}
+										/>
 									</button>
 								</ItemTitle>
 								{workerProgress && workerPresentation ? (
 									<div className="mt-1 flex flex-wrap items-center gap-1.5">
-										{presentation.subtitle ? (
-											<ItemDescription className="w-fit rounded-md border border-border/80 bg-muted/70 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/85">
-												{presentation.subtitle}
-											</ItemDescription>
-										) : null}
 										<Badge className="gap-1.5 whitespace-nowrap bg-primary text-primary-foreground hover:bg-primary">
 											<span>QTY</span>
 											<span className="font-bold tabular-nums">
@@ -244,16 +247,10 @@ function ProductionV2Item({
 												</>
 											) : null}
 										</Badge>
+										<ItemMaterialStatusBadge status={item.materialStatus} />
 									</div>
 								) : (
-									<>
-										{presentation.subtitle ? (
-											<ItemDescription className="mt-1 w-fit rounded-md border border-border/80 bg-muted/70 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/85">
-												{presentation.subtitle}
-											</ItemDescription>
-										) : null}
-										<ProductionItemStatusBadges item={item} />
-									</>
+									<ProductionItemStatusBadges item={item} />
 								)}
 							</ItemContent>
 							<ItemActions className="relative shrink-0 gap-1">
@@ -271,6 +268,10 @@ function ProductionV2Item({
 					</ItemGroup>
 				</div>
 				<AccordionContent className="pb-0">
+					<ItemMaterialStatusDetail
+						status={item.materialStatus}
+						className="mx-4 mt-4 sm:mx-5"
+					/>
 					<ProductionV2ItemDocument />
 				</AccordionContent>
 			</AccordionItem>
@@ -312,10 +313,11 @@ function ProductionTabV2Content() {
 				<ProductionMaterialReviewPanel
 					orderContext
 					search={queryCtx.params["sales-overview-id"]}
+					salesOrderId={data.orderId}
+					requestedReviewId={queryCtx.params.reviewId}
 				/>
 			</AccessBased>
 			{items.length ? <ProductionReadinessBanner /> : null}
-			{workerMode && items.length ? <ProductionInboundSummary /> : null}
 			<Accordion
 				type="single"
 				value={expandedItemUids[0] ?? ""}

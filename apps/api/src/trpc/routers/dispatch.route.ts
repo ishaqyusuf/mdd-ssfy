@@ -105,6 +105,14 @@ import type { Db, TransactionClient } from "@gnd/db";
 import type { DevLogEntry } from "@gnd/dev-logger";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
 import { AppError } from "@gnd/errors";
+import {
+	getSalesPipelineSnapshots,
+	refreshSalesOrderListProjections,
+	runSalesPipelineCommandTransaction,
+	SalesPipelineCommandRejectedError,
+	shouldEnforceCanonicalSalesPipelineCommands,
+	type SalesPipelineCommand,
+} from "@gnd/sales";
 import { resolveDriverRouteDestination } from "@gnd/sales/dispatch-manifest/driver-destination";
 import { getDriverManifestItemPresentation } from "@gnd/sales/dispatch-manifest/driver-item-presentation";
 import { PackingReportError } from "@gnd/sales/packing-report-review";
@@ -193,6 +201,67 @@ function normalizeDispatchDeliveryMode(value: string | null | undefined) {
 	return value === "pickup" || value === "delivery" ? value : undefined;
 }
 
+async function runCanonicalDispatchCommand<T>(
+	ctx: TRPCContext,
+	input: {
+		salesOrderId: number;
+		action: SalesPipelineCommand;
+		expectedRevision?: string | null;
+		operation: string;
+	},
+	execute: (transactionDb: Db) => Promise<T>,
+) {
+	try {
+		return await runSalesPipelineCommandTransaction(
+			ctx.db,
+			{
+				...input,
+				authorized: true,
+				enforce: shouldEnforceCanonicalSalesPipelineCommands(
+					input.salesOrderId,
+				),
+			},
+			(transactionDb) => execute(transactionDb),
+		);
+	} catch (error) {
+		if (error instanceof SalesPipelineCommandRejectedError) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: error.message,
+				cause: error,
+			});
+		}
+		throw error;
+	}
+}
+
+async function refreshDispatchPipelineProjection(
+	ctx: TRPCContext,
+	salesOrderId: number,
+) {
+	try {
+		const snapshot = (
+			await getSalesPipelineSnapshots(ctx.db, [salesOrderId])
+		).get(salesOrderId);
+		if (!snapshot) return null;
+		await refreshSalesOrderListProjections(ctx.db, [
+			{
+				salesOrderId,
+				sourceUpdatedAt: snapshot.freshness.evidenceUpdatedAt
+					? new Date(snapshot.freshness.evidenceUpdatedAt)
+					: new Date(),
+			},
+		]);
+		return snapshot;
+	} catch (error) {
+		console.error(
+			"Dispatch mutation committed, but its derived projection refresh failed.",
+			{ error, salesOrderId },
+		);
+		return null;
+	}
+}
+
 function asJsonRecord(value: unknown): Record<string, unknown> {
 	return value && typeof value === "object" && !Array.isArray(value)
 		? (value as Record<string, unknown>)
@@ -228,6 +297,7 @@ const confirmDispatchPackingSchema = z
 		dispatchId: z.number().int().positive(),
 		requestId: z.string().trim().min(8).max(128),
 		expectedManifestRevision: z.string().trim().min(16).max(128),
+		expectedPipelineRevision: z.string().trim().min(16).max(128).optional(),
 		replaceExisting: z.boolean().default(false),
 		items: z
 			.array(
@@ -251,6 +321,7 @@ const resetDispatchPackingSchema = z
 		dispatchId: z.number().int().positive(),
 		requestId: z.string().trim().min(8).max(128),
 		expectedManifestRevision: z.string().trim().min(16).max(128),
+		expectedPipelineRevision: z.string().trim().min(16).max(128).optional(),
 	})
 	.strict();
 
@@ -258,6 +329,7 @@ const startDispatchTripSchema = z
 	.object({
 		dispatchId: z.number().int().positive(),
 		requestId: z.string().trim().min(8).max(128),
+		expectedPipelineRevision: z.string().trim().min(16).max(128).optional(),
 	})
 	.strict();
 
@@ -562,7 +634,12 @@ function driverStartBlockerMessage(blockers: readonly string[]) {
 async function executeDriverTripStart(
 	ctx: TRPCContext & { userId: number },
 	actor: Awaited<ReturnType<typeof auth>>,
-	input: { dispatchId: number; requestId: string; assignedOnly?: boolean },
+	input: {
+		dispatchId: number;
+		requestId: string;
+		assignedOnly?: boolean;
+		expectedPipelineRevision?: string | null;
+	},
 ) {
 	const projection = await getMobileDispatchProjection(
 		ctx,
@@ -602,27 +679,45 @@ async function executeDriverTripStart(
 			),
 		});
 	}
-
-	await enforceSpecialOrderForSale(
-		ctx,
-		projection.order.id,
-		"DISPATCH",
-		"api.dispatch.start-trip",
-	);
 	const taskInput = withAuthenticatedSalesControlActor(
 		{
 			meta: {
 				salesId: projection.order.id,
 				authorId: actor.id,
 				authorName: actor.name || `User ${ctx.userId}`,
+				pipelineRevision:
+					input.expectedPipelineRevision ||
+					(input.assignedOnly
+						? projection.pipelineRevision || undefined
+						: undefined),
 			},
 			startDispatch: { dispatchId: dispatch.id },
 		},
 		actor,
 	);
-	const response = await startDispatchTask(ctx.db, taskInput, {
-		assertInventoryReady: assertDispatchInventoryReadyToStart,
-	});
+	const execution = await runCanonicalDispatchCommand(
+		ctx,
+		{
+			salesOrderId: projection.order.id,
+			action: "fulfillment.start_dispatch",
+			expectedRevision: taskInput.meta.pipelineRevision,
+			operation: "api.dispatch.start-trip",
+		},
+		async (transactionDb) => {
+			await assertSpecialOrderOperationAllowedForApi(transactionDb, {
+				salesOrderId: projection.order.id,
+				operation: "DISPATCH",
+				actorUserId: ctx.userId,
+				authorName: actor.name || `User ${ctx.userId}`,
+				source: "api.dispatch.start-trip",
+			});
+			return startDispatchTask(transactionDb, taskInput, {
+				assertInventoryReady: assertDispatchInventoryReadyToStart,
+			});
+		},
+	);
+	const response = execution.executed ? execution.value : null;
+	await refreshDispatchPipelineProjection(ctx, projection.order.id);
 	const current = await ctx.db.orderDelivery.findFirst({
 		where: { id: dispatch.id, deletedAt: null },
 		select: { status: true },
@@ -651,7 +746,7 @@ async function executeDriverTripStart(
 		result: response ?? null,
 		requestId: input.requestId,
 		status: current?.status || dispatch.status,
-		idempotent: false,
+		idempotent: !execution.executed,
 		notificationFailed,
 	};
 }
@@ -917,10 +1012,23 @@ export const dispatchRouters = createTRPCRouter({
 		.mutation(async (props) => {
 			const actor = await requireDispatchManager(props.ctx);
 			const input = withAuthenticatedSalesControlActor(props.input, actor);
-			const response = await cancelDispatchTask(props.ctx.db, input, {
-				releaseDispatchInventory: (tx, input) =>
-					releaseDispatchBoundInventory(tx, input),
-			});
+			const execution = await runCanonicalDispatchCommand(
+				props.ctx,
+				{
+					salesOrderId: input.meta.salesId,
+					action: "fulfillment.cancel",
+					expectedRevision: input.meta.pipelineRevision,
+					operation: "api.dispatch.cancel",
+				},
+				(transactionDb) =>
+					cancelDispatchTask(transactionDb, input, {
+						releaseDispatchInventory: (tx, input) =>
+							releaseDispatchBoundInventory(tx, input),
+					}),
+			);
+			const response = execution.executed
+				? execution.value
+				: { idempotentReplay: true, state: "replayed" as const };
 			const dispatchIds = input.cancelDispatch?.dispatchIds?.length
 				? input.cancelDispatch.dispatchIds
 				: input.cancelDispatch?.dispatchId
@@ -994,15 +1102,30 @@ export const dispatchRouters = createTRPCRouter({
 				props.input.startDispatch?.dispatchId,
 			);
 			const input = withAuthenticatedSalesControlActor(props.input, actor);
-			await enforceSpecialOrderForSale(
+			const execution = await runCanonicalDispatchCommand(
 				props.ctx,
-				input.meta.salesId,
-				"DISPATCH",
-				"api.dispatch.start",
+				{
+					salesOrderId: input.meta.salesId,
+					action: "fulfillment.start_dispatch",
+					expectedRevision: input.meta.pipelineRevision,
+					operation: "api.dispatch.start",
+				},
+				async (transactionDb) => {
+					await assertSpecialOrderOperationAllowedForApi(transactionDb, {
+						salesOrderId: input.meta.salesId,
+						operation: "DISPATCH",
+						actorUserId: props.ctx.userId,
+						authorName: actor.name || `User ${props.ctx.userId}`,
+						source: "api.dispatch.start",
+					});
+					return startDispatchTask(transactionDb, input, {
+						assertInventoryReady: assertDispatchInventoryReadyToStart,
+					});
+				},
 			);
-			const response = await startDispatchTask(props.ctx.db, input, {
-				assertInventoryReady: assertDispatchInventoryReadyToStart,
-			});
+			const response = execution.executed
+				? execution.value
+				: { idempotentReplay: true, state: "replayed" as const };
 			const dispatchId = input.startDispatch?.dispatchId;
 			if (dispatchId) {
 				const dispatch = await props.ctx.db.orderDelivery.findFirst({
@@ -1179,26 +1302,54 @@ export const dispatchRouters = createTRPCRouter({
 					message: "Dispatch not found.",
 				});
 			}
-			await enforceSpecialOrderForSale(
-				props.ctx,
-				dispatch.salesOrderId,
-				"PACKING",
-				"api.dispatch.confirm-packing",
-			);
 			const roleScope = Boolean(
 				session.can.viewPacking ||
 					session.can.editPickup ||
 					session.can.editOrders,
 			);
 			try {
-				const result = await confirmDispatchPacking(props.ctx.db, props.input, {
-					id: props.ctx.userId,
-					name: session.name || `User ${props.ctx.userId}`,
-					scope: roleScope ? "role" : "assignment",
-					canReleasePicked: Boolean(
-						session.can.editPickup || session.can.editOrders,
-					),
-				});
+				const execution = await runCanonicalDispatchCommand(
+					props.ctx,
+					{
+						salesOrderId: dispatch.salesOrderId,
+						action: "fulfillment.pack",
+						expectedRevision: props.input.expectedPipelineRevision,
+						operation: "api.dispatch.confirm-packing",
+					},
+					async (transactionDb) => {
+						await assertSpecialOrderOperationAllowedForApi(transactionDb, {
+							salesOrderId: dispatch.salesOrderId,
+							operation: "PACKING",
+							actorUserId: props.ctx.userId,
+							authorName: session.name || `User ${props.ctx.userId}`,
+							source: "api.dispatch.confirm-packing",
+						});
+						return confirmDispatchPacking(transactionDb, props.input, {
+							id: props.ctx.userId,
+							name: session.name || `User ${props.ctx.userId}`,
+							scope: roleScope ? "role" : "assignment",
+							canReleasePicked: Boolean(
+								session.can.editPickup || session.can.editOrders,
+							),
+						});
+					},
+				);
+				const result = execution.executed
+					? execution.value
+					: {
+							status: "packed",
+							idempotent: true,
+							manifestRevision: await getDispatchPackingCommandRevision(
+								props.ctx.db,
+								props.input.dispatchId,
+							),
+							packedLineCount: 0,
+							pendingReportIds: [] as number[],
+						};
+				await refreshDispatchPipelineProjection(
+					props.ctx,
+					dispatch.salesOrderId,
+				);
 				const notificationResults = await Promise.all(
 					result.pendingReportIds.map((reportId) =>
 						sendPackingReportNotification(
@@ -1251,6 +1402,7 @@ export const dispatchRouters = createTRPCRouter({
 				where: { id: props.input.dispatchId, deletedAt: null },
 				select: {
 					salesOrderId: true,
+					status: true,
 					dueDate: true,
 					deliveryMode: true,
 					driverId: true,
@@ -1263,17 +1415,45 @@ export const dispatchRouters = createTRPCRouter({
 					message: "Dispatch not found.",
 				});
 			}
-			await enforceSpecialOrderForSale(
-				props.ctx,
-				dispatch.salesOrderId,
-				"PACKING",
-				"api.dispatch.reset-packing",
-			);
 			try {
-				const result = await resetDispatchPacking(props.ctx.db, props.input, {
-					id: props.ctx.userId,
-					name: actor.name || `User ${props.ctx.userId}`,
-				});
+				const execution = await runCanonicalDispatchCommand(
+					props.ctx,
+					{
+						salesOrderId: dispatch.salesOrderId,
+						action: "fulfillment.unpack",
+						expectedRevision: props.input.expectedPipelineRevision,
+						operation: "api.dispatch.reset-packing",
+					},
+					async (transactionDb) => {
+						await assertSpecialOrderOperationAllowedForApi(transactionDb, {
+							salesOrderId: dispatch.salesOrderId,
+							operation: "PACKING",
+							actorUserId: props.ctx.userId,
+							authorName: actor.name || `User ${props.ctx.userId}`,
+							source: "api.dispatch.reset-packing",
+						});
+						return resetDispatchPacking(transactionDb, props.input, {
+							id: props.ctx.userId,
+							name: actor.name || `User ${props.ctx.userId}`,
+						});
+					},
+				);
+				const result = execution.executed
+					? execution.value
+					: {
+							status: dispatch.status,
+							idempotent: true,
+							unpackedCount: 0,
+							releasedAllocationIds: [] as number[],
+							manifestRevision: await getDispatchPackingCommandRevision(
+								props.ctx.db,
+								props.input.dispatchId,
+							),
+						};
+				await refreshDispatchPipelineProjection(
+					props.ctx,
+					dispatch.salesOrderId,
+				);
 				let notificationFailed = false;
 				try {
 					if (result.idempotent) {
@@ -1313,13 +1493,28 @@ export const dispatchRouters = createTRPCRouter({
 				props.input.submitDispatch?.dispatchId,
 			);
 			const input = withAuthenticatedSalesControlActor(props.input, actor);
-			await enforceSpecialOrderForSale(
+			const execution = await runCanonicalDispatchCommand(
 				props.ctx,
-				input.meta.salesId,
-				"DISPATCH",
-				"api.dispatch.submit",
+				{
+					salesOrderId: input.meta.salesId,
+					action: "fulfillment.complete_dispatch",
+					expectedRevision: input.meta.pipelineRevision,
+					operation: "api.dispatch.submit",
+				},
+				async (transactionDb) => {
+					await assertSpecialOrderOperationAllowedForApi(transactionDb, {
+						salesOrderId: input.meta.salesId,
+						operation: "DISPATCH",
+						actorUserId: props.ctx.userId,
+						authorName: actor.name || `User ${props.ctx.userId}`,
+						source: "api.dispatch.submit",
+					});
+					return submitDispatchTask(transactionDb, input);
+				},
 			);
-			return submitDispatchTask(props.ctx.db, input);
+			return execution.executed
+				? execution.value
+				: { idempotentReplay: true, state: "replayed" as const };
 		}),
 	completeDispatchWithProof: protectedProcedure
 		.input(completeDispatchWithProofSchema)
@@ -1412,6 +1607,10 @@ export const dispatchRouters = createTRPCRouter({
 						message: "This dispatch was already completed.",
 					});
 				}
+				await refreshDispatchPipelineProjection(
+					props.ctx,
+					dispatch.salesOrderId,
+				);
 				return {
 					status: "completed" as const,
 					idempotent: true,
@@ -1776,41 +1975,70 @@ export const dispatchRouters = createTRPCRouter({
 				authorId: props.ctx.userId,
 				authorName: session.name || "Dispatch worker",
 			};
-			if (dispatch.deliveryMode === "pickup") {
-				await packDispatchItemTask(props.ctx.db, {
-					meta,
-					packItems: {
-						dispatchId: dispatch.id,
-						dispatchStatus: (dispatch.status as SalesDispatchStatus) || "queue",
-						packMode: "all",
-						replaceExisting: true,
-					},
-				} as UpdateSalesControl);
-			}
-
-			const response = await submitDispatchTask(
-				props.ctx.db,
+			const execution = await runCanonicalDispatchCommand(
+				props.ctx,
 				{
-					meta,
-					submitDispatch: {
-						dispatchId: dispatch.id,
-						receivedBy: props.input.receivedBy,
-						receivedDate: new Date(),
-						note: props.input.note,
-						noteType:
-							dispatch.deliveryMode === "pickup" ? "pickup" : "dispatch",
-						signature: completion.signaturePathname,
-						attachments: completion.attachments.map((attachment) => ({
-							pathname: attachment.pathname,
-						})),
-						completionRequestId: props.input.requestId,
-					},
-				} as UpdateSalesControl,
-				{
-					completeInventoryDispatch: (tx, input) =>
-						consumeDispatchBoundInventory(tx, input),
+					salesOrderId: dispatch.salesOrderId,
+					action: "fulfillment.complete_dispatch",
+					expectedRevision: props.input.expectedPipelineRevision,
+					operation: "api.dispatch.complete-with-proof",
+				},
+				async (transactionDb) => {
+					await assertSpecialOrderOperationAllowedForApi(transactionDb, {
+						salesOrderId: dispatch.salesOrderId,
+						operation: "DISPATCH",
+						actorUserId: props.ctx.userId,
+						authorName: session.name || `User ${props.ctx.userId}`,
+						source: "api.dispatch.complete-with-proof",
+					});
+					if (dispatch.deliveryMode === "pickup") {
+						await assertSpecialOrderOperationAllowedForApi(transactionDb, {
+							salesOrderId: dispatch.salesOrderId,
+							operation: "PACKING",
+							actorUserId: props.ctx.userId,
+							authorName: session.name || `User ${props.ctx.userId}`,
+							source: "api.dispatch.complete-pickup-packing",
+						});
+						await packDispatchItemTask(transactionDb, {
+							meta,
+							packItems: {
+								dispatchId: dispatch.id,
+								dispatchStatus:
+									(dispatch.status as SalesDispatchStatus) || "queue",
+								packMode: "all",
+								replaceExisting: true,
+							},
+						} as UpdateSalesControl);
+					}
+					return submitDispatchTask(
+						transactionDb,
+						{
+							meta,
+							submitDispatch: {
+								dispatchId: dispatch.id,
+								receivedBy: props.input.receivedBy,
+								receivedDate: new Date(),
+								note: props.input.note,
+								noteType:
+									dispatch.deliveryMode === "pickup" ? "pickup" : "dispatch",
+								signature: completion.signaturePathname,
+								attachments: completion.attachments.map((attachment) => ({
+									pathname: attachment.pathname,
+								})),
+								completionRequestId: props.input.requestId,
+							},
+						} as UpdateSalesControl,
+						{
+							completeInventoryDispatch: (tx, input) =>
+								consumeDispatchBoundInventory(tx, input),
+						},
+					);
 				},
 			);
+			const response = execution.executed
+				? execution.value
+				: { idempotent: true };
+			await refreshDispatchPipelineProjection(props.ctx, dispatch.salesOrderId);
 
 			let notificationQueued = response.idempotent;
 			if (!response.idempotent) {
@@ -1977,10 +2205,17 @@ export const dispatchRouters = createTRPCRouter({
 			} else {
 				await requireDispatchManager(props.ctx);
 			}
-			return getSalesDispatchOverview(props.ctx.db, {
+			const overview = await getSalesDispatchOverview(props.ctx.db, {
 				salesId: props.input.salesId,
 				salesNo: props.input.salesNo,
 			});
+			const pipeline = (
+				await getSalesPipelineSnapshots(props.ctx.db, [overview.order.id])
+			).get(overview.order.id);
+			return {
+				...overview,
+				pipelineRevision: pipeline?.revision ?? null,
+			};
 		}),
 	dispatchOverview: protectedProcedure
 		.input(salesDispatchOverviewSchema)
@@ -2533,7 +2768,8 @@ export const dispatchRouters = createTRPCRouter({
 				"DISPATCH",
 				"api.dispatch.create",
 			);
-			const deliveryMode = (_deliverMode || "delivery") as DeliveryOption;
+			const deliveryMode =
+				normalizeDispatchDeliveryMode(_deliverMode) || "delivery";
 			if (driverId) driverId = Number(driverId);
 			if (driverId) {
 				await assertDispatchAssignmentDestinations(props.ctx, {
@@ -2612,7 +2848,8 @@ export const dispatchRouters = createTRPCRouter({
 				);
 			}
 
-			const deliveryMode = props.input.deliveryMode as DeliveryOption;
+			const deliveryMode =
+				normalizeDispatchDeliveryMode(props.input.deliveryMode) || "delivery";
 			if (props.input.driverId) {
 				await assertDispatchAssignmentDestinations(props.ctx, {
 					salesIds,

@@ -7,6 +7,7 @@ export const productionSubmissionMaterialReviewQueueSchema = z.object({
 	take: z.number().int().min(1).max(100).default(50),
 	cursor: z.number().int().positive().optional().nullable(),
 	q: z.string().trim().max(120).optional().nullable(),
+	salesOrderId: z.number().int().positive().optional().nullable(),
 });
 
 export const productionSubmissionMaterialReviewDetailSchema = z.object({
@@ -44,6 +45,10 @@ export const decideProductionSubmissionMaterialReviewSchema = z
 	.object({
 		reviewId: z.number().int().positive(),
 		expectedUpdatedAt: z.date(),
+		pipelineRevision: z
+			.string()
+			.regex(/^[a-f0-9]{64}$/)
+			.optional(),
 		action: z.enum([
 			"RECHECK_AND_APPROVE",
 			"MARK_AVAILABLE_AND_APPROVE",

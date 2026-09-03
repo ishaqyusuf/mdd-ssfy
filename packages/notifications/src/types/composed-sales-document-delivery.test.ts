@@ -74,8 +74,24 @@ describe("composed sales document channel contacts", () => {
 
 	test("accepts phone-only quote data before enforcing secure links", async () => {
 		const createdLinks: Array<Record<string, unknown>> = [];
+		const updatedAt = new Date("2026-07-23T12:00:00Z");
 		const db = {
 			salesOrders: {
+				findUnique: async () => ({
+					id: 42,
+					updatedAt,
+					meta: {
+						salesDocumentReadiness: {
+							validatorVersion: "sales-document-readiness-v1",
+							status: "ready",
+							signature: "test-ready-signature",
+							validatedSourceUpdatedAt: updatedAt.toISOString(),
+							validatedAt: updatedAt.toISOString(),
+							evaluation: { status: "ready" },
+							proposal: null,
+						},
+					},
+				}),
 				findMany: async () => [
 					{
 						id: 42,
@@ -116,16 +132,17 @@ describe("composed sales document channel contacts", () => {
 
 		await expect(
 			buildComposedSalesDocumentEmailData(
-				db as never,
-				{
-					printType: "quote",
-					salesIds: [42],
-					customerPhone: "(305) 555-0100",
-					subject: "Your quote",
-					channels: ["whatsapp"],
-				},
-				{ id: 11, profileId: 11, name: "Sender" },
-			),
+					db as never,
+					{
+						printType: "quote",
+						salesIds: [42],
+						customerPhone: "(305) 555-0100",
+						subject: "Your quote",
+						channels: ["whatsapp"],
+					},
+					{ id: 11, profileId: 11, name: "Sender" },
+					{ tryTokenize: () => null },
+				),
 		).rejects.toThrow(
 			"Sales document delivery requires a secure document link.",
 		);

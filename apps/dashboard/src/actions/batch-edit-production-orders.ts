@@ -14,6 +14,9 @@ import {
 	assertSpecialOrderOperationAllowed,
 	createAssignmentsTask,
 	getSaleInformation,
+	getSalesPipelineSnapshots,
+	runSalesPipelineCommandTransaction,
+	shouldEnforceCanonicalSalesPipelineCommands,
 } from "@sales/exports";
 import { z } from "zod";
 
@@ -45,100 +48,123 @@ export const batchEditProductionOrdersAction = actionClient
 		let assignmentsCreated = 0;
 
 		for (const salesId of input.salesIds) {
-			operationalDecisions.push(
-				await assertSpecialOrderOperationAllowed(prisma as never, {
+			const snapshot = (
+				await getSalesPipelineSnapshots(prisma as never, [salesId])
+			).get(salesId);
+			if (!snapshot) throw new Error("The sales order is no longer available.");
+			const execution = await runSalesPipelineCommandTransaction(
+				prisma as never,
+				{
 					salesOrderId: salesId,
-					operation: "PRODUCTION",
-					actorUserId: actor.userId,
-					authorName: actor.name || "Unknown",
-					source: "dashboard.batch-edit-production-orders",
-				}),
-			);
-
-			const activeAssignmentWhere = {
-				orderId: salesId,
-				deletedAt: null,
-				completedAt: null,
-			};
-			let updatedCount = 0;
-			if (input.assignedToId !== undefined) {
-				const ownershipUpdated =
-					await prisma.orderItemProductionAssignments.updateMany({
-						where: {
-							...activeAssignmentWhere,
-							OR:
-								input.assignedToId == null
-									? [{ assignedToId: { not: null } }]
-									: [
-											{ assignedToId: null },
-											{ assignedToId: { not: input.assignedToId } },
-										],
-						},
-						data: {
-							assignedToId: input.assignedToId,
-							assignedAt: input.assignedToId == null ? null : new Date(),
-							...(input.dueDate !== undefined
-								? { dueDate: input.dueDate }
-								: {}),
-						},
-					});
-				updatedCount += ownershipUpdated.count;
-
-				if (input.dueDate !== undefined) {
-					const scheduleUpdated =
-						await prisma.orderItemProductionAssignments.updateMany({
-							where: {
-								...activeAssignmentWhere,
-								assignedToId: input.assignedToId,
-							},
-							data: { dueDate: input.dueDate },
-						});
-					updatedCount += scheduleUpdated.count;
-				}
-			} else if (input.dueDate !== undefined) {
-				const scheduleUpdated =
-					await prisma.orderItemProductionAssignments.updateMany({
-						where: activeAssignmentWhere,
-						data: { dueDate: input.dueDate },
-					});
-				updatedCount = scheduleUpdated.count;
-			}
-
-			let createdForOrder = 0;
-			if (typeof input.assignedToId === "number") {
-				const info = await getSaleInformation(
-					prisma as never,
-					{ salesId },
-					{ persistDerivedState: true },
-				);
-				const selections = info.items
-					.filter(
-						(item) =>
-							item.itemConfig?.production &&
-							Number(item.analytics?.assignment?.pending?.qty || 0) > 0,
-					)
-					.map((item) => ({
-						uid: item.controlUid,
-						qty: item.analytics.assignment.pending,
-					}));
-
-				if (selections.length) {
-					await createAssignmentsTask(prisma as never, {
-						meta: {
-							salesId,
-							authorId: actor.userId,
+					action: "production.assign",
+					authorized: true,
+					expectedRevision: snapshot.revision,
+					enforce: shouldEnforceCanonicalSalesPipelineCommands(salesId),
+					operation: "dashboard.batch-edit-production-orders",
+				},
+				async (transactionDb) => {
+					const operationalDecision = await assertSpecialOrderOperationAllowed(
+						transactionDb,
+						{
+							salesOrderId: salesId,
+							operation: "PRODUCTION",
+							actorUserId: actor.userId,
 							authorName: actor.name || "Unknown",
+							source: "dashboard.batch-edit-production-orders",
 						},
-						createAssignments: {
-							retries: 0,
-							assignedToId: input.assignedToId,
-							dueDate: input.dueDate ?? null,
-							selections,
-						},
-					});
-					createdForOrder = selections.length;
-				}
-			}
+					);
+					const activeAssignmentWhere = {
+						orderId: salesId,
+						deletedAt: null,
+						completedAt: null,
+					};
+					let updatedCount = 0;
+					if (input.assignedToId !== undefined) {
+						const ownershipUpdated =
+							await transactionDb.orderItemProductionAssignments.updateMany({
+								where: {
+									...activeAssignmentWhere,
+									OR:
+										input.assignedToId == null
+											? [{ assignedToId: { not: null } }]
+											: [
+													{ assignedToId: null },
+													{ assignedToId: { not: input.assignedToId } },
+												],
+								},
+								data: {
+									assignedToId: input.assignedToId,
+									assignedAt: input.assignedToId == null ? null : new Date(),
+									...(input.dueDate !== undefined
+										? { dueDate: input.dueDate }
+										: {}),
+								},
+							});
+						updatedCount += ownershipUpdated.count;
+
+						if (input.dueDate !== undefined) {
+							const scheduleUpdated =
+								await transactionDb.orderItemProductionAssignments.updateMany({
+									where: {
+										...activeAssignmentWhere,
+										assignedToId: input.assignedToId,
+									},
+									data: { dueDate: input.dueDate },
+								});
+							updatedCount += scheduleUpdated.count;
+						}
+					} else if (input.dueDate !== undefined) {
+						const scheduleUpdated =
+							await transactionDb.orderItemProductionAssignments.updateMany({
+								where: activeAssignmentWhere,
+								data: { dueDate: input.dueDate },
+							});
+						updatedCount = scheduleUpdated.count;
+					}
+
+					let createdForOrder = 0;
+					if (typeof input.assignedToId === "number") {
+						const info = await getSaleInformation(
+							transactionDb,
+							{ salesId },
+							{ persistDerivedState: true },
+						);
+						const selections = info.items
+							.filter(
+								(item) =>
+									item.itemConfig?.production &&
+									Number(item.analytics?.assignment?.pending?.qty || 0) > 0,
+							)
+							.map((item) => ({
+								uid: item.controlUid,
+								qty: item.analytics.assignment.pending,
+							}));
+
+						if (selections.length) {
+							await createAssignmentsTask(transactionDb, {
+								meta: {
+									salesId,
+									authorId: actor.userId,
+									authorName: actor.name || "Unknown",
+									pipelineRevision: snapshot.revision,
+								},
+								createAssignments: {
+									retries: 0,
+									assignedToId: input.assignedToId,
+									dueDate: input.dueDate ?? null,
+									selections,
+								},
+							});
+							createdForOrder = selections.length;
+						}
+					}
+					return { operationalDecision, updatedCount, createdForOrder };
+				},
+			);
+			if (!execution.executed) continue;
+			const { operationalDecision, updatedCount, createdForOrder } =
+				execution.value;
+			operationalDecisions.push(operationalDecision);
 
 			if (updatedCount || createdForOrder) {
 				ordersUpdated += 1;

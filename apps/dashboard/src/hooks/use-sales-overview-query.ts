@@ -57,6 +57,7 @@ export function useSalesOverviewQuery() {
         ] as const),
         // refreshTok: parseAsString,
         dispatchOverviewId: parseAsInteger,
+        reviewId: parseAsInteger,
         packingReview: parseAsBoolean,
         salesTransaction: parseAsString,
         salesPayment: parseAsString,

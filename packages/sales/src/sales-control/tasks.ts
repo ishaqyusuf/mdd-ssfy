@@ -53,6 +53,8 @@ type SubmitAllTaskDependencies = {
 	prepareMaterialReview?: typeof prepareProductionSubmissionMaterialReview;
 	refreshAssignmentScope?: typeof refreshProductionSubmissionAssignmentScope;
 	recordFullWorkflowCompletion?: typeof recordFullWorkflowCompletionIfProven;
+	autoReviewSalesPayments?: typeof autoReviewSalesPaymentsForOrderAction;
+	recognizeSalesTax?: typeof recognizeSalesTaxForFulfilledOrder;
 };
 
 type SubmitAllTaskOptions = {
@@ -177,7 +179,10 @@ export async function submitAllTask(
 					salesOrderId: data.meta.salesId,
 					submissions,
 				});
-				await autoReviewSalesPaymentsForOrderAction(tx as any, {
+				await (
+					dependencies.autoReviewSalesPayments ??
+					autoReviewSalesPaymentsForOrderAction
+				)(tx as any, {
 					salesId: data.meta.salesId!,
 					action: "production",
 					settings: paymentReviewSettings,
@@ -219,6 +224,7 @@ export async function createAssignmentsTask(
 			lineItemUids: string[] | null;
 		};
 		repairReceivedInboundNeeds?: typeof repairReceivedInboundNeedsForSalesOrder;
+		autoReviewSalesPayments?: typeof autoReviewSalesPaymentsForOrderAction;
 	},
 ) {
 	const payload = data.createAssignments;
@@ -291,7 +297,10 @@ export async function createAssignmentsTask(
 				updateStats: false,
 			});
 			await resetSalesAction(tx as any, data.meta.salesId);
-			await autoReviewSalesPaymentsForOrderAction(tx as any, {
+			await (
+				options?.autoReviewSalesPayments ??
+				autoReviewSalesPaymentsForOrderAction
+			)(tx as any, {
 				salesId: data.meta.salesId,
 				action: "production",
 				settings: paymentReviewSettings,
@@ -593,6 +602,8 @@ export async function submitDispatchTask(
 		allowCompletedResign?: boolean;
 		saveNoteAction?: typeof saveNote;
 		recordFullWorkflowCompletion?: typeof recordFullWorkflowCompletionIfProven;
+		autoReviewSalesPayments?: typeof autoReviewSalesPaymentsForOrderAction;
+		recognizeSalesTax?: typeof recognizeSalesTaxForFulfilledOrder;
 		packingSignoff?: {
 			requestId: string;
 			documentId: string;
@@ -755,14 +766,20 @@ export async function submitDispatchTask(
 			// await resetSalesTask(tx as any, data.meta.salesId);
 			const salesId = data.meta.salesId;
 			await resetSalesAction(tx as any, salesId);
-			await recognizeSalesTaxForFulfilledOrder(tx, {
-				salesOrderId: salesId,
-				source: "DELIVERY",
-				sourceId: task.dispatchId,
-				createdById: data.meta.authorId,
-				reason: "Recognized after fulfillment completion.",
-			});
-			await autoReviewSalesPaymentsForOrderAction(tx as any, {
+			await (internal?.recognizeSalesTax ?? recognizeSalesTaxForFulfilledOrder)(
+				tx,
+				{
+					salesOrderId: salesId,
+					source: "DELIVERY",
+					sourceId: task.dispatchId,
+					createdById: data.meta.authorId,
+					reason: "Recognized after fulfillment completion.",
+				},
+			);
+			await (
+				internal?.autoReviewSalesPayments ??
+				autoReviewSalesPaymentsForOrderAction
+			)(tx as any, {
 				salesId,
 				action: "fulfillment",
 				settings: paymentReviewSettings,
@@ -1601,6 +1618,8 @@ export async function markAsCompletedTask(
 			submitDispatch: args.markAsCompleted,
 		},
 		{
+			autoReviewSalesPayments: dependencies.autoReviewSalesPayments,
+			recognizeSalesTax: dependencies.recognizeSalesTax,
 			saveNoteAction: dependencies.saveNoteAction,
 		},
 	);

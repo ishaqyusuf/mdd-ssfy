@@ -1,16 +1,11 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+import { queueSalesDocumentSnapshotWarmup } from "./sales-document-warm";
 
 const triggerCalls: unknown[][] = [];
 const triggerMock = mock(async (...args: unknown[]) => {
 	triggerCalls.push(args);
 	return { id: "trigger-run-1" };
 });
-
-mock.module("@trigger.dev/sdk/v3", () => ({
-	tasks: {
-		trigger: triggerMock,
-	},
-}));
 
 const originalNodeEnv = process.env.NODE_ENV;
 
@@ -23,10 +18,6 @@ afterEach(() => {
 describe("queueSalesDocumentSnapshotWarmup", () => {
 	it("skips Trigger.dev snapshot warming in production", async () => {
 		process.env.NODE_ENV = "production";
-		const { queueSalesDocumentSnapshotWarmup } = await import(
-			"./sales-document-warm"
-		);
-
 		const result = await queueSalesDocumentSnapshotWarmup({
 			salesOrderId: 21438,
 			mode: "invoice",
@@ -46,16 +37,15 @@ describe("queueSalesDocumentSnapshotWarmup", () => {
 
 	it("triggers snapshot warming outside production", async () => {
 		process.env.NODE_ENV = "test";
-		const { queueSalesDocumentSnapshotWarmup } = await import(
-			"./sales-document-warm"
+		const result = await queueSalesDocumentSnapshotWarmup(
+			{
+				salesOrderId: 21438,
+				mode: "quote",
+				templateId: "template-7",
+				forceRegenerate: true,
+			},
+			triggerMock,
 		);
-
-		const result = await queueSalesDocumentSnapshotWarmup({
-			salesOrderId: 21438,
-			mode: "quote",
-			templateId: "template-7",
-			forceRegenerate: true,
-		});
 
 		expect(result).toEqual({ id: "trigger-run-1" });
 		expect(triggerCalls).toEqual([

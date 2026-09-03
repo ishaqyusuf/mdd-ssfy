@@ -5,6 +5,12 @@ import { z } from "zod";
 
 import { hasCompletedProductionLifecycle } from "./bulk-production-completion";
 import { getSalesOrderLifecycleStatus } from "./order-status";
+import { evaluateSalesPipelineCommand } from "./sales-pipeline-commands";
+import {
+	resolveSalesPipelineSnapshotFromOrder,
+	salesPipelineOrderSelect,
+} from "./sales-pipeline-order";
+import { shouldEnforceCanonicalSalesPipelineCommands } from "./sales-pipeline-rollout";
 import { overallStatus } from "./utils/utils";
 
 export const salesCompletionMilestoneSchema = z.enum([
@@ -260,32 +266,46 @@ export function buildSalesCompletionSatisfactionWhere(
 				},
 			},
 		},
+		{
+			completionRecords: {
+				some: {
+					state: "ACTIVE",
+					completionMethod: "FULL_WORKFLOW",
+					milestone: { in: [...administrativeMilestones] },
+				},
+			},
+		},
 	];
 	if (milestone === "PRODUCTION_COMPLETED") {
-		alternatives.push(
-			{
-				stat: {
-					some: {
-						deletedAt: null,
-						type: "prodCompleted",
-						OR: [{ percentage: 100 }, { percentage: 0, total: 0 }],
+		alternatives.push({
+			AND: [
+				{
+					assignments: {
+						some: {
+							deletedAt: null,
+							OR: [
+								{ qtyAssigned: { gt: 0 } },
+								{ lhQty: { gt: 0 } },
+								{ rhQty: { gt: 0 } },
+							],
+						},
 					},
 				},
-			},
-			{
-				prodStatus: {
-					in: [
-						"completed",
-						"complete",
-						"ready",
-						"N/A",
-						"na",
-						"not applicable",
-						"none",
-					],
+				{
+					assignments: {
+						none: {
+							deletedAt: null,
+							completedAt: null,
+							OR: [
+								{ qtyAssigned: { gt: 0 } },
+								{ lhQty: { gt: 0 } },
+								{ rhQty: { gt: 0 } },
+							],
+						},
+					},
 				},
-			},
-		);
+			],
+		});
 	}
 	const where = { OR: alternatives } satisfies Prisma.SalesOrdersWhereInput;
 	return satisfied ? where : { NOT: where };
@@ -610,6 +630,43 @@ function assertExpectedRevision(
 	}
 }
 
+async function assertCanonicalAdministrativeCommand(
+	db: CompletionDb,
+	input: {
+		salesOrderId: number;
+		action:
+			| "production.administrative_complete"
+			| "production.administrative_cancel"
+			| "fulfillment.administrative_complete"
+			| "fulfillment.administrative_cancel";
+	},
+) {
+	const order = await db.salesOrders.findFirst({
+		where: { id: input.salesOrderId, type: "order", deletedAt: null },
+		select: salesPipelineOrderSelect,
+	});
+	if (!order) {
+		throw new SalesCompletionError(
+			"The sales order no longer exists.",
+			"NOT_FOUND",
+		);
+	}
+	const decision = evaluateSalesPipelineCommand(
+		resolveSalesPipelineSnapshotFromOrder(order),
+		{ action: input.action, authorized: true },
+	);
+	if (
+		shouldEnforceCanonicalSalesPipelineCommands(input.salesOrderId) &&
+		(decision.status === "rejected" || decision.status === "review_required")
+	) {
+		throw new SalesCompletionError(
+			`The canonical Sales Pipeline rejected this transition: ${decision.reasons.join(", ")}.`,
+			"INVALID_TRANSITION",
+		);
+	}
+	return decision;
+}
+
 async function findMarkReplay(
 	db: CompletionDb,
 	input: z.infer<typeof markProductionCompletionStatusOnlySchema>,
@@ -671,6 +728,10 @@ export async function markProductionCompletionStatusOnly(
 					"INVALID_TRANSITION",
 				);
 			}
+			await assertCanonicalAdministrativeCommand(tx, {
+				salesOrderId: input.salesOrderId,
+				action: "production.administrative_complete",
+			});
 			const recordedAt = new Date();
 			const record = await tx.salesCompletionRecord.create({
 				data: {
@@ -801,6 +862,10 @@ export async function cancelProductionCompletionStatusOnly(
 					"INVALID_TRANSITION",
 				);
 			}
+			await assertCanonicalAdministrativeCommand(tx, {
+				salesOrderId: input.salesOrderId,
+				action: "production.administrative_cancel",
+			});
 			const cancelledAt = new Date();
 			const record = await tx.salesCompletionRecord.update({
 				where: { id: activeRecord.id },
@@ -917,6 +982,10 @@ export async function markFulfillmentCompletionStatusOnly(
 					"INVALID_TRANSITION",
 				);
 			}
+			await assertCanonicalAdministrativeCommand(tx, {
+				salesOrderId: input.salesOrderId,
+				action: "fulfillment.administrative_complete",
+			});
 			const recordedAt = new Date();
 			const record = await tx.salesCompletionRecord.create({
 				data: {
@@ -1175,6 +1244,10 @@ export async function cancelFulfillmentCompletionStatusOnly(
 					"INVALID_TRANSITION",
 				);
 			}
+			await assertCanonicalAdministrativeCommand(tx, {
+				salesOrderId: input.salesOrderId,
+				action: "fulfillment.administrative_cancel",
+			});
 			const cancelledAt = new Date();
 			const record = await tx.salesCompletionRecord.update({
 				where: { id: activeRecord.id },

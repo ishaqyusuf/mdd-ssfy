@@ -1,5 +1,7 @@
 import { describe, expect, it, spyOn } from "bun:test";
+import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import {
+	applyMaterializedSalesPipelineReadMode,
 	applyOrdersWorkspaceScope,
 	decodeSalesOrderListKeysetCursor,
 	encodeSalesOrderListKeysetCursor,
@@ -15,6 +17,8 @@ const READ_MODEL_ENV_KEYS = [
 	"GND_SALES_ORDERS_READ_MODEL_MODE",
 	"GND_SALES_ORDERS_READ_MODEL_COHORT_PERCENTAGE",
 	"GND_SALES_ORDERS_PERFORMANCE_SAMPLE_RATE",
+	"SALES_PIPELINE_READ_MODE",
+	"SALES_PIPELINE_COHORT_PERCENT",
 ] as const;
 
 async function withReadModelEnv(
@@ -88,7 +92,107 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 	} as unknown as Parameters<typeof normalizeOrderRow>[0];
 }
 
+function materializedPipelineFixture() {
+	return {
+		evidence: { salesOrderId: 17 },
+		headline: {
+			code: "partially_fulfilled",
+			label: "Partially fulfilled",
+			tone: "warning",
+		},
+		production: { state: "completed" },
+		fulfillment: { state: "partially_fulfilled" },
+	} as unknown as SalesPipelineSnapshot;
+}
+
+describe("materialized sales pipeline rollout", () => {
+	it("restores the stored legacy presentation outside the canonical cohort", () => {
+		const row = applyMaterializedSalesPipelineReadMode(
+			{
+				pipeline: materializedPipelineFixture(),
+				pipelineLegacyPresentation: {
+					status: "ready",
+					statusLabel: "Ready",
+					statusTone: "success",
+					productionState: "in progress",
+					productionLabel: "In Progress",
+					fulfillmentState: "pending",
+					fulfillmentLabel: "Pending",
+				},
+			},
+			{ SALES_PIPELINE_READ_MODE: "shadow" },
+		);
+
+		expect(row).toMatchObject({
+			pipeline: null,
+			status: "ready",
+			statusLabel: "Ready",
+			productionState: "in progress",
+			fulfillmentState: "pending",
+		});
+	});
+
+	it("serves the stored canonical snapshot to an enabled cohort", () => {
+		const pipeline = materializedPipelineFixture();
+		const row = applyMaterializedSalesPipelineReadMode(
+			{
+				pipeline,
+				pipelineLegacyPresentation: { status: "ready" },
+			},
+			{
+				SALES_PIPELINE_READ_MODE: "canonical",
+				SALES_PIPELINE_COHORT_PERCENT: "100",
+			},
+		);
+
+		expect(row).toMatchObject({
+			pipeline,
+			status: "partially_fulfilled",
+			statusLabel: "Partially fulfilled",
+			productionState: "completed",
+			productionLabel: "Completed",
+			fulfillmentState: "partially_fulfilled",
+			fulfillmentLabel: "Partially Fulfilled",
+		});
+	});
+});
+
 describe("sales orders default query contract", () => {
+	it("uses indexed canonical membership for list counts instead of legacy Production aggregates", async () => {
+		await withReadModelEnv(
+			{
+				SALES_PIPELINE_READ_MODE: "canonical",
+				SALES_PIPELINE_COHORT_PERCENT: "100",
+			},
+			async () => {
+				let countWhere: unknown;
+				const ctx = {
+					userId: 7,
+					db: {
+						salesOrders: {
+							count: async (args: { where: unknown }) => {
+								countWhere = args.where;
+								return 1;
+							},
+						},
+					},
+				} as unknown as Parameters<typeof getOrdersCount>[0];
+
+				const count = await getOrdersCount(ctx, {
+					showing: "all sales",
+					"production.status": "due today",
+				});
+
+				expect(count).toBe(1);
+				const serialized = JSON.stringify(countWhere);
+				expect(serialized).toContain('"listProjection"');
+				expect(serialized).toContain('"pipelineProductionState"');
+				expect(serialized).toContain('"assignments"');
+				expect(serialized).not.toContain('"prodCompleted"');
+			},
+		);
+	});
+
 	it("keeps active workspace rows non-deleted and non-archived by default", () => {
 		expect(applyOrdersWorkspaceScope({}, { type: "order" })).toEqual({
 			deletedAt: null,
@@ -290,7 +394,7 @@ describe("sales orders default query contract", () => {
 					);
 
 					expect(result.data).toEqual([]);
-					expect(findManyCalls).toBe(2);
+					expect(findManyCalls).toBe(3);
 					const performanceEvents = events.filter(
 						(event) => event[0] === "[sales-orders-performance]",
 					);

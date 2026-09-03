@@ -9,6 +9,7 @@ import { fulfillSalesInventoryNeedsManually } from "./manual-fulfill-sales-inven
 import { getSalesOrderLifecycleStatus } from "./order-status";
 import {
 	decideProductionSubmissionMaterialReview,
+	getActionablePendingReviewIds,
 	getProductionSubmissionMaterialReviewDetail,
 } from "./production-submission-review";
 import { getSaleInformation } from "./sales-control/get-sale-information";
@@ -333,13 +334,17 @@ function unresolvedReviewComponentIds(materialSnapshot: unknown) {
 	);
 }
 
-async function getPendingReviews(db: Db, salesOrderIds: number[]) {
+export async function getPendingReviews(db: Db, salesOrderIds: number[]) {
 	if (!salesOrderIds.length) return [] as PendingReviewRow[];
+	const actionable = await getActionablePendingReviewIds(db, {
+		salesOrderId: { in: salesOrderIds },
+	});
+	const actionableIds = [...actionable.keys()];
+	if (!actionableIds.length) return [] as PendingReviewRow[];
 
 	return db.salesProductionSubmissionMaterialReview.findMany({
 		where: {
-			salesOrderId: { in: salesOrderIds },
-			status: "PENDING",
+			id: { in: actionableIds },
 		},
 		orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
 		select: {

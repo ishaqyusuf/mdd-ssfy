@@ -2,8 +2,10 @@ import { describe, expect, it } from "bun:test";
 import type { TransactionClient } from "@gnd/db";
 
 import {
+	getApprovedRemovedSalesLines,
 	projectApprovedSalesTaxes,
 	projectApprovedShelfSalesLine,
+	retireApprovedSalesOrderLine,
 } from "./sales-adjustment-relational-projection";
 
 function createTransactionMock() {
@@ -54,6 +56,85 @@ function createTransactionMock() {
 }
 
 describe("approved adjustment relational projection", () => {
+	it("accepts an omitted approved line only when its proposed quantity is zero", () => {
+		expect(
+			getApprovedRemovedSalesLines({
+				lines: [
+					{
+						lineUid: "removed-service",
+						salesOrderItemId: 172467,
+						proposedQty: 0,
+					},
+				],
+				proposedLineUids: new Set(),
+			}),
+		).toEqual([
+			{ lineUid: "removed-service", salesOrderItemId: 172467 },
+		]);
+
+		expect(() =>
+			getApprovedRemovedSalesLines({
+				lines: [
+					{
+						lineUid: "missing-door",
+						salesOrderItemId: 172468,
+						proposedQty: 2,
+					},
+				],
+				proposedLineUids: new Set(),
+			}),
+		).toThrow(
+			"Adjustment line missing-door is missing from its approved proposal.",
+		);
+	});
+
+	it("retires a removed line and every persisted sibling in its group", async () => {
+		type MutationArgs = Record<string, unknown>;
+		const calls: Array<{ model: string; args: MutationArgs }> = [];
+		const updateMany = (model: string) => async (args: MutationArgs) => {
+			calls.push({ model, args });
+			return { count: 2 };
+		};
+		const tx = {
+			salesOrderItems: {
+				findMany: async () => [{ id: 172467 }, { id: 172468 }],
+				updateMany: updateMany("salesOrderItems"),
+			},
+			dykeSalesDoors: { updateMany: updateMany("dykeSalesDoors") },
+			dykeStepForm: { updateMany: updateMany("dykeStepForm") },
+			dykeSalesShelfItem: {
+				updateMany: updateMany("dykeSalesShelfItem"),
+			},
+			housePackageTools: { updateMany: updateMany("housePackageTools") },
+		};
+
+		await retireApprovedSalesOrderLine({
+			tx: tx as unknown as TransactionClient,
+			salesOrderId: 26567,
+			salesOrderItemId: 172467,
+			lineUid: "service-group",
+		});
+
+		expect(calls.map((call) => call.model)).toEqual([
+			"dykeSalesDoors",
+			"dykeStepForm",
+			"dykeSalesShelfItem",
+			"housePackageTools",
+			"salesOrderItems",
+		]);
+		for (const call of calls) {
+			const where = call.args.where as { deletedAt?: unknown };
+			const data = call.args.data as { deletedAt?: unknown };
+			expect(where.deletedAt).toBeNull();
+			expect(data.deletedAt).toBeInstanceOf(Date);
+		}
+		const doorRetirement = calls.at(0)?.args.data as
+			| { deletedAt?: unknown; activeIdentity?: unknown }
+			| undefined;
+		expect(doorRetirement?.deletedAt).toBeInstanceOf(Date);
+		expect(doorRetirement?.activeIdentity).toBeNull();
+	});
+
 	it("updates approved Shelf children and retires omitted rows", async () => {
 		const { tx, shelfUpdates, shelfCreates, shelfRetirements } =
 			createTransactionMock();

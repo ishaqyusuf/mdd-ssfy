@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { FILTER_OPTION_COLORS } from "@gnd/utils/filter-option-colors";
 
-import { getDealershipOrdersFilter } from "./dealership-orders-filter";
 import { toDealershipFilterOptions } from "./dealership-filter-options";
+import { getDealershipOrdersFilter } from "./dealership-orders-filter";
 
 describe("dealership filter color metadata", () => {
 	it("colors status, delivery, payment, and invoice state", async () => {
@@ -12,10 +12,14 @@ describe("dealership filter color metadata", () => {
 					salesOrders: {
 						findMany: async () => [
 							{
+								id: 42,
 								orderId: "10001AA",
 								status: "in progress",
 								deliveryOption: "delivery",
 								invoiceStatus: "paid",
+								listProjection: {
+									pipelineHeadline: "in_production",
+								},
 								dealerSale: null,
 								customer: null,
 								billingAddress: null,
@@ -27,9 +31,10 @@ describe("dealership filter color metadata", () => {
 			12,
 		);
 
-		expect(findOption(filters, "status", "in progress")?.color).toBe(
-			FILTER_OPTION_COLORS.blue,
+		expect(findOption(filters, "status", "processing")?.color).toBe(
+			FILTER_OPTION_COLORS.amber,
 		);
+		expect(findOption(filters, "status", "in progress")).toBeUndefined();
 		expect(findOption(filters, "deliveryOption", "delivery")?.color).toBe(
 			FILTER_OPTION_COLORS.blue,
 		);

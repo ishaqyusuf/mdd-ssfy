@@ -181,13 +181,18 @@ import { generateRandomString, timeLog } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
 import { createNoteAction } from "@notifications/note";
 import {
+	buildProductionItemMaterialStatus,
+	getSalesPipelineSnapshots,
 	getProductionReadiness,
 	loadProductionMaterialStatuses,
 	productionV2DetailQuerySchema,
 	productionV2ListQuerySchema,
+	refreshSalesOrderListProjections,
+	runSalesPipelineCommandTransaction,
 	salesProductionCalendarQuerySchema,
 	salesProductionQueryParamsSchema,
 	setProductionReadinessOverride,
+	shouldEnforceCanonicalSalesPipelineCommands,
 } from "@sales/exports";
 import { salesPrioritySchema } from "@sales/priority";
 import {
@@ -905,20 +910,44 @@ export const salesRouter = createTRPCRouter({
 	productionSubmissionMaterialReviews: protectedProcedure
 		.input(productionSubmissionMaterialReviewQueueSchema)
 		.query(async (props) => {
-			await requireProductionEditor(props.ctx);
-			return getProductionSubmissionMaterialReviewQueue(
+			const session = await requireProductionOverviewViewer(props.ctx);
+			const result = await getProductionSubmissionMaterialReviewQueue(
 				props.ctx.db,
 				props.input,
 			);
+			return {
+				...result,
+				capabilities: {
+					canReview: session.can.editProduction === true,
+					canReceiveInbound:
+						session.can.editProduction === true &&
+						session.can.editInboundOrder === true,
+					canMarkAvailable:
+						session.can.editProduction === true &&
+						session.can.editOrders === true,
+				},
+			};
 		}),
 	productionSubmissionMaterialReviewDetail: protectedProcedure
 		.input(productionSubmissionMaterialReviewDetailSchema)
 		.query(async (props) => {
-			await requireProductionEditor(props.ctx);
-			return getProductionSubmissionMaterialReviewDetail(
+			const session = await requireProductionOverviewViewer(props.ctx);
+			const result = await getProductionSubmissionMaterialReviewDetail(
 				props.ctx.db,
 				props.input.reviewId,
 			);
+			return {
+				...result,
+				capabilities: {
+					canReview: session.can.editProduction === true,
+					canReceiveInbound:
+						session.can.editProduction === true &&
+						session.can.editInboundOrder === true,
+					canMarkAvailable:
+						session.can.editProduction === true &&
+						session.can.editOrders === true,
+				},
+			};
 		}),
 	reviewProductionSubmission: protectedProcedure
 		.input(decideProductionSubmissionMaterialReviewSchema)
@@ -938,25 +967,66 @@ export const salesRouter = createTRPCRouter({
 			if (!actor) {
 				throw new Error("Authenticated employee was not found.");
 			}
-			const result = await decideProductionSubmissionMaterialReview(
-				props.ctx.db,
-				props.input,
-				{
-					id: actor.id,
-					name: actor.name || "Production administrator",
-				},
-			);
-			const reconciledReview =
+			const reviewScope =
 				await props.ctx.db.salesProductionSubmissionMaterialReview.findUnique({
-					where: { id: result.reviewId },
+					where: { id: props.input.reviewId },
 					select: { salesOrderId: true },
 				});
-			if (reconciledReview) {
+			if (!reviewScope) throw new Error("Production review was not found.");
+			const execution = await runSalesPipelineCommandTransaction(
+				props.ctx.db,
+				{
+					salesOrderId: reviewScope.salesOrderId,
+					action: "production.review.resolve",
+					authorized: true,
+					expectedRevision: props.input.pipelineRevision,
+					enforce: shouldEnforceCanonicalSalesPipelineCommands(
+						reviewScope.salesOrderId,
+					),
+					executeOnReplay: true,
+					operation: "api.production-submission-review.decision",
+				},
+				(transactionDb) =>
+					decideProductionSubmissionMaterialReview(transactionDb, props.input, {
+						id: actor.id,
+						name: actor.name || "Production administrator",
+					}),
+			);
+			if (!execution.executed) {
+				throw new Error("Production material review replay was not evaluated.");
+			}
+			const result = execution.value;
+			const reconciledReview = reviewScope;
+			try {
 				await reconcileSalesHandoffAfterCommit(props.ctx.db, {
 					salesOrderIds: [reconciledReview.salesOrderId],
 					actorUserId: actor.id,
 					source: "api.production-submission-review.decision",
 				});
+				const refreshedPipeline = (
+					await getSalesPipelineSnapshots(props.ctx.db, [
+						reconciledReview.salesOrderId,
+					])
+				).get(reconciledReview.salesOrderId);
+				if (refreshedPipeline?.freshness.evidenceUpdatedAt) {
+					await refreshSalesOrderListProjections(props.ctx.db, [
+						{
+							salesOrderId: reconciledReview.salesOrderId,
+							sourceUpdatedAt: new Date(
+								refreshedPipeline.freshness.evidenceUpdatedAt,
+							),
+						},
+					]);
+				}
+			} catch (error) {
+				console.warn(
+					"Production material review committed, but follow-up projection refresh failed.",
+					{
+						error,
+						reviewId: result.reviewId,
+						salesOrderId: reconciledReview.salesOrderId,
+					},
+				);
 			}
 			if (result.status === "APPROVED" || result.status === "REJECTED")
 				try {
@@ -1071,9 +1141,51 @@ export const salesRouter = createTRPCRouter({
 		.input(getFullSalesDataSchema)
 		.query(async (props) => {
 			await requireProductionOverviewViewer(props.ctx);
-			return loadCoreProductionOverview(() =>
-				getSaleInformation(props.ctx.db, props.input),
-			);
+			return loadCoreProductionOverview(async () => {
+				const overview = await getSaleInformation(props.ctx.db, props.input);
+				const operationalSalesItemIds = Array.from(
+					new Set(
+						overview.order.assignments.map((assignment) => assignment.itemId),
+					),
+				);
+				const [materialProjection, pipelineSnapshots] = await Promise.all([
+					loadProductionMaterialStatuses(props.ctx.db, {
+						salesOrderId: overview.order.id,
+						completeOrder: true,
+						exactSalesItemIds: operationalSalesItemIds,
+					}),
+					getSalesPipelineSnapshots(props.ctx.db, [overview.order.id]),
+				]);
+				return {
+					...overview,
+					pipelineRevision:
+						pipelineSnapshots.get(overview.order.id)?.revision ?? null,
+					items: overview.items.map((item) => {
+						const assignments = overview.order.assignments.filter(
+							(assignment) =>
+								assignment.salesItemControlUid === item.controlUid,
+						);
+						return {
+							...item,
+							materialStatus: buildProductionItemMaterialStatus({
+								salesOrderId: overview.order.id,
+								salesItemId: item.itemId,
+								configuredProduction: item.itemConfig?.production,
+								productionItemDimension: item.dim,
+								hasOperationalProduction: assignments.length > 0,
+								reviewPending: assignments.some((assignment) =>
+									assignment.submissions.some(
+										(submission) =>
+											submission.materialReview?.status === "PENDING",
+									),
+								),
+								projectionState: materialProjection.state,
+								materials: materialProjection.materials,
+							}),
+						};
+					}),
+				};
+			});
 		}),
 	productionReadiness: protectedProcedure
 		.input(productionReadinessSchema)

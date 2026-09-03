@@ -2,13 +2,17 @@ export const SALES_ORDER_LIFECYCLE_STATUSES = [
 	"awaiting_production",
 	"production_queued",
 	"in_production",
+	"awaiting_production_review",
 	"ready_to_fulfill",
 	"fulfillment_queued",
 	"packing",
 	"packed",
 	"in_transit",
+	"partially_fulfilled",
+	"administratively_completed",
 	"fulfilled",
 	"cancelled",
+	"conflict",
 	"unknown",
 ] as const;
 
@@ -68,6 +72,11 @@ export const SALES_ORDER_LIFECYCLE_STATUS_META = {
 		tone: "blue",
 		badgeClassName: "bg-blue-100 text-blue-700",
 	},
+	awaiting_production_review: {
+		label: "Awaiting production review",
+		tone: "amber",
+		badgeClassName: "bg-amber-100 text-amber-700",
+	},
 	ready_to_fulfill: {
 		label: "Ready to fulfill",
 		tone: "violet",
@@ -93,6 +102,16 @@ export const SALES_ORDER_LIFECYCLE_STATUS_META = {
 		tone: "sky",
 		badgeClassName: "bg-sky-100 text-sky-700",
 	},
+	partially_fulfilled: {
+		label: "Partially fulfilled",
+		tone: "cyan",
+		badgeClassName: "bg-cyan-100 text-cyan-700",
+	},
+	administratively_completed: {
+		label: "Administratively completed",
+		tone: "stone",
+		badgeClassName: "bg-stone-100 text-stone-700",
+	},
 	fulfilled: {
 		label: "Fulfilled",
 		tone: "emerald",
@@ -100,6 +119,11 @@ export const SALES_ORDER_LIFECYCLE_STATUS_META = {
 	},
 	cancelled: {
 		label: "Cancelled",
+		tone: "rose",
+		badgeClassName: "bg-rose-100 text-rose-700",
+	},
+	conflict: {
+		label: "Lifecycle conflict",
 		tone: "rose",
 		badgeClassName: "bg-rose-100 text-rose-700",
 	},
@@ -285,9 +309,13 @@ export function getSalesOrderLifecycleStatusTone(
 }
 
 export function getSalesOrderLifecycleStatusBadgeClassName(
-	status: SalesOrderLifecycleStatus,
+	status: SalesOrderLifecycleStatus | string,
 ) {
-	return SALES_ORDER_LIFECYCLE_STATUS_META[status].badgeClassName;
+	return (
+		SALES_ORDER_LIFECYCLE_STATUS_META[status as SalesOrderLifecycleStatus]
+			?.badgeClassName ??
+		"border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-300"
+	);
 }
 
 function firstMeaningfulStatus(...values: (string | null | undefined)[]) {

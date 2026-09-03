@@ -8,6 +8,7 @@ export async function sendPackingReportNotification(
 	status: "PENDING" | "APPROVED" | "REJECTED",
 	authorId: number,
 	reviewerName?: string,
+	notificationClient?: Pick<Notifications, "create">,
 ) {
 	try {
 		const report = await ctx.db.salesPackingReport.findUnique({
@@ -62,7 +63,7 @@ export async function sendPackingReportNotification(
 		if (recipientId === authorId) {
 			return { sent: false as const, reason: "SELF_NOTIFICATION_SUPPRESSED" };
 		}
-		const notification = new Notifications(ctx.db);
+		const notification = notificationClient ?? new Notifications(ctx.db);
 		await notification.create(
 			"dispatch_packing_delay",
 			{

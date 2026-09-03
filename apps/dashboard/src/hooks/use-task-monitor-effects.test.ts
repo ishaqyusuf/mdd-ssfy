@@ -13,7 +13,7 @@ const source = readFileSync(
 
 describe("task monitor query events", () => {
 	it("uses the production event for completed production tasks", () => {
-		expect(source.includes("sq.events.productionUpdated(sales)")).toBe(true);
+		expect(source.includes("sq.events.pipelineUpdated(sales)")).toBe(true);
 	});
 
 	it("uses the production event when production completion is cancelled", () => {
@@ -23,11 +23,11 @@ describe("task monitor query events", () => {
 	});
 
 	it("uses the fulfillment event for fulfilled sales tasks", () => {
-		expect(source.includes("sq.events.fulfillmentUpdated(sales)")).toBe(true);
+		expect(source.includes("sq.events.pipelineUpdated(sales)")).toBe(true);
 		expect(source).toContain("waitForFulfillmentProjection");
-		expect(
-			source.match(/sq\.events\.fulfillmentUpdated\(sales\)/g),
-		).toHaveLength(2);
+		expect(source.match(/sq\.events\.pipelineUpdated\(sales\)/g)).toHaveLength(
+			4,
+		);
 		expect(source).toContain("getBacklogCount(output)");
 		expect(source).toContain("workspaceSummary.pathKey()");
 	});

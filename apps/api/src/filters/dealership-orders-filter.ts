@@ -2,6 +2,8 @@ import type { DealerPortalSalesListSchema } from "@api/schemas/dealer";
 import type { TRPCContext } from "@api/trpc/init";
 import type { PageFilterData } from "@api/type";
 import { optionFilter } from "@api/utils/filter";
+import { projectSalesPipelineHeadlineForCustomer } from "@gnd/sales/sales-pipeline";
+import { shouldServeCanonicalSalesPipeline } from "@gnd/sales/sales-pipeline-rollout";
 import {
 	dealershipPaymentStateOptions,
 	toDealershipFilterOptions,
@@ -31,10 +33,14 @@ export async function getDealershipOrdersFilter(
 			},
 		},
 		select: {
+			id: true,
 			orderId: true,
 			status: true,
 			deliveryOption: true,
 			invoiceStatus: true,
+			listProjection: {
+				select: { pipelineHeadline: true },
+			},
 			dealerSale: {
 				select: {
 					dealerCustomerProfile: {
@@ -60,7 +66,6 @@ export async function getDealershipOrdersFilter(
 			},
 		},
 	});
-
 	return [
 		searchFilter,
 		optionFilter(
@@ -94,7 +99,13 @@ export async function getDealershipOrdersFilter(
 			"Status",
 			withDealershipStatusColors(
 				toDealershipFilterOptions(
-					orders.map((order) => order.status || "open"),
+					orders.map((order) => {
+						return shouldServeCanonicalSalesPipeline(order.id)
+							? projectSalesPipelineHeadlineForCustomer(
+									order.listProjection?.pipelineHeadline,
+								).code
+							: "processing";
+					}),
 				),
 			),
 		),
@@ -102,9 +113,7 @@ export async function getDealershipOrdersFilter(
 			"deliveryOption",
 			"Delivery",
 			withDealershipDeliveryColors(
-				toDealershipFilterOptions(
-					orders.map((order) => order.deliveryOption),
-				),
+				toDealershipFilterOptions(orders.map((order) => order.deliveryOption)),
 			),
 		),
 		optionFilter(
@@ -129,9 +138,7 @@ export async function getDealershipOrdersFilter(
 			"invoiceStatus",
 			"Invoice Status",
 			withDealershipStatusColors(
-				toDealershipFilterOptions(
-					orders.map((order) => order.invoiceStatus),
-				),
+				toDealershipFilterOptions(orders.map((order) => order.invoiceStatus)),
 			),
 		),
 	] satisfies FilterData[];

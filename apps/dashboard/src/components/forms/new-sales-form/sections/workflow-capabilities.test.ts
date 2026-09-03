@@ -157,14 +157,21 @@ describe("Dashboard sales form workflow capabilities", () => {
 	});
 
 	test("provides tooltip context for every item workflow panel", () => {
-		const source = readFileSync(
-			new URL("./item-workflow-panel.tsx", import.meta.url),
+		const dashboardSource = readFileSync(
+			new URL("./dashboard-sales-form-workflow-panel.tsx", import.meta.url),
 			"utf8",
 		);
-		const panelReturn = source.slice(source.lastIndexOf("\n\treturn ("));
+		const panelSource = readFileSync(
+			new URL(
+				"../../../../../../../packages/sales/src/sales-form/ui/workflow/sales-form-workflow-panel.tsx",
+				import.meta.url,
+			),
+			"utf8",
+		);
 
-		expect(panelReturn).toContain("<TooltipProvider");
-		expect(panelReturn).toContain("</TooltipProvider>");
+		expect(dashboardSource).toContain("<SalesFormEnginePanel");
+		expect(panelSource).toContain("<Tooltip>");
+		expect(panelSource).toContain("<TooltipContent");
 	});
 
 	test("returns from HPT to the Door step for an additional door", () => {
