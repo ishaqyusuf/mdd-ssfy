@@ -4,39 +4,45 @@ import * as React from "react";
 import { Icons } from "@gnd/ui/icons";
 import { cn } from "@/lib/utils";
 
-import { Button } from "@gnd/ui/button";
-import { Input, type InputProps } from "@gnd/ui/input";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from "@gnd/ui/input-group";
+import type { InputProps } from "@gnd/ui/input";
 
 const PasswordInput = React.forwardRef<HTMLInputElement, InputProps>(
     ({ className, ...props }, ref) => {
         const [showPassword, setShowPassword] = React.useState(false);
 
         return (
-            <div className="relative">
-                <Input
+            <InputGroup className="h-12 rounded-lg bg-background">
+                <InputGroupInput
                     type={showPassword ? "text" : "password"}
-                    className={cn("pr-10", className)}
+                    className={cn("h-full px-3 text-base", className)}
                     ref={ref}
                     {...props}
                 />
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    disabled={props.value === "" || props.disabled}
-                >
-                    {showPassword ? (
-                        <Icons.hide className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                        <Icons.view className="h-4 w-4" aria-hidden="true" />
-                    )}
-                    <span className="sr-only">
-                        {showPassword ? "Hide password" : "Show password"}
-                    </span>
-                </Button>
-            </div>
+                <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                        type="button"
+                        size="icon-sm"
+                        aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                        }
+                        aria-pressed={showPassword}
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        disabled={props.value === "" || props.disabled}
+                    >
+                        {showPassword ? (
+                            <Icons.hide aria-hidden="true" />
+                        ) : (
+                            <Icons.view aria-hidden="true" />
+                        )}
+                    </InputGroupButton>
+                </InputGroupAddon>
+            </InputGroup>
         );
     },
 );

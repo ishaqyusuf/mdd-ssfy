@@ -80,10 +80,10 @@ export function CreateAuthAccountPasswordForm() {
 
     if (!hasUsableToken) {
         return (
-            <div className="space-y-5">
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+            <div className="flex flex-col gap-5">
+                <div className="rounded-lg border border-border bg-muted/60 p-4 text-sm leading-6 text-foreground">
                     <div className="mb-2 flex items-center gap-2 font-semibold">
-                        <Icons.ShieldCheck className="size-4 text-amber-700" />
+                        <Icons.ShieldCheck className="size-4" />
                         Password setup link required
                     </div>
                     <p>
@@ -91,10 +91,7 @@ export function CreateAuthAccountPasswordForm() {
                         to login and sign in with your current password again.
                     </p>
                 </div>
-                <Button
-                    asChild
-                    className="h-12 w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800"
-                >
+                <Button asChild className="h-12 w-full rounded-lg">
                     <Link href="/login">Back to login</Link>
                 </Button>
             </div>
@@ -104,7 +101,7 @@ export function CreateAuthAccountPasswordForm() {
     return (
         <Form {...form}>
             <form
-                className="grid gap-5"
+                className="flex flex-col gap-5"
                 onSubmit={(...args) =>
                     void form.handleSubmit(onSubmit)(...args)
                 }
@@ -114,19 +111,14 @@ export function CreateAuthAccountPasswordForm() {
                     control={form.control}
                     name="password"
                     render={({ field }) => (
-                        <FormItem className="space-y-2">
-                            <FormLabel className="text-slate-700">
-                                New password
-                            </FormLabel>
+                        <FormItem className="flex flex-col gap-2">
+                            <FormLabel>New password</FormLabel>
                             <FormControl>
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                    <PasswordInput
-                                        placeholder="Enter a new password"
-                                        autoComplete="new-password"
-                                        className="h-auto border-0 bg-transparent p-0 pr-10 text-base text-slate-950 placeholder:text-slate-400 focus-visible:ring-0"
-                                        {...field}
-                                    />
-                                </div>
+                                <PasswordInput
+                                    placeholder="Enter a new password"
+                                    autoComplete="new-password"
+                                    {...field}
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -136,19 +128,14 @@ export function CreateAuthAccountPasswordForm() {
                     control={form.control}
                     name="confirmPassword"
                     render={({ field }) => (
-                        <FormItem className="space-y-2">
-                            <FormLabel className="text-slate-700">
-                                Confirm password
-                            </FormLabel>
+                        <FormItem className="flex flex-col gap-2">
+                            <FormLabel>Confirm password</FormLabel>
                             <FormControl>
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                    <PasswordInput
-                                        placeholder="Confirm your new password"
-                                        autoComplete="new-password"
-                                        className="h-auto border-0 bg-transparent p-0 pr-10 text-base text-slate-950 placeholder:text-slate-400 focus-visible:ring-0"
-                                        {...field}
-                                    />
-                                </div>
+                                <PasswordInput
+                                    placeholder="Confirm your new password"
+                                    autoComplete="new-password"
+                                    {...field}
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -156,7 +143,7 @@ export function CreateAuthAccountPasswordForm() {
                 />
                 <Button
                     disabled={isPending}
-                    className="h-12 rounded-2xl bg-slate-950 text-sm font-semibold text-white hover:bg-slate-800"
+                    className="h-12 rounded-lg text-sm font-semibold"
                 >
                     {isPending && (
                         <Icons.Loader2

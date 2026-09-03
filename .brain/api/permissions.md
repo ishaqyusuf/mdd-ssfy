@@ -7,20 +7,23 @@
   `viewStatusOnlySalesCompletion` and `editStatusOnlySalesCompletion`; no raw
   snake-case compatibility grant exists.
 - View controls the dedicated completion projection and Status-only choice /
-  provenance presentation. Edit independently guards mark and cancel mutations
-  before the domain layer is reached. A view-only user cannot mutate through a
-  direct API request.
+  provenance presentation. The dedicated Edit permission or the existing
+  `editOrders` Sales Order permission guards mark and cancel mutations before
+  the domain layer is reached. A view-only user cannot mutate through a direct
+  API request.
 - Backend commands derive actor id/name from the authenticated context and do
   not accept caller-selected actor identity. Existing Full workflow permissions
   and behavior are unchanged.
-- The Fulfillment Status-only choice uses this same exact view/edit boundary.
+- The Fulfillment Status-only choice uses this same bounded edit boundary.
   The Full-workflow choice independently retains
   `viewMarkSalesOrderFulfilled`; neither permission implies the other.
 - Final verification proves the two exact rows normalize independently, a lone
   `status_only_sales_completion` compatibility row grants neither capability,
-  view-only callers cannot mutate, and callers without view cannot see the
-  governed choice/provenance. The authenticated local editor path passed for
-  both milestones.
+  view-only callers cannot mutate, and callers without view or Sales Order edit
+  access cannot see the governed choice/provenance. Dedicated completion
+  editors and Sales Order editors both pass the route boundary for both
+  milestones; canonical reason, revision, idempotency, and exception checks
+  remain mandatory inside the command.
 
 ## Production Assignment Mutation Boundary (2026-08-31)
 

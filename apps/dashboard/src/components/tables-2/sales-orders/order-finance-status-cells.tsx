@@ -108,6 +108,13 @@ export function SalesOrderStatusCell({
 				currentStatus={item.status}
 				productionStatus={item.productionState}
 				pipelineCapabilities={item.pipeline?.capabilities}
+				statusCandidates={[
+					{
+						salesId: item.id,
+						status: item.status,
+						pipelineRevision: item.pipeline?.revision,
+					},
+				]}
 			/>
 		</SalesMenu>
 	);

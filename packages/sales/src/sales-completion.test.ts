@@ -25,6 +25,7 @@ import {
 	salesCompletionLabels,
 	salesCompletionProjectionSourceRevision,
 } from "./sales-completion";
+import { resolveSalesPipelineSnapshotFromOrder } from "./sales-pipeline-order";
 
 const recordedAt = new Date("2026-08-01T12:00:00.000Z");
 const updatedAt = new Date("2026-08-01T12:00:00.000Z");
@@ -49,6 +50,13 @@ function completionRecord(
 		updatedAt,
 		...overrides,
 	};
+}
+
+function createdSalesHistoryData(entry: unknown) {
+	const payload = entry as {
+		data?: { data?: Record<string, unknown> | null };
+	};
+	return { data: payload.data?.data ?? null };
 }
 
 function resolve(
@@ -322,6 +330,23 @@ function createCompletionDb(
 		prodStatus: null,
 		stat: [],
 		deliveries: [],
+		itemControls: [
+			{
+				uid: "door-1",
+				produceable: true,
+				shippable: true,
+				qtyControls: [
+					{
+						type: "qty",
+						total: 1,
+						itemTotal: null,
+						qty: null,
+						updatedAt,
+					},
+				],
+			},
+		],
+		assignments: [],
 		completionRecords: [...records].reverse(),
 		...orderOverrides,
 	});
@@ -381,7 +406,10 @@ function createCompletionDb(
 				async ({
 					where,
 					data,
-				}: { where: { id: string }; data: Record<string, unknown> }) => {
+				}: {
+					where: { id: string };
+					data: Record<string, unknown>;
+				}) => {
 					calls.push("salesCompletionRecord.update");
 					const record = records.find((candidate) => candidate.id === where.id);
 					if (!record) throw new Error("missing record");
@@ -398,6 +426,7 @@ function createCompletionDb(
 			),
 		},
 		salesHistory: {
+			findMany: mock(async () => history.map(createdSalesHistoryData)),
 			create: mock(async (payload: unknown) => {
 				calls.push("salesHistory.create");
 				history.push(payload);
@@ -415,7 +444,10 @@ function createCompletionDb(
 	return { db: db as unknown as Database, tx, records, calls, history };
 }
 
-function createBulkCompletionDb(orderIds: number[]) {
+function createBulkCompletionDb(
+	orderIds: number[],
+	orderOverrides: Record<string, unknown> = {},
+) {
 	const records: SalesCompletionRecordView[] = [];
 	const history: unknown[] = [];
 	let activeTransactions = 0;
@@ -430,9 +462,27 @@ function createBulkCompletionDb(orderIds: number[]) {
 		prodStatus: null,
 		stat: [],
 		deliveries: [],
+		itemControls: [
+			{
+				uid: `door-${salesOrderId}`,
+				produceable: true,
+				shippable: true,
+				qtyControls: [
+					{
+						type: "qty",
+						total: 1,
+						itemTotal: null,
+						qty: null,
+						updatedAt,
+					},
+				],
+			},
+		],
+		assignments: [],
 		completionRecords: records
 			.filter((record) => record.salesOrderId === salesOrderId)
 			.toReversed(),
+		...orderOverrides,
 	});
 	const tx = {
 		salesOrders: {
@@ -476,7 +526,26 @@ function createBulkCompletionDb(orderIds: number[]) {
 			}),
 		},
 		salesHistory: {
+			findUnique: mock(async ({ where }: { where: { id: string } }) => {
+				const entry = history.find(
+					(entry) =>
+						(entry as { data?: { id?: string } }).data?.id === where.id,
+				);
+				return entry ? createdSalesHistoryData(entry) : null;
+			}),
+			findMany: mock(async () => history.map(createdSalesHistoryData)),
 			create: mock(async (payload: unknown) => {
+				const id = (payload as { data?: { id?: string } }).data?.id;
+				if (
+					id &&
+					history.some(
+						(entry) => (entry as { data?: { id?: string } }).data?.id === id,
+					)
+				) {
+					throw Object.assign(new Error("duplicate history identity"), {
+						code: "P2002",
+					});
+				}
 				history.push(payload);
 				return payload;
 			}),
@@ -523,6 +592,19 @@ describe("status-only completion batches", () => {
 				effectiveAt: null,
 			}).success,
 		).toBe(false);
+		expect(
+			markSalesCompletionStatusOnlyBulkSchema.safeParse({
+				salesOrderIds: [91],
+				requestId: "00000000-0000-4000-8000-000000000102",
+				administrativeOverride: {
+					reason: "Manager reviewed the exception.",
+					expectedRevisions: [
+						{ salesOrderId: 91, revision: "a".repeat(64) },
+						{ salesOrderId: 91, revision: "b".repeat(64) },
+					],
+				},
+			}).success,
+		).toBe(false);
 	});
 
 	test("marks unique Production orders and replays the same batch idempotently", async () => {
@@ -559,7 +641,57 @@ describe("status-only completion batches", () => {
 			failed: 0,
 		});
 		expect(fixture.records).toHaveLength(2);
+		expect(fixture.history).toHaveLength(3);
+	});
+
+	test("rejects a changed batch payload under the same request", async () => {
+		const fixture = createBulkCompletionDb([91]);
+		const input = {
+			salesOrderIds: [91],
+			requestId: "00000000-0000-4000-8000-000000000205",
+			effectiveAt: null,
+		};
+
+		const first = await markProductionCompletionStatusOnlyBulk(
+			fixture.db,
+			input,
+			{ id: 7, name: "Admin" },
+		);
+		expect(first.completed).toBe(1);
+		await expect(
+			markProductionCompletionStatusOnlyBulk(
+				fixture.db,
+				{
+					...input,
+					effectiveAt: new Date("2026-09-03T12:00:00.000Z"),
+				},
+				{ id: 7, name: "Admin" },
+			),
+		).rejects.toMatchObject({ code: "IDEMPOTENCY_CONFLICT" });
+		expect(fixture.records).toHaveLength(1);
 		expect(fixture.history).toHaveLength(2);
+	});
+
+	test("binds the batch request to its complete order membership", async () => {
+		const fixture = createBulkCompletionDb([91, 92]);
+		const requestId = "00000000-0000-4000-8000-000000000206";
+
+		const first = await markProductionCompletionStatusOnlyBulk(
+			fixture.db,
+			{ salesOrderIds: [91], requestId, effectiveAt: null },
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(first.completed).toBe(1);
+		await expect(
+			markProductionCompletionStatusOnlyBulk(
+				fixture.db,
+				{ salesOrderIds: [92], requestId, effectiveAt: null },
+				{ id: 7, name: "Admin" },
+			),
+		).rejects.toMatchObject({ code: "IDEMPOTENCY_CONFLICT" });
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.records[0]?.salesOrderId).toBe(91);
 	});
 
 	test("isolates missing Fulfillment orders while completing valid selections", async () => {
@@ -609,9 +741,202 @@ describe("status-only completion batches", () => {
 		expect(result.failed).toBe(0);
 		expect(fixture.maxActiveTransactions()).toBe(1);
 	});
+
+	test("applies one audited override reason with a revision for every selected exception", async () => {
+		const fixture = createBulkCompletionDb([91, 92], { itemControls: [] });
+		const expectedRevisions = await Promise.all(
+			[91, 92].map(async (salesOrderId) => {
+				const order = await fixture.db.salesOrders.findFirst({
+					where: { id: salesOrderId },
+				});
+				return {
+					salesOrderId,
+					revision: resolveSalesPipelineSnapshotFromOrder(order as never)
+						.revision,
+				};
+			}),
+		);
+		const firstExpectedRevision = expectedRevisions[0];
+		const secondExpectedRevision = expectedRevisions[1];
+		if (!firstExpectedRevision || !secondExpectedRevision) {
+			throw new Error("Expected two batch revision fixtures.");
+		}
+
+		const result = await markProductionCompletionStatusOnlyBulk(
+			fixture.db,
+			{
+				salesOrderIds: [91, 92],
+				requestId: "00000000-0000-4000-8000-000000000204",
+				effectiveAt: null,
+				administrativeOverride: {
+					reason: "Manager confirmed external completion.",
+					expectedRevisions,
+				},
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result.completed).toBe(2);
+		expect(fixture.history).toHaveLength(3);
+		expect(fixture.history).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					data: expect.objectContaining({
+						data: expect.objectContaining({
+							administrativeOverride: expect.objectContaining({
+								reason: "Manager confirmed external completion.",
+							}),
+						}),
+					}),
+				}),
+			]),
+		);
+		await expect(
+			markProductionCompletionStatusOnlyBulk(
+				fixture.db,
+				{
+					salesOrderIds: [91, 92],
+					requestId: "00000000-0000-4000-8000-000000000204",
+					effectiveAt: null,
+					administrativeOverride: {
+						reason: "Manager confirmed external completion.",
+						expectedRevisions: [
+							{ ...firstExpectedRevision, revision: "a".repeat(64) },
+							secondExpectedRevision,
+						],
+					},
+				},
+				{ id: 7, name: "Admin" },
+			),
+		).rejects.toMatchObject({ code: "IDEMPOTENCY_CONFLICT" });
+	});
 });
 
 describe("status-only Production commands", () => {
+	test("lets a canonical Status unavailable override supersede an already-satisfied legacy Production projection", async () => {
+		const fixture = createCompletionDb([], {
+			stat: [
+				{
+					type: "prodCompleted",
+					percentage: 100,
+					score: 1,
+					total: 1,
+				},
+			],
+			itemControls: [],
+		});
+		const order = await fixture.tx.salesOrders.findFirst({});
+		const pipeline = resolveSalesPipelineSnapshotFromOrder(order as never);
+		const completion = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+
+		expect(pipeline.headline.code).toBe("unknown");
+		expect(completion.productionCompletionSatisfied).toBe(true);
+		expect(completion.availableActions.markProductionStatusOnly).toBe(false);
+
+		const result = await markProductionCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000114",
+				expectedRevision: completion.revision,
+				effectiveAt: null,
+				administrativeOverride: {
+					reason: "Manager resolved the unavailable canonical lifecycle.",
+					expectedRevision: pipeline.revision,
+				},
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result.idempotentReplay).toBe(false);
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(1);
+	});
+
+	test("records an explicit conflict override reason and prior canonical snapshot", async () => {
+		const fixture = createCompletionDb([], {
+			archivedAt: null,
+			deletedAt: null,
+			grandTotal: 100,
+			amountDue: 0,
+			inventoryProjection: null,
+			itemControls: [
+				{
+					uid: "door-1",
+					produceable: false,
+					shippable: true,
+					qtyControls: [
+						{
+							type: "qty",
+							total: 1,
+							itemTotal: null,
+							qty: null,
+							updatedAt,
+						},
+					],
+				},
+			],
+			assignments: [
+				{
+					id: 901,
+					assignedToId: 7,
+					qtyAssigned: 1,
+					qtyCompleted: 0,
+					lhQty: 0,
+					rhQty: 0,
+					dueDate: new Date("2026-09-02T00:00:00.000Z"),
+					assignedAt: updatedAt,
+					completedAt: null,
+					updatedAt,
+					submissions: [],
+				},
+			],
+		});
+		const order = await fixture.tx.salesOrders.findFirst({});
+		const pipeline = resolveSalesPipelineSnapshotFromOrder(order as never);
+		const completion = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+
+		const result = await markProductionCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000010",
+				expectedRevision: completion.revision,
+				effectiveAt: null,
+				administrativeOverride: {
+					reason: "Manager verified the external Production record.",
+					expectedRevision: pipeline.revision,
+				},
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result.projection.productionCompletionSatisfied).toBe(true);
+		expect(fixture.history).toHaveLength(1);
+		expect(fixture.history[0]).toMatchObject({
+			data: {
+				data: {
+					administrativeOverride: {
+						reason: "Manager verified the external Production record.",
+						expectedRevision: pipeline.revision,
+						priorSnapshot: {
+							revision: pipeline.revision,
+							headline: { code: "conflict" },
+						},
+						resultingSnapshot: {
+							headline: { code: "administratively_completed" },
+							production: { state: "administratively_completed" },
+						},
+					},
+				},
+			},
+		});
+	});
+
 	test("marks only the completion record and audit in one serializable transaction", async () => {
 		const fixture = createCompletionDb();
 		const before = await getSalesCompletionProjection(fixture.db, {
@@ -646,6 +971,34 @@ describe("status-only Production commands", () => {
 		});
 	});
 
+	test("refreshes the lifecycle list projection inside the completion transaction", async () => {
+		const fixture = createCompletionDb();
+		const before = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+		const refreshListProjection = mock(
+			async (db: unknown, salesOrderId: number) => {
+				expect(db).toBe(fixture.tx);
+				expect(salesOrderId).toBe(91);
+			},
+		);
+
+		await markProductionCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000113",
+				expectedRevision: before.revision,
+				effectiveAt: null,
+			},
+			{ id: 7, name: "Admin" },
+			{ refreshListProjection: refreshListProjection as never },
+		);
+
+		expect(refreshListProjection).toHaveBeenCalledTimes(1);
+		expect(fixture.calls.indexOf("salesHistory.create")).toBeGreaterThan(-1);
+	});
+
 	test("replays a duplicate mark without a second record or audit", async () => {
 		const fixture = createCompletionDb();
 		const before = await getSalesCompletionProjection(fixture.db, {
@@ -672,6 +1025,45 @@ describe("status-only Production commands", () => {
 		expect(fixture.history).toHaveLength(1);
 	});
 
+	test("rejects a reused mark request when the administrative payload changes", async () => {
+		const fixture = createCompletionDb([], { itemControls: [] });
+		const order = await fixture.tx.salesOrders.findFirst({});
+		const pipeline = resolveSalesPipelineSnapshotFromOrder(order as never);
+		const completion = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+		const input = {
+			salesOrderId: 91,
+			requestId: "00000000-0000-4000-8000-000000000112",
+			expectedRevision: completion.revision,
+			effectiveAt: null,
+			administrativeOverride: {
+				reason: "Manager verified external completion.",
+				expectedRevision: pipeline.revision,
+			},
+		};
+
+		await markProductionCompletionStatusOnly(fixture.db, input, {
+			id: 7,
+			name: "Admin",
+		});
+		await expect(
+			markProductionCompletionStatusOnly(
+				fixture.db,
+				{
+					...input,
+					administrativeOverride: {
+						...input.administrativeOverride,
+						reason: "A different administrative reason.",
+					},
+				},
+				{ id: 7, name: "Admin" },
+			),
+		).rejects.toMatchObject({ code: "IDEMPOTENCY_CONFLICT" });
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(1);
+	});
+
 	test("returns a distinct stale-state error before writes", async () => {
 		const fixture = createCompletionDb();
 		const promise = markProductionCompletionStatusOnly(
@@ -688,6 +1080,32 @@ describe("status-only Production commands", () => {
 		await expect(promise).rejects.toMatchObject({
 			code: "STALE_STATE",
 		});
+		expect(fixture.records).toHaveLength(0);
+		expect(fixture.history).toHaveLength(0);
+	});
+
+	test("rejects an administrative override when the canonical pipeline revision is stale", async () => {
+		const fixture = createCompletionDb();
+		const completion = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+
+		await expect(
+			markProductionCompletionStatusOnly(
+				fixture.db,
+				{
+					salesOrderId: 91,
+					requestId: "00000000-0000-4000-8000-000000000018",
+					expectedRevision: completion.revision,
+					effectiveAt: null,
+					administrativeOverride: {
+						reason: "Manager confirmed external completion.",
+						expectedRevision: "0".repeat(64),
+					},
+				},
+				{ id: 7, name: "Admin" },
+			),
+		).rejects.toMatchObject({ code: "STALE_STATE" });
 		expect(fixture.records).toHaveLength(0);
 		expect(fixture.history).toHaveLength(0);
 	});
@@ -802,6 +1220,110 @@ describe("status-only Production commands", () => {
 });
 
 describe("status-only Fulfillment commands", () => {
+	test("lets a canonical lifecycle exception override supersede already-satisfied Fulfillment evidence", async () => {
+		const fixture = createCompletionDb([], {
+			itemControls: [
+				{
+					uid: "non-shippable-1",
+					produceable: false,
+					shippable: false,
+					qtyControls: [
+						{
+							type: "qty",
+							total: 1,
+							itemTotal: null,
+							qty: null,
+							updatedAt,
+						},
+					],
+				},
+			],
+			deliveries: [
+				{
+					id: 901,
+					status: "completed",
+					meta: {
+						dispatchCompletion: { status: "completed" },
+						inventoryDispatch: { status: "consumed" },
+					},
+					dueDate: null,
+					driverId: 7,
+					updatedAt,
+					items: [{ id: 901, qty: 1, updatedAt }],
+					_count: { items: 1, stockAllocations: 1 },
+				},
+			],
+		});
+		const order = await fixture.tx.salesOrders.findFirst({});
+		const pipeline = resolveSalesPipelineSnapshotFromOrder(order as never);
+		const completion = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+
+		expect(["unknown", "conflict"]).toContain(pipeline.headline.code);
+		expect(completion.fulfillmentCompletionSatisfied).toBe(true);
+		expect(completion.availableActions.markFulfillmentStatusOnly).toBe(false);
+
+		const result = await markFulfillmentCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000115",
+				expectedRevision: completion.revision,
+				effectiveAt: null,
+				administrativeOverride: {
+					reason: "Manager resolved the exceptional canonical lifecycle.",
+					expectedRevision: pipeline.revision,
+				},
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(result.idempotentReplay).toBe(false);
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(1);
+	});
+
+	test("records the same explicit exception provenance for Fulfillment", async () => {
+		const fixture = createCompletionDb([], { itemControls: [] });
+		const order = await fixture.tx.salesOrders.findFirst({});
+		const pipeline = resolveSalesPipelineSnapshotFromOrder(order as never);
+		const completion = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+
+		await markFulfillmentCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000020",
+				expectedRevision: completion.revision,
+				effectiveAt: null,
+				administrativeOverride: {
+					reason: "Manager verified external fulfillment.",
+					expectedRevision: pipeline.revision,
+				},
+			},
+			{ id: 7, name: "Admin" },
+		);
+
+		expect(fixture.history[0]).toMatchObject({
+			data: {
+				data: {
+					administrativeOverride: {
+						reason: "Manager verified external fulfillment.",
+						expectedRevision: pipeline.revision,
+						priorSnapshot: { headline: { code: "unknown" } },
+						resultingSnapshot: {
+							headline: { code: "administratively_completed" },
+							fulfillment: { state: "administratively_completed" },
+						},
+					},
+				},
+			},
+		});
+	});
+
 	test("marks only Fulfillment completion and audit while implying Production", async () => {
 		const fixture = createCompletionDb();
 		const before = await getSalesCompletionProjection(fixture.db, {

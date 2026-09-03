@@ -275,6 +275,38 @@ describe("canonical Sales Pipeline snapshot", () => {
 		expect(snapshot.fulfillment.operationallyComplete).toBe(false);
 	});
 
+	it("lets an audited administrative completion resolve the headline while preserving conflict evidence", () => {
+		const snapshot = resolveSalesPipelineSnapshot(
+			baseEvidence({
+				production: {
+					configuredRequirement: false,
+					requiredQty: 1,
+					assignments: [
+						{
+							id: 41,
+							active: true,
+							assignedQty: 1,
+							completedQty: 0,
+						},
+					],
+					submissions: [],
+					aggregate: null,
+					administrativeCompletion: {
+						method: "STATUS_ONLY",
+						recordedAt: "2026-09-03T12:00:00.000Z",
+						recordedById: 9,
+					},
+				},
+			}),
+		);
+
+		expect(snapshot.production.state).toBe("administratively_completed");
+		expect(snapshot.headline.code).toBe("administratively_completed");
+		expect(snapshot.conflicts.map((conflict) => conflict.code)).toContain(
+			"PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+		);
+	});
+
 	it("requires item-bearing proof and committed inventory for canonical Fulfilled", () => {
 		const partial = resolveSalesPipelineSnapshot(
 			baseEvidence({
@@ -512,6 +544,8 @@ describe("canonical workspace membership", () => {
 				operationalDate: "2026-09-02",
 			}).included,
 		).toBe(true);
+		const openAssignment = open.evidence.production.assignments[0];
+		if (!openAssignment) throw new Error("Expected one Production assignment");
 
 		const completed = resolveSalesPipelineSnapshot({
 			...open.evidence,
@@ -519,7 +553,7 @@ describe("canonical workspace membership", () => {
 				...open.evidence.production,
 				assignments: [
 					{
-						...open.evidence.production.assignments[0]!,
+						...openAssignment,
 						completedQty: 1,
 						completedAt: "2026-09-01T12:00:00.000Z",
 					},
@@ -630,6 +664,37 @@ describe("canonical workspace membership", () => {
 });
 
 describe("canonical lifecycle filters", () => {
+	it("matches one or many canonical headline statuses exactly", () => {
+		const unavailable = resolveSalesPipelineSnapshot(
+			baseEvidence({
+				production: {
+					configuredRequirement: null,
+					requiredQty: 0,
+					assignments: [],
+					submissions: [],
+					aggregate: null,
+					administrativeCompletion: null,
+				},
+			}),
+		);
+
+		expect(unavailable.headline.code).toBe("unknown");
+		expect(
+			matchesCanonicalSalesPipelineFilter(
+				unavailable,
+				{ headlines: ["unknown", "conflict"] },
+				"2026-09-02",
+			),
+		).toBe(true);
+		expect(
+			matchesCanonicalSalesPipelineFilter(
+				unavailable,
+				{ headlines: ["fulfilled"] },
+				"2026-09-02",
+			),
+		).toBe(false);
+	});
+
 	it("uses the same open assignment evidence for date filters", () => {
 		const snapshot = resolveSalesPipelineSnapshot(
 			baseEvidence({

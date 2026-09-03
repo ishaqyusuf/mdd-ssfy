@@ -2,16 +2,25 @@ export const FILTER_OPTION_COLORS = {
 	slate: "#64748b",
 	amber: "#d97706",
 	blue: "#2563eb",
+	indigo: "#4f46e5",
 	cyan: "#0891b2",
+	sky: "#0284c7",
 	teal: "#0d9488",
 	emerald: "#059669",
 	orange: "#ea580c",
 	rose: "#e11d48",
 	violet: "#7c3aed",
+	stone: "#78716c",
 } as const;
 
 type FilterOptionColor =
 	(typeof FILTER_OPTION_COLORS)[keyof typeof FILTER_OPTION_COLORS];
+
+export function getFilterOptionColorFromTone(
+	tone: keyof typeof FILTER_OPTION_COLORS,
+) {
+	return FILTER_OPTION_COLORS[tone];
+}
 
 const STATUS_COLOR_BY_VALUE = new Map<string, FilterOptionColor>([
 	["unknown", FILTER_OPTION_COLORS.slate],

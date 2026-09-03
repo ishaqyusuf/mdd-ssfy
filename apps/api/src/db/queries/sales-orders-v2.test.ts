@@ -106,6 +106,16 @@ function materializedPipelineFixture() {
 }
 
 describe("materialized sales pipeline rollout", () => {
+	it("accepts canonical lifecycle headline arrays at the Sales Orders boundary", () => {
+		expect(
+			getOrdersSchema.parse({
+				lifecycle: ["unknown", "conflict", "fulfilled"],
+			}),
+		).toMatchObject({
+			lifecycle: ["unknown", "conflict", "fulfilled"],
+		});
+	});
+
 	it("restores the stored legacy presentation outside the canonical cohort", () => {
 		const row = applyMaterializedSalesPipelineReadMode(
 			{
@@ -158,6 +168,104 @@ describe("materialized sales pipeline rollout", () => {
 });
 
 describe("sales orders default query contract", () => {
+	it("keeps lifecycle filtering inside the same sorted and paginated database query", async () => {
+		await withReadModelEnv(
+			{
+				GND_SALES_ORDERS_READ_MODEL_MODE: "off",
+				SALES_PIPELINE_READ_MODE: "shadow",
+				SALES_PIPELINE_COHORT_PERCENT: "0",
+			},
+			async () => {
+				let countWhere: unknown;
+				let rowsQuery: Record<string, unknown> | undefined;
+				const db = {
+					...emptyOrderReadDb(),
+					salesOrders: {
+						count: async ({ where }: { where: unknown }) => {
+							countWhere = where;
+							return 45;
+						},
+						findMany: async (query: Record<string, unknown>) => {
+							rowsQuery = query;
+							return [];
+						},
+					},
+				};
+
+				const result = await getOrders(
+					{
+						userId: 7,
+						requestId: "lifecycle-pagination-parity",
+						db,
+					} as unknown as Parameters<typeof getOrders>[0],
+					{
+						showing: "all sales",
+						lifecycle: ["conflict", "unknown"],
+						invoice: "paid",
+						production: "pending",
+						"completion.fulfillment": "pending",
+						sort: ["grandTotal.desc"],
+						cursor: "20",
+						size: 20,
+					},
+				);
+
+				expect(result.meta).toEqual({ count: 45, size: 20, cursor: "40" });
+				expect(rowsQuery).toMatchObject({
+					skip: 20,
+					take: 20,
+					orderBy: { grandTotal: "desc" },
+				});
+				const serialized = JSON.stringify(countWhere);
+				expect(serialized).toContain(
+					'"pipelineHeadline":{"in":["conflict","unknown"]}',
+				);
+				expect(serialized).toContain('"amountDue":0');
+				expect(serialized).toContain(
+					'"pipelineFulfillmentState":{"in":["backlog","packing","packed","in_transit","partially_fulfilled"]}',
+				);
+				expect(serialized).toContain(
+					'"pipelineProductionState":{"in":["not_assigned","partially_assigned","assigned"]}',
+				);
+			},
+		);
+	});
+
+	it("honors explicit headline filters outside the canonical rollout cohort", async () => {
+		await withReadModelEnv(
+			{
+				SALES_PIPELINE_READ_MODE: "shadow",
+				SALES_PIPELINE_COHORT_PERCENT: "0",
+			},
+			async () => {
+				let countWhere: unknown;
+				const ctx = {
+					userId: 7,
+					db: {
+						salesOrders: {
+							count: async (args: { where: unknown }) => {
+								countWhere = args.where;
+								return 2;
+							},
+						},
+					},
+				} as unknown as Parameters<typeof getOrdersCount>[0];
+
+				const count = await getOrdersCount(ctx, {
+					showing: "all sales",
+					lifecycle: ["unknown", "conflict"],
+				});
+
+				expect(count).toBe(2);
+				const serialized = JSON.stringify(countWhere);
+				expect(serialized).toContain('"listProjection"');
+				expect(serialized).toContain(
+					'"pipelineHeadline":{"in":["unknown","conflict"]}',
+				);
+			},
+		);
+	});
+
 	it("uses indexed canonical membership for list counts instead of legacy Production aggregates", async () => {
 		await withReadModelEnv(
 			{

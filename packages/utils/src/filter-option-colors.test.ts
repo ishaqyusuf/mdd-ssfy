@@ -3,11 +3,23 @@ import { describe, expect, it } from "bun:test";
 import {
 	FILTER_OPTION_COLORS,
 	getDeliveryFilterOptionColor,
+	getFilterOptionColorFromTone,
 	getPaymentFilterOptionColor,
 	getStatusFilterOptionColor,
 } from "./filter-option-colors";
 
 describe("filter option colors", () => {
+	it("maps canonical lifecycle tones without re-deriving status labels", () => {
+		expect(getFilterOptionColorFromTone("rose")).toBe(
+			FILTER_OPTION_COLORS.rose,
+		);
+		expect(getFilterOptionColorFromTone("indigo")).toBe(
+			FILTER_OPTION_COLORS.indigo,
+		);
+		expect(getFilterOptionColorFromTone("stone")).toBe(
+			FILTER_OPTION_COLORS.stone,
+		);
+	});
 	it("normalizes status aliases into stable semantic colors", () => {
 		expect(getStatusFilterOptionColor("signature_pending")).toBe(
 			FILTER_OPTION_COLORS.amber,
@@ -42,9 +54,7 @@ describe("filter option colors", () => {
 		expect(getPaymentFilterOptionColor("paid")).toBe(
 			FILTER_OPTION_COLORS.emerald,
 		);
-		expect(getPaymentFilterOptionColor("due")).toBe(
-			FILTER_OPTION_COLORS.amber,
-		);
+		expect(getPaymentFilterOptionColor("due")).toBe(FILTER_OPTION_COLORS.amber);
 		expect(getPaymentFilterOptionColor("credit")).toBe(
 			FILTER_OPTION_COLORS.violet,
 		);

@@ -1,6 +1,10 @@
 "use client";
 
 import {
+	CalendarScheduleMoveDialog,
+	type CalendarScheduleMoveProposal,
+} from "@/components/calendar-schedule-move-dialog";
+import {
 	type FulfillmentCalendarView,
 	getFulfillmentCalendarPeriod,
 	moveFulfillmentCalendarDate,
@@ -10,31 +14,44 @@ import { OperationsCalendarPeriodPicker } from "@/components/operations-calendar
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTRPC } from "@/trpc/client";
+import {
+	DndContext,
+	type DragEndEvent,
+	DragOverlay,
+	type DragStartEvent,
+	KeyboardSensor,
+	PointerSensor,
+	TouchSensor,
+	closestCenter,
+	useDraggable,
+	useDroppable,
+	useSensor,
+	useSensors,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@gnd/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import {
-	format,
-	isPast,
-	isSameMonth,
-	isToday,
-	startOfDay,
-} from "date-fns";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
+import { toast } from "@gnd/ui/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { format, isPast, isSameMonth, isToday, startOfDay } from "date-fns";
+import { useState } from "react";
 
 type DispatchItem = {
 	id: number;
+	salesOrderId: number;
 	status: string | null;
 	dueDate: Date | string | null;
+	sourceDate: string | null;
+	expectedEvidenceRevision: string | null;
+	canReschedule: boolean;
+	rescheduleLockReason: string | null;
 	deliveryMode: string | null;
 	driver?: { name: string | null } | null;
 	order?: {
@@ -44,6 +61,9 @@ type DispatchItem = {
 			businessName?: string | null;
 		} | null;
 	} | null;
+};
+type FulfillmentMoveProposal = CalendarScheduleMoveProposal & {
+	item: DispatchItem;
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -60,59 +80,136 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const LEGEND_STATUSES = ["queue", "packed", "in progress", "missing items"];
+const CALENDAR_SKELETON_KEYS = [
+	"monday",
+	"tuesday",
+	"wednesday",
+	"thursday",
+	"friday",
+	"saturday",
+	"sunday",
+];
 
 function DispatchChip({
 	item,
 	compact = false,
+	onReschedule,
 }: {
 	item: DispatchItem;
 	compact?: boolean;
+	onReschedule?: (item: DispatchItem) => void;
 }) {
 	const overview = useSalesOverviewQuery();
+	const draggable = useDraggable({
+		id: `fulfillment:${item.id}`,
+		data: { item },
+		disabled: !item.canReschedule,
+	});
 	const customer =
 		item.order?.customer?.businessName ||
 		item.order?.customer?.name ||
 		"Unknown";
 	const orderNo = item.order?.orderId ?? `#${item.id}`;
-	const colorClass = STATUS_COLORS[item.status ?? "queue"] ?? STATUS_COLORS.queue;
+	const colorClass =
+		STATUS_COLORS[item.status ?? "queue"] ?? STATUS_COLORS.queue;
 	const isOverdue = item.dueDate && isPast(new Date(item.dueDate));
 
 	return (
-		<button
-			type="button"
+		<div
+			ref={draggable.setNodeRef}
+			style={{
+				transform: CSS.Translate.toString(draggable.transform),
+				opacity: draggable.isDragging ? 0.35 : undefined,
+			}}
 			className={cn(
-				"w-full truncate rounded border text-left text-xs transition-opacity hover:opacity-80",
+				"flex w-full min-w-0 items-start rounded border text-left text-xs transition-opacity focus-within:ring-2 focus-within:ring-ring hover:opacity-90",
 				compact ? "px-1.5 py-1" : "px-2 py-1.5",
 				colorClass,
 				isOverdue && "ring-1 ring-red-400",
 			)}
-			onClick={() =>
-				overview.openDispatch(item.order?.orderId ?? undefined, item.id, "packing")
-			}
 			title={`${orderNo} · ${customer}`}
 		>
-			<div className="truncate font-medium">{orderNo}</div>
-			{!compact && (
-				<>
-					<div className="truncate opacity-70">{customer}</div>
-					{item.driver?.name && (
-						<div className="truncate opacity-60">{item.driver.name}</div>
-					)}
-				</>
+			<button
+				type="button"
+				className="min-w-0 flex-1 text-left focus-visible:outline-none"
+				onClick={() =>
+					overview.openDispatch(
+						item.order?.orderId ?? undefined,
+						item.id,
+						"packing",
+					)
+				}
+			>
+				<div className="truncate font-medium">{orderNo}</div>
+				{!compact && (
+					<>
+						<div className="truncate opacity-70">{customer}</div>
+						{item.driver?.name && (
+							<div className="truncate opacity-60">{item.driver.name}</div>
+						)}
+					</>
+				)}
+			</button>
+			{item.canReschedule ? (
+				<div className="ml-1 flex shrink-0 items-center gap-0.5">
+					<button
+						type="button"
+						className="rounded px-1 font-semibold opacity-70 hover:bg-background/50 hover:opacity-100 focus-visible:outline-none"
+						onClick={() => onReschedule?.(item)}
+						aria-label={`Reschedule ${orderNo}`}
+						title="Reschedule"
+					>
+						↗
+					</button>
+					<button
+						type="button"
+						ref={draggable.setActivatorNodeRef}
+						{...draggable.listeners}
+						{...draggable.attributes}
+						className="cursor-grab rounded px-1 font-semibold opacity-70 hover:bg-background/50 hover:opacity-100 focus-visible:outline-none active:cursor-grabbing"
+						aria-label={`Drag ${orderNo} to another fulfillment date`}
+						title="Drag to reschedule"
+					>
+						⠿
+					</button>
+				</div>
+			) : (
+				<span
+					className="ml-1 shrink-0 px-1 opacity-60"
+					title={item.rescheduleLockReason || "Schedule locked"}
+					aria-label={item.rescheduleLockReason || "Schedule locked"}
+				>
+					🔒
+				</span>
 			)}
-		</button>
+		</div>
 	);
 }
 
-function DayColumn({ date, items }: { date: Date; items: DispatchItem[] }) {
+function DayColumn({
+	date,
+	items,
+	onReschedule,
+}: {
+	date: Date;
+	items: DispatchItem[];
+	onReschedule?: (item: DispatchItem) => void;
+}) {
 	const today = isToday(date);
 	const past = isPast(startOfDay(date)) && !today;
+	const dateKey = format(date, "yyyy-MM-dd");
+	const droppable = useDroppable({
+		id: `fulfillment-date:${dateKey}`,
+		data: { date: dateKey },
+	});
 
 	return (
 		<div
+			ref={droppable.setNodeRef}
 			className={cn(
 				"flex min-h-[300px] flex-col border-r last:border-r-0",
 				today && "bg-blue-50/50 dark:bg-blue-950/20",
+				droppable.isOver && "bg-primary/10 ring-2 ring-inset ring-primary",
 			)}
 		>
 			<div
@@ -122,7 +219,9 @@ function DayColumn({ date, items }: { date: Date; items: DispatchItem[] }) {
 					past && "opacity-60",
 				)}
 			>
-				<div className="text-xs text-muted-foreground">{format(date, "EEE")}</div>
+				<div className="text-xs text-muted-foreground">
+					{format(date, "EEE")}
+				</div>
 				<div
 					className={cn(
 						"text-lg font-bold leading-none tabular-nums",
@@ -131,7 +230,9 @@ function DayColumn({ date, items }: { date: Date; items: DispatchItem[] }) {
 				>
 					{format(date, "d")}
 				</div>
-				<div className="text-xs text-muted-foreground">{format(date, "MMM")}</div>
+				<div className="text-xs text-muted-foreground">
+					{format(date, "MMM")}
+				</div>
 				{items.length > 0 && (
 					<Badge
 						variant={today ? "default" : "secondary"}
@@ -143,11 +244,13 @@ function DayColumn({ date, items }: { date: Date; items: DispatchItem[] }) {
 			</div>
 			<div className="flex flex-1 flex-col gap-1 p-1.5">
 				{items.map((item) => (
-					<DispatchChip key={item.id} item={item} />
+					<DispatchChip key={item.id} item={item} onReschedule={onReschedule} />
 				))}
 				{items.length === 0 && (
 					<div className="flex flex-1 items-center justify-center">
-						<span className="text-xs text-muted-foreground/50">No dispatches</span>
+						<span className="text-xs text-muted-foreground/50">
+							No dispatches
+						</span>
 					</div>
 				)}
 			</div>
@@ -159,20 +262,29 @@ function MonthDayCell({
 	date,
 	items,
 	anchorDate,
+	onReschedule,
 }: {
 	date: Date;
 	items: DispatchItem[];
 	anchorDate: Date;
+	onReschedule?: (item: DispatchItem) => void;
 }) {
 	const visibleItems = items.slice(0, 3);
 	const overflowItems = items.slice(3);
+	const dateKey = format(date, "yyyy-MM-dd");
+	const droppable = useDroppable({
+		id: `fulfillment-date:${dateKey}`,
+		data: { date: dateKey },
+	});
 
 	return (
 		<div
+			ref={droppable.setNodeRef}
 			className={cn(
 				"min-h-32 border-b border-r p-1.5",
 				!isSameMonth(date, anchorDate) && "bg-muted/20 text-muted-foreground",
 				isToday(date) && "bg-blue-50/70 dark:bg-blue-950/20",
+				droppable.isOver && "bg-primary/10 ring-2 ring-inset ring-primary",
 			)}
 		>
 			<div className="mb-1 flex items-center justify-between">
@@ -185,12 +297,19 @@ function MonthDayCell({
 					{format(date, "d")}
 				</span>
 				{items.length > 0 && (
-					<span className="text-[10px] text-muted-foreground">{items.length}</span>
+					<span className="text-[10px] text-muted-foreground">
+						{items.length}
+					</span>
 				)}
 			</div>
 			<div className="space-y-1">
 				{visibleItems.map((item) => (
-					<DispatchChip key={item.id} item={item} compact />
+					<DispatchChip
+						key={item.id}
+						item={item}
+						compact
+						onReschedule={onReschedule}
+					/>
 				))}
 				{overflowItems.length > 0 && (
 					<Popover>
@@ -204,7 +323,11 @@ function MonthDayCell({
 								{format(date, "EEEE, MMMM d")}
 							</p>
 							{overflowItems.map((item) => (
-								<DispatchChip key={item.id} item={item} />
+								<DispatchChip
+									key={item.id}
+									item={item}
+									onReschedule={onReschedule}
+								/>
 							))}
 						</PopoverContent>
 					</Popover>
@@ -227,6 +350,36 @@ function groupByDay(items: DispatchItem[], days: Date[]) {
 
 export function DispatchCalendarView() {
 	const trpc = useTRPC();
+	const [moveProposal, setMoveProposal] =
+		useState<FulfillmentMoveProposal | null>(null);
+	const [activeItem, setActiveItem] = useState<DispatchItem | null>(null);
+	const sensors = useSensors(
+		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+		useSensor(TouchSensor, {
+			activationConstraint: { delay: 180, tolerance: 8 },
+		}),
+		useSensor(KeyboardSensor),
+	);
+	const moveSchedule = useMutation(
+		trpc.dispatch.moveFulfillmentSchedule.mutationOptions({
+			onSuccess: (result) => {
+				setMoveProposal(null);
+				toast({
+					title: "Fulfillment schedule moved.",
+					description: result.notificationFailed
+						? "The date was saved, but the driver notification could not be delivered."
+						: `Fulfillment moved to ${result.targetDate}.`,
+				});
+			},
+			onError: (error) => {
+				toast({
+					variant: "destructive",
+					title: "Fulfillment schedule was not moved.",
+					description: error.message,
+				});
+			},
+		}),
+	);
 	const { filters, setFilters } = useDispatchFilterParams();
 	const calendarView = filters.calendarView;
 	const anchorDate = resolveFulfillmentCalendarDate(filters.calendarDate);
@@ -238,7 +391,7 @@ export function DispatchCalendarView() {
 		),
 	);
 	const grouped = groupByDay(data.scheduled, period.days);
-	const isCurrentPeriod = period.days.some(isToday);
+	const isCurrentPeriod = period.days.some((day) => isToday(day));
 
 	function setCalendarDate(date: Date) {
 		void setFilters({ calendarDate: format(date, "yyyy-MM-dd") });
@@ -248,116 +401,220 @@ export function DispatchCalendarView() {
 		void setFilters({ calendarView: view as FulfillmentCalendarView });
 	}
 
+	function proposeMove(item: DispatchItem, targetDate?: string) {
+		if (!item.canReschedule || !item.expectedEvidenceRevision) return;
+		const customer =
+			item.order?.customer?.businessName ||
+			item.order?.customer?.name ||
+			"Unknown customer";
+		setMoveProposal({
+			kind: "fulfillment",
+			orderNo: item.order?.orderId || `#${item.id}`,
+			customer,
+			sourceDate: item.sourceDate,
+			targetDate: targetDate || item.sourceDate || "",
+			affectedRecordCount: 1,
+			item,
+		});
+	}
+
+	function handleDragStart(event: DragStartEvent) {
+		const item = event.active.data.current?.item as DispatchItem | undefined;
+		setActiveItem(item || null);
+	}
+
+	function handleDragEnd(event: DragEndEvent) {
+		setActiveItem(null);
+		const item = event.active.data.current?.item as DispatchItem | undefined;
+		const targetDate = event.over?.data.current?.date as string | undefined;
+		if (!item || !targetDate || targetDate === item.sourceDate) return;
+		proposeMove(item, targetDate);
+	}
+
+	function confirmMove(targetDate: string) {
+		const proposal = moveProposal;
+		if (
+			!proposal ||
+			!proposal.item.expectedEvidenceRevision ||
+			targetDate === proposal.item.sourceDate
+		) {
+			return;
+		}
+		moveSchedule.mutate({
+			requestId: crypto.randomUUID(),
+			dispatchId: proposal.item.id,
+			salesOrderId: proposal.item.salesOrderId,
+			sourceDate: proposal.item.sourceDate,
+			targetDate,
+			expectedRevision: proposal.item.expectedEvidenceRevision,
+		});
+	}
+
 	return (
-		<div className="flex flex-col gap-3">
-			<div className="flex flex-wrap items-center justify-between gap-3">
-				<div className="flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() =>
-							setCalendarDate(moveFulfillmentCalendarDate(anchorDate, calendarView, -1))
-						}
-						aria-label={`Previous ${calendarView}`}
-					>
-						<Icons.ChevronLeft size={14} />
-					</Button>
-					<OperationsCalendarPeriodPicker
-						date={anchorDate}
-						view={calendarView}
-						onSelect={setCalendarDate}
-					/>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() =>
-							setCalendarDate(moveFulfillmentCalendarDate(anchorDate, calendarView, 1))
-						}
-						aria-label={`Next ${calendarView}`}
-					>
-						<Icons.ChevronRight size={14} />
-					</Button>
-					{!isCurrentPeriod && (
-						<Button variant="ghost" size="sm" onClick={() => setCalendarDate(new Date())}>
-							Today
+		<DndContext
+			sensors={sensors}
+			collisionDetection={closestCenter}
+			onDragStart={handleDragStart}
+			onDragEnd={handleDragEnd}
+			onDragCancel={() => setActiveItem(null)}
+		>
+			<div className="flex flex-col gap-3">
+				<div className="flex flex-wrap items-center justify-between gap-3">
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() =>
+								setCalendarDate(
+									moveFulfillmentCalendarDate(anchorDate, calendarView, -1),
+								)
+							}
+							aria-label={`Previous ${calendarView}`}
+						>
+							<Icons.ChevronLeft size={14} />
 						</Button>
-					)}
-				</div>
-
-				<div className="flex items-center gap-3">
-					<div className="hidden items-center gap-3 text-xs xl:flex">
-						{LEGEND_STATUSES.map((status) => (
-							<div key={status} className="flex items-center gap-1">
-								<div className={cn("size-2.5 rounded border", STATUS_COLORS[status])} />
-								<span className="capitalize text-muted-foreground">{status}</span>
-							</div>
-						))}
+						<OperationsCalendarPeriodPicker
+							date={anchorDate}
+							view={calendarView}
+							onSelect={setCalendarDate}
+						/>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() =>
+								setCalendarDate(
+									moveFulfillmentCalendarDate(anchorDate, calendarView, 1),
+								)
+							}
+							aria-label={`Next ${calendarView}`}
+						>
+							<Icons.ChevronRight size={14} />
+						</Button>
+						{!isCurrentPeriod && (
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setCalendarDate(new Date())}
+							>
+								Today
+							</Button>
+						)}
 					</div>
-					<Tabs value={calendarView} onValueChange={setCalendarView}>
-						<TabsList className="min-h-9 rounded-md p-0.5 max-lg:rounded-md max-lg:border max-lg:bg-muted/60 max-lg:p-0.5">
-							<TabsTrigger value="week" className="min-h-8 rounded px-3 py-1">
-								Week
-							</TabsTrigger>
-							<TabsTrigger value="month" className="min-h-8 rounded px-3 py-1">
-								Month
-							</TabsTrigger>
-						</TabsList>
-					</Tabs>
-				</div>
-			</div>
 
-			<Card className="overflow-auto">
-				{calendarView === "week" ? (
-					<div className="grid min-w-[980px] grid-cols-7 divide-x">
-						{period.days.map((day) => (
-							<DayColumn
-								key={day.toISOString()}
-								date={day}
-								items={grouped.get(format(day, "yyyy-MM-dd")) ?? []}
-							/>
-						))}
-					</div>
-				) : (
-					<div className="min-w-[980px]">
-						<div className="grid grid-cols-7 border-b bg-muted/30">
-							{period.days.slice(0, 7).map((day) => (
-								<div key={day.toISOString()} className="p-2 text-center text-xs font-medium text-muted-foreground">
-									{format(day, "EEE")}
+					<div className="flex items-center gap-3">
+						<div className="hidden items-center gap-3 text-xs xl:flex">
+							{LEGEND_STATUSES.map((status) => (
+								<div key={status} className="flex items-center gap-1">
+									<div
+										className={cn(
+											"size-2.5 rounded border",
+											STATUS_COLORS[status],
+										)}
+									/>
+									<span className="capitalize text-muted-foreground">
+										{status}
+									</span>
 								</div>
 							))}
 						</div>
-						<div className="grid grid-cols-7 border-l">
+						<Tabs value={calendarView} onValueChange={setCalendarView}>
+							<TabsList className="min-h-9 rounded-md p-0.5 max-lg:rounded-md max-lg:border max-lg:bg-muted/60 max-lg:p-0.5">
+								<TabsTrigger value="week" className="min-h-8 rounded px-3 py-1">
+									Week
+								</TabsTrigger>
+								<TabsTrigger
+									value="month"
+									className="min-h-8 rounded px-3 py-1"
+								>
+									Month
+								</TabsTrigger>
+							</TabsList>
+						</Tabs>
+					</div>
+				</div>
+
+				<Card className="overflow-auto">
+					{calendarView === "week" ? (
+						<div className="grid min-w-[980px] grid-cols-7 divide-x">
 							{period.days.map((day) => (
-								<MonthDayCell
+								<DayColumn
 									key={day.toISOString()}
 									date={day}
-									anchorDate={anchorDate}
 									items={grouped.get(format(day, "yyyy-MM-dd")) ?? []}
+									onReschedule={proposeMove}
 								/>
 							))}
 						</div>
-					</div>
-				)}
-			</Card>
-
-			{data.unscheduled.length > 0 && (
-				<Card>
-					<CardHeader className="pb-2">
-						<CardTitle className="flex items-center gap-2 text-sm">
-							<Icons.Clock size={14} className="text-muted-foreground" />
-							Unscheduled ({data.unscheduled.length})
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-							{data.unscheduled.map((item) => (
-								<DispatchChip key={item.id} item={item} />
-							))}
+					) : (
+						<div className="min-w-[980px]">
+							<div className="grid grid-cols-7 border-b bg-muted/30">
+								{period.days.slice(0, 7).map((day) => (
+									<div
+										key={day.toISOString()}
+										className="p-2 text-center text-xs font-medium text-muted-foreground"
+									>
+										{format(day, "EEE")}
+									</div>
+								))}
+							</div>
+							<div className="grid grid-cols-7 border-l">
+								{period.days.map((day) => (
+									<MonthDayCell
+										key={day.toISOString()}
+										date={day}
+										anchorDate={anchorDate}
+										items={grouped.get(format(day, "yyyy-MM-dd")) ?? []}
+										onReschedule={proposeMove}
+									/>
+								))}
+							</div>
 						</div>
-					</CardContent>
+					)}
 				</Card>
-			)}
-		</div>
+
+				{data.unscheduled.length > 0 && (
+					<Card>
+						<CardHeader className="pb-2">
+							<CardTitle className="flex items-center gap-2 text-sm">
+								<Icons.Clock size={14} className="text-muted-foreground" />
+								Unscheduled ({data.unscheduled.length})
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+								{data.unscheduled.map((item) => (
+									<DispatchChip
+										key={item.id}
+										item={item}
+										onReschedule={proposeMove}
+									/>
+								))}
+							</div>
+						</CardContent>
+					</Card>
+				)}
+				<CalendarScheduleMoveDialog
+					proposal={moveProposal}
+					pending={moveSchedule.isPending}
+					onClose={() => setMoveProposal(null)}
+					onConfirm={confirmMove}
+				/>
+				<DragOverlay>
+					{activeItem ? (
+						<div className="max-w-64 rounded border border-primary bg-background px-3 py-2 text-xs shadow-lg">
+							<p className="font-mono font-semibold">
+								{activeItem.order?.orderId || `#${activeItem.id}`}
+							</p>
+							<p className="truncate text-muted-foreground">
+								{activeItem.order?.customer?.businessName ||
+									activeItem.order?.customer?.name ||
+									"Unknown customer"}
+							</p>
+						</div>
+					) : null}
+				</DragOverlay>
+			</div>
+		</DndContext>
 	);
 }
 
@@ -366,8 +623,8 @@ export function DispatchCalendarSkeleton() {
 		<Card>
 			<CardContent className="p-4">
 				<div className="grid grid-cols-7 gap-2">
-					{Array.from({ length: 7 }).map((_, index) => (
-						<Skeleton key={index} className="h-64 w-full" />
+					{CALENDAR_SKELETON_KEYS.map((key) => (
+						<Skeleton key={key} className="h-64 w-full" />
 					))}
 				</div>
 			</CardContent>

@@ -23,7 +23,11 @@ import {
     FormLabel,
     FormMessage,
 } from "@gnd/ui/form";
-import { Input } from "@gnd/ui/input";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from "@gnd/ui/input-group";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useTransition } from "@/utils/use-safe-transistion";
 
@@ -42,13 +46,13 @@ function DevPasswordResetAccountSelector({
     );
 
     return (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+        <div className="rounded-lg border border-dashed border-border bg-muted/50 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
                         Dev accounts
                     </p>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-muted-foreground">
                         Pick an account to fill the reset email.
                     </p>
                 </div>
@@ -96,35 +100,38 @@ export function ResetPasswordForm() {
                 await resetPasswordRequest(data);
                 setSubmittedEmail(data.email);
                 toast.success("Check your email", {
-                    description: "If an account exists, we sent a password reset link.",
+                    description:
+                        "If an account exists, we sent a password reset link.",
                 });
             } catch (err: any) {
-                toast.error(err.message ?? "Unable to send password reset link");
+                toast.error(
+                    err.message ?? "Unable to send password reset link",
+                );
             }
         });
     }
 
     if (submittedEmail) {
         return (
-            <div className="space-y-5">
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
+            <div className="flex flex-col gap-5">
+                <div className="rounded-lg border border-success/40 bg-success/10 p-4 text-sm leading-6 text-foreground">
                     <div className="mb-2 flex items-center gap-2 font-semibold">
-                        <Icons.CheckCircle2 className="size-4 text-emerald-600" />
+                        <Icons.CheckCircle2 className="size-4" />
                         Check your email
                     </div>
                     <p>
-                        If an account exists for {submittedEmail}, a secure reset link
-                        is on its way. The link expires in 1 hour.
+                        If an account exists for {submittedEmail}, a secure
+                        reset link is on its way. The link expires in 1 hour.
                     </p>
                 </div>
-                <div className="grid gap-3">
-                    <Button asChild className="h-12 rounded-2xl bg-slate-950 text-white hover:bg-slate-800">
+                <div className="flex flex-col gap-3">
+                    <Button asChild className="h-12 rounded-lg">
                         <Link href="/login">Back to login</Link>
                     </Button>
                     <Button
                         type="button"
                         variant="outline"
-                        className="h-12 rounded-2xl"
+                        className="h-12 rounded-lg"
                         onClick={() => setSubmittedEmail("")}
                     >
                         Use a different email
@@ -137,7 +144,7 @@ export function ResetPasswordForm() {
     return (
         <Form {...form}>
             <form
-                className="grid gap-5"
+                className="flex flex-col gap-5"
                 onSubmit={(...args) =>
                     void form.handleSubmit(onSubmit)(...args)
                 }
@@ -146,20 +153,22 @@ export function ResetPasswordForm() {
                     control={form.control}
                     name="email"
                     render={({ field }) => (
-                        <FormItem className="space-y-2">
-                            <FormLabel className="text-slate-700">Email</FormLabel>
-                            <FormControl>
-                                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                    <Icons.Mail className="size-4 text-slate-400" />
-                                    <Input
+                        <FormItem className="flex flex-col gap-2">
+                            <FormLabel>Email</FormLabel>
+                            <InputGroup className="h-12 rounded-lg bg-background">
+                                <InputGroupAddon>
+                                    <Icons.Mail aria-hidden="true" />
+                                </InputGroupAddon>
+                                <FormControl>
+                                    <InputGroupInput
                                         type="email"
                                         autoComplete="email"
                                         placeholder="you@gndmillwork.com"
-                                        className="h-auto border-0 bg-transparent p-0 text-base text-slate-950 placeholder:text-slate-400 focus-visible:ring-0"
+                                        className="h-full px-0 text-base"
                                         {...field}
                                     />
-                                </div>
-                            </FormControl>
+                                </FormControl>
+                            </InputGroup>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -179,7 +188,7 @@ export function ResetPasswordForm() {
 
                 <Button
                     disabled={isPending}
-                    className="h-12 rounded-2xl bg-slate-950 text-sm font-semibold text-white hover:bg-slate-800"
+                    className="h-12 rounded-lg text-sm font-semibold"
                 >
                     {isPending && (
                         <Icons.Loader2
@@ -189,7 +198,7 @@ export function ResetPasswordForm() {
                     )}
                     Send reset link
                 </Button>
-                <Button asChild variant="ghost" className="h-11 rounded-2xl">
+                <Button asChild variant="ghost" className="h-11 rounded-lg">
                     <Link href="/login">
                         <Icons.ArrowLeft className="mr-2 size-4" />
                         Back to login

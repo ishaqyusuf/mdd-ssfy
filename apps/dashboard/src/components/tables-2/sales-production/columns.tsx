@@ -481,6 +481,7 @@ function Actions({ item }: { item: SalesProductionRow }) {
 					{
 						salesId: item.id,
 						status: item.lifecycleStatus,
+						pipelineRevision: item.pipeline?.revision,
 						productionCompleted: item.completed,
 					},
 				]}

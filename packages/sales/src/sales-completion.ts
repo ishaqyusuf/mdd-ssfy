@@ -39,11 +39,19 @@ export const salesCompletionProjectionInputSchema = z.object({
 	salesOrderId: z.number().int().positive(),
 });
 
+const salesCompletionAdministrativeOverrideSchema = z.object({
+	reason: z.string().trim().min(1).max(500),
+	expectedRevision: z.string().regex(/^[a-f0-9]{64}$/),
+});
+
 export const markProductionCompletionStatusOnlySchema =
 	salesCompletionProjectionInputSchema.extend({
 		requestId: z.string().uuid(),
 		expectedRevision: z.string().regex(/^[a-f0-9]{64}$/),
 		effectiveAt: z.coerce.date().optional().nullable(),
+		administrativeOverride: salesCompletionAdministrativeOverrideSchema
+			.optional()
+			.nullable(),
 	});
 
 export const cancelProductionCompletionStatusOnlySchema =
@@ -56,11 +64,72 @@ export const cancelProductionCompletionStatusOnlySchema =
 export const markFulfillmentCompletionStatusOnlySchema =
 	markProductionCompletionStatusOnlySchema;
 
-export const markSalesCompletionStatusOnlyBulkSchema = z.object({
-	salesOrderIds: z.array(z.number().int().positive()).min(1).max(100),
-	requestId: z.string().uuid(),
-	effectiveAt: z.coerce.date().optional().nullable(),
-});
+export const markSalesCompletionStatusOnlyBulkSchema = z
+	.object({
+		salesOrderIds: z.array(z.number().int().positive()).min(1).max(100),
+		requestId: z.string().uuid(),
+		effectiveAt: z.coerce.date().optional().nullable(),
+		administrativeOverride: z
+			.object({
+				reason: z.string().trim().min(1).max(500),
+				expectedRevisions: z
+					.array(
+						z.object({
+							salesOrderId: z.number().int().positive(),
+							revision: z.string().regex(/^[a-f0-9]{64}$/),
+						}),
+					)
+					.min(1)
+					.max(100),
+			})
+			.optional()
+			.nullable(),
+	})
+	.superRefine((input, context) => {
+		if (!input.administrativeOverride) return;
+		const selectedIds = new Set(input.salesOrderIds);
+		const revisionIds = new Set<number>();
+		for (const [
+			index,
+			item,
+		] of input.administrativeOverride.expectedRevisions.entries()) {
+			if (revisionIds.has(item.salesOrderId)) {
+				context.addIssue({
+					code: "custom",
+					message:
+						"Each selected order must have exactly one expected revision.",
+					path: [
+						"administrativeOverride",
+						"expectedRevisions",
+						index,
+						"salesOrderId",
+					],
+				});
+			}
+			if (!selectedIds.has(item.salesOrderId)) {
+				context.addIssue({
+					code: "custom",
+					message: "Expected revisions may only reference selected orders.",
+					path: [
+						"administrativeOverride",
+						"expectedRevisions",
+						index,
+						"salesOrderId",
+					],
+				});
+			}
+			revisionIds.add(item.salesOrderId);
+		}
+		for (const salesOrderId of selectedIds) {
+			if (!revisionIds.has(salesOrderId)) {
+				context.addIssue({
+					code: "custom",
+					message: "Every selected order requires an expected revision.",
+					path: ["administrativeOverride", "expectedRevisions"],
+				});
+			}
+		}
+	});
 
 export const markProductionCompletionStatusOnlyBulkSchema =
 	markSalesCompletionStatusOnlyBulkSchema;
@@ -163,6 +232,13 @@ export class SalesCompletionError extends Error {
 }
 
 type CompletionDb = Database | TransactionClient;
+
+export type SalesCompletionWriteHooks = {
+	refreshListProjection?: (
+		db: TransactionClient,
+		salesOrderId: number,
+	) => Promise<void>;
+};
 
 export const salesCompletionRecordSelect = {
 	id: true,
@@ -639,10 +715,48 @@ async function assertCanonicalAdministrativeCommand(
 			| "production.administrative_cancel"
 			| "fulfillment.administrative_complete"
 			| "fulfillment.administrative_cancel";
+		administrativeOverride?: {
+			reason: string;
+			expectedRevision: string;
+		} | null;
 	},
 ) {
+	const snapshot = await getCanonicalSalesPipelineSnapshot(
+		db,
+		input.salesOrderId,
+	);
+	const decision = evaluateSalesPipelineCommand(snapshot, {
+		action: input.action,
+		authorized: true,
+		expectedRevision: input.administrativeOverride?.expectedRevision,
+		administrativeOverride: Boolean(input.administrativeOverride),
+		administrativeOverrideReason: input.administrativeOverride?.reason,
+	});
+	if (
+		(input.administrativeOverride ||
+			shouldEnforceCanonicalSalesPipelineCommands(input.salesOrderId)) &&
+		(decision.status === "rejected" || decision.status === "review_required")
+	) {
+		if (decision.reasons.includes("STALE_REVISION")) {
+			throw new SalesCompletionError(
+				"The order lifecycle changed after the override opened. Refresh and try again.",
+				"STALE_STATE",
+			);
+		}
+		throw new SalesCompletionError(
+			`The canonical Sales Pipeline rejected this transition: ${decision.reasons.join(", ")}.`,
+			"INVALID_TRANSITION",
+		);
+	}
+	return { decision, snapshot };
+}
+
+async function getCanonicalSalesPipelineSnapshot(
+	db: CompletionDb,
+	salesOrderId: number,
+) {
 	const order = await db.salesOrders.findFirst({
-		where: { id: input.salesOrderId, type: "order", deletedAt: null },
+		where: { id: salesOrderId, type: "order", deletedAt: null },
 		select: salesPipelineOrderSelect,
 	});
 	if (!order) {
@@ -651,20 +765,144 @@ async function assertCanonicalAdministrativeCommand(
 			"NOT_FOUND",
 		);
 	}
-	const decision = evaluateSalesPipelineCommand(
-		resolveSalesPipelineSnapshotFromOrder(order),
-		{ action: input.action, authorized: true },
+	return resolveSalesPipelineSnapshotFromOrder(order);
+}
+
+function administrativeOverrideAudit(
+	result: Awaited<ReturnType<typeof assertCanonicalAdministrativeCommand>>,
+	override: { reason: string; expectedRevision: string } | null | undefined,
+	resultingSnapshot?: Awaited<
+		ReturnType<typeof getCanonicalSalesPipelineSnapshot>
+	> | null,
+) {
+	if (!override) return null;
+	return {
+		reason: override.reason,
+		expectedRevision: override.expectedRevision,
+		command: result.decision.action,
+		decisionStatus: result.decision.status,
+		decisionReasons: result.decision.reasons,
+		exceptionCodes: result.decision.reasons.filter(
+			(reason) => reason !== "ADMINISTRATIVE_OVERRIDE",
+		),
+		priorSnapshot: {
+			version: result.snapshot.version,
+			revision: result.snapshot.revision,
+			headline: result.snapshot.headline,
+			production: result.snapshot.production,
+			fulfillment: result.snapshot.fulfillment,
+			conflicts: result.snapshot.conflicts,
+		},
+		resultingSnapshot: resultingSnapshot
+			? {
+					version: resultingSnapshot.version,
+					revision: resultingSnapshot.revision,
+					headline: resultingSnapshot.headline,
+					production: resultingSnapshot.production,
+					fulfillment: resultingSnapshot.fulfillment,
+					conflicts: resultingSnapshot.conflicts,
+				}
+			: null,
+	};
+}
+
+type StatusOnlyMarkInput = z.infer<
+	typeof markProductionCompletionStatusOnlySchema
+>;
+
+function statusOnlyMarkCommandPayload(
+	input: StatusOnlyMarkInput,
+	milestone: SalesCompletionMilestone,
+) {
+	return {
+		requestId: input.requestId,
+		salesOrderId: input.salesOrderId,
+		milestone,
+		completionMethod: "STATUS_ONLY" as const,
+		effectiveAt: input.effectiveAt?.toISOString() ?? null,
+		administrativeOverride: input.administrativeOverride
+			? {
+					reason: input.administrativeOverride.reason.trim(),
+					expectedRevision: input.administrativeOverride.expectedRevision,
+				}
+			: null,
+	};
+}
+
+function statusOnlyMarkCommandFingerprint(
+	input: StatusOnlyMarkInput,
+	milestone: SalesCompletionMilestone,
+) {
+	return createHash("sha256")
+		.update(JSON.stringify(statusOnlyMarkCommandPayload(input, milestone)))
+		.digest("hex");
+}
+
+function jsonRecord(value: unknown): Record<string, unknown> | null {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: null;
+}
+
+async function assertStatusOnlyMarkReplayPayload(
+	db: CompletionDb,
+	input: StatusOnlyMarkInput,
+	record: SalesCompletionRecordView,
+	milestone: SalesCompletionMilestone,
+	historyName: string,
+) {
+	const historyRows = await db.salesHistory.findMany({
+		where: {
+			salesId: input.salesOrderId,
+			name: historyName,
+			deletedAt: null,
+		},
+		orderBy: { createdAt: "desc" },
+		select: { data: true },
+	});
+	const history = historyRows
+		.map((row) => jsonRecord(row.data))
+		.find(
+			(data) =>
+				data?.event === "SALES_COMPLETION_MARKED" &&
+				data.recordId === record.id &&
+				data.requestId === input.requestId &&
+				data.milestone === milestone,
+		);
+	const expectedFingerprint = statusOnlyMarkCommandFingerprint(
+		input,
+		milestone,
 	);
-	if (
-		shouldEnforceCanonicalSalesPipelineCommands(input.salesOrderId) &&
-		(decision.status === "rejected" || decision.status === "review_required")
-	) {
+	let persistedFingerprint =
+		typeof history?.commandFingerprint === "string"
+			? history.commandFingerprint
+			: null;
+	if (!persistedFingerprint && history) {
+		const administrativeOverride = jsonRecord(history.administrativeOverride);
+		persistedFingerprint = createHash("sha256")
+			.update(
+				JSON.stringify({
+					requestId: history.requestId,
+					salesOrderId: input.salesOrderId,
+					milestone: history.milestone,
+					completionMethod: history.completionMethod,
+					effectiveAt: history.effectiveAt ?? null,
+					administrativeOverride: administrativeOverride
+						? {
+								reason: administrativeOverride.reason,
+								expectedRevision: administrativeOverride.expectedRevision,
+							}
+						: null,
+				}),
+			)
+			.digest("hex");
+	}
+	if (persistedFingerprint !== expectedFingerprint) {
 		throw new SalesCompletionError(
-			`The canonical Sales Pipeline rejected this transition: ${decision.reasons.join(", ")}.`,
-			"INVALID_TRANSITION",
+			"That idempotency identity was already used with a different completion payload.",
+			"IDEMPOTENCY_CONFLICT",
 		);
 	}
-	return decision;
 }
 
 async function findMarkReplay(
@@ -686,6 +924,13 @@ async function findMarkReplay(
 				"IDEMPOTENCY_CONFLICT",
 			);
 		}
+		await assertStatusOnlyMarkReplayPayload(
+			db,
+			input,
+			byRequest,
+			"PRODUCTION_COMPLETED",
+			"Production completed — status only",
+		);
 		return byRequest;
 	}
 	return db.salesCompletionRecord.findUnique({
@@ -703,6 +948,7 @@ export async function markProductionCompletionStatusOnly(
 	db: Database,
 	input: z.infer<typeof markProductionCompletionStatusOnlySchema>,
 	actor: { id: number; name: string },
+	hooks: SalesCompletionWriteHooks = {},
 ) {
 	try {
 		return await runSerializable(db, async (tx) => {
@@ -722,15 +968,19 @@ export async function markProductionCompletionStatusOnly(
 			}
 			const projection = await getSalesCompletionProjection(tx, input);
 			assertExpectedRevision(projection, input.expectedRevision);
-			if (!projection.availableActions.markProductionStatusOnly) {
+			if (
+				!input.administrativeOverride &&
+				!projection.availableActions.markProductionStatusOnly
+			) {
 				throw new SalesCompletionError(
 					"Production completion is already satisfied or this order cannot transition.",
 					"INVALID_TRANSITION",
 				);
 			}
-			await assertCanonicalAdministrativeCommand(tx, {
+			const canonical = await assertCanonicalAdministrativeCommand(tx, {
 				salesOrderId: input.salesOrderId,
 				action: "production.administrative_complete",
+				administrativeOverride: input.administrativeOverride,
 			});
 			const recordedAt = new Date();
 			const record = await tx.salesCompletionRecord.create({
@@ -750,6 +1000,9 @@ export async function markProductionCompletionStatusOnly(
 				},
 				select: salesCompletionRecordSelect,
 			});
+			const resultingSnapshot = input.administrativeOverride
+				? await getCanonicalSalesPipelineSnapshot(tx, input.salesOrderId)
+				: null;
 			await tx.salesHistory.create({
 				data: {
 					salesId: input.salesOrderId,
@@ -761,12 +1014,22 @@ export async function markProductionCompletionStatusOnly(
 						requestId: input.requestId,
 						milestone: "PRODUCTION_COMPLETED",
 						completionMethod: "STATUS_ONLY",
+						commandFingerprint: statusOnlyMarkCommandFingerprint(
+							input,
+							"PRODUCTION_COMPLETED",
+						),
 						recordedAt: recordedAt.toISOString(),
 						effectiveAt: input.effectiveAt?.toISOString() ?? null,
 						actorId: actor.id,
+						administrativeOverride: administrativeOverrideAudit(
+							canonical,
+							input.administrativeOverride,
+							resultingSnapshot,
+						),
 					} satisfies Prisma.InputJsonObject,
 				},
 			});
+			await hooks.refreshListProjection?.(tx, input.salesOrderId);
 			return {
 				record,
 				projection: await getSalesCompletionProjection(tx, input),
@@ -806,6 +1069,7 @@ export async function cancelProductionCompletionStatusOnly(
 	db: Database,
 	input: z.infer<typeof cancelProductionCompletionStatusOnlySchema>,
 	actor: { id: number; name: string },
+	hooks: SalesCompletionWriteHooks = {},
 ) {
 	try {
 		return await runSerializable(db, async (tx) => {
@@ -896,6 +1160,7 @@ export async function cancelProductionCompletionStatusOnly(
 					} satisfies Prisma.InputJsonObject,
 				},
 			});
+			await hooks.refreshListProjection?.(tx, input.salesOrderId);
 			return {
 				record,
 				projection: await getSalesCompletionProjection(tx, input),
@@ -940,6 +1205,13 @@ async function findFulfillmentMarkReplay(
 				"IDEMPOTENCY_CONFLICT",
 			);
 		}
+		await assertStatusOnlyMarkReplayPayload(
+			db,
+			input,
+			byRequest,
+			"FULFILLMENT_COMPLETED",
+			"Fulfillment completed — status only",
+		);
 		return byRequest;
 	}
 	return db.salesCompletionRecord.findUnique({
@@ -957,6 +1229,7 @@ export async function markFulfillmentCompletionStatusOnly(
 	db: Database,
 	input: z.infer<typeof markFulfillmentCompletionStatusOnlySchema>,
 	actor: { id: number; name: string },
+	hooks: SalesCompletionWriteHooks = {},
 ) {
 	try {
 		return await runSerializable(db, async (tx) => {
@@ -976,15 +1249,19 @@ export async function markFulfillmentCompletionStatusOnly(
 			}
 			const projection = await getSalesCompletionProjection(tx, input);
 			assertExpectedRevision(projection, input.expectedRevision);
-			if (!projection.availableActions.markFulfillmentStatusOnly) {
+			if (
+				!input.administrativeOverride &&
+				!projection.availableActions.markFulfillmentStatusOnly
+			) {
 				throw new SalesCompletionError(
 					"Fulfillment completion is already satisfied or this order cannot transition.",
 					"INVALID_TRANSITION",
 				);
 			}
-			await assertCanonicalAdministrativeCommand(tx, {
+			const canonical = await assertCanonicalAdministrativeCommand(tx, {
 				salesOrderId: input.salesOrderId,
 				action: "fulfillment.administrative_complete",
+				administrativeOverride: input.administrativeOverride,
 			});
 			const recordedAt = new Date();
 			const record = await tx.salesCompletionRecord.create({
@@ -1004,6 +1281,9 @@ export async function markFulfillmentCompletionStatusOnly(
 				},
 				select: salesCompletionRecordSelect,
 			});
+			const resultingSnapshot = input.administrativeOverride
+				? await getCanonicalSalesPipelineSnapshot(tx, input.salesOrderId)
+				: null;
 			await tx.salesHistory.create({
 				data: {
 					salesId: input.salesOrderId,
@@ -1015,12 +1295,22 @@ export async function markFulfillmentCompletionStatusOnly(
 						requestId: input.requestId,
 						milestone: "FULFILLMENT_COMPLETED",
 						completionMethod: "STATUS_ONLY",
+						commandFingerprint: statusOnlyMarkCommandFingerprint(
+							input,
+							"FULFILLMENT_COMPLETED",
+						),
 						recordedAt: recordedAt.toISOString(),
 						effectiveAt: input.effectiveAt?.toISOString() ?? null,
 						actorId: actor.id,
+						administrativeOverride: administrativeOverrideAudit(
+							canonical,
+							input.administrativeOverride,
+							resultingSnapshot,
+						),
 					} satisfies Prisma.InputJsonObject,
 				},
 			});
+			await hooks.refreshListProjection?.(tx, input.salesOrderId);
 			return {
 				record,
 				projection: await getSalesCompletionProjection(tx, input),
@@ -1069,14 +1359,144 @@ function buildBatchItemRequestId(input: {
 	].join("-");
 }
 
+function statusOnlyBatchExpectedRevisions(
+	input: z.infer<typeof markSalesCompletionStatusOnlyBulkSchema>,
+) {
+	if (!input.administrativeOverride) return [];
+	const selectedIds = new Set(input.salesOrderIds);
+	const revisionIds = new Set<number>();
+	const entries = input.administrativeOverride.expectedRevisions.map(
+		({ salesOrderId, revision }) => {
+			if (revisionIds.has(salesOrderId) || !selectedIds.has(salesOrderId)) {
+				throw new SalesCompletionError(
+					"Administrative batch revisions must match selected orders one-to-one.",
+					"INVALID_TRANSITION",
+				);
+			}
+			revisionIds.add(salesOrderId);
+			return { salesOrderId, revision };
+		},
+	);
+	if (revisionIds.size !== selectedIds.size) {
+		throw new SalesCompletionError(
+			"Administrative batch revisions must match selected orders one-to-one.",
+			"INVALID_TRANSITION",
+		);
+	}
+	return entries.sort(
+		(left, right) =>
+			left.salesOrderId - right.salesOrderId ||
+			left.revision.localeCompare(right.revision),
+	);
+}
+
+function statusOnlyBatchCommandIdentity(
+	input: z.infer<typeof markSalesCompletionStatusOnlyBulkSchema>,
+	milestone: SalesCompletionMilestone,
+) {
+	const salesOrderIds = Array.from(new Set(input.salesOrderIds)).sort(
+		(left, right) => left - right,
+	);
+	const expectedRevisions = statusOnlyBatchExpectedRevisions(input);
+	const payload = {
+		requestId: input.requestId,
+		milestone,
+		salesOrderIds,
+		effectiveAt: input.effectiveAt?.toISOString() ?? null,
+		administrativeOverride: input.administrativeOverride
+			? {
+					reason: input.administrativeOverride.reason.trim(),
+					expectedRevisions,
+				}
+			: null,
+	};
+	return {
+		id: `sales-completion-batch:${milestone}:${input.requestId}`,
+		payload,
+		fingerprint: createHash("sha256")
+			.update(JSON.stringify(payload))
+			.digest("hex"),
+	};
+}
+
+function assertStatusOnlyBatchIdentity(
+	data: unknown,
+	expected: ReturnType<typeof statusOnlyBatchCommandIdentity>,
+) {
+	const persisted = jsonRecord(data);
+	if (
+		persisted?.event !== "SALES_COMPLETION_STATUS_ONLY_BATCH" ||
+		persisted.requestId !== expected.payload.requestId ||
+		persisted.milestone !== expected.payload.milestone ||
+		persisted.commandFingerprint !== expected.fingerprint
+	) {
+		throw new SalesCompletionError(
+			"That batch idempotency identity was already used with a different completion payload.",
+			"IDEMPOTENCY_CONFLICT",
+		);
+	}
+}
+
+async function ensureStatusOnlyBatchIdentity(
+	db: Database,
+	input: z.infer<typeof markSalesCompletionStatusOnlyBulkSchema>,
+	actor: { id: number; name: string },
+	milestone: SalesCompletionMilestone,
+) {
+	const identity = statusOnlyBatchCommandIdentity(input, milestone);
+	const existing = await db.salesHistory.findUnique({
+		where: { id: identity.id },
+		select: { data: true },
+	});
+	if (existing) {
+		assertStatusOnlyBatchIdentity(existing.data, identity);
+		return;
+	}
+
+	try {
+		await db.salesHistory.create({
+			data: {
+				id: identity.id,
+				salesId: identity.payload.salesOrderIds[0] as number,
+				name: "Status-only completion batch command",
+				authorName: actor.name,
+				data: {
+					event: "SALES_COMPLETION_STATUS_ONLY_BATCH",
+					...identity.payload,
+					commandFingerprint: identity.fingerprint,
+					actorId: actor.id,
+				} satisfies Prisma.InputJsonObject,
+			},
+		});
+	} catch (error) {
+		if (!hasPrismaCode(error, ["P2002"])) throw error;
+		const raced = await db.salesHistory.findUnique({
+			where: { id: identity.id },
+			select: { data: true },
+		});
+		if (!raced) throw error;
+		assertStatusOnlyBatchIdentity(raced.data, identity);
+	}
+}
+
 async function markSalesCompletionStatusOnlyBatch(
 	db: Database,
 	input: z.infer<typeof markSalesCompletionStatusOnlyBulkSchema>,
 	actor: { id: number; name: string },
 	milestone: SalesCompletionMilestone,
+	hooks: SalesCompletionWriteHooks,
 ): Promise<SalesCompletionStatusOnlyBulkResult> {
-	const salesOrderIds = Array.from(new Set(input.salesOrderIds));
+	const salesOrderIds = Array.from(new Set(input.salesOrderIds)).sort(
+		(left, right) => left - right,
+	);
+	await ensureStatusOnlyBatchIdentity(db, input, actor, milestone);
 	const items: SalesCompletionStatusOnlyBulkItem[] = [];
+	const expectedRevisions = new Map(
+		statusOnlyBatchExpectedRevisions(input).map((item) => [
+			item.salesOrderId,
+			item.revision,
+		]),
+	);
 
 	for (
 		let offset = 0;
@@ -1091,6 +1511,14 @@ async function markSalesCompletionStatusOnlyBatch(
 			batch.map(
 				async (salesOrderId): Promise<SalesCompletionStatusOnlyBulkItem> => {
 					try {
+						const expectedPipelineRevision =
+							expectedRevisions.get(salesOrderId);
+						if (input.administrativeOverride && !expectedPipelineRevision) {
+							throw new SalesCompletionError(
+								"The selected order is missing its expected lifecycle revision.",
+								"STALE_STATE",
+							);
+						}
 						const projection = await getSalesCompletionProjection(db, {
 							salesOrderId,
 						});
@@ -1103,14 +1531,26 @@ async function markSalesCompletionStatusOnlyBatch(
 							}),
 							expectedRevision: projection.revision,
 							effectiveAt: input.effectiveAt ?? null,
+							administrativeOverride: input.administrativeOverride
+								? {
+										reason: input.administrativeOverride.reason,
+										expectedRevision: expectedPipelineRevision as string,
+									}
+								: null,
 						};
 						const result =
 							milestone === "PRODUCTION_COMPLETED"
-								? await markProductionCompletionStatusOnly(db, markInput, actor)
+								? await markProductionCompletionStatusOnly(
+										db,
+										markInput,
+										actor,
+										hooks,
+									)
 								: await markFulfillmentCompletionStatusOnly(
 										db,
 										markInput,
 										actor,
+										hooks,
 									);
 						return {
 							salesOrderId,
@@ -1153,12 +1593,14 @@ export async function markProductionCompletionStatusOnlyBulk(
 	db: Database,
 	input: z.infer<typeof markProductionCompletionStatusOnlyBulkSchema>,
 	actor: { id: number; name: string },
+	hooks: SalesCompletionWriteHooks = {},
 ) {
 	return markSalesCompletionStatusOnlyBatch(
 		db,
 		input,
 		actor,
 		"PRODUCTION_COMPLETED",
+		hooks,
 	);
 }
 
@@ -1166,12 +1608,14 @@ export async function markFulfillmentCompletionStatusOnlyBulk(
 	db: Database,
 	input: z.infer<typeof markFulfillmentCompletionStatusOnlyBulkSchema>,
 	actor: { id: number; name: string },
+	hooks: SalesCompletionWriteHooks = {},
 ) {
 	return markSalesCompletionStatusOnlyBatch(
 		db,
 		input,
 		actor,
 		"FULFILLMENT_COMPLETED",
+		hooks,
 	);
 }
 
@@ -1189,6 +1633,7 @@ export async function cancelFulfillmentCompletionStatusOnly(
 	db: Database,
 	input: z.infer<typeof cancelFulfillmentCompletionStatusOnlySchema>,
 	actor: { id: number; name: string },
+	hooks: SalesCompletionWriteHooks = {},
 ) {
 	try {
 		return await runSerializable(db, async (tx) => {
@@ -1278,6 +1723,7 @@ export async function cancelFulfillmentCompletionStatusOnly(
 					} satisfies Prisma.InputJsonObject,
 				},
 			});
+			await hooks.refreshListProjection?.(tx, input.salesOrderId);
 			return {
 				record,
 				projection: await getSalesCompletionProjection(tx, input),

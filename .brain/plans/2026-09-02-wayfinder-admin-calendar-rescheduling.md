@@ -2,17 +2,20 @@
 
 ## Status
 
-Charted locally on 2026-09-02. Proposed-answer comments are drafted and await
-owner approval before they are written to the local child tickets. No
-application behavior or external tracker issue changed.
+Charted locally on 2026-09-02 and merged on 2026-09-03 into Canonical Sales
+Pipeline implementation Ticket 16. The original map and six draft child
+tickets remain source history; they are not a second execution queue.
+Application behavior is implemented through canonical Ticket 16 at 14/15; no
+external tracker issue was created, and authenticated multi-viewport browser
+acceptance remains.
 
 ## Tracker
 
-- Map: `.scratch/admin-calendar-rescheduling-wayfinder/map.md`
-- Open frontier: `01-define-shared-calendar-rescheduling-contract.md`
-- Six local decision tickets define the shared contract, Production authority,
-  Fulfillment authority, accessible interaction, compatibility/invalidation,
-  and verification/rollout sequence.
+- Source map: `.scratch/admin-calendar-rescheduling-wayfinder/map.md`
+- Canonical ticket:
+  `.scratch/sales-pipeline-lifecycle-implementation/issues/16-confirmed-production-fulfillment-calendar-rescheduling.md`
+- The six original child tickets are marked superseded because their approved
+  scope is consolidated into the canonical implementation queue.
 
 ## Destination
 
@@ -37,8 +40,7 @@ Fulfillment calendars.
 
 ## Next Step
 
-Approve or revise the six proposed-answer comments. After approval, write them
-to the child tickets, synthesize the local specification, and present the
-tracer-bullet implementation-ticket breakdown for the separate required
-approval checkpoint.
-
+Complete authenticated desktop, tablet, and mobile browser verification for
+canonical Ticket 16, then close it and continue the remaining production
+cutover gates. Keep the source map immutable except for merge pointers, and
+record acceptance evidence in the canonical ticket.

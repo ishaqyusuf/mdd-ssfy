@@ -264,6 +264,7 @@ export type CanonicalWorkspaceMembership = {
 };
 
 export type CanonicalSalesPipelineFilter = {
+	headlines?: SalesPipelineHeadlineCode[] | null;
 	production?: "pending" | "in progress" | "completed" | null;
 	productionStatus?:
 		| "not assigned"
@@ -534,12 +535,12 @@ function productionProjection(
 	}
 
 	let state: SalesPipelineSnapshot["production"]["state"];
-	if (applicability === "not_required") state = "not_required";
-	else if (applicability === "conflict") state = "conflict";
-	else if (operationallyComplete) state = "completed";
+	if (operationallyComplete) state = "completed";
 	else if (evidence.production.administrativeCompletion) {
 		state = "administratively_completed";
-	} else if (applicability === "unknown") state = "unknown";
+	} else if (applicability === "not_required") state = "not_required";
+	else if (applicability === "conflict") state = "conflict";
+	else if (applicability === "unknown") state = "unknown";
 	else if (hasPendingReview) state = "awaiting_review";
 	else if (completedQty > 0 || assignments.some((item) => item.startedAt)) {
 		state = "in_production";
@@ -653,12 +654,12 @@ function fulfillmentProjection(
 	);
 
 	let state: SalesPipelineSnapshot["fulfillment"]["state"];
-	if (applicability === "not_required") state = "not_required";
-	else if (applicability === "conflict") state = "conflict";
-	else if (operationallyComplete) state = "fulfilled";
+	if (operationallyComplete) state = "fulfilled";
 	else if (evidence.fulfillment.administrativeCompletion) {
 		state = "administratively_completed";
-	} else if (applicability === "unknown") {
+	} else if (applicability === "not_required") state = "not_required";
+	else if (applicability === "conflict") state = "conflict";
+	else if (applicability === "unknown") {
 		state = "unknown";
 	} else if (deliveredQty > 0) state = "partially_fulfilled";
 	else if (anyInTransit) state = "in_transit";
@@ -723,15 +724,15 @@ function headlineCode(
 ): SalesPipelineHeadlineCode {
 	const commercial = normalized(evidence.commercial.status);
 	if (["cancelled", "canceled"].includes(commercial)) return "cancelled";
-	if (conflicts.some((conflict) => conflict.severity === "blocking")) {
-		return "conflict";
-	}
 	if (fulfillment.state === "fulfilled") return "fulfilled";
 	if (
 		fulfillment.state === "administratively_completed" ||
 		production.state === "administratively_completed"
 	) {
 		return "administratively_completed";
+	}
+	if (conflicts.some((conflict) => conflict.severity === "blocking")) {
+		return "conflict";
 	}
 	if (fulfillment.state === "partially_fulfilled") return "partially_fulfilled";
 	if (fulfillment.state === "in_transit") return "in_transit";
@@ -1096,6 +1097,12 @@ export function matchesCanonicalSalesPipelineFilter(
 	filter: CanonicalSalesPipelineFilter,
 	operationalDate: string,
 ) {
+	if (
+		filter.headlines?.length &&
+		!filter.headlines.includes(snapshot.headline.code)
+	) {
+		return false;
+	}
 	const productionTerminal = [
 		"completed",
 		"administratively_completed",

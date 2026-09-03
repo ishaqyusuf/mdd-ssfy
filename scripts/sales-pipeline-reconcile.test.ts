@@ -5,6 +5,7 @@ import {
 	restoreProjectionDates,
 	restoreSalesPipelineProjectionRecord,
 	withDatabaseReadRetry,
+	withDeterministicProjectionRepairRetry,
 } from "./sales-pipeline-reconcile";
 
 const source = await Bun.file(
@@ -91,10 +92,17 @@ describe("Sales Pipeline reconciliation rollback", () => {
 			"const [canEditProduction, canFulfill] = await Promise.all",
 		);
 		expect(source).toContain("const canFulfill = canEditProduction");
+		expect(source).toContain(
+			'userHasPermission(db, actorId, "editProduction")',
+		);
+		expect(source).toContain(
+			'userHasPermission(db, actorId, "viewMarkSalesOrderFulfilled")',
+		);
 	});
 
 	it("retries transient production reads without retrying other failures", async () => {
 		let attempts = 0;
+		let resets = 0;
 		const result = await withDatabaseReadRetry(
 			async () => {
 				attempts += 1;
@@ -105,22 +113,48 @@ describe("Sales Pipeline reconciliation rollback", () => {
 				}
 				return "connected";
 			},
-			{ attempts: 3, delayMs: 0 },
+			{
+				attempts: 3,
+				delayMs: 0,
+				onRetry: async () => {
+					resets += 1;
+				},
+			},
 		);
 
 		expect(result).toBe("connected");
 		expect(attempts).toBe(3);
+		expect(resets).toBe(2);
 		expect(isRetryableDatabaseConnectionError({ code: "P1001" })).toBe(true);
 		expect(isRetryableDatabaseConnectionError(new Error("invalid input"))).toBe(
 			false,
 		);
 	});
 
-	it("allows a production connection recovery window without retrying writes", () => {
+	it("allows a production connection recovery window for read phases", () => {
 		expect(source).toContain("options.attempts ?? 20");
 		expect(source).toContain("options.delayMs ?? 5_000");
-		expect(source).toContain("runRead: withDatabaseReadRetry");
+		expect(source).toContain("runRead: withProductionDatabaseReadRetry");
 		expect(source).toContain("serializeReads: true");
-		expect(source).not.toContain("runMutation: withDatabaseReadRetry");
+		expect(source).toContain("onRetry: resetProductionDatabaseConnection");
+	});
+
+	it("recomputes a deterministic projection batch after an unacknowledged connection failure", async () => {
+		let attempts = 0;
+		const result = await withDeterministicProjectionRepairRetry(
+			async () => {
+				attempts += 1;
+				if (attempts === 1) {
+					throw Object.assign(new Error("Server has closed the connection"), {
+						code: "P1017",
+					});
+				}
+				return "converged";
+			},
+			{ attempts: 2, delayMs: 0 },
+		);
+
+		expect(result).toBe("converged");
+		expect(attempts).toBe(2);
 	});
 });

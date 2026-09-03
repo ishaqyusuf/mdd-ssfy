@@ -159,6 +159,7 @@ describe("Sales Production Sales Orders table migration parity", () => {
 		expect(calendar.includes('value="week"')).toBe(true);
 		expect(calendar.includes('value="month"')).toBe(true);
 		expect(calendar.includes('item.status !== "completed"')).toBe(true);
+		expect(calendar.includes('scope: "all"')).toBe(true);
 		expect(calendar.includes("completed:")).toBe(true);
 		expect(calendar.includes("bg-emerald-100")).toBe(true);
 		expect(calendar.includes("<Card")).toBe(true);

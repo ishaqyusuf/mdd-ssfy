@@ -1,16 +1,79 @@
 # PlanetScale MySQL to Neon Postgres Migration Plan
 
-Date: 2026-08-04
-Status: Proposed; discovery and architecture approval required before implementation
+## Type
+
+Feature
+
+## Status
+
+Proposed
+
+## Created Date
+
+2026-08-04
+
+## Last Updated
+
+2026-09-03
+
 Owner: Platform / Data Migration
 Scope: Move the GND system of record from PlanetScale/Vitess MySQL to Neon Postgres while preserving application behavior and retaining Prisma as the phase-1 data-access contract.
 
-## Objective
+## Goal Or Problem
 
 Move all production database schema, data, runtime consumers, migration tooling,
 and operational workflows from PlanetScale MySQL to Neon Postgres through a
 repeatable, validated, and reversible cutover. Do not bundle auth, file storage,
 or unrelated product rewrites into the database-provider migration.
+
+## Current Context
+
+The 2026-09-03 decision review found that GND should not migrate only to solve
+Preview. The existing sanitized PlanetScale `preview` development branch is
+about 25 MiB and can be used as the seed source for short-lived data-bearing PR
+branches. Production is 292 tables and about 677 MiB including indexes; the
+current Preview branch has 290 tables and is missing `SalesCompletionRecord`
+and `SalesTaxLedgerEntry`, so schema-parity automation is required even if GND
+stays on PlanetScale.
+
+The same review confirmed that Neon remains the stronger strategic target when
+copy-on-write per-PR databases, Postgres capabilities, future RLS, and provider
+portability are requirements. Neon's Free tier is appropriate for the pilot and
+small sanitized Preview data, not the current full production allocation, which
+is above its published 0.5 GB/project allowance.
+
+See
+`.brain/reports/2026-09-03-planetscale-vs-neon-postgres-migration-review.md`
+for the full comparison, live metadata, code inventory, and decision gates.
+
+## Proposed Approach
+
+Run a two-track decision pilot before approving production migration:
+
+1. Prove PlanetScale Preview v2 using sanitized development-branch Data
+   Branching, schema parity, Vercel credential injection, and automatic cleanup.
+2. Prove a disposable Neon/Postgres conversion with the same sanitized data,
+   then compare branch lifecycle, compatibility, performance, and real cost.
+3. If Neon wins the evidence-based gate, execute the phased provider-neutral
+   cleanup, Postgres baseline, data loader, two rehearsals, write-freeze cutover,
+   and 2–4 week observation period below.
+
+## Visual Plan
+
+```mermaid
+flowchart TD
+  A["Current PlanetScale production"] --> B["Fix sanitized Preview base"]
+  B --> C["Pilot seeded PlanetScale PR branches"]
+  A --> D["Pilot Neon/Postgres conversion"]
+  C --> E{"Measured decision gate"}
+  D --> E
+  E -->|"PlanetScale sufficient"| F["Automate and retain MySQL"]
+  E -->|"Neon materially better"| G["Provider-neutral cleanup"]
+  G --> H["Postgres baseline and repeatable loader"]
+  H --> I["Two parity rehearsals"]
+  I --> J["Write-freeze cutover"]
+  J --> K["Observe, restore-test, decommission"]
+```
 
 ## Assumptions and Decisions to Confirm
 
@@ -27,22 +90,23 @@ or unrelated product rewrites into the database-provider migration.
   workflows.
 - Runtime traffic uses a pooled Neon connection. Migration, import/export,
   diagnostics, and administrative work use a direct connection.
-- The production source size, largest tables, write rate, acceptable downtime,
-  and deployment owners are still unknown and must be measured before setting
-  the final cutover window.
+- Production is currently about 677 MiB across 292 tables; the largest allocated
+  tables are recorded in the linked review. Write rate, acceptable downtime,
+  and deployment owners still need to be measured/assigned before setting the
+  final cutover window.
 
 ## Repository Findings That Shape the Plan
 
 - Prisma currently targets `mysql` and uses `relationMode = "prisma"`.
-- The split Prisma schema contains 274 models and 78 enums.
-- Native MySQL annotations include 563 `@db.Timestamp`, 350 `@db.VarChar`,
-  138 `@db.Json`, 69 `@db.Text`, 54 `@db.Decimal`, 39 `@db.DateTime`,
+- The split Prisma schema contains 292 models and 90 enums.
+- Native MySQL annotations include 623 `@db.Timestamp`, 450 `@db.VarChar`,
+  157 `@db.Json`, 91 `@db.Text`, 54 `@db.Decimal`, 39 `@db.DateTime`,
   15 `@db.LongText`, one `@db.UnsignedBigInt`, and one `@db.Char` occurrence.
 - 133 models do not declare a Prisma `@id`/`@@id`; many rely on `@unique` IDs.
   Do not silently promote all of these to primary keys during the engine move.
-- There are 265 SQL migration files split between
-  `packages/db/src/migrations` (112) and
-  `packages/db/src/schema/migrations` (153), both locked to MySQL. Historical
+- There are 285 SQL migration files split between
+  `packages/db/src/migrations` (131) and
+  `packages/db/src/schema/migrations` (154), both locked to MySQL. Historical
   replay is already broken by ordering and drift issues.
 - `apps/dashboard/db.load` proves an earlier pgloader experiment exists, but it
   drops/creates target objects and applies broad timestamp casts. It must not be
@@ -55,8 +119,12 @@ or unrelated product rewrites into the database-provider migration.
   Prisma extension currently uses `DATABASE_URL` as its direct URL.
 - Local development, Docker, environment profiles, tests, seed scripts, and
   `db:sync` contain MySQL/PlanetScale assumptions.
+- Raw Prisma SQL appears in 22 non-test source files, and 274 string-filter
+  occurrences across 57 files require deliberate case/collation parity testing.
+- The shared sibling `local-infra-kit` already contains a Postgres sync engine
+  used by other profiles; GND can adopt it rather than rebuilding sync from zero.
 
-## Detailed Execution Plan
+## Implementation Steps
 
 ### Phase 0 — Charter, Owners, and Change Control
 
@@ -83,7 +151,7 @@ are explicit.
    - row counts, estimated sizes, largest tables, and normal/peak write rates;
    - scheduled jobs, background writers, webhooks, payment callbacks, and
      operational scripts that can write during cutover.
-2. Build a 274-table manifest containing migration order, key columns, row
+2. Build a 292-table manifest containing migration order, key columns, row
    count, byte estimate, timestamp policy, JSON policy, and parity checks.
 3. Audit source values that Postgres may reject or interpret differently:
    - zero/invalid dates and out-of-range timestamps;
@@ -116,7 +184,7 @@ have an owner and remediation rule; final-load time has a measured estimate.
    - break-glass admin role with audited access.
 4. Standardize the environment contract:
    - `DATABASE_URL`: pooled runtime connection;
-   - `DIRECT_DATABASE_URL`: non-pooled Prisma migrations and admin/data tools;
+   - `DIRECT_URL`: non-pooled Prisma migrations and admin/data tools;
    - optional explicit shadow connection only if the approved Prisma workflow
      requires one.
 5. Size initial compute for the bulk load and cutover rather than normal idle
@@ -142,7 +210,7 @@ commands can connect with the direct role, and restore has been rehearsed.
    - replace unsigned bigint semantics with a signed-safe type plus validation
      after confirming live maxima;
    - classify each date/time field as an instant (`timestamptz`) or local
-     business time (`timestamp`) rather than mass-converting all 602 annotated
+     business time (`timestamp`) rather than mass-converting all 662 annotated
      date/time fields;
    - preserve zero fractional precision where external comparisons depend on
      it.
@@ -157,7 +225,7 @@ commands can connect with the direct role, and restore has been rehearsed.
    CDC, or future foreign keys.
 8. Archive the two MySQL migration histories as historical artifacts and
    establish one active Postgres migration directory. Generate a reviewed
-   `0_init`/baseline migration from the converted schema; do not replay the 265
+   `0_init`/baseline migration from the converted schema; do not replay the 285
    MySQL migrations against Neon.
 9. Apply the baseline to an empty disposable Neon branch, run Prisma validate
    and generate, introspect/diff it back, and prove the diff is empty.
@@ -333,13 +401,26 @@ This is a planning range, not a commitment. Add 2–4+ weeks if the database is
 large enough that the measured full load misses the maintenance window, or if
 near-zero downtime/CDC is required.
 
-## Go/No-Go Checklist
+## Affected Files Or Areas
+
+- `packages/db/src/schema/*.prisma`, Prisma configuration, generated clients,
+  and the active/archive migration directories.
+- `packages/db/src/local-sync.ts`, Preview seed tooling, root DB commands, and
+  the sibling `local-infra-kit` GND profile.
+- Raw SQL across API, Sales, Inventory, DB, and operational scripts.
+- Better Auth adapters and Trigger.dev Prisma build/runtime configuration.
+- Local Docker database services plus Vercel, Trigger.dev, API, dashboard,
+  dealership, storefront, and mobile-backend environment contracts.
+- Sales, payment, inventory, production, dispatch, contractor/accounting,
+  auth, documents, notifications, and job parity validation.
+
+## Acceptance Criteria
 
 Go only when all are true:
 
 - Fresh Neon schema diff is empty against the converted Prisma datamodel.
 - Two full loads complete repeatably inside the approved window.
-- All 274 table manifest rows reconcile with no unexplained critical mismatch.
+- All 292 table manifest rows reconcile with no unexplained critical mismatch.
 - Sales/payment/inventory/contractor invariants are signed off.
 - Auth and background jobs pass full lifecycle tests.
 - Runtime and direct connection roles are proven and least-privileged.
@@ -350,7 +431,21 @@ No-go if any financial mismatch, inventory quantity mismatch, auth/session
 failure, missing writer, sequence collision, loader nondeterminism, or
 unrehearsed rollback remains.
 
-## Risks and Mitigations
+## Test Plan
+
+- Validate/generate the converted Prisma schema and require an empty schema
+  diff on a fresh Neon branch.
+- Run focused unit/integration coverage for every converted raw-SQL and search
+  path, then the broad repository typecheck and relevant application builds.
+- Run the 292-table structural/data manifest plus financial, inventory, sales,
+  contractor, auth, document, notification, and job invariants.
+- Smoke every P0/P1 read and mutation workflow against each rehearsal branch.
+- Load-test pooled runtime connections, long-lived workers, scale-to-zero wake,
+  and the highest-value query plans.
+- Complete two full end-to-end rehearsals and a restore/rollback drill using
+  the final commands and owners.
+
+## Risks / Edge Cases
 
 - **Engine semantics change:** classify types/defaults/collation/time zones
   explicitly and validate live values before conversion.
@@ -384,8 +479,23 @@ unrehearsed rollback remains.
   drift/unsafe-lock analysis before deployment.
 - Establish periodic restore drills and documented RPO/RTO ownership.
 
+## Open Questions
+
+- TODO: Export the current PlanetScale cluster size, monthly cost, branch list,
+  and development-branch-hour consumption from the authenticated console.
+- TODO: Define the maximum acceptable production write-freeze and required
+  RPO/RTO; these decide snapshot migration versus a separate CDC workstream.
+- TODO: Choose Neon Launch versus Scale from measured compute, storage, egress,
+  restore, SLA, and network-security requirements.
+- TODO: Assign migration, domain-signoff, deployment, incident-command, and
+  rollback owners.
+- TODO: Approve whether Preview uses only the sanitized non-production project
+  or permits exceptional tightly controlled production children.
+
 ## References
 
+- `.brain/reports/2026-09-03-planetscale-vs-neon-postgres-migration-review.md`
+- `.brain/research/2026-09-03-planetscale-vitess-vs-neon-postgres-vendor-research.md`
 - `packages/db/src/schema/schema.prisma`
 - `packages/db/prisma.config.ts`
 - `packages/db/src/migrations`
@@ -399,3 +509,8 @@ unrehearsed rollback remains.
 - `.brain/database/schema.md`
 - `.brain/database/relationships.md`
 - `.brain/database/migrations.md`
+
+## Linked Task
+
+- Task Title: PlanetScale to Neon Postgres Migration
+- Task File: `.brain/tasks/2026-09-03-planetscale-to-neon-postgres-migration.md`

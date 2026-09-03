@@ -23,6 +23,9 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Planned Tasks
 
+### [PlanetScale to Neon Postgres Migration](2026-09-03-planetscale-to-neon-postgres-migration.md)
+- Status: Roadmap
+
 ### Sales Document Preflight And Guided Repair
 - Priority: High
 - Description: Track the revisioned readiness-attestation fast path, shared preview/print/PDF/email preflight, staged repair proposal, zero-commercial-delta guided apply, financial-drift editor handoff, and new Sales Form saved-versus-recalculated warning in `.brain/plans/2026-09-01-feature-sales-document-preflight-and-guided-repair.md`.

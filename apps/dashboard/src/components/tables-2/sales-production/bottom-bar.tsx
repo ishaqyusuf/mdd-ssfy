@@ -32,6 +32,7 @@ export function BottomBar({ data }: Props) {
 	const statusCandidates = selectedOrders.map((order) => ({
 		salesId: order.id,
 		status: order.lifecycleStatus,
+		pipelineRevision: order.pipeline?.revision,
 		productionCompleted: order.completed,
 	}));
 

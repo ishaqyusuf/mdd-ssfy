@@ -1,12 +1,19 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+	SALES_ORDER_LIFECYCLE_STATUS_META,
 	getSalesOrderLifecycleStatus,
 	getSalesOrderLifecycleStatusInfo,
 	isSalesOrderFulfilled,
 } from "./order-status";
 
 describe("sales order lifecycle status", () => {
+	it("uses the canonical operator label for unavailable status", () => {
+		expect(SALES_ORDER_LIFECYCLE_STATUS_META.unknown).toMatchObject({
+			label: "Status unavailable",
+			tone: "stone",
+		});
+	});
 	it("maps no production or fulfillment progress to awaiting production", () => {
 		expect(getSalesOrderLifecycleStatus({})).toBe("awaiting_production");
 		expect(

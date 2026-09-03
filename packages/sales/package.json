@@ -17,6 +17,7 @@
 		"./sales-pipeline-order": "./src/sales-pipeline-order.ts",
 		"./sales-pipeline-commands": "./src/sales-pipeline-commands.ts",
 		"./sales-pipeline-rollout": "./src/sales-pipeline-rollout.ts",
+		"./schedule-move": "./src/schedule-move.ts",
 		"./item-material-status": "./src/item-material-status.ts",
 		"./special-order": "./src/special-order/index.ts",
 		"./special-order/signature-storage": "./src/special-order/signature-storage.ts",

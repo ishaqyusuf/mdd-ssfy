@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
-import { resolveSalesBatchStatusSelection } from "./sales-batch-status-selection";
+import {
+	resolveSalesBatchAdministrativeOverrideSelection,
+	resolveSalesBatchStatusSelection,
+} from "./sales-batch-status-selection";
 
 describe("sales batch status selection", () => {
 	it("skips orders that already completed production", () => {
@@ -48,6 +51,48 @@ describe("sales batch status selection", () => {
 		).toEqual({
 			eligibleSalesIds: [32],
 			skippedSalesIds: [31],
+		});
+	});
+
+	it("fails ordinary batch actions closed for explicit lifecycle exceptions", () => {
+		expect(
+			resolveSalesBatchStatusSelection({
+				action: "fulfilled",
+				salesIds: [41, 42, 43],
+				candidates: [
+					{ salesId: 41, status: "unknown" },
+					{ salesId: 42, status: "conflict" },
+				],
+			}),
+		).toEqual({
+			eligibleSalesIds: [43],
+			skippedSalesIds: [41, 42],
+		});
+	});
+});
+
+describe("sales batch administrative override selection", () => {
+	it("keeps only canonical lifecycle exceptions with their expected revisions", () => {
+		expect(
+			resolveSalesBatchAdministrativeOverrideSelection({
+				salesIds: [11, 12, 13, 14, 11],
+				candidates: [
+					{ salesId: 11, status: "unknown", pipelineRevision: "a".repeat(64) },
+					{ salesId: 12, status: "conflict", pipelineRevision: "b".repeat(64) },
+					{
+						salesId: 13,
+						status: "in_production",
+						pipelineRevision: "c".repeat(64),
+					},
+					{ salesId: 14, status: "unknown", pipelineRevision: null },
+				],
+			}),
+		).toEqual({
+			eligible: [
+				{ salesId: 11, pipelineRevision: "a".repeat(64) },
+				{ salesId: 12, pipelineRevision: "b".repeat(64) },
+			],
+			skippedSalesIds: [13, 14],
 		});
 	});
 });

@@ -37,6 +37,10 @@ import {
 	getSalesPipelineReadMode,
 	observeSalesPipelineReadProjection,
 } from "./sales-pipeline-rollout";
+import {
+	resolveProductionScheduleMoveCapability,
+	scheduleBusinessDate,
+} from "./schedule-move";
 import type {
 	SalesProductionCalendarQuery,
 	SalesProductionQueryParams,
@@ -331,6 +335,7 @@ export async function getSalesProductionSummary(
 export async function getSalesProductionCalendar(
 	db: Db,
 	input: SalesProductionCalendarQuery,
+	options: { canReschedule?: boolean; workerMode?: boolean } = {},
 ) {
 	const start = dayjs(input.from).startOf("day");
 	const requestedEnd = dayjs(input.to).startOf("day");
@@ -426,14 +431,18 @@ export async function getSalesProductionCalendar(
 		}).included;
 	});
 	const toCalendarRow = (row: (typeof scheduledRows)[number]) => {
-		const completed = !isProductionAssignmentRowOpen(row);
+		const assignmentCompleted = !isProductionAssignmentRowOpen(row);
 		const pipelineSnapshot = calendarPipelineSnapshots.get(row.order.id);
 		const pipeline = pipelineSnapshot
 			? observeSalesPipelineReadProjection(pipelineSnapshot, {
 					surface: "production.calendar.row",
-					legacyProductionIncluded: !completed,
+					legacyProductionIncluded: !assignmentCompleted,
 				})
 			: null;
+		const completed =
+			assignmentCompleted ||
+			pipelineSnapshot?.production.state === "completed" ||
+			pipelineSnapshot?.production.state === "administratively_completed";
 
 		return {
 			id: row.id,
@@ -464,6 +473,7 @@ export async function getSalesProductionCalendar(
 				assignedTo: Set<string>;
 				statuses: Set<string>;
 				assignmentCount: number;
+				assignments: typeof scheduledRows;
 			}
 		>();
 
@@ -478,6 +488,7 @@ export async function getSalesProductionCalendar(
 				existing.assignmentCount += 1;
 				existing.statuses.add(row.status);
 				if (row.assignedTo) existing.assignedTo.add(row.assignedTo);
+				existing.assignments.push(source);
 				continue;
 			}
 
@@ -486,21 +497,38 @@ export async function getSalesProductionCalendar(
 				assignedTo: new Set(row.assignedTo ? [row.assignedTo] : []),
 				statuses: new Set([row.status]),
 				assignmentCount: 1,
+				assignments: [source],
 			});
 		}
 
-		return Array.from(groups.values()).map((group) => ({
-			...group.row,
-			assignedTo: Array.from(group.assignedTo).join(" & ") || null,
-			assignmentCount: group.assignmentCount,
-			status: group.statuses.has("in progress")
-				? "in progress"
-				: group.statuses.has("unassigned")
-					? "unassigned"
-					: group.statuses.has("assigned")
-						? "assigned"
-						: "completed",
-		}));
+		return Array.from(groups.values()).map((group) => {
+			const pipeline = calendarPipelineSnapshots.get(group.row.orderId);
+			const capability = resolveProductionScheduleMoveCapability({
+				authorized: options.canReschedule === true,
+				workerMode: options.workerMode === true,
+				assignments: group.assignments,
+				pipeline,
+			});
+			return {
+				...group.row,
+				assignedTo: Array.from(group.assignedTo).join(" & ") || null,
+				assignmentCount: group.assignmentCount,
+				assignmentIds: group.assignments
+					.map((assignment) => assignment.id)
+					.sort((a, b) => a - b),
+				sourceDate: scheduleBusinessDate(group.row.dueDate),
+				expectedEvidenceRevision: pipeline?.revision ?? null,
+				canReschedule: capability.canReschedule,
+				rescheduleLockReason: capability.lockReason,
+				status: group.statuses.has("in progress")
+					? "in progress"
+					: group.statuses.has("unassigned")
+						? "unassigned"
+						: group.statuses.has("assigned")
+							? "assigned"
+							: "completed",
+			};
+		});
 	};
 	const scheduled = collapseCalendarRows(scheduledRows);
 	const counts = new Map<string, Set<number>>();

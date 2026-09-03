@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { Db } from "@gnd/db";
 
+import { resolveSalesPipelineSnapshotFromOrder } from "./sales-pipeline-order";
 import {
 	getSalesProductionCalendar,
 	getSalesProductionSummary,
@@ -8,7 +9,6 @@ import {
 	isProductionCompleted,
 	sortProductionListByPriority,
 } from "./sales-production";
-import { resolveSalesPipelineSnapshotFromOrder } from "./sales-pipeline-order";
 import { salesProductionQueryParamsSchema } from "./schema";
 import { whereSales } from "./utils/where-queries";
 
@@ -133,11 +133,15 @@ describe("sales production priority sorting", () => {
 			salesOrders: { findMany: async () => [] },
 		};
 
-		const result = await getSalesProductionCalendar(db as unknown as Db, {
-			from: "2026-09-01",
-			to: "2026-09-07",
-			scope: "completed",
-		});
+		const result = await getSalesProductionCalendar(
+			db as unknown as Db,
+			{
+				from: "2026-09-01",
+				to: "2026-09-07",
+				scope: "completed",
+			},
+			{ canReschedule: true },
+		);
 
 		expect(JSON.stringify(capturedWhere)).not.toContain(
 			'"type":"prodCompleted"',
@@ -146,7 +150,13 @@ describe("sales production priority sorting", () => {
 		expect(result.scheduled[0]).toMatchObject({
 			orderNo: "ORDER-42",
 			status: "completed",
+			assignmentIds: [91],
+			assignmentCount: 1,
+			sourceDate: "2026-09-01",
+			canReschedule: false,
+			rescheduleLockReason: "PRODUCTION_GROUP_COMPLETED",
 		});
+		expect(result.scheduled[0]).toHaveProperty("expectedEvidenceRevision");
 	});
 
 	it("does not let a legacy terminal order string complete open schedule evidence", async () => {
@@ -189,6 +199,68 @@ describe("sales production priority sorting", () => {
 		expect(result.scheduled[0]).toMatchObject({
 			orderNo: "ORDER-43",
 			status: "assigned",
+		});
+	});
+
+	it("colors a canonically completed order as completed despite an open assignment", async () => {
+		const dueDate = new Date("2026-09-02T09:00:00.000Z");
+		const order = {
+			...completedProductionRow(44, "NORMAL"),
+			assignments: [
+				{
+					id: 93,
+					assignedToId: 17,
+					qtyAssigned: 1,
+					qtyCompleted: 0,
+					lhQty: 0,
+					rhQty: 0,
+					dueDate,
+					assignedAt: dueDate,
+					completedAt: null,
+					updatedAt: dueDate,
+					submissions: [],
+				},
+			],
+		};
+		const db = {
+			orderItemProductionAssignments: {
+				findMany: async () => [
+					{
+						id: 93,
+						assignedToId: 17,
+						startedAt: null,
+						completedAt: null,
+						dueDate,
+						qtyAssigned: 1,
+						qtyCompleted: 0,
+						lhQty: 0,
+						rhQty: 0,
+						submissions: [],
+						assignedTo: { name: "Worker" },
+						order: {
+							id: order.id,
+							orderId: order.orderId,
+							status: order.status,
+							prodStatus: order.prodStatus,
+							stat: order.stat,
+							priority: order.priority,
+							customer: { name: "Acme", businessName: null },
+						},
+					},
+				],
+			},
+			salesOrders: { findMany: async () => [order] },
+		};
+
+		const result = await getSalesProductionCalendar(db as unknown as Db, {
+			from: "2026-09-01",
+			to: "2026-09-07",
+			scope: "all",
+		});
+
+		expect(result.scheduled[0]).toMatchObject({
+			orderNo: "ORDER-44",
+			status: "completed",
 		});
 	});
 

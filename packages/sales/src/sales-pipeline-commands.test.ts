@@ -92,6 +92,8 @@ describe("evaluateSalesPipelineCommand", () => {
 			evaluateSalesPipelineCommand(unresolved, {
 				action: "production.administrative_complete",
 				authorized: true,
+				administrativeOverride: true,
+				administrativeOverrideReason: "Verified outside GND.",
 			}).status,
 		).toBe("ready");
 
@@ -118,6 +120,225 @@ describe("evaluateSalesPipelineCommand", () => {
 				authorized: true,
 			}).status,
 		).toBe("ready");
+	});
+
+	it("binds an administrative override to the exceptional stage", () => {
+		const productionConflict = snapshot({
+			production: {
+				configuredRequirement: false,
+				requiredQty: 1,
+				assignments: [
+					{
+						id: 91,
+						active: true,
+						assignedQty: 1,
+						completedQty: 0,
+						completedAt: null,
+					},
+				],
+				submissions: [],
+				aggregate: null,
+				administrativeCompletion: null,
+			},
+		});
+		expect(productionConflict.headline.code).toBe("conflict");
+		expect(
+			evaluateSalesPipelineCommand(productionConflict, {
+				action: "fulfillment.administrative_complete",
+				authorized: true,
+				expectedRevision: productionConflict.revision,
+				administrativeOverride: true,
+				administrativeOverrideReason: "Wrong-stage attempt.",
+			}),
+		).toMatchObject({
+			status: "rejected",
+			reasons: [
+				"ADMINISTRATIVE_OVERRIDE_EXCEPTION_NOT_SUPPORTED",
+				"PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+			],
+		});
+
+		const fulfillmentConflict = snapshot({
+			fulfillment: {
+				configuredRequirement: false,
+				requiredQty: 1,
+				packedQty: 1,
+				dispatches: [
+					{
+						id: 44,
+						active: true,
+						itemCount: 1,
+						deliveredQty: 0,
+						status: "packed",
+						proofCompleted: false,
+						inventoryCommitted: false,
+					},
+				],
+				administrativeCompletion: null,
+			},
+		});
+		expect(fulfillmentConflict.headline.code).toBe("conflict");
+		expect(
+			evaluateSalesPipelineCommand(fulfillmentConflict, {
+				action: "production.administrative_complete",
+				authorized: true,
+				expectedRevision: fulfillmentConflict.revision,
+				administrativeOverride: true,
+				administrativeOverrideReason: "Wrong-stage attempt.",
+			}),
+		).toMatchObject({
+			status: "rejected",
+			reasons: [
+				"ADMINISTRATIVE_OVERRIDE_EXCEPTION_NOT_SUPPORTED",
+				"FULFILLMENT_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+			],
+		});
+	});
+
+	it("requires the explicit override contract for an exceptional stage", () => {
+		const unavailable = snapshot({
+			production: {
+				configuredRequirement: null,
+				requiredQty: 0,
+				assignments: [],
+				submissions: [],
+				aggregate: null,
+				administrativeCompletion: null,
+			},
+		});
+		expect(
+			evaluateSalesPipelineCommand(unavailable, {
+				action: "production.administrative_complete",
+				authorized: true,
+				expectedRevision: unavailable.revision,
+			}),
+		).toMatchObject({
+			status: "review_required",
+			reasons: ["ADMINISTRATIVE_OVERRIDE_REQUIRED"],
+		});
+	});
+
+	it("requires an operator reason to override an unavailable or conflicting headline", () => {
+		const unavailable = snapshot({
+			production: {
+				configuredRequirement: null,
+				requiredQty: 0,
+				assignments: [],
+				submissions: [],
+				aggregate: null,
+				administrativeCompletion: null,
+			},
+		});
+		expect(unavailable.headline.code).toBe("unknown");
+		expect(
+			evaluateSalesPipelineCommand(unavailable, {
+				action: "production.administrative_complete",
+				authorized: true,
+				expectedRevision: unavailable.revision,
+				administrativeOverride: true,
+			}).reasons,
+		).toEqual(["ADMINISTRATIVE_OVERRIDE_REASON_REQUIRED"]);
+		expect(
+			evaluateSalesPipelineCommand(unavailable, {
+				action: "production.administrative_complete",
+				authorized: true,
+				expectedRevision: unavailable.revision,
+				administrativeOverride: true,
+				administrativeOverrideReason: "Verified legacy completion record.",
+			}),
+		).toMatchObject({
+			status: "ready",
+			reasons: ["ADMINISTRATIVE_OVERRIDE", "STATUS_UNAVAILABLE"],
+		});
+
+		const conflict = snapshot({
+			production: {
+				configuredRequirement: false,
+				requiredQty: 1,
+				assignments: [
+					{
+						id: 91,
+						active: true,
+						assignedQty: 1,
+						completedQty: 0,
+						completedAt: null,
+					},
+				],
+				submissions: [],
+				aggregate: null,
+				administrativeCompletion: null,
+			},
+		});
+		expect(conflict.headline.code).toBe("conflict");
+		expect(
+			evaluateSalesPipelineCommand(conflict, {
+				action: "production.administrative_complete",
+				authorized: true,
+				expectedRevision: conflict.revision,
+				administrativeOverride: true,
+				administrativeOverrideReason: "Manager reconciled the conflict.",
+			}),
+		).toMatchObject({
+			status: "ready",
+			reasons: [
+				"ADMINISTRATIVE_OVERRIDE",
+				"PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+			],
+		});
+
+		const unsupportedConflict = {
+			...conflict,
+			conflicts: [
+				{
+					code: "FUTURE_PRODUCTION_CONFLICT",
+					dimensions: ["production"],
+					severity: "blocking",
+					message: "A future Production contradiction is unresolved.",
+				},
+			],
+		} as typeof conflict;
+		expect(
+			evaluateSalesPipelineCommand(unsupportedConflict, {
+				action: "production.administrative_complete",
+				authorized: true,
+				expectedRevision: unsupportedConflict.revision,
+				administrativeOverride: true,
+				administrativeOverrideReason: "Manager reviewed the exception.",
+			}),
+		).toMatchObject({
+			status: "rejected",
+			reasons: [
+				"ADMINISTRATIVE_OVERRIDE_EXCEPTION_NOT_SUPPORTED",
+				"FUTURE_PRODUCTION_CONFLICT",
+			],
+		});
+
+		const crossStageConflict = {
+			...unavailable,
+			conflicts: [
+				{
+					code: "FUTURE_FULFILLMENT_CONFLICT",
+					dimensions: ["fulfillment"],
+					severity: "blocking",
+					message: "A future Fulfillment contradiction is unresolved.",
+				},
+			],
+		} as typeof unavailable;
+		expect(
+			evaluateSalesPipelineCommand(crossStageConflict, {
+				action: "production.administrative_complete",
+				authorized: true,
+				expectedRevision: crossStageConflict.revision,
+				administrativeOverride: true,
+				administrativeOverrideReason: "Manager reviewed the exception.",
+			}),
+		).toMatchObject({
+			status: "rejected",
+			reasons: [
+				"ADMINISTRATIVE_OVERRIDE_EXCEPTION_NOT_SUPPORTED",
+				"FUTURE_FULFILLMENT_CONFLICT",
+			],
+		});
 	});
 
 	it("governs assignment creation and rejects impossible operational transitions", () => {

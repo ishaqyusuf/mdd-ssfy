@@ -7,6 +7,7 @@ export * from "./sales-pipeline-order";
 export * from "./sales-pipeline-commands";
 export * from "./sales-pipeline-command-executor";
 export * from "./sales-pipeline-rollout";
+export * from "./schedule-move";
 export * from "./sales-pipeline-reconciliation";
 export * from "./item-material-status";
 export * from "./sales-control/get-dispatch-information";

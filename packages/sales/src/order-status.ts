@@ -128,7 +128,7 @@ export const SALES_ORDER_LIFECYCLE_STATUS_META = {
 		badgeClassName: "bg-rose-100 text-rose-700",
 	},
 	unknown: {
-		label: "Unknown",
+		label: "Status unavailable",
 		tone: "stone",
 		badgeClassName: "bg-stone-100 text-stone-700",
 	},

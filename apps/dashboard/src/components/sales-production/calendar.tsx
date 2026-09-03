@@ -1,5 +1,9 @@
 "use client";
 
+import {
+	CalendarScheduleMoveDialog,
+	type CalendarScheduleMoveProposal,
+} from "@/components/calendar-schedule-move-dialog";
 import { OperationsCalendarPeriodPicker } from "@/components/operations-calendar/period-picker";
 import {
 	type OperationsCalendarView,
@@ -13,6 +17,21 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
+import {
+	DndContext,
+	type DragEndEvent,
+	DragOverlay,
+	type DragStartEvent,
+	KeyboardSensor,
+	PointerSensor,
+	TouchSensor,
+	closestCenter,
+	useDraggable,
+	useDroppable,
+	useSensor,
+	useSensors,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
@@ -21,11 +40,16 @@ import { Icons } from "@gnd/ui/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { toast } from "@gnd/ui/use-toast";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { format, isPast, isSameMonth, isToday, startOfDay } from "date-fns";
+import { useState } from "react";
 
 type ProductionCalendarItem =
 	RouterOutputs["sales"]["productionCalendar"]["scheduled"][number];
+type ProductionMoveProposal = CalendarScheduleMoveProposal & {
+	item: ProductionCalendarItem;
+};
 
 const STATUS_COLORS: Record<string, string> = {
 	unassigned:
@@ -53,12 +77,19 @@ function ProductionChip({
 	item,
 	compact = false,
 	workerMode = false,
+	onReschedule,
 }: {
 	item: ProductionCalendarItem;
 	compact?: boolean;
 	workerMode?: boolean;
+	onReschedule?: (item: ProductionCalendarItem) => void;
 }) {
 	const overview = useSalesOverviewQuery();
+	const draggable = useDraggable({
+		id: `production:${item.orderId}:${item.sourceDate || item.id}`,
+		data: { item },
+		disabled: workerMode || !item.canReschedule,
+	});
 	const colorClass = STATUS_COLORS[item.status] ?? STATUS_COLORS.assigned;
 	const isOverdue =
 		item.status !== "completed" && item.dueDate
@@ -66,38 +97,79 @@ function ProductionChip({
 			: false;
 
 	return (
-		<button
-			type="button"
+		<div
+			ref={draggable.setNodeRef}
+			style={{
+				transform: CSS.Translate.toString(draggable.transform),
+				opacity: draggable.isDragging ? 0.35 : undefined,
+			}}
 			className={cn(
-				"w-full truncate rounded border text-left text-xs transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+				"flex w-full min-w-0 items-start rounded border text-left text-xs transition-opacity focus-within:ring-2 focus-within:ring-ring hover:opacity-90",
 				compact ? "px-1.5 py-1" : "px-2 py-1.5",
 				colorClass,
 				isOverdue && "ring-1 ring-red-400",
 			)}
-			onClick={() =>
-				overview.open2(
-					item.orderNo,
-					workerMode ? "production-tasks" : "sales-production",
-				)
-			}
 			title={`${item.orderNo} · ${item.customer}`}
 		>
-			<div className="flex min-w-0 items-center justify-between gap-1">
-				<span className="truncate font-mono font-semibold uppercase">
-					{item.orderNo}
+			<button
+				type="button"
+				className="min-w-0 flex-1 text-left focus-visible:outline-none"
+				onClick={() =>
+					overview.open2(
+						item.orderNo,
+						workerMode ? "production-tasks" : "sales-production",
+					)
+				}
+			>
+				<div className="flex min-w-0 items-center justify-between gap-1">
+					<span className="truncate font-mono font-semibold uppercase">
+						{item.orderNo}
+					</span>
+					{compact ? null : <SalesPriorityBadge priority={item.priority} />}
+				</div>
+				{compact ? null : (
+					<>
+						<div className="truncate opacity-70">{item.customer}</div>
+						<div className="truncate opacity-60">
+							{item.assignedTo || "Unassigned"} · {item.assignmentCount}{" "}
+							{item.assignmentCount === 1 ? "assignment" : "assignments"}
+						</div>
+					</>
+				)}
+			</button>
+			{workerMode ? null : item.canReschedule ? (
+				<div className="ml-1 flex shrink-0 items-center gap-0.5">
+					<button
+						type="button"
+						className="rounded px-1 font-semibold opacity-70 hover:bg-background/50 hover:opacity-100 focus-visible:outline-none"
+						onClick={() => onReschedule?.(item)}
+						aria-label={`Reschedule ${item.orderNo}`}
+						title="Reschedule"
+					>
+						↗
+					</button>
+					<button
+						type="button"
+						ref={draggable.setActivatorNodeRef}
+						{...draggable.listeners}
+						{...draggable.attributes}
+						className="cursor-grab rounded px-1 font-semibold opacity-70 hover:bg-background/50 hover:opacity-100 focus-visible:outline-none active:cursor-grabbing"
+						aria-label={`Drag ${item.orderNo} to another production date`}
+						title="Drag to reschedule"
+					>
+						⠿
+					</button>
+				</div>
+			) : (
+				<span
+					className="ml-1 shrink-0 px-1 opacity-60"
+					title={item.rescheduleLockReason || "Schedule locked"}
+					aria-label={item.rescheduleLockReason || "Schedule locked"}
+				>
+					🔒
 				</span>
-				{compact ? null : <SalesPriorityBadge priority={item.priority} />}
-			</div>
-			{compact ? null : (
-				<>
-					<div className="truncate opacity-70">{item.customer}</div>
-					<div className="truncate opacity-60">
-						{item.assignedTo || "Unassigned"} · {item.assignmentCount}{" "}
-						{item.assignmentCount === 1 ? "assignment" : "assignments"}
-					</div>
-				</>
 			)}
-		</button>
+		</div>
 	);
 }
 
@@ -105,19 +177,29 @@ function DayColumn({
 	date,
 	items,
 	workerMode,
+	onReschedule,
 }: {
 	date: Date;
 	items: ProductionCalendarItem[];
 	workerMode?: boolean;
+	onReschedule?: (item: ProductionCalendarItem) => void;
 }) {
 	const today = isToday(date);
 	const past = isPast(startOfDay(date)) && !today;
+	const dateKey = format(date, "yyyy-MM-dd");
+	const droppable = useDroppable({
+		id: `production-date:${dateKey}`,
+		data: { date: dateKey },
+		disabled: workerMode,
+	});
 
 	return (
 		<div
+			ref={droppable.setNodeRef}
 			className={cn(
 				"flex min-h-[300px] flex-col border-r last:border-r-0",
 				today && "bg-blue-50/50 dark:bg-blue-950/20",
+				droppable.isOver && "bg-primary/10 ring-2 ring-inset ring-primary",
 			)}
 		>
 			<div
@@ -152,7 +234,12 @@ function DayColumn({
 			</div>
 			<div className="flex flex-1 flex-col gap-1 p-1.5">
 				{items.map((item) => (
-					<ProductionChip key={item.id} item={item} workerMode={workerMode} />
+					<ProductionChip
+						key={item.id}
+						item={item}
+						workerMode={workerMode}
+						onReschedule={onReschedule}
+					/>
 				))}
 				{items.length === 0 ? (
 					<div className="flex flex-1 items-center justify-center">
@@ -171,21 +258,31 @@ function MonthDayCell({
 	items,
 	anchorDate,
 	workerMode,
+	onReschedule,
 }: {
 	date: Date;
 	items: ProductionCalendarItem[];
 	anchorDate: Date;
 	workerMode?: boolean;
+	onReschedule?: (item: ProductionCalendarItem) => void;
 }) {
 	const visibleItems = items.slice(0, 3);
 	const overflowItems = items.slice(3);
+	const dateKey = format(date, "yyyy-MM-dd");
+	const droppable = useDroppable({
+		id: `production-date:${dateKey}`,
+		data: { date: dateKey },
+		disabled: workerMode,
+	});
 
 	return (
 		<div
+			ref={droppable.setNodeRef}
 			className={cn(
 				"min-h-32 border-b border-r p-1.5",
 				!isSameMonth(date, anchorDate) && "bg-muted/20 text-muted-foreground",
 				isToday(date) && "bg-blue-50/70 dark:bg-blue-950/20",
+				droppable.isOver && "bg-primary/10 ring-2 ring-inset ring-primary",
 			)}
 		>
 			<div className="mb-1 flex items-center justify-between">
@@ -210,6 +307,7 @@ function MonthDayCell({
 						item={item}
 						compact
 						workerMode={workerMode}
+						onReschedule={onReschedule}
 					/>
 				))}
 				{overflowItems.length > 0 ? (
@@ -228,6 +326,7 @@ function MonthDayCell({
 									key={item.id}
 									item={item}
 									workerMode={workerMode}
+									onReschedule={onReschedule}
 								/>
 							))}
 						</PopoverContent>
@@ -255,6 +354,38 @@ export function SalesProductionCalendar({
 	workerMode?: boolean;
 }) {
 	const trpc = useTRPC();
+	const [moveProposal, setMoveProposal] =
+		useState<ProductionMoveProposal | null>(null);
+	const [activeItem, setActiveItem] = useState<ProductionCalendarItem | null>(
+		null,
+	);
+	const sensors = useSensors(
+		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+		useSensor(TouchSensor, {
+			activationConstraint: { delay: 180, tolerance: 8 },
+		}),
+		useSensor(KeyboardSensor),
+	);
+	const moveSchedule = useMutation(
+		trpc.sales.moveProductionSchedule.mutationOptions({
+			onSuccess: (result) => {
+				setMoveProposal(null);
+				toast({
+					title: "Production schedule moved.",
+					description: result.notificationFailed
+						? "The date was saved, but the worker notification could not be delivered."
+						: `${result.affectedRecordCount} ${result.affectedRecordCount === 1 ? "assignment" : "assignments"} moved to ${result.targetDate}.`,
+				});
+			},
+			onError: (error) => {
+				toast({
+					variant: "destructive",
+					title: "Production schedule was not moved.",
+					description: error.message,
+				});
+			},
+		}),
+	);
 	const { filters, setFilters } = useSalesProductionFilterParams();
 	const calendarView = filters.calendarView;
 	const anchorDate = resolveOperationsCalendarDate(
@@ -266,6 +397,7 @@ export function SalesProductionCalendar({
 				{
 					from: period.from,
 					to: period.to,
+					scope: "all",
 					q: filters.q,
 					priority: filters.priority,
 				},
@@ -275,6 +407,7 @@ export function SalesProductionCalendar({
 				{
 					from: period.from,
 					to: period.to,
+					scope: "all",
 					q: filters.q,
 					assignedToId: filters.assignedToId,
 					priority: filters.priority,
@@ -283,7 +416,7 @@ export function SalesProductionCalendar({
 			);
 	const { data } = useSuspenseQuery(queryOptions);
 	const grouped = groupByDay(data.scheduled, period.days);
-	const isCurrentPeriod = period.days.some(isToday);
+	const isCurrentPeriod = period.days.some((day) => isToday(day));
 
 	function setCalendarDate(date: Date) {
 		void setFilters({ calendarDate: format(date, "yyyy-MM-dd") });
@@ -293,118 +426,205 @@ export function SalesProductionCalendar({
 		void setFilters({ calendarView: view as OperationsCalendarView });
 	}
 
+	function proposeMove(item: ProductionCalendarItem, targetDate?: string) {
+		if (
+			workerMode ||
+			!item.canReschedule ||
+			!item.sourceDate ||
+			!item.expectedEvidenceRevision
+		) {
+			return;
+		}
+		setMoveProposal({
+			kind: "production",
+			orderNo: item.orderNo,
+			customer: item.customer,
+			sourceDate: item.sourceDate,
+			targetDate: targetDate || item.sourceDate,
+			affectedRecordCount: item.assignmentCount,
+			item,
+		});
+	}
+
+	function handleDragStart(event: DragStartEvent) {
+		const item = event.active.data.current?.item as
+			| ProductionCalendarItem
+			| undefined;
+		setActiveItem(item || null);
+	}
+
+	function handleDragEnd(event: DragEndEvent) {
+		setActiveItem(null);
+		const item = event.active.data.current?.item as
+			| ProductionCalendarItem
+			| undefined;
+		const targetDate = event.over?.data.current?.date as string | undefined;
+		if (!item || !targetDate || targetDate === item.sourceDate) return;
+		proposeMove(item, targetDate);
+	}
+
+	function confirmMove(targetDate: string) {
+		const proposal = moveProposal;
+		if (
+			!proposal ||
+			!proposal.item.sourceDate ||
+			!proposal.item.expectedEvidenceRevision ||
+			targetDate === proposal.item.sourceDate
+		) {
+			return;
+		}
+		moveSchedule.mutate({
+			requestId: crypto.randomUUID(),
+			salesOrderId: proposal.item.orderId,
+			sourceDate: proposal.item.sourceDate,
+			targetDate,
+			expectedRevision: proposal.item.expectedEvidenceRevision,
+		});
+	}
+
 	return (
-		<div className="flex flex-col gap-3">
-			<div className="flex flex-wrap items-center justify-between gap-3">
-				<div className="flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() =>
-							setCalendarDate(
-								moveOperationsCalendarDate(anchorDate, calendarView, -1),
-							)
-						}
-						aria-label={`Previous ${calendarView}`}
-					>
-						<Icons.ChevronLeft size={14} />
-					</Button>
-					<OperationsCalendarPeriodPicker
-						date={anchorDate}
-						view={calendarView}
-						onSelect={setCalendarDate}
-					/>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() =>
-							setCalendarDate(
-								moveOperationsCalendarDate(anchorDate, calendarView, 1),
-							)
-						}
-						aria-label={`Next ${calendarView}`}
-					>
-						<Icons.ChevronRight size={14} />
-					</Button>
-					{isCurrentPeriod ? null : (
+		<DndContext
+			sensors={sensors}
+			collisionDetection={closestCenter}
+			onDragStart={handleDragStart}
+			onDragEnd={handleDragEnd}
+			onDragCancel={() => setActiveItem(null)}
+		>
+			<div className="flex flex-col gap-3">
+				<div className="flex flex-wrap items-center justify-between gap-3">
+					<div className="flex items-center gap-2">
 						<Button
-							variant="ghost"
+							variant="outline"
 							size="sm"
-							onClick={() => setCalendarDate(new Date())}
+							onClick={() =>
+								setCalendarDate(
+									moveOperationsCalendarDate(anchorDate, calendarView, -1),
+								)
+							}
+							aria-label={`Previous ${calendarView}`}
 						>
-							Today
+							<Icons.ChevronLeft size={14} />
 						</Button>
-					)}
-				</div>
-
-				<div className="flex items-center gap-3">
-					<div className="hidden items-center gap-3 text-xs xl:flex">
-						{LEGEND_STATUSES.map((status) => (
-							<div key={status} className="flex items-center gap-1">
-								<div
-									className={cn(
-										"size-2.5 rounded border",
-										STATUS_COLORS[status],
-									)}
-								/>
-								<span className="capitalize text-muted-foreground">
-									{status}
-								</span>
-							</div>
-						))}
+						<OperationsCalendarPeriodPicker
+							date={anchorDate}
+							view={calendarView}
+							onSelect={setCalendarDate}
+						/>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() =>
+								setCalendarDate(
+									moveOperationsCalendarDate(anchorDate, calendarView, 1),
+								)
+							}
+							aria-label={`Next ${calendarView}`}
+						>
+							<Icons.ChevronRight size={14} />
+						</Button>
+						{isCurrentPeriod ? null : (
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setCalendarDate(new Date())}
+							>
+								Today
+							</Button>
+						)}
 					</div>
-					<Tabs value={calendarView} onValueChange={setCalendarView}>
-						<TabsList className="min-h-9 rounded-md p-0.5 max-lg:border max-lg:bg-muted/60">
-							<TabsTrigger value="week" className="min-h-8 rounded px-3 py-1">
-								Week
-							</TabsTrigger>
-							<TabsTrigger value="month" className="min-h-8 rounded px-3 py-1">
-								Month
-							</TabsTrigger>
-						</TabsList>
-					</Tabs>
-				</div>
-			</div>
 
-			<Card className="overflow-auto">
-				{calendarView === "week" ? (
-					<div className="grid min-w-[980px] grid-cols-7 divide-x">
-						{period.days.map((day) => (
-							<DayColumn
-								key={day.toISOString()}
-								date={day}
-								items={grouped.get(format(day, "yyyy-MM-dd")) ?? []}
-								workerMode={workerMode}
-							/>
-						))}
-					</div>
-				) : (
-					<div className="min-w-[980px]">
-						<div className="grid grid-cols-7 border-b bg-muted/30">
-							{period.days.slice(0, 7).map((day) => (
-								<div
-									key={day.toISOString()}
-									className="p-2 text-center text-xs font-medium text-muted-foreground"
-								>
-									{format(day, "EEE")}
+					<div className="flex items-center gap-3">
+						<div className="hidden items-center gap-3 text-xs xl:flex">
+							{LEGEND_STATUSES.map((status) => (
+								<div key={status} className="flex items-center gap-1">
+									<div
+										className={cn(
+											"size-2.5 rounded border",
+											STATUS_COLORS[status],
+										)}
+									/>
+									<span className="capitalize text-muted-foreground">
+										{status}
+									</span>
 								</div>
 							))}
 						</div>
-						<div className="grid grid-cols-7 border-l">
+						<Tabs value={calendarView} onValueChange={setCalendarView}>
+							<TabsList className="min-h-9 rounded-md p-0.5 max-lg:border max-lg:bg-muted/60">
+								<TabsTrigger value="week" className="min-h-8 rounded px-3 py-1">
+									Week
+								</TabsTrigger>
+								<TabsTrigger
+									value="month"
+									className="min-h-8 rounded px-3 py-1"
+								>
+									Month
+								</TabsTrigger>
+							</TabsList>
+						</Tabs>
+					</div>
+				</div>
+
+				<Card className="overflow-auto">
+					{calendarView === "week" ? (
+						<div className="grid min-w-[980px] grid-cols-7 divide-x">
 							{period.days.map((day) => (
-								<MonthDayCell
+								<DayColumn
 									key={day.toISOString()}
 									date={day}
-									anchorDate={anchorDate}
 									items={grouped.get(format(day, "yyyy-MM-dd")) ?? []}
 									workerMode={workerMode}
+									onReschedule={proposeMove}
 								/>
 							))}
 						</div>
-					</div>
-				)}
-			</Card>
-		</div>
+					) : (
+						<div className="min-w-[980px]">
+							<div className="grid grid-cols-7 border-b bg-muted/30">
+								{period.days.slice(0, 7).map((day) => (
+									<div
+										key={day.toISOString()}
+										className="p-2 text-center text-xs font-medium text-muted-foreground"
+									>
+										{format(day, "EEE")}
+									</div>
+								))}
+							</div>
+							<div className="grid grid-cols-7 border-l">
+								{period.days.map((day) => (
+									<MonthDayCell
+										key={day.toISOString()}
+										date={day}
+										anchorDate={anchorDate}
+										items={grouped.get(format(day, "yyyy-MM-dd")) ?? []}
+										workerMode={workerMode}
+										onReschedule={proposeMove}
+									/>
+								))}
+							</div>
+						</div>
+					)}
+				</Card>
+				<CalendarScheduleMoveDialog
+					proposal={moveProposal}
+					pending={moveSchedule.isPending}
+					onClose={() => setMoveProposal(null)}
+					onConfirm={confirmMove}
+				/>
+				<DragOverlay>
+					{activeItem ? (
+						<div className="max-w-64 rounded border border-primary bg-background px-3 py-2 text-xs shadow-lg">
+							<p className="font-mono font-semibold uppercase">
+								{activeItem.orderNo}
+							</p>
+							<p className="truncate text-muted-foreground">
+								{activeItem.customer}
+							</p>
+						</div>
+					) : null}
+				</DragOverlay>
+			</div>
+		</DndContext>
 	);
 }
 

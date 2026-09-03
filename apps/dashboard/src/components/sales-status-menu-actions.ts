@@ -3,6 +3,8 @@ import type { SalesOrderLifecycleStatus } from "@gnd/sales/order-status";
 export type SalesOrderStatusMenuAction =
 	| "production_completed"
 	| "fulfilled"
+	| "production_administrative_override"
+	| "fulfillment_administrative_override"
 	| "cancel_production"
 	| "cancel_fulfillment";
 
@@ -19,6 +21,7 @@ const PRODUCTION_COMPLETED_LIFECYCLE_STATUSES =
 		"packing",
 		"packed",
 		"in_transit",
+		"administratively_completed",
 		"fulfilled",
 	]);
 
@@ -28,6 +31,7 @@ const FULFILLMENT_STARTED_LIFECYCLE_STATUSES =
 		"packing",
 		"packed",
 		"in_transit",
+		"administratively_completed",
 		"fulfilled",
 	]);
 
@@ -39,6 +43,18 @@ export function getSalesOrderStatusMenuActions({
 	productionStatus?: string | null;
 	hasFulfillmentDispatch?: boolean;
 }): SalesOrderStatusMenuItem[] {
+	if (status === "unknown" || status === "conflict") {
+		return [
+			{
+				action: "production_administrative_override",
+				label: "Production completed",
+			},
+			{
+				action: "fulfillment_administrative_override",
+				label: "Fulfilled",
+			},
+		];
+	}
 	const productionCompleted =
 		PRODUCTION_COMPLETED_LIFECYCLE_STATUSES.has(status);
 	const fulfillmentStarted = FULFILLMENT_STARTED_LIFECYCLE_STATUSES.has(status);

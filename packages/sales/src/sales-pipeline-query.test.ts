@@ -5,6 +5,18 @@ import {
 } from "./sales-pipeline-query";
 
 describe("canonical Sales Pipeline database queries", () => {
+	it("filters multiple headline states through the indexed projection field", () => {
+		const where = buildCanonicalSalesPipelineFilterWhere({
+			headlines: ["unknown", "conflict"],
+		});
+		const serialized = JSON.stringify(where);
+		expect(serialized).toContain(
+			'"pipelineHeadline":{"in":["unknown","conflict"]}',
+		);
+		expect(serialized).not.toContain("pipelineProductionApplicability");
+		expect(serialized).not.toContain("pipelineFulfillmentApplicability");
+	});
+
 	it("uses the versioned canonical projection instead of legacy lifecycle fields", () => {
 		const where = buildCanonicalSalesPipelineFilterWhere({
 			productionStatus: "due today",

@@ -20,7 +20,10 @@ import {
   WORK_ORDER_STATUS,
   salesDispatchStatus,
 } from "@gnd/utils/constants";
-import { getStatusFilterOptionColor } from "@gnd/utils/filter-option-colors";
+import {
+  getFilterOptionColorFromTone,
+  getStatusFilterOptionColor,
+} from "@gnd/utils/filter-option-colors";
 import type { GetNotificationChannelsSchema } from "@notifications/schemas";
 import {
   SALES_PAYMENT_METHODS,
@@ -39,6 +42,10 @@ import {
   SALES_SPECIAL_ORDER_SHOW_LABELS,
   SALES_SPECIAL_ORDER_SHOW_OPTIONS,
 } from "@sales/filter-constants";
+import {
+  SALES_ORDER_LIFECYCLE_STATUSES,
+  SALES_ORDER_LIFECYCLE_STATUS_META,
+} from "@sales/order-status";
 import { SALES_PRIORITY_OPTIONS } from "@sales/priority";
 import { SALES_COMPLETION_FILTER_OPTIONS } from "@sales/sales-completion";
 import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
@@ -773,6 +780,17 @@ export async function getSalesOrderFilters(
       orderNos.map((no) => ({ label: no, value: no })),
     ),
     optionFilter<T>("item", "Item", itemOptions),
+    optionFilter<T>(
+      "lifecycle",
+      "Lifecycle status",
+      SALES_ORDER_LIFECYCLE_STATUSES.map((status) => ({
+        label: SALES_ORDER_LIFECYCLE_STATUS_META[status].label,
+        value: status,
+        color: getFilterOptionColorFromTone(
+          SALES_ORDER_LIFECYCLE_STATUS_META[status].tone,
+        ),
+      })),
+    ),
     optionFilter<T>(
       "completion.fulfillment",
       "Fulfillment completion",

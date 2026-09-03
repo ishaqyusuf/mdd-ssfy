@@ -13,6 +13,7 @@ import {
 	SALES_SPECIAL_ORDER_FILTER_OPTIONS,
 	SALES_SPECIAL_ORDER_SHOW_OPTIONS,
 } from "@sales/filter-constants";
+import { SALES_ORDER_LIFECYCLE_STATUSES } from "@sales/order-status";
 import { SALES_PRIORITY_VALUES } from "@sales/priority";
 import { SALES_COMPLETION_FILTER_OPTIONS } from "@sales/sales-completion";
 import { useQueryStates } from "nuqs";
@@ -37,6 +38,9 @@ export const salesOrdersV2FilterParams = {
 	salesNo: parseAsString,
 	invoiceStatus: parseAsStringLiteral(["paid", "outstanding"] as const),
 	invoice: parseAsStringLiteral(INVOICE_FILTER_OPTIONS),
+	lifecycle: parseAsArrayOf(
+		parseAsStringLiteral(SALES_ORDER_LIFECYCLE_STATUSES),
+	),
 	paymentReview: parseAsStringLiteral(["needs_review"] as const),
 	needsAction: parseAsStringLiteral(["open"] as const),
 	production: parseAsStringLiteral(PRODUCTION_FILTER_OPTIONS),

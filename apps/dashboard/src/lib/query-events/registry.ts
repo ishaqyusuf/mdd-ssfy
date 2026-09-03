@@ -240,6 +240,7 @@ export type QueryEvent = {
 
 export const MUTATION_QUERY_EVENTS = {
 	"sales.cancelWorkflowLayer": ["sales.pipeline.changed"],
+	"sales.moveProductionSchedule": ["sales.pipeline.changed"],
 	"customers.createCustomer": ["customer.changed"],
 	"customers.createCustomerAddress": ["customer.changed"],
 	"customers.assignSalesAddress": ["customer.changed"],
@@ -252,6 +253,7 @@ export const MUTATION_QUERY_EVENTS = {
 	"dispatch.createDispatches": ["sales.pipeline.changed"],
 	"dispatch.deleteDispatch": ["sales.pipeline.changed"],
 	"dispatch.ensureSalesOrderFulfillmentDispatch": ["sales.pipeline.changed"],
+	"dispatch.moveFulfillmentSchedule": ["sales.pipeline.changed"],
 	"dispatch.prepareInventoryForDispatch": ["sales.pipeline.changed"],
 	"dispatch.prepareNonProduceablePacking": ["sales.pipeline.changed"],
 	"dispatch.resetPacking": ["sales.pipeline.changed"],

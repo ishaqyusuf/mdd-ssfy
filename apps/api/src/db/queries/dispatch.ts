@@ -41,7 +41,9 @@ import {
 	projectDispatchListControl,
 	projectSalesListControl,
 	projectSalesPipelineForAudience,
+	resolveFulfillmentScheduleMoveCapability,
 	runSalesPipelineCommandTransaction,
+	scheduleBusinessDate,
 	shouldEnforceCanonicalSalesPipelineCommands,
 	withDispatchControl,
 	withDispatchListControl,
@@ -497,6 +499,7 @@ async function getDispatchPage(
 			status: true,
 			createdAt: true,
 			updatedAt: true,
+			deletedAt: true,
 			deliveredAt: true,
 			dueDate: true,
 			deliveryMode: true,
@@ -591,6 +594,26 @@ async function getDispatchPage(
 			? projectSalesPipelineForAudience(selected, "driver")
 			: null;
 	};
+	const dispatchScheduleCapability = (row: {
+		order: { id: number };
+		status?: string | null;
+		deletedAt?: Date | null;
+		deliveredAt?: Date | null;
+		dueDate?: Date | null;
+	}) => {
+		const pipeline = pipelineSnapshots.get(row.order.id);
+		const capability = resolveFulfillmentScheduleMoveCapability({
+			authorized: true,
+			dispatch: row,
+			pipeline,
+		});
+		return {
+			sourceDate: scheduleBusinessDate(row.dueDate),
+			expectedEvidenceRevision: pipeline?.revision ?? null,
+			canReschedule: capability.canReschedule,
+			rescheduleLockReason: capability.lockReason,
+		};
+	};
 
 	if (isControlReadV2Enabled()) {
 		if (isControlReadParityEnabled()) {
@@ -661,6 +684,7 @@ async function getDispatchPage(
 				});
 				return withDriverDuePresentation({
 					...rest,
+					...dispatchScheduleCapability(rest),
 					pipeline: driverPipeline(rest.order.id),
 					routeDestination: resolveDriverRouteDestination({
 						primaryAddress: (rest.order as any)?.shippingAddress,
@@ -728,6 +752,7 @@ async function getDispatchPage(
 			});
 			return withDriverDuePresentation({
 				...safeRow,
+				...dispatchScheduleCapability(safeRow as any),
 				pipeline: driverPipeline((safeRow as any).order.id),
 				routeDestination: resolveDriverRouteDestination({
 					primaryAddress: (safeRow as any)?.order?.shippingAddress,
@@ -3222,6 +3247,7 @@ const fulfillmentCalendarStatuses = [
 export async function getFulfillmentCalendar(
 	ctx: TRPCContext,
 	input: FulfillmentCalendarInput,
+	options: { canReschedule?: boolean } = {},
 ) {
 	const { db } = ctx;
 	const from = new Date(`${input.from}T00:00:00.000Z`);
@@ -3234,9 +3260,12 @@ export async function getFulfillmentCalendar(
 		id: true,
 		status: true,
 		dueDate: true,
+		deletedAt: true,
+		deliveredAt: true,
 		deliveryMode: true,
 		order: {
 			select: {
+				id: true,
 				orderId: true,
 				customer: {
 					select: { name: true, businessName: true },
@@ -3264,23 +3293,44 @@ export async function getFulfillmentCalendar(
 			select,
 		}),
 	]);
+	const pipelineSnapshots = await getSalesPipelineSnapshots(
+		db,
+		Array.from(
+			new Set(
+				[...scheduledRows, ...unscheduledRows].map((row) => row.order.id),
+			),
+		),
+	);
 
-	const toCalendarRow = (row: (typeof scheduledRows)[number]) => ({
-		id: row.id,
-		status: row.status,
-		dueDate: row.dueDate?.toISOString() ?? null,
-		deliveryMode: row.deliveryMode,
-		driver: row.driver ? { name: row.driver.name || "Unassigned" } : null,
-		order: {
-			orderId: row.order.orderId,
-			customer: row.order.customer
-				? {
-						name: row.order.customer.name,
-						businessName: row.order.customer.businessName,
-					}
-				: null,
-		},
-	});
+	const toCalendarRow = (row: (typeof scheduledRows)[number]) => {
+		const pipeline = pipelineSnapshots.get(row.order.id);
+		const capability = resolveFulfillmentScheduleMoveCapability({
+			authorized: options.canReschedule === true,
+			dispatch: row,
+			pipeline,
+		});
+		return {
+			id: row.id,
+			salesOrderId: row.order.id,
+			status: row.status,
+			dueDate: row.dueDate?.toISOString() ?? null,
+			sourceDate: scheduleBusinessDate(row.dueDate),
+			expectedEvidenceRevision: pipeline?.revision ?? null,
+			canReschedule: capability.canReschedule,
+			rescheduleLockReason: capability.lockReason,
+			deliveryMode: row.deliveryMode,
+			driver: row.driver ? { name: row.driver.name || "Unassigned" } : null,
+			order: {
+				orderId: row.order.orderId,
+				customer: row.order.customer
+					? {
+							name: row.order.customer.name,
+							businessName: row.order.customer.businessName,
+						}
+					: null,
+			},
+		};
+	};
 
 	return {
 		scheduled: scheduledRows.map(toCalendarRow),

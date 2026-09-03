@@ -1,21 +1,5 @@
 # In Progress
 
-### Admin Production And Fulfillment Calendar Rescheduling Wayfinder
-
-- Priority: High
-- Description: A local planning-only Wayfinder maps safe admin drag-and-drop
-  schedule moves across the existing Sales Production and Fulfillment DOM
-  calendars. The approved charting direction reuses installed `@dnd-kit/core`,
-  moves exact Production order/date assignment groups, fails closed for mixed
-  completion, keeps worker calendars read-only, locks in-transit and terminal
-  Dispatches, warns on past dates, and requires attributable notification/audit
-  behavior. Six proposed-answer comments await approval before local spec and
-  implementation-ticket synthesis.
-- Status: Wayfinder Charted — Proposed Comments Awaiting Approval
-- Plan: `.brain/plans/2026-09-02-wayfinder-admin-calendar-rescheduling.md`
-- Tracker: `.scratch/admin-calendar-rescheduling-wayfinder/map.md`
-- Updated Date: 2026-09-02
-
 ### Canonical End-to-End Sales Pipeline Lifecycle Wayfinder
 
 - Priority: Critical
@@ -35,9 +19,52 @@
   stable expanded/collapsed headline wrapping. The final material dry run has
   86 legitimate active reviews and zero proposed automatic changes; projection
   reconciliation has zero remaining deterministic repair and zero unsafe.
-  The authoritative Scratch queue is at 128/136 verified checks: Tickets 01–10,
-  12, and 13 are done; Ticket 11 is in progress; Ticket 14 is in production
-  rollout. Tickets 07 and 08 use one transaction-owned command executor
+  The authoritative Scratch queue is at 156/165 verified checks: Tickets 01–10,
+  12, 13, and 15 are done; Tickets 11 and 16 are in progress; Ticket 14 is in
+  production rollout; and approved Ticket 16 is at 14/15. Ticket 15 adds
+  audited administrative Production/Fulfillment exception handling behind one
+  visible milestone-action pair, canonical completed/green Calendar
+  presentation, plus one canonical headline-status filter shared by every
+  query/result consumer. Ticket 15 is complete at 14/14 after the
+  corrective implementation and final independent standards/spec reviews
+  closed stage binding, full single/batch idempotency binding, exact revision
+  mapping, Sales Order editor authorization, projection freshness, and parity
+  checks.
+  Authenticated browser verification exercised a genuine two-order Production
+  override (exception population 89 to 87), confirmed both orders under
+  Administratively completed, and cancelled both declarations through the
+  audited status-only command to restore the population to 89. Browser QA also
+  closed two legacy-gate mismatches: explicit canonical overrides now supersede
+  contradictory already-satisfied legacy completion projections, and
+  status-only cancellation is not gated by ordinary workflow-cancel capability.
+  The approved simplification removes the Administrative override menu group
+  and routes the same visible action labels by canonical lifecycle state;
+  successful exception handling still captures
+  prior and resulting canonical snapshots, and Production Calendar requests
+  all scheduled states while completed lifecycle rows retain the green status
+  presentation. Local repair run `eae929a6-133e-4507-9140-897a69305b08`
+  repaired the only stale derived projection; independent audit
+  `3571754a-4126-4d7d-aabb-d2bbed4e90d8` confirmed zero remaining deterministic
+  repairs and zero unsafe cases across 8,137 orders. Direct tests cover exact
+  lifecycle membership, sorted pagination, URL reload, and independent
+  payment/Production/Fulfillment filter composition.
+  Ticket 16 consolidates the Admin Calendar Rescheduling Wayfinder into this
+  queue. It adds confirmed, permission-aware moves of exact Production
+  Schedule Groups and pre-trip Fulfillment due dates through the canonical
+  command boundary, locks completed/mixed/in-transit/terminal work, keeps
+  worker calendars read-only, and requires accessible `@dnd-kit` interaction,
+  audit, notification, date, concurrency, and cross-calendar parity evidence.
+  Its package-owned date-only capability, stable lock reasons, canonical
+  Production/Fulfillment commands, exact schedule projections, audit, worker
+  and driver notifications, and shared invalidation are in place. Production,
+  Fulfillment V2, and legacy Fulfillment calendars now share confirmed
+  pointer/touch/keyboard/non-drag interaction. The confirmation now uses the
+  existing shadcn popover/calendar date-picker pattern and no native date
+  input. The focused lifecycle/rescheduling pass covers 254 tests and 938
+  assertions with zero failures, Sales and API package typechecks pass, and a
+  focused dashboard TypeScript scan with no changed-calendar diagnostics.
+  Authenticated desktop/tablet/mobile browser acceptance remains.
+  Tickets 07 and 08 use one transaction-owned command executor
   that locks the order, recomputes canonical evidence, validates the expected
   revision, and runs the Production/Fulfillment/Dispatch/review mutation before
   commit. Client callers propagate revisions, and pack-all no longer races a
@@ -85,7 +112,19 @@
   prerequisite-read disconnect. Its audit reports 4,736 deterministic repairs
   remaining and 0 unsafe across 8,152 orders. The projection builder now has an
   opt-in serialized/retried read mode for reconciliation only; part 3 remains.
-- Status: 12/14 Done — 2/14 In Progress (128/136 checks)
+  Part 3 created a separate backup and converged 1,596 more rows; its audit
+  reports 3,140 deterministic repairs remaining and 0 unsafe across 8,155
+  orders. A deterministic cache-only whole-batch retry now recomputes evidence
+  and revision guards after connection loss; it is not available to domain
+  writes. Continuation 4, shadow/cutover evidence, and material repair remain.
+  The first part-4 start made no change because its actor-permission read could
+  not connect; permission reads now use the verified bounded recovery wrapper.
+  The retried part-4 apply created a 499 KB backup and was interrupted during a
+  safe read retry after provider failover. Its independent audit across 8,158
+  orders reports 2,891 deterministic repairs remaining and 0 unsafe, proving
+  249 more rows converged. Read retries now reset the failed client so the
+  provider hostname can be resolved again.
+- Status: 13/16 Done — 3/16 In Progress — 0/16 Ready (156/165 checks)
 - Local Map: `.scratch/sales-pipeline-lifecycle-wayfinder/map.md`
 - Local Spec: `.scratch/sales-pipeline-lifecycle-wayfinder/spec.md`
 - Local Tickets: `.scratch/sales-pipeline-lifecycle-implementation/issues/`

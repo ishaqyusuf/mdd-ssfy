@@ -106,12 +106,16 @@ import type { DevLogEntry } from "@gnd/dev-logger";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
 import { AppError } from "@gnd/errors";
 import {
+	type SalesPipelineCommand,
+	SalesPipelineCommandRejectedError,
+	SalesScheduleMoveError,
+	fulfillmentScheduleMoveSchema,
 	getSalesPipelineSnapshots,
+	moveFulfillmentSchedule,
 	refreshSalesOrderListProjections,
 	runSalesPipelineCommandTransaction,
-	SalesPipelineCommandRejectedError,
+	scheduleMoveDate,
 	shouldEnforceCanonicalSalesPipelineCommands,
-	type SalesPipelineCommand,
 } from "@gnd/sales";
 import { resolveDriverRouteDestination } from "@gnd/sales/dispatch-manifest/driver-destination";
 import { getDriverManifestItemPresentation } from "@gnd/sales/dispatch-manifest/driver-item-presentation";
@@ -759,6 +763,12 @@ async function requireDispatchManager(ctx: TRPCContext) {
 	);
 }
 
+function toDispatchScheduleMoveTrpcError(error: unknown): never {
+	if (!(error instanceof SalesScheduleMoveError)) throw error;
+	const code = error.code === "NOT_FOUND" ? "NOT_FOUND" : "CONFLICT";
+	throw new TRPCError({ code, message: error.message, cause: error });
+}
+
 async function requirePackingOperator(ctx: TRPCContext) {
 	return requireAnyOperationalPermission(
 		ctx,
@@ -900,7 +910,56 @@ export const dispatchRouters = createTRPCRouter({
 		.input(fulfillmentCalendarSchema)
 		.query(async (props) => {
 			await requireDispatchManager(props.ctx);
-			return getFulfillmentCalendar(props.ctx, props.input);
+			return getFulfillmentCalendar(props.ctx, props.input, {
+				canReschedule: true,
+			});
+		}),
+	moveFulfillmentSchedule: protectedProcedure
+		.input(fulfillmentScheduleMoveSchema)
+		.mutation(async (props) => {
+			const session = await requireDispatchManager(props.ctx);
+			try {
+				const result = await moveFulfillmentSchedule(
+					props.ctx.db,
+					props.input,
+					{
+						id: props.ctx.userId,
+						name: session.name || `User ${props.ctx.userId}`,
+					},
+				);
+				let notificationFailed = false;
+				if (!result.idempotentReplay && result.driverId) {
+					try {
+						const notification = await sendDispatchLifecycleNotification(
+							props.ctx.db,
+							props.ctx.userId,
+							result.driverId,
+							"sales_dispatch_date_updated",
+							{
+								orderNo: String(result.orderNo || props.input.salesOrderId),
+								dispatchId: props.input.dispatchId,
+								deliveryMode:
+									result.deliveryMode === "pickup" ||
+									result.deliveryMode === "delivery"
+										? result.deliveryMode
+										: undefined,
+								dueDate: scheduleMoveDate(result.targetDate),
+								driverId: result.driverId,
+							},
+						);
+						notificationFailed = !notification.sent;
+					} catch (error) {
+						notificationFailed = true;
+						console.warn(
+							"Fulfillment schedule moved, but driver notification failed.",
+							error,
+						);
+					}
+				}
+				return { ...result, notificationFailed };
+			} catch (error) {
+				toDispatchScheduleMoveTrpcError(error);
+			}
 		}),
 	driverWorkload: protectedProcedure.query(async (props) => {
 		await requireDispatchManager(props.ctx);

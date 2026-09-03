@@ -1,5 +1,45 @@
 # Progress
 
+- 2026-09-03: Completed the two reopened Canonical Sales Pipeline
+  implementation checks after updating Scratch first. Ticket 15 is done at
+  14/14: Sales Order menus expose one Production-completed/Fulfilled action
+  pair, canonical lifecycle state selects the ordinary or separately audited
+  exception command, mixed exception batches remain fail-closed, Sales Order
+  editors may use the bounded exception path, and **Administrative override**
+  remains immutable audit provenance rather than a visible group or action.
+  Ticket 16 advanced to 14/15 after replacing its browser-native date input
+  with the shared `@gnd/ui` shadcn popover/calendar. The focused
+  lifecycle/rescheduling suite passes 254 tests with 938 assertions and zero
+  failures; Sales and API typechecks pass; the focused Dashboard diagnostic has
+  no touched-file errors. The authoritative queue is now 156/165 checks: 13
+  tickets done and Tickets 11, 14, and 16 in progress.
+
+- 2026-09-03: Reopened Ticket 15 at 13/14 and Ticket 16 at 13/15 after the
+  approved product simplification, updating Scratch first and Brain second.
+  Sales Order menus will show one Production-completed/Fulfilled action pair;
+  canonical lifecycle state selects the ordinary or audited exception command,
+  while Administrative override remains audit provenance rather than a visible
+  menu group. The schedule confirmation's browser-native date input will be
+  replaced with the existing shadcn popover/calendar date picker. The queue is
+  temporarily 154/165 verified checks while these two changes are implemented
+  and reverified.
+
+- 2026-09-03: Advanced Canonical Sales Pipeline Ticket 16 from 2/15 to
+  14/15 verified checks, updating authoritative Scratch first and Brain second.
+  Added package-owned Production and Fulfillment schedule-move commands with
+  stable lock reasons, exact record/date compare-and-set guards, request replay,
+  immutable Sales history, and post-commit worker/driver notification. Extended
+  Production, Fulfillment V2, and legacy Fulfillment calendar projections with
+  canonical capability/revision evidence and wired all three UIs to one
+  confirmation flow using pointer, touch, keyboard, drag overlay, and non-drag
+  Reschedule actions. Both mutations publish only the deduplicated
+  `sales.pipeline.changed` event. Verification: 99 focused tests pass; Sales and
+  API typechecks pass; all changed calendar UI files have no focused TypeScript
+  diagnostics and pass Biome/transpilation checks. Authenticated multi-viewport
+  browser QA remains before Ticket 16 closure. The existing exception actions
+  were subsequently approved for simplification into one visible action pair,
+  with **Administrative override** retained only in immutable audit provenance.
+
 - 2026-09-03: Removed the standalone P.O. column from the shared active/deleted
   Sales Orders table and moved meaningful trimmed P.O. values into compact,
   truncated badges beside Order #. Empty, whitespace-only, null, and API `"-"`
@@ -10,6 +50,25 @@
   and mobile widths. Dashboard typecheck still reports the repository's
   pre-existing broad baseline outside the touched files after an 8 GB retry.
 
+- 2026-09-03: Merged the approved Admin Calendar Rescheduling Wayfinder into
+  the Canonical Sales Pipeline lifecycle queue as local Ticket 16, updating
+  Scratch first and Brain second without creating a GitHub issue. The ticket
+  specifies confirmed, accessible admin moves for exact Production Schedule
+  Groups and pre-trip Fulfillment due dates, package-owned capability/lock
+  reasons, server-side completion and terminal locks, date-only concurrency
+  guards, audit/notifications, and shared invalidation across Production,
+  Fulfillment V2, and legacy Fulfillment calendars. Tickets 03, 05, 07, and 08
+  are complete, so Ticket 16 is ready at 0/15. It blocks only Ticket 14's final
+  legacy retirement, not its already-authorized production reconciliation.
+  The consolidated queue is now 13/16 done, 3/16 in progress, 0/16 ready, and
+  156/165 acceptance checks verified. Ticket 16 now has its package-owned
+  date-only capability, stable lock reasons, idempotent fingerprints, exact
+  source-date Production group mutation, Fulfillment date mutation, all three
+  calendar interactions, audit/notifications, and shared invalidation in place.
+  The focused suite passes 99 tests, Sales/API typechecks pass, and only
+  authenticated browser acceptance remains. The original map and six draft
+  child tickets remain superseded source history.
+
 - 2026-09-03: Implemented Sales reporting consistency fixes. Order-based sales
   workbooks now export bounded, canonical Sales Pipeline lifecycle labels;
   Sales Finance converts singular/plural relative-month URLs into date-only API
@@ -19,6 +78,63 @@
   Sales/API/Dashboard/date suite passes 66 tests with 383 assertions. No
   database schema, migration, permission, payment, fulfillment, or tax-ledger
   mutation was introduced.
+
+- 2026-09-03: Expanded the approved local Canonical Sales Pipeline workflow to
+  fifteen tickets, updating Scratch first and Brain second. New Ticket 15,
+  `Resolve lifecycle exceptions and filter by canonical status`, specifies
+  separate permissioned administrative Production/Fulfillment override
+  commands for Status unavailable and Lifecycle conflict, immutable reason and
+  revision provenance, strict non-fabrication of operational evidence, and one
+  package-owned multi-select canonical headline filter shared by rows, counts,
+  summaries, pagination, saved views, analytics, and exports. Ticket 14 now
+  requires Ticket 15 before legacy retirement. Ticket 15 is complete at
+  14/14 and the sixteen-ticket queue is 142/165: 13 done, 2 in progress, and
+  1 ready. The corrective
+  implementation binds overrides to the exceptional target stage and explicit
+  conflict-code allowlists, rejects cross-stage blockers, binds both single and
+  batch identities to the complete normalized payload, requires an exact
+  one-to-one selected-order revision map, authorizes edit-only projection
+  access, and refreshes the indexed list projection transactionally. Both final
+  standards/spec reviews report no remaining hard findings. Implemented seams
+  include explicit audited exception actions, canonical headline filtering,
+  stable multi-select URL state, and bounded indexed query predicates. The
+  override menu group, immutable prior/result lifecycle provenance, and the
+  restored completed/green Production Calendar presentation are verified. The
+  local projection repair/audit now reports zero deterministic and zero unsafe
+  cases across 8,137 orders, and direct tests prove exact membership, sorted
+  pagination, URL reload, and independent dimension-filter composition. The
+  authenticated browser matrix exercised a genuine two-order Production
+  override, moved the exception population from 89 to 87, verified both orders
+  under Administratively completed, and cancelled both audited status-only
+  declarations to restore the population to 89. Browser QA also closed two
+  legacy-gate mismatches: canonical exception overrides may supersede a
+  contradictory already-satisfied legacy completion projection, while
+  status-only cancellation is no longer gated by ordinary workflow-cancel
+  capability. The focused Ticket 15 suite passes 201/201; the complete
+  repository suite passes 4,534 with one intentional skip and zero failures;
+  Sales and API typechecks pass; and diff integrity is clean. The
+  repository-wide Dashboard typecheck remains red on a large pre-existing
+  baseline outside this ticket. Separately,
+  the fresh
+  production part-4 read-only audit completed across 8,158 orders with 3,738
+  clean, 261 known compatibility differences, 2,891 deterministic repairs
+  remaining, 1,268 review-required, and 0 unsafe; part 4 reduced the
+  deterministic remainder by 249 before its interrupted read retry.
+
+- 2026-09-03: Completed a decision-support review of PlanetScale Vitess/MySQL
+  versus Neon Postgres and refreshed the existing migration plan. Read-only live
+  metadata confirmed production on MySQL 8.4.11 with 292 tables and about 677
+  MiB of data plus indexes; the configured curated Preview branch is about 25
+  MiB with 290 tables and is missing `SalesCompletionRecord` and
+  `SalesTaxLedgerEntry`. Repository inventory found 292 Prisma models, 90 enums,
+  133 models without Prisma primary keys, 285 MySQL migration files, raw SQL in
+  22 non-test files, and 274 string-filter occurrences across 57 files. The
+  recommendation is to first pilot data-bearing PR branches from the existing
+  sanitized PlanetScale development branch while separately proving a Neon
+  conversion; migrate only if measured branch workflow, Postgres capabilities,
+  and cost justify the 5–8 week implementation program. Added the full report,
+  official-source research, updated proposed plan, and a Roadmap task; no
+  application code, provider configuration, hosted setting, or data was changed.
 
 - 2026-09-03: Began the user-authorized direct production rollout with Preview
   explicitly waived. Verified Vercel target `gndprodesk/gndprodesk`
@@ -14804,3 +14920,17 @@
   serializes and retries prerequisite/control/freshness reads while leaving
   ordinary callers and the non-retried upsert loop unchanged. The focused
   reconciliation suite passes 10/10 and `@gnd/sales` typecheck passes.
+- Part 3 created its 752 KB backup, recovered an extended read outage, and then
+  stopped on one unacknowledged cache upsert. Its fresh read-only audit across
+  8,155 orders reports 3,497 clean, 252 known compatibility differences, 3,140
+  deterministic repairs remaining, 1,266 review-required, and 0 unsafe.
+  Cumulative projection convergence is 3,746/6,886 (54%).
+- The reconciliation runner now retries the entire deterministic cache-only
+  batch after a connection failure, re-reading canonical evidence and revision
+  guards before each attempt and skipping changed source revisions. No domain
+  mutation uses this path. The focused suite passes 11/11, Sales typecheck
+  passes, and diff integrity is clean.
+- The first part-4 start stopped on its initial actor-permission read before the
+  scan, backup, report, or mutation. Authorization reads now use the same
+  bounded recovery window while remaining serial and freshly evaluated; the
+  runner suite passes 8/8.

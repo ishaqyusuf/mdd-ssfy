@@ -26,6 +26,9 @@ function projectionStateClauses(
 	filter: CanonicalSalesPipelineFilter,
 ): Prisma.SalesOrderListProjectionWhereInput[] {
 	const clauses: Prisma.SalesOrderListProjectionWhereInput[] = [];
+	if (filter.headlines?.length) {
+		clauses.push({ pipelineHeadline: { in: filter.headlines } });
+	}
 	if (filter.production === "pending") {
 		clauses.push({
 			pipelineProductionState: {

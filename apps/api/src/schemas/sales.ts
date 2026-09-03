@@ -18,6 +18,7 @@ import {
 	SALES_SPECIAL_ORDER_FILTER_OPTIONS,
 	SALES_SPECIAL_ORDER_SHOW_OPTIONS,
 } from "@sales/filter-constants";
+import { SALES_ORDER_LIFECYCLE_STATUSES } from "@sales/order-status";
 import { salesPrioritySchema } from "@sales/priority";
 import { salesCompletionSatisfactionFilterSchema } from "@sales/sales-completion";
 import { z } from "zod";
@@ -135,6 +136,11 @@ export const salesQueryParamsSchema = z
 		defaultSearch: z.boolean().optional().nullable(),
 		po: z.string().optional().nullable(),
 		item: z.string().optional().nullable(),
+		lifecycle: z
+			.array(z.enum(SALES_ORDER_LIFECYCLE_STATUSES))
+			.max(SALES_ORDER_LIFECYCLE_STATUSES.length)
+			.optional()
+			.nullable(),
 		salesRepId: z.number().optional().nullable(),
 		"sales.rep": z.string().optional().nullable(),
 		orderNo: z.string().optional().nullable(),

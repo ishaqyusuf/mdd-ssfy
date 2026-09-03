@@ -71,4 +71,19 @@ describe("sales order status menu actions", () => {
 			{ action: "cancel_fulfillment", label: "Cancel Fulfillment" },
 		]);
 	});
+
+	it("keeps one visible action pair while lifecycle exceptions use audited commands", () => {
+		for (const status of ["unknown", "conflict"] as const) {
+			expect(getSalesOrderStatusMenuActions({ status })).toEqual([
+				{
+					action: "production_administrative_override",
+					label: "Production completed",
+				},
+				{
+					action: "fulfillment_administrative_override",
+					label: "Fulfilled",
+				},
+			]);
+		}
+	});
 });

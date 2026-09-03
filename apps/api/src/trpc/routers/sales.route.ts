@@ -142,6 +142,7 @@ import {
 } from "@gnd/sales/payment-system";
 import {
 	SalesCompletionError,
+	type SalesCompletionWriteHooks,
 	cancelFulfillmentCompletionStatusOnly,
 	cancelFulfillmentCompletionStatusOnlySchema,
 	cancelProductionCompletionStatusOnly,
@@ -181,10 +182,13 @@ import { generateRandomString, timeLog } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
 import { createNoteAction } from "@notifications/note";
 import {
+	SalesScheduleMoveError,
 	buildProductionItemMaterialStatus,
-	getSalesPipelineSnapshots,
 	getProductionReadiness,
+	getSalesPipelineSnapshots,
 	loadProductionMaterialStatuses,
+	moveProductionScheduleGroup,
+	productionScheduleMoveSchema,
 	productionV2DetailQuerySchema,
 	productionV2ListQuerySchema,
 	refreshSalesOrderListProjections,
@@ -321,6 +325,12 @@ async function requireProductionEditor(ctx: TRPCContext) {
 	);
 }
 
+function toScheduleMoveTrpcError(error: unknown): never {
+	if (!(error instanceof SalesScheduleMoveError)) throw error;
+	const code = error.code === "NOT_FOUND" ? "NOT_FOUND" : "CONFLICT";
+	throw new TRPCError({ code, message: error.message, cause: error });
+}
+
 async function requireSalesOrderEditor(ctx: TRPCContext) {
 	return requireAnyOperationalPermission(
 		ctx,
@@ -368,7 +378,11 @@ function toSalesCompletionTrpcError(error: unknown): never {
 async function requireStatusOnlySalesCompletionViewer(ctx: TRPCContext) {
 	return requireAnyOperationalPermission(
 		ctx,
-		["viewStatusOnlySalesCompletion"],
+		[
+			"viewStatusOnlySalesCompletion",
+			"editStatusOnlySalesCompletion",
+			"editOrders",
+		],
 		"You do not have permission to view status-only sales completion.",
 	);
 }
@@ -376,10 +390,34 @@ async function requireStatusOnlySalesCompletionViewer(ctx: TRPCContext) {
 async function requireStatusOnlySalesCompletionEditor(ctx: TRPCContext) {
 	return requireAnyOperationalPermission(
 		ctx,
-		["editStatusOnlySalesCompletion"],
+		["editStatusOnlySalesCompletion", "editOrders"],
 		"You do not have permission to change status-only sales completion.",
 	);
 }
+
+const salesCompletionWriteHooks: SalesCompletionWriteHooks = {
+	async refreshListProjection(db, salesOrderId) {
+		const snapshot = (await getSalesPipelineSnapshots(db, [salesOrderId])).get(
+			salesOrderId,
+		);
+		if (!snapshot?.freshness.evidenceUpdatedAt) {
+			throw new Error(
+				`Unable to establish the lifecycle source revision for order ${salesOrderId}.`,
+			);
+		}
+		const result = await refreshSalesOrderListProjections(db, [
+			{
+				salesOrderId,
+				sourceUpdatedAt: new Date(snapshot.freshness.evidenceUpdatedAt),
+			},
+		]);
+		if (result.persisted !== 1 || result.skippedAsStale !== 0) {
+			throw new Error(
+				`Unable to refresh the lifecycle list projection for order ${salesOrderId}.`,
+			);
+		}
+	},
+};
 
 async function requireProductionReviewResolutionPermissions(
 	ctx: TRPCContext,
@@ -585,6 +623,7 @@ export const salesRouter = createTRPCRouter({
 						id: actor.id,
 						name: actor.name || `User ${actor.id}`,
 					},
+					salesCompletionWriteHooks,
 				);
 			} catch (error) {
 				return toSalesCompletionTrpcError(error);
@@ -594,10 +633,19 @@ export const salesRouter = createTRPCRouter({
 		.input(markProductionCompletionStatusOnlyBulkSchema)
 		.mutation(async (props) => {
 			const actor = await requireStatusOnlySalesCompletionEditor(props.ctx);
-			return markProductionCompletionStatusOnlyBulk(props.ctx.db, props.input, {
-				id: actor.id,
-				name: actor.name || `User ${actor.id}`,
-			});
+			try {
+				return await markProductionCompletionStatusOnlyBulk(
+					props.ctx.db,
+					props.input,
+					{
+						id: actor.id,
+						name: actor.name || `User ${actor.id}`,
+					},
+					salesCompletionWriteHooks,
+				);
+			} catch (error) {
+				return toSalesCompletionTrpcError(error);
+			}
 		}),
 	cancelProductionCompletionStatusOnly: protectedProcedure
 		.input(cancelProductionCompletionStatusOnlySchema)
@@ -611,6 +659,7 @@ export const salesRouter = createTRPCRouter({
 						id: actor.id,
 						name: actor.name || `User ${actor.id}`,
 					},
+					salesCompletionWriteHooks,
 				);
 			} catch (error) {
 				return toSalesCompletionTrpcError(error);
@@ -628,6 +677,7 @@ export const salesRouter = createTRPCRouter({
 						id: actor.id,
 						name: actor.name || `User ${actor.id}`,
 					},
+					salesCompletionWriteHooks,
 				);
 			} catch (error) {
 				return toSalesCompletionTrpcError(error);
@@ -637,14 +687,19 @@ export const salesRouter = createTRPCRouter({
 		.input(markFulfillmentCompletionStatusOnlyBulkSchema)
 		.mutation(async (props) => {
 			const actor = await requireStatusOnlySalesCompletionEditor(props.ctx);
-			return markFulfillmentCompletionStatusOnlyBulk(
-				props.ctx.db,
-				props.input,
-				{
-					id: actor.id,
-					name: actor.name || `User ${actor.id}`,
-				},
-			);
+			try {
+				return await markFulfillmentCompletionStatusOnlyBulk(
+					props.ctx.db,
+					props.input,
+					{
+						id: actor.id,
+						name: actor.name || `User ${actor.id}`,
+					},
+					salesCompletionWriteHooks,
+				);
+			} catch (error) {
+				return toSalesCompletionTrpcError(error);
+			}
 		}),
 	cancelFulfillmentCompletionStatusOnly: protectedProcedure
 		.input(cancelFulfillmentCompletionStatusOnlySchema)
@@ -658,6 +713,7 @@ export const salesRouter = createTRPCRouter({
 						id: actor.id,
 						name: actor.name || `User ${actor.id}`,
 					},
+					salesCompletionWriteHooks,
 				);
 			} catch (error) {
 				return toSalesCompletionTrpcError(error);
@@ -856,17 +912,71 @@ export const salesRouter = createTRPCRouter({
 	productionCalendar: protectedProcedure
 		.input(salesProductionCalendarQuerySchema)
 		.query(async (props) => {
-			await requireProductionOverviewViewer(props.ctx);
-			return getSalesProductionCalendar(props.ctx.db, props.input);
+			const session = await requireProductionOverviewViewer(props.ctx);
+			return getSalesProductionCalendar(props.ctx.db, props.input, {
+				canReschedule: session.can.editProduction === true,
+			});
 		}),
 	productionCalendarTasks: protectedProcedure
 		.input(salesProductionCalendarQuerySchema)
 		.query(async (props) => {
 			await requireProductionOverviewViewer(props.ctx);
-			return getSalesProductionCalendar(props.ctx.db, {
-				...props.input,
-				assignedToId: props.ctx.userId,
-			});
+			return getSalesProductionCalendar(
+				props.ctx.db,
+				{
+					...props.input,
+					assignedToId: props.ctx.userId,
+				},
+				{
+					canReschedule: false,
+					workerMode: true,
+				},
+			);
+		}),
+	moveProductionSchedule: protectedProcedure
+		.input(productionScheduleMoveSchema)
+		.mutation(async (props) => {
+			const session = await requireProductionEditor(props.ctx);
+			try {
+				const result = await moveProductionScheduleGroup(
+					props.ctx.db,
+					props.input,
+					{
+						id: props.ctx.userId,
+						name: session.name || `User ${props.ctx.userId}`,
+					},
+				);
+				let notificationFailed = false;
+				if (!result.idempotentReplay && result.workerIds.length) {
+					try {
+						await new Notifications(props.ctx.db).create(
+							"sales_info",
+							{
+								salesId: props.input.salesOrderId,
+								salesNo: String(result.orderNo || props.input.salesOrderId),
+								headline: "Production schedule updated",
+								note: `${result.sourceDate} → ${result.targetDate}`,
+							},
+							{
+								author: { id: props.ctx.userId, role: "employee" },
+								recipients: [{ ids: result.workerIds, role: "employee" }],
+								includeChannelSubscribers: false,
+								allowFallbackRecipient: false,
+								forceInAppRecipients: true,
+							},
+						);
+					} catch (error) {
+						notificationFailed = true;
+						console.warn(
+							"Production schedule moved, but worker notification failed.",
+							error,
+						);
+					}
+				}
+				return { ...result, notificationFailed };
+			} catch (error) {
+				toScheduleMoveTrpcError(error);
+			}
 		}),
 	productionsV2: protectedProcedure
 		.input(productionV2ListQuerySchema)

@@ -9,6 +9,10 @@ const ordersQuery = source("../../../api/src/db/queries/sales-orders-v2.ts");
 const dashboardQuery = source("../../../api/src/db/queries/sales-dashboard.ts");
 const ordersTable = source("./tables-2/sales-orders/data-table.tsx");
 const ordersExport = source("./sales-orders-export.ts");
+const ordersExportComponent = source("./sales-orders-v2-export.tsx");
+const ordersFilterParams = source(
+	"../hooks/use-sales-orders-v2-filter-params.ts",
+);
 const materialNotification = source(
 	"../../../../packages/jobs/src/tasks/sales/update-sales-control.ts",
 );
@@ -25,6 +29,12 @@ describe("Sales Pipeline non-interactive consumer parity", () => {
 		);
 		expect(ordersExport).toContain("Status: textOrFallback(order.statusLabel");
 		expect(ordersExport).toContain("...baseFilters");
+		expect(ordersExportComponent).toContain("useSalesOrdersV2FilterParams()");
+		expect(ordersFilterParams).toContain("lifecycle: parseAsArrayOf(");
+		expect(ordersQuery).toContain("headlines: query.lifecycle");
+		expect(ordersQuery).toContain(
+			"buildCanonicalSalesPipelineFilterWhere(filter)",
+		);
 	});
 
 	it("derives dashboard analytics from canonical snapshots when selected", () => {

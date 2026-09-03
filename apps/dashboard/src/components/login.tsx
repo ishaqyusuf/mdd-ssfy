@@ -27,6 +27,12 @@ import { useZodForm } from "@/hooks/use-zod-form";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupButton,
+	InputGroupInput,
+} from "@gnd/ui/input-group";
 import { toast } from "sonner";
 
 const loginSchema = z.object({
@@ -52,6 +58,9 @@ export function Login() {
 	const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 	const [loginError, setLoginError] = useState<LoginErrorInfo | null>(null);
 	const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+	const [emailLinkRecipient, setEmailLinkRecipient] = useState<string | null>(
+		null,
+	);
 
 	const callbackUrl =
 		getSafeCallbackUrl(searchParams.get("return_to")) ||
@@ -110,7 +119,10 @@ export function Login() {
 				});
 
 				if (!result.ok) {
-					const nextError = getLoginErrorInfo(result.error, result.status);
+					const nextError = getLoginErrorInfo(
+						result.error,
+						result.status,
+					);
 					setLoginError(nextError);
 					toast.error(nextError.message);
 					setIsSubmitting(false);
@@ -134,11 +146,15 @@ export function Login() {
 		setIsEmailLinkSubmitting(true);
 		setLoginError(null);
 		try {
+			const email = form.getValues("email");
 			await sendEmailLoginLink({
-				email: form.getValues("email"),
+				email,
 				callbackUrl,
 			});
-			toast.success("If this account is active, a login link is on its way.");
+			setEmailLinkRecipient(email);
+			toast.success(
+				"If this account is active, a login link is on its way.",
+			);
 		} catch (error) {
 			toast.error(
 				error instanceof Error
@@ -161,7 +177,10 @@ export function Login() {
 			});
 
 			if (!result.ok) {
-				const nextError = getLoginErrorInfo(result.error, result.status);
+				const nextError = getLoginErrorInfo(
+					result.error,
+					result.status,
+				);
 				setLoginError(nextError);
 				toast.error(nextError.message);
 				setIsGoogleSubmitting(false);
@@ -178,10 +197,10 @@ export function Login() {
 	}
 
 	return (
-		<main className="min-h-screen bg-[linear-gradient(180deg,#eef2f7_0%,#f7f9fc_100%)] text-[#0f172a]">
-			<div className="mx-auto flex min-h-screen max-w-7xl items-center px-4 py-6 sm:px-6 lg:px-8">
-				<div className="grid w-full overflow-hidden rounded-[36px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)] lg:min-h-[720px] lg:grid-cols-[1.1fr_0.9fr]">
-					<section className="relative hidden min-h-[340px] overflow-hidden lg:block lg:min-h-full">
+		<main className="min-h-svh bg-muted/40 text-foreground">
+			<div className="mx-auto flex min-h-svh max-w-[1440px] items-center lg:px-6">
+				<div className="grid min-h-svh w-full overflow-hidden border-border bg-card lg:min-h-[800px] lg:grid-cols-[1.08fr_0.92fr] lg:rounded-xl lg:border lg:shadow-2xl">
+					<section className="relative min-h-[152px] overflow-hidden text-primary-foreground lg:min-h-full">
 						<Image
 							src="/gnd-backdrop.jpeg"
 							alt="GND millwork backdrop"
@@ -189,69 +208,78 @@ export function Login() {
 							priority
 							className="object-cover"
 						/>
-						<div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,12,20,0.18)_0%,rgba(7,12,20,0.42)_45%,rgba(7,12,20,0.72)_100%)]" />
-						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_30%)]" />
+						<div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,12,20,0.08)_0%,rgba(7,12,20,0.3)_45%,rgba(7,12,20,0.8)_100%)]" />
 
-						<div className="relative z-10 flex h-full flex-col justify-between p-6 text-white sm:p-8 lg:p-10">
-							<div className="inline-flex w-fit items-center rounded-2xl bg-white/92 px-4 py-3 shadow-sm backdrop-blur">
+						<div className="relative z-10 flex h-full flex-col justify-between p-4 sm:p-6 lg:p-10">
+							<div className="inline-flex w-fit items-center rounded-lg bg-background/95 px-3 py-2 text-foreground shadow-sm backdrop-blur">
 								<Icons.logoLg width={110} />
 							</div>
 
-							<div className="max-w-lg space-y-4">
-								<p className="text-xs font-medium tracking-[0.2em] text-white/72 uppercase">
+							<div className="hidden max-w-lg lg:block">
+								<p className="text-xs font-medium tracking-[0.2em] text-primary-foreground/70 uppercase">
 									GND Workspace
 								</p>
-								<h1 className="text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
+								<h1 className="mt-4 text-5xl font-semibold tracking-[-0.055em] text-primary-foreground">
 									Sign in and get back to work.
 								</h1>
-								<p className="max-w-md text-sm leading-7 text-white/78 sm:text-base">
-									The backdrop now carries the mood of the page, while the form
-									stays focused and easy to use.
+								<p className="mt-4 max-w-md text-base leading-7 text-primary-foreground/80">
+									A focused, secure place to keep every GND
+									workspace moving.
 								</p>
-								<div className="inline-flex max-w-md items-center rounded-2xl border border-white/18 bg-black/20 px-4 py-3 text-sm leading-6 text-white/80 backdrop-blur-sm">
-									Email and password sign-in, token login links, safe redirects,
-									and password reset are all preserved.
+								<div className="mt-6 inline-flex max-w-md items-center rounded-lg border border-primary-foreground/20 bg-black/20 px-4 py-3 text-sm leading-6 text-primary-foreground/80 backdrop-blur-sm">
+									Email and password sign-in, token login
+									links, safe redirects, and password reset
+									are all preserved.
 								</div>
 							</div>
 						</div>
 					</section>
 
-					<section className="flex items-center bg-white p-6 sm:p-8 lg:p-10">
-						<div className="mx-auto w-full max-w-md">
-							<div className="mb-6 inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:hidden">
-								<Icons.logoLg width={110} />
-							</div>
-							<div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8">
-								<div className="mb-8 space-y-2">
-									<div className="flex size-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
-										<Icons.LockKeyhole className="size-5" />
-									</div>
-									<h2 className="text-2xl font-semibold tracking-[-0.03em] text-slate-950">
-										Welcome back
-									</h2>
-									<p className="text-sm leading-6 text-slate-600">
-										Use your GND credentials to continue.
-									</p>
+					<section className="flex items-start bg-card px-6 py-10 sm:px-10 lg:items-center lg:px-16 lg:py-14">
+						<div className="mx-auto w-full max-w-[430px]">
+							<div className="mb-8 flex flex-col gap-3">
+								<div className="flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+									<Icons.LockKeyhole className="size-5" />
 								</div>
+								<h2 className="text-3xl font-semibold tracking-[-0.045em] text-foreground">
+									Welcome back
+								</h2>
+								<p className="text-sm leading-6 text-muted-foreground">
+									Use your GND credentials to continue.
+								</p>
+							</div>
 
+							{emailLinkRecipient ? (
+								<EmailLinkConfirmation
+									email={emailLinkRecipient}
+									onUsePassword={() =>
+										setEmailLinkRecipient(null)
+									}
+								/>
+							) : (
 								<Form {...form}>
-									<form className="flex flex-col gap-5" onSubmit={onSubmit}>
+									<form
+										className="flex flex-col gap-5"
+										onSubmit={onSubmit}
+									>
 										<FormField
 											control={form.control}
 											name="email"
 											render={({ field }) => (
 												<FormItem className="flex flex-col gap-2">
-													<FormLabel className="text-slate-700">
-														Email
-													</FormLabel>
+													<FormLabel>Email</FormLabel>
 													<FormControl>
 														<Input
 															{...field}
 															type="email"
 															placeholder="you@gndmillwork.com"
 															autoComplete="email"
-															aria-invalid={!!form.formState.errors.email}
-															className="h-12 rounded-2xl border-slate-200 bg-slate-50 text-base text-slate-950 placeholder:text-slate-400"
+															aria-invalid={
+																!!form.formState
+																	.errors
+																	.email
+															}
+															className="h-12 rounded-lg bg-background text-base"
 														/>
 													</FormControl>
 													<FormMessage />
@@ -263,23 +291,32 @@ export function Login() {
 											control={form.control}
 											name="rememberMe"
 											render={({ field }) => (
-												<FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+												<FormItem className="flex flex-row items-start gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3">
 													<FormControl>
 														<Checkbox
-															checked={field.value}
-															onCheckedChange={(checked) =>
-																field.onChange(checked === true)
+															checked={
+																field.value
+															}
+															onCheckedChange={(
+																checked,
+															) =>
+																field.onChange(
+																	checked ===
+																		true,
+																)
 															}
 															aria-label="Remember me on this device"
-															className="mt-0.5 border-slate-300 data-[state=checked]:border-slate-950 data-[state=checked]:bg-slate-950"
+															className="mt-0.5"
 														/>
 													</FormControl>
-													<div className="space-y-1">
-														<FormLabel className="text-sm font-medium text-slate-800">
+													<div className="flex flex-col gap-1">
+														<FormLabel className="text-sm font-medium text-foreground">
 															Remember me
 														</FormLabel>
-														<p className="text-xs leading-5 text-slate-500">
-															Keep me signed in on this device for longer.
+														<p className="text-xs leading-5 text-muted-foreground">
+															Keep me signed in on
+															this device for
+															longer.
 														</p>
 													</div>
 												</FormItem>
@@ -292,39 +329,55 @@ export function Login() {
 											render={({ field }) => (
 												<FormItem className="flex flex-col gap-2">
 													<div className="flex items-center justify-between gap-3">
-														<FormLabel className="text-slate-700">
+														<FormLabel>
 															Password
 														</FormLabel>
 														<Link
 															href="/password-reset"
-															className="text-sm font-medium text-slate-700 transition hover:text-slate-950"
+															className="text-sm font-medium text-primary underline-offset-4 hover:underline"
 														>
 															Forgot password?
 														</Link>
 													</div>
-													<FormControl>
-														<div className="relative">
-															<Input
+													<InputGroup className="h-12 rounded-lg bg-background">
+														<FormControl>
+															<InputGroupInput
 																{...field}
-																type={isPasswordVisible ? "text" : "password"}
+																type={
+																	isPasswordVisible
+																		? "text"
+																		: "password"
+																}
 																placeholder="Enter your password"
 																autoComplete="current-password"
-																aria-invalid={!!form.formState.errors.password}
-																className="h-12 rounded-2xl border-slate-200 bg-slate-50 pr-12 text-base text-slate-950 placeholder:text-slate-400"
+																aria-invalid={
+																	!!form
+																		.formState
+																		.errors
+																		.password
+																}
+																className="h-full px-3 text-base"
 															/>
-															<Button
+														</FormControl>
+														<InputGroupAddon align="inline-end">
+															<InputGroupButton
 																type="button"
-																variant="ghost"
 																size="icon-sm"
-																className="absolute top-1/2 right-2 -translate-y-1/2 text-slate-500 hover:text-slate-950"
 																aria-label={
 																	isPasswordVisible
 																		? "Hide password"
 																		: "Show password"
 																}
-																aria-pressed={isPasswordVisible}
+																aria-pressed={
+																	isPasswordVisible
+																}
 																onClick={() =>
-																	setIsPasswordVisible((visible) => !visible)
+																	setIsPasswordVisible(
+																		(
+																			visible,
+																		) =>
+																			!visible,
+																	)
 																}
 															>
 																{isPasswordVisible ? (
@@ -332,22 +385,28 @@ export function Login() {
 																) : (
 																	<Icons.Eye />
 																)}
-															</Button>
-														</div>
-													</FormControl>
+															</InputGroupButton>
+														</InputGroupAddon>
+													</InputGroup>
 													<FormMessage />
 												</FormItem>
 											)}
 										/>
 
-										{loginError ? <LoginErrorAlert error={loginError} /> : null}
+										{loginError ? (
+											<LoginErrorAlert
+												error={loginError}
+											/>
+										) : null}
 
 										<SubmitButton
 											type="submit"
 											isSubmitting={
-												isSubmitting || isPending || isGoogleSubmitting
+												isSubmitting ||
+												isPending ||
+												isGoogleSubmitting
 											}
-											className="h-12 w-full rounded-2xl bg-slate-950 text-sm font-semibold text-white hover:bg-slate-800"
+											className="h-12 w-full rounded-lg text-sm font-semibold"
 										>
 											Sign in
 										</SubmitButton>
@@ -362,7 +421,7 @@ export function Login() {
 												isSubmitting ||
 												isPending
 											}
-											className="h-12 w-full rounded-2xl border-slate-200 text-sm font-semibold text-slate-800"
+											className="h-12 w-full rounded-lg text-sm font-semibold"
 										>
 											{isGoogleSubmitting ? (
 												<Icons.Loader2
@@ -390,7 +449,7 @@ export function Login() {
 												isSubmitting ||
 												isPending
 											}
-											className="h-12 w-full rounded-2xl border-slate-200 text-sm font-semibold text-slate-800"
+											className="h-12 w-full rounded-lg text-sm font-semibold"
 										>
 											{isEmailLinkSubmitting ? (
 												<Icons.Loader2
@@ -404,16 +463,16 @@ export function Login() {
 										</Button>
 									</form>
 								</Form>
+							)}
 
-								<Env isDev>
-									<div className="mt-6 border-t border-slate-200 pt-5">
-										<p className="mb-3 text-xs font-medium tracking-[0.16em] text-slate-500 uppercase">
-											Dev Quick Login
-										</p>
-										<QuickLogin />
-									</div>
-								</Env>
-							</div>
+							<Env isDev>
+								<div className="mt-6 border-t border-border pt-5">
+									<p className="mb-3 text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+										Dev Quick Login
+									</p>
+									<QuickLogin />
+								</div>
+							</Env>
 						</div>
 					</section>
 				</div>
@@ -424,16 +483,53 @@ export function Login() {
 
 function LoginErrorAlert({ error }: { error: LoginErrorInfo }) {
 	return (
-		<Alert className="border-red-200 bg-red-50 text-red-950">
-			<Icons.AlertCircle className="size-4 text-red-600" />
+		<Alert variant="destructive">
+			<Icons.AlertCircle className="size-4" />
 			<AlertTitle>{error.title}</AlertTitle>
-			<AlertDescription className="mt-1 space-y-1 text-sm text-red-800">
+			<AlertDescription className="mt-1 flex flex-col gap-1 text-sm">
 				<p>{error.message}</p>
 				{error.details ? (
-					<p className="text-xs text-red-700">{error.details}</p>
+					<p className="text-xs">{error.details}</p>
 				) : null}
 			</AlertDescription>
 		</Alert>
+	);
+}
+
+function EmailLinkConfirmation({
+	email,
+	onUsePassword,
+}: {
+	email: string;
+	onUsePassword: () => void;
+}) {
+	return (
+		<div className="flex flex-col gap-5">
+			<Alert className="border-success/40 bg-success/10 text-foreground">
+				<Icons.Mail className="size-4" />
+				<AlertTitle>Check your email</AlertTitle>
+				<AlertDescription className="mt-1 text-sm">
+					We sent a secure sign-in link to <strong>{email}</strong> if
+					that address belongs to an active GND account.
+				</AlertDescription>
+			</Alert>
+
+			<p className="text-sm leading-6 text-muted-foreground">
+				Use the latest email to sign in and return to the page you were
+				trying to reach.
+			</p>
+
+			<Button
+				type="button"
+				className="h-12 rounded-lg"
+				onClick={onUsePassword}
+			>
+				Use password instead
+			</Button>
+			<p className="text-center text-xs text-muted-foreground">
+				No email? Check junk mail, then request another sign-in link.
+			</p>
+		</div>
 	);
 }
 

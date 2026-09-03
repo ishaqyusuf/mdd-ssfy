@@ -8,6 +8,9 @@ function context(permissionNames: string[] = []) {
 	return {
 		userId: 19,
 		db: {
+			salesOrders: {
+				findFirst: async () => null,
+			},
 			users: {
 				findFirstOrThrow: async () => ({
 					id: 19,
@@ -117,6 +120,30 @@ describe("status-only Sales completion route permissions", () => {
 		await expect(
 			caller.cancelFulfillmentCompletionStatusOnly(cancelInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
+	});
+
+	test("edit capability can load the projection required to submit", async () => {
+		const caller = salesRouter.createCaller(
+			context(["edit status only sales completion"]),
+		);
+
+		await expect(
+			caller.salesCompletionProjection({ salesOrderId: 91 }),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+
+	test("Sales Order editors can load the canonical projection and use the exception command boundary", async () => {
+		const caller = salesRouter.createCaller(context(["edit orders"]));
+
+		await expect(
+			caller.salesCompletionProjection({ salesOrderId: 91 }),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+		await expect(
+			caller.markProductionCompletionStatusOnly(markInput),
+		).rejects.not.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markFulfillmentCompletionStatusOnly(markInput),
+		).rejects.not.toMatchObject({ code: "FORBIDDEN" });
 	});
 
 	test("a raw snake-case row authorizes neither presentation nor editing", async () => {

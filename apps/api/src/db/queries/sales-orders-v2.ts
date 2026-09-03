@@ -16,6 +16,7 @@ import {
 	withSalesListControl,
 } from "@gnd/sales";
 import {
+	SALES_ORDER_LIFECYCLE_STATUSES,
 	type SalesOrderLifecycleStatus,
 	getSalesOrderLifecycleStatusInfo,
 } from "@gnd/sales/order-status";
@@ -101,6 +102,11 @@ const ordersV2FilterShape = {
 	needsAction: z.enum(needsActionFilterOptions).optional().nullable(),
 	invoiceStatus: z.enum(ordersV2InvoiceStatus).optional().nullable(),
 	invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
+	lifecycle: z
+		.array(z.enum(SALES_ORDER_LIFECYCLE_STATUSES))
+		.max(SALES_ORDER_LIFECYCLE_STATUSES.length)
+		.optional()
+		.nullable(),
 	production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
 	"production.status": z.enum(PRODUCTION_STATUS).optional().nullable(),
 	"production.assignment": z
@@ -219,6 +225,7 @@ function toLegacyOrdersQuery(
 }
 
 const canonicalLifecycleFilterKeys = [
+	"lifecycle",
 	"production",
 	"production.status",
 	"production.assignment",
@@ -236,6 +243,7 @@ function withoutCanonicalLifecycleFilters<T extends GetOrdersSummarySchema>(
 ): T {
 	return {
 		...query,
+		lifecycle: null,
 		production: null,
 		"production.status": null,
 		"production.assignment": null,
@@ -249,6 +257,7 @@ function canonicalLifecycleFilter(
 	query: GetOrdersSummarySchema,
 ): CanonicalSalesPipelineFilter {
 	return {
+		headlines: query.lifecycle,
 		production: query.production,
 		productionStatus: query["production.status"],
 		productionAssignment: query["production.assignment"],
@@ -290,9 +299,11 @@ async function applyCanonicalLifecycleFilterWhere(
 	query: GetOrdersSummarySchema,
 	originalWhere: Prisma.SalesOrdersWhereInput,
 ) {
+	const hasLifecycleFilter = hasCanonicalLifecycleFilter(query);
+	const hasHeadlineFilter = Boolean(query.lifecycle?.length);
 	if (
-		getSalesPipelineReadMode() !== "canonical" ||
-		!hasCanonicalLifecycleFilter(query)
+		!hasLifecycleFilter ||
+		(!hasHeadlineFilter && getSalesPipelineReadMode() !== "canonical")
 	) {
 		return originalWhere;
 	}
@@ -748,8 +759,9 @@ async function getOrdersFromProjection(
 		return { hit: false as const, reason: "unsupported_needs_action" };
 	}
 	if (
-		getSalesPipelineReadMode() === "canonical" &&
-		hasCanonicalLifecycleFilter(query)
+		Boolean(query.lifecycle?.length) ||
+		(getSalesPipelineReadMode() === "canonical" &&
+			hasCanonicalLifecycleFilter(query))
 	) {
 		return {
 			hit: false as const,
@@ -1149,7 +1161,9 @@ async function getOrdersLegacy(
 					)
 				: [];
 			const data = await performance.measure("enrichment", () =>
-				normalizeOrders(ctx, rows),
+				normalizeOrders(ctx, rows, {
+					forceCanonicalPipeline: Boolean(query.lifecycle?.length),
+				}),
 			);
 			const cursor = skip + take;
 
@@ -1213,7 +1227,9 @@ async function getOrdersLegacy(
 			.map((orderId) => rowsById.get(orderId))
 			.filter((row): row is NonNullable<typeof row> => Boolean(row));
 		const data = await performance.measure("enrichment", () =>
-			normalizeOrders(ctx, orderedRows),
+			normalizeOrders(ctx, orderedRows, {
+				forceCanonicalPipeline: Boolean(query.lifecycle?.length),
+			}),
 		);
 		const cursor = skip + take;
 
@@ -1246,7 +1262,9 @@ async function getOrdersLegacy(
 	);
 
 	const data = await performance.measure("enrichment", () =>
-		normalizeOrders(ctx, rows),
+		normalizeOrders(ctx, rows, {
+			forceCanonicalPipeline: Boolean(query.lifecycle?.length),
+		}),
 	);
 	return response(data);
 }
@@ -1353,6 +1371,7 @@ export async function getOrders(
 async function normalizeOrders(
 	ctx: TRPCContext,
 	rows: Prisma.SalesOrdersGetPayload<{ include: typeof SalesListInclude }>[],
+	options: { forceCanonicalPipeline?: boolean } = {},
 ) {
 	const { db } = ctx;
 	const salesOrderIds = rows.map((row) => row.id);
@@ -1535,7 +1554,9 @@ async function normalizeOrders(
 		const lifecycleRow = applyControlAwareLifecycle(lifecycleInput);
 		const canonicalPipeline = pipelineSnapshots.get(lifecycleRow.id) ?? null;
 		const pipeline = canonicalPipeline
-			? selectSalesPipelineReadProjection(canonicalPipeline)
+			? options.forceCanonicalPipeline
+				? canonicalPipeline
+				: selectSalesPipelineReadProjection(canonicalPipeline)
 			: null;
 		const existingInventoryNeedCount =
 			existingInventoryNeedCountMap.get(lifecycleRow.id) ?? 0;

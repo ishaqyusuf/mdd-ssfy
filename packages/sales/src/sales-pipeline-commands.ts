@@ -7,6 +7,7 @@ export type SalesPipelineCommand =
 	| "production.submission.update"
 	| "production.submission.delete"
 	| "production.review.resolve"
+	| "production.reschedule"
 	| "production.complete"
 	| "production.administrative_complete"
 	| "production.cancel"
@@ -16,6 +17,7 @@ export type SalesPipelineCommand =
 	| "fulfillment.start_dispatch"
 	| "fulfillment.complete_dispatch"
 	| "fulfillment.sign_packing_slip"
+	| "fulfillment.reschedule"
 	| "fulfillment.complete"
 	| "fulfillment.administrative_complete"
 	| "fulfillment.cancel"
@@ -72,6 +74,14 @@ const affectedScopes: Record<SalesPipelineCommand, string[]> = {
 		"production.calendar",
 		"production.summary",
 		"fulfillment.backlog",
+	],
+	"production.reschedule": [
+		"sales.orders",
+		"sales.overview",
+		"production.queue",
+		"production.calendar",
+		"production.summary",
+		"production.worker",
 	],
 	"production.complete": [
 		"sales.orders",
@@ -143,6 +153,15 @@ const affectedScopes: Record<SalesPipelineCommand, string[]> = {
 		"fulfillment.summary",
 		"driver.queue",
 	],
+	"fulfillment.reschedule": [
+		"sales.orders",
+		"sales.overview",
+		"fulfillment.backlog",
+		"fulfillment.active",
+		"fulfillment.summary",
+		"fulfillment.calendar",
+		"driver.queue",
+	],
 	"fulfillment.complete": [
 		"sales.orders",
 		"sales.overview",
@@ -189,6 +208,8 @@ export function evaluateSalesPipelineCommand(
 		action: SalesPipelineCommand;
 		authorized: boolean;
 		expectedRevision?: string | null;
+		administrativeOverride?: boolean;
+		administrativeOverrideReason?: string | null;
 	},
 ): SalesPipelineCommandDecision {
 	const base = {
@@ -207,6 +228,98 @@ export function evaluateSalesPipelineCommand(
 			...base,
 			status: "rejected",
 			reasons: ["COMMERCIAL_ORDER_CANCELLED"],
+		};
+	}
+	const administrativeCompletion = input.action.endsWith(
+		"administrative_complete",
+	);
+	const production = input.action.startsWith("production.");
+	const exceptionalHeadline =
+		snapshot.headline.code === "unknown" ||
+		snapshot.headline.code === "conflict";
+	const administrativeStage = production
+		? snapshot.production
+		: snapshot.fulfillment;
+	const administrativeConflictDimensions = production
+		? new Set(["production"])
+		: new Set(["fulfillment", "dispatch"]);
+	const supportedAdministrativeConflictCodes = production
+		? new Set(["PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE"])
+		: new Set([
+				"FULFILLMENT_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+				"FULFILLMENT_PROOF_INCOMPLETE",
+			]);
+	const administrativeStageConflicts = snapshot.conflicts.filter(
+		(conflict) =>
+			conflict.severity === "blocking" &&
+			conflict.dimensions.some((dimension) =>
+				administrativeConflictDimensions.has(dimension),
+			),
+	);
+	const administrativeBlockingConflicts = snapshot.conflicts.filter(
+		(conflict) => conflict.severity === "blocking",
+	);
+	const administrativeStageUnavailable =
+		administrativeStage.applicability === "unknown" ||
+		administrativeStage.state === "unknown";
+	const administrativeStageExceptional =
+		administrativeStageUnavailable ||
+		administrativeStage.applicability === "conflict" ||
+		administrativeStage.state === "conflict" ||
+		administrativeStageConflicts.length > 0;
+	if (administrativeCompletion && input.administrativeOverride) {
+		const unsupportedConflicts = administrativeBlockingConflicts.filter(
+			(conflict) =>
+				!administrativeStageConflicts.includes(conflict) ||
+				!supportedAdministrativeConflictCodes.has(conflict.code),
+		);
+		if (unsupportedConflicts.length > 0) {
+			return {
+				...base,
+				status: "rejected",
+				reasons: [
+					"ADMINISTRATIVE_OVERRIDE_EXCEPTION_NOT_SUPPORTED",
+					...unsupportedConflicts.map((conflict) => conflict.code),
+				],
+			};
+		}
+		if (administrativeStage.applicability === "not_required") {
+			return {
+				...base,
+				status: "rejected",
+				reasons: ["STAGE_NOT_REQUIRED"],
+			};
+		}
+		if (!exceptionalHeadline || !administrativeStageExceptional) {
+			return {
+				...base,
+				status: "rejected",
+				reasons: ["ADMINISTRATIVE_OVERRIDE_STAGE_NOT_EXCEPTIONAL"],
+			};
+		}
+		if (!input.administrativeOverrideReason?.trim()) {
+			return {
+				...base,
+				status: "rejected",
+				reasons: ["ADMINISTRATIVE_OVERRIDE_REASON_REQUIRED"],
+			};
+		}
+		return {
+			...base,
+			status: "ready",
+			reasons: [
+				"ADMINISTRATIVE_OVERRIDE",
+				...(administrativeStageUnavailable
+					? ["STATUS_UNAVAILABLE"]
+					: administrativeStageConflicts.map((conflict) => conflict.code)),
+			],
+		};
+	}
+	if (administrativeCompletion && exceptionalHeadline) {
+		return {
+			...base,
+			status: "review_required",
+			reasons: ["ADMINISTRATIVE_OVERRIDE_REQUIRED"],
 		};
 	}
 	// Review resolution is the audited path for converging review-owned
@@ -235,7 +348,6 @@ export function evaluateSalesPipelineCommand(
 		};
 	}
 
-	const production = input.action.startsWith("production.");
 	const cancelling = input.action.endsWith("cancel");
 	const productionMutation = [
 		"production.assign",
@@ -244,6 +356,7 @@ export function evaluateSalesPipelineCommand(
 		"production.submission.update",
 		"production.submission.delete",
 		"production.review.resolve",
+		"production.reschedule",
 	].includes(input.action);
 	const fulfillmentMutation = [
 		"fulfillment.pack",
@@ -251,12 +364,10 @@ export function evaluateSalesPipelineCommand(
 		"fulfillment.start_dispatch",
 		"fulfillment.complete_dispatch",
 		"fulfillment.sign_packing_slip",
+		"fulfillment.reschedule",
 	].includes(input.action);
 	const administrativeCancellation = input.action.endsWith(
 		"administrative_cancel",
-	);
-	const administrativeCompletion = input.action.endsWith(
-		"administrative_complete",
 	);
 	if (
 		production &&

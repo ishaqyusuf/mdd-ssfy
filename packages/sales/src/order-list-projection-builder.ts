@@ -1,4 +1,4 @@
-import type { Db } from "@gnd/db";
+import type { Db, TransactionClient } from "@gnd/db";
 import { getNameInitials } from "@gnd/utils";
 import { timeAgo } from "@gnd/utils/dayjs";
 import { channelNames } from "@gnd/utils/notification-channels";
@@ -58,7 +58,9 @@ type ProjectionRepository = {
 	}): Promise<unknown>;
 };
 
-function projectionRepository(db: Db): ProjectionRepository {
+type ProjectionDb = Db | TransactionClient;
+
+function projectionRepository(db: ProjectionDb): ProjectionRepository {
 	return (db as unknown as { salesOrderListProjection: ProjectionRepository })
 		.salesOrderListProjection;
 }
@@ -143,7 +145,7 @@ function serializeTagValue(value: unknown) {
 }
 
 async function getNoteCounts(
-	db: Db,
+	db: ProjectionDb,
 	orders: Array<{ id: number; orderId: string }>,
 ) {
 	if (!orders.length) return new Map<number, number>();
@@ -213,7 +215,7 @@ async function getNoteCounts(
 	return counts;
 }
 
-async function getInboundOwnership(db: Db, salesOrderIds: number[]) {
+async function getInboundOwnership(db: ProjectionDb, salesOrderIds: number[]) {
 	const result = new Map<number, InventoryInboundOwnership>(
 		salesOrderIds.map((id) => [id, emptyInboundOwnership()]),
 	);
@@ -287,7 +289,7 @@ async function getInboundOwnership(db: Db, salesOrderIds: number[]) {
 }
 
 export async function refreshSalesOrderListProjections(
-	db: Db,
+	db: ProjectionDb,
 	inputs: RefreshSalesOrderListProjectionInput[],
 	options: RefreshSalesOrderListProjectionOptions = {},
 ) {
@@ -299,75 +301,75 @@ export async function refreshSalesOrderListProjections(
 	);
 	const orders = await runRead(() =>
 		db.salesOrders.findMany({
-		where: { id: { in: [...requestedById.keys()] } },
-		select: {
-			id: true,
-			orgId: true,
-			customerId: true,
-			salesRepId: true,
-			orderId: true,
-			slug: true,
-			type: true,
-			status: true,
-			prodStatus: true,
-			priority: true,
-			createdAt: true,
-			updatedAt: true,
-			deletedAt: true,
-			meta: true,
-			grandTotal: true,
-			amountDue: true,
-			paymentDueDate: true,
-			deliveryOption: true,
-			inventoryStatus: true,
-			dealerAuthId: true,
-			specialOrderDeclaration: true,
-			specialOrderStatus: true,
-			specialOrderRevision: true,
-			currentSpecialOrderRequestId: true,
-			currentSpecialOrderApprovalId: true,
-			customer: {
-				select: {
-					id: true,
-					name: true,
-					businessName: true,
-					phoneNo: true,
-					email: true,
-					address: true,
+			where: { id: { in: [...requestedById.keys()] } },
+			select: {
+				id: true,
+				orgId: true,
+				customerId: true,
+				salesRepId: true,
+				orderId: true,
+				slug: true,
+				type: true,
+				status: true,
+				prodStatus: true,
+				priority: true,
+				createdAt: true,
+				updatedAt: true,
+				deletedAt: true,
+				meta: true,
+				grandTotal: true,
+				amountDue: true,
+				paymentDueDate: true,
+				deliveryOption: true,
+				inventoryStatus: true,
+				dealerAuthId: true,
+				specialOrderDeclaration: true,
+				specialOrderStatus: true,
+				specialOrderRevision: true,
+				currentSpecialOrderRequestId: true,
+				currentSpecialOrderApprovalId: true,
+				customer: {
+					select: {
+						id: true,
+						name: true,
+						businessName: true,
+						phoneNo: true,
+						email: true,
+						address: true,
+					},
+				},
+				billingAddress: {
+					select: { phoneNo: true, address1: true, address2: true, name: true },
+				},
+				shippingAddress: {
+					select: { phoneNo: true, address1: true, address2: true, name: true },
+				},
+				salesRep: { select: { name: true } },
+				stat: {
+					where: { deletedAt: null },
+					select: { type: true, percentage: true, score: true, total: true },
+				},
+				deliveries: {
+					where: { deletedAt: null },
+					select: {
+						status: true,
+						meta: true,
+						_count: { select: { items: { where: { deletedAt: null } } } },
+					},
+				},
+				completionRecords: {
+					orderBy: [{ recordedAt: "desc" }, { id: "desc" }],
+					select: salesCompletionRecordSelect,
+				},
+				inventoryProjection: {
+					select: {
+						status: true,
+						needCount: true,
+						source: true,
+						completedAt: true,
+					},
 				},
 			},
-			billingAddress: {
-				select: { phoneNo: true, address1: true, address2: true, name: true },
-			},
-			shippingAddress: {
-				select: { phoneNo: true, address1: true, address2: true, name: true },
-			},
-			salesRep: { select: { name: true } },
-			stat: {
-				where: { deletedAt: null },
-				select: { type: true, percentage: true, score: true, total: true },
-			},
-			deliveries: {
-				where: { deletedAt: null },
-				select: {
-					status: true,
-					meta: true,
-					_count: { select: { items: { where: { deletedAt: null } } } },
-				},
-			},
-			completionRecords: {
-				orderBy: [{ recordedAt: "desc" }, { id: "desc" }],
-				select: salesCompletionRecordSelect,
-			},
-			inventoryProjection: {
-				select: {
-					status: true,
-					needCount: true,
-					source: true,
-					completedAt: true,
-				},
-			},
-		},
 		}),
 	);
 	let currentOrders = orders;
@@ -607,8 +609,8 @@ export async function refreshSalesOrderListProjections(
 		};
 	});
 	const controlledRows = isControlReadV2Enabled()
-		? await runRead(() => withSalesListControl(baseRows, db))
-		: await runRead(() => withSalesControl(baseRows, db));
+		? await runRead(() => withSalesListControl(baseRows, db as Db))
+		: await runRead(() => withSalesControl(baseRows, db as Db));
 	const projectedRows = controlledRows.map((row) => {
 		const canonicalPipeline = pipelineSnapshots.get(row.id) ?? null;
 		const selectedPipeline = canonicalPipeline

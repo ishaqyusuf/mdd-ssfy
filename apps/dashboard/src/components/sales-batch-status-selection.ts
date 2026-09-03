@@ -7,12 +7,14 @@ const PRODUCTION_COMPLETED_STATUSES = new Set<SalesOrderLifecycleStatus>([
 	"packing",
 	"packed",
 	"in_transit",
+	"administratively_completed",
 	"fulfilled",
 ]);
 
 export type SalesBatchStatusCandidate = {
 	salesId: number;
 	status?: SalesOrderLifecycleStatus | null;
+	pipelineRevision?: string | null;
 	productionCompleted?: boolean;
 	fulfilled?: boolean;
 };
@@ -45,8 +47,11 @@ export function resolveSalesBatchStatusSelection({
 			(candidate?.status
 				? PRODUCTION_COMPLETED_STATUSES.has(candidate.status)
 				: false);
+		const lifecycleException =
+			candidate?.status === "unknown" || candidate?.status === "conflict";
 		const shouldSkip =
-			action === "fulfilled" ? fulfilled : fulfilled || productionCompleted;
+			lifecycleException ||
+			(action === "fulfilled" ? fulfilled : fulfilled || productionCompleted);
 
 		if (shouldSkip) {
 			skippedSalesIds.push(salesId);
@@ -56,4 +61,35 @@ export function resolveSalesBatchStatusSelection({
 	}
 
 	return { eligibleSalesIds, skippedSalesIds };
+}
+
+export function resolveSalesBatchAdministrativeOverrideSelection({
+	salesIds,
+	candidates,
+}: {
+	salesIds: readonly number[];
+	candidates?: readonly SalesBatchStatusCandidate[];
+}) {
+	const candidatesBySalesId = new Map(
+		(candidates ?? []).map((candidate) => [candidate.salesId, candidate]),
+	);
+	const eligible: Array<{ salesId: number; pipelineRevision: string }> = [];
+	const skippedSalesIds: number[] = [];
+	const seenSalesIds = new Set<number>();
+
+	for (const salesId of salesIds) {
+		if (seenSalesIds.has(salesId)) continue;
+		seenSalesIds.add(salesId);
+		const candidate = candidatesBySalesId.get(salesId);
+		if (
+			(candidate?.status === "unknown" || candidate?.status === "conflict") &&
+			candidate.pipelineRevision
+		) {
+			eligible.push({ salesId, pipelineRevision: candidate.pipelineRevision });
+		} else {
+			skippedSalesIds.push(salesId);
+		}
+	}
+
+	return { eligible, skippedSalesIds };
 }

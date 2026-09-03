@@ -19,10 +19,10 @@ export function AuthResetShell({
 	title,
 }: AuthResetShellProps) {
 	return (
-		<main className="min-h-screen bg-[linear-gradient(180deg,#eef2f7_0%,#f7f9fc_100%)] text-slate-950">
-			<div className="mx-auto flex min-h-screen max-w-7xl items-center px-4 py-6 sm:px-6 lg:px-8">
-				<div className="grid w-full overflow-hidden rounded-[36px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)] lg:min-h-[720px] lg:grid-cols-[1.05fr_0.95fr]">
-					<section className="relative hidden min-h-[340px] overflow-hidden lg:block lg:min-h-full">
+		<main className="min-h-svh bg-muted/40 text-foreground">
+			<div className="mx-auto flex min-h-svh max-w-[1440px] items-center lg:px-6">
+				<div className="grid min-h-svh w-full overflow-hidden border-border bg-card lg:min-h-[800px] lg:grid-cols-[1.08fr_0.92fr] lg:rounded-xl lg:border lg:shadow-2xl">
+					<section className="relative min-h-[152px] overflow-hidden text-primary-foreground lg:min-h-full">
 						<Image
 							src="/gnd-backdrop.jpeg"
 							alt="GND millwork workspace"
@@ -30,61 +30,55 @@ export function AuthResetShell({
 							priority
 							className="object-cover"
 						/>
-						<div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,12,20,0.16)_0%,rgba(7,12,20,0.42)_48%,rgba(7,12,20,0.74)_100%)]" />
+						<div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,12,20,0.08)_0%,rgba(7,12,20,0.28)_48%,rgba(7,12,20,0.78)_100%)]" />
 
-						<div className="relative z-10 flex h-full flex-col justify-between p-6 text-white sm:p-8 lg:p-10">
+						<div className="relative z-10 flex h-full flex-col justify-between p-4 sm:p-6 lg:p-10">
 							<Link
 								href="/login"
-								className="inline-flex w-fit items-center rounded-2xl bg-white/92 px-4 py-3 shadow-sm backdrop-blur"
+								className="inline-flex w-fit items-center rounded-lg bg-background/95 px-3 py-2 text-foreground shadow-sm backdrop-blur"
 							>
-								<Icons.logoLg width={110} />
-								<span className="sr-only">Back to GND login</span>
+								<Icons.LogoLg />
+								<span className="sr-only">
+									Back to GND login
+								</span>
 							</Link>
 
-							<div className="max-w-lg space-y-4">
-								<p className="text-xs font-medium uppercase tracking-[0.2em] text-white/72">
+							<div className="hidden max-w-lg lg:block">
+								<p className="text-xs font-medium uppercase tracking-[0.2em] text-primary-foreground/70">
 									GND Account Security
 								</p>
-								<h1 className="text-4xl font-semibold text-white sm:text-5xl">
-									Get back into your workspace with a secure reset link.
+								<h1 className="mt-4 text-5xl font-semibold tracking-[-0.055em] text-primary-foreground">
+									Get back into your workspace with a secure
+									reset link.
 								</h1>
-								<p className="max-w-md text-sm leading-7 text-white/78 sm:text-base">
-									Password reset links are single-use and expire after one hour.
+								<p className="mt-4 max-w-md text-base leading-7 text-primary-foreground/80">
+									Password reset links are single-use and
+									expire after one hour.
 								</p>
 							</div>
 						</div>
 					</section>
 
-					<section className="flex items-center bg-white p-6 sm:p-8 lg:p-10">
-						<div className="mx-auto w-full max-w-md">
-							<Link
-								href="/login"
-								className="mb-6 inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:hidden"
-							>
-								<Icons.logoLg width={110} />
-								<span className="sr-only">Back to GND login</span>
-							</Link>
-
-							<div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8">
-								<div className="mb-8 space-y-3">
-									<div className="flex size-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
-										{icon}
-									</div>
-									<p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-										{eyebrow}
-									</p>
-									<div className="space-y-2">
-										<h2 className="text-2xl font-semibold text-slate-950">
-											{title}
-										</h2>
-										<p className="text-sm leading-6 text-slate-600">
-											{description}
-										</p>
-									</div>
+					<section className="flex items-start bg-card px-6 py-10 sm:px-10 lg:items-center lg:px-16 lg:py-14">
+						<div className="mx-auto w-full max-w-[430px]">
+							<div className="mb-8 flex flex-col gap-3">
+								<div className="flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+									{icon}
 								</div>
-
-								{children}
+								<p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+									{eyebrow}
+								</p>
+								<div className="flex flex-col gap-2">
+									<h2 className="text-3xl font-semibold tracking-[-0.045em] text-foreground">
+										{title}
+									</h2>
+									<p className="text-sm leading-6 text-muted-foreground">
+										{description}
+									</p>
+								</div>
 							</div>
+
+							{children}
 						</div>
 					</section>
 				</div>

@@ -22,10 +22,10 @@ describe("Status-only Fulfillment completion UI contract", () => {
 	});
 
 	test("warns that Status-only cannot fabricate proof or business effects", () => {
-		expect(dialogSource).toContain("record {milestone} completion");
+		expect(dialogSource).toContain("record ${milestone} completion");
 		expect(dialogSource).toContain("Full workflow is selected by default.");
 		expect(dialogSource).toContain(
-			"missing operational assignments or {milestone} workflow",
+			"missing operational assignments or ${milestone} workflow",
 		);
 		expect(dialogSource).toContain("This selection may include recent orders");
 		for (const phrase of [
@@ -57,5 +57,22 @@ describe("Status-only Fulfillment completion UI contract", () => {
 			"Fulfillment status-only completion cancelled",
 		);
 		expect(menuSource).toContain("salesCompletionProjectionQuery.refetch()");
+	});
+
+	test("loads the current projection for dedicated completion or Sales Order editors", () => {
+		expect(menuSource).toContain("canLoadStatusOnlyCompletionProjection");
+		expect(menuSource).toContain("canViewSalesCompletion");
+		expect(menuSource).toContain("auth.can.editStatusOnlySalesCompletion");
+		expect(menuSource).toContain("auth.can.editOrders");
+		expect(menuSource).toContain("canLoadStatusOnlyCompletionProjection &&");
+	});
+
+	test("keeps administrative override as audit provenance rather than a visible action group", () => {
+		expect(menuSource).not.toContain(">Administrative override<");
+		expect(menuSource).not.toContain("beginsAdministrativeOverrideGroup");
+		expect(menuSource).toContain("hasOnlyLifecycleExceptionCandidates");
+		expect(dialogSource).not.toContain("Administrative status override");
+		expect(dialogSource).not.toContain("Record administrative override");
+		expect(dialogSource).toContain("Record milestone only");
 	});
 });

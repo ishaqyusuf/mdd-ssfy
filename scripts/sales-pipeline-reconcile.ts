@@ -37,9 +37,15 @@ export function isRetryableDatabaseConnectionError(error: unknown) {
 	);
 }
 
+type DatabaseRetryOptions = {
+	attempts?: number;
+	delayMs?: number;
+	onRetry?: (error: unknown, attempt: number) => Promise<void> | void;
+};
+
 export async function withDatabaseReadRetry<T>(
 	operation: () => Promise<T>,
-	options: { attempts?: number; delayMs?: number } = {},
+	options: DatabaseRetryOptions = {},
 ) {
 	const attempts = Math.max(1, options.attempts ?? 20);
 	const delayMs = Math.max(0, options.delayMs ?? 5_000);
@@ -53,20 +59,44 @@ export async function withDatabaseReadRetry<T>(
 			) {
 				throw error;
 			}
+			await options.onRetry?.(error, attempt);
 			await new Promise((resolveDelay) => setTimeout(resolveDelay, delayMs));
 		}
 	}
 	throw new Error("Database read retry exhausted unexpectedly.");
 }
 
+export async function withDeterministicProjectionRepairRetry<T>(
+	operation: () => Promise<T>,
+	options: DatabaseRetryOptions = {},
+) {
+	return withDatabaseReadRetry(operation, options);
+}
+
+async function resetProductionDatabaseConnection() {
+	try {
+		await db.$disconnect();
+	} catch {
+		// The next Prisma operation reconnects and re-resolves the provider host.
+	}
+}
+
+async function withProductionDatabaseReadRetry<T>(
+	operation: () => Promise<T>,
+) {
+	return withDatabaseReadRetry(operation, {
+		onRetry: resetProductionDatabaseConnection,
+	});
+}
+
 async function assertAuthorized(actorId: number) {
-	const canEditProduction = await userHasPermission(
-		db,
-		actorId,
-		"editProduction",
+	const canEditProduction = await withProductionDatabaseReadRetry(() =>
+		userHasPermission(db, actorId, "editProduction"),
 	);
 	const canFulfill = canEditProduction
-		? await userHasPermission(db, actorId, "viewMarkSalesOrderFulfilled")
+		? await withProductionDatabaseReadRetry(() =>
+				userHasPermission(db, actorId, "viewMarkSalesOrderFulfilled"),
+			)
 		: false;
 	if (!(canEditProduction && canFulfill)) {
 		throw new Error(
@@ -249,7 +279,7 @@ async function main() {
 	> = [];
 	let orderCursor: number | undefined;
 	for (;;) {
-		const page = await withDatabaseReadRetry(() =>
+		const page = await withProductionDatabaseReadRetry(() =>
 			db.salesOrders.findMany({
 				where: { type: "order", deletedAt: null },
 				orderBy: { id: "asc" },
@@ -264,7 +294,7 @@ async function main() {
 	}
 	const snapshots = new Map<number, SalesPipelineSnapshot>();
 	for (let index = 0; index < orders.length; index += batchSize) {
-		const batch = await withDatabaseReadRetry(() =>
+		const batch = await withProductionDatabaseReadRetry(() =>
 			getSalesPipelineSnapshots(
 				db,
 				orders.slice(index, index + batchSize).map((order) => order.id),
@@ -358,15 +388,22 @@ async function main() {
 		);
 		for (let index = 0; index < repairable.length; index += batchSize) {
 			const batch = repairable.slice(index, index + batchSize);
-			const result = await refreshSalesOrderListProjections(
-				db,
-				batch.map((item) => ({
-					salesOrderId: item.id,
-					sourceUpdatedAt: item.sourceUpdatedAt,
-				})),
+			const result = await withDeterministicProjectionRepairRetry(
+				() =>
+					refreshSalesOrderListProjections(
+					db,
+					batch.map((item) => ({
+						salesOrderId: item.id,
+						sourceUpdatedAt: item.sourceUpdatedAt,
+					})),
+					{
+						runRead: withProductionDatabaseReadRetry,
+						serializeReads: true,
+					},
+				),
 				{
-					runRead: withDatabaseReadRetry,
-					serializeReads: true,
+					attempts: 5,
+					onRetry: resetProductionDatabaseConnection,
 				},
 			);
 			repaired += result.persisted;

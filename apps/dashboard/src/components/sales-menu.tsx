@@ -5,6 +5,7 @@ import Link from "@/components/link";
 import { CustomerEmailRequiredDialog } from "@/components/modals/customer-email-required-dialog";
 import {
 	type SalesBatchStatusCandidate,
+	resolveSalesBatchAdministrativeOverrideSelection,
 	resolveSalesBatchStatusSelection,
 } from "@/components/sales-batch-status-selection";
 import {
@@ -64,6 +65,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { addDays } from "date-fns";
 import {
 	type ComponentProps,
+	Fragment,
 	type ReactNode,
 	createContext,
 	useCallback,
@@ -458,10 +460,16 @@ function SalesMarkAsActionIcon({
 }: {
 	action: SalesOrderStatusMenuAction;
 }) {
-	if (action === "production_completed") {
+	if (
+		action === "production_completed" ||
+		action === "production_administrative_override"
+	) {
 		return <Icons.Factory className="mr-2 size-4 text-emerald-600" />;
 	}
-	if (action === "fulfilled") {
+	if (
+		action === "fulfilled" ||
+		action === "fulfillment_administrative_override"
+	) {
 		return <Icons.Truck className="mr-2 size-4 text-blue-600" />;
 	}
 	return <Icons.Ban className="mr-2 size-4 text-destructive" />;
@@ -1051,17 +1059,22 @@ function SalesMenuMarkAs({
 	const trpc = useTRPC();
 	const sq = useSalesQueryClient(state.salesRefs);
 	const salesIds = state.salesIds;
+	const canEditSalesCompletion =
+		auth.can.editStatusOnlySalesCompletion || auth.can.editOrders;
+	const canViewSalesCompletion =
+		auth.can.viewStatusOnlySalesCompletion || canEditSalesCompletion;
 	const statusOnlyPresentationVisible = canShowStatusOnlyCompletionChoice({
-		canView: auth.can.viewStatusOnlySalesCompletion,
+		canView: canViewSalesCompletion,
 		salesOrderCount: salesIds.length,
 	});
+	const canLoadStatusOnlyCompletionProjection = canViewSalesCompletion;
 	const salesCompletionProjectionQuery = useQuery(
 		trpc.sales.salesCompletionProjection.queryOptions(
 			{ salesOrderId: salesIds[0] ?? 0 },
 			{
 				enabled:
 					state.type === "order" &&
-					statusOnlyPresentationVisible &&
+					canLoadStatusOnlyCompletionProjection &&
 					salesIds.length === 1,
 				staleTime: 0,
 				refetchOnWindowFocus: true,
@@ -1075,6 +1088,14 @@ function SalesMenuMarkAs({
 		useState<SalesCompletionChoice>(getDefaultSalesCompletionChoice);
 	const [productionEffectiveDate, setProductionEffectiveDate] = useState("");
 	const [
+		productionAdministrativeOverride,
+		setProductionAdministrativeOverride,
+	] = useState(false);
+	const [
+		productionAdministrativeOverrideReason,
+		setProductionAdministrativeOverrideReason,
+	] = useState("");
+	const [
 		productionStatusOnlyCancellationOpen,
 		setProductionStatusOnlyCancellationOpen,
 	] = useState(false);
@@ -1087,6 +1108,14 @@ function SalesMenuMarkAs({
 	const [fulfillmentCompletionChoice, setFulfillmentCompletionChoice] =
 		useState<SalesCompletionChoice>(getDefaultSalesCompletionChoice);
 	const [fulfillmentEffectiveDate, setFulfillmentEffectiveDate] = useState("");
+	const [
+		fulfillmentAdministrativeOverride,
+		setFulfillmentAdministrativeOverride,
+	] = useState(false);
+	const [
+		fulfillmentAdministrativeOverrideReason,
+		setFulfillmentAdministrativeOverrideReason,
+	] = useState("");
 	const [
 		fulfillmentStatusOnlyCancellationOpen,
 		setFulfillmentStatusOnlyCancellationOpen,
@@ -1106,6 +1135,7 @@ function SalesMenuMarkAs({
 	const isDisabled = disabled || !salesIds.length;
 	const statusActionInFlightRef = useRef(false);
 	const statusActionSalesIdsRef = useRef<number[]>([]);
+	const statusActionPipelineRevisionsRef = useRef(new Map<number, string>());
 	const statusActionWasBulkRef = useRef(false);
 	const [statusActionPending, setStatusActionPending] = useState(false);
 	const beginStatusAction = () => {
@@ -1355,6 +1385,7 @@ function SalesMenuMarkAs({
 	};
 
 	const prepareStatusAction = (action: SalesInventoryMarkAsAction) => {
+		statusActionPipelineRevisionsRef.current.clear();
 		const selection = resolveSalesBatchStatusSelection({
 			action,
 			salesIds,
@@ -1367,8 +1398,8 @@ function SalesMenuMarkAs({
 				title: `${skippedCount} order${skippedCount === 1 ? "" : "s"} skipped`,
 				description:
 					action === "production_completed"
-						? "Already production-completed or fulfilled orders will not be updated again."
-						: "Already fulfilled orders will not be updated again.",
+						? "Completed orders and lifecycle exceptions were not updated. Resolve exception rows individually so GND can verify their current revision."
+						: "Fulfilled orders and lifecycle exceptions were not updated. Resolve exception rows individually so GND can verify their current revision.",
 			});
 		}
 
@@ -1380,6 +1411,36 @@ function SalesMenuMarkAs({
 		statusActionSalesIdsRef.current = selection.eligibleSalesIds;
 		statusActionWasBulkRef.current = salesIds.length > 1;
 		return selection.eligibleSalesIds;
+	};
+
+	const prepareAdministrativeOverrideSelection = () => {
+		const selection = resolveSalesBatchAdministrativeOverrideSelection({
+			salesIds,
+			candidates: statusCandidates,
+		});
+		const skippedCount = selection.skippedSalesIds.length;
+		if (skippedCount > 0) {
+			toast({
+				title: `${skippedCount} order${skippedCount === 1 ? "" : "s"} skipped`,
+				description:
+					"This action is available only for Status unavailable or Lifecycle conflict rows with a current revision.",
+			});
+		}
+		if (!selection.eligible.length) {
+			actions.closeMenu();
+			return null;
+		}
+		statusActionSalesIdsRef.current = selection.eligible.map(
+			(candidate) => candidate.salesId,
+		);
+		statusActionPipelineRevisionsRef.current = new Map(
+			selection.eligible.map((candidate) => [
+				candidate.salesId,
+				candidate.pipelineRevision,
+			]),
+		);
+		statusActionWasBulkRef.current = salesIds.length > 1;
+		return statusActionSalesIdsRef.current;
 	};
 
 	const markProductionCompleted = async (preparedSalesIds?: number[]) => {
@@ -1402,6 +1463,17 @@ function SalesMenuMarkAs({
 		const targetSalesIds = prepareStatusAction("production_completed");
 		if (!targetSalesIds) return;
 		setProductionCompletionChoice(getDefaultSalesCompletionChoice());
+		setProductionAdministrativeOverride(false);
+		setProductionAdministrativeOverrideReason("");
+		setProductionEffectiveDate("");
+		setProductionConfirmationOpen(true);
+	};
+
+	const openProductionAdministrativeOverride = () => {
+		if (!prepareAdministrativeOverrideSelection()) return;
+		setProductionCompletionChoice("STATUS_ONLY");
+		setProductionAdministrativeOverride(true);
+		setProductionAdministrativeOverrideReason("");
 		setProductionEffectiveDate("");
 		setProductionConfirmationOpen(true);
 	};
@@ -1412,7 +1484,7 @@ function SalesMenuMarkAs({
 			await markProductionCompleted(statusActionSalesIdsRef.current);
 			return;
 		}
-		if (!auth.can.editStatusOnlySalesCompletion) {
+		if (!canEditSalesCompletion) {
 			toast({
 				title: "Update status only is not permitted",
 				description:
@@ -1422,6 +1494,18 @@ function SalesMenuMarkAs({
 			return;
 		}
 		const targetSalesIds = statusActionSalesIdsRef.current;
+		const overrideReason = productionAdministrativeOverrideReason.trim();
+		if (productionAdministrativeOverride && !overrideReason) return;
+		const administrativeOverride = productionAdministrativeOverride
+			? {
+					reason: overrideReason,
+					expectedRevisions: targetSalesIds.map((salesOrderId) => ({
+						salesOrderId,
+						revision:
+							statusActionPipelineRevisionsRef.current.get(salesOrderId) ?? "",
+					})),
+				}
+			: null;
 		const effectiveAt = productionEffectiveDate
 			? new Date(`${productionEffectiveDate}T12:00:00.000Z`)
 			: null;
@@ -1431,10 +1515,13 @@ function SalesMenuMarkAs({
 					salesOrderIds: targetSalesIds,
 					requestId: crypto.randomUUID(),
 					effectiveAt,
+					administrativeOverride,
 				});
 				const recordedCount = result.completed + result.replayed;
 				setProductionConfirmationOpen(false);
 				setProductionCompletionChoice(getDefaultSalesCompletionChoice());
+				setProductionAdministrativeOverride(false);
+				setProductionAdministrativeOverrideReason("");
 				setProductionEffectiveDate("");
 				actions.closeMenu();
 				await invalidateOrders();
@@ -1469,9 +1556,19 @@ function SalesMenuMarkAs({
 				requestId: crypto.randomUUID(),
 				expectedRevision: completionProjection.revision,
 				effectiveAt,
+				administrativeOverride: productionAdministrativeOverride
+					? {
+							reason: overrideReason,
+							expectedRevision:
+								statusActionPipelineRevisionsRef.current.get(salesOrderId) ??
+								"",
+						}
+					: null,
 			});
 			setProductionConfirmationOpen(false);
 			setProductionCompletionChoice(getDefaultSalesCompletionChoice());
+			setProductionAdministrativeOverride(false);
+			setProductionAdministrativeOverrideReason("");
 			setProductionEffectiveDate("");
 			actions.closeMenu();
 			await Promise.all([
@@ -1482,7 +1579,7 @@ function SalesMenuMarkAs({
 			toast({
 				title: "Production completed — status only",
 				description:
-					"The administrative milestone was recorded without running production or business workflow effects.",
+					"The milestone status was recorded without running production or business workflow effects.",
 				variant: "success",
 			});
 		} catch (error) {
@@ -1558,6 +1655,17 @@ function SalesMenuMarkAs({
 		const targetSalesIds = prepareStatusAction("fulfilled");
 		if (!targetSalesIds) return;
 		setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
+		setFulfillmentAdministrativeOverride(false);
+		setFulfillmentAdministrativeOverrideReason("");
+		setFulfillmentEffectiveDate(toSalesCompletionDateValue());
+		setFulfillmentConfirmationOpen(true);
+	};
+
+	const openFulfillmentAdministrativeOverride = () => {
+		if (!prepareAdministrativeOverrideSelection()) return;
+		setFulfillmentCompletionChoice("STATUS_ONLY");
+		setFulfillmentAdministrativeOverride(true);
+		setFulfillmentAdministrativeOverrideReason("");
 		setFulfillmentEffectiveDate(toSalesCompletionDateValue());
 		setFulfillmentConfirmationOpen(true);
 	};
@@ -1568,7 +1676,7 @@ function SalesMenuMarkAs({
 			await markFulfilled(statusActionSalesIdsRef.current);
 			return;
 		}
-		if (!auth.can.editStatusOnlySalesCompletion) {
+		if (!canEditSalesCompletion) {
 			toast({
 				title: "Update status only is not permitted",
 				description:
@@ -1578,6 +1686,18 @@ function SalesMenuMarkAs({
 			return;
 		}
 		const targetSalesIds = statusActionSalesIdsRef.current;
+		const overrideReason = fulfillmentAdministrativeOverrideReason.trim();
+		if (fulfillmentAdministrativeOverride && !overrideReason) return;
+		const administrativeOverride = fulfillmentAdministrativeOverride
+			? {
+					reason: overrideReason,
+					expectedRevisions: targetSalesIds.map((salesOrderId) => ({
+						salesOrderId,
+						revision:
+							statusActionPipelineRevisionsRef.current.get(salesOrderId) ?? "",
+					})),
+				}
+			: null;
 		const effectiveAt = fulfillmentEffectiveDate
 			? new Date(`${fulfillmentEffectiveDate}T12:00:00.000Z`)
 			: null;
@@ -1587,10 +1707,13 @@ function SalesMenuMarkAs({
 					salesOrderIds: targetSalesIds,
 					requestId: crypto.randomUUID(),
 					effectiveAt,
+					administrativeOverride,
 				});
 				const recordedCount = result.completed + result.replayed;
 				setFulfillmentConfirmationOpen(false);
 				setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
+				setFulfillmentAdministrativeOverride(false);
+				setFulfillmentAdministrativeOverrideReason("");
 				setFulfillmentEffectiveDate("");
 				actions.closeMenu();
 				await invalidateOrders();
@@ -1625,9 +1748,19 @@ function SalesMenuMarkAs({
 				requestId: crypto.randomUUID(),
 				expectedRevision: completionProjection.revision,
 				effectiveAt,
+				administrativeOverride: fulfillmentAdministrativeOverride
+					? {
+							reason: overrideReason,
+							expectedRevision:
+								statusActionPipelineRevisionsRef.current.get(salesOrderId) ??
+								"",
+						}
+					: null,
 			});
 			setFulfillmentConfirmationOpen(false);
 			setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
+			setFulfillmentAdministrativeOverride(false);
+			setFulfillmentAdministrativeOverrideReason("");
 			setFulfillmentEffectiveDate("");
 			actions.closeMenu();
 			await Promise.all([
@@ -1638,7 +1771,7 @@ function SalesMenuMarkAs({
 			toast({
 				title: "Fulfillment completed — status only",
 				description:
-					"The administrative milestone was recorded without delivery proof, dispatch, inventory, or business workflow effects.",
+					"The milestone status was recorded without delivery proof, dispatch, inventory, or business workflow effects.",
 				variant: "success",
 			});
 		} catch (error) {
@@ -1785,30 +1918,50 @@ function SalesMenuMarkAs({
 		}
 	};
 
+	const hasOnlyLifecycleExceptionCandidates =
+		salesIds.length > 0 &&
+		salesIds.every((salesId) =>
+			statusCandidates?.some(
+				(candidate) =>
+					candidate.salesId === salesId &&
+					(candidate.status === "unknown" || candidate.status === "conflict"),
+			),
+		);
 	const baseStatusMenuActions: SalesOrderStatusMenuItem[] = currentStatus
 		? getSalesOrderStatusMenuActions({
 				status: currentStatus,
 				productionStatus,
 				hasFulfillmentDispatch,
 			})
-		: [
-				{
-					action: "production_completed" as const,
-					label: "Production completed",
-				},
-				{
-					action: "fulfilled" as const,
-					label: "Fulfilled",
-				},
-			];
+		: hasOnlyLifecycleExceptionCandidates
+			? [
+					{
+						action: "production_administrative_override" as const,
+						label: "Production completed",
+					},
+					{
+						action: "fulfillment_administrative_override" as const,
+						label: "Fulfilled",
+					},
+				]
+			: [
+					{
+						action: "production_completed" as const,
+						label: "Production completed",
+					},
+					{
+						action: "fulfilled" as const,
+						label: "Fulfilled",
+					},
+				];
 	const statusMenuActions = applyFulfillmentCompletionProjection(
 		applyProductionCompletionProjection(
 			baseStatusMenuActions,
 			completionProjection,
-			auth.can.editStatusOnlySalesCompletion,
+			canEditSalesCompletion,
 		),
 		completionProjection,
-		auth.can.editStatusOnlySalesCompletion,
+		canEditSalesCompletion,
 	)
 		.filter(
 			(item) =>
@@ -1826,65 +1979,94 @@ function SalesMenuMarkAs({
 	const items = (
 		<>
 			{statusMenuActions.map((item) => {
+				const administrativeOverride =
+					item.action === "production_administrative_override" ||
+					item.action === "fulfillment_administrative_override";
+				const isStatusOnlyProductionCancellation =
+					item.action === "cancel_production" &&
+					completionProjection?.activeProductionRecord?.completionMethod ===
+						"STATUS_ONLY";
+				const isStatusOnlyFulfillmentCancellation =
+					item.action === "cancel_fulfillment" &&
+					completionProjection?.activeFulfillmentRecord?.completionMethod ===
+						"STATUS_ONLY";
 				const capability =
 					item.action === "production_completed"
 						? pipelineCapabilities?.markProductionCompleted
 						: item.action === "fulfilled"
 							? pipelineCapabilities?.markFulfilled
 							: item.action === "cancel_production"
-								? pipelineCapabilities?.cancelProduction
-								: pipelineCapabilities?.cancelFulfillment;
+								? isStatusOnlyProductionCancellation
+									? undefined
+									: pipelineCapabilities?.cancelProduction
+								: item.action === "cancel_fulfillment"
+									? isStatusOnlyFulfillmentCancellation
+										? undefined
+										: pipelineCapabilities?.cancelFulfillment
+									: undefined;
 				return (
-					<SalesMenuItem
-						key={item.action}
-						className="whitespace-nowrap"
-						disabled={
-							isDisabled ||
-							item.disabled ||
-							capability?.allowed === false ||
-							(item.action === "fulfilled" &&
-								!auth.can.viewMarkSalesOrderFulfilled &&
-								!auth.can.editStatusOnlySalesCompletion) ||
-							preflightLoadingAction !== null ||
-							statusActionPending ||
-							salesIds.length === 0
-						}
-						onSelect={(event) => {
-							event.preventDefault();
-							if (item.action === "production_completed") {
-								openProductionCompletionConfirmation();
-								return;
+					<Fragment key={item.action}>
+						<SalesMenuItem
+							className="whitespace-nowrap"
+							disabled={
+								isDisabled ||
+								item.disabled ||
+								capability?.allowed === false ||
+								(item.action === "fulfilled" &&
+									!auth.can.viewMarkSalesOrderFulfilled &&
+									!canEditSalesCompletion) ||
+								((item.action === "production_administrative_override" ||
+									item.action === "fulfillment_administrative_override") &&
+									!canEditSalesCompletion) ||
+								preflightLoadingAction !== null ||
+								statusActionPending ||
+								salesIds.length === 0
 							}
-							if (item.action === "fulfilled") {
-								openFulfillmentCompletionConfirmation();
-								return;
-							}
-							if (item.action === "cancel_production") {
-								if (
-									completionProjection?.activeProductionRecord
-										?.completionMethod === "STATUS_ONLY"
-								) {
-									setProductionStatusOnlyCancellationReason("");
-									setProductionStatusOnlyCancellationOpen(true);
+							onSelect={(event) => {
+								event.preventDefault();
+								if (item.action === "production_completed") {
+									openProductionCompletionConfirmation();
 									return;
 								}
-								actions.openWorkflowCancellation("production");
-								return;
-							}
-							if (
-								completionProjection?.activeFulfillmentRecord
-									?.completionMethod === "STATUS_ONLY"
-							) {
-								setFulfillmentStatusOnlyCancellationReason("");
-								setFulfillmentStatusOnlyCancellationOpen(true);
-								return;
-							}
-							actions.openWorkflowCancellation("fulfillment");
-						}}
-					>
-						<SalesMarkAsActionIcon action={item.action} />
-						{item.label}
-					</SalesMenuItem>
+								if (item.action === "fulfilled") {
+									openFulfillmentCompletionConfirmation();
+									return;
+								}
+								if (item.action === "production_administrative_override") {
+									openProductionAdministrativeOverride();
+									return;
+								}
+								if (item.action === "fulfillment_administrative_override") {
+									openFulfillmentAdministrativeOverride();
+									return;
+								}
+								if (item.action === "cancel_production") {
+									if (
+										completionProjection?.activeProductionRecord
+											?.completionMethod === "STATUS_ONLY"
+									) {
+										setProductionStatusOnlyCancellationReason("");
+										setProductionStatusOnlyCancellationOpen(true);
+										return;
+									}
+									actions.openWorkflowCancellation("production");
+									return;
+								}
+								if (
+									completionProjection?.activeFulfillmentRecord
+										?.completionMethod === "STATUS_ONLY"
+								) {
+									setFulfillmentStatusOnlyCancellationReason("");
+									setFulfillmentStatusOnlyCancellationOpen(true);
+									return;
+								}
+								actions.openWorkflowCancellation("fulfillment");
+							}}
+						>
+							<SalesMarkAsActionIcon action={item.action} />
+							{item.label}
+						</SalesMenuItem>
+					</Fragment>
 				);
 			})}
 			{includePaymentReviewed ? (
@@ -2130,7 +2312,7 @@ function SalesMenuMarkAs({
 		<SalesProductionCompletionDialogs
 			projection={completionProjection}
 			showStatusOnly={statusOnlyPresentationVisible}
-			canEditStatusOnly={auth.can.editStatusOnlySalesCompletion}
+			canEditStatusOnly={canEditSalesCompletion}
 			salesOrderCount={salesIds.length}
 			projectionPending={salesCompletionProjectionQuery.isPending}
 			confirmationOpen={productionConfirmationOpen}
@@ -2140,15 +2322,22 @@ function SalesMenuMarkAs({
 				markProductionStatusOnlyMutation.isPending ||
 				markProductionStatusOnlyBulkMutation.isPending
 			}
+			administrativeOverride={productionAdministrativeOverride}
+			administrativeOverrideReason={productionAdministrativeOverrideReason}
 			onConfirmationOpenChange={(open) => {
 				setProductionConfirmationOpen(open);
 				if (!open) {
 					setProductionCompletionChoice(getDefaultSalesCompletionChoice());
+					setProductionAdministrativeOverride(false);
+					setProductionAdministrativeOverrideReason("");
 					setProductionEffectiveDate("");
 				}
 			}}
 			onChoiceChange={setProductionCompletionChoice}
 			onEffectiveDateChange={setProductionEffectiveDate}
+			onAdministrativeOverrideReasonChange={
+				setProductionAdministrativeOverrideReason
+			}
 			onConfirm={() => void submitProductionCompletion()}
 			cancellationOpen={productionStatusOnlyCancellationOpen}
 			cancellationReason={productionStatusOnlyCancellationReason}
@@ -2165,7 +2354,7 @@ function SalesMenuMarkAs({
 		<SalesFulfillmentCompletionDialogs
 			projection={completionProjection}
 			showStatusOnly={statusOnlyPresentationVisible}
-			canEditStatusOnly={auth.can.editStatusOnlySalesCompletion}
+			canEditStatusOnly={canEditSalesCompletion}
 			canRunFullWorkflow={auth.can.viewMarkSalesOrderFulfilled}
 			salesOrderCount={salesIds.length}
 			projectionPending={salesCompletionProjectionQuery.isPending}
@@ -2176,15 +2365,22 @@ function SalesMenuMarkAs({
 				markFulfillmentStatusOnlyMutation.isPending ||
 				markFulfillmentStatusOnlyBulkMutation.isPending
 			}
+			administrativeOverride={fulfillmentAdministrativeOverride}
+			administrativeOverrideReason={fulfillmentAdministrativeOverrideReason}
 			onConfirmationOpenChange={(open) => {
 				setFulfillmentConfirmationOpen(open);
 				if (!open) {
 					setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
+					setFulfillmentAdministrativeOverride(false);
+					setFulfillmentAdministrativeOverrideReason("");
 					setFulfillmentEffectiveDate("");
 				}
 			}}
 			onChoiceChange={setFulfillmentCompletionChoice}
 			onEffectiveDateChange={setFulfillmentEffectiveDate}
+			onAdministrativeOverrideReasonChange={
+				setFulfillmentAdministrativeOverrideReason
+			}
 			onConfirm={() => void submitFulfillmentCompletion()}
 			cancellationOpen={fulfillmentStatusOnlyCancellationOpen}
 			cancellationReason={fulfillmentStatusOnlyCancellationReason}

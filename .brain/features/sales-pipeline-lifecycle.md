@@ -64,6 +64,60 @@ Fulfillment membership and presentation use canonical packing/Dispatch evidence.
 Partial and split work remains non-terminal. Quick and batch status operations
 return structured success, replay, skip, review-required, and failure outcomes.
 
+## Confirmed admin calendar schedule moves
+
+Ticket 16 extends the canonical command boundary to schedule-date changes in
+the existing Production and Fulfillment semantic DOM calendars. Authorized
+admins may propose a date by drag or an accessible non-drag action, then must
+confirm the exact order/customer, old date, new date, and affected-record count
+before a write occurs.
+
+Production moves only the exact active assignment group for one order and
+source business date. A group with any completed assignment is locked, other
+dates and the Sales Order planning default are untouched, and worker calendars
+remain read-only. Fulfillment moves the canonical `OrderDelivery` due date only
+before trip start; in-transit, fulfilled, cancelled, deleted, and stale work is
+locked. Both domains preserve quantities, assignments, submissions, inventory,
+packing, driver assignment, lifecycle state, proof, delivery timestamps,
+payment, and accounting evidence.
+
+The UI reuses installed `@dnd-kit/core` and GND dialog primitives rather than
+Chart.js or a replacement calendar library. Production, linked Fulfillment V2,
+and legacy Fulfillment calendars share package-owned capability/lock reasons,
+canonical commands, date-only semantics, audit/notification behavior, and the
+deduplicated `sales.pipeline.changed` invalidation path.
+
+## Lifecycle exception actions and headline filter
+
+Ticket 15 keeps one visible Production-completed action and one visible
+Fulfilled action. Canonical lifecycle state selects the ordinary workflow or,
+when the headline is `unknown` (Status unavailable) or `conflict` (Lifecycle
+conflict), the audited exception path. Exceptions require reason,
+expected revision, idempotency identity, and immutable provenance, and cannot
+fabricate Production, inventory, packing, Dispatch, delivery-proof, payment, or
+accounting facts. A successful override makes **Administratively completed** the
+visible lifecycle result while retaining the original conflict evidence in the
+before/after audit payload.
+
+The command authority binds each override to its exceptional stage and an
+explicit stage-specific reason-code allowlist. Any unsupported same-stage or
+cross-stage blocking conflict fails closed. Single requests bind the complete
+payload to their immutable audit; batch requests additionally persist a
+race-safe SalesHistory command identity covering normalized selected IDs,
+milestone, effective date, trimmed reason, and the exact one-to-one expected
+revision map. Completion writes refresh the indexed list projection in the same
+transaction, so successful actions cannot leave headline filters stale.
+
+The quick-action menu does not expose a separate administrative action group;
+**Administrative override** is immutable audit provenance only. The same ticket
+also restores the canonical completed/green status presentation for completed
+orders in Production Calendar.
+
+The same ticket adds one package-owned, multi-select Lifecycle Status filter
+over every canonical `pipelineHeadline` value. Its stable URL codes and exact
+predicate must be shared by rows, count, summary, pagination, saved views,
+analytics, and exports through the indexed projection/freshness boundary.
+
 ## Rollout and reconciliation
 
 Local/development reads and commands default to canonical. Production defaults
@@ -77,7 +131,7 @@ known compatibility difference, review-required, and unsafe rows. Apply mode
 requires actor and reason and may repair only the recomputable
 `SalesOrderListProjection` cache in bounded, revision-checked batches.
 
-## Current local verification (2026-09-02)
+## Current local verification (2026-09-03)
 
 - Due Today list/summary/Calendar agree on 3 orders: `09502PC`, `09543PC`, and
   `09457DB`.
@@ -141,11 +195,16 @@ requires actor and reason and may repair only the recomputable
   row changed afterward and unsafe version-1 backups fail closed. The
   current-evidence terminal/superseded/empty material-review query seam passes
   focused integration coverage.
-- Across the fourteen-ticket Scratch queue, 128/136 acceptance checks are
-  verified: Tickets 01–10, 12, and 13 are done; Ticket 11 is in progress;
-  Ticket 14 is in production rollout at 6/13. Scratch is
-  authoritative and Brain mirrors
-  its checked evidence.
+- Across the sixteen-ticket Scratch queue, 156/165 acceptance checks are
+  verified: Tickets 01–10, 12, 13, and 15 are done; Ticket 11 is in progress;
+  Ticket 14 is in production rollout at 6/13; and Ticket 16 is in progress at
+  14/15 pending authenticated multi-viewport browser QA. Ticket 15's simplified
+  visible action pair now routes ordinary and audited exception commands by
+  canonical lifecycle state, and Sales Order editors may use the bounded
+  exception path. Ticket 16's confirmation uses the shared shadcn picker with
+  no native date input. The focused lifecycle/rescheduling pass covers 254
+  tests and 938 assertions with no failures. Scratch is authoritative and Brain
+  mirrors its checked evidence.
   Ticket 09 is complete at 10/10: worker lifecycle events refresh the exact affected
   queue, dashboard, Calendar, and detail projections, and actionable review
   counts use the same package-owned current-evidence membership as admin
@@ -206,6 +265,26 @@ requires actor and reason and may repair only the recomputable
   An opt-in projection refresh mode now serializes and retries only read phases;
   ordinary application behavior is unchanged and upserts remain un-retried.
   The combined focused suite passes 10/10 and Sales typecheck passes.
+- Part 3 created its 752 KB backup, recovered one read outage, and later stopped
+  on an unacknowledged cache upsert. Its fresh audit across 8,155 orders reports
+  3,497 clean, 252 known compatibility differences, 3,140 deterministic repairs
+  remaining, 1,266 review-required, and 0 unsafe. Cumulative convergence is
+  3,746/6,886 (54%).
+- The runner can now retry an entire deterministic projection batch after a
+  connection failure. The retry recomputes canonical evidence and revision
+  guards before each cache-only attempt, skips changed source revisions, and is
+  not exposed to business-domain mutations. The focused suite passes 11/11,
+  Sales typecheck passes, and diff integrity is clean.
+- The first part-4 start failed on its initial actor-permission read before any
+  scan, backup, report, or mutation. Permission checks now use the same bounded
+  read-only recovery while remaining serialized and freshly evaluated. The
+  runner suite passes 8/8. The retried part-4 apply created a 499 KB backup and
+  was interrupted during a read-only retry after provider failover; its fresh
+  audit across 8,158 orders reports 3,738 clean, 261 known compatibility
+  differences, 2,891 deterministic repairs remaining, 1,268 review-required,
+  and 0 unsafe. This proves 249 fewer deterministic repairs than the part-3
+  checkpoint. Read retries now disconnect the failed Prisma client before the
+  next attempt so provider resolution can refresh.
 - Ticket 14's latest environment-backed broad run executes 4,471 tests across
   868 files: 4,470 pass, 1 opt-in live-database parity test is intentionally
   skipped, 0 fail, and no setup/runtime errors remain. Explicit dependency
