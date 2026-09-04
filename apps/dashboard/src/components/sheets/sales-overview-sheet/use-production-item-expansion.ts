@@ -1,7 +1,10 @@
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useEffect, useRef, useState } from "react";
 
-import { getInitialProductionItemExpansion } from "./production-item-expansion-policy";
+import {
+	getInitialProductionItemExpansion,
+	getNextProductionItemExpansion,
+} from "./production-item-expansion-policy";
 
 export function useProductionItemExpansion({
 	itemUids,
@@ -94,24 +97,18 @@ export function useProductionItemExpansion({
 	]);
 
 	const toggleItem = (itemUid: string) => {
-		if (singleOpen) {
-			if (!itemUids.includes(itemUid)) return;
-			requestedItemRef.current = itemUid;
-			setExpandedItemUids([itemUid]);
-			void setParams({ "prod-item-view": itemUid });
-			return;
-		}
-		const isOpen = expandedItemUids.includes(itemUid);
-		const next = isOpen
-			? expandedItemUids.filter((uid) => uid !== itemUid)
-			: [...expandedItemUids, itemUid];
-		const nextActiveItemUid = isOpen ? (next.at(-1) ?? null) : itemUid;
-		requestedItemRef.current = nextActiveItemUid;
-		setExpandedItemUids(next);
+		const next = getNextProductionItemExpansion({
+			currentItemUids: expandedItemUids,
+			itemUid,
+			itemUids,
+			singleOpen,
+		});
+		requestedItemRef.current = next.requestedItemUid;
+		setExpandedItemUids(next.expandedItemUids);
 		void setParams({
-			"prod-item-view": nextActiveItemUid,
+			"prod-item-view": next.requestedItemUid,
 			...(legacyTabState
-				? { "prod-item-tab": nextActiveItemUid ? "details" : null }
+				? { "prod-item-tab": next.requestedItemUid ? "details" : null }
 				: {}),
 		});
 	};

@@ -156,7 +156,7 @@ function ProductionV2Item({
 	};
 
 	const handleTitleToggle = () => {
-		prepareAutoScroll();
+		if (!opened) prepareAutoScroll();
 		onToggle();
 	};
 
@@ -259,7 +259,7 @@ function ProductionV2Item({
 								</AccessBased>
 								<AccordionTrigger
 									className="w-auto rounded-sm p-1 hover:bg-muted hover:no-underline"
-									onClick={prepareAutoScroll}
+									onClick={opened ? undefined : prepareAutoScroll}
 								>
 									<span className="sr-only">Toggle production item</span>
 								</AccordionTrigger>
@@ -316,9 +316,15 @@ function ProductionTabV2Content() {
 			{items.length ? <ProductionReadinessBanner /> : null}
 			<Accordion
 				type="single"
+				collapsible
 				value={expandedItemUids[0] ?? ""}
 				onValueChange={(itemUid) => {
-					if (itemUid) toggleItem(itemUid);
+					if (itemUid) {
+						toggleItem(itemUid);
+						return;
+					}
+					const openedItemUid = expandedItemUids[0];
+					if (openedItemUid) toggleItem(openedItemUid);
 				}}
 				className="flex flex-col gap-3"
 			>

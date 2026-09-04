@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
-import { getInitialProductionItemExpansion } from "./production-item-expansion-policy";
+import {
+	getInitialProductionItemExpansion,
+	getNextProductionItemExpansion,
+} from "./production-item-expansion-policy";
 
 const itemUids = ["door-1", "door-2", "door-3"];
 
@@ -47,5 +50,28 @@ describe("production item expansion policy", () => {
 				workerMode: false,
 			}),
 		).toEqual([]);
+	});
+
+	test("collapses the active item when single-open mode toggles it again", () => {
+		expect(
+			getNextProductionItemExpansion({
+				currentItemUids: ["door-2"],
+				itemUid: "door-2",
+				itemUids,
+				singleOpen: true,
+			}),
+		).toEqual({ expandedItemUids: [], requestedItemUid: null });
+
+		expect(
+			getNextProductionItemExpansion({
+				currentItemUids: ["door-2"],
+				itemUid: "door-3",
+				itemUids,
+				singleOpen: true,
+			}),
+		).toEqual({
+			expandedItemUids: ["door-3"],
+			requestedItemUid: "door-3",
+		});
 	});
 });

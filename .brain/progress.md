@@ -14967,3 +14967,15 @@
   refresh coverage passes 58 tests with 255 assertions. Authenticated read-only
   browser verification on `09556LM` confirms the updated service/door badges,
   absent service Details section, action counts, and safe delete confirmation.
+
+## 2026-09-04 — Production item collapse toggle
+
+- Production V2 items now toggle in both directions: selecting a closed item
+  expands it and writes `prod-item-view`, while selecting the active item again
+  collapses it and clears the URL parameter. The title row and chevron share
+  the same expansion policy, and collapse does not trigger expansion auto-scroll.
+- Focused policy, assignment-ledger, and auto-scroll validation passes 14 tests;
+  scoped Biome checks pass. Authenticated browser verification on order
+  `09551PC` confirms the title and chevron expand/collapse URL transitions.
+  Dashboard typecheck reached Node's default 4 GB heap limit without a
+  TypeScript diagnostic. Final implementation reviews report no open findings.

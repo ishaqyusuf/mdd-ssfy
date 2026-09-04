@@ -1,5 +1,8 @@
 # Done
 
+### [Production Item Collapse Toggle](2026-09-04-production-item-collapse-toggle.md)
+- Status: Done
+
 ### [Production Material And Actions Polish](2026-09-04-production-material-and-actions-polish.md)
 - Status: Done
 

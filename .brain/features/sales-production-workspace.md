@@ -1016,3 +1016,6 @@ Provide a cleaner production operations surface for both admins and production w
   failures. The existing five-second cross-session assignment refresh remains a
   fallback.
 - No schema, migration, permission, or public API-contract change was required.
+- Production item expansion remains URL-backed, but selecting the already-open
+  item now collapses it and clears `prod-item-view`. Title-row and accordion
+  chevron interactions share the same toggle policy.

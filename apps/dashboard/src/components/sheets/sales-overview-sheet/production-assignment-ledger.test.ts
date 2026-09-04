@@ -31,6 +31,7 @@ describe("Production assignment Ledger Accordion", () => {
 			productionTabSource,
 			/value=\{expandedItemUids\[0\] \?\? ""\}/,
 		);
+		assert.match(productionTabSource, /type="single"\s+collapsible/);
 	});
 
 	test("keeps metadata and independent actions in the disclosure header", () => {
