@@ -3,7 +3,7 @@ import { Menu } from "@gnd/ui/custom/menu";
 import Sheet from "@gnd/ui/custom/sheet-v2";
 import { Icons } from "@gnd/ui/icons";
 import NumberFlow from "@number-flow/react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -43,6 +43,12 @@ export function ProductionTabFooter() {
 	}
 	const query = useSalesOverviewQuery();
 	const [opened, setOpened] = useState(false);
+	const [menuBusy, setMenuBusy] = useState(false);
+	const menuBusyRef = useRef(false);
+	const updateMenuBusy = (busy: boolean) => {
+		menuBusyRef.current = busy;
+		setMenuBusy(busy);
+	};
 	if (query.dispatchMode) return null;
 	return (
 		<Sheet.Portal>
@@ -70,13 +76,18 @@ export function ProductionTabFooter() {
 					<Menu
 						noSize
 						open={opened}
-						onOpenChanged={setOpened}
+						onOpenChanged={(nextOpen) => {
+							if (!nextOpen && menuBusyRef.current) return;
+							setOpened(nextOpen);
+						}}
+						disabled={menuBusy}
 						label={"Action"}
 						Icon={Icons.ActivityIcon}
 					>
 						<ProductionItemMenuActions
 							itemUids={ctx.selectCount ? ctx.selectedUids : undefined}
 							setOpened={setOpened}
+							setMenuBusy={updateMenuBusy}
 						/>
 					</Menu>
 				</div>

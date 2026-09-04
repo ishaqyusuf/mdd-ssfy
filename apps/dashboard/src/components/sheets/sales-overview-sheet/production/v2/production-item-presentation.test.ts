@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
 import {
+	getMeaningfulProductionConfigs,
 	getProductionConfigKey,
 	getProductionItemPresentation,
 	getWorkerProductionItemPresentation,
@@ -92,6 +93,33 @@ describe("Production item presentation", () => {
 
 		expect(new Set(keys).size).toBe(repeatedConfigs.length);
 		expect(keys).toEqual(["Jamb Size-4-5/8-0", "Jamb Size-4-5/8-1"]);
+	});
+
+	test("removes structural item type metadata from production details", () => {
+		expect(
+			getMeaningfulProductionConfigs([
+				{ label: "Item type", value: "Services", hidden: false },
+				{ label: "House Package Tool", value: "Door", hidden: false },
+			]),
+		).toEqual([]);
+	});
+
+	test("keeps substantive door and moulding configuration", () => {
+		expect(
+			getMeaningfulProductionConfigs([
+				{ label: "Item Type", value: "Door", hidden: false },
+				{ label: "Hand", value: "LH", hidden: false },
+				{ label: "Width", value: "3-0", hidden: false },
+				{ label: "Height", value: "8-0", hidden: false },
+				{ label: "Jamb Size", value: "4-5/8", hidden: false },
+				{ label: "Moulding", value: "Crown", hidden: true },
+			]),
+		).toEqual([
+			{ label: "Hand", value: "LH", hidden: false },
+			{ label: "Width", value: "3-0", hidden: false },
+			{ label: "Height", value: "8-0", hidden: false },
+			{ label: "Jamb Size", value: "4-5/8", hidden: false },
+		]);
 	});
 
 	test("uses the same wrapping headline and top alignment in overview and worker views", () => {

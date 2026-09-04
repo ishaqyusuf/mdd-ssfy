@@ -11,6 +11,65 @@ import {
 } from "./production-materials";
 
 describe("buildProductionMaterialStatuses", () => {
+	it("treats a production service without tracked material as not required", () => {
+		const result = buildProductionItemMaterialStatus({
+			salesOrderId: 42,
+			salesItemId: 101,
+			reviewPending: false,
+			projectionState: "available",
+			materials: [],
+		});
+
+		expect(result.code).toBe("not_required");
+		expect(result.label).toBe("NO MATERIAL NEEDED");
+	});
+
+	it("lets an explicit tracked need override the service fallback", () => {
+		const result = buildProductionItemMaterialStatus({
+			salesOrderId: 42,
+			salesItemId: 101,
+			reviewPending: false,
+			projectionState: "available",
+			materials: [
+				{
+					salesOrderId: 42,
+					salesItemId: 101,
+					componentId: 501,
+					name: "Installation adhesive",
+					inventoryVariantUid: null,
+					supplierName: null,
+					readiness: "blocked",
+					stockStatus: "shortage",
+					requiredQty: 1,
+					availableQty: 0,
+					allocatedQty: 0,
+					pendingReviewQty: 0,
+					receivedQty: 0,
+					openInboundQty: 0,
+					expectedAt: null,
+					undatedOpenInboundQty: 0,
+					productionEligibilityConflict: false,
+					inbounds: [],
+				},
+			],
+		});
+
+		expect(result.code).toBe("material_shortage");
+	});
+
+	it("does not infer a material requirement from production capability", () => {
+		const result = buildProductionItemMaterialStatus({
+			salesOrderId: 42,
+			salesItemId: 102,
+			reviewPending: false,
+			projectionState: "available",
+			materials: [],
+		});
+
+		expect(result.code).toBe("not_required");
+		expect(result.label).toBe("NO MATERIAL NEEDED");
+	});
+
 	it("exposes expected inbound availability without blocking assignment", () => {
 		const expectedAt = new Date("2026-07-29T08:00:00.000Z");
 
@@ -123,9 +182,7 @@ describe("buildProductionMaterialStatuses", () => {
 		const result = buildProductionItemMaterialStatus({
 			salesOrderId: 42,
 			salesItemId: 101,
-			configuredProduction: true,
 			productionItemDimension: "2-0 x 6-8",
-			hasOperationalProduction: true,
 			reviewPending: false,
 			projectionState: "available",
 			materials: [
@@ -134,7 +191,7 @@ describe("buildProductionMaterialStatuses", () => {
 					...material,
 					componentId: 502,
 					inventoryVariantUid: "w2_4-h6_8",
-					inbounds: [{ ...material.inbounds[0]!, id: 2 }],
+					inbounds: [{ ...material.inbounds[0], id: 2 }],
 				},
 			],
 		});

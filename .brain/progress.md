@@ -14951,3 +14951,19 @@
   scan, backup, report, or mutation. Authorization reads now use the same
   bounded recovery window while remaining serial and freshly evaluated; the
   runner suite passes 8/8.
+
+## 2026-09-04 — Sales Overview Production material and action polish
+
+- Separated production capability from tracked-material applicability. Every
+  displayed item participates in the material lookup; an available item with
+  no tracked Need presents `NO MATERIAL NEEDED`, while an explicit Need remains
+  authoritative even before assignment.
+- Restored one exact material badge per item, removed expanded evidence/detail
+  treatment, and omitted Details when only structural Item Type data remains.
+- Added explicit bulk-delete confirmation, action-specific loading/toasts,
+  repeat-start protection, order Production due-date defaulting, and awaited
+  scoped Production refresh after task completion.
+- Focused domain, presentation, action, due-date, query-event, and assignment
+  refresh coverage passes 58 tests with 255 assertions. Authenticated read-only
+  browser verification on `09556LM` confirms the updated service/door badges,
+  absent service Details section, action counts, and safe delete confirmation.

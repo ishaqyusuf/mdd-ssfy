@@ -119,10 +119,13 @@ const presentations: Record<
 	allocation_approval: { label: "ALLOCATION APPROVAL", tone: "warning" },
 	awaiting_inbound: { label: "AWAITING INBOUND", tone: "info" },
 	material_shortage: { label: "MATERIAL SHORTAGE", tone: "destructive" },
-	setup_needed: { label: "SETUP NEEDED", tone: "destructive" },
-	material_conflict: { label: "MATERIAL CONFLICT", tone: "destructive" },
+	setup_needed: { label: "MATERIAL SETUP MISSING", tone: "destructive" },
+	material_conflict: {
+		label: "INVENTORY SETUP MISMATCH",
+		tone: "destructive",
+	},
 	status_unknown: { label: "STATUS UNKNOWN", tone: "warning" },
-	not_required: { label: "NOT REQUIRED", tone: "neutral" },
+	not_required: { label: "NO MATERIAL NEEDED", tone: "neutral" },
 };
 
 export function getItemMaterialStatusPresentation(

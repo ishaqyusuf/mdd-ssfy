@@ -1,5 +1,8 @@
 # Done
 
+### [Production Material And Actions Polish](2026-09-04-production-material-and-actions-polish.md)
+- Status: Done
+
 ### HPT Size Hot-Swap And Height Reconciliation
 
 - Priority: High

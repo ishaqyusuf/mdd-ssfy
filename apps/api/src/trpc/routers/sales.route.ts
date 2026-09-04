@@ -1253,16 +1253,14 @@ export const salesRouter = createTRPCRouter({
 			await requireProductionOverviewViewer(props.ctx);
 			return loadCoreProductionOverview(async () => {
 				const overview = await getSaleInformation(props.ctx.db, props.input);
-				const operationalSalesItemIds = Array.from(
-					new Set(
-						overview.order.assignments.map((assignment) => assignment.itemId),
-					),
+				const displayedSalesItemIds = Array.from(
+					new Set(overview.items.map((item) => item.itemId)),
 				);
 				const [materialProjection, pipelineSnapshots] = await Promise.all([
 					loadProductionMaterialStatuses(props.ctx.db, {
 						salesOrderId: overview.order.id,
 						completeOrder: true,
-						exactSalesItemIds: operationalSalesItemIds,
+						exactSalesItemIds: displayedSalesItemIds,
 					}),
 					getSalesPipelineSnapshots(props.ctx.db, [overview.order.id]),
 				]);
@@ -1280,9 +1278,7 @@ export const salesRouter = createTRPCRouter({
 							materialStatus: buildProductionItemMaterialStatus({
 								salesOrderId: overview.order.id,
 								salesItemId: item.itemId,
-								configuredProduction: item.itemConfig?.production,
 								productionItemDimension: item.dim,
-								hasOperationalProduction: assignments.length > 0,
 								reviewPending: assignments.some((assignment) =>
 									assignment.submissions.some(
 										(submission) =>

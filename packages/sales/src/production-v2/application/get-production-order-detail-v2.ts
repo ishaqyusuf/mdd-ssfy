@@ -1,16 +1,16 @@
 import type { Db } from "@gnd/db";
 
+import { isActiveReportedSubmission } from "../../production-submission-review/policy";
 import { getSaleInformation } from "../../sales-control/get-sale-information";
+import { projectSalesPipelineForAudience } from "../../sales-pipeline";
+import { evaluateSalesPipelineCommand } from "../../sales-pipeline-commands";
+import { getSalesPipelineSnapshots } from "../../sales-pipeline-order";
+import { observeSalesPipelineReadProjection } from "../../sales-pipeline-rollout";
 import type { ProductionV2DetailQuery } from "../contracts";
 import {
 	buildProductionItemMaterialStatus,
 	loadProductionMaterialStatuses,
 } from "./production-materials";
-import { isActiveReportedSubmission } from "../../production-submission-review/policy";
-import { evaluateSalesPipelineCommand } from "../../sales-pipeline-commands";
-import { projectSalesPipelineForAudience } from "../../sales-pipeline";
-import { getSalesPipelineSnapshots } from "../../sales-pipeline-order";
-import { observeSalesPipelineReadProjection } from "../../sales-pipeline-rollout";
 
 export async function getProductionOrderDetailV2(
 	db: Db,
@@ -22,13 +22,13 @@ export async function getProductionOrderDetailV2(
 		salesNo: query.salesNo,
 		assignedToId: resolvedAssignedToId,
 	});
-	const operationalSalesItemIds = Array.from(
-		new Set(data.order.assignments.map((assignment) => assignment.itemId)),
+	const displayedSalesItemIds = Array.from(
+		new Set(data.items.map((item) => item.itemId)),
 	);
 	const materialProjection = await loadProductionMaterialStatuses(db, {
 		salesOrderId: data.order.id,
 		completeOrder: true,
-		exactSalesItemIds: operationalSalesItemIds,
+		exactSalesItemIds: displayedSalesItemIds,
 	});
 	const materials = materialProjection.materials;
 	const canonicalSnapshot = (
@@ -69,14 +69,10 @@ export async function getProductionOrderDetailV2(
 			const itemMaterials = materials.filter(
 				(material) => material.salesItemId === item.itemId,
 			);
-			const hasOperationalProduction = assignments.length > 0;
-			const configuredProduction = item.itemConfig?.production;
 			const materialStatus = buildProductionItemMaterialStatus({
 				salesOrderId: data.order.id,
 				salesItemId: item.itemId,
-				configuredProduction,
 				productionItemDimension: item.dim,
-				hasOperationalProduction,
 				reviewPending: assignments.some((assignment) =>
 					assignment.submissions.some(
 						(submission) => submission.materialReview?.status === "PENDING",

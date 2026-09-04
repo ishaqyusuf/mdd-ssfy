@@ -11,27 +11,17 @@ const overviewBadges = await Bun.file(
 ).text();
 
 describe("canonical item material badge", () => {
-	it("renders the package-provided label, tone, and explanation", () => {
-		expect(source).toContain("status.label");
-		expect(source).toContain("toneClasses[status.tone]");
-		expect(source).toContain("status.explanation");
-		expect(source).toContain('aria-label="Material status details"');
-		expect(source).toContain("group.received");
-		expect(source).toContain("group.committedAllocated");
-		expect(source).toContain("group.pendingAllocation");
-		expect(source).toContain("group.openInbound");
-		expect(source).toContain('status.code === "material_ready"');
-		expect(source).toContain('status.code === "awaiting_inbound"');
-		expect(source).toContain('aria-label="Inbound material details"');
-		expect(source).toContain("inbound.expectedAt");
-		expect(source).toContain("inbound.supplierName");
-		expect(source).toContain("inbound.quantity");
-		expect(source).not.toContain("inbound.componentName");
-		expect(source).toContain("INBOUND MATERIAL IN PROGRESS");
-		expect(source).toContain("MATERIAL ORDERED");
-		expect(source).toContain("Expected arrival");
-		expect(source).toContain("No supplier");
-		expect(source).toContain("bg-blue-50/80");
+	it("renders exactly one compact status badge without appended details", () => {
+		expect(source).toContain("getItemMaterialStatusNotice");
+		expect(source).toContain("notice.label");
+		expect(source).toContain("toneClasses[notice.tone]");
+		expect(source).not.toContain("notice.detail");
+		expect(source).not.toContain("Review inventory");
+		expect(source).not.toContain("Configure in inventory");
+		expect(source).not.toContain("COVERED");
+		expect(source).not.toContain("evidenceRevision");
+		expect(source).not.toContain("Material status details");
+		expect(source).not.toContain("Inbound material details");
 	});
 
 	it("appears beside lifecycle badges without replacing them", () => {
@@ -39,17 +29,15 @@ describe("canonical item material badge", () => {
 		expect(overviewBadges).toContain("badges.map");
 	});
 
-	it("is visible in worker mode and expands to exact quantity evidence", async () => {
+	it("uses the worker projection without a duplicate expanded detail card", async () => {
 		const productionTab = await Bun.file(
 			new URL(
 				"../sheets/sales-overview-sheet/production/v2/production-tab-v2.tsx",
 				import.meta.url,
 			),
 		).text();
-		expect(productionTab).toContain(
-			"<ItemMaterialStatusBadge status={item.materialStatus}",
-		);
-		expect(productionTab).toContain("<ItemMaterialStatusDetail");
+		expect(productionTab).toContain('audience="worker"');
+		expect(productionTab).not.toContain("ItemMaterialStatusDetail");
 		expect(productionTab).not.toContain("ProductionInboundSummary");
 	});
 });

@@ -1,42 +1,60 @@
-import { useMemo, useState } from "react";
-
-import { Button } from "@gnd/ui/button";
-import { useProduction } from "./context";
-import { useProductionItem } from "./production-item-context";
-import { DropdownMenu, Tabs } from "@gnd/ui/namespace";
-import { Menu } from "@gnd/ui/custom/menu";
+import type { createAssignmentSchema } from "@/actions/schema";
+import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { sum } from "@gnd/utils";
-import { createAssignmentSchema } from "@/actions/schema";
-import z from "zod";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { Button } from "@gnd/ui/button";
+import { Calendar } from "@gnd/ui/calendar";
+import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
-import { Calendar } from "@gnd/ui/calendar";
-import { useAuth } from "@/hooks/use-auth";
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { UpdateSalesControl } from "@sales/schema";
-import {
-    createProductionDueDate,
-    productionCalendarPartsFromLocalDate,
-} from "@sales/production-date";
+import { DropdownMenu, Tabs } from "@gnd/ui/namespace";
 import { Separator } from "@gnd/ui/separator";
-import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
-import { useAction } from "next-safe-action/hooks";
 import { toast } from "@gnd/ui/use-toast";
+import { sum } from "@gnd/utils";
+import {
+	createProductionDueDate,
+	productionCalendarPartsFromLocalDate,
+} from "@sales/production-date";
+import type { UpdateSalesControl } from "@sales/schema";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type z from "zod";
+import { useProduction } from "./context";
+import { useProductionItem } from "./production-item-context";
+import {
+	type ProductionBulkAction,
+	getProductionActionFeedback,
+	getProductionDeleteConfirmation,
+	getProductionOrderDueDate,
+	hasProductionRefreshFailure,
+} from "./production-item-menu-model";
 
 const productionActionItemClassName =
     "min-w-[250px] whitespace-nowrap [&>svg]:size-4 [&>svg]:shrink-0";
 
-export function ProductionItemMenu({}) {
+export function ProductionItemMenu() {
     const ctx = useProductionItem();
     const { queryCtx, item } = ctx;
-    const prod = useProduction();
     const [opened, setOpened] = useState(false);
+	const [menuBusy, setMenuBusy] = useState(false);
+	const menuBusyRef = useRef(false);
+	const updateMenuBusy = (busy: boolean) => {
+		menuBusyRef.current = busy;
+		setMenuBusy(busy);
+	};
     return (
         <Menu
             noSize
+			open={opened}
+			onOpenChanged={(nextOpen) => {
+				if (!nextOpen && menuBusyRef.current) return;
+				setOpened(nextOpen);
+			}}
             Trigger={
-				<Button disabled={queryCtx.dispatchMode} variant="ghost" size="icon">
+				<Button
+					disabled={queryCtx.dispatchMode || menuBusy}
+					variant="ghost"
+					size="icon"
+				>
                     <Icons.MoreVertical className="size-4" />
 					<span className="sr-only">Production item actions</span>
                 </Button>
@@ -45,35 +63,41 @@ export function ProductionItemMenu({}) {
             <ProductionItemMenuActions
                 itemUids={[item.controlUid]}
                 setOpened={setOpened}
+				setMenuBusy={updateMenuBusy}
             />
         </Menu>
     );
-    return (
-        <DropdownMenu.Root open={opened} onOpenChange={setOpened}>
-            <DropdownMenu.Trigger asChild>
-				<Button disabled={queryCtx.dispatchMode} variant="ghost" size="icon">
-                    <Icons.MoreVertical className="h-4 w-4" />
-                </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="end">
-                <ProductionItemMenuActions
-                    itemUids={[item.controlUid]}
-                    setOpened={setOpened}
-                />
-            </DropdownMenu.Content>
-        </DropdownMenu.Root>
-    );
 }
-export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
+export function ProductionItemMenuActions({
+	itemUids = null,
+	setOpened,
+	setMenuBusy,
+}: {
+	itemUids?: string[] | null;
+	setOpened: (opened: boolean) => void;
+	setMenuBusy: (busy: boolean) => void;
+}) {
     const itemIds = itemUids;
-    const [tab, setTab] = useState("main");
-    const [action, setAction] = useState<
-        "assign" | "submit" | "delete.submit" | "delete.assign"
-    >();
-    const [dueDate, setDueDate] = useState(new Date());
-    const [assignedToId, setAssignTo] = useState(null);
+    const [tab, setTab] = useState<"main" | "users" | "due-date" | "confirm">("main");
+    const [action, setAction] = useState<ProductionBulkAction>();
+    const [dueDate, setDueDate] = useState<Date | null>(null);
+    const [assignedToId, setAssignTo] = useState<number | null>(null);
+	const [isRefreshing, setIsRefreshing] = useState(false);
+	const activeActionRef = useRef<ProductionBulkAction | null>(null);
+	const progressToastRef = useRef<ReturnType<typeof toast> | null>(null);
     const prod = useProduction();
     const queryCtx = useSalesOverviewQuery();
+	const orderDueDate = useMemo(
+		() => getProductionOrderDueDate(prod.data?.order?.prodDueDate),
+		[prod.data?.order?.prodDueDate],
+	);
+	useEffect(
+		() => () => {
+			progressToastRef.current?.dismiss();
+			progressToastRef.current = null;
+		},
+		[],
+	);
 
     const {
         assign: { pendingQty, items },
@@ -180,26 +204,86 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
             deleteAssignment,
         };
     }, [prod.data, itemIds]);
-    const onSuccess = () => {
-        setOpened(false);
-        queryCtx.salesQuery.assignmentSubmissionUpdated();
-    };
-    const tsk = useTaskTrigger({
-        // silent: true,
-        onSuccess: onSuccess,
-    });
-
     const auth = useAuth();
-    const deleteAssignments = useAction(deleteSalesAssignmentAction, {
-        onSuccess,
-        onError(e) {},
+    const finishAction = async () => {
+		const completedAction = activeActionRef.current;
+		if (!completedAction) return;
+		setIsRefreshing(true);
+		try {
+			const eventResults = await Promise.allSettled([
+				queryCtx.salesQuery.assignmentSubmissionUpdated(),
+			]);
+			const refreshResults = await Promise.allSettled([
+				prod.refetch(),
+				prod.refetchReadiness(),
+			]);
+			progressToastRef.current?.dismiss();
+			progressToastRef.current = null;
+			const refreshFailed = hasProductionRefreshFailure([
+				...eventResults,
+				...refreshResults,
+			]);
+			toast(
+				refreshFailed
+					? {
+							duration: 5000,
+							variant: "destructive",
+							title: `${getProductionActionFeedback(completedAction).success}, but refresh failed`,
+							description: "Reopen the order to load the latest Production state.",
+						}
+					: {
+							duration: 3500,
+							variant: "success",
+							title: getProductionActionFeedback(completedAction).success,
+						},
+			);
+			setMenuBusy(false);
+			setOpened(false);
+			setTab("main");
+			setAction(undefined);
+			setAssignTo(null);
+			setDueDate(null);
+		} finally {
+			activeActionRef.current = null;
+			setIsRefreshing(false);
+			setMenuBusy(false);
+		}
+	};
+    const tsk = useTaskTrigger({
+		silent: true,
+		onSuccess: () => {
+			void finishAction();
+		},
+		onError: (message) => {
+			const failedAction = activeActionRef.current;
+			progressToastRef.current?.dismiss();
+			progressToastRef.current = null;
+			activeActionRef.current = null;
+			setMenuBusy(false);
+			if (failedAction) {
+				toast({
+					duration: 3500,
+					variant: "destructive",
+					title: getProductionActionFeedback(failedAction).failure,
+					description: message || "Please try again.",
+				});
+			}
+		},
     });
-    const triggerAction = async (a: typeof action) => {
-        setAction(a);
-        submitAction(a);
-    };
-    const submitAction = async (_action?: typeof action) => {
-        if (!_action) _action = action;
+	const isBusy =
+		Boolean(activeActionRef.current) ||
+		tsk.isActionPending ||
+		tsk.isLoading ||
+		isRefreshing;
+    const submitAction = async (
+		requestedAction?: ProductionBulkAction,
+		assignedToOverride?: number | null,
+	) => {
+		const selectedAction = requestedAction || action;
+		if (!selectedAction || isBusy) return;
+		setAction(selectedAction);
+		activeActionRef.current = selectedAction;
+		setMenuBusy(true);
         const payload = () => {
             const pl = {
                 meta: {
@@ -210,10 +294,10 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                 },
             } as UpdateSalesControl;
 
-            switch (_action) {
+            switch (selectedAction) {
                 case "submit":
                     pl.submitAll = {
-                        assignedToId,
+						assignedToId: assignedToOverride ?? assignedToId,
 						idempotencyKey: crypto.randomUUID(),
                         itemUids: submitItems.map((a) => a.uid),
                     };
@@ -221,7 +305,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                 case "assign":
                     pl.createAssignments = {
                         retries: 0,
-                        assignedToId,
+						assignedToId: assignedToOverride ?? assignedToId,
                         dueDate: dueDate
                             ? createProductionDueDate(
                                   productionCalendarPartsFromLocalDate(dueDate),
@@ -233,192 +317,266 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         })),
                     };
                     break;
-                case "delete.assign":
+                case "delete.assign": {
 					const deliveredQty = sum(deleteAssignmentItems, "deliveredQty");
                     const submitQty = sum(deleteAssignmentItems, "submitQty");
                     if (deliveredQty) {
-                        toast({
-                            title: "Unable to complete",
-                            description:
-                                "Some assignments have been submitted and registered to dispatch.",
-                        });
-
-                        throw new Error();
+						throw new Error(
+							"Some assignments have been submitted and registered to dispatch.",
+						);
                     }
                     if (submitQty) {
-                        toast({
-                            title: "Unable to complete",
-							description: "Some assignments have been submitted.",
-                        });
-                        throw new Error();
+						throw new Error("Some assignments have been submitted.");
                     }
                     pl.deleteAssignments = {
                         itemIds: deleteAssignmentItems.map((a) => a.itemId),
                     };
                     break;
-                case "delete.submit":
+                }
+                case "delete.submit": {
 					const _deliveredQty = sum(deleteSubmitItems, "deliveredQty");
                     if (_deliveredQty) {
-                        toast({
-                            title: "Unable to complete",
-							description: "Some submissions have been registered to dispatch.",
-                        });
-                        throw new Error();
+						throw new Error(
+							"Some submissions have been registered to dispatch.",
+						);
                     }
                     pl.deleteSubmissions = {
                         itemIds: deleteSubmitItems.map((a) => a.itemId),
                     };
                     break;
+                }
             }
             return pl;
         };
         try {
             const pl = payload();
+			const feedback = getProductionActionFeedback(selectedAction);
+			progressToastRef.current?.dismiss();
+			progressToastRef.current = toast({
+				duration: Number.POSITIVE_INFINITY,
+				variant: "spinner",
+				title: feedback.pending,
+			});
             await tsk.triggerWithAuth("update-sales-control", pl);
         } catch (error) {
+			progressToastRef.current?.dismiss();
+			progressToastRef.current = null;
+			activeActionRef.current = null;
+			setMenuBusy(false);
             toast({
-                title: "Could not start production assignment",
+				title: getProductionActionFeedback(selectedAction).failure,
                 description:
 					error instanceof Error ? error.message : "Please try again.",
                 variant: "destructive",
             });
         }
     };
-    return (
-        <>
-            <Tabs.Root value={tab}>
-                <Tabs.Content value="main">
-                    <Menu.Item
-                        onClick={(e) => {
-                            e.preventDefault();
-                            setAction("assign");
-                            setTab("users");
-                        }}
-                        Icon={Icons.UserPlus}
-                        disabled={!pendingQty}
-                        shortCut={`QTY: ${pendingQty}`}
-                        className={productionActionItemClassName}
-                    >
-                        Assign All
-                    </Menu.Item>
-                    <Menu.Item
-                        shortCut={`QTY: ${submitTotal}`}
-                        disabled={!submitTotal}
-                        Icon={Icons.CheckCircle}
+	const deleteQuantity =
+		action === "delete.assign"
+			? deleteAssignmentQty
+			: action === "delete.submit"
+				? deleteSubmitQty
+				: 0;
+	const deleteConfirmation = action
+		? getProductionDeleteConfirmation(action, deleteQuantity)
+		: null;
+	return (
+		<div aria-busy={isBusy}>
+			<Tabs.Root value={tab}>
+				<Tabs.Content value="main">
+					<Menu.Item
+						onClick={(event) => {
+							event.preventDefault();
+							setAction("assign");
+							setDueDate(orderDueDate);
+							setTab("users");
+						}}
+						Icon={Icons.UserPlus}
+						disabled={isBusy || !pendingQty}
+						shortCut={`QTY: ${pendingQty}`}
 						className={productionActionItemClassName}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            setAction("submit");
-                            if (!submitPendingAssignments) {
-                                submitAction("submit");
-                            } else {
-                                setTab("users");
-                            }
-                        }}
-                    >
-                        Submit All
-                    </Menu.Item>
-                    <Menu.Item
-                        Icon={Icons.Delete}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            triggerAction("delete.submit");
-                        }}
-                        disabled={!deleteSubmitQty}
-                        // disabled
-                        shortCut={`QTY: ${deleteSubmitQty}`}
+					>
+						{isBusy && action === "assign"
+							? getProductionActionFeedback("assign").progress
+							: "Assign All"}
+					</Menu.Item>
+					<Menu.Item
+						shortCut={`QTY: ${submitTotal}`}
+						disabled={isBusy || !submitTotal}
+						Icon={Icons.CheckCircle}
 						className={productionActionItemClassName}
-                    >
-                        Delete Submissions
-                    </Menu.Item>
-                    <Menu.Item
-                        Icon={Icons.Delete}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            triggerAction("delete.assign");
-                        }}
-                        disabled={!deleteAssignmentQty}
-                        shortCut={`QTY: ${deleteAssignmentQty}`}
+						onClick={(event) => {
+							event.preventDefault();
+							setAction("submit");
+							if (!submitPendingAssignments) {
+								void submitAction("submit");
+							} else {
+								setTab("users");
+							}
+						}}
+					>
+						{isBusy && action === "submit"
+							? getProductionActionFeedback("submit").progress
+							: "Submit All"}
+					</Menu.Item>
+					<Menu.Item
+						Icon={Icons.Delete}
+						onClick={(event) => {
+							event.preventDefault();
+							setAction("delete.submit");
+							setTab("confirm");
+						}}
+						disabled={isBusy || !deleteSubmitQty}
+						shortCut={`QTY: ${deleteSubmitQty}`}
 						className={productionActionItemClassName}
-                    >
-                        Delete Assignments
-                    </Menu.Item>
-                </Tabs.Content>
-                <Tabs.Content value="users">
-                    <div className="flex gap-2 px-2 items-center">
-                        <Button
-                            size="xs"
-                            onClick={(e) => {
-                                setTab("main");
-                            }}
-                            className="rounded-full size-6 p-0"
-                        >
-                            <Icons.ChevronLeft className="size-3" />
-                        </Button>
-                        <Label>Select Production Worker</Label>
-                    </div>
-                    <DropdownMenu.Separator />
-                    {prod?.users?.map((user) => (
-                        <Menu.Item
-                            onClick={(e) => {
-                                e.preventDefault();
-                                setTab("due-date");
-                                setAssignTo(user.id);
-                            }}
-                            shortCut={`${user.pendingProductionQty} pending`}
-                            icon="production"
-                            key={user.id}
-                            className="min-w-[250px] whitespace-nowrap"
-                        >
-                            {user.name}
-                        </Menu.Item>
-                    ))}
-                </Tabs.Content>
-                <Tabs.Content value="due-date">
-                    <div className="flex gap-4 px-4 items-center">
-                        <Button
-                            size="xs"
-                            onClick={(e) => {
-                                setTab("users");
-                            }}
-                            className="rounded-full size-6 p-0"
-                        >
-                            <Icons.ChevronLeft className="size-3" />
-                        </Button>
-                        <DropdownMenu.Label>Due Date</DropdownMenu.Label>
-                    </div>
-                    <DropdownMenu.Separator />
-                    <Calendar
-                        mode="single"
-                        // toDate={new Date()}
-                        selected={dueDate}
-                        onSelect={(value) => {
-                            setDueDate(value);
-                        }}
-                    />
-                    <Button
-                        variant="outline"
-                        onClick={() => {
-                            setDueDate(null);
-                        }}
-                        className="w-full"
-                    >
-                        <Icons.TimerOff className="size-4 mr-4" />
-                        No Due Date
-                    </Button>
-                    <Separator />
-                    <div className="">
-                        <Button
-                            onClick={() => {
-                                submitAction();
-                            }}
-                            className="w-full"
-                        >
-                            Proceed
-                        </Button>
-                    </div>
-                </Tabs.Content>
-            </Tabs.Root>
-        </>
-    );
+					>
+						{isBusy && action === "delete.submit"
+							? getProductionActionFeedback("delete.submit").progress
+							: "Delete Submissions"}
+					</Menu.Item>
+					<Menu.Item
+						Icon={Icons.Delete}
+						onClick={(event) => {
+							event.preventDefault();
+							setAction("delete.assign");
+							setTab("confirm");
+						}}
+						disabled={isBusy || !deleteAssignmentQty}
+						shortCut={`QTY: ${deleteAssignmentQty}`}
+						className={productionActionItemClassName}
+					>
+						{isBusy && action === "delete.assign"
+							? getProductionActionFeedback("delete.assign").progress
+							: "Delete Assignments"}
+					</Menu.Item>
+				</Tabs.Content>
+
+				<Tabs.Content value="users">
+					<div className="flex items-center gap-2 px-2">
+						<Button
+							size="xs"
+							disabled={isBusy}
+							onClick={() => setTab("main")}
+							className="size-6 rounded-full p-0"
+						>
+							<Icons.ChevronLeft className="size-3" />
+						</Button>
+						<Label>Select Production Worker</Label>
+					</div>
+					<DropdownMenu.Separator />
+					{prod.users?.map((user) => (
+						<Menu.Item
+							onClick={(event) => {
+								event.preventDefault();
+								const userId = Number(user.id);
+								setAssignTo(userId);
+								if (action === "submit") {
+									void submitAction("submit", userId);
+								} else {
+									setDueDate(orderDueDate);
+									setTab("due-date");
+								}
+							}}
+							disabled={isBusy}
+							shortCut={`${user.pendingProductionQty} pending`}
+							icon="production"
+							key={user.id}
+							className="min-w-[250px] whitespace-nowrap"
+						>
+							{user.name}
+						</Menu.Item>
+					))}
+				</Tabs.Content>
+
+				<Tabs.Content value="due-date">
+					<div className="flex items-center gap-4 px-4">
+						<Button
+							size="xs"
+							disabled={isBusy}
+							onClick={() => setTab("users")}
+							className="size-6 rounded-full p-0"
+						>
+							<Icons.ChevronLeft className="size-3" />
+						</Button>
+						<DropdownMenu.Label>Due Date</DropdownMenu.Label>
+					</div>
+					<DropdownMenu.Separator />
+					{orderDueDate ? (
+						<p className="px-4 pt-3 text-xs text-muted-foreground">
+							The order production due date is selected by default.
+						</p>
+					) : null}
+					<Calendar
+						mode="single"
+						selected={dueDate || undefined}
+						defaultMonth={orderDueDate || undefined}
+						modifiers={{
+							orderDueDate: orderDueDate ? [orderDueDate] : [],
+						}}
+						modifiersClassNames={{
+							orderDueDate:
+								"rounded-full border border-sky-400 ring-2 ring-sky-200 ring-offset-1",
+						}}
+						onSelect={(value) => setDueDate(value || null)}
+						disabled={isBusy}
+					/>
+					<Button
+						variant="outline"
+						disabled={isBusy}
+						onClick={() => setDueDate(null)}
+						className="w-full"
+					>
+						<Icons.TimerOff className="mr-4 size-4" />
+						No Due Date
+					</Button>
+					<Separator />
+					<Button
+						onClick={() => void submitAction()}
+						className="w-full"
+						disabled={isBusy || !assignedToId}
+					>
+						{isBusy && action
+							? getProductionActionFeedback(action).progress
+							: "Proceed"}
+					</Button>
+				</Tabs.Content>
+
+				<Tabs.Content value="confirm">
+					<div className="w-[280px] space-y-3 p-3">
+						<div>
+							<p className="text-sm font-semibold">
+								{deleteConfirmation?.title}
+							</p>
+							<p className="mt-1 text-xs text-muted-foreground">
+								{deleteConfirmation?.description}
+							</p>
+						</div>
+						<div className="grid grid-cols-2 gap-2">
+							<Button
+								type="button"
+								variant="outline"
+								disabled={isBusy}
+								onClick={() => {
+									setAction(undefined);
+									setTab("main");
+								}}
+							>
+								Cancel
+							</Button>
+							<Button
+								type="button"
+								variant="destructive"
+								disabled={isBusy || !deleteConfirmation || !action}
+								onClick={() => void submitAction()}
+							>
+								{isBusy && action
+									? getProductionActionFeedback(action).progress
+									: deleteConfirmation?.confirmLabel || "Delete"}
+							</Button>
+						</div>
+					</div>
+				</Tabs.Content>
+			</Tabs.Root>
+		</div>
+	);
 }

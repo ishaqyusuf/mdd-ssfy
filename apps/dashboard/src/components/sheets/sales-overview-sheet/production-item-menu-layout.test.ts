@@ -5,6 +5,10 @@ const itemMenuSource = readFileSync(
 	new URL("./production-item-menu.tsx", import.meta.url),
 	"utf8",
 );
+const footerSource = readFileSync(
+	new URL("./production-tab-footer.tsx", import.meta.url),
+	"utf8",
+);
 
 describe("Production item action menu layout", () => {
 	it("keeps all four actions and quantities on one line with standard icons", () => {
@@ -16,5 +20,30 @@ describe("Production item action menu layout", () => {
 			itemMenuSource.match(/className=\{productionActionItemClassName\}/g)
 				?.length,
 		).toBe(4);
+	});
+
+	it("shows pending feedback and confirms destructive bulk actions", () => {
+		expect(itemMenuSource).toContain("aria-busy={isBusy}");
+		expect(itemMenuSource).toContain("tsk.isLoading");
+		expect(itemMenuSource).toContain("menuBusyRef.current");
+		expect(itemMenuSource).toContain("setMenuBusy(true)");
+		expect(footerSource).toContain("menuBusyRef.current");
+		expect(footerSource).toContain("setMenuBusy={updateMenuBusy}");
+		expect(itemMenuSource).toContain('value="confirm"');
+		expect(itemMenuSource).toContain('variant="destructive"');
+		expect(itemMenuSource).toContain("getProductionDeleteConfirmation");
+	});
+
+	it("defaults assignments to the order due date and refreshes before clearing", () => {
+		expect(itemMenuSource).toContain("getProductionOrderDueDate");
+		expect(itemMenuSource).toContain(
+			"orderDueDate: orderDueDate ? [orderDueDate]",
+		);
+		expect(itemMenuSource).toContain(
+			"queryCtx.salesQuery.assignmentSubmissionUpdated()",
+		);
+		expect(itemMenuSource).toContain("await Promise.allSettled");
+		expect(itemMenuSource).toContain("hasProductionRefreshFailure");
+		expect(itemMenuSource).toContain("prod.refetch()");
 	});
 });

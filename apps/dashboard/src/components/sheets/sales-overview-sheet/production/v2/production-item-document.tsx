@@ -54,7 +54,10 @@ import { ProductionDeletionLockNotice } from "../../production-deletion-lock-not
 import { useProductionItem } from "../../production-item-context";
 import { ProductionSubmitForm } from "../../production-submit-form";
 import { getWorkerProductionSubmissionProgress } from "../../production-worker-policy";
-import { getProductionConfigKey } from "./production-item-presentation";
+import {
+	getMeaningfulProductionConfigs,
+	getProductionConfigKey,
+} from "./production-item-presentation";
 import {
 	getEligibleProductionSubmissionAssignments,
 	hasPendingProductionQuantity,
@@ -313,9 +316,11 @@ function ProductionV2RecordsSection() {
 	);
 }
 
-function ProductionV2DetailsSection() {
-	const { item } = useProductionItem();
-	const configs = item.configs?.filter((config) => !config.hidden) || [];
+function ProductionV2DetailsSection({
+	configs,
+}: {
+	configs: ReturnType<typeof getMeaningfulProductionConfigs>;
+}) {
 	const headingId = useId();
 
 	return (
@@ -323,35 +328,24 @@ function ProductionV2DetailsSection() {
 			<h3 id={headingId} className="mb-4 text-sm font-semibold">
 				Details
 			</h3>
-			{configs.length ? (
-				<dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-					{configs.map((config, index) => (
-						<div key={getProductionConfigKey(config, index)}>
-							<dt className="text-xs font-medium uppercase text-muted-foreground">
-								{config.label}
-							</dt>
-							<dd
-								className={
-									config.color === "red"
-										? "mt-1 uppercase text-destructive"
-										: "mt-1 uppercase"
-								}
-							>
-								{config.value}
-							</dd>
-						</div>
-					))}
-				</dl>
-			) : (
-				<Empty className="min-h-32 p-4">
-					<EmptyHeader>
-						<EmptyTitle>No item details</EmptyTitle>
-						<EmptyDescription>
-							No configuration details are available for this item.
-						</EmptyDescription>
-					</EmptyHeader>
-				</Empty>
-			)}
+			<dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+				{configs.map((config, index) => (
+					<div key={getProductionConfigKey(config, index)}>
+						<dt className="text-xs font-medium uppercase text-muted-foreground">
+							{config.label}
+						</dt>
+						<dd
+							className={
+								config.color === "red"
+									? "mt-1 uppercase text-destructive"
+									: "mt-1 uppercase"
+							}
+						>
+							{config.value}
+						</dd>
+					</div>
+				))}
+			</dl>
 		</section>
 	);
 }
@@ -381,12 +375,19 @@ function ProductionV2NotesSection() {
 }
 
 export function ProductionV2ItemDocument() {
+	const { item } = useProductionItem();
+	const configs = getMeaningfulProductionConfigs(item.configs);
+
 	return (
 		<ProductionItemAssignmentsProvider args={[]}>
 			<div>
 				<ProductionV2RecordsSection />
-				<Separator />
-				<ProductionV2DetailsSection />
+				{configs.length ? (
+					<>
+						<Separator />
+						<ProductionV2DetailsSection configs={configs} />
+					</>
+				) : null}
 				<Separator />
 				<ProductionV2NotesSection />
 			</div>

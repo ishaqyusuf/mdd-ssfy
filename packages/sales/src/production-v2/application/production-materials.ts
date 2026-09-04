@@ -8,6 +8,7 @@ import type {
 	SalesProductionStockStatus,
 } from "../../sales-fulfillment-plan";
 import { getSalesProductionPlan } from "../../sales-fulfillment-plan";
+import type { StageApplicability } from "../../sales-pipeline";
 
 export type ProductionMaterialStatus = {
 	salesOrderId: number | null;
@@ -39,9 +40,7 @@ export type ProductionMaterialStatus = {
 export function buildProductionItemMaterialStatus(input: {
 	salesOrderId: number;
 	salesItemId: number;
-	configuredProduction?: boolean | null;
 	productionItemDimension?: string | null;
-	hasOperationalProduction: boolean;
 	reviewPending: boolean;
 	projectionState: "available" | "unavailable";
 	materials: ProductionMaterialStatus[];
@@ -63,17 +62,13 @@ export function buildProductionItemMaterialStatus(input: {
 	const itemMaterials = dimensionMaterials.length
 		? dimensionMaterials
 		: salesItemMaterials;
+	const applicability = resolveProductionMaterialApplicability({
+		materials: itemMaterials,
+	});
 	return resolveItemMaterialStatus({
 		salesOrderId: input.salesOrderId,
 		salesItemId: input.salesItemId,
-		applicability:
-			input.configuredProduction === true
-				? "required"
-				: input.hasOperationalProduction
-					? "conflict"
-					: input.configuredProduction === false
-						? "not_required"
-						: "unknown",
+		applicability,
 		evidenceAvailable: input.projectionState === "available",
 		reviewPending: input.reviewPending,
 		components: itemMaterials.map((material) => ({
@@ -89,6 +84,20 @@ export function buildProductionItemMaterialStatus(input: {
 			inbounds: material.inbounds,
 		})),
 	});
+}
+
+export function resolveProductionMaterialApplicability(input: {
+	materials: Pick<ProductionMaterialStatus, "productionEligibilityConflict">[];
+}): StageApplicability {
+	if (
+		input.materials.some(
+			(material) => material.productionEligibilityConflict === true,
+		)
+	) {
+		return "conflict";
+	}
+	if (input.materials.length) return "required";
+	return "not_required";
 }
 
 type ProductionMaterialSource = Pick<

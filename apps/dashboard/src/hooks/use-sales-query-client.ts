@@ -59,7 +59,8 @@ export function useSalesQueryClient(defaultSales?: SalesScopeInput) {
 	const events = {
 		assignmentUpdated: (sales?: SalesScopeInput) =>
 			emit("sales.production.changed", sales),
-		assignmentSubmissionUpdated: () => emit("sales.production.changed"),
+		assignmentSubmissionUpdated: (sales?: SalesScopeInput) =>
+			emit("sales.production.changed", sales),
 		dispatchUpdated: (sales?: SalesScopeInput) =>
 			emit("sales.dispatch.changed", sales),
 		fulfillmentUpdated: (sales?: SalesScopeInput) =>

@@ -25,6 +25,9 @@ describe("useSalesQueryClient query events", () => {
 		expect(source.includes("productionUpdated:")).toBe(true);
 		expect(source.includes("pipelineUpdated:")).toBe(true);
 		expect(source.includes('emit("sales.pipeline.changed"')).toBe(true);
+		expect(
+			source.includes("assignmentSubmissionUpdated: (sales?: SalesScopeInput)"),
+		).toBe(true);
 	});
 
 	it("retains typed one-off invalidation for compatibility methods", () => {

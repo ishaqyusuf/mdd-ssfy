@@ -10,6 +10,11 @@ type ProductionConfigKeyInput = {
 	value?: string | null;
 };
 
+const structuralProductionConfigLabels = new Set([
+	"house package tool",
+	"item type",
+]);
+
 type ProductionAssignedQuantityInput = {
 	lh?: number | null;
 	qty?: number | null;
@@ -62,4 +67,15 @@ export function getProductionConfigKey(
 	index: number,
 ) {
 	return `${config.label ?? "detail"}-${config.value ?? ""}-${index}`;
+}
+
+export function getMeaningfulProductionConfigs<
+	Config extends ProductionConfigKeyInput & { hidden?: boolean | null },
+>(configs: readonly Config[] | null | undefined) {
+	return (configs || []).filter((config) => {
+		if (config.hidden || !config.value?.trim()) return false;
+		return !structuralProductionConfigLabels.has(
+			config.label?.trim().toLowerCase() || "",
+		);
+	});
 }

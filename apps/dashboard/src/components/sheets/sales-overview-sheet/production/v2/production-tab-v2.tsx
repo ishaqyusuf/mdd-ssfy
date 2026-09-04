@@ -1,11 +1,8 @@
 "use client";
 
-import { getProductionTabItems } from "@/components/sales-overview-system/lib/production-items";
-import {
-	ItemMaterialStatusBadge,
-	ItemMaterialStatusDetail,
-} from "@/components/production-v2/item-material-status-badge";
+import { ItemMaterialStatusBadge } from "@/components/production-v2/item-material-status-badge";
 import { ProductionItemHeadline } from "@/components/production-v2/production-item-headline";
+import { getProductionTabItems } from "@/components/sales-overview-system/lib/production-items";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useAfterTaskTrigger } from "@/hooks/use-task-trigger";
 import { cn } from "@/lib/utils";
@@ -247,7 +244,10 @@ function ProductionV2Item({
 												</>
 											) : null}
 										</Badge>
-										<ItemMaterialStatusBadge status={item.materialStatus} />
+										<ItemMaterialStatusBadge
+											status={item.materialStatus}
+											audience="worker"
+										/>
 									</div>
 								) : (
 									<ProductionItemStatusBadges item={item} />
@@ -268,10 +268,6 @@ function ProductionV2Item({
 					</ItemGroup>
 				</div>
 				<AccordionContent className="pb-0">
-					<ItemMaterialStatusDetail
-						status={item.materialStatus}
-						className="mx-4 mt-4 sm:mx-5"
-					/>
 					<ProductionV2ItemDocument />
 				</AccordionContent>
 			</AccordionItem>

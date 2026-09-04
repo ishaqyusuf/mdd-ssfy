@@ -990,3 +990,29 @@ Provide a cleaner production operations surface for both admins and production w
   state, production progress, payroll/completion effects, and direct worker
   notification. No database schema, API contract, permission rule, or durable
   architecture decision changed.
+
+## Sales Overview material badges and bulk-action feedback (2026-09-04)
+
+- Production capability and tracked-material applicability are separate. Any
+  displayed item with an available projection and no tracked Need resolves to
+  `NO MATERIAL NEEDED`; every displayed item participates in the lookup, so an
+  explicit tracked Need still overrides that empty-state result. Contradictory
+  classifications remain distinct internal states.
+- Each Production item renders exactly one compact material badge. The item row
+  does not append evidence hashes, coverage summaries, configuration guidance,
+  or Inventory links, and the expanded document does not repeat a material card.
+- Structural configuration such as Item Type does not create a Details section.
+  Details and its separator render only when substantive production
+  configuration remains.
+- Bulk assignment, submission, and deletion expose one busy state with
+  action-specific feedback. Both bulk deletion paths require an explicit
+  confirmation; duplicate starts and menu dismissal are disabled while a task
+  or completion refresh is active.
+- Assign All starts from the order Production due date when present, keeps that
+  calendar day visually identified, and permits an assignment-only override.
+- Successful bulk actions publish the order-scoped Production query event and
+  await the active overview/readiness refresh before clearing their busy state.
+  Nested listener failures and resolved query-error states surface as refresh
+  failures. The existing five-second cross-session assignment refresh remains a
+  fallback.
+- No schema, migration, permission, or public API-contract change was required.

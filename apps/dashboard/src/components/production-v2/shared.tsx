@@ -2,10 +2,7 @@
 
 import { batchAssignProductionOrdersAction } from "@/actions/batch-assign-production-orders";
 import Img from "@/components/(clean-code)/img";
-import {
-	ItemMaterialStatusBadge,
-	ItemMaterialStatusDetail,
-} from "@/components/production-v2/item-material-status-badge";
+import { ItemMaterialStatusBadge } from "@/components/production-v2/item-material-status-badge";
 import {
 	type ProductionMaterialStatus,
 	ProductionMaterialsNotice,
@@ -2565,7 +2562,6 @@ function ExpandedItemOverview({
 					showSteppedJoin ? "mt-0 border-t-0" : "-mt-4 border-t-0 pt-6",
 				)}
 			>
-				<ItemMaterialStatusDetail status={productionItem.materialStatus} />
 				<ProductionItemDetailTabs
 					scope={scope}
 					pipelineRevision={pipelineRevision}
@@ -2659,6 +2655,7 @@ function ProductionItemCard({
 							</div>
 							<ItemMaterialStatusBadge
 								status={item.materialStatus}
+								audience={scope}
 								className="mt-2"
 							/>
 						</div>
