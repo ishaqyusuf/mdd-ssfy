@@ -3,6 +3,7 @@ import { getLinkModules, validateLinks } from "./components/sidebar-links";
 import { createAuthLoginUrl, isAuthLoginPath } from "./lib/auth/auth-routes";
 import { fetchAuthSession } from "./lib/auth/proxy-auth-session-fetch";
 import { getAuthSessionUrl } from "./lib/auth/proxy-auth-session-url";
+import { observeProductionProxyAuth } from "./lib/auth/production-proxy-timing";
 import { type AuthSnapshot, toAuthSnapshot } from "./lib/auth/auth-snapshot";
 import {
     resolveCanonicalPath,
@@ -50,7 +51,7 @@ export default async function proxy(req: NextRequest) {
     const safeReturnTo = getSafeReturnTo(req);
     const loginUrl = createAuthLoginUrl(req, returnTo);
     const isLogin = isAuthLoginPath(pathName);
-    const auth = await getAuth(req);
+    const auth = await observeProductionProxyAuth(newUrl, () => getAuth(req));
     if (auth) {
         const defaultLink = getDefaultLink(auth);
         const returnToPathName = safeReturnTo

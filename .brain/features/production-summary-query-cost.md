@@ -61,3 +61,12 @@ Both independent review axes are clear and Calendar hydration checks pass
 3/3. The probe is diagnostic, not a timeout fix, and must be removed after
 root-cause verification. Deployment and measured phase evidence belong in
 Scratch; this document alone does not claim the probe is live.
+
+The companion `observeProductionProxyAuth` observes the existing proxy session
+resolution only on the exact flagged Production route. Static start/settled/
+rejected events distinguish this wait from the remaining pre-page interval.
+It preserves the original resolver call, auth result/null/rejection, and all
+redirect/permission logic. Both temporary probes require removal after diagnosis.
+Focused auth/cache/URL/retry/diagnostic tests pass16/16 with39assertions; the
+new helper and its test pass a targeted semantic TypeScript check. This is not
+a replacement for the still-unverified broad dashboard compiler run.
