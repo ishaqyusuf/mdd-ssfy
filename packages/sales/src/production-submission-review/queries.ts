@@ -10,6 +10,10 @@ import { getSalesPipelineSnapshots } from "../sales-pipeline-order";
 import type { Db } from "../types";
 import { classifyProductionMaterialReviewActionability } from "./actionability";
 import {
+	productionMaterialReviewScopeSubmissionSelect,
+	validateProductionMaterialReviewAssignmentScope,
+} from "./assignment-scope";
+import {
 	type ProductionSubmissionItemScope,
 	evaluateProductionSubmissionMaterialEvidence,
 } from "./service";
@@ -154,9 +158,10 @@ export async function getActionablePendingReviewIds(
 					salesOrderId: true,
 					status: true,
 					assignmentScope: true,
+					submittedById: true,
 					submissions: {
 						where: { deletedAt: null },
-						select: { id: true },
+						select: productionMaterialReviewScopeSubmissionSelect,
 					},
 				},
 				orderBy: { id: "asc" },
@@ -183,6 +188,9 @@ export async function getActionablePendingReviewIds(
 					activeSubmissionCount: candidate.submissions.length,
 					superseded: await dependencies.isSuperseded(db, candidate),
 					materialStatus,
+					assignmentScopeIssues:
+						validateProductionMaterialReviewAssignmentScope(candidate)
+							.staleReasons,
 				});
 				if (actionability.actionable) {
 					actionabilityById.set(candidate.id, {
@@ -354,6 +362,7 @@ export async function getProductionSubmissionMaterialReviewQueue(
 						activeSubmissionCount: review.submissions.length,
 						superseded: false,
 						materialStatus: materialStatusCode,
+						assignmentScopeIssues: null,
 					}),
 			};
 		}),
@@ -364,7 +373,12 @@ export async function getProductionSubmissionMaterialReviewQueue(
 export async function getProductionSubmissionMaterialReviewDetail(
 	db: Db,
 	reviewId: number,
+	dependencyOverrides: Partial<ActionableReviewDependencies> = {},
 ) {
+	const dependencies = {
+		...defaultActionableReviewDependencies,
+		...dependencyOverrides,
+	};
 	const review =
 		await db.salesProductionSubmissionMaterialReview.findUniqueOrThrow({
 			where: { id: reviewId },
@@ -388,16 +402,7 @@ export async function getProductionSubmissionMaterialReviewDetail(
 					select: { id: true, name: true },
 				},
 				submissions: {
-					select: {
-						id: true,
-						assignmentId: true,
-						salesOrderItemId: true,
-						qty: true,
-						lhQty: true,
-						rhQty: true,
-						createdAt: true,
-						deletedAt: true,
-					},
+					select: productionMaterialReviewScopeSubmissionSelect,
 				},
 			},
 		});
@@ -408,15 +413,12 @@ export async function getProductionSubmissionMaterialReviewDetail(
 		Boolean(submission.deletedAt),
 	);
 	const itemScope = parseItemScope(review.assignmentScope);
-	const currentEvidence = await evaluateProductionSubmissionMaterialEvidence(
-		db,
-		{
-			salesOrderId: review.salesOrderId,
-			itemScope,
-		},
-	);
+	const currentEvidence = await dependencies.evaluateEvidence(db, {
+		salesOrderId: review.salesOrderId,
+		itemScope,
+	});
 	const pipeline = (
-		await getSalesPipelineSnapshots(db, [review.salesOrderId])
+		await dependencies.getSnapshots(db, [review.salesOrderId])
 	).get(review.salesOrderId);
 	const materialStatus = getDominantItemMaterialStatusCode(
 		currentEvidence.itemMaterialStatuses.map((status) => status.code),
@@ -425,8 +427,12 @@ export async function getProductionSubmissionMaterialReviewDetail(
 		reviewStatus: review.status,
 		terminalOrder: isTerminalOrder(pipeline),
 		activeSubmissionCount: activeSubmissions.length,
-		superseded: await isSupersededReview(db, review),
+		superseded: await dependencies.isSuperseded(db, review),
 		materialStatus,
+		assignmentScopeIssues: validateProductionMaterialReviewAssignmentScope({
+			...review,
+			submissions: activeSubmissions,
+		}).staleReasons,
 	});
 	const productionItemControls = itemScope.length
 		? await db.salesItemControl.findMany({
@@ -520,11 +526,24 @@ export async function getProductionSubmissionMaterialReviewDetail(
 		});
 	}
 	const linkedInboundReceipts = Array.from(linkedInboundReceiptMap.values());
+	// Assignment proof is internal; preserve the existing viewer response fields.
+	const publicSubmission = (
+		submission: (typeof review.submissions)[number],
+	) => ({
+		id: submission.id,
+		assignmentId: submission.assignmentId,
+		salesOrderItemId: submission.salesOrderItemId,
+		qty: submission.qty,
+		lhQty: submission.lhQty,
+		rhQty: submission.rhQty,
+		createdAt: submission.createdAt,
+		deletedAt: submission.deletedAt,
+	});
 	return {
 		...review,
 		pipelineRevision: pipeline?.revision ?? null,
-		submissions: activeSubmissions,
-		retractedSubmissions,
+		submissions: activeSubmissions.map(publicSubmission),
+		retractedSubmissions: retractedSubmissions.map(publicSubmission),
 		hasRetractedSubmissions: retractedSubmissions.length > 0,
 		itemScope,
 		productionItems: productionItemControls.map((item) => ({

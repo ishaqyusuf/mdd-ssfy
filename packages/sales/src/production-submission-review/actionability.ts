@@ -1,7 +1,7 @@
 import type { ItemMaterialStatusCode } from "../item-material-status";
 
 export const PRODUCTION_MATERIAL_REVIEW_CLASSIFICATION_VERSION =
-	"production-material-review/v1" as const;
+	"production-material-review/v2" as const;
 
 export type ProductionMaterialReviewClassification =
 	| "actionable_unresolved"
@@ -33,6 +33,7 @@ export function classifyProductionMaterialReviewActionability(input: {
 	activeSubmissionCount: number;
 	superseded: boolean;
 	materialStatus: ItemMaterialStatusCode;
+	assignmentScopeIssues: readonly string[] | null;
 }): ProductionMaterialReviewActionability {
 	const base = { version: PRODUCTION_MATERIAL_REVIEW_CLASSIFICATION_VERSION };
 	if (input.reviewStatus !== "PENDING") {
@@ -40,7 +41,8 @@ export function classifyProductionMaterialReviewActionability(input: {
 			...base,
 			classification: "closed",
 			actionable: false,
-			reason: "The review is already closed and remains available as audit history.",
+			reason:
+				"The review is already closed and remains available as audit history.",
 			supportedRepair: null,
 		};
 	}
@@ -71,6 +73,15 @@ export function classifyProductionMaterialReviewActionability(input: {
 			supportedRepair: null,
 		};
 	}
+	if (!input.assignmentScopeIssues || input.assignmentScopeIssues.length > 0) {
+		return {
+			...base,
+			classification: "ambiguous",
+			actionable: true,
+			reason: `Assignment history must be reviewed before material finalization: ${input.assignmentScopeIssues?.join(", ") || "scope evidence unavailable"}.`,
+			supportedRepair: null,
+		};
+	}
 	if (
 		input.materialStatus === "material_ready" ||
 		input.materialStatus === "ready_review_pending"
@@ -79,7 +90,8 @@ export function classifyProductionMaterialReviewActionability(input: {
 			...base,
 			classification: "ready_to_converge",
 			actionable: true,
-			reason: "Current material evidence is ready and review finalization remains.",
+			reason:
+				"Current material evidence is ready and review finalization remains.",
 			supportedRepair: "approve_ready",
 		};
 	}
@@ -88,7 +100,8 @@ export function classifyProductionMaterialReviewActionability(input: {
 			...base,
 			classification: "eligibility_conflict",
 			actionable: true,
-			reason: "Production evidence conflicts with synchronized eligibility metadata.",
+			reason:
+				"Production evidence conflicts with synchronized eligibility metadata.",
 			supportedRepair: null,
 		};
 	}

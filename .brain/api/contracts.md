@@ -1,5 +1,20 @@
 # API Contracts
 
+## Production material-review assignment preflight (2026-09-05)
+
+- Review list/count/detail actionability uses classification
+  `production-material-review/v2`. It checks the same assignment-scope proof as
+  the transactional decision command, not material readiness alone.
+- Missing or stale proof returns `ambiguous`, remains actionable for human
+  review, and exposes no supported automatic repair. Existing closed,
+  terminal, empty/retracted, and superseded precedence is preserved.
+- Query selectors load the necessary assignment fields with each bounded
+  candidate batch. Commands still validate current evidence inside the
+  transaction; permissions and mutation semantics are unchanged.
+- The extra assignment proof and submission metadata are internal only. Detail
+  responses keep their previous eight-field submission shape for both active
+  and retracted rows; current personnel/payroll fields are not newly exposed.
+
 ## Canonical Sales Pipeline Lifecycle (2026-09-02)
 
 - `sales-pipeline/v2` is the shared lifecycle response contract. It includes an

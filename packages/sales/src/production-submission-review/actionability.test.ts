@@ -7,6 +7,7 @@ const current = {
 	terminalOrder: false,
 	activeSubmissionCount: 1,
 	superseded: false,
+	assignmentScopeIssues: [],
 };
 
 describe("classifyProductionMaterialReviewActionability", () => {
@@ -19,17 +20,14 @@ describe("classifyProductionMaterialReviewActionability", () => {
 		["material_conflict", "eligibility_conflict", true],
 		["setup_needed", "true_setup_missing", true],
 		["status_unknown", "ambiguous", true],
-	] as const)(
-		"classifies %s as %s",
-		(materialStatus, expected, actionable) => {
-			expect(
-				classifyProductionMaterialReviewActionability({
-					...current,
-					materialStatus,
-				}),
-			).toMatchObject({ classification: expected, actionable });
-		},
-	);
+	] as const)("classifies %s as %s", (materialStatus, expected, actionable) => {
+		expect(
+			classifyProductionMaterialReviewActionability({
+				...current,
+				materialStatus,
+			}),
+		).toMatchObject({ classification: expected, actionable });
+	});
 
 	it("removes terminal, empty/retracted, superseded, and closed reviews from active work", () => {
 		expect(

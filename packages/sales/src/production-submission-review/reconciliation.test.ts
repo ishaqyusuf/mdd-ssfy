@@ -20,6 +20,7 @@ function actionability(
 		terminalOrder: false,
 		activeSubmissionCount: 1,
 		superseded: false,
+		assignmentScopeIssues: [],
 		materialStatus: "material_shortage",
 		...input,
 	});
