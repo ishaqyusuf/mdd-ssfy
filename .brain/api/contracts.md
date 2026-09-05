@@ -1,5 +1,16 @@
 # API Contracts
 
+## Production filter worker options (2026-09-05)
+
+- The Assigned To option loader selects only worker ID/name and runs alongside
+  independent base sales options. It must not invoke employee-management
+  permission seeding, counts, document/profile enrichment or grant reporting.
+- Existing Production-role and active-access scope, soft-delete exclusion,
+  alphabetical first-20 page, empty-label filtering, and string-valued worker
+  IDs are preserved. A worker read failure rejects the filter response rather
+  than silently returning incomplete options. All other option contracts and
+  route authorization are unchanged by this bounded optimization.
+
 ## Fulfillment order headline parity (2026-09-05)
 
 - Fulfillment Backlog and both Dispatch list control-read variants project the

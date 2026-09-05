@@ -1,3 +1,4 @@
+import { whereEmployees } from "@api/prisma-where";
 import type { CommunityTemplateQueryParams } from "@api/schemas/community";
 import type { GetEmployeesSchema } from "@api/schemas/hrm";
 import type { DispatchQueryParamsSchema } from "@api/schemas/sales";
@@ -12,6 +13,7 @@ import type { GetBuildersSchema } from "@community/builder";
 import { salesFilterOptionsCache } from "@gnd/cache/sales-filter-options-cache";
 import { labelValueOptions, sortList, uniqueList } from "@gnd/utils";
 import { getColorFromName } from "@gnd/utils/colors";
+import { queryMeta } from "@gnd/utils/query-response";
 import {
   INVOICE_FILTER_OPTIONS,
   PRODUCTION_FILTER_OPTIONS,
@@ -57,7 +59,6 @@ import {
 } from "./community";
 import type { GetCommunityTemplatesSchema } from "./community-template";
 import type { GetCustomerServicesSchema } from "./customer-service";
-import { getEmployeesList } from "./hrm";
 import type { GetJobsSchema } from "./jobs";
 import type { GetContractorPayoutsSchema } from "./jobs";
 import type { ProductReportSchema } from "./product-report";
@@ -932,7 +933,17 @@ function transformFilter<T extends { key: string; value: any }>(
 }
 
 export async function getSalesProductionFilters(ctx: TRPCContext) {
-  const baseFilters = await getSalesOrderFilters(ctx, true);
+  // Preserve the existing HR option scope/page without loading employee details,
+  // counting rows, or seeding permissions from a filter read.
+  const [baseFilters, workers] = await Promise.all([
+    getSalesOrderFilters(ctx, true),
+    ctx.db.users.findMany({
+      where: { ...whereEmployees({ roles: ["Production"] }), deletedAt: null },
+      ...queryMeta({}),
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
   type T = keyof SalesProductionQueryParams;
   type FilterData = PageFilterData<T>;
   const inheritedFilterKeys = new Set<string>([
@@ -986,9 +997,7 @@ export async function getSalesProductionFilters(ctx: TRPCContext) {
       type: "checkbox",
       label: "Assigned To",
       options: labelValueOptions(
-        await getEmployeesList(ctx, {
-          roles: ["Production"],
-        }),
+        workers.map(({ id, name }) => ({ id: String(id), name })),
         "name",
         "id",
       ),
