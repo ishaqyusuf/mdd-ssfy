@@ -519,9 +519,13 @@ describe("sales production priority sorting", () => {
 
 	it("applies search and canonical schedule membership before due sorting", async () => {
 		const findManyCalls: Array<SalesFindManyArgs & { where?: unknown }> = [];
+		let assignmentOrderScope: unknown;
 		const db = {
 			orderItemProductionAssignments: {
-				findMany: async () => [],
+				findMany: async ({ where }: { where: { order?: unknown } }) => {
+					assignmentOrderScope = where.order;
+					return [];
+				},
 			},
 			salesOrders: {
 				count: async () => 100,
@@ -540,6 +544,7 @@ describe("sales production priority sorting", () => {
 		});
 
 		expect(findManyCalls[0]?.skip).toBeUndefined();
+		expect(JSON.stringify(assignmentOrderScope)).toContain("needle");
 		const serializedWhere = JSON.stringify(findManyCalls[0]?.where);
 		expect(serializedWhere).toContain("needle");
 		expect(serializedWhere).toContain('"id":{"in":[]');
@@ -572,9 +577,13 @@ describe("sales production priority sorting", () => {
 	it("keeps open counts database-side and resolves Completed canonically", async () => {
 		let countCalls = 0;
 		let lifecycleReadCalls = 0;
+		const assignmentScopes: Array<{ completedAt?: Date | null }> = [];
 		const db = {
 			orderItemProductionAssignments: {
-				findMany: async () => [],
+				findMany: async ({ where }: { where: { completedAt?: Date | null } }) => {
+					assignmentScopes.push(where);
+					return [];
+				},
 			},
 			salesOrders: {
 				count: async () => {
@@ -598,12 +607,22 @@ describe("sales production priority sorting", () => {
 
 		expect(countCalls).toBe(8);
 		expect(lifecycleReadCalls).toBe(0);
+		expect(assignmentScopes).toHaveLength(5);
+		for (const scope of assignmentScopes) {
+			expect(scope.completedAt).toBeNull();
+		}
 	});
 
 	it.each([null, 44])("preserves Paid and workspace filters in every summary count for worker %s", async (workerId) => {
 		const countScopes: unknown[] = [];
+		const assignmentScopes: Array<{ order?: unknown; assignedToId?: number }> = [];
 		const db = {
-			orderItemProductionAssignments: { findMany: async () => [] },
+			orderItemProductionAssignments: {
+				findMany: async ({ where }: { where: { order?: unknown; assignedToId?: number } }) => {
+					assignmentScopes.push(where);
+					return [];
+				},
+			},
 			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 			salesOrderListProjection: { findMany: async () => [] },
 			salesOrders: {
@@ -628,7 +647,12 @@ describe("sales production priority sorting", () => {
 		});
 
 		expect(countScopes).toHaveLength(8);
-		for (const scope of countScopes) {
+		expect(assignmentScopes).toHaveLength(5);
+		for (const scope of assignmentScopes) {
+			expect(scope.order).toBeDefined();
+			expect(scope.assignedToId).toBe(workerId ?? undefined);
+		}
+		for (const scope of [...countScopes, ...assignmentScopes.map((scope) => scope.order)]) {
 			const serialized = JSON.stringify(scope);
 			expect(serialized).toContain('"amountDue":0');
 			expect(serialized).toContain('"contains":"Filter Customer"');

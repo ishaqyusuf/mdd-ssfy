@@ -41,11 +41,15 @@ timed out after 30 seconds without identifying the live exception. Local
 diagnosis cannot substitute for live health evidence. Current operational
 evidence and remaining acceptance gates are tracked in Scratch Ticket 14.
 
-The September 5 follow-up release is READY on both live domains, but its
-unfiltered Production page still exceeds the 15-second serving deadline.
-Exact-deployment logs confirm timeout failures on the page and batched
-summary/list endpoint; successful deployment and local recovery are not live
-acceptance. The remaining query-cost investigation is tracked in Ticket 14.
+The September 5 follow-up release is READY on both live domains. Initially,
+exact-deployment logs confirmed 15-second timeout failures on the unfiltered
+Production page and batched summary/list endpoint. Two later, backed,
+single-order derived-cache repairs (20780 and 26689) independently verify
+clean revisions without changing operational facts. The actual live browser
+now loads analytics, tabs, and rows, matching the successful direct summary.
+This observed recovery does not prove latency or status parity: completed
+09498DB and non-production 09471LM still appear in Active. Query-cost and
+cohort membership/presentation consistency remain open in Scratch Ticket 14.
 
 The reconciliation CLI accepts `--order-id <id>` or `--order-id=<id>` to limit
 discovery and therefore classification, backups, and derived-cache repairs
@@ -61,6 +65,17 @@ IDs are retained across pages. The summary still fails visibly rather than
 returning a partial or stale count. This reduces retained snapshot memory and
 wasted reads after a stale page; it is not a cache repair or a claim that the
 full-population request meets its latency budget.
+
+Date-scoped Production list and summary reads apply their existing final
+order predicate to initial assignment discovery, retaining customer, payment,
+search, and worker filters before evidence enrichment. Timestamp-completed
+assignments are excluded at that read boundary because the shared open-work
+resolver always rejects them; quantity/submission checks and the final order
+intersection remain unchanged. Read-only Production comparisons preserve all
+nine summary counts, but most legacy assignment rows lack completion dates,
+so this narrow pushdown does not resolve full-summary latency. Ticket 14
+retains phase timings and the remaining full-evidence loading gate. No schema
+or public contract changed; this prefilter correction is not yet deployed.
 
 Canonical Production workspace membership partitions assignments with one
 shared open/completed evidence predicate. Fully approved submissions qualify

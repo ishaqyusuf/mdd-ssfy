@@ -660,8 +660,10 @@ async function buildProductionScheduleMembershipWhere(
 	const assignments = await db.orderItemProductionAssignments.findMany({
 		where: {
 			deletedAt: null,
+			completedAt: null,
 			assignedToId: query["production.assignedToId"] || undefined,
 			dueDate,
+			order: baseWhere,
 		},
 		select: {
 			orderId: true,
