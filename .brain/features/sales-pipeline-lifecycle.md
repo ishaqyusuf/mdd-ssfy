@@ -31,6 +31,18 @@ versions are unchanged. Operator validation generates Prisma with a dummy
 URL and runs the real script suites without a database connection; a working
 developer installation alone is not proof that the operator bundle is usable.
 
+The shared full-evidence snapshot loader retains 250-order bounded batches
+and uses four concurrent, independent read branches: commercial/header
+evidence, item controls, Production assignments/submissions, and Fulfillment
+deliveries. All branches reuse the existing canonical select fields and join
+by order ID before the unchanged resolver runs. An ID present in only some
+branches rejects rather than becoming an empty stage; IDs absent everywhere
+retain not-found behavior. This does not promise atomic reads during concurrent
+updates, increase transaction guarantees, cache evidence, or remove revision
+validation. A read-only 250-order comparison produced identical revisions;
+Scratch records operator timings separately from the unproven runtime p95.
+This loader optimization is not yet deployed.
+
 Fulfillment's Backlog and Dispatch order headlines use the same cohort-selected
 canonical projection as Orders/Overview. Headline and Production dimension
 switch together; Dispatch operational status remains a separate dimension.

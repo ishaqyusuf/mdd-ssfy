@@ -215,8 +215,8 @@ describe("sales performance report query", () => {
 					aggregate: async () => ({ _sum: { grandTotal: 100 } }),
 					count: async ({ where }: { where: { type?: string } }) =>
 						where.type === "order" ? 1 : 0,
-					findMany: async (args: { select?: Record<string, unknown> }) => {
-						if (args.select?.itemControls) {
+					findMany: async (args: { where?: { id?: { in: number[] } } }) => {
+						if (args.where?.id?.in) {
 							pipelineReads += 1;
 							return [
 								{
@@ -284,7 +284,7 @@ describe("sales performance report query", () => {
 			},
 		);
 
-		expect(pipelineReads).toBe(1);
+		expect(pipelineReads).toBe(4);
 		expect(report.sheets[2]?.rows[0]).toMatchObject({
 			lifecycleStatus: "Awaiting production",
 		});
@@ -300,8 +300,8 @@ describe("sales performance report query", () => {
 					aggregate: async () => ({ _sum: { grandTotal: 100 } }),
 					count: async ({ where }: { where: { type?: string } }) =>
 						where.type === "order" ? 1 : 0,
-					findMany: async (args: { select?: Record<string, unknown> }) =>
-						args.select?.itemControls
+					findMany: async (args: { where?: { id?: { in: number[] } } }) =>
+						args.where?.id?.in
 							? []
 							: [
 									{

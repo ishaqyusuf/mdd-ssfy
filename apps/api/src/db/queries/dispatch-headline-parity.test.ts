@@ -123,7 +123,7 @@ describe("Fulfillment query headline parity", () => {
 					expect(row.order).not.toHaveProperty("assignments");
 					expect(row.pipeline).not.toHaveProperty("evidence");
 				}
-				expect(evidenceReads).toEqual([[42]]);
+				expect(evidenceReads).toEqual([[42], [42], [42], [42]]);
 			} finally {
 				for (const key of keys) process.env[key] = previous[key];
 			}
@@ -147,7 +147,7 @@ describe("Fulfillment query headline parity", () => {
 					take?: number;
 					skip?: number;
 				}) => {
-					if (args.select.assignments) {
+					if (args.where.id?.in) {
 						const ids = args.where.id?.in ?? [];
 						evidenceReads.push(ids);
 						return ids.map(pipelineRow);
@@ -186,7 +186,7 @@ describe("Fulfillment query headline parity", () => {
 				})),
 			);
 			expect(result.meta).toMatchObject({ count: 100, size: 2, cursor: "22" });
-			expect(evidenceReads).toEqual([[42, 43]]);
+			expect(evidenceReads).toEqual([[42, 43], [42, 43], [42, 43], [42, 43]]);
 		} finally {
 			process.env.SALES_PIPELINE_READ_MODE = previous.mode;
 			process.env.SALES_PIPELINE_COHORT_PERCENT = previous.cohort;

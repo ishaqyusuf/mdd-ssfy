@@ -502,7 +502,8 @@ describe("sales orders default query contract", () => {
 					);
 
 					expect(result.data).toEqual([]);
-					expect(findManyCalls).toBe(3);
+					// Candidate page, four bounded evidence branches, one fallback page.
+					expect(findManyCalls).toBe(6);
 					const performanceEvents = events.filter(
 						(event) => event[0] === "[sales-orders-performance]",
 					);

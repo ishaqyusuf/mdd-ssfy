@@ -827,6 +827,7 @@ describe("sales production priority sorting", () => {
 						stat: [],
 						itemControls: [],
 						assignments: [],
+						deliveries: [],
 					},
 				],
 			},

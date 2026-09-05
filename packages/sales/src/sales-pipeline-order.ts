@@ -335,13 +335,49 @@ export async function getSalesPipelineSnapshots(
 		return new Map<number, SalesPipelineSnapshot>();
 	const ids = Array.from(new Set(salesOrderIds));
 	const snapshots = new Map<number, SalesPipelineSnapshot>();
+	const { itemControls, assignments, deliveries, ...headerSelect } =
+		salesPipelineOrderSelect;
 	for (let index = 0; index < ids.length; index += 250) {
-		const rows = await db.salesOrders.findMany({
-			where: { id: { in: ids.slice(index, index + 250) } },
-			select: salesPipelineOrderSelect,
-		});
-		for (const row of rows) {
-			snapshots.set(row.id, resolveSalesPipelineSnapshotFromOrder(row));
+		const where = { id: { in: ids.slice(index, index + 250) } };
+		const [headers, controls, work, fulfillment] = await Promise.all([
+			db.salesOrders.findMany({ where, select: headerSelect }),
+			db.salesOrders.findMany({ where, select: { id: true, itemControls } }),
+			db.salesOrders.findMany({ where, select: { id: true, assignments } }),
+			db.salesOrders.findMany({ where, select: { id: true, deliveries } }),
+		]);
+		const headersById = new Map(headers.map((row) => [row.id, row]));
+		const controlsById = new Map(
+			controls.map((row) => [row.id, row.itemControls]),
+		);
+		const workById = new Map(work.map((row) => [row.id, row.assignments]));
+		const fulfillmentById = new Map(
+			fulfillment.map((row) => [row.id, row.deliveries]),
+		);
+		const loadedIds = new Set([
+			...headersById.keys(),
+			...controlsById.keys(),
+			...workById.keys(),
+			...fulfillmentById.keys(),
+		]);
+		for (const id of loadedIds) {
+			const row = headersById.get(id);
+			const itemControls = controlsById.get(id);
+			const assignments = workById.get(id);
+			const deliveries = fulfillmentById.get(id);
+			if (!row || !itemControls || !assignments || !deliveries) {
+				throw new Error(
+					`Sales Pipeline evidence changed while loading order ${id}. Refresh and retry.`,
+				);
+			}
+			snapshots.set(
+				row.id,
+				resolveSalesPipelineSnapshotFromOrder({
+					...row,
+					itemControls,
+					assignments,
+					deliveries,
+				}),
+			);
 		}
 	}
 	return snapshots;
