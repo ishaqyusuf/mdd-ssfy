@@ -3,9 +3,9 @@ import { runDbTransaction } from "@gnd/db/transactions";
 import { AppError } from "@gnd/errors";
 
 import {
-	evaluateSalesPipelineCommand,
 	type SalesPipelineCommand,
 	type SalesPipelineCommandDecision,
+	evaluateSalesPipelineCommand,
 } from "./sales-pipeline-commands";
 import { getSalesPipelineSnapshots } from "./sales-pipeline-order";
 
@@ -53,9 +53,8 @@ const defaultDependencies: ExecutorDependencies = {
 };
 
 function createNestedTransactionDb(tx: TransactionClient) {
-	let nested: Db;
 	const target = tx as unknown as object;
-	nested = new Proxy(target, {
+	const nested: Db = new Proxy(target, {
 		get(current, property, receiver) {
 			if (property === "$transaction") {
 				return async (
@@ -81,6 +80,7 @@ export async function runSalesPipelineCommandTransaction<T>(
 		expectedRevision?: string | null;
 		enforce: boolean;
 		executeOnReplay?: boolean;
+		retryOnWriteConflict?: boolean;
 		operation: string;
 	},
 	execute: (
@@ -95,7 +95,7 @@ export async function runSalesPipelineCommandTransaction<T>(
 			client: db,
 			operation: input.operation,
 			profile: "workflow",
-			retryOnWriteConflict: true,
+			retryOnWriteConflict: input.retryOnWriteConflict ?? true,
 		},
 		async (tx) => {
 			await dependencies.lockSalesOrder(tx, input.salesOrderId);

@@ -1,0 +1,24 @@
+{
+	"extends": "../packages/sales/tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"paths": {
+			"@community/*": ["../community/src/*"],
+			"react": ["./node_modules/@types/react"],
+			"react/*": ["./node_modules/@types/react/*"]
+		}
+	},
+	"include": [
+		"production-material-review-reconcile.ts",
+		"production-material-review-reconcile.test.ts",
+		"production-material-review-scan.ts",
+		"production-material-review-scan.test.ts",
+		"sales-pipeline-database-retry.ts",
+		"sales-pipeline-reconcile.ts",
+		"sales-pipeline-reconcile.test.ts",
+		"sales-pipeline-shadow-report.ts",
+		"sales-pipeline-shadow-report.test.ts",
+		"../types"
+	],
+	"exclude": ["node_modules"]
+}

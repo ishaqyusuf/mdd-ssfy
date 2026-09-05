@@ -2,15 +2,27 @@ import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { userHasPermission } from "@gnd/auth/utils";
-import { db } from "@gnd/db";
+import { createDatabaseClient, db } from "@gnd/db";
+import { runSalesPipelineCommandTransaction } from "@gnd/sales";
 import { getDominantItemMaterialStatusCode } from "@gnd/sales/item-material-status";
 import {
+	PRODUCTION_MATERIAL_REVIEW_CLASSIFICATION_VERSION,
+	type ProductionMaterialReviewRepairOperation,
 	applyProductionMaterialReviewHistoryRepair,
 	buildProductionMaterialReviewRepairPlan,
 	decideProductionSubmissionMaterialReview,
 	getProductionSubmissionMaterialReviewDetail,
-	type ProductionMaterialReviewRepairOperation,
 } from "@gnd/sales/production-submission-review";
+import {
+	productionMaterialReviewScanOperation,
+	readReconciliationInteger,
+	runProductionMaterialReviewScan,
+} from "./production-material-review-scan";
+import {
+	type DatabaseRetryOptions,
+	runDatabaseCli,
+	withDatabaseReadRetry,
+} from "./sales-pipeline-database-retry";
 
 const args = new Set(process.argv.slice(2));
 const applyHistory = args.has("--apply-history");
@@ -22,15 +34,79 @@ const valueAfter = (flag: string) => {
 };
 const batchSize = Math.min(
 	100,
-	Math.max(1, Number(valueAfter("--batch-size") || 25)),
+	readReconciliationInteger(process.argv, "--batch-size", 25, 1),
 );
-const maxMutations = Math.max(
+const maxMutations = readReconciliationInteger(
+	process.argv,
+	"--max-mutations",
+	Number.POSITIVE_INFINITY,
+);
+const afterReviewId = readReconciliationInteger(
+	process.argv,
+	"--after-review-id",
 	0,
-	Number(valueAfter("--max-mutations") || Number.POSITIVE_INFINITY),
 );
-const actorId = Number(valueAfter("--actor-id") || 0);
+const throughReviewIdValue = readReconciliationInteger(
+	process.argv,
+	"--through-review-id",
+	Number.POSITIVE_INFINITY,
+	1,
+);
+const throughReviewId = Number.isFinite(throughReviewIdValue)
+	? throughReviewIdValue
+	: null;
+const maxCandidatesValue = readReconciliationInteger(
+	process.argv,
+	"--max-candidates",
+	Number.POSITIVE_INFINITY,
+	1,
+);
+const maxCandidates = Number.isFinite(maxCandidatesValue)
+	? maxCandidatesValue
+	: null;
+const actorId = readReconciliationInteger(process.argv, "--actor-id", 0, 1);
 const reason = valueAfter("--reason")?.trim();
 const outputPath = valueAfter("--output");
+
+type ProductionMaterialReviewReadRetryOptions = DatabaseRetryOptions & {
+	resetConnection?: () => Promise<void> | void;
+};
+
+let reconciliationDb = db;
+
+async function resetProductionDatabaseConnection() {
+	const failedDb = reconciliationDb;
+	reconciliationDb = createDatabaseClient();
+	void failedDb.$disconnect().catch(() => {
+		// The failed client is never reused; cleanup must not block recovery.
+	});
+}
+
+export async function withProductionMaterialReviewReadRetry<T>(
+	operation: () => Promise<T>,
+	options: ProductionMaterialReviewReadRetryOptions = {},
+) {
+	const { resetConnection, ...retryOptions } = options;
+	return withDatabaseReadRetry(operation, {
+		// Do not accumulate twenty abandoned driver clients during an outage.
+		attempts: 3,
+		...retryOptions,
+		onRetry: async (error, attempt) => {
+			if (import.meta.main) {
+				const code = (error as { code?: unknown })?.code;
+				console.error(
+					JSON.stringify({
+						event: "read_retry",
+						attempt,
+						code: typeof code === "string" ? code : "connection_error",
+					}),
+				);
+			}
+			await retryOptions.onRetry?.(error, attempt);
+			await (resetConnection ?? resetProductionDatabaseConnection)();
+		},
+	});
+}
 
 async function requireAuthorizedActor() {
 	if (!actorId || !reason) {
@@ -38,13 +114,19 @@ async function requireAuthorizedActor() {
 			"Mutation mode requires --actor-id and --reason for auditability.",
 		);
 	}
-	if (!(await userHasPermission(db, actorId, "editProduction"))) {
+	if (
+		!(await withProductionMaterialReviewReadRetry(() =>
+			userHasPermission(reconciliationDb, actorId, "editProduction"),
+		))
+	) {
 		throw new Error("The reconciliation actor cannot edit Production.");
 	}
-	const actor = await db.users.findUnique({
-		where: { id: actorId },
-		select: { id: true, name: true },
-	});
+	const actor = await withProductionMaterialReviewReadRetry(() =>
+		reconciliationDb.users.findUnique({
+			where: { id: actorId },
+			select: { id: true, name: true },
+		}),
+	);
 	if (!actor) throw new Error("The reconciliation actor was not found.");
 	return { id: actor.id, name: actor.name || `User ${actor.id}` };
 }
@@ -52,16 +134,46 @@ async function requireAuthorizedActor() {
 async function main() {
 	const startedAt = new Date();
 	const actor = applying ? await requireAuthorizedActor() : null;
-	const candidates = await db.salesProductionSubmissionMaterialReview.findMany({
-		where: { status: "PENDING" },
-		orderBy: { id: "asc" },
-		select: {
-			id: true,
-			updatedAt: true,
-			classificationReason: true,
-			submittedAt: true,
-		},
-	});
+	if (throughReviewId != null && throughReviewId <= afterReviewId) {
+		throw new Error(
+			"--through-review-id must be greater than --after-review-id.",
+		);
+	}
+	const candidateWindow = await withProductionMaterialReviewReadRetry(() =>
+		reconciliationDb.salesProductionSubmissionMaterialReview.findMany({
+			where: {
+				status: "PENDING",
+				id:
+					afterReviewId > 0 || throughReviewId != null
+						? {
+								...(afterReviewId > 0 ? { gt: afterReviewId } : {}),
+								...(throughReviewId != null ? { lte: throughReviewId } : {}),
+							}
+						: undefined,
+			},
+			orderBy: { id: "asc" },
+			take: maxCandidates == null ? undefined : maxCandidates + 1,
+			select: {
+				id: true,
+				updatedAt: true,
+				classificationReason: true,
+				submittedAt: true,
+			},
+		}),
+	);
+	const hasMoreCandidates =
+		maxCandidates != null && candidateWindow.length > maxCandidates;
+	const candidates =
+		maxCandidates == null
+			? candidateWindow
+			: candidateWindow.slice(0, maxCandidates);
+	console.error(
+		JSON.stringify({
+			event: "scan_started",
+			mode: applying ? "apply" : "dry-run",
+			candidateCount: candidates.length,
+		}),
+	);
 	const rows: Array<{
 		reviewId: number;
 		orderNo: string | null;
@@ -78,25 +190,140 @@ async function main() {
 		changed: boolean;
 		error: string | null;
 	}> = [];
-	let mutationCount = 0;
-	for (let index = 0; index < candidates.length; index += batchSize) {
-		const batch = candidates.slice(index, index + batchSize);
-		const details = await Promise.allSettled(
-			batch.map((candidate) =>
-				getProductionSubmissionMaterialReviewDetail(db, candidate.id),
-			),
-		);
-		for (const [detailIndex, result] of details.entries()) {
-			const candidate = batch[detailIndex];
-			if (!candidate) continue;
-			if (result.status === "rejected") {
+	const { mutationCount, stopReason, lastSuccessfulReviewId } =
+		await runProductionMaterialReviewScan({
+			candidates,
+			maxMutations,
+			load: async (candidate) => {
+				const readStartedAt = Date.now();
+				console.error(
+					JSON.stringify({
+						event: "review_read_started",
+						reviewId: candidate.id,
+					}),
+				);
+				const detail = await withProductionMaterialReviewReadRetry(() =>
+					getProductionSubmissionMaterialReviewDetail(
+						reconciliationDb,
+						candidate.id,
+					),
+				);
+				console.error(
+					JSON.stringify({
+						event: "review_read_completed",
+						reviewId: candidate.id,
+						elapsedMs: Date.now() - readStartedAt,
+					}),
+				);
+				const materialStatus = getDominantItemMaterialStatusCode(
+					detail.currentEvidence.itemMaterialStatuses.map(
+						(status) => status.code,
+					),
+				);
+				const plan = buildProductionMaterialReviewRepairPlan({
+					actionability: detail.actionability,
+					materialStatus,
+					storedReason: candidate.classificationReason,
+				});
+				const operation = productionMaterialReviewScanOperation(plan);
+				const operationEnabled =
+					(plan.operation === "approve_ready" && approveReady) ||
+					(plan.operation !== "approve_ready" &&
+						plan.operation !== "none" &&
+						applyHistory);
+				const row: (typeof rows)[number] = {
+					reviewId: candidate.id,
+					orderNo: detail.order.orderId,
+					orderId: detail.order.id,
+					ageDays: Math.floor(
+						(startedAt.getTime() - candidate.submittedAt.getTime()) /
+							86_400_000,
+					),
+					classification: plan.classification,
+					classificationVersion: plan.classificationVersion,
+					storedReason: candidate.classificationReason,
+					currentReason: plan.currentReason,
+					materialStatus,
+					materialRevision: detail.currentEvidence.materialRevision,
+					pipelineRevision: detail.pipelineRevision,
+					operation,
+					changed: false,
+					error: null,
+				};
+				rows.push(row);
+				return {
+					operation,
+					enabled: operationEnabled,
+					apply: async () => {
+						if (!actor || !reason)
+							throw new Error("Mutation actor and reason are required.");
+						if (plan.operation === "approve_ready") {
+							const execution = await runSalesPipelineCommandTransaction(
+								reconciliationDb,
+								{
+									salesOrderId: detail.order.id,
+									action: "production.review.resolve",
+									authorized: true,
+									expectedRevision: detail.pipelineRevision,
+									enforce: true,
+									executeOnReplay: true,
+									retryOnWriteConflict: false,
+									operation:
+										"reconciliation.production-material-review.approve",
+								},
+								(transactionDb) =>
+									decideProductionSubmissionMaterialReview(
+										transactionDb,
+										{
+											reviewId: candidate.id,
+											expectedUpdatedAt: candidate.updatedAt,
+											pipelineRevision: detail.pipelineRevision || undefined,
+											action: "RECHECK_AND_APPROVE",
+											note: reason,
+										},
+										actor,
+									),
+							);
+							row.changed =
+								execution.executed && execution.value.status === "APPROVED";
+						} else {
+							if (!detail.currentEvidence.materialRevision) {
+								throw new Error(
+									"Material revision is unavailable; re-audit before repairing history.",
+								);
+							}
+							const repair = await applyProductionMaterialReviewHistoryRepair(
+								reconciliationDb,
+								{
+									reviewId: candidate.id,
+									expectedUpdatedAt: candidate.updatedAt,
+									plan,
+									actor,
+									reason,
+									materialSnapshot: detail.currentEvidence.materialSnapshot,
+									materialRevision: detail.currentEvidence.materialRevision,
+								},
+							);
+							row.changed = repair.changed;
+						}
+						return row.changed;
+					},
+				};
+			},
+			onFailure: (candidate, phase, caught) => {
+				const error = caught instanceof Error ? caught.message : String(caught);
+				if (phase === "mutation") {
+					const row = rows.at(-1);
+					if (row) row.error = error;
+					return;
+				}
 				rows.push({
 					reviewId: candidate.id,
 					orderNo: null,
 					orderId: null,
 					ageDays: null,
 					classification: "unsafe",
-					classificationVersion: "production-material-review/v1",
+					classificationVersion: PRODUCTION_MATERIAL_REVIEW_CLASSIFICATION_VERSION,
 					storedReason: candidate.classificationReason,
 					currentReason: null,
 					materialStatus: "status_unknown",
@@ -104,83 +331,10 @@ async function main() {
 					pipelineRevision: null,
 					operation: "unsafe",
 					changed: false,
-					error:
-						result.reason instanceof Error
-							? result.reason.message
-							: String(result.reason),
+					error,
 				});
-				continue;
-			}
-			const detail = result.value;
-			const materialStatus = getDominantItemMaterialStatusCode(
-				detail.currentEvidence.itemMaterialStatuses.map(
-					(status) => status.code,
-				),
-			);
-			const plan = buildProductionMaterialReviewRepairPlan({
-				actionability: detail.actionability,
-				materialStatus,
-				storedReason: candidate.classificationReason,
-			});
-			let changed = false;
-			let error: string | null = null;
-			const operationEnabled =
-				(plan.operation === "approve_ready" && approveReady) ||
-				(plan.operation !== "approve_ready" &&
-					plan.operation !== "none" &&
-					applyHistory);
-			if (operationEnabled && mutationCount < maxMutations && actor && reason) {
-				try {
-					if (plan.operation === "approve_ready") {
-						const decision = await decideProductionSubmissionMaterialReview(
-							db,
-							{
-								reviewId: candidate.id,
-								expectedUpdatedAt: candidate.updatedAt,
-								pipelineRevision: detail.pipelineRevision || undefined,
-								action: "RECHECK_AND_APPROVE",
-								note: reason,
-							},
-							actor,
-						);
-						changed = decision.status === "APPROVED";
-					} else {
-						const repair = await applyProductionMaterialReviewHistoryRepair(db, {
-							reviewId: candidate.id,
-							expectedUpdatedAt: candidate.updatedAt,
-							plan,
-							actor,
-							reason,
-							materialSnapshot: detail.currentEvidence.materialSnapshot,
-							materialRevision: detail.currentEvidence.materialRevision,
-						});
-						changed = repair.changed;
-					}
-					if (changed) mutationCount += 1;
-				} catch (caught) {
-					error = caught instanceof Error ? caught.message : String(caught);
-				}
-			}
-			rows.push({
-				reviewId: candidate.id,
-				orderNo: detail.order.orderId,
-				orderId: detail.order.id,
-				ageDays: Math.floor(
-					(startedAt.getTime() - candidate.submittedAt.getTime()) / 86_400_000,
-				),
-				classification: plan.classification,
-				classificationVersion: plan.classificationVersion,
-				storedReason: candidate.classificationReason,
-				currentReason: plan.currentReason,
-				materialStatus,
-				materialRevision: detail.currentEvidence.materialRevision,
-				pipelineRevision: detail.pipelineRevision,
-				operation: plan.operation,
-				changed,
-				error,
-			});
-		}
-	}
+			},
+		});
 	const countBy = (key: "classification" | "operation") =>
 		Object.fromEntries(
 			Array.from(new Set(rows.map((row) => row[key]))).map((value) => [
@@ -199,7 +353,19 @@ async function main() {
 		actorId: actor?.id ?? null,
 		reason: reason ?? null,
 		candidateCount: candidates.length,
+		candidateWindow: {
+			afterReviewId,
+			throughReviewId,
+			maxCandidates,
+			firstReviewId: candidates.at(0)?.id ?? null,
+			lastReviewId: candidates.at(-1)?.id ?? null,
+			hasMoreCandidates,
+		},
+		processedCandidateCount: rows.length,
+		lastSuccessfulReviewId,
 		mutationCount,
+		stoppedEarly: stopReason !== null,
+		stopReason,
 		classifications: countBy("classification"),
 		proposedOperations: countBy("operation"),
 		failures: rows.filter((row) => row.error).length,
@@ -225,14 +391,9 @@ async function main() {
 	const serialized = `${JSON.stringify(report, null, 2)}\n`;
 	if (outputPath) await writeFile(resolve(outputPath), serialized, "utf8");
 	process.stdout.write(serialized);
-	if (report.failures > 0) process.exitCode = 1;
+	if (report.failures > 0 || report.stoppedEarly) process.exitCode = 1;
 }
 
-main()
-	.catch((error) => {
-		console.error(error);
-		process.exitCode = 1;
-	})
-	.finally(async () => {
-		await db.$disconnect();
-	});
+if (import.meta.main) {
+	await runDatabaseCli(main, () => reconciliationDb.$disconnect());
+}

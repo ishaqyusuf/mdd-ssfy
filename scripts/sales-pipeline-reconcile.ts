@@ -13,6 +13,17 @@ import {
 import { salesCompletionProjectionSourceRevision } from "@gnd/sales/sales-completion";
 import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
+import {
+	runDatabaseCli,
+	withDatabaseReadRetry,
+	withDeterministicProjectionRepairRetry,
+} from "./sales-pipeline-database-retry";
+
+export {
+	isRetryableDatabaseConnectionError,
+	withDatabaseReadRetry,
+	withDeterministicProjectionRepairRetry,
+} from "./sales-pipeline-database-retry";
 
 const args = new Set(process.argv.slice(2));
 const apply = args.has("--apply");
@@ -26,53 +37,6 @@ const batchSize = Math.min(
 );
 const outputPath = valueAfter("--output");
 
-export function isRetryableDatabaseConnectionError(error: unknown) {
-	const value = error as { code?: unknown; message?: unknown };
-	const message = typeof value?.message === "string" ? value.message : "";
-	return (
-		value?.code === "P1001" ||
-		value?.code === "P1017" ||
-		message.includes("Can't reach database server") ||
-		message.includes("Server has closed the connection")
-	);
-}
-
-type DatabaseRetryOptions = {
-	attempts?: number;
-	delayMs?: number;
-	onRetry?: (error: unknown, attempt: number) => Promise<void> | void;
-};
-
-export async function withDatabaseReadRetry<T>(
-	operation: () => Promise<T>,
-	options: DatabaseRetryOptions = {},
-) {
-	const attempts = Math.max(1, options.attempts ?? 20);
-	const delayMs = Math.max(0, options.delayMs ?? 5_000);
-	for (let attempt = 1; attempt <= attempts; attempt += 1) {
-		try {
-			return await operation();
-		} catch (error) {
-			if (
-				attempt === attempts ||
-				!isRetryableDatabaseConnectionError(error)
-			) {
-				throw error;
-			}
-			await options.onRetry?.(error, attempt);
-			await new Promise((resolveDelay) => setTimeout(resolveDelay, delayMs));
-		}
-	}
-	throw new Error("Database read retry exhausted unexpectedly.");
-}
-
-export async function withDeterministicProjectionRepairRetry<T>(
-	operation: () => Promise<T>,
-	options: DatabaseRetryOptions = {},
-) {
-	return withDatabaseReadRetry(operation, options);
-}
-
 async function resetProductionDatabaseConnection() {
 	try {
 		await db.$disconnect();
@@ -81,9 +45,7 @@ async function resetProductionDatabaseConnection() {
 	}
 }
 
-async function withProductionDatabaseReadRetry<T>(
-	operation: () => Promise<T>,
-) {
+async function withProductionDatabaseReadRetry<T>(operation: () => Promise<T>) {
 	return withDatabaseReadRetry(operation, {
 		onRetry: resetProductionDatabaseConnection,
 	});
@@ -125,6 +87,50 @@ export type SalesPipelineReconciliationBackupRecord = {
 	postPipelineRevision: string;
 	previous: Record<string, unknown> | null;
 };
+
+type SalesPipelineReconciliationEvidenceItem = {
+	category:
+		| "clean"
+		| "deterministic_repair"
+		| "known_compatibility_difference"
+		| "review_required"
+		| "unsafe";
+	reasons: string[];
+};
+
+const reconciliationEvidenceCategories = [
+	"unsafe",
+	"deterministic_repair",
+	"review_required",
+	"known_compatibility_difference",
+] as const;
+
+export function buildSalesPipelineReconciliationEvidence<
+	T extends SalesPipelineReconciliationEvidenceItem,
+>(classified: T[], sampleLimit = 25) {
+	const reasonCounts = new Map<string, number>();
+	for (const item of classified) {
+		for (const reason of item.reasons) {
+			reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + 1);
+		}
+	}
+	return {
+		reasonCounts: Object.fromEntries(
+			[...reasonCounts.entries()].sort(
+				([leftReason, leftCount], [rightReason, rightCount]) =>
+					rightCount - leftCount || leftReason.localeCompare(rightReason),
+			),
+		),
+		samplesByCategory: Object.fromEntries(
+			reconciliationEvidenceCategories.map((category) => [
+				category,
+				classified
+					.filter((item) => item.category === category)
+					.slice(0, sampleLimit),
+			]),
+		),
+	};
+}
 
 type ProjectionUndoStore = {
 	deleteMany(input: {
@@ -349,6 +355,7 @@ async function main() {
 		};
 	});
 	const counts = summarizeSalesPipelineReconciliation(classified);
+	const evidence = buildSalesPipelineReconciliationEvidence(classified);
 	const repairable = classified.filter((item) => item.repairable);
 	let backupFile: string | null = null;
 	let repaired = 0;
@@ -391,16 +398,16 @@ async function main() {
 			const result = await withDeterministicProjectionRepairRetry(
 				() =>
 					refreshSalesOrderListProjections(
-					db,
-					batch.map((item) => ({
-						salesOrderId: item.id,
-						sourceUpdatedAt: item.sourceUpdatedAt,
-					})),
-					{
-						runRead: withProductionDatabaseReadRetry,
-						serializeReads: true,
-					},
-				),
+						db,
+						batch.map((item) => ({
+							salesOrderId: item.id,
+							sourceUpdatedAt: item.sourceUpdatedAt,
+						})),
+						{
+							runRead: withProductionDatabaseReadRetry,
+							serializeReads: true,
+						},
+					),
 				{
 					attempts: 5,
 					onRetry: resetProductionDatabaseConnection,
@@ -416,30 +423,28 @@ async function main() {
 		}
 	}
 	const report = {
-				contract: "sales-pipeline-reconciliation/v1",
-				runId,
-				mode: apply ? "apply" : "dry-run",
-				startedAt: startedAt.toISOString(),
-				finishedAt: new Date().toISOString(),
-				actorId: apply ? actorId : null,
-				reason: apply ? reason : null,
-				batchSize,
-				counts,
-				repaired,
-				remainingDeterministicRepairs: Math.max(
-					0,
-					repairable.length - repaired,
-				),
-				batches,
-				backupFile,
-				undoCommand: backupFile
-					? `bun run sales-pipeline:reconcile --undo-run ${backupFile} --actor-id <id> --reason <reason>`
-					: null,
-				samples: classified
-					.filter((item) => item.category !== "clean")
-					.slice(0, 25),
-				safety:
-					"Only the recomputable SalesOrderListProjection cache is eligible for apply; operational facts are never rewritten.",
+		contract: "sales-pipeline-reconciliation/v1",
+		runId,
+		mode: apply ? "apply" : "dry-run",
+		startedAt: startedAt.toISOString(),
+		finishedAt: new Date().toISOString(),
+		actorId: apply ? actorId : null,
+		reason: apply ? reason : null,
+		batchSize,
+		counts,
+		...evidence,
+		repaired,
+		remainingDeterministicRepairs: Math.max(0, repairable.length - repaired),
+		batches,
+		backupFile,
+		undoCommand: backupFile
+			? `bun run sales-pipeline:reconcile --undo-run ${backupFile} --actor-id <id> --reason <reason>`
+			: null,
+		samples: classified
+			.filter((item) => item.category !== "clean")
+			.slice(0, 25),
+		safety:
+			"Only the recomputable SalesOrderListProjection cache is eligible for apply; operational facts are never rewritten.",
 	};
 	const serialized = `${JSON.stringify(report, null, 2)}\n`;
 	if (outputPath) await writeFile(resolve(outputPath), serialized, "utf8");
@@ -447,12 +452,5 @@ async function main() {
 }
 
 if (import.meta.main) {
-	main()
-		.catch((error) => {
-			console.error(error);
-			process.exitCode = 1;
-		})
-		.finally(async () => {
-			await db.$disconnect();
-		});
+	await runDatabaseCli(main, () => db.$disconnect());
 }

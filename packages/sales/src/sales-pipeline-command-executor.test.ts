@@ -40,6 +40,31 @@ function transactionHarness() {
 }
 
 describe("runSalesPipelineCommandTransaction", () => {
+	it("allows reconciliation to disable even write-conflict retries", async () => {
+		let attempts = 0;
+		const db = {
+			$transaction: async () => {
+				attempts += 1;
+				throw Object.assign(new Error("Write conflict"), { code: "P2034" });
+			},
+		} as unknown as Db;
+		await expect(
+			runSalesPipelineCommandTransaction(
+				db,
+				{
+					salesOrderId: 1,
+					action: "production.review.resolve",
+					authorized: true,
+					expectedRevision: "reviewed",
+					enforce: true,
+					operation: "test.reconciliation",
+					retryOnWriteConflict: false,
+				},
+				async () => "unreachable",
+			),
+		).rejects.toMatchObject({ code: "DATABASE_WRITE_CONFLICT" });
+		expect(attempts).toBe(1);
+	});
 	it("locks, recomputes, and validates the revision before executing", async () => {
 		const current = snapshot();
 		const events: string[] = [];

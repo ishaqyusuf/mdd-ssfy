@@ -13,6 +13,57 @@ Dispatch proof.
 
 ## Contract
 
+`@gnd/sales` declares `@gnd/errors` as a direct runtime workspace dependency for
+its canonical command error contract. Release validation must run against an
+isolated installation; a working root installation can mask missing workspace
+dependency declarations.
+
+Fulfillment's Backlog and Dispatch order headlines use the same cohort-selected
+canonical projection as Orders/Overview. Headline and Production dimension
+switch together; Dispatch operational status remains a separate dimension.
+Backlog resolves only the returned page's evidence, while Dispatch reuses its
+already-loaded batch. Deployed Backlog verification confirms 09530DB now shows
+Production queued. Full live cutover remains open, including Production summary
+health; a partial surface check does not satisfy the entire gate.
+
+Operational reconciliation read deadlines do not cancel database operations.
+Shadow audit revalidation preserves the same ready/current-version/current-
+contract eligibility as the initial read. Missing canonical or projection
+evidence remains a named, gate-blocking comparison; vanished evidence cannot
+reuse an earlier snapshot. The gate's stale-projection count includes unresolved
+concurrent revision drift, whose separate counter is a diagnostic subset, not
+an exemption. Empty audits fail without producing a successful report.
+Standalone reconciliation CLIs await command and report settlement before
+applying a five-second terminal disconnect deadline. They flush report/error
+output and explicitly exit afterward, including when a retired client retains
+handles despite successful cleanup of its replacement. Domain writes never
+receive this cleanup deadline; failures retain a nonzero exit status.
+
+The deterministic projection repair wrapper waits for a write attempt to
+settle before retrying an eligible connection rejection and does not retry
+synthetic read timeouts. Material-review history and ready-approval commands
+are never automatically retried. The material audit emits per-review read
+progress, bounds read attempts to three, and rotates failed clients without
+blocking recovery on a stalled disconnect. An incomplete audit cannot satisfy
+the Production repair/cutover gate. The material runner processes each review
+in read/plan/apply order, stops immediately on unsafe or non-converged work,
+and never advances its resume cursor past a budget-skipped repair. Invalid
+supplied cohort boundaries and unavailable material revisions fail closed.
+Ready-review reconciliation uses `runSalesPipelineCommandTransaction`, just
+like the application route: it locks the order, enforces the freshly read
+canonical revision, and uses the existing workflow transaction profile. Its
+explicit `retryOnWriteConflict: false` prevents automatic replay during repair;
+ordinary application callers keep the executor's prior retry default.
+
+Production material-review classification v2 includes the transactional
+assignment-scope proof in read preflight. One validator and nested select serve
+list/count/detail and the decision command. Missing or stale scope evidence
+stays visible as ambiguous with no automatic repair, even when material is
+ready. The write path still revalidates inside its transaction; a read result
+is not authorization to skip concurrency or historical-proof checks. Legacy
+assignment revisions must remain strictly earlier than the submission, while
+modern scopes retain their owner/revision/quantity/membership validation.
+
 - Contract version: `sales-pipeline/v2`.
 - Evidence adapter: `getSalesPipelineSnapshots` in
   `packages/sales/src/sales-pipeline-order.ts`.
@@ -31,6 +82,12 @@ applicability, blockers, conflicts, provenance, and server-owned capabilities.
 
 ## Evidence precedence and invariants
 
+- Derived sales-item control rebuilds must not disconnect/reconnect assignment
+  links or advance assignment revisions. Current controls are upserted in
+  place and reactivated if previously inactive. Stale controls are soft-deleted
+  to exclude them from active applicability; those referenced by assignments
+  or packing reports are retained for history. This does not make already-ambiguous legacy assignment
+  snapshots verifiable or bypass material-review decision guards.
 - Operational facts outrank legacy strings and derived aggregates.
 - Administrative Completion is explicit provenance; it never fabricates
   assignments, submissions, inventory movement, packing, Dispatch, or proof.
@@ -195,17 +252,28 @@ requires actor and reason and may repair only the recomputable
   row changed afterward and unsafe version-1 backups fail closed. The
   current-evidence terminal/superseded/empty material-review query seam passes
   focused integration coverage.
-- Across the sixteen-ticket Scratch queue, 156/165 acceptance checks are
-  verified: Tickets 01–10, 12, 13, and 15 are done; Ticket 11 is in progress;
-  Ticket 14 is in production rollout at 6/13; and Ticket 16 is in progress at
-  14/15 pending authenticated multi-viewport browser QA. Ticket 15's simplified
+- Across the seventeen-ticket Scratch queue, 161/178 acceptance checks are
+  verified: Tickets 01–10, 12, 13, 15, and 16 are done; Ticket 11 is in
+  progress; Ticket 14 is in production rollout at 9/13; and approved Ticket 17
+  is queued after Ticket 14 at 0/12. Ticket 15's simplified
   visible action pair now routes ordinary and audited exception commands by
   canonical lifecycle state, and Sales Order editors may use the bounded
   exception path. Ticket 16's confirmation uses the shared shadcn picker with
-  no native date input. The focused lifecycle/rescheduling pass covers 254
-  tests and 938 assertions with no failures. Scratch is authoritative and Brain
-  mirrors its checked evidence.
-  Ticket 09 is complete at 10/10: worker lifecycle events refresh the exact affected
+  no native date input. Its authenticated desktop, 390×844, and 768×1024
+  browser matrix passes across Production, worker read-only, Fulfillment V2,
+  and legacy Fulfillment. A controlled local move restored `09439PC` to Sep 4
+  after proving its Sep 5 write and refresh. The focused
+  lifecycle/rescheduling pass covers 254 tests and 938 assertions with no
+  failures. Scratch is authoritative and Brain mirrors its checked evidence.
+  Ticket 17 preserves the concise Production-completed/Fulfilled action pair
+  while always opening a deliberate **Full workflow** or **Status only** mode
+  selection. Partial full-workflow failures may offer a second explicit
+  status-only confirmation for only the unsuccessful eligible subset; the
+  system must never silently downgrade or repeat side effects.
+  Ticket 14's local synchronized-data validation is complete; the operator
+  explicitly waived Preview and authorized the direct-production path, so that
+  gate is recorded as satisfied without claiming a Preview run occurred.
+  Ticket 09 is complete at 11/11: worker lifecycle events refresh the exact affected
   queue, dashboard, Calendar, and detail projections, and actionable review
   counts use the same package-owned current-evidence membership as admin
   Production and Sales Overview. Dev Quick Sign In authenticated the inner
@@ -213,9 +281,13 @@ requires actor and reason and may repair only the recomputable
   states, and single grouped inbound lines match the admin projection. A full
   reload preserves the exact expanded item. The reproducible worker harness
   passes at 390×844 and 768×1024 with no horizontal overflow and reachable
-  inline detail. The redundant worker-only top-level inbound summary is
-  removed now that exact item rows own the inline evidence; the admin summary
-  is unchanged.
+  inline detail. A 2026-09-04 browser rerun found and closed one shared-header
+  regression: `assigned-production` now suppresses `Inbound · 2 inbounds`
+  while exact item rows retain the inline evidence and the admin summary remains
+  intentionally unchanged. The focused suite passes 26/26 tests with 91
+  assertions, including mode wiring; authenticated 390×844 and 768×1024 proof
+  confirms keyboard activation and no mobile document overflow, and a Super
+  Admin rerun proves the admin summary is preserved.
   Ticket 10 is complete at 7/7. Driver and native-mobile retries preserve
   request identity, stale revisions fail inside the canonical transaction,
   committed actions refresh every affected projection, and responsive/device
@@ -285,6 +357,52 @@ requires actor and reason and may repair only the recomputable
   and 0 unsafe. This proves 249 fewer deterministic repairs than the part-3
   checkpoint. Read retries now disconnect the failed Prisma client before the
   next attempt so provider resolution can refresh.
+- Part 5 classified 8,160 current production orders with 2,892 deterministic
+  projection repairs, 1,269 review-required, 261 known compatibility
+  differences, and zero unsafe. Its authorized 25-row apply wrote a separate
+  473 KB v2 rollback backup and later exhausted bounded whole-cohort retries
+  during a sustained prerequisite-read outage. The failing cohort never
+  reached upserts. Earlier cohorts may have converged and must be measured by
+  an independent read-only audit after endpoint recovery; no source-domain or
+  material-review mutation was eligible.
+- Post-recovery audit `067c1425-cf4f-42ff-9f59-58f76e52ae6e` completed across
+  8,160 orders and measured exact part-5 convergence of 326 projection rows.
+  The remainder is 2,566 deterministic repairs, 1,269 review-required, 284
+  known compatibility differences, and zero unsafe. Part 6 retains a fresh v2
+  backup and the same 25-row/revision-checked cache-only contract.
+- Part 6 run `6a428d71-20f6-41a3-b8e5-0485865a5944` completed behind its
+  separate 421 KB v2 rollback backup, persisting all 2,566 requested projections
+  across 103 cohorts with zero stale skips and zero remainder from its starting
+  population. The first independent audit could not load its first page after
+  20 provider-connection attempts; it made no write and produced no report, so
+  current zero drift is not yet claimed. The
+  production shadow reporter now shares the bounded P1001/P1017 read-recovery
+  policy, resets its Prisma connection before retry, and fails fast for other
+  errors. The material-review runner also retries only its read phases and
+  serializes detail reads; audited mutations remain non-retried. The shadow
+  report now emits review-reason frequency counts for auditable sampling.
+  Combined operational-script coverage passes 20/20, and the broader
+  material-review matrix passes 116/116 across policy, permissions, queries,
+  and presentation. No cutover gate is claimed before an independent
+  zero-drift audit and real production shadow report.
+- The intended Vercel production project was re-verified read-only as
+  `gndprodesk/gndprodesk` (`prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr`, root
+  `apps/dashboard`). It has no lifecycle read, command, or cohort environment
+  overrides, so the package's production shadow defaults remain in force.
+- During the operator's network change, DNS and a credential-free TCP probe
+  reached the provider and received its port-3306 handshake. A fresh
+  Prisma-backed audit still exhausted all 20 initial connection attempts before
+  reading any order, made no write, and produced no report. Current zero drift
+  remains unproven until that independent audit completes.
+- Ticket 14 now has a Scratch-owned retirement checklist that separates actual
+  runtime lifecycle fallbacks from facts and compatibility tools that must not
+  be deleted. The gated removal set covers Sales Orders materialized legacy
+  restoration, storefront/dealer local status reconstruction, Dashboard
+  `SalesStat` bucket reconstruction, Production aggregate presentation
+  fallbacks, legacy string headline inference, and rollout/cohort branches.
+  Inventory migration workflows, operational Production/Dispatch/payment facts,
+  analytics quantities, audit history, and rollback backups are explicitly
+  retained or require separate review.
 - Ticket 14's latest environment-backed broad run executes 4,471 tests across
   868 files: 4,470 pass, 1 opt-in live-database parity test is intentionally
   skipped, 0 fail, and no setup/runtime errors remain. Explicit dependency

@@ -124,6 +124,8 @@ const prismaClientSingleton = () => {
 	});
 };
 
+export const createDatabaseClient = prismaClientSingleton;
+
 type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
 
 const globalForPrisma = globalThis as unknown as {
