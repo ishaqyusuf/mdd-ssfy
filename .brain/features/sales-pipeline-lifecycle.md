@@ -41,6 +41,12 @@ timed out after 30 seconds without identifying the live exception. Local
 diagnosis cannot substitute for live health evidence. Current operational
 evidence and remaining acceptance gates are tracked in Scratch Ticket 14.
 
+The September 5 follow-up release is READY on both live domains, but its
+unfiltered Production page still exceeds the 15-second serving deadline.
+Exact-deployment logs confirm timeout failures on the page and batched
+summary/list endpoint; successful deployment and local recovery are not live
+acceptance. The remaining query-cost investigation is tracked in Ticket 14.
+
 Completed Production membership validates each bounded projection page before
 loading the next; stale or missing evidence stops immediately. Only accepted
 IDs are retained across pages. The summary still fails visibly rather than
@@ -57,10 +63,21 @@ its already-loaded snapshot unless actual or administrative completion is
 satisfied. Explicit legacy-label compatibility remains until retirement.
 Read-only Production evidence confirms 09502PC is awaiting review, not
 completed; the corrected 5% Calendar query no longer paints its in-range work
-as completed. This code correction is not yet deployed. Scratch Ticket 14
+as completed. This code correction is deployed in Production release
+`dpl_9C6K8vVfuwq1qDqpUDjJyB4RU2bE`; application acceptance remains open. Scratch Ticket 14
 retains regression, review, live-data read, and outstanding rollout evidence.
 
 Actionable material-review counts reuse the same four inactive classifications
+as detailed review queries. Successor checks are batched across candidate
+orders, scan 250 records per page, and match strictly newer pending reviews
+with active submissions by same-order control or assignment identity. Count,
+list, and detail share that lookup; caller search filters do not hide valid
+successors. A read-only live-data comparison retains count 97 while reducing
+model reads from 103 to 3. Operator elapsed time remains about 10.6 seconds,
+dominated by canonical snapshot loading; this is not a serving-latency pass.
+This successor batching correction is not yet deployed.
+
+Counts also retain the earlier optimization: the same inactive classifications
 as detailed review queries, without material-detail enrichment. Material state
 and assignment-proof ambiguity change the review classification/action, not
 membership after those exclusions. Detailed active reviews and mutations still

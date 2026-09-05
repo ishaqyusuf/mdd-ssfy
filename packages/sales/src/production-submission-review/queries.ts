@@ -66,26 +66,49 @@ function reviewScopeKeys(value: unknown) {
 	);
 }
 
-async function isSupersededReview(
+async function getSupersededReviewIds(
 	db: Db,
-	review: { id: number; salesOrderId: number; assignmentScope: unknown },
+	reviews: Array<{ id: number; salesOrderId: number; assignmentScope: unknown }>,
 ) {
-	const currentKeys = reviewScopeKeys(review.assignmentScope);
-	if (!currentKeys.size) return false;
-	const newerReviews =
-		await db.salesProductionSubmissionMaterialReview.findMany({
+	const scopedReviews = reviews
+		.map((review) => ({ ...review, keys: reviewScopeKeys(review.assignmentScope) }))
+		.filter((review) => review.keys.size > 0);
+	const supersededIds = new Set<number>();
+	if (!scopedReviews.length) return supersededIds;
+	const orderIds = [...new Set(scopedReviews.map((review) => review.salesOrderId))];
+	const firstReviewId = Math.min(...scopedReviews.map((review) => review.id));
+	const latestByOrder = new Map<number, Map<string, number>>();
+	let cursor: number | undefined;
+	for (;;) {
+		const newerReviews = await db.salesProductionSubmissionMaterialReview.findMany({
 			where: {
-				salesOrderId: review.salesOrderId,
-				id: { gt: review.id },
+				salesOrderId: { in: orderIds },
+				id: { gt: firstReviewId },
 				status: "PENDING",
 				submissions: { some: { deletedAt: null } },
 			},
-			select: { assignmentScope: true },
+			select: { id: true, salesOrderId: true, assignmentScope: true },
+			orderBy: { id: "asc" },
+			take: 250,
+			...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
 		});
-	return newerReviews.some((candidate) => {
-		const candidateKeys = reviewScopeKeys(candidate.assignmentScope);
-		return [...currentKeys].some((key) => candidateKeys.has(key));
-	});
+		for (const candidate of newerReviews) {
+			const latest = latestByOrder.get(candidate.salesOrderId) ?? new Map<string, number>();
+			for (const key of reviewScopeKeys(candidate.assignmentScope)) {
+				latest.set(key, Math.max(candidate.id, latest.get(key) ?? 0));
+			}
+			latestByOrder.set(candidate.salesOrderId, latest);
+		}
+		cursor = newerReviews.at(-1)?.id;
+		if (newerReviews.length < 250 || !cursor) break;
+	}
+	for (const review of scopedReviews) {
+		const latest = latestByOrder.get(review.salesOrderId);
+		if ([...review.keys].some((key) => (latest?.get(key) ?? 0) > review.id)) {
+			supersededIds.add(review.id);
+		}
+	}
+	return supersededIds;
 }
 
 export function materialStatusFromStoredReview(review: {
@@ -120,13 +143,13 @@ export function materialStatusFromStoredReview(review: {
 type ActionableReviewDependencies = {
 	getSnapshots: typeof getSalesPipelineSnapshots;
 	evaluateEvidence: typeof evaluateProductionSubmissionMaterialEvidence;
-	isSuperseded: typeof isSupersededReview;
+	getSupersededIds: typeof getSupersededReviewIds;
 };
 
 const defaultActionableReviewDependencies: ActionableReviewDependencies = {
 	getSnapshots: getSalesPipelineSnapshots,
 	evaluateEvidence: evaluateProductionSubmissionMaterialEvidence,
-	isSuperseded: isSupersededReview,
+	getSupersededIds: getSupersededReviewIds,
 };
 
 async function* actionablePendingReviewPages(
@@ -159,23 +182,21 @@ async function* actionablePendingReviewPages(
 				...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
 			});
 		if (!candidates.length) break;
-		const snapshots = await dependencies.getSnapshots(
-			db,
-			candidates.map((candidate) => candidate.salesOrderId),
-		);
-		const membership = await Promise.all(
-			candidates.map(async (candidate) => {
-				const input = {
-					reviewStatus: candidate.status,
-					terminalOrder: isTerminalOrder(snapshots.get(candidate.salesOrderId)),
-					activeSubmissionCount: candidate.submissions.length,
-					superseded: await dependencies.isSuperseded(db, candidate),
-				};
-				return getProductionMaterialReviewInactivity(input)
-					? null
-					: { candidate, input };
-			}),
-		);
+		const [snapshots, supersededIds] = await Promise.all([
+			dependencies.getSnapshots(db, candidates.map((candidate) => candidate.salesOrderId)),
+			dependencies.getSupersededIds(db, candidates),
+		]);
+		const membership = candidates.map((candidate) => {
+			const input = {
+				reviewStatus: candidate.status,
+				terminalOrder: isTerminalOrder(snapshots.get(candidate.salesOrderId)),
+				activeSubmissionCount: candidate.submissions.length,
+				superseded: supersededIds.has(candidate.id),
+			};
+			return getProductionMaterialReviewInactivity(input)
+				? null
+				: { candidate, input };
+		});
 		yield membership.filter((entry) => entry !== null);
 		cursor = candidates.at(-1)?.id;
 		if (candidates.length < 250 || !cursor) break;
@@ -457,7 +478,7 @@ export async function getProductionSubmissionMaterialReviewDetail(
 		reviewStatus: review.status,
 		terminalOrder: isTerminalOrder(pipeline),
 		activeSubmissionCount: activeSubmissions.length,
-		superseded: await dependencies.isSuperseded(db, review),
+		superseded: (await dependencies.getSupersededIds(db, [review])).has(review.id),
 		materialStatus,
 		assignmentScopeIssues: validateProductionMaterialReviewAssignmentScope({
 			...review,

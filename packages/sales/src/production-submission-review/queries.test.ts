@@ -38,6 +38,82 @@ function pipeline(salesOrderId: number, terminal = false) {
 }
 
 describe("production material-review query membership", () => {
+	it("checks supersession for a whole page without one database read per review", async () => {
+		const scope = (controlUid: string, assignmentId: number) => [
+			{ controlUid, assignmentId, salesItemId: 1 },
+		];
+		const candidates = [
+			{ id: 1, salesOrderId: 101, status: "PENDING", assignmentScope: scope("a", 1), submissions: [{ id: 1 }] },
+			{ id: 2, salesOrderId: 101, status: "PENDING", assignmentScope: scope("b", 2), submissions: [{ id: 2 }] },
+			{ id: 3, salesOrderId: 102, status: "PENDING", assignmentScope: scope("a", 1), submissions: [{ id: 3 }] },
+		];
+		// A newer review outside the caller's search still supersedes review 1.
+		const newer = { id: 4, salesOrderId: 101, assignmentScope: scope("a", 3) };
+		let reviewReads = 0;
+		const db = {
+			salesProductionSubmissionMaterialReview: {
+				findMany: async (args: { select: { submissions?: unknown }; where: { salesOrderId?: number; id?: { gt: number } } }) => {
+					reviewReads += 1;
+					if (args.select.submissions) return candidates;
+					if (typeof args.where.salesOrderId === "number") {
+						return newer.salesOrderId === args.where.salesOrderId && newer.id > (args.where.id?.gt ?? 0) ? [newer] : [];
+					}
+					return [newer];
+				},
+			},
+		} as unknown as Db;
+		const total = await countActionableProductionSubmissionMaterialReviews(db, {}, {
+			getSnapshots: async () => new Map([[101, pipeline(101)], [102, pipeline(102)]]),
+		});
+		expect(total).toBe(2);
+		expect(reviewReads).toBe(2);
+	});
+	it.each(["count", "list"] as const)("keeps %s supersession exact across successor pages and order boundaries", async (surface) => {
+		const scope = (controlUid: string, assignmentId: number) => [{ controlUid, assignmentId, salesItemId: 1 }];
+		const candidates = [
+			{ id: 1, salesOrderId: 101, status: "PENDING", assignmentScope: scope("a", 1), submissions: [{ id: 1 }] },
+			{ id: 2, salesOrderId: 102, status: "PENDING", assignmentScope: scope("a", 1), submissions: [{ id: 2 }] },
+			{ id: 3, salesOrderId: 101, status: "PENDING", assignmentScope: scope("c", 3), submissions: [{ id: 3 }] },
+		];
+		const successors = [
+			...Array.from({ length: 250 }, (_, index) => ({
+				id: index + 4, salesOrderId: 101, assignmentScope: scope("other", 4),
+			})),
+			// Assignment identity matches even though the control key changed.
+			{ id: 254, salesOrderId: 101, assignmentScope: scope("renamed", 1) },
+		];
+		let successorPages = 0;
+		const db = {
+			salesProductionSubmissionMaterialReview: {
+				findMany: async (args: {
+					select: { submissions?: unknown }; where: unknown;
+					take: number; cursor?: { id: number }; skip?: number; orderBy: unknown;
+				}) => {
+					if (args.select.submissions) return candidates;
+					successorPages += 1;
+					expect(args.where).toEqual({
+						salesOrderId: { in: [101, 102] }, id: { gt: 1 }, status: "PENDING",
+						submissions: { some: { deletedAt: null } },
+					});
+					expect(args.orderBy).toEqual({ id: "asc" });
+					expect(args.take).toBe(250);
+					if (args.cursor) expect(args.skip).toBe(1);
+					return successors.filter((row) => row.id > (args.cursor?.id ?? 0)).slice(0, args.take);
+				},
+			},
+		} as unknown as Db;
+		const dependencies = {
+			getSnapshots: async () => new Map([[101, pipeline(101)], [102, pipeline(102)]]),
+			evaluateEvidence: async () => ({ itemMaterialStatuses: [{ code: "setup_needed" }] }) as ProductionSubmissionMaterialEvidence,
+		};
+		if (surface === "count") {
+			expect(await countActionableProductionSubmissionMaterialReviews(db, {}, dependencies)).toBe(2);
+		} else {
+			expect([...(await getActionablePendingReviewIds(db, {}, dependencies)).keys()]).toEqual([2, 3]);
+		}
+		expect(successorPages).toBe(2);
+	});
+
 	it.each([
 		["2026-08-21T19:04:44.000Z", true],
 		["2026-08-21T19:04:45.000Z", false],
@@ -124,7 +200,7 @@ describe("production material-review query membership", () => {
 						materialRevision: "ready-materials",
 						classification: { state: "finalized", reason: null },
 					}) as never,
-				isSuperseded: async () => false,
+				getSupersededIds: async () => new Set<number>(),
 			};
 			const reads = await getActionablePendingReviewIds(
 				db as never,
@@ -261,7 +337,7 @@ describe("production material-review query membership", () => {
 							},
 						],
 					}) as unknown as ProductionSubmissionMaterialEvidence,
-				isSuperseded: async (_db, review) => review.id === 3,
+				getSupersededIds: async () => new Set([3]),
 			},
 		);
 
@@ -297,7 +373,7 @@ describe("production material-review query membership", () => {
 				evaluateEvidence: async () => {
 					throw new Error("Count requested unused material details");
 				},
-				isSuperseded: async () => false,
+				getSupersededIds: async () => new Set<number>(),
 			},
 		);
 
@@ -326,7 +402,7 @@ describe("production material-review query membership", () => {
 			evaluateEvidence: async () => {
 				throw new Error("Count requested unused material details");
 			},
-			isSuperseded: async () => false,
+			getSupersededIds: async () => new Set<number>(),
 		};
 		expect(
 			await countActionableProductionSubmissionMaterialReviews(db, {}, dependencies),
@@ -355,7 +431,7 @@ describe("production material-review query membership", () => {
 						if (failure === "snapshot") throw new Error("membership unavailable");
 						return new Map([[101, pipeline(101)]]);
 					},
-					isSuperseded: async () => {
+					getSupersededIds: async () => {
 						throw new Error("membership unavailable");
 					},
 				}),
