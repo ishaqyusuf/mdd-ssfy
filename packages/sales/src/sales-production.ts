@@ -1174,7 +1174,10 @@ async function getDatabaseSortedProductionPage(
 	let hasNextPage = false;
 	const selected: ProductionSelectedRow[] = [];
 	const direction = query.productionSort === "oldest" ? "asc" : "desc";
-	const scanSize = 100;
+	const scanSize =
+		usesLegacyProductionCompletionFilter(query) || options.workerCompletion
+			? 100
+			: Math.min(requestedTake + 1, 100);
 
 	scan: while (!hasNextPage) {
 		const records = await db.salesOrders.findMany({

@@ -13,7 +13,8 @@ Dispatch proof.
 
 ## Contract
 
-Completed query/row cohort parity is implemented under ADR085, pending release.
+Completed query/row cohort parity is implemented under ADR085 and deployed in
+`dpl_H1DSyqsLp2A8nD4UimxKNattFcU2`, Ready on both live aliases.
 An independent September5 read-only cohort audit found20 canonically completed
 orders without list projections. Positive-only cache discovery silently
 under-counts them; the proposed fix needs bounded fresh-evidence fallback.
@@ -23,14 +24,23 @@ valid projected candidates retain revision validation. Both branches preserve
 workspace filters, and assignment details use the original scope rather than
 the cohort OR predicate. The read-only summary now matches the independent
 1295 total. Final Spec and Standards reviews, 233 Sales tests, 721 API tests,
-and Sales/API typechecks pass. Commit and deployment validation remain
-outstanding. A ready/current projection that incorrectly claims non-completion
+and Sales/API typechecks pass. Live Completed renders1295, matching the audited
+partial-cohort count, but default-route timeout and legacy-label contradictions
+remain. A ready/current projection that incorrectly claims non-completion
 is outside this fallback, so universal membership parity is not established.
 
 The latest user-requested inspection of the original localhost Production tab
 shows analytics, tabs, and order rows loading. The two September 4 failed
 background jobs for sale 26929 still report `STALE_REVISION`; neither has been
 replayed or dismissed. Local rendering is not live rollout acceptance.
+
+Database-sorted Production pages without legacy/worker post-filtering now
+request only the page plus one look-ahead row, capped at100, instead of always
+loading100 full records. Post-filtered scans retain100. The public-query
+regression proves first/second page and cursor continuity. This local follow-up
+does not change membership, ordering, material evidence, or status authority.
+Read-only list timing still exceeds the15-second runtime budget; Scratch keeps
+the evidence and remaining full-detail/material-query bottlenecks. Not deployed.
 
 `@gnd/sales` declares `@gnd/errors` as a direct runtime workspace dependency for
 its canonical command error contract. Release validation must run against an

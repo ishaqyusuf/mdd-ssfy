@@ -513,6 +513,35 @@ describe("sales production priority sorting", () => {
 		expect(findManyCalls[0].skip).toBeUndefined();
 	});
 
+	it("reads only the requested database-sorted page plus look-ahead without losing the next page", async () => {
+		const previousMode = process.env.SALES_PIPELINE_READ_MODE;
+		process.env.SALES_PIPELINE_READ_MODE = "legacy";
+		try {
+			const rows = Array.from({ length: 41 }, (_, index) => ({
+				...productionRow(index + 1, "NORMAL"),
+				createdAt: new Date("2026-07-01T12:00:00Z"),
+			}));
+			const calls: SalesFindManyArgs[] = [];
+			const db = {
+				salesOrders: { findMany: async (args: SalesFindManyArgs) => {
+					calls.push(args);
+					return rows.slice(args.skip || 0, (args.skip || 0) + (args.take || rows.length));
+				} },
+			};
+			const first = await getSalesProductions(db as unknown as Db, { size: 20 });
+			const second = await getSalesProductions(db as unknown as Db, { size: 20, cursor: first.meta.cursor });
+			expect(calls.map(({ skip, take }) => ({ skip, take }))).toEqual([
+				{ skip: 0, take: 21 }, { skip: 20, take: 21 },
+			]);
+			expect(first.data.map(row => row.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+			expect(second.data.map(row => row.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 21));
+			expect(second.meta.cursor).toBe("40");
+		} finally {
+			if (previousMode === undefined) Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
+			else process.env.SALES_PIPELINE_READ_MODE = previousMode;
+		}
+	});
+
 	it("bounds material-enriched production pages", async () => {
 		const findManyCalls: SalesFindManyArgs[] = [];
 		const db = {
