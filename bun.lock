@@ -24,6 +24,9 @@
         "typescript": "^5.9.3",
       },
       "devDependencies": {
+        "@gnd/auth": "workspace:*",
+        "@gnd/db": "workspace:*",
+        "@gnd/sales": "workspace:*",
         "@types/node": "^25.2.3",
         "check-dependency-version-consistency": "5.0.1",
         "dotenv-cli": "7.3.0",

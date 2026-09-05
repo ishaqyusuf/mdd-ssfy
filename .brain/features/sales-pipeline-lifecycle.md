@@ -23,6 +23,14 @@ packages as development dependencies. The frozen release install retains the
 existing resolved tRPC versions and runs the regression without relying on
 accidental root-workspace dependencies. This is test packaging only.
 
+Root reconciliation, shadow-report, and material-review operator scripts
+declare `@gnd/auth`, `@gnd/db`, and `@gnd/sales` as workspace development
+dependencies. Their supported clean-install validation includes the root
+workspace, not only a web app's filtered graph. Existing resolved package
+versions are unchanged. Operator validation generates Prisma with a dummy
+URL and runs the real script suites without a database connection; a working
+developer installation alone is not proof that the operator bundle is usable.
+
 Fulfillment's Backlog and Dispatch order headlines use the same cohort-selected
 canonical projection as Orders/Overview. Headline and Production dimension
 switch together; Dispatch operational status remains a separate dimension.

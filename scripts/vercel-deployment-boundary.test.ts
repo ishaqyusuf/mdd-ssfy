@@ -16,6 +16,16 @@ const ignoredPaths = readFileSync(resolve(root, ".vercelignore"), "utf8")
 	.filter((line) => line && !line.startsWith("#") && !line.startsWith("!"));
 
 describe("Vercel deployment source boundaries", () => {
+	it("declares root reconciliation tools' workspace imports for clean installs", () => {
+		const rootPackage = JSON.parse(
+			readFileSync(resolve(root, "package.json"), "utf8"),
+		) as { devDependencies: Record<string, string> };
+
+		for (const dependency of ["@gnd/auth", "@gnd/db", "@gnd/sales"]) {
+			expect(rootPackage.devDependencies[dependency]).toBe("workspace:*");
+		}
+	});
+
 	it("declares the Calendar hydration test's tRPC dependencies in Dashboard", () => {
 		const dashboardPackage = JSON.parse(
 			readFileSync(resolve(root, "apps/dashboard/package.json"), "utf8"),
