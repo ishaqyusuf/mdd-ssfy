@@ -253,7 +253,7 @@ export async function getSalesProductionSummary(
 		...resolved.list,
 	} as SalesProductionListQuery;
 	const assignedToId = query.workerId || query.assignedToId;
-	const baseQuery: SalesProductionQueryParams = {
+	const workspaceFilters: SalesProductionQueryParams = {
 		q: query.q,
 		"customer.name": query["customer.name"],
 		phone: query.phone,
@@ -265,6 +265,9 @@ export async function getSalesProductionSummary(
 		priority: query.priority,
 		assignedToId,
 		workerId: query.workerId,
+	};
+	const baseQuery: SalesProductionQueryParams = {
+		...workspaceFilters,
 		production: "pending",
 		"completion.production": "pending",
 	};
@@ -305,15 +308,9 @@ export async function getSalesProductionSummary(
 			"production.status": "unscheduled",
 		}),
 		query.workerId
-			? countWorkerCompletedProductionOrders(db, {
-					q: baseQuery.q,
-					priority: baseQuery.priority,
-					workerId: query.workerId,
-				})
+			? countWorkerCompletedProductionOrders(db, workspaceFilters)
 			: countProductionOrders(db, {
-					q: baseQuery.q,
-					priority: baseQuery.priority,
-					assignedToId,
+					...workspaceFilters,
 					"completion.production": "completed",
 				}),
 		countActionableProductionSubmissionMaterialReviews(db),
@@ -734,7 +731,7 @@ function getProductionAssignmentFilters(where: Prisma.SalesOrdersWhereInput) {
 
 async function countWorkerCompletedProductionOrders(
 	db: Db,
-	query: Pick<SalesProductionListQuery, "q" | "priority" | "workerId">,
+	query: SalesProductionListQuery,
 ) {
 	const workerId = Number(query.workerId || 0);
 	if (!workerId) return 0;
@@ -744,7 +741,7 @@ async function countWorkerCompletedProductionOrders(
 	];
 	const completionSelect = selectWorkerCompletion(whereAssignments);
 	const where = whereSales({
-		q: query.q,
+		...query,
 		salesType: "order",
 		"sales.priority": query.priority,
 		"production.assignedToId": workerId,

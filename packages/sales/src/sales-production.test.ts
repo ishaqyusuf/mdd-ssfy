@@ -520,6 +520,44 @@ describe("sales production priority sorting", () => {
 		expect(lifecycleReadCalls).toBe(0);
 	});
 
+	it.each([null, 44])("preserves Paid and workspace filters in every summary count for worker %s", async (workerId) => {
+		const countScopes: unknown[] = [];
+		const db = {
+			orderItemProductionAssignments: { findMany: async () => [] },
+			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+			salesOrderListProjection: { findMany: async () => [] },
+			salesOrders: {
+				count: async ({ where }: { where: unknown }) => {
+					countScopes.push(where);
+					return 0;
+				},
+				findMany: async ({ where }: { where: unknown }) => {
+					countScopes.push(where);
+					return [];
+				},
+			},
+		};
+
+		await getSalesProductionSummary(db as unknown as Db, {
+			workerId,
+			invoice: "paid",
+			"customer.name": "Filter Customer",
+			phone: "555-0100",
+			po: "PO-FILTER",
+			"sales.rep": "Filter Rep",
+		});
+
+		expect(countScopes).toHaveLength(8);
+		for (const scope of countScopes) {
+			const serialized = JSON.stringify(scope);
+			expect(serialized).toContain('"amountDue":0');
+			expect(serialized).toContain('"contains":"Filter Customer"');
+			expect(serialized).toContain('"phoneNo":"555-0100"');
+			expect(serialized).toContain('"string_contains":"PO-FILTER"');
+			expect(serialized).toContain('"salesRep":{"name":"Filter Rep"}');
+		}
+	});
+
 	it("rejects a stale Completed count before reading another candidate page", async () => {
 		const rows = Array.from({ length: 250 }, (_, index) => ({
 			...completedProductionRow(index + 1, "NORMAL"),

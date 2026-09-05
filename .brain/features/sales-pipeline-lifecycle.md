@@ -54,6 +54,14 @@ The measured local result remains 82 with material evaluations reduced from
 reviews, the separate Production count deadline, and exact historical evidence
 behind review 1's unsafe audit stop. No schema or public API shape changed.
 
+Production summary Completed counts, both admin and worker-scoped, retain the
+same workspace order filters as the other order counts instead of forwarding
+only search/priority/assignee. Pending-only predicates stay separate, and
+worker assignment completion semantics remain unchanged. Query-contract
+regressions and a real local Paid/Pending summary/list comparison verify the
+correction. This does not resolve the separate cohort completion-policy gap,
+change the global material-review count scope, or prove live query latency.
+
 The local September 5 summary outage recovered after 78 deterministic cache
 repairs in backed-up 25-record batches. An independent full local audit then
 reported zero deterministic remainder and zero unsafe records; the actual
