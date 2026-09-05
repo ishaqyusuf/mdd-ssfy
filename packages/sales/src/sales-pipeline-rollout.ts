@@ -34,8 +34,16 @@ export function getSalesPipelineCommandMode(
 	return env.NODE_ENV === "production" ? "shadow" : "canonical";
 }
 
+export const SALES_PIPELINE_COHORT_MULTIPLIER = 2_654_435_761;
+
+export function salesPipelineCohortPercentage(
+	env: Record<string, string | undefined> = process.env,
+) {
+	return Math.min(100, Math.max(0, Number(env.SALES_PIPELINE_COHORT_PERCENT || 100)));
+}
+
 function cohortBucket(salesOrderId: number) {
-	return Math.abs(Math.imul(salesOrderId, 2_654_435_761)) % 100;
+	return Math.abs(Math.imul(salesOrderId, SALES_PIPELINE_COHORT_MULTIPLIER)) % 100;
 }
 
 export function shouldServeCanonicalSalesPipeline(
@@ -43,10 +51,7 @@ export function shouldServeCanonicalSalesPipeline(
 	env: Record<string, string | undefined> = process.env,
 ) {
 	if (getSalesPipelineReadMode(env) !== "canonical") return false;
-	const percentage = Math.min(
-		100,
-		Math.max(0, Number(env.SALES_PIPELINE_COHORT_PERCENT || 100)),
-	);
+	const percentage = salesPipelineCohortPercentage(env);
 	return cohortBucket(salesOrderId) < percentage;
 }
 
@@ -55,10 +60,7 @@ export function shouldEnforceCanonicalSalesPipelineCommands(
 	env: Record<string, string | undefined> = process.env,
 ) {
 	if (getSalesPipelineCommandMode(env) !== "canonical") return false;
-	const percentage = Math.min(
-		100,
-		Math.max(0, Number(env.SALES_PIPELINE_COHORT_PERCENT || 100)),
-	);
+	const percentage = salesPipelineCohortPercentage(env);
 	return cohortBucket(salesOrderId) < percentage;
 }
 

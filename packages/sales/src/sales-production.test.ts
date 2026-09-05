@@ -109,6 +109,7 @@ describe("sales production priority sorting", () => {
 			let evidenceReads = 0;
 			const evidenceIds = new Set<number>();
 			const db = {
+				$queryRaw: async () => mixed ? [{ id: 11 }] : [],
 				orderItemProductionAssignments: {
 					findMany: async () => rows.map((row) => ({
 						orderId: row.id,
@@ -122,7 +123,8 @@ describe("sales production priority sorting", () => {
 				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 				salesOrders: {
 					count: async () => 1,
-					findMany: async (args: { where?: { id?: { in?: number[] } } }) => {
+					findMany: async (args: { where?: { id?: { in?: number[] } }; select?: Record<string, unknown> }) => {
+						if (args.select && Object.keys(args.select).length === 1 && args.select.id) return [];
 						if (args.where?.id?.in) {
 							evidenceReads += 1;
 							args.where.id.in.forEach((id) => evidenceIds.add(id));
@@ -669,8 +671,8 @@ describe("sales production priority sorting", () => {
 					countCalls += 1;
 					return 0;
 				},
-				findMany: async () => {
-					lifecycleReadCalls += 1;
+				findMany: async ({ select }: { select: Record<string, unknown> }) => {
+					if (Object.keys(select).length > 1) lifecycleReadCalls += 1;
 					return [];
 				},
 			},
@@ -725,7 +727,7 @@ describe("sales production priority sorting", () => {
 			"sales.rep": "Filter Rep",
 		});
 
-		expect(countScopes).toHaveLength(8);
+		expect(countScopes).toHaveLength(workerId ? 8 : 9);
 		expect(assignmentScopes).toHaveLength(5);
 		for (const scope of assignmentScopes) {
 			expect(scope.order).toBeDefined();
@@ -769,6 +771,62 @@ describe("sales production priority sorting", () => {
 		).rejects.toThrow("Sales Pipeline projection is stale for order 1.");
 	});
 
+	it.each(["fresh", "stale", "missing"] as const)("keeps Completed membership inside the 5% row cohort with %s evidence", async (evidence) => {
+		const previousMode = process.env.SALES_PIPELINE_READ_MODE;
+		const previousPercent = process.env.SALES_PIPELINE_COHORT_PERCENT;
+		process.env.SALES_PIPELINE_READ_MODE = "canonical";
+		process.env.SALES_PIPELINE_COHORT_PERCENT = "5";
+		try {
+			const row = completedProductionRow(11, "NORMAL");
+			const countScopes: unknown[] = [];
+			const evidenceIds = new Set<number>();
+			const db = {
+				$queryRaw: async () => [{ id: 11 }],
+				orderItemProductionAssignments: { findMany: async () => [] },
+				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+				salesOrderListProjection: {
+					findMany: async ({ where }: { where: { salesOrderId?: { in: number[] } } }) => {
+						if (!where.salesOrderId?.in.includes(11)) {
+							throw new Error("Completed candidate query escaped the row cohort");
+						}
+						return [{ ...completedProjection(row), ...(evidence === "stale" ? { pipelineRevision: "stale" } : {}) }];
+					},
+				},
+				salesOrders: {
+					findMany: async ({ where, select }: { where: { id: { in: number[] } }; select: Record<string, unknown> }) => {
+						if (Object.keys(select).length === 1 && select.id) return [];
+						where.id.in.forEach((id) => evidenceIds.add(id));
+						return evidence === "missing" ? [] : [row];
+					},
+					count: async ({ where }: { where: unknown }) => {
+						countScopes.push(where);
+						return 0;
+					},
+				},
+			};
+			const result = getSalesProductionSummary(db as unknown as Db, { invoice: "paid" });
+			if (evidence !== "fresh") {
+				await expect(result).rejects.toThrow("Sales Pipeline projection is stale for order 11.");
+				return;
+			}
+			await result;
+			expect([...evidenceIds]).toEqual([11]);
+			const completedScope = countScopes.find((scope) => JSON.stringify(scope).includes('"notIn":[11]'));
+			for (const branch of (completedScope as { OR: unknown[] }).OR) {
+				expect(JSON.stringify(branch)).toContain('"amountDue":0');
+			}
+			expect(completedScope).toMatchObject({ OR: [
+				{ AND: [expect.anything(), { id: { notIn: [11] } }] },
+				{ AND: [expect.anything(), { id: { in: [11] } }] },
+			] });
+		} finally {
+			if (previousMode === undefined) Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
+			else process.env.SALES_PIPELINE_READ_MODE = previousMode;
+			if (previousPercent === undefined) Reflect.deleteProperty(process.env, "SALES_PIPELINE_COHORT_PERCENT");
+			else process.env.SALES_PIPELINE_COHORT_PERCENT = previousPercent;
+		}
+	});
+
 	it.each(["fresh", "stale", "missing"] as const)(
 		"preserves exact Completed counts across pages with %s final evidence",
 		async (evidence) => {
@@ -786,7 +844,7 @@ describe("sales production priority sorting", () => {
 					findMany: async (args: { where: { id: { in: number[] } } }) =>
 						rows.filter(
 							(row) =>
-								args.where.id.in.includes(row.id) &&
+								args.where.id?.in.includes(row.id) &&
 								!(evidence === "missing" && row.id === 251),
 						),
 				},
@@ -817,6 +875,109 @@ describe("sales production priority sorting", () => {
 			}
 		},
 	);
+
+	it.each([false, true])("resolves uncached Completed candidates from fresh evidence (missing source: %s)", async (missingSource) => {
+		const rows = [
+			completedProductionRow(11, "NORMAL"),
+			completedProductionRow(22, "NORMAL"),
+			productionRow(41, "NORMAL"),
+			{ ...completedProductionRow(52, "NORMAL"), completionRecords: [] },
+		].map((row) => ({ ...row, createdAt: new Date("2026-07-01T12:00:00Z") }));
+		let fallbackWhere: unknown;
+		const db = {
+			orderItemProductionAssignments: { findMany: async () => [] },
+			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+			salesOrderListProjection: { findMany: async () => [completedProjection(rows[0]! as ReturnType<typeof completedProductionRow>)] },
+			salesOrders: {
+				count: async ({ where }: { where: { AND?: Array<{ id?: { in?: number[] } }> } }) =>
+					where.AND?.find((part) => part.id?.in)?.id?.in?.length ?? 0,
+				findMany: async ({ where, select }: {
+					where: { id?: { in?: number[] } };
+					select: Record<string, unknown>;
+				}) => {
+					if (Object.keys(select).length === 1 && select.id) {
+						fallbackWhere = where;
+						return [{ id: 22 }, { id: 41 }, { id: 52 }];
+					}
+					return rows.filter((row) => where.id?.in?.includes(row.id) && !(missingSource && row.id === 22));
+				},
+			},
+		};
+		const result = getSalesProductionSummary(db as unknown as Db, { invoice: "paid" });
+		if (missingSource) {
+			await expect(result).rejects.toThrow("Sales Pipeline evidence is unavailable for order 22.");
+		} else {
+			expect((await result).summary.completedCount).toBe(2);
+			expect(JSON.stringify(fallbackWhere)).toContain('"amountDue":0');
+			expect(JSON.stringify(fallbackWhere)).toContain('"listProjection":{"is":null}');
+		}
+	});
+
+	it("preserves assignment detail scope across partial-rollout Completed branches", async () => {
+		const previousMode = process.env.SALES_PIPELINE_READ_MODE;
+		const previousPercent = process.env.SALES_PIPELINE_COHORT_PERCENT;
+		process.env.SALES_PIPELINE_READ_MODE = "canonical";
+		process.env.SALES_PIPELINE_COHORT_PERCENT = "5";
+		try {
+			let listSelect: unknown;
+			const db = {
+				$queryRaw: async () => [{ id: 11 }],
+				salesOrderListProjection: { findMany: async () => [] },
+				salesOrders: {
+					count: async () => 0,
+					findMany: async ({ select }: { select: Record<string, unknown> }) => {
+						if (Object.keys(select).length > 1) listSelect = select;
+						return [];
+					},
+				},
+			};
+			await getSalesProductions(db as unknown as Db, {
+				tab: "completed", assignedToId: 17, includeMaterials: false, size: 20,
+			});
+			expect(JSON.stringify(listSelect)).toContain('"assignedToId":17');
+		} finally {
+			if (previousMode === undefined) Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
+			else process.env.SALES_PIPELINE_READ_MODE = previousMode;
+			if (previousPercent === undefined) Reflect.deleteProperty(process.env, "SALES_PIPELINE_COHORT_PERCENT");
+			else process.env.SALES_PIPELINE_COHORT_PERCENT = previousPercent;
+		}
+	});
+
+	it.each(["fresh", "missing"] as const)("validates all fallback pages with %s final source evidence", async (evidence) => {
+		const rows = Array.from({ length: 251 }, (_, index) => ({
+			...completedProductionRow(index + 1, "NORMAL"),
+			createdAt: new Date("2026-07-01T12:00:00Z"),
+		}));
+		const cursors: number[] = [];
+		const db = {
+			orderItemProductionAssignments: { findMany: async () => [] },
+			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+			salesOrderListProjection: { findMany: async () => [] },
+			salesOrders: {
+				count: async ({ where }: { where: { AND?: Array<{ id?: { in?: number[] } }> } }) =>
+					where.AND?.find((part) => part.id?.in)?.id?.in?.length ?? 0,
+				findMany: async ({ where, select, take }: {
+					where: { id?: { in?: number[] }; AND?: Array<{ id?: { gt?: number } }> };
+					select: Record<string, unknown>; take?: number;
+				}) => {
+					if (Object.keys(select).length === 1 && select.id) {
+						const cursor = where.AND?.find((part) => part.id?.gt !== undefined)?.id?.gt ?? 0;
+						cursors.push(cursor);
+						expect(take).toBe(250);
+						return rows.filter((row) => row.id > cursor).slice(0, take).map(({ id }) => ({ id }));
+					}
+					return rows.filter((row) => where.id?.in?.includes(row.id) && !(evidence === "missing" && row.id === 251));
+				},
+			},
+		};
+		const result = getSalesProductionSummary(db as unknown as Db, {});
+		if (evidence === "missing") {
+			await expect(result).rejects.toThrow("Sales Pipeline evidence is unavailable for order 251.");
+		} else {
+			expect((await result).summary.completedCount).toBe(251);
+		}
+		expect(cursors).toEqual([0, 250]);
+	});
 
 	it("requires every active assignment to have an owner for Ready", () => {
 		const where = whereSales({

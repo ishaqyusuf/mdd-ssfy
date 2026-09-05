@@ -34,6 +34,7 @@ import {
 	resolveCanonicalWorkspaceMembership,
 } from "./sales-pipeline";
 import { getSalesPipelineSnapshots } from "./sales-pipeline-order";
+import { getCanonicalSalesPipelineCohortIds } from "./sales-pipeline-rollout-query";
 import {
 	getSalesPipelineReadMode,
 	observeSalesPipelineReadProjection,
@@ -861,10 +862,11 @@ async function getProductionListAction(
 		workerCompletion?: "completed";
 	} = {},
 ) {
+	const workspaceWhere = buildProductionWorkspaceWhere(query);
 	const stageWhere = await buildCanonicalProductionStageMembershipWhere(
 		db,
 		query,
-		buildProductionWorkspaceWhere(query),
+		workspaceWhere,
 	);
 	const where = await buildProductionScheduleMembershipWhere(
 		db,
@@ -880,7 +882,7 @@ async function getProductionListAction(
 		size: requestedTake,
 	};
 
-	const whereAssignments = getProductionAssignmentFilters(where);
+	const whereAssignments = getProductionAssignmentFilters(workspaceWhere);
 	if (query.material || query.productionSort) {
 		if (query.material && !query.productionSort) {
 			return attachCanonicalProductionPipelines(
@@ -993,6 +995,8 @@ async function buildCanonicalProductionStageMembershipWhere(
 	) {
 		return legacyWhere;
 	}
+	const cohortIds = await getCanonicalSalesPipelineCohortIds(db);
+	if (cohortIds?.length === 0) return legacyWhere;
 
 	const { "completion.production": _completion, ...candidateQuery } = query;
 	const workspaceWhere = {
@@ -1001,14 +1005,16 @@ async function buildCanonicalProductionStageMembershipWhere(
 			buildProductionEligibleWhere(),
 		],
 	} satisfies Prisma.SalesOrdersWhereInput;
-	const completedIds: number[] = [];
+	const completedIds = new Set<number>();
 	let cursor: number | undefined;
 	for (;;) {
 		const page = await db.salesOrderListProjection.findMany({
 			where: {
+				...(cohortIds ? { salesOrderId: { in: cohortIds } } : {}),
 				state: "ready",
 				version: salesOrderListProjectionVersion(),
 				pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
+				pipelineRevision: { not: null },
 				pipelineProductionApplicability: "required",
 				pipelineProductionState: {
 					in: ["completed", "administratively_completed"],
@@ -1031,12 +1037,69 @@ async function buildCanonicalProductionStageMembershipWhere(
 					`Sales Pipeline projection is stale for order ${projection.salesOrderId}. Refresh and retry.`,
 				);
 			}
-			completedIds.push(projection.salesOrderId);
+			completedIds.add(projection.salesOrderId);
 		}
 		cursor = page.at(-1)?.salesOrderId;
 		if (page.length < 250 || !cursor) break;
 	}
-	return { AND: [workspaceWhere, { id: { in: completedIds } }] };
+	for (const id of await getUncachedCompletedProductionIds(db, workspaceWhere, cohortIds)) {
+		completedIds.add(id);
+	}
+	const canonicalWhere = { AND: [workspaceWhere, { id: { in: [...completedIds] } }] };
+	return cohortIds
+		? { OR: [
+			{ AND: [legacyWhere, { id: { notIn: cohortIds } }] },
+			canonicalWhere,
+		] }
+		: canonicalWhere;
+}
+
+async function getUncachedCompletedProductionIds(
+	db: Db,
+	workspaceWhere: Prisma.SalesOrdersWhereInput,
+	cohortIds: number[] | null,
+) {
+	const unavailableProjection = {
+		OR: [
+			{ listProjection: { is: null } },
+			{ listProjection: { is: { OR: [
+				{ state: { not: "ready" } },
+				{ version: { not: salesOrderListProjectionVersion() } },
+				{ pipelineContractVersion: null },
+				{ pipelineContractVersion: { not: SALES_PIPELINE_CONTRACT_VERSION } },
+				{ pipelineRevision: null },
+				{ pipelineProductionApplicability: null },
+				{ pipelineProductionState: null },
+			] } } },
+		],
+	} satisfies Prisma.SalesOrdersWhereInput;
+	const completedIds: number[] = [];
+	let cursor = 0;
+	for (;;) {
+		const page = await db.salesOrders.findMany({
+			where: { AND: [
+				workspaceWhere,
+				...(cohortIds ? [{ id: { in: cohortIds } }] : []),
+				unavailableProjection,
+				{ id: { gt: cursor } },
+			] },
+			select: { id: true },
+			orderBy: { id: "asc" },
+			take: 250,
+		});
+		const snapshots = await getSalesPipelineSnapshots(db, page.map((row) => row.id));
+		for (const row of page) {
+			const snapshot = snapshots.get(row.id);
+			if (!snapshot) {
+				throw new Error(`Sales Pipeline evidence is unavailable for order ${row.id}. Refresh and retry.`);
+			}
+			if (snapshot.production.applicability === "required" && isCanonicalProductionCompleted(snapshot)) {
+				completedIds.push(row.id);
+			}
+		}
+		if (page.length < 250) return completedIds;
+		cursor = page[page.length - 1]!.id;
+	}
 }
 
 async function attachCanonicalProductionPipelines<

@@ -13,6 +13,25 @@ Dispatch proof.
 
 ## Contract
 
+Completed query/row cohort parity is implemented under ADR085, pending release.
+An independent September5 read-only cohort audit found20 canonically completed
+orders without list projections. Positive-only cache discovery silently
+under-counts them; the proposed fix needs bounded fresh-evidence fallback.
+The local correction now resolves missing/unusable projection candidates from
+bounded fresh evidence without cache writes. Missing source evidence rejects;
+valid projected candidates retain revision validation. Both branches preserve
+workspace filters, and assignment details use the original scope rather than
+the cohort OR predicate. The read-only summary now matches the independent
+1295 total. Final Spec and Standards reviews, 233 Sales tests, 721 API tests,
+and Sales/API typechecks pass. Commit and deployment validation remain
+outstanding. A ready/current projection that incorrectly claims non-completion
+is outside this fallback, so universal membership parity is not established.
+
+The latest user-requested inspection of the original localhost Production tab
+shows analytics, tabs, and order rows loading. The two September 4 failed
+background jobs for sale 26929 still report `STALE_REVISION`; neither has been
+replayed or dismissed. Local rendering is not live rollout acceptance.
+
 `@gnd/sales` declares `@gnd/errors` as a direct runtime workspace dependency for
 its canonical command error contract. Release validation must run against an
 isolated installation; a working root installation can mask missing workspace
