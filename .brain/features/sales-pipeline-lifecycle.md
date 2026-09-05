@@ -18,6 +18,11 @@ its canonical command error contract. Release validation must run against an
 isolated installation; a working root installation can mask missing workspace
 dependency declarations.
 
+Dashboard declares the Calendar hydration regression's tRPC server/options
+packages as development dependencies. The frozen release install retains the
+existing resolved tRPC versions and runs the regression without relying on
+accidental root-workspace dependencies. This is test packaging only.
+
 Fulfillment's Backlog and Dispatch order headlines use the same cohort-selected
 canonical projection as Orders/Overview. Headline and Production dimension
 switch together; Dispatch operational status remains a separate dimension.

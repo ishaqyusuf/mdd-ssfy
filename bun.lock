@@ -178,6 +178,8 @@
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
         "@tailwindcss/postcss": "catalog:",
+        "@trpc/server": "^11.6.0",
+        "@trpc/tanstack-react-query": "^11.6.0",
         "@types/dot-object": "^2.1.6",
         "@types/node": "^25.2.3",
         "@types/qs": "^6.14.0",

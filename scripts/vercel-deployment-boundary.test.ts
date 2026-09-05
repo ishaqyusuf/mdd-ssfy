@@ -16,6 +16,17 @@ const ignoredPaths = readFileSync(resolve(root, ".vercelignore"), "utf8")
 	.filter((line) => line && !line.startsWith("#") && !line.startsWith("!"));
 
 describe("Vercel deployment source boundaries", () => {
+	it("declares the Calendar hydration test's tRPC dependencies in Dashboard", () => {
+		const dashboardPackage = JSON.parse(
+			readFileSync(resolve(root, "apps/dashboard/package.json"), "utf8"),
+		) as { devDependencies: Record<string, string> };
+
+		expect(dashboardPackage.devDependencies["@trpc/server"]).toBe("^11.6.0");
+		expect(dashboardPackage.devDependencies["@trpc/tanstack-react-query"]).toBe(
+			"^11.6.0",
+		);
+	});
+
 	it("installs the error contract owned by Sales lifecycle commands", () => {
 		const salesPackage = JSON.parse(
 			readFileSync(resolve(root, "packages/sales/package.json"), "utf8"),
