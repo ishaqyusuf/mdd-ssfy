@@ -43,6 +43,17 @@ returning a partial or stale count. This reduces retained snapshot memory and
 wasted reads after a stale page; it is not a cache repair or a claim that the
 full-population request meets its latency budget.
 
+Live follow-up reproduces healthy analytics/tabs with a single-order search
+and failed unfiltered summary panels alongside a 15-second page timeout.
+Calendar server-prefetch now explicitly supplies `scope: "all"`, matching the
+client input before schema defaulting so both use the same hydration key.
+Actual-callsite input tests exercise the real tRPC and TanStack hydration
+boundary; authenticated local filtered Calendar, analytics, and tabs render.
+The correction is not yet deployed. Scratch Ticket 14 records the exact live
+requests, unresolved cohort count/color mismatch, broad-summary failure, and
+separate drag-handle hydration warning. None authorizes bypassing auth or
+serving stale counts.
+
 Operational reconciliation read deadlines do not cancel database operations.
 Shadow audit revalidation preserves the same ready/current-version/current-
 contract eligibility as the initial read. Missing canonical or projection

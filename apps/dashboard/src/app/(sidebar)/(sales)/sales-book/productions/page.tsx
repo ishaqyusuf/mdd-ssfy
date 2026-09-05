@@ -77,6 +77,7 @@ export default async function SalesProductionsPage({ searchParams }: Props) {
 			trpc.sales.productionCalendar.queryOptions({
 				from: period.from,
 				to: period.to,
+				scope: "all",
 				q: filters.q,
 				assignedToId: filters.assignedToId,
 				priority: filters.priority,
