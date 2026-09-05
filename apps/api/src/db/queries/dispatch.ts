@@ -713,6 +713,7 @@ async function getDispatchPage(
 							rest.order,
 							orderControlById.get(rest.order.id) || null,
 							effectiveStatus,
+							{ pipeline: pipelineSnapshots.get(rest.order.id) },
 						),
 						shippingAddress: normalizeShippingAddress(
 							(rest.order as any)?.shippingAddress,
@@ -783,6 +784,7 @@ async function getDispatchPage(
 						(safeRow as any).order,
 						orderControlById.get((safeRow as any).order?.id) || null,
 						effectiveStatus,
+						{ pipeline: pipelineSnapshots.get((safeRow as any).order?.id) },
 					),
 					shippingAddress: normalizeShippingAddress(
 						(safeRow as any)?.order?.shippingAddress,

@@ -1,6 +1,8 @@
 import type { Prisma } from "@gnd/db";
 import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
 import { repairSalesInvoiceCccDisplay } from "@gnd/sales/payment-system";
+import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
+import { observeSalesPipelineReadProjection } from "@gnd/sales/sales-pipeline-rollout";
 
 export const dispatchOrderPresentationSelect = {
 	slug: true,
@@ -63,6 +65,10 @@ export function projectDispatchOrderPresentation(
 	order: PresentationOrder,
 	control: OrderControl,
 	fulfillmentStatus?: string | null,
+	options?: {
+		pipeline?: SalesPipelineSnapshot | null;
+		env?: Record<string, string | undefined>;
+	},
 ) {
 	const repairedInvoice = repairSalesInvoiceCccDisplay({
 		baseTotal: Number(order.grandTotal || 0),
@@ -86,6 +92,13 @@ export function projectDispatchOrderPresentation(
 		pendingDispatch: control?.pendingDispatch,
 		packables: control?.packables,
 	});
+	const selectedPipeline = options?.pipeline
+		? observeSalesPipelineReadProjection(
+				options.pipeline,
+				{ surface: "fulfillment.order", legacyHeadline: lifecycle.status },
+				options.env,
+			)
+		: null;
 	const customerName =
 		order.customer?.businessName ||
 		order.customer?.name ||
@@ -117,9 +130,9 @@ export function projectDispatchOrderPresentation(
 					reviewStatus: paymentReview.reviewStatus || "needs_review",
 				}
 			: null,
-		productionState,
-		status: lifecycle.status,
-		statusLabel: lifecycle.label,
-		statusTone: lifecycle.tone,
+		productionState: selectedPipeline?.production.state ?? productionState,
+		status: selectedPipeline?.headline.code ?? lifecycle.status,
+		statusLabel: selectedPipeline?.headline.label ?? lifecycle.label,
+		statusTone: selectedPipeline?.headline.tone ?? lifecycle.tone,
 	};
 }

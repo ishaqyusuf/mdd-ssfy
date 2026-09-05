@@ -11,6 +11,7 @@ import {
 	SALES_PIPELINE_CONTRACT_VERSION,
 	type SalesControlField,
 	buildSalesDispatchBacklogWhere,
+	getSalesPipelineSnapshots,
 	salesOrderListProjectionVersion,
 	withSalesListControl,
 } from "@gnd/sales";
@@ -317,10 +318,19 @@ export async function getDispatchBacklog(
 	const controlById = new Map(
 		rowsWithControl.map((row) => [row.id, row.control]),
 	);
+	const pipelineSnapshots = await getSalesPipelineSnapshots(
+		ctx.db,
+		data.map((row) => row.id),
+	);
 	return response(
 		data.map((row) => ({
 			...row,
-			...projectDispatchOrderPresentation(row, controlById.get(row.id) || null),
+			...projectDispatchOrderPresentation(
+				row,
+				controlById.get(row.id) || null,
+				null,
+				{ pipeline: pipelineSnapshots.get(row.id) },
+			),
 		})),
 	);
 }

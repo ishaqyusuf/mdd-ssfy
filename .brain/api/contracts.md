@@ -1,5 +1,19 @@
 # API Contracts
 
+## Fulfillment order headline parity (2026-09-05)
+
+- Fulfillment Backlog and both Dispatch list control-read variants project the
+  order headline code, label, tone, and Production dimension from the same
+  cohort-selected canonical snapshot used by Orders/Overview. Legacy, shadow,
+  excluded-cohort, and missing-snapshot reads retain the existing fallback.
+- Backlog loads canonical evidence only for the returned page through the
+  shared bounded snapshot loader; Dispatch lists reuse their existing snapshot
+  batch. No new application-level per-row database call is introduced.
+- Dispatch record/workspace status remains separate from the order headline.
+  Internal assignment evidence is not returned, and existing driver audience
+  projection, permissions, filters, pagination, and mutation semantics remain
+  unchanged.
+
 ## Production material-review assignment preflight (2026-09-05)
 
 - Review list/count/detail actionability uses classification
