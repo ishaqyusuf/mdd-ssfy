@@ -59,6 +59,10 @@ this is not an atomic multi-query snapshot. Read surfaces retain unavailable
 fallbacks; mutation readiness callers retain fail-closed behavior. Read-only
 61-line parity, select-aware reordered/missing/retarget fixtures, and both
 reviews pass. This follow-up remains local; live latency is not accepted.
+Release dependency review also requires unavailable material evidence to retain
+`unknown` applicability as well as the existing unknown badge. An unavailable
+empty result must not assert that material is not required; the latter applies
+only to successfully loaded, empty tracked-material evidence.
 
 Database-sorted Production list reads now anchor the ordered page with IDs,
 then read header, controls, assignments, and deliveries concurrently. Header

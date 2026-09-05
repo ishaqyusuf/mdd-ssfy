@@ -62,9 +62,9 @@ export function buildProductionItemMaterialStatus(input: {
 	const itemMaterials = dimensionMaterials.length
 		? dimensionMaterials
 		: salesItemMaterials;
-	const applicability = resolveProductionMaterialApplicability({
-		materials: itemMaterials,
-	});
+	const applicability = input.projectionState === "unavailable"
+		? "unknown"
+		: resolveProductionMaterialApplicability({ materials: itemMaterials });
 	return resolveItemMaterialStatus({
 		salesOrderId: input.salesOrderId,
 		salesItemId: input.salesItemId,

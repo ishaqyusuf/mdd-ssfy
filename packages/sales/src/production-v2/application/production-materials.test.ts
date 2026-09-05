@@ -11,6 +11,18 @@ import {
 } from "./production-materials";
 
 describe("buildProductionMaterialStatuses", () => {
+	it("keeps unavailable material applicability unknown instead of asserting no material is needed", () => {
+		const result = buildProductionItemMaterialStatus({
+			salesOrderId: 42,
+			salesItemId: 101,
+			reviewPending: false,
+			projectionState: "unavailable",
+			materials: [],
+		});
+		expect(result.code).toBe("status_unknown");
+		expect(result.applicability).toBe("unknown");
+	});
+
 	it("treats a production service without tracked material as not required", () => {
 		const result = buildProductionItemMaterialStatus({
 			salesOrderId: 42,
