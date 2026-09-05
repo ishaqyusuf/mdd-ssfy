@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { Db } from "@gnd/db";
 
-import { getSalesProductionPlan } from "../../sales-fulfillment-plan";
+import { buildSalesProductionPlan, getSalesProductionPlan } from "../../sales-fulfillment-plan";
 import {
 	buildProductionItemMaterialStatus,
 	buildProductionMaterialStatuses,
@@ -305,7 +305,83 @@ describe("summarizeProductionMaterials", () => {
 });
 
 describe("getSalesProductionPlan", () => {
-	it("loads material readiness for a page of production orders in one query", async () => {
+	it("starts independent material evidence reads together without dropping order scope", async () => {
+		const gate = Promise.withResolvers<void>();
+		const calls: Array<{ where: { saleId?: unknown }; take?: number }> = [];
+		const db = { lineItem: { findMany: async (args: typeof calls[number]) => {
+			calls.push(args);
+			await gate.promise;
+			return [];
+		} } };
+		const pending = getSalesProductionPlan(db as unknown as Db, { salesOrderIds: [42, 43, 42], completeOrder: true });
+		try {
+			expect(calls).toHaveLength(4);
+			for (const call of calls) {
+				expect(call.where.saleId).toEqual({ in: [42, 43] });
+				expect(call.take).toBeUndefined();
+			}
+		} finally {
+			gate.resolve();
+			await pending;
+		}
+	});
+
+	it.each(["fresh", "missing-header", "missing-line", "missing-component", "wrong-component", "retargeted-component"])(
+		"joins material evidence by line/component ID and rejects gaps: %s", async (scenario) => {
+			const lines = [1, 2].map(id => ({
+				id, uid: `line-${id}`, title: `Door ${id}`, qty: id,
+				saleId: id + 40, sale: { id: id + 40, orderId: `ORDER-${id}` },
+				salesItem: { id: id + 100, itemDeliveries: [] },
+				components: [1, 2].map(part => ({
+					id: id * 10 + part, required: true, qty: id,
+					inventoryId: 500, inventoryVariantId: id * 10 + part,
+					inventory: { id: 500, name: "Door", stockMode: "monitored" },
+					inventoryVariant: { id: id * 10 + part, sku: `SIZE-${id}-${part}` },
+					stockAllocations: [{ id: id * 100 + part, qty: id, status: "reserved" }],
+					inboundDemands: [{ id: id * 1000 + part, qty: 1, qtyReceived: 0, status: "ordered",
+						inboundShipmentItemId: id * 10000 + part,
+						inboundShipmentItem: { inbound: { expectedAt: new Date("2026-09-10"), status: "ordered", supplier: { name: `Supplier ${id}` } } },
+					}],
+				})),
+			}));
+			let call = 0;
+			const project = (value: unknown, select: Record<string, unknown>): unknown => {
+				if (value == null) return value;
+				if (Array.isArray(value)) return value.map(item => project(item, select));
+				const row = value as Record<string, unknown>;
+				return Object.fromEntries(Object.entries(select).map(([key, option]) => [key,
+					option === true ? row[key] : project(row[key], (option as { select: Record<string, unknown> }).select),
+				]));
+			};
+			const db = { lineItem: { findMany: async (args: { select: Record<string, unknown> }) => {
+				call += 1;
+				const result = structuredClone(lines);
+				if (call === 1 && scenario === "missing-header") return project(result.slice(1), args.select);
+				if (call === 3 && scenario === "retargeted-component") result[0].components[0].inventoryVariantId = 999;
+				if (call === 4) {
+					if (scenario === "missing-line") return project(result.slice(1), args.select);
+					if (scenario === "missing-component") result[0].components.pop();
+					if (scenario === "wrong-component") result[0].components[0].id = 999;
+				}
+				if (call > 1) {
+					result.reverse();
+					if (call > 2) for (const line of result) line.components.reverse();
+				}
+				return project(result, args.select);
+			} } };
+			const result = getSalesProductionPlan(db as unknown as Db, { salesOrderIds: [41, 42], completeOrder: true });
+			if (scenario === "fresh") {
+				const actual = await result;
+				const expected = buildSalesProductionPlan(lines, { completeOrder: true, limit: 100 });
+				expect(actual).toEqual(expected);
+				expect(actual.summary.componentCount).toBe(4);
+			} else {
+				await expect(result).rejects.toThrow("Production material evidence changed");
+			}
+		},
+	);
+
+	it("loads material readiness for a page of production orders with one shared scope", async () => {
 		type FindManyArgs = {
 			where: {
 				saleId?: unknown;

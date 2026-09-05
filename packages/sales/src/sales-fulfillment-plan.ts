@@ -2662,7 +2662,7 @@ export async function getSalesProductionPlan(
 	const candidateTake = input.completeOrder
 		? undefined
 		: Math.min(limit * 2, 500);
-	const lineItems = await db.lineItem.findMany({
+	const query = {
 		where: {
 			deletedAt: null,
 			lineItemType: "SALE",
@@ -2872,6 +2872,54 @@ export async function getSalesProductionPlan(
 				},
 			},
 		},
+	} satisfies Prisma.LineItemFindManyArgs;
+	const { components, ...headerSelect } = query.select;
+	const {
+		inventory, inventoryVariant, inventoryCategory, subComponent,
+		inboundDemands, ...commitmentSelect
+	} = components.select;
+	const [headers, catalogs, commitments, inbounds] = await Promise.all([
+		db.lineItem.findMany({ ...query, select: headerSelect }),
+		db.lineItem.findMany({ ...query, select: {
+			id: true, components: { ...components, select: {
+				id: true, inventory, inventoryVariant, inventoryCategory, subComponent,
+				inventoryId: true, inventoryVariantId: true,
+				inventoryCategoryId: true, subComponentId: true,
+			} },
+		} }),
+		db.lineItem.findMany({ ...query, select: {
+			id: true, components: { ...components, select: commitmentSelect },
+		} }),
+		db.lineItem.findMany({ ...query, select: {
+			id: true, components: { ...components, select: { id: true, inboundDemands } },
+		} }),
+	]);
+	const changedEvidence = () => new Error("Production material evidence changed. Refresh and retry.");
+	if ([catalogs, commitments, inbounds].some(rows => rows.length !== headers.length)) {
+		throw changedEvidence();
+	}
+	const catalogByLine = new Map(catalogs.map(row => [row.id, row]));
+	const commitmentByLine = new Map(commitments.map(row => [row.id, row]));
+	const inboundByLine = new Map(inbounds.map(row => [row.id, row]));
+	const lineItems = headers.map(header => {
+		const catalog = catalogByLine.get(header.id);
+		const commitment = commitmentByLine.get(header.id);
+		const inbound = inboundByLine.get(header.id);
+		if (!catalog || !commitment || !inbound) throw changedEvidence();
+		if (catalog.components.length !== commitment.components.length ||
+			catalog.components.length !== inbound.components.length) throw changedEvidence();
+		const commitmentByComponent = new Map(commitment.components.map(item => [item.id, item]));
+		const inboundByComponent = new Map(inbound.components.map(item => [item.id, item]));
+		return { ...header, components: catalog.components.map(item => {
+			const stock = commitmentByComponent.get(item.id);
+			const shipment = inboundByComponent.get(item.id);
+			if (!stock || !shipment) throw changedEvidence();
+			if (item.inventoryId !== stock.inventoryId ||
+				item.inventoryVariantId !== stock.inventoryVariantId ||
+				item.inventoryCategoryId !== stock.inventoryCategoryId ||
+				item.subComponentId !== stock.subComponentId) throw changedEvidence();
+			return { ...item, ...stock, ...shipment };
+		}) };
 	});
 
 	return buildSalesProductionPlan(lineItems, {

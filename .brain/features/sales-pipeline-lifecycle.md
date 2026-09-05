@@ -42,6 +42,18 @@ does not change membership, ordering, material evidence, or status authority.
 Read-only list timing still exceeds the15-second runtime budget; Scratch keeps
 the evidence and remaining full-detail/material-query bottlenecks. Not deployed.
 
+The shared Production material plan loader now reads the same evidence through
+four concurrent branches: header/delivery, catalog, commitments, and inbound.
+Each keeps the existing scope, limits, and selected fields. Lines/components
+join by ID, and absent/mismatched evidence rejects. Catalog and commitment
+inventory/variant/category/subcomponent identities must agree before merging,
+preventing a surviving component ID from hiding a concurrent material retarget.
+The readiness resolver, authorization, and transaction boundaries are unchanged;
+this is not an atomic multi-query snapshot. Read surfaces retain unavailable
+fallbacks; mutation readiness callers retain fail-closed behavior. Read-only
+61-line parity, select-aware reordered/missing/retarget fixtures, and both
+reviews pass. This follow-up remains local; live latency is not accepted.
+
 `@gnd/sales` declares `@gnd/errors` as a direct runtime workspace dependency for
 its canonical command error contract. Release validation must run against an
 isolated installation; a working root installation can mask missing workspace
