@@ -37,6 +37,23 @@ const batchSize = Math.min(
 );
 const outputPath = valueAfter("--output");
 
+export function buildSalesPipelineReconciliationOrderWhere(argv: string[]) {
+	const base = { type: "order", deletedAt: null } as const;
+	const flags = argv.filter((arg) => arg === "--order-id" || arg.startsWith("--order-id="));
+	if (flags.length === 0) return base;
+	if (flags.length > 1) throw new Error("--order-id may only be supplied once");
+	if (argv.some((arg) => arg === "--undo-run" || arg.startsWith("--undo-run="))) {
+		throw new Error("--order-id cannot be combined with --undo-run");
+	}
+	const flag = flags[0]!;
+	const orderId = flag === "--order-id" ? argv[argv.indexOf(flag) + 1] ?? "" : flag.slice("--order-id=".length);
+	const parsed = Number(orderId);
+	if (!/^\d+$/.test(orderId) || !Number.isSafeInteger(parsed) || parsed <= 0) {
+		throw new Error("--order-id must be a positive safe integer");
+	}
+	return { ...base, id: parsed };
+}
+
 async function resetProductionDatabaseConnection() {
 	try {
 		await db.$disconnect();
@@ -216,6 +233,8 @@ async function undoRun(input: {
 }
 
 async function main() {
+	// A present flag without a value must never silently become a full scan.
+	const orderWhere = buildSalesPipelineReconciliationOrderWhere(process.argv.slice(2));
 	const runId = randomUUID();
 	const startedAt = new Date();
 	const actorId = Number(valueAfter("--actor-id") || 0);
@@ -287,7 +306,7 @@ async function main() {
 	for (;;) {
 		const page = await withProductionDatabaseReadRetry(() =>
 			db.salesOrders.findMany({
-				where: { type: "order", deletedAt: null },
+				where: orderWhere,
 				orderBy: { id: "asc" },
 				select: orderSelect,
 				take: 250,
@@ -426,6 +445,7 @@ async function main() {
 		contract: "sales-pipeline-reconciliation/v1",
 		runId,
 		mode: apply ? "apply" : "dry-run",
+		scope: { salesOrderId: "id" in orderWhere ? orderWhere.id : null },
 		startedAt: startedAt.toISOString(),
 		finishedAt: new Date().toISOString(),
 		actorId: apply ? actorId : null,

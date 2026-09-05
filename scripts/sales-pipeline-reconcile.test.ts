@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
 	buildSalesPipelineReconciliationEvidence,
+	buildSalesPipelineReconciliationOrderWhere,
 	isRetryableDatabaseConnectionError,
 	restoreProjectionDates,
 	restoreSalesPipelineProjectionRecord,
@@ -17,6 +18,31 @@ const retrySource = await Bun.file(
 ).text();
 
 describe("Sales Pipeline reconciliation rollback", () => {
+	it("builds an exact order discovery predicate for split and equals flag syntax", () => {
+		expect(buildSalesPipelineReconciliationOrderWhere(["--order-id", "20780"])).toEqual({
+			type: "order", deletedAt: null, id: 20780,
+		});
+		expect(buildSalesPipelineReconciliationOrderWhere(["--order-id=20780"])).toEqual({
+			type: "order", deletedAt: null, id: 20780,
+		});
+		expect(buildSalesPipelineReconciliationOrderWhere([])).toEqual({
+			type: "order", deletedAt: null,
+		});
+	});
+	it.each(["", "0", "-1", "1.5", "1,2", "abc", "Infinity", "9007199254740992"])(
+		"rejects invalid order scope %s instead of broadening the repair", (value) => {
+			expect(() => buildSalesPipelineReconciliationOrderWhere(["--order-id", value])).toThrow("--order-id must be a positive safe integer");
+			expect(() => buildSalesPipelineReconciliationOrderWhere([`--order-id=${value}`])).toThrow("--order-id must be a positive safe integer");
+		},
+	);
+	it.each([
+		["--order-id"], ["--order-id", "--apply"],
+		["--order-id", "1", "--order-id=2"], ["--order-id=1", "--order-id=2"],
+		["--order-id", "20780", "--undo-run", "backup.json"],
+		["--order-id=20780", "--undo-run=backup.json"],
+	].map((argv) => ({ argv })))("rejects missing, duplicate, or incompatible order scopes %j", ({ argv }) => {
+		expect(() => buildSalesPipelineReconciliationOrderWhere(argv)).toThrow("--order-id");
+	});
 	it.each([false, true])("exits after successful final cleanup even with a retired driver handle (command failed: %s)", async (fails) => {
 		const modulePath = new URL("./sales-pipeline-database-retry.ts", import.meta.url).pathname;
 		const child = Bun.spawn([process.execPath, "-e", `

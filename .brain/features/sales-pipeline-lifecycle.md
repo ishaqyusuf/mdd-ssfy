@@ -47,6 +47,14 @@ Exact-deployment logs confirm timeout failures on the page and batched
 summary/list endpoint; successful deployment and local recovery are not live
 acceptance. The remaining query-cost investigation is tracked in Ticket 14.
 
+The reconciliation CLI accepts `--order-id <id>` or `--order-id=<id>` to limit
+discovery and therefore classification, backups, and derived-cache repairs
+to one active order. Invalid, missing, duplicate, or unsafe-integer values
+fail before database access. The scope cannot be combined with `--undo-run`,
+which retains its existing whole-backup semantics. Omitting scope retains
+the existing full audit behavior. Actor checks, reason, backup, deterministic
+classification, and revision-guarded refresh requirements remain unchanged.
+
 Completed Production membership validates each bounded projection page before
 loading the next; stale or missing evidence stops immediately. Only accepted
 IDs are retained across pages. The summary still fails visibly rather than
