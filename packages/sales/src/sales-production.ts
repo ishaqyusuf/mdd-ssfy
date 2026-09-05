@@ -663,6 +663,19 @@ async function buildProductionScheduleMembershipWhere(
 		where: {
 			deletedAt: null,
 			completedAt: null,
+			// A positive requirement already satisfied by recorded quantity cannot
+			// be open. Keep null/zero legacy requirements for the handed-quantity
+			// fallback and still resolve submission/review evidence below.
+			OR: [
+				{ qtyAssigned: null },
+				{ qtyAssigned: { lte: 0 } },
+				{ qtyCompleted: null },
+				{
+					qtyCompleted: {
+						lt: db.orderItemProductionAssignments.fields.qtyAssigned,
+					},
+				},
+			],
 			assignedToId: query["production.assignedToId"] || undefined,
 			dueDate,
 			order: baseWhere,

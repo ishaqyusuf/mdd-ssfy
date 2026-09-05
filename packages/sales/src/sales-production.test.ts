@@ -1,5 +1,5 @@
 import { describe, expect, it, spyOn } from "bun:test";
-import type { Db } from "@gnd/db";
+import { db as fieldSource, type Db } from "@gnd/db";
 
 import { resolveSalesPipelineSnapshotFromOrder } from "./sales-pipeline-order";
 import {
@@ -113,6 +113,7 @@ describe("sales production priority sorting", () => {
 			const db = {
 				$queryRaw: async () => mixed ? [{ id: 11 }] : [],
 				orderItemProductionAssignments: {
+					fields: fieldSource.orderItemProductionAssignments.fields,
 					findMany: async () => rows.map((row) => ({
 						orderId: row.id,
 						qtyAssigned: 1,
@@ -187,6 +188,7 @@ describe("sales production priority sorting", () => {
 		const dueDate = new Date("2026-09-01T09:00:00.000Z");
 		const db = {
 			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
 				findMany: async (args: { where?: unknown }) => {
 					capturedWhere = args.where;
 					return [
@@ -248,6 +250,7 @@ describe("sales production priority sorting", () => {
 		const dueDate = new Date("2026-09-02T09:00:00.000Z");
 		const db = {
 			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
 				findMany: async () => [
 					{
 						id: 92,
@@ -309,6 +312,7 @@ describe("sales production priority sorting", () => {
 		};
 		const db = {
 			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
 				findMany: async () => [
 					{
 						id: 93,
@@ -358,6 +362,7 @@ describe("sales production priority sorting", () => {
 			const dueDate = new Date("2026-09-02T09:00:00.000Z");
 			const db = {
 				orderItemProductionAssignments: {
+					fields: fieldSource.orderItemProductionAssignments.fields,
 					findMany: async () => [
 						{
 							id: 94,
@@ -465,6 +470,7 @@ describe("sales production priority sorting", () => {
 				};
 				const db = {
 					orderItemProductionAssignments: {
+						fields: fieldSource.orderItemProductionAssignments.fields,
 						findMany: async () => [
 							{ ...assignment, assignedTo: { name: "Worker" }, order },
 						],
@@ -494,6 +500,7 @@ describe("sales production priority sorting", () => {
 		const findManyCalls: SalesFindManyArgs[] = [];
 		const db = {
 			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
 				findMany: async () => [],
 			},
 			salesOrders: {
@@ -556,6 +563,7 @@ describe("sales production priority sorting", () => {
 		const findManyCalls: SalesFindManyArgs[] = [];
 		const db = {
 			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
 				findMany: async () => [],
 			},
 			salesOrders: {
@@ -642,6 +650,7 @@ describe("sales production priority sorting", () => {
 		let assignmentOrderScope: unknown;
 		const db = {
 			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
 				findMany: async ({ where }: { where: { order?: unknown } }) => {
 					assignmentOrderScope = where.order;
 					return [];
@@ -700,6 +709,7 @@ describe("sales production priority sorting", () => {
 		const assignmentScopes: Array<{ completedAt?: Date | null }> = [];
 		const db = {
 			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
 				findMany: async ({ where }: { where: { completedAt?: Date | null } }) => {
 					assignmentScopes.push(where);
 					return [];
@@ -738,6 +748,7 @@ describe("sales production priority sorting", () => {
 		const assignmentScopes: Array<{ order?: unknown; assignedToId?: number }> = [];
 		const db = {
 			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
 				findMany: async ({ where }: { where: { order?: unknown; assignedToId?: number } }) => {
 					assignmentScopes.push(where);
 					return [];
@@ -788,7 +799,9 @@ describe("sales production priority sorting", () => {
 			createdAt: new Date("2026-07-01T12:00:00Z"),
 		}));
 		const db = {
-			orderItemProductionAssignments: { findMany: async () => [] },
+			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
+				findMany: async () => [] },
 			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 			salesOrders: {
 				count: async () => 0,
@@ -821,7 +834,9 @@ describe("sales production priority sorting", () => {
 			const evidenceIds = new Set<number>();
 			const db = {
 				$queryRaw: async () => [{ id: 11 }],
-				orderItemProductionAssignments: { findMany: async () => [] },
+				orderItemProductionAssignments: {
+					fields: fieldSource.orderItemProductionAssignments.fields,
+					findMany: async () => [] },
 				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 				salesOrderListProjection: {
 					findMany: async ({ where }: { where: { salesOrderId?: { in: number[] } } }) => {
@@ -874,7 +889,9 @@ describe("sales production priority sorting", () => {
 				createdAt: new Date("2026-07-01T12:00:00Z"),
 			}));
 			const db = {
-				orderItemProductionAssignments: { findMany: async () => [] },
+				orderItemProductionAssignments: {
+					fields: fieldSource.orderItemProductionAssignments.fields,
+					findMany: async () => [] },
 				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 				salesOrders: {
 					count: async (args: {
@@ -924,7 +941,9 @@ describe("sales production priority sorting", () => {
 		].map((row) => ({ ...row, createdAt: new Date("2026-07-01T12:00:00Z") }));
 		let fallbackWhere: unknown;
 		const db = {
-			orderItemProductionAssignments: { findMany: async () => [] },
+			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
+				findMany: async () => [] },
 			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 			salesOrderListProjection: { findMany: async () => [completedProjection(rows[0]! as ReturnType<typeof completedProductionRow>)] },
 			salesOrders: {
@@ -989,7 +1008,9 @@ describe("sales production priority sorting", () => {
 		}));
 		const cursors: number[] = [];
 		const db = {
-			orderItemProductionAssignments: { findMany: async () => [] },
+			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
+				findMany: async () => [] },
 			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 			salesOrderListProjection: { findMany: async () => [] },
 			salesOrders: {
