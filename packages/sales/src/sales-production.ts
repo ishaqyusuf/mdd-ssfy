@@ -28,6 +28,7 @@ import { getSalesProductionPlan } from "./sales-fulfillment-plan";
 import { resolveSalesInventoryFulfillmentStatus } from "./sales-inventory-policy";
 import {
 	SALES_PIPELINE_CONTRACT_VERSION,
+	type SalesPipelineSnapshot,
 	isProductionScheduleAssignmentOpen,
 	matchesCanonicalSalesPipelineFilter,
 	resolveCanonicalWorkspaceMembership,
@@ -439,10 +440,20 @@ export async function getSalesProductionCalendar(
 					legacyProductionIncluded: !assignmentCompleted,
 				})
 			: null;
+		const aggregateProductionStatus = overallStatus(row.order.stat).production
+			.status;
+		const legacyProductionStatus = getSalesOrderLifecycleStatusInfo({
+			productionStatus:
+				aggregateProductionStatus === "unknown"
+					? null
+					: aggregateProductionStatus,
+			legacyProductionStatus: row.order.prodStatus,
+		}).status;
 		const completed =
 			assignmentCompleted ||
-			pipelineSnapshot?.production.state === "completed" ||
-			pipelineSnapshot?.production.state === "administratively_completed";
+			(pipeline
+				? isCanonicalProductionCompleted(pipeline)
+				: hasCompletedProductionLifecycle(legacyProductionStatus));
 
 		return {
 			id: row.id,
@@ -980,10 +991,7 @@ async function buildCanonicalProductionStageMembershipWhere(
 			buildProductionEligibleWhere(),
 		],
 	} satisfies Prisma.SalesOrdersWhereInput;
-	const projections: Array<{
-		salesOrderId: number;
-		pipelineRevision: string | null;
-	}> = [];
+	const completedIds: number[] = [];
 	let cursor: number | undefined;
 	for (;;) {
 		const page = await db.salesOrderListProjection.findMany({
@@ -1002,31 +1010,34 @@ async function buildCanonicalProductionStageMembershipWhere(
 			take: 250,
 			...(cursor ? { cursor: { salesOrderId: cursor }, skip: 1 } : {}),
 		});
-		projections.push(...page);
+		const snapshots = await getSalesPipelineSnapshots(
+			db,
+			page.map((projection) => projection.salesOrderId),
+		);
+		for (const projection of page) {
+			const snapshot = snapshots.get(projection.salesOrderId);
+			if (!snapshot || projection.pipelineRevision !== snapshot.revision) {
+				throw new Error(
+					`Sales Pipeline projection is stale for order ${projection.salesOrderId}. Refresh and retry.`,
+				);
+			}
+			completedIds.push(projection.salesOrderId);
+		}
 		cursor = page.at(-1)?.salesOrderId;
 		if (page.length < 250 || !cursor) break;
 	}
-	if (!projections.length) {
-		return { AND: [workspaceWhere, { id: { in: [] } }] };
-	}
-	const snapshots = await getSalesPipelineSnapshots(
-		db,
-		projections.map((projection) => projection.salesOrderId),
-	);
-	const completedIds = projections.map((projection) => {
-		const snapshot = snapshots.get(projection.salesOrderId);
-		if (!snapshot || projection.pipelineRevision !== snapshot.revision) {
-			throw new Error(
-				`Sales Pipeline projection is stale for order ${projection.salesOrderId}. Refresh and retry.`,
-			);
-		}
-		return projection.salesOrderId;
-	});
 	return { AND: [workspaceWhere, { id: { in: completedIds } }] };
 }
 
 async function attachCanonicalProductionPipelines<
-	T extends { data: Array<{ id: number }> },
+	T extends {
+		data: Array<{
+			id: number;
+			completed?: boolean;
+			productionCompletionSatisfied?: boolean;
+			lifecycleStatus?: string;
+		}>;
+	},
 >(db: Db, response: T) {
 	const snapshots = await getSalesPipelineSnapshots(
 		db,
@@ -1036,17 +1047,33 @@ async function attachCanonicalProductionPipelines<
 		...response,
 		data: response.data.map((row) => {
 			const snapshot = snapshots.get(row.id) ?? null;
+			const pipeline = snapshot
+				? observeSalesPipelineReadProjection(snapshot, {
+						surface: "production.list.row",
+						legacyProductionIncluded: true,
+					})
+				: null;
+			const completed = pipeline
+				? isCanonicalProductionCompleted(pipeline)
+				: row.completed;
 			return {
 				...row,
-				pipeline: snapshot
-					? observeSalesPipelineReadProjection(snapshot, {
-							surface: "production.list.row",
-							legacyProductionIncluded: true,
-						})
-					: null,
+				completed,
+				productionCompletionSatisfied: pipeline
+					? completed
+					: row.productionCompletionSatisfied,
+				lifecycleStatus: pipeline?.headline.code ?? row.lifecycleStatus,
+				pipeline,
 			};
 		}),
 	};
+}
+
+function isCanonicalProductionCompleted(pipeline: SalesPipelineSnapshot) {
+	return (
+		pipeline.production.state === "completed" ||
+		pipeline.production.state === "administratively_completed"
+	);
 }
 
 type ProductionSelectedRow = Prisma.SalesOrdersGetPayload<{

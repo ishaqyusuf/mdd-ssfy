@@ -26,6 +26,23 @@ already-loaded batch. Deployed Backlog verification confirms 09530DB now shows
 Production queued. Full live cutover remains open, including Production summary
 health; a partial surface check does not satisfy the entire gate.
 
+The September 5 local Production failure is a shared-summary failure, not
+evidence of missing orders: the completed-count freshness check rejects stale
+projection 17567 (`07241DB`), and both analytics and tab counts consume that
+same rejected summary. Historical `update-sales-control` failures for 26929
+are separate `STALE_REVISION` command rejections before the action callback;
+they must not be blindly replayed. A guarded read-only live summary diagnostic
+timed out after 30 seconds without identifying the live exception. Local
+diagnosis cannot substitute for live health evidence. Current operational
+evidence and remaining acceptance gates are tracked in Scratch Ticket 14.
+
+Completed Production membership validates each bounded projection page before
+loading the next; stale or missing evidence stops immediately. Only accepted
+IDs are retained across pages. The summary still fails visibly rather than
+returning a partial or stale count. This reduces retained snapshot memory and
+wasted reads after a stale page; it is not a cache repair or a claim that the
+full-population request meets its latency budget.
+
 Operational reconciliation read deadlines do not cancel database operations.
 Shadow audit revalidation preserves the same ready/current-version/current-
 contract eligibility as the initial read. Missing canonical or projection

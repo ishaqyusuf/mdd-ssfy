@@ -264,6 +264,67 @@ describe("sales production priority sorting", () => {
 		});
 	});
 
+	it("keeps explicit legacy Production completion green outside the bounded cohort", async () => {
+		const previousReadMode = process.env.SALES_PIPELINE_READ_MODE;
+		const previousCohort = process.env.SALES_PIPELINE_COHORT_PERCENT;
+		process.env.SALES_PIPELINE_READ_MODE = "canonical";
+		process.env.SALES_PIPELINE_COHORT_PERCENT = "0";
+		try {
+			const dueDate = new Date("2026-09-02T09:00:00.000Z");
+			const db = {
+				orderItemProductionAssignments: {
+					findMany: async () => [
+						{
+							id: 94,
+							assignedToId: 17,
+							startedAt: null,
+							completedAt: null,
+							dueDate,
+							qtyAssigned: 1,
+							qtyCompleted: 0,
+							lhQty: 0,
+							rhQty: 0,
+							submissions: [],
+							assignedTo: { name: "Worker" },
+							order: {
+								id: 45,
+								orderId: "ORDER-45",
+								status: null,
+								prodStatus: "Completed",
+								stat: [],
+								priority: "NORMAL",
+								customer: { name: "Acme", businessName: null },
+							},
+						},
+					],
+				},
+				salesOrders: { findMany: async () => [] },
+			};
+
+			const result = await getSalesProductionCalendar(db as unknown as Db, {
+				from: "2026-09-01",
+				to: "2026-09-07",
+				scope: "all",
+			});
+
+			expect(result.scheduled[0]).toMatchObject({
+				orderNo: "ORDER-45",
+				status: "completed",
+			});
+		} finally {
+			if (previousReadMode === undefined) {
+				Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
+			} else {
+				process.env.SALES_PIPELINE_READ_MODE = previousReadMode;
+			}
+			if (previousCohort === undefined) {
+				Reflect.deleteProperty(process.env, "SALES_PIPELINE_COHORT_PERCENT");
+			} else {
+				process.env.SALES_PIPELINE_COHORT_PERCENT = previousCohort;
+			}
+		}
+	});
+
 	it("loads the global candidate set before applying a production sort", async () => {
 		const findManyCalls: SalesFindManyArgs[] = [];
 		const db = {
@@ -459,6 +520,83 @@ describe("sales production priority sorting", () => {
 		expect(lifecycleReadCalls).toBe(0);
 	});
 
+	it("rejects a stale Completed count before reading another candidate page", async () => {
+		const rows = Array.from({ length: 250 }, (_, index) => ({
+			...completedProductionRow(index + 1, "NORMAL"),
+			createdAt: new Date("2026-07-01T12:00:00Z"),
+		}));
+		const db = {
+			orderItemProductionAssignments: { findMany: async () => [] },
+			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+			salesOrders: {
+				count: async () => 0,
+				findMany: async () => rows,
+			},
+			salesOrderListProjection: {
+				findMany: async (args: { cursor?: unknown }) => {
+					if (args.cursor) throw new Error("Unexpected later candidate read");
+					return rows.map((row) => ({
+						...completedProjection(row),
+						...(row.id === 1 ? { pipelineRevision: "stale" } : {}),
+					}));
+				},
+			},
+		};
+
+		await expect(
+			getSalesProductionSummary(db as unknown as Db, {}),
+		).rejects.toThrow("Sales Pipeline projection is stale for order 1.");
+	});
+
+	it.each(["fresh", "stale", "missing"] as const)(
+		"preserves exact Completed counts across pages with %s final evidence",
+		async (evidence) => {
+			const rows = Array.from({ length: 251 }, (_, index) => ({
+				...completedProductionRow(index + 1, "NORMAL"),
+				createdAt: new Date("2026-07-01T12:00:00Z"),
+			}));
+			const db = {
+				orderItemProductionAssignments: { findMany: async () => [] },
+				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+				salesOrders: {
+					count: async (args: {
+						where: { AND?: Array<{ id?: { in: number[] } }> };
+					}) => args.where.AND?.find((part) => part.id)?.id?.in.length ?? 0,
+					findMany: async (args: { where: { id: { in: number[] } } }) =>
+						rows.filter(
+							(row) =>
+								args.where.id.in.includes(row.id) &&
+								!(evidence === "missing" && row.id === 251),
+						),
+				},
+				salesOrderListProjection: {
+					findMany: async (args: {
+						take: number;
+						cursor?: { salesOrderId: number };
+					}) =>
+						rows
+							.filter((row) => row.id > (args.cursor?.salesOrderId ?? 0))
+							.slice(0, args.take)
+							.map((row) => ({
+								...completedProjection(row),
+								...(evidence === "stale" && row.id === 251
+									? { pipelineRevision: "stale" }
+									: {}),
+							})),
+				},
+			};
+
+			const result = getSalesProductionSummary(db as unknown as Db, {});
+			if (evidence === "fresh") {
+				expect((await result).summary.completedCount).toBe(251);
+			} else {
+				await expect(result).rejects.toThrow(
+					"Sales Pipeline projection is stale for order 251.",
+				);
+			}
+		},
+	);
+
 	it("requires every active assignment to have an owner for Ready", () => {
 		const where = whereSales({
 			production: "pending",
@@ -586,7 +724,7 @@ describe("sales production priority sorting", () => {
 			size: 20,
 		});
 
-		expect(result.data[0]?.lifecycleStatus).toBe("fulfilled");
+		expect(result.data[0]?.lifecycleStatus).toBe("administratively_completed");
 	});
 
 	it("projects canonical completion satisfaction for status-only completed rows", async () => {
@@ -610,6 +748,65 @@ describe("sales production priority sorting", () => {
 		expect(result.data[0]).toMatchObject({
 			completed: true,
 			productionCompletionSatisfied: true,
+		});
+	});
+
+	it("lets canonical Production state override a conflicting legacy completed label", async () => {
+		const assignedAt = new Date("2026-07-02T12:00:00Z");
+		const row = {
+			...productionRow(47, "NORMAL"),
+			prodStatus: "Completed",
+			itemControls: [
+				{
+					uid: "control-47",
+					produceable: true,
+					shippable: false,
+					qtyControls: [
+						{
+							type: "qty",
+							total: 1,
+							itemTotal: 1,
+							qty: 1,
+							updatedAt: assignedAt,
+						},
+					],
+					assignments: [{ id: 97 }],
+				},
+			],
+			assignments: [
+				{
+					id: 97,
+					assignedAt,
+					assignedToId: 17,
+					createdAt: assignedAt,
+					submissions: [],
+					lhQty: 0,
+					rhQty: 0,
+					qtyAssigned: 1,
+					qtyCompleted: 0,
+					completedAt: null,
+					dueDate: assignedAt,
+					assignedTo: { name: "Worker" },
+				},
+			],
+		};
+		const db = {
+			salesOrders: {
+				count: async () => 1,
+				findMany: async () => [row],
+			},
+		};
+
+		const result = await getSalesProductions(db as unknown as Db, {
+			includeMaterials: false,
+			size: 20,
+		});
+
+		expect(result.data[0]).toMatchObject({
+			completed: false,
+			productionCompletionSatisfied: false,
+			lifecycleStatus: "in_production",
+			pipeline: { production: { state: "in_production" } },
 		});
 	});
 
