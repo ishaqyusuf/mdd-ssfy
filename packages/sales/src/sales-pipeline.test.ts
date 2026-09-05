@@ -409,6 +409,37 @@ describe("canonical Sales Pipeline snapshot", () => {
 });
 
 describe("canonical workspace membership", () => {
+	it.each([
+		{ reviewStatus: "APPROVED", quantity: 2, completed: true },
+		{ reviewStatus: "APPROVED", quantity: 1, completed: false },
+		{ reviewStatus: "PENDING", quantity: 2, completed: false },
+		{ reviewStatus: "REJECTED", quantity: 2, completed: false },
+		{ reviewStatus: "CANCELLED", quantity: 2, completed: false },
+	])("uses finalized submissions for Completed membership: %j", (scenario) => {
+		const evidence = baseEvidence();
+		const snapshot = resolveSalesPipelineSnapshot({
+			...evidence,
+			production: {
+				...evidence.production,
+				requiredQty: 2,
+				assignments: [{
+					id: 101, active: true, assignedQty: 2, completedQty: 0,
+					completedAt: null, dueDate: "2026-09-02",
+				}],
+				submissions: [{
+					id: 201, assignmentId: 101, active: true,
+					quantity: scenario.quantity, reviewStatus: scenario.reviewStatus,
+				}],
+			},
+		});
+		expect(resolveCanonicalWorkspaceMembership(snapshot, {
+			workspace: "production", scope: "completed", operationalDate: "2026-09-02",
+		})).toMatchObject({
+			included: scenario.completed,
+			evidenceIds: scenario.completed ? [101] : [],
+		});
+	});
+
 	it("treats fully submitted legacy assignments as completed even when completedAt is stale", () => {
 		expect(
 			isProductionScheduleAssignmentOpen({

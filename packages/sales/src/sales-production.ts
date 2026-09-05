@@ -437,8 +437,15 @@ export async function getSalesProductionCalendar(
 					legacyProductionIncluded: !assignmentCompleted,
 				})
 			: null;
-		const aggregateProductionStatus = overallStatus(row.order.stat).production
-			.status;
+		const aggregateContradictsEvidence =
+			pipelineSnapshot &&
+			!isCanonicalProductionCompleted(pipelineSnapshot) &&
+			pipelineSnapshot.conflicts.some(
+				(conflict) => conflict.code === "PRODUCTION_COMPLETION_AGGREGATE_DRIFT",
+			);
+		const aggregateProductionStatus = aggregateContradictsEvidence
+			? "unknown"
+			: overallStatus(row.order.stat).production.status;
 		const legacyProductionStatus = getSalesOrderLifecycleStatusInfo({
 			productionStatus:
 				aggregateProductionStatus === "unknown"

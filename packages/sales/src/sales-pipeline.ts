@@ -945,29 +945,21 @@ export function resolveCanonicalWorkspaceMembership(
 		const assignments = snapshot.evidence.production.assignments.filter(
 			(assignment) => assignment.active,
 		);
-		const openAssignments = assignments.filter((assignment) => {
+		const candidateAssignments = assignments.filter((assignment) => {
 			const submissions = snapshot.evidence.production.submissions.filter(
 				(submission) =>
 					submission.active &&
 					(submission.assignmentId == null ||
 						submission.assignmentId === assignment.id),
 			);
-			return isProductionScheduleAssignmentOpen({
+			const open = isProductionScheduleAssignmentOpen({
 				assignedQty: assignment.assignedQty,
 				completedQty: assignment.completedQty,
 				completedAt: assignment.completedAt,
 				submissions,
 			});
+			return input.scope === "completed" ? !open : open;
 		});
-		const candidateAssignments =
-			input.scope === "completed"
-				? assignments.filter(
-						(assignment) =>
-							Boolean(assignment.completedAt) ||
-							quantity(assignment.completedQty) >=
-								quantity(assignment.assignedQty),
-					)
-				: openAssignments;
 		const withDates = candidateAssignments
 			.map((assignment) => ({ assignment, key: dateKey(assignment.dueDate) }))
 			.filter(

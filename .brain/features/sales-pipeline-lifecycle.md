@@ -43,6 +43,18 @@ returning a partial or stale count. This reduces retained snapshot memory and
 wasted reads after a stale page; it is not a cache repair or a claim that the
 full-population request meets its latency budget.
 
+Canonical Production workspace membership partitions assignments with one
+shared open/completed evidence predicate. Fully approved submissions qualify
+for Completed even when assignment counters or completion timestamps lag;
+partial, pending, rejected, and cancelled submissions do not. Calendar's
+legacy aggregate fallback ignores a typed aggregate-drift contradiction from
+its already-loaded snapshot unless actual or administrative completion is
+satisfied. Explicit legacy-label compatibility remains until retirement.
+Read-only Production evidence confirms 09502PC is awaiting review, not
+completed; the corrected 5% Calendar query no longer paints its in-range work
+as completed. This code correction is not yet deployed. Scratch Ticket 14
+retains regression, review, live-data read, and outstanding rollout evidence.
+
 Actionable material-review counts reuse the same four inactive classifications
 as detailed review queries, without material-detail enrichment. Material state
 and assignment-proof ambiguity change the review classification/action, not

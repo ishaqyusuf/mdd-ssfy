@@ -325,6 +325,86 @@ describe("sales production priority sorting", () => {
 		}
 	});
 
+	it.each(
+		[
+			{ reviewStatus: "PENDING", administrative: false, expected: "assigned" },
+			{ reviewStatus: "REJECTED", administrative: false, expected: "assigned" },
+			{ reviewStatus: "CANCELLED", administrative: false, expected: "assigned" },
+			{ reviewStatus: "APPROVED", administrative: false, expected: "completed" },
+			{ reviewStatus: "PENDING", administrative: true, expected: "completed" },
+		].flatMap((scenario) =>
+			["0", "5", "100"].map((cohort) => ({ ...scenario, cohort })),
+		),
+	)(
+		"keeps Calendar aggregate fallback aligned with review evidence: %j",
+		async ({ cohort, reviewStatus, administrative, expected }) => {
+			const previousReadMode = process.env.SALES_PIPELINE_READ_MODE;
+			const previousCohort = process.env.SALES_PIPELINE_COHORT_PERCENT;
+			process.env.SALES_PIPELINE_READ_MODE = "canonical";
+			process.env.SALES_PIPELINE_COHORT_PERCENT = cohort;
+			try {
+				const dueDate = new Date("2026-09-02T09:00:00.000Z");
+				const assignment = {
+					id: 13284,
+					assignedToId: 44,
+					startedAt: null,
+					completedAt: null,
+					dueDate,
+					assignedAt: dueDate,
+					updatedAt: dueDate,
+					qtyAssigned: 1,
+					qtyCompleted: 0,
+					lhQty: 0,
+					rhQty: 0,
+					submissions: [
+						{
+							id: 1,
+							qty: 1,
+							lhQty: 0,
+							rhQty: 0,
+							createdAt: dueDate,
+							updatedAt: dueDate,
+							materialReview: { status: reviewStatus, updatedAt: dueDate },
+						},
+					],
+				};
+				const completedOrder = completedProductionRow(26701, "NORMAL");
+				const order = {
+					...completedOrder,
+					orderId: "09502PC",
+					createdAt: dueDate,
+					completionRecords: administrative ? completedOrder.completionRecords : [],
+					stat: [{ type: "prodCompleted", score: 1, total: 1, percentage: 100 }],
+					assignments: [assignment],
+					customer: { name: "Customer", businessName: null },
+				};
+				const db = {
+					orderItemProductionAssignments: {
+						findMany: async () => [
+							{ ...assignment, assignedTo: { name: "Worker" }, order },
+						],
+					},
+					salesOrders: { findMany: async () => [order] },
+				};
+				const result = await getSalesProductionCalendar(db as unknown as Db, {
+					from: "2026-09-01",
+					to: "2026-09-07",
+					scope: "all",
+				});
+				expect(result.scheduled[0]).toMatchObject({
+					orderNo: "09502PC", status: expected,
+				});
+			} finally {
+				if (previousReadMode === undefined) {
+					Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
+				} else process.env.SALES_PIPELINE_READ_MODE = previousReadMode;
+				if (previousCohort === undefined) {
+					Reflect.deleteProperty(process.env, "SALES_PIPELINE_COHORT_PERCENT");
+				} else process.env.SALES_PIPELINE_COHORT_PERCENT = previousCohort;
+			}
+		},
+	);
+
 	it("loads the global candidate set before applying a production sort", async () => {
 		const findManyCalls: SalesFindManyArgs[] = [];
 		const db = {
