@@ -33,6 +33,12 @@ The latest user-requested inspection of the original localhost Production tab
 shows analytics, tabs, and order rows loading. The two September 4 failed
 background jobs for sale 26929 still report `STALE_REVISION`; neither has been
 replayed or dismissed. Local rendering is not live rollout acceptance.
+A subsequent separate authenticated fresh navigation also finishes loading
+all sections (Active3489, Completed1832); the reported failure did not reproduce.
+This observation does not establish sustained health or correct membership.
+Historical development-log errors must not be presented as current failures
+without matching the fresh request. The background job's original payload and
+invalidating source change remain unverified, so automatic replay is unsafe.
 
 Database-sorted Production pages without legacy/worker post-filtering now
 request only the page plus one look-ahead row, capped at100, instead of always
@@ -53,6 +59,16 @@ this is not an atomic multi-query snapshot. Read surfaces retain unavailable
 fallbacks; mutation readiness callers retain fail-closed behavior. Read-only
 61-line parity, select-aware reordered/missing/retarget fixtures, and both
 reviews pass. This follow-up remains local; live latency is not accepted.
+
+Database-sorted Production list reads now anchor the ordered page with IDs,
+then read header, controls, assignments, and deliveries concurrently. Header
+reads revalidate the original workspace scope; branch data joins by ID in page
+order and missing/replaced evidence rejects. Selection and assignment filters
+are unchanged, and post-filtered scans retain their existing bounds. This
+local slice passes the301-test Sales matrix,721 API tests, Sales/API typechecks,
+and both review axes. Its read-only20-row list sample measured11062ms including
+connection. It is not an atomic snapshot or a live performance acceptance
+claim; material/global-sort paths are unchanged. Release verification remains.
 
 `@gnd/sales` declares `@gnd/errors` as a direct runtime workspace dependency for
 its canonical command error contract. Release validation must run against an

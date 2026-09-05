@@ -15,6 +15,8 @@ import { whereSales } from "./utils/where-queries";
 type SalesFindManyArgs = {
 	take?: number;
 	skip?: number;
+	where?: { id?: { in?: number[] }; AND?: unknown[] };
+	select?: Record<string, unknown>;
 };
 
 function productionRow(id: number, priority: string) {
@@ -123,11 +125,13 @@ describe("sales production priority sorting", () => {
 				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 				salesOrders: {
 					count: async () => 1,
-					findMany: async (args: { where?: { id?: { in?: number[] } }; select?: Record<string, unknown> }) => {
-						if (args.select && Object.keys(args.select).length === 1 && args.select.id) return [];
+					findMany: async (args: SalesFindManyArgs) => {
+						if (args.select && Object.keys(args.select).length === 1 && args.select.id) return args.skip === undefined ? [] : rows.map(({ id }) => ({ id }));
 						if (args.where?.id?.in) {
-							evidenceReads += 1;
-							args.where.id.in.forEach((id) => evidenceIds.add(id));
+							if (args.select?.updatedAt) {
+								evidenceReads += 1;
+								args.where.id.in.forEach((id) => evidenceIds.add(id));
+							}
 							return rows.filter((row) => args.where?.id?.in?.includes(row.id));
 						}
 						return rows;
@@ -525,14 +529,20 @@ describe("sales production priority sorting", () => {
 			const db = {
 				salesOrders: { findMany: async (args: SalesFindManyArgs) => {
 					calls.push(args);
-					return rows.slice(args.skip || 0, (args.skip || 0) + (args.take || rows.length));
+					const selected = args.where?.id?.in
+						? rows.filter(row => args.where?.id?.in?.includes(row.id)).reverse()
+						: rows.slice(args.skip || 0, (args.skip || 0) + (args.take || rows.length));
+					return selected.map(row => Object.fromEntries(Object.entries(row).filter(([key]) => args.select?.[key])));
 				} },
 			};
 			const first = await getSalesProductions(db as unknown as Db, { size: 20 });
 			const second = await getSalesProductions(db as unknown as Db, { size: 20, cursor: first.meta.cursor });
-			expect(calls.map(({ skip, take }) => ({ skip, take }))).toEqual([
+			const pageQueries = calls.filter(({ take }) => take !== undefined);
+			expect(pageQueries.map(({ skip, take }) => ({ skip, take }))).toEqual([
 				{ skip: 0, take: 21 }, { skip: 20, take: 21 },
 			]);
+			expect(pageQueries.map(({ select }) => select)).toEqual([{ id: true }, { id: true }]);
+			expect(calls.filter(({ take }) => take === undefined).every(({ where }) => where?.id?.in?.length === 21)).toBe(true);
 			expect(first.data.map(row => row.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
 			expect(second.data.map(row => row.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 21));
 			expect(second.meta.cursor).toBe("40");
@@ -663,12 +673,12 @@ describe("sales production priority sorting", () => {
 	});
 
 	it("keeps assignment filters when completion eligibility adds an outer predicate", async () => {
-		let capturedSelect: unknown;
+		const capturedSelect: unknown[] = [];
 		const db = {
 			salesOrders: {
-				findMany: async (args: { select?: unknown }) => {
-					capturedSelect = args.select;
-					return [];
+				findMany: async (args: SalesFindManyArgs) => {
+					if (args.select?.assignments) capturedSelect.push(args.select);
+					return [productionRow(1, "NORMAL")];
 				},
 			},
 		};

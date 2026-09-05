@@ -1155,6 +1155,44 @@ type ProductionSelectedRow = Prisma.SalesOrdersGetPayload<{
 	select: ReturnType<typeof select>;
 }>;
 
+async function loadProductionPageRows(
+	db: Db,
+	query: Pick<Prisma.SalesOrdersFindManyArgs, "where" | "orderBy" | "skip" | "take">,
+	whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[],
+): Promise<ProductionSelectedRow[]> {
+	const anchors = await db.salesOrders.findMany({ ...query, select: { id: true } });
+	if (!anchors.length) return [];
+	const where = { id: { in: anchors.map(({ id }) => id) } };
+	const { itemControls, assignments, deliveries, ...headerSelect } = select(whereAssignments);
+	const [headers, controls, work, fulfillment] = await Promise.all([
+		db.salesOrders.findMany({
+			// Revalidate the original scope before returning any ID-anchored evidence.
+			where: { ...where, AND: query.where ? [query.where] : undefined },
+			select: headerSelect,
+		}),
+		db.salesOrders.findMany({ where, select: { id: true, itemControls } }),
+		db.salesOrders.findMany({ where, select: { id: true, assignments } }),
+		db.salesOrders.findMany({ where, select: { id: true, deliveries } }),
+	]);
+	const headerById = new Map(headers.map((row) => [row.id, row]));
+	const controlsById = new Map(controls.map((row) => [row.id, row.itemControls]));
+	const workById = new Map(work.map((row) => [row.id, row.assignments]));
+	const fulfillmentById = new Map(fulfillment.map((row) => [row.id, row.deliveries]));
+	if ([headerById, controlsById, workById, fulfillmentById].some((index) => index.size !== anchors.length)) {
+		throw new Error("Production order evidence changed. Refresh and retry.");
+	}
+	return anchors.map(({ id }) => {
+		const header = headerById.get(id);
+		const itemControls = controlsById.get(id);
+		const assignments = workById.get(id);
+		const deliveries = fulfillmentById.get(id);
+		if (!header || !itemControls || !assignments || !deliveries) {
+			throw new Error("Production order evidence changed. Refresh and retry.");
+		}
+		return { ...header, itemControls, assignments, deliveries };
+	});
+}
+
 async function getDatabaseSortedProductionPage(
 	db: Db,
 	query: SalesQueryParamsSchema & {
@@ -1180,13 +1218,12 @@ async function getDatabaseSortedProductionPage(
 			: Math.min(requestedTake + 1, 100);
 
 	scan: while (!hasNextPage) {
-		const records = await db.salesOrders.findMany({
+		const records = await loadProductionPageRows(db, {
 			where,
 			orderBy: [{ createdAt: direction }, { id: direction }],
 			skip: rawCursor,
 			take: scanSize,
-			select: select(whereAssignments),
-		});
+		}, whereAssignments);
 		if (records.length === 0) break;
 		for (const item of records) {
 			rawCursor += 1;
