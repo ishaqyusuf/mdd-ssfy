@@ -16,6 +16,14 @@ const ignoredPaths = readFileSync(resolve(root, ".vercelignore"), "utf8")
 	.filter((line) => line && !line.startsWith("#") && !line.startsWith("!"));
 
 describe("Vercel deployment source boundaries", () => {
+	it("installs the error contract owned by Sales lifecycle commands", () => {
+		const salesPackage = JSON.parse(
+			readFileSync(resolve(root, "packages/sales/package.json"), "utf8"),
+		) as { dependencies: Record<string, string> };
+
+		expect(salesPackage.dependencies["@gnd/errors"]).toBe("workspace:*");
+	});
+
 	it.each(deployableApps)("%s remains in the shared Vercel upload", (app) => {
 		expect(ignoredPaths).not.toContain(app);
 	});

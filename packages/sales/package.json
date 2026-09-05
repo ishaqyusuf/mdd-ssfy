@@ -131,6 +131,7 @@
 	},
 	"dependencies": {
 		"@gnd/db": "workspace:*",
+		"@gnd/errors": "workspace:*",
 		"@gnd/inventory": "workspace:*",
 		"@gnd/settings": "workspace:*",
 		"@gnd/ui": "workspace:*",
