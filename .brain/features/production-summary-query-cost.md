@@ -34,6 +34,30 @@ A separate run of the actual implemented query returned the same counts and
 Completed membership finished last. The row-volume reduction is verified;
 overall live latency and the 15-second first-request failure remain open.
 
+The isolated release passed 260 package/hydration tests, 721 API tests, and
+both Sales/API typechecks. Deployment `dpl_7PWgRwe8GVPVcUvKqhgAtKw6r3Yo`
+is Ready on both live aliases at the unchanged 5% rollout. Fresh live
+navigation eventually renders analytics, tabs, and 20 rows, but matching
+logs still record a 15-second GET timeout. The prefilter is deployed; the
+timeout is not resolved, and request-phase timing is the next diagnostic.
+
 Canonical execution evidence and release acceptance remain in
 `.scratch/sales-pipeline-lifecycle-implementation/issues/14-cutover-and-retirement.md`.
 No general-cutover gate is implied by this optimization.
+
+## Temporary request-phase probe
+
+The Production route accepts the opt-in diagnostic query flag
+`__productionTiming=1`. It emits `[DEBUG-production-route-v1]` events with
+static phase labels, a route-entry timestamp, and elapsed milliseconds only.
+It does not log query values, authentication data, results, or exception text.
+The existing request-cached auth promise is observed without blocking the
+route. Its duration is remaining auth wait, not total authentication time.
+Prefetch settlement is not proof of query success, and returning the shell
+does not prove the streamed response completed. Query inputs, concurrent
+prefetching, hydration keys, authorization, and rollout settings are unchanged.
+
+Both independent review axes are clear and Calendar hydration checks pass
+3/3. The probe is diagnostic, not a timeout fix, and must be removed after
+root-cause verification. Deployment and measured phase evidence belong in
+Scratch; this document alone does not claim the probe is live.
