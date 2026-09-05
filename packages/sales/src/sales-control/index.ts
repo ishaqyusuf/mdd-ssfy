@@ -278,33 +278,6 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
 
   // const resp = await prisma.$transaction((async (tx: typeof prisma) => {
   const tx = db;
-  const assignmentLinks = await tx.orderItemProductionAssignments.findMany({
-    where: {
-      orderId: order.id,
-      deletedAt: null,
-      salesItemControlUid: {
-        not: null,
-      },
-    },
-    select: {
-      id: true,
-      salesItemControlUid: true,
-    },
-  });
-
-  await tx.orderItemProductionAssignments.updateMany({
-    where: {
-      orderId: order.id,
-      deletedAt: null,
-      salesItemControlUid: {
-        not: null,
-      },
-    },
-    data: {
-      salesItemControlUid: null,
-    },
-  });
-
   const del = await tx.qtyControl.deleteMany({
     where: {
       itemControl: {
@@ -313,6 +286,14 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
     },
   });
   const activeControlUids = controls.map((control) => control.uid);
+  await tx.salesItemControl.updateMany({
+    where: {
+      salesId: order.id,
+      deletedAt: null,
+      uid: { notIn: activeControlUids },
+    },
+    data: { deletedAt: new Date() },
+  });
   await tx.salesItemControl.deleteMany({
     where: {
       salesId: order.id,
@@ -324,6 +305,11 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
           }
         : {}),
       packingReports: {
+        none: {},
+      },
+      // Keep historical links intact. Detach/reattach bumps assignment
+      // updatedAt and invalidates material-review scope without a real edit.
+      assignments: {
         none: {},
       },
     },
@@ -355,6 +341,7 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
         },
         update: {
           ...(c.controlData as any),
+          deletedAt: null,
           item: {
             connect: { id: c.itemId },
           },
@@ -376,16 +363,6 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
     }
   }
 
-  for (const assignment of assignmentLinks) {
-    await tx.orderItemProductionAssignments.update({
-      where: {
-        id: assignment.id,
-      },
-      data: {
-        salesItemControlUid: assignment.salesItemControlUid,
-      },
-    });
-  }
   return { del, arr };
   // }) as any);
 
