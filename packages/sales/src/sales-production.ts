@@ -37,6 +37,7 @@ import { getSalesPipelineSnapshots } from "./sales-pipeline-order";
 import {
 	getSalesPipelineReadMode,
 	observeSalesPipelineReadProjection,
+	shouldObserveSalesPipelineRead,
 } from "./sales-pipeline-rollout";
 import {
 	resolveProductionScheduleMoveCapability,
@@ -690,7 +691,10 @@ async function buildProductionScheduleMembershipWhere(
 				.map((assignment) => assignment.orderId),
 		),
 	);
-	const snapshots = await getSalesPipelineSnapshots(db, candidateOrderIds);
+	const snapshots = await getSalesPipelineSnapshots(
+		db,
+		candidateOrderIds.filter((orderId) => shouldObserveSalesPipelineRead(orderId)),
+	);
 	const operationalDate = boundaries.today.gte.toISOString().slice(0, 10);
 	const orderIds = candidateOrderIds.filter((orderId) => {
 		const snapshot = snapshots.get(orderId);
@@ -1047,7 +1051,9 @@ async function attachCanonicalProductionPipelines<
 >(db: Db, response: T) {
 	const snapshots = await getSalesPipelineSnapshots(
 		db,
-		response.data.map((row) => row.id),
+		response.data
+			.map((row) => row.id)
+			.filter((orderId) => shouldObserveSalesPipelineRead(orderId)),
 	);
 	return {
 		...response,

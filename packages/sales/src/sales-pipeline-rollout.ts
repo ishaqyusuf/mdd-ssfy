@@ -71,6 +71,20 @@ export function selectSalesPipelineReadProjection(
 		: null;
 }
 
+export function shouldObserveSalesPipelineRead(
+	salesOrderId: number,
+	env: Record<string, string | undefined> = process.env,
+) {
+	if (getSalesPipelineReadMode(env) !== "shadow") {
+		return shouldServeCanonicalSalesPipeline(salesOrderId, env);
+	}
+	const samplePercent = Math.min(
+		100,
+		Math.max(0, Number(env.SALES_PIPELINE_SHADOW_SAMPLE_PERCENT || 5)),
+	);
+	return !(cohortBucket(salesOrderId) >= samplePercent);
+}
+
 export function observeSalesPipelineReadProjection(
 	snapshot: SalesPipelineSnapshot,
 	input: {
@@ -84,11 +98,7 @@ export function observeSalesPipelineReadProjection(
 ) {
 	const selected = selectSalesPipelineReadProjection(snapshot, env);
 	if (getSalesPipelineReadMode(env) !== "shadow") return selected;
-	const samplePercent = Math.min(
-		100,
-		Math.max(0, Number(env.SALES_PIPELINE_SHADOW_SAMPLE_PERCENT || 5)),
-	);
-	if (cohortBucket(snapshot.evidence.salesOrderId) >= samplePercent) {
+	if (!shouldObserveSalesPipelineRead(snapshot.evidence.salesOrderId, env)) {
 		return selected;
 	}
 	const comparison = compareSalesPipelineShadow(snapshot, input);

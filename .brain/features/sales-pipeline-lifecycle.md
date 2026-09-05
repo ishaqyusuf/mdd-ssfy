@@ -41,7 +41,18 @@ retain not-found behavior. This does not promise atomic reads during concurrent
 updates, increase transaction guarantees, cache evidence, or remove revision
 validation. A read-only 250-order comparison produced identical revisions;
 Scratch records operator timings separately from the unproven runtime p95.
-This loader optimization is not yet deployed.
+This loader optimization is deployed in `dpl_Cc4v3doW1yespjaF36ow3Un7mtLt`,
+READY on both live aliases. Live analytics render, but tabs/table still fail
+with confirmed 15-second runtime timeouts. Runtime acceptance remains open.
+
+Production list attachment and schedule membership preselect lifecycle
+evidence reads with the shared rollout observation gate: canonical cohort
+orders and sampled shadow orders retain full evidence; unconsumed snapshots
+are not loaded. This does not change row membership or shadow logging.
+Calendar still loads raw evidence for its legacy aggregate-conflict guard,
+and Completed counts retain all revision checks. The follow-up is not yet
+deployed. Scratch retains the unchanged-count read-only timing comparison;
+the all-Completed scan remains the largest observed summary bottleneck.
 
 Fulfillment's Backlog and Dispatch order headlines use the same cohort-selected
 canonical projection as Orders/Overview. Headline and Production dimension
@@ -68,8 +79,17 @@ single-order derived-cache repairs (20780 and 26689) independently verify
 clean revisions without changing operational facts. The actual live browser
 now loads analytics, tabs, and rows, matching the successful direct summary.
 This observed recovery does not prove latency or status parity: completed
-09498DB and non-production 09471LM still appear in Active. Query-cost and
+09498DB and legacy-labeled non-production 09471LM still appear in Active. Query-cost and
 cohort membership/presentation consistency remain open in Scratch Ticket 14.
+
+A later fresh reload of the user's local Production tab passes analytics,
+tabs, and rows; its two historical 26929 STALE_REVISION jobs remain untouched.
+The latest live release's tabs/table errors mean the earlier observed live
+recovery is not durable acceptance. Fresh read-only evidence also corrects
+09471LM: its canonical state is an applicability conflict with operational
+Production evidence, not genuinely non-production. All four sampled orders
+(09471LM, 09498DB, 09502PC, 09551PC) fall outside the 5% canonical cohort;
+legacy row labels are not canonical ground truth. Scratch retains the audit.
 
 The reconciliation CLI accepts `--order-id <id>` or `--order-id=<id>` to limit
 discovery and therefore classification, backups, and derived-cache repairs

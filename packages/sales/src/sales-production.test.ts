@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import type { Db } from "@gnd/db";
 
 import { resolveSalesPipelineSnapshotFromOrder } from "./sales-pipeline-order";
@@ -81,6 +81,85 @@ function completedProjection(row: ReturnType<typeof completedProductionRow>) {
 }
 
 describe("sales production priority sorting", () => {
+	it.each([
+		{ mode: "legacy", percent: "100", observe: false, canonical: false },
+		{ mode: "shadow", percent: "0", observe: false, canonical: false },
+		{ mode: "shadow", percent: "100", observe: true, canonical: false },
+		{ mode: "canonical", percent: "0", observe: false, canonical: false },
+		{ mode: "canonical", percent: "5", observe: false, canonical: false },
+		{ mode: "canonical", percent: "100", observe: true, canonical: true },
+		{ mode: "canonical", percent: "5", observe: true, canonical: true, mixed: true },
+		{ mode: "shadow", percent: "5", observe: true, canonical: false, mixed: true },
+	])("loads only consumed list/schedule evidence: %j", async ({ mode, percent, observe, canonical, mixed = false }) => {
+		const keys = [
+			"SALES_PIPELINE_READ_MODE",
+			"SALES_PIPELINE_COHORT_PERCENT",
+			"SALES_PIPELINE_SHADOW_SAMPLE_PERCENT",
+		] as const;
+		const previous = keys.map((key) => process.env[key]);
+		process.env.SALES_PIPELINE_READ_MODE = mode;
+		process.env.SALES_PIPELINE_COHORT_PERCENT = percent;
+		process.env.SALES_PIPELINE_SHADOW_SAMPLE_PERCENT = percent;
+		const info = spyOn(console, "info").mockImplementation(() => {});
+		try {
+			const rows = (mixed ? [11, 26701] : [26701]).map((id) => ({
+				...productionRow(id, "NORMAL"),
+				createdAt: new Date("2026-07-01T12:00:00Z"),
+			}));
+			let evidenceReads = 0;
+			const evidenceIds = new Set<number>();
+			const db = {
+				orderItemProductionAssignments: {
+					findMany: async () => rows.map((row) => ({
+						orderId: row.id,
+						qtyAssigned: 1,
+						qtyCompleted: 0,
+						completedAt: null,
+						submissions: [],
+					})),
+				},
+				salesOrderListProjection: { findMany: async () => [] },
+				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+				salesOrders: {
+					count: async () => 1,
+					findMany: async (args: { where?: { id?: { in?: number[] } } }) => {
+						if (args.where?.id?.in) {
+							evidenceReads += 1;
+							args.where.id.in.forEach((id) => evidenceIds.add(id));
+							return rows.filter((row) => args.where?.id?.in?.includes(row.id));
+						}
+						return rows;
+					},
+				},
+			};
+			const list = await getSalesProductions(db as unknown as Db, {
+				size: 20,
+				includeMaterials: false,
+			});
+			expect(list.data.map((item) => item.id)).toEqual(
+				mixed ? [11, 26701] : [26701],
+			);
+			expect(list.data[0]?.pipeline !== null).toBe(canonical);
+			if (mixed) expect(list.data[1]?.pipeline).toBeNull();
+			expect(evidenceReads > 0).toBe(observe);
+			if (mixed) expect([...evidenceIds]).toEqual([11]);
+			evidenceReads = 0;
+			evidenceIds.clear();
+			await getSalesProductionSummary(db as unknown as Db, {});
+			expect(evidenceReads > 0).toBe(observe);
+			if (mixed) expect([...evidenceIds]).toEqual([11]);
+			expect(
+				info.mock.calls.some(([event]) => event === "[sales-pipeline-shadow]"),
+			).toBe(mode === "shadow" && observe);
+		} finally {
+			info.mockRestore();
+			keys.forEach((key, index) => {
+				if (previous[index] === undefined) Reflect.deleteProperty(process.env, key);
+				else process.env[key] = previous[index];
+			});
+		}
+	});
+
 	it("sorts assignment ownership timestamps with unassigned rows last", () => {
 		const rows = [
 			{ id: 1, assignedAt: new Date("2026-08-01T12:00:00.000Z") },
