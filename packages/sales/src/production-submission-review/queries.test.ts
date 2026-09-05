@@ -17,18 +17,21 @@ function pipeline(salesOrderId: number, terminal = false) {
 		orderNo: `SO-${salesOrderId}`,
 		commercial: { status: terminal ? "cancelled" : "open" },
 		payment: { total: 100, amountDue: 0 },
-		material: { applicability: "required" },
+		material: { applicability: "required", requiredQty: 1, readyQty: 0 },
 		production: {
 			configuredRequirement: true,
 			requiredQty: 1,
 			assignments: [],
 			submissions: [],
+			aggregate: null,
+			administrativeCompletion: null,
 		},
 		fulfillment: {
 			configuredRequirement: true,
 			requiredQty: 1,
 			packedQty: 0,
 			dispatches: [],
+			administrativeCompletion: null,
 		},
 		evidenceUpdatedAt: "2026-09-02T00:00:00.000Z",
 	});
@@ -272,7 +275,7 @@ describe("production material-review query membership", () => {
 		});
 	});
 
-	it("uses the same current-evidence predicate for summary counts", async () => {
+	it("counts current review membership without loading material details", async () => {
 		const db = {
 			salesProductionSubmissionMaterialReview: {
 				findMany: async () => [
@@ -291,14 +294,72 @@ describe("production material-review query membership", () => {
 			{},
 			{
 				getSnapshots: async () => new Map([[101, pipeline(101)]]),
-				evaluateEvidence: async () =>
-					({
-						itemMaterialStatuses: [{ code: "material_shortage" }],
-					}) as unknown as ProductionSubmissionMaterialEvidence,
+				evaluateEvidence: async () => {
+					throw new Error("Count requested unused material details");
+				},
 				isSuperseded: async () => false,
 			},
 		);
 
 		expect(total).toBe(1);
 	});
+
+	it("keeps later actionable reviews reachable after a fully terminal page", async () => {
+		const candidates = Array.from({ length: 251 }, (_, index) => ({
+			id: index + 1,
+			salesOrderId: index + 1,
+			status: "PENDING",
+			assignmentScope: [],
+			submissions: [{ id: index + 1 }],
+		}));
+		const db = {
+			salesProductionSubmissionMaterialReview: {
+				findMany: async (args: { take: number; cursor?: { id: number } }) =>
+					candidates
+						.filter((row) => row.id > (args.cursor?.id ?? 0))
+						.slice(0, args.take),
+			},
+		} as unknown as Db;
+		const dependencies = {
+			getSnapshots: async (_db: unknown, ids: number[]) =>
+				new Map(ids.map((id) => [id, pipeline(id, id !== 251)])),
+			evaluateEvidence: async () => {
+				throw new Error("Count requested unused material details");
+			},
+			isSuperseded: async () => false,
+		};
+		expect(
+			await countActionableProductionSubmissionMaterialReviews(db, {}, dependencies),
+		).toBe(1);
+	});
+
+	it.each(["snapshot", "superseded"] as const)(
+		"rejects an unavailable %s membership read instead of returning zero",
+		async (failure) => {
+			const db = {
+				salesProductionSubmissionMaterialReview: {
+					findMany: async () => [
+						{
+							id: 1,
+							salesOrderId: 101,
+							status: "PENDING",
+							assignmentScope: [],
+							submissions: [{ id: 11 }],
+						},
+					],
+				},
+			} as unknown as Db;
+			await expect(
+				countActionableProductionSubmissionMaterialReviews(db, {}, {
+					getSnapshots: async () => {
+						if (failure === "snapshot") throw new Error("membership unavailable");
+						return new Map([[101, pipeline(101)]]);
+					},
+					isSuperseded: async () => {
+						throw new Error("membership unavailable");
+					},
+				}),
+			).rejects.toThrow("membership unavailable");
+		},
+	);
 });

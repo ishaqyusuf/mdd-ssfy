@@ -27,14 +27,16 @@ export type ProductionMaterialReviewActionability = {
 		| null;
 };
 
-export function classifyProductionMaterialReviewActionability(input: {
+type ProductionMaterialReviewMembershipInput = {
 	reviewStatus: string;
 	terminalOrder: boolean;
 	activeSubmissionCount: number;
 	superseded: boolean;
-	materialStatus: ItemMaterialStatusCode;
-	assignmentScopeIssues: readonly string[] | null;
-}): ProductionMaterialReviewActionability {
+};
+
+export function getProductionMaterialReviewInactivity(
+	input: ProductionMaterialReviewMembershipInput,
+): ProductionMaterialReviewActionability | null {
 	const base = { version: PRODUCTION_MATERIAL_REVIEW_CLASSIFICATION_VERSION };
 	if (input.reviewStatus !== "PENDING") {
 		return {
@@ -73,6 +75,18 @@ export function classifyProductionMaterialReviewActionability(input: {
 			supportedRepair: null,
 		};
 	}
+	return null;
+}
+
+export function classifyProductionMaterialReviewActionability(
+	input: ProductionMaterialReviewMembershipInput & {
+		materialStatus: ItemMaterialStatusCode;
+		assignmentScopeIssues: readonly string[] | null;
+	},
+): ProductionMaterialReviewActionability {
+	const inactive = getProductionMaterialReviewInactivity(input);
+	if (inactive) return inactive;
+	const base = { version: PRODUCTION_MATERIAL_REVIEW_CLASSIFICATION_VERSION };
 	if (!input.assignmentScopeIssues || input.assignmentScopeIssues.length > 0) {
 		return {
 			...base,

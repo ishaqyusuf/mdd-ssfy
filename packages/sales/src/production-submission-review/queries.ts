@@ -8,7 +8,10 @@ import {
 import type { SalesPipelineSnapshot } from "../sales-pipeline";
 import { getSalesPipelineSnapshots } from "../sales-pipeline-order";
 import type { Db } from "../types";
-import { classifyProductionMaterialReviewActionability } from "./actionability";
+import {
+	classifyProductionMaterialReviewActionability,
+	getProductionMaterialReviewInactivity,
+} from "./actionability";
 import {
 	productionMaterialReviewScopeSubmissionSelect,
 	validateProductionMaterialReviewAssignmentScope,
@@ -126,24 +129,11 @@ const defaultActionableReviewDependencies: ActionableReviewDependencies = {
 	isSuperseded: isSupersededReview,
 };
 
-export async function getActionablePendingReviewIds(
+async function* actionablePendingReviewPages(
 	db: Db,
 	where: Prisma.SalesProductionSubmissionMaterialReviewWhereInput,
-	dependencyOverrides: Partial<ActionableReviewDependencies> = {},
+	dependencies: ActionableReviewDependencies,
 ) {
-	const dependencies = {
-		...defaultActionableReviewDependencies,
-		...dependencyOverrides,
-	};
-	const actionabilityById = new Map<
-		number,
-		{
-			materialStatus: ItemMaterialStatusCode;
-			actionability: ReturnType<
-				typeof classifyProductionMaterialReviewActionability
-			>;
-		}
-	>();
 	let cursor: number | undefined;
 	for (;;) {
 		const candidates =
@@ -173,8 +163,46 @@ export async function getActionablePendingReviewIds(
 			db,
 			candidates.map((candidate) => candidate.salesOrderId),
 		);
-		await Promise.all(
+		const membership = await Promise.all(
 			candidates.map(async (candidate) => {
+				const input = {
+					reviewStatus: candidate.status,
+					terminalOrder: isTerminalOrder(snapshots.get(candidate.salesOrderId)),
+					activeSubmissionCount: candidate.submissions.length,
+					superseded: await dependencies.isSuperseded(db, candidate),
+				};
+				return getProductionMaterialReviewInactivity(input)
+					? null
+					: { candidate, input };
+			}),
+		);
+		yield membership.filter((entry) => entry !== null);
+		cursor = candidates.at(-1)?.id;
+		if (candidates.length < 250 || !cursor) break;
+	}
+}
+
+export async function getActionablePendingReviewIds(
+	db: Db,
+	where: Prisma.SalesProductionSubmissionMaterialReviewWhereInput,
+	dependencyOverrides: Partial<ActionableReviewDependencies> = {},
+) {
+	const dependencies = {
+		...defaultActionableReviewDependencies,
+		...dependencyOverrides,
+	};
+	const actionabilityById = new Map<
+		number,
+		{
+			materialStatus: ItemMaterialStatusCode;
+			actionability: ReturnType<
+				typeof classifyProductionMaterialReviewActionability
+			>;
+		}
+	>();
+	for await (const page of actionablePendingReviewPages(db, where, dependencies)) {
+		await Promise.all(
+			page.map(async ({ candidate, input }) => {
 				const currentEvidence = await dependencies.evaluateEvidence(db, {
 					salesOrderId: candidate.salesOrderId,
 					itemScope: parseItemScope(candidate.assignmentScope),
@@ -183,10 +211,7 @@ export async function getActionablePendingReviewIds(
 					currentEvidence.itemMaterialStatuses.map((status) => status.code),
 				);
 				const actionability = classifyProductionMaterialReviewActionability({
-					reviewStatus: candidate.status,
-					terminalOrder: isTerminalOrder(snapshots.get(candidate.salesOrderId)),
-					activeSubmissionCount: candidate.submissions.length,
-					superseded: await dependencies.isSuperseded(db, candidate),
+					...input,
 					materialStatus,
 					assignmentScopeIssues:
 						validateProductionMaterialReviewAssignmentScope(candidate)
@@ -200,8 +225,6 @@ export async function getActionablePendingReviewIds(
 				}
 			}),
 		);
-		cursor = candidates.at(-1)?.id;
-		if (candidates.length < 250 || !cursor) break;
 	}
 	return actionabilityById;
 }
@@ -211,8 +234,15 @@ export async function countActionableProductionSubmissionMaterialReviews(
 	where: Prisma.SalesProductionSubmissionMaterialReviewWhereInput = {},
 	dependencyOverrides: Partial<ActionableReviewDependencies> = {},
 ) {
-	return (await getActionablePendingReviewIds(db, where, dependencyOverrides))
-		.size;
+	const dependencies = {
+		...defaultActionableReviewDependencies,
+		...dependencyOverrides,
+	};
+	let count = 0;
+	for await (const page of actionablePendingReviewPages(db, where, dependencies)) {
+		count += page.length;
+	}
+	return count;
 }
 
 export async function getProductionSubmissionMaterialReviewQueue(

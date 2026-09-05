@@ -43,6 +43,26 @@ returning a partial or stale count. This reduces retained snapshot memory and
 wasted reads after a stale page; it is not a cache repair or a claim that the
 full-population request meets its latency budget.
 
+Actionable material-review counts reuse the same four inactive classifications
+as detailed review queries, without material-detail enrichment. Material state
+and assignment-proof ambiguity change the review classification/action, not
+membership after those exclusions. Detailed active reviews and mutations still
+evaluate their full evidence. Counts retain fresh snapshot/supersession reads,
+advance across fully excluded pages, and propagate failed membership reads.
+The measured local result remains 82 with material evaluations reduced from
+86 to zero; live latency is not proven. Scratch Ticket 14 records tests, both
+reviews, the separate Production count deadline, and exact historical evidence
+behind review 1's unsafe audit stop. No schema or public API shape changed.
+
+The local September 5 summary outage recovered after 78 deterministic cache
+repairs in backed-up 25-record batches. An independent full local audit then
+reported zero deterministic remainder and zero unsafe records; the actual
+unfiltered summary and the user's reloaded local analytics/tabs both succeed.
+Operational facts and historical failed jobs were unchanged. This local
+recovery does not prove live Production health. The separate read-only live
+material audit stops at ambiguous review 1 without mutations; Scratch retains
+the reports, backup, and unresolved historical-scope assessment.
+
 Live follow-up reproduces healthy analytics/tabs with a single-order search
 and failed unfiltered summary panels alongside a 15-second page timeout.
 Calendar server-prefetch now explicitly supplies `scope: "all"`, matching the
