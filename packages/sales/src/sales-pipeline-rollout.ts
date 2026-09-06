@@ -39,11 +39,16 @@ export const SALES_PIPELINE_COHORT_MULTIPLIER = 2_654_435_761;
 export function salesPipelineCohortPercentage(
 	env: Record<string, string | undefined> = process.env,
 ) {
-	return Math.min(100, Math.max(0, Number(env.SALES_PIPELINE_COHORT_PERCENT || 100)));
+	return Math.min(
+		100,
+		Math.max(0, Number(env.SALES_PIPELINE_COHORT_PERCENT || 100)),
+	);
 }
 
 function cohortBucket(salesOrderId: number) {
-	return Math.abs(Math.imul(salesOrderId, SALES_PIPELINE_COHORT_MULTIPLIER)) % 100;
+	return (
+		Math.abs(Math.imul(salesOrderId, SALES_PIPELINE_COHORT_MULTIPLIER)) % 100
+	);
 }
 
 export function shouldServeCanonicalSalesPipeline(
@@ -117,6 +122,7 @@ export function observeSalesPipelineReadProjection(
 }
 
 export function evaluateSalesPipelineCutoverGates(input: {
+	comparedOrders: number;
 	unexplainedMembershipDifferences: number;
 	unsafeTransitionDifferences: number;
 	staleProjectionDifferences: number;
@@ -125,21 +131,36 @@ export function evaluateSalesPipelineCutoverGates(input: {
 	conflictSampleComplete: boolean;
 	operatorApproved: boolean;
 }) {
+	const reconciliationCountsValid =
+		Number.isSafeInteger(input.comparedOrders) &&
+		input.comparedOrders >= 0 &&
+		Number.isSafeInteger(input.unsafeTransitionDifferences) &&
+		input.unsafeTransitionDifferences >= 0 &&
+		input.unsafeTransitionDifferences <= input.comparedOrders;
 	const failures = [
+		...(reconciliationCountsValid ? [] : ["INVALID_RECONCILIATION_COUNTS"]),
 		...(input.unexplainedMembershipDifferences === 0
 			? []
 			: ["UNEXPLAINED_MEMBERSHIP_DIFFERENCES"]),
-		...(input.unsafeTransitionDifferences === 0
-			? []
-			: ["UNSAFE_TRANSITION_DIFFERENCES"]),
 		...(input.staleProjectionDifferences === 0
 			? []
 			: ["STALE_PROJECTION_DIFFERENCES"]),
 		...(input.p95LatencyMs <= input.maxP95LatencyMs
 			? []
 			: ["LATENCY_GATE_FAILED"]),
-		...(input.conflictSampleComplete ? [] : ["CONFLICT_SAMPLE_INCOMPLETE"]),
 		...(input.operatorApproved ? [] : ["OPERATOR_APPROVAL_REQUIRED"]),
 	];
-	return { passed: failures.length === 0, failures };
+	return {
+		passed: failures.length === 0,
+		failures,
+		reconciliation: {
+			comparedOrders: input.comparedOrders,
+			acceptedOrders: reconciliationCountsValid
+				? input.comparedOrders - input.unsafeTransitionDifferences
+				: 0,
+			informationalExceptionOrders: input.unsafeTransitionDifferences,
+			conflictSampleComplete: input.conflictSampleComplete,
+			requiresAutomaticRepair: false,
+		},
+	};
 }

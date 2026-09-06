@@ -243,12 +243,11 @@ export function evaluateSalesPipelineCommand(
 	const administrativeConflictDimensions = production
 		? new Set(["production"])
 		: new Set(["fulfillment", "dispatch"]);
-	const supportedAdministrativeConflictCodes = production
-		? new Set(["PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE"])
-		: new Set([
-				"FULFILLMENT_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
-				"FULFILLMENT_PROOF_INCOMPLETE",
-			]);
+	const supportedAdministrativeConflictCodes = new Set([
+		"PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+		"FULFILLMENT_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+		"FULFILLMENT_PROOF_INCOMPLETE",
+	]);
 	const administrativeStageConflicts = snapshot.conflicts.filter(
 		(conflict) =>
 			conflict.severity === "blocking" &&
@@ -269,9 +268,7 @@ export function evaluateSalesPipelineCommand(
 		administrativeStageConflicts.length > 0;
 	if (administrativeCompletion && input.administrativeOverride) {
 		const unsupportedConflicts = administrativeBlockingConflicts.filter(
-			(conflict) =>
-				!administrativeStageConflicts.includes(conflict) ||
-				!supportedAdministrativeConflictCodes.has(conflict.code),
+			(conflict) => !supportedAdministrativeConflictCodes.has(conflict.code),
 		);
 		if (unsupportedConflicts.length > 0) {
 			return {
@@ -280,6 +277,19 @@ export function evaluateSalesPipelineCommand(
 				reasons: [
 					"ADMINISTRATIVE_OVERRIDE_EXCEPTION_NOT_SUPPORTED",
 					...unsupportedConflicts.map((conflict) => conflict.code),
+				],
+			};
+		}
+		if (
+			!administrativeStageExceptional &&
+			administrativeBlockingConflicts.length > 0
+		) {
+			return {
+				...base,
+				status: "rejected",
+				reasons: [
+					"ADMINISTRATIVE_OVERRIDE_EXCEPTION_NOT_SUPPORTED",
+					...administrativeBlockingConflicts.map((conflict) => conflict.code),
 				],
 			};
 		}
@@ -309,9 +319,8 @@ export function evaluateSalesPipelineCommand(
 			status: "ready",
 			reasons: [
 				"ADMINISTRATIVE_OVERRIDE",
-				...(administrativeStageUnavailable
-					? ["STATUS_UNAVAILABLE"]
-					: administrativeStageConflicts.map((conflict) => conflict.code)),
+				...(administrativeStageUnavailable ? ["STATUS_UNAVAILABLE"] : []),
+				...administrativeBlockingConflicts.map((conflict) => conflict.code),
 			],
 		};
 	}

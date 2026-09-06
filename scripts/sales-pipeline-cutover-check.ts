@@ -15,6 +15,7 @@ async function main() {
 		);
 	}
 	const report = JSON.parse(await readFile(reportPath, "utf8")) as {
+		comparedOrders?: number;
 		unexplainedMembershipDifferences?: number;
 		unsafeTransitionDifferences?: number;
 		staleProjectionDifferences?: number;
@@ -24,6 +25,7 @@ async function main() {
 	};
 	const maxP95LatencyMs = Number(valueAfter("--max-p95-ms") || 500);
 	for (const field of [
+		"comparedOrders",
 		"unexplainedMembershipDifferences",
 		"unsafeTransitionDifferences",
 		"staleProjectionDifferences",
@@ -34,12 +36,11 @@ async function main() {
 		}
 	}
 	const result = evaluateSalesPipelineCutoverGates({
+		comparedOrders: report.comparedOrders as number,
 		unexplainedMembershipDifferences:
 			report.unexplainedMembershipDifferences as number,
-		unsafeTransitionDifferences:
-			report.unsafeTransitionDifferences as number,
-		staleProjectionDifferences:
-			report.staleProjectionDifferences as number,
+		unsafeTransitionDifferences: report.unsafeTransitionDifferences as number,
+		staleProjectionDifferences: report.staleProjectionDifferences as number,
 		p95LatencyMs: report.p95LatencyMs as number,
 		maxP95LatencyMs,
 		conflictSampleComplete: report.conflictSampleComplete === true,
@@ -48,10 +49,12 @@ async function main() {
 	process.stdout.write(
 		`${JSON.stringify(
 			{
-				contract: "sales-pipeline-cutover-gate/v1",
+				contract: "sales-pipeline-cutover-gate/v2",
 				reportPath,
 				maxP95LatencyMs,
-				...result,
+				passed: result.passed,
+				failures: result.failures,
+				reconciliation: result.reconciliation,
 				rollback: {
 					readMode: "legacy",
 					commandMode: "legacy",

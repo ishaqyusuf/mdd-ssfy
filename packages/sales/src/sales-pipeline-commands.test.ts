@@ -195,6 +195,119 @@ describe("evaluateSalesPipelineCommand", () => {
 		});
 	});
 
+	it("allows known cross-stage conflicts to remain informational for a deliberate status-only action", () => {
+		const crossStageConflict = snapshot({
+			production: {
+				configuredRequirement: false,
+				requiredQty: 1,
+				assignments: [
+					{
+						id: 91,
+						active: true,
+						assignedQty: 1,
+						completedQty: 1,
+						completedAt: "2026-09-02",
+					},
+				],
+				submissions: [],
+				aggregate: null,
+				administrativeCompletion: null,
+			},
+			fulfillment: {
+				configuredRequirement: true,
+				requiredQty: 1,
+				packedQty: 1,
+				dispatches: [
+					{
+						id: 44,
+						active: true,
+						itemCount: 1,
+						deliveredQty: 1,
+						status: "completed",
+						proofCompleted: false,
+						inventoryCommitted: true,
+					},
+				],
+				administrativeCompletion: null,
+			},
+		});
+
+		expect(crossStageConflict.headline.code).toBe("conflict");
+		expect(
+			crossStageConflict.conflicts.map((conflict) => conflict.code),
+		).toEqual(
+			expect.arrayContaining([
+				"PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+				"FULFILLMENT_PROOF_INCOMPLETE",
+			]),
+		);
+		expect(
+			evaluateSalesPipelineCommand(crossStageConflict, {
+				action: "fulfillment.administrative_complete",
+				authorized: true,
+				expectedRevision: crossStageConflict.revision,
+				administrativeOverride: true,
+				administrativeOverrideReason:
+					"Sales representative confirmed the legacy status.",
+			}),
+		).toMatchObject({
+			status: "ready",
+			reasons: expect.arrayContaining([
+				"ADMINISTRATIVE_OVERRIDE",
+				"PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+				"FULFILLMENT_PROOF_INCOMPLETE",
+			]),
+		});
+	});
+
+	it("retains known cross-stage conflict codes when the selected stage is unavailable", () => {
+		const unavailableWithFulfillmentConflict = snapshot({
+			production: {
+				configuredRequirement: null,
+				requiredQty: 0,
+				assignments: [],
+				submissions: [],
+				aggregate: null,
+				administrativeCompletion: null,
+			},
+			fulfillment: {
+				configuredRequirement: true,
+				requiredQty: 1,
+				packedQty: 1,
+				dispatches: [
+					{
+						id: 45,
+						active: true,
+						itemCount: 1,
+						deliveredQty: 1,
+						status: "completed",
+						proofCompleted: false,
+						inventoryCommitted: true,
+					},
+				],
+				administrativeCompletion: null,
+			},
+		});
+
+		expect(
+			evaluateSalesPipelineCommand(unavailableWithFulfillmentConflict, {
+				action: "production.administrative_complete",
+				authorized: true,
+				expectedRevision: unavailableWithFulfillmentConflict.revision,
+				administrativeOverride: true,
+				administrativeOverrideReason:
+					"Sales representative confirmed the recorded status.",
+			}),
+		).toMatchObject({
+			status: "ready",
+			reasons: [
+				"ADMINISTRATIVE_OVERRIDE",
+				"STATUS_UNAVAILABLE",
+				"FULFILLMENT_PROOF_INCOMPLETE",
+			],
+		});
+	});
+
 	it("requires the explicit override contract for an exceptional stage", () => {
 		const unavailable = snapshot({
 			production: {

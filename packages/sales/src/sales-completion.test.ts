@@ -1324,6 +1324,108 @@ describe("status-only Fulfillment commands", () => {
 		});
 	});
 
+	test("records known cross-stage conflicts as information for an authorized Fulfillment status-only decision", async () => {
+		const fixture = createCompletionDb([], {
+			archivedAt: null,
+			deletedAt: null,
+			grandTotal: 100,
+			amountDue: 0,
+			inventoryProjection: null,
+			itemControls: [
+				{
+					uid: "door-1",
+					produceable: false,
+					shippable: true,
+					qtyControls: [
+						{
+							type: "qty",
+							total: 1,
+							itemTotal: null,
+							qty: null,
+							updatedAt,
+						},
+					],
+				},
+			],
+			assignments: [
+				{
+					id: 901,
+					assignedToId: 7,
+					qtyAssigned: 1,
+					qtyCompleted: 1,
+					lhQty: 0,
+					rhQty: 0,
+					dueDate: new Date("2026-09-02T00:00:00.000Z"),
+					assignedAt: updatedAt,
+					completedAt: updatedAt,
+					updatedAt,
+					submissions: [],
+				},
+			],
+			deliveries: [
+				{
+					id: 902,
+					status: "completed",
+					meta: { inventoryDispatch: { status: "consumed" } },
+					deliveredAt: updatedAt,
+					dueDate: null,
+					driverId: 7,
+					updatedAt,
+					items: [{ id: 902, qty: 1, updatedAt }],
+					_count: { items: 1, stockAllocations: 1 },
+				},
+			],
+		});
+		const order = await fixture.tx.salesOrders.findFirst({});
+		const pipeline = resolveSalesPipelineSnapshotFromOrder(order as never);
+		const completion = await getSalesCompletionProjection(fixture.db, {
+			salesOrderId: 91,
+		});
+
+		expect(pipeline.headline.code).toBe("conflict");
+		expect(pipeline.conflicts.map((conflict) => conflict.code)).toEqual(
+			expect.arrayContaining([
+				"PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+				"FULFILLMENT_PROOF_INCOMPLETE",
+			]),
+		);
+
+		await markFulfillmentCompletionStatusOnly(
+			fixture.db,
+			{
+				salesOrderId: 91,
+				requestId: "00000000-0000-4000-8000-000000000120",
+				expectedRevision: completion.revision,
+				effectiveAt: null,
+				administrativeOverride: {
+					reason: "Sales representative confirmed the recorded status.",
+					expectedRevision: pipeline.revision,
+				},
+			},
+			{ id: 7, name: "Sales Rep" },
+		);
+
+		expect(fixture.records).toHaveLength(1);
+		expect(fixture.history).toHaveLength(1);
+		expect(fixture.history[0]).toMatchObject({
+			data: {
+				data: {
+					administrativeOverride: {
+						exceptionCodes: expect.arrayContaining([
+							"PRODUCTION_NOT_REQUIRED_WITH_OPERATIONAL_EVIDENCE",
+							"FULFILLMENT_PROOF_INCOMPLETE",
+						]),
+						priorSnapshot: { headline: { code: "conflict" } },
+						resultingSnapshot: {
+							headline: { code: "administratively_completed" },
+							fulfillment: { state: "administratively_completed" },
+						},
+					},
+				},
+			},
+		});
+	});
+
 	test("marks only Fulfillment completion and audit while implying Production", async () => {
 		const fixture = createCompletionDb();
 		const before = await getSalesCompletionProjection(fixture.db, {
