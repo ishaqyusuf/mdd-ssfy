@@ -1,7 +1,7 @@
 # Task: Historical dispatch status-only completion import
 
 ## Status
-In Progress
+Blocked
 
 ## Priority
 High
@@ -61,3 +61,5 @@ User authorizes treating every completed dispatch missing delivery proof as a hi
 
 - Production preview completed read-only: 1,403 eligible orders; five already completed; three later-dispatch holds (07276DB, 08647DB, 08970PC). Production actor 1 verified as Pablo Cruz. Manifest: /Users/M1PRO/Documents/Codex/2026-09-07/wh/outputs/historical-completion-production-preview-v2.json. Candidate CSV and summary exported alongside it. Explicit production approval requested; no production writes.
 - Local runbook/results exported under this task outputs directory. Goal remains active pending production apply/verification.
+
+- Blocked audit: explicit production approval remains absent across three consecutive goal turns. Local validation and production preview are complete; no production apply has been started. Awaiting approval for the reviewed 1,403-order production manifest.
