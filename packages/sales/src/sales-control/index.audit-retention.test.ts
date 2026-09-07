@@ -54,7 +54,7 @@ describe("sales item-control rebuild audit retention", () => {
 					findMany: async ({
 						select,
 					}: {
-						select: { itemControls: { where: { deletedAt: null } } };
+						select: { itemControls?: { where: { deletedAt: null } } };
 					}) => [
 						{
 							id: 91,
@@ -71,13 +71,13 @@ describe("sales item-control rebuild audit retention", () => {
 							completionRecords: [],
 							assignments: [],
 							deliveries: [],
-							itemControls: controls
+							itemControls: select.itemControls ? controls
 								.filter(
 									(row) =>
 										(row.deletedAt ?? null) ===
-										select.itemControls.where.deletedAt,
+										select.itemControls?.where.deletedAt,
 								)
-								.map((row) => ({ ...row, qtyControls: [] })),
+								.map((row) => ({ ...row, qtyControls: [] })) : undefined,
 						},
 					],
 					findFirstOrThrow: async () => ({

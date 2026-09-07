@@ -1,4 +1,4 @@
-import { resolveCanonicalDispatchWorkspaceMembership } from "../sales-pipeline";
+import { resolveCanonicalDispatchWorkspaceMembership, type SalesPipelineSnapshot } from "../sales-pipeline";
 import type { DispatchDueBucket } from "./driver-work-queue";
 import type { DispatchWorkspaceStage } from "./status";
 
@@ -40,6 +40,8 @@ export type DispatchRiskInput = {
 export type DispatchWorkspaceMembershipInput = {
 	section: DispatchWorkspaceSection;
 	stage: DispatchWorkspaceStage;
+	fulfillmentState?: SalesPipelineSnapshot["fulfillment"]["state"] | null;
+	fulfillmentApplicability?: string | null;
 	driverId?: number | null;
 	deliveryMode?: string | null;
 	dueBucket?: DispatchDueBucket | null;

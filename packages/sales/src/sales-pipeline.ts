@@ -260,7 +260,7 @@ export function getSalesPipelineProductionStateLabel(
 		assigned: "Assigned",
 		in_production: "In production",
 		awaiting_review: "Awaiting review",
-		administratively_completed: "Administratively completed",
+		administratively_completed: "Marked as completed",
 		completed: "Production completed",
 	};
 	return labels[state];
@@ -279,7 +279,7 @@ export function getSalesPipelineFulfillmentStateLabel(
 			packed: "Packed",
 			in_transit: "In transit",
 			partially_fulfilled: "Partially fulfilled",
-			administratively_completed: "Administratively completed",
+			administratively_completed: "Marked as completed",
 			fulfilled: "Fulfilled",
 		};
 	return labels[state];
@@ -363,7 +363,7 @@ export const SALES_PIPELINE_HEADLINE_META: Record<
 	in_transit: { label: "In transit", tone: "sky" },
 	partially_fulfilled: { label: "Partially fulfilled", tone: "sky" },
 	administratively_completed: {
-		label: "Administratively completed",
+		label: "Marked as completed",
 		tone: "stone",
 	},
 	fulfilled: { label: "Fulfilled", tone: "emerald" },
@@ -1453,14 +1453,25 @@ export function compareSalesPipelineShadow(
 	};
 }
 
+export function isSalesPipelineFulfillmentCompleted(state: string | null | undefined) {
+	return state === "fulfilled" || state === "administratively_completed";
+}
+
 export function resolveCanonicalDispatchWorkspaceMembership(input: {
 	section: string;
 	stage: string;
+	fulfillmentState?: SalesPipelineSnapshot["fulfillment"]["state"] | null;
+	fulfillmentApplicability?: string | null;
 	driverId?: number | null;
 	deliveryMode?: string | null;
 	dueBucket?: string | null;
 }) {
-	if (input.section === "completed") return input.stage === "fulfilled";
+	const fulfillmentCompleted = isSalesPipelineFulfillmentCompleted(input.fulfillmentState);
+	if (["active", "due-today", "past-due", "completed"].includes(input.section) && input.fulfillmentApplicability === "not_required") return false;
+	if (input.section === "completed") {
+		return input.stage !== "cancelled" &&
+			(input.stage === "fulfilled" || fulfillmentCompleted);
+	}
 	if (
 		input.section !== "active" &&
 		input.section !== "due-today" &&
@@ -1468,7 +1479,7 @@ export function resolveCanonicalDispatchWorkspaceMembership(input: {
 	) {
 		return true;
 	}
-	if (input.stage === "fulfilled" || input.stage === "cancelled") return false;
+	if (fulfillmentCompleted || input.stage === "fulfilled" || input.stage === "cancelled") return false;
 	const isActive = input.deliveryMode === "pickup" || Boolean(input.driverId);
 	if (!isActive) return false;
 	if (input.section === "due-today") return input.dueBucket === "today";

@@ -3,6 +3,27 @@ import { projectDispatchLifecycle } from "./status";
 import { isDispatchWorkspaceSectionMatch } from "./workspace";
 
 describe("isDispatchWorkspaceSectionMatch", () => {
+	test("excludes explicitly non-fulfillment orders from scoped dispatch queues", () => {
+		for (const section of ["active", "due-today", "past-due", "completed"] as const) {
+			expect(isDispatchWorkspaceSectionMatch({ section, stage: "packing", deliveryMode: "pickup", dueBucket: "overdue", fulfillmentApplicability: "not_required" })).toBe(false);
+		}
+	});
+	test("canonical fulfillment completion excludes open dispatches from due queues", () => {
+		for (const fulfillmentState of ["fulfilled", "administratively_completed"] as const) {
+			for (const section of ["active", "due-today", "past-due"] as const) {
+				expect(isDispatchWorkspaceSectionMatch({ section, stage: "in_transit", driverId: 7,
+					deliveryMode: "delivery", dueBucket: section === "due-today" ? "today" : "overdue",
+					fulfillmentState })).toBe(false);
+			}
+			expect(isDispatchWorkspaceSectionMatch({ section: "completed", stage: "in_transit", fulfillmentState })).toBe(true);
+		}
+	});
+	test("open or partially fulfilled orders retain their open dispatches", () => {
+		for (const fulfillmentState of ["backlog", "partially_fulfilled", "unknown", "conflict"] as const) {
+			expect(isDispatchWorkspaceSectionMatch({ section: "past-due", stage: "packing", driverId: 7,
+				dueBucket: "overdue", fulfillmentState })).toBe(true);
+		}
+	});
 	test("never admits a zero-item completed Dispatch into Fulfillment Completed", () => {
 		const lifecycle = projectDispatchLifecycle({
 			status: "completed",

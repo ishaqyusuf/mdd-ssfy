@@ -1,10 +1,26 @@
 import { describe, expect, it } from "bun:test";
 import {
+	buildOpenDispatchFulfillmentCandidateWhere,
 	buildCanonicalSalesPipelineFilterWhere,
 	buildCustomerSalesPipelineProjectionFilter,
 } from "./sales-pipeline-query";
 
 describe("canonical Sales Pipeline database queries", () => {
+	it("prefilters trusted fulfillment completion while retaining missing/stale candidates", () => {
+		const where = buildOpenDispatchFulfillmentCandidateWhere();
+		expect(where.OR?.[0]).toEqual({ listProjection: { is: null } });
+		expect(where).toMatchObject({ type: "order", deletedAt: null });
+		expect(where.OR?.[1]).toEqual({ listProjection: { is: { OR: [
+			{ pipelineContractVersion: null }, { pipelineRevision: null },
+			{ pipelineFulfillmentState: null }, { pipelineFulfillmentApplicability: null },
+		] } } });
+		expect(where.OR?.[2]).toMatchObject({ listProjection: { isNot: {
+			state: "ready", pipelineRevision: { not: null },
+			pipelineFulfillmentState: { in: ["fulfilled", "administratively_completed"] },
+		} } });
+		expect(JSON.stringify(where)).not.toContain("pipelineHeadline");
+		expect(JSON.stringify(where)).not.toContain("pipelineProductionState");
+	});
 	it("filters multiple headline states through the indexed projection field", () => {
 		const where = buildCanonicalSalesPipelineFilterWhere({
 			headlines: ["unknown", "conflict"],

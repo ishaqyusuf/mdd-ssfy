@@ -1,9 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { TRPCContext } from "@api/trpc/init";
+import { SALES_PIPELINE_CONTRACT_VERSION, salesOrderListProjectionVersion } from "@gnd/sales";
 import { getDispatchWorkspaceSummary } from "./dispatch-workspace";
 
 describe("getDispatchWorkspaceSummary", () => {
-	it("projects lifecycle counts from canonical dispatch records", async () => {
+	it.each([false, true])("projects lifecycle counts with unavailable projection completion=%s", async (markedCompleted) => {
 		const dispatches = [
 			{
 				id: 1,
@@ -84,8 +85,16 @@ describe("getDispatchWorkspaceSummary", () => {
 		].map((row) => ({
 			meta: null,
 			_count: { items: 1, stockAllocations: 0 },
+			order: { type: "order", deletedAt: null, deliveryOption: null, listProjection: row.salesOrderId === 109 ? null : {
+				state: "ready", version: salesOrderListProjectionVersion(),
+				pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
+				pipelineRevision: "test", pipelineFulfillmentApplicability: "required", pipelineFulfillmentState: "packing",
+			} },
 			...row,
 		}));
+		// Multiple dispatches for the same uncached order must affect counts once.
+		dispatches.push({ ...dispatches[8]!, id: 10 });
+		const evidenceReads: number[][] = [];
 		const pipelineOrder = (id: number) => {
 			const orderDispatches = dispatches.filter(
 				(dispatch) => dispatch.salesOrderId === id,
@@ -109,7 +118,10 @@ describe("getDispatchWorkspaceSummary", () => {
 				updatedAt: new Date("2026-09-02T12:00:00.000Z"),
 				inventoryProjection: null,
 				stat: [],
-				completionRecords: [],
+				completionRecords: markedCompleted && id === 109 ? [{
+					id: 19, milestone: "FULFILLMENT_COMPLETED", completionMethod: "STATUS_ONLY",
+					recordedAt: new Date("2026-09-07"), effectiveAt: new Date("2026-09-07"), recordedById: 7,
+				}] : [],
 				itemControls: [
 					{
 						uid: `item-${id}`,
@@ -152,14 +164,18 @@ describe("getDispatchWorkspaceSummary", () => {
 				}) => {
 					const state = args.where.pipelineFulfillmentState;
 					if (state === "backlog") return 3;
+					expect(JSON.stringify(args.where)).not.toContain("deliveryOption");
 					if (typeof state === "object" && state.in?.includes("fulfilled")) {
 						return 1;
 					}
-					return 9;
+					return 8;
 				},
 			},
 			salesOrders: {
-				findMany: async () => [],
+				findMany: async (args: { where: { id: { in: number[] } } }) => {
+					evidenceReads.push(args.where.id.in);
+					return args.where.id.in.map(pipelineOrder);
+				},
 			},
 			dispatchException: { count: async () => 2 },
 			salesPackingReport: {
@@ -174,10 +190,10 @@ describe("getDispatchWorkspaceSummary", () => {
 
 		expect(summary).toEqual({
 			backlog: 3,
-			active: 5,
+			active: markedCompleted ? 4 : 5,
 			dueToday: 0,
 			pastDue: 0,
-			completed: 1,
+			completed: markedCompleted ? 2 : 1,
 			all: 9,
 			openExceptions: 4,
 			overdue: 0,
@@ -186,12 +202,14 @@ describe("getDispatchWorkspaceSummary", () => {
 				readyToAssign: 1,
 				assigned: 1,
 				packing: 0,
-				packingBlocked: 2,
+				packingBlocked: markedCompleted ? 1 : 2,
 				readyToLoad: 1,
 				inTransit: 1,
-				fulfilled: 1,
+				fulfilled: markedCompleted ? 2 : 1,
 				cancelled: 1,
 			},
 		});
+		expect(evidenceReads.length).toBeGreaterThan(0);
+		expect(evidenceReads.every((ids) => ids.length === 1 && ids[0] === 109)).toBe(true);
 	});
 });

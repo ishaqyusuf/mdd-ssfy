@@ -404,6 +404,27 @@ The table uses the shared `tables-2` domain pattern with typed columns, stable r
   - Status: `sizes.custom(116, 170, 132)`
   - Actions: `sizes.custom(72, 72)`
 
+## Ticket 19 completion membership correction (local, verification in progress)
+
+Shared status-only milestone/headline wording is now `Marked as completed`;
+the stored `administratively_completed` state and audit provenance are unchanged.
+Dispatch section membership receives the already-batched canonical order
+fulfillment state. Fulfilled or status-only fulfilled orders are excluded from
+Active, Due Today and Past Due even when an underlying dispatch remains open.
+Production-only completion does not remove pending fulfillment work. Cancelled
+dispatches remain excluded from Completed. Filtering occurs before the returned
+page is filled; public query regression covers continuation past excluded rows.
+The summary uses the same terminal candidate exclusion and reconstructs only
+unavailable projection evidence in batches of 100 unique orders. It adjusts
+Completed/All totals against their prior projection contribution and removes
+terminal fallback orders from open-stage totals, deduplicating multiple dispatches.
+Completed/All counts use canonical required fulfillment applicability rather
+than requiring the legacy order-level deliveryOption to be populated. Existing
+dispatch-bearing orders with a blank legacy option must not disappear from
+these counts after completion.
+See the canonical Scratch Ticket 19 for remaining query-cost, refresh, browser
+and release verification; this note does not claim production deployment.
+
 ## Contracts Reused And Added
 - Existing admin/list query: `trpc.dispatch.index`
 - Existing driver query: `trpc.dispatch.assignedDispatch`

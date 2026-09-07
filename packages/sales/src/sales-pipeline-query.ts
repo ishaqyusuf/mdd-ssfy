@@ -4,6 +4,30 @@ import { getProductionQueueBoundaries } from "./production-date";
 import type { CanonicalSalesPipelineFilter } from "./sales-pipeline";
 import { SALES_PIPELINE_CONTRACT_VERSION } from "./sales-pipeline";
 
+/** Exclude only trusted terminal projections; unavailable evidence is resolved in batches. */
+export function buildOpenDispatchFulfillmentCandidateWhere(): Prisma.SalesOrdersWhereInput {
+	return {
+		type: "order",
+		deletedAt: null,
+		OR: [
+			{ listProjection: { is: null } },
+			{ listProjection: { is: { OR: [
+				{ pipelineContractVersion: null },
+				{ pipelineRevision: null },
+				{ pipelineFulfillmentState: null },
+				{ pipelineFulfillmentApplicability: null },
+			] } } },
+			{ listProjection: { isNot: {
+				state: "ready",
+				version: salesOrderListProjectionVersion(),
+				pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
+				pipelineRevision: { not: null },
+				pipelineFulfillmentState: { in: ["fulfilled", "administratively_completed"] },
+			} } },
+		],
+	};
+}
+
 const terminalProduction = ["completed", "administratively_completed"];
 const terminalFulfillment = ["fulfilled", "administratively_completed"];
 

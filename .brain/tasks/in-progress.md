@@ -1,5 +1,8 @@
 # In Progress
 
+### [Marked completion label and Dispatch due-queue exclusion](2026-09-07-dispatch-completion-membership-and-label.md)
+- Status: In Progress
+
 ### [GND Mobile Screen-by-Screen Redesign](2026-09-04-gnd-mobile-screen-by-screen-redesign.md)
 - Status: In Progress
 

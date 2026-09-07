@@ -10,6 +10,11 @@ import type { Prisma } from "@gnd/db";
 import {
 	SALES_PIPELINE_CONTRACT_VERSION,
 	type SalesControlField,
+	type SalesPipelineSnapshot,
+	buildOpenDispatchFulfillmentCandidateWhere,
+	dispatchFulfillmentCountAdjustment,
+	isTrustedDispatchFulfillmentProjection,
+	isSalesPipelineFulfillmentCompleted,
 	buildSalesDispatchBacklogWhere,
 	getSalesPipelineSnapshots,
 	salesOrderListProjectionVersion,
@@ -50,23 +55,16 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		ctx.db.orderDelivery.findMany({
 			where: {
 				deletedAt: null,
-				order: {
-					listProjection: {
-						is: {
-							state: "ready",
-							version: salesOrderListProjectionVersion(),
-							pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
-							pipelineFulfillmentApplicability: "required",
-							pipelineFulfillmentState: {
-								notIn: ["fulfilled", "administratively_completed"],
-							},
-						},
-					},
-				},
+				order: { is: buildOpenDispatchFulfillmentCandidateWhere() },
 			},
 			select: {
 				id: true,
 				salesOrderId: true,
+				order: { select: { type: true, deletedAt: true, deliveryOption: true, listProjection: { select: {
+					state: true, version: true, pipelineContractVersion: true,
+					pipelineRevision: true, pipelineFulfillmentState: true,
+					pipelineFulfillmentApplicability: true,
+				} } } },
 				status: true,
 				meta: true,
 				driverId: true,
@@ -103,7 +101,6 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 					is: {
 						deletedAt: null,
 						type: "order",
-						deliveryOption: { in: ["delivery", "pickup"] },
 					},
 				},
 			},
@@ -118,7 +115,6 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 					is: {
 						deletedAt: null,
 						type: "order",
-						deliveryOption: { in: ["delivery", "pickup"] },
 					},
 				},
 			},
@@ -143,6 +139,22 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 
 	const timeZone =
 		process.env.BUSINESS_TIME_ZONE || process.env.TZ || "America/New_York";
+	const unavailableOrderIds = [...new Set(dispatches.filter((row) =>
+		!isTrustedDispatchFulfillmentProjection(row.order?.listProjection)
+	).map((row) => row.salesOrderId))];
+	const fallbackStates = new Map<number, SalesPipelineSnapshot>();
+	for (let offset = 0; offset < unavailableOrderIds.length; offset += 100) {
+		const batch = await getSalesPipelineSnapshots(ctx.db, unavailableOrderIds.slice(offset, offset + 100));
+		for (const [id, snapshot] of batch) fallbackStates.set(id, snapshot);
+	}
+	let completedAdjustment = 0;
+	let allAdjustment = 0;
+	const distinctOrders = new Map(dispatches.map((row) => [row.salesOrderId, row.order]));
+	for (const [id, snapshot] of fallbackStates) {
+		const adjustment = dispatchFulfillmentCountAdjustment(distinctOrders.get(id), snapshot.fulfillment);
+		allAdjustment += adjustment.all;
+		completedAdjustment += adjustment.completed;
+	}
 	const byStage = {
 		readyToAssign: 0,
 		assigned: 0,
@@ -161,6 +173,9 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		Array<ReturnType<typeof projectDispatchOperationalRecord>["stage"]>
 	>();
 	for (const row of dispatches) {
+		const fulfillmentState = fallbackStates.get(row.salesOrderId)?.fulfillment.state;
+		const applicability = fallbackStates.get(row.salesOrderId)?.fulfillment.applicability ?? row.order?.listProjection?.pipelineFulfillmentApplicability;
+		if (isSalesPipelineFulfillmentCompleted(fulfillmentState) || applicability === "not_required") continue;
 		// OrderDelivery is the canonical dispatch lifecycle record. Rebuilding
 		// status from every historical item control made this summary unbounded
 		// and could mask explicit states (for example, "missing items") with the
@@ -181,6 +196,7 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 			isDispatchWorkspaceSectionMatch({
 				section: "active",
 				stage,
+				fulfillmentState,
 				driverId: row.driverId,
 				deliveryMode: row.deliveryMode,
 			})
@@ -191,6 +207,7 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 			isDispatchWorkspaceSectionMatch({
 				section: "due-today",
 				stage,
+				fulfillmentState,
 				driverId: row.driverId,
 				deliveryMode: row.deliveryMode,
 				dueBucket,
@@ -202,6 +219,7 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 			isDispatchWorkspaceSectionMatch({
 				section: "past-due",
 				stage,
+				fulfillmentState,
 				driverId: row.driverId,
 				deliveryMode: row.deliveryMode,
 				dueBucket,
@@ -220,15 +238,15 @@ export async function getDispatchWorkspaceSummary(ctx: TRPCContext) {
 		else if (stage === "in_transit") byStage.inTransit += 1;
 		else if (stage === "cancelled") byStage.cancelled += 1;
 	}
-	byStage.fulfilled = completedCount;
+	byStage.fulfilled = completedCount + completedAdjustment;
 
 	return {
 		backlog: backlogCount,
 		active: activeIds.size,
 		dueToday: dueTodayIds.size,
 		pastDue: pastDueIds.size,
-		completed: completedCount,
-		all: allCount,
+		completed: completedCount + completedAdjustment,
+		all: allCount + allAdjustment,
 		openExceptions: driverExceptions + packingExceptionDispatches.length,
 		overdue: pastDueIds.size,
 		driverCount,

@@ -1,5 +1,28 @@
 # API Contracts
 
+## Dispatch completion membership (Ticket 19, local verification 2026-09-07)
+
+- Shared status-only labels display `Marked as completed`; the stored
+  `administratively_completed` code, completion records and provenance remain.
+- `dispatch.list` excludes canonical fulfillment completion from Active,
+  Due Today and Past Due independently of an underlying open dispatch record.
+  Production-only completion does not exclude pending fulfillment. Filtering
+  precedes returned-page filling and cursor advancement.
+- Sales owns the candidate predicate: ready/current-version revision-bearing
+  terminal projections are excluded before detail loading. Unavailable
+  projections remain candidates for batched canonical evidence resolution.
+  Nullable trust fields have explicit SQL branches (not merely negated equality)
+  so SQL UNKNOWN cannot silently suppress fallback. Scoped queues exclude
+  known non-required fulfillment and candidate orders exclude quotes/deleted rows.
+- `dispatch.workspaceSummary` reconstructs unavailable evidence in batches of
+  100 unique orders, reconciles their contribution to Completed/All counts,
+  and excludes terminal fallback orders from open-stage counts. Required
+  canonical fulfillment, not a populated legacy deliveryOption, determines
+  Completed/All eligibility. Counts remain order-based; list rows are dispatches.
+- No request schema, permission, database schema or completion audit contract
+  changed. This is locally verified work pending final review/release, not a
+  statement that production is deployed.
+
 ## Production filter inputs (2026-09-06)
 
 - `filters.salesProductions` returns typed input definitions for `q`,

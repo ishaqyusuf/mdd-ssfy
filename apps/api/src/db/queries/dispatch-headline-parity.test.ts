@@ -58,6 +58,48 @@ function pipelineRow(id: number) {
 }
 
 describe("Fulfillment query headline parity", () => {
+	it("filters fulfillment completion before pagination but retains production-only markers", async () => {
+		const reads: number[][] = [];
+		const predicates: unknown[] = [];
+		const db = {
+			salesOrders: { findMany: async (args: { where: { id: { in: number[] } } }) => {
+				reads.push(args.where.id.in);
+				return args.where.id.in.map((id) => ({
+					...pipelineRow(id),
+					completionRecords: id === 3 ? [] : [{
+						id, milestone: id === 1 ? "FULFILLMENT_COMPLETED" : "PRODUCTION_COMPLETED",
+						completionMethod: "STATUS_ONLY", recordedAt: now, effectiveAt: now, recordedById: 7,
+					}],
+				}));
+			} },
+			salesItemControl: { findMany: async () => [] },
+			orderItemDelivery: { findMany: async () => [] },
+			orderDelivery: {
+				count: async (args: { where: unknown }) => { predicates.push(args.where); return 3; },
+				findMany: async (args: { select: { order?: unknown }; skip?: number; take?: number }) =>
+					args.select.order ? [1, 2, 3].slice(args.skip ?? 0, (args.skip ?? 0) + (args.take ?? 100)).map((id) => ({
+						id, status: "queue", salesOrderId: id, meta: {}, createdAt: now, updatedAt: now,
+						dueDate: new Date("2020-01-01"), deletedAt: null, deliveredAt: null,
+						deliveryMode: "pickup", driverId: null,
+						_count: { items: 1, stockAllocations: 0, exceptions: 0 },
+						order: { ...orderRow(id), stat: [] }, driver: null,
+					})) : [],
+			},
+		};
+		const ctx = { db } as unknown as TRPCContext;
+		const first = await getDispatches(ctx, { section: "past-due", size: 1 });
+		expect(first.data.map((row) => row.id)).toEqual([2]);
+		expect(first.data[0]?.pipeline?.production.state).toBe("administratively_completed");
+		expect(first.meta.cursor).toBe("2");
+		const second = await getDispatches(ctx, { section: "past-due", size: 1, cursor: first.meta.cursor! });
+		expect(second.data.map((row) => row.id)).toEqual([3]);
+		expect(second.meta.cursor).toBeNull();
+		const completed = await getDispatches(ctx, { section: "completed", size: 5 });
+		expect(completed.data.map((row) => row.id)).toEqual([1]);
+		expect(completed.data[0]?.order.statusLabel).toBe("Marked as completed");
+		expect(reads.every((ids) => ids.length <= 3)).toBe(true);
+		expect(JSON.stringify(predicates)).toContain("pipelineFulfillmentState");
+	});
 	it.each(["true", "false"])(
 		"uses the order headline without replacing dispatch status (control V2=%s)",
 		async (controlReadV2) => {

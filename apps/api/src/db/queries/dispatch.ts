@@ -34,6 +34,7 @@ import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-a
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
 import type { Prisma } from "@gnd/db";
 import {
+	buildOpenDispatchFulfillmentCandidateWhere,
 	getSalesPipelineSnapshots,
 	isControlOverviewReadV2Enabled,
 	isControlReadV2Enabled,
@@ -478,6 +479,7 @@ function dispatchKeepScore(dispatch: {
 async function getDispatchPage(
 	ctx: TRPCContext,
 	query: DispatchQueryParamsSchema,
+	openFulfillmentOnly = false,
 ) {
 	const { db } = ctx;
 	query.sort = query.sort?.length
@@ -485,7 +487,9 @@ async function getDispatchPage(
 		: ["dueDate.asc", "createdAt.asc"];
 	const { response, searchMeta, where } = await composeQueryData(
 		query,
-		whereDispatch(query),
+		openFulfillmentOnly
+			? { AND: [whereDispatch(query) || {}, { order: { is: buildOpenDispatchFulfillmentCandidateWhere() } }] }
+			: whereDispatch(query),
 		db.orderDelivery,
 	);
 	const data = await db.orderDelivery.findMany({
@@ -835,7 +839,7 @@ export async function getDispatches(
 					: ["dueDate.asc", "createdAt.asc", "id.asc"],
 			cursor: String(chunkStart),
 			size: chunkSize,
-		} as DispatchQueryParamsSchema);
+		} as DispatchQueryParamsSchema, section !== "completed");
 
 		if (!chunk.data.length) break;
 		for (const [index, row] of chunk.data.entries()) {
@@ -843,6 +847,8 @@ export async function getDispatches(
 				!isDispatchWorkspaceSectionMatch({
 					section,
 					stage: row.workspace.stage,
+					fulfillmentState: row.pipeline?.fulfillment.state,
+					fulfillmentApplicability: row.pipeline?.fulfillment.applicability,
 					driverId: row.driverId,
 					deliveryMode: row.deliveryMode,
 					dueBucket: row.dueBucket,

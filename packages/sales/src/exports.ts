@@ -3,6 +3,7 @@ export * from "./adjustment-system";
 export * from "./sales-control/dispatch";
 export * from "./sales-pipeline";
 export * from "./sales-pipeline-query";
+export * from "./dispatch-fulfillment-projection";
 export * from "./sales-pipeline-order";
 export * from "./sales-pipeline-commands";
 export * from "./sales-pipeline-command-executor";
