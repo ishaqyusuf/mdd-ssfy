@@ -15,10 +15,13 @@ test.skipIf(!enabled)("local migration imports once, refuses stale source, recov
   const work = await mkdtemp(join(tmpdir(), "gnd-historical-migration-"));
   const name = `migration-test-${randomUUID()}`;
   const order = await db.salesOrders.create({ data: { orderId: name, slug: name, type: "order", status: "pending", deliveries: { create: { status: "completed", deliveryMode: "pickup", meta: {} } } }, select: { id: true } });
-  const run = async (mode: string, label: string, manifest?: string) => {
+  const extraOrders: { id: number }[] = [];
+  for (let i = 0; i < 4; i += 1) extraOrders.push(await db.salesOrders.create({ data: { orderId: `${name}-${i}`, slug: `${name}-${i}`, type: "order", status: "pending", deliveries: { create: { status: "completed", deliveryMode: "pickup", meta: {} } } }, select: { id: true } }));
+  const fixtureIds = [order.id, ...extraOrders.map(row => row.id)];
+  const run = async (mode: string, label: string, manifest?: string, previewId = order.id) => {
     const args = ["bun", join(import.meta.dir, "historical-dispatch-completion.ts"), "--environment", "local", "--mode", mode, "--output", join(work, label)];
     if (manifest) args.push("--manifest", manifest, "--actor-id", "1", "--confirm-target", target.fingerprint);
-    else args.push("--order-id", String(order.id));
+    else args.push("--order-id", String(previewId));
     const child = Bun.spawn(args, { stdout: "pipe", stderr: "pipe" });
     const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
     return { code, stdout, stderr, output: join(work, label) };
@@ -29,23 +32,37 @@ test.skipIf(!enabled)("local migration imports once, refuses stale source, recov
     const preview = await run("preview", "preview.json"); expect(preview.code).toBe(0);
     const manifest = JSON.parse(await readFile(preview.output, "utf8"));
     expect(manifest.candidates.map((row: { salesOrderId: number }) => row.salesOrderId)).toEqual([order.id]);
+    for (const extra of extraOrders) {
+      const extraPreview = await run("preview", `preview-${extra.id}.json`, undefined, extra.id);
+      expect(extraPreview.code, extraPreview.stderr).toBe(0);
+      manifest.candidates.push(...JSON.parse(await readFile(extraPreview.output, "utf8")).candidates);
+    }
+    await writeFile(preview.output, JSON.stringify(manifest));
     const apply = await run("apply", "apply.jsonl", preview.output); expect(apply.code, apply.stderr).toBe(0);
     expect(await operational()).toEqual(before);
+    expect(await db.salesCompletionRecord.count({ where: { salesOrderId: { in: fixtureIds } } })).toBe(5);
+    const entries = (await readFile(apply.output, "utf8")).trim().split("\n").map(line => JSON.parse(line));
+    expect(entries.filter(row => row.status === "ledger_committed")).toHaveLength(5);
+    expect(entries.filter(row => row.status === "imported")).toHaveLength(5);
     const records = await db.salesCompletionRecord.findMany({ where: { salesOrderId: order.id } });
     expect(records).toHaveLength(1); expect(records[0]!.completionMethod).toBe("STATUS_ONLY");
     const projection = await db.salesOrderListProjection.findUnique({ where: { salesOrderId: order.id } });
     expect(projection?.pipelineFulfillmentState).toBe("administratively_completed");
     const verified = await run("verify", "verify.jsonl", preview.output); expect(verified.code, verified.stderr).toBe(0);
-    expect(await readFile(verified.output, "utf8")).toContain('"verified":1');
+    expect(await readFile(verified.output, "utf8")).toContain('"verified":5');
     const otherManifest = join(work, "other-manifest.json");
     await writeFile(otherManifest, JSON.stringify({ ...manifest, batchId: randomUUID() }));
     const unrelatedRecovery = await run("recover", "unrelated-recovery.jsonl", otherManifest);
     expect(unrelatedRecovery.code).toBe(0);
     expect(await readFile(unrelatedRecovery.output, "utf8")).toContain('"status":"not_imported"');
     expect((await db.salesCompletionRecord.findUnique({ where: { id: records[0]!.id } }))?.state).toBe("ACTIVE");
+    // Simulate interruption after ledger commit but before projection refresh.
+    await db.salesOrderListProjection.deleteMany({ where: { salesOrderId: order.id } });
     const replay = await run("apply", "replay.jsonl", preview.output); expect(replay.code).toBe(0);
     expect(await readFile(replay.output, "utf8")).toContain('"status":"replayed"');
     expect(await db.salesCompletionRecord.count({ where: { salesOrderId: order.id } })).toBe(1);
+    expect((await db.salesOrderListProjection.findUnique({ where: { salesOrderId: order.id } }))?.pipelineFulfillmentState).toBe("administratively_completed");
+    expect(await db.salesHistory.count({ where: { salesId: order.id } })).toBe(2);
     await db.orderDelivery.updateMany({ where: { salesOrderId: order.id }, data: { meta: { laterOperationalNote: "preserve this" } } });
     const recoveryBaseline = await operational();
     const recover = await run("recover", "recover.jsonl", preview.output); expect(recover.code, recover.stderr).toBe(0);
@@ -63,11 +80,11 @@ test.skipIf(!enabled)("local migration imports once, refuses stale source, recov
   } finally {
     // Only the uniquely named disposable fixture and its own audit/projections.
     await db.$transaction(async tx => {
-      await tx.salesHistory.deleteMany({ where: { salesId: order.id } });
-      await tx.salesCompletionRecord.deleteMany({ where: { salesOrderId: order.id } });
-      await tx.salesOrderListProjection.deleteMany({ where: { salesOrderId: order.id } });
-      await tx.orderDelivery.deleteMany({ where: { salesOrderId: order.id } });
-      await tx.salesOrders.delete({ where: { id: order.id, orderId: name } });
+      await tx.salesHistory.deleteMany({ where: { salesId: { in: fixtureIds } } });
+      await tx.salesCompletionRecord.deleteMany({ where: { salesOrderId: { in: fixtureIds } } });
+      await tx.salesOrderListProjection.deleteMany({ where: { salesOrderId: { in: fixtureIds } } });
+      await tx.orderDelivery.deleteMany({ where: { salesOrderId: { in: fixtureIds } } });
+      await tx.salesOrders.deleteMany({ where: { id: { in: fixtureIds }, orderId: { startsWith: name } } });
     });
     await db.$disconnect();
   }

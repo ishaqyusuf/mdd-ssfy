@@ -1,7 +1,7 @@
 # Task: Historical dispatch status-only completion import
 
 ## Status
-Blocked
+In Progress
 
 ## Priority
 High
@@ -21,7 +21,7 @@ User authorizes treating every completed dispatch missing delivery proof as a hi
 ## Implementation Progress
 - Completion: 83%
 - Current Checklist: 6/6 — Production preview, approval, apply and verification
-- Blockers: Awaiting explicit approval to apply the reviewed 1,403-order production manifest.
+- Blockers: None. User explicitly approved the reviewed 1,403-order production batch.
 
 ## Implementation Checklist
 - [x] Establish candidate policy, environment binding, and existing command boundary
@@ -63,3 +63,12 @@ User authorizes treating every completed dispatch missing delivery proof as a hi
 - Local runbook/results exported under this task outputs directory. Goal remains active pending production apply/verification.
 
 - Blocked audit: explicit production approval remains absent across three consecutive goal turns. Local validation and production preview are complete; no production apply has been started. Awaiting approval for the reviewed 1,403-order production manifest.
+
+- Production approval received. Applying only the saved reviewed manifest, then verifying operational non-effects and idempotency.
+
+- First production transaction aborted at the database-enforced 20-second timeout. Independent database check confirmed zero migration ledger rows and zero migration audits. No candidate was committed.
+- Timeout fix reuses canonical pipeline resolution from normalized source evidence and moves only derived list refresh after the atomic ledger/audit transaction. Replay repairs missing/stale projections. Local integration simulates interruption before projection refresh: 10 tests / 46 assertions pass; focused types pass.
+
+- Production v2 imported four orders successfully. Stopped the identified process (confirmed exit 143) to remove repeated per-order projection loading; a fifth prepared transaction will be resolved via the same deterministic request identity. Chunked runner uses at most four independent per-order transactions, groups of 20, serialized durable journal writes, and repairs successful in-flight work before surfacing failures. Verification uses batches of 100.
+
+- Five-order LOCAL test exposed SERIALIZABLE gap-lock contention under concurrent workers. Production concurrency was never launched. Final runner keeps transactions sequential and batches only derived refresh/verify work. Ten tests / 53 assertions and focused types pass. Review found no remaining hard correctness issues. Production v3 resumed using the original approved manifest and request identities.

@@ -66,7 +66,7 @@ export async function runHistoricalCompletion(argv: string[]) {
 
   const { db } = await import("@gnd/db");
   const { userHasPermission } = await import("@gnd/auth/utils");
-  const { salesPipelineOrderSelect, getSalesPipelineSnapshots } = await import("@gnd/sales/sales-pipeline-order");
+  const { salesPipelineOrderSelect, getSalesPipelineSnapshots, resolveSalesPipelineSnapshotFromOrder } = await import("@gnd/sales/sales-pipeline-order");
   const { refreshSalesOrderListProjections } = await import("@gnd/sales");
   const { getSalesCompletionProjection, buildSalesCompletionActiveKey, salesCompletionRecordSelect, resolveSalesCompletionProjectionFromOrder } = await import("@gnd/sales/sales-completion");
   const select = {
@@ -91,8 +91,39 @@ export async function runHistoricalCompletion(argv: string[]) {
     if (!snapshot) throw new Error(`Missing pipeline snapshot for ${id}`);
     return snapshot;
   };
+  // readSource deliberately includes deleted operational rows and cancelled
+  // completions for auditing. Restore the canonical resolver's filtering/order.
+  const sourceSnapshot = (source: Awaited<ReturnType<typeof readSource>>) => resolveSalesPipelineSnapshotFromOrder({
+    ...source,
+    completionRecords: source.completionRecords.filter(r => r.state === "ACTIVE").sort((a, b) =>
+      b.recordedAt.getTime() - a.recordedAt.getTime() || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0)),
+    deliveries: source.deliveries.filter(d => !d.deletedAt).map(d => ({ ...d, items: d.items.filter(i => !i.deletedAt) })),
+  });
+  // Derived projections are replayable after commit. PlanetScale caps a
+  // transaction at 20s, so the full list builder must run outside that boundary.
+  const repairProjections = async (salesOrderIds: number[]) => {
+    if (!salesOrderIds.length) return new Set<number>();
+    const snapshots = await getSalesPipelineSnapshots(db, salesOrderIds);
+    const existing = new Map((await db.salesOrderListProjection.findMany({ where: { salesOrderId: { in: salesOrderIds } } })).map(row => [row.salesOrderId, row]));
+    const inputs = salesOrderIds.flatMap(salesOrderId => {
+      const snapshot = snapshots.get(salesOrderId);
+      if (!snapshot?.freshness.evidenceUpdatedAt) throw new Error(`Missing post-write pipeline revision for ${salesOrderId}`);
+      const persisted = existing.get(salesOrderId);
+      return persisted?.state === "ready" && persisted.pipelineRevision === snapshot.revision ? [] : [{ salesOrderId, sourceUpdatedAt: new Date(snapshot.freshness.evidenceUpdatedAt) }];
+    });
+    if (inputs.length) {
+      const refreshed = await refreshSalesOrderListProjections(db, inputs);
+      if (refreshed.persisted !== inputs.length || refreshed.skippedAsStale) throw new Error("Projection refresh incomplete; replay this manifest to repair");
+    }
+    return new Set(inputs.map(input => input.salesOrderId));
+  };
   const output = await open(options.output, "wx", 0o600);
-  const append = async (entry: unknown) => { await output.writeFile(`${JSON.stringify(entry)}\n`); await output.sync(); };
+  // Concurrent workers share one durable, ordered journal writer.
+  let journalQueue = Promise.resolve();
+  const append = (entry: unknown) => {
+    journalQueue = journalQueue.then(async () => { await output.writeFile(`${JSON.stringify(entry)}\n`); await output.sync(); });
+    return journalQueue;
+  };
   try {
     if (options.mode === "preview") {
       const manifest: z.infer<typeof historicalManifestSchema> = { contract: HISTORICAL_COMPLETION_POLICY, batchId: randomUUID(), createdAt: new Date().toISOString(), target, candidates: [], held: [] };
@@ -140,19 +171,36 @@ export async function runHistoricalCompletion(argv: string[]) {
     if (options.mode === "verify") {
       await append({ mode: "verify", target, batchId: manifest.batchId, manifestHash: digest(manifest) });
       let verified = 0;
-      for (const candidate of manifest.candidates) {
-        const source = await readSource(db, candidate.salesOrderId);
-        const requestId = migrationRequestId(target.fingerprint, manifest.batchId, source.id);
-        const record = source.completionRecords.find(r => r.requestId === requestId);
-        const snapshot = await snapshotFor(db, source.id);
-        const projection = await db.salesOrderListProjection.findUnique({ where: { salesOrderId: source.id } });
-        const audited = await db.salesHistory.count({ where: { salesId: source.id, data: { path: "$.requestId", equals: requestId } } });
-        if (sourceHash(source) !== candidate.sourceHash || !record || record.state !== "ACTIVE" || record.completionMethod !== "STATUS_ONLY" ||
-          record.effectiveAt?.toISOString() !== (candidate.effectiveAt ?? undefined) || audited < 2 ||
-          snapshot.fulfillment.state !== "administratively_completed" || projection?.pipelineFulfillmentState !== "administratively_completed")
-          throw new Error(`Order ${source.id} failed post-import verification`);
-        await append({ salesOrderId: source.id, recordId: record.id, sourceUnchanged: true, audited: true, fulfillment: snapshot.fulfillment.state, status: "verified" });
-        verified += 1;
+      for (let offset = 0; offset < manifest.candidates.length; offset += 100) {
+        const candidates = manifest.candidates.slice(offset, offset + 100);
+        const ids = candidates.map(c => c.salesOrderId);
+        const [sources, snapshots, projections, histories] = await Promise.all([
+          db.salesOrders.findMany({ where: { id: { in: ids } }, select }),
+          getSalesPipelineSnapshots(db, ids),
+          db.salesOrderListProjection.findMany({ where: { salesOrderId: { in: ids } } }),
+          db.salesHistory.findMany({ where: { salesId: { in: ids }, name: { in: ["Fulfillment completed — status only", "Historical shortcut completion imported"] } }, select: { salesId: true, data: true } }),
+        ]);
+        const sourcesById = new Map(sources.map(row => [row.id, row]));
+        const projectionsById = new Map(projections.map(row => [row.salesOrderId, row]));
+        for (const candidate of candidates) {
+          const source = sourcesById.get(candidate.salesOrderId);
+          if (!source) throw new Error(`Order ${candidate.salesOrderId} missing during verify`);
+          const requestId = migrationRequestId(target.fingerprint, manifest.batchId, source.id);
+          const record = source.completionRecords.find(r => r.requestId === requestId);
+          const snapshot = snapshots.get(source.id);
+          const projection = projectionsById.get(source.id);
+          const auditEvents = new Set(histories.filter(row => row.salesId === source.id).flatMap(row => {
+            const data = row.data && typeof row.data === "object" && !Array.isArray(row.data) ? row.data : {};
+            return data.requestId === requestId ? [data.event] : [];
+          }));
+          if (sourceHash(source) !== candidate.sourceHash || !record || record.state !== "ACTIVE" || record.milestone !== "FULFILLMENT_COMPLETED" || record.completionMethod !== "STATUS_ONLY" ||
+            record.effectiveAt?.toISOString() !== (candidate.effectiveAt ?? undefined) || !auditEvents.has("SALES_COMPLETION_MARKED") || !auditEvents.has("HISTORICAL_DISPATCH_COMPLETION_MIGRATION") ||
+            snapshot?.fulfillment.state !== "administratively_completed" || projection?.pipelineFulfillmentState !== "administratively_completed" || projection.pipelineRevision !== snapshot.revision)
+            throw new Error(`Order ${source.id} failed post-import verification`);
+          await append({ salesOrderId: source.id, recordId: record.id, sourceUnchanged: true, audited: true, fulfillment: snapshot.fulfillment.state, status: "verified" });
+          verified += 1;
+        }
+        process.stdout.write(`${JSON.stringify({ verified })}\n`);
       }
       await append({ status: "complete", verified });
       process.stdout.write(`${JSON.stringify({ verified, output: options.output })}\n`);
@@ -163,38 +211,27 @@ export async function runHistoricalCompletion(argv: string[]) {
     if (!actor || !allowed) throw new Error("Actor lacks status-only completion permission");
     const actorInfo = { id: actor.id, name: actor.name || `User ${actor.id}` };
     await append({ contract: HISTORICAL_COMPLETION_POLICY, mode: options.mode, target, batchId: manifest.batchId, manifestHash: digest(manifest), actorId: actor.id, startedAt: new Date().toISOString() });
-    for (const candidate of manifest.candidates) {
+    const processCandidate = async (candidate: Candidate, source: Awaited<ReturnType<typeof readSource>>) => {
       const requestId = migrationRequestId(target.fingerprint, manifest.batchId, candidate.salesOrderId);
       try {
-        const source = await readSource(db, candidate.salesOrderId);
         const owned = source.completionRecords.find(record => record.requestId === requestId);
         if (options.mode === "apply" && owned) {
-          await append({ salesOrderId: source.id, requestId, recordId: owned.id, status: owned.state === "ACTIVE" ? "replayed" : "previously_cancelled" }); continue;
+          if (owned.salesOrderId !== source.id || owned.milestone !== "FULFILLMENT_COMPLETED" || owned.completionMethod !== "STATUS_ONLY") throw new Error("Migration record identity mismatch");
+          return { salesOrderId: source.id, requestId, recordId: owned.id, needsProjection: true, status: owned.state === "ACTIVE" ? "replayed" : "previously_cancelled" };
         }
         if (options.mode === "recover" && (!owned || owned.state === "CANCELLED")) {
-          await append({ salesOrderId: source.id, requestId, status: owned ? (owned.cancellationRequestId === migrationRequestId(target.fingerprint, manifest.batchId, source.id, "recover") ? "already_recovered" : "cancelled_by_later_action") : "not_imported" }); continue;
+          return { salesOrderId: source.id, requestId, needsProjection: Boolean(owned), status: owned ? (owned.cancellationRequestId === migrationRequestId(target.fingerprint, manifest.batchId, source.id, "recover") ? "already_recovered" : "cancelled_by_later_action") : "not_imported" };
         }
         const expectedSourceHash = options.mode === "recover" ? sourceHash(source) : candidate.sourceHash;
         if (sourceHash(source) !== expectedSourceHash) throw new Error("Operational source changed since preview; generate a new preview");
         const completion = await getSalesCompletionProjection(db, { salesOrderId: source.id });
         if (options.mode === "apply") {
-          if (!classifyHistoricalCompletion(source).eligible || completion.revision !== candidate.completionRevision || (await snapshotFor(db, source.id)).revision !== candidate.pipelineRevision)
+          if (!classifyHistoricalCompletion(source).eligible || completion.revision !== candidate.completionRevision || sourceSnapshot(source).revision !== candidate.pipelineRevision)
             throw new Error("Completion/lifecycle changed since preview");
         } else if (!owned || owned.completionMethod !== "STATUS_ONLY" || source.completionRecords.some(r => r.state === "ACTIVE" && r.milestone === "FULFILLMENT_COMPLETED" && r.id !== owned.id)) {
           throw new Error("Recovery cannot cancel a completion owned by another action");
         }
         await append({ status: "prepared", candidate, requestId, expectedSourceHash, beforeCompletionRecords: source.completionRecords });
-        const refreshListProjection = async (tx: TransactionClient, salesOrderId: number) => {
-          const after = await readSource(tx, salesOrderId);
-          if (sourceHash(after) !== expectedSourceHash) throw new Error("Operational source changed; rolling back completion");
-          const imported = after.completionRecords.find(r => r.requestId === requestId);
-          if (!imported || (options.mode === "recover" && imported.state !== "CANCELLED")) throw new Error("Migration record identity mismatch");
-          await tx.salesHistory.create({ data: { salesId: salesOrderId, name: options.mode === "apply" ? "Historical shortcut completion imported" : "Historical shortcut import recovered", authorName: actorInfo.name, data: { event: "HISTORICAL_DISPATCH_COMPLETION_MIGRATION", policy: HISTORICAL_COMPLETION_POLICY, batchId: manifest.batchId, targetFingerprint: target.fingerprint, requestId, recordId: imported.id, dispatchIds: candidate.dispatchIds, sourceHash: candidate.sourceHash, effectiveAt: candidate.effectiveAt, originalCompletionActor: null, originalCompletionActorKnown: false, action: options.mode, migrationActorId: actor.id } } });
-          const snapshot = (await getSalesPipelineSnapshots(tx, [salesOrderId])).get(salesOrderId);
-          if (!snapshot?.freshness.evidenceUpdatedAt) throw new Error("Missing post-write pipeline revision");
-          const refreshed = await refreshSalesOrderListProjections(tx, [{ salesOrderId, sourceUpdatedAt: new Date(snapshot.freshness.evidenceUpdatedAt) }]);
-          if (refreshed.persisted !== 1 || refreshed.skippedAsStale) throw new Error("Projection refresh failed");
-        };
         // Dedicated migration boundary: the user's historical classification is
         // authoritative here. Ordinary interactive transition policy is unchanged.
         const result = await db.$transaction(async (tx) => {
@@ -205,7 +242,7 @@ export async function runHistoricalCompletion(argv: string[]) {
           const now = new Date();
           let record;
           if (options.mode === "apply") {
-            if (!classifyHistoricalCompletion(current).eligible || (await snapshotFor(tx, source.id)).revision !== candidate.pipelineRevision)
+            if (!classifyHistoricalCompletion(current).eligible || sourceSnapshot(current).revision !== candidate.pipelineRevision)
               throw new Error("Historical candidate changed during import");
             record = await tx.salesCompletionRecord.create({ data: {
               requestId, salesOrderId: source.id, milestone: "FULFILLMENT_COMPLETED",
@@ -236,14 +273,39 @@ export async function runHistoricalCompletion(argv: string[]) {
               historicalMigration: { policy: HISTORICAL_COMPLETION_POLICY, batchId: manifest.batchId, sourceHash: candidate.sourceHash },
             },
           } });
-          await refreshListProjection(tx, source.id);
+          await tx.salesHistory.create({ data: { salesId: source.id, name: options.mode === "apply" ? "Historical shortcut completion imported" : "Historical shortcut import recovered", authorName: actorInfo.name, data: { event: "HISTORICAL_DISPATCH_COMPLETION_MIGRATION", policy: HISTORICAL_COMPLETION_POLICY, batchId: manifest.batchId, targetFingerprint: target.fingerprint, requestId, recordId: record.id, dispatchIds: candidate.dispatchIds, sourceHash: candidate.sourceHash, effectiveAt: candidate.effectiveAt, originalCompletionActor: null, originalCompletionActorKnown: false, action: options.mode, migrationActorId: actor.id } } });
           return { record };
         }, { isolationLevel: "Serializable", timeout: 30000 });
-        await append({ salesOrderId: source.id, requestId, recordId: result.record.id, status: options.mode === "apply" ? "imported" : "recovered", sourceHash: candidate.sourceHash });
+        await append({ salesOrderId: source.id, requestId, recordId: result.record.id, status: "ledger_committed" });
+        return { salesOrderId: source.id, requestId, recordId: result.record.id, needsProjection: true, status: options.mode === "apply" ? "imported" : "recovered", sourceHash: candidate.sourceHash };
       } catch (error) {
         await append({ salesOrderId: candidate.salesOrderId, requestId, status: "failed", error: error instanceof Error ? error.message : "Unknown failure" });
         throw error;
       }
+    };
+    for (let offset = 0; offset < manifest.candidates.length; offset += 20) {
+      const candidates = manifest.candidates.slice(offset, offset + 20);
+      const sources = new Map((await db.salesOrders.findMany({ where: { id: { in: candidates.map(c => c.salesOrderId) } }, select })).map(row => [row.id, row]));
+      const completed: Awaited<ReturnType<typeof processCandidate>>[] = [];
+      let failure: unknown;
+      // SERIALIZABLE reads of absent completion keys can gap-lock across
+      // orders. Keep ledger writes sequential; batch only derived read work.
+      for (const candidate of candidates) {
+        try {
+          const source = sources.get(candidate.salesOrderId);
+          if (!source) throw new Error(`Order ${candidate.salesOrderId} is missing`);
+          completed.push(await processCandidate(candidate, source));
+        } catch (error) { failure = error; break; }
+      }
+      try {
+        const repaired = await repairProjections(completed.filter(row => row.needsProjection).map(row => row.salesOrderId));
+        for (const { needsProjection, ...entry } of completed) await append({ ...entry, projectionRepaired: repaired.has(entry.salesOrderId) });
+      } catch (error) {
+        await append({ status: "projection_repair_failed", salesOrderIds: completed.map(row => row.salesOrderId), error: error instanceof Error ? error.message : "Unknown failure" });
+        throw error;
+      }
+      if (failure) throw failure;
+      process.stdout.write(`${JSON.stringify({ processed: offset + candidates.length, total: manifest.candidates.length })}\n`);
     }
     await append({ status: "complete", completedAt: new Date().toISOString() });
   } finally { await output.close(); await db.$disconnect(); }
