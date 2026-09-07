@@ -44,6 +44,13 @@ test.skipIf(!enabled)("local migration imports once, refuses stale source, recov
     expect(await db.salesCompletionRecord.count({ where: { salesOrderId: { in: fixtureIds } } })).toBe(0);
     expect(await db.salesHistory.count({ where: { salesId: { in: fixtureIds } } })).toBe(0);
     await writeFile(preview.output, JSON.stringify(manifest));
+    const typeFixtureId = extraOrders[0]!.id;
+    const typeFixture = await db.salesOrders.findUniqueOrThrow({ where: { id: typeFixtureId }, select: { updatedAt: true } });
+    await db.salesOrders.update({ where: { id: typeFixtureId }, data: { type: "quote", updatedAt: typeFixture.updatedAt } });
+    const typeRejected = await run("apply", "type-changed.jsonl", preview.output);
+    expect(typeRejected.code).not.toBe(0);
+    expect(await db.salesCompletionRecord.count({ where: { salesOrderId: { in: fixtureIds } } })).toBe(0);
+    await db.salesOrders.update({ where: { id: typeFixtureId }, data: { type: "order", updatedAt: typeFixture.updatedAt } });
     const apply = await run("apply", "apply.jsonl", preview.output); expect(apply.code, apply.stderr).toBe(0);
     expect(await operational()).toEqual(before);
     expect(await db.salesCompletionRecord.count({ where: { salesOrderId: { in: fixtureIds } } })).toBe(20);

@@ -68,7 +68,7 @@ export async function runHistoricalCompletion(argv: string[]) {
   const { userHasPermission } = await import("@gnd/auth/utils");
   const { salesPipelineOrderSelect, getSalesPipelineSnapshots, resolveSalesPipelineSnapshotFromOrder } = await import("@gnd/sales/sales-pipeline-order");
   const { refreshSalesOrderListProjections } = await import("@gnd/sales");
-  const { getSalesCompletionProjection, buildSalesCompletionActiveKey, salesCompletionRecordSelect, resolveSalesCompletionProjectionFromOrder } = await import("@gnd/sales/sales-completion");
+  const { completionRevision, buildSalesCompletionActiveKey, salesCompletionRecordSelect, resolveSalesCompletionProjectionFromOrder } = await import("@gnd/sales/sales-completion");
   const select = {
     ...salesPipelineOrderSelect,
     deliveries: { orderBy: { id: "asc" as const }, include: { items: { orderBy: { id: "asc" as const } }, stockAllocations: { orderBy: { id: "asc" as const } }, _count: { select: { stockAllocations: true } } } },
@@ -78,7 +78,7 @@ export async function runHistoricalCompletion(argv: string[]) {
   };
   type Client = Database | TransactionClient;
   const readSource = async (client: Client, id: number) => {
-    const source = await client.salesOrders.findUnique({ where: { id }, select });
+    const source = await client.salesOrders.findUnique({ where: { id, type: "order", deletedAt: null }, select });
     if (!source) throw new Error(`Order ${id} is missing`);
     return source;
   };
@@ -86,11 +86,10 @@ export async function runHistoricalCompletion(argv: string[]) {
     const { completionRecords, ...operational } = source;
     return digest(operational);
   };
-  const snapshotFor = async (client: Client, id: number) => {
-    const snapshot = (await getSalesPipelineSnapshots(client, [id])).get(id);
-    if (!snapshot) throw new Error(`Missing pipeline snapshot for ${id}`);
-    return snapshot;
-  };
+  const sourceCompletionRevision = (source: Awaited<ReturnType<typeof readSource>>) => completionRevision({
+    ...source,
+    records: [...source.completionRecords].sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime() || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0)),
+  });
   // readSource deliberately includes deleted operational rows and cancelled
   // completions for auditing. Restore the canonical resolver's filtering/order.
   const sourceSnapshot = (source: Awaited<ReturnType<typeof readSource>>) => resolveSalesPipelineSnapshotFromOrder({
@@ -221,14 +220,7 @@ export async function runHistoricalCompletion(argv: string[]) {
       }
       const entries = await db.$transaction(async tx => {
         const ids = candidates.map(c => c.salesOrderId);
-        const current = new Map((await tx.salesOrders.findMany({ where: { id: { in: ids } }, select })).map(row => [row.id, row]));
-        const completionRows = await tx.salesOrders.findMany({ where: { id: { in: ids }, type: "order", deletedAt: null }, select: {
-          id: true, orderId: true, createdAt: true, updatedAt: true, status: true, prodStatus: true,
-          stat: { where: { deletedAt: null } },
-          deliveries: { where: { deletedAt: null }, select: { status: true, meta: true, _count: { select: { items: true } } } },
-          completionRecords: { orderBy: [{ recordedAt: "desc" }, { id: "desc" }], select: salesCompletionRecordSelect },
-        } });
-        const completions = new Map(completionRows.map(row => [row.id, resolveSalesCompletionProjectionFromOrder(row)]));
+        const current = new Map((await tx.salesOrders.findMany({ where: { id: { in: ids }, type: "order", deletedAt: null }, select })).map(row => [row.id, row]));
         const toCreate: Candidate[] = [];
         for (const candidate of candidates) {
           const source = current.get(candidate.salesOrderId);
@@ -240,7 +232,7 @@ export async function runHistoricalCompletion(argv: string[]) {
             continue;
           }
           if (sourceHash(source) !== candidate.sourceHash) throw new Error(`Order ${source.id}: operational source changed since preview`);
-          if (!classifyHistoricalCompletion(source).eligible || sourceSnapshot(source).revision !== candidate.pipelineRevision || completions.get(source.id)?.revision !== candidate.completionRevision)
+          if (!classifyHistoricalCompletion(source).eligible || sourceSnapshot(source).revision !== candidate.pipelineRevision || sourceCompletionRevision(source) !== candidate.completionRevision)
             throw new Error(`Order ${source.id}: completion/lifecycle changed since preview`);
           toCreate.push(candidate);
         }
@@ -307,9 +299,9 @@ export async function runHistoricalCompletion(argv: string[]) {
         }
         const expectedSourceHash = options.mode === "recover" ? sourceHash(source) : candidate.sourceHash;
         if (sourceHash(source) !== expectedSourceHash) throw new Error("Operational source changed since preview; generate a new preview");
-        const completion = await getSalesCompletionProjection(db, { salesOrderId: source.id });
+        const revision = sourceCompletionRevision(source);
         if (options.mode === "apply") {
-          if (!classifyHistoricalCompletion(source).eligible || completion.revision !== candidate.completionRevision || sourceSnapshot(source).revision !== candidate.pipelineRevision)
+          if (!classifyHistoricalCompletion(source).eligible || revision !== candidate.completionRevision || sourceSnapshot(source).revision !== candidate.pipelineRevision)
             throw new Error("Completion/lifecycle changed since preview");
         } else if (!owned || owned.completionMethod !== "STATUS_ONLY" || source.completionRecords.some(r => r.state === "ACTIVE" && r.milestone === "FULFILLMENT_COMPLETED" && r.id !== owned.id)) {
           throw new Error("Recovery cannot cancel a completion owned by another action");
@@ -320,8 +312,8 @@ export async function runHistoricalCompletion(argv: string[]) {
         const result = await db.$transaction(async (tx) => {
           const current = await readSource(tx, source.id);
           if (sourceHash(current) !== expectedSourceHash) throw new Error("Operational source changed during import");
-          const currentProjection = await getSalesCompletionProjection(tx, { salesOrderId: source.id });
-          if (currentProjection.revision !== completion.revision) throw new Error("Completion changed during import");
+          const currentRevision = sourceCompletionRevision(current);
+          if (currentRevision !== revision) throw new Error("Completion changed during import");
           const now = new Date();
           let record;
           if (options.mode === "apply") {
@@ -366,8 +358,8 @@ export async function runHistoricalCompletion(argv: string[]) {
         throw error;
       }
     };
-    for (let offset = 0; offset < manifest.candidates.length; offset += 20) {
-      const candidates = manifest.candidates.slice(offset, offset + 20);
+    for (let offset = 0; offset < manifest.candidates.length; offset += 5) {
+      const candidates = manifest.candidates.slice(offset, offset + 5);
       const sources = new Map((await db.salesOrders.findMany({ where: { id: { in: candidates.map(c => c.salesOrderId) } }, select })).map(row => [row.id, row]));
       const completed: Awaited<ReturnType<typeof processCandidate>>[] = [];
       let failure: unknown;

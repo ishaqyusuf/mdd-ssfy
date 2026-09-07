@@ -409,12 +409,12 @@ export function buildSalesCompletionSatisfactionWhere(
 	return satisfied ? where : { NOT: where };
 }
 
-function completionRevision(input: {
+export function completionRevision(input: {
 	id: number;
 	status: string | null;
 	prodStatus: string | null;
 	updatedAt: Date | null;
-	records: SalesCompletionRecordView[];
+	records: Array<Pick<SalesCompletionRecordView, "id" | "milestone" | "completionMethod" | "state" | "updatedAt">>;
 }) {
 	return createHash("sha256")
 		.update(
