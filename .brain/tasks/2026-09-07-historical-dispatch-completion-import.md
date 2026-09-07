@@ -19,8 +19,8 @@ High
 User authorizes treating every completed dispatch missing delivery proof as a historical shortcut completion, without requiring old job/action evidence. Build a dry-run-first, repeatable audited status-only migration; validate locally, then preview production and obtain confirmation before production apply. Preserve later cancellations/reopenings and operational records. Include migration-scoped recovery.
 
 ## Implementation Progress
-- Completion: 67%
-- Current Checklist: 5/6 — Final review, documentation and commit
+- Completion: 83%
+- Current Checklist: 6/6 — Production preview, approval, apply and verification
 - Blockers: None; production apply will require explicit approval of the production preview.
 
 ## Implementation Checklist
@@ -28,7 +28,7 @@ User authorizes treating every completed dispatch missing delivery proof as a hi
 - [x] Implement dry-run manifest and focused behavioral validation
 - [x] Implement revision-bound import, idempotency, journal, and scoped recovery
 - [x] Run local dry-run/import/replay and verify projections and operational non-effects
-- [ ] Review, document runbook, validate types/tests, and commit on current branch
+- [x] Review, document runbook, validate types/tests, and commit on current branch
 - [ ] Produce production dry run; apply and verify only after user confirmation
 
 ## Validation Evidence
@@ -56,3 +56,5 @@ User authorizes treating every completed dispatch missing delivery proof as a hi
 
 - Final focused suite: 10 tests / 44 assertions pass, including post-import verify and unrelated-manifest recovery refusal. Focused TypeScript check passes. Final local census with batched preview finds zero remaining candidates; 1,409 already-completed orders and two later-dispatch holds.
 - Production preview per-order loader was stopped read-only and replaced with bounded 100-order source batches plus canonical bulk snapshot loading; integration/type validation rerun successfully. Production preview v2 is running, with no production mutations.
+
+- Implementation committed on master as e5dcff3af. Only this task files and its ledger pointer were committed; unrelated concurrent task changes remain untouched.
