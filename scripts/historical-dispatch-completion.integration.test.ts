@@ -16,7 +16,7 @@ test.skipIf(!enabled)("local migration imports once, refuses stale source, recov
   const name = `migration-test-${randomUUID()}`;
   const order = await db.salesOrders.create({ data: { orderId: name, slug: name, type: "order", status: "pending", deliveries: { create: { status: "completed", deliveryMode: "pickup", meta: {} } } }, select: { id: true } });
   const extraOrders: { id: number }[] = [];
-  for (let i = 0; i < 4; i += 1) extraOrders.push(await db.salesOrders.create({ data: { orderId: `${name}-${i}`, slug: `${name}-${i}`, type: "order", status: "pending", deliveries: { create: { status: "completed", deliveryMode: "pickup", meta: {} } } }, select: { id: true } }));
+  for (let i = 0; i < 19; i += 1) extraOrders.push(await db.salesOrders.create({ data: { orderId: `${name}-${i}`, slug: `${name}-${i}`, type: "order", status: "pending", deliveries: { create: { status: "completed", deliveryMode: "pickup", meta: {} } } }, select: { id: true } }));
   const fixtureIds = [order.id, ...extraOrders.map(row => row.id)];
   const run = async (mode: string, label: string, manifest?: string, previewId = order.id) => {
     const args = ["bun", join(import.meta.dir, "historical-dispatch-completion.ts"), "--environment", "local", "--mode", mode, "--output", join(work, label)];
@@ -37,19 +37,25 @@ test.skipIf(!enabled)("local migration imports once, refuses stale source, recov
       expect(extraPreview.code, extraPreview.stderr).toBe(0);
       manifest.candidates.push(...JSON.parse(await readFile(extraPreview.output, "utf8")).candidates);
     }
+    const staleBatchPath = join(work, "stale-batch.json");
+    await writeFile(staleBatchPath, JSON.stringify({ ...manifest, candidates: manifest.candidates.map((candidate: { sourceHash: string }, index: number) => index === 4 ? { ...candidate, sourceHash: "0".repeat(64) } : candidate) }));
+    const refusedBatch = await run("apply", "stale-batch.jsonl", staleBatchPath);
+    expect(refusedBatch.code).not.toBe(0);
+    expect(await db.salesCompletionRecord.count({ where: { salesOrderId: { in: fixtureIds } } })).toBe(0);
+    expect(await db.salesHistory.count({ where: { salesId: { in: fixtureIds } } })).toBe(0);
     await writeFile(preview.output, JSON.stringify(manifest));
     const apply = await run("apply", "apply.jsonl", preview.output); expect(apply.code, apply.stderr).toBe(0);
     expect(await operational()).toEqual(before);
-    expect(await db.salesCompletionRecord.count({ where: { salesOrderId: { in: fixtureIds } } })).toBe(5);
+    expect(await db.salesCompletionRecord.count({ where: { salesOrderId: { in: fixtureIds } } })).toBe(20);
     const entries = (await readFile(apply.output, "utf8")).trim().split("\n").map(line => JSON.parse(line));
-    expect(entries.filter(row => row.status === "ledger_committed")).toHaveLength(5);
-    expect(entries.filter(row => row.status === "imported")).toHaveLength(5);
+    expect(entries.filter(row => row.status === "ledger_committed")).toHaveLength(20);
+    expect(entries.filter(row => row.status === "imported")).toHaveLength(20);
     const records = await db.salesCompletionRecord.findMany({ where: { salesOrderId: order.id } });
     expect(records).toHaveLength(1); expect(records[0]!.completionMethod).toBe("STATUS_ONLY");
     const projection = await db.salesOrderListProjection.findUnique({ where: { salesOrderId: order.id } });
     expect(projection?.pipelineFulfillmentState).toBe("administratively_completed");
     const verified = await run("verify", "verify.jsonl", preview.output); expect(verified.code, verified.stderr).toBe(0);
-    expect(await readFile(verified.output, "utf8")).toContain('"verified":5');
+    expect(await readFile(verified.output, "utf8")).toContain('"verified":20');
     const otherManifest = join(work, "other-manifest.json");
     await writeFile(otherManifest, JSON.stringify({ ...manifest, batchId: randomUUID() }));
     const unrelatedRecovery = await run("recover", "unrelated-recovery.jsonl", otherManifest);
