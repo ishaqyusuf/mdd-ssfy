@@ -218,6 +218,17 @@ export async function runHistoricalCompletion(argv: string[]) {
         if (!source.completionRecords.some(r => r.requestId === requestId))
           await append({ status: "prepared", candidate, requestId, expectedSourceHash: candidate.sourceHash, beforeCompletionRecords: source.completionRecords });
       }
+      // Fully owned groups perform no ledger/audit write and need no write
+      // transaction. Projection repair below still reads current canonical data.
+      const replays = candidates.map(candidate => {
+        const source = sources.get(candidate.salesOrderId)!;
+        const requestId = migrationRequestId(target.fingerprint, manifest.batchId, candidate.salesOrderId);
+        const owned = source.completionRecords.find(r => r.requestId === requestId);
+        if (!owned) return null;
+        if (owned.salesOrderId !== source.id || owned.milestone !== "FULFILLMENT_COMPLETED" || owned.completionMethod !== "STATUS_ONLY") throw new Error("Migration record identity mismatch");
+        return { salesOrderId: source.id, requestId, recordId: owned.id, needsProjection: true, status: owned.state === "ACTIVE" ? "replayed" : "previously_cancelled", sourceHash: candidate.sourceHash };
+      });
+      if (replays.every(row => row !== null)) return replays;
       const entries = await db.$transaction(async tx => {
         const ids = candidates.map(c => c.salesOrderId);
         const current = new Map((await tx.salesOrders.findMany({ where: { id: { in: ids }, type: "order", deletedAt: null }, select })).map(row => [row.id, row]));
@@ -358,13 +369,16 @@ export async function runHistoricalCompletion(argv: string[]) {
         throw error;
       }
     };
-    for (let offset = 0; offset < manifest.candidates.length; offset += 5) {
-      const candidates = manifest.candidates.slice(offset, offset + 5);
-      const sources = new Map((await db.salesOrders.findMany({ where: { id: { in: candidates.map(c => c.salesOrderId) } }, select })).map(row => [row.id, row]));
+    for (let offset = 0; offset < manifest.candidates.length; offset += 20) {
+      const candidates = manifest.candidates.slice(offset, offset + 20);
+      const sources = new Map((await db.salesOrders.findMany({ where: { id: { in: candidates.map(c => c.salesOrderId) }, type: "order", deletedAt: null }, select })).map(row => [row.id, row]));
       const completed: Awaited<ReturnType<typeof processCandidate>>[] = [];
       let failure: unknown;
       if (options.mode === "apply") {
-        try { completed.push(...await processApplyBatch(candidates, sources)); }
+        try {
+          for (let start = 0; start < candidates.length; start += 5)
+            completed.push(...await processApplyBatch(candidates.slice(start, start + 5), sources));
+        }
         catch (error) {
           failure = error;
           await append({ status: "failed", salesOrderIds: candidates.map(c => c.salesOrderId), error: error instanceof Error ? error.message : "Unknown failure" });
@@ -380,7 +394,13 @@ export async function runHistoricalCompletion(argv: string[]) {
       }
       try {
         const repaired = await repairProjections(completed.filter(row => row.needsProjection).map(row => row.salesOrderId));
-        for (const { needsProjection, ...entry } of completed) await append({ ...entry, projectionRepaired: repaired.has(entry.salesOrderId) });
+        const currentRecords = new Map((await db.salesCompletionRecord.findMany({ where: { requestId: { in: completed.filter(row => row.needsProjection).map(row => row.requestId) } } })).map(row => [row.requestId, row]));
+        for (const { needsProjection, ...entry } of completed) {
+          const current = currentRecords.get(entry.requestId);
+          if (needsProjection && (!current || current.salesOrderId !== entry.salesOrderId || current.milestone !== "FULFILLMENT_COMPLETED" || current.completionMethod !== "STATUS_ONLY")) throw new Error("Migration record changed before terminal journal");
+          const status = entry.status === "replayed" || entry.status === "previously_cancelled" ? (current?.state === "ACTIVE" ? "replayed" : "previously_cancelled") : entry.status;
+          await append({ ...entry, status, projectionRepaired: repaired.has(entry.salesOrderId) });
+        }
       } catch (error) {
         await append({ status: "projection_repair_failed", salesOrderIds: completed.map(row => row.salesOrderId), error: error instanceof Error ? error.message : "Unknown failure" });
         throw error;

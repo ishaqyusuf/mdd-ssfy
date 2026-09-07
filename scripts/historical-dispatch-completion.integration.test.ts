@@ -51,12 +51,19 @@ test.skipIf(!enabled)("local migration imports once, refuses stale source, recov
     expect(typeRejected.code).not.toBe(0);
     expect(await db.salesCompletionRecord.count({ where: { salesOrderId: { in: fixtureIds } } })).toBe(0);
     await db.salesOrders.update({ where: { id: typeFixtureId }, data: { type: "order", updatedAt: typeFixture.updatedAt } });
+    const lateStalePath = join(work, "late-stale.json");
+    await writeFile(lateStalePath, JSON.stringify({ ...manifest, candidates: manifest.candidates.map((candidate: { sourceHash: string }, index: number) => index === 9 ? { ...candidate, sourceHash: "0".repeat(64) } : candidate) }));
+    const lateRejected = await run("apply", "late-stale.jsonl", lateStalePath);
+    expect(lateRejected.code).not.toBe(0);
+    expect(await db.salesCompletionRecord.count({ where: { salesOrderId: { in: fixtureIds } } })).toBe(5);
+    expect(await db.salesOrderListProjection.count({ where: { salesOrderId: { in: fixtureIds }, pipelineFulfillmentState: "administratively_completed" } })).toBe(5);
+    expect(await db.salesHistory.count({ where: { salesId: { in: fixtureIds } } })).toBe(10);
     const apply = await run("apply", "apply.jsonl", preview.output); expect(apply.code, apply.stderr).toBe(0);
     expect(await operational()).toEqual(before);
     expect(await db.salesCompletionRecord.count({ where: { salesOrderId: { in: fixtureIds } } })).toBe(20);
     const entries = (await readFile(apply.output, "utf8")).trim().split("\n").map(line => JSON.parse(line));
-    expect(entries.filter(row => row.status === "ledger_committed")).toHaveLength(20);
-    expect(entries.filter(row => row.status === "imported")).toHaveLength(20);
+    expect(entries.filter(row => row.status === "ledger_committed")).toHaveLength(15);
+    expect(entries.filter(row => row.status === "imported")).toHaveLength(15);
     const records = await db.salesCompletionRecord.findMany({ where: { salesOrderId: order.id } });
     expect(records).toHaveLength(1); expect(records[0]!.completionMethod).toBe("STATUS_ONLY");
     const projection = await db.salesOrderListProjection.findUnique({ where: { salesOrderId: order.id } });
@@ -84,6 +91,10 @@ test.skipIf(!enabled)("local migration imports once, refuses stale source, recov
     const again = await run("recover", "recover-again.jsonl", preview.output); expect(again.code).toBe(0);
     expect(await readFile(again.output, "utf8")).toContain('"status":"already_recovered"');
     expect(await db.salesHistory.count({ where: { salesId: order.id } })).toBe(4);
+    const cancelledReplay = await run("apply", "cancelled-replay.jsonl", preview.output);
+    expect(cancelledReplay.code, cancelledReplay.stderr).toBe(0);
+    expect(await readFile(cancelledReplay.output, "utf8")).toContain('"status":"previously_cancelled"');
+    expect((await db.salesCompletionRecord.findUnique({ where: { id: records[0]!.id } }))?.state).toBe("CANCELLED");
     // A separate candidate previews before a source edit; stale apply must not write a ledger row.
     await db.salesCompletionRecord.deleteMany({ where: { salesOrderId: order.id } });
     const stale = await run("preview", "stale-preview.json"); expect(stale.code).toBe(0);

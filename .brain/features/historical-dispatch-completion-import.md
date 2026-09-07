@@ -18,7 +18,7 @@ Recovery: use the original manifest with `--mode recover`, the same environment,
 If a run fails, inspect the final journal entry. Previously committed orders remain committed. Rerun the same manifest/output-new-path for transient failures; generate a new preview for source changes. Do not overwrite the old manifest or journal. Archive partial/failed preview files rather than using them as approval manifests.
 
 ## Production transaction boundary
-Up to five approved completion ledgers and their paired audits commit together in one serializable transaction. Every new row is revalidated before any insert; one stale candidate rolls back the entire group. Groups run sequentially to avoid gap-lock contention. Recovery remains per order. Full derived list refresh runs outside the transaction in groups of up to five, respecting the hosted database’s 20-second transaction cap. The durable `ledger_committed` checkpoint precedes refresh; `imported`/`replayed` is written only after repair. A failed group repairs its committed orders before exiting. Replay repairs missing/stale projections without duplicate ledger/audit rows. Verification reads in groups of 100.
+Up to five approved completion ledgers and their paired audits commit together in one serializable transaction. Every new row is revalidated before any insert; one stale candidate rolls back the entire group. Groups run sequentially to avoid gap-lock contention. Recovery remains per order. Full derived list refresh runs outside the transaction in groups of up to 20, respecting the hosted database’s 20-second transaction cap. The durable `ledger_committed` checkpoint precedes refresh; `imported`/`replayed` is written only after repair. A failed group repairs its committed orders before exiting. Replay repairs missing/stale projections without duplicate ledger/audit rows. Verification reads in groups of 100.
 
 ## Verification
 Focused tests: `bun test scripts/historical-dispatch-completion.test.ts scripts/historical-dispatch-completion-policy.test.ts`.
@@ -26,3 +26,5 @@ Local fixture integration: `GND_MIGRATION_TEST_LOCAL=1 bun test scripts/historic
 Types: `bun node_modules/typescript/bin/tsc --project scripts/tsconfig.historical-completion.json --pretty false`.
 
 Read-only verify checks every order's operational source hash, ledger identity/method/state/effective date, audit evidence, canonical administrative Fulfillment state and persisted list projection. Browser acceptance additionally checks the Marked as completed label and pending/completed queue membership.
+
+Fully owned groups skip write transactions, still repair projections from current canonical evidence, then read owned records again before journaling replay/cancellation status.
