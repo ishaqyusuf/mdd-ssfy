@@ -1,3 +1,4 @@
+import { getDispatchCalendar } from "@api/db/queries/dispatch-calendar";
 import {
 	bulkAssignDispatchDriver,
 	bulkCancelDispatches,
@@ -69,6 +70,7 @@ import {
 	createDispatchesSchema,
 	dispatchAssignmentDestinationPreflightSchema,
 	dispatchBacklogSchema,
+	dispatchCalendarSchema,
 	dispatchExceptionListSchema,
 	dispatchWorkspaceDetailSchema,
 	dispatchWorkspaceListSchema,
@@ -897,11 +899,10 @@ export const dispatchRouters = createTRPCRouter({
 			return getDispatches(props.ctx, props.input);
 		}),
 	calendar: protectedProcedure
-		.input(dispatchWorkspaceListSchema)
+		.input(dispatchCalendarSchema)
 		.query(async (props) => {
 			await requireDispatchManager(props.ctx);
-			const { section: _section, ...input } = props.input;
-			return getDispatches(props.ctx, input);
+			return getDispatchCalendar(props.ctx, props.input);
 		}),
 	fulfillmentCalendar: protectedProcedure
 		.input(fulfillmentCalendarSchema)

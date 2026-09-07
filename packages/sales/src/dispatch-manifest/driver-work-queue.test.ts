@@ -3,6 +3,8 @@ import { describe, expect, it } from "bun:test";
 import {
 	DEFAULT_DISPATCH_TIME_ZONE,
 	getDispatchDateBoundaries,
+	getDispatchCalendarRange,
+	getDispatchBusinessDate,
 	getDispatchDueBucket,
 	getDispatchDuePresentation,
 	resolveDispatchTimeZone,
@@ -10,6 +12,23 @@ import {
 } from "./driver-work-queue";
 
 describe("driver work queue due dates", () => {
+	it("includes all 25 hours when daylight saving time ends", () => {
+		const range = getDispatchCalendarRange("2026-11-01", "2026-11-01");
+		expect(range.gte.toISOString()).toBe("2026-11-01T04:00:00.000Z");
+		expect(range.lt.toISOString()).toBe("2026-11-02T05:00:00.000Z");
+	});
+	it("groups calendar instants on the same business day as due buckets", () => {
+		expect(getDispatchBusinessDate("2026-09-08T02:00:00.000Z")).toBe("2026-09-07");
+		expect(getDispatchBusinessDate(null)).toBeNull();
+		expect(getDispatchBusinessDate("invalid")).toBeNull();
+	});
+
+	it("bounds a DST-transition calendar day by business midnights", () => {
+		const range = getDispatchCalendarRange("2026-03-08", "2026-03-08");
+		expect(range.gte.toISOString()).toBe("2026-03-08T05:00:00.000Z");
+		expect(range.lt.toISOString()).toBe("2026-03-09T04:00:00.000Z");
+	});
+
 	const now = new Date("2026-08-06T15:00:00.000Z");
 
 	it("separates overdue, today, tomorrow, upcoming, and unscheduled work", () => {

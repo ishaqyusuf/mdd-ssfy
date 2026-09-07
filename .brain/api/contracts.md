@@ -1,6 +1,21 @@
 # API Contracts
 
-## Dispatch completion membership (Ticket 19, local verification 2026-09-07)
+## Dispatch calendar range contract (Ticket20, local work in progress)
+
+`dispatch.calendar` requires either validated `from`/`to` calendar dates (at
+most46 days) or `unscheduled: true` without a date-dependent query key.
+Both forms preserve existing filters/cursor.
+The query applies a business-timezone half-open dueDate interval before loading
+details; undated requests select only null dueDate. Sorting is dueDate/id, not
+the list's completion-date sort. Pages are capped at100. Returned rows expose
+calendarDate, calendarCompleted, calendarLabel and calendarTone; response carries timezone and
+business today. SourceDate/revision for rescheduling are not rewritten.
+Stage filters are applied to batched canonical results before filling the page;
+physical candidate offsets preserve cursor continuation. A filtered count is
+omitted rather than presenting the unfiltered candidate count as a total.
+Public query and date-boundary regressions pass locally; not deployed yet.
+
+## Dispatch completion membership (Ticket 19, production verified 2026-09-07)
 
 - Shared status-only labels display `Marked as completed`; the stored
   `administratively_completed` code, completion records and provenance remain.
@@ -20,8 +35,8 @@
   canonical fulfillment, not a populated legacy deliveryOption, determines
   Completed/All eligibility. Counts remain order-based; list rows are dispatches.
 - No request schema, permission, database schema or completion audit contract
-  changed. This is locally verified work pending final review/release, not a
-  statement that production is deployed.
+  changed. Commit cdf57deb9 is deployed on www.gndprodesk.com; authenticated
+  membership/label checks and read-only production order-count parity pass.
 
 ## Production filter inputs (2026-09-06)
 
@@ -96,6 +111,10 @@
   completion and Production applicability `required`; it does not admit
   non-production orders or orders with remaining open assignments. Worker
   assignment-completion history remains separately scoped.
+- Production canonical summary/dashboard/admin-list membership requires an
+  undeleted sales order and excludes canonical commercial cancellations in both
+  projection and source-fallback reads. A missing projection headline requires
+  fallback before membership can be determined (2026-09-07).
 - Canonical command evaluation validates permission input, expected evidence
   revision, applicability, blockers, conflicts, terminal/replay state, and
   affected scopes before a domain command runs. Batch outcomes distinguish

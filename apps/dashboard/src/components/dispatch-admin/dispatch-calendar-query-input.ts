@@ -1,6 +1,6 @@
 import type { RouterInputs } from "@api/trpc/routers/_app";
 
-type DispatchCalendarInput = RouterInputs["dispatch"]["calendar"];
+type DispatchCalendarInput = Exclude<RouterInputs["dispatch"]["calendar"], void>;
 type DispatchCalendarFilters = Pick<
 	DispatchCalendarInput,
 	"deliveryModes" | "driversId" | "dueBuckets" | "q" | "risks" | "stages"
@@ -8,8 +8,10 @@ type DispatchCalendarFilters = Pick<
 
 export function createDispatchCalendarQueryInput(
 	filters: DispatchCalendarFilters,
+	range: { from: string; to: string } | undefined,
+	unscheduled = false,
 ): DispatchCalendarInput {
-	return {
+	const filtersInput = {
 		section: "calendar",
 		q: filters.q,
 		stages: filters.stages,
@@ -17,6 +19,9 @@ export function createDispatchCalendarQueryInput(
 		dueBuckets: filters.dueBuckets,
 		deliveryModes: filters.deliveryModes,
 		risks: filters.risks,
-		size: 500,
-	};
+		size: 100,
+	} as const;
+	if (unscheduled) return { ...filtersInput, unscheduled: true };
+	if (!range) throw new Error("Scheduled calendar queries require a date range");
+	return { ...filtersInput, ...range, unscheduled: false };
 }

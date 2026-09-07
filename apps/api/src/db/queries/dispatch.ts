@@ -480,6 +480,7 @@ async function getDispatchPage(
 	ctx: TRPCContext,
 	query: DispatchQueryParamsSchema,
 	openFulfillmentOnly = false,
+	calendarWhere?: Prisma.OrderDeliveryWhereInput,
 ) {
 	const { db } = ctx;
 	query.sort = query.sort?.length
@@ -489,7 +490,7 @@ async function getDispatchPage(
 		query,
 		openFulfillmentOnly
 			? { AND: [whereDispatch(query) || {}, { order: { is: buildOpenDispatchFulfillmentCandidateWhere() } }] }
-			: whereDispatch(query),
+			: calendarWhere ? { AND: [whereDispatch(query) || {}, calendarWhere] } : whereDispatch(query),
 		db.orderDelivery,
 	);
 	const data = await db.orderDelivery.findMany({
@@ -797,6 +798,7 @@ export async function getDispatches(
 	ctx: TRPCContext,
 	query: DispatchQueryParamsSchema &
 		Partial<Pick<DispatchWorkspaceListInput, "section">>,
+	calendarWhere?: Prisma.OrderDeliveryWhereInput,
 ) {
 	const section = query.section;
 	if (
@@ -805,7 +807,7 @@ export async function getDispatches(
 		section !== "past-due" &&
 		section !== "completed"
 	) {
-		return getDispatchPage(ctx, { ...query });
+		return getDispatchPage(ctx, { ...query }, false, calendarWhere);
 	}
 
 	const size = Math.max(1, Math.min(100, Number(query.size || 20)));

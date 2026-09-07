@@ -111,7 +111,7 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(page).toContain(
 			'if (filters.section !== "calendar") {\n\t\tvoid batchPrefetch([trpc.dispatch.workspaceSummary.queryOptions()]);\n\t}',
 		);
-		expect(calendar).toContain("createDispatchCalendarQueryInput(filters)");
+		expect(calendar).toContain("createDispatchCalendarQueryInput(filters, { from: period.from, to: period.to })");
 		expect(page).not.toContain("trpc.dispatch.calendar.infiniteQueryOptions");
 		expect(workspace).toContain(
 			'import("@/components/dispatch-admin/views/dispatch-calendar-section")',

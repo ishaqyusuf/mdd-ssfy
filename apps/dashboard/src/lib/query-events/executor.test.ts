@@ -101,6 +101,23 @@ function createQueryClientSpy() {
 }
 
 describe("query event executor", () => {
+	it("invalidates every Dispatch calendar period and undated queue alongside Past Due after a committed pipeline event", async () => {
+		const queryClient = new QueryClient();
+		const trpc = createTRPCOptionsProxy<AppRouter>({ client: {} as never, queryClient });
+		const dates = { from: "2026-09-07", to: "2026-09-13" };
+		const keys = [
+			trpc.dispatch.calendar.infiniteQueryKey({ ...dates, unscheduled: false }),
+			trpc.dispatch.calendar.infiniteQueryKey({ ...dates, unscheduled: true }),
+			trpc.dispatch.calendar.infiniteQueryKey({ from: "2026-08-31", to: "2026-10-04" }),
+			trpc.dispatch.list.infiniteQueryKey({ section: "past-due" }),
+			trpc.dispatch.workspaceSummary.queryKey(),
+		];
+		try {
+			for (const key of keys) queryClient.setQueryData(key, { pages: [], pageParams: [] });
+			await executeQueryEvent({ event: { name: "sales.pipeline.changed" }, queryClient, trpc });
+			for (const key of keys) expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+		} finally { queryClient.clear(); }
+	});
 	it("stales Planning, Schedule, both due lists and summaries together after a pipeline change", async () => {
 		const queryClient = new QueryClient();
 		const trpc = createTRPCOptionsProxy<AppRouter>({ client: {} as never, queryClient });

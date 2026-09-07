@@ -7,6 +7,14 @@ import {
 } from "./fulfillment-calendar-range";
 
 describe("fulfillment calendar range", () => {
+	it("keeps complete weeks when a month crosses a year boundary", () => {
+		const date = resolveFulfillmentCalendarDate("2026-12-31");
+		const next = moveFulfillmentCalendarDate(date, "month", 1);
+		expect(format(next, "yyyy-MM-dd")).toBe("2027-01-31");
+		const period = getFulfillmentCalendarPeriod(next, "month");
+		expect(period.from).toBe("2026-12-28");
+		expect(period.to).toBe("2027-01-31");
+	});
 	it("builds a Monday-to-Sunday week", () => {
 		const period = getFulfillmentCalendarPeriod(
 			resolveFulfillmentCalendarDate("2026-08-21"),

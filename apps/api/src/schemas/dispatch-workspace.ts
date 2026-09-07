@@ -72,6 +72,12 @@ export type FulfillmentCalendarInput = z.infer<
 	typeof fulfillmentCalendarSchema
 >;
 
+export const dispatchCalendarSchema = dispatchWorkspaceListSchema.and(z.union([
+	fulfillmentCalendarSchema.and(z.object({ unscheduled: z.literal(false).optional().default(false) })),
+	z.object({ unscheduled: z.literal(true) }),
+]));
+export type DispatchCalendarInput = z.infer<typeof dispatchCalendarSchema>;
+
 export const dispatchBacklogSchema = paginationSchema.extend({
 	ids: z.array(z.number().int().positive()).max(50).optional().nullable(),
 	deliveryModes: z

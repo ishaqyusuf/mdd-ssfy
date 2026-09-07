@@ -5,6 +5,14 @@ import {
 	type CalendarScheduleMoveProposal,
 } from "@/components/calendar-schedule-move-dialog";
 import { createDispatchCalendarQueryInput } from "@/components/dispatch-admin/dispatch-calendar-query-input";
+import { dispatchCalendarToneClasses } from "./dispatch-calendar-tone";
+import type { DispatchCalendarTone } from "@gnd/sales";
+import { getFulfillmentCalendarPeriod, moveFulfillmentCalendarDate, resolveFulfillmentCalendarDate } from "./fulfillment-calendar-range";
+import { OperationsCalendarPeriodPicker } from "@/components/operations-calendar/period-picker";
+import { getDispatchBusinessDate } from "@gnd/sales/dispatch-manifest/driver-work-queue";
+import { Calendar } from "@gnd/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTRPC } from "@/trpc/client";
@@ -29,20 +37,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { toast } from "@gnd/ui/use-toast";
-import { useMutation, useSuspenseInfiniteQuery } from "@tanstack/react-query";
-import {
-	addDays,
-	format,
-	isPast,
-	isSameDay,
-	isToday,
-	startOfDay,
-} from "date-fns";
+import { useMutation, useInfiniteQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type CalendarRow = {
 	id: number;
+	calendarDate: string | null;
+	calendarCompleted: boolean;
+	calendarLabel: string;
+	calendarTone: DispatchCalendarTone;
+	dueBucket?: string;
 	status: string | null;
 	dueDate: Date | string | null;
 	sourceDate: string | null;
@@ -79,11 +85,7 @@ function DispatchChip({
 		item.order?.customer?.businessName ||
 		item.order?.customer?.name ||
 		"Unknown customer";
-	const overdue = Boolean(
-		item.dueDate &&
-			isPast(new Date(item.dueDate)) &&
-			!item.workspace?.isTerminal,
-	);
+	const overdue = item.dueBucket === "overdue" && !item.calendarCompleted && !item.workspace?.isTerminal;
 	return (
 		<div
 			ref={draggable.setNodeRef}
@@ -93,6 +95,7 @@ function DispatchChip({
 			}}
 			className={cn(
 				"flex w-full items-start gap-1 rounded-lg border bg-card p-2 text-left transition-colors focus-within:ring-2 focus-within:ring-ring hover:bg-muted/50",
+				dispatchCalendarToneClasses[item.calendarTone],
 				overdue && "border-destructive",
 			)}
 		>
@@ -116,7 +119,7 @@ function DispatchChip({
 				</span>
 				<div className="flex w-full items-center justify-between gap-2">
 					<Badge variant="outline">
-						{item.workspace?.label || item.status || "Queued"}
+						{item.calendarLabel}
 					</Badge>
 					<span className="truncate text-xs text-muted-foreground">
 						{item.driver?.name || "Unassigned"}
@@ -163,10 +166,14 @@ function DispatchCalendarDay({
 	day,
 	items,
 	onReschedule,
+	month = false,
+	today,
 }: {
 	day: Date;
 	items: CalendarRow[];
 	onReschedule: (item: CalendarRow) => void;
+	month?: boolean;
+	today: string;
 }) {
 	const dateKey = format(day, "yyyy-MM-dd");
 	const droppable = useDroppable({
@@ -177,8 +184,9 @@ function DispatchCalendarDay({
 		<div
 			ref={droppable.setNodeRef}
 			className={cn(
-				"min-h-[420px] border-r last:border-r-0",
-				isToday(day) && "bg-muted/30",
+				"min-w-0 border-b border-r last:border-r-0",
+				month ? "min-h-40" : "min-h-[420px]",
+				dateKey === today && "bg-muted/30",
 				droppable.isOver && "bg-primary/10 ring-2 ring-inset ring-primary",
 			)}
 		>
@@ -233,28 +241,50 @@ export function DispatchCalendarView() {
 			},
 		}),
 	);
-	const { filters } = useDispatchFilterParams();
-	const [weekOffset, setWeekOffset] = useState(0);
-	const start = addDays(startOfDay(new Date()), weekOffset * 7);
-	const days = Array.from({ length: 7 }, (_, index) => addDays(start, index));
-	const firstDay = days.at(0) ?? start;
-	const lastDay = days.at(-1) ?? start;
-	const query = useSuspenseInfiniteQuery(
+	const { filters, setFilters } = useDispatchFilterParams();
+	const [businessToday, setBusinessToday] = useState(() => getDispatchBusinessDate(new Date())!);
+	const calendarView = filters.calendarView;
+	const anchor = resolveFulfillmentCalendarDate(filters.calendarDate || businessToday);
+	const period = getFulfillmentCalendarPeriod(anchor, calendarView);
+	const days = period.days;
+	const setDate = (date: Date) => void setFilters({ calendarDate: format(date, "yyyy-MM-dd") }, { history: "push" });
+	const query = useInfiniteQuery(
 		trpc.dispatch.calendar.infiniteQueryOptions(
-			createDispatchCalendarQueryInput(filters),
+			createDispatchCalendarQueryInput(filters, { from: period.from, to: period.to }),
 			{
 				getNextPageParam: ({ meta }) =>
 					(meta as { cursor?: string | number | null } | undefined)?.cursor,
 			},
 		),
 	);
+	const undatedQuery = useInfiniteQuery(
+		trpc.dispatch.calendar.infiniteQueryOptions(
+			createDispatchCalendarQueryInput(filters, undefined, true),
+			{ getNextPageParam: ({ meta }) => meta.cursor },
+		),
+	);
+	useEffect(() => {
+		const today = query.data?.pages[0]?.today;
+		if (today) setBusinessToday(today);
+	}, [query.data?.pages]);
+	useEffect(() => {
+		if (query.hasNextPage && !query.isFetching && !query.isFetchNextPageError) void query.fetchNextPage();
+	}, [query.hasNextPage, query.isFetching, query.isFetchNextPageError, query.fetchNextPage]);
 	const rows = useMemo(
-		() => query.data.pages.flatMap((page) => page.data) as CalendarRow[],
-		[query.data.pages],
+		() => (query.data?.pages.flatMap((page) => page.data) || []) as CalendarRow[],
+		[query.data?.pages],
 	);
-	const unscheduled = rows.filter(
-		(row) => !row.dueDate && !row.workspace?.isTerminal,
-	);
+	const unscheduled = (undatedQuery.data?.pages.flatMap(page => page.data) || []) as CalendarRow[];
+	const grouped = useMemo(() => {
+		const groups = new Map<string, CalendarRow[]>();
+		for (const row of rows) {
+			if (!row.calendarDate) continue;
+			const group = groups.get(row.calendarDate) || [];
+			group.push(row);
+			groups.set(row.calendarDate, group);
+		}
+		return groups;
+	}, [rows]);
 
 	function proposeMove(item: CalendarRow, targetDate?: string) {
 		if (
@@ -320,55 +350,65 @@ export function DispatchCalendarView() {
 		>
 			<div className="flex flex-col gap-3">
 				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div className="flex items-center gap-2">
+					<div className="flex flex-wrap items-center gap-2">
 						<Button
 							variant="outline"
 							size="icon"
-							aria-label="Previous week"
-							onClick={() => setWeekOffset((value) => value - 1)}
+							aria-label={`Previous ${calendarView}`}
+							onClick={() => setDate(moveFulfillmentCalendarDate(anchor, calendarView, -1))}
 						>
 							<ChevronLeft />
 						</Button>
-						<span className="text-sm font-medium">
-							{format(firstDay, "MMM d")} – {format(lastDay, "MMM d, yyyy")}
-						</span>
+						<OperationsCalendarPeriodPicker date={anchor} view={calendarView} onSelect={setDate} />
 						<Button
 							variant="outline"
 							size="icon"
-							aria-label="Next week"
-							onClick={() => setWeekOffset((value) => value + 1)}
+							aria-label={`Next ${calendarView}`}
+							onClick={() => setDate(moveFulfillmentCalendarDate(anchor, calendarView, 1))}
 						>
 							<ChevronRight />
 						</Button>
-						{weekOffset ? (
 							<Button
 								variant="ghost"
 								size="sm"
-								onClick={() => setWeekOffset(0)}
+								onClick={() => void setFilters({ calendarDate: businessToday }, { history: "push" })}
 							>
 								Today
 							</Button>
-						) : null}
+					</div>
+					<div className="flex flex-wrap items-center gap-2">
+						<Popover>
+							<PopoverTrigger asChild><Button variant="outline" size="sm">Choose date</Button></PopoverTrigger>
+							<PopoverContent className="w-auto p-0"><Calendar mode="single" selected={anchor} onSelect={date => date && setDate(date)} /></PopoverContent>
+						</Popover>
+						<Tabs value={calendarView} onValueChange={view => { if (view === "week" || view === "month") void setFilters({ calendarView: view }, { history: "push" }); }}>
+							<TabsList aria-label="Calendar view"><TabsTrigger value="week">Week</TabsTrigger><TabsTrigger value="month">Month</TabsTrigger></TabsList>
+						</Tabs>
 					</div>
 					{unscheduled.length ? (
-						<Badge variant="outline">{unscheduled.length} unscheduled</Badge>
+						<Badge variant="outline">{unscheduled.length}{undatedQuery.data?.pages[0]?.meta.count != null ? ` of ${undatedQuery.data.pages[0].meta.count}` : undatedQuery.hasNextPage ? "+" : ""} unscheduled</Badge>
 					) : null}
 				</div>
-				<div className="grid min-w-[980px] grid-cols-7 overflow-hidden rounded-xl border">
+				<p role="status" className="text-xs text-muted-foreground">{query.isPending ? "Loading dispatches…" : `${rows.length} dispatches loaded`}{query.hasNextPage ? " — loading remaining dispatches…" : ""}</p>
+				{query.isError && !query.isFetchNextPageError ? <Button variant="outline" onClick={() => void query.refetch()}>Unable to load calendar. Retry</Button> : null}
+				{undatedQuery.isPending ? <p role="status">Loading unscheduled dispatches…</p> : null}
+				{undatedQuery.isError && !undatedQuery.isFetchNextPageError ? <Button variant="outline" onClick={() => void undatedQuery.refetch()}>Unable to load unscheduled dispatches. Retry</Button> : null}
+				{query.isFetchNextPageError ? <Button variant="outline" onClick={() => void query.fetchNextPage()}>Retry loading remaining dispatches</Button> : null}
+				<div className="max-w-full overflow-x-auto"><div className="grid min-w-[980px] grid-cols-7 overflow-hidden rounded-xl border">
 					{days.map((day) => {
-						const items = rows.filter(
-							(row) => row.dueDate && isSameDay(new Date(row.dueDate), day),
-						);
+						const items = grouped.get(format(day, "yyyy-MM-dd")) || [];
 						return (
 							<DispatchCalendarDay
 								key={day.toISOString()}
 								day={day}
 								items={items}
 								onReschedule={proposeMove}
+								month={calendarView === "month"}
+								today={businessToday}
 							/>
 						);
 					})}
-				</div>
+				</div></div>
 				{unscheduled.length ? (
 					<Card>
 						<CardHeader>
@@ -383,6 +423,7 @@ export function DispatchCalendarView() {
 								/>
 							))}
 						</CardContent>
+						{undatedQuery.hasNextPage ? <Button variant="ghost" disabled={undatedQuery.isFetchingNextPage} onClick={() => void undatedQuery.fetchNextPage()}>{undatedQuery.isFetchNextPageError ? "Retry unscheduled dispatches" : "Load more unscheduled dispatches"}</Button> : null}
 					</Card>
 				) : null}
 				<CalendarScheduleMoveDialog

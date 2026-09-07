@@ -1,6 +1,12 @@
 # Sales Dispatch Table
 
 ## Status
+- 2026-09-07: Ticket20 locally implements URL-owned Week/Month navigation,
+  shared date pickers, business-timezone dueDate grouping and bounded cursor
+  pagination. Undated records load independently. Sales-domain completion
+  filters/labels/tones preserve status-only completion and historical visibility.
+  Confirmed local rescheduling refreshes the calendar. No production deployment;
+  canonical acceptance and release evidence remain in Scratch.
 - 2026-08-31: Guarded-packing rejection now re-evaluates dispatch coverage while
   holding the dispatch lock. If a nonblocking pending report was the only reason
   a pre-trip dispatch became `packed`, rejection restores its snapshotted
@@ -404,7 +410,7 @@ The table uses the shared `tables-2` domain pattern with typed columns, stable r
   - Status: `sizes.custom(116, 170, 132)`
   - Actions: `sizes.custom(72, 72)`
 
-## Ticket 19 completion membership correction (local, verification in progress)
+## Ticket 19 completion membership correction (production verified 2026-09-07)
 
 Shared status-only milestone/headline wording is now `Marked as completed`;
 the stored `administratively_completed` state and audit provenance are unchanged.
@@ -422,8 +428,12 @@ Completed/All counts use canonical required fulfillment applicability rather
 than requiring the legacy order-level deliveryOption to be populated. Existing
 dispatch-bearing orders with a blank legacy option must not disappear from
 these counts after completion.
-See the canonical Scratch Ticket 19 for remaining query-cost, refresh, browser
-and release verification; this note does not claim production deployment.
+Released commit cdf57deb9 through READY dashboard deployment
+dpl_2ba5UvCdtx8xdStv47uJpFE3x5nz on www.gndprodesk.com. Authenticated ordinary
+and status-only completion exclusion checks pass. Seven distinct completed
+orders legitimately occupy multiple dispatch rows; summary counts orders.
+Scratch Ticket19 records read-only production verification and the remaining
+WAN query-performance caveat. No schema or production business-data writes.
 
 ## Contracts Reused And Added
 - Existing admin/list query: `trpc.dispatch.index`
