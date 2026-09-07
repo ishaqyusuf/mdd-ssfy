@@ -21,7 +21,7 @@ User authorizes treating every completed dispatch missing delivery proof as a hi
 ## Implementation Progress
 - Completion: 83%
 - Current Checklist: 6/6 — Production preview, approval, apply and verification
-- Blockers: None; production apply will require explicit approval of the production preview.
+- Blockers: Awaiting explicit approval to apply the reviewed 1,403-order production manifest.
 
 ## Implementation Checklist
 - [x] Establish candidate policy, environment binding, and existing command boundary
@@ -58,3 +58,6 @@ User authorizes treating every completed dispatch missing delivery proof as a hi
 - Production preview per-order loader was stopped read-only and replaced with bounded 100-order source batches plus canonical bulk snapshot loading; integration/type validation rerun successfully. Production preview v2 is running, with no production mutations.
 
 - Implementation committed on master as e5dcff3af. Only this task files and its ledger pointer were committed; unrelated concurrent task changes remain untouched.
+
+- Production preview completed read-only: 1,403 eligible orders; five already completed; three later-dispatch holds (07276DB, 08647DB, 08970PC). Production actor 1 verified as Pablo Cruz. Manifest: /Users/M1PRO/Documents/Codex/2026-09-07/wh/outputs/historical-completion-production-preview-v2.json. Candidate CSV and summary exported alongside it. Explicit production approval requested; no production writes.
+- Local runbook/results exported under this task outputs directory. Goal remains active pending production apply/verification.
