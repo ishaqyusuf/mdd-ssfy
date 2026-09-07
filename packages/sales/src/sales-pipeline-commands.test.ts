@@ -331,7 +331,7 @@ describe("evaluateSalesPipelineCommand", () => {
 		});
 	});
 
-	it("requires an operator reason to override an unavailable or conflicting headline", () => {
+	it("permits confirmed completion overrides without a user-written reason", () => {
 		const unavailable = snapshot({
 			production: {
 				configuredRequirement: null,
@@ -350,7 +350,7 @@ describe("evaluateSalesPipelineCommand", () => {
 				expectedRevision: unavailable.revision,
 				administrativeOverride: true,
 			}).reasons,
-		).toEqual(["ADMINISTRATIVE_OVERRIDE_REASON_REQUIRED"]);
+		).toEqual(["ADMINISTRATIVE_OVERRIDE", "STATUS_UNAVAILABLE"]);
 		expect(
 			evaluateSalesPipelineCommand(unavailable, {
 				action: "production.administrative_complete",

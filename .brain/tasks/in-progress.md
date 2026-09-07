@@ -1,6 +1,6 @@
 # In Progress
 
-### [Marked completion label and Dispatch due-queue exclusion](2026-09-07-dispatch-completion-membership-and-label.md)
+### [Completion modal simplification and actor activity](2026-09-07-completion-modal-and-actor-activity.md)
 - Status: In Progress
 
 ### [GND Mobile Screen-by-Screen Redesign](2026-09-04-gnd-mobile-screen-by-screen-redesign.md)

@@ -8,6 +8,9 @@ import {
 } from "./registry";
 
 describe("query event mutation registry", () => {
+	it("refreshes the visible order activity feed after completion", () => {
+		expect(resolveQueryEventTargets({ name: "sales.pipeline.changed" }).some(target => target.route === "notes.activityTree")).toBe(true);
+	});
 	it("keeps the critical-domain rollout registered", () => {
 		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(101);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(16);

@@ -1,7 +1,6 @@
 "use client";
 
 import { SalesCompletionFallbackDialog } from "@/components/sales-completion-fallback-dialog";
-import { toSalesCompletionDateValue } from "@/components/sales-completion-presentation";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import {
@@ -39,12 +38,9 @@ function SalesCompletionFallbackAttempt({
 	const removeAttempt = useTaskMonitorStore(
 		(state) => state.removeSalesCompletionFallback,
 	);
-	const [reason, setReason] = useState("");
-	const [effectiveDate, setEffectiveDate] = useState(() =>
-		attempt.milestone === "FULFILLMENT_COMPLETED"
-			? toSalesCompletionDateValue()
-			: "",
-	);
+	const [effectiveDate, setEffectiveDate] = useState<string | null>(null);
+	const dateContext = useQuery(trpc.sales.salesCompletionDateContext.queryOptions(undefined, { staleTime: 0 }));
+	const selectedDate = effectiveDate ?? dateContext.data?.today ?? "";
 
 	const previewQuery = useQuery(
 		trpc.sales.salesCompletionStatusOnlyFallbackPreview.queryOptions(
@@ -70,8 +66,7 @@ function SalesCompletionFallbackAttempt({
 
 	const submit = async () => {
 		const preview = previewQuery.data;
-		const normalizedReason = reason.trim();
-		if (!preview || !normalizedReason) return;
+		if (!preview || !dateContext.data) return;
 		const candidates = preview.items.flatMap((item) =>
 			item.eligible && item.completionRevision && item.pipelineRevision
 				? [
@@ -92,9 +87,8 @@ function SalesCompletionFallbackAttempt({
 				milestone: attempt.milestone,
 				fullWorkflowRequestId: attempt.fullWorkflowRequestId,
 				requestId: crypto.randomUUID(),
-				reason: normalizedReason,
-				effectiveAt: effectiveDate
-					? new Date(`${effectiveDate}T12:00:00.000Z`)
+				effectiveAt: selectedDate
+					? new Date(`${selectedDate}T12:00:00.000Z`)
 					: null,
 				candidates,
 			});
@@ -134,17 +128,15 @@ function SalesCompletionFallbackAttempt({
 					: "Fulfillment"
 			}
 			preview={previewQuery.data}
-			previewPending={previewQuery.isPending}
-			previewError={previewQuery.isError}
+			previewPending={previewQuery.isPending || dateContext.isPending}
+			previewError={previewQuery.isError || dateContext.isError}
 			submitPending={mutation.isPending}
-			reason={reason}
-			effectiveDate={effectiveDate}
+			effectiveDate={selectedDate}
 			onOpenChange={(open) => {
 				if (!open) removeAttempt(attempt.id);
 			}}
-			onReasonChange={setReason}
 			onEffectiveDateChange={setEffectiveDate}
-			onRetryPreview={() => void previewQuery.refetch()}
+			onRetryPreview={() => { void previewQuery.refetch(); void dateContext.refetch(); }}
 			onConfirm={() => void submit()}
 		/>
 	);

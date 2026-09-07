@@ -155,6 +155,7 @@ const inventoryInboundTargets = [
 ] as const;
 
 const salesPipelineTargets = [
+	pathTarget("notes.activityTree"),
 	...salesProductionTargets,
 	...salesDispatchTargets,
 	...inventoryStockTargets,

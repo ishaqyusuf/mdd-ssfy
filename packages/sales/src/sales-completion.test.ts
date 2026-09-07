@@ -321,6 +321,7 @@ function createCompletionDb(
 	const records = [...initialRecords];
 	const calls: string[] = [];
 	const history: unknown[] = [];
+	const activities: Array<Record<string, any>> = [];
 	const orderRow = () => ({
 		id: 91,
 		orderId: "091LRG",
@@ -351,6 +352,17 @@ function createCompletionDb(
 		...orderOverrides,
 	});
 	const tx = {
+		notePadContacts: {
+			findFirst: async () => ({ id: 70 }),
+			create: async () => ({ id: 70 }),
+		},
+		notePad: {
+			create: async ({ data }: { data: Record<string, any> }) => {
+				calls.push("notePad.create");
+				activities.push(data);
+				return { id: activities.length, ...data };
+			},
+		},
 		salesOrders: {
 			findFirst: mock(async () => {
 				calls.push("salesOrders.findFirst");
@@ -441,7 +453,7 @@ function createCompletionDb(
 				operation(tx),
 		),
 	};
-	return { db: db as unknown as Database, tx, records, calls, history };
+	return { db: db as unknown as Database, tx, records, calls, history, activities };
 }
 
 function createBulkCompletionDb(
@@ -450,6 +462,7 @@ function createBulkCompletionDb(
 ) {
 	const records: SalesCompletionRecordView[] = [];
 	const history: unknown[] = [];
+	const activities: Array<Record<string, any>> = [];
 	let activeTransactions = 0;
 	let maxActiveTransactions = 0;
 	const orderIdSet = new Set(orderIds);
@@ -485,6 +498,8 @@ function createBulkCompletionDb(
 		...orderOverrides,
 	});
 	const tx = {
+		notePadContacts: { findFirst: async () => ({ id: 70 }), create: async () => ({ id: 70 }) },
+		notePad: { create: async ({ data }: { data: Record<string, any> }) => { activities.push(data); return data; } },
 		salesOrders: {
 			findFirst: mock(async ({ where }: { where: { id: number } }) =>
 				orderIdSet.has(where.id) ? orderRow(where.id) : null,
@@ -572,6 +587,7 @@ function createBulkCompletionDb(
 		db: db as unknown as Database,
 		records,
 		history,
+		activities,
 		maxActiveTransactions: () => maxActiveTransactions,
 	};
 }
@@ -645,6 +661,8 @@ describe("status-only completion batches", () => {
 		});
 		expect(fixture.records).toHaveLength(2);
 		expect(fixture.history).toHaveLength(3);
+		expect(fixture.activities).toHaveLength(2);
+		expect(fixture.activities.map(item => item.headline)).toEqual(["Marked as completed by Admin", "Marked as completed by Admin"]);
 	});
 
 	test("rejects a changed batch payload under the same request", async () => {
@@ -726,6 +744,10 @@ describe("status-only completion batches", () => {
 				}),
 			]),
 		);
+		expect(fixture.activities).toHaveLength(1);
+		expect(fixture.activities[0]?.tags.createMany.data).toContainEqual({
+			tagName: "salesId", tagValue: "91",
+		});
 	});
 
 	test("serializes status-only writes to avoid MySQL range-lock conflicts", async () => {
@@ -940,7 +962,7 @@ describe("status-only Production commands", () => {
 		});
 	});
 
-	test("marks only the completion record and audit in one serializable transaction", async () => {
+	test("marks the completion record, audit and actor activity in one serializable transaction", async () => {
 		const fixture = createCompletionDb();
 		const before = await getSalesCompletionProjection(fixture.db, {
 			salesOrderId: 91,
@@ -964,7 +986,13 @@ describe("status-only Production commands", () => {
 		expect(fixture.history).toHaveLength(1);
 		expect(fixture.calls).toContain("salesCompletionRecord.create");
 		expect(fixture.calls).toContain("salesHistory.create");
+		expect(fixture.activities).toHaveLength(1);
+		expect(fixture.activities[0]).toMatchObject({ headline: "Marked as completed by Admin", createdById: 7 });
+		expect(fixture.activities[0]?.tags.createMany.data).toContainEqual({ tagName: "channel", tagValue: "sales_info" });
+		expect(fixture.activities[0]?.tags.createMany.data).toContainEqual({ tagName: "completionMethod", tagValue: "STATUS_ONLY" });
 		expect(Object.keys(fixture.tx).sort()).toEqual([
+			"notePad",
+			"notePadContacts",
 			"salesCompletionRecord",
 			"salesHistory",
 			"salesOrders",
@@ -1085,6 +1113,7 @@ describe("status-only Production commands", () => {
 		});
 		expect(fixture.records).toHaveLength(0);
 		expect(fixture.history).toHaveLength(0);
+		expect(fixture.activities).toHaveLength(0);
 	});
 
 	test("rejects an administrative override when the canonical pipeline revision is stale", async () => {
@@ -1429,7 +1458,7 @@ describe("status-only Fulfillment commands", () => {
 		});
 	});
 
-	test("marks only Fulfillment completion and audit while implying Production", async () => {
+	test("marks Fulfillment completion and activity while implying Production", async () => {
 		const fixture = createCompletionDb();
 		const before = await getSalesCompletionProjection(fixture.db, {
 			salesOrderId: 91,
@@ -1460,6 +1489,8 @@ describe("status-only Fulfillment commands", () => {
 		expect(fixture.records).toHaveLength(1);
 		expect(fixture.history).toHaveLength(1);
 		expect(Object.keys(fixture.tx).sort()).toEqual([
+			"notePad",
+			"notePadContacts",
 			"salesCompletionRecord",
 			"salesHistory",
 			"salesOrders",
@@ -1491,6 +1522,7 @@ describe("status-only Fulfillment commands", () => {
 		expect(replay.idempotentReplay).toBe(true);
 		expect(fixture.records).toHaveLength(1);
 		expect(fixture.history).toHaveLength(1);
+		expect(fixture.activities).toHaveLength(1);
 	});
 
 	test("treats a concurrent active Fulfillment record as an idempotent success", async () => {
@@ -1683,6 +1715,7 @@ describe("full-workflow completion provenance", () => {
 		});
 		expect(fixture.records).toHaveLength(0);
 		expect(fixture.history).toHaveLength(0);
+		expect(fixture.activities).toHaveLength(0);
 	});
 
 	test("records Production provenance after evidence and replays by active milestone", async () => {
@@ -1706,6 +1739,8 @@ describe("full-workflow completion provenance", () => {
 		);
 
 		expect(result).toMatchObject({ recorded: true, reason: "RECORDED" });
+		expect(fixture.activities).toHaveLength(1);
+		expect(fixture.activities[0]?.headline).toBe("Marked as completed by Operator");
 		expect(result.record).toMatchObject({
 			milestone: "PRODUCTION_COMPLETED",
 			completionMethod: "FULL_WORKFLOW",
@@ -1773,6 +1808,15 @@ describe("full-workflow completion provenance", () => {
 		});
 		expect(fixture.records).toHaveLength(1);
 		expect(fixture.history).toHaveLength(1);
+		expect(fixture.activities).toHaveLength(1);
+		expect(fixture.activities[0]).toMatchObject({
+			headline: "Marked as completed by Driver", createdById: 7,
+		});
+		expect(fixture.activities[0]?.tags.createMany.data).toEqual(expect.arrayContaining([
+			{ tagName: "completionMethod", tagValue: "FULL_WORKFLOW" },
+			{ tagName: "milestone", tagValue: "FULFILLMENT_COMPLETED" },
+			{ tagName: "effectiveAt", tagValue: "2026-08-01T10:30:00.000Z" },
+		]));
 	});
 
 	test("retains an active status-only declaration instead of replacing its provenance", async () => {

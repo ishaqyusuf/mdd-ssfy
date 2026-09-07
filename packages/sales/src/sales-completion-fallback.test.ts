@@ -229,7 +229,7 @@ describe("sales completion status-only fallback", () => {
 		});
 	});
 
-	test("requires an operator reason for direct and fallback status-only commands", () => {
+	test("permits omitted reasons but rejects forged direct fallback provenance", () => {
 		const direct = {
 			salesOrderId: 41,
 			requestId: "cfa0d052-c674-4cc2-9755-229d87d8b1d8",
@@ -237,7 +237,7 @@ describe("sales completion status-only fallback", () => {
 		};
 		expect(
 			markProductionCompletionStatusOnlySchema.safeParse(direct).success,
-		).toBe(false);
+		).toBe(true);
 		expect(
 			markProductionCompletionStatusOnlySchema.safeParse({
 				...direct,
@@ -275,7 +275,7 @@ describe("sales completion status-only fallback", () => {
 		};
 		expect(
 			markSalesCompletionStatusOnlyFallbackSchema.safeParse(fallback).success,
-		).toBe(false);
+		).toBe(true);
 		expect(
 			markSalesCompletionStatusOnlyFallbackSchema.safeParse({
 				...fallback,

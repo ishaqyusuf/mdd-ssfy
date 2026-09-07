@@ -1,5 +1,11 @@
 # Done
 
+### [Dispatch week/month calendar and due-date parity](2026-09-07-dispatch-week-month-calendar.md)
+- Status: Done
+
+### [Marked completion label and Dispatch due-queue exclusion](2026-09-07-dispatch-completion-membership-and-label.md)
+- Status: Done
+
 ### Canonical Sales Pipeline lifecycle — all 18 tickets complete
 
 - 196/196 acceptance checks verified. Ticket14 closes after explicit approval,

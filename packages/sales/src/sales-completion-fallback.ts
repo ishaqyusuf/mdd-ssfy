@@ -31,7 +31,7 @@ export const markSalesCompletionStatusOnlyFallbackSchema =
 	salesCompletionFallbackAttemptSchema
 		.extend({
 			requestId: z.string().uuid(),
-			reason: z.string().trim().min(1).max(500),
+			reason: z.string().trim().max(500).optional().default(""),
 			effectiveAt: z.coerce.date().optional().nullable(),
 			candidates: z
 				.array(

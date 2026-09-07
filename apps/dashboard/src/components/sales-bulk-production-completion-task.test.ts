@@ -16,7 +16,10 @@ describe("sales bulk production completion UI contract", () => {
 		expect(productionAction).toContain(
 			'taskName: "bulk-mark-sales-production-completed"',
 		);
-		expect(productionAction).toContain("requestId: crypto.randomUUID()");
+		expect(productionAction.match(/crypto\.randomUUID\(\)/g)).toHaveLength(1);
+		expect(productionAction).toContain("const requestId = crypto.randomUUID()");
+		expect(productionAction).toMatch(/payload:\s*\{\s*requestId,/);
+		expect(productionAction).toMatch(/args:\s*\{\s*requestId,/);
 		expect(productionAction).not.toContain("for (const salesId");
 		expect(productionAction).not.toContain("invalidateOrders()");
 		expect(source).toContain("Bulk production completion finished");

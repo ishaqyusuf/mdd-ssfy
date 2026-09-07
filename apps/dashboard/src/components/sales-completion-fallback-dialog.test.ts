@@ -31,15 +31,15 @@ describe("Sales completion failed-subset fallback UI", () => {
 		expect(dialogSource).toContain("Proceed with status only?");
 	});
 
-	test("submits only fresh eligible rows with both revisions and a required reason", () => {
+	test("submits only fresh eligible rows with both revisions without a user-written reason", () => {
 		expect(providerSource).toContain(
 			"item.eligible && item.completionRevision && item.pipelineRevision",
 		);
 		expect(providerSource).toContain("expectedCompletionRevision");
 		expect(providerSource).toContain("expectedPipelineRevision");
 		expect(providerSource).toContain("administrativeOverrideRequired");
-		expect(dialogSource).toContain("Reason (required)");
-		expect(dialogSource).toContain("!props.reason.trim()");
+		expect(dialogSource).not.toContain("Reason (required)");
+		expect(dialogSource).not.toContain("!props.reason.trim()");
 	});
 
 	test("recovers the pending confirmation from the persisted global task monitor", () => {
@@ -84,7 +84,7 @@ describe("Sales completion failed-subset fallback UI", () => {
 		expect(dialogSource).toContain(
 			"props.preview && !props.previewPending && !eligibleItems.length",
 		);
-		expect(providerSource).toContain("previewError={previewQuery.isError}");
+		expect(providerSource).toContain("previewError={previewQuery.isError || dateContext.isError}");
 		expect(providerSource).toContain("if (!open) removeAttempt(attempt.id)");
 	});
 

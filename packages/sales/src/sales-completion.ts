@@ -11,6 +11,7 @@ import {
 	salesPipelineOrderSelect,
 } from "./sales-pipeline-order";
 import { overallStatus } from "./utils/utils";
+import { recordSalesCompletionActivity } from "./sales-completion-activity";
 
 export const salesCompletionMilestoneSchema = z.enum([
 	"PRODUCTION_COMPLETED",
@@ -39,14 +40,14 @@ export const salesCompletionProjectionInputSchema = z.object({
 });
 
 const salesCompletionAdministrativeOverrideSchema = z.object({
-	reason: z.string().trim().min(1).max(500),
+	reason: z.string().trim().max(500).optional().default(""),
 	expectedRevision: z.string().regex(/^[a-f0-9]{64}$/),
 });
 
 const markProductionCompletionStatusOnlyBaseSchema =
 	salesCompletionProjectionInputSchema.extend({
 		requestId: z.string().uuid(),
-		reason: z.string().trim().min(1).max(500),
+		reason: z.string().trim().max(500).optional().default(""),
 		expectedRevision: z.string().regex(/^[a-f0-9]{64}$/),
 		effectiveAt: z.coerce.date().optional().nullable(),
 		administrativeOverride: salesCompletionAdministrativeOverrideSchema
@@ -89,11 +90,11 @@ export const markSalesCompletionStatusOnlyBulkSchema = z
 	.object({
 		salesOrderIds: z.array(z.number().int().positive()).min(1).max(100),
 		requestId: z.string().uuid(),
-		reason: z.string().trim().min(1).max(500),
+		reason: z.string().trim().max(500).optional().default(""),
 		effectiveAt: z.coerce.date().optional().nullable(),
 		administrativeOverride: z
 			.object({
-				reason: z.string().trim().min(1).max(500),
+				reason: z.string().trim().max(500).optional().default(""),
 				expectedRevisions: z
 					.array(
 						z.object({
@@ -1059,6 +1060,11 @@ export async function markProductionCompletionStatusOnly(
 					} satisfies Prisma.InputJsonObject,
 				},
 			});
+			await recordSalesCompletionActivity(tx, {
+				recordId: record.id, salesOrderId: input.salesOrderId,
+				milestone: "PRODUCTION_COMPLETED", completionMethod: "STATUS_ONLY",
+				recordedAt, effectiveAt: input.effectiveAt, actor,
+			});
 			await hooks.refreshListProjection?.(tx, input.salesOrderId);
 			return {
 				record,
@@ -1311,6 +1317,11 @@ export async function markFulfillmentCompletionStatusOnly(
 					recordedById: actor.id,
 				},
 				select: salesCompletionRecordSelect,
+			});
+			await recordSalesCompletionActivity(tx, {
+				recordId: record.id, salesOrderId: input.salesOrderId,
+				milestone: "FULFILLMENT_COMPLETED", completionMethod: "STATUS_ONLY",
+				recordedAt, effectiveAt: input.effectiveAt, actor,
 			});
 			const resultingSnapshot = input.administrativeOverride
 				? await getCanonicalSalesPipelineSnapshot(tx, input.salesOrderId)
@@ -1854,6 +1865,11 @@ export async function recordFullWorkflowCompletionIfProven(
 					recordedById: input.actor.id,
 				},
 				select: salesCompletionRecordSelect,
+			});
+			await recordSalesCompletionActivity(tx, {
+				recordId: record.id, salesOrderId: input.salesOrderId,
+				milestone: input.milestone, completionMethod: "FULL_WORKFLOW",
+				recordedAt, effectiveAt: input.effectiveAt, actor: input.actor,
 			});
 			await tx.salesHistory.create({
 				data: {

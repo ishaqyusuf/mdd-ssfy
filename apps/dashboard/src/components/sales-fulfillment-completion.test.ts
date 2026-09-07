@@ -21,29 +21,16 @@ describe("Status-only Fulfillment completion UI contract", () => {
 		);
 	});
 
-	test("warns that Status-only cannot fabricate proof or business effects", () => {
+	test("keeps option descriptions without duplicate warnings or a completion reason field", () => {
 		expect(dialogSource).toContain("record ${milestone} completion");
 		expect(dialogSource).toContain("Full workflow is selected by default.");
 		expect(dialogSource).toContain(
 			"missing operational assignments or ${milestone} workflow",
 		);
-		expect(dialogSource).toContain("This selection may include recent orders");
-		for (const phrase of [
-			"No delivery proof",
-			"inventory commitment",
-			"dispatch",
-			"shipment",
-			"tax",
-			"accounting",
-			"notification",
-			"commission",
-			"payout",
-		]) {
-			expect(dialogSource).toContain(phrase);
-		}
-		expect(dialogSource).toContain(
-			"Use this only when real-world fulfillment happened outside GND.",
-		);
+		expect(dialogSource).not.toContain("This selection may include recent orders");
+		expect(dialogSource).not.toContain("This records milestone status");
+		expect(dialogSource).not.toContain("status-only-reason");
+		expect(dialogSource).toContain("props.cancellationReason");
 	});
 
 	test("uses dedicated mark, cancel, provenance, and refresh paths", () => {

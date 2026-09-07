@@ -131,6 +131,7 @@ import {
 	rejectDealerOrderRequest,
 } from "@gnd/db/queries";
 import { Notifications } from "@gnd/notifications";
+import { getSalesCompletionDateContext } from "@gnd/sales";
 import { EmailService } from "@gnd/notifications/services/email-service";
 import { getSaleInformation } from "@gnd/sales/get-sale-information";
 import {
@@ -608,6 +609,9 @@ function resolveCccPercentageFromMeta(meta: Record<string, unknown> | null) {
 }
 
 export const salesRouter = createTRPCRouter({
+	salesCompletionDateContext: protectedProcedure.query(() =>
+		getSalesCompletionDateContext(new Date(), process.env.BUSINESS_TIME_ZONE || process.env.TZ),
+	),
 	salesCompletionProjection: protectedProcedure
 		.input(salesCompletionProjectionInputSchema)
 		.query(async (props) => {

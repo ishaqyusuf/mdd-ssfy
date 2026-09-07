@@ -1,7 +1,7 @@
 # Task: Dispatch week/month calendar and due-date parity
 
 ## Status
-In Progress
+Done
 
 ## Canonical Ticket
 [Scratch ticket](../../.scratch/sales-pipeline-lifecycle-implementation/dispatch-calendar-follow-up-draft.md)

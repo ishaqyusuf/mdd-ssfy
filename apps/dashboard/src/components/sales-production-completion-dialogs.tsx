@@ -31,11 +31,9 @@ type SalesProductionCompletionDialogsProps = {
 	effectiveDate: string;
 	markPending: boolean;
 	administrativeOverride?: boolean;
-	administrativeOverrideReason?: string;
 	onConfirmationOpenChange: (open: boolean) => void;
 	onChoiceChange: (choice: SalesCompletionChoice) => void;
 	onEffectiveDateChange: (value: string) => void;
-	onAdministrativeOverrideReasonChange?: (value: string) => void;
 	onConfirm: () => void;
 	cancellationOpen: boolean;
 	cancellationReason: string;
@@ -234,31 +232,6 @@ export function SalesProductionCompletionDialogs(
 					</RadioGroup>
 					{props.choice === "STATUS_ONLY" ? (
 						<div className="space-y-3">
-							<Alert variant="destructive">
-								<Icons.AlertTriangle />
-								<AlertTitle>
-									This records milestone status{isBulk ? "es" : ""} only
-								</AlertTitle>
-								<AlertDescription>
-									{isFulfillment
-										? "No delivery proof, inventory commitment, dispatch, shipment, tax, accounting, notification, commission, payout, or external-integration operation will run. Use this only when real-world fulfillment happened outside GND."
-										: "No inventory, accounting, notification, commission, payout, dispatch, or external-integration operation will run. Use this only when Production really finished but its workflow history is absent."}
-								</AlertDescription>
-							</Alert>
-							{isBulk || props.projection?.isRecentOrder ? (
-								<Alert>
-									<Icons.AlertTriangle />
-									<AlertTitle>
-										{isBulk
-											? "This selection may include recent orders"
-											: "This is a recent order"}
-									</AlertTitle>
-									<AlertDescription>
-										Confirm that the work happened outside GND before bypassing
-										the normal {milestone} workflow.
-									</AlertDescription>
-								</Alert>
-							) : null}
 							<EffectiveCompletionDateField
 								effectiveDate={props.effectiveDate}
 								idPrefix={idPrefix}
@@ -266,27 +239,6 @@ export function SalesProductionCompletionDialogs(
 								milestone={milestone}
 								onEffectiveDateChange={props.onEffectiveDateChange}
 							/>
-							<label
-								className="block space-y-1.5"
-								htmlFor={`${idPrefix}-status-only-reason`}
-							>
-								<span className="text-sm font-medium">Reason (required)</span>
-								<Textarea
-									id={`${idPrefix}-status-only-reason`}
-									maxLength={500}
-									value={props.administrativeOverrideReason ?? ""}
-									onChange={(event) =>
-										props.onAdministrativeOverrideReasonChange?.(
-											event.target.value,
-										)
-									}
-									placeholder={
-										administrativeOverride
-											? "Why should this lifecycle exception be overridden?"
-											: "Why should this completion be recorded without the full workflow?"
-									}
-								/>
-							</label>
 						</div>
 					) : null}
 					<AlertDialog.Footer>
@@ -298,9 +250,7 @@ export function SalesProductionCompletionDialogs(
 								props.markPending ||
 								(props.choice === "FULL_WORKFLOW" &&
 									props.canRunFullWorkflow === false) ||
-								(props.choice === "STATUS_ONLY" && !statusOnlyAvailable) ||
-								(props.choice === "STATUS_ONLY" &&
-									!(props.administrativeOverrideReason ?? "").trim())
+								(props.choice === "STATUS_ONLY" && !statusOnlyAvailable)
 							}
 							onClick={(event) => {
 								event.preventDefault();

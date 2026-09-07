@@ -14,7 +14,6 @@ import {
 	applyProductionCompletionProjection,
 	canShowStatusOnlyCompletionChoice,
 	getDefaultSalesCompletionChoice,
-	toSalesCompletionDateValue,
 } from "@/components/sales-completion-presentation";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesFulfillmentCompletionDialogs } from "@/components/sales-fulfillment-completion-dialogs";
@@ -1092,10 +1091,6 @@ function SalesMenuMarkAs({
 		setProductionAdministrativeOverride,
 	] = useState(false);
 	const [
-		productionAdministrativeOverrideReason,
-		setProductionAdministrativeOverrideReason,
-	] = useState("");
-	const [
 		productionStatusOnlyCancellationOpen,
 		setProductionStatusOnlyCancellationOpen,
 	] = useState(false);
@@ -1112,10 +1107,6 @@ function SalesMenuMarkAs({
 		fulfillmentAdministrativeOverride,
 		setFulfillmentAdministrativeOverride,
 	] = useState(false);
-	const [
-		fulfillmentAdministrativeOverrideReason,
-		setFulfillmentAdministrativeOverrideReason,
-	] = useState("");
 	const [
 		fulfillmentStatusOnlyCancellationOpen,
 		setFulfillmentStatusOnlyCancellationOpen,
@@ -1137,6 +1128,7 @@ function SalesMenuMarkAs({
 	const statusActionSalesIdsRef = useRef<number[]>([]);
 	const statusActionPipelineRevisionsRef = useRef(new Map<number, string>());
 	const statusActionWasBulkRef = useRef(false);
+	const completionDateLoadingRef = useRef(false);
 	const [statusActionPending, setStatusActionPending] = useState(false);
 	const beginStatusAction = () => {
 		if (statusActionInFlightRef.current) return false;
@@ -1389,6 +1381,7 @@ function SalesMenuMarkAs({
 	};
 
 	const prepareStatusAction = (action: SalesInventoryMarkAsAction) => {
+		if (completionDateLoadingRef.current) return null;
 		statusActionPipelineRevisionsRef.current.clear();
 		const selection = resolveSalesBatchStatusSelection({
 			action,
@@ -1418,6 +1411,7 @@ function SalesMenuMarkAs({
 	};
 
 	const prepareAdministrativeOverrideSelection = () => {
+		if (completionDateLoadingRef.current) return null;
 		const selection = resolveSalesBatchAdministrativeOverrideSelection({
 			salesIds,
 			candidates: statusCandidates,
@@ -1463,22 +1457,36 @@ function SalesMenuMarkAs({
 		await startMarkProductionCompletedTask();
 	};
 
-	const openProductionCompletionConfirmation = () => {
+	const loadCompletionDate = async () => {
+		completionDateLoadingRef.current = true;
+		try {
+			const context = await sq.qc.fetchQuery(trpc.sales.salesCompletionDateContext.queryOptions(undefined, { staleTime: 0 }));
+			return context.today;
+		} catch {
+			toast({ title: "Unable to load the completion date", description: "Please try opening the confirmation again.", variant: "destructive" });
+			return null;
+		} finally {
+			completionDateLoadingRef.current = false;
+		}
+	};
+	const openProductionCompletionConfirmation = async () => {
 		const targetSalesIds = prepareStatusAction("production_completed");
 		if (!targetSalesIds) return;
+		const today = await loadCompletionDate();
+		if (today === null) return;
 		setProductionCompletionChoice(getDefaultSalesCompletionChoice());
 		setProductionAdministrativeOverride(false);
-		setProductionAdministrativeOverrideReason("");
-		setProductionEffectiveDate("");
+		setProductionEffectiveDate(today);
 		setProductionConfirmationOpen(true);
 	};
 
-	const openProductionAdministrativeOverride = () => {
+	const openProductionAdministrativeOverride = async () => {
 		if (!prepareAdministrativeOverrideSelection()) return;
+		const today = await loadCompletionDate();
+		if (today === null) return;
 		setProductionCompletionChoice(getDefaultSalesCompletionChoice());
 		setProductionAdministrativeOverride(true);
-		setProductionAdministrativeOverrideReason("");
-		setProductionEffectiveDate("");
+		setProductionEffectiveDate(today);
 		setProductionConfirmationOpen(true);
 	};
 
@@ -1498,11 +1506,8 @@ function SalesMenuMarkAs({
 			return;
 		}
 		const targetSalesIds = statusActionSalesIdsRef.current;
-		const overrideReason = productionAdministrativeOverrideReason.trim();
-		if (!overrideReason) return;
 		const administrativeOverride = productionAdministrativeOverride
 			? {
-					reason: overrideReason,
 					expectedRevisions: targetSalesIds.map((salesOrderId) => ({
 						salesOrderId,
 						revision:
@@ -1518,7 +1523,6 @@ function SalesMenuMarkAs({
 				const result = await markProductionStatusOnlyBulkMutation.mutateAsync({
 					salesOrderIds: targetSalesIds,
 					requestId: crypto.randomUUID(),
-					reason: overrideReason,
 					effectiveAt,
 					administrativeOverride,
 				});
@@ -1526,7 +1530,6 @@ function SalesMenuMarkAs({
 				setProductionConfirmationOpen(false);
 				setProductionCompletionChoice(getDefaultSalesCompletionChoice());
 				setProductionAdministrativeOverride(false);
-				setProductionAdministrativeOverrideReason("");
 				setProductionEffectiveDate("");
 				actions.closeMenu();
 				await invalidateOrders();
@@ -1559,12 +1562,10 @@ function SalesMenuMarkAs({
 			await markProductionStatusOnlyMutation.mutateAsync({
 				salesOrderId,
 				requestId: crypto.randomUUID(),
-				reason: overrideReason,
 				expectedRevision: completionProjection.revision,
 				effectiveAt,
 				administrativeOverride: productionAdministrativeOverride
 					? {
-							reason: overrideReason,
 							expectedRevision:
 								statusActionPipelineRevisionsRef.current.get(salesOrderId) ??
 								"",
@@ -1574,7 +1575,6 @@ function SalesMenuMarkAs({
 			setProductionConfirmationOpen(false);
 			setProductionCompletionChoice(getDefaultSalesCompletionChoice());
 			setProductionAdministrativeOverride(false);
-			setProductionAdministrativeOverrideReason("");
 			setProductionEffectiveDate("");
 			actions.closeMenu();
 			await Promise.all([
@@ -1657,22 +1657,24 @@ function SalesMenuMarkAs({
 		await startMarkFulfilledTask();
 	};
 
-	const openFulfillmentCompletionConfirmation = () => {
+	const openFulfillmentCompletionConfirmation = async () => {
 		const targetSalesIds = prepareStatusAction("fulfilled");
 		if (!targetSalesIds) return;
+		const today = await loadCompletionDate();
+		if (today === null) return;
 		setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
 		setFulfillmentAdministrativeOverride(false);
-		setFulfillmentAdministrativeOverrideReason("");
-		setFulfillmentEffectiveDate(toSalesCompletionDateValue());
+		setFulfillmentEffectiveDate(today);
 		setFulfillmentConfirmationOpen(true);
 	};
 
-	const openFulfillmentAdministrativeOverride = () => {
+	const openFulfillmentAdministrativeOverride = async () => {
 		if (!prepareAdministrativeOverrideSelection()) return;
+		const today = await loadCompletionDate();
+		if (today === null) return;
 		setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
 		setFulfillmentAdministrativeOverride(true);
-		setFulfillmentAdministrativeOverrideReason("");
-		setFulfillmentEffectiveDate(toSalesCompletionDateValue());
+		setFulfillmentEffectiveDate(today);
 		setFulfillmentConfirmationOpen(true);
 	};
 
@@ -1692,11 +1694,8 @@ function SalesMenuMarkAs({
 			return;
 		}
 		const targetSalesIds = statusActionSalesIdsRef.current;
-		const overrideReason = fulfillmentAdministrativeOverrideReason.trim();
-		if (!overrideReason) return;
 		const administrativeOverride = fulfillmentAdministrativeOverride
 			? {
-					reason: overrideReason,
 					expectedRevisions: targetSalesIds.map((salesOrderId) => ({
 						salesOrderId,
 						revision:
@@ -1712,7 +1711,6 @@ function SalesMenuMarkAs({
 				const result = await markFulfillmentStatusOnlyBulkMutation.mutateAsync({
 					salesOrderIds: targetSalesIds,
 					requestId: crypto.randomUUID(),
-					reason: overrideReason,
 					effectiveAt,
 					administrativeOverride,
 				});
@@ -1720,7 +1718,6 @@ function SalesMenuMarkAs({
 				setFulfillmentConfirmationOpen(false);
 				setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
 				setFulfillmentAdministrativeOverride(false);
-				setFulfillmentAdministrativeOverrideReason("");
 				setFulfillmentEffectiveDate("");
 				actions.closeMenu();
 				await invalidateOrders();
@@ -1753,12 +1750,10 @@ function SalesMenuMarkAs({
 			await markFulfillmentStatusOnlyMutation.mutateAsync({
 				salesOrderId,
 				requestId: crypto.randomUUID(),
-				reason: overrideReason,
 				expectedRevision: completionProjection.revision,
 				effectiveAt,
 				administrativeOverride: fulfillmentAdministrativeOverride
 					? {
-							reason: overrideReason,
 							expectedRevision:
 								statusActionPipelineRevisionsRef.current.get(salesOrderId) ??
 								"",
@@ -1768,7 +1763,6 @@ function SalesMenuMarkAs({
 			setFulfillmentConfirmationOpen(false);
 			setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
 			setFulfillmentAdministrativeOverride(false);
-			setFulfillmentAdministrativeOverrideReason("");
 			setFulfillmentEffectiveDate("");
 			actions.closeMenu();
 			await Promise.all([
@@ -2331,21 +2325,16 @@ function SalesMenuMarkAs({
 				markProductionStatusOnlyBulkMutation.isPending
 			}
 			administrativeOverride={productionAdministrativeOverride}
-			administrativeOverrideReason={productionAdministrativeOverrideReason}
 			onConfirmationOpenChange={(open) => {
 				setProductionConfirmationOpen(open);
 				if (!open) {
 					setProductionCompletionChoice(getDefaultSalesCompletionChoice());
 					setProductionAdministrativeOverride(false);
-					setProductionAdministrativeOverrideReason("");
 					setProductionEffectiveDate("");
 				}
 			}}
 			onChoiceChange={setProductionCompletionChoice}
 			onEffectiveDateChange={setProductionEffectiveDate}
-			onAdministrativeOverrideReasonChange={
-				setProductionAdministrativeOverrideReason
-			}
 			onConfirm={() => void submitProductionCompletion()}
 			cancellationOpen={productionStatusOnlyCancellationOpen}
 			cancellationReason={productionStatusOnlyCancellationReason}
@@ -2374,21 +2363,16 @@ function SalesMenuMarkAs({
 				markFulfillmentStatusOnlyBulkMutation.isPending
 			}
 			administrativeOverride={fulfillmentAdministrativeOverride}
-			administrativeOverrideReason={fulfillmentAdministrativeOverrideReason}
 			onConfirmationOpenChange={(open) => {
 				setFulfillmentConfirmationOpen(open);
 				if (!open) {
 					setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
 					setFulfillmentAdministrativeOverride(false);
-					setFulfillmentAdministrativeOverrideReason("");
 					setFulfillmentEffectiveDate("");
 				}
 			}}
 			onChoiceChange={setFulfillmentCompletionChoice}
 			onEffectiveDateChange={setFulfillmentEffectiveDate}
-			onAdministrativeOverrideReasonChange={
-				setFulfillmentAdministrativeOverrideReason
-			}
 			onConfirm={() => void submitFulfillmentCompletion()}
 			cancellationOpen={fulfillmentStatusOnlyCancellationOpen}
 			cancellationReason={fulfillmentStatusOnlyCancellationReason}

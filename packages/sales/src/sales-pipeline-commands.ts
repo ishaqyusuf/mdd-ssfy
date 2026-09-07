@@ -307,13 +307,6 @@ export function evaluateSalesPipelineCommand(
 				reasons: ["ADMINISTRATIVE_OVERRIDE_STAGE_NOT_EXCEPTIONAL"],
 			};
 		}
-		if (!input.administrativeOverrideReason?.trim()) {
-			return {
-				...base,
-				status: "rejected",
-				reasons: ["ADMINISTRATIVE_OVERRIDE_REASON_REQUIRED"],
-			};
-		}
 		return {
 			...base,
 			status: "ready",

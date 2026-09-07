@@ -1,5 +1,14 @@
 # API Contracts
 
+## Completion confirmation (Ticket21, local implementation)
+
+Direct, bulk and explicit-fallback status-only completion inputs accept omitted
+reasons; normalized empty text is not a user-authored explanation. Existing
+reasons are preserved. Exception override revisions, command authorization and
+fallback attempt linkage remain mandatory. Cancellation/repair contracts are
+unchanged. `sales.salesCompletionDateContext` returns business `today` and
+`timeZone` to authenticated clients without a database call.
+
 ## Dispatch calendar range contract (Ticket20, local work in progress)
 
 `dispatch.calendar` requires either validated `from`/`to` calendar dates (at

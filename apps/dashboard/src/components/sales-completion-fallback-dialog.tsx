@@ -6,7 +6,6 @@ import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { AlertDialog } from "@gnd/ui/namespace";
-import { Textarea } from "@gnd/ui/textarea";
 
 type SalesCompletionFallbackDialogProps = {
 	open: boolean;
@@ -15,10 +14,8 @@ type SalesCompletionFallbackDialogProps = {
 	previewPending: boolean;
 	previewError?: boolean;
 	submitPending: boolean;
-	reason: string;
 	effectiveDate: string;
 	onOpenChange: (open: boolean) => void;
-	onReasonChange: (reason: string) => void;
 	onEffectiveDateChange: (value: string) => void;
 	onRetryPreview?: () => void;
 	onConfirm: () => void;
@@ -142,7 +139,7 @@ export function SalesCompletionFallbackDialog(
 
 				{eligibleItems.length ? (
 					<>
-						<Alert variant="destructive">
+						<Alert>
 							<Icons.AlertTriangle aria-hidden="true" />
 							<AlertTitle>Proceed with status only?</AlertTitle>
 							<AlertDescription>
@@ -160,19 +157,6 @@ export function SalesCompletionFallbackDialog(
 							onEffectiveDateChange={props.onEffectiveDateChange}
 							description="Clear the date when the real-world completion date is unknown."
 						/>
-						<label
-							className="block space-y-1.5"
-							htmlFor="status-only-fallback-reason"
-						>
-							<span className="text-sm font-medium">Reason (required)</span>
-							<Textarea
-								id="status-only-fallback-reason"
-								maxLength={500}
-								value={props.reason}
-								onChange={(event) => props.onReasonChange(event.target.value)}
-								placeholder="Why should these unsuccessful orders be recorded as status only?"
-							/>
-						</label>
 					</>
 				) : null}
 
@@ -186,7 +170,7 @@ export function SalesCompletionFallbackDialog(
 					</AlertDialog.Cancel>
 					{eligibleItems.length ? (
 						<AlertDialog.Action
-							disabled={pending || !props.reason.trim()}
+							disabled={pending}
 							onClick={(event) => {
 								event.preventDefault();
 								props.onConfirm();
