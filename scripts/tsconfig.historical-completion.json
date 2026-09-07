@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.sales-pipeline.json",
+  "include": ["historical-dispatch-completion.ts", "historical-dispatch-completion-policy.ts", "historical-dispatch-completion.test.ts", "historical-dispatch-completion.integration.test.ts", "historical-dispatch-completion-policy.test.ts", "../types"]
+}
