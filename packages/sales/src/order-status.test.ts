@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
 
 import {
-	SALES_ORDER_LIFECYCLE_STATUS_META,
-	getSalesOrderLifecycleStatus,
-	getSalesOrderLifecycleStatusInfo,
-	isSalesOrderFulfilled,
-} from "./order-status";
+	getLegacySalesOrderLifecycleStatus as getSalesOrderLifecycleStatus,
+	getLegacySalesOrderLifecycleStatusInfo as getSalesOrderLifecycleStatusInfo,
+	isLegacySalesOrderFulfilled as isSalesOrderFulfilled,
+} from "./legacy-order-status";
+import { SALES_ORDER_LIFECYCLE_STATUS_META } from "./order-status";
 
 describe("sales order lifecycle status", () => {
 	it("uses the canonical operator label for unavailable status", () => {

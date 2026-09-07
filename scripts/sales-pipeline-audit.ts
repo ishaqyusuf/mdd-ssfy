@@ -5,6 +5,11 @@ import {
 	getSalesProductions,
 } from "@gnd/sales/sales-production";
 import dayjs from "@gnd/utils/dayjs";
+import {
+	buildOperationalDateListFilter,
+	collectPaginatedUniqueOrderIds,
+	readOperationalDate,
+} from "./sales-pipeline-audit-options";
 
 type CountRow = { count: bigint | number | string };
 type SampleRow = {
@@ -23,7 +28,11 @@ function count(row: CountRow | undefined) {
 }
 
 async function main() {
-	const operationalDate = dayjs().format("YYYY-MM-DD");
+	const runtimeOperationalDate = dayjs().format("YYYY-MM-DD");
+	const operationalDate = readOperationalDate(
+		process.argv.slice(2),
+		runtimeOperationalDate,
+	);
 	const todayStart = dayjs(operationalDate).startOf("day").toDate();
 	const tomorrowStart = dayjs(operationalDate)
 		.add(1, "day")
@@ -179,21 +188,40 @@ async function main() {
 				LIMIT 20
 			`,
 	]);
-	const [productionSummary, productionCalendar, productionDueToday] =
+	const [productionSummary, productionCalendar, productionListMembership] =
 		await Promise.all([
-			getSalesProductionSummary(db, {}),
+			operationalDate === runtimeOperationalDate
+				? getSalesProductionSummary(db, {})
+				: Promise.resolve(null),
 			getSalesProductionCalendar(db, {
 				from: operationalDate,
 				to: operationalDate,
 				scope: "open",
 			}),
-			getSalesProductions(db, {
-				due: "today",
-				productionSort: "dueDateAsc",
-				includeMaterials: false,
-				size: 100,
-			}),
+			collectPaginatedUniqueOrderIds(
+				(cursor) =>
+					getSalesProductions(db, {
+						...buildOperationalDateListFilter(
+							operationalDate,
+							runtimeOperationalDate,
+						),
+						productionSort: "dueDateAsc",
+						includeMaterials: false,
+						size: 100,
+						cursor,
+					}),
+				15,
+			),
 		]);
+	const calendarOrderIds = Array.from(
+		new Set(productionCalendar.scheduled.map((row) => row.orderId)),
+	).sort((left, right) => left - right);
+	const exactScheduleMembership =
+		!productionListMembership.truncated &&
+		calendarOrderIds.length === productionListMembership.orderIds.length &&
+		calendarOrderIds.every(
+			(orderId, index) => orderId === productionListMembership.orderIds[index],
+		);
 
 	console.log(
 		JSON.stringify(
@@ -218,13 +246,15 @@ async function main() {
 					),
 				},
 				surfaceParity: {
-					dueTodaySummary: productionSummary.summary.dueTodayCount,
-					dueTodayCalendarUniqueOrders: new Set(
-						productionCalendar.scheduled.map((row) => row.orderId),
-					).size,
-					dueTodayListUniqueOrders: new Set(
-						productionDueToday.data.map((row) => row.id),
-					).size,
+					summaryOperationalDate: runtimeOperationalDate,
+					dueTodaySummary: productionSummary?.summary.dueTodayCount ?? null,
+					dueTodayCalendarUniqueOrders: calendarOrderIds.length,
+					dueTodayListUniqueOrders: productionListMembership.orderIds.length,
+					listPageCount: productionListMembership.pageCount,
+					listTruncated: productionListMembership.truncated,
+					exactScheduleMembership,
+					calendarOrderIds,
+					listOrderIds: productionListMembership.orderIds,
 					dueTodayOrderNumbers: Array.from(
 						new Set(productionCalendar.scheduled.map((row) => row.orderNo)),
 					),

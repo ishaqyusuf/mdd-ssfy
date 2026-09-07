@@ -37,14 +37,12 @@ import {
 	getSalesPipelineSnapshots,
 	isControlOverviewReadV2Enabled,
 	isControlReadV2Enabled,
-	observeSalesPipelineReadProjection,
 	projectDispatchListControl,
 	projectSalesListControl,
 	projectSalesPipelineForAudience,
 	resolveFulfillmentScheduleMoveCapability,
 	runSalesPipelineCommandTransaction,
 	scheduleBusinessDate,
-	shouldEnforceCanonicalSalesPipelineCommands,
 	withDispatchControl,
 	withDispatchListControl,
 	withSalesControl,
@@ -584,14 +582,8 @@ async function getDispatchPage(
 	);
 	const driverPipeline = (salesOrderId: number) => {
 		const snapshot = pipelineSnapshots.get(salesOrderId);
-		const selected = snapshot
-			? observeSalesPipelineReadProjection(snapshot, {
-					surface: "dispatch.driver-list",
-					legacyFulfillmentIncluded: true,
-				})
-			: null;
-		return selected
-			? projectSalesPipelineForAudience(selected, "driver")
+		return snapshot
+			? projectSalesPipelineForAudience(snapshot, "driver")
 			: null;
 	};
 	const dispatchScheduleCapability = (row: {
@@ -1665,9 +1657,7 @@ export async function signPackingSlip(
 			action: "fulfillment.sign_packing_slip",
 			authorized: true,
 			expectedRevision: snapshot.revision,
-			enforce: shouldEnforceCanonicalSalesPipelineCommands(
-				dispatch.salesOrderId,
-			),
+			enforce: true,
 			executeOnReplay: true,
 			operation: "api.dispatch.sign-packing-slip",
 		},
@@ -2979,14 +2969,8 @@ export async function getDispatchOverviewV2(
 	const canonicalPipeline = (
 		await getSalesPipelineSnapshots(ctx.db, [order.id])
 	).get(order.id);
-	const selectedPipeline = canonicalPipeline
-		? observeSalesPipelineReadProjection(canonicalPipeline, {
-				surface: "dispatch.driver-detail",
-				legacyFulfillmentIncluded: dispatch?.status !== "completed",
-			})
-		: null;
-	const pipeline = selectedPipeline
-		? projectSalesPipelineForAudience(selectedPipeline, "driver")
+	const pipeline = canonicalPipeline
+		? projectSalesPipelineForAudience(canonicalPipeline, "driver")
 		: null;
 
 	return {

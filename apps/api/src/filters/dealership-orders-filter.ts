@@ -3,7 +3,6 @@ import type { TRPCContext } from "@api/trpc/init";
 import type { PageFilterData } from "@api/type";
 import { optionFilter } from "@api/utils/filter";
 import { projectSalesPipelineHeadlineForCustomer } from "@gnd/sales/sales-pipeline";
-import { shouldServeCanonicalSalesPipeline } from "@gnd/sales/sales-pipeline-rollout";
 import {
 	dealershipPaymentStateOptions,
 	toDealershipFilterOptions,
@@ -99,13 +98,12 @@ export async function getDealershipOrdersFilter(
 			"Status",
 			withDealershipStatusColors(
 				toDealershipFilterOptions(
-					orders.map((order) => {
-						return shouldServeCanonicalSalesPipeline(order.id)
-							? projectSalesPipelineHeadlineForCustomer(
-									order.listProjection?.pipelineHeadline,
-								).code
-							: "processing";
-					}),
+					orders.map(
+						(order) =>
+							projectSalesPipelineHeadlineForCustomer(
+								order.listProjection?.pipelineHeadline,
+							).code,
+					),
 				),
 			),
 		),

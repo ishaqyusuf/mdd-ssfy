@@ -7,6 +7,10 @@ import { loadCoreProductionOverview } from "./sales-production-overview";
 const routerSource = readFileSync(resolve(import.meta.dir, "sales.route.ts"), {
 	encoding: "utf8",
 });
+const filterRouterSource = readFileSync(
+	resolve(import.meta.dir, "filters.route.ts"),
+	{ encoding: "utf8" },
+);
 const providerSource = readFileSync(
 	resolve(
 		import.meta.dir,
@@ -18,6 +22,17 @@ const providerSource = readFileSync(
 );
 
 describe("sales production overview query boundary", () => {
+	it("guards admin planning separately from worker-only Production viewing", () => {
+		const start = routerSource.indexOf("\tproductionPlanningCalendar: protectedProcedure");
+		const end = routerSource.indexOf("\tproductionCalendar: protectedProcedure", start);
+		const route = routerSource.slice(start, end);
+		expect(start).toBeGreaterThan(-1);
+		expect(route).toContain("requireAnyOperationalPermission");
+		expect(route).toContain('["viewOrders", "editOrders", "editProduction"]');
+		expect(route).not.toContain('"viewProduction"');
+		expect(route).toContain("canAssign: session.can.editProduction === true");
+		expect(route.indexOf("requireAnyOperationalPermission")).toBeLessThan(route.indexOf("return getSalesProductionPlanningCalendar"));
+	});
 	it("preserves production items when independent readiness fails", async () => {
 		const overview = {
 			orderId: 24_339,
@@ -80,6 +95,18 @@ describe("sales production overview query boundary", () => {
 				route,
 			).toBe(true);
 		}
+	});
+
+	it("protects Production filter metadata with the same operational audience", () => {
+		const routeStart = filterRouterSource.indexOf(
+			"salesProductions: protectedProcedure",
+		);
+		expect(routeStart).toBeGreaterThan(-1);
+		const route = filterRouterSource.slice(routeStart, routeStart + 700);
+		expect(route).toContain("requireAnyOperationalPermission");
+		expect(route).toContain('"viewOrders"');
+		expect(route).toContain('"viewProduction"');
+		expect(route).toContain('"viewDelivery"');
 	});
 
 	it("routes every Sales Overview viewer through the V2 loader", () => {

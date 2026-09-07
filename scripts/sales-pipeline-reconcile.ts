@@ -39,19 +39,51 @@ const outputPath = valueAfter("--output");
 
 export function buildSalesPipelineReconciliationOrderWhere(argv: string[]) {
 	const base = { type: "order", deletedAt: null } as const;
-	const flags = argv.filter((arg) => arg === "--order-id" || arg.startsWith("--order-id="));
+	const flags = argv.filter(
+		(arg) => arg === "--order-id" || arg.startsWith("--order-id="),
+	);
 	if (flags.length === 0) return base;
 	if (flags.length > 1) throw new Error("--order-id may only be supplied once");
-	if (argv.some((arg) => arg === "--undo-run" || arg.startsWith("--undo-run="))) {
+	if (
+		argv.some((arg) => arg === "--undo-run" || arg.startsWith("--undo-run="))
+	) {
 		throw new Error("--order-id cannot be combined with --undo-run");
 	}
-	const flag = flags[0]!;
-	const orderId = flag === "--order-id" ? argv[argv.indexOf(flag) + 1] ?? "" : flag.slice("--order-id=".length);
+	const flag = flags[0];
+	if (!flag) return base;
+	const orderId =
+		flag === "--order-id"
+			? (argv[argv.indexOf(flag) + 1] ?? "")
+			: flag.slice("--order-id=".length);
 	const parsed = Number(orderId);
 	if (!/^\d+$/.test(orderId) || !Number.isSafeInteger(parsed) || parsed <= 0) {
 		throw new Error("--order-id must be a positive safe integer");
 	}
 	return { ...base, id: parsed };
+}
+
+export function buildSalesPipelineProjectionEvidence(input: {
+	projection: {
+		state: string | null;
+		version: number | null;
+		sourceUpdatedAt: Date | null;
+		pipelineRevision: string | null;
+		pipelineContractVersion: string | null;
+		payload?: unknown;
+	} | null;
+	orderUpdatedAt: Date | null;
+	expectedVersion: number;
+}) {
+	return {
+		exists: Boolean(input.projection),
+		state: input.projection?.state ?? null,
+		version: input.projection?.version ?? null,
+		expectedVersion: input.expectedVersion,
+		sourceUpdatedAt: input.projection?.sourceUpdatedAt ?? null,
+		orderUpdatedAt: input.orderUpdatedAt,
+		pipelineRevision: input.projection?.pipelineRevision ?? null,
+		pipelineVersion: input.projection?.pipelineContractVersion ?? null,
+	};
 }
 
 async function resetProductionDatabaseConnection() {
@@ -234,7 +266,9 @@ async function undoRun(input: {
 
 async function main() {
 	// A present flag without a value must never silently become a full scan.
-	const orderWhere = buildSalesPipelineReconciliationOrderWhere(process.argv.slice(2));
+	const orderWhere = buildSalesPipelineReconciliationOrderWhere(
+		process.argv.slice(2),
+	);
 	const runId = randomUUID();
 	const startedAt = new Date();
 	const actorId = Number(valueAfter("--actor-id") || 0);
@@ -332,36 +366,13 @@ async function main() {
 		const sourceUpdatedAt = snapshot?.freshness.evidenceUpdatedAt
 			? new Date(snapshot.freshness.evidenceUpdatedAt)
 			: salesCompletionProjectionSourceRevision(order);
-		const payload =
-			order.listProjection?.payload &&
-			typeof order.listProjection.payload === "object" &&
-			!Array.isArray(order.listProjection.payload)
-				? (order.listProjection.payload as Record<string, unknown>)
-				: {};
-		const projectedPipeline =
-			payload.pipeline &&
-			typeof payload.pipeline === "object" &&
-			!Array.isArray(payload.pipeline)
-				? (payload.pipeline as Record<string, unknown>)
-				: {};
 		const classification = classifySalesPipelineReconciliation({
 			snapshot: snapshot ?? null,
-			projection: {
-				exists: Boolean(order.listProjection),
-				state: order.listProjection?.state ?? null,
-				version: order.listProjection?.version ?? null,
-				expectedVersion: salesOrderListProjectionVersion(),
-				sourceUpdatedAt: order.listProjection?.sourceUpdatedAt ?? null,
+			projection: buildSalesPipelineProjectionEvidence({
+				projection: order.listProjection,
 				orderUpdatedAt: sourceUpdatedAt,
-				pipelineRevision:
-					typeof projectedPipeline.revision === "string"
-						? projectedPipeline.revision
-						: null,
-				pipelineVersion:
-					typeof projectedPipeline.version === "string"
-						? projectedPipeline.version
-						: null,
-			},
+				expectedVersion: salesOrderListProjectionVersion(),
+			}),
 		});
 		return {
 			id: order.id,

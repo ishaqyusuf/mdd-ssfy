@@ -986,6 +986,10 @@ Provide a cleaner production operations surface for both admins and production w
   review query uses the same bounded interval. This closes the different-browser
   gap between a worker submission, an admin decision, and the other user's open
   order without refreshing the entire page.
+- Material-review queue synchronization memoizes the paged review rows and
+  changes selection only when the requested or queued review identity actually
+  changes. Query refreshes therefore cannot create a React update loop or erase
+  in-progress receipt quantities and manual component selections.
 - The canonical decision still owns inventory evidence updates, final review
   state, production progress, payroll/completion effects, and direct worker
   notification. No database schema, API contract, permission rule, or durable

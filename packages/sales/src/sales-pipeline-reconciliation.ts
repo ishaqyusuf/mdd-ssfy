@@ -18,6 +18,91 @@ export type SalesPipelineProjectionEvidence = {
 	pipelineVersion: string | null;
 };
 
+type FulfillmentProofSourceRepairInput = {
+	dispatchStatus: string | null;
+	deliveredAt: Date | null;
+	inventoryCommitted: boolean;
+	dispatchCompletion: unknown;
+};
+
+function record(value: unknown): Record<string, unknown> {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+}
+
+function nonEmptyString(value: unknown) {
+	return typeof value === "string" && value.trim().length > 0;
+}
+
+function validDateString(value: unknown) {
+	return nonEmptyString(value) && !Number.isNaN(Date.parse(value as string));
+}
+
+/**
+ * Classifies only normalization of proof already persisted inside the
+ * Dispatch-owned completion envelope. Legacy status/timestamps are supporting
+ * consistency checks, never a substitute for missing delivery proof.
+ */
+export function classifyFulfillmentProofSourceRepair(
+	input: FulfillmentProofSourceRepairInput,
+) {
+	const completion = record(input.dispatchCompletion);
+	if (Object.hasOwn(completion, "status")) {
+		if (completion.status === "completed") {
+			return {
+				category: "clean" as const,
+				repairable: false,
+				reasons: [] as string[],
+				patch: null,
+			};
+		}
+		return {
+			category: "unsafe" as const,
+			repairable: false,
+			reasons: ["DISPATCH_COMPLETION_STATUS_CONFLICT"],
+			patch: null,
+		};
+	}
+
+	const hasExplicitCompletionEnvelope =
+		nonEmptyString(completion.requestId) &&
+		validDateString(completion.completedAt);
+	if (!hasExplicitCompletionEnvelope) {
+		return {
+			category: "review_required" as const,
+			repairable: false,
+			reasons: ["DELIVERY_PROOF_NOT_RECONSTRUCTABLE"],
+			patch: null,
+		};
+	}
+
+	const reasons = [
+		...(String(input.dispatchStatus || "")
+			.trim()
+			.toLowerCase() === "completed"
+			? []
+			: ["DISPATCH_NOT_TERMINAL"]),
+		...(input.deliveredAt ? [] : ["DELIVERED_AT_MISSING"]),
+		...(input.inventoryCommitted ? [] : ["INVENTORY_COMMIT_MISSING"]),
+	];
+	if (reasons.length) {
+		return {
+			category: "unsafe" as const,
+			repairable: false,
+			reasons,
+			patch: null,
+		};
+	}
+
+	return {
+		category: "deterministic_repair" as const,
+		repairable: true,
+		reasons: ["DISPATCH_COMPLETION_STATUS_MISSING"],
+		patch: { status: "completed" as const },
+	};
+}
+
 export function classifySalesPipelineReconciliation(input: {
 	snapshot: SalesPipelineSnapshot | null;
 	projection: SalesPipelineProjectionEvidence;
@@ -29,17 +114,6 @@ export function classifySalesPipelineReconciliation(input: {
 			reasons: ["SNAPSHOT_MISSING"],
 		};
 	}
-	const blockingConflicts = input.snapshot.conflicts.filter(
-		(conflict) => conflict.severity === "blocking",
-	);
-	if (blockingConflicts.length) {
-		return {
-			category: "review_required" as const,
-			repairable: false,
-			reasons: blockingConflicts.map((conflict) => conflict.code),
-		};
-	}
-
 	const projectionReasons = [
 		...(input.projection.exists ? [] : ["PROJECTION_MISSING"]),
 		...(input.projection.state === "ready" ? [] : ["PROJECTION_NOT_READY"]),
@@ -62,6 +136,17 @@ export function classifySalesPipelineReconciliation(input: {
 			category: "deterministic_repair" as const,
 			repairable: true,
 			reasons: projectionReasons,
+		};
+	}
+
+	const blockingConflicts = input.snapshot.conflicts.filter(
+		(conflict) => conflict.severity === "blocking",
+	);
+	if (blockingConflicts.length) {
+		return {
+			category: "review_required" as const,
+			repairable: false,
+			reasons: blockingConflicts.map((conflict) => conflict.code),
 		};
 	}
 

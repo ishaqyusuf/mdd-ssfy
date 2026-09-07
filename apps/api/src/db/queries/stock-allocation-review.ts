@@ -10,7 +10,7 @@ import type {
 	BulkApproveStockAllocation,
 	RejectStockAllocation,
 } from "@gnd/inventory/schema";
-import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
+import { getLegacySalesOrderLifecycleStatusInfo } from "@gnd/sales/legacy-order-status";
 import {
 	resolveSalesInventoryFulfillmentStatus,
 	resolveSalesInventoryOperationPolicy,
@@ -75,7 +75,7 @@ function assertSaleCanAllocateStock(sale: AllocationGuardSale) {
 		deliveries: sale.deliveries,
 		stats: sale.stat,
 	});
-	const lifecycle = getSalesOrderLifecycleStatusInfo({
+	const lifecycle = getLegacySalesOrderLifecycleStatusInfo({
 		orderStatus: sale.status,
 		legacyProductionStatus: sale.prodStatus,
 		fulfillmentStatus,

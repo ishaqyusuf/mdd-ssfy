@@ -25,6 +25,7 @@ export const taskMonitorIntentSchema = z.discriminatedUnion("name", [
 		name: z.literal("sales.mark-as-fulfilled"),
 		version: z.literal(1),
 		args: z.object({
+			requestId: z.string().uuid(),
 			salesIds: z.array(z.number()).min(1),
 			sales: z.array(taskSalesQueryRefSchema).optional(),
 			dispatchIds: z.array(z.number()).optional(),
@@ -34,6 +35,7 @@ export const taskMonitorIntentSchema = z.discriminatedUnion("name", [
 		name: z.literal("sales.mark-as-production-completed"),
 		version: z.literal(1),
 		args: z.object({
+			requestId: z.string().uuid(),
 			salesIds: z.array(z.number()).min(1),
 			sales: z.array(taskSalesQueryRefSchema).optional(),
 		}),
@@ -81,6 +83,15 @@ export type TaskMonitorTask = {
 	completedAt?: number;
 };
 
+export type PendingSalesCompletionFallback = {
+	id: string;
+	runId: string;
+	ownerId: string | null;
+	milestone: "PRODUCTION_COMPLETED" | "FULFILLMENT_COMPLETED";
+	fullWorkflowRequestId: string;
+	createdAt: number;
+};
+
 type AddTaskInput = {
 	runId: string;
 	accessToken: string;
@@ -106,7 +117,10 @@ type TaskPatch = Partial<
 
 type TaskMonitorStore = {
 	tasks: TaskMonitorTask[];
+	pendingSalesCompletionFallbacks: PendingSalesCompletionFallback[];
 	addTask: (input: AddTaskInput) => void;
+	addSalesCompletionFallback: (input: PendingSalesCompletionFallback) => void;
+	removeSalesCompletionFallback: (id: string) => void;
 	updateTask: (runId: string, patch: TaskPatch) => void;
 	removeTask: (runId: string) => void;
 	clearCompleted: () => void;
@@ -117,6 +131,7 @@ export const useTaskMonitorStore = create<TaskMonitorStore>()(
 	persist(
 		(set, get) => ({
 			tasks: [],
+			pendingSalesCompletionFallbacks: [],
 			addTask: (input) => {
 				if (!input.runId || !input.accessToken) return;
 
@@ -149,6 +164,23 @@ export const useTaskMonitorStore = create<TaskMonitorStore>()(
 						...tasks.filter((task) => task.runId !== input.runId),
 					],
 				});
+			},
+			addSalesCompletionFallback: (input) => {
+				set((state) => ({
+					pendingSalesCompletionFallbacks:
+						enqueuePendingSalesCompletionFallback(
+							state.pendingSalesCompletionFallbacks,
+							input,
+						),
+				}));
+			},
+			removeSalesCompletionFallback: (id) => {
+				set((state) => ({
+					pendingSalesCompletionFallbacks:
+						state.pendingSalesCompletionFallbacks.filter(
+							(item) => item.id !== id,
+						),
+				}));
 			},
 			updateTask: (runId, patch) => {
 				const now = Date.now();
@@ -203,10 +235,75 @@ export const useTaskMonitorStore = create<TaskMonitorStore>()(
 			name: "gnd-task-monitor",
 			partialize: (state) => ({
 				tasks: pruneTasks(state.tasks),
+				pendingSalesCompletionFallbacks: state.pendingSalesCompletionFallbacks,
 			}),
 		},
 	),
 );
+
+export function enqueuePendingSalesCompletionFallback(
+	current: readonly PendingSalesCompletionFallback[],
+	input: PendingSalesCompletionFallback,
+) {
+	const existingIndex = current.findIndex((item) => item.id === input.id);
+	if (existingIndex >= 0) {
+		return current.map((item, index) =>
+			index === existingIndex ? input : item,
+		);
+	}
+	return [...current, input];
+}
+
+export function getPendingSalesCompletionFallback(
+	task: TaskMonitorTask,
+	output: unknown,
+): PendingSalesCompletionFallback | null {
+	if (
+		task.intent?.name !== "sales.mark-as-production-completed" &&
+		task.intent?.name !== "sales.mark-as-fulfilled"
+	) {
+		return null;
+	}
+	const data =
+		output && typeof output === "object"
+			? (output as Record<string, unknown>)
+			: null;
+	const outputRequestId = z.string().uuid().safeParse(data?.requestId);
+	const intentRequestId = z
+		.string()
+		.uuid()
+		.safeParse(task.intent.args.requestId);
+	const fullWorkflowRequestId = outputRequestId.success
+		? outputRequestId.data
+		: intentRequestId.success
+			? intentRequestId.data
+			: null;
+	if (!fullWorkflowRequestId) return null;
+
+	const issueCount =
+		task.intent.name === "sales.mark-as-production-completed"
+			? numericOutput(data, "failed") + numericOutput(data, "awaitingReview")
+			: numericOutput(data, "failed") + numericOutput(data, "reviewRequired");
+	if (data && issueCount === 0) return null;
+
+	const milestone =
+		task.intent.name === "sales.mark-as-production-completed"
+			? "PRODUCTION_COMPLETED"
+			: "FULFILLMENT_COMPLETED";
+	return {
+		id: `${milestone}:${fullWorkflowRequestId}`,
+		runId: task.runId,
+		ownerId: task.ownerId ?? null,
+		milestone,
+		fullWorkflowRequestId,
+		createdAt: Date.now(),
+	};
+}
+
+function numericOutput(data: Record<string, unknown> | null, key: string) {
+	const value = data?.[key];
+	return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
 
 export function getTaskMonitorTaskDefaults(
 	taskName?: TaskName | string,

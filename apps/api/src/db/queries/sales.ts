@@ -39,7 +39,6 @@ import {
 } from "@gnd/sales";
 import { resolveSalesOverviewDocumentReadiness } from "@gnd/sales/pdf-system";
 import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
-import { observeSalesPipelineReadProjection } from "@gnd/sales/sales-pipeline-rollout";
 import { consoleLog, formatCurrency, formatMoney } from "@gnd/utils";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { channelNames } from "@notifications/channels";
@@ -288,11 +287,7 @@ export async function getSaleOverview(
 			getSalesPipelineSnapshots(db, [sale.id]),
 		]);
 	const canonicalPipeline = pipelineSnapshots.get(sale.id) ?? null;
-	const pipeline = canonicalPipeline
-		? observeSalesPipelineReadProjection(canonicalPipeline, {
-				surface: "sales.overview.legacy",
-			})
-		: null;
+	const pipeline = canonicalPipeline;
 	const overviewWithInventoryInboundOwnership = {
 		...overview,
 		pipeline,

@@ -20,7 +20,6 @@ import {
 	resolveLegacyUpdateSalesControlAction,
 	runSalesPipelineCommandTransaction,
 	salesControlTaskPermissionKeys,
-	shouldEnforceCanonicalSalesPipelineCommands,
 	shouldSyncInventoryProductionLifecycleForSalesControl,
 	startDispatchTask,
 	submitAllTask,
@@ -570,13 +569,14 @@ async function sendProductionMaterialReviewNotification(
 	const materialSnapshot = Array.isArray(review.materialSnapshot)
 		? review.materialSnapshot
 		: [];
-	const unresolvedMaterials = materialSnapshot.filter(
-		(material): material is Record<string, unknown> => {
-			if (!isRecord(material)) return false;
+	const unresolvedMaterials: Record<string, unknown>[] =
+		materialSnapshot.flatMap((material) => {
+			if (!isRecord(material)) return [];
 			const readiness = String(material.readiness || "");
-			return readiness !== "ready_for_production" && readiness !== "fulfilled";
-		},
-	);
+			return readiness !== "ready_for_production" && readiness !== "fulfilled"
+				? [material]
+				: [];
+		});
 	const expectedAt =
 		unresolvedMaterials
 			.map((material) =>
@@ -640,9 +640,7 @@ export const updateSalesControl = schemaTask({
 					action: pipelineCommand,
 					authorized: true,
 					expectedRevision: authorizedInput.meta.pipelineRevision,
-					enforce: shouldEnforceCanonicalSalesPipelineCommands(
-						authorizedInput.meta.salesId,
-					),
+					enforce: true,
 					operation: `jobs.update-sales-control.${pipelineCommand}`,
 				},
 				async (transactionDb) => {

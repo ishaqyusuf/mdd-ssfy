@@ -5,7 +5,6 @@ import type { SalesType } from "@api/type";
 import { SalesOverviewInclude } from "@api/utils/sales";
 import { resolveSalesOverviewDocumentReadiness } from "@gnd/sales/pdf-system";
 import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
-import { observeSalesPipelineReadProjection } from "@gnd/sales/sales-pipeline-rollout";
 import { getSalesInventoryInboundOwnership } from "./sales-inventory-inbound-ownership";
 
 const {
@@ -80,11 +79,7 @@ export async function getSaleOverviewGeneralV2(
 			getSalesPipelineSnapshots(ctx.db, [sale.id]),
 		]);
 	const canonicalPipeline = pipelineSnapshots.get(sale.id) ?? null;
-	const pipeline = canonicalPipeline
-		? observeSalesPipelineReadProjection(canonicalPipeline, {
-				surface: "sales.overview.general",
-			})
-		: null;
+	const pipeline = canonicalPipeline;
 
 	return {
 		...overview,

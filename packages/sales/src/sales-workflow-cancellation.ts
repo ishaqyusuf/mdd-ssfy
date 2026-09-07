@@ -2,10 +2,8 @@ import { createHash } from "node:crypto";
 import type { Database, Prisma, TransactionClient } from "@gnd/db";
 import { z } from "zod";
 import { syncInventoryProductionLifecycleForSale } from "./inventory-production-lifecycle";
-import {
-	type SalesOrderLifecycleStatus,
-	getSalesOrderLifecycleStatusInfo,
-} from "./order-status";
+import { getLegacySalesOrderLifecycleStatus } from "./legacy-order-status";
+import type { SalesOrderLifecycleStatus } from "./order-status";
 import { cancelFullWorkflowCompletionInTransaction } from "./sales-completion";
 import { resetSalesAction } from "./sales-control/actions";
 import { withSalesControl } from "./utils/with-sales-control";
@@ -205,11 +203,11 @@ function lifecycle(input: {
 	productionStatus: string | null;
 	fulfillmentStatus: string | null;
 }) {
-	return getSalesOrderLifecycleStatusInfo({
+	return getLegacySalesOrderLifecycleStatus({
 		orderStatus: input.orderStatus,
 		productionStatus: input.productionStatus,
 		fulfillmentStatus: input.fulfillmentStatus,
-	}).status;
+	});
 }
 
 async function loadCancellationState(db: CancellationDb, salesOrderId: number) {

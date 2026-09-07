@@ -269,6 +269,7 @@ function Content() {
                         <LegacySalesOverviewHeader
                             tabs={tabs}
                             activeTab={activeTab as LegacySalesOverviewTabId}
+                            mode={mode}
                             onTabChange={setActiveTab}
                         />
                     </Tabs>

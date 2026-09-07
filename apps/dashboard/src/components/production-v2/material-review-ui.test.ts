@@ -32,6 +32,14 @@ describe("production material review UI", () => {
 		).toBe(true);
 	});
 
+	it("keeps queue synchronization from repeatedly resetting review drafts", () => {
+		expect(source.includes("const rows = useMemo(")).toBe(true);
+		expect(
+			source.includes("selectedReviewId !== requestedReviewId"),
+		).toBe(true);
+		expect(source.includes("selectedReviewId !== null")).toBe(true);
+	});
+
 	it("uses the audited configuration-exception action for missing material configuration", () => {
 		expect(source.includes('"APPROVE_CONFIGURATION_EXCEPTION"')).toBe(true);
 		expect(source.includes("Approve confirmed availability")).toBe(true);

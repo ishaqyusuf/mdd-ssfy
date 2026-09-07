@@ -5,6 +5,7 @@ import {
 	type CalendarScheduleMoveProposal,
 } from "@/components/calendar-schedule-move-dialog";
 import { OperationsCalendarPeriodPicker } from "@/components/operations-calendar/period-picker";
+import { scheduleMoveLockLabel } from "@/components/operations-calendar/lock-reason";
 import {
 	type OperationsCalendarView,
 	getOperationsCalendarPeriod,
@@ -14,6 +15,7 @@ import {
 } from "@/components/operations-calendar/range";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useAuth } from "@/hooks/use-auth";
 import { useSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -44,6 +46,14 @@ import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { format, isPast, isSameMonth, isToday, startOfDay } from "date-fns";
 import { useState } from "react";
+import dynamic from "next/dynamic";
+import { productionCalendarColors } from "./calendar-colors";
+
+const PlanningCalendar = dynamic(() =>
+	import("./planning-calendar").then(
+		(module) => module.ProductionPlanningCalendar,
+	),
+);
 
 type ProductionCalendarItem =
 	RouterOutputs["sales"]["productionCalendar"]["scheduled"][number];
@@ -51,18 +61,16 @@ type ProductionMoveProposal = CalendarScheduleMoveProposal & {
 	item: ProductionCalendarItem;
 };
 
-const STATUS_COLORS: Record<string, string> = {
-	unassigned:
-		"bg-yellow-100 border-yellow-300 text-yellow-800 dark:bg-yellow-900/30 dark:border-yellow-700 dark:text-yellow-300",
-	assigned:
-		"bg-purple-100 border-purple-300 text-purple-800 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300",
-	"in progress":
-		"bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300",
-	completed:
-		"bg-emerald-100 border-emerald-300 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-300",
-};
+const STATUS_COLORS = productionCalendarColors;
 
-const LEGEND_STATUSES = ["unassigned", "assigned", "in progress", "completed"];
+const LEGEND_STATUSES = [
+	"unassigned",
+	"assigned",
+	"in progress",
+	"completed",
+	"conflict",
+	"unknown",
+];
 const CALENDAR_SKELETON_KEYS = [
 	"monday",
 	"tuesday",
@@ -90,7 +98,8 @@ function ProductionChip({
 		data: { item },
 		disabled: workerMode || !item.canReschedule,
 	});
-	const colorClass = STATUS_COLORS[item.status] ?? STATUS_COLORS.assigned;
+	const colorClass =
+		STATUS_COLORS[item.presentation.tone] ?? STATUS_COLORS.unknown;
 	const isOverdue =
 		item.status !== "completed" && item.dueDate
 			? isOperationsCalendarDatePastDue(new Date(item.dueDate))
@@ -136,6 +145,12 @@ function ProductionChip({
 						</div>
 					</>
 				)}
+				<div className="flex flex-wrap gap-1 text-[10px] font-medium">
+					<span>{item.presentation.label}</span>
+					{item.presentation.statusOnly ? (
+						<span className="rounded border px-1">Status only</span>
+					) : null}
+				</div>
 			</button>
 			{workerMode ? null : item.canReschedule ? (
 				<div className="ml-1 flex shrink-0 items-center gap-0.5">
@@ -163,8 +178,8 @@ function ProductionChip({
 			) : (
 				<span
 					className="ml-1 shrink-0 px-1 opacity-60"
-					title={item.rescheduleLockReason || "Schedule locked"}
-					aria-label={item.rescheduleLockReason || "Schedule locked"}
+					title={scheduleMoveLockLabel(item.rescheduleLockReason)}
+					aria-label={scheduleMoveLockLabel(item.rescheduleLockReason)}
 				>
 					🔒
 				</span>
@@ -349,6 +364,45 @@ function groupByDay(items: ProductionCalendarItem[], days: Date[]) {
 }
 
 export function SalesProductionCalendar({
+	workerMode = false,
+}: {
+	workerMode?: boolean;
+}) {
+	const { filters, setFilters } = useSalesProductionFilterParams();
+	const auth = useAuth();
+	const canPlan =
+		!workerMode &&
+		Boolean(
+			auth.can.viewOrders || auth.can.editOrders || auth.can.editProduction,
+		);
+	const planning = canPlan && filters.calendarMode === "planning";
+	return (
+		<div className="flex flex-col gap-3">
+			{canPlan ? (
+				<Tabs
+					value={planning ? "planning" : "schedule"}
+					onValueChange={(value) =>
+						void setFilters({
+							calendarMode: value === "planning" ? "planning" : "schedule",
+						})
+					}
+				>
+					<TabsList aria-label="Production calendar mode">
+						<TabsTrigger value="schedule">Schedule</TabsTrigger>
+						<TabsTrigger value="planning">Planning gaps</TabsTrigger>
+					</TabsList>
+				</Tabs>
+			) : null}
+			{planning ? (
+				<PlanningCalendar />
+			) : (
+				<ProductionScheduleCalendar workerMode={workerMode} />
+			)}
+		</div>
+	);
+}
+
+function ProductionScheduleCalendar({
 	workerMode = false,
 }: {
 	workerMode?: boolean;
@@ -565,6 +619,7 @@ export function SalesProductionCalendar({
 					</div>
 				</div>
 
+				<p className="text-sm text-muted-foreground">{data.scheduled.length} schedule groups · Assignment production due dates.</p>
 				<Card className="overflow-auto">
 					{calendarView === "week" ? (
 						<div className="grid min-w-[980px] grid-cols-7 divide-x">

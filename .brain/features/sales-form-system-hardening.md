@@ -1,5 +1,24 @@
 # Sales Form System Hardening
 
+## Versioned workflow step list (2026-09-04)
+
+- The shared Sales Form workflow item card now delegates step navigation to a
+  versioned `WorkflowStepList`. V1 preserves the existing rounded pill UI and
+  remains the default for Dealership and other shared consumers.
+- Dashboard New Sales Form opts both its package-workflow and fallback workflow
+  panels into V2. V2 renders the step values/titles as a compact horizontal
+  hierarchy separated by `/`, gives only the current step the approved soft-blue
+  emphasis, and wraps complete separator/step units onto additional lines when
+  the available width is exhausted. The hierarchy strip has a 43px minimum
+  height, grows with wrapped rows, and sits flush against the bottom of the item
+  header. Every separator has an explicit 8px inset on both sides so the
+  hierarchy reads like the approved GStack reference instead of compressed
+  inline text. V2 step labels and separators use the standard 12px caption size,
+  and all step labels render in uppercase for a consistent scan line.
+- Step activation, disabled-step behavior, labels, and active-step semantics are
+  unchanged. No schema, migration, API, auth, permission, pricing, or save
+  contract changed.
+
 ## HPT size hot-swap and height reconciliation (2026-09-03)
 
 - Every House Package Tool size row now has an accessible Repeat/swap control.

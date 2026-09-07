@@ -4,7 +4,6 @@ import { DispatchAdminHeader } from "@/components/dispatch-admin/dispatch-admin-
 import { DispatchCalendarSkeleton } from "@/components/dispatch-admin/dispatch-calendar-view-v2";
 import { DispatchActiveView } from "@/components/dispatch-admin/views/dispatch-active-view";
 import { DispatchBacklogView } from "@/components/dispatch-admin/views/dispatch-backlog-view";
-import { DispatchCalendarSection } from "@/components/dispatch-admin/views/dispatch-calendar-section";
 import { DispatchCompletedView } from "@/components/dispatch-admin/views/dispatch-completed-view";
 import { DispatchDashboardView } from "@/components/dispatch-admin/views/dispatch-dashboard-view";
 import { DispatchDriversView } from "@/components/dispatch-admin/views/dispatch-drivers-view";
@@ -16,7 +15,19 @@ import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import type { TableSettings } from "@/utils/table-settings";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import dynamic from "next/dynamic";
 import { Suspense } from "react";
+
+const DispatchCalendarSection = dynamic(
+	() =>
+		import("@/components/dispatch-admin/views/dispatch-calendar-section").then(
+			(module) => module.DispatchCalendarSection,
+		),
+	{
+		ssr: false,
+		loading: DispatchCalendarSkeleton,
+	},
+);
 
 export function DispatchAdminWorkspaceClient({
 	initialSettings,

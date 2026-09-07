@@ -48,6 +48,12 @@ retained even when removed from active membership.
 
 ## Consequences
 
+Ticket 18 clarification (2026-09-07): commercial `void` and `voided` are
+cancelled terminal states in the canonical resolver. Calendar planning must
+reuse this shared exclusion and command decision, never add its own terminal
+string interpretation. Existing stored projections for these aliases must be
+checked for a bounded refresh before deployment.
+
 - Every consumer receives consistent lifecycle meaning and a common evidence
   revision.
 - Non-production and zero-item Dispatch records no longer pollute operational

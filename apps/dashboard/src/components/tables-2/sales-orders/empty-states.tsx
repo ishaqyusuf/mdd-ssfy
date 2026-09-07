@@ -20,12 +20,13 @@ export function EmptyState() {
 	);
 }
 
-export function NoResults() {
+export function NoResults({ onBeforeClear }: { onBeforeClear?: () => void }) {
 	const { filters, setFilters } = useSalesOrdersV2FilterParams();
 
 	return (
 		<CoreNoResults
 			onClear={() => {
+				onBeforeClear?.();
 				setFilters(
 					Object.fromEntries(
 						Object.keys(filters).map((key) => [key, null]),

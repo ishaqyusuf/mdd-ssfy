@@ -147,12 +147,14 @@ import {
 	resolveWorkflowRouteStatus,
 	resolveWorkflowStepComponentStatus,
 } from "./workflow-query-state";
+import type { WorkflowStepListVersion } from "./workflow-step-list";
 
 export type SalesFormWorkflowPanelProps<
 	TLine extends WorkflowLineItemRecord = WorkflowLineItemRecord,
 > = {
 	record: SalesFormWorkflowRecord<TLine>;
 	editor?: SalesFormWorkflowEditorState;
+	stepListVersion?: WorkflowStepListVersion;
 	actions: SalesFormWorkflowActions<TLine>;
 	dataSource: SalesFormWorkflowDataSource;
 	pricing?: SalesFormWorkflowPricingSurface<TLine>;
@@ -1731,6 +1733,7 @@ export function SalesFormWorkflowPanel<
 					items={routeScopedLineItems.map((line, index) => ({ line, index }))}
 					activeLineUid={activeLine?.uid || activeItem || null}
 					activeStepByLine={activeStepByLine}
+					stepListVersion={props.stepListVersion}
 					resolveActiveStepIndex={resolveInteractiveStepIndex}
 					getLineTitlePlaceholder={(line) =>
 						getLineTitlePlaceholder(line) || null

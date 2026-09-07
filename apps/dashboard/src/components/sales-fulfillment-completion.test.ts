@@ -75,4 +75,24 @@ describe("Status-only Fulfillment completion UI contract", () => {
 		expect(dialogSource).not.toContain("Record administrative override");
 		expect(dialogSource).toContain("Record milestone only");
 	});
+
+	test("offers Full workflow or Status only for lifecycle exceptions", () => {
+		expect(menuSource).toMatch(
+			/const openProductionAdministrativeOverride[\s\S]*?setProductionCompletionChoice\(getDefaultSalesCompletionChoice\(\)\)/,
+		);
+		expect(menuSource).toMatch(
+			/const openFulfillmentAdministrativeOverride[\s\S]*?setFulfillmentCompletionChoice\(getDefaultSalesCompletionChoice\(\)\)/,
+		);
+		expect(dialogSource).not.toContain("{!administrativeOverride ? (");
+		expect(dialogSource).toContain(
+			"Choose how GND should record ${milestone} completion",
+		);
+	});
+
+	test("keeps completion dialogs inside small responsive viewports", () => {
+		const responsiveDialogClass =
+			'className="max-h-[calc(100dvh-2rem)] overflow-y-auto"';
+
+		expect(dialogSource.split(responsiveDialogClass)).toHaveLength(3);
+	});
 });

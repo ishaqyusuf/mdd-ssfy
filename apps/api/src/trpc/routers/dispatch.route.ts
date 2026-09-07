@@ -115,7 +115,6 @@ import {
 	refreshSalesOrderListProjections,
 	runSalesPipelineCommandTransaction,
 	scheduleMoveDate,
-	shouldEnforceCanonicalSalesPipelineCommands,
 } from "@gnd/sales";
 import { resolveDriverRouteDestination } from "@gnd/sales/dispatch-manifest/driver-destination";
 import { getDriverManifestItemPresentation } from "@gnd/sales/dispatch-manifest/driver-item-presentation";
@@ -221,9 +220,7 @@ async function runCanonicalDispatchCommand<T>(
 			{
 				...input,
 				authorized: true,
-				enforce: shouldEnforceCanonicalSalesPipelineCommands(
-					input.salesOrderId,
-				),
+				enforce: true,
 			},
 			(transactionDb) => execute(transactionDb),
 		);

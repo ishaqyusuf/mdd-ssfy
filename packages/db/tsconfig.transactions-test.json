@@ -1,6 +1,9 @@
 {
 	"extends": "./tsconfig.json",
-	"include": ["src/transactions.test.ts"],
+	"include": [
+		"src/transactions.test.ts",
+		"src/sales-pipeline-shadow-index.test.ts"
+	],
 	"exclude": ["node_modules"],
 	"compilerOptions": {
 		"noEmit": true,

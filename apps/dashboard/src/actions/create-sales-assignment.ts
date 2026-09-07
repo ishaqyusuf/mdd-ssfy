@@ -6,6 +6,8 @@ import { sum } from "@/lib/utils";
 import { reconcileSalesHandoffAfterCommit } from "@api/db/queries/sales-handoff-actions";
 import { Notifications } from "@gnd/notifications";
 import { resetSalesAction } from "@sales/sales-control/actions";
+import { getSaleInformation, getSalesPipelineSnapshots, runSalesPipelineCommandTransaction } from "@sales/exports";
+import { assertProductionAssignmentQuantity } from "@sales/production-assignment-quantity";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
@@ -87,13 +89,28 @@ export const createSalesAssignmentAction = actionClient
         // if (input.assignedToId) input.assignedToId = +input.assignedToId;
         return _createSalesAssignmentAction(input);
     });
-const _createSalesAssignmentAction = async (input) => {
+const _createSalesAssignmentAction = async (input: z.infer<typeof createAssignmentSchema>) => {
     const actor = await getLoggedInProfile();
     if (!actor.userId) throw new Error("Authentication is required.");
     requireProductionAssignmentAuthority(actor);
     const actorId = actor.userId;
-    const resp = await prisma.$transaction(async (tx: typeof prisma) => {
-        const assignment = await createSalesAssignment(input, tx);
+    const snapshot = (await getSalesPipelineSnapshots(prisma, [input.salesId])).get(input.salesId);
+    if (!snapshot) throw new Error("The sales order is no longer available.");
+    const execution = await runSalesPipelineCommandTransaction(prisma, {
+        salesOrderId: input.salesId,
+        action: "production.assign",
+        authorized: true,
+        expectedRevision: snapshot.revision,
+        enforce: true,
+        operation: "dashboard.production.create-assignment",
+    }, async (tx) => {
+        const info = await getSaleInformation(tx, { salesId: input.salesId });
+        const item = info.items.find(item => item.controlUid === input.itemUid);
+        if (!item || !item.itemConfig?.production || item.itemId !== input.salesItemId || (item.doorId ?? null) !== (input.salesDoorId ?? null) || (item.shelfId ?? null) !== (input.shelfItemId ?? null)) {
+            throw new Error("This production item is no longer available. Refresh and try again.");
+        }
+        assertProductionAssignmentQuantity(input.qty, item.analytics.assignment.pending);
+        const assignment = await createSalesAssignment({ ...input, unitLabor: item.unitLabor }, tx);
         await resetSalesAction(tx as any, input.salesId);
         return {
             assignmentId: assignment.id,
@@ -105,6 +122,8 @@ const _createSalesAssignmentAction = async (input) => {
             orderNo: assignment.order.orderId || undefined,
         };
 	    });
+    const resp = execution.value;
+    if (!resp) throw new Error("No production assignment was created. Refresh and try again.");
 	await reconcileSalesHandoffAfterCommit(prisma, {
 		salesOrderIds: [input.salesId],
 		actorUserId: actorId,

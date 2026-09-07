@@ -101,6 +101,24 @@ function createQueryClientSpy() {
 }
 
 describe("query event executor", () => {
+	it("stales Planning, Schedule, both due lists and summaries together after a pipeline change", async () => {
+		const queryClient = new QueryClient();
+		const trpc = createTRPCOptionsProxy<AppRouter>({ client: {} as never, queryClient });
+		const dates = { from: "2026-09-07", to: "2026-09-13" };
+		const keys = [
+			trpc.sales.productionPlanningCalendar.queryKey(dates),
+			trpc.sales.productionCalendar.queryKey(dates),
+			trpc.sales.productionSummary.queryKey({}),
+			trpc.sales.productions.infiniteQueryKey({ show: "due-today" }),
+			trpc.sales.productions.infiniteQueryKey({ show: "past-due" }),
+		];
+		try {
+			for (const key of keys) queryClient.setQueryData<unknown>(key, { version: "before-assignment" });
+			const results = await executeQueryEvent({ event: { name: "sales.pipeline.changed" }, queryClient, trpc });
+			expect(results.every((result) => result.status === "fulfilled")).toBe(true);
+			for (const key of keys) expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+		} finally { queryClient.clear(); }
+	});
 	it("resolves query paths from the real tRPC options proxy", async () => {
 		const { invalidated, queryClient } = createQueryClientSpy();
 		const trpc = createTRPCOptionsProxy<AppRouter>({

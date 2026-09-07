@@ -105,5 +105,64 @@ describe("WorkflowLineList", () => {
 		expect(html).toContain("motion-reduce:transition-none");
 		expect(html).toContain("w-full gap-2 uppercase");
 		expect(html).toContain("Add New Line");
+		expect(html).toContain('data-version="v1"');
+	});
+
+	it("renders the V2 steps as a slash-separated value hierarchy", () => {
+		const html = renderToStaticMarkup(
+			<WorkflowLineList
+				items={[
+					{
+						index: 0,
+						line: {
+							uid: "line-1",
+							title: "Garage door",
+							formSteps: [
+								{ value: "Garage Door", step: { title: "Item Type" } },
+								{ value: "SC Molded", step: { title: "Style" } },
+								{ value: "8-0", step: { title: "Height" } },
+								{
+									value: "House Package Tool",
+									step: { title: "Package Tool" },
+								},
+							],
+						},
+					},
+				]}
+				activeLineUid="line-1"
+				activeStepByLine={{ "line-1": 3 }}
+				stepListVersion="v2"
+				resolveActiveStepIndex={(_steps, index) => index}
+				getLineTitlePlaceholder={() => null}
+				getLineDisplayTotal={() => 0}
+				onActivateLine={() => undefined}
+				onTitleChange={() => undefined}
+				onRemoveLine={() => undefined}
+				onStepChange={() => undefined}
+				renderPanel={() => <div>Active step panel</div>}
+				isRedirectDisabledStep={() => false}
+				stepKey={(lineUid, stepIndex) => `${lineUid}-${stepIndex}`}
+				componentLabel={(value) => value || ""}
+			/>,
+		);
+
+		expect(html).toContain('data-version="v2"');
+		expect(html).toContain('aria-label="Item configuration steps"');
+		expect(html).toContain(">Garage Door</button>");
+		expect(html).toContain(">SC Molded</button>");
+		expect(html).toContain(">8-0</button>");
+		expect(html).toContain(">House Package Tool</button>");
+		expect(html.match(/aria-hidden="true"/g)?.length).toBe(3);
+		expect(html).toContain(
+			'aria-current="step" aria-label="Open House Package Tool"',
+		);
+		expect(html).toContain("bg-primary/10 px-2 font-bold text-primary");
+		expect(html).toContain('class="px-2 text-xs');
+		expect(html).toContain("text-xs whitespace-nowrap uppercase");
+		expect(html).not.toContain("-mx-4 mt-3 min-h-[43px]");
+		expect(html).toContain("flex flex-wrap items-center");
+		expect(html).toContain("flex shrink-0 items-center");
+		expect(html).not.toContain("overflow-x-auto");
+		expect(html).not.toContain("min-w-max");
 	});
 });

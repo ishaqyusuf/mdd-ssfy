@@ -73,6 +73,7 @@ const salesProductionTargets = [
 	pathTarget("sales.productionsV2"),
 	pathTarget("sales.productionSummary"),
 	pathTarget("sales.productionCalendar"),
+	pathTarget("sales.productionPlanningCalendar"),
 	pathTarget("sales.productionCalendarTasks"),
 	pathTarget("sales.productionDashboard"),
 	pathTarget("sales.productionDashboardV2"),

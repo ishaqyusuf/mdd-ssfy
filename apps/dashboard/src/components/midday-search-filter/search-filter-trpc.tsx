@@ -93,6 +93,7 @@ interface Props {
 	pageTabs?: ReactNode;
 	fixedPageTabs?: PageTabItem[];
 	pageTabsLayout?: "default" | "adaptive";
+	onBeforePageTabChange?: () => void;
 	toolbarActions?: ReactNode;
 	hiddenFilterKeys?: string[];
 }
@@ -124,6 +125,7 @@ export function SearchFilterTRPC({
 	pageTabs,
 	fixedPageTabs = [],
 	pageTabsLayout = "default",
+	onBeforePageTabChange,
 	toolbarActions,
 	hiddenFilterKeys = [],
 }: Props) {
@@ -246,7 +248,13 @@ export function SearchFilterTRPC({
 
 	useHotkeys(
 		"esc",
-		() => {
+		(event) => {
+			// Dismissing the menu must not also clear the URL-backed filters.
+			// Radix may close it before this document-level hotkey is delivered.
+			if (isOpen || event.target !== inputRef.current) {
+				setIsOpen(false);
+				return;
+			}
 			hasPendingDebouncedSearch.current = false;
 			setPrompt("");
 			clearEditableFilters();
@@ -304,6 +312,7 @@ export function SearchFilterTRPC({
 				fixedTabs={fixedPageTabs}
 				maxVisible={usesAdaptivePageTabs ? ADAPTIVE_PAGE_TAB_LIMITS : undefined}
 				className={cn(stackPageTabs && "w-full lg:basis-full")}
+				onBeforeNavigate={onBeforePageTabChange}
 				action={
 					canSaveCurrentView ? (
 						<SavePageTabButton

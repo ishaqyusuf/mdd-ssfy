@@ -801,3 +801,18 @@ Tracks notable migrations and migration strategy.
   20.20 seconds. Prisma reports production in sync. The operation was additive;
   no reset or operational Sales, Production, inventory, packing, Dispatch,
   payment, or accounting row rewrite occurred.
+
+## 20260904155300_add_sales_pipeline_shadow_scan_index
+
+- Adds `idx_sales_order_pipeline_shadow_scan` on
+  `SalesOrderListProjection(state, version, pipelineContractVersion,
+  salesOrderId)` to match the production shadow/cutover scan's health,
+  contract-version, and stable-order access path.
+- The change adds no column and rewrites no operational or projection row.
+  Focused schema/report tests pass, Prisma Client generation passes, and scoped
+  Biome is clean.
+- The guarded production push verified
+  `mysql://aws.connect.psdb.cloud/gndprodesk#identity=ba57b207` and completed in
+  6.97 seconds on 2026-09-04. Before the push, production `EXPLAIN` selected
+  `idx_sales_order_list_health` with `Using where; Using filesort`; afterward it
+  selects the new index with `Using index condition` and no filesort.

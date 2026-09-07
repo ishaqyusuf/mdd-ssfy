@@ -7,7 +7,7 @@ import {
 	salesOrderListProjectionVersion,
 	serializeSalesOrderListRow,
 } from "./order-list-read-model";
-import { getSalesOrderLifecycleStatusInfo } from "./order-status";
+import type { SalesOrderLifecycleStatus } from "./order-status";
 import { repairSalesInvoiceCccDisplay } from "./payment-system";
 import { getSalesPriorityLabel, normalizeSalesPriority } from "./priority";
 import {
@@ -21,7 +21,6 @@ import { resolveSalesInventoryApplicability } from "./sales-inventory-applicabil
 import { resolveSalesInventoryLegacyCompatibility } from "./sales-inventory-legacy-compatibility";
 import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 import { getSalesPipelineSnapshots } from "./sales-pipeline-order";
-import { selectSalesPipelineReadProjection } from "./sales-pipeline-rollout";
 import { getSpecialOrderStatusLabel } from "./special-order";
 import { withSalesControl } from "./utils/with-sales-control";
 
@@ -613,69 +612,37 @@ export async function refreshSalesOrderListProjections(
 		: await runRead(() => withSalesControl(baseRows, db as Db));
 	const projectedRows = controlledRows.map((row) => {
 		const canonicalPipeline = pipelineSnapshots.get(row.id) ?? null;
-		const selectedPipeline = canonicalPipeline
-			? selectSalesPipelineReadProjection(canonicalPipeline)
-			: null;
-		const productionState =
-			row.control.productionStatus !== "unknown"
-				? row.control.productionStatus
-				: row.productionState;
-		const fulfillmentState =
-			row.control.dispatchStatus !== "unknown"
-				? row.control.dispatchStatus
-				: row.fulfillmentState;
-		const lifecycle = getSalesOrderLifecycleStatusInfo({
-			orderStatus: row.orderStatus,
-			legacyProductionStatus: row.prodStatus,
-			productionStatus: productionState,
-			fulfillmentStatus: fulfillmentState,
-			hasProductionWork: productionState === "N/A" ? false : undefined,
-			packed: row.control.packed,
-			pendingPacking: row.control.pendingPacking,
-			pendingDispatch: row.control.pendingDispatch,
-			packables: row.control.packables,
-		});
+		const selectedPipeline = canonicalPipeline;
+		const lifecycleStatus = (selectedPipeline?.headline.code ??
+			"unknown") as SalesOrderLifecycleStatus;
 		const existingInventoryNeedCount = requirementCounts.get(row.id) ?? 0;
 		const { inventoryProjection, ...payload } = row;
 		return {
 			...payload,
 			pipeline: canonicalPipeline,
-			pipelineLegacyPresentation: {
-				status: lifecycle.status,
-				statusLabel: lifecycle.label,
-				statusTone: lifecycle.tone,
-				productionState,
-				productionLabel: row.productionLabel,
-				fulfillmentState,
-				fulfillmentLabel: row.fulfillmentLabel,
-			},
-			productionState: selectedPipeline?.production.state ?? productionState,
+			productionState: selectedPipeline?.production.state ?? "unknown",
 			productionLabel: row.completion.productionCompletionSatisfied
 				? row.productionLabel
 				: selectedPipeline?.production.state === "administratively_completed"
 					? "Administratively completed"
-					: productionLabel(
-							selectedPipeline?.production.state ?? productionState,
-						),
-			fulfillmentState: selectedPipeline?.fulfillment.state ?? fulfillmentState,
+					: productionLabel(selectedPipeline?.production.state ?? "unknown"),
+			fulfillmentState: selectedPipeline?.fulfillment.state ?? "unknown",
 			fulfillmentLabel: row.completion.fulfillmentCompletionSatisfied
 				? row.fulfillmentLabel
 				: selectedPipeline?.fulfillment.state === "administratively_completed"
 					? "Administratively completed"
-					: titleCaseStatus(
-							selectedPipeline?.fulfillment.state ?? fulfillmentState,
-						),
-			status: selectedPipeline?.headline.code ?? lifecycle.status,
-			statusLabel: selectedPipeline?.headline.label ?? lifecycle.label,
-			statusTone: selectedPipeline?.headline.tone ?? lifecycle.tone,
+					: titleCaseStatus(selectedPipeline?.fulfillment.state ?? "unknown"),
+			status: selectedPipeline?.headline.code ?? "unknown",
+			statusLabel: selectedPipeline?.headline.label ?? "Status unavailable",
+			statusTone: selectedPipeline?.headline.tone ?? "stone",
 			inventoryApplicability: resolveSalesInventoryApplicability({
-				lifecycleStatus: lifecycle.status,
+				lifecycleStatus,
 				projection: inventoryProjection,
 				existingInventoryNeedCount,
 			}),
 			inventoryLegacyCompatibility: resolveSalesInventoryLegacyCompatibility({
 				legacyStatus: row.inboundStatus,
-				lifecycleStatus: lifecycle.status,
+				lifecycleStatus,
 				inventoryRowCount: existingInventoryNeedCount,
 				projectionStatus: inventoryProjection?.status,
 				projectionNeedCount: inventoryProjection?.needCount,

@@ -45,18 +45,20 @@ type SalesProductionCompletionDialogsProps = {
 	onCancelCompletion: () => void;
 };
 
-function EffectiveCompletionDateField({
+export function EffectiveCompletionDateField({
 	effectiveDate,
 	idPrefix,
 	isFulfillment,
 	milestone,
 	onEffectiveDateChange,
+	description,
 }: {
 	effectiveDate: string;
 	idPrefix: string;
 	isFulfillment: boolean;
 	milestone: "Production" | "Fulfillment";
 	onEffectiveDateChange: (value: string) => void;
+	description?: string;
 }) {
 	const [open, setOpen] = useState(false);
 	const selectedDate = fromSalesCompletionDateValue(effectiveDate);
@@ -108,8 +110,12 @@ function EffectiveCompletionDateField({
 				) : null}
 			</div>
 			<FieldDescription>
-				{isFulfillment ? "Defaults to today. " : ""}Clear the date when the
-				real-world date is unknown; GND keeps the recording time separate.
+				{description ?? (
+					<>
+						{isFulfillment ? "Defaults to today. " : ""}Clear the date when the
+						real-world date is unknown; GND keeps the recording time separate.
+					</>
+				)}
 			</FieldDescription>
 		</Field>
 	);
@@ -154,17 +160,11 @@ export function SalesProductionCompletionDialogs(
 					if (!props.markPending) props.onConfirmationOpenChange(open);
 				}}
 			>
-				<AlertDialog.Content>
+				<AlertDialog.Content className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
 					<AlertDialog.Header>
-						<AlertDialog.Title>
-							{administrativeOverride
-								? `Resolve lifecycle exception as ${milestone} completed`
-								: `Mark ${milestone} completed`}
-						</AlertDialog.Title>
+						<AlertDialog.Title>Mark {milestone} completed</AlertDialog.Title>
 						<AlertDialog.Description>
-							{administrativeOverride
-								? `Acknowledge the lifecycle exception and record an audited status-only ${milestone.toLowerCase()} milestone${isBulk ? ` for ${props.salesOrderCount} selected orders` : ""}.`
-								: `Choose how GND should record ${milestone} completion${isBulk ? ` for ${props.salesOrderCount} selected orders` : ""}. Full workflow is selected by default.`}
+							{`Choose how GND should record ${milestone} completion${isBulk ? ` for ${props.salesOrderCount} selected orders` : ""}. Full workflow is selected by default.`}
 						</AlertDialog.Description>
 					</AlertDialog.Header>
 					<RadioGroup
@@ -176,33 +176,31 @@ export function SalesProductionCompletionDialogs(
 						}}
 						className="gap-3"
 					>
-						{!administrativeOverride ? (
-							<label
-								htmlFor={`${idPrefix}-completion-full-workflow`}
-								className="flex cursor-pointer items-start gap-3 rounded-md border p-4 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-muted/40"
-							>
-								<RadioGroupItem
-									id={`${idPrefix}-completion-full-workflow`}
-									value="FULL_WORKFLOW"
-									className="mt-0.5"
-									disabled={props.canRunFullWorkflow === false}
-								/>
-								<span>
-									<span className="block text-sm font-medium">
-										Complete full workflow
-									</span>
-									<span className="mt-1 block text-sm text-muted-foreground">
-										Run the existing stage-wise {milestone} process and all
-										applicable business effects.
-									</span>
-									{props.canRunFullWorkflow === false ? (
-										<span className="mt-2 block text-xs text-amber-700 dark:text-amber-300">
-											Full-workflow permission is required for this choice.
-										</span>
-									) : null}
+						<label
+							htmlFor={`${idPrefix}-completion-full-workflow`}
+							className="flex cursor-pointer items-start gap-3 rounded-md border p-4 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-muted/40"
+						>
+							<RadioGroupItem
+								id={`${idPrefix}-completion-full-workflow`}
+								value="FULL_WORKFLOW"
+								className="mt-0.5"
+								disabled={props.canRunFullWorkflow === false}
+							/>
+							<span>
+								<span className="block text-sm font-medium">
+									Complete full workflow
 								</span>
-							</label>
-						) : null}
+								<span className="mt-1 block text-sm text-muted-foreground">
+									Run the existing stage-wise {milestone} process and all
+									applicable business effects.
+								</span>
+								{props.canRunFullWorkflow === false ? (
+									<span className="mt-2 block text-xs text-amber-700 dark:text-amber-300">
+										Full-workflow permission is required for this choice.
+									</span>
+								) : null}
+							</span>
+						</label>
 						{props.showStatusOnly || administrativeOverride ? (
 							<label
 								htmlFor={`${idPrefix}-completion-status-only`}
@@ -268,25 +266,27 @@ export function SalesProductionCompletionDialogs(
 								milestone={milestone}
 								onEffectiveDateChange={props.onEffectiveDateChange}
 							/>
-							{administrativeOverride ? (
-								<label
-									className="block space-y-1.5"
-									htmlFor={`${idPrefix}-administrative-override-reason`}
-								>
-									<span className="text-sm font-medium">Reason (required)</span>
-									<Textarea
-										id={`${idPrefix}-administrative-override-reason`}
-										maxLength={500}
-										value={props.administrativeOverrideReason ?? ""}
-										onChange={(event) =>
-											props.onAdministrativeOverrideReasonChange?.(
-												event.target.value,
-											)
-										}
-										placeholder="Why should this lifecycle exception be overridden?"
-									/>
-								</label>
-							) : null}
+							<label
+								className="block space-y-1.5"
+								htmlFor={`${idPrefix}-status-only-reason`}
+							>
+								<span className="text-sm font-medium">Reason (required)</span>
+								<Textarea
+									id={`${idPrefix}-status-only-reason`}
+									maxLength={500}
+									value={props.administrativeOverrideReason ?? ""}
+									onChange={(event) =>
+										props.onAdministrativeOverrideReasonChange?.(
+											event.target.value,
+										)
+									}
+									placeholder={
+										administrativeOverride
+											? "Why should this lifecycle exception be overridden?"
+											: "Why should this completion be recorded without the full workflow?"
+									}
+								/>
+							</label>
 						</div>
 					) : null}
 					<AlertDialog.Footer>
@@ -299,7 +299,7 @@ export function SalesProductionCompletionDialogs(
 								(props.choice === "FULL_WORKFLOW" &&
 									props.canRunFullWorkflow === false) ||
 								(props.choice === "STATUS_ONLY" && !statusOnlyAvailable) ||
-								(administrativeOverride &&
+								(props.choice === "STATUS_ONLY" &&
 									!(props.administrativeOverrideReason ?? "").trim())
 							}
 							onClick={(event) => {
@@ -325,7 +325,7 @@ export function SalesProductionCompletionDialogs(
 					if (!props.cancelPending) props.onCancellationOpenChange(open);
 				}}
 			>
-				<AlertDialog.Content>
+				<AlertDialog.Content className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
 					<AlertDialog.Header>
 						<AlertDialog.Title>
 							Cancel {milestone} status-only completion?

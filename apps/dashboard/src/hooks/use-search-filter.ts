@@ -11,12 +11,18 @@ interface Props {
 	filterSchema?: Partial<Record<string, any>>;
 	defaults?: Record<string, unknown>;
 	searchKey?: string;
+	onBeforeFilterChange?: () => void;
 }
 export const {
 	Provider: SearchFilterProvider,
 	useContext: useSearchFilterContext,
 } = createContextFactory(
-	({ filterSchema, defaults, searchKey = "q" }: Props) => {
+	({
+		filterSchema,
+		defaults,
+		searchKey = "q",
+		onBeforeFilterChange,
+	}: Props) => {
 		const [isOpen, setIsOpen] = useState(false);
 		const [isFocused, setIsFocused] = useState(false);
 		const [filters, setFilters] = useQueryStates(filterSchema, {
@@ -46,6 +52,7 @@ export const {
 
 		function setFilter(update: Record<string, unknown> | null) {
 			if (update === null) {
+				onBeforeFilterChange?.();
 				setFilters(defaults ?? null);
 				return;
 			}
@@ -65,6 +72,7 @@ export const {
 				return;
 			}
 
+			onBeforeFilterChange?.();
 			setFilters(normalizedUpdate);
 		}
 

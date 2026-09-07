@@ -65,6 +65,7 @@ interface PageTabsProps {
 	maxVisible?: ResponsivePageTabLimit;
 	showManage?: boolean;
 	showAll?: boolean;
+	onBeforeNavigate?: () => void;
 }
 
 type ResolvedPageTab = PageTabItem & {
@@ -158,6 +159,7 @@ export function PageTabs({
 	maxVisible,
 	showManage = true,
 	showAll = true,
+	onBeforeNavigate,
 }: PageTabsProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -307,6 +309,7 @@ export function PageTabs({
 										aria-current={tab.active ? "page" : undefined}
 										className="inline-flex items-center gap-2"
 										href={tab.href}
+										onNavigate={tab.active ? undefined : onBeforeNavigate}
 									>
 										<span>{tab.title}</span>
 										{tab.default ? (
@@ -390,6 +393,7 @@ export function PageTabs({
 													tab.active && "bg-accent font-medium",
 												)}
 												href={tab.href}
+												onNavigate={tab.active ? undefined : onBeforeNavigate}
 											>
 												<span className="min-w-0 flex-1 truncate">
 													{tab.title}

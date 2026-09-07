@@ -6,7 +6,7 @@ import { hasQty } from "@gnd/utils/sales";
 
 import { hasCompletedProductionLifecycle } from "./bulk-production-completion";
 import { fulfillSalesInventoryNeedsManually } from "./manual-fulfill-sales-inventory-needs";
-import { getSalesOrderLifecycleStatus } from "./order-status";
+import { getLegacySalesOrderLifecycleStatus } from "./legacy-order-status";
 import {
 	decideProductionSubmissionMaterialReview,
 	getActionablePendingReviewIds,
@@ -166,7 +166,7 @@ export async function getSalesStatusMarkAsEligibleSalesOrderIds(
 	const eligibleIds = new Set(
 		rows.flatMap((row) => {
 			const status = overallStatus(row.stat);
-			const lifecycleStatus = getSalesOrderLifecycleStatus({
+			const lifecycleStatus = getLegacySalesOrderLifecycleStatus({
 				orderStatus: row.status,
 				legacyProductionStatus: row.prodStatus,
 				productionStatus: status.production.status,

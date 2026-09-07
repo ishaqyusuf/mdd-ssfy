@@ -159,6 +159,12 @@ import {
 	salesCompletionProjectionInputSchema,
 } from "@gnd/sales/sales-completion";
 import {
+	getSalesCompletionStatusOnlyFallbackPreview,
+	markSalesCompletionStatusOnlyFallback,
+	markSalesCompletionStatusOnlyFallbackSchema,
+	salesCompletionFallbackAttemptSchema,
+} from "@gnd/sales/sales-completion-fallback";
+import {
 	SalesWorkflowCancellationError,
 	cancelSalesWorkflowLayer,
 	cancelSalesWorkflowLayerSchema,
@@ -194,9 +200,9 @@ import {
 	refreshSalesOrderListProjections,
 	runSalesPipelineCommandTransaction,
 	salesProductionCalendarQuerySchema,
+	salesProductionPlanningCalendarQuerySchema,
 	salesProductionQueryParamsSchema,
 	setProductionReadinessOverride,
-	shouldEnforceCanonicalSalesPipelineCommands,
 } from "@sales/exports";
 import { salesPrioritySchema } from "@sales/priority";
 import {
@@ -219,6 +225,7 @@ import {
 	getSalesProductionSummary,
 	getSalesProductions,
 } from "@sales/sales-production";
+import { getSalesProductionPlanningCalendar } from "@sales/sales-production-planning-calendar";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -611,6 +618,37 @@ export const salesRouter = createTRPCRouter({
 				return toSalesCompletionTrpcError(error);
 			}
 		}),
+	salesCompletionStatusOnlyFallbackPreview: protectedProcedure
+		.input(salesCompletionFallbackAttemptSchema)
+		.query(async (props) => {
+			await requireStatusOnlySalesCompletionEditor(props.ctx);
+			try {
+				return await getSalesCompletionStatusOnlyFallbackPreview(
+					props.ctx.db,
+					props.input,
+				);
+			} catch (error) {
+				return toSalesCompletionTrpcError(error);
+			}
+		}),
+	markSalesCompletionStatusOnlyFallback: protectedProcedure
+		.input(markSalesCompletionStatusOnlyFallbackSchema)
+		.mutation(async (props) => {
+			const actor = await requireStatusOnlySalesCompletionEditor(props.ctx);
+			try {
+				return await markSalesCompletionStatusOnlyFallback(
+					props.ctx.db,
+					props.input,
+					{
+						id: actor.id,
+						name: actor.name || `User ${actor.id}`,
+					},
+					salesCompletionWriteHooks,
+				);
+			} catch (error) {
+				return toSalesCompletionTrpcError(error);
+			}
+		}),
 	markProductionCompletionStatusOnly: protectedProcedure
 		.input(markProductionCompletionStatusOnlySchema)
 		.mutation(async (props) => {
@@ -909,6 +947,18 @@ export const salesRouter = createTRPCRouter({
 				...(props.input || {}),
 			});
 		}),
+	productionPlanningCalendar: protectedProcedure
+		.input(salesProductionPlanningCalendarQuerySchema)
+		.query(async (props) => {
+			const session = await requireAnyOperationalPermission(
+				props.ctx,
+				["viewOrders", "editOrders", "editProduction"],
+				"You do not have permission to view production planning.",
+			);
+			return getSalesProductionPlanningCalendar(props.ctx.db, props.input, {
+				canAssign: session.can.editProduction === true,
+			});
+		}),
 	productionCalendar: protectedProcedure
 		.input(salesProductionCalendarQuerySchema)
 		.query(async (props) => {
@@ -1090,9 +1140,7 @@ export const salesRouter = createTRPCRouter({
 					action: "production.review.resolve",
 					authorized: true,
 					expectedRevision: props.input.pipelineRevision,
-					enforce: shouldEnforceCanonicalSalesPipelineCommands(
-						reviewScope.salesOrderId,
-					),
+					enforce: true,
 					executeOnReplay: true,
 					operation: "api.production-submission-review.decision",
 				},

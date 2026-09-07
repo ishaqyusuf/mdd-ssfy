@@ -1,5 +1,31 @@
 # Canonical Sales Pipeline Lifecycle
 
+## Release closure — 2026-09-07
+
+All18 approved tickets are complete with196/196 acceptance checks. The three
+retired Production lifecycle selector keys were removed with explicit approval
+and their absence verified. Active Sales Orders read-model settings remain.
+Runtime does not consult the removed keys, so immutable older deployment env
+snapshots are harmless. No production database mutation was part of cleanup.
+
+## Post-cutover indexed Production membership
+
+After canonical cutover, Production summary/list membership reads the
+current-version canonical stage columns on `SalesOrderListProjection` directly.
+The dashboard computes this membership once and shares it across summary,
+spotlight, Due Today, Due Tomorrow, and Past Due sections. Only missing,
+unready, version-mismatched, or incomplete projections reconstruct canonical
+source evidence. A source row that becomes unavailable during fallback is
+reported as unavailable/excluded rather than failing the complete workspace;
+visible result rows still hydrate their current canonical snapshot.
+
+Production and Fulfillment state labels are owned by the canonical contract.
+Customer and Dealer channels return an explicit `Status unavailable` projection
+when evidence is unavailable instead of dropping an existing order or
+reconstructing lifecycle from legacy strings. Mobile dashboard unknown,
+conflict, and not-required stages remain outside active queue counts, while
+administrative completion counts as completed.
+
 ## Purpose
 
 `@gnd/sales` owns one versioned Sales Pipeline Snapshot for lifecycle meaning
@@ -12,6 +38,124 @@ that own payments, inventory, Production assignments/submissions, packing, or
 Dispatch proof.
 
 ## Contract
+
+Single-item Production assignment now uses the same locked canonical command
+authority as batch assignment, reloads source capacity in the transaction, and
+rejects excess, fractional, negative or incompatible handed quantities. Legacy
+placeholder control UIDs are matched only within the exact item/door/shelf;
+no-handle pending quantities cannot expose negative hand counters.
+
+Planning loading/error presentation is isolated for deterministic query-retry
+testing. Failed queries show an alert and Retry, not stale cards or raw source
+errors. Escape dismisses the filter menu without clearing URL filters; clearing
+via Escape is limited to the search input. All six status text palettes pass
+WCAG AA contrast against actual light and composited dark theme colors.
+
+Planning cards use the order's stored slug for edit navigation and always show
+unknown material applicability as Readiness unavailable, never a simultaneous
+ready claim from an empty requirement aggregate. They show
+normalized priority, including Normal. Permission and overview-navigation hooks
+are owned by the Calendar, not repeated for each rendered card. Planning
+payloads are rejected by strict Production schedule-move input; existing
+assignment-group moves retain their original contract.
+
+Commercial statuses `void` and `voided` share canonical cancelled semantics:
+cancelled headline, no actionable planning membership and rejected assignment
+commands. Planning Unknown applicability remains non-assignable and exposes
+`STAGE_APPLICABILITY_UNKNOWN` with a readable requirement-review explanation.
+
+ADR 086 makes unresolved Sales reconciliation an informational cleanup
+population rather than a rollout failure. The fresh local comparison reports
+8,172 orders, with 7,500 accepted and 672 informational exceptions; 547 are
+from 2026 onward and 125 are older. Cutover continues to require zero stale
+projections, zero unexplained workspace membership, acceptable latency, and
+operator approval. Unsafe legacy-transition counts and incomplete conflict
+sampling remain visible in the report but do not require automatic repair.
+
+For a deliberately selected status-only action, an exceptional Production or
+Fulfillment target stage may preserve known supported cross-stage conflict
+codes as immutable information rather than rejecting the user decision. The
+command still writes only the selected administrative completion record, never
+operational proof. Unknown future conflict codes, cancelled orders, coherent
+wrong-stage actions, stale revisions, absent reasons, missing permission, and
+idempotency mismatches fail closed. No database schema change is required.
+
+This policy is deployed to Production in
+`dpl_HUPC9gH7aiVmszXfqv5U2C2KUh8p`, READY on www/apex with the canonical cohort
+unchanged at 5%. The isolated release used the exact prior live source and only
+the reviewed `64eb7dde8` overlay. Focused tests, both scoped compilers, the
+Production build, and HTTP smoke checks pass. The 13.80-second Orders smoke does
+not satisfy the independent reliability gate; no database push or data repair
+was part of the release.
+
+The September 6 fail-closed local administrative run consumed only complete,
+source-audited single-stage candidates and revalidated their exact revision,
+policy, assignment shape, source guard, and actor permission before each
+sequential write. It completed 497/497 local actions—490 Fulfillment and seven
+Production—with zero replay, skip, or failure. Immutable administrative
+provenance is the only reason those rows cease to count as unsafe; their
+operational facts are preserved. Independent 5% and 100% shadows compare all
+8,172 orders with zero unexplained membership differences and 672 unsafe
+transitions remaining. A fresh source audit classifies all 674 remaining
+missing-proof Dispatches as non-reconstructable and proposes zero deterministic
+source repairs. Those orders remain fail-closed for human source-fact review;
+production data and the existing 5% cohort are unchanged.
+
+The September 5 fresh-local convergence uses served top-level projection
+revision/version fields as reconciliation authority and repairs derived
+presentation drift before returning a fresh blocking conflict for review. A
+revision-checked, backed-up local-only run converged 1,269 projections without
+changing lifecycle facts. The subsequent full shadow comparison has zero stale
+or unexplained-membership rows but 1,169 unsafe legacy-versus-canonical
+transitions, so the unsafe-transition cutover gate is open. The material review
+tool also supports an explicitly read-only audit-all inventory: it classified
+all 101 candidates, including 75 ambiguous rows, while mutation remains
+fail-closed. Neither result authorizes synthetic completion or a broader live
+cohort.
+
+Historical schedule parity diagnostics accept an explicit operational date.
+They compare Calendar to the exact-date Production list and do not relabel the
+runtime-day summary as historical. The corrected 2026-09-02 local 5% and 100%
+runs both return `09322AD`, `09454DB`, and `09502PC` in Calendar and list;
+runtime-day empty parity remains separately labelled. Audit acceptance exhausts
+bounded list pagination, records both sorted ID sets plus truncation, and claims
+exact parity only for an untruncated identical set.
+
+The shadow report also classifies administrative-resolution policy without
+executing or authorizing a command. In the fresh local unsafe population, 503
+rows are Fulfillment status-only eligible, 7 are Production status-only
+eligible, 658 contain supported codes across both stages and remain rejected by
+the approved single-stage/cross-stage fail-closed contract, and one already-
+fulfilled headline retains a Production conflict. This is a decision inventory,
+not permission or migration evidence.
+
+The same report may simulate those already-evaluated decisions only against an
+in-memory snapshot copy. Eligible Production/Fulfillment stages resolve to the
+`administratively_completed` headline while their original blocking evidence
+remains visible; operational evidence is neither added nor rewritten. Cross-
+stage or terminal unsupported cases remain unchanged. Simulation never invokes
+the command executor or a database writer and is explicitly not authorization.
+
+Unsafe-transition diagnostics also retain source-fact shapes. A Production
+assignment is completion-evidenced only by a completion timestamp or sufficient
+accepted completed/submitted quantity; non-open zero-quantity assignments with
+no such evidence are indeterminate. The corrected fresh-local inventory finds
+1,147 completion-evidenced-only histories with missing delivery proof, three
+completion-evidenced/indeterminate histories with missing proof, 11 completion-
+evidenced/open histories with missing proof, and eight completion-evidenced-only
+histories without a Fulfillment gap. Committed inventory is present for every
+proof-incomplete Dispatch. The 11 open rows and three indeterminate rows remain
+distinct high-risk operator-review populations even when the pure status-only
+policy says the Fulfillment stage is eligible.
+
+Latest release: `dpl_HHZGDvhKgQqfCh2CQhqXvjbwAmAx` is Ready on both live
+aliases, with the reviewed page/material query improvements and complete
+material-applicability dependency closure throughb19823a53 at unchanged5%.
+Isolated317 package/hydration tests,721 API tests, Sales/API typechecks, and
+both reviews pass. Active and Completed render all sections, but the first
+live GET still logs a15-second timeout despite eventual rendering. Separate
+missing-server-action POST404 warnings remain untraced. Live performance and
+full membership acceptance stay open; Scratch retains exact request evidence.
 
 Completed query/row cohort parity is implemented under ADR085 and deployed in
 `dpl_H1DSyqsLp2A8nD4UimxKNattFcU2`, Ready on both live aliases.
@@ -46,7 +190,7 @@ loading100 full records. Post-filtered scans retain100. The public-query
 regression proves first/second page and cursor continuity. This local follow-up
 does not change membership, ordering, material evidence, or status authority.
 Read-only list timing still exceeds the15-second runtime budget; Scratch keeps
-the evidence and remaining full-detail/material-query bottlenecks. Not deployed.
+the evidence and remaining request-cost bottlenecks. Now deployed in the latest release.
 
 The shared Production material plan loader now reads the same evidence through
 four concurrent branches: header/delivery, catalog, commitments, and inbound.
@@ -58,7 +202,7 @@ The readiness resolver, authorization, and transaction boundaries are unchanged;
 this is not an atomic multi-query snapshot. Read surfaces retain unavailable
 fallbacks; mutation readiness callers retain fail-closed behavior. Read-only
 61-line parity, select-aware reordered/missing/retarget fixtures, and both
-reviews pass. This follow-up remains local; live latency is not accepted.
+reviews pass. This follow-up is deployed; live latency is not accepted.
 Release dependency review also requires unavailable material evidence to retain
 `unknown` applicability as well as the existing unknown badge. An unavailable
 empty result must not assert that material is not required; the latter applies
@@ -72,7 +216,7 @@ are unchanged, and post-filtered scans retain their existing bounds. This
 local slice passes the301-test Sales matrix,721 API tests, Sales/API typechecks,
 and both review axes. Its read-only20-row list sample measured11062ms including
 connection. It is not an atomic snapshot or a live performance acceptance
-claim; material/global-sort paths are unchanged. Release verification remains.
+claim; material/global-sort paths are unchanged. Live acceptance remains open.
 
 `@gnd/sales` declares `@gnd/errors` as a direct runtime workspace dependency for
 its canonical command error contract. Release validation must run against an
@@ -448,6 +592,37 @@ requires actor and reason and may repair only the recomputable
 
 ### Rollout gate
 
+- Ticket 17 is complete at 12/12 and the authoritative Scratch batch is 177/196.
+  Production and Fulfillment full-workflow jobs persist immutable per-sale
+  outcomes, while a second explicit status-only confirmation is offered only
+  for the unsuccessful eligible subset. The package-owned preview and command
+  require a reason, bind current completion and pipeline revisions, revalidate
+  supported blockers and editor authorization, and link the original attempt,
+  outcome, fallback decision, and resulting status-only record without
+  repeating successful side effects or fabricating operational evidence.
+  Formal review locked provenance to the internal fallback boundary, added
+  fingerprint integrity checks for every persisted outcome, bounded preview
+  concurrency, sanitized unexpected errors, and moved pending confirmations
+  into a FIFO/keyed global provider so they survive navigation without modal
+  preemption. The focused matrix passes 109 tests / 380 assertions. No schema
+  or additional database column was required.
+  READY Production deployment `dpl_J8rgFzwLZUGYirwPMcWbzCgXeJKH` is aliased to
+  `https://www.gndprodesk.com`; the corrected candidate passed the full remote
+  Next.js production build after replacing a build-fragile Zod `.omit()` schema
+  derivation with the direct strict public base schema.
+  Authenticated QA also confirmed and corrected that unavailable/conflicting
+  lifecycle actions must retain the same Full workflow or Status only choice;
+  administrative provenance no longer forces or preselects Status only.
+  READY clean-build deployment `dpl_8fJCigQxVcTPT6JWrFQzyvuts5Pq` contains
+  that correction and owns the Production alias.
+  Authenticated Production and local browser QA then verified both milestones,
+  safe cancellation, and a persisted failed-workflow-to-status-only fallback.
+  Exact 390×844 QA found and fixed the expanded form's vertical overflow; both
+  completion dialogs now cap to the dynamic viewport and scroll internally.
+  Mobile/tablet Calendar, Tab focus, Escape, and no-horizontal-overflow checks
+  pass. READY deployment `dpl_CTJRtcF9uerErnk1k2bM1Qk7V8Ua` completed a clean
+  remote Next.js build and now owns the Production alias.
+
 - The fresh corrected local shadow report compared 6,821 projections and found
   zero unsafe transition differences and zero stale projections. Its 95.30 ms
   p95 spans 97 actual paged database reads and fresh resolver batches.
@@ -466,10 +641,12 @@ requires actor and reason and may repair only the recomputable
   row changed afterward and unsafe version-1 backups fail closed. The
   current-evidence terminal/superseded/empty material-review query seam passes
   focused integration coverage.
-- Across the seventeen-ticket Scratch queue, 161/178 acceptance checks are
+- Across the eighteen-ticket Scratch queue, 161/196 acceptance checks are
   verified: Tickets 01–10, 12, 13, 15, and 16 are done; Ticket 11 is in
   progress; Ticket 14 is in production rollout at 9/13; and approved Ticket 17
-  is queued after Ticket 14 at 0/12. Ticket 15's simplified
+  is queued after Ticket 14 at 0/12. Approved Ticket 18 is queued after Ticket
+  17 at 0/18; the larger denominator is added scope, not reopened work. Ticket
+  15's simplified
   visible action pair now routes ordinary and audited exception commands by
   canonical lifecycle state, and Sales Order editors may use the bounded
   exception path. Ticket 16's confirmation uses the shared shadcn picker with
@@ -484,6 +661,13 @@ requires actor and reason and may repair only the recomputable
   selection. Partial full-workflow failures may offer a second explicit
   status-only confirmation for only the unsuccessful eligible subset; the
   system must never silently downgrade or repeat side effects.
+  Ticket 18 preserves the assignment-backed Schedule and its parity with Due
+  Today/Past Due while adding a separate admin Planning-gaps projection for
+  eligible orders whose order-level Production due date exists without full
+  assignment coverage. It also locks Calendar colors to canonical Production
+  state: planning amber, assigned purple, in-progress blue, completed emerald,
+  conflicts rose, and unavailable neutral, with status-only completion kept
+  green plus explicit provenance. Worker calendars remain assignment-only.
   Ticket 14's local synchronized-data validation is complete; the operator
   explicitly waived Preview and authorized the direct-production path, so that
   gate is recorded as satisfied without claiming a Preview run occurred.
@@ -660,3 +844,14 @@ requires actor and reason and may repair only the recomputable
 Production deployment/general cutover is intentionally not implied by local
 completion. The production default remains shadow until measured production
 gates and operator approval pass.
+# Ticket 18 local Calendar integration — 2026-09-07
+
+Admin Production Calendar now has URL-backed Schedule and Planning gaps modes.
+Planning uses order Production due dates and canonical uncovered assignment
+quantity, with review-only exceptions and a separately permissioned read API.
+Both projections receive package-owned color and completion provenance; active
+status-only completion is emerald and explicitly labelled. Planning cards open
+existing Production details and authorized order edits, never schedule moves.
+Pipeline change events refresh both modes. Local verification: 134 tests / 427
+assertions and API typecheck pass; browser QA and database-plan verification
+remain open. This Ticket 18 implementation has not been deployed.

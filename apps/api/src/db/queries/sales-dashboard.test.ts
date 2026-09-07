@@ -2,12 +2,50 @@ import { describe, expect, it } from "bun:test";
 import type { TRPCContext } from "@api/trpc/init";
 
 import {
+	classifyMobileSalesDashboardPipeline,
 	formatSalesDashboardDate,
 	getRevenueOverTime,
 	getSalesDashboardCreatedAtRange,
 	getSalesPerformanceReport,
 	getSalesTaxReport,
 } from "./sales-dashboard";
+
+describe("mobile sales dashboard canonical buckets", () => {
+	const snapshot = (
+		production: string,
+		fulfillment: string,
+		commercial = "open",
+	) =>
+		({
+			commercial: { state: commercial },
+			production: { state: production },
+			fulfillment: { state: fulfillment },
+		}) as never;
+
+	it("counts administrative completion as complete in both stages", () => {
+		expect(
+			classifyMobileSalesDashboardPipeline(
+				snapshot("administratively_completed", "administratively_completed"),
+			),
+		).toEqual({ production: "completed", delivery: "completed" });
+	});
+
+	it("does not misclassify unavailable, conflict, or not-required stages as queue work", () => {
+		for (const state of ["unknown", "conflict", "not_required"]) {
+			expect(
+				classifyMobileSalesDashboardPipeline(snapshot(state, state)),
+			).toEqual({ production: "unknown", delivery: "unknown" });
+		}
+	});
+
+	it("keeps cancellation ahead of fulfillment work", () => {
+		expect(
+			classifyMobileSalesDashboardPipeline(
+				snapshot("assigned", "packing", "cancelled"),
+			),
+		).toEqual({ production: "pending", delivery: "cancelled" });
+	});
+});
 
 describe("sales dashboard date filters", () => {
 	it("normalizes date-only filters to inclusive calendar-day bounds", () => {

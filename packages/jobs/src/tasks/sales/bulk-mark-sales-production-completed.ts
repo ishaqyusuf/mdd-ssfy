@@ -2,14 +2,11 @@ import { userHasPermission } from "@gnd/auth/utils";
 import { db } from "@gnd/db";
 import {
 	type BulkProductionCompletionOutcome,
-	type SalesPipelineSnapshot,
 	type UpdateSalesControl,
 	evaluateSalesPipelineCommand,
-	getSalesOrderLifecycleStatus,
 	getSalesPipelineSnapshots,
-	hasCompletedProductionLifecycle,
 	normalizeBulkProductionCompletionSalesIds,
-	shouldEnforceCanonicalSalesPipelineCommands,
+	recordSalesCompletionFullWorkflowOutcomes,
 	summarizeBulkProductionCompletionResult,
 } from "@gnd/sales";
 import {
@@ -32,21 +29,6 @@ function safeErrorMessage(error: unknown) {
 		if (typeof message === "string" && message.trim()) return message;
 	}
 	return "The production completion operation failed.";
-}
-
-function legacyProductionLifecycle(snapshot: SalesPipelineSnapshot) {
-	const aggregate = snapshot.evidence.production.aggregate;
-	return getSalesOrderLifecycleStatus({
-		orderStatus: snapshot.evidence.legacy?.orderStatus,
-		legacyProductionStatus: snapshot.evidence.legacy?.productionStatus,
-		productionStatus:
-			aggregate && Number(aggregate.percentage || 0) >= 100
-				? "completed"
-				: aggregate && Number(aggregate.score || 0) > 0
-					? "in progress"
-					: null,
-		fulfillmentStatus: snapshot.evidence.legacy?.fulfillmentStatus,
-	});
 }
 
 export const bulkMarkSalesProductionCompleted = schemaTask({
@@ -88,26 +70,6 @@ export const bulkMarkSalesProductionCompleted = schemaTask({
 					status: "failed",
 					error: "The sales order is no longer available.",
 				});
-				continue;
-			}
-			if (!shouldEnforceCanonicalSalesPipelineCommands(salesId)) {
-				const lifecycle = legacyProductionLifecycle(snapshot);
-				if (hasCompletedProductionLifecycle(lifecycle)) {
-					outcomes.push({
-						salesId,
-						orderNo: snapshot.evidence.orderNo,
-						status: "already_completed",
-					});
-				} else if (lifecycle === "cancelled") {
-					outcomes.push({
-						salesId,
-						orderNo: snapshot.evidence.orderNo,
-						status: "failed",
-						error: "Cancelled orders cannot be marked production completed.",
-					});
-				} else {
-					ready.push({ salesId, orderNo: snapshot.evidence.orderNo });
-				}
 				continue;
 			}
 			const decision = evaluateSalesPipelineCommand(snapshot, {
@@ -207,6 +169,12 @@ export const bulkMarkSalesProductionCompleted = schemaTask({
 			total: salesIds.length,
 			startedAt,
 			outcomes,
+		});
+		await recordSalesCompletionFullWorkflowOutcomes(db, {
+			milestone: "PRODUCTION_COMPLETED",
+			requestId: result.requestId,
+			actor: input.actor,
+			outcomes: result.outcomes,
 		});
 		metadata
 			.set("status", result.failed ? "completed_with_errors" : "completed")

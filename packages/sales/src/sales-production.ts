@@ -1,10 +1,9 @@
 import type { Db, Prisma } from "@gnd/db";
 import { sum, transformFilterDateToQuery } from "@gnd/utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
-import { type PageDataMeta, composeQueryData } from "@gnd/utils/query-response";
-import { hasCompletedProductionLifecycle } from "./bulk-production-completion";
+import { composeQueryData } from "@gnd/utils/query-response";
 import { salesOrderListProjectionVersion } from "./order-list-read-model";
-import { getSalesOrderLifecycleStatusInfo } from "./order-status";
+import { getProductionCalendarPresentation } from "./production-calendar-presentation";
 import {
 	getSalesPriorityLabel,
 	getSalesPriorityRank,
@@ -22,24 +21,17 @@ import {
 	summarizeProductionMaterials,
 	unavailableProductionMaterialSummary,
 } from "./production-v2/application/production-materials";
-import { resolveProductionWorkflowStatus } from "./production-workflow-status";
 import { resolveSalesProductionWorkspaceQuery } from "./production-workspace-query";
 import { getSalesProductionPlan } from "./sales-fulfillment-plan";
-import { resolveSalesInventoryFulfillmentStatus } from "./sales-inventory-policy";
 import {
 	SALES_PIPELINE_CONTRACT_VERSION,
 	type SalesPipelineSnapshot,
+	getSalesPipelineProductionStateLabel,
 	isProductionScheduleAssignmentOpen,
 	matchesCanonicalSalesPipelineFilter,
 	resolveCanonicalWorkspaceMembership,
 } from "./sales-pipeline";
 import { getSalesPipelineSnapshots } from "./sales-pipeline-order";
-import { getCanonicalSalesPipelineCohortIds } from "./sales-pipeline-rollout-query";
-import {
-	getSalesPipelineReadMode,
-	observeSalesPipelineReadProjection,
-	shouldObserveSalesPipelineRead,
-} from "./sales-pipeline-rollout";
 import {
 	resolveProductionScheduleMoveCapability,
 	scheduleBusinessDate,
@@ -75,22 +67,14 @@ type SalesProductionListQuery = SalesProductionQueryParams & {
 	"production.status"?: SalesQueryParamsSchema["production.status"];
 };
 
-function usesLegacyProductionCompletionFilter(
-	query: Pick<
-		SalesProductionListQuery,
-		"production" | "completion.production" | "production.status"
-	>,
-) {
-	return (
-		query.production === "pending" &&
-		query["completion.production"] == null &&
-		query["production.status"] == null
-	);
-}
+type SalesProductionCanonicalContext = {
+	canonicalMembership?: CanonicalProductionStageMembership;
+};
 
 export async function getSalesProductions(
 	db: Db,
 	input: SalesProductionListQuery,
+	context: SalesProductionCanonicalContext = {},
 ) {
 	const resolved = resolveSalesProductionWorkspaceQuery(input);
 	const query = {
@@ -122,6 +106,7 @@ export async function getSalesProductions(
 			},
 			{
 				includeMaterials: query.includeMaterials,
+				canonicalMembership: context.canonicalMembership,
 			},
 		);
 		return dueQueue;
@@ -158,11 +143,10 @@ export async function getSalesProductions(
 		{
 			includeMaterials: query.includeMaterials,
 			workerCompletion: workerCompleted ? "completed" : undefined,
+			canonicalMembership: context.canonicalMembership,
 		},
 	);
-	return usesLegacyProductionCompletionFilter(query)
-		? filterCompletedProductions(response)
-		: response;
+	return response;
 	//   const others = prodList.filter((p) => !excludesIds?.includes(p.id));
 }
 
@@ -191,6 +175,17 @@ export async function getSalesProductionDashboard(
 		production: "pending",
 		"completion.production": "pending",
 	};
+	const {
+		production: _production,
+		"completion.production": _completion,
+		...workspaceFilters
+	} = baseQuery;
+	const canonicalMembership = await loadCanonicalProductionStageMembershipIds(
+		db,
+		buildProductionWorkspaceWhere(
+			workspaceFilters as unknown as SalesQueryParamsSchema,
+		),
+	);
 
 	const [
 		{ summary },
@@ -200,30 +195,46 @@ export async function getSalesProductionDashboard(
 		pastDue,
 		calendarResult,
 	] = await Promise.all([
-		getSalesProductionSummary(db, input),
-		getSalesProductions(db, {
-			...baseQuery,
-			size: 6,
-			includeMaterials: false,
-		}),
-		getSalesProductions(db, {
-			...baseQuery,
-			show: "due-today",
-			size: 8,
-			includeMaterials: false,
-		}),
-		getSalesProductions(db, {
-			...baseQuery,
-			show: "due-tomorrow",
-			size: 8,
-			includeMaterials: false,
-		}),
-		getSalesProductions(db, {
-			...baseQuery,
-			show: "past-due",
-			size: 8,
-			includeMaterials: false,
-		}),
+		getSalesProductionSummary(db, input, { canonicalMembership }),
+		getSalesProductions(
+			db,
+			{
+				...baseQuery,
+				size: 6,
+				includeMaterials: false,
+			},
+			{ canonicalMembership },
+		),
+		getSalesProductions(
+			db,
+			{
+				...baseQuery,
+				show: "due-today",
+				size: 8,
+				includeMaterials: false,
+			},
+			{ canonicalMembership },
+		),
+		getSalesProductions(
+			db,
+			{
+				...baseQuery,
+				show: "due-tomorrow",
+				size: 8,
+				includeMaterials: false,
+			},
+			{ canonicalMembership },
+		),
+		getSalesProductions(
+			db,
+			{
+				...baseQuery,
+				show: "past-due",
+				size: 8,
+				includeMaterials: false,
+			},
+			{ canonicalMembership },
+		),
 		getSalesProductionCalendar(db, {
 			from: dayjs().format("YYYY-MM-DD"),
 			to: dayjs().add(9, "day").format("YYYY-MM-DD"),
@@ -248,6 +259,7 @@ export async function getSalesProductionDashboard(
 export async function getSalesProductionSummary(
 	db: Db,
 	input: SalesProductionListQuery,
+	context: SalesProductionCanonicalContext = {},
 ) {
 	const resolved = resolveSalesProductionWorkspaceQuery(input);
 	const query = {
@@ -273,53 +285,41 @@ export async function getSalesProductionSummary(
 		production: "pending",
 		"completion.production": "pending",
 	};
-	const [
-		queueCount,
-		unassignedCount,
+	const canonicalMembership =
+		context.canonicalMembership ??
+		(await loadCanonicalProductionStageMembershipIds(
+			db,
+			buildProductionWorkspaceWhere(
+				workspaceFilters as unknown as SalesQueryParamsSchema,
+			),
+		));
+	const pendingIds = [...canonicalMembership.pending];
+	const [unassignedCount, scheduleCounts, completedCount, awaitingReviewCount] =
+		await Promise.all([
+			countProductionOrders(
+				db,
+				{
+					...baseQuery,
+					"production.assignment": "not assigned",
+				},
+				pendingIds,
+			),
+			countProductionScheduleBuckets(db, baseQuery, pendingIds),
+			query.workerId
+				? countWorkerCompletedProductionOrders(db, workspaceFilters)
+				: Promise.resolve(canonicalMembership.completed.size),
+			countActionableProductionSubmissionMaterialReviews(db),
+		]);
+	const {
 		dueTodayCount,
 		dueTomorrowCount,
 		pastDueCount,
 		futureCount,
 		unscheduledCount,
-		completedCount,
-		awaitingReviewCount,
-	] = await Promise.all([
-		countProductionOrders(db, baseQuery),
-		countProductionOrders(db, {
-			...baseQuery,
-			"production.assignment": "not assigned",
-		}),
-		countProductionOrders(db, {
-			...baseQuery,
-			"production.status": "due today",
-		}),
-		countProductionOrders(db, {
-			...baseQuery,
-			"production.status": "due tomorrow",
-		}),
-		countProductionOrders(db, {
-			...baseQuery,
-			"production.status": "past due",
-		}),
-		countProductionOrders(db, {
-			...baseQuery,
-			"production.status": "future",
-		}),
-		countProductionOrders(db, {
-			...baseQuery,
-			"production.status": "unscheduled",
-		}),
-		query.workerId
-			? countWorkerCompletedProductionOrders(db, workspaceFilters)
-			: countProductionOrders(db, {
-					...workspaceFilters,
-					"completion.production": "completed",
-				}),
-		countActionableProductionSubmissionMaterialReviews(db),
-	]);
+	} = scheduleCounts;
 	return {
 		summary: {
-			queueCount,
+			queueCount: canonicalMembership.pending.size,
 			unassignedCount,
 			dueTodayCount,
 			dueTomorrowCount,
@@ -342,11 +342,12 @@ export async function getSalesProductionCalendar(
 	const end =
 		requestedEnd.diff(start, "day") > 41 ? start.add(41, "day") : requestedEnd;
 	const exclusiveEnd = end.add(1, "day");
-	const orderWhere = whereSales({
-		salesType: "order",
-		q: input.q,
-		"sales.priority": input.priority,
-	} as SalesQueryParamsSchema);
+	const orderWhere =
+		whereSales({
+			salesType: "order",
+			q: input.q,
+			"sales.priority": input.priority,
+		} as SalesQueryParamsSchema) || {};
 	const activeWhere = {
 		deletedAt: null,
 		assignedToId: input.assignedToId || undefined,
@@ -356,7 +357,7 @@ export async function getSalesProductionCalendar(
 				: input.scope === "all"
 					? undefined
 					: null,
-		order: orderWhere,
+		order: { AND: [{ deletedAt: null }, orderWhere] },
 	} satisfies Prisma.OrderItemProductionAssignmentsWhereInput;
 	const calendarSelect = {
 		id: true,
@@ -383,11 +384,7 @@ export async function getSalesProductionCalendar(
 				id: true,
 				orderId: true,
 				status: true,
-				prodStatus: true,
 				priority: true,
-				stat: {
-					where: { deletedAt: null, type: "prodCompleted" },
-				},
 				customer: { select: { name: true, businessName: true } },
 			},
 		},
@@ -414,15 +411,9 @@ export async function getSalesProductionCalendar(
 			input.scope === "completed" ? !open : input.scope === "all" || open;
 		if (!legacyIncluded) return false;
 		const snapshot = calendarPipelineSnapshots.get(row.order.id);
-		const selected = snapshot
-			? observeSalesPipelineReadProjection(snapshot, {
-					surface: "production.calendar.membership",
-					legacyProductionIncluded: legacyIncluded,
-				})
-			: null;
-		if (!selected) return true;
+		if (!snapshot) return false;
 		const membershipScope = open ? "calendar" : "completed";
-		return resolveCanonicalWorkspaceMembership(selected, {
+		return resolveCanonicalWorkspaceMembership(snapshot, {
 			workspace: "production",
 			scope: membershipScope,
 			operationalDate,
@@ -433,33 +424,10 @@ export async function getSalesProductionCalendar(
 	const toCalendarRow = (row: (typeof scheduledRows)[number]) => {
 		const assignmentCompleted = !isProductionAssignmentRowOpen(row);
 		const pipelineSnapshot = calendarPipelineSnapshots.get(row.order.id);
-		const pipeline = pipelineSnapshot
-			? observeSalesPipelineReadProjection(pipelineSnapshot, {
-					surface: "production.calendar.row",
-					legacyProductionIncluded: !assignmentCompleted,
-				})
-			: null;
-		const aggregateContradictsEvidence =
-			pipelineSnapshot &&
-			!isCanonicalProductionCompleted(pipelineSnapshot) &&
-			pipelineSnapshot.conflicts.some(
-				(conflict) => conflict.code === "PRODUCTION_COMPLETION_AGGREGATE_DRIFT",
-			);
-		const aggregateProductionStatus = aggregateContradictsEvidence
-			? "unknown"
-			: overallStatus(row.order.stat).production.status;
-		const legacyProductionStatus = getSalesOrderLifecycleStatusInfo({
-			productionStatus:
-				aggregateProductionStatus === "unknown"
-					? null
-					: aggregateProductionStatus,
-			legacyProductionStatus: row.order.prodStatus,
-		}).status;
+		const pipeline = pipelineSnapshot ?? null;
 		const completed =
 			assignmentCompleted ||
-			(pipeline
-				? isCanonicalProductionCompleted(pipeline)
-				: hasCompletedProductionLifecycle(legacyProductionStatus));
+			(pipeline ? isCanonicalProductionCompleted(pipeline) : false);
 
 		return {
 			id: row.id,
@@ -480,6 +448,7 @@ export async function getSalesProductionCalendar(
 						? "assigned"
 						: "unassigned",
 			pipeline,
+			presentation: getProductionCalendarPresentation(pipeline),
 		};
 	};
 	const collapseCalendarRows = (rows: typeof scheduledRows) => {
@@ -584,6 +553,7 @@ export async function getSalesProductionCalendar(
 async function countProductionOrders(
 	db: Db,
 	query: SalesProductionListQuery & Record<string, unknown>,
+	canonicalIds?: number[],
 ) {
 	const { sort: _canonicalSort, ...countQuery } = query;
 	const scheduleScoped = Boolean(query["production.status"]);
@@ -600,6 +570,21 @@ async function countProductionOrders(
 			undefined,
 		"sales.priority": query.priority || query["sales.priority"],
 	} as SalesQueryParamsSchema;
+	if (canonicalIds) {
+		const {
+			"completion.production": _completion,
+			production: _production,
+			...workspaceQuery
+		} = normalizedQuery;
+		return db.salesOrders.count({
+			where: {
+				AND: [
+					buildProductionWorkspaceWhere(workspaceQuery),
+					{ id: { in: canonicalIds } },
+				],
+			},
+		});
+	}
 	const stageWhere = await buildCanonicalProductionStageMembershipWhere(
 		db,
 		normalizedQuery,
@@ -611,6 +596,93 @@ async function countProductionOrders(
 		stageWhere,
 	);
 	return db.salesOrders.count({ where });
+}
+
+async function countProductionScheduleBuckets(
+	db: Db,
+	query: SalesProductionListQuery & Record<string, unknown>,
+	canonicalPendingIds?: number[],
+) {
+	const { sort: _canonicalSort, ...countQuery } = query;
+	const normalizedQuery = {
+		...countQuery,
+		"completion.production": undefined,
+		"production.status": undefined,
+		salesType: "order",
+		"production.assignedToId":
+			query["production.assignedToId"] ||
+			query.workerId ||
+			query.assignedToId ||
+			undefined,
+		"sales.priority": query.priority || query["sales.priority"],
+	} as SalesQueryParamsSchema;
+	const baseWhere = canonicalPendingIds
+		? {
+				AND: [
+					buildProductionWorkspaceWhere(normalizedQuery),
+					{ id: { in: canonicalPendingIds } },
+				],
+			}
+		: await buildCanonicalProductionStageMembershipWhere(
+				db,
+				normalizedQuery,
+				buildProductionWorkspaceWhere(normalizedQuery),
+			);
+	const assignments = await loadOpenProductionScheduleAssignments(
+		db,
+		normalizedQuery,
+		baseWhere,
+	);
+	const boundaries = getProductionQueueBoundaries();
+	const includedOrderIds = canonicalPendingIds
+		? new Set(canonicalPendingIds)
+		: new Set(
+				await filterCanonicalProductionQueueOrderIds(
+					db,
+					assignments.map((assignment) => assignment.orderId),
+					boundaries,
+				),
+			);
+	const dueToday = new Set<number>();
+	const dueTomorrow = new Set<number>();
+	const pastDue = new Set<number>();
+	const future = new Set<number>();
+	const unscheduled = new Set<number>();
+
+	for (const assignment of assignments) {
+		if (!includedOrderIds.has(assignment.orderId)) continue;
+		if (!assignment.dueDate) {
+			unscheduled.add(assignment.orderId);
+			continue;
+		}
+		const dueTime = assignment.dueDate.getTime();
+		if (dueTime < boundaries.today.gte.getTime()) {
+			pastDue.add(assignment.orderId);
+		}
+		if (
+			dueTime >= boundaries.today.gte.getTime() &&
+			dueTime < boundaries.today.lt.getTime()
+		) {
+			dueToday.add(assignment.orderId);
+		}
+		if (
+			dueTime >= boundaries.tomorrow.gte.getTime() &&
+			dueTime < boundaries.tomorrow.lt.getTime()
+		) {
+			dueTomorrow.add(assignment.orderId);
+		}
+		if (dueTime >= boundaries.future.gte.getTime()) {
+			future.add(assignment.orderId);
+		}
+	}
+
+	return {
+		dueTodayCount: dueToday.size,
+		dueTomorrowCount: dueTomorrow.size,
+		pastDueCount: pastDue.size,
+		futureCount: future.size,
+		unscheduledCount: unscheduled.size,
+	};
 }
 
 function isProductionAssignmentRowOpen(row: {
@@ -640,6 +712,75 @@ function isProductionAssignmentRowOpen(row: {
 	});
 }
 
+async function loadOpenProductionScheduleAssignments(
+	db: Db,
+	query: SalesQueryParamsSchema,
+	baseWhere: Prisma.SalesOrdersWhereInput,
+	dueDate?: Prisma.OrderItemProductionAssignmentsWhereInput["dueDate"],
+) {
+	const assignments = await db.orderItemProductionAssignments.findMany({
+		where: {
+			deletedAt: null,
+			completedAt: null,
+			// A positive requirement already satisfied by recorded quantity cannot
+			// be open. Keep null/zero legacy requirements for the handed-quantity
+			// fallback and still resolve submission/review evidence below.
+			OR: [
+				{ qtyAssigned: null },
+				{ qtyAssigned: { lte: 0 } },
+				{ qtyCompleted: null },
+				{
+					qtyCompleted: {
+						lt: db.orderItemProductionAssignments.fields.qtyAssigned,
+					},
+				},
+			],
+			assignedToId: query["production.assignedToId"] || undefined,
+			...(dueDate !== undefined ? { dueDate } : {}),
+			order: baseWhere,
+		},
+		select: {
+			orderId: true,
+			dueDate: true,
+			qtyAssigned: true,
+			lhQty: true,
+			rhQty: true,
+			qtyCompleted: true,
+			completedAt: true,
+			submissions: {
+				where: { deletedAt: null },
+				select: {
+					qty: true,
+					lhQty: true,
+					rhQty: true,
+					materialReview: { select: { status: true } },
+				},
+			},
+		},
+	});
+	return assignments.filter(isProductionAssignmentRowOpen);
+}
+
+async function filterCanonicalProductionQueueOrderIds(
+	db: Db,
+	orderIds: number[],
+	boundaries: ReturnType<typeof getProductionQueueBoundaries>,
+) {
+	const candidateOrderIds = Array.from(new Set(orderIds));
+	const snapshots = await getSalesPipelineSnapshots(db, candidateOrderIds);
+	const operationalDate = boundaries.today.gte.toISOString().slice(0, 10);
+	return candidateOrderIds.filter((orderId) => {
+		const snapshot = snapshots.get(orderId);
+		return snapshot
+			? resolveCanonicalWorkspaceMembership(snapshot, {
+					workspace: "production",
+					scope: "queue",
+					operationalDate,
+				}).included
+			: false;
+	});
+}
+
 async function buildProductionScheduleMembershipWhere(
 	db: Db,
 	query: SalesQueryParamsSchema,
@@ -659,81 +800,25 @@ async function buildProductionScheduleMembershipWhere(
 	else if (status === "unscheduled") dueDate = null;
 	else return baseWhere;
 
-	const assignments = await db.orderItemProductionAssignments.findMany({
-		where: {
-			deletedAt: null,
-			completedAt: null,
-			// A positive requirement already satisfied by recorded quantity cannot
-			// be open. Keep null/zero legacy requirements for the handed-quantity
-			// fallback and still resolve submission/review evidence below.
-			OR: [
-				{ qtyAssigned: null },
-				{ qtyAssigned: { lte: 0 } },
-				{ qtyCompleted: null },
-				{
-					qtyCompleted: {
-						lt: db.orderItemProductionAssignments.fields.qtyAssigned,
-					},
-				},
-			],
-			assignedToId: query["production.assignedToId"] || undefined,
-			dueDate,
-			order: baseWhere,
-		},
-		select: {
-			orderId: true,
-			qtyAssigned: true,
-			lhQty: true,
-			rhQty: true,
-			qtyCompleted: true,
-			completedAt: true,
-			submissions: {
-				where: { deletedAt: null },
-				select: {
-					qty: true,
-					lhQty: true,
-					rhQty: true,
-					materialReview: { select: { status: true } },
-				},
-			},
-		},
-	});
-	const candidateOrderIds = Array.from(
-		new Set(
-			assignments
-				.filter(isProductionAssignmentRowOpen)
-				.map((assignment) => assignment.orderId),
-		),
-	);
-	const snapshots = await getSalesPipelineSnapshots(
+	const assignments = await loadOpenProductionScheduleAssignments(
 		db,
-		candidateOrderIds.filter((orderId) => shouldObserveSalesPipelineRead(orderId)),
+		query,
+		baseWhere,
+		dueDate,
 	);
-	const operationalDate = boundaries.today.gte.toISOString().slice(0, 10);
-	const orderIds = candidateOrderIds.filter((orderId) => {
-		const snapshot = snapshots.get(orderId);
-		const selected = snapshot
-			? observeSalesPipelineReadProjection(snapshot, {
-					surface: "production.filter.membership",
-					legacyProductionIncluded: true,
-				})
-			: null;
-		return selected
-			? resolveCanonicalWorkspaceMembership(selected, {
-					workspace: "production",
-					scope: "queue",
-					operationalDate,
-				}).included
-			: true;
-	});
+	const orderIds = await filterCanonicalProductionQueueOrderIds(
+		db,
+		assignments.map((assignment) => assignment.orderId),
+		boundaries,
+	);
 	return { AND: [baseWhere, { id: { in: orderIds } }] };
 }
 
 function buildProductionWorkspaceWhere(query: SalesQueryParamsSchema) {
 	const where = whereSales(query) || {};
 	return query["completion.production"]
-		? { AND: [where, buildProductionEligibleWhere()] }
-		: where;
+		? { AND: [{ deletedAt: null }, where, buildProductionEligibleWhere()] }
+		: { AND: [{ deletedAt: null }, where] };
 }
 
 function getProductionAssignmentFilters(where: Prisma.SalesOrdersWhereInput) {
@@ -772,7 +857,7 @@ async function countWorkerCompletedProductionOrders(
 		salesType: "order",
 		"sales.priority": query.priority,
 		"production.assignedToId": workerId,
-	} as SalesQueryParamsSchema);
+	} as unknown as SalesQueryParamsSchema);
 	let skip = 0;
 	let completedCount = 0;
 	const batchSize = 250;
@@ -873,6 +958,7 @@ async function getProductionListAction(
 	options: {
 		includeMaterials?: boolean;
 		workerCompletion?: "completed";
+		canonicalMembership?: CanonicalProductionStageMembership;
 	} = {},
 ) {
 	const workspaceWhere = buildProductionWorkspaceWhere(query);
@@ -880,6 +966,7 @@ async function getProductionListAction(
 		db,
 		query,
 		workspaceWhere,
+		options.canonicalMembership,
 	);
 	const where = await buildProductionScheduleMembershipWhere(
 		db,
@@ -999,119 +1086,190 @@ async function buildCanonicalProductionStageMembershipWhere(
 	db: Db,
 	query: SalesQueryParamsSchema & { workerId?: number | null },
 	legacyWhere: Prisma.SalesOrdersWhereInput,
+	canonicalMembership?: CanonicalProductionStageMembership,
 ): Promise<Prisma.SalesOrdersWhereInput> {
 	const completion = query["completion.production"];
-	if (
-		completion !== "completed" ||
-		query.workerId ||
-		getSalesPipelineReadMode() !== "canonical"
-	) {
+	const production = query.production;
+	const desired =
+		completion === "completed" || production === "completed"
+			? "completed"
+			: completion === "pending" || production === "pending"
+				? "pending"
+				: production === "in progress"
+					? "in_progress"
+					: null;
+	if (!desired || query.workerId) {
 		return legacyWhere;
 	}
-	const cohortIds = await getCanonicalSalesPipelineCohortIds(db);
-	if (cohortIds?.length === 0) return legacyWhere;
 
-	const { "completion.production": _completion, ...candidateQuery } = query;
+	const {
+		"completion.production": _completion,
+		production: _production,
+		...candidateQuery
+	} = query;
 	const workspaceWhere = {
 		AND: [
 			whereSales(candidateQuery as SalesQueryParamsSchema) || {},
-			buildProductionEligibleWhere(),
+			{ deletedAt: null },
 		],
 	} satisfies Prisma.SalesOrdersWhereInput;
-	const completedIds = new Set<number>();
+	const membership =
+		canonicalMembership ??
+		(await loadCanonicalProductionStageMembershipIds(db, workspaceWhere));
+	return {
+		AND: [workspaceWhere, { id: { in: [...membership[desired]] } }],
+	};
+}
+
+type CanonicalProductionStageMembership = {
+	completed: Set<number>;
+	pending: Set<number>;
+	in_progress: Set<number>;
+};
+
+function emptyCanonicalProductionStageMembership(): CanonicalProductionStageMembership {
+	return {
+		completed: new Set(),
+		pending: new Set(),
+		in_progress: new Set(),
+	};
+}
+
+function addCanonicalProductionStageMembership(
+	membership: CanonicalProductionStageMembership,
+	snapshot: SalesPipelineSnapshot,
+) {
+	if (snapshot.production.applicability !== "required") return;
+	const id = snapshot.evidence.salesOrderId;
+	if (isCanonicalProductionCompleted(snapshot)) {
+		membership.completed.add(id);
+		return;
+	}
+	membership.pending.add(id);
+	if (
+		snapshot.production.state === "in_production" ||
+		snapshot.production.state === "awaiting_review"
+	) {
+		membership.in_progress.add(id);
+	}
+}
+
+function addProjectedProductionStageMembership(
+	membership: CanonicalProductionStageMembership,
+	projection: {
+		salesOrderId: number;
+		pipelineProductionApplicability: string | null;
+		pipelineProductionState: string | null;
+	},
+) {
+	if (projection.pipelineProductionApplicability !== "required") return;
+	const state = projection.pipelineProductionState;
+	if (state === "completed" || state === "administratively_completed") {
+		membership.completed.add(projection.salesOrderId);
+		return;
+	}
+	membership.pending.add(projection.salesOrderId);
+	if (state === "in_production" || state === "awaiting_review") {
+		membership.in_progress.add(projection.salesOrderId);
+	}
+}
+
+async function loadCanonicalProductionStageMembershipIds(
+	db: Db,
+	workspaceWhere: Prisma.SalesOrdersWhereInput,
+) {
+	const membership = emptyCanonicalProductionStageMembership();
+	const projections = (
+		db as Db & {
+			salesOrderListProjection?: Db["salesOrderListProjection"];
+		}
+	).salesOrderListProjection;
 	let cursor: number | undefined;
-	for (;;) {
-		const page = await db.salesOrderListProjection.findMany({
+	while (projections) {
+		const page = await projections.findMany({
 			where: {
-				...(cohortIds ? { salesOrderId: { in: cohortIds } } : {}),
 				state: "ready",
 				version: salesOrderListProjectionVersion(),
 				pipelineContractVersion: SALES_PIPELINE_CONTRACT_VERSION,
 				pipelineRevision: { not: null },
 				pipelineProductionApplicability: "required",
-				pipelineProductionState: {
-					in: ["completed", "administratively_completed"],
-				},
+				pipelineProductionState: { not: null },
 				salesOrder: { is: workspaceWhere },
 			},
-			select: { salesOrderId: true, pipelineRevision: true },
+			select: {
+				salesOrderId: true,
+				pipelineProductionApplicability: true,
+				pipelineProductionState: true,
+			},
 			orderBy: { salesOrderId: "asc" },
 			take: 250,
 			...(cursor ? { cursor: { salesOrderId: cursor }, skip: 1 } : {}),
 		});
-		const snapshots = await getSalesPipelineSnapshots(
-			db,
-			page.map((projection) => projection.salesOrderId),
-		);
 		for (const projection of page) {
-			const snapshot = snapshots.get(projection.salesOrderId);
-			if (!snapshot || projection.pipelineRevision !== snapshot.revision) {
-				throw new Error(
-					`Sales Pipeline projection is stale for order ${projection.salesOrderId}. Refresh and retry.`,
-				);
-			}
-			completedIds.add(projection.salesOrderId);
+			addProjectedProductionStageMembership(membership, projection);
 		}
 		cursor = page.at(-1)?.salesOrderId;
 		if (page.length < 250 || !cursor) break;
 	}
-	for (const id of await getUncachedCompletedProductionIds(db, workspaceWhere, cohortIds)) {
-		completedIds.add(id);
-	}
-	const canonicalWhere = { AND: [workspaceWhere, { id: { in: [...completedIds] } }] };
-	return cohortIds
-		? { OR: [
-			{ AND: [legacyWhere, { id: { notIn: cohortIds } }] },
-			canonicalWhere,
-		] }
-		: canonicalWhere;
+	await addUncachedCanonicalProductionStageMembership(
+		db,
+		workspaceWhere,
+		membership,
+	);
+	return membership;
 }
 
-async function getUncachedCompletedProductionIds(
+async function addUncachedCanonicalProductionStageMembership(
 	db: Db,
 	workspaceWhere: Prisma.SalesOrdersWhereInput,
-	cohortIds: number[] | null,
+	membership: CanonicalProductionStageMembership,
 ) {
 	const unavailableProjection = {
 		OR: [
 			{ listProjection: { is: null } },
-			{ listProjection: { is: { OR: [
-				{ state: { not: "ready" } },
-				{ version: { not: salesOrderListProjectionVersion() } },
-				{ pipelineContractVersion: null },
-				{ pipelineContractVersion: { not: SALES_PIPELINE_CONTRACT_VERSION } },
-				{ pipelineRevision: null },
-				{ pipelineProductionApplicability: null },
-				{ pipelineProductionState: null },
-			] } } },
+			{
+				listProjection: {
+					is: {
+						OR: [
+							{ state: { not: "ready" } },
+							{ version: { not: salesOrderListProjectionVersion() } },
+							{ pipelineContractVersion: null },
+							{
+								pipelineContractVersion: {
+									not: SALES_PIPELINE_CONTRACT_VERSION,
+								},
+							},
+							{ pipelineRevision: null },
+							{ pipelineProductionApplicability: null },
+							{ pipelineProductionState: null },
+						],
+					},
+				},
+			},
 		],
 	} satisfies Prisma.SalesOrdersWhereInput;
-	const completedIds: number[] = [];
 	let cursor = 0;
 	for (;;) {
 		const page = await db.salesOrders.findMany({
-			where: { AND: [
-				workspaceWhere,
-				...(cohortIds ? [{ id: { in: cohortIds } }] : []),
-				unavailableProjection,
-				{ id: { gt: cursor } },
-			] },
+			where: {
+				AND: [workspaceWhere, unavailableProjection, { id: { gt: cursor } }],
+			},
 			select: { id: true },
 			orderBy: { id: "asc" },
 			take: 250,
 		});
-		const snapshots = await getSalesPipelineSnapshots(db, page.map((row) => row.id));
+		const snapshots = await getSalesPipelineSnapshots(
+			db,
+			page.map((row) => row.id),
+		);
 		for (const row of page) {
 			const snapshot = snapshots.get(row.id);
-			if (!snapshot) {
-				throw new Error(`Sales Pipeline evidence is unavailable for order ${row.id}. Refresh and retry.`);
-			}
-			if (snapshot.production.applicability === "required" && isCanonicalProductionCompleted(snapshot)) {
-				completedIds.push(row.id);
-			}
+			if (snapshot) addCanonicalProductionStageMembership(membership, snapshot);
 		}
-		if (page.length < 250) return completedIds;
-		cursor = page[page.length - 1]!.id;
+		if (page.length < 250) return;
+		const lastPageRow = page.at(-1);
+		if (!lastPageRow) return;
+		cursor = lastPageRow.id;
 	}
 }
 
@@ -1122,35 +1280,42 @@ async function attachCanonicalProductionPipelines<
 			completed?: boolean;
 			productionCompletionSatisfied?: boolean;
 			lifecycleStatus?: string;
+			status?: {
+				production?: Record<string, unknown>;
+				[key: string]: unknown;
+			};
 		}>;
 	},
 >(db: Db, response: T) {
 	const snapshots = await getSalesPipelineSnapshots(
 		db,
-		response.data
-			.map((row) => row.id)
-			.filter((orderId) => shouldObserveSalesPipelineRead(orderId)),
+		response.data.map((row) => row.id),
 	);
 	return {
 		...response,
 		data: response.data.map((row) => {
 			const snapshot = snapshots.get(row.id) ?? null;
-			const pipeline = snapshot
-				? observeSalesPipelineReadProjection(snapshot, {
-						surface: "production.list.row",
-						legacyProductionIncluded: true,
-					})
-				: null;
+			const pipeline = snapshot;
 			const completed = pipeline
 				? isCanonicalProductionCompleted(pipeline)
-				: row.completed;
+				: false;
+			const canonicalWorkflow = pipeline
+				? canonicalProductionWorkflow(pipeline)
+				: canonicalProductionUnavailableWorkflow();
 			return {
 				...row,
 				completed,
-				productionCompletionSatisfied: pipeline
-					? completed
-					: row.productionCompletionSatisfied,
-				lifecycleStatus: pipeline?.headline.code ?? row.lifecycleStatus,
+				productionCompletionSatisfied: completed,
+				lifecycleStatus: pipeline?.headline.code ?? "unknown",
+				status: row.status
+					? {
+							...row.status,
+							production: {
+								...row.status.production,
+								workflow: canonicalWorkflow,
+							},
+						}
+					: row.status,
 				pipeline,
 			};
 		}),
@@ -1164,19 +1329,57 @@ function isCanonicalProductionCompleted(pipeline: SalesPipelineSnapshot) {
 	);
 }
 
+function canonicalProductionUnavailableWorkflow() {
+	return {
+		code: "unknown",
+		label: "Status unavailable",
+		score: 0,
+		total: 0,
+		percentage: 0,
+	};
+}
+
+function canonicalProductionWorkflow(pipeline: SalesPipelineSnapshot) {
+	const { state, requiredQty, completedQty } = pipeline.production;
+	const code =
+		state === "administratively_completed" || state === "completed"
+			? "production_completed"
+			: state;
+	const percentage =
+		requiredQty > 0
+			? Math.min((completedQty / requiredQty) * 100, 100)
+			: state === "not_required" || code === "production_completed"
+				? 100
+				: 0;
+	return {
+		code,
+		label: getSalesPipelineProductionStateLabel(state),
+		score: completedQty,
+		total: requiredQty,
+		percentage,
+	};
+}
+
 type ProductionSelectedRow = Prisma.SalesOrdersGetPayload<{
 	select: ReturnType<typeof select>;
 }>;
 
 async function loadProductionPageRows(
 	db: Db,
-	query: Pick<Prisma.SalesOrdersFindManyArgs, "where" | "orderBy" | "skip" | "take">,
+	query: Pick<
+		Prisma.SalesOrdersFindManyArgs,
+		"where" | "orderBy" | "skip" | "take"
+	>,
 	whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[],
 ): Promise<ProductionSelectedRow[]> {
-	const anchors = await db.salesOrders.findMany({ ...query, select: { id: true } });
+	const anchors = await db.salesOrders.findMany({
+		...query,
+		select: { id: true },
+	});
 	if (!anchors.length) return [];
 	const where = { id: { in: anchors.map(({ id }) => id) } };
-	const { itemControls, assignments, deliveries, ...headerSelect } = select(whereAssignments);
+	const { itemControls, assignments, deliveries, ...headerSelect } =
+		select(whereAssignments);
 	const [headers, controls, work, fulfillment] = await Promise.all([
 		db.salesOrders.findMany({
 			// Revalidate the original scope before returning any ID-anchored evidence.
@@ -1188,10 +1391,18 @@ async function loadProductionPageRows(
 		db.salesOrders.findMany({ where, select: { id: true, deliveries } }),
 	]);
 	const headerById = new Map(headers.map((row) => [row.id, row]));
-	const controlsById = new Map(controls.map((row) => [row.id, row.itemControls]));
+	const controlsById = new Map(
+		controls.map((row) => [row.id, row.itemControls]),
+	);
 	const workById = new Map(work.map((row) => [row.id, row.assignments]));
-	const fulfillmentById = new Map(fulfillment.map((row) => [row.id, row.deliveries]));
-	if ([headerById, controlsById, workById, fulfillmentById].some((index) => index.size !== anchors.length)) {
+	const fulfillmentById = new Map(
+		fulfillment.map((row) => [row.id, row.deliveries]),
+	);
+	if (
+		[headerById, controlsById, workById, fulfillmentById].some(
+			(index) => index.size !== anchors.length,
+		)
+	) {
 		throw new Error("Production order evidence changed. Refresh and retry.");
 	}
 	return anchors.map(({ id }) => {
@@ -1225,18 +1436,21 @@ async function getDatabaseSortedProductionPage(
 	let hasNextPage = false;
 	const selected: ProductionSelectedRow[] = [];
 	const direction = query.productionSort === "oldest" ? "asc" : "desc";
-	const scanSize =
-		usesLegacyProductionCompletionFilter(query) || options.workerCompletion
-			? 100
-			: Math.min(requestedTake + 1, 100);
+	const scanSize = options.workerCompletion
+		? 100
+		: Math.min(requestedTake + 1, 100);
 
 	scan: while (!hasNextPage) {
-		const records = await loadProductionPageRows(db, {
-			where,
-			orderBy: [{ createdAt: direction }, { id: direction }],
-			skip: rawCursor,
-			take: scanSize,
-		}, whereAssignments);
+		const records = await loadProductionPageRows(
+			db,
+			{
+				where,
+				orderBy: [{ createdAt: direction }, { id: direction }],
+				skip: rawCursor,
+				take: scanSize,
+			},
+			whereAssignments,
+		);
 		if (records.length === 0) break;
 		for (const item of records) {
 			rawCursor += 1;
@@ -1244,9 +1458,6 @@ async function getDatabaseSortedProductionPage(
 				useAssignmentCompletion:
 					!!query.workerId || !!query["production.status"],
 			}).completed;
-			if (usesLegacyProductionCompletionFilter(query) && completed) {
-				continue;
-			}
 			if (options.workerCompletion === "completed" && !completed) {
 				continue;
 			}
@@ -1310,15 +1521,6 @@ async function getMaterialFilteredProductionPage(
 
 		for (const item of records) {
 			rawCursor += 1;
-			if (
-				usesLegacyProductionCompletionFilter(query) &&
-				transformProductionList(item, {
-					useAssignmentCompletion:
-						!!query.workerId || !!query["production.status"],
-				}).completed
-			) {
-				continue;
-			}
 			const row = attachMaterialSummary(item, query, materialState);
 			if (
 				!query.material ||
@@ -1418,13 +1620,7 @@ async function getFilteredProductionPage(
 			select: select(whereAssignments),
 		});
 		const recordsById = new Map(records.map((item) => [item.id, item]));
-		const activeRecords = records.filter((item) => {
-			if (!usesLegacyProductionCompletionFilter(query)) return true;
-			return !transformProductionList(item, {
-				useAssignmentCompletion:
-					!!query.workerId || !!query["production.status"],
-			}).completed;
-		});
+		const activeRecords = records;
 		const materialState = await loadProductionMaterialSummaries(
 			db,
 			activeRecords.map((item) => item.id),
@@ -1435,15 +1631,6 @@ async function getFilteredProductionPage(
 			candidateIndex += 1;
 			const item = recordsById.get(candidate.id);
 			if (!item) continue;
-			if (
-				usesLegacyProductionCompletionFilter(query) &&
-				transformProductionList(item, {
-					useAssignmentCompletion:
-						!!query.workerId || !!query["production.status"],
-				}).completed
-			) {
-				continue;
-			}
 			const row = attachMaterialSummary(item, query, materialState);
 			if (
 				query.material &&
@@ -1795,17 +1982,6 @@ function transformProductionList(
 	);
 	const stats = composeSalesStatKeyValue(item.stat);
 	const status = overallStatus(item.stat);
-	const lifecycleStatus = getSalesOrderLifecycleStatusInfo({
-		orderStatus: item.status,
-		legacyProductionStatus: item.prodStatus,
-		productionStatus: status.production.status,
-		fulfillmentStatus:
-			resolveSalesInventoryFulfillmentStatus({
-				deliveries: item.deliveries,
-				stats: item.stat,
-			}) ?? status.delivery.status,
-	});
-
 	const totalCompleted = sum(
 		item.assignments.map((a) =>
 			sum(
@@ -1830,35 +2006,22 @@ function transformProductionList(
 				return productionQty?.itemTotal || fallbackQty?.itemTotal || 0;
 			}),
 	);
-	const operationallyCompleted =
-		hasCompletedProductionLifecycle(lifecycleStatus.status) ||
-		isProductionCompleted({
-			productionStat: stats.prodCompleted,
-			totalAssigned,
-			totalCompleted,
-			totalProductionQty,
-			assignmentCompleted:
-				item.assignments.length > 0 &&
-				item.assignments.every((assignment) => !!assignment.completedAt),
-			useAssignmentCompletion: options?.useAssignmentCompletion,
-		});
+	const operationallyCompleted = isProductionCompleted({
+		productionStat: stats.prodCompleted,
+		totalAssigned,
+		totalCompleted,
+		totalProductionQty,
+		assignmentCompleted:
+			item.assignments.length > 0 &&
+			item.assignments.every((assignment) => !!assignment.completedAt),
+		useAssignmentCompletion: options?.useAssignmentCompletion,
+	});
 	const completed =
 		options?.completionSatisfaction === "completed"
 			? true
 			: options?.completionSatisfaction === "pending"
 				? false
 				: operationallyCompleted;
-	const hasPendingReview = item.assignments.some((assignment) =>
-		assignment.submissions.some(
-			(submission) => submission.materialReview?.status === "PENDING",
-		),
-	);
-	const workflowStatus = resolveProductionWorkflowStatus({
-		assignment: status.assignment,
-		production: status.production,
-		hasPendingReview,
-		completed,
-	});
 	// if (completed) alert.date = null;
 
 	return {
@@ -1895,14 +2058,7 @@ function transformProductionList(
 		id: item.id,
 		createdAt: item.createdAt,
 		stats,
-		status: {
-			...status,
-			production: {
-				...status.production,
-				workflow: workflowStatus,
-			},
-		},
-		lifecycleStatus: lifecycleStatus.status,
+		status,
 	};
 }
 
@@ -1938,19 +2094,4 @@ export function isProductionCompleted({
 			? assignmentQtyCompleted || !!assignmentCompleted
 			: productionQtyCompleted)
 	);
-}
-
-function filterCompletedProductions<
-	TResponse extends {
-		data: Array<{ completed?: boolean }>;
-		meta?: PageDataMeta;
-		filter?: unknown;
-		query?: unknown;
-	},
->(response: TResponse): TResponse {
-	const data = (response.data || []).filter((item) => !item.completed);
-	return {
-		...response,
-		data,
-	} as TResponse;
 }

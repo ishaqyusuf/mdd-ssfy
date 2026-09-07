@@ -15,3 +15,15 @@ export function resolveLegacySalesOverviewMode({
 	}
 	return "default";
 }
+
+export function shouldShowLegacySalesOverviewInboundStatus({
+	mode,
+	hasSale,
+	isQuote,
+}: {
+	mode: LegacySalesOverviewMode;
+	hasSale: boolean;
+	isQuote: boolean;
+}) {
+	return mode !== "assigned-production" && hasSale && !isQuote;
+}

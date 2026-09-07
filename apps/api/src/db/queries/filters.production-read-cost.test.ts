@@ -39,33 +39,34 @@ describe("Production filter read cost", () => {
     } as unknown as TRPCContext)).rejects.toBe(failure);
   });
 
-  it("can load worker options while the independent sales-options read is pending", async () => {
-    let releaseSales!: (rows: []) => void;
-    const pendingSales = new Promise<[]>((resolve) => { releaseSales = resolve; });
-    let workerReadStarted = false;
-    const response = getSalesProductionFilters({
+  it("does not scan Sales orders to build high-cardinality Production inputs", async () => {
+    const filters = await getSalesProductionFilters({
       db: {
-        salesOrders: { findMany: () => pendingSales },
-        users: { findMany: async () => { workerReadStarted = true; return []; } },
+        salesOrders: {
+          findMany: async () => {
+            throw new Error("Production filters must not scan Sales orders");
+          },
+        },
+        users: { findMany: async () => [] },
       },
     } as unknown as TRPCContext);
-    try {
-      await Promise.resolve();
-      expect(workerReadStarted).toBe(true);
-    } finally {
-      releaseSales([]);
-      await response;
+
+    for (const key of ["q", "customer.name", "phone", "po", "sales.rep", "salesNo", "item"]) {
+      expect(filters.find((filter) => filter.value === key)).toMatchObject({
+        value: key,
+        type: "input",
+      });
     }
   });
 
   it("returns the existing filter values without employee-management reads or writes", async () => {
     const caller = {
       db: {
-        salesOrders: { findMany: async () => [{
-          orderId: "09502PC", meta: { po: "PO-42" },
-          customer: { name: "Example Customer", businessName: null, phoneNo: "123" },
-          billingAddress: { phoneNo: "456" }, salesRep: { name: "Example Rep" },
-        }] },
+        salesOrders: {
+          findMany: async () => {
+            throw new Error("Production filters must not scan Sales orders");
+          },
+        },
         users: { findMany: async (query: unknown) => {
           expect(query).toEqual({
             where: { AND: [{ accessRevokedAt: null }, { roles: { some: { role: { name: "Production" } } } }], deletedAt: null },
@@ -84,11 +85,13 @@ describe("Production filter read cost", () => {
     const filters = await getSalesProductionFilters(caller);
     const options = (key: string) => filters.find((filter) => filter.value === key)?.options;
     expect(options("assignedToId")).toEqual([{ label: "Example Worker", value: "11" }]);
-    expect(options("salesNo")).toEqual([{ label: "09502PC", value: "09502PC" }]);
-    expect(options("customer.name")).toEqual([{ label: "Example Customer", value: "Example Customer" }]);
-    expect(options("phone")).toEqual([{ label: "123", value: "123" }, { label: "456", value: "456" }]);
-    expect(options("po")).toEqual([{ label: "PO-42", value: "PO-42" }]);
-    expect(options("sales.rep")).toEqual([{ label: "Example Rep", value: "Example Rep" }]);
+    for (const key of ["q", "customer.name", "phone", "po", "sales.rep", "salesNo", "item"]) {
+      expect(filters.find((filter) => filter.value === key)).toMatchObject({
+        value: key,
+        type: "input",
+      });
+      expect(options(key)).toBeUndefined();
+    }
     expect(options("invoice")?.map((option) => option.value)).toEqual(["paid", "pending"]);
   });
 });

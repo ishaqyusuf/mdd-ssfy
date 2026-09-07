@@ -1,6 +1,7 @@
 import type { Database, Prisma } from "@gnd/db";
 import { getSalesHandoffTriggerSettings } from "@gnd/settings";
-import { getSalesOrderLifecycleStatus } from "../order-status";
+import type { SalesPipelineSnapshot } from "../sales-pipeline";
+import { getSalesPipelineSnapshots } from "../sales-pipeline-order";
 import { qualifySalesHandoff } from "../sales-handoff-qualification";
 import { resolveSalesInventoryApplicability } from "../sales-inventory-applicability";
 import {
@@ -44,6 +45,14 @@ const TERMINAL_ORDER_STATUSES = [
 	"delivered",
 	"fulfilled",
 ] as const;
+
+type SalesHandoffServiceDependencies = {
+	loadPipelineSnapshots?: typeof getSalesPipelineSnapshots;
+};
+
+const defaultSalesHandoffServiceDependencies = {
+	loadPipelineSnapshots: getSalesPipelineSnapshots,
+} satisfies Required<SalesHandoffServiceDependencies>;
 
 const productionAssignmentSelect = {
 	id: true,
@@ -415,20 +424,30 @@ export function reconcileProductionSalesHandoffEpoch(
 	});
 }
 
-function lifecycleForOrder(order: {
+export function resolveSalesHandoffLifecycle(order: {
 	deletedAt: Date | null;
-	status: string | null;
-	prodStatus: string | null;
-	deliveredAt: Date | null;
+	pipeline: SalesPipelineSnapshot | null;
 }) {
 	if (order.deletedAt) return "TERMINAL" as const;
-	const lifecycle = getSalesOrderLifecycleStatus({
-		orderStatus: order.status,
-		productionStatus: order.prodStatus,
-		fulfillmentStatus: order.deliveredAt ? "fulfilled" : null,
-	});
-	if (lifecycle === "cancelled") return "CANCELLED" as const;
-	if (lifecycle === "fulfilled") return "TERMINAL" as const;
+	if (!order.pipeline) return "UNAVAILABLE" as const;
+	if (
+		order.pipeline.commercial.state === "cancelled" ||
+		order.pipeline.headline.code === "cancelled"
+	) {
+		return "CANCELLED" as const;
+	}
+	if (
+		order.pipeline.headline.code === "fulfilled" ||
+		order.pipeline.headline.code === "administratively_completed"
+	) {
+		return "TERMINAL" as const;
+	}
+	if (
+		order.pipeline.headline.code === "unknown" ||
+		order.pipeline.headline.code === "conflict"
+	) {
+		return "UNAVAILABLE" as const;
+	}
 	return "ACTIVE" as const;
 }
 
@@ -715,6 +734,7 @@ async function projectAndReconcileSalesHandoffOrder(
 	db: Database,
 	input: {
 		order: SalesHandoffOrder;
+		pipeline: SalesPipelineSnapshot | null;
 		policy: Awaited<ReturnType<typeof getSalesHandoffTriggerSettings>>;
 		paymentProjection: PaymentProjectionRow | null | undefined;
 		timeline: Array<{
@@ -731,7 +751,10 @@ async function projectAndReconcileSalesHandoffOrder(
 	},
 ) {
 	const { order, paymentProjection } = input;
-	const lifecycle = lifecycleForOrder(order);
+	const lifecycle = resolveSalesHandoffLifecycle({
+		deletedAt: order.deletedAt,
+		pipeline: input.pipeline,
+	});
 	const components = materialComponents(order);
 	const requiresPaymentProjection =
 		lifecycle === "ACTIVE" &&
@@ -753,10 +776,7 @@ async function projectAndReconcileSalesHandoffOrder(
 				? "cancelled"
 				: lifecycle === "TERMINAL"
 					? "fulfilled"
-					: getSalesOrderLifecycleStatus({
-							orderStatus: order.status,
-							productionStatus: order.prodStatus,
-						}),
+					: (input.pipeline?.headline.code ?? "unknown"),
 		projection: order.inventoryProjection,
 		existingInventoryNeedCount: components.length,
 	});
@@ -893,7 +913,10 @@ async function projectAndReconcileSalesHandoffOrder(
 export async function getSalesHandoffActions(
 	db: Database,
 	input: { actorUserId: number; limit?: number; now?: Date },
+	dependencies: SalesHandoffServiceDependencies = defaultSalesHandoffServiceDependencies,
 ) {
+	const loadPipelineSnapshots =
+		dependencies.loadPipelineSnapshots ?? getSalesPipelineSnapshots;
 	const limit = Math.min(50, Math.max(1, Math.trunc(input.limit ?? 50)));
 	const repository = epochs(db);
 	const actorScope = await getSalesHandoffActorScope(db, input.actorUserId);
@@ -958,29 +981,35 @@ export async function getSalesHandoffActions(
 		).values(),
 	);
 	const orderIds = orders.map((order) => order.id);
-	const [policy, projectionGroups, timelines, lifecycleReviewOrderIds] =
-		await Promise.all([
-			getSalesHandoffTriggerSettings(db),
-			orderIds.length
-				? Promise.all(
-						chunks(orderIds).map((salesOrderIdChunk) =>
-							db.paymentProjection.findMany({
-								where: { salesOrderId: { in: salesOrderIdChunk } },
-								select: {
-									salesOrderId: true,
-									totalAllocated: true,
-									totalRefunded: true,
-									totalVoided: true,
-									amountDue: true,
-									version: true,
-								},
-							}),
-						),
-					)
-				: [],
-			paymentTimelines(db, orderIds),
-			getOpenSalesHandoffLifecycleReviewOrderIds(db, orderIds),
-		]);
+	const [
+		policy,
+		projectionGroups,
+		timelines,
+		lifecycleReviewOrderIds,
+		pipelineSnapshots,
+	] = await Promise.all([
+		getSalesHandoffTriggerSettings(db),
+		orderIds.length
+			? Promise.all(
+					chunks(orderIds).map((salesOrderIdChunk) =>
+						db.paymentProjection.findMany({
+							where: { salesOrderId: { in: salesOrderIdChunk } },
+							select: {
+								salesOrderId: true,
+								totalAllocated: true,
+								totalRefunded: true,
+								totalVoided: true,
+								amountDue: true,
+								version: true,
+							},
+						}),
+					),
+				)
+			: [],
+		paymentTimelines(db, orderIds),
+		getOpenSalesHandoffLifecycleReviewOrderIds(db, orderIds),
+		loadPipelineSnapshots(db, orderIds),
+	]);
 	const projections = projectionGroups.flat();
 	const projectionByOrder = new Map(
 		projections.map(
@@ -1020,6 +1049,7 @@ export async function getSalesHandoffActions(
 		const paymentProjection = projectionByOrder.get(order.id);
 		const reconciliation = await projectAndReconcileSalesHandoffOrder(db, {
 			order,
+			pipeline: pipelineSnapshots.get(order.id) ?? null,
 			policy,
 			paymentProjection,
 			timeline: timelines.get(order.id) ?? [],
@@ -1246,7 +1276,10 @@ export async function reconcileMaterialSalesHandoffOrder(
 		initialExposurePolicyChangedAt?: string | null;
 		lifecycleReviewRelease?: boolean;
 	},
+	dependencies: SalesHandoffServiceDependencies = defaultSalesHandoffServiceDependencies,
 ) {
+	const loadPipelineSnapshots =
+		dependencies.loadPipelineSnapshots ?? getSalesPipelineSnapshots;
 	const order = await db.salesOrders.findFirst({
 		where: { id: input.salesOrderId },
 		select: salesHandoffOrderSelect,
@@ -1284,23 +1317,26 @@ export async function reconcileMaterialSalesHandoffOrder(
 			productionTarget: null,
 		};
 	}
-	const [policy, paymentProjection, timelines] = await Promise.all([
-		getSalesHandoffTriggerSettings(db),
-		db.paymentProjection.findFirst({
-			where: { salesOrderId: input.salesOrderId },
-			select: {
-				salesOrderId: true,
-				totalAllocated: true,
-				totalRefunded: true,
-				totalVoided: true,
-				amountDue: true,
-				version: true,
-			},
-		}),
-		paymentTimelines(db, [input.salesOrderId]),
-	]);
+	const [policy, paymentProjection, timelines, pipelineSnapshots] =
+		await Promise.all([
+			getSalesHandoffTriggerSettings(db),
+			db.paymentProjection.findFirst({
+				where: { salesOrderId: input.salesOrderId },
+				select: {
+					salesOrderId: true,
+					totalAllocated: true,
+					totalRefunded: true,
+					totalVoided: true,
+					amountDue: true,
+					version: true,
+				},
+			}),
+			paymentTimelines(db, [input.salesOrderId]),
+			loadPipelineSnapshots(db, [input.salesOrderId]),
+		]);
 	return projectAndReconcileSalesHandoffOrder(db, {
 		order,
+		pipeline: pipelineSnapshots.get(order.id) ?? null,
 		policy,
 		paymentProjection,
 		timeline: timelines.get(input.salesOrderId) ?? [],

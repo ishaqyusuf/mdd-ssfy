@@ -157,6 +157,64 @@ describe("material-review reconciliation execution boundary", () => {
 			stopReason: "unsafe_plan:2",
 		});
 	});
+
+	it("continues past unsafe plans only for an explicit read-only full audit", async () => {
+		const reads: number[] = [];
+		const result = await runProductionMaterialReviewScan({
+			candidates: [{ id: 1 }, { id: 2 }, { id: 3 }],
+			maxMutations: 0,
+			continueAfterUnsafeForReadOnlyAudit: true,
+			load: async ({ id }) => {
+				reads.push(id);
+				return {
+					operation: id === 2 ? "unsafe" : "none",
+					enabled: false,
+					apply: async () => {
+						throw new Error("Read-only audit must not write");
+					},
+				};
+			},
+			onFailure: () => {
+				throw new Error("Unexpected failure");
+			},
+		});
+
+		expect(reads).toEqual([1, 2, 3]);
+		expect(result).toEqual({
+			mutationCount: 0,
+			lastSuccessfulReviewId: 3,
+			stopReason: null,
+			unsafeReviewIds: [2],
+		});
+	});
+
+	it("fails closed if full-audit mode encounters any enabled mutation", async () => {
+		let writes = 0;
+		const result = await runProductionMaterialReviewScan({
+			candidates: [{ id: 1 }, { id: 2 }],
+			maxMutations: 2,
+			continueAfterUnsafeForReadOnlyAudit: true,
+			load: async () => ({
+				operation: "approve_ready",
+				enabled: true,
+				apply: async () => {
+					writes += 1;
+					return true;
+				},
+			}),
+			onFailure: () => {
+				throw new Error("Unexpected failure callback");
+			},
+		});
+
+		expect(writes).toBe(0);
+		expect(result).toEqual({
+			mutationCount: 0,
+			lastSuccessfulReviewId: null,
+			stopReason: "unsafe_audit_mutation_enabled:1",
+			unsafeReviewIds: [],
+		});
+	});
 });
 
 describe("reconciliation scope validation", () => {

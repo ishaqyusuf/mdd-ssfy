@@ -29,7 +29,7 @@ import {
 	unapplyInboundShipmentFromNeeds,
 } from "@gnd/inventory";
 import { Notifications } from "@gnd/notifications";
-import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
+import { getLegacySalesOrderLifecycleStatusInfo } from "@gnd/sales/legacy-order-status";
 import {
 	autoReviewSalesPaymentsForOrderAction,
 	normalizeSalesPaymentReviewSettings,
@@ -175,7 +175,7 @@ function assertSaleCanCreateInbound(sale: InboundGuardSale) {
 		deliveries: sale.deliveries,
 		stats: sale.stat,
 	});
-	const lifecycle = getSalesOrderLifecycleStatusInfo({
+	const lifecycle = getLegacySalesOrderLifecycleStatusInfo({
 		orderStatus: sale.status,
 		legacyProductionStatus: sale.prodStatus,
 		fulfillmentStatus,
@@ -1408,9 +1408,8 @@ export async function applyInboundNeedsApplicationAttentionQuery(
 	} = {},
 ) {
 	const results = await ctx.db.$transaction(async (tx) => {
-		const applied: Awaited<
-			ReturnType<typeof applyInboundShipmentToNeeds>
-		>[] = [];
+		const applied: Awaited<ReturnType<typeof applyInboundShipmentToNeeds>>[] =
+			[];
 		for (const inboundId of input.inboundIds) {
 			applied.push(
 				await (deps.applyNeeds ?? applyInboundShipmentToNeeds)(tx, {

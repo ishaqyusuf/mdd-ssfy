@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+	buildSalesPipelineProjectionEvidence,
 	buildSalesPipelineReconciliationEvidence,
 	buildSalesPipelineReconciliationOrderWhere,
 	isRetryableDatabaseConnectionError,
@@ -18,53 +19,131 @@ const retrySource = await Bun.file(
 ).text();
 
 describe("Sales Pipeline reconciliation rollback", () => {
-	it("builds an exact order discovery predicate for split and equals flag syntax", () => {
-		expect(buildSalesPipelineReconciliationOrderWhere(["--order-id", "20780"])).toEqual({
-			type: "order", deletedAt: null, id: 20780,
+	it("classifies projection freshness from the served top-level revision columns", () => {
+		expect(
+			buildSalesPipelineProjectionEvidence({
+				projection: {
+					state: "ready",
+					version: 3,
+					sourceUpdatedAt: new Date("2026-09-05T00:00:00.000Z"),
+					pipelineRevision: "served-revision",
+					pipelineContractVersion: "sales-pipeline/v2",
+					payload: {
+						pipeline: {
+							revision: "stale-payload-revision",
+							version: "stale-payload-version",
+						},
+					},
+				},
+				orderUpdatedAt: new Date("2026-09-05T00:00:00.000Z"),
+				expectedVersion: 3,
+			}),
+		).toEqual({
+			exists: true,
+			state: "ready",
+			version: 3,
+			expectedVersion: 3,
+			sourceUpdatedAt: new Date("2026-09-05T00:00:00.000Z"),
+			orderUpdatedAt: new Date("2026-09-05T00:00:00.000Z"),
+			pipelineRevision: "served-revision",
+			pipelineVersion: "sales-pipeline/v2",
 		});
-		expect(buildSalesPipelineReconciliationOrderWhere(["--order-id=20780"])).toEqual({
-			type: "order", deletedAt: null, id: 20780,
+	});
+	it("builds an exact order discovery predicate for split and equals flag syntax", () => {
+		expect(
+			buildSalesPipelineReconciliationOrderWhere(["--order-id", "20780"]),
+		).toEqual({
+			type: "order",
+			deletedAt: null,
+			id: 20780,
+		});
+		expect(
+			buildSalesPipelineReconciliationOrderWhere(["--order-id=20780"]),
+		).toEqual({
+			type: "order",
+			deletedAt: null,
+			id: 20780,
 		});
 		expect(buildSalesPipelineReconciliationOrderWhere([])).toEqual({
-			type: "order", deletedAt: null,
+			type: "order",
+			deletedAt: null,
 		});
 	});
 	it.each(["", "0", "-1", "1.5", "1,2", "abc", "Infinity", "9007199254740992"])(
-		"rejects invalid order scope %s instead of broadening the repair", (value) => {
-			expect(() => buildSalesPipelineReconciliationOrderWhere(["--order-id", value])).toThrow("--order-id must be a positive safe integer");
-			expect(() => buildSalesPipelineReconciliationOrderWhere([`--order-id=${value}`])).toThrow("--order-id must be a positive safe integer");
+		"rejects invalid order scope %s instead of broadening the repair",
+		(value) => {
+			expect(() =>
+				buildSalesPipelineReconciliationOrderWhere(["--order-id", value]),
+			).toThrow("--order-id must be a positive safe integer");
+			expect(() =>
+				buildSalesPipelineReconciliationOrderWhere([`--order-id=${value}`]),
+			).toThrow("--order-id must be a positive safe integer");
 		},
 	);
-	it.each([
-		["--order-id"], ["--order-id", "--apply"],
-		["--order-id", "1", "--order-id=2"], ["--order-id=1", "--order-id=2"],
-		["--order-id", "20780", "--undo-run", "backup.json"],
-		["--order-id=20780", "--undo-run=backup.json"],
-	].map((argv) => ({ argv })))("rejects missing, duplicate, or incompatible order scopes %j", ({ argv }) => {
-		expect(() => buildSalesPipelineReconciliationOrderWhere(argv)).toThrow("--order-id");
-	});
-	it.each([false, true])("exits after successful final cleanup even with a retired driver handle (command failed: %s)", async (fails) => {
-		const modulePath = new URL("./sales-pipeline-database-retry.ts", import.meta.url).pathname;
-		const child = Bun.spawn([process.execPath, "-e", `
+	it.each(
+		[
+			["--order-id"],
+			["--order-id", "--apply"],
+			["--order-id", "1", "--order-id=2"],
+			["--order-id=1", "--order-id=2"],
+			["--order-id", "20780", "--undo-run", "backup.json"],
+			["--order-id=20780", "--undo-run=backup.json"],
+		].map((argv) => ({ argv })),
+	)(
+		"rejects missing, duplicate, or incompatible order scopes %j",
+		({ argv }) => {
+			expect(() => buildSalesPipelineReconciliationOrderWhere(argv)).toThrow(
+				"--order-id",
+			);
+		},
+	);
+	it.each([false, true])(
+		"exits after successful final cleanup even with a retired driver handle (command failed: %s)",
+		async (fails) => {
+			const modulePath = new URL(
+				"./sales-pipeline-database-retry.ts",
+				import.meta.url,
+			).pathname;
+			const child = Bun.spawn(
+				[
+					process.execPath,
+					"-e",
+					`
 			import { runDatabaseCli } from ${JSON.stringify(modulePath)};
 			await runDatabaseCli(async () => {
 				setInterval(() => {}, 100);
 				process.stdout.write("REPORT_SAVED\\n");
 				if (${fails}) throw new Error("command failed");
 			}, async () => { process.stdout.write("FINAL_CLEANUP_SUCCEEDED\\n"); }, 5);
-		`], { stdout: "pipe", stderr: "pipe" });
-		const guard = setTimeout(() => child.kill(), 1_000);
-		try {
-			const [code, stdout] = await Promise.all([child.exited, new Response(child.stdout).text()]);
-			expect(code).toBe(fails ? 1 : 0);
-			expect(stdout).toContain("REPORT_SAVED");
-			expect(stdout).toContain("FINAL_CLEANUP_SUCCEEDED");
-		} finally { clearTimeout(guard); }
-	});
+		`,
+				],
+				{ stdout: "pipe", stderr: "pipe" },
+			);
+			const guard = setTimeout(() => child.kill(), 1_000);
+			try {
+				const [code, stdout] = await Promise.all([
+					child.exited,
+					new Response(child.stdout).text(),
+				]);
+				expect(code).toBe(fails ? 1 : 0);
+				expect(stdout).toContain("REPORT_SAVED");
+				expect(stdout).toContain("FINAL_CLEANUP_SUCCEEDED");
+			} finally {
+				clearTimeout(guard);
+			}
+		},
+	);
 
 	it("bounds terminal cleanup only after the command and its report have settled", async () => {
-		const modulePath = new URL("./sales-pipeline-database-retry.ts", import.meta.url).pathname;
-		const child = Bun.spawn([process.execPath, "-e", `
+		const modulePath = new URL(
+			"./sales-pipeline-database-retry.ts",
+			import.meta.url,
+		).pathname;
+		const child = Bun.spawn(
+			[
+				process.execPath,
+				"-e",
+				`
 			import { runDatabaseCli } from ${JSON.stringify(modulePath)};
 			await runDatabaseCli(async () => {
 				await Bun.sleep(40);
@@ -73,10 +152,17 @@ describe("Sales Pipeline reconciliation rollback", () => {
 				setInterval(() => {}, 100);
 				await new Promise(() => {});
 			}, 5);
-		`], { stdout: "pipe", stderr: "pipe" });
+		`,
+			],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
 		const guard = setTimeout(() => child.kill(), 1_000);
 		try {
-			const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+			const [code, stdout, stderr] = await Promise.all([
+				child.exited,
+				new Response(child.stdout).text(),
+				new Response(child.stderr).text(),
+			]);
 			expect(code).toBe(1);
 			expect(stdout).toContain("REPORT_SAVED_AFTER_WRITE_SETTLED");
 			expect(stderr).toContain("Database cleanup timed out");

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { getSalesOrderLifecycleStatus } from "./order-status";
+import { getLegacySalesOrderLifecycleStatus as getSalesOrderLifecycleStatus } from "./legacy-order-status";
 import {
 	buildSalesWorkflowCancellationPreview,
 	cancelSalesWorkflowLayer,

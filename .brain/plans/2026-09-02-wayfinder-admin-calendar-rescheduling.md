@@ -5,9 +5,8 @@
 Charted locally on 2026-09-02 and merged on 2026-09-03 into Canonical Sales
 Pipeline implementation Ticket 16. The original map and six draft child
 tickets remain source history; they are not a second execution queue.
-Application behavior is implemented through canonical Ticket 16 at 14/15; no
-external tracker issue was created, and authenticated multi-viewport browser
-acceptance remains.
+Application behavior is complete through canonical Ticket 16 at 15/15; no
+external tracker issue was created.
 
 ## Tracker
 
@@ -40,7 +39,6 @@ Fulfillment calendars.
 
 ## Next Step
 
-Complete authenticated desktop, tablet, and mobile browser verification for
-canonical Ticket 16, then close it and continue the remaining production
-cutover gates. Keep the source map immutable except for merge pointers, and
-record acceptance evidence in the canonical ticket.
+Ticket 16 is complete. Continue the remaining production cutover gates under
+canonical Ticket 14. Keep the source map immutable except for merge pointers,
+and record acceptance evidence in the canonical ticket.

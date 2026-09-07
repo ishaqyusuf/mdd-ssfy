@@ -119,7 +119,7 @@ Tracks queued work that is important but not currently in the top execution slic
 - [ ] Build quotes feature foundation in Expo sales module (create/view/list flow with API wiring) (API + UI)
 - [ ] Implement dispatch packing update flow with explicit submit action and success/failure feedback (UI + Validation)
 - [ ] Add Google autocomplete address feature to web sales form, including place selection mapping to form fields and submit-safe validation/fallback behavior (UI + Validation)
-- [ ] Add sales production due date support across the sales flow, including form entry/editing, persistence, and downstream production visibility/usage rules (Schema + API + UI + Validation)
+- [ ] Canonical Sales Pipeline Ticket 18: show eligible order-level Production due dates without full assignment coverage in a separate admin Calendar Planning-gaps projection, preserve assignment-backed Schedule/Due Today/Past Due parity and worker scope, and apply canonical provenance-aware colors (`.scratch/sales-pipeline-lifecycle-implementation/issues/18-production-planning-calendar-visibility-and-canonical-colors.md`) (Sales Domain + API + UI + Validation)
 - [ ] Inventory dashboard expansion: build item-level dashboard, variants workspace, related sales/quotes tabs, top-sales analytics, stock movement timeline, and operational drilldowns on top of the inventory-backed fulfillment model (`brain/features/inventory-backed-sales-fulfillment.md`) (API + UI + Validation)
 
 ## Later

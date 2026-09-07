@@ -108,7 +108,12 @@ export default async function SalesProductionsPage({ searchParams }: Props) {
 			filters.calendarView,
 		);
 		void batchPrefetch([
-			trpc.sales.productionCalendar.queryOptions({
+			filters.calendarMode === "planning" ? trpc.sales.productionPlanningCalendar.queryOptions({
+				from: period.from,
+				to: period.to,
+				q: filters.q,
+				priority: filters.priority,
+			}) : trpc.sales.productionCalendar.queryOptions({
 				from: period.from,
 				to: period.to,
 				scope: "all",

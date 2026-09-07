@@ -36,6 +36,7 @@ function context(permissionNames: string[] = []) {
 const markInput = {
 	salesOrderId: 91,
 	requestId: "00000000-0000-4000-8000-000000000091",
+	reason: "Verified outside GND.",
 	expectedRevision: "0".repeat(64),
 	effectiveAt: null,
 };
@@ -43,7 +44,28 @@ const markInput = {
 const bulkMarkInput = {
 	salesOrderIds: [91, 92],
 	requestId: "00000000-0000-4000-8000-000000000093",
+	reason: "Verified outside GND.",
 	effectiveAt: null,
+};
+
+const fallbackAttemptInput = {
+	milestone: "PRODUCTION_COMPLETED" as const,
+	fullWorkflowRequestId: "00000000-0000-4000-8000-000000000094",
+};
+
+const fallbackMarkInput = {
+	...fallbackAttemptInput,
+	requestId: "00000000-0000-4000-8000-000000000095",
+	reason: "Physical completion was verified outside GND.",
+	effectiveAt: null,
+	candidates: [
+		{
+			salesOrderId: 91,
+			expectedCompletionRevision: "0".repeat(64),
+			expectedPipelineRevision: "1".repeat(64),
+			administrativeOverrideRequired: false,
+		},
+	],
 };
 
 const cancelInput = {
@@ -54,6 +76,29 @@ const cancelInput = {
 };
 
 describe("status-only Sales completion route permissions", () => {
+	test("rejects forged fallback provenance on direct status-only routes", async () => {
+		const caller = salesRouter.createCaller(
+			context(["edit status only sales completion"]),
+		);
+		const forged = {
+			...markInput,
+			fallback: {
+				fallbackDecisionRequestId: "00000000-0000-4000-8000-000000000096",
+				fullWorkflowRequestId: "00000000-0000-4000-8000-000000000094",
+				fullWorkflowStatus: "failed",
+				fullWorkflowReason: "Forged client claim",
+				expectedPipelineRevision: "1".repeat(64),
+			},
+		};
+
+		await expect(
+			caller.markProductionCompletionStatusOnly(forged),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+		await expect(
+			caller.markFulfillmentCompletionStatusOnly(forged),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+	});
+
 	test("requires an authenticated session", async () => {
 		const caller = salesRouter.createCaller({ db: {} } as SalesCallerContext);
 
@@ -71,6 +116,12 @@ describe("status-only Sales completion route permissions", () => {
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 		await expect(
 			caller.markFulfillmentCompletionStatusOnlyBulk(bulkMarkInput),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		await expect(
+			caller.salesCompletionStatusOnlyFallbackPreview(fallbackAttemptInput),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		await expect(
+			caller.markSalesCompletionStatusOnlyFallback(fallbackMarkInput),
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 	});
 
@@ -94,6 +145,12 @@ describe("status-only Sales completion route permissions", () => {
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		await expect(
 			caller.cancelFulfillmentCompletionStatusOnly(cancelInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.salesCompletionStatusOnlyFallbackPreview(fallbackAttemptInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markSalesCompletionStatusOnlyFallback(fallbackMarkInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
 
@@ -120,6 +177,12 @@ describe("status-only Sales completion route permissions", () => {
 		await expect(
 			caller.cancelFulfillmentCompletionStatusOnly(cancelInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.salesCompletionStatusOnlyFallbackPreview(fallbackAttemptInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markSalesCompletionStatusOnlyFallback(fallbackMarkInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
 
 	test("edit capability can load the projection required to submit", async () => {
@@ -144,6 +207,12 @@ describe("status-only Sales completion route permissions", () => {
 		await expect(
 			caller.markFulfillmentCompletionStatusOnly(markInput),
 		).rejects.not.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.salesCompletionStatusOnlyFallbackPreview(fallbackAttemptInput),
+		).rejects.not.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markSalesCompletionStatusOnlyFallback(fallbackMarkInput),
+		).rejects.not.toMatchObject({ code: "FORBIDDEN" });
 	});
 
 	test("a raw snake-case row authorizes neither presentation nor editing", async () => {
@@ -165,6 +234,12 @@ describe("status-only Sales completion route permissions", () => {
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		await expect(
 			caller.markFulfillmentCompletionStatusOnlyBulk(bulkMarkInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.salesCompletionStatusOnlyFallbackPreview(fallbackAttemptInput),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		await expect(
+			caller.markSalesCompletionStatusOnlyFallback(fallbackMarkInput),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
 });

@@ -41,7 +41,9 @@ export default async function DispatchAdminPage({ searchParams }: Props) {
 		size: 20,
 	} satisfies RouterInputs["dispatch"]["list"];
 
-	void batchPrefetch([trpc.dispatch.workspaceSummary.queryOptions()]);
+	if (filters.section !== "calendar") {
+		void batchPrefetch([trpc.dispatch.workspaceSummary.queryOptions()]);
+	}
 	if (filters.section === "backlog") {
 		void batchPrefetch([
 			trpc.dispatch.backlog.infiniteQueryOptions(
@@ -74,14 +76,7 @@ export default async function DispatchAdminPage({ searchParams }: Props) {
 				},
 			),
 		]);
-	} else if (filters.section === "calendar") {
-		void batchPrefetch([
-			trpc.dispatch.calendar.infiniteQueryOptions(listInput, {
-				getNextPageParam: ({ meta }) =>
-					(meta as { cursor?: string | number | null } | undefined)?.cursor,
-			}),
-		]);
-	} else {
+	} else if (filters.section !== "calendar") {
 		void batchPrefetch([
 			trpc.dispatch.list.infiniteQueryOptions(
 				["dashboard", "dispatches"].includes(filters.section) &&

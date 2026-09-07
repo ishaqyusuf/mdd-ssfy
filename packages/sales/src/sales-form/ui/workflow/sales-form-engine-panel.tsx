@@ -17,12 +17,14 @@ import {
 	type SalesFormWorkflowPanelProps,
 } from "./sales-form-workflow-panel";
 import type { WorkflowLineItemRecord } from "./workflow-records";
+import type { WorkflowStepListVersion } from "./workflow-step-list";
 
 export type SalesFormEnginePanelProps<
 	TLine extends WorkflowLineItemRecord = WorkflowLineItemRecord,
 > = {
 	record: SalesFormWorkflowRecord<TLine>;
 	editor?: SalesFormWorkflowEditorState;
+	stepListVersion?: WorkflowStepListVersion;
 	actions: SalesFormWorkflowActions<TLine>;
 	dataSource: SalesFormWorkflowDataSource;
 	pricing?: SalesFormWorkflowPricingSurface<TLine>;
@@ -128,6 +130,7 @@ export function SalesFormEnginePanel<
 	const panelProps: SalesFormWorkflowPanelProps<TLine> = {
 		record: props.record,
 		editor: props.editor,
+		stepListVersion: props.stepListVersion,
 		actions: props.actions,
 		dataSource,
 		pricing: props.pricing,

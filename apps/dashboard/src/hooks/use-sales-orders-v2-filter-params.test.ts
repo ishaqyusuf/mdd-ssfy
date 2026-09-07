@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+	createSalesOrdersListQueryInput,
 	loadSalesOrdersV2FilterParams,
 	salesOrdersV2FilterParams,
+	withSalesOrdersDefaultScope,
 } from "./use-sales-orders-v2-filter-params";
 
 describe("Sales Orders lifecycle filter URL contract", () => {
@@ -40,5 +42,26 @@ describe("Sales Orders lifecycle filter URL contract", () => {
 		);
 
 		expect(loaded.lifecycle).toEqual(["conflict"]);
+	});
+
+	it("builds the same list input for server prefetch and an undefined client bin", async () => {
+		const filters = withSalesOrdersDefaultScope(
+			await loadSalesOrdersV2FilterParams(new URLSearchParams("q=APA")),
+		);
+		const serverInput = createSalesOrdersListQueryInput({
+			filters,
+			sort: ["createdAt", "desc"],
+		});
+		const clientInput = createSalesOrdersListQueryInput({
+			filters,
+			sort: ["createdAt", "desc"],
+			bin: undefined,
+		});
+
+		expect(clientInput).toEqual(serverInput);
+		expect("bin" in clientInput).toBe(false);
+		expect(clientInput.q).toBe("APA");
+		expect(clientInput.showing).toBe("all sales");
+		expect(clientInput.sort).toEqual(["createdAt", "desc"]);
 	});
 });

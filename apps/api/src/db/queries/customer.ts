@@ -17,11 +17,8 @@ import {
 	getDealerPartnershipSummaries,
 } from "@gnd/db/queries";
 import { AppError } from "@gnd/errors";
-import {
-	getSalesOrderLifecycleStatusInfo,
-	isSalesOrderFulfilled,
-} from "@gnd/sales/order-status";
 import { readSalesFormPo } from "@gnd/sales/sales-form/application/legacy-metadata";
+import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
 import { invalidateSpecialOrderRevisionsForCustomerChange } from "@gnd/sales/special-order";
 import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
 import { nextId, sum } from "@gnd/utils";
@@ -526,18 +523,6 @@ async function assertSalesAddressMutable(
 			id: true,
 			billingAddressId: true,
 			shippingAddressId: true,
-			status: true,
-			deliveries: {
-				where: { deletedAt: null },
-				select: {
-					status: true,
-					_count: {
-						select: {
-							items: { where: { deletedAt: null } },
-						},
-					},
-				},
-			},
 		},
 	});
 	if (!sale) {
@@ -547,14 +532,18 @@ async function assertSalesAddressMutable(
 		});
 	}
 
-	const hasCompletedDelivery = sale.deliveries.some(
-		(delivery) => delivery.status === "completed" && delivery._count.items > 0,
+	const pipeline = (await getSalesPipelineSnapshots(tx, [sale.id])).get(
+		sale.id,
 	);
+	if (!pipeline) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Order status is unavailable. Refresh before editing addresses.",
+		});
+	}
 	if (
-		isSalesOrderFulfilled({
-			orderStatus: sale.status,
-			fulfillmentStatus: hasCompletedDelivery ? "completed" : undefined,
-		})
+		pipeline.headline.code === "fulfilled" ||
+		pipeline.headline.code === "administratively_completed"
 	) {
 		throw new TRPCError({
 			code: "CONFLICT",
@@ -965,8 +954,6 @@ export async function assignSalesAddress(
 	input: AssignSalesAddressSchema,
 ) {
 	return ctx.db.$transaction(async (tx) => {
-		const sale = await assertSalesAddressMutable(tx, input);
-
 		const customer = await tx.customers.findUnique({
 			where: { id: input.customerId },
 			select: { dealerOwnerId: true },
@@ -977,6 +964,7 @@ export async function assignSalesAddress(
 				message: "Dealer-owned customers are read-only in office mode.",
 			});
 		}
+		const sale = await assertSalesAddressMutable(tx, input);
 
 		const currentAddressId =
 			input.addressType === "billing"
@@ -1063,7 +1051,11 @@ export async function assignSalesAddress(
 			reason: `${input.addressType === "billing" ? "Billing" : "Shipping"} address changed`,
 			actorUserId: ctx.userId ?? null,
 			authorName: String(ctx.userId ?? "System"),
-			changeFingerprint: { addressId, addressType: input.addressType, ...addressData },
+			changeFingerprint: {
+				addressId,
+				addressType: input.addressType,
+				...addressData,
+			},
 		});
 
 		return {
@@ -1456,8 +1448,6 @@ export async function getCustomerStatementDetail(
 			orderId: true,
 			meta: true,
 			createdAt: true,
-			status: true,
-			prodStatus: true,
 			grandTotal: true,
 			amountDue: true,
 			billingAddress: {
@@ -1480,6 +1470,10 @@ export async function getCustomerStatementDetail(
 			},
 		},
 	});
+	const pipelineSnapshots = await getSalesPipelineSnapshots(
+		ctx.db,
+		orders.map((order) => order.id),
+	);
 
 	const accountNo = customer.phoneNo || `cust-${customer.id}`;
 	const wallet = await getCustomerWallet(ctx.db, accountNo);
@@ -1512,17 +1506,18 @@ export async function getCustomerStatementDetail(
 		const invoice = Number(order.grandTotal || 0);
 		const pending = Number(order.amountDue || 0);
 		const paid = Math.max(invoice - pending, 0);
-		const lifecycleStatus = getSalesOrderLifecycleStatusInfo({
-			orderStatus: order.status,
-			legacyProductionStatus: order.prodStatus,
-		});
+		const lifecycleStatus = pipelineSnapshots.get(order.id)?.headline ?? {
+			code: "unknown" as const,
+			label: "Status unavailable",
+			tone: "stone",
+		};
 
 		return {
 			salesId: order.id,
 			orderNo: order.orderId,
 			poNo: readSalesFormPo(order.meta as Record<string, unknown>),
 			date: formatStatementDate(order.createdAt),
-			status: lifecycleStatus.status,
+			status: lifecycleStatus.code,
 			statusLabel: lifecycleStatus.label,
 			invoice,
 			paid,

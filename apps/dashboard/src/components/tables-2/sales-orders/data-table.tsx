@@ -2,8 +2,12 @@
 
 import { salesInboundRowClassName } from "@/components/sales-inbound-status-badge";
 import { VirtualRow } from "@/components/tables-2/core";
-import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { useSalesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
+import { useCancelSalesOrdersRequests } from "@/hooks/use-cancel-sales-orders-requests";
+import { useGuardedInfiniteScroll } from "@/hooks/use-guarded-infinite-scroll";
+import {
+	createSalesOrdersListQueryInput,
+	useSalesOrdersV2FilterParams,
+} from "@/hooks/use-sales-orders-v2-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useSortParams } from "@/hooks/use-sort-params";
@@ -16,8 +20,9 @@ import { useTRPC } from "@/trpc/client";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import { DndContext, closestCenter } from "@dnd-kit/core";
+import { Button } from "@gnd/ui/button";
 import { Table, TableBody } from "@gnd/ui/table";
-import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import { hashKey, useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence } from "framer-motion";
@@ -45,10 +50,12 @@ type Props = {
 
 export function DataTable({ initialSettings, bin }: Props) {
 	const trpc = useTRPC();
+	const cancelSupersededOrdersRequests = useCancelSalesOrdersRequests();
 	const { params } = useSortParams();
 	const { filters, hasFilters } = useSalesOrdersV2FilterParams();
 	const overviewQuery = useSalesOverviewQuery();
 	const parentRef = useRef<HTMLDivElement>(null);
+	const loadMoreRef = useRef<HTMLDivElement>(null);
 	const { rowSelection, setRowSelection, setColumns, setSelectedSalesIds } =
 		useSalesOrdersStore();
 
@@ -74,22 +81,34 @@ export function DataTable({ initialSettings, bin }: Props) {
 	const bindShowColumnDividers = useSalesOrdersStore(
 		(state) => state.bindShowColumnDividers,
 	);
-	const queryInput = {
-		...filters,
-		bin,
-		sort: params.sort,
-	};
+	const queryInput = useMemo(
+		() =>
+			createSalesOrdersListQueryInput({
+				filters,
+				bin,
+				sort: params.sort,
+			}),
+		[bin, filters, params.sort],
+	);
 
-	const infiniteQueryOptions = trpc.sales.getOrders.infiniteQueryOptions(
-		queryInput,
-		{
-			getNextPageParam: ({ meta }) =>
-				(meta as { cursor?: string | number | null } | undefined)?.cursor,
-		},
+	const infiniteQueryOptions = useMemo(
+		() =>
+			trpc.sales.getOrders.infiniteQueryOptions(queryInput, {
+				getNextPageParam: ({ meta }) =>
+					(meta as { cursor?: string | number | null } | undefined)?.cursor,
+			}),
+		[queryInput, trpc],
 	);
 
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
 		useSuspenseInfiniteQuery(infiniteQueryOptions);
+	const nextCursor = (
+		data.pages.at(-1)?.meta as { cursor?: string | number | null } | undefined
+	)?.cursor;
+	const queryIdentity = useMemo(
+		() => hashKey(infiniteQueryOptions.queryKey),
+		[infiniteQueryOptions],
+	);
 
 	const tableData = useMemo(() => {
 		return data?.pages.flatMap((page) => page?.data ?? []) ?? [];
@@ -158,13 +177,14 @@ export function DataTable({ initialSettings, bin }: Props) {
 		bindShowColumnDividers(showColumnDividers, setShowColumnDividers);
 	}, [bindShowColumnDividers, showColumnDividers, setShowColumnDividers]);
 
-	useInfiniteScroll<HTMLDivElement>({
+	const requestNextPage = useGuardedInfiniteScroll<HTMLDivElement>({
 		scrollRef: parentRef,
-		rowVirtualizer,
-		rowCount: rows.length,
+		sentinelRef: loadMoreRef,
 		hasNextPage,
 		isFetchingNextPage,
 		fetchNextPage,
+		requestKey: nextCursor,
+		resetKey: queryIdentity,
 	});
 
 	const handleCellClick = useCallback(
@@ -182,7 +202,7 @@ export function DataTable({ initialSettings, bin }: Props) {
 	const showBottomBar = Object.keys(rowSelection).length > 0;
 
 	if (hasFilters && tableData.length === 0) {
-		return <NoResults />;
+		return <NoResults onBeforeClear={cancelSupersededOrdersRequests} />;
 	}
 
 	if (tableData.length === 0) {
@@ -215,6 +235,7 @@ export function DataTable({ initialSettings, bin }: Props) {
 								table={table}
 								tableScroll={tableScroll}
 								showColumnDividers={showColumnDividers}
+								onBeforeSortChange={cancelSupersededOrdersRequests}
 							/>
 
 							<TableBody
@@ -252,6 +273,25 @@ export function DataTable({ initialSettings, bin }: Props) {
 							</TableBody>
 						</Table>
 					</DndContext>
+					<div
+						ref={loadMoreRef}
+						className="flex min-h-10 items-center justify-center py-1"
+						aria-live="polite"
+					>
+						{hasNextPage ? (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								disabled={isFetchingNextPage}
+								onClick={requestNextPage}
+							>
+								{isFetchingNextPage
+									? "Loading more orders…"
+									: "Load more orders"}
+							</Button>
+						) : null}
+					</div>
 					<div
 						style={{
 							height: "var(--header-offset, 0px)",

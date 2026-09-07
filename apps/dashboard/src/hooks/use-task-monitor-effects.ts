@@ -1,6 +1,10 @@
 "use client";
 
-import type { TaskMonitorTask } from "@/store/task-monitor";
+import {
+	type TaskMonitorTask,
+	getPendingSalesCompletionFallback,
+	useTaskMonitorStore,
+} from "@/store/task-monitor";
 import { useCallback } from "react";
 import { useSalesQueryClient } from "./use-sales-query-client";
 
@@ -35,6 +39,12 @@ export function useTaskMonitorEffects() {
 				return;
 			}
 			if (phase !== "success") return;
+			const pendingFallback = getPendingSalesCompletionFallback(task, output);
+			if (pendingFallback) {
+				useTaskMonitorStore
+					.getState()
+					.addSalesCompletionFallback(pendingFallback);
+			}
 
 			switch (task.intent.name) {
 				case "sales.mark-as-production-completed": {

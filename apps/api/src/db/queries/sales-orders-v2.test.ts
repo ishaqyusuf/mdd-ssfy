@@ -116,42 +116,28 @@ describe("materialized sales pipeline rollout", () => {
 		});
 	});
 
-	it("restores the stored legacy presentation outside the canonical cohort", () => {
+	it("fails closed when a materialized canonical snapshot is unavailable", () => {
 		const row = applyMaterializedSalesPipelineReadMode(
 			{
-				pipeline: materializedPipelineFixture(),
-				pipelineLegacyPresentation: {
-					status: "ready",
-					statusLabel: "Ready",
-					statusTone: "success",
-					productionState: "in progress",
-					productionLabel: "In Progress",
-					fulfillmentState: "pending",
-					fulfillmentLabel: "Pending",
-				},
+				pipeline: null,
+				status: "ready",
 			},
-			{ SALES_PIPELINE_READ_MODE: "shadow" },
 		);
 
 		expect(row).toMatchObject({
 			pipeline: null,
-			status: "ready",
-			statusLabel: "Ready",
-			productionState: "in progress",
-			fulfillmentState: "pending",
+			status: "unknown",
+			statusLabel: "Status unavailable",
+			productionState: "unknown",
+			fulfillmentState: "unknown",
 		});
 	});
 
-	it("serves the stored canonical snapshot to an enabled cohort", () => {
+	it("serves the stored canonical snapshot", () => {
 		const pipeline = materializedPipelineFixture();
 		const row = applyMaterializedSalesPipelineReadMode(
 			{
 				pipeline,
-				pipelineLegacyPresentation: { status: "ready" },
-			},
-			{
-				SALES_PIPELINE_READ_MODE: "canonical",
-				SALES_PIPELINE_COHORT_PERCENT: "100",
 			},
 		);
 

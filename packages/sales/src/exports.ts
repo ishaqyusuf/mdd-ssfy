@@ -20,6 +20,7 @@ export * from "./bulk-fulfillment";
 export * from "./dispatch-backlog";
 export * from "./dispatch-batch-plan";
 export * from "./bulk-production-completion";
+export * from "./sales-completion-fallback";
 export * from "./control";
 export {
 	withDispatchControl,

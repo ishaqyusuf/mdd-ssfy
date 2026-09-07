@@ -364,6 +364,7 @@ model SalesOrderListProjection {
     @@index([orgId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_scope")
     @@index([salesRepId, salesDeletedAt, salesCreatedAt, salesOrderId], name: "idx_sales_order_list_rep")
     @@index([state, version, projectedAt], name: "idx_sales_order_list_health")
+    @@index([state, version, pipelineContractVersion, salesOrderId], name: "idx_sales_order_pipeline_shadow_scan")
     @@index([state, version, pipelineHeadline, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_headline")
     @@index([state, version, pipelineProductionApplicability, pipelineProductionState, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_production")
     @@index([state, version, pipelineFulfillmentApplicability, pipelineFulfillmentState, salesCreatedAt, salesOrderId], name: "idx_sales_order_pipeline_fulfillment")

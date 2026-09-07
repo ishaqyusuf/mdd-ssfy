@@ -8,22 +8,26 @@ export type StageApplicability =
 	| "unknown"
 	| "conflict";
 
+export const SALES_PIPELINE_HEADLINE_CODES = [
+	"awaiting_production",
+	"production_queued",
+	"in_production",
+	"awaiting_production_review",
+	"ready_to_fulfill",
+	"fulfillment_queued",
+	"packing",
+	"packed",
+	"in_transit",
+	"partially_fulfilled",
+	"administratively_completed",
+	"fulfilled",
+	"cancelled",
+	"conflict",
+	"unknown",
+] as const;
+
 export type SalesPipelineHeadlineCode =
-	| "cancelled"
-	| "conflict"
-	| "awaiting_production"
-	| "production_queued"
-	| "in_production"
-	| "awaiting_production_review"
-	| "ready_to_fulfill"
-	| "fulfillment_queued"
-	| "packing"
-	| "packed"
-	| "in_transit"
-	| "partially_fulfilled"
-	| "administratively_completed"
-	| "fulfilled"
-	| "unknown";
+	(typeof SALES_PIPELINE_HEADLINE_CODES)[number];
 
 export type SalesPipelineEvidenceDate = Date | string | null;
 
@@ -244,6 +248,43 @@ export type SalesPipelineSnapshot = {
 	evidence: SalesPipelineEvidence;
 };
 
+export function getSalesPipelineProductionStateLabel(
+	state: SalesPipelineSnapshot["production"]["state"],
+) {
+	const labels: Record<SalesPipelineSnapshot["production"]["state"], string> = {
+		not_required: "No production required",
+		unknown: "Status unavailable",
+		conflict: "Lifecycle conflict",
+		not_assigned: "Not assigned",
+		partially_assigned: "Partially assigned",
+		assigned: "Assigned",
+		in_production: "In production",
+		awaiting_review: "Awaiting review",
+		administratively_completed: "Administratively completed",
+		completed: "Production completed",
+	};
+	return labels[state];
+}
+
+export function getSalesPipelineFulfillmentStateLabel(
+	state: SalesPipelineSnapshot["fulfillment"]["state"],
+) {
+	const labels: Record<SalesPipelineSnapshot["fulfillment"]["state"], string> =
+		{
+			not_required: "No fulfillment required",
+			unknown: "Status unavailable",
+			conflict: "Lifecycle conflict",
+			backlog: "Fulfillment queued",
+			packing: "Packing",
+			packed: "Packed",
+			in_transit: "In transit",
+			partially_fulfilled: "Partially fulfilled",
+			administratively_completed: "Administratively completed",
+			fulfilled: "Fulfilled",
+		};
+	return labels[state];
+}
+
 export type CanonicalWorkspaceMembershipScope =
 	| "queue"
 	| "calendar"
@@ -302,7 +343,7 @@ export type SalesPipelineShadowComparison = {
 	}>;
 };
 
-const HEADLINE_META: Record<
+export const SALES_PIPELINE_HEADLINE_META: Record<
 	SalesPipelineHeadlineCode,
 	{ label: string; tone: string }
 > = {
@@ -723,7 +764,7 @@ function headlineCode(
 	conflicts: SalesPipelineSnapshot["conflicts"],
 ): SalesPipelineHeadlineCode {
 	const commercial = normalized(evidence.commercial.status);
-	if (["cancelled", "canceled"].includes(commercial)) return "cancelled";
+	if (["cancelled", "canceled", "void", "voided"].includes(commercial)) return "cancelled";
 	if (fulfillment.state === "fulfilled") return "fulfilled";
 	if (
 		fulfillment.state === "administratively_completed" ||
@@ -777,7 +818,7 @@ export function resolveSalesPipelineSnapshot(
 	);
 	const commercialStatus = normalized(evidence.commercial.status);
 	const commercial = {
-		state: ["cancelled", "canceled"].includes(commercialStatus)
+		state: ["cancelled", "canceled", "void", "voided"].includes(commercialStatus)
 			? ("cancelled" as const)
 			: commercialStatus
 				? ("open" as const)
@@ -848,7 +889,10 @@ export function resolveSalesPipelineSnapshot(
 			state: evidence.evidenceUpdatedAt ? "current" : "unknown",
 			evidenceUpdatedAt: dateKey(evidence.evidenceUpdatedAt),
 		},
-		headline: { code: headline, ...HEADLINE_META[headline] },
+		headline: {
+			code: headline,
+			...SALES_PIPELINE_HEADLINE_META[headline],
+		},
 		commercial,
 		payment,
 		material,
@@ -1307,35 +1351,67 @@ export function projectSalesPipelineForAudience(
 	};
 }
 
+export function projectUnavailableSalesPipelineForAudience() {
+	return {
+		version: SALES_PIPELINE_CONTRACT_VERSION,
+		revision: "unavailable",
+		status: {
+			code: "unknown" as const,
+			label: "Status unavailable",
+			tone: "stone",
+		},
+		payment: {
+			state: "unknown" as const,
+			total: 0,
+			amountDue: 0,
+			reviewStatus: null,
+		},
+		production: {
+			applicability: "unknown" as const,
+			state: "unknown" as const,
+			completedQty: 0,
+			requiredQty: 0,
+		},
+		fulfillment: {
+			applicability: "unknown" as const,
+			state: "unknown" as const,
+			deliveredQty: 0,
+			requiredQty: 0,
+		},
+	};
+}
+
 export function projectSalesPipelineHeadlineForCustomer(
 	headline: SalesPipelineHeadlineCode | string | null | undefined,
 ) {
-	return headline === "cancelled"
-		? { code: "cancelled" as const, label: "Cancelled", tone: "red" }
-		: headline === "fulfilled"
-			? { code: "delivered" as const, label: "Delivered", tone: "emerald" }
-			: headline === "in_transit"
-				? { code: "in-transit" as const, label: "In transit", tone: "blue" }
-				: { code: "processing" as const, label: "Processing", tone: "amber" };
+	return headline === "unknown" || headline === "conflict" || !headline
+		? { code: "unknown" as const, label: "Status unavailable", tone: "stone" }
+		: headline === "cancelled"
+			? { code: "cancelled" as const, label: "Cancelled", tone: "red" }
+			: headline === "fulfilled"
+				? { code: "delivered" as const, label: "Delivered", tone: "emerald" }
+				: headline === "in_transit"
+					? { code: "in-transit" as const, label: "In transit", tone: "blue" }
+					: { code: "processing" as const, label: "Processing", tone: "amber" };
 }
 
 export function compareSalesPipelineShadow(
 	snapshot: SalesPipelineSnapshot,
 	legacy: {
-		legacyHeadline?: string | null;
+		historicalHeadline?: string | null;
 		legacyProductionIncluded?: boolean | null;
 		legacyFulfillmentIncluded?: boolean | null;
 	},
 ): SalesPipelineShadowComparison {
 	const differences: SalesPipelineShadowComparison["differences"] = [];
 	if (
-		legacy.legacyHeadline != null &&
-		normalized(legacy.legacyHeadline).replaceAll(" ", "_") !==
+		legacy.historicalHeadline != null &&
+		normalized(legacy.historicalHeadline).replaceAll(" ", "_") !==
 			snapshot.headline.code
 	) {
 		differences.push({
 			code: "HEADLINE_MISMATCH",
-			legacy: legacy.legacyHeadline,
+			legacy: legacy.historicalHeadline,
 			canonical: snapshot.headline.code,
 		});
 	}

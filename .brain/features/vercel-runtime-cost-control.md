@@ -23,6 +23,18 @@ avoidable Function Duration and invocation amplification.
 - A daily 09:00 Codex monitor runs the same current-cycle analysis. Vercel's
   native 75%-of-credit web and email notification remains enabled.
 
+## Speed Insights Subscription Decision
+
+- On 2026-09-03, the user approved and Vercel confirmed cancellation of the
+  `gndprodesk` project's Speed Insights Plus renewal.
+- Plus remains available through the current billing-cycle end on 2026-09-19,
+  and Vercel does not refund the current cycle. After that date, the project
+  returns to standard Speed Insights, which continues collecting only within
+  the team's shared allowance and pauses when that allowance is exhausted.
+- This removes the future Plus renewal/base subscription; it does not erase
+  charges already accrued in the current cycle or replace the separate
+  infrastructure-cost controls for Function Duration and metered events.
+
 ## Liveness And Readiness
 
 - Dashboard `GET /api/health/live` is the high-frequency liveness target. It
@@ -89,15 +101,39 @@ avoidable Function Duration and invocation amplification.
 - Final evidence is recorded in
   `.brain/reports/2026-08-25-preview-getorders-24h-canary.md`.
 
-## Current Cost Evidence (2026-08-30)
+## Sales Orders Client Request Control (2026-09-04)
 
-- Corrected infrastructure cost: $6.86; fixed subscription cost: $19.35.
-- Daily infrastructure burn: $0.62; projected cycle infrastructure: $19.33.
-- Function Duration remains the largest variable service at $3.66. The next
-  infrastructure threshold is $8; none of the $8/$12/$16/$18 thresholds has
-  been crossed.
-- The $0.50/day and $15/cycle targets are still missed, so production shadow
-  evidence and request-storm controls remain active priorities.
+- `/sales-book/orders` now uses a Sales-only guarded intersection sentinel.
+  Merely rendering a short list cannot recursively request more pages; a real
+  user scroll or the accessible **Load more orders** fallback is required.
+- Each cursor can have only one request in flight and cannot be requested again
+  after a successful completion. Failed requests remain retryable, and a new
+  filter/sort query identity resets the cursor history without allowing a stale
+  completion to unlock the new query.
+- Server prefetch and the client table build `sales.getOrders` input through the
+  same normalized helper, including omission of an undefined `bin`, so hydration
+  does not create a second cache key for an equivalent request.
+- Sales Orders cancels active list and summary work before search/filter,
+  saved/fixed-tab, sort, clear-results, and browser-history transitions. Other
+  tables retain the existing shared infinite-scroll behavior unchanged.
+- Focused coverage proves one initial list and one summary prefetch, real
+  next-page call counts per cursor, failed-page retry, query-identity reset,
+  stale-completion isolation, cancellation of both procedures, and the stable
+  accessible fallback. Deployment and post-deploy Function Duration comparison
+  remain separate rollout gates.
+
+## Current Cost Evidence (2026-09-04)
+
+- Billing cycle: 2026-08-19 through 2026-09-19. Infrastructure cost is $9.60;
+  fixed subscription cost is $27.42.
+- Daily infrastructure burn is $0.60; projected cycle infrastructure is
+  $18.60. Both remain above the $0.50/day and $15/cycle targets.
+- The $8 infrastructure threshold has been crossed; the next threshold is $12.
+- `gndprodesk` accounts for $9.45 of infrastructure, `prodesk-api` $0.08, and
+  unattributed infrastructure $0.06.
+- Top services are Function Duration $4.13, Fluid Active CPU $2.63, Speed
+  Insights Plus Events $1.30, Fluid Provisioned Memory $0.47, and Function
+  Invocations $0.47.
 
 ## References
 
@@ -107,4 +143,4 @@ avoidable Function Duration and invocation amplification.
 
 ## Updated
 
-2026-08-30
+2026-09-04

@@ -4,6 +4,7 @@ import {
 	CalendarScheduleMoveDialog,
 	type CalendarScheduleMoveProposal,
 } from "@/components/calendar-schedule-move-dialog";
+import { createDispatchCalendarQueryInput } from "@/components/dispatch-admin/dispatch-calendar-query-input";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTRPC } from "@/trpc/client";
@@ -240,16 +241,7 @@ export function DispatchCalendarView() {
 	const lastDay = days.at(-1) ?? start;
 	const query = useSuspenseInfiniteQuery(
 		trpc.dispatch.calendar.infiniteQueryOptions(
-			{
-				section: "calendar",
-				q: filters.q,
-				stages: filters.stages,
-				driversId: filters.driversId,
-				dueBuckets: filters.dueBuckets,
-				deliveryModes: filters.deliveryModes,
-				risks: filters.risks,
-				size: 500,
-			},
+			createDispatchCalendarQueryInput(filters),
 			{
 				getNextPageParam: ({ meta }) =>
 					(meta as { cursor?: string | number | null } | undefined)?.cursor,

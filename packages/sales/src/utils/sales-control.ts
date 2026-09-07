@@ -253,7 +253,7 @@ export function composeSalesItemControlStat({
     )
     .filter((a) => {
       if (a.salesDoorId) return true;
-      if (!a.salesItemControlUid)
+      if (!a.salesItemControlUid || a.salesItemControlUid === "-")
         a.salesItemControlUid = generateItemControlUid({
           shelfId: a.shelfItemId,
           itemId: a.itemId,
@@ -326,6 +326,10 @@ export function composeSalesItemControlStat({
     })
     .flat();
   const pendingAssignment = qtyMatrixDifference(qty, assigned);
+  if (qty.noHandle) {
+    pendingAssignment.lh = 0;
+    pendingAssignment.rh = 0;
+  }
   const pendingProduction = qtyMatrixDifference(assigned, reportedSubmitted);
   const submissionIds = finalizedSubmissions.map((submission) => submission.id);
   const deliveries = order.deliveries
@@ -508,7 +512,7 @@ export function generateItemControlUid({
   if (shelfId) return shelfItemControlUid(shelfId);
   if (doorId) return doorItemControlUid(doorId, dim);
   if (hptId) return mouldingItemControlUid(itemId, hptId);
-  return itemControlUid(itemId!);
+  return itemItemControlUid(itemId!);
 }
 export function mouldingItemControlUid(itemId, hptId) {
   return itemControlUid({

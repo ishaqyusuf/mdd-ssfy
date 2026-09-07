@@ -25,6 +25,9 @@ export function useBatchSales() {
 			queryClient.invalidateQueries({
 				queryKey: trpc.sales.productionCalendar.pathKey(),
 			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.sales.productionPlanningCalendar.pathKey(),
+			}),
 		]);
 	const markAsFulfilled = async (...ids) => {
 		loading.loading("Marking as fulfilled...");

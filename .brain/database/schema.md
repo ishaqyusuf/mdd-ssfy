@@ -638,7 +638,14 @@ Planning only; no Prisma model or database table has been created.
   authority was created.
 - Three compound indexes cover headline, Production, and Fulfillment list
   membership together with projection health/version and stable Sales date/id
-  ordering.
+  ordering. A fourth scan index covers `(state, version,
+  pipelineContractVersion, salesOrderId)` so production shadow/cutover health
+  scans filter the exact contract and stream stable ids without a filesort.
 - The additive projection columns and indexes were pushed to the verified
   production database on 2026-09-03. Prisma reported the schema in sync; no
   operational records were reset or repaired by the schema operation.
+- The scan index was pushed separately to the same verified production target
+  on 2026-09-04 after a production `EXPLAIN` showed the former health index
+  required `Using where; Using filesort`. The post-push plan selects
+  `idx_sales_order_pipeline_shadow_scan` with `Using index condition`; no
+  column or row was added, removed, or rewritten.

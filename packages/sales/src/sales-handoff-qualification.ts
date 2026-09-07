@@ -1,7 +1,11 @@
 import type { SalesHandoffTriggerPolicy } from "@gnd/settings";
 import type { OrderPaymentProjection } from "./payment-system/contracts";
 
-export type SalesHandoffOrderLifecycle = "ACTIVE" | "CANCELLED" | "TERMINAL";
+export type SalesHandoffOrderLifecycle =
+	| "ACTIVE"
+	| "CANCELLED"
+	| "TERMINAL"
+	| "UNAVAILABLE";
 
 /**
  * A canonical, identity-bearing point in the payment projection timeline.

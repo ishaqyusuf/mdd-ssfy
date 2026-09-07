@@ -31,7 +31,9 @@ import { SheetDescription, SheetHeader, SheetTitle } from "@gnd/ui/sheet";
 import { TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { useSaleOverview } from "./context";
+import { shouldShowLegacySalesOverviewInboundStatus } from "./mode";
 import type {
+	LegacySalesOverviewMode,
 	LegacySalesOverviewTabDefinition,
 	LegacySalesOverviewTabId,
 } from "./types";
@@ -48,10 +50,12 @@ type SalesOverviewHeaderData = NonNullable<
 export function LegacySalesOverviewHeader({
 	tabs,
 	activeTab,
+	mode,
 	onTabChange,
 }: {
 	tabs: LegacySalesOverviewTabDefinition[];
 	activeTab: LegacySalesOverviewTabId;
+	mode: LegacySalesOverviewMode;
 	onTabChange?: (tab: LegacySalesOverviewTabId) => void;
 }) {
 	const { data: contextData } = useSaleOverview();
@@ -64,9 +68,13 @@ export function LegacySalesOverviewHeader({
 	const skeletonContext = {
 		loading: !data?.id,
 	} as unknown as ReturnType<typeof useCreateDataSkeletonCtx>;
-	const showInboundStatus = !!data?.id && data?.type !== "quote";
 	const isV2Header = true;
 	const isQuote = data?.type === "quote";
+	const showInboundStatus = shouldShowLegacySalesOverviewInboundStatus({
+		mode,
+		hasSale: !!data?.id,
+		isQuote,
+	});
 	const documentStatus = getSalesOverviewDocumentStatus(data);
 	const hasInventoryInbound =
 		!!data?.inventoryInboundOwnership?.hasInventoryInbound;

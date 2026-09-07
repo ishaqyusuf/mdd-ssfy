@@ -52,6 +52,10 @@ export const salesProductionFilterParamsSchema = {
 		"week",
 	),
 	calendarDate: parseAsProductionDate,
+	calendarMode: parseAsStringLiteral([
+		"schedule",
+		"planning",
+	] as const).withDefault("schedule"),
 	queue: parseAsStringLiteral(SALES_PRODUCTION_QUEUE_STATES),
 	due: parseAsStringLiteral(SALES_PRODUCTION_DUE_FILTERS),
 	date: parseAsProductionDate,
@@ -80,8 +84,13 @@ export function useSalesProductionFilterParams() {
 		setFilters,
 		hasFilters: Object.entries(filters).some(
 			([key, value]) =>
-				!["tab", "view", "calendarView", "calendarDate"].includes(key) &&
-				value !== null,
+				![
+					"tab",
+					"view",
+					"calendarView",
+					"calendarDate",
+					"calendarMode",
+				].includes(key) && value !== null,
 		),
 	};
 }

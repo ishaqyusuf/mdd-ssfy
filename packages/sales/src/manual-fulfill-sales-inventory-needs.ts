@@ -1,6 +1,6 @@
 import type { Db } from "@gnd/db";
 
-import { getSalesOrderLifecycleStatusInfo } from "./order-status";
+import { getLegacySalesOrderLifecycleStatusInfo } from "./legacy-order-status";
 import {
 	resolveSalesInventoryFulfillmentStatus,
 	resolveSalesInventoryOperationPolicy,
@@ -224,7 +224,7 @@ export async function fulfillSalesInventoryNeedsManuallyInTransaction(
 		deliveries: sale.deliveries,
 		stats: sale.stat,
 	});
-	const lifecycle = getSalesOrderLifecycleStatusInfo({
+	const lifecycle = getLegacySalesOrderLifecycleStatusInfo({
 		orderStatus: sale.status,
 		legacyProductionStatus: sale.prodStatus,
 		fulfillmentStatus,

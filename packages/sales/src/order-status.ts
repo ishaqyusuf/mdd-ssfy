@@ -1,23 +1,12 @@
-export const SALES_ORDER_LIFECYCLE_STATUSES = [
-	"awaiting_production",
-	"production_queued",
-	"in_production",
-	"awaiting_production_review",
-	"ready_to_fulfill",
-	"fulfillment_queued",
-	"packing",
-	"packed",
-	"in_transit",
-	"partially_fulfilled",
-	"administratively_completed",
-	"fulfilled",
-	"cancelled",
-	"conflict",
-	"unknown",
-] as const;
+import {
+	SALES_PIPELINE_HEADLINE_CODES,
+	SALES_PIPELINE_HEADLINE_META,
+	type SalesPipelineHeadlineCode,
+} from "./sales-pipeline";
 
-export type SalesOrderLifecycleStatus =
-	(typeof SALES_ORDER_LIFECYCLE_STATUSES)[number];
+export const SALES_ORDER_LIFECYCLE_STATUSES = SALES_PIPELINE_HEADLINE_CODES;
+
+export type SalesOrderLifecycleStatus = SalesPipelineHeadlineCode;
 
 export type SalesOrderLifecycleStatusTone =
 	| "slate"
@@ -38,274 +27,44 @@ export type SalesOrderLifecycleStatusMeta = {
 	badgeClassName: string;
 };
 
-export type SalesOrderLifecycleStatusInput = {
-	orderStatus?: string | null;
-	productionStatus?: string | null;
-	legacyProductionStatus?: string | null;
-	fulfillmentStatus?: string | null;
-	legacyFulfillmentStatus?: string | null;
-	hasProductionWork?: boolean | null;
-	packed?: QtyLike | number | null;
-	pendingPacking?: QtyLike | number | null;
-	pendingDispatch?: QtyLike | number | null;
-	packables?: QtyLike | number | null;
+const STATUS_BADGE_CLASS_NAMES: Record<SalesOrderLifecycleStatus, string> = {
+	awaiting_production: "bg-slate-100 text-slate-700",
+	production_queued: "bg-amber-100 text-amber-700",
+	in_production: "bg-blue-100 text-blue-700",
+	awaiting_production_review: "bg-amber-100 text-amber-700",
+	ready_to_fulfill: "bg-violet-100 text-violet-700",
+	fulfillment_queued: "bg-indigo-100 text-indigo-700",
+	packing: "bg-cyan-100 text-cyan-700",
+	packed: "bg-teal-100 text-teal-700",
+	in_transit: "bg-sky-100 text-sky-700",
+	partially_fulfilled: "bg-cyan-100 text-cyan-700",
+	administratively_completed: "bg-stone-100 text-stone-700",
+	fulfilled: "bg-emerald-100 text-emerald-700",
+	cancelled: "bg-rose-100 text-rose-700",
+	conflict: "bg-rose-100 text-rose-700",
+	unknown: "bg-stone-100 text-stone-700",
 };
 
-type QtyLike = {
-	total?: number | string | null;
-	qty?: number | string | null;
-};
-
-export const SALES_ORDER_LIFECYCLE_STATUS_META = {
-	awaiting_production: {
-		label: "Awaiting production",
-		tone: "slate",
-		badgeClassName: "bg-slate-100 text-slate-700",
-	},
-	production_queued: {
-		label: "Production queued",
-		tone: "amber",
-		badgeClassName: "bg-amber-100 text-amber-700",
-	},
-	in_production: {
-		label: "In production",
-		tone: "blue",
-		badgeClassName: "bg-blue-100 text-blue-700",
-	},
-	awaiting_production_review: {
-		label: "Awaiting production review",
-		tone: "amber",
-		badgeClassName: "bg-amber-100 text-amber-700",
-	},
-	ready_to_fulfill: {
-		label: "Ready to fulfill",
-		tone: "violet",
-		badgeClassName: "bg-violet-100 text-violet-700",
-	},
-	fulfillment_queued: {
-		label: "Fulfillment queued",
-		tone: "indigo",
-		badgeClassName: "bg-indigo-100 text-indigo-700",
-	},
-	packing: {
-		label: "Packing",
-		tone: "cyan",
-		badgeClassName: "bg-cyan-100 text-cyan-700",
-	},
-	packed: {
-		label: "Packed",
-		tone: "teal",
-		badgeClassName: "bg-teal-100 text-teal-700",
-	},
-	in_transit: {
-		label: "In transit",
-		tone: "sky",
-		badgeClassName: "bg-sky-100 text-sky-700",
-	},
-	partially_fulfilled: {
-		label: "Partially fulfilled",
-		tone: "cyan",
-		badgeClassName: "bg-cyan-100 text-cyan-700",
-	},
-	administratively_completed: {
-		label: "Administratively completed",
-		tone: "stone",
-		badgeClassName: "bg-stone-100 text-stone-700",
-	},
-	fulfilled: {
-		label: "Fulfilled",
-		tone: "emerald",
-		badgeClassName: "bg-emerald-100 text-emerald-700",
-	},
-	cancelled: {
-		label: "Cancelled",
-		tone: "rose",
-		badgeClassName: "bg-rose-100 text-rose-700",
-	},
-	conflict: {
-		label: "Lifecycle conflict",
-		tone: "rose",
-		badgeClassName: "bg-rose-100 text-rose-700",
-	},
-	unknown: {
-		label: "Status unavailable",
-		tone: "stone",
-		badgeClassName: "bg-stone-100 text-stone-700",
-	},
-} satisfies Record<SalesOrderLifecycleStatus, SalesOrderLifecycleStatusMeta>;
-
-const TERMINAL_ORDER_STATUSES = new Set([
-	"completed",
-	"complete",
-	"delivered",
-	"fulfilled",
-]);
-const TRANSIT_ORDER_STATUSES = new Set([
-	"in transit",
-	"transit",
-	"dispatching",
-	"dispatched",
-]);
-const CANCELLED_STATUSES = new Set(["cancelled", "canceled"]);
-const TERMINAL_FULFILLMENT_STATUSES = new Set([
-	"completed",
-	"complete",
-	"delivered",
-	"fulfilled",
-]);
-const TRANSIT_FULFILLMENT_STATUSES = new Set([
-	"in progress",
-	"in-progress",
-	"in transit",
-	"transit",
-	"dispatching",
-	"dispatched",
-]);
-const PACKED_FULFILLMENT_STATUSES = new Set(["packed"]);
-const PACKING_FULFILLMENT_STATUSES = new Set([
-	"packing",
-	"packing queue",
-	"partially packed",
-]);
-const QUEUED_FULFILLMENT_STATUSES = new Set([
-	"queue",
-	"queued",
-	"fulfillment queue",
-	"dispatch queue",
-]);
-const COMPLETED_PRODUCTION_STATUSES = new Set([
-	"completed",
-	"complete",
-	"ready",
-]);
-const ACTIVE_PRODUCTION_STATUSES = new Set([
-	"in progress",
-	"in-production",
-	"in production",
-	"started",
-	"start",
-	"producing",
-]);
-const QUEUED_PRODUCTION_STATUSES = new Set([
-	"queue",
-	"queued",
-	"assigned",
-	"scheduled",
-]);
-const NO_PRODUCTION_REQUIRED_STATUSES = new Set([
-	"n/a",
-	"na",
-	"not applicable",
-	"none",
-]);
-
-export function getSalesOrderLifecycleStatus(
-	input: SalesOrderLifecycleStatusInput,
-): SalesOrderLifecycleStatus {
-	const orderStatus = normalizeStatus(input.orderStatus);
-	const productionStatus = firstMeaningfulStatus(
-		input.productionStatus,
-		input.legacyProductionStatus,
-	);
-	const fulfillmentStatus = firstMeaningfulStatus(
-		input.fulfillmentStatus,
-		input.legacyFulfillmentStatus,
-	);
-	const packedTotal = qtyTotal(input.packed);
-	const pendingPackingTotal = qtyTotal(input.pendingPacking);
-
-	if (
-		TERMINAL_ORDER_STATUSES.has(orderStatus) ||
-		TERMINAL_FULFILLMENT_STATUSES.has(fulfillmentStatus)
-	) {
-		return "fulfilled";
-	}
-
-	if (
-		CANCELLED_STATUSES.has(orderStatus) ||
-		CANCELLED_STATUSES.has(fulfillmentStatus)
-	) {
-		return "cancelled";
-	}
-
-	if (
-		TRANSIT_ORDER_STATUSES.has(orderStatus) ||
-		TRANSIT_FULFILLMENT_STATUSES.has(fulfillmentStatus)
-	) {
-		return "in_transit";
-	}
-
-	if (PACKED_FULFILLMENT_STATUSES.has(fulfillmentStatus)) {
-		return "packed";
-	}
-
-	if (PACKING_FULFILLMENT_STATUSES.has(fulfillmentStatus)) {
-		return "packing";
-	}
-
-	if (packedTotal > 0 && pendingPackingTotal > 0) {
-		return "packing";
-	}
-
-	if (packedTotal > 0 && pendingPackingTotal === 0) {
-		return "packed";
-	}
-
-	if (QUEUED_FULFILLMENT_STATUSES.has(fulfillmentStatus)) {
-		return "fulfillment_queued";
-	}
-
-	if (
-		COMPLETED_PRODUCTION_STATUSES.has(productionStatus) ||
-		NO_PRODUCTION_REQUIRED_STATUSES.has(productionStatus) ||
-		input.hasProductionWork === false
-	) {
-		return "ready_to_fulfill";
-	}
-
-	if (ACTIVE_PRODUCTION_STATUSES.has(productionStatus)) {
-		return "in_production";
-	}
-
-	if (QUEUED_PRODUCTION_STATUSES.has(productionStatus)) {
-		return "production_queued";
-	}
-
-	if (orderStatus === "unknown" || productionStatus === "unknown") {
-		return "unknown";
-	}
-
-	return "awaiting_production";
-}
-
-export function getSalesOrderLifecycleStatusInfo(
-	input: SalesOrderLifecycleStatusInput,
-) {
-	const status = getSalesOrderLifecycleStatus(input);
-	const meta = SALES_ORDER_LIFECYCLE_STATUS_META[status];
-
-	return {
+export const SALES_ORDER_LIFECYCLE_STATUS_META = Object.fromEntries(
+	SALES_PIPELINE_HEADLINE_CODES.map((status) => [
 		status,
-		label: meta.label,
-		tone: meta.tone,
-		badgeClassName: meta.badgeClassName,
-	};
-}
-
-export function isSalesOrderFulfilled(input: SalesOrderLifecycleStatusInput) {
-	return getSalesOrderLifecycleStatus(input) === "fulfilled";
-}
+		{
+			...SALES_PIPELINE_HEADLINE_META[status],
+			badgeClassName: STATUS_BADGE_CLASS_NAMES[status],
+		},
+	]),
+) as Record<SalesOrderLifecycleStatus, SalesOrderLifecycleStatusMeta>;
 
 export function getSalesOrderLifecycleStatusLabel(
 	status: SalesOrderLifecycleStatus,
 ) {
-	return SALES_ORDER_LIFECYCLE_STATUS_META[status].label;
+	return SALES_PIPELINE_HEADLINE_META[status].label;
 }
 
 export function getSalesOrderLifecycleStatusTone(
 	status: SalesOrderLifecycleStatus,
 ) {
-	return SALES_ORDER_LIFECYCLE_STATUS_META[status].tone;
+	return SALES_PIPELINE_HEADLINE_META[status].tone;
 }
 
 export function getSalesOrderLifecycleStatusBadgeClassName(
@@ -316,28 +75,4 @@ export function getSalesOrderLifecycleStatusBadgeClassName(
 			?.badgeClassName ??
 		"border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-300"
 	);
-}
-
-function firstMeaningfulStatus(...values: (string | null | undefined)[]) {
-	for (const value of values) {
-		const normalized = normalizeStatus(value);
-		if (normalized) return normalized;
-	}
-	return "";
-}
-
-function normalizeStatus(status?: string | null) {
-	return String(status || "")
-		.trim()
-		.toLowerCase()
-		.replace(/[_-]+/g, " ")
-		.replace(/\s+/g, " ");
-}
-
-function qtyTotal(value?: QtyLike | number | null) {
-	if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-	if (!value) return 0;
-
-	const total = Number(value.total ?? value.qty ?? 0);
-	return Number.isFinite(total) ? total : 0;
 }

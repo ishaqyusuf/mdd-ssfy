@@ -34,7 +34,7 @@ const scheduleMoveBaseSchema = z.object({
 
 export const productionScheduleMoveSchema = scheduleMoveBaseSchema.extend({
 	sourceDate: calendarDateSchema,
-});
+}).strict();
 
 export const fulfillmentScheduleMoveSchema = scheduleMoveBaseSchema.extend({
 	dispatchId: z.number().int().positive(),

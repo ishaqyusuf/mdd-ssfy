@@ -6,14 +6,65 @@ import type {
 import {
 	SalesHandoffSourceProjectionUnavailableError,
 	buildSalesHandoffSettlementTimeline,
-	getMaterialSalesHandoffActions,
+	getMaterialSalesHandoffActions as getMaterialSalesHandoffActionsService,
 	getOpenSalesHandoffEpochWhere,
 	normalizePaymentAllocationDelta,
 	reconcileMaterialSalesHandoffEpoch,
-	reconcileMaterialSalesHandoffOrder,
+	reconcileMaterialSalesHandoffOrder as reconcileMaterialSalesHandoffOrderService,
 	reconcileProductionSalesHandoffEpoch,
 	reconcileSalesHandoffAfterCommit,
+	resolveSalesHandoffLifecycle,
 } from "./sales-handoff-actions";
+
+function handoffPipelineSnapshot(
+	salesOrderId: number,
+	headline:
+		| "awaiting_production"
+		| "fulfilled"
+		| "unknown"
+		| "conflict" = "awaiting_production",
+) {
+	return {
+		commercial: { state: "open" },
+		headline: { code: headline },
+		evidence: { salesOrderId },
+	} as never;
+}
+
+const handoffTestDependencies = {
+	loadPipelineSnapshots: async (_db: unknown, salesOrderIds: number[]) =>
+		new Map(
+			salesOrderIds.map((salesOrderId) => [
+				salesOrderId,
+				handoffPipelineSnapshot(
+					salesOrderId,
+					salesOrderId === 1 ? "fulfilled" : "awaiting_production",
+				),
+			]),
+		),
+};
+
+function getMaterialSalesHandoffActions(
+	db: Parameters<typeof getMaterialSalesHandoffActionsService>[0],
+	input: Parameters<typeof getMaterialSalesHandoffActionsService>[1],
+) {
+	return getMaterialSalesHandoffActionsService(
+		db,
+		input,
+		handoffTestDependencies as never,
+	);
+}
+
+function reconcileMaterialSalesHandoffOrder(
+	db: Parameters<typeof reconcileMaterialSalesHandoffOrderService>[0],
+	input: Parameters<typeof reconcileMaterialSalesHandoffOrderService>[1],
+) {
+	return reconcileMaterialSalesHandoffOrderService(
+		db,
+		input,
+		handoffTestDependencies as never,
+	);
+}
 
 type Row = Record<string, unknown> & {
 	id: string;
@@ -167,6 +218,18 @@ function epochDb(initial: Row[] = []) {
 }
 
 describe("Material Sales Handoff epochs", () => {
+	test("maps missing, unknown, and conflict pipeline evidence to unavailable", () => {
+		for (const pipeline of [
+			null,
+			handoffPipelineSnapshot(91, "unknown"),
+			handoffPipelineSnapshot(91, "conflict"),
+		]) {
+			expect(resolveSalesHandoffLifecycle({ deletedAt: null, pipeline })).toBe(
+				"UNAVAILABLE",
+			);
+		}
+	});
+
 	test("records durable repair without rejecting an already committed mutation", async () => {
 		const repairs: unknown[] = [];
 		const result = await reconcileSalesHandoffAfterCommit(

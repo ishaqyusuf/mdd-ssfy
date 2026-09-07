@@ -190,6 +190,7 @@ export function DashboardSalesFormWorkflowPanel() {
 			<SalesFormEnginePanel
 				record={record}
 				editor={workflowEditor}
+				stepListVersion="v2"
 				dataSource={workflowDataSource}
 				workflowCapabilities={workflowAdminCapabilities}
 				pricing={{

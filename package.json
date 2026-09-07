@@ -70,6 +70,7 @@
 		"sales-tax:reconcile": "bun ./scripts/sales-tax-ledger-reconciliation.ts",
 		"sales-handoff:source-repair": "bun ./scripts/sales-handoff-source-repair.ts",
 		"sales-pipeline:audit": "bun ./scripts/sales-pipeline-audit.ts",
+		"sales-pipeline:administrative-reconcile": "bun ./scripts/sales-pipeline-administrative-reconcile.ts",
 		"sales-pipeline:cutover-check": "bun ./scripts/sales-pipeline-cutover-check.ts",
 		"sales-pipeline:reconcile": "bun ./scripts/sales-pipeline-reconcile.ts",
 		"sales-pipeline:shadow-report": "bun ./scripts/sales-pipeline-shadow-report.ts",

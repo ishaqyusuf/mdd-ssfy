@@ -121,6 +121,7 @@ describe("query event mutation registry", () => {
 			"sales.getOrders",
 			"sales.productionSummary",
 			"sales.productionCalendar",
+			"sales.productionPlanningCalendar",
 			"sales.productionCalendarTasks",
 			"sales.productionsV2",
 			"dispatch.backlog",

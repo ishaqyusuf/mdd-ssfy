@@ -23,8 +23,10 @@ import {
 	parseAsString,
 	parseAsStringLiteral,
 } from "nuqs/server";
+import { useMemo } from "react";
 
-type FilterKeys = keyof Exclude<RouterInputs["sales"]["getOrders"], void>;
+type SalesOrdersQueryInput = Exclude<RouterInputs["sales"]["getOrders"], void>;
+type FilterKeys = keyof SalesOrdersQueryInput;
 
 export const salesOrdersV2FilterParams = {
 	q: parseAsString,
@@ -69,14 +71,42 @@ export const salesOrdersV2FilterParams = {
 
 export function useSalesOrdersV2FilterParams() {
 	const [filters, setFilters] = useQueryStates(salesOrdersV2FilterParams);
+	const normalizedFilters = useMemo(
+		() => withSalesOrdersDefaultScope(filters),
+		[filters],
+	);
 
 	return {
-		filters: {
-			...filters,
-			showing: "all sales" as const,
-		},
+		filters: normalizedFilters,
 		setFilters,
 		hasFilters: Object.values(filters).some((value) => value !== null),
+	};
+}
+
+export function withSalesOrdersDefaultScope<
+	TFilters extends Record<string, unknown>,
+>(filters: TFilters) {
+	return {
+		...filters,
+		showing: "all sales" as const,
+	};
+}
+
+export function createSalesOrdersListQueryInput<
+	TFilters extends Record<string, unknown>,
+>({
+	filters,
+	sort,
+	bin,
+}: {
+	filters: TFilters;
+	sort: SalesOrdersQueryInput["sort"];
+	bin?: boolean;
+}) {
+	return {
+		...filters,
+		sort,
+		...(bin === undefined ? {} : { bin }),
 	};
 }
 

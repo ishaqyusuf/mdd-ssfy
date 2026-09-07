@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
-import { resolveLegacySalesOverviewMode } from "./mode";
+import {
+	resolveLegacySalesOverviewMode,
+	shouldShowLegacySalesOverviewInboundStatus,
+} from "./mode";
 
 describe("resolveLegacySalesOverviewMode", () => {
 	it("honors an explicit dispatch request for order and production admins", () => {
@@ -28,5 +31,34 @@ describe("resolveLegacySalesOverviewMode", () => {
 				viewMode: "dispatch-modal",
 			}),
 		).toBe("dispatch-modal");
+	});
+});
+
+describe("shouldShowLegacySalesOverviewInboundStatus", () => {
+	it("hides the redundant sheet-header summary from assigned Production workers", () => {
+		expect(
+			shouldShowLegacySalesOverviewInboundStatus({
+				mode: "assigned-production",
+				hasSale: true,
+				isQuote: false,
+			}),
+		).toBe(false);
+	});
+
+	it("preserves the inbound summary on eligible admin Sales Overview sheets", () => {
+		expect(
+			shouldShowLegacySalesOverviewInboundStatus({
+				mode: "default",
+				hasSale: true,
+				isQuote: false,
+			}),
+		).toBe(true);
+		expect(
+			shouldShowLegacySalesOverviewInboundStatus({
+				mode: "default",
+				hasSale: true,
+				isQuote: true,
+			}),
+		).toBe(false);
 	});
 });

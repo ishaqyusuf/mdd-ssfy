@@ -51,6 +51,11 @@ export type {
   InvoiceItemCardProps,
   WorkflowStepUiRecord,
 } from "./invoice-item-card";
+export { WorkflowStepList } from "./workflow-step-list";
+export type {
+  WorkflowStepListProps,
+  WorkflowStepListVersion,
+} from "./workflow-step-list";
 export {
   HousePackageToolPanel,
   getHousePackageToolSwapSizeOptionState,

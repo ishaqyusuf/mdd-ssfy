@@ -406,7 +406,13 @@ export function ProductionMaterialReviewPanel({
 	);
 	const normalizedSearch = search?.trim().toLowerCase() || "";
 	const showReviewQueue = !orderContext || attentionOpen;
-	const rows = queueQuery.data?.pages.flatMap((page) => page.rows) || [];
+	const rows = useMemo(
+		() => queueQuery.data?.pages.flatMap((page) => page.rows) || [],
+		[queueQuery.data?.pages],
+	);
+	const selectedReviewIsQueued =
+		selectedReviewId !== null &&
+		rows.some((review) => review.id === selectedReviewId);
 	const hasOnlyRetractedReviews =
 		rows.length > 0 && rows.every((review) => review.submittedQty === 0);
 	const detailQuery = useQuery(
@@ -464,6 +470,9 @@ export function ProductionMaterialReviewPanel({
 						queryKey: trpc.sales.productionCalendar.pathKey(),
 					}),
 					queryClient.invalidateQueries({
+						queryKey: trpc.sales.productionPlanningCalendar.pathKey(),
+					}),
+					queryClient.invalidateQueries({
 						queryKey: trpc.sales.productionOrderDetailV2.pathKey(),
 					}),
 				]);
@@ -476,27 +485,24 @@ export function ProductionMaterialReviewPanel({
 
 	useEffect(() => {
 		if (requestedReviewId) {
-			setAttentionOpen(true);
-			selectReview(requestedReviewId);
+			if (!attentionOpen) setAttentionOpen(true);
+			if (selectedReviewId !== requestedReviewId) {
+				selectReview(requestedReviewId);
+			}
 			return;
 		}
 		if (orderContext && !attentionOpen) {
-			selectReview(null);
+			if (selectedReviewId !== null) selectReview(null);
 			return;
 		}
-		if (
-			selectedReviewId &&
-			rows.some((review) => review.id === selectedReviewId)
-		) {
-			return;
-		}
-		if (!requestedReviewId) selectReview(null);
+		if (selectedReviewIsQueued) return;
+		if (selectedReviewId !== null) selectReview(null);
 	}, [
 		attentionOpen,
 		orderContext,
 		requestedReviewId,
-		rows,
 		selectedReviewId,
+		selectedReviewIsQueued,
 		selectReview,
 	]);
 

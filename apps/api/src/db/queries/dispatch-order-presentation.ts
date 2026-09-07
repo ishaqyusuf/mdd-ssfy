@@ -1,8 +1,6 @@
 import type { Prisma } from "@gnd/db";
-import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
 import { repairSalesInvoiceCccDisplay } from "@gnd/sales/payment-system";
 import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
-import { observeSalesPipelineReadProjection } from "@gnd/sales/sales-pipeline-rollout";
 
 export const dispatchOrderPresentationSelect = {
 	slug: true,
@@ -63,42 +61,17 @@ type QtyLike = {
 
 export function projectDispatchOrderPresentation(
 	order: PresentationOrder,
-	control: OrderControl,
-	fulfillmentStatus?: string | null,
+	_control: OrderControl,
+	_fulfillmentStatus?: string | null,
 	options?: {
 		pipeline?: SalesPipelineSnapshot | null;
-		env?: Record<string, string | undefined>;
 	},
 ) {
 	const repairedInvoice = repairSalesInvoiceCccDisplay({
 		baseTotal: Number(order.grandTotal || 0),
 		meta: order.meta,
 	});
-	const productionState =
-		control?.productionStatus && control.productionStatus !== "unknown"
-			? control.productionStatus
-			: order.prodStatus || "pending";
-	const projectedFulfillmentStatus =
-		control?.dispatchStatus && control.dispatchStatus !== "unknown"
-			? control.dispatchStatus
-			: fulfillmentStatus || "pending";
-	const lifecycle = getSalesOrderLifecycleStatusInfo({
-		orderStatus: order.status,
-		legacyProductionStatus: order.prodStatus,
-		productionStatus: productionState,
-		fulfillmentStatus: projectedFulfillmentStatus,
-		packed: control?.packed,
-		pendingPacking: control?.pendingPacking,
-		pendingDispatch: control?.pendingDispatch,
-		packables: control?.packables,
-	});
-	const selectedPipeline = options?.pipeline
-		? observeSalesPipelineReadProjection(
-				options.pipeline,
-				{ surface: "fulfillment.order", legacyHeadline: lifecycle.status },
-				options.env,
-			)
-		: null;
+	const selectedPipeline = options?.pipeline ?? null;
 	const customerName =
 		order.customer?.businessName ||
 		order.customer?.name ||
@@ -130,9 +103,9 @@ export function projectDispatchOrderPresentation(
 					reviewStatus: paymentReview.reviewStatus || "needs_review",
 				}
 			: null,
-		productionState: selectedPipeline?.production.state ?? productionState,
-		status: selectedPipeline?.headline.code ?? lifecycle.status,
-		statusLabel: selectedPipeline?.headline.label ?? lifecycle.label,
-		statusTone: selectedPipeline?.headline.tone ?? lifecycle.tone,
+		productionState: selectedPipeline?.production.state ?? "unknown",
+		status: selectedPipeline?.headline.code ?? "unknown",
+		statusLabel: selectedPipeline?.headline.label ?? "Status unavailable",
+		statusTone: selectedPipeline?.headline.tone ?? "stone",
 	};
 }

@@ -16,7 +16,6 @@ import {
 	getSaleInformation,
 	getSalesPipelineSnapshots,
 	runSalesPipelineCommandTransaction,
-	shouldEnforceCanonicalSalesPipelineCommands,
 } from "@sales/exports";
 import { z } from "zod";
 
@@ -59,7 +58,7 @@ export const batchEditProductionOrdersAction = actionClient
 					action: "production.assign",
 					authorized: true,
 					expectedRevision: snapshot.revision,
-					enforce: shouldEnforceCanonicalSalesPipelineCommands(salesId),
+					enforce: true,
 					operation: "dashboard.batch-edit-production-orders",
 				},
 				async (transactionDb) => {

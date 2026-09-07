@@ -10,6 +10,7 @@ import {
 	type WorkflowStepUiRecord,
 } from "./invoice-item-card";
 import { resolveInitialWorkflowStepIndex } from "./workflow-records";
+import type { WorkflowStepListVersion } from "./workflow-step-list";
 
 export type WorkflowLineListItem = {
 	uid?: string | null;
@@ -27,6 +28,7 @@ export type WorkflowLineListProps<TLine extends WorkflowLineListItem> = {
 	items: WorkflowLineListEntry<TLine>[];
 	activeLineUid?: string | null;
 	activeStepByLine: Record<string, number>;
+	stepListVersion?: WorkflowStepListVersion;
 	resolveActiveStepIndex: (
 		steps: WorkflowStepUiRecord[],
 		candidateIndex: number,
@@ -126,6 +128,7 @@ export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 							titlePlaceholder={props.getLineTitlePlaceholder(line)}
 							lineTotal={props.getLineDisplayTotal(line)}
 							steps={steps}
+							stepListVersion={props.stepListVersion}
 							activeIndex={activeIndex}
 							onActivate={() => props.onActivateLine(line, isActive)}
 							onTitleChange={(value) => props.onTitleChange(line, value)}

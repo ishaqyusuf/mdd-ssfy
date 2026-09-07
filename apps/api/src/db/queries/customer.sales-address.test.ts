@@ -5,6 +5,70 @@ import {
 	getSalesCustomer,
 } from "./customer";
 
+function pipelineFindMany(
+	orderStatus: string | null,
+	id = 77,
+	completedDeliveryItems = 0,
+) {
+	const updatedAt = new Date("2026-09-01T12:00:00.000Z");
+	return async ({ select }: { select?: Record<string, unknown> }) => {
+		if (select?.specialOrderRevision) return [];
+		if (select?.itemControls) {
+			return [
+				{
+					id,
+					itemControls: [
+						{
+							uid: `item-${id}`,
+							produceable: false,
+							shippable: true,
+							qtyControls: [
+								{
+									type: "qty",
+									total: 1,
+									itemTotal: 1,
+									qty: 1,
+									updatedAt,
+								},
+							],
+						},
+					],
+				},
+			];
+		}
+		if (select?.assignments) return [{ id, assignments: [] }];
+		if (select?.deliveries) return [{ id, deliveries: [] }];
+		return [
+			{
+				id,
+				orderId: `ORDER-${id}`,
+				status: orderStatus,
+				prodStatus: null,
+				deletedAt: null,
+				archivedAt: null,
+				grandTotal: 100,
+				amountDue: 0,
+				updatedAt,
+				inventoryProjection: null,
+				stat: [],
+				completionRecords:
+					/fulfilled/i.test(orderStatus || "") || completedDeliveryItems > 0
+						? [
+								{
+									id: `completion-${id}`,
+									milestone: "FULFILLMENT_COMPLETED",
+									completionMethod: "STATUS_ONLY",
+									recordedAt: updatedAt,
+									effectiveAt: null,
+									recordedById: 1,
+								},
+							]
+						: [],
+			},
+		];
+	};
+}
+
 async function runAssignment({
 	billingAddressId,
 	completedDeliveryItems = 0,
@@ -41,7 +105,7 @@ async function runAssignment({
 			findUnique: async () => ({ dealerOwnerId }),
 		},
 		salesOrders: {
-			findMany: async () => [],
+			findMany: pipelineFindMany(orderStatus, 77, completedDeliveryItems),
 			findFirst: async () =>
 				saleFound
 					? {
@@ -194,6 +258,7 @@ describe("sales address assignment", () => {
 				findUnique: async () => ({ dealerOwnerId: null }),
 			},
 			salesOrders: {
+				findMany: pipelineFindMany("Fulfilled"),
 				findFirst: async () => ({
 					billingAddressId: 201,
 					deliveries: [],

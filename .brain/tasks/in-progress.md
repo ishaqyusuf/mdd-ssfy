@@ -1,8 +1,62 @@
 # In Progress
 
-### Canonical End-to-End Sales Pipeline Lifecycle Wayfinder
+### [GND Mobile Screen-by-Screen Redesign](2026-09-04-gnd-mobile-screen-by-screen-redesign.md)
+- Status: In Progress
 
+### Historical record — Canonical End-to-End Sales Pipeline (completed)
+
+- Completed:196/196 checks,18/18 tickets. Ticket14's approved retired-variable
+  cleanup succeeded and is verified. See done.md and the canonical Scratch
+  README. No active Sales Pipeline task remains in this record.
+  Older checkpoints below are retained history, not current work.
+
+- Current checkpoint: Ticket 17 is complete at 12/12 and the authoritative
+  Scratch batch is 177/196. Full-workflow jobs persist immutable per-sale
+  outcomes; only failed
+  or review-required rows enter a second explicit status-only confirmation.
+  The preview and command revalidate editor permission, supported blockers,
+  completion and pipeline revisions, deterministic identities, and immutable
+  attempt linkage without repeating successful workflow effects. Formal
+  review also locked provenance to the internal fallback boundary, made audit
+  integrity fail closed, bounded preview concurrency, sanitized errors, and
+  persisted a FIFO/keyed global confirmation across navigation. The focused
+  Sales/API/Jobs/Dashboard matrix passes 109 tests / 380 assertions; Sales and
+  API typechecks pass, and the Dashboard changed-runtime diagnostic is clean.
+  Authenticated Production/local fallback and exact 390×844/768×1024 browser
+  QA pass. READY deployment `dpl_CTJRtcF9uerErnk1k2bM1Qk7V8Ua` owns the
+  Production alias. Ticket 18 is now the active implementation frontier.
+  Scratch is authoritative.
 - Priority: Critical
+- Current checkpoint: Ticket 11 is complete at 9/9 after the canonical-only
+  retirement removed every channel-local mutable-string lifecycle
+  reconstruction. Dealership, Storefront, and customer projections now use the
+  canonical snapshot or an explicit `Status unavailable` projection. The
+  authoritative Scratch batch is 165/196; Ticket 14 remains 12/13 pending
+  production environment cleanup and authenticated acceptance.
+- Current checkpoint: Ticket 14 is 12/13 and the authoritative Scratch batch is
+  165/196. Post-cutover retirement is locally complete: ordinary lifecycle
+  consumers use canonical snapshots or explicit unavailable state, rollout
+  selectors and command bypasses are removed, and Production membership is
+  bounded/revision checked. Shared status vocabulary now belongs to the
+  canonical contract; a test bounds the named legacy operational adapter to ten
+  reviewed inventory/full-workflow compatibility seams. The combined retirement
+  evidence is 235 tests / 919 assertions plus a 52-test / 222-assertion focused
+  adapter/customer/document/handoff matrix, with Sales/API typechecks green.
+  Final validation, production deployment/config retirement, authenticated
+  acceptance, and closure remain; no schema or business-data write is needed.
+- Current checkpoint: reconciliation is no longer a rollout blocker. The
+  8,172-order report records 7,500 accepted and 672 informational exceptions;
+  authorized users own cleanup through audited status-only actions. Ticket 14
+  is 10/13 and the batch 162/196. The policy is live through READY Production
+  deployment `dpl_HUPC9gH7aiVmszXfqv5U2C2KUh8p` at unchanged 5%; the current
+  gates are sustained reliability and bounded live-cohort acceptance.
+- Current checkpoint: the guarded local administrative runner completed
+  497/497 safe single-stage resolutions (490 Fulfillment, seven Production).
+  Independent 100% shadow evidence compares all 8,172 orders with zero
+  unexplained membership differences and 672 unsafe transitions remaining.
+  The source audit found zero deterministic delivery-proof repairs, so every
+  remaining conflict is held for source-fact review. No Production database or
+  operational source fact was changed; production remains at 5%.
 - Description: The local Wayfinder implementation now provides one shared
   `@gnd/sales` lifecycle authority for commercial order, payment,
   material/inventory, Production, Fulfillment, packing, Dispatch, and terminal
@@ -19,9 +73,13 @@
   stable expanded/collapsed headline wrapping. The final material dry run has
   86 legitimate active reviews and zero proposed automatic changes; projection
   reconciliation has zero remaining deterministic repair and zero unsafe.
-  The authoritative Scratch queue is at 156/165 verified checks: Tickets 01–10,
-  12, 13, and 15 are done; Tickets 11 and 16 are in progress; Ticket 14 is in
-  production rollout; and approved Ticket 16 is at 14/15. Ticket 15 adds
+  The authoritative Scratch queue is at 177/196 verified checks: Tickets 01–13
+  and 15–17 are done; Ticket 14 is in progress; and approved Ticket 18 is the
+  active implementation frontier.
+  Ticket 18 adds a
+  separate admin Planning-gaps Calendar projection for order-level Production
+  due dates without changing assignment-backed Schedule membership, plus a
+  canonical color/provenance matrix. Ticket 15 adds
   audited administrative Production/Fulfillment exception handling behind one
   visible milestone-action pair, canonical completed/green Calendar
   presentation, plus one canonical headline-status filter shared by every
@@ -63,7 +121,10 @@
   input. The focused lifecycle/rescheduling pass covers 254 tests and 938
   assertions with zero failures, Sales and API package typechecks pass, and a
   focused dashboard TypeScript scan with no changed-calendar diagnostics.
-  Authenticated desktop/tablet/mobile browser acceptance remains.
+  Authenticated desktop plus 390×844 and 768×1024 browser acceptance passes
+  across Production, worker read-only, Fulfillment V2, and legacy Fulfillment.
+  A controlled local move restored unassigned order `09439PC` to its original
+  Sep 4 date after proving the Sep 5 write and refresh path.
   Tickets 07 and 08 use one transaction-owned command executor
   that locks the order, recomputes canonical evidence, validates the expected
   revision, and runs the Production/Fulfillment/Dispatch/review mutation before
@@ -105,6 +166,18 @@
   repairs remaining, 1,265 review-required, and 0 unsafe across 8,151 orders.
   Smaller-batch continuation, production shadow/cutover evidence, bounded
   material repair, and final verification remain.
+  The later approval-bearing shadow report passes all parity, safety,
+  freshness, conflict-review, operator-approval, and 500 ms serving-latency
+  gates. The approved 5% canonical read/command and Sales Orders read-model
+  cohorts are now deployed as `dpl_GgKtUtFqRnfNKXYirE3wC9P5mnxt` with all
+  five variables present in Production and the Turborepo build allowlist.
+  Focused rollout coverage passes 36 tests with 95 assertions, and the
+  authenticated Production Orders page is healthy. Cross-surface live cohort
+  validation remains open. The separate Production material-review dry run
+  completed across 240 pending reviews with zero failures and zero mutations:
+  138 safe history cancellations, 1 reason reclassification, 4 separately
+  gated ready approvals, and 97 no-ops. Its clean-dry-run prerequisite passes;
+  a 25-row history-only repair batch is next.
   A first smaller-batch attempt stopped during its pre-backup scan and made no
   mutation. The verified operational runner now allows a 95-second read-only
   recovery window while continuing to forbid automatic mutation retry.
@@ -124,13 +197,23 @@
   orders reports 2,891 deterministic repairs remaining and 0 unsafe, proving
   249 more rows converged. Read retries now reset the failed client so the
   provider hostname can be resolved again.
-- Status: 13/16 Done — 3/16 In Progress — 0/16 Ready (156/165 checks)
+  Part 5 started from a fresh 8,160-order zero-unsafe dry run, wrote its 473 KB
+  rollback backup, and then exhausted bounded whole-cohort retries during a
+  sustained PlanetScale prerequisite-read outage. The failing cohort never
+  reached upserts; earlier cohorts require a fresh read-only audit after the
+  endpoint recovers. Production material review remains unmodified.
+  After recovery, audit `067c1425-cf4f-42ff-9f59-58f76e52ae6e` covered 8,160
+  orders and proved exactly 326 part-5 rows converged. It reports 2,566
+  deterministic repairs remaining, 1,269 review-required, 284 known
+  compatibility differences, and 0 unsafe. Part 6 may continue with a fresh
+  backup and the same 25-row/revision-checked cache-only boundary.
+- Status: 16/18 Done — 1/18 In Progress — 1/18 Approved/Queued (177/196 checks)
 - Local Map: `.scratch/sales-pipeline-lifecycle-wayfinder/map.md`
 - Local Spec: `.scratch/sales-pipeline-lifecycle-wayfinder/spec.md`
 - Local Tickets: `.scratch/sales-pipeline-lifecycle-implementation/issues/`
 - Local QA: `.scratch/sales-pipeline-lifecycle-implementation/qa-report.md`
 - Approval Packet: `.scratch/sales-pipeline-lifecycle-implementation/production-approval-packet.md`
-- Updated Date: 2026-09-03
+- Updated Date: 2026-09-07
 
 ### Fulfillment V2 Status And Queue Parity
 
@@ -248,35 +331,8 @@
 - Plan Files: `.brain/plans/sales-system-page-by-page-modernization/04-sales-production-admin-and-worker-plan.md`; `.brain/plans/2026-08-21-feature-production-worker-global-search.md`; `.brain/plans/2026-08-22-feature-sales-overview-production-item-single-view.md`
 - Updated Date: 2026-09-01
 
-### Vercel Function Cost Reduction And Trigger Offload
-
-- Priority: High
-- Description: Steps 1-3 are active: repository and daily cost monitoring are
-  live, the database-free liveness endpoint is preview-verified, and Fluid
-  Compute is deployed to an isolated preview. The qualified 24-hour Preview
-  `getOrders` canary is complete: 20 of 24 scheduled attempts were recorded,
-  14 produced trustworthy Chrome samples, exact-result correctness was 14/14,
-  and one repeated list-load slowdown was confirmed. Privacy-safe procedure
-  timing and a deterministic, fail-closed user cohort are now implemented with
-  legacy fallback retained. The next gate is production Trigger deployment,
-  ledger reconciliation/backfill, and `shadow` parity evidence before a small
-  `read` cohort; broad production promotion remains held. A
-  supplied authenticated session completed the main Sales/Customers replay and
-  a bounded concurrent replay without timeout or application errors. Production
-  promotion remains held while statement PDF latency/error behavior and
-  auth-session fan-out are investigated and the 12-24-hour window accumulates.
-  Steps 4-5 now include the confirmed no-cursor `q=APA` timeout: privacy-safe
-  per-procedure timing, explicit broad-search query-plan fixtures, summary-query
-  consolidation, and bounded saved-tab counts are required in addition to
-  duplicate-cursor prevention and the lean read-model rollout.
-  Google sign-in separately remains broken by Prisma `P2000` because the MySQL
-  `WebAuthVerification` verification value exceeds its original `VARCHAR(191)`
-  boundary.
-- Related Feature: Vercel runtime cost control and background job architecture
+### [Sales Orders Request-Storm Protection](2026-09-04-sales-orders-request-storm-protection.md)
 - Status: In Progress
-- Plan Status: In Progress
-- Plan File: `.brain/plans/2026-08-21-feature-vercel-function-cost-reduction-and-trigger-offload.md`
-- Created Date: 2026-08-21
 
 ### New Sales Form Step Picker And Component Creation Parity
 

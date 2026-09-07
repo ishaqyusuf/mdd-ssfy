@@ -6,9 +6,11 @@ import type {
 import type { TRPCContext } from "@api/trpc/init";
 import { resolveSalesDocumentAccess } from "@api/utils/sales-document-access";
 import { assertSalesDocumentsReady } from "@gnd/sales/document-readiness";
-import { projectSalesPipelineForAudience } from "@gnd/sales/sales-pipeline";
+import {
+	projectSalesPipelineForAudience,
+	projectUnavailableSalesPipelineForAudience,
+} from "@gnd/sales/sales-pipeline";
 import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
-import { observeSalesPipelineReadProjection } from "@gnd/sales/sales-pipeline-rollout";
 import { TRPCError } from "@trpc/server";
 
 type CustomerStorefrontContext = TRPCContext & {
@@ -24,42 +26,6 @@ function safeRecord(value: unknown): Record<string, unknown> {
 
 function toIso(value: Date | null | undefined) {
 	return value?.toISOString() || null;
-}
-
-function legacyCustomerOrderStatus(order: {
-	status?: string | null;
-	deliveredAt?: Date | null;
-	deliveries?: Array<{ status?: string | null; deliveredAt?: Date | null }>;
-}) {
-	const raw = String(order.status || "").toLowerCase();
-	if (raw.includes("cancel") || raw.includes("refund")) return "cancelled";
-	if (
-		order.deliveredAt ||
-		order.deliveries?.some(
-			(delivery) =>
-				delivery.deliveredAt ||
-				String(delivery.status || "")
-					.toLowerCase()
-					.includes("delivered"),
-		)
-	) {
-		return "delivered";
-	}
-	if (
-		order.deliveries?.some((delivery) =>
-			/(dispatch|transit|shipped|out for delivery)/i.test(
-				delivery.status || "",
-			),
-		)
-	) {
-		return "in-transit";
-	}
-	return "processing";
-}
-
-function legacyCustomerOrderStatusLabel(status: string) {
-	if (status === "in-transit") return "In transit";
-	return `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
 }
 
 const orderListSelect = {
@@ -104,17 +70,17 @@ function mapOrderListItem(
 		ReturnType<CustomerStorefrontContext["db"]["salesOrders"]["findFirst"]>
 	> &
 		Record<string, unknown>,
-	pipeline: ReturnType<typeof projectSalesPipelineForAudience> | null,
+	pipeline:
+		| ReturnType<typeof projectSalesPipelineForAudience>
+		| ReturnType<typeof projectUnavailableSalesPipelineForAudience>,
 ) {
 	const record = order as any;
-	const legacyStatus = legacyCustomerOrderStatus(record);
 	return {
 		id: record.id as number,
 		orderId: record.orderId as string,
 		slug: record.slug as string,
-		status: pipeline?.status.code ?? legacyStatus,
-		statusLabel:
-			pipeline?.status.label ?? legacyCustomerOrderStatusLabel(legacyStatus),
+		status: pipeline.status.code,
+		statusLabel: pipeline.status.label,
 		pipeline,
 		officeStatus: record.status as string | null,
 		productionStatus: record.prodStatus as string | null,
@@ -360,17 +326,11 @@ export async function listStorefrontOrders(
 		);
 		for (const order of rows) {
 			const snapshot = snapshots.get(order.id);
-			if (!snapshot) continue;
-			const legacyStatus = legacyCustomerOrderStatus(order);
-			const selected = observeSalesPipelineReadProjection(snapshot, {
-				surface: "storefront.orders",
-				legacyHeadline: legacyStatus,
-			});
-			const pipeline = selected
-				? projectSalesPipelineForAudience(selected, "customer")
-				: null;
-			const status = pipeline?.status.code ?? legacyStatus;
-			if (input.status && status !== input.status) continue;
+			const pipeline = snapshot
+				? projectSalesPipelineForAudience(snapshot, "customer")
+				: projectUnavailableSalesPipelineForAudience();
+			const status = pipeline.status.code;
+			if (input.status !== "all" && status !== input.status) continue;
 			projected.push(mapOrderListItem(order as any, pipeline));
 			if (projected.length > input.limit) break;
 		}
@@ -505,19 +465,11 @@ export async function getStorefrontOrder(
 	const pipelineSnapshot = (
 		await getSalesPipelineSnapshots(ctx.db, [order.id])
 	).get(order.id);
-	if (!pipelineSnapshot) throw new TRPCError({ code: "NOT_FOUND" });
-	const selectedPipeline = observeSalesPipelineReadProjection(
-		pipelineSnapshot,
-		{
-			surface: "storefront.order-detail",
-			legacyHeadline: legacyCustomerOrderStatus(order),
-		},
-	);
 	const summary = mapOrderListItem(
 		order as any,
-		selectedPipeline
-			? projectSalesPipelineForAudience(selectedPipeline, "customer")
-			: null,
+		pipelineSnapshot
+			? projectSalesPipelineForAudience(pipelineSnapshot, "customer")
+			: projectUnavailableSalesPipelineForAudience(),
 	);
 	const timeline = [
 		{

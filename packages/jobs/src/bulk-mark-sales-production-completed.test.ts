@@ -41,6 +41,8 @@ describe("bulk mark sales production completed task contract", () => {
 			"utf8",
 		);
 		expect(source).toContain('id: "bulk-mark-sales-production-completed"');
+		expect(source).toContain("recordSalesCompletionFullWorkflowOutcomes");
+		expect(source).toContain('milestone: "PRODUCTION_COMPLETED"');
 		expect(source).toContain("maxDuration: 900");
 		expect(source).toContain("concurrencyLimit: 2");
 		expect(source).toContain("batchTriggerAndWait(batchItems)");

@@ -18,7 +18,11 @@ import { SalesOrdersV2TotalOrders } from "@/components/sales-orders-v2-total-ord
 import { ScrollableContent } from "@/components/scrollable-content";
 import { DataTable } from "@/components/tables-2/sales-orders/data-table";
 import { SalesOrdersSkeleton } from "@/components/tables-2/sales-orders/skeleton";
-import { loadSalesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
+import {
+	createSalesOrdersListQueryInput,
+	loadSalesOrdersV2FilterParams,
+	withSalesOrdersDefaultScope,
+} from "@/hooks/use-sales-orders-v2-filter-params";
 import { loadSortParams } from "@/hooks/use-sort-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
@@ -42,24 +46,21 @@ type Props = {
 
 export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
-	const filter = {
-		...loadSalesOrdersV2FilterParams(searchParams),
-		showing: "all sales" as const,
-	};
+	const filter = withSalesOrdersDefaultScope(
+		loadSalesOrdersV2FilterParams(searchParams),
+	);
 	const { sort } = loadSortParams(searchParams);
+	const listQueryInput = createSalesOrdersListQueryInput({
+		filters: filter,
+		sort,
+	});
 	const initialSettings = await getInitialTableSettings("sales-orders");
 
 	batchPrefetch([
-		trpc.sales.getOrders.infiniteQueryOptions(
-			{
-				...filter,
-				sort,
-			},
-			{
-				getNextPageParam: ({ meta }) =>
-					(meta as { cursor?: string | number | null } | undefined)?.cursor,
-			},
-		),
+		trpc.sales.getOrders.infiniteQueryOptions(listQueryInput, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
 		trpc.sales.getOrdersSummary.queryOptions(filter),
 	]);
 

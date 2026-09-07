@@ -5,6 +5,14 @@ const controllerSource = readFileSync(
 	new URL("./controller.tsx", import.meta.url),
 	"utf8",
 );
+const indexSource = readFileSync(
+	new URL("./index.tsx", import.meta.url),
+	"utf8",
+);
+const layoutSource = readFileSync(
+	new URL("./layout.tsx", import.meta.url),
+	"utf8",
+);
 const gatewaySource = readFileSync(
 	new URL("./production/production-tab-gateway.tsx", import.meta.url),
 	"utf8",
@@ -62,6 +70,14 @@ test("gives production workers the V2 submissions-only item experience", () => {
 	expect(productionDocumentSource).toContain("workerSubmissionEmpty");
 	expect(productionDocumentSource).toContain('"Create submission"');
 	expect(productionDocumentSource).toContain("<Icons.Add />");
+});
+
+test("keeps shared inbound summary out of worker mode without changing admin mode", () => {
+	expect(indexSource).toContain("mode={mode}");
+	expect(layoutSource).toContain(
+		"shouldShowLegacySalesOverviewInboundStatus({",
+	);
+	expect(layoutSource).toContain("mode,");
 });
 
 test("renders the approved single-view command document in order", () => {

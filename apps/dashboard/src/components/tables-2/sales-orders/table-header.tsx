@@ -32,6 +32,7 @@ interface Props<TData> {
 	loading?: boolean;
 	tableScroll?: TableScrollState;
 	showColumnDividers?: boolean;
+	onBeforeSortChange?: () => void;
 }
 const HEADER_BACKGROUND_CLASS = "!bg-sidebar-accent";
 const HEADER_TEXT_CLASS =
@@ -48,8 +49,20 @@ export function DataTableHeader<TData>({
 	loading,
 	tableScroll,
 	showColumnDividers = false,
+	onBeforeSortChange,
 }: Props<TData>) {
-	const { sortColumn, sortValue, createSortQuery } = useSortQuery();
+	const {
+		sortColumn,
+		sortValue,
+		createSortQuery: setSortQuery,
+	} = useSortQuery();
+	const createSortQuery = (
+		field: string,
+		defaultDirection: "asc" | "desc" = "asc",
+	) => {
+		onBeforeSortChange?.();
+		setSortQuery(field, defaultDirection);
+	};
 	const { getStickyStyle, getStickyClassName, isVisible } = useStickyColumns({
 		table,
 		loading,

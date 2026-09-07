@@ -85,9 +85,24 @@ export const filterRouters = createTRPCRouter({
   backlog: publicProcedure.query(async (props) => {
     return backlogFilters(props.ctx);
   }),
-  salesProductions: publicProcedure.query(async (props) =>
-    getSalesProductionFilters(props.ctx),
-  ),
+  salesProductions: protectedProcedure.query(async (props) => {
+    await requireAnyOperationalPermission(
+      props.ctx,
+      [
+        "viewOrders",
+        "editOrders",
+        "viewProduction",
+        "editProduction",
+        "viewDelivery",
+        "editDelivery",
+        "viewPickup",
+        "editPickup",
+        "viewPacking",
+      ],
+      "You do not have permission to view sales production filters.",
+    );
+    return getSalesProductionFilters(props.ctx);
+  }),
   salesOrders: publicProcedure
     .input(
       z

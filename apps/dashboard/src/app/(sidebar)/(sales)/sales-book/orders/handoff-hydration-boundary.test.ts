@@ -23,6 +23,12 @@ describe("Sales Handoff alert hydration boundary", () => {
 
 		expect(prefetchSource).toContain("getOrders.infiniteQueryOptions");
 		expect(prefetchSource).toContain("getOrdersSummary.queryOptions");
+		expect(
+			(prefetchSource.match(/getOrders\.infiniteQueryOptions/g) ?? []).length,
+		).toBe(1);
+		expect(
+			(prefetchSource.match(/getOrdersSummary\.queryOptions/g) ?? []).length,
+		).toBe(1);
 		expect(prefetchSource).not.toContain("getSalesHandoffActions");
 		expect(pageSource).toContain("<SalesHandoffActionsAlert />");
 		expect(pageSource).toContain(
@@ -47,8 +53,6 @@ describe("Sales Handoff alert hydration boundary", () => {
 			"const [isHydrated, setIsHydrated] = useState(false)",
 		);
 		expect(alertSource).toContain("setIsHydrated(true)");
-		expect(alertSource).toContain(
-			"if (!isHydrated || scopeQuery.isPending)",
-		);
+		expect(alertSource).toContain("if (!isHydrated || scopeQuery.isPending)");
 	});
 });

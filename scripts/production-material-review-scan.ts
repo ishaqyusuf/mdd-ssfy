@@ -21,6 +21,7 @@ export async function runProductionMaterialReviewScan<
 >(options: {
 	candidates: Candidate[];
 	maxMutations: number;
+	continueAfterUnsafeForReadOnlyAudit?: boolean;
 	load: (candidate: Candidate) => Promise<PreparedReview>;
 	onFailure: (
 		candidate: Candidate,
@@ -31,6 +32,7 @@ export async function runProductionMaterialReviewScan<
 	let mutationCount = 0;
 	let lastSuccessfulReviewId: number | null = null;
 	let stopReason: string | null = null;
+	const unsafeReviewIds: number[] = [];
 	for (const candidate of options.candidates) {
 		let review: PreparedReview;
 		try {
@@ -40,7 +42,15 @@ export async function runProductionMaterialReviewScan<
 			stopReason = `unsafe_read:${candidate.id}`;
 			break;
 		}
+		if (options.continueAfterUnsafeForReadOnlyAudit && review.enabled) {
+			stopReason = `unsafe_audit_mutation_enabled:${candidate.id}`;
+			break;
+		}
 		if (review.operation === "unsafe") {
+			if (options.continueAfterUnsafeForReadOnlyAudit) {
+				unsafeReviewIds.push(candidate.id);
+				continue;
+			}
 			stopReason = `unsafe_plan:${candidate.id}`;
 			break;
 		}
@@ -64,7 +74,12 @@ export async function runProductionMaterialReviewScan<
 		}
 		lastSuccessfulReviewId = candidate.id;
 	}
-	return { mutationCount, lastSuccessfulReviewId, stopReason };
+	return {
+		mutationCount,
+		lastSuccessfulReviewId,
+		stopReason,
+		...(options.continueAfterUnsafeForReadOnlyAudit ? { unsafeReviewIds } : {}),
+	};
 }
 
 /** A supplied invalid bound must fail closed, never silently widen the cohort. */

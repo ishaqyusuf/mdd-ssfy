@@ -1,5 +1,5 @@
 import { expect, it } from "bun:test";
-import { db as fieldSource, type Db } from "@gnd/db";
+import { type Db, db as fieldSource } from "@gnd/db";
 import { getSalesProductionSummary } from "./sales-production";
 
 it("does not load completed quantity evidence but preserves fallback and review membership", async () => {
@@ -13,6 +13,7 @@ it("does not load completed quantity evidence but preserves fallback and review 
 		reviewStatus?: string,
 	) => ({
 		orderId,
+		dueDate: new Date("2020-01-01T00:00:00.000Z"),
 		qtyAssigned,
 		qtyCompleted,
 		lhQty,
@@ -64,21 +65,78 @@ it("does not load completed quantity evidence but preserves fallback and review 
 				if (value[key] !== null) return false;
 				continue;
 			}
-			if (value[key] === null) return false;
-			if (rule.lte !== undefined && value[key]! > rule.lte) return false;
+			const scalar = value[key];
+			if (scalar === null) return false;
+			if (rule.lte !== undefined && scalar > rule.lte) return false;
 			if (rule.lt !== undefined) {
 				expect(rule.lt).toMatchObject({
 					modelName: "OrderItemProductionAssignments",
 					name: "qtyAssigned",
 					typeName: "Int",
 				});
-				if (value.qtyAssigned === null || value[key]! >= value.qtyAssigned)
+				if (value.qtyAssigned === null || scalar >= value.qtyAssigned)
 					return false;
 			}
 		}
 		return true;
 	};
 	const detailOrderIds: number[][] = [];
+	const sourceOrder = (assignment: (typeof rows)[number]) => ({
+		id: assignment.orderId,
+		orderId: `ORDER-${assignment.orderId}`,
+		status: null,
+		prodStatus: null,
+		createdAt: new Date("2020-01-01T00:00:00.000Z"),
+		priority: "NORMAL",
+		grandTotal: 100,
+		amountDue: 0,
+		customer: null,
+		billingAddress: null,
+		salesRep: null,
+		stat: [],
+		deliveries: [],
+		completionRecords: [],
+		itemControls:
+			assignment.orderId === 7
+				? []
+				: [
+						{
+							uid: `control-${assignment.orderId}`,
+							produceable: true,
+							shippable: false,
+							qtyControls: [
+								{
+									type: "qty",
+									total: 2,
+									itemTotal: 2,
+									qty: 2,
+									updatedAt: new Date("2020-01-01T00:00:00.000Z"),
+								},
+							],
+							assignments: [{ id: assignment.orderId }],
+						},
+					],
+		assignments:
+			assignment.orderId === 7
+				? []
+				: [
+						{
+							id: assignment.orderId,
+							assignedToId: 1,
+							assignedAt: new Date("2020-01-01T00:00:00.000Z"),
+							startedAt: null,
+							updatedAt: new Date("2020-01-01T00:00:00.000Z"),
+							...assignment,
+							submissions: assignment.submissions.map((submission, index) => ({
+								id: assignment.orderId * 10 + index,
+								createdAt: new Date("2020-01-01T00:00:00.000Z"),
+								updatedAt: new Date("2020-01-01T00:00:00.000Z"),
+								...submission,
+							})),
+						},
+					],
+	});
+	const sourceOrders = rows.map(sourceOrder);
 	const db = {
 		orderItemProductionAssignments: {
 			fields: fieldSource.orderItemProductionAssignments.fields,
@@ -95,20 +153,37 @@ it("does not load completed quantity evidence but preserves fallback and review 
 				expect(ids).toEqual([2, 3, 4, 5, 9]);
 				return ids.length;
 			},
+			findMany: async ({
+				where,
+				select,
+			}: {
+				where?: { id?: { in?: number[] } };
+				select: Record<string, unknown>;
+			}) => {
+				if (Object.keys(select).length === 1 && select.id) {
+					return sourceOrders.map(({ id }) => ({ id }));
+				}
+				const ids = where?.id?.in;
+				return ids
+					? sourceOrders.filter((order) => ids.includes(order.id))
+					: sourceOrders;
+			},
 		},
 		salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+		salesOrderListProjection: { findMany: async () => [] },
 	};
 	try {
 		const result = await getSalesProductionSummary(db as unknown as Db, {});
 		expect(result.summary.pastDueCount).toBe(5);
-		expect(detailOrderIds).toHaveLength(5);
+		expect(detailOrderIds).toHaveLength(1);
 		for (const ids of detailOrderIds) {
 			expect(ids).not.toContain(1);
 			expect(ids).not.toContain(8);
 			expect(ids).toEqual([2, 3, 4, 5, 6, 7, 9]);
 		}
 	} finally {
-		if (previousMode === undefined) delete process.env.SALES_PIPELINE_READ_MODE;
-		else process.env.SALES_PIPELINE_READ_MODE = previousMode;
+		if (previousMode === undefined) {
+			Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
+		} else process.env.SALES_PIPELINE_READ_MODE = previousMode;
 	}
 });

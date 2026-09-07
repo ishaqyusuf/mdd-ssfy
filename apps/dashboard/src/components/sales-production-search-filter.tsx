@@ -69,6 +69,7 @@ function Content({
 								"view",
 								"calendarView",
 								"calendarDate",
+								"calendarMode",
 								"production",
 								"productionDueDate",
 								"show",

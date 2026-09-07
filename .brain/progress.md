@@ -1,5 +1,988 @@
 # Progress
 
+## 2026-09-07 — Sales Pipeline Goal complete
+
+- Scratch first:18/18 tickets and196/196 acceptance checks complete.
+- Explicitly approved removal of SALES_PIPELINE_READ_MODE,
+  SALES_PIPELINE_COMMAND_MODE and SALES_PIPELINE_COHORT_PERCENT succeeded;
+  Production listing verifies absence. Active read-model variables preserved.
+- Five retirement tests/96 assertions pass. Live deployment remains
+  2a6aYAmYhupqpKz9PMRDr2NFySA9 with recorded authenticated QA. No database
+  mutation or branch creation. Broad Dashboard baseline and informational
+  reconciliation exceptions remain disclosed limitations, not hidden failures.
+
+## 2026-09-07 — Final Goal closure awaiting operator approval
+
+- 17/18 tickets complete, 195/196 checks. Ticket18 is deployed and verified.
+- The same remaining authority gate has persisted across consecutive turns:
+  explicit deletion approval for three inert Production lifecycle env keys.
+  No deletion attempted and no further implementation is needed for this gate.
+- Goal blocked pending that approval; resume exact cleanup and final audit
+  when received. Existing deployment and production business data are unchanged.
+
+## 2026-09-07 — Ticket 18 complete
+
+- Scratch first: 18/18, batch195/196 and 17/18 tickets complete. Corrected
+  production 2a6aYAmYhupqpKz9PMRDr2NFySA9 READY/www with authenticated live QA.
+- Completion green, review blue, Planning membership and unknown material
+  label verified. No production data mutation. Ticket14 cleanup approval remains.
+
+## 2026-09-07 — Ticket 18 deployed, live QA ongoing
+
+- READY dpl_GNa1u7qhohQAmBHJS8rziCuGDvb7 owns www.gndprodesk.com.
+- Authenticated Calendar reload shows canonical review label/blue for 09502PC;
+  remaining completion and Planning live checks keep final acceptance open.
+- Scratch/Brain synchronized; no production database mutation.
+
+## 2026-09-07 — Ticket 18 production deployment started
+
+- Corrected isolated release passes API/Sales types and 49 boundary tests;
+  Dashboard has existing baseline errors, no scoped Ticket 18 errors.
+- Approved deployment session 39883 started. Build/alias/live QA pending;
+  acceptance unchanged at 194/196. No database mutation.
+
+## 2026-09-07 — Ticket 18 isolated release preparation
+
+- Scratch allowlist overlays verified Ticket 17 bundle; correct dashboard
+  Vercel project confirmed without changing storefront linkage.
+- Frozen install, offline Prisma generation and 54 tests pass. Typechecks
+  running; no deployment yet. Acceptance unchanged at 194/196.
+
+## 2026-09-07 — Ticket 18 local state acceptance complete
+
+- Scratch first: Ticket 18 17/18, batch 194/196. Browser date/mode/search
+  preservation verified; actual query failure and rendered Retry recover safely.
+- Thirteen focused tests pass. Final deployment/rollout QA remains open.
+
+## 2026-09-07 — Ticket 18 Escape filter regression fixed
+
+- Scratch first; counts remain 16/18 and 193/196. Shared filter Escape now
+  clears only from the search input, not a dismissing menu. Browser verified
+  q/priority preservation and correct zero-to-one gap change on chip removal.
+- Ten filter/hydration/contrast tests pass. No Production or database writes.
+
+## 2026-09-07 — Ticket 18 contrast verification
+
+- Scratch first: 16/18 acceptance, batch 193/196 (98%). All six canonical
+  palettes pass automated WCAG AA text contrast against actual light/dark
+  theme tokens, including translucent fills on both dark surfaces.
+- Eight focused contrast/hydration/assignment-guard tests pass. Remaining:
+  complete filter/state browser matrix and final release QA. No Prod writes.
+
+## 2026-09-07 — Ticket 18 card and schedule isolation
+
+- Scratch first: 8/18, batch 185/196. Render tests prove zero/partial demand,
+  required card information, read-only review actions and secondary overdue
+  emphasis. Edit links now use stored slugs; Normal priority stays visible;
+  repeated labels and per-card permission subscriptions are removed.
+- Strict schedule input rejects planning payloads. Existing schedule move and
+  concurrency tests pass; older batch/material-review invalidations refresh
+  planning. Focused matrix: 60 tests / 225 assertions.
+- Local void/voided population is zero. Browser recheck still reports locked
+  Mac. No Production deployment, schema change or business-data mutation.
+
+## 2026-09-07 — Ticket 18 local database verification
+
+- Scratch first: Ticket 18 at 5/18, batch 182/196. Populated local planning
+  range: 73 gaps, 109–129 ms warm; existing indexed SQL plan accepted without
+  adding a schema/index migration. Empty current periods are verified against
+  the local order-level date population.
+- Canonical void/voided orders now resolve to cancelled and cannot be assigned.
+  Unknown planning requirements expose stable, readable review provenance.
+- Local 09502PC awaits review with no active completion declaration; blue is
+  correct for its current local evidence. Browser QA remains blocked by locked
+  Mac. No Production release or business-data mutation.
+
+## 2026-09-07 — Ticket 18 API/UI integration
+
+- Scratch first: Ticket 18 reaches 2/18, batch 179/196. Separate admin Planning
+  mode, permissioned query, canonical palette and invalidation are implemented.
+- Regression matrix: 134 tests / 427 assertions; API typecheck passes.
+  Dashboard changed-runtime diagnostics are clean within its broad baseline.
+- Browser QA blocked by locked Mac; database plan/performance and authenticated
+  acceptance remain. No schema, Production deployment or data mutation.
+
+## 2026-09-07 — Ticket 18 package planning projection
+
+- Scratch updated first; batch remains 177/196 with Tickets 14 and 18 active.
+- Added separate canonical planning membership and bounded read query. Reuses
+  snapshot quantities and assignment command decisions; includes explicit
+  date provenance, review-only exceptions, worker names and canonical metadata.
+- Sixteen focused tests / 38 assertions pass. Initial Sales typecheck passes.
+- API/UI, query-plan measurement, colors and authenticated acceptance remain.
+  No schema, Production deployment or business-data write occurred.
+
+## 2026-09-07 — Ticket 17 complete and deployed
+
+- Scratch updated first. Ticket 17 closes at 12/12 and the authoritative batch
+  advances to 177/196: 16 tickets done, Ticket 14 at 12/13, and Ticket 18 next.
+- Authenticated Production QA confirms both milestone actions always expose the
+  Full-workflow-default selector, Status only remains deliberate and reasoned,
+  the shared Calendar works, and cancellation writes nothing.
+- Local order `09586DB` proves follow-up cancellation preserves the lifecycle
+  conflict. Local order `09584DB` proves Full workflow failure, eligible
+  follow-up, required reason, status-only persistence, conflict-filter removal,
+  and `Administratively completed` presentation after reload.
+- Exact 390×844 QA found and fixed the expanded Status-only form overflowing
+  vertically. Both completion dialogs now cap at the dynamic viewport and
+  scroll internally. Mobile and 768×1024 tablet layout, Calendar, Tab focus,
+  and Escape behavior pass with zero horizontal overflow.
+- The focused matrix passes 109 tests / 380 assertions. Sales/API typechecks
+  and scoped Biome pass. The broad Dashboard diagnostic contains only its
+  existing unrelated baseline errors and none in Ticket 17 runtime/test files.
+- READY deployment `dpl_CTJRtcF9uerErnk1k2bM1Qk7V8Ua` passed the clean remote
+  Next.js build and owns `https://www.gndprodesk.com`. No schema change, DB push,
+  reconciliation apply, or Production data mutation was required.
+
+## 2026-09-07 — Ticket 17 formal review fixes and automation complete
+
+- Scratch updated first. Ticket 17 advances to 11/12 and the authoritative
+  batch to 176/196; authenticated responsive and keyboard browser QA remains.
+- Production and Fulfillment full-workflow jobs now persist deterministic,
+  immutable per-sale outcome events. Only failed, awaiting-review, or
+  review-required rows may enter the second status-only confirmation;
+  successful and already-completed rows are excluded and never rerun.
+- The fallback preview and command reload canonical evidence, bind both
+  completion and pipeline revisions, distinguish supported same-stage
+  exceptions from unsupported rows, require an operator reason, and preserve
+  full-attempt/outcome/decision/status-only provenance in Sales History. No
+  schema or additional database column was added.
+- Standards and Spec review findings are resolved: public direct routes reject
+  forged fallback provenance; full-workflow outcome audits are fingerprinted
+  and fail closed; mixed success/failure rows remain valid; preview reads use
+  bounded concurrency and sanitized errors; and pending confirmations survive
+  navigation in a FIFO, keyed global provider with retryable preview failures.
+- The focused matrix passes 108 tests / 379 assertions across Sales, API, Jobs,
+  and Dashboard. Sales/API typechecks pass. The Jobs typecheck reaches only the
+  existing duplicate React-type baseline; an 8 GB Dashboard diagnostic reports
+  no error in the Ticket 17 runtime components.
+- READY Production deployment `dpl_J8rgFzwLZUGYirwPMcWbzCgXeJKH` is aliased to
+  `https://www.gndprodesk.com`. Its first build attempt failed closed before
+  promotion on a build-time Zod `.omit()` incompatibility; the strict public
+  status-only schema now derives directly from its base schema, and the
+  corrected candidate passed the complete remote Next.js build before release.
+- Authenticated Production QA subsequently found one contract gap: lifecycle-
+  exception actions still forced Status only. Production and Fulfillment now
+  open the same Full-workflow-default selector for ordinary, unavailable, and
+  conflicting sales; exception provenance is applied only after the operator
+  explicitly chooses Status only. A focused regression covers both milestones.
+- The correction shipped through clean-build READY deployment
+  `dpl_8fJCigQxVcTPT6JWrFQzyvuts5Pq`, now aliased to
+  `https://www.gndprodesk.com`.
+
+## 2026-09-06 — Ticket 11 channel migration complete
+
+- Scratch updated first. Ticket 11 closes at 9/9 and the authoritative batch
+  advances to 165/196.
+- Dealership, Storefront, and customer-safe lifecycle presentation now consumes
+  the canonical snapshot or explicit `Status unavailable`; no channel
+  reconstructs lifecycle from mutable legacy strings.
+- The retirement source scan spans API, Dashboard, Dealership, Mobile,
+  Storefront, Jobs, and Sales. Focused channel/unavailable plus retirement
+  coverage passes 33 tests / 156 assertions, with Sales/API typechecks green.
+- No schema, migration, database push, reconciliation apply, or business-data
+  mutation was required.
+
+## 2026-09-06 — Ticket 14 final review findings resolved locally
+
+- Scratch updated first. Ticket 14 remains 12/13 (97%) and the batch remains
+  164/196 pending the final production deployment/authenticated closure check.
+- Production dashboard requests now share one indexed canonical membership
+  read. Ready/current projections classify from canonical stage columns; only
+  unavailable projections reconstruct source evidence, and an unavailable row
+  no longer aborts the full workspace.
+- Shared canonical Production/Fulfillment labels, corrected mobile dashboard
+  buckets, explicit Storefront/Dealer unavailable projections, Sales Handoff
+  unavailable-state coverage, and customer address snapshot/auth ordering close
+  the two final review lanes.
+- The retirement source scan covers API, Dashboard, Dealership, Mobile,
+  Storefront, Jobs, and Sales. Production passes 73 tests / 215 assertions,
+  review-focused API 47 / 159, canonical/retirement 32 / 151, and Sales/API
+  typechecks pass.
+- No schema, DB push, reconciliation apply, or business-data write ran. Final
+  production deployment, lifecycle environment removal, authenticated
+  acceptance, and ticket closure remain.
+
+- 2026-09-06: Completed Ticket 14's local post-cutover retirement and advanced
+  it to 12/13 (batch 164/196). Runtime lifecycle cohort/shadow selectors and
+  command bypasses are gone; Orders, Production, Dispatch, dashboard, dealer,
+  storefront, customer statement/address, Sales Overview, and Sales Handoff use
+  canonical snapshots or explicit unavailable state. Shared status vocabulary
+  moved to `sales-pipeline.ts`, while `order-status.ts` no longer interprets
+  mutable strings. One explicitly named legacy adapter remains bounded by a
+  repository-scanning contract to ten reviewed historical inventory and
+  full-workflow compatibility seams. The consolidated canonical matrix passes
+  235 tests / 919 assertions; the focused retirement matrix passes 52 / 222;
+  Sales/API typechecks pass. No schema, DB push, reconciliation apply, or
+  business-data mutation ran. Final validation, direct production deployment,
+  retired environment cleanup, authenticated acceptance, and closure remain.
+
+- 2026-09-06: Accepted general 100% canonical Sales Pipeline serving after
+  authenticated Production, Orders, Sales Rep, and Fulfillment V2 checks.
+  Monitoring found and corrected a Fulfillment Calendar hydration-key mismatch
+  and then a 500-row server-prefetch timeout. The final contract uses one typed
+  500-row Calendar input, renders that section browser-only, and skips its
+  redundant server summary/calendar prefetch. READY production deployment
+  dpl_2phCmPHt6pqj68Vc7v9CrzGJDwdo owns www/apex; two authenticated loads
+  render analytics and rows, including a 2.3-second repeat reload. Fresh logs
+  show successful page, workspace-summary, and Calendar requests with no
+  Fulfillment timeout or authentication error. Fulfillment validation passes
+  31/31 tests with 206 assertions plus scoped Biome, diff integrity, and Vercel
+  build. Scratch retirement gates are checked; Ticket 14 remains 11/13 and the
+  batch 163/196 while physical fallback removal begins. No schema, DB push,
+  reconciliation apply, or business-data mutation ran.
+
+- 2026-09-06: Prepared, but did not deploy, request-context authorization reuse.
+  Identical server-created tRPC context objects share one pending auth load;
+  distinct contexts never share, rejected loads are evicted, and role/specific
+  grant reads run concurrently after user resolution. No caller state,
+  cross-request, session, or user cache is trusted. Red/green and isolation
+  coverage passes 12/12 with 64 assertions, API typecheck passes, and the broad
+  API suite is 728/728. A read-only flat schedule-read alternative preserved
+  all 935 open assignments / 343 order-date keys but regressed 332–336 ms to
+  360–470 ms, so it is rejected. No deployment, DB write, schema, or cohort
+  change; filter-release measurement remains first.
+
+- 2026-09-06: Deployed the bounded Production-filter optimization directly to
+  www as READY `dpl_5WZw6SiQtiw3B1wJjapqSfmFoPZ2`, unchanged 5% cohort. Seven
+  high-cardinality Sales filters retain their keys and server semantics as
+  typed inputs; invoice/status/priority and first-20 active Production workers
+  remain options. The loader now performs only the 1–2 ms worker read, with no
+  Sales-order scan, Redis/cache dependency, permission seeding, or write. The
+  endpoint now requires the Production workspace's operational viewer audience.
+  Nine focused tests/55 assertions, 725/725 broad API tests with a process-local
+  encryption test secret, API typecheck, exact four-file isolation, frozen
+  install/Prisma generation, and Vercel build pass. Authenticated timing
+  is pending because the Mac is locked. No DB push, schema, reconciliation,
+  data, or cohort change; Ticket 14 remains 10/13 and the batch 162/196.
+  A post-deploy unauthenticated filter request returns HTTP 401, verifying the
+  public metadata route is closed without reading customer data.
+
+- 2026-09-06: READY `dpl_HmMgg87s4rPTq3gNyY6JZ43Grhv2` deploys the explicit
+  active-order predicate. Authenticated Production now renders Active 3,338 /
+  Unassigned 865 / Past Due 268 / Unscheduled 73 / Completed 1,286 / Review 97
+  plus rows, confirming deleted orders no longer inflate count-only analytics.
+  Three samples avoided a 15-second function timeout but summary/list remained
+  7,566–9,587 / 6,958–9,160 ms; filters were 5,381–11,807 ms, including two
+  unavailable-Redis 1,500 ms waits. This selected the bounded filter release;
+  sustained reliability and checklist 4 remain open. No schema/data/cohort
+  change.
+
+- 2026-09-06: Diagnosed and locally fixed a Production analytics/list
+  membership contradiction: the database client implicitly excludes deleted
+  rows for `findMany` but not `count`, while nested Calendar relations receive
+  no root extension. Production now explicitly requires active Sales orders in
+  its shared workspace and Calendar predicates. Local Active 3,547→3,331,
+  Unassigned 1,023→858, Past Due 285→268, Unscheduled 74→73 and Completed
+  1,302→1,293 are deleted-order exclusions; no data was changed. The all-ID
+  replacement was rejected on remote transfer cost. Focused tests pass 83/83
+  with 263 assertions plus Sales typecheck/Biome; live 5% verification remains.
+
+- 2026-09-06: READY Production deployment
+  `dpl_Gubvi8Ut77RT5ukaDCx25hLirodH` ships the exact summary fanout reduction at
+  the unchanged 5% cohort. Three authenticated samples preserve all live counts
+  and render the first page without timeout, but summary settlement remains
+  9,161 / 8,287 / 6,406 ms and full reload observation 10,023 / 9,731 / 8,044
+  ms. The best post-deploy sample is effectively the 6,329 ms baseline, so
+  Ticket 14 checklist 4 stays open. Projection freshness cannot be skipped; an
+  unequal combined Active/Unassigned experiment was rejected before production
+  code. No schema, DB push, migration, data mutation, or cohort change occurred.
+
+- 2026-09-06: Ticket 14 Production-summary optimization is locally verified.
+  Authenticated www timing measured 367 ms proxy auth, 4,206 ms filters, 5,886
+  ms list, 6,329 ms summary after route entry, and 7,668 ms to render. The new
+  single-read schedule classifier preserves exact date, Paid/search/customer/
+  rep/worker, review, and 5% canonical membership semantics while reducing the
+  read-only local trace from 33 to 20 ORM operations, assignment reads 5 to 1,
+  and SalesOrders reads 17 to 13. Production-focused tests pass 109/109 with
+  384 assertions, scoped Biome/diff integrity and Sales typecheck pass. Full
+  Sales testing is 1,650/1,652 with two independently reproducible pre-existing
+  audit-retention mock failures; workspace typecheck is stopped by existing
+  `@gnd/settings` NodeNext extension errors after Sales passes. No schema, data,
+  cache, permission, or cohort change; isolated Production timing is next.
+
+- 2026-09-06: Deployed ADR 086's informational-reconciliation policy directly
+  to Production as READY deployment `dpl_HUPC9gH7aiVmszXfqv5U2C2KUh8p`, now
+  serving www/apex at the unchanged 5% canonical cohort. The isolated candidate
+  used the exact prior live source plus commit `64eb7dde8`; 72 focused tests / 219
+  assertions, Sales typecheck, the operational-script compiler, the Vercel build,
+  and HTTP 200 smoke checks pass. The Orders smoke took 13.80 seconds, so live
+  reliability and broader cohort acceptance remain open. No schema push,
+  reconciliation apply, or Production-data mutation occurred.
+
+- 2026-09-06: Accepted ADR 086 and advanced Ticket 14 to 10/13, bringing the
+  queue to 162/196. Reconciliation exceptions are now information-only cleanup:
+  the fresh local report shows 7,500 accepted orders and 672 exceptions, split
+  547 from 2026 onward and 125 older. Cutover still blocks on stale projections,
+  unexplained membership, latency, and operator approval, but not on known
+  legacy transitions or incomplete conflict sampling. Authorized status-only
+  actions can retain known supported cross-stage codes in immutable audit while
+  unknown codes and actor/permission/reason/revision/idempotency/cancellation/
+  wrong-stage guards remain fail-closed. Final relevant validation passes 199
+  tests across 15 files with 512 assertions, both scoped typechecks, Biome, and
+  diff integrity; local Standards and Spec reviews are clear. No schema,
+  Production data, or automatic repair change.
+
+- 2026-09-06: Ticket 14's fail-closed local administrative apply completed
+  497/497 guarded actions: 490 Fulfillment and seven Production, with zero
+  replay, skip, or failure. Exact revision, source guard, single-stage policy,
+  assignment risk, actor permission, backup, and durable journal gates were
+  enforced. Independent 5% and 100% post-apply shadows compare all 8,172 orders
+  with zero unexplained membership differences and 672 unsafe transitions. A
+  fresh source audit finds 674 missing-proof Dispatches but zero deterministic
+  proof repairs, so all 672 remaining orders are held for source-fact review.
+  Ticket 14 remains 8/13 and the batch 160/196. Production and operational
+  source facts were unchanged; the production cohort remains 5%.
+
+- 2026-09-06: User approved the recommended fail-closed reconciliation route,
+  resuming Ticket 14 at 8/13 and the 18-ticket Goal at 160/196. Scratch was
+  updated first. The next work derives deterministic source-fact repair rules,
+  exercises them only against the backed-up fresh local copy, and stops every
+  ambiguous case without mutation. Production remains at 5%; no Production
+  write or combined-override contract is authorized.
+
+- 2026-09-06: Ticket 14 and the active 18-ticket Goal are blocked—not complete—
+  after the same explicit product/data gate persisted across three consecutive
+  goal turns. Fresh-local repair, full shadow evidence, exact source identifiers,
+  pure resolver-outcome simulation, 88 tests/195 assertions, Sales typecheck,
+  Biome, diff integrity, and both review lanes are complete. Existing policy can
+  address 510 single-stage rows, but 658 cross-stage rows plus `09592DB` require
+  a user choice between fail-closed source-by-source operator reconciliation and
+  a new combined-override contract. No local business-data or Production write
+  was made; production remains at 5%. Scratch was updated first.
+
+- 2026-09-05: Corrected Ticket 14's read-only source-fact classifier after both
+  reviewers found that non-open zero-quantity/no-completion assignments were
+  mislabeled as completed. Completion now requires an affirmative timestamp or
+  sufficient accepted quantity; other non-open assignments are indeterminate.
+  The full 8,172-order rerun retains zero stale/unexplained rows and 1,169 unsafe
+  transitions: 1,147 completion-evidenced-only plus missing proof, three mixed
+  completion-evidenced/indeterminate plus missing proof, 11 mixed completion-
+  evidenced/open plus missing proof, and eight completion-evidenced-only with no
+  Fulfillment gap. Scratch isolates 34 open assignments across 11 orders and
+  seven indeterminate assignments across `08389LM`, `08560PC`, and `08949DB`.
+  Inventory is committed in all proof-incomplete rows. The replacement audit's
+  local projection-page p95 is 28.89 ms and resolver-batch p95 is 122.06 ms.
+  Regression coverage also proves `PENDING_REVIEW` output remains open rather
+  than becoming completion evidence. The 88-test/195-assertion focused matrix,
+  Sales typecheck, Biome, diff integrity, and both independent re-reviews pass.
+  No write or authorization.
+
+- 2026-09-05: Advanced the fail-closed operator-review seam without changing
+  lifecycle facts. Every unsafe shadow row now retains exact sorted completion-
+  evidenced/open/indeterminate Production assignment IDs plus missing-proof and
+  missing-inventory Dispatch IDs. The current private report remains 8,172
+  compared, zero stale/unexplained, and 1,169 unsafe; Scratch enumerates the 34
+  open and seven indeterminate assignment IDs with their affected Dispatches.
+  This is concrete review routing only, not automatic repair authorization.
+  The final Spec and Standards reviews are clear.
+
+- 2026-09-06: Added a pure administrative resolver-outcome simulation to the
+  Ticket 14 shadow report. On the fresh local population, the 503 Fulfillment-
+  ready and seven Production-ready rows resolve to `administratively_completed`
+  while retaining their original blocking evidence; 658 cross-stage rows stay
+  `conflict`, and `09592DB` stays `fulfilled` with its Production contradiction.
+  Input snapshots and operational facts are unchanged, command integration is
+  not claimed, no executor/database writer runs, and every result remains
+  explicitly `notAuthorization`. The
+  current 8,172-order report remains zero stale/unexplained and 1,169 unsafe,
+  with local projection-page p95 21.87 ms and resolver-batch p95 147.86 ms.
+
+- 2026-09-05: Final Ticket 14 local-slice verification passes 85 focused tests
+  / 183 assertions, Sales typecheck, Biome, diff check, and both Spec/Standards
+  re-reviews with no remaining finding. Scratch reopened the reconciliation and
+  shadow retirement gates because prior production passes used an incomplete
+  projection population. Progress remains 8/13 and 160/196; production is
+  unchanged.
+
+- 2026-09-05: Ticket 14's reviewed read-only status-policy simulation classifies
+  all 1,169 unsafe legacy-fulfilled transitions: 503 are eligible for the
+  existing Fulfillment status-only policy, 7 for Production status-only, 658
+  have both stage conflicts and remain intentionally unsupported, and
+  `09592DB` is already canonically fulfilled while retaining a Production
+  conflict. Scratch owns the decision packet. No authorization, completion
+  command, database write, or broader rollout occurred; the 659-row policy
+  decision remains a real semantic gate.
+
+- 2026-09-05: Closed both review findings on the local audit slice. Historical
+  list evidence now exhausts bounded pagination, retains Calendar and list ID
+  sets, labels truncation, and asserts exact membership only for an untruncated
+  identical set. Fresh 5%/100% runs both prove IDs 25947/26490/26701 in one
+  page with exact membership. The unsafe-shadow regression now places its
+  unsafe row after 51 ordinary differences and proves dedicated unsafe evidence
+  survives while the general sample remains capped at 50. No production write.
+
+- 2026-09-05: Added a tested operational-date option to the local read-only
+  audit so historical Calendar membership is compared to the exact-date list,
+  not the runtime-day Due Today query. Corrected 2026-09-02 runs at local 5%
+  and 100% both return the same three orders in Calendar and list (`09322AD`,
+  `09454DB`, `09502PC`). Historical summary is explicitly not asserted; the
+  runtime 2026-09-05 comparison remains empty and aligned. Scratch identifies
+  and excludes the two mixed-date exploratory runs from acceptance evidence.
+
+- 2026-09-05: Ticket 14's corrected local-only projection repair completed:
+  1,269 derived rows were revision-checked, backed up, and converged in 26
+  batches with zero stale skips and no operational-fact changes. The final
+  reconciliation reports 6,290 clean, 0 deterministic repair, 612 known
+  compatibility, and 1,270 review-required orders. The full shadow comparison
+  reports zero stale and zero unexplained membership, but 1,169 unsafe
+  legacy-versus-canonical transitions. A separate read-only audit-all pass
+  classified all 101 material candidates and found 75 ambiguous; its mutation
+  combination is rejected and the normal apply path remains fail-closed.
+  Scratch was updated first: Ticket 14 is reopened to 8/13 and the batch is
+  160/196. Production data and the existing 5% rollout were unchanged.
+
+- 2026-09-05: Local continuation identified unsafe shadow row `09592DB` and a
+  reconciliation authority gap: conflict-first classification hid 1,268 absent
+  projections, while nested payload revisions disagreed with served top-level
+  fields. Red/green coverage aligns the audit with serving/shadow authority and
+  repairs derived drift before returning fresh conflicts for review. Corrected
+  dry-run found 1,269 local projection repairs; the later entry records the
+  completed apply and converged results. Production/operational facts unchanged.
+
+- 2026-09-05: Fresh local baseline reports are saved in Scratch's
+  `local-first-results.md`: reconciliation found 19 deterministic cache repairs;
+  shadow found 15 stale projections and one unsafe-transition difference;
+  material scan stopped at held review 1. Due Today parity at local 5%/100% is
+  empty-day evidence only. No repair/approval or production mutation was made.
+  Ticket 14 stays 9/13; next work is local exceptions and non-empty consumer
+  parity, with production reliability still an independent open gate.
+
+- 2026-09-05: Approved local reset completed and all 292 counts matched;
+  rehearsed backups are retained, original login access independently verified,
+  and stale local sync cursor archived. Production unchanged. Scratch records
+  first read-only audit launcher failures requiring diagnosis; no baseline or
+  live reliability acceptance is claimed and Ticket 14 remains 9/13.
+
+- 2026-09-05: The first local replacement safely refused connected clients
+  before any lock/deletion. They cleared without termination. Scratch records
+  successful staging re-verification, archived refusal evidence and the explicit
+  retry with unchanged safety gates; no production write or ticket advancement.
+
+- 2026-09-05: Local staging verified all 292 table counts, column schema and
+  export hashes. Scratch records a reviewed bounded-read verifier correction
+  after a pre-import stall, and the approved exact-local replacement now running
+  with backup rehearsal/writer isolation. Production remains unchanged; reset
+  completion, restored local access and fresh-baseline audits are not yet claimed.
+
+- 2026-09-05: The 292-table local-first source export and independent integrity
+  refresh completed successfully. Scratch records the final count/schema checks
+  and separate local staging import now underway. Original local data is still
+  untouched; production access is no longer needed for this local-test phase.
+  Fresh-baseline correctness and live reliability acceptance remain open.
+
+- 2026-09-05: Local-first refresh recovered from a source EOF with 38 bounded,
+  resumable checksummed chunks and three connection-only attempts. Main keyset
+  copying continues. Scratch records retained-lock recovery and explicit audit
+  source/runtime fingerprint scope. Focused semantic checks pass; no staging,
+  local reset, fresh audit or acceptance advancement is claimed yet.
+
+- 2026-09-05: Local-first export resumed past legacy `DykeDoors` after fixing
+  non-null unique-index support (not a source data repair). Scratch records
+  per-fragment hashes/ranges and a separately checksummed schema/small-table
+  refresh that excludes earlier unhashed artifacts. Both review axes and the
+  focused semantic check pass. Original local data is still untouched;
+  staging, reset, read-only audits and all fresh-run acceptance remain pending.
+
+- 2026-09-05: Local-first schema export completed for the 292-table production
+  source; row copying is underway. Scratch records reviewed recovery controls,
+  manual recovery instructions and passing focused adapter typecheck. Read-only
+  local socket/account preflight passed with no application clients; no account
+  lock, original-local reset, reconciliation or production mutation has run.
+
+- 2026-09-05: The windowed production dump also failed at PlanetScale's
+  100,000-row query cap; local data remains untouched. Scratch now records a
+  bounded keyset export attempt, checksum/run-identity and exact staging-count
+  gates, and two-axis safety review findings. Replacement is explicitly
+  disabled pending staging, a fresh restore rehearsal, and writer isolation.
+  Neither failed partial dump is eligible for import or acceptance credit.
+
+- 2026-09-05: Local-first preflight verified production source/local target and
+  read 270 incremental SalesOrders rows without writes. Full local backup
+  succeeded; the first production snapshot hit PlanetScale's 20s transaction
+  limit before any local reset. A windowed, non-atomic full export is running
+  with mandatory staging/consistency gates. Decision recorded; local data and
+  production remain unchanged pending successful export and staging.
+
+- 2026-09-05: Operator approved local-first Ticket 14 validation. Scratch now
+  separates a verified production-to-local correctness baseline from the still
+  open production reliability gate. Full-copy and backup checks precede reset;
+  cursor/duplicate-table reset alone cannot prove a clean database. No local
+  deletion, sync completion, new production write or acceptance advancement is
+  claimed. Production remains at 5%; no local database will be copied back.
+
+- 2026-09-05: Isolated c78a2d40e release ALhgi99dAM6UgKKetec4qB56KHXu is
+  Ready on www.gndprodesk.com, with 724/724 isolated API tests and typecheck
+  passing. Browser counts and all four worker labels/order match before/after.
+  Matched GET still records a 15-second timeout (7359ms post-proxy/pre-page);
+  summary does not settle. Further rollout is paused at live verification,
+  not declared complete. Scratch owns the release/failure evidence and remains
+  9/13; no DB/schema change, cohort expansion, extra trace or probe removal.
+
+- 2026-09-05: Correlated the two www Production traces by exact traceId and
+  found a separate same-window timeout with a 9551ms post-proxy/pre-page gap.
+  Implemented a bounded read-only Assigned To filter query with concurrent
+  base loading and unchanged first-20 output/scope. Three regressions and the
+  full API suite pass (724/724), as do API and focused-test typechecks. Scratch
+  owns evidence, pending release and unchanged 9/13 acceptance. Added the
+  Production filter read-cost feature record and API contract; no DB write,
+  deployment or claimed startup fix.
+
+- 2026-09-05: Captured the two explicitly approved authenticated Page Traces on
+  www.gndprodesk.com, as requested. Both identify Cpmm, with total 10.84s /
+  10.02s and middleware about 0.3s. Automatic spans leave application startup
+  versus database attribution unresolved; neither reproduced the timeout.
+  Scratch records evidence and cleanup (no continuous session/global sampling,
+  purchase, deployment or DB write). Approval gate resolved; Ticket 14 remains
+  9/13 and the batch 161/196. Brain task and in-progress pointers mirror Scratch.
+
+- 2026-09-05: Added approved Canonical Sales Pipeline Ticket 18 to Scratch
+  first and Brain second. It is queued after Ticket 17 and adds a separate
+  admin Planning-gaps Calendar projection for eligible orders whose order-level
+  Production due date exists without full active assignment coverage. The
+  assignment-backed Schedule, Due Today/Past Due parity, exact-group
+  rescheduling, and worker assignment scope remain unchanged. The ticket also
+  defines canonical, accessible Calendar colors and requires the reported
+  missing-green order to be reproduced across operational, full-workflow,
+  status-only, legacy-cutover, unknown, and conflict provenance. The expanded
+  queue is 14/18 done, 2/18 in progress, 2/18 approved/queued, and 161/196
+  checks verified; no prior acceptance check was reopened.
+
+- 2026-09-05: Committed reviewed reconciliation tooling as 0ac153778 on
+  existing master (14 scoped files), preserving unrelated changes. Scratch
+  and Brain updated; live summary exception investigation is next.
+
+- 2026-09-05: Operational hardening review is clear on both axes. Validation
+  passes 58 runner/executor tests, 134 package regressions, and the dedicated
+  scripts compiler. Empty/missing/ineligible/unresolved audit evidence blocks
+  cutover; terminal cleanup is bounded only after commands/reports settle.
+  Scratch/feature documentation updated; live summary health remains open.
+
+- 2026-09-05: Live Production calendar retains expected completed/assigned
+  colors; live summary panels also fail, blocking full cohort acceptance.
+  Operational review identified audit false-fresh/missing-evidence gaps and
+  terminal cleanup risk. Six new red-to-green collector regressions cover the
+  audit corrections; 16 shadow tests pass. Cleanup/re-review remain open.
+
+- 2026-09-05: Live Fulfillment correction verified for 09530DB (Production
+  queued, Backlog count 1). Local Production analytics/tab failure traced by
+  a read-only summary invocation to stale cached revision for 07241DB / 17567;
+  both panels share the rejected summary. Background STALE_REVISION jobs
+  concern a separate order, 09556LM / 26929, whose current local projection is
+  fresh. Diagnosis only: no local data repair, job replay, or code modification.
+
+- 2026-09-05: Approved lifecycle release dpl_GozwXL67x4NtYPi6FzAuFkALnsJs is
+  READY and aliased to www.gndprodesk.com / gndprodesk.com, independently
+  confirmed after CLI log-stream disconnection. No duplicate deploy, rollout
+  change, or database command. New local Production summary/tab error is
+  reproduced; background monitor also shows historical STALE_REVISION jobs.
+  Scratch retains evidence and the live parity gate remains open at 9/13.
+
+- 2026-09-05: Temporary Vercel CLI 59.11.7 accepted the approved unchanged
+  bundle; Production build is running. Scratch release manifest records the
+  deployment/inspect URLs. Build acceptance does not close live cohort parity.
+
+- 2026-09-05: Exact Production upload/promotion approved. The reviewed bundle
+  uploaded through CLI 44.7.3, but Vercel rejected its obsolete version before
+  returning a deployment ID. Temporary supported CLI resolution is underway;
+  no live promotion or DB mutation is claimed. Scratch and Brain remain 9/13.
+
+- 2026-09-05: Operator restored Vercel login; fresh inspection confirms
+  `gndprodesk`, GND SERVER, dashboard root, and the expected project ID. The
+  direct Production deployment was rejected by execution safety review before
+  process creation pending explicit destination/source-upload/live-promotion
+  approval. No deployment started and no DB mutation occurred. Scratch and its
+  release manifest now identify this approval gate, not invalid authentication.
+  Local follow-up also reconfirmed 48 operational tests pass; the existing
+  scripts compiler diagnostic still reaches conflicting shared React types.
+
+- 2026-09-05: Ticket 14 isolated release preparation caught Sales' undeclared
+  runtime `@gnd/errors` dependency. Manifest and lockfile now declare it, and
+  deployment-boundary tests pass 7/7 after reproducing the failure. Both review
+  axes are clear. The isolated baseline-plus-reviewed-fixes export now passes
+  721 API tests (2,649 assertions), 129 material/control/lifecycle/Production
+  tests (324 assertions), and API typecheck. No Production DB connection,
+  mutation, or deployment. Scratch retains the bundle path/project identity
+  and unchanged 9/13 progress.
+  Packaging fix committed as `415e8ad7f` on `master`. Release manifest confirms
+  all 20 overlay hashes. Read-only Vercel project checks report an invalid token,
+  including the direct CLI retry. Operator login is required; no deployment
+  process was started and no Production DB connection was used.
+
+- 2026-09-05: Ticket 14's Fulfillment headline mismatch is reproduced and fixed
+  locally at the presenter and actual Backlog/Dispatch queries. Canonical
+  headline and Production dimension now share the package rollout gate;
+  Dispatch status and privacy boundaries remain separate. Page-bounded reads
+  and existing Dispatch snapshots prevent per-row evidence queries. Both
+  independent reviews are clear. API typecheck passes; full API suite passes
+  721/721 (2,649 assertions) using a local test-only signing key after an initial
+  missing-key failure. Lifecycle/control/Dispatch suite passes 100/100 (240
+  assertions). Scratch is updated at 9/13 (69%); no Production access, mutation,
+  or deployment, and live verification remains open.
+  Reviewed correction committed as `ac87d9a29` on `master`.
+
+- 2026-09-05: Ticket 14's local preflight regression proved that material-ready
+  read classification could offer approval rejected by assignment provenance
+  checks. One shared validator/select now serves read and decision paths.
+  Classification v2 withholds automatic repair for unverifiable scope, without
+  hiding it from human review. Before/equal/after/missing legacy-revision
+  fixtures pass across query/detail/planner/decision; Sales typecheck passes.
+  Broad tests pass 177/177 (469 assertions), with both reviews clear after
+  preserving the public submission field boundary. A fresh bounded Production
+  read confirms 134/135/147 remain PENDING and fail the shared legacy proof
+  check; the assignment-only audit is saved in Scratch. No Production mutation
+  or deployment.
+  Package correction and API contract committed as `765ccdc56` on `master`.
+
+- 2026-09-05: Ticket 14 local regression proved that derived-control rebuilding
+  changed assignment revisions by detaching/reattaching unchanged links. The
+  rebuild now preserves those links and retains assignment-referenced stale
+  controls. Review found those historical controls also need soft deletion to
+  avoid false active lifecycle requirements, now covered by the real snapshot
+  query for door/service fixtures. The 173-test matrix (433 assertions) and
+  Sales typecheck pass; both reviews are clear. The two-file correction is
+  committed on `master` as `be381d72c`. No Production write or deployment occurred in
+  this continuation, no ready approval is credited, and Scratch stays 9/13.
+
+- 2026-09-04: Scratch was updated first with Production material-review window
+  5 and its fixed-range repair. Reviews 174–203 audited cleanly with ten
+  empty/retracted repairs and ten no-ops. Apply
+  `production-20260904-material-review-history-apply-part5-174-203.json`
+  changed exactly the ten history rows; independent same-range audit verified
+  only the ten legitimate no-ops remain. Production now has 174 pending reviews
+  after 66 verified history changes.
+
+- 2026-09-04: Scratch was updated first with Production material-review window
+  4 and its fixed-range repair. Reviews 141–173 audited cleanly with eight
+  empty/retracted repairs, one ready review, and eleven no-ops. Apply
+  `production-20260904-material-review-history-apply-part4-141-173.json`
+  changed exactly the eight history rows; independent same-range audit left
+  only the eleven no-ops and ready review 147, including the expected `09086PC`
+  eligibility-conflict archetype. Production now has 184 pending reviews after
+  56 verified history changes.
+
+- 2026-09-04: Scratch was updated first with Production material-review window
+  3 and its repair. Reviews 115–140 audited 20/20 with zero failure/unsafe
+  state, 11 empty/retracted history repairs, two ready reviews, and seven
+  no-ops. Fixed-range apply
+  `production-20260904-material-review-history-apply-part3-115-140.json`
+  changed exactly the 11 history rows; independent same-range audit verified
+  only the seven no-ops and two unchanged ready reviews remain. Production has
+  192 pending reviews after 48 verified history changes.
+
+- 2026-09-04: Scratch was updated first with the second bounded Production
+  material-review history repair. Audit window 1 proved reviews 1–42 clean.
+  Window 2 safely covered reviews 43–114 before failing closed at 115; its
+  clean prefix contained 13 empty/retracted repairs, one separately gated ready
+  review, and five no-ops. Fixed-range apply
+  `production-20260904-material-review-history-apply-part2-43-114.json`
+  changed exactly those 13 history rows with zero failures, and independent
+  same-range audit found only the five no-ops plus unchanged ready review 103.
+  Production has 203 pending reviews; bounded audit continuation starts at 115.
+
+- 2026-09-04: Scratch was updated first with the live 5% Production cohort
+  finding and fix. `09502PC` (stable bucket 69) was outside the canonical
+  cohort, yet Calendar used its raw canonical snapshot while the list served
+  legacy completion. Both surfaces now use the selected cohort projection:
+  explicit legacy Production completion remains green outside the cohort, and
+  canonical completion/lifecycle/action state replaces legacy fields together
+  inside it. A terminal order label still cannot fabricate Production proof.
+  The focused suite passes 35/35 with 70 assertions, `@gnd/sales` typecheck is
+  green, and scoped formatting/diff checks pass. Deployment verification is
+  pending under Ticket 14.
+
+- 2026-09-04: Scratch was updated first with the failed-closed replacement
+  material audit. It inspected 32 of 216 pending reviews before review 105
+  exhausted its read retries. The 216-row starting count proves the interrupted
+  history apply changed exactly 24 of the original 240 rows and never enabled
+  ready approval. The runner now supports durable review-id/max-candidate
+  windows and reports their first/last ids plus continuation state. The safety
+  suite passes 12/12 with 45 assertions; bounded Production window auditing is
+  underway.
+
+- 2026-09-04: Scratch was updated first after the first independent
+  material-review audit was intentionally stopped without a write. A provider
+  outage exposed that pre-scan detail collection could multiply one exhausted
+  retry window across the remainder of a 100-record batch. The runner now ends
+  collection on the first rejected detail read and returns non-zero for every
+  early-stop report, including unsafe plans without caught errors. The combined
+  safety suite passes 12/12 with 42 assertions and scoped Biome is clean. A
+  replacement independent Production audit is running; no later repair batch
+  may begin before a complete clean report.
+
+- 2026-09-04: The first 25-row, history-only Production material-review apply
+  exhausted a candidate's read recovery after earlier candidates may have
+  committed. The pre-hardening process was interrupted under the stop rule
+  rather than allowed to continue across known failures; it produced no final
+  report and never enabled ready approval. Scratch records the result as
+  unknown until independent read-only audit
+  `production-20260904-material-review-audit-after-part1.json` completes.
+  Read recovery now resets/retries `P2024` pool exhaustion as well as provider
+  disconnects, while mutations remain outside retry. The combined runner suite
+  passes 12/12 with 40 assertions and Biome is clean. The audit recovered after
+  its initial disconnect sequence and entered the candidate scan.
+
+- 2026-09-04: Scratch was updated first with a fail-fast repair-runner
+  hardening. Later material-review batches stop the full candidate scan on the
+  first unsafe read, unsafe plan, or mutation failure, expose processed count
+  plus exact stop reason, and still never automatically retry a mutation.
+  Focused coverage passes 3/3 with 13 assertions and scoped Biome is clean.
+  The already-running first 25-row batch is accepted only on a zero-failure
+  final report; otherwise an independent audit resolves its exact state.
+
+- 2026-09-04: Scratch was updated first with the fresh Production
+  material-review dry-run packet. The 40-minute resilient scan completed across
+  240 pending reviews with zero failures and zero mutations: 42 eligibility
+  conflicts, 28 actionable unresolved, 24 true setup-missing, 138
+  empty/retracted, 4 superseded, and 4 ready-to-converge. Proposed operations
+  are 138 safe history cancellations, 1 reason reclassification, 4 separately
+  gated ready approvals, and 97 no-ops. The already-authorized clean-dry-run
+  gate passes; the first repair is capped at 25 history-only changes and keeps
+  ready approval disabled.
+
+- 2026-09-04: Scratch was updated first with the bounded-cohort deployment
+  evidence. Vercel Production now serves deployment
+  `dpl_GgKtUtFqRnfNKXYirE3wC9P5mnxt` at `www.gndprodesk.com` with canonical
+  lifecycle reads and commands at an order-id-stable 5% cohort and the Sales
+  Orders materialized read model at a user-id-stable 5% cohort. All five
+  Production variables are in the root Turborepo build allowlist; focused
+  rollout/read-model coverage passes 36 tests with 95 assertions, HTTP smoke
+  passes, and the authenticated Orders page loads as Pablo Cruz. Ticket 14
+  remains 9/13 and the queue remains 161/178 until live cross-surface cohort
+  behavior is verified.
+
+- 2026-09-04: Approval-bearing production shadow report
+  `production-20260904-shadow-report-approved-revalidated.json` passed across
+  6,898 eligible projections: zero unexplained membership, review-required
+  membership, unsafe transition, persistent stale, and concurrent freshness
+  differences. Materialized 20-order page p95 is 353.71 ms across 345 samples,
+  below the unchanged 500 ms limit. Conflict review and operator approval are
+  recorded, and the fail-closed cutover checker passes with no failures and a
+  fact-preserving legacy rollback. Scratch advanced first; Ticket 14 is 9/13
+  and the queue is 161/178 verified checks. Bounded canonical cohort is next.
+
+- 2026-09-04: The first approval-bearing shadow rerun again passed parity and
+  20-order page latency at 351.96 ms p95 but saw one projection/snapshot
+  revision mismatch during its five-minute live scan. The reporter now
+  revalidates only initial mismatch candidates for two bounded observations:
+  an unchanged mismatched revision pair is persistent stale, while a moving
+  pair is separately reported as concurrent activity. Dedicated samples expose
+  both outcomes. Focused coverage passes 21/21 with 51 assertions and Biome is
+  clean; all original cutover thresholds remain unchanged.
+
+- 2026-09-04: Independent audit `d247f9fb-ba78-4846-b93d-f983c9d57dca`
+  identified the shadow run's sole stale row as order `09553LM`, a safe
+  derived-cache revision mismatch with zero unsafe cases. Authorized apply run
+  `2d4d63cb-cec7-478d-8c21-4b6e2794e656` created a fresh v2 rollback backup,
+  persisted exactly 1/1 projection, skipped zero stale candidates, and left
+  zero deterministic remainder. The approval-bearing full-population shadow
+  rerun remains the independent zero-stale verification before rollout.
+
+- 2026-09-04: The production shadow gate now measures the real 20-order
+  materialized serving page while retaining complete-population comparison.
+  Across 6,898 eligible projections it reports zero unexplained membership,
+  zero review-required membership, zero unsafe transition differences, and a
+  361.90 ms p95 across 345 pages, below the unchanged 500 ms threshold. The
+  fresh resolver audit remains separately visible at 4,235.99 ms p95. One
+  source revision changed during the five-minute scan, leaving one stale
+  derived projection; the gate remains fail-closed until that row is backed up,
+  repaired, independently re-audited, and the approval-bearing report passes.
+
+- 2026-09-04: The corrected shadow report stayed clean for unexplained,
+  unsafe, stale, and review-required membership differences but measured the
+  250-row projection scan at 2,059.82 ms p95. Production `EXPLAIN` selected the
+  health index with `Using where; Using filesort`. Added the exact composite
+  `(state, version, pipelineContractVersion, salesOrderId)` scan index—no new
+  column or row rewrite—and pushed it to the verified production fingerprint in
+  6.97 seconds. Post-push `EXPLAIN` uses the new index with `Using index
+  condition` and no filesort. An indexed unapproved shadow run is measuring the
+  same unchanged 500 ms gate.
+
+- 2026-09-04: The first unapproved production shadow report compared 6,898
+  ready projections with zero unexplained membership, unsafe transition,
+  stale-projection, or review-required membership differences, but failed its
+  500 ms latency gate at 6,761.69 ms p95. The metric was found to combine the
+  user-serving materialized projection page reads with the intentionally
+  expensive fresh canonical resolver audit. Reporting now gates the actual
+  served page-read p95 and retains resolver-audit p95 as a separate diagnostic;
+  the 500 ms threshold was not raised. Focused validation passes 19 tests / 46
+  assertions and scoped Biome is clean. A corrected unapproved production
+  shadow comparison is running before any rollout flag is changed.
+
+- 2026-09-04: Mandatory post-part-7 audit
+  `d38074f2-d86c-4768-bafc-6655a9789a96` completed across 8,166 current
+  production orders with zero deterministic repairs and zero unsafe. No newly
+  missing projection recurred during this verification window, satisfying the
+  reconciliation prerequisite. The actual production shadow comparison is now
+  running without review or operator-approval flags; its complete reasons,
+  samples, unexplained/unsafe/stale counts, and p95 latency will be reviewed
+  before the gate can advance.
+
+- 2026-09-04: Production projection reconciliation Part 7 run
+  `21291320-dcd6-46b9-92c7-0e2996d5274a` completed successfully. One new order
+  appeared during its fresh scan, so it persisted 16/16 derived projections in
+  one bounded cohort with zero stale skips, zero unsafe, and zero
+  starting-population remainder. A separate 126 KB v2 rollback backup and
+  apply report were created. The mandatory independent post-part-7 audit is
+  running; another newly missing population will trigger investigation of the
+  live projection-refresh path rather than another blind repair loop.
+
+- 2026-09-04: Evidence-complete production audit
+  `f1486995-dbcc-4012-9bdc-a2d0b5c8fd33` rescanned 8,165 orders and resolved
+  the prior transient missing-snapshot signal: zero unsafe, 15 deterministic
+  projection repairs, 610 known compatibility differences, 1,269
+  review-required, and 6,271 clean. The 15 cache candidates are fully exposed
+  as 11 Sep 4 source/revision changes plus 4 missing projections. The already
+  authorized part-7 cache-only repair is running as one bounded cohort behind
+  a fresh v2 rollback backup; no lifecycle, Production, Fulfillment, inventory,
+  payment, accounting, or other source-domain fact is eligible for mutation.
+
+- 2026-09-04: Independent production audit
+  `18a2af67-eba8-442f-88cc-7bac868ae1af` completed across 8,165 current orders
+  and produced a real fail-closed result: 6,271 clean, 14 deterministic
+  projection repairs, 610 known compatibility differences, 1,269
+  review-required rows, and 1 unsafe classification. Ticket 14 remains 8/13.
+  The runner now emits complete reason frequencies and per-category samples so
+  unsafe/repair rows cannot be hidden by the previous first-25 source ordering;
+  focused operational validation passes 18 tests / 45 assertions and scoped
+  Biome is clean. An improved read-only production audit is running before any
+  repair, shadow, cohort, or mode change.
+
+- 2026-09-04: Kept Scratch and Brain synchronized while the independent
+  production post-Part-6 audit continued. The first externally authorized
+  25-row run recovered connectivity but remained in idle/retry behavior for
+  more than three hours without writing a report, so its read-only process was
+  intentionally interrupted; it had no mutation flag and changed no production
+  row. The same audit is now running at the supported maximum batch size of
+  100, reducing canonical snapshot round trips fourfold. Ticket 14 remains
+  8/13 and no zero-drift, shadow, cohort, or cutover checkbox is claimed before
+  the replacement report completes and is inspected.
+
+- 2026-09-04: Resumed Ticket 14 and corrected the production-connectivity
+  diagnosis. TLS and the database handshake pass with authorized external
+  network access; the earlier instant Prisma failures were constrained by the
+  workspace network sandbox. The externally authorized independent post-Part-6
+  audit recovered after one initial `P1001`, holds an established PlanetScale
+  socket, and is continuing its read-only serialized scan. Scratch was updated
+  first; no zero-drift checkbox or production mode change is claimed yet.
+
+- 2026-09-04: The canonical lifecycle goal reached a verified external block
+  after three consecutive turns: a final single-attempt production
+  `salesOrders.findFirst` probe still fails before loading a row even though DNS
+  and raw TCP 3306 are reachable. Local-only evidence is exhausted at 160/178
+  checks (90%), with Ticket 14 at 8/13. Remaining production audit, shadow,
+  cohort, material execution, retirement, Ticket 11 closure, and Ticket 17 work
+  cannot safely advance until Prisma can establish the production session.
+  Scratch was updated first and Brain mirrored the blocked state.
+
+- 2026-09-04: Advanced Ticket 14 from 7/13 to 8/13 after reconciling the
+  merged material-status local release check against the complete evidence.
+  Package/API/Dashboard tests and authenticated browser QA prove exact labels,
+  quantities, explanations, list/count/detail parity, collapsed review
+  behavior, deep links, permissions, keyboard use, cache refresh, and all three
+  named archetypes. Preview remains explicitly waived and is not claimed.
+  Scratch moved first; Brain now mirrors 160/178 verified checks (90%).
+
+- 2026-09-04: Audited Ticket 14's remaining legacy retirement surface while
+  production connectivity was unavailable. Scratch now owns a precise
+  gate-bound retain/review/remove checklist covering Sales Orders materialized
+  fallbacks, storefront/dealer status reconstruction, Dashboard and Production
+  aggregate reconstruction, legacy string inference, and rollout/cohort
+  branches. It explicitly protects domain facts, analytics quantities,
+  inventory migration tools, V1 coexistence, immutable audits, and rollback
+  evidence from accidental deletion. No retirement or production mode change
+  occurred; Brain was mirrored after Scratch.
+
+- 2026-09-04: Re-tested the production lifecycle projection audit during the
+  operator's network change. DNS resolves all three provider addresses and a
+  credential-free TCP probe reached port 3306 and received a handshake, but a
+  fresh Prisma-backed read-only audit still exhausted all 20 initial connection
+  attempts before reading an order. It made no write and produced no report.
+  The worker-header repair is independently complete: 26/26 focused tests with
+  91 assertions pass, worker browser proof passes at 390×844 and 768×1024,
+  keyboard Enter opens `09502PC`, and authenticated Super Admin proof confirms
+  the admin header still shows its intentional inbound summary. Scratch was
+  updated first; Ticket 14 remains 7/13 pending a usable production DB session.
+
+- 2026-09-04: Implemented the Sales Orders client request-control slice of the
+  Vercel Function Cost plan. `/sales-book/orders` now has a dedicated guarded
+  user-scroll sentinel, one successful request per cursor, failed-page retry,
+  query-identity reset with stale-completion isolation, and an accessible Load
+  more fallback. Server and client list inputs share one normalized builder,
+  while active list and summary work is canceled before search/filter, tab,
+  sort, clear-results, and browser-history transitions. The shared infinite
+  scroll hook used by other tables remains unchanged. The relevant Sales Orders
+  suite passes 43 tests / 135 assertions, scoped Biome and whitespace checks
+  pass, and the touched-path TypeScript scan is clean against the repository's
+  existing broad Dashboard baseline. No database, API, auth, permission, or
+  production environment setting changed. Authenticated browser/UI validation
+  is still required before this implementation is committed as complete;
+  deployment and measured production Function Duration evidence remain the
+  subsequent rollout gate.
+
+- 2026-09-04: Replaced Sales Form Step List V2 horizontal overflow with a
+  wrapping flex hierarchy. Complete separator/step units move onto additional
+  rows, the strip grows beyond its 43px minimum height, and V1 plus all step
+  interaction behavior remain unchanged. Authenticated browser QA confirms the
+  long Interior Pre-Hung workflow wraps cleanly; focused rendering passes 4
+  tests / 35 assertions, Sales typecheck, scoped Biome, and diff integrity.
+
+- 2026-09-04: Increased Sales Form Step List V2 hierarchy typography from 11px
+  to the standard 12px caption size and rendered every step label in uppercase.
+  Separator spacing, 43px strip alignment, accessible names, navigation behavior,
+  and the V1 default remain unchanged. Authenticated browser QA passes; focused
+  rendering passes 4 tests / 32 assertions, Sales typecheck, scoped Biome, and
+  diff integrity.
+
+- 2026-09-04: Pixel-aligned Sales Form Step List V2 with the approved GStack
+  hierarchy reference. The 43px strip now sits flush beneath the item header,
+  `/` separators have explicit 8px spacing on both sides, inactive steps use
+  normal text weight, and only the current step uses the bold soft-blue state.
+  Authenticated browser comparison passes; focused rendering passes 4 tests /
+  31 assertions, Sales typecheck, scoped Biome, and diff integrity.
+
+- 2026-09-04: Production projection reconciliation Part 6 run
+  `6a428d71-20f6-41a3-b8e5-0485865a5944` completed behind a separate 421 KB v2
+  rollback backup. It persisted all 2,566 projections across 103 cohorts with
+  zero stale skips and zero starting-population remainder. The first independent
+  audit exhausted 20 initial page-read attempts during a new provider outage
+  before reading any order; it made no write and produced no report. In
+  parallel, the production shadow reporter was hardened with the same
+  bounded P1001/P1017 read retry and connection-reset behavior as the
+  reconciliation runner, while non-connection errors remain fail-fast.
+  The material-review runner now uses this recovery only for serialized read
+  phases; audited mutations remain outside automatic retry. The shadow report
+  now emits reason-frequency counts for its review population. The combined
+  operational-script suite passes 20/20, the broader material-review matrix
+  passes 116/116, and scoped Biome checks pass. Scratch was updated first;
+  Ticket 14 remains 7/13 until an independent audit proves zero deterministic
+  drift and the real production shadow gate passes.
+- 2026-09-04: Read-only Vercel inspection re-verified the lifecycle rollout
+  target as `gndprodesk/gndprodesk` (`prj_BbeTM6D2N5TkqWW9SzaZvdXBPnsr`, root
+  `apps/dashboard`). Production has no Sales Pipeline read, command, or cohort
+  environment override, so fail-safe shadow defaults remain active and no
+  cohort has been enabled before the measured gate.
+
+- 2026-09-04: Added a versioned shared Sales Form workflow step list. V1 keeps
+  the existing pill navigation as the default; Dashboard New Sales Form now
+  selects V2 in both package and fallback workflow paths, rendering values and
+  titles as a slash-separated hierarchy with only the active step softly
+  highlighted. Focused rendering passes 4 tests / 29 assertions, Sales package
+  typecheck and scoped Biome checks pass, and authenticated local browser QA
+  confirms the hierarchy. The default broad Dashboard typecheck exhausted
+  Node's 4 GB heap; a 6 GB retry completed and reproduced the repository's
+  broad pre-existing TypeScript baseline. No database, API, permission,
+  pricing, or save contract changed.
+
+- 2026-09-04: Production connectivity recovered and the independent post-part-5
+  audit completed. Run `067c1425-cf4f-42ff-9f59-58f76e52ae6e` covered 8,160
+  orders and reports 4,041 clean, 2,566 deterministic repairs remaining, 284
+  known compatibility differences, 1,269 review-required, and zero unsafe.
+  Part 5 therefore converged exactly 326 projection rows before its outage; no
+  estimate was used. Scratch was updated first, then Brain. Ticket 14 remains
+  at 7/13 while the part-6 cache-only continuation starts behind a fresh v2
+  rollback boundary.
+
 - 2026-09-03: Completed HPT size hot-swap and Height reconciliation across the
   shared Sales package, Dashboard package/legacy panels, and Dealership. Every
   size row has an accessible Repeat menu; manual and Height-driven swaps retain
@@ -16,6 +999,64 @@
   the exact swap sequence could not be completed because the local workflow
   selection reset during setup. No schema, migration, API, auth, or permission
   contract changed.
+
+- 2026-09-03: Recorded the fail-closed production projection part-5 checkpoint
+  in Scratch first and Brain second. Its fresh dry run covered 8,160 orders and
+  found 2,892 deterministic repairs, 1,269 review-required rows, 261 known
+  compatibility differences, and zero unsafe. The authorized 25-row apply
+  created a separate 473 KB v2 rollback backup, then exhausted all bounded
+  whole-cohort retries during a sustained PlanetScale prerequisite-read outage.
+  The failing cohort never reached upserts; a separate single-row read probe
+  confirms the provider is still unreachable from this host. Earlier committed
+  cohorts will be measured, not estimated, by the next independent read-only
+  audit. Production material review remains unmodified and Ticket 14 stays at
+  7/13.
+
+- 2026-09-03: Added approved Canonical Sales Pipeline Ticket 17 to Scratch
+  first and Brain second. The existing concise Production-completed/Fulfilled
+  actions will always open a **Full workflow** versus **Status only** choice.
+  A partially unsuccessful full-workflow batch may offer a second, explicit
+  status-only confirmation for only the unsuccessful eligible sales; no silent
+  downgrade is allowed, and audit/revision/idempotency/no-side-effect guards
+  remain mandatory. Ticket 17 is queued after Ticket 14 at 0/12. The expanded
+  queue was 14/17 done, 2/17 in progress, 1/17 approved/queued, and 158/177
+  acceptance checks verified.
+
+- 2026-09-04: Reopened and then re-completed Canonical Sales Pipeline Ticket
+  09 in Scratch first, then mirrored the verified repair in Brain.
+  Authenticated worker browser QA at 390×844 had proved order `09502PC` still
+  rendered a shared-header `Inbound · 2 inbounds` summary above the correct
+  exact-size inline material evidence. Header visibility now follows the
+  resolved overview mode: assigned Production workers suppress the redundant
+  summary while default/admin Sales Overview preserves it. The focused suite
+  passes 25/25 tests with 88 assertions. Runtime proof at 390×844 and
+  768×1024 preserves one exact inline inbound line, has no 390 px horizontal
+  overflow, and opens through keyboard Enter. Ticket 09 is done at 11/11; the
+  queue is 14/17 done, 2/17 in progress, 1/17 queued, with 159/178 checks
+  verified.
+
+- 2026-09-03: Reconciled Ticket 14's local/Preview acceptance wording with the
+  operator's explicit instruction to waive Preview and proceed directly to
+  production. Local representative synchronized-data validation is complete,
+  and no Preview run is claimed. Scratch was updated first, advancing Ticket
+  14 to 7/13 and the expanded queue to 158/177, then Brain was mirrored.
+
+- 2026-09-03: Completed Canonical Sales Pipeline Ticket 16 at 15/15 after
+  updating Scratch first. Authenticated desktop plus 390×844 and 768×1024 QA
+  verifies Production week/month, the shared shadcn date picker, worker
+  read-only behavior, Fulfillment V2, legacy Fulfillment, locked rows, semantic
+  controls, and no page-level horizontal overflow. A controlled local move of
+  unassigned order `09439PC` from Sep 4 to Sep 5 produced the success refresh,
+  then a second confirmed command restored Sep 4. The original schedule is
+  restored and the two attributable audit records remain. The queue is now
+  157/165 checks: 14 tickets done, with Tickets 11 and 14 in progress.
+
+- 2026-09-03: Completed the approved Vercel fixed-subscription cost action for
+  `gndprodesk`. Vercel confirmed that Speed Insights Plus renewal is canceled;
+  Plus remains available through 2026-09-19 and the current cycle is not
+  refunded. The project returns to standard Speed Insights after that date,
+  while the daily infrastructure monitor and the separate Function Duration,
+  metered-event, and $15-cycle guardrails remain unchanged.
 
 - 2026-09-03: Completed the two reopened Canonical Sales Pipeline
   implementation checks after updating Scratch first. Ticket 15 is done at
@@ -14952,6 +15993,61 @@
   bounded recovery window while remaining serial and freshly evaluated; the
   runner suite passes 8/8.
 
+## 2026-09-04 — Material-review reconciliation window 6 audited, apply held
+
+- Window 11 first failed closed at review 390 after preserving ten clean
+  no-ops; its empty-engine/not-connected provider responses are now narrowly
+  retryable and covered by the 13/13, 53-assertion runner suite. The resumed
+  tail through review 414 completed with seven more no-ops. All 102 pending
+  Production reviews are now covered by durable windows; the final full audit
+  is next and must prove only 98 no-ops plus four ready approvals remain.
+- Window 10 first exposed an unbounded individual Prisma read attempt; the
+  read-only process was stopped after 22+ minutes with no write. Per-attempt
+  30-second timeout/reset/retry is now covered by a deliberately hung-read
+  test. Focused runners pass 13/13 with 51 assertions and scoped checks are
+  clean. The hardened audit then classified reviews 348–367 as seven
+  eligibility conflicts and 13 true setup-missing no-ops with zero failure;
+  no apply was needed.
+- Window 9 covered Production review IDs 295–347: exactly 12 empty/retracted
+  rows changed, while five eligibility conflicts, two actionable unresolved,
+  and one true setup-missing review remain as verified no-ops. Independent
+  audit reports zero failure and no remaining history mutation. Production has
+  102 pending reviews after 138 verified history cancellations.
+- Window 8 covered Production review IDs 269–294, including `09178DB`: 20/20
+  audited as safe empty/retracted, exactly 20 changed, and independent audit
+  returns zero candidates/failures. Production has 114 pending reviews after
+  126 verified history changes; auditing continues after review 294.
+- Window 7 covered Production review IDs 242–268: 20/20 audited as safe
+  empty/retracted, exactly 20 changed, and independent same-range audit now
+  returns zero candidates/failures. Production has 134 pending reviews after
+  106 verified history changes; auditing continues after review 268.
+- Production connectivity recovered. Window 6 fixed-range apply changed all
+  20 audited empty/retracted reviews across IDs 206–241 with zero failure and
+  did not enable ready approval. Independent exact-range audit returns zero
+  candidates/failures. Production now has 154 pending reviews after 86
+  verified history changes; the durable scan continues after review 241.
+- Deployed the tested Sales Production cohort-selection correction to the
+  confirmed Production dashboard project as
+  `dpl_9NQCM5H9aWEzjkmDo5ZK91tiGGqQ`; it is READY and aliased to
+  `www.gndprodesk.com`. The isolated snapshot was based on the exact live
+  commit and excluded unrelated worktree changes. A root-link mismatch first
+  targeted Storefront; that in-progress deployment was removed before release,
+  then the snapshot was explicitly relinked to `gndprodesk`.
+- Authenticated Production Calendar evidence confirms `09502PC` now uses the
+  emerald completed classes outside the cohort, while included `09530DB` is
+  canonical assigned/purple and its opened Production detail agrees on
+  headline, material, and assignment state. The specific color/parity defect
+  is closed; full cohort acceptance remains open.
+- Updated Scratch first, then Brain. Production material-review window 6 is
+  bounded to review IDs 206–241 and its read-only artifact proves 20/20
+  `empty_retracted`, 20 proposed history cancellations, zero failures, and no
+  unsafe state.
+- Two apply preflights exhausted Production database connectivity while
+  loading the actor permission. Neither reached candidate collection or a
+  mutation, and no apply artifact was created. The ticket remains 9/13; the
+  exact audited range must be retried and independently re-audited after
+  connectivity recovers.
+
 ## 2026-09-04 — Sales Overview Production material and action polish
 
 - Separated production capability from tracked-material applicability. Every
@@ -14979,3 +16075,136 @@
   `09551PC` confirms the title and chevron expand/collapse URL transitions.
   Dashboard typecheck reached Node's default 4 GB heap limit without a
   TypeScript diagnostic. Final implementation reviews report no open findings.
+
+## 2026-09-05 — Production reconciliation safety and observable audit
+
+- Ticket 14 remains 9/13 (69%); the prior full material audit failed closed and
+  its replacement was interrupted without mutations. No ready approvals are
+  credited. A verified process inventory found no prior runner; the authorized
+  new read-only run loaded 102 pending Production reviews and emits completed
+  review IDs and timings. Production database access is still required.
+- A regression reproduced overlapping projection-write retries introduced by
+  the read deadline. Writes now await settlement and never retry synthetic
+  read timeouts. Two-axis review found prefetched-batch stop/cursor issues;
+  executable sequential scan tests now cover immediate failure stops, no
+  automatic domain write retries, budget-safe resume, unsafe plans, and
+  invalid bounds. Shared read cleanup is bounded as well. The operational
+  suite passes 42 tests / 106 assertions; DB and Sales typechecks pass.
+- Scratch records the authoritative evidence and pending script typecheck /
+  second-review results. The live read-only audit is not restarted merely for
+  local mutation-path changes. No rollout gate was weakened or newly checked.
+
+- Follow-up: the 48-record tail audit completed with zero failures and 48
+  no-ops. Together with the valid54-record prefix it covers102; a fresh ID
+  count confirms the54/48 partition and all four ready targets. Both local
+  approval attempts stopped at103 and rolled back, the second exposing the
+  provider's hard20-second transaction limit. The runner now shares the API's
+  canonical locked workflow transaction and explicitly disables automatic
+  write-conflict retries;40 focused command/decision/runner tests pass.
+- The deployed review103 recheck completed as a guarded stale-scope
+  cancellation, not approval. Independent DB evidence confirms CANCELLED,
+  actor1, cancellation time2026-09-05T06:24:21Z, and legacy assignment revision
+  reason for12746. Pending total101;134/135/147 remain pending. No other ready
+  action proceeds before assignment-history assessment. Also discovered live
+  cohort09530DB headline mismatch between Fulfillment and Orders/Overview.
+
+## 2026-09-06 — Bounded Production cohort reliability accepted
+
+- Updated Scratch first, then Brain. Ticket 14 advances to 11/13 (85%) and the
+  batch to 163/196 (83%); legacy-authority retirement is the next check.
+- Twenty independent authenticated Production GETs against READY deployment
+  `dpl_5WZw6SiQtiw3B1wJjapqSfmFoPZ2` returned HTTP 200, rendered 20 rows,
+  preserved Active 3,331 / Unassigned 858 / Past Due 268 / Unscheduled 73 /
+  Completed 1,293 / Review 97, and recorded zero timeouts.
+- Correlated p95 phases are proxy auth 478 ms, proxy-to-page 1,290 ms, page auth
+  1,535 ms, filters 3,496 ms, list 5,458 ms, and summary 6,617 ms. Each server
+  phase passes the written 10-second target; phase values overlap and are not
+  added.
+- The separately tested request-scoped auth prototype was not deployed and was
+  removed from the shipping worktree after the smaller filter release passed.
+  The flat schedule-read split remains rejected as slower. No schema, migration,
+  database push, data mutation, reconciliation apply, or cohort change ran.
+- 2026-09-06: Started Canonical Sales Pipeline Ticket 17 in Scratch first and
+  Brain second. The implementation audit verifies 3/12 checks already supplied
+  by the existing concise action pair, deliberate Full workflow/Status only
+  modal, canonical Trigger jobs, and structured per-sale results. The remaining
+  work is a bounded second confirmation for only failed/review-required rows,
+  with a required operator reason, fresh canonical and completion revisions,
+  immutable linkage to the original attempt/outcome, and no repeated successful
+  side effects. Ticket 14's three retired Production environment keys remain
+  inert pending exact deletion approval; authenticated browser QA requires the
+  Mac to be unlocked.
+# 2026-09-07 — Ticket 18 refresh and palette checkpoint
+
+Card/action audit closes checks 8/12/14 after edit-form navigation proof and
+review of responsive rendering, canonical palette and assignment evidence.
+Scratch/Brain 15/18, batch 192/196. Production due date form opened correctly;
+no edit saved. Remaining contrast/URL-state/release checks stay open.
+
+Status-only local completion verified emerald with explicit provenance; source
+submissions unchanged, casing remains operationally unsubmitted. Scratch/Brain
+12/18, batch 189/196. 8GB Dashboard typecheck exposes baseline errors; fixed
+new test matcher incompatibilities. No full Dashboard pass claimed.
+
+Regression matrix checkpoint: Scratch/Brain now 11/18, batch 188/196 after
+fresh Planning/UI and Production/API test evidence. Full-workflow completion
+card 09426DB verified green locally. Dashboard typecheck exhausted 4GB heap;
+8GB retry running (94874). Status-only live visual case remains unverified.
+
+Worker scope verified through authenticated local Izri session, own/other-worker
+search and protected Planning redirect. Scratch first: 10/18, batch 187/196.
+Worker mode chip removed. Mixed-completion lock proved correct under Ticket 16;
+tooltip now explains completed work within the group. No Production changes.
+
+Committed local assignment QA verified checklist 6. Planning removes fully
+covered order without reload; Schedule/list/summary reflect its assignment.
+Scratch first: 9/18, batch 186/196. Local casing assignment quantity 4 to Izri
+retained for QA; no Production writes. In-progress group's completed move-lock
+label is a new parity finding to investigate before closure.
+
+Single assignment now uses canonical locked/revisioned command authority and
+fresh item quantity validation. Added positive/integer/hand-capacity checks;
+normalized no-handle pending display. Fourteen tests / 51 assertions and Sales
+typecheck pass. Scratch, Brain task and API contract synchronized; runtime
+committed QA still open. No Production mutation.
+
+Assignment identity correction: confirmed placeholder IDs and faulty plain-item
+generator. Fixed shared identity generation and placeholder matching; regression
+passes and read-only local replay removes false total availability. No DB write.
+Scratch/Brain task record remaining hand normalization and single-item guard.
+
+Assignment QA: Planning opens correct local detail/form, but 24-0401-1294
+exposes conflicting source assignment vs derived item availability. No write
+submitted. Traced single-item action's missing canonical transaction wrapper
+relative to batch action. Scratch and Brain task record correction needed
+before committed assignment acceptance; no checklist advancement.
+
+Planning filter/responsive checkpoint: removed unsupported worker option only
+from Planning; preserved Schedule filtering and URL state. Six tests pass and
+both browser menus verified. Local month: 66 gaps / 78 schedule groups. Mobile
+week and overflow cards and tablet month inspected; viewport restored. Scratch
+and Brain task synchronized, full remaining acceptance still open.
+
+Calendar filter correction: `calendarMode` now stays presentation-only in the
+header. Five hydration/filter tests pass, and browser verifies 16 Planning
+results without a bogus planning chip/Clear filters control. Scratch and Brain
+task updated; acceptance 15 still open for worker-filter and remaining QA.
+
+Later resume: Mac unlocked; local dashboard was orphaned/unresponsive and was
+restarted using the standard scoped dev launcher. Authenticated Planning now
+renders current-week empty state and 16 Apr 1–7, 2024 gaps. Discovered erroneous
+calendarMode filter chip; recorded in Scratch and Brain task for correction.
+Counts unchanged; no Production mutation or proxy/database reset.
+
+Follow-up blocked audit: browser again reports locked Mac with automatic unlock
+paused. Repeated access failures meet the blocked threshold; goal marked
+blocked, not complete. Scratch README and Brain task are synchronized. Resume
+authenticated acceptance after manual unlock; verified totals remain unchanged.
+
+Scratch was synchronized before Brain; acceptance remains 8/18 (batch 185/196).
+Verified the existing assignment/submission/Production hook changes emit the
+canonical pipeline event. Fresh real-cache, registry, palette and retirement
+regressions: 51 pass, 0 fail, 265 assertions. Palette does not restore legacy
+aggregate-only completion. Truncated Planning empty state describes the loaded
+subset. Authenticated browser checks remain blocked by the locked Mac; no
+Production deployment or database write occurred at this checkpoint.

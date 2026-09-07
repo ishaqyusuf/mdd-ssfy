@@ -14,7 +14,7 @@ In Progress
 
 ## Last Updated
 
-2026-08-21
+2026-09-03
 
 ## Goal Or Problem
 
@@ -238,11 +238,16 @@ flowchart TD
      timeout; change batching only when measured reliability benefit outweighs
      the added invocation and connection cost.
 
-   Current state (2026-08-30): privacy-safe `sales.getOrders` and
+   Current state (2026-09-04): privacy-safe `sales.getOrders` and
    `sales.getOrdersSummary` stage telemetry is implemented. The list read path
    also has a deterministic authenticated-user cohort percentage with legacy
-   fallback and mode `off` rollback. Client request-lock, sentinel, query-key,
-   and superseded-request work remains a separate incomplete part of this step.
+   fallback and mode `off` rollback. The client request-control slice is now
+   implemented: a Sales-only user-scroll sentinel prevents eager viewport
+   waterfalls, cursor requests are locked and retry-safe, equivalent server and
+   client inputs share one builder, and list/summary work is canceled before
+   search, filter, tab, sort, clear, and history transitions. Focused automated
+   evidence is green; deployment and measured production Function Duration
+   improvement remain open before this step can meet its runtime target.
    - Target at least a 60% reduction in tRPC Function Duration attributable to
      Sales Orders, list p75 below 750 ms, p95 below two seconds, and no timeouts.
 
@@ -339,8 +344,10 @@ flowchart TD
     - Add architecture review triggers for new `waitUntil` work, direct email
       or PDF generation in requests, unbounded list reads, polling, and deep
       relational includes on interactive routes.
-    - Review the separate $10 Speed Insights license and $20 additional seat as
-      subscription decisions; code optimization will not remove those charges.
+    - Speed Insights Plus renewal was canceled for `gndprodesk` on 2026-09-03.
+      Plus remains available through 2026-09-19 with no current-cycle refund;
+      standard Speed Insights applies afterward. The additional seat remains a
+      separate subscription decision; code optimization will not remove it.
     - Revisit ADR-042 and this plan after one full billing cycle with measured
       savings, not projected savings.
 

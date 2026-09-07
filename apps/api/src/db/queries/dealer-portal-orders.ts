@@ -5,11 +5,10 @@ import {
 } from "@gnd/db/queries";
 import {
 	buildCustomerSalesPipelineProjectionFilter,
-	getSalesPipelineReadMode,
 	getSalesPipelineSnapshots,
 	isCustomerSalesPipelineStatus,
-	observeSalesPipelineReadProjection,
 	projectSalesPipelineForAudience,
+	projectUnavailableSalesPipelineForAudience,
 } from "@gnd/sales";
 
 /**
@@ -21,11 +20,9 @@ export async function getCanonicalDealerPortalOrders(
 	dealerId: number,
 	input: DealerPortalSalesListInput,
 ) {
-	const canonicalStatus =
-		getSalesPipelineReadMode() === "canonical" &&
-		isCustomerSalesPipelineStatus(input.status)
-			? input.status
-			: null;
+	const canonicalStatus = isCustomerSalesPipelineStatus(input.status)
+		? input.status
+		: null;
 	const pipelineFilter = canonicalStatus
 		? buildCustomerSalesPipelineProjectionFilter(canonicalStatus)
 		: undefined;
@@ -44,14 +41,9 @@ export async function getCanonicalDealerPortalOrders(
 		...result,
 		data: result.data.map((order) => {
 			const snapshot = snapshots.get(order.id);
-			const selected = snapshot
-				? observeSalesPipelineReadProjection(snapshot, {
-						surface: "dealer.orders",
-						legacyHeadline: order.status,
-					})
-				: null;
-			if (!selected) return order;
-			const pipeline = projectSalesPipelineForAudience(selected, "dealer");
+			const pipeline = snapshot
+				? projectSalesPipelineForAudience(snapshot, "dealer")
+				: projectUnavailableSalesPipelineForAudience();
 			return {
 				...order,
 				pipeline,

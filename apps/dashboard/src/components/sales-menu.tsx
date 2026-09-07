@@ -1320,12 +1320,13 @@ function SalesMenuMarkAs({
 
 	const startMarkProductionCompletedTask = async () => {
 		const targetSalesIds = statusActionSalesIdsRef.current;
+		const requestId = crypto.randomUUID();
 		try {
 			await bulkProductionCompletionTask.trigger(
 				{
 					taskName: "bulk-mark-sales-production-completed",
 					payload: {
-						requestId: crypto.randomUUID(),
+						requestId,
 						salesIds: targetSalesIds,
 					},
 				},
@@ -1334,6 +1335,7 @@ function SalesMenuMarkAs({
 						name: "sales.mark-as-production-completed",
 						version: 1,
 						args: {
+							requestId,
 							salesIds: targetSalesIds,
 							sales: state.salesRefs.filter((sale) =>
 								targetSalesIds.includes(sale.salesId),
@@ -1353,12 +1355,13 @@ function SalesMenuMarkAs({
 
 	const startMarkFulfilledTask = async () => {
 		const targetSalesIds = statusActionSalesIdsRef.current;
+		const requestId = crypto.randomUUID();
 		try {
 			await bulkFulfillmentTask.trigger(
 				{
 					taskName: "bulk-mark-sales-fulfilled",
 					payload: {
-						requestId: crypto.randomUUID(),
+						requestId,
 						salesIds: targetSalesIds,
 					},
 				},
@@ -1367,6 +1370,7 @@ function SalesMenuMarkAs({
 						name: "sales.mark-as-fulfilled",
 						version: 1,
 						args: {
+							requestId,
 							salesIds: targetSalesIds,
 							sales: state.salesRefs.filter((sale) =>
 								targetSalesIds.includes(sale.salesId),
@@ -1471,7 +1475,7 @@ function SalesMenuMarkAs({
 
 	const openProductionAdministrativeOverride = () => {
 		if (!prepareAdministrativeOverrideSelection()) return;
-		setProductionCompletionChoice("STATUS_ONLY");
+		setProductionCompletionChoice(getDefaultSalesCompletionChoice());
 		setProductionAdministrativeOverride(true);
 		setProductionAdministrativeOverrideReason("");
 		setProductionEffectiveDate("");
@@ -1495,7 +1499,7 @@ function SalesMenuMarkAs({
 		}
 		const targetSalesIds = statusActionSalesIdsRef.current;
 		const overrideReason = productionAdministrativeOverrideReason.trim();
-		if (productionAdministrativeOverride && !overrideReason) return;
+		if (!overrideReason) return;
 		const administrativeOverride = productionAdministrativeOverride
 			? {
 					reason: overrideReason,
@@ -1514,6 +1518,7 @@ function SalesMenuMarkAs({
 				const result = await markProductionStatusOnlyBulkMutation.mutateAsync({
 					salesOrderIds: targetSalesIds,
 					requestId: crypto.randomUUID(),
+					reason: overrideReason,
 					effectiveAt,
 					administrativeOverride,
 				});
@@ -1554,6 +1559,7 @@ function SalesMenuMarkAs({
 			await markProductionStatusOnlyMutation.mutateAsync({
 				salesOrderId,
 				requestId: crypto.randomUUID(),
+				reason: overrideReason,
 				expectedRevision: completionProjection.revision,
 				effectiveAt,
 				administrativeOverride: productionAdministrativeOverride
@@ -1663,7 +1669,7 @@ function SalesMenuMarkAs({
 
 	const openFulfillmentAdministrativeOverride = () => {
 		if (!prepareAdministrativeOverrideSelection()) return;
-		setFulfillmentCompletionChoice("STATUS_ONLY");
+		setFulfillmentCompletionChoice(getDefaultSalesCompletionChoice());
 		setFulfillmentAdministrativeOverride(true);
 		setFulfillmentAdministrativeOverrideReason("");
 		setFulfillmentEffectiveDate(toSalesCompletionDateValue());
@@ -1687,7 +1693,7 @@ function SalesMenuMarkAs({
 		}
 		const targetSalesIds = statusActionSalesIdsRef.current;
 		const overrideReason = fulfillmentAdministrativeOverrideReason.trim();
-		if (fulfillmentAdministrativeOverride && !overrideReason) return;
+		if (!overrideReason) return;
 		const administrativeOverride = fulfillmentAdministrativeOverride
 			? {
 					reason: overrideReason,
@@ -1706,6 +1712,7 @@ function SalesMenuMarkAs({
 				const result = await markFulfillmentStatusOnlyBulkMutation.mutateAsync({
 					salesOrderIds: targetSalesIds,
 					requestId: crypto.randomUUID(),
+					reason: overrideReason,
 					effectiveAt,
 					administrativeOverride,
 				});
@@ -1746,6 +1753,7 @@ function SalesMenuMarkAs({
 			await markFulfillmentStatusOnlyMutation.mutateAsync({
 				salesOrderId,
 				requestId: crypto.randomUUID(),
+				reason: overrideReason,
 				expectedRevision: completionProjection.revision,
 				effectiveAt,
 				administrativeOverride: fulfillmentAdministrativeOverride
@@ -2393,7 +2401,6 @@ function SalesMenuMarkAs({
 			onCancelCompletion={() => void submitStatusOnlyFulfillmentCancellation()}
 		/>
 	);
-
 	if (!asSubmenu) {
 		return (
 			<>

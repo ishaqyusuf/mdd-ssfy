@@ -6,6 +6,7 @@ import {
 	isProductionScheduleAssignmentOpen,
 	matchesCanonicalSalesPipelineFilter,
 	projectSalesPipelineForAudience,
+	projectUnavailableSalesPipelineForAudience,
 	resolveCanonicalWorkspaceMembership,
 	resolveSalesPipelineSnapshot,
 } from "./sales-pipeline";
@@ -126,7 +127,7 @@ describe("canonical Sales Pipeline snapshot", () => {
 			}),
 		);
 		const comparison = compareSalesPipelineShadow(snapshot, {
-			legacyHeadline: "fulfilled",
+			historicalHeadline: "fulfilled",
 			legacyProductionIncluded: false,
 			legacyFulfillmentIncluded: false,
 		});
@@ -422,19 +423,34 @@ describe("canonical workspace membership", () => {
 			production: {
 				...evidence.production,
 				requiredQty: 2,
-				assignments: [{
-					id: 101, active: true, assignedQty: 2, completedQty: 0,
-					completedAt: null, dueDate: "2026-09-02",
-				}],
-				submissions: [{
-					id: 201, assignmentId: 101, active: true,
-					quantity: scenario.quantity, reviewStatus: scenario.reviewStatus,
-				}],
+				assignments: [
+					{
+						id: 101,
+						active: true,
+						assignedQty: 2,
+						completedQty: 0,
+						completedAt: null,
+						dueDate: "2026-09-02",
+					},
+				],
+				submissions: [
+					{
+						id: 201,
+						assignmentId: 101,
+						active: true,
+						quantity: scenario.quantity,
+						reviewStatus: scenario.reviewStatus,
+					},
+				],
 			},
 		});
-		expect(resolveCanonicalWorkspaceMembership(snapshot, {
-			workspace: "production", scope: "completed", operationalDate: "2026-09-02",
-		})).toMatchObject({
+		expect(
+			resolveCanonicalWorkspaceMembership(snapshot, {
+				workspace: "production",
+				scope: "completed",
+				operationalDate: "2026-09-02",
+			}),
+		).toMatchObject({
 			included: scenario.completed,
 			evidenceIds: scenario.completed ? [101] : [],
 		});
@@ -797,6 +813,17 @@ describe("canonical lifecycle filters", () => {
 });
 
 describe("audience projections", () => {
+	it("returns an explicit unavailable projection for customer and dealer fallbacks", () => {
+		expect(projectUnavailableSalesPipelineForAudience()).toMatchObject({
+			status: {
+				code: "unknown",
+				label: "Status unavailable",
+				tone: "stone",
+			},
+			production: { applicability: "unknown", state: "unknown" },
+			fulfillment: { applicability: "unknown", state: "unknown" },
+		});
+	});
 	it("maps customer wording from the canonical snapshot without leaking internal evidence", () => {
 		const snapshot = resolveSalesPipelineSnapshot(baseEvidence());
 		const projection = projectSalesPipelineForAudience(snapshot, "customer");

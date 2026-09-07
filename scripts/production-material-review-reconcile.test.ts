@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
-import { withProductionMaterialReviewReadRetry } from "./production-material-review-reconcile";
+import {
+	assertMaterialReviewAuditMode,
+	withProductionMaterialReviewReadRetry,
+} from "./production-material-review-reconcile";
 
 const source = await Bun.file(
 	new URL("./production-material-review-reconcile.ts", import.meta.url),
@@ -19,6 +22,14 @@ it("connects the tested sequential scan to the durable partial-report contract",
 });
 
 describe("Production material-review reconciliation runner", () => {
+	it("keeps full-audit continuation read-only", () => {
+		expect(() =>
+			assertMaterialReviewAuditMode({ auditAll: true, applying: true }),
+		).toThrow("--audit-all is read-only");
+		expect(() =>
+			assertMaterialReviewAuditMode({ auditAll: true, applying: false }),
+		).not.toThrow();
+	});
 	it("retries transient read failures with a fresh connection", async () => {
 		let attempts = 0;
 		let resets = 0;

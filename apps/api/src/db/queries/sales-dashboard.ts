@@ -3,7 +3,6 @@ import type {
 	SalesTaxReportInput,
 } from "@api/schemas/sales-dashboard";
 import type { TRPCContext } from "@api/trpc/init";
-import { overallStatus } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
 import {
 	buildOfficeCustomerVisibilityWhere,
@@ -26,7 +25,6 @@ import {
 } from "@gnd/sales/reporting";
 import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
-import { observeSalesPipelineReadProjection } from "@gnd/sales/sales-pipeline-rollout";
 import {
 	buildSalesTaxReport,
 	resolveSalesTaxReportPeriod,
@@ -49,6 +47,41 @@ export type SalesDashboardFilter = SalesReportingFilter & {
 	salesRepIds?: number[] | null;
 	salesChannels?: string[] | null;
 };
+
+export function classifyMobileSalesDashboardPipeline(
+	snapshot: SalesPipelineSnapshot | null,
+) {
+	if (!snapshot) {
+		return { production: "unknown" as const, delivery: "unknown" as const };
+	}
+	const production =
+		snapshot.production.state === "completed" ||
+		snapshot.production.state === "administratively_completed"
+			? ("completed" as const)
+			: ["in_production", "awaiting_review", "partially_assigned"].includes(
+						snapshot.production.state,
+					)
+				? ("inProgress" as const)
+				: ["not_assigned", "assigned"].includes(snapshot.production.state)
+					? ("pending" as const)
+					: ("unknown" as const);
+
+	const delivery =
+		snapshot.commercial.state === "cancelled"
+			? ("cancelled" as const)
+			: snapshot.fulfillment.state === "fulfilled" ||
+					snapshot.fulfillment.state === "administratively_completed"
+				? ("completed" as const)
+				: ["packing", "packed", "in_transit", "partially_fulfilled"].includes(
+							snapshot.fulfillment.state,
+						)
+					? ("inProgress" as const)
+					: snapshot.fulfillment.state === "backlog"
+						? ("queue" as const)
+						: ("unknown" as const);
+
+	return { production, delivery };
+}
 
 export function formatSalesDashboardDate(date: Date) {
 	return formatSalesReportingDate(date);
@@ -777,55 +810,16 @@ export async function getMobileSalesDashboardOverview(ctx: TRPCContext) {
 		inProgress: 0,
 		completed: 0,
 		cancelled: 0,
+		unknown: 0,
 	};
 
 	for (const order of orders) {
-		const canonicalSnapshot = pipelineSnapshots.get(order.id);
-		const legacyStatus = overallStatus(order.stat);
-		const legacyProductionStatus = (
-			legacyStatus?.production?.status || ""
-		).toLowerCase();
-		const snapshot = canonicalSnapshot
-			? observeSalesPipelineReadProjection(canonicalSnapshot, {
-					surface: "sales.dashboard.lifecycle",
-					legacyHeadline: legacyProductionStatus || null,
-				})
-			: null;
-		if (!snapshot) {
-			if (legacyProductionStatus === "pending") production.pending += 1;
-			else if (legacyProductionStatus === "in progress") {
-				production.inProgress += 1;
-			} else if (legacyProductionStatus === "completed") {
-				production.completed += 1;
-			} else production.unknown += 1;
-			for (const dispatch of order.deliveries) {
-				const status = (dispatch.status || "").toLowerCase();
-				if (status === "queue" || status === "packed") delivery.queue += 1;
-				else if (status === "in progress") delivery.inProgress += 1;
-				else if (status === "completed") delivery.completed += 1;
-				else if (status === "cancelled") delivery.cancelled += 1;
-			}
-			continue;
-		}
-		if (snapshot.production.state === "completed") production.completed += 1;
-		else if (
-			["in_production", "awaiting_review", "partially_assigned"].includes(
-				snapshot.production.state,
-			)
-		)
-			production.inProgress += 1;
-		else if (["not_assigned", "assigned"].includes(snapshot.production.state)) {
-			production.pending += 1;
-		} else production.unknown += 1;
-
-		if (snapshot.commercial.state === "cancelled") delivery.cancelled += 1;
-		else if (snapshot.fulfillment.state === "fulfilled")
-			delivery.completed += 1;
-		else if (
-			["in_transit", "partially_fulfilled"].includes(snapshot.fulfillment.state)
-		)
-			delivery.inProgress += 1;
-		else delivery.queue += 1;
+		const snapshot = pipelineSnapshots.get(order.id);
+		const classification = classifyMobileSalesDashboardPipeline(
+			snapshot ?? null,
+		);
+		production[classification.production] += 1;
+		delivery[classification.delivery] += 1;
 	}
 
 	return {

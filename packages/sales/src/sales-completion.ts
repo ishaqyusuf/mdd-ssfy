@@ -4,13 +4,12 @@ import type { Database, Prisma, TransactionClient } from "@gnd/db";
 import { z } from "zod";
 
 import { hasCompletedProductionLifecycle } from "./bulk-production-completion";
-import { getSalesOrderLifecycleStatus } from "./order-status";
+import { getLegacySalesOrderLifecycleStatus } from "./legacy-order-status";
 import { evaluateSalesPipelineCommand } from "./sales-pipeline-commands";
 import {
 	resolveSalesPipelineSnapshotFromOrder,
 	salesPipelineOrderSelect,
 } from "./sales-pipeline-order";
-import { shouldEnforceCanonicalSalesPipelineCommands } from "./sales-pipeline-rollout";
 import { overallStatus } from "./utils/utils";
 
 export const salesCompletionMilestoneSchema = z.enum([
@@ -44,12 +43,34 @@ const salesCompletionAdministrativeOverrideSchema = z.object({
 	expectedRevision: z.string().regex(/^[a-f0-9]{64}$/),
 });
 
-export const markProductionCompletionStatusOnlySchema =
+const markProductionCompletionStatusOnlyBaseSchema =
 	salesCompletionProjectionInputSchema.extend({
 		requestId: z.string().uuid(),
+		reason: z.string().trim().min(1).max(500),
 		expectedRevision: z.string().regex(/^[a-f0-9]{64}$/),
 		effectiveAt: z.coerce.date().optional().nullable(),
 		administrativeOverride: salesCompletionAdministrativeOverrideSchema
+			.optional()
+			.nullable(),
+	});
+
+export const markProductionCompletionStatusOnlySchema =
+	markProductionCompletionStatusOnlyBaseSchema.strict();
+
+const markProductionCompletionStatusOnlyCommandSchema =
+	markProductionCompletionStatusOnlyBaseSchema.extend({
+		fallback: z
+			.object({
+				fallbackDecisionRequestId: z.string().uuid(),
+				fullWorkflowRequestId: z.string().uuid(),
+				fullWorkflowStatus: z.enum([
+					"failed",
+					"awaiting_review",
+					"review_required",
+				]),
+				fullWorkflowReason: z.string().trim().min(1).max(1000),
+				expectedPipelineRevision: z.string().regex(/^[a-f0-9]{64}$/),
+			})
 			.optional()
 			.nullable(),
 	});
@@ -68,6 +89,7 @@ export const markSalesCompletionStatusOnlyBulkSchema = z
 	.object({
 		salesOrderIds: z.array(z.number().int().positive()).min(1).max(100),
 		requestId: z.string().uuid(),
+		reason: z.string().trim().min(1).max(500),
 		effectiveAt: z.coerce.date().optional().nullable(),
 		administrativeOverride: z
 			.object({
@@ -581,11 +603,11 @@ export function resolveSalesCompletionProjectionFromOrder(
 	options?: { now?: Date },
 ) {
 	const aggregateStatus = overallStatus((order.stat ?? []) as never[]);
-	const productionLifecycle = getSalesOrderLifecycleStatus({
+	const productionLifecycle = getLegacySalesOrderLifecycleStatus({
 		legacyProductionStatus: order.prodStatus,
 		productionStatus: aggregateStatus.production.status,
 	});
-	const orderLifecycle = getSalesOrderLifecycleStatus({
+	const orderLifecycle = getLegacySalesOrderLifecycleStatus({
 		orderStatus: order.status,
 	});
 	return resolveSalesCompletionProjection({
@@ -719,6 +741,7 @@ async function assertCanonicalAdministrativeCommand(
 			reason: string;
 			expectedRevision: string;
 		} | null;
+		expectedRevision?: string | null;
 	},
 ) {
 	const snapshot = await getCanonicalSalesPipelineSnapshot(
@@ -728,15 +751,12 @@ async function assertCanonicalAdministrativeCommand(
 	const decision = evaluateSalesPipelineCommand(snapshot, {
 		action: input.action,
 		authorized: true,
-		expectedRevision: input.administrativeOverride?.expectedRevision,
+		expectedRevision:
+			input.administrativeOverride?.expectedRevision ?? input.expectedRevision,
 		administrativeOverride: Boolean(input.administrativeOverride),
 		administrativeOverrideReason: input.administrativeOverride?.reason,
 	});
-	if (
-		(input.administrativeOverride ||
-			shouldEnforceCanonicalSalesPipelineCommands(input.salesOrderId)) &&
-		(decision.status === "rejected" || decision.status === "review_required")
-	) {
+	if (decision.status === "rejected" || decision.status === "review_required") {
 		if (decision.reasons.includes("STALE_REVISION")) {
 			throw new SalesCompletionError(
 				"The order lifecycle changed after the override opened. Refresh and try again.",
@@ -807,7 +827,7 @@ function administrativeOverrideAudit(
 }
 
 type StatusOnlyMarkInput = z.infer<
-	typeof markProductionCompletionStatusOnlySchema
+	typeof markProductionCompletionStatusOnlyCommandSchema
 >;
 
 function statusOnlyMarkCommandPayload(
@@ -819,7 +839,17 @@ function statusOnlyMarkCommandPayload(
 		salesOrderId: input.salesOrderId,
 		milestone,
 		completionMethod: "STATUS_ONLY" as const,
+		reason: input.reason?.trim() ?? "",
 		effectiveAt: input.effectiveAt?.toISOString() ?? null,
+		fallback: input.fallback
+			? {
+					fallbackDecisionRequestId: input.fallback.fallbackDecisionRequestId,
+					fullWorkflowRequestId: input.fallback.fullWorkflowRequestId,
+					fullWorkflowStatus: input.fallback.fullWorkflowStatus,
+					fullWorkflowReason: input.fallback.fullWorkflowReason,
+					expectedPipelineRevision: input.fallback.expectedPipelineRevision,
+				}
+			: null,
 		administrativeOverride: input.administrativeOverride
 			? {
 					reason: input.administrativeOverride.reason.trim(),
@@ -905,10 +935,7 @@ async function assertStatusOnlyMarkReplayPayload(
 	}
 }
 
-async function findMarkReplay(
-	db: CompletionDb,
-	input: z.infer<typeof markProductionCompletionStatusOnlySchema>,
-) {
+async function findMarkReplay(db: CompletionDb, input: StatusOnlyMarkInput) {
 	const byRequest = await db.salesCompletionRecord.findUnique({
 		where: { requestId: input.requestId },
 		select: salesCompletionRecordSelect,
@@ -946,7 +973,7 @@ async function findMarkReplay(
 
 export async function markProductionCompletionStatusOnly(
 	db: Database,
-	input: z.infer<typeof markProductionCompletionStatusOnlySchema>,
+	input: StatusOnlyMarkInput,
 	actor: { id: number; name: string },
 	hooks: SalesCompletionWriteHooks = {},
 ) {
@@ -981,6 +1008,7 @@ export async function markProductionCompletionStatusOnly(
 				salesOrderId: input.salesOrderId,
 				action: "production.administrative_complete",
 				administrativeOverride: input.administrativeOverride,
+				expectedRevision: input.fallback?.expectedPipelineRevision,
 			});
 			const recordedAt = new Date();
 			const record = await tx.salesCompletionRecord.create({
@@ -1014,6 +1042,7 @@ export async function markProductionCompletionStatusOnly(
 						requestId: input.requestId,
 						milestone: "PRODUCTION_COMPLETED",
 						completionMethod: "STATUS_ONLY",
+						reason: input.reason?.trim() ?? null,
 						commandFingerprint: statusOnlyMarkCommandFingerprint(
 							input,
 							"PRODUCTION_COMPLETED",
@@ -1021,6 +1050,7 @@ export async function markProductionCompletionStatusOnly(
 						recordedAt: recordedAt.toISOString(),
 						effectiveAt: input.effectiveAt?.toISOString() ?? null,
 						actorId: actor.id,
+						fallback: input.fallback ?? null,
 						administrativeOverride: administrativeOverrideAudit(
 							canonical,
 							input.administrativeOverride,
@@ -1188,7 +1218,7 @@ export async function cancelProductionCompletionStatusOnly(
 
 async function findFulfillmentMarkReplay(
 	db: CompletionDb,
-	input: z.infer<typeof markFulfillmentCompletionStatusOnlySchema>,
+	input: StatusOnlyMarkInput,
 ) {
 	const byRequest = await db.salesCompletionRecord.findUnique({
 		where: { requestId: input.requestId },
@@ -1227,7 +1257,7 @@ async function findFulfillmentMarkReplay(
 
 export async function markFulfillmentCompletionStatusOnly(
 	db: Database,
-	input: z.infer<typeof markFulfillmentCompletionStatusOnlySchema>,
+	input: StatusOnlyMarkInput,
 	actor: { id: number; name: string },
 	hooks: SalesCompletionWriteHooks = {},
 ) {
@@ -1262,6 +1292,7 @@ export async function markFulfillmentCompletionStatusOnly(
 				salesOrderId: input.salesOrderId,
 				action: "fulfillment.administrative_complete",
 				administrativeOverride: input.administrativeOverride,
+				expectedRevision: input.fallback?.expectedPipelineRevision,
 			});
 			const recordedAt = new Date();
 			const record = await tx.salesCompletionRecord.create({
@@ -1295,6 +1326,7 @@ export async function markFulfillmentCompletionStatusOnly(
 						requestId: input.requestId,
 						milestone: "FULFILLMENT_COMPLETED",
 						completionMethod: "STATUS_ONLY",
+						reason: input.reason?.trim() ?? null,
 						commandFingerprint: statusOnlyMarkCommandFingerprint(
 							input,
 							"FULFILLMENT_COMPLETED",
@@ -1302,6 +1334,7 @@ export async function markFulfillmentCompletionStatusOnly(
 						recordedAt: recordedAt.toISOString(),
 						effectiveAt: input.effectiveAt?.toISOString() ?? null,
 						actorId: actor.id,
+						fallback: input.fallback ?? null,
 						administrativeOverride: administrativeOverrideAudit(
 							canonical,
 							input.administrativeOverride,
@@ -1402,6 +1435,7 @@ function statusOnlyBatchCommandIdentity(
 		requestId: input.requestId,
 		milestone,
 		salesOrderIds,
+		reason: input.reason?.trim() ?? "",
 		effectiveAt: input.effectiveAt?.toISOString() ?? null,
 		administrativeOverride: input.administrativeOverride
 			? {
@@ -1530,7 +1564,9 @@ async function markSalesCompletionStatusOnlyBatch(
 								salesOrderId,
 							}),
 							expectedRevision: projection.revision,
+							reason: input.reason,
 							effectiveAt: input.effectiveAt ?? null,
+							fallback: null,
 							administrativeOverride: input.administrativeOverride
 								? {
 										reason: input.administrativeOverride.reason,

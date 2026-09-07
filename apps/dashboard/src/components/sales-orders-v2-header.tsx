@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useCancelSalesOrdersRequests } from "@/hooks/use-cancel-sales-orders-requests";
 import {
 	salesOrdersV2FilterParams,
 	useSalesOrdersV2FilterParams,
@@ -13,22 +14,34 @@ import { useTRPC } from "@/trpc/client";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
+import { useEffect } from "react";
 import { CreateSalesBtn } from "./create-sales-btn";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 import { SalesOrdersV2ColumnVisibility } from "./sales-orders-v2-column-visibility";
 import { SalesOrdersV2Export } from "./sales-orders-v2-export";
 
 export function SalesOrdersV2Header() {
+	const cancelSupersededOrdersRequests = useCancelSalesOrdersRequests();
+
+	useEffect(() => {
+		window.addEventListener("popstate", cancelSupersededOrdersRequests);
+		return () =>
+			window.removeEventListener("popstate", cancelSupersededOrdersRequests);
+	}, [cancelSupersededOrdersRequests]);
+
 	return (
 		<div className="min-w-0">
 			<SearchFilterProvider
 				args={[
 					{
 						filterSchema: salesOrdersV2FilterParams,
+						onBeforeFilterChange: cancelSupersededOrdersRequests,
 					},
 				]}
 			>
-				<SalesOrdersV2SearchFilterContent />
+				<SalesOrdersV2SearchFilterContent
+					onBeforePageTabChange={cancelSupersededOrdersRequests}
+				/>
 			</SearchFilterProvider>
 		</div>
 	);
@@ -131,7 +144,11 @@ export function SalesOrdersPaymentReviewSettings() {
 	);
 }
 
-function SalesOrdersV2SearchFilterContent() {
+function SalesOrdersV2SearchFilterContent({
+	onBeforePageTabChange,
+}: {
+	onBeforePageTabChange: () => void;
+}) {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const { shouldFetch } = useSearchFilterContext();
@@ -151,6 +168,7 @@ function SalesOrdersV2SearchFilterContent() {
 			filterList={trpcFilterData}
 			loading={shouldFetch && isFetching}
 			pageTabsLayout="adaptive"
+			onBeforePageTabChange={onBeforePageTabChange}
 			fixedPageTabs={[
 				{
 					title: "Needs Action",

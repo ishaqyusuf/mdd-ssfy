@@ -1,9 +1,7 @@
 import type { DeliveryOption } from "@gnd/utils/sales";
 
-import {
-	type SalesOrderLifecycleStatus,
-	getSalesOrderLifecycleStatus,
-} from "./order-status";
+import { getLegacySalesOrderLifecycleStatus } from "./legacy-order-status";
+import type { SalesOrderLifecycleStatus } from "./order-status";
 
 export const INVENTORY_FULFILLMENT_TERMINAL_STATUSES = [
 	"fulfilled",
@@ -42,7 +40,7 @@ export class InventoryFulfillmentPolicyError extends Error {
 export function resolveInventoryFulfillmentLifecycle(
 	input: InventoryFulfillmentSaleState,
 ) {
-	return getSalesOrderLifecycleStatus({
+	return getLegacySalesOrderLifecycleStatus({
 		orderStatus: input.orderStatus,
 		productionStatus: input.productionStatus,
 		fulfillmentStatus: input.fulfillmentStatus,

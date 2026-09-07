@@ -37,10 +37,9 @@ describe("Sales Pipeline non-interactive consumer parity", () => {
 		);
 	});
 
-	it("derives dashboard analytics from canonical snapshots when selected", () => {
+	it("derives dashboard analytics directly from canonical snapshots", () => {
 		expect(dashboardQuery).toContain("getSalesPipelineSnapshots(");
-		expect(dashboardQuery).toContain("observeSalesPipelineReadProjection(");
-		expect(dashboardQuery).toContain('surface: "sales.dashboard.lifecycle"');
+		expect(dashboardQuery).not.toContain("observeSalesPipelineReadProjection(");
 		expect(dashboardQuery).toContain("snapshot.production.state");
 		expect(dashboardQuery).toContain("snapshot.fulfillment.state");
 	});

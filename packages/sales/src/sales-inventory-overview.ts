@@ -1,9 +1,7 @@
 import type { Db } from "@gnd/db";
 
-import {
-	type SalesOrderLifecycleStatus,
-	getSalesOrderLifecycleStatusInfo,
-} from "./order-status";
+import { getLegacySalesOrderLifecycleStatusInfo } from "./legacy-order-status";
+import type { SalesOrderLifecycleStatus } from "./order-status";
 import { roundMoney } from "./payment-system/domain/money";
 import { resolveSalesInventoryApplicability } from "./sales-inventory-applicability";
 import { resolveSalesInventoryLegacyCompatibility } from "./sales-inventory-legacy-compatibility";
@@ -1112,7 +1110,7 @@ export async function getSalesInventoryTrackingChangeRepairPreview(
 			deliveries: sale.deliveries,
 			stats: sale.stat,
 		});
-		const lifecycle = getSalesOrderLifecycleStatusInfo({
+		const lifecycle = getLegacySalesOrderLifecycleStatusInfo({
 			orderStatus: sale.status,
 			legacyProductionStatus: sale.prodStatus,
 			fulfillmentStatus,
@@ -1472,7 +1470,7 @@ export async function getSalesInventoryOverview(
 		deliveries,
 		stats: stat,
 	});
-	const lifecycle = getSalesOrderLifecycleStatusInfo({
+	const lifecycle = getLegacySalesOrderLifecycleStatusInfo({
 		orderStatus: sale.status,
 		legacyProductionStatus: sale.prodStatus,
 		fulfillmentStatus,

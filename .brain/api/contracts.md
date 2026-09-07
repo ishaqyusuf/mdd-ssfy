@@ -1,5 +1,18 @@
 # API Contracts
 
+## Production filter inputs (2026-09-06)
+
+- `filters.salesProductions` returns typed input definitions for `q`,
+  `customer.name`, `phone`, `po`, `sales.rep`, `salesNo`, and `item`. Their URL
+  keys and server-side filter semantics are unchanged; the endpoint no longer
+  returns exhaustive options for these high-cardinality fields.
+- `invoice`, `productionStatus`, `priority`, and `assignedToId` remain option
+  filters. Assigned To retains the existing active Production-role,
+  non-revoked, non-deleted, name-ordered first-20 scope and string-valued IDs.
+- Loading metadata performs no Sales-order option scan and does not depend on
+  the Sales filter-option cache. A worker read or authorization failure rejects
+  the response instead of returning incomplete or public metadata.
+
 ## Production filter worker options (2026-09-05)
 
 - The Assigned To option loader selects only worker ID/name and runs alongside
@@ -2485,3 +2498,26 @@ implementation phase is approved and released.
 - Simple and composed notification builders repeat readiness validation before
   constructing document links or attachments, preventing direct server/job
   callers from bypassing the client preflight.
+# Production Planning Calendar (Ticket 18, local implementation)
+
+Planning rows include the stored order `slug` for existing edit navigation.
+Production schedule-move input now rejects unknown fields, including a Planning
+discriminator, while preserving its existing exact-group contract.
+
+`sales.productionPlanningCalendar` returns a separate `kind: planning`
+projection: order/customer, order-level due-date provenance, canonical stage,
+headline/material/completion metadata, required/assigned/uncovered quantities,
+workers, assignment eligibility, days/count and an explicit truncation flag.
+Inputs are strict date-only from/to, optional q and priority. Reads cap at 42
+days and 1,500 candidates; canonical evidence loads through the batched reader.
+Planning never supplies schedule-group IDs or writes assignments. Schedule and
+worker Calendar membership remain assignment-backed.
+# Single-item Production assignment guard — 2026-09-07
+
+The Dashboard create-sales-assignment action now uses the same canonical
+production.assign transaction boundary as batch assignment. It checks existing
+permission, binds a fresh pipeline revision, locks the order, reloads the item,
+and validates requested whole-number quantities against source-derived pending
+total/hand capacity. Client-supplied pending and labor cost are not authority;
+labor cost comes from the matched item. Item/door/shelf identity and production
+capability must match. Post-commit handoff and notification behavior is retained.

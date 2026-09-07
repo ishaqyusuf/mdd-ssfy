@@ -1,9 +1,11 @@
 import { describe, expect, it, spyOn } from "bun:test";
-import { db as fieldSource, type Db } from "@gnd/db";
+import { type Db, db as fieldSource } from "@gnd/db";
 
+import { getProductionQueueBoundaries } from "./production-date";
 import { resolveSalesPipelineSnapshotFromOrder } from "./sales-pipeline-order";
 import {
 	getSalesProductionCalendar,
+	getSalesProductionDashboard,
 	getSalesProductionSummary,
 	getSalesProductions,
 	isProductionCompleted,
@@ -68,10 +70,52 @@ function completedProductionRow(id: number, priority: string) {
 				recordedAt: new Date("2026-07-02T12:00:00Z"),
 				effectiveAt: null,
 				recordedById: 7,
+				state: "ACTIVE",
+				cancelledAt: null,
 			},
 		],
 	};
 	return row;
+}
+
+function assignedProductionRow(id: number, priority: string) {
+	const dueDate = new Date("2026-09-02T09:00:00.000Z");
+	return {
+		...productionRow(id, priority),
+		itemControls: [
+			{
+				uid: `control-${id}`,
+				produceable: true,
+				shippable: false,
+				qtyControls: [
+					{
+						type: "qty",
+						total: 1,
+						itemTotal: 1,
+						qty: 1,
+						updatedAt: dueDate,
+					},
+				],
+				assignments: [{ id: 92 }],
+			},
+		],
+		assignments: [
+			{
+				id: 92,
+				assignedToId: 17,
+				qtyAssigned: 1,
+				qtyCompleted: 0,
+				lhQty: 0,
+				rhQty: 0,
+				dueDate,
+				assignedAt: dueDate,
+				startedAt: null,
+				completedAt: null,
+				updatedAt: dueDate,
+				submissions: [],
+			},
+		],
+	};
 }
 
 function completedProjection(row: ReturnType<typeof completedProductionRow>) {
@@ -79,10 +123,49 @@ function completedProjection(row: ReturnType<typeof completedProductionRow>) {
 		salesOrderId: row.id,
 		pipelineRevision: resolveSalesPipelineSnapshotFromOrder(row as never)
 			.revision,
+		pipelineProductionApplicability: "required",
+		pipelineProductionState: "administratively_completed",
 	};
 }
 
 describe("sales production priority sorting", () => {
+	it("shares one indexed canonical membership read across dashboard sections", async () => {
+		let projectionReads = 0;
+		const db = {
+			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
+				findMany: async () => [],
+			},
+			salesOrderListProjection: {
+				findMany: async () => {
+					projectionReads += 1;
+					return [];
+				},
+			},
+			salesOrders: {
+				count: async () => 0,
+				findMany: async () => [],
+			},
+			salesProductionSubmissionMaterialReview: {
+				count: async () => 0,
+				findMany: async () => [],
+			},
+		};
+
+		const dashboard = await getSalesProductionDashboard(
+			db as unknown as Db,
+			{},
+		);
+
+		expect(projectionReads).toBe(1);
+		expect(dashboard.summary.queueCount).toBe(0);
+		expect(dashboard.alerts).toEqual({
+			pastDue: [],
+			dueToday: [],
+			dueTomorrow: [],
+		});
+	});
+
 	it.each([
 		{ mode: "legacy", percent: "100", observe: false, canonical: false },
 		{ mode: "shadow", percent: "0", observe: false, canonical: false },
@@ -90,82 +173,110 @@ describe("sales production priority sorting", () => {
 		{ mode: "canonical", percent: "0", observe: false, canonical: false },
 		{ mode: "canonical", percent: "5", observe: false, canonical: false },
 		{ mode: "canonical", percent: "100", observe: true, canonical: true },
-		{ mode: "canonical", percent: "5", observe: true, canonical: true, mixed: true },
-		{ mode: "shadow", percent: "5", observe: true, canonical: false, mixed: true },
-	])("loads only consumed list/schedule evidence: %j", async ({ mode, percent, observe, canonical, mixed = false }) => {
-		const keys = [
-			"SALES_PIPELINE_READ_MODE",
-			"SALES_PIPELINE_COHORT_PERCENT",
-			"SALES_PIPELINE_SHADOW_SAMPLE_PERCENT",
-		] as const;
-		const previous = keys.map((key) => process.env[key]);
-		process.env.SALES_PIPELINE_READ_MODE = mode;
-		process.env.SALES_PIPELINE_COHORT_PERCENT = percent;
-		process.env.SALES_PIPELINE_SHADOW_SAMPLE_PERCENT = percent;
-		const info = spyOn(console, "info").mockImplementation(() => {});
-		try {
-			const rows = (mixed ? [11, 26701] : [26701]).map((id) => ({
-				...productionRow(id, "NORMAL"),
-				createdAt: new Date("2026-07-01T12:00:00Z"),
-			}));
-			let evidenceReads = 0;
-			const evidenceIds = new Set<number>();
-			const db = {
-				$queryRaw: async () => mixed ? [{ id: 11 }] : [],
-				orderItemProductionAssignments: {
-					fields: fieldSource.orderItemProductionAssignments.fields,
-					findMany: async () => rows.map((row) => ({
-						orderId: row.id,
-						qtyAssigned: 1,
-						qtyCompleted: 0,
-						completedAt: null,
-						submissions: [],
-					})),
-				},
-				salesOrderListProjection: { findMany: async () => [] },
-				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
-				salesOrders: {
-					count: async () => 1,
-					findMany: async (args: SalesFindManyArgs) => {
-						if (args.select && Object.keys(args.select).length === 1 && args.select.id) return args.skip === undefined ? [] : rows.map(({ id }) => ({ id }));
-						if (args.where?.id?.in) {
-							if (args.select?.updatedAt) {
-								evidenceReads += 1;
-								args.where.id.in.forEach((id) => evidenceIds.add(id));
-							}
-							return rows.filter((row) => args.where?.id?.in?.includes(row.id));
-						}
-						return rows;
+		{
+			mode: "canonical",
+			percent: "5",
+			observe: true,
+			canonical: true,
+			mixed: true,
+		},
+		{
+			mode: "shadow",
+			percent: "5",
+			observe: true,
+			canonical: false,
+			mixed: true,
+		},
+	])(
+		"loads only consumed list/schedule evidence: %j",
+		async ({ mode, percent, mixed = false }) => {
+			const keys = [
+				"SALES_PIPELINE_READ_MODE",
+				"SALES_PIPELINE_COHORT_PERCENT",
+				"SALES_PIPELINE_SHADOW_SAMPLE_PERCENT",
+			] as const;
+			const previous = keys.map((key) => process.env[key]);
+			process.env.SALES_PIPELINE_READ_MODE = mode;
+			process.env.SALES_PIPELINE_COHORT_PERCENT = percent;
+			process.env.SALES_PIPELINE_SHADOW_SAMPLE_PERCENT = percent;
+			const info = spyOn(console, "info").mockImplementation(() => {});
+			try {
+				const rows = (mixed ? [11, 26701] : [26701]).map((id) => ({
+					...productionRow(id, "NORMAL"),
+					createdAt: new Date("2026-07-01T12:00:00Z"),
+				}));
+				let evidenceReads = 0;
+				const evidenceIds = new Set<number>();
+				const db = {
+					$queryRaw: async () => (mixed ? [{ id: 11 }] : []),
+					orderItemProductionAssignments: {
+						fields: fieldSource.orderItemProductionAssignments.fields,
+						findMany: async () =>
+							rows.map((row) => ({
+								orderId: row.id,
+								qtyAssigned: 1,
+								qtyCompleted: 0,
+								completedAt: null,
+								submissions: [],
+							})),
 					},
-				},
-			};
-			const list = await getSalesProductions(db as unknown as Db, {
-				size: 20,
-				includeMaterials: false,
-			});
-			expect(list.data.map((item) => item.id)).toEqual(
-				mixed ? [11, 26701] : [26701],
-			);
-			expect(list.data[0]?.pipeline !== null).toBe(canonical);
-			if (mixed) expect(list.data[1]?.pipeline).toBeNull();
-			expect(evidenceReads > 0).toBe(observe);
-			if (mixed) expect([...evidenceIds]).toEqual([11]);
-			evidenceReads = 0;
-			evidenceIds.clear();
-			await getSalesProductionSummary(db as unknown as Db, {});
-			expect(evidenceReads > 0).toBe(observe);
-			if (mixed) expect([...evidenceIds]).toEqual([11]);
-			expect(
-				info.mock.calls.some(([event]) => event === "[sales-pipeline-shadow]"),
-			).toBe(mode === "shadow" && observe);
-		} finally {
-			info.mockRestore();
-			keys.forEach((key, index) => {
-				if (previous[index] === undefined) Reflect.deleteProperty(process.env, key);
-				else process.env[key] = previous[index];
-			});
-		}
-	});
+					salesOrderListProjection: { findMany: async () => [] },
+					salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+					salesOrders: {
+						count: async () => 1,
+						findMany: async (args: SalesFindManyArgs) => {
+							if (
+								args.select &&
+								Object.keys(args.select).length === 1 &&
+								args.select.id
+							)
+								return args.skip === undefined
+									? []
+									: rows.map(({ id }) => ({ id }));
+							if (args.where?.id?.in) {
+								if (args.select?.updatedAt) {
+									evidenceReads += 1;
+									for (const id of args.where.id.in) evidenceIds.add(id);
+								}
+								return rows.filter((row) =>
+									args.where?.id?.in?.includes(row.id),
+								);
+							}
+							return rows;
+						},
+					},
+				};
+				const list = await getSalesProductions(db as unknown as Db, {
+					size: 20,
+					includeMaterials: false,
+				});
+				expect(list.data.map((item) => item.id)).toEqual(
+					mixed ? [11, 26701] : [26701],
+				);
+				expect(list.data[0]?.pipeline).not.toBeNull();
+				if (mixed) expect(list.data[1]?.pipeline).not.toBeNull();
+				expect(evidenceReads > 0).toBe(true);
+				if (mixed) expect([...evidenceIds]).toEqual([11, 26701]);
+				evidenceReads = 0;
+				evidenceIds.clear();
+				await getSalesProductionSummary(db as unknown as Db, {});
+				expect(evidenceReads).toBe(0);
+				expect([...evidenceIds]).toEqual([]);
+				expect(
+					info.mock.calls.some(
+						([event]) => event === "[sales-pipeline-shadow]",
+					),
+				).toBe(false);
+			} finally {
+				info.mockRestore();
+				keys.forEach((key, index) => {
+					if (previous[index] === undefined)
+						Reflect.deleteProperty(process.env, key);
+					else process.env[key] = previous[index];
+				});
+			}
+		},
+	);
 
 	it("sorts assignment ownership timestamps with unassigned rows last", () => {
 		const rows = [
@@ -186,6 +297,15 @@ describe("sales production priority sorting", () => {
 		let capturedWhere: unknown;
 		const completedAt = new Date("2026-09-01T12:00:00.000Z");
 		const dueDate = new Date("2026-09-01T09:00:00.000Z");
+		const sourceOrder = assignedProductionRow(42, "NORMAL");
+		sourceOrder.assignments[0] = {
+			...sourceOrder.assignments[0]!,
+			id: 91,
+			qtyCompleted: 1,
+			completedAt,
+			dueDate,
+		};
+		sourceOrder.itemControls[0]!.assignments = [{ id: 91 }];
 		const db = {
 			orderItemProductionAssignments: {
 				fields: fieldSource.orderItemProductionAssignments.fields,
@@ -217,7 +337,9 @@ describe("sales production priority sorting", () => {
 					];
 				},
 			},
-			salesOrders: { findMany: async () => [] },
+			salesOrders: {
+				findMany: async () => [sourceOrder],
+			},
 		};
 
 		const result = await getSalesProductionCalendar(
@@ -233,6 +355,9 @@ describe("sales production priority sorting", () => {
 		expect(JSON.stringify(capturedWhere)).not.toContain(
 			'"type":"prodCompleted"',
 		);
+		expect(
+			(capturedWhere as { order: { AND: unknown[] } }).order.AND[0],
+		).toEqual({ deletedAt: null });
 		expect(result.scheduled).toHaveLength(1);
 		expect(result.scheduled[0]).toMatchObject({
 			orderNo: "ORDER-42",
@@ -248,6 +373,7 @@ describe("sales production priority sorting", () => {
 
 	it("does not let a legacy terminal order string complete open schedule evidence", async () => {
 		const dueDate = new Date("2026-09-02T09:00:00.000Z");
+		const sourceOrder = assignedProductionRow(43, "NORMAL");
 		const db = {
 			orderItemProductionAssignments: {
 				fields: fieldSource.orderItemProductionAssignments.fields,
@@ -276,7 +402,7 @@ describe("sales production priority sorting", () => {
 					},
 				],
 			},
-			salesOrders: { findMany: async () => [] },
+			salesOrders: { findMany: async () => [sourceOrder] },
 		};
 
 		const result = await getSalesProductionCalendar(db as unknown as Db, {
@@ -353,13 +479,17 @@ describe("sales production priority sorting", () => {
 		});
 	});
 
-	it("keeps explicit legacy Production completion green outside the bounded cohort", async () => {
+	it("ignores an explicit legacy Production completion string", async () => {
 		const previousReadMode = process.env.SALES_PIPELINE_READ_MODE;
 		const previousCohort = process.env.SALES_PIPELINE_COHORT_PERCENT;
 		process.env.SALES_PIPELINE_READ_MODE = "canonical";
 		process.env.SALES_PIPELINE_COHORT_PERCENT = "0";
 		try {
 			const dueDate = new Date("2026-09-02T09:00:00.000Z");
+			const sourceOrder = {
+				...assignedProductionRow(45, "NORMAL"),
+				prodStatus: "Completed",
+			};
 			const db = {
 				orderItemProductionAssignments: {
 					fields: fieldSource.orderItemProductionAssignments.fields,
@@ -388,7 +518,7 @@ describe("sales production priority sorting", () => {
 						},
 					],
 				},
-				salesOrders: { findMany: async () => [] },
+				salesOrders: { findMany: async () => [sourceOrder] },
 			};
 
 			const result = await getSalesProductionCalendar(db as unknown as Db, {
@@ -399,7 +529,7 @@ describe("sales production priority sorting", () => {
 
 			expect(result.scheduled[0]).toMatchObject({
 				orderNo: "ORDER-45",
-				status: "completed",
+				status: "assigned",
 			});
 		} finally {
 			if (previousReadMode === undefined) {
@@ -419,8 +549,16 @@ describe("sales production priority sorting", () => {
 		[
 			{ reviewStatus: "PENDING", administrative: false, expected: "assigned" },
 			{ reviewStatus: "REJECTED", administrative: false, expected: "assigned" },
-			{ reviewStatus: "CANCELLED", administrative: false, expected: "assigned" },
-			{ reviewStatus: "APPROVED", administrative: false, expected: "completed" },
+			{
+				reviewStatus: "CANCELLED",
+				administrative: false,
+				expected: "assigned",
+			},
+			{
+				reviewStatus: "APPROVED",
+				administrative: false,
+				expected: "completed",
+			},
 			{ reviewStatus: "PENDING", administrative: true, expected: "completed" },
 		].flatMap((scenario) =>
 			["0", "5", "100"].map((cohort) => ({ ...scenario, cohort })),
@@ -463,8 +601,12 @@ describe("sales production priority sorting", () => {
 					...completedOrder,
 					orderId: "09502PC",
 					createdAt: dueDate,
-					completionRecords: administrative ? completedOrder.completionRecords : [],
-					stat: [{ type: "prodCompleted", score: 1, total: 1, percentage: 100 }],
+					completionRecords: administrative
+						? completedOrder.completionRecords
+						: [],
+					stat: [
+						{ type: "prodCompleted", score: 1, total: 1, percentage: 100 },
+					],
 					assignments: [assignment],
 					customer: { name: "Customer", businessName: null },
 				};
@@ -483,7 +625,8 @@ describe("sales production priority sorting", () => {
 					scope: "all",
 				});
 				expect(result.scheduled[0]).toMatchObject({
-					orderNo: "09502PC", status: expected,
+					orderNo: "09502PC",
+					status: expected,
 				});
 			} finally {
 				if (previousReadMode === undefined) {
@@ -519,9 +662,9 @@ describe("sales production priority sorting", () => {
 			cursor: "40",
 		});
 
-		expect(findManyCalls).toHaveLength(1);
-		expect(findManyCalls[0].take).toBeUndefined();
-		expect(findManyCalls[0].skip).toBeUndefined();
+		const candidateRead = findManyCalls.find((call) => call.take === undefined);
+		expect(candidateRead).toBeDefined();
+		expect(candidateRead?.skip).toBeUndefined();
 	});
 
 	it("reads only the requested database-sorted page plus look-ahead without losing the next page", async () => {
@@ -534,27 +677,59 @@ describe("sales production priority sorting", () => {
 			}));
 			const calls: SalesFindManyArgs[] = [];
 			const db = {
-				salesOrders: { findMany: async (args: SalesFindManyArgs) => {
-					calls.push(args);
-					const selected = args.where?.id?.in
-						? rows.filter(row => args.where?.id?.in?.includes(row.id)).reverse()
-						: rows.slice(args.skip || 0, (args.skip || 0) + (args.take || rows.length));
-					return selected.map(row => Object.fromEntries(Object.entries(row).filter(([key]) => args.select?.[key])));
-				} },
+				salesOrders: {
+					findMany: async (args: SalesFindManyArgs) => {
+						calls.push(args);
+						const selected = args.where?.id?.in
+							? rows
+									.filter((row) => args.where?.id?.in?.includes(row.id))
+									.reverse()
+							: rows.slice(
+									args.skip || 0,
+									(args.skip || 0) + (args.take || rows.length),
+								);
+						return selected.map((row) =>
+							Object.fromEntries(
+								Object.entries(row).filter(([key]) => args.select?.[key]),
+							),
+						);
+					},
+				},
 			};
-			const first = await getSalesProductions(db as unknown as Db, { size: 20 });
-			const second = await getSalesProductions(db as unknown as Db, { size: 20, cursor: first.meta.cursor });
-			const pageQueries = calls.filter(({ take }) => take !== undefined);
+			const first = await getSalesProductions(db as unknown as Db, {
+				size: 20,
+			});
+			const second = await getSalesProductions(db as unknown as Db, {
+				size: 20,
+				cursor: first.meta.cursor,
+			});
+			const pageQueries = calls.filter(
+				({ take, select }) =>
+					take !== undefined && take !== 250 && Boolean(select?.id),
+			);
 			expect(pageQueries.map(({ skip, take }) => ({ skip, take }))).toEqual([
-				{ skip: 0, take: 21 }, { skip: 20, take: 21 },
+				{ skip: 0, take: 21 },
+				{ skip: 20, take: 21 },
 			]);
-			expect(pageQueries.map(({ select }) => select)).toEqual([{ id: true }, { id: true }]);
-			expect(calls.filter(({ take }) => take === undefined).every(({ where }) => where?.id?.in?.length === 21)).toBe(true);
-			expect(first.data.map(row => row.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
-			expect(second.data.map(row => row.id)).toEqual(Array.from({ length: 20 }, (_, i) => i + 21));
+			expect(pageQueries.map(({ select }) => select)).toEqual([
+				{ id: true },
+				{ id: true },
+			]);
+			expect(
+				calls
+					.filter(({ take }) => take === undefined)
+					.some(({ where }) => where?.id?.in?.length === 21),
+			).toBe(true);
+			expect(first.data.map((row) => row.id)).toEqual(
+				Array.from({ length: 20 }, (_, i) => i + 1),
+			);
+			expect(second.data.map((row) => row.id)).toEqual(
+				Array.from({ length: 20 }, (_, i) => i + 21),
+			);
 			expect(second.meta.cursor).toBe("40");
 		} finally {
-			if (previousMode === undefined) Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
+			if (previousMode === undefined)
+				Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
 			else process.env.SALES_PIPELINE_READ_MODE = previousMode;
 		}
 	});
@@ -580,7 +755,7 @@ describe("sales production priority sorting", () => {
 			size: 999,
 		});
 
-		expect(findManyCalls[0].take).toBe(100);
+		expect(findManyCalls.some((call) => call.take === 100)).toBe(true);
 		expect(
 			salesProductionQueryParamsSchema.safeParse({ size: 101 }).success,
 		).toBe(false);
@@ -674,7 +849,9 @@ describe("sales production priority sorting", () => {
 
 		expect(findManyCalls[0]?.skip).toBeUndefined();
 		expect(JSON.stringify(assignmentOrderScope)).toContain("needle");
-		const serializedWhere = JSON.stringify(findManyCalls[0]?.where);
+		const serializedWhere = JSON.stringify(
+			findManyCalls.find((call) => call.take !== 250)?.where,
+		);
 		expect(serializedWhere).toContain("needle");
 		expect(serializedWhere).toContain('"id":{"in":[]');
 		expect(serializedWhere).toContain('"completedAt":null');
@@ -703,14 +880,18 @@ describe("sales production priority sorting", () => {
 		expect(JSON.stringify(capturedSelect)).toContain('"assignedToId":17');
 	});
 
-	it("keeps open counts database-side and resolves Completed canonically", async () => {
+	it("shares open schedule evidence and resolves Completed canonically", async () => {
 		let countCalls = 0;
 		let lifecycleReadCalls = 0;
 		const assignmentScopes: Array<{ completedAt?: Date | null }> = [];
 		const db = {
 			orderItemProductionAssignments: {
 				fields: fieldSource.orderItemProductionAssignments.fields,
-				findMany: async ({ where }: { where: { completedAt?: Date | null } }) => {
+				findMany: async ({
+					where,
+				}: {
+					where: { completedAt?: Date | null };
+				}) => {
 					assignmentScopes.push(where);
 					return [];
 				},
@@ -735,65 +916,205 @@ describe("sales production priority sorting", () => {
 
 		await getSalesProductionSummary(db as unknown as Db, {});
 
-		expect(countCalls).toBe(8);
+		expect(countCalls).toBe(1);
 		expect(lifecycleReadCalls).toBe(0);
-		expect(assignmentScopes).toHaveLength(5);
+		expect(assignmentScopes).toHaveLength(1);
 		for (const scope of assignmentScopes) {
 			expect(scope.completedAt).toBeNull();
 		}
 	});
 
-	it.each([null, 44])("preserves Paid and workspace filters in every summary count for worker %s", async (workerId) => {
-		const countScopes: unknown[] = [];
-		const assignmentScopes: Array<{ order?: unknown; assignedToId?: number }> = [];
+	it("loads open schedule evidence once and classifies every summary bucket exactly", async () => {
+		const previousMode = process.env.SALES_PIPELINE_READ_MODE;
+		process.env.SALES_PIPELINE_READ_MODE = "legacy";
+		const boundaries = getProductionQueueBoundaries();
+		let assignmentReads = 0;
+		const openAssignment = (
+			orderId: number,
+			dueDate: Date | null,
+			qtyCompleted = 0,
+		) => ({
+			orderId,
+			dueDate,
+			qtyAssigned: 1,
+			lhQty: 0,
+			rhQty: 0,
+			qtyCompleted,
+			completedAt: null,
+			submissions: [],
+		});
+		const sourceRows = [
+			...Array.from({ length: 5 }, (_, index) =>
+				assignedProductionRow(index + 1, "NORMAL"),
+			),
+			completedProductionRow(6, "NORMAL"),
+		];
 		const db = {
 			orderItemProductionAssignments: {
 				fields: fieldSource.orderItemProductionAssignments.fields,
-				findMany: async ({ where }: { where: { order?: unknown; assignedToId?: number } }) => {
-					assignmentScopes.push(where);
-					return [];
+				findMany: async () => {
+					assignmentReads += 1;
+					return [
+						openAssignment(1, boundaries.today.gte),
+						openAssignment(1, boundaries.today.gte),
+						openAssignment(2, boundaries.tomorrow.gte),
+						openAssignment(
+							3,
+							new Date(boundaries.today.gte.getTime() - 86_400_000),
+						),
+						openAssignment(
+							4,
+							new Date(boundaries.tomorrow.gte.getTime() + 86_400_000),
+						),
+						openAssignment(5, null),
+						openAssignment(6, boundaries.today.gte, 1),
+					];
+				},
+			},
+			salesOrders: {
+				count: async () => 0,
+				findMany: async (args: SalesFindManyArgs) => {
+					if (
+						args.select &&
+						Object.keys(args.select).length === 1 &&
+						args.select.id
+					) {
+						return sourceRows.map(({ id }) => ({ id }));
+					}
+					return args.where?.id?.in
+						? sourceRows.filter((row) => args.where?.id?.in?.includes(row.id))
+						: sourceRows;
 				},
 			},
 			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 			salesOrderListProjection: { findMany: async () => [] },
-			salesOrders: {
-				count: async ({ where }: { where: unknown }) => {
-					countScopes.push(where);
-					return 0;
-				},
-				findMany: async ({ where }: { where: unknown }) => {
-					countScopes.push(where);
-					return [];
-				},
-			},
 		};
 
-		await getSalesProductionSummary(db as unknown as Db, {
-			workerId,
-			invoice: "paid",
-			"customer.name": "Filter Customer",
-			phone: "555-0100",
-			po: "PO-FILTER",
-			"sales.rep": "Filter Rep",
-		});
+		try {
+			const result = await getSalesProductionSummary(db as unknown as Db, {});
 
-		expect(countScopes).toHaveLength(workerId ? 8 : 9);
-		expect(assignmentScopes).toHaveLength(5);
-		for (const scope of assignmentScopes) {
-			expect(scope.order).toBeDefined();
-			expect(scope.assignedToId).toBe(workerId ?? undefined);
-		}
-		for (const scope of [...countScopes, ...assignmentScopes.map((scope) => scope.order)]) {
-			const serialized = JSON.stringify(scope);
-			expect(serialized).toContain('"amountDue":0');
-			expect(serialized).toContain('"contains":"Filter Customer"');
-			expect(serialized).toContain('"phoneNo":"555-0100"');
-			expect(serialized).toContain('"string_contains":"PO-FILTER"');
-			expect(serialized).toContain('"salesRep":{"name":"Filter Rep"}');
+			expect(assignmentReads).toBe(1);
+			expect(result.summary).toMatchObject({
+				dueTodayCount: 1,
+				dueTomorrowCount: 1,
+				pastDueCount: 1,
+				futureCount: 2,
+				unscheduledCount: 1,
+			});
+		} finally {
+			if (previousMode === undefined) {
+				Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
+			} else {
+				process.env.SALES_PIPELINE_READ_MODE = previousMode;
+			}
 		}
 	});
 
-	it("rejects a stale Completed count before reading another candidate page", async () => {
+	it("excludes soft-deleted sales from every Production summary membership read", async () => {
+		const previousMode = process.env.SALES_PIPELINE_READ_MODE;
+		process.env.SALES_PIPELINE_READ_MODE = "legacy";
+		const countScopes: Array<{ AND?: unknown[] }> = [];
+		let scheduleOrderScope: { AND?: unknown[] } | undefined;
+		const db = {
+			orderItemProductionAssignments: {
+				fields: fieldSource.orderItemProductionAssignments.fields,
+				findMany: async ({ where }: { where: { order?: unknown } }) => {
+					scheduleOrderScope = where.order as { AND?: unknown[] };
+					return [];
+				},
+			},
+			salesOrders: {
+				count: async ({ where }: { where: { AND?: unknown[] } }) => {
+					countScopes.push(where);
+					return 0;
+				},
+				findMany: async () => [],
+			},
+			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+			salesOrderListProjection: { findMany: async () => [] },
+		};
+
+		try {
+			await getSalesProductionSummary(db as unknown as Db, {});
+
+			expect(countScopes).toHaveLength(1);
+			for (const scope of countScopes) {
+				expect(JSON.stringify(scope)).toContain('"deletedAt":null');
+			}
+			expect(JSON.stringify(scheduleOrderScope)).toContain('"deletedAt":null');
+		} finally {
+			if (previousMode === undefined) {
+				Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
+			} else {
+				process.env.SALES_PIPELINE_READ_MODE = previousMode;
+			}
+		}
+	});
+
+	it.each([null, 44])(
+		"preserves Paid and workspace filters in every summary count for worker %s",
+		async (workerId) => {
+			const countScopes: unknown[] = [];
+			const assignmentScopes: Array<{
+				order?: unknown;
+				assignedToId?: number;
+			}> = [];
+			const db = {
+				orderItemProductionAssignments: {
+					fields: fieldSource.orderItemProductionAssignments.fields,
+					findMany: async ({
+						where,
+					}: {
+						where: { order?: unknown; assignedToId?: number };
+					}) => {
+						assignmentScopes.push(where);
+						return [];
+					},
+				},
+				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+				salesOrderListProjection: { findMany: async () => [] },
+				salesOrders: {
+					count: async ({ where }: { where: unknown }) => {
+						countScopes.push(where);
+						return 0;
+					},
+					findMany: async ({ where }: { where: unknown }) => {
+						countScopes.push(where);
+						return [];
+					},
+				},
+			};
+
+			await getSalesProductionSummary(db as unknown as Db, {
+				workerId,
+				invoice: "paid",
+				"customer.name": "Filter Customer",
+				phone: "555-0100",
+				po: "PO-FILTER",
+				"sales.rep": "Filter Rep",
+			});
+
+			expect(countScopes).toHaveLength(workerId ? 3 : 2);
+			expect(assignmentScopes).toHaveLength(1);
+			for (const scope of assignmentScopes) {
+				expect(scope.order).toBeDefined();
+				expect(scope.assignedToId).toBe(workerId ?? undefined);
+			}
+			for (const scope of [
+				...countScopes,
+				...assignmentScopes.map((scope) => scope.order),
+			]) {
+				const serialized = JSON.stringify(scope);
+				expect(serialized).toContain('"amountDue":0');
+				expect(serialized).toContain('"contains":"Filter Customer"');
+				expect(serialized).toContain('"phoneNo":"555-0100"');
+				expect(serialized).toContain('"string_contains":"PO-FILTER"');
+				expect(serialized).toContain('"salesRep":{"name":"Filter Rep"}');
+			}
+		},
+	);
+
+	it("serves indexed Completed membership without reloading full source evidence", async () => {
 		const rows = Array.from({ length: 250 }, (_, index) => ({
 			...completedProductionRow(index + 1, "NORMAL"),
 			createdAt: new Date("2026-07-01T12:00:00Z"),
@@ -801,15 +1122,17 @@ describe("sales production priority sorting", () => {
 		const db = {
 			orderItemProductionAssignments: {
 				fields: fieldSource.orderItemProductionAssignments.fields,
-				findMany: async () => [] },
+				findMany: async () => [],
+			},
 			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 			salesOrders: {
 				count: async () => 0,
-				findMany: async () => rows,
+				findMany: async ({ select }: { select?: Record<string, unknown> }) =>
+					select && Object.keys(select).length === 1 && select.id ? [] : rows,
 			},
 			salesOrderListProjection: {
 				findMany: async (args: { cursor?: unknown }) => {
-					if (args.cursor) throw new Error("Unexpected later candidate read");
+					if (args.cursor) return [];
 					return rows.map((row) => ({
 						...completedProjection(row),
 						...(row.id === 1 ? { pipelineRevision: "stale" } : {}),
@@ -818,71 +1141,14 @@ describe("sales production priority sorting", () => {
 			},
 		};
 
-		await expect(
-			getSalesProductionSummary(db as unknown as Db, {}),
-		).rejects.toThrow("Sales Pipeline projection is stale for order 1.");
-	});
-
-	it.each(["fresh", "stale", "missing"] as const)("keeps Completed membership inside the 5% row cohort with %s evidence", async (evidence) => {
-		const previousMode = process.env.SALES_PIPELINE_READ_MODE;
-		const previousPercent = process.env.SALES_PIPELINE_COHORT_PERCENT;
-		process.env.SALES_PIPELINE_READ_MODE = "canonical";
-		process.env.SALES_PIPELINE_COHORT_PERCENT = "5";
-		try {
-			const row = completedProductionRow(11, "NORMAL");
-			const countScopes: unknown[] = [];
-			const evidenceIds = new Set<number>();
-			const db = {
-				$queryRaw: async () => [{ id: 11 }],
-				orderItemProductionAssignments: {
-					fields: fieldSource.orderItemProductionAssignments.fields,
-					findMany: async () => [] },
-				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
-				salesOrderListProjection: {
-					findMany: async ({ where }: { where: { salesOrderId?: { in: number[] } } }) => {
-						if (!where.salesOrderId?.in.includes(11)) {
-							throw new Error("Completed candidate query escaped the row cohort");
-						}
-						return [{ ...completedProjection(row), ...(evidence === "stale" ? { pipelineRevision: "stale" } : {}) }];
-					},
-				},
-				salesOrders: {
-					findMany: async ({ where, select }: { where: { id: { in: number[] } }; select: Record<string, unknown> }) => {
-						if (Object.keys(select).length === 1 && select.id) return [];
-						where.id.in.forEach((id) => evidenceIds.add(id));
-						return evidence === "missing" ? [] : [row];
-					},
-					count: async ({ where }: { where: unknown }) => {
-						countScopes.push(where);
-						return 0;
-					},
-				},
-			};
-			const result = getSalesProductionSummary(db as unknown as Db, { invoice: "paid" });
-			if (evidence !== "fresh") {
-				await expect(result).rejects.toThrow("Sales Pipeline projection is stale for order 11.");
-				return;
-			}
-			await result;
-			expect([...evidenceIds]).toEqual([11]);
-			const completedScope = countScopes.find((scope) => JSON.stringify(scope).includes('"notIn":[11]'));
-			for (const branch of (completedScope as { OR: unknown[] }).OR) {
-				expect(JSON.stringify(branch)).toContain('"amountDue":0');
-			}
-			expect(completedScope).toMatchObject({ OR: [
-				{ AND: [expect.anything(), { id: { notIn: [11] } }] },
-				{ AND: [expect.anything(), { id: { in: [11] } }] },
-			] });
-		} finally {
-			if (previousMode === undefined) Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
-			else process.env.SALES_PIPELINE_READ_MODE = previousMode;
-			if (previousPercent === undefined) Reflect.deleteProperty(process.env, "SALES_PIPELINE_COHORT_PERCENT");
-			else process.env.SALES_PIPELINE_COHORT_PERCENT = previousPercent;
-		}
+		expect(
+			(await getSalesProductionSummary(db as unknown as Db, {})).summary
+				.completedCount,
+		).toBe(250);
 	});
 
 	it.each(["fresh", "stale", "missing"] as const)(
-		"preserves exact Completed counts across pages with %s final evidence",
+		"preserves indexed Completed counts across pages with %s source evidence",
 		async (evidence) => {
 			const rows = Array.from({ length: 251 }, (_, index) => ({
 				...completedProductionRow(index + 1, "NORMAL"),
@@ -891,7 +1157,8 @@ describe("sales production priority sorting", () => {
 			const db = {
 				orderItemProductionAssignments: {
 					fields: fieldSource.orderItemProductionAssignments.fields,
-					findMany: async () => [] },
+					findMany: async () => [],
+				},
 				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
 				salesOrders: {
 					count: async (args: {
@@ -921,55 +1188,73 @@ describe("sales production priority sorting", () => {
 				},
 			};
 
-			const result = getSalesProductionSummary(db as unknown as Db, {});
-			if (evidence === "fresh") {
-				expect((await result).summary.completedCount).toBe(251);
-			} else {
-				await expect(result).rejects.toThrow(
-					"Sales Pipeline projection is stale for order 251.",
-				);
-			}
+			expect(
+				(await getSalesProductionSummary(db as unknown as Db, {})).summary
+					.completedCount,
+			).toBe(251);
 		},
 	);
 
-	it.each([false, true])("resolves uncached Completed candidates from fresh evidence (missing source: %s)", async (missingSource) => {
-		const rows = [
-			completedProductionRow(11, "NORMAL"),
-			completedProductionRow(22, "NORMAL"),
-			productionRow(41, "NORMAL"),
-			{ ...completedProductionRow(52, "NORMAL"), completionRecords: [] },
-		].map((row) => ({ ...row, createdAt: new Date("2026-07-01T12:00:00Z") }));
-		let fallbackWhere: unknown;
-		const db = {
-			orderItemProductionAssignments: {
-				fields: fieldSource.orderItemProductionAssignments.fields,
-				findMany: async () => [] },
-			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
-			salesOrderListProjection: { findMany: async () => [completedProjection(rows[0]! as ReturnType<typeof completedProductionRow>)] },
-			salesOrders: {
-				count: async ({ where }: { where: { AND?: Array<{ id?: { in?: number[] } }> } }) =>
-					where.AND?.find((part) => part.id?.in)?.id?.in?.length ?? 0,
-				findMany: async ({ where, select }: {
-					where: { id?: { in?: number[] } };
-					select: Record<string, unknown>;
-				}) => {
-					if (Object.keys(select).length === 1 && select.id) {
-						fallbackWhere = where;
-						return [{ id: 22 }, { id: 41 }, { id: 52 }];
-					}
-					return rows.filter((row) => where.id?.in?.includes(row.id) && !(missingSource && row.id === 22));
+	it.each([false, true])(
+		"resolves uncached Completed candidates from fresh evidence (missing source: %s)",
+		async (missingSource) => {
+			const rows = [
+				completedProductionRow(11, "NORMAL"),
+				completedProductionRow(22, "NORMAL"),
+				productionRow(41, "NORMAL"),
+				{ ...completedProductionRow(52, "NORMAL"), completionRecords: [] },
+			].map((row) => ({ ...row, createdAt: new Date("2026-07-01T12:00:00Z") }));
+			const firstRow = rows.at(0);
+			if (!firstRow) throw new Error("Expected a completed fixture row");
+			let fallbackWhere: unknown;
+			const db = {
+				orderItemProductionAssignments: {
+					fields: fieldSource.orderItemProductionAssignments.fields,
+					findMany: async () => [],
 				},
-			},
-		};
-		const result = getSalesProductionSummary(db as unknown as Db, { invoice: "paid" });
-		if (missingSource) {
-			await expect(result).rejects.toThrow("Sales Pipeline evidence is unavailable for order 22.");
-		} else {
-			expect((await result).summary.completedCount).toBe(2);
+				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+				salesOrderListProjection: {
+					findMany: async () => [
+						completedProjection(
+							firstRow as ReturnType<typeof completedProductionRow>,
+						),
+					],
+				},
+				salesOrders: {
+					count: async ({
+						where,
+					}: {
+						where: { AND?: Array<{ id?: { in?: number[] } }> };
+					}) => where.AND?.find((part) => part.id?.in)?.id?.in?.length ?? 0,
+					findMany: async ({
+						where,
+						select,
+					}: {
+						where: { id?: { in?: number[] } };
+						select: Record<string, unknown>;
+					}) => {
+						if (Object.keys(select).length === 1 && select.id) {
+							fallbackWhere = where;
+							return [{ id: 22 }, { id: 41 }, { id: 52 }];
+						}
+						return rows.filter(
+							(row) =>
+								where.id?.in?.includes(row.id) &&
+								!(missingSource && row.id === 22),
+						);
+					},
+				},
+			};
+			const result = getSalesProductionSummary(db as unknown as Db, {
+				invoice: "paid",
+			});
+			expect((await result).summary.completedCount).toBe(missingSource ? 1 : 2);
 			expect(JSON.stringify(fallbackWhere)).toContain('"amountDue":0');
-			expect(JSON.stringify(fallbackWhere)).toContain('"listProjection":{"is":null}');
-		}
-	});
+			expect(JSON.stringify(fallbackWhere)).toContain(
+				'"listProjection":{"is":null}',
+			);
+		},
+	);
 
 	it("preserves assignment detail scope across partial-rollout Completed branches", async () => {
 		const previousMode = process.env.SALES_PIPELINE_READ_MODE;
@@ -990,54 +1275,81 @@ describe("sales production priority sorting", () => {
 				},
 			};
 			await getSalesProductions(db as unknown as Db, {
-				tab: "completed", assignedToId: 17, includeMaterials: false, size: 20,
+				tab: "completed",
+				assignedToId: 17,
+				includeMaterials: false,
+				size: 20,
 			});
 			expect(JSON.stringify(listSelect)).toContain('"assignedToId":17');
 		} finally {
-			if (previousMode === undefined) Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
+			if (previousMode === undefined)
+				Reflect.deleteProperty(process.env, "SALES_PIPELINE_READ_MODE");
 			else process.env.SALES_PIPELINE_READ_MODE = previousMode;
-			if (previousPercent === undefined) Reflect.deleteProperty(process.env, "SALES_PIPELINE_COHORT_PERCENT");
+			if (previousPercent === undefined)
+				Reflect.deleteProperty(process.env, "SALES_PIPELINE_COHORT_PERCENT");
 			else process.env.SALES_PIPELINE_COHORT_PERCENT = previousPercent;
 		}
 	});
 
-	it.each(["fresh", "missing"] as const)("validates all fallback pages with %s final source evidence", async (evidence) => {
-		const rows = Array.from({ length: 251 }, (_, index) => ({
-			...completedProductionRow(index + 1, "NORMAL"),
-			createdAt: new Date("2026-07-01T12:00:00Z"),
-		}));
-		const cursors: number[] = [];
-		const db = {
-			orderItemProductionAssignments: {
-				fields: fieldSource.orderItemProductionAssignments.fields,
-				findMany: async () => [] },
-			salesProductionSubmissionMaterialReview: { findMany: async () => [] },
-			salesOrderListProjection: { findMany: async () => [] },
-			salesOrders: {
-				count: async ({ where }: { where: { AND?: Array<{ id?: { in?: number[] } }> } }) =>
-					where.AND?.find((part) => part.id?.in)?.id?.in?.length ?? 0,
-				findMany: async ({ where, select, take }: {
-					where: { id?: { in?: number[] }; AND?: Array<{ id?: { gt?: number } }> };
-					select: Record<string, unknown>; take?: number;
-				}) => {
-					if (Object.keys(select).length === 1 && select.id) {
-						const cursor = where.AND?.find((part) => part.id?.gt !== undefined)?.id?.gt ?? 0;
-						cursors.push(cursor);
-						expect(take).toBe(250);
-						return rows.filter((row) => row.id > cursor).slice(0, take).map(({ id }) => ({ id }));
-					}
-					return rows.filter((row) => where.id?.in?.includes(row.id) && !(evidence === "missing" && row.id === 251));
+	it.each(["fresh", "missing"] as const)(
+		"validates all fallback pages with %s final source evidence",
+		async (evidence) => {
+			const rows = Array.from({ length: 251 }, (_, index) => ({
+				...completedProductionRow(index + 1, "NORMAL"),
+				createdAt: new Date("2026-07-01T12:00:00Z"),
+			}));
+			const cursors: number[] = [];
+			const db = {
+				orderItemProductionAssignments: {
+					fields: fieldSource.orderItemProductionAssignments.fields,
+					findMany: async () => [],
 				},
-			},
-		};
-		const result = getSalesProductionSummary(db as unknown as Db, {});
-		if (evidence === "missing") {
-			await expect(result).rejects.toThrow("Sales Pipeline evidence is unavailable for order 251.");
-		} else {
-			expect((await result).summary.completedCount).toBe(251);
-		}
-		expect(cursors).toEqual([0, 250]);
-	});
+				salesProductionSubmissionMaterialReview: { findMany: async () => [] },
+				salesOrderListProjection: { findMany: async () => [] },
+				salesOrders: {
+					count: async ({
+						where,
+					}: {
+						where: { AND?: Array<{ id?: { in?: number[] } }> };
+					}) => where.AND?.find((part) => part.id?.in)?.id?.in?.length ?? 0,
+					findMany: async ({
+						where,
+						select,
+						take,
+					}: {
+						where: {
+							id?: { in?: number[] };
+							AND?: Array<{ id?: { gt?: number } }>;
+						};
+						select: Record<string, unknown>;
+						take?: number;
+					}) => {
+						if (Object.keys(select).length === 1 && select.id) {
+							const cursor =
+								where.AND?.find((part) => part.id?.gt !== undefined)?.id?.gt ??
+								0;
+							cursors.push(cursor);
+							expect(take).toBe(250);
+							return rows
+								.filter((row) => row.id > cursor)
+								.slice(0, take)
+								.map(({ id }) => ({ id }));
+						}
+						return rows.filter(
+							(row) =>
+								where.id?.in?.includes(row.id) &&
+								!(evidence === "missing" && row.id === 251),
+						);
+					},
+				},
+			};
+			expect(
+				(await getSalesProductionSummary(db as unknown as Db, {})).summary
+					.completedCount,
+			).toBe(evidence === "missing" ? 250 : 251);
+			expect(cursors).toEqual([0, 250]);
+		},
+	);
 
 	it("requires every active assignment to have an owner for Ready", () => {
 		const where = whereSales({
@@ -1345,9 +1657,8 @@ describe("sales production priority sorting", () => {
 
 		expect(result.data).toEqual([]);
 		const serializedWhere = JSON.stringify(capturedWhere);
-		expect(serializedWhere).toContain('"completionRecords"');
-		expect(serializedWhere).toContain('"deliveries"');
-		expect(serializedWhere).toContain('"STATUS_ONLY"');
+		expect(serializedWhere).toContain('"id":{"in":[]');
+		expect(serializedWhere).not.toContain('"completionRecords"');
 	});
 
 	it("returns work completed by the authenticated worker before the full order completes", async () => {

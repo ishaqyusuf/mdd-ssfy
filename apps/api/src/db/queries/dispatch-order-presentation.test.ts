@@ -38,54 +38,33 @@ const pipeline = resolveSalesPipelineSnapshot({
 });
 
 describe("Fulfillment order headline", () => {
-	it.each([
-		{ SALES_PIPELINE_READ_MODE: "legacy" },
-		{
-			SALES_PIPELINE_READ_MODE: "shadow",
-			SALES_PIPELINE_SHADOW_SAMPLE_PERCENT: "1",
-		},
-		{
-			SALES_PIPELINE_READ_MODE: "canonical",
-			SALES_PIPELINE_COHORT_PERCENT: "5",
-		},
-		{
-			SALES_PIPELINE_READ_MODE: "canonical",
-			SALES_PIPELINE_COHORT_PERCENT: "0",
-		},
-	])(
-		"preserves the legacy headline and dimension when rollout does not select this order (%j)",
-		(env) => {
-			const result = projectDispatchOrderPresentation(order, null, "pending", {
-				pipeline,
-				env,
-			});
-			expect(result).toMatchObject({
-				status: "awaiting_production",
-				statusLabel: "Awaiting production",
-				statusTone: "slate",
-				productionState: "pending",
-			});
-		},
-	);
-
-	it("keeps the existing fallback when no canonical snapshot is available", () => {
+	it("serves the canonical headline", () => {
 		const result = projectDispatchOrderPresentation(order, null, "pending", {
-			pipeline: null,
-			env: { SALES_PIPELINE_READ_MODE: "canonical" },
+			pipeline,
 		});
 		expect(result).toMatchObject({
-			status: "awaiting_production",
-			productionState: "pending",
+			status: "production_queued",
+			statusLabel: "Production queued",
+			statusTone: "amber",
+			productionState: "partially_assigned",
+		});
+	});
+
+	it("fails closed when no canonical snapshot is available", () => {
+		const result = projectDispatchOrderPresentation(order, null, "pending", {
+			pipeline: null,
+		});
+		expect(result).toMatchObject({
+			status: "unknown",
+			statusLabel: "Status unavailable",
+			statusTone: "stone",
+			productionState: "unknown",
 		});
 	});
 
 	it("shows canonical Production queued and its production dimension together", () => {
 		const result = projectDispatchOrderPresentation(order, null, "pending", {
 			pipeline,
-			env: {
-				SALES_PIPELINE_READ_MODE: "canonical",
-				SALES_PIPELINE_COHORT_PERCENT: "100",
-			},
 		});
 		expect(result).toMatchObject({
 			status: "production_queued",

@@ -1,5 +1,44 @@
 # API Permissions
 
+## Production Planning Calendar (Ticket 18, local implementation)
+
+- `sales.productionPlanningCalendar` requires `viewOrders`, `editOrders` or
+  `editProduction` from authenticated context. Worker-only `viewProduction`
+  does not grant unassigned-demand access.
+- The API derives `canAssign` from `editProduction` plus canonical command
+  eligibility. Strict inputs reject worker IDs and caller-supplied grants.
+- Existing assignment and Sales Order edit boundaries still authorize writes.
+
+## Request-scoped Authorization Reuse (2026-09-06)
+
+- Repeated `auth(ctx)` calls reuse one pending/result promise only when passed
+  the identical server-created tRPC request-context object. The cache is a
+  `WeakMap`; it is not keyed by user/session and cannot cross request objects.
+- User identity still loads before role evaluation. Role permissions and
+  user-specific grants then load concurrently and merge through the unchanged
+  permission generator. No client header, caller permission map, or stale
+  session snapshot becomes authoritative.
+- A rejected authorization read is evicted. A later same-context call must
+  perform the database checks again and cannot reuse a failed or partial grant
+  result. Tests cover concurrent/later reuse, distinct-request isolation,
+  parallel grant reads, and rejection retry.
+
+## Production Filter Metadata (2026-09-06)
+
+- `filters.salesProductions` is an authenticated route. It accepts the same
+  operational audience as the Production workspace: any of `viewOrders`,
+  `editOrders`, `viewProduction`, `editProduction`, `viewDelivery`,
+  `editDelivery`, `viewPickup`, `editPickup`, or `viewPacking`.
+- The route derives authority from the authenticated context through the shared
+  operational-permission guard. It accepts no caller-provided actor, role, or
+  permission claim and creates no grant.
+- Filter values are metadata only and do not authorize Production, Sales,
+  Fulfillment, inventory, assignment, or status mutations. Those operations
+  retain their own command permission boundaries.
+- Live post-deploy verification on `dpl_5WZw6SiQtiw3B1wJjapqSfmFoPZ2` returns
+  HTTP 401 for an unauthenticated `filters.salesProductions` request, without
+  exposing filter or customer metadata.
+
 ## Status-only Sales Completion (2026-09-01)
 
 - The exact persisted rows are `view status only sales completion` and `edit

@@ -525,6 +525,19 @@ export type SalesProductionCalendarQuery = z.infer<
 	typeof salesProductionCalendarQuerySchema
 >;
 
+export const salesProductionPlanningCalendarQuerySchema = z
+	.object({
+		from: productionCalendarDateSchema,
+		to: productionCalendarDateSchema,
+		q: z.string().optional().nullable(),
+		priority: salesPrioritySchema.optional().nullable(),
+	})
+	.strict()
+	.refine((value) => value.to >= value.from, {
+		path: ["to"],
+		message: "The calendar end date must be on or after the start date.",
+	});
+
 export const variantFormSchema = z.object({
 	id: z.number().optional().nullable(),
 	price: z.number().optional().nullable(),

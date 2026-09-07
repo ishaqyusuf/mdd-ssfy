@@ -10,7 +10,7 @@ import {
 	getSalesPipelineSnapshots,
 	normalizeBulkFulfillmentSalesIds,
 	prepareBulkFulfillmentResolution,
-	shouldEnforceCanonicalSalesPipelineCommands,
+	recordSalesCompletionFullWorkflowOutcomes,
 	summarizeBulkFulfillmentResult,
 } from "@gnd/sales";
 import { type TaskName, bulkMarkSalesFulfilledSchema } from "@jobs/schema";
@@ -64,15 +64,6 @@ export const bulkMarkSalesFulfilled = schemaTask({
 		for (const salesId of salesIds) {
 			try {
 				const snapshot = snapshots.get(salesId);
-				if (!shouldEnforceCanonicalSalesPipelineCommands(salesId)) {
-					resolutions.push(
-						await ensureSalesOrderFulfillmentDispatch(db, {
-							salesId,
-							createdById: input.actor.id,
-						}),
-					);
-					continue;
-				}
 				if (!snapshot) {
 					outcomes.push({
 						salesId,
@@ -197,6 +188,12 @@ export const bulkMarkSalesFulfilled = schemaTask({
 			total: salesIds.length,
 			startedAt,
 			outcomes,
+		});
+		await recordSalesCompletionFullWorkflowOutcomes(db, {
+			milestone: "FULFILLMENT_COMPLETED",
+			requestId: result.requestId,
+			actor: input.actor,
+			outcomes: result.outcomes,
 		});
 		metadata
 			.set("status", result.failed ? "completed_with_errors" : "completed")

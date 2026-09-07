@@ -2811,6 +2811,7 @@ export function ItemWorkflowPanel() {
 				items={visibleLineItems}
 				activeLineUid={activeLine?.uid || null}
 				activeStepByLine={activeStepByLine}
+				stepListVersion="v2"
 				resolveActiveStepIndex={resolveInteractiveStepIndex}
 				getLineTitlePlaceholder={(line) =>
 					getLineTitlePlaceholder(line) || null

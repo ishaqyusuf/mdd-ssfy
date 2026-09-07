@@ -13,7 +13,6 @@ import {
 	getSaleInformation,
 	getSalesPipelineSnapshots,
 	runSalesPipelineCommandTransaction,
-	shouldEnforceCanonicalSalesPipelineCommands,
 } from "@sales/exports";
 import { z } from "zod";
 import { getLoggedInProfile } from "./cache/get-loggedin-profile";
@@ -53,7 +52,7 @@ export const batchAssignProductionOrdersAction = actionClient
 					action: "production.assign",
 					authorized: true,
 					expectedRevision: snapshot.revision,
-					enforce: shouldEnforceCanonicalSalesPipelineCommands(salesId),
+					enforce: true,
 					operation: "dashboard.batch-assign-production-orders",
 				},
 				async (transactionDb) => {

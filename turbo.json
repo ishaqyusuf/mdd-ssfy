@@ -61,7 +61,9 @@
         "NEXT_BACK_DOOR_TOK",
         "BLOB_READ_WRITE_TOKEN",
         "CRON_SECRET",
-        "OPENPANEL_SECRET_KEY"
+        "OPENPANEL_SECRET_KEY",
+        "GND_SALES_ORDERS_READ_MODEL_MODE",
+        "GND_SALES_ORDERS_READ_MODEL_COHORT_PERCENTAGE"
       ],
       "dependsOn": ["^build"],
       "outputs": [

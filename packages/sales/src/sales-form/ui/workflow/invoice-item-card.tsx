@@ -14,15 +14,13 @@ import {
 import { Icons } from "@gnd/ui/icons";
 import { InputGroup } from "@gnd/ui/namespace";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { middleTruncateText } from "./workflow-format";
+import {
+	WorkflowStepList,
+	type WorkflowStepListVersion,
+	type WorkflowStepUiRecord,
+} from "./workflow-step-list";
 
-export type WorkflowStepUiRecord = {
-	value?: string | null;
-	step?: {
-		title?: string | null;
-	} | null;
-	[key: string]: unknown;
-};
+export type { WorkflowStepUiRecord } from "./workflow-step-list";
 
 function currency(value?: number | null) {
 	return new Intl.NumberFormat("en-US", {
@@ -35,7 +33,6 @@ function uppercaseItemTitle(value?: string | null) {
 	return String(value || "").toUpperCase();
 }
 
-const STEP_PILL_COMPONENT_LABEL_MAX_LENGTH = 24;
 const STEP_PANEL_ANIMATION_MS = 200;
 
 export function getInvoiceItemMoveTargets(index: number, itemCount: number) {
@@ -192,6 +189,7 @@ export type InvoiceItemCardProps = {
 	titlePlaceholder?: string | null;
 	lineTotal?: number | null;
 	steps: WorkflowStepUiRecord[];
+	stepListVersion?: WorkflowStepListVersion;
 	activeIndex: number;
 	isExpanded?: boolean;
 	onActivate: () => void;
@@ -307,50 +305,16 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 				</div>
 			</div>
 
-			{props.steps.length ? (
-				<div className="mt-3 flex flex-wrap items-center gap-2">
-					{props.steps.map((step, stepIndex) => {
-						const stepLabel = step.value
-							? props.componentLabel(step.value)
-							: step.step?.title || `Step ${stepIndex + 1}`;
-						const stepPillLabel = step.value
-							? middleTruncateText(
-									stepLabel,
-									STEP_PILL_COMPONENT_LABEL_MAX_LENGTH,
-								)
-							: stepLabel;
-
-						return (
-							<button
-								key={props.stepKey(props.uid, stepIndex)}
-								type="button"
-								title={stepLabel}
-								aria-current={
-									props.activeIndex === stepIndex ? "step" : undefined
-								}
-								aria-label={`Open ${stepLabel}`}
-								className={`max-w-full rounded-full border px-3 py-1 text-xs transition-colors duration-200 motion-reduce:transition-none sm:max-w-56 ${
-									props.activeIndex === stepIndex
-										? "border-primary-foreground/50 bg-primary text-primary-foreground shadow-sm"
-										: props.isRedirectDisabledStep(step)
-											? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
-											: "text-muted-foreground hover:bg-muted-foreground hover:text-muted"
-								}`}
-								disabled={props.isRedirectDisabledStep(step)}
-								onClick={(event) => {
-									event.stopPropagation();
-									if (props.isRedirectDisabledStep(step)) return;
-									props.onStepChange(stepIndex);
-								}}
-							>
-								<span className="block overflow-hidden text-ellipsis whitespace-nowrap uppercase">
-									{stepPillLabel}
-								</span>
-							</button>
-						);
-					})}
-				</div>
-			) : null}
+			<WorkflowStepList
+				version={props.stepListVersion}
+				lineUid={props.uid}
+				steps={props.steps}
+				activeIndex={props.activeIndex}
+				onStepChange={props.onStepChange}
+				isRedirectDisabledStep={props.isRedirectDisabledStep}
+				stepKey={props.stepKey}
+				componentLabel={props.componentLabel}
+			/>
 			<AnimatedStepPanel panelKey={`${props.uid}-${props.activeIndex}`}>
 				{isExpanded ? props.children : null}
 			</AnimatedStepPanel>

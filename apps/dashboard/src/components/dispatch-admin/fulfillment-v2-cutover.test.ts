@@ -91,9 +91,15 @@ describe("fulfillment V2 cutover contracts", () => {
 		expect(headerPosition).toBeLessThan(dashboard.indexOf("<DataTable"));
 	});
 
-	it("streams independent prefetches and isolates summary and table failures", () => {
+	it("streams bounded prefetches, keeps the calendar browser-only, and isolates failures", () => {
 		const page = readDashboard(
 			"app/(sidebar)/(sales)/sales-book/fulfillment/v2/page.tsx",
+		);
+		const calendar = readDashboard(
+			"components/dispatch-admin/dispatch-calendar-view-v2.tsx",
+		);
+		const workspace = readDashboard(
+			"components/dispatch-admin/dispatch-admin-workspace-client.tsx",
 		);
 		const boundaries = readDashboard(
 			"components/dispatch-admin/dispatch-admin-boundaries.tsx",
@@ -103,11 +109,15 @@ describe("fulfillment V2 cutover contracts", () => {
 		);
 
 		expect(page).toContain(
-			"void batchPrefetch([trpc.dispatch.workspaceSummary.queryOptions()]);",
+			'if (filters.section !== "calendar") {\n\t\tvoid batchPrefetch([trpc.dispatch.workspaceSummary.queryOptions()]);\n\t}',
 		);
-		expect(page).not.toContain(
-			"await batchPrefetch([trpc.dispatch.workspaceSummary.queryOptions()]);",
+		expect(calendar).toContain("createDispatchCalendarQueryInput(filters)");
+		expect(page).not.toContain("trpc.dispatch.calendar.infiniteQueryOptions");
+		expect(workspace).toContain(
+			'import("@/components/dispatch-admin/views/dispatch-calendar-section")',
 		);
+		expect(workspace).toContain("ssr: false");
+		expect(page).not.toContain("await Promise.all(prefetches);");
 		expect(boundaries).toContain("DispatchAdminSummaryBoundary");
 		expect(boundaries).toContain("DispatchDataBoundary");
 		expect(boundaries).toContain("errorComponent={DispatchSummaryError}");

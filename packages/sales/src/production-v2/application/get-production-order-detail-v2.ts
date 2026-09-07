@@ -5,7 +5,6 @@ import { getSaleInformation } from "../../sales-control/get-sale-information";
 import { projectSalesPipelineForAudience } from "../../sales-pipeline";
 import { evaluateSalesPipelineCommand } from "../../sales-pipeline-commands";
 import { getSalesPipelineSnapshots } from "../../sales-pipeline-order";
-import { observeSalesPipelineReadProjection } from "../../sales-pipeline-rollout";
 import type { ProductionV2DetailQuery } from "../contracts";
 import {
 	buildProductionItemMaterialStatus,
@@ -34,14 +33,7 @@ export async function getProductionOrderDetailV2(
 	const canonicalSnapshot = (
 		await getSalesPipelineSnapshots(db, [data.order.id])
 	).get(data.order.id);
-	const selectedSnapshot = canonicalSnapshot
-		? observeSalesPipelineReadProjection(canonicalSnapshot, {
-				surface:
-					query.scope === "worker"
-						? "production.worker.detail"
-						: "production.admin.detail",
-			})
-		: null;
+	const selectedSnapshot = canonicalSnapshot;
 	const pipeline = selectedSnapshot
 		? projectSalesPipelineForAudience(
 				selectedSnapshot,

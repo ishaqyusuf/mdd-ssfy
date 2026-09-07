@@ -1,5 +1,5 @@
 import type { Db, TransactionClient } from "@gnd/db";
-import { getSalesOrderLifecycleStatusInfo } from "./order-status";
+import { getLegacySalesOrderLifecycleStatusInfo } from "./legacy-order-status";
 import {
 	buildProductionReadinessRevision,
 	isProductionReadinessOverrideActive,
@@ -192,7 +192,7 @@ async function loadProductionReadiness(
 		throw new Error("Sales order not found.");
 	}
 
-	const lifecycle = getSalesOrderLifecycleStatusInfo({
+	const lifecycle = getLegacySalesOrderLifecycleStatusInfo({
 		orderStatus: order.status,
 		legacyProductionStatus: order.prodStatus,
 	});

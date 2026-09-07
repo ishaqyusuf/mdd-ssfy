@@ -1,7 +1,4 @@
-import {
-	type SalesOrderLifecycleStatus,
-	getSalesOrderLifecycleStatusInfo,
-} from "@gnd/sales/order-status";
+import type { SalesOrderLifecycleStatus } from "@gnd/sales/order-status";
 import type { SalesPipelineSnapshot } from "@gnd/sales/sales-pipeline";
 import { cn, cva } from "@gnd/ui/cn";
 
@@ -132,41 +129,13 @@ export function getSalesOverviewDocumentStatus(
 		};
 	}
 
-	const control = data?.control;
-	const statistic = data?.statistic;
-	const productionStatus =
-		control?.productionStatus && control.productionStatus !== "unknown"
-			? control.productionStatus
-			: data?.status?.production?.status;
-	const assignmentStatus = data?.status?.assignment?.status;
-	const legacyProductionStatus =
-		data?.prodStatus ||
-		(assignmentStatus === "in progress" || assignmentStatus === "completed"
-			? "assigned"
-			: undefined);
-	const fulfillmentStatus =
-		control?.dispatchStatus && control.dispatchStatus !== "unknown"
-			? control.dispatchStatus
-			: data?.deliveryStatus || data?.status?.delivery?.status;
-	const lifecycleStatus = getSalesOrderLifecycleStatusInfo({
-		orderStatus: data?.orderStatus,
-		legacyProductionStatus,
-		productionStatus,
-		fulfillmentStatus,
-		hasProductionWork: productionStatus === "N/A" ? false : undefined,
-		packed: control?.packed || statistic?.packed,
-		pendingPacking: control?.pendingPacking || statistic?.pendingPacking,
-		pendingDispatch: control?.pendingDispatch || statistic?.pendingDispatch,
-		packables: control?.packables || statistic?.packables,
-	});
-
 	return {
-		label: lifecycleStatus.label,
+		label: "Status unavailable",
 		labelText: "Order Status",
-		status: lifecycleStatus.status,
+		status: "unknown",
 		className: cn(
 			salesOverviewDocumentStatusVariants({
-				status: lifecycleStatus.status,
+				status: "unknown",
 			}),
 		),
 	};

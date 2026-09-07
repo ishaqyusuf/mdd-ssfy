@@ -935,31 +935,23 @@ function transformFilter<T extends { key: string; value: any }>(
 export async function getSalesProductionFilters(ctx: TRPCContext) {
   // Preserve the existing HR option scope/page without loading employee details,
   // counting rows, or seeding permissions from a filter read.
-  const [baseFilters, workers] = await Promise.all([
-    getSalesOrderFilters(ctx, true),
-    ctx.db.users.findMany({
-      where: { ...whereEmployees({ roles: ["Production"] }), deletedAt: null },
-      ...queryMeta({}),
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-  ]);
+  const workers = await ctx.db.users.findMany({
+    where: { ...whereEmployees({ roles: ["Production"] }), deletedAt: null },
+    ...queryMeta({}),
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
   type T = keyof SalesProductionQueryParams;
   type FilterData = PageFilterData<T>;
-  const inheritedFilterKeys = new Set<string>([
-    "q",
-    "customer.name",
-    "phone",
-    "po",
-    "sales.rep",
-    "salesNo",
-    "item",
-  ]);
 
   const resp: FilterData[] = [
-    ...baseFilters
-      .filter((filter) => inheritedFilterKeys.has(String(filter.value)))
-      .map((filter) => ({ ...filter, value: filter.value as T })),
+    searchFilter,
+    inputFilter<T>("customer.name", "Customer"),
+    inputFilter<T>("phone", "Phone"),
+    inputFilter<T>("po", "P.O"),
+    inputFilter<T>("sales.rep", "Sales Rep"),
+    inputFilter<T>("salesNo", "Order #"),
+    inputFilter<T>("item", "Item"),
     optionFilter<T>("invoice", "Invoice Status", [
       {
         label: "Paid",

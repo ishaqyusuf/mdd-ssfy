@@ -141,6 +141,7 @@ export function SalesProductionHeader() {
 	const isReview = resolved.tab === "reviews";
 	const isCompleted = resolved.tab === "completed";
 	const isCalendar = resolved.view === "calendar";
+	const isPlanning = isCalendar && filters.calendarMode === "planning";
 	const activeWorkspaceFilters =
 		isReview || isCalendar
 			? []
@@ -155,7 +156,7 @@ export function SalesProductionHeader() {
 		? []
 		: isCalendar
 			? supportedServerFilters.filter((filter) =>
-					["q", "assignedToId", "priority"].includes(String(filter.value)),
+					(isPlanning ? ["q", "priority"] : ["q", "assignedToId", "priority"]).includes(String(filter.value)),
 				)
 			: supportedServerFilters;
 	const hiddenFilterKeys = [
@@ -163,6 +164,8 @@ export function SalesProductionHeader() {
 		"view",
 		"calendarView",
 		"calendarDate",
+		"calendarMode",
+		...(isPlanning ? ["assignedToId"] : []),
 		"production",
 		...(isReview
 			? [

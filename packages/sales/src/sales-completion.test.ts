@@ -582,6 +582,7 @@ describe("status-only completion batches", () => {
 			markSalesCompletionStatusOnlyBulkSchema.safeParse({
 				salesOrderIds: Array.from({ length: 100 }, (_, index) => index + 1),
 				requestId: "00000000-0000-4000-8000-000000000100",
+				reason: "Verified outside GND.",
 				effectiveAt: null,
 			}).success,
 		).toBe(true);
@@ -589,6 +590,7 @@ describe("status-only completion batches", () => {
 			markSalesCompletionStatusOnlyBulkSchema.safeParse({
 				salesOrderIds: Array.from({ length: 101 }, (_, index) => index + 1),
 				requestId: "00000000-0000-4000-8000-000000000101",
+				reason: "Verified outside GND.",
 				effectiveAt: null,
 			}).success,
 		).toBe(false);
@@ -596,6 +598,7 @@ describe("status-only completion batches", () => {
 			markSalesCompletionStatusOnlyBulkSchema.safeParse({
 				salesOrderIds: [91],
 				requestId: "00000000-0000-4000-8000-000000000102",
+				reason: "Manager reviewed the exception.",
 				administrativeOverride: {
 					reason: "Manager reviewed the exception.",
 					expectedRevisions: [

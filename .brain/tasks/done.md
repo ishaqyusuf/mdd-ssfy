@@ -1,10 +1,74 @@
 # Done
 
+### Canonical Sales Pipeline lifecycle — all 18 tickets complete
+
+- 196/196 acceptance checks verified. Ticket14 closes after explicit approval,
+  successful three-key Production environment removal and verified absence.
+- Five retirement tests/96 assertions pass; live deployment and QA evidence
+  remain in Scratch ticket18-release.md. No database changes in final cleanup.
+- [Cutover task](2026-09-04-cutover-and-retirement.md).
+
+### [Production planning Calendar and canonical colors](2026-09-07-production-planning-calendar-visibility-and-canonical-colors.md)
+
+- Ticket18 complete, 18/18 acceptance checks. Production deployment
+  dpl_2a6aYAmYhupqpKz9PMRDr2NFySA9 READY/www and authenticated live QA pass.
+- Local responsive/worker/action testing plus bounded live membership/colors
+  and material-label checks recorded in Scratch ticket18-release.md.
+- No production business-data mutation or schema change.
+
+### Full-workflow or status-only Sales completion choice and fallback
+
+- Priority: Critical
+- Description: Production and Fulfillment completion actions always open a
+  Full-workflow-default mode selector. Failed full-workflow outcomes can enter
+  a second explicit, audited Status-only confirmation for only the unsuccessful
+  eligible subset, with current revisions, required reason, immutable attempt
+  linkage, replay safety, and no repeated workflow effects.
+- Related Feature: Canonical Sales Pipeline Lifecycle
+- Status: Done — Ticket 17, 12/12
+- Validation: 109 focused tests / 380 assertions; Sales/API typechecks; scoped
+  Biome; authenticated Production and local fallback paths; exact 390×844 and
+  768×1024 responsive/keyboard QA; clean remote Next.js Production build.
+- Deployment: READY `dpl_CTJRtcF9uerErnk1k2bM1Qk7V8Ua` at
+  `https://www.gndprodesk.com`.
+- Database/API Impact: No schema, migration, DB push, or operational evidence
+  fabrication; existing Sales History and completion records retain provenance.
+- Completed Date: 2026-09-07
+
+### Canonical Sales Pipeline channel and customer migration
+
+- Priority: Critical
+- Description: Dealership, Storefront, and customer-safe order projections now
+  derive lifecycle from the canonical Sales Pipeline snapshot. Missing evidence
+  returns explicit `Status unavailable` state instead of dropping an existing
+  row or reconstructing lifecycle from mutable legacy strings.
+- Related Feature: Canonical Sales Pipeline Lifecycle
+- Status: Done — Ticket 11, 9/9
+- Validation: channel/unavailable and canonical retirement matrix 33 tests / 156
+  assertions; review-focused API matrix 47 / 159; Sales/API typechecks pass.
+- Database/API Impact: No schema or data migration; existing response contracts
+  gain explicit unavailable-state behavior.
+- Completed Date: 2026-09-06
+
 ### [Production Item Collapse Toggle](2026-09-04-production-item-collapse-toggle.md)
 - Status: Done
 
 ### [Production Material And Actions Polish](2026-09-04-production-material-and-actions-polish.md)
 - Status: Done
+
+### Add Sales Form Step List V2
+
+- Priority: Medium
+- Description: Extracted the shared workflow step navigation into explicit V1
+  and V2 renderers, preserved the existing pill UI as the default, and opted
+  both Dashboard New Sales Form workflow paths into the approved slash-separated
+  hierarchy with only the active step highlighted.
+- Related Feature: Sales Form System Hardening
+- Status: Done
+- Validation: 4 focused tests / 35 assertions, Sales package typecheck, scoped
+  Biome and diff-integrity checks, plus authenticated local browser proof.
+- Database/API Impact: None.
+- Completed Date: 2026-09-04
 
 ### HPT Size Hot-Swap And Height Reconciliation
 

@@ -3,12 +3,27 @@ import { describe, expect, it } from "bun:test";
 import { getSalesOverviewDocumentStatus } from "./document-status";
 
 describe("sales overview document status", () => {
-	it("exposes the canonical fulfilled lifecycle status", () => {
+	it("fails closed when the canonical lifecycle snapshot is unavailable", () => {
 		expect(
 			getSalesOverviewDocumentStatus({
 				deliveryStatus: "completed",
 				orderStatus: "Processing",
 				type: "order",
+			}),
+		).toMatchObject({ label: "Status unavailable", status: "unknown" });
+	});
+
+	it("exposes fulfilled only from the canonical lifecycle snapshot", () => {
+		expect(
+			getSalesOverviewDocumentStatus({
+				type: "order",
+				pipeline: {
+					headline: {
+						code: "fulfilled",
+						label: "Fulfilled",
+						tone: "emerald",
+					},
+				} as never,
 			}),
 		).toMatchObject({ label: "Fulfilled", status: "fulfilled" });
 	});

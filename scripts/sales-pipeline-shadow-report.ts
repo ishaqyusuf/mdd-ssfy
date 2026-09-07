@@ -1,14 +1,17 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { db, type Prisma } from "@gnd/db";
+import { type Prisma, db } from "@gnd/db";
 import {
 	SALES_PIPELINE_CONTRACT_VERSION,
 	type SalesPipelineShadowComparison,
 	type SalesPipelineSnapshot,
 	compareSalesPipelineShadow,
+	isProductionScheduleAssignmentOpen,
+	resolveSalesPipelineSnapshot,
 	salesOrderListProjectionVersion,
 } from "@gnd/sales";
+import { evaluateSalesPipelineCommand } from "@gnd/sales/sales-pipeline-commands";
 import { getSalesPipelineSnapshots } from "@gnd/sales/sales-pipeline-order";
 import {
 	type DatabaseRetryOptions,
@@ -39,6 +42,184 @@ function normalized(value: unknown) {
 		.replaceAll("_", " ");
 }
 
+export function classifyAdministrativeResolutionPolicy(
+	snapshot: SalesPipelineSnapshot,
+) {
+	const decide = (
+		action:
+			| "production.administrative_complete"
+			| "fulfillment.administrative_complete",
+	) => {
+		const decision = evaluateSalesPipelineCommand(snapshot, {
+			action,
+			authorized: true,
+			expectedRevision: snapshot.revision,
+			administrativeOverride: true,
+			administrativeOverrideReason:
+				"Read-only shadow policy classification; no command executed.",
+		});
+		return { status: decision.status, reasons: decision.reasons };
+	};
+	const production = decide("production.administrative_complete");
+	const fulfillment = decide("fulfillment.administrative_complete");
+	return {
+		readyMilestones: [
+			...(production.status === "ready" ? (["production"] as const) : []),
+			...(fulfillment.status === "ready" ? (["fulfillment"] as const) : []),
+		],
+		production,
+		fulfillment,
+		notAuthorization: true as const,
+	};
+}
+
+export function simulateAdministrativeResolution(
+	snapshot: SalesPipelineSnapshot,
+) {
+	const policy = classifyAdministrativeResolutionPolicy(snapshot);
+	const administrativeCompletion = {
+		method: "STATUS_ONLY" as const,
+		recordedAt: "1970-01-01T00:00:00.000Z",
+	};
+	const simulated = resolveSalesPipelineSnapshot({
+		...snapshot.evidence,
+		production: {
+			...snapshot.evidence.production,
+			administrativeCompletion: policy.readyMilestones.includes("production")
+				? administrativeCompletion
+				: snapshot.evidence.production.administrativeCompletion,
+		},
+		fulfillment: {
+			...snapshot.evidence.fulfillment,
+			administrativeCompletion: policy.readyMilestones.includes("fulfillment")
+				? administrativeCompletion
+				: snapshot.evidence.fulfillment.administrativeCompletion,
+		},
+	});
+
+	return {
+		eligibleMilestones: policy.readyMilestones,
+		resultingHeadline: simulated.headline.code,
+		resultingProductionState: simulated.production.state,
+		resultingFulfillmentState: simulated.fulfillment.state,
+		remainingBlockingConflictCodes: simulated.conflicts
+			.filter((conflict) => conflict.severity === "blocking")
+			.map((conflict) => conflict.code),
+		operationalFactsChanged: false as const,
+		notAuthorization: true as const,
+	};
+}
+
+export function classifyConflictSourceFacts(snapshot: SalesPipelineSnapshot) {
+	const activeAssignments = snapshot.evidence.production.assignments.filter(
+		(assignment) => assignment.active,
+	);
+	const activeSubmissions = snapshot.evidence.production.submissions.filter(
+		(submission) => submission.active,
+	);
+	const assignmentEvidence = activeAssignments.map((assignment) => {
+		const submissions = activeSubmissions
+			.filter(
+				(submission) =>
+					submission.assignmentId == null ||
+					submission.assignmentId === assignment.id,
+			)
+			.map((submission) => ({
+				active: true,
+				quantity: submission.quantity,
+				reviewStatus: submission.reviewStatus,
+			}));
+		const open = isProductionScheduleAssignmentOpen({
+			assignedQty: assignment.assignedQty,
+			completedQty: assignment.completedQty,
+			completedAt: assignment.completedAt,
+			submissions,
+		});
+		const assignedQty = Math.max(0, Number(assignment.assignedQty) || 0);
+		const completionEvidenced =
+			Boolean(assignment.completedAt) || (assignedQty > 0 && !open);
+		return { id: assignment.id, open, completionEvidenced };
+	});
+	const openProductionAssignmentIds = assignmentEvidence
+		.filter((assignment) => assignment.open)
+		.map((assignment) => assignment.id)
+		.sort((left, right) => left - right);
+	const completionEvidencedProductionAssignmentIds = assignmentEvidence
+		.filter((assignment) => assignment.completionEvidenced)
+		.map((assignment) => assignment.id)
+		.sort((left, right) => left - right);
+	const indeterminateProductionAssignmentIds = assignmentEvidence
+		.filter((assignment) => !assignment.open && !assignment.completionEvidenced)
+		.map((assignment) => assignment.id)
+		.sort((left, right) => left - right);
+	const openProductionAssignments = openProductionAssignmentIds.length;
+	const completionEvidencedProductionAssignments =
+		completionEvidencedProductionAssignmentIds.length;
+	const indeterminateProductionAssignments =
+		indeterminateProductionAssignmentIds.length;
+	const productionAssignmentShape =
+		activeAssignments.length === 0
+			? "none"
+			: openProductionAssignments === activeAssignments.length
+				? "open_only"
+				: completionEvidencedProductionAssignments === activeAssignments.length
+					? "completion_evidenced_only"
+					: indeterminateProductionAssignments === activeAssignments.length
+						? "indeterminate_only"
+						: openProductionAssignments > 0 &&
+								completionEvidencedProductionAssignments > 0 &&
+								indeterminateProductionAssignments > 0
+							? "open_completion_evidenced_and_indeterminate"
+							: openProductionAssignments > 0 &&
+									completionEvidencedProductionAssignments > 0
+								? "open_and_completion_evidenced"
+								: openProductionAssignments > 0
+									? "open_and_indeterminate"
+									: "completion_evidenced_and_indeterminate";
+	const completedItemDispatches =
+		snapshot.evidence.fulfillment.dispatches.filter(
+			(dispatch) =>
+				dispatch.active &&
+				dispatch.itemCount > 0 &&
+				normalized(dispatch.status) === "completed",
+		);
+	const missingProofDispatches = completedItemDispatches.filter(
+		(dispatch) => !dispatch.proofCompleted,
+	);
+	const missingInventoryDispatches = completedItemDispatches.filter(
+		(dispatch) => !dispatch.inventoryCommitted,
+	);
+	const fulfillmentEvidenceGap =
+		missingProofDispatches.length > 0 && missingInventoryDispatches.length > 0
+			? "proof_and_inventory_missing"
+			: missingProofDispatches.length > 0
+				? "proof_missing"
+				: missingInventoryDispatches.length > 0
+					? "inventory_missing"
+					: "none";
+
+	return {
+		productionAssignmentShape,
+		activeProductionAssignments: activeAssignments.length,
+		openProductionAssignments,
+		openProductionAssignmentIds,
+		completionEvidencedProductionAssignments,
+		completionEvidencedProductionAssignmentIds,
+		indeterminateProductionAssignments,
+		indeterminateProductionAssignmentIds,
+		fulfillmentEvidenceGap,
+		completedItemDispatches: completedItemDispatches.length,
+		missingProofDispatches: missingProofDispatches.length,
+		missingProofDispatchIds: missingProofDispatches
+			.map((dispatch) => dispatch.id)
+			.sort((left, right) => left - right),
+		missingInventoryDispatches: missingInventoryDispatches.length,
+		missingInventoryDispatchIds: missingInventoryDispatches
+			.map((dispatch) => dispatch.id)
+			.sort((left, right) => left - right),
+	};
+}
+
 function legacyProductionIncluded(value: unknown) {
 	return ![
 		"",
@@ -58,6 +239,47 @@ function legacyFulfillmentIncluded(value: unknown) {
 		"fulfilled",
 		"administratively completed",
 	].includes(normalized(value));
+}
+
+export function isUnsafeShadowTransition(
+	snapshot: SalesPipelineSnapshot,
+	legacyHeadline: unknown,
+	auditedOverrideRecords: {
+		productionRecords?: Map<string, Set<string>>;
+		fulfillmentRecords?: Map<string, Set<string>>;
+	} = {},
+) {
+	const blockingConflicts = snapshot.conflicts.filter(
+		(conflict) => conflict.severity === "blocking",
+	);
+	if (
+		!blockingConflicts.length ||
+		!["completed", "fulfilled", "delivered"].includes(
+			normalized(legacyHeadline),
+		)
+	) {
+		return false;
+	}
+	const productionRecordId =
+		snapshot.evidence.production.administrativeCompletion?.recordId;
+	const fulfillmentRecordId =
+		snapshot.evidence.fulfillment.administrativeCompletion?.recordId;
+	const productionExceptionCodes = productionRecordId
+		? auditedOverrideRecords.productionRecords?.get(productionRecordId)
+		: undefined;
+	const fulfillmentExceptionCodes = fulfillmentRecordId
+		? auditedOverrideRecords.fulfillmentRecords?.get(fulfillmentRecordId)
+		: undefined;
+	return blockingConflicts.some((conflict) => {
+		const productionCovered =
+			conflict.dimensions.includes("production") &&
+			productionExceptionCodes?.has(conflict.code);
+		const fulfillmentCovered =
+			conflict.dimensions.some((dimension) =>
+				["fulfillment", "dispatch"].includes(dimension),
+			) && fulfillmentExceptionCodes?.has(conflict.code);
+		return !productionCovered && !fulfillmentCovered;
+	});
 }
 
 type ShadowDatabaseRetryOptions = DatabaseRetryOptions & {
@@ -282,13 +504,77 @@ type ShadowReportDependencies = {
 	readProjections: (
 		query: Prisma.SalesOrderListProjectionFindManyArgs,
 	) => Promise<ShadowProjectionRow[]>;
-	readSnapshots: (salesOrderIds: number[]) => Promise<Map<number, SalesPipelineSnapshot>>;
+	readSnapshots: (
+		salesOrderIds: number[],
+	) => Promise<Map<number, SalesPipelineSnapshot>>;
+	readAuditedAdministrativeOverrides?: (salesOrderIds: number[]) => Promise<
+		Map<
+			number,
+			{
+				productionRecords: Map<string, Set<string>>;
+				fulfillmentRecords: Map<string, Set<string>>;
+			}
+		>
+	>;
 };
+
+async function readAuditedAdministrativeOverrides(salesOrderIds: number[]) {
+	const rows = await db.salesHistory.findMany({
+		where: {
+			salesId: { in: salesOrderIds },
+			name: {
+				in: [
+					"Production completed — status only",
+					"Fulfillment completed — status only",
+				],
+			},
+			deletedAt: null,
+		},
+		select: { salesId: true, data: true },
+	});
+	const result = new Map<
+		number,
+		{
+			productionRecords: Map<string, Set<string>>;
+			fulfillmentRecords: Map<string, Set<string>>;
+		}
+	>();
+	for (const row of rows) {
+		const data = record(row.data);
+		if (
+			data.event !== "SALES_COMPLETION_MARKED" ||
+			!record(data.administrativeOverride).reason ||
+			typeof data.recordId !== "string"
+		) {
+			continue;
+		}
+		const current = result.get(row.salesId) ?? {
+			productionRecords: new Map<string, Set<string>>(),
+			fulfillmentRecords: new Map<string, Set<string>>(),
+		};
+		const exceptionCodes = new Set(
+			Array.isArray(record(data.administrativeOverride).exceptionCodes)
+				? (
+						record(data.administrativeOverride).exceptionCodes as unknown[]
+					).filter((code): code is string => typeof code === "string")
+				: [],
+		);
+		if (data.milestone === "PRODUCTION_COMPLETED") {
+			current.productionRecords.set(data.recordId, exceptionCodes);
+		} else if (data.milestone === "FULFILLMENT_COMPLETED") {
+			current.fulfillmentRecords.set(data.recordId, exceptionCodes);
+		}
+		result.set(row.salesId, current);
+	}
+	return result;
+}
 
 export async function collectSalesPipelineShadowReport(
 	dependencies: ShadowReportDependencies = {
 		readProjections: (query) => db.salesOrderListProjection.findMany(query),
-		readSnapshots: (salesOrderIds) => getSalesPipelineSnapshots(db, salesOrderIds),
+		readSnapshots: (salesOrderIds) =>
+			getSalesPipelineSnapshots(db, salesOrderIds),
+		readAuditedAdministrativeOverrides,
 	},
 ) {
 	const startedAt = new Date();
@@ -328,20 +614,38 @@ export async function collectSalesPipelineShadowReport(
 		if (page.length < projectionPageSize || !cursor) break;
 	}
 	if (!rows.length) {
-		throw new Error("No eligible projections were audited. Empty evidence cannot authorize cutover.");
+		throw new Error(
+			"No eligible projections were audited. Empty evidence cannot authorize cutover.",
+		);
 	}
 	const freshSnapshots = new Map<number, SalesPipelineSnapshot>();
+	const auditedAdministrativeOverrides = new Map<
+		number,
+		{
+			productionRecords: Map<string, Set<string>>;
+			fulfillmentRecords: Map<string, Set<string>>;
+		}
+	>();
 	for (let index = 0; index < rows.length; index += 100) {
 		const batch = rows.slice(index, index + 100);
 		const queryStartedAt = performance.now();
+		const salesOrderIds = batch.map((row) => row.salesOrderId);
 		const snapshots = await withShadowDatabaseReadRetry(() =>
-			dependencies.readSnapshots(
-				batch.map((row) => row.salesOrderId),
-			),
+			dependencies.readSnapshots(salesOrderIds),
 		);
 		resolverAuditLatencies.push(performance.now() - queryStartedAt);
 		for (const [salesOrderId, snapshot] of snapshots) {
 			freshSnapshots.set(salesOrderId, snapshot);
+		}
+		const readAuditedAdministrativeOverrides =
+			dependencies.readAuditedAdministrativeOverrides;
+		if (readAuditedAdministrativeOverrides) {
+			const records = await withShadowDatabaseReadRetry(() =>
+				readAuditedAdministrativeOverrides(salesOrderIds),
+			);
+			for (const [salesOrderId, recordIds] of records) {
+				auditedAdministrativeOverrides.set(salesOrderId, recordIds);
+			}
 		}
 	}
 	const rowById = new Map(rows.map((row) => [row.salesOrderId, row]));
@@ -373,7 +677,10 @@ export async function collectSalesPipelineShadowReport(
 			const salesOrderIds = revalidationCandidateIds.slice(index, index + 100);
 			const latestRows = await withShadowDatabaseReadRetry(() =>
 				dependencies.readProjections({
-					where: { ...projectionEligibility, salesOrderId: { in: salesOrderIds } },
+					where: {
+						...projectionEligibility,
+						salesOrderId: { in: salesOrderIds },
+					},
 					select: {
 						salesOrderId: true,
 						orderId: true,
@@ -394,7 +701,12 @@ export async function collectSalesPipelineShadowReport(
 				if (latestRow) rowById.set(salesOrderId, latestRow);
 				else {
 					const previousRow = rowById.get(salesOrderId);
-					if (previousRow) rowById.set(salesOrderId, { ...previousRow, pipelineRevision: null, payload: {} });
+					if (previousRow)
+						rowById.set(salesOrderId, {
+							...previousRow,
+							pipelineRevision: null,
+							payload: {},
+						});
 				}
 				if (latestSnapshot) freshSnapshots.set(salesOrderId, latestSnapshot);
 				else freshSnapshots.delete(salesOrderId);
@@ -408,20 +720,35 @@ export async function collectSalesPipelineShadowReport(
 	const comparisons = [...rowById.values()].map((row) => {
 		const payload = record(row.payload);
 		const snapshot = freshSnapshots.get(row.salesOrderId);
-		if (!snapshot?.revision || !row.pipelineRevision) return {
-			salesOrderId: row.salesOrderId,
-			orderNo: row.orderId,
-			staleProjection: true,
-			concurrentFreshnessChange: false,
-			differenceCodes: [!snapshot?.revision ? "CANONICAL_EVIDENCE_MISSING" : "PROJECTION_EVIDENCE_MISSING"],
-			membershipClassification: null,
-			membershipReasons: [],
-			unsafe: false,
-		};
+		if (!snapshot?.revision || !row.pipelineRevision)
+			return {
+				salesOrderId: row.salesOrderId,
+				orderNo: row.orderId,
+				staleProjection: true,
+				concurrentFreshnessChange: false,
+				differenceCodes: [
+					!snapshot?.revision
+						? "CANONICAL_EVIDENCE_MISSING"
+						: "PROJECTION_EVIDENCE_MISSING",
+				],
+				membershipClassification: null,
+				membershipReasons: [],
+				canonicalRevision: snapshot?.revision ?? null,
+				legacyHeadline: null,
+				blockingConflictCodes: [],
+				administrativeResolutionPolicy: null,
+				administrativeResolutionSimulation: null,
+				conflictSourceFacts: null,
+				unsafe: false,
+			};
 		const legacy = record(payload.pipelineLegacyPresentation);
+		const legacyHeadline =
+			typeof legacy.status === "string" ? legacy.status : null;
+		const blockingConflictCodes = snapshot.conflicts
+			.filter((conflict) => conflict.severity === "blocking")
+			.map((conflict) => conflict.code);
 		const comparison = compareSalesPipelineShadow(snapshot, {
-			legacyHeadline:
-				typeof legacy.status === "string" ? legacy.status : undefined,
+			historicalHeadline: legacyHeadline ?? undefined,
 			legacyProductionIncluded: legacyProductionIncluded(
 				legacy.productionState,
 			),
@@ -437,25 +764,31 @@ export async function collectSalesPipelineShadowReport(
 			freshnessObservations.get(row.salesOrderId) ?? [],
 		);
 		return {
-				salesOrderId: row.salesOrderId,
-				orderNo: row.orderId,
-				// The cutover gate consumes this count: changing evidence is not proof of freshness.
-				staleProjection: freshnessClassification !== "fresh",
-				concurrentFreshnessChange:
-					freshnessClassification === "concurrent_change",
-				differenceCodes: comparison.differences.map(
-					(difference) => difference.code,
-				),
-				membershipClassification:
-					membershipClassification?.classification ?? null,
-				membershipReasons: membershipClassification?.reasons ?? [],
-				unsafe:
-					snapshot.conflicts.some(
-						(conflict) => conflict.severity === "blocking",
-					) &&
-					["completed", "fulfilled", "delivered"].includes(
-						normalized(legacy.status),
-					),
+			salesOrderId: row.salesOrderId,
+			orderNo: row.orderId,
+			// The cutover gate consumes this count: changing evidence is not proof of freshness.
+			staleProjection: freshnessClassification !== "fresh",
+			concurrentFreshnessChange:
+				freshnessClassification === "concurrent_change",
+			differenceCodes: comparison.differences.map(
+				(difference) => difference.code,
+			),
+			membershipClassification:
+				membershipClassification?.classification ?? null,
+			membershipReasons: membershipClassification?.reasons ?? [],
+			canonicalRevision: snapshot.revision,
+			legacyHeadline,
+			blockingConflictCodes,
+			administrativeResolutionPolicy:
+				classifyAdministrativeResolutionPolicy(snapshot),
+			administrativeResolutionSimulation:
+				simulateAdministrativeResolution(snapshot),
+			conflictSourceFacts: classifyConflictSourceFacts(snapshot),
+			unsafe: isUnsafeShadowTransition(
+				snapshot,
+				legacy.status,
+				auditedAdministrativeOverrides.get(row.salesOrderId),
+			),
 		};
 	});
 	const membershipDifferences = comparisons.filter(
@@ -488,6 +821,45 @@ export async function collectSalesPipelineShadowReport(
 		reviewRequiredMembershipReasonCounts:
 			countShadowMembershipReasons(comparisons),
 		unsafeTransitionDifferences: unsafeDifferences.length,
+		unsafeTransitionSamples: unsafeDifferences,
+		administrativeResolutionPolicyCounts: Object.fromEntries(
+			Array.from(
+				unsafeDifferences.reduce((counts, item) => {
+					const key =
+						item.administrativeResolutionPolicy?.readyMilestones.join("+") ||
+						"none";
+					counts.set(key, (counts.get(key) || 0) + 1);
+					return counts;
+				}, new Map<string, number>()),
+			).sort(([left], [right]) => left.localeCompare(right)),
+		),
+		administrativeResolutionSimulationCounts: Object.fromEntries(
+			Array.from(
+				unsafeDifferences.reduce((counts, item) => {
+					const simulation = item.administrativeResolutionSimulation;
+					const milestones = simulation?.eligibleMilestones.join("+") || "none";
+					const conflicts =
+						simulation?.remainingBlockingConflictCodes.join("+") || "none";
+					const key = simulation
+						? `${milestones}=>${simulation.resultingHeadline}|${conflicts}`
+						: "unavailable";
+					counts.set(key, (counts.get(key) || 0) + 1);
+					return counts;
+				}, new Map<string, number>()),
+			).sort(([left], [right]) => left.localeCompare(right)),
+		),
+		unsafeSourceFactArchetypeCounts: Object.fromEntries(
+			Array.from(
+				unsafeDifferences.reduce((counts, item) => {
+					const facts = item.conflictSourceFacts;
+					const key = facts
+						? `${facts.productionAssignmentShape}|${facts.fulfillmentEvidenceGap}`
+						: "unavailable";
+					counts.set(key, (counts.get(key) || 0) + 1);
+					return counts;
+				}, new Map<string, number>()),
+			).sort(([left], [right]) => left.localeCompare(right)),
+		),
 		headlineDifferences: comparisons.filter((item) =>
 			item.differenceCodes.includes("HEADLINE_MISMATCH"),
 		).length,

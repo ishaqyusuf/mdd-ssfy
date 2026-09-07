@@ -1,7 +1,7 @@
 import type { Db, TransactionClient } from "@gnd/db";
 import { createInboundShipmentFromDemands } from "@gnd/inventory";
 
-import { getSalesOrderLifecycleStatusInfo } from "./order-status";
+import { getLegacySalesOrderLifecycleStatusInfo } from "./legacy-order-status";
 import type { SalesInventoryOverviewReadiness } from "./sales-inventory-overview";
 import { resolveSalesInventoryFulfillmentStatus } from "./sales-inventory-policy";
 
@@ -856,7 +856,7 @@ async function assertSalesOrdersCanAutoResolveMarkAs(
 			deliveries: sale.deliveries,
 			stats: sale.stat,
 		});
-		const lifecycle = getSalesOrderLifecycleStatusInfo({
+		const lifecycle = getLegacySalesOrderLifecycleStatusInfo({
 			orderStatus: sale.status,
 			legacyProductionStatus: sale.prodStatus,
 			fulfillmentStatus,
