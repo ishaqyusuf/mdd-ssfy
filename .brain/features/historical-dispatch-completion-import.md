@@ -28,3 +28,8 @@ Types: `bun node_modules/typescript/bin/tsc --project scripts/tsconfig.historica
 Read-only verify checks every order's operational source hash, ledger identity/method/state/effective date, audit evidence, canonical administrative Fulfillment state and persisted list projection. Browser acceptance additionally checks the Marked as completed label and pending/completed queue membership.
 
 Fully owned groups skip write transactions, still repair projections from current canonical evidence, then read owned records again before journaling replay/cancellation status.
+
+## Completed production adoption
+All 1,403 reviewed production orders were imported and verified. Full replay found 1,403 existing records with zero new ledger/audit/projection writes. Local validation covered 912 orders. Twenty isolated local fixtures exercised five-order atomic transactions, later-subgroup failure cleanup, mixed-owned resume, type-change refusal, scoped recovery and cancelled replay: 10 tests / 80 assertions; focused types passed.
+
+Three post-preview source updates were revalidated without changing approved order IDs, dispatch IDs or effective dates. The original batchId was retained; final verification uses the combined verification manifest, with original preview and guard-refresh provenance retained under the task outputs directory.

@@ -1,7 +1,7 @@
 # Task: Historical dispatch status-only completion import
 
 ## Status
-In Progress
+Done
 
 ## Priority
 High
@@ -19,9 +19,9 @@ High
 User authorizes treating every completed dispatch missing delivery proof as a historical shortcut completion, without requiring old job/action evidence. Build a dry-run-first, repeatable audited status-only migration; validate locally, then preview production and obtain confirmation before production apply. Preserve later cancellations/reopenings and operational records. Include migration-scoped recovery.
 
 ## Implementation Progress
-- Completion: 83%
+- Completion: 100%
 - Current Checklist: 6/6 — Production preview, approval, apply and verification
-- Blockers: None. User explicitly approved the reviewed 1,403-order production batch.
+- Blockers: None.
 
 ## Implementation Checklist
 - [x] Establish candidate policy, environment binding, and existing command boundary
@@ -29,7 +29,7 @@ User authorizes treating every completed dispatch missing delivery proof as a hi
 - [x] Implement revision-bound import, idempotency, journal, and scoped recovery
 - [x] Run local dry-run/import/replay and verify projections and operational non-effects
 - [x] Review, document runbook, validate types/tests, and commit on current branch
-- [ ] Produce production dry run; apply and verify only after user confirmation
+- [x] Produce production dry run; apply and verify only after user confirmation
 
 ## Validation Evidence
 - Current checkout is master and was clean at task start.
@@ -81,3 +81,21 @@ User authorizes treating every completed dispatch missing delivery proof as a hi
 - Independent production prefix verification passed all60 imported orders: unchanged operational hashes, exact ledger/audit identities and canonical/persisted projection agreement. V6 resumed the original full approved manifest with five-order atomic groups.
 
 - V6 reached130 terminal orders with135 ledger commits. Stopped with confirmed exit143 to batch outer source/projection work in groups20 while retaining inner atomic transactions of5. Fully owned groups skip write transactions and fresh post-repair records determine terminal replay/cancellation status. Local integration covers a later subgroup failure repairing the earlier committed5, mixed-owned resume, and cancelled replay. Ten tests / 80 assertions and focused types pass; scoped review confirms the journal race fixed. V7 resumed the exact approved manifest.
+
+- Production v7 progress checkpoint: 1,000 approved orders committed, 980 terminal imports/replays with projection refresh complete. V7 has reported no failures. Full-manifest verification/replay remains pending after apply.
+
+- V7 stopped safely on source drift for08593DB/id23350 after1,015 terminal imported/replayed rows. The guarded source query found order.updatedAt=2026-09-07T16:02:20.285Z, later than the15:04:05 preview; no post-preview Sales History was available to attribute the specific edit. Dispatch4044 still completed/missing proof, same effective date2026-06-18, and fresh classification remains eligible. Refreshing read-only checks within the original approved population; no added orders or override of cancellations/reopenings.
+
+- All1,015 imported orders passed original-manifest verification. Fresh preview found exactly the388 remaining approved IDs, no new or removed IDs. Only guard hashes/revisions changed for08593DB/23350,09474DB/26575,09514DB/26765; dispatch IDs, order numbers and effective dates are identical. Original batchId retained. Saved a388-order resume apply manifest, combined1,403-order verification manifest and guard-refresh provenance report under outputs. V8 resumed the388 remaining orders; no policy or population expansion.
+
+- Production apply complete: V7 finalized1,015 original orders; V8 imported the remaining388 after unchanged-scope guard refresh. Total1,403 approved status-only completions; all list projections refreshed. V8 exited 0 with388 imports and no failures. Whole-manifest verification and replay are running next.
+
+- Final whole-population production verification passed1,403/1,403: operational source hashes unchanged from their audited pre-import evidence, exact active status-only ledger/effective dates, paired migration events, canonical administrative Fulfillment and persisted projection revision agreement. Full-manifest replay is running to verify no duplicate ledger/audit writes.
+
+## Final result
+- All 1,403 approved production orders imported as audited status-only completions and independently verified. Scope unchanged; original eight holds preserved.
+- Full production replay: 1,403 replayed, zero new completion/audit rows and zero projection repairs. Both final verification and replay exited 0.
+- Operational source hashes unchanged from audited pre-import evidence; packing/proof/inventory allocations/payments/taxes preserved. Three guard refreshes after read-only revalidation are documented in the output provenance report; dispatch IDs/effective dates unchanged.
+- Local validation: 912 verified and replayed without duplicates. Final focused checks: 10 tests / 80 assertions; TypeScript passed. Reviews resolved all hard findings.
+- Browser 03389LM: Marked as completed, 0/15 packing, absent from Past Due and present in Completed.
+- Latest implementation commit: ff19f7dc5. Final report/results/runbook and all manifests/journals are under /Users/M1PRO/Documents/Codex/2026-09-07/wh/outputs.

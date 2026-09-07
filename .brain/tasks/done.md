@@ -1955,3 +1955,7 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   browser proof of the default and `Show > Archived` views passed.
 - Decision: `.brain/decisions/ADR-083-reversible-sales-order-workspace-archiving.md`
 - Completed Date: 2026-09-02
+
+### [Historical dispatch status-only completion import](2026-09-07-historical-dispatch-completion-import.md)
+- Status: Done
+- Completed Date: 2026-09-07
