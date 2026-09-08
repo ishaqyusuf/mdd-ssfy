@@ -582,7 +582,6 @@ describe("production submission material review decision", () => {
 				reviewId: 55,
 				expectedUpdatedAt: new Date("2026-07-30T12:00:00.000Z"),
 				action: "MARK_AVAILABLE_AND_APPROVE",
-				note: "Materials are physically available.",
 			},
 			{ id: 9, name: "Admin" },
 			{
@@ -612,7 +611,7 @@ describe("production submission material review decision", () => {
 			data: expect.objectContaining({
 				status: "APPROVED",
 				reviewedById: 9,
-				decisionNote: "Materials are physically available.",
+				decisionNote: "Material review action MARK_AVAILABLE_AND_APPROVE requested by employee 9.",
 				materialRevision: "after",
 			}),
 		});

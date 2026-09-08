@@ -15,7 +15,7 @@ describe("query event mutation registry", () => {
 		expect(resolveQueryEventTargets({ name: "sales.pipeline.changed" }).some(target => target.route === "notes.activityTree")).toBe(true);
 	});
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(101);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(102);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(16);
 	});
 
@@ -699,3 +699,11 @@ describe("query event mutation registry", () => {
 		}
 	});
 });
+
+ it("refreshes receipt, material and production surfaces from the scoped receive command", () => {
+ const events = resolveMutationQueryEvents({mutationKey: [["sales", "receiveProductionInbound"]], data: {salesOrderId: 123, inboundId: 7}});
+ expect(events.map(event => event.name)).toEqual(["inventory.inbound.changed", "sales.pipeline.changed"]);
+ const routes = events.flatMap(event => resolveQueryEventTargets(event).map(target => target.route));
+ for (const route of ["sales.productionPendingInbounds", "sales.productionOverview", "sales.productionCalendar", "sales.productionTasks", "inventories.salesInventoryOverview", "inventories.orderInboundShipments"])
+ expect(routes).toContain(route);
+ });

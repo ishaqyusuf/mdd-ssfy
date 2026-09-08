@@ -22,3 +22,13 @@
 - Runtime static scan found no live `components/tables/skeleton`, `@gnd/ui/data-table`, `fetchInfiniteQuery`, `getQueryClient`, `PageStickyHeader`, `IntersectionObserver`, legacy shipment card-map, or `ScrollArea` queue use in the inbounds route/table surface.
 - Filtered `@gnd/dashboard` typecheck grep reported no diagnostics for the touched inbounds table, route, workspace, registry, and audit files while broad typecheck remains subject to existing unrelated baseline errors.
 - Local HTTP GET smoke returned `200` for `/inventory/inbounds` on both `127.0.0.1:3010` and `https://gndprodesk.localhost:3011` after the initial dev-server compile completed.
+
+## Production receipt shortcut (2026-09-08)
+
+Production can receive uncomplicated, scoped inbound items through a dedicated
+command using the canonical physical receipt primitive. It applies received stock
+to linked Needs and confirms only allocations backed by matching physical stock
+in the same Serializable transaction. Complex/shared-item/issue receipts remain
+Inventory work. General receipt/status/issue routes require inbound editing; the
+worker exception is default-off and assignment scoped, not general Inventory access.
+See [receipt ADR](../decisions/2026-09-08-scoped-production-inbound-receipt.md).

@@ -2587,3 +2587,35 @@ capability must match. Post-commit handoff and notification behavior is retained
   sales order createdAt, then dispatch id in the same direction. Existing sort
   keys and default ordering retain their behavior. No schema or permission
   change is required.
+
+## Production material review note-free input (2026-09-08)
+
+- `reviewProductionSubmission.note` is optional. Existing supplied notes remain
+  accepted; absent/blank input generates an action/actor-attributed description
+  at the canonical decision service. Decision audit snapshots, authorization,
+  revision checks, payroll effects and legacy notes remain intact.
+- New admin-only `sales.getProductionReceivingSettings` and
+  `sales.updateProductionReceivingSettings` expose a default-off
+  `production.workerCanReceiveInbound` policy in Sales settings metadata. Updates
+  require `expectedRevision`, increment the revision, preserve other metadata and
+  write `production_receiving_policy_changed` with the actor and before/after
+  policy in the same serializable transaction. Worker consumers recheck this
+  policy inside their receipt transaction.
+
+### Production inbound receipt — 2026-09-08
+
+`sales.productionPendingInbounds` reads bounded pending physical receipts for an
+order, optional exact inbound ID and cursor. It returns server-calculated receipt
+capabilities and evidence revisions. `sales.receiveProductionInbound` accepts
+order/inbound IDs, expected revision and request UUID; physical receipt, scoped
+Needs allocation, allocation confirmation and audit run transactionally. A failed
+application rolls back receiving. Replayed successful requests do not receive twice.
+Production submissions are not approved by this command.
+
+Receipt review refinement: use Serializable isolation, validate pending allocation
+Need/variant/physical-stock capacity before confirmation, and return remaining
+backorder quantity for partial-success messaging. Projection refresh reads the
+post-receipt canonical pipeline evidence revision, not only the sale timestamp.
+The command requires one persisted projection; a skipped refresh rolls back receipt,
+allocation and audit so success cannot leave the order list stale. Inbound item
+selection is scoped before limiting.

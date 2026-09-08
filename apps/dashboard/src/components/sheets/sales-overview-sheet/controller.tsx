@@ -12,6 +12,7 @@ import { DispatchTab } from "./dispatch-tab";
 import type { GeneralTabProps } from "./general-tab";
 import { GeneralTabGateway } from "./general/general-tab-gateway";
 import { PackingTab } from "./packing-tab";
+import { ProductionPendingInbounds } from "./production/v2/production-pending-inbounds";
 import { ProductionTabGateway } from "./production/production-tab-gateway";
 import { TransactionsTab } from "./transactions-tab";
 import type {
@@ -20,6 +21,17 @@ import type {
 	LegacySalesOverviewTabId,
 } from "./types";
 export { resolveLegacySalesOverviewMode } from "./mode";
+
+function WorkerInboundInventoryTab() {
+	const { data } = useSaleOverview();
+	return data?.id ? (
+		<ProductionPendingInbounds
+			key={data.id}
+			salesOrderId={data.id}
+			inventoryMode
+		/>
+	) : null;
+}
 
 function LegacySalesOverviewInventoryTab({
 	onCreateInbound,
@@ -100,6 +112,11 @@ export function createLegacySalesOverviewTabs({
 					value: "production",
 					label: "Productions",
 					content: <ProductionTabGateway />,
+				},
+				{
+					value: "inventory",
+					label: "Inventory",
+					content: <WorkerInboundInventoryTab />,
 				},
 				{
 					value: "production-notes",

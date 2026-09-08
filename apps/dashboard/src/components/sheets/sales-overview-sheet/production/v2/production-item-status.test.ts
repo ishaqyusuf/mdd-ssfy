@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	getProductionItemStatusBadges,
 	getQuantityMatrixTotal,
+	shouldShowProductionMaterialBadge,
 } from "./production-item-status";
 
 const labels = (status: Parameters<typeof getProductionItemStatusBadges>[0]) =>
@@ -25,10 +26,10 @@ describe("production item progressive status", () => {
 		expect(labels(status({ assigned: 1 }))).toEqual(["1 OF 3 ASSIGNED"]);
 		expect(labels(status({ assigned: 3 }))).toEqual(["ASSIGNED"]);
 		expect(labels(status({ assigned: 3, submitted: 1 }))).toEqual([
-			"1 OF 3 SUBMITTED",
+			"1 OF 3 COMPLETED",
 		]);
 		expect(labels(status({ assigned: 3, submitted: 3 }))).toEqual([
-			"READY TO FULFILL",
+			"PRODUCTION COMPLETED",
 		]);
 		expect(labels(status({ assigned: 3, fulfilled: 2, submitted: 3 }))).toEqual(
 			["2 OF 3 FULFILLED"],
@@ -66,12 +67,12 @@ describe("production item progressive status", () => {
 					submitted: 3,
 				}),
 			),
-		).toEqual(["READY TO FULFILL"]);
+		).toEqual(["PRODUCTION COMPLETED"]);
 	});
 
 	test("keeps partial upstream stages visible during overlapping work", () => {
 		expect(labels(status({ assigned: 2, fulfilled: 1, submitted: 1 }))).toEqual(
-			["2 OF 3 ASSIGNED", "1 OF 3 SUBMITTED", "1 OF 3 FULFILLED"],
+			["2 OF 3 ASSIGNED", "1 OF 3 COMPLETED", "1 OF 3 FULFILLED"],
 		);
 	});
 
@@ -86,4 +87,49 @@ describe("production item progressive status", () => {
 		expect(getQuantityMatrixTotal({ lh: 2, qty: 0, rh: 1 })).toBe(3);
 		expect(getQuantityMatrixTotal(null)).toBe(0);
 	});
+});
+
+test("fully reported pending work supersedes Assigned without claiming finalized completion", () => {
+	expect(labels(status({ assigned: 3, reported: 3, submitted: 0 }))).toEqual([
+		"COMPLETED · REVIEW PENDING",
+	]);
+	expect(labels(status({ assigned: 2, reported: 1, submitted: 0 }))).toEqual([
+		"2 OF 3 ASSIGNED",
+		"1 OF 3 SUBMITTED · REVIEW PENDING",
+	]);
+});
+
+test("material ready is superseded by any submitted or completed production", () => {
+	expect(
+		shouldShowProductionMaterialBadge({
+			code: "material_ready",
+			reported: 0,
+			completed: 0,
+		}),
+	).toBe(true);
+	expect(
+		shouldShowProductionMaterialBadge({
+			code: "material_ready",
+			reported: 1,
+			completed: 0,
+		}),
+	).toBe(false);
+	expect(
+		shouldShowProductionMaterialBadge({ code: "material_ready", completed: 1 }),
+	).toBe(false);
+	expect(
+		shouldShowProductionMaterialBadge({ code: "material_ready", fulfilled: 1 }),
+	).toBe(false);
+	expect(
+		shouldShowProductionMaterialBadge({
+			code: "allocation_approval",
+			reported: 1,
+		}),
+	).toBe(true);
+	expect(
+		shouldShowProductionMaterialBadge({
+			code: "ready_review_pending",
+			reported: 1,
+		}),
+	).toBe(false);
 });

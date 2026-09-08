@@ -6,12 +6,15 @@ import type { ProductionItem } from "../../production-item-context";
 import {
 	getProductionItemStatusBadges,
 	getQuantityMatrixTotal,
+	shouldShowProductionMaterialBadge,
 } from "./production-item-status";
 
 export function ProductionItemStatusBadges({
 	item,
+	workerMode = false,
 }: {
 	item: ProductionItem;
+	workerMode?: boolean;
 }) {
 	const { data } = useProduction();
 	const stats = item.analytics?.stats;
@@ -29,16 +32,36 @@ export function ProductionItemStatusBadges({
 		shippable: Boolean(item.itemConfig?.shipping),
 		staffedAssignmentCount,
 		submitted: getQuantityMatrixTotal(stats?.prodCompleted),
-		total: getQuantityMatrixTotal(item.qty),
+		reported: item.analytics?.reportedSubmitQty ?? undefined,
+		total: getQuantityMatrixTotal(workerMode ? stats?.prodAssigned : item.qty),
 	});
 
-	if (!badges.length && !item.materialStatus) return null;
+	const showMaterialBadge = shouldShowProductionMaterialBadge({
+		code: item.materialStatus?.code,
+		reported: item.analytics?.reportedSubmitQty,
+		completed: getQuantityMatrixTotal(stats?.prodCompleted),
+		fulfilled: getQuantityMatrixTotal(stats?.dispatchCompleted),
+	});
+	if (!badges.length && !showMaterialBadge) return null;
 
 	return (
 		<div className="mt-2 flex flex-wrap gap-1.5">
-			<ItemMaterialStatusBadge status={item.materialStatus} />
+			{showMaterialBadge && (
+				<ItemMaterialStatusBadge
+					status={item.materialStatus}
+					audience={workerMode ? "worker" : "admin"}
+				/>
+			)}
 			{badges.map((badge) => (
-				<Badge key={badge.label} variant={badge.variant}>
+				<Badge
+					key={badge.label}
+					variant={badge.variant}
+					className={
+						badge.label.includes("REVIEW PENDING")
+							? "border-amber-200 bg-amber-50 text-amber-800"
+							: undefined
+					}
+				>
 					{badge.label}
 				</Badge>
 			))}

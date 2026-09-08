@@ -58,3 +58,4 @@ export * from "./schema";
 export * from "./special-order";
 export * from "./dispatch-calendar-presentation";
 export * from "./sales-completion-date";
+export * from "./production-inbound";

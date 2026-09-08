@@ -174,6 +174,9 @@ import {
 } from "@gnd/sales/sales-workflow-cancellation";
 import {
 	getGuardedPackingSettings,
+	getProductionReceivingSettings,
+	updateProductionReceivingSettings,
+	productionReceivingPolicyInputSchema,
 	getSettingAction,
 	guardedPackingPolicyInputSchema,
 	normalizeSalesPrintSettings,
@@ -189,6 +192,10 @@ import { generateRandomString, timeLog } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
 import { createNoteAction } from "@notifications/note";
 import {
+	getProductionPendingInbounds,
+	receiveProductionInbound,
+	productionInboundQuerySchema,
+	productionInboundReceiveSchema,
 	SalesScheduleMoveError,
 	buildProductionItemMaterialStatus,
 	getProductionReadiness,
@@ -323,6 +330,31 @@ async function requireProductionOverviewViewer(ctx: TRPCContext) {
 		],
 		"You do not have permission to view sales production details.",
 	);
+}
+
+async function resolveProductionInboundActor(ctx: TRPCContext) {
+	const session = await requireAnyOperationalPermission(
+		ctx,
+		[
+			"viewOrders",
+			"editOrders",
+			"viewProduction",
+			"editProduction",
+			"viewInboundOrder",
+			"editInboundOrder",
+		],
+		"You do not have permission to view production inbounds.",
+	);
+	return {
+		id: session.id,
+		canEditInbound: session.can.editInboundOrder === true,
+		canViewAll:
+			session.can.viewOrders === true ||
+			session.can.editOrders === true ||
+			session.can.viewInboundOrder === true ||
+			session.can.editProduction === true ||
+			session.can.editInboundOrder === true,
+	};
 }
 
 async function requireProductionEditor(ctx: TRPCContext) {
@@ -610,7 +642,10 @@ function resolveCccPercentageFromMeta(meta: Record<string, unknown> | null) {
 
 export const salesRouter = createTRPCRouter({
 	salesCompletionDateContext: protectedProcedure.query(() =>
-		getSalesCompletionDateContext(new Date(), process.env.BUSINESS_TIME_ZONE || process.env.TZ),
+		getSalesCompletionDateContext(
+			new Date(),
+			process.env.BUSINESS_TIME_ZONE || process.env.TZ,
+		),
 	),
 	salesCompletionProjection: protectedProcedure
 		.input(salesCompletionProjectionInputSchema)
@@ -916,7 +951,9 @@ export const salesRouter = createTRPCRouter({
 		.input(salesProductionQueryParamsSchema)
 		.query(async (props) => {
 			await requireProductionOverviewViewer(props.ctx);
-			return getSalesProductions(props.ctx.db, props.input, { includeInvoice: true });
+			return getSalesProductions(props.ctx.db, props.input, {
+				includeInvoice: true,
+			});
 		}),
 	productionTasks: protectedProcedure
 		.input(salesProductionQueryParamsSchema)
@@ -1071,6 +1108,23 @@ export const salesRouter = createTRPCRouter({
 					: props.input;
 			return getProductionOrderDetailV2(props.ctx.db, input);
 		}),
+	productionPendingInbounds: protectedProcedure
+		.input(productionInboundQuerySchema)
+		.query(async ({ ctx, input }) =>
+			getProductionPendingInbounds(
+				ctx.db,
+				input,
+				await resolveProductionInboundActor(ctx),
+			),
+		),
+	receiveProductionInbound: protectedProcedure
+		.input(productionInboundReceiveSchema)
+		.mutation(async ({ ctx, input }) =>
+			receiveProductionInbound(ctx.db, input, (tx) =>
+				resolveProductionInboundActor({ ...ctx, db: tx as typeof ctx.db }),
+			),
+		),
+
 	productionSubmissionMaterialReviews: protectedProcedure
 		.input(productionSubmissionMaterialReviewQueueSchema)
 		.query(async (props) => {
@@ -1451,6 +1505,17 @@ export const salesRouter = createTRPCRouter({
 			settings: await getSalesHandoffTriggerSettings(props.ctx.db),
 		};
 	}),
+	getProductionReceivingSettings: protectedProcedure.query(async ({ ctx }) => {
+		await requireSuperAdmin(ctx);
+		return { settings: await getProductionReceivingSettings(ctx.db) };
+	}),
+	updateProductionReceivingSettings: protectedProcedure
+		.input(productionReceivingPolicyInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireSuperAdmin(ctx);
+			return updateProductionReceivingSettings(ctx.db, input, ctx.userId!);
+		}),
+
 	getGuardedPackingSettings: protectedProcedure.query(async (props) => {
 		await requireSuperAdmin(props.ctx);
 		return {

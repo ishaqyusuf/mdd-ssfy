@@ -197,6 +197,9 @@ export async function decideProductionSubmissionMaterialReview(
 	actor: ReviewDecisionActor,
 	dependencies: ReviewDecisionDependencies = {},
 ) {
+	const decisionNote =
+		input.note?.trim() ||
+		`Material review action ${input.action} requested by employee ${actor.id}.`;
 	const evaluateEvidence =
 		dependencies.evaluateEvidence ??
 		evaluateProductionSubmissionMaterialEvidence;
@@ -299,7 +302,7 @@ export async function decideProductionSubmissionMaterialReview(
 						status: "REJECTED",
 						reviewedById: actor.id,
 						reviewedAt: new Date(),
-						decisionNote: input.note,
+						decisionNote,
 						resolution: {
 							action: input.action,
 						},
@@ -580,7 +583,7 @@ export async function decideProductionSubmissionMaterialReview(
 						classificationReason: after.classification.reason,
 						materialSnapshot: after.materialSnapshot,
 						materialRevision: after.materialRevision,
-						decisionNote: input.note,
+						decisionNote,
 						resolution: {
 							...resolution,
 							beforeRevision: before.materialRevision,
@@ -613,7 +616,7 @@ export async function decideProductionSubmissionMaterialReview(
 					status: "APPROVED",
 					reviewedById: actor.id,
 					reviewedAt: new Date(),
-					decisionNote: input.note,
+					decisionNote,
 					materialRevision: after.materialRevision,
 					resolution: {
 						...resolution,

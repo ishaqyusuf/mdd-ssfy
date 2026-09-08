@@ -127,3 +127,6 @@ Tracks queued work that is important but not currently in the top execution slic
 - [ ] Add customer self-service depth around payment/dashboard surfaces, including saved preferences, wallet-led payment options, and post-checkout account history (API + UI + Validation)
 - [ ] Add integration/e2e coverage for sales delivery creation, quotes flow, dispatch packing updates, and notifications
 - [ ] Deprecate compatibility-only legacy payment mutations and cached balance ownership once canonical payment projections and resolution workflows are proven stable in production (Schema + API + Ops)
+
+### [Production receipt confirmation, cancellation and pending-review reconciliation](2026-09-08-production-receipt-follow-up-and-cancel-review.md)
+- Status: Backlog

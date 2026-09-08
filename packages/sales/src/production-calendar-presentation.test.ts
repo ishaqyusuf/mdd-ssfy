@@ -128,3 +128,14 @@ describe("canonical Production calendar palette", () => {
 		).toBe("unassigned");
 	});
 });
+
+ it("preserves known production review state when only commercial status is absent", () => {
+ const evidence = source();
+ evidence.commercial.status = null;
+ evidence.production.assignments.push({id: 1, active: true, assignedQty: 1, completedQty: 0});
+ evidence.production.submissions.push({id: 1, active: true, qty: 1, reviewStatus: "PENDING_REVIEW"});
+ const snapshot = resolveSalesPipelineSnapshot(evidence);
+ expect(snapshot.commercial.state).toBe("unknown");
+ expect(snapshot.production.state).toBe("awaiting_review");
+ expect(getProductionCalendarPresentation(snapshot).label).toBe("Awaiting review");
+ });

@@ -1,3 +1,4 @@
+import { ProductionReceivingSettings } from "@/components/settings/production-receiving-settings";
 import { GuardedPackingSettingsPage } from "@/components/settings/guarded-packing-settings-page";
 import { SalesHandoffTriggerSettingsPage } from "@/components/settings/sales-handoff-trigger-settings-page";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
@@ -37,6 +38,7 @@ export default async function Page() {
                 </header>
                 <SalesHandoffTriggerSettingsPage />
                 <GuardedPackingSettingsPage />
+                <ProductionReceivingSettings />
             </section>
         </HydrateClient>
     );

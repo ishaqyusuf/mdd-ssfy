@@ -837,3 +837,26 @@ Tracks authentication and authorization patterns across API surfaces.
   exception and remain blocked for reviewed Sales Form correction.
 - Public signed-token preview/download consumption remains read-only and cannot
   stage or apply a repair.
+
+## Production receiving implementation checkpoint (2026-09-08)
+
+- General `inventories.receiveInboundShipment` now explicitly requires
+  `editInboundOrder`; authenticated access alone no longer grants receipt.
+- Production receiving policy management uses the existing super-admin guard.
+  The worker-specific scoped receipt capability additionally requires current
+  active assignment scope and fresh inbound evidence.
+
+### Scoped worker receipt implementation checkpoint — 2026-09-08
+
+Worker receiving defaults off under Sales settings. The dedicated Production
+command checks current policy and active assignment ownership inside its transaction.
+Shared item demands outside that worker/order scope and unresolved issues cannot
+be received through the compact action. Worker Inventory navigation uses the same
+scoped query, rather than the full administrative Inventory surface. General receipt
+requires editInboundOrder. Worker scope is verified through API/component tests
+and real transaction fixtures; browser receipt was verified with an admin session.
+
+Receipt bypass audit: general inbound detail/order lists now require inventory
+fulfillment viewer authority; general allocation decisions require the existing
+received-backorder operator authority. Status and issue changes require inbound
+editing. Workers use the dedicated assigned-material query/command.

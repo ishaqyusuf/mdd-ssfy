@@ -3,6 +3,9 @@
 ### [Table Row Processing And Exit Feedback](2026-09-08-table-row-processing-exit-feedback.md)
 - Status: Blocked
 
+### [Production status clarity and worker inbound receipt](2026-09-08-production-status-and-worker-inbound-receipt.md)
+- Status: In Progress
+
 ### [GND Mobile Screen-by-Screen Redesign](2026-09-04-gnd-mobile-screen-by-screen-redesign.md)
 - Status: In Progress
 

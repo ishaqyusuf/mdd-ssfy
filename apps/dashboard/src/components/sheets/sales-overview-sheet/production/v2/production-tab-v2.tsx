@@ -1,12 +1,10 @@
 "use client";
 
-import { ItemMaterialStatusBadge } from "@/components/production-v2/item-material-status-badge";
 import { ProductionItemHeadline } from "@/components/production-v2/production-item-headline";
 import { getProductionTabItems } from "@/components/sales-overview-system/lib/production-items";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useAfterTaskTrigger } from "@/hooks/use-task-trigger";
 import { cn } from "@/lib/utils";
-import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef } from "react";
 
 import {
@@ -39,7 +37,6 @@ import {
 	ProductionItemProvider,
 } from "../../production-item-context";
 import { ProductionItemMenu } from "../../production-item-menu";
-import { ProductionReadinessBanner } from "../../production-readiness-banner";
 import { ProductionTabFooter } from "../../production-tab-footer";
 import { getWorkerProductionSubmissionProgress } from "../../production-worker-policy";
 import { useProductionItemExpansion } from "../../use-production-item-expansion";
@@ -57,13 +54,7 @@ import {
 import { ProductionItemStatusBadges } from "./production-item-status-badges";
 import { ProductionTabV2Skeleton } from "./production-tab-v2-skeleton";
 
-const ProductionMaterialReviewPanel = dynamic(
-	() =>
-		import("@/components/production-v2/shared").then(
-			(module) => module.ProductionMaterialReviewPanel,
-		),
-	{ ssr: false },
-);
+import { ProductionPendingInbounds } from "./production-pending-inbounds";
 
 function ProductionV2Item({
 	item,
@@ -244,10 +235,7 @@ function ProductionV2Item({
 												</>
 											) : null}
 										</Badge>
-										<ItemMaterialStatusBadge
-											status={item.materialStatus}
-											audience="worker"
-										/>
+										<ProductionItemStatusBadges item={item} workerMode />
 									</div>
 								) : (
 									<ProductionItemStatusBadges item={item} />
@@ -305,15 +293,7 @@ function ProductionTabV2Content() {
 
 	return (
 		<div className="flex flex-col gap-4 p-1">
-			<AccessBased>
-				<ProductionMaterialReviewPanel
-					orderContext
-					search={queryCtx.params["sales-overview-id"]}
-					salesOrderId={data.orderId}
-					requestedReviewId={queryCtx.params.reviewId}
-				/>
-			</AccessBased>
-			{items.length ? <ProductionReadinessBanner /> : null}
+			<ProductionPendingInbounds key={data.orderId} salesOrderId={data.orderId} />
 			<Accordion
 				type="single"
 				collapsible

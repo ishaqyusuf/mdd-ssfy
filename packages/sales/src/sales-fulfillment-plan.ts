@@ -3445,175 +3445,178 @@ export async function allocateReceivedInboundToBackorders(
 	db: Db,
 	input: AllocateReceivedInboundToBackordersInput = {},
 ): Promise<AllocateReceivedInboundToBackordersResult> {
-	const limit = Math.min(Math.max(input.limit || 50, 1), 200);
+	return runSerializableInventoryTransaction(db, (tx) =>
+		allocateReceivedInboundToBackordersInTransaction(tx, input),
+	);
+}
 
-	return runSerializableInventoryTransaction(db, async (tx) => {
-		const demands = await tx.inboundDemand.findMany({
-			where: {
-				deletedAt: null,
+export async function allocateReceivedInboundToBackordersInTransaction(
+	tx: TransactionClient,
+	input: AllocateReceivedInboundToBackordersInput = {},
+): Promise<AllocateReceivedInboundToBackordersResult> {
+	const limit = Math.min(Math.max(input.limit || 50, 1), 200);
+	const demands = await tx.inboundDemand.findMany({
+		where: {
+			deletedAt: null,
+			status: {
+				in: ["partially_received", "received"],
+			},
+			qtyReceived: {
+				gt: 0,
+			},
+			inventoryVariantId: input.inventoryVariantId || undefined,
+			lineItemComponentId: input.lineItemComponentIds?.length
+				? {
+						in: input.lineItemComponentIds,
+					}
+				: undefined,
+			lineItemComponent: {
 				status: {
-					in: ["partially_received", "received"],
+					not: "cancelled",
 				},
-				qtyReceived: {
-					gt: 0,
-				},
-				inventoryVariantId: input.inventoryVariantId || undefined,
-				lineItemComponentId: input.lineItemComponentIds?.length
-					? {
-							in: input.lineItemComponentIds,
-						}
-					: undefined,
-				lineItemComponent: {
-					status: {
-						not: "cancelled",
-					},
-					parent: {
+				parent: {
+					deletedAt: null,
+					lineItemType: "SALE",
+					saleId: input.salesOrderId || undefined,
+					sale: {
 						deletedAt: null,
-						lineItemType: "SALE",
-						saleId: input.salesOrderId || undefined,
+					},
+				},
+			},
+		},
+		orderBy: {
+			updatedAt: "asc",
+		},
+		take: limit,
+		select: {
+			id: true,
+			qty: true,
+			qtyReceived: true,
+			inventoryVariantId: true,
+			lineItemComponentId: true,
+		},
+	});
+
+	const touchedComponentIds = new Set<number>();
+	const allocations: AllocateReceivedInboundToBackordersResult["allocations"] =
+		[];
+	let allocatedQty = 0;
+	let remainingBackorderQty = 0;
+	let skippedDemandCount = 0;
+	let alreadyCoveredDemandCount = 0;
+
+	for (const demand of demands) {
+		const component = await tx.lineItemComponents.findFirst({
+			where: {
+				id: demand.lineItemComponentId,
+				status: {
+					not: "cancelled",
+				},
+			},
+			select: {
+				qty: true,
+				parent: {
+					select: {
 						sale: {
-							deletedAt: null,
+							select: {
+								status: true,
+								prodStatus: true,
+							},
 						},
 					},
 				},
-			},
-			orderBy: {
-				updatedAt: "asc",
-			},
-			take: limit,
-			select: {
-				id: true,
-				qty: true,
-				qtyReceived: true,
-				inventoryVariantId: true,
-				lineItemComponentId: true,
+				stockAllocations: {
+					where: {
+						deletedAt: null,
+						status: {
+							in: [
+								"pending_review",
+								"approved",
+								"reserved",
+								"picked",
+								"consumed",
+							],
+						},
+					},
+					select: {
+						qty: true,
+					},
+				},
 			},
 		});
-
-		const touchedComponentIds = new Set<number>();
-		const allocations: AllocateReceivedInboundToBackordersResult["allocations"] =
-			[];
-		let allocatedQty = 0;
-		let remainingBackorderQty = 0;
-		let skippedDemandCount = 0;
-		let alreadyCoveredDemandCount = 0;
-
-		for (const demand of demands) {
-			const component = await tx.lineItemComponents.findFirst({
-				where: {
-					id: demand.lineItemComponentId,
-					status: {
-						not: "cancelled",
-					},
-				},
-				select: {
-					qty: true,
-					parent: {
-						select: {
-							sale: {
-								select: {
-									status: true,
-									prodStatus: true,
-								},
-							},
-						},
-					},
-					stockAllocations: {
-						where: {
-							deletedAt: null,
-							status: {
-								in: [
-									"pending_review",
-									"approved",
-									"reserved",
-									"picked",
-									"consumed",
-								],
-							},
-						},
-						select: {
-							qty: true,
-						},
-					},
-				},
-			});
-			if (!component) {
-				skippedDemandCount += 1;
-				continue;
-			}
-			if (
-				isInventoryFulfillmentTerminalSale({
-					orderStatus: component.parent?.sale?.status,
-					productionStatus: component.parent?.sale?.prodStatus,
-				})
-			) {
-				skippedDemandCount += 1;
-				continue;
-			}
-
-			const availableStockRows = await getAvailableStockRows(
-				tx,
-				demand.inventoryVariantId,
-			);
-			const availableStockQty = sumBy(
-				availableStockRows,
-				(stock) => stock.availableQty,
-			);
-			const allocatedComponentQty = sumBy(
-				component.stockAllocations,
-				(allocation) => numberValue(allocation.qty),
-			);
-			const plan = planReceivedBackorderAllocation({
-				requiredQty: component.qty,
-				allocatedQty: allocatedComponentQty,
-				receivedQty: demand.qtyReceived,
-				availableStockQty,
-			});
-
-			remainingBackorderQty = roundQuantity(
-				remainingBackorderQty + plan.remainingBackorderQty,
-			);
-			if (plan.reserveQty <= 0) {
-				skippedDemandCount += 1;
-				if (plan.shortageQty <= 0) {
-					alreadyCoveredDemandCount += 1;
-				}
-				continue;
-			}
-
-			const reserved = await reserveAvailableStockForComponent(tx, {
-				lineItemComponentId: demand.lineItemComponentId,
-				inventoryVariantId: demand.inventoryVariantId,
-				qty: plan.reserveQty,
-				note: input.note || "Reserved from received inbound demand.",
-			});
-
-			if (reserved.reservedQty <= 0) {
-				skippedDemandCount += 1;
-				continue;
-			}
-
-			allocatedQty = roundQuantity(allocatedQty + reserved.reservedQty);
-			allocations.push(...reserved.allocations);
-			touchedComponentIds.add(demand.lineItemComponentId);
-
-			await recomputeLineItemComponentFulfillment(
-				tx,
-				demand.lineItemComponentId,
-			);
+		if (!component) {
+			skippedDemandCount += 1;
+			continue;
+		}
+		if (
+			isInventoryFulfillmentTerminalSale({
+				orderStatus: component.parent?.sale?.status,
+				productionStatus: component.parent?.sale?.prodStatus,
+			})
+		) {
+			skippedDemandCount += 1;
+			continue;
 		}
 
-		return {
-			ok: allocatedQty > 0,
-			processedDemandCount: demands.length,
-			skippedDemandCount,
-			alreadyCoveredDemandCount,
-			touchedComponentCount: touchedComponentIds.size,
-			allocatedQty,
-			remainingBackorderQty,
-			allocations,
-		};
-	});
+		const availableStockRows = await getAvailableStockRows(
+			tx,
+			demand.inventoryVariantId,
+		);
+		const availableStockQty = sumBy(
+			availableStockRows,
+			(stock) => stock.availableQty,
+		);
+		const allocatedComponentQty = sumBy(
+			component.stockAllocations,
+			(allocation) => numberValue(allocation.qty),
+		);
+		const plan = planReceivedBackorderAllocation({
+			requiredQty: component.qty,
+			allocatedQty: allocatedComponentQty,
+			receivedQty: demand.qtyReceived,
+			availableStockQty,
+		});
+
+		remainingBackorderQty = roundQuantity(
+			remainingBackorderQty + plan.remainingBackorderQty,
+		);
+		if (plan.reserveQty <= 0) {
+			skippedDemandCount += 1;
+			if (plan.shortageQty <= 0) {
+				alreadyCoveredDemandCount += 1;
+			}
+			continue;
+		}
+
+		const reserved = await reserveAvailableStockForComponent(tx, {
+			lineItemComponentId: demand.lineItemComponentId,
+			inventoryVariantId: demand.inventoryVariantId,
+			qty: plan.reserveQty,
+			note: input.note || "Reserved from received inbound demand.",
+		});
+
+		if (reserved.reservedQty <= 0) {
+			skippedDemandCount += 1;
+			continue;
+		}
+
+		allocatedQty = roundQuantity(allocatedQty + reserved.reservedQty);
+		allocations.push(...reserved.allocations);
+		touchedComponentIds.add(demand.lineItemComponentId);
+
+		await recomputeLineItemComponentFulfillment(tx, demand.lineItemComponentId);
+	}
+
+	return {
+		ok: allocatedQty > 0,
+		processedDemandCount: demands.length,
+		skippedDemandCount,
+		alreadyCoveredDemandCount,
+		touchedComponentCount: touchedComponentIds.size,
+		allocatedQty,
+		remainingBackorderQty,
+		allocations,
+	};
 }
 
 export async function setSalesInventoryLineFulfillmentHold(

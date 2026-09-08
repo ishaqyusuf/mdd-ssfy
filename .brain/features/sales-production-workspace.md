@@ -1063,3 +1063,13 @@ Provide a cleaner production operations surface for both admins and production w
   violet/green invoice colors, review badges and the payment-breakdown tooltip.
   No payment was submitted. Dashboard typecheck still has unrelated existing
   diagnostics; affected runtime files were clean after the row-type fix.
+
+## Compact assigned-material receipt (2026-09-08)
+
+Production renders pending inbound reference/supplier plus Open inbound and Mark
+as received. The default-off Sales worker policy permits only current assigned
+materials, with a restricted Inventory destination. Receipt refreshes the open
+workspace and list projections; pending Production submissions remain pending.
+Submitted quantity supersedes Assigned/Material Ready except real partial staffing
+gaps. See [implementation](sales-productions-v2.md) and the
+[receipt ADR](../decisions/2026-09-08-scoped-production-inbound-receipt.md).

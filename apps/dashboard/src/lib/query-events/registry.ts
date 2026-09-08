@@ -66,6 +66,7 @@ const salesMaterialReviewTargets = [
 ] as const;
 
 const salesProductionTargets = [
+	pathTarget("sales.productionPendingInbounds"),
 	...salesOrderTargets,
 	...salesMaterialReviewTargets,
 	pathTarget("filters.salesProductions"),
@@ -140,6 +141,7 @@ const inventoryStockTargets = [
 ] as const;
 
 const inventoryInboundTargets = [
+	pathTarget("sales.productionPendingInbounds"),
 	...inventoryStockTargets,
 	pathTarget("inventories.salesInventoryOverview"),
 	pathTarget("inventories.orderInboundShipments"),
@@ -349,6 +351,7 @@ export const MUTATION_QUERY_EVENTS = {
 	"sales.moveSale": ["sales.order.changed", "sales.quote.changed"],
 	"sales.resolvePayment": ["sales.payment.changed"],
 	"sales.reviewProductionSubmission": ["sales.pipeline.changed"],
+	"sales.receiveProductionInbound": ["inventory.inbound.changed", "sales.pipeline.changed"],
 	"sales.setSalesOrdersArchived": ["sales.order.changed"],
 	"sales.transferSalesRep": ["sales.order.changed"],
 	"sales.updateSalesHandoffTrigger": ["sales.order.changed"],

@@ -878,3 +878,14 @@ Last updated: 2026-08-26
   canonical packing continues.
 
 Last updated: 2026-08-28
+
+## Scoped receipt from Production (2026-09-08)
+
+The Production shortcut physically receives eligible inbound items and applies
+stock to exact linked component Needs in one transaction. Pending allocations
+require matching variant/stock capacity; partial coverage reports the remaining
+quantity. Receipt audit and canonical order projection persistence are atomic
+with stock/demand/allocation writes. A failed projection refresh rolls everything
+back. Existing Production review, payroll, packing and dispatch gates are unchanged.
+Explicit reconciliation/cancellation is queued separately; inventory coverage alone
+does not silently finalize an existing Production submission.

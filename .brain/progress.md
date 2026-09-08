@@ -16255,3 +16255,100 @@ Production deployment or database write occurred at this checkpoint.
   sorting. The browser viewport override did not apply to the target tab, so
   a true 390px mobile visual check remains unverified. No payment or other
   business-data mutation, migration or deployment was performed.
+
+## 2026-09-08 — Production status and worker inbound receipt planning
+
+- Created `.brain/plans/2026-09-08-production-status-and-worker-inbound-receipt.md` and its dedicated backlog task after tracing canonical status, physical receiving versus Received/Needs application, allocation jobs, review authority, settings and refresh dependencies.
+- Proposed a default-off, assignment-scoped worker receipt capability, shared pending-inbound panel, immediate scoped allocation, concise status vocabulary and downstream regression gates. Existing queued review cleanup is excluded.
+- Recorded exact-order reproduction as unverified and identified shared-shipment scoping, authenticated-only receipt access and background allocation lag as implementation gates. Coordinated with the existing Sales UI simplification work.
+- Planning only: no application code, business data, settings, schema or deployment changed.
+
+## 2026-09-08 — Production review plan revision 2
+
+- Authenticated read-only inspection of 09502PC reproduced missing automatic review selection; selecting the queue row loaded detail immediately. Source confirms disabled detail query isPending renders a misleading skeleton.
+- Confirmed Ready / Review Pending is material readiness, while badge input excludes pending reported quantity and therefore retains Assigned. Added quantity-aware progressive badge and explicit reported/approved progress rules.
+- Expanded the plan/task with explicit current-review Verify, Receive or Allocate & approve actions, narrow worker policy, and conflict-aware capabilities. Review 395 exposes invalid assignment scope plus missing configuration; ordinary approval must not bypass that conflict. No business mutation or implementation performed.
+
+## 2026-09-08 — Production review plan revision 3: flat order context
+
+- User confirmed the extra order-selection click and clarified the desired composition. Updated the plan/task to load details immediately in Production, omit the side order list and nested Review materials card, and render flat inside one material action card. Standalone cross-order queue retains its list/detail layout. Planning only; no application or business-data changes.
+
+## 2026-09-08 — Production review plan revision 4: minimal verification UI
+
+- Updated the plan/task with one section title, flat material rows and Approve confirmed availability; removed redundant embedded order/author metadata, headings, alert cards and routine alternate decision toolbar from the proposed UI.
+- Decision note removal now covers all material-review dashboard/forms with coordinated API validation and server-generated audit descriptions. Preserved evidence/permission guards and explicit physical-receipt semantics. Planning only; no application changes.
+
+## 2026-09-08 — Production review implementation first slice
+
+- Implement-with-progress execution started on master using the existing plan
+  and dedicated task. Existing unrelated local changes were preserved.
+- Implemented automatic order-review selection and flat embedded material content,
+  removed Decision note with compatible server audit generation, and advanced
+  item badges from Assigned to reported pending/approved progress.
+- Authenticated local 09502PC browser confirms the UI changes and disabled approval
+  for invalid assignment scope. No receipt, review approval or business mutation.
+- Focused first-slice suite: 33 tests / 95 assertions pass. Settings normalization
+  and revision/audit tests: 2 pass. Receipt scope policy: 1 pass. Existing received
+  backorder allocation regressions: 4 pass after transaction primitive extraction.
+- Sales typecheck passes; Dashboard reports baseline errors, with two newly added
+  test matcher incompatibilities corrected. Final fresh typecheck/review remain.
+- Added default-off admin policy management and general receipt permission guard.
+  Worker scope/receipt integration, pipeline convergence, remaining QA, final
+  code review and scoped commit are outstanding. Goal remains active.
+
+- Checkpoint validation: API typecheck passes. Settings typecheck encounters pre-existing `@gnd/errors` NodeNext import-extension diagnostics. Scoped Biome and diff whitespace checks pass. No commit or completion claimed.
+
+### 2026-09-08 — Production verification simplified to inbounds
+
+Implemented latest inbound-only Production presentation with existing Inventory
+deep link, receipt mutation, and refresh targets. Removed embedded review and
+readiness mounts. Ten focused tests pass; authenticated 09502PC no longer displays
+the redundant review content. Receipt integration and worker access validation
+remain in progress; see production status/worker receipt task and plan revision 5.
+
+### 2026-09-08 — Receipt cancellation and review follow-up queued
+
+Recorded the user report for 09495PC / item 2668-100 and requested retained receipt
+confirmation with Cancel review. Dedicated high-priority backlog task follows the
+current implementation; no live reversal or automatic production approval added.
+
+### 2026-09-08 — Receipt review fixes and local integration proof
+
+Serializable receipt plus validated allocation confirmation replaces unsafe blanket
+pending approval. Scoped item selection precedes limits; final remaining coverage
+is computed once per Need. Public errors reach the API correctly. Four rollback-only
+local MySQL scenarios pass (48 assertions),26 isolated regression files pass, and
+three tRPC access tests pass. Live read trace confirms blank commercial status
+caused known Production reviews to display unavailable on09455PC/09488AD.
+Current task42%; final worker/UI/permission/refresh audit and commit remain open.
+
+### 2026-09-08 — Queued primary/secondary Production status presentation
+
+Updated the receipt/review follow-up ticket with the user-requested separation
+of actual progress from secondary attention. Captured whole-calendar-card tooltips,
+order-ID red alert icons, table Status hover details and order/customer icons,
+including shared semantics and unchanged downstream authority. Documentation only.
+
+Latest clarification adds acceptance examples for assigned, partial, reported and
+approved completion; one alert for multiple reasons; exact tooltip trigger areas;
+and removal of resolved alerts after refreshing both status dimensions. The backlog
+entry now makes this presentation scope and next-task priority explicit. No runtime
+or business data changed in this ticket update.
+
+### 2026-09-08 — Real transaction review exposes receipt projection gap
+
+Reopened overstated race/refresh verification gates. New independent-transaction
+tests prove command rollback and exactly-once concurrent receipt (3 tests /37
+assertions) and exposed a silently skipped order projection. Receipt now refreshes
+using canonical post-receipt evidence and rolls back if persistence fails. Five
+existing local scenarios still pass /62 assertions; Sales types pass. Authorization
+race and prior-review preservation proof, final review and commit remain pending.
+See the Production status/worker receipt task for the corrected58% checkpoint.
+
+### 2026-09-08 — Production receipt final acceptance
+
+Nine real transaction tests pass /99 assertions including worker authorization
+changes, existing-review preservation and shared-stock contention. Authenticated
+admin fixture receipt passes and cleans up (1 test /4 assertions); the30-file
+relevant regression matrix and Sales/API types pass. Dashboard/root baseline type
+failures remain documented. Current task83%; scoped review and commit remain.

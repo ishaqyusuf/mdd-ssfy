@@ -102,6 +102,8 @@ import {
 } from "react";
 import { useInView } from "react-intersection-observer";
 
+import { selectMaterialReview } from "./material-review-presentation";
+
 type Scope = "worker" | "admin";
 
 type ReviewProductionItem = {
@@ -373,12 +375,7 @@ export function ProductionMaterialReviewPanel({
 	);
 	const requestedReviewRegionRef = useRef<HTMLDivElement>(null);
 	const focusedRequestedReviewId = useRef<number | null>(null);
-	const [attentionOpen, setAttentionOpen] = useState(
-		Boolean(requestedReviewId),
-	);
-	const [decisionNote, setDecisionNote] = useState(
-		"Materials verified by production admin.",
-	);
+
 	const [receiptQuantities, setReceiptQuantities] = useState<
 		Record<number, { good: string; issue: string }>
 	>({});
@@ -405,14 +402,11 @@ export function ProductionMaterialReviewPanel({
 		),
 	);
 	const normalizedSearch = search?.trim().toLowerCase() || "";
-	const showReviewQueue = !orderContext || attentionOpen;
+	const showReviewQueue = !orderContext;
 	const rows = useMemo(
 		() => queueQuery.data?.pages.flatMap((page) => page.rows) || [],
 		[queueQuery.data?.pages],
 	);
-	const selectedReviewIsQueued =
-		selectedReviewId !== null &&
-		rows.some((review) => review.id === selectedReviewId);
 	const hasOnlyRetractedReviews =
 		rows.length > 0 && rows.every((review) => review.submittedQty === 0);
 	const detailQuery = useQuery(
@@ -484,25 +478,20 @@ export function ProductionMaterialReviewPanel({
 	);
 
 	useEffect(() => {
-		if (requestedReviewId) {
-			if (!attentionOpen) setAttentionOpen(true);
-			if (selectedReviewId !== requestedReviewId) {
-				selectReview(requestedReviewId);
-			}
-			return;
-		}
-		if (orderContext && !attentionOpen) {
-			if (selectedReviewId !== null) selectReview(null);
-			return;
-		}
-		if (selectedReviewIsQueued) return;
-		if (selectedReviewId !== null) selectReview(null);
+		if (queueQuery.isPending && !requestedReviewId) return;
+		const nextId = selectMaterialReview({
+		queueQuery.isPending,
+			orderContext,
+			requestedId: requestedReviewId ?? null,
+			selectedId: selectedReviewId,
+			reviewIds: rows.map((review) => review.id),
+		});
+		if (nextId !== selectedReviewId) selectReview(nextId);
 	}, [
-		attentionOpen,
 		orderContext,
 		requestedReviewId,
 		selectedReviewId,
-		selectedReviewIsQueued,
+		rows,
 		selectReview,
 	]);
 
@@ -641,7 +630,7 @@ export function ProductionMaterialReviewPanel({
 			!detail ||
 			!capabilities.canReview ||
 			isHistoryOnly ||
-			!decisionNote.trim()
+			(action !== "REJECT" && isEvidenceConflict)
 		) {
 			return;
 		}
@@ -691,7 +680,6 @@ export function ProductionMaterialReviewPanel({
 			expectedUpdatedAt: new Date(detail.updatedAt),
 			pipelineRevision: detail.pipelineRevision || undefined,
 			action,
-			note: decisionNote.trim(),
 			resolutions:
 				action === "RESOLVE_AND_APPROVE"
 					? {
@@ -716,8 +704,7 @@ export function ProductionMaterialReviewPanel({
 				<Icons.AlertTriangle />
 				<AlertTitle>Material review unavailable</AlertTitle>
 				<AlertDescription>
-					The requested review could not be loaded. It may no longer exist, or
-					the review evidence may be temporarily unavailable.
+					Unable to load this review. Try again.
 				</AlertDescription>
 			</Alert>
 		);
@@ -777,6 +764,8 @@ export function ProductionMaterialReviewPanel({
 								? "No matching material reviews"
 								: "Material review is clear"}
 						</p>
+	const ReviewShell = orderContext ? "div" : Card;
+	const ReviewBody = orderContext ? "div" : CardContent;
 						<p className="max-w-md text-sm text-muted-foreground">
 							{normalizedSearch
 								? "Try a different order number or worker name."
@@ -791,64 +780,41 @@ export function ProductionMaterialReviewPanel({
 
 	const content = (
 		<div className="flex flex-col gap-3">
-			{isReadOnly ? (
-				<Alert>
-					<Icons.Lock />
-					<AlertTitle>Material review is read-only</AlertTitle>
-					<AlertDescription>
-						You can inspect current and historical evidence, but you do not have
-						permission to decide this review.
-					</AlertDescription>
-				</Alert>
-			) : isPermissionLimited ? (
-				<Alert variant="warning">
-					<Icons.AlertTriangle />
-					<AlertTitle>Some material actions are unavailable</AlertTitle>
-					<AlertDescription>
-						You can decide the review, but receiving inbound material or
-						manually marking inventory available requires the corresponding
-						Inventory permission.
-					</AlertDescription>
-				</Alert>
+			{isReadOnly || isPermissionLimited ? (
+				<p className="text-xs text-muted-foreground">
+					{isReadOnly
+						? "Read-only access"
+						: "Receiving materials requires Inventory permission."}
+				</p>
 			) : null}
-			{orderContext ? (
-				<Alert variant="warning">
-					<Icons.AlertTriangle />
-					<AlertTitle>
-						{hasOnlyRetractedReviews
-							? "Retracted submissions still need material resolution"
-							: "Production submissions need material approval"}
-					</AlertTitle>
-					<AlertDescription>
-						{hasOnlyRetractedReviews
-							? "The production quantity was removed. You can still resolve the associated inventory evidence below without restoring that submission."
-							: "Submitted work is saved but is not finalized. Recheck material status, receive linked inbound items, or mark the verified needs available below."}
-					</AlertDescription>
-				</Alert>
+			{hasOnlyRetractedReviews && orderContext ? (
+				<p className="text-xs text-muted-foreground">
+					Production was removed. Materials still need review.
+				</p>
 			) : null}
-			<Card className="overflow-hidden rounded-xl bg-card shadow-sm">
-				<CardHeader className="px-4 py-4">
-					<div className="flex flex-wrap items-center justify-between gap-3">
-						<div>
-							<CardTitle className="text-lg">
-								{orderContext
-									? "Review pending production"
-									: "Material verification queue"}
-							</CardTitle>
-							<CardDescription>
-								{orderContext
-									? "Resolve this order's material evidence without leaving Sales Overview."
-									: "Production work is saved immediately. Verify only the submissions whose material records are still unresolved."}
-							</CardDescription>
+			<ReviewShell
+				className={
+					orderContext ? "" : "overflow-hidden rounded-xl bg-card shadow-sm"
+				}
+			>
+				{!orderContext && (
+					<CardHeader className="px-4 py-4">
+						<div className="flex flex-wrap items-center justify-between gap-3">
+							<div>
+								<CardTitle className="text-lg">
+									{orderContext ? "Review materials" : "Review materials"}
+								</CardTitle>
+							</div>
+							<Badge variant="outline" className="rounded-full">
+								{queueQuery.data?.pages[0]?.total ?? rows.length} pending
+							</Badge>
 						</div>
-						<Badge variant="outline" className="rounded-full">
-							{queueQuery.data?.pages[0]?.total ?? rows.length} pending
-						</Badge>
-					</div>
-				</CardHeader>
-				<CardContent
+					</CardHeader>
+				)}
+				<ReviewBody
 					className={cn(
-						"grid gap-4 px-4 pb-4",
+						"grid gap-4",
+						!orderContext && "px-4 pb-4",
 						showReviewQueue && "lg:grid-cols-[320px_minmax(0,1fr)]",
 					)}
 				>
@@ -939,7 +905,7 @@ export function ProductionMaterialReviewPanel({
 						}
 						className="min-w-0 focus-visible:outline-none"
 					>
-						{detailQuery.isPending ? (
+						{selectedReviewId && detailQuery.isLoading ? (
 							<Skeleton className="h-52 rounded-lg" />
 						) : detailQuery.isError ? (
 							<Alert variant="destructive">
@@ -952,39 +918,46 @@ export function ProductionMaterialReviewPanel({
 							</Alert>
 						) : detail ? (
 							<div className="flex flex-col gap-4">
-								<div className="flex flex-wrap items-start justify-between gap-3">
-									<div>
-										<p className="font-semibold">
-											Order {detail.order.orderId}
-										</p>
-										<p className="text-sm text-muted-foreground">
-											Submitted by {detail.submittedBy.name || "Worker"}
-										</p>
+								{!orderContext && (
+									<div className="flex flex-wrap items-start justify-between gap-3">
+										<div>
+											<p className="font-semibold">
+												Order {detail.order.orderId}
+											</p>
+											<p className="text-sm text-muted-foreground">
+												Submitted by {detail.submittedBy.name || "Worker"}
+											</p>
+										</div>
 									</div>
-									{detail.isStale ? (
-										<Badge variant="outline">EVIDENCE CHANGED</Badge>
-									) : null}
-								</div>
+								)}
 
-								{detail.isStale ? (
-									<Alert variant="warning">
-										<Icons.AlertTriangle />
-										<AlertTitle>Material evidence changed</AlertTitle>
-										<AlertDescription>
-											Review the current quantities and recheck material status
-											before making a decision. Stale writes are rejected by the
-											server.
-										</AlertDescription>
-									</Alert>
+								{orderContext && (detail.isStale || isEvidenceConflict) ? (
+									<p role="status" className="text-sm text-muted-foreground">
+										{isEvidenceConflict
+											? "Assignment history needs checking before approval."
+											: "Refresh material evidence before approving."}
+									</p>
 								) : null}
-
-								{isEvidenceConflict ? (
-									<Alert variant="destructive">
+								{!orderContext && (detail.isStale || isEvidenceConflict) ? (
+									<Alert
+										variant={isEvidenceConflict ? "destructive" : "warning"}
+									>
 										<Icons.AlertTriangle />
-										<AlertTitle>Material evidence conflict</AlertTitle>
+										<AlertTitle>Materials need review</AlertTitle>
 										<AlertDescription>
-											{actionability?.reason ||
-												"Current evidence cannot safely resolve this review."}
+											{isEvidenceConflict
+												? "Review assignment history before approving."
+												: "Recheck material status before approving."}
+											{isEvidenceConflict && actionability?.reason ? (
+												<details className="mt-2">
+													<summary className="cursor-pointer">
+														View evidence
+													</summary>
+													<p className="mt-2 break-words">
+														{actionability.reason}
+													</p>
+												</details>
+											) : null}
 										</AlertDescription>
 									</Alert>
 								) : null}
@@ -999,20 +972,23 @@ export function ProductionMaterialReviewPanel({
 										</AlertTitle>
 										<AlertDescription>
 											{detail.submissions.length
-												? "The deleted quantity no longer counts toward production. Continue this material review only for the active submissions listed here."
-												: "The worker deleted this production submission, possibly because it was entered by mistake. You may still resolve its inventory evidence below; doing so will not restore the deleted production quantity."}
+												? "Review only the remaining active submissions."
+												: "Resolving materials will not restore the deleted production quantity."}
 										</AlertDescription>
 									</Alert>
 								) : null}
 
 								<section>
-									<div>
-										<p className="text-sm font-medium">Material needs</p>
-										<p className="text-xs text-muted-foreground">
-											Select a need only when you have independently verified it
-											is available. Linked inbound needs remain read-only here.
-										</p>
-									</div>
+									{!orderContext && (
+										<div>
+											<p className="text-sm font-medium">Material needs</p>
+											<p className="text-xs text-muted-foreground">
+												Select a need only when you have independently verified
+												it is available. Linked inbound needs remain read-only
+												here.
+											</p>
+										</div>
+									)}
 									<div className="divide-y">
 										{materialReviewRows.length ? (
 											materialReviewRows.map((material) => {
@@ -1095,7 +1071,7 @@ export function ProductionMaterialReviewPanel({
 									</div>
 								</section>
 
-								{detail.linkedInboundReceipts.length ? (
+								{!orderContext && detail.linkedInboundReceipts.length ? (
 									<>
 										<Separator />
 										<section>
@@ -1173,7 +1149,7 @@ export function ProductionMaterialReviewPanel({
 									</>
 								) : null}
 
-								{needsConfigurationException ? (
+								{!orderContext && needsConfigurationException ? (
 									<Alert variant="warning">
 										<Icons.AlertTriangle />
 										<AlertTitle>Material configuration is missing</AlertTitle>
@@ -1185,18 +1161,28 @@ export function ProductionMaterialReviewPanel({
 									</Alert>
 								) : null}
 
-								<Separator />
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="production-review-note">Decision note</Label>
-									<Input
-										id="production-review-note"
-										disabled={isReadOnly}
-										value={decisionNote}
-										onChange={(event) => setDecisionNote(event.target.value)}
-									/>
-								</div>
-
-								{isReadOnly ? null : (
+								{isReadOnly ? null : orderContext ? (
+									<Button
+										type="button"
+										disabled={
+											decision.isPending ||
+											isEvidenceConflict ||
+											isHistoryOnly ||
+											detail.isStale
+										}
+										onClick={() =>
+											submitDecision(
+												needsConfigurationException
+													? "APPROVE_CONFIGURATION_EXCEPTION"
+													: manualComponentIds.length
+														? "RESOLVE_AND_APPROVE"
+														: "RECHECK_AND_APPROVE",
+											)
+										}
+									>
+										Approve confirmed availability
+									</Button>
+								) : (
 									<div className="flex flex-wrap gap-2">
 										{needsConfigurationException ? (
 											<Button
@@ -1249,56 +1235,39 @@ export function ProductionMaterialReviewPanel({
 							</p>
 						)}
 					</div>
-				</CardContent>
-			</Card>
+				</ReviewBody>
+			</ReviewShell>
 		</div>
 	);
 	if (!orderContext) return content;
 
-	const totalReviews = queueQuery.data?.pages[0]?.total ?? rows.length;
-	const totalSubmittedQuantity =
-		queueQuery.data?.pages[0]?.totalSubmittedQty ??
-		rows.reduce((total, review) => total + Number(review.submittedQty || 0), 0);
-	const dominantMaterialStatus = rows[0]?.materialStatus;
 	return (
-		<Collapsible open={attentionOpen} onOpenChange={setAttentionOpen}>
-			<Card className="overflow-hidden rounded-xl border-amber-200 bg-amber-50/40 shadow-sm">
-				<CollapsibleTrigger asChild>
-					<button
-						type="button"
-						className="flex w-full items-start justify-between gap-4 px-4 py-4 text-left hover:bg-amber-50/70"
-						aria-label={`Material attention: ${totalReviews} reviews, ${totalSubmittedQuantity} units`}
-					>
-						<span>
-							<span className="block text-sm font-semibold tracking-[0.08em] text-amber-950">
-								MATERIAL ATTENTION · {totalReviews}{" "}
-								{totalReviews === 1 ? "review" : "reviews"} ·{" "}
-								{totalSubmittedQuantity} units
-							</span>
-							<span className="mt-1 block text-xs text-amber-800">
-								{dominantMaterialStatus?.label ||
-									"Material review requires attention"}
-							</span>
-						</span>
-						<Icons.ChevronDown
-							className={cn(
-								"mt-0.5 size-4 shrink-0 transition-transform",
-								attentionOpen && "rotate-180",
-							)}
-						/>
-					</button>
-				</CollapsibleTrigger>
-				<CollapsibleContent
-					id={`material-attention-${salesOrderId || "order"}`}
-					className="border-t border-amber-200 bg-background p-3"
+		<section
+			className="rounded-xl border bg-card p-4"
+			aria-label="Material verification"
+		>
+			<h3 className="mb-3 text-sm font-semibold">
+				Materials need verification
+			</h3>
+			{rows.length > 1 && (
+				<Select
+					value={selectedReviewId ? String(selectedReviewId) : undefined}
+					onValueChange={(value) => selectReview(Number(value))}
 				>
-					<div aria-live="polite" className="sr-only">
-						{totalReviews} actionable material reviews available.
-					</div>
-					{content}
-				</CollapsibleContent>
-			</Card>
-		</Collapsible>
+					<SelectTrigger aria-label="Select material review">
+						<SelectValue placeholder="Select review" />
+					</SelectTrigger>
+					<SelectContent>
+						{rows.map((review) => (
+							<SelectItem key={review.id} value={String(review.id)}>
+								Review #{review.id} · {review.submittedQty} units
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			)}
+			{content}
+		</section>
 	);
 }
 

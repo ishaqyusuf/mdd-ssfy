@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
-const source = await Bun.file(new URL("./shared.tsx", import.meta.url)).text();
+import { readFileSync } from "node:fs";
+const source = readFileSync(new URL("./shared.tsx", import.meta.url), "utf8");
 
 describe("production material review UI", () => {
 	it("shows retracted reviews only as durable notification-linked history", () => {
@@ -9,16 +10,6 @@ describe("production material review UI", () => {
 		expect(source.includes("hasRetractedSubmissions")).toBe(true);
 		expect(source.includes("Submission retracted")).toBe(true);
 		expect(source.includes("refetchInterval: orderContext")).toBe(true);
-	});
-
-	it("keeps material attention collapsed while preserving all-review navigation", () => {
-		expect(source.includes("Boolean(requestedReviewId)")).toBe(true);
-		expect(source.includes("MATERIAL ATTENTION ·")).toBe(true);
-		expect(source.includes("CollapsibleContent")).toBe(true);
-		expect(source.includes("rows.map((review)")).toBe(true);
-		expect(
-			source.includes("pipelineRevision: detail.pipelineRevision || undefined"),
-		).toBe(true);
 	});
 
 	it("keeps the review sidebar bounded and loads cursor pages while it scrolls", () => {
@@ -30,14 +21,6 @@ describe("production material review UI", () => {
 		expect(
 			source.includes("getNextPageParam: (lastPage) => lastPage.nextCursor"),
 		).toBe(true);
-	});
-
-	it("keeps queue synchronization from repeatedly resetting review drafts", () => {
-		expect(source.includes("const rows = useMemo(")).toBe(true);
-		expect(
-			source.includes("selectedReviewId !== requestedReviewId"),
-		).toBe(true);
-		expect(source.includes("selectedReviewId !== null")).toBe(true);
 	});
 
 	it("uses the audited configuration-exception action for missing material configuration", () => {

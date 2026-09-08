@@ -683,11 +683,13 @@ export const inventoriesRouter = createTRPCRouter({
 	pendingAllocations: protectedProcedure
 		.input(stockAllocationReviewSchema)
 		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
 			return pendingStockAllocations(props.ctx.db, props.input);
 		}),
 	approveStockAllocation: protectedProcedure
 		.input(approveStockAllocationSchema)
 		.mutation(async (props) => {
+			await requireReceivedBackorderOperator(props.ctx);
 			return approveStockAllocationQuery(props.ctx, {
 				...props.input,
 				authorName: props.input.authorName || String(props.ctx.userId),
@@ -696,11 +698,13 @@ export const inventoriesRouter = createTRPCRouter({
 	rejectStockAllocation: protectedProcedure
 		.input(rejectStockAllocationSchema)
 		.mutation(async (props) => {
+			await requireReceivedBackorderOperator(props.ctx);
 			return rejectStockAllocationQuery(props.ctx, props.input);
 		}),
 	approveBulkStockAllocation: protectedProcedure
 		.input(bulkApproveStockAllocationSchema)
 		.mutation(async (props) => {
+			await requireReceivedBackorderOperator(props.ctx);
 			return approveBulkStockAllocationQuery(props.ctx, {
 				...props.input,
 				authorName: props.input.authorName || String(props.ctx.userId),
@@ -725,6 +729,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
 			return listInboundShipmentsQuery(props.ctx, props.input);
 		}),
 	inboundNeedsApplicationAttentionSummary: protectedProcedure.query(
@@ -754,6 +759,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
 			return listOrderInboundShipmentsQuery(props.ctx, props.input);
 		}),
 	orderInboundShipmentCount: protectedProcedure
@@ -763,6 +769,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
 			return countOrderInboundShipmentsQuery(props.ctx, props.input);
 		}),
 	salesInventoryOrderRepairPreview: protectedProcedure
@@ -849,6 +856,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
 			return getInboundShipmentDetail(props.ctx.db, props.input);
 		}),
 	inboundDocuments: protectedProcedure
@@ -858,6 +866,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
 			return listInboundDocumentsQuery(props.ctx, props.input.inboundId);
 		}),
 	uploadInboundDocuments: protectedProcedure
@@ -950,13 +959,11 @@ export const inventoriesRouter = createTRPCRouter({
 	updateInboundShipmentStatus: protectedProcedure
 		.input(updateInboundShipmentStatusSchema)
 		.mutation(async (props) => {
-			if (props.input.status === "completed") {
-				await requireAnyOperationalPermission(
-					props.ctx,
-					["editInboundOrder"],
-					"You do not have permission to receive inbound material needs.",
-				);
-			}
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to update inbound status.",
+			);
 			return updateInboundShipmentStatusQuery(props.ctx, props.input);
 		}),
 	updateInboundShipmentNeedsApplication: protectedProcedure
@@ -992,6 +999,11 @@ export const inventoriesRouter = createTRPCRouter({
 	receiveInboundShipment: protectedProcedure
 		.input(receiveInboundShipmentSchema)
 		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to receive inbound materials.",
+			);
 			const result = await props.ctx.db.$transaction((tx) =>
 				receiveInboundShipment(tx, {
 					...props.input,
@@ -1055,11 +1067,21 @@ export const inventoriesRouter = createTRPCRouter({
 	reportInboundItemIssue: protectedProcedure
 		.input(inboundItemIssueFormSchema)
 		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to update inbound issues.",
+			);
 			return reportInboundItemIssue(props.ctx.db, props.input);
 		}),
 	resolveInboundItemIssue: protectedProcedure
 		.input(resolveInboundItemIssueSchema)
 		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editInboundOrder"],
+				"You do not have permission to update inbound issues.",
+			);
 			return resolveInboundItemIssue(props.ctx.db, props.input);
 		}),
 	saveCommunityInput: protectedProcedure
@@ -1318,6 +1340,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.query(async (props) => {
+			await requireInventoryFulfillmentViewer(props.ctx);
 			return getSalesInventoryOverview(props.ctx.db, props.input);
 		}),
 	salesInventoryMarkAsPreflight: protectedProcedure

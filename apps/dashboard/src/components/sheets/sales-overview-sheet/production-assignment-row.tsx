@@ -308,7 +308,7 @@ function Content({
 						</div>
 						<div className="hidden md:block">
 							<p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-								Progress
+								Reported
 							</p>
 							<div className="mt-1 flex flex-wrap gap-x-2 gap-y-1">
 								<AssignmentQuantityProgress assignment={assignment} />
@@ -429,17 +429,17 @@ function Content({
 							<div className="flex gap-2">
 								<QtyStatus
 									qty={assignment.qty}
-									done={assignment.completed}
+									done={assignment.reported}
 									label="qty"
 								/>
 								<QtyStatus
 									qty={assignment.qty}
-									done={assignment.completed}
+									done={assignment.reported}
 									label="rh"
 								/>
 								<QtyStatus
 									qty={assignment.qty}
-									done={assignment.completed}
+									done={assignment.reported}
 									label="lh"
 								/>
 							</div>
@@ -557,9 +557,9 @@ function AssignmentQuantityProgress({
 }) {
 	return (
 		<>
-			<QtyStatus qty={assignment.qty} done={assignment.completed} label="qty" />
-			<QtyStatus qty={assignment.qty} done={assignment.completed} label="rh" />
-			<QtyStatus qty={assignment.qty} done={assignment.completed} label="lh" />
+			<QtyStatus qty={assignment.qty} done={assignment.reported} label="qty" />
+			<QtyStatus qty={assignment.qty} done={assignment.reported} label="rh" />
+			<QtyStatus qty={assignment.qty} done={assignment.reported} label="lh" />
 		</>
 	);
 }

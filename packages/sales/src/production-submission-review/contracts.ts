@@ -57,7 +57,7 @@ export const decideProductionSubmissionMaterialReviewSchema = z
 			"RESOLVE_AND_APPROVE",
 			"REJECT",
 		]),
-		note: z.string().trim().min(1).max(2000),
+		note: z.string().trim().max(2000).optional(),
 		receipt: receiveInboundReviewSchema.optional().nullable(),
 		resolutions: z
 			.object({

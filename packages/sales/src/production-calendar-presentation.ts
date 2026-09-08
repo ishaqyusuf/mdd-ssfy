@@ -28,7 +28,6 @@ export function getProductionCalendarPresentation(
 	if (
 		!snapshot ||
 		snapshot.freshness.state !== "current" ||
-		snapshot.commercial.state === "unknown" ||
 		(planningGap && snapshot.production.requiredQty <= 0) ||
 		state === "unknown"
 	) {
