@@ -8,6 +8,9 @@ import {
 } from "./registry";
 
 describe("query event mutation registry", () => {
+	it("refreshes admin Production invoices after payment and review changes", () => {
+		expect(resolveQueryEventTargets({ name: "sales.payment.changed" }).some(target => target.route === "sales.productions")).toBe(true);
+	});
 	it("refreshes the visible order activity feed after completion", () => {
 		expect(resolveQueryEventTargets({ name: "sales.pipeline.changed" }).some(target => target.route === "notes.activityTree")).toBe(true);
 	});

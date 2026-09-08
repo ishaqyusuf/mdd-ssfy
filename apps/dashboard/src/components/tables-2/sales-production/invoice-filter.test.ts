@@ -10,7 +10,7 @@ function readSource(path: string) {
 }
 
 describe("Sales Production invoice visibility and filters", () => {
-	it("renders the read-only Invoice column on admin tables and cards", () => {
+	it("reuses the Orders Invoice cell on admin tables and cards", () => {
 		const columns = readSource(
 			"components/tables-2/sales-production/columns.tsx",
 		);
@@ -20,9 +20,10 @@ describe("Sales Production invoice visibility and filters", () => {
 
 		expect(columns).toContain('id: "invoice"');
 		expect(columns).toContain('header: "Invoice"');
-		expect(columns).toContain("row.original.invoice");
+		expect(columns).toContain("<SalesOrderInvoiceCell item={row.original.invoicePresentation}");
 		expect(columns).toContain("enableSorting: false");
-		expect(table).toContain('label="Invoice"');
+		expect(table).toContain('aria-label="Invoice"');
+		expect(table).toContain("<SalesOrderInvoiceCell item={item.invoicePresentation}");
 		expect(table).toContain("workerMode ? null");
 	});
 

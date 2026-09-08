@@ -1,4 +1,5 @@
 import { getDispatchInventoryManifest } from "@api/db/queries/dispatch-inventory";
+import { dispatchSortField } from "./dispatch-sort";
 import {
 	dispatchOrderPresentationSelect,
 	projectDispatchOrderPresentation,
@@ -492,6 +493,7 @@ async function getDispatchPage(
 			? { AND: [whereDispatch(query) || {}, { order: { is: buildOpenDispatchFulfillmentCandidateWhere() } }] }
 			: calendarWhere ? { AND: [whereDispatch(query) || {}, calendarWhere] } : whereDispatch(query),
 		db.orderDelivery,
+		{ sortFn: dispatchSortField },
 	);
 	const data = await db.orderDelivery.findMany({
 		where,

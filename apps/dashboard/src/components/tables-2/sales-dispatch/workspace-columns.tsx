@@ -99,6 +99,27 @@ export const workspaceColumns: Column[] = [
 		),
 	},
 	{
+		id: "orderDate",
+		header: "Order Date",
+		accessorFn: (row) => row.order?.createdAt,
+		size: 118,
+		minSize: 104,
+		maxSize: 150,
+		meta: {
+			skeleton: { type: "text", width: "w-20" },
+			headerLabel: "Order Date",
+			sortField: "orderDate",
+			className: "w-[118px] min-w-[104px]",
+		},
+		cell: ({ row }) => (
+			<span className="truncate text-muted-foreground">
+				{row.original.order?.createdAt
+					? formatDate(row.original.order.createdAt)
+					: "—"}
+			</span>
+		),
+	},
+	{
 		id: "orderId",
 		header: "Order / Customer",
 		accessorFn: (row) => row.order?.orderId,

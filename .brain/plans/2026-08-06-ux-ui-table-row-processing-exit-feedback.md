@@ -30,6 +30,165 @@ persist stale table rows across navigation or reloads.
 - Existing toasts and the task monitor remain the durable textual feedback.
   Row color supplements them and must not be the only status signal.
 
+## Review Update — 2026-09-08
+
+Verdict: **Needs small tightening** in the original version. The amendments below
+address the identified implementation gaps; implementation and browser acceptance
+remain pending. Preserve the Sales Orders pilot and immediate server refresh.
+
+### Current Code And Required Wiring
+
+All paths below are relative to `apps/dashboard/src/` unless qualified.
+
+| Surface | Reuse / change |
+| --- | --- |
+| `components/tables-2/sales-orders/data-table.tsx` | Reuse normalized `queryInput`, hashed `queryIdentity`, cancellation and guarded pagination. Split authoritative rows from display rows. |
+| `components/tables-2/core/virtual-row.tsx` | Add optional activity presentation and comparator inputs; preserve the existing virtualizer translateY transform. |
+| `types/react-query.d.ts`, `trpc/query-client.ts` | Add typed opt-in activity descriptor and per-mutation operation correlation; run activity lifecycle before toast-related early returns. |
+| `components/tables-2/sales-orders/review-selected-payments.ts`, `components/sales-menu.tsx` | Resolve batch `reviewed` results before the existing explicit awaited invalidation. Preserve `queryEvents: false` for this batch path and its single event owner. |
+| `hooks/use-task-trigger.ts`, `hooks/use-task-monitor-effects.ts`, `store/task-monitor.ts` | Reuse monitored intents, owner identity, run ids, output and fallback handling. Preserve existing fulfillment reconciliation (two pipeline events separated by 500ms); activity must add no events. |
+| `store/table-row-activity.ts` (new) | Client-only operation ledger; no row payloads or persistence. |
+| `components/tables-2/sales-orders/row-activity.ts` (new) | Typed payment/task outcome adapters. Keep domain interpretation outside table core. |
+| `hooks/use-table-rows-with-activity.ts` (new) | Table-instance snapshot lifecycle backed by a pure, independently testable composer. |
+
+The local Midday customer table confirms the existing separation of query rows,
+table wiring, virtual rows and domain columns. Extend those boundaries without
+new animation libraries or a table-core rewrite.
+
+### P1 — Resolve Business Outcomes Before Showing Success
+
+A Trigger run reaching `COMPLETED` does not mean every sale succeeded. Reuse
+`BulkFulfillmentResult.outcomes` from `packages/sales/src/bulk-fulfillment.ts`
+and `BulkProductionCompletionResult.outcomes` from
+`packages/sales/src/bulk-production-completion.ts`:
+
+- `succeeded`: green, eligible for departure if absent after refresh.
+- `already_fulfilled` / `already_completed`: neutral “Already completed”; no
+  synthesized success departure in the pilot.
+- `review_required` / `awaiting_review`: “Review required”, no green departure;
+  preserve the existing queued status-only fallback confirmation.
+- `failed`: red for that sale only; unrelated successes remain green.
+- Missing/invalid outcome: neutral “Check task result”; do not infer success from
+  run status, aggregate counts, or disappearance alone.
+
+Add `review-required` and `unknown` presentation outcomes to the original phase
+contract. A later fallback command starts its own operation. Payment batches
+similarly resolve each requested id against the typed response; only confirmed
+reviewed ids succeed. Map all remaining result categories explicitly.
+
+### P1 — Separate Business Data From Temporary Display Rows
+
+Keep `serverRows` as input to selected sales ids, `BottomBar`, export and batch
+payloads. Feed `displayRows` only into the table row model and virtualizer.
+Disable selection for retained rows and processing rows; clear successful ids
+with a functional update that preserves unrelated/current selections.
+
+The current `tableData.length === 0` branches must instead wait until
+`displayRows.length === 0`; otherwise the final successful row disappears before
+its dwell. Pagination cursors and `hasNextPage` remain query-owned. Reuse
+`useGuardedInfiniteScroll`; fading/removing rows must not trigger extra pages.
+Set virtualizer `getItemKey` to the stable row UUID and deduplicate snapshots
+against server rows. Preserve deterministic original order for simultaneous
+exits, clamp insertion positions, and prefer authoritative rows on reappearance.
+
+### P1 — Define Capture, Refresh And Cleanup Ordering
+
+Capture the currently loaded row synchronously when beginning an operation,
+before any mutation/task response or invalidation can remove it. Use a registered
+table-instance capture callback or equivalent synchronous snapshot boundary;
+a React effect that observes processing later is insufficient for fast responses.
+
+Mark the per-sale outcome before emitting existing query events. Start the green
+presentation window when success is first presented, with a bounded retention
+lifetime; do not wait indefinitely for a slow/failed refresh. Never infer absence
+from loading, errors, canceled queries, or a reset page window. Only a successful
+same-scope post-operation refresh can qualify a captured row for departure.
+If success feedback expires before absence is observed, remove the row normally
+on the later refresh; never replay the animation or resurrect an expired snapshot.
+A refresh failure must not turn a committed operation red.
+
+Keep the original 1600ms dwell and 225ms fade as adjustable pilot defaults.
+Expire retained success snapshots by 3000ms after success even if transitionend
+never fires. Processing snapshots stop at unmount/scope change and do not retain
+an absent row indefinitely while a job runs. No new polling or render-loop timers.
+
+Separate operation lifetime from presentation lifetime: navigating clears that
+instance's snapshots, not the shared in-flight operation or task monitor. Include
+owner identity in activity keys and clear on logout/account change; correlate
+completion with operation id, never just entity id. Do not let late completion
+repopulate an old view. Subscribe narrowly to relevant activities; offscreen rows
+must not cause full-table timer ticks. Bound snapshots to rows already loaded at
+begin; never fetch missing rows purely to animate them.
+
+### Missing Code Shape To Implement
+
+```ts
+// Proposed client-only contract; concrete row type stays in Sales Orders.
+type ActivityPhase =
+  | "processing" | "success" | "error" | "canceled"
+  | "review-required" | "unknown";
+type ActivityToken = {
+  ownerId: string;
+  tableId: string;
+  entityId: number;
+  operationId: string;
+};
+type RowPresentation = {
+  phase: ActivityPhase;
+  label: string;
+  retained: boolean;
+  exiting: boolean;
+  interactionDisabled: boolean;
+};
+// begin(descriptor) => ActivityToken[]; synchronous snapshot notification
+// settle(token, outcome) => void; rejects stale operation/owner
+// releaseView(instanceId) => void; removes only instance snapshots
+// resolveSalesTaskOutcomes(intent, output) => per-sale typed outcomes
+// composeRows({ serverRows, snapshots, activities, scopeKey, now })
+//   => { displayRows, presentationByUuid, nextExpiryAt }
+```
+
+Use the existing `queryIdentity` plus owner, table instance and saved-view identity
+for presentation scope (include saved-view identity even when filters are equal).
+Query metadata must resolve ids from that invocation's variables and correlate
+via a per-mutation token map, rather than a mutable shared “last operation” ref.
+No business outcome resolver belongs in the global generic mutation cache.
+
+### P2 — Interaction And Validation Additions
+
+- `aria-disabled` and pointer blocking alone do not disable keyboard actions or
+  portaled menus. Guard actual row/batch handlers and disable nested controls.
+- If focus is inside a departing row, move it to a surviving adjacent row control
+  or the table's stable focus target; do not move unrelated focus. Use one polite
+  status announcement for a batch rather than an announcement per cell.
+- Fade opacity only; no slide that overwrites virtualizer positioning. Reduced
+  motion skips fade, preserves the status dwell and timeout cleanup.
+- Add behavioral tests for synchronous fast completion, final-row-to-empty,
+  mixed task/payment batches, missing outcomes, fallback confirmation, slow/failed
+  refresh, repeated reconciliation, reappearance, stale operation/account/view,
+  unrelated selection, and offscreen expiry without transitionend.
+- Preserve the request-control regression suite and verify exit activity adds
+  zero list requests beyond existing mutation/task event behavior.
+- Browser acceptance must exercise keyboard/portaled actions and focus, as well
+  as sticky columns, dark mode, reduced motion and the existing desktop/mobile
+  matrix. No browser proof or application test result is claimed by this review.
+
+Implementation validation commands (new tests must be added before execution):
+
+```sh
+bun test apps/dashboard/src/components/tables-2/sales-orders apps/dashboard/src/components/tables-2/core apps/dashboard/src/lib/query-events
+bun test apps/dashboard/src/store/table-row-activity.test.ts apps/dashboard/src/hooks/use-table-rows-with-activity.test.ts apps/dashboard/src/hooks/use-task-monitor-effects.test.ts apps/dashboard/src/store/task-monitor-fallback.test.ts
+bun run --filter @gnd/dashboard typecheck
+# Run the installed Biome CLI on changed TS/TSX files; report baseline separately.
+git diff --check
+```
+
+Suggested execution slices: first prove the composer/VirtualRow with fixtures,
+then single and batch payment review end-to-end, then monitored fulfillment with
+per-sale outcomes. Production and other actions remain subsequent pilot slices.
+The original broader rollout approval gates still apply; these amendments take
+precedence over conflicting details in the phases below.
+
 ## Detailed Execution Plan
 
 ### Phase 0 - Baseline And Behavior Matrix
@@ -187,8 +346,8 @@ error sequence `amber -> red -> authoritative row remains`.
    fail the exact queued row activities, including multi-row actions.
 5. Map task monitor states:
    - `SYNCING` -> processing;
-   - `COMPLETED` -> success before/while the existing terminal query event
-     refetches;
+   - `COMPLETED` -> resolve per-sale output as specified in the review update
+     before/while the existing terminal query event refetches;
    - `FAILED` -> error;
    - `CANCELED` -> canceled.
 6. Preserve reload resilience: the task monitor remains authoritative for a

@@ -916,7 +916,7 @@ export const salesRouter = createTRPCRouter({
 		.input(salesProductionQueryParamsSchema)
 		.query(async (props) => {
 			await requireProductionOverviewViewer(props.ctx);
-			return getSalesProductions(props.ctx.db, props.input);
+			return getSalesProductions(props.ctx.db, props.input, { includeInvoice: true });
 		}),
 	productionTasks: protectedProcedure
 		.input(salesProductionQueryParamsSchema)

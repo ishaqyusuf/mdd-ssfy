@@ -1,5 +1,14 @@
 # Progress
 
+## 2026-09-08 — Table row exit feedback plan reviewed
+
+- Reviewed the August 6 plan against current Sales Orders, batch payment review,
+  task outcomes/fallbacks and request-control code. Added concrete file wiring,
+  per-sale outcome mapping, server/display row separation, synchronous capture,
+  bounded retention, focus handling and behavioral validation requirements.
+- Updated `.brain/plans/2026-08-06-ux-ui-table-row-processing-exit-feedback.md`.
+  Implementation remains pending; no runtime, API, database or permissions changed.
+
 ## 2026-09-07 — Production Active count eligibility fixed
 
 - Shared membership restricts candidates to undeleted orders and excludes
@@ -16216,3 +16225,20 @@ regressions: 51 pass, 0 fail, 265 assertions. Palette does not restore legacy
 aggregate-only completion. Truncated Planning empty state describes the loaded
 subset. Authenticated browser checks remain blocked by the locked Mac; no
 Production deployment or database write occurred at this checkpoint.
+
+## 2026-09-08 — Production and Dispatch column alignment
+
+- Admin Production now has Dispatch-style Schedule and Order / Customer,
+  the exact shared Orders Invoice cell, and no Materials column. Worker
+  presentation is preserved. Payment events refresh admin invoice projections.
+- Dispatch adds server-sortable sales Order Date with deterministic pagination
+  and placement in both Schedule/Completed layouts.
+- 135 distinct focused tests pass across finance, date, production, layout,
+  Dispatch sorting and payment-refresh coverage. Sales package typecheck
+  passes. Dashboard's 8GB typecheck completes with existing unrelated errors;
+  changed runtime files were clean after correcting Production row inference.
+- Authenticated local desktop browser checks verify labels/layout, invoice
+  tooltip and colors/review badge, plus ascending/descending/default Dispatch
+  sorting. The browser viewport override did not apply to the target tab, so
+  a true 390px mobile visual check remains unverified. No payment or other
+  business-data mutation, migration or deployment was performed.

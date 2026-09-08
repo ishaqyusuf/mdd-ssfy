@@ -2572,3 +2572,18 @@ and validates requested whole-number quantities against source-derived pending
 total/hand capacity. Client-supplied pending and labor cost are not authority;
 labor cost comes from the matched item. Item/door/shelf identity and production
 capability must match. Post-commit handoff and notification behavior is retained.
+
+## Admin Production invoices and Dispatch Order Date (2026-09-08)
+
+- sales.productions adds nullable invoicePresentation on each page row. Its
+  finance/customer projection supplies the shared Orders invoice UI with
+  canonical CCC totals, amountDue/due, payment account context and the latest
+  successful non-deleted needs_review payment (take: 1).
+- The Sales package enables this projection through server-owned
+  context.includeInvoice; the admin router opts in. Worker requests remain
+  unenriched and return invoicePresentation: null. Enrichment is one query for
+  the returned page IDs, never a per-row query or full-queue payment load.
+- Dispatch list sort values orderDate.asc / orderDate.desc map to the related
+  sales order createdAt, then dispatch id in the same direction. Existing sort
+  keys and default ordering retain their behavior. No schema or permission
+  change is required.

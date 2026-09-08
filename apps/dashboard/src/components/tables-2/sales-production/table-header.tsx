@@ -35,6 +35,7 @@ interface Props<TData> {
 	tableScroll?: TableScrollState;
 	showColumnDividers?: boolean;
 	stickyColumns?: StickyColumnConfig[];
+	workerMode?: boolean;
 }
 
 const HEADER_BACKGROUND_CLASS = "!bg-sidebar-accent";
@@ -53,6 +54,7 @@ export function DataTableHeader<TData>({
 	tableScroll,
 	showColumnDividers = false,
 	stickyColumns = tableConfig.stickyColumns,
+	workerMode = false,
 }: Props<TData>) {
 	const { filters, setFilters } = useSalesProductionFilterParams();
 	const sortColumn =
@@ -217,6 +219,7 @@ export function DataTableHeader<TData>({
 											createSortQuery,
 											table,
 											tableScroll,
+											workerMode,
 										)}
 										<ResizeHandle header={header} />
 									</TableHead>
@@ -243,6 +246,7 @@ export function DataTableHeader<TData>({
 											createSortQuery,
 											table,
 											tableScroll,
+											workerMode,
 										)}
 									</div>
 									<ResizeHandle header={header} />
@@ -264,9 +268,12 @@ function renderHeaderContent<TData>(
 	createSortQuery: (field: string, defaultDirection?: "asc" | "desc") => void,
 	table: Table<TData>,
 	tableScroll?: TableScrollState,
+	workerMode = false,
 ) {
 	const meta = header.column.columnDef.meta as TableColumnMeta | undefined;
-	const label = getHeaderLabel(header);
+	const label = getHeaderLabel(
+		workerMode ? { id: columnId } : header.column.columnDef,
+	);
 	const sortField = meta?.sortField;
 	const isSorted = sortField ? sortColumn === sortField : false;
 	const sortDirection = isSorted ? sortValue : undefined;

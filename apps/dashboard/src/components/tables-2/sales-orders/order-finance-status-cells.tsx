@@ -43,11 +43,29 @@ export type SalesOrderTablePresentation = Pick<
 	| "pipeline"
 >;
 
-function baseInvoiceTotal(item: SalesOrderTablePresentation) {
+export type SalesOrderInvoicePresentation = Pick<
+	SalesOrderTablePresentation,
+	| "id"
+	| "customerId"
+	| "customerPhone"
+	| "accountNo"
+	| "baseInvoiceTotal"
+	| "displayCcc"
+	| "invoiceTotal"
+	| "amountDue"
+	| "due"
+> & {
+	latestPaymentReview: Pick<
+		NonNullable<SalesOrderTablePresentation["latestPaymentReview"]>,
+		"amount" | "origin"
+	> | null;
+};
+
+function baseInvoiceTotal(item: SalesOrderInvoicePresentation) {
 	return item.baseInvoiceTotal ?? item.invoiceTotal;
 }
 
-function amountTone(item: SalesOrderTablePresentation) {
+function amountTone(item: SalesOrderInvoicePresentation) {
 	if (item.amountDue === baseInvoiceTotal(item)) return "text-red-600";
 	if (item.amountDue > 0) return "text-violet-600";
 	return "text-emerald-600";
@@ -130,7 +148,7 @@ export function SalesOrderInvoiceCell({
 	item,
 	canEdit,
 }: {
-	item: SalesOrderTablePresentation;
+	item: SalesOrderInvoicePresentation;
 	canEdit?: boolean;
 }) {
 	const auth = useAuth();
@@ -239,7 +257,7 @@ export function SalesOrderInvoiceCell({
 function PaymentReviewBadge({
 	paymentReview,
 }: {
-	paymentReview: SalesOrderTablePresentation["latestPaymentReview"];
+	paymentReview: SalesOrderInvoicePresentation["latestPaymentReview"];
 }) {
 	if (!paymentReview) return null;
 

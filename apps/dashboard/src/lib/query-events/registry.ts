@@ -51,6 +51,7 @@ const salesQuoteTargets = [
 
 const salesPaymentTargets = [
 	...salesOrderTargets,
+	pathTarget("sales.productions"),
 	pathTarget("sales.getSaleTransactions"),
 	pathTarget("sales.getSalesAccountings"),
 	pathTarget("sales.accountingIndex"),

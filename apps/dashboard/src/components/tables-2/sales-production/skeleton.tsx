@@ -27,7 +27,7 @@ export function SalesProductionSkeleton({
 			columnVisibility={initialSettings?.columns}
 			columnSizing={initialSettings?.sizing}
 			columnOrder={initialSettings?.order}
-			tableConfig={tableConfig}
+			tableConfig={workerMode ? tableConfig : { ...tableConfig, rowHeight: 56 }}
 		/>
 	);
 }

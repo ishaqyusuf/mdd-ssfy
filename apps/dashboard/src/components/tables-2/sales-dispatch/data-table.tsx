@@ -6,6 +6,7 @@ import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useSortParams } from "@/hooks/use-sort-params";
+import { placeDispatchOrderDate } from "./order-date-layout";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
@@ -117,6 +118,11 @@ export function DataTable({
 		showColumnDividers: true,
 	});
 
+	const effectiveColumnOrder = useMemo(
+		() => workspace ? placeDispatchOrderDate(columnOrder, columnIds) : columnOrder,
+		[columnOrder, columnIds, workspace],
+	);
+
 	const routeFilters = useMemo(() => {
 		const {
 			view: _view,
@@ -194,7 +200,7 @@ export function DataTable({
 		state: {
 			columnVisibility,
 			columnSizing,
-			columnOrder,
+			columnOrder: effectiveColumnOrder,
 			rowSelection,
 		},
 	});
@@ -330,7 +336,7 @@ export function DataTable({
 											nonClickableColumns={NON_CLICKABLE_COLUMNS}
 											onCellClick={handleCellClick}
 											columnSizing={columnSizing}
-											columnOrder={columnOrder}
+											columnOrder={effectiveColumnOrder}
 											columnVisibility={columnVisibility}
 											showColumnDividers={showColumnDividers}
 											isSelected={rowSelection[row.id] ?? false}

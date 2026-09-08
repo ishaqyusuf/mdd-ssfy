@@ -4,7 +4,8 @@ import { SalesMenu } from "@/components/sales-menu";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { SalesOrderInvoiceCell } from "@/components/tables-2/sales-orders/order-finance-status-cells";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -18,6 +19,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { getSalesProductionAssignedToLabel } from "./assigned-to-label";
 import { getSalesProductionDueDateClassName } from "./due-date-tone";
+import { getSalesProductionSchedulePresentation } from "./schedule-presentation";
 
 export type SalesProductionRow = Awaited<
 	ReturnType<typeof getSalesProductions>
@@ -76,6 +78,13 @@ const dueDateColumn: Column = {
 	cell: ({ row }) => <DueDateCell item={row.original} />,
 };
 
+const scheduleColumn: Column = {
+	...dueDateColumn,
+	header: "Schedule",
+	meta: { ...dueDateColumn.meta, headerLabel: "Schedule" },
+	cell: ({ row }) => <ScheduleCell item={row.original} />,
+};
+
 const orderDateColumn: Column = {
 	id: "orderDate",
 	header: "Order Date",
@@ -93,27 +102,6 @@ const orderDateColumn: Column = {
 		<span className="truncate text-muted-foreground">
 			{row.original.createdAt ? formatDate(row.original.createdAt) : "-"}
 		</span>
-	),
-};
-
-const orderColumn: Column = {
-	id: "orderId",
-	header: "Order #",
-	accessorKey: "orderId",
-	...sizes.custom(110, 170, 130),
-	enableResizing: true,
-	meta: {
-		skeleton: { type: "text", width: "w-24" },
-		headerLabel: "Order #",
-		className: sizeClass(sizes.custom(110, 170, 130)),
-	},
-	cell: ({ row }) => (
-		<div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
-			<span className="truncate font-mono text-sm font-semibold uppercase">
-				{row.original.orderId}
-			</span>
-			<SalesPriorityBadge priority={row.original.priority} />
-		</div>
 	),
 };
 
@@ -148,20 +136,28 @@ const salesColumn: Column = {
 
 const customerColumn: Column = {
 	id: "customer",
-	header: "Customer",
+	header: "Order / Customer",
 	accessorFn: (row) => row.customer,
-	...sizes.custom(170, 320, 220),
+	...sizes.custom(180, 320, 220),
 	enableResizing: true,
 	meta: {
-		skeleton: { type: "text", width: "w-36" },
-		headerLabel: "Customer",
-		className: sizeClass(sizes.custom(170, 320, 220)),
+		skeleton: { type: "text", width: "w-32" },
+		headerLabel: "Order / Customer",
+		className: sizeClass(sizes.custom(180, 320, 220)),
 	},
 	cell: ({ row }) => (
-		<TextWithTooltip
-			className="max-w-full truncate font-medium uppercase"
-			text={row.original.customer || "Customer unavailable"}
-		/>
+		<div className="flex min-w-0 flex-col gap-1">
+			<div className="flex min-w-0 items-center gap-1.5">
+				<span className="truncate font-mono text-sm font-semibold">
+					{row.original.orderId}
+				</span>
+				<SalesPriorityBadge priority={row.original.priority} />
+			</div>
+			<TextWithTooltip
+				className="max-w-full truncate text-xs text-muted-foreground"
+				text={row.original.customer || "Customer unavailable"}
+			/>
+		</div>
 	),
 };
 
@@ -225,49 +221,21 @@ const salesRepColumn: Column = {
 const invoiceColumn: Column = {
 	id: "invoice",
 	header: "Invoice",
-	accessorFn: (row) => row.invoice.total,
-	...sizes.custom(150, 230, 180),
+	accessorFn: (row) => row.invoicePresentation?.invoiceTotal,
+	...sizes.custom(110, 180, 124),
 	enableResizing: true,
 	enableSorting: false,
 	meta: {
-		skeleton: { type: "text", width: "w-28" },
+		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Invoice",
-		className: sizeClass(sizes.custom(150, 230, 180), "text-right"),
+		className: sizeClass(sizes.custom(110, 180, 124), "text-right"),
 	},
-	cell: ({ row }) => {
-		const invoice = row.original.invoice;
-		const isPaid = invoice.status === "paid";
-		const statusLabel =
-			invoice.status === "unknown"
-				? "Not set"
-				: isPaid
-					? "Paid"
-					: "Outstanding";
-
-		return (
-			<div
-				className="flex min-w-0 items-center justify-end gap-2"
-				aria-label={`Invoice ${statusLabel}`}
-			>
-				<span className="truncate font-mono text-sm font-medium">
-					{invoice.total == null ? "-" : formatCurrency.format(invoice.total)}
-				</span>
-				<Badge
-					variant="outline"
-					className={cn(
-						"h-5 shrink-0 rounded-full px-1.5 text-[9px] font-semibold uppercase",
-						isPaid
-							? "border-emerald-200 bg-emerald-50 text-emerald-700"
-							: invoice.status === "outstanding"
-								? "border-amber-200 bg-amber-50 text-amber-700"
-								: "text-muted-foreground",
-					)}
-				>
-					{statusLabel}
-				</Badge>
-			</div>
-		);
-	},
+	cell: ({ row }) =>
+		row.original.invoicePresentation ? (
+			<SalesOrderInvoiceCell item={row.original.invoicePresentation} />
+		) : (
+			<span className="text-muted-foreground">—</span>
+		),
 };
 
 const statusColumn: Column = {
@@ -388,15 +356,13 @@ const actionsColumn: Column = {
 
 export const columns: Column[] = [
 	selectColumn,
-	dueDateColumn,
+	scheduleColumn,
 	orderDateColumn,
 	assignedToColumn,
 	assignedAtColumn,
 	customerColumn,
-	orderColumn,
 	invoiceColumn,
 	salesRepColumn,
-	materialsColumn,
 	statusColumn,
 	progressColumn,
 	actionsColumn,
@@ -411,6 +377,26 @@ export const workerColumns: Column[] = [
 	progressColumn,
 	actionsColumn,
 ];
+
+export function ScheduleCell({ item }: { item: SalesProductionRow }) {
+	const dueDate = item.dueDate || item.alert?.date;
+	const presentation = getSalesProductionSchedulePresentation(dueDate);
+	return (
+		<div className="flex min-w-0 flex-col gap-1">
+			<span
+				className={cn(
+					"truncate font-medium",
+					getSalesProductionDueDateClassName(dueDate, item.completed),
+				)}
+			>
+				{presentation.date}
+			</span>
+			<span className="truncate text-xs text-muted-foreground">
+				{presentation.label}
+			</span>
+		</div>
+	);
+}
 
 function DueDateCell({ item }: { item: SalesProductionRow }) {
 	const dueDate = item.dueDate || item.alert?.date;

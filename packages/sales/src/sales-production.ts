@@ -4,6 +4,7 @@ import dayjs, { formatDate } from "@gnd/utils/dayjs";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { salesOrderListProjectionVersion } from "./order-list-read-model";
 import { getProductionCalendarPresentation } from "./production-calendar-presentation";
+import { withProductionInvoices } from "./production-invoice-presentation";
 import {
 	getSalesPriorityLabel,
 	getSalesPriorityRank,
@@ -69,9 +70,22 @@ type SalesProductionListQuery = SalesProductionQueryParams & {
 
 type SalesProductionCanonicalContext = {
 	canonicalMembership?: CanonicalProductionStageMembership;
+	includeInvoice?: boolean;
 };
 
 export async function getSalesProductions(
+	db: Db,
+	input: SalesProductionListQuery,
+	context: SalesProductionCanonicalContext = {},
+) {
+	const page = await getSalesProductionPage(db, input, context);
+	return {
+		...page,
+		data: await withProductionInvoices(db, page.data, context.includeInvoice === true && !input.workerId),
+	};
+}
+
+async function getSalesProductionPage(
 	db: Db,
 	input: SalesProductionListQuery,
 	context: SalesProductionCanonicalContext = {},
@@ -1302,7 +1316,7 @@ async function attachCanonicalProductionPipelines<
 	);
 	return {
 		...response,
-		data: response.data.map((row) => {
+		data: response.data.map((row: T["data"][number]) => {
 			const snapshot = snapshots.get(row.id) ?? null;
 			const pipeline = snapshot;
 			const completed = pipeline
@@ -1324,7 +1338,7 @@ async function attachCanonicalProductionPipelines<
 								workflow: canonicalWorkflow,
 							},
 						}
-					: row.status,
+					: undefined,
 				pipeline,
 			};
 		}),

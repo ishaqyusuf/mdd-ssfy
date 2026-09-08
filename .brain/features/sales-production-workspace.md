@@ -1039,3 +1039,27 @@ Provide a cleaner production operations surface for both admins and production w
 
 - Sales Production hides the Sales Rep column by default through the shared table settings. Users can enable it in the column picker; an explicitly saved visibility preference still takes precedence.
 - Direct visibility checks pass. The targeted table-settings/Production UI guard run has 11 passing tests and one unrelated failure in the unchanged Calendar source assertion (`migration-parity.test.ts:163`).
+
+## Admin table alignment with Dispatch and Orders (2026-09-08)
+
+- Admin Due Date is now Schedule: an absolute calendar date above Today,
+  Tomorrow, overdue, or future-day context; missing/invalid dates show
+  Unscheduled / Schedule required. Production calendar semantics and completed
+  date coloring remain unchanged.
+- One Order / Customer column displays the order number and priority above
+  customer text. It keeps the existing customer column identity/preferences;
+  the separate order-number and Materials columns are removed from admin
+  definitions and the picker. Shared settings discard obsolete order entries.
+- Invoice reuses the exact Orders cell, including CCC-corrected totals, balance
+  colors, payment breakdown, review badges and permission-aware Apply Payment.
+  Admin mobile cards share the invoice cell outside the order-opening button
+  and omit Materials. Admin rows/skeletons use 56px for the two-line cells.
+- Admin list results receive one page-bounded invoice query with at most one
+  qualifying latest payment review per order. Worker requests do not perform
+  this query; worker columns, date cells, row height and header labels remain
+  unchanged. Payment/review events now invalidate sales.productions.
+- Focused financial, date, layout, sorting, production and query-event tests
+  pass. Authenticated local browser verification covers admin layout, red/
+  violet/green invoice colors, review badges and the payment-breakdown tooltip.
+  No payment was submitted. Dashboard typecheck still has unrelated existing
+  diagnostics; affected runtime files were clean after the row-type fix.

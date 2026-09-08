@@ -720,3 +720,18 @@ Removed after import scans:
   boundary helper, then applies canonical lifecycle membership before final
   pagination. This avoids scanning historical completed dispatches while
   keeping lifecycle projection authoritative.
+
+## Sortable Order Date (2026-09-08)
+
+- The current Dispatch workspace table adds Order Date after Schedule, or
+  after Completed in the completed variant. It displays the associated sales
+  order createdAt, with an em dash if unavailable.
+- Header clicks use the existing ascending / descending / default URL sort
+  cycle. Server orderDate sorting maps to order.createdAt with dispatch ID as
+  a deterministic tie-breaker before pagination and section-membership scans.
+- Saved layouts place the new column beside the schedule/completion date
+  without resetting other column preferences. Legacy/driver tables retain
+  their existing column definitions.
+- Authenticated local All-view browser checks verify both sort directions and
+  reset to the default URL. Focused tests cover server pagination mapping,
+  unchanged default sorts and placement in Schedule/Completed layouts.

@@ -13,7 +13,7 @@ import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
-import { formatCurrency } from "@/lib/utils";
+import { SalesOrderInvoiceCell } from "@/components/tables-2/sales-orders/order-finance-status-cells";
 import { useTRPC } from "@/trpc/client";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
@@ -39,6 +39,7 @@ import {
 	placeOrderDateAfterDueDate,
 } from "./column-layout";
 import {
+	ScheduleCell,
 	type SalesProductionRow,
 	columns,
 	getSalesProductionRowId,
@@ -50,7 +51,7 @@ import { DataTableHeader } from "./table-header";
 
 const NON_CLICKABLE_COLUMNS = new Set(["select", "actions"]);
 const TABLE_ID = "sales-production";
-const tableConfig = TABLE_CONFIGS[TABLE_ID];
+const defaultTableConfig = TABLE_CONFIGS[TABLE_ID];
 
 type SalesProductionInput = RouterInputs["sales"]["productions"];
 type SalesProductionPage = {
@@ -71,6 +72,9 @@ export function DataTable({
 	defaultFilters,
 	workerMode,
 }: Props) {
+	const tableConfig = workerMode
+		? defaultTableConfig
+		: { ...defaultTableConfig, rowHeight: 56 };
 	const trpc = useTRPC();
 	const { filters, hasFilters } = useSalesProductionFilterParams();
 	const overviewQuery = useSalesOverviewQuery();
@@ -271,56 +275,69 @@ export function DataTable({
 										/>
 									</div>
 								)}
-								<button
-									type="button"
-									onClick={() => handleCellClick(rowId)}
-									className="min-h-11 min-w-0 flex-1 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-								>
-									<div className="flex items-start justify-between gap-3">
-										<div className="min-w-0">
-											<div className="flex items-center gap-2">
-												<span className="font-mono text-sm font-semibold uppercase">
-													{item.orderId}
-												</span>
-												<SalesPriorityBadge priority={item.priority} />
+								<div className="min-w-0 flex-1">
+									<button
+										type="button"
+										onClick={() => handleCellClick(rowId)}
+										className="min-h-11 w-full min-w-0 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+									>
+										<div className="flex items-start justify-between gap-3">
+											<div className="min-w-0">
+												<div className="flex items-center gap-2">
+													<span className="font-mono text-sm font-semibold uppercase">
+														{item.orderId}
+													</span>
+													<SalesPriorityBadge priority={item.priority} />
+												</div>
+												<p className="mt-1 truncate text-sm font-medium uppercase">
+													{item.customer || "Customer unavailable"}
+												</p>
 											</div>
-											<p className="mt-1 truncate text-sm font-medium uppercase">
-												{item.customer || "Customer unavailable"}
-											</p>
+											<Badge variant="secondary" className="shrink-0">
+												{item.status?.production?.workflow?.label ||
+													item.status?.production?.status ||
+													"Not assigned"}
+											</Badge>
 										</div>
-										<Badge variant="secondary" className="shrink-0">
-											{item.status?.production?.workflow?.label ||
-												item.status?.production?.status ||
-												"Not assigned"}
-										</Badge>
-									</div>
-									<div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-										<MobileCardField
-											label="Due"
-											value={
-												item.dueDateLabel || item.alert?.text || "No due date"
-											}
-										/>
-										<MobileCardField
-											label="Assigned"
-											value={getSalesProductionAssignedToLabel(item)}
-										/>
-										<MobileCardField
-											label="Materials"
-											value={materialStateLabel(item.materials.state)}
-										/>
-										{workerMode ? null : (
+										<div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+											{workerMode ? (
+												<MobileCardField
+													label="Due"
+													value={
+														item.dueDateLabel ||
+														item.alert?.text ||
+														"No due date"
+													}
+												/>
+											) : (
+												<ScheduleCell item={item} />
+											)}
 											<MobileCardField
-												label="Invoice"
-												value={productionInvoiceLabel(item)}
+												label="Assigned"
+												value={getSalesProductionAssignedToLabel(item)}
 											/>
-										)}
-										<MobileCardField
-											label="Progress"
-											value={`${Math.round(item.status?.production?.workflow?.percentage || 0)}%`}
-										/>
-									</div>
-								</button>
+											{workerMode ? (
+												<MobileCardField
+													label="Materials"
+													value={materialStateLabel(item.materials.state)}
+												/>
+											) : null}
+											<MobileCardField
+												label="Progress"
+												value={`${Math.round(item.status?.production?.workflow?.percentage || 0)}%`}
+											/>
+										</div>
+									</button>
+									{!workerMode && item.invoicePresentation ? (
+										<div
+											className="flex items-center justify-between px-3 pb-3 text-xs"
+											aria-label="Invoice"
+										>
+											<span className="text-muted-foreground">Invoice</span>
+											<SalesOrderInvoiceCell item={item.invoicePresentation} />
+										</div>
+									) : null}
+								</div>
 							</div>
 						);
 					})}
@@ -358,6 +375,7 @@ export function DataTable({
 								table={table}
 								tableScroll={tableScroll}
 								stickyColumns={activeStickyColumns}
+								workerMode={workerMode}
 								showColumnDividers={showColumnDividers}
 							/>
 
@@ -429,13 +447,4 @@ function materialStateLabel(state: SalesProductionRow["materials"]["state"]) {
 	if (state === "pending") return "Pending";
 	if (state === "not_configured") return "Needs review";
 	return "Unavailable";
-}
-
-function productionInvoiceLabel(item: SalesProductionRow) {
-	const invoice = item.invoice;
-	if (invoice.status === "unknown" || invoice.total == null) return "Not set";
-	if (invoice.status === "paid") {
-		return `Paid · ${formatCurrency.format(invoice.total)}`;
-	}
-	return `Due ${formatCurrency.format(invoice.amountDue || 0)}`;
 }
