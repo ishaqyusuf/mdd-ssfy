@@ -20,7 +20,7 @@ Implement the [reviewed plan](../plans/2026-08-06-ux-ui-table-row-processing-exi
 Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 
 ## Implementation Progress
-- Completion: 70%
+- Completion: 80%
 - Current Checklist: 7/10 — Validate production/cancellation and remaining pilot action adapters
 - Blockers: Authenticated fixture QA awaits explicit authorization; additional action rollout awaits pilot acceptance
 
@@ -34,7 +34,7 @@ Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 - [ ] Validate production/cancellation and remaining pilot action adapters
 - [x] Run focused/full relevant tests, typecheck and code review
 - [ ] Complete authenticated browser acceptance and timing/rollout decision
-- [ ] Update feature/architecture documentation and commit scoped work
+- [x] Update feature/architecture documentation and commit scoped work
 
 ## Validation Evidence
 - Worktree is master; unrelated existing changes will be preserved.
@@ -196,3 +196,10 @@ absence. No API changes are needed to preserve this distinction.
   browser tests, review fixes and documentation are complete for this checkpoint.
   Remaining scope: authenticated payment/fulfillment acceptance, operator timing
   approval, gated additional pilot actions, and final acceptance/closure commit.
+
+- Implementation checkpoint committed on master as `8e181b3a8` (38 scoped files).
+  Generated browser bundles and unrelated concurrent application/Brain changes
+  were excluded. Feature/architecture docs and task pointers are committed.
+- Completion:8/10 checklist items (80%). Items7 and9 remain: gated additional
+  pilot action adapters and authenticated browser/operator acceptance. This
+  checkpoint is not a completed rollout or deployment.
