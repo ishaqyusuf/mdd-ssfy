@@ -1,7 +1,7 @@
 # Task: Table Row Processing And Exit Feedback
 
 ## Status
-In Progress
+Blocked
 
 ## Priority
 Medium
@@ -22,7 +22,7 @@ Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 ## Implementation Progress
 - Completion: 80%
 - Current Checklist: 7/10 — Validate production/cancellation and remaining pilot action adapters
-- Blockers: None for approved local payment fixture QA; broader pilot acceptance remains pending
+- Blockers: Operator timing/color acceptance and an authorized disposable fulfillment fixture are pending
 
 ## Implementation Checklist
 - [x] Establish activity lifecycle and outcome contract with behavioral tests
@@ -255,3 +255,8 @@ absence. No API changes are needed to preserve this distinction.
   approval for1600ms success dwell/225ms fade and colors. The temporary
   `public/_qa-row-feedback` bundle is intentionally uncommitted while the user
   reviews it; remove it again before delivery. No new rollout approval assumed.
+
+- Acceptance blocker revalidated across three consecutive continuations after
+  mobile QA. No approval or disposable fulfillment order was supplied. Prior
+  turn was no progress (read-only acceptance audit); no new test run was needed.
+  Marked Blocked at80%; resume the same scope when those inputs arrive.

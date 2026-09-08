@@ -1,7 +1,7 @@
 # In Progress
 
 ### [Table Row Processing And Exit Feedback](2026-09-08-table-row-processing-exit-feedback.md)
-- Status: In Progress
+- Status: Blocked
 
 ### [GND Mobile Screen-by-Screen Redesign](2026-09-04-gnd-mobile-screen-by-screen-redesign.md)
 - Status: In Progress
