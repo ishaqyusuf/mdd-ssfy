@@ -16352,3 +16352,13 @@ changes, existing-review preservation and shared-stock contention. Authenticated
 admin fixture receipt passes and cleans up (1 test /4 assertions); the30-file
 relevant regression matrix and Sales/API types pass. Dashboard/root baseline type
 failures remain documented. Current task83%; scoped review and commit remain.
+
+### 2026-09-08 — Production receipt implementation complete
+
+Completed12/12 checks and committed the scoped implementation as43f464b92 on
+master. Both review axes clear;30 relevant test files,9 concurrent DB tests /99
+assertions,5 rollback-only scenarios /62 assertions and authenticated browser
+receipt /4 assertions pass. Sales/API types pass; broad Dashboard/Inventory/Jobs
+and root baseline diagnostics are documented in the task. No deployment, hosted
+data mutation or worker-policy enablement. Follow-up cancellation/reconciliation
+and primary/secondary status presentation remain queued separately.

@@ -1,7 +1,7 @@
 # Production status clarity and worker inbound receipt
 
 ## Status
-In Progress
+Done
 
 ## Priority
 High
@@ -26,8 +26,8 @@ the new primary/secondary attention presentation are explicitly queued in the
 [follow-up](2026-09-08-production-receipt-follow-up-and-cancel-review.md).
 
 ## Implementation Progress
-- Completion: 92%
-- Current Checklist: 12/12 — Scoped commit and task closure
+- Completion: 100%
+- Current Checklist: 12/12 — Complete
 - Blockers: None
 
 ## Implementation Checklist
@@ -43,10 +43,10 @@ the new primary/secondary attention presentation are explicitly queued in the
 - [x] Run downstream submission/review/payroll/packing/dispatch/payment regression coverage.
 - [x] Complete authenticated UI checks, relevant typechecks and Brain documentation/ADR.
 - [x] Complete final code review and migration conformance audit; resolve findings.
-- [ ] Commit only this task's changes on the current branch and complete the task ledger.
+- [x] Commit only this task's changes on the current branch and complete the task ledger.
 
 
-Completion is 11/12 = 92%. Scoped commit and task closure are still required.
+Completion is 12/12 = 100%. Implementation commit: `43f464b92`.
 
 ## Migration Contract and Conformance
 Existing order-sheet/controller, active tabs, URL state, Inventory destination,
@@ -120,9 +120,10 @@ ADR: [Scoped receipt](../decisions/2026-09-08-scoped-production-inbound-receipt.
 Brain impact: Production feature, API contracts/permissions, plan, task/progress and
 follow-up backlog updated. Database schema unchanged; audit uses existing Event.
 
-## Remaining delivery work
-Final regression and review passed; commit only this scope
-on master, and move the task pointer to Done. Unrelated concurrent edits must remain.
+## Delivery
+Final regression and both review axes passed. Scoped implementation committed on
+master as `43f464b92`; task pointer moved to Done. Unrelated concurrent edits remain
+uncommitted and were excluded. No deployment or operational setting change.
 The worker operational trial and queued follow-up are not silently enabled.
 
 Final Inventory and Jobs typechecks ran and retain pre-existing Errors NodeNext,

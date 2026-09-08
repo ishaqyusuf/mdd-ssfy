@@ -1,5 +1,9 @@
 # Done
 
+### [Production status clarity and worker inbound receipt](2026-09-08-production-status-and-worker-inbound-receipt.md)
+- Status: Done
+
+
 ### [Completion modal simplification and actor activity](2026-09-07-completion-modal-and-actor-activity.md)
 - Status: Done
 
