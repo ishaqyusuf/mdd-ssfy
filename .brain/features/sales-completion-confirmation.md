@@ -20,4 +20,11 @@ was cancelled to restore the prior operational state, retaining audit history.
 Batch date-picker acceptance passed for two selected orders: business-today
 default, edited date, explicit clear and cancel without submission. The editable
 effective date applies to Status only; Full workflow retains operational proof
-dates. This is not a production release claim.
+dates. Production release and read-only acceptance passed2026-09-08.
+
+Production release is tracked separately in
+`.scratch/sales-pipeline-lifecycle-implementation/tickets20-21-release-handoff.md`;
+the prior Ticket19 authorization excluded20/21. User confirmed the new release
+on2026-09-08. Deployment dpl_9XPRNCrFMxibkMjPsBWvEqrxsqxS is READY and serves
+www.gndprodesk.com. Live two-order confirmation/default/edit/cancel checks pass;
+no completion command was submitted during production QA. Ticket21 is complete.
