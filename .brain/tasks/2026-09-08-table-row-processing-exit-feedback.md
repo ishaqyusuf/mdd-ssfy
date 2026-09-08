@@ -244,3 +244,14 @@ absence. No API changes are needed to preserve this distinction.
 - Focused reviewer found no blocking lookup/reset issues and independently passed
   both new tests. Broader mixed-payment query ordering remains a validation gap;
   only the approved zero-amount fixture was used for live data proof.
+- Authenticated mobile payment QA at390×844 passed: restored the same approved
+  fixture, clicked the single-row Reviewed action, observed inert success and
+  Payment reviewed text, then No results. Document overflow was false before and
+  after. Viewport restored. SQL verified order/payment soft-deleted at
+  2026-09-08T20:03:30Z with payment reviewStatus=reviewed.
+- Requested a disposable local fulfillment order number: the approved payment
+  fixture has no operational setup and cannot prove successful fulfillment.
+- Prepared a local visual preview in the browser panel and requested operator
+  approval for1600ms success dwell/225ms fade and colors. The temporary
+  `public/_qa-row-feedback` bundle is intentionally uncommitted while the user
+  reviews it; remove it again before delivery. No new rollout approval assumed.
