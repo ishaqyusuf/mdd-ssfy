@@ -1,7 +1,7 @@
 # Task: Table Row Processing And Exit Feedback
 
 ## Status
-Blocked
+In Progress
 
 ## Priority
 Medium
@@ -22,7 +22,7 @@ Shared opt-in row activity and table-local retention; Sales Orders pilot first.
 ## Implementation Progress
 - Completion: 80%
 - Current Checklist: 7/10 — Validate production/cancellation and remaining pilot action adapters
-- Blockers: Authenticated fixture QA awaits explicit authorization; additional action rollout awaits pilot acceptance
+- Blockers: None for approved local payment fixture QA; broader pilot acceptance remains pending
 
 ## Implementation Checklist
 - [x] Establish activity lifecycle and outcome contract with behavioral tests
@@ -203,3 +203,29 @@ absence. No API changes are needed to preserve this distinction.
 - Completion:8/10 checklist items (80%). Items7 and9 remain: gated additional
   pilot action adapters and authenticated browser/operator acceptance. This
   checkpoint is not a completed rollout or deployment.
+
+- User approved the prepared local zero-amount payment fixture QA. Created marked
+  synthetic order27347 (QA-ROW-FEEDBACK-20260908) on127.0.0.1:3307/gnd-prisma2.
+  UI review and scoped cleanup are now in progress.
+
+## Approved Local Payment QA — 2026-09-08
+
+- User explicitly authorized the prepared zero-amount payment fixture, UI review
+  and cleanup. Local target revalidated; created order27347/payment9350 with the
+  QA-ROW-FEEDBACK-20260908 marker. No existing business records changed.
+- Authenticated `/sales-book/orders?q=QA-ROW-FEEDBACK&paymentReview=needs_review`
+  displayed only the fixture. Selected that row and used Mark as → Reviewed.
+- Immediate DOM inspection after the UI mutation observed success phase,
+  `inert=true`, and Payment reviewed text. A later snapshot showed No results,
+  no batch selection bar, and Payment Review saved-tab count104→103.
+- Did not directly observe the brief processing phase or measure the success
+  dwell in this real mutation. Prior synthetic timing checks remain separate.
+- Single-row Reviewed was disabled despite the fixture matching the review queue;
+  batch review succeeded. This needs investigation before claiming single-row
+  authenticated acceptance. No UI bypass or API call substituted for the action.
+- Scoped cleanup completed. Explicit read-only SQL including deleted rows verified
+  order27347 and payment9350 both soft-deleted at2026-09-08T19:56:02Z; amount0,
+  reviewStatus=reviewed, reviewMethod=manual. Normal app reads exclude the fixture.
+- This completes the approved batch-review fixture exercise, not the full pilot:
+  single-row behavior, authenticated fulfillment/mobile/failure/reduced-motion
+  coverage and operator acceptance remain. Completion remains80%.
